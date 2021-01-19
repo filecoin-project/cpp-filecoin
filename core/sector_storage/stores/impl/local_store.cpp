@@ -58,7 +58,7 @@ namespace fc::sector_storage::stores {
 
   outcome::result<AcquireSectorResponse> LocalStoreImpl::acquireSector(
       SectorId sector,
-      RegisteredProof seal_proof_type,
+      RegisteredSealProof seal_proof_type,
       SectorFileType existing,
       SectorFileType allocate,
       PathType path_type,
@@ -239,7 +239,9 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<void> LocalStoreImpl::moveStorage(
-      SectorId sector, RegisteredProof seal_proof_type, SectorFileType types) {
+      SectorId sector,
+      RegisteredSealProof seal_proof_type,
+      SectorFileType types) {
     OUTCOME_TRY(dest,
                 acquireSector(sector,
                               seal_proof_type,
@@ -435,7 +437,7 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<std::function<void()>> LocalStoreImpl::reserve(
-      RegisteredProof seal_proof_type,
+      RegisteredSealProof seal_proof_type,
       SectorFileType file_type,
       const SectorPaths &storages,
       PathType path_type) {

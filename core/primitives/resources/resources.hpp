@@ -8,12 +8,13 @@
 
 #include <boost/optional.hpp>
 #include <map>
+#include <primitives/sector/sector.hpp>
 #include "primitives/seal_tasks/task.hpp"
 #include "primitives/sector/sector.hpp"
 
 namespace fc::primitives {
 
-  using fc::primitives::sector::RegisteredProof;
+  using fc::primitives::sector::RegisteredSealProof;
 
   struct Resources {
     uint64_t min_memory;  // What Must be in RAM for decent perf
@@ -33,10 +34,10 @@ namespace fc::primitives {
            && lhs.base_min_memory == rhs.base_min_memory;
   }
 
-  const std::map<std::pair<TaskType, RegisteredProof>, Resources>
+  const std::map<std::pair<TaskType, RegisteredSealProof>, Resources>
       kResourceTable = {
           // Add Piece
-          {std::pair(kTTAddPiece, RegisteredProof::StackedDRG64GiBSeal),
+          {std::pair(kTTAddPiece, RegisteredSealProof::StackedDrg64GiBV1),
            Resources{
                .min_memory = uint64_t(64) << 30,
                .max_memory = uint64_t(64) << 30,
@@ -44,7 +45,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 1 << 30,
            }},
-          {std::pair(kTTAddPiece, RegisteredProof::StackedDRG32GiBSeal),
+          {std::pair(kTTAddPiece, RegisteredSealProof::StackedDrg32GiBV1),
            Resources{
                .min_memory = uint64_t(64) << 30,
                .max_memory = uint64_t(64) << 30,
@@ -52,7 +53,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 1 << 30,
            }},
-          {std::pair(kTTAddPiece, RegisteredProof::StackedDRG512MiBSeal),
+          {std::pair(kTTAddPiece, RegisteredSealProof::StackedDrg512MiBV1),
            Resources{
                .min_memory = 1 << 30,
                .max_memory = 1 << 30,
@@ -60,7 +61,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 1 << 30,
            }},
-          {std::pair(kTTAddPiece, RegisteredProof::StackedDRG8MiBSeal),
+          {std::pair(kTTAddPiece, RegisteredSealProof::StackedDrg8MiBV1),
            Resources{
                .min_memory = 8 << 20,
                .max_memory = 8 << 20,
@@ -68,7 +69,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 8 << 20,
            }},
-          {std::pair(kTTAddPiece, RegisteredProof::StackedDRG2KiBSeal),
+          {std::pair(kTTAddPiece, RegisteredSealProof::StackedDrg2KiBV1),
            Resources{
                .min_memory = 2 << 10,
                .max_memory = 2 << 10,
@@ -78,7 +79,7 @@ namespace fc::primitives {
            }},
 
           // PreCommit1
-          {std::pair(kTTPreCommit1, RegisteredProof::StackedDRG64GiBSeal),
+          {std::pair(kTTPreCommit1, RegisteredSealProof::StackedDrg64GiBV1),
            Resources{
                .min_memory = uint64_t(112) << 30,
                .max_memory = uint64_t(128) << 30,
@@ -86,7 +87,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 10 << 20,
            }},
-          {std::pair(kTTPreCommit1, RegisteredProof::StackedDRG32GiBSeal),
+          {std::pair(kTTPreCommit1, RegisteredSealProof::StackedDrg32GiBV1),
            Resources{
                .min_memory = uint64_t(56) << 30,
                .max_memory = uint64_t(64) << 30,
@@ -94,7 +95,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 1 << 30,
            }},
-          {std::pair(kTTPreCommit1, RegisteredProof::StackedDRG512MiBSeal),
+          {std::pair(kTTPreCommit1, RegisteredSealProof::StackedDrg512MiBV1),
            Resources{
                .min_memory = 768 << 20,
                .max_memory = 1 << 30,
@@ -102,7 +103,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 1 << 20,
            }},
-          {std::pair(kTTPreCommit1, RegisteredProof::StackedDRG8MiBSeal),
+          {std::pair(kTTPreCommit1, RegisteredSealProof::StackedDrg8MiBV1),
            Resources{
                .min_memory = 8 << 20,
                .max_memory = 8 << 20,
@@ -110,7 +111,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 8 << 20,
            }},
-          {std::pair(kTTPreCommit1, RegisteredProof::StackedDRG2KiBSeal),
+          {std::pair(kTTPreCommit1, RegisteredSealProof::StackedDrg2KiBV1),
            Resources{
                .min_memory = 2 << 10,
                .max_memory = 2 << 10,
@@ -120,7 +121,7 @@ namespace fc::primitives {
            }},
 
           // PreCommit2
-          {std::pair(kTTPreCommit2, RegisteredProof::StackedDRG64GiBSeal),
+          {std::pair(kTTPreCommit2, RegisteredSealProof::StackedDrg64GiBV1),
            Resources{
                .min_memory = uint64_t(64) << 30,
                .max_memory = uint64_t(64) << 30,
@@ -128,7 +129,7 @@ namespace fc::primitives {
                .can_gpu = true,
                .base_min_memory = uint64_t(60) << 30,
            }},
-          {std::pair(kTTPreCommit2, RegisteredProof::StackedDRG32GiBSeal),
+          {std::pair(kTTPreCommit2, RegisteredSealProof::StackedDrg32GiBV1),
            Resources{
                .min_memory = uint64_t(32) << 30,
                .max_memory = uint64_t(32) << 30,
@@ -136,7 +137,7 @@ namespace fc::primitives {
                .can_gpu = true,
                .base_min_memory = uint64_t(30) << 30,
            }},
-          {std::pair(kTTPreCommit2, RegisteredProof::StackedDRG512MiBSeal),
+          {std::pair(kTTPreCommit2, RegisteredSealProof::StackedDrg512MiBV1),
            Resources{
                .min_memory = uint64_t(1) << 30,
                .max_memory = uint64_t(3) << 29,
@@ -144,7 +145,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = uint64_t(1) << 30,
            }},
-          {std::pair(kTTPreCommit2, RegisteredProof::StackedDRG8MiBSeal),
+          {std::pair(kTTPreCommit2, RegisteredSealProof::StackedDrg8MiBV1),
            Resources{
                .min_memory = uint64_t(8) << 20,
                .max_memory = uint64_t(8) << 20,
@@ -152,7 +153,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = uint64_t(8) << 20,
            }},
-          {std::pair(kTTPreCommit2, RegisteredProof::StackedDRG2KiBSeal),
+          {std::pair(kTTPreCommit2, RegisteredSealProof::StackedDrg2KiBV1),
            Resources{
                .min_memory = uint64_t(2) << 10,
                .max_memory = uint64_t(2) << 10,
@@ -162,7 +163,7 @@ namespace fc::primitives {
            }},
 
           // Commit1
-          {std::pair(kTTCommit1, RegisteredProof::StackedDRG64GiBSeal),
+          {std::pair(kTTCommit1, RegisteredSealProof::StackedDrg64GiBV1),
            Resources{
                .min_memory = uint64_t(1) << 30,
                .max_memory = uint64_t(1) << 30,
@@ -170,7 +171,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = uint64_t(1) << 30,
            }},
-          {std::pair(kTTCommit1, RegisteredProof::StackedDRG32GiBSeal),
+          {std::pair(kTTCommit1, RegisteredSealProof::StackedDrg32GiBV1),
            Resources{
                .min_memory = uint64_t(1) << 30,
                .max_memory = uint64_t(1) << 30,
@@ -178,7 +179,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = uint64_t(1) << 30,
            }},
-          {std::pair(kTTCommit1, RegisteredProof::StackedDRG512MiBSeal),
+          {std::pair(kTTCommit1, RegisteredSealProof::StackedDrg512MiBV1),
            Resources{
                .min_memory = uint64_t(1) << 30,
                .max_memory = uint64_t(1) << 30,
@@ -186,7 +187,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = uint64_t(1) << 30,
            }},
-          {std::pair(kTTCommit1, RegisteredProof::StackedDRG8MiBSeal),
+          {std::pair(kTTCommit1, RegisteredSealProof::StackedDrg8MiBV1),
            Resources{
                .min_memory = uint64_t(8) << 20,
                .max_memory = uint64_t(8) << 20,
@@ -194,7 +195,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = uint64_t(8) << 20,
            }},
-          {std::pair(kTTCommit1, RegisteredProof::StackedDRG2KiBSeal),
+          {std::pair(kTTCommit1, RegisteredSealProof::StackedDrg2KiBV1),
            Resources{
                .min_memory = uint64_t(2) << 10,
                .max_memory = uint64_t(2) << 10,
@@ -204,7 +205,7 @@ namespace fc::primitives {
            }},
 
           // Commit2
-          {std::pair(kTTCommit2, RegisteredProof::StackedDRG64GiBSeal),
+          {std::pair(kTTCommit2, RegisteredSealProof::StackedDrg64GiBV1),
            Resources{
                .min_memory = uint64_t(60) << 30,
                .max_memory = uint64_t(190) << 30,
@@ -212,7 +213,7 @@ namespace fc::primitives {
                .can_gpu = true,
                .base_min_memory = uint64_t(64) << 30,
            }},
-          {std::pair(kTTCommit2, RegisteredProof::StackedDRG32GiBSeal),
+          {std::pair(kTTCommit2, RegisteredSealProof::StackedDrg32GiBV1),
            Resources{
                .min_memory = uint64_t(30) << 30,
                .max_memory = uint64_t(150) << 30,
@@ -220,7 +221,7 @@ namespace fc::primitives {
                .can_gpu = true,
                .base_min_memory = uint64_t(32) << 30,
            }},
-          {std::pair(kTTCommit2, RegisteredProof::StackedDRG512MiBSeal),
+          {std::pair(kTTCommit2, RegisteredSealProof::StackedDrg512MiBV1),
            Resources{
                .min_memory = 1 << 30,
                .max_memory = uint64_t(3) << 29,
@@ -228,7 +229,7 @@ namespace fc::primitives {
                .can_gpu = true,
                .base_min_memory = uint64_t(10) << 30,
            }},
-          {std::pair(kTTCommit2, RegisteredProof::StackedDRG8MiBSeal),
+          {std::pair(kTTCommit2, RegisteredSealProof::StackedDrg8MiBV1),
            Resources{
                .min_memory = uint64_t(8) << 20,
                .max_memory = uint64_t(8) << 20,
@@ -236,7 +237,7 @@ namespace fc::primitives {
                .can_gpu = true,
                .base_min_memory = uint64_t(8) << 20,
            }},
-          {std::pair(kTTCommit2, RegisteredProof::StackedDRG2KiBSeal),
+          {std::pair(kTTCommit2, RegisteredSealProof::StackedDrg2KiBV1),
            Resources{
                .min_memory = uint64_t(2) << 10,
                .max_memory = uint64_t(2) << 10,
@@ -246,7 +247,7 @@ namespace fc::primitives {
            }},
 
           // Fetch
-          {std::pair(kTTFetch, RegisteredProof::StackedDRG64GiBSeal),
+          {std::pair(kTTFetch, RegisteredSealProof::StackedDrg64GiBV1),
            Resources{
                .min_memory = uint64_t(1) << 20,
                .max_memory = uint64_t(1) << 20,
@@ -254,7 +255,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 0,
            }},
-          {std::pair(kTTFetch, RegisteredProof::StackedDRG32GiBSeal),
+          {std::pair(kTTFetch, RegisteredSealProof::StackedDrg32GiBV1),
            Resources{
                .min_memory = uint64_t(1) << 20,
                .max_memory = uint64_t(1) << 20,
@@ -262,7 +263,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 0,
            }},
-          {std::pair(kTTFetch, RegisteredProof::StackedDRG512MiBSeal),
+          {std::pair(kTTFetch, RegisteredSealProof::StackedDrg512MiBV1),
            Resources{
                .min_memory = uint64_t(1) << 20,
                .max_memory = uint64_t(1) << 20,
@@ -270,7 +271,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 0,
            }},
-          {std::pair(kTTFetch, RegisteredProof::StackedDRG8MiBSeal),
+          {std::pair(kTTFetch, RegisteredSealProof::StackedDrg8MiBV1),
            Resources{
                .min_memory = uint64_t(1) << 20,
                .max_memory = uint64_t(1) << 20,
@@ -278,7 +279,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 0,
            }},
-          {std::pair(kTTFetch, RegisteredProof::StackedDRG2KiBSeal),
+          {std::pair(kTTFetch, RegisteredSealProof::StackedDrg2KiBV1),
            Resources{
                .min_memory = uint64_t(1) << 20,
                .max_memory = uint64_t(1) << 20,
@@ -288,7 +289,7 @@ namespace fc::primitives {
            }},
 
           // ReadUnseal - is is should be same as Fetch
-          {std::pair(kTTReadUnsealed, RegisteredProof::StackedDRG64GiBSeal),
+          {std::pair(kTTReadUnsealed, RegisteredSealProof::StackedDrg64GiBV1),
            Resources{
                .min_memory = uint64_t(1) << 20,
                .max_memory = uint64_t(1) << 20,
@@ -296,7 +297,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 0,
            }},
-          {std::pair(kTTReadUnsealed, RegisteredProof::StackedDRG32GiBSeal),
+          {std::pair(kTTReadUnsealed, RegisteredSealProof::StackedDrg32GiBV1),
            Resources{
                .min_memory = uint64_t(1) << 20,
                .max_memory = uint64_t(1) << 20,
@@ -304,7 +305,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 0,
            }},
-          {std::pair(kTTReadUnsealed, RegisteredProof::StackedDRG512MiBSeal),
+          {std::pair(kTTReadUnsealed, RegisteredSealProof::StackedDrg512MiBV1),
            Resources{
                .min_memory = uint64_t(1) << 20,
                .max_memory = uint64_t(1) << 20,
@@ -312,7 +313,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 0,
            }},
-          {std::pair(kTTReadUnsealed, RegisteredProof::StackedDRG8MiBSeal),
+          {std::pair(kTTReadUnsealed, RegisteredSealProof::StackedDrg8MiBV1),
            Resources{
                .min_memory = uint64_t(1) << 20,
                .max_memory = uint64_t(1) << 20,
@@ -320,7 +321,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = 0,
            }},
-          {std::pair(kTTReadUnsealed, RegisteredProof::StackedDRG2KiBSeal),
+          {std::pair(kTTReadUnsealed, RegisteredSealProof::StackedDrg2KiBV1),
            Resources{
                .min_memory = uint64_t(1) << 20,
                .max_memory = uint64_t(1) << 20,
@@ -330,7 +331,7 @@ namespace fc::primitives {
            }},
 
           // Unseal - is is should be same as PreCommit1
-          {std::pair(kTTUnseal, RegisteredProof::StackedDRG64GiBSeal),
+          {std::pair(kTTUnseal, RegisteredSealProof::StackedDrg64GiBV1),
            Resources{
                .min_memory = uint64_t(112) << 30,
                .max_memory = uint64_t(128) << 30,
@@ -338,7 +339,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = uint64_t(10) << 20,
            }},
-          {std::pair(kTTUnseal, RegisteredProof::StackedDRG32GiBSeal),
+          {std::pair(kTTUnseal, RegisteredSealProof::StackedDrg32GiBV1),
            Resources{
                .min_memory = uint64_t(56) << 30,
                .max_memory = uint64_t(64) << 30,
@@ -346,7 +347,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = uint64_t(1) << 30,
            }},
-          {std::pair(kTTUnseal, RegisteredProof::StackedDRG512MiBSeal),
+          {std::pair(kTTUnseal, RegisteredSealProof::StackedDrg512MiBV1),
            Resources{
                .min_memory = uint64_t(768) << 20,
                .max_memory = uint64_t(1) << 30,
@@ -354,7 +355,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = uint64_t(1) << 20,
            }},
-          {std::pair(kTTUnseal, RegisteredProof::StackedDRG8MiBSeal),
+          {std::pair(kTTUnseal, RegisteredSealProof::StackedDrg8MiBV1),
            Resources{
                .min_memory = uint64_t(8) << 20,
                .max_memory = uint64_t(8) << 20,
@@ -362,7 +363,7 @@ namespace fc::primitives {
                .can_gpu = false,
                .base_min_memory = uint64_t(8) << 20,
            }},
-          {std::pair(kTTUnseal, RegisteredProof::StackedDRG2KiBSeal),
+          {std::pair(kTTUnseal, RegisteredSealProof::StackedDrg2KiBV1),
            Resources{
                .min_memory = uint64_t(2) << 10,
                .max_memory = uint64_t(2) << 10,

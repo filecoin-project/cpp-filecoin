@@ -26,6 +26,7 @@ namespace fc::mining::types {
   using proofs::SealRandomness;
   using sector_storage::InteractiveRandomness;
   using sector_storage::PreCommit1Output;
+  using sector_storage::Range;
   using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
 
   constexpr uint64_t kDealSectorPriority = 1024;
@@ -43,10 +44,12 @@ namespace fc::mining::types {
 
   /** DealInfo is a tuple of deal identity and its schedule */
   struct DealInfo {
+    boost::optional<CID> publish_cid;
     DealId deal_id;
     DealSchedule deal_schedule;
+    bool is_keep_unsealed;
   };
-  CBOR_TUPLE(DealInfo, deal_id, deal_schedule)
+  CBOR_TUPLE(DealInfo, publish_cid, deal_id, deal_schedule, is_keep_unsealed)
 
   struct Piece {
     PieceInfo piece;
@@ -58,7 +61,7 @@ namespace fc::mining::types {
     SealingState state;
 
     SectorNumber sector_number;
-    RegisteredProof sector_type;
+    RegisteredSealProof sector_type;
     std::vector<Piece> pieces;
 
     SealRandomness ticket;
@@ -114,6 +117,30 @@ namespace fc::mining::types {
       }
 
       return result;
+    }
+
+    inline std::vector<Range> keepUnsealedRanges(bool is_invert = false) const {
+      std::vector<Range> res;
+
+      UnpaddedPieceSize offset(0);
+      for (const auto &piece : pieces) {
+        auto piece_size = piece.piece.size.unpadded();
+
+        offset += piece_size;
+        if (not piece.deal_info.has_value()) {
+          continue;
+        }
+        if (piece.deal_info.get().is_keep_unsealed == is_invert) {
+          continue;
+        }
+
+        res.push_back(Range{
+            .offset = UnpaddedPieceSize(offset - piece_size),
+            .size = piece_size,
+        });
+      }
+
+      return res;
     }
 
     inline uint64_t sealingPriority() const {

@@ -66,6 +66,7 @@ namespace fc::mining {
     kNoFaultMessage,
     kFailSubmit,
     kSectorAllocatedError,
+    kNotPublishedDeal,
   };
 }  // namespace fc::mining
 

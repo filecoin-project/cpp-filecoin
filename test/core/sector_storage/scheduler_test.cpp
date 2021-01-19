@@ -28,7 +28,7 @@ MATCHER_P(workerNameMatcher, worker_name, "compare workers name") {
 class SchedulerTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    seal_proof_type_ = RegisteredProof::StackedDRG2KiBSeal;
+    seal_proof_type_ = RegisteredSealProof::StackedDrg2KiBV1;
 
     scheduler_ = std::make_unique<SchedulerImpl>(seal_proof_type_);
 
@@ -50,7 +50,7 @@ class SchedulerTest : public ::testing::Test {
 
   std::string worker_name_;
 
-  RegisteredProof seal_proof_type_;
+  RegisteredSealProof seal_proof_type_;
   std::shared_ptr<SelectorMock> selector_;
   std::unique_ptr<Scheduler> scheduler_;
 };

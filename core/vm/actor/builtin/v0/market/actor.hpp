@@ -29,7 +29,7 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::SectorSize;
   using primitives::TokenAmount;
   using primitives::piece::PaddedPieceSize;
-  using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredSealProof;
 
   struct CidKeyer {
     using Key = CID;
@@ -246,7 +246,7 @@ namespace fc::vm::actor::builtin::v0::market {
   struct ComputeDataCommitment : ActorMethodBase<8> {
     struct Params {
       std::vector<DealId> deals;
-      RegisteredProof sector_type;
+      RegisteredSealProof sector_type;
     };
     using Result = CID;
     ACTOR_METHOD_DECL();

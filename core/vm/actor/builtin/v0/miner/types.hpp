@@ -29,8 +29,8 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using primitives::sector::OnChainPoStVerifyInfo;
   using primitives::sector::Proof;
+  using primitives::sector::RegisteredSealProof;
 
   /**
    * Type used in actor method parameters
@@ -67,7 +67,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   CBOR_TUPLE(VestingFunds, funds)
 
   struct SectorPreCommitInfo {
-    RegisteredProof registered_proof;
+    RegisteredSealProof registered_proof;
     SectorNumber sector;
     /// CommR
     CID sealed_cid;
@@ -107,7 +107,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   struct SectorOnChainInfo {
     SectorNumber sector;
-    RegisteredProof seal_proof;
+    RegisteredSealProof seal_proof;
     CID sealed_cid;
     std::vector<DealId> deals;
     ChainEpoch activation_epoch;
@@ -149,18 +149,15 @@ namespace fc::vm::actor::builtin::v0::miner {
       OUTCOME_TRY(partition_sectors,
                   primitives::sector::getSealProofWindowPoStPartitionSectors(
                       seal_proof_type));
-      return MinerInfo{
-          .owner = owner,
-          .worker = worker,
-          .control = control,
-          .pending_worker_key = boost::none,
-          .peer_id = peer_id,
-          .multiaddrs = multiaddrs,
-          // TODO (a.chernyshov) remove cast to RegisteredProof after
-          // RegisteredProof is replaced with RegisteredSealProof #FIL-271
-          .seal_proof_type = static_cast<RegisteredProof>(seal_proof_type),
-          .sector_size = sector_size,
-          .window_post_partition_sectors = partition_sectors};
+      return MinerInfo{.owner = owner,
+                       .worker = worker,
+                       .control = control,
+                       .pending_worker_key = boost::none,
+                       .peer_id = peer_id,
+                       .multiaddrs = multiaddrs,
+                       .seal_proof_type = seal_proof_type,
+                       .sector_size = sector_size,
+                       .window_post_partition_sectors = partition_sectors};
     }
 
     /**
@@ -198,7 +195,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     std::vector<Multiaddress> multiaddrs;
 
     /** The proof type used by this miner for sealing sectors. */
-    RegisteredProof seal_proof_type;
+    RegisteredSealProof seal_proof_type;
 
     /**
      * Amount of space in each sector committed to the network by this miner.

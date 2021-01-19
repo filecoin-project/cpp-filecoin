@@ -45,9 +45,10 @@ namespace fc::api {
   using primitives::block::ElectionProof;
   using primitives::block::Ticket;
   using primitives::cid::getCidOfCbor;
-  using primitives::piece::PaddedPieceSize;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::PoStProof;
+  using primitives::sector::RegisteredPoStProof;
+  using primitives::sector::RegisteredSealProof;
   using primitives::tipset::HeadChangeType;
   using rapidjson::Document;
   using rapidjson::Value;
@@ -193,11 +194,19 @@ namespace fc::api {
       v = decode<uint64_t>(j);
     }
 
-    ENCODE(RegisteredProof) {
+    ENCODE(RegisteredSealProof) {
       return encode(common::to_int(v));
     }
 
-    DECODE(RegisteredProof) {
+    DECODE(RegisteredSealProof) {
+      decodeEnum(v, j);
+    }
+
+    ENCODE(RegisteredPoStProof) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(RegisteredPoStProof) {
       decodeEnum(v, j);
     }
 
@@ -1048,6 +1057,22 @@ namespace fc::api {
       Get(j, "Timestamp", v.timestamp);
       Get(j, "Expiry", v.expiry);
       Get(j, "SeqNo", v.seq_no);
+    }
+
+    ENCODE(RetrievalAsk) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PricePerByte", v.price_per_byte);
+      Set(j, "UnsealPrice", v.unseal_price);
+      Set(j, "PaymentInterval", v.payment_interval);
+      Set(j, "PaymentIntervalIncrease", v.interval_increase);
+      return j;
+    }
+
+    DECODE(RetrievalAsk) {
+      Get(j, "PricePerByte", v.price_per_byte);
+      Get(j, "UnsealPrice", v.unseal_price);
+      Get(j, "PaymentInterval", v.payment_interval);
+      Get(j, "PaymentIntervalIncrease", v.interval_increase);
     }
 
     ENCODE(AddChannelInfo) {

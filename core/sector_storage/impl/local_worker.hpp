@@ -15,7 +15,7 @@ namespace fc::sector_storage {
 
   struct WorkerConfig {
     std::string hostname;
-    primitives::sector::RegisteredProof seal_proof_type;
+    primitives::sector::RegisteredSealProof seal_proof_type;
     std::set<primitives::TaskType> task_types;
   };
 
@@ -60,7 +60,7 @@ namespace fc::sector_storage {
                                       const SealRandomness &randomness,
                                       const CID &unsealed_cid) override;
 
-    outcome::result<void> readPiece(proofs::PieceData output,
+    outcome::result<bool> readPiece(proofs::PieceData output,
                                     const SectorId &sector,
                                     UnpaddedByteIndex offset,
                                     const UnpaddedPieceSize &size) override;

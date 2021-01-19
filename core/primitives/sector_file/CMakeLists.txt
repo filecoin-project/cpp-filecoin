@@ -6,4 +6,10 @@ add_library(sector_file
 
 target_link_libraries(sector_file
         sector
+        piece
+        runs_utils
+        logger
+        piece_data
+        comm_cid
+        proofs
         )

@@ -69,7 +69,7 @@ namespace fc::markets::storage::test {
   using pieceio::PieceIOImpl;
   using primitives::GasAmount;
   using primitives::cid::getCidOfCbor;
-  using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredSealProof;
   using primitives::tipset::Tipset;
   using provider::Datastore;
   using provider::StorageProvider;
@@ -278,7 +278,7 @@ namespace fc::markets::storage::test {
             throw "StateMarketBalance: wrong address";
           }};
 
-      api->MarketEnsureAvailable = {
+      api->MarketReserveFunds = {
           [](auto, auto, auto) -> outcome::result<boost::optional<CID>> {
             // funds ensured
             return boost::none;
@@ -363,7 +363,7 @@ namespace fc::markets::storage::test {
 
     std::shared_ptr<StorageProviderImpl> makeProvider(
         const Multiaddress &provider_multiaddress,
-        const RegisteredProof &registered_proof,
+        const RegisteredSealProof &registered_proof,
         const BlsKeyPair &miner_worker_keypair,
         const std::shared_ptr<BlsProvider> &bls_provider,
         const std::shared_ptr<Secp256k1ProviderDefault> &secp256k1_provider,
@@ -507,7 +507,8 @@ namespace fc::markets::storage::test {
     std::shared_ptr<StorageProviderInfo> storage_provider_info;
     std::shared_ptr<DataTransfer> datatransfer;
 
-    RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
+    RegisteredSealProof registered_proof{
+        RegisteredSealProof::StackedDrg32GiBV1};
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<boost::asio::io_context> context_;
 

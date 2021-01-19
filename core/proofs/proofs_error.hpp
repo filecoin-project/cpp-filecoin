@@ -24,6 +24,11 @@ namespace fc::proofs {
     kNotReadEnough,
     kNotWriteEnough,
     kCannotCreateUnsealedFile,
+    kCannotCreatePipe,
+    kCannotWriteData,
+    kUnclassifiedError,
+    kCallerError,
+    kReceiverError,
     kUnknown = 1000
   };
 

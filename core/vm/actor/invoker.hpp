@@ -12,7 +12,7 @@
 
 namespace fc::vm::actor {
   using primitives::StoragePower;
-  using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredSealProof;
   using runtime::InvocationOutput;
 
   /// Finds and loads actor code, invokes actor methods
@@ -29,7 +29,7 @@ namespace fc::vm::actor {
     virtual void config(
         const StoragePower &min_verified_deal_size,
         const StoragePower &consensus_miner_min_power,
-        const std::vector<RegisteredProof> &supported_proofs) = 0;
+        const std::vector<RegisteredSealProof> &supported_proofs) = 0;
 
     virtual outcome::result<InvocationOutput> invoke(
         const Actor &actor, const std::shared_ptr<Runtime> &runtime) = 0;

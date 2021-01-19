@@ -46,4 +46,6 @@ addtest(tarutil_test
 target_link_libraries(tarutil_test
         tarutil
         base_fs_test
+        buffer
+        file
         )

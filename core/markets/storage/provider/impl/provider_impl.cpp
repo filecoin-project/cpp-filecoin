@@ -54,7 +54,7 @@ namespace fc::markets::storage::provider {
   using vm::message::UnsignedMessage;
 
   StorageProviderImpl::StorageProviderImpl(
-      const RegisteredProof &registered_proof,
+      const RegisteredSealProof &registered_proof,
       std::shared_ptr<Host> host,
       IpldPtr ipld,
       std::shared_ptr<DataTransfer> datatransfer,
@@ -186,6 +186,10 @@ namespace fc::markets::storage::provider {
     }
     auto deal = found_fsm_entity->first;
 
+    auto unpadded{proofs::Proofs::padPiece(path)};
+    if (unpadded.padded() != deal->client_deal_proposal.proposal.piece_size) {
+      return StorageMarketProviderError::kPieceCIDDoesNotMatch;
+    }
     OUTCOME_TRY(piece_commitment,
                 piece_io_->generatePieceCommitment(registered_proof_, path));
 
@@ -236,6 +240,7 @@ namespace fc::markets::storage::provider {
                         .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
                         .piece_path = {},
                         .metadata_path = {},
+                        .is_fast_retrieval = proposal.value().is_fast_retrieval,
                         .message = {},
                         .ref = proposal.value().piece,
                         .deal_id = {}});
@@ -329,9 +334,9 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(worker_info,
                 api_->StateMinerInfo(proposal.provider, chain_head->key));
     OUTCOME_TRY(maybe_cid,
-                api_->MarketEnsureAvailable(proposal.provider,
-                                            worker_info.worker,
-                                            proposal.provider_collateral));
+                api_->MarketReserveFunds(worker_info.worker,
+                                         proposal.provider,
+                                         proposal.provider_collateral));
     return std::move(maybe_cid);
   }
 
@@ -423,8 +428,8 @@ namespace fc::markets::storage::provider {
         deal->client_deal_proposal.proposal.piece_cid,
         DealInfo{.deal_id = deal->deal_id,
                  .sector_id = piece_location.sector_number,
-                 .offset = PaddedPieceSize(piece_location.offset),
-                 .length = PaddedPieceSize(piece_location.length)}));
+                 .offset = piece_location.offset,
+                 .length = piece_location.length}));
     return outcome::success();
   }
 
@@ -675,10 +680,12 @@ namespace fc::markets::storage::provider {
       StorageDealStatus to) {
     // TODO hand off
     auto &p{deal->client_deal_proposal.proposal};
-    OUTCOME_EXCEPT(sector_blocks_->addPiece(
-        p.piece_size.unpadded(),
-        deal->piece_path,
-        {deal->deal_id, {p.start_epoch, p.end_epoch}}));
+    OUTCOME_EXCEPT(sector_blocks_->addPiece(p.piece_size.unpadded(),
+                                            deal->piece_path,
+                                            {deal->publish_cid,
+                                             deal->deal_id,
+                                             {p.start_epoch, p.end_epoch},
+                                             deal->is_fast_retrieval}));
     FSM_SEND(deal, ProviderEvent::ProviderEventDealHandedOff);
   }
 
@@ -779,8 +786,7 @@ namespace fc::markets::storage::provider {
                             deal.add_funds_cid,
                             deal.publish_cid,
                             deal.deal_id,
-                            // TODO: fast retrieval
-                            false,
+                            deal.is_fast_retrieval,
                         },
                         {}};
                     OUTCOME_EXCEPT(input, codec::cbor::encode(response.state));

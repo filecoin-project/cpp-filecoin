@@ -12,6 +12,7 @@
 
 namespace fc::vm::actor::builtin::v0::miner {
   using primitives::sector::PoStProof;
+  using primitives::sector::RegisteredSealProof;
 
   struct Construct : ActorMethodBase<1> {
     struct Params {
@@ -227,7 +228,6 @@ namespace fc::vm::actor::builtin::v0::miner {
     struct Params {
       std::vector<SectorDeclaration> faults;
     };
-
     ACTOR_METHOD_DECL();
   };
   CBOR_TUPLE(DeclareFaults::Params, faults)

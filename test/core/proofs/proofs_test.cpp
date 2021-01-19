@@ -25,7 +25,6 @@ using fc::primitives::SectorSize;
 using fc::primitives::piece::PaddedPieceSize;
 using fc::primitives::piece::PieceData;
 using fc::primitives::piece::UnpaddedPieceSize;
-using fc::primitives::sector::OnChainSealVerifyInfo;
 using fc::primitives::sector::SealVerifyInfo;
 using fc::primitives::sector::SectorId;
 using fc::primitives::sector::SectorInfo;
@@ -33,7 +32,6 @@ using fc::primitives::sector::Ticket;
 using fc::primitives::sector::WinningPoStVerifyInfo;
 using fc::proofs::ActorId;
 using fc::proofs::PieceInfo;
-using fc::proofs::PoStCandidate;
 using fc::proofs::PrivateSectorInfo;
 using fc::proofs::Proofs;
 using fc::proofs::PublicSectorInfo;
@@ -64,10 +62,10 @@ class ProofsTest : public test::BaseFS_Test {
 TEST_F(ProofsTest, Lifecycle) {
   ActorId miner_id = 42;
   Randomness randomness{{9, 9, 9}};
-  fc::proofs::RegisteredProof seal_proof_type =
-      fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal;
-  fc::proofs::RegisteredProof winning_post_proof_type =
-      fc::primitives::sector::RegisteredProof::StackedDRG2KiBWinningPoSt;
+  fc::proofs::RegisteredSealProof seal_proof_type =
+      fc::primitives::sector::RegisteredSealProof::StackedDrg2KiBV1;
+  fc::proofs::RegisteredPoStProof winning_post_proof_type =
+      fc::primitives::sector::RegisteredPoStProof::StackedDRG2KiBWinningPoSt;
   SectorNumber sector_num = 42;
   EXPECT_OUTCOME_TRUE(sector_size,
                       fc::primitives::sector::getSectorSize(seal_proof_type));
@@ -293,7 +291,7 @@ TEST_F(ProofsTest, Lifecycle) {
   private_replicas_info.push_back(PrivateSectorInfo{
       .info =
           SectorInfo{
-              .registered_proof = winning_post_proof_type,
+              .registered_proof = seal_proof_type,
               .sector = sector_num,
               .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
           },
@@ -339,8 +337,8 @@ TEST_F(ProofsTest, Lifecycle) {
  * @then pieces are identical
  */
 TEST_F(ProofsTest, WriteAndReadPiecesFile) {
-  fc::proofs::RegisteredProof seal_proof_type =
-      fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal;
+  fc::proofs::RegisteredSealProof seal_proof_type =
+      fc::primitives::sector::RegisteredSealProof::StackedDrg2KiBV1;
 
   fc::common::Blob<2032> some_bytes;
   std::random_device rd;
@@ -513,92 +511,4 @@ TEST_F(ProofsTest, WriteAndReadPiecesFile) {
     }
     offset = offset + exist_pieces[i].padded();
   }
-}
-
-/**
- * @given 2 pieces
- * @when write their with lib function and custom
- * @then files are identical
- */
-TEST_F(ProofsTest, LibAndCustomWriteCmp) {
-  fc::proofs::RegisteredProof seal_proof_type =
-      fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal;
-
-  fc::common::Blob<2032> some_bytes;
-  std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_int_distribution<uint8_t> dis(0, 255);
-  for (size_t i = 0; i < 2032; i++) {
-    some_bytes[i] = dis(gen);
-  }
-
-  size_t start = 0;
-
-  auto path_model = fs::canonical(base_path).append("%%%%%");
-  Path unseal_path = boost::filesystem::unique_path(path_model).string();
-  Path custom_unseal_path = boost::filesystem::unique_path(path_model).string();
-
-  Path piece_file_a_path = boost::filesystem::unique_path(path_model).string();
-  boost::filesystem::ofstream piece_file_a(piece_file_a_path);
-
-  UnpaddedPieceSize piece_commitment_a_size(1016);
-  for (size_t i = start; i < start + piece_commitment_a_size; i++) {
-    piece_file_a << some_bytes[i];
-  }
-  piece_file_a.close();
-
-  EXPECT_OUTCOME_TRUE_1(Proofs::writeUnsealPiece(piece_file_a_path,
-                                                 custom_unseal_path,
-                                                 seal_proof_type,
-                                                 PaddedPieceSize(0),
-                                                 piece_commitment_a_size));
-
-  start += piece_commitment_a_size;
-  PieceData file_a(piece_file_a_path);
-
-  EXPECT_OUTCOME_TRUE_1(Proofs::writeWithoutAlignment(
-      seal_proof_type, file_a, piece_commitment_a_size, unseal_path));
-
-  std::vector<Path> paths = {piece_file_a_path};
-  std::vector<UnpaddedPieceSize> exist_pieces = {piece_commitment_a_size};
-
-  Path piece_file_b_path = boost::filesystem::unique_path(path_model).string();
-  boost::filesystem::ofstream piece_file_b(piece_file_b_path);
-
-  UnpaddedPieceSize piece_commitment_b_size(1016);
-  for (size_t i = start; i < start + piece_commitment_b_size; i++) {
-    piece_file_b << some_bytes[i];
-  }
-  piece_file_b.close();
-
-  EXPECT_OUTCOME_TRUE_1(
-      Proofs::writeUnsealPiece(piece_file_b_path,
-                               custom_unseal_path,
-                               seal_proof_type,
-                               UnpaddedPieceSize(start).padded(),
-                               piece_commitment_a_size));
-
-  PieceData file_b(piece_file_b_path);
-  EXPECT_OUTCOME_TRUE_1(Proofs::writeWithAlignment(seal_proof_type,
-                                                   file_b,
-                                                   piece_commitment_b_size,
-                                                   unseal_path,
-                                                   exist_pieces));
-
-  std::ifstream unseal_file(unseal_path);
-
-  ASSERT_TRUE(unseal_file.good());
-
-  std::ifstream custom_unseal_file(custom_unseal_path);
-
-  ASSERT_TRUE(custom_unseal_file.good());
-
-  ASSERT_TRUE(unseal_file.tellg() == custom_unseal_file.tellg());
-
-  unseal_file.seekg(0, std::ifstream::beg);
-  custom_unseal_file.seekg(0, std::ifstream::beg);
-  ASSERT_TRUE(
-      std::equal(std::istreambuf_iterator<char>(custom_unseal_file.rdbuf()),
-                 std::istreambuf_iterator<char>(),
-                 std::istreambuf_iterator<char>(unseal_file.rdbuf())));
 }
