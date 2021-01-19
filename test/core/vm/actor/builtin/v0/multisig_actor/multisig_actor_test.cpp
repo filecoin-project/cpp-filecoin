@@ -556,7 +556,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
    */
   TEST_F(MultisigActorTest, CancelWrongTxId) {
     // no pending txs in state
-    EXPECT_OUTCOME_ERROR(ABORT(VMExitCode::kErrNotFound), Cancel::call(runtime, {}));
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrNotFound), Cancel::call(runtime, {}));
   }
 
   /**

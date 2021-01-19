@@ -5,8 +5,8 @@
 
 #include "vm/actor/impl/invoker_impl.hpp"
 
-#include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/market/actor.hpp"
@@ -16,8 +16,10 @@
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
 #include "vm/actor/builtin/v0/system/system_actor.hpp"
-#include "vm/actor/builtin/v2/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
+
 #include "vm/actor/builtin/v2/codes.hpp"
+#include "vm/actor/builtin/v2/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/multisig/multisig_actor.hpp"
@@ -25,6 +27,7 @@
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 #include "vm/actor/builtin/v2/system/system_actor.hpp"
+#include "vm/actor/builtin/v2/verified_registry/verified_registry_actor.hpp"
 #include "vm/actor/cgo/actors.hpp"
 
 namespace fc::vm::actor {
@@ -44,6 +47,7 @@ namespace fc::vm::actor {
     builtin_[builtin::v0::kStoragePowerCodeCid] =
         builtin::v0::storage_power::exports;
     builtin_[builtin::v0::kSystemActorCodeID] = builtin::v0::system::exports;
+    builtin_[builtin::v0::kVerifiedRegistryCode] = builtin::v0::verified_registry::exports;
 
     // v2
     builtin_[builtin::v2::kAccountCodeCid] = builtin::v2::account::exports;
@@ -59,6 +63,7 @@ namespace fc::vm::actor {
     builtin_[builtin::v2::kStoragePowerCodeCid] =
         builtin::v2::storage_power::exports;
     builtin_[builtin::v2::kSystemActorCodeID] = builtin::v2::system::exports;
+    builtin_[builtin::v2::kVerifiedRegistryCode] = builtin::v2::verified_registry::exports;
   }
 
   void InvokerImpl::config(
@@ -90,7 +95,7 @@ namespace fc::vm::actor {
         && (actor.code != builtin::v0::kStoragePowerCodeCid)    // < tested OK
         && (actor.code != builtin::v0::kRewardActorCodeID)      // < tested OK
         && (actor.code != builtin::v0::kSystemActorCodeID)      // < tested OK
-        // && (actor.code != builtin::v0::kVerifiedRegistryCode)   // TODO
+        && (actor.code != builtin::v0::kVerifiedRegistryCode)   // < OK, but not tested
 
         // v2
         && (actor.code != builtin::v2::kAccountCodeCid)  // < tested OK
@@ -103,7 +108,7 @@ namespace fc::vm::actor {
         && (actor.code != builtin::v2::kStoragePowerCodeCid)    // < tested OK
         && (actor.code != builtin::v2::kRewardActorCodeID)      // < tested OK
         && (actor.code != builtin::v2::kSystemActorCodeID)      // < tested OK
-        // && (actor.code != builtin::v2::kVerifiedRegistryCode)   // TODO
+        && (actor.code != builtin::v2::kVerifiedRegistryCode)   // < OK, but not tested
     ) {
       return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
     }

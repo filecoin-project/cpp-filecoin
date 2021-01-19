@@ -13,7 +13,7 @@
 #define VM_ASSERT(condition)                                \
   if (!(condition)) {                                       \
     return outcome::failure(                                \
-        static_cast<VMAbortExitCode>(VMExitCode::kAssert)); \
+        ABORT_CAST(VMExitCode::kAssert)); \
   }
 
 namespace fc::vm {

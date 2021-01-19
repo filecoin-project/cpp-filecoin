@@ -9,5 +9,4 @@ addtest(multisig_actor_test_v2
 target_link_libraries(multisig_actor_test_v2
     multisig_actor_v2
     ipfs_datastore_in_memory
-    state_tree
     )

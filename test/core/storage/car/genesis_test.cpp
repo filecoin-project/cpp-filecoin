@@ -18,7 +18,7 @@
 #include "vm/actor/builtin/v0/market/actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
-#include "vm/actor/builtin/v0/verified_registry/actor.hpp"
+#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
 
 namespace outcome = fc::outcome;
 

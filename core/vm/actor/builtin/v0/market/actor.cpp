@@ -14,7 +14,7 @@
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v0/shared/shared.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
-#include "vm/actor/builtin/v0/verified_registry/actor.hpp"
+#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
 
 namespace fc::vm::actor::builtin::v0::market {
   using common::decodeBE;
