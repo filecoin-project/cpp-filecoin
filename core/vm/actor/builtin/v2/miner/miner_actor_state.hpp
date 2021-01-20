@@ -13,11 +13,18 @@
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/builtin/v0/miner/deadline_info.hpp"
 #include "vm/actor/builtin/v0/miner/types.hpp"
+#include "vm/actor/builtin/v2/miner/types.hpp"
 
-namespace fc::vm::actor::builtin::v0::miner {
+namespace fc::vm::actor::builtin::v2::miner {
+  using adt::UvarintKeyer;
   using primitives::ChainEpoch;
   using primitives::RleBitset;
   using primitives::TokenAmount;
+  using v0::miner::DeadlineInfo;
+  using v0::miner::Deadlines;
+  using v0::miner::SectorOnChainInfo;
+  using v0::miner::SectorPreCommitOnChainInfo;
+  using v0::miner::VestingFunds;
 
   /**
    * Balance of Miner Actor should be greater than or equal to the sum of
@@ -40,8 +47,13 @@ namespace fc::vm::actor::builtin::v0::miner {
     /** VestingFunds (Vesting Funds schedule for the miner). */
     CIDT<VestingFunds> vesting_funds;
 
+    /**
+     * Absolute value of debt this miner owes from unpaid fees
+     */
+    TokenAmount fee_debt;
+
     /** Sum of initial pledge requirements of all active sectors */
-    TokenAmount initial_pledge_requirement;
+    TokenAmount initial_pledge;
 
     /**
      * Sectors that have been pre-committed but not yet proven
@@ -110,7 +122,8 @@ namespace fc::vm::actor::builtin::v0::miner {
              precommit_deposit,
              locked_funds,
              vesting_funds,
-             initial_pledge_requirement,
+             fee_debt,
+             initial_pledge,
              precommitted_sectors,
              precommitted_setctors_expiry,
              allocated_sectors,
@@ -122,10 +135,10 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   using MinerActorState = State;
 
-}  // namespace fc::vm::actor::builtin::v0::miner
+}  // namespace fc::vm::actor::builtin::v2::miner
 
 namespace fc {
-  using vm::actor::builtin::v0::miner::State;
+  using vm::actor::builtin::v2::miner::State;
 
   template <>
   struct Ipld::Visit<State> {

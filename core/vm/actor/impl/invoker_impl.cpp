@@ -81,6 +81,12 @@ namespace fc::vm::actor {
         return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
       }
     }
+    if (actor.code == builtin::v2::kStorageMinerCodeCid) {
+      if (runtime->getMessage().get().method
+          != builtin::v2::miner::Construct::Number) {
+        return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
+      }
+    }
 
     // TODO (a.chernyshov) remove after all cpp actors are implemented
     if (
@@ -102,7 +108,7 @@ namespace fc::vm::actor {
         && (actor.code != builtin::v2::kCronCodeCid)     // TODO
         // && (actor.code != builtin::v2::kInitCodeCid)            // TODO
         // && (actor.code != builtin::v2::kStorageMarketCodeCid)   // TODO
-        // && (actor.code != builtin::v2::kStorageMinerCodeCid)    // TODO
+        && (actor.code != builtin::v2::kStorageMinerCodeCid)    // WiP
         && (actor.code != builtin::v2::kMultisigCodeCid)        // < tested OK
         && (actor.code != builtin::v2::kPaymentChannelCodeCid)  // < tested OK
         && (actor.code != builtin::v2::kStoragePowerCodeCid)    // < tested OK

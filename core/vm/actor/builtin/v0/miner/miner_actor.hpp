@@ -14,6 +14,34 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredSealProof;
 
+  /**
+   * Resolves an address to an ID address and verifies that it is address of an
+   * account or multisig actor
+   * @param address to resolve
+   * @return resolved address
+   */
+  outcome::result<Address> resolveControlAddress(Runtime &runtime,
+                                                 const Address &address);
+
+  /**
+   * Resolves an address to an ID address and verifies that it is address of an
+   * account actor with an associated BLS key. The worker must be BLS since the
+   * worker key will be used alongside a BLS-VRF.
+   * @param runtime
+   * @param address to resolve
+   * @return resolved address
+   */
+  outcome::result<Address> resolveWorkerAddress(Runtime &runtime,
+                                                const Address &address);
+
+  /**
+   * Registers first cron callback for epoch before the first proving period
+   * starts.
+   */
+  outcome::result<void> enrollCronEvent(Runtime &runtime,
+                                        ChainEpoch event_epoch,
+                                        const CronEventPayload &payload);
+
   struct Construct : ActorMethodBase<1> {
     struct Params {
       Address owner;
@@ -24,6 +52,12 @@ namespace fc::vm::actor::builtin::v0::miner {
       std::vector<Multiaddress> multiaddresses;
     };
     ACTOR_METHOD_DECL();
+
+    /**
+     * Checks if seal proof type is supported
+     */
+    static outcome::result<void> checkSealProofType(
+        const Runtime &runtime, const RegisteredSealProof &seal_proof_type);
 
     /**
      * Assigns proving period offset randomly in the range [0,
@@ -40,8 +74,6 @@ namespace fc::vm::actor::builtin::v0::miner {
      * greater than the current epoch, and has a defined offset from being an
      * exact multiple of WPoStProvingPeriod. A miner is exempt from Winow PoSt
      * until the first full proving period starts.
-     * @param abi
-     * @return
      */
     static ChainEpoch nextProvingPeriodStart(ChainEpoch current_epoch,
                                              ChainEpoch offset);

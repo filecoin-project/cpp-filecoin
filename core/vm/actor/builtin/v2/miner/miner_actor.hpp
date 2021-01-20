@@ -8,9 +8,24 @@
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
+  using primitives::ChainEpoch;
   using primitives::TokenAmount;
 
-  using Construct = v0::miner::Construct;
+  struct Construct : ActorMethodBase<1> {
+    using Params = v0::miner::Construct::Params;
+
+    ACTOR_METHOD_DECL();
+
+    /**
+     * Computes the epoch at which a proving period should start such that it is
+     * greater than the current epoch, and has a defined offset from being an
+     * exact multiple of WPoStProvingPeriod. A miner is exempt from Winow PoSt
+     * until the first full proving period starts.
+     */
+    static ChainEpoch currentProvingPeriodStart(ChainEpoch current_epoch,
+                                                ChainEpoch offset);
+  };
+
   using ControlAddresses = v0::miner::ControlAddresses;
   using ChangeWorkerAddress = v0::miner::ChangeWorkerAddress;
   using ChangePeerId = v0::miner::ChangePeerId;
@@ -56,10 +71,10 @@ namespace fc::vm::actor::builtin::v2::miner {
    * Proposes or confirms a change of owner address
    *
    * If invoked by the current owner, proposes a new owner address for
-   * confirmation. If the proposed address is the current owner address, revokes
-   * any existing proposal. If invoked by the previously proposed address, with
-   * the same proposal, changes the current owner address to be that proposed
-   * address.
+   * confirmation. If the proposed address is the current owner address,
+   * revokes any existing proposal. If invoked by the previously proposed
+   * address, with the same proposal, changes the current owner address to be
+   * that proposed address.
    */
   struct ChangeOwnerAddress : ActorMethodBase<23> {
     using Params = Address;
