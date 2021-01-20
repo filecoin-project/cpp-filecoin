@@ -9,13 +9,14 @@
 #include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/miner/policy.hpp"
 #include "vm/actor/builtin/v2/miner/types.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
   using primitives::RleBitset;
   using primitives::sector::RegisteredSealProof;
+  using v0::miner::CronEventPayload;
   using v0::miner::CronEventType;
   using v0::miner::Deadlines;
-  using v0::miner::enrollCronEvent;
   using v0::miner::kWPoStChallengeWindow;
   using v0::miner::kWPoStPeriodDeadlines;
   using v0::miner::kWPoStProvingPeriod;
@@ -23,6 +24,14 @@ namespace fc::vm::actor::builtin::v2::miner {
   using v0::miner::SectorOnChainInfo;
   using v0::miner::VestingFunds;
 
+  /**
+   * Resolves an address to an ID address and verifies that it is address of an
+   * account actor with an associated BLS key. The worker must be BLS since the
+   * worker key will be used alongside a BLS-VRF.
+   * @param runtime
+   * @param address to resolve
+   * @return resolved address
+   */
   outcome::result<Address> resolveWorkerAddress(Runtime &runtime,
                                                 const Address &address) {
     OUTCOME_TRY(resolved, runtime.resolveAddress(address));
@@ -39,6 +48,19 @@ namespace fc::vm::actor::builtin::v2::miner {
     }
 
     return std::move(resolved);
+  }
+
+  /**
+   * Registers first cron callback for epoch before the first proving period
+   * starts.
+   */
+  outcome::result<void> enrollCronEvent(Runtime &runtime,
+                                        ChainEpoch event_epoch,
+                                        const CronEventPayload &payload) {
+    OUTCOME_TRY(encoded_params, codec::cbor::encode(payload));
+    OUTCOME_TRY(runtime.sendM<storage_power::EnrollCronEvent>(
+        kStoragePowerAddress, {event_epoch, encoded_params}, 0));
+    return outcome::success();
   }
 
   outcome::result<void> checkControlAddresses(
@@ -83,12 +105,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     return outcome::success();
   }
 
-  /**
-   * Computes the deadline index for the current epoch for a given period start.
-   * currEpoch must be within the proving period that starts at
-   * provingPeriodStart to produce a valid index.
-   */
-  outcome::result<uint64_t> currentDeadlineIndex(
+  outcome::result<uint64_t> Construct::currentDeadlineIndex(
       const ChainEpoch &current_epoch, const ChainEpoch &period_start) {
     VM_ASSERT(current_epoch >= period_start);
     return (current_epoch - period_start) / kWPoStChallengeWindow;

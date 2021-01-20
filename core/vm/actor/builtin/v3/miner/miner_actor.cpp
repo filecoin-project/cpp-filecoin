@@ -4,34 +4,26 @@
  */
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v2/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v3/account/account_actor.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
+#include "vm/actor/builtin/v3/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/v3/storage_power/storage_power_actor_export.hpp"
 
-#include "common/be_decoder.hpp"
-#include "vm/actor/builtin/v0/account/account_actor.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
-
-namespace fc::vm::actor::builtin::v0::miner {
-  using common::decodeBE;
-
-  outcome::result<Address> resolveControlAddress(Runtime &runtime,
-                                                 const Address &address) {
-    OUTCOME_TRY(resolved, runtime.resolveAddress(address));
-    VM_ASSERT(resolved.isId());
-    const auto resolved_code = runtime.getActorCodeID(resolved);
-    REQUIRE_NO_ERROR(resolved_code, VMExitCode::kErrIllegalArgument);
-    OUTCOME_TRY(
-        runtime.validateArgument(isSignableActor(resolved_code.value())));
-    return std::move(resolved);
-  }
+namespace fc::vm::actor::builtin::v3::miner {
+  using v0::miner::CronEventPayload;
+  using v0::miner::CronEventType;
+  using v0::miner::kWPoStChallengeWindow;
+  using v0::miner::kWPoStPeriodDeadlines;
+  using v0::miner::resolveControlAddress;
+  using v0::miner::SectorOnChainInfo;
+  using v0::miner::VestingFunds;
+  using v2::miner::checkControlAddresses;
+  using v2::miner::checkPeerInfo;
 
   /**
-   * Resolves an address to an ID address and verifies that it is address of an
-   * account actor with an associated BLS key. The worker must be BLS since the
-   * worker key will be used alongside a BLS-VRF.
-   * @param runtime
-   * @param address to resolve
-   * @return resolved address
+   * Resolves address via v3 Account actor
    */
   outcome::result<Address> resolveWorkerAddress(Runtime &runtime,
                                                 const Address &address) {
@@ -54,6 +46,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   /**
    * Registers first cron callback for epoch before the first proving period
    * starts.
+   * Calls StoragePowerActor v3
    */
   outcome::result<void> enrollCronEvent(Runtime &runtime,
                                         ChainEpoch event_epoch,
@@ -64,35 +57,10 @@ namespace fc::vm::actor::builtin::v0::miner {
     return outcome::success();
   }
 
-  outcome::result<ChainEpoch> Construct::assignProvingPeriodOffset(
-      Runtime &runtime, ChainEpoch current_epoch) {
-    OUTCOME_TRY(address_encoded,
-                codec::cbor::encode(runtime.getCurrentReceiver()));
-    address_encoded.putUint64(current_epoch);
-    OUTCOME_TRY(digest, runtime.hashBlake2b(address_encoded));
-    const uint64_t offset = decodeBE(digest);
-    return offset % kWPoStProvingPeriod;
-  }
-
-  ChainEpoch Construct::nextProvingPeriodStart(ChainEpoch current_epoch,
-                                               ChainEpoch offset) {
-    const auto current_modulus = current_epoch % kWPoStProvingPeriod;
-    const ChainEpoch period_progress =
-        current_modulus >= offset
-            ? current_modulus - offset
-            : kWPoStProvingPeriod - (offset - current_modulus);
-    const ChainEpoch period_start =
-        current_epoch - period_progress + kWPoStProvingPeriod;
-    return period_start;
-  }
-
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
-
-    // proof is supported
-    OUTCOME_TRY(
-        runtime.validateArgument(kSupportedProofs.find(params.seal_proof_type)
-                                 != kSupportedProofs.end()));
+    OUTCOME_TRY(checkControlAddresses(runtime, params.control_addresses));
+    OUTCOME_TRY(checkPeerInfo(runtime, params.peer_id, params.multiaddresses));
     OUTCOME_TRY(owner, resolveControlAddress(runtime, params.owner));
     OUTCOME_TRY(worker, resolveWorkerAddress(runtime, params.worker));
     std::vector<Address> control_addresses;
@@ -126,12 +94,19 @@ namespace fc::vm::actor::builtin::v0::miner {
     OUTCOME_TRY(state.vesting_funds.set(vesting_funds));
 
     const auto current_epoch = runtime.getCurrentEpoch();
-    const auto offset = assignProvingPeriodOffset(runtime, current_epoch);
+    const auto offset =
+        v0::miner::Construct::assignProvingPeriodOffset(runtime, current_epoch);
     REQUIRE_NO_ERROR(offset, VMExitCode::kErrSerialization);
-    const auto period_start =
-        nextProvingPeriodStart(current_epoch, offset.value());
-    VM_ASSERT(period_start > current_epoch);
+    const auto period_start = v2::miner::Construct::currentProvingPeriodStart(
+        current_epoch, offset.value());
+    OUTCOME_TRY(runtime.requireState(period_start <= current_epoch));
     state.proving_period_start = period_start;
+
+    OUTCOME_TRY(deadline_index,
+                v2::miner::Construct::currentDeadlineIndex(current_epoch,
+                                                           period_start));
+    OUTCOME_TRY(runtime.requireState(deadline_index < kWPoStPeriodDeadlines));
+    state.current_deadline = deadline_index;
 
     OUTCOME_TRY(miner_info,
                 MinerInfo::make(owner,
@@ -148,85 +123,16 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     OUTCOME_TRY(runtime.commitState(state));
 
+    const ChainEpoch deadline_close =
+        period_start + kWPoStChallengeWindow * (1 + deadline_index);
     OUTCOME_TRY(enrollCronEvent(
-        runtime, period_start - 1, {CronEventType::kProvingDeadline}));
+        runtime, deadline_close - 1, {CronEventType::kProvingDeadline}));
 
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(ControlAddresses) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(ChangeWorkerAddress) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(ChangePeerId) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(SubmitWindowedPoSt) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(PreCommitSector) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(ProveCommitSector) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(ExtendSectorExpiration) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(TerminateSectors) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(DeclareFaults) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(DeclareFaultsRecovered) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(OnDeferredCronEvent) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(CheckSectorProven) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(AddLockedFund) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(ReportConsensusFault) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(WithdrawBalance) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(ConfirmSectorProofsValid) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(ChangeMultiaddresses) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(CompactPartitions) {
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(CompactSectorNumbers) {
+  ACTOR_METHOD_IMPL(DisputeWindowedPoSt) {
+    // TODO (a.chernyshov) implement
     return VMExitCode::kNotImplemented;
   }
 
@@ -244,12 +150,17 @@ namespace fc::vm::actor::builtin::v0::miner {
       exportMethod<DeclareFaultsRecovered>(),
       exportMethod<OnDeferredCronEvent>(),
       exportMethod<CheckSectorProven>(),
-      exportMethod<AddLockedFund>(),
+      exportMethod<ApplyRewards>(),
       exportMethod<ReportConsensusFault>(),
       exportMethod<WithdrawBalance>(),
       exportMethod<ConfirmSectorProofsValid>(),
       exportMethod<ChangeMultiaddresses>(),
       exportMethod<CompactPartitions>(),
       exportMethod<CompactSectorNumbers>(),
+      exportMethod<ConfirmUpdateWorkerKey>(),
+      exportMethod<RepayDebt>(),
+      exportMethod<ChangeOwnerAddress>(),
+      exportMethod<DisputeWindowedPoSt>(),
   };
-}  // namespace fc::vm::actor::builtin::v0::miner
+
+}  // namespace fc::vm::actor::builtin::v3::miner
