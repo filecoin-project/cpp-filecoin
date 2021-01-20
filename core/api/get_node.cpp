@@ -19,7 +19,7 @@ namespace fc::api {
   outcome::result<IpldObject> getNode(std::shared_ptr<Ipld> ipld,
                                       const CID &root,
                                       gsl::span<const std::string> parts) {
-    if (root.content_type != libp2p::multi::MulticodecType::DAG_CBOR) {
+    if (root.content_type != CID::Multicodec::DAG_CBOR) {
       return TodoError::kError;
     }
     OUTCOME_TRY(raw, ipld->get(root));
@@ -68,7 +68,7 @@ namespace fc::api {
           auto s2 = s;
           CID cid;
           s2 >> cid;
-          if (cid.content_type == libp2p::multi::MulticodecType::DAG_CBOR) {
+          if (cid.content_type == CID::Multicodec::DAG_CBOR) {
             OUTCOME_TRY(raw2, ipld->get(cid));
             s = CborDecodeStream{raw2};
           } else {

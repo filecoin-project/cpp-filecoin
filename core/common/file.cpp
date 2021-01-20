@@ -10,6 +10,16 @@
 #include "common/span.hpp"
 
 namespace fc::common {
+  Outcome<std::pair<MappedFile, BytesIn>> mapFile(const std::string &path) {
+    MappedFile file{path};
+    if (!file.is_open()) {
+      return {};
+    }
+    auto input{
+        common::span::cbytes(std::string_view{file.data(), file.size()})};
+    return std::make_pair(std::move(file), input);
+  }
+
   Outcome<Buffer> readFile(std::string_view path) {
     std::ifstream file{path.data(), std::ios::binary | std::ios::ate};
     if (file.good()) {

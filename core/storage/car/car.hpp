@@ -39,6 +39,18 @@ namespace fc::storage::car {
     return s;
   }
 
+  struct CarReader {
+    using Item = std::pair<CID, BytesIn>;
+
+    static outcome::result<CarReader> make(BytesIn file);
+    bool end() const;
+    outcome::result<Item> next();
+
+    BytesIn file;
+    std::vector<CID> roots;
+    size_t position{}, objects{};
+  };
+
   outcome::result<std::vector<CID>> loadCar(Ipld &store,
                                             const std::string &car_path);
 

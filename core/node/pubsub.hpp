@@ -9,7 +9,7 @@
 #include <string>
 
 #include "common/outcome.hpp"
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 
 namespace fc::pubsub {
   using libp2p::peer::PeerId;
