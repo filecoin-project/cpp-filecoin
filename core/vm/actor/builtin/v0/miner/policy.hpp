@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <primitives/sector/sector.hpp>
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"

@@ -12,6 +12,7 @@
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
+#include "vm/actor/builtin/v2/account/account_actor.hpp"
 
 namespace fc::testutil::vm::actor::builtin {
   using ::fc::vm::actor::CodeId;
@@ -83,6 +84,18 @@ namespace fc::testutil::vm::actor::builtin {
                                           const Blob<48> &bls_pubkey) {
       const Address bls_address = Address::makeBls(bls_pubkey);
       runtime.expectSendM<::fc::vm::actor::builtin::v0::account::PubkeyAddress>(
+          address, {}, 0, {bls_address});
+    }
+
+    /**
+     * Expect V2 Account Actor method PubkeyAddress call
+     * @param address - to get public key
+     * @param bls_pubkey - to return
+     */
+    void expectAccountV2PubkeyAddressSend(const Address &address,
+                                          const Blob<48> &bls_pubkey) {
+      const Address bls_address = Address::makeBls(bls_pubkey);
+      runtime.expectSendM<::fc::vm::actor::builtin::v2::account::PubkeyAddress>(
           address, {}, 0, {bls_address});
     }
 

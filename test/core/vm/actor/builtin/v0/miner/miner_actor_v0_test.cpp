@@ -104,7 +104,7 @@ namespace fc::vm::actor::builtin::v0::miner {
         .WillRepeatedly(Return(Address::makeFromId(1000)));
 
     // This is just set from running the code.
-    ChainEpoch proving_period_start{658};
+    const ChainEpoch proving_period_start{658};
     expectEnrollCronEvent(proving_period_start);
 
     EXPECT_OUTCOME_TRUE_1(Construct::call(
@@ -177,7 +177,7 @@ namespace fc::vm::actor::builtin::v0::miner {
         .WillRepeatedly(Return(Address::makeFromId(1000)));
 
     // This is just set from running the code.
-    ChainEpoch proving_period_start{658};
+    const ChainEpoch proving_period_start{658};
     expectEnrollCronEvent(proving_period_start);
 
     EXPECT_OUTCOME_TRUE_1(Construct::call(

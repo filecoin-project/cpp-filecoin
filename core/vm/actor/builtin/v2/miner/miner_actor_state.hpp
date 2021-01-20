@@ -13,6 +13,7 @@
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/builtin/v0/miner/deadline_info.hpp"
 #include "vm/actor/builtin/v0/miner/types.hpp"
+#include "vm/actor/builtin/v2/miner/types.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
   using adt::UvarintKeyer;
@@ -21,7 +22,6 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::TokenAmount;
   using v0::miner::DeadlineInfo;
   using v0::miner::Deadlines;
-  using v0::miner::MinerInfo;
   using v0::miner::SectorOnChainInfo;
   using v0::miner::SectorPreCommitOnChainInfo;
   using v0::miner::VestingFunds;
