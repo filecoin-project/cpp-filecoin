@@ -204,8 +204,8 @@ namespace fc::vm::interpreter {
     }
     auto result = interpreter->interpret(ipld, tipset);
     if (!result) {
- //     OUTCOME_TRY(raw, codec::cbor::encode(boost::optional<Result>{}));
- //     OUTCOME_TRY(store->put(key, raw));
+      OUTCOME_TRY(raw, codec::cbor::encode(boost::optional<Result>{}));
+      OUTCOME_TRY(store->put(key, raw));
     } else {
       OUTCOME_TRY(raw, codec::cbor::encode(result.value()));
       OUTCOME_TRY(store->put(key, raw));
