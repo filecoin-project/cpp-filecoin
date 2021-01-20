@@ -18,6 +18,7 @@ namespace fc::primitives::tipset {
 
     TipsetKey();
     TipsetKey(std::vector<CID> c);
+    TipsetKey(TipsetHash h, std::vector<CID> c);
 
     bool operator==(const TipsetKey &rhs) const;
     bool operator!=(const TipsetKey &rhs) const;

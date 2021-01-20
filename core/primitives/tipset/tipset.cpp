@@ -186,6 +186,7 @@ namespace fc::primitives::tipset {
       return std::make_shared<Tipset>();
     }
     if (clear) {
+      ticket_hashes_.clear();
       return std::make_shared<Tipset>(std::move(cids_), std::move(blks_));
     }
     return std::make_shared<Tipset>(cids_, blks_);
@@ -199,6 +200,10 @@ namespace fc::primitives::tipset {
 
   uint64_t TipsetCreator::height() const {
     return blks_.empty() ? 0 : blks_[0].height;
+  }
+
+  TipsetKey TipsetCreator::key() const {
+    return cids_;
   }
 
   outcome::result<TipsetCPtr> Tipset::create(const TipsetHash &hash,
@@ -251,6 +256,7 @@ namespace fc::primitives::tipset {
   }
 
   outcome::result<TipsetCPtr> Tipset::loadParent(Ipld &ipld) const {
+    assert(!blks.empty());
     return load(ipld, blks[0].parents);
   }
 
@@ -337,6 +343,7 @@ namespace fc::primitives::tipset {
   }
 
   TipsetKey Tipset::getParents() const {
+    assert(!blks.empty());
     return blks[0].parents;
   }
 
@@ -350,19 +357,23 @@ namespace fc::primitives::tipset {
   }
 
   const block::BlockHeader &Tipset::getMinTicketBlock() const {
+    assert(!blks.empty());
     // i believe that Tipset::create sorts them
     return blks[0];
   }
 
   const CID &Tipset::getParentStateRoot() const {
+    assert(!blks.empty());
     return blks[0].parent_state_root;
   }
 
   const BigInt &Tipset::getParentWeight() const {
+    assert(!blks.empty());
     return blks[0].parent_weight;
   }
 
   const CID &Tipset::getParentMessageReceipts() const {
+    assert(!blks.empty());
     return blks[0].parent_message_receipts;
   }
 
@@ -375,6 +386,7 @@ namespace fc::primitives::tipset {
   }
 
   const BigInt &Tipset::getParentBaseFee() const {
+    assert(!blks.empty());
     return blks[0].parent_base_fee;
   }
 
