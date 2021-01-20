@@ -6,9 +6,9 @@
 #ifndef CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
 #define CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
 
+#include "storage/buffer_map.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "storage/ipld/selector.hpp"
-#include "storage/buffer_map.hpp"
 
 namespace fc::storage::car {
   using Ipld = ipfs::IpfsDatastore;
@@ -41,12 +41,17 @@ namespace fc::storage::car {
     return s;
   }
 
-  outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input);
+  struct CarReader {
+    using Item = std::pair<CID, BytesIn>;
 
-  outcome::result<std::vector<CID>> loadCar(storage::PersistentBufferMap &store,
-                                            const std::string &file_name);
+    static outcome::result<CarReader> make(BytesIn file);
+    bool end() const;
+    outcome::result<Item> next();
 
-  void writeHeader(Buffer &output, const std::vector<CID> &roots);
+    BytesIn file;
+    std::vector<CID> roots;
+    size_t position{}, objects{};
+  };
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store,
                                             const std::string &car_path);

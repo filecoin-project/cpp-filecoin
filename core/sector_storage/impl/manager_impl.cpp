@@ -6,8 +6,15 @@
 #include "sector_storage/impl/manager_impl.hpp"
 
 #include <pwd.h>
+#include <boost/asio.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/version.hpp>
 #include <boost/filesystem.hpp>
+#include <regex>
 #include <unordered_set>
+#include "api/rpc/json.hpp"
+#include "codec/json/json.hpp"
+#include "common/tarutil.hpp"
 #include "sector_storage/impl/allocate_selector.hpp"
 #include "sector_storage/impl/existing_selector.hpp"
 #include "sector_storage/impl/local_worker.hpp"
@@ -87,7 +94,7 @@ namespace fc::sector_storage {
   }
 
   outcome::result<std::vector<SectorId>> ManagerImpl::checkProvable(
-      RegisteredProof seal_proof_type, gsl::span<const SectorId> sectors) {
+      RegisteredSealProof seal_proof_type, gsl::span<const SectorId> sectors) {
     std::vector<SectorId> bad{};
 
     OUTCOME_TRY(ssize, primitives::sector::getSectorSize(seal_proof_type));
@@ -238,7 +245,9 @@ namespace fc::sector_storage {
     selector = std::make_shared<ExistingSelector>(
         index_, sector, SectorFileType::FTUnsealed, false);
 
-    return scheduler_->schedule(
+    bool is_read_success = false;
+
+    OUTCOME_TRY(scheduler_->schedule(
         sector,
         primitives::kTTReadUnsealed,
         selector,
@@ -247,8 +256,17 @@ namespace fc::sector_storage {
                    PathType::kSealing,
                    AcquireMode::kMove),
         [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
-          return worker->readPiece(std::move(output), sector, offset, size);
-        });
+          OUTCOME_TRYA(
+              is_read_success,
+              worker->readPiece(std::move(output), sector, offset, size));
+          return outcome::success();
+        }));
+
+    if (is_read_success) {
+      return outcome::success();
+    }
+
+    return ManagerErrors::kCannotReadData;
   }
 
   outcome::result<std::vector<PoStProof>> ManagerImpl::generateWinningPoSt(
@@ -619,8 +637,8 @@ namespace fc::sector_storage {
       ActorId miner,
       gsl::span<const SectorInfo> sector_info,
       gsl::span<const SectorNumber> faults,
-      const std::function<outcome::result<RegisteredProof>(RegisteredProof)>
-          &to_post_transform) {
+      const std::function<outcome::result<RegisteredPoStProof>(
+          RegisteredSealProof)> &to_post_transform) {
     PubToPrivateResponse result;
 
     std::unordered_set<SectorNumber> faults_set;
@@ -674,7 +692,7 @@ namespace fc::sector_storage {
       const SealerConfig &config) {
     struct make_unique_enabler : public ManagerImpl {
       make_unique_enabler(std::shared_ptr<stores::SectorIndex> sector_index,
-                          RegisteredProof seal_proof_type,
+                          RegisteredSealProof seal_proof_type,
                           std::shared_ptr<stores::LocalStorage> local_storage,
                           std::shared_ptr<stores::LocalStore> local_store,
                           std::shared_ptr<stores::RemoteStore> store,
@@ -737,7 +755,7 @@ namespace fc::sector_storage {
   }
 
   ManagerImpl::ManagerImpl(std::shared_ptr<stores::SectorIndex> sector_index,
-                           RegisteredProof seal_proof_type,
+                           RegisteredSealProof seal_proof_type,
                            std::shared_ptr<stores::LocalStorage> local_storage,
                            std::shared_ptr<stores::LocalStore> local_store,
                            std::shared_ptr<stores::RemoteStore> store,
@@ -775,7 +793,6 @@ namespace fc::sector_storage {
                                             AcquireMode::kMove));
 
     return Response{.paths = res.paths, .lock = std::move(locked)};
-    ;
   }
 
 }  // namespace fc::sector_storage
@@ -792,6 +809,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, ManagerErrors, e) {
       return "Manager: cannot lock sector";
     case (ManagerErrors::kReadOnly):
       return "Manager: read-only storage";
+    case (ManagerErrors::kCannotReadData):
+      return "Manager: failed to read unsealed piece";
     default:
       return "Manager: unknown error";
   }

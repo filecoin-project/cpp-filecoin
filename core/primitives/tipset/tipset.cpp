@@ -203,7 +203,7 @@ namespace fc::primitives::tipset {
   }
 
   TipsetKey TipsetCreator::key() const {
-    return TipsetKey(cids_);
+    return cids_;
   }
 
   outcome::result<TipsetCPtr> Tipset::create(const TipsetHash &hash,
@@ -256,6 +256,7 @@ namespace fc::primitives::tipset {
   }
 
   outcome::result<TipsetCPtr> Tipset::loadParent(Ipld &ipld) const {
+    assert(!blks.empty());
     return load(ipld, blks[0].parents);
   }
 
@@ -343,7 +344,7 @@ namespace fc::primitives::tipset {
 
   TipsetKey Tipset::getParents() const {
     assert(!blks.empty());
-    return TipsetKey(blks[0].parents);
+    return blks[0].parents;
   }
 
   uint64_t Tipset::getMinTimestamp() const {

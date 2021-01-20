@@ -9,8 +9,8 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 namespace fc::markets::storage::provider {
 
@@ -46,16 +46,17 @@ namespace fc::markets::storage::provider {
       auto bls1 =
           "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
 
-      return fc::primitives::block::BlockHeader {
+      return fc::primitives::block::BlockHeader{
           fc::primitives::address::Address::makeFromId(1),
-          fc::primitives::block::Ticket{ fc::Buffer{bls1} },
+          fc::primitives::block::Ticket{fc::Buffer{bls1}},
           {},
           {fc::primitives::block::BeaconEntry{
               4,
               "F00D"_unhex,
           }},
           {fc::primitives::sector::PoStProof{
-              fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+              fc::primitives::sector::RegisteredPoStProof::
+                  StackedDRG2KiBWinningPoSt,
               "F00D"_unhex,
           }},
           {"010001020002"_cid},
@@ -73,7 +74,7 @@ namespace fc::markets::storage::provider {
     }
 
     void SetUp() override {
-      chain_head = Tipset::create({ makeBlock(epoch) }).value();
+      chain_head = Tipset::create({makeBlock(epoch)}).value();
 
       api->ChainHead = {[=]() { return chain_head; }};
 

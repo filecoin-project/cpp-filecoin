@@ -45,6 +45,8 @@ namespace fc::markets::storage::provider {
               std::shared_ptr<Api> api,
               const Address &actor_address);
 
+    auto addAsk(StorageAsk ask, ChainEpoch duration) -> outcome::result<void>;
+
     auto addAsk(const TokenAmount &price, ChainEpoch duration)
         -> outcome::result<void>;
 

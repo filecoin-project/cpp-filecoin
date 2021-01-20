@@ -5,6 +5,8 @@
 
 #include "vm/runtime/impl/tipset_randomness.hpp"
 
+#include "primitives/tipset/tipset.hpp"
+
 namespace fc::vm::runtime {
 
   TipsetRandomness::TipsetRandomness(std::shared_ptr<Ipld> ipld)

@@ -26,6 +26,7 @@
 namespace fc::markets::retrieval::test {
   using api::AddChannelInfo;
   using api::MinerInfo;
+  using api::RetrievalAsk;
   using common::Buffer;
   using data_transfer::DataTransfer;
   using fc::storage::ipfs::InMemoryDatastore;
@@ -35,7 +36,6 @@ namespace fc::markets::retrieval::test {
   using primitives::piece::UnpaddedPieceSize;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
-  using provider::ProviderConfig;
   using vm::actor::builtin::v0::payment_channel::SignedVoucher;
 
   static auto port{40010};
@@ -113,9 +113,12 @@ namespace fc::markets::retrieval::test {
       api = std::make_shared<api::Api>();
       piece_storage = std::make_shared<::fc::storage::piece::PieceStorageImpl>(
           storage_backend);
-      ProviderConfig config{.price_per_byte = 2,
-                            .payment_interval = 100,
-                            .interval_increase = 10};
+      RetrievalAsk config{
+          .price_per_byte = 2,
+          .unseal_price = 0,
+          .payment_interval = 100,
+          .interval_increase = 10,
+      };
 
       sealer = std::make_shared<sector_storage::ManagerMock>();
 
@@ -132,13 +135,16 @@ namespace fc::markets::retrieval::test {
       graphsync->start();
       datatransfer = DataTransfer::make(host, graphsync);
 
+      auto config_key{
+          std::make_shared<fc::storage::OneKey>("config", storage_backend)};
+      config_key->setCbor(config);
       provider =
           std::make_shared<provider::RetrievalProviderImpl>(host,
                                                             datatransfer,
                                                             api,
                                                             piece_storage,
                                                             provider_ipfs,
-                                                            config,
+                                                            config_key,
                                                             sealer,
                                                             miner);
       client = std::make_shared<client::RetrievalClientImpl>(

@@ -27,7 +27,7 @@ namespace fc::sector_storage {
       doNewWorker(worker.get());
     }
 
-    MOCK_CONST_METHOD0(getSealProofType, RegisteredProof());
+    MOCK_CONST_METHOD0(getSealProofType, RegisteredSealProof());
   };
 
 }  // namespace fc::sector_storage

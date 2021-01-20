@@ -98,8 +98,7 @@ namespace fc::primitives::tipset {
 }  // namespace fc::primitives::tipset
 
 namespace std {
-  size_t hash<fc::TipsetKey>::operator()(
-      const fc::TipsetKey &x) const {
+  size_t hash<fc::TipsetKey>::operator()(const fc::TipsetKey &x) const {
     size_t h;
     memcpy(&h, x.hash().data(), sizeof(size_t));
     return h;

@@ -81,7 +81,7 @@ namespace fc::sync {
       return;
     }
 
-    auto& msg = result.value();
+    auto &msg = result.value();
 
     if (msg.genesis != genesis_.value()) {
       log()->error("peer {} has another genesis: {}",
@@ -91,18 +91,18 @@ namespace fc::sync {
       return;
     }
 
-    auto arrival = clock_->microsecSinceEpoch();
+    uint64_t arrival = std::chrono::nanoseconds{clock_->nowMicro()}.count();
 
-    events_->signalTipsetFromHello(events::TipsetFromHello {
+    events_->signalTipsetFromHello(events::TipsetFromHello{
         .peer_id = std::move(peer_res.value()),
         .tipset = std::move(msg.heaviest_tipset),
         .height = msg.heaviest_tipset_height,
-        .weight = std::move(msg.heaviest_tipset_weight)
+        .weight = std::move(msg.heaviest_tipset_weight),
     });
 
-    auto sent = clock_->microsecSinceEpoch();
+    uint64_t sent = std::chrono::nanoseconds{clock_->nowMicro()}.count();
 
-    stream->write(LatencyMessage{arrival * 1000, sent * 1000},
+    stream->write(LatencyMessage{arrival, sent},
                   [stream](auto) { stream->close(); });
   }
 

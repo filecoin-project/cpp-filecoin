@@ -102,7 +102,8 @@ namespace fc::vm::runtime {
     outcome::result<bool> verifyPoSt(const WindowPoStVerifyInfo &info) override;
 
     outcome::result<CID> computeUnsealedSectorCid(
-        RegisteredProof type, const std::vector<PieceInfo> &pieces) override;
+        RegisteredSealProof type,
+        const std::vector<PieceInfo> &pieces) override;
 
     outcome::result<ConsensusFault> verifyConsensusFault(
         const Buffer &block1,

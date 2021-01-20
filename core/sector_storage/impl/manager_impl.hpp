@@ -16,6 +16,7 @@
 
 namespace fc::sector_storage {
   using primitives::SectorNumber;
+  using primitives::sector::RegisteredPoStProof;
 
   struct SealerConfig {
     bool allow_precommit_1;
@@ -32,7 +33,7 @@ namespace fc::sector_storage {
         const SealerConfig &config);
 
     outcome::result<std::vector<SectorId>> checkProvable(
-        RegisteredProof seal_proof_type,
+        RegisteredSealProof seal_proof_type,
         gsl::span<const SectorId> sectors) override;
 
     SectorSize getSectorSize() override;
@@ -102,7 +103,7 @@ namespace fc::sector_storage {
 
    private:
     ManagerImpl(std::shared_ptr<stores::SectorIndex> sector_index,
-                RegisteredProof seal_proof_type,
+                RegisteredSealProof seal_proof_type,
                 std::shared_ptr<stores::LocalStorage> local_storage,
                 std::shared_ptr<stores::LocalStore> local_store,
                 std::shared_ptr<stores::RemoteStore> store,
@@ -128,12 +129,12 @@ namespace fc::sector_storage {
         ActorId miner,
         gsl::span<const SectorInfo> sector_info,
         gsl::span<const SectorNumber> faults,
-        const std::function<outcome::result<RegisteredProof>(RegisteredProof)>
-            &to_post_transform);
+        const std::function<outcome::result<RegisteredPoStProof>(
+            RegisteredSealProof)> &to_post_transform);
 
     std::shared_ptr<stores::SectorIndex> index_;
 
-    RegisteredProof seal_proof_type_;  // TODO: maybe add config
+    RegisteredSealProof seal_proof_type_;  // TODO: maybe add config
 
     std::shared_ptr<stores::LocalStorage> local_storage_;
     std::shared_ptr<stores::LocalStore> local_store_;

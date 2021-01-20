@@ -16,9 +16,8 @@
 #include <boost/compute/detail/lru_cache.hpp>
 #include <gsl/span>
 
-#include "fwd.hpp"
-
 #include "drand/beaconizer.hpp"
+#include "fwd.hpp"
 
 namespace fc::drand {
   using boost::asio::io_context;

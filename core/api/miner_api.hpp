@@ -14,13 +14,13 @@ namespace fc::api {
   using mining::types::DealInfo;
   using mining::types::DealSchedule;
   using primitives::DealId;
-  using primitives::piece::UnpaddedPieceSize;
+  using primitives::piece::PaddedPieceSize;
   using primitives::sector::SectorNumber;
 
   struct PieceLocation {
     SectorNumber sector_number;
-    uint64_t offset;
-    uint64_t length;
+    PaddedPieceSize offset;
+    PaddedPieceSize length;
   };
 
   struct StorageMinerApi {

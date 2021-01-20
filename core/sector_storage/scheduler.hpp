@@ -34,7 +34,7 @@ namespace fc::sector_storage {
 
     virtual void newWorker(std::unique_ptr<WorkerHandle> worker) = 0;
 
-    virtual RegisteredProof getSealProofType() const = 0;
+    virtual RegisteredSealProof getSealProofType() const = 0;
   };
 
   enum class SchedulerErrors {

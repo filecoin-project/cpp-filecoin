@@ -69,15 +69,15 @@ namespace fc::sync {
     /// Info about outgoing hello
     struct RequestCtx {
       StreamPtr stream;
-      clock::Microseconds sent;
+      std::chrono::microseconds sent;
 
-      explicit RequestCtx(clock::Microseconds t);
+      explicit RequestCtx(std::chrono::microseconds t);
     };
 
     std::unordered_map<PeerId, RequestCtx> active_requests_;
 
     struct TimeAndPeerId {
-      clock::Microseconds t;
+      std::chrono::microseconds t;
       PeerId p;
 
       bool operator<(const TimeAndPeerId &other) const;

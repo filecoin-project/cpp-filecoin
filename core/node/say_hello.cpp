@@ -26,7 +26,7 @@ namespace fc::sync {
       return protocol_id;
     }
 
-    constexpr size_t kHeartbeatInterval = 10000;
+    constexpr std::chrono::milliseconds kHeartbeatInterval{10000};
   }  // namespace
 
   SayHello::SayHello(std::shared_ptr<libp2p::Host> host,
@@ -75,18 +75,18 @@ namespace fc::sync {
           }
         });
 
-    heartbeat_handle_ =
-        scheduler_->schedule(kHeartbeatInterval, [wptr = weak_from_this()]() {
-          auto self = wptr.lock();
-          if (self) {
-            self->onHeartbeat();
-          }
-        });
+    heartbeat_handle_ = scheduler_->schedule(kHeartbeatInterval.count(),
+                                             [wptr = weak_from_this()]() {
+                                               auto self = wptr.lock();
+                                               if (self) {
+                                                 self->onHeartbeat();
+                                               }
+                                             });
 
     log()->debug("started");
   }
 
-  SayHello::RequestCtx::RequestCtx(clock::Microseconds t) : sent(t) {}
+  SayHello::RequestCtx::RequestCtx(std::chrono::microseconds t) : sent(t) {}
 
   bool SayHello::TimeAndPeerId::operator<(const TimeAndPeerId &other) const {
     return t < other.t;
@@ -100,7 +100,7 @@ namespace fc::sync {
     if (active_requests_.count(peer_id) != 0) {
       return;
     }
-    auto sent = clock_->microsecSinceEpoch();
+    auto sent = clock_->nowMicro();
     active_requests_.insert(std::make_pair(peer_id, RequestCtx(sent)));
     active_requests_by_sent_time_.insert({sent, peer_id});
 
@@ -195,7 +195,7 @@ namespace fc::sync {
 
     // TODO(artem): do smth with clock results
 
-    auto latency = clock_->microsecSinceEpoch() - time_sent;
+    uint64_t latency = (clock_->nowMicro() - time_sent).count();
 
     log()->debug("peer {} latency: {} usec", peer_id.toBase58(), latency);
 
@@ -204,7 +204,7 @@ namespace fc::sync {
   }
 
   void SayHello::onHeartbeat() {
-    auto expire_time = clock_->microsecSinceEpoch() - kHeartbeatInterval * 1000;
+    auto expire_time = clock_->nowMicro() - kHeartbeatInterval;
 
     while (!active_requests_by_sent_time_.empty()) {
       auto it = active_requests_by_sent_time_.begin();

@@ -14,8 +14,10 @@ namespace fc::clock {
    */
   class UTCClock {
    public:
-    virtual UnixTime nowUTC() const = 0;
-    virtual Microseconds microsecSinceEpoch() const = 0;
+    inline auto nowUTC() const {
+      return std::chrono::duration_cast<UnixTime>(nowMicro());
+    }
+    virtual microseconds nowMicro() const = 0;
     virtual ~UTCClock() = default;
   };
 }  // namespace fc::clock

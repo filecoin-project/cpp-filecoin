@@ -5,9 +5,8 @@
 
 #pragma once
 
-#include "fwd.hpp"
-
 #include "data_transfer/message.hpp"
+#include "fwd.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
 
 namespace fc::data_transfer {

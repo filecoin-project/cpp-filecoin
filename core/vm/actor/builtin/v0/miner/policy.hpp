@@ -17,7 +17,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::SectorSize;
   using primitives::SectorStorageWeightDesc;
   using primitives::TokenAmount;
-  using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredSealProof;
 
   constexpr size_t kEpochDurationSeconds{30};
   constexpr size_t kSecondsInHour{3600};
@@ -53,13 +53,14 @@ namespace fc::vm::actor::builtin::v0::miner {
    */
   constexpr auto kMaxSectorExpirationExtension = 540 * kEpochsInDay;
 
-  inline outcome::result<EpochDuration> maxSealDuration(RegisteredProof type) {
+  inline outcome::result<EpochDuration> maxSealDuration(
+      RegisteredSealProof type) {
     switch (type) {
-      case RegisteredProof::StackedDRG32GiBSeal:
-      case RegisteredProof::StackedDRG2KiBSeal:
-      case RegisteredProof::StackedDRG8MiBSeal:
-      case RegisteredProof::StackedDRG512MiBSeal:
-      case RegisteredProof::StackedDRG64GiBSeal:
+      case RegisteredSealProof::StackedDrg32GiBV1:
+      case RegisteredSealProof::StackedDrg2KiBV1:
+      case RegisteredSealProof::StackedDrg8MiBV1:
+      case RegisteredSealProof::StackedDrg512MiBV1:
+      case RegisteredSealProof::StackedDrg64GiBV1:
         return 10000;
       default:
         return VMExitCode::kMinerActorIllegalArgument;

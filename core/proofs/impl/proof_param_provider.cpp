@@ -31,7 +31,7 @@ namespace fc::proofs {
     return fwrite(ptr, size, nmemb, (FILE *)stream);
   }
 
-  auto const default_gateway = "https://ipfs.io/ipfs/";
+  auto const default_gateway = "https://proofs.filecoin.io/ipfs/";
   auto const param_dir = "/var/tmp/filecoin-proof-parameters";
   auto const dir_env = "FIL_PROOFS_PARAMETER_CACHE";
 

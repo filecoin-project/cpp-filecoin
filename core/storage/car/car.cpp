@@ -3,15 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/interprocess/file_mapping.hpp>
-#include <boost/interprocess/mapped_region.hpp>
-#include <boost/iostreams/device/mapped_file.hpp>
+#include "storage/car/car.hpp"
+
 #include <fstream>
 
 #include "codec/uvarint.hpp"
-#include "common/logger.hpp"
-#include "storage/car/car.hpp"
-#include "codec/uvarint.hpp"
+#include "common/file.hpp"
 #include "common/span.hpp"
 #include "storage/ipld/traverser.hpp"
 
@@ -28,115 +25,51 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
 }
 
 namespace fc::storage::car {
-  using mapped_file = boost::iostreams::mapped_file_source;
   using ipld::kAllSelector;
   using ipld::traverser::Traverser;
 
-  outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input) {
+  outcome::result<CarReader> CarReader::make(BytesIn file) {
+    CarReader reader;
+    reader.file = file;
+    auto input{file};
     OUTCOME_TRY(header_bytes,
                 codec::uvarint::readBytes<CarError::kDecodeError,
                                           CarError::kDecodeError>(input));
     OUTCOME_TRY(header, codec::cbor::decode<CarHeader>(header_bytes));
-    while (!input.empty()) {
-      OUTCOME_TRY(node,
-                  codec::uvarint::readBytes<CarError::kDecodeError,
-                                            CarError::kDecodeError>(input));
-      OUTCOME_TRY(cid, CID::read(node));
-      OUTCOME_TRY(store.set(cid, common::Buffer{node}));
-    }
-    return std::move(header.roots);
+    reader.position = input.data() - reader.file.data();
+    reader.roots = std::move(header.roots);
+    return reader;
   }
 
-  outcome::result<std::vector<CID>> loadCar(storage::PersistentBufferMap &store,
-                                            const std::string &file_name) {
-    namespace bip = boost::interprocess;
+  bool CarReader::end() const {
+    return (ssize_t)position >= file.size() || file[position] == 0;
+  }
 
-    auto log = common::createLogger("load_car");
+  outcome::result<CarReader::Item> CarReader::next() {
+    assert(!end());
+    auto input{file.subspan(position)};
+    OUTCOME_TRY(node,
+                codec::uvarint::readBytes<CarError::kDecodeError,
+                                          CarError::kDecodeError>(input));
+    OUTCOME_TRY(cid, CID::read(node));
+    position = input.data() - file.data();
+    ++objects;
+    return std::make_pair(std::move(cid), node);
+  }
 
-    gsl::span<const uint8_t> input;
-
-    try {
-      bip::file_mapping file(file_name.c_str(), bip::read_only);
-      bip::mapped_region region(file, bip::read_only);
-      void *addr = region.get_address();
-      std::size_t size = region.get_size();
-      input =
-          gsl::span<const uint8_t>(static_cast<const uint8_t *>(addr), size);
-      log->info("reading file {} of size {}", file_name, size);
-
-      size_t reported_percent = 0;
-      const size_t total_bytes = input.size();
-      size_t objects_count = 0;
-      auto progress = [&](size_t current) {
-        auto x = current * 100 / total_bytes;
-        if (x > reported_percent) {
-          reported_percent = x;
-          log->info("{}%, {} objects stored", reported_percent, objects_count);
-        }
-      };
-
-      OUTCOME_TRY(header_bytes,
-                  codec::uvarint::readBytes<CarError::kDecodeError,
-                                            CarError::kDecodeError>(input));
-      OUTCOME_TRY(header, codec::cbor::decode<CarHeader>(header_bytes));
-      log->info("read header, {} roots", header.roots.size());
-      if (header.roots.size() < 100) {
-        for (const auto &r : header.roots) {
-          log->info(r.toString().value());
-        }
-      }
-
-      static constexpr size_t kBatchSize = 100000;
-      size_t current_batch_size = 0;
-      auto batch = store.batch();
-
-      while (!input.empty()) {
-        OUTCOME_TRY(node,
-                    codec::uvarint::readBytes<CarError::kDecodeError,
-                                              CarError::kDecodeError>(input));
-        auto cid_bytes = node;
-        OUTCOME_TRY(cid, CID::read(node));
-        std::ignore = cid;
-        cid_bytes = cid_bytes.first(cid_bytes.size() - node.size());
-
-        OUTCOME_TRY(
-            batch->put(common::Buffer{cid_bytes}, common::Buffer{node}));
-
-        if (++current_batch_size >= kBatchSize) {
-          OUTCOME_TRY(batch->commit());
-          batch->clear();
-          current_batch_size = 0;
-        }
-
-        OUTCOME_TRY(batch->commit());
-        batch->clear();
-
-        ++objects_count;
-        progress(total_bytes - input.size());
-      }
-
-      return std::move(header.roots);
-
-    } catch (const std::exception &e) {
-      log->error("exception while reading {}: {}", file_name, e.what());
-      return CarError::kReadFileError;
-    } catch (...) {
-      log->error("unknown exception while reading {}", file_name);
-      return CarError::kReadFileError;
+  outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input) {
+    OUTCOME_TRY(reader, CarReader::make(input));
+    while (!reader.end()) {
+      OUTCOME_TRY(item, reader.next());
+      OUTCOME_TRY(store.set(item.first, common::Buffer{item.second}));
     }
+    return std::move(reader.roots);
   }
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store,
                                             const std::string &car_path) {
-    mapped_file car_file(car_path);
-    if (!car_file.is_open()) {
-      return CarError::kCannotOpenFileError;
-    }
-    return loadCar(
-        store,
-        common::span::cbytes(
-            {car_file.data(),
-             static_cast<gsl::span<const char>::index_type>(car_file.size())}));
+    OUTCOME_TRY(file, common::mapFile(car_path));
+    return loadCar(store, file.second);
   }
 
   void writeUvarint(Buffer &output, uint64_t value) {

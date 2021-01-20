@@ -6,7 +6,6 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
-#include <boost/uuid/uuid.hpp>
 
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "testutil/literals.hpp"
@@ -18,7 +17,6 @@ using fc::storage::ipfs::IpfsDatastore;
 using fc::storage::ipfs::IpfsDatastoreError;
 using fc::storage::ipfs::LeveldbDatastore;
 using libp2p::multi::HashType;
-using libp2p::multi::MulticodecType;
 using libp2p::multi::Multihash;
 
 struct DatastoreIntegrationTest : public ::testing::Test {
@@ -26,18 +24,16 @@ struct DatastoreIntegrationTest : public ::testing::Test {
 
   Options options{};
 
-  CID cid1{
-      CID::Version::V1,
-      MulticodecType::Code::SHA2_256,
-      Multihash::create(HashType::sha256,
-                        "0123456789ABCDEF0123456789ABCDEF"_unhex)
-          .value()};
-  CID cid2{
-      CID::Version::V1,
-      MulticodecType::Code::SHA2_256,
-      Multihash::create(HashType::sha256,
-                        "FEDCBA9876543210FEDCBA9876543210"_unhex)
-          .value()};
+  CID cid1{CID::Version::V1,
+           CID::Multicodec::SHA2_256,
+           Multihash::create(HashType::sha256,
+                             "0123456789ABCDEF0123456789ABCDEF"_unhex)
+               .value()};
+  CID cid2{CID::Version::V1,
+           CID::Multicodec::SHA2_256,
+           Multihash::create(HashType::sha256,
+                             "FEDCBA9876543210FEDCBA9876543210"_unhex)
+               .value()};
 
   Buffer value{"0123456789ABCDEF0123456789ABCDEF"_unhex};
 

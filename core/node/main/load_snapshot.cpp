@@ -4,19 +4,20 @@
  */
 
 #include <boost/filesystem.hpp>
-#include "spdlog/fmt/fmt.h"
 
-#include "builder.hpp"
+#include "common/file.hpp"
 #include "node/index_db_backend.hpp"
+#include "node/main/builder.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/car/car.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/leveldb/leveldb.hpp"
+#include "storage/leveldb/prefix.hpp"
 #include "vm/actor/cgo/actors.hpp"
+#include "vm/dvm/dvm.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
-#include "vm/dvm/dvm.hpp"
 
 namespace fc {
 
@@ -58,6 +59,53 @@ namespace fc {
       return 0;
     }
 
+    outcome::result<std::vector<CID>> loadBigCar(
+        storage::PersistentBufferMap &store, const std::string &file_name) {
+      OUTCOME_TRY(file, common::mapFile(file_name));
+      OUTCOME_TRY(reader, storage::car::CarReader::make(file.second));
+
+      auto log = common::createLogger("load_car");
+
+      log->info("reading file {} of size {}", file_name, reader.file.size());
+
+      size_t reported_percent = 0;
+      auto progress = [&]() {
+        auto x = 100 * reader.position / reader.file.size();
+        if (x > reported_percent) {
+          reported_percent = x;
+          log->info("{}%, {} objects stored", reported_percent, reader.objects);
+        }
+      };
+
+      log->info("read header, {} roots", reader.roots.size());
+      if (reader.roots.size() < 100) {
+        for (const auto &r : reader.roots) {
+          log->info("- {}", r);
+        }
+      }
+
+      static constexpr size_t kBatchSize = 100000;
+      size_t current_batch_size = 0;
+      auto batch = store.batch();
+      auto ipld{node::makeIpld(std::make_shared<storage::MapBatched>(*batch))};
+
+      while (!reader.end()) {
+        OUTCOME_TRY(item, reader.next());
+        OUTCOME_TRY(ipld->set(item.first, Buffer{item.second}));
+
+        ++current_batch_size;
+        if (current_batch_size >= kBatchSize || reader.end()) {
+          OUTCOME_TRY(batch->commit());
+          batch->clear();
+          current_batch_size = 0;
+        }
+
+        progress();
+      }
+
+      return std::move(reader.roots);
+    }
+
     int create_leveldb(bool must_be_empty) {
       leveldb::Options options;
       options.create_if_missing = must_be_empty;
@@ -71,14 +119,14 @@ namespace fc {
       }
 
       c.leveldb = std::move(leveldb_res.value());
-      c.ipld = std::make_shared<storage::ipfs::LeveldbDatastore>(c.leveldb);
+      c.ipld = node::makeIpld(c.leveldb);
       return 0;
     }
 
     int load_genesis() {
       ASSERT2(c.leveldb);
 
-      auto load_res = storage::car::loadCar(*c.leveldb, c.genesis_file);
+      auto load_res = loadBigCar(*c.leveldb, c.genesis_file);
       if (!load_res) {
         fmt::print(
             stderr, "Load genesis failed, {}\n", load_res.error().message());
@@ -100,7 +148,7 @@ namespace fc {
     int load_snapshot() {
       ASSERT2(c.leveldb);
 
-      auto load_res = storage::car::loadCar(*c.leveldb, c.car_file);
+      auto load_res = loadBigCar(*c.leveldb, c.car_file);
       if (!load_res) {
         fmt::print(
             stderr, "Load snapshot failed, {}\n", load_res.error().message());
@@ -271,17 +319,6 @@ namespace fc {
       return 0;
     }
 
-    int make_libp2p_key() {
-      if (!node::persistLibp2pKey(c.storage_dir + node::kKeyFileName,
-                                  boost::none)) {
-        fmt::print(stderr, "Cannot write libp2p key\n");
-        return __LINE__;
-      }
-
-      fmt::print(stderr, "Libp2p key created\n");
-      return 0;
-    }
-
     int interpret_finality_tipsets() {
       ASSERT2(c.leveldb);
       ASSERT2(c.ipld);
@@ -407,7 +444,6 @@ namespace fc {
 
     if (must_be_empty) {
       TRY_STEP(index_snapshot());
-      TRY_STEP(make_libp2p_key());
     }
 
     TRY_STEP(interpret_finality_tipsets());

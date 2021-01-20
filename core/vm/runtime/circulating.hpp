@@ -6,9 +6,7 @@
 #pragma once
 
 #include "common/outcome.hpp"
-
 #include "fwd.hpp"
-
 #include "primitives/types.hpp"
 
 namespace fc::vm {

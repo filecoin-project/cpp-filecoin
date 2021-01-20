@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "fwd.hpp"
 #include "common/async.hpp"
 #include "drand/messages.hpp"
+#include "fwd.hpp"
 
 namespace fc::drand::http {
   using boost::asio::io_context;

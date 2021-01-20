@@ -17,24 +17,29 @@ namespace fc::markets::storage::provider {
         api_{std::move(api)},
         actor_{actor_address} {}
 
-  outcome::result<void> StoredAsk::addAsk(const TokenAmount &price,
-                                          ChainEpoch duration) {
+  outcome::result<void> StoredAsk::addAsk(StorageAsk ask, ChainEpoch duration) {
+    assert(ask.miner == actor_);
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    ChainEpoch timestamp = chain_head->height();
-    ChainEpoch expiry = chain_head->height() + duration;
-    StorageAsk ask{.price = price,
-                   .verified_price = price,
-                   .min_piece_size = kDefaultMinPieceSize,
-                   .max_piece_size = kDefaultMaxPieceSize,
-                   .miner = actor_,
-                   .timestamp = timestamp,
-                   .expiry = expiry,
-                   .seq_no = last_signed_storage_ask_
-                                 ? last_signed_storage_ask_->ask.seq_no + 1
-                                 : 0};
+    ask.timestamp = chain_head->height();
+    ask.expiry = ask.timestamp + duration;
+    ask.seq_no =
+        last_signed_storage_ask_ ? last_signed_storage_ask_->ask.seq_no + 1 : 0;
     OUTCOME_TRY(signed_ask, signAsk(ask, *chain_head));
     OUTCOME_TRY(saveSignedAsk(signed_ask));
     return outcome::success();
+  }
+
+  outcome::result<void> StoredAsk::addAsk(const TokenAmount &price,
+                                          ChainEpoch duration) {
+    return addAsk(
+        {
+            .price = price,
+            .verified_price = price,
+            .min_piece_size = kDefaultMinPieceSize,
+            .max_piece_size = kDefaultMaxPieceSize,
+            .miner = actor_,
+        },
+        duration);
   }
 
   outcome::result<SignedStorageAsk> StoredAsk::getAsk(const Address &address) {

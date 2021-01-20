@@ -53,8 +53,8 @@ namespace fc {
   namespace blockchain {
     namespace weight {
       class WeightCalculator;
-    }
-  }  // namespace blockchain
+    }  // namespace weight
+  }    // namespace blockchain
 
   namespace clock {
     class UTCClock;
@@ -115,7 +115,7 @@ namespace fc {
 
   namespace sync {
     class PubSubGate;
-  }
+  }  // namespace sync
 
   namespace vm {
     namespace actor {

@@ -6,12 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_API_MAKE_HPP
 #define CPP_FILECOIN_CORE_API_MAKE_HPP
 
-#include "fwd.hpp"
-
 #include "api/api.hpp"
 #include "blockchain/weight_calculator.hpp"
 #include "common/logger.hpp"
 #include "common/todo_error.hpp"
+#include "fwd.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/keystore/keystore.hpp"

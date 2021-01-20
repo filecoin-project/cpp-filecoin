@@ -31,7 +31,7 @@ namespace fc::markets::retrieval::provider {
       std::shared_ptr<api::Api> api,
       std::shared_ptr<PieceStorage> piece_storage,
       std::shared_ptr<Ipld> ipld,
-      const ProviderConfig &config,
+      std::shared_ptr<OneKey> config_key,
       std::shared_ptr<Manager> sealer,
       std::shared_ptr<Miner> miner)
       : host_{std::move(host)},
@@ -39,18 +39,38 @@ namespace fc::markets::retrieval::provider {
         api_{std::move(api)},
         piece_storage_{std::move(piece_storage)},
         ipld_{std::move(ipld)},
-        config_{config},
+        config_key_{std::move(config_key)},
+        config_{
+            kDefaultPricePerByte,
+            kDefaultUnsealPrice,
+            kDefaultPaymentInterval,
+            kDefaultPaymentIntervalIncrease,
+        },
         sealer_{std::move(sealer)},
         miner_{std::move(miner)} {
+    if (!config_key_->has()) {
+      config_key_->setCbor(config_);
+    }
+    config_key_->getCbor(config_);
     datatransfer_->on_pull.emplace(
         DealProposal::Named::type,
         [this](auto &pdtid, auto &pgsid, auto &, auto _voucher) {
           if (auto _proposal{
                   codec::cbor::decode<DealProposal::Named>(_voucher)}) {
-            return onProposal(pdtid, pgsid, _proposal.value());
+            io_.io->post([=] { onProposal(pdtid, pgsid, _proposal.value()); });
+            return;
           }
           datatransfer_->rejectPull(pdtid, pgsid, {}, {});
         });
+  }
+
+  RetrievalAsk RetrievalProviderImpl::getAsk() const {
+    return config_;
+  }
+
+  void RetrievalProviderImpl::setAsk(const RetrievalAsk &ask) {
+    config_key_->setCbor(ask);
+    config_ = ask;
   }
 
   void RetrievalProviderImpl::onProposal(const PeerDtId &pdtid,
@@ -101,7 +121,7 @@ namespace fc::markets::retrieval::provider {
         pdtid, [this, deal](auto &type, auto _voucher) {
           if (auto _payment{
                   codec::cbor::decode<DealPayment::Named>(_voucher)}) {
-            onPayment(deal, _payment.value());
+            io_.io->post([=] { onPayment(deal, _payment.value()); });
           } else {
             doFail(deal, _payment.error().message());
           }
@@ -153,10 +173,10 @@ namespace fc::markets::retrieval::provider {
     if (!_piece) {
       return doFail(deal, _piece.error().message());
     }
-    if (!fs::exists(config_.filestore_path)) {
-      fs::create_directories(config_.filestore_path);
+    if (!fs::exists(kFilestoreTempDir)) {
+      fs::create_directories(kFilestoreTempDir);
     }
-    auto car_path = fs::path(config_.filestore_path) / fs::unique_path();
+    auto car_path = fs::path(kFilestoreTempDir) / fs::unique_path();
     auto _ = gsl::finally([&car_path]() {
       if (fs::exists(car_path)) {
         fs::remove_all(car_path);
@@ -170,7 +190,7 @@ namespace fc::markets::retrieval::provider {
         assert(info.length.unpadded() == fs::file_size(car_path));
         auto _load{::fc::storage::car::loadCar(*ipld_, car_path.string())};
         if (!_load) {
-          return doFail(deal, _piece.error().message());
+          return doFail(deal, _load.error().message());
         }
         deal->unsealed = true;
         doBlocks(deal);

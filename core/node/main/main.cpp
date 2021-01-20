@@ -8,20 +8,20 @@
 #include <libp2p/host/host.hpp>
 
 #include "api/rpc/ws.hpp"
-#include "builder.hpp"
 #include "common/logger.hpp"
 #include "node/blocksync_server.hpp"
 #include "node/chain_store_impl.hpp"
 #include "node/events.hpp"
 #include "node/graphsync_server.hpp"
 #include "node/identify.hpp"
+#include "node/interpret_job.hpp"
+#include "node/main/builder.hpp"
 #include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
 #include "node/pubsub_workaround.hpp"
 #include "node/receive_hello.hpp"
 #include "node/say_hello.hpp"
 #include "node/sync_job.hpp"
-#include "node/interpret_job.hpp"
 
 namespace fc {
 
@@ -128,7 +128,7 @@ namespace fc {
                                        p2_res.value().addresses[0]);
           }
 
-          api::serve(o.api, *o.io_context, "127.0.0.1", config.port + 1);
+          api::serve(o.api, {}, *o.io_context, "127.0.0.1", config.port + 1);
           log()->info("API started at ws://127.0.0.1:{}", config.port + 1);
         });
 

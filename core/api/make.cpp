@@ -151,7 +151,8 @@ namespace fc::api {
                                        sectors_bitset.end()};
       for (auto &i : indices) {
         OUTCOME_TRY(sector, state.sectors.get(sector_ids[i]));
-        sectors.push_back({win_type, sector.sector, sector.sealed_cid});
+        sectors.push_back(
+            {minfo.seal_proof_type, sector.sector, sector.sealed_cid});
       }
     }
     return sectors;
@@ -349,9 +350,19 @@ namespace fc::api {
         // TODO(turuslan): FIL-165 implement method
         .ClientStartDeal = {},
         // TODO(turuslan): FIL-165 implement method
+        .DealsImportData = {},
+        // TODO(turuslan): FIL-165 implement method
         .GasEstimateMessageGas = {},
         // TODO(turuslan): FIL-165 implement method
-        .MarketEnsureAvailable = {},
+        .MarketGetAsk = {},
+        // TODO(turuslan): FIL-165 implement method
+        .MarketGetRetrievalAsk = {},
+        // TODO(turuslan): FIL-165 implement method
+        .MarketReserveFunds = {},
+        // TODO(turuslan): FIL-165 implement method
+        .MarketSetAsk = {},
+        // TODO(turuslan): FIL-165 implement method
+        .MarketSetRetrievalAsk = {},
         .MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockWithCids> {
           OUTCOME_TRY(context, tipsetContext(t.parents, true));
           OUTCOME_TRY(miner_state, context.minerState(t.miner));

@@ -13,12 +13,18 @@ namespace fc::common {
 
   constexpr int kTarBlockSize = 10240;
 
+  outcome::result<void> zipTar(const std::string &input_path,
+                               const std::string &output_path);
+
   outcome::result<void> extractTar(const std::string &tar_path,
                                    const std::string &output_path);
 
   enum class TarErrors {
     kCannotCreateDir = 1,
     kCannotUntarArchive,
+    kCannotZipTarArchive,
+    kCannotOpenFile,
+    kCannotReadFile,
   };
 
 }  // namespace fc::common

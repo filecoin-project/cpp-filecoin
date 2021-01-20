@@ -26,6 +26,7 @@
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
+#include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "drand/impl/beaconizer.hpp"
@@ -50,6 +51,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
+#include "storage/leveldb/prefix.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
@@ -144,71 +146,6 @@ namespace fc::node {
       return outcome::success();
     }
 
-    constexpr auto kKeySize = 32u;
-
-    outcome::result<libp2p::crypto::ed25519::Keypair> makeNewKeypair(
-        const std::string &file_name) {
-      OUTCOME_TRY(keypair,
-                  libp2p::crypto::ed25519::Ed25519ProviderImpl{}.generate());
-      OUTCOME_TRY(persistLibp2pKey(file_name, keypair.private_key));
-      return keypair;
-    }
-
-    outcome::result<libp2p::crypto::ed25519::Keypair> loadExistingKeypair(
-        const std::string &file_name) {
-      std::ifstream ifs{file_name, std::ios::binary | std::ios::ate};
-
-      if (!ifs.is_open()) {
-        log()->error("cannot open file {}", file_name);
-        return Error::KEY_READ_ERROR;
-      }
-
-      auto size = ifs.tellg();
-      if (size != kKeySize) {
-        log()->error("wrong size ({}) of key file {}", file_name);
-        return Error::KEY_READ_ERROR;
-      }
-
-      libp2p::crypto::ed25519::Keypair keypair;
-
-      ifs.seekg(0, std::ios::beg);
-
-      // NOLINTNEXTLINE
-      ifs.read((char *)keypair.private_key.data(), kKeySize);
-      if (!ifs.good()) {
-        log()->error("cannot read file {}", file_name);
-        return Error::KEY_READ_ERROR;
-      }
-
-      OUTCOME_TRYA(keypair.public_key,
-                   libp2p::crypto::ed25519::Ed25519ProviderImpl{}.derive(
-                       keypair.private_key));
-      return keypair;
-    }
-
-    outcome::result<libp2p::crypto::KeyPair> loadKeypair(const Config &config,
-                                                         bool creating_new_db) {
-      libp2p::crypto::KeyPair keypair;
-
-      auto file_name = config.storage_path + kKeyFileName;
-
-      libp2p::crypto::ed25519::Keypair keypair_raw;
-      if (creating_new_db) {
-        OUTCOME_TRYA(keypair_raw, makeNewKeypair(file_name));
-      } else {
-        OUTCOME_TRYA(keypair_raw, loadExistingKeypair(file_name));
-      }
-
-      keypair.privateKey.type = keypair.publicKey.type =
-          libp2p::crypto::Key::Type::Ed25519;
-      keypair.privateKey.data.assign(keypair_raw.private_key.begin(),
-                                     keypair_raw.private_key.end());
-      keypair.publicKey.data.assign(keypair_raw.public_key.begin(),
-                                    keypair_raw.public_key.end());
-
-      return keypair;
-    }
-
     std::shared_ptr<libp2p::protocol::kademlia::KademliaImpl> createKademlia(
         Config &config,
         const NodeObjects &o,
@@ -283,8 +220,7 @@ namespace fc::node {
       if (!leveldb_res) {
         return Error::STORAGE_INIT_ERROR;
       }
-      o.ipld = std::make_shared<storage::ipfs::LeveldbDatastore>(
-          leveldb_res.value());
+      o.ipld = makeIpld(leveldb_res.value());
       o.kv_store = std::move(leveldb_res.value());
 
       OUTCOME_TRYA(
@@ -325,7 +261,7 @@ namespace fc::node {
 
     log()->debug("Creating host...");
 
-    OUTCOME_TRY(keypair, loadKeypair(config, creating_new_db));
+    OUTCOME_TRY(keypair, loadPeerKey(config.storage_path + kKeyFileName));
 
     auto injector = libp2p::injector::makeHostInjector<
         boost::di::extension::shared_config>(
@@ -489,32 +425,10 @@ namespace fc::node {
     return o;
   }
 
-  outcome::result<void> persistLibp2pKey(
-      const std::string &file_name,
-      boost::optional<std::array<uint8_t, 32u>> key) {
-    if (!key) {
-      OUTCOME_TRY(keypair,
-                  libp2p::crypto::ed25519::Ed25519ProviderImpl{}.generate());
-      key = std::move(keypair.private_key);
-    }
-
-    std::ofstream ofs{file_name, std::ios::binary | std::ios::trunc};
-
-    if (!ofs.good()) {
-      log()->error("cannot open file {}", file_name);
-      return Error::KEY_WRITE_ERROR;
-    }
-    // NOLINTNEXTLINE
-    ofs.write((const char *)key->data(), kKeySize);
-
-    if (!ofs.good()) {
-      log()->error("cannot write file {}", file_name);
-      return Error::KEY_WRITE_ERROR;
-    }
-
-    return outcome::success();
+  IpldPtr makeIpld(std::shared_ptr<storage::BufferMap> map) {
+    return std::make_shared<storage::ipfs::LeveldbDatastore>(
+        std::make_shared<storage::MapPrefix>("ipld", map));
   }
-
 }  // namespace fc::node
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::node, Error, e) {

@@ -34,6 +34,7 @@ namespace fc::vm::actor::cgo {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::PieceInfo;
+  using primitives::sector::RegisteredSealProof;
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using runtime::resolveKey;
@@ -43,7 +44,7 @@ namespace fc::vm::actor::cgo {
 
   void config(const StoragePower &min_verified_deal_size,
               const StoragePower &consensus_miner_min_power,
-              const std::vector<RegisteredProof> &supported_proofs) {
+              const std::vector<RegisteredSealProof> &supported_proofs) {
     CborEncodeStream arg;
     arg << min_verified_deal_size << consensus_miner_min_power;
     arg << supported_proofs.size();
@@ -272,7 +273,7 @@ namespace fc::vm::actor::cgo {
     if (charge(ret,
                rt,
                rt.execution()->env->pricelist.onComputeUnsealedSectorCid())) {
-      auto type{arg.get<RegisteredProof>()};
+      auto type{arg.get<RegisteredSealProof>()};
       auto pieces{arg.get<std::vector<PieceInfo>>()};
       if (auto r{proofs::Proofs::generateUnsealedCID(type, pieces, true)}) {
         ret << kOk << true << r.value();
