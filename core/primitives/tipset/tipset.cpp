@@ -153,9 +153,17 @@ namespace fc::primitives::tipset {
     auto sz = ticket_hashes_.size();
     for (; idx != sz; ++idx) {
       const auto &h = ticket_hashes_[idx];
-      if (ticket_hash < h) {
-        break;
+      if (ticket_hash == h) {
+        if (cid.toBytes().value() >= cids_[idx].toBytes().value()) {
+          continue;
+        } else {
+          break;
+        }
       }
+      if (ticket_hash > h) {
+        continue;
+      }
+      break;
     }
 
     if (idx == sz) {
