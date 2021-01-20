@@ -15,6 +15,7 @@ namespace fc::clock {
   enum class TimeFromStringError { kInvalidFormat = 1 };
 
   using UnixTime = std::chrono::seconds;
+  using std::chrono::microseconds;
   using Time = UnixTime;
 
   std::string unixTimeToString(UnixTime);

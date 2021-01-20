@@ -10,12 +10,11 @@
 
 #include "clock/utc_clock.hpp"
 
-using fc::clock::UTCClock;
-using fc::clock::Time;
-
-class UTCClockMock : public UTCClock {
- public:
-    MOCK_CONST_METHOD0(nowUTC, Time());
-};
+namespace fc::clock {
+  class UTCClockMock : public UTCClock {
+   public:
+    MOCK_CONST_METHOD0(nowMicro, microseconds());
+  };
+}  // namespace fc::clock
 
 #endif
