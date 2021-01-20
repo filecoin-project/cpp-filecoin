@@ -18,18 +18,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
     case E::kNoNetworkPower:
       return "No network power";
   }
-  return "WeightCalculatorError: unknown error";
 }
 
 namespace fc::blockchain::weight {
   using primitives::BigInt;
   using vm::actor::kStoragePowerAddress;
   using vm::state::StateTreeImpl;
-  using vm::state::StateTreeVersion;
-
-  using StoragePowerActorState_v0 =
-      vm::actor::builtin::v0::storage_power::StoragePowerActorState;
-  using StoragePowerActorState_v2 = vm::actor::builtin::v2::power::State;
 
   constexpr uint64_t kWRatioNum{1};
   constexpr uint64_t kWRatioDen{2};

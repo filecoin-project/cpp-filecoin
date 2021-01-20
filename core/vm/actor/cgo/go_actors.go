@@ -48,8 +48,6 @@ import (
 	"github.com/whyrusleeping/cbor-gen"
 	"reflect"
 	"runtime/debug"
-//	"encoding/hex"
-//	cbg "github.com/whyrusleeping/cbor-gen"
 )
 
 //#include "c_actors.h"
@@ -552,7 +550,6 @@ func cgoActorsConfig(raw C.Raw) C.Raw {
 	power1.ConsensusMinerMinPower = arg.big()
 	verifreg2.MinVerifiedDealSize = verifreg1.MinVerifiedDealSize
 	n := int(arg.int())
-
 	miner1.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{})
 	miner2.PreCommitSealProofTypesV0 = make(map[abi.RegisteredSealProof]struct{})
 	miner2.PreCommitSealProofTypesV7 = make(map[abi.RegisteredSealProof]struct{})

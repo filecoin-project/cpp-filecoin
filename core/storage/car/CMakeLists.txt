@@ -7,6 +7,5 @@ add_library(car
 target_link_libraries(car
     file
     ipld_traverser
-    logger
     p2p::p2p_uvarint
     )

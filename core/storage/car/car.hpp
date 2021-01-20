@@ -6,7 +6,6 @@
 #ifndef CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
 #define CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
 
-#include "storage/buffer_map.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "storage/ipld/selector.hpp"
 
@@ -18,7 +17,6 @@ namespace fc::storage::car {
 
   enum class CarError {
     kDecodeError = 1,
-    kReadFileError,
     kCannotOpenFileError,
   };
 

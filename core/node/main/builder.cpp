@@ -390,9 +390,10 @@ namespace fc::node {
         bls_provider, secp_provider);
 
     drand::ChainInfo drand_chain_info{
-        .key{config.drand_bls_pubkey},
-        .genesis{std::chrono::seconds(config.drand_genesis)},
-        .period{std::chrono::seconds(config.drand_period)}};
+        .key = config.drand_bls_pubkey,
+        .genesis = std::chrono::seconds(config.drand_genesis),
+        .period = std::chrono::seconds(config.drand_period),
+    };
 
     if (config.drand_servers.empty()) {
       config.drand_servers.push_back("https://127.0.0.1:8080");

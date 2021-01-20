@@ -17,8 +17,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
   switch (e) {
     case E::kDecodeError:
       return "Decode error";
-    case E::kReadFileError:
-      return "Read car file error";
     case E::kCannotOpenFileError:
       return "Cannot open file";
   }
