@@ -8,7 +8,7 @@
 #include "common/hexutil.hpp"
 #include "common/logger.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
-#include "storage/ipfs/merkledag/merkledag_service.hpp"
+#include "storage/ipld/traverser.hpp"
 
 namespace fc::sync {
 
@@ -20,30 +20,26 @@ namespace fc::sync {
       return logger.get();
     }
 
-    gs::Response handleRequest(storage::ipfs::merkledag::MerkleDagService &mds,
-                               gs::Request request) {
+    gs::Response handleRequest(Ipld &ipld, gs::Request request) {
       gs::Response response;
 
       log()->debug("got new request with selector: {}",
                    common::hex_lower(request.selector));
 
-      try {
-        auto handler =
-            [&](std::shared_ptr<const storage::ipld::IPLDNode> node) {
-              response.data.push_back(
-                  gs::Data{node->getCID(), node->getRawBytes()});
-              return true;
-            };
-
-        OUTCOME_EXCEPT(bytes, request.root_cid.toBytes());
-        OUTCOME_EXCEPT(mds.select(bytes, request.selector, handler));
-        response.status =
-            response.data.empty() ? gs::RS_NOT_FOUND : gs::RS_FULL_CONTENT;
-
-      } catch (const std::system_error &e) {
-        log()->debug("request handler error {}", e.code().message());
-        response.status = gs::RS_INTERNAL_ERROR;
+      storage::ipld::traverser::Traverser traverser{
+          ipld, request.root_cid, {request.selector}};
+      auto ok{true};
+      if (auto _cids{traverser.traverseAll()}) {
+        for (auto &cid : _cids.value()) {
+          if (auto _data{ipld.get(cid)}) {
+            response.data.push_back({std::move(cid), std::move(_data.value())});
+          } else {
+            ok = false;
+            break;
+          }
+        }
       }
+      response.status = ok ? gs::RS_FULL_CONTENT : gs::RS_INTERNAL_ERROR;
 
       return response;
     }
@@ -52,19 +48,17 @@ namespace fc::sync {
 
   GraphsyncServer::GraphsyncServer(
       std::shared_ptr<storage::ipfs::graphsync::Graphsync> graphsync,
-      std::shared_ptr<MerkleDagService> data_service)
-      : graphsync_(std::move(graphsync)),
-        data_service_(std::move(data_service)) {
+      IpldPtr ipld)
+      : graphsync_(std::move(graphsync)), ipld_(std::move(ipld)) {
     assert(graphsync_);
-    assert(data_service_);
+    assert(ipld_);
   }
 
   void GraphsyncServer::start() {
     if (!started_) {
       graphsync_->setDefaultRequestHandler(
           [this](gs::FullRequestId id, gs::Request request) {
-            gs::Response response =
-                handleRequest(*data_service_, std::move(request));
+            gs::Response response = handleRequest(*ipld_, std::move(request));
 
             // this may be done asynchronously as well!
             graphsync_->postResponse(id, response);

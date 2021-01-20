@@ -48,7 +48,6 @@
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
-#include "storage/ipfs/merkledag/impl/merkledag_service_impl.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/mpool/mpool.hpp"
@@ -386,12 +385,8 @@ namespace fc::node {
     o.graphsync = std::make_shared<storage::ipfs::graphsync::GraphsyncImpl>(
         o.host, o.scheduler);
 
-    auto merkledag_service =
-        std::make_shared<storage::ipfs::merkledag::MerkleDagServiceImpl>(
-            o.ipld);
-
-    o.graphsync_server = std::make_shared<sync::GraphsyncServer>(
-        o.graphsync, std::move(merkledag_service));
+    o.graphsync_server =
+        std::make_shared<sync::GraphsyncServer>(o.graphsync, o.ipld);
 
     log()->debug("Creating chain loaders...");
 

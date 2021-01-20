@@ -14,17 +14,14 @@ namespace fc::sync {
   class GraphsyncServer {
    public:
     using Graphsync = storage::ipfs::graphsync::Graphsync;
-    using MerkleDagService = storage::ipfs::merkledag::MerkleDagService;
 
-    GraphsyncServer(
-        std::shared_ptr<Graphsync> graphsync,
-        std::shared_ptr<MerkleDagService> data_service);
+    GraphsyncServer(std::shared_ptr<Graphsync> graphsync, IpldPtr ipld);
 
     void start();
 
    private:
     std::shared_ptr<Graphsync> graphsync_;
-    std::shared_ptr<MerkleDagService> data_service_;
+    IpldPtr ipld_;
     bool started_ = false;
 
     // TODO (artem):
