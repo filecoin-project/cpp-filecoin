@@ -17,7 +17,6 @@ namespace fc::vm::state {
    public:
     explicit StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store);
     StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store, const CID &root);
-
     /// Set actor state, does not write to storage
     outcome::result<void> set(const Address &address,
                               const Actor &actor) override;

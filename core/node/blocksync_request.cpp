@@ -30,7 +30,7 @@ namespace fc::sync::blocksync {
     }
 
     template <typename... Args>
-    inline void trace(spdlog::string_view_t fmt, const Args &...args) {
+    inline void trace(spdlog::string_view_t fmt, const Args &... args) {
 #if TRACE_ENABLED
       log()->trace(fmt, args...);
 #endif
@@ -266,9 +266,8 @@ namespace fc::sync::blocksync {
                        uint64_t timeoutMsec,
                        std::function<void(Result)> callback) {
         callback_ = std::move(callback);
-        result_ =
-            BlocksyncRequest::Result{.blocks_requested = std::move(blocks)};
-
+        result_.emplace();
+        result_->blocks_requested = std::move(blocks);
         result_->messages_stored = (options & MESSAGES_ONLY);
 
         std::vector<CID> blocks_reduced =
