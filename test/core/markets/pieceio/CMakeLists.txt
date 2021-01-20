@@ -10,5 +10,4 @@ target_link_libraries(pieceio_test
     pieceio
     unixfs
     ipfs_datastore_in_memory
-    hwloc
     )
