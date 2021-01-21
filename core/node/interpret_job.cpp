@@ -140,7 +140,10 @@ namespace fc::sync {
       }
 
       events::HeadInterpreted event{
-          .result = vm::interpreter::InterpreterError::kChainInconsistency};
+          .head = {},
+          .result = vm::interpreter::InterpreterError::kChainInconsistency,
+          .weight = {},
+      };
 
       bool proceed = false;
 
