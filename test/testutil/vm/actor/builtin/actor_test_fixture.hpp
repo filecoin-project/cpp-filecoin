@@ -11,6 +11,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
+#include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
 

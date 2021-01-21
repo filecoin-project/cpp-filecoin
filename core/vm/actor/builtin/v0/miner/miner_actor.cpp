@@ -25,14 +25,6 @@ namespace fc::vm::actor::builtin::v0::miner {
     return std::move(resolved);
   }
 
-  /**
-   * Resolves an address to an ID address and verifies that it is address of an
-   * account actor with an associated BLS key. The worker must be BLS since the
-   * worker key will be used alongside a BLS-VRF.
-   * @param runtime
-   * @param address to resolve
-   * @return resolved address
-   */
   outcome::result<Address> resolveWorkerAddress(Runtime &runtime,
                                                 const Address &address) {
     OUTCOME_TRY(resolved, runtime.resolveAddress(address));
@@ -51,10 +43,6 @@ namespace fc::vm::actor::builtin::v0::miner {
     return std::move(resolved);
   }
 
-  /**
-   * Registers first cron callback for epoch before the first proving period
-   * starts.
-   */
   outcome::result<void> enrollCronEvent(Runtime &runtime,
                                         ChainEpoch event_epoch,
                                         const CronEventPayload &payload) {

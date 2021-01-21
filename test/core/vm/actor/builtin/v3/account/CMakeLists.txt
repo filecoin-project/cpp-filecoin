@@ -8,6 +8,5 @@ addtest(account_actor_test_v3
     )
 target_link_libraries(account_actor_test_v3
     account_actor_v3
-    state_tree
     ipfs_datastore_in_memory
     )
