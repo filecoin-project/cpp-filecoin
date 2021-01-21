@@ -198,22 +198,22 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   ACTOR_METHOD_IMPL(ApplyRewards) {
-    // TODO (a.chernyshov) implement
+    // TODO (a.chernyshov) FIL-310 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(ConfirmUpdateWorkerKey) {
-    // TODO (a.chernyshov) implement
+    // TODO (a.chernyshov) FIL-317 implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(RepayDebt) {
-    // TODO (a.chernyshov) implement
+    // TODO (a.chernyshov) FIL-318 implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(ChangeOwnerAddress) {
-    // TODO (a.chernyshov) implement
+    // TODO (a.chernyshov) FIL-319 implement
     return VMExitCode::kNotImplemented;
   }
 

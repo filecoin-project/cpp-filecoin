@@ -132,7 +132,7 @@ namespace fc::vm::actor::builtin::v3::miner {
   }
 
   ACTOR_METHOD_IMPL(DisputeWindowedPoSt) {
-    // TODO (a.chernyshov) implement
+    // TODO (a.chernyshov) FIL-342 implement
     return VMExitCode::kNotImplemented;
   }
 
