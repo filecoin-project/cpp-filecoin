@@ -140,48 +140,6 @@ namespace fc::sync::blocksync {
       return reduced;
     }
 
-    /// Stores block into Ipld store
-    outcome::result<void> storeBlock(
-        Ipld &ipld,
-        BlockHeader header,
-        const std::vector<CID> &secp_cids,
-        const std::vector<uint64_t> &secp_includes,
-        const std::vector<CID> &bls_cids,
-        const std::vector<uint64_t> &bls_includes,
-        bool store_messages,
-        const std::function<void(CID, BlockHeader)> &block_stored) {
-      try {
-        OUTCOME_EXCEPT(block_cid, ipld.setCbor<BlockHeader>(header));
-
-        if (store_messages) {
-          MsgMeta meta;
-          ipld.load(meta);
-
-          for (auto idx : secp_includes) {
-            OUTCOME_EXCEPT(meta.secp_messages.append(secp_cids[idx]));
-          }
-
-          for (auto idx : bls_includes) {
-            OUTCOME_EXCEPT(meta.bls_messages.append(bls_cids[idx]));
-          }
-
-          OUTCOME_EXCEPT(meta_cid, ipld.setCbor<MsgMeta>(meta));
-
-          if (meta_cid != header.messages) {
-            throw std::system_error(
-                BlocksyncRequest::Error::BLOCKSYNC_STORE_ERROR_CIDS_MISMATCH);
-          }
-
-          block_stored(std::move(block_cid), std::move(header));
-        }
-      } catch (const std::system_error &e) {
-        log()->error("store block error: {}", e.code().message());
-        return e.code();
-      }
-
-      return outcome::success();
-    }
-
     /// Stores part of blocksync response (i.e. tipset bundle)
     outcome::result<void> storeTipsetBundle(
         Ipld &ipld,
@@ -190,33 +148,38 @@ namespace fc::sync::blocksync {
         const std::function<void(CID, BlockHeader)> &block_stored) {
       size_t sz = bundle.blocks.size();
 
-      trace(
-          "storing tipset bundle of {} blocks, {} bls messages, {} secp "
-          "messages",
-          sz,
-          bundle.messages.bls_msgs.size(),
-          bundle.messages.secp_msgs.size());
+      auto _msgs{bundle.messages};
+      if (_msgs) {
+        trace(
+            "storing tipset bundle of {} blocks, {} bls messages, {} secp "
+            "messages",
+            sz,
+            _msgs->bls_msgs.size(),
+            _msgs->secp_msgs.size());
+      } else {
+        trace("storing tipset bundle of {} blocks", sz);
+      }
 
       std::vector<CID> secp_cids;
       std::vector<CID> bls_cids;
 
       try {
-        if (store_messages) {
-          if (bundle.messages.secp_msg_includes.size() != sz
-              || bundle.messages.bls_msg_includes.size() != sz) {
+        if (_msgs) {
+          if (_msgs->secp_msg_includes.size() != sz
+              || _msgs->bls_msg_includes.size() != sz) {
             throw std::system_error(
                 BlocksyncRequest::Error::BLOCKSYNC_INCONSISTENT_RESPONSE);
           }
 
-          secp_cids.reserve(bundle.messages.secp_msgs.size());
-          for (const auto &msg : bundle.messages.secp_msgs) {
+          secp_cids.reserve(_msgs->secp_msgs.size());
+          for (const auto &msg : _msgs->secp_msgs) {
             OUTCOME_EXCEPT(cid,
                            ipld.setCbor<primitives::block::SignedMessage>(msg));
             secp_cids.push_back(std::move(cid));
           }
 
-          bls_cids.reserve(bundle.messages.bls_msgs.size());
-          for (const auto &msg : bundle.messages.bls_msgs) {
+          bls_cids.reserve(_msgs->bls_msgs.size());
+          for (const auto &msg : _msgs->bls_msgs) {
             OUTCOME_EXCEPT(cid, ipld.setCbor<UnsignedMessage>(msg));
             bls_cids.push_back(std::move(cid));
           }
@@ -227,14 +190,29 @@ namespace fc::sync::blocksync {
       }
 
       for (size_t i = 0; i < sz; ++i) {
-        OUTCOME_TRY(storeBlock(ipld,
-                               std::move(bundle.blocks[i]),
-                               secp_cids,
-                               bundle.messages.secp_msg_includes[i],
-                               bls_cids,
-                               bundle.messages.bls_msg_includes[i],
-                               store_messages,
-                               block_stored));
+        auto &header{bundle.blocks[i]};
+        OUTCOME_TRY(block_cid, ipld.setCbor<BlockHeader>(header));
+        if (_msgs) {
+          MsgMeta meta;
+          ipld.load(meta);
+          for (auto idx : _msgs->secp_msg_includes[i]) {
+            if (idx >= secp_cids.size()) {
+              return BlocksyncRequest::Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
+            }
+            OUTCOME_TRY(meta.secp_messages.append(secp_cids[idx]));
+          }
+          for (auto idx : _msgs->bls_msg_includes[i]) {
+            if (idx >= bls_cids.size()) {
+              return BlocksyncRequest::Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
+            }
+            OUTCOME_TRY(meta.bls_messages.append(bls_cids[idx]));
+          }
+          OUTCOME_TRY(meta_cid, ipld.setCbor<MsgMeta>(meta));
+          if (meta_cid != header.messages) {
+            return BlocksyncRequest::Error::BLOCKSYNC_STORE_ERROR_CIDS_MISMATCH;
+          }
+          block_stored(std::move(block_cid), std::move(header));
+        }
       }
 
       return outcome::success();

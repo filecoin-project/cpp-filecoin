@@ -38,7 +38,8 @@ namespace fc::sync::blocksync {
       MsgIncudes bls_msg_includes;
       std::vector<primitives::block::SignedMessage> secp_msgs;
       MsgIncudes secp_msg_includes;
-    } messages;
+    };
+    boost::optional<Messages> messages;
   };
 
   enum class ResponseStatus : int {
