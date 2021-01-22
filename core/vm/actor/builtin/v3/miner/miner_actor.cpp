@@ -103,8 +103,8 @@ namespace fc::vm::actor::builtin::v3::miner {
     state.proving_period_start = period_start;
 
     OUTCOME_TRY(deadline_index,
-                v2::miner::Construct::currentDeadlineIndex(current_epoch,
-                                                           period_start));
+                v2::miner::Construct::currentDeadlineIndex(
+                    runtime, current_epoch, period_start));
     OUTCOME_TRY(runtime.requireState(deadline_index < kWPoStPeriodDeadlines));
     state.current_deadline = deadline_index;
 

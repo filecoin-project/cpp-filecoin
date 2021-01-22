@@ -310,7 +310,7 @@ namespace fc::vm::runtime {
 
     inline outcome::result<void> requireState(bool assertion) const {
       if (!assertion) {
-        return abort(VMExitCode::kErrIllegalState);
+        ABORT(VMExitCode::kErrIllegalState);
       }
       return outcome::success();
     }
