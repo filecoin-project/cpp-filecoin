@@ -143,78 +143,97 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   ACTOR_METHOD_IMPL(ControlAddresses) {
+    // TODO (a.chernyshov) FIL-279 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(ChangeWorkerAddress) {
+    // TODO (a.chernyshov) FIL-280 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(ChangePeerId) {
+    // TODO (a.chernyshov) FIL-281 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(SubmitWindowedPoSt) {
+    // TODO (a.chernyshov) FIL-282 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(PreCommitSector) {
+    // TODO (a.chernyshov) FIL-283 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(ProveCommitSector) {
+    // TODO (a.chernyshov) FIL-284 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(ExtendSectorExpiration) {
+    // TODO (a.chernyshov) FIL-285 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(TerminateSectors) {
+    // TODO (a.chernyshov) FIL-286 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(DeclareFaults) {
+    // TODO (a.chernyshov) FIL-287 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(DeclareFaultsRecovered) {
+    // TODO (a.chernyshov) FIL-288 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(OnDeferredCronEvent) {
+    // TODO (a.chernyshov) FIL-289 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(CheckSectorProven) {
+    // TODO (a.chernyshov) FIL-290 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(AddLockedFund) {
+    // TODO (a.chernyshov) FIL-291 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(ReportConsensusFault) {
+    // TODO (a.chernyshov) FIL-292 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(WithdrawBalance) {
+    // TODO (a.chernyshov) FIL-293 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(ConfirmSectorProofsValid) {
+    // TODO (a.chernyshov) FIL-294 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(ChangeMultiaddresses) {
+    // TODO (a.chernyshov) FIL-295 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(CompactPartitions) {
+    // TODO (a.chernyshov) FIL-296 - implement
     return VMExitCode::kNotImplemented;
   }
 
   ACTOR_METHOD_IMPL(CompactSectorNumbers) {
+    // TODO (a.chernyshov) FIL-297 - implement
     return VMExitCode::kNotImplemented;
   }
 
