@@ -26,7 +26,8 @@ namespace fc::node {
         boost::asio::ip::tcp::resolver::query query(
             boost::asio::ip::host_name(), "");
         boost::system::error_code ec;
-        boost::asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec);
+        boost::asio::ip::tcp::resolver::iterator it =
+            resolver.resolve(query, ec);
         boost::asio::ip::tcp::resolver::iterator end;
         std::string addr("127.0.0.1");
         while (it != end) {
@@ -94,8 +95,9 @@ namespace fc::node {
     struct ConfigRaw {
       char log_level = 'i';
       int port = 0;
+      int api_port;
       std::string car_file_name;
-      std::string storage_path;
+      std::string repo_path;
       std::string genesis_cid;
       std::vector<std::string> bootstrap_list;
       std::vector<std::string> drand_list;
@@ -110,39 +112,42 @@ namespace fc::node {
 
       po::options_description desc("Fuhon node options");
 
-      // clang-format off
-      desc.add_options()("help,h", "print usage message")
-
-       ("config,c", po::value(&config_file), "config file name (default.cfg)")
-
-       ("storage,s", po::value(&raw.storage_path), "storage path")
-
-       ("port,p", po::value(&raw.port), "port to listen to")
-
-       ("bootstrap,b", po::value(&raw.bootstrap_list)->composing(),
-          "remote bootstrap peer uri to connect to")
-
-       ("log,l", po::value(&raw.log_level), "log level, [e,w,i,d,t]")
-
-       ("init", po::value(&raw.car_file_name),
-          "initialize new storage: genesis car file name")
-
-       ("genesis-cid,g", po::value(&raw.genesis_cid), "genesis CID")
-
-       ("drand-server", po::value(&raw.drand_list)->composing(),
-           "drand server uri")
-
-       ("drand-pubkey", po::value(&raw.drand_pubkey), "drand public key (bls)")
-
-       ("drand-genesis-time", po::value(&raw.drand_genesis_time),
-          "drand genesis time (seconds)")
-
-       ("drand-period", po::value(&raw.drand_period),
-           "drand period (seconds)");
-      // clang-format on
+      auto option{desc.add_options()};
+      option("help,h", "print usage message");
+      option("repo", po::value(&raw.repo_path)->required());
+      option("api", po::value(&raw.api_port)->default_value(1234));
+      option("config,c",
+             po::value(&config_file),
+             "config file name (default.cfg)");
+      option("port,p", po::value(&raw.port), "port to listen to");
+      option("bootstrap,b",
+             po::value(&raw.bootstrap_list)->composing(),
+             "remote bootstrap peer uri to connect to");
+      option("log,l", po::value(&raw.log_level), "log level, [e,w,i,d,t]");
+      option("init",
+             po::value(&raw.car_file_name),
+             "initialize new storage: genesis car file name");
+      option("genesis-cid,g", po::value(&raw.genesis_cid), "genesis CID");
+      option("drand-server",
+             po::value(&raw.drand_list)->composing(),
+             "drand server uri");
+      option("drand-pubkey",
+             po::value(&raw.drand_pubkey),
+             "drand public key (bls)");
+      option("drand-genesis-time",
+             po::value(&raw.drand_genesis_time),
+             "drand genesis time (seconds)");
+      option("drand-period",
+             po::value(&raw.drand_period),
+             "drand period (seconds)");
 
       po::variables_map vm;
       po::store(parse_command_line(argc, argv, desc), vm);
+
+      if (vm.count("help") != 0) {
+        std::cerr << desc << std::endl;
+        return false;
+      }
 
       // if config specified explicitly, then it must exist
       bool config_file_must_exist = vm.count("config") > 0;
@@ -165,33 +170,28 @@ namespace fc::node {
 
       po::notify(vm);
 
-      if (vm.count("help") != 0) {
-        std::cerr << desc << "\n";
-        return false;
-      }
-
       return true;
     }
 
     bool applyRawConfig(ConfigRaw &raw, fc::node::Config &config) {
-      if (raw.storage_path.empty()) {
+      if (raw.repo_path.empty()) {
         std::cerr << "Storage path must be specified\n";
         return false;
       }
 
-      boost::filesystem::create_directories(raw.storage_path);
-      config.storage_path =
-          boost::filesystem::canonical(raw.storage_path).string();
+      boost::filesystem::create_directories(raw.repo_path);
+      config.repo_path = boost::filesystem::canonical(raw.repo_path);
 
       if (raw.port != 0) {
         config.listen_address = getListenAddress(raw.port);
         config.port = raw.port;
       }
+      config.api_port = raw.api_port;
 
       std::string summary = fmt::format(
           "Node is going to run with the following settings:\n"
           "\tStorage path: {}\n\tListen address: {}\n",
-          config.storage_path,
+          config.repo_path,
           config.listen_address.getStringAddress());
 
       if (!raw.car_file_name.empty()) {
@@ -275,4 +275,7 @@ namespace fc::node {
     return false;
   }
 
+  std::string Config::join(const std::string &path) const {
+    return (repo_path / path).string();
+  }
 }  // namespace fc::node

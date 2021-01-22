@@ -7,6 +7,7 @@
 
 #include <libp2p/host/host.hpp>
 
+#include "api/rpc/info.hpp"
 #include "api/rpc/ws.hpp"
 #include "common/logger.hpp"
 #include "node/blocksync_server.hpp"
@@ -119,7 +120,7 @@ namespace fc {
             o.host->connect(pi);
           }
 
-          auto p2_res = pubsub2.start(config.port + 2);
+          auto p2_res = pubsub2.start(config.port == -1 ? -1 : config.port + 2);
           if (!p2_res) {
             log()->warn("cannot start pubsub workaround, {}",
                         p2_res.error().message());
@@ -128,8 +129,11 @@ namespace fc {
                                        p2_res.value().addresses[0]);
           }
 
-          api::serve(o.api, {}, *o.io_context, "127.0.0.1", config.port + 1);
-          log()->info("API started at ws://127.0.0.1:{}", config.port + 1);
+          auto routes{std::make_shared<api::Routes>()};
+          api::serve(
+              o.api, routes, *o.io_context, "127.0.0.1", config.api_port);
+          api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
+          log()->info("API started at ws://127.0.0.1:{}", config.api_port);
         });
 
     o.identify->start(events);

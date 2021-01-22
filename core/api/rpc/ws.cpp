@@ -138,7 +138,9 @@ namespace fc::api {
   };
 
   struct HttpSession : public std::enable_shared_from_this<HttpSession> {
-    HttpSession(tcp::socket &&socket, std::shared_ptr<Api> api, Routes routes)
+    HttpSession(tcp::socket &&socket,
+                std::shared_ptr<Api> api,
+                std::shared_ptr<Routes> routes)
         : stream(std::move(socket)),
           routes(std::move(routes)),
           api{std::move(api)} {}
@@ -180,7 +182,7 @@ namespace fc::api {
 
     void handleRequest() {
       bool is_handled = false;
-      for (auto &route : routes) {
+      for (auto &route : *routes) {
         if (request.target().starts_with(route.first)) {
           w_response = route.second(request);
           is_handled = true;
@@ -244,7 +246,7 @@ namespace fc::api {
     beast::flat_buffer buffer;
     http::request<http::dynamic_body> request;
     WrapperResponse w_response;
-    Routes routes;
+    std::shared_ptr<Routes> routes;
     std::shared_ptr<Api> api;
   };
 
@@ -266,7 +268,7 @@ namespace fc::api {
           return;
         }
         std::make_shared<HttpSession>(
-            std::move(socket), self->api, *self->routes)
+            std::move(socket), self->api, self->routes)
             ->run();
         self->doAccept();
       });

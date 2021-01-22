@@ -34,7 +34,7 @@ namespace fc {
     struct Ctx {
       std::string car_file;
       std::string genesis_file;
-      std::string storage_dir;
+      boost::filesystem::path storage_dir;
       std::shared_ptr<storage::LevelDB> leveldb;
       std::shared_ptr<storage::ipfs::IpfsDatastore> ipld;
       boost::optional<CID> genesis_cid;
@@ -111,7 +111,8 @@ namespace fc {
       options.create_if_missing = must_be_empty;
       options.error_if_exists = must_be_empty;
 
-      auto leveldb_res = storage::LevelDB::create(c.storage_dir, options);
+      auto leveldb_res = storage::LevelDB::create(
+          (c.storage_dir / node::kLeveldbPath).string(), options);
       if (!leveldb_res) {
         fmt::print(
             stderr, "Cannot create leveldb store at {}\n", c.storage_dir);
@@ -163,8 +164,8 @@ namespace fc {
     }
 
     int create_indexdb(bool must_be_empty) {
-      auto indexdb_res =
-          sync::IndexDbBackend::create(c.storage_dir + node::kIndexDbFileName);
+      auto indexdb_res = sync::IndexDbBackend::create(
+          (c.storage_dir / node::kIndexDbFileName).string());
       if (!indexdb_res) {
         fmt::print(stderr,
                    "Cannot create index db, {}\n",
@@ -437,7 +438,7 @@ namespace fc {
 
     must_be_empty =
         !boost::filesystem::exists(boost::filesystem::weakly_canonical(
-            c.storage_dir + node::kIndexDbFileName));
+            c.storage_dir / node::kIndexDbFileName));
 
     TRY_STEP(create_indexdb(must_be_empty));
     TRY_STEP(make_root_tipset());

@@ -147,8 +147,9 @@ namespace fc::node {
 
   outcome::result<NodeObjects> createNodeObjects(Config &config);
 
-  static constexpr auto kIndexDbFileName = "/index.db";
-  static constexpr auto kKeyFileName = "/PK";
+  static constexpr auto kIndexDbFileName = "sqlite.db";
+  static constexpr auto kLeveldbPath = "leveldb";
+  static constexpr auto kPeerKeyPath = "peer_ed25519.key";
 
   IpldPtr makeIpld(std::shared_ptr<storage::BufferMap> map);
 }  // namespace fc::node

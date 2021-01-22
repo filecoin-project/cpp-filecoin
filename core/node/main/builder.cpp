@@ -203,7 +203,7 @@ namespace fc::node {
 
     bool creating_new_db = false;
 
-    if (config.storage_path == "memory") {
+    if (config.repo_path == "memory") {
       OUTCOME_TRYA(index_db_backend, sync::IndexDbBackend::create(":memory:"));
       o.ipld = std::make_shared<storage::ipfs::InMemoryDatastore>();
       o.kv_store = std::make_shared<storage::InMemoryStorage>();
@@ -215,17 +215,16 @@ namespace fc::node {
         options.error_if_exists = true;
         creating_new_db = true;
       }
-      auto leveldb_res =
-          storage::LevelDB::create(config.storage_path, std::move(options));
+      auto leveldb_res = storage::LevelDB::create(config.join(kLeveldbPath),
+                                                  std::move(options));
       if (!leveldb_res) {
         return Error::STORAGE_INIT_ERROR;
       }
       o.ipld = makeIpld(leveldb_res.value());
       o.kv_store = std::move(leveldb_res.value());
 
-      OUTCOME_TRYA(
-          index_db_backend,
-          sync::IndexDbBackend::create(config.storage_path + kIndexDbFileName));
+      OUTCOME_TRYA(index_db_backend,
+                   sync::IndexDbBackend::create(config.join(kIndexDbFileName)));
     }
 
     if (creating_new_db) {
@@ -261,7 +260,7 @@ namespace fc::node {
 
     log()->debug("Creating host...");
 
-    OUTCOME_TRY(keypair, loadPeerKey(config.storage_path + kKeyFileName));
+    OUTCOME_TRY(keypair, loadPeerKey(config.join(kPeerKeyPath)));
 
     auto injector = libp2p::injector::makeHostInjector<
         boost::di::extension::shared_config>(
