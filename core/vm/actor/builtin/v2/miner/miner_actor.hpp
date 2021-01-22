@@ -11,6 +11,14 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
 
+  outcome::result<void> checkControlAddresses(
+      const Runtime &runtime, const std::vector<Address> &control_addresses);
+
+  outcome::result<void> checkPeerInfo(
+      const Runtime &runtime,
+      const Buffer &peer_id,
+      const std::vector<Multiaddress> &multiaddresses);
+
   struct Construct : ActorMethodBase<1> {
     using Params = v0::miner::Construct::Params;
 
@@ -24,6 +32,14 @@ namespace fc::vm::actor::builtin::v2::miner {
      */
     static ChainEpoch currentProvingPeriodStart(ChainEpoch current_epoch,
                                                 ChainEpoch offset);
+
+    /**
+     * Computes the deadline index for the current epoch for a given period
+     * start. currEpoch must be within the proving period that starts at
+     * provingPeriodStart to produce a valid index.
+     */
+    static outcome::result<uint64_t> currentDeadlineIndex(
+        const ChainEpoch &current_epoch, const ChainEpoch &period_start);
   };
 
   using ControlAddresses = v0::miner::ControlAddresses;

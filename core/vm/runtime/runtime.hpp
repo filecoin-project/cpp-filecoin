@@ -308,6 +308,13 @@ namespace fc::vm::runtime {
       return outcome::success();
     }
 
+    inline outcome::result<void> requireState(bool assertion) const {
+      if (!assertion) {
+        return abort(VMExitCode::kErrIllegalState);
+      }
+      return outcome::success();
+    }
+
     inline outcome::result<void> validateImmediateCallerIs(
         const Address &address) {
       if (getImmediateCaller() == address) {

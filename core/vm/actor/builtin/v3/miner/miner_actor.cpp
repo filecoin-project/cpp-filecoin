@@ -3,34 +3,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v2/account/account_actor.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v2/miner/policy.hpp"
-#include "vm/actor/builtin/v2/miner/types.hpp"
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v3/account/account_actor.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
+#include "vm/actor/builtin/v3/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/v3/storage_power/storage_power_actor_export.hpp"
 
-namespace fc::vm::actor::builtin::v2::miner {
-  using primitives::RleBitset;
-  using primitives::sector::RegisteredSealProof;
+namespace fc::vm::actor::builtin::v3::miner {
   using v0::miner::CronEventPayload;
   using v0::miner::CronEventType;
-  using v0::miner::Deadlines;
   using v0::miner::kWPoStChallengeWindow;
   using v0::miner::kWPoStPeriodDeadlines;
-  using v0::miner::kWPoStProvingPeriod;
   using v0::miner::resolveControlAddress;
   using v0::miner::SectorOnChainInfo;
   using v0::miner::VestingFunds;
+  using v2::miner::checkControlAddresses;
+  using v2::miner::checkPeerInfo;
 
   /**
-   * Resolves an address to an ID address and verifies that it is address of an
-   * account actor with an associated BLS key. The worker must be BLS since the
-   * worker key will be used alongside a BLS-VRF.
-   * @param runtime
-   * @param address to resolve
-   * @return resolved address
+   * Resolves address via v3 Account actor
    */
   outcome::result<Address> resolveWorkerAddress(Runtime &runtime,
                                                 const Address &address) {
@@ -53,6 +46,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   /**
    * Registers first cron callback for epoch before the first proving period
    * starts.
+   * Calls StoragePowerActor v3
    */
   outcome::result<void> enrollCronEvent(Runtime &runtime,
                                         ChainEpoch event_epoch,
@@ -63,73 +57,10 @@ namespace fc::vm::actor::builtin::v2::miner {
     return outcome::success();
   }
 
-  outcome::result<void> checkControlAddresses(
-      const Runtime &runtime, const std::vector<Address> &control_addresses) {
-    return runtime.validateArgument(control_addresses.size()
-                                    <= kMaxControlAddresses);
-  }
-
-  outcome::result<void> checkPeerInfo(
-      const Runtime &runtime,
-      const Buffer &peer_id,
-      const std::vector<Multiaddress> &multiaddresses) {
-    OUTCOME_TRY(runtime.validateArgument(peer_id.size() <= kMaxPeerIDLength));
-    size_t total_size = 0;
-    for (const auto &multiaddress : multiaddresses) {
-      total_size += multiaddress.getBytesAddress().size();
-    }
-    OUTCOME_TRY(runtime.validateArgument(total_size <= kMaxMultiaddressData));
-    return outcome::success();
-  }
-
-  /**
-   * Checks whether a seal proof type is supported for new miners and sectors.
-   */
-  outcome::result<void> canPreCommitSealProof(
-      const Runtime &runtime,
-      const RegisteredSealProof &seal_proof_type,
-      const NetworkVersion &network_version) {
-    if (network_version < NetworkVersion::kVersion7) {
-      OUTCOME_TRY(runtime.validateArgument(
-          kPreCommitSealProofTypesV0.find(seal_proof_type)
-          != kPreCommitSealProofTypesV0.end()));
-    } else if (network_version == NetworkVersion::kVersion7) {
-      OUTCOME_TRY(runtime.validateArgument(
-          kPreCommitSealProofTypesV7.find(seal_proof_type)
-          != kPreCommitSealProofTypesV7.end()));
-    } else if (network_version >= NetworkVersion::kVersion8) {
-      OUTCOME_TRY(runtime.validateArgument(
-          kPreCommitSealProofTypesV8.find(seal_proof_type)
-          != kPreCommitSealProofTypesV8.end()));
-    }
-    return outcome::success();
-  }
-
-  outcome::result<uint64_t> Construct::currentDeadlineIndex(
-      const Runtime &runtime,
-      const ChainEpoch &current_epoch,
-      const ChainEpoch &period_start) {
-    VM_ASSERT(current_epoch >= period_start);
-    return (current_epoch - period_start) / kWPoStChallengeWindow;
-  }
-
-  ChainEpoch Construct::currentProvingPeriodStart(ChainEpoch current_epoch,
-                                                  ChainEpoch offset) {
-    const auto current_modulus = current_epoch % kWPoStProvingPeriod;
-    const ChainEpoch period_progress =
-        current_modulus >= offset
-            ? current_modulus - offset
-            : kWPoStProvingPeriod - (offset - current_modulus);
-    const ChainEpoch period_start = current_epoch - period_progress;
-    return period_start;
-  }
-
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
     OUTCOME_TRY(checkControlAddresses(runtime, params.control_addresses));
     OUTCOME_TRY(checkPeerInfo(runtime, params.peer_id, params.multiaddresses));
-    OUTCOME_TRY(canPreCommitSealProof(
-        runtime, params.seal_proof_type, runtime.getNetworkVersion()));
     OUTCOME_TRY(owner, resolveControlAddress(runtime, params.owner));
     OUTCOME_TRY(worker, resolveWorkerAddress(runtime, params.worker));
     std::vector<Address> control_addresses;
@@ -166,14 +97,15 @@ namespace fc::vm::actor::builtin::v2::miner {
     const auto offset =
         v0::miner::Construct::assignProvingPeriodOffset(runtime, current_epoch);
     REQUIRE_NO_ERROR(offset, VMExitCode::kErrSerialization);
-    const auto period_start =
-        currentProvingPeriodStart(current_epoch, offset.value());
-    VM_ASSERT(period_start <= current_epoch);
+    const auto period_start = v2::miner::Construct::currentProvingPeriodStart(
+        current_epoch, offset.value());
+    OUTCOME_TRY(runtime.requireState(period_start <= current_epoch));
     state.proving_period_start = period_start;
 
     OUTCOME_TRY(deadline_index,
-                currentDeadlineIndex(runtime, current_epoch, period_start));
-    VM_ASSERT(deadline_index < kWPoStPeriodDeadlines);
+                v2::miner::Construct::currentDeadlineIndex(current_epoch,
+                                                           period_start));
+    OUTCOME_TRY(runtime.requireState(deadline_index < kWPoStPeriodDeadlines));
     state.current_deadline = deadline_index;
 
     OUTCOME_TRY(miner_info,
@@ -199,23 +131,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(ApplyRewards) {
-    // TODO (a.chernyshov) FIL-310 - implement
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(ConfirmUpdateWorkerKey) {
-    // TODO (a.chernyshov) FIL-317 implement
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(RepayDebt) {
-    // TODO (a.chernyshov) FIL-318 implement
-    return VMExitCode::kNotImplemented;
-  }
-
-  ACTOR_METHOD_IMPL(ChangeOwnerAddress) {
-    // TODO (a.chernyshov) FIL-319 implement
+  ACTOR_METHOD_IMPL(DisputeWindowedPoSt) {
+    // TODO (a.chernyshov) FIL-342 implement
     return VMExitCode::kNotImplemented;
   }
 
@@ -243,6 +160,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       exportMethod<ConfirmUpdateWorkerKey>(),
       exportMethod<RepayDebt>(),
       exportMethod<ChangeOwnerAddress>(),
+      exportMethod<DisputeWindowedPoSt>(),
   };
 
-}  // namespace fc::vm::actor::builtin::v2::miner
+}  // namespace fc::vm::actor::builtin::v3::miner
