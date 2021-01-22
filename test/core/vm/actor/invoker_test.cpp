@@ -33,7 +33,7 @@ namespace fc::vm::actor {
         .WillOnce(testing::Return(ChainEpoch{}));
     EXPECT_CALL(*runtime, getNetworkVersion())
         .WillOnce(testing::Return(NetworkVersion{}));
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrorIllegalActor,
+    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrIllegalActor,
                          invoker.invoke({CodeId{kEmptyObjectCid}}, runtime));
 
     // Error on wrong method
@@ -49,7 +49,7 @@ namespace fc::vm::actor {
 
     // 80 is cbor empty list, not int
     EXPECT_OUTCOME_ERROR(
-        VMExitCode::kErrSerializationPre7,
+        VMExitCode::kOldErrActorFailure,
         decodeActorParams<int>(MethodParams{"80"_unhex}, false));
     EXPECT_OUTCOME_ERROR(
         VMExitCode::kErrSerialization,
@@ -62,7 +62,7 @@ namespace fc::vm::actor {
   TEST(InvokerTest, EncodeActorParams) {
     using fc::vm::actor::encodeActorParams;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrInvalidParameters,
+    EXPECT_OUTCOME_ERROR(VMExitCode::kErrSerialization,
                          encodeActorParams(fc::CID()));
     EXPECT_OUTCOME_EQ(encodeActorParams(3), MethodParams{"03"_unhex});
   }

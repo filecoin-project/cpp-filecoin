@@ -48,7 +48,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
                 event.miner_address,
                 common::hex_lower(event.callback_payload));
 
-            OUTCOME_TRY(state.deleteClaim(event.miner_address));
+            OUTCOME_TRY(state.deleteClaim(runtime, event.miner_address));
           }
           return outcome::success();
         }));
@@ -150,8 +150,10 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
     const Address miner_address = runtime.getImmediateCaller();
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(state.addToClaim(
-        miner_address, params.raw_byte_delta, params.quality_adjusted_delta));
+    OUTCOME_TRY(state.addToClaim(runtime,
+                                 miner_address,
+                                 params.raw_byte_delta,
+                                 params.quality_adjusted_delta));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -194,7 +196,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   ACTOR_METHOD_IMPL(UpdatePledgeTotal) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(state.addPledgeTotal(params));
+    OUTCOME_TRY(state.addPledgeTotal(runtime, params));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }

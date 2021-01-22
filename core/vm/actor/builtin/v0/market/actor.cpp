@@ -62,7 +62,8 @@ namespace fc::vm::actor::builtin::v0::market {
     return state.locked_table.subtract(address, amount);
   }
 
-  outcome::result<void> slashBalance(State &state,
+  outcome::result<void> slashBalance(const Runtime &runtime,
+                                     State &state,
                                      const Address &address,
                                      TokenAmount amount) {
     VM_ASSERT(amount >= 0);
@@ -76,7 +77,8 @@ namespace fc::vm::actor::builtin::v0::market {
     return outcome::success();
   }
 
-  outcome::result<void> transferBalance(State &state,
+  outcome::result<void> transferBalance(const Runtime &runtime,
+                                        State &state,
                                         const Address &from,
                                         const Address &to,
                                         TokenAmount amount) {
@@ -88,7 +90,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<TokenAmount> processDealInitTimedOut(
-      State &state, const DealProposal &deal) {
+      const Runtime &runtime, State &state, const DealProposal &deal) {
     auto total_storage_fee = deal.getTotalStorageFee();
     OUTCOME_TRY(unlockBalance(state, deal.client, total_storage_fee));
     state.total_client_storage_fee -= total_storage_fee;
@@ -100,7 +102,7 @@ namespace fc::vm::actor::builtin::v0::market {
     auto slashed{
         collateralPenaltyForDealActivationMissed(deal.provider_collateral)};
 
-    OUTCOME_TRY(slashBalance(state, deal.provider, slashed));
+    OUTCOME_TRY(slashBalance(runtime, state, deal.provider, slashed));
     state.total_provider_locked_collateral -= slashed;
 
     auto amount_remaining = deal.providerBalanceRequirement() - slashed;
@@ -111,6 +113,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<std::pair<TokenAmount, ChainEpoch>> updatePendingDealState(
+      const Runtime &runtime,
       State &state,
       DealId deal_id,
       const DealProposal &deal,
@@ -125,6 +128,7 @@ namespace fc::vm::actor::builtin::v0::market {
     }
     VM_ASSERT(!slashed || deal_state.slash_epoch <= deal.end_epoch);
     OUTCOME_TRY(transferBalance(
+        runtime,
         state,
         deal.client,
         deal.provider,
@@ -141,7 +145,7 @@ namespace fc::vm::actor::builtin::v0::market {
       OUTCOME_TRY(unlockBalance(
           state, deal.client, deal.client_collateral + remaining));
       result.first = deal.provider_collateral;
-      OUTCOME_TRY(slashBalance(state, deal.provider, result.first));
+      OUTCOME_TRY(slashBalance(runtime, state, deal.provider, result.first));
       OUTCOME_TRY(removeDeal(state, deal_id));
       return result;
     }
@@ -157,7 +161,8 @@ namespace fc::vm::actor::builtin::v0::market {
     return result;
   }
 
-  outcome::result<void> maybeLockBalance(State &state,
+  outcome::result<void> maybeLockBalance(const Runtime &runtime,
+                                         State &state,
                                          const Address &address,
                                          TokenAmount amount) {
     VM_ASSERT(amount >= 0);
@@ -359,10 +364,10 @@ namespace fc::vm::actor::builtin::v0::market {
       resolved_addresses[deal.client] = client;
       deal.client = client;
 
-      OUTCOME_TRY(
-          maybeLockBalance(state, client, deal.clientBalanceRequirement()));
-      OUTCOME_TRY(
-          maybeLockBalance(state, provider, deal.providerBalanceRequirement()));
+      OUTCOME_TRY(maybeLockBalance(
+          runtime, state, client, deal.clientBalanceRequirement()));
+      OUTCOME_TRY(maybeLockBalance(
+          runtime, state, provider, deal.providerBalanceRequirement()));
       state.total_client_locked_collateral += deal.client_collateral;
       state.total_client_storage_fee += deal.getTotalStorageFee();
       state.total_provider_locked_collateral += deal.provider_collateral;
@@ -530,7 +535,7 @@ namespace fc::vm::actor::builtin::v0::market {
           // has timed out
           if (!deal_state) {
             VM_ASSERT(now >= deal.start_epoch);
-            OUTCOME_TRY(slashed, processDealInitTimedOut(state, deal));
+            OUTCOME_TRY(slashed, processDealInitTimedOut(runtime, state, deal));
             slashed_sum += slashed;
             if (deal.verified) {
               timed_out_verified.push_back(deal);
@@ -545,9 +550,9 @@ namespace fc::vm::actor::builtin::v0::market {
             OUTCOME_TRY(state.pending_proposals.remove(deal.cid()));
           }
 
-          OUTCOME_TRY(
-              slashed_next,
-              updatePendingDealState(state, deal_id, deal, *deal_state, now));
+          OUTCOME_TRY(slashed_next,
+                      updatePendingDealState(
+                          runtime, state, deal_id, deal, *deal_state, now));
           slashed_sum += slashed_next.first;
           if (slashed_next.second != kChainEpochUndefined) {
             VM_ASSERT(slashed_next.second > now);

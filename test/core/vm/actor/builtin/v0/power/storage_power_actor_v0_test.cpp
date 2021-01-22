@@ -13,6 +13,7 @@
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/version.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
   using libp2p::multi::Multihash;
@@ -22,11 +23,19 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   using runtime::MockRuntime;
   using storage::ipfs::InMemoryDatastore;
   using testing::Return;
+  using version::kUpgradeBreezeHeight;
+  using version::kUpgradeKumquatHeight;
 
   class StoragePowerActorV0Test : public testing::Test {
     void SetUp() override {
       EXPECT_CALL(runtime, getCurrentEpoch())
-          .WillRepeatedly(Return(current_epoch));
+          .WillRepeatedly(testing::Invoke([&]() { return current_epoch; }));
+
+      EXPECT_CALL(runtime, getNetworkVersion())
+          .WillRepeatedly(testing::Invoke([&]() {
+            return fc::vm::version::getNetworkVersion(
+                runtime.getCurrentEpoch());
+          }));
 
       EXPECT_CALL(runtime, getIpfsDatastore())
           .Times(testing::AnyNumber())
@@ -293,7 +302,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   /**
    * @given storage power actor with miner created and miner claim is zero
    * @when OnConsensusFault called
-   * @then error kAssert returned
+   * @then VM_ASSERT error returned
    */
   TEST_F(StoragePowerActorV0Test, OnConsensusFaultPledgeBelowZero) {
     constructed();
@@ -306,7 +315,18 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     caller = miner_address;
     callerCodeIdIs(kStorageMinerCodeCid);
     const TokenAmount slash{50};
-    EXPECT_OUTCOME_ERROR(VMAbortExitCode{VMExitCode::kAssert},
+
+    // Test VM_ASSERT
+
+    current_epoch = kUpgradeBreezeHeight;
+
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kOldErrActorFailure),
+                         OnConsensusFault::call(runtime, {50}));
+
+    current_epoch = kUpgradeKumquatHeight;
+    callerCodeIdIs(kStorageMinerCodeCid);
+
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrReserved1),
                          OnConsensusFault::call(runtime, {50}));
   }
 

@@ -121,7 +121,7 @@ namespace fc::vm::actor {
 
     auto maybe_builtin_actor = builtin_.find(actor.code);
     if (maybe_builtin_actor == builtin_.end()) {
-      return VMExitCode::kSysErrorIllegalActor;
+      return VMExitCode::kSysErrIllegalActor;
     }
     auto builtin_actor = maybe_builtin_actor->second;
     auto message = runtime->getMessage();

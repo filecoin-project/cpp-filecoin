@@ -22,7 +22,7 @@ namespace fc::vm::actor::builtin::utils::verified_registry {
   outcome::result<void> checkAddress(const State &state,
                                      const Address &address) {
     if (state.root_key == address) {
-      return ABORT_CAST(VMExitCode::kErrIllegalArgument);
+      ABORT(VMExitCode::kErrIllegalArgument);
     }
     return outcome::success();
   }

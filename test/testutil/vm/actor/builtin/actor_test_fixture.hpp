@@ -14,6 +14,7 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
+#include "vm/version.hpp"
 
 namespace fc::testutil::vm::actor::builtin {
   using ::fc::vm::actor::CodeId;
@@ -64,6 +65,12 @@ namespace fc::testutil::vm::actor::builtin {
             if (found != code_ids.end()) return found->second;
             if (code_id_any.has_value()) return code_id_any.value();
             throw "No code id was set for address";
+          }));
+
+      EXPECT_CALL(runtime, getNetworkVersion())
+          .WillRepeatedly(testing::Invoke([&]() {
+            return fc::vm::version::getNetworkVersion(
+                runtime.getCurrentEpoch());
           }));
     }
 

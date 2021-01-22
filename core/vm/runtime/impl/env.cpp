@@ -58,7 +58,7 @@ namespace fc::vm::runtime {
         }
       }
     }
-    return VMExitCode::kSysErrInvalidParameters;
+    return VMExitCode::kSysErrIllegalArgument;
   }
 
   outcome::result<Env::Apply> Env::applyMessage(const UnsignedMessage &message,

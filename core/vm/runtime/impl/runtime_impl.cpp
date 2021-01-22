@@ -126,10 +126,10 @@ namespace fc::vm::runtime {
       }
     } else {
       if (_actor.error() == HamtError::kNotFound) {
-        return VMExitCode::kSysErrorIllegalActor;
+        return VMExitCode::kSysErrIllegalActor;
       }
     }
-    return VMExitCode::kSysErrorIllegalActor;
+    return VMExitCode::kSysErrIllegalActor;
   }
 
   outcome::result<void> RuntimeImpl::transfer(const Address &debitFrom,

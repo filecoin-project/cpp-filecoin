@@ -13,6 +13,7 @@
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v2::storage_power {
   using common::smoothing::FilterEstimate;
@@ -21,6 +22,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::sector::SealVerifyInfo;
+  using runtime::Runtime;
   using v0::storage_power::Claim;
   using v0::storage_power::CronEvent;
   using ChainEpochKeyer = adt::VarintKeyer;
@@ -28,11 +30,14 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   struct State {
     static State empty(const IpldPtr &ipld);
 
-    outcome::result<void> addToClaim(const Address &miner,
+    outcome::result<void> addToClaim(const Runtime &runtime,
+                                     const Address &miner,
                                      const StoragePower &raw,
                                      const StoragePower &qa);
-    outcome::result<void> deleteClaim(const Address &miner);
-    outcome::result<void> addPledgeTotal(const TokenAmount &amount);
+    outcome::result<void> deleteClaim(const Runtime &runtime,
+                                      const Address &miner);
+    outcome::result<void> addPledgeTotal(const Runtime &runtime,
+                                         const TokenAmount &amount);
     outcome::result<void> appendCronEvent(const ChainEpoch &epoch,
                                           const CronEvent &event);
     void updateSmoothedEstimate(int64_t delta);

@@ -85,7 +85,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     const auto verifier_cap = state.verifiers.tryGet(verifier);
     REQUIRE_NO_ERROR(verifier_cap, VMExitCode::kErrIllegalState);
     if (!verifier_cap.value()) {
-      return ABORT_CAST(VMExitCode::kErrNotFound);
+      ABORT(VMExitCode::kErrNotFound);
     }
 
     // Validate client to be added isn't a verifier
@@ -133,7 +133,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     const auto client_cap = state.verified_clients.tryGet(client);
     REQUIRE_NO_ERROR(client_cap, VMExitCode::kErrIllegalState);
     if (!client_cap.value()) {
-      return ABORT_CAST(VMExitCode::kErrNotFound);
+      ABORT(VMExitCode::kErrNotFound);
     }
 
     OUTCOME_TRY(cap_assert(client_cap.value().value() >= 0));
@@ -153,15 +153,14 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     return outcome::success();
   }
 
-  outcome::result<void> UseBytes::clientCapAssert(bool condition) {
-    VM_ASSERT(condition);
-    return outcome::success();
-  }
-
   ACTOR_METHOD_IMPL(UseBytes) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kStorageMarketAddress));
     OUTCOME_TRY(Utils::checkDealSize(params.deal_size));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+
+    auto clientCapAssert = [&runtime](bool condition) -> outcome::result<void> {
+      return runtime.vm_assert(condition);
+    };
     OUTCOME_TRY(useBytes(
         runtime, state, params.address, params.deal_size, clientCapAssert));
     OUTCOME_TRY(runtime.commitState(state));

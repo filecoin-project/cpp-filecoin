@@ -11,6 +11,8 @@
 namespace fc::vm::actor::builtin::v0::verified_registry {
   using primitives::address::Address;
   using testutil::vm::actor::builtin::ActorTestFixture;
+  using version::kUpgradeBreezeHeight;
+  using version::kUpgradeKumquatHeight;
   using vm::VMExitCode;
 
   struct VerifiedRegistryActorTest : public ActorTestFixture<State> {
@@ -267,7 +269,14 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     EXPECT_OUTCOME_TRUE_1(
         state.verified_clients.set(verified_client, wrong_allowance));
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kAssert),
+    currentEpochIs(kUpgradeBreezeHeight);
+
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kOldErrActorFailure),
+                         UseBytes::call(runtime, {verified_client, deal_size}));
+
+    currentEpochIs(kUpgradeKumquatHeight);
+
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrReserved1),
                          UseBytes::call(runtime, {verified_client, deal_size}));
   }
 

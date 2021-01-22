@@ -268,7 +268,7 @@ namespace fc::vm::actor::cgo {
     auto address{arg.get<Address>()};
     if (!actor::isBuiltinActor(code) || actor::isSingletonActor(code)
         || rt->execution()->state_tree->get(address)) {
-      ret << VMExitCode::kSysErrorIllegalArgument;
+      ret << VMExitCode::kSysErrIllegalArgument;
     } else if (charge(
                    ret, rt, rt->execution()->env->pricelist.onCreateActor())) {
       if (rt->execution()->state_tree->set(

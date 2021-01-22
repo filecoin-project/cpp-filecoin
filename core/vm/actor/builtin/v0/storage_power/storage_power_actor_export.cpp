@@ -54,7 +54,8 @@ namespace fc::vm::actor::builtin::v0::storage_power {
                     event.miner_address);
               } else {
                 if (state
-                        .addToClaim(event.miner_address,
+                        .addToClaim(runtime,
+                                    event.miner_address,
                                     -maybe_claim.value().get().raw_power,
                                     -maybe_claim.value().get().qa_power)
                         .has_error()) {
@@ -151,8 +152,10 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerIsMiner());
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     auto [raw, qa] = powersForWeights(weights);
-    OUTCOME_TRY(state.addToClaim(
-        runtime.getImmediateCaller(), add ? raw : -raw, add ? qa : -qa));
+    OUTCOME_TRY(state.addToClaim(runtime,
+                                 runtime.getImmediateCaller(),
+                                 add ? raw : -raw,
+                                 add ? qa : -qa));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -189,8 +192,10 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
     const Address miner_address = runtime.getImmediateCaller();
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(state.addToClaim(
-        miner_address, params.raw_byte_delta, params.quality_adjusted_delta));
+    OUTCOME_TRY(state.addToClaim(runtime,
+                                 miner_address,
+                                 params.raw_byte_delta,
+                                 params.quality_adjusted_delta));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -237,7 +242,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   ACTOR_METHOD_IMPL(UpdatePledgeTotal) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(state.addPledgeTotal(params));
+    OUTCOME_TRY(state.addPledgeTotal(runtime, params));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -253,8 +258,9 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     auto claim{found_claim.value()};
     VM_ASSERT(claim.raw_power >= 0);
     VM_ASSERT(claim.qa_power >= 0);
-    OUTCOME_TRY(state.addToClaim(miner, -claim.raw_power, -claim.qa_power));
-    OUTCOME_TRY(state.addPledgeTotal(-params));
+    OUTCOME_TRY(
+        state.addToClaim(runtime, miner, -claim.raw_power, -claim.qa_power));
+    OUTCOME_TRY(state.addPledgeTotal(runtime, -params));
     OUTCOME_TRY(deleteMinerActor(state, miner));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();

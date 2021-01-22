@@ -20,8 +20,6 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
   struct UseBytes : ActorMethodBase<5> {
     using Params = v2::verified_registry::UseBytes::Params;
     ACTOR_METHOD_DECL();
-
-    static outcome::result<void> clientCapAssert(bool condition);
   };
 
   extern const ActorExports exports;

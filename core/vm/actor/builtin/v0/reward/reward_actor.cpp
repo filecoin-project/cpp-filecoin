@@ -28,7 +28,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     OUTCOME_TRY(runtime.validateArgument(params.win_count > 0));
     OUTCOME_TRY(balance, runtime.getCurrentBalance());
     if (balance < params.gas_reward) {
-      OUTCOME_TRY(runtime.abort(VMExitCode::kErrIllegalState));
+      ABORT(VMExitCode::kErrIllegalState);
     }
     return std::move(balance);
   }

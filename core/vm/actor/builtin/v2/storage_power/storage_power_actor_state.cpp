@@ -39,7 +39,8 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     return state;
   }
 
-  outcome::result<void> State::addToClaim(const Address &miner,
+  outcome::result<void> State::addToClaim(const Runtime &runtime,
+                                          const Address &miner,
                                           const StoragePower &raw,
                                           const StoragePower &qa) {
     OUTCOME_TRY(claim_found, claims.tryGet(miner));
@@ -81,20 +82,24 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     return outcome::success();
   }
 
-  outcome::result<void> State::deleteClaim(const Address &miner) {
+  outcome::result<void> State::deleteClaim(const Runtime &runtime,
+                                           const Address &miner) {
     OUTCOME_TRY(claim_found, claims.tryGet(miner));
     if (!claim_found.has_value()) {
       return outcome::success();
     }
     // subtract from stats as if we were simply removing power
-    OUTCOME_TRY(addToClaim(
-        miner, -claim_found.value().raw_power, -claim_found.value().qa_power));
+    OUTCOME_TRY(addToClaim(runtime,
+                           miner,
+                           -claim_found.value().raw_power,
+                           -claim_found.value().qa_power));
     // delete claim from state to invalidate miner
     OUTCOME_TRY(claims.remove(miner));
     return outcome::success();
   }
 
-  outcome::result<void> State::addPledgeTotal(const TokenAmount &amount) {
+  outcome::result<void> State::addPledgeTotal(const Runtime &runtime,
+                                              const TokenAmount &amount) {
     total_pledge += amount;
     VM_ASSERT(total_pledge >= 0);
     return outcome::success();

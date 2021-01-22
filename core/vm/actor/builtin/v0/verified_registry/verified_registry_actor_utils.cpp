@@ -9,7 +9,7 @@ namespace fc::vm::actor::builtin::utils::verified_registry {
 
   outcome::result<void> checkDealSize(const StoragePower &deal_size) {
     if (deal_size < kMinVerifiedDealSize) {
-      return ABORT_CAST(VMExitCode::kErrIllegalArgument);
+      ABORT(VMExitCode::kErrIllegalArgument);
     }
     return outcome::success();
   }

@@ -89,7 +89,9 @@ namespace fc::vm::actor::builtin::v2::miner {
    * provingPeriodStart to produce a valid index.
    */
   outcome::result<uint64_t> currentDeadlineIndex(
-      const ChainEpoch &current_epoch, const ChainEpoch &period_start) {
+      const Runtime &runtime,
+      const ChainEpoch &current_epoch,
+      const ChainEpoch &period_start) {
     VM_ASSERT(current_epoch >= period_start);
     return (current_epoch - period_start) / kWPoStChallengeWindow;
   }
@@ -153,7 +155,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     state.proving_period_start = period_start;
 
     OUTCOME_TRY(deadline_index,
-                currentDeadlineIndex(current_epoch, period_start));
+                currentDeadlineIndex(runtime, current_epoch, period_start));
     VM_ASSERT(deadline_index < kWPoStPeriodDeadlines);
     state.current_deadline = deadline_index;
 
