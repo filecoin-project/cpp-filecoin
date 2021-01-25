@@ -15,87 +15,10 @@
 #include "node/main/config.hpp"
 #include "storage/buffer_map.hpp"
 
-// fwd declarations go here
-namespace libp2p {
-  struct Host;
-
-  namespace protocol {
-    class Scheduler;
-    class Identify;
-    class IdentifyPush;
-    class IdentifyDelta;
-
-    namespace gossip {
-      class Gossip;
-    }
-  }  // namespace protocol
-}  // namespace libp2p
-
-namespace fc {
-  namespace clock {
-    class UTCClock;
-    class ChainEpochClock;
-  }  // namespace clock
-
-  namespace storage {
-    namespace ipfs {
-      class IpfsDatastore;
-      class PersistentBufferMap;
-
-      namespace graphsync {
-        class Graphsync;
-      }
-    }  // namespace ipfs
-
-    namespace blockchain {
-      class ChainStore;
-    }
-  }  // namespace storage
-
-  namespace blockchain {
-    namespace block_validator {
-      class BlockValidator;
-    }
-  }  // namespace blockchain
-
-  namespace api {
-    struct Api;
-  }  // namespace api
-
-  namespace sync {
-    class ChainStoreImpl;
-    class IndexDb;
-    class ChainDb;
-    class Identify;
-    class SayHello;
-    class ReceiveHello;
-    class PubSubGate;
-    class PeerDiscovery;
-    class GraphsyncServer;
-    class SyncJob;
-    class InterpretJob;
-
-    namespace blocksync {
-      class BlocksyncServer;
-    }  // namespace blocksync
-  }    // namespace sync
-
-  namespace vm::interpreter {
-    class Interpreter;
-  }
-
-  namespace drand {
-    class Beaconizer;
-    struct DrandSchedule;
-  }  // namespace drand
-}  // namespace fc
-
 namespace fc::node {
 
   enum Error {
     STORAGE_INIT_ERROR = 1,
-    KEY_READ_ERROR,
-    KEY_WRITE_ERROR,
     CAR_FILE_OPEN_ERROR,
     CAR_FILE_SIZE_ABOVE_LIMIT,
     NO_GENESIS_BLOCK,
@@ -136,7 +59,7 @@ namespace fc::node {
 
     // chain sync components
     std::shared_ptr<sync::blocksync::BlocksyncServer> blocksync_server;
-    std::shared_ptr<vm::interpreter::Interpreter> vm_interpreter;
+    std::shared_ptr<vm::interpreter::CachedInterpreter> vm_interpreter;
     std::shared_ptr<sync::SyncJob> sync_job;
     std::shared_ptr<sync::InterpretJob> interpret_job;
 

@@ -51,6 +51,10 @@ namespace fc {
   }  // namespace api
 
   namespace blockchain {
+    namespace block_validator {
+      class BlockValidator;
+    }  // namespace block_validator
+
     namespace weight {
       class WeightCalculator;
     }  // namespace weight
@@ -114,8 +118,22 @@ namespace fc {
   }      // namespace storage
 
   namespace sync {
+    class ChainDb;
+    class ChainStoreImpl;
+    class GraphsyncServer;
+    class Identify;
+    class IndexDb;
+    class InterpretJob;
+    class PeerDiscovery;
     class PubSubGate;
-  }  // namespace sync
+    class ReceiveHello;
+    class SayHello;
+    class SyncJob;
+
+    namespace blocksync {
+      class BlocksyncServer;
+    }  // namespace blocksync
+  }    // namespace sync
 
   namespace vm {
     namespace actor {
@@ -123,7 +141,9 @@ namespace fc {
     }  // namespace actor
 
     namespace interpreter {
+      class CachedInterpreter;
       class Interpreter;
+      class InterpreterImpl;
     }  // namespace interpreter
 
     namespace message {

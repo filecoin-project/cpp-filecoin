@@ -49,8 +49,7 @@ namespace fc::sync::events {
   struct MessageFromPubSub {
     PeerId from;
     CID cid;
-    UnsignedMessage msg;
-    boost::optional<Signature> signature;
+    SignedMessage msg;
   };
 
   struct PossibleHead {

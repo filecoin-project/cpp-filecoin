@@ -69,8 +69,8 @@ namespace fc::sync {
 
 #undef SUBSCRIBE_TO_TOPIC
 
-    peer_connected_event_ = events_->subscribePeerConnected(
-        [this](const events::PeerConnected &e) {
+    peer_connected_event_ =
+        events_->subscribePeerConnected([this](const events::PeerConnected &e) {
           gossip_->addBootstrapPeer(e.peer_id, boost::none);
         });
   }
@@ -109,8 +109,6 @@ namespace fc::sync {
   }
 
   bool PubSubGate::onMsg(const PeerId &from, const Bytes &raw) {
-    constexpr uint8_t kCborTwoElementsArrayHeader = 0x82;
-
     if (raw.empty()) {
       // TODO peer feedbacks
       log()->error("pubsub: empty message from peer {}", from.toBase58());
@@ -123,30 +121,15 @@ namespace fc::sync {
     if (!cid_res) {
       e = cid_res.error();
     } else {
-      bool decoding_secp_msg = (raw.data()[0] == kCborTwoElementsArrayHeader);
-
-      if (decoding_secp_msg) {
-        auto res = codec::cbor::decode<primitives::block::SignedMessage>(raw);
-        if (res) {
-          events_->signalMessageFromPubSub(
-              events::MessageFromPubSub{from,
-                                        std::move(cid_res.value()),
-                                        res.value().message,
-                                        res.value().signature});
-        } else {
-          e = res.error();
-        }
+      auto res = codec::cbor::decode<primitives::block::SignedMessage>(raw);
+      if (res) {
+        events_->signalMessageFromPubSub(events::MessageFromPubSub{
+            from,
+            std::move(cid_res.value()),
+            res.value(),
+        });
       } else {
-        auto res = codec::cbor::decode<UnsignedMessage>(raw);
-        if (res) {
-          events_->signalMessageFromPubSub(
-              events::MessageFromPubSub{from,
-                                        std::move(cid_res.value()),
-                                        std::move(res.value()),
-                                        boost::none});
-        } else {
-          e = res.error();
-        }
+        e = res.error();
       }
     }
 

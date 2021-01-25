@@ -47,6 +47,11 @@ namespace fc::vm::interpreter {
     outcome::result<Result> interpret(const IpldPtr &store,
                                       const TipsetCPtr &tipset) const override;
 
+    static Buffer getKey(const TipsetCPtr &tipset);
+    outcome::result<boost::optional<Result>> getCached(
+        const TipsetCPtr &tipset);
+    void removeCached(const TipsetCPtr &tipset);
+
    private:
     std::shared_ptr<Interpreter> interpreter;
     std::shared_ptr<PersistentBufferMap> store;

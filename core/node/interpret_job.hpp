@@ -11,6 +11,7 @@
 #include "storage/buffer_map.hpp"
 
 namespace fc::sync {
+  using vm::interpreter::CachedInterpreter;
 
   class ChainDb;
 
@@ -19,8 +20,7 @@ namespace fc::sync {
   class InterpretJob {
    public:
     static std::shared_ptr<InterpretJob> create(
-        std::shared_ptr<storage::PersistentBufferMap> kv_store,
-        std::shared_ptr<vm::interpreter::Interpreter> interpreter,
+        std::shared_ptr<CachedInterpreter> interpreter,
         std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
         std::shared_ptr<ChainDb> chain_db,
         IpldPtr ipld,

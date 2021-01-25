@@ -25,17 +25,17 @@ namespace fc::sync {
   ChainStoreImpl::ChainStoreImpl(
       std::shared_ptr<ChainDb> chain_db,
       std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
-      std::shared_ptr<storage::PersistentBufferMap> kv_store,
+      std::shared_ptr<CachedInterpreter> interpreter,
       std::shared_ptr<WeightCalculator> weight_calculator,
       std::shared_ptr<BlockValidator> block_validator)
       : chain_db_(std::move(chain_db)),
         ipld_(std::move(ipld)),
-        kv_store_(std::move(kv_store)),
+        interpreter_(std::move(interpreter)),
         weight_calculator_(std::move(weight_calculator)),
         block_validator_(std::move(block_validator)) {
     assert(chain_db_);
     assert(ipld_);
-    assert(kv_store_);
+    assert(interpreter_);
     assert(weight_calculator_);
     assert(block_validator_);
   }
@@ -127,8 +127,7 @@ namespace fc::sync {
       // tipset is stored
       info.tipset = std::move(res.value());
 
-      auto interpret_res =
-          vm::interpreter::getSavedResult(*kv_store_, info.tipset);
+      auto interpret_res = interpreter_->getCached(info.tipset);
       if (!interpret_res) {
         // bad tipset or storage error
         info.is_bad = true;
@@ -166,7 +165,7 @@ namespace fc::sync {
     }
 
     for (const auto &h : added) {
-      possible_heads_.insert({std::move(h), getHeadInfo(h)});
+      possible_heads_.insert({h, getHeadInfo(h)});
     }
 
     // attempt to choose new head

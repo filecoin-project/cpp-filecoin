@@ -11,12 +11,13 @@
 #include "blockchain/block_validator/block_validator.hpp"
 #include "blockchain/weight_calculator.hpp"
 #include "head_constructor.hpp"
-#include "storage/buffer_map.hpp"
 #include "storage/chain/chain_store.hpp"
+#include "vm/interpreter/impl/interpreter_impl.hpp"
 
 namespace fc::sync {
   using blockchain::block_validator::BlockValidator;
   using blockchain::weight::WeightCalculator;
+  using vm::interpreter::CachedInterpreter;
 
   class ChainDb;
 
@@ -25,7 +26,7 @@ namespace fc::sync {
    public:
     ChainStoreImpl(std::shared_ptr<ChainDb> chain_db,
                    std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
-                   std::shared_ptr<storage::PersistentBufferMap> kv_store,
+                   std::shared_ptr<CachedInterpreter> interpreter,
                    std::shared_ptr<WeightCalculator> weight_calculator,
                    std::shared_ptr<BlockValidator> block_validator);
 
@@ -75,7 +76,7 @@ namespace fc::sync {
     HeadConstructor head_constructor_;
     std::shared_ptr<ChainDb> chain_db_;
     std::shared_ptr<storage::ipfs::IpfsDatastore> ipld_;
-    std::shared_ptr<storage::PersistentBufferMap> kv_store_;
+    std::shared_ptr<CachedInterpreter> interpreter_;
     std::shared_ptr<WeightCalculator> weight_calculator_;
     std::shared_ptr<BlockValidator> block_validator_;
 

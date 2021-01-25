@@ -11,7 +11,7 @@
 #include "chain_db.hpp"
 #include "common/logger.hpp"
 #include "events.hpp"
-#include "vm/interpreter/interpreter.hpp"
+#include "vm/interpreter/impl/interpreter_impl.hpp"
 
 namespace fc::sync {
 
@@ -29,20 +29,17 @@ namespace fc::sync {
   class InterpretJobImpl : public InterpretJob {
    public:
     InterpretJobImpl(
-        std::shared_ptr<storage::PersistentBufferMap> kv_store,
-        std::shared_ptr<vm::interpreter::Interpreter> interpreter,
+        std::shared_ptr<CachedInterpreter> interpreter,
         std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
         std::shared_ptr<ChainDb> chain_db,
         IpldPtr ipld,
         std::shared_ptr<blockchain::weight::WeightCalculator> weight_calculator)
-        : kv_store_(kv_store),
-          interpreter_(std::move(interpreter)),
+        : interpreter_(std::move(interpreter)),
           scheduler_(std::move(scheduler)),
           chain_db_(std::move(chain_db)),
           ipld_(std::move(ipld)),
           weight_calculator_(std::move(weight_calculator)),
           current_result_(kDefaultCurrentResult) {
-      assert(kv_store_);
       assert(interpreter_);
       assert(scheduler_);
       assert(chain_db_);
@@ -148,7 +145,7 @@ namespace fc::sync {
       bool proceed = false;
 
       // maybe this head already interpreted
-      auto maybe_result = vm::interpreter::getSavedResult(*kv_store_, head);
+      auto maybe_result = interpreter_->getCached(head);
       if (!maybe_result) {
         // bad tipset or internal error
         event.result = maybe_result.error();
@@ -233,7 +230,7 @@ namespace fc::sync {
         if (e) {
           return false;
         }
-        auto res = vm::interpreter::getSavedResult(*kv_store_, tipset);
+        auto res = interpreter_->getCached(tipset);
         if (!res) {
           log()->error("something wrong at height {}, {}",
                        tipset->height(),
@@ -320,7 +317,7 @@ namespace fc::sync {
                      tipset->height());
 
         // TODO (artem) maybe mark tipset as bad ???
-        std::ignore = kv_store_->remove(common::Buffer(tipset->key.hash()));
+        interpreter_->removeCached(tipset);
 
         current_result_ =
             vm::interpreter::InterpreterError::kChainInconsistency;
@@ -410,7 +407,7 @@ namespace fc::sync {
     }
 
     std::shared_ptr<storage::PersistentBufferMap> kv_store_;
-    std::shared_ptr<vm::interpreter::Interpreter> interpreter_;
+    std::shared_ptr<CachedInterpreter> interpreter_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<ChainDb> chain_db_;
     IpldPtr ipld_;
@@ -434,14 +431,12 @@ namespace fc::sync {
   };
 
   std::shared_ptr<InterpretJob> InterpretJob::create(
-      std::shared_ptr<storage::PersistentBufferMap> kv_store,
-      std::shared_ptr<vm::interpreter::Interpreter> interpreter,
+      std::shared_ptr<CachedInterpreter> interpreter,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
       std::shared_ptr<ChainDb> chain_db,
       IpldPtr ipld,
       std::shared_ptr<blockchain::weight::WeightCalculator> weight_calculator) {
-    return std::make_shared<InterpretJobImpl>(std::move(kv_store),
-                                              std::move(interpreter),
+    return std::make_shared<InterpretJobImpl>(std::move(interpreter),
                                               std::move(scheduler),
                                               std::move(chain_db),
                                               std::move(ipld),

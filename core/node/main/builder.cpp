@@ -343,12 +343,8 @@ namespace fc::node {
     auto weight_calculator =
         std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
 
-    o.interpret_job = sync::InterpretJob::create(o.kv_store,
-                                                 o.vm_interpreter,
-                                                 o.scheduler,
-                                                 o.chain_db,
-                                                 o.ipld,
-                                                 weight_calculator);
+    o.interpret_job = sync::InterpretJob::create(
+        o.vm_interpreter, o.scheduler, o.chain_db, o.ipld, weight_calculator);
 
     log()->debug("Creating chain store...");
 
@@ -373,7 +369,7 @@ namespace fc::node {
     o.chain_store =
         std::make_shared<sync::ChainStoreImpl>(o.chain_db,
                                                o.ipld,
-                                               o.kv_store,
+                                               o.vm_interpreter,
                                                weight_calculator,
                                                std::move(block_validator));
 
@@ -437,10 +433,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::node, Error, e) {
   switch (e) {
     case E::STORAGE_INIT_ERROR:
       return "cannot initialize storage";
-    case E::KEY_READ_ERROR:
-      return "cannot read libp2p key";
-    case E::KEY_WRITE_ERROR:
-      return "cannot write libp2p key";
     case E::CAR_FILE_OPEN_ERROR:
       return "cannot open initial car file";
     case E::CAR_FILE_SIZE_ABOVE_LIMIT:

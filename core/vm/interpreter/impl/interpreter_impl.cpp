@@ -17,10 +17,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
   switch (e) {
     case E::kDuplicateMiner:
       return "InterpreterError: Duplicate miner";
-    case E::kMinerSubmitFailed:
-      return "InterpreterError: Miner submit failed";
-    case E::kCronTickFailed:
-      return "InterpreterError: Cron tick failed";
     case E::kTipsetMarkedBad:
       return "InterpreterError: Tipset marked as bad";
     case E::kChainInconsistency:
@@ -188,16 +184,9 @@ namespace fc::vm::interpreter {
 
   }  // namespace
 
-  outcome::result<boost::optional<Result>> getSavedResult(
-      const PersistentBufferMap &store,
-      const primitives::tipset::TipsetCPtr &tipset) {
-    common::Buffer key(tipset->key.hash());
-    return getSavedResult(store, key);
-  }
-
   outcome::result<Result> CachedInterpreter::interpret(
       const IpldPtr &ipld, const TipsetCPtr &tipset) const {
-    common::Buffer key(tipset->key.hash());
+    auto key{getKey(tipset)};
     OUTCOME_TRY(saved_result, getSavedResult(*store, key));
     if (saved_result) {
       return saved_result.value();
@@ -211,5 +200,18 @@ namespace fc::vm::interpreter {
       OUTCOME_TRY(store->put(key, raw));
     }
     return result;
+  }
+
+  Buffer CachedInterpreter::getKey(const TipsetCPtr &tipset) {
+    return Buffer{tipset->key.hash()};
+  }
+
+  outcome::result<boost::optional<Result>> CachedInterpreter::getCached(
+      const TipsetCPtr &tipset) {
+    return getSavedResult(*store, CachedInterpreter::getKey(tipset));
+  }
+
+  void CachedInterpreter::removeCached(const TipsetCPtr &tipset) {
+    store->remove(getKey(tipset)).assume_value();
   }
 }  // namespace fc::vm::interpreter
