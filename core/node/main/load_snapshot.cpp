@@ -34,7 +34,7 @@ namespace fc {
     struct Ctx {
       std::string car_file;
       std::string genesis_file;
-      boost::filesystem::path storage_dir;
+      boost::filesystem::path repo_path;
       std::shared_ptr<storage::LevelDB> leveldb;
       std::shared_ptr<storage::ipfs::IpfsDatastore> ipld;
       boost::optional<CID> genesis_cid;
@@ -47,14 +47,13 @@ namespace fc {
 
     int parse_args(int argc, char *argv[]) {
       if (argc != 4) {
-        fmt::print(stderr,
-                   "Usage: load_snapshot car_file genesis_file storage_dir\n");
+        fmt::print(stderr, "Usage: load_snapshot car_file genesis_file repo\n");
         return __LINE__;
       }
 
       c.car_file = argv[1];
       c.genesis_file = argv[2];
-      c.storage_dir = argv[3];
+      c.repo_path = argv[3];
 
       return 0;
     }
@@ -112,10 +111,9 @@ namespace fc {
       options.error_if_exists = must_be_empty;
 
       auto leveldb_res = storage::LevelDB::create(
-          (c.storage_dir / node::kLeveldbPath).string(), options);
+          (c.repo_path / node::kLeveldbPath).string(), options);
       if (!leveldb_res) {
-        fmt::print(
-            stderr, "Cannot create leveldb store at {}\n", c.storage_dir);
+        fmt::print(stderr, "Cannot create leveldb store at {}\n", c.repo_path);
         return __LINE__;
       }
 
@@ -127,7 +125,7 @@ namespace fc {
     int load_genesis() {
       ASSERT2(c.leveldb);
 
-      auto load_res = loadBigCar(*c.leveldb, c.genesis_file);
+      auto load_res = storage::car::loadCar(*c.ipld, c.genesis_file);
       if (!load_res) {
         fmt::print(
             stderr, "Load genesis failed, {}\n", load_res.error().message());
@@ -165,7 +163,7 @@ namespace fc {
 
     int create_indexdb(bool must_be_empty) {
       auto indexdb_res = sync::IndexDbBackend::create(
-          (c.storage_dir / node::kIndexDbFileName).string());
+          (c.repo_path / node::kIndexDbFileName).string());
       if (!indexdb_res) {
         fmt::print(stderr,
                    "Cannot create index db, {}\n",
@@ -267,7 +265,7 @@ namespace fc {
 
       auto tipset = c.root_tipset;
 
-      fmt::print(stderr, "Indexing from height, {}\n", tipset->height());
+      spdlog::info("Indexing from height, {}", tipset->height());
 
       sync::TipsetInfo info;
       info.branch = sync::kGenesisBranch;
@@ -278,7 +276,7 @@ namespace fc {
         auto x = (max_height - height) * 100 / max_height;
         if (x > reported_percent) {
           reported_percent = x;
-          fmt::print("index: {}%\n", reported_percent);
+          spdlog::info("index: {}%", reported_percent);
         }
       };
 
@@ -315,7 +313,7 @@ namespace fc {
 
       tx.commit();
 
-      fmt::print(stderr, "Indexing done\n");
+      spdlog::info("Indexing done");
 
       return 0;
     }
@@ -337,7 +335,8 @@ namespace fc {
           std::make_shared<vm::interpreter::InterpreterImpl>(
               std::make_shared<vm::runtime::TipsetRandomness>(c.ipld),
               vm::Circulating::make(c.ipld, c.genesis_cid.value()).value()),
-          c.leveldb);
+          std::make_shared<storage::MapPrefix>(node::kCachedInterpreterPrefix,
+                                               c.leveldb));
 
       auto tipset = c.root_tipset;
       unsigned tipsets_interpreted = 0;
@@ -345,7 +344,7 @@ namespace fc {
       boost::optional<vm::interpreter::Result> expected_result;
 
       while (tipset->height() > 0) {
-        fmt::print("Interpreting height {}\n", tipset->height());
+        spdlog::info("Interpreting height {}", tipset->height());
 
         auto res = interpreter->interpret(c.ipld, tipset);
         if (!res) {
@@ -353,8 +352,7 @@ namespace fc {
                      "Cannot interpret at height {}, {}\n",
                      tipset->height(),
                      res.error().message());
-          common::Buffer key(tipset->key.hash());
-          std::ignore = c.leveldb->remove(key);
+          interpreter->removeCached(tipset);
           return __LINE__;
         }
 
@@ -374,8 +372,7 @@ namespace fc {
             unexpected = true;
           }
           if (unexpected) {
-            common::Buffer key(tipset->key.hash());
-            std::ignore = c.leveldb->remove(key);
+            interpreter->removeCached(tipset);
           }
         }
 
@@ -402,23 +399,9 @@ namespace fc {
 
       auto finality_height = tipset->height();
 
-      // F.U.C.K
-      common::Buffer key(gsl::span<const uint8_t>(
-          reinterpret_cast<const uint8_t *>("finality"), 8));
-      common::Buffer value(gsl::span<const uint8_t>(
-          reinterpret_cast<const uint8_t *>(&finality_height),
-          sizeof(finality_height)));
-      auto res = c.leveldb->put(key, value);
-      if (!res) {
-        fmt::print(
-            stderr, "Cannot persist finality. {}\n", res.error().message());
-        return __LINE__;
-      }
-
-      fmt::print(stderr,
-                 "Tipsets interpreted: {}, finality is set to height {}\n",
-                 tipsets_interpreted,
-                 finality_height);
+      spdlog::info("Tipsets interpreted: {}, finality is set to height {}",
+                   tipsets_interpreted,
+                   finality_height);
       return 0;
     }
 
@@ -428,7 +411,8 @@ namespace fc {
     TRY_STEP(parse_args(argc, argv));
 
     bool must_be_empty = !boost::filesystem::exists(
-        boost::filesystem::weakly_canonical(c.storage_dir));
+        boost::filesystem::weakly_canonical(c.repo_path));
+    boost::filesystem::create_directories(c.repo_path);
 
     TRY_STEP(create_leveldb(must_be_empty));
     TRY_STEP(load_genesis());
@@ -438,7 +422,7 @@ namespace fc {
 
     must_be_empty =
         !boost::filesystem::exists(boost::filesystem::weakly_canonical(
-            c.storage_dir / node::kIndexDbFileName));
+            c.repo_path / node::kIndexDbFileName));
 
     TRY_STEP(create_indexdb(must_be_empty));
     TRY_STEP(make_root_tipset());

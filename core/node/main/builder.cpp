@@ -66,19 +66,6 @@ namespace fc::node {
       return logger.get();
     }
 
-    gsl::span<const uint8_t> toSpanU8(const std::string &s) {
-      return gsl::span<const uint8_t>((const uint8_t *)s.data(), s.size());
-    }
-
-    std::vector<std::string> toStrings(const std::vector<CID> &cids) {
-      std::vector<std::string> v;
-      v.reserve(cids.size());
-      for (const auto &cid : cids) {
-        v.push_back(cid.toString().value());
-      }
-      return v;
-    }
-
     outcome::result<void> loadCar(storage::ipfs::IpfsDatastore &storage,
                                   Config &config) {
       std::ifstream file{config.car_file_name,
@@ -103,7 +90,8 @@ namespace fc::node {
       file.seekg(0, std::ios::beg);
       file.read(buffer.data(), buffer.size());
 
-      auto result = fc::storage::car::loadCar(storage, toSpanU8(buffer));
+      auto result =
+          fc::storage::car::loadCar(storage, common::span::cbytes(buffer));
       if (!result) {
         log()->error("cannot load car file {}: {}",
                      config.car_file_name,
@@ -119,7 +107,7 @@ namespace fc::node {
       if (config.genesis_cid) {
         if (config.genesis_cid.value() != roots[0]) {
           log()->error("Genesis mismatch: got cids:{}, expected:{}",
-                       fmt::join(toStrings(roots), " "),
+                       fmt::join(roots, " "),
                        config.genesis_cid.value().toString().value());
           return Error::GENESIS_MISMATCH;
         }
@@ -335,7 +323,8 @@ namespace fc::node {
         std::make_shared<vm::interpreter::InterpreterImpl>(
             std::make_shared<vm::runtime::TipsetRandomness>(o.ipld),
             std::move(circulating)),
-        o.kv_store);
+        std::make_shared<storage::MapPrefix>(kCachedInterpreterPrefix,
+                                             o.kv_store));
 
     o.sync_job = std::make_shared<sync::SyncJob>(
         o.chain_db, o.host, o.scheduler, o.ipld);

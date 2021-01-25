@@ -73,6 +73,7 @@ namespace fc::node {
   static constexpr auto kIndexDbFileName = "sqlite.db";
   static constexpr auto kLeveldbPath = "leveldb";
   static constexpr auto kPeerKeyPath = "peer_ed25519.key";
+  static constexpr auto kCachedInterpreterPrefix = "vm/";
 
   IpldPtr makeIpld(std::shared_ptr<storage::BufferMap> map);
 }  // namespace fc::node

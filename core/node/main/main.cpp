@@ -23,6 +23,7 @@
 #include "node/receive_hello.hpp"
 #include "node/say_hello.hpp"
 #include "node/sync_job.hpp"
+#include "vm/actor/cgo/actors.hpp"
 
 namespace fc {
 
@@ -53,6 +54,8 @@ namespace fc {
   }  // namespace
 
   int main(int argc, char *argv[]) {
+    vm::actor::cgo::configMainnet();
+
     node::Config config;
 
     if (!config.init(argc, argv)) {
