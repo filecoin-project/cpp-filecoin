@@ -269,6 +269,9 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     EXPECT_OUTCOME_TRUE_1(
         state.verified_clients.set(verified_client, wrong_allowance));
 
+    
+    // Test VM_ASSERT
+    
     currentEpochIs(kUpgradeBreezeHeight);
 
     EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kOldErrActorFailure),

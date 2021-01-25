@@ -14,7 +14,7 @@ namespace fc::vm::actor::builtin::v0::cron {
   ACTOR_METHOD_IMPL(EpochTick) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    for (auto &entry : state.entries) {
+    for (const auto &entry : state.entries) {
       OUTCOME_TRY(runtime.send(entry.to_addr, entry.method_num, {}, BigInt(0)));
     }
     return outcome::success();
