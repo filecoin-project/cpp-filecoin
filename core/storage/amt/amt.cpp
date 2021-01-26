@@ -64,9 +64,9 @@ namespace fc::storage::amt {
       }
     }
 
-    auto n_links = l_node.listLength();
+    const auto n_links = l_node.listLength();
     auto l_links = l_node.list();
-    auto n_values = l_node.listLength();
+    const auto n_values = l_node.listLength();
     auto l_values = l_node.list();
     if (n_links != 0 && n_values != 0) {
       outcome::raise(AmtError::kDecodeWrong);
@@ -95,7 +95,7 @@ namespace fc::storage::amt {
   }
 
   CBOR2_DECODE(Root) {
-    auto n{s.listLength()};
+    const auto n{s.listLength()};
     auto l{s.list()};
     v.bits.reset();
     if (n == 4) {
