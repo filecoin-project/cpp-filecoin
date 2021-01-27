@@ -38,7 +38,7 @@ namespace fc::vm::state {
       if (it->removed.count(address_id.getId())) {
         return storage::hamt::HamtError::kNotFound;
       }
-      auto actor{it->actors.find(address_id.getId())};
+      const auto actor{it->actors.find(address_id.getId())};
       if (actor != it->actors.end()) {
         return actor->second;
       }
@@ -53,7 +53,7 @@ namespace fc::vm::state {
       return address;
     }
     for (auto it{tx_.rbegin()}; it != tx_.rend(); ++it) {
-      auto id{it->lookup.find(address)};
+      const auto id{it->lookup.find(address)};
       if (id != it->lookup.end()) {
         return Address::makeFromId(id->second);
       }
