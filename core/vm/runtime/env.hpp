@@ -30,16 +30,7 @@ namespace fc::vm::runtime {
     Env(std::shared_ptr<Invoker> invoker,
         std::shared_ptr<RuntimeRandomness> randomness,
         IpldPtr ipld,
-        TipsetCPtr tipset)
-        : state_tree{std::make_shared<StateTreeImpl>(
-            ipld, tipset->getParentStateRoot())},
-          invoker{std::move(invoker)},
-          randomness{std::move(randomness)},
-          ipld{std::move(ipld)},
-          epoch{tipset->height()},
-          tipset{std::move(tipset)} {
-      pricelist.calico = epoch >= vm::version::kUpgradeCalicoHeight;
-    }
+        TipsetCPtr tipset);
 
     struct Apply {
       MessageReceipt receipt;

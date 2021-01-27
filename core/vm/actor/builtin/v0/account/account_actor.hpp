@@ -15,7 +15,6 @@ namespace fc::vm::actor::builtin::v0::account {
 
   using primitives::address::Address;
   using primitives::address::Protocol;
-  using state::StateTree;
 
   struct AccountActorState {
     Address address;
