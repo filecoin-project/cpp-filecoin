@@ -6,12 +6,13 @@
 #ifndef CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
 #define CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
 
+#include "primitives/types.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
 
 namespace fc::vm::state {
-
   using actor::Actor;
+  using primitives::ActorId;
   using primitives::address::Address;
   using storage::ipfs::IpfsDatastore;
 
@@ -63,11 +64,12 @@ namespace fc::vm::state {
     /// Write changes to storage
     virtual outcome::result<CID> flush() = 0;
 
-    /// Revert changes to last flushed state
-    virtual outcome::result<void> revert(const CID &root) = 0;
-
     /// Get store
     virtual std::shared_ptr<IpfsDatastore> getStore() = 0;
+    virtual outcome::result<void> remove(const Address &address) = 0;
+    virtual void txBegin() = 0;
+    virtual void txRevert() = 0;
+    virtual void txEnd() = 0;
 
     /// Get decoded actor state
     template <typename T>

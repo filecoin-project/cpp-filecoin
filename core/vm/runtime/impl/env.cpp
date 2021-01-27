@@ -62,6 +62,20 @@ namespace fc::vm::runtime {
     return VMExitCode::kSysErrInvalidParameters;
   }
 
+  Env::Env(std::shared_ptr<Invoker> invoker,
+           std::shared_ptr<RuntimeRandomness> randomness,
+           IpldPtr ipld,
+           TipsetCPtr tipset)
+      : state_tree{std::make_shared<StateTreeImpl>(
+          ipld, tipset->getParentStateRoot())},
+        invoker{std::move(invoker)},
+        randomness{std::move(randomness)},
+        ipld{std::move(ipld)},
+        epoch{tipset->height()},
+        tipset{std::move(tipset)} {
+    pricelist.calico = epoch >= vm::version::kUpgradeCalicoHeight;
+  }
+
   outcome::result<Env::Apply> Env::applyMessage(const UnsignedMessage &message,
                                                 size_t size) {
     TokenAmount locked;
@@ -114,7 +128,9 @@ namespace fc::vm::runtime {
     ++from.nonce;
     OUTCOME_TRY(state_tree->set(message.from, from));
 
-    OUTCOME_TRY(snapshot, state_tree->flush());
+    state_tree->txBegin();
+    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{
+        gsl::finally([&] { state_tree->txEnd(); })};
     auto result{execution->send(message, msg_gas_cost)};
     auto exit_code = VMExitCode::kOk;
     if (!result) {
@@ -139,7 +155,7 @@ namespace fc::vm::runtime {
       }
     }
     if (exit_code != VMExitCode::kOk) {
-      OUTCOME_TRY(state_tree->revert(snapshot));
+      state_tree->txRevert();
     }
     auto limit{message.gas_limit}, &used{execution->gas_used};
     if (used < 0) {
@@ -275,10 +291,12 @@ namespace fc::vm::runtime {
 
   outcome::result<InvocationOutput> Execution::sendWithRevert(
       const UnsignedMessage &message) {
-    OUTCOME_TRY(snapshot, state_tree->flush());
+    state_tree->txBegin();
+    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{
+        gsl::finally([&] { state_tree->txEnd(); })};
     auto result = send(message);
     if (!result) {
-      OUTCOME_TRY(state_tree->revert(snapshot));
+      state_tree->txRevert();
       return result.error();
     }
     return result;

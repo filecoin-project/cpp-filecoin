@@ -15,6 +15,12 @@ namespace fc::vm::state {
   /// State tree
   class StateTreeImpl : public StateTree {
    public:
+    struct Tx {
+      std::map<ActorId, Actor> actors;
+      std::map<Address, ActorId> lookup;
+      std::set<ActorId> removed;
+    };
+
     explicit StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store);
     StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store, const CID &root);
     /// Set actor state, does not write to storage
@@ -29,13 +35,15 @@ namespace fc::vm::state {
         const Address &address) override;
     /// Write changes to storage
     outcome::result<CID> flush() override;
-    /// Revert changes to last flushed state
-    outcome::result<void> revert(const CID &root) override;
     /// Get store
     std::shared_ptr<IpfsDatastore> getStore() override;
-    outcome::result<void> remove(const Address &address);
+    outcome::result<void> remove(const Address &address) override;
+    void txBegin() override;
+    void txRevert() override;
+    void txEnd() override;
 
    private:
+    Tx &tx();
     /**
      * Sets root of StateTree
      * @param root - cid of hamt for StateTree v0 or cid of struct StateRoot for
@@ -46,6 +54,7 @@ namespace fc::vm::state {
     StateTreeVersion version_;
     std::shared_ptr<IpfsDatastore> store_;
     adt::Map<actor::Actor, adt::AddressKeyer> by_id;
+    std::vector<Tx> tx_;
   };
 }  // namespace fc::vm::state
 
