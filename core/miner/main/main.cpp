@@ -303,7 +303,7 @@ namespace fc {
             (path / sector_storage::stores::kMetaFileName).string(),
             *codec::json::format(api::encode(primitives::LocalStorageMeta{
                 uuids::to_string(uuids::random_generator()()),
-                1,
+                10,
                 true,
                 true,
             }))));
