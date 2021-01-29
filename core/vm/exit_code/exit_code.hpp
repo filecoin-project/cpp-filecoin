@@ -13,7 +13,26 @@
  * error and the error is not fatal or abort
  */
 #define REQUIRE_NO_ERROR(expr, err_code) \
-  OUTCOME_TRY(requireNoError((expr), (err_code)));
+  OUTCOME_TRY(requireNoError((expr), (err_code)))
+
+/**
+ * Aborts execution if res is not success
+ */
+#define REQUIRE_SUCCESS(expr) OUTCOME_TRY(requireSuccess((expr)))
+
+/**
+ * Returns another error if res has error and the error is not fatal or
+ * abort
+ */
+#define CHANGE_ERROR(expr, err_code) \
+  OUTCOME_TRY(changeError((expr), (err_code)))
+
+/**
+ * Aborts execution with error if res has error and the error is not fatal or
+ * abort
+ */
+#define CHANGE_ERROR_ABORT(expr, err_code) \
+  OUTCOME_TRY(changeErrorAbort((expr), (err_code)))
 
 /**
  * Return VMExitCode as VMAbortExitCode for special handling
@@ -32,7 +51,8 @@ namespace fc::vm {
   enum class VMExitCode : int64_t {
     kFatal = -1,
 
-    // Old general actor error that is used for backward compatibility with old network versions
+    // Old general actor error that is used for backward compatibility with old
+    // network versions
     kOldErrActorFailure = 1,
 
     kOk = 0,
@@ -105,7 +125,8 @@ namespace fc::vm {
    * @param default_error - default VMExitCode to abort with.
    * @return If res has no error, success() returned. Otherwise if res.error()
    * is VMAbortExitCode or VMFatal, the res.error() returned, else
-   * default_error returned
+   * if res.error()is VMExitCode, the aborted res.error()returned, else
+   * aborted default_error returned
    */
   template <typename T>
   outcome::result<void> requireNoError(const outcome::result<T> &res,
@@ -118,6 +139,63 @@ namespace fc::vm {
         ABORT(static_cast<VMExitCode>(res.error().value()));
       }
       ABORT(default_error);
+    }
+    return outcome::success();
+  }
+
+  /**
+   * Aborts execution if res is not success
+   * @tparam T - result type
+   * @param res - result to check
+   * @return If res has no error, success() returned. Otherwise VMAbortExitCode
+   * returned
+   */
+  template <typename T>
+  outcome::result<void> requireSuccess(const outcome::result<T> &res) {
+    if (res.has_error()) {
+      ABORT(res.error().value());
+    }
+    return outcome::success();
+  }
+
+  /**
+   * Returns abort exit code if res has error
+   * @tparam T - result type
+   * @param res - result to check
+   * @param error - VMExitCode to to return instead.
+   * @return If res has no error, success() returned. Otherwise if res.error()
+   * is VMAbortExitCode or VMFatal, the res.error() returned, else error
+   * returned
+   */
+  template <typename T>
+  outcome::result<void> changeError(const outcome::result<T> &res,
+                                    const VMExitCode &error) {
+    if (res.has_error()) {
+      if (isFatal(res.error()) || isAbortExitCode(res.error())) {
+        return res.error();
+      }
+      return error;
+    }
+    return outcome::success();
+  }
+
+  /**
+   * Returns abort exit code if res has error
+   * @tparam T - result type
+   * @param res - result to check
+   * @param error - VMExitCode to abort with.
+   * @return If res has no error, success() returned. Otherwise if res.error()
+   * is VMAbortExitCode or VMFatal, the res.error() returned, else error
+   * returned
+   */
+  template <typename T>
+  outcome::result<void> changeErrorAbort(const outcome::result<T> &res,
+                                         const VMExitCode &error) {
+    if (res.has_error()) {
+      if (isFatal(res.error()) || isAbortExitCode(res.error())) {
+        return res.error();
+      }
+      ABORT(error);
     }
     return outcome::success();
   }

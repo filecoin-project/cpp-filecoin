@@ -155,7 +155,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
   TEST_F(MultisigActorTest, ConstructWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          Construct::call(runtime, {}));
   }
 
@@ -272,7 +272,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
   TEST_F(MultisigActorTest, ProposeWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          Propose::call(runtime, {}));
   }
 
@@ -425,7 +425,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
   TEST_F(MultisigActorTest, ApproveWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          Approve::call(runtime, {}));
   }
 
@@ -553,7 +553,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
   TEST_F(MultisigActorTest, CancelWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          Cancel::call(runtime, {}));
   }
 
@@ -576,7 +576,8 @@ namespace fc::vm::actor::builtin::v3::multisig {
    */
   TEST_F(MultisigActorTest, CancelWrongTxId) {
     // no pending txs in state
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrNotFound), Cancel::call(runtime, {}));
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrNotFound),
+                         Cancel::call(runtime, {}));
   }
 
   /**
@@ -660,7 +661,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
   TEST_F(MultisigActorTest, AddSignerWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          AddSigner::call(runtime, {}));
   }
 
@@ -739,7 +740,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
    * @then error returned
    */
   TEST_F(MultisigActorTest, RemoveSignerWrongCaller) {
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          RemoveSigner::call(runtime, {}));
   }
 
@@ -836,7 +837,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
   TEST_F(MultisigActorTest, SwapSignerWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          SwapSigner::call(runtime, {}));
   }
 
@@ -898,7 +899,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
   TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          ChangeThreshold::call(runtime, {}));
   }
 
@@ -957,7 +958,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
     caller = wrong_caller;
     epoch = 272401;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          LockBalance::call(runtime, {}));
   }
 

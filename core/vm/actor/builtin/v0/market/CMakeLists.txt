@@ -4,6 +4,7 @@
 #
 
 add_library(market_actor_v0
+    market_actor_utils.cpp
     actor.cpp
     )
 target_link_libraries(market_actor_v0

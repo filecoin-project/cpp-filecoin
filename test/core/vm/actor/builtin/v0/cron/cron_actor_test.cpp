@@ -26,7 +26,7 @@ TEST(CronActorTest, WrongSender) {
   MockRuntime runtime;
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(actor::kInitAddress));
-  EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+  EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                        EpochTick::call(runtime, {}));
 }
 

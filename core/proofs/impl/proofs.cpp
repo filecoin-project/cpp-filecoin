@@ -144,7 +144,7 @@ namespace fc::proofs {
   }
 
   // ******************
-  // TO С CASTED FUNCTIONS
+  // TO C CASTED FUNCTIONS
   // ******************
 
   outcome::result<fil_RegisteredPoStProof> cRegisteredPoStProof(

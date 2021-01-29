@@ -66,8 +66,8 @@ struct PaymentChannelActorTest : testing::Test {
 
     EXPECT_CALL(runtime, hashBlake2b(testing::_))
         .Times(testing::AnyNumber())
-        .WillRepeatedly(testing::Invoke(
-            [&](auto &data) { return blake2b_256(data); }));
+        .WillRepeatedly(
+            testing::Invoke([&](auto &data) { return blake2b_256(data); }));
 
     ipld->load(state);
 

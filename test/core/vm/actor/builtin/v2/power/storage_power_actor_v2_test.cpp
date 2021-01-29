@@ -192,7 +192,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     constructed();
     callerCodeIdIs(kEmptyObjectCid);
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          CreateMiner::call(runtime, {}));
   }
 
@@ -206,7 +206,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     callerCodeIdIs(kEmptyObjectCid);
 
     UpdateClaimedPower::Params params{};
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          UpdateClaimedPower::call(runtime, params));
   }
 

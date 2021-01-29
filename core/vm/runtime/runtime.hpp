@@ -320,17 +320,17 @@ namespace fc::vm::runtime {
       if (getImmediateCaller() == address) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerIs(
-        std::initializer_list<Address> addresses) {
+        std::vector<Address> addresses) {
       for (const auto &address : addresses) {
         if (getImmediateCaller() == address) {
           return outcome::success();
         }
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerType(
@@ -339,7 +339,7 @@ namespace fc::vm::runtime {
       if (actual_code == expected_code) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerIsSignable() {
@@ -347,7 +347,7 @@ namespace fc::vm::runtime {
       if (actor::isSignableActor(code)) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerIsMiner() {
@@ -355,14 +355,14 @@ namespace fc::vm::runtime {
       if (isStorageMinerActor(actual_code)) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerIsCurrentReceiver() {
       if (getImmediateCaller() == getCurrentReceiver()) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> vm_assert(bool condition) const {

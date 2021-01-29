@@ -36,7 +36,7 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
   TEST_F(VerifiedRegistryActorTest, ConstructCallerNotSystem) {
     callerIs(wrong_caller);
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          Construct::call(runtime, {}));
   }
 
@@ -65,7 +65,7 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
     callerIs(wrong_caller);
     const DataCap allowance = kMinVerifiedDealSize + 1;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          AddVerifier::call(runtime, {{}, allowance}));
   }
 
@@ -105,7 +105,7 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
   TEST_F(VerifiedRegistryActorTest, RemoveVerifierCallerNotRootKey) {
     callerIs(wrong_caller);
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          RemoveVerifier::call(runtime, {}));
   }
 
@@ -230,7 +230,7 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
   TEST_F(VerifiedRegistryActorTest, UseBytesWrongCaller) {
     callerIs(wrong_caller);
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          UseBytes::call(runtime, {}));
   }
 
@@ -323,7 +323,7 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
   TEST_F(VerifiedRegistryActorTest, RestoreBytesWrongCaller) {
     callerIs(wrong_caller);
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
                          RestoreBytes::call(runtime, {}));
   }
 
