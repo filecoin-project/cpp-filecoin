@@ -262,6 +262,13 @@ namespace fc::vm::runtime {
       return outcome::success();
     }
 
+    template <typename T>
+    static outcome::result<T> requireNoError(outcome::result<T> &&res,
+                                             VMExitCode default_error) {
+      OUTCOME_TRY(requireNoError(res, default_error));
+      return std::move(res);
+    }
+
     /**
      * Abort execution with VMExitCode
      * @param error_code - error code that should be passed to the caller
