@@ -56,9 +56,9 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     claim.raw_power += raw;
     claim.qa_power += qa;
 
-    const auto prev_below{old_claim.qa_power
+    const auto prev_below{old_claim.raw_power
                           < v0::storage_power::kConsensusMinerMinPower};
-    const auto still_below{claim.qa_power
+    const auto still_below{claim.raw_power
                            < v0::storage_power::kConsensusMinerMinPower};
 
     if (prev_below && !still_below) {
