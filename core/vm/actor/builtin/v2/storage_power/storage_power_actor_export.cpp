@@ -139,7 +139,8 @@ namespace fc::vm::actor::builtin::v2::storage_power {
                                           {kStorageMinerCodeCid, miner_params},
                                           runtime.getValueReceived()));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(state.claims.set(addresses_created.id_address, {0, 0}));
+    OUTCOME_TRY(state.claims.set(addresses_created.id_address,
+                                 {params.seal_proof_type, 0, 0}));
     ++state.miner_count;
     OUTCOME_TRY(runtime.commitState(state));
     return Result{addresses_created.id_address,
