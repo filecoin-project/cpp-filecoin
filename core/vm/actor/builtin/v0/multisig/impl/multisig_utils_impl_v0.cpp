@@ -11,7 +11,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       const Runtime &runtime, const State &state) const {
     const auto proposer = runtime.getImmediateCaller();
     if (!state.isSigner(proposer)) {
-      return VMExitCode::kErrForbidden;
+      ABORT(VMExitCode::kErrForbidden);
     }
     return outcome::success();
   }
@@ -43,17 +43,17 @@ namespace fc::vm::actor::builtin::v0::multisig {
       const TokenAmount &amount_to_spend,
       const ChainEpoch &current_epoch) const {
     if (amount_to_spend < 0) {
-      return VMExitCode::kErrInsufficientFunds;
+      ABORT(VMExitCode::kErrInsufficientFunds);
     }
     if (current_balance < amount_to_spend) {
-      return VMExitCode::kErrInsufficientFunds;
+      ABORT(VMExitCode::kErrInsufficientFunds);
     }
 
     const auto remaining_balance = current_balance - amount_to_spend;
     const auto amount_locked =
         amountLocked(state, current_epoch - state.start_epoch);
     if (remaining_balance < amount_locked) {
-      return VMExitCode::kErrInsufficientFunds;
+      ABORT(VMExitCode::kErrInsufficientFunds);
     }
     return outcome::success();
   }
@@ -66,7 +66,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     if (std::find(
             transaction.approved.begin(), transaction.approved.end(), caller)
         != transaction.approved.end()) {
-      return VMExitCode::kErrForbidden;
+      ABORT(VMExitCode::kErrForbidden);
     }
     transaction.approved.push_back(caller);
 

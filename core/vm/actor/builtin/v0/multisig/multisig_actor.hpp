@@ -24,10 +24,8 @@ namespace fc::vm::actor::builtin::v0::multisig {
                                            const Params &params,
                                            const MultisigUtils &utils);
 
-    static outcome::result<void> checkEmptySigners(
-        const std::vector<Address> &signers);
     static outcome::result<std::vector<Address>> getResolvedSigners(
-        Runtime &runtime, const std::vector<Address> &signers);
+        const Runtime &runtime, const std::vector<Address> &signers);
     static outcome::result<void> checkParams(
         const std::vector<Address> &signers,
         size_t threshold,
@@ -202,7 +200,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
                                            const MultisigUtils &utils);
 
     static outcome::result<void> checkNetwork(const Runtime &runtime);
-    static outcome::result<void> checkUnlockDuration(const Params &params);
     static outcome::result<void> lockBalance(const Params &params,
                                              State &state);
   };

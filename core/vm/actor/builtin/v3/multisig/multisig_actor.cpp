@@ -126,21 +126,13 @@ namespace fc::vm::actor::builtin::v3::multisig {
   // LockBalance
   //============================================================================
 
-  outcome::result<void> LockBalance::checkAmount(
-      const Runtime &runtime, const LockBalance::Params &params) {
-    if (params.amount < 0) {
-      return VMExitCode::kErrIllegalArgument;
-    }
-    return outcome::success();
-  }
-
   outcome::result<LockBalance::Result> LockBalance::execute(
       Runtime &runtime,
       const LockBalance::Params &params,
       const MultisigUtils &utils) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
-    OUTCOME_TRY(v0::multisig::LockBalance::checkUnlockDuration(params));
-    OUTCOME_TRY(checkAmount(runtime, params));
+    OUTCOME_TRY(runtime.validateArgument(params.unlock_duration > 0));
+    OUTCOME_TRY(runtime.validateArgument(params.amount >= 0));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(v0::multisig::LockBalance::lockBalance(params, state));
     OUTCOME_TRY(runtime.commitState(state));
