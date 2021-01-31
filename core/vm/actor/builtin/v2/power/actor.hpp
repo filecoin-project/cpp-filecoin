@@ -8,14 +8,21 @@
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::power {
+  using primitives::sector::RegisteredSealProof;
   using v0::storage_power::ChainEpoch;
   using v0::storage_power::ChainEpochKeyer;
-  using v0::storage_power::Claim;
   using v0::storage_power::CronEvent;
   using v0::storage_power::FilterEstimate;
   using v0::storage_power::SealVerifyInfo;
   using v0::storage_power::StoragePower;
   using v0::storage_power::TokenAmount;
+
+  struct Claim {
+    RegisteredSealProof seal_proof_type;
+    StoragePower raw_power;
+    StoragePower qa_power;
+  };
+  CBOR_TUPLE(Claim, seal_proof_type, raw_power, qa_power)
 
   struct State {
     StoragePower total_raw_power;
