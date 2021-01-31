@@ -118,6 +118,21 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     return outcome::success();
   }
 
+  outcome::result<void> validateMinerHasClaim(Runtime &runtime,
+                                              State &state,
+                                              const Address &miner) {
+    auto claims{state.claims};
+    OUTCOME_TRY(runtime.requireNoError(claims.hamt.loadRoot(),
+                                       VMExitCode::kErrIllegalState));
+    OUTCOME_TRY(has,
+                runtime.requireNoError(claims.has(miner),
+                                       VMExitCode::kErrIllegalState));
+    if (!has) {
+      return runtime.abort(VMExitCode::kErrForbidden);
+    }
+    return outcome::success();
+  }
+
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
     OUTCOME_TRY(runtime.commitState(State::empty(runtime)));
@@ -195,6 +210,8 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   ACTOR_METHOD_IMPL(UpdatePledgeTotal) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(
+        validateMinerHasClaim(runtime, state, runtime.getImmediateCaller()));
     OUTCOME_TRY(state.addPledgeTotal(params));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
@@ -205,12 +222,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     const auto miner{runtime.getImmediateCaller()};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
-    OUTCOME_TRY(has_claim, state.claims.has(miner));
-    if (!has_claim) {
-      spdlog::warn("unknown miner {} forbidden to interact with power actor",
-                   encodeToString(miner));
-      return VMExitCode::kErrForbidden;
-    }
+    OUTCOME_TRY(validateMinerHasClaim(runtime, state, miner));
 
     if (!state.proof_validation_batch.has_value()) {
       state.proof_validation_batch.emplace(runtime.getIpfsDatastore());
