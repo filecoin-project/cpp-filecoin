@@ -5,6 +5,7 @@
 
 #include "vm/runtime/env.hpp"
 
+#include "storage/ipld/traverser.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
@@ -62,15 +63,64 @@ namespace fc::vm::runtime {
     return VMExitCode::kSysErrInvalidParameters;
   }
 
+  IpldBuffered::IpldBuffered(IpldPtr ipld) : ipld{ipld} {}
+
+  outcome::result<void> IpldBuffered::flush(const CID &root) {
+    flushing = true;
+    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{gsl::finally([&] { flushing = false; })};
+    storage::ipld::traverser::Traverser t{*this, root, {}};
+    while (true) {
+      if (auto _cids{t.traverseAll()}) {
+        for (auto &cid : _cids.value()) {
+          OUTCOME_TRY(ipld->set(cid, write.at(*asBlake(cid))));
+        }
+        return outcome::success();
+      } else if (_cids.error()
+                 != storage::ipfs::IpfsDatastoreError::kNotFound) {
+        return _cids.error();
+      }
+    }
+  }
+
+  outcome::result<bool> IpldBuffered::contains(const CID &cid) const {
+    throw "unused";
+  }
+
+  outcome::result<void> IpldBuffered::set(const CID &cid, Value value) {
+    assert(isCbor(cid));
+    write.emplace(*asBlake(cid), std::move(value));
+    return outcome::success();
+  }
+
+  outcome::result<Ipld::Value> IpldBuffered::get(const CID &cid) const {
+    if (isCbor(cid)) {
+      if (auto it{write.find(*asBlake(cid))}; it != write.end()) {
+        return it->second;
+      }
+      if (!flushing) {
+        return ipld->get(cid);
+      }
+    }
+    return storage::ipfs::IpfsDatastoreError::kNotFound;
+  }
+
+  outcome::result<void> IpldBuffered::remove(const CID &cid) {
+    throw "unused";
+  }
+
+  IpldPtr IpldBuffered::shared() {
+    return shared_from_this();
+  }
+
   Env::Env(std::shared_ptr<Invoker> invoker,
            std::shared_ptr<RuntimeRandomness> randomness,
            IpldPtr ipld,
            TipsetCPtr tipset)
-      : state_tree{std::make_shared<StateTreeImpl>(
-          ipld, tipset->getParentStateRoot())},
+      : ipld{std::make_shared<IpldBuffered>(std::move(ipld))},
+        state_tree{std::make_shared<StateTreeImpl>(
+            this->ipld, tipset->getParentStateRoot())},
         invoker{std::move(invoker)},
         randomness{std::move(randomness)},
-        ipld{std::move(ipld)},
         epoch{tipset->height()},
         tipset{std::move(tipset)} {
     pricelist.calico = epoch >= vm::version::kUpgradeCalicoHeight;
