@@ -127,6 +127,8 @@ namespace fc::vm {
 
   /// VMExitCode that aborts execution
   bool isAbortExitCode(const std::error_code &error);
+
+  outcome::result<VMExitCode> asExitCode(const std::error_code &error);
 }  // namespace fc::vm
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMExitCode);
@@ -134,5 +136,15 @@ OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMExitCode);
 OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMFatal);
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMAbortExitCode);
+
+namespace fc::vm {
+  template <typename T>
+  outcome::result<VMExitCode> asExitCode(const outcome::result<T> &result) {
+    if (result) {
+      return outcome::success(VMExitCode::kOk);
+    }
+    return asExitCode(result.error());
+  }
+}  // namespace fc::vm
 
 #endif  // CPP_FILECOIN_CORE_VM_EXITCODE_EXITCODE_HPP

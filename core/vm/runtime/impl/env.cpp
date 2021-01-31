@@ -132,24 +132,17 @@ namespace fc::vm::runtime {
     auto BOOST_OUTCOME_TRY_UNIQUE_NAME{
         gsl::finally([&] { state_tree->txEnd(); })};
     auto result{execution->send(message, msg_gas_cost)};
-    auto exit_code = VMExitCode::kOk;
-    if (!result) {
-      if (!isVMExitCode(result.error())) {
-        return result.error();
-      }
-      exit_code = VMExitCode{result.error().value()};
-      if (exit_code == VMExitCode::kFatal) {
-        return result.error();
-      }
-    } else {
+    OUTCOME_TRY(exit_code, asExitCode(result));
+    if (exit_code == VMExitCode::kFatal) {
+      return result.error();
+    }
+    if (result) {
       auto &ret{result.value()};
       if (!ret.empty()) {
         auto charge =
             execution->chargeGas(pricelist.onChainReturnValue(ret.size()));
-        if (!charge) {
-          BOOST_ASSERT(isVMExitCode(charge.error()));
-          exit_code = VMExitCode{charge.error().value()};
-        } else {
+        OUTCOME_TRYA(exit_code, asExitCode(charge));
+        if (charge) {
           apply.receipt.return_value = std::move(ret);
         }
       }
@@ -212,14 +205,11 @@ namespace fc::vm::runtime {
       UnsignedMessage message) {
     auto execution = Execution::make(shared_from_this(), message);
     auto result = execution->send(message);
-    if (result.has_error() && !isVMExitCode(result.error())) {
-      return result.error();
+    MessageReceipt receipt;
+    OUTCOME_TRYA(receipt.exit_code, asExitCode(result));
+    if (result) {
+      receipt.return_value = std::move(result.value());
     }
-    MessageReceipt receipt{result.has_value()
-                               ? VMExitCode::kOk
-                               : VMExitCode{result.error().value()},
-                           result.has_value() ? result.value() : Buffer{},
-                           0};
 
     dvm::onReceipt(receipt);
 
