@@ -27,8 +27,7 @@ namespace fc::vm::state {
                                            const Actor &actor) {
     OUTCOME_TRY(address_id, lookupId(address));
     dvm::onActor(*this, address, actor);
-    tx().actors[address_id.getId()] = actor;
-    tx().removed.erase(address_id.getId());
+    _set(address_id.getId(), actor);
     return outcome::success();
   }
 
@@ -44,7 +43,7 @@ namespace fc::vm::state {
       }
     }
     OUTCOME_TRY(actor, by_id.get(address_id));
-    OUTCOME_TRY(set(address_id, actor));
+    _set(address_id.getId(), actor);
     return std::move(actor);
   }
 
@@ -129,6 +128,11 @@ namespace fc::vm::state {
 
   StateTreeImpl::Tx &StateTreeImpl::tx() {
     return tx_.back();
+  }
+
+  void StateTreeImpl::_set(ActorId id, const Actor &actor) {
+    tx().actors[id] = actor;
+    tx().removed.erase(id);
   }
 
   outcome::result<void> StateTreeImpl::setRoot(const CID &root) {
