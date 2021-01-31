@@ -20,7 +20,7 @@ namespace fc::vm::actor::builtin::v0::miner {
    * @param address to resolve
    * @return resolved address
    */
-  outcome::result<Address> resolveControlAddress(Runtime &runtime,
+  outcome::result<Address> resolveControlAddress(const Runtime &runtime,
                                                  const Address &address);
 
   struct Construct : ActorMethodBase<1> {

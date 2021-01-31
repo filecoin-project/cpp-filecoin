@@ -27,20 +27,20 @@ namespace fc::vm::actor::builtin::v3::miner {
    */
   outcome::result<Address> resolveWorkerAddress(Runtime &runtime,
                                                 const Address &address) {
-    OUTCOME_TRY(resolved, runtime.resolveAddress(address));
-    VM_ASSERT(resolved.isId());
-    const auto resolved_code = runtime.getActorCodeID(resolved);
-    REQUIRE_NO_ERROR(resolved_code, VMExitCode::kErrIllegalArgument);
+    const auto resolved = runtime.resolveAddress(address);
+    OUTCOME_TRY(runtime.validateArgument(!resolved.has_error()));
+    VM_ASSERT(resolved.value().isId());
+    const auto resolved_code = runtime.getActorCodeID(resolved.value());
+    OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
     OUTCOME_TRY(
         runtime.validateArgument(resolved_code.value() == kAccountCodeCid));
 
     if (!address.isBls()) {
-      OUTCOME_TRY(pubkey_addres,
-                  runtime.sendM<account::PubkeyAddress>(resolved, {}, 0));
-      OUTCOME_TRY(runtime.validateArgument(pubkey_addres.isBls()));
+      const auto pubkey_addres = runtime.sendM<account::PubkeyAddress>(resolved.value(), {}, 0);
+      OUTCOME_TRY(runtime.validateArgument(pubkey_addres.value().isBls()));
     }
-
-    return std::move(resolved);
+    
+    return std::move(resolved.value());
   }
 
   /**
@@ -51,9 +51,10 @@ namespace fc::vm::actor::builtin::v3::miner {
   outcome::result<void> enrollCronEvent(Runtime &runtime,
                                         ChainEpoch event_epoch,
                                         const CronEventPayload &payload) {
-    OUTCOME_TRY(encoded_params, codec::cbor::encode(payload));
-    OUTCOME_TRY(runtime.sendM<storage_power::EnrollCronEvent>(
-        kStoragePowerAddress, {event_epoch, encoded_params}, 0));
+    const auto encoded_params = codec::cbor::encode(payload);
+    OUTCOME_TRY(runtime.validateArgument(!encoded_params.has_error()));
+    REQUIRE_SUCCESS(runtime.sendM<storage_power::EnrollCronEvent>(
+        kStoragePowerAddress, {event_epoch, encoded_params.value()}, 0));
     return outcome::success();
   }
 
@@ -108,14 +109,14 @@ namespace fc::vm::actor::builtin::v3::miner {
     OUTCOME_TRY(runtime.requireState(deadline_index < kWPoStPeriodDeadlines));
     state.current_deadline = deadline_index;
 
-    OUTCOME_TRY(miner_info,
-                MinerInfo::make(owner,
-                                worker,
-                                control_addresses,
-                                params.peer_id,
-                                params.multiaddresses,
-                                params.seal_proof_type));
-    OUTCOME_TRY(state.info.set(miner_info));
+    const auto miner_info = MinerInfo::make(owner,
+                                            worker,
+                                            control_addresses,
+                                            params.peer_id,
+                                            params.multiaddresses,
+                                            params.seal_proof_type);
+    REQUIRE_NO_ERROR(miner_info, VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(state.info.set(miner_info.value()));
 
     // construct with empty already cid stored in ipld to avoid gas charge
     state.sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid,
