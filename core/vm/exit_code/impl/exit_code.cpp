@@ -38,7 +38,7 @@ namespace fc::vm {
 
   outcome::result<VMExitCode> asExitCode(const std::error_code &error) {
     if (isVMExitCode(error)) {
-      return outcome::success(VMExitCode{error.value()});
+      return outcome::success(static_cast<VMExitCode>(error.value()));
     }
     return outcome::failure(error);
   }

@@ -198,7 +198,7 @@ namespace fc::vm::runtime {
         successful.reserve(count);
         std::set<SectorNumber> seen;
         OUTCOME_TRY(seals.visit([&](auto, auto &seal) -> outcome::result<void> {
-          auto verified{proofs::Proofs::verifySeal(seal)};
+          const auto verified{proofs::Proofs::verifySeal(seal)};
           if (verified && verified.value()
               && seen.insert(seal.sector.sector).second) {
             successful.push_back(seal.sector.sector);
