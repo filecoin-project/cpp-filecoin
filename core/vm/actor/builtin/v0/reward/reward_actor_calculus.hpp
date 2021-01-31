@@ -128,8 +128,8 @@ namespace fc::vm::actor::builtin::v0::reward {
     state.this_epoch_reward = computeReward(state.epoch,
                                             prev_reward_theta,
                                             current_reward_theta,
-                                            kSimpleTotal,
-                                            kBaselineTotal);
+                                            simpleTotal(state),
+                                            baselineTotal(state));
   }
 
   /**

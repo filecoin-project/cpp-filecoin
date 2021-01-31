@@ -71,7 +71,7 @@ namespace fc::vm::actor::builtin::v0::reward {
                             const BigInt &simple_total,
                             const BigInt &baseline_total) {
     // Q.0 * Q.128 => Q.128
-    TokenAmount simple_reward = kSimpleTotal * kExpLamSubOne;
+    TokenAmount simple_reward = simple_total * kExpLamSubOne;
     // Q.0 * Q.128 => Q.128
     const BigInt epoch_lam = epoch * kLambda;
 
