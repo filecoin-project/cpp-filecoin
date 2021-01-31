@@ -8,6 +8,8 @@
 
 #include <tuple>
 
+#include "adt/address_key.hpp"
+#include "adt/map.hpp"
 #include "common/outcome.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/randomness/randomness_types.hpp"
@@ -40,14 +42,20 @@ namespace fc::vm::runtime {
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
   using primitives::GasAmount;
+  using primitives::SectorNumber;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::block::BlockHeader;
   using primitives::piece::PieceInfo;
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using version::NetworkVersion;
+  using BatchSealsIn =
+      boost::optional<adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer>>;
+  using BatchSealsOut =
+      std::vector<std::pair<Address, std::vector<SectorNumber>>>;
 
   struct Execution;
 
@@ -188,6 +196,9 @@ namespace fc::vm::runtime {
     /// Verify PoSt
     virtual outcome::result<bool> verifyPoSt(
         const WindowPoStVerifyInfo &info) = 0;
+
+    virtual outcome::result<BatchSealsOut> batchVerifySeals(
+        const BatchSealsIn &batch) = 0;
 
     /// Compute unsealed sector cid
     virtual outcome::result<CID> computeUnsealedSectorCid(
