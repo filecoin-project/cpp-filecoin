@@ -187,31 +187,6 @@ namespace fc::vm::runtime {
     return proofs::Proofs::verifyWindowPoSt(preprocess_info);
   }
 
-  outcome::result<BatchSealsOut> RuntimeImpl::batchVerifySeals(
-      const BatchSealsIn &batch) {
-    BatchSealsOut res;
-    if (batch) {
-      OUTCOME_TRY(batch->visit([&](auto &miner,
-                                   auto &seals) -> outcome::result<void> {
-        OUTCOME_TRY(count, seals.size());
-        std::vector<SectorNumber> successful;
-        successful.reserve(count);
-        std::set<SectorNumber> seen;
-        OUTCOME_TRY(seals.visit([&](auto, auto &seal) -> outcome::result<void> {
-          const auto verified{proofs::Proofs::verifySeal(seal)};
-          if (verified && verified.value()
-              && seen.insert(seal.sector.sector).second) {
-            successful.push_back(seal.sector.sector);
-          }
-          return outcome::success();
-        }));
-        res.emplace_back(miner, std::move(successful));
-        return outcome::success();
-      }));
-    }
-    return res;
-  }
-
   fc::outcome::result<fc::CID> RuntimeImpl::computeUnsealedSectorCid(
       RegisteredSealProof type, const std::vector<PieceInfo> &pieces) {
     OUTCOME_TRY(

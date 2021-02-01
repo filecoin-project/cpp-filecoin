@@ -100,9 +100,6 @@ namespace fc::vm::runtime {
 
     outcome::result<bool> verifyPoSt(const WindowPoStVerifyInfo &info) override;
 
-    outcome::result<BatchSealsOut> batchVerifySeals(
-        const BatchSealsIn &batch) override;
-
     outcome::result<CID> computeUnsealedSectorCid(
         RegisteredSealProof type,
         const std::vector<PieceInfo> &pieces) override;
