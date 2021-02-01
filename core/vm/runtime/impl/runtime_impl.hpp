@@ -80,14 +80,14 @@ namespace fc::vm::runtime {
         const override;
 
     /** \copydoc Runtime::getIpfsDatastore() */
-    std::shared_ptr<IpfsDatastore> getIpfsDatastore() override;
+    std::shared_ptr<IpfsDatastore> getIpfsDatastore() const override;
 
     /** \copydoc Runtime::getMessage() */
-    std::reference_wrapper<const UnsignedMessage> getMessage() override;
+    std::reference_wrapper<const UnsignedMessage> getMessage() const override;
 
     outcome::result<void> chargeGas(GasAmount amount) override;
 
-    outcome::result<CID> getCurrentActorState() override;
+    outcome::result<CID> getCurrentActorState() const override;
 
     outcome::result<void> commit(const CID &new_state) override;
 

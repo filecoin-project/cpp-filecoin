@@ -52,10 +52,10 @@ namespace fc::vm::state {
                                       const Actor &actor) = 0;
 
     /// Get actor state
-    virtual outcome::result<Actor> get(const Address &address) = 0;
+    virtual outcome::result<Actor> get(const Address &address) const = 0;
 
     /// Lookup id address from address
-    virtual outcome::result<Address> lookupId(const Address &address) = 0;
+    virtual outcome::result<Address> lookupId(const Address &address) const = 0;
 
     /// Allocate id address and set actor state, does not write to storage
     virtual outcome::result<Address> registerNewAddress(
@@ -67,11 +67,11 @@ namespace fc::vm::state {
     virtual outcome::result<void> revert(const CID &root) = 0;
 
     /// Get store
-    virtual std::shared_ptr<IpfsDatastore> getStore() = 0;
+    virtual std::shared_ptr<IpfsDatastore> getStore() const = 0;
 
     /// Get decoded actor state
     template <typename T>
-    outcome::result<T> state(const Address &address) {
+    outcome::result<T> state(const Address &address) const {
       OUTCOME_TRY(actor, get(address));
       return getStore()->template getCbor<T>(actor.head);
     }

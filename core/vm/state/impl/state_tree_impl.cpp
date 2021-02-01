@@ -27,12 +27,12 @@ namespace fc::vm::state {
     return by_id.set(address_id, actor);
   }
 
-  outcome::result<Actor> StateTreeImpl::get(const Address &address) {
+  outcome::result<Actor> StateTreeImpl::get(const Address &address) const {
     OUTCOME_TRY(address_id, lookupId(address));
     return by_id.get(address_id);
   }
 
-  outcome::result<Address> StateTreeImpl::lookupId(const Address &address) {
+  outcome::result<Address> StateTreeImpl::lookupId(const Address &address) const {
     if (address.isId()) {
       return address;
     }
@@ -67,7 +67,7 @@ namespace fc::vm::state {
     return setRoot(root);
   }
 
-  std::shared_ptr<IpfsDatastore> StateTreeImpl::getStore() {
+  std::shared_ptr<IpfsDatastore> StateTreeImpl::getStore() const {
     return store_;
   }
 

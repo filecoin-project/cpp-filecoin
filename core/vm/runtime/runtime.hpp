@@ -176,19 +176,19 @@ namespace fc::vm::runtime {
     /**
      * @brief Returns IPFS datastore
      */
-    virtual std::shared_ptr<IpfsDatastore> getIpfsDatastore() = 0;
+    virtual std::shared_ptr<IpfsDatastore> getIpfsDatastore() const = 0;
 
     /**
      * Get Message for actor invocation
      * @return message invoking current execution
      */
-    virtual std::reference_wrapper<const UnsignedMessage> getMessage() = 0;
+    virtual std::reference_wrapper<const UnsignedMessage> getMessage() const = 0;
 
     /// Try to charge gas or throw if there is not enoght gas
     virtual outcome::result<void> chargeGas(GasAmount amount) = 0;
 
     /// Get current actor state root CID
-    virtual outcome::result<CID> getCurrentActorState() = 0;
+    virtual outcome::result<CID> getCurrentActorState() const = 0;
 
     /// Update actor state CID
     virtual outcome::result<void> commit(const CID &new_state) = 0;
@@ -275,7 +275,7 @@ namespace fc::vm::runtime {
 
     /// Get decoded current actor state
     template <typename T>
-    outcome::result<T> getCurrentActorStateCbor() {
+    outcome::result<T> getCurrentActorStateCbor() const {
       OUTCOME_TRY(head, getCurrentActorState());
       return getIpfsDatastore()->getCbor<T>(head);
     }
@@ -293,11 +293,11 @@ namespace fc::vm::runtime {
       return outcome::success();
     }
 
-    inline operator std::shared_ptr<IpfsDatastore>() {
+    inline operator std::shared_ptr<IpfsDatastore>() const {
       return getIpfsDatastore();
     }
 
-    inline auto getCurrentBalance() {
+    inline auto getCurrentBalance() const {
       return getBalance(getCurrentReceiver());
     }
 

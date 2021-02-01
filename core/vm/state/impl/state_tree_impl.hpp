@@ -21,9 +21,9 @@ namespace fc::vm::state {
     outcome::result<void> set(const Address &address,
                               const Actor &actor) override;
     /// Get actor state
-    outcome::result<Actor> get(const Address &address) override;
+    outcome::result<Actor> get(const Address &address) const override;
     /// Lookup id address from address
-    outcome::result<Address> lookupId(const Address &address) override;
+    outcome::result<Address> lookupId(const Address &address) const override;
     /// Allocate id address and set actor state, does not write to storage
     outcome::result<Address> registerNewAddress(
         const Address &address) override;
@@ -32,7 +32,7 @@ namespace fc::vm::state {
     /// Revert changes to last flushed state
     outcome::result<void> revert(const CID &root) override;
     /// Get store
-    std::shared_ptr<IpfsDatastore> getStore() override;
+    std::shared_ptr<IpfsDatastore> getStore() const override;
     outcome::result<void> remove(const Address &address);
 
    private:
