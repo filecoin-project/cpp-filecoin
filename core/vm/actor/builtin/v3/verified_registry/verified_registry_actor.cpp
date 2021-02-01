@@ -21,12 +21,10 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
     OUTCOME_TRY(Utils::checkDealSize(params.deal_size));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
-    auto clientCapAssert = [](bool condition) -> outcome::result<void> {
-      if (!condition) {
-        ABORT(VMExitCode::kErrIllegalState);
-      }
-      return outcome::success();
+    auto clientCapAssert = [&runtime](bool condition) -> outcome::result<void> {
+      return runtime.requireState(condition);
     };
+
     OUTCOME_TRY(v0::verified_registry::UseBytes::useBytes(
         runtime, state, client.value(), params.deal_size, clientCapAssert));
     OUTCOME_TRY(runtime.commitState(state));

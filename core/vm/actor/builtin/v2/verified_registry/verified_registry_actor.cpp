@@ -43,8 +43,8 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
         state,
         runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
 
-    const auto result = state.verifiers.remove(verifier.value());
-    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.verifiers.remove(verifier.value()),
+                     VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
