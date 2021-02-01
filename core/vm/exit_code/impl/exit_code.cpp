@@ -35,4 +35,11 @@ namespace fc::vm {
   bool isAbortExitCode(const std::error_code &error) {
     return error.category() == __libp2p::Category<VMAbortExitCode>::get();
   }
+
+  outcome::result<VMExitCode> asExitCode(const std::error_code &error) {
+    if (isVMExitCode(error)) {
+      return outcome::success(VMExitCode{error.value()});
+    }
+    return outcome::failure(error);
+  }
 }  // namespace fc::vm
