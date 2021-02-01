@@ -362,9 +362,9 @@ namespace fc::vm::actor::builtin::v0::storage_power {
         .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_TRUE_1(SubmitPoRepForBulkVerify::call(runtime, seal));
 
-    std::map<Address, std::vector<bool>> verified_result;
-    verified_result[miner_address] = {true};
-    EXPECT_CALL(runtime, verifyBatchSeals(testing::_))
+    runtime::BatchSealsOut verified_result{
+        {miner_address, {verified_sector_number}}};
+    EXPECT_CALL(runtime, batchVerifySeals(testing::_))
         .WillOnce(Return(outcome::success(verified_result)));
     runtime.expectSendM<miner::ConfirmSectorProofsValid>(
         miner_address,

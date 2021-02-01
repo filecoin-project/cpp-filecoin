@@ -53,6 +53,7 @@ namespace fc::vm::runtime {
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
   using primitives::GasAmount;
+  using primitives::SectorNumber;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::block::BlockHeader;
@@ -62,6 +63,10 @@ namespace fc::vm::runtime {
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using version::NetworkVersion;
+  using BatchSealsIn =
+      std::vector<std::pair<Address, std::vector<SealVerifyInfo>>>;
+  using BatchSealsOut =
+      std::vector<std::pair<Address, std::vector<SectorNumber>>>;
 
   struct Execution;
 
@@ -222,9 +227,8 @@ namespace fc::vm::runtime {
     virtual outcome::result<bool> verifyPoSt(
         const WindowPoStVerifyInfo &info) = 0;
 
-    virtual outcome::result<std::map<Address, std::vector<bool>>>
-    verifyBatchSeals(const adt::Map<adt::Array<SealVerifyInfo>,
-                                    adt::AddressKeyer> &seals) = 0;
+    virtual outcome::result<BatchSealsOut> batchVerifySeals(
+        const BatchSealsIn &batch) = 0;
 
     /// Compute unsealed sector cid
     virtual outcome::result<CID> computeUnsealedSectorCid(

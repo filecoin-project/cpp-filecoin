@@ -243,24 +243,22 @@ namespace fc::vm::runtime {
     return proofs::Proofs::verifyWindowPoSt(preprocess_info);
   }
 
-  outcome::result<std::map<Address, std::vector<bool>>>
-  RuntimeImpl::verifyBatchSeals(
-      const adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer> &seals) {
-    std::map<Address, std::vector<bool>> res;
-    OUTCOME_TRY(seals.visit(
-        [&](auto &miner_address, auto &seal_infos) -> outcome::result<void> {
-          OUTCOME_TRY(count, seal_infos.size());
-          std::vector<bool> seal_verified_for_miner(count);
-          OUTCOME_TRY(seal_infos.visit(
-              [&](auto i, auto &seal_info) -> outcome::result<void> {
-                OUTCOME_TRYA(seal_verified_for_miner[i],
-                             proofs::Proofs::verifySeal(seal_info));
-                return outcome::success();
-              }));
-          res[miner_address] = seal_verified_for_miner;
-          return outcome::success();
-        }));
-
+  outcome::result<BatchSealsOut> RuntimeImpl::batchVerifySeals(
+      const BatchSealsIn &batch) {
+    BatchSealsOut res;
+    for (auto &[miner, seals] : batch) {
+      std::vector<SectorNumber> successful;
+      successful.reserve(seals.size());
+      std::set<SectorNumber> seen;
+      for (auto &seal : seals) {
+        auto verified{proofs::Proofs::verifySeal(seal)};
+        if (verified && verified.value()
+            && seen.insert(seal.sector.sector).second) {
+          successful.push_back(seal.sector.sector);
+        }
+      }
+      res.emplace_back(miner, std::move(successful));
+    }
     return res;
   }
 

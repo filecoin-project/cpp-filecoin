@@ -18,103 +18,88 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   using v0::storage_power::kGasOnSubmitVerifySeal;
   using v0::storage_power::kMaxMinerProveCommitsPerEpoch;
 
-  outcome::result<void> processDeferredCronEvents(Runtime &runtime,
-                                                  State &state) {
+  outcome::result<void> processDeferredCronEvents(Runtime &runtime) {
     const auto now{runtime.getCurrentEpoch()};
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(runtime.requireNoError(state.cron_event_queue.hamt.loadRoot(),
+                                       VMExitCode::kErrIllegalState));
+    auto claims{state.claims};
+    OUTCOME_TRY(runtime.requireNoError(claims.hamt.loadRoot(),
+                                       VMExitCode::kErrIllegalState));
+    std::vector<CronEvent> cron_events;
     for (auto epoch = state.first_cron_epoch; epoch <= now; ++epoch) {
-      OUTCOME_TRY(events, state.cron_event_queue.tryGet(epoch));
-      if (events) {
-        OUTCOME_TRY(events->visit([&](auto,
-                                      auto &event) -> outcome::result<void> {
-          // refuse to process proofs for miner with no claim
-          OUTCOME_TRY(has_claim, state.claims.has(event.miner_address));
-          if (!has_claim) {
-            spdlog::warn("skipping batch verifies for unknown miner {}",
-                         encodeToString(event.miner_address));
-            return outcome::success();
-          }
-
-          const auto res{runtime.send(event.miner_address,
-                                      miner::OnDeferredCronEvent::Number,
-                                      MethodParams{event.callback_payload},
-                                      0)};
-          if (!res) {
-            spdlog::warn(
-                "PowerActor.processDeferredCronEvents: error {} \"{}\", epoch "
-                "{}, miner {}, payload {}",
-                res.error(),
-                res.error().message(),
-                now,
-                event.miner_address,
-                common::hex_lower(event.callback_payload));
-
-            OUTCOME_TRY(state.deleteClaim(event.miner_address));
-          }
-          return outcome::success();
-        }));
+      OUTCOME_TRY(events,
+                  runtime.requireNoError(
+                      Multimap::values(state.cron_event_queue, epoch),
+                      VMExitCode::kErrIllegalState));
+      for (auto &event : events) {
+        OUTCOME_TRY(has_claim,
+                    runtime.requireNoError(claims.has(event.miner_address),
+                                           VMExitCode::kErrIllegalState));
+        if (has_claim) {
+          cron_events.push_back(event);
+        }
+      }
+      if (!events.empty()) {
         OUTCOME_TRY(state.cron_event_queue.remove(epoch));
       }
     }
     state.first_cron_epoch = now + 1;
-
-    // Lotus gas conformance
     OUTCOME_TRY(runtime.commitState(state));
-    OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(state.claims.hamt.loadRoot());
-    OUTCOME_TRY(runtime.commitState(state));
-
+    // TODO: can one miner fail several times here?
+    std::vector<Address> failed_miners;
+    for (auto &event : cron_events) {
+      OUTCOME_TRY(code,
+                  asExitCode(runtime.send(event.miner_address,
+                                          miner::OnDeferredCronEvent::Number,
+                                          MethodParams{event.callback_payload},
+                                          0)));
+      if (code != VMExitCode::kOk) {
+        failed_miners.push_back(event.miner_address);
+      }
+    }
+    if (!failed_miners.empty()) {
+      OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
+      for (auto &miner : failed_miners) {
+        OUTCOME_TRY(state.deleteClaim(miner));
+        if (runtime.getNetworkVersion() >= NetworkVersion::kVersion7) {
+          --state.miner_count;
+        }
+      }
+      OUTCOME_TRY(runtime.commitState(state));
+    }
     return outcome::success();
   }
 
-  outcome::result<void> processBatchProofVerifiers(Runtime &runtime,
-                                                   State &state) {
-    if (state.proof_validation_batch.has_value()) {
-      OUTCOME_TRY(
-          verified,
-          runtime.verifyBatchSeals(state.proof_validation_batch.value()));
-      OUTCOME_TRY(miners, state.proof_validation_batch.value().keys());
-      for (const auto &miner : miners) {
-        // refuse to process proofs for miner with no claim
-        OUTCOME_TRY(has_claim, state.claims.has(miner));
-        if (!has_claim) {
-          spdlog::warn("skipping batch verifies for unknown miner {}",
-                       encodeToString(miner));
-          break;
-        }
-
-        const auto seals_verified = verified.find(miner);
-        if (seals_verified == verified.end()) {
-          spdlog::warn("batch verify seals syscall implemented incorrectly");
-          return VMExitCode::kErrNotFound;
-        }
-        std::vector<SectorNumber> successful;
-        OUTCOME_TRY(verifies, state.proof_validation_batch.value().get(miner));
-        OUTCOME_TRY(verifies.visit(
-            [&](auto i, auto &seal_info) -> outcome::result<void> {
-              auto sector{seal_info.sector.sector};
-              if (seals_verified->second.at(i)
-                  && (std::find(successful.begin(), successful.end(), sector)
-                      == successful.end())) {
-                successful.push_back(sector);
-              }
-              return outcome::success();
-            }));
-
-        // The non-fatal exit code is explicitly ignored
-        const auto result = runtime.sendM<miner::ConfirmSectorProofsValid>(
-            miner, {successful}, 0);
-        if (result.has_error() && isFatal(result.error())) {
-          return result.error();
-        }
-      }
-
-      state.proof_validation_batch = boost::none;
-
-      // Lotus gas conformance
-      OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
-      OUTCOME_TRY(runtime.commitState(state));
+  outcome::result<void> processBatchProofVerifiers(Runtime &runtime) {
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    runtime::BatchSealsIn batch;
+    auto _batch{state.proof_validation_batch};
+    state.proof_validation_batch.reset();
+    if (_batch) {
+      OUTCOME_TRY(runtime.requireNoError(_batch->hamt.loadRoot(),
+                                         VMExitCode::kErrIllegalState));
+      auto claims{state.claims};
+      OUTCOME_TRY(runtime.requireNoError(claims.hamt.loadRoot(),
+                                         VMExitCode::kErrIllegalState));
+      OUTCOME_TRY(runtime.requireNoError(
+          _batch->visit(
+              [&](auto &miner, auto &_seals) -> outcome::result<void> {
+                OUTCOME_TRY(has_claim, claims.has(miner));
+                if (has_claim) {
+                  OUTCOME_TRY(seals, _seals.values());
+                  batch.emplace_back(miner, std::move(seals));
+                }
+                return outcome::success();
+              }),
+          VMExitCode::kErrIllegalState));
     }
-
+    OUTCOME_TRY(runtime.commitState(state));
+    OUTCOME_TRY(verified, runtime.batchVerifySeals(batch));
+    for (const auto &[miner, successful] : verified) {
+      OUTCOME_TRY(asExitCode(runtime.sendM<miner::ConfirmSectorProofsValid>(
+          miner, {successful}, 0)));
+    }
     return outcome::success();
   }
 
@@ -186,13 +171,9 @@ namespace fc::vm::actor::builtin::v2::storage_power {
 
   ACTOR_METHOD_IMPL(OnEpochTickEnd) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kCronAddress));
+    OUTCOME_TRY(processBatchProofVerifiers(runtime));
+    OUTCOME_TRY(processDeferredCronEvents(runtime));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-
-    OUTCOME_TRY(processBatchProofVerifiers(runtime, state));
-    OUTCOME_TRY(processDeferredCronEvents(runtime, state));
-
-    // Lotus gas conformance
-    OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
 
     const auto [raw_power, qa_power] = state.getCurrentTotalPower();
     state.this_epoch_pledge = state.total_pledge;
