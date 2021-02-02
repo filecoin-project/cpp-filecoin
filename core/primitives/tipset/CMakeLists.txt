@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_library(tipset
+    load.cpp
     tipset.cpp
     tipset_key.cpp
     )

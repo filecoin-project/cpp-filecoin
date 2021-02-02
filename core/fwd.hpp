@@ -97,7 +97,11 @@ namespace fc {
 
     namespace tipset {
       struct Tipset;
+      struct TsLoad;
+
       using TipsetCPtr = std::shared_ptr<const Tipset>;
+      using TsLoadPtr = std::shared_ptr<TsLoad>;
+      using TsWeak = std::weak_ptr<const Tipset>;
     }  // namespace tipset
   }    // namespace primitives
 

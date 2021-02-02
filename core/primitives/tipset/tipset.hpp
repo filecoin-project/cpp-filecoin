@@ -58,6 +58,7 @@ namespace fc::primitives::tipset {
 
   struct Tipset;
   using TipsetCPtr = std::shared_ptr<const Tipset>;
+  using TsWeak = std::weak_ptr<const Tipset>;
 
   struct Tipset {
     /// Blocks from network, they may come in improper order
