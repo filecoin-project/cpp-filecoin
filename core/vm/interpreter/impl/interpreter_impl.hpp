@@ -46,6 +46,8 @@ namespace fc::vm::interpreter {
         : interpreter{std::move(interpreter)}, store{std::move(store)} {}
     outcome::result<Result> interpret(const IpldPtr &store,
                                       const TipsetCPtr &tipset) const override;
+    outcome::result<boost::optional<Result>> tryGetCached(
+        const TipsetKey &tsk) const override;
 
    private:
     std::shared_ptr<Interpreter> interpreter;

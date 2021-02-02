@@ -21,7 +21,7 @@ namespace fc::blockchain::production {
                                               std::shared_ptr<Ipld> ipld,
                                               BlockTemplate t) {
     OUTCOME_TRY(parent_tipset, ts_load->load(t.parents));
-    OUTCOME_TRY(vm_result, interpreter.interpret(ipld, parent_tipset));
+    OUTCOME_TRY(vm_result, interpreter.getCached(parent_tipset->key));
     BlockWithMessages b;
     MsgMeta msg_meta;
     ipld->load(msg_meta);

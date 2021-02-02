@@ -96,7 +96,7 @@ namespace fc::sync {
           OUTCOME_EXCEPT(ts, ts_load->load(key.cids()));
           blockchain::weight::WeightCalculatorImpl weighter{ipld};
           OUTCOME_EXCEPT(weight, weighter.calculateWeight(*ts));
-          OUTCOME_EXCEPT(vm, interpreter->interpret(ipld, ts));
+          OUTCOME_EXCEPT(vm, interpreter->getCached(ts->key));
           for (auto &_child : _children->second) {
             OUTCOME_EXCEPT(child, ts_load->load(_child.cids()));
             auto child_valid{child->getParentStateRoot() == vm.state_root

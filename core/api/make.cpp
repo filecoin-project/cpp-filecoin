@@ -181,7 +181,7 @@ namespace fc::api {
       }
       TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
       if (interpret) {
-        OUTCOME_TRY(result, interpreter->interpret(ipld, tipset));
+        OUTCOME_TRY(result, interpreter->getCached(tipset->key));
         context.state_tree = {ipld, result.state_root};
         context.interpreted = result;
       }
@@ -194,7 +194,7 @@ namespace fc::api {
       while (tipset->height() > static_cast<uint64_t>(lookback)) {
         OUTCOME_TRYA(tipset, tipset->loadParent(*ipld));
       }
-      OUTCOME_TRY(result, interpreter->interpret(ipld, tipset));
+      OUTCOME_TRY(result, interpreter->getCached(tipset->key));
       return TipsetContext{
           std::move(tipset), {ipld, std::move(result.state_root)}, {}};
     };

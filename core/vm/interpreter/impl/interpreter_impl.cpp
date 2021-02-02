@@ -25,6 +25,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
       return "InterpreterError: Tipset marked as bad";
     case E::kChainInconsistency:
       return "InterpreterError: chain inconsistency";
+    case E::kNotCached:
+      return "InterpreterError::kNotCached";
     default:
       break;
   }
@@ -48,6 +50,19 @@ namespace fc::vm::interpreter {
   using primitives::tipset::MessageVisitor;
   using runtime::Env;
   using runtime::MessageReceipt;
+
+  outcome::result<boost::optional<Result>> Interpreter::tryGetCached(
+      const TipsetKey &tsk) const {
+    return boost::none;
+  }
+
+  outcome::result<Result> Interpreter::getCached(const TipsetKey &tsk) const {
+    OUTCOME_TRY(cached, tryGetCached(tsk));
+    if (!cached) {
+      return InterpreterError::kNotCached;
+    }
+    return *cached;
+  }
 
   InterpreterImpl::InterpreterImpl(
       std::shared_ptr<RuntimeRandomness> randomness,
@@ -189,13 +204,6 @@ namespace fc::vm::interpreter {
 
   }  // namespace
 
-  outcome::result<boost::optional<Result>> getSavedResult(
-      const PersistentBufferMap &store,
-      const primitives::tipset::TipsetCPtr &tipset) {
-    common::Buffer key(tipset->key.hash());
-    return getSavedResult(store, key);
-  }
-
   outcome::result<Result> CachedInterpreter::interpret(
       const IpldPtr &ipld, const TipsetCPtr &tipset) const {
     common::Buffer key(tipset->key.hash());
@@ -212,5 +220,10 @@ namespace fc::vm::interpreter {
       OUTCOME_TRY(store->put(key, raw));
     }
     return result;
+  }
+
+  outcome::result<boost::optional<Result>> CachedInterpreter::tryGetCached(
+      const TipsetKey &tsk) const {
+    return getSavedResult(*store, Buffer{tsk.hash()});
   }
 }  // namespace fc::vm::interpreter
