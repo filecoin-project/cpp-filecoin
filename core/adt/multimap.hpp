@@ -36,6 +36,18 @@ namespace fc::adt {
       }
       return outcome::success();
     }
+
+    template <typename Value, typename Keyer, size_t bit_width>
+    static outcome::result<std::vector<Value>> values(
+        Map<Array<Value>, Keyer, bit_width> &map,
+        const typename Keyer::Key &key) {
+      OUTCOME_TRY(array, map.tryGet(key));
+      std::vector<Value> values;
+      if (array) {
+        OUTCOME_TRYA(values, array->values());
+      }
+      return values;
+    }
   };
 }  // namespace fc::adt
 

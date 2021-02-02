@@ -20,11 +20,23 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using primitives::sector::RegisteredSealProof;
   using primitives::sector::SealVerifyInfo;
   using runtime::Runtime;
-  using v0::storage_power::Claim;
   using v0::storage_power::CronEvent;
   using ChainEpochKeyer = adt::VarintKeyer;
+
+  struct Claim {
+    /** Miner's proof type used to determine minimum miner size */
+    RegisteredSealProof seal_proof_type;
+
+    /** Sum of raw byte power for a miner's sectors */
+    StoragePower raw_power;
+
+    /** Sum of quality adjusted power for a miner's sectors */
+    StoragePower qa_power;
+  };
+  CBOR_TUPLE(Claim, seal_proof_type, raw_power, qa_power)
 
   struct State {
     static State empty(const IpldPtr &ipld);

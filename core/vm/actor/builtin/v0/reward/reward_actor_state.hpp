@@ -7,6 +7,7 @@
 
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor_calculus.hpp"
 #include "vm/version.hpp"
 
 namespace fc::vm::actor::builtin::v0::reward {
@@ -123,4 +124,11 @@ namespace fc::vm::actor::builtin::v0::reward {
              epoch,
              total_mined)
 
+  inline auto simpleTotal(const State &state) {
+    return kSimpleTotal;
+  }
+
+  inline auto baselineTotal(const State &state) {
+    return kBaselineTotal;
+  }
 }  // namespace fc::vm::actor::builtin::v0::reward

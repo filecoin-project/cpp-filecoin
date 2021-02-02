@@ -15,7 +15,8 @@ namespace fc::vm::actor::builtin::v0::cron {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     for (const auto &entry : state.entries) {
-      OUTCOME_TRY(runtime.send(entry.to_addr, entry.method_num, {}, BigInt(0)));
+      OUTCOME_TRY(asExitCode(
+          runtime.send(entry.to_addr, entry.method_num, {}, BigInt(0))));
     }
     return outcome::success();
   }
