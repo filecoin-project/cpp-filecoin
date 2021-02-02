@@ -35,10 +35,10 @@ namespace fc::primitives::tipset {
   };
 
   struct TsLoadCache : TsLoad {
-    TsLoadCache(TsLoadPtr loader, size_t cache_size);
+    TsLoadCache(TsLoadPtr ts_load, size_t cache_size);
     outcome::result<TipsetCPtr> load(const TipsetKey &key) override;
     outcome::result<TipsetCPtr> load(std::vector<BlockHeader> blocks) override;
-    TsLoadPtr loader;
+    TsLoadPtr ts_load;
     boost::compute::detail::lru_cache<TipsetKey, TipsetCPtr> cache;
   };
 }  // namespace fc::primitives::tipset

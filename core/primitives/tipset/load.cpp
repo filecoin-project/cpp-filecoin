@@ -44,21 +44,21 @@ namespace fc::primitives::tipset {
     return TsLoad::load(std::move(blocks));
   }
 
-  TsLoadCache::TsLoadCache(TsLoadPtr loader, size_t cache_size)
-      : loader{loader}, cache{cache_size} {}
+  TsLoadCache::TsLoadCache(TsLoadPtr ts_load, size_t cache_size)
+      : ts_load{ts_load}, cache{cache_size} {}
 
   outcome::result<TipsetCPtr> TsLoadCache::load(const TipsetKey &key) {
     if (auto ts{cache.get(key)}) {
       return *ts;
     }
-    OUTCOME_TRY(ts, loader->load(key));
+    OUTCOME_TRY(ts, ts_load->load(key));
     cache.insert(key, ts);
     return std::move(ts);
   }
 
   outcome::result<TipsetCPtr> TsLoadCache::load(
       std::vector<BlockHeader> blocks) {
-    OUTCOME_TRY(ts, loader->load(blocks));
+    OUTCOME_TRY(ts, ts_load->load(blocks));
     cache.insert(ts->key, ts);
     return std::move(ts);
   }
