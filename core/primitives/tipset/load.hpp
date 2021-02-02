@@ -22,8 +22,8 @@ namespace fc::primitives::tipset {
     virtual ~TsLoad() = default;
     virtual outcome::result<TipsetCPtr> load(const TipsetKey &key) = 0;
     virtual outcome::result<TipsetCPtr> load(std::vector<BlockHeader> blocks);
-    outcome::result<TipsetCPtr> load(TsWeak &weak, const TipsetKey &key);
-    outcome::result<TipsetCPtr> load(TsLazy &lazy);
+    outcome::result<TipsetCPtr> loadw(TsWeak &weak, const TipsetKey &key);
+    outcome::result<TipsetCPtr> loadw(TsLazy &lazy);
   };
   using TsLoadPtr = std::shared_ptr<TsLoad>;
 

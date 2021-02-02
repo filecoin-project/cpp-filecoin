@@ -6,7 +6,8 @@
 #include "primitives/tipset/load.hpp"
 
 namespace fc::primitives::tipset {
-  outcome::result<TipsetCPtr> TsLoad::load(TsWeak &weak, const TipsetKey &key) {
+  outcome::result<TipsetCPtr> TsLoad::loadw(TsWeak &weak,
+                                            const TipsetKey &key) {
     if (auto ts{weak.lock()}) {
       return ts;
     }
@@ -16,8 +17,8 @@ namespace fc::primitives::tipset {
     return std::move(ts);
   }
 
-  outcome::result<TipsetCPtr> TsLoad::load(TsLazy &lazy) {
-    return load(lazy.weak, lazy.key);
+  outcome::result<TipsetCPtr> TsLoad::loadw(TsLazy &lazy) {
+    return loadw(lazy.weak, lazy.key);
   }
 
   outcome::result<TipsetCPtr> TsLoad::load(std::vector<BlockHeader> blocks) {

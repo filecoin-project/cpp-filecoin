@@ -202,7 +202,7 @@ namespace fc::api {
       }
       if (lookback < tipset->epoch()) {
         OUTCOME_TRY(it, find(ts_branch, lookback));
-        OUTCOME_TRYA(tipset, ts_load->load(it.second->second));
+        OUTCOME_TRYA(tipset, ts_load->loadw(it.second->second));
       }
       OUTCOME_TRY(result, interpreter->getCached(tipset->key));
       return TipsetContext{
@@ -314,7 +314,7 @@ namespace fc::api {
                                        -> outcome::result<TipsetCPtr> {
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
           OUTCOME_TRY(it, find(ts_branch, height));
-          return ts_load->load(it.second->second);
+          return ts_load->loadw(it.second->second);
         }},
         .ChainHead = {[=]() { return chain_store->heaviestTipset(); }},
         .ChainNotify = {[=]() {

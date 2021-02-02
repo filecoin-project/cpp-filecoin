@@ -11,10 +11,12 @@ namespace fc::primitives::tipset::chain {
   TsBranchPtr TsBranch::make(TsChain chain, TsBranchPtr parent) {
     auto branch{std::make_shared<TsBranch>()};
     auto bottom{chain.begin()};
-    assert(!parent || *parent->chain.find(bottom->first) == *bottom);
     branch->chain = std::move(chain);
-    branch->parent = std::move(parent);
-    branch->parent->children.push_back(branch);
+    if (parent) {
+      assert(*parent->chain.find(bottom->first) == *bottom);
+      branch->parent = std::move(parent);
+      branch->parent->children.push_back(branch);
+    }
     return branch;
   }
 
@@ -96,7 +98,7 @@ namespace fc::primitives::tipset::chain {
     OUTCOME_TRY(it, find(branch, height));
     // magic number from lotus
     for (auto i{0}; i < 20; ++i) {
-      OUTCOME_TRY(ts, ts_load->load(it.second->second));
+      OUTCOME_TRY(ts, ts_load->loadw(it.second->second));
       auto &beacons{ts->blks[0].beacon_entries};
       if (!beacons.empty()) {
         return *beacons.rbegin();

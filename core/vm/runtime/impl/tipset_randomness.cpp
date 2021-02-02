@@ -17,7 +17,7 @@ namespace fc::vm::runtime {
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
     OUTCOME_TRY(it, find(ts_branch, std::max<ChainEpoch>(0, epoch)));
-    OUTCOME_TRY(ts, ts_load->load(it.second->second));
+    OUTCOME_TRY(ts, ts_load->loadw(it.second->second));
     return crypto::randomness::drawRandomness(
         ts->getMinTicketBlock().ticket->bytes, tag, epoch, seed);
   }
