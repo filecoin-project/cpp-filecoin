@@ -137,7 +137,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     const Address winner = Address::makeFromId(1000);
     const TokenAmount gas_reward{10};
     EXPECT_OUTCOME_ERROR(
-        VMAbortExitCode{VMExitCode::kErrIllegalState},
+        ABORT_CAST(VMExitCode::kErrIllegalState),
         AwardBlockReward::call(runtime, {winner, 0, gas_reward, 1}));
   }
 
@@ -151,7 +151,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     const Address winner = Address::makeFromId(1000);
     const TokenAmount penalty{-1};
     EXPECT_OUTCOME_ERROR(
-        VMAbortExitCode{VMExitCode::kErrIllegalArgument},
+        ABORT_CAST(VMExitCode::kErrIllegalArgument),
         AwardBlockReward::call(runtime, {winner, penalty, 0, 1}));
   }
 
@@ -165,7 +165,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     const Address winner = Address::makeFromId(1000);
     const TokenAmount gas_reward{-1};
     EXPECT_OUTCOME_ERROR(
-        VMAbortExitCode{VMExitCode::kErrIllegalArgument},
+        ABORT_CAST(VMExitCode::kErrIllegalArgument),
         AwardBlockReward::call(runtime, {winner, 0, gas_reward, 1}));
   }
 
@@ -177,10 +177,12 @@ namespace fc::vm::actor::builtin::v0::reward {
   TEST_F(RewardActorV0Test, RejectZeroWinCount) {
     constructRewardActor<Constructor>();
     const Address winner = Address::makeFromId(1000);
+    const TokenAmount gas_reward = 10;
     const int64_t win_count{0};
+    setCurrentBalance(gas_reward + 1);
     EXPECT_OUTCOME_ERROR(
-        VMAbortExitCode{VMExitCode::kErrIllegalArgument},
-        AwardBlockReward::call(runtime, {winner, 0, 0, win_count}));
+        ABORT_CAST(VMExitCode::kErrIllegalArgument),
+        AwardBlockReward::call(runtime, {winner, 0, gas_reward, win_count}));
   }
 
   /**

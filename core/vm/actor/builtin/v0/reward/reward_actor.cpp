@@ -25,11 +25,11 @@ namespace fc::vm::actor::builtin::v0::reward {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
     OUTCOME_TRY(runtime.validateArgument(params.penalty >= 0));
     OUTCOME_TRY(runtime.validateArgument(params.gas_reward >= 0));
-    OUTCOME_TRY(runtime.validateArgument(params.win_count > 0));
     OUTCOME_TRY(balance, runtime.getCurrentBalance());
     if (balance < params.gas_reward) {
       ABORT(VMExitCode::kErrIllegalState);
     }
+    OUTCOME_TRY(runtime.validateArgument(params.win_count > 0));
     return std::move(balance);
   }
 
@@ -51,7 +51,8 @@ namespace fc::vm::actor::builtin::v0::reward {
 
   ACTOR_METHOD_IMPL(AwardBlockReward) {
     OUTCOME_TRY(balance, validateParams(runtime, params));
-    OUTCOME_TRY(miner, runtime.resolveAddress(params.miner));
+    CHANGE_ERROR_A(
+        miner, runtime.resolveAddress(params.miner), VMExitCode::kErrNotFound);
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(
         reward,

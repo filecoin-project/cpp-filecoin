@@ -24,7 +24,8 @@ namespace fc::vm::actor::builtin::v2::reward {
   ACTOR_METHOD_IMPL(AwardBlockReward) {
     OUTCOME_TRY(balance,
                 v0::reward::AwardBlockReward::validateParams(runtime, params));
-    OUTCOME_TRY(miner, runtime.resolveAddress(params.miner));
+    CHANGE_ERROR_A(
+        miner, runtime.resolveAddress(params.miner), VMExitCode::kErrNotFound);
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(reward,
                 v0::reward::AwardBlockReward::calculateReward(
