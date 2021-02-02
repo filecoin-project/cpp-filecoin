@@ -6,7 +6,7 @@
 #include "storage/mpool/mpool.hpp"
 #include "common/logger.hpp"
 #include "const.hpp"
-#include "primitives/tipset/load.hpp"
+#include "primitives/tipset/chain.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
@@ -20,11 +20,13 @@ namespace fc::storage::mpool {
 
   std::shared_ptr<Mpool> Mpool::create(
       TsLoadPtr ts_load,
+      TsBranchPtr ts_main,
       IpldPtr ipld,
       std::shared_ptr<Interpreter> interpreter,
       std::shared_ptr<ChainStore> chain_store) {
     auto mpool{std::make_shared<Mpool>()};
     mpool->ts_load = std::move(ts_load);
+    mpool->ts_main = std::move(ts_main);
     mpool->ipld = std::move(ipld);
     mpool->interpreter = std::move(interpreter);
     mpool->head_sub = chain_store->subscribeHeadChanges([=](auto &change) {
@@ -67,7 +69,7 @@ namespace fc::storage::mpool {
       msg.gas_fee_cap = kMinimumBaseFee + 1;
       msg.gas_premium = 1;
       OUTCOME_TRY(interpeted, interpreter->getCached(head->key));
-      auto randomness = std::make_shared<TipsetRandomness>(ipld);
+      auto randomness = std::make_shared<TipsetRandomness>(ts_load, ts_main);
       auto env{
           std::make_shared<vm::runtime::Env>(nullptr, randomness, ipld, head)};
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(

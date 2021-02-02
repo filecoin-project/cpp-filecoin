@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_VM_RUNTIME_IMPL_TIPSET_RANDOMNESS_HPP
 #define CPP_FILECOIN_CORE_VM_RUNTIME_IMPL_TIPSET_RANDOMNESS_HPP
 
-#include "primitives/tipset/tipset.hpp"
+#include "fwd.hpp"
 #include "vm/runtime/runtime_randomness.hpp"
 
 namespace fc::vm::runtime {
@@ -14,7 +14,7 @@ namespace fc::vm::runtime {
 
   class TipsetRandomness : public RuntimeRandomness {
    public:
-    explicit TipsetRandomness(std::shared_ptr<Ipld> ipld);
+    TipsetRandomness(TsLoadPtr ts_load, TsBranchPtr ts_branch);
 
     outcome::result<Randomness> getRandomnessFromTickets(
         const TipsetCPtr &tipset,
@@ -29,7 +29,8 @@ namespace fc::vm::runtime {
         gsl::span<const uint8_t> seed) const override;
 
    private:
-    std::shared_ptr<Ipld> ipld_;
+    TsLoadPtr ts_load;
+    TsBranchPtr ts_branch;
   };
 
 }  // namespace fc::vm::runtime

@@ -294,16 +294,18 @@ namespace fc::api {
                                              auto epoch,
                                              auto &entropy)
                                              -> outcome::result<Randomness> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          return context.tipset->beaconRandomness(*ipld, tag, epoch, entropy);
+          OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+          return TipsetRandomness{ts_load, ts_branch}.getRandomnessFromBeacon(
+              {}, tag, epoch, entropy);
         }},
         .ChainGetRandomnessFromTickets = {[=](auto &tipset_key,
                                               auto tag,
                                               auto epoch,
                                               auto &entropy)
                                               -> outcome::result<Randomness> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          return context.tipset->ticketRandomness(*ipld, tag, epoch, entropy);
+          OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+          return TipsetRandomness{ts_load, ts_branch}.getRandomnessFromTickets(
+              {}, tag, epoch, entropy);
         }},
         .ChainGetTipSet = {[=](auto &tipset_key) {
           return chain_store->loadTipset(tipset_key);
@@ -489,7 +491,9 @@ namespace fc::api {
         .StateCall = {[=](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          auto randomness = std::make_shared<TipsetRandomness>(ipld);
+          OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+          auto randomness =
+              std::make_shared<TipsetRandomness>(ts_load, ts_branch);
           auto env = std::make_shared<Env>(std::make_shared<InvokerImpl>(),
                                            randomness,
                                            ipld,

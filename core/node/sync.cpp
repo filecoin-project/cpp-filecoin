@@ -105,8 +105,9 @@ namespace fc::sync {
                                     == vm.message_receipts
                              && child->getParentWeight() == weight};
             if (child_valid) {
-              auto randomness =
-                  std::make_shared<vm::runtime::TipsetRandomness>(ipld);
+              // TODO: sync chains
+              auto randomness = std::make_shared<vm::runtime::TipsetRandomness>(
+                  ts_load, nullptr);
               auto _vm{interpreter->interpret(randomness, ipld, child)};
               auto _weight{weighter.calculateWeight(*child)};
               if (!_vm || !_weight) {
