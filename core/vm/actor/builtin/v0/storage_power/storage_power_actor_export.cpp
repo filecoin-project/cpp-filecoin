@@ -19,18 +19,14 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   outcome::result<void> processDeferredCronEvents(Runtime &runtime) {
     const auto now{runtime.getCurrentEpoch()};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(runtime.requireNoError(state.cron_event_queue.hamt.loadRoot(),
-                                       VMExitCode::kErrIllegalState));
+    REQUIRE_NO_ERROR(state.cron_event_queue.hamt.loadRoot(),
+                                       VMExitCode::kErrIllegalState);
     std::vector<CronEvent> cron_events;
     for (auto epoch = state.first_cron_epoch; epoch <= now; ++epoch) {
-      OUTCOME_TRY(events,
-                  runtime.requireNoError(
-                      Multimap::values(state.cron_event_queue, epoch),
-                      VMExitCode::kErrIllegalState));
+      REQUIRE_NO_ERROR_A(events, Multimap::values(state.cron_event_queue, epoch), VMExitCode::kErrIllegalState);
       cron_events.insert(cron_events.end(), events.begin(), events.end());
       if (!events.empty()) {
-        OUTCOME_TRY(runtime.requireNoError(state.cron_event_queue.remove(epoch),
-                                           VMExitCode::kErrIllegalState));
+        REQUIRE_NO_ERROR(state.cron_event_queue.remove(epoch), VMExitCode::kErrIllegalState);
       }
     }
     state.first_cron_epoch = now + 1;
@@ -53,7 +49,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
         OUTCOME_TRY(claim, state.claims.tryGet(miner));
         if (claim) {
           OUTCOME_TRY(
-              state.addToClaim(miner, -claim->raw_power, -claim->qa_power));
+              state.addToClaim(runtime, miner, -claim->raw_power, -claim->qa_power));
         }
       }
       OUTCOME_TRY(runtime.commitState(state));
@@ -67,14 +63,14 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     auto _batch{state.proof_validation_batch};
     state.proof_validation_batch.reset();
     if (_batch) {
-      OUTCOME_TRY(runtime.requireNoError(
+      REQUIRE_NO_ERROR(
           _batch->visit(
               [&](auto &miner, auto &_seals) -> outcome::result<void> {
                 OUTCOME_TRY(seals, _seals.values());
                 batch.emplace_back(miner, std::move(seals));
                 return outcome::success();
               }),
-          VMExitCode::kErrIllegalState));
+          VMExitCode::kErrIllegalState);
     }
     OUTCOME_TRY(runtime.commitState(state));
     OUTCOME_TRY(verified, runtime.batchVerifySeals(batch));

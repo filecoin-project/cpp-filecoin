@@ -21,21 +21,14 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   outcome::result<void> processDeferredCronEvents(Runtime &runtime) {
     const auto now{runtime.getCurrentEpoch()};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(runtime.requireNoError(state.cron_event_queue.hamt.loadRoot(),
-                                       VMExitCode::kErrIllegalState));
+    REQUIRE_NO_ERROR(state.cron_event_queue.hamt.loadRoot(), VMExitCode::kErrIllegalState);
     auto claims{state.claims};
-    OUTCOME_TRY(runtime.requireNoError(claims.hamt.loadRoot(),
-                                       VMExitCode::kErrIllegalState));
+    REQUIRE_NO_ERROR(claims.hamt.loadRoot(), VMExitCode::kErrIllegalState);
     std::vector<CronEvent> cron_events;
     for (auto epoch = state.first_cron_epoch; epoch <= now; ++epoch) {
-      OUTCOME_TRY(events,
-                  runtime.requireNoError(
-                      Multimap::values(state.cron_event_queue, epoch),
-                      VMExitCode::kErrIllegalState));
+      REQUIRE_NO_ERROR_A(events, Multimap::values(state.cron_event_queue, epoch), VMExitCode::kErrIllegalState);
       for (auto &event : events) {
-        OUTCOME_TRY(has_claim,
-                    runtime.requireNoError(claims.has(event.miner_address),
-                                           VMExitCode::kErrIllegalState));
+        REQUIRE_NO_ERROR_A(has_claim, claims.has(event.miner_address), VMExitCode::kErrIllegalState);
         if (has_claim) {
           cron_events.push_back(event);
         }
@@ -61,7 +54,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     if (!failed_miners.empty()) {
       OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
       for (auto &miner : failed_miners) {
-        OUTCOME_TRY(state.deleteClaim(miner));
+        OUTCOME_TRY(state.deleteClaim(runtime, miner));
         if (runtime.getNetworkVersion() >= NetworkVersion::kVersion7) {
           --state.miner_count;
         }
@@ -77,12 +70,10 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     auto _batch{state.proof_validation_batch};
     state.proof_validation_batch.reset();
     if (_batch) {
-      OUTCOME_TRY(runtime.requireNoError(_batch->hamt.loadRoot(),
-                                         VMExitCode::kErrIllegalState));
+      REQUIRE_NO_ERROR(_batch->hamt.loadRoot(), VMExitCode::kErrIllegalState);
       auto claims{state.claims};
-      OUTCOME_TRY(runtime.requireNoError(claims.hamt.loadRoot(),
-                                         VMExitCode::kErrIllegalState));
-      OUTCOME_TRY(runtime.requireNoError(
+      REQUIRE_NO_ERROR(claims.hamt.loadRoot(), VMExitCode::kErrIllegalState);
+      REQUIRE_NO_ERROR(
           _batch->visit(
               [&](auto &miner, auto &_seals) -> outcome::result<void> {
                 OUTCOME_TRY(has_claim, claims.has(miner));
@@ -92,7 +83,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
                 }
                 return outcome::success();
               }),
-          VMExitCode::kErrIllegalState));
+          VMExitCode::kErrIllegalState);
     }
     OUTCOME_TRY(runtime.commitState(state));
     OUTCOME_TRY(verified, runtime.batchVerifySeals(batch));
@@ -107,13 +98,10 @@ namespace fc::vm::actor::builtin::v2::storage_power {
                                               State &state,
                                               const Address &miner) {
     auto claims{state.claims};
-    OUTCOME_TRY(runtime.requireNoError(claims.hamt.loadRoot(),
-                                       VMExitCode::kErrIllegalState));
-    OUTCOME_TRY(has,
-                runtime.requireNoError(claims.has(miner),
-                                       VMExitCode::kErrIllegalState));
+    REQUIRE_NO_ERROR(claims.hamt.loadRoot(), VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(has, claims.has(miner), VMExitCode::kErrIllegalState);
     if (!has) {
-      return runtime.abort(VMExitCode::kErrForbidden);
+      ABORT(VMExitCode::kErrForbidden);
     }
     return outcome::success();
   }
@@ -195,7 +183,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(
         validateMinerHasClaim(runtime, state, runtime.getImmediateCaller()));
-    OUTCOME_TRY(state.addPledgeTotal(params));
+    OUTCOME_TRY(state.addPledgeTotal(runtime, params));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
