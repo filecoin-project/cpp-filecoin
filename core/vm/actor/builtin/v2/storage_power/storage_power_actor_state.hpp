@@ -45,6 +45,9 @@ namespace fc::vm::actor::builtin::v2::storage_power {
                                      const Address &miner,
                                      const StoragePower &raw,
                                      const StoragePower &qa);
+    outcome::result<void> setClaim(const Runtime &runtime,
+                                   const Address &address,
+                                   const Claim &claim);
     outcome::result<void> deleteClaim(const Runtime &runtime,
                                       const Address &miner);
     outcome::result<void> addPledgeTotal(const Runtime &runtime,

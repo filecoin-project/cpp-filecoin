@@ -226,7 +226,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     callerCodeIdIs(kStorageMinerCodeCid);
 
     UpdateClaimedPower::Params params{};
-    EXPECT_OUTCOME_ERROR(VMExitCode::kErrNotFound,
+    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrNotFound),
                          UpdateClaimedPower::call(runtime, params));
   }
 

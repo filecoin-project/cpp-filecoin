@@ -63,6 +63,9 @@ namespace fc::vm::actor::builtin::v0::storage_power {
                                      const Address &miner,
                                      const StoragePower &raw,
                                      const StoragePower &qa);
+    outcome::result<void> setClaim(const Runtime &runtime,
+                                   const Address &address,
+                                   const Claim &claim);
     outcome::result<void> addPledgeTotal(const Runtime &runtime,
                                          const TokenAmount &amount);
     outcome::result<void> appendCronEvent(const ChainEpoch &epoch,

@@ -21,20 +21,26 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   outcome::result<void> processDeferredCronEvents(Runtime &runtime) {
     const auto now{runtime.getCurrentEpoch()};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    REQUIRE_NO_ERROR(state.cron_event_queue.hamt.loadRoot(), VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.cron_event_queue.hamt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
     auto claims{state.claims};
     REQUIRE_NO_ERROR(claims.hamt.loadRoot(), VMExitCode::kErrIllegalState);
     std::vector<CronEvent> cron_events;
     for (auto epoch = state.first_cron_epoch; epoch <= now; ++epoch) {
-      REQUIRE_NO_ERROR_A(events, Multimap::values(state.cron_event_queue, epoch), VMExitCode::kErrIllegalState);
+      REQUIRE_NO_ERROR_A(events,
+                         Multimap::values(state.cron_event_queue, epoch),
+                         VMExitCode::kErrIllegalState);
       for (auto &event : events) {
-        REQUIRE_NO_ERROR_A(has_claim, claims.has(event.miner_address), VMExitCode::kErrIllegalState);
+        REQUIRE_NO_ERROR_A(has_claim,
+                           claims.has(event.miner_address),
+                           VMExitCode::kErrIllegalState);
         if (has_claim) {
           cron_events.push_back(event);
         }
       }
       if (!events.empty()) {
-        OUTCOME_TRY(state.cron_event_queue.remove(epoch));
+        REQUIRE_NO_ERROR(state.cron_event_queue.remove(epoch),
+                         VMExitCode::kErrIllegalState);
       }
     }
     state.first_cron_epoch = now + 1;
@@ -67,7 +73,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   outcome::result<void> processBatchProofVerifiers(Runtime &runtime) {
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     runtime::BatchSealsIn batch;
-    auto _batch{state.proof_validation_batch};
+    const auto _batch{state.proof_validation_batch};
     state.proof_validation_batch.reset();
     if (_batch) {
       REQUIRE_NO_ERROR(_batch->hamt.loadRoot(), VMExitCode::kErrIllegalState);
@@ -76,7 +82,8 @@ namespace fc::vm::actor::builtin::v2::storage_power {
       REQUIRE_NO_ERROR(
           _batch->visit(
               [&](auto &miner, auto &_seals) -> outcome::result<void> {
-                OUTCOME_TRY(has_claim, claims.has(miner));
+                REQUIRE_NO_ERROR_A(
+                    has_claim, claims.has(miner), VMExitCode::kErrIllegalState);
                 if (has_claim) {
                   OUTCOME_TRY(seals, _seals.values());
                   batch.emplace_back(miner, std::move(seals));
@@ -86,7 +93,9 @@ namespace fc::vm::actor::builtin::v2::storage_power {
           VMExitCode::kErrIllegalState);
     }
     OUTCOME_TRY(runtime.commitState(state));
-    OUTCOME_TRY(verified, runtime.batchVerifySeals(batch));
+    REQUIRE_NO_ERROR_A(verified,
+                       runtime.batchVerifySeals(batch),
+                       VMExitCode::kErrIllegalState);
     for (const auto &[miner, successful] : verified) {
       OUTCOME_TRY(asExitCode(runtime.sendM<miner::ConfirmSectorProofsValid>(
           miner, {successful}, 0)));
@@ -114,21 +123,25 @@ namespace fc::vm::actor::builtin::v2::storage_power {
 
   ACTOR_METHOD_IMPL(CreateMiner) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
-    OUTCOME_TRY(miner_params,
-                encodeActorParams(miner::Construct::Params{
-                    .owner = params.owner,
-                    .worker = params.worker,
-                    .control_addresses = {},
-                    .seal_proof_type = params.seal_proof_type,
-                    .peer_id = params.peer_id,
-                    .multiaddresses = params.multiaddresses}));
-    OUTCOME_TRY(addresses_created,
-                runtime.sendM<init::Exec>(kInitAddress,
-                                          {kStorageMinerCodeCid, miner_params},
-                                          runtime.getValueReceived()));
+    REQUIRE_NO_ERROR_A(miner_params,
+                       encodeActorParams(miner::Construct::Params{
+                           .owner = params.owner,
+                           .worker = params.worker,
+                           .control_addresses = {},
+                           .seal_proof_type = params.seal_proof_type,
+                           .peer_id = params.peer_id,
+                           .multiaddresses = params.multiaddresses}),
+                       VMExitCode::kErrIllegalState);
+    REQUIRE_SUCCESS_A(
+        addresses_created,
+        runtime.sendM<init::Exec>(kInitAddress,
+                                  {kStorageMinerCodeCid, miner_params},
+                                  runtime.getValueReceived()));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(state.claims.set(addresses_created.id_address,
-                                 {params.seal_proof_type, 0, 0}));
+    REQUIRE_NO_ERROR(state.setClaim(runtime,
+                                    addresses_created.id_address,
+                                    {params.seal_proof_type, 0, 0}),
+                     VMExitCode::kErrIllegalState);
     ++state.miner_count;
     OUTCOME_TRY(runtime.commitState(state));
     return Result{addresses_created.id_address,
@@ -139,10 +152,11 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
     const Address miner_address = runtime.getImmediateCaller();
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(state.addToClaim(runtime,
-                                 miner_address,
-                                 params.raw_byte_delta,
-                                 params.quality_adjusted_delta));
+    REQUIRE_NO_ERROR(state.addToClaim(runtime,
+                                      miner_address,
+                                      params.raw_byte_delta,
+                                      params.quality_adjusted_delta),
+                     VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -151,10 +165,11 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
     OUTCOME_TRY(runtime.validateArgument(params.event_epoch >= 0));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(
+    REQUIRE_NO_ERROR(
         state.appendCronEvent(params.event_epoch,
                               {.miner_address = runtime.getImmediateCaller(),
-                               .callback_payload = params.payload}));
+                               .callback_payload = params.payload}),
+        VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -173,7 +188,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     state.updateSmoothedEstimate(1);
 
     OUTCOME_TRY(runtime.commitState(state));
-    OUTCOME_TRY(runtime.sendM<reward::UpdateNetworkKPI>(
+    REQUIRE_SUCCESS(runtime.sendM<reward::UpdateNetworkKPI>(
         kRewardAddress, state.this_epoch_raw_power, 0));
     return outcome::success();
   }
@@ -198,15 +213,18 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     if (!state.proof_validation_batch.has_value()) {
       state.proof_validation_batch.emplace(runtime.getIpfsDatastore());
     }
-    OUTCOME_TRY(found, state.proof_validation_batch->tryGet(miner));
+    REQUIRE_NO_ERROR_A(found,
+                       state.proof_validation_batch->tryGet(miner),
+                       VMExitCode::kErrIllegalState);
     if (found.has_value()) {
       OUTCOME_TRY(size, found.value().size());
       if (size >= kMaxMinerProveCommitsPerEpoch) {
-        return kErrTooManyProveCommits;
+        ABORT(kErrTooManyProveCommits);
       }
     }
-    OUTCOME_TRY(
-        Multimap::append(state.proof_validation_batch.value(), miner, params));
+    REQUIRE_NO_ERROR(
+        Multimap::append(state.proof_validation_batch.value(), miner, params),
+        VMExitCode::kErrIllegalState);
 
     // Lotus gas conformance
     OUTCOME_TRY(state.proof_validation_batch->hamt.flush());

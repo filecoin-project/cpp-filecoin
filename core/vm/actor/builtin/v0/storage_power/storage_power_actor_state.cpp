@@ -78,8 +78,17 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     VM_ASSERT(claim.raw_power >= 0);
     VM_ASSERT(claim.qa_power >= 0);
     VM_ASSERT(num_miners_meeting_min_power >= 0);
-    OUTCOME_TRY(claims.set(miner, claim));
 
+    return setClaim(runtime, miner, claim);
+  }
+
+  outcome::result<void> State::setClaim(const Runtime &runtime,
+                                        const Address &address,
+                                        const Claim &claim) {
+    VM_ASSERT(claim.raw_power >= 0);
+    VM_ASSERT(claim.qa_power >= 0);
+
+    OUTCOME_TRY(claims.set(address, claim));
     return outcome::success();
   }
 
