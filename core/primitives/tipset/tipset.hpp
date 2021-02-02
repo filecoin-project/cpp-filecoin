@@ -74,30 +74,11 @@ namespace fc::primitives::tipset {
     static outcome::result<TipsetCPtr> create(
         std::vector<block::BlockHeader> blocks);
 
-    static outcome::result<TipsetCPtr> load(Ipld &ipld,
-                                            const std::vector<CID> &cids);
-
-    outcome::result<TipsetCPtr> loadParent(Ipld &ipld) const;
-
-    outcome::result<BeaconEntry> latestBeacon(Ipld &ipld) const;
-
     outcome::result<void> visitMessages(
         MessageVisitor message_visitor,
         const MessageVisitor::Visitor &visitor) const;
 
     outcome::result<BigInt> nextBaseFee(IpldPtr ipld) const;
-
-    outcome::result<Randomness> beaconRandomness(
-        Ipld &ipld,
-        DomainSeparationTag tag,
-        ChainEpoch round,
-        gsl::span<const uint8_t> entropy) const;
-
-    outcome::result<Randomness> ticketRandomness(
-        Ipld &ipld,
-        DomainSeparationTag tag,
-        ChainEpoch round,
-        gsl::span<const uint8_t> entropy) const;
 
     /**
      * @return key made of parents
