@@ -8,6 +8,7 @@
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "node/blocksync.hpp"
 #include "node/sync.hpp"
+#include "primitives/tipset/load.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
@@ -21,9 +22,10 @@ namespace fc::sync {
   using primitives::tipset::Tipset;
 
   TsSync::TsSync(std::shared_ptr<Host> host,
+                 TsLoadPtr ts_load,
                  IpldPtr ipld,
                  std::shared_ptr<Interpreter> interpreter)
-      : MOVE(host), MOVE(ipld), MOVE(interpreter) {}
+      : MOVE(host), MOVE(ts_load), MOVE(ipld), MOVE(interpreter) {}
 
   void TsSync::sync(const TipsetKey &key,
                     const PeerId &peer,
@@ -38,7 +40,7 @@ namespace fc::sync {
 
   void TsSync::walkDown(TipsetKey key, const PeerId &peer) {
     while (true) {
-      auto _ts{Tipset::load(*ipld, key.cids())};
+      auto _ts{ts_load->load(key.cids())};
       if (_ts) {
         auto &ts{_ts.value()};
         auto have_messages{true};
@@ -91,12 +93,12 @@ namespace fc::sync {
       auto _children{children.find(key)};
       if (_children != children.end()) {
         if (_valid) {
-          OUTCOME_EXCEPT(ts, Tipset::load(*ipld, key.cids()));
+          OUTCOME_EXCEPT(ts, ts_load->load(key.cids()));
           blockchain::weight::WeightCalculatorImpl weighter{ipld};
           OUTCOME_EXCEPT(weight, weighter.calculateWeight(*ts));
           OUTCOME_EXCEPT(vm, interpreter->interpret(ipld, ts));
           for (auto &_child : _children->second) {
-            OUTCOME_EXCEPT(child, Tipset::load(*ipld, _child.cids()));
+            OUTCOME_EXCEPT(child, ts_load->load(_child.cids()));
             auto child_valid{child->getParentStateRoot() == vm.state_root
                              && child->getParentMessageReceipts()
                                     == vm.message_receipts

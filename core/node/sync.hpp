@@ -22,6 +22,7 @@ namespace fc::sync {
     using Callback = std::function<void(const TipsetKey &, bool)>;
 
     TsSync(std::shared_ptr<Host> host,
+           TsLoadPtr ts_load,
            IpldPtr ipld,
            std::shared_ptr<Interpreter> interpreter);
     void sync(const TipsetKey &key, const PeerId &peer, Callback callback);
@@ -29,6 +30,7 @@ namespace fc::sync {
     void walkUp(TipsetKey key);
 
     std::shared_ptr<Host> host;
+    TsLoadPtr ts_load;
     IpldPtr ipld;
     std::shared_ptr<Interpreter> interpreter;
     std::unordered_map<TipsetKey, std::vector<Callback>> callbacks;

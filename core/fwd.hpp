@@ -150,6 +150,8 @@ namespace fc {
 }  // namespace fc
 
 namespace fc {
+  using primitives::tipset::TsLoadPtr;
+
   using Ipld = storage::ipfs::IpfsDatastore;
   using IpldPtr = std::shared_ptr<Ipld>;
 }  // namespace fc

@@ -12,6 +12,7 @@
 #include "const.hpp"
 #include "drand/beaconizer.hpp"
 #include "node/pubsub.hpp"
+#include "primitives/tipset/load.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
@@ -160,6 +161,7 @@ namespace fc::api {
 
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<WeightCalculator> weight_calculator,
+               TsLoadPtr ts_load,
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<Mpool> mpool,
                std::shared_ptr<Interpreter> interpreter,
@@ -368,7 +370,7 @@ namespace fc::api {
           OUTCOME_TRY(miner_state, context.minerState(t.miner));
           OUTCOME_TRY(block,
                       blockchain::production::generate(
-                          *interpreter, ipld, std::move(t)));
+                          *interpreter, ts_load, ipld, std::move(t)));
 
           OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
           OUTCOME_TRY(minfo, miner_state.info.get());
@@ -578,7 +580,7 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           auto result{msg_waiter->results.find(cid)};
           if (result != msg_waiter->results.end()) {
-            OUTCOME_TRY(ts, Tipset::load(*ipld, result->second.second.cids()));
+            OUTCOME_TRY(ts, ts_load->load(result->second.second.cids()));
             if (context.tipset->height() <= ts->height()) {
               return result->second.first;
             }
