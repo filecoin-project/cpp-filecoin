@@ -16,9 +16,21 @@
   OUTCOME_TRY(requireNoError((expr), (err_code)))
 
 /**
+ * In addition to REQUIRE_NO_ERROR allows to create res variable
+ */
+#define REQUIRE_NO_ERROR_A(res, expr, err_code) \
+  OUTCOME_TRY((res), requireNoErrorAssign((expr), (err_code)))
+
+/**
  * Aborts execution if res is not success
  */
 #define REQUIRE_SUCCESS(expr) OUTCOME_TRY(requireSuccess((expr)))
+
+/**
+ * In addition to REQUIRE_SUCCESS allows to create res variable
+ */
+#define REQUIRE_SUCCESS_A(res, expr) \
+  OUTCOME_TRY((res), requireSuccessAssign((expr)))
 
 /**
  * Returns another error if res has error and the error is not fatal or
@@ -28,11 +40,23 @@
   OUTCOME_TRY(changeError((expr), (err_code)))
 
 /**
+ * In addition to CHANGE_ERROR allows to create res variable
+ */
+#define CHANGE_ERROR_A(res, expr, err_code) \
+  OUTCOME_TRY((res), changeErrorAssign((expr), (err_code)))
+
+/**
  * Aborts execution with error if res has error and the error is not fatal or
  * abort
  */
 #define CHANGE_ERROR_ABORT(expr, err_code) \
   OUTCOME_TRY(changeErrorAbort((expr), (err_code)))
+
+/**
+ * In addition to CHANGE_ERROR_ABORT allows to create res variable
+ */
+#define CHANGE_ERROR_ABORT_A(res, expr, err_code) \
+  OUTCOME_TRY((res), changeErrorAbortAssign((expr), (err_code)))
 
 /**
  * Return VMExitCode as VMAbortExitCode for special handling
@@ -144,6 +168,31 @@ namespace fc::vm {
   }
 
   /**
+   * Aborts execution if res has error
+   * @tparam T - result type
+   * @param res - result to check
+   * @param default_error - default VMExitCode to abort with.
+   * @return If res has no error, res returned. Otherwise if res.error()
+   * is VMAbortExitCode or VMFatal, the res.error() returned, else
+   * if res.error()is VMExitCode, the aborted res.error()returned, else
+   * aborted default_error returned
+   */
+  template <typename T>
+  outcome::result<T> requireNoErrorAssign(outcome::result<T> &&res,
+                                          const VMExitCode &default_error) {
+    if (res.has_error()) {
+      if (isFatal(res.error()) || isAbortExitCode(res.error())) {
+        return res.error();
+      }
+      if (isVMExitCode(res.error())) {
+        ABORT(static_cast<VMExitCode>(res.error().value()));
+      }
+      ABORT(default_error);
+    }
+    return std::move(res);
+  }
+
+  /**
    * Aborts execution if res is not success
    * @tparam T - result type
    * @param res - result to check
@@ -156,6 +205,21 @@ namespace fc::vm {
       ABORT(res.error().value());
     }
     return outcome::success();
+  }
+
+  /**
+   * Aborts execution if res is not success and returns it to assign
+   * @tparam T - result type
+   * @param res - result to check
+   * @return If res has no error, res returned. Otherwise VMAbortExitCode
+   * returned
+   */
+  template <typename T>
+  outcome::result<T> requireSuccessAssign(outcome::result<T> &&res) {
+    if (res.has_error()) {
+      ABORT(res.error().value());
+    }
+    return std::move(res);
   }
 
   /**
@@ -174,9 +238,30 @@ namespace fc::vm {
       if (isFatal(res.error()) || isAbortExitCode(res.error())) {
         return res.error();
       }
-      return error;
+      return outcome::failure(error);
     }
     return outcome::success();
+  }
+
+  /**
+   * Returns abort exit code if res has error
+   * @tparam T - result type
+   * @param res - result to check
+   * @param error - VMExitCode to to return instead.
+   * @return If res has no error, res returned. Otherwise if res.error()
+   * is VMAbortExitCode or VMFatal, the res.error() returned, else error
+   * returned
+   */
+  template <typename T>
+  outcome::result<T> changeErrorAssign(outcome::result<T> &&res,
+                                       const VMExitCode &error) {
+    if (res.has_error()) {
+      if (isFatal(res.error()) || isAbortExitCode(res.error())) {
+        return res.error();
+      }
+      return outcome::failure(error);
+    }
+    return std::move(res);
   }
 
   /**
@@ -198,6 +283,27 @@ namespace fc::vm {
       ABORT(error);
     }
     return outcome::success();
+  }
+
+  /**
+   * Returns abort exit code if res has error
+   * @tparam T - result type
+   * @param res - result to check
+   * @param error - VMExitCode to abort with.
+   * @return If res has no error, res returned. Otherwise if res.error()
+   * is VMAbortExitCode or VMFatal, the res.error() returned, else error
+   * returned
+   */
+  template <typename T>
+  outcome::result<T> changeErrorAbortAssign(outcome::result<T> &&res,
+                                            const VMExitCode &error) {
+    if (res.has_error()) {
+      if (isFatal(res.error()) || isAbortExitCode(res.error())) {
+        return res.error();
+      }
+      ABORT(error);
+    }
+    return std::move(res);
   }
 
 }  // namespace fc::vm

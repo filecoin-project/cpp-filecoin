@@ -26,13 +26,14 @@ namespace fc::vm::actor::builtin::v0::multisig {
       const Runtime &runtime, const std::vector<Address> &signers) {
     std::vector<Address> resolved_signers;
     for (const auto &signer : signers) {
-      const auto resolved = runtime.resolveAddress(signer);
-      REQUIRE_NO_ERROR(resolved, VMExitCode::kErrIllegalState);
-      const auto duplicate = std::find(
-          resolved_signers.begin(), resolved_signers.end(), resolved.value());
+      REQUIRE_NO_ERROR_A(resolved,
+                         runtime.resolveAddress(signer),
+                         VMExitCode::kErrIllegalState);
+      const auto duplicate =
+          std::find(resolved_signers.begin(), resolved_signers.end(), resolved);
       OUTCOME_TRY(
           runtime.validateArgument(duplicate == resolved_signers.end()));
-      resolved_signers.push_back(resolved.value());
+      resolved_signers.push_back(resolved);
     }
     return std::move(resolved_signers);
   }
@@ -112,8 +113,8 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     Transaction transaction{
         params.to, params.value, params.method, params.params, {}};
-    const auto result = state.pending_transactions.set(tx_id, transaction);
-    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.pending_transactions.set(tx_id, transaction),
+                     VMExitCode::kErrIllegalState);
 
     return std::make_tuple(tx_id, transaction);
   }
@@ -190,22 +191,21 @@ namespace fc::vm::actor::builtin::v0::multisig {
   outcome::result<void> Cancel::checkTransaction(Runtime &runtime,
                                                  const Cancel::Params &params,
                                                  const State &state) {
-    const auto transaction = state.getPendingTransaction(params.tx_id);
-    REQUIRE_NO_ERROR(transaction, VMExitCode::kErrNotFound);
+    REQUIRE_NO_ERROR_A(transaction,
+                       state.getPendingTransaction(params.tx_id),
+                       VMExitCode::kErrNotFound);
 
     const auto caller = runtime.getImmediateCaller();
-    const auto proposer = !transaction.value().approved.empty()
-                              ? transaction.value().approved[0]
-                              : Address{};
+    const auto proposer =
+        !transaction.approved.empty() ? transaction.approved[0] : Address{};
     if (proposer != caller) {
       ABORT(VMExitCode::kErrForbidden);
     }
 
-    const auto hash = transaction.value().hash(runtime);
-    REQUIRE_NO_ERROR(hash, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(
+        hash, transaction.hash(runtime), VMExitCode::kErrIllegalState);
 
-    if (!params.proposal_hash.empty()
-        && (params.proposal_hash != hash.value())) {
+    if (!params.proposal_hash.empty() && (params.proposal_hash != hash)) {
       ABORT(VMExitCode::kErrIllegalState);
     }
     return outcome::success();
@@ -213,8 +213,8 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   outcome::result<void> Cancel::removeTransaction(const Cancel::Params &params,
                                                   State &state) {
-    const auto result = state.pending_transactions.remove(params.tx_id);
-    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.pending_transactions.remove(params.tx_id),
+                     VMExitCode::kErrIllegalState);
     return outcome::success();
   }
 

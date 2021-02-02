@@ -22,9 +22,10 @@ namespace fc::vm::actor::builtin::v0::market {
   namespace Utils = utils::market;
 
   outcome::result<State> loadState(Runtime &runtime) {
-    const auto state = runtime.getCurrentActorStateCbor<State>();
-    REQUIRE_NO_ERROR(state, VMExitCode::kErrIllegalState);
-    return state;
+    REQUIRE_NO_ERROR_A(state,
+                       runtime.getCurrentActorStateCbor<State>(),
+                       VMExitCode::kErrIllegalState);
+    return std::move(state);
   }
 
   ACTOR_METHOD_IMPL(Construct) {
@@ -83,13 +84,14 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(approved_callers));
 
     OUTCOME_TRY(state, loadState(runtime));
-    const auto min = state.locked_table.get(nominal);
-    REQUIRE_NO_ERROR(min, VMExitCode::kErrIllegalState);
-    const auto extracted =
-        state.escrow_table.subtractWithMin(nominal, params.amount, min.value());
-    REQUIRE_NO_ERROR(extracted, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(
+        min, state.locked_table.get(nominal), VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(
+        extracted,
+        state.escrow_table.subtractWithMin(nominal, params.amount, min),
+        VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
-    REQUIRE_SUCCESS(runtime.sendFunds(recipient, extracted.value()));
+    REQUIRE_SUCCESS(runtime.sendFunds(recipient, extracted));
     return outcome::success();
   }
 
@@ -98,15 +100,15 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateArgument(!params.deals.empty()));
 
     const auto provider_raw{params.deals[0].proposal.provider};
-    const auto provider = runtime.resolveAddress(provider_raw);
-    CHANGE_ERROR_ABORT(provider, VMExitCode::kErrNotFound);
+    CHANGE_ERROR_ABORT_A(provider,
+                         runtime.resolveAddress(provider_raw),
+                         VMExitCode::kErrNotFound);
 
-    const auto code_id = runtime.getActorCodeID(provider.value());
+    const auto code_id = runtime.getActorCodeID(provider);
     OUTCOME_TRY(runtime.validateArgument(!code_id.has_error()));
     OUTCOME_TRY(
         runtime.validateArgument(code_id.value() == kStorageMinerCodeCid));
-    OUTCOME_TRY(addresses,
-                requestMinerControlAddress(runtime, provider.value()));
+    OUTCOME_TRY(addresses, requestMinerControlAddress(runtime, provider));
     if (addresses.worker != runtime.getImmediateCaller()) {
       ABORT(VMExitCode::kErrForbidden);
     }
@@ -143,14 +145,15 @@ namespace fc::vm::actor::builtin::v0::market {
                                       network_qa_power));
 
       auto deal{client_deals.proposal};
-      OUTCOME_TRY(runtime.validateArgument(deal.provider == provider.value()
+      OUTCOME_TRY(runtime.validateArgument(deal.provider == provider
                                            || deal.provider == provider_raw));
 
-      const auto client = runtime.resolveAddress(deal.client);
-      CHANGE_ERROR_ABORT(client, VMExitCode::kErrNotFound);
-      deal.provider = provider.value();
-      resolved_addresses[deal.client] = client.value();
-      deal.client = client.value();
+      CHANGE_ERROR_ABORT_A(client,
+                           runtime.resolveAddress(deal.client),
+                           VMExitCode::kErrNotFound);
+      deal.provider = provider;
+      resolved_addresses[deal.client] = client;
+      deal.client = client;
 
       const auto lock =
           Utils::lockClientAndProviderBalances(runtime, state, deal);
@@ -160,9 +163,10 @@ namespace fc::vm::actor::builtin::v0::market {
 
       const auto deal_id = state.next_deal++;
 
-      const auto has = state.pending_proposals.has(deal.cid());
-      REQUIRE_NO_ERROR(has, VMExitCode::kErrIllegalState);
-      OUTCOME_TRY(runtime.validateArgument(!has.value()));
+      REQUIRE_NO_ERROR_A(has,
+                         state.pending_proposals.has(deal.cid()),
+                         VMExitCode::kErrIllegalState);
+      OUTCOME_TRY(runtime.validateArgument(!has));
 
       REQUIRE_NO_ERROR(state.pending_proposals.set(deal.cid(), deal),
                        VMExitCode::kErrIllegalState);
@@ -172,15 +176,16 @@ namespace fc::vm::actor::builtin::v0::market {
 
       // We should randomize the first epoch for when the deal will be processed
       // so an attacker isn't able to schedule too many deals for the same tick.
-      const auto process_epoch = Utils::genRandNextEpoch(runtime, deal);
-      REQUIRE_NO_ERROR(process_epoch, VMExitCode::kErrIllegalState);
+      REQUIRE_NO_ERROR_A(process_epoch,
+                         Utils::genRandNextEpoch(runtime, deal),
+                         VMExitCode::kErrIllegalState);
 
-      OUTCOME_TRY(set, state.deals_by_epoch.tryGet(process_epoch.value()));
+      OUTCOME_TRY(set, state.deals_by_epoch.tryGet(process_epoch));
       if (!set) {
         set = State::DealSet{IpldPtr{runtime}};
       }
       OUTCOME_TRY(set->set(deal_id, {}));
-      REQUIRE_NO_ERROR(state.deals_by_epoch.set(process_epoch.value(), *set),
+      REQUIRE_NO_ERROR(state.deals_by_epoch.set(process_epoch, *set),
                        VMExitCode::kErrIllegalState);
       deals.emplace_back(deal_id);
     }
@@ -207,10 +212,11 @@ namespace fc::vm::actor::builtin::v0::market {
   ACTOR_METHOD_IMPL(VerifyDealsForActivation) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
     OUTCOME_TRY(state, loadState(runtime));
-    const auto result = Utils::validateDealsForActivation(
-        runtime, state, params.deals, params.sector_expiry);
-    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
-    const auto &[deal_weight, verified_weight] = result.value();
+    REQUIRE_NO_ERROR_A(result,
+                       Utils::validateDealsForActivation(
+                           runtime, state, params.deals, params.sector_expiry),
+                       VMExitCode::kErrIllegalState);
+    const auto &[deal_weight, verified_weight] = result;
 
     return Result{deal_weight, verified_weight};
   }
@@ -224,14 +230,15 @@ namespace fc::vm::actor::builtin::v0::market {
 
     const auto miner = runtime.getImmediateCaller();
     for (const auto deal_id : params.deals) {
-      const auto has_deal_state = state.states.has(deal_id);
-      REQUIRE_NO_ERROR(has_deal_state, VMExitCode::kErrIllegalState);
-      OUTCOME_TRY(runtime.validateArgument(!has_deal_state.value()));
+      REQUIRE_NO_ERROR_A(has_deal_state,
+                         state.states.has(deal_id),
+                         VMExitCode::kErrIllegalState);
+      OUTCOME_TRY(runtime.validateArgument(!has_deal_state));
 
-      const auto proposal = state.proposals.get(deal_id);
-      REQUIRE_NO_ERROR(proposal, VMExitCode::kErrIllegalState);
+      REQUIRE_NO_ERROR_A(
+          proposal, state.proposals.get(deal_id), VMExitCode::kErrIllegalState);
 
-      const auto pending = state.pending_proposals.has(proposal.value().cid());
+      const auto pending = state.pending_proposals.has(proposal.cid());
       if (!pending.value()) {
         ABORT(VMExitCode::kErrIllegalState);
       }
@@ -253,17 +260,18 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(state, loadState(runtime));
 
     for (const auto deal_id : params.deals) {
-      const auto maybe_deal = state.proposals.tryGet(deal_id);
-      REQUIRE_NO_ERROR(maybe_deal, VMExitCode::kErrIllegalState);
+      REQUIRE_NO_ERROR_A(maybe_deal,
+                         state.proposals.tryGet(deal_id),
+                         VMExitCode::kErrIllegalState);
 
       // Deal could have terminated and hence deleted before the sector is
       // terminated. We should simply continue instead of aborting execution
       // here if a deal is not found.
-      if (!maybe_deal.value().has_value()) {
+      if (!maybe_deal.has_value()) {
         continue;
       }
 
-      const auto &deal = maybe_deal.value().value();
+      const auto &deal = maybe_deal.value();
 
       VM_ASSERT(deal.provider == runtime.getImmediateCaller());
 
@@ -272,11 +280,11 @@ namespace fc::vm::actor::builtin::v0::market {
         continue;
       }
 
-      auto maybe_deal_state = state.states.tryGet(deal_id);
-      REQUIRE_NO_ERROR(maybe_deal_state, VMExitCode::kErrIllegalState);
-      OUTCOME_TRY(
-          runtime.validateArgument(maybe_deal_state.value().has_value()));
-      auto &deal_state = maybe_deal_state.value().value();
+      REQUIRE_NO_ERROR_A(maybe_deal_state,
+                         state.states.tryGet(deal_id),
+                         VMExitCode::kErrIllegalState);
+      OUTCOME_TRY(runtime.validateArgument(maybe_deal_state.has_value()));
+      auto &deal_state = maybe_deal_state.value();
 
       // if a deal is already slashed, we don't need to do anything here
       if (deal_state.slash_epoch != kChainEpochUndefined) {
@@ -304,10 +312,10 @@ namespace fc::vm::actor::builtin::v0::market {
 
     std::vector<PieceInfo> pieces;
     for (const auto deal_id : params.deals) {
-      const auto deal = state.proposals.get(deal_id);
-      REQUIRE_NO_ERROR(deal, VMExitCode::kErrIllegalState);
-      pieces.emplace_back(PieceInfo{.size = deal.value().piece_size,
-                                    .cid = deal.value().piece_cid});
+      REQUIRE_NO_ERROR_A(
+          deal, state.proposals.get(deal_id), VMExitCode::kErrIllegalState);
+      pieces.emplace_back(
+          PieceInfo{.size = deal.piece_size, .cid = deal.piece_cid});
     }
     const auto result =
         runtime.computeUnsealedSectorCid(params.sector_type, pieces);
@@ -340,16 +348,15 @@ namespace fc::vm::actor::builtin::v0::market {
       OUTCOME_TRY(set, state.deals_by_epoch.tryGet(epoch));
       if (set.has_value()) {
         auto visitor{[&](auto deal_id, auto) -> outcome::result<void> {
-          const auto deal_res = state.proposals.get(deal_id);
-          REQUIRE_NO_ERROR(deal_res, VMExitCode::kErrIllegalState);
+          REQUIRE_NO_ERROR_A(
+              deal, state.proposals.get(deal_id), VMExitCode::kErrIllegalState);
 
-          const auto &deal = deal_res.value();
-
-          auto maybe_deal_state = state.states.tryGet(deal_id);
-          REQUIRE_NO_ERROR(maybe_deal_state, VMExitCode::kErrIllegalState);
+          REQUIRE_NO_ERROR_A(maybe_deal_state,
+                             state.states.tryGet(deal_id),
+                             VMExitCode::kErrIllegalState);
           // deal has been published but not activated yet -> terminate it as it
           // has timed out
-          if (!maybe_deal_state.value().has_value()) {
+          if (!maybe_deal_state.has_value()) {
             VM_ASSERT(now >= deal.start_epoch);
             OUTCOME_TRY(slashed,
                         Utils::processDealInitTimedOut(runtime, state, deal));
@@ -363,7 +370,7 @@ namespace fc::vm::actor::builtin::v0::market {
                 VMExitCode::kErrIllegalState);
           }
 
-          auto &deal_state = maybe_deal_state.value().value();
+          auto &deal_state = maybe_deal_state.value();
 
           // if this is the first cron tick for the deal, it should be in the
           // pending state.

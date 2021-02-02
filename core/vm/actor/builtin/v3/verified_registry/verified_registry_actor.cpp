@@ -15,8 +15,9 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
   ACTOR_METHOD_IMPL(UseBytes) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kStorageMarketAddress));
 
-    const auto client = runtime.resolveAddress(params.address);
-    REQUIRE_NO_ERROR(client, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(client,
+                       runtime.resolveAddress(params.address),
+                       VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(Utils::checkDealSize(params.deal_size));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
@@ -26,7 +27,7 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
     };
 
     OUTCOME_TRY(v0::verified_registry::UseBytes::useBytes(
-        runtime, state, client.value(), params.deal_size, clientCapAssert));
+        runtime, state, client, params.deal_size, clientCapAssert));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }

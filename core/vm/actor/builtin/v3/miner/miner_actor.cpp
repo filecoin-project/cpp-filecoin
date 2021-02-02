@@ -36,10 +36,11 @@ namespace fc::vm::actor::builtin::v3::miner {
         runtime.validateArgument(resolved_code.value() == kAccountCodeCid));
 
     if (!address.isBls()) {
-      const auto pubkey_addres = runtime.sendM<account::PubkeyAddress>(resolved.value(), {}, 0);
+      const auto pubkey_addres =
+          runtime.sendM<account::PubkeyAddress>(resolved.value(), {}, 0);
       OUTCOME_TRY(runtime.validateArgument(pubkey_addres.value().isBls()));
     }
-    
+
     return std::move(resolved.value());
   }
 
@@ -95,11 +96,12 @@ namespace fc::vm::actor::builtin::v3::miner {
     OUTCOME_TRY(state.vesting_funds.set(vesting_funds));
 
     const auto current_epoch = runtime.getCurrentEpoch();
-    const auto offset =
-        v0::miner::Construct::assignProvingPeriodOffset(runtime, current_epoch);
-    REQUIRE_NO_ERROR(offset, VMExitCode::kErrSerialization);
-    const auto period_start = v2::miner::Construct::currentProvingPeriodStart(
-        current_epoch, offset.value());
+    REQUIRE_NO_ERROR_A(
+        offset,
+        v0::miner::Construct::assignProvingPeriodOffset(runtime, current_epoch),
+        VMExitCode::kErrSerialization);
+    const auto period_start =
+        v2::miner::Construct::currentProvingPeriodStart(current_epoch, offset);
     OUTCOME_TRY(runtime.requireState(period_start <= current_epoch));
     state.proving_period_start = period_start;
 
@@ -109,14 +111,15 @@ namespace fc::vm::actor::builtin::v3::miner {
     OUTCOME_TRY(runtime.requireState(deadline_index < kWPoStPeriodDeadlines));
     state.current_deadline = deadline_index;
 
-    const auto miner_info = MinerInfo::make(owner,
-                                            worker,
-                                            control_addresses,
-                                            params.peer_id,
-                                            params.multiaddresses,
-                                            params.seal_proof_type);
-    REQUIRE_NO_ERROR(miner_info, VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(state.info.set(miner_info.value()));
+    REQUIRE_NO_ERROR_A(miner_info,
+                       MinerInfo::make(owner,
+                                       worker,
+                                       control_addresses,
+                                       params.peer_id,
+                                       params.multiaddresses,
+                                       params.seal_proof_type),
+                       VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(state.info.set(miner_info));
 
     // construct with empty already cid stored in ipld to avoid gas charge
     state.sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid,

@@ -18,13 +18,15 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
 
-    const auto to = resolveAccount(runtime, params.to, kAccountCodeCid);
-    REQUIRE_NO_ERROR(to, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(to,
+                       resolveAccount(runtime, params.to, kAccountCodeCid),
+                       VMExitCode::kErrIllegalState);
 
-    const auto from = resolveAccount(runtime, params.from, kAccountCodeCid);
-    REQUIRE_NO_ERROR(from, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(from,
+                       resolveAccount(runtime, params.from, kAccountCodeCid),
+                       VMExitCode::kErrIllegalState);
 
-    State state{from.value(), to.value(), 0, 0, 0, {}};
+    State state{from, to, 0, 0, 0, {}};
     IpldPtr {
       runtime
     }

@@ -18,9 +18,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   outcome::result<Address> MultisigUtilsImplV0::getResolvedAddress(
       Runtime &runtime, const Address &address) const {
-    const auto resolved_address = runtime.resolveAddress(address);
-    REQUIRE_NO_ERROR(resolved_address, VMExitCode::kErrIllegalState);
-    return std::move(resolved_address.value());
+    REQUIRE_NO_ERROR_A(resolved,
+                       runtime.resolveAddress(address),
+                       VMExitCode::kErrIllegalState);
+    return std::move(resolved);
   }
 
   BigInt MultisigUtilsImplV0::amountLocked(
@@ -72,8 +73,8 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
-    const auto result = state.pending_transactions.set(tx_id, transaction);
-    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.pending_transactions.set(tx_id, transaction),
+                     VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(runtime.commitState(state));
 
@@ -112,8 +113,8 @@ namespace fc::vm::actor::builtin::v0::multisig {
       // Lotus gas conformance
       OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
 
-      const auto result = state.pending_transactions.remove(tx_id);
-      REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+      REQUIRE_NO_ERROR(state.pending_transactions.remove(tx_id),
+                       VMExitCode::kErrIllegalState);
       OUTCOME_TRY(runtime.commitState(state));
     }
 

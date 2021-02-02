@@ -267,13 +267,12 @@ namespace fc::vm::actor::builtin::utils::market {
                                          const TokenAmount &amount) {
     VM_ASSERT(amount >= 0);
 
-    const auto locked = state.locked_table.get(address);
-    CHANGE_ERROR(locked, VMExitCode::kErrIllegalState);
+    CHANGE_ERROR_A(
+        locked, state.locked_table.get(address), VMExitCode::kErrIllegalState);
+    CHANGE_ERROR_A(
+        escrow, state.escrow_table.get(address), VMExitCode::kErrIllegalState);
 
-    const auto escrow = state.escrow_table.get(address);
-    CHANGE_ERROR(escrow, VMExitCode::kErrIllegalState);
-
-    if ((locked.value() + amount) > escrow.value()) {
+    if ((locked + amount) > escrow) {
       return VMExitCode::kErrInsufficientFunds;
     }
 

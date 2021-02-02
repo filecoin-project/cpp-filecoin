@@ -91,14 +91,15 @@ namespace fc::vm::actor::builtin::v2::multisig {
       // by the swapped/removed signer to go through without an illegal state
       // error
       if (runtime.getNetworkVersion() >= NetworkVersion::kVersion6) {
-        const auto tx_exists = state.pending_transactions.has(tx_id);
-        REQUIRE_NO_ERROR(tx_exists, VMExitCode::kErrIllegalState);
-        should_delete = tx_exists.value();
+        REQUIRE_NO_ERROR_A(tx_exists,
+                           state.pending_transactions.has(tx_id),
+                           VMExitCode::kErrIllegalState);
+        should_delete = tx_exists;
       }
 
       if (should_delete) {
-        const auto result = state.pending_transactions.remove(tx_id);
-        REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+        REQUIRE_NO_ERROR(state.pending_transactions.remove(tx_id),
+                         VMExitCode::kErrIllegalState);
       }
       OUTCOME_TRY(runtime.commitState(state));
     }
