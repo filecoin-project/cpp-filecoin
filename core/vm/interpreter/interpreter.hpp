@@ -6,14 +6,12 @@
 #ifndef CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_HPP
 #define CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_HPP
 
+#include "fwd.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/buffer_map.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "vm/runtime/runtime_randomness.hpp"
 
 namespace fc::vm::interpreter {
-  using runtime::RuntimeRandomness;
-
   enum class InterpreterError {
     kDuplicateMiner = 1,
     kMinerSubmitFailed,
@@ -37,7 +35,7 @@ namespace fc::vm::interpreter {
     virtual ~Interpreter() = default;
 
     virtual outcome::result<Result> interpret(
-        std::shared_ptr<RuntimeRandomness> randomness,
+        TsBranchPtr ts_branch,
         const IpldPtr &store,
         const TipsetCPtr &tipset) const = 0;
     virtual outcome::result<boost::optional<Result>> tryGetCached(

@@ -47,6 +47,7 @@ namespace fc::vm::runtime {
     Env(std::shared_ptr<Invoker> invoker,
         std::shared_ptr<RuntimeRandomness> randomness,
         IpldPtr ipld,
+        TsBranchPtr ts_branch,
         TipsetCPtr tipset);
 
     struct Apply {
@@ -65,6 +66,7 @@ namespace fc::vm::runtime {
     std::shared_ptr<Invoker> invoker;
     std::shared_ptr<RuntimeRandomness> randomness;
     uint64_t epoch;  // mutable epoch for cron()
+    TsBranchPtr ts_branch;
     TipsetCPtr tipset;
     Pricelist pricelist;
     std::shared_ptr<Circulating> circulating;

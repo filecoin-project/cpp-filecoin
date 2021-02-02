@@ -295,8 +295,8 @@ namespace fc::api {
                                              auto &entropy)
                                              -> outcome::result<Randomness> {
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
-          return TipsetRandomness{ts_load, ts_branch}.getRandomnessFromBeacon(
-              {}, tag, epoch, entropy);
+          return TipsetRandomness{ts_load}.getRandomnessFromBeacon(
+              ts_branch, tag, epoch, entropy);
         }},
         .ChainGetRandomnessFromTickets = {[=](auto &tipset_key,
                                               auto tag,
@@ -304,8 +304,8 @@ namespace fc::api {
                                               auto &entropy)
                                               -> outcome::result<Randomness> {
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
-          return TipsetRandomness{ts_load, ts_branch}.getRandomnessFromTickets(
-              {}, tag, epoch, entropy);
+          return TipsetRandomness{ts_load}.getRandomnessFromTickets(
+              ts_branch, tag, epoch, entropy);
         }},
         .ChainGetTipSet = {[=](auto &tipset_key) {
           return chain_store->loadTipset(tipset_key);
@@ -492,11 +492,11 @@ namespace fc::api {
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
-          auto randomness =
-              std::make_shared<TipsetRandomness>(ts_load, ts_branch);
+          auto randomness = std::make_shared<TipsetRandomness>(ts_load);
           auto env = std::make_shared<Env>(std::make_shared<InvokerImpl>(),
                                            randomness,
                                            ipld,
+                                           ts_branch,
                                            context.tipset);
           InvocResult result;
           result.message = message;

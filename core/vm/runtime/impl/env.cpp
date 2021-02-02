@@ -115,6 +115,7 @@ namespace fc::vm::runtime {
   Env::Env(std::shared_ptr<Invoker> invoker,
            std::shared_ptr<RuntimeRandomness> randomness,
            IpldPtr ipld,
+           TsBranchPtr ts_branch,
            TipsetCPtr tipset)
       : ipld{std::make_shared<IpldBuffered>(std::move(ipld))},
         state_tree{std::make_shared<StateTreeImpl>(
@@ -122,6 +123,7 @@ namespace fc::vm::runtime {
         invoker{std::move(invoker)},
         randomness{std::move(randomness)},
         epoch{tipset->height()},
+        ts_branch{std::move(ts_branch)},
         tipset{std::move(tipset)} {
     pricelist.calico = epoch >= vm::version::kUpgradeCalicoHeight;
   }

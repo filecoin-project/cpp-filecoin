@@ -46,7 +46,7 @@ namespace fc::vm::runtime {
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
     return randomness_->getRandomnessFromTickets(
-        execution_->env->tipset, tag, epoch, seed);
+        execution_->env->ts_branch, tag, epoch, seed);
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomnessFromBeacon(
@@ -54,7 +54,7 @@ namespace fc::vm::runtime {
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
     return randomness_->getRandomnessFromBeacon(
-        execution_->env->tipset, tag, epoch, seed);
+        execution_->env->ts_branch, tag, epoch, seed);
   }
 
   Address RuntimeImpl::getImmediateCaller() const {

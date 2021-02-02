@@ -8,11 +8,11 @@
 #include "primitives/tipset/chain.hpp"
 
 namespace fc::vm::runtime {
-  TipsetRandomness::TipsetRandomness(TsLoadPtr ts_load, TsBranchPtr ts_branch)
-      : ts_load{std::move(ts_load)}, ts_branch{std::move(ts_branch)} {}
+  TipsetRandomness::TipsetRandomness(TsLoadPtr ts_load)
+      : ts_load{std::move(ts_load)} {}
 
   outcome::result<Randomness> TipsetRandomness::getRandomnessFromTickets(
-      const TipsetCPtr &tipset,
+      const TsBranchPtr &ts_branch,
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
@@ -23,7 +23,7 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<Randomness> TipsetRandomness::getRandomnessFromBeacon(
-      const TipsetCPtr &tipset,
+      const TsBranchPtr &ts_branch,
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {

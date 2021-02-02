@@ -65,12 +65,16 @@ namespace fc::vm::interpreter {
     return *cached;
   }
 
-  InterpreterImpl::InterpreterImpl(TsLoadPtr ts_load,
-                                   std::shared_ptr<Circulating> circulating)
-      : ts_load{std::move(ts_load)}, circulating_{std::move(circulating)} {}
+  InterpreterImpl::InterpreterImpl(
+      TsLoadPtr ts_load,
+      std::shared_ptr<RuntimeRandomness> randomness,
+      std::shared_ptr<Circulating> circulating)
+      : ts_load{std::move(ts_load)},
+        randomness_{std::move(randomness)},
+        circulating_{std::move(circulating)} {}
 
   outcome::result<Result> InterpreterImpl::interpret(
-      std::shared_ptr<RuntimeRandomness> randomness,
+      TsBranchPtr ts_branch,
       const IpldPtr &ipld,
       const TipsetCPtr &tipset) const {
     if (tipset->height() == 0) {
@@ -79,11 +83,11 @@ namespace fc::vm::interpreter {
           tipset->getParentMessageReceipts(),
       };
     }
-    return applyBlocks(randomness, ipld, tipset, {});
+    return applyBlocks(ts_branch, ipld, tipset, {});
   }
 
   outcome::result<Result> InterpreterImpl::applyBlocks(
-      std::shared_ptr<RuntimeRandomness> randomness,
+      TsBranchPtr ts_branch,
       const IpldPtr &ipld,
       const TipsetCPtr &tipset,
       std::vector<MessageReceipt> *all_receipts) const {
@@ -98,7 +102,8 @@ namespace fc::vm::interpreter {
     }
 
     auto env = std::make_shared<Env>(
-        std::make_shared<InvokerImpl>(), randomness, ipld, tipset);
+        std::make_shared<InvokerImpl>(), randomness_, ipld, ts_branch, tipset);
+
     env->circulating = circulating_;
 
     auto cron{[&]() -> outcome::result<void> {
@@ -207,7 +212,7 @@ namespace fc::vm::interpreter {
   }  // namespace
 
   outcome::result<Result> CachedInterpreter::interpret(
-      std::shared_ptr<RuntimeRandomness> randomness,
+      TsBranchPtr ts_branch,
       const IpldPtr &ipld,
       const TipsetCPtr &tipset) const {
     common::Buffer key(tipset->key.hash());
@@ -215,7 +220,7 @@ namespace fc::vm::interpreter {
     if (saved_result) {
       return saved_result.value();
     }
-    auto result = interpreter->interpret(randomness, ipld, tipset);
+    auto result = interpreter->interpret(ts_branch, ipld, tipset);
     if (!result) {
       OUTCOME_TRY(raw, codec::cbor::encode(boost::optional<Result>{}));
       OUTCOME_TRY(store->put(key, raw));

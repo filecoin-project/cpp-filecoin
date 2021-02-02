@@ -11,7 +11,6 @@
 #include "primitives/tipset/load.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "vm/interpreter/interpreter.hpp"
-#include "vm/runtime/impl/tipset_randomness.hpp"
 
 #define MOVE(x)  \
   x {            \
@@ -106,9 +105,7 @@ namespace fc::sync {
                              && child->getParentWeight() == weight};
             if (child_valid) {
               // TODO: sync chains
-              auto randomness = std::make_shared<vm::runtime::TipsetRandomness>(
-                  ts_load, nullptr);
-              auto _vm{interpreter->interpret(randomness, ipld, child)};
+              auto _vm{interpreter->interpret(nullptr, ipld, child)};
               auto _weight{weighter.calculateWeight(*child)};
               if (!_vm || !_weight) {
                 child_valid = false;

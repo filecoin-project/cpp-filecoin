@@ -69,9 +69,9 @@ namespace fc::storage::mpool {
       msg.gas_fee_cap = kMinimumBaseFee + 1;
       msg.gas_premium = 1;
       OUTCOME_TRY(interpeted, interpreter->getCached(head->key));
-      auto randomness = std::make_shared<TipsetRandomness>(ts_load, ts_main);
-      auto env{
-          std::make_shared<vm::runtime::Env>(nullptr, randomness, ipld, head)};
+      auto randomness = std::make_shared<TipsetRandomness>(ts_load);
+      auto env{std::make_shared<vm::runtime::Env>(
+          nullptr, randomness, ipld, ts_main, head)};
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
           ipld, interpeted.state_root);
       ++env->epoch;

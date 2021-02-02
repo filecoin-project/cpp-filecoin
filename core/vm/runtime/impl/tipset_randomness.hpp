@@ -10,27 +10,24 @@
 #include "vm/runtime/runtime_randomness.hpp"
 
 namespace fc::vm::runtime {
-  using primitives::tipset::TipsetCPtr;
-
   class TipsetRandomness : public RuntimeRandomness {
    public:
-    TipsetRandomness(TsLoadPtr ts_load, TsBranchPtr ts_branch);
+    explicit TipsetRandomness(TsLoadPtr ts_load);
 
     outcome::result<Randomness> getRandomnessFromTickets(
-        const TipsetCPtr &tipset,
+        const TsBranchPtr &ts_branch,
         DomainSeparationTag tag,
         ChainEpoch epoch,
         gsl::span<const uint8_t> seed) const override;
 
     outcome::result<Randomness> getRandomnessFromBeacon(
-        const TipsetCPtr &tipset,
+        const TsBranchPtr &ts_branch,
         DomainSeparationTag tag,
         ChainEpoch epoch,
         gsl::span<const uint8_t> seed) const override;
 
    private:
     TsLoadPtr ts_load;
-    TsBranchPtr ts_branch;
   };
 
 }  // namespace fc::vm::runtime
