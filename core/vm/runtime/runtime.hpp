@@ -213,8 +213,8 @@ namespace fc::vm::runtime {
         if (isFatal(res.error()) || isAbortExitCode(res.error())) {
           return res.error();
         }
-        if (isVMExitCode(res.error())) {
-          return abort(VMExitCode{res.error().value()});
+        if (auto exit{asExitCode(res)}) {
+          return abort(exit.value());
         }
         return abort(default_error);
       }

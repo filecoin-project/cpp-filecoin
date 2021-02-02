@@ -25,6 +25,23 @@ namespace fc::vm::runtime {
                                       const Address &address,
                                       bool no_actor = false);
 
+  struct IpldBuffered : public Ipld,
+                        public std::enable_shared_from_this<IpldBuffered> {
+    IpldBuffered(IpldPtr ipld);
+    outcome::result<void> flush(const CID &root);
+
+    outcome::result<bool> contains(const CID &key) const override;
+    outcome::result<void> set(const CID &key, Value value) override;
+    outcome::result<Value> get(const CID &key) const override;
+    outcome::result<void> remove(const CID &key) override;
+    IpldPtr shared() override;
+
+    IpldPtr ipld;
+    bool flushing{false};
+    // vm only stores "DAG_CBOR blake2b_256" cids
+    std::unordered_map<Hash256, Buffer> write;
+  };
+
   /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {
     Env(std::shared_ptr<Invoker> invoker,
@@ -43,10 +60,10 @@ namespace fc::vm::runtime {
     outcome::result<MessageReceipt> applyImplicitMessage(
         UnsignedMessage message);
 
+    std::shared_ptr<IpldBuffered> ipld;
     std::shared_ptr<StateTreeImpl> state_tree;
     std::shared_ptr<Invoker> invoker;
     std::shared_ptr<RuntimeRandomness> randomness;
-    IpldPtr ipld;
     uint64_t epoch;  // mutable epoch for cron()
     TipsetCPtr tipset;
     Pricelist pricelist;

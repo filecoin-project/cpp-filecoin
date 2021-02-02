@@ -5,6 +5,7 @@
 
 #include "vm/runtime/env.hpp"
 
+#include "storage/ipld/traverser.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
@@ -62,15 +63,64 @@ namespace fc::vm::runtime {
     return VMExitCode::kSysErrInvalidParameters;
   }
 
+  IpldBuffered::IpldBuffered(IpldPtr ipld) : ipld{ipld} {}
+
+  outcome::result<void> IpldBuffered::flush(const CID &root) {
+    flushing = true;
+    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{gsl::finally([&] { flushing = false; })};
+    storage::ipld::traverser::Traverser t{*this, root, {}};
+    while (true) {
+      if (auto _cids{t.traverseAll()}) {
+        for (auto &cid : _cids.value()) {
+          OUTCOME_TRY(ipld->set(cid, write.at(*asBlake(cid))));
+        }
+        return outcome::success();
+      } else if (_cids.error()
+                 != storage::ipfs::IpfsDatastoreError::kNotFound) {
+        return _cids.error();
+      }
+    }
+  }
+
+  outcome::result<bool> IpldBuffered::contains(const CID &cid) const {
+    throw "unused";
+  }
+
+  outcome::result<void> IpldBuffered::set(const CID &cid, Value value) {
+    assert(isCbor(cid));
+    write.emplace(*asBlake(cid), std::move(value));
+    return outcome::success();
+  }
+
+  outcome::result<Ipld::Value> IpldBuffered::get(const CID &cid) const {
+    if (isCbor(cid)) {
+      if (auto it{write.find(*asBlake(cid))}; it != write.end()) {
+        return it->second;
+      }
+      if (!flushing) {
+        return ipld->get(cid);
+      }
+    }
+    return storage::ipfs::IpfsDatastoreError::kNotFound;
+  }
+
+  outcome::result<void> IpldBuffered::remove(const CID &cid) {
+    throw "unused";
+  }
+
+  IpldPtr IpldBuffered::shared() {
+    return shared_from_this();
+  }
+
   Env::Env(std::shared_ptr<Invoker> invoker,
            std::shared_ptr<RuntimeRandomness> randomness,
            IpldPtr ipld,
            TipsetCPtr tipset)
-      : state_tree{std::make_shared<StateTreeImpl>(
-          ipld, tipset->getParentStateRoot())},
+      : ipld{std::make_shared<IpldBuffered>(std::move(ipld))},
+        state_tree{std::make_shared<StateTreeImpl>(
+            this->ipld, tipset->getParentStateRoot())},
         invoker{std::move(invoker)},
         randomness{std::move(randomness)},
-        ipld{std::move(ipld)},
         epoch{tipset->height()},
         tipset{std::move(tipset)} {
     pricelist.calico = epoch >= vm::version::kUpgradeCalicoHeight;
@@ -132,24 +182,17 @@ namespace fc::vm::runtime {
     auto BOOST_OUTCOME_TRY_UNIQUE_NAME{
         gsl::finally([&] { state_tree->txEnd(); })};
     auto result{execution->send(message, msg_gas_cost)};
-    auto exit_code = VMExitCode::kOk;
-    if (!result) {
-      if (!isVMExitCode(result.error())) {
-        return result.error();
-      }
-      exit_code = VMExitCode{result.error().value()};
-      if (exit_code == VMExitCode::kFatal) {
-        return result.error();
-      }
-    } else {
+    OUTCOME_TRY(exit_code, asExitCode(result));
+    if (exit_code == VMExitCode::kFatal) {
+      return result.error();
+    }
+    if (result) {
       auto &ret{result.value()};
       if (!ret.empty()) {
         auto charge =
             execution->chargeGas(pricelist.onChainReturnValue(ret.size()));
-        if (!charge) {
-          BOOST_ASSERT(isVMExitCode(charge.error()));
-          exit_code = VMExitCode{charge.error().value()};
-        } else {
+        OUTCOME_TRYA(exit_code, asExitCode(charge));
+        if (charge) {
           apply.receipt.return_value = std::move(ret);
         }
       }
@@ -212,14 +255,11 @@ namespace fc::vm::runtime {
       UnsignedMessage message) {
     auto execution = Execution::make(shared_from_this(), message);
     auto result = execution->send(message);
-    if (result.has_error() && !isVMExitCode(result.error())) {
-      return result.error();
+    MessageReceipt receipt;
+    OUTCOME_TRYA(receipt.exit_code, asExitCode(result));
+    if (result) {
+      receipt.return_value = std::move(result.value());
     }
-    MessageReceipt receipt{result.has_value()
-                               ? VMExitCode::kOk
-                               : VMExitCode{result.error().value()},
-                           result.has_value() ? result.value() : Buffer{},
-                           0};
 
     dvm::onReceipt(receipt);
 

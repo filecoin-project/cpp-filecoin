@@ -403,34 +403,3 @@ namespace fc::primitives::tipset {
     return !(l == r);
   }
 }  // namespace fc::primitives::tipset
-
-namespace fc::codec::cbor {
-
-  namespace {
-    struct TipsetDecodeCandidate {
-      std::vector<CID> cids;
-      std::vector<fc::primitives::block::BlockHeader> blks;
-      uint64_t height;
-    };
-
-    CBOR_TUPLE(TipsetDecodeCandidate, cids, blks, height);
-
-  }  // namespace
-
-  template <>
-  outcome::result<fc::primitives::tipset::TipsetCPtr>
-  decode<fc::primitives::tipset::TipsetCPtr>(gsl::span<const uint8_t> input) {
-    using namespace fc::primitives::tipset;
-
-    OUTCOME_TRY(decoded, decode<TipsetDecodeCandidate>(input));
-    if (decoded.blks.empty() && decoded.height != 0) {
-      return TipsetError::kMismatchingHeights;
-    }
-    OUTCOME_TRY(tipset, Tipset::create(std::move(decoded.blks)));
-    if (tipset->key.cids() != decoded.cids) {
-      return TipsetError::kBlockOrderFailure;
-    }
-    return std::move(tipset);
-  }
-
-}  // namespace fc::codec::cbor

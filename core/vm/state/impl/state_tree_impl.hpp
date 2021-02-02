@@ -44,6 +44,7 @@ namespace fc::vm::state {
 
    private:
     Tx &tx();
+    void _set(ActorId id, const Actor &actor);
     /**
      * Sets root of StateTree
      * @param root - cid of hamt for StateTree v0 or cid of struct StateRoot for

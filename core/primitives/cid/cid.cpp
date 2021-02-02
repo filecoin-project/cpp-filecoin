@@ -139,6 +139,29 @@ namespace fc {
     boost::hash_range(seed, hash.begin(), hash.end());
     return seed;
   }
+
+  bool isCbor(const CID &cid) {
+    return cid.version == CID::Version::V1
+           && cid.content_type == CID::Multicodec::DAG_CBOR;
+  }
+
+  boost::optional<BytesIn> asIdentity(const CID &cid) {
+    auto &mh{cid.content_address};
+    if (mh.getType() == HashType::identity) {
+      return mh.getHash();
+    }
+    return {};
+  }
+
+  boost::optional<Hash256> asBlake(const CID &cid) {
+    auto &mh{cid.content_address};
+    if (mh.getType() == HashType::blake2b_256) {
+      if (auto hash{mh.getHash()}; hash.size() == Hash256::size()) {
+        return Hash256::fromSpan(hash).value();
+      }
+    }
+    return {};
+  }
 }  // namespace fc
 
 namespace fc::common {
