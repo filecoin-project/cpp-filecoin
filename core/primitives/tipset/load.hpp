@@ -10,11 +10,20 @@
 #include "primitives/tipset/tipset.hpp"
 
 namespace fc::primitives::tipset {
+  struct TsLazy {
+    TipsetKey key;
+    TsWeak weak{};
+  };
+  inline auto operator==(const TsLazy &lhs, const TsLazy &rhs) {
+    return lhs.key == rhs.key;
+  }
+
   struct TsLoad {
     virtual ~TsLoad() = default;
     virtual outcome::result<TipsetCPtr> load(const TipsetKey &key) = 0;
     virtual outcome::result<TipsetCPtr> load(std::vector<BlockHeader> blocks);
     outcome::result<TipsetCPtr> load(TsWeak &weak, const TipsetKey &key);
+    outcome::result<TipsetCPtr> load(TsLazy &lazy);
   };
   using TsLoadPtr = std::shared_ptr<TsLoad>;
 

@@ -16,6 +16,10 @@ namespace fc::primitives::tipset {
     return std::move(ts);
   }
 
+  outcome::result<TipsetCPtr> TsLoad::load(TsLazy &lazy) {
+    return load(lazy.weak, lazy.key);
+  }
+
   outcome::result<TipsetCPtr> TsLoad::load(std::vector<BlockHeader> blocks) {
     return Tipset::create(std::move(blocks));
   }
