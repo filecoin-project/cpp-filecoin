@@ -9,8 +9,11 @@
 #include "primitives/tipset/tipset.hpp"
 #include "storage/buffer_map.hpp"
 #include "storage/ipfs/datastore.hpp"
+#include "vm/runtime/runtime_randomness.hpp"
 
 namespace fc::vm::interpreter {
+  using runtime::RuntimeRandomness;
+
   enum class InterpreterError {
     kDuplicateMiner = 1,
     kMinerSubmitFailed,
@@ -34,7 +37,9 @@ namespace fc::vm::interpreter {
     virtual ~Interpreter() = default;
 
     virtual outcome::result<Result> interpret(
-        const IpldPtr &store, const TipsetCPtr &tipset) const = 0;
+        std::shared_ptr<RuntimeRandomness> randomness,
+        const IpldPtr &store,
+        const TipsetCPtr &tipset) const = 0;
     virtual outcome::result<boost::optional<Result>> tryGetCached(
         const TipsetKey &tsk) const;
     outcome::result<Result> getCached(const TipsetKey &tsk) const;

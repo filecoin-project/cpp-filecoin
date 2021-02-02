@@ -6,6 +6,7 @@
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
 #include "const.hpp"
+#include "primitives/tipset/load.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
@@ -64,24 +65,25 @@ namespace fc::vm::interpreter {
     return *cached;
   }
 
-  InterpreterImpl::InterpreterImpl(
-      std::shared_ptr<RuntimeRandomness> randomness,
-      std::shared_ptr<Circulating> circulating)
-      : randomness_{std::move(randomness)},
-        circulating_{std::move(circulating)} {}
+  InterpreterImpl::InterpreterImpl(TsLoadPtr ts_load,
+                                   std::shared_ptr<Circulating> circulating)
+      : ts_load{std::move(ts_load)}, circulating_{std::move(circulating)} {}
 
   outcome::result<Result> InterpreterImpl::interpret(
-      const IpldPtr &ipld, const TipsetCPtr &tipset) const {
+      std::shared_ptr<RuntimeRandomness> randomness,
+      const IpldPtr &ipld,
+      const TipsetCPtr &tipset) const {
     if (tipset->height() == 0) {
       return Result{
           tipset->getParentStateRoot(),
           tipset->getParentMessageReceipts(),
       };
     }
-    return applyBlocks(ipld, tipset, {});
+    return applyBlocks(randomness, ipld, tipset, {});
   }
 
   outcome::result<Result> InterpreterImpl::applyBlocks(
+      std::shared_ptr<RuntimeRandomness> randomness,
       const IpldPtr &ipld,
       const TipsetCPtr &tipset,
       std::vector<MessageReceipt> *all_receipts) const {
@@ -96,7 +98,7 @@ namespace fc::vm::interpreter {
     }
 
     auto env = std::make_shared<Env>(
-        std::make_shared<InvokerImpl>(), randomness_, ipld, tipset);
+        std::make_shared<InvokerImpl>(), randomness, ipld, tipset);
     env->circulating = circulating_;
 
     auto cron{[&]() -> outcome::result<void> {
@@ -119,7 +121,7 @@ namespace fc::vm::interpreter {
     }};
 
     if (tipset->height() > 1) {
-      OUTCOME_TRY(parent, tipset->loadParent(*ipld));
+      OUTCOME_TRY(parent, ts_load->load(tipset->getParents()));
       for (auto epoch{parent->height() + 1}; epoch < tipset->height();
            ++epoch) {
         env->epoch = epoch;
@@ -205,13 +207,15 @@ namespace fc::vm::interpreter {
   }  // namespace
 
   outcome::result<Result> CachedInterpreter::interpret(
-      const IpldPtr &ipld, const TipsetCPtr &tipset) const {
+      std::shared_ptr<RuntimeRandomness> randomness,
+      const IpldPtr &ipld,
+      const TipsetCPtr &tipset) const {
     common::Buffer key(tipset->key.hash());
     OUTCOME_TRY(saved_result, getSavedResult(*store, key));
     if (saved_result) {
       return saved_result.value();
     }
-    auto result = interpreter->interpret(ipld, tipset);
+    auto result = interpreter->interpret(randomness, ipld, tipset);
     if (!result) {
       OUTCOME_TRY(raw, codec::cbor::encode(boost::optional<Result>{}));
       OUTCOME_TRY(store->put(key, raw));

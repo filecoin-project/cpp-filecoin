@@ -14,6 +14,7 @@
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
 #include "core/test_vectors/replaying_randomness.hpp"
+#include "primitives/tipset/load.hpp"
 #include "storage/car/car.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/resources/resources.hpp"
@@ -262,7 +263,8 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
   for (const auto &precondition : mv.precondition_variants) {
     std::shared_ptr<RuntimeRandomness> randomness =
         std::make_shared<ReplayingRandomness>(mv.randomness);
-    fc::vm::interpreter::InterpreterImpl vmi{randomness, nullptr};
+    fc::vm::interpreter::InterpreterImpl vmi{
+        std::make_shared<fc::primitives::tipset::TsLoadIpld>(ipld), nullptr};
     CID state{mv.state_before};
     BlockHeader parent;
     parent.ticket.emplace();
@@ -310,7 +312,7 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
       }
       std::vector<MessageReceipt> receipts;
       auto tipset{cr.getTipset(true)};
-      OUTCOME_EXCEPT(res, vmi.applyBlocks(ipld, tipset, &receipts));
+      OUTCOME_EXCEPT(res, vmi.applyBlocks(randomness, ipld, tipset, &receipts));
       state = res.state_root;
       EXPECT_EQ(res.message_receipts, mv.receipts_roots[i]);
       for (auto &actual : receipts) {
