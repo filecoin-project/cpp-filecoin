@@ -99,12 +99,8 @@ namespace fc::vm::actor::builtin::v0::multisig {
                                             transaction.method,
                                             transaction.params,
                                             transaction.value);
-      if (send_result.has_error()) {
-        if (!isVMExitCode(send_result.error())) {
-          return send_result.error();
-        }
-        code = static_cast<VMExitCode>(send_result.error().value());
-      } else {
+      OUTCOME_TRYA(code, asExitCode(send_result));
+      if (send_result) {
         out = send_result.value();
       }
       applied = true;

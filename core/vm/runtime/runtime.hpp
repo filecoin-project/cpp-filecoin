@@ -53,6 +53,7 @@ namespace fc::vm::runtime {
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
   using primitives::GasAmount;
+  using primitives::SectorNumber;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::block::BlockHeader;
@@ -62,6 +63,10 @@ namespace fc::vm::runtime {
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using version::NetworkVersion;
+  using BatchSealsIn =
+      std::vector<std::pair<Address, std::vector<SealVerifyInfo>>>;
+  using BatchSealsOut =
+      std::vector<std::pair<Address, std::vector<SectorNumber>>>;
 
   struct Execution;
 
@@ -222,9 +227,8 @@ namespace fc::vm::runtime {
     virtual outcome::result<bool> verifyPoSt(
         const WindowPoStVerifyInfo &info) = 0;
 
-    virtual outcome::result<std::map<Address, std::vector<bool>>>
-    verifyBatchSeals(const adt::Map<adt::Array<SealVerifyInfo>,
-                                    adt::AddressKeyer> &seals) = 0;
+    virtual outcome::result<BatchSealsOut> batchVerifySeals(
+        const BatchSealsIn &batch) = 0;
 
     /// Compute unsealed sector cid
     virtual outcome::result<CID> computeUnsealedSectorCid(
@@ -260,6 +264,13 @@ namespace fc::vm::runtime {
         return ABORT_CAST(default_error);
       }
       return outcome::success();
+    }
+
+    template <typename T>
+    static outcome::result<T> requireNoError(outcome::result<T> &&res,
+                                             VMExitCode default_error) {
+      OUTCOME_TRY(requireNoError(res, default_error));
+      return std::move(res);
     }
 
     /**

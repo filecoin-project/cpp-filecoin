@@ -16,115 +16,72 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   using adt::Multimap;
   using primitives::SectorNumber;
 
-  outcome::result<void> processDeferredCronEvents(Runtime &runtime,
-                                                  State &state) {
+  outcome::result<void> processDeferredCronEvents(Runtime &runtime) {
     const auto now{runtime.getCurrentEpoch()};
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(runtime.requireNoError(state.cron_event_queue.hamt.loadRoot(),
+                                       VMExitCode::kErrIllegalState));
+    std::vector<CronEvent> cron_events;
     for (auto epoch = state.first_cron_epoch; epoch <= now; ++epoch) {
-      OUTCOME_TRY(events, state.cron_event_queue.tryGet(epoch));
-      if (events) {
-        OUTCOME_TRY(events->visit([&](auto, auto &event) {
-          const auto res{runtime.send(event.miner_address,
-                                      miner::OnDeferredCronEvent::Number,
-                                      MethodParams{event.callback_payload},
-                                      0)};
-          if (!res) {
-            spdlog::warn(
-                "PowerActor.processDeferredCronEvents: error {} \"{}\", epoch "
-                "{}, miner {}, payload {}",
-                res.error(),
-                res.error().message(),
-                now,
-                event.miner_address,
-                common::hex_lower(event.callback_payload));
-
-            // Failures are unexpected here but will result in removal of miner
-            // power
-            const auto maybe_claim = state.claims.tryGet(event.miner_address);
-            if (maybe_claim.has_error()) {
-              spdlog::warn(
-                  "failed to get claim for miner {} after failing "
-                  "OnDeferredCronEvent: {}",
-                  event.miner_address,
-                  maybe_claim.error().message());
-            } else {
-              if (!maybe_claim.value().has_value()) {
-                spdlog::warn(
-                    "miner OnDeferredCronEvent failed for miner %s with no "
-                    "power",
-                    event.miner_address);
-              } else {
-                if (state
-                        .addToClaim(event.miner_address,
-                                    -maybe_claim.value().get().raw_power,
-                                    -maybe_claim.value().get().qa_power)
-                        .has_error()) {
-                  spdlog::warn(
-                      "failed to remove ({}, {}) power for miner {} after to "
-                      "failed cron",
-                      maybe_claim.value().get().raw_power,
-                      maybe_claim.value().get().qa_power,
-                      event.miner_address);
-                }
-              }
-            }
-          }
-          return outcome::success();
-        }));
-        OUTCOME_TRY(state.cron_event_queue.remove(epoch));
+      OUTCOME_TRY(events,
+                  runtime.requireNoError(
+                      Multimap::values(state.cron_event_queue, epoch),
+                      VMExitCode::kErrIllegalState));
+      cron_events.insert(cron_events.end(), events.begin(), events.end());
+      if (!events.empty()) {
+        OUTCOME_TRY(runtime.requireNoError(state.cron_event_queue.remove(epoch),
+                                           VMExitCode::kErrIllegalState));
       }
     }
     state.first_cron_epoch = now + 1;
-
-    // Lotus gas conformance
     OUTCOME_TRY(runtime.commitState(state));
-    OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(state.claims.hamt.loadRoot());
-    OUTCOME_TRY(runtime.commitState(state));
-
+    // TODO: can one miner fail several times here?
+    std::vector<Address> failed_miners;
+    for (auto &event : cron_events) {
+      OUTCOME_TRY(code,
+                  asExitCode(runtime.send(event.miner_address,
+                                          miner::OnDeferredCronEvent::Number,
+                                          MethodParams{event.callback_payload},
+                                          0)));
+      if (code != VMExitCode::kOk) {
+        failed_miners.push_back(event.miner_address);
+      }
+    }
+    if (!failed_miners.empty()) {
+      OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
+      for (auto &miner : failed_miners) {
+        OUTCOME_TRY(claim, state.claims.tryGet(miner));
+        if (claim) {
+          OUTCOME_TRY(
+              state.addToClaim(miner, -claim->raw_power, -claim->qa_power));
+        }
+      }
+      OUTCOME_TRY(runtime.commitState(state));
+    }
     return outcome::success();
   }
 
-  outcome::result<void> processBatchProofVerifiers(Runtime &runtime,
-                                                   State &state) {
-    if (state.proof_validation_batch.has_value()) {
-      OUTCOME_TRY(
-          verified,
-          runtime.verifyBatchSeals(state.proof_validation_batch.value()));
-      OUTCOME_TRY(miners, state.proof_validation_batch.value().keys());
-      for (const auto &miner : miners) {
-        const auto seals_verified = verified.find(miner);
-        if (seals_verified == verified.end()) {
-          spdlog::warn("batch verify seals syscall implemented incorrectly");
-          return VMExitCode::kErrNotFound;
-        }
-        std::vector<SectorNumber> successful;
-        OUTCOME_TRY(verifies, state.proof_validation_batch.value().get(miner));
-        OUTCOME_TRY(verifies.visit(
-            [&](auto i, auto &seal_info) -> outcome::result<void> {
-              auto sector{seal_info.sector.sector};
-              if (seals_verified->second.at(i)
-                  && (std::find(successful.begin(), successful.end(), sector)
-                      == successful.end())) {
-                successful.push_back(sector);
-              }
-              return outcome::success();
-            }));
-
-        // The non-fatal exit code is explicitly ignored
-        const auto result = runtime.sendM<miner::ConfirmSectorProofsValid>(
-            miner, {successful}, 0);
-        if (result.has_error() && isFatal(result.error())) {
-          return result.error();
-        }
-      }
-
-      state.proof_validation_batch = boost::none;
+  outcome::result<void> processBatchProofVerifiers(Runtime &runtime) {
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    runtime::BatchSealsIn batch;
+    auto _batch{state.proof_validation_batch};
+    state.proof_validation_batch.reset();
+    if (_batch) {
+      OUTCOME_TRY(runtime.requireNoError(
+          _batch->visit(
+              [&](auto &miner, auto &_seals) -> outcome::result<void> {
+                OUTCOME_TRY(seals, _seals.values());
+                batch.emplace_back(miner, std::move(seals));
+                return outcome::success();
+              }),
+          VMExitCode::kErrIllegalState));
     }
-
-    // Lotus gas conformance
-    OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(runtime.commitState(state));
-
+    OUTCOME_TRY(verified, runtime.batchVerifySeals(batch));
+    for (const auto &[miner, successful] : verified) {
+      OUTCOME_TRY(asExitCode(runtime.sendM<miner::ConfirmSectorProofsValid>(
+          miner, {successful}, 0)));
+    }
     return outcome::success();
   }
 
@@ -209,13 +166,9 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
   ACTOR_METHOD_IMPL(OnEpochTickEnd) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kCronAddress));
+    OUTCOME_TRY(processDeferredCronEvents(runtime));
+    OUTCOME_TRY(processBatchProofVerifiers(runtime));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-
-    OUTCOME_TRY(processDeferredCronEvents(runtime, state));
-    OUTCOME_TRY(processBatchProofVerifiers(runtime, state));
-
-    // Lotus gas conformance
-    OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
 
     const auto [raw_power, qa_power] = state.getCurrentTotalPower();
     state.this_epoch_pledge = state.total_pledge;

@@ -111,4 +111,11 @@ namespace fc::vm::actor::builtin::v2::reward {
              simple_total,
              baseline_total)
 
+  inline auto simpleTotal(const State &state) {
+    return state.simple_total;
+  }
+
+  inline auto baselineTotal(const State &state) {
+    return state.baseline_total;
+  }
 }  // namespace fc::vm::actor::builtin::v2::reward
