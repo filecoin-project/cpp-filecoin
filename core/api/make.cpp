@@ -12,7 +12,7 @@
 #include "const.hpp"
 #include "drand/beaconizer.hpp"
 #include "node/pubsub.hpp"
-#include "primitives/tipset/load.hpp"
+#include "primitives/tipset/chain.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
@@ -162,6 +162,7 @@ namespace fc::api {
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<WeightCalculator> weight_calculator,
                TsLoadPtr ts_load,
+               TsBranchPtr ts_main,
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<Mpool> mpool,
                std::shared_ptr<Interpreter> interpreter,
@@ -188,11 +189,20 @@ namespace fc::api {
       return context;
     };
     auto getLookbackTipSetForRound =
-        [=](auto tipset, auto epoch) -> outcome::result<TipsetContext> {
+        [=](auto tipset,
+            auto ts_branch,
+            auto epoch) -> outcome::result<TipsetContext> {
       auto lookback{
           std::max(ChainEpoch{0}, epoch - kWinningPoStSectorSetLookback)};
-      while (tipset->height() > static_cast<uint64_t>(lookback)) {
-        OUTCOME_TRYA(tipset, tipset->loadParent(*ipld));
+      if (vm::version::getNetworkVersion(tipset->height())
+          > vm::version::NetworkVersion::kVersion3) {
+        lookback =
+            std::max(ChainEpoch{0},
+                     epoch - vm::actor::builtin::v0::miner::kChainFinalityish);
+      }
+      if (lookback < tipset->epoch()) {
+        OUTCOME_TRY(it, find(ts_branch, lookback));
+        OUTCOME_TRYA(tipset, ts_load->load(it.second->second));
       }
       OUTCOME_TRY(result, interpreter->getCached(tipset->key));
       return TipsetContext{
@@ -298,24 +308,11 @@ namespace fc::api {
         .ChainGetTipSet = {[=](auto &tipset_key) {
           return chain_store->loadTipset(tipset_key);
         }},
-        .ChainGetTipSetByHeight = {[=](auto height2, auto &tipset_key)
+        .ChainGetTipSetByHeight = {[=](auto height, auto &tipset_key)
                                        -> outcome::result<TipsetCPtr> {
-          // TODO(turuslan): use height index from chain store
-          // TODO(turuslan): return genesis if height is zero
-          auto height = static_cast<uint64_t>(height2);
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          auto &tipset{context.tipset};
-          if (tipset->height() < height) {
-            return TodoError::kError;
-          }
-          while (tipset->height() > height) {
-            OUTCOME_TRY(parent, tipset->loadParent(*ipld));
-            if (parent->height() < height) {
-              break;
-            }
-            tipset = std::move(parent);
-          }
-          return std::move(tipset);
+          OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+          OUTCOME_TRY(it, find(ts_branch, height));
+          return ts_load->load(it.second->second);
         }},
         .ChainHead = {[=]() { return chain_store->heaviestTipset(); }},
         .ChainNotify = {[=]() {
@@ -394,7 +391,11 @@ namespace fc::api {
             [=](auto &&miner, auto epoch, auto &&tipset_key, auto &&cb) {
               OUTCOME_CB(auto context, tipsetContext(tipset_key, true));
               MiningBaseInfo info;
-              OUTCOME_CB(info.prev_beacon, context.tipset->latestBeacon(*ipld));
+              OUTCOME_CB(auto ts_branch,
+                         TsBranch::make(ts_load, tipset_key, ts_main));
+              OUTCOME_CB(
+                  info.prev_beacon,
+                  latestBeacon(ts_load, ts_branch, context.tipset->height()));
               auto prev{info.prev_beacon.round};
               beaconEntriesForBlock(
                   *drand_schedule,
@@ -404,9 +405,9 @@ namespace fc::api {
                   [=, MOVE(cb), MOVE(context), MOVE(info)](
                       auto _beacons) mutable {
                     OUTCOME_CB(info.beacons, _beacons);
-                    OUTCOME_CB(
-                        auto lookback,
-                        getLookbackTipSetForRound(context.tipset, epoch));
+                    OUTCOME_CB(auto lookback,
+                               getLookbackTipSetForRound(
+                                   context.tipset, ts_branch, epoch));
                     OUTCOME_CB(auto state, lookback.minerState(miner));
                     OUTCOME_CB(auto seed, codec::cbor::encode(miner));
                     auto post_rand{crypto::randomness::drawRandomness(
