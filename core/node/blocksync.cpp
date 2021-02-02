@@ -212,7 +212,7 @@ namespace fc::blocksync {
       if (chain.size() >= request.depth || ts->height() == 0) {
         break;
       }
-      OUTCOME_TRYA(ts, ts->loadParent(*ipld));
+      OUTCOME_TRYA(ts, ts_load->load(ts->getParents()));
     }
     return chain;
   }

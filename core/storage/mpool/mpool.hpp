@@ -37,6 +37,7 @@ namespace fc::storage::mpool {
     using Subscriber = void(const MpoolUpdate &);
 
     static std::shared_ptr<Mpool> create(
+        TsLoadPtr ts_load,
         IpldPtr ipld,
         std::shared_ptr<Interpreter> interpreter,
         std::shared_ptr<ChainStore> chain_store);
@@ -51,6 +52,7 @@ namespace fc::storage::mpool {
     }
 
    private:
+    TsLoadPtr ts_load;
     IpldPtr ipld;
     std::shared_ptr<Interpreter> interpreter;
     ChainStore::connection_t head_sub;
