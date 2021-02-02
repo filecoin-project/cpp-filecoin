@@ -198,7 +198,7 @@ namespace fc::primitives::tipset {
     ticket_hashes_.clear();
   }
 
-  uint64_t TipsetCreator::height() const {
+  Height TipsetCreator::height() const {
     return blks_.empty() ? 0 : blks_[0].height;
   }
 
@@ -377,7 +377,7 @@ namespace fc::primitives::tipset {
     return blks[0].parent_message_receipts;
   }
 
-  uint64_t Tipset::height() const {
+  Height Tipset::height() const {
     return blks.empty() ? 0 : blks[0].height;
   }
 

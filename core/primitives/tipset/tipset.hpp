@@ -38,6 +38,8 @@ namespace fc::primitives::tipset {
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
+  using Height = uint64_t;
+
   struct MessageVisitor {
     using Visitor = std::function<outcome::result<void>(size_t,
                                                         bool bls,
@@ -119,7 +121,7 @@ namespace fc::primitives::tipset {
 
     const CID &getParentMessageReceipts() const;
 
-    uint64_t height() const;
+    Height height() const;
 
     ChainEpoch epoch() const;
 
@@ -190,7 +192,7 @@ namespace fc::primitives::tipset {
 
     void clear();
 
-    uint64_t height() const;
+    Height height() const;
 
     TipsetKey key() const;
 
