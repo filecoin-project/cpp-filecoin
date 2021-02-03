@@ -143,6 +143,15 @@ OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMFatal);
 OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMAbortExitCode);
 
 namespace fc::vm {
+  
+  template <typename T>
+  outcome::result<VMExitCode> asExitCode(const outcome::result<T> &result) {
+    if (result) {
+      return outcome::success(VMExitCode::kOk);
+    }
+    return asExitCode(result.error());
+  }
+  
   /**
    * Aborts execution if res has error
    * @tparam T - result type
@@ -160,8 +169,8 @@ namespace fc::vm {
       if (isFatal(res.error()) || isAbortExitCode(res.error())) {
         return res.error();
       }
-      if (isVMExitCode(res.error())) {
-        ABORT(static_cast<VMExitCode>(res.error().value()));
+      if (const auto exit{asExitCode(res)}) {
+        ABORT(exit.value());
       }
       ABORT(default_error);
     }
@@ -181,15 +190,7 @@ namespace fc::vm {
   template <typename T>
   outcome::result<T> requireNoErrorAssign(outcome::result<T> &&res,
                                           const VMExitCode &default_error) {
-    if (res.has_error()) {
-      if (isFatal(res.error()) || isAbortExitCode(res.error())) {
-        return res.error();
-      }
-      if (isVMExitCode(res.error())) {
-        ABORT(static_cast<VMExitCode>(res.error().value()));
-      }
-      ABORT(default_error);
-    }
+    REQUIRE_NO_ERROR(res, default_error);
     return std::move(res);
   }
 
@@ -217,9 +218,7 @@ namespace fc::vm {
    */
   template <typename T>
   outcome::result<T> requireSuccessAssign(outcome::result<T> &&res) {
-    if (res.has_error()) {
-      ABORT(res.error().value());
-    }
+    REQUIRE_SUCCESS(res);
     return std::move(res);
   }
 
@@ -256,12 +255,7 @@ namespace fc::vm {
   template <typename T>
   outcome::result<T> changeErrorAssign(outcome::result<T> &&res,
                                        const VMExitCode &error) {
-    if (res.has_error()) {
-      if (isFatal(res.error()) || isAbortExitCode(res.error())) {
-        return res.error();
-      }
-      return outcome::failure(error);
-    }
+    CHANGE_ERROR(res, error);
     return std::move(res);
   }
 
@@ -298,20 +292,7 @@ namespace fc::vm {
   template <typename T>
   outcome::result<T> changeErrorAbortAssign(outcome::result<T> &&res,
                                             const VMExitCode &error) {
-    if (res.has_error()) {
-      if (isFatal(res.error()) || isAbortExitCode(res.error())) {
-        return res.error();
-      }
-      ABORT(error);
-    }
+    CHANGE_ERROR_ABORT(res, error);
     return std::move(res);
-  }
-
-  template <typename T>
-  outcome::result<VMExitCode> asExitCode(const outcome::result<T> &result) {
-    if (result) {
-      return outcome::success(VMExitCode::kOk);
-    }
-    return asExitCode(result.error());
   }
 }  // namespace fc::vm
