@@ -11,7 +11,7 @@ namespace fc::markets::storage::provider {
   const Buffer kBestAskKey{codec::cbor::encode("latest-ask").value()};
 
   StoredAsk::StoredAsk(std::shared_ptr<Datastore> datastore,
-                       std::shared_ptr<Api> api,
+                       std::shared_ptr<FullNodeApi> api,
                        const Address &actor_address)
       : datastore_{std::move(datastore)},
         api_{std::move(api)},

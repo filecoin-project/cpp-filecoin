@@ -10,10 +10,13 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <libp2p/injector/host_injector.hpp>
 
+#include "api/node_api.hpp"
+#include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/json.hpp"
+#include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
-#include "api/rpc/wsc.hpp"
+#include "api/storage_api.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
@@ -45,13 +48,13 @@
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
 
 namespace fc {
-  using api::Address;
   using api::RegisteredSealProof;
-  using api::RetrievalAsk;
   using api::SignedStorageAsk;
   using boost::asio::io_context;
   using common::span::cbytes;
   using libp2p::multi::Multiaddress;
+  using markets::retrieval::RetrievalAsk;
+  using primitives::address::Address;
   using primitives::sector::RegisteredSealProof;
   using storage::BufferMap;
   namespace uuids = boost::uuids;
@@ -142,7 +145,7 @@ namespace fc {
                                    const PeerId &peer_id) {
     IoThread io_thread;
     io_context io;
-    api::Api api;
+    api::FullNodeApi api;
     api::rpc::Client wsc{*io_thread.io};
     wsc.setup(api);
     OUTCOME_TRY(wsc.connect(config.node_api.first, config.node_api.second));
@@ -283,7 +286,7 @@ namespace fc {
 
     OUTCOME_TRY(setupMiner(config, *leveldb, host->getId()));
 
-    auto napi{std::make_shared<api::Api>()};
+    auto napi{std::make_shared<api::FullNodeApi>()};
     api::rpc::Client wsc{*io};
     wsc.setup(*napi);
     OUTCOME_TRY(wsc.connect(config.node_api.first, config.node_api.second));
@@ -397,7 +400,7 @@ namespace fc {
             miner)};
     retrieval_provider->start();
 
-    auto mapi{std::make_shared<api::Api>()};
+    auto mapi{std::make_shared<api::StorageMinerApi>()};
     mapi->DealsImportData = [&](auto &proposal, auto &path) {
       return storage_provider->importDataForDeal(proposal, path);
     };
@@ -430,11 +433,12 @@ namespace fc {
       return sealing->pledgeSector();
     };
     mapi->Version = [] { return api::VersionResult{"fuhon-miner", 0, 0}; };
+    auto mrpc{api::makeRpc(*mapi)};
     auto mroutes{std::make_shared<api::Routes>()};
 
     mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
 
-    api::serve(mapi, mroutes, *io, "127.0.0.1", config.api_port);
+    api::serve(mrpc, mroutes, *io, "127.0.0.1", config.api_port);
     api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
 
     spdlog::info("fuhon miner started");

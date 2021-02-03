@@ -15,7 +15,7 @@ namespace fc::mining {
   inline const api::MessageSendSpec kSpec{50 * kFilecoinPrecision};
 
   outcome::result<std::shared_ptr<WindowPoStScheduler>>
-  WindowPoStScheduler::create(std::shared_ptr<Api> api,
+  WindowPoStScheduler::create(std::shared_ptr<FullNodeApi> api,
                               std::shared_ptr<Prover> prover,
                               std::shared_ptr<FaultTracker> fault_tracker,
                               const Address &miner) {

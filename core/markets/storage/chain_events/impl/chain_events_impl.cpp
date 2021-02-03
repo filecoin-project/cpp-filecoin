@@ -13,7 +13,7 @@ namespace fc::markets::storage::chain_events {
   using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
   using vm::message::SignedMessage;
 
-  ChainEventsImpl::ChainEventsImpl(std::shared_ptr<Api> api)
+  ChainEventsImpl::ChainEventsImpl(std::shared_ptr<FullNodeApi> api)
       : api_{std::move(api)} {}
 
   outcome::result<void> ChainEventsImpl::init() {

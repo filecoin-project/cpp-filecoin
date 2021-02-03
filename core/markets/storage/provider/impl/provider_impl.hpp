@@ -8,7 +8,7 @@
 
 #include <libp2p/host/host.hpp>
 #include <mutex>
-#include "api/miner_api.hpp"
+#include "api/storage_api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
 #include "fsm/fsm.hpp"
@@ -58,7 +58,7 @@ namespace fc::markets::storage::provider {
                         std::shared_ptr<StoredAsk> stored_ask,
                         std::shared_ptr<boost::asio::io_context> context,
                         std::shared_ptr<PieceStorage> piece_storage,
-                        std::shared_ptr<Api> api,
+                        std::shared_ptr<FullNodeApi> api,
                         std::shared_ptr<SectorBlocks> sector_blocks,
                         std::shared_ptr<ChainEvents> events,
                         const Address &miner_actor_address,
@@ -360,7 +360,7 @@ namespace fc::markets::storage::provider {
     std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<StoredAsk> stored_ask_;
-    std::shared_ptr<Api> api_;
+    std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<SectorBlocks> sector_blocks_;
     std::shared_ptr<ChainEvents> chain_events_;
     Address miner_actor_address_;

@@ -8,7 +8,7 @@
 
 #include "miner/storage_fsm/sealing.hpp"
 
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
 #include "miner/storage_fsm/events.hpp"
@@ -22,7 +22,7 @@
 
 namespace fc::mining {
   using adt::TokenAmount;
-  using api::Api;
+  using api::FullNodeApi;
   using primitives::piece::PaddedPieceSize;
   using proofs::SealRandomness;
   using sector_storage::Manager;
@@ -55,7 +55,7 @@ namespace fc::mining {
   class SealingImpl : public Sealing,
                       public std::enable_shared_from_this<SealingImpl> {
    public:
-    SealingImpl(std::shared_ptr<Api> api,
+    SealingImpl(std::shared_ptr<FullNodeApi> api,
                 std::shared_ptr<Events> events,
                 const Address &miner_address,
                 std::shared_ptr<Counter> counter,
@@ -280,7 +280,7 @@ namespace fc::mining {
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<StorageFSM> fsm_;
 
-    std::shared_ptr<Api> api_;
+    std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<Events> events_;
 
     std::shared_ptr<PreCommitPolicy> policy_;

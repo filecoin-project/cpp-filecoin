@@ -8,7 +8,7 @@
 
 #include <libp2p/host/host.hpp>
 #include <mutex>
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
 #include "fsm/fsm.hpp"
@@ -23,7 +23,7 @@
 
 namespace fc::markets::storage::client {
 
-  using api::Api;
+  using api::FullNodeApi;
   using common::Buffer;
   using common::libp2p::CborStream;
   using discovery::Discovery;
@@ -50,7 +50,7 @@ namespace fc::markets::storage::client {
                             IpldPtr ipld,
                             std::shared_ptr<DataTransfer> datatransfer,
                             std::shared_ptr<Discovery> discovery,
-                            std::shared_ptr<Api> api,
+                            std::shared_ptr<FullNodeApi> api,
                             std::shared_ptr<PieceIO> piece_io);
 
     bool pollWaiting();
@@ -287,7 +287,7 @@ namespace fc::markets::storage::client {
     std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
 
-    std::shared_ptr<Api> api_;
+    std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<Discovery> discovery_;
     IpldPtr ipld;

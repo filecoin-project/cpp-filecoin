@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_SECTORBLOCKS_BLOCKS_HPP
 #define CPP_FILECOIN_CORE_SECTORBLOCKS_BLOCKS_HPP
 
-#include "api/miner_api.hpp"
+#include "api/storage_api.hpp"
 #include "miner/miner.hpp"
 #include "primitives/types.hpp"
 

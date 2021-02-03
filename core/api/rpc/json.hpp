@@ -9,7 +9,8 @@
 #include <rapidjson/document.h>
 #include <cppcodec/base64_rfc4648.hpp>
 
-#include "api/api.hpp"
+#include "api/storage_api.hpp"
+#include "api/node_api.hpp"
 #include "api/rpc/json_errors.hpp"
 #include "api/rpc/rpc.hpp"
 #include "common/enum.hpp"
@@ -54,11 +55,15 @@ namespace fc::api {
   using rapidjson::Value;
   using sector_storage::stores::LocalPath;
   using sector_storage::stores::StorageConfig;
+  using vm::actor::builtin::v0::market::DealProposal;
+  using vm::actor::builtin::v0::market::DealState;
+  using vm::actor::builtin::v0::market::StorageParticipantBalance;
   using vm::actor::builtin::v0::miner::PowerPair;
   using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
   using vm::actor::builtin::v0::miner::WorkerKeyChange;
   using vm::actor::builtin::v0::payment_channel::Merge;
   using vm::actor::builtin::v0::payment_channel::ModularVerificationParameter;
+  using vm::runtime::ExecutionResult;
   using base64 = cppcodec::base64_rfc4648;
 
   struct Codec {

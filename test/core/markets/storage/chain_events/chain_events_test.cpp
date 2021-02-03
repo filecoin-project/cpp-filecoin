@@ -12,9 +12,9 @@
 
 namespace fc::markets::storage::chain_events {
   using adt::Channel;
-  using api::Api;
   using api::BlockMessages;
   using api::Chan;
+  using api::FullNodeApi;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
   using primitives::block::BlockHeader;
@@ -34,7 +34,7 @@ namespace fc::markets::storage::chain_events {
     Address provider = Address::makeFromId(1);
     DealId deal_id{1};
     SectorNumber sector_number{13};
-    std::shared_ptr<Api> api{std::make_shared<Api>()};
+    std::shared_ptr<FullNodeApi> api{std::make_shared<FullNodeApi>()};
     std::shared_ptr<ChainEventsImpl> events{
         std::make_shared<ChainEventsImpl>(api)};
   };

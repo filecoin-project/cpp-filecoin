@@ -41,7 +41,7 @@ namespace fc {
   class CID;
 
   namespace api {
-    struct Api;
+    struct FullNodeApi;
   }  // namespace api
 
   namespace clock {

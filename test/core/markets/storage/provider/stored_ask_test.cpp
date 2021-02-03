@@ -35,7 +35,7 @@ namespace fc::markets::storage::provider {
     std::shared_ptr<Datastore> datastore = std::make_shared<InMemoryStorage>();
 
     ChainEpoch epoch = 100;
-    std::shared_ptr<Api> api = std::make_shared<Api>();
+    std::shared_ptr<FullNodeApi> api = std::make_shared<FullNodeApi>();
     std::shared_ptr<const Tipset> chain_head;
     Address actor_address = Address::makeFromId(1);
     Address bls_address;

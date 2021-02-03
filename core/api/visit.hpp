@@ -5,10 +5,56 @@
 
 #pragma once
 
+#include "api/common_api.hpp"
+#include "api/node_api.hpp"
+#include "api/storage_api.hpp"
+#include "api/worker_api.hpp"
+
 namespace fc::api {
   template <typename A, typename F>
-  void visit(A &&a, const F &f) {
+  void visitCommon(A &&a, const F &f) {
     f(a.AuthNew);
+    f(a.NetAddrsListen);
+    f(a.Version);
+  }
+
+  template <typename A, typename F>
+  void visit(A &&a, const F &f) {
+    visit(a, a, f);
+  }
+
+  template <typename A, typename F>
+  void visit(const StorageMinerApi &, A &&a, const F &f) {
+    visitCommon(a, f);
+    f(a.PledgeSector);
+    f(a.DealsImportData);
+    f(a.MarketGetAsk);
+    f(a.MarketGetRetrievalAsk);
+    f(a.MarketSetAsk);
+    f(a.MarketSetRetrievalAsk);
+  }
+
+  template <typename A, typename F>
+  void visit(const WorkerApi &, A &&a, const F &f) {
+    f(a.Fetch);
+    f(a.FinalizeSector);
+    f(a.Info);
+    f(a.MoveStorage);
+    f(a.Paths);
+    f(a.Remove);
+    f(a.SealCommit1);
+    f(a.SealCommit2);
+    f(a.SealPreCommit1);
+    f(a.SealPreCommit2);
+    f(a.StorageAddLocal);
+    f(a.TaskTypes);
+    f(a.UnsealPiece);
+    f(a.Version);
+  }
+
+  template <typename A, typename F>
+  void visit(const FullNodeApi &, A &&a, const F &f) {
+    visitCommon(a, f);
     f(a.BeaconGetEntry);
     f(a.ChainGetBlock);
     f(a.ChainGetBlockMessages);
@@ -33,26 +79,19 @@ namespace fc::api {
     f(a.ClientQueryAsk);
     f(a.ClientRetrieve);
     f(a.ClientStartDeal);
-    f(a.DealsImportData);
     f(a.GasEstimateMessageGas);
-    f(a.MarketGetAsk);
-    f(a.MarketGetRetrievalAsk);
     f(a.MarketReserveFunds);
-    f(a.MarketSetAsk);
-    f(a.MarketSetRetrievalAsk);
     f(a.MinerCreateBlock);
     f(a.MinerGetBaseInfo);
     f(a.MpoolPending);
     f(a.MpoolPushMessage);
     f(a.MpoolSelect);
     f(a.MpoolSub);
-    f(a.NetAddrsListen);
     f(a.PaychAllocateLane);
     f(a.PaychGet);
     f(a.PaychVoucherAdd);
     f(a.PaychVoucherCheckValid);
     f(a.PaychVoucherCreate);
-    f(a.PledgeSector);
     f(a.StateAccountKey);
     f(a.StateCall);
     f(a.StateGetActor);
@@ -82,7 +121,6 @@ namespace fc::api {
     f(a.StateSectorPreCommitInfo);
     f(a.StateWaitMsg);
     f(a.SyncSubmitBlock);
-    f(a.Version);
     f(a.WalletBalance);
     f(a.WalletDefaultAddress);
     f(a.WalletHas);

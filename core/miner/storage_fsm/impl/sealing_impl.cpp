@@ -41,7 +41,7 @@ namespace fc::mining {
     return 60000;  // 1 minute
   }
 
-  SealingImpl::SealingImpl(std::shared_ptr<Api> api,
+  SealingImpl::SealingImpl(std::shared_ptr<FullNodeApi> api,
                            std::shared_ptr<Events> events,
                            const Address &miner_address,
                            std::shared_ptr<Counter> counter,

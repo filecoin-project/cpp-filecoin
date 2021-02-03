@@ -5,21 +5,11 @@
 
 #pragma once
 
+#include "api/utils.hpp"
 #include "common/outcome.hpp"
 #include "sector_storage/worker.hpp"
 
-#define API_METHOD(_name, _result, ...)                                    \
-  struct _##_name : std::function<outcome::result<_result>(__VA_ARGS__)> { \
-    using function::function;                                              \
-    using Result = _result;                                                \
-    using Params = ParamsTuple<__VA_ARGS__>;                               \
-    static constexpr auto name = "Filecoin." #_name;                       \
-  } _name;
-
 namespace fc::api {
-  template <typename... T>
-  using ParamsTuple =
-      std::tuple<std::remove_const_t<std::remove_reference_t<T>>...>;
 
   using primitives::piece::PieceInfo;
   using primitives::sector::InteractiveRandomness;
@@ -88,6 +78,6 @@ namespace fc::api {
                const SealRandomness &,
                const CID &)
 
-    API_METHOD(Version, uint64_t, void)
+    API_METHOD(Version, VersionResult, void)
   };
 }  // namespace fc::api

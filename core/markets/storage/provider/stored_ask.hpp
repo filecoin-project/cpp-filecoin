@@ -10,7 +10,7 @@
 #include <mutex>
 
 #include <boost/optional.hpp>
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "common/outcome.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "primitives/address/address.hpp"
@@ -21,7 +21,7 @@
 #include "storage/face/persistent_map.hpp"
 
 namespace fc::markets::storage::provider {
-  using api::Api;
+  using api::FullNodeApi;
   using common::Buffer;
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
@@ -42,7 +42,7 @@ namespace fc::markets::storage::provider {
   class StoredAsk {
    public:
     StoredAsk(std::shared_ptr<Datastore> datastore,
-              std::shared_ptr<Api> api,
+              std::shared_ptr<FullNodeApi> api,
               const Address &actor_address);
 
     auto addAsk(StorageAsk ask, ChainEpoch duration) -> outcome::result<void>;
@@ -69,7 +69,7 @@ namespace fc::markets::storage::provider {
 
     boost::optional<SignedStorageAsk> last_signed_storage_ask_;
     std::shared_ptr<Datastore> datastore_;
-    std::shared_ptr<Api> api_;
+    std::shared_ptr<FullNodeApi> api_;
     Address actor_;
   };
 

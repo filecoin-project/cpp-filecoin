@@ -7,7 +7,8 @@ add_executable(remote_worker_main
         main.cpp
         )
 target_link_libraries(remote_worker_main
+        Boost::program_options
+        remote_index
         fetch_handler
-
         worker
         )

@@ -12,10 +12,11 @@
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <set>
 
+#include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/json.hpp"
 #include "api/rpc/ws.hpp"
-#include "api/rpc/wsc.hpp"
+#include "api/storage_api.hpp"
 #include "api/worker_api.hpp"
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
@@ -27,6 +28,7 @@
 #include "sector_storage/stores/impl/storage_impl.hpp"
 
 namespace fc {
+  using api::VersionResult;
   using boost::asio::io_context;
   using primitives::sector::SealRandomness;
   using sector_storage::AcquireMode;
@@ -122,7 +124,7 @@ namespace fc {
     auto scheduler{std::make_shared<libp2p::protocol::AsioScheduler>(
         *io, libp2p::protocol::SchedulerConfig())};
 
-    auto mapi{std::make_shared<api::Api>()};  // TODO: change to miner api
+    auto mapi{std::make_shared<api::StorageMinerApi>()};
     api::rpc::Client wsc{*io};
     wsc.setup(*mapi);
     OUTCOME_TRY(wsc.connect(config.miner_api.first, config.miner_api.second));
@@ -172,9 +174,7 @@ namespace fc {
     auto worker{std::make_unique<LocalWorker>(wconfig, remote_store)};
 
     auto wapi{std::make_shared<api::WorkerApi>()};
-    wapi->Version = [&]() {
-      return 1;  // TODO: change to version
-    };
+    wapi->Version = []() { return VersionResult{"fuhon", 0x000C00, 5}; };
     wapi->StorageAddLocal = [&](const std::string &path) {
       return local_store->openPath(path);
     };

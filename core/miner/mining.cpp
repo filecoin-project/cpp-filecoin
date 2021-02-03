@@ -26,7 +26,7 @@ namespace fc::mining {
   outcome::result<std::shared_ptr<Mining>> Mining::create(
       std::shared_ptr<Scheduler> scheduler,
       std::shared_ptr<UTCClock> clock,
-      std::shared_ptr<Api> api,
+      std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<Prover> prover,
       const Address &miner) {
     OUTCOME_TRY(version, api->Version());
