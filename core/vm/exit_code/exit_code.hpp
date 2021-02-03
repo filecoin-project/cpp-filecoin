@@ -66,7 +66,11 @@
 /**
  * Break the method and return VMAbortExitCode
  */
-#define ABORT(err_code) return outcome::failure(ABORT_CAST(err_code))
+#define ABORT(err_code)                            \
+  if (fc::vm::isVMExitCode(err_code)) {            \
+    return outcome::failure(ABORT_CAST(err_code)); \
+  }                                                \
+  return outcome::failure(err_code);
 
 namespace fc::vm {
   /**
@@ -143,7 +147,7 @@ OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMFatal);
 OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMAbortExitCode);
 
 namespace fc::vm {
-  
+
   template <typename T>
   outcome::result<VMExitCode> asExitCode(const outcome::result<T> &result) {
     if (result) {
@@ -151,7 +155,7 @@ namespace fc::vm {
     }
     return asExitCode(result.error());
   }
-  
+
   /**
    * Aborts execution if res has error
    * @tparam T - result type
@@ -204,7 +208,10 @@ namespace fc::vm {
   template <typename T>
   outcome::result<void> requireSuccess(const outcome::result<T> &res) {
     if (res.has_error()) {
-      ABORT(res.error().value());
+      if (const auto exit{asExitCode(res)}) {
+        ABORT(exit.value());
+      }
+      return res.error();
     }
     return outcome::success();
   }

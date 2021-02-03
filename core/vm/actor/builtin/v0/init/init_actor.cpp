@@ -59,13 +59,10 @@ namespace fc::vm::actor::builtin::v0::init {
                                           const Exec::Params &params) {
     OUTCOME_TRY(runtime.createActor(id_address,
                                     Actor{params.code, kEmptyObjectCid, 0, 0}));
-    const auto result = runtime.send(id_address,
-                                     kConstructorMethodNumber,
-                                     params.params,
-                                     runtime.getMessage().get().value);
-    if (result.has_error()) {
-      ABORT(result.error().value());
-    }
+    REQUIRE_SUCCESS(runtime.send(id_address,
+                                 kConstructorMethodNumber,
+                                 params.params,
+                                 runtime.getMessage().get().value));
     return outcome::success();
   }
 
