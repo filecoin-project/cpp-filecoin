@@ -155,7 +155,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   TEST_F(MultisigActorTest, ConstructWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          Construct::call(runtime, {}));
   }
 
@@ -167,7 +167,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   TEST_F(MultisigActorTest, ConstructEmptySigners) {
     caller = kInitAddress;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          Construct::call(runtime, {}));
   }
 
@@ -181,7 +181,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     const std::vector<Address> signers{caller, caller};
     const size_t threshold{2};
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          Construct::call(runtime, {signers, threshold, {}}));
   }
 
@@ -195,7 +195,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     const std::vector<Address> signers{caller};
     const size_t threshold{5};
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          Construct::call(runtime, {signers, threshold, {}}));
   }
 
@@ -209,7 +209,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     const std::vector<Address> signers{caller};
     const size_t threshold{0};
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          Construct::call(runtime, {signers, threshold, {}}));
   }
 
@@ -225,7 +225,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     const EpochDuration duration = -1;
 
     EXPECT_OUTCOME_ERROR(
-        ABORT_CAST(VMExitCode::kErrIllegalArgument),
+        asAbort(VMExitCode::kErrIllegalArgument),
         Construct::call(runtime, {signers, threshold, duration}));
   }
 
@@ -252,7 +252,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   TEST_F(MultisigActorTest, ProposeWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          Propose::call(runtime, {}));
   }
 
@@ -264,7 +264,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   TEST_F(MultisigActorTest, ProposetWrongSigner) {
     state.signers.clear();
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
                          Propose::call(runtime, {}));
   }
 
@@ -282,7 +282,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     state.initial_balance = balance;
 
     EXPECT_OUTCOME_ERROR(
-        ABORT_CAST(VMExitCode::kErrInsufficientFunds),
+        asAbort(VMExitCode::kErrInsufficientFunds),
         Propose::call(
             runtime,
             {to_address, value_to_send, method_number, method_params}));
@@ -305,7 +305,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     state.unlock_duration = 10;
 
     EXPECT_OUTCOME_ERROR(
-        ABORT_CAST(VMExitCode::kErrInsufficientFunds),
+        asAbort(VMExitCode::kErrInsufficientFunds),
         Propose::call(
             runtime,
             {to_address, value_to_send, method_number, method_params}));
@@ -329,7 +329,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     state.unlock_duration = 10;
 
     EXPECT_OUTCOME_ERROR(
-        ABORT_CAST(VMExitCode::kErrInsufficientFunds),
+        asAbort(VMExitCode::kErrInsufficientFunds),
         Propose::call(
             runtime,
             {to_address, value_to_send, method_number, method_params}));
@@ -406,7 +406,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   TEST_F(MultisigActorTest, ApproveWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          Approve::call(runtime, {}));
   }
 
@@ -419,7 +419,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     state.signers.clear();
     pushSigner(kInitAddress);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
                          Approve::call(runtime, {}));
   }
 
@@ -429,7 +429,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then error returned
    */
   TEST_F(MultisigActorTest, ApproveWrongTxId) {
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrNotFound),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrNotFound),
                          Approve::call(runtime, {}));
   }
 
@@ -452,7 +452,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     state.initial_balance = 100;
     EXPECT_OUTCOME_TRUE_1(state.pending_transactions.set(tx_id, pending_tx));
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
                          Approve::call(runtime, {tx_id, {}}));
   }
 
@@ -483,7 +483,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     state.initial_balance = balance;
     EXPECT_OUTCOME_TRUE_1(state.pending_transactions.set(tx_id, pending_tx));
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          Approve::call(runtime, {tx_id, wrong_hash}));
   }
 
@@ -536,7 +536,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   TEST_F(MultisigActorTest, CancelWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          Cancel::call(runtime, {}));
   }
 
@@ -549,7 +549,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     state.signers.clear();
     pushSigner(kInitAddress);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
                          Cancel::call(runtime, {}));
   }
 
@@ -560,7 +560,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
    */
   TEST_F(MultisigActorTest, CancelWrongTxId) {
     // no pending txs in state
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrNotFound),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrNotFound),
                          Cancel::call(runtime, {}));
   }
 
@@ -582,7 +582,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     state.initial_balance = 100;
     EXPECT_OUTCOME_TRUE_1(state.pending_transactions.set(tx_id, pending_tx));
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
                          Cancel::call(runtime, {tx_id, {}}));
   }
 
@@ -606,7 +606,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     const Buffer wrong_hash{"010203"_unhex};
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalState),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalState),
                          Cancel::call(runtime, {tx_id, wrong_hash}));
   }
 
@@ -645,7 +645,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   TEST_F(MultisigActorTest, AddSignerWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          AddSigner::call(runtime, {}));
   }
 
@@ -659,7 +659,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     resetSigners();
     pushSigner(kInitAddress);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
                          AddSigner::call(runtime, {caller}));
   }
 
@@ -709,7 +709,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then error returned
    */
   TEST_F(MultisigActorTest, RemoveSignerWrongCaller) {
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          RemoveSigner::call(runtime, {}));
   }
 
@@ -724,7 +724,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     state.signers.clear();
     pushSigner(kInitAddress);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
                          RemoveSigner::call(runtime, {caller}));
   }
 
@@ -779,7 +779,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     pushSigner(kInitAddress);
     state.threshold = 5;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          RemoveSigner::call(runtime, {caller, false}));
   }
 
@@ -794,7 +794,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     pushSigner(kInitAddress);
     state.threshold = 2;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          RemoveSigner::call(runtime, {caller, false}));
   }
 
@@ -806,7 +806,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   TEST_F(MultisigActorTest, SwapSignerWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          SwapSigner::call(runtime, {}));
   }
 
@@ -822,7 +822,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     // old signer not present
     pushSigner(kInitAddress);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
                          SwapSigner::call(runtime, {caller, kCronAddress}));
   }
 
@@ -838,7 +838,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     // new signer is already present
     pushSigner(kCronAddress);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          SwapSigner::call(runtime, {caller, kCronAddress}));
   }
 
@@ -868,7 +868,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
     caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          ChangeThreshold::call(runtime, {}));
   }
 
@@ -882,7 +882,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     resetSigners();
     pushSigner(kInitAddress);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          ChangeThreshold::call(runtime, {0}));
   }
 
@@ -897,7 +897,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     pushSigner(kInitAddress);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          ChangeThreshold::call(runtime, {100500}));
   }
 
@@ -924,7 +924,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then error returned
    */
   TEST_F(MultisigActorTest, LockBalanceWrongNetwork) {
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrInvalidMethod),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrInvalidMethod),
                          LockBalance::call(runtime, {}));
   }
 
@@ -937,7 +937,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     caller = wrong_caller;
     epoch = 94001;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          LockBalance::call(runtime, {}));
   }
 
@@ -955,7 +955,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     const TokenAmount amount = 100;
 
     EXPECT_OUTCOME_ERROR(
-        ABORT_CAST(VMExitCode::kErrIllegalArgument),
+        asAbort(VMExitCode::kErrIllegalArgument),
         LockBalance::call(runtime, {start_epoch, unlock_duration, amount}));
   }
 

@@ -198,7 +198,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     constructed();
     callerCodeIdIs(kEmptyObjectCid);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          CreateMiner::call(runtime, {}));
   }
 
@@ -212,7 +212,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     callerCodeIdIs(kEmptyObjectCid);
 
     const UpdateClaimedPower::Params params{};
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          UpdateClaimedPower::call(runtime, params));
   }
 
@@ -226,7 +226,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     callerCodeIdIs(kStorageMinerCodeCid);
 
     UpdateClaimedPower::Params params{};
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrNotFound),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrNotFound),
                          UpdateClaimedPower::call(runtime, params));
   }
 
@@ -320,13 +320,13 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
     current_epoch = kUpgradeBreezeHeight;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kOldErrActorFailure),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kOldErrActorFailure),
                          OnConsensusFault::call(runtime, {50}));
 
     current_epoch = kUpgradeKumquatHeight;
     callerCodeIdIs(kStorageMinerCodeCid);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrReserved1),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrReserved1),
                          OnConsensusFault::call(runtime, {50}));
   }
 
@@ -340,7 +340,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
     callerCodeIdIs(kEmptyObjectCid);
     const TokenAmount slash{50};
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          OnConsensusFault::call(runtime, {50}));
   }
 

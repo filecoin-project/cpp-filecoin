@@ -38,7 +38,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   TEST_F(VerifiedRegistryActorTest, ConstructCallerNotSystem) {
     callerIs(wrong_caller);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          Construct::call(runtime, {}));
   }
 
@@ -53,12 +53,12 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   TEST_F(VerifiedRegistryActorTest, AddVerifierWrongAllowance) {
     DataCap allowance = 0;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          AddVerifier::call(runtime, {{}, allowance}));
 
     allowance = kMinVerifiedDealSize - 1;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          AddVerifier::call(runtime, {{}, allowance}));
   }
 
@@ -67,7 +67,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     callerIs(wrong_caller);
     const DataCap allowance = kMinVerifiedDealSize + 1;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          AddVerifier::call(runtime, {{}, allowance}));
   }
 
@@ -76,7 +76,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     callerIs(root_key);
     const DataCap allowance = kMinVerifiedDealSize + 1;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          AddVerifier::call(runtime, {root_key, allowance}));
   }
 
@@ -88,7 +88,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     EXPECT_OUTCOME_TRUE_1(state.verified_clients.set(verifier, 0));
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          AddVerifier::call(runtime, {verifier, allowance}));
   }
 
@@ -107,7 +107,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   TEST_F(VerifiedRegistryActorTest, RemoveVerifierCallerNotRootKey) {
     callerIs(wrong_caller);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          RemoveVerifier::call(runtime, {}));
   }
 
@@ -115,7 +115,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   TEST_F(VerifiedRegistryActorTest, RemoveVerifierWrongVerifier) {
     callerIs(root_key);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalState),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalState),
                          RemoveVerifier::call(runtime, verifier));
   }
 
@@ -136,12 +136,12 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   TEST_F(VerifiedRegistryActorTest, AddVerifiedClientWrongAllowance) {
     DataCap allowance = 0;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          AddVerifiedClient::call(runtime, {{}, allowance}));
 
     allowance = kMinVerifiedDealSize - 1;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          AddVerifiedClient::call(runtime, {{}, allowance}));
   }
 
@@ -150,7 +150,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     const DataCap allowance = kMinVerifiedDealSize + 1;
 
     EXPECT_OUTCOME_ERROR(
-        ABORT_CAST(VMExitCode::kErrIllegalArgument),
+        asAbort(VMExitCode::kErrIllegalArgument),
         AddVerifiedClient::call(runtime, {root_key, allowance}));
   }
 
@@ -160,7 +160,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     const DataCap allowance = kMinVerifiedDealSize + 1;
 
     EXPECT_OUTCOME_ERROR(
-        ABORT_CAST(VMExitCode::kErrNotFound),
+        asAbort(VMExitCode::kErrNotFound),
         AddVerifiedClient::call(runtime, {verified_client, allowance}));
   }
 
@@ -173,7 +173,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     EXPECT_OUTCOME_TRUE_1(state.verifiers.set(verified_client, 0));
 
     EXPECT_OUTCOME_ERROR(
-        ABORT_CAST(VMExitCode::kErrIllegalArgument),
+        asAbort(VMExitCode::kErrIllegalArgument),
         AddVerifiedClient::call(runtime, {verified_client, allowance}));
   }
 
@@ -186,13 +186,13 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     EXPECT_OUTCOME_TRUE_1(state.verifiers.set(verifier, 0));
 
     EXPECT_OUTCOME_ERROR(
-        ABORT_CAST(VMExitCode::kErrIllegalArgument),
+        asAbort(VMExitCode::kErrIllegalArgument),
         AddVerifiedClient::call(runtime, {verified_client, allowance}));
 
     EXPECT_OUTCOME_TRUE_1(state.verifiers.set(verifier, allowance - 1));
 
     EXPECT_OUTCOME_ERROR(
-        ABORT_CAST(VMExitCode::kErrIllegalArgument),
+        asAbort(VMExitCode::kErrIllegalArgument),
         AddVerifiedClient::call(runtime, {verified_client, allowance}));
   }
 
@@ -205,7 +205,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     EXPECT_OUTCOME_TRUE_1(state.verified_clients.set(verified_client, 0));
 
     EXPECT_OUTCOME_ERROR(
-        ABORT_CAST(VMExitCode::kErrIllegalArgument),
+        asAbort(VMExitCode::kErrIllegalArgument),
         AddVerifiedClient::call(runtime, {verified_client, allowance}));
   }
 
@@ -232,7 +232,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   TEST_F(VerifiedRegistryActorTest, UseBytesWrongCaller) {
     callerIs(wrong_caller);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          UseBytes::call(runtime, {}));
   }
 
@@ -242,12 +242,12 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     StoragePower deal_size = 0;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          UseBytes::call(runtime, {{}, deal_size}));
 
     deal_size = kMinVerifiedDealSize - 1;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          UseBytes::call(runtime, {{}, deal_size}));
   }
 
@@ -256,7 +256,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     callerIs(kStorageMarketAddress);
     const StoragePower deal_size = kMinVerifiedDealSize + 1;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrNotFound),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrNotFound),
                          UseBytes::call(runtime, {verified_client, deal_size}));
   }
 
@@ -273,12 +273,12 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     currentEpochIs(kUpgradeBreezeHeight);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kOldErrActorFailure),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kOldErrActorFailure),
                          UseBytes::call(runtime, {verified_client, deal_size}));
 
     currentEpochIs(kUpgradeKumquatHeight);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrReserved1),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrReserved1),
                          UseBytes::call(runtime, {verified_client, deal_size}));
   }
 
@@ -291,7 +291,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     EXPECT_OUTCOME_TRUE_1(
         state.verified_clients.set(verified_client, allowance));
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          UseBytes::call(runtime, {verified_client, deal_size}));
   }
 
@@ -334,7 +334,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   TEST_F(VerifiedRegistryActorTest, RestoreBytesWrongCaller) {
     callerIs(wrong_caller);
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kSysErrForbidden),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          RestoreBytes::call(runtime, {}));
   }
 
@@ -344,12 +344,12 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     StoragePower deal_size = 0;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          RestoreBytes::call(runtime, {{}, deal_size}));
 
     deal_size = kMinVerifiedDealSize - 1;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          RestoreBytes::call(runtime, {{}, deal_size}));
   }
 
@@ -358,7 +358,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     callerIs(kStorageMarketAddress);
     const StoragePower deal_size = kMinVerifiedDealSize + 1;
 
-    EXPECT_OUTCOME_ERROR(ABORT_CAST(VMExitCode::kErrIllegalArgument),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          RestoreBytes::call(runtime, {root_key, deal_size}));
   }
 
@@ -370,7 +370,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     EXPECT_OUTCOME_TRUE_1(state.verifiers.set(verified_client, 0));
 
     EXPECT_OUTCOME_ERROR(
-        ABORT_CAST(VMExitCode::kErrIllegalArgument),
+        asAbort(VMExitCode::kErrIllegalArgument),
         RestoreBytes::call(runtime, {verified_client, deal_size}));
   }
 

@@ -59,18 +59,9 @@
   OUTCOME_TRY((res), changeErrorAbortAssign((expr), (err_code)))
 
 /**
- * Return VMExitCode as VMAbortExitCode for special handling
- */
-#define ABORT_CAST(err_code) static_cast<VMAbortExitCode>(err_code)
-
-/**
  * Break the method and return VMAbortExitCode
  */
-#define ABORT(err_code)                            \
-  if (fc::vm::isVMExitCode(err_code)) {            \
-    return outcome::failure(ABORT_CAST(err_code)); \
-  }                                                \
-  return outcome::failure(err_code);
+#define ABORT(err_code) return outcome::failure(asAbort(err_code))
 
 namespace fc::vm {
   /**
@@ -154,6 +145,13 @@ namespace fc::vm {
       return outcome::success(VMExitCode::kOk);
     }
     return asExitCode(result.error());
+  }
+
+  /**
+   * Return VMExitCode as VMAbortExitCode for special handling
+   */
+  inline VMAbortExitCode asAbort(VMExitCode code) {
+    return static_cast<VMAbortExitCode>(code);
   }
 
   /**
