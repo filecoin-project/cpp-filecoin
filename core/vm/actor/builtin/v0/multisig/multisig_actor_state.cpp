@@ -31,7 +31,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       const TransactionId &tx_id) const {
     OUTCOME_TRY(pending_tx, pending_transactions.tryGet(tx_id));
     if (!pending_tx) {
-      return VMExitCode::kErrNotFound;
+      ABORT(VMExitCode::kErrNotFound);
     }
 
     return std::move(pending_tx.get());
@@ -42,10 +42,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
       const TransactionId &tx_id,
       const Buffer &proposal_hash) const {
     OUTCOME_TRY(transaction, getPendingTransaction(tx_id));
-    const auto hash = transaction.hash(runtime);
-    REQUIRE_NO_ERROR(hash, VMExitCode::kErrIllegalState);
-    if (!proposal_hash.empty() && (proposal_hash != hash.value())) {
-      return VMExitCode::kErrIllegalArgument;
+    REQUIRE_NO_ERROR_A(
+        hash, transaction.hash(runtime), VMExitCode::kErrIllegalState);
+    if (!proposal_hash.empty() && (proposal_hash != hash)) {
+      ABORT(VMExitCode::kErrIllegalArgument);
     }
 
     return std::move(transaction);

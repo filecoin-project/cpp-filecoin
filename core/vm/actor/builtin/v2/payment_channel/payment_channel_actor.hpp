@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V2_PAYMENT_CHANNEL_ACTOR_HPP
-#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V2_PAYMENT_CHANNEL_ACTOR_HPP
+#pragma once
 
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
 #include "vm/actor/builtin/v2/payment_channel/payment_channel_actor_state.hpp"
@@ -20,13 +19,9 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
   constexpr auto kMaxSecretSize = v0::payment_channel::kMaxSecretSize;
 
   struct Construct : ActorMethodBase<1> {
-    struct Params {
-      Address from;
-      Address to;
-    };
+    using Params = v0::payment_channel::Construct::Params;
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(Construct::Params, from, to)
 
   struct UpdateChannelState : ActorMethodBase<2> {
     struct Params {
@@ -34,6 +29,11 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
       Buffer secret;
     };
     ACTOR_METHOD_DECL();
+
+    static outcome::result<void> checkPaychannelAddr(
+        const Runtime &runtime, const SignedVoucher &voucher);
+    static outcome::result<void> voucherExtra(Runtime &runtime,
+                                              const SignedVoucher &voucher);
   };
   CBOR_TUPLE(UpdateChannelState::Params, signed_voucher, secret)
 
@@ -42,5 +42,3 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
 
   extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::v2::payment_channel
-
-#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V2_PAYMENT_CHANNEL_ACTOR_HPP

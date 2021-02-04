@@ -28,8 +28,6 @@ namespace fc::vm::actor::builtin::v2::multisig {
                                            const Params &params,
                                            const MultisigUtils &utils);
 
-    static outcome::result<void> checkSignersCount(
-        const std::vector<Address> &signers);
     static void setLocked(const Runtime &runtime,
                           const ChainEpoch &start_epoch,
                           const EpochDuration &unlock_duration,
@@ -117,9 +115,6 @@ namespace fc::vm::actor::builtin::v2::multisig {
     static outcome::result<Result> execute(Runtime &runtime,
                                            const Params &params,
                                            const MultisigUtils &utils);
-
-    static outcome::result<void> checkAmount(const Runtime &runtime,
-                                             const Params &params);
   };
 
   /** Exported Multisig Actor methods to invoker */

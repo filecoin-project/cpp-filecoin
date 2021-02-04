@@ -34,20 +34,21 @@ namespace fc::vm::actor::builtin::v2::miner {
    */
   outcome::result<Address> resolveWorkerAddress(Runtime &runtime,
                                                 const Address &address) {
-    OUTCOME_TRY(resolved, runtime.resolveAddress(address));
-    VM_ASSERT(resolved.isId());
-    const auto resolved_code = runtime.getActorCodeID(resolved);
-    REQUIRE_NO_ERROR(resolved_code, VMExitCode::kErrIllegalArgument);
+    const auto resolved = runtime.resolveAddress(address);
+    OUTCOME_TRY(runtime.validateArgument(!resolved.has_error()));
+    VM_ASSERT(resolved.value().isId());
+    const auto resolved_code = runtime.getActorCodeID(resolved.value());
+    OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
     OUTCOME_TRY(
         runtime.validateArgument(resolved_code.value() == kAccountCodeCid));
 
     if (!address.isBls()) {
-      OUTCOME_TRY(pubkey_addres,
-                  runtime.sendM<account::PubkeyAddress>(resolved, {}, 0));
-      OUTCOME_TRY(runtime.validateArgument(pubkey_addres.isBls()));
+      const auto pubkey_addres =
+          runtime.sendM<account::PubkeyAddress>(resolved.value(), {}, 0);
+      OUTCOME_TRY(runtime.validateArgument(pubkey_addres.value().isBls()));
     }
 
-    return std::move(resolved);
+    return std::move(resolved.value());
   }
 
   /**
@@ -57,9 +58,10 @@ namespace fc::vm::actor::builtin::v2::miner {
   outcome::result<void> enrollCronEvent(Runtime &runtime,
                                         ChainEpoch event_epoch,
                                         const CronEventPayload &payload) {
-    OUTCOME_TRY(encoded_params, codec::cbor::encode(payload));
-    OUTCOME_TRY(runtime.sendM<storage_power::EnrollCronEvent>(
-        kStoragePowerAddress, {event_epoch, encoded_params}, 0));
+    const auto encoded_params = codec::cbor::encode(payload);
+    OUTCOME_TRY(runtime.validateArgument(!encoded_params.has_error()));
+    REQUIRE_SUCCESS(runtime.sendM<storage_power::EnrollCronEvent>(
+        kStoragePowerAddress, {event_epoch, encoded_params.value()}, 0));
     return outcome::success();
   }
 
@@ -76,6 +78,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     OUTCOME_TRY(runtime.validateArgument(peer_id.size() <= kMaxPeerIDLength));
     size_t total_size = 0;
     for (const auto &multiaddress : multiaddresses) {
+      OUTCOME_TRY(
+          runtime.validateArgument(!multiaddress.getBytesAddress().empty()));
       total_size += multiaddress.getBytesAddress().size();
     }
     OUTCOME_TRY(runtime.validateArgument(total_size <= kMaxMultiaddressData));
@@ -106,7 +110,9 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   outcome::result<uint64_t> Construct::currentDeadlineIndex(
-      const ChainEpoch &current_epoch, const ChainEpoch &period_start) {
+      const Runtime &runtime,
+      const ChainEpoch &current_epoch,
+      const ChainEpoch &period_start) {
     VM_ASSERT(current_epoch >= period_start);
     return (current_epoch - period_start) / kWPoStChallengeWindow;
   }
@@ -126,8 +132,10 @@ namespace fc::vm::actor::builtin::v2::miner {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
     OUTCOME_TRY(checkControlAddresses(runtime, params.control_addresses));
     OUTCOME_TRY(checkPeerInfo(runtime, params.peer_id, params.multiaddresses));
-    OUTCOME_TRY(canPreCommitSealProof(
-        runtime, params.seal_proof_type, runtime.getNetworkVersion()));
+    CHANGE_ERROR_ABORT(
+        canPreCommitSealProof(
+            runtime, params.seal_proof_type, runtime.getNetworkVersion()),
+        VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(owner, resolveControlAddress(runtime, params.owner));
     OUTCOME_TRY(worker, resolveWorkerAddress(runtime, params.worker));
     std::vector<Address> control_addresses;
@@ -161,26 +169,27 @@ namespace fc::vm::actor::builtin::v2::miner {
     OUTCOME_TRY(state.vesting_funds.set(vesting_funds));
 
     const auto current_epoch = runtime.getCurrentEpoch();
-    const auto offset =
-        v0::miner::Construct::assignProvingPeriodOffset(runtime, current_epoch);
-    REQUIRE_NO_ERROR(offset, VMExitCode::kErrSerialization);
-    const auto period_start =
-        currentProvingPeriodStart(current_epoch, offset.value());
+    REQUIRE_NO_ERROR_A(
+        offset,
+        v0::miner::Construct::assignProvingPeriodOffset(runtime, current_epoch),
+        VMExitCode::kErrSerialization);
+    const auto period_start = currentProvingPeriodStart(current_epoch, offset);
     VM_ASSERT(period_start <= current_epoch);
     state.proving_period_start = period_start;
 
     OUTCOME_TRY(deadline_index,
-                currentDeadlineIndex(current_epoch, period_start));
+                currentDeadlineIndex(runtime, current_epoch, period_start));
     VM_ASSERT(deadline_index < kWPoStPeriodDeadlines);
     state.current_deadline = deadline_index;
 
-    OUTCOME_TRY(miner_info,
-                MinerInfo::make(owner,
-                                worker,
-                                control_addresses,
-                                params.peer_id,
-                                params.multiaddresses,
-                                params.seal_proof_type));
+    REQUIRE_NO_ERROR_A(miner_info,
+                       MinerInfo::make(owner,
+                                       worker,
+                                       control_addresses,
+                                       params.peer_id,
+                                       params.multiaddresses,
+                                       params.seal_proof_type),
+                       VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(state.info.set(miner_info));
 
     // construct with empty already cid stored in ipld to avoid gas charge

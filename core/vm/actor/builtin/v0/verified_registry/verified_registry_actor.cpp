@@ -36,11 +36,13 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
                                                  State &state,
                                                  const Address &verifier,
                                                  const DataCap &allowance) {
-    const auto found = state.verified_clients.tryGet(verifier);
-    OUTCOME_TRY(runtime.validateArgument(!found.value().has_value()));
+    REQUIRE_NO_ERROR_A(found,
+                       state.verified_clients.tryGet(verifier),
+                       VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(runtime.validateArgument(!found.has_value()));
 
-    const auto result = state.verifiers.set(verifier, allowance);
-    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.verifiers.set(verifier, allowance),
+                     VMExitCode::kErrIllegalState);
     return outcome::success();
   }
 
@@ -67,8 +69,8 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
         state,
         runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
 
-    const auto result = state.verifiers.remove(params);
-    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.verifiers.remove(params),
+                     VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -82,31 +84,35 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
                                                      const DataCap &allowance) {
     // Validate caller is one of the verifiers.
     const auto verifier = runtime.getImmediateCaller();
-    const auto verifier_cap = state.verifiers.tryGet(verifier);
-    REQUIRE_NO_ERROR(verifier_cap, VMExitCode::kErrIllegalState);
-    if (!verifier_cap.value()) {
-      return ABORT_CAST(VMExitCode::kErrNotFound);
+    REQUIRE_NO_ERROR_A(maybe_verifier_cap,
+                       state.verifiers.tryGet(verifier),
+                       VMExitCode::kErrIllegalState);
+    if (!maybe_verifier_cap.has_value()) {
+      ABORT(VMExitCode::kErrNotFound);
     }
 
+    const auto &verifier_cap = maybe_verifier_cap.value();
+
     // Validate client to be added isn't a verifier
-    const auto address_cap = state.verifiers.tryGet(client);
-    REQUIRE_NO_ERROR(address_cap, VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.validateArgument(!address_cap.value().has_value()));
+    REQUIRE_NO_ERROR_A(maybe_address_cap,
+                       state.verifiers.tryGet(client),
+                       VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(runtime.validateArgument(!maybe_address_cap.has_value()));
 
     // Compute new verifier cap and update.
-    OUTCOME_TRY(
-        runtime.validateArgument(verifier_cap.value().value() >= allowance));
+    OUTCOME_TRY(runtime.validateArgument(verifier_cap >= allowance));
 
-    const DataCap new_verifier_cap = verifier_cap.value().value() - allowance;
-    const auto update_result = state.verifiers.set(verifier, new_verifier_cap);
-    REQUIRE_NO_ERROR(update_result, VMExitCode::kErrIllegalState);
+    const DataCap new_verifier_cap = verifier_cap - allowance;
+    REQUIRE_NO_ERROR(state.verifiers.set(verifier, new_verifier_cap),
+                     VMExitCode::kErrIllegalState);
 
-    const auto client_cap = state.verified_clients.tryGet(client);
-    REQUIRE_NO_ERROR(client_cap, VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.validateArgument(!client_cap.value().has_value()));
+    REQUIRE_NO_ERROR_A(maybe_client_cap,
+                       state.verified_clients.tryGet(client),
+                       VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(runtime.validateArgument(!maybe_client_cap.has_value()));
 
-    const auto result = state.verified_clients.set(client, allowance);
-    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.verified_clients.set(client, allowance),
+                     VMExitCode::kErrIllegalState);
     return outcome::success();
   }
 
@@ -130,31 +136,28 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
                                            const Address &client,
                                            const StoragePower &deal_size,
                                            CapAssert cap_assert) {
-    const auto client_cap = state.verified_clients.tryGet(client);
-    REQUIRE_NO_ERROR(client_cap, VMExitCode::kErrIllegalState);
-    if (!client_cap.value()) {
-      return ABORT_CAST(VMExitCode::kErrNotFound);
+    REQUIRE_NO_ERROR_A(maybe_client_cap,
+                       state.verified_clients.tryGet(client),
+                       VMExitCode::kErrIllegalState);
+    if (!maybe_client_cap.has_value()) {
+      ABORT(VMExitCode::kErrNotFound);
     }
 
-    OUTCOME_TRY(cap_assert(client_cap.value().value() >= 0));
+    const auto &client_cap = maybe_client_cap.value();
 
-    OUTCOME_TRY(
-        runtime.validateArgument(deal_size <= client_cap.value().value()));
+    OUTCOME_TRY(cap_assert(client_cap >= 0));
 
-    const DataCap new_client_cap = client_cap.value().value() - deal_size;
+    OUTCOME_TRY(runtime.validateArgument(deal_size <= client_cap));
+
+    const DataCap new_client_cap = client_cap - deal_size;
 
     if (new_client_cap < kMinVerifiedDealSize) {
-      const auto result = state.verified_clients.remove(client);
-      REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+      REQUIRE_NO_ERROR(state.verified_clients.remove(client),
+                       VMExitCode::kErrIllegalState);
     } else {
-      const auto result = state.verified_clients.set(client, new_client_cap);
-      REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+      REQUIRE_NO_ERROR(state.verified_clients.set(client, new_client_cap),
+                       VMExitCode::kErrIllegalState);
     }
-    return outcome::success();
-  }
-
-  outcome::result<void> UseBytes::clientCapAssert(bool condition) {
-    VM_ASSERT(condition);
     return outcome::success();
   }
 
@@ -162,6 +165,10 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kStorageMarketAddress));
     OUTCOME_TRY(Utils::checkDealSize(params.deal_size));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+
+    auto clientCapAssert = [&runtime](bool condition) -> outcome::result<void> {
+      return runtime.vm_assert(condition);
+    };
     OUTCOME_TRY(useBytes(
         runtime, state, params.address, params.deal_size, clientCapAssert));
     OUTCOME_TRY(runtime.commitState(state));
@@ -176,17 +183,20 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
       State &state,
       const Address &client,
       const StoragePower &deal_size) {
-    const auto verifier_cap = state.verifiers.tryGet(client);
-    REQUIRE_NO_ERROR(verifier_cap, VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.validateArgument(!verifier_cap.value().has_value()));
+    REQUIRE_NO_ERROR_A(maybe_verifier_cap,
+                       state.verifiers.tryGet(client),
+                       VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(runtime.validateArgument(!maybe_verifier_cap.has_value()));
 
-    const auto client_cap = state.verified_clients.tryGet(client);
-    REQUIRE_NO_ERROR(verifier_cap, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(maybe_client_cap,
+                       state.verified_clients.tryGet(client),
+                       VMExitCode::kErrIllegalState);
     const DataCap new_client_cap =
-        (client_cap.value() ? client_cap.value().value() : 0) + deal_size;
+        (maybe_client_cap.has_value() ? maybe_client_cap.value() : 0)
+        + deal_size;
 
-    const auto result = state.verified_clients.set(client, new_client_cap);
-    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.verified_clients.set(client, new_client_cap),
+                     VMExitCode::kErrIllegalState);
     return outcome::success();
   }
 

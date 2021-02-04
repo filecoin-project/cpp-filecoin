@@ -19,6 +19,8 @@ target_link_libraries(actor
     account_actor_v2
     account_actor_v3
     init_actor_v0
+    init_actor_v2
+    init_actor_v3
     market_actor_v0
     miner_actor_v0
     miner_actor_v2
@@ -29,6 +31,7 @@ target_link_libraries(actor
     storage_power_actor_v2
     cron_actor_v0
     cron_actor_v2
+    cron_actor_v3
     reward_actor_v0
     reward_actor_v2
     payment_channel_actor_v0

@@ -22,14 +22,6 @@ namespace fc::vm::actor::builtin::v2::multisig {
   // Construct
   //============================================================================
 
-  outcome::result<void> Construct::checkSignersCount(
-      const std::vector<Address> &signers) {
-    if (signers.size() > kSignersMax) {
-      return VMExitCode::kErrIllegalArgument;
-    }
-    return outcome::success();
-  }
-
   void Construct::setLocked(const Runtime &runtime,
                             const ChainEpoch &start_epoch,
                             const EpochDuration &unlock_duration,
@@ -44,8 +36,8 @@ namespace fc::vm::actor::builtin::v2::multisig {
       const Construct::Params &params,
       const MultisigUtils &utils) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
-    OUTCOME_TRY(v0::multisig::Construct::checkEmptySigners(params.signers));
-    OUTCOME_TRY(checkSignersCount(params.signers));
+    OUTCOME_TRY(runtime.validateArgument(!params.signers.empty()));
+    OUTCOME_TRY(runtime.validateArgument(params.signers.size() <= kSignersMax));
     OUTCOME_TRY(
         resolved_signers,
         v0::multisig::Construct::getResolvedSigners(runtime, params.signers));
@@ -113,7 +105,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
   outcome::result<void> AddSigner::checkSignersCount(
       const std::vector<Address> &signers) {
     if (signers.size() >= kSignersMax) {
-      return VMExitCode::kErrForbidden;
+      ABORT(VMExitCode::kErrForbidden);
     }
     return outcome::success();
   }
@@ -145,7 +137,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
       const RemoveSigner::Params &params, State &state, const Address &signer) {
     if (params.decrease_threshold) {
       if (state.threshold < 2) {
-        return VMExitCode::kErrIllegalState;
+        ABORT(VMExitCode::kErrIllegalState);
       }
       state.threshold--;
     }
@@ -166,8 +158,8 @@ namespace fc::vm::actor::builtin::v2::multisig {
     OUTCOME_TRY(
         v0::multisig::RemoveSigner::checkState(params, state, resolved_signer));
     OUTCOME_TRY(removeSigner(params, state, resolved_signer));
-    const auto result = utils.purgeApprovals(state, resolved_signer);
-    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(utils.purgeApprovals(state, resolved_signer),
+                     VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -190,8 +182,8 @@ namespace fc::vm::actor::builtin::v2::multisig {
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(v0::multisig::SwapSigner::swapSigner(
         state, from_resolved, to_resolved));
-    const auto result = utils.purgeApprovals(state, from_resolved);
-    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(utils.purgeApprovals(state, from_resolved),
+                     VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -219,22 +211,15 @@ namespace fc::vm::actor::builtin::v2::multisig {
   // LockBalance
   //============================================================================
 
-  outcome::result<void> LockBalance::checkAmount(
-      const Runtime &runtime, const LockBalance::Params &params) {
-    if ((runtime.getNetworkVersion() >= NetworkVersion::kVersion7)
-        && (params.amount < 0)) {
-      return VMExitCode::kErrIllegalArgument;
-    }
-    return outcome::success();
-  }
-
   outcome::result<LockBalance::Result> LockBalance::execute(
       Runtime &runtime,
       const LockBalance::Params &params,
       const MultisigUtils &utils) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
-    OUTCOME_TRY(v0::multisig::LockBalance::checkUnlockDuration(params));
-    OUTCOME_TRY(checkAmount(runtime, params));
+    OUTCOME_TRY(runtime.validateArgument(params.unlock_duration > 0));
+    OUTCOME_TRY(runtime.validateArgument(
+        !((runtime.getNetworkVersion() >= NetworkVersion::kVersion7)
+          && (params.amount < 0))));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(v0::multisig::LockBalance::lockBalance(params, state));
     OUTCOME_TRY(runtime.commitState(state));

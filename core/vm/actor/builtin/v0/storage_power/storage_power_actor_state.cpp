@@ -42,7 +42,8 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     return state;
   }
 
-  outcome::result<void> State::addToClaim(const Address &miner,
+  outcome::result<void> State::addToClaim(const Runtime &runtime,
+                                          const Address &miner,
                                           const StoragePower &raw,
                                           const StoragePower &qa) {
     OUTCOME_TRY(claim_found, claims.tryGet(miner));
@@ -77,12 +78,22 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     VM_ASSERT(claim.raw_power >= 0);
     VM_ASSERT(claim.qa_power >= 0);
     VM_ASSERT(num_miners_meeting_min_power >= 0);
-    OUTCOME_TRY(claims.set(miner, claim));
 
+    return setClaim(runtime, miner, claim);
+  }
+
+  outcome::result<void> State::setClaim(const Runtime &runtime,
+                                        const Address &address,
+                                        const Claim &claim) {
+    VM_ASSERT(claim.raw_power >= 0);
+    VM_ASSERT(claim.qa_power >= 0);
+
+    OUTCOME_TRY(claims.set(address, claim));
     return outcome::success();
   }
 
-  outcome::result<void> State::addPledgeTotal(const TokenAmount &amount) {
+  outcome::result<void> State::addPledgeTotal(const Runtime &runtime,
+                                              const TokenAmount &amount) {
     total_pledge += amount;
     VM_ASSERT(total_pledge >= 0);
     return outcome::success();

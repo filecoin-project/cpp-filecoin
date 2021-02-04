@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_BUILTEIN_V2_CRON_ACTOR_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_BUILTEIN_V2_CRON_ACTOR_HPP
+#pragma once
 
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
@@ -21,5 +20,3 @@ namespace fc::vm::actor::builtin::v2::cron {
   extern const ActorExports exports;
 
 }  // namespace fc::vm::actor::builtin::v2::cron
-
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_V2_CRON_ACTOR_HPP

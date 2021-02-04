@@ -89,9 +89,6 @@ namespace fc::vm::actor::builtin::v3::multisig {
     static outcome::result<Result> execute(Runtime &runtime,
                                            const Params &params,
                                            const MultisigUtils &utils);
-
-    static outcome::result<void> checkAmount(const Runtime &runtime,
-                                             const Params &params);
   };
 
   /** Exported Multisig Actor methods to invoker */

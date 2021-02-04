@@ -31,10 +31,10 @@ namespace fc::vm::actor::builtin::v2::multisig {
       const TokenAmount &amount_to_spend,
       const ChainEpoch &current_epoch) const {
     if (amount_to_spend < 0) {
-      return VMExitCode::kErrInsufficientFunds;
+      ABORT(VMExitCode::kErrInsufficientFunds);
     }
     if (current_balance < amount_to_spend) {
-      return VMExitCode::kErrInsufficientFunds;
+      ABORT(VMExitCode::kErrInsufficientFunds);
     }
     if (amount_to_spend == 0) {
       // Always permit a transaction that sends no value, even if the lockup
@@ -46,7 +46,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
     const auto amount_locked =
         amountLocked(state, current_epoch - state.start_epoch);
     if (remaining_balance < amount_locked) {
-      return VMExitCode::kErrInsufficientFunds;
+      ABORT(VMExitCode::kErrInsufficientFunds);
     }
     return outcome::success();
   }
@@ -87,14 +87,15 @@ namespace fc::vm::actor::builtin::v2::multisig {
       // by the swapped/removed signer to go through without an illegal state
       // error
       if (runtime.getNetworkVersion() >= NetworkVersion::kVersion6) {
-        const auto tx_exists = state.pending_transactions.has(tx_id);
-        REQUIRE_NO_ERROR(tx_exists, VMExitCode::kErrIllegalState);
-        should_delete = tx_exists.value();
+        REQUIRE_NO_ERROR_A(tx_exists,
+                           state.pending_transactions.has(tx_id),
+                           VMExitCode::kErrIllegalState);
+        should_delete = tx_exists;
       }
 
       if (should_delete) {
-        const auto result = state.pending_transactions.remove(tx_id);
-        REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+        REQUIRE_NO_ERROR(state.pending_transactions.remove(tx_id),
+                         VMExitCode::kErrIllegalState);
       }
       OUTCOME_TRY(runtime.commitState(state));
     }

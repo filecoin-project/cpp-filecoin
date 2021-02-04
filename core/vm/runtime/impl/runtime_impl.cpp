@@ -126,10 +126,10 @@ namespace fc::vm::runtime {
       }
     } else {
       if (_actor.error() == HamtError::kNotFound) {
-        return VMExitCode::kSysErrorIllegalActor;
+        return VMExitCode::kSysErrIllegalActor;
       }
     }
-    return VMExitCode::kSysErrorIllegalActor;
+    return VMExitCode::kSysErrIllegalActor;
   }
 
   outcome::result<void> RuntimeImpl::transfer(const Address &debitFrom,
@@ -169,15 +169,15 @@ namespace fc::vm::runtime {
     return 0;
   }
 
-  std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() {
+  std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() const {
     return execution_->charging_ipld;
   }
 
-  std::reference_wrapper<const UnsignedMessage> RuntimeImpl::getMessage() {
+  std::reference_wrapper<const UnsignedMessage> RuntimeImpl::getMessage() const {
     return message_;
   }
 
-  outcome::result<CID> RuntimeImpl::getCurrentActorState() {
+  outcome::result<CID> RuntimeImpl::getCurrentActorState() const {
     OUTCOME_TRY(actor, execution_->state_tree->get(getCurrentReceiver()));
     return actor.head;
   }

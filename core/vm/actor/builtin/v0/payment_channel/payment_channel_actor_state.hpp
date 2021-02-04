@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_STATE_HPP
-#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_STATE_HPP
+#pragma once
 
 #include "adt/array.hpp"
 #include "crypto/signature/signature.hpp"
@@ -87,6 +86,13 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
              && min_close_height == rhs.min_close_height && merges == rhs.merges
              && signature_bytes == rhs.signature_bytes;
     }
+
+    inline outcome::result<Buffer> signingBytes() const {
+      auto copy = *this;
+      copy.signature_bytes = boost::none;
+      OUTCOME_TRY(signable_bytes, codec::cbor::encode(copy));
+      return std::move(signable_bytes);
+    }
   };
   CBOR_TUPLE(SignedVoucher,
              channel,
@@ -118,5 +124,3 @@ namespace fc {
     }
   };
 }  // namespace fc
-
-#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_STATE_HPP

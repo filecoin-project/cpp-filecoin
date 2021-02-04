@@ -110,7 +110,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       case RegisteredSealProof::StackedDrg64GiBV1:
         return 10000;
       default:
-        return VMExitCode::kMinerActorIllegalArgument;
+        return VMExitCode::kErrIllegalArgument;
     }
   }
 

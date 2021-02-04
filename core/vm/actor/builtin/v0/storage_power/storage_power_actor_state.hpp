@@ -12,6 +12,7 @@
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
   using common::Buffer;
@@ -22,6 +23,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::sector::SealVerifyInfo;
+  using runtime::Runtime;
   using ChainEpochKeyer = adt::VarintKeyer;
 
   /** genesis power in bytes = 750,000 GiB */
@@ -57,10 +59,15 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   struct State {
     static State empty(IpldPtr ipld);
 
-    outcome::result<void> addToClaim(const Address &miner,
+    outcome::result<void> addToClaim(const Runtime &runtime,
+                                     const Address &miner,
                                      const StoragePower &raw,
                                      const StoragePower &qa);
-    outcome::result<void> addPledgeTotal(const TokenAmount &amount);
+    outcome::result<void> setClaim(const Runtime &runtime,
+                                   const Address &address,
+                                   const Claim &claim);
+    outcome::result<void> addPledgeTotal(const Runtime &runtime,
+                                         const TokenAmount &amount);
     outcome::result<void> appendCronEvent(const ChainEpoch &epoch,
                                           const CronEvent &event);
     void updateSmoothedEstimate(int64_t delta);

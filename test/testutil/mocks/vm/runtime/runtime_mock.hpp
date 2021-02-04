@@ -66,13 +66,13 @@ namespace fc::vm::runtime {
     MOCK_CONST_METHOD0(getTotalFilCirculationSupply,
                        fc::outcome::result<TokenAmount>());
 
-    MOCK_METHOD0(getIpfsDatastore, std::shared_ptr<IpfsDatastore>());
+    MOCK_CONST_METHOD0(getIpfsDatastore, std::shared_ptr<IpfsDatastore>());
 
-    MOCK_METHOD0(getMessage, std::reference_wrapper<const UnsignedMessage>());
+    MOCK_CONST_METHOD0(getMessage, std::reference_wrapper<const UnsignedMessage>());
 
     MOCK_METHOD1(chargeGas, outcome::result<void>(GasAmount amount));
 
-    MOCK_METHOD0(getCurrentActorState, outcome::result<CID>());
+    MOCK_CONST_METHOD0(getCurrentActorState, outcome::result<CID>());
 
     MOCK_METHOD1(commit, outcome::result<void>(const CID &new_state));
 

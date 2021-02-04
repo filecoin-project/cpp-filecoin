@@ -11,16 +11,17 @@ namespace fc::vm::actor::builtin::v0::multisig {
       const Runtime &runtime, const State &state) const {
     const auto proposer = runtime.getImmediateCaller();
     if (!state.isSigner(proposer)) {
-      return VMExitCode::kErrForbidden;
+      ABORT(VMExitCode::kErrForbidden);
     }
     return outcome::success();
   }
 
   outcome::result<Address> MultisigUtilsImplV0::getResolvedAddress(
       Runtime &runtime, const Address &address) const {
-    const auto resolved_address = runtime.resolveAddress(address);
-    REQUIRE_NO_ERROR(resolved_address, VMExitCode::kErrIllegalState);
-    return std::move(resolved_address.value());
+    REQUIRE_NO_ERROR_A(resolved,
+                       runtime.resolveAddress(address),
+                       VMExitCode::kErrIllegalState);
+    return std::move(resolved);
   }
 
   BigInt MultisigUtilsImplV0::amountLocked(
@@ -43,17 +44,17 @@ namespace fc::vm::actor::builtin::v0::multisig {
       const TokenAmount &amount_to_spend,
       const ChainEpoch &current_epoch) const {
     if (amount_to_spend < 0) {
-      return VMExitCode::kErrInsufficientFunds;
+      ABORT(VMExitCode::kErrInsufficientFunds);
     }
     if (current_balance < amount_to_spend) {
-      return VMExitCode::kErrInsufficientFunds;
+      ABORT(VMExitCode::kErrInsufficientFunds);
     }
 
     const auto remaining_balance = current_balance - amount_to_spend;
     const auto amount_locked =
         amountLocked(state, current_epoch - state.start_epoch);
     if (remaining_balance < amount_locked) {
-      return VMExitCode::kErrInsufficientFunds;
+      ABORT(VMExitCode::kErrInsufficientFunds);
     }
     return outcome::success();
   }
@@ -66,14 +67,14 @@ namespace fc::vm::actor::builtin::v0::multisig {
     if (std::find(
             transaction.approved.begin(), transaction.approved.end(), caller)
         != transaction.approved.end()) {
-      return VMExitCode::kErrForbidden;
+      ABORT(VMExitCode::kErrForbidden);
     }
     transaction.approved.push_back(caller);
 
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
-    const auto result = state.pending_transactions.set(tx_id, transaction);
-    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.pending_transactions.set(tx_id, transaction),
+                     VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(runtime.commitState(state));
 
@@ -108,8 +109,8 @@ namespace fc::vm::actor::builtin::v0::multisig {
       // Lotus gas conformance
       OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
 
-      const auto result = state.pending_transactions.remove(tx_id);
-      REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+      REQUIRE_NO_ERROR(state.pending_transactions.remove(tx_id),
+                       VMExitCode::kErrIllegalState);
       OUTCOME_TRY(runtime.commitState(state));
     }
 

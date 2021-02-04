@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(runtime_test
-    runtime_test.cpp
+add_library(cron_actor_v3
+    cron_actor.cpp
     )
-target_link_libraries(runtime_test
-    runtime
+target_link_libraries(cron_actor_v3
+    actor
     )

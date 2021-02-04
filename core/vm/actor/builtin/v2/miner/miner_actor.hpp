@@ -39,7 +39,9 @@ namespace fc::vm::actor::builtin::v2::miner {
      * provingPeriodStart to produce a valid index.
      */
     static outcome::result<uint64_t> currentDeadlineIndex(
-        const ChainEpoch &current_epoch, const ChainEpoch &period_start);
+        const Runtime &runtime,
+        const ChainEpoch &current_epoch,
+        const ChainEpoch &period_start);
   };
 
   using ControlAddresses = v0::miner::ControlAddresses;

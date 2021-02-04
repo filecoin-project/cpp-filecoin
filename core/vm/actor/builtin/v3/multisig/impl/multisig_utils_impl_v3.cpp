@@ -40,12 +40,13 @@ namespace fc::vm::actor::builtin::v3::multisig {
       // by the swapped/removed signer to go through without an illegal state
       // error
 
-      const auto tx_exists = state.pending_transactions.has(tx_id);
-      REQUIRE_NO_ERROR(tx_exists, VMExitCode::kErrIllegalState);
+      REQUIRE_NO_ERROR_A(tx_exists,
+                         state.pending_transactions.has(tx_id),
+                         VMExitCode::kErrIllegalState);
 
-      if (tx_exists.value()) {
-        const auto result = state.pending_transactions.remove(tx_id);
-        REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
+      if (tx_exists) {
+        REQUIRE_NO_ERROR(state.pending_transactions.remove(tx_id),
+                         VMExitCode::kErrIllegalState);
       }
       OUTCOME_TRY(runtime.commitState(state));
     }

@@ -14,41 +14,44 @@
 namespace fc::vm::actor::builtin::v0::miner {
   using common::decodeBE;
 
-  outcome::result<Address> resolveControlAddress(Runtime &runtime,
+  outcome::result<Address> resolveControlAddress(const Runtime &runtime,
                                                  const Address &address) {
-    OUTCOME_TRY(resolved, runtime.resolveAddress(address));
-    VM_ASSERT(resolved.isId());
-    const auto resolved_code = runtime.getActorCodeID(resolved);
-    REQUIRE_NO_ERROR(resolved_code, VMExitCode::kErrIllegalArgument);
+    const auto resolved = runtime.resolveAddress(address);
+    OUTCOME_TRY(runtime.validateArgument(!resolved.has_error()));
+    VM_ASSERT(resolved.value().isId());
+    const auto resolved_code = runtime.getActorCodeID(resolved.value());
+    OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
     OUTCOME_TRY(
         runtime.validateArgument(isSignableActor(resolved_code.value())));
-    return std::move(resolved);
+    return std::move(resolved.value());
   }
 
   outcome::result<Address> resolveWorkerAddress(Runtime &runtime,
                                                 const Address &address) {
-    OUTCOME_TRY(resolved, runtime.resolveAddress(address));
-    VM_ASSERT(resolved.isId());
-    const auto resolved_code = runtime.getActorCodeID(resolved);
-    REQUIRE_NO_ERROR(resolved_code, VMExitCode::kErrIllegalArgument);
+    const auto resolved = runtime.resolveAddress(address);
+    OUTCOME_TRY(runtime.validateArgument(!resolved.has_error()));
+    VM_ASSERT(resolved.value().isId());
+    const auto resolved_code = runtime.getActorCodeID(resolved.value());
+    OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
     OUTCOME_TRY(
         runtime.validateArgument(resolved_code.value() == kAccountCodeCid));
 
     if (!address.isBls()) {
-      OUTCOME_TRY(pubkey_addres,
-                  runtime.sendM<account::PubkeyAddress>(resolved, {}, 0));
-      OUTCOME_TRY(runtime.validateArgument(pubkey_addres.isBls()));
+      const auto pubkey_addres =
+          runtime.sendM<account::PubkeyAddress>(resolved.value(), {}, 0);
+      OUTCOME_TRY(runtime.validateArgument(pubkey_addres.value().isBls()));
     }
 
-    return std::move(resolved);
+    return std::move(resolved.value());
   }
 
   outcome::result<void> enrollCronEvent(Runtime &runtime,
                                         ChainEpoch event_epoch,
                                         const CronEventPayload &payload) {
-    OUTCOME_TRY(encoded_params, codec::cbor::encode(payload));
-    OUTCOME_TRY(runtime.sendM<storage_power::EnrollCronEvent>(
-        kStoragePowerAddress, {event_epoch, encoded_params}, 0));
+    const auto encoded_params = codec::cbor::encode(payload);
+    OUTCOME_TRY(runtime.validateArgument(!encoded_params.has_error()));
+    REQUIRE_SUCCESS(runtime.sendM<storage_power::EnrollCronEvent>(
+        kStoragePowerAddress, {event_epoch, encoded_params.value()}, 0));
     return outcome::success();
   }
 
@@ -114,20 +117,21 @@ namespace fc::vm::actor::builtin::v0::miner {
     OUTCOME_TRY(state.vesting_funds.set(vesting_funds));
 
     const auto current_epoch = runtime.getCurrentEpoch();
-    const auto offset = assignProvingPeriodOffset(runtime, current_epoch);
-    REQUIRE_NO_ERROR(offset, VMExitCode::kErrSerialization);
-    const auto period_start =
-        nextProvingPeriodStart(current_epoch, offset.value());
+    REQUIRE_NO_ERROR_A(offset,
+                       assignProvingPeriodOffset(runtime, current_epoch),
+                       VMExitCode::kErrSerialization);
+    const auto period_start = nextProvingPeriodStart(current_epoch, offset);
     VM_ASSERT(period_start > current_epoch);
     state.proving_period_start = period_start;
 
-    OUTCOME_TRY(miner_info,
-                MinerInfo::make(owner,
-                                worker,
-                                control_addresses,
-                                params.peer_id,
-                                params.multiaddresses,
-                                params.seal_proof_type));
+    REQUIRE_NO_ERROR_A(miner_info,
+                       MinerInfo::make(owner,
+                                       worker,
+                                       control_addresses,
+                                       params.peer_id,
+                                       params.multiaddresses,
+                                       params.seal_proof_type),
+                       VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(state.info.set(miner_info));
 
     // construct with empty already cid stored in ipld to avoid gas charge

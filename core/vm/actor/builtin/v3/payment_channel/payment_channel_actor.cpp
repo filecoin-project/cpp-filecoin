@@ -9,23 +9,18 @@
 namespace fc::vm::actor::builtin::v3::payment_channel {
   using primitives::TokenAmount;
   using primitives::address::Protocol;
-
-  outcome::result<Address> resolveAccount(Runtime &runtime,
-                                          const Address &address) {
-    OUTCOME_TRY(resolved, runtime.resolveAddress(address));
-    OUTCOME_TRY(code, runtime.getActorCodeID(resolved));
-    if (code != kAccountCodeCid) {
-      return VMExitCode::kErrForbidden;
-    }
-    return std::move(resolved);
-  }
+  using v0::payment_channel::resolveAccount;
 
   ACTOR_METHOD_IMPL(Construct) {
-    if (runtime.getImmediateCaller() != kInitAddress) {
-      return VMExitCode::kSysErrForbidden;
-    }
-    OUTCOME_TRY(to, resolveAccount(runtime, params.to));
-    OUTCOME_TRY(from, resolveAccount(runtime, params.from));
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
+
+    REQUIRE_NO_ERROR_A(to,
+                       resolveAccount(runtime, params.to, kAccountCodeCid),
+                       VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR_A(from,
+                       resolveAccount(runtime, params.from, kAccountCodeCid),
+                       VMExitCode::kErrIllegalState);
 
     State state{from, to, 0, 0, 0, {}};
     IpldPtr {
@@ -33,7 +28,7 @@ namespace fc::vm::actor::builtin::v3::payment_channel {
     }
     ->load(state);
     OUTCOME_TRY(runtime.commitState(state));
-    return fc::outcome::success();
+    return outcome::success();
   }
 
   const ActorExports exports{

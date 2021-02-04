@@ -21,6 +21,7 @@
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/cron/cron_actor.hpp"
+#include "vm/actor/builtin/v2/init/init_actor.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/multisig/multisig_actor.hpp"
 #include "vm/actor/builtin/v2/payment_channel/payment_channel_actor.hpp"
@@ -52,7 +53,7 @@ namespace fc::vm::actor {
     // v2
     builtin_[builtin::v2::kAccountCodeCid] = builtin::v2::account::exports;
     builtin_[builtin::v2::kCronCodeCid] = builtin::v2::cron::exports;
-    // builtin_[builtin::v2::kInitCodeCid] = builtin::v2::init::exports;
+    builtin_[builtin::v2::kInitCodeCid] = builtin::v2::init::exports;
     // builtin_[builtin::v2::kStorageMarketCodeCid] =
     // builtin::v2::market::exports;
     builtin_[builtin::v2::kStorageMinerCodeCid] = builtin::v2::miner::exports;
@@ -104,9 +105,9 @@ namespace fc::vm::actor {
         && (actor.code != builtin::v0::kVerifiedRegistryCode)   // < OK, but not tested
 
         // v2
-        && (actor.code != builtin::v2::kAccountCodeCid)  // < tested OK
-        && (actor.code != builtin::v2::kCronCodeCid)     // TODO
-        // && (actor.code != builtin::v2::kInitCodeCid)            // TODO
+        && (actor.code != builtin::v2::kAccountCodeCid)         // < tested OK
+        && (actor.code != builtin::v2::kCronCodeCid)            // < tested OK
+        && (actor.code != builtin::v2::kInitCodeCid)            // < tested OK
         // && (actor.code != builtin::v2::kStorageMarketCodeCid)   // TODO
         && (actor.code != builtin::v2::kStorageMinerCodeCid)    // WiP
         && (actor.code != builtin::v2::kMultisigCodeCid)        // < tested OK
@@ -121,7 +122,7 @@ namespace fc::vm::actor {
 
     auto maybe_builtin_actor = builtin_.find(actor.code);
     if (maybe_builtin_actor == builtin_.end()) {
-      return VMExitCode::kSysErrorIllegalActor;
+      return VMExitCode::kSysErrIllegalActor;
     }
     auto builtin_actor = maybe_builtin_actor->second;
     auto message = runtime->getMessage();

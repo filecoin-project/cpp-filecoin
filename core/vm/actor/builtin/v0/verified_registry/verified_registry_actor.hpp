@@ -62,7 +62,6 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
                                           const Address &client,
                                           const StoragePower &deal_size,
                                           CapAssert cap_assert);
-    static outcome::result<void> clientCapAssert(bool condition);
   };
   CBOR_TUPLE(UseBytes::Params, address, deal_size)
 

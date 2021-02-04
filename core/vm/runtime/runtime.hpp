@@ -25,17 +25,7 @@
 #include "vm/runtime/runtime_types.hpp"
 #include "vm/version.hpp"
 
-/**
- * Aborts execution if res has error and aborts with default_error if res has
- * error and the error is not fatal or abort
- */
-#define REQUIRE_NO_ERROR(expr, err_code) \
-  OUTCOME_TRY(Runtime::requireNoError((expr), (err_code)));
-
-/**
- * Return VMExitCode as VMAbortExitCode for special handling
- */
-#define ABORT_CAST(err_code) static_cast<VMAbortExitCode>(err_code)
+#define VM_ASSERT(condition) OUTCOME_TRY(runtime.vm_assert(condition))
 
 namespace fc::vm::runtime {
 
@@ -191,19 +181,19 @@ namespace fc::vm::runtime {
     /**
      * @brief Returns IPFS datastore
      */
-    virtual std::shared_ptr<IpfsDatastore> getIpfsDatastore() = 0;
+    virtual std::shared_ptr<IpfsDatastore> getIpfsDatastore() const = 0;
 
     /**
      * Get Message for actor invocation
      * @return message invoking current execution
      */
-    virtual std::reference_wrapper<const UnsignedMessage> getMessage() = 0;
+    virtual std::reference_wrapper<const UnsignedMessage> getMessage() const = 0;
 
     /// Try to charge gas or throw if there is not enoght gas
     virtual outcome::result<void> chargeGas(GasAmount amount) = 0;
 
     /// Get current actor state root CID
-    virtual outcome::result<CID> getCurrentActorState() = 0;
+    virtual outcome::result<CID> getCurrentActorState() const = 0;
 
     /// Update actor state CID
     virtual outcome::result<void> commit(const CID &new_state) = 0;
@@ -241,46 +231,6 @@ namespace fc::vm::runtime {
     /// Return a hash of data
     virtual outcome::result<Blake2b256Hash> hashBlake2b(
         gsl::span<const uint8_t> data) = 0;
-
-    /**
-     * Aborts execution if res has error
-     * @tparam T - result type
-     * @param res - result to check
-     * @param default_error - default VMExitCode to abort with.
-     * @return If res has no error, success() returned. Otherwise if res.error()
-     * is VMAbortExitCode or VMFatal, the res.error() returned, else
-     * default_error returned
-     */
-    template <typename T>
-    static outcome::result<void> requireNoError(
-        const outcome::result<T> &res, const VMExitCode &default_error) {
-      if (res.has_error()) {
-        if (isFatal(res.error()) || isAbortExitCode(res.error())) {
-          return res.error();
-        }
-        if (isVMExitCode(res.error())) {
-          return ABORT_CAST(VMExitCode{res.error().value()});
-        }
-        return ABORT_CAST(default_error);
-      }
-      return outcome::success();
-    }
-
-    template <typename T>
-    static outcome::result<T> requireNoError(outcome::result<T> &&res,
-                                             VMExitCode default_error) {
-      OUTCOME_TRY(requireNoError(res, default_error));
-      return std::move(res);
-    }
-
-    /**
-     * Abort execution with VMExitCode
-     * @param error_code - error code that should be passed to the caller
-     * @return error_code as VMAbortExitCode
-     */
-    outcome::result<void> abort(const VMExitCode &error_code) const {
-      return VMAbortExitCode{error_code};
-    }
 
     /// Send typed method with typed params and result
     template <typename M>
@@ -329,7 +279,7 @@ namespace fc::vm::runtime {
 
     /// Get decoded current actor state
     template <typename T>
-    outcome::result<T> getCurrentActorStateCbor() {
+    outcome::result<T> getCurrentActorStateCbor() const {
       OUTCOME_TRY(head, getCurrentActorState());
       return getIpfsDatastore()->getCbor<T>(head);
     }
@@ -347,24 +297,24 @@ namespace fc::vm::runtime {
       return outcome::success();
     }
 
-    inline operator std::shared_ptr<IpfsDatastore>() {
+    inline operator std::shared_ptr<IpfsDatastore>() const {
       return getIpfsDatastore();
     }
 
-    inline auto getCurrentBalance() {
+    inline auto getCurrentBalance() const {
       return getBalance(getCurrentReceiver());
     }
 
     inline outcome::result<void> validateArgument(bool assertion) const {
       if (!assertion) {
-        return abort(VMExitCode::kErrIllegalArgument);
+        ABORT(VMExitCode::kErrIllegalArgument);
       }
       return outcome::success();
     }
 
     inline outcome::result<void> requireState(bool assertion) const {
       if (!assertion) {
-        return abort(VMExitCode::kErrIllegalState);
+        ABORT(VMExitCode::kErrIllegalState);
       }
       return outcome::success();
     }
@@ -374,17 +324,17 @@ namespace fc::vm::runtime {
       if (getImmediateCaller() == address) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerIs(
-        std::initializer_list<Address> addresses) {
+        std::vector<Address> addresses) {
       for (const auto &address : addresses) {
         if (getImmediateCaller() == address) {
           return outcome::success();
         }
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerType(
@@ -393,7 +343,7 @@ namespace fc::vm::runtime {
       if (actual_code == expected_code) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerIsSignable() {
@@ -401,7 +351,7 @@ namespace fc::vm::runtime {
       if (actor::isSignableActor(code)) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerIsMiner() {
@@ -409,14 +359,25 @@ namespace fc::vm::runtime {
       if (isStorageMinerActor(actual_code)) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerIsCurrentReceiver() {
       if (getImmediateCaller() == getCurrentReceiver()) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
+    }
+
+    inline outcome::result<void> vm_assert(bool condition) const {
+      if (condition) {
+        return outcome::success();
+      }
+      if (getNetworkVersion() <= NetworkVersion::kVersion3) {
+        ABORT(VMExitCode::kOldErrActorFailure);
+      } else {
+        ABORT(VMExitCode::kSysErrReserved1);
+      }
     }
   };
 
