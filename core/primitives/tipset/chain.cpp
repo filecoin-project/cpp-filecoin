@@ -51,6 +51,24 @@ namespace fc::primitives::tipset::chain {
     return make(std::move(chain), parent);
   }
 
+  outcome::result<Path> findPath(TsBranchPtr from, TsBranchIter to_it) {
+    Path path;
+    auto &[revert, apply]{path};
+    auto &[to, _to]{to_it};
+    apply.insert(*_to);
+    while (to != from) {
+      if (!to->parent) {
+        return OutcomeError::kDefault;
+      }
+      auto bottom{to->chain.begin()};
+      apply.insert(bottom, _to);
+      _to = to->parent->chain.find(bottom->second);
+      to = to->parent;
+    }
+    revert.insert(_to, from.end());
+    return path;
+  }
+
   outcome::result<TsBranchIter> find(TsBranchPtr branch,
                                      Height height,
                                      bool allow_less) {

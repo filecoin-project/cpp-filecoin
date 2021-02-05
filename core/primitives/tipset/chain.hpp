@@ -31,6 +31,15 @@ namespace fc::primitives::tipset::chain {
   };
 
   /**
+   * inclusive revert and apply chains
+   */
+  using Path = std::pair<TsChain, TsChain>;
+  /**
+   * @param to_it valid iterator of valid branch
+   */
+  outcome::result<Path> findPath(TsBranchPtr from, TsBranchIter to_it);
+
+  /**
    * @return valid iterator
    */
   outcome::result<TsBranchIter> find(TsBranchPtr branch,
