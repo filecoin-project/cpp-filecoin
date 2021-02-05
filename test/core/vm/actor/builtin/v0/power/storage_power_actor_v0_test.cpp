@@ -375,9 +375,10 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     caller = miner_address;
     callerCodeIdIs(kStorageMinerCodeCid);
     SectorNumber verified_sector_number = 25;
-    const SealVerifyInfo seal{.sector = {.sector = verified_sector_number},
-                              .sealed_cid = kEmptyObjectCid,
-                              .unsealed_cid = kEmptyObjectCid};
+    SealVerifyInfo seal;
+    seal.sector.sector = verified_sector_number;
+    seal.sealed_cid = kEmptyObjectCid;
+    seal.unsealed_cid = kEmptyObjectCid;
     EXPECT_CALL(runtime, chargeGas(kGasOnSubmitVerifySeal))
         .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_TRUE_1(SubmitPoRepForBulkVerify::call(runtime, seal));
