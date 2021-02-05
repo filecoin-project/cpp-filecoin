@@ -5,9 +5,12 @@
 
 #pragma once
 
+#include "common/ptr.hpp"
 #include "primitives/tipset/load.hpp"
+#include "storage/buffer_map.hpp"
 
 namespace fc::primitives::tipset::chain {
+  using KvPtr = std::shared_ptr<storage::PersistentBufferMap>;
 
   using TsChain = std::map<Height, TsLazy>;
 
@@ -25,10 +28,24 @@ namespace fc::primitives::tipset::chain {
                                              const TipsetKey &key,
                                              TsBranchPtr parent);
 
+    static outcome::result<TsBranchPtr> load(KvPtr kv);
+    static outcome::result<TsBranchPtr> create(KvPtr kv,
+                                               const TipsetKey &key,
+                                               TsLoadPtr ts_load);
+
     TsChain chain;
     TsBranchPtr parent;
     std::vector<TsBranchWeak> children;
   };
+
+  template <typename F>
+  void forChild(TsBranchPtr branch, Height height, const F &f) {
+    weakFor(branch->children, [&](auto &child) {
+      if (child->chain.begin()->first >= height) {
+        f(child);
+      }
+    });
+  }
 
   /**
    * inclusive revert and apply chains
@@ -38,6 +55,10 @@ namespace fc::primitives::tipset::chain {
    * @param to_it valid iterator of valid branch
    */
   outcome::result<Path> findPath(TsBranchPtr from, TsBranchIter to_it);
+
+  outcome::result<void> update(TsBranchPtr branch,
+                               const Path &path,
+                               KvPtr kv = nullptr);
 
   /**
    * @return valid iterator

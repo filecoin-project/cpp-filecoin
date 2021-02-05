@@ -5,9 +5,40 @@
 
 #include "primitives/tipset/chain.hpp"
 
+#include <boost/endian/conversion.hpp>
+
 #include "common/outcome2.hpp"
 
 namespace fc::primitives::tipset::chain {
+  using common::Hash256;
+
+  auto decodeHeight(BytesIn key) {
+    assert(key.size() == sizeof(Height));
+    return boost::endian::load_big_u64(key.data());
+  }
+
+  TipsetKey decodeTsk(BytesIn input) {
+    std::vector<CID> cids;
+    while (!input.empty()) {
+      cids.push_back(asCborBlakeCid(
+          Hash256::fromSpan(input.subspan(0, Hash256::size())).value()));
+      input = input.subspan(Hash256::size());
+    }
+    return cids;
+  }
+
+  auto encodeHeight(Height height) {
+    return Buffer{}.putUint64(height);
+  }
+
+  auto encodeTsk(const TipsetKey &tsk) {
+    Buffer out;
+    for (auto &cid : tsk.cids()) {
+      out.put(*asBlake(cid));
+    }
+    return out;
+  }
+
   TsBranchPtr TsBranch::make(TsChain chain, TsBranchPtr parent) {
     auto branch{std::make_shared<TsBranch>()};
     if (parent) {
@@ -51,6 +82,36 @@ namespace fc::primitives::tipset::chain {
     return make(std::move(chain), parent);
   }
 
+  outcome::result<TsBranchPtr> TsBranch::load(KvPtr kv) {
+    TsChain chain;
+    auto cur{kv->cursor()};
+    for (cur->seekToFirst(); cur->isValid(); cur->next()) {
+      chain.emplace(decodeHeight(cur->key()), TsLazy{decodeTsk(cur->value())});
+    }
+    if (chain.empty()) {
+      return nullptr;
+    }
+    return make(std::move(chain), nullptr);
+  }
+
+  outcome::result<TsBranchPtr> TsBranch::create(KvPtr kv,
+                                                const TipsetKey &key,
+                                                TsLoadPtr ts_load) {
+    TsChain chain;
+    auto batch{kv->batch()};
+    OUTCOME_TRY(ts, ts_load->load(key));
+    while (true) {
+      OUTCOME_TRY(batch->put(encodeHeight(ts->height()), encodeTsk(ts->key)));
+      chain.emplace(ts->height(), TsLazy{ts->key, ts});
+      if (ts->height() == 0) {
+        break;
+      }
+      OUTCOME_TRYA(ts, ts_load->load(ts->getParents()));
+    }
+    OUTCOME_TRY(batch->commit());
+    return make(std::move(chain), nullptr);
+  }
+
   outcome::result<Path> findPath(TsBranchPtr from, TsBranchIter to_it) {
     Path path;
     auto &[revert, apply]{path};
@@ -62,11 +123,40 @@ namespace fc::primitives::tipset::chain {
       }
       auto bottom{to->chain.begin()};
       apply.insert(bottom, _to);
-      _to = to->parent->chain.find(bottom->second);
+      _to = to->parent->chain.find(bottom->first);
       to = to->parent;
     }
-    revert.insert(_to, from.end());
+    revert.insert(_to, from->chain.end());
     return path;
+  }
+
+  outcome::result<void> update(TsBranchPtr branch, const Path &path, KvPtr kv) {
+    auto &from{branch->chain};
+    auto &[revert, apply]{path};
+    auto revert_to{from.find(revert.begin()->first)};
+
+    assert(*revert.begin() == *revert_to);
+    assert(*apply.begin() == *revert_to);
+    assert(*revert.rbegin() == *from.rbegin());
+
+    if (kv) {
+      auto batch{kv->batch()};
+      for (auto it{revert.rbegin()}; it != revert.rend(); ++it) {
+        OUTCOME_TRY(batch->remove(encodeHeight(it->first)));
+      }
+      for (auto &[height, ts] : apply) {
+        OUTCOME_TRY(batch->put(encodeHeight(height), encodeTsk(ts.key)));
+      }
+      OUTCOME_TRY(batch->commit());
+    }
+
+    forChild(branch, revert_to->first + 1, [&](auto &child) {
+      child->chain.insert(revert_to, from.find(child->chain.begin()->first));
+    });
+
+    from.erase(revert_to, from.end());
+    from.insert(apply.begin(), apply.end());
+    return outcome::success();
   }
 
   outcome::result<TsBranchIter> find(TsBranchPtr branch,
