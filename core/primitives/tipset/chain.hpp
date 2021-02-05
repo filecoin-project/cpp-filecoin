@@ -17,6 +17,9 @@ namespace fc::primitives::tipset::chain {
   using TsBranchIter = std::pair<TsBranchPtr, TsChain::iterator>;
 
   struct TsBranch {
+    /**
+     * @return parent if chain size is 1 else valid branch attached to parent
+     */
     static TsBranchPtr make(TsChain chain, TsBranchPtr parent = nullptr);
     static outcome::result<TsBranchPtr> make(TsLoadPtr ts_load,
                                              const TipsetKey &key,
@@ -27,9 +30,12 @@ namespace fc::primitives::tipset::chain {
     std::vector<TsBranchWeak> children;
   };
 
+  /**
+   * @return valid iterator
+   */
   outcome::result<TsBranchIter> find(TsBranchPtr branch,
                                      Height height,
-                                     bool prev = true);
+                                     bool allow_less = true);
 
   outcome::result<BeaconEntry> latestBeacon(TsLoadPtr ts_load,
                                             TsBranchPtr branch,

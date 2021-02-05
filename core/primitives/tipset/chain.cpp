@@ -10,13 +10,19 @@
 namespace fc::primitives::tipset::chain {
   TsBranchPtr TsBranch::make(TsChain chain, TsBranchPtr parent) {
     auto branch{std::make_shared<TsBranch>()};
-    auto bottom{chain.begin()};
-    branch->chain = std::move(chain);
     if (parent) {
+      auto bottom{chain.begin()};
       assert(*parent->chain.find(bottom->first) == *bottom);
-      branch->parent = std::move(parent);
-      branch->parent->children.push_back(branch);
+      if (chain.size() == 1) {
+        return parent;
+      }
+      ++bottom;
+      auto _parent{parent->chain.find(bottom->first)};
+      assert(_parent == parent->chain.end() || *_parent != *bottom);
+      parent->children.push_back(branch);
     }
+    branch->chain = std::move(chain);
+    branch->parent = std::move(parent);
     return branch;
   }
 
@@ -47,7 +53,7 @@ namespace fc::primitives::tipset::chain {
 
   outcome::result<TsBranchIter> find(TsBranchPtr branch,
                                      Height height,
-                                     bool prev) {
+                                     bool allow_less) {
     if (height > branch->chain.rbegin()->first) {
       return OutcomeError::kDefault;
     }
@@ -61,7 +67,7 @@ namespace fc::primitives::tipset::chain {
     }
     auto it{branch->chain.lower_bound(height)};
     if (it == branch->chain.end()) {
-      if (!prev) {
+      if (!allow_less) {
         // example: find 3 in [[1, 2], [4, 5]]
         if (!parent) {
           return OutcomeError::kDefault;
@@ -70,7 +76,7 @@ namespace fc::primitives::tipset::chain {
       }
       --it;
     }
-    if (it->first > height && prev) {
+    if (it->first > height && allow_less) {
       if (it == branch->chain.begin()) {
         return OutcomeError::kDefault;
       }
