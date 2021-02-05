@@ -5,15 +5,14 @@
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
-#include "common/be_decoder.hpp"
+#include <boost/endian/conversion.hpp>
+
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
-  using common::decodeBE;
-
   outcome::result<Address> resolveControlAddress(const Runtime &runtime,
                                                  const Address &address) {
     const auto resolved = runtime.resolveAddress(address);
@@ -61,7 +60,7 @@ namespace fc::vm::actor::builtin::v0::miner {
                 codec::cbor::encode(runtime.getCurrentReceiver()));
     address_encoded.putUint64(current_epoch);
     OUTCOME_TRY(digest, runtime.hashBlake2b(address_encoded));
-    const uint64_t offset = decodeBE(digest);
+    const uint64_t offset = boost::endian::load_big_u64(digest.data());
     return offset % kWPoStProvingPeriod;
   }
 

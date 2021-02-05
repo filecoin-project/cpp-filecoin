@@ -382,11 +382,7 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
 
 TEST_P(TestVectors, Vector) {
   auto &mv{GetParam()};
-  fc::vm::actor::cgo::config(
-      1 << 20,
-      UINT64_C(10) << 40,
-      {fc::primitives::sector::RegisteredSealProof::StackedDrg32GiBV1,
-       fc::primitives::sector::RegisteredSealProof::StackedDrg64GiBV1});
+  fc::vm::actor::cgo::configMainnet();
 
   auto ipld{std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
   OUTCOME_EXCEPT(fc::storage::car::loadCar(*ipld, mv.car));

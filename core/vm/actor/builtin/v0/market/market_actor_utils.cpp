@@ -4,7 +4,9 @@
  */
 
 #include "vm/actor/builtin/v0/market/market_actor_utils.hpp"
-#include "common/be_decoder.hpp"
+
+#include <boost/endian/conversion.hpp>
+
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
@@ -14,7 +16,6 @@
 namespace fc::vm::actor::builtin::utils::market {
   using v0::kStorageMinerCodeCid;
   using namespace v0::market;
-  using common::decodeBE;
   using crypto::randomness::DomainSeparationTag;
   using libp2p::multi::HashType;
   using primitives::kChainEpochUndefined;
@@ -302,7 +303,7 @@ namespace fc::vm::actor::builtin::utils::market {
         runtime.getRandomnessFromBeacon(DomainSeparationTag::MarketDealCronSeed,
                                         runtime.getCurrentEpoch() - 1,
                                         bytes));
-    const uint64_t offset = decodeBE(randomness);
+    const uint64_t offset = boost::endian::load_big_u64(randomness.data());
     return deal.start_epoch + offset % kDealUpdatesInterval;
   }
 

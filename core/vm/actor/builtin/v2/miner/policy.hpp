@@ -6,6 +6,7 @@
 #pragma once
 
 #include "primitives/sector/sector.hpp"
+#include "vm/actor/builtin/v0/miner/policy.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
   using primitives::sector::RegisteredSealProof;
@@ -51,4 +52,6 @@ namespace fc::vm::actor::builtin::v2::miner {
    */
   constexpr size_t kMaxMultiaddressData = 1024;
 
+  constexpr primitives::EpochDuration kMaxProveCommitDuration{
+      v0::miner::kEpochsInDay + v0::miner::kPreCommitChallengeDelay};
 }  // namespace fc::vm::actor::builtin::v2::miner

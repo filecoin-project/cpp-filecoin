@@ -22,11 +22,6 @@ namespace fc::vm::actor {
 
     ~InvokerImpl() override = default;
 
-    void config(
-        const StoragePower &min_verified_deal_size,
-        const StoragePower &consensus_miner_min_power,
-        const std::vector<RegisteredSealProof> &supported_proofs) override;
-
     outcome::result<InvocationOutput> invoke(
         const Actor &actor, const std::shared_ptr<Runtime> &runtime) override;
 

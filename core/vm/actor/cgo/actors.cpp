@@ -43,18 +43,6 @@ namespace fc::vm::actor::cgo {
   using runtime::resolveKey;
   using storage::hamt::HamtError;
 
-  void config(const StoragePower &min_verified_deal_size,
-              const StoragePower &consensus_miner_min_power,
-              const std::vector<RegisteredSealProof> &supported_proofs) {
-    CborEncodeStream arg;
-    arg << min_verified_deal_size << consensus_miner_min_power;
-    arg << supported_proofs.size();
-    for (auto proof : supported_proofs) {
-      arg << proof;
-    }
-    cgoCall<cgoActorsConfig>(arg);
-  }
-
   void configMainnet() {
     cgoCall<cgoActorsConfigMainnet>(BytesIn{});
   }
