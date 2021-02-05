@@ -7,7 +7,7 @@
 
 #include <boost/signals2/connection.hpp>
 
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 
 namespace fc::peermgr {
   using hello::Hello;

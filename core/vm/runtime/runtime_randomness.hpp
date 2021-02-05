@@ -8,7 +8,7 @@
 
 #include "common/outcome.hpp"
 #include "crypto/randomness/randomness_types.hpp"
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 
 namespace fc::vm::runtime {
 

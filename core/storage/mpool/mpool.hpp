@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_STORAGE_MPOOL_MPOOL_HPP
 #define CPP_FILECOIN_CORE_STORAGE_MPOOL_MPOOL_HPP
 
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "vm/message/message.hpp"
 

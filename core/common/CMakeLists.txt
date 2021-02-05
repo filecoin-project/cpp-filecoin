@@ -70,6 +70,7 @@ add_library(file
     file.cpp
     )
 target_link_libraries(file
+    Boost::iostreams
     buffer
     outcome
     )

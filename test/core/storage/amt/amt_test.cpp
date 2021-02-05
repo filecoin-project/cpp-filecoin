@@ -34,9 +34,11 @@ TEST_F(AmtTest, NodeCbor) {
   Root r;
   r.height = 1;
   r.count = 2;
+  r.node.bits_bytes = 1;
   expectEncodeAndReencode(r, "8301028341008080"_unhex);
 
   Node n;
+  n.bits_bytes = 1;
   expectEncodeAndReencode(n, "8341008080"_unhex);
 
   n.items = Node::Values{{2, Value{"01"_unhex}}};

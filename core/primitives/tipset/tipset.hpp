@@ -191,6 +191,8 @@ namespace fc::primitives::tipset {
 
     uint64_t height() const;
 
+    TipsetKey key() const;
+
    private:
     std::vector<block::BlockHeader> blks_;
     std::vector<CID> cids_;
@@ -198,21 +200,5 @@ namespace fc::primitives::tipset {
   };
 
 }  // namespace fc::primitives::tipset
-
-namespace fc::codec::cbor {
-
-  template <>
-  outcome::result<fc::primitives::tipset::TipsetCPtr>
-  decode<fc::primitives::tipset::TipsetCPtr>(gsl::span<const uint8_t> input);
-
-  template <>
-  inline outcome::result<common::Buffer>
-  encode<fc::primitives::tipset::TipsetCPtr>(
-      const fc::primitives::tipset::TipsetCPtr &ts) {
-    assert(ts);
-    return encode<fc::primitives::tipset::Tipset>(*ts);
-  }
-
-}  // namespace fc::codec::cbor
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP

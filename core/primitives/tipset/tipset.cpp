@@ -185,6 +185,7 @@ namespace fc::primitives::tipset {
       return std::make_shared<Tipset>();
     }
     if (clear) {
+      ticket_hashes_.clear();
       return std::make_shared<Tipset>(std::move(cids_), std::move(blks_));
     }
     return std::make_shared<Tipset>(cids_, blks_);
@@ -198,6 +199,10 @@ namespace fc::primitives::tipset {
 
   uint64_t TipsetCreator::height() const {
     return blks_.empty() ? 0 : blks_[0].height;
+  }
+
+  TipsetKey TipsetCreator::key() const {
+    return cids_;
   }
 
   outcome::result<TipsetCPtr> Tipset::create(const TipsetHash &hash,
@@ -250,6 +255,7 @@ namespace fc::primitives::tipset {
   }
 
   outcome::result<TipsetCPtr> Tipset::loadParent(Ipld &ipld) const {
+    assert(!blks.empty());
     return load(ipld, blks[0].parents);
   }
 
@@ -336,6 +342,7 @@ namespace fc::primitives::tipset {
   }
 
   TipsetKey Tipset::getParents() const {
+    assert(!blks.empty());
     return blks[0].parents;
   }
 
@@ -349,19 +356,23 @@ namespace fc::primitives::tipset {
   }
 
   const block::BlockHeader &Tipset::getMinTicketBlock() const {
+    assert(!blks.empty());
     // i believe that Tipset::create sorts them
     return blks[0];
   }
 
   const CID &Tipset::getParentStateRoot() const {
+    assert(!blks.empty());
     return blks[0].parent_state_root;
   }
 
   const BigInt &Tipset::getParentWeight() const {
+    assert(!blks.empty());
     return blks[0].parent_weight;
   }
 
   const CID &Tipset::getParentMessageReceipts() const {
+    assert(!blks.empty());
     return blks[0].parent_message_receipts;
   }
 
@@ -374,6 +385,7 @@ namespace fc::primitives::tipset {
   }
 
   const BigInt &Tipset::getParentBaseFee() const {
+    assert(!blks.empty());
     return blks[0].parent_base_fee;
   }
 
@@ -390,34 +402,3 @@ namespace fc::primitives::tipset {
     return !(l == r);
   }
 }  // namespace fc::primitives::tipset
-
-namespace fc::codec::cbor {
-
-  namespace {
-    struct TipsetDecodeCandidate {
-      std::vector<CID> cids;
-      std::vector<fc::primitives::block::BlockHeader> blks;
-      uint64_t height;
-    };
-
-    CBOR_TUPLE(TipsetDecodeCandidate, cids, blks, height);
-
-  }  // namespace
-
-  template <>
-  outcome::result<fc::primitives::tipset::TipsetCPtr>
-  decode<fc::primitives::tipset::TipsetCPtr>(gsl::span<const uint8_t> input) {
-    using namespace fc::primitives::tipset;
-
-    OUTCOME_TRY(decoded, decode<TipsetDecodeCandidate>(input));
-    if (decoded.blks.empty() && decoded.height != 0) {
-      return TipsetError::kMismatchingHeights;
-    }
-    OUTCOME_TRY(tipset, Tipset::create(std::move(decoded.blks)));
-    if (tipset->key.cids() != decoded.cids) {
-      return TipsetError::kBlockOrderFailure;
-    }
-    return std::move(tipset);
-  }
-
-}  // namespace fc::codec::cbor

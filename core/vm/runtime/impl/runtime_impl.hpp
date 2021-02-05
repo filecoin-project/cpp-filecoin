@@ -13,7 +13,6 @@
 
 namespace fc::vm::runtime {
   using actor::Invoker;
-  using state::StateTree;
 
   class RuntimeImpl : public Runtime {
    public:

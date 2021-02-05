@@ -243,29 +243,6 @@ auto search() {
     const auto &path{item.path()};
     if (item.status().type() == boost::filesystem::file_type::regular_file
         && path.extension() == ".json") {
-      // Skip tests that fail in lotus
-      // TODO (a.chernyshov) these tests should be enabled as soon as lotus is
-      // able to pass them
-      static std::vector<std::string> fail_in_lotus{
-          kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-1.json",
-          kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-10.json",
-          kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-2.json",
-          kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-4.json",
-          kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-6.json",
-          kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-7.json",
-          kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-8.json",
-          kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-9.json",
-          kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-1.json",
-          kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-10.json",
-          kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-2.json",
-          kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-3.json",
-          kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-4.json",
-          kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-5.json",
-          kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-6.json",
-          kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-7.json",
-          kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-9.json"
-      };
-
       // Skip tests that fail in Fuhon
       static std::vector<std::string> fail_in_fuhon{
           // TODO (a.chernyshov) test-vectors hamt have incorrect order
@@ -275,11 +252,6 @@ auto search() {
           kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storagepower/CreateMiner/Ok/ext-0004-fil_1_storagepower-CreateMiner-Ok-10.json",
           kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storagepower/CreateMiner/Ok/ext-0001-fil_1_storagepower-CreateMiner-Ok-6.json",
       };
-
-      if (std::find(fail_in_lotus.cbegin(), fail_in_lotus.cend(), path.string())
-          != fail_in_lotus.cend()) {
-        continue;
-      }
 
       if (std::find(fail_in_fuhon.cbegin(), fail_in_fuhon.cend(), path.string())
           != fail_in_fuhon.cend()) {

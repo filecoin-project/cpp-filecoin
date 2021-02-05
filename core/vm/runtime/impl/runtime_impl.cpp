@@ -238,8 +238,9 @@ namespace fc::vm::runtime {
 
   outcome::result<bool> RuntimeImpl::verifyPoSt(
       const WindowPoStVerifyInfo &info) {
+    OUTCOME_TRY(chargeGas(execution_->env->pricelist.onVerifyPost(info)));
     WindowPoStVerifyInfo preprocess_info = info;
-    preprocess_info.randomness[31] = 0;
+    preprocess_info.randomness[31] &= 0x3f;
     return proofs::Proofs::verifyWindowPoSt(preprocess_info);
   }
 

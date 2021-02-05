@@ -10,7 +10,7 @@
 #include "blockchain/weight_calculator.hpp"
 #include "common/logger.hpp"
 #include "common/todo_error.hpp"
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/keystore/keystore.hpp"
