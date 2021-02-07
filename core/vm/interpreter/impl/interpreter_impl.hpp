@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_IMPL_HPP
 #define CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_IMPL_HPP
 
+#include "blockchain/weight_calculator.hpp"
 #include "storage/buffer_map.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/circulating.hpp"
@@ -13,6 +14,7 @@
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::interpreter {
+  using blockchain::weight::WeightCalculator;
   using runtime::MessageReceipt;
   using runtime::RuntimeRandomness;
   using storage::PersistentBufferMap;
@@ -20,6 +22,7 @@ namespace fc::vm::interpreter {
   class InterpreterImpl : public Interpreter {
    public:
     InterpreterImpl(TsLoadPtr ts_load,
+                    std::shared_ptr<WeightCalculator> weight_calculator,
                     std::shared_ptr<RuntimeRandomness> randomness,
                     std::shared_ptr<Circulating> circulating);
 
@@ -37,8 +40,10 @@ namespace fc::vm::interpreter {
 
    private:
     bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) const;
+    outcome::result<BigInt> getWeight(const TipsetCPtr &tipset) const;
 
     TsLoadPtr ts_load;
+    std::shared_ptr<WeightCalculator> weight_calculator_;
     std::shared_ptr<RuntimeRandomness> randomness_;
     std::shared_ptr<Circulating> circulating_;
   };

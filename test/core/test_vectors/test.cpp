@@ -265,6 +265,7 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
         std::make_shared<ReplayingRandomness>(mv.randomness);
     fc::vm::interpreter::InterpreterImpl vmi{
         std::make_shared<fc::primitives::tipset::TsLoadIpld>(ipld),
+        nullptr,
         randomness,
         nullptr};
     CID state{mv.state_before};

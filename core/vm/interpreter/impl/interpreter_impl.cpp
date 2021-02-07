@@ -5,6 +5,7 @@
 
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
+#include "blockchain/impl/weight_calculator_impl.hpp"
 #include "const.hpp"
 #include "primitives/tipset/load.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
@@ -67,9 +68,11 @@ namespace fc::vm::interpreter {
 
   InterpreterImpl::InterpreterImpl(
       TsLoadPtr ts_load,
+      std::shared_ptr<WeightCalculator> weight_calculator,
       std::shared_ptr<RuntimeRandomness> randomness,
       std::shared_ptr<Circulating> circulating)
       : ts_load{std::move(ts_load)},
+        weight_calculator_{std::move(weight_calculator)},
         randomness_{std::move(randomness)},
         circulating_{std::move(circulating)} {}
 
@@ -78,9 +81,11 @@ namespace fc::vm::interpreter {
       const IpldPtr &ipld,
       const TipsetCPtr &tipset) const {
     if (tipset->height() == 0) {
+      OUTCOME_TRY(weight, getWeight(tipset));
       return Result{
           tipset->getParentStateRoot(),
           tipset->getParentMessageReceipts(),
+          weight,
       };
     }
     return applyBlocks(ts_branch, ipld, tipset, {});
@@ -178,9 +183,12 @@ namespace fc::vm::interpreter {
 
     OUTCOME_TRY(Ipld::flush(receipts));
 
+    OUTCOME_TRY(weight, getWeight(tipset));
+
     return Result{
         new_state_root,
         receipts.amt.cid(),
+        std::move(weight),
     };
   }
 
@@ -193,6 +201,14 @@ namespace fc::vm::interpreter {
       }
     }
     return false;
+  }
+
+  outcome::result<BigInt> InterpreterImpl::getWeight(
+      const TipsetCPtr &tipset) const {
+    if (weight_calculator_) {
+      return weight_calculator_->calculateWeight(*tipset);
+    }
+    return 0;
   }
 
   namespace {

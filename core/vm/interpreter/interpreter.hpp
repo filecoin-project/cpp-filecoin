@@ -12,6 +12,8 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::vm::interpreter {
+  using primitives::BigInt;
+
   enum class InterpreterError {
     kDuplicateMiner = 1,
     kMinerSubmitFailed,
@@ -24,6 +26,7 @@ namespace fc::vm::interpreter {
   struct Result {
     CID state_root;
     CID message_receipts;
+    BigInt weight;
   };
   CBOR_TUPLE(Result, state_root, message_receipts)
 
