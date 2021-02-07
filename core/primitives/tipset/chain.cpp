@@ -39,27 +39,43 @@ namespace fc::primitives::tipset::chain {
     return out;
   }
 
+  void attach(TsBranchPtr parent, TsBranchPtr child) {
+    auto bottom{child->chain.begin()};
+    assert(*parent->chain.find(bottom->first) == *bottom);
+    ++bottom;
+    auto _parent{parent->chain.find(bottom->first)};
+    assert(_parent == parent->chain.end() || *_parent != *bottom);
+    child->parent = parent;
+    parent->children.push_back(child);
+  }
+
+  void detach(TsBranchPtr parent, TsBranchPtr child) {
+    assert(child->parent == parent);
+    child->parent = nullptr;
+    parent->children.erase(std::find_if(
+        parent->children.begin(), parent->children.end(), [&](auto &child) {
+          ownerEq(parent, child);
+        }));
+  }
+
   TsBranchPtr TsBranch::make(TsChain chain, TsBranchPtr parent) {
-    auto branch{std::make_shared<TsBranch>()};
-    if (parent) {
-      auto bottom{chain.begin()};
-      assert(*parent->chain.find(bottom->first) == *bottom);
-      if (chain.size() == 1) {
-        return parent;
-      }
-      ++bottom;
-      auto _parent{parent->chain.find(bottom->first)};
-      assert(_parent == parent->chain.end() || *_parent != *bottom);
-      parent->children.push_back(branch);
+    if (parent && chain.size() == 1) {
+      return parent;
     }
+    auto branch{std::make_shared<TsBranch>()};
     branch->chain = std::move(chain);
-    branch->parent = std::move(parent);
+    if (parent) {
+      attach(parent, branch);
+    }
     return branch;
   }
 
   outcome::result<TsBranchPtr> TsBranch::make(TsLoadPtr ts_load,
                                               const TipsetKey &key,
                                               TsBranchPtr parent) {
+    if (parent->chain.rbegin()->second.key == key) {
+      return parent;
+    }
     TsChain chain;
     OUTCOME_TRY(ts, ts_load->load(key));
     auto _parent{parent->chain.lower_bound(ts->height())};
