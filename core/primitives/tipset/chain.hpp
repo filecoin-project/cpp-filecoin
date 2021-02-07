@@ -18,6 +18,7 @@ namespace fc::primitives::tipset::chain {
   using TsBranchPtr = std::shared_ptr<TsBranch>;
   using TsBranchWeak = std::weak_ptr<TsBranch>;
   using TsBranchIter = std::pair<TsBranchPtr, TsChain::iterator>;
+  using TsBranchChildren = std::multimap<Height, TsBranchWeak>;
 
   struct TsBranch {
     /**
@@ -35,30 +36,16 @@ namespace fc::primitives::tipset::chain {
 
     TsChain chain;
     TsBranchPtr parent;
-    std::vector<TsBranchWeak> children;
+    TsBranchChildren children;
   };
-
-  template <typename F>
-  void forChild(TsBranchPtr branch, Height height, const F &f) {
-    weakFor(branch->children, [&](auto &child) {
-      if (child->chain.begin()->first >= height) {
-        f(child);
-      }
-    });
-  }
 
   /**
    * inclusive revert and apply chains
    */
   using Path = std::pair<TsChain, TsChain>;
-  /**
-   * @param to_it valid iterator of valid branch
-   */
-  outcome::result<Path> findPath(TsBranchPtr from, TsBranchIter to_it);
 
-  outcome::result<void> update(TsBranchPtr branch,
-                               const Path &path,
-                               KvPtr kv = nullptr);
+  outcome::result<std::pair<Path, std::vector<TsBranchPtr>>> update(
+      TsBranchPtr branch, TsBranchIter to_it, KvPtr kv = nullptr);
 
   /**
    * @return valid iterator

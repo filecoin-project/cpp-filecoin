@@ -46,15 +46,16 @@ namespace fc::primitives::tipset::chain {
     auto _parent{parent->chain.find(bottom->first)};
     assert(_parent == parent->chain.end() || *_parent != *bottom);
     child->parent = parent;
-    parent->children.push_back(child);
+    --bottom;
+    parent->children.emplace(bottom->first, child);
   }
 
   void detach(TsBranchPtr parent, TsBranchPtr child) {
     assert(child->parent == parent);
     child->parent = nullptr;
     parent->children.erase(std::find_if(
-        parent->children.begin(), parent->children.end(), [&](auto &child) {
-          ownerEq(parent, child);
+        parent->children.begin(), parent->children.end(), [&](auto &p) {
+          return ownerEq(parent, p.second);
         }));
   }
 
@@ -146,7 +147,34 @@ namespace fc::primitives::tipset::chain {
     return path;
   }
 
-  outcome::result<void> update(TsBranchPtr branch, const Path &path, KvPtr kv) {
+  TsBranchPtr findChild(TsChain::const_iterator &it,
+                        TsChain::const_iterator end,
+                        TsBranchChildren &children) {
+    for (auto _child{children.begin()};
+         _child != children.end() && it != end;) {
+      if (_child->first > it->first) {
+        ++it;
+      } else {
+        if (auto child{_child->second.lock()}) {
+          auto next{std::next(it)};
+          if (next != end && *std::next(child->chain.begin()) == *next) {
+            return child;
+          }
+          ++_child;
+        } else {
+          _child = children.erase(_child);
+        }
+      }
+    }
+    if (it == end) {
+      --it;
+    }
+    return nullptr;
+  }
+
+  outcome::result<std::vector<TsBranchPtr>> update(TsBranchPtr branch,
+                                                   const Path &path,
+                                                   KvPtr kv) {
     auto &from{branch->chain};
     auto &[revert, apply]{path};
     auto revert_to{from.find(revert.begin()->first)};
@@ -166,13 +194,50 @@ namespace fc::primitives::tipset::chain {
       OUTCOME_TRY(batch->commit());
     }
 
-    forChild(branch, revert_to->first + 1, [&](auto &child) {
-      child->chain.insert(revert_to, from.find(child->chain.begin()->first));
-    });
-
     from.erase(revert_to, from.end());
     from.insert(apply.begin(), apply.end());
-    return outcome::success();
+
+    for (auto _child{branch->children.lower_bound(revert_to->first + 1)};
+         _child != branch->children.end();) {
+      if (auto child{_child->second.lock()}) {
+        child->chain.insert(revert_to, from.find(_child->first));
+        ++_child;
+      } else {
+        _child = branch->children.erase(_child);
+      }
+    }
+
+    std::vector<TsBranchPtr> removed;
+    auto _apply{apply.begin()};
+    auto parent{findChild(_apply, apply.end(), branch->children)};
+    while (parent) {
+      auto next{findChild(_apply, apply.end(), parent->children)};
+      for (auto _child{parent->children.begin()};
+           _child != parent->children.end()
+           && _child->first <= _apply->first;) {
+        if (auto child{_child->second.lock()}) {
+          child->parent = branch;
+          branch->children.emplace(*_child);
+        }
+        _child = parent->children.erase(_child);
+      }
+      parent->chain.erase(parent->chain.begin(),
+                          parent->chain.find(_apply->first));
+      if (parent->chain.size() <= 1) {
+        detach(parent->parent, parent);
+        removed.push_back(parent);
+      }
+      assert(next || std::next(_apply) == apply.end());
+      parent = next;
+    }
+    return removed;
+  }
+
+  outcome::result<std::pair<Path, std::vector<TsBranchPtr>>> update(
+      TsBranchPtr branch, TsBranchIter to_it, KvPtr kv) {
+    OUTCOME_TRY(path, findPath(branch, to_it));
+    OUTCOME_TRY(removed, update(branch, path, kv));
+    return std::make_pair(std::move(path), std::move(removed));
   }
 
   outcome::result<TsBranchIter> find(TsBranchPtr branch,
