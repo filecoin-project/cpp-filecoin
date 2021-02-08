@@ -8,7 +8,6 @@ add_library(node
     hello.cpp
     peermgr.cpp
     pubsub.cpp
-    sync.cpp
     )
 target_link_libraries(node
     cbor_stream
