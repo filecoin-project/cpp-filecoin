@@ -83,7 +83,7 @@ namespace fc::api {
 
   template <typename T, typename F>
   auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&... args) {
+    return [f{std::forward<F>(f)}](auto &&...args) {
       auto channel{std::make_shared<Channel<outcome::result<T>>>()};
       f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
         channel->write(std::forward<decltype(_r)>(_r));
@@ -447,7 +447,7 @@ namespace fc::api {
           if (message.from.isId()) {
             OUTCOME_TRYA(message.from,
                          vm::runtime::resolveKey(
-                             context.state_tree, message.from, true));
+                             context.state_tree, ipld, message.from, false));
           }
           OUTCOME_TRY(mpool->estimate(message));
           OUTCOME_TRYA(message.nonce, mpool->nonce(message.from));
@@ -706,8 +706,11 @@ namespace fc::api {
         .StateMinerProvingDeadline = {[=](auto &address, auto &tipset_key)
                                           -> outcome::result<DeadlineInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
+          // TODO (a.chernyshov) miner version depends on actor code/version
           OUTCOME_TRY(state, context.minerState(address));
-          return state.deadlineInfo(context.tipset->height());
+          const auto deadline_info =
+              state.deadlineInfo(context.tipset->height());
+          return deadline_info.nextNotElapsed();
         }},
         .StateMinerSectors =
             {[=](auto &address, auto &filter, auto &tipset_key)

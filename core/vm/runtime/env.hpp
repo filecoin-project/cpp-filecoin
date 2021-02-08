@@ -16,14 +16,25 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::vm::runtime {
+  using actor::Actor;
   using actor::Invoker;
   using primitives::tipset::TipsetCPtr;
   using state::StateTree;
   using state::StateTreeImpl;
 
+  /**
+   * Returns the public key type of address (`BLS`/`SECP256K1`) of an account
+   * actor identified by `address`.
+   * @param state_tree - state tree
+   * @param ipld - regular or charging ipld
+   * @param address - account actor address
+   * @param allow_actor - is actor type address allowed
+   * @return key address
+   */
   outcome::result<Address> resolveKey(StateTree &state_tree,
+                                      IpldPtr ipld,
                                       const Address &address,
-                                      bool no_actor = false);
+                                      bool allow_actor = true);
 
   struct IpldBuffered : public Ipld,
                         public std::enable_shared_from_this<IpldBuffered> {
@@ -71,8 +82,9 @@ namespace fc::vm::runtime {
   };
 
   struct Execution : std::enable_shared_from_this<Execution> {
-    static std::shared_ptr<Execution> make(std::shared_ptr<Env> env,
-                                           const UnsignedMessage &message);
+    static std::shared_ptr<Execution> make(
+        const std::shared_ptr<Env> &env,
+        const UnsignedMessage &message);
 
     outcome::result<void> chargeGas(GasAmount amount);
 

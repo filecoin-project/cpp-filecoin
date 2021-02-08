@@ -7,12 +7,19 @@
 
 #include <gtest/gtest.h>
 #include "primitives/address/address.hpp"
+#include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/mocks/storage/ipfs/ipfs_datastore_mock.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/version.hpp"
+
+#define ON_CALL_3(object, call, result) \
+  EXPECT_CALL(object, call)             \
+      .Times(testing::AnyNumber())      \
+      .WillRepeatedly(Return(result))
 
 namespace fc::vm::actor::builtin::v0::multisig {
   using fc::CID;
@@ -20,79 +27,165 @@ namespace fc::vm::actor::builtin::v0::multisig {
   using fc::primitives::BigInt;
   using fc::primitives::ChainEpoch;
   using fc::primitives::EpochDuration;
+  using fc::primitives::TokenAmount;
   using fc::primitives::address::Address;
-  using fc::storage::ipfs::MockIpfsDatastore;
+  using fc::storage::ipfs::InMemoryDatastore;
   using fc::vm::VMExitCode;
   using fc::vm::runtime::InvocationOutput;
   using fc::vm::runtime::MockRuntime;
-  using ::testing::_;
-  using ::testing::Eq;
-
-  /**
-   * Match encoded MultiSignatureActorState is expected one
-   * Used for IpldStore set state.
-   */
-  MATCHER_P(MultiSignatureActorStateMatcher,
-            expected,
-            "Match MultisignatureActorState") {
-    MultiSignatureActorState actual =
-        fc::codec::cbor::decode<MultiSignatureActorState>(arg).value();
-    return actual.signers == expected.signers
-           && actual.threshold == expected.threshold
-           && actual.next_transaction_id == expected.next_transaction_id
-           && actual.initial_balance == expected.initial_balance
-           && actual.start_epoch == expected.start_epoch
-           && actual.unlock_duration == expected.unlock_duration
-           && actual.pending_transactions == expected.pending_transactions;
-  }
+  using fc::vm::state::StateTreeImpl;
+  using fc::vm::version::NetworkVersion;
+  using testing::Eq;
+  using testing::Return;
 
   class MultisigActorTest : public ::testing::Test {
-   protected:
-    /** CID of actor state stored in ipld store */
-    CID actor_head{"010001020005"_cid};
+    void SetUp() override {
+      initState();
 
+      ON_CALL_3(runtime, getIpfsDatastore(), ipld);
+
+      EXPECT_CALL(runtime, resolveAddress(testing::_))
+          .Times(testing::AnyNumber())
+          .WillRepeatedly(testing::Invoke(
+              [&](auto &address) { return state_tree.lookupId(address); }));
+
+      EXPECT_CALL(runtime, getCurrentEpoch())
+          .Times(testing::AnyNumber())
+          .WillOnce(testing::Invoke([&]() { return epoch; }));
+
+      ON_CALL_3(runtime, getValueReceived(), value_received);
+
+      EXPECT_CALL(runtime, getNetworkVersion())
+          .Times(testing::AtMost(1))
+          .WillOnce(testing::Invoke(
+              [&]() { return version::getNetworkVersion(epoch); }));
+
+      EXPECT_CALL(runtime, getBalance(actor_address))
+          .Times(testing::AnyNumber())
+          .WillRepeatedly(testing::Invoke(
+              [&](auto &) { return fc::outcome::success(balance); }));
+
+      EXPECT_CALL(runtime, getImmediateCaller())
+          .Times(testing::AnyNumber())
+          .WillRepeatedly(testing::Invoke([&]() { return caller; }));
+
+      ON_CALL_3(runtime, getCurrentReceiver(), actor_address);
+
+      ON_CALL_3(runtime, getActorCodeID(kInitAddress), kInitCodeCid);
+      ON_CALL_3(runtime, getActorCodeID(caller), kAccountCodeCid);
+      ON_CALL_3(runtime, getActorCodeID(wrong_caller), kCronCodeCid);
+
+      EXPECT_CALL(runtime, hashBlake2b(testing::_))
+          .Times(testing::AnyNumber())
+          .WillRepeatedly(testing::Invoke(
+              [&](auto &data) { return crypto::blake2b::blake2b_256(data); }));
+
+      ipld->load(state);
+
+      EXPECT_CALL(runtime, getCurrentActorState())
+          .Times(testing::AnyNumber())
+          .WillRepeatedly(testing::Invoke([&]() {
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            return std::move(cid);
+          }));
+
+      EXPECT_CALL(runtime, commit(testing::_))
+          .Times(testing::AnyNumber())
+          .WillRepeatedly(testing::Invoke([&](auto &cid) {
+            EXPECT_OUTCOME_TRUE(new_state, ipld->getCbor<State>(cid));
+            state = std::move(new_state);
+            return fc::outcome::success();
+          }));
+    }
+
+   public:
+    void resetSigners() {
+      state.signers.clear();
+      pushSigner(caller);
+    }
+
+    void pushSigner(const Address &signer) {
+      state.signers.push_back(resolveAddr(signer));
+    }
+
+    Address resolveAddr(const Address &address) {
+      EXPECT_OUTCOME_TRUE(resolved, state_tree.lookupId(address));
+      return std::move(resolved);
+    }
+
+    void initState() {
+      pushSigner(caller);
+      state.threshold = 1;
+      state.next_transaction_id = 1;
+      state.initial_balance = 0;
+      state.start_epoch = 0;
+      state.unlock_duration = 0;
+    }
+
+   protected:
     /** Immediate caller address */
-    Address caller_address = Address::makeBls(
-        "1234567890123456789012345678901234567890"
-        "1234567890123456789012345678901234567890"
-        "1122334455667788"_blob48);
+    Address caller{Address::makeFromId(101)};
+    Address wrong_caller{Address::makeFromId(999)};
 
     /** Pendign transaction receiver */
-    Address to_address = Address::makeBls(
-        "2222222222222222222222222222222222222222"
-        "2222222222222222222222222222222222222222"
-        "2222222222222222"_blob48);
+    Address to_address{Address::makeFromId(102)};
 
     /** Multisig actor address */
-    Address actor_address = Address::makeBls(
-        "3333333333333333333333333333333333333333"
-        "3333333333333333333333333333333333333333"
-        "3333333333333333"_blob48);
+    Address actor_address{Address::makeFromId(103)};
 
     MockRuntime runtime;
-    std::shared_ptr<MockIpfsDatastore> datastore =
-        std::make_shared<MockIpfsDatastore>();
+    std::shared_ptr<InMemoryDatastore> ipld{
+        std::make_shared<InMemoryDatastore>()};
+
     MethodNumber method_number{1};
     MethodParams method_params{Buffer{"0102"_unhex}};
-    size_t default_threshold{1};
-    TransactionNumber default_next_transaction_id{1};
-    BigInt default_initial_balance{0};
-    ChainEpoch default_start_epoch{0};
-    EpochDuration default_unlock_duration{0};
-    std::vector<MultiSignatureTransaction> default_pending_transactions{};
+
+    ChainEpoch epoch;
+
+    TokenAmount balance;
+    BigInt value_received;
+
+    State state{};
+
+    StateTreeImpl state_tree{ipld};
   };
 
   /**
    * @given Runtime and multisig actor
    * @when constructor is called with immediate caller different from Init Actor
-   * @then error WRONG_CALLER returned
+   * @then error returned
    */
   TEST_F(MultisigActorTest, ConstructWrongCaller) {
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(kCronAddress));
+    caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          Construct::call(runtime, {}));
+  }
+
+  /**
+   * @given Runtime and multisig actor
+   * @when constructor is called with empty signers
+   * @then error returned
+   */
+  TEST_F(MultisigActorTest, ConstructEmptySigners) {
+    caller = kInitAddress;
+
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         Construct::call(runtime, {}));
+  }
+
+  /**
+   * @given Runtime and multisig actor
+   * @when constructor is called with duplicate signers
+   * @then error returned
+   */
+  TEST_F(MultisigActorTest, ConstructDuplicateSigners) {
+    caller = kInitAddress;
+    const std::vector<Address> signers{caller, caller};
+    const size_t threshold{2};
+
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         Construct::call(runtime, {signers, threshold, {}}));
   }
 
   /**
@@ -101,16 +194,42 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then error returned
    */
   TEST_F(MultisigActorTest, ConstructWrongThreshold) {
-    std::vector<Address> signers{caller_address};
-    size_t threshold{5};
+    caller = kInitAddress;
+    const std::vector<Address> signers{caller};
+    const size_t threshold{5};
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(kInitAddress));
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         Construct::call(runtime, {signers, threshold, {}}));
+  }
+
+  /**
+   * @given Runtime and multisig actor
+   * @when constructor is called with 0 threshold
+   * @then error returned
+   */
+  TEST_F(MultisigActorTest, ConstructZeroThreshold) {
+    caller = kInitAddress;
+    const std::vector<Address> signers{caller};
+    const size_t threshold{0};
+
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         Construct::call(runtime, {signers, threshold, {}}));
+  }
+
+  /**
+   * @given Runtime and multisig actor
+   * @when constructor is called with unlock_duration < 0
+   * @then error returned
+   */
+  TEST_F(MultisigActorTest, ConstructNegativeDuration) {
+    caller = kInitAddress;
+    const std::vector<Address> signers{caller};
+    const size_t threshold{1};
+    const EpochDuration duration = -1;
 
     EXPECT_OUTCOME_ERROR(
-        VMExitCode::kMultisigActorIllegalArgument,
-        Construct::call(runtime,
-                        {signers, threshold, default_unlock_duration}));
+        asAbort(VMExitCode::kErrIllegalArgument),
+        Construct::call(runtime, {signers, threshold, duration}));
   }
 
   /**
@@ -119,33 +238,24 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then success returned and state is commited to storage
    */
   TEST_F(MultisigActorTest, ConstrucCorrect) {
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(kInitAddress));
-    EXPECT_CALL(runtime, getCurrentEpoch())
-        .WillOnce(testing::Return(ChainEpoch{42}));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, set(_, _))
-        .WillOnce(testing::Return(fc::outcome::success()));
-    EXPECT_CALL(runtime, commit(_))
-        .WillOnce(testing::Return(fc::outcome::success()));
+    caller = kInitAddress;
+    epoch = 42;
 
-    EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, {}));
+    const std::vector<Address> signers{caller};
+    const size_t threshold{1};
+
+    EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, {signers, threshold, {}}));
   }
 
   /**
    * @given Runtime and multisig actor
    * @when propose is called with immediate caller is not signable
-   * @then error WRONG_CALLER returned
+   * @then error returned
    */
   TEST_F(MultisigActorTest, ProposeWrongCaller) {
-    // not a signable code cid
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kCronCodeCid)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
+    caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          Propose::call(runtime, {}));
   }
 
@@ -155,24 +265,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then error returned
    */
   TEST_F(MultisigActorTest, ProposetWrongSigner) {
-    MultiSignatureActorState actor_state{};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    state.signers.clear();
 
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
-
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorForbidden,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
                          Propose::call(runtime, {}));
   }
 
@@ -182,36 +277,15 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then error insufficient funds
    */
   TEST_F(MultisigActorTest, ProposeSendInsufficientFunds) {
-    BigInt actor_balance{1};
-    BigInt value_to_send{100500};  // > actor state balance
-    TransactionNumber tx_number{13};
-    MultiSignatureActorState actor_state{std::vector{caller_address},
-                                         1,
-                                         tx_number,
-                                         actor_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    balance = 1;
 
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(actor_address));
-    EXPECT_CALL(runtime, getBalance(Eq(actor_address)))
-        .WillOnce(testing::Return(fc::outcome::success(actor_balance)));
+    const BigInt value_to_send{100500};  // > actor state balance
+
+    state.next_transaction_id = 13;
+    state.initial_balance = balance;
 
     EXPECT_OUTCOME_ERROR(
-        VMExitCode::kMultisigActorInsufficientFunds,
+        asAbort(VMExitCode::kErrInsufficientFunds),
         Propose::call(
             runtime,
             {to_address, value_to_send, method_number, method_params}));
@@ -223,40 +297,18 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then error funds locked
    */
   TEST_F(MultisigActorTest, ProposeSendFundsLocked) {
-    BigInt actor_balance{200};
-    BigInt value_to_send{200};
-    TransactionNumber tx_number{13};
-    ChainEpoch start_epoch{42};
-    ChainEpoch epoch{43};  // < start_epoch + unlock_duration
-    EpochDuration unlock_duration{10};
-    MultiSignatureActorState actor_state{std::vector{caller_address},
-                                         1,
-                                         tx_number,
-                                         actor_balance,
-                                         start_epoch,
-                                         unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    balance = 200;
+    epoch = 43;
 
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(actor_address));
-    EXPECT_CALL(runtime, getBalance(Eq(actor_address)))
-        .WillOnce(testing::Return(fc::outcome::success(actor_balance)));
-    EXPECT_CALL(runtime, getCurrentEpoch()).WillOnce(testing::Return(epoch));
+    const BigInt value_to_send{200};
+
+    state.next_transaction_id = 13;
+    state.initial_balance = balance;
+    state.start_epoch = 42;
+    state.unlock_duration = 10;
 
     EXPECT_OUTCOME_ERROR(
-        VMExitCode::kMultisigActorInsufficientFunds,
+        asAbort(VMExitCode::kErrInsufficientFunds),
         Propose::call(
             runtime,
             {to_address, value_to_send, method_number, method_params}));
@@ -269,40 +321,18 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then error funds locked
    */
   TEST_F(MultisigActorTest, ProposeSendFundsLockedStartEpoch) {
-    BigInt actor_balance{200};
-    BigInt value_to_send{200};
-    TransactionNumber tx_number{13};
-    ChainEpoch start_epoch{42};
-    ChainEpoch epoch{10};  // < start_epoch
-    EpochDuration unlock_duration{10};
-    MultiSignatureActorState actor_state{std::vector{caller_address},
-                                         1,
-                                         tx_number,
-                                         actor_balance,
-                                         start_epoch,
-                                         unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    balance = 200;
+    epoch = 10;
 
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(actor_address));
-    EXPECT_CALL(runtime, getBalance(Eq(actor_address)))
-        .WillOnce(testing::Return(fc::outcome::success(actor_balance)));
-    EXPECT_CALL(runtime, getCurrentEpoch()).WillOnce(testing::Return(epoch));
+    const BigInt value_to_send{200};
+
+    state.next_transaction_id = 13;
+    state.initial_balance = balance;
+    state.start_epoch = 42;
+    state.unlock_duration = 10;
 
     EXPECT_OUTCOME_ERROR(
-        VMExitCode::kMultisigActorInsufficientFunds,
+        asAbort(VMExitCode::kErrInsufficientFunds),
         Propose::call(
             runtime,
             {to_address, value_to_send, method_number, method_params}));
@@ -314,49 +344,18 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then transaction is sent
    */
   TEST_F(MultisigActorTest, ProposeSendFundsEnough) {
-    BigInt actor_balance{100};
-    BigInt value_to_send{50};
-    TransactionNumber tx_number{13};
-    MultiSignatureActorState actor_state{std::vector{caller_address},
-                                         1,
-                                         tx_number,
-                                         actor_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    balance = 100;
+    epoch = 42;
 
-    MultiSignatureActorState expected_state{std::vector{caller_address},
-                                            1,
-                                            tx_number + 1,
-                                            actor_balance,
-                                            default_start_epoch,
-                                            default_unlock_duration,
-                                            default_pending_transactions};
+    const TransactionId tx_id{13};
+    const BigInt value_to_send{50};
 
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .Times(2)
-        .WillRepeatedly(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(*datastore,
-                set(_, MultiSignatureActorStateMatcher(expected_state)))
-        .WillOnce(testing::Return(fc::outcome::success()));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(actor_address));
-    EXPECT_CALL(runtime, getBalance(Eq(actor_address)))
-        .WillOnce(testing::Return(fc::outcome::success(actor_balance)));
-    EXPECT_CALL(runtime, getCurrentEpoch())
-        .WillOnce(testing::Return(ChainEpoch{42}));
-    EXPECT_CALL(runtime, commit(_))
-        .WillOnce(testing::Return(fc::outcome::success()));
+    state.next_transaction_id = tx_id;
+    state.initial_balance = balance;
+
+    auto expected_state = state;
+    expected_state.next_transaction_id = tx_id + 1;
+
     EXPECT_CALL(runtime,
                 send(Eq(to_address),
                      Eq(method_number),
@@ -364,10 +363,11 @@ namespace fc::vm::actor::builtin::v0::multisig {
                      Eq(value_to_send)))
         .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
 
+    const Propose::Result expected_result{tx_id, true, VMExitCode::kOk, {}};
     EXPECT_OUTCOME_EQ(
         Propose::call(
             runtime, {to_address, value_to_send, method_number, method_params}),
-        tx_number);
+        expected_result);
   }
 
   /**
@@ -376,73 +376,40 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then transaction is pending
    */
   TEST_F(MultisigActorTest, ProposePending) {
-    BigInt actor_balance{100};
-    BigInt value_to_send{50};
-    TransactionNumber tx_number{13};
-    MultiSignatureActorState actor_state{std::vector{caller_address},
-                                         2,
-                                         tx_number,
-                                         actor_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    balance = 100;
 
-    MultiSignatureTransaction pending_tx{tx_number,
-                                         to_address,
-                                         value_to_send,
-                                         method_number,
-                                         method_params,
-                                         std::vector{caller_address}};
-    MultiSignatureActorState expected_state{std::vector{caller_address},
-                                            2,
-                                            tx_number + 1,
-                                            actor_balance,
-                                            0,
-                                            0,
-                                            std::vector{pending_tx}};
+    const TransactionId tx_id{13};
+    const BigInt value_to_send{50};
 
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .Times(2)
-        .WillRepeatedly(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(*datastore,
-                set(_, MultiSignatureActorStateMatcher(expected_state)))
-        .WillOnce(testing::Return(fc::outcome::success()));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(actor_address));
-    EXPECT_CALL(runtime, getBalance(Eq(actor_address)))
-        .WillOnce(testing::Return(fc::outcome::success(actor_balance)));
-    EXPECT_CALL(runtime, commit(_))
-        .WillOnce(testing::Return(fc::outcome::success()));
+    state.threshold = 2;
+    state.next_transaction_id = tx_id;
+    state.initial_balance = balance;
+
+    const Transaction pending_tx{
+        to_address, value_to_send, method_number, method_params, {caller}};
+
+    const auto expected_tx_id = tx_id + 1;
+    const Propose::Result expected_result{tx_id, false, VMExitCode::kOk, {}};
 
     EXPECT_OUTCOME_EQ(
         Propose::call(
             runtime, {to_address, value_to_send, method_number, method_params}),
-        tx_number);
+        expected_result);
+
+    EXPECT_EQ(state.next_transaction_id, expected_tx_id);
+    EXPECT_OUTCOME_TRUE(tx, state.pending_transactions.get(tx_id));
+    EXPECT_EQ(tx, pending_tx);
   }
 
   /**
    * @given Runtime and multisig actor
    * @when approve is called with immediate caller is not signable
-   * @then error WRONG_CALLER returned
+   * @then error returned
    */
   TEST_F(MultisigActorTest, ApproveWrongCaller) {
-    // not a signable code cid
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kCronCodeCid)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
+    caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          Approve::call(runtime, {}));
   }
 
@@ -452,60 +419,20 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then error returned
    */
   TEST_F(MultisigActorTest, ApproveWrongSigner) {
-    MultiSignatureActorState actor_state{std::vector{kInitAddress},
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    state.signers.clear();
+    pushSigner(kInitAddress);
 
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
-
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorForbidden,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
                          Approve::call(runtime, {}));
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when approve is called with wrong tx_number
+   * @when approve is called with wrong tx_id
    * @then error returned
    */
-  TEST_F(MultisigActorTest, ApproveWrongTxNumber) {
-    // no pending txs in state
-    MultiSignatureActorState actor_state{std::vector{caller_address},
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
-
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
-
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorNotFound,
+  TEST_F(MultisigActorTest, ApproveWrongTxId) {
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrNotFound),
                          Approve::call(runtime, {}));
   }
 
@@ -515,42 +442,52 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then error returned
    */
   TEST_F(MultisigActorTest, ApproveAlreadySigned) {
-    BigInt actor_balance{100};
-    BigInt value_to_send{50};
-    std::vector<Address> signers{caller_address, kInitAddress};
-    size_t threshold{2};
-    TransactionNumber pending_tx_number{13};
-    TransactionNumber tx_number{13};
+    const TransactionId tx_id{13};
+    const BigInt value_to_send{50};
+
+    // tx is approved by caller
+    const Transaction pending_tx{
+        to_address, value_to_send, method_number, method_params, {caller}};
+
+    pushSigner(kInitAddress);
+    state.threshold = 2;
+    state.next_transaction_id = tx_id;
+    state.initial_balance = 100;
+    EXPECT_OUTCOME_TRUE_1(state.pending_transactions.set(tx_id, pending_tx));
+
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
+                         Approve::call(runtime, {tx_id, {}}));
+  }
+
+  /**
+   * @given Runtime and multisig actor and pending tx
+   * @when approve is called with wron proposal hash
+   * @then error returned
+   */
+  TEST_F(MultisigActorTest, ApproveWrongHash) {
+    balance = 100;
+    epoch = 42;
+
+    const TransactionId tx_id{13};
+    const BigInt value_to_send{50};
+
     // tx is approved by kInitAddress
-    MultiSignatureTransaction pending_tx{pending_tx_number,
-                                         to_address,
-                                         value_to_send,
-                                         method_number,
-                                         method_params,
-                                         std::vector{caller_address}};
-    MultiSignatureActorState actor_state{signers,
-                                         threshold,
-                                         tx_number,
-                                         actor_balance,
-                                         0,
-                                         0,
-                                         std::vector{pending_tx}};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    const Transaction pending_tx{to_address,
+                                 value_to_send,
+                                 method_number,
+                                 method_params,
+                                 {kInitAddress}};
 
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
+    const Buffer wrong_hash{"010203"_unhex};
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorIllegalState,
-                         Approve::call(runtime, {pending_tx_number}));
+    pushSigner(kInitAddress);
+    state.threshold = 2;
+    state.next_transaction_id = tx_id;
+    state.initial_balance = balance;
+    EXPECT_OUTCOME_TRUE_1(state.pending_transactions.set(tx_id, pending_tx));
+
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         Approve::call(runtime, {tx_id, wrong_hash}));
   }
 
   /**
@@ -558,62 +495,28 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @when approve is called
    * @then transaction is signed, called and deleted from state
    */
-  TEST_F(MultisigActorTest, ApproveSunnyDay) {
-    BigInt actor_balance{100};
-    BigInt value_to_send{50};
-    std::vector<Address> signers{caller_address, kInitAddress};
-    size_t threshold{2};
-    TransactionNumber pending_tx_number{13};
-    TransactionNumber tx_number{13};
+  TEST_F(MultisigActorTest, ApproveSuccess) {
+    balance = 100;
+    epoch = 42;
+
+    const TransactionId tx_id{13};
+    const BigInt value_to_send{50};
+
     // tx is approved by kInitAddress
-    MultiSignatureTransaction pending_tx{pending_tx_number,
-                                         to_address,
-                                         value_to_send,
-                                         method_number,
-                                         method_params,
-                                         std::vector{kInitAddress}};
-    MultiSignatureActorState actor_state{signers,
-                                         threshold,
-                                         tx_number,
-                                         actor_balance,
-                                         0,
-                                         0,
-                                         std::vector{pending_tx}};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    const Transaction pending_tx{to_address,
+                                 value_to_send,
+                                 method_number,
+                                 method_params,
+                                 {kInitAddress}};
 
-    // expected that pending tx is removed after sending
-    MultiSignatureActorState expected_state{
-        signers,
-        threshold,
-        tx_number,
-        actor_balance,
-        0,
-        0,
-        std::vector<MultiSignatureTransaction>{}};
+    EXPECT_OUTCOME_TRUE(hash, pending_tx.hash(runtime));
 
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .Times(2)
-        .WillRepeatedly(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(*datastore,
-                set(_, MultiSignatureActorStateMatcher(expected_state)))
-        .WillOnce(testing::Return(fc::outcome::success()));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentEpoch())
-        .WillOnce(testing::Return(ChainEpoch{42}));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(actor_address));
-    EXPECT_CALL(runtime, getBalance(Eq(actor_address)))
-        .WillOnce(testing::Return(fc::outcome::success(actor_balance)));
-    EXPECT_CALL(runtime, commit(_))
-        .WillOnce(testing::Return(fc::outcome::success()));
+    pushSigner(kInitAddress);
+    state.threshold = 2;
+    state.next_transaction_id = tx_id;
+    state.initial_balance = balance;
+    EXPECT_OUTCOME_TRUE_1(state.pending_transactions.set(tx_id, pending_tx));
+
     EXPECT_CALL(runtime,
                 send(Eq(to_address),
                      Eq(method_number),
@@ -621,22 +524,22 @@ namespace fc::vm::actor::builtin::v0::multisig {
                      Eq(value_to_send)))
         .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
 
-    EXPECT_OUTCOME_TRUE_1(Approve::call(runtime, {pending_tx_number}));
+    EXPECT_OUTCOME_TRUE_1(Approve::call(runtime, {tx_id, hash}));
+
+    // expected that pending tx is removed after sending
+    EXPECT_OUTCOME_TRUE(exist, state.pending_transactions.has(tx_id));
+    EXPECT_EQ(exist, false);
   }
 
   /**
    * @given Runtime and multisig actor
    * @when cancel is called with immediate caller is not signable
-   * @then error WRONG_CALLER returned
+   * @then error returned
    */
   TEST_F(MultisigActorTest, CancelWrongCaller) {
-    // not a signable code cid
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kCronCodeCid)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
+    caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          Cancel::call(runtime, {}));
   }
 
@@ -646,105 +549,68 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then error returned
    */
   TEST_F(MultisigActorTest, CancelWrongSigner) {
-    MultiSignatureActorState actor_state{std::vector{kInitAddress},
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    state.signers.clear();
+    pushSigner(kInitAddress);
 
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
-
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorForbidden,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
                          Cancel::call(runtime, {}));
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when cancel is called with wrong tx_number
+   * @when cancel is called with wrong tx_id
    * @then error returned
    */
-  TEST_F(MultisigActorTest, CancelWrongTxNumber) {
+  TEST_F(MultisigActorTest, CancelWrongTxId) {
     // no pending txs in state
-    MultiSignatureActorState actor_state{std::vector{caller_address},
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
-
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
-
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorNotFound,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrNotFound),
                          Cancel::call(runtime, {}));
   }
 
   /**
    * @given Runtime and multisig actor and pending tx with other creator
-   * @when approve is called with address not equal to creator
+   * @when approve is called with approve address not equal to caller
    * @then error returned
    */
-  TEST_F(MultisigActorTest, CancelNotCreator) {
-    BigInt actor_balance{100};
-    BigInt value_to_send{50};
-    std::vector<Address> signers{caller_address, kInitAddress};
-    size_t threshold{2};
-    TransactionNumber pending_tx_number{13};
-    TransactionNumber tx_number{13};
+  TEST_F(MultisigActorTest, CancelApproverNotCaller) {
+    const TransactionId tx_id{13};
+
     // tx is approved by kInitAddress - different creator
-    MultiSignatureTransaction pending_tx{pending_tx_number,
-                                         to_address,
-                                         value_to_send,
-                                         method_number,
-                                         method_params,
-                                         std::vector{kInitAddress}};
-    MultiSignatureActorState actor_state{signers,
-                                         threshold,
-                                         tx_number,
-                                         actor_balance,
-                                         0,
-                                         0,
-                                         std::vector{pending_tx}};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    const Transaction pending_tx{
+        to_address, 50, method_number, method_params, {kInitAddress}};
 
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
+    pushSigner(kInitAddress);
+    state.threshold = 2;
+    state.next_transaction_id = tx_id;
+    state.initial_balance = 100;
+    EXPECT_OUTCOME_TRUE_1(state.pending_transactions.set(tx_id, pending_tx));
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorForbidden,
-                         Cancel::call(runtime, {pending_tx_number}));
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
+                         Cancel::call(runtime, {tx_id, {}}));
+  }
+
+  /**
+   * @given Runtime and multisig actor and pending tx
+   * @when cancel is called with wrong proposal hash
+   * @then error returned
+   */
+  TEST_F(MultisigActorTest, CancelWrongHash) {
+    const TransactionId tx_id{13};
+
+    // tx is approved by caller - caller is creator
+    const Transaction pending_tx{
+        to_address, 50, method_number, method_params, {caller}};
+
+    pushSigner(kInitAddress);
+    state.threshold = 2;
+    state.next_transaction_id = tx_id;
+    state.initial_balance = 100;
+    EXPECT_OUTCOME_TRUE_1(state.pending_transactions.set(tx_id, pending_tx));
+
+    const Buffer wrong_hash{"010203"_unhex};
+
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalState),
+                         Cancel::call(runtime, {tx_id, wrong_hash}));
   }
 
   /**
@@ -752,208 +618,101 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @when cancel is called
    * @then transaction is deleted from state
    */
-  TEST_F(MultisigActorTest, CancelSunnyDay) {
-    BigInt actor_balance{100};
-    BigInt value_to_send{50};
-    std::vector<Address> signers{caller_address, kInitAddress};
-    size_t threshold{2};
-    TransactionNumber pending_tx_number{13};
-    TransactionNumber tx_number{13};
+  TEST_F(MultisigActorTest, CancelSuccess) {
+    const TransactionId tx_id{13};
+
     // tx is approved by caller - caller is creator
-    MultiSignatureTransaction pending_tx{pending_tx_number,
-                                         to_address,
-                                         value_to_send,
-                                         method_number,
-                                         method_params,
-                                         std::vector{caller_address}};
-    MultiSignatureActorState actor_state{signers,
-                                         threshold,
-                                         tx_number,
-                                         actor_balance,
-                                         0,
-                                         0,
-                                         std::vector{pending_tx}};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    const Transaction pending_tx{
+        to_address, 50, method_number, method_params, {caller}};
 
-    // expected that pending tx is removed after cancel
-    MultiSignatureActorState expected_state{
-        signers,
-        threshold,
-        tx_number,
-        actor_balance,
-        0,
-        0,
-        std::vector<MultiSignatureTransaction>{}};
+    pushSigner(kInitAddress);
+    state.threshold = 2;
+    state.next_transaction_id = tx_id;
+    state.initial_balance = 100;
+    EXPECT_OUTCOME_TRUE_1(state.pending_transactions.set(tx_id, pending_tx));
 
-    EXPECT_CALL(runtime, getActorCodeID(caller_address))
-        .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .Times(2)
-        .WillRepeatedly(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(*datastore,
-                set(_, MultiSignatureActorStateMatcher(expected_state)))
-        .WillOnce(testing::Return(fc::outcome::success()));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .Times(2)
-        .WillRepeatedly(testing::Return(caller_address));
-    EXPECT_CALL(runtime, commit(_))
-        .WillOnce(testing::Return(fc::outcome::success()));
+    EXPECT_OUTCOME_TRUE(hash, pending_tx.hash(runtime));
 
-    EXPECT_OUTCOME_TRUE_1(Cancel::call(runtime, {pending_tx_number}));
+    EXPECT_OUTCOME_TRUE_1(Cancel::call(runtime, {tx_id, hash}));
+
+    // expected that pending tx is removed after sending
+    EXPECT_OUTCOME_TRUE(exist, state.pending_transactions.has(tx_id));
+    EXPECT_EQ(exist, false);
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when addSigner() is called with immediate caller is not receiver
-   * @then error WRONG_CALLER returned
+   * @when addSigner is called with immediate caller is not receiver
+   * @then error returned
    */
   TEST_F(MultisigActorTest, AddSignerWrongCaller) {
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(kInitAddress));
+    caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          AddSigner::call(runtime, {}));
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when AddSigner() is called with address already is signer
+   * @when addSigner is called with address already is signer
    * @then error returned
    */
   TEST_F(MultisigActorTest, AddSignerAlreadyAdded) {
-    std::vector<Address> signers{caller_address, kInitAddress};
-    MultiSignatureActorState actor_state{signers,
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+    caller = actor_address;
+    resetSigners();
+    pushSigner(kInitAddress);
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorIllegalArgument,
-                         AddSigner::call(runtime, {caller_address}));
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
+                         AddSigner::call(runtime, {caller}));
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when AddSigner() is called with not change threshold
+   * @when addSigner is called with not change threshold
    * @then new signer added, threshold is not changed
    */
   TEST_F(MultisigActorTest, AddSignerNotChangeThreshold) {
-    std::vector<Address> signers{kInitAddress};
-    MultiSignatureActorState actor_state{signers,
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+    caller = actor_address;
+    state.signers.clear();
+    pushSigner(kInitAddress);
 
-    std::vector<Address> expected_signers{kInitAddress, caller_address};
-    MultiSignatureActorState expected_state{expected_signers,
-                                            default_threshold,
-                                            default_next_transaction_id,
-                                            default_initial_balance,
-                                            default_start_epoch,
-                                            default_unlock_duration,
-                                            default_pending_transactions};
+    const std::vector<Address> expected_signers{resolveAddr(kInitAddress),
+                                                resolveAddr(caller)};
+    const auto expected_threshold = state.threshold;
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .Times(2)
-        .WillRepeatedly(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(*datastore,
-                set(_, MultiSignatureActorStateMatcher(expected_state)))
-        .WillOnce(testing::Return(fc::outcome::success()));
-    EXPECT_CALL(runtime, commit(_))
-        .WillOnce(testing::Return(fc::outcome::success()));
+    EXPECT_OUTCOME_TRUE_1(AddSigner::call(runtime, {caller, false}));
 
-    EXPECT_OUTCOME_TRUE_1(AddSigner::call(runtime, {caller_address, false}));
+    EXPECT_EQ(state.signers, expected_signers);
+    EXPECT_EQ(state.threshold, expected_threshold);
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when AddSigner() is called with change threshold
+   * @when addSigner is called with change threshold
    * @then new signer added, threshold is changed
    */
   TEST_F(MultisigActorTest, AddSignerChangeThreshold) {
-    std::vector<Address> signers{kInitAddress};
-    MultiSignatureActorState actor_state{signers,
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+    caller = actor_address;
+    state.signers.clear();
+    pushSigner(kInitAddress);
 
-    std::vector<Address> expected_signers{kInitAddress, caller_address};
-    MultiSignatureActorState expected_state{expected_signers,
-                                            default_threshold + 1,
-                                            default_next_transaction_id,
-                                            default_initial_balance,
-                                            default_start_epoch,
-                                            default_unlock_duration,
-                                            default_pending_transactions};
+    const std::vector<Address> expected_signers{resolveAddr(kInitAddress),
+                                                resolveAddr(caller)};
+    const auto expected_threshold = state.threshold + 1;
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .Times(2)
-        .WillRepeatedly(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(*datastore,
-                set(_, MultiSignatureActorStateMatcher(expected_state)))
-        .WillOnce(testing::Return(fc::outcome::success()));
-    EXPECT_CALL(runtime, commit(_))
-        .WillOnce(testing::Return(fc::outcome::success()));
+    EXPECT_OUTCOME_TRUE_1(AddSigner::call(runtime, {caller, true}));
 
-    EXPECT_OUTCOME_TRUE_1(AddSigner::call(runtime, {caller_address, true}));
+    EXPECT_EQ(state.signers, expected_signers);
+    EXPECT_EQ(state.threshold, expected_threshold);
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when removeSigner() is called with immediate caller is not receiver
-   * @then error WRONG_CALLER returned
+   * @when removeSigner is called with immediate caller is not receiver
+   * @then error returned
    */
   TEST_F(MultisigActorTest, RemoveSignerWrongCaller) {
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(kInitAddress));
-
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          RemoveSigner::call(runtime, {}));
   }
 
@@ -963,434 +722,265 @@ namespace fc::vm::actor::builtin::v0::multisig {
    * @then error returned
    */
   TEST_F(MultisigActorTest, RemoveSignerNotAdded) {
-    std::vector<Address> signers{kInitAddress};
-    MultiSignatureActorState actor_state{signers,
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+    caller = actor_address;
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+    state.signers.clear();
+    pushSigner(kInitAddress);
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorForbidden,
-                         RemoveSigner::call(runtime, {caller_address}));
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
+                         RemoveSigner::call(runtime, {caller}));
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when removeSigner() is called with not change threshold
+   * @when removeSigner is called with not change threshold
    * @then new signer added, threshold is not changed
    */
   TEST_F(MultisigActorTest, RemoveSignerNotChangeThreshold) {
-    std::vector<Address> signers{kInitAddress, caller_address};
-    MultiSignatureActorState actor_state{signers,
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+    caller = actor_address;
+    resetSigners();
+    pushSigner(kInitAddress);
 
-    std::vector<Address> expected_signers{kInitAddress};
-    MultiSignatureActorState expected_state{expected_signers,
-                                            default_threshold,
-                                            default_next_transaction_id,
-                                            default_initial_balance,
-                                            default_start_epoch,
-                                            default_unlock_duration,
-                                            default_pending_transactions};
+    const std::vector<Address> expected_signers{resolveAddr(kInitAddress)};
+    const auto expected_threshold = state.threshold;
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .Times(2)
-        .WillRepeatedly(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(*datastore,
-                set(_, MultiSignatureActorStateMatcher(expected_state)))
-        .WillOnce(testing::Return(fc::outcome::success()));
-    EXPECT_CALL(runtime, commit(_))
-        .WillOnce(testing::Return(fc::outcome::success()));
+    EXPECT_OUTCOME_TRUE_1(RemoveSigner::call(runtime, {caller, false}));
 
-    EXPECT_OUTCOME_TRUE_1(RemoveSigner::call(runtime, {caller_address, false}));
+    EXPECT_EQ(state.signers, expected_signers);
+    EXPECT_EQ(state.threshold, expected_threshold);
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when removeSigner() is called with change threshold
+   * @when removeSigner is called with change threshold
    * @then new signer added, threshold is changed
    */
   TEST_F(MultisigActorTest, RemoveSignerChangeThreshold) {
-    std::vector<Address> signers{kInitAddress, caller_address};
-    size_t old_threshold{2};
-    MultiSignatureActorState actor_state{signers,
-                                         old_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+    caller = actor_address;
+    resetSigners();
+    pushSigner(kInitAddress);
+    state.threshold = 2;
 
-    std::vector<Address> expected_signers{kInitAddress};
-    MultiSignatureActorState expected_state{expected_signers,
-                                            old_threshold - 1,
-                                            default_next_transaction_id,
-                                            default_initial_balance,
-                                            default_start_epoch,
-                                            default_unlock_duration,
-                                            default_pending_transactions};
+    const std::vector<Address> expected_signers{resolveAddr(kInitAddress)};
+    const auto expected_threshold = state.threshold - 1;
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .Times(2)
-        .WillRepeatedly(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(*datastore,
-                set(_, MultiSignatureActorStateMatcher(expected_state)))
-        .WillOnce(testing::Return(fc::outcome::success()));
-    EXPECT_CALL(runtime, commit(_))
-        .WillOnce(testing::Return(fc::outcome::success()));
+    EXPECT_OUTCOME_TRUE_1(RemoveSigner::call(runtime, {caller, true}));
 
-    EXPECT_OUTCOME_TRUE_1(RemoveSigner::call(runtime, {caller_address, true}));
+    EXPECT_EQ(state.signers, expected_signers);
+    EXPECT_EQ(state.threshold, expected_threshold);
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when removeSigner() is called with change threshold < 1
+   * @when removeSigner is called with change threshold more than signers
+   * after removing
    * @then error returned
    */
-  TEST_F(MultisigActorTest, RemoveSignerChangeThresholdZero) {
-    std::vector<Address> signers{kInitAddress, caller_address};
-    MultiSignatureActorState actor_state{signers,
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+  TEST_F(MultisigActorTest, RemoveSignerChangeThresholdMoreThanSigners) {
+    caller = actor_address;
+    resetSigners();
+    pushSigner(kInitAddress);
+    state.threshold = 5;
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorIllegalArgument,
-                         RemoveSigner::call(runtime, {caller_address, true}));
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         RemoveSigner::call(runtime, {caller, false}));
   }
 
   /**
    * @given Runtime and multisig actor and len(signers) == threshold
-   * @when removeSigner() is called with not change threshold
+   * @when removeSigner is called with not change threshold
    * @then error returned
    */
   TEST_F(MultisigActorTest, RemoveSignerChangeThresholdError) {
-    std::vector<Address> signers{kInitAddress, caller_address};
-    size_t old_threshold{2};
-    MultiSignatureActorState actor_state{signers,
-                                         old_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+    caller = actor_address;
+    resetSigners();
+    pushSigner(kInitAddress);
+    state.threshold = 2;
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorIllegalArgument,
-                         RemoveSigner::call(runtime, {caller_address, false}));
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         RemoveSigner::call(runtime, {caller, false}));
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when swapSigner() is called with immediate caller is not receiver
-   * @then error WRONG_CALLER returned
+   * @when swapSigner is called with immediate caller is not receiver
+   * @then error returned
    */
   TEST_F(MultisigActorTest, SwapSignerWrongCaller) {
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(kInitAddress));
+    caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          SwapSigner::call(runtime, {}));
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when swapSigner() is called with address is not a signer
+   * @when swapSigner is called with address is not a signer
    * @then error returned
    */
   TEST_F(MultisigActorTest, SwapSignerNotAdded) {
+    caller = actor_address;
+
+    state.signers.clear();
     // old signer not present
-    std::vector<Address> signers{kInitAddress};
-    MultiSignatureActorState actor_state{signers,
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    pushSigner(kInitAddress);
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-
-    EXPECT_OUTCOME_ERROR(
-        VMExitCode::kMultisigActorNotFound,
-        SwapSigner::call(runtime, {caller_address, kCronAddress}));
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrForbidden),
+                         SwapSigner::call(runtime, {caller, kCronAddress}));
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when swapSigner() is called with new address is already a signer
+   * @when swapSigner is called with new address is already a signer
    * @then error returned
    */
   TEST_F(MultisigActorTest, SwapSignerAlreadyAdded) {
+    caller = actor_address;
+    resetSigners();
+
     // new signer is already present
-    std::vector<Address> signers{caller_address, kCronAddress};
-    MultiSignatureActorState actor_state{signers,
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    pushSigner(kCronAddress);
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-
-    EXPECT_OUTCOME_ERROR(
-        VMExitCode::kMultisigActorIllegalArgument,
-        SwapSigner::call(runtime, {caller_address, kCronAddress}));
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         SwapSigner::call(runtime, {caller, kCronAddress}));
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when swapSigner() is called
+   * @when swapSigner is called
    * @then state updated and sucess returned
    */
   TEST_F(MultisigActorTest, SwapSignerSuccess) {
-    std::vector<Address> signers{caller_address, kInitAddress};
-    MultiSignatureActorState actor_state{signers,
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+    caller = actor_address;
+    resetSigners();
+    pushSigner(kInitAddress);
 
-    std::vector<Address> expected_signers{kCronAddress, kInitAddress};
-    MultiSignatureActorState expected_state{expected_signers,
-                                            default_threshold,
-                                            default_next_transaction_id,
-                                            default_initial_balance,
-                                            default_start_epoch,
-                                            default_unlock_duration,
-                                            default_pending_transactions};
+    const std::vector<Address> expected_signers{resolveAddr(kCronAddress),
+                                                resolveAddr(kInitAddress)};
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .Times(2)
-        .WillRepeatedly(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(*datastore,
-                set(_, MultiSignatureActorStateMatcher(expected_state)))
-        .WillOnce(testing::Return(fc::outcome::success()));
-    EXPECT_CALL(runtime, commit(_))
-        .WillOnce(testing::Return(fc::outcome::success()));
+    EXPECT_OUTCOME_TRUE_1(SwapSigner::call(runtime, {caller, kCronAddress}));
 
-    EXPECT_OUTCOME_TRUE_1(
-        SwapSigner::call(runtime, {caller_address, kCronAddress}));
+    EXPECT_EQ(state.signers, expected_signers);
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when changeThreshold() is called with immediate caller is not receiver
-   * @then error WRONG_CALLER returned
+   * @when changeThreshold is called with immediate caller is not receiver
+   * @then error returned
    */
   TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(kInitAddress));
+    caller = wrong_caller;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
                          ChangeThreshold::call(runtime, {}));
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when changeThreshold() is called with 0 threshold
+   * @when changeThreshold is called with 0 threshold
    * @then error returned
    */
   TEST_F(MultisigActorTest, ChangeThresholdZero) {
-    std::vector<Address> signers{caller_address, kInitAddress};
-    MultiSignatureActorState actor_state{signers,
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+    caller = actor_address;
+    resetSigners();
+    pushSigner(kInitAddress);
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorIllegalArgument,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          ChangeThreshold::call(runtime, {0}));
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when changeThreshold() is called with threshold more than number of
+   * @when changeThreshold is called with threshold more than number of
    * signers
    * @then error returned
    */
   TEST_F(MultisigActorTest, ChangeThresholdMoreThanSigners) {
-    std::vector<Address> signers{caller_address, kInitAddress};
-    MultiSignatureActorState actor_state{signers,
-                                         default_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+    caller = actor_address;
 
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .WillOnce(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+    pushSigner(kInitAddress);
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorIllegalArgument,
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          ChangeThreshold::call(runtime, {100500}));
   }
 
   /**
    * @given Runtime and multisig actor
-   * @when changeThreshold() is called with new threshold
+   * @when changeThreshold is called with new threshold
    * @then new threshold saved to actor state
    */
   TEST_F(MultisigActorTest, ChangeThresholdSuccess) {
-    size_t old_threshold = 1;
-    size_t new_threshold = 2;
-    std::vector<Address> signers{caller_address, kInitAddress};
-    MultiSignatureActorState actor_state{signers,
-                                         old_threshold,
-                                         default_next_transaction_id,
-                                         default_initial_balance,
-                                         default_start_epoch,
-                                         default_unlock_duration,
-                                         default_pending_transactions};
-    EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+    caller = actor_address;
+    resetSigners();
+    pushSigner(kInitAddress);
 
-    MultiSignatureActorState expected_state{signers,
-                                            new_threshold,
-                                            default_next_transaction_id,
-                                            default_initial_balance,
-                                            default_start_epoch,
-                                            default_unlock_duration,
-                                            default_pending_transactions};
-
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentReceiver())
-        .WillOnce(testing::Return(caller_address));
-    EXPECT_CALL(runtime, getCurrentActorState())
-        .WillOnce(::testing::Return(actor_head));
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .Times(2)
-        .WillRepeatedly(testing::Return(datastore));
-    EXPECT_CALL(*datastore, get(_))
-        .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
-    EXPECT_CALL(*datastore,
-                set(_, MultiSignatureActorStateMatcher(expected_state)))
-        .WillOnce(testing::Return(fc::outcome::success()));
-    EXPECT_CALL(runtime, commit(_))
-        .WillOnce(testing::Return(fc::outcome::success()));
+    const size_t new_threshold = 2;
 
     EXPECT_OUTCOME_TRUE_1(ChangeThreshold::call(runtime, {new_threshold}));
+
+    EXPECT_EQ(state.threshold, new_threshold);
+  }
+
+  /**
+   * @given Runtime and multisig actor
+   * @when lockBalance is called with epoch < network version 2
+   * @then error returned
+   */
+  TEST_F(MultisigActorTest, LockBalanceWrongNetwork) {
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrInvalidMethod),
+                         LockBalance::call(runtime, {}));
+  }
+
+  /**
+   * @given Runtime and multisig actor
+   * @when lockBalance is called with immediate caller is not receiver
+   * @then error returned
+   */
+  TEST_F(MultisigActorTest, LockBalanceWrongCaller) {
+    caller = wrong_caller;
+    epoch = 94001;
+
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
+                         LockBalance::call(runtime, {}));
+  }
+
+  /**
+   * @given Runtime and multisig actor
+   * @when lockBalance is called with unlock_duration <= 0
+   * @then error returned
+   */
+  TEST_F(MultisigActorTest, LockBalanceWrongDuration) {
+    caller = actor_address;
+    epoch = 94001;
+
+    const ChainEpoch start_epoch = 42;
+    const EpochDuration unlock_duration = 0;
+    const TokenAmount amount = 100;
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kErrIllegalArgument),
+        LockBalance::call(runtime, {start_epoch, unlock_duration, amount}));
+  }
+
+  /**
+   * @given Runtime and multisig actor
+   * @when lockBalance is called
+   * @then balance successfully locked
+   */
+  TEST_F(MultisigActorTest, LockBalanceSuccess) {
+    caller = actor_address;
+    epoch = 94001;
+
+    const ChainEpoch start_epoch = 42;
+    const EpochDuration unlock_duration = 3;
+    const TokenAmount amount = 100;
+
+    EXPECT_OUTCOME_TRUE_1(
+        LockBalance::call(runtime, {start_epoch, unlock_duration, amount}));
+
+    EXPECT_EQ(state.start_epoch, start_epoch);
+    EXPECT_EQ(state.unlock_duration, unlock_duration);
+    EXPECT_EQ(state.initial_balance, amount);
   }
 
 }  // namespace fc::vm::actor::builtin::v0::multisig

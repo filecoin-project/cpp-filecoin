@@ -50,9 +50,11 @@ namespace fc::vm::interpreter {
   using runtime::MessageReceipt;
 
   InterpreterImpl::InterpreterImpl(
+      std::shared_ptr<Invoker> invoker,
       std::shared_ptr<RuntimeRandomness> randomness,
       std::shared_ptr<Circulating> circulating)
-      : randomness_{std::move(randomness)},
+      : invoker_{std::move(invoker)},
+        randomness_{std::move(randomness)},
         circulating_{std::move(circulating)} {}
 
   outcome::result<Result> InterpreterImpl::interpret(
@@ -80,8 +82,7 @@ namespace fc::vm::interpreter {
       return InterpreterError::kDuplicateMiner;
     }
 
-    auto env = std::make_shared<Env>(
-        std::make_shared<InvokerImpl>(), randomness_, ipld, tipset);
+    auto env = std::make_shared<Env>(invoker_, randomness_, ipld, tipset);
     env->circulating = circulating_;
 
     auto cron{[&]() -> outcome::result<void> {

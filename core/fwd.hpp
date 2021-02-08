@@ -136,6 +136,7 @@ namespace fc {
     namespace runtime {
       struct Execution;
       struct MessageReceipt;
+      class Runtime;
     }  // namespace runtime
 
     namespace state {

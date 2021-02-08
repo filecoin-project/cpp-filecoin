@@ -474,6 +474,11 @@ namespace fc::api {
       Set(j, "Close", v.close);
       Set(j, "Challenge", v.challenge);
       Set(j, "FaultCutoff", v.fault_cutoff);
+      Set(j, "WPoStPeriodDeadlines", v.wpost_period_deadlines);
+      Set(j, "WPoStProvingPeriod", v.wpost_proving_period);
+      Set(j, "WPoStChallengeWindow", v.wpost_challenge_window);
+      Set(j, "WPoStChallengeLookback", v.wpost_challenge_lookback);
+      Set(j, "FaultDeclarationCutoff", v.fault_declaration_cutoff);
       return j;
     }
 
@@ -485,6 +490,11 @@ namespace fc::api {
       Get(j, "Close", v.close);
       Get(j, "Challenge", v.challenge);
       Get(j, "FaultCutoff", v.fault_cutoff);
+      Get(j, "WPoStPeriodDeadlines", v.wpost_period_deadlines);
+      Get(j, "WPoStProvingPeriod", v.wpost_proving_period);
+      Get(j, "WPoStChallengeWindow", v.wpost_challenge_window);
+      Get(j, "WPoStChallengeLookback", v.wpost_challenge_lookback);
+      Get(j, "FaultDeclarationCutoff", v.fault_declaration_cutoff);
     }
 
     ENCODE(DomainSeparationTag) {
@@ -927,14 +937,14 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Actor", v.actor);
       Set(j, "Method", v.method);
-      Set(j, "Data", gsl::make_span(v.data));
+      Set(j, "Params", gsl::make_span(v.params));
       return j;
     }
 
     DECODE(ModularVerificationParameter) {
       decode(v.actor, Get(j, "Actor"));
       decode(v.method, Get(j, "Method"));
-      decode(v.data, Get(j, "Data"));
+      decode(v.params, Get(j, "Params"));
     }
 
     ENCODE(Merge) {
@@ -961,7 +971,7 @@ namespace fc::api {
       Set(j, "Amount", v.amount);
       Set(j, "MinSettleHeight", v.min_close_height);
       Set(j, "Merges", v.merges);
-      Set(j, "Signature", v.signature);
+      Set(j, "SignatureBytes", v.signature_bytes);
       return j;
     }
 
@@ -976,7 +986,7 @@ namespace fc::api {
       decode(v.amount, Get(j, "Amount"));
       decode(v.min_close_height, Get(j, "MinSettleHeight"));
       decode(v.merges, Get(j, "Merges"));
-      decode(v.signature, Get(j, "Signature"));
+      decode(v.signature_bytes, Get(j, "SignatureBytes"));
     }
 
     ENCODE(HeadChange) {

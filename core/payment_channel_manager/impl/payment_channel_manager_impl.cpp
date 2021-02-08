@@ -24,6 +24,7 @@ namespace fc::payment_channel_manager {
   using vm::message::kDefaultGasPrice;
   using vm::message::UnsignedMessage;
   using vm::state::StateTreeImpl;
+  using crypto::signature::Signature;
   using InitActorExec = vm::actor::builtin::v0::init::Exec;
   using PaymentChannelConstruct =
       vm::actor::builtin::v0::payment_channel::Construct;
@@ -80,7 +81,7 @@ namespace fc::payment_channel_manager {
     OUTCOME_TRY(
         signature,
         api_->WalletSign(lookup_channel->second.control, voucher_bytes));
-    new_voucher.signature = signature;
+    new_voucher.signature_bytes = signature.toBytes();
 
     OUTCOME_TRY(validateVoucher(channel_address, new_voucher));
     lookup_channel->second.lanes[lane].push_back(new_voucher);
@@ -111,8 +112,8 @@ namespace fc::payment_channel_manager {
 
     // get redeemed
     TokenAmount redeemed{0};
-    auto lane_lookup = payment_channel_actor_state.findLane(voucher.lane);
-    if (lane_lookup != payment_channel_actor_state.lanes.end()) {
+    OUTCOME_TRY(lane_lookup, payment_channel_actor_state.lanes.tryGet(voucher.lane));
+    if (lane_lookup) {
       redeemed = lane_lookup->redeem;
     }
 
@@ -125,24 +126,25 @@ namespace fc::payment_channel_manager {
                 loadPaymentChannelActorState(channel_address));
 
     // check signature
-    if (!voucher.signature.has_value()) {
+    auto signature = Signature::fromBytes(voucher.signature_bytes.get());
+    if (!signature) {
       return PaymentChannelManagerError::kWrongSignature;
     }
     auto voucher_to_verify = voucher;
-    voucher_to_verify.signature = boost::none;
+    voucher_to_verify.signature_bytes = boost::none;
     OUTCOME_TRY(bytes_to_verify, codec::cbor::encode(voucher_to_verify));
     OUTCOME_TRY(verified,
                 api_->WalletVerify(payment_channel_actor_state.from,
                                    bytes_to_verify,
-                                   voucher.signature.get()));
+                                   signature.value()));
     if (!verified) {
       return PaymentChannelManagerError::kWrongSignature;
     }
 
     // check lane nonce if any lane exists
     auto voucher_send_amount = voucher.amount;
-    auto lane_lookup = payment_channel_actor_state.findLane(voucher.lane);
-    if (lane_lookup != payment_channel_actor_state.lanes.end()) {
+    OUTCOME_TRY(lane_lookup, payment_channel_actor_state.lanes.tryGet(voucher.lane));
+    if (lane_lookup) {
       if (lane_lookup->nonce >= voucher.nonce) {
         return PaymentChannelManagerError::kWrongNonce;
       }

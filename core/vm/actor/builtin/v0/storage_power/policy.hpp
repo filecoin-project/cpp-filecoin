@@ -3,26 +3,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_POLICY_HPP
-#define CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_POLICY_HPP
+#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_POLICY_HPP
+#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_POLICY_HPP
 
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
-  using fc::primitives::EpochDuration;
+  using fc::primitives::GasAmount;
   using fc::primitives::SectorStorageWeightDesc;
   using fc::primitives::StoragePower;
   using fc::primitives::TokenAmount;
 
-  // TODO: config, default 1<<40
-  static const StoragePower kConsensusMinerMinPower{2048};
+  /**
+   * Minimum power of an individual miner to meet the threshold for leader
+   * election.
+   * 1 << 40
+   * MAINNET: 10 << 40
+   */
+  inline const StoragePower kConsensusMinerMinPower{StoragePower{10} << 40};
   constexpr size_t kSectorQualityPrecision{20};
 
-  enum class SectorTerminationType {
-    EXPIRED,
-    MANUAL,
-    FAULTY,
-  };
+  /**
+   * Maximum number of prove commits a miner can submit in one epoch
+   */
+  constexpr size_t kMaxMinerProveCommitsPerEpoch{200};
+
+  /**
+   * Amount of gas charged for SubmitPoRepForBulkVerify. This number is
+   * empirically determined
+   */
+  static constexpr GasAmount kGasOnSubmitVerifySeal{34721049};
 
   StoragePower qaPowerForWeight(const SectorStorageWeightDesc &weight);
 
@@ -36,4 +46,4 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   }
 }  // namespace fc::vm::actor::builtin::v0::storage_power
 
-#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_POLICY_HPP
+#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_POLICY_HPP

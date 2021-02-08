@@ -3,27 +3,46 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
+#pragma once
 
+#include <tuple>
 #include "adt/address_key.hpp"
 #include "adt/multimap.hpp"
 #include "adt/uvarint_key.hpp"
+#include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
   using common::Buffer;
+  using common::smoothing::FilterEstimate;
+  using primitives::BigInt;
   using primitives::ChainEpoch;
-  using primitives::FilterEstimate;
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::sector::SealVerifyInfo;
+  using runtime::Runtime;
   using ChainEpochKeyer = adt::VarintKeyer;
 
+  /** genesis power in bytes = 750,000 GiB */
+  static const BigInt kInitialQAPowerEstimatePosition =
+      BigInt(750000) * BigInt(1 << 30);
+
+  /**
+   * Max chain throughput in bytes per epoch = 120 ProveCommits / epoch = 3,840
+   * GiB
+   */
+  static const BigInt kInitialQAPowerEstimateVelocity =
+      BigInt(3840) * BigInt(1 << 30);
+
   struct Claim {
-    StoragePower raw_power, qa_power;
+    /** Sum of raw byte power for a miner's sectors */
+    StoragePower raw_power;
+
+    /** Sum of quality adjusted power for a miner's sectors */
+    StoragePower qa_power;
 
     inline bool operator==(const Claim &other) const {
       return raw_power == other.raw_power && qa_power == other.qa_power;
@@ -39,34 +58,57 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
   struct State {
     static State empty(IpldPtr ipld);
-    outcome::result<void> addToClaim(const Address &miner,
+
+    outcome::result<void> addToClaim(const Runtime &runtime,
+                                     const Address &miner,
                                      const StoragePower &raw,
                                      const StoragePower &qa);
-    outcome::result<void> addPledgeTotal(const TokenAmount &amount);
+    outcome::result<void> setClaim(const Runtime &runtime,
+                                   const Address &address,
+                                   const Claim &claim);
+    outcome::result<void> addPledgeTotal(const Runtime &runtime,
+                                         const TokenAmount &amount);
     outcome::result<void> appendCronEvent(const ChainEpoch &epoch,
                                           const CronEvent &event);
+    void updateSmoothedEstimate(int64_t delta);
+    std::tuple<StoragePower, StoragePower> getCurrentTotalPower() const;
 
     StoragePower total_raw_power;
+
+    /** includes claims from miners below min power threshold */
     StoragePower total_raw_commited;
     StoragePower total_qa_power;
+
+    /** includes claims from miners below min power threshold */
     StoragePower total_qa_commited;
     TokenAmount total_pledge;
+
+    /**
+     * These fields are set once per epoch in the previous cron tick and used
+     * for consistent values across a single epoch's state transition.
+     */
     StoragePower this_epoch_raw_power;
     StoragePower this_epoch_qa_power;
     TokenAmount this_epoch_pledge;
     FilterEstimate this_epoch_qa_power_smoothed;
+
     size_t miner_count;
     size_t num_miners_meeting_min_power;
     adt::Map<adt::Array<CronEvent>, ChainEpochKeyer> cron_event_queue;
+
+    /**
+     * First epoch in which a cron task may be stored.
+     * Cron will iterate every epoch between this and the current epoch
+     * inclusively to find tasks to execute.
+     */
     ChainEpoch first_cron_epoch;
-    ChainEpoch last_epoch_tick;
+    ChainEpoch last_processed_cron_epoch;
     adt::Map<Claim, adt::AddressKeyer> claims;
     boost::optional<adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer>>
         proof_validation_batch;
   };
 
   using StoragePowerActorState = State;
-  using StoragePowerActor = StoragePowerActorState;
 
   CBOR_TUPLE(StoragePowerActorState,
              total_raw_power,
@@ -82,7 +124,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
              num_miners_meeting_min_power,
              cron_event_queue,
              first_cron_epoch,
-             last_epoch_tick,
+             last_processed_cron_epoch,
              claims,
              proof_validation_batch)
 
@@ -102,5 +144,3 @@ namespace fc {
     }
   };
 }  // namespace fc
-
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP

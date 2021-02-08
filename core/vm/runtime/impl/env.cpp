@@ -30,8 +30,9 @@ namespace fc::vm::runtime {
   using version::getNetworkVersion;
 
   outcome::result<Address> resolveKey(StateTree &state_tree,
+                                      IpldPtr ipld,
                                       const Address &address,
-                                      bool no_actor) {
+                                      bool allow_actor) {
     if (address.isKeyType()) {
       return address;
     }
@@ -39,28 +40,26 @@ namespace fc::vm::runtime {
       auto &actor{_actor.value()};
       if (actor.code == actor::builtin::v0::kAccountCodeCid) {
         if (auto _state{
-                state_tree.getStore()
-                    ->getCbor<actor::builtin::v0::account::AccountActorState>(
-                        actor.head)}) {
+                ipld->getCbor<actor::builtin::v0::account::AccountActorState>(
+                    actor.head)}) {
           auto &key{_state.value().address};
-          if (!no_actor || key.isKeyType()) {
+          if (allow_actor || key.isKeyType()) {
             return key;
           }
         }
       }
       if (actor.code == actor::builtin::v2::kAccountCodeCid) {
         if (auto _state{
-                state_tree.getStore()
-                    ->getCbor<actor::builtin::v2::account::AccountActorState>(
-                        actor.head)}) {
+                ipld->getCbor<actor::builtin::v2::account::AccountActorState>(
+                    actor.head)}) {
           auto &key{_state.value().address};
-          if (!no_actor || key.isKeyType()) {
+          if (allow_actor || key.isKeyType()) {
             return key;
           }
         }
       }
     }
-    return VMExitCode::kSysErrInvalidParameters;
+    return VMExitCode::kSysErrIllegalArgument;
   }
 
   IpldBuffered::IpldBuffered(IpldPtr ipld) : ipld{ipld} {}
@@ -277,7 +276,7 @@ namespace fc::vm::runtime {
     return outcome::success();
   }
 
-  std::shared_ptr<Execution> Execution::make(std::shared_ptr<Env> env,
+  std::shared_ptr<Execution> Execution::make(const std::shared_ptr<Env> &env,
                                              const UnsignedMessage &message) {
     auto execution = std::make_shared<Execution>();
     execution->env = env;
@@ -339,6 +338,7 @@ namespace fc::vm::runtime {
       state_tree->txRevert();
       return result.error();
     }
+    dvm::onReceipt(result, gas_used);
     return result;
   }
 
@@ -388,20 +388,17 @@ namespace fc::vm::runtime {
     }
 
     if (message.method != kSendMethodNumber) {
-      RuntimeImpl runtime{
-          shared_from_this(), env->randomness, _message, caller_id};
-      // TODO: check cpp actor
-      auto result = actor::cgo::invoke(shared_from_this(),
-                                       _message,
-                                       to_actor.code,
-                                       _message.method,
-                                       _message.params);
+      _message.from = caller_id;
+      auto runtime = std::make_shared<RuntimeImpl>(
+          shared_from_this(), _message, caller_id);
+      auto result = env->invoker->invoke(to_actor, runtime);
       // Transform VMAbortExitCode code to VMExitCode
       if (result.has_error() && isAbortExitCode(result.error())) {
         return VMExitCode{result.error().value()};
       }
       return result;
     }
+
     return outcome::success();
   }
 

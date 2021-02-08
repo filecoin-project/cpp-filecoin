@@ -164,11 +164,14 @@ namespace fc::storage::hamt {
      */
     outcome::result<CID> flush();
 
-    /// Get root CID if flushed, throw otherwise
+    /** Get root CID if flushed, throw otherwise */
     const CID &cid() const;
 
     /** Apply visitor for key value pairs */
     outcome::result<void> visit(const Visitor &visitor) const;
+
+    /** Loads root item */
+    outcome::result<void> loadRoot();
 
     /// Store CBOR encoded value by key
     template <typename T>

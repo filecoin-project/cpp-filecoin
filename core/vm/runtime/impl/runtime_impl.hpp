@@ -9,7 +9,6 @@
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime.hpp"
-#include "vm/runtime/runtime_randomness.hpp"
 #include "vm/state/state_tree.hpp"
 
 namespace fc::vm::runtime {
@@ -18,7 +17,6 @@ namespace fc::vm::runtime {
   class RuntimeImpl : public Runtime {
    public:
     RuntimeImpl(std::shared_ptr<Execution> execution,
-                std::shared_ptr<RuntimeRandomness> randomness,
                 UnsignedMessage message,
                 const Address &caller_id);
 
@@ -56,10 +54,10 @@ namespace fc::vm::runtime {
         const Address &address) const override;
 
     /** \copydoc Runtime::send() */
-    fc::outcome::result<InvocationOutput> send(Address to_address,
-                                               MethodNumber method_number,
-                                               MethodParams params,
-                                               BigInt value) override;
+    outcome::result<InvocationOutput> send(Address to_address,
+                                           MethodNumber method_number,
+                                           MethodParams params,
+                                           BigInt value) override;
 
     /** \copydoc Runtime::createNewActorAddress() */
     outcome::result<Address> createNewActorAddress() override;
@@ -69,36 +67,46 @@ namespace fc::vm::runtime {
                                       const Actor &actor) override;
 
     /** \copydoc Runtime::deleteActor() */
-    outcome::result<void> deleteActor() override;
+    outcome::result<void> deleteActor(const Address &address) override;
+
+    /** \copydoc Runtime::transfer() */
+    outcome::result<void> transfer(const Address &debitFrom,
+                                   const Address &creditTo,
+                                   const TokenAmount &amount) override;
 
     /** \copydoc Runtime::getTotalFilCirculationSupply() */
     fc::outcome::result<TokenAmount> getTotalFilCirculationSupply()
         const override;
 
     /** \copydoc Runtime::getIpfsDatastore() */
-    std::shared_ptr<IpfsDatastore> getIpfsDatastore() override;
+    std::shared_ptr<IpfsDatastore> getIpfsDatastore() const override;
 
     /** \copydoc Runtime::getMessage() */
-    std::reference_wrapper<const UnsignedMessage> getMessage() override;
+    std::reference_wrapper<const UnsignedMessage> getMessage() const override;
 
     outcome::result<void> chargeGas(GasAmount amount) override;
 
-    outcome::result<CID> getCurrentActorState() override;
+    outcome::result<CID> getCurrentActorState() const override;
 
     outcome::result<void> commit(const CID &new_state) override;
 
-    static outcome::result<void> transfer(Actor &from,
-                                          Actor &to,
-                                          const BigInt &amount);
-
-    outcome::result<Address> resolveAddress(const Address &address) override;
+    outcome::result<Address> resolveAddress(
+        const Address &address) const override;
 
     outcome::result<bool> verifySignature(
         const Signature &signature,
         const Address &address,
         gsl::span<const uint8_t> data) override;
 
+    outcome::result<bool> verifySignatureBytes(
+        const Buffer &signature_bytes,
+        const Address &address,
+        gsl::span<const uint8_t> data) override;
+
     outcome::result<bool> verifyPoSt(const WindowPoStVerifyInfo &info) override;
+
+    outcome::result<BatchSealsOut> batchVerifySeals(
+        const BatchSealsIn &batch) override;
 
     outcome::result<CID> computeUnsealedSectorCid(
         RegisteredSealProof type,
@@ -109,9 +117,11 @@ namespace fc::vm::runtime {
         const Buffer &block2,
         const Buffer &extra) override;
 
+    outcome::result<Blake2b256Hash> hashBlake2b(
+        gsl::span<const uint8_t> data) override;
+
    private:
     std::shared_ptr<Execution> execution_;
-    std::shared_ptr<RuntimeRandomness> randomness_;
     UnsignedMessage message_;
     Address caller_id;
   };

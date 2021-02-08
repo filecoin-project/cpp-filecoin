@@ -56,31 +56,48 @@ namespace fc::vm::runtime {
                  outcome::result<void>(const Address &address,
                                        const Actor &actor));
 
-    MOCK_METHOD0(deleteActor, outcome::result<void>());
+    MOCK_METHOD1(deleteActor, outcome::result<void>(const Address &address));
+
+    MOCK_METHOD3(transfer,
+                 outcome::result<void>(const Address &debitFrom,
+                                       const Address &creditTo,
+                                       const TokenAmount &amount));
 
     MOCK_CONST_METHOD0(getTotalFilCirculationSupply,
                        fc::outcome::result<TokenAmount>());
 
-    MOCK_METHOD0(getIpfsDatastore, std::shared_ptr<IpfsDatastore>());
+    MOCK_CONST_METHOD0(getIpfsDatastore, std::shared_ptr<IpfsDatastore>());
 
-    MOCK_METHOD0(getMessage, std::reference_wrapper<const UnsignedMessage>());
+    MOCK_CONST_METHOD0(getMessage, std::reference_wrapper<const UnsignedMessage>());
 
     MOCK_METHOD1(chargeGas, outcome::result<void>(GasAmount amount));
 
-    MOCK_METHOD0(getCurrentActorState, outcome::result<CID>());
+    MOCK_CONST_METHOD0(getCurrentActorState, outcome::result<CID>());
 
     MOCK_METHOD1(commit, outcome::result<void>(const CID &new_state));
 
-    MOCK_METHOD1(resolveAddress,
-                 outcome::result<Address>(const Address &address));
+    MOCK_CONST_METHOD1(resolveAddress,
+                       outcome::result<Address>(const Address &address));
 
     MOCK_METHOD3(verifySignature,
                  outcome::result<bool>(const Signature &signature,
                                        const Address &address,
                                        gsl::span<const uint8_t> data));
 
+    MOCK_METHOD3(verifySignatureBytes,
+                 outcome::result<bool>(const Buffer &signature_bytes,
+                                       const Address &address,
+                                       gsl::span<const uint8_t> data));
+
+    MOCK_METHOD1(
+        hashBlake2b,
+        outcome::result<Blake2b256Hash>(gsl::span<const uint8_t> data));
+
     MOCK_METHOD1(verifyPoSt,
                  outcome::result<bool>(const WindowPoStVerifyInfo &info));
+
+    MOCK_METHOD1(batchVerifySeals,
+                 outcome::result<BatchSealsOut>(const BatchSealsIn &batch));
 
     MOCK_METHOD2(computeUnsealedSectorCid,
                  outcome::result<CID>(RegisteredSealProof,
@@ -91,7 +108,7 @@ namespace fc::vm::runtime {
                                                  const Buffer &block2,
                                                  const Buffer &extra));
 
-    /// Expect call to send with params returing result
+    /// Expect call to send with params returning result
     template <typename M>
     void expectSendM(const Address &address,
                      const typename M::Params &params,

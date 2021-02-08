@@ -31,7 +31,7 @@ namespace fc::vm::state {
     return outcome::success();
   }
 
-  outcome::result<Actor> StateTreeImpl::get(const Address &address) {
+  outcome::result<Actor> StateTreeImpl::get(const Address &address) const {
     OUTCOME_TRY(address_id, lookupId(address));
     for (auto it{tx_.rbegin()}; it != tx_.rend(); ++it) {
       if (it->removed.count(address_id.getId())) {
@@ -47,7 +47,7 @@ namespace fc::vm::state {
     return std::move(actor);
   }
 
-  outcome::result<Address> StateTreeImpl::lookupId(const Address &address) {
+  outcome::result<Address> StateTreeImpl::lookupId(const Address &address) const {
     if (address.isId()) {
       return address;
     }
@@ -92,7 +92,7 @@ namespace fc::vm::state {
         .version = version_, .actor_tree_root = new_root, .info = info_cid});
   }
 
-  std::shared_ptr<IpfsDatastore> StateTreeImpl::getStore() {
+  std::shared_ptr<IpfsDatastore> StateTreeImpl::getStore() const {
     return store_;
   }
 
@@ -126,11 +126,11 @@ namespace fc::vm::state {
     }
   }
 
-  StateTreeImpl::Tx &StateTreeImpl::tx() {
+  StateTreeImpl::Tx &StateTreeImpl::tx() const {
     return tx_.back();
   }
 
-  void StateTreeImpl::_set(ActorId id, const Actor &actor) {
+  void StateTreeImpl::_set(ActorId id, const Actor &actor) const {
     tx().actors[id] = actor;
     tx().removed.erase(id);
   }

@@ -6,67 +6,106 @@
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v0/miner/policy.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor_calculus.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::reward {
-  constexpr auto kMintingInputFixedPoint{30};
-  constexpr auto kMintingOutputFixedPoint{97};
-  inline const StoragePower kBaselinePower{1ll << 50};
+
+  /// The expected number of block producers in each epoch.
   constexpr auto kExpectedLeadersPerEpoch{5};
-
-  BigInt taylorSeriesExpansion(BigInt ln, BigInt ld, BigInt t) {
-    BigInt nb{-ln * t}, db{ld << kMintingInputFixedPoint};
-    BigInt n{-nb}, d{db};
-    BigInt res;
-    for (auto i{1}; i < 25; ++i) {
-      d *= i;
-      res += bigdiv(n << kMintingOutputFixedPoint, d);
-      n *= nb;
-      d *= db;
-      auto b{0};
-      for (auto d2{d}; !d2.is_zero(); d2 >>= 1) {
-        ++b;
-      }
-      b = std::max(0, b - kMintingOutputFixedPoint);
-      n >>= b;
-      d >>= b;
-    }
-    return res;
-  }
-
-  BigInt mintingFunction(BigInt f, BigInt t) {
-    return (f
-            * taylorSeriesExpansion(
-                miner::kEpochDurationSeconds
-                    * TokenAmount{"6931471805599453094172321215"},
-                6 * miner::kSecondsInYear
-                    * TokenAmount{"10000000000000000000000000000"},
-                t))
-           >> kMintingOutputFixedPoint;
-  }
 
   ACTOR_METHOD_IMPL(Constructor) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    OUTCOME_TRY(runtime.commitState(State{}));
+    OUTCOME_TRY(runtime.commitState(State(params)));
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(AwardBlockReward) {
-    return VMExitCode::kNotImplemented;
+  outcome::result<TokenAmount> AwardBlockReward::validateParams(
+      Runtime &runtime, const Params &params) {
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
+    OUTCOME_TRY(runtime.validateArgument(params.penalty >= 0));
+    OUTCOME_TRY(runtime.validateArgument(params.gas_reward >= 0));
+    OUTCOME_TRY(balance, runtime.getCurrentBalance());
+    if (balance < params.gas_reward) {
+      ABORT(VMExitCode::kErrIllegalState);
+    }
+    OUTCOME_TRY(runtime.validateArgument(params.win_count > 0));
+    return std::move(balance);
   }
 
-  ACTOR_METHOD_IMPL(LastPerEpochReward) {
-    return outcome::failure(VMExitCode::kNotImplemented);
+  outcome::result<std::tuple<TokenAmount, TokenAmount>>
+  AwardBlockReward::calculateReward(Runtime &runtime,
+                                    const Params &params,
+                                    const TokenAmount &this_epoch_reward,
+                                    const TokenAmount &balance) {
+    TokenAmount block_reward =
+        bigdiv(this_epoch_reward * params.win_count, kExpectedLeadersPerEpoch);
+    TokenAmount total_reward = block_reward + params.gas_reward;
+    if (total_reward > balance) {
+      total_reward = balance;
+      block_reward = total_reward - params.gas_reward;
+      VM_ASSERT(block_reward >= 0);
+    }
+    return std::make_tuple(block_reward, total_reward);
+  }
+
+  ACTOR_METHOD_IMPL(AwardBlockReward) {
+    OUTCOME_TRY(balance, validateParams(runtime, params));
+    CHANGE_ERROR_A(
+        miner, runtime.resolveAddress(params.miner), VMExitCode::kErrNotFound);
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(
+        reward,
+        calculateReward(runtime, params, state.this_epoch_reward, balance));
+    const auto &[block_reward, total_reward] = reward;
+    state.total_mined += block_reward;
+    OUTCOME_TRY(runtime.commitState(state));
+
+    // Cap the penalty at the total reward value.
+    const TokenAmount penalty = std::min(params.penalty, total_reward);
+
+    // Reduce the payable reward by the penalty.
+    const TokenAmount reward_payable = total_reward - penalty;
+    VM_ASSERT(reward_payable + penalty <= balance);
+
+    // if this fails, we can assume the miner is responsible and avoid failing
+    // here.
+    const auto res = runtime.sendM<miner::AddLockedFund>(
+        miner, reward_payable, reward_payable);
+    if (res.has_error()) {
+      OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, reward_payable));
+    }
+
+    // Burn the penalty amount
+    if (penalty > 0) {
+      OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, penalty));
+    }
+
+    return outcome::success();
+  }
+
+  ACTOR_METHOD_IMPL(ThisEpochReward) {
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    return Result{
+        .this_epoch_reward = state.this_epoch_reward,
+        .this_epoch_reward_smoothed = state.this_epoch_reward_smoothed,
+        .this_epoch_baseline_power = state.this_epoch_baseline_power};
   }
 
   ACTOR_METHOD_IMPL(UpdateNetworkKPI) {
-    return VMExitCode::kNotImplemented;
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kStoragePowerAddress));
+    const NetworkVersion network_version = runtime.getNetworkVersion();
+    const BigInt baseline_exponent = network_version < NetworkVersion::kVersion3
+                                         ? kBaselineExponentV0
+                                         : kBaselineExponentV3;
+    OUTCOME_TRY(updateKPI<State>(runtime, params, baseline_exponent));
+    return outcome::success();
   }
 
   const ActorExports exports{
       exportMethod<Constructor>(),
       exportMethod<AwardBlockReward>(),
-      exportMethod<LastPerEpochReward>(),
+      exportMethod<ThisEpochReward>(),
       exportMethod<UpdateNetworkKPI>(),
   };
 }  // namespace fc::vm::actor::builtin::v0::reward
