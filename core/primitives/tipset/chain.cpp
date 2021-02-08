@@ -48,6 +48,7 @@ namespace fc::primitives::tipset::chain {
     child->parent = parent;
     --bottom;
     parent->children.emplace(bottom->first, child);
+    child->parent_key = boost::none;
   }
 
   void detach(TsBranchPtr parent, TsBranchPtr child) {
@@ -238,6 +239,44 @@ namespace fc::primitives::tipset::chain {
     OUTCOME_TRY(path, findPath(branch, to_it));
     OUTCOME_TRY(removed, update(branch, path, kv));
     return std::make_pair(std::move(path), std::move(removed));
+  }
+
+  TsBranchIter find(const TsBranches &branches, TipsetCPtr ts) {
+    for (auto branch : branches) {
+      auto it{branch->chain.find(ts->height())};
+      if (it != branch->chain.end()) {
+        while (branch->parent && it == branch->chain.begin()) {
+          branch = branch->parent;
+          it = branch->chain.find(ts->height());
+        }
+        return std::make_pair(branch, it);
+      }
+    }
+    return {};
+  }
+
+  TsBranchIter insert(TsBranches &branches, TipsetCPtr ts) {
+    TsChain::value_type p{ts->height(), TsLazy{ts->key, ts}};
+    auto [branch, it]{find(branches, ts)};
+    for (auto &child : branches) {
+      if (child->parent_key && child->parent_key == ts->key) {
+        child->chain.emplace(p);
+        if (branch) {
+          attach(branch, child);
+        } else {
+          branch = child;
+          it = child->chain.begin();
+          child->parent_key = ts->getParents();
+        }
+      }
+    }
+    if (!branch) {
+      branch = TsBranch::make({p}, nullptr);
+      branch->parent_key = ts->getParents();
+      it = branch->chain.begin();
+      branches.insert(branch);
+    }
+    return std::make_pair(branch, it);
   }
 
   outcome::result<TsBranchIter> find(TsBranchPtr branch,

@@ -37,6 +37,7 @@ namespace fc::primitives::tipset::chain {
     TsChain chain;
     TsBranchPtr parent;
     TsBranchChildren children;
+    boost::optional<TipsetKey> parent_key;
   };
 
   /**
@@ -46,6 +47,10 @@ namespace fc::primitives::tipset::chain {
 
   outcome::result<std::pair<Path, std::vector<TsBranchPtr>>> update(
       TsBranchPtr branch, TsBranchIter to_it, KvPtr kv = nullptr);
+
+  using TsBranches = std::set<TsBranchPtr>;
+  TsBranchIter find(const TsBranches &branches, TipsetCPtr ts);
+  TsBranchIter insert(TsBranches &branches, TipsetCPtr ts);
 
   /**
    * @return valid iterator
