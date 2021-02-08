@@ -49,7 +49,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
           .WillRepeatedly(testing::Invoke(
               [&](auto &address) { return state_tree.lookupId(address); }));
 
-      ON_CALL_3(runtime, getCurrentEpoch(), epoch);
+      EXPECT_CALL(runtime, getCurrentEpoch())
+          .Times(testing::AnyNumber())
+          .WillOnce(testing::Invoke([&]() { return epoch; }));
+
       ON_CALL_3(runtime, getValueReceived(), value_received);
 
       EXPECT_CALL(runtime, getNetworkVersion())

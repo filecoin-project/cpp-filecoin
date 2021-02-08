@@ -108,7 +108,7 @@ namespace fc::vm::actor::builtin::v0::reward {
         resourcePath("vm/actor/builtin/v0/reward/test_baseline_reward.txt"));
     const auto simple = computeReward(0, 0, 0, kSimpleTotal, kBaselineTotal);
     for (const auto &[prev_theta, theta, expected_reward] : test_data) {
-      auto reward =
+      const TokenAmount reward =
           computeReward(0, prev_theta, theta, kSimpleTotal, kBaselineTotal)
           - simple;
       ASSERT_EQ(expected_reward, reward);
