@@ -5,172 +5,27 @@
 
 #include "vm/actor/builtin/v0/market/actor.hpp"
 
-#include "crypto/hasher/hasher.hpp"
-#include "policy.hpp"
+#include "primitives/cid/comm_cid.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v0/market/market_actor_utils.hpp"
+#include "vm/actor/builtin/v0/market/policy.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v0/shared/shared.hpp"
-#include "vm/actor/builtin/v0/verified_registry/actor.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
 
 namespace fc::vm::actor::builtin::v0::market {
-  using crypto::Hasher;
+  using libp2p::multi::HashType;
   using primitives::kChainEpochUndefined;
+  using primitives::cid::kCommitmentBytesLen;
   using primitives::piece::PieceInfo;
-
-  CID ClientDealProposal::cid() const {
-    OUTCOME_EXCEPT(bytes, codec::cbor::encode(*this));
-    return {
-        CID::Version::V1, CID::Multicodec::DAG_CBOR, Hasher::sha2_256(bytes)};
-  }
+  namespace Utils = utils::market;
 
   outcome::result<State> loadState(Runtime &runtime) {
-    return runtime.getCurrentActorStateCbor<State>();
-  }
-
-  outcome::result<std::pair<Address, Address>> escrowAddress(
-      Runtime &runtime, const Address &address) {
-    OUTCOME_TRY(nominal, runtime.resolveAddress(address));
-    OUTCOME_TRY(code, runtime.getActorCodeID(nominal));
-    if (code == kStorageMinerCodeCid) {
-      OUTCOME_TRY(miner, requestMinerControlAddress(runtime, nominal));
-      if (runtime.getImmediateCaller() != miner.worker
-          && runtime.getImmediateCaller() != miner.owner) {
-        return VMExitCode::kMarketActorWrongCaller;
-      }
-      return std::make_pair(nominal, miner.owner);
-    }
-    OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
-    return std::make_pair(nominal, nominal);
-  }
-
-  outcome::result<void> unlockBalance(State &state,
-                                      const Address &address,
-                                      TokenAmount amount) {
-    if (amount < 0) {
-      return VMExitCode::kMarketActorIllegalState;
-    }
-    return state.locked_table.subtract(address, amount);
-  }
-
-  outcome::result<void> slashBalance(State &state,
-                                     const Address &address,
-                                     TokenAmount amount) {
-    VM_ASSERT(amount >= 0);
-    OUTCOME_TRY(state.escrow_table.subtract(address, amount));
-    OUTCOME_TRY(state.locked_table.subtract(address, amount));
-    return outcome::success();
-  }
-
-  outcome::result<void> removeDeal(State &state, DealId deal_id) {
-    OUTCOME_TRY(state.proposals.remove(deal_id));
-    return outcome::success();
-  }
-
-  outcome::result<void> transferBalance(State &state,
-                                        const Address &from,
-                                        const Address &to,
-                                        TokenAmount amount) {
-    VM_ASSERT(amount >= 0);
-    OUTCOME_TRY(state.escrow_table.subtract(from, amount));
-    OUTCOME_TRY(state.locked_table.subtract(from, amount));
-    OUTCOME_TRY(state.escrow_table.add(to, amount));
-    return outcome::success();
-  }
-
-  outcome::result<TokenAmount> processDealInitTimedOut(
-      State &state, DealId deal_id, const DealProposal &deal) {
-    OUTCOME_TRY(
-        unlockBalance(state, deal.client, deal.clientBalanceRequirement()));
-    auto slashed{
-        collateralPenaltyForDealActivationMissed(deal.provider_collateral)};
-    OUTCOME_TRY(slashBalance(state, deal.provider, slashed));
-    OUTCOME_TRY(unlockBalance(
-        state, deal.provider, deal.providerBalanceRequirement() - slashed));
-    OUTCOME_TRY(removeDeal(state, deal_id));
-    return slashed;
-  }
-
-  outcome::result<std::pair<TokenAmount, ChainEpoch>> updatePendingDealState(
-      State &state,
-      DealId deal_id,
-      const DealProposal &deal,
-      const DealState &deal_state,
-      ChainEpoch epoch) {
-    std::pair<TokenAmount, ChainEpoch> result{0, kChainEpochUndefined};
-    auto updated{deal_state.last_updated_epoch != kChainEpochUndefined};
-    auto slashed{deal_state.slash_epoch != kChainEpochUndefined};
-    VM_ASSERT(!updated || deal_state.last_updated_epoch <= epoch);
-    if (deal.start_epoch > epoch) {
-      return result;
-    }
-    VM_ASSERT(!slashed || deal_state.slash_epoch <= deal.end_epoch);
-    OUTCOME_TRY(transferBalance(
-        state,
-        deal.client,
-        deal.provider,
-        deal.storage_price_per_epoch
-            * (std::min(epoch,
-                        slashed ? deal_state.slash_epoch : deal.end_epoch)
-               - (updated ? std::max(deal_state.last_updated_epoch,
-                                     deal.start_epoch)
-                          : deal.start_epoch))));
-    if (slashed) {
-      VM_ASSERT(deal_state.slash_epoch <= deal.end_epoch);
-      TokenAmount remaining{deal.storage_price_per_epoch
-                            * (deal.end_epoch - deal_state.slash_epoch + 1)};
-      OUTCOME_TRY(unlockBalance(
-          state, deal.client, deal.client_collateral + remaining));
-      result.first = deal.provider_collateral;
-      OUTCOME_TRY(slashBalance(state, deal.provider, result.first));
-      OUTCOME_TRY(removeDeal(state, deal_id));
-      return result;
-    }
-    if (epoch >= deal.end_epoch) {
-      VM_ASSERT(deal_state.sector_start_epoch != kChainEpochUndefined);
-      OUTCOME_TRY(
-          unlockBalance(state, deal.provider, deal.provider_collateral));
-      OUTCOME_TRY(unlockBalance(state, deal.client, deal.client_collateral));
-      OUTCOME_TRY(removeDeal(state, deal_id));
-      return result;
-    }
-    result.second = std::min(deal.end_epoch, epoch + kDealUpdatesInterval);
-    return result;
-  }
-
-  outcome::result<void> maybeLockBalance(State &state,
-                                         const Address &address,
-                                         TokenAmount amount) {
-    VM_ASSERT(amount >= 0);
-    OUTCOME_TRY(escrow, state.escrow_table.get(address));
-    OUTCOME_TRY(locked, state.locked_table.get(address));
-    if (locked + amount > escrow) {
-      return VMExitCode::kMarketActorInsufficientFunds;
-    }
-    OUTCOME_TRY(state.locked_table.add(address, amount));
-    return outcome::success();
-  }
-
-  outcome::result<void> validateDeal(Runtime &runtime,
-                                     const ClientDealProposal &proposal) {
-    auto &deal = proposal.proposal;
-    auto duration = deal.duration();
-    if (duration <= 0) {
-      return VMExitCode::kMarketActorIllegalArgument;
-    }
-    OUTCOME_TRY(encoded, codec::cbor::encode(deal));
-    OUTCOME_TRY(verified,
-                runtime.verifySignature(
-                    proposal.client_signature, deal.client, encoded));
-    if (!verified || runtime.getCurrentEpoch() > deal.start_epoch
-        || !dealDurationBounds(deal.piece_size).in(duration)
-        || !dealPricePerEpochBounds(deal.piece_size, duration)
-                .in(deal.storage_price_per_epoch)
-        || !dealProviderCollateralBounds(deal.piece_size, duration)
-                .in(deal.provider_collateral)
-        || !dealClientCollateralBounds(deal.piece_size, duration)
-                .in(deal.client_collateral)) {
-      return VMExitCode::kMarketActorIllegalArgument;
-    }
-    return outcome::success();
+    REQUIRE_NO_ERROR_A(state,
+                       runtime.getCurrentActorStateCbor<State>(),
+                       VMExitCode::kErrIllegalState);
+    return std::move(state);
   }
 
   ACTOR_METHOD_IMPL(Construct) {
@@ -184,6 +39,9 @@ namespace fc::vm::actor::builtin::v0::market {
         .next_deal = 0,
         .deals_by_epoch = {},
         .last_cron = kChainEpochUndefined,
+        .total_client_locked_collateral = 0,
+        .total_provider_locked_collateral = 0,
+        .total_client_storage_fee = 0,
     };
     IpldPtr {
       runtime
@@ -194,111 +52,252 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   ACTOR_METHOD_IMPL(AddBalance) {
-    OUTCOME_TRY(addresses, escrowAddress(runtime, params));
+    const BigInt message_value = runtime.getValueReceived();
+    OUTCOME_TRY(runtime.validateArgument(message_value > 0));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
+
+    OUTCOME_TRY(addresses, Utils::escrowAddress(runtime, params));
+
+    Address nominal;
+    std::tie(nominal, std::ignore, std::ignore) = addresses;
+
     OUTCOME_TRY(state, loadState(runtime));
-    OUTCOME_TRY(state.escrow_table.addCreate(addresses.first,
-                                             runtime.getValueReceived()));
-    OUTCOME_TRY(state.locked_table.addCreate(addresses.first, 0));
+    REQUIRE_NO_ERROR(state.escrow_table.addCreate(nominal, message_value),
+                     VMExitCode::kErrIllegalState);
+
+    // Lotus gas conformance
+    REQUIRE_NO_ERROR(state.locked_table.hamt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+    // Lotus gas conformance
+    REQUIRE_NO_ERROR(state.locked_table.hamt.flush(),
+                     VMExitCode::kErrIllegalState);
+
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(WithdrawBalance) {
-    VM_ASSERT(params.amount >= 0);
-    OUTCOME_TRY(addresses, escrowAddress(runtime, params.address));
+    OUTCOME_TRY(runtime.validateArgument(params.amount >= 0));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
+    OUTCOME_TRY(addresses, Utils::escrowAddress(runtime, params.address));
+    const auto &[nominal, recipient, approved_callers] = addresses;
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(approved_callers));
+
     OUTCOME_TRY(state, loadState(runtime));
-    OUTCOME_TRY(min, state.locked_table.get(addresses.first));
-    OUTCOME_TRY(extracted,
-                state.escrow_table.subtractWithMin(
-                    addresses.first, params.amount, min));
+    REQUIRE_NO_ERROR_A(
+        min, state.locked_table.get(nominal), VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(
+        extracted,
+        state.escrow_table.subtractWithMin(nominal, params.amount, min),
+        VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
-    OUTCOME_TRY(runtime.sendFunds(addresses.second, extracted));
+    REQUIRE_SUCCESS(runtime.sendFunds(recipient, extracted));
     return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(PublishStorageDeals) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
-    VM_ASSERT(!params.deals.empty());
-    auto provider_raw{params.deals[0].proposal.provider};
-    OUTCOME_TRY(provider, runtime.resolveAddress(provider_raw));
+    OUTCOME_TRY(runtime.validateArgument(!params.deals.empty()));
+
+    const auto provider_raw{params.deals[0].proposal.provider};
+    CHANGE_ERROR_ABORT_A(provider,
+                         runtime.resolveAddress(provider_raw),
+                         VMExitCode::kErrNotFound);
+
+    const auto code_id = runtime.getActorCodeID(provider);
+    OUTCOME_TRY(runtime.validateArgument(!code_id.has_error()));
+    OUTCOME_TRY(
+        runtime.validateArgument(code_id.value() == kStorageMinerCodeCid));
     OUTCOME_TRY(addresses, requestMinerControlAddress(runtime, provider));
-    OUTCOME_TRY(runtime.validateImmediateCallerIs(addresses.worker));
-    for (auto &proposal : params.deals) {
-      auto &deal = proposal.proposal;
+    if (addresses.worker != runtime.getImmediateCaller()) {
+      ABORT(VMExitCode::kErrForbidden);
+    }
+
+    // request current baseline power
+    OUTCOME_TRY(epoch_reward,
+                runtime.sendM<reward::ThisEpochReward>(kRewardAddress, {}, 0));
+    OUTCOME_TRY(current_power,
+                runtime.sendM<storage_power::CurrentTotalPower>(
+                    kStoragePowerAddress, {}, 0));
+    const auto &network_raw_power = current_power.raw_byte_power;
+    const auto &network_qa_power = current_power.quality_adj_power;
+    std::vector<DealId> deals;
+    std::map<Address, Address> resolved_addresses;
+    OUTCOME_TRY(state, loadState(runtime));
+
+    // Lotus gas conformance
+    REQUIRE_NO_ERROR(state.proposals.amt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.locked_table.hamt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.escrow_table.hamt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.pending_proposals.hamt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.deals_by_epoch.hamt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+
+    for (const auto &client_deals : params.deals) {
+      OUTCOME_TRY(Utils::validateDeal(runtime,
+                                      client_deals,
+                                      epoch_reward.this_epoch_baseline_power,
+                                      network_raw_power,
+                                      network_qa_power));
+
+      auto deal{client_deals.proposal};
+      OUTCOME_TRY(runtime.validateArgument(deal.provider == provider
+                                           || deal.provider == provider_raw));
+
+      CHANGE_ERROR_ABORT_A(client,
+                           runtime.resolveAddress(deal.client),
+                           VMExitCode::kErrNotFound);
+      deal.provider = provider;
+      resolved_addresses[deal.client] = client;
+      deal.client = client;
+
+      const auto lock =
+          Utils::lockClientAndProviderBalances(runtime, state, deal);
+      if (lock.has_error()) {
+        REQUIRE_NO_ERROR(lock, static_cast<VMExitCode>(lock.error().value()));
+      }
+
+      const auto deal_id = state.next_deal++;
+
+      REQUIRE_NO_ERROR_A(has,
+                         state.pending_proposals.has(deal.cid()),
+                         VMExitCode::kErrIllegalState);
+      OUTCOME_TRY(runtime.validateArgument(!has));
+
+      REQUIRE_NO_ERROR(state.pending_proposals.set(deal.cid(), deal),
+                       VMExitCode::kErrIllegalState);
+
+      REQUIRE_NO_ERROR(state.proposals.set(deal_id, deal),
+                       VMExitCode::kErrIllegalState);
+
+      // We should randomize the first epoch for when the deal will be processed
+      // so an attacker isn't able to schedule too many deals for the same tick.
+      REQUIRE_NO_ERROR_A(process_epoch,
+                         Utils::genRandNextEpoch(runtime, deal),
+                         VMExitCode::kErrIllegalState);
+
+      OUTCOME_TRY(set, state.deals_by_epoch.tryGet(process_epoch));
+      if (!set) {
+        set = State::DealSet{IpldPtr{runtime}};
+      }
+      OUTCOME_TRY(set->set(deal_id, {}));
+      REQUIRE_NO_ERROR(state.deals_by_epoch.set(process_epoch, *set),
+                       VMExitCode::kErrIllegalState);
+      deals.emplace_back(deal_id);
+    }
+
+    OUTCOME_TRY(runtime.commitState(state));
+
+    for (const auto &client_deal : params.deals) {
+      const auto &deal = client_deal.proposal;
       if (deal.verified) {
-        OUTCOME_TRY(runtime.sendM<verified_registry::UseBytes>(
+        const auto resolved_client = resolved_addresses.find(deal.client);
+        OUTCOME_TRY(runtime.validateArgument(resolved_client
+                                             != resolved_addresses.end()));
+
+        REQUIRE_SUCCESS(runtime.sendM<verified_registry::UseBytes>(
             kVerifiedRegistryAddress,
             {deal.client, uint64_t{deal.piece_size}},
             0));
       }
     }
-    std::vector<DealId> deals;
-    OUTCOME_TRY(state, loadState(runtime));
-    for (auto &proposal : params.deals) {
-      OUTCOME_TRY(validateDeal(runtime, proposal));
 
-      auto deal{proposal.proposal};
-      VM_ASSERT(deal.provider == provider || deal.provider == provider_raw);
-
-      OUTCOME_TRY(client, runtime.resolveAddress(deal.client));
-      deal.provider = provider;
-      deal.client = client;
-
-      OUTCOME_TRY(
-          maybeLockBalance(state, client, deal.clientBalanceRequirement()));
-      OUTCOME_TRY(
-          maybeLockBalance(state, provider, deal.providerBalanceRequirement()));
-
-      auto deal_id = state.next_deal++;
-      OUTCOME_TRY(state.proposals.set(deal_id, deal));
-      OUTCOME_TRY(set, state.deals_by_epoch.tryGet(deal.start_epoch));
-      if (!set) {
-        set = State::DealSet{IpldPtr{runtime}};
-      }
-      OUTCOME_TRY(set->set(deal_id, {}));
-      OUTCOME_TRY(state.deals_by_epoch.set(deal.start_epoch, *set));
-      deals.emplace_back(deal_id);
-    }
-    OUTCOME_TRY(runtime.commitState(state));
     return Result{.deals = deals};
   }
 
-  ACTOR_METHOD_IMPL(VerifyDealsOnSectorProveCommit) {
+  ACTOR_METHOD_IMPL(VerifyDealsForActivation) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
-    auto miner = runtime.getImmediateCaller();
     OUTCOME_TRY(state, loadState(runtime));
-    DealWeight weight, verified_weight;
-    for (auto deal_id : params.deals) {
-      OUTCOME_TRY(has_state, state.states.has(deal_id));
-      VM_ASSERT(!has_state);
-      OUTCOME_TRY(deal, state.proposals.get(deal_id));
+    REQUIRE_NO_ERROR_A(result,
+                       Utils::validateDealsForActivation(
+                           runtime, state, params.deals, params.sector_expiry),
+                       VMExitCode::kErrIllegalState);
+    const auto &[deal_weight, verified_weight] = result;
 
-      VM_ASSERT(deal.provider == miner);
-      VM_ASSERT(runtime.getCurrentEpoch() <= deal.start_epoch);
-      VM_ASSERT(deal.end_epoch <= params.sector_expiry);
+    return Result{deal_weight, verified_weight};
+  }
 
-      OUTCOME_TRY(state.states.set(deal_id,
-                                   {runtime.getCurrentEpoch(),
-                                    kChainEpochUndefined,
-                                    kChainEpochUndefined}));
-      (deal.verified ? verified_weight : weight) +=
-          deal.piece_size * deal.duration();
+  ACTOR_METHOD_IMPL(ActivateDeals) {
+    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
+    OUTCOME_TRY(state, loadState(runtime));
+    REQUIRE_NO_ERROR(Utils::validateDealsForActivation(
+                         runtime, state, params.deals, params.sector_expiry),
+                     VMExitCode::kErrIllegalState);
+
+    const auto miner = runtime.getImmediateCaller();
+    for (const auto deal_id : params.deals) {
+      REQUIRE_NO_ERROR_A(has_deal_state,
+                         state.states.has(deal_id),
+                         VMExitCode::kErrIllegalState);
+      OUTCOME_TRY(runtime.validateArgument(!has_deal_state));
+
+      REQUIRE_NO_ERROR_A(
+          proposal, state.proposals.get(deal_id), VMExitCode::kErrIllegalState);
+
+      const auto pending = state.pending_proposals.has(proposal.cid());
+      if (!pending.value()) {
+        ABORT(VMExitCode::kErrIllegalState);
+      }
+
+      DealState deal_state{
+          .sector_start_epoch = runtime.getCurrentEpoch(),
+          .last_updated_epoch = kChainEpochUndefined,
+          .slash_epoch = kChainEpochUndefined,
+      };
+      REQUIRE_NO_ERROR(state.states.set(deal_id, deal_state),
+                       VMExitCode::kErrIllegalState);
     }
     OUTCOME_TRY(runtime.commitState(state));
-    return Result{weight, verified_weight};
+    return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(OnMinerSectorsTerminate) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
-    auto miner = runtime.getImmediateCaller();
     OUTCOME_TRY(state, loadState(runtime));
-    for (auto deal_id : params.deals) {
-      OUTCOME_TRY(deal, state.proposals.get(deal_id));
-      VM_ASSERT(deal.provider == miner);
-      OUTCOME_TRY(deal_state, state.states.get(deal_id));
-      deal_state.slash_epoch = runtime.getCurrentEpoch();
-      OUTCOME_TRY(state.states.set(deal_id, deal_state));
+
+    for (const auto deal_id : params.deals) {
+      REQUIRE_NO_ERROR_A(maybe_deal,
+                         state.proposals.tryGet(deal_id),
+                         VMExitCode::kErrIllegalState);
+
+      // Deal could have terminated and hence deleted before the sector is
+      // terminated. We should simply continue instead of aborting execution
+      // here if a deal is not found.
+      if (!maybe_deal.has_value()) {
+        continue;
+      }
+
+      const auto &deal = maybe_deal.value();
+
+      VM_ASSERT(deal.provider == runtime.getImmediateCaller());
+
+      // do not slash expired deals
+      if (deal.end_epoch <= params.epoch) {
+        continue;
+      }
+
+      REQUIRE_NO_ERROR_A(maybe_deal_state,
+                         state.states.tryGet(deal_id),
+                         VMExitCode::kErrIllegalState);
+      OUTCOME_TRY(runtime.validateArgument(maybe_deal_state.has_value()));
+      auto &deal_state = maybe_deal_state.value();
+
+      // if a deal is already slashed, we don't need to do anything here
+      if (deal_state.slash_epoch != kChainEpochUndefined) {
+        continue;
+      }
+      // Mark the deal for slashing here.
+      // Actual releasing of locked funds for the client and slashing of
+      // provider collateral happens in CronTick.
+      deal_state.slash_epoch = params.epoch;
+      REQUIRE_NO_ERROR(state.states.set(deal_id, deal_state),
+                       VMExitCode::kErrIllegalState);
     }
+
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -306,75 +305,129 @@ namespace fc::vm::actor::builtin::v0::market {
   ACTOR_METHOD_IMPL(ComputeDataCommitment) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
     OUTCOME_TRY(state, loadState(runtime));
+
+    // Lotus gas conformance
+    REQUIRE_NO_ERROR(state.proposals.amt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+
     std::vector<PieceInfo> pieces;
-    for (auto deal_id : params.deals) {
-      OUTCOME_TRY(deal, state.proposals.get(deal_id));
+    for (const auto deal_id : params.deals) {
+      REQUIRE_NO_ERROR_A(
+          deal, state.proposals.get(deal_id), VMExitCode::kErrIllegalState);
       pieces.emplace_back(
           PieceInfo{.size = deal.piece_size, .cid = deal.piece_cid});
     }
-    return runtime.computeUnsealedSectorCid(params.sector_type, pieces);
+    const auto result =
+        runtime.computeUnsealedSectorCid(params.sector_type, pieces);
+    OUTCOME_TRY(runtime.validateArgument(!result.has_error()));
+    return result;
   }
 
   ACTOR_METHOD_IMPL(CronTick) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kCronAddress));
-    auto now{runtime.getCurrentEpoch()};
+    const auto now{runtime.getCurrentEpoch()};
     OUTCOME_TRY(state, loadState(runtime));
     TokenAmount slashed_sum;
-    std::map<ChainEpoch, std::vector<DealId>> next_updates;
+    std::map<ChainEpoch, std::vector<DealId>> updates_needed;
     std::vector<DealProposal> timed_out_verified;
+
+    // Lotus gas conformance
+    REQUIRE_NO_ERROR(state.states.amt.loadRoot(), VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.locked_table.hamt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.escrow_table.hamt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.deals_by_epoch.hamt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.proposals.amt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state.pending_proposals.hamt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+
     for (auto epoch{state.last_cron + 1}; epoch <= now; ++epoch) {
       OUTCOME_TRY(set, state.deals_by_epoch.tryGet(epoch));
-      if (set) {
+      if (set.has_value()) {
         auto visitor{[&](auto deal_id, auto) -> outcome::result<void> {
-          OUTCOME_TRY(deal_state, state.states.tryGet(deal_id));
-          if (deal_state) {
-            OUTCOME_TRY(deal, state.proposals.get(deal_id));
-            if (deal_state->sector_start_epoch == kChainEpochUndefined) {
-              VM_ASSERT(now >= deal.start_epoch);
-              OUTCOME_TRY(slashed,
-                          processDealInitTimedOut(state, deal_id, deal));
-              slashed_sum += slashed;
-              if (deal.verified) {
-                timed_out_verified.push_back(deal);
-              }
-            } else {
-              OUTCOME_TRY(slashed_next,
-                          updatePendingDealState(
-                              state, deal_id, deal, *deal_state, now));
-              slashed_sum += slashed_next.first;
-              if (slashed_next.second != kChainEpochUndefined) {
-                VM_ASSERT(slashed_next.second > now);
-                deal_state->last_updated_epoch = now;
-                OUTCOME_TRY(state.states.set(deal_id, *deal_state));
-                next_updates[slashed_next.second].push_back(deal_id);
-              }
+          REQUIRE_NO_ERROR_A(
+              deal, state.proposals.get(deal_id), VMExitCode::kErrIllegalState);
+
+          REQUIRE_NO_ERROR_A(maybe_deal_state,
+                             state.states.tryGet(deal_id),
+                             VMExitCode::kErrIllegalState);
+          // deal has been published but not activated yet -> terminate it as it
+          // has timed out
+          if (!maybe_deal_state.has_value()) {
+            VM_ASSERT(now >= deal.start_epoch);
+            OUTCOME_TRY(slashed,
+                        Utils::processDealInitTimedOut(runtime, state, deal));
+            slashed_sum += slashed;
+            if (deal.verified) {
+              timed_out_verified.push_back(deal);
             }
+
+            REQUIRE_NO_ERROR(
+                Utils::deleteDealProposalAndState(state, deal_id, true, false),
+                VMExitCode::kErrIllegalState);
+          }
+
+          auto &deal_state = maybe_deal_state.value();
+
+          // if this is the first cron tick for the deal, it should be in the
+          // pending state.
+          if (deal_state.last_updated_epoch == kChainEpochUndefined) {
+            REQUIRE_NO_ERROR(state.pending_proposals.remove(deal.cid()),
+                             VMExitCode::kErrIllegalState);
+          }
+
+          OUTCOME_TRY(slashed_next,
+                      Utils::updatePendingDealState(
+                          runtime, state, deal_id, deal, deal_state, now));
+          const auto &[slash_amount, next_epoch, remove_deal] = slashed_next;
+
+          VM_ASSERT(slash_amount >= 0);
+          if (remove_deal) {
+            VM_ASSERT(next_epoch == kChainEpochUndefined);
+            slashed_sum += slash_amount;
+            REQUIRE_NO_ERROR(
+                Utils::deleteDealProposalAndState(state, deal_id, true, true),
+                VMExitCode::kErrIllegalState);
+          } else {
+            VM_ASSERT((next_epoch > now) && (slash_amount == 0));
+            deal_state.last_updated_epoch = now;
+            REQUIRE_NO_ERROR(state.states.set(deal_id, deal_state),
+                             VMExitCode::kErrIllegalState);
+            updates_needed[next_epoch].push_back(deal_id);
           }
           return outcome::success();
         }};
-        OUTCOME_TRY(set->visit(visitor));
+        REQUIRE_NO_ERROR(set->visit(visitor), VMExitCode::kErrIllegalState);
         OUTCOME_TRY(state.deals_by_epoch.remove(epoch));
       }
     }
-    for (auto &[next, deals] : next_updates) {
+
+    for (const auto &[next, deals] : updates_needed) {
       OUTCOME_TRY(set, state.deals_by_epoch.tryGet(next));
       if (!set) {
         set = State::DealSet{IpldPtr{runtime}};
       }
-      for (auto deal : deals) {
+      for (const auto deal : deals) {
         OUTCOME_TRY(set->set(deal, {}));
       }
       OUTCOME_TRY(state.deals_by_epoch.set(next, *set));
     }
+
     state.last_cron = now;
     OUTCOME_TRY(runtime.commitState(state));
-    for (auto &deal : timed_out_verified) {
+
+    for (const auto &deal : timed_out_verified) {
       OUTCOME_TRY(runtime.sendM<verified_registry::RestoreBytes>(
           kVerifiedRegistryAddress,
           {deal.client, uint64_t{deal.piece_size}},
           0));
     }
-    OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, slashed_sum));
+    if (slashed_sum != 0) {
+      REQUIRE_SUCCESS(runtime.sendFunds(kBurntFundsActorAddress, slashed_sum));
+    }
     return outcome::success();
   }
 
@@ -383,7 +436,8 @@ namespace fc::vm::actor::builtin::v0::market {
       exportMethod<AddBalance>(),
       exportMethod<WithdrawBalance>(),
       exportMethod<PublishStorageDeals>(),
-      exportMethod<VerifyDealsOnSectorProveCommit>(),
+      exportMethod<VerifyDealsForActivation>(),
+      exportMethod<ActivateDeals>(),
       exportMethod<OnMinerSectorsTerminate>(),
       exportMethod<ComputeDataCommitment>(),
       exportMethod<CronTick>(),

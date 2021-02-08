@@ -67,11 +67,13 @@ namespace fc::vm::interpreter {
   }
 
   InterpreterImpl::InterpreterImpl(
+      std::shared_ptr<Invoker> invoker,
       TsLoadPtr ts_load,
       std::shared_ptr<WeightCalculator> weight_calculator,
       std::shared_ptr<RuntimeRandomness> randomness,
       std::shared_ptr<Circulating> circulating)
-      : ts_load{std::move(ts_load)},
+      : invoker_{std::move(invoker)},
+        ts_load{std::move(ts_load)},
         weight_calculator_{std::move(weight_calculator)},
         randomness_{std::move(randomness)},
         circulating_{std::move(circulating)} {}
@@ -106,8 +108,8 @@ namespace fc::vm::interpreter {
       return InterpreterError::kDuplicateMiner;
     }
 
-    auto env = std::make_shared<Env>(
-        std::make_shared<InvokerImpl>(), randomness_, ipld, ts_branch, tipset);
+    auto env =
+        std::make_shared<Env>(invoker_, randomness_, ipld, ts_branch, tipset);
 
     env->circulating = circulating_;
 

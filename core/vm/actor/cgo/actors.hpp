@@ -5,24 +5,14 @@
 
 #pragma once
 
+#include "common/buffer.hpp"
 #include "fwd.hpp"
-#include "primitives/sector/sector.hpp"
 
 namespace fc::vm::actor::cgo {
-  using message::UnsignedMessage;
-  using primitives::StoragePower;
-  using primitives::sector::RegisteredSealProof;
-  using runtime::Execution;
-
-  void config(const StoragePower &min_verified_deal_size,
-              const StoragePower &consensus_miner_min_power,
-              const std::vector<RegisteredSealProof> &supported_proofs);
+  using runtime::Runtime;
 
   void configMainnet();
 
-  outcome::result<Buffer> invoke(const std::shared_ptr<Execution> &exec,
-                                 const UnsignedMessage &message,
-                                 const CID &code,
-                                 size_t method,
-                                 BytesIn params);
+  outcome::result<Buffer> invoke(const CID &code,
+                                 const std::shared_ptr<Runtime> &runtime);
 }  // namespace fc::vm::actor::cgo

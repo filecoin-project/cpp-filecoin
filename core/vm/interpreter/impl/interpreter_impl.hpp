@@ -8,6 +8,7 @@
 
 #include "blockchain/weight_calculator.hpp"
 #include "storage/buffer_map.hpp"
+#include "vm/actor/invoker.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/circulating.hpp"
 #include "vm/runtime/runtime_randomness.hpp"
@@ -18,10 +19,13 @@ namespace fc::vm::interpreter {
   using runtime::MessageReceipt;
   using runtime::RuntimeRandomness;
   using storage::PersistentBufferMap;
+  using vm::actor::Invoker;
+  using vm::runtime::MessageReceipt;
 
   class InterpreterImpl : public Interpreter {
    public:
-    InterpreterImpl(TsLoadPtr ts_load,
+    InterpreterImpl(std::shared_ptr<Invoker> invoker,
+                    TsLoadPtr ts_load,
                     std::shared_ptr<WeightCalculator> weight_calculator,
                     std::shared_ptr<RuntimeRandomness> randomness,
                     std::shared_ptr<Circulating> circulating);
@@ -42,6 +46,7 @@ namespace fc::vm::interpreter {
     bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) const;
     outcome::result<BigInt> getWeight(const TipsetCPtr &tipset) const;
 
+    std::shared_ptr<Invoker> invoker_;
     TsLoadPtr ts_load;
     std::shared_ptr<WeightCalculator> weight_calculator_;
     std::shared_ptr<RuntimeRandomness> randomness_;

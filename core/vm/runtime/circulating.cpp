@@ -14,8 +14,8 @@
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/market/actor.hpp"
-#include "vm/actor/builtin/v2/power/actor.hpp"
-#include "vm/actor/builtin/v2/reward/actor.hpp"
+#include "vm/actor/builtin/v2/reward/reward_actor_state.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/version.hpp"
 
@@ -43,8 +43,9 @@ namespace fc::vm {
           ipld->getCbor<actor::builtin::v0::storage_power::State>(power.head));
       locked += state.total_pledge;
     } else if (power.code == actor::builtin::v2::kStoragePowerCodeCid) {
-      OUTCOME_TRY(state,
-                  ipld->getCbor<actor::builtin::v2::power::State>(power.head));
+      OUTCOME_TRY(
+          state,
+          ipld->getCbor<actor::builtin::v2::storage_power::State>(power.head));
       locked += state.total_pledge;
     } else {
       return std::errc::owner_dead;

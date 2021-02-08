@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP
+#pragma once
 
 #include "adt/address_key.hpp"
 #include "adt/map.hpp"
@@ -22,6 +21,14 @@ namespace fc::vm::actor::builtin::v0::init {
   };
   CBOR_TUPLE(InitActorState, address_map, next_id, network_name)
 
+  struct Construct : ActorMethodBase<1> {
+    struct Params {
+      std::string network_name;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(Construct::Params, network_name)
+
   struct Exec : ActorMethodBase<2> {
     struct Params {
       CodeId code;
@@ -33,6 +40,22 @@ namespace fc::vm::actor::builtin::v0::init {
                                // the newly created actor
     };
     ACTOR_METHOD_DECL();
+
+    using CallerAssert = std::function<outcome::result<void>(bool)>;
+    using ExecAssert = std::function<bool(const CID &, const CID &)>;
+
+    static outcome::result<Result> execute(Runtime &runtime,
+                                           const Params &params,
+                                           CallerAssert caller_assert,
+                                           ExecAssert exec_assert);
+
+    static outcome::result<void> checkCaller(const Runtime &runtime,
+                                             const CodeId &code,
+                                             CallerAssert caller_assert,
+                                             ExecAssert exec_assert);
+    static outcome::result<void> createActor(Runtime &runtime,
+                                             const Address &id_address,
+                                             const Params &params);
   };
   CBOR_TUPLE(Exec::Params, code, params)
   CBOR_TUPLE(Exec::Result, id_address, robust_address)
@@ -56,5 +79,3 @@ namespace fc {
     }
   };
 }  // namespace fc
-
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP

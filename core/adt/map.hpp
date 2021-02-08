@@ -75,7 +75,16 @@ namespace fc::adt {
       return std::move(keys);
     }
 
-    Hamt hamt;
+    outcome::result<size_t> size() const {
+      size_t size{};
+      OUTCOME_TRY(hamt.visit([&](auto &key, auto &) -> outcome::result<void> {
+        ++size;
+        return outcome::success();
+      }));
+      return size;
+    }
+
+    mutable Hamt hamt;
   };
 
   /// Cbor encode map

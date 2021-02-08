@@ -7,104 +7,153 @@
 #include "vm/actor/builtin/v0/codes.hpp"
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
+  using crypto::signature::Signature;
   using primitives::address::Protocol;
 
-  outcome::result<Address> resolveAccount(Runtime &runtime,
-                                          const Address &address) {
-    OUTCOME_TRY(resolved, runtime.resolveAddress(address));
-    OUTCOME_TRY(code, runtime.getActorCodeID(resolved));
-    if (code != kAccountCodeCid) {
-      return VMExitCode::kPaymentChannelIllegalArgument;
+  outcome::result<Address> resolveAccount(const Runtime &runtime,
+                                          const Address &address,
+                                          const CodeId &accountCodeCid) {
+    CHANGE_ERROR_A(
+        resolved, runtime.resolveAddress(address), VMExitCode::kErrNotFound);
+
+    CHANGE_ERROR_A(
+        code, runtime.getActorCodeID(resolved), VMExitCode::kErrForbidden);
+    if (code != accountCodeCid) {
+      return VMExitCode::kErrForbidden;
     }
     return std::move(resolved);
   }
 
-  outcome::result<State> assertCallerInChannel(Runtime &runtime) {
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    if (runtime.getImmediateCaller() != state.from
-        && runtime.getImmediateCaller() != state.to) {
-      return VMExitCode::kPaymentChannelWrongCaller;
-    }
-    return std::move(state);
-  }
+  // Construct
+  //============================================================================
 
   ACTOR_METHOD_IMPL(Construct) {
-    if (runtime.getImmediateCaller() != kInitAddress) {
-      return VMExitCode::kPaymentChannelWrongCaller;
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
+
+    REQUIRE_NO_ERROR_A(to,
+                       resolveAccount(runtime, params.to, kAccountCodeCid),
+                       VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR_A(from,
+                       resolveAccount(runtime, params.from, kAccountCodeCid),
+                       VMExitCode::kErrIllegalState);
+
+    State state{from, to, 0, 0, 0, {}};
+    IpldPtr {
+      runtime
     }
-    OUTCOME_TRY(to, resolveAccount(runtime, params.to));
-    OUTCOME_TRY(from, resolveAccount(runtime, params.from));
-    OUTCOME_TRY(runtime.commitState(State{from, to, 0, 0, 0, {}}));
-    return fc::outcome::success();
+    ->load(state);
+    OUTCOME_TRY(runtime.commitState(state));
+    return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(UpdateChannelState) {
-    OUTCOME_TRY(state, assertCallerInChannel(runtime));
-    auto &voucher = params.signed_voucher;
-    if (!voucher.signature) {
-      return VMExitCode::kPaymentChannelIllegalArgument;
-    }
-    auto voucher_signable = voucher;
-    voucher_signable.signature = boost::none;
-    OUTCOME_TRY(voucher_signable_bytes, codec::cbor::encode(voucher_signable));
-    auto &signer =
+  // UpdateChannelState
+  //============================================================================
+
+  outcome::result<void> UpdateChannelState::checkSignature(
+      Runtime &runtime, const State &state, const SignedVoucher &voucher) {
+    const auto &signer =
         runtime.getImmediateCaller() != state.to ? state.to : state.from;
-    OUTCOME_TRY(verified,
-                runtime.verifySignature(
-                    *voucher.signature, signer, voucher_signable_bytes));
-    if (!verified) {
-      return VMExitCode::kPaymentChannelIllegalArgument;
+
+    REQUIRE_NO_ERROR_A(voucher_signable_bytes,
+                       voucher.signingBytes(),
+                       VMExitCode::kErrIllegalArgument);
+
+    const Buffer signature_bytes =
+        voucher.signature_bytes ? voucher.signature_bytes.get() : Buffer{};
+    REQUIRE_NO_ERROR_A(verified,
+                       runtime.verifySignatureBytes(
+                           signature_bytes, signer, voucher_signable_bytes),
+                       VMExitCode::kErrIllegalArgument);
+    OUTCOME_TRY(runtime.validateArgument(verified));
+    return outcome::success();
+  }
+
+  outcome::result<void> UpdateChannelState::checkPaychannelAddr(
+      const Runtime &runtime, const SignedVoucher &voucher) {
+    const auto paych_addr = runtime.getCurrentReceiver();
+    OUTCOME_TRY(runtime.validateArgument(paych_addr == voucher.channel));
+    return outcome::success();
+  }
+
+  outcome::result<void> UpdateChannelState::checkVoucher(
+      Runtime &runtime, const Buffer &secret, const SignedVoucher &voucher) {
+    OUTCOME_TRY(runtime.validateArgument(runtime.getCurrentEpoch()
+                                         >= voucher.time_lock_min));
+    OUTCOME_TRY(runtime.validateArgument(voucher.time_lock_max == 0
+                                         || runtime.getCurrentEpoch()
+                                                <= voucher.time_lock_max));
+    OUTCOME_TRY(runtime.validateArgument(voucher.amount.sign() >= 0));
+
+    if (!voucher.secret_preimage.empty()) {
+      OUTCOME_TRY(hash, runtime.hashBlake2b(secret));
+      auto secret_preimage_copy = voucher.secret_preimage;
+      OUTCOME_TRY(runtime.validateArgument(
+          gsl::make_span(hash) == gsl::make_span(secret_preimage_copy)));
     }
-    if (runtime.getCurrentEpoch() < voucher.time_lock_min) {
-      return VMExitCode::kPaymentChannelIllegalArgument;
-    }
-    if (voucher.time_lock_max != 0
-        && runtime.getCurrentEpoch() > voucher.time_lock_max) {
-      return VMExitCode::kPaymentChannelIllegalArgument;
-    }
-    if (!voucher.secret_preimage.empty()
-        && gsl::make_span(runtime.hashBlake2b(params.secret))
-               != gsl::make_span(voucher.secret_preimage)) {
-      return VMExitCode::kPaymentChannelIllegalArgument;
-    }
+    return outcome::success();
+  }
+
+  outcome::result<void> UpdateChannelState::voucherExtra(
+      Runtime &runtime, const Buffer &proof, const SignedVoucher &voucher) {
     if (voucher.extra) {
-      OUTCOME_TRY(params2,
-                  encodeActorParams(
-                      PaymentVerifyParams{voucher.extra->data, params.proof}));
-      OUTCOME_TRY(runtime.send(
-          voucher.extra->actor, voucher.extra->method, params2, 0));
+      OUTCOME_TRY(
+          params_extra,
+          encodeActorParams(PaymentVerifyParams{voucher.extra->params, proof}));
+      REQUIRE_SUCCESS(runtime.send(
+          voucher.extra->actor, voucher.extra->method, params_extra, 0));
     }
 
-    auto lane_it = state.findLane(voucher.lane);
-    if (lane_it == state.lanes.end() || lane_it->id != voucher.lane) {
-      if (state.lanes.size() >= kLaneLimit) {
-        return VMExitCode::kPaymentChannelIllegalArgument;
-      }
-      lane_it = state.lanes.insert(lane_it, LaneState{voucher.lane, 0, 0});
+    return outcome::success();
+  }
+
+  outcome::result<void> UpdateChannelState::calculate(
+      const Runtime &runtime, State &state, const SignedVoucher &voucher) {
+    OUTCOME_TRY(lanes_size, state.lanes.size());
+    OUTCOME_TRY(runtime.validateArgument((lanes_size <= kLaneLimit)
+                                         && (voucher.lane <= kLaneLimit)));
+
+    REQUIRE_NO_ERROR_A(maybe_state_lane,
+                       state.lanes.tryGet(voucher.lane),
+                       VMExitCode::kErrIllegalState);
+
+    LaneState state_lane = maybe_state_lane.has_value()
+                               ? maybe_state_lane.value()
+                               : LaneState{{}, {}};
+
+    if (maybe_state_lane.has_value()) {
+      OUTCOME_TRY(runtime.validateArgument(state_lane.nonce < voucher.nonce));
     }
-    auto &lane = *lane_it;
-    if (lane.nonce > voucher.nonce) {
-      return VMExitCode::kPaymentChannelIllegalArgument;
+
+    BigInt redeem = 0;
+    for (const auto &merge : voucher.merges) {
+      OUTCOME_TRY(runtime.validateArgument(merge.lane != voucher.lane));
+      OUTCOME_TRY(runtime.validateArgument(merge.lane <= kLaneLimit));
+
+      REQUIRE_NO_ERROR_A(maybe_lane,
+                         state.lanes.tryGet(merge.lane),
+                         VMExitCode::kErrIllegalState);
+      OUTCOME_TRY(runtime.validateArgument(maybe_lane.has_value()));
+
+      auto &lane = maybe_lane.value();
+
+      OUTCOME_TRY(runtime.validateArgument(lane.nonce < merge.nonce));
+
+      redeem += lane.redeem;
+      lane.nonce = merge.nonce;
+      REQUIRE_NO_ERROR(state.lanes.set(merge.lane, lane),
+                       VMExitCode::kErrIllegalState);
     }
-    auto redeem = lane.redeem;
-    for (auto &merge : voucher.merges) {
-      if (merge.lane == voucher.lane) {
-        return VMExitCode::kPaymentChannelIllegalArgument;
-      }
-      lane_it = state.findLane(merge.lane);
-      if (lane_it == state.lanes.end() || lane_it->nonce >= merge.nonce) {
-        return VMExitCode::kPaymentChannelIllegalArgument;
-      }
-      redeem += lane_it->redeem;
-      lane_it->nonce = merge.nonce;
-    }
-    lane.nonce = voucher.nonce;
-    state.to_send += voucher.amount - redeem;
-    lane.redeem = voucher.amount;
+    state_lane.nonce = voucher.nonce;
+    TokenAmount balance_delta = voucher.amount - (redeem + state_lane.redeem);
+    state_lane.redeem = voucher.amount;
+    TokenAmount send_balance = state.to_send + balance_delta;
+
     OUTCOME_TRY(balance, runtime.getCurrentBalance());
-    if (state.to_send < 0 || state.to_send > balance) {
-      return VMExitCode::kPaymentChannelIllegalState;
-    }
+    OUTCOME_TRY(runtime.validateArgument((send_balance >= 0)
+                                         && (send_balance <= balance)));
+    state.to_send = send_balance;
+
     if (voucher.min_close_height != 0) {
       if (state.settling_at != 0) {
         state.settling_at =
@@ -114,34 +163,65 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
           std::max(state.min_settling_height, voucher.min_close_height);
     }
 
-    OUTCOME_TRY(runtime.commitState(state));
-    return fc::outcome::success();
+    REQUIRE_NO_ERROR(state.lanes.set(voucher.lane, state_lane),
+                     VMExitCode::kErrIllegalState);
+    return outcome::success();
   }
 
+  ACTOR_METHOD_IMPL(UpdateChannelState) {
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(
+        std::vector<Address>{state.from, state.to}));
+    const auto &voucher = params.signed_voucher;
+    OUTCOME_TRY(checkSignature(runtime, state, voucher));
+    OUTCOME_TRY(checkPaychannelAddr(runtime, voucher));
+    OUTCOME_TRY(checkVoucher(runtime, params.secret, voucher));
+    OUTCOME_TRY(voucherExtra(runtime, params.proof, voucher));
+    OUTCOME_TRYA(
+        state,
+        runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
+    OUTCOME_TRY(calculate(runtime, state, voucher));
+    OUTCOME_TRY(runtime.commitState(state));
+    return outcome::success();
+  }
+
+  // Settle
+  //============================================================================
+
   ACTOR_METHOD_IMPL(Settle) {
-    OUTCOME_TRY(state, assertCallerInChannel(runtime));
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(
+        std::vector<Address>{state.from, state.to}));
+
     if (state.settling_at != 0) {
-      return VMExitCode::kPaymentChannelIllegalState;
+      ABORT(VMExitCode::kErrIllegalState);
     }
     state.settling_at = std::max(state.min_settling_height,
                                  runtime.getCurrentEpoch() + kSettleDelay);
     OUTCOME_TRY(runtime.commitState(state));
-    return fc::outcome::success();
+    return outcome::success();
   }
 
+  // Collect
+  //============================================================================
+
   ACTOR_METHOD_IMPL(Collect) {
-    OUTCOME_TRY(state, assertCallerInChannel(runtime));
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(
+        std::vector<Address>{state.from, state.to}));
+
     if (state.settling_at == 0
         || runtime.getCurrentEpoch() < state.settling_at) {
-      return VMExitCode::kPaymentChannelForbidden;
+      ABORT(VMExitCode::kErrForbidden);
     }
-    OUTCOME_TRY(balance, runtime.getCurrentBalance());
-    OUTCOME_TRY(runtime.sendFunds(state.from, balance - state.to_send));
-    OUTCOME_TRY(runtime.sendFunds(state.to, state.to_send));
-    state.to_send = 0;
-    OUTCOME_TRY(runtime.commitState(state));
-    return fc::outcome::success();
+
+    REQUIRE_SUCCESS(runtime.sendFunds(state.to, state.to_send));
+    OUTCOME_TRY(runtime.deleteActor(state.from));
+
+    return outcome::success();
   }
+
+  //============================================================================
 
   const ActorExports exports{
       exportMethod<Construct>(),

@@ -23,4 +23,5 @@ target_link_libraries(runtime
     proofs
     secp256k1_provider
     tipset
+    signature
     )

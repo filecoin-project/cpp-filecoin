@@ -27,24 +27,24 @@ namespace fc::vm::state {
     outcome::result<void> set(const Address &address,
                               const Actor &actor) override;
     /// Get actor state
-    outcome::result<Actor> get(const Address &address) override;
+    outcome::result<Actor> get(const Address &address) const override;
     /// Lookup id address from address
-    outcome::result<Address> lookupId(const Address &address) override;
+    outcome::result<Address> lookupId(const Address &address) const override;
     /// Allocate id address and set actor state, does not write to storage
     outcome::result<Address> registerNewAddress(
         const Address &address) override;
     /// Write changes to storage
     outcome::result<CID> flush() override;
     /// Get store
-    std::shared_ptr<IpfsDatastore> getStore() override;
+    std::shared_ptr<IpfsDatastore> getStore() const override;
     outcome::result<void> remove(const Address &address) override;
     void txBegin() override;
     void txRevert() override;
     void txEnd() override;
 
    private:
-    Tx &tx();
-    void _set(ActorId id, const Actor &actor);
+    Tx &tx() const;
+    void _set(ActorId id, const Actor &actor) const;
     /**
      * Sets root of StateTree
      * @param root - cid of hamt for StateTree v0 or cid of struct StateRoot for
@@ -55,7 +55,7 @@ namespace fc::vm::state {
     StateTreeVersion version_;
     std::shared_ptr<IpfsDatastore> store_;
     adt::Map<actor::Actor, adt::AddressKeyer> by_id;
-    std::vector<Tx> tx_;
+    mutable std::vector<Tx> tx_;
   };
 }  // namespace fc::vm::state
 

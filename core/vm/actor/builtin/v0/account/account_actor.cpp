@@ -11,7 +11,7 @@ namespace fc::vm::actor::builtin::v0::account {
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
     if (!params.isKeyType()) {
-      return VMExitCode::kAccountActorCreateWrongAddressType;
+      ABORT(VMExitCode::kErrIllegalArgument);
     }
     OUTCOME_TRY(runtime.commitState(AccountActorState{params}));
     return outcome::success();

@@ -5,9 +5,9 @@
 
 #include "vm/runtime/impl/runtime_impl.hpp"
 
+#include "codec/cbor/cbor.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
-#include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
@@ -21,11 +21,9 @@ namespace fc::vm::runtime {
   using fc::storage::hamt::HamtError;
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
-                           std::shared_ptr<RuntimeRandomness> randomness,
                            UnsignedMessage message,
                            const Address &caller_id)
       : execution_{std::move(execution)},
-        randomness_{std::move(randomness)},
         message_{std::move(message)},
         caller_id{caller_id} {}
 
@@ -45,7 +43,7 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return randomness_->getRandomnessFromTickets(
+    return execution_->env->randomness->getRandomnessFromTickets(
         execution_->env->ts_branch, tag, epoch, seed);
   }
 
@@ -53,7 +51,7 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return randomness_->getRandomnessFromBeacon(
+    return execution_->env->randomness->getRandomnessFromBeacon(
         execution_->env->ts_branch, tag, epoch, seed);
   }
 
@@ -65,7 +63,7 @@ namespace fc::vm::runtime {
     return message_.to;
   }
 
-  fc::outcome::result<BigInt> RuntimeImpl::getBalance(
+  outcome::result<BigInt> RuntimeImpl::getBalance(
       const Address &address) const {
     auto actor_state = execution_->state_tree->get(address);
     if (!actor_state) {
@@ -85,7 +83,7 @@ namespace fc::vm::runtime {
     return actor_state.code;
   }
 
-  fc::outcome::result<InvocationOutput> RuntimeImpl::send(
+  outcome::result<InvocationOutput> RuntimeImpl::send(
       Address to_address,
       MethodNumber method_number,
       MethodParams params,
@@ -96,7 +94,9 @@ namespace fc::vm::runtime {
 
   outcome::result<Address> RuntimeImpl::createNewActorAddress() {
     OUTCOME_TRY(caller_address,
-                resolveKey(*execution_->state_tree, execution()->origin));
+                resolveKey(*execution_->state_tree,
+                           execution_->env->ipld,
+                           execution()->origin));
     OUTCOME_TRY(encoded_address, codec::cbor::encode(caller_address));
     auto actor_address{Address::makeActorExec(
         encoded_address.putUint64(execution()->origin_nonce)
@@ -106,21 +106,61 @@ namespace fc::vm::runtime {
     return actor_address;
   }
 
-  fc::outcome::result<void> RuntimeImpl::createActor(const Address &address,
-                                                     const Actor &actor) {
+  outcome::result<void> RuntimeImpl::createActor(const Address &address,
+                                                 const Actor &actor) {
     OUTCOME_TRY(execution_->state_tree->set(address, actor));
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onCreateActor()));
     return fc::outcome::success();
   }
 
-  fc::outcome::result<void> RuntimeImpl::deleteActor() {
-    // TODO: transfer to kBurntFundsActorAddress
-    // TODO(a.chernyshov) FIL-137 implement state_tree remove if needed
-    // return state_tree_->remove(address);
-    return fc::outcome::failure(RuntimeError::kUnknown);
+  outcome::result<void> RuntimeImpl::deleteActor(const Address &address) {
+    OUTCOME_TRY(chargeGas(execution_->env->pricelist.onDeleteActor()));
+    auto &state{*execution()->state_tree};
+    if (auto _actor{state.get(getCurrentReceiver())}) {
+      const auto &balance{_actor.value().balance};
+      if (balance.is_zero()
+          || transfer(getCurrentReceiver(), address, balance)) {
+        if (state.remove(getCurrentReceiver())) {
+          return outcome::success();
+        }
+      }
+    } else {
+      if (_actor.error() == HamtError::kNotFound) {
+        return VMExitCode::kSysErrIllegalActor;
+      }
+    }
+    return VMExitCode::kSysErrIllegalActor;
   }
 
-  fc::outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
+  outcome::result<void> RuntimeImpl::transfer(const Address &debitFrom,
+                                              const Address &creditTo,
+                                              const TokenAmount &amount) {
+    if (amount < 0) {
+      return VMExitCode::kSysErrForbidden;
+    }
+
+    auto &state{*execution()->state_tree};
+
+    OUTCOME_TRY(from_id, state.lookupId(debitFrom));
+    OUTCOME_TRY(to_id, state.lookupId(creditTo));
+    if (from_id != to_id) {
+      OUTCOME_TRY(from_actor, state.get(from_id));
+      OUTCOME_TRY(to_actor, state.get(to_id));
+
+      if (from_actor.balance < amount) {
+        return VMExitCode::kSysErrInsufficientFunds;
+      }
+
+      from_actor.balance -= amount;
+      to_actor.balance += amount;
+      OUTCOME_TRY(state.set(from_id, from_actor));
+      OUTCOME_TRY(state.set(to_id, to_actor));
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
       const {
     if (auto circulating{execution_->env->circulating}) {
       return circulating->circulating(execution_->state_tree,
@@ -129,37 +169,29 @@ namespace fc::vm::runtime {
     return 0;
   }
 
-  std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() {
+  std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() const {
     return execution_->charging_ipld;
   }
 
-  std::reference_wrapper<const UnsignedMessage> RuntimeImpl::getMessage() {
+  std::reference_wrapper<const UnsignedMessage> RuntimeImpl::getMessage()
+      const {
     return message_;
   }
 
-  outcome::result<CID> RuntimeImpl::getCurrentActorState() {
+  outcome::result<CID> RuntimeImpl::getCurrentActorState() const {
     OUTCOME_TRY(actor, execution_->state_tree->get(getCurrentReceiver()));
     return actor.head;
   }
 
-  fc::outcome::result<void> RuntimeImpl::commit(const CID &new_state) {
+  outcome::result<void> RuntimeImpl::commit(const CID &new_state) {
     OUTCOME_TRY(actor, execution_->state_tree->get(getCurrentReceiver()));
     actor.head = new_state;
     OUTCOME_TRY(execution_->state_tree->set(getCurrentReceiver(), actor));
     return outcome::success();
   }
 
-  fc::outcome::result<void> RuntimeImpl::transfer(Actor &from,
-                                                  Actor &to,
-                                                  const BigInt &amount) {
-    if (from.balance < amount) return RuntimeError::kNotEnoughFunds;
-    from.balance = from.balance - amount;
-    to.balance = to.balance + amount;
-    return outcome::success();
-  }
-
-  fc::outcome::result<Address> RuntimeImpl::resolveAddress(
-      const Address &address) {
+  outcome::result<Address> RuntimeImpl::resolveAddress(
+      const Address &address) const {
     return execution_->state_tree->lookupId(address);
   }
 
@@ -167,16 +199,42 @@ namespace fc::vm::runtime {
       const Signature &signature,
       const Address &address,
       gsl::span<const uint8_t> data) {
-    OUTCOME_TRY(
-        chargeGas(execution_->env->pricelist.onVerifySignature(data.size())));
+    OUTCOME_TRY(chargeGas(
+        execution_->env->pricelist.onVerifySignature(signature.isBls())));
     OUTCOME_TRY(
         account,
-        execution_->state_tree
-            ->state<actor::builtin::v0::account::AccountActorState>(address));
+        resolveKey(
+            *execution_->state_tree, execution_->charging_ipld, address));
     return storage::keystore::InMemoryKeyStore{
         std::make_shared<crypto::bls::BlsProviderImpl>(),
         std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}
-        .verify(account.address, data, signature);
+        .verify(account, data, signature);
+  }
+
+  outcome::result<bool> RuntimeImpl::verifySignatureBytes(
+      const Buffer &signature_bytes,
+      const Address &address,
+      gsl::span<const uint8_t> data) {
+    const auto bls = Signature::isBls(signature_bytes);
+    if (bls.has_error()) {
+      return false;
+    }
+    OUTCOME_TRY(
+        chargeGas(execution_->env->pricelist.onVerifySignature(bls.value())));
+    OUTCOME_TRY(
+        account,
+        resolveKey(
+            *execution_->state_tree, execution_->charging_ipld, address));
+
+    const auto signature = Signature::fromBytes(signature_bytes);
+    if (!signature) {
+      return false;
+    }
+
+    return storage::keystore::InMemoryKeyStore{
+        std::make_shared<crypto::bls::BlsProviderImpl>(),
+        std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}
+        .verify(account, data, signature.value());
   }
 
   outcome::result<bool> RuntimeImpl::verifyPoSt(
@@ -187,20 +245,45 @@ namespace fc::vm::runtime {
     return proofs::Proofs::verifyWindowPoSt(preprocess_info);
   }
 
-  fc::outcome::result<fc::CID> RuntimeImpl::computeUnsealedSectorCid(
+  outcome::result<BatchSealsOut> RuntimeImpl::batchVerifySeals(
+      const BatchSealsIn &batch) {
+    BatchSealsOut res;
+    for (auto &[miner, seals] : batch) {
+      std::vector<SectorNumber> successful;
+      successful.reserve(seals.size());
+      std::set<SectorNumber> seen;
+      for (auto &seal : seals) {
+        auto verified{proofs::Proofs::verifySeal(seal)};
+        if (verified && verified.value()
+            && seen.insert(seal.sector.sector).second) {
+          successful.push_back(seal.sector.sector);
+        }
+      }
+      res.emplace_back(miner, std::move(successful));
+    }
+    return res;
+  }
+
+  outcome::result<CID> RuntimeImpl::computeUnsealedSectorCid(
       RegisteredSealProof type, const std::vector<PieceInfo> &pieces) {
     OUTCOME_TRY(
         chargeGas(execution_->env->pricelist.onComputeUnsealedSectorCid()));
     return proofs::Proofs::generateUnsealedCID(type, pieces, true);
   }
 
-  fc::outcome::result<ConsensusFault> RuntimeImpl::verifyConsensusFault(
+  outcome::result<ConsensusFault> RuntimeImpl::verifyConsensusFault(
       const Buffer &block1, const Buffer &block2, const Buffer &extra) {
     // TODO(a.chernyshov): implement
     return RuntimeError::kUnknown;
   }
 
-  fc::outcome::result<void> RuntimeImpl::chargeGas(GasAmount amount) {
+  outcome::result<Blake2b256Hash> RuntimeImpl::hashBlake2b(
+      gsl::span<const uint8_t> data) {
+    OUTCOME_TRY(chargeGas(execution_->env->pricelist.onHashing()));
+    return crypto::blake2b::blake2b_256(data);
+  }
+
+  outcome::result<void> RuntimeImpl::chargeGas(GasAmount amount) {
     return execution_->chargeGas(amount);
   }
 }  // namespace fc::vm::runtime

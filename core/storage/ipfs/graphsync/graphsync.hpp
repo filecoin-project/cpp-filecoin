@@ -20,6 +20,7 @@
 #include "storage/ipfs/graphsync/extension.hpp"
 
 namespace fc::storage::ipfs::graphsync {
+  using libp2p::peer::PeerId;
 
   /// Subscription to any data stream, borrowed from libp2p
   using libp2p::protocol::Subscription;

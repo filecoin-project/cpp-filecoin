@@ -78,7 +78,7 @@ namespace fc::mining {
                                            !faults)}) {
               auto &sectors{_sectors.value()};
               if (!sectors.empty()) {
-                params.declarations.push_back(
+                params.faults.push_back(
                     {declare_index, _part, std::move(sectors)});
               }
             } else {
@@ -86,7 +86,7 @@ namespace fc::mining {
             }
             ++_part;
           }
-          if (!params.declarations.empty()) {
+          if (!params.faults.empty()) {
             std::ignore = pushMessage(
                 faults ? DeclareFaults::Number : DeclareFaultsRecovered::Number,
                 codec::cbor::encode(params).value());

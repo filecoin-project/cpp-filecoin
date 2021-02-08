@@ -19,7 +19,7 @@
 size_t std::hash<fc::data_transfer::PeerDtId>::operator()(
     const fc::data_transfer::PeerDtId &pdtid) const {
   size_t seed{};
-  boost::hash_combine(seed, std::hash<PeerId>{}(pdtid.peer));
+  boost::hash_combine(seed, std::hash<libp2p::peer::PeerId>{}(pdtid.peer));
   boost::hash_combine(seed, pdtid.id);
   return seed;
 }
