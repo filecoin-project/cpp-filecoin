@@ -145,7 +145,7 @@ namespace fc::sync {
       bool proceed = false;
 
       // maybe this head already interpreted
-      auto maybe_result = interpreter_->getCached(head);
+      auto maybe_result = interpreter_->getCached(head->key);
       if (!maybe_result) {
         // bad tipset or internal error
         event.result = maybe_result.error();
@@ -230,7 +230,7 @@ namespace fc::sync {
         if (e) {
           return false;
         }
-        auto res = interpreter_->getCached(tipset);
+        auto res = interpreter_->getCached(tipset->key);
         if (!res) {
           log()->error("something wrong at height {}, {}",
                        tipset->height(),
@@ -316,8 +316,7 @@ namespace fc::sync {
         log()->error("detected chain inconsistency at height {}",
                      tipset->height());
 
-        // TODO (artem) maybe mark tipset as bad ???
-        interpreter_->removeCached(tipset);
+        interpreter_->markBad(tipset->key);
 
         current_result_ =
             vm::interpreter::InterpreterError::kChainInconsistency;

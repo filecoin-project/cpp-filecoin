@@ -186,7 +186,7 @@ namespace fc::vm::interpreter {
 
   outcome::result<Result> CachedInterpreter::interpret(
       const IpldPtr &ipld, const TipsetCPtr &tipset) const {
-    auto key{getKey(tipset)};
+    auto key{getKey(tipset->key)};
     OUTCOME_TRY(saved_result, getSavedResult(*store, key));
     if (saved_result) {
       return saved_result.value();
@@ -202,16 +202,17 @@ namespace fc::vm::interpreter {
     return result;
   }
 
-  Buffer CachedInterpreter::getKey(const TipsetCPtr &tipset) {
-    return Buffer{tipset->key.hash()};
+  Buffer CachedInterpreter::getKey(const TipsetKey &tsk) {
+    return Buffer{tsk.hash()};
   }
 
   outcome::result<boost::optional<Result>> CachedInterpreter::getCached(
-      const TipsetCPtr &tipset) {
-    return getSavedResult(*store, CachedInterpreter::getKey(tipset));
+      const TipsetKey &tsk) {
+    return getSavedResult(*store, CachedInterpreter::getKey(tsk));
   }
 
-  void CachedInterpreter::removeCached(const TipsetCPtr &tipset) {
-    store->remove(getKey(tipset)).assume_value();
+  void CachedInterpreter::markBad(const TipsetKey &tsk) const {
+    static auto raw{codec::cbor::encode(boost::optional<Result>{}).value()};
+    store->put(getKey(tsk), raw).assume_value();
   }
 }  // namespace fc::vm::interpreter

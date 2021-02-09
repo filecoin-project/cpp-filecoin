@@ -127,7 +127,7 @@ namespace fc::sync {
       // tipset is stored
       info.tipset = std::move(res.value());
 
-      auto interpret_res = interpreter_->getCached(info.tipset);
+      auto interpret_res = interpreter_->getCached(info.tipset->key);
       if (!interpret_res) {
         // bad tipset or storage error
         info.is_bad = true;

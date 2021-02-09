@@ -352,7 +352,6 @@ namespace fc {
                      "Cannot interpret at height {}, {}\n",
                      tipset->height(),
                      res.error().message());
-          interpreter->removeCached(tipset);
           return __LINE__;
         }
 
@@ -372,7 +371,7 @@ namespace fc {
             unexpected = true;
           }
           if (unexpected) {
-            interpreter->removeCached(tipset);
+            interpreter->markBad(tipset->key);
           }
         }
 
