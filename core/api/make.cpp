@@ -178,7 +178,7 @@ namespace fc::api {
       if (tipset_key.cids().empty()) {
         tipset = chain_store->heaviestTipset();
       } else {
-        OUTCOME_TRYA(tipset, chain_store->loadTipset(tipset_key));
+        OUTCOME_TRYA(tipset, ts_load->load(tipset_key));
       }
       TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
       if (interpret) {
@@ -240,7 +240,7 @@ namespace fc::api {
           return messages;
         }},
         .ChainGetGenesis = {[=]() -> outcome::result<TipsetCPtr> {
-          return chain_store->loadTipsetByHeight(0);
+          return ts_load->loadw(ts_main->chain.begin()->second);
         }},
         .ChainGetNode = {[=](auto &path) -> outcome::result<IpldObject> {
           std::vector<std::string> parts;
@@ -308,7 +308,7 @@ namespace fc::api {
               ts_branch, tag, epoch, entropy);
         }},
         .ChainGetTipSet = {[=](auto &tipset_key) {
-          return chain_store->loadTipset(tipset_key);
+          return ts_load->load(tipset_key);
         }},
         .ChainGetTipSetByHeight = {[=](auto height, auto &tipset_key)
                                        -> outcome::result<TipsetCPtr> {
@@ -333,7 +333,7 @@ namespace fc::api {
         .ChainSetHead = {},
         .ChainTipSetWeight = {[=](auto &tipset_key)
                                   -> outcome::result<TipsetWeight> {
-          OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
+          OUTCOME_TRY(tipset, ts_load->load(tipset_key));
           return weight_calculator->calculateWeight(*tipset);
         }},
         // TODO(turuslan): FIL-165 implement method
@@ -762,7 +762,7 @@ namespace fc::api {
                                             auto &&confidence,
                                             auto &&cb) {
           msg_waiter->wait(cid, [=, MOVE(cb)](auto &result) {
-            OUTCOME_CB(auto ts, chain_store->loadTipset(result.second));
+            OUTCOME_CB(auto ts, ts_load->load(result.second));
             cb(MsgWait{cid, result.first, ts->key, (ChainEpoch)ts->height()});
           });
         }),
