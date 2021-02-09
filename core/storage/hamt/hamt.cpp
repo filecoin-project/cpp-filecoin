@@ -240,7 +240,8 @@ namespace fc::storage::hamt {
     return visit(root_, visitor);
   }
 
-  outcome::result<void> Hamt::visit(Node::Item &item, const Visitor &visitor) const {
+  outcome::result<void> Hamt::visit(Node::Item &item,
+                                    const Visitor &visitor) const {
     OUTCOME_TRY(loadItem(item));
     if (which<Node::Ptr>(item)) {
       for (auto &item2 : boost::get<Node::Ptr>(item)->items) {

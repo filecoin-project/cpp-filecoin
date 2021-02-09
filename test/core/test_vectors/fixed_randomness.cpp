@@ -7,7 +7,7 @@
 
 namespace fc::vm::runtime {
   outcome::result<Randomness> FixedRandomness::getRandomnessFromTickets(
-      const TipsetCPtr &tipset,
+      const TsBranchPtr &ts_branch,
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
@@ -16,7 +16,7 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<Randomness> FixedRandomness::getRandomnessFromBeacon(
-      const TipsetCPtr &tipset,
+      const TsBranchPtr &ts_branch,
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {

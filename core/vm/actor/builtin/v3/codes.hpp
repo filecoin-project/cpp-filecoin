@@ -10,7 +10,7 @@
 
 namespace fc::vm::actor::builtin::v3 {
 
-// TODO: check values when Lotus implements v3 codes
+  // TODO: check values when Lotus implements v3 codes
 
   const static CodeId kAccountCodeCid =
       CodeId(makeRawIdentityCid("fil/3/account"));

@@ -31,7 +31,7 @@ namespace fc::blocksync {
              std::vector<CID> blocks,
              Cb cb);
 
-  void serve(std::shared_ptr<Host> host, IpldPtr ipld);
+  void serve(std::shared_ptr<Host> host, TsLoadPtr ts_load, IpldPtr ipld);
 }  // namespace fc::blocksync
 
 OUTCOME_HPP_DECLARE_ERROR(fc::blocksync, Error)

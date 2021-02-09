@@ -162,12 +162,16 @@ namespace fc {
     }
     return {};
   }
+
+  CID asCborBlakeCid(const Hash256 &hash) {
+    return CID(CID::Version::V1,
+               CID::Multicodec::DAG_CBOR,
+               Multihash::create(HashType::blake2b_256, hash).value());
+  }
 }  // namespace fc
 
 namespace fc::common {
   outcome::result<CID> getCidOf(gsl::span<const uint8_t> bytes) {
-    auto hash_raw = crypto::blake2b::blake2b_256(bytes);
-    OUTCOME_TRY(hash, Multihash::create(HashType::blake2b_256, hash_raw));
-    return CID(CID::Version::V1, CID::Multicodec::DAG_CBOR, hash);
+    return asCborBlakeCid(crypto::blake2b::blake2b_256(bytes));
   }
 }  // namespace fc::common

@@ -20,4 +20,4 @@ namespace fc::vm::actor::builtin::v3::storage_power {
   using CurrentTotalPower = v2::storage_power::CurrentTotalPower;
 
   extern const ActorExports exports;
-}  // namespace fc::vm::actor::builtin::v2::storage_power
+}  // namespace fc::vm::actor::builtin::v3::storage_power

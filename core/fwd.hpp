@@ -97,9 +97,19 @@ namespace fc {
 
     namespace tipset {
       struct Tipset;
+      struct TsLoad;
+
       using TipsetCPtr = std::shared_ptr<const Tipset>;
-    }  // namespace tipset
-  }    // namespace primitives
+      using TsLoadPtr = std::shared_ptr<TsLoad>;
+      using TsWeak = std::weak_ptr<const Tipset>;
+
+      namespace chain {
+        struct TsBranch;
+
+        using TsBranchPtr = std::shared_ptr<TsBranch>;
+      }  // namespace chain
+    }    // namespace tipset
+  }      // namespace primitives
 
   namespace pubsub {
     struct PubSub;
@@ -147,6 +157,10 @@ namespace fc {
 }  // namespace fc
 
 namespace fc {
+  using primitives::tipset::TsLoadPtr;
+  using primitives::tipset::chain::TsBranch;
+  using primitives::tipset::chain::TsBranchPtr;
+
   using Ipld = storage::ipfs::IpfsDatastore;
   using IpldPtr = std::shared_ptr<Ipld>;
 }  // namespace fc

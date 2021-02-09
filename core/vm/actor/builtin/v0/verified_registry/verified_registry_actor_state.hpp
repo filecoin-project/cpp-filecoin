@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "primitives/types.hpp"
 #include "adt/address_key.hpp"
 #include "adt/map.hpp"
 #include "codec/cbor/streams_annotation.hpp"
+#include "primitives/types.hpp"
 
 namespace fc::vm::actor::builtin::v0::verified_registry {
   using primitives::StoragePower;

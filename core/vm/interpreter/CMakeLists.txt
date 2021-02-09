@@ -10,4 +10,5 @@ target_link_libraries(interpreter
     amt
     message
     runtime
+    weight_calculator
     )

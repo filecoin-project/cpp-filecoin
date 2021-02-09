@@ -47,7 +47,8 @@ namespace fc::vm::state {
     return std::move(actor);
   }
 
-  outcome::result<Address> StateTreeImpl::lookupId(const Address &address) const {
+  outcome::result<Address> StateTreeImpl::lookupId(
+      const Address &address) const {
     if (address.isId()) {
       return address;
     }

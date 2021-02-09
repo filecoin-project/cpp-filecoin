@@ -187,7 +187,8 @@ namespace fc::vm::runtime {
      * Get Message for actor invocation
      * @return message invoking current execution
      */
-    virtual std::reference_wrapper<const UnsignedMessage> getMessage() const = 0;
+    virtual std::reference_wrapper<const UnsignedMessage> getMessage()
+        const = 0;
 
     /// Try to charge gas or throw if there is not enoght gas
     virtual outcome::result<void> chargeGas(GasAmount amount) = 0;

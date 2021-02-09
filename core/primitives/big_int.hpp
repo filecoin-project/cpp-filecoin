@@ -32,7 +32,7 @@ namespace fc::primitives {
 namespace fc {
   using primitives::bigdiv;
   using primitives::bigmod;
-}
+}  // namespace fc
 
 namespace boost::multiprecision {
   CBOR_ENCODE(cpp_int, big_int) {

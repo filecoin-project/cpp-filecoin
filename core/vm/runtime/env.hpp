@@ -58,6 +58,7 @@ namespace fc::vm::runtime {
     Env(std::shared_ptr<Invoker> invoker,
         std::shared_ptr<RuntimeRandomness> randomness,
         IpldPtr ipld,
+        TsBranchPtr ts_branch,
         TipsetCPtr tipset);
 
     struct Apply {
@@ -76,15 +77,15 @@ namespace fc::vm::runtime {
     std::shared_ptr<Invoker> invoker;
     std::shared_ptr<RuntimeRandomness> randomness;
     uint64_t epoch;  // mutable epoch for cron()
+    TsBranchPtr ts_branch;
     TipsetCPtr tipset;
     Pricelist pricelist;
     std::shared_ptr<Circulating> circulating;
   };
 
   struct Execution : std::enable_shared_from_this<Execution> {
-    static std::shared_ptr<Execution> make(
-        const std::shared_ptr<Env> &env,
-        const UnsignedMessage &message);
+    static std::shared_ptr<Execution> make(const std::shared_ptr<Env> &env,
+                                           const UnsignedMessage &message);
 
     outcome::result<void> chargeGas(GasAmount amount);
 

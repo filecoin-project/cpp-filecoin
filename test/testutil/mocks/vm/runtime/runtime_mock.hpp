@@ -68,7 +68,8 @@ namespace fc::vm::runtime {
 
     MOCK_CONST_METHOD0(getIpfsDatastore, std::shared_ptr<IpfsDatastore>());
 
-    MOCK_CONST_METHOD0(getMessage, std::reference_wrapper<const UnsignedMessage>());
+    MOCK_CONST_METHOD0(getMessage,
+                       std::reference_wrapper<const UnsignedMessage>());
 
     MOCK_METHOD1(chargeGas, outcome::result<void>(GasAmount amount));
 

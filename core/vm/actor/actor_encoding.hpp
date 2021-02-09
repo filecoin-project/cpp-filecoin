@@ -26,8 +26,7 @@ namespace fc::vm::actor {
 
   /// Decode actor params, raises appropriate error
   template <typename T>
-  outcome::result<T> decodeActorParams(MethodParams params_bytes,
-                                       bool v7) {
+  outcome::result<T> decodeActorParams(MethodParams params_bytes, bool v7) {
     if constexpr (std::is_same_v<T, None>) {
       return T{};
     }

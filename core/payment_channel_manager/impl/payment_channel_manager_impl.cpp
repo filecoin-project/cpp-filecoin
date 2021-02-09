@@ -14,6 +14,7 @@
 
 namespace fc::payment_channel_manager {
   using api::AddChannelInfo;
+  using crypto::signature::Signature;
   using fc::vm::message::cid;
   using vm::VMExitCode;
   using vm::actor::kInitAddress;
@@ -24,7 +25,6 @@ namespace fc::payment_channel_manager {
   using vm::message::kDefaultGasPrice;
   using vm::message::UnsignedMessage;
   using vm::state::StateTreeImpl;
-  using crypto::signature::Signature;
   using InitActorExec = vm::actor::builtin::v0::init::Exec;
   using PaymentChannelConstruct =
       vm::actor::builtin::v0::payment_channel::Construct;
@@ -112,7 +112,8 @@ namespace fc::payment_channel_manager {
 
     // get redeemed
     TokenAmount redeemed{0};
-    OUTCOME_TRY(lane_lookup, payment_channel_actor_state.lanes.tryGet(voucher.lane));
+    OUTCOME_TRY(lane_lookup,
+                payment_channel_actor_state.lanes.tryGet(voucher.lane));
     if (lane_lookup) {
       redeemed = lane_lookup->redeem;
     }
@@ -143,7 +144,8 @@ namespace fc::payment_channel_manager {
 
     // check lane nonce if any lane exists
     auto voucher_send_amount = voucher.amount;
-    OUTCOME_TRY(lane_lookup, payment_channel_actor_state.lanes.tryGet(voucher.lane));
+    OUTCOME_TRY(lane_lookup,
+                payment_channel_actor_state.lanes.tryGet(voucher.lane));
     if (lane_lookup) {
       if (lane_lookup->nonce >= voucher.nonce) {
         return PaymentChannelManagerError::kWrongNonce;

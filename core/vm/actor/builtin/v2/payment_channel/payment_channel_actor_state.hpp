@@ -10,7 +10,8 @@
 namespace fc::vm::actor::builtin::v2::payment_channel {
 
   /**
-   * Payment channel actor state v2 is identical to Payment channel actor state v0
+   * Payment channel actor state v2 is identical to Payment channel actor state
+   * v0
    */
 
   using LaneState = v0::payment_channel::LaneState;

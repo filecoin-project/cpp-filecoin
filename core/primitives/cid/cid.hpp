@@ -83,6 +83,7 @@ namespace fc {
   bool isCbor(const CID &cid);
   boost::optional<Hash256> asBlake(const CID &cid);
   boost::optional<BytesIn> asIdentity(const CID &cid);
+  CID asCborBlakeCid(const Hash256 &hash);
 }  // namespace fc
 
 namespace std {

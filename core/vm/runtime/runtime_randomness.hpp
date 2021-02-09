@@ -15,7 +15,6 @@ namespace fc::vm::runtime {
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using primitives::ChainEpoch;
-  using primitives::tipset::TipsetCPtr;
 
   /**
    * Interface of randomness provider for runtime.
@@ -28,13 +27,13 @@ namespace fc::vm::runtime {
      * @brief Returns a (pseudo)random string for the given epoch and tag.
      */
     virtual outcome::result<Randomness> getRandomnessFromTickets(
-        const TipsetCPtr &tipset,
+        const TsBranchPtr &ts_branch,
         DomainSeparationTag tag,
         ChainEpoch epoch,
         gsl::span<const uint8_t> seed) const = 0;
 
     virtual outcome::result<Randomness> getRandomnessFromBeacon(
-        const TipsetCPtr &tipset,
+        const TsBranchPtr &ts_branch,
         DomainSeparationTag tag,
         ChainEpoch epoch,
         gsl::span<const uint8_t> seed) const = 0;

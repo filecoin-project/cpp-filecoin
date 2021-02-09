@@ -44,7 +44,7 @@ namespace fc::vm::runtime {
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
     return execution_->env->randomness->getRandomnessFromTickets(
-        execution_->env->tipset, tag, epoch, seed);
+        execution_->env->ts_branch, tag, epoch, seed);
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomnessFromBeacon(
@@ -52,7 +52,7 @@ namespace fc::vm::runtime {
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
     return execution_->env->randomness->getRandomnessFromBeacon(
-        execution_->env->tipset, tag, epoch, seed);
+        execution_->env->ts_branch, tag, epoch, seed);
   }
 
   Address RuntimeImpl::getImmediateCaller() const {
@@ -173,7 +173,8 @@ namespace fc::vm::runtime {
     return execution_->charging_ipld;
   }
 
-  std::reference_wrapper<const UnsignedMessage> RuntimeImpl::getMessage() const {
+  std::reference_wrapper<const UnsignedMessage> RuntimeImpl::getMessage()
+      const {
     return message_;
   }
 
