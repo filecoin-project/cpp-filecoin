@@ -8,6 +8,7 @@
 #include <libp2p/host/host.hpp>
 
 #include "common/logger.hpp"
+#include "primitives/tipset/load.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::sync::blocksync {
@@ -74,7 +75,10 @@ namespace fc::sync::blocksync {
       std::map<CID, size_t> visited{};
     };
 
-    void getChain(IpldPtr ipld, const Request &request, Response &response) {
+    void getChain(TsLoadPtr ts_load,
+                  IpldPtr ipld,
+                  const Request &request,
+                  Response &response) {
       bool partial = false;
       size_t depth = request.depth;
       if (request.depth > kBlockSyncMaxRequestLength) {
@@ -83,7 +87,7 @@ namespace fc::sync::blocksync {
       }
 
       try {
-        OUTCOME_EXCEPT(ts, Tipset::load(*ipld, request.block_cids));
+        OUTCOME_EXCEPT(ts, ts_load->load(request.block_cids));
         while (true) {
           TipsetBundle packed;
           if (request.options & MESSAGES_ONLY) {
@@ -114,7 +118,7 @@ namespace fc::sync::blocksync {
             partial = false;
             break;
           }
-          OUTCOME_EXCEPT(parent, ts->loadParent(*ipld));
+          OUTCOME_EXCEPT(parent, ts_load->load(ts->getParents()));
           ts = std::move(parent);
         }
       } catch (const std::system_error &e) {
@@ -132,12 +136,13 @@ namespace fc::sync::blocksync {
 
   }  // namespace
 
-  BlocksyncServer::BlocksyncServer(
-      std::shared_ptr<libp2p::Host> host,
-      std::shared_ptr<storage::ipfs::IpfsDatastore> ipld)
-      : host_(std::move(host)), ipld_(std::move(ipld)) {
+  BlocksyncServer::BlocksyncServer(std::shared_ptr<libp2p::Host> host,
+                                   TsLoadPtr ts_load,
+                                   IpldPtr ipld)
+      : host_(std::move(host)),
+        ts_load_(std::move(ts_load)),
+        ipld_(std::move(ipld)) {
     assert(host_);
-    assert(ipld_);
   }
 
   void BlocksyncServer::start() {
@@ -199,7 +204,7 @@ namespace fc::sync::blocksync {
         log()->debug("request from {}: depth={}",
                      peerStr(stream->stream()),
                      request.value().depth);
-        getChain(ipld_, request.value(), response);
+        getChain(ts_load_, ipld_, request.value(), response);
       } else {
         response.status = ResponseStatus::BAD_REQUEST;
         response.message = "bad request";

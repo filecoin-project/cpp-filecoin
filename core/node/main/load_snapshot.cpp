@@ -5,16 +5,19 @@
 
 #include <boost/filesystem.hpp>
 
+#include "blockchain/impl/weight_calculator_impl.hpp"
 #include "common/file.hpp"
 #include "node/index_db_backend.hpp"
 #include "node/main/builder.hpp"
 #include "primitives/block/block.hpp"
+#include "primitives/tipset/chain.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/car/car.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/prefix.hpp"
 #include "vm/actor/cgo/actors.hpp"
+#include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/dvm/dvm.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
@@ -41,6 +44,8 @@ namespace fc {
       std::vector<CID> roots;
       primitives::tipset::TipsetCPtr root_tipset;
       std::shared_ptr<sync::IndexDbBackend> indexdb;
+      TsBranchPtr ts_main;
+      TsLoadPtr ts_load;
     };
 
     static Ctx c;
@@ -119,6 +124,9 @@ namespace fc {
 
       c.leveldb = std::move(leveldb_res.value());
       c.ipld = node::makeIpld(c.leveldb);
+
+      c.ts_load = std::make_shared<primitives::tipset::TsLoadCache>(
+          std::make_shared<primitives::tipset::TsLoadIpld>(c.ipld), 8 << 10);
       return 0;
     }
 
@@ -284,7 +292,7 @@ namespace fc {
         info.key = tipset->key;
         info.height = tipset->height();
         if (info.height > 0) {
-          auto parent_res = tipset->loadParent(*c.ipld);
+          auto parent_res = c.ts_load->load(tipset->getParents());
           if (!parent_res) {
             fmt::print(stderr,
                        "Cannot load parent at height {}, {}\n",
@@ -333,7 +341,11 @@ namespace fc {
 
       auto interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
           std::make_shared<vm::interpreter::InterpreterImpl>(
-              std::make_shared<vm::runtime::TipsetRandomness>(c.ipld),
+              std::make_shared<vm::actor::InvokerImpl>(),
+              c.ts_load,
+              std::make_shared<blockchain::weight::WeightCalculatorImpl>(
+                  c.ipld),
+              std::make_shared<vm::runtime::TipsetRandomness>(c.ts_load),
               vm::Circulating::make(c.ipld, c.genesis_cid.value()).value()),
           std::make_shared<storage::MapPrefix>(node::kCachedInterpreterPrefix,
                                                c.leveldb));
@@ -346,7 +358,7 @@ namespace fc {
       while (tipset->height() > 0) {
         spdlog::info("Interpreting height {}", tipset->height());
 
-        auto res = interpreter->interpret(c.ipld, tipset);
+        auto res = interpreter->interpret(c.ts_main, c.ipld, tipset);
         if (!res) {
           fmt::print(stderr,
                      "Cannot interpret at height {}, {}\n",
@@ -381,7 +393,7 @@ namespace fc {
 
         ++tipsets_interpreted;
 
-        auto parent_res = tipset->loadParent(*c.ipld);
+        auto parent_res = c.ts_load->load(tipset->getParents());
         if (!parent_res) {
           fmt::print(stderr,
                      "Cannot load parent at height {}, {}\n",

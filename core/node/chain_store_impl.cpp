@@ -79,20 +79,6 @@ namespace fc::sync {
     return outcome::success();
   }
 
-  outcome::result<TipsetCPtr> ChainStoreImpl::loadTipset(
-      const TipsetHash &hash) {
-    return chain_db_->getTipsetByHash(hash);
-  }
-
-  outcome::result<TipsetCPtr> ChainStoreImpl::loadTipset(const TipsetKey &key) {
-    return chain_db_->getTipsetByKey(key);
-  }
-
-  outcome::result<TipsetCPtr> ChainStoreImpl::loadTipsetByHeight(
-      uint64_t height) {
-    return chain_db_->getTipsetByHeight(height);
-  }
-
   TipsetCPtr ChainStoreImpl::heaviestTipset() const {
     assert(head_);
     return head_;
@@ -127,7 +113,7 @@ namespace fc::sync {
       // tipset is stored
       info.tipset = std::move(res.value());
 
-      auto interpret_res = interpreter_->getCached(info.tipset->key);
+      auto interpret_res = interpreter_->tryGetCached(info.tipset->key);
       if (!interpret_res) {
         // bad tipset or storage error
         info.is_bad = true;

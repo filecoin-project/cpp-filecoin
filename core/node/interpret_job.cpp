@@ -11,6 +11,7 @@
 #include "chain_db.hpp"
 #include "common/logger.hpp"
 #include "events.hpp"
+#include "primitives/tipset/chain.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
 namespace fc::sync {
@@ -32,11 +33,13 @@ namespace fc::sync {
         std::shared_ptr<CachedInterpreter> interpreter,
         std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
         std::shared_ptr<ChainDb> chain_db,
+        const TsBranches &ts_branches,
         IpldPtr ipld,
         std::shared_ptr<blockchain::weight::WeightCalculator> weight_calculator)
         : interpreter_(std::move(interpreter)),
           scheduler_(std::move(scheduler)),
           chain_db_(std::move(chain_db)),
+          ts_branches_(ts_branches),
           ipld_(std::move(ipld)),
           weight_calculator_(std::move(weight_calculator)),
           current_result_(kDefaultCurrentResult) {
@@ -145,7 +148,7 @@ namespace fc::sync {
       bool proceed = false;
 
       // maybe this head already interpreted
-      auto maybe_result = interpreter_->getCached(head->key);
+      auto maybe_result = interpreter_->tryGetCached(head->key);
       if (!maybe_result) {
         // bad tipset or internal error
         event.result = maybe_result.error();
@@ -163,7 +166,8 @@ namespace fc::sync {
       } else if (head->height() == 0) {
         // genesis is not yet interpreted i.e. we are running node 1st time
         bool genesis_ok = false;
-        event.result = interpreter_->interpret(ipld_, head);
+        auto ts_branch{find(ts_branches_, head).first};
+        event.result = interpreter_->interpret(ts_branch, ipld_, head);
         if (event.result) {
           auto weight = weight_calculator_->calculateWeight(*head);
           if (!weight) {
@@ -230,7 +234,7 @@ namespace fc::sync {
         if (e) {
           return false;
         }
-        auto res = interpreter_->getCached(tipset->key);
+        auto res = interpreter_->tryGetCached(tipset->key);
         if (!res) {
           log()->error("something wrong at height {}, {}",
                        tipset->height(),
@@ -329,7 +333,9 @@ namespace fc::sync {
 
       log()->info("doing {}/{}", currentHeight(), targetHeight());
 
-      current_result_ = interpreter_->interpret(ipld_, current_head_);
+      auto ts_branch{find(ts_branches_, current_head_).first};
+      current_result_ =
+          interpreter_->interpret(ts_branch, ipld_, current_head_);
 
       if (!current_result_) {
         log()->error("stopped at height {}, {}",
@@ -409,6 +415,7 @@ namespace fc::sync {
     std::shared_ptr<CachedInterpreter> interpreter_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<ChainDb> chain_db_;
+    const TsBranches &ts_branches_;
     IpldPtr ipld_;
     std::shared_ptr<blockchain::weight::WeightCalculator> weight_calculator_;
     std::shared_ptr<events::Events> events_;
@@ -433,11 +440,13 @@ namespace fc::sync {
       std::shared_ptr<CachedInterpreter> interpreter,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
       std::shared_ptr<ChainDb> chain_db,
+      const TsBranches &ts_branches,
       IpldPtr ipld,
       std::shared_ptr<blockchain::weight::WeightCalculator> weight_calculator) {
     return std::make_shared<InterpretJobImpl>(std::move(interpreter),
                                               std::move(scheduler),
                                               std::move(chain_db),
+                                              ts_branches,
                                               std::move(ipld),
                                               std::move(weight_calculator)
 

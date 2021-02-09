@@ -65,7 +65,6 @@ namespace fc::vm::interpreter {
         const TipsetKey &tsk) const override;
 
     static Buffer getKey(const TipsetKey &tsk);
-    outcome::result<boost::optional<Result>> getCached(const TipsetKey &tsk);
     void markBad(const TipsetKey &tsk) const;
 
    private:

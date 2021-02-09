@@ -20,7 +20,8 @@ namespace fc::sync::blocksync {
   class BlocksyncServer : public std::enable_shared_from_this<BlocksyncServer> {
    public:
     BlocksyncServer(std::shared_ptr<libp2p::Host> host,
-                    std::shared_ptr<storage::ipfs::IpfsDatastore> ipld);
+                    TsLoadPtr ts_load,
+                    IpldPtr ipld);
 
     void start();
 
@@ -32,7 +33,8 @@ namespace fc::sync::blocksync {
     void onRequest(StreamPtr stream, outcome::result<Request> request);
 
     std::shared_ptr<libp2p::Host> host_;
-    std::shared_ptr<storage::ipfs::IpfsDatastore> ipld_;
+    TsLoadPtr ts_load_;
+    IpldPtr ipld_;
     bool started_ = false;
   };
 

@@ -35,12 +35,6 @@ namespace fc::sync {
 
     outcome::result<void> addBlock(const BlockHeader &block) override;
 
-    outcome::result<TipsetCPtr> loadTipset(const TipsetHash &hash) override;
-
-    outcome::result<TipsetCPtr> loadTipset(const TipsetKey &key) override;
-
-    outcome::result<TipsetCPtr> loadTipsetByHeight(uint64_t height) override;
-
     TipsetCPtr heaviestTipset() const override;
 
     connection_t subscribeHeadChanges(

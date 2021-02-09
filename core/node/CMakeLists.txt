@@ -27,6 +27,7 @@ add_library(sync
 
 target_link_libraries(sync
     cbor_stream
+    interpreter
     p2p::libp2p_sqlite
     p2p::p2p_gossip
     p2p::p2p_identify

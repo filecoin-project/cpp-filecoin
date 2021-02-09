@@ -152,7 +152,7 @@ namespace fc::storage {
     map->put(key, std::move(value)).assume_value();
   }
 
-  MapBatched::MapBatched(BufferBatch &batch) : batch{batch} {}
+  MapBatched::MapBatched(BufferBatch &batch) : batch_{batch} {}
 
   outcome::result<Buffer> MapBatched::get(const Buffer &key) const {
     throw "not implemented";
@@ -164,18 +164,22 @@ namespace fc::storage {
 
   outcome::result<void> MapBatched::put(const Buffer &key,
                                         const Buffer &value) {
-    return batch.put(key, value);
+    return batch_.put(key, value);
   }
 
   outcome::result<void> MapBatched::put(const Buffer &key, Buffer &&value) {
-    return batch.put(key, std::move(value));
+    return batch_.put(key, std::move(value));
   }
 
   outcome::result<void> MapBatched::remove(const Buffer &key) {
-    return batch.remove(key);
+    return batch_.remove(key);
   }
 
   std::unique_ptr<BufferMapCursor> MapBatched::cursor() {
+    throw "not implemented";
+  }
+
+  std::unique_ptr<BufferBatch> MapBatched::batch() {
     throw "not implemented";
   }
 }  // namespace fc::storage

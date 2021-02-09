@@ -5,6 +5,8 @@
 
 #include "chain_db.hpp"
 
+#include "primitives/tipset/load.hpp"
+
 namespace fc::sync {
 
   namespace {
@@ -26,14 +28,13 @@ namespace fc::sync {
       : state_error_(Error::CHAIN_DB_NOT_INITIALIZED),
         tipset_cache_(createTipsetCache(kCacheSize)) {}
 
-  outcome::result<void> ChainDb::init(IpfsStoragePtr ipld,
+  outcome::result<void> ChainDb::init(TsLoadPtr ts_load,
                                       std::shared_ptr<IndexDb> index_db,
                                       const boost::optional<CID> &genesis_cid,
                                       bool creating_new_db) {
-    assert(ipld);
     assert(index_db);
 
-    ipld_ = std::move(ipld);
+    ts_load_ = std::move(ts_load);
     index_db_ = std::move(index_db);
 
     try {
@@ -48,7 +49,7 @@ namespace fc::sync {
         if (!branches_map.empty()) {
           throw std::system_error(Error::CHAIN_DB_DATA_INTEGRITY_ERROR);
         }
-        OUTCOME_EXCEPT(gt, Tipset::load(*ipld_, {genesis_cid.value()}));
+        OUTCOME_EXCEPT(gt, ts_load_->load(TipsetKey{{*genesis_cid}}));
 
         assert(gt->key.cids()[0] == genesis_cid.value());
 
@@ -66,7 +67,7 @@ namespace fc::sync {
             throw std::system_error(Error::CHAIN_DB_GENESIS_MISMATCH);
           }
         }
-        OUTCOME_TRYA(genesis_tipset_, Tipset::load(*ipld_, info->key.cids()));
+        OUTCOME_TRYA(genesis_tipset_, ts_load_->load(info->key));
       }
 
     } catch (const std::system_error &e) {
@@ -157,7 +158,7 @@ namespace fc::sync {
       return tipset;
     }
     OUTCOME_TRY(info, index_db_->get(hash, true));
-    return loadTipsetFromIpld(info->key);
+    return ts_load_->load(info->key);
   }
 
   outcome::result<void> ChainDb::setCurrentHead(const TipsetHash &head) {
@@ -183,7 +184,7 @@ namespace fc::sync {
     if (tipset) {
       return tipset;
     }
-    return loadTipsetFromIpld(key);
+    return ts_load_->load(key);
   }
 
   outcome::result<TipsetCPtr> ChainDb::findHighestCommonAncestor(
@@ -201,13 +202,6 @@ namespace fc::sync {
       return b;
     }
     return getTipsetByHash(branch_info->top);
-  }
-
-  outcome::result<TipsetCPtr> ChainDb::loadTipsetFromIpld(
-      const TipsetKey &key) {
-    OUTCOME_TRY(tipset, Tipset::load(*ipld_, key.cids()));
-    tipset_cache_.put(tipset, false);
-    return std::move(tipset);
   }
 
   outcome::result<void> ChainDb::walkForward(const TipsetCPtr &from,

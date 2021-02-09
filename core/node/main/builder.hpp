@@ -28,9 +28,12 @@ namespace fc::node {
   struct NodeObjects {
     // storage objects
     std::shared_ptr<storage::ipfs::IpfsDatastore> ipld;
+    TsLoadPtr ts_load;
     std::shared_ptr<storage::PersistentBufferMap> kv_store;
     std::shared_ptr<sync::IndexDb> index_db;
     std::shared_ptr<sync::ChainDb> chain_db;
+    TsBranches ts_branches;
+    TsBranchPtr ts_main;
 
     // clocks
     std::shared_ptr<clock::UTCClock> utc_clock;
@@ -75,7 +78,7 @@ namespace fc::node {
   static constexpr auto kPeerKeyPath = "peer_ed25519.key";
   static constexpr auto kCachedInterpreterPrefix = "vm/";
 
-  IpldPtr makeIpld(std::shared_ptr<storage::BufferMap> map);
+  IpldPtr makeIpld(std::shared_ptr<storage::PersistentBufferMap> map);
 }  // namespace fc::node
 
 OUTCOME_HPP_DECLARE_ERROR(fc::node, Error);

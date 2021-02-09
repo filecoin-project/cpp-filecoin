@@ -43,6 +43,7 @@
 #include "node/say_hello.hpp"
 #include "node/sync_job.hpp"
 #include "power/impl/power_table_impl.hpp"
+#include "primitives/tipset/chain.hpp"
 #include "storage/car/car.hpp"
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -54,6 +55,7 @@
 #include "storage/leveldb/prefix.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
+#include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -214,6 +216,8 @@ namespace fc::node {
       OUTCOME_TRYA(index_db_backend,
                    sync::IndexDbBackend::create(config.join(kIndexDbFileName)));
     }
+    o.ts_load = std::make_shared<primitives::tipset::TsLoadCache>(
+        std::make_shared<primitives::tipset::TsLoadIpld>(o.ipld), 8 << 10);
 
     if (creating_new_db) {
       log()->debug("Loading initial car file...");
@@ -225,7 +229,7 @@ namespace fc::node {
     o.index_db = std::make_shared<sync::IndexDb>(std::move(index_db_backend));
     o.chain_db = std::make_shared<sync::ChainDb>();
     OUTCOME_TRY(o.chain_db->init(
-        o.ipld, o.index_db, config.genesis_cid, creating_new_db));
+        o.ts_load, o.index_db, config.genesis_cid, creating_new_db));
 
     if (!config.genesis_cid) {
       config.genesis_cid = o.chain_db->genesisCID();
@@ -313,15 +317,18 @@ namespace fc::node {
 
     log()->debug("Creating chain loaders...");
 
-    o.blocksync_server =
-        std::make_shared<fc::sync::blocksync::BlocksyncServer>(o.host, o.ipld);
+    o.blocksync_server = std::make_shared<fc::sync::blocksync::BlocksyncServer>(
+        o.host, o.ts_load, o.ipld);
 
     OUTCOME_TRY(circulating,
                 vm::Circulating::make(o.ipld, config.genesis_cid.value()));
 
     o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
         std::make_shared<vm::interpreter::InterpreterImpl>(
-            std::make_shared<vm::runtime::TipsetRandomness>(o.ipld),
+            std::make_shared<vm::actor::InvokerImpl>(),
+            o.ts_load,
+            std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld),
+            std::make_shared<vm::runtime::TipsetRandomness>(o.ts_load),
             std::move(circulating)),
         std::make_shared<storage::MapPrefix>(kCachedInterpreterPrefix,
                                              o.kv_store));
@@ -332,8 +339,12 @@ namespace fc::node {
     auto weight_calculator =
         std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
 
-    o.interpret_job = sync::InterpretJob::create(
-        o.vm_interpreter, o.scheduler, o.chain_db, o.ipld, weight_calculator);
+    o.interpret_job = sync::InterpretJob::create(o.vm_interpreter,
+                                                 o.scheduler,
+                                                 o.chain_db,
+                                                 o.ts_branches,
+                                                 o.ipld,
+                                                 weight_calculator);
 
     log()->debug("Creating chain store...");
 
@@ -364,11 +375,11 @@ namespace fc::node {
 
     log()->debug("Creating API...");
 
-    auto mpool =
-        storage::mpool::Mpool::create(o.ipld, o.vm_interpreter, o.chain_store);
+    auto mpool = storage::mpool::Mpool::create(
+        o.ts_load, o.ts_main, o.ipld, o.vm_interpreter, o.chain_store);
 
-    auto msg_waiter =
-        storage::blockchain::MsgWaiter::create(o.ipld, o.chain_store);
+    auto msg_waiter = storage::blockchain::MsgWaiter::create(
+        o.ts_load, o.ipld, o.chain_store);
 
     auto key_store = std::make_shared<storage::keystore::InMemoryKeyStore>(
         bls_provider, secp_provider);
@@ -398,6 +409,8 @@ namespace fc::node {
 
     o.api = std::make_shared<api::Api>(api::makeImpl(o.chain_store,
                                                      weight_calculator,
+                                                     o.ts_load,
+                                                     o.ts_main,
                                                      o.ipld,
                                                      mpool,
                                                      o.vm_interpreter,
@@ -410,7 +423,7 @@ namespace fc::node {
     return o;
   }
 
-  IpldPtr makeIpld(std::shared_ptr<storage::BufferMap> map) {
+  IpldPtr makeIpld(std::shared_ptr<storage::PersistentBufferMap> map) {
     return std::make_shared<storage::ipfs::LeveldbDatastore>(
         std::make_shared<storage::MapPrefix>("ipld", map));
   }

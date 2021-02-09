@@ -23,6 +23,7 @@ namespace fc::sync {
         std::shared_ptr<CachedInterpreter> interpreter,
         std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
         std::shared_ptr<ChainDb> chain_db,
+        const TsBranches &ts_branches,
         IpldPtr ipld,
         std::shared_ptr<blockchain::weight::WeightCalculator>
             weight_calculator);

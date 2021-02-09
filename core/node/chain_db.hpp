@@ -37,7 +37,7 @@ namespace fc::sync {
 
     /// Initializes contained objects to consistent state, returns error if
     /// cannot init
-    outcome::result<void> init(IpfsStoragePtr ipld,
+    outcome::result<void> init(TsLoadPtr ts_load,
                                std::shared_ptr<IndexDb> index_db,
                                const boost::optional<CID> &genesis_cid,
                                bool creating_new_db);
@@ -108,14 +108,10 @@ namespace fc::sync {
                                            const TipsetKey &parent);
 
    private:
-    /// Attempts to load tipset from ipld storage
-    outcome::result<TipsetCPtr> loadTipsetFromIpld(const TipsetKey &key);
-
     /// Non-null error if state is inconsistent
     std::error_code state_error_;
 
-    /// Local CID->value storage
-    IpfsStoragePtr ipld_;
+    TsLoadPtr ts_load_;
 
     /// Index DB
     std::shared_ptr<IndexDb> index_db_;
