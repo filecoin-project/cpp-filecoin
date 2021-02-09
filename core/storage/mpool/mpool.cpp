@@ -6,6 +6,7 @@
 #include "storage/mpool/mpool.hpp"
 #include "common/logger.hpp"
 #include "const.hpp"
+#include "primitives/tipset/chain.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
@@ -18,10 +19,14 @@ namespace fc::storage::mpool {
   using vm::runtime::TipsetRandomness;
 
   std::shared_ptr<Mpool> Mpool::create(
+      TsLoadPtr ts_load,
+      TsBranchPtr ts_main,
       IpldPtr ipld,
       std::shared_ptr<Interpreter> interpreter,
       std::shared_ptr<ChainStore> chain_store) {
     auto mpool{std::make_shared<Mpool>()};
+    mpool->ts_load = std::move(ts_load);
+    mpool->ts_main = std::move(ts_main);
     mpool->ipld = std::move(ipld);
     mpool->interpreter = std::move(interpreter);
     mpool->head_sub = chain_store->subscribeHeadChanges([=](auto &change) {
@@ -46,7 +51,7 @@ namespace fc::storage::mpool {
   }
 
   outcome::result<uint64_t> Mpool::nonce(const Address &from) const {
-    OUTCOME_TRY(interpeted, interpreter->interpret(ipld, head));
+    OUTCOME_TRY(interpeted, interpreter->getCached(head->key));
     OUTCOME_TRY(
         actor, vm::state::StateTreeImpl{ipld, interpeted.state_root}.get(from));
     auto by_from_it{by_from.find(from)};
@@ -63,10 +68,10 @@ namespace fc::storage::mpool {
       msg.gas_limit = kBlockGasLimit;
       msg.gas_fee_cap = kMinimumBaseFee + 1;
       msg.gas_premium = 1;
-      OUTCOME_TRY(interpeted, interpreter->interpret(ipld, head));
-      auto randomness = std::make_shared<TipsetRandomness>(ipld);
-      auto env{
-          std::make_shared<vm::runtime::Env>(nullptr, randomness, ipld, head)};
+      OUTCOME_TRY(interpeted, interpreter->getCached(head->key));
+      auto randomness = std::make_shared<TipsetRandomness>(ts_load);
+      auto env{std::make_shared<vm::runtime::Env>(
+          nullptr, randomness, ipld, ts_main, head)};
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
           ipld, interpeted.state_root);
       ++env->epoch;
@@ -156,7 +161,7 @@ namespace fc::storage::mpool {
       if (apply) {
         head = change.value;
       } else {
-        OUTCOME_TRYA(head, change.value->loadParent(*ipld));
+        OUTCOME_TRYA(head, ts_load->load(change.value->getParents()));
       }
     }
     return outcome::success();

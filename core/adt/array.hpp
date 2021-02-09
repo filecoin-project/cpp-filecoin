@@ -11,15 +11,24 @@
 namespace fc::adt {
   using storage::amt::Amt;
 
+  constexpr uint64_t kArrayDefaultBits{0};
+
   /// Strongly typed amt wrapper
-  template <typename Value>
+  template <typename Value, uint64_t _bits = kArrayDefaultBits>
   struct Array {
     using Key = uint64_t;
     using Visitor = std::function<outcome::result<void>(Key, const Value &)>;
 
-    Array(IpldPtr ipld = nullptr) : amt{ipld} {}
+    static inline storage::amt::OptBitWidth bits() {
+      if (_bits == kArrayDefaultBits) {
+        return {};
+      }
+      return _bits;
+    }
 
-    Array(const CID &root, IpldPtr ipld = nullptr) : amt{ipld, root} {}
+    Array(IpldPtr ipld = nullptr) : amt{ipld, bits()} {}
+
+    Array(const CID &root, IpldPtr ipld = nullptr) : amt{ipld, root, bits()} {}
 
     outcome::result<boost::optional<Value>> tryGet(Key key) const {
       auto maybe = get(key);
@@ -80,21 +89,23 @@ namespace fc::adt {
   /// Cbor encode array
   template <class Stream,
             typename Value,
+            uint64_t bits,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Array<Value> &array) {
+  Stream &operator<<(Stream &&s, const Array<Value, bits> &array) {
     return s << array.amt.cid();
   }
 
   /// Cbor decode array
   template <class Stream,
             typename Value,
+            uint64_t bits,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Array<Value> &array) {
+  Stream &operator>>(Stream &&s, Array<Value, bits> &array) {
     CID root;
     s >> root;
-    array.amt = {nullptr, root};
+    array.amt = {nullptr, root, array.bits()};
     return s;
   }
 }  // namespace fc::adt

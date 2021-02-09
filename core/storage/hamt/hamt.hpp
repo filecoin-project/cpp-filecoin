@@ -164,11 +164,14 @@ namespace fc::storage::hamt {
      */
     outcome::result<CID> flush();
 
-    /// Get root CID if flushed, throw otherwise
+    /** Get root CID if flushed, throw otherwise */
     const CID &cid() const;
 
     /** Apply visitor for key value pairs */
     outcome::result<void> visit(const Visitor &visitor) const;
+
+    /** Loads root item */
+    outcome::result<void> loadRoot();
 
     /// Store CBOR encoded value by key
     template <typename T>
@@ -186,7 +189,8 @@ namespace fc::storage::hamt {
 
     /// Get CBOR decoded value by key
     template <typename T>
-    outcome::result<boost::optional<T>> tryGetCbor(const std::string &key) const {
+    outcome::result<boost::optional<T>> tryGetCbor(
+        const std::string &key) const {
       auto maybe = get(key);
       if (!maybe) {
         if (maybe.error() != HamtError::kNotFound) {

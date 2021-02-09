@@ -153,6 +153,9 @@ namespace fc::primitives::tipset {
     auto sz = ticket_hashes_.size();
     for (; idx != sz; ++idx) {
       const auto &h = ticket_hashes_[idx];
+      if (ticket_hash < h) {
+        break;
+      }
       if (ticket_hash == h) {
         if (cid.toBytes().value() >= cids_[idx].toBytes().value()) {
           continue;
@@ -160,10 +163,6 @@ namespace fc::primitives::tipset {
           break;
         }
       }
-      if (ticket_hash > h) {
-        continue;
-      }
-      break;
     }
 
     if (idx == sz) {
@@ -198,7 +197,7 @@ namespace fc::primitives::tipset {
     ticket_hashes_.clear();
   }
 
-  uint64_t TipsetCreator::height() const {
+  Height TipsetCreator::height() const {
     return blks_.empty() ? 0 : blks_[0].height;
   }
 
@@ -244,42 +243,6 @@ namespace fc::primitives::tipset {
     return creator.getTipset(true);
   }
 
-  outcome::result<TipsetCPtr> Tipset::load(Ipld &ipld,
-                                           const std::vector<CID> &cids) {
-    std::vector<BlockHeader> blocks;
-    blocks.reserve(cids.size());
-    for (auto &cid : cids) {
-      OUTCOME_TRY(block, ipld.getCbor<BlockHeader>(cid));
-      blocks.emplace_back(std::move(block));
-    }
-    return create(std::move(blocks));
-  }
-
-  outcome::result<TipsetCPtr> Tipset::loadParent(Ipld &ipld) const {
-    assert(!blks.empty());
-    return load(ipld, blks[0].parents);
-  }
-
-  outcome::result<BeaconEntry> Tipset::latestBeacon(Ipld &ipld) const {
-    auto ts{this};
-    TipsetCPtr parent;
-
-    // TODO: magic number from lotus
-    for (auto i{0}; i < 20; ++i) {
-      auto beacons{ts->blks[0].beacon_entries};
-      if (!beacons.empty()) {
-        return *beacons.rbegin();
-      }
-
-      if (ts->height() == 0) {
-        break;
-      }
-      OUTCOME_TRYA(parent, ts->loadParent(ipld));
-      ts = parent.get();
-    }
-    return TipsetError::kNoBeacons;
-  }
-
   outcome::result<void> Tipset::visitMessages(
       MessageVisitor message_visitor,
       const MessageVisitor::Visitor &visitor) const {
@@ -310,36 +273,6 @@ namespace fc::primitives::tipset {
                             base
                                 + bigdiv(bigdiv(base * delta, kBlockGasTarget),
                                          kBaseFeeMaxChangeDenom));
-  }
-
-  outcome::result<Randomness> Tipset::beaconRandomness(
-      Ipld &ipld,
-      DomainSeparationTag tag,
-      ChainEpoch round,
-      gsl::span<const uint8_t> entropy) const {
-    auto ts{this};
-    TipsetCPtr parent;
-    while (ts->height() != 0 && ts->epoch() > round) {
-      OUTCOME_TRYA(parent, ts->loadParent(ipld));
-      ts = parent.get();
-    }
-    OUTCOME_TRY(beacon, ts->latestBeacon(ipld));
-    return crypto::randomness::drawRandomness(beacon.data, tag, round, entropy);
-  }
-
-  outcome::result<Randomness> Tipset::ticketRandomness(
-      Ipld &ipld,
-      DomainSeparationTag tag,
-      ChainEpoch round,
-      gsl::span<const uint8_t> entropy) const {
-    auto ts{this};
-    TipsetCPtr parent;
-    while (ts->height() != 0 && ts->epoch() > round) {
-      OUTCOME_TRYA(parent, ts->loadParent(ipld));
-      ts = parent.get();
-    }
-    return crypto::randomness::drawRandomness(
-        ts->getMinTicketBlock().ticket->bytes, tag, round, entropy);
   }
 
   TipsetKey Tipset::getParents() const {
@@ -377,7 +310,7 @@ namespace fc::primitives::tipset {
     return blks[0].parent_message_receipts;
   }
 
-  uint64_t Tipset::height() const {
+  Height Tipset::height() const {
     return blks.empty() ? 0 : blks[0].height;
   }
 
@@ -403,34 +336,3 @@ namespace fc::primitives::tipset {
     return !(l == r);
   }
 }  // namespace fc::primitives::tipset
-
-namespace fc::codec::cbor {
-
-  namespace {
-    struct TipsetDecodeCandidate {
-      std::vector<CID> cids;
-      std::vector<fc::primitives::block::BlockHeader> blks;
-      uint64_t height;
-    };
-
-    CBOR_TUPLE(TipsetDecodeCandidate, cids, blks, height);
-
-  }  // namespace
-
-  template <>
-  outcome::result<fc::primitives::tipset::TipsetCPtr>
-  decode<fc::primitives::tipset::TipsetCPtr>(gsl::span<const uint8_t> input) {
-    using namespace fc::primitives::tipset;
-
-    OUTCOME_TRY(decoded, decode<TipsetDecodeCandidate>(input));
-    if (decoded.blks.empty() && decoded.height != 0) {
-      return TipsetError::kMismatchingHeights;
-    }
-    OUTCOME_TRY(tipset, Tipset::create(std::move(decoded.blks)));
-    if (tipset->key.cids() != decoded.cids) {
-      return TipsetError::kBlockOrderFailure;
-    }
-    return std::move(tipset);
-  }
-
-}  // namespace fc::codec::cbor

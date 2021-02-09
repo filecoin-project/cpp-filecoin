@@ -12,6 +12,7 @@
 #include <thread>
 
 #include <curl/curl.h>
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -121,7 +122,8 @@ namespace fc::proofs {
     errors_ = false;
     std::vector<std::thread> threads;
     for (const auto &param_file : param_files) {
-      if (param_file.sector_size != storage_size) {
+      if (param_file.sector_size != storage_size
+          && boost::ends_with(param_file.name, ".params")) {
         continue;
       }
 

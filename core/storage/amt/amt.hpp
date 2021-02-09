@@ -21,14 +21,16 @@ namespace fc::storage::amt {
     kDecodeWrong,
     kIndexTooBig,
     kNotFound,
+    kRootBitsWrong,
+    kNodeBitsWrong,
   };
 }  // namespace fc::storage::amt
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::amt, AmtError);
 
 namespace fc::storage::amt {
-  constexpr size_t kWidth = 8;
-  constexpr auto kMaxIndex = 1ull << 48;
+  constexpr size_t kDefaultBits = 3;
+  constexpr uint64_t kMaxIndex = UINT64_MAX - 1;
 
   using common::which;
   using Value = ipfs::IpfsDatastore::Value;
@@ -41,93 +43,29 @@ namespace fc::storage::amt {
     using Items = boost::variant<Values, Links>;
 
     Items items;
+    size_t bits_bytes{};
   };
+  CBOR2_DECODE_ENCODE(Node)
 
-  CBOR_ENCODE(Node, node) {
-    std::vector<uint8_t> bits;
-    auto l_links = s.list();
-    auto l_values = s.list();
-    bits.resize(1);
-    visit_in_place(
-        node.items,
-        [&bits, &l_links](const Node::Links &links) {
-          for (auto &item : links) {
-            bits[0] |= 1 << item.first;
-            if (which<Node::Ptr>(item.second)) {
-              outcome::raise(AmtError::kExpectedCID);
-            }
-            l_links << boost::get<CID>(item.second);
-          }
-        },
-        [&bits, &l_values](const Node::Values &values) {
-          for (auto &item : values) {
-            bits[0] |= 1 << item.first;
-            l_values << l_values.wrap(item.second, 1);
-          }
-        });
-    return s << (s.list() << bits << l_links << l_values);
-  }
-
-  CBOR_DECODE(Node, node) {
-    auto l_node = s.list();
-    std::vector<uint8_t> bits;
-    l_node >> bits;
-    if (bits.size() != 1) {
-      outcome::raise(AmtError::kDecodeWrong);
-    }
-    std::vector<size_t> indices;
-    for (auto i = 0u; i < 8; ++i) {
-      if (bits[0] & (1 << i)) {
-        indices.push_back(i);
-      }
-    }
-
-    auto n_links = l_node.listLength();
-    auto l_links = l_node.list();
-    auto n_values = l_node.listLength();
-    auto l_values = l_node.list();
-    if (n_links != 0 && n_values != 0) {
-      outcome::raise(AmtError::kDecodeWrong);
-    }
-    if (n_links != 0) {
-      if (n_links != indices.size()) {
-        outcome::raise(AmtError::kDecodeWrong);
-      }
-      Node::Links links;
-      for (auto i = 0u; i < n_links; ++i) {
-        CID link;
-        l_links >> link;
-        links[indices[i]] = std::move(link);
-      }
-      node.items = links;
-    } else {
-      if (n_values != indices.size()) {
-        outcome::raise(AmtError::kDecodeWrong);
-      }
-      Node::Values values;
-      for (auto i = 0u; i < n_values; ++i) {
-        values[indices[i]] = Value{l_values.raw()};
-      }
-      node.items = values;
-    }
-    return s;
-  }
-
+  using OptBitWidth = boost::optional<uint64_t>;
   struct Root {
+    OptBitWidth bits;
     uint64_t height{};
     uint64_t count{};
     Node node;
   };
-
-  CBOR_TUPLE(Root, height, count, node)
+  CBOR2_DECODE_ENCODE(Root)
 
   class Amt {
    public:
     using Visitor =
         std::function<outcome::result<void>(uint64_t, const Value &)>;
 
-    explicit Amt(std::shared_ptr<ipfs::IpfsDatastore> store);
-    Amt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
+    explicit Amt(std::shared_ptr<ipfs::IpfsDatastore> store,
+                 OptBitWidth bit_width = {});
+    Amt(std::shared_ptr<ipfs::IpfsDatastore> store,
+        const CID &root,
+        OptBitWidth bit_width = {});
     /// Get values quantity
     outcome::result<uint64_t> count() const;
     /// Set value by key, does not write to storage
@@ -144,7 +82,8 @@ namespace fc::storage::amt {
     const CID &cid() const;
     /// Apply visitor for key value pairs
     outcome::result<void> visit(const Visitor &visitor) const;
-
+    /// Loads root item
+    outcome::result<void> loadRoot() const;
     /// Store CBOR encoded value by key
     template <typename T>
     outcome::result<void> setCbor(uint64_t key, const T &value) {
@@ -172,12 +111,16 @@ namespace fc::storage::amt {
                                 uint64_t height,
                                 uint64_t offset,
                                 const Visitor &visitor) const;
-    outcome::result<void> loadRoot() const;
     outcome::result<Node::Ptr> loadLink(Node &node,
                                         uint64_t index,
                                         bool create) const;
+    uint64_t bits() const;
+    uint64_t bitsBytes() const;
+    uint64_t maskAt(uint64_t height) const;
+    uint64_t maxAt(uint64_t height) const;
 
     mutable boost::variant<CID, Root> root_;
+    OptBitWidth bits_;
   };
 }  // namespace fc::storage::amt
 

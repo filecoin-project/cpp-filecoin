@@ -16,9 +16,12 @@ target_link_libraries(runtime
     bls_provider
     cgo_actors
     dvm
+    ipfs_datastore_error
+    ipld_traverser
     keystore
     message
     proofs
     secp256k1_provider
     tipset
+    signature
     )

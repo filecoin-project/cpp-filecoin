@@ -118,15 +118,21 @@ namespace fc::primitives::sector {
         return Errors::kInvalidPoStProof;
     }
   }
+
+  outcome::result<size_t> getSealProofWindowPoStPartitionSectors(
+      RegisteredSealProof proof) {
+    OUTCOME_TRY(wpost_proof_type, getRegisteredWindowPoStProof(proof));
+    return getWindowPoStPartitionSectors(wpost_proof_type);
+  }
 };  // namespace fc::primitives::sector
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::sector, Errors, e) {
   using fc::primitives::sector::Errors;
   switch (e) {
     case (Errors::kInvalidSealProof):
-      return "Sector: unsupported mapping to Seal-specific RegisteredProof";
+      return "Sector: unsupported mapping to Seal-specific RegisteredSealProof";
     case (Errors::kInvalidPoStProof):
-      return "Sector: unsupported mapping to PoSt-specific RegisteredProof";
+      return "Sector: unsupported mapping to PoSt-specific RegisteredSealProof";
     case (Errors::kInvalidProofType):
       return "Sector: unsupported proof type";
     default:

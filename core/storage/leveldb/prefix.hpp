@@ -9,7 +9,7 @@
 #include "storage/buffer_map.hpp"
 
 namespace fc::storage {
-  using MapPtr = std::shared_ptr<BufferMap>;
+  using MapPtr = std::shared_ptr<PersistentBufferMap>;
 
   struct MapPrefix : PersistentBufferMap {
     struct Cursor : BufferMapCursor {
@@ -28,6 +28,21 @@ namespace fc::storage {
       std::unique_ptr<BufferMapCursor> cursor;
     };
 
+    struct Batch : BufferBatch {
+      Batch(MapPrefix &map, std::unique_ptr<BufferBatch> batch);
+
+      outcome::result<void> put(const Buffer &key,
+                                const Buffer &value) override;
+      outcome::result<void> put(const Buffer &key, Buffer &&value) override;
+      outcome::result<void> remove(const Buffer &key) override;
+
+      outcome::result<void> commit() override;
+      void clear() override;
+
+      MapPrefix &map;
+      std::unique_ptr<BufferBatch> batch;
+    };
+
     MapPrefix(BytesIn prefix, MapPtr map);
     MapPrefix(std::string_view prefix, MapPtr map);
     Buffer _key(BytesIn key) const;
@@ -40,7 +55,7 @@ namespace fc::storage {
     std::unique_ptr<BufferBatch> batch() override;
     std::unique_ptr<BufferMapCursor> cursor() override;
 
-    Buffer prefix;
+    Buffer prefix, _next;
     MapPtr map;
   };
 

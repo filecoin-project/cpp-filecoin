@@ -10,34 +10,37 @@
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v0/cron/cron_actor.hpp"
-
-using fc::vm::actor::builtin::v0::kCronCodeCid;
-using fc::vm::message::UnsignedMessage;
-using fc::vm::runtime::MockRuntime;
+#include "vm/runtime/env.hpp"
 
 namespace fc::vm::actor {
+  using builtin::v0::kCronCodeCid;
+  using message::UnsignedMessage;
+  using primitives::ChainEpoch;
+  using runtime::Env;
+  using runtime::Execution;
+  using runtime::MockRuntime;
 
   /// invoker returns error or invokes actor method
   TEST(InvokerTest, InvokeCron) {
     auto message =
         UnsignedMessage{kInitAddress, kInitAddress, {}, {}, {}, {}, {}, {}};
+    auto runtime = std::make_shared<MockRuntime>();
     InvokerImpl invoker;
-    MockRuntime runtime;
 
-    EXPECT_OUTCOME_ERROR(
-        VMExitCode::kSysErrorIllegalActor,
-        invoker.invoke(
-            {CodeId{kEmptyObjectCid}}, runtime, MethodNumber{0}, {}));
-    EXPECT_OUTCOME_ERROR(
-        VMExitCode::kSysErrInvalidMethod,
-        invoker.invoke({kCronCodeCid}, runtime, MethodNumber{1000}, {}));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(kInitAddress));
-    EXPECT_OUTCOME_ERROR(
-        VMExitCode::kSysErrForbidden,
-        invoker.invoke(
-            {kCronCodeCid}, runtime, builtin::v0::cron::EpochTick::Number, {}));
+    // Error on wrong actor
+    EXPECT_CALL(*runtime, getMessage()).WillOnce(testing::Return(message));
+    EXPECT_CALL(*runtime, getCurrentEpoch())
+        .WillOnce(testing::Return(ChainEpoch{}));
+    EXPECT_CALL(*runtime, getNetworkVersion())
+        .WillOnce(testing::Return(NetworkVersion{}));
+    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrIllegalActor,
+                         invoker.invoke({CodeId{kEmptyObjectCid}}, runtime));
+
+    // Error on wrong method
+    message.method = MethodNumber{1000};
+    EXPECT_CALL(*runtime, getMessage()).WillOnce(testing::Return(message));
+    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrInvalidMethod,
+                         invoker.invoke({kCronCodeCid}, runtime));
   }
 
   /// decodeActorParams returns error or decoded params
@@ -46,7 +49,7 @@ namespace fc::vm::actor {
 
     // 80 is cbor empty list, not int
     EXPECT_OUTCOME_ERROR(
-        VMExitCode::kErrSerializationPre7,
+        VMExitCode::kOldErrActorFailure,
         decodeActorParams<int>(MethodParams{"80"_unhex}, false));
     EXPECT_OUTCOME_ERROR(
         VMExitCode::kErrSerialization,
@@ -59,7 +62,7 @@ namespace fc::vm::actor {
   TEST(InvokerTest, EncodeActorParams) {
     using fc::vm::actor::encodeActorParams;
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrInvalidParameters,
+    EXPECT_OUTCOME_ERROR(VMExitCode::kErrSerialization,
                          encodeActorParams(fc::CID()));
     EXPECT_OUTCOME_EQ(encodeActorParams(3), MethodParams{"03"_unhex});
   }

@@ -13,8 +13,9 @@
 namespace fc::vm::interpreter {
   class InterpreterMock : public Interpreter {
    public:
-    MOCK_CONST_METHOD2(interpret,
-                       outcome::result<Result>(const IpldPtr &store,
+    MOCK_CONST_METHOD3(interpret,
+                       outcome::result<Result>(TsBranchPtr,
+                                               const IpldPtr &store,
                                                const TipsetCPtr &tipset));
   };
 }  // namespace fc::vm::interpreter

@@ -7,6 +7,7 @@
 
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "primitives/tipset/load.hpp"
 
 namespace fc::blockchain::production {
   using crypto::signature::BlsSignature;
@@ -16,11 +17,11 @@ namespace fc::blockchain::production {
   using vm::message::UnsignedMessage;
 
   outcome::result<BlockWithMessages> generate(Interpreter &interpreter,
+                                              TsLoadPtr ts_load,
                                               std::shared_ptr<Ipld> ipld,
                                               BlockTemplate t) {
-    OUTCOME_TRY(parent_tipset,
-                primitives::tipset::Tipset::load(*ipld, t.parents));
-    OUTCOME_TRY(vm_result, interpreter.interpret(ipld, parent_tipset));
+    OUTCOME_TRY(parent_tipset, ts_load->load(t.parents));
+    OUTCOME_TRY(vm_result, interpreter.getCached(parent_tipset->key));
     BlockWithMessages b;
     MsgMeta msg_meta;
     ipld->load(msg_meta);

@@ -12,7 +12,7 @@ namespace fc::vm::runtime {
       : test_vector_randomness_{std::move(replaying_values)} {}
 
   outcome::result<Randomness> ReplayingRandomness::getRandomnessFromTickets(
-      const TipsetCPtr &tipset,
+      const TsBranchPtr &ts_branch,
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
@@ -21,11 +21,12 @@ namespace fc::vm::runtime {
     if (maybe_randomness) {
       return maybe_randomness.value();
     }
-    return FixedRandomness::getRandomnessFromTickets(tipset, tag, epoch, seed);
+    return FixedRandomness::getRandomnessFromTickets(
+        ts_branch, tag, epoch, seed);
   }
 
   outcome::result<Randomness> ReplayingRandomness::getRandomnessFromBeacon(
-      const TipsetCPtr &tipset,
+      const TsBranchPtr &ts_branch,
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
@@ -34,7 +35,8 @@ namespace fc::vm::runtime {
     if (maybe_randomness) {
       return maybe_randomness.value();
     }
-    return FixedRandomness::getRandomnessFromBeacon(tipset, tag, epoch, seed);
+    return FixedRandomness::getRandomnessFromBeacon(
+        ts_branch, tag, epoch, seed);
   }
 
   boost::optional<Randomness> ReplayingRandomness::getReplayingRandomness(

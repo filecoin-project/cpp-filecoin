@@ -224,6 +224,10 @@ namespace fc::storage::hamt {
     return outcome::success();
   }
 
+  outcome::result<void> Hamt::loadRoot() {
+    return loadItem(root_);
+  }
+
   outcome::result<void> Hamt::loadItem(Node::Item &item) const {
     if (which<CID>(item)) {
       OUTCOME_TRY(child, ipld->getCbor<Node>(boost::get<CID>(item)));
@@ -236,7 +240,8 @@ namespace fc::storage::hamt {
     return visit(root_, visitor);
   }
 
-  outcome::result<void> Hamt::visit(Node::Item &item, const Visitor &visitor) const {
+  outcome::result<void> Hamt::visit(Node::Item &item,
+                                    const Visitor &visitor) const {
     OUTCOME_TRY(loadItem(item));
     if (which<Node::Ptr>(item)) {
       for (auto &item2 : boost::get<Node::Ptr>(item)->items) {

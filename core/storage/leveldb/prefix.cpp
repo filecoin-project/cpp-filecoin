@@ -17,11 +17,33 @@ namespace fc::storage {
   }
 
   void MapPrefix::Cursor::seek(const Buffer &key) {
-    cursor->seek(Buffer{map.prefix}.put(key));
+    cursor->seek(map._key(key));
   }
 
   void MapPrefix::Cursor::seekToLast() {
-    throw "not implemented";
+    auto &key{map._next};
+    if (key.size() < map.prefix.size()) {
+      key = map.prefix;
+      // increment
+      auto carry{1u};
+      auto &_key{key.toVector()};
+      for (auto it{_key.rbegin()}; carry && it != _key.rend(); ++it) {
+        carry += *it;
+        *it = carry & 0xFF;
+        carry >>= 8;
+      }
+      if (carry) {
+        key = Buffer(map.prefix.size(), 0xFF);
+      }
+    }
+    if (!key.empty()) {
+      cursor->seek(key);
+      if (cursor->isValid()) {
+        cursor->prev();
+        return;
+      }
+    }
+    cursor->seekToLast();
   }
 
   bool MapPrefix::Cursor::isValid() const {
@@ -49,6 +71,31 @@ namespace fc::storage {
 
   Buffer MapPrefix::Cursor::value() const {
     return cursor->value();
+  }
+
+  MapPrefix::Batch::Batch(MapPrefix &map, std::unique_ptr<BufferBatch> batch)
+      : map{map}, batch{std::move(batch)} {}
+
+  outcome::result<void> MapPrefix::Batch::put(const Buffer &key,
+                                              const Buffer &value) {
+    return batch->put(map._key(key), value);
+  }
+
+  outcome::result<void> MapPrefix::Batch::put(const Buffer &key,
+                                              Buffer &&value) {
+    return batch->put(map._key(key), std::move(value));
+  }
+
+  outcome::result<void> MapPrefix::Batch::remove(const Buffer &key) {
+    return batch->remove(map._key(key));
+  }
+
+  outcome::result<void> MapPrefix::Batch::commit() {
+    return batch->commit();
+  }
+
+  void MapPrefix::Batch::clear() {
+    batch->clear();
   }
 
   MapPrefix::MapPrefix(BytesIn prefix, MapPtr map) : prefix{prefix}, map{map} {}
@@ -81,7 +128,7 @@ namespace fc::storage {
   }
 
   std::unique_ptr<BufferBatch> MapPrefix::batch() {
-    throw "not implemented";
+    return std::make_unique<Batch>(*this, map->batch());
   }
 
   std::unique_ptr<BufferMapCursor> MapPrefix::cursor() {

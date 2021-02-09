@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_API_API_HPP
-#define CPP_FILECOIN_CORE_API_API_HPP
+#pragma once
 
 #include <future>
 
@@ -25,7 +24,7 @@
 #include "primitives/tipset/tipset.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/actor/builtin/v0/market/actor.hpp"
-#include "vm/actor/builtin/v0/miner/types.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/runtime/runtime_types.hpp"
@@ -44,6 +43,7 @@ namespace fc::api {
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
+  using libp2p::peer::PeerId;
   using libp2p::peer::PeerInfo;
   using markets::retrieval::RetrievalAsk;
   using markets::storage::DataRef;
@@ -558,5 +558,3 @@ namespace fc::api {
                const LaneId &)
   };
 }  // namespace fc::api
-
-#endif  // CPP_FILECOIN_CORE_API_API_HPP

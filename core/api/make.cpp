@@ -12,6 +12,7 @@
 #include "const.hpp"
 #include "drand/beaconizer.hpp"
 #include "node/pubsub_gate.hpp"
+#include "primitives/tipset/chain.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
@@ -160,6 +161,8 @@ namespace fc::api {
 
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<WeightCalculator> weight_calculator,
+               TsLoadPtr ts_load,
+               TsBranchPtr ts_main,
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<Mpool> mpool,
                std::shared_ptr<Interpreter> interpreter,
@@ -175,24 +178,33 @@ namespace fc::api {
       if (tipset_key.cids().empty()) {
         tipset = chain_store->heaviestTipset();
       } else {
-        OUTCOME_TRYA(tipset, chain_store->loadTipset(tipset_key));
+        OUTCOME_TRYA(tipset, ts_load->load(tipset_key));
       }
       TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
       if (interpret) {
-        OUTCOME_TRY(result, interpreter->interpret(ipld, tipset));
+        OUTCOME_TRY(result, interpreter->getCached(tipset->key));
         context.state_tree = {ipld, result.state_root};
         context.interpreted = result;
       }
       return context;
     };
     auto getLookbackTipSetForRound =
-        [=](auto tipset, auto epoch) -> outcome::result<TipsetContext> {
+        [=](auto tipset,
+            auto ts_branch,
+            auto epoch) -> outcome::result<TipsetContext> {
       auto lookback{
           std::max(ChainEpoch{0}, epoch - kWinningPoStSectorSetLookback)};
-      while (tipset->height() > static_cast<uint64_t>(lookback)) {
-        OUTCOME_TRYA(tipset, tipset->loadParent(*ipld));
+      if (vm::version::getNetworkVersion(tipset->height())
+          > vm::version::NetworkVersion::kVersion3) {
+        lookback =
+            std::max(ChainEpoch{0},
+                     epoch - vm::actor::builtin::v0::miner::kChainFinalityish);
       }
-      OUTCOME_TRY(result, interpreter->interpret(ipld, tipset));
+      if (lookback < tipset->epoch()) {
+        OUTCOME_TRY(it, find(ts_branch, lookback));
+        OUTCOME_TRYA(tipset, ts_load->loadw(it.second->second));
+      }
+      OUTCOME_TRY(result, interpreter->getCached(tipset->key));
       return TipsetContext{
           std::move(tipset), {ipld, std::move(result.state_root)}, {}};
     };
@@ -228,7 +240,7 @@ namespace fc::api {
           return messages;
         }},
         .ChainGetGenesis = {[=]() -> outcome::result<TipsetCPtr> {
-          return chain_store->loadTipsetByHeight(0);
+          return ts_load->loadw(ts_main->chain.begin()->second);
         }},
         .ChainGetNode = {[=](auto &path) -> outcome::result<IpldObject> {
           std::vector<std::string> parts;
@@ -282,38 +294,27 @@ namespace fc::api {
                                              auto epoch,
                                              auto &entropy)
                                              -> outcome::result<Randomness> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          return context.tipset->beaconRandomness(*ipld, tag, epoch, entropy);
+          OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+          return TipsetRandomness{ts_load}.getRandomnessFromBeacon(
+              ts_branch, tag, epoch, entropy);
         }},
         .ChainGetRandomnessFromTickets = {[=](auto &tipset_key,
                                               auto tag,
                                               auto epoch,
                                               auto &entropy)
                                               -> outcome::result<Randomness> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          return context.tipset->ticketRandomness(*ipld, tag, epoch, entropy);
+          OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+          return TipsetRandomness{ts_load}.getRandomnessFromTickets(
+              ts_branch, tag, epoch, entropy);
         }},
         .ChainGetTipSet = {[=](auto &tipset_key) {
-          return chain_store->loadTipset(tipset_key);
+          return ts_load->load(tipset_key);
         }},
-        .ChainGetTipSetByHeight = {[=](auto height2, auto &tipset_key)
+        .ChainGetTipSetByHeight = {[=](auto height, auto &tipset_key)
                                        -> outcome::result<TipsetCPtr> {
-          // TODO(turuslan): use height index from chain store
-          // TODO(turuslan): return genesis if height is zero
-          auto height = static_cast<uint64_t>(height2);
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          auto &tipset{context.tipset};
-          if (tipset->height() < height) {
-            return TodoError::kError;
-          }
-          while (tipset->height() > height) {
-            OUTCOME_TRY(parent, tipset->loadParent(*ipld));
-            if (parent->height() < height) {
-              break;
-            }
-            tipset = std::move(parent);
-          }
-          return std::move(tipset);
+          OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+          OUTCOME_TRY(it, find(ts_branch, height));
+          return ts_load->loadw(it.second->second);
         }},
         .ChainHead = {[=]() { return chain_store->heaviestTipset(); }},
         .ChainNotify = {[=]() {
@@ -332,7 +333,7 @@ namespace fc::api {
         .ChainSetHead = {},
         .ChainTipSetWeight = {[=](auto &tipset_key)
                                   -> outcome::result<TipsetWeight> {
-          OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
+          OUTCOME_TRY(tipset, ts_load->load(tipset_key));
           return weight_calculator->calculateWeight(*tipset);
         }},
         // TODO(turuslan): FIL-165 implement method
@@ -368,7 +369,7 @@ namespace fc::api {
           OUTCOME_TRY(miner_state, context.minerState(t.miner));
           OUTCOME_TRY(block,
                       blockchain::production::generate(
-                          *interpreter, ipld, std::move(t)));
+                          *interpreter, ts_load, ipld, std::move(t)));
 
           OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
           OUTCOME_TRY(minfo, miner_state.info.get());
@@ -392,7 +393,11 @@ namespace fc::api {
             [=](auto &&miner, auto epoch, auto &&tipset_key, auto &&cb) {
               OUTCOME_CB(auto context, tipsetContext(tipset_key, true));
               MiningBaseInfo info;
-              OUTCOME_CB(info.prev_beacon, context.tipset->latestBeacon(*ipld));
+              OUTCOME_CB(auto ts_branch,
+                         TsBranch::make(ts_load, tipset_key, ts_main));
+              OUTCOME_CB(
+                  info.prev_beacon,
+                  latestBeacon(ts_load, ts_branch, context.tipset->height()));
               auto prev{info.prev_beacon.round};
               beaconEntriesForBlock(
                   *drand_schedule,
@@ -402,9 +407,9 @@ namespace fc::api {
                   [=, MOVE(cb), MOVE(context), MOVE(info)](
                       auto _beacons) mutable {
                     OUTCOME_CB(info.beacons, _beacons);
-                    OUTCOME_CB(
-                        auto lookback,
-                        getLookbackTipSetForRound(context.tipset, epoch));
+                    OUTCOME_CB(auto lookback,
+                               getLookbackTipSetForRound(
+                                   context.tipset, ts_branch, epoch));
                     OUTCOME_CB(auto state, lookback.minerState(miner));
                     OUTCOME_CB(auto seed, codec::cbor::encode(miner));
                     auto post_rand{crypto::randomness::drawRandomness(
@@ -447,7 +452,7 @@ namespace fc::api {
           if (message.from.isId()) {
             OUTCOME_TRYA(message.from,
                          vm::runtime::resolveKey(
-                             context.state_tree, message.from, true));
+                             context.state_tree, ipld, message.from, false));
           }
           OUTCOME_TRY(mpool->estimate(message));
           OUTCOME_TRYA(message.nonce, mpool->nonce(message.from));
@@ -486,10 +491,12 @@ namespace fc::api {
         .StateCall = {[=](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          auto randomness = std::make_shared<TipsetRandomness>(ipld);
+          OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+          auto randomness = std::make_shared<TipsetRandomness>(ts_load);
           auto env = std::make_shared<Env>(std::make_shared<InvokerImpl>(),
                                            randomness,
                                            ipld,
+                                           ts_branch,
                                            context.tipset);
           InvocResult result;
           result.message = message;
@@ -578,7 +585,7 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           auto result{msg_waiter->results.find(cid)};
           if (result != msg_waiter->results.end()) {
-            OUTCOME_TRY(ts, Tipset::load(*ipld, result->second.second.cids()));
+            OUTCOME_TRY(ts, ts_load->load(result->second.second.cids()));
             if (context.tipset->height() <= ts->height()) {
               return result->second.first;
             }
@@ -706,8 +713,11 @@ namespace fc::api {
         .StateMinerProvingDeadline = {[=](auto &address, auto &tipset_key)
                                           -> outcome::result<DeadlineInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
+          // TODO (a.chernyshov) miner version depends on actor code/version
           OUTCOME_TRY(state, context.minerState(address));
-          return state.deadlineInfo(context.tipset->height());
+          const auto deadline_info =
+              state.deadlineInfo(context.tipset->height());
+          return deadline_info.nextNotElapsed();
         }},
         .StateMinerSectors =
             {[=](auto &address, auto &filter, auto &tipset_key)
@@ -752,7 +762,7 @@ namespace fc::api {
                                             auto &&confidence,
                                             auto &&cb) {
           msg_waiter->wait(cid, [=, MOVE(cb)](auto &result) {
-            OUTCOME_CB(auto ts, chain_store->loadTipset(result.second));
+            OUTCOME_CB(auto ts, ts_load->load(result.second));
             cb(MsgWait{cid, result.first, ts->key, (ChainEpoch)ts->height()});
           });
         }),

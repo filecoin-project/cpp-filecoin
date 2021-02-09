@@ -57,9 +57,10 @@ TEST_F(StateTreeTest, SetFlush) {
  * @then Tree doesn't contain actor state
  */
 TEST_F(StateTreeTest, SetRevert) {
-  EXPECT_OUTCOME_TRUE(root, tree_.flush());
+  tree_.txBegin();
   EXPECT_OUTCOME_TRUE_1(tree_.set(kAddressId, kActor));
-  EXPECT_OUTCOME_TRUE_1(tree_.revert(root));
+  tree_.txRevert();
+  tree_.txEnd();
   EXPECT_OUTCOME_ERROR(HamtError::kNotFound, tree_.get(kAddressId));
 }
 

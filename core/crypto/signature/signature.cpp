@@ -52,7 +52,7 @@ namespace fc::crypto::signature {
       }
       case BLS: {
         BlsSignature bls;
-        if (input.size() - 1 != bls.size()) {
+        if (input.size() != bls.size() + 1) {
           return SignatureError::kInvalidSignatureLength;
         }
         std::copy_n(std::make_move_iterator(std::next(input.begin())),
@@ -60,6 +60,19 @@ namespace fc::crypto::signature {
                     bls.begin());
         return bls;
       }
+    }
+    return SignatureError::kWrongSignatureType;
+  }
+
+  outcome::result<bool> Signature::isBls(const BytesIn &input) {
+    if (input.empty()) {
+      return SignatureError::kWrongSignatureType;
+    }
+    switch (input[0]) {
+      case SECP256K1:
+        return false;
+      case BLS:
+        return true;
     }
     return SignatureError::kWrongSignatureType;
   }

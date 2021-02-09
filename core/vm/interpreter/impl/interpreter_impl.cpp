@@ -5,7 +5,9 @@
 
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
+#include "blockchain/impl/weight_calculator_impl.hpp"
 #include "const.hpp"
+#include "primitives/tipset/load.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
@@ -21,6 +23,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
       return "InterpreterError: Tipset marked as bad";
     case E::kChainInconsistency:
       return "InterpreterError: chain inconsistency";
+    case E::kNotCached:
+      return "InterpreterError::kNotCached";
     default:
       break;
   }
@@ -45,24 +49,48 @@ namespace fc::vm::interpreter {
   using runtime::Env;
   using runtime::MessageReceipt;
 
+  outcome::result<boost::optional<Result>> Interpreter::tryGetCached(
+      const TipsetKey &tsk) const {
+    return boost::none;
+  }
+
+  outcome::result<Result> Interpreter::getCached(const TipsetKey &tsk) const {
+    OUTCOME_TRY(cached, tryGetCached(tsk));
+    if (!cached) {
+      return InterpreterError::kNotCached;
+    }
+    return *cached;
+  }
+
   InterpreterImpl::InterpreterImpl(
+      std::shared_ptr<Invoker> invoker,
+      TsLoadPtr ts_load,
+      std::shared_ptr<WeightCalculator> weight_calculator,
       std::shared_ptr<RuntimeRandomness> randomness,
       std::shared_ptr<Circulating> circulating)
-      : randomness_{std::move(randomness)},
+      : invoker_{std::move(invoker)},
+        ts_load{std::move(ts_load)},
+        weight_calculator_{std::move(weight_calculator)},
+        randomness_{std::move(randomness)},
         circulating_{std::move(circulating)} {}
 
   outcome::result<Result> InterpreterImpl::interpret(
-      const IpldPtr &ipld, const TipsetCPtr &tipset) const {
+      TsBranchPtr ts_branch,
+      const IpldPtr &ipld,
+      const TipsetCPtr &tipset) const {
     if (tipset->height() == 0) {
+      OUTCOME_TRY(weight, getWeight(tipset));
       return Result{
           tipset->getParentStateRoot(),
           tipset->getParentMessageReceipts(),
+          weight,
       };
     }
-    return applyBlocks(ipld, tipset, {});
+    return applyBlocks(ts_branch, ipld, tipset, {});
   }
 
   outcome::result<Result> InterpreterImpl::applyBlocks(
+      TsBranchPtr ts_branch,
       const IpldPtr &ipld,
       const TipsetCPtr &tipset,
       std::vector<MessageReceipt> *all_receipts) const {
@@ -76,8 +104,9 @@ namespace fc::vm::interpreter {
       return InterpreterError::kDuplicateMiner;
     }
 
-    auto env = std::make_shared<Env>(
-        std::make_shared<InvokerImpl>(), randomness_, ipld, tipset);
+    auto env =
+        std::make_shared<Env>(invoker_, randomness_, ipld, ts_branch, tipset);
+
     env->circulating = circulating_;
 
     auto cron{[&]() -> outcome::result<void> {
@@ -100,7 +129,7 @@ namespace fc::vm::interpreter {
     }};
 
     if (tipset->height() > 1) {
-      OUTCOME_TRY(parent, tipset->loadParent(*ipld));
+      OUTCOME_TRY(parent, ts_load->load(tipset->getParents()));
       for (auto epoch{parent->height() + 1}; epoch < tipset->height();
            ++epoch) {
         env->epoch = epoch;
@@ -148,12 +177,16 @@ namespace fc::vm::interpreter {
     OUTCOME_TRY(cron());
 
     OUTCOME_TRY(new_state_root, env->state_tree->flush());
+    OUTCOME_TRY(env->ipld->flush(new_state_root));
 
     OUTCOME_TRY(Ipld::flush(receipts));
+
+    OUTCOME_TRY(weight, getWeight(tipset));
 
     return Result{
         new_state_root,
         receipts.amt.cid(),
+        std::move(weight),
     };
   }
 
@@ -166,6 +199,14 @@ namespace fc::vm::interpreter {
       }
     }
     return false;
+  }
+
+  outcome::result<BigInt> InterpreterImpl::getWeight(
+      const TipsetCPtr &tipset) const {
+    if (weight_calculator_) {
+      return weight_calculator_->calculateWeight(*tipset);
+    }
+    return 0;
   }
 
   namespace {
@@ -185,13 +226,15 @@ namespace fc::vm::interpreter {
   }  // namespace
 
   outcome::result<Result> CachedInterpreter::interpret(
-      const IpldPtr &ipld, const TipsetCPtr &tipset) const {
+      TsBranchPtr ts_branch,
+      const IpldPtr &ipld,
+      const TipsetCPtr &tipset) const {
     auto key{getKey(tipset->key)};
     OUTCOME_TRY(saved_result, getSavedResult(*store, key));
     if (saved_result) {
       return saved_result.value();
     }
-    auto result = interpreter->interpret(ipld, tipset);
+    auto result = interpreter->interpret(ts_branch, ipld, tipset);
     if (!result) {
       OUTCOME_TRY(raw, codec::cbor::encode(boost::optional<Result>{}));
       OUTCOME_TRY(store->put(key, raw));
@@ -202,13 +245,13 @@ namespace fc::vm::interpreter {
     return result;
   }
 
-  Buffer CachedInterpreter::getKey(const TipsetKey &tsk) {
-    return Buffer{tsk.hash()};
+  outcome::result<boost::optional<Result>> CachedInterpreter::tryGetCached(
+      const TipsetKey &tsk) const {
+    return getSavedResult(*store, Buffer{tsk.hash()});
   }
 
-  outcome::result<boost::optional<Result>> CachedInterpreter::getCached(
-      const TipsetKey &tsk) {
-    return getSavedResult(*store, CachedInterpreter::getKey(tsk));
+  Buffer CachedInterpreter::getKey(const TipsetKey &tsk) {
+    return Buffer{tsk.hash()};
   }
 
   void CachedInterpreter::markBad(const TipsetKey &tsk) const {

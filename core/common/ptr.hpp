@@ -5,7 +5,9 @@
 
 #pragma once
 
+#include <algorithm>
 #include <memory>
+#include <vector>
 
 namespace fc {
   template <typename T>
@@ -36,8 +38,8 @@ namespace fc {
              ws.end());
   }
 
-  template <typename T>
-  bool weakEq(const std::weak_ptr<T> &l, const std::weak_ptr<T> &r) {
+  template <typename L, typename R>
+  bool ownerEq(const L &l, const R &r) {
     return !l.owner_before(r) && !r.owner_before(l);
   }
 }  // namespace fc
