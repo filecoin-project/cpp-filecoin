@@ -233,7 +233,7 @@ namespace fc::sync::blocksync {
       }
 
       ~BlocksyncRequestImpl() {
-        log()->debug("------ {}", --xxx);
+        log()->debug("------ {}", xxx--);
         cancel();
       }
 

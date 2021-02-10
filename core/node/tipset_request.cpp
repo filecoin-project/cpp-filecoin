@@ -28,7 +28,7 @@ namespace fc::sync {
 
       ~TipsetRequestImpl() {
         cancel();
-        log()->debug("------ {}", --xxx);
+        log()->debug("------ {}", xxx--);
       }
 
       void makeRequest(libp2p::Host &host,
