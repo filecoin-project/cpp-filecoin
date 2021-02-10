@@ -100,7 +100,7 @@ namespace fc::primitives::tipset::chain {
     return make(std::move(chain), parent);
   }
 
-  outcome::result<TsBranchPtr> TsBranch::load(KvPtr kv) {
+  TsBranchPtr TsBranch::load(KvPtr kv) {
     TsChain chain;
     auto cur{kv->cursor()};
     for (cur->seekToFirst(); cur->isValid(); cur->next()) {
@@ -244,7 +244,7 @@ namespace fc::primitives::tipset::chain {
   TsBranchIter find(const TsBranches &branches, TipsetCPtr ts) {
     for (auto branch : branches) {
       auto it{branch->chain.find(ts->height())};
-      if (it != branch->chain.end()) {
+      if (it != branch->chain.end() && it->second.key == ts->key) {
         while (branch->parent && it == branch->chain.begin()) {
           branch = branch->parent;
           it = branch->chain.find(ts->height());

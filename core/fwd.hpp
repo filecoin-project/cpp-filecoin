@@ -110,6 +110,7 @@ namespace fc {
 
         using TsBranchPtr = std::shared_ptr<TsBranch>;
         using TsBranches = std::set<TsBranchPtr>;
+        using TsBranchesPtr = std::shared_ptr<TsBranches>;
       }  // namespace chain
     }    // namespace tipset
   }      // namespace primitives
@@ -177,6 +178,7 @@ namespace fc {
   using primitives::tipset::TsLoadPtr;
   using primitives::tipset::chain::TsBranch;
   using primitives::tipset::chain::TsBranches;
+  using primitives::tipset::chain::TsBranchesPtr;
   using primitives::tipset::chain::TsBranchPtr;
 
   using Ipld = storage::ipfs::IpfsDatastore;
