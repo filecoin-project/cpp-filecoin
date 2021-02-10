@@ -137,7 +137,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     REQUIRE_SUCCESS_A(
         addresses_created,
         runtime.sendM<init::Exec>(kInitAddress,
-                                  {kStorageMinerCodeCid, miner_params},
+                                  {kStorageMinerCodeId, miner_params},
                                   runtime.getValueReceived()));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     REQUIRE_NO_ERROR(
@@ -150,7 +150,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   }
 
   ACTOR_METHOD_IMPL(UpdateClaimedPower) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
+    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
     const Address miner_address = runtime.getImmediateCaller();
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     REQUIRE_NO_ERROR(state.addToClaim(runtime,
@@ -163,7 +163,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   }
 
   ACTOR_METHOD_IMPL(EnrollCronEvent) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
+    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
     OUTCOME_TRY(runtime.validateArgument(params.event_epoch >= 0));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     REQUIRE_NO_ERROR(
@@ -199,7 +199,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   }
 
   ACTOR_METHOD_IMPL(UpdatePledgeTotal) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
+    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(state.addPledgeTotal(runtime, params));
     OUTCOME_TRY(runtime.commitState(state));
@@ -207,7 +207,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   }
 
   ACTOR_METHOD_IMPL(OnConsensusFault) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
+    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
     const auto miner{runtime.getImmediateCaller()};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     REQUIRE_NO_ERROR_A(
@@ -229,7 +229,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   }
 
   ACTOR_METHOD_IMPL(SubmitPoRepForBulkVerify) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
+    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
     const auto miner{runtime.getImmediateCaller()};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     if (!state.proof_validation_batch.has_value()) {

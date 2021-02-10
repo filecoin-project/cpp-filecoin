@@ -26,8 +26,8 @@ namespace fc::vm {
     const auto ipld{state_tree->getStore()};
     TokenAmount locked;
     OUTCOME_TRY(market, state_tree->get(actor::kStorageMarketAddress));
-    if (market.code == actor::builtin::v0::kStorageMarketCodeCid
-        || market.code == actor::builtin::v2::kStorageMarketCodeCid) {
+    if (market.code == actor::builtin::v0::kStorageMarketCodeId
+        || market.code == actor::builtin::v2::kStorageMarketCodeId) {
       // TODO (m.tagirov or a.chernyshov) - v3
       static_assert(std::is_same_v<actor::builtin::v0::market::State,
                                    actor::builtin::v2::market::State>);
@@ -40,17 +40,17 @@ namespace fc::vm {
       return std::errc::owner_dead;
     }
     OUTCOME_TRY(power, state_tree->get(actor::kStoragePowerAddress));
-    if (power.code == actor::builtin::v0::kStoragePowerCodeCid) {
+    if (power.code == actor::builtin::v0::kStoragePowerCodeId) {
       OUTCOME_TRY(
           state,
           ipld->getCbor<actor::builtin::v0::storage_power::State>(power.head));
       locked += state.total_pledge;
-    } else if (power.code == actor::builtin::v2::kStoragePowerCodeCid) {
+    } else if (power.code == actor::builtin::v2::kStoragePowerCodeId) {
       OUTCOME_TRY(
           state,
           ipld->getCbor<actor::builtin::v2::storage_power::State>(power.head));
       locked += state.total_pledge;
-    } else if (power.code == actor::builtin::v3::kStoragePowerCodeCid) {
+    } else if (power.code == actor::builtin::v3::kStoragePowerCodeId) {
       OUTCOME_TRY(
           state,
           ipld->getCbor<actor::builtin::v3::storage_power::State>(power.head));
@@ -106,11 +106,11 @@ namespace fc::vm {
     }
 
     OUTCOME_TRY(reward, state_tree->get(actor::kRewardAddress));
-    if (reward.code == actor::builtin::v0::kRewardActorCodeID) {
+    if (reward.code == actor::builtin::v0::kRewardActorCodeId) {
       OUTCOME_TRY(
           state, ipld->getCbor<actor::builtin::v0::reward::State>(reward.head));
       mined = state.total_mined;
-    } else if (reward.code == actor::builtin::v2::kRewardActorCodeID) {
+    } else if (reward.code == actor::builtin::v2::kRewardActorCodeId) {
       OUTCOME_TRY(
           state, ipld->getCbor<actor::builtin::v2::reward::State>(reward.head));
       mined = state.total_storage_power_reward;

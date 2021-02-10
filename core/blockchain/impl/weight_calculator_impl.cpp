@@ -40,17 +40,17 @@ namespace fc::blockchain::weight {
                 StateTreeImpl{ipld_, tipset.getParentStateRoot()}.get(
                     kStoragePowerAddress));
     BigInt network_power;
-    if (actor.code == vm::actor::builtin::v0::kStoragePowerCodeCid) {
+    if (actor.code == vm::actor::builtin::v0::kStoragePowerCodeId) {
       OUTCOME_TRY(state,
                   ipld_->getCbor<vm::actor::builtin::v0::storage_power::State>(
                       actor.head));
       network_power = state.total_qa_power;
-    } else if (actor.code == vm::actor::builtin::v2::kStoragePowerCodeCid) {
+    } else if (actor.code == vm::actor::builtin::v2::kStoragePowerCodeId) {
       OUTCOME_TRY(state,
                   ipld_->getCbor<vm::actor::builtin::v2::storage_power::State>(
                       actor.head));
       network_power = state.total_qa_power;
-    } else if (actor.code == vm::actor::builtin::v3::kStoragePowerCodeCid) {
+    } else if (actor.code == vm::actor::builtin::v3::kStoragePowerCodeId) {
       OUTCOME_TRY(state,
                   ipld_->getCbor<vm::actor::builtin::v3::storage_power::State>(
                       actor.head));

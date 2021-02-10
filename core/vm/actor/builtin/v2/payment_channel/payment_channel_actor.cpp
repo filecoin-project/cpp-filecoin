@@ -19,11 +19,11 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
 
     REQUIRE_NO_ERROR_A(to,
-                       resolveAccount(runtime, params.to, kAccountCodeCid),
+                       resolveAccount(runtime, params.to, kAccountCodeId),
                        VMExitCode::kErrIllegalState);
 
     REQUIRE_NO_ERROR_A(from,
-                       resolveAccount(runtime, params.from, kAccountCodeCid),
+                       resolveAccount(runtime, params.from, kAccountCodeId),
                        VMExitCode::kErrIllegalState);
 
     State state{from, to, 0, 0, 0, {}};

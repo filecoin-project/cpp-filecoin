@@ -43,7 +43,7 @@ namespace fc::vm::runtime {
     }
     if (auto _actor{state_tree.get(address)}) {
       auto &actor{_actor.value()};
-      if (actor.code == actor::builtin::v0::kAccountCodeCid) {
+      if (actor.code == actor::builtin::v0::kAccountCodeId) {
         if (auto _state{
                 ipld->getCbor<actor::builtin::v0::account::AccountActorState>(
                     actor.head)}) {
@@ -52,7 +52,7 @@ namespace fc::vm::runtime {
             return key;
           }
         }
-      } else if (actor.code == actor::builtin::v2::kAccountCodeCid) {
+      } else if (actor.code == actor::builtin::v2::kAccountCodeId) {
         if (auto _state{
                 ipld->getCbor<actor::builtin::v2::account::AccountActorState>(
                     actor.head)}) {
@@ -61,7 +61,7 @@ namespace fc::vm::runtime {
             return key;
           }
         }
-      } else if (actor.code == actor::builtin::v3::kAccountCodeCid) {
+      } else if (actor.code == actor::builtin::v3::kAccountCodeId) {
         if (auto _state{
                 ipld->getCbor<actor::builtin::v3::account::AccountActorState>(
                     actor.head)}) {

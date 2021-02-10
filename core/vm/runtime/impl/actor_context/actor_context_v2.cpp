@@ -10,57 +10,57 @@ namespace fc::vm::runtime::context {
   using namespace actor::builtin;
 
   bool ActorContextV2::isAccountActor(const CodeId &code) const {
-    return code == v2::kAccountCodeCid;
+    return code == v2::kAccountCodeId;
   }
 
   bool ActorContextV2::isStorageMinerActor(const CodeId &code) const {
-    return code == v2::kStorageMinerCodeCid;
+    return code == v2::kStorageMinerCodeId;
   }
 
   bool ActorContextV2::isBuiltinActor(const CodeId &code) const {
-    return code == v2::kStorageMarketCodeCid || code == v2::kStoragePowerCodeCid
-           || code == v2::kStorageMinerCodeCid || code == v2::kAccountCodeCid
-           || code == v2::kInitCodeCid || code == v2::kMultisigCodeCid
-           || code == v2::kPaymentChannelCodeCid || code == v2::kCronCodeCid
-           || code == v2::kRewardActorCodeID || code == v2::kSystemActorCodeID;
+    return code == v2::kStorageMarketCodeId || code == v2::kStoragePowerCodeId
+           || code == v2::kStorageMinerCodeId || code == v2::kAccountCodeId
+           || code == v2::kInitCodeId || code == v2::kMultisigCodeId
+           || code == v2::kPaymentChannelCodeCid || code == v2::kCronCodeId
+           || code == v2::kRewardActorCodeId || code == v2::kSystemActorCodeId;
   }
 
   bool ActorContextV2::isSingletonActor(const CodeId &code) const {
-    return code == v2::kStoragePowerCodeCid || code == v2::kStorageMarketCodeCid
-           || code == v2::kInitCodeCid || code == v2::kCronCodeCid
-           || code == v2::kRewardActorCodeID || code == v2::kSystemActorCodeID;
+    return code == v2::kStoragePowerCodeId || code == v2::kStorageMarketCodeId
+           || code == v2::kInitCodeId || code == v2::kCronCodeId
+           || code == v2::kRewardActorCodeId || code == v2::kSystemActorCodeId;
   }
 
   bool ActorContextV2::isSignableActor(const CodeId &code) const {
-    return code == v2::kAccountCodeCid || code == v2::kMultisigCodeCid;
+    return code == v2::kAccountCodeId || code == v2::kMultisigCodeId;
   }
 
   CodeId ActorContextV2::getAccountCodeId() const {
-    return v2::kAccountCodeCid;
+    return v2::kAccountCodeId;
   }
 
   CodeId ActorContextV2::getCronCodeId() const {
-    return v2::kCronCodeCid;
+    return v2::kCronCodeId;
   }
 
   CodeId ActorContextV2::getStoragePowerCodeId() const {
-    return v2::kStoragePowerCodeCid;
+    return v2::kStoragePowerCodeId;
   }
 
   CodeId ActorContextV2::getStorageMarketCodeId() const {
-    return v2::kStorageMarketCodeCid;
+    return v2::kStorageMarketCodeId;
   }
 
   CodeId ActorContextV2::getStorageMinerCodeId() const {
-    return v2::kStorageMinerCodeCid;
+    return v2::kStorageMinerCodeId;
   }
 
   CodeId ActorContextV2::getMultisigCodeId() const {
-    return v2::kMultisigCodeCid;
+    return v2::kMultisigCodeId;
   }
 
   CodeId ActorContextV2::getInitCodeId() const {
-    return v2::kInitCodeCid;
+    return v2::kInitCodeId;
   }
 
   CodeId ActorContextV2::getPaymentChannelCodeId() const {
@@ -68,15 +68,15 @@ namespace fc::vm::runtime::context {
   }
 
   CodeId ActorContextV2::getRewardActorCodeId() const {
-    return v2::kRewardActorCodeID;
+    return v2::kRewardActorCodeId;
   }
 
   CodeId ActorContextV2::getSystemActorCodeId() const {
-    return v2::kSystemActorCodeID;
+    return v2::kSystemActorCodeId;
   }
 
   CodeId ActorContextV2::getVerifiedRegistryCodeId() const {
-    return v2::kVerifiedRegistryCode;
+    return v2::kVerifiedRegistryCodeId;
   }
 
 }  // namespace fc::vm::runtime::context

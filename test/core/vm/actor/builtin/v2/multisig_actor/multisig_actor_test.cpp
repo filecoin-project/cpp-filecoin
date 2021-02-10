@@ -71,9 +71,9 @@ namespace fc::vm::actor::builtin::v2::multisig {
 
       ON_CALL_3(runtime, getCurrentReceiver(), actor_address);
 
-      ON_CALL_3(runtime, getActorCodeID(kInitAddress), kInitCodeCid);
-      ON_CALL_3(runtime, getActorCodeID(caller), kAccountCodeCid);
-      ON_CALL_3(runtime, getActorCodeID(wrong_caller), kCronCodeCid);
+      ON_CALL_3(runtime, getActorCodeID(kInitAddress), kInitCodeId);
+      ON_CALL_3(runtime, getActorCodeID(caller), kAccountCodeId);
+      ON_CALL_3(runtime, getActorCodeID(wrong_caller), kCronCodeId);
 
       EXPECT_CALL(runtime, hashBlake2b(testing::_))
           .Times(testing::AnyNumber())

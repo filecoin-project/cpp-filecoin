@@ -10,10 +10,10 @@
 namespace fc::vm::actor::builtin::v3::init {
   bool canExec(const CID &caller_code_id, const CID &exec_code_id) {
     bool result = false;
-    if (exec_code_id == kStorageMinerCodeCid) {
-      result = caller_code_id == kStoragePowerCodeCid;
+    if (exec_code_id == kStorageMinerCodeId) {
+      result = caller_code_id == kStoragePowerCodeId;
     } else if (exec_code_id == kPaymentChannelCodeCid
-               || exec_code_id == kMultisigCodeCid) {
+               || exec_code_id == kMultisigCodeId) {
       result = true;
     }
     return result;

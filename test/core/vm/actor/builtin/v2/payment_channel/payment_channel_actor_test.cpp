@@ -31,8 +31,8 @@ using fc::vm::VMAbortExitCode;
 using fc::vm::VMExitCode;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::kSendMethodNumber;
-using fc::vm::actor::builtin::v2::kAccountCodeCid;
-using fc::vm::actor::builtin::v2::kInitCodeCid;
+using fc::vm::actor::builtin::v2::kAccountCodeId;
+using fc::vm::actor::builtin::v2::kInitCodeId;
 using fc::vm::runtime::MockRuntime;
 using fc::vm::state::StateTreeImpl;
 using PaymentChannel::LaneState;
@@ -61,9 +61,9 @@ struct PaymentChannelActorTest : testing::Test {
 
     ON_CALL_3(runtime, getCurrentReceiver(), actor_address);
 
-    ON_CALL_3(runtime, getActorCodeID(kInitAddress), kInitCodeCid);
-    ON_CALL_3(runtime, getActorCodeID(from_address), kAccountCodeCid);
-    ON_CALL_3(runtime, getActorCodeID(to_address), kAccountCodeCid);
+    ON_CALL_3(runtime, getActorCodeID(kInitAddress), kInitCodeId);
+    ON_CALL_3(runtime, getActorCodeID(from_address), kAccountCodeId);
+    ON_CALL_3(runtime, getActorCodeID(to_address), kAccountCodeId);
 
     EXPECT_CALL(runtime, hashBlake2b(testing::_))
         .Times(testing::AnyNumber())

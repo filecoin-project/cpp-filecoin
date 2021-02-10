@@ -26,7 +26,7 @@ namespace fc::vm::actor::builtin::v0::miner {
    public:
     void SetUp() override {
       ActorTestFixture<State>::SetUp();
-      anyCodeIdAddressIs(kAccountCodeCid);
+      anyCodeIdAddressIs(kAccountCodeId);
     }
 
     void expectEnrollCronEvent(const ChainEpoch &proving_period_start) {
@@ -212,7 +212,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     std::vector<Address> control_addresses;
     const Address control = Address::makeFromId(501);
     control_addresses.emplace_back(control);
-    addressCodeIdIs(control, kCronCodeCid);
+    addressCodeIdIs(control, kCronCodeId);
 
     EXPECT_OUTCOME_ERROR(
         VMAbortExitCode{VMExitCode::kErrIllegalArgument},

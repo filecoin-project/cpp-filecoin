@@ -129,15 +129,15 @@ namespace fc::mining::checks {
     OUTCOME_TRY(actor, api->StateGetActor(miner_address, tipset_key));
     auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
     vm::actor::builtin::v0::miner::MinerActorState state;
-    if (actor.code == vm::actor::builtin::v0::kStorageMinerCodeCid) {
+    if (actor.code == vm::actor::builtin::v0::kStorageMinerCodeId) {
       OUTCOME_TRYA(state, ipfs->getCbor<decltype(state)>(actor.head));
-    } else if (actor.code == vm::actor::builtin::v2::kStorageMinerCodeCid) {
+    } else if (actor.code == vm::actor::builtin::v2::kStorageMinerCodeId) {
       OUTCOME_TRY(
           state2,
           ipfs->getCbor<vm::actor::builtin::v2::miner::State>(actor.head));
       state.precommitted_sectors = state2.precommitted_sectors;
       state.allocated_sectors = state2.allocated_sectors;
-    } else if (actor.code == vm::actor::builtin::v3::kStorageMinerCodeCid) {
+    } else if (actor.code == vm::actor::builtin::v3::kStorageMinerCodeId) {
       OUTCOME_TRY(
           state2,
           ipfs->getCbor<vm::actor::builtin::v3::miner::State>(actor.head));

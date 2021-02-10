@@ -9,25 +9,25 @@
 
 namespace fc::vm::actor::builtin::v0 {
 
-  const static CodeId kAccountCodeCid =
+  const static CodeId kAccountCodeId =
       CodeId(makeRawIdentityCid("fil/1/account"));
-  const static CodeId kCronCodeCid = CodeId(makeRawIdentityCid("fil/1/cron"));
-  const static CodeId kStoragePowerCodeCid =
+  const static CodeId kCronCodeId = CodeId(makeRawIdentityCid("fil/1/cron"));
+  const static CodeId kStoragePowerCodeId =
       CodeId(makeRawIdentityCid("fil/1/storagepower"));
-  const static CodeId kStorageMarketCodeCid =
+  const static CodeId kStorageMarketCodeId =
       CodeId(makeRawIdentityCid("fil/1/storagemarket"));
-  const static CodeId kStorageMinerCodeCid =
+  const static CodeId kStorageMinerCodeId =
       CodeId(makeRawIdentityCid("fil/1/storageminer"));
-  const static CodeId kMultisigCodeCid =
+  const static CodeId kMultisigCodeId =
       CodeId(makeRawIdentityCid("fil/1/multisig"));
-  const static CodeId kInitCodeCid = CodeId(makeRawIdentityCid("fil/1/init"));
+  const static CodeId kInitCodeId = CodeId(makeRawIdentityCid("fil/1/init"));
   const static CodeId kPaymentChannelCodeCid =
       CodeId(makeRawIdentityCid("fil/1/paymentchannel"));
-  const static CodeId kRewardActorCodeID =
+  const static CodeId kRewardActorCodeId =
       CodeId(makeRawIdentityCid("fil/1/reward"));
-  const static CodeId kSystemActorCodeID =
+  const static CodeId kSystemActorCodeId =
       CodeId(makeRawIdentityCid("fil/1/system"));
-  const static CodeId kVerifiedRegistryCode =
+  const static CodeId kVerifiedRegistryCodeId =
       CodeId(makeRawIdentityCid("fil/1/verifiedregistry"));
 
 }  // namespace fc::vm::actor::builtin::v0

@@ -22,51 +22,51 @@ namespace fc::vm::actor {
   }
 
   bool isAccountActor(const CodeId &code) {
-    return code == v0::kAccountCodeCid || code == v2::kAccountCodeCid
-           || code == v3::kAccountCodeCid;
+    return code == v0::kAccountCodeId || code == v2::kAccountCodeId
+           || code == v3::kAccountCodeId;
   }
 
   bool isStorageMinerActor(const CodeId &code) {
-    return code == v0::kStorageMinerCodeCid || code == v2::kStorageMinerCodeCid;
+    return code == v0::kStorageMinerCodeId || code == v2::kStorageMinerCodeId;
   }
 
   bool isBuiltinActor(const CodeId &code) {
-    return code == v0::kStorageMarketCodeCid || code == v0::kStoragePowerCodeCid
-           || code == v0::kStorageMinerCodeCid || code == v0::kAccountCodeCid
-           || code == v0::kInitCodeCid || code == v0::kMultisigCodeCid
-           || code == v0::kPaymentChannelCodeCid || code == v0::kCronCodeCid
-           || code == v0::kRewardActorCodeID || code == v0::kSystemActorCodeID
-           || code == v2::kStorageMarketCodeCid
-           || code == v2::kStoragePowerCodeCid
-           || code == v2::kStorageMinerCodeCid || code == v2::kAccountCodeCid
-           || code == v2::kInitCodeCid || code == v2::kMultisigCodeCid
-           || code == v2::kPaymentChannelCodeCid || code == v2::kCronCodeCid
-           || code == v2::kRewardActorCodeID || code == v2::kSystemActorCodeID
-           || code == v3::kStorageMarketCodeCid
-           || code == v3::kStoragePowerCodeCid
-           || code == v3::kStorageMinerCodeCid || code == v3::kAccountCodeCid
-           || code == v3::kInitCodeCid || code == v3::kMultisigCodeCid
-           || code == v3::kPaymentChannelCodeCid || code == v3::kCronCodeCid
-           || code == v3::kRewardActorCodeID || code == v3::kSystemActorCodeID;
+    return code == v0::kStorageMarketCodeId || code == v0::kStoragePowerCodeId
+           || code == v0::kStorageMinerCodeId || code == v0::kAccountCodeId
+           || code == v0::kInitCodeId || code == v0::kMultisigCodeId
+           || code == v0::kPaymentChannelCodeCid || code == v0::kCronCodeId
+           || code == v0::kRewardActorCodeId || code == v0::kSystemActorCodeId
+           || code == v2::kStorageMarketCodeId
+           || code == v2::kStoragePowerCodeId
+           || code == v2::kStorageMinerCodeId || code == v2::kAccountCodeId
+           || code == v2::kInitCodeId || code == v2::kMultisigCodeId
+           || code == v2::kPaymentChannelCodeCid || code == v2::kCronCodeId
+           || code == v2::kRewardActorCodeId || code == v2::kSystemActorCodeId
+           || code == v3::kStorageMarketCodeId
+           || code == v3::kStoragePowerCodeId
+           || code == v3::kStorageMinerCodeId || code == v3::kAccountCodeId
+           || code == v3::kInitCodeId || code == v3::kMultisigCodeId
+           || code == v3::kPaymentChannelCodeCid || code == v3::kCronCodeId
+           || code == v3::kRewardActorCodeId || code == v3::kSystemActorCodeId;
   }
 
   bool isSingletonActor(const CodeId &code) {
-    return code == v0::kStoragePowerCodeCid || code == v0::kStorageMarketCodeCid
-           || code == v0::kInitCodeCid || code == v0::kCronCodeCid
-           || code == v0::kRewardActorCodeID || code == v0::kSystemActorCodeID
-           || code == v2::kStoragePowerCodeCid
-           || code == v2::kStorageMarketCodeCid || code == v2::kInitCodeCid
-           || code == v2::kCronCodeCid || code == v2::kRewardActorCodeID
-           || code == v2::kSystemActorCodeID || code == v3::kStoragePowerCodeCid
-           || code == v3::kStorageMarketCodeCid || code == v3::kInitCodeCid
-           || code == v3::kCronCodeCid || code == v3::kRewardActorCodeID
-           || code == v3::kSystemActorCodeID;
+    return code == v0::kStoragePowerCodeId || code == v0::kStorageMarketCodeId
+           || code == v0::kInitCodeId || code == v0::kCronCodeId
+           || code == v0::kRewardActorCodeId || code == v0::kSystemActorCodeId
+           || code == v2::kStoragePowerCodeId
+           || code == v2::kStorageMarketCodeId || code == v2::kInitCodeId
+           || code == v2::kCronCodeId || code == v2::kRewardActorCodeId
+           || code == v2::kSystemActorCodeId || code == v3::kStoragePowerCodeId
+           || code == v3::kStorageMarketCodeId || code == v3::kInitCodeId
+           || code == v3::kCronCodeId || code == v3::kRewardActorCodeId
+           || code == v3::kSystemActorCodeId;
   }
 
   bool isSignableActor(const CodeId &code) {
-    return code == v0::kAccountCodeCid || code == v0::kMultisigCodeCid
-           || code == v2::kAccountCodeCid || code == v2::kMultisigCodeCid
-           || code == v3::kAccountCodeCid || code == v3::kMultisigCodeCid;
+    return code == v0::kAccountCodeId || code == v0::kMultisigCodeId
+           || code == v2::kAccountCodeId || code == v2::kMultisigCodeId
+           || code == v3::kAccountCodeId || code == v3::kMultisigCodeId;
   }
 
   static uint8_t kCborEmptyList[]{0x80};
@@ -106,39 +106,39 @@ namespace fc::vm::actor {
   }
 
   ActorVersion getActorVersionForCid(const CodeId &actorCid) {
-    if ((actorCid == v0::kAccountCodeCid) || (actorCid == v0::kCronCodeCid)
-        || (actorCid == v0::kStoragePowerCodeCid)
-        || (actorCid == v0::kStorageMarketCodeCid)
-        || (actorCid == v0::kStorageMinerCodeCid)
-        || (actorCid == v0::kMultisigCodeCid) || (actorCid == v0::kInitCodeCid)
+    if ((actorCid == v0::kAccountCodeId) || (actorCid == v0::kCronCodeId)
+        || (actorCid == v0::kStoragePowerCodeId)
+        || (actorCid == v0::kStorageMarketCodeId)
+        || (actorCid == v0::kStorageMinerCodeId)
+        || (actorCid == v0::kMultisigCodeId) || (actorCid == v0::kInitCodeId)
         || (actorCid == v0::kPaymentChannelCodeCid)
-        || (actorCid == v0::kRewardActorCodeID)
-        || (actorCid == v0::kSystemActorCodeID)
-        || (actorCid == v0::kVerifiedRegistryCode)) {
+        || (actorCid == v0::kRewardActorCodeId)
+        || (actorCid == v0::kSystemActorCodeId)
+        || (actorCid == v0::kVerifiedRegistryCodeId)) {
       return ActorVersion::kVersion0;
     }
 
-    if ((actorCid == v2::kAccountCodeCid) || (actorCid == v2::kCronCodeCid)
-        || (actorCid == v2::kStoragePowerCodeCid)
-        || (actorCid == v2::kStorageMarketCodeCid)
-        || (actorCid == v2::kStorageMinerCodeCid)
-        || (actorCid == v2::kMultisigCodeCid) || (actorCid == v2::kInitCodeCid)
+    if ((actorCid == v2::kAccountCodeId) || (actorCid == v2::kCronCodeId)
+        || (actorCid == v2::kStoragePowerCodeId)
+        || (actorCid == v2::kStorageMarketCodeId)
+        || (actorCid == v2::kStorageMinerCodeId)
+        || (actorCid == v2::kMultisigCodeId) || (actorCid == v2::kInitCodeId)
         || (actorCid == v2::kPaymentChannelCodeCid)
-        || (actorCid == v2::kRewardActorCodeID)
-        || (actorCid == v2::kSystemActorCodeID)
-        || (actorCid == v2::kVerifiedRegistryCode)) {
+        || (actorCid == v2::kRewardActorCodeId)
+        || (actorCid == v2::kSystemActorCodeId)
+        || (actorCid == v2::kVerifiedRegistryCodeId)) {
       return ActorVersion::kVersion2;
     }
 
-    if ((actorCid == v3::kAccountCodeCid) || (actorCid == v3::kCronCodeCid)
-        || (actorCid == v3::kStoragePowerCodeCid)
-        || (actorCid == v3::kStorageMarketCodeCid)
-        || (actorCid == v3::kStorageMinerCodeCid)
-        || (actorCid == v3::kMultisigCodeCid) || (actorCid == v3::kInitCodeCid)
+    if ((actorCid == v3::kAccountCodeId) || (actorCid == v3::kCronCodeId)
+        || (actorCid == v3::kStoragePowerCodeId)
+        || (actorCid == v3::kStorageMarketCodeId)
+        || (actorCid == v3::kStorageMinerCodeId)
+        || (actorCid == v3::kMultisigCodeId) || (actorCid == v3::kInitCodeId)
         || (actorCid == v3::kPaymentChannelCodeCid)
-        || (actorCid == v3::kRewardActorCodeID)
-        || (actorCid == v3::kSystemActorCodeID)
-        || (actorCid == v3::kVerifiedRegistryCode)) {
+        || (actorCid == v3::kRewardActorCodeId)
+        || (actorCid == v3::kSystemActorCodeId)
+        || (actorCid == v3::kVerifiedRegistryCodeId)) {
       return ActorVersion::kVersion3;
     }
 

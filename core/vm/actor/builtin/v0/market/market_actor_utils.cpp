@@ -14,7 +14,7 @@
 #include "vm/actor/builtin/v0/shared/shared.hpp"
 
 namespace fc::vm::actor::builtin::utils::market {
-  using v0::kStorageMinerCodeCid;
+  using v0::kStorageMinerCodeId;
   using namespace v0::market;
   using crypto::randomness::DomainSeparationTag;
   using libp2p::multi::HashType;
@@ -29,7 +29,7 @@ namespace fc::vm::actor::builtin::utils::market {
     const auto code = runtime.getActorCodeID(nominal.value());
     OUTCOME_TRY(runtime.validateArgument(!code.has_error()));
 
-    if (code.value() == kStorageMinerCodeCid) {
+    if (code.value() == kStorageMinerCodeId) {
       OUTCOME_TRY(miner,
                   v0::requestMinerControlAddress(runtime, nominal.value()));
       return std::make_tuple(nominal.value(),

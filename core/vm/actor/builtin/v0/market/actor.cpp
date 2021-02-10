@@ -107,7 +107,7 @@ namespace fc::vm::actor::builtin::v0::market {
     const auto code_id = runtime.getActorCodeID(provider);
     OUTCOME_TRY(runtime.validateArgument(!code_id.has_error()));
     OUTCOME_TRY(
-        runtime.validateArgument(code_id.value() == kStorageMinerCodeCid));
+        runtime.validateArgument(code_id.value() == kStorageMinerCodeId));
     OUTCOME_TRY(addresses, requestMinerControlAddress(runtime, provider));
     if (addresses.worker != runtime.getImmediateCaller()) {
       ABORT(VMExitCode::kErrForbidden);
@@ -210,7 +210,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   ACTOR_METHOD_IMPL(VerifyDealsForActivation) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
+    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
     OUTCOME_TRY(state, loadState(runtime));
     REQUIRE_NO_ERROR_A(result,
                        Utils::validateDealsForActivation(
@@ -222,7 +222,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   ACTOR_METHOD_IMPL(ActivateDeals) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
+    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
     OUTCOME_TRY(state, loadState(runtime));
     REQUIRE_NO_ERROR(Utils::validateDealsForActivation(
                          runtime, state, params.deals, params.sector_expiry),
@@ -256,7 +256,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   ACTOR_METHOD_IMPL(OnMinerSectorsTerminate) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
+    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
     OUTCOME_TRY(state, loadState(runtime));
 
     for (const auto deal_id : params.deals) {
@@ -303,7 +303,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   ACTOR_METHOD_IMPL(ComputeDataCommitment) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
+    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
     OUTCOME_TRY(state, loadState(runtime));
 
     // Lotus gas conformance

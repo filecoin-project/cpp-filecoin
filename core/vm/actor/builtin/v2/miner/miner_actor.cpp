@@ -40,7 +40,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     const auto resolved_code = runtime.getActorCodeID(resolved.value());
     OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
     OUTCOME_TRY(
-        runtime.validateArgument(resolved_code.value() == kAccountCodeCid));
+        runtime.validateArgument(resolved_code.value() == kAccountCodeId));
 
     if (!address.isBls()) {
       const auto pubkey_addres =

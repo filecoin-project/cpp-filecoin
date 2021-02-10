@@ -10,57 +10,57 @@ namespace fc::vm::runtime::context {
   using namespace actor::builtin;
 
   bool ActorContextV3::isAccountActor(const CodeId &code) const {
-    return code == v3::kAccountCodeCid;
+    return code == v3::kAccountCodeId;
   }
 
   bool ActorContextV3::isStorageMinerActor(const CodeId &code) const {
-    return code == v3::kStorageMinerCodeCid;
+    return code == v3::kStorageMinerCodeId;
   }
 
   bool ActorContextV3::isBuiltinActor(const CodeId &code) const {
-    return code == v3::kStorageMarketCodeCid || code == v3::kStoragePowerCodeCid
-           || code == v3::kStorageMinerCodeCid || code == v3::kAccountCodeCid
-           || code == v3::kInitCodeCid || code == v3::kMultisigCodeCid
-           || code == v3::kPaymentChannelCodeCid || code == v3::kCronCodeCid
-           || code == v3::kRewardActorCodeID || code == v3::kSystemActorCodeID;
+    return code == v3::kStorageMarketCodeId || code == v3::kStoragePowerCodeId
+           || code == v3::kStorageMinerCodeId || code == v3::kAccountCodeId
+           || code == v3::kInitCodeId || code == v3::kMultisigCodeId
+           || code == v3::kPaymentChannelCodeCid || code == v3::kCronCodeId
+           || code == v3::kRewardActorCodeId || code == v3::kSystemActorCodeId;
   }
 
   bool ActorContextV3::isSingletonActor(const CodeId &code) const {
-    return code == v3::kStoragePowerCodeCid || code == v3::kStorageMarketCodeCid
-           || code == v3::kInitCodeCid || code == v3::kCronCodeCid
-           || code == v3::kRewardActorCodeID || code == v3::kSystemActorCodeID;
+    return code == v3::kStoragePowerCodeId || code == v3::kStorageMarketCodeId
+           || code == v3::kInitCodeId || code == v3::kCronCodeId
+           || code == v3::kRewardActorCodeId || code == v3::kSystemActorCodeId;
   }
 
   bool ActorContextV3::isSignableActor(const CodeId &code) const {
-    return code == v3::kAccountCodeCid || code == v3::kMultisigCodeCid;
+    return code == v3::kAccountCodeId || code == v3::kMultisigCodeId;
   }
 
   CodeId ActorContextV3::getAccountCodeId() const {
-    return v3::kAccountCodeCid;
+    return v3::kAccountCodeId;
   }
 
   CodeId ActorContextV3::getCronCodeId() const {
-    return v3::kCronCodeCid;
+    return v3::kCronCodeId;
   }
 
   CodeId ActorContextV3::getStoragePowerCodeId() const {
-    return v3::kStoragePowerCodeCid;
+    return v3::kStoragePowerCodeId;
   }
 
   CodeId ActorContextV3::getStorageMarketCodeId() const {
-    return v3::kStorageMarketCodeCid;
+    return v3::kStorageMarketCodeId;
   }
 
   CodeId ActorContextV3::getStorageMinerCodeId() const {
-    return v3::kStorageMinerCodeCid;
+    return v3::kStorageMinerCodeId;
   }
 
   CodeId ActorContextV3::getMultisigCodeId() const {
-    return v3::kMultisigCodeCid;
+    return v3::kMultisigCodeId;
   }
 
   CodeId ActorContextV3::getInitCodeId() const {
-    return v3::kInitCodeCid;
+    return v3::kInitCodeId;
   }
 
   CodeId ActorContextV3::getPaymentChannelCodeId() const {
@@ -68,15 +68,15 @@ namespace fc::vm::runtime::context {
   }
 
   CodeId ActorContextV3::getRewardActorCodeId() const {
-    return v3::kRewardActorCodeID;
+    return v3::kRewardActorCodeId;
   }
 
   CodeId ActorContextV3::getSystemActorCodeId() const {
-    return v3::kSystemActorCodeID;
+    return v3::kSystemActorCodeId;
   }
 
   CodeId ActorContextV3::getVerifiedRegistryCodeId() const {
-    return v3::kVerifiedRegistryCode;
+    return v3::kVerifiedRegistryCodeId;
   }
 
 }  // namespace fc::vm::runtime::context
