@@ -480,6 +480,8 @@ namespace fc::api {
         }},
         // TODO(turuslan): FIL-165 implement method
         .NetAddrsListen = {},
+        .NetConnect = {},
+        .NetPeers = {},
         .PledgeSector = {},
         .StateAccountKey = {[=](auto &address,
                                 auto &tipset_key) -> outcome::result<Address> {

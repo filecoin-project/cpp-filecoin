@@ -404,6 +404,8 @@ namespace fc::api {
     API_METHOD(MpoolSub, Chan<MpoolUpdate>)
 
     API_METHOD(NetAddrsListen, PeerInfo)
+    API_METHOD(NetConnect, void, const PeerInfo &)
+    API_METHOD(NetPeers, std::vector<PeerInfo>)
 
     API_METHOD(PledgeSector, void)
 

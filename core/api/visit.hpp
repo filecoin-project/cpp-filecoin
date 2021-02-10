@@ -47,6 +47,8 @@ namespace fc::api {
     f(a.MpoolSelect);
     f(a.MpoolSub);
     f(a.NetAddrsListen);
+    f(a.NetConnect);
+    f(a.NetPeers);
     f(a.PaychAllocateLane);
     f(a.PaychGet);
     f(a.PaychVoucherAdd);
