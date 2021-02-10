@@ -22,6 +22,8 @@ namespace fc::storage::ipfs {
       : public IpfsDatastore,
         public std::enable_shared_from_this<LeveldbDatastore> {
    public:
+    static outcome::result<Buffer> encodeKey(const CID &value);
+
     /**
      * @brief constructor
      * @param leveldb shared pointer to leveldb instance

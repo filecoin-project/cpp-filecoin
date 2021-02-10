@@ -81,18 +81,4 @@ namespace fc::storage {
     Buffer key;
     MapPtr map;
   };
-
-  struct MapBatched : PersistentBufferMap {
-    MapBatched(BufferBatch &batch);
-
-    outcome::result<Buffer> get(const Buffer &key) const override;
-    bool contains(const Buffer &key) const override;
-    outcome::result<void> put(const Buffer &key, const Buffer &value) override;
-    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
-    outcome::result<void> remove(const Buffer &key) override;
-    std::unique_ptr<BufferMapCursor> cursor() override;
-    std::unique_ptr<BufferBatch> batch() override;
-
-    BufferBatch &batch_;
-  };
 }  // namespace fc::storage
