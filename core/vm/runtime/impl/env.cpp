@@ -11,6 +11,8 @@
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
+#include "vm/actor/builtin/v3/account/account_actor.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/actor_context_creator.hpp"
@@ -50,10 +52,18 @@ namespace fc::vm::runtime {
             return key;
           }
         }
-      }
-      if (actor.code == actor::builtin::v2::kAccountCodeCid) {
+      } else if (actor.code == actor::builtin::v2::kAccountCodeCid) {
         if (auto _state{
                 ipld->getCbor<actor::builtin::v2::account::AccountActorState>(
+                    actor.head)}) {
+          auto &key{_state.value().address};
+          if (allow_actor || key.isKeyType()) {
+            return key;
+          }
+        }
+      } else if (actor.code == actor::builtin::v3::kAccountCodeCid) {
+        if (auto _state{
+                ipld->getCbor<actor::builtin::v3::account::AccountActorState>(
                     actor.head)}) {
           auto &key{_state.value().address};
           if (allow_actor || key.isKeyType()) {
@@ -302,7 +312,7 @@ namespace fc::vm::runtime {
     }
 
     // Get correct version of actor to create
-    CID account_code_cid_to_create = context->getAccountCodeCid();
+    CID account_code_cid_to_create = context->getAccountCodeId();
     MethodNumber account_actor_create_method_number = kConstructorMethodNumber;
 
     OUTCOME_TRY(state_tree->set(

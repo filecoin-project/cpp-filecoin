@@ -35,43 +35,43 @@ namespace fc::vm::runtime::context {
     return code == v3::kAccountCodeCid || code == v3::kMultisigCodeCid;
   }
 
-  CodeId ActorContextV3::getAccountCodeCid() const {
+  CodeId ActorContextV3::getAccountCodeId() const {
     return v3::kAccountCodeCid;
   }
 
-  CodeId ActorContextV3::getCronCodeCid() const {
+  CodeId ActorContextV3::getCronCodeId() const {
     return v3::kCronCodeCid;
   }
 
-  CodeId ActorContextV3::getStoragePowerCodeCid() const {
+  CodeId ActorContextV3::getStoragePowerCodeId() const {
     return v3::kStoragePowerCodeCid;
   }
 
-  CodeId ActorContextV3::getStorageMarketCodeCid() const {
+  CodeId ActorContextV3::getStorageMarketCodeId() const {
     return v3::kStorageMarketCodeCid;
   }
 
-  CodeId ActorContextV3::getStorageMinerCodeCid() const {
+  CodeId ActorContextV3::getStorageMinerCodeId() const {
     return v3::kStorageMinerCodeCid;
   }
 
-  CodeId ActorContextV3::getMultisigCodeCid() const {
+  CodeId ActorContextV3::getMultisigCodeId() const {
     return v3::kMultisigCodeCid;
   }
 
-  CodeId ActorContextV3::getInitCodeCid() const {
+  CodeId ActorContextV3::getInitCodeId() const {
     return v3::kInitCodeCid;
   }
 
-  CodeId ActorContextV3::getPaymentChannelCodeCid() const {
+  CodeId ActorContextV3::getPaymentChannelCodeId() const {
     return v3::kPaymentChannelCodeCid;
   }
 
-  CodeId ActorContextV3::getRewardActorCodeID() const {
+  CodeId ActorContextV3::getRewardActorCodeId() const {
     return v3::kRewardActorCodeID;
   }
 
-  CodeId ActorContextV3::getSystemActorCodeID() const {
+  CodeId ActorContextV3::getSystemActorCodeId() const {
     return v3::kSystemActorCodeID;
   }
 

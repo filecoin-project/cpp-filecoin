@@ -10,6 +10,8 @@
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
+#include "vm/actor/builtin/v3/storage_power/storage_power_actor_state.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
@@ -46,6 +48,11 @@ namespace fc::blockchain::weight {
     } else if (actor.code == vm::actor::builtin::v2::kStoragePowerCodeCid) {
       OUTCOME_TRY(state,
                   ipld_->getCbor<vm::actor::builtin::v2::storage_power::State>(
+                      actor.head));
+      network_power = state.total_qa_power;
+    } else if (actor.code == vm::actor::builtin::v3::kStoragePowerCodeCid) {
+      OUTCOME_TRY(state,
+                  ipld_->getCbor<vm::actor::builtin::v3::storage_power::State>(
                       actor.head));
       network_power = state.total_qa_power;
     } else {

@@ -18,16 +18,16 @@ namespace fc::vm::runtime::context {
     bool isSingletonActor(const CodeId &code) const override;
     bool isSignableActor(const CodeId &code) const override;
 
-    CodeId getAccountCodeCid() const override;
-    CodeId getCronCodeCid() const override;
-    CodeId getStoragePowerCodeCid() const override;
-    CodeId getStorageMarketCodeCid() const override;
-    CodeId getStorageMinerCodeCid() const override;
-    CodeId getMultisigCodeCid() const override;
-    CodeId getInitCodeCid() const override;
-    CodeId getPaymentChannelCodeCid() const override;
-    CodeId getRewardActorCodeID() const override;
-    CodeId getSystemActorCodeID() const override;
+    CodeId getAccountCodeId() const override;
+    CodeId getCronCodeId() const override;
+    CodeId getStoragePowerCodeId() const override;
+    CodeId getStorageMarketCodeId() const override;
+    CodeId getStorageMinerCodeId() const override;
+    CodeId getMultisigCodeId() const override;
+    CodeId getInitCodeId() const override;
+    CodeId getPaymentChannelCodeId() const override;
+    CodeId getRewardActorCodeId() const override;
+    CodeId getSystemActorCodeId() const override;
     CodeId getVerifiedRegistryCodeId() const override;
   };
 }  // namespace fc::vm::runtime::context

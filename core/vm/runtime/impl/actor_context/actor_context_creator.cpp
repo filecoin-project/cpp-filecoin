@@ -5,15 +5,11 @@
 
 #include "vm/runtime/actor_context_creator.hpp"
 
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
 #include "vm/runtime/impl/actor_context/actor_context_v0.hpp"
 #include "vm/runtime/impl/actor_context/actor_context_v2.hpp"
 #include "vm/runtime/impl/actor_context/actor_context_v3.hpp"
 
 namespace fc::vm::runtime::context {
-  using namespace actor::builtin;
 
   ActorContextPtr ActorContextCreator::createContext(
       ActorVersion version) {

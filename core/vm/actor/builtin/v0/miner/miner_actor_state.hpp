@@ -125,12 +125,11 @@ namespace fc::vm::actor::builtin::v0::miner {
 }  // namespace fc::vm::actor::builtin::v0::miner
 
 namespace fc {
-  using vm::actor::builtin::v0::miner::State;
-
   template <>
-  struct Ipld::Visit<State> {
+  struct Ipld::Visit<vm::actor::builtin::v0::miner::State> {
     template <typename Visitor>
-    static void call(State &state, const Visitor &visit) {
+    static void call(vm::actor::builtin::v0::miner::State &state,
+                     const Visitor &visit) {
       visit(state.info);
       visit(state.vesting_funds);
       visit(state.precommitted_sectors);

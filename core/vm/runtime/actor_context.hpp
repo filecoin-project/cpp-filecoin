@@ -30,16 +30,16 @@ namespace fc::vm::runtime::context {
     virtual bool isSignableActor(const CodeId &code) const = 0;
 
     /** Get actor's code id */
-    virtual CodeId getAccountCodeCid() const = 0;
-    virtual CodeId getCronCodeCid() const = 0;
-    virtual CodeId getStoragePowerCodeCid() const = 0;
-    virtual CodeId getStorageMarketCodeCid() const = 0;
-    virtual CodeId getStorageMinerCodeCid() const = 0;
-    virtual CodeId getMultisigCodeCid() const = 0;
-    virtual CodeId getInitCodeCid() const = 0;
-    virtual CodeId getPaymentChannelCodeCid() const = 0;
-    virtual CodeId getRewardActorCodeID() const = 0;
-    virtual CodeId getSystemActorCodeID() const = 0;
+    virtual CodeId getAccountCodeId() const = 0;
+    virtual CodeId getCronCodeId() const = 0;
+    virtual CodeId getStoragePowerCodeId() const = 0;
+    virtual CodeId getStorageMarketCodeId() const = 0;
+    virtual CodeId getStorageMinerCodeId() const = 0;
+    virtual CodeId getMultisigCodeId() const = 0;
+    virtual CodeId getInitCodeId() const = 0;
+    virtual CodeId getPaymentChannelCodeId() const = 0;
+    virtual CodeId getRewardActorCodeId() const = 0;
+    virtual CodeId getSystemActorCodeId() const = 0;
     virtual CodeId getVerifiedRegistryCodeId() const = 0;
   };
 

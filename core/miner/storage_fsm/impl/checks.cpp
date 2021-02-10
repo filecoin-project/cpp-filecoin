@@ -13,7 +13,10 @@
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/miner/policy.hpp"
 
 namespace fc::mining::checks {
@@ -132,6 +135,12 @@ namespace fc::mining::checks {
       OUTCOME_TRY(
           state2,
           ipfs->getCbor<vm::actor::builtin::v2::miner::State>(actor.head));
+      state.precommitted_sectors = state2.precommitted_sectors;
+      state.allocated_sectors = state2.allocated_sectors;
+    } else if (actor.code == vm::actor::builtin::v3::kStorageMinerCodeCid) {
+      OUTCOME_TRY(
+          state2,
+          ipfs->getCbor<vm::actor::builtin::v3::miner::State>(actor.head));
       state.precommitted_sectors = state2.precommitted_sectors;
       state.allocated_sectors = state2.allocated_sectors;
     } else {
