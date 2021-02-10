@@ -5,6 +5,10 @@
 
 add_library(runtime
     circulating.cpp
+    impl/actor_context/actor_context_v0.cpp
+    impl/actor_context/actor_context_v2.cpp
+    impl/actor_context/actor_context_v3.cpp
+    impl/actor_context/actor_context_creator.cpp
     impl/env.cpp
     impl/runtime_impl.cpp
     impl/runtime_error.cpp

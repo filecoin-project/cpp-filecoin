@@ -13,6 +13,7 @@
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
+#include "vm/runtime/actor_context_creator.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"
 
@@ -22,10 +23,12 @@ namespace fc::vm::runtime {
   using actor::ActorVersion;
   using actor::getActorVersionForNetwork;
   using actor::isAccountActor;
+  using actor::kConstructorMethodNumber;
   using actor::kEmptyObjectCid;
   using actor::kRewardAddress;
   using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
+  using context::ActorContextCreator;
   using storage::hamt::HamtError;
   using version::getNetworkVersion;
 
@@ -232,11 +235,10 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(add_locked(kRewardAddress, apply.reward));
     auto over{limit - 11 * used / 10};
     auto gas_burned{
-        used == 0
-            ? limit
-            : over < 0 ? 0
-                       : static_cast<GasAmount>(bigdiv(
-                           BigInt{limit - used} * std::min(used, over), used))};
+        used == 0  ? limit
+        : over < 0 ? 0
+                   : static_cast<GasAmount>(bigdiv(
+                       BigInt{limit - used} * std::min(used, over), used))};
     if (gas_burned != 0) {
       OUTCOME_TRY(add_locked(actor::kBurntFundsActorAddress,
                              base_fee_pay * gas_burned));
@@ -292,7 +294,7 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<Actor> Execution::tryCreateAccountActor(
-      const Address &address) {
+      const Address &address, const ActorContextPtr &context) {
     OUTCOME_TRY(chargeGas(env->pricelist.onCreateActor()));
     OUTCOME_TRY(id, state_tree->registerNewAddress(address));
     if (!address.isKeyType()) {
@@ -300,21 +302,8 @@ namespace fc::vm::runtime {
     }
 
     // Get correct version of actor to create
-    CID account_code_cid_to_create;
-    MethodNumber account_actor_create_method_number;
-    switch (getActorVersionForNetwork(
-        getNetworkVersion(static_cast<ChainEpoch>(env->epoch)))) {
-      case ActorVersion::kVersion0:
-        account_code_cid_to_create = actor::builtin::v0::kAccountCodeCid;
-        account_actor_create_method_number =
-            actor::builtin::v0::account::Construct::Number;
-        break;
-      case ActorVersion::kVersion2:
-        account_code_cid_to_create = actor::builtin::v2::kAccountCodeCid;
-        account_actor_create_method_number =
-            actor::builtin::v2::account::Construct::Number;
-        break;
-    }
+    CID account_code_cid_to_create = context->getAccountCodeCid();
+    MethodNumber account_actor_create_method_number = kConstructorMethodNumber;
 
     OUTCOME_TRY(state_tree->set(
         id, {account_code_cid_to_create, actor::kEmptyObjectCid, {}, {}}));
@@ -349,6 +338,9 @@ namespace fc::vm::runtime {
     dvm::onSend(message);
     DVM_INDENT;
 
+    const auto context = ActorContextCreator::createContext(
+        getNetworkVersion(static_cast<ChainEpoch>(env->epoch)));
+
     OUTCOME_TRY(chargeGas(charge));
     Actor to_actor;
     auto maybe_to_actor = state_tree->get(message.to);
@@ -356,7 +348,7 @@ namespace fc::vm::runtime {
       if (maybe_to_actor.error() != HamtError::kNotFound) {
         return maybe_to_actor.error();
       }
-      OUTCOME_TRY(account_actor, tryCreateAccountActor(message.to));
+      OUTCOME_TRY(account_actor, tryCreateAccountActor(message.to, context));
       to_actor = account_actor;
     } else {
       to_actor = maybe_to_actor.value();
@@ -392,7 +384,7 @@ namespace fc::vm::runtime {
     if (message.method != kSendMethodNumber) {
       _message.from = caller_id;
       auto runtime = std::make_shared<RuntimeImpl>(
-          shared_from_this(), _message, caller_id);
+          shared_from_this(), context, _message, caller_id);
       auto result = env->invoker->invoke(to_actor, runtime);
       // Transform VMAbortExitCode code to VMExitCode
       if (result.has_error() && isAbortExitCode(result.error())) {

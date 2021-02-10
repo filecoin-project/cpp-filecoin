@@ -22,6 +22,7 @@
 #include "vm/actor/actor_encoding.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/message/message.hpp"
+#include "vm/runtime/actor_context.hpp"
 #include "vm/runtime/runtime_types.hpp"
 #include "vm/version.hpp"
 
@@ -36,6 +37,7 @@ namespace fc::vm::runtime {
   using actor::MethodNumber;
   using actor::MethodParams;
   using common::Buffer;
+  using context::ActorContextPtr;
   using crypto::blake2b::Blake2b256Hash;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
@@ -68,6 +70,8 @@ namespace fc::vm::runtime {
     virtual ~Runtime() = default;
 
     virtual std::shared_ptr<Execution> execution() const = 0;
+
+    virtual ActorContextPtr context() const = 0;
 
     virtual NetworkVersion getNetworkVersion() const = 0;
 

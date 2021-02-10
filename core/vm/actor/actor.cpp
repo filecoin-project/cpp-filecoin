@@ -98,7 +98,51 @@ namespace fc::vm::actor {
       case NetworkVersion::kVersion8:
       case NetworkVersion::kVersion9:
         return ActorVersion::kVersion2;
+      case NetworkVersion::kVersion10:
+      case NetworkVersion::kVersion11:
+      case NetworkVersion::kVersion12:
+        return ActorVersion::kVersion3;
     }
+  }
+
+  ActorVersion getActorVersionForCid(const CodeId &actorCid) {
+    if ((actorCid == v0::kAccountCodeCid) || (actorCid == v0::kCronCodeCid)
+        || (actorCid == v0::kStoragePowerCodeCid)
+        || (actorCid == v0::kStorageMarketCodeCid)
+        || (actorCid == v0::kStorageMinerCodeCid)
+        || (actorCid == v0::kMultisigCodeCid) || (actorCid == v0::kInitCodeCid)
+        || (actorCid == v0::kPaymentChannelCodeCid)
+        || (actorCid == v0::kRewardActorCodeID)
+        || (actorCid == v0::kSystemActorCodeID)
+        || (actorCid == v0::kVerifiedRegistryCode)) {
+      return ActorVersion::kVersion0;
+    }
+
+    if ((actorCid == v2::kAccountCodeCid) || (actorCid == v2::kCronCodeCid)
+        || (actorCid == v2::kStoragePowerCodeCid)
+        || (actorCid == v2::kStorageMarketCodeCid)
+        || (actorCid == v2::kStorageMinerCodeCid)
+        || (actorCid == v2::kMultisigCodeCid) || (actorCid == v2::kInitCodeCid)
+        || (actorCid == v2::kPaymentChannelCodeCid)
+        || (actorCid == v2::kRewardActorCodeID)
+        || (actorCid == v2::kSystemActorCodeID)
+        || (actorCid == v2::kVerifiedRegistryCode)) {
+      return ActorVersion::kVersion2;
+    }
+
+    if ((actorCid == v3::kAccountCodeCid) || (actorCid == v3::kCronCodeCid)
+        || (actorCid == v3::kStoragePowerCodeCid)
+        || (actorCid == v3::kStorageMarketCodeCid)
+        || (actorCid == v3::kStorageMinerCodeCid)
+        || (actorCid == v3::kMultisigCodeCid) || (actorCid == v3::kInitCodeCid)
+        || (actorCid == v3::kPaymentChannelCodeCid)
+        || (actorCid == v3::kRewardActorCodeID)
+        || (actorCid == v3::kSystemActorCodeID)
+        || (actorCid == v3::kVerifiedRegistryCode)) {
+      return ActorVersion::kVersion3;
+    }
+
+    assert(false);
   }
 
 }  // namespace fc::vm::actor

@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_VM_RUNTIME_ENV_HPP
-#define FILECOIN_CORE_VM_RUNTIME_ENV_HPP
+#pragma once
 
 #include "primitives/tipset/tipset.hpp"
 #include "primitives/types.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/invoker.hpp"
+#include "vm/runtime/actor_context.hpp"
 #include "vm/runtime/circulating.hpp"
 #include "vm/runtime/pricelist.hpp"
 #include "vm/runtime/runtime_randomness.hpp"
@@ -18,6 +18,7 @@
 namespace fc::vm::runtime {
   using actor::Actor;
   using actor::Invoker;
+  using context::ActorContextPtr;
   using primitives::tipset::TipsetCPtr;
   using state::StateTree;
   using state::StateTreeImpl;
@@ -89,7 +90,8 @@ namespace fc::vm::runtime {
 
     outcome::result<void> chargeGas(GasAmount amount);
 
-    outcome::result<Actor> tryCreateAccountActor(const Address &address);
+    outcome::result<Actor> tryCreateAccountActor(
+        const Address &address, const ActorContextPtr &context);
 
     outcome::result<InvocationOutput> sendWithRevert(
         const UnsignedMessage &message);
@@ -125,5 +127,3 @@ namespace fc::vm::runtime {
     std::weak_ptr<Execution> execution_;
   };
 }  // namespace fc::vm::runtime
-
-#endif  // FILECOIN_CORE_VM_RUNTIME_ENV_HPP

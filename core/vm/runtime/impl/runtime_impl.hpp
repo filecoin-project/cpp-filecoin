@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_RUNTIME_IMPL_RUNTIME_IMPL_HPP
-#define CPP_FILECOIN_CORE_VM_RUNTIME_IMPL_RUNTIME_IMPL_HPP
+#pragma once
 
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/env.hpp"
@@ -17,10 +16,13 @@ namespace fc::vm::runtime {
   class RuntimeImpl : public Runtime {
    public:
     RuntimeImpl(std::shared_ptr<Execution> execution,
+                ActorContextPtr context,
                 UnsignedMessage message,
                 const Address &caller_id);
 
     std::shared_ptr<Execution> execution() const override;
+
+    ActorContextPtr context() const override;
 
     NetworkVersion getNetworkVersion() const override;
 
@@ -122,10 +124,9 @@ namespace fc::vm::runtime {
 
    private:
     std::shared_ptr<Execution> execution_;
+    ActorContextPtr context_;
     UnsignedMessage message_;
     Address caller_id;
   };
 
 }  // namespace fc::vm::runtime
-
-#endif  // CPP_FILECOIN_CORE_VM_RUNTIME_IMPL_RUNTIME_IMPL_HPP

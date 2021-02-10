@@ -45,6 +45,9 @@ namespace fc::mining::checks {
         return maxSealDuration(sector_info->sector_type);
       case vm::actor::ActorVersion::kVersion2:
         return vm::actor::builtin::v2::miner::kMaxProveCommitDuration;
+      // TODO (m.tagirov or a.chernyshov) change to v3
+      case vm::actor::ActorVersion::kVersion3:
+        return vm::actor::builtin::v2::miner::kMaxProveCommitDuration;
     }
   }
 

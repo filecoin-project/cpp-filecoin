@@ -21,14 +21,20 @@ namespace fc::vm::runtime {
   using fc::storage::hamt::HamtError;
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
+                           ActorContextPtr context,
                            UnsignedMessage message,
                            const Address &caller_id)
       : execution_{std::move(execution)},
+        context_{std::move(context)},
         message_{std::move(message)},
         caller_id{caller_id} {}
 
   std::shared_ptr<Execution> RuntimeImpl::execution() const {
     return execution_;
+  }
+
+  ActorContextPtr RuntimeImpl::context() const {
+    return context_;
   }
 
   NetworkVersion RuntimeImpl::getNetworkVersion() const {
