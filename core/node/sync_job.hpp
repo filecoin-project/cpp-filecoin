@@ -6,6 +6,9 @@
 #ifndef CPP_FILECOIN_SYNC_SYNC_JOB_HPP
 #define CPP_FILECOIN_SYNC_SYNC_JOB_HPP
 
+#include <queue>
+
+#include "node/interpret_job.hpp"
 #include "peers.hpp"
 #include "storage/buffer_map.hpp"
 #include "tipset_request.hpp"
@@ -16,9 +19,12 @@ namespace fc::sync {
   /// which are also nodes (to make requests to them)
   class SyncJob {
    public:
-    SyncJob(std::shared_ptr<ChainDb> chain_db,
-            std::shared_ptr<libp2p::Host> host,
+    SyncJob(std::shared_ptr<libp2p::Host> host,
             std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+            std::shared_ptr<InterpretJob> interpret_job,
+            TsBranches &ts_branches,
+            TsBranchPtr ts_main,
+            TsLoadPtr ts_load,
             IpldPtr ipld);
 
     /// Listens to PossibleHead and PeerConnected events
@@ -40,33 +46,35 @@ namespace fc::sync {
 
     void onPossibleHead(const events::PossibleHead &e);
 
-    bool adjustTarget(DownloadTarget &target);
+    TipsetCPtr getLocal(const TipsetKey &tsk);
 
-    void enqueue(DownloadTarget target);
+    void onTs(const boost::optional<PeerId> &peer, TipsetCPtr ts);
 
-    void newJob(DownloadTarget target, bool make_deep_request);
+    void fetch(const PeerId &peer, const TipsetKey &tsk);
+
+    void fetchDequeue();
 
     void downloaderCallback(TipsetRequest::Result r);
 
-    boost::optional<DownloadTarget> dequeue();
-
-    std::shared_ptr<ChainDb> chain_db_;
     std::shared_ptr<libp2p::Host> host_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
+    std::shared_ptr<InterpretJob> interpret_job_;
+    TsBranches &ts_branches_;
+    TsBranchPtr ts_main_;
+    TsLoadPtr ts_load_;
     IpldPtr ipld_;
+    std::mutex branches_mutex_;
+
+    std::queue<std::pair<PeerId, TipsetKey>> requests_;
+    std::mutex requests_mutex_;
 
     std::shared_ptr<events::Events> events_;
     Peers peers_;
-    DownloadTargets pending_targets_;
 
-    /// Last known height needed to limit the depth of sync queries if possible
-    Height last_known_height_ = 0;
-
+    events::Connection head_interpreted_event_;
     events::Connection possible_head_event_;
-    events::Connection peer_connected_event_;
 
     std::shared_ptr<TipsetRequest> request_;
-    boost::optional<DownloadTarget> now_active_;
   };
 
 }  // namespace fc::sync

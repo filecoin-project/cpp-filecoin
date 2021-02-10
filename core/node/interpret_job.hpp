@@ -8,12 +8,9 @@
 
 #include "events_fwd.hpp"
 
-#include "storage/buffer_map.hpp"
-
 namespace fc::sync {
+  using primitives::tipset::TipsetCPtr;
   using vm::interpreter::CachedInterpreter;
-
-  class ChainDb;
 
   /// Active objects which interprets parts of chain which are downloaded but
   /// not yet interpreted
@@ -21,18 +18,12 @@ namespace fc::sync {
    public:
     static std::shared_ptr<InterpretJob> create(
         std::shared_ptr<CachedInterpreter> interpreter,
-        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-        std::shared_ptr<ChainDb> chain_db,
         const TsBranches &ts_branches,
         IpldPtr ipld,
-        std::shared_ptr<blockchain::weight::WeightCalculator>
-            weight_calculator);
+        std::shared_ptr<events::Events> events);
 
     virtual ~InterpretJob() = default;
-
-    /// Listens to HeadDownloaded events, interprets subchains not yet
-    /// interpreted, emits HeadInterpreted events
-    virtual void start(std::shared_ptr<events::Events> events) = 0;
+    virtual void add(TipsetCPtr ts) = 0;
   };
 
 }  // namespace fc::sync

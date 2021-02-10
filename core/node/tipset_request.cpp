@@ -6,7 +6,6 @@
 #include "tipset_request.hpp"
 
 #include "blocksync_request.hpp"
-#include "chain_db.hpp"
 #include "common/logger.hpp"
 
 namespace fc::sync {
@@ -23,7 +22,7 @@ namespace fc::sync {
         : public TipsetRequest,
           public std::enable_shared_from_this<TipsetRequestImpl> {
      public:
-      TipsetRequestImpl(ChainDb &db) : db_(db) {
+      TipsetRequestImpl() {
         log()->debug("++++++ {}", ++xxx);
       }
 
@@ -94,53 +93,14 @@ namespace fc::sync {
             head = std::move(ts.value());
           }
 
-          try {
-            bool proceed = true;
-
-            if (head) {
-              proceed = indexTipset(result, head);
-              result.head = std::move(head);
-              result.head_indexed = true;
-            }
-
-            for (auto &tipset : r.parents) {
-              if (!proceed) {
-                break;
-              }
-              proceed = indexTipset(result, tipset);
-            }
-
-          } catch (const std::system_error &e) {
-            log()->error("tipset store error {}", e.code().message());
-            result.delta_rating -= 150;
-          }
+          result.head = std::move(head);
+          result.head_indexed = true;
         }
 
         request_.reset();
 
         callback_(std::move(result));
       }
-
-      /// returns true to proceed indexing parents
-      bool indexTipset(Result &result, TipsetCPtr tipset) {
-        TipsetKey parent = tipset->getParents();
-        OUTCOME_EXCEPT(sync_state, db_.storeTipset(tipset, parent));
-        if (!result.head) {
-          result.head = tipset;
-        }
-        if (sync_state.unsynced_bottom) {
-          result.next_target_height = sync_state.unsynced_bottom->height() - 1;
-          if (*sync_state.unsynced_bottom == *tipset) {
-            // continue indexing parents
-            result.next_target = std::move(parent);
-            return true;
-          }
-          result.next_target = sync_state.unsynced_bottom->getParents();
-        }
-        return false;
-      }
-
-      ChainDb &db_;
 
       /// The option
       bool index_head_tipset_ = false;
@@ -154,7 +114,6 @@ namespace fc::sync {
   }  // namespace
 
   std::shared_ptr<TipsetRequest> TipsetRequest::newRequest(
-      ChainDb &db,
       libp2p::Host &host,
       libp2p::protocol::Scheduler &scheduler,
       Ipld &ipld,
@@ -168,7 +127,7 @@ namespace fc::sync {
     assert(callback);
 
     std::shared_ptr<TipsetRequestImpl> impl =
-        std::make_shared<TipsetRequestImpl>(db);
+        std::make_shared<TipsetRequestImpl>();
 
     // need shared_from_this there
     impl->makeRequest(host,

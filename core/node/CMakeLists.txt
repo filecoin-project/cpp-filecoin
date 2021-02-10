@@ -15,10 +15,6 @@ add_library(sync
     graphsync_server.cpp
     sync_job.cpp
     interpret_job.cpp
-    chain_db.cpp
-    branches.cpp
-    index_db.cpp
-    index_db_backend.cpp
     head_constructor.cpp
     chain_store_impl.cpp
     pubsub_workaround.cpp

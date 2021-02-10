@@ -12,6 +12,7 @@
 
 #include "common/outcome.hpp"
 #include "fwd.hpp"
+#include "node/events.hpp"
 #include "node/main/config.hpp"
 #include "storage/buffer_map.hpp"
 
@@ -30,8 +31,6 @@ namespace fc::node {
     std::shared_ptr<storage::ipfs::IpfsDatastore> ipld;
     TsLoadPtr ts_load;
     std::shared_ptr<storage::PersistentBufferMap> kv_store;
-    std::shared_ptr<sync::IndexDb> index_db;
-    std::shared_ptr<sync::ChainDb> chain_db;
     TsBranches ts_branches;
     TsBranchPtr ts_main;
 
@@ -42,6 +41,7 @@ namespace fc::node {
     // libp2p + async base objects
     std::shared_ptr<boost::asio::io_context> io_context;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler;
+    std::shared_ptr<sync::events::Events> events;
     std::shared_ptr<libp2p::Host> host;
 
     // base protocols

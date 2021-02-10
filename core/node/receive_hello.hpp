@@ -23,9 +23,11 @@ namespace fc::sync {
     using PeerId = libp2p::peer::PeerId;
 
     ReceiveHello(std::shared_ptr<libp2p::Host> host,
-                 std::shared_ptr<clock::UTCClock> clock);
+                 std::shared_ptr<clock::UTCClock> clock,
+                 CID genesis,
+                 std::shared_ptr<events::Events> events);
 
-    void start(CID genesis, std::shared_ptr<events::Events> events);
+    void start();
 
    private:
     using StreamPtr = std::shared_ptr<CborStream>;
@@ -35,7 +37,7 @@ namespace fc::sync {
 
     std::shared_ptr<libp2p::Host> host_;
     std::shared_ptr<clock::UTCClock> clock_;
-    boost::optional<CID> genesis_;
+    CID genesis_;
     std::shared_ptr<events::Events> events_;
   };
 

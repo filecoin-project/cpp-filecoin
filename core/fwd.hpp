@@ -129,11 +129,9 @@ namespace fc {
   }      // namespace storage
 
   namespace sync {
-    class ChainDb;
     class ChainStoreImpl;
     class GraphsyncServer;
     class Identify;
-    class IndexDb;
     class InterpretJob;
     class PeerDiscovery;
     class PubSubGate;

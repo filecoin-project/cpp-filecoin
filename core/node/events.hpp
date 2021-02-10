@@ -58,14 +58,9 @@ namespace fc::sync::events {
     Height height = 0;
   };
 
-  struct HeadDownloaded {
-    TipsetCPtr head;
-  };
-
   struct HeadInterpreted {
     TipsetCPtr head;
     outcome::result<vm::interpreter::Result> result;
-    BigInt weight;
   };
 
   struct CurrentHead {
@@ -110,7 +105,6 @@ namespace fc::sync::events {
     DEFINE_EVENT(BlockFromPubSub);
     DEFINE_EVENT(MessageFromPubSub);
     DEFINE_EVENT(PossibleHead);
-    DEFINE_EVENT(HeadDownloaded);
     DEFINE_EVENT(HeadInterpreted);
     DEFINE_EVENT(HeadChange);
     DEFINE_EVENT(FatalError);

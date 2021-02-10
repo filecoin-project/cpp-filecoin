@@ -20,18 +20,18 @@ namespace fc::sync {
   }  // namespace
 
   ReceiveHello::ReceiveHello(std::shared_ptr<libp2p::Host> host,
-                             std::shared_ptr<clock::UTCClock> clock)
-      : host_(std::move(host)), clock_(std::move(clock)) {
+                             std::shared_ptr<clock::UTCClock> clock,
+                             CID genesis,
+                             std::shared_ptr<events::Events> events)
+      : host_(std::move(host)),
+        clock_(std::move(clock)),
+        genesis_(std::move(genesis)),
+        events_(std::move(events)) {
     assert(host_);
     assert(clock_);
   }
 
-  void ReceiveHello::start(CID genesis,
-                           std::shared_ptr<events::Events> events) {
-    genesis_ = std::move(genesis);
-    events_ = std::move(events);
-    assert(events_);
-
+  void ReceiveHello::start() {
     host_->setProtocolHandler(
         kHelloProtocol,
         [wptr =
@@ -63,11 +63,6 @@ namespace fc::sync {
 
   void ReceiveHello::onRequestRead(const StreamPtr &stream,
                                    outcome::result<HelloMessage> result) {
-    if (!genesis_) {
-      stream->close();
-      return;
-    }
-
     auto peer_res = stream->stream()->remotePeerId();
     if (!peer_res) {
       log()->error("no remote peer");
@@ -83,7 +78,7 @@ namespace fc::sync {
 
     auto &msg = result.value();
 
-    if (msg.genesis != genesis_.value()) {
+    if (msg.genesis != genesis_) {
       log()->error("peer {} has another genesis: {}",
                    peer_res.value().toBase58(),
                    msg.genesis.toString().value());

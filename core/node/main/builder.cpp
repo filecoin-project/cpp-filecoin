@@ -31,11 +31,9 @@
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "drand/impl/beaconizer.hpp"
 #include "node/blocksync_server.hpp"
-#include "node/chain_db.hpp"
 #include "node/chain_store_impl.hpp"
 #include "node/graphsync_server.hpp"
 #include "node/identify.hpp"
-#include "node/index_db_backend.hpp"
 #include "node/interpret_job.hpp"
 #include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
@@ -187,14 +185,11 @@ namespace fc::node {
   outcome::result<NodeObjects> createNodeObjects(Config &config) {
     NodeObjects o;
 
-    std::shared_ptr<sync::IndexDbBackend> index_db_backend;
-
     log()->debug("Creating storage...");
 
     bool creating_new_db = false;
 
     if (config.repo_path == "memory") {
-      OUTCOME_TRYA(index_db_backend, sync::IndexDbBackend::create(":memory:"));
       o.ipld = std::make_shared<storage::ipfs::InMemoryDatastore>();
       o.kv_store = std::make_shared<storage::InMemoryStorage>();
       creating_new_db = true;
@@ -212,9 +207,6 @@ namespace fc::node {
       }
       o.ipld = makeIpld(leveldb_res.value());
       o.kv_store = std::move(leveldb_res.value());
-
-      OUTCOME_TRYA(index_db_backend,
-                   sync::IndexDbBackend::create(config.join(kIndexDbFileName)));
     }
     o.ts_load = std::make_shared<primitives::tipset::TsLoadCache>(
         std::make_shared<primitives::tipset::TsLoadIpld>(o.ipld), 8 << 10);
@@ -226,20 +218,11 @@ namespace fc::node {
 
     log()->debug("Creating chain DB...");
 
-    o.index_db = std::make_shared<sync::IndexDb>(std::move(index_db_backend));
-    o.chain_db = std::make_shared<sync::ChainDb>();
-    OUTCOME_TRY(o.chain_db->init(
-        o.ts_load, o.index_db, config.genesis_cid, creating_new_db));
-
-    if (!config.genesis_cid) {
-      config.genesis_cid = o.chain_db->genesisCID();
-    }
-
-    OUTCOME_TRY(initNetworkName(o.chain_db->genesisTipset(), o.ipld, config));
+    OUTCOME_EXCEPT(genesis, o.ts_load->load(TipsetKey{{*config.genesis_cid}}));
+    OUTCOME_TRY(initNetworkName(*genesis, o.ipld, config));
     log()->info("Network name: {}", config.network_name);
 
-    auto genesis_timestamp =
-        clock::UnixTime(o.chain_db->genesisTipset().blks[0].timestamp);
+    auto genesis_timestamp = clock::UnixTime(genesis->blks[0].timestamp);
 
     log()->info("Genesis: {}, timestamp {}",
                 config.genesis_cid.value().toString().value(),
@@ -264,6 +247,8 @@ namespace fc::node {
     o.scheduler =
         injector.create<std::shared_ptr<libp2p::protocol::Scheduler>>();
 
+    o.events = std::make_shared<sync::events::Events>(o.scheduler);
+
     o.host = injector.create<std::shared_ptr<libp2p::Host>>();
 
     log()->debug("Creating protocols...");
@@ -284,7 +269,8 @@ namespace fc::node {
     o.say_hello =
         std::make_shared<sync::SayHello>(o.host, o.scheduler, o.utc_clock);
 
-    o.receive_hello = std::make_shared<sync::ReceiveHello>(o.host, o.utc_clock);
+    o.receive_hello = std::make_shared<sync::ReceiveHello>(
+        o.host, o.utc_clock, *config.genesis_cid, o.events);
 
     o.gossip = libp2p::protocol::gossip::create(
         o.scheduler, o.host, config.gossip_config);
@@ -333,18 +319,19 @@ namespace fc::node {
         std::make_shared<storage::MapPrefix>(kCachedInterpreterPrefix,
                                              o.kv_store));
 
-    o.sync_job = std::make_shared<sync::SyncJob>(
-        o.chain_db, o.host, o.scheduler, o.ipld);
-
     auto weight_calculator =
         std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
 
-    o.interpret_job = sync::InterpretJob::create(o.vm_interpreter,
+    o.interpret_job = sync::InterpretJob::create(
+        o.vm_interpreter, o.ts_branches, o.ipld, o.events);
+
+    o.sync_job = std::make_shared<sync::SyncJob>(o.host,
                                                  o.scheduler,
-                                                 o.chain_db,
+                                                 o.interpret_job,
                                                  o.ts_branches,
-                                                 o.ipld,
-                                                 weight_calculator);
+                                                 o.ts_main,
+                                                 o.ts_load,
+                                                 o.ipld);
 
     log()->debug("Creating chain store...");
 
@@ -367,8 +354,7 @@ namespace fc::node {
             o.vm_interpreter);
 
     o.chain_store =
-        std::make_shared<sync::ChainStoreImpl>(o.chain_db,
-                                               o.ipld,
+        std::make_shared<sync::ChainStoreImpl>(o.ipld,
                                                o.vm_interpreter,
                                                weight_calculator,
                                                std::move(block_validator));
@@ -408,6 +394,7 @@ namespace fc::node {
         std::chrono::seconds(kEpochDurationSeconds));
 
     o.api = std::make_shared<api::Api>(api::makeImpl(o.chain_store,
+                                                     config.network_name,
                                                      weight_calculator,
                                                      o.ts_load,
                                                      o.ts_main,

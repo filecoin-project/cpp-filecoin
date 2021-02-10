@@ -160,6 +160,7 @@ namespace fc::api {
   }
 
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
+               std::string network_name,
                std::shared_ptr<WeightCalculator> weight_calculator,
                TsLoadPtr ts_load,
                TsBranchPtr ts_main,
@@ -734,7 +735,7 @@ namespace fc::api {
               return sectors;
             }},
         .StateNetworkName = {[=]() -> outcome::result<std::string> {
-          return chain_store->getNetworkName();
+          return network_name;
         }},
         .StateNetworkVersion =
             [=](auto &tipset_key) -> outcome::result<NetworkVersion> {

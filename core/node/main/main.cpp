@@ -12,7 +12,6 @@
 #include "common/logger.hpp"
 #include "node/blocksync_server.hpp"
 #include "node/chain_store_impl.hpp"
-#include "node/events.hpp"
 #include "node/graphsync_server.hpp"
 #include "node/identify.hpp"
 #include "node/interpret_job.hpp"
@@ -75,7 +74,7 @@ namespace fc {
 
     log()->info("Starting components");
 
-    auto events = std::make_shared<sync::events::Events>(o.scheduler);
+    auto events = o.events;
 
     bool started = false;
 
@@ -141,13 +140,12 @@ namespace fc {
 
     o.identify->start(events);
     o.say_hello->start(config.genesis_cid.value(), events);
-    o.receive_hello->start(config.genesis_cid.value(), events);
+    o.receive_hello->start();
     o.gossip->start();
     o.pubsub_gate->start(config.network_name, events);
     o.graphsync_server->start();
     o.blocksync_server->start();
     o.sync_job->start(events);
-    o.interpret_job->start(events);
     o.peer_discovery->start(*events);
 
     bool fatal_error_occured = false;
@@ -160,7 +158,7 @@ namespace fc {
 
     // chain store starts after all other components, it chooses current head
     // and emits possible heads
-    if (auto r = o.chain_store->start(events, config.network_name); !r) {
+    if (auto r = o.chain_store->start(events); !r) {
       log()->error("Cannot start node: {}", r.error().message());
       return __LINE__;
     }

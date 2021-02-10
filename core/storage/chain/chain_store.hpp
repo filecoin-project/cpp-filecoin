@@ -39,10 +39,6 @@ namespace fc::storage::blockchain {
     virtual connection_t subscribeHeadChanges(
         const std::function<HeadChangeSignature> &subscriber) = 0;
 
-    virtual const std::string &getNetworkName() const = 0;
-
-    virtual const CID &genesisCID() const = 0;
-
     virtual primitives::BigInt getHeaviestWeight() const = 0;
   };
 

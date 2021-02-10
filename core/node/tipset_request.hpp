@@ -9,9 +9,6 @@
 #include "common.hpp"
 
 namespace fc::sync {
-
-  class ChainDb;
-
   class TipsetRequest {
    public:
     /// Subchain was indexed from head to bottom if success
@@ -37,7 +34,6 @@ namespace fc::sync {
     };
 
     static std::shared_ptr<TipsetRequest> newRequest(
-        ChainDb &db,
         libp2p::Host &host,
         libp2p::protocol::Scheduler &scheduler,
         Ipld &ipld,
