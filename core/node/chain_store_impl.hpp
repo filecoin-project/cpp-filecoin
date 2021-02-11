@@ -9,7 +9,6 @@
 #include "common.hpp"
 
 #include "blockchain/block_validator/block_validator.hpp"
-#include "blockchain/weight_calculator.hpp"
 #include "head_constructor.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
@@ -24,7 +23,7 @@ namespace fc::sync {
    public:
     ChainStoreImpl(std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
                    std::shared_ptr<CachedInterpreter> interpreter,
-                   std::shared_ptr<WeightCalculator> weight_calculator,
+                   TipsetCPtr head,
                    std::shared_ptr<BlockValidator> block_validator);
 
     outcome::result<void> start(std::shared_ptr<events::Events> events);
@@ -44,7 +43,6 @@ namespace fc::sync {
     HeadConstructor head_constructor_;
     std::shared_ptr<storage::ipfs::IpfsDatastore> ipld_;
     std::shared_ptr<CachedInterpreter> interpreter_;
-    std::shared_ptr<WeightCalculator> weight_calculator_;
     std::shared_ptr<BlockValidator> block_validator_;
 
     std::shared_ptr<events::Events> events_;

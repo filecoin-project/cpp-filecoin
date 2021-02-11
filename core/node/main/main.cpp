@@ -76,67 +76,60 @@ namespace fc {
 
     auto events = o.events;
 
-    bool started = false;
-
     node::PubsubWorkaround pubsub2(o.io_context,
                                    config.bootstrap_list,
                                    config.gossip_config,
                                    config.network_name);
 
-    // will start listening/connecting only after current chain head is set
     auto conn = events->subscribeCurrentHead(
         [&](const sync::events::CurrentHead &head) {
           log()->info(
               "\n============================ {} ============================",
               head.tipset->height());
-
-          if (started) {
-            return;
-          }
-
-          started = true;
-
-          if (auto r = o.host->listen(config.listen_address); !r) {
-            log()->error("Cannot listen to {}: {}",
-                         config.listen_address.getStringAddress(),
-                         r.error().message());
-            o.io_context->stop();
-            return;
-          }
-
-          o.host->start();
-          auto peer_info = o.host->getPeerInfo();
-          if (peer_info.addresses.empty()) {
-            log()->error("Cannot listen to {}: {}",
-                         config.listen_address.getStringAddress());
-            o.io_context->stop();
-            return;
-          }
-
-          log()->info("Node started at /ip4/{}/tcp/{}/p2p/{}",
-                      config.local_ip,
-                      config.port,
-                      peer_info.id.toBase58());
-
-          for (const auto &pi : config.bootstrap_list) {
-            o.host->connect(pi);
-          }
-
-          auto p2_res = pubsub2.start(config.port == -1 ? -1 : config.port + 2);
-          if (!p2_res) {
-            log()->warn("cannot start pubsub workaround, {}",
-                        p2_res.error().message());
-          } else {
-            o.gossip->addBootstrapPeer(p2_res.value().id,
-                                       p2_res.value().addresses[0]);
-          }
-
-          auto routes{std::make_shared<api::Routes>()};
-          api::serve(
-              o.api, routes, *o.io_context, "127.0.0.1", config.api_port);
-          api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
-          log()->info("API started at ws://127.0.0.1:{}", config.api_port);
         });
+
+    if (auto r = o.host->listen(config.listen_address); !r) {
+      log()->error("Cannot listen to {}: {}",
+                   config.listen_address.getStringAddress(),
+                   r.error().message());
+      exit(-1);
+    }
+
+    o.host->start();
+    auto peer_info = o.host->getPeerInfo();
+    if (peer_info.addresses.empty()) {
+      log()->error("Cannot listen to {}: {}",
+                   config.listen_address.getStringAddress());
+      exit(-1);
+    }
+
+    log()->info("Node started at /ip4/{}/tcp/{}/p2p/{}",
+                config.local_ip,
+                config.port,
+                peer_info.id.toBase58());
+
+    for (const auto &pi : config.bootstrap_list) {
+      o.host->connect(pi);
+    }
+
+    auto p2_res = pubsub2.start(config.port == -1 ? -1 : config.port + 2);
+    if (!p2_res) {
+      log()->warn("cannot start pubsub workaround, {}",
+                  p2_res.error().message());
+    } else {
+      o.gossip->addBootstrapPeer(p2_res.value().id,
+                                 p2_res.value().addresses[0]);
+    }
+
+    o.api->NetConnect = [&](auto &peer) {
+      o.host->connect(peer);
+      return outcome::success();
+    };
+
+    auto routes{std::make_shared<api::Routes>()};
+    api::serve(o.api, routes, *o.io_context, "127.0.0.1", config.api_port);
+    api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
+    log()->info("API started at ws://127.0.0.1:{}", config.api_port);
 
     o.identify->start(events);
     o.say_hello->start(config.genesis_cid.value(), events);

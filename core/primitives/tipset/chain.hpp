@@ -53,6 +53,8 @@ namespace fc::primitives::tipset::chain {
   TsBranchIter find(const TsBranches &branches, TipsetCPtr ts);
   TsBranchIter insert(TsBranches &branches, TipsetCPtr ts);
 
+  std::vector<TsBranchIter> children(TsBranchIter ts_it);
+
   /**
    * @return valid iterator
    */

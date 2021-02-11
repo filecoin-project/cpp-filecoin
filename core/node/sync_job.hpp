@@ -8,12 +8,14 @@
 
 #include <queue>
 
+#include "common/io_thread.hpp"
 #include "node/interpret_job.hpp"
 #include "peers.hpp"
 #include "storage/buffer_map.hpp"
 #include "tipset_request.hpp"
 
 namespace fc::sync {
+  using vm::interpreter::CachedInterpreter;
 
   /// Active object which downloads and indexes tipsets. Keeps track of peers
   /// which are also nodes (to make requests to them)
@@ -22,6 +24,7 @@ namespace fc::sync {
     SyncJob(std::shared_ptr<libp2p::Host> host,
             std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
             std::shared_ptr<InterpretJob> interpret_job,
+            std::shared_ptr<CachedInterpreter> interpreter,
             TsBranches &ts_branches,
             TsBranchPtr ts_main,
             TsLoadPtr ts_load,
@@ -50,6 +53,8 @@ namespace fc::sync {
 
     void onTs(const boost::optional<PeerId> &peer, TipsetCPtr ts);
 
+    void interpretDequeue();
+
     void fetch(const PeerId &peer, const TipsetKey &tsk);
 
     void fetchDequeue();
@@ -59,14 +64,18 @@ namespace fc::sync {
     std::shared_ptr<libp2p::Host> host_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<InterpretJob> interpret_job_;
+    std::shared_ptr<CachedInterpreter> interpreter_;
     TsBranches &ts_branches_;
     TsBranchPtr ts_main_;
     TsLoadPtr ts_load_;
     IpldPtr ipld_;
     std::mutex branches_mutex_;
+    IoThread thread;
 
     std::queue<std::pair<PeerId, TipsetKey>> requests_;
     std::mutex requests_mutex_;
+
+    std::queue<TipsetCPtr> interpret_queue_;
 
     std::shared_ptr<events::Events> events_;
     Peers peers_;

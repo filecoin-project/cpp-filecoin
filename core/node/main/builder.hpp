@@ -15,6 +15,7 @@
 #include "node/events.hpp"
 #include "node/main/config.hpp"
 #include "storage/buffer_map.hpp"
+#include "storage/leveldb/leveldb.hpp"
 
 namespace fc::node {
 
@@ -28,10 +29,12 @@ namespace fc::node {
 
   struct NodeObjects {
     // storage objects
+    std::shared_ptr<storage::LevelDB> ipld_leveldb;
     std::shared_ptr<storage::ipfs::IpfsDatastore> ipld;
     TsLoadPtr ts_load;
     std::shared_ptr<storage::PersistentBufferMap> kv_store;
-    TsBranches ts_branches;
+    std::shared_ptr<storage::PersistentBufferMap> ts_main_kv;
+    TsBranchesPtr ts_branches;
     TsBranchPtr ts_main;
 
     // clocks
@@ -72,13 +75,6 @@ namespace fc::node {
   };
 
   outcome::result<NodeObjects> createNodeObjects(Config &config);
-
-  static constexpr auto kIndexDbFileName = "sqlite.db";
-  static constexpr auto kLeveldbPath = "leveldb";
-  static constexpr auto kPeerKeyPath = "peer_ed25519.key";
-  static constexpr auto kCachedInterpreterPrefix = "vm/";
-
-  IpldPtr makeIpld(std::shared_ptr<storage::PersistentBufferMap> map);
 }  // namespace fc::node
 
 OUTCOME_HPP_DECLARE_ERROR(fc::node, Error);

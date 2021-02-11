@@ -24,7 +24,7 @@ namespace fc::node {
     std::string local_ip;
     int port = -1;
     int api_port;
-    std::string car_file_name;
+    std::string snapshot;
     boost::optional<CID> genesis_cid;
     std::string network_name;
     std::vector<libp2p::peer::PeerInfo> bootstrap_list;

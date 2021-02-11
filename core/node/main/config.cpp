@@ -96,9 +96,8 @@ namespace fc::node {
       char log_level = 'i';
       int port = 0;
       int api_port;
-      std::string car_file_name;
+      std::string snapshot;
       std::string repo_path;
-      std::string genesis_cid;
       std::vector<std::string> bootstrap_list;
       std::vector<std::string> drand_list;
       std::string drand_pubkey;
@@ -124,10 +123,7 @@ namespace fc::node {
              po::value(&raw.bootstrap_list)->composing(),
              "remote bootstrap peer uri to connect to");
       option("log,l", po::value(&raw.log_level), "log level, [e,w,i,d,t]");
-      option("init",
-             po::value(&raw.car_file_name),
-             "initialize new storage: genesis car file name");
-      option("genesis-cid,g", po::value(&raw.genesis_cid), "genesis CID");
+      option("import-snapshot", po::value(&raw.snapshot));
       option("drand-server",
              po::value(&raw.drand_list)->composing(),
              "drand server uri");
@@ -194,23 +190,9 @@ namespace fc::node {
           config.repo_path,
           config.listen_address.getStringAddress());
 
-      if (!raw.car_file_name.empty()) {
-        config.car_file_name =
-            boost::filesystem::canonical(raw.car_file_name).string();
-        summary += fmt::format("\tNew storage to be initialized from {}\n",
-                               config.car_file_name);
-      }
-
-      if (!raw.genesis_cid.empty()) {
-        auto res = CID::fromString(raw.genesis_cid);
-        if (!res) {
-          std::cerr << "Cannot decode CID from string " << raw.genesis_cid
-                    << "\n";
-          return false;
-        }
-        config.genesis_cid = std::move(res.value());
-        summary +=
-            fmt::format("\tGenesis CID must be equal to {}\n", raw.genesis_cid);
+      if (!raw.snapshot.empty()) {
+        config.snapshot = boost::filesystem::canonical(raw.snapshot).string();
+        summary += fmt::format("\tImporting snapshot {}\n", config.snapshot);
       }
 
       if (!raw.bootstrap_list.empty()) {

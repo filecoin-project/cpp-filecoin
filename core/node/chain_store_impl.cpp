@@ -24,16 +24,15 @@ namespace fc::sync {
   ChainStoreImpl::ChainStoreImpl(
       std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
       std::shared_ptr<CachedInterpreter> interpreter,
-      std::shared_ptr<WeightCalculator> weight_calculator,
+      TipsetCPtr head,
       std::shared_ptr<BlockValidator> block_validator)
       : ipld_(std::move(ipld)),
         interpreter_(std::move(interpreter)),
-        weight_calculator_(std::move(weight_calculator)),
         block_validator_(std::move(block_validator)) {
     assert(ipld_);
     assert(interpreter_);
-    assert(weight_calculator_);
     assert(block_validator_);
+    head_ = head;
   }
 
   outcome::result<void> ChainStoreImpl::start(

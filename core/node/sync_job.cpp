@@ -9,6 +9,7 @@
 #include "common/logger.hpp"
 #include "events.hpp"
 #include "primitives/tipset/chain.hpp"
+#include "vm/interpreter/impl/interpreter_impl.hpp"
 
 namespace fc::sync {
 
@@ -22,6 +23,7 @@ namespace fc::sync {
   SyncJob::SyncJob(std::shared_ptr<libp2p::Host> host,
                    std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
                    std::shared_ptr<InterpretJob> interpret_job,
+                   std::shared_ptr<CachedInterpreter> interpreter,
                    TsBranches &ts_branches,
                    TsBranchPtr ts_main,
                    TsLoadPtr ts_load,
@@ -29,6 +31,7 @@ namespace fc::sync {
       : host_(std::move(host)),
         scheduler_(std::move(scheduler)),
         interpret_job_(std::move(interpret_job)),
+        interpreter_(std::move(interpreter)),
         ts_branches_{ts_branches},
         ts_main_(std::move(ts_main)),
         ts_load_(std::move(ts_load)),
@@ -46,6 +49,15 @@ namespace fc::sync {
     possible_head_event_ = events_->subscribePossibleHead(
         [this](const events::PossibleHead &e) { onPossibleHead(e); });
 
+    head_interpreted_event_ = events_->subscribeHeadInterpreted(
+        [this](const events::HeadInterpreted &e) {
+          thread.io->post([this, e] {
+            std::lock_guard lock{branches_mutex_};
+            interpret_queue_.push(e.head);
+            interpretDequeue();
+          });
+        });
+
     peers_.start(
         host_, *events_, [](const std::set<std::string> &protocols) -> bool {
           static const std::string id(blocksync::kProtocolId);
@@ -57,7 +69,7 @@ namespace fc::sync {
 
   void SyncJob::onPossibleHead(const events::PossibleHead &e) {
     if (auto ts{getLocal(e.head)}) {
-      onTs(e.source, ts);
+      thread.io->post([this, peer{e.source}, ts] { onTs(peer, ts); });
     } else if (e.source) {
       fetch(*e.source, e.head);
     }
@@ -81,7 +93,7 @@ namespace fc::sync {
     while (true) {
       auto branch{insert(ts_branches_, ts).first};
       if (branch == ts_main_) {
-        spdlog::error("TODO: attached to main branch at {}", ts->height());
+        interpret_queue_.push(ts);
       } else {
         while (branch->parent) {
           branch = branch->parent;
@@ -98,7 +110,26 @@ namespace fc::sync {
       }
       break;
     }
-    // TODO: interpret
+    interpretDequeue();
+  }
+
+  void SyncJob::interpretDequeue() {
+    while (!interpret_queue_.empty()) {
+      auto ts{interpret_queue_.front()};
+      interpret_queue_.pop();
+      if (auto _res{interpreter_->tryGetCached(ts->key)}) {
+        if (auto &res{_res.value()}) {
+          auto it{find(ts_branches_, ts)};
+          for (auto it2 : children(it)) {
+            if (auto _ts{ts_load_->loadw(it2.second->second)}) {
+              interpret_queue_.push(_ts.value());
+            }
+          }
+        } else {
+          interpret_job_->add(ts);
+        }
+      }
+    }
   }
 
   void SyncJob::fetch(const PeerId &peer, const TipsetKey &tsk) {
@@ -109,12 +140,19 @@ namespace fc::sync {
   }
 
   void SyncJob::fetchDequeue() {
+    std::lock_guard lock{requests_mutex_};
     if (request_) {
       return;
     }
-    std::unique_lock lock{requests_mutex_};
+    if (requests_.empty()) {
+      return;
+    }
     auto [peer, tsk]{std::move(requests_.back())};
     requests_.pop();
+    if (auto ts{getLocal(tsk)}) {
+      onTs(peer, ts);
+      return;
+    }
     uint64_t probable_depth = 5;
     request_ = TipsetRequest::newRequest(
         *host_,
@@ -130,17 +168,19 @@ namespace fc::sync {
   }
 
   void SyncJob::downloaderCallback(TipsetRequest::Result r) {
+    std::unique_lock lock{requests_mutex_};
     if (request_) {
       request_->cancel();
       request_.reset();
     }
+    lock.unlock();
 
     if (r.from && r.delta_rating != 0) {
       peers_.changeRating(r.from.value(), r.delta_rating);
     }
 
     if (r.head) {
-      onTs(r.from, r.head);
+      thread.io->post([this, peer{r.from}, ts{r.head}] { onTs(peer, ts); });
     }
 
     fetchDequeue();

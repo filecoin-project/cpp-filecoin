@@ -279,6 +279,27 @@ namespace fc::primitives::tipset::chain {
     return std::make_pair(branch, it);
   }
 
+  std::vector<TsBranchIter> children(TsBranchIter ts_it) {
+    auto &[branch, it]{ts_it};
+    std::vector<TsBranchIter> children;
+    if (auto next{std::next(it)}; next != branch->chain.end()) {
+      children.emplace_back(branch, next);
+    }
+    auto [begin, end]{branch->children.equal_range(it->first)};
+    for (auto _child{begin}; _child != end;) {
+      if (auto child{_child->second.lock()}) {
+        if (auto next{std::next(child->chain.begin())};
+            next != child->chain.end()) {
+          children.emplace_back(child, next);
+        }
+        ++_child;
+      } else {
+        _child = branch->children.erase(_child);
+      }
+    }
+    return children;
+  }
+
   outcome::result<TsBranchIter> find(TsBranchPtr branch,
                                      Height height,
                                      bool allow_less) {

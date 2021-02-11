@@ -8,6 +8,7 @@
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
 
+#include <leveldb/cache.h>
 #include <libp2p/crypto/ed25519_provider/ed25519_provider_impl.hpp>
 #include <libp2p/protocol/gossip/gossip.hpp>
 #include <libp2p/protocol/identify/identify.hpp>
@@ -26,6 +27,7 @@
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
+#include "common/file.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
@@ -64,61 +66,6 @@ namespace fc::node {
     auto log() {
       static common::Logger logger = common::createLogger("node");
       return logger.get();
-    }
-
-    outcome::result<void> loadCar(storage::ipfs::IpfsDatastore &storage,
-                                  Config &config) {
-      std::ifstream file{config.car_file_name,
-                         std::ios::binary | std::ios::ate};
-      if (!file.good()) {
-        log()->error("cannot open file {}", config.car_file_name);
-        return Error::CAR_FILE_OPEN_ERROR;
-      }
-
-      static const size_t kMaxSize = 64 * 1024 * 1024;
-      auto size = static_cast<size_t>(file.tellg());
-      if (size > kMaxSize) {
-        log()->error("car file size above expected, file:{}, size:{}, limit:{}",
-                     config.car_file_name,
-                     size,
-                     kMaxSize);
-        return Error::CAR_FILE_SIZE_ABOVE_LIMIT;
-      }
-
-      std::string buffer;
-      buffer.resize(size);
-      file.seekg(0, std::ios::beg);
-      file.read(buffer.data(), buffer.size());
-
-      auto result =
-          fc::storage::car::loadCar(storage, common::span::cbytes(buffer));
-      if (!result) {
-        log()->error("cannot load car file {}: {}",
-                     config.car_file_name,
-                     result.error().message());
-        return result.error();
-      }
-
-      const auto &roots = result.value();
-      if (roots.empty()) {
-        return Error::NO_GENESIS_BLOCK;
-      }
-
-      if (config.genesis_cid) {
-        if (config.genesis_cid.value() != roots[0]) {
-          log()->error("Genesis mismatch: got cids:{}, expected:{}",
-                       fmt::join(roots, " "),
-                       config.genesis_cid.value().toString().value());
-          return Error::GENESIS_MISMATCH;
-        }
-      } else {
-        config.genesis_cid = roots[0];
-        log()->debug("Genesis found in {}: {}",
-                     config.car_file_name,
-                     config.genesis_cid.value().toString().value());
-      }
-
-      return fc::outcome::success();
     }
 
     outcome::result<void> initNetworkName(
@@ -182,43 +129,132 @@ namespace fc::node {
 
   }  // namespace
 
+  auto ipldLeveldbOptions() {
+    leveldb::Options options;
+    options.create_if_missing = true;
+    options.write_buffer_size = 128 << 20;
+    options.block_cache = leveldb::NewLRUCache(128 << 20);
+    options.block_size = 64 << 10;
+    options.max_file_size = 128 << 20;
+    return options;
+  }
+
+  auto loadSnapshot(Config &config, NodeObjects &o) {
+    std::vector<CID> snapshot_cids;
+    auto snapshot_key{
+        std::make_shared<storage::OneKey>("snapshot", o.kv_store)};
+    if (snapshot_key->has()) {
+      snapshot_key->getCbor(snapshot_cids);
+    }
+    if (!config.snapshot.empty()) {
+      auto file{*common::mapFile(config.snapshot)};
+      auto reader{storage::car::CarReader::make(file.second).value()};
+      if (snapshot_cids.empty()) {
+        snapshot_cids = reader.roots;
+        log()->info("importing snapshot");
+
+        static constexpr size_t kBatchSize{100000};
+        size_t current_batch_size{0};
+        auto batch{o.ipld_leveldb->batch()};
+        size_t last_progress{0};
+        while (!reader.end()) {
+          auto item{reader.next().value()};
+          batch
+              ->put(storage::ipfs::LeveldbDatastore::encodeKey(item.first)
+                        .value(),
+                    Buffer{item.second})
+              .assume_value();
+          ++current_batch_size;
+          if (current_batch_size >= kBatchSize || reader.end()) {
+            batch->commit().assume_value();
+            batch->clear();
+            current_batch_size = 0;
+          }
+          auto progress{100 * reader.position / reader.file.size()};
+          if (progress != last_progress) {
+            last_progress = progress;
+            log()->info("{}%, {} objects stored", progress, reader.objects);
+          }
+        }
+
+        log()->info("snapshot imported");
+        snapshot_key->setCbor(snapshot_cids);
+      } else if (snapshot_cids != reader.roots) {
+        log()->error("another snapshot already imported");
+        exit(-1);
+      }
+    }
+    return snapshot_cids;
+  }
+
+  void loadChain(Config &config,
+                 NodeObjects &o,
+                 std::vector<CID> snapshot_cids) {
+    o.ts_main_kv = std::make_shared<storage::MapPrefix>("ts_main/", o.kv_store);
+    log()->info("loading chain");
+    o.ts_main = TsBranch::load(o.ts_main_kv);
+    TipsetKey genesis_tsk{{*config.genesis_cid}};
+    if (!o.ts_main) {
+      auto tsk{genesis_tsk};
+      if (!snapshot_cids.empty()) {
+        log()->info("restoring chain from snapshot");
+        tsk = snapshot_cids;
+      }
+      o.ts_main = TsBranch::create(o.ts_main_kv, tsk, o.ts_load).value();
+
+      auto it{std::prev(o.ts_main->chain.end())};
+      log()->info("interpret head {}", it->first);
+      auto ts{o.ts_load->loadw(it->second).value()};
+      o.vm_interpreter->interpret(o.ts_main, o.ipld, ts).assume_value();
+    }
+    log()->info("chain loaded");
+    assert(o.ts_main->chain.begin()->second.key == genesis_tsk);
+  }
+
   outcome::result<NodeObjects> createNodeObjects(Config &config) {
     NodeObjects o;
 
     log()->debug("Creating storage...");
 
-    bool creating_new_db = false;
-
-    if (config.repo_path == "memory") {
-      o.ipld = std::make_shared<storage::ipfs::InMemoryDatastore>();
-      o.kv_store = std::make_shared<storage::InMemoryStorage>();
-      creating_new_db = true;
-    } else {
-      leveldb::Options options;
-      if (!config.car_file_name.empty()) {
-        options.create_if_missing = true;
-        options.error_if_exists = true;
-        creating_new_db = true;
-      }
-      auto leveldb_res = storage::LevelDB::create(config.join(kLeveldbPath),
-                                                  std::move(options));
-      if (!leveldb_res) {
-        return Error::STORAGE_INIT_ERROR;
-      }
-      o.ipld = makeIpld(leveldb_res.value());
-      o.kv_store = std::move(leveldb_res.value());
+    auto leveldb_res = storage::LevelDB::create(config.join("leveldb"));
+    if (!leveldb_res) {
+      return Error::STORAGE_INIT_ERROR;
     }
+    o.ipld_leveldb = storage::LevelDB::create(config.join("ipld_leveldb"),
+                                              ipldLeveldbOptions())
+                         .value();
+    o.ipld = std::make_shared<storage::ipfs::LeveldbDatastore>(o.ipld_leveldb);
+    o.kv_store = std::move(leveldb_res.value());
     o.ts_load = std::make_shared<primitives::tipset::TsLoadCache>(
         std::make_shared<primitives::tipset::TsLoadIpld>(o.ipld), 8 << 10);
 
-    if (creating_new_db) {
-      log()->debug("Loading initial car file...");
-      OUTCOME_TRY(loadCar(*o.ipld, config));
-    }
+    auto genesis_cids{
+        storage::car::loadCar(*o.ipld, config.join("genesis.car")).value()};
+    assert(genesis_cids.size() == 1);
+    config.genesis_cid = genesis_cids[0];
 
-    log()->debug("Creating chain DB...");
+    OUTCOME_TRY(circulating,
+                vm::Circulating::make(o.ipld, *config.genesis_cid));
 
-    OUTCOME_EXCEPT(genesis, o.ts_load->load(TipsetKey{{*config.genesis_cid}}));
+    auto weight_calculator =
+        std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
+
+    o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
+        std::make_shared<vm::interpreter::InterpreterImpl>(
+            std::make_shared<vm::actor::InvokerImpl>(),
+            o.ts_load,
+            weight_calculator,
+            std::make_shared<vm::runtime::TipsetRandomness>(o.ts_load),
+            std::move(circulating)),
+        std::make_shared<storage::MapPrefix>("vm/", o.kv_store));
+
+    auto snapshot_cids{loadSnapshot(config, o)};
+
+    loadChain(config, o, snapshot_cids);
+    o.ts_branches = std::make_shared<TsBranches>();
+    o.ts_branches->insert(o.ts_main);
+
+    OUTCOME_EXCEPT(genesis, o.ts_load->load(genesis_cids));
     OUTCOME_TRY(initNetworkName(*genesis, o.ipld, config));
     log()->info("Network name: {}", config.network_name);
 
@@ -235,7 +271,7 @@ namespace fc::node {
 
     log()->debug("Creating host...");
 
-    OUTCOME_TRY(keypair, loadPeerKey(config.join(kPeerKeyPath)));
+    OUTCOME_TRY(keypair, loadPeerKey(config.join("peer_ed25519.key")));
 
     auto injector = libp2p::injector::makeHostInjector<
         boost::di::extension::shared_config>(
@@ -306,29 +342,14 @@ namespace fc::node {
     o.blocksync_server = std::make_shared<fc::sync::blocksync::BlocksyncServer>(
         o.host, o.ts_load, o.ipld);
 
-    OUTCOME_TRY(circulating,
-                vm::Circulating::make(o.ipld, config.genesis_cid.value()));
-
-    o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
-        std::make_shared<vm::interpreter::InterpreterImpl>(
-            std::make_shared<vm::actor::InvokerImpl>(),
-            o.ts_load,
-            std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld),
-            std::make_shared<vm::runtime::TipsetRandomness>(o.ts_load),
-            std::move(circulating)),
-        std::make_shared<storage::MapPrefix>(kCachedInterpreterPrefix,
-                                             o.kv_store));
-
-    auto weight_calculator =
-        std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
-
     o.interpret_job = sync::InterpretJob::create(
-        o.vm_interpreter, o.ts_branches, o.ipld, o.events);
+        o.vm_interpreter, *o.ts_branches, o.ipld, o.events);
 
     o.sync_job = std::make_shared<sync::SyncJob>(o.host,
                                                  o.scheduler,
                                                  o.interpret_job,
-                                                 o.ts_branches,
+                                                 o.vm_interpreter,
+                                                 *o.ts_branches,
                                                  o.ts_main,
                                                  o.ts_load,
                                                  o.ipld);
@@ -353,11 +374,10 @@ namespace fc::node {
             secp_provider,
             o.vm_interpreter);
 
-    o.chain_store =
-        std::make_shared<sync::ChainStoreImpl>(o.ipld,
-                                               o.vm_interpreter,
-                                               weight_calculator,
-                                               std::move(block_validator));
+    auto head{
+        o.ts_load->loadw(std::prev(o.ts_main->chain.end())->second).value()};
+    o.chain_store = std::make_shared<sync::ChainStoreImpl>(
+        o.ipld, o.vm_interpreter, head, std::move(block_validator));
 
     log()->debug("Creating API...");
 
@@ -408,11 +428,6 @@ namespace fc::node {
                                                      key_store));
 
     return o;
-  }
-
-  IpldPtr makeIpld(std::shared_ptr<storage::PersistentBufferMap> map) {
-    return std::make_shared<storage::ipfs::LeveldbDatastore>(
-        std::make_shared<storage::MapPrefix>("ipld", map));
   }
 }  // namespace fc::node
 
