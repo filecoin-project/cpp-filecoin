@@ -18,6 +18,11 @@ namespace fc::api {
   using primitives::SectorNumber;
   using primitives::TokenAmount;
   using primitives::piece::PaddedPieceSize;
+  using StorageInfo_ = sector_storage::stores::StorageInfo;
+  using primitives::StorageID;
+  using primitives::sector_file::SectorFileType;
+  using sector_storage::stores::FsStat;
+  using sector_storage::stores::HealthReport;
 
   struct PieceLocation {
     SectorNumber sector_number;
@@ -26,6 +31,10 @@ namespace fc::api {
   };
 
   struct StorageMinerApi : public CommonApi {
+    API_METHOD(ActorAddress, Address)
+
+    API_METHOD(ActorSectorSize, SectorSize, Address)
+
     API_METHOD(PledgeSector, void)
 
     API_METHOD(DealsImportData, void, const CID &, const std::string &)
@@ -39,6 +48,40 @@ namespace fc::api {
                ChainEpoch,
                PaddedPieceSize,
                PaddedPieceSize)
+
     API_METHOD(MarketSetRetrievalAsk, void, const RetrievalAsk &)
+
+    // TODO(ortyomka): [FIL-347] remove it
+    API_METHOD(SealProof, RegisteredSealProof)
+
+    API_METHOD(StorageAttach, void, const StorageInfo_ &, const FsStat &)
+    API_METHOD(StorageInfo, StorageInfo_, const StorageID &)
+    API_METHOD(StorageReportHealth,
+               void,
+               const StorageID &,
+               const HealthReport &)
+    API_METHOD(StorageDeclareSector,
+               void,
+               const StorageID &,
+               const SectorId &,
+               const SectorFileType &,
+               bool)
+    API_METHOD(StorageDropSector,
+               void,
+               const StorageID &,
+               const SectorId &,
+               const SectorFileType &)
+    API_METHOD(StorageFindSector,
+               std::vector<StorageInfo_>,
+               const SectorId &,
+               const SectorFileType &,
+               boost::optional<RegisteredSealProof>)
+    API_METHOD(StorageBestAlloc,
+               std::vector<StorageInfo_>,
+               const SectorFileType &,
+               RegisteredSealProof,
+               bool)
+
+    API_METHOD(WorkerConnect, void, const std::string &);
   };
 }  // namespace fc::api

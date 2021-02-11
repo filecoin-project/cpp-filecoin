@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -15,12 +14,15 @@
 #include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/json.hpp"
+#include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
 #include "api/storage_api.hpp"
 #include "api/worker_api.hpp"
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
+#include "common/io_thread.hpp"
 #include "common/outcome.hpp"
+#include "proofs/proof_param_provider.hpp"
 #include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/local_worker.hpp"
 #include "sector_storage/stores/impl/remote_index_impl.hpp"
@@ -31,6 +33,7 @@ namespace fc {
   using api::VersionResult;
   using boost::asio::io_context;
   using primitives::sector::SealRandomness;
+  using proofs::ProofParamProvider;
   using sector_storage::AcquireMode;
   using sector_storage::Commit1Output;
   using sector_storage::InteractiveRandomness;
@@ -47,10 +50,11 @@ namespace fc {
     boost::filesystem::path repo_path;
     std::pair<Multiaddress, std::string> miner_api{
         codec::cbor::kDefaultT<Multiaddress>(), {}};
-    boost::optional<RegisteredSealProof> seal_type;
+    RegisteredSealProof seal_type;
     int api_port;
 
     std::set<primitives::TaskType> tasks;
+    bool need_download = false;
 
     auto join(const std::string &path) const {
       return (repo_path / path).string();
@@ -110,7 +114,8 @@ namespace fc {
       config.tasks.insert(primitives::kTTPreCommit2);
     }
     if (raw.can_commit) {
-      config.tasks.insert(primitives::kTTPreCommit2);
+      config.need_download = true;
+      config.tasks.insert(primitives::kTTCommit2);
     }
     if (raw.can_unseal) {
       config.tasks.insert(primitives::kTTUnseal);
@@ -131,11 +136,25 @@ namespace fc {
 
     OUTCOME_TRY(version, mapi->Version());
     // TODO: make version of miner
-    if (version.api_version != 0) {
-      return outcome::success();  // TODO: ERROR
+    uint64_t miner_api = 0;
+    if (version.api_version != miner_api) {
+      spdlog::error("lotus-miner API version doesn't match: expected: {}",
+                    miner_api);
+      exit(-1);
     }
 
-    // TODO: download params
+    // TODO(ortyomka): [FIL-347] remove it
+    OUTCOME_TRYA(config.seal_type, mapi->SealProof());
+
+    if (config.need_download) {
+      OUTCOME_TRY(address, mapi->ActorAddress());
+      OUTCOME_TRY(sector_size, mapi->ActorSectorSize(address));
+
+      OUTCOME_TRY(
+          params,
+          ProofParamProvider::readJson(config.join("proof-params.json")));
+      OUTCOME_TRY(ProofParamProvider::getParams(params, sector_size));
+    }
 
     auto storage{std::make_shared<sector_storage::stores::LocalStorageImpl>(
         config.join("storage.json"))};
@@ -156,7 +175,7 @@ namespace fc {
     }));
 
     auto index_adapter =
-        std::make_shared<sector_storage::stores::RemoteSectorIndexImpl>();
+        std::make_shared<sector_storage::stores::RemoteSectorIndexImpl>(mapi);
 
     OUTCOME_TRY(local_store,
                 sector_storage::stores::LocalStoreImpl::newLocalStore(
@@ -169,12 +188,15 @@ namespace fc {
     auto remote_store{std::make_shared<sector_storage::stores::RemoteStoreImpl>(
         local_store, std::unordered_map<std::string, std::string>{})};
 
-    sector_storage::WorkerConfig wconfig;  // TODO: setup
+    sector_storage::WorkerConfig wconfig{
+        .task_types = config.tasks,
+        .seal_proof_type = config.seal_type,
+    };
 
     auto worker{std::make_unique<LocalWorker>(wconfig, remote_store)};
 
     auto wapi{std::make_shared<api::WorkerApi>()};
-    wapi->Version = []() { return VersionResult{"fuhon", 0x000C00, 5}; };
+    wapi->Version = []() { return VersionResult{"seal-worker", 0, 0}; };
     wapi->StorageAddLocal = [&](const std::string &path) {
       return local_store->openPath(path);
     };
@@ -210,7 +232,7 @@ namespace fc {
 
     wapi->SealPreCommit1 = [&](const SectorId &sector,
                                const SealRandomness &ticket,
-                               std::vector<const PieceInfo> pieces) {
+                               std::vector<PieceInfo> pieces) {
       return worker->sealPreCommit1(sector, ticket, pieces);
     };
     wapi->SealPreCommit2 = [&](const SectorId &sector,
@@ -220,7 +242,7 @@ namespace fc {
     wapi->SealCommit1 = [&](const SectorId &sector,
                             const SealRandomness &ticket,
                             const InteractiveRandomness &seed,
-                            std::vector<const PieceInfo> pieces,
+                            std::vector<PieceInfo> pieces,
                             const SectorCids &cids) {
       return worker->sealCommit1(sector, ticket, seed, pieces, cids);
     };
@@ -229,17 +251,37 @@ namespace fc {
       return worker->sealCommit2(sector, commit_1_output);
     };
     wapi->FinalizeSector = [&](const SectorId &sector,
-                               std::vector<const Range> keep_unsealed) {
+                               std::vector<Range> keep_unsealed) {
       return worker->finalizeSector(sector, keep_unsealed);
     };
     wapi->Remove = [&](const SectorId &sector) {
       return worker->remove(sector);
     };
 
+    auto wrpc{api::makeRpc(*wapi)};
     auto wroutes{std::make_shared<api::Routes>()};
 
     wroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
 
+    api::serve(wrpc, wroutes, *io, "127.0.0.1", config.api_port);
+    api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
+
+    IoThread thread;
+    boost::asio::post(*(thread.io), [&] {
+      spdlog::info("fuhon worker are registering");
+      auto address{fmt::format("/ip4/127.0.0.1/tcp/{}/http", config.api_port)};
+      auto maybe_error =
+          mapi->WorkerConnect(address);  // TODO: make reconnect if failed
+
+      if (maybe_error.has_error()) {
+        spdlog::error("worker register error: {}",
+                      maybe_error.error().message());
+        return;
+      }
+      spdlog::info("fuhon worker registered");
+    });
+
+    spdlog::info("fuhon worker started");
     io->run();
     return outcome::success();
   }

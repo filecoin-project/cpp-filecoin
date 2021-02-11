@@ -33,6 +33,7 @@
 #include "proofs/proof_param_provider.hpp"
 #include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/manager_impl.hpp"
+#include "sector_storage/impl/remote_worker.hpp"
 #include "sector_storage/impl/scheduler_impl.hpp"
 #include "sector_storage/stores/impl/index_impl.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
@@ -54,8 +55,14 @@ namespace fc {
   using common::span::cbytes;
   using libp2p::multi::Multiaddress;
   using markets::retrieval::RetrievalAsk;
+  using primitives::StorageID;
   using primitives::address::Address;
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector_file::SectorFileType;
+  using sector_storage::RemoteWorker;
+  using sector_storage::stores::FsStat;
+  using sector_storage::stores::HealthReport;
+  using sector_storage::stores::StorageInfo;
   using storage::BufferMap;
   namespace uuids = boost::uuids;
 
@@ -314,10 +321,13 @@ namespace fc {
       }
     }));
 
+    auto sector_index{
+        std::make_shared<sector_storage::stores::SectorIndexImpl>()};
+
     OUTCOME_TRY(local_store,
                 sector_storage::stores::LocalStoreImpl::newLocalStore(
                     storage,
-                    std::make_shared<sector_storage::stores::SectorIndexImpl>(),
+                    sector_index,
                     std::vector<std::string>{"http://127.0.0.1"},
                     scheduler));
 
@@ -325,12 +335,11 @@ namespace fc {
     auto remote_store{std::make_shared<sector_storage::stores::RemoteStoreImpl>(
         local_store, std::unordered_map<std::string, std::string>{})};
 
+    auto wscheduler{
+        std::make_shared<sector_storage::SchedulerImpl>(minfo.seal_proof_type)};
     OUTCOME_TRY(manager,
                 sector_storage::ManagerImpl::newManager(
-                    remote_store,
-                    std::make_shared<sector_storage::SchedulerImpl>(
-                        minfo.seal_proof_type),
-                    {true, true, true, true}));
+                    remote_store, wscheduler, {true, true, true, true}));
     auto miner{std::make_shared<miner::MinerImpl>(
         napi,
         *config.actor,
@@ -401,6 +410,14 @@ namespace fc {
     retrieval_provider->start();
 
     auto mapi{std::make_shared<api::StorageMinerApi>()};
+    mapi->ActorAddress = [&]() { return miner->getAddress(); };
+
+    mapi->ActorSectorSize =
+        [&](Address addr) -> outcome::result<api::SectorSize> {
+      OUTCOME_TRY(miner_info, napi->StateMinerInfo(addr, {}));
+      return miner_info.sector_size;
+    };
+
     mapi->DealsImportData = [&](auto &proposal, auto &path) {
       return storage_provider->importDataForDeal(proposal, path);
     };
@@ -433,6 +450,58 @@ namespace fc {
       return sealing->pledgeSector();
     };
     mapi->Version = [] { return api::VersionResult{"fuhon-miner", 0, 0}; };
+
+    // TODO(ortyomka): [FIL-347] remove it
+    mapi->SealProof = [&] { return wscheduler->getSealProofType(); };
+
+    mapi->StorageBestAlloc = [&](const SectorFileType &allocate,
+                                 RegisteredSealProof seal_proof_type,
+                                 bool sealing_mode) {
+      return sector_index->storageBestAlloc(
+          allocate, seal_proof_type, sealing_mode);
+    };
+    mapi->StorageFindSector =
+        [&](const SectorId &sector,
+            const SectorFileType &file_type,
+            boost::optional<RegisteredSealProof> fetch_seal_proof_type) {
+          return sector_index->storageFindSector(
+              sector, file_type, fetch_seal_proof_type);
+        };
+    mapi->StorageDropSector = [&](const StorageID &storage_id,
+                                  const SectorId &sector,
+                                  const SectorFileType &file_type) {
+      return sector_index->storageDropSector(storage_id, sector, file_type);
+    };
+    mapi->StorageDeclareSector = [&](const StorageID &storage_id,
+                                     const SectorId &sector,
+                                     const SectorFileType &file_type,
+                                     bool primary) {
+      return sector_index->storageDeclareSector(
+          storage_id, sector, file_type, primary);
+    };
+    mapi->StorageReportHealth = [&](const StorageID &storage_id,
+                                    const HealthReport &report) {
+      return sector_index->storageReportHealth(storage_id, report);
+    };
+    mapi->StorageAttach = [&](const StorageInfo &storage_info,
+                              const FsStat &stat) {
+      return sector_index->storageAttach(storage_info, stat);
+    };
+    mapi->StorageInfo = [&](const StorageID &storage_id) {
+      return sector_index->getStorageInfo(storage_id);
+    };
+
+    mapi->WorkerConnect =
+        [&](const std::string &address) -> outcome::result<void> {
+      OUTCOME_TRY(maddress, libp2p::multi::Multiaddress::create(address));
+      OUTCOME_TRY(worker,
+                  RemoteWorker::connectRemoteWorker(*io, mapi, maddress));
+
+      spdlog::info("Connected to a remote worker at {}", address);
+
+      return manager->addWorker(std::move(worker));
+    };
+
     auto mrpc{api::makeRpc(*mapi)};
     auto mroutes{std::make_shared<api::Routes>()};
 

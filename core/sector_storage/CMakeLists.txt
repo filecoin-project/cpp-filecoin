@@ -34,8 +34,7 @@ target_link_libraries(worker
         )
 
 add_library(remote_worker
-        impl/local_worker.cpp
-        impl/worker_error.cpp
+        impl/remote_worker.cpp
         )
 
 target_link_libraries(remote_worker

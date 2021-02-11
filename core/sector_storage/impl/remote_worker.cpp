@@ -9,9 +9,9 @@ namespace fc::sector_storage {
 
   outcome::result<std::shared_ptr<RemoteWorker>>
   RemoteWorker::connectRemoteWorker(io_context &context,
-                                    const std::shared_ptr<Api> &full_api,
+                                    const std::shared_ptr<CommonApi> &api,
                                     const Multiaddress &address) {
-    auto token = "admin";  // get token from miner node
+    auto token = "stub";  // get token from common api
 
     struct make_unique_enabler : public RemoteWorker {
       make_unique_enabler(io_context &context) : RemoteWorker{context} {};
@@ -51,8 +51,7 @@ namespace fc::sector_storage {
                                                 const SectorId &sector,
                                                 UnpaddedByteIndex offset,
                                                 const UnpaddedPieceSize &size) {
-    // TODO: REWORK
-    return api_.ReadPiece(-1, sector, offset, size);
+    return WorkerErrors::kUnsupportedCall;
   }
 
   outcome::result<primitives::WorkerInfo> RemoteWorker::getInfo() {
@@ -61,12 +60,12 @@ namespace fc::sector_storage {
 
   outcome::result<std::set<primitives::TaskType>>
   RemoteWorker::getSupportedTask() {
-    return api_.SupportedTask();
+    return api_.TaskTypes();
   }
 
   outcome::result<std::vector<primitives::StoragePath>>
   RemoteWorker::getAccessiblePaths() {
-    return api_.AccessiblePaths();
+    return api_.Paths();
   }
 
   outcome::result<PreCommit1Output> RemoteWorker::sealPreCommit1(
@@ -74,9 +73,7 @@ namespace fc::sector_storage {
       const SealRandomness &ticket,
       gsl::span<const PieceInfo> pieces) {
     return api_.SealPreCommit1(
-        sector,
-        ticket,
-        std::vector<const PieceInfo>(pieces.begin(), pieces.end()));
+        sector, ticket, std::vector<PieceInfo>(pieces.begin(), pieces.end()));
   }
 
   outcome::result<SectorCids> RemoteWorker::sealPreCommit2(
@@ -94,7 +91,7 @@ namespace fc::sector_storage {
         sector,
         ticket,
         seed,
-        std::vector<const PieceInfo>(pieces.begin(), pieces.end()),
+        std::vector<PieceInfo>(pieces.begin(), pieces.end()),
         cids);
   }
 
@@ -106,8 +103,7 @@ namespace fc::sector_storage {
   outcome::result<void> RemoteWorker::finalizeSector(
       const SectorId &sector, const gsl::span<const Range> &keep_unsealed) {
     return api_.FinalizeSector(
-        sector,
-        std::vector<const Range>(keep_unsealed.begin(), keep_unsealed.end()));
+        sector, std::vector<Range>(keep_unsealed.begin(), keep_unsealed.end()));
   }
 
   outcome::result<void> RemoteWorker::remove(const SectorId &sector) {
@@ -119,12 +115,8 @@ namespace fc::sector_storage {
       gsl::span<const UnpaddedPieceSize> piece_sizes,
       const UnpaddedPieceSize &new_piece_size,
       const proofs::PieceData &piece_data) {
-    // TODO: REWORK
-    return api_.AddPiece(sector,
-                         std::vector<const UnpaddedPieceSize>(
-                             piece_sizes.begin(), piece_sizes.end()),
-                         new_piece_size,
-                         -1);
+    return WorkerErrors::kUnsupportedCall;  // TODO(ortyomka): [FIL-344] add
+                                            // functionality
   }
 
   RemoteWorker::RemoteWorker(io_context &context) : wsc_(context) {}

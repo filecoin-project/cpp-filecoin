@@ -26,12 +26,23 @@ namespace fc::api {
   template <typename A, typename F>
   void visit(const StorageMinerApi &, A &&a, const F &f) {
     visitCommon(a, f);
+    f(a.ActorAddress);
+    f(a.ActorSectorSize);
     f(a.PledgeSector);
     f(a.DealsImportData);
     f(a.MarketGetAsk);
     f(a.MarketGetRetrievalAsk);
     f(a.MarketSetAsk);
     f(a.MarketSetRetrievalAsk);
+    f(a.SealProof); // TODO(ortyomka): [FIL-347] remove it
+    f(a.StorageAttach);
+    f(a.StorageInfo);
+    f(a.StorageReportHealth);
+    f(a.StorageDeclareSector);
+    f(a.StorageDropSector);
+    f(a.StorageFindSector);
+    f(a.StorageBestAlloc);
+    f(a.WorkerConnect);
   }
 
   template <typename A, typename F>

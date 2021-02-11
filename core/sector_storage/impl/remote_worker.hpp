@@ -7,20 +7,22 @@
 
 #include "sector_storage/worker.hpp"
 
-#include "api/rpc/wsc.hpp"
+#include "api/rpc/client_setup.hpp"
 #include "api/worker_api.hpp"
 
 namespace fc::sector_storage {
+  using api::CommonApi;
   using api::WorkerApi;
-  using api::Api;
   using api::rpc::Client;
   using boost::asio::io_context;
-    using libp2p::multi::Multiaddress;
+  using libp2p::multi::Multiaddress;
 
-  class RemoteWorker : Worker {
+  class RemoteWorker : public Worker {
    public:
     static outcome::result<std::shared_ptr<RemoteWorker>> connectRemoteWorker(
-        io_context &context, const std::shared_ptr<Api>& full_api, const Multiaddress &address);
+        io_context &context,
+        const std::shared_ptr<CommonApi> &api,
+        const Multiaddress &address);
 
     outcome::result<void> moveStorage(const SectorId &sector) override;
 

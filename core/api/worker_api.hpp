@@ -36,13 +36,13 @@ namespace fc::api {
     API_METHOD(FinalizeSector,
                void,
                const SectorId &,
-               const std::vector<const Range> &)
+               const std::vector<Range> &)
 
-    API_METHOD(Info, primitives::WorkerInfo, void)
+    API_METHOD(Info, primitives::WorkerInfo)
 
     API_METHOD(MoveStorage, void, const SectorId &)
 
-    API_METHOD(Paths, std::vector<primitives::StoragePath>, void)
+    API_METHOD(Paths, std::vector<primitives::StoragePath>)
     API_METHOD(Remove, void, const SectorId &)
 
     API_METHOD(SealCommit1,
@@ -50,7 +50,7 @@ namespace fc::api {
                const SectorId &,
                const SealRandomness &,
                const InteractiveRandomness &,
-               std::vector<const PieceInfo>,
+               std::vector<PieceInfo>,
                const SectorCids &)
 
     API_METHOD(SealCommit2, Proof, const SectorId &, const Commit1Output &)
@@ -59,7 +59,7 @@ namespace fc::api {
                PreCommit1Output,
                const SectorId &,
                const SealRandomness &,
-               std::vector<const PieceInfo>)
+               std::vector<PieceInfo>)
 
     API_METHOD(SealPreCommit2,
                SectorCids,
@@ -68,7 +68,7 @@ namespace fc::api {
 
     API_METHOD(StorageAddLocal, void, const std::string &)
 
-    API_METHOD(TaskTypes, std::set<primitives::TaskType>, void)
+    API_METHOD(TaskTypes, std::set<primitives::TaskType>)
 
     API_METHOD(UnsealPiece,
                void,
@@ -78,6 +78,6 @@ namespace fc::api {
                const SealRandomness &,
                const CID &)
 
-    API_METHOD(Version, VersionResult, void)
+    API_METHOD(Version, VersionResult)
   };
 }  // namespace fc::api
