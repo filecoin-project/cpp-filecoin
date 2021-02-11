@@ -7,6 +7,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <random>
 #include "proofs/proof_param_provider.hpp"
@@ -46,11 +47,9 @@ class LocalWorkerTest : public test::BaseFS_Test {
         fc::primitives::kTTPreCommit2,
     };
     seal_proof_type_ = RegisteredSealProof::StackedDrg2KiBV1;
-    worker_name_ = "local worker";
 
-    config_ = WorkerConfig{.hostname = worker_name_,
-                           .seal_proof_type = seal_proof_type_,
-                           .task_types = tasks_};
+    config_ =
+        WorkerConfig{.seal_proof_type = seal_proof_type_, .task_types = tasks_};
     store_ = std::make_shared<RemoteStoreMock>();
     local_store_ = std::make_shared<LocalStoreMock>();
     sector_index_ = std::make_shared<SectorIndexMock>();
@@ -70,7 +69,6 @@ class LocalWorkerTest : public test::BaseFS_Test {
  protected:
   std::set<fc::primitives::TaskType> tasks_;
   RegisteredSealProof seal_proof_type_;
-  std::string worker_name_;
   WorkerConfig config_;
   std::shared_ptr<RemoteStoreMock> store_;
   std::shared_ptr<LocalStoreMock> local_store_;
@@ -94,7 +92,7 @@ TEST_F(LocalWorkerTest, getSupportedTask) {
  */
 TEST_F(LocalWorkerTest, getInfo) {
   EXPECT_OUTCOME_TRUE(info, local_worker_->getInfo());
-  ASSERT_EQ(info.hostname, worker_name_);
+  ASSERT_EQ(info.hostname, boost::asio::ip::host_name());
 }
 
 /**
