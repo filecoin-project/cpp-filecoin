@@ -16,7 +16,9 @@ namespace fc::api {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::SectorNumber;
+  using primitives::SectorSize;
   using primitives::TokenAmount;
+  using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
   using StorageInfo_ = sector_storage::stores::StorageInfo;
   using primitives::StorageID;
