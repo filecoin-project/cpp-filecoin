@@ -11,4 +11,5 @@ target_link_libraries(remote_worker_main
         remote_index
         fetch_handler
         worker
+        proof_param_provider
         )
