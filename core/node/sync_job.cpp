@@ -154,20 +154,19 @@ namespace fc::sync {
       return;
     }
     uint64_t probable_depth = 5;
-    request_ = TipsetRequest::newRequest(
+    request_ = BlocksyncRequest::newRequest(
         *host_,
         *scheduler_,
         *ipld_,
         peer,
         tsk.cids(),
         probable_depth,
+        blocksync::BLOCKS_AND_MESSAGES,
         60000,
-        true,  // TODO index head tipset (?)
-        true,
-        [this](TipsetRequest::Result r) { downloaderCallback(std::move(r)); });
+        [this](auto r) { downloaderCallback(std::move(r)); });
   }
 
-  void SyncJob::downloaderCallback(TipsetRequest::Result r) {
+  void SyncJob::downloaderCallback(BlocksyncRequest::Result r) {
     std::unique_lock lock{requests_mutex_};
     if (request_) {
       request_->cancel();
@@ -175,12 +174,19 @@ namespace fc::sync {
     }
     lock.unlock();
 
+    TipsetCPtr ts;
+    if (auto _ts{ts_load_->load(r.blocks_available)}) {
+      ts = _ts.value();
+    } else {
+      r.delta_rating -= 500;
+    }
+
     if (r.from && r.delta_rating != 0) {
       peers_.changeRating(r.from.value(), r.delta_rating);
     }
 
-    if (r.head) {
-      thread.io->post([this, peer{r.from}, ts{r.head}] { onTs(peer, ts); });
+    if (ts) {
+      thread.io->post([this, peer{r.from}, ts] { onTs(peer, ts); });
     }
 
     fetchDequeue();

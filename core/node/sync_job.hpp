@@ -8,13 +8,14 @@
 
 #include <queue>
 
+#include "blocksync_request.hpp"
 #include "common/io_thread.hpp"
 #include "node/interpret_job.hpp"
 #include "peers.hpp"
 #include "storage/buffer_map.hpp"
-#include "tipset_request.hpp"
 
 namespace fc::sync {
+  using blocksync::BlocksyncRequest;
   using vm::interpreter::CachedInterpreter;
 
   /// Active object which downloads and indexes tipsets. Keeps track of peers
@@ -59,7 +60,7 @@ namespace fc::sync {
 
     void fetchDequeue();
 
-    void downloaderCallback(TipsetRequest::Result r);
+    void downloaderCallback(BlocksyncRequest::Result r);
 
     std::shared_ptr<libp2p::Host> host_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
@@ -83,7 +84,7 @@ namespace fc::sync {
     events::Connection head_interpreted_event_;
     events::Connection possible_head_event_;
 
-    std::shared_ptr<TipsetRequest> request_;
+    std::shared_ptr<BlocksyncRequest> request_;
   };
 
 }  // namespace fc::sync

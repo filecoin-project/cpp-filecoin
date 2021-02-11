@@ -9,7 +9,6 @@ add_library(sync
     say_hello.cpp
     receive_hello.cpp
     pubsub_gate.cpp
-    tipset_request.cpp
     blocksync_request.cpp
     blocksync_server.cpp
     graphsync_server.cpp
