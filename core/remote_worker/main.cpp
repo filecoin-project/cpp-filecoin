@@ -189,8 +189,8 @@ namespace fc {
         local_store, std::unordered_map<std::string, std::string>{})};
 
     sector_storage::WorkerConfig wconfig{
-        .task_types = config.tasks,
         .seal_proof_type = config.seal_type,
+        .task_types = config.tasks,
     };
 
     auto worker{std::make_unique<LocalWorker>(wconfig, remote_store)};
