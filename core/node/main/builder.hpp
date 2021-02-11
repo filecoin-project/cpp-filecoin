@@ -14,6 +14,7 @@
 #include "fwd.hpp"
 #include "node/events.hpp"
 #include "node/main/config.hpp"
+#include "primitives/tipset/load.hpp"
 #include "storage/buffer_map.hpp"
 #include "storage/leveldb/leveldb.hpp"
 
@@ -31,7 +32,8 @@ namespace fc::node {
     // storage objects
     std::shared_ptr<storage::LevelDB> ipld_leveldb;
     std::shared_ptr<storage::ipfs::IpfsDatastore> ipld;
-    TsLoadPtr ts_load;
+    std::shared_ptr<primitives::tipset::TsLoadIpld> ts_load_ipld;
+    std::shared_ptr<primitives::tipset::TsLoadCache> ts_load;
     std::shared_ptr<storage::PersistentBufferMap> kv_store;
     std::shared_ptr<storage::PersistentBufferMap> ts_main_kv;
     TsBranchesPtr ts_branches;

@@ -200,7 +200,7 @@ namespace fc::node {
         log()->info("restoring chain from snapshot");
         tsk = snapshot_cids;
       }
-      o.ts_main = TsBranch::create(o.ts_main_kv, tsk, o.ts_load).value();
+      o.ts_main = TsBranch::create(o.ts_main_kv, tsk, o.ts_load_ipld).value();
 
       auto it{std::prev(o.ts_main->chain.end())};
       log()->info("interpret head {}", it->first);
@@ -225,8 +225,9 @@ namespace fc::node {
                          .value();
     o.ipld = std::make_shared<storage::ipfs::LeveldbDatastore>(o.ipld_leveldb);
     o.kv_store = std::move(leveldb_res.value());
+    o.ts_load_ipld = std::make_shared<primitives::tipset::TsLoadIpld>(o.ipld);
     o.ts_load = std::make_shared<primitives::tipset::TsLoadCache>(
-        std::make_shared<primitives::tipset::TsLoadIpld>(o.ipld), 8 << 10);
+        o.ts_load_ipld, 8 << 10);
 
     auto genesis_cids{
         storage::car::loadCar(*o.ipld, config.join("genesis.car")).value()};
@@ -340,7 +341,7 @@ namespace fc::node {
     log()->debug("Creating chain loaders...");
 
     o.blocksync_server = std::make_shared<fc::sync::blocksync::BlocksyncServer>(
-        o.host, o.ts_load, o.ipld);
+        o.host, o.ts_load_ipld, o.ipld);
 
     o.interpret_job = sync::InterpretJob::create(
         o.vm_interpreter, *o.ts_branches, o.ipld, o.events);
