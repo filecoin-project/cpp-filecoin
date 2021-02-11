@@ -14,8 +14,8 @@ namespace fc::storage::blockchain {
   using primitives::tipset::HeadChange;
   using primitives::tipset::HeadChangeType;
   using primitives::tipset::TipsetCPtr;
-  using primitives::tipset::TipsetKey;
   using primitives::tipset::TipsetHash;
+  using primitives::tipset::TipsetKey;
 
   enum class ChainStoreError : int {
     kStoreNotInitialized = 1,
@@ -33,12 +33,6 @@ namespace fc::storage::blockchain {
 
     virtual outcome::result<void> addBlock(const BlockHeader &block) = 0;
 
-    virtual outcome::result<TipsetCPtr> loadTipset(const TipsetHash &hash) = 0;
-
-    virtual outcome::result<TipsetCPtr> loadTipset(const TipsetKey &key) = 0;
-
-    virtual outcome::result<TipsetCPtr> loadTipsetByHeight(uint64_t height) = 0;
-
     virtual TipsetCPtr heaviestTipset() const = 0;
 
     using connection_t = boost::signals2::connection;
@@ -47,9 +41,9 @@ namespace fc::storage::blockchain {
     virtual connection_t subscribeHeadChanges(
         const std::function<HeadChangeSignature> &subscriber) = 0;
 
-    virtual const std::string& getNetworkName() const = 0;
+    virtual const std::string &getNetworkName() const = 0;
 
-    virtual const CID& genesisCID() const = 0;
+    virtual const CID &genesisCID() const = 0;
 
     virtual primitives::BigInt getHeaviestWeight() = 0;
   };

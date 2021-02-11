@@ -7,6 +7,7 @@
 
 #include "common/libp2p/cbor_stream.hpp"
 #include "node/blocksync.hpp"
+#include "primitives/tipset/load.hpp"
 #include "primitives/tipset/tipset.hpp"
 
 #define MOVE(x)  \
@@ -184,8 +185,8 @@ namespace fc::blocksync {
   };
 
   outcome::result<std::vector<Response::Tipset>> getChain(
-      IpldPtr ipld, const Request &request) {
-    OUTCOME_TRY(ts, Tipset::load(*ipld, request.blocks));
+      TsLoadPtr ts_load, IpldPtr ipld, const Request &request) {
+    OUTCOME_TRY(ts, ts_load->load(request.blocks));
     std::vector<Response::Tipset> chain;
     while (true) {
       Response::Tipset packed;
@@ -211,15 +212,15 @@ namespace fc::blocksync {
       if (chain.size() >= request.depth || ts->height() == 0) {
         break;
       }
-      OUTCOME_TRYA(ts, ts->loadParent(*ipld));
+      OUTCOME_TRYA(ts, ts_load->load(ts->getParents()));
     }
     return chain;
   }
 
-  void serve(std::shared_ptr<Host> host, IpldPtr ipld) {
-    host->setProtocolHandler(kProtocolId, [MOVE(ipld)](auto _stream) {
+  void serve(std::shared_ptr<Host> host, TsLoadPtr ts_load, IpldPtr ipld) {
+    host->setProtocolHandler(kProtocolId, [=](auto _stream) {
       auto stream{std::make_shared<CborStream>(_stream)};
-      stream->template read<Request>([stream, MOVE(ipld)](auto _request) {
+      stream->template read<Request>([=](auto _request) {
         Response response;
         if (_request) {
           auto &request{_request.value()};
@@ -231,7 +232,7 @@ namespace fc::blocksync {
             if (partial) {
               request.depth = kBlockSyncMaxRequestLength;
             }
-            auto _chain{getChain(ipld, request)};
+            auto _chain{getChain(ts_load, ipld, request)};
             if (_chain) {
               response.chain = std::move(_chain.value());
               response.status = partial ? Error::kPartial : Error::kOk;

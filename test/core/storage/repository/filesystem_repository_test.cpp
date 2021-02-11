@@ -22,7 +22,6 @@ using fc::storage::repository::Repository;
 using fc::storage::repository::RepositoryError;
 using BlsKeyPair = fc::crypto::bls::KeyPair;
 using libp2p::multi::HashType;
-using libp2p::multi::MulticodecType;
 using libp2p::multi::Multihash;
 
 class FilesSystemRepositoryTest : public test::BaseFS_Test {
@@ -109,7 +108,7 @@ TEST_F(FilesSystemRepositoryTest, PersistenceRepository) {
   auto datastore = repository_old->getIpldStore();
 
   CID cid{CID::Version::V1,
-          MulticodecType::SHA2_256,
+          CID::Multicodec::SHA2_256,
           Multihash::create(HashType::sha256,
                             "0123456789ABCDEF0123456789ABCDEF"_unhex)
               .value()};

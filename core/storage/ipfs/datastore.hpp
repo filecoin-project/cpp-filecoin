@@ -128,6 +128,10 @@ namespace fc {
 
   template <typename T>
   struct CIDT : public CID {
+    CIDT() : CID() {}
+    CIDT(CID &&cid) noexcept : CID(cid) {}
+    explicit CIDT(const CID &cid) : CID(cid) {}
+
     auto get() const {
       return ipld->getCbor<T>(*this);
     }

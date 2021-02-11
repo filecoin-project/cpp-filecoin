@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_STORAGE_MPOOL_MPOOL_HPP
 #define CPP_FILECOIN_CORE_STORAGE_MPOOL_MPOOL_HPP
 
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "vm/message/message.hpp"
 
@@ -37,6 +37,8 @@ namespace fc::storage::mpool {
     using Subscriber = void(const MpoolUpdate &);
 
     static std::shared_ptr<Mpool> create(
+        TsLoadPtr ts_load,
+        TsBranchPtr ts_main,
         IpldPtr ipld,
         std::shared_ptr<Interpreter> interpreter,
         std::shared_ptr<ChainStore> chain_store);
@@ -51,6 +53,8 @@ namespace fc::storage::mpool {
     }
 
    private:
+    TsLoadPtr ts_load;
+    TsBranchPtr ts_main;
     IpldPtr ipld;
     std::shared_ptr<Interpreter> interpreter;
     ChainStore::connection_t head_sub;

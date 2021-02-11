@@ -38,6 +38,8 @@ namespace fc::primitives::tipset {
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
+  using Height = uint64_t;
+
   struct MessageVisitor {
     using Visitor = std::function<outcome::result<void>(size_t,
                                                         bool bls,
@@ -58,6 +60,7 @@ namespace fc::primitives::tipset {
 
   struct Tipset;
   using TipsetCPtr = std::shared_ptr<const Tipset>;
+  using TsWeak = std::weak_ptr<const Tipset>;
 
   struct Tipset {
     /// Blocks from network, they may come in improper order
@@ -71,30 +74,11 @@ namespace fc::primitives::tipset {
     static outcome::result<TipsetCPtr> create(
         std::vector<block::BlockHeader> blocks);
 
-    static outcome::result<TipsetCPtr> load(Ipld &ipld,
-                                            const std::vector<CID> &cids);
-
-    outcome::result<TipsetCPtr> loadParent(Ipld &ipld) const;
-
-    outcome::result<BeaconEntry> latestBeacon(Ipld &ipld) const;
-
     outcome::result<void> visitMessages(
         MessageVisitor message_visitor,
         const MessageVisitor::Visitor &visitor) const;
 
     outcome::result<BigInt> nextBaseFee(IpldPtr ipld) const;
-
-    outcome::result<Randomness> beaconRandomness(
-        Ipld &ipld,
-        DomainSeparationTag tag,
-        ChainEpoch round,
-        gsl::span<const uint8_t> entropy) const;
-
-    outcome::result<Randomness> ticketRandomness(
-        Ipld &ipld,
-        DomainSeparationTag tag,
-        ChainEpoch round,
-        gsl::span<const uint8_t> entropy) const;
 
     /**
      * @return key made of parents
@@ -118,7 +102,7 @@ namespace fc::primitives::tipset {
 
     const CID &getParentMessageReceipts() const;
 
-    uint64_t height() const;
+    Height height() const;
 
     ChainEpoch epoch() const;
 
@@ -189,7 +173,9 @@ namespace fc::primitives::tipset {
 
     void clear();
 
-    uint64_t height() const;
+    Height height() const;
+
+    TipsetKey key() const;
 
    private:
     std::vector<block::BlockHeader> blks_;
@@ -198,21 +184,5 @@ namespace fc::primitives::tipset {
   };
 
 }  // namespace fc::primitives::tipset
-
-namespace fc::codec::cbor {
-
-  template <>
-  outcome::result<fc::primitives::tipset::TipsetCPtr>
-  decode<fc::primitives::tipset::TipsetCPtr>(gsl::span<const uint8_t> input);
-
-  template <>
-  inline outcome::result<common::Buffer>
-  encode<fc::primitives::tipset::TipsetCPtr>(
-      const fc::primitives::tipset::TipsetCPtr &ts) {
-    assert(ts);
-    return encode<fc::primitives::tipset::Tipset>(*ts);
-  }
-
-}  // namespace fc::codec::cbor
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP

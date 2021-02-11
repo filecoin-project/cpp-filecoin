@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
 

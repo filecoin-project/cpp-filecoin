@@ -139,12 +139,39 @@ namespace fc {
     boost::hash_range(seed, hash.begin(), hash.end());
     return seed;
   }
+
+  bool isCbor(const CID &cid) {
+    return cid.version == CID::Version::V1
+           && cid.content_type == CID::Multicodec::DAG_CBOR;
+  }
+
+  boost::optional<BytesIn> asIdentity(const CID &cid) {
+    auto &mh{cid.content_address};
+    if (mh.getType() == HashType::identity) {
+      return mh.getHash();
+    }
+    return {};
+  }
+
+  boost::optional<Hash256> asBlake(const CID &cid) {
+    auto &mh{cid.content_address};
+    if (mh.getType() == HashType::blake2b_256) {
+      if (auto hash{mh.getHash()}; hash.size() == Hash256::size()) {
+        return Hash256::fromSpan(hash).value();
+      }
+    }
+    return {};
+  }
+
+  CID asCborBlakeCid(const Hash256 &hash) {
+    return CID(CID::Version::V1,
+               CID::Multicodec::DAG_CBOR,
+               Multihash::create(HashType::blake2b_256, hash).value());
+  }
 }  // namespace fc
 
 namespace fc::common {
   outcome::result<CID> getCidOf(gsl::span<const uint8_t> bytes) {
-    auto hash_raw = crypto::blake2b::blake2b_256(bytes);
-    OUTCOME_TRY(hash, Multihash::create(HashType::blake2b_256, hash_raw));
-    return CID(CID::Version::V1, CID::Multicodec::DAG_CBOR, hash);
+    return asCborBlakeCid(crypto::blake2b::blake2b_256(bytes));
   }
 }  // namespace fc::common

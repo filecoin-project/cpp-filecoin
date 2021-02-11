@@ -16,30 +16,50 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::vm::runtime {
+  using actor::Actor;
   using actor::Invoker;
   using primitives::tipset::TipsetCPtr;
   using state::StateTree;
   using state::StateTreeImpl;
 
+  /**
+   * Returns the public key type of address (`BLS`/`SECP256K1`) of an account
+   * actor identified by `address`.
+   * @param state_tree - state tree
+   * @param ipld - regular or charging ipld
+   * @param address - account actor address
+   * @param allow_actor - is actor type address allowed
+   * @return key address
+   */
   outcome::result<Address> resolveKey(StateTree &state_tree,
+                                      IpldPtr ipld,
                                       const Address &address,
-                                      bool no_actor = false);
+                                      bool allow_actor = true);
+
+  struct IpldBuffered : public Ipld,
+                        public std::enable_shared_from_this<IpldBuffered> {
+    IpldBuffered(IpldPtr ipld);
+    outcome::result<void> flush(const CID &root);
+
+    outcome::result<bool> contains(const CID &key) const override;
+    outcome::result<void> set(const CID &key, Value value) override;
+    outcome::result<Value> get(const CID &key) const override;
+    outcome::result<void> remove(const CID &key) override;
+    IpldPtr shared() override;
+
+    IpldPtr ipld;
+    bool flushing{false};
+    // vm only stores "DAG_CBOR blake2b_256" cids
+    std::unordered_map<Hash256, Buffer> write;
+  };
 
   /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {
     Env(std::shared_ptr<Invoker> invoker,
         std::shared_ptr<RuntimeRandomness> randomness,
         IpldPtr ipld,
-        TipsetCPtr tipset)
-        : state_tree{std::make_shared<StateTreeImpl>(
-            ipld, tipset->getParentStateRoot())},
-          invoker{std::move(invoker)},
-          randomness{std::move(randomness)},
-          ipld{std::move(ipld)},
-          epoch{tipset->height()},
-          tipset{std::move(tipset)} {
-      pricelist.calico = epoch >= vm::version::kUpgradeCalicoHeight;
-    }
+        TsBranchPtr ts_branch,
+        TipsetCPtr tipset);
 
     struct Apply {
       MessageReceipt receipt;
@@ -52,18 +72,19 @@ namespace fc::vm::runtime {
     outcome::result<MessageReceipt> applyImplicitMessage(
         UnsignedMessage message);
 
+    std::shared_ptr<IpldBuffered> ipld;
     std::shared_ptr<StateTreeImpl> state_tree;
     std::shared_ptr<Invoker> invoker;
     std::shared_ptr<RuntimeRandomness> randomness;
-    IpldPtr ipld;
     uint64_t epoch;  // mutable epoch for cron()
+    TsBranchPtr ts_branch;
     TipsetCPtr tipset;
     Pricelist pricelist;
     std::shared_ptr<Circulating> circulating;
   };
 
   struct Execution : std::enable_shared_from_this<Execution> {
-    static std::shared_ptr<Execution> make(std::shared_ptr<Env> env,
+    static std::shared_ptr<Execution> make(const std::shared_ptr<Env> &env,
                                            const UnsignedMessage &message);
 
     outcome::result<void> chargeGas(GasAmount amount);

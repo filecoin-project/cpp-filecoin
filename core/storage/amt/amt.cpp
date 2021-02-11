@@ -18,37 +18,115 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::amt, AmtError, e) {
       return "Index too big";
     case AmtError::kNotFound:
       return "Not found";
+    case AmtError::kRootBitsWrong:
+      return "AmtError::kRootBitsWrong";
+    case AmtError::kNodeBitsWrong:
+      return "AmtError::kNodeBitsWrong";
   }
   return "Unknown error";
 }
 
 namespace fc::storage::amt {
-  auto pow(uint64_t base, uint64_t exponent) {
-    uint64_t result{1};
-    while (exponent != 0) {
-      if (exponent % 2 != 0) {
-        result *= base;
-        --exponent;
+  CBOR2_ENCODE(Node) {
+    std::vector<uint8_t> bits;
+    bits.resize(v.bits_bytes);
+    auto bit{[&](auto i) { bits[i / 8] |= 1 << (i % 8); }};
+    auto l_links = s.list();
+    auto l_values = s.list();
+    visit_in_place(
+        v.items,
+        [&bit, &l_links](const Node::Links &links) {
+          for (auto &item : links) {
+            bit(item.first);
+            if (which<Node::Ptr>(item.second)) {
+              outcome::raise(AmtError::kExpectedCID);
+            }
+            l_links << boost::get<CID>(item.second);
+          }
+        },
+        [&bit, &l_values](const Node::Values &values) {
+          for (auto &item : values) {
+            bit(item.first);
+            l_values << l_values.wrap(item.second, 1);
+          }
+        });
+    return s << (s.list() << bits << l_links << l_values);
+  }
+  CBOR2_DECODE(Node) {
+    auto l_node = s.list();
+    auto bits{l_node.get<std::vector<uint8_t>>()};
+    std::vector<size_t> indices;
+    for (auto i = 0u; i < bits.size(); ++i) {
+      for (auto j = 0u; j < 8; ++j) {
+        if (bits[i] & (1 << j)) {
+          indices.push_back(8 * i + j);
+        }
       }
-      exponent /= 2;
-      base *= base;
     }
-    return result;
+
+    const auto n_links = l_node.listLength();
+    auto l_links = l_node.list();
+    const auto n_values = l_node.listLength();
+    auto l_values = l_node.list();
+    if (n_links != 0 && n_values != 0) {
+      outcome::raise(AmtError::kDecodeWrong);
+    }
+    if (n_links != 0) {
+      if (n_links != indices.size()) {
+        outcome::raise(AmtError::kDecodeWrong);
+      }
+      Node::Links links;
+      for (auto i = 0u; i < n_links; ++i) {
+        links[indices[i]] = l_links.get<CID>();
+      }
+      v.items = links;
+    } else {
+      if (n_values != indices.size()) {
+        outcome::raise(AmtError::kDecodeWrong);
+      }
+      Node::Values values;
+      for (auto i = 0u; i < n_values; ++i) {
+        values[indices[i]] = Value{l_values.raw()};
+      }
+      v.items = values;
+    }
+    v.bits_bytes = bits.size();
+    return s;
   }
 
-  auto maskAt(uint64_t height) {
-    return pow(kWidth, height);
+  CBOR2_DECODE(Root) {
+    const auto n{s.listLength()};
+    auto l{s.list()};
+    v.bits.reset();
+    if (n == 4) {
+      v.bits = l.get<uint64_t>();
+    }
+    l >> v.height >> v.count >> v.node;
+    return s;
+  }
+  CBOR2_ENCODE(Root) {
+    auto l{s.list()};
+    if (v.bits) {
+      l << *v.bits;
+    }
+    l << v.height << v.count << v.node;
+    return s << l;
   }
 
-  auto maxAt(uint64_t height) {
-    return maskAt(height + 1);
+  Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store, OptBitWidth bits)
+      : ipld(std::move(store)), root_(Root{}), bits_{bits} {
+    assert(this->bits() != 0);
+    auto &root{boost::get<Root>(root_)};
+    root.bits = bits;
+    root.node.bits_bytes = bitsBytes();
   }
 
-  Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store)
-      : ipld(std::move(store)), root_(Root{}) {}
-
-  Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root)
-      : ipld(std::move(store)), root_(root) {}
+  Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store,
+           const CID &root,
+           OptBitWidth bits)
+      : ipld(std::move(store)), root_(root), bits_{bits} {
+    assert(this->bits() != 0);
+  }
 
   outcome::result<uint64_t> Amt::count() const {
     OUTCOME_TRY(loadRoot());
@@ -56,7 +134,7 @@ namespace fc::storage::amt {
   }
 
   outcome::result<void> Amt::set(uint64_t key, gsl::span<const uint8_t> value) {
-    if (key >= kMaxIndex) {
+    if (key > kMaxIndex) {
       return AmtError::kIndexTooBig;
     }
     OUTCOME_TRY(loadRoot());
@@ -65,7 +143,9 @@ namespace fc::storage::amt {
       if (!visit_in_place(root.node.items,
                           [](auto &xs) { return xs.empty(); })) {
         root.node = {
-            Node::Links{{0, std::make_shared<Node>(std::move(root.node))}}};
+            Node::Links{{0, std::make_shared<Node>(std::move(root.node))}},
+            bitsBytes(),
+        };
       }
       ++root.height;
     }
@@ -77,7 +157,7 @@ namespace fc::storage::amt {
   }
 
   outcome::result<Value> Amt::get(uint64_t key) const {
-    if (key >= kMaxIndex) {
+    if (key > kMaxIndex) {
       return AmtError::kIndexTooBig;
     }
     OUTCOME_TRY(loadRoot());
@@ -101,7 +181,7 @@ namespace fc::storage::amt {
   }
 
   outcome::result<void> Amt::remove(uint64_t key) {
-    if (key >= kMaxIndex) {
+    if (key > kMaxIndex) {
       return AmtError::kIndexTooBig;
     }
     OUTCOME_TRY(loadRoot());
@@ -235,6 +315,9 @@ namespace fc::storage::amt {
     if (which<CID>(root_)) {
       OUTCOME_TRY(root, ipld->getCbor<Root>(boost::get<CID>(root_)));
       root_ = root;
+      if (root.bits != bits_) {
+        return AmtError::kRootBitsWrong;
+      }
     }
     return outcome::success();
   }
@@ -251,6 +334,7 @@ namespace fc::storage::amt {
     if (it == links.end()) {
       if (create) {
         auto node = std::make_shared<Node>();
+        node->bits_bytes = bitsBytes();
         links[index] = node;
         return node;
       }
@@ -259,8 +343,30 @@ namespace fc::storage::amt {
     auto &link = it->second;
     if (which<CID>(link)) {
       OUTCOME_TRY(node, ipld->getCbor<Node>(boost::get<CID>(link)));
+      if (node.bits_bytes != bitsBytes()) {
+        return AmtError::kRootBitsWrong;
+      }
       link = std::make_shared<Node>(std::move(node));
     }
     return boost::get<Node::Ptr>(link);
+  }
+
+  uint64_t Amt::bits() const {
+    return bits_.get_value_or(kDefaultBits);
+  }
+
+  uint64_t Amt::bitsBytes() const {
+    if (bits() <= 3) {
+      return 1;
+    }
+    return 1 << (bits() - 3);
+  }
+
+  uint64_t Amt::maskAt(uint64_t height) const {
+    return 1 << (bits() * height);
+  }
+
+  uint64_t Amt::maxAt(uint64_t height) const {
+    return maskAt(height + 1);
   }
 }  // namespace fc::storage::amt

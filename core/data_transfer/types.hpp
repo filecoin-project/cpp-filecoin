@@ -8,7 +8,6 @@
 
 #include <libp2p/peer/peer_info.hpp>
 
-#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
 #include "storage/ipld/selector.hpp"

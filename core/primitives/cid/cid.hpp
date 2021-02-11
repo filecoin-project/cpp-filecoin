@@ -9,9 +9,13 @@
 #include <spdlog/fmt/fmt.h>
 #include <libp2p/multi/content_identifier.hpp>
 
+#include "common/blob.hpp"
+#include "common/buffer.hpp"
 #include "common/outcome.hpp"
 
 namespace fc {
+  using common::Hash256;
+
   class CID : public libp2p::multi::ContentIdentifier {
    public:
     using ContentIdentifier::ContentIdentifier;
@@ -75,6 +79,11 @@ namespace fc {
   };
 
   size_t hash_value(const CID &cid);
+
+  bool isCbor(const CID &cid);
+  boost::optional<Hash256> asBlake(const CID &cid);
+  boost::optional<BytesIn> asIdentity(const CID &cid);
+  CID asCborBlakeCid(const Hash256 &hash);
 }  // namespace fc
 
 namespace std {

@@ -43,13 +43,13 @@ namespace fc::vm::runtime {
         std::vector<TestVectorRandomness> replaying_values);
 
     outcome::result<Randomness> getRandomnessFromTickets(
-        const TipsetCPtr &tipset,
+        const TsBranchPtr &ts_branch,
         DomainSeparationTag tag,
         ChainEpoch epoch,
         gsl::span<const uint8_t> seed) const override;
 
     outcome::result<Randomness> getRandomnessFromBeacon(
-        const TipsetCPtr &tipset,
+        const TsBranchPtr &ts_branch,
         DomainSeparationTag tag,
         ChainEpoch epoch,
         gsl::span<const uint8_t> seed) const override;

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 
 namespace fc::blocksync {
   using libp2p::Host;
@@ -23,14 +23,15 @@ namespace fc::blocksync {
   };
 
   // TODO: depth/count
-  using Cb = std::function<void(outcome::result<std::shared_ptr<const Tipset>>)>;
+  using Cb =
+      std::function<void(outcome::result<std::shared_ptr<const Tipset>>)>;
   void fetch(std::shared_ptr<Host> host,
              const PeerInfo &peer,
              IpldPtr ipld,
              std::vector<CID> blocks,
              Cb cb);
 
-  void serve(std::shared_ptr<Host> host, IpldPtr ipld);
+  void serve(std::shared_ptr<Host> host, TsLoadPtr ts_load, IpldPtr ipld);
 }  // namespace fc::blocksync
 
 OUTCOME_HPP_DECLARE_ERROR(fc::blocksync, Error)

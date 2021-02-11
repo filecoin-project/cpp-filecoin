@@ -10,7 +10,7 @@
 #include "blockchain/weight_calculator.hpp"
 #include "common/logger.hpp"
 #include "common/todo_error.hpp"
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/keystore/keystore.hpp"
@@ -37,6 +37,8 @@ namespace fc::api {
   std::shared_ptr<FullNodeApi> makeImpl(
       std::shared_ptr<ChainStore> chain_store,
       std::shared_ptr<WeightCalculator> weight_calculator,
+      TsLoadPtr ts_load,
+      TsBranchPtr ts_main,
       std::shared_ptr<Ipld> ipld,
       std::shared_ptr<Mpool> mpool,
       std::shared_ptr<Interpreter> interpreter,

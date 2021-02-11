@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "fwd.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::blockchain::production {
@@ -13,6 +14,7 @@ namespace fc::blockchain::production {
   constexpr size_t kBlockMaxMessagesCount = 1000;
 
   outcome::result<BlockWithMessages> generate(Interpreter &interpreter,
+                                              TsLoadPtr ts_load,
                                               std::shared_ptr<Ipld> ipld,
                                               BlockTemplate t);
 }  // namespace fc::blockchain::production

@@ -9,21 +9,21 @@
 #include "vm/actor/invoker.hpp"
 
 #include "vm/actor/actor_method.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor {
-
   using runtime::InvocationOutput;
+  using runtime::Runtime;
 
   /// Finds and loads actor code, invokes actor methods
   class InvokerImpl : public Invoker {
    public:
     InvokerImpl();
+
     ~InvokerImpl() override = default;
+
     outcome::result<InvocationOutput> invoke(
-        const Actor &actor,
-        Runtime &runtime,
-        MethodNumber method,
-        const MethodParams &params) override;
+        const Actor &actor, const std::shared_ptr<Runtime> &runtime) override;
 
    private:
     std::map<CID, ActorExports> builtin_;

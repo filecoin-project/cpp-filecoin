@@ -17,7 +17,7 @@
 #include <gsl/span>
 
 #include "drand/beaconizer.hpp"
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 
 namespace fc::drand {
   using boost::asio::io_context;

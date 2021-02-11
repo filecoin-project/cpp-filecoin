@@ -4,9 +4,11 @@
  */
 
 #include "storage/car/car.hpp"
-#include <boost/iostreams/device/mapped_file.hpp>
+
 #include <fstream>
+
 #include "codec/uvarint.hpp"
+#include "common/file.hpp"
 #include "common/span.hpp"
 #include "storage/ipld/traverser.hpp"
 
@@ -21,39 +23,51 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
 }
 
 namespace fc::storage::car {
-  using mapped_file = boost::iostreams::mapped_file_source;
   using ipld::kAllSelector;
   using ipld::traverser::Traverser;
 
-  outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input) {
+  outcome::result<CarReader> CarReader::make(BytesIn file) {
+    CarReader reader;
+    reader.file = file;
+    auto input{file};
     OUTCOME_TRY(header_bytes,
                 codec::uvarint::readBytes<CarError::kDecodeError,
                                           CarError::kDecodeError>(input));
     OUTCOME_TRY(header, codec::cbor::decode<CarHeader>(header_bytes));
-    while (!input.empty()) {
-      OUTCOME_TRY(node,
-                  codec::uvarint::readBytes<CarError::kDecodeError,
-                                            CarError::kDecodeError>(input));
-      if (node.empty()) {
-        break;
-      }
-      OUTCOME_TRY(cid, CID::read(node));
-      OUTCOME_TRY(store.set(cid, common::Buffer{node}));
+    reader.position = input.data() - reader.file.data();
+    reader.roots = std::move(header.roots);
+    return reader;
+  }
+
+  bool CarReader::end() const {
+    return (ssize_t)position >= file.size() || file[position] == 0;
+  }
+
+  outcome::result<CarReader::Item> CarReader::next() {
+    assert(!end());
+    auto input{file.subspan(position)};
+    OUTCOME_TRY(node,
+                codec::uvarint::readBytes<CarError::kDecodeError,
+                                          CarError::kDecodeError>(input));
+    OUTCOME_TRY(cid, CID::read(node));
+    position = input.data() - file.data();
+    ++objects;
+    return std::make_pair(std::move(cid), node);
+  }
+
+  outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input) {
+    OUTCOME_TRY(reader, CarReader::make(input));
+    while (!reader.end()) {
+      OUTCOME_TRY(item, reader.next());
+      OUTCOME_TRY(store.set(item.first, common::Buffer{item.second}));
     }
-    return std::move(header.roots);
+    return std::move(reader.roots);
   }
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store,
                                             const std::string &car_path) {
-    mapped_file car_file(car_path);
-    if (!car_file.is_open()) {
-      return CarError::kCannotOpenFileError;
-    }
-    return loadCar(
-        store,
-        common::span::cbytes(
-            {car_file.data(),
-             static_cast<gsl::span<const char>::index_type>(car_file.size())}));
+    OUTCOME_TRY(file, common::mapFile(car_path));
+    return loadCar(store, file.second);
   }
 
   void writeUvarint(Buffer &output, uint64_t value) {

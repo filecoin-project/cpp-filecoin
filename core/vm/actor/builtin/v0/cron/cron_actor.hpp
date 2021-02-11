@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_CRON_ACTOR_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_CRON_ACTOR_HPP
+#pragma once
 
 #include "vm/actor/actor_method.hpp"
 
@@ -21,6 +20,11 @@ namespace fc::vm::actor::builtin::v0::cron {
   };
   CBOR_TUPLE(State, entries)
 
+  struct Construct : ActorMethodBase<1> {
+    using Params = std::vector<CronTableEntry>;
+    ACTOR_METHOD_DECL();
+  };
+
   /**
    * @brief EpochTick executes built-in periodic actions, run at every Epoch.
    */
@@ -31,5 +35,3 @@ namespace fc::vm::actor::builtin::v0::cron {
   extern const ActorExports exports;
 
 }  // namespace fc::vm::actor::builtin::v0::cron
-
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_CRON_ACTOR_HPP

@@ -6,15 +6,18 @@
 #include "storage/chain/msg_waiter.hpp"
 #include "adt/array.hpp"
 #include "common/logger.hpp"
+#include "primitives/tipset/load.hpp"
 
 namespace fc::storage::blockchain {
   using primitives::tipset::MessageVisitor;
 
-  MsgWaiter::MsgWaiter(IpldPtr ipld) : ipld{ipld} {}
-
   std::shared_ptr<MsgWaiter> MsgWaiter::create(
-      IpldPtr ipld, std::shared_ptr<ChainStore> chain_store) {
-    auto waiter{std::make_shared<MsgWaiter>(ipld)};
+      TsLoadPtr ts_load,
+      IpldPtr ipld,
+      std::shared_ptr<ChainStore> chain_store) {
+    auto waiter{std::make_shared<MsgWaiter>()};
+    waiter->ts_load = std::move(ts_load);
+    waiter->ipld = std::move(ipld);
     waiter->head_sub = chain_store->subscribeHeadChanges([=](auto &change) {
       auto res{waiter->onHeadChange(change)};
       if (!res) {
@@ -28,7 +31,7 @@ namespace fc::storage::blockchain {
 
   outcome::result<void> MsgWaiter::onHeadChange(const HeadChange &change) {
     auto onTipset = [&](auto &ts, auto apply) -> outcome::result<TipsetCPtr> {
-      OUTCOME_TRY(parent, ts->loadParent(*ipld));
+      OUTCOME_TRY(parent, ts_load->load(ts->getParents()));
       adt::Array<MessageReceipt> receipts{ts->getParentMessageReceipts(), ipld};
       OUTCOME_TRY(parent->visitMessages(
           {ipld, true, false},

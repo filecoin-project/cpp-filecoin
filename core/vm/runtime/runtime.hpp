@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_HPP
-#define CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_HPP
+#pragma once
 
 #include <tuple>
 
+#include "adt/address_key.hpp"
+#include "adt/map.hpp"
 #include "common/outcome.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/randomness/randomness_types.hpp"
@@ -23,6 +24,8 @@
 #include "vm/message/message.hpp"
 #include "vm/runtime/runtime_types.hpp"
 #include "vm/version.hpp"
+
+#define VM_ASSERT(condition) OUTCOME_TRY(runtime.vm_assert(condition))
 
 namespace fc::vm::runtime {
 
@@ -40,14 +43,20 @@ namespace fc::vm::runtime {
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
   using primitives::GasAmount;
+  using primitives::SectorNumber;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::block::BlockHeader;
   using primitives::piece::PieceInfo;
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using version::NetworkVersion;
+  using BatchSealsIn =
+      std::vector<std::pair<Address, std::vector<SealVerifyInfo>>>;
+  using BatchSealsOut =
+      std::vector<std::pair<Address, std::vector<SectorNumber>>>;
 
   struct Execution;
 
@@ -137,9 +146,22 @@ namespace fc::vm::runtime {
     /**
      * @brief Deletes an actor in the state tree
      *
+     * @param address - Address of actor that receives remaining balance
+     *
      * May only be called by the actor itself
      */
-    virtual outcome::result<void> deleteActor() = 0;
+    virtual outcome::result<void> deleteActor(const Address &address) = 0;
+
+    /**
+     * @brief Transfer debits money from one account and credits it to another
+     *
+     * @param debitFrom - money sender
+     * @param creditTo - money receiver
+     * @param amount - amount of money that is transfered
+     */
+    virtual outcome::result<void> transfer(const Address &debitFrom,
+                                           const Address &creditTo,
+                                           const TokenAmount &amount) = 0;
 
     /**
      * Returns the total token supply in circulation at the beginning of the
@@ -159,25 +181,27 @@ namespace fc::vm::runtime {
     /**
      * @brief Returns IPFS datastore
      */
-    virtual std::shared_ptr<IpfsDatastore> getIpfsDatastore() = 0;
+    virtual std::shared_ptr<IpfsDatastore> getIpfsDatastore() const = 0;
 
     /**
      * Get Message for actor invocation
      * @return message invoking current execution
      */
-    virtual std::reference_wrapper<const UnsignedMessage> getMessage() = 0;
+    virtual std::reference_wrapper<const UnsignedMessage> getMessage()
+        const = 0;
 
     /// Try to charge gas or throw if there is not enoght gas
     virtual outcome::result<void> chargeGas(GasAmount amount) = 0;
 
     /// Get current actor state root CID
-    virtual outcome::result<CID> getCurrentActorState() = 0;
+    virtual outcome::result<CID> getCurrentActorState() const = 0;
 
     /// Update actor state CID
     virtual outcome::result<void> commit(const CID &new_state) = 0;
 
     /// Resolve address to id-address
-    virtual outcome::result<Address> resolveAddress(const Address &address) = 0;
+    virtual outcome::result<Address> resolveAddress(
+        const Address &address) const = 0;
 
     /// Verify signature
     virtual outcome::result<bool> verifySignature(
@@ -185,9 +209,17 @@ namespace fc::vm::runtime {
         const Address &address,
         gsl::span<const uint8_t> data) = 0;
 
+    virtual outcome::result<bool> verifySignatureBytes(
+        const Buffer &signature_bytes,
+        const Address &address,
+        gsl::span<const uint8_t> data) = 0;
+
     /// Verify PoSt
     virtual outcome::result<bool> verifyPoSt(
         const WindowPoStVerifyInfo &info) = 0;
+
+    virtual outcome::result<BatchSealsOut> batchVerifySeals(
+        const BatchSealsIn &batch) = 0;
 
     /// Compute unsealed sector cid
     virtual outcome::result<CID> computeUnsealedSectorCid(
@@ -197,42 +229,9 @@ namespace fc::vm::runtime {
     virtual outcome::result<ConsensusFault> verifyConsensusFault(
         const Buffer &block1, const Buffer &block2, const Buffer &extra) = 0;
 
-    /**
-     * Aborts execution if res has error
-     * @tparam T - result type
-     * @param res - result to check
-     * @param default_error - default VMExitCode to abort with.
-     * @return If res has no error, success() returned. Otherwise if res.error()
-     * is VMAbortExitCode or VMFatal, the res.error() returned, else
-     * default_error returned
-     */
-    template <typename T>
-    outcome::result<void> requireNoError(const outcome::result<T> &res,
-                                         const VMExitCode &default_error) {
-      if (res.has_error()) {
-        if (isFatal(res.error()) || isAbortExitCode(res.error())) {
-          return res.error();
-        }
-        if (isVMExitCode(res.error())) {
-          return abort(VMExitCode{res.error().value()});
-        }
-        return abort(default_error);
-      }
-      return outcome::success();
-    }
-
-    /**
-     * Abort execution with VMExitCode
-     * @param error_code - error code that should be passed to the caller
-     * @return error_code as VMAbortExitCode
-     */
-    outcome::result<void> abort(const VMExitCode &error_code) {
-      return VMAbortExitCode{error_code};
-    }
-
-    static inline Blake2b256Hash hashBlake2b(gsl::span<const uint8_t> data) {
-      return crypto::blake2b::blake2b_256(data);
-    }
+    /// Return a hash of data
+    virtual outcome::result<Blake2b256Hash> hashBlake2b(
+        gsl::span<const uint8_t> data) = 0;
 
     /// Send typed method with typed params and result
     template <typename M>
@@ -281,7 +280,7 @@ namespace fc::vm::runtime {
 
     /// Get decoded current actor state
     template <typename T>
-    outcome::result<T> getCurrentActorStateCbor() {
+    outcome::result<T> getCurrentActorStateCbor() const {
       OUTCOME_TRY(head, getCurrentActorState());
       return getIpfsDatastore()->getCbor<T>(head);
     }
@@ -299,17 +298,24 @@ namespace fc::vm::runtime {
       return outcome::success();
     }
 
-    inline operator std::shared_ptr<IpfsDatastore>() {
+    inline operator std::shared_ptr<IpfsDatastore>() const {
       return getIpfsDatastore();
     }
 
-    inline auto getCurrentBalance() {
+    inline auto getCurrentBalance() const {
       return getBalance(getCurrentReceiver());
     }
 
     inline outcome::result<void> validateArgument(bool assertion) const {
       if (!assertion) {
-        return VMExitCode::kErrIllegalArgument;
+        ABORT(VMExitCode::kErrIllegalArgument);
+      }
+      return outcome::success();
+    }
+
+    inline outcome::result<void> requireState(bool assertion) const {
+      if (!assertion) {
+        ABORT(VMExitCode::kErrIllegalState);
       }
       return outcome::success();
     }
@@ -319,17 +325,17 @@ namespace fc::vm::runtime {
       if (getImmediateCaller() == address) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerIs(
-        std::initializer_list<Address> addresses) {
+        std::vector<Address> addresses) {
       for (const auto &address : addresses) {
         if (getImmediateCaller() == address) {
           return outcome::success();
         }
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerType(
@@ -338,7 +344,7 @@ namespace fc::vm::runtime {
       if (actual_code == expected_code) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerIsSignable() {
@@ -346,7 +352,7 @@ namespace fc::vm::runtime {
       if (actor::isSignableActor(code)) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
     }
 
     inline outcome::result<void> validateImmediateCallerIsMiner() {
@@ -354,10 +360,26 @@ namespace fc::vm::runtime {
       if (isStorageMinerActor(actual_code)) {
         return outcome::success();
       }
-      return VMExitCode::kSysErrForbidden;
+      ABORT(VMExitCode::kSysErrForbidden);
+    }
+
+    inline outcome::result<void> validateImmediateCallerIsCurrentReceiver() {
+      if (getImmediateCaller() == getCurrentReceiver()) {
+        return outcome::success();
+      }
+      ABORT(VMExitCode::kSysErrForbidden);
+    }
+
+    inline outcome::result<void> vm_assert(bool condition) const {
+      if (condition) {
+        return outcome::success();
+      }
+      if (getNetworkVersion() <= NetworkVersion::kVersion3) {
+        ABORT(VMExitCode::kOldErrActorFailure);
+      } else {
+        ABORT(VMExitCode::kSysErrReserved1);
+      }
     }
   };
 
 }  // namespace fc::vm::runtime
-
-#endif  // CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_HPP

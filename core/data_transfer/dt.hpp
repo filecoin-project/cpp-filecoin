@@ -6,7 +6,7 @@
 #pragma once
 
 #include "data_transfer/message.hpp"
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
 
 namespace fc::data_transfer {
@@ -25,6 +25,7 @@ namespace fc::data_transfer {
 
   using gsns::Graphsync;
   using libp2p::Host;
+  using libp2p::peer::PeerId;
   using PeerGsId = gsns::FullRequestId;
 
   using DtId = uint64_t;

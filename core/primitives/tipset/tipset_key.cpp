@@ -63,6 +63,11 @@ namespace fc::primitives::tipset {
   TipsetKey::TipsetKey(std::vector<CID> c)
       : hash_{hash(c)}, cids_{std::move(c)} {}
 
+  TipsetKey::TipsetKey(TipsetHash h, std::vector<CID> c)
+      : hash_{std::move(h)}, cids_{std::move(c)} {
+    assert(hash_ == hash(cids_));
+  }
+
   bool TipsetKey::operator==(const TipsetKey &rhs) const {
     return hash_ == rhs.hash_;
   }
@@ -93,8 +98,7 @@ namespace fc::primitives::tipset {
 }  // namespace fc::primitives::tipset
 
 namespace std {
-  size_t hash<fc::TipsetKey>::operator()(
-      const fc::TipsetKey &x) const {
+  size_t hash<fc::TipsetKey>::operator()(const fc::TipsetKey &x) const {
     size_t h;
     memcpy(&h, x.hash().data(), sizeof(size_t));
     return h;

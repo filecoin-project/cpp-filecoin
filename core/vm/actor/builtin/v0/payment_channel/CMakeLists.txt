@@ -3,11 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(payment_channel_actor
+add_library(payment_channel_actor_v0
     payment_channel_actor.cpp
     )
-target_link_libraries(payment_channel_actor
+target_link_libraries(payment_channel_actor_v0
     actor
+    array
     outcome
     signature
     )
