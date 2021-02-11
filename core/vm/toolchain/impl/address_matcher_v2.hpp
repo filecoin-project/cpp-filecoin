@@ -5,12 +5,12 @@
 
 #pragma once
 
-#include "vm/runtime/actor_context.hpp"
+#include "vm/toolchain/address_matcher.hpp"
 
-namespace fc::vm::runtime::context {
-  class ActorContextV2 : public ActorContext {
+namespace fc::vm::toolchain {
+  class AddressMatcherV2 : public AddressMatcher {
    public:
-    ActorContextV2() = default;
+    AddressMatcherV2() = default;
 
     bool isAccountActor(const CodeId &code) const override;
     bool isStorageMinerActor(const CodeId &code) const override;
@@ -30,4 +30,4 @@ namespace fc::vm::runtime::context {
     CodeId getSystemActorCodeId() const override;
     CodeId getVerifiedRegistryCodeId() const override;
   };
-}  // namespace fc::vm::runtime::context
+}  // namespace fc::vm::toolchain

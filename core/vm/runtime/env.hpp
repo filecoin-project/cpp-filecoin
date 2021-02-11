@@ -9,7 +9,6 @@
 #include "primitives/types.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/invoker.hpp"
-#include "vm/runtime/actor_context.hpp"
 #include "vm/runtime/circulating.hpp"
 #include "vm/runtime/pricelist.hpp"
 #include "vm/runtime/runtime_randomness.hpp"
@@ -18,7 +17,6 @@
 namespace fc::vm::runtime {
   using actor::Actor;
   using actor::Invoker;
-  using context::ActorContextPtr;
   using primitives::tipset::TipsetCPtr;
   using state::StateTree;
   using state::StateTreeImpl;
@@ -90,8 +88,7 @@ namespace fc::vm::runtime {
 
     outcome::result<void> chargeGas(GasAmount amount);
 
-    outcome::result<Actor> tryCreateAccountActor(
-        const Address &address, const ActorContextPtr &context);
+    outcome::result<Actor> tryCreateAccountActor(const Address &address);
 
     outcome::result<InvocationOutput> sendWithRevert(
         const UnsignedMessage &message);

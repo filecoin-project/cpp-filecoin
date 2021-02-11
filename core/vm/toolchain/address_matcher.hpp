@@ -7,12 +7,12 @@
 
 #pragma once
 
-namespace fc::vm::runtime::context {
+namespace fc::vm::toolchain {
   using actor::CodeId;
 
-  class ActorContext {
+  class AddressMatcher {
    public:
-    virtual ~ActorContext() = default;
+    virtual ~AddressMatcher() = default;
 
     /** Checks if code is an account actor */
     virtual bool isAccountActor(const CodeId &code) const = 0;
@@ -43,6 +43,6 @@ namespace fc::vm::runtime::context {
     virtual CodeId getVerifiedRegistryCodeId() const = 0;
   };
 
-  using ActorContextPtr = std::shared_ptr<ActorContext>;
+  using AddressMatcherPtr = std::shared_ptr<AddressMatcher>;
 
-}  // namespace fc::vm::runtime::context
+}  // namespace fc::vm::toolchain

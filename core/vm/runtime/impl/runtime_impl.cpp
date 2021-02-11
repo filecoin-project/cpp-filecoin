@@ -21,20 +21,14 @@ namespace fc::vm::runtime {
   using fc::storage::hamt::HamtError;
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
-                           ActorContextPtr context,
                            UnsignedMessage message,
                            const Address &caller_id)
       : execution_{std::move(execution)},
-        context_{std::move(context)},
         message_{std::move(message)},
         caller_id{caller_id} {}
 
   std::shared_ptr<Execution> RuntimeImpl::execution() const {
     return execution_;
-  }
-
-  ActorContextPtr RuntimeImpl::context() const {
-    return context_;
   }
 
   NetworkVersion RuntimeImpl::getNetworkVersion() const {
@@ -43,6 +37,10 @@ namespace fc::vm::runtime {
 
   ChainEpoch RuntimeImpl::getCurrentEpoch() const {
     return execution_->env->epoch;
+  }
+
+  ActorVersion RuntimeImpl::getActorVersion() const {
+    return actor::getActorVersionForNetwork(getNetworkVersion());
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomnessFromTickets(

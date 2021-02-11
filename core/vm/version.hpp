@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_VM_VERSION_HPP
-#define FILECOIN_CORE_VM_VERSION_HPP
+#pragma once
 
 #include "primitives/chain_epoch/chain_epoch.hpp"
 
@@ -87,5 +86,3 @@ namespace fc::vm::version {
     return kLatestVersion;
   }
 }  // namespace fc::vm::version
-
-#endif  // FILECOIN_CORE_VM_VERSION_HPP

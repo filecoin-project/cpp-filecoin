@@ -16,18 +16,18 @@ namespace fc::vm::runtime {
   class RuntimeImpl : public Runtime {
    public:
     RuntimeImpl(std::shared_ptr<Execution> execution,
-                ActorContextPtr context,
                 UnsignedMessage message,
                 const Address &caller_id);
 
     std::shared_ptr<Execution> execution() const override;
 
-    ActorContextPtr context() const override;
-
     NetworkVersion getNetworkVersion() const override;
 
     /** \copydoc Runtime::getCurrentEpoch() */
     ChainEpoch getCurrentEpoch() const override;
+
+    /** \copydoc Runtime::getActorVersion() */
+    ActorVersion getActorVersion() const override;
 
     outcome::result<Randomness> getRandomnessFromTickets(
         DomainSeparationTag tag,
@@ -124,7 +124,6 @@ namespace fc::vm::runtime {
 
    private:
     std::shared_ptr<Execution> execution_;
-    ActorContextPtr context_;
     UnsignedMessage message_;
     Address caller_id;
   };
