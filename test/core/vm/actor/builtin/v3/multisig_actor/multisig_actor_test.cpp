@@ -41,6 +41,10 @@ namespace fc::vm::actor::builtin::v3::multisig {
   class MultisigActorTest : public ::testing::Test {
     void SetUp() override {
       initState();
+      actorVersion = ActorVersion::kVersion3;
+
+      EXPECT_CALL(runtime, getActorVersion())
+          .WillRepeatedly(testing::Invoke([&]() { return actorVersion; }));
 
       ON_CALL_3(runtime, getIpfsDatastore(), ipld);
 
@@ -80,8 +84,6 @@ namespace fc::vm::actor::builtin::v3::multisig {
           .WillRepeatedly(testing::Invoke(
               [&](auto &data) { return crypto::blake2b::blake2b_256(data); }));
 
-      ipld->load(state);
-
       EXPECT_CALL(runtime, getCurrentActorState())
           .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() {
@@ -120,6 +122,8 @@ namespace fc::vm::actor::builtin::v3::multisig {
       state.initial_balance = 0;
       state.start_epoch = 0;
       state.unlock_duration = 0;
+
+      ipld->load(state);
     }
 
    protected:
@@ -148,6 +152,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
     State state{};
 
     StateTreeImpl state_tree{ipld};
+    ActorVersion actorVersion;
   };
 
   /**

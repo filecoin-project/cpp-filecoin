@@ -26,6 +26,7 @@ namespace fc::vm::actor::builtin::v0::miner {
    public:
     void SetUp() override {
       ActorTestFixture<State>::SetUp();
+      actorVersion = ActorVersion::kVersion0;
       anyCodeIdAddressIs(kAccountCodeId);
     }
 

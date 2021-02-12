@@ -24,7 +24,6 @@
 namespace fc::vm::runtime {
   using actor::ActorVersion;
   using actor::getActorVersionForNetwork;
-  using actor::isAccountActor;
   using actor::kConstructorMethodNumber;
   using actor::kEmptyObjectCid;
   using actor::kRewardAddress;
@@ -174,7 +173,9 @@ namespace fc::vm::runtime {
       return maybe_from.error();
     }
     auto &from = maybe_from.value();
-    if (!isAccountActor(from.code)) {
+    const auto address_matcher = Toolchain::createAddressMatcher(
+        getNetworkVersion(static_cast<ChainEpoch>(epoch)));
+    if (!address_matcher->isAccountActor(from.code)) {
       apply.receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
       return apply;
     }
@@ -223,7 +224,7 @@ namespace fc::vm::runtime {
         && message.method
                == vm::actor::builtin::v0::miner::SubmitWindowedPoSt::Number) {
       if (auto _to{state_tree->get(message.to)}) {
-        no_fee = vm::actor::isStorageMinerActor(_to.value().code);
+        no_fee = address_matcher->isStorageMinerActor(_to.value().code);
       } else {
         if (_to.error() != HamtError::kNotFound) {
           return _to.error();

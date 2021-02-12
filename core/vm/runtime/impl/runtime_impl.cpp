@@ -13,12 +13,14 @@
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime_error.hpp"
+#include "vm/toolchain/toolchain.hpp"
 #include "vm/version.hpp"
 
 namespace fc::vm::runtime {
   using fc::primitives::BigInt;
   using fc::primitives::address::Protocol;
   using fc::storage::hamt::HamtError;
+  using toolchain::Toolchain;
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
                            UnsignedMessage message,
@@ -112,8 +114,20 @@ namespace fc::vm::runtime {
 
   outcome::result<void> RuntimeImpl::createActor(const Address &address,
                                                  const Actor &actor) {
-    OUTCOME_TRY(execution_->state_tree->set(address, actor));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(getActorVersion());
+    if (!address_matcher->isBuiltinActor(actor.code)
+        || address_matcher->isSingletonActor(actor.code)) {
+      ABORT(VMExitCode::kSysErrIllegalArgument);
+    }
+
+    const auto has = execution_->state_tree->get(address);
+    if (!has.has_error()) {
+      ABORT(VMExitCode::kSysErrIllegalArgument);
+    }
+
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onCreateActor()));
+    OUTCOME_TRY(execution_->state_tree->set(address, actor));
     return outcome::success();
   }
 

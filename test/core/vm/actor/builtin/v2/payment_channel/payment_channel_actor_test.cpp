@@ -10,6 +10,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
+#include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
@@ -29,6 +30,7 @@ using fc::primitives::address::Address;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::vm::VMAbortExitCode;
 using fc::vm::VMExitCode;
+using fc::vm::actor::ActorVersion;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::kSendMethodNumber;
 using fc::vm::actor::builtin::v2::kAccountCodeId;
@@ -41,6 +43,12 @@ using testing::Return;
 
 struct PaymentChannelActorTest : testing::Test {
   void SetUp() override {
+    ipld->load(state);
+    actorVersion = ActorVersion::kVersion2;
+
+    EXPECT_CALL(runtime, getActorVersion())
+        .WillRepeatedly(testing::Invoke([&]() { return actorVersion; }));
+
     ON_CALL_3(runtime, getIpfsDatastore(), ipld);
 
     EXPECT_CALL(runtime, resolveAddress(testing::_))
@@ -69,8 +77,6 @@ struct PaymentChannelActorTest : testing::Test {
         .Times(testing::AnyNumber())
         .WillRepeatedly(
             testing::Invoke([&](auto &data) { return blake2b_256(data); }));
-
-    ipld->load(state);
 
     EXPECT_CALL(runtime, getCurrentActorState())
         .Times(testing::AnyNumber())
@@ -124,6 +130,7 @@ struct PaymentChannelActorTest : testing::Test {
   PaymentChannel::State state;
 
   StateTreeImpl state_tree{ipld};
+  ActorVersion actorVersion;
 };
 
 /// PaymentChannelActor Construct error: caller is not init actor

@@ -4,6 +4,7 @@
 #
 
 add_library(runtime
+    runtime.cpp
     circulating.cpp
     impl/env.cpp
     impl/runtime_impl.cpp

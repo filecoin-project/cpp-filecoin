@@ -9,19 +9,19 @@
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::utils::init {
-    using runtime::Runtime;
+  using runtime::Runtime;
 
   class InitUtils {
-      public:
-      InitUtils(Runtime &r) : runtime(r) {}
-      virtual ~InitUtils() = default;
+   public:
+    InitUtils(Runtime &r) : runtime(r) {}
+    virtual ~InitUtils() = default;
 
-      virtual outcome::result<void> assertCaller(bool condition) const = 0;
+    virtual outcome::result<void> assertCaller(bool condition) const = 0;
 
-      protected:
-      Runtime &runtime;
+   protected:
+    Runtime &runtime;
   };
 
   using InitUtilsPtr = std::shared_ptr<InitUtils>;
 
-} // namespace fc::vm::actor::builtin::utils::init
+}  // namespace fc::vm::actor::builtin::utils::init

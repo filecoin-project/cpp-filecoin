@@ -29,6 +29,11 @@ namespace fc::vm::actor::builtin::v2::storage_power {
 
   class StoragePowerActorV2Test : public testing::Test {
     void SetUp() override {
+      actorVersion = ActorVersion::kVersion2;
+
+      EXPECT_CALL(runtime, getActorVersion())
+          .WillRepeatedly(testing::Invoke([&]() { return actorVersion; }));
+
       EXPECT_CALL(runtime, getCurrentEpoch())
           .WillRepeatedly(Return(current_epoch));
 
@@ -128,6 +133,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
         std::make_shared<InMemoryDatastore>()};
     Address caller;
     State state;
+    ActorVersion actorVersion;
   };
 
   /**

@@ -18,6 +18,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   struct VerifiedRegistryActorTest : public ActorTestFixture<State> {
     void SetUp() override {
       ActorTestFixture<State>::SetUp();
+      actorVersion = ActorVersion::kVersion0;
 
       setupState();
     }
