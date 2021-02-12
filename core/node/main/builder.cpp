@@ -346,15 +346,6 @@ namespace fc::node {
     o.interpret_job = sync::InterpretJob::create(
         o.vm_interpreter, *o.ts_branches, o.ipld, o.events);
 
-    o.sync_job = std::make_shared<sync::SyncJob>(o.host,
-                                                 o.scheduler,
-                                                 o.interpret_job,
-                                                 o.vm_interpreter,
-                                                 *o.ts_branches,
-                                                 o.ts_main,
-                                                 o.ts_load,
-                                                 o.ipld);
-
     log()->debug("Creating chain store...");
 
     auto power_table = std::make_shared<power::PowerTableImpl>();
@@ -378,7 +369,18 @@ namespace fc::node {
     auto head{
         o.ts_load->loadw(std::prev(o.ts_main->chain.end())->second).value()};
     o.chain_store = std::make_shared<sync::ChainStoreImpl>(
-        o.ipld, o.vm_interpreter, head, std::move(block_validator));
+        o.ipld, o.ts_load, head, std::move(block_validator));
+
+    o.sync_job = std::make_shared<sync::SyncJob>(o.host,
+                                                 o.chain_store,
+                                                 o.scheduler,
+                                                 o.interpret_job,
+                                                 o.vm_interpreter,
+                                                 *o.ts_branches,
+                                                 o.ts_main_kv,
+                                                 o.ts_main,
+                                                 o.ts_load,
+                                                 o.ipld);
 
     log()->debug("Creating API...");
 

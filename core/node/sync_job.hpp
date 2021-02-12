@@ -12,10 +12,12 @@
 #include "common/io_thread.hpp"
 #include "node/interpret_job.hpp"
 #include "peers.hpp"
+#include "primitives/tipset/chain.hpp"
 #include "storage/buffer_map.hpp"
 
 namespace fc::sync {
   using blocksync::BlocksyncRequest;
+  using primitives::tipset::chain::KvPtr;
   using vm::interpreter::CachedInterpreter;
 
   /// Active object which downloads and indexes tipsets. Keeps track of peers
@@ -23,10 +25,12 @@ namespace fc::sync {
   class SyncJob {
    public:
     SyncJob(std::shared_ptr<libp2p::Host> host,
+            std::shared_ptr<ChainStoreImpl> chain_store,
             std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
             std::shared_ptr<InterpretJob> interpret_job,
             std::shared_ptr<CachedInterpreter> interpreter,
             TsBranches &ts_branches,
+            KvPtr ts_main_kv,
             TsBranchPtr ts_main,
             TsLoadPtr ts_load,
             IpldPtr ipld);
@@ -63,10 +67,12 @@ namespace fc::sync {
     void downloaderCallback(BlocksyncRequest::Result r);
 
     std::shared_ptr<libp2p::Host> host_;
+    std::shared_ptr<ChainStoreImpl> chain_store_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<InterpretJob> interpret_job_;
     std::shared_ptr<CachedInterpreter> interpreter_;
     TsBranches &ts_branches_;
+    KvPtr ts_main_kv_;
     TsBranchPtr ts_main_;
     TsLoadPtr ts_load_;
     IpldPtr ipld_;

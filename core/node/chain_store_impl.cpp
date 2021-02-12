@@ -23,14 +23,13 @@ namespace fc::sync {
 
   ChainStoreImpl::ChainStoreImpl(
       std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
-      std::shared_ptr<CachedInterpreter> interpreter,
+      TsLoadPtr ts_load,
       TipsetCPtr head,
       std::shared_ptr<BlockValidator> block_validator)
       : ipld_(std::move(ipld)),
-        interpreter_(std::move(interpreter)),
+        ts_load_(std::move(ts_load)),
         block_validator_(std::move(block_validator)) {
     assert(ipld_);
-    assert(interpreter_);
     assert(block_validator_);
     head_ = head;
   }
@@ -69,60 +68,31 @@ namespace fc::sync {
     return heaviest_weight_;
   }
 
-  void ChainStoreImpl::newHeadChosen(TipsetCPtr tipset, BigInt weight) {
+  void ChainStoreImpl::update(Path &path, const BigInt &weight) {
+    auto &[revert, apply]{path};
     using primitives::tipset::HeadChange;
     using primitives::tipset::HeadChangeType;
-
-    // if (weight <= heaviest_weight_) {
-    //   // should not get here
-    //   return;
-    // }
-
-    // try {
-    //   HeadChange event;
-
-    //   bool first_head_apply = (head_ == nullptr);
-
-    //   if (!first_head_apply) {
-    //     assert(*head_ != *tipset);
-
-    //     auto &ancestor = res.value();
-    //     assert(ancestor);
-    //     auto ancestor_height = ancestor->height();
-
-    //     if (*ancestor != *head_) {
-    //       assert(ancestor_height < head_->height());
-
-    //       log()->info("fork detected, reverting from height {} to {}!",
-    //                   head_->height(),
-    //                   ancestor_height);
-
-    //       event.type = HeadChangeType::REVERT;
-
-    //       event.type = HeadChangeType::APPLY;
-
-    //       // event.value = t;
-    //       // head_change_signal_(event);
-    //       // events_->signalHeadChange(event);
-    //     }
-
-    //     log()->info(
-    //         "new current head: height={}, weight={}", tipset->height(),
-    //         weight);
-
-    //     event.type =
-    //         first_head_apply ? HeadChangeType::CURRENT :
-    //         HeadChangeType::APPLY;
-    //     event.value = tipset;
-    //     head_change_signal_(event);
-    //     events_->signalHeadChange(event);
-    //     head_ = std::move(tipset);
-    //     heaviest_weight_ = std::move(weight);
-    //   }
-    //   catch (const std::system_error &e) {
-    //     log()->error("cannot apply new head, {}", e.code().message());
-    //   }
-
+    HeadChange event;
+    auto notify{[&](auto &it) {
+      if (auto _ts{ts_load_->loadw(it->second)}) {
+        event.value = _ts.value();
+        head_change_signal_(event);
+        events_->signalHeadChange(event);
+      } else {
+        log()->error(
+            "update ts_load {} {}", _ts.error(), _ts.error().message());
+      }
+    }};
+    event.type = HeadChangeType::REVERT;
+    for (auto it{std::prev(revert.end())}; it != revert.begin(); --it) {
+      notify(it);
+    }
+    event.type = HeadChangeType::APPLY;
+    for (auto it{std::next(apply.begin())}; it != apply.end(); ++it) {
+      notify(it);
+    }
+    head_ = ts_load_->loadw(std::prev(apply.end())->second).value();
+    heaviest_weight_ = weight;
     events_->signalCurrentHead({.tipset = head_, .weight = heaviest_weight_});
   }
 

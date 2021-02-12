@@ -8,7 +8,7 @@
 #include "blocksync_common.hpp"
 #include "common/logger.hpp"
 #include "events.hpp"
-#include "primitives/tipset/chain.hpp"
+#include "node/chain_store_impl.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
 namespace fc::sync {
@@ -21,18 +21,22 @@ namespace fc::sync {
   }  // namespace
 
   SyncJob::SyncJob(std::shared_ptr<libp2p::Host> host,
+                   std::shared_ptr<ChainStoreImpl> chain_store,
                    std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
                    std::shared_ptr<InterpretJob> interpret_job,
                    std::shared_ptr<CachedInterpreter> interpreter,
                    TsBranches &ts_branches,
+                   KvPtr ts_main_kv,
                    TsBranchPtr ts_main,
                    TsLoadPtr ts_load,
                    IpldPtr ipld)
       : host_(std::move(host)),
+        chain_store_(std::move(chain_store)),
         scheduler_(std::move(scheduler)),
         interpret_job_(std::move(interpret_job)),
         interpreter_(std::move(interpreter)),
         ts_branches_{ts_branches},
+        ts_main_kv_(std::move(ts_main_kv)),
         ts_main_(std::move(ts_main)),
         ts_load_(std::move(ts_load)),
         ipld_(std::move(ipld)) {}
@@ -114,20 +118,57 @@ namespace fc::sync {
   }
 
   void SyncJob::interpretDequeue() {
+    std::pair<TipsetCPtr, BigInt> heaviest;
     while (!interpret_queue_.empty()) {
       auto ts{interpret_queue_.front()};
       interpret_queue_.pop();
       if (auto _res{interpreter_->tryGetCached(ts->key)}) {
         if (auto &res{_res.value()}) {
+          if (!heaviest.first || res->weight > heaviest.second) {
+            heaviest = {ts, res->weight};
+          }
           auto it{find(ts_branches_, ts)};
           for (auto it2 : children(it)) {
             if (auto _ts{ts_load_->loadw(it2.second->second)}) {
-              interpret_queue_.push(_ts.value());
+              auto &ts{_ts.value()};
+              if (ts->getParentStateRoot() != res->state_root) {
+                log()->warn("parent state mismatch {} {}",
+                            ts->height(),
+                            fmt::join(ts->key.cids(), ","));
+                continue;
+              }
+              if (ts->getParentMessageReceipts() != res->message_receipts) {
+                log()->warn("parent receipts mismatch {} {}",
+                            ts->height(),
+                            fmt::join(ts->key.cids(), ","));
+                continue;
+              }
+              interpret_queue_.push(ts);
             }
           }
         } else {
+          if (auto _has{ipld_->contains(ts->getParentStateRoot())};
+              !_has || _has.value()) {
+            log()->warn("no parent state {} {}",
+                        ts->height(),
+                        fmt::join(ts->key.cids(), ","));
+            continue;
+          }
           interpret_job_->add(ts);
         }
+      }
+    }
+    if (heaviest.first && heaviest.second > chain_store_->getHeaviestWeight()) {
+      // TODO(turuslan): branches write lock (TODO branches read locks)
+      if (auto _path{update(
+              ts_main_, find(ts_branches_, heaviest.first), ts_main_kv_)}) {
+        auto &[path, removed]{_path.value()};
+        for (auto &branch : removed) {
+          ts_branches_.erase(branch);
+        }
+        chain_store_->update(path, heaviest.second);
+      } else {
+        log()->error("update {} {}", _path.error(), _path.error().message());
       }
     }
   }

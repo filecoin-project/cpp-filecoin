@@ -19,7 +19,7 @@ namespace fc::vm::state {
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store,
                                const CID &root)
       : version_{StateTreeVersion::kVersion0}, store_{store} {
-    setRoot(root).assume_value();
+    setRoot(root);
     txBegin();
   }
 
@@ -136,18 +136,19 @@ namespace fc::vm::state {
     tx().removed.erase(id);
   }
 
-  outcome::result<void> StateTreeImpl::setRoot(const CID &root) {
-    OUTCOME_TRY(raw, store_->get(root));
+  void StateTreeImpl::setRoot(const CID &root) {
     // Try load StateRoot as version >= 1
-    if (codec::cbor::CborDecodeStream{raw}.listLength() == 3) {
-      OUTCOME_TRY(state_root, codec::cbor::decode<StateRoot>(raw));
-      version_ = state_root.version;
-      by_id = {state_root.actor_tree_root, store_};
-    } else {
-      // if failed to load as version >= 1, must be version 0
-      version_ = StateTreeVersion::kVersion0;
-      by_id = {root, store_};
+    if (auto _raw{store_->get(root)}) {
+      auto &raw{_raw.value()};
+      if (auto _state_root{codec::cbor::decode<StateRoot>(_raw.value())}) {
+        auto &state_root{_state_root.value()};
+        version_ = state_root.version;
+        by_id = {state_root.actor_tree_root, store_};
+        return;
+      }
     }
-    return outcome::success();
+    // if failed to load as version >= 1, must be version 0
+    version_ = StateTreeVersion::kVersion0;
+    by_id = {root, store_};
   }
 }  // namespace fc::vm::state

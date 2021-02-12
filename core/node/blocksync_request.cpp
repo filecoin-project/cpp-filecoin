@@ -173,14 +173,13 @@ namespace fc::sync::blocksync {
 
           secp_cids.reserve(_msgs->secp_msgs.size());
           for (const auto &msg : _msgs->secp_msgs) {
-            OUTCOME_EXCEPT(cid,
-                           ipld.setCbor<primitives::block::SignedMessage>(msg));
+            OUTCOME_EXCEPT(cid, ipld.setCbor(msg));
             secp_cids.push_back(std::move(cid));
           }
 
           bls_cids.reserve(_msgs->bls_msgs.size());
           for (const auto &msg : _msgs->bls_msgs) {
-            OUTCOME_EXCEPT(cid, ipld.setCbor<UnsignedMessage>(msg));
+            OUTCOME_EXCEPT(cid, ipld.setCbor(msg));
             bls_cids.push_back(std::move(cid));
           }
         }
@@ -207,7 +206,7 @@ namespace fc::sync::blocksync {
             }
             OUTCOME_TRY(meta.bls_messages.append(bls_cids[idx]));
           }
-          OUTCOME_TRY(meta_cid, ipld.setCbor<MsgMeta>(meta));
+          OUTCOME_TRY(meta_cid, ipld.setCbor(meta));
           if (meta_cid != header.messages) {
             return BlocksyncRequest::Error::BLOCKSYNC_STORE_ERROR_CIDS_MISMATCH;
           }

@@ -10,19 +10,18 @@
 
 #include "blockchain/block_validator/block_validator.hpp"
 #include "head_constructor.hpp"
+#include "primitives/tipset/chain.hpp"
 #include "storage/chain/chain_store.hpp"
-#include "vm/interpreter/impl/interpreter_impl.hpp"
 
 namespace fc::sync {
   using blockchain::block_validator::BlockValidator;
-  using blockchain::weight::WeightCalculator;
-  using vm::interpreter::CachedInterpreter;
+  using primitives::tipset::chain::Path;
 
   class ChainStoreImpl : public fc::storage::blockchain::ChainStore,
                          public std::enable_shared_from_this<ChainStoreImpl> {
    public:
     ChainStoreImpl(std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
-                   std::shared_ptr<CachedInterpreter> interpreter,
+                   TsLoadPtr ts_load,
                    TipsetCPtr head,
                    std::shared_ptr<BlockValidator> block_validator);
 
@@ -37,12 +36,12 @@ namespace fc::sync {
 
     primitives::BigInt getHeaviestWeight() const override;
 
-   private:
-    void newHeadChosen(TipsetCPtr tipset, BigInt weight);
+    void update(Path &path, const BigInt &weight);
 
+   private:
     HeadConstructor head_constructor_;
     std::shared_ptr<storage::ipfs::IpfsDatastore> ipld_;
-    std::shared_ptr<CachedInterpreter> interpreter_;
+    TsLoadPtr ts_load_;
     std::shared_ptr<BlockValidator> block_validator_;
 
     std::shared_ptr<events::Events> events_;
