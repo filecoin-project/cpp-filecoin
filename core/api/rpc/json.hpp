@@ -228,7 +228,7 @@ namespace fc::api {
     }
 
     ENCODE(SectorFileType) {
-      return encode(static_cast<int64_t>(v));
+      return encode(common::to_int(v));
     }
 
     DECODE(SectorFileType) {
@@ -773,12 +773,12 @@ namespace fc::api {
     }
 
     DECODE(StorageInfo) {
-      decode(v.id, Get(j, "ID"));
-      decode(v.urls, Get(j, "URLs"));
-      decode(v.weight, Get(j, "Weight"));
-      decode(v.can_seal, Get(j, "CanSeal"));
-      decode(v.can_store, Get(j, "CanStore"));
-      decode(v.is_primary, Get(j, "Primary"));
+      Get(j, "ID", v.id);
+      Get(j, "URLs", v.urls);
+      Get(j, "Weight", v.weight);
+      Get(j, "CanSeal", v.can_seal);
+      Get(j, "CanStore", v.can_store);
+      Get(j, "Primary", v.is_primary);
     }
 
     ENCODE(StorageParticipantBalance) {
@@ -1738,8 +1738,7 @@ namespace fc::api {
         outcome::raise(JsonError::kWrongType);
       }
       for (auto it = j.Begin(); it != j.End(); ++it) {
-        v.emplace(decode<T>(*
-        it));
+        v.emplace(decode<T>(*it));
       }
     }
 

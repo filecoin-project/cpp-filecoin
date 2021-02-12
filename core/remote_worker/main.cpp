@@ -136,11 +136,11 @@ namespace fc {
 
     OUTCOME_TRY(version, mapi->Version());
     // TODO: make version of miner
-    uint64_t miner_api = 0;
-    if (version.api_version != miner_api) {
+
+    if (version.api_version != kMinerApiVersion) {
       spdlog::error("lotus-miner API version doesn't match: expected: {}",
-                    miner_api);
-      exit(-1);
+                    kMinerApiVersion);
+      exit(EXIT_FAILURE);
     }
 
     // TODO(ortyomka): [FIL-347] remove it
@@ -166,7 +166,7 @@ namespace fc {
             (path / sector_storage::stores::kMetaFileName).string(),
             *codec::json::format(api::encode(primitives::LocalStorageMeta{
                 uuids::to_string(uuids::random_generator()()),
-                10,
+                kDefaultStorageWeight,
                 true,
                 false,
             }))));

@@ -801,11 +801,6 @@ namespace fc::api {
      * Payment channel methods are initialized with
      * PaymentChannelManager::makeApi(Api &api)
      */
-    api->PaychAllocateLane = {};
-    api->PaychGet = {};
-    api->PaychVoucherAdd = {};
-    api->PaychVoucherCheckValid = {};
-    api->PaychVoucherCreate = {};
     return api;
   }  // namespace fc::api
 }  // namespace fc::api

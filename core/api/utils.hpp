@@ -7,7 +7,6 @@
 
 #include <future>
 
-#include "markets/storage/ask_protocol.hpp"
 #include "adt/channel.hpp"
 #include "common/outcome.hpp"
 #include "common/todo_error.hpp"
@@ -22,7 +21,6 @@
 
 namespace fc::api {
   using adt::Channel;
-  using markets::storage::SignedStorageAsk;
 
   template <typename... T>
   using ParamsTuple =

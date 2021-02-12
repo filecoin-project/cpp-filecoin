@@ -5,12 +5,11 @@
 
 #pragma once
 
-#include "api/common_api.hpp"
-#include "api/node_api.hpp"
-#include "api/storage_api.hpp"
-#include "api/worker_api.hpp"
-
 namespace fc::api {
+  struct FullNodeApi;
+  struct StorageMinerApi;
+  struct WorkerApi;
+
   template <typename A, typename F>
   void visitCommon(A &&a, const F &f) {
     f(a.AuthNew);
@@ -34,7 +33,7 @@ namespace fc::api {
     f(a.MarketGetRetrievalAsk);
     f(a.MarketSetAsk);
     f(a.MarketSetRetrievalAsk);
-    f(a.SealProof); // TODO(ortyomka): [FIL-347] remove it
+    f(a.SealProof);  // TODO(ortyomka): [FIL-347] remove it
     f(a.StorageAttach);
     f(a.StorageInfo);
     f(a.StorageReportHealth);

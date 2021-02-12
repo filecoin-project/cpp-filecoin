@@ -9,6 +9,7 @@
 #include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "const.hpp"
 #include "drand/messages.hpp"
+#include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/deal_protocol.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
@@ -26,6 +27,7 @@ namespace fc::api {
   using drand::BeaconEntry;
   using libp2p::peer::PeerId;
   using markets::storage::DataRef;
+  using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
   using primitives::ChainEpoch;
   using primitives::DealId;

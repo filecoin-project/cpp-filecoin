@@ -313,7 +313,7 @@ namespace fc {
             (path / sector_storage::stores::kMetaFileName).string(),
             *codec::json::format(api::encode(primitives::LocalStorageMeta{
                 uuids::to_string(uuids::random_generator()()),
-                10,
+                kDefaultStorageWeight,
                 true,
                 true,
             }))));
@@ -449,7 +449,9 @@ namespace fc {
     mapi->PledgeSector = [&]() -> outcome::result<void> {
       return sealing->pledgeSector();
     };
-    mapi->Version = [] { return api::VersionResult{"fuhon-miner", 0, 0}; };
+    mapi->Version = [] {
+      return api::VersionResult{"fuhon-miner", kMinerApiVersion, 0};
+    };
 
     // TODO(ortyomka): [FIL-347] remove it
     mapi->SealProof = [&] { return wscheduler->getSealProofType(); };

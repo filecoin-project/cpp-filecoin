@@ -7,10 +7,12 @@
 
 #include "api/common_api.hpp"
 #include "markets/retrieval/types.hpp"
+#include "markets/storage/ask_protocol.hpp"
 #include "miner/storage_fsm/types.hpp"
 
 namespace fc::api {
   using markets::retrieval::RetrievalAsk;
+  using markets::storage::SignedStorageAsk;
   using mining::types::DealInfo;
   using mining::types::DealSchedule;
   using primitives::ChainEpoch;
