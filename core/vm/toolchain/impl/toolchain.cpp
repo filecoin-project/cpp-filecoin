@@ -9,7 +9,12 @@
 #include "vm/toolchain/impl/address_matcher_v2.hpp"
 #include "vm/toolchain/impl/address_matcher_v3.hpp"
 
+#include "vm/actor/builtin/v0/init/init_actor_utils.hpp"
+#include "vm/actor/builtin/v2/init/init_actor_utils.hpp"
+#include "vm/actor/builtin/v3/init/init_actor_utils.hpp"
+
 namespace fc::vm::toolchain {
+  using namespace fc::vm::actor::builtin;
 
   AddressMatcherPtr Toolchain::createAddressMatcher(ActorVersion version) {
     switch (version) {
@@ -22,18 +27,21 @@ namespace fc::vm::toolchain {
     }
   }
 
-  AddressMatcherPtr Toolchain::createAddressMatcher(const CodeId &actorCid) {
-    const auto version = actor::getActorVersionForCid(actorCid);
-    return createAddressMatcher(version);
-  }
-
-  AddressMatcherPtr Toolchain::createAddressMatcher(const Actor &actor) {
-    return createAddressMatcher(actor.code);
-  }
-
   AddressMatcherPtr Toolchain::createAddressMatcher(
       const NetworkVersion &network_version) {
     const auto version = actor::getActorVersionForNetwork(network_version);
     return createAddressMatcher(version);
+  }
+
+  InitUtilsPtr Toolchain::createInitActorUtils(Runtime &runtime) {
+    const auto version = runtime.getActorVersion();
+    switch (version) {
+      case ActorVersion::kVersion0:
+        return std::make_shared<v0::init::InitUtils>(runtime);
+      case ActorVersion::kVersion2:
+        return std::make_shared<v2::init::InitUtils>(runtime);
+      case ActorVersion::kVersion3:
+        return std::make_shared<v3::init::InitUtils>(runtime);
+    }
   }
 }  // namespace fc::vm::toolchain

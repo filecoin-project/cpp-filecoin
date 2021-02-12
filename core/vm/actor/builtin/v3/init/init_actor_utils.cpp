@@ -3,12 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v3/init/init_actor.hpp"
+#include "vm/actor/builtin/v3/init/init_actor_utils.hpp"
 
 namespace fc::vm::actor::builtin::v3::init {
-
-  const ActorExports exports{
-      exportMethod<Construct>(),
-      exportMethod<Exec>(),
-  };
+  outcome::result<void> InitUtils::assertCaller(bool condition) const {
+    return runtime.requireState(condition);
+  }
 }  // namespace fc::vm::actor::builtin::v3::init

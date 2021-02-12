@@ -81,7 +81,7 @@ namespace fc::vm::runtime {
     return message_.value;
   }
 
-  fc::outcome::result<CodeId> RuntimeImpl::getActorCodeID(
+  outcome::result<CodeId> RuntimeImpl::getActorCodeID(
       const Address &address) const {
     OUTCOME_TRY(actor_state, execution_->state_tree->get(address));
     return actor_state.code;
@@ -114,7 +114,7 @@ namespace fc::vm::runtime {
                                                  const Actor &actor) {
     OUTCOME_TRY(execution_->state_tree->set(address, actor));
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onCreateActor()));
-    return fc::outcome::success();
+    return outcome::success();
   }
 
   outcome::result<void> RuntimeImpl::deleteActor(const Address &address) {

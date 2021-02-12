@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V3_CODES_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V3_CODES_HPP
+#pragma once
 
 #include "vm/actor/actor.hpp"
 
@@ -32,5 +31,3 @@ namespace fc::vm::actor::builtin::v3 {
       CodeId(makeRawIdentityCid("fil/3/verifiedregistry"));
 
 }  // namespace fc::vm::actor::builtin::v3
-
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V3_CODES_HPP

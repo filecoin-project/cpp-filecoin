@@ -22,7 +22,7 @@ namespace fc::vm::actor {
   using version::NetworkVersion;
 
   /**
-   * Actor version v0 or v2
+   * Actor version
    */
   enum class ActorVersion {
     kVersion0 = 0,
