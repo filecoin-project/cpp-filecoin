@@ -21,7 +21,7 @@ namespace fc::vm::actor::builtin::v2 {
   const static CodeId kMultisigCodeId =
       CodeId(makeRawIdentityCid("fil/2/multisig"));
   const static CodeId kInitCodeId = CodeId(makeRawIdentityCid("fil/2/init"));
-  const static CodeId kPaymentChannelCodeCid =
+  const static CodeId kPaymentChannelCodeId =
       CodeId(makeRawIdentityCid("fil/2/paymentchannel"));
   const static CodeId kRewardActorCodeId =
       CodeId(makeRawIdentityCid("fil/2/reward"));

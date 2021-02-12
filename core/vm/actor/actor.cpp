@@ -8,14 +8,8 @@
 #include <string>
 #include <vector>
 #include "crypto/hasher/hasher.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
 
 namespace fc::vm::actor {
-
-  using namespace builtin;
-
   static uint8_t kCborEmptyList[]{0x80};
   const CID kEmptyObjectCid{CID::Version::V1,
                             libp2p::multi::MulticodecType::Code::DAG_CBOR,

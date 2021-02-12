@@ -21,7 +21,7 @@ namespace fc::vm::toolchain {
     return code == v2::kStorageMarketCodeId || code == v2::kStoragePowerCodeId
            || code == v2::kStorageMinerCodeId || code == v2::kAccountCodeId
            || code == v2::kInitCodeId || code == v2::kMultisigCodeId
-           || code == v2::kPaymentChannelCodeCid || code == v2::kCronCodeId
+           || code == v2::kPaymentChannelCodeId || code == v2::kCronCodeId
            || code == v2::kRewardActorCodeId || code == v2::kSystemActorCodeId;
   }
 
@@ -64,7 +64,7 @@ namespace fc::vm::toolchain {
   }
 
   CodeId AddressMatcherV2::getPaymentChannelCodeId() const {
-    return v2::kPaymentChannelCodeCid;
+    return v2::kPaymentChannelCodeId;
   }
 
   CodeId AddressMatcherV2::getRewardActorCodeId() const {

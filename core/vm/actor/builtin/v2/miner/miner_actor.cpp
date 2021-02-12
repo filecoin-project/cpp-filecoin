@@ -5,15 +5,16 @@
 
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/miner/policy.hpp"
 #include "vm/actor/builtin/v2/miner/types.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
   using primitives::RleBitset;
   using primitives::sector::RegisteredSealProof;
+  using toolchain::Toolchain;
   using v0::miner::CronEventPayload;
   using v0::miner::CronEventType;
   using v0::miner::Deadlines;
@@ -39,8 +40,10 @@ namespace fc::vm::actor::builtin::v2::miner {
     VM_ASSERT(resolved.value().isId());
     const auto resolved_code = runtime.getActorCodeID(resolved.value());
     OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
-    OUTCOME_TRY(
-        runtime.validateArgument(resolved_code.value() == kAccountCodeId));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    OUTCOME_TRY(runtime.validateArgument(
+        resolved_code.value() == address_matcher->getAccountCodeId()));
 
     if (!address.isBls()) {
       const auto pubkey_addres =
