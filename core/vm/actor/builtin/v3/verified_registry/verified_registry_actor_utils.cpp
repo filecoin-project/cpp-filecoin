@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_utils.hpp"
-#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_state.hpp"
+#include "vm/actor/builtin/v3/verified_registry/verified_registry_actor_utils.hpp"
+#include "vm/actor/builtin/v3/verified_registry/verified_registry_actor_state.hpp"
 
-namespace fc::vm::actor::builtin::v0::verified_registry {
+namespace fc::vm::actor::builtin::v3::verified_registry {
 
   outcome::result<void> VerifRegUtils::checkDealSize(
       const StoragePower &deal_size) const {
@@ -17,7 +17,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   }
 
   outcome::result<void> VerifRegUtils::assertCap(bool condition) const {
-    return runtime.vm_assert(condition);
+    return runtime.requireState(condition);
   }
 
-}  // namespace fc::vm::actor::builtin::v0::verified_registry
+}  // namespace fc::vm::actor::builtin::v3::verified_registry

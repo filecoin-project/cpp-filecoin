@@ -9,6 +9,7 @@
 #include "vm/toolchain/address_matcher.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/actor/builtin/utils/init_actor_utils.hpp"
+#include "vm/actor/builtin/utils/verified_registry_actor_utils.hpp"
 
 namespace fc::vm::toolchain {
   using actor::Actor;
@@ -17,6 +18,7 @@ namespace fc::vm::toolchain {
   using version::NetworkVersion;
   using runtime::Runtime;
   using actor::builtin::utils::init::InitUtilsPtr;
+  using actor::builtin::utils::verified_registry::VerifRegUtilsPtr;
 
   class Toolchain {
    public:
@@ -25,5 +27,6 @@ namespace fc::vm::toolchain {
         const NetworkVersion &network_version);
 
     static InitUtilsPtr createInitActorUtils(Runtime &runtime);
+    static VerifRegUtilsPtr createVerifRegUtils(Runtime &runtime);
   };
 }  // namespace fc::vm::toolchain
