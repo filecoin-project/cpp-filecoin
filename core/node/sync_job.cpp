@@ -83,7 +83,8 @@ namespace fc::sync {
     if (auto _ts{ts_load_->load(tsk)}) {
       auto &ts{_ts.value()};
       for (auto &block : ts->blks) {
-        if (!ipld_->contains(block.messages)) {
+        if (auto _has{ipld_->contains(block.messages)};
+            !_has || !_has.value()) {
           return nullptr;
         }
       }
@@ -150,7 +151,7 @@ namespace fc::sync {
           }
         } else {
           if (auto _has{ipld_->contains(ts->getParentStateRoot())};
-              !_has || _has.value()) {
+              !_has || !_has.value()) {
             log()->warn("no parent state {} {}",
                         ts->height(),
                         fmt::join(ts->key.cids(), ","));
