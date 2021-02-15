@@ -25,6 +25,7 @@ namespace fc::sync {
       std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
       TsLoadPtr ts_load,
       TipsetCPtr head,
+      BigInt weight,
       std::shared_ptr<BlockValidator> block_validator)
       : ipld_(std::move(ipld)),
         ts_load_(std::move(ts_load)),
@@ -32,6 +33,7 @@ namespace fc::sync {
     assert(ipld_);
     assert(block_validator_);
     head_ = head;
+    heaviest_weight_ = weight;
   }
 
   outcome::result<void> ChainStoreImpl::start(

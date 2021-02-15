@@ -26,7 +26,7 @@ namespace fc::vm::interpreter {
     CID message_receipts;
     BigInt weight;
   };
-  CBOR_TUPLE(Result, state_root, message_receipts)
+  CBOR_TUPLE(Result, state_root, message_receipts, weight)
 
   class Interpreter {
    protected:

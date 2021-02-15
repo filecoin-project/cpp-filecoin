@@ -368,8 +368,9 @@ namespace fc::node {
 
     auto head{
         o.ts_load->loadw(std::prev(o.ts_main->chain.end())->second).value()};
+    auto head_weight{o.vm_interpreter->getCached(head->key).value().weight};
     o.chain_store = std::make_shared<sync::ChainStoreImpl>(
-        o.ipld, o.ts_load, head, std::move(block_validator));
+        o.ipld, o.ts_load, head, head_weight, std::move(block_validator));
 
     o.sync_job = std::make_shared<sync::SyncJob>(o.host,
                                                  o.chain_store,

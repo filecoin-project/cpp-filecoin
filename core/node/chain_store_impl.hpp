@@ -23,6 +23,7 @@ namespace fc::sync {
     ChainStoreImpl(std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
                    TsLoadPtr ts_load,
                    TipsetCPtr head,
+                   BigInt weight,
                    std::shared_ptr<BlockValidator> block_validator);
 
     outcome::result<void> start(std::shared_ptr<events::Events> events);
