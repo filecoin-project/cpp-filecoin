@@ -6,19 +6,20 @@
 #include "vm/actor/builtin/v0/market/actor.hpp"
 
 #include "primitives/cid/comm_cid.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/market/market_actor_utils.hpp"
 #include "vm/actor/builtin/v0/market/policy.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v0/shared/shared.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::market {
   using libp2p::multi::HashType;
   using primitives::kChainEpochUndefined;
   using primitives::cid::kCommitmentBytesLen;
   using primitives::piece::PieceInfo;
+  using toolchain::Toolchain;
   namespace Utils = utils::market;
 
   outcome::result<State> loadState(Runtime &runtime) {
@@ -106,8 +107,11 @@ namespace fc::vm::actor::builtin::v0::market {
 
     const auto code_id = runtime.getActorCodeID(provider);
     OUTCOME_TRY(runtime.validateArgument(!code_id.has_error()));
-    OUTCOME_TRY(
-        runtime.validateArgument(code_id.value() == kStorageMinerCodeId));
+
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    OUTCOME_TRY(runtime.validateArgument(
+        code_id.value() == address_matcher->getStorageMinerCodeId()));
     OUTCOME_TRY(addresses, requestMinerControlAddress(runtime, provider));
     if (addresses.worker != runtime.getImmediateCaller()) {
       ABORT(VMExitCode::kErrForbidden);
@@ -210,7 +214,10 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   ACTOR_METHOD_IMPL(VerifyDealsForActivation) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    OUTCOME_TRY(runtime.validateImmediateCallerType(
+        address_matcher->getStorageMinerCodeId()));
     OUTCOME_TRY(state, loadState(runtime));
     REQUIRE_NO_ERROR_A(result,
                        Utils::validateDealsForActivation(
@@ -222,7 +229,10 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   ACTOR_METHOD_IMPL(ActivateDeals) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    OUTCOME_TRY(runtime.validateImmediateCallerType(
+        address_matcher->getStorageMinerCodeId()));
     OUTCOME_TRY(state, loadState(runtime));
     REQUIRE_NO_ERROR(Utils::validateDealsForActivation(
                          runtime, state, params.deals, params.sector_expiry),
@@ -256,7 +266,10 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   ACTOR_METHOD_IMPL(OnMinerSectorsTerminate) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    OUTCOME_TRY(runtime.validateImmediateCallerType(
+        address_matcher->getStorageMinerCodeId()));
     OUTCOME_TRY(state, loadState(runtime));
 
     for (const auto deal_id : params.deals) {
@@ -303,7 +316,10 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   ACTOR_METHOD_IMPL(ComputeDataCommitment) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    OUTCOME_TRY(runtime.validateImmediateCallerType(
+        address_matcher->getStorageMinerCodeId()));
     OUTCOME_TRY(state, loadState(runtime));
 
     // Lotus gas conformance

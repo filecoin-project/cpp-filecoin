@@ -9,12 +9,12 @@
 
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/comm_cid.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/market/policy.hpp"
 #include "vm/actor/builtin/v0/shared/shared.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::utils::market {
-  using v0::kStorageMinerCodeId;
+  using toolchain::Toolchain;
   using namespace v0::market;
   using crypto::randomness::DomainSeparationTag;
   using libp2p::multi::HashType;
@@ -29,7 +29,9 @@ namespace fc::vm::actor::builtin::utils::market {
     const auto code = runtime.getActorCodeID(nominal.value());
     OUTCOME_TRY(runtime.validateArgument(!code.has_error()));
 
-    if (code.value() == kStorageMinerCodeId) {
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    if (code.value() == address_matcher->getStorageMinerCodeId()) {
       OUTCOME_TRY(miner,
                   v0::requestMinerControlAddress(runtime, nominal.value()));
       return std::make_tuple(nominal.value(),

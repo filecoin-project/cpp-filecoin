@@ -5,15 +5,16 @@
 
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 #include "common/logger.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/init/init_actor.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v2::storage_power {
   using adt::Multimap;
   using primitives::SectorNumber;
+  using toolchain::Toolchain;
   using v0::storage_power::kErrTooManyProveCommits;
   using v0::storage_power::kGasOnSubmitVerifySeal;
   using v0::storage_power::kMaxMinerProveCommitsPerEpoch;
@@ -132,11 +133,15 @@ namespace fc::vm::actor::builtin::v2::storage_power {
                            .peer_id = params.peer_id,
                            .multiaddresses = params.multiaddresses}),
                        VMExitCode::kErrIllegalState);
+
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
     REQUIRE_SUCCESS_A(
         addresses_created,
-        runtime.sendM<init::Exec>(kInitAddress,
-                                  {kStorageMinerCodeId, miner_params},
-                                  runtime.getValueReceived()));
+        runtime.sendM<init::Exec>(
+            kInitAddress,
+            {address_matcher->getStorageMinerCodeId(), miner_params},
+            runtime.getValueReceived()));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     REQUIRE_NO_ERROR(state.setClaim(runtime,
                                     addresses_created.id_address,
@@ -149,7 +154,10 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   }
 
   ACTOR_METHOD_IMPL(UpdateClaimedPower) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    OUTCOME_TRY(runtime.validateImmediateCallerType(
+        address_matcher->getStorageMinerCodeId()));
     const Address miner_address = runtime.getImmediateCaller();
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     REQUIRE_NO_ERROR(state.addToClaim(runtime,
@@ -162,7 +170,10 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   }
 
   ACTOR_METHOD_IMPL(EnrollCronEvent) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    OUTCOME_TRY(runtime.validateImmediateCallerType(
+        address_matcher->getStorageMinerCodeId()));
     OUTCOME_TRY(runtime.validateArgument(params.event_epoch >= 0));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     REQUIRE_NO_ERROR(
@@ -194,7 +205,10 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   }
 
   ACTOR_METHOD_IMPL(UpdatePledgeTotal) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    OUTCOME_TRY(runtime.validateImmediateCallerType(
+        address_matcher->getStorageMinerCodeId()));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(
         validateMinerHasClaim(runtime, state, runtime.getImmediateCaller()));
@@ -204,7 +218,10 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   }
 
   ACTOR_METHOD_IMPL(SubmitPoRepForBulkVerify) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeId));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    OUTCOME_TRY(runtime.validateImmediateCallerType(
+        address_matcher->getStorageMinerCodeId()));
     const auto miner{runtime.getImmediateCaller()};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
