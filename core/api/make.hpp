@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_API_MAKE_HPP
 #define CPP_FILECOIN_CORE_API_MAKE_HPP
 
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "blockchain/weight_calculator.hpp"
 #include "common/logger.hpp"
 #include "common/todo_error.hpp"
@@ -34,19 +34,20 @@ namespace fc::api {
                                       const CID &root,
                                       gsl::span<const std::string> parts);
 
-  Api makeImpl(std::shared_ptr<ChainStore> chain_store,
-               std::string network_name,
-               std::shared_ptr<WeightCalculator> weight_calculator,
-               TsLoadPtr ts_load,
-               TsBranchPtr ts_main,
-               std::shared_ptr<Ipld> ipld,
-               std::shared_ptr<Mpool> mpool,
-               std::shared_ptr<Interpreter> interpreter,
-               std::shared_ptr<MsgWaiter> msg_waiter,
-               std::shared_ptr<Beaconizer> beaconizer,
-               std::shared_ptr<DrandSchedule> drand_schedule,
-               std::shared_ptr<PubSubGate> pubsub,
-               std::shared_ptr<KeyStore> key_store);
+  std::shared_ptr<FullNodeApi> makeImpl(
+      std::shared_ptr<ChainStore> chain_store,
+      std::string network_name,
+      std::shared_ptr<WeightCalculator> weight_calculator,
+      TsLoadPtr ts_load,
+      TsBranchPtr ts_main,
+      std::shared_ptr<Ipld> ipld,
+      std::shared_ptr<Mpool> mpool,
+      std::shared_ptr<Interpreter> interpreter,
+      std::shared_ptr<MsgWaiter> msg_waiter,
+      std::shared_ptr<Beaconizer> beaconizer,
+      std::shared_ptr<DrandSchedule> drand_schedule,
+      std::shared_ptr<PubSubGate> pubsub,
+      std::shared_ptr<KeyStore> key_store);
 }  // namespace fc::api
 
 #endif  // CPP_FILECOIN_CORE_API_MAKE_HPP

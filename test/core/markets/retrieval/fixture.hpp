@@ -11,7 +11,7 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <libp2p/security/plaintext.hpp>
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "core/markets/retrieval/config.hpp"
 #include "core/markets/retrieval/data.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -26,13 +26,13 @@
 namespace fc::markets::retrieval::test {
   using api::AddChannelInfo;
   using api::MinerInfo;
-  using api::RetrievalAsk;
   using common::Buffer;
   using data_transfer::DataTransfer;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::piece::DealInfo;
   using fc::storage::piece::PayloadLocation;
+  using markets::retrieval::RetrievalAsk;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
@@ -50,7 +50,7 @@ namespace fc::markets::retrieval::test {
         std::shared_ptr<::fc::storage::piece::PieceStorage>;
     using StorageShPtr = std::shared_ptr<::fc::storage::InMemoryStorage>;
     using Multiaddress = libp2p::multi::Multiaddress;
-    using ApiShPtr = std::shared_ptr<api::Api>;
+    using ApiShPtr = std::shared_ptr<api::FullNodeApi>;
     using MinerMockShPtr = std::shared_ptr<miner::MinerMock>;
     using ManagerMockShPtr = std::shared_ptr<sector_storage::ManagerMock>;
 
@@ -110,7 +110,7 @@ namespace fc::markets::retrieval::test {
       host->start();
 
       storage_backend = std::make_shared<::fc::storage::InMemoryStorage>();
-      api = std::make_shared<api::Api>();
+      api = std::make_shared<api::FullNodeApi>();
       piece_storage = std::make_shared<::fc::storage::piece::PieceStorageImpl>(
           storage_backend);
       RetrievalAsk config{

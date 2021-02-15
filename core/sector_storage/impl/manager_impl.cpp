@@ -744,7 +744,6 @@ namespace fc::sector_storage {
 
     std::unique_ptr<Worker> worker = std::make_unique<LocalWorker>(
         WorkerConfig{
-            .hostname = "",
             .seal_proof_type = proof_type,
             .task_types = std::move(local_tasks),
         },

@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_PROVIDER_IMPL_HPP
 #define CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_PROVIDER_IMPL_HPP
 
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "common/io_thread.hpp"
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
@@ -65,7 +65,7 @@ namespace fc::markets::retrieval::provider {
    public:
     RetrievalProviderImpl(std::shared_ptr<Host> host,
                           std::shared_ptr<DataTransfer> datatransfer,
-                          std::shared_ptr<api::Api> api,
+                          std::shared_ptr<api::FullNodeApi> api,
                           std::shared_ptr<PieceStorage> piece_storage,
                           IpldPtr ipld,
                           std::shared_ptr<OneKey> config_key,
@@ -128,7 +128,7 @@ namespace fc::markets::retrieval::provider {
 
     std::shared_ptr<Host> host_;
     std::shared_ptr<DataTransfer> datatransfer_;
-    std::shared_ptr<api::Api> api_;
+    std::shared_ptr<api::FullNodeApi> api_;
     std::shared_ptr<PieceStorage> piece_storage_;
     std::shared_ptr<Ipld> ipld_;
     std::shared_ptr<OneKey> config_key_;

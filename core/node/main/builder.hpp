@@ -73,7 +73,7 @@ namespace fc::node {
 
     // high level objects
     std::shared_ptr<sync::ChainStoreImpl> chain_store;
-    std::shared_ptr<api::Api> api;
+    std::shared_ptr<api::FullNodeApi> api;
   };
 
   outcome::result<NodeObjects> createNodeObjects(Config &config);

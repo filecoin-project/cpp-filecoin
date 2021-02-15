@@ -10,20 +10,20 @@
 
 #include <shared_mutex>
 
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "common/logger.hpp"
 
 namespace fc::markets::storage::chain_events {
 
   using adt::Channel;
-  using api::Api;
+  using api::FullNodeApi;
   using primitives::tipset::HeadChange;
   using vm::message::UnsignedMessage;
 
   class ChainEventsImpl : public ChainEvents,
                           public std::enable_shared_from_this<ChainEventsImpl> {
    public:
-    ChainEventsImpl(std::shared_ptr<Api> api);
+    ChainEventsImpl(std::shared_ptr<FullNodeApi> api);
 
     /**
      * Subscribe to messages
@@ -39,7 +39,7 @@ namespace fc::markets::storage::chain_events {
     outcome::result<void> onMessage(const UnsignedMessage &message,
                                     const CID &cid);
 
-    std::shared_ptr<Api> api_;
+    std::shared_ptr<FullNodeApi> api_;
 
     /**
      * Subscription to chain head changes

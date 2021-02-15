@@ -88,6 +88,7 @@ namespace fc::sector_storage {
       : remote_store_(std::move(store)),
         index_(remote_store_->getSectorIndex()),
         config_(std::move(config)),
+        hostname_(boost::asio::ip::host_name()),
         logger_(common::createLogger("local worker")) {}
 
   outcome::result<sector_storage::PreCommit1Output>
@@ -571,13 +572,7 @@ namespace fc::sector_storage {
     return WorkerErrors::kUnsupportedPlatform;
 #endif
 
-    std::string hostname = config_.hostname;
-    if (hostname.empty()) {
-      config_.hostname = boost::asio::ip::host_name();
-      hostname = config_.hostname;
-    }
-
-    result.hostname = hostname;
+    result.hostname = hostname_;
 
     result.resources.cpus = std::thread::hardware_concurrency();
 

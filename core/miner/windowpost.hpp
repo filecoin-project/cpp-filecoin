@@ -5,16 +5,16 @@
 
 #pragma once
 
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "sector_storage/fault_tracker.hpp"
 #include "sector_storage/spec_interfaces/prover.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::mining {
   using api::Address;
-  using api::Api;
   using api::ChainEpoch;
   using api::DeadlineInfo;
+  using api::FullNodeApi;
   using api::RleBitset;
   using api::TipsetCPtr;
   using sector_storage::FaultTracker;
@@ -34,7 +34,7 @@ namespace fc::mining {
     };
 
     static outcome::result<std::shared_ptr<WindowPoStScheduler>> create(
-        std::shared_ptr<Api> api,
+        std::shared_ptr<FullNodeApi> api,
         std::shared_ptr<Prover> prover,
         std::shared_ptr<FaultTracker> fault_tracker,
         const Address &miner);
@@ -43,7 +43,7 @@ namespace fc::mining {
     outcome::result<void> pushMessage(MethodNumber method, Buffer params);
 
     std::shared_ptr<api::Channel<std::vector<api::HeadChange>>> channel;
-    std::shared_ptr<Api> api;
+    std::shared_ptr<FullNodeApi> api;
     std::shared_ptr<Prover> prover;
     std::shared_ptr<FaultTracker> fault_tracker;
     Address miner, worker;

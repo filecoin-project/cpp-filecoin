@@ -46,6 +46,7 @@ namespace fc::api {
   using crypto::signature::BlsSignature;
   using libp2p::peer::PeerId;
   using primitives::block::MsgMeta;
+  using primitives::tipset::Tipset;
   using vm::isVMExitCode;
   using vm::VMExitCode;
   using vm::actor::InvokerImpl;
@@ -159,19 +160,20 @@ namespace fc::api {
     return sectors;
   }
 
-  Api makeImpl(std::shared_ptr<ChainStore> chain_store,
-               std::string network_name,
-               std::shared_ptr<WeightCalculator> weight_calculator,
-               TsLoadPtr ts_load,
-               TsBranchPtr ts_main,
-               std::shared_ptr<Ipld> ipld,
-               std::shared_ptr<Mpool> mpool,
-               std::shared_ptr<Interpreter> interpreter,
-               std::shared_ptr<MsgWaiter> msg_waiter,
-               std::shared_ptr<Beaconizer> beaconizer,
-               std::shared_ptr<DrandSchedule> drand_schedule,
-               std::shared_ptr<PubSubGate> pubsub,
-               std::shared_ptr<KeyStore> key_store) {
+  std::shared_ptr<FullNodeApi> makeImpl(
+      std::shared_ptr<ChainStore> chain_store,
+      std::string network_name,
+      std::shared_ptr<WeightCalculator> weight_calculator,
+      TsLoadPtr ts_load,
+      TsBranchPtr ts_main,
+      std::shared_ptr<Ipld> ipld,
+      std::shared_ptr<Mpool> mpool,
+      std::shared_ptr<Interpreter> interpreter,
+      std::shared_ptr<MsgWaiter> msg_waiter,
+      std::shared_ptr<Beaconizer> beaconizer,
+      std::shared_ptr<DrandSchedule> drand_schedule,
+      std::shared_ptr<PubSubGate> pubsub,
+      std::shared_ptr<KeyStore> key_store) {
     auto tipsetContext = [=](const TipsetKey &tipset_key,
                              bool interpret =
                                  false) -> outcome::result<TipsetContext> {
@@ -209,18 +211,17 @@ namespace fc::api {
       return TipsetContext{
           std::move(tipset), {ipld, std::move(result.state_root)}, {}};
     };
-    return {
-        .AuthNew = {[](auto) {
-          return Buffer{1, 2, 3};
-        }},
-        .BeaconGetEntry = waitCb<BeaconEntry>([=](auto epoch, auto &&cb) {
-          return beaconizer->entry(drand_schedule->maxRound(epoch), cb);
-        }),
-        .ChainGetBlock = {[=](auto &block_cid) {
-          return ipld->getCbor<BlockHeader>(block_cid);
-        }},
-        .ChainGetBlockMessages = {[=](auto &block_cid)
-                                      -> outcome::result<BlockMessages> {
+
+    auto api = std::make_shared<FullNodeApi>();
+
+    api->AuthNew = {[](auto) { return Buffer{1, 2, 3}; }};
+    api->BeaconGetEntry = waitCb<BeaconEntry>([=](auto epoch, auto &&cb) {
+      return beaconizer->entry(drand_schedule->maxRound(epoch), cb);
+    });
+    api->ChainGetBlock = {
+        [=](auto &block_cid) { return ipld->getCbor<BlockHeader>(block_cid); }};
+    api->ChainGetBlockMessages = {
+        [=](auto &block_cid) -> outcome::result<BlockMessages> {
           BlockMessages messages;
           OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
           OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
@@ -239,206 +240,186 @@ namespace fc::api {
                 return outcome::success();
               }));
           return messages;
-        }},
-        .ChainGetGenesis = {[=]() -> outcome::result<TipsetCPtr> {
-          return ts_load->loadw(ts_main->chain.begin()->second);
-        }},
-        .ChainGetNode = {[=](auto &path) -> outcome::result<IpldObject> {
-          std::vector<std::string> parts;
-          boost::split(parts, path, [](auto c) { return c == '/'; });
-          if (parts.size() < 3 || !parts[0].empty() || parts[1] != "ipfs") {
-            return TodoError::kError;
-          }
-          OUTCOME_TRY(root, CID::fromString(parts[2]));
-          return getNode(ipld, root, gsl::make_span(parts).subspan(3));
-        }},
-        .ChainGetMessage = {[=](auto &cid) -> outcome::result<UnsignedMessage> {
-          auto res = ipld->getCbor<SignedMessage>(cid);
-          if (!res.has_error()) {
-            return res.value().message;
-          }
+        }};
+    api->ChainGetGenesis = {[=]() -> outcome::result<TipsetCPtr> {
+      return ts_load->loadw(ts_main->chain.begin()->second);
+    }};
+    api->ChainGetNode = {[=](auto &path) -> outcome::result<IpldObject> {
+      std::vector<std::string> parts;
+      boost::split(parts, path, [](auto c) { return c == '/'; });
+      if (parts.size() < 3 || !parts[0].empty() || parts[1] != "ipfs") {
+        return TodoError::kError;
+      }
+      OUTCOME_TRY(root, CID::fromString(parts[2]));
+      return getNode(ipld, root, gsl::make_span(parts).subspan(3));
+    }};
+    api->ChainGetMessage = {[=](auto &cid) -> outcome::result<UnsignedMessage> {
+      auto res = ipld->getCbor<SignedMessage>(cid);
+      if (!res.has_error()) {
+        return res.value().message;
+      }
 
-          return ipld->getCbor<UnsignedMessage>(cid);
-        }},
-        .ChainGetParentMessages =
-            {[=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
-              std::vector<CidMessage> messages;
-              OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
-              for (auto &parent_cid : block.parents) {
-                OUTCOME_TRY(parent, ipld->getCbor<BlockHeader>(parent_cid));
-                OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(parent.messages));
-                OUTCOME_TRY(meta.bls_messages.visit(
-                    [&](auto, auto &cid) -> outcome::result<void> {
-                      OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
-                      messages.push_back({cid, std::move(message)});
-                      return outcome::success();
-                    }));
-                OUTCOME_TRY(meta.secp_messages.visit(
-                    [&](auto, auto &cid) -> outcome::result<void> {
-                      OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
-                      messages.push_back({cid, std::move(message.message)});
-                      return outcome::success();
-                    }));
-              }
-              return messages;
-            }},
-        .ChainGetParentReceipts =
-            {[=](auto &block_cid)
-                 -> outcome::result<std::vector<MessageReceipt>> {
-              OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
-              return adt::Array<MessageReceipt>{block.parent_message_receipts,
-                                                ipld}
-                  .values();
-            }},
-        .ChainGetRandomnessFromBeacon = {[=](auto &tipset_key,
-                                             auto tag,
-                                             auto epoch,
-                                             auto &entropy)
-                                             -> outcome::result<Randomness> {
+      return ipld->getCbor<UnsignedMessage>(cid);
+    }};
+    api->ChainGetParentMessages = {
+        [=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
+          std::vector<CidMessage> messages;
+          OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
+          for (auto &parent_cid : block.parents) {
+            OUTCOME_TRY(parent, ipld->getCbor<BlockHeader>(parent_cid));
+            OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(parent.messages));
+            OUTCOME_TRY(meta.bls_messages.visit(
+                [&](auto, auto &cid) -> outcome::result<void> {
+                  OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+                  messages.push_back({cid, std::move(message)});
+                  return outcome::success();
+                }));
+            OUTCOME_TRY(meta.secp_messages.visit(
+                [&](auto, auto &cid) -> outcome::result<void> {
+                  OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+                  messages.push_back({cid, std::move(message.message)});
+                  return outcome::success();
+                }));
+          }
+          return messages;
+        }};
+    api->ChainGetParentReceipts = {
+        [=](auto &block_cid) -> outcome::result<std::vector<MessageReceipt>> {
+          OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
+          return adt::Array<MessageReceipt>{block.parent_message_receipts, ipld}
+              .values();
+        }};
+    api->ChainGetRandomnessFromBeacon = {
+        [=](auto &tipset_key, auto tag, auto epoch, auto &entropy)
+            -> outcome::result<Randomness> {
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
           return TipsetRandomness{ts_load}.getRandomnessFromBeacon(
               ts_branch, tag, epoch, entropy);
-        }},
-        .ChainGetRandomnessFromTickets = {[=](auto &tipset_key,
-                                              auto tag,
-                                              auto epoch,
-                                              auto &entropy)
-                                              -> outcome::result<Randomness> {
+        }};
+    api->ChainGetRandomnessFromTickets = {
+        [=](auto &tipset_key, auto tag, auto epoch, auto &entropy)
+            -> outcome::result<Randomness> {
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
           return TipsetRandomness{ts_load}.getRandomnessFromTickets(
               ts_branch, tag, epoch, entropy);
-        }},
-        .ChainGetTipSet = {[=](auto &tipset_key) {
-          return ts_load->load(tipset_key);
-        }},
-        .ChainGetTipSetByHeight = {[=](auto height, auto &tipset_key)
-                                       -> outcome::result<TipsetCPtr> {
+        }};
+    api->ChainGetTipSet = {
+        [=](auto &tipset_key) { return ts_load->load(tipset_key); }};
+    api->ChainGetTipSetByHeight = {
+        [=](auto height, auto &tipset_key) -> outcome::result<TipsetCPtr> {
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
           OUTCOME_TRY(it, find(ts_branch, height));
           return ts_load->loadw(it.second->second);
-        }},
-        .ChainHead = {[=]() { return chain_store->heaviestTipset(); }},
-        .ChainNotify = {[=]() {
-          auto channel = std::make_shared<Channel<std::vector<HeadChange>>>();
-          auto cnn = std::make_shared<connection_t>();
-          *cnn = chain_store->subscribeHeadChanges([=](auto &change) {
-            if (!channel->write({change})) {
-              assert(cnn->connected());
-              cnn->disconnect();
-            }
-          });
-          return Chan{std::move(channel)};
-        }},
-        .ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }},
-        // TODO(turuslan): FIL-165 implement method
-        .ChainSetHead = {},
-        .ChainTipSetWeight = {[=](auto &tipset_key)
-                                  -> outcome::result<TipsetWeight> {
+        }};
+    api->ChainHead = {[=]() { return chain_store->heaviestTipset(); }};
+    api->ChainNotify = {[=]() {
+      auto channel = std::make_shared<Channel<std::vector<HeadChange>>>();
+      auto cnn = std::make_shared<connection_t>();
+      *cnn = chain_store->subscribeHeadChanges([=](auto &change) {
+        if (!channel->write({change})) {
+          assert(cnn->connected());
+          cnn->disconnect();
+        }
+      });
+      return Chan{std::move(channel)};
+    }};
+    api->ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }};
+    // TODO(turuslan): FIL-165 implement method
+    api->ChainSetHead = {};
+    api->ChainTipSetWeight = {
+        [=](auto &tipset_key) -> outcome::result<TipsetWeight> {
           OUTCOME_TRY(tipset, ts_load->load(tipset_key));
           return weight_calculator->calculateWeight(*tipset);
-        }},
-        // TODO(turuslan): FIL-165 implement method
-        .ClientFindData = {},
-        // TODO(turuslan): FIL-165 implement method
-        .ClientHasLocal = {},
-        // TODO(turuslan): FIL-165 implement method
-        .ClientImport = {},
-        // TODO(turuslan): FIL-165 implement method
-        .ClientListImports = {},
-        // TODO(turuslan): FIL-165 implement method
-        .ClientQueryAsk = {},
-        // TODO(turuslan): FIL-165 implement method
-        .ClientRetrieve = {},
-        // TODO(turuslan): FIL-165 implement method
-        .ClientStartDeal = {},
-        // TODO(turuslan): FIL-165 implement method
-        .DealsImportData = {},
-        // TODO(turuslan): FIL-165 implement method
-        .GasEstimateMessageGas = {},
-        // TODO(turuslan): FIL-165 implement method
-        .MarketGetAsk = {},
-        // TODO(turuslan): FIL-165 implement method
-        .MarketGetRetrievalAsk = {},
-        // TODO(turuslan): FIL-165 implement method
-        .MarketReserveFunds = {},
-        // TODO(turuslan): FIL-165 implement method
-        .MarketSetAsk = {},
-        // TODO(turuslan): FIL-165 implement method
-        .MarketSetRetrievalAsk = {},
-        .MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockWithCids> {
-          OUTCOME_TRY(context, tipsetContext(t.parents, true));
-          OUTCOME_TRY(miner_state, context.minerState(t.miner));
-          OUTCOME_TRY(block,
-                      blockchain::production::generate(
-                          *interpreter, ts_load, ipld, std::move(t)));
+        }};
+    // TODO(turuslan): FIL-165 implement method
+    api->ClientFindData = {};
+    // TODO(turuslan): FIL-165 implement method
+    api->ClientHasLocal = {};
+    // TODO(turuslan): FIL-165 implement method
+    api->ClientImport = {};
+    // TODO(turuslan): FIL-165 implement method
+    api->ClientListImports = {};
+    // TODO(turuslan): FIL-165 implement method
+    api->ClientQueryAsk = {};
+    // TODO(turuslan): FIL-165 implement method
+    api->ClientRetrieve = {};
+    // TODO(turuslan): FIL-165 implement method
+    api->ClientStartDeal = {};
+    // TODO(turuslan): FIL-165 implement method
+    api->GasEstimateMessageGas = {};
+    // TODO(turuslan): FIL-165 implement method
+    api->MarketReserveFunds = {};
+    api->MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockWithCids> {
+      OUTCOME_TRY(context, tipsetContext(t.parents, true));
+      OUTCOME_TRY(miner_state, context.minerState(t.miner));
+      OUTCOME_TRY(block,
+                  blockchain::production::generate(
+                      *interpreter, ts_load, ipld, std::move(t)));
 
-          OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
-          OUTCOME_TRY(minfo, miner_state.info.get());
-          OUTCOME_TRY(worker_key, context.accountKey(minfo.worker));
-          OUTCOME_TRY(block_sig, key_store->sign(worker_key, block_signable));
-          block.header.block_sig = block_sig;
+      OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
+      OUTCOME_TRY(minfo, miner_state.info.get());
+      OUTCOME_TRY(worker_key, context.accountKey(minfo.worker));
+      OUTCOME_TRY(block_sig, key_store->sign(worker_key, block_signable));
+      block.header.block_sig = block_sig;
 
-          BlockWithCids block2;
-          block2.header = block.header;
-          for (auto &msg : block.bls_messages) {
-            OUTCOME_TRY(cid, ipld->setCbor(msg));
-            block2.bls_messages.emplace_back(std::move(cid));
-          }
-          for (auto &msg : block.secp_messages) {
-            OUTCOME_TRY(cid, ipld->setCbor(msg));
-            block2.secp_messages.emplace_back(std::move(cid));
-          }
-          return block2;
-        }},
-        .MinerGetBaseInfo = waitCb<boost::optional<MiningBaseInfo>>(
-            [=](auto &&miner, auto epoch, auto &&tipset_key, auto &&cb) {
-              OUTCOME_CB(auto context, tipsetContext(tipset_key, true));
-              MiningBaseInfo info;
-              OUTCOME_CB(auto ts_branch,
-                         TsBranch::make(ts_load, tipset_key, ts_main));
-              OUTCOME_CB(
-                  info.prev_beacon,
-                  latestBeacon(ts_load, ts_branch, context.tipset->height()));
-              auto prev{info.prev_beacon.round};
-              beaconEntriesForBlock(
-                  *drand_schedule,
-                  *beaconizer,
-                  epoch,
-                  prev,
-                  [=, MOVE(cb), MOVE(context), MOVE(info)](
-                      auto _beacons) mutable {
-                    OUTCOME_CB(info.beacons, _beacons);
-                    OUTCOME_CB(auto lookback,
-                               getLookbackTipSetForRound(
-                                   context.tipset, ts_branch, epoch));
-                    OUTCOME_CB(auto state, lookback.minerState(miner));
-                    OUTCOME_CB(auto seed, codec::cbor::encode(miner));
-                    auto post_rand{crypto::randomness::drawRandomness(
-                        info.beacon().data,
-                        DomainSeparationTag::WinningPoStChallengeSeed,
-                        epoch,
-                        seed)};
-                    OUTCOME_CB(
-                        info.sectors,
-                        getSectorsForWinningPoSt(miner, state, post_rand));
-                    if (info.sectors.empty()) {
-                      return cb(boost::none);
-                    }
-                    OUTCOME_CB(auto power_state, lookback.powerState());
-                    OUTCOME_CB(auto claim, power_state.claims.get(miner));
-                    info.miner_power = claim.qa_power;
-                    info.network_power = power_state.total_qa_power;
-                    OUTCOME_CB(auto minfo, state.info.get());
-                    OUTCOME_CB(info.worker, context.accountKey(minfo.worker));
-                    info.sector_size = minfo.sector_size;
-                    info.has_min_power = minerHasMinPower(
-                        claim.qa_power,
-                        power_state.num_miners_meeting_min_power);
-                    cb(std::move(info));
-                  });
-            }),
-        .MpoolPending = {[=](auto &tipset_key)
-                             -> outcome::result<std::vector<SignedMessage>> {
+      BlockWithCids block2;
+      block2.header = block.header;
+      for (auto &msg : block.bls_messages) {
+        OUTCOME_TRY(cid, ipld->setCbor(msg));
+        block2.bls_messages.emplace_back(std::move(cid));
+      }
+      for (auto &msg : block.secp_messages) {
+        OUTCOME_TRY(cid, ipld->setCbor(msg));
+        block2.secp_messages.emplace_back(std::move(cid));
+      }
+      return block2;
+    }};
+    api->MinerGetBaseInfo = waitCb<boost::optional<MiningBaseInfo>>(
+        [=](auto &&miner, auto epoch, auto &&tipset_key, auto &&cb) {
+          OUTCOME_CB(auto context, tipsetContext(tipset_key, true));
+          MiningBaseInfo info;
+          OUTCOME_CB(auto ts_branch,
+                     TsBranch::make(ts_load, tipset_key, ts_main));
+          OUTCOME_CB(
+              info.prev_beacon,
+              latestBeacon(ts_load, ts_branch, context.tipset->height()));
+          auto prev{info.prev_beacon.round};
+          beaconEntriesForBlock(
+              *drand_schedule,
+              *beaconizer,
+              epoch,
+              prev,
+              [=, MOVE(cb), MOVE(context), MOVE(info)](auto _beacons) mutable {
+                OUTCOME_CB(info.beacons, _beacons);
+                OUTCOME_CB(auto lookback,
+                           getLookbackTipSetForRound(
+                               context.tipset, ts_branch, epoch));
+                OUTCOME_CB(auto state, lookback.minerState(miner));
+                OUTCOME_CB(auto seed, codec::cbor::encode(miner));
+                auto post_rand{crypto::randomness::drawRandomness(
+                    info.beacon().data,
+                    DomainSeparationTag::WinningPoStChallengeSeed,
+                    epoch,
+                    seed)};
+                OUTCOME_CB(info.sectors,
+                           getSectorsForWinningPoSt(miner, state, post_rand));
+                if (info.sectors.empty()) {
+                  return cb(boost::none);
+                }
+                OUTCOME_CB(auto power_state, lookback.powerState());
+                OUTCOME_CB(auto claim, power_state.claims.get(miner));
+                info.miner_power = claim.qa_power;
+                info.network_power = power_state.total_qa_power;
+                OUTCOME_CB(auto minfo, state.info.get());
+                OUTCOME_CB(info.worker, context.accountKey(minfo.worker));
+                info.sector_size = minfo.sector_size;
+                info.has_min_power = minerHasMinPower(
+                    claim.qa_power, power_state.num_miners_meeting_min_power);
+                cb(std::move(info));
+              });
+        });
+    api->MpoolPending = {
+        [=](auto &tipset_key) -> outcome::result<std::vector<SignedMessage>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           if (context.tipset->height()
               > chain_store->heaviestTipset()->height()) {
@@ -446,9 +427,9 @@ namespace fc::api {
             return TodoError::kError;
           }
           return mpool->pending();
-        }},
-        .MpoolPushMessage = {[=](auto message,
-                                 auto) -> outcome::result<SignedMessage> {
+        }};
+    api->MpoolPushMessage = {
+        [=](auto message, auto) -> outcome::result<SignedMessage> {
           OUTCOME_TRY(context, tipsetContext({}));
           if (message.from.isId()) {
             OUTCOME_TRYA(message.from,
@@ -462,39 +443,35 @@ namespace fc::api {
                           message.from, message));
           OUTCOME_TRY(mpool->add(signed_message));
           return std::move(signed_message);
-        }},
-        .MpoolSelect = {[=](auto &, auto) {
-          // TODO: implement
-          return mpool->pending();
-        }},
-        .MpoolSub = {[=]() {
-          auto channel{std::make_shared<Channel<MpoolUpdate>>()};
-          auto cnn{std::make_shared<connection_t>()};
-          *cnn = mpool->subscribe([=](auto &change) {
-            if (!channel->write(change)) {
-              assert(cnn->connected());
-              cnn->disconnect();
-            }
-          });
-          return Chan{std::move(channel)};
-        }},
-        // TODO(turuslan): FIL-165 implement method
-        .NetAddrsListen = {},
-        .NetConnect = {},
-        .NetPeers = {},
-        .PledgeSector = {},
-        .StateAccountKey = {[=](auto &address,
-                                auto &tipset_key) -> outcome::result<Address> {
+        }};
+    api->MpoolSelect = {[=](auto &, auto) {
+      // TODO: implement
+      return mpool->pending();
+    }};
+    api->MpoolSub = {[=]() {
+      auto channel{std::make_shared<Channel<MpoolUpdate>>()};
+      auto cnn{std::make_shared<connection_t>()};
+      *cnn = mpool->subscribe([=](auto &change) {
+        if (!channel->write(change)) {
+          assert(cnn->connected());
+          cnn->disconnect();
+        }
+      });
+      return Chan{std::move(channel)};
+    }};
+    api->StateAccountKey = {
+        [=](auto &address, auto &tipset_key) -> outcome::result<Address> {
           if (address.isKeyType()) {
             return address;
           }
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           return context.accountKey(address);
-        }},
-        .StateCall = {[=](auto &message,
-                          auto &tipset_key) -> outcome::result<InvocResult> {
+        }};
+    api->StateCall = {
+        [=](auto &message, auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+
           auto randomness = std::make_shared<TipsetRandomness>(ts_load);
           auto env = std::make_shared<Env>(std::make_shared<InvokerImpl>(),
                                            randomness,
@@ -505,76 +482,75 @@ namespace fc::api {
           result.message = message;
           OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
           return result;
-        }},
-        .StateListMessages = {[=](auto &match, auto &tipset_key, auto to_height)
+        }};
+    api->StateListMessages = {[=](auto &match, auto &tipset_key, auto to_height)
                                   -> outcome::result<std::vector<CID>> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key));
 
-          // TODO(artyom-yurin): Make sure at least one of 'to' or 'from' is
-          // defined
+      // TODO(artyom-yurin): Make sure at least one of 'to' or 'from' is
+      // defined
 
-          auto matchFunc = [&](const UnsignedMessage &message) -> bool {
-            if (match.to != message.to) {
-              return false;
-            }
+      auto matchFunc = [&](const UnsignedMessage &message) -> bool {
+        if (match.to != message.to) {
+          return false;
+        }
 
-            if (match.from != message.from) {
-              return false;
-            }
+        if (match.from != message.from) {
+          return false;
+        }
 
-            return true;
-          };
+        return true;
+      };
 
-          std::vector<CID> result;
+      std::vector<CID> result;
 
-          while (static_cast<int64_t>(context.tipset->height()) >= to_height) {
-            std::set<CID> visited_cid;
+      while (static_cast<int64_t>(context.tipset->height()) >= to_height) {
+        std::set<CID> visited_cid;
 
-            auto isDuplicateMessage = [&](const CID &cid) -> bool {
-              return !visited_cid.insert(cid).second;
-            };
+        auto isDuplicateMessage = [&](const CID &cid) -> bool {
+          return !visited_cid.insert(cid).second;
+        };
 
-            for (const BlockHeader &block : context.tipset->blks) {
-              OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
-              OUTCOME_TRY(meta.bls_messages.visit(
-                  [&](auto, auto &cid) -> outcome::result<void> {
-                    OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+        for (const BlockHeader &block : context.tipset->blks) {
+          OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
+          OUTCOME_TRY(meta.bls_messages.visit(
+              [&](auto, auto &cid) -> outcome::result<void> {
+                OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
 
-                    if (!isDuplicateMessage(cid) && matchFunc(message)) {
-                      result.push_back(cid);
-                    }
+                if (!isDuplicateMessage(cid) && matchFunc(message)) {
+                  result.push_back(cid);
+                }
 
-                    return outcome::success();
-                  }));
-              OUTCOME_TRY(meta.secp_messages.visit(
-                  [&](auto, auto &cid) -> outcome::result<void> {
-                    OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+                return outcome::success();
+              }));
+          OUTCOME_TRY(meta.secp_messages.visit(
+              [&](auto, auto &cid) -> outcome::result<void> {
+                OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
 
-                    if (!isDuplicateMessage(cid)
-                        && matchFunc(message.message)) {
-                      result.push_back(cid);
-                    }
-                    return outcome::success();
-                  }));
-            }
+                if (!isDuplicateMessage(cid) && matchFunc(message.message)) {
+                  result.push_back(cid);
+                }
+                return outcome::success();
+              }));
+        }
 
-            if (context.tipset->height() == 0) break;
+        if (context.tipset->height() == 0) break;
 
-            OUTCOME_TRY(parent_context,
-                        tipsetContext(context.tipset->getParents()));
+        OUTCOME_TRY(parent_context,
+                    tipsetContext(context.tipset->getParents()));
 
-            context = std::move(parent_context);
-          }
+        context = std::move(parent_context);
+      }
 
-          return result;
-        }},
-        .StateGetActor = {[=](auto &address,
-                              auto &tipset_key) -> outcome::result<Actor> {
+      return result;
+    }};
+    api->StateGetActor = {
+        [=](auto &address, auto &tipset_key) -> outcome::result<Actor> {
           OUTCOME_TRY(context, tipsetContext(tipset_key, true));
           return context.state_tree.get(address);
-        }},
-        .StateReadState = {[=](auto &actor, auto &tipset_key)
-                               -> outcome::result<ActorState> {
+        }};
+    api->StateReadState = {
+        [=](auto &actor, auto &tipset_key) -> outcome::result<ActorState> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           auto cid = actor.head;
           OUTCOME_TRY(raw, context.state_tree.getStore()->get(cid));
@@ -582,9 +558,9 @@ namespace fc::api {
               .balance = actor.balance,
               .state = IpldObject{std::move(cid), std::move(raw)},
           };
-        }},
-        .StateGetReceipt = {[=](auto &cid, auto &tipset_key)
-                                -> outcome::result<MessageReceipt> {
+        }};
+    api->StateGetReceipt = {
+        [=](auto &cid, auto &tipset_key) -> outcome::result<MessageReceipt> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           auto result{msg_waiter->results.find(cid)};
           if (result != msg_waiter->results.end()) {
@@ -594,23 +570,23 @@ namespace fc::api {
             }
           }
           return TodoError::kError;
-        }},
-        .StateListMiners = {[=](auto &tipset_key)
-                                -> outcome::result<std::vector<Address>> {
+        }};
+    api->StateListMiners = {
+        [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(power_state, context.powerState());
           return power_state.claims.keys();
-        }},
-        .StateListActors = {[=](auto &tipset_key)
-                                -> outcome::result<std::vector<Address>> {
+        }};
+    api->StateListActors = {
+        [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(root, context.state_tree.flush());
           adt::Map<Actor, adt::AddressKeyer> actors{root, ipld};
 
           return actors.keys();
-        }},
-        .StateMarketBalance = {[=](auto &address, auto &tipset_key)
-                                   -> outcome::result<MarketBalance> {
+        }};
+    api->StateMarketBalance = {
+        [=](auto &address, auto &tipset_key) -> outcome::result<MarketBalance> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
           OUTCOME_TRY(id_address, context.state_tree.lookupId(address));
@@ -623,9 +599,9 @@ namespace fc::api {
             locked = 0;
           }
           return MarketBalance{*escrow, *locked};
-        }},
-        .StateMarketDeals = {[=](auto &tipset_key)
-                                 -> outcome::result<MarketDealMap> {
+        }};
+    api->StateMarketDeals = {
+        [=](auto &tipset_key) -> outcome::result<MarketDealMap> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
           MarketDealMap map;
@@ -636,14 +612,14 @@ namespace fc::api {
             return outcome::success();
           }));
           return map;
-        }},
-        .StateLookupID = {[=](auto &address,
-                              auto &tipset_key) -> outcome::result<Address> {
+        }};
+    api->StateLookupID = {
+        [=](auto &address, auto &tipset_key) -> outcome::result<Address> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           return context.state_tree.lookupId(address);
-        }},
-        .StateMarketStorageDeal = {[=](auto deal_id, auto &tipset_key)
-                                       -> outcome::result<StorageDeal> {
+        }};
+    api->StateMarketStorageDeal = {
+        [=](auto deal_id, auto &tipset_key) -> outcome::result<StorageDeal> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
           OUTCOME_TRY(deal, state.proposals.get(deal_id));
@@ -654,15 +630,15 @@ namespace fc::api {
                                    kChainEpochUndefined};
           }
           return StorageDeal{deal, *deal_state};
-        }},
-        .StateMinerDeadlines = {[=](auto &address, auto &tipset_key)
-                                    -> outcome::result<Deadlines> {
+        }};
+    api->StateMinerDeadlines = {
+        [=](auto &address, auto &tipset_key) -> outcome::result<Deadlines> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           return state.deadlines.get();
-        }},
-        .StateMinerFaults = {[=](auto address, auto tipset_key)
-                                 -> outcome::result<RleBitset> {
+        }};
+    api->StateMinerFaults = {
+        [=](auto address, auto tipset_key) -> outcome::result<RleBitset> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           OUTCOME_TRY(deadlines, state.deadlines.get());
@@ -675,36 +651,36 @@ namespace fc::api {
             }));
           }
           return faults;
-        }},
-        .StateMinerInfo = {[=](auto &address,
-                               auto &tipset_key) -> outcome::result<MinerInfo> {
+        }};
+    api->StateMinerInfo = {
+        [=](auto &address, auto &tipset_key) -> outcome::result<MinerInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(miner_state, context.minerState(address));
           return miner_state.info.get();
-        }},
-        .StateMinerPartitions =
-            {[=](auto &miner,
-                 auto _deadline,
-                 auto &tsk) -> outcome::result<std::vector<Partition>> {
-              OUTCOME_TRY(context, tipsetContext(tsk));
-              OUTCOME_TRY(state, context.minerState(miner));
-              OUTCOME_TRY(deadlines, state.deadlines.get());
-              OUTCOME_TRY(deadline, deadlines.due[_deadline].get());
-              std::vector<Partition> parts;
-              OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &v) {
-                parts.push_back({
-                    v.sectors,
-                    v.faults,
-                    v.recoveries,
-                    v.sectors - v.terminated,
-                    v.sectors - v.terminated - v.faults,
-                });
-                return outcome::success();
-              }));
-              return parts;
-            }},
-        .StateMinerPower = {[=](auto &address, auto &tipset_key)
-                                -> outcome::result<MinerPower> {
+        }};
+    api->StateMinerPartitions = {
+        [=](auto &miner,
+            auto _deadline,
+            auto &tsk) -> outcome::result<std::vector<Partition>> {
+          OUTCOME_TRY(context, tipsetContext(tsk));
+          OUTCOME_TRY(state, context.minerState(miner));
+          OUTCOME_TRY(deadlines, state.deadlines.get());
+          OUTCOME_TRY(deadline, deadlines.due[_deadline].get());
+          std::vector<Partition> parts;
+          OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &v) {
+            parts.push_back({
+                v.sectors,
+                v.faults,
+                v.recoveries,
+                v.sectors - v.terminated,
+                v.sectors - v.terminated - v.faults,
+            });
+            return outcome::success();
+          }));
+          return parts;
+        }};
+    api->StateMinerPower = {
+        [=](auto &address, auto &tipset_key) -> outcome::result<MinerPower> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(power_state, context.powerState());
           OUTCOME_TRY(miner_power, power_state.claims.get(address));
@@ -712,128 +688,117 @@ namespace fc::api {
               miner_power,
               {power_state.total_raw_power, power_state.total_qa_power},
           };
-        }},
-        .StateMinerProvingDeadline = {[=](auto &address, auto &tipset_key)
-                                          -> outcome::result<DeadlineInfo> {
+        }};
+    api->StateMinerProvingDeadline = {
+        [=](auto &address, auto &tipset_key) -> outcome::result<DeadlineInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           // TODO (a.chernyshov) miner version depends on actor code/version
           OUTCOME_TRY(state, context.minerState(address));
           const auto deadline_info =
               state.deadlineInfo(context.tipset->height());
           return deadline_info.nextNotElapsed();
-        }},
-        .StateMinerSectors =
-            {[=](auto &address, auto &filter, auto &tipset_key)
-                 -> outcome::result<std::vector<SectorOnChainInfo>> {
-              OUTCOME_TRY(context, tipsetContext(tipset_key));
-              OUTCOME_TRY(state, context.minerState(address));
-              std::vector<SectorOnChainInfo> sectors;
-              OUTCOME_TRY(state.sectors.visit([&](auto id, auto &info) {
-                if (!filter || filter->count(id)) {
-                  sectors.push_back(info);
-                }
-                return outcome::success();
-              }));
-              return sectors;
-            }},
-        .StateNetworkName = {[=]() -> outcome::result<std::string> {
-          return network_name;
-        }},
-        .StateNetworkVersion =
-            [=](auto &tipset_key) -> outcome::result<NetworkVersion> {
+        }};
+    api->StateMinerSectors = {
+        [=](auto &address, auto &filter, auto &tipset_key)
+            -> outcome::result<std::vector<SectorOnChainInfo>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          return vm::version::getNetworkVersion(context.tipset->height());
-        },
-        // TODO(artyom-yurin): FIL-165 implement method
-        .StateMinerPreCommitDepositForPower = {},
-        // TODO(artyom-yurin): FIL-165 implement method
-        .StateMinerInitialPledgeCollateral = {},
-        // TODO(artyom-yurin): FIL-165 implement method
-        .StateSectorPreCommitInfo = {},
-        .StateSectorGetInfo =
-            {[=](auto address, auto sector_number, auto tipset_key)
-                 -> outcome::result<boost::optional<SectorOnChainInfo>> {
-              OUTCOME_TRY(context, tipsetContext(tipset_key));
-              OUTCOME_TRY(state, context.minerState(address));
-              return state.sectors.tryGet(sector_number);
-            }},
-        // TODO(artyom-yurin): FIL-165 implement method
-        .StateSectorPartition = {},
-        // TODO(artyom-yurin): FIL-165 implement method
-        .StateSearchMsg = {},
-        .StateWaitMsg = waitCb<MsgWait>([=](auto &&cid,
-                                            auto &&confidence,
-                                            auto &&cb) {
+          OUTCOME_TRY(state, context.minerState(address));
+          std::vector<SectorOnChainInfo> sectors;
+          OUTCOME_TRY(state.sectors.visit([&](auto id, auto &info) {
+            if (!filter || filter->count(id)) {
+              sectors.push_back(info);
+            }
+            return outcome::success();
+          }));
+          return sectors;
+        }};
+    api->StateNetworkName = {
+        [=]() -> outcome::result<std::string> { return network_name; }};
+    api->StateNetworkVersion =
+        [=](auto &tipset_key) -> outcome::result<NetworkVersion> {
+      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      return vm::version::getNetworkVersion(context.tipset->height());
+    };
+    // TODO(artyom-yurin): FIL-165 implement method
+    api->StateMinerPreCommitDepositForPower = {};
+    // TODO(artyom-yurin): FIL-165 implement method
+    api->StateMinerInitialPledgeCollateral = {};
+    // TODO(artyom-yurin): FIL-165 implement method
+    api->StateSectorPreCommitInfo = {};
+    api->StateSectorGetInfo = {
+        [=](auto address, auto sector_number, auto tipset_key)
+            -> outcome::result<boost::optional<SectorOnChainInfo>> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(state, context.minerState(address));
+          return state.sectors.tryGet(sector_number);
+        }};
+    // TODO(artyom-yurin): FIL-165 implement method
+    api->StateSectorPartition = {};
+    // TODO(artyom-yurin): FIL-165 implement method
+    api->StateSearchMsg = {};
+    api->StateWaitMsg =
+        waitCb<MsgWait>([=](auto &&cid, auto &&confidence, auto &&cb) {
           msg_waiter->wait(cid, [=, MOVE(cb)](auto &result) {
             OUTCOME_CB(auto ts, ts_load->load(result.second));
             cb(MsgWait{cid, result.first, ts->key, (ChainEpoch)ts->height()});
           });
-        }),
-        .SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
-          // TODO(turuslan): chain store must validate blocks before adding
-          MsgMeta meta;
-          ipld->load(meta);
-          for (auto &cid : block.bls_messages) {
-            OUTCOME_TRY(meta.bls_messages.append(cid));
-          }
-          for (auto &cid : block.secp_messages) {
-            OUTCOME_TRY(meta.secp_messages.append(cid));
-          }
-          OUTCOME_TRY(messages, ipld->setCbor(meta));
-          if (block.header.messages != messages) {
-            return TodoError::kError;
-          }
-          OUTCOME_TRY(chain_store->addBlock(block.header));
-          OUTCOME_TRY(pubsub->publish(block));
-          return outcome::success();
-        }},
-        .Version = {[]() {
-          return VersionResult{"fuhon", 0x000C00, 5};
-        }},
-        .WalletBalance = {[=](auto &address) -> outcome::result<TokenAmount> {
-          OUTCOME_TRY(context, tipsetContext({}));
-          OUTCOME_TRY(actor, context.state_tree.get(address));
-          return actor.balance;
-        }},
-        // TODO(turuslan): FIL-165 implement method
-        .WalletDefaultAddress = {},
-        .WalletHas = {[=](auto address) -> outcome::result<bool> {
-          if (!address.isKeyType()) {
-            OUTCOME_TRY(context, tipsetContext({}));
-            OUTCOME_TRYA(address, context.accountKey(address));
-          }
-          return key_store->has(address);
-        }},
-        .WalletImport = {[=](auto &info) {
-          return key_store->put(info.type == SignatureType::BLS,
-                                info.private_key);
-        }},
-        .WalletSign = {[=](auto address,
-                           auto data) -> outcome::result<Signature> {
+        });
+    api->SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
+      // TODO(turuslan): chain store must validate blocks before adding
+      MsgMeta meta;
+      ipld->load(meta);
+      for (auto &cid : block.bls_messages) {
+        OUTCOME_TRY(meta.bls_messages.append(cid));
+      }
+      for (auto &cid : block.secp_messages) {
+        OUTCOME_TRY(meta.secp_messages.append(cid));
+      }
+      OUTCOME_TRY(messages, ipld->setCbor(meta));
+      if (block.header.messages != messages) {
+        return TodoError::kError;
+      }
+      OUTCOME_TRY(chain_store->addBlock(block.header));
+      OUTCOME_TRY(pubsub->publish(block));
+      return outcome::success();
+    }};
+    api->Version = {[]() { return VersionResult{"fuhon", 0x000C00, 5}; }};
+    api->WalletBalance = {[=](auto &address) -> outcome::result<TokenAmount> {
+      OUTCOME_TRY(context, tipsetContext({}));
+      OUTCOME_TRY(actor, context.state_tree.get(address));
+      return actor.balance;
+    }};
+    // TODO(turuslan): FIL-165 implement method
+    api->WalletDefaultAddress = {};
+    api->WalletHas = {[=](auto address) -> outcome::result<bool> {
+      if (!address.isKeyType()) {
+        OUTCOME_TRY(context, tipsetContext({}));
+        OUTCOME_TRYA(address, context.accountKey(address));
+      }
+      return key_store->has(address);
+    }};
+    api->WalletImport = {[=](auto &info) {
+      return key_store->put(info.type == SignatureType::BLS, info.private_key);
+    }};
+    api->WalletSign = {
+        [=](auto address, auto data) -> outcome::result<Signature> {
           if (!address.isKeyType()) {
             OUTCOME_TRY(context, tipsetContext({}));
             OUTCOME_TRYA(address, context.accountKey(address));
           }
           return key_store->sign(address, data);
-        }},
-        .WalletVerify = {[=](auto address,
-                             auto data,
-                             auto signature) -> outcome::result<bool> {
+        }};
+    api->WalletVerify = {
+        [=](auto address, auto data, auto signature) -> outcome::result<bool> {
           if (!address.isKeyType()) {
             OUTCOME_TRY(context, tipsetContext({}));
             OUTCOME_TRYA(address, context.accountKey(address));
           }
           return key_store->verify(address, data, signature);
-        }},
-        /**
-         * Payment channel methods are initialized with
-         * PaymentChannelManager::makeApi(Api &api)
-         */
-        .PaychAllocateLane = {},
-        .PaychGet = {},
-        .PaychVoucherAdd = {},
-        .PaychVoucherCheckValid = {},
-        .PaychVoucherCreate = {},
-    };
-  }
+        }};
+    /**
+     * Payment channel methods are initialized with
+     * PaymentChannelManager::makeApi(Api &api)
+     */
+    return api;
+  }  // namespace fc::api
 }  // namespace fc::api

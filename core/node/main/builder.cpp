@@ -417,19 +417,19 @@ namespace fc::node {
         genesis_timestamp,
         std::chrono::seconds(kEpochDurationSeconds));
 
-    o.api = std::make_shared<api::Api>(api::makeImpl(o.chain_store,
-                                                     config.network_name,
-                                                     weight_calculator,
-                                                     o.ts_load,
-                                                     o.ts_main,
-                                                     o.ipld,
-                                                     mpool,
-                                                     o.vm_interpreter,
-                                                     msg_waiter,
-                                                     beaconizer,
-                                                     drand_schedule,
-                                                     o.pubsub_gate,
-                                                     key_store));
+    o.api = api::makeImpl(o.chain_store,
+                          config.network_name,
+                          weight_calculator,
+                          o.ts_load,
+                          o.ts_main,
+                          o.ipld,
+                          mpool,
+                          o.vm_interpreter,
+                          msg_waiter,
+                          beaconizer,
+                          drand_schedule,
+                          o.pubsub_gate,
+                          key_store);
 
     return o;
   }

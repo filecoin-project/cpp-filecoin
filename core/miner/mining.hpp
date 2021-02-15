@@ -9,22 +9,22 @@
 #include <libp2p/protocol/common/scheduler.hpp>
 #include <unordered_set>
 
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "clock/utc_clock.hpp"
 #include "sector_storage/spec_interfaces/prover.hpp"
 
 namespace fc::mining {
   using api::Address;
-  using api::Api;
-  using api::BigInt;
   using api::BlockTemplate;
   using api::ChainEpoch;
+  using api::FullNodeApi;
   using api::MiningBaseInfo;
   using api::SignedMessage;
-  using api::Tipset;
-  using api::TipsetKey;
   using clock::UTCClock;
   using libp2p::protocol::Scheduler;
+  using primitives::BigInt;
+  using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetKey;
   using sector_storage::Prover;
 
   struct pair_hash {
@@ -38,7 +38,7 @@ namespace fc::mining {
     static outcome::result<std::shared_ptr<Mining>> create(
         std::shared_ptr<Scheduler> scheduler,
         std::shared_ptr<UTCClock> clock,
-        std::shared_ptr<Api> api,
+        std::shared_ptr<FullNodeApi> api,
         std::shared_ptr<Prover> prover,
         const Address &miner);
     void start();
@@ -54,7 +54,7 @@ namespace fc::mining {
 
     std::shared_ptr<Scheduler> scheduler;
     std::shared_ptr<UTCClock> clock;
-    std::shared_ptr<Api> api;
+    std::shared_ptr<FullNodeApi> api;
     std::shared_ptr<Prover> prover;
     Address miner;
     uint64_t block_delay, propagation;
