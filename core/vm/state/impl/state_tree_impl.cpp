@@ -140,11 +140,13 @@ namespace fc::vm::state {
     // Try load StateRoot as version >= 1
     if (auto _raw{store_->get(root)}) {
       auto &raw{_raw.value()};
-      if (auto _state_root{codec::cbor::decode<StateRoot>(_raw.value())}) {
-        auto &state_root{_state_root.value()};
-        version_ = state_root.version;
-        by_id = {state_root.actor_tree_root, store_};
-        return;
+      if (codec::cbor::CborDecodeStream{raw}.listLength() == 3) {
+        if (auto _state_root{codec::cbor::decode<StateRoot>(_raw.value())}) {
+          auto &state_root{_state_root.value()};
+          version_ = state_root.version;
+          by_id = {state_root.actor_tree_root, store_};
+          return;
+        }
       }
     }
     // if failed to load as version >= 1, must be version 0

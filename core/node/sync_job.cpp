@@ -108,7 +108,9 @@ namespace fc::sync {
             continue;
           }
           if (peer) {
-            fetch(*peer, *branch->parent_key);
+            thread.io->post([this, peer{*peer}, tsk{*branch->parent_key}] {
+              fetch(peer, tsk);
+            });
           }
         }
       }
