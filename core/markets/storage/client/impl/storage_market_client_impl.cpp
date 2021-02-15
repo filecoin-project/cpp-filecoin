@@ -65,7 +65,7 @@ namespace fc::markets::storage::client {
       IpldPtr ipld,
       std::shared_ptr<DataTransfer> datatransfer,
       std::shared_ptr<Discovery> discovery,
-      std::shared_ptr<Api> api,
+      std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<PieceIO> piece_io)
       : host_{std::move(host)},
         context_{std::move(context)},

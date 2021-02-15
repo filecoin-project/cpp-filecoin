@@ -8,21 +8,21 @@
 
 #include "miner/storage_fsm/precommit_policy.hpp"
 
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 
 namespace fc::mining {
-  using api::Api;
+  using api::FullNodeApi;
 
   class BasicPreCommitPolicy : public PreCommitPolicy {
    public:
-    BasicPreCommitPolicy(std::shared_ptr<Api> api,
+    BasicPreCommitPolicy(std::shared_ptr<FullNodeApi> api,
                          ChainEpoch proving_boundary,
                          ChainEpoch duration);
 
     ChainEpoch expiration(gsl::span<const types::Piece> pieces) override;
 
    private:
-    std::shared_ptr<Api> api_;
+    std::shared_ptr<FullNodeApi> api_;
 
     ChainEpoch proving_boundary_;
     ChainEpoch duration_;

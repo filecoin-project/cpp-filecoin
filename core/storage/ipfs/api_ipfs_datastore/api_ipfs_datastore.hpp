@@ -6,11 +6,11 @@
 #ifndef CPP_FILECOIN_STORAGE_IPFS_API_IPFS_DATASTORE_API_IPFS_DATASTORE_HPP
 #define CPP_FILECOIN_STORAGE_IPFS_API_IPFS_DATASTORE_API_IPFS_DATASTORE_HPP
 
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::ipfs {
-  using api::Api;
+  using api::FullNodeApi;
 
   /**
    * Read-only implementation of IPFS over node API
@@ -23,7 +23,7 @@ namespace fc::storage::ipfs {
      * Construct ApiIpfsDatastore
      * @param api - node API
      */
-    explicit ApiIpfsDatastore(std::shared_ptr<Api> api);
+    explicit ApiIpfsDatastore(std::shared_ptr<FullNodeApi> api);
 
     outcome::result<bool> contains(const CID &key) const override;
 
@@ -47,7 +47,7 @@ namespace fc::storage::ipfs {
     std::shared_ptr<IpfsDatastore> shared() override;
 
    private:
-    std::shared_ptr<Api> api_;
+    std::shared_ptr<FullNodeApi> api_;
   };
 
 }  // namespace fc::storage::ipfs

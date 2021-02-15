@@ -30,7 +30,7 @@ namespace fc::payment_channel_manager {
       vm::actor::builtin::v0::payment_channel::Construct;
 
   PaymentChannelManagerImpl::PaymentChannelManagerImpl(
-      std::shared_ptr<Api> api, std::shared_ptr<Ipld> ipld)
+      std::shared_ptr<FullNodeApi> api, std::shared_ptr<Ipld> ipld)
       : api_{std::move(api)}, ipld_{std::move(ipld)} {}
 
   outcome::result<AddChannelInfo>
@@ -195,7 +195,7 @@ namespace fc::payment_channel_manager {
     channels_[channel_actor_address] = channel_info;
   }
 
-  void PaymentChannelManagerImpl::makeApi(Api &api) {
+  void PaymentChannelManagerImpl::makeApi(FullNodeApi &api) {
     api.PaychAllocateLane = {
         [self{shared_from_this()}](auto &&channel) -> outcome::result<LaneId> {
           return self->allocateLane(channel);

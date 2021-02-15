@@ -25,7 +25,7 @@ namespace fc::miner {
   using vm::actor::builtin::v0::miner::kMaxSectorExpirationExtension;
   using vm::actor::builtin::v0::miner::kWPoStProvingPeriod;
 
-  MinerImpl::MinerImpl(std::shared_ptr<Api> api,
+  MinerImpl::MinerImpl(std::shared_ptr<FullNodeApi> api,
                        Address miner_address,
                        Address worker_address,
                        std::shared_ptr<Counter> counter,

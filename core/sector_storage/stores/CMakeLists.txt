@@ -16,6 +16,15 @@ target_link_libraries(sector_index
         logger
         )
 
+add_library(remote_index
+        impl/remote_index_impl.cpp
+        )
+
+target_link_libraries(remote_index
+        sector_index
+        rpc
+        )
+
 add_library(store
         impl/local_store.cpp
         impl/storage_error.cpp

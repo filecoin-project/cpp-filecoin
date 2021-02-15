@@ -15,8 +15,9 @@
 #include <queue>
 #include <thread>
 
-#include "api/api.hpp"
+#include "api/rpc/json.hpp"
 #include "api/rpc/rpc.hpp"
+#include "api/visit.hpp"
 
 namespace fc::api::rpc {
   using boost::asio::io_context;
@@ -36,7 +37,10 @@ namespace fc::api::rpc {
     void _flush();
     void _read();
     void _onread(const Document &j);
-    void setup(Api &api);
+    template <typename A>
+    void setup(A &api) {
+      visit(api, [&](auto &m) { _setup(*this, m); });
+    }
 
     std::thread thread;
     io_context io;
@@ -50,5 +54,8 @@ namespace fc::api::rpc {
     std::map<uint64_t, ChanCb> chans;
     std::queue<std::pair<uint64_t, Buffer>> write_queue;
     bool writing{false};
+
+    template <typename M>
+    void _setup(Client &c, M &m);
   };
 }  // namespace fc::api::rpc

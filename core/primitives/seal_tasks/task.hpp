@@ -13,6 +13,7 @@ namespace fc::primitives {
 
   class TaskType : public std::string {
    public:
+    TaskType() : std::string(){};
     explicit TaskType(const std::string &str) : std::string(str){};
   };
 
@@ -44,7 +45,6 @@ namespace fc::primitives {
 
     return order[lhs] < order[rhs];
   }
-
 }  // namespace fc::primitives
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_SEAL_TASKS_TASK_HPP

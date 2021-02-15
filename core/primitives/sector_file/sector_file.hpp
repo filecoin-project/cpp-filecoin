@@ -23,7 +23,7 @@ using fc::primitives::sector::RegisteredSealProof;
 using fc::primitives::sector::SectorId;
 
 namespace fc::primitives::sector_file {
-  enum SectorFileType : int {
+  enum SectorFileType : int64_t {
     FTNone = 0,
     FTUnsealed = 1,
     FTSealed = 2,

@@ -18,6 +18,7 @@ target_link_libraries(miner_main
     rpc
     store
     fetch_handler
+    remote_worker
 
     chain_events
     data_transfer

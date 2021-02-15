@@ -48,7 +48,7 @@ namespace fc::mining {
     return *end;
   }
 
-  BasicPreCommitPolicy::BasicPreCommitPolicy(std::shared_ptr<Api> api,
+  BasicPreCommitPolicy::BasicPreCommitPolicy(std::shared_ptr<FullNodeApi> api,
                                              ChainEpoch proving_boundary,
                                              ChainEpoch duration)
       : api_(std::move(api)),

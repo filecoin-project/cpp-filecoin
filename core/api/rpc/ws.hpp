@@ -8,7 +8,8 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/http.hpp>
-#include "api/api.hpp"
+#include <variant>
+#include "api/rpc/rpc.hpp"
 
 namespace boost::asio {
   class io_context;
@@ -45,7 +46,7 @@ namespace fc::api {
       const http::request<http::dynamic_body> &request)>;
   using Routes = std::map<std::string, RouteHandler, std::greater<>>;
 
-  void serve(std::shared_ptr<Api> api,
+  void serve(std::shared_ptr<rpc::Rpc> rpc,
              std::shared_ptr<Routes> routes,
              boost::asio::io_context &ioc,
              std::string_view ip,

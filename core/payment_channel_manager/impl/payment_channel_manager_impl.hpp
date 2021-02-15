@@ -7,13 +7,14 @@
 #define CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_IMPL_HPP
 
 #include <shared_mutex>
-#include "api/api.hpp"
+
+#include "api/node_api.hpp"
 #include "common/buffer.hpp"
 #include "payment_channel_manager/payment_channel_manager.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::payment_channel_manager {
-  using api::Api;
+  using api::FullNodeApi;
   using common::Buffer;
   using vm::actor::builtin::v0::payment_channel::SignedVoucher;
   using Ipld = fc::storage::ipfs::IpfsDatastore;
@@ -31,7 +32,7 @@ namespace fc::payment_channel_manager {
       : public PaymentChannelManager,
         public std::enable_shared_from_this<PaymentChannelManagerImpl> {
    public:
-    PaymentChannelManagerImpl(std::shared_ptr<Api> api,
+    PaymentChannelManagerImpl(std::shared_ptr<FullNodeApi> api,
                               std::shared_ptr<Ipld> ipld);
 
     outcome::result<AddChannelInfo> getOrCreatePaymentChannel(
@@ -56,7 +57,7 @@ namespace fc::payment_channel_manager {
     boost::optional<Address> findChannel(const Address &control,
                                          const Address &target) const override;
 
-    void makeApi(Api &api) override;
+    void makeApi(FullNodeApi &api) override;
 
    private:
     /**
@@ -107,7 +108,7 @@ namespace fc::payment_channel_manager {
     outcome::result<uint64_t> getNextNonce(const ChannelInfo &channel,
                                            const LaneId &lane) const;
 
-    std::shared_ptr<Api> api_;
+    std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<Ipld> ipld_;
     /**
      * Channel state offchain storage is a map (channel_actor_address ->

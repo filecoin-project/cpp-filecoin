@@ -9,7 +9,7 @@
 #include <boost/asio.hpp>
 #include "miner/miner.hpp"
 
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "common/outcome.hpp"
 #include "miner/storage_fsm/sealing.hpp"
 #include "primitives/address/address.hpp"
@@ -19,7 +19,7 @@
 #include "storage/chain/chain_store.hpp"
 
 namespace fc::miner {
-  using api::Api;
+  using api::FullNodeApi;
   using mining::DealInfo;
   using mining::PieceAttributes;
   using mining::Sealing;
@@ -34,7 +34,7 @@ namespace fc::miner {
 
   class MinerImpl : public Miner {
    public:
-    MinerImpl(std::shared_ptr<Api> api,
+    MinerImpl(std::shared_ptr<FullNodeApi> api,
               Address miner_address,
               Address worker_address,
               std::shared_ptr<Counter> counter,
@@ -67,7 +67,7 @@ namespace fc::miner {
      */
     outcome::result<void> runPreflightChecks();
 
-    std::shared_ptr<Api> api_;
+    std::shared_ptr<FullNodeApi> api_;
     Address miner_address_;
     Address worker_address_;
     std::shared_ptr<Sealing> sealing_;

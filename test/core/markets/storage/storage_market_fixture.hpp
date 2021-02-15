@@ -11,7 +11,7 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/security/plaintext.hpp>
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
@@ -35,7 +35,7 @@
 
 namespace fc::markets::storage::test {
   using adt::Channel;
-  using api::Api;
+  using api::FullNodeApi;
   using api::MarketBalance;
   using api::MsgWait;
   using api::PieceLocation;
@@ -227,13 +227,13 @@ namespace fc::markets::storage::test {
      * @param bls_provider
      * @return
      */
-    std::shared_ptr<Api> makeNodeApi(
+    std::shared_ptr<FullNodeApi> makeNodeApi(
         const Address &miner_actor_address,
         const BlsKeyPair &miner_worker_keypair,
         const std::shared_ptr<BlsProvider> &bls_provider,
         const std::map<Address, Address> &account_keys,
         const std::map<Address, BlsKeyPair> &private_keys) {
-      std::shared_ptr<Api> api = std::make_shared<Api>();
+      std::shared_ptr<FullNodeApi> api = std::make_shared<FullNodeApi>();
 
       api->ChainGetMessage = {
           [this](const CID &message_cid) -> outcome::result<UnsignedMessage> {
@@ -339,7 +339,7 @@ namespace fc::markets::storage::test {
             return wait_msg;
           }};
 
-      std::weak_ptr<Api> _api{api};
+      std::weak_ptr<FullNodeApi> _api{api};
       api->WalletSign = {
           [=](const Address &address,
               const Buffer &buffer) -> outcome::result<Signature> {
@@ -370,7 +370,7 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<Datastore> &datastore,
         const std::shared_ptr<libp2p::Host> &provider_host,
         const std::shared_ptr<boost::asio::io_context> &context,
-        const std::shared_ptr<Api> &api,
+        const std::shared_ptr<FullNodeApi> &api,
         const std::shared_ptr<SectorBlocksMock> &sector_blocks,
         const std::shared_ptr<ChainEventsMock> &chain_events,
         const Address &miner_actor_address) {
@@ -420,7 +420,7 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<libp2p::Host> &client_host,
         const std::shared_ptr<boost::asio::io_context> &context,
         const std::shared_ptr<Datastore> &datastore,
-        const std::shared_ptr<Api> &api) {
+        const std::shared_ptr<FullNodeApi> &api) {
       auto new_client = std::make_shared<StorageMarketClientImpl>(
           client_host,
           context,
@@ -495,7 +495,7 @@ namespace fc::markets::storage::test {
     Address client_id_address = Address::makeFromId(102);
     Address client_bls_address;
     std::shared_ptr<Tipset> chain_head = std::make_shared<Tipset>();
-    std::shared_ptr<Api> node_api;
+    std::shared_ptr<FullNodeApi> node_api;
     std::shared_ptr<ChainEventsMock> chain_events_ =
         std::make_shared<ChainEventsMock>();
     std::shared_ptr<SectorBlocksMock> sector_blocks;

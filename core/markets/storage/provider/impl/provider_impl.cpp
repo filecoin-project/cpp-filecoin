@@ -61,7 +61,7 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<StoredAsk> stored_ask,
       std::shared_ptr<boost::asio::io_context> context,
       std::shared_ptr<PieceStorage> piece_storage,
-      std::shared_ptr<Api> api,
+      std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<SectorBlocks> sector_blocks,
       std::shared_ptr<ChainEvents> chain_events,
       const Address &miner_actor_address,

@@ -33,5 +33,8 @@ namespace fc {
   constexpr auto kEpochsInDay{24 * kEpochsInHour};
   constexpr auto kEpochsInYear{365 * kEpochsInDay};
 
+  constexpr uint64_t kMinerApiVersion{0};
+  constexpr uint64_t kDefaultStorageWeight{10};
+
   extern BigInt kConsensusMinerMinPower;
 }  // namespace fc

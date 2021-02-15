@@ -6,11 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_CHECKS_CHECKS_HPP
 #define CPP_FILECOIN_CORE_SECTOR_STORAGE_CHECKS_CHECKS_HPP
 
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "miner/storage_fsm/types.hpp"
 
 namespace fc::mining::checks {
-  using api::Api;
+  using api::FullNodeApi;
   using api::NetworkVersion;
   using api::SectorPreCommitOnChainInfo;
   using common::Buffer;
@@ -26,13 +26,13 @@ namespace fc::mining::checks {
 
   outcome::result<void> checkPieces(
       const std::shared_ptr<SectorInfo> &sector_info,
-      const std::shared_ptr<Api> &api);
+      const std::shared_ptr<FullNodeApi> &api);
 
   outcome::result<boost::optional<SectorPreCommitOnChainInfo>>
   getStateSectorPreCommitInfo(const Address &miner_address,
                               const std::shared_ptr<SectorInfo> &sector_info,
                               const TipsetKey &tipset_key,
-                              const std::shared_ptr<Api> &api);
+                              const std::shared_ptr<FullNodeApi> &api);
 
   /**
    * Checks that data commitment generated in the sealing process matches
@@ -43,14 +43,14 @@ namespace fc::mining::checks {
       const std::shared_ptr<SectorInfo> &sector_info,
       const TipsetKey &tipset_key,
       const ChainEpoch &height,
-      const std::shared_ptr<Api> &api);
+      const std::shared_ptr<FullNodeApi> &api);
 
   outcome::result<void> checkCommit(
       const Address &miner_address,
       const std::shared_ptr<SectorInfo> &sector_info,
       const Proof &proof,
       const TipsetKey &tipset_key,
-      const std::shared_ptr<Api> &api);
+      const std::shared_ptr<FullNodeApi> &api);
 
   enum class ChecksError {
     kInvalidDeal = 1,

@@ -56,7 +56,7 @@ namespace fc::mining::checks {
 
   outcome::result<void> checkPieces(
       const std::shared_ptr<SectorInfo> &sector_info,
-      const std::shared_ptr<Api> &api) {
+      const std::shared_ptr<FullNodeApi> &api) {
     OUTCOME_TRY(chain_head, api->ChainHead());
 
     for (const auto &piece : sector_info->pieces) {
@@ -93,7 +93,7 @@ namespace fc::mining::checks {
       const Address &miner_address,
       const std::shared_ptr<SectorInfo> &sector_info,
       const TipsetKey &tipset_key,
-      const std::shared_ptr<Api> &api) {
+      const std::shared_ptr<FullNodeApi> &api) {
     std::vector<DealId> deal_ids;
     for (const auto &piece : sector_info->pieces) {
       if (piece.deal_info.has_value()) {
@@ -123,7 +123,7 @@ namespace fc::mining::checks {
   getStateSectorPreCommitInfo(const Address &miner_address,
                               const std::shared_ptr<SectorInfo> &sector_info,
                               const TipsetKey &tipset_key,
-                              const std::shared_ptr<Api> &api) {
+                              const std::shared_ptr<FullNodeApi> &api) {
     boost::optional<SectorPreCommitOnChainInfo> result;
 
     OUTCOME_TRY(actor, api->StateGetActor(miner_address, tipset_key));
@@ -165,7 +165,7 @@ namespace fc::mining::checks {
       const std::shared_ptr<SectorInfo> &sector_info,
       const TipsetKey &tipset_key,
       const ChainEpoch &height,
-      const std::shared_ptr<Api> &api) {
+      const std::shared_ptr<FullNodeApi> &api) {
     OUTCOME_TRY(commD,
                 getDataCommitment(miner_address, sector_info, tipset_key, api));
     if (commD != sector_info->comm_d) {
@@ -198,7 +198,7 @@ namespace fc::mining::checks {
       const std::shared_ptr<SectorInfo> &sector_info,
       const Proof &proof,
       const TipsetKey &tipset_key,
-      const std::shared_ptr<Api> &api) {
+      const std::shared_ptr<FullNodeApi> &api) {
     if (sector_info->seed_epoch == 0) {
       return ChecksError::kBadSeed;
     }

@@ -101,6 +101,7 @@ namespace fc::sector_storage::stores {
     kNoSuitableCandidate,
     kInvalidUrl,
     kCannotLockStorage,
+    kNotSupportedMethod,
   };
 }  // namespace fc::sector_storage::stores
 
