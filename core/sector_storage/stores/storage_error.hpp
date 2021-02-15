@@ -13,6 +13,7 @@ namespace fc::sector_storage::stores {
   enum class StorageError {
     kFileNotExist = 1,
     kFilesystemStatError,
+    kConfigFileNotExist,
   };
 
 }

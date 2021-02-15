@@ -6,6 +6,7 @@
 #include "sector_storage/stores/impl/storage_impl.hpp"
 
 #include <boost/filesystem.hpp>
+#include <utility>
 
 #include <sys/stat.h>
 #if __APPLE__
@@ -27,7 +28,9 @@
 #include "api/rpc/json.hpp"
 
 namespace fc::sector_storage::stores {
-  LocalStorageImpl::LocalStorageImpl(std::string path) : path{path} {}
+  LocalStorageImpl::LocalStorageImpl(std::string path)
+      : config_path{(boost::filesystem::path(path) / kStorageConfig).string()} {
+  }
 
   outcome::result<FsStat> LocalStorageImpl::getStat(const std::string &path) {
     struct STAT64(statfs) stat;
@@ -40,10 +43,10 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<StorageConfig> LocalStorageImpl::getStorage() {
-    if (!boost::filesystem::exists(path)) {
-      return StorageConfig{};
+    if (!boost::filesystem::exists(config_path)) {
+      return StorageError::kConfigFileNotExist;
     }
-    OUTCOME_TRY(text, common::readFile(path));
+    OUTCOME_TRY(text, common::readFile(config_path));
     OUTCOME_TRY(j_file, codec::json::parse(text));
     return api::decode<StorageConfig>(j_file);
   }
@@ -53,7 +56,7 @@ namespace fc::sector_storage::stores {
     OUTCOME_TRY(config, getStorage());
     action(config);
     OUTCOME_TRY(text, codec::json::format(api::encode(config)));
-    OUTCOME_TRY(common::writeFile(path, text));
+    OUTCOME_TRY(common::writeFile(config_path, text));
     return outcome::success();
   }
 

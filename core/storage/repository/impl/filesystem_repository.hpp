@@ -48,7 +48,6 @@ namespace fc::storage::repository {
     inline static const std::string kDatastore = "datastore";
     inline static const std::string kRepositoryLock = "repo.lock";
     inline static const std::string kVersionFilename = "version";
-    inline static const std::string kStorageConfig = "storage.json";
     inline static const Version kFileSystemRepositoryVersion = 1;
 
     FileSystemRepository(std::shared_ptr<IpfsDatastore> ipld_store,

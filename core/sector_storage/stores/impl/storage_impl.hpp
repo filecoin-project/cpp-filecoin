@@ -17,6 +17,6 @@ namespace fc::sector_storage::stores {
         std::function<void(StorageConfig &)> action) override;
     outcome::result<uint64_t> getDiskUsage(const std::string &path) override;
 
-    std::string path;
+    std::string config_path;
   };
 }  // namespace fc::sector_storage::stores

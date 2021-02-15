@@ -156,7 +156,7 @@ namespace fc {
     }
 
     auto storage{std::make_shared<sector_storage::stores::LocalStorageImpl>(
-        config.join("storage.json"))};
+        config.repo_path.string())};
     OUTCOME_TRY(storage->setStorage([&](auto &config2) {
       if (config2.storage_paths.empty()) {
         boost::filesystem::path path{config.join("sectors")};

@@ -12,6 +12,8 @@
 namespace fc::sector_storage::stores {
   using primitives::FsStat;
 
+  const std::string kStorageConfig = "storage.json";
+
   struct LocalPath {
     std::string path;
   };
@@ -20,10 +22,14 @@ namespace fc::sector_storage::stores {
     return path1.path == path2.path;
   }
 
-  // .lotusstorage/storage.json
+  // .storage/storage.json
   struct StorageConfig {
     std::vector<LocalPath> storage_paths;
   };
+
+  inline bool operator==(const StorageConfig &lhs, const StorageConfig &rhs) {
+    return lhs.storage_paths == rhs.storage_paths;
+  }
 
   class LocalStorage {
    public:
