@@ -5,18 +5,21 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/multisig/multisig_utils.hpp"
+#include "vm/actor/builtin/utils/multisig_actor_utils.hpp"
 
 namespace fc::vm::actor::builtin::v0::multisig {
   using utils::multisig::ApproveTransactionResult;
 
-  class MultisigUtilsImplV0 : public utils::multisig::MultisigUtils {
+  class MultisigUtils : public utils::multisig::MultisigUtils {
    public:
+    MultisigUtils(Runtime &r)
+        : utils::multisig::MultisigUtils::MultisigUtils(r) {}
+
     outcome::result<void> assertCallerIsSigner(
-        const Runtime &runtime, const State &state) const override;
+        const State &state) const override;
 
     outcome::result<Address> getResolvedAddress(
-        Runtime &runtime, const Address &address) const override;
+        const Address &address) const override;
 
     BigInt amountLocked(const State &state,
                         const ChainEpoch &elapsed_epoch) const override;
@@ -28,12 +31,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
         const ChainEpoch &current_epoch) const override;
 
     outcome::result<ApproveTransactionResult> approveTransaction(
-        Runtime &runtime,
-        const TransactionId &tx_id,
-        Transaction &transaction) const override;
+        const TransactionId &tx_id, Transaction &transaction) const override;
 
     outcome::result<ApproveTransactionResult> executeTransaction(
-        Runtime &runtime,
         State &state,
         const TransactionId &tx_id,
         const Transaction &transaction) const override;
