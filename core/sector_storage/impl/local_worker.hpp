@@ -14,7 +14,6 @@
 namespace fc::sector_storage {
 
   struct WorkerConfig {
-    std::string hostname;
     primitives::sector::RegisteredSealProof seal_proof_type;
     std::set<primitives::TaskType> task_types;
   };
@@ -97,6 +96,7 @@ namespace fc::sector_storage {
     std::shared_ptr<stores::SectorIndex> index_;
 
     WorkerConfig config_;
+    std::string hostname_;
     common::Logger logger_;
   };
 

@@ -33,6 +33,15 @@ target_link_libraries(worker
         logger
         )
 
+add_library(remote_worker
+        impl/remote_worker.cpp
+        )
+
+target_link_libraries(remote_worker
+        worker
+        rpc
+        )
+
 add_library(scheduler
         impl/scheduler_impl.cpp
         )

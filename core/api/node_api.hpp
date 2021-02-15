@@ -5,52 +5,30 @@
 
 #pragma once
 
-#include <future>
-
-#include <libp2p/peer/peer_info.hpp>
-
-#include "adt/channel.hpp"
+#include "api/common_api.hpp"
 #include "common/libp2p/peer/cbor_peer_id.hpp"
-#include "common/todo_error.hpp"
 #include "const.hpp"
-#include "crypto/randomness/randomness_types.hpp"
-#include "markets/retrieval/types.hpp"
+#include "drand/messages.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/deal_protocol.hpp"
-#include "markets/storage/types.hpp"
-#include "primitives/big_int.hpp"
-#include "primitives/cid/comm_cid.hpp"
-#include "primitives/rle_bitset/rle_bitset.hpp"
+#include "primitives/block/block.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/mpool/mpool.hpp"
-#include "vm/actor/builtin/v0/market/actor.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
-#define API_METHOD(_name, _result, ...)                                    \
-  struct _##_name : std::function<outcome::result<_result>(__VA_ARGS__)> { \
-    using function::function;                                              \
-    using Result = _result;                                                \
-    using Params = ParamsTuple<__VA_ARGS__>;                               \
-    static constexpr auto name = "Filecoin." #_name;                       \
-  } _name;
-
 namespace fc::api {
-  using adt::Channel;
-  using common::Buffer;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
+  using drand::BeaconEntry;
   using libp2p::peer::PeerId;
-  using libp2p::peer::PeerInfo;
-  using markets::retrieval::RetrievalAsk;
   using markets::storage::DataRef;
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
-  using markets::storage::StorageProviderInfo;
-  using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::EpochDuration;
@@ -61,23 +39,15 @@ namespace fc::api {
   using primitives::TipsetWeight;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using primitives::block::BeaconEntry;
   using primitives::block::BlockHeader;
   using primitives::block::BlockTemplate;
   using primitives::block::BlockWithCids;
-  using primitives::cid::Comm;
-  using primitives::piece::PaddedPieceSize;
   using primitives::sector::SectorInfo;
   using primitives::tipset::HeadChange;
-  using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
   using primitives::tipset::TipsetKey;
   using storage::mpool::MpoolUpdate;
   using vm::actor::Actor;
-  using vm::actor::builtin::v0::market::ClientDealProposal;
-  using vm::actor::builtin::v0::market::DealProposal;
-  using vm::actor::builtin::v0::market::DealState;
-  using vm::actor::builtin::v0::market::StorageParticipantBalance;
   using vm::actor::builtin::v0::miner::DeadlineInfo;
   using vm::actor::builtin::v0::miner::Deadlines;
   using vm::actor::builtin::v0::miner::MinerInfo;
@@ -89,75 +59,9 @@ namespace fc::api {
   using vm::actor::builtin::v0::storage_power::Claim;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
-  using vm::runtime::ExecutionResult;
   using vm::runtime::MessageReceipt;
   using vm::version::NetworkVersion;
   using SignatureType = crypto::signature::Type;
-
-  template <typename... T>
-  using ParamsTuple =
-      std::tuple<std::remove_const_t<std::remove_reference_t<T>>...>;
-
-  template <typename T>
-  struct Chan {
-    using Type = T;
-    Chan() = default;
-    Chan(std::shared_ptr<Channel<T>> channel) : channel{std::move(channel)} {}
-    static Chan make() {
-      return std::make_shared<Channel<T>>();
-    }
-    uint64_t id{};
-    std::shared_ptr<Channel<T>> channel;
-  };
-
-  template <typename T>
-  struct is_chan : std::false_type {};
-
-  template <typename T>
-  struct is_chan<Chan<T>> : std::true_type {};
-
-  template <typename T>
-  struct Wait {
-    using Type = T;
-    using Result = outcome::result<T>;
-    using Cb = std::function<void(Result)>;
-
-    Wait() = default;
-    Wait(std::shared_ptr<Channel<Result>> channel)
-        : channel{std::move(channel)} {}
-    static Wait make() {
-      return std::make_shared<Channel<Result>>();
-    }
-
-    void waitOwn(Cb cb) {
-      wait([c{channel}, cb{std::move(cb)}](auto &&v) { cb(v); });
-    }
-
-    void wait(Cb cb) {
-      channel->read([cb{std::move(cb)}](auto opt) {
-        if (opt) {
-          cb(std::move(*opt));
-        } else {
-          cb(TodoError::kError);
-        }
-        return false;
-      });
-    }
-
-    auto waitSync() {
-      std::promise<Result> p;
-      wait([&](auto v) { p.set_value(std::move(v)); });
-      return p.get_future().get();
-    }
-
-    std::shared_ptr<Channel<Result>> channel;
-  };
-
-  template <typename T>
-  struct is_wait : std::false_type {};
-
-  template <typename T>
-  struct is_wait<Wait<T>> : std::true_type {};
 
   struct None {};
 
@@ -169,57 +73,20 @@ namespace fc::api {
 
   using MarketDealMap = std::map<std::string, StorageDeal>;
 
-  struct MinerPower {
-    Claim miner, total;
+  struct FileRef {
+    std::string path;
+    bool is_car;
   };
 
-  struct MsgWait {
-    CID message;
-    MessageReceipt receipt;
-    TipsetKey tipset;
-    ChainEpoch height;
-  };
-
-  struct BlockMessages {
-    std::vector<UnsignedMessage> bls;
-    std::vector<SignedMessage> secp;
-    std::vector<CID> cids;
-  };
-
-  struct CidMessage {
-    CID cid;
-    UnsignedMessage message;
-  };
-
-  struct IpldObject {
-    CID cid;
-    Buffer raw;
-  };
-
-  struct VersionResult {
-    std::string version;
-    uint64_t api_version;
-    uint64_t block_delay;
-  };
-
-  struct MiningBaseInfo {
-    StoragePower miner_power;
-    StoragePower network_power;
-    std::vector<SectorInfo> sectors;
-    Address worker;
-    SectorSize sector_size;
-    BeaconEntry prev_beacon;
-    std::vector<BeaconEntry> beacons;
-    bool has_min_power;
-
-    auto &beacon() const {
-      return beacons.empty() ? prev_beacon : beacons.back();
-    }
-  };
-
-  struct ActorState {
-    BigInt balance;
-    IpldObject state;
+  struct RetrievalOrder {
+    CID root;
+    uint64_t size;
+    TokenAmount total;
+    uint64_t interval;
+    uint64_t interval_inc;
+    Address client;
+    Address miner;
+    PeerId peer{codec::cbor::kDefaultT<PeerId>()};
   };
 
   struct StartDealParams {
@@ -244,22 +111,6 @@ namespace fc::api {
     uint64_t payment_interval_increase;
     Address miner;
     PeerId peer;
-  };
-
-  struct FileRef {
-    std::string path;
-    bool is_car;
-  };
-
-  struct RetrievalOrder {
-    CID root;
-    uint64_t size;
-    TokenAmount total;
-    uint64_t interval;
-    uint64_t interval_inc;
-    Address client;
-    Address miner;
-    PeerId peer{codec::cbor::kDefaultT<PeerId>()};
   };
 
   struct Import {
@@ -288,6 +139,53 @@ namespace fc::api {
     uint64_t partition;
   };
 
+  struct MinerPower {
+    Claim miner, total;
+  };
+
+  struct MsgWait {
+    CID message;
+    MessageReceipt receipt;
+    TipsetKey tipset;
+    ChainEpoch height;
+  };
+
+  struct BlockMessages {
+    std::vector<UnsignedMessage> bls;
+    std::vector<SignedMessage> secp;
+    std::vector<CID> cids;
+  };
+
+  struct CidMessage {
+    CID cid;
+    UnsignedMessage message;
+  };
+
+  struct IpldObject {
+    CID cid;
+    Buffer raw;
+  };
+
+  struct MiningBaseInfo {
+    StoragePower miner_power;
+    StoragePower network_power;
+    std::vector<SectorInfo> sectors;
+    Address worker;
+    SectorSize sector_size;
+    BeaconEntry prev_beacon;
+    std::vector<BeaconEntry> beacons;
+    bool has_min_power;
+
+    auto &beacon() const {
+      return beacons.empty() ? prev_beacon : beacons.back();
+    }
+  };
+
+  struct ActorState {
+    BigInt balance;
+    IpldObject state;
+  };
+
   struct MessageSendSpec {
     static TokenAmount maxFee(const boost::optional<MessageSendSpec> &spec) {
       if (spec) {
@@ -302,9 +200,7 @@ namespace fc::api {
 
   constexpr uint64_t kNoConfidence{};
 
-  struct Api {
-    API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
-
+  struct FullNodeApi : public CommonApi {
     API_METHOD(BeaconGetEntry, Wait<BeaconEntry>, ChainEpoch)
 
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
@@ -351,16 +247,12 @@ namespace fc::api {
                const FileRef &)
     API_METHOD(ClientStartDeal, Wait<CID>, const StartDealParams &)
 
-    API_METHOD(DealsImportData, void, const CID &, const std::string &)
-
     API_METHOD(GasEstimateMessageGas,
                UnsignedMessage,
                const UnsignedMessage &,
                const boost::optional<MessageSendSpec> &,
                const TipsetKey &)
 
-    API_METHOD(MarketGetAsk, SignedStorageAsk)
-    API_METHOD(MarketGetRetrievalAsk, RetrievalAsk)
     /**
      * Ensures that a storage market participant has a certain amount of
      * available funds. If additional funds are needed, they will be sent from
@@ -376,14 +268,6 @@ namespace fc::api {
                const Address &,
                const Address &,
                const TokenAmount &)
-    API_METHOD(MarketSetAsk,
-               void,
-               const TokenAmount &,
-               const TokenAmount &,
-               ChainEpoch,
-               PaddedPieceSize,
-               PaddedPieceSize)
-    API_METHOD(MarketSetRetrievalAsk, void, const RetrievalAsk &)
 
     API_METHOD(MinerCreateBlock, BlockWithCids, const BlockTemplate &)
     API_METHOD(MinerGetBaseInfo,
@@ -403,9 +287,68 @@ namespace fc::api {
                double)
     API_METHOD(MpoolSub, Chan<MpoolUpdate>)
 
-    API_METHOD(NetAddrsListen, PeerInfo)
+    /** Payment channel manager */
 
-    API_METHOD(PledgeSector, void)
+    /**
+     * Allocate new payment channel lane
+     * @param payment channel actor address
+     * @return new lane id
+     */
+    API_METHOD(PaychAllocateLane, LaneId, const Address &)
+
+    /**
+     * Get or create payment channel and waits for message is committed
+     * Search for payment channel in local storage.
+     * If found, adds ensure_funds to payment channel actor.
+     * If not found, creates payment channel actor with ensure_funds
+     * @param from address
+     * @param to address
+     * @param ensure_funds - amount allocated for payment channel
+     * @return add payment channel info with actor address and message cid
+     */
+    API_METHOD(PaychGet,
+               AddChannelInfo,
+               const Address &,
+               const Address &,
+               const TokenAmount &)
+
+    /**
+     * Add voucher to local storage
+     * @param payment channel address
+     * @param signed voucher
+     * @param signature one more time - not used
+     * @param delta - not used
+     * @return delta
+     */
+    API_METHOD(PaychVoucherAdd,
+               TokenAmount,
+               const Address &,
+               const SignedVoucher &,
+               const Buffer &,
+               const TokenAmount &)
+
+    /**
+     * Validate voucher
+     * @param payment channel actor address
+     * @param voucher to validate
+     */
+    API_METHOD(PaychVoucherCheckValid,
+               void,
+               const Address &,
+               const SignedVoucher &)
+
+    /**
+     * Creates voucher for payment channel lane
+     * @param payment channel actor address
+     * @param token amound to redeem
+     * @param lane id
+     * @return signed voucher
+     */
+    API_METHOD(PaychVoucherCreate,
+               SignedVoucher,
+               const Address &,
+               const TokenAmount &,
+               const LaneId &)
 
     API_METHOD(StateAccountKey, Address, const Address &, const TipsetKey &)
     API_METHOD(StateCall,
@@ -482,8 +425,6 @@ namespace fc::api {
 
     API_METHOD(SyncSubmitBlock, void, const BlockWithCids &)
 
-    API_METHOD(Version, VersionResult)
-
     /** Wallet */
     API_METHOD(WalletBalance, TokenAmount, const Address &)
     API_METHOD(WalletDefaultAddress, Address)
@@ -493,68 +434,5 @@ namespace fc::api {
     /** Verify signature by address (may be id or key address) */
     API_METHOD(
         WalletVerify, bool, const Address &, const Buffer &, const Signature &)
-
-    /** Payment channel manager */
-
-    /**
-     * Allocate new payment channel lane
-     * @param payment channel actor address
-     * @return new lane id
-     */
-    API_METHOD(PaychAllocateLane, LaneId, const Address &)
-
-    /**
-     * Get or create payment channel and waits for message is committed
-     * Search for payment channel in local storage.
-     * If found, adds ensure_funds to payment channel actor.
-     * If not found, creates payment channel actor with ensure_funds
-     * @param from address
-     * @param to address
-     * @param ensure_funds - amount allocated for payment channel
-     * @return add payment channel info with actor address and message cid
-     */
-    API_METHOD(PaychGet,
-               AddChannelInfo,
-               const Address &,
-               const Address &,
-               const TokenAmount &)
-
-    /**
-     * Add voucher to local storage
-     * @param payment channel address
-     * @param signed voucher
-     * @param signature one more time - not used
-     * @param delta - not used
-     * @return delta
-     */
-    API_METHOD(PaychVoucherAdd,
-               TokenAmount,
-               const Address &,
-               const SignedVoucher &,
-               const Buffer &,
-               const TokenAmount &)
-
-    /**
-     * Validate voucher
-     * @param payment channel actor address
-     * @param voucher to validate
-     */
-    API_METHOD(PaychVoucherCheckValid,
-               void,
-               const Address &,
-               const SignedVoucher &)
-
-    /**
-     * Creates voucher for payment channel lane
-     * @param payment channel actor address
-     * @param token amound to redeem
-     * @param lane id
-     * @return signed voucher
-     */
-    API_METHOD(PaychVoucherCreate,
-               SignedVoucher,
-               const Address &,
-               const TokenAmount &,
-               const LaneId &)
   };
 }  // namespace fc::api

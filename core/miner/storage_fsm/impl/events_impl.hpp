@@ -8,20 +8,20 @@
 
 #include "miner/storage_fsm/events.hpp"
 
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "common/logger.hpp"
 #include "miner/storage_fsm/tipset_cache.hpp"
 
 namespace fc::mining {
   using adt::Channel;
-  using api::Api;
+  using api::FullNodeApi;
   using primitives::tipset::HeadChange;
   using primitives::tipset::HeadChangeType;
 
   class EventsImpl : public Events,
                      public std::enable_shared_from_this<EventsImpl> {
    public:
-    EventsImpl(std::shared_ptr<Api> api,
+    EventsImpl(std::shared_ptr<FullNodeApi> api,
                std::shared_ptr<TipsetCache> tipset_cache);
 
     outcome::result<void> subscribeHeadChanges() override;
@@ -44,7 +44,7 @@ namespace fc::mining {
 
     bool callback_function(const HeadChange &change);
 
-    std::shared_ptr<Api> api_;
+    std::shared_ptr<FullNodeApi> api_;
 
     /**
      * Subscription to chain head changes

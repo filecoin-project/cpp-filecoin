@@ -9,7 +9,7 @@
 
 namespace fc::mining {
 
-  EventsImpl::EventsImpl(std::shared_ptr<Api> api,
+  EventsImpl::EventsImpl(std::shared_ptr<FullNodeApi> api,
                          std::shared_ptr<TipsetCache> tipset_cache)
       : api_{std::move(api)},
         global_id_(0),

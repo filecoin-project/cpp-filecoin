@@ -9,7 +9,7 @@
 #include <memory>
 
 #include <libp2p/host/host.hpp>
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
@@ -20,7 +20,7 @@
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval::client {
-  using api::Api;
+  using api::FullNodeApi;
   using common::libp2p::CborStream;
   using data_transfer::DataTransfer;
   using data_transfer::PeerDtId;
@@ -81,7 +81,7 @@ namespace fc::markets::retrieval::client {
      */
     RetrievalClientImpl(std::shared_ptr<Host> host,
                         std::shared_ptr<DataTransfer> datatransfer,
-                        std::shared_ptr<Api> api,
+                        std::shared_ptr<FullNodeApi> api,
                         std::shared_ptr<IpfsDatastore> ipfs);
 
     outcome::result<std::vector<PeerInfo>> findProviders(
@@ -112,7 +112,7 @@ namespace fc::markets::retrieval::client {
     DealId next_deal_id;
     std::shared_ptr<Host> host_;
     std::shared_ptr<DataTransfer> datatransfer_;
-    std::shared_ptr<Api> api_;
+    std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<IpfsDatastore> ipfs_;
     common::Logger logger_ = common::createLogger("RetrievalMarketClient");
   };

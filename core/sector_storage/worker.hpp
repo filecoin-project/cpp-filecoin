@@ -116,6 +116,7 @@ namespace fc::sector_storage {
     kUnsupportedPlatform,
     kOutOfBound,
     kCannotOpenFile,
+    kUnsupportedCall,
   };
 }  // namespace fc::sector_storage
 

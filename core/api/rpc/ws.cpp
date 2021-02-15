@@ -32,10 +32,10 @@ namespace fc::api {
   const auto kChanCloseDelay{boost::posix_time::milliseconds(100)};
 
   struct SocketSession : std::enable_shared_from_this<SocketSession> {
-    SocketSession(tcp::socket &&socket, const Api &api)
-        : socket{std::move(socket)}, timer{this->socket.get_executor()} {
-      setupRpc(rpc, api);
-    }
+    SocketSession(tcp::socket &&socket, const Rpc &api_rpc)
+        : socket{std::move(socket)},
+          timer{this->socket.get_executor()},
+          rpc(std::move(api_rpc)) {}
 
     template <class Body, class Allocator>
     void doAccept(http::request<Body, http::basic_fields<Allocator>> req) {
@@ -138,10 +138,10 @@ namespace fc::api {
   };
 
   struct HttpSession : public std::enable_shared_from_this<HttpSession> {
-    HttpSession(tcp::socket &&socket, std::shared_ptr<Api> api, Routes routes)
+    HttpSession(tcp::socket &&socket, std::shared_ptr<Rpc> rpc, Routes routes)
         : stream(std::move(socket)),
           routes(std::move(routes)),
-          api{std::move(api)} {}
+          rpc{std::move(rpc)} {}
 
     void run() {
       net::dispatch(stream.get_executor(),
@@ -170,7 +170,7 @@ namespace fc::api {
       }
 
       if (websocket::is_upgrade(request)) {
-        std::make_shared<SocketSession>(stream.release_socket(), *api)
+        std::make_shared<SocketSession>(stream.release_socket(), *rpc)
             ->doAccept(std::move(request));
         return;
       }
@@ -245,15 +245,15 @@ namespace fc::api {
     http::request<http::dynamic_body> request;
     WrapperResponse w_response;
     Routes routes;
-    std::shared_ptr<Api> api;
+    std::shared_ptr<Rpc> rpc;
   };
 
   struct Server : std::enable_shared_from_this<Server> {
     Server(tcp::acceptor &&acceptor,
-           std::shared_ptr<Api> api,
+           std::shared_ptr<Rpc> rpc,
            std::shared_ptr<Routes> routes)
         : acceptor{std::move(acceptor)},
-          api{std::move(api)},
+          rpc{std::move(rpc)},
           routes{std::move(routes)} {}
 
     void run() {
@@ -266,25 +266,25 @@ namespace fc::api {
           return;
         }
         std::make_shared<HttpSession>(
-            std::move(socket), self->api, *self->routes)
+            std::move(socket), self->rpc, *self->routes)
             ->run();
         self->doAccept();
       });
     }
 
     tcp::acceptor acceptor;
-    std::shared_ptr<Api> api;
+    std::shared_ptr<Rpc> rpc;
     std::shared_ptr<Routes> routes;
   };
 
-  void serve(std::shared_ptr<Api> api,
+  void serve(std::shared_ptr<Rpc> rpc,
              std::shared_ptr<Routes> routes,
              boost::asio::io_context &ioc,
              std::string_view ip,
              unsigned short port) {
     std::make_shared<Server>(
         tcp::acceptor{ioc, {net::ip::make_address(ip), port}},
-        std::move(api),
+        std::move(rpc),
         std::move(routes))
         ->run();
   }

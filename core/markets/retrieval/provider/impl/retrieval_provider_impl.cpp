@@ -28,7 +28,7 @@ namespace fc::markets::retrieval::provider {
   RetrievalProviderImpl::RetrievalProviderImpl(
       std::shared_ptr<Host> host,
       std::shared_ptr<DataTransfer> datatransfer,
-      std::shared_ptr<api::Api> api,
+      std::shared_ptr<api::FullNodeApi> api,
       std::shared_ptr<PieceStorage> piece_storage,
       std::shared_ptr<Ipld> ipld,
       std::shared_ptr<OneKey> config_key,

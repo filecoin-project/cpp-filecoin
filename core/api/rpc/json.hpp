@@ -9,9 +9,11 @@
 #include <rapidjson/document.h>
 #include <cppcodec/base64_rfc4648.hpp>
 
-#include "api/api.hpp"
+#include "api/node_api.hpp"
 #include "api/rpc/json_errors.hpp"
 #include "api/rpc/rpc.hpp"
+#include "api/storage_api.hpp"
+#include "api/worker_api.hpp"
 #include "common/enum.hpp"
 #include "common/libp2p/peer/cbor_peer_info.hpp"
 #include "payment_channel_manager/payment_channel_manager.hpp"
@@ -42,6 +44,10 @@ namespace fc::api {
   using primitives::BigInt;
   using primitives::FsStat;
   using primitives::LocalStorageMeta;
+  using primitives::StoragePath;
+  using primitives::TaskType;
+  using primitives::WorkerInfo;
+  using primitives::WorkerResources;
   using primitives::block::ElectionProof;
   using primitives::block::Ticket;
   using primitives::cid::getCidOfCbor;
@@ -49,16 +55,27 @@ namespace fc::api {
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredPoStProof;
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector::SectorId;
   using primitives::tipset::HeadChangeType;
+  using proofs::SealedAndUnsealedCID;
   using rapidjson::Document;
   using rapidjson::Value;
+  using sector_storage::Range;
+  using sector_storage::SectorFileType;
+  using sector_storage::stores::AcquireMode;
   using sector_storage::stores::LocalPath;
+  using sector_storage::stores::PathType;
   using sector_storage::stores::StorageConfig;
+  using sector_storage::stores::StorageInfo;
+  using vm::actor::builtin::v0::market::DealProposal;
+  using vm::actor::builtin::v0::market::DealState;
+  using vm::actor::builtin::v0::market::StorageParticipantBalance;
   using vm::actor::builtin::v0::miner::PowerPair;
   using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
   using vm::actor::builtin::v0::miner::WorkerKeyChange;
   using vm::actor::builtin::v0::payment_channel::Merge;
   using vm::actor::builtin::v0::payment_channel::ModularVerificationParameter;
+  using vm::runtime::ExecutionResult;
   using base64 = cppcodec::base64_rfc4648;
 
   struct Codec {
@@ -210,6 +227,30 @@ namespace fc::api {
       decodeEnum(v, j);
     }
 
+    ENCODE(SectorFileType) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(SectorFileType) {
+      decodeEnum(v, j);
+    }
+
+    ENCODE(PathType) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(PathType) {
+      decodeEnum(v, j);
+    }
+
+    ENCODE(AcquireMode) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(AcquireMode) {
+      decodeEnum(v, j);
+    }
+
     ENCODE(NetworkVersion) {
       return encode(common::to_int(v));
     }
@@ -279,6 +320,14 @@ namespace fc::api {
 
     DECODE(std::string) {
       v = AsString(j);
+    }
+
+    ENCODE(TaskType) {
+      return encode(std::string_view(v));
+    }
+
+    DECODE(TaskType) {
+      v = TaskType(AsString(j));
     }
 
     ENCODE(gsl::span<const uint8_t>) {
@@ -712,6 +761,26 @@ namespace fc::api {
       Get(j, "Locked", v.locked);
     }
 
+    ENCODE(StorageInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id);
+      Set(j, "URLs", v.urls);
+      Set(j, "Weight", v.weight);
+      Set(j, "CanSeal", v.can_seal);
+      Set(j, "CanStore", v.can_store);
+      Set(j, "Primary", v.is_primary);
+      return j;
+    }
+
+    DECODE(StorageInfo) {
+      Get(j, "ID", v.id);
+      Get(j, "URLs", v.urls);
+      Get(j, "Weight", v.weight);
+      Get(j, "CanSeal", v.can_seal);
+      Get(j, "CanStore", v.can_store);
+      Get(j, "Primary", v.is_primary);
+    }
+
     ENCODE(StorageParticipantBalance) {
       Value j{rapidjson::kObjectType};
       Set(j, "Locked", v.locked);
@@ -722,6 +791,48 @@ namespace fc::api {
     DECODE(StorageParticipantBalance) {
       decode(v.locked, Get(j, "Locked"));
       decode(v.available, Get(j, "Available"));
+    }
+
+    ENCODE(StoragePath) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id);
+      Set(j, "Weight", v.weight);
+      Set(j, "LocalPath", v.local_path);
+      Set(j, "CanSeal", v.can_seal);
+      Set(j, "CanStore", v.can_store);
+      return j;
+    }
+
+    DECODE(StoragePath) {
+      decode(v.id, Get(j, "ID"));
+      decode(v.weight, Get(j, "Weight"));
+      decode(v.local_path, Get(j, "LocalPath"));
+      decode(v.can_seal, Get(j, "CanSeal"));
+      decode(v.can_store, Get(j, "CanStore"));
+    }
+
+    ENCODE(Range) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Offset", v.offset);
+      Set(j, "Size", v.size);
+      return j;
+    }
+
+    DECODE(Range) {
+      decode(v.offset, Get(j, "Offset"));
+      decode(v.size, Get(j, "Size"));
+    }
+
+    ENCODE(SealedAndUnsealedCID) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Sealed", v.sealed_cid);
+      Set(j, "Unsealed", v.unsealed_cid);
+      return j;
+    }
+
+    DECODE(SealedAndUnsealedCID) {
+      decode(v.sealed_cid, Get(j, "Sealed"));
+      decode(v.unsealed_cid, Get(j, "Unsealed"));
     }
 
     ENCODE(RleBitset) {
@@ -1018,6 +1129,18 @@ namespace fc::api {
       decode(v.value, Get(j, "Val"));
     }
 
+    ENCODE(HealthReport) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Stat", v.stat);
+      Set(j, "Error", v.error);
+      return j;
+    }
+
+    DECODE(HealthReport) {
+      decode(v.stat, Get(j, "Stat"));
+      decode(v.error, Get(j, "Error"));
+    }
+
     ENCODE(libp2p::multi::Multiaddress) {
       return encode(v.getStringAddress());
     }
@@ -1025,6 +1148,18 @@ namespace fc::api {
     DECODE(libp2p::multi::Multiaddress) {
       OUTCOME_EXCEPT(_v, libp2p::multi::Multiaddress::create(AsString(j)));
       v = std::move(_v);
+    }
+
+    ENCODE(PieceInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Size", v.size);
+      Set(j, "PieceCID", v.cid);
+      return j;
+    }
+
+    DECODE(PieceInfo) {
+      Get(j, "Size", v.size);
+      Get(j, "PieceCID", v.cid);
     }
 
     ENCODE(PeerInfo) {
@@ -1113,6 +1248,18 @@ namespace fc::api {
       decode(v.root, Get(j, "Root"));
       decode(v.piece_cid, Get(j, "PieceCid"));
       v.piece_size = decode<uint64_t>(Get(j, "PieceSize"));
+    }
+
+    ENCODE(SectorId) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Miner", v.miner);
+      Set(j, "Number", v.sector);
+      return j;
+    }
+
+    DECODE(SectorId) {
+      decode(v.miner, Get(j, "Miner"));
+      decode(v.sector, Get(j, "Number"));
     }
 
     ENCODE(StartDealParams) {
@@ -1475,6 +1622,36 @@ namespace fc::api {
       decode(v.reserved, Get(j, "Reserved"));
     }
 
+    ENCODE(WorkerInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Hostname", v.hostname);
+      Set(j, "Resources", v.resources);
+      return j;
+    }
+
+    DECODE(WorkerInfo) {
+      Get(j, "Hostname", v.hostname);
+      Get(j, "Resources", v.resources);
+    }
+
+    ENCODE(WorkerResources) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "MemPhysical", v.physical_memory);
+      Set(j, "MemSwap", v.swap_memory);
+      Set(j, "MemReserved", v.reserved_memory);
+      Set(j, "CPUs", v.cpus);
+      Set(j, "GPUs", v.gpus);
+      return j;
+    }
+
+    DECODE(WorkerResources) {
+      Get(j, "MemPhysical", v.physical_memory);
+      Get(j, "MemSwap", v.swap_memory);
+      Get(j, "MemReserved", v.reserved_memory);
+      Get(j, "CPUs", v.cpus);
+      Get(j, "GPUs", v.gpus);
+    }
+
     template <typename T>
     ENCODE(adt::Array<T>) {
       return encode(v.amt.cid());
@@ -1539,6 +1716,29 @@ namespace fc::api {
     DECODE(std::map<std::string COMMA T>) {
       for (auto it = j.MemberBegin(); it != j.MemberEnd(); ++it) {
         v.emplace(AsString(it->name), decode<T>(it->value));
+      }
+    }
+
+    template <typename T>
+    ENCODE(std::set<T>) {
+      Value j{rapidjson::kArrayType};
+      j.Reserve(v.size(), allocator);
+      for (auto &elem : v) {
+        j.PushBack(encode(elem), allocator);
+      }
+      return j;
+    }
+
+    template <typename T>
+    DECODE(std::set<T>) {
+      if (j.IsNull()) {
+        return;
+      }
+      if (!j.IsArray()) {
+        outcome::raise(JsonError::kWrongType);
+      }
+      for (auto it = j.Begin(); it != j.End(); ++it) {
+        v.emplace(decode<T>(*it));
       }
     }
 

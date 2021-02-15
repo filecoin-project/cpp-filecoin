@@ -25,13 +25,13 @@ namespace fc::sector_storage::stores {
     SectorPaths storages;
   };
 
-  enum PathType {
-    kStorage,
+  enum class PathType : int64_t {
+    kStorage = 0,
     kSealing,
   };
 
-  enum AcquireMode {
-    kMove,
+  enum class AcquireMode : int64_t {
+    kMove = 0,
     kCopy,
   };
 
