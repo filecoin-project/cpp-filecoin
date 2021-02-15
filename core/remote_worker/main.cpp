@@ -135,7 +135,6 @@ namespace fc {
     OUTCOME_TRY(wsc.connect(config.miner_api.first, config.miner_api.second));
 
     OUTCOME_TRY(version, mapi->Version());
-    // TODO: make version of miner
 
     if (version.api_version != kMinerApiVersion) {
       spdlog::error("lotus-miner API version doesn't match: expected: {}",
