@@ -10,10 +10,12 @@ namespace fc::sectorblocks {
       : miner_{miner} {}
 
   outcome::result<PieceAttributes> SectorBlocksImpl::addPiece(
-      UnpaddedPieceSize size, const std::string &piece_data, DealInfo deal) {
-    OUTCOME_TRY(
-        piece_info,
-        miner_->addPieceToAnySector(size, miner::PieceData(piece_data), deal));
+      UnpaddedPieceSize size,
+      const std::string &piece_data_path,
+      DealInfo deal) {
+    OUTCOME_TRY(piece_info,
+                miner_->addPieceToAnySector(
+                    size, miner::PieceData(piece_data_path), deal));
 
     OUTCOME_TRY(writeRef(
         deal.deal_id, piece_info.sector, piece_info.offset, piece_info.size));

@@ -24,7 +24,7 @@ namespace fc::sectorblocks {
 
     virtual outcome::result<PieceAttributes> addPiece(
         UnpaddedPieceSize size,
-        const std::string &piece_data,
+        const std::string &piece_data_path,
         DealInfo deal) = 0;
 
     virtual outcome::result<std::vector<PieceLocation>> getRefs(

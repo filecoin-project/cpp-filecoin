@@ -34,6 +34,11 @@ namespace fc::api {
     PaddedPieceSize length;
   };
 
+  inline bool operator==(const PieceLocation &lhs, const PieceLocation &rhs) {
+    return lhs.sector_number == rhs.sector_number && lhs.offset == rhs.offset
+           && lhs.length == rhs.length;
+  }
+
   struct StorageMinerApi : public CommonApi {
     API_METHOD(ActorAddress, Address)
 
