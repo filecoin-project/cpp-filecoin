@@ -31,7 +31,8 @@ namespace fc::vm::actor::builtin::v2::miner {
    public:
     void SetUp() override {
       ActorTestFixture<State>::SetUp();
-      anyCodeIdAddressIs(kAccountCodeCid);
+      actorVersion = ActorVersion::kVersion2;
+      anyCodeIdAddressIs(kAccountCodeId);
     }
 
     /**
@@ -187,7 +188,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     std::vector<Address> control_addresses;
     const Address control = Address::makeFromId(501);
     control_addresses.emplace_back(control);
-    addressCodeIdIs(control, kCronCodeCid);
+    addressCodeIdIs(control, kCronCodeId);
 
     EXPECT_CALL(runtime, getNetworkVersion())
         .WillRepeatedly(Return(NetworkVersion::kVersion8));

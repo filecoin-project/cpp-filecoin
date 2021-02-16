@@ -11,22 +11,26 @@
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
+#include "vm/actor/builtin/v3/account/account_actor.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 #include "vm/dvm/dvm.hpp"
 
 namespace fc::vm::runtime {
   using actor::ActorVersion;
   using actor::getActorVersionForNetwork;
-  using actor::isAccountActor;
+  using actor::kConstructorMethodNumber;
   using actor::kEmptyObjectCid;
   using actor::kRewardAddress;
   using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
   using storage::hamt::HamtError;
+  using toolchain::Toolchain;
   using version::getNetworkVersion;
 
   outcome::result<Address> resolveKey(StateTree &state_tree,
@@ -38,7 +42,7 @@ namespace fc::vm::runtime {
     }
     if (auto _actor{state_tree.get(address)}) {
       auto &actor{_actor.value()};
-      if (actor.code == actor::builtin::v0::kAccountCodeCid) {
+      if (actor.code == actor::builtin::v0::kAccountCodeId) {
         if (auto _state{
                 ipld->getCbor<actor::builtin::v0::account::AccountActorState>(
                     actor.head)}) {
@@ -47,10 +51,18 @@ namespace fc::vm::runtime {
             return key;
           }
         }
-      }
-      if (actor.code == actor::builtin::v2::kAccountCodeCid) {
+      } else if (actor.code == actor::builtin::v2::kAccountCodeId) {
         if (auto _state{
                 ipld->getCbor<actor::builtin::v2::account::AccountActorState>(
+                    actor.head)}) {
+          auto &key{_state.value().address};
+          if (allow_actor || key.isKeyType()) {
+            return key;
+          }
+        }
+      } else if (actor.code == actor::builtin::v3::kAccountCodeId) {
+        if (auto _state{
+                ipld->getCbor<actor::builtin::v3::account::AccountActorState>(
                     actor.head)}) {
           auto &key{_state.value().address};
           if (allow_actor || key.isKeyType()) {
@@ -161,7 +173,9 @@ namespace fc::vm::runtime {
       return maybe_from.error();
     }
     auto &from = maybe_from.value();
-    if (!isAccountActor(from.code)) {
+    const auto address_matcher = Toolchain::createAddressMatcher(
+        getNetworkVersion(static_cast<ChainEpoch>(epoch)));
+    if (!address_matcher->isAccountActor(from.code)) {
       apply.receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
       return apply;
     }
@@ -210,7 +224,7 @@ namespace fc::vm::runtime {
         && message.method
                == vm::actor::builtin::v0::miner::SubmitWindowedPoSt::Number) {
       if (auto _to{state_tree->get(message.to)}) {
-        no_fee = vm::actor::isStorageMinerActor(_to.value().code);
+        no_fee = address_matcher->isStorageMinerActor(_to.value().code);
       } else {
         if (_to.error() != HamtError::kNotFound) {
           return _to.error();
@@ -232,11 +246,10 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(add_locked(kRewardAddress, apply.reward));
     auto over{limit - 11 * used / 10};
     auto gas_burned{
-        used == 0
-            ? limit
-            : over < 0 ? 0
-                       : static_cast<GasAmount>(bigdiv(
-                           BigInt{limit - used} * std::min(used, over), used))};
+        used == 0  ? limit
+        : over < 0 ? 0
+                   : static_cast<GasAmount>(bigdiv(
+                       BigInt{limit - used} * std::min(used, over), used))};
     if (gas_burned != 0) {
       OUTCOME_TRY(add_locked(actor::kBurntFundsActorAddress,
                              base_fee_pay * gas_burned));
@@ -300,21 +313,10 @@ namespace fc::vm::runtime {
     }
 
     // Get correct version of actor to create
-    CID account_code_cid_to_create;
-    MethodNumber account_actor_create_method_number;
-    switch (getActorVersionForNetwork(
-        getNetworkVersion(static_cast<ChainEpoch>(env->epoch)))) {
-      case ActorVersion::kVersion0:
-        account_code_cid_to_create = actor::builtin::v0::kAccountCodeCid;
-        account_actor_create_method_number =
-            actor::builtin::v0::account::Construct::Number;
-        break;
-      case ActorVersion::kVersion2:
-        account_code_cid_to_create = actor::builtin::v2::kAccountCodeCid;
-        account_actor_create_method_number =
-            actor::builtin::v2::account::Construct::Number;
-        break;
-    }
+    const auto address_matcher = Toolchain::createAddressMatcher(
+        getNetworkVersion(static_cast<ChainEpoch>(env->epoch)));
+    CID account_code_cid_to_create = address_matcher->getAccountCodeId();
+    MethodNumber account_actor_create_method_number = kConstructorMethodNumber;
 
     OUTCOME_TRY(state_tree->set(
         id, {account_code_cid_to_create, actor::kEmptyObjectCid, {}, {}}));

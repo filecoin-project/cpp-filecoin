@@ -17,6 +17,7 @@
 #include "vm/version.hpp"
 
 namespace fc::testutil::vm::actor::builtin {
+  using ::fc::vm::actor::ActorVersion;
   using ::fc::vm::actor::CodeId;
   using ::fc::vm::runtime::MockRuntime;
   using primitives::ChainEpoch;
@@ -32,7 +33,11 @@ namespace fc::testutil::vm::actor::builtin {
   class ActorTestFixture : public testing::Test {
    public:
     void SetUp() override {
-      EXPECT_CALL(runtime, getIpfsDatastore()).WillRepeatedly(Return(ipld));
+      EXPECT_CALL(runtime, getActorVersion())
+          .WillRepeatedly(testing::Invoke([&]() { return actorVersion; }));
+
+      EXPECT_CALL(runtime, getIpfsDatastore())
+          .WillRepeatedly(testing::Invoke([&]() { return ipld; }));
 
       EXPECT_CALL(runtime, resolveAddress(_))
           .WillRepeatedly(testing::Invoke([&](const auto &address) {
@@ -49,7 +54,7 @@ namespace fc::testutil::vm::actor::builtin {
           .WillRepeatedly(testing::Invoke([&](auto &cid) {
             EXPECT_OUTCOME_TRUE(new_state, ipld->getCbor<State>(cid));
             state = std::move(new_state);
-            return fc::outcome::success();
+            return outcome::success();
           }));
 
       EXPECT_CALL(runtime, getCurrentActorState())
@@ -62,9 +67,12 @@ namespace fc::testutil::vm::actor::builtin {
       EXPECT_CALL(runtime, getActorCodeID(_))
           .WillRepeatedly(testing::Invoke([&](auto &address) {
             auto found = code_ids.find(address);
-            if (found != code_ids.end()) return found->second;
-            if (code_id_any.has_value()) return code_id_any.value();
-            throw "No code id was set for address";
+            if (found != code_ids.end())
+              return outcome::result<CodeId>(found->second);
+            if (code_id_any.has_value())
+              return outcome::result<CodeId>(code_id_any.value());
+            return outcome::result<CodeId>(
+                storage::ipfs::IpfsDatastoreError::kNotFound);
           }));
 
       EXPECT_CALL(runtime, getNetworkVersion())
@@ -131,5 +139,6 @@ namespace fc::testutil::vm::actor::builtin {
     std::map<Address, CodeId> code_ids;
     boost::optional<CodeId> code_id_any;
     std::map<Address, Address> resolve_addresses;
+    ActorVersion actorVersion;
   };
 }  // namespace fc::testutil::vm::actor::builtin

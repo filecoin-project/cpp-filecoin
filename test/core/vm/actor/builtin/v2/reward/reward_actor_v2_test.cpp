@@ -26,6 +26,11 @@ namespace fc::vm::actor::builtin::v2::reward {
     using ActorTestFixture<State>::runtime;
     using ActorTestFixture<State>::callerIs;
 
+    void SetUp() override {
+      RewardActorTestFixture<State>::SetUp();
+      actorVersion = ActorVersion::kVersion2;
+    }
+
     /**
      * Expect successful call AwardBlockReward
      * @param penalty - penalty burnt

@@ -4,8 +4,8 @@
 #
 
 add_library(multisig_actor_v3
-    impl/multisig_utils_impl_v3.cpp
     multisig_actor.cpp
+    multisig_actor_utils.cpp
     )
 target_link_libraries(multisig_actor_v3
     actor

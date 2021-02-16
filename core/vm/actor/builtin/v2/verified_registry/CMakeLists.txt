@@ -5,6 +5,7 @@
 
 add_library(verified_registry_actor_v2
     verified_registry_actor.cpp
+    verified_registry_actor_utils.cpp
     )
 target_link_libraries(verified_registry_actor_v2
     actor

@@ -4,14 +4,20 @@
  */
 
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_utils.hpp"
+#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_state.hpp"
 
-namespace fc::vm::actor::builtin::utils::verified_registry {
+namespace fc::vm::actor::builtin::v0::verified_registry {
 
-  outcome::result<void> checkDealSize(const StoragePower &deal_size) {
+  outcome::result<void> VerifRegUtils::checkDealSize(
+      const StoragePower &deal_size) const {
     if (deal_size < kMinVerifiedDealSize) {
       ABORT(VMExitCode::kErrIllegalArgument);
     }
     return outcome::success();
   }
 
-}  // namespace fc::vm::actor::builtin::utils::verified_registry
+  outcome::result<void> VerifRegUtils::assertCap(bool condition) const {
+    return runtime.vm_assert(condition);
+  }
+
+}  // namespace fc::vm::actor::builtin::v0::verified_registry

@@ -19,7 +19,7 @@ namespace fc::payment_channel_manager {
   using vm::VMExitCode;
   using vm::actor::kInitAddress;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::v0::kPaymentChannelCodeCid;
+  using vm::actor::builtin::v0::kPaymentChannelCodeId;
   using vm::actor::builtin::v0::payment_channel::State;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
@@ -258,7 +258,7 @@ namespace fc::payment_channel_manager {
 
     // init actor exec call params
     InitActorExec::Params init_params{
-        .code = kPaymentChannelCodeCid,
+        .code = kPaymentChannelCodeId,
         .params = MethodParams{encoded_construct_params}};
     OUTCOME_TRY(encoded_init_params, codec::cbor::encode(init_params));
 

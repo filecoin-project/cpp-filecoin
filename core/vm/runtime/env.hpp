@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_VM_RUNTIME_ENV_HPP
-#define FILECOIN_CORE_VM_RUNTIME_ENV_HPP
+#pragma once
 
 #include "primitives/tipset/tipset.hpp"
 #include "primitives/types.hpp"
@@ -125,5 +124,3 @@ namespace fc::vm::runtime {
     std::weak_ptr<Execution> execution_;
   };
 }  // namespace fc::vm::runtime
-
-#endif  // FILECOIN_CORE_VM_RUNTIME_ENV_HPP

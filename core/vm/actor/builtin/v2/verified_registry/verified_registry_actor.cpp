@@ -4,16 +4,17 @@
  */
 
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor.hpp"
-#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_utils.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v2::verified_registry {
-  namespace Utils = utils::verified_registry;
+  using toolchain::Toolchain;
 
   // AddVerifier
   //============================================================================
 
   ACTOR_METHOD_IMPL(AddVerifier) {
-    OUTCOME_TRY(Utils::checkDealSize(params.allowance));
+    const auto utils = Toolchain::createVerifRegUtils(runtime);
+    OUTCOME_TRY(utils->checkDealSize(params.allowance));
 
     REQUIRE_NO_ERROR_A(verifier,
                        runtime.resolveAddress(params.address),
@@ -21,7 +22,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
 
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(runtime.validateImmediateCallerIs(state.root_key));
-    OUTCOME_TRY(Utils::checkAddress<State>(state, verifier));
+    OUTCOME_TRY(utils->checkAddress<State>(state, verifier));
     OUTCOME_TRYA(
         state,
         runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
@@ -54,14 +55,15 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
   //============================================================================
 
   ACTOR_METHOD_IMPL(AddVerifiedClient) {
-    OUTCOME_TRY(Utils::checkDealSize(params.allowance));
+    const auto utils = Toolchain::createVerifRegUtils(runtime);
+    OUTCOME_TRY(utils->checkDealSize(params.allowance));
 
     REQUIRE_NO_ERROR_A(client,
                        runtime.resolveAddress(params.address),
                        VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(Utils::checkAddress<State>(state, client));
+    OUTCOME_TRY(utils->checkAddress<State>(state, client));
     OUTCOME_TRYA(
         state,
         runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
@@ -81,7 +83,8 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
                        runtime.resolveAddress(params.address),
                        VMExitCode::kErrIllegalState);
 
-    OUTCOME_TRY(Utils::checkDealSize(params.deal_size));
+    const auto utils = Toolchain::createVerifRegUtils(runtime);
+    OUTCOME_TRY(utils->checkDealSize(params.deal_size));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
     auto clientCapAssert = [&runtime](bool condition) -> outcome::result<void> {
@@ -98,14 +101,15 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
 
   ACTOR_METHOD_IMPL(RestoreBytes) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kStorageMarketAddress));
-    OUTCOME_TRY(Utils::checkDealSize(params.deal_size));
+    const auto utils = Toolchain::createVerifRegUtils(runtime);
+    OUTCOME_TRY(utils->checkDealSize(params.deal_size));
 
     REQUIRE_NO_ERROR_A(client,
                        runtime.resolveAddress(params.address),
                        VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(Utils::checkAddress<State>(state, client));
+    OUTCOME_TRY(utils->checkAddress<State>(state, client));
     OUTCOME_TRYA(
         state,
         runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance

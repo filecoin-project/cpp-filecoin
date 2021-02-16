@@ -3,13 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v3/multisig/impl/multisig_utils_impl_v3.hpp"
+#include "vm/actor/builtin/v3/multisig/multisig_actor_utils.hpp"
 
 namespace fc::vm::actor::builtin::v3::multisig {
 
-  outcome::result<ApproveTransactionResult>
-  MultisigUtilsImplV3::executeTransaction(
-      Runtime &runtime,
+  outcome::result<ApproveTransactionResult> MultisigUtils::executeTransaction(
       State &state,
       const TransactionId &tx_id,
       const Transaction &transaction) const {
