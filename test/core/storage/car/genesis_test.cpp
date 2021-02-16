@@ -38,10 +38,10 @@ TEST(GenesisTest, DISABLED_Decode) {
   fc::adt::Map<fc::vm::actor::Actor, fc::adt::AddressKeyer> state_tree{
       block.parent_state_root, ipld};
   auto visit_actors = [&](auto &a, auto &actor) {
-    if (actor.code == fc::vm::actor::builtin::v0::kStorageMinerCodeCid) {
+    if (actor.code == fc::vm::actor::builtin::v0::kStorageMinerCodeId) {
       // TODO: update genesis
     } else if (actor.code
-               == fc::vm::actor::builtin::v0::kStorageMarketCodeCid) {
+               == fc::vm::actor::builtin::v0::kStorageMarketCodeId) {
       EXPECT_OUTCOME_TRUE(
           state,
           ipld->getCbor<fc::vm::actor::builtin::v0::market::State>(actor.head));
@@ -51,7 +51,7 @@ TEST(GenesisTest, DISABLED_Decode) {
       EXPECT_OUTCOME_TRUE_1(state.locked_table.visit(nop));
       EXPECT_OUTCOME_TRUE_1(state.deals_by_epoch.visit(
           [&](auto, auto set) { return set.visit(nop); }));
-    } else if (actor.code == fc::vm::actor::builtin::v0::kAccountCodeCid) {
+    } else if (actor.code == fc::vm::actor::builtin::v0::kAccountCodeId) {
       EXPECT_OUTCOME_TRUE(head, ipld->get(actor.head));
       if (head.size() != 1 || head[0] != 0x80) {
         EXPECT_OUTCOME_TRUE_1(
@@ -59,24 +59,24 @@ TEST(GenesisTest, DISABLED_Decode) {
                 fc::vm::actor::builtin::v0::account::AccountActorState>(
                 actor.head));
       }
-    } else if (actor.code == fc::vm::actor::builtin::v0::kCronCodeCid) {
+    } else if (actor.code == fc::vm::actor::builtin::v0::kCronCodeId) {
       EXPECT_OUTCOME_TRUE_1(
           ipld->getCbor<fc::vm::actor::builtin::v0::cron::State>(actor.head));
-    } else if (actor.code == fc::vm::actor::builtin::v0::kInitCodeCid) {
+    } else if (actor.code == fc::vm::actor::builtin::v0::kInitCodeId) {
       EXPECT_OUTCOME_TRUE_1(
           ipld->getCbor<fc::vm::actor::builtin::v0::init::InitActorState>(
               actor.head));
-    } else if (actor.code == fc::vm::actor::builtin::v0::kRewardActorCodeID) {
+    } else if (actor.code == fc::vm::actor::builtin::v0::kRewardActorCodeId) {
       EXPECT_OUTCOME_TRUE_1(
           ipld->getCbor<fc::vm::actor::builtin::v0::reward::State>(actor.head));
-    } else if (actor.code == fc::vm::actor::builtin::v0::kSystemActorCodeID) {
+    } else if (actor.code == fc::vm::actor::builtin::v0::kSystemActorCodeId) {
       // TODO: system actor state
     } else if (actor.code
-               == fc::vm::actor::builtin::v0::kVerifiedRegistryCode) {
+               == fc::vm::actor::builtin::v0::kVerifiedRegistryCodeId) {
       EXPECT_OUTCOME_TRUE_1(
           ipld->getCbor<fc::vm::actor::builtin::v0::verified_registry::State>(
               actor.head));
-    } else if (actor.code == fc::vm::actor::builtin::v0::kStoragePowerCodeCid) {
+    } else if (actor.code == fc::vm::actor::builtin::v0::kStorageMarketCodeId) {
       EXPECT_OUTCOME_TRUE(
           state,
           ipld->getCbor<fc::vm::actor::builtin::v0::storage_power::State>(

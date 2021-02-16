@@ -4,6 +4,7 @@
 #
 
 add_library(runtime
+    runtime.cpp
     circulating.cpp
     impl/env.cpp
     impl/runtime_impl.cpp
@@ -24,4 +25,5 @@ target_link_libraries(runtime
     secp256k1_provider
     tipset
     signature
+    toolchain
     )

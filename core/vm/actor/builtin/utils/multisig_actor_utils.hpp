@@ -20,24 +20,23 @@ namespace fc::vm::actor::builtin::utils::multisig {
 
   class MultisigUtils {
    public:
+    MultisigUtils(Runtime &r) : runtime(r) {}
     virtual ~MultisigUtils() = default;
 
     /**
      * Check that caller is a signer
-     * @param runtime - execution context
      * @param state - actor state
      */
     virtual outcome::result<void> assertCallerIsSigner(
-        const Runtime &runtime, const State &state) const = 0;
+        const State &state) const = 0;
 
     /**
      * Resolve address
-     * @param runtime - execution context
      * @param address - address to resolve
      * @return resolved address
      */
     virtual outcome::result<Address> getResolvedAddress(
-        Runtime &runtime, const Address &address) const = 0;
+        const Address &address) const = 0;
 
     /**
      * Get amount locked for elapsed epoch
@@ -64,21 +63,17 @@ namespace fc::vm::actor::builtin::utils::multisig {
 
     /**
      * Approve pending transaction and try to execute.
-     * @param runtime - execution context
      * @param tx_id - transaction id
      * @param transaction - transaction to approve
      * @return applied flag, result of sending a message and result code of
      * sending a message
      */
     virtual outcome::result<ApproveTransactionResult> approveTransaction(
-        Runtime &runtime,
-        const TransactionId &tx_id,
-        Transaction &transaction) const = 0;
+        const TransactionId &tx_id, Transaction &transaction) const = 0;
 
     /**
      * Execute transaction if approved. Send pending transaction if threshold is
      * met.
-     * @param runtime - execution context
      * @param state - actor state
      * @param tx_id - transaction id
      * @param transaction - transaction to approve
@@ -86,7 +81,6 @@ namespace fc::vm::actor::builtin::utils::multisig {
      * sending a message
      */
     virtual outcome::result<ApproveTransactionResult> executeTransaction(
-        Runtime &runtime,
         State &state,
         const TransactionId &tx_id,
         const Transaction &transaction) const = 0;
@@ -100,5 +94,11 @@ namespace fc::vm::actor::builtin::utils::multisig {
      */
     virtual outcome::result<void> purgeApprovals(
         State &state, const Address &address) const = 0;
+
+   protected:
+    Runtime &runtime;
   };
+
+  using MultisigUtilsPtr = std::shared_ptr<MultisigUtils>;
+
 }  // namespace fc::vm::actor::builtin::utils::multisig

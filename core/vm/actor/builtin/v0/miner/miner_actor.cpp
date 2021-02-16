@@ -8,11 +8,13 @@
 #include <boost/endian/conversion.hpp>
 
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
+  using toolchain::Toolchain;
+
   outcome::result<Address> resolveControlAddress(const Runtime &runtime,
                                                  const Address &address) {
     const auto resolved = runtime.resolveAddress(address);
@@ -20,8 +22,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     VM_ASSERT(resolved.value().isId());
     const auto resolved_code = runtime.getActorCodeID(resolved.value());
     OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
-    OUTCOME_TRY(
-        runtime.validateArgument(isSignableActor(resolved_code.value())));
+
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    OUTCOME_TRY(runtime.validateArgument(
+        address_matcher->isSignableActor(resolved_code.value())));
     return std::move(resolved.value());
   }
 
@@ -32,8 +37,10 @@ namespace fc::vm::actor::builtin::v0::miner {
     VM_ASSERT(resolved.value().isId());
     const auto resolved_code = runtime.getActorCodeID(resolved.value());
     OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
-    OUTCOME_TRY(
-        runtime.validateArgument(resolved_code.value() == kAccountCodeCid));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+    OUTCOME_TRY(runtime.validateArgument(
+        resolved_code.value() == address_matcher->getAccountCodeId()));
 
     if (!address.isBls()) {
       const auto pubkey_addres =

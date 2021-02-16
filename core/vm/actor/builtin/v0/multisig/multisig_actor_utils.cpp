@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/multisig/impl/multisig_utils_impl_v0.hpp"
+#include "vm/actor/builtin/v0/multisig/multisig_actor_utils.hpp"
 
 namespace fc::vm::actor::builtin::v0::multisig {
 
-  outcome::result<void> MultisigUtilsImplV0::assertCallerIsSigner(
-      const Runtime &runtime, const State &state) const {
+  outcome::result<void> MultisigUtils::assertCallerIsSigner(
+      const State &state) const {
     const auto proposer = runtime.getImmediateCaller();
     if (!state.isSigner(proposer)) {
       ABORT(VMExitCode::kErrForbidden);
@@ -16,16 +16,16 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return outcome::success();
   }
 
-  outcome::result<Address> MultisigUtilsImplV0::getResolvedAddress(
-      Runtime &runtime, const Address &address) const {
+  outcome::result<Address> MultisigUtils::getResolvedAddress(
+      const Address &address) const {
     REQUIRE_NO_ERROR_A(resolved,
                        runtime.resolveAddress(address),
                        VMExitCode::kErrIllegalState);
     return std::move(resolved);
   }
 
-  BigInt MultisigUtilsImplV0::amountLocked(
-      const State &state, const ChainEpoch &elapsed_epoch) const {
+  BigInt MultisigUtils::amountLocked(const State &state,
+                                     const ChainEpoch &elapsed_epoch) const {
     if (elapsed_epoch >= state.unlock_duration) {
       return 0;
     }
@@ -38,7 +38,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return unit_locked * (state.unlock_duration - elapsed_epoch);
   }
 
-  outcome::result<void> MultisigUtilsImplV0::assertAvailable(
+  outcome::result<void> MultisigUtils::assertAvailable(
       const State &state,
       const TokenAmount &current_balance,
       const TokenAmount &amount_to_spend,
@@ -59,10 +59,8 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return outcome::success();
   }
 
-  outcome::result<ApproveTransactionResult>
-  MultisigUtilsImplV0::approveTransaction(Runtime &runtime,
-                                          const TransactionId &tx_id,
-                                          Transaction &transaction) const {
+  outcome::result<ApproveTransactionResult> MultisigUtils::approveTransaction(
+      const TransactionId &tx_id, Transaction &transaction) const {
     const Address caller = runtime.getImmediateCaller();
     if (std::find(
             transaction.approved.begin(), transaction.approved.end(), caller)
@@ -78,12 +76,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     OUTCOME_TRY(runtime.commitState(state));
 
-    return executeTransaction(runtime, state, tx_id, transaction);
+    return executeTransaction(state, tx_id, transaction);
   }
 
-  outcome::result<ApproveTransactionResult>
-  MultisigUtilsImplV0::executeTransaction(
-      Runtime &runtime,
+  outcome::result<ApproveTransactionResult> MultisigUtils::executeTransaction(
       State &state,
       const TransactionId &tx_id,
       const Transaction &transaction) const {

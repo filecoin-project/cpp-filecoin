@@ -30,8 +30,8 @@
 namespace fc::vm::runtime {
 
   using actor::Actor;
+  using actor::ActorVersion;
   using actor::CodeId;
-  using actor::isStorageMinerActor;
   using actor::kSendMethodNumber;
   using actor::MethodNumber;
   using actor::MethodParams;
@@ -76,6 +76,12 @@ namespace fc::vm::runtime {
      * @return current chain epoch
      */
     virtual ChainEpoch getCurrentEpoch() const = 0;
+
+    /**
+     * Returns current version of actor
+     * @return crrent version of actor
+     */
+    virtual ActorVersion getActorVersion() const = 0;
 
     /**
      * @brief Returns a (pseudo)random string for the given epoch and tag.
@@ -321,7 +327,7 @@ namespace fc::vm::runtime {
     }
 
     inline outcome::result<void> validateImmediateCallerIs(
-        const Address &address) {
+        const Address &address) const {
       if (getImmediateCaller() == address) {
         return outcome::success();
       }
@@ -329,7 +335,7 @@ namespace fc::vm::runtime {
     }
 
     inline outcome::result<void> validateImmediateCallerIs(
-        std::vector<Address> addresses) {
+        std::vector<Address> addresses) const {
       for (const auto &address : addresses) {
         if (getImmediateCaller() == address) {
           return outcome::success();
@@ -339,7 +345,7 @@ namespace fc::vm::runtime {
     }
 
     inline outcome::result<void> validateImmediateCallerType(
-        const CID &expected_code) {
+        const CID &expected_code) const {
       OUTCOME_TRY(actual_code, getActorCodeID(getImmediateCaller()));
       if (actual_code == expected_code) {
         return outcome::success();
@@ -347,23 +353,12 @@ namespace fc::vm::runtime {
       ABORT(VMExitCode::kSysErrForbidden);
     }
 
-    inline outcome::result<void> validateImmediateCallerIsSignable() {
-      OUTCOME_TRY(code, getActorCodeID(getImmediateCaller()));
-      if (actor::isSignableActor(code)) {
-        return outcome::success();
-      }
-      ABORT(VMExitCode::kSysErrForbidden);
-    }
+    outcome::result<void> validateImmediateCallerIsSignable() const;
 
-    inline outcome::result<void> validateImmediateCallerIsMiner() {
-      OUTCOME_TRY(actual_code, getActorCodeID(getImmediateCaller()));
-      if (isStorageMinerActor(actual_code)) {
-        return outcome::success();
-      }
-      ABORT(VMExitCode::kSysErrForbidden);
-    }
+    outcome::result<void> validateImmediateCallerIsMiner() const;
 
-    inline outcome::result<void> validateImmediateCallerIsCurrentReceiver() {
+    inline outcome::result<void> validateImmediateCallerIsCurrentReceiver()
+        const {
       if (getImmediateCaller() == getCurrentReceiver()) {
         return outcome::success();
       }

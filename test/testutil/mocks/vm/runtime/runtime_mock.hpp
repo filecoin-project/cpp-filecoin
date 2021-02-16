@@ -21,6 +21,8 @@ namespace fc::vm::runtime {
 
     MOCK_CONST_METHOD0(getCurrentEpoch, ChainEpoch());
 
+    MOCK_CONST_METHOD0(getActorVersion, ActorVersion());
+
     MOCK_CONST_METHOD3(
         getRandomnessFromTickets,
         outcome::result<Randomness>(DomainSeparationTag tag,

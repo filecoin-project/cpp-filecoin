@@ -56,9 +56,9 @@ using fc::vm::actor::kRewardAddress;
 using fc::vm::actor::kSendMethodNumber;
 using fc::vm::actor::kStoragePowerAddress;
 using fc::vm::actor::kSystemActorAddress;
-using fc::vm::actor::builtin::v0::kAccountCodeCid;
-using fc::vm::actor::builtin::v0::kInitCodeCid;
-using fc::vm::actor::builtin::v0::kStorageMinerCodeCid;
+using fc::vm::actor::builtin::v0::kAccountCodeId;
+using fc::vm::actor::builtin::v0::kInitCodeId;
+using fc::vm::actor::builtin::v0::kStorageMinerCodeId;
 using fc::vm::runtime::MockRuntime;
 using fc::vm::state::StateTreeImpl;
 using fc::vm::version::NetworkVersion;
@@ -88,11 +88,11 @@ struct MarketActorTest : testing::Test {
 
     ON_CALL_3(runtime, getCurrentEpoch(), epoch);
 
-    ON_CALL_3(runtime, getActorCodeID(miner_address), kStorageMinerCodeCid);
-    ON_CALL_3(runtime, getActorCodeID(owner_address), kAccountCodeCid);
-    ON_CALL_3(runtime, getActorCodeID(worker_address), kAccountCodeCid);
-    ON_CALL_3(runtime, getActorCodeID(client_address), kAccountCodeCid);
-    ON_CALL_3(runtime, getActorCodeID(kInitAddress), kInitCodeCid);
+    ON_CALL_3(runtime, getActorCodeID(miner_address), kStorageMinerCodeId);
+    ON_CALL_3(runtime, getActorCodeID(owner_address), kAccountCodeId);
+    ON_CALL_3(runtime, getActorCodeID(worker_address), kAccountCodeId);
+    ON_CALL_3(runtime, getActorCodeID(client_address), kAccountCodeId);
+    ON_CALL_3(runtime, getActorCodeID(kInitAddress), kInitCodeId);
 
     ipld->load(state);
 

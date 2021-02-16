@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP
+#pragma once
 
 #include <boost/operators.hpp>
 
@@ -23,11 +22,12 @@ namespace fc::vm::actor {
   using version::NetworkVersion;
 
   /**
-   * Actor version v0 or v2
+   * Actor version
    */
   enum class ActorVersion {
     kVersion0 = 0,
     kVersion2 = 2,
+    kVersion3 = 3,
   };
 
   /**
@@ -59,25 +59,12 @@ namespace fc::vm::actor {
     /// Balance of tokens held by this actor
     BigInt balance{};
   };
-
-  bool operator==(const Actor &lhs, const Actor &rhs);
-
   CBOR_TUPLE(Actor, code, head, nonce, balance)
 
-  /** Checks if code is an account actor */
-  bool isAccountActor(const CodeId &code);
-
-  /** Checks if code is miner actor */
-  bool isStorageMinerActor(const CodeId &code);
-
-  /** Check if code specifies builtin actor implementation */
-  bool isBuiltinActor(const CodeId &code);
-
-  /** Check if only one instance of actor should exists */
-  bool isSingletonActor(const CodeId &code);
-
-  /** Check if actor code can represent external signing parties */
-  bool isSignableActor(const CodeId &code);
+  inline bool operator==(const Actor &lhs, const Actor &rhs) {
+    return lhs.code == rhs.code && lhs.head == rhs.head
+           && lhs.nonce == rhs.nonce && lhs.balance == rhs.balance;
+  }
 
   /** Make code cid from raw string */
   CID makeRawIdentityCid(const std::string &str);
@@ -85,11 +72,12 @@ namespace fc::vm::actor {
   /**
    * Returns actor version for network version
    *
-   * Network version [0..3] => Actor version v0
-   * Network version [4..?] => Actor version v2
+   * Network version [0...3] => Actor version v0
+   * Network version [4...9] => Actor version v2
+   * Network version [10..?] => Actor version v3
    *
    * @param network_version - version of network
-   * @return v0 or v2 actor version
+   * @return v0, v2 or v3 actor version
    */
   ActorVersion getActorVersionForNetwork(const NetworkVersion &network_version);
 
@@ -111,5 +99,3 @@ namespace fc::vm::actor {
   inline static const auto kReserveActorAddress = Address::makeFromId(90);
   inline static const auto kBurntFundsActorAddress = Address::makeFromId(99);
 }  // namespace fc::vm::actor
-
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP

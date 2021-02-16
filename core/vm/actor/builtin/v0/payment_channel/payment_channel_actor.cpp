@@ -4,11 +4,10 @@
  */
 
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
-  using crypto::signature::Signature;
-  using primitives::address::Protocol;
+  using toolchain::Toolchain;
 
   outcome::result<Address> resolveAccount(const Runtime &runtime,
                                           const Address &address,
@@ -30,13 +29,19 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
 
-    REQUIRE_NO_ERROR_A(to,
-                       resolveAccount(runtime, params.to, kAccountCodeCid),
-                       VMExitCode::kErrIllegalState);
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
 
-    REQUIRE_NO_ERROR_A(from,
-                       resolveAccount(runtime, params.from, kAccountCodeCid),
-                       VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(
+        to,
+        resolveAccount(runtime, params.to, address_matcher->getAccountCodeId()),
+        VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR_A(
+        from,
+        resolveAccount(
+            runtime, params.from, address_matcher->getAccountCodeId()),
+        VMExitCode::kErrIllegalState);
 
     State state{from, to, 0, 0, 0, {}};
     IpldPtr {

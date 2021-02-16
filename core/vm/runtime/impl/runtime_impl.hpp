@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_RUNTIME_IMPL_RUNTIME_IMPL_HPP
-#define CPP_FILECOIN_CORE_VM_RUNTIME_IMPL_RUNTIME_IMPL_HPP
+#pragma once
 
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/env.hpp"
@@ -26,6 +25,9 @@ namespace fc::vm::runtime {
 
     /** \copydoc Runtime::getCurrentEpoch() */
     ChainEpoch getCurrentEpoch() const override;
+
+    /** \copydoc Runtime::getActorVersion() */
+    ActorVersion getActorVersion() const override;
 
     outcome::result<Randomness> getRandomnessFromTickets(
         DomainSeparationTag tag,
@@ -127,5 +129,3 @@ namespace fc::vm::runtime {
   };
 
 }  // namespace fc::vm::runtime
-
-#endif  // CPP_FILECOIN_CORE_VM_RUNTIME_IMPL_RUNTIME_IMPL_HPP
