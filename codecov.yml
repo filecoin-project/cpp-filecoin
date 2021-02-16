@@ -1,2 +1,3 @@
 ignore:
   - "test" # exclude 'test' directory from coverage
+disable_default_path_fixes: false
