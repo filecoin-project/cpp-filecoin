@@ -28,16 +28,32 @@ namespace fc::sectorblocks {
     std::shared_ptr<SectorBlocks> sector_blocks_;
   };
 
+  /**
+   * @given sectorblocks
+   * @when try to get miner
+   * @then the miner is returned
+   */
   TEST_F(SectorBlocksTest, GetMiner) {
     ASSERT_EQ(miner_, sector_blocks_->getMiner());
   }
 
+  /**
+   * @given sectorblocks and non exist deal id
+   * @when try to get refs with the id
+   * @then SectorBlocksError::kNotFoundDeal error occurs
+   */
   TEST_F(SectorBlocksTest, NotFoundSector) {
     DealId deal_id = 1;
 
-    EXPECT_OUTCOME_ERROR(Error::kNotFound, sector_blocks_->getRefs(deal_id))
+    EXPECT_OUTCOME_ERROR(SectorBlocksError::kNotFoundDeal,
+                         sector_blocks_->getRefs(deal_id))
   }
 
+  /**
+   * @given  sectorblocks, deal, size, and path
+   * @when try to add piece and then get refs
+   * @then success
+   */
   TEST_F(SectorBlocksTest, AddRefs) {
     DealInfo deal{
         .publish_cid = boost::none,

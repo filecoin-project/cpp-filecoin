@@ -40,7 +40,7 @@ namespace fc::sectorblocks {
       DealId deal_id) const {
     auto refs = storage_.find(deal_id);
     if (refs == storage_.end()) {
-      return Error::kNotFound;
+      return SectorBlocksError::kNotFoundDeal;
     }
     return refs->second;
   }
@@ -50,10 +50,10 @@ namespace fc::sectorblocks {
   }
 }  // namespace fc::sectorblocks
 
-OUTCOME_CPP_DEFINE_CATEGORY(fc::sectorblocks, Error, e) {
-  using fc::sectorblocks::Error;
+OUTCOME_CPP_DEFINE_CATEGORY(fc::sectorblocks, SectorBlocksError, e) {
+  using fc::sectorblocks::SectorBlocksError;
   switch (e) {
-    case (Error::kNotFound):
+    case (SectorBlocksError::kNotFoundDeal):
       return "SectorBlocks: not found";
     default:
       return "SectorBlocks: unknown error";

@@ -29,11 +29,21 @@ namespace fc::sector_storage::stores {
     StorageConfig storage_config_;
   };
 
+  /**
+   * @given empty storage
+   * @when try to get storage config
+   * @then StorageError::kConfigFileNotExist error occurs
+   */
   TEST_F(LocalStorageTest, GetStorageFileNotExist) {
     EXPECT_OUTCOME_ERROR(StorageError::kConfigFileNotExist,
                          storage_->getStorage());
   }
 
+  /**
+   * @given storage with the config
+   * @when try to get storage config
+   * @then the config is returned
+   */
   TEST_F(LocalStorageTest, GetStorage) {
     EXPECT_OUTCOME_TRUE(text,
                         codec::json::format(api::encode(storage_config_)));
@@ -42,6 +52,11 @@ namespace fc::sector_storage::stores {
     EXPECT_OUTCOME_EQ(storage_->getStorage(), storage_config_);
   }
 
+  /**
+   * @given storage with the config
+   * @when try to apply setStorage and get new config
+   * @then new config is returned
+   */
   TEST_F(LocalStorageTest, SetStorage) {
     EXPECT_OUTCOME_TRUE(text,
                         codec::json::format(api::encode(storage_config_)));
