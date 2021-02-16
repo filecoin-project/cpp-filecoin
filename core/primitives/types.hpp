@@ -102,12 +102,6 @@ namespace fc::primitives {
     uint64_t cpu_use;
   };
 
-  struct PieceDescriptor {
-    SectorNumber id;
-    uint64_t offset;
-    uint64_t length;
-  };
-
   using StoragePower = BigInt;
 
   using SpaceTime = BigInt;

@@ -19,4 +19,11 @@ target_link_libraries(local_store_test
         fuhon_host
         )
 
+addtest(storage_test
+        storage_test.cpp)
+
+target_link_libraries(storage_test
+        base_fs_test
+        store
+        )
 

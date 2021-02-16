@@ -42,6 +42,10 @@ namespace fc::mining::types {
   };
   CBOR_TUPLE(DealSchedule, start_epoch, end_epoch)
 
+  inline bool operator==(const DealSchedule &lhs, const DealSchedule &rhs) {
+    return lhs.start_epoch == rhs.start_epoch && lhs.end_epoch == rhs.end_epoch;
+  }
+
   /** DealInfo is a tuple of deal identity and its schedule */
   struct DealInfo {
     boost::optional<CID> publish_cid;
@@ -50,6 +54,12 @@ namespace fc::mining::types {
     bool is_keep_unsealed;
   };
   CBOR_TUPLE(DealInfo, publish_cid, deal_id, deal_schedule, is_keep_unsealed)
+
+  inline bool operator==(const DealInfo &lhs, const DealInfo &rhs) {
+    return lhs.publish_cid == rhs.publish_cid && lhs.deal_id == rhs.deal_id
+           && lhs.deal_schedule == rhs.deal_schedule
+           && lhs.is_keep_unsealed == rhs.is_keep_unsealed;
+  }
 
   struct Piece {
     PieceInfo piece;
@@ -184,6 +194,12 @@ namespace fc::mining::types {
     PaddedPieceSize offset;
     UnpaddedPieceSize size;
   };
+
+  inline bool operator==(const PieceAttributes &lhs,
+                         const PieceAttributes &rhs) {
+    return lhs.sector == rhs.sector && lhs.offset == rhs.offset
+           && lhs.size == rhs.size;
+  }
 
 }  // namespace fc::mining::types
 
