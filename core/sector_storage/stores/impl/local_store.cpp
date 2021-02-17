@@ -445,10 +445,22 @@ namespace fc::sector_storage::stores {
                 primitives::sector::getSectorSize(seal_proof_type));
 
     std::unique_lock lock(mutex_);
-    std::vector<std::pair<std::shared_ptr<Path>, int64_t>> items;
+    std::vector<std::tuple<std::shared_ptr<Path>,
+                           int64_t,
+                           std::pair<SectorId, SectorFileType>>>
+        items;
+    std::map<SectorId, SectorFileType> files;
     auto release_function = [](auto &items) {
-      for (auto &[path, overhead] : items) {
+      for (auto &[path, overhead, sector] : items) {
         path->reserved -= overhead;
+        auto type = static_cast<SectorFileType>(path->reservations[sector.first]
+                                                ^ sector.second);
+        if (type == SectorFileType::FTNone) {
+          path->reservations.erase(sector.first);
+          continue;
+        }
+
+        path->reservations[sector.first] = type;
       }
     };
 
@@ -471,6 +483,12 @@ namespace fc::sector_storage::stores {
         return StoreErrors::kNotFoundPath;
       }
 
+      auto reserved_types{path_iter->second->reservations[storages.id]};
+
+      if ((reserved_types & type) != SectorFileType::FTNone) {
+        return StoreErrors::kAlreadyReserve;
+      }
+
       OUTCOME_TRY(stat, path_iter->second->getStat(storage_));
 
       uint64_t overhead =
@@ -484,8 +502,9 @@ namespace fc::sector_storage::stores {
       }
 
       path_iter->second->reserved += overhead;
-
-      items.emplace_back(path_iter->second, overhead);
+      path_iter->second->reservations[storages.id] = reserved_types | type;
+      items.emplace_back(
+          path_iter->second, overhead, std::make_pair(storages.id, type));
     }
 
     return [clear = std::move(release_function), items = std::move(items)]() {

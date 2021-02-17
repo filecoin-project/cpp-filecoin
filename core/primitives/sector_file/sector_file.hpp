@@ -29,6 +29,10 @@ namespace fc::primitives::sector_file {
     FTSealed = 2,
     FTCache = 4,
   };
+  inline SectorFileType operator|(SectorFileType lhs, SectorFileType rhs) {
+    return static_cast<SectorFileType>(int64_t(lhs) | rhs);
+  }
+
   constexpr size_t kSectorFileTypeBits{3};
 
   const std::vector<SectorFileType> kSectorFileTypes = {
