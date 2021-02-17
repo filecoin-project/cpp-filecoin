@@ -12,9 +12,9 @@
 
 namespace fc::mining {
   using api::Address;
-  using api::FullNodeApi;
   using api::ChainEpoch;
   using api::DeadlineInfo;
+  using api::FullNodeApi;
   using api::RleBitset;
   using api::TipsetCPtr;
   using sector_storage::FaultTracker;

@@ -19,7 +19,6 @@
 namespace fc::vm::runtime {
   using fc::primitives::BigInt;
   using fc::primitives::address::Protocol;
-  using fc::storage::hamt::HamtError;
   using toolchain::Toolchain;
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
@@ -71,10 +70,9 @@ namespace fc::vm::runtime {
 
   outcome::result<BigInt> RuntimeImpl::getBalance(
       const Address &address) const {
-    auto actor_state = execution_->state_tree->get(address);
+    OUTCOME_TRY(actor_state, execution_->state_tree->tryGet(address));
     if (!actor_state) {
-      if (actor_state.error() == HamtError::kNotFound) return BigInt(0);
-      return actor_state.error();
+      return BigInt(0);
     }
     return actor_state.value().balance;
   }
@@ -134,17 +132,15 @@ namespace fc::vm::runtime {
   outcome::result<void> RuntimeImpl::deleteActor(const Address &address) {
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onDeleteActor()));
     auto &state{*execution()->state_tree};
-    if (auto _actor{state.get(getCurrentReceiver())}) {
-      const auto &balance{_actor.value().balance};
-      if (balance.is_zero()
-          || transfer(getCurrentReceiver(), address, balance)) {
-        if (state.remove(getCurrentReceiver())) {
-          return outcome::success();
+    if (auto _actor{state.tryGet(getCurrentReceiver())}) {
+      if (auto &actor{_actor.value()}) {
+        const auto &balance{actor->balance};
+        if (balance.is_zero()
+            || transfer(getCurrentReceiver(), address, balance)) {
+          if (state.remove(getCurrentReceiver())) {
+            return outcome::success();
+          }
         }
-      }
-    } else {
-      if (_actor.error() == HamtError::kNotFound) {
-        return VMExitCode::kSysErrIllegalActor;
       }
     }
     return VMExitCode::kSysErrIllegalActor;
@@ -208,9 +204,9 @@ namespace fc::vm::runtime {
     return outcome::success();
   }
 
-  outcome::result<Address> RuntimeImpl::resolveAddress(
+  outcome::result<boost::optional<Address>> RuntimeImpl::tryResolveAddress(
       const Address &address) const {
-    return execution_->state_tree->lookupId(address);
+    return execution_->state_tree->tryLookupId(address);
   }
 
   outcome::result<bool> RuntimeImpl::verifySignature(

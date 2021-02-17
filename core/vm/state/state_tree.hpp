@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
 #define CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
 
+#include "common/outcome2.hpp"
 #include "primitives/types.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
@@ -53,10 +54,28 @@ namespace fc::vm::state {
                                       const Actor &actor) = 0;
 
     /// Get actor state
-    virtual outcome::result<Actor> get(const Address &address) const = 0;
+    virtual outcome::result<boost::optional<Actor>> tryGet(
+        const Address &address) const = 0;
+
+    outcome::result<Actor> get(const Address &address) const {
+      OUTCOME_TRY(actor, tryGet(address));
+      if (actor) {
+        return *actor;
+      }
+      return OutcomeError::kDefault;
+    }
 
     /// Lookup id address from address
-    virtual outcome::result<Address> lookupId(const Address &address) const = 0;
+    virtual outcome::result<boost::optional<Address>> tryLookupId(
+        const Address &address) const = 0;
+
+    outcome::result<Address> lookupId(const Address &address) const {
+      OUTCOME_TRY(id, tryLookupId(address));
+      if (id) {
+        return *id;
+      }
+      return OutcomeError::kDefault;
+    }
 
     /// Allocate id address and set actor state, does not write to storage
     virtual outcome::result<Address> registerNewAddress(

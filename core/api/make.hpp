@@ -36,6 +36,7 @@ namespace fc::api {
 
   std::shared_ptr<FullNodeApi> makeImpl(
       std::shared_ptr<ChainStore> chain_store,
+      std::string network_name,
       std::shared_ptr<WeightCalculator> weight_calculator,
       TsLoadPtr ts_load,
       TsBranchPtr ts_main,

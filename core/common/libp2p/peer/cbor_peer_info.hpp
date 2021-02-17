@@ -19,6 +19,11 @@ namespace fc::codec::cbor {
   inline PeerInfo kDefaultT<PeerInfo>() {
     return PeerInfo{.id = kDefaultT<PeerId>(), .addresses = {}};
   }
+
+  template <>
+  inline std::tuple<PeerInfo> kDefaultT<std::tuple<PeerInfo>>() {
+    return std::make_tuple(kDefaultT<PeerInfo>());
+  }
 }  // namespace fc::codec::cbor
 
 namespace libp2p::peer {

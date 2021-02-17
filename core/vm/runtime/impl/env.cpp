@@ -29,7 +29,6 @@ namespace fc::vm::runtime {
   using actor::kRewardAddress;
   using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
-  using storage::hamt::HamtError;
   using toolchain::Toolchain;
   using version::getNetworkVersion;
 
@@ -164,13 +163,10 @@ namespace fc::vm::runtime {
       return apply;
     }
     apply.penalty = message.gas_limit * tipset->getParentBaseFee();
-    auto maybe_from = state_tree->get(message.from);
+    OUTCOME_TRY(maybe_from, state_tree->tryGet(message.from));
     if (!maybe_from) {
-      if (maybe_from.error() == HamtError::kNotFound) {
-        apply.receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
-        return apply;
-      }
-      return maybe_from.error();
+      apply.receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
+      return apply;
     }
     auto &from = maybe_from.value();
     const auto address_matcher = Toolchain::createAddressMatcher(
@@ -223,12 +219,9 @@ namespace fc::vm::runtime {
     if (epoch > vm::version::kUpgradeClausHeight && exit_code == VMExitCode::kOk
         && message.method
                == vm::actor::builtin::v0::miner::SubmitWindowedPoSt::Number) {
-      if (auto _to{state_tree->get(message.to)}) {
-        no_fee = address_matcher->isStorageMinerActor(_to.value().code);
-      } else {
-        if (_to.error() != HamtError::kNotFound) {
-          return _to.error();
-        }
+      OUTCOME_TRY(to, state_tree->tryGet(message.to));
+      if (to) {
+        no_fee = address_matcher->isStorageMinerActor(to->code);
       }
     }
     BOOST_ASSERT_MSG(used <= limit, "runtime charged gas over limit");
@@ -353,11 +346,8 @@ namespace fc::vm::runtime {
 
     OUTCOME_TRY(chargeGas(charge));
     Actor to_actor;
-    auto maybe_to_actor = state_tree->get(message.to);
+    OUTCOME_TRY(maybe_to_actor, state_tree->tryGet(message.to));
     if (!maybe_to_actor) {
-      if (maybe_to_actor.error() != HamtError::kNotFound) {
-        return maybe_to_actor.error();
-      }
       OUTCOME_TRY(account_actor, tryCreateAccountActor(message.to));
       to_actor = account_actor;
     } else {

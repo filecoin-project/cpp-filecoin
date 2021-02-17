@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "common/ptr.hpp"
 #include "api/rpc/wsc.hpp"
+#include "common/ptr.hpp"
 
 namespace fc::api::rpc {
   template <typename M>

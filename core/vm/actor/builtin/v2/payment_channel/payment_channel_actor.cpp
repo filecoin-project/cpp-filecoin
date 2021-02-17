@@ -5,7 +5,53 @@
 
 #include "vm/actor/builtin/v2/payment_channel/payment_channel_actor.hpp"
 
+#include "vm/toolchain/toolchain.hpp"
+
 namespace fc::vm::actor::builtin::v2::payment_channel {
+  using toolchain::Toolchain;
+
+  outcome::result<Address> resolveAccount(Runtime &runtime,
+                                          const Address &address,
+                                          const CodeId &accountCodeCid) {
+    CHANGE_ERROR_A(
+        resolved, runtime.resolveOrCreate(address), VMExitCode::kErrNotFound);
+
+    CHANGE_ERROR_A(
+        code, runtime.getActorCodeID(resolved), VMExitCode::kErrForbidden);
+    if (code != accountCodeCid) {
+      return VMExitCode::kErrForbidden;
+    }
+    return std::move(resolved);
+  }
+
+  // Construct
+  //============================================================================
+
+  ACTOR_METHOD_IMPL(Construct) {
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
+
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(runtime.getActorVersion());
+
+    REQUIRE_NO_ERROR_A(
+        to,
+        resolveAccount(runtime, params.to, address_matcher->getAccountCodeId()),
+        VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR_A(
+        from,
+        resolveAccount(
+            runtime, params.from, address_matcher->getAccountCodeId()),
+        VMExitCode::kErrIllegalState);
+
+    State state{from, to, 0, 0, 0, {}};
+    IpldPtr {
+      runtime
+    }
+    ->load(state);
+    OUTCOME_TRY(runtime.commitState(state));
+    return outcome::success();
+  }
 
   // UpdateChannelState
   //============================================================================

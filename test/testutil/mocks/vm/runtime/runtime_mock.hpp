@@ -79,8 +79,9 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD1(commit, outcome::result<void>(const CID &new_state));
 
-    MOCK_CONST_METHOD1(resolveAddress,
-                       outcome::result<Address>(const Address &address));
+    MOCK_CONST_METHOD1(
+        tryResolveAddress,
+        outcome::result<boost::optional<Address>>(const Address &address));
 
     MOCK_METHOD3(verifySignature,
                  outcome::result<bool>(const Signature &signature,
@@ -121,6 +122,14 @@ namespace fc::vm::runtime {
       EXPECT_OUTCOME_TRUE(result2, actor::encodeActorReturn(result));
       EXPECT_CALL(*this, send(address, M::Number, params2, value))
           .WillOnce(testing::Return(fc::outcome::success(result2)));
+    }
+
+    template <typename T>
+    void resolveAddressWith(const T &state_tree) {
+      EXPECT_CALL(*this, tryResolveAddress(testing::_))
+          .Times(testing::AnyNumber())
+          .WillRepeatedly(testing::Invoke(
+              [&](auto &address) { return state_tree.tryLookupId(address); }));
     }
   };
 }  // namespace fc::vm::runtime

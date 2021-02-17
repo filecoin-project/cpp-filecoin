@@ -6,6 +6,7 @@
 #pragma once
 
 #include <memory>
+#include <set>
 
 namespace boost {
   namespace asio {
@@ -49,6 +50,10 @@ namespace fc {
   }  // namespace api
 
   namespace blockchain {
+    namespace block_validator {
+      class BlockValidator;
+    }  // namespace block_validator
+
     namespace weight {
       class WeightCalculator;
     }  // namespace weight
@@ -107,6 +112,8 @@ namespace fc {
         struct TsBranch;
 
         using TsBranchPtr = std::shared_ptr<TsBranch>;
+        using TsBranches = std::set<TsBranchPtr>;
+        using TsBranchesPtr = std::shared_ptr<TsBranches>;
       }  // namespace chain
     }    // namespace tipset
   }      // namespace primitives
@@ -135,7 +142,9 @@ namespace fc {
     }  // namespace actor
 
     namespace interpreter {
+      class CachedInterpreter;
       class Interpreter;
+      class InterpreterImpl;
     }  // namespace interpreter
 
     namespace message {
@@ -159,6 +168,8 @@ namespace fc {
 namespace fc {
   using primitives::tipset::TsLoadPtr;
   using primitives::tipset::chain::TsBranch;
+  using primitives::tipset::chain::TsBranches;
+  using primitives::tipset::chain::TsBranchesPtr;
   using primitives::tipset::chain::TsBranchPtr;
 
   using Ipld = storage::ipfs::IpfsDatastore;

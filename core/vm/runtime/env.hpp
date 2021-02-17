@@ -7,7 +7,6 @@
 
 #include "primitives/tipset/tipset.hpp"
 #include "primitives/types.hpp"
-#include "storage/hamt/hamt.hpp"
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/circulating.hpp"
 #include "vm/runtime/pricelist.hpp"

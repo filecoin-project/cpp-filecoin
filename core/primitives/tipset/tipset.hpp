@@ -33,8 +33,6 @@ namespace fc::primitives::tipset {
   using block::BeaconEntry;
   using block::BlockHeader;
   using common::Hash256;
-  using crypto::randomness::DomainSeparationTag;
-  using crypto::randomness::Randomness;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 

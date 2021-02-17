@@ -162,6 +162,7 @@ namespace fc::api {
 
   std::shared_ptr<FullNodeApi> makeImpl(
       std::shared_ptr<ChainStore> chain_store,
+      std::string network_name,
       std::shared_ptr<WeightCalculator> weight_calculator,
       TsLoadPtr ts_load,
       TsBranchPtr ts_main,
@@ -458,8 +459,6 @@ namespace fc::api {
       });
       return Chan{std::move(channel)};
     }};
-    // TODO(turuslan): FIL-165 implement method
-    api->NetAddrsListen = {};
     api->StateAccountKey = {
         [=](auto &address, auto &tipset_key) -> outcome::result<Address> {
           if (address.isKeyType()) {
@@ -713,9 +712,8 @@ namespace fc::api {
           }));
           return sectors;
         }};
-    api->StateNetworkName = {[=]() -> outcome::result<std::string> {
-      return chain_store->getNetworkName();
-    }};
+    api->StateNetworkName = {
+        [=]() -> outcome::result<std::string> { return network_name; }};
     api->StateNetworkVersion =
         [=](auto &tipset_key) -> outcome::result<NetworkVersion> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));

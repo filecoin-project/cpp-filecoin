@@ -16,11 +16,11 @@ namespace fc::vm::actor::builtin::v0::multisig {
   //============================================================================
 
   outcome::result<std::vector<Address>> Construct::getResolvedSigners(
-      const Runtime &runtime, const std::vector<Address> &signers) {
+      Runtime &runtime, const std::vector<Address> &signers) {
     std::vector<Address> resolved_signers;
     for (const auto &signer : signers) {
       REQUIRE_NO_ERROR_A(resolved,
-                         runtime.resolveAddress(signer),
+                         runtime.resolveOrCreate(signer),
                          VMExitCode::kErrIllegalState);
       const auto duplicate =
           std::find(resolved_signers.begin(), resolved_signers.end(), resolved);

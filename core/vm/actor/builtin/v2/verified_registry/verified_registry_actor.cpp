@@ -17,7 +17,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     OUTCOME_TRY(utils->checkDealSize(params.allowance));
 
     REQUIRE_NO_ERROR_A(verifier,
-                       runtime.resolveAddress(params.address),
+                       runtime.resolveOrCreate(params.address),
                        VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
@@ -36,8 +36,9 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
   //============================================================================
 
   ACTOR_METHOD_IMPL(RemoveVerifier) {
-    REQUIRE_NO_ERROR_A(
-        verifier, runtime.resolveAddress(params), VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(verifier,
+                       runtime.resolveOrCreate(params),
+                       VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(runtime.validateImmediateCallerIs(state.root_key));
@@ -59,7 +60,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     OUTCOME_TRY(utils->checkDealSize(params.allowance));
 
     REQUIRE_NO_ERROR_A(client,
-                       runtime.resolveAddress(params.address),
+                       runtime.resolveOrCreate(params.address),
                        VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
@@ -80,7 +81,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kStorageMarketAddress));
 
     REQUIRE_NO_ERROR_A(client,
-                       runtime.resolveAddress(params.address),
+                       runtime.resolveOrCreate(params.address),
                        VMExitCode::kErrIllegalState);
 
     const auto utils = Toolchain::createVerifRegUtils(runtime);
@@ -105,7 +106,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     OUTCOME_TRY(utils->checkDealSize(params.deal_size));
 
     REQUIRE_NO_ERROR_A(client,
-                       runtime.resolveAddress(params.address),
+                       runtime.resolveOrCreate(params.address),
                        VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
