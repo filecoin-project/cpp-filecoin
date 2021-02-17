@@ -809,3 +809,203 @@ TEST_F(LocalStoreTest, storageHealthSuccess) {
       .WillOnce(testing::Return(fc::outcome::success(stat)));
   scheduler_->next_clock();
 }
+
+/**
+ * @given sector and complex sector file type
+ * @when try to remove copies of sector files with this type
+ * @then StoreErrors::RemoveSeveralFileTypes error occurs
+ */
+TEST_F(LocalStoreTest, removeCopiesSeveralSectorTypes) {
+  SectorId sector{
+      .miner = 42,
+      .sector = 1,
+  };
+
+  auto type = static_cast<SectorFileType>(SectorFileType::FTCache
+                                          | SectorFileType::FTUnsealed);
+
+  EXPECT_OUTCOME_ERROR(StoreErrors::kRemoveSeveralFileTypes,
+                       local_store_->removeCopies(sector, type));
+
+  EXPECT_OUTCOME_ERROR(
+      StoreErrors::kRemoveSeveralFileTypes,
+      local_store_->removeCopies(sector, SectorFileType::FTNone));
+}
+
+/**
+ * @given sector, sector file type, and 1 non primary storage info
+ * @when try to remove copies of sector files with this type
+ * @then nothing happend, beacuse non-primary
+ */
+TEST_F(LocalStoreTest, removeCopiesWithoutPirmaryStorage) {
+  auto storage_path = boost::filesystem::unique_path(
+      fs::canonical(base_path).append("%%%%%-storage"));
+
+  SectorId sector{
+      .miner = 42,
+      .sector = 1,
+  };
+
+  auto type = SectorFileType::FTCache;
+
+  std::string non_primary_id = "someid";
+
+  boost::filesystem::create_directories((storage_path / toString(type)));
+
+  fc::primitives::LocalStorageMeta storage_meta{
+      .id = non_primary_id,
+      .weight = 0,
+      .can_seal = true,
+      .can_store = false,
+  };
+
+  createMetaFile(storage_path.string(), storage_meta);
+
+  FsStat stat{
+      .capacity = 200,
+      .available = 200,
+      .reserved = 0,
+  };
+
+  StorageInfo info{
+      .id = non_primary_id,
+      .weight = 0,
+      .urls = urls_,
+      .can_store = false,
+      .can_seal = true,
+  };
+
+  std::string sector_file = (storage_path / toString(type)
+                             / fc::primitives::sector_file::sectorName(sector))
+                                .string();
+
+  std::ofstream(sector_file).close();
+
+  EXPECT_CALL(*storage_, getStat(storage_path.string()))
+      .WillOnce(testing::Return(fc::outcome::success(stat)));
+
+  EXPECT_CALL(*index_, storageAttach(info, stat))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_CALL(*index_,
+              storageDeclareSector(non_primary_id, sector, type, false))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
+
+  info.is_primary = false;
+
+  std::vector<StorageInfo> sector_infos = {info};
+
+  EXPECT_CALL(*index_, storageFindSector(sector, type, _))
+      .WillOnce(testing::Return(fc::outcome::success(sector_infos)));
+
+  ASSERT_TRUE(boost::filesystem::exists(sector_file));
+  EXPECT_OUTCOME_TRUE_1(local_store_->removeCopies(sector, type));
+  ASSERT_TRUE(boost::filesystem::exists(sector_file));
+}
+
+/**
+ * @given sector, sector file type, and 1 non primary and 1 primary storage
+ * infos
+ * @when try to remove copies of sector files with this type
+ * @then sector in non primary is removed, but in primary still there
+ */
+TEST_F(LocalStoreTest, removeCopiesWithPirmaryStorage) {
+  auto storage_path = boost::filesystem::unique_path(
+      fs::canonical(base_path).append("%%%%%-storage"));
+  auto storage_path1 = boost::filesystem::unique_path(
+      fs::canonical(base_path).append("%%%%%-storage"));
+
+  SectorId sector{
+      .miner = 42,
+      .sector = 1,
+  };
+
+  auto type = SectorFileType::FTCache;
+
+  std::string non_primary_id = "someid";
+  std::string primary_id = "someid2";
+
+  boost::filesystem::create_directories((storage_path / toString(type)));
+  boost::filesystem::create_directories((storage_path1 / toString(type)));
+
+  fc::primitives::LocalStorageMeta storage_meta{
+      .id = non_primary_id,
+      .weight = 0,
+      .can_seal = true,
+      .can_store = false,
+  };
+  createMetaFile(storage_path.string(), storage_meta);
+  storage_meta.can_store = true;
+  storage_meta.id = primary_id;
+  createMetaFile(storage_path1.string(), storage_meta);
+
+  FsStat stat{
+      .capacity = 200,
+      .available = 200,
+      .reserved = 0,
+  };
+
+  StorageInfo info{
+      .id = non_primary_id,
+      .weight = 0,
+      .urls = urls_,
+      .can_store = false,
+      .can_seal = true,
+  };
+  StorageInfo info1{
+      .id = primary_id,
+      .weight = 0,
+      .urls = urls_,
+      .can_store = true,
+      .can_seal = true,
+  };
+
+  std::string sector_file = (storage_path / toString(type)
+                             / fc::primitives::sector_file::sectorName(sector))
+                                .string();
+
+  std::ofstream(sector_file).close();
+  std::string sector_file1 = (storage_path1 / toString(type)
+                              / fc::primitives::sector_file::sectorName(sector))
+                                 .string();
+
+  std::ofstream(sector_file1).close();
+
+  EXPECT_CALL(*storage_, getStat(storage_path.string()))
+      .WillOnce(testing::Return(fc::outcome::success(stat)));
+  EXPECT_CALL(*storage_, getStat(storage_path1.string()))
+      .WillOnce(testing::Return(fc::outcome::success(stat)));
+
+  EXPECT_CALL(*index_, storageAttach(info, stat))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(*index_, storageAttach(info1, stat))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_CALL(*index_,
+              storageDeclareSector(non_primary_id, sector, type, false))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(*index_, storageDeclareSector(primary_id, sector, type, true))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
+  EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path1.string()));
+
+  info.is_primary = false;
+  info1.is_primary = true;
+
+  std::vector<StorageInfo> sector_infos = {info, info1};
+
+  EXPECT_CALL(*index_, storageFindSector(sector, type, _))
+      .WillOnce(testing::Return(fc::outcome::success(sector_infos)));
+
+  EXPECT_CALL(*index_, storageDropSector(non_primary_id, sector, type))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  ASSERT_TRUE(boost::filesystem::exists(sector_file1));
+  ASSERT_TRUE(boost::filesystem::exists(sector_file));
+  EXPECT_OUTCOME_TRUE_1(local_store_->removeCopies(sector, type));
+  ASSERT_TRUE(boost::filesystem::exists(sector_file1));
+  ASSERT_FALSE(boost::filesystem::exists(sector_file));
+}

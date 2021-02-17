@@ -209,7 +209,7 @@ namespace fc::sector_storage::stores {
     std::vector<StorageInfo> result;
     for (const auto &[id, meta] : storages) {
       if (stores_.find(id) == stores_.end()) {
-        // logger
+        // TODO (ortyomka): logger
         continue;
       }
 
