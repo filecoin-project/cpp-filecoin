@@ -30,6 +30,7 @@
 #include "miner/impl/miner_impl.hpp"
 #include "miner/mining.hpp"
 #include "miner/windowpost.hpp"
+#include "primitives/address/config.hpp"
 #include "proofs/proof_param_provider.hpp"
 #include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/manager_impl.hpp"
@@ -100,6 +101,7 @@ namespace fc {
     option("owner", po::value(&raw.owner));
     option("worker", po::value(&raw.worker));
     option("sector-size", po::value(&raw.sector_size));
+    primitives::address::configCurrentNetwork(option);
 
     po::variables_map vm;
     po::store(parse_command_line(argc, argv, desc), vm);

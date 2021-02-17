@@ -22,6 +22,7 @@
 #include "common/file.hpp"
 #include "common/io_thread.hpp"
 #include "common/outcome.hpp"
+#include "primitives/address/config.hpp"
 #include "proofs/proof_param_provider.hpp"
 #include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/local_worker.hpp"
@@ -84,6 +85,7 @@ namespace fc {
     option("precommit2", po::value(&raw.can_precommit2)->default_value(true));
     option("commit", po::value(&raw.can_commit)->default_value(true));
     option("unseal", po::value(&raw.can_unseal)->default_value(true));
+    primitives::address::configCurrentNetwork(option);
 
     po::variables_map vm;
     po::store(parse_command_line(argc, argv, desc), vm);
