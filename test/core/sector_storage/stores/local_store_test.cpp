@@ -7,7 +7,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
+#include <thread>
 
 #include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
@@ -1085,4 +1085,135 @@ namespace fc::sector_storage::stores {
     EXPECT_OUTCOME_TRUE(paths, local_store_->getAccessiblePaths())
     ASSERT_THAT(paths, testing::ElementsAre(path, path1));
   }
+
+  /**
+   * @given store, index
+   * @when try to get index
+   * @then index is received
+   */
+  TEST_F(LocalStoreTest, getSectorIndex) {
+    ASSERT_EQ(index_, local_store_->getSectorIndex());
+  }
+
+  /**
+   * @given store, local storage
+   * @when try to get storage
+   * @then storage is received
+   */
+  TEST_F(LocalStoreTest, getLocalStorage) {
+    ASSERT_EQ(storage_, local_store_->getLocalStorage());
+  }
+
+  /**
+   * @given store
+   * @when try to reserve
+   * @then space is received
+   */
+  TEST_F(LocalStoreTest, reserve) {
+    auto storage_path = boost::filesystem::unique_path(
+        fs::canonical(base_path).append("%%%%%-storage"));
+
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    auto type = SectorFileType::FTSealed;
+
+    std::string storage_id = "someid";
+
+    boost::filesystem::create_directories((storage_path / toString(type)));
+
+    primitives::LocalStorageMeta storage_meta{
+        .id = storage_id,
+        .weight = 0,
+        .can_seal = true,
+        .can_store = false,
+    };
+
+    createMetaFile(storage_path.string(), storage_meta);
+
+    FsStat stat{
+        .capacity = 4048,
+        .available = 4048,
+        .reserved = 0,
+    };
+
+    StorageInfo info{
+        .id = storage_id,
+        .weight = 0,
+        .urls = urls_,
+        .can_store = false,
+        .can_seal = true,
+    };
+
+    EXPECT_CALL(*storage_, getStat(storage_path.string()))
+        .WillRepeatedly(testing::Return(outcome::success(stat)));
+
+    EXPECT_CALL(*index_, storageAttach(info, stat))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
+
+    PathType path_type = PathType::kStorage;
+    SectorPaths spaths{
+        .id = sector,
+    };
+    spaths.setPathByType(type, storage_id);
+
+    FsStat before_reserve;
+    FsStat after_reserve;
+    FsStat after_release;
+
+    auto first_time = current_time_ + toTicks(std::chrono::seconds(12));
+    auto second_time = current_time_ + toTicks(std::chrono::seconds(24));
+    auto third_time = current_time_ + toTicks(std::chrono::seconds(36));
+
+    EXPECT_CALL(*scheduler_, now())
+        .WillOnce(testing::Return(first_time))
+        .WillOnce(testing::Return(first_time))  // new start point
+        .WillOnce(testing::Return(second_time))
+        .WillOnce(testing::Return(second_time))  // new start point
+        .WillRepeatedly(testing::Return(third_time));
+    EXPECT_CALL(*index_, storageReportHealth(storage_id, _))
+        .WillOnce(testing::Invoke([&](StorageID id, HealthReport report) {
+          EXPECT_EQ(id, storage_id);
+          before_reserve = report.stat;
+          return outcome::success();
+        }))
+        .WillOnce(testing::Invoke([&](StorageID id, HealthReport report) {
+          EXPECT_EQ(id, storage_id);
+          after_reserve = report.stat;
+          return outcome::success();
+        }))
+        .WillOnce(testing::Invoke([&](StorageID id, HealthReport report) {
+          EXPECT_EQ(id, storage_id);
+          after_release = report.stat;
+          return outcome::success();
+        }));
+
+    scheduler_->next_clock();
+    EXPECT_OUTCOME_TRUE(
+        release,
+        local_store_->reserve(seal_proof_type_, type, spaths, path_type));
+
+    std::string sector_file = (storage_path / toString(type)
+                               / primitives::sector_file::sectorName(sector))
+                                  .string();
+
+    std::ofstream(sector_file).close();
+    auto temp_file_size = 100;
+
+    EXPECT_CALL(*storage_, getDiskUsage(sector_file))
+        .WillRepeatedly(testing::Return(outcome::success(temp_file_size)));
+
+    scheduler_->next_clock();
+    // some error occurred and file was removed
+    release();
+    scheduler_->next_clock();
+    ASSERT_EQ(before_reserve, after_release);
+    ASSERT_EQ(after_reserve.reserved,
+              before_reserve.available - after_reserve.available);
+  }
+
 }  // namespace fc::sector_storage::stores
