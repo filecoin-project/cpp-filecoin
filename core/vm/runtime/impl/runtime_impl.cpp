@@ -13,12 +13,13 @@
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime_error.hpp"
+#include "vm/toolchain/toolchain.hpp"
 #include "vm/version.hpp"
 
 namespace fc::vm::runtime {
   using fc::primitives::BigInt;
   using fc::primitives::address::Protocol;
-  using fc::storage::hamt::HamtError;
+  using toolchain::Toolchain;
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
                            UnsignedMessage message,
@@ -37,6 +38,10 @@ namespace fc::vm::runtime {
 
   ChainEpoch RuntimeImpl::getCurrentEpoch() const {
     return execution_->env->epoch;
+  }
+
+  ActorVersion RuntimeImpl::getActorVersion() const {
+    return actor::getActorVersionForNetwork(getNetworkVersion());
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomnessFromTickets(
@@ -65,10 +70,9 @@ namespace fc::vm::runtime {
 
   outcome::result<BigInt> RuntimeImpl::getBalance(
       const Address &address) const {
-    auto actor_state = execution_->state_tree->get(address);
+    OUTCOME_TRY(actor_state, execution_->state_tree->tryGet(address));
     if (!actor_state) {
-      if (actor_state.error() == HamtError::kNotFound) return BigInt(0);
-      return actor_state.error();
+      return BigInt(0);
     }
     return actor_state.value().balance;
   }
@@ -77,7 +81,7 @@ namespace fc::vm::runtime {
     return message_.value;
   }
 
-  fc::outcome::result<CodeId> RuntimeImpl::getActorCodeID(
+  outcome::result<CodeId> RuntimeImpl::getActorCodeID(
       const Address &address) const {
     OUTCOME_TRY(actor_state, execution_->state_tree->get(address));
     return actor_state.code;
@@ -108,25 +112,35 @@ namespace fc::vm::runtime {
 
   outcome::result<void> RuntimeImpl::createActor(const Address &address,
                                                  const Actor &actor) {
-    OUTCOME_TRY(execution_->state_tree->set(address, actor));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(getActorVersion());
+    if (!address_matcher->isBuiltinActor(actor.code)
+        || address_matcher->isSingletonActor(actor.code)) {
+      ABORT(VMExitCode::kSysErrIllegalArgument);
+    }
+
+    const auto has = execution_->state_tree->get(address);
+    if (!has.has_error()) {
+      ABORT(VMExitCode::kSysErrIllegalArgument);
+    }
+
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onCreateActor()));
-    return fc::outcome::success();
+    OUTCOME_TRY(execution_->state_tree->set(address, actor));
+    return outcome::success();
   }
 
   outcome::result<void> RuntimeImpl::deleteActor(const Address &address) {
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onDeleteActor()));
     auto &state{*execution()->state_tree};
-    if (auto _actor{state.get(getCurrentReceiver())}) {
-      const auto &balance{_actor.value().balance};
-      if (balance.is_zero()
-          || transfer(getCurrentReceiver(), address, balance)) {
-        if (state.remove(getCurrentReceiver())) {
-          return outcome::success();
+    if (auto _actor{state.tryGet(getCurrentReceiver())}) {
+      if (auto &actor{_actor.value()}) {
+        const auto &balance{actor->balance};
+        if (balance.is_zero()
+            || transfer(getCurrentReceiver(), address, balance)) {
+          if (state.remove(getCurrentReceiver())) {
+            return outcome::success();
+          }
         }
-      }
-    } else {
-      if (_actor.error() == HamtError::kNotFound) {
-        return VMExitCode::kSysErrIllegalActor;
       }
     }
     return VMExitCode::kSysErrIllegalActor;
@@ -190,9 +204,9 @@ namespace fc::vm::runtime {
     return outcome::success();
   }
 
-  outcome::result<Address> RuntimeImpl::resolveAddress(
+  outcome::result<boost::optional<Address>> RuntimeImpl::tryResolveAddress(
       const Address &address) const {
-    return execution_->state_tree->lookupId(address);
+    return execution_->state_tree->tryLookupId(address);
   }
 
   outcome::result<bool> RuntimeImpl::verifySignature(

@@ -41,13 +41,14 @@ namespace fc::vm::actor::builtin::v2::multisig {
   class MultisigActorTest : public ::testing::Test {
     void SetUp() override {
       initState();
+      actorVersion = ActorVersion::kVersion2;
+
+      EXPECT_CALL(runtime, getActorVersion())
+          .WillRepeatedly(testing::Invoke([&]() { return actorVersion; }));
 
       ON_CALL_3(runtime, getIpfsDatastore(), ipld);
 
-      EXPECT_CALL(runtime, resolveAddress(testing::_))
-          .Times(testing::AnyNumber())
-          .WillRepeatedly(testing::Invoke(
-              [&](auto &address) { return state_tree.lookupId(address); }));
+      runtime.resolveAddressWith(state_tree);
 
       EXPECT_CALL(runtime, getCurrentEpoch())
           .Times(testing::AnyNumber())
@@ -71,16 +72,14 @@ namespace fc::vm::actor::builtin::v2::multisig {
 
       ON_CALL_3(runtime, getCurrentReceiver(), actor_address);
 
-      ON_CALL_3(runtime, getActorCodeID(kInitAddress), kInitCodeCid);
-      ON_CALL_3(runtime, getActorCodeID(caller), kAccountCodeCid);
-      ON_CALL_3(runtime, getActorCodeID(wrong_caller), kCronCodeCid);
+      ON_CALL_3(runtime, getActorCodeID(kInitAddress), kInitCodeId);
+      ON_CALL_3(runtime, getActorCodeID(caller), kAccountCodeId);
+      ON_CALL_3(runtime, getActorCodeID(wrong_caller), kCronCodeId);
 
       EXPECT_CALL(runtime, hashBlake2b(testing::_))
           .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke(
               [&](auto &data) { return crypto::blake2b::blake2b_256(data); }));
-
-      ipld->load(state);
 
       EXPECT_CALL(runtime, getCurrentActorState())
           .Times(testing::AnyNumber())
@@ -120,6 +119,8 @@ namespace fc::vm::actor::builtin::v2::multisig {
       state.initial_balance = 0;
       state.start_epoch = 0;
       state.unlock_duration = 0;
+
+      ipld->load(state);
     }
 
    protected:
@@ -148,6 +149,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
     State state{};
 
     StateTreeImpl state_tree{ipld};
+    ActorVersion actorVersion;
   };
 
   /**

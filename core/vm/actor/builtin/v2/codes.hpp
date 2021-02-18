@@ -3,34 +3,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V2_CODES_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V2_CODES_HPP
+#pragma once
 
 #include "vm/actor/actor.hpp"
 
 namespace fc::vm::actor::builtin::v2 {
 
-  const static CodeId kAccountCodeCid =
+  const static CodeId kAccountCodeId =
       CodeId(makeRawIdentityCid("fil/2/account"));
-  const static CodeId kCronCodeCid = CodeId(makeRawIdentityCid("fil/2/cron"));
-  const static CodeId kStoragePowerCodeCid =
+  const static CodeId kCronCodeId = CodeId(makeRawIdentityCid("fil/2/cron"));
+  const static CodeId kStoragePowerCodeId =
       CodeId(makeRawIdentityCid("fil/2/storagepower"));
-  const static CodeId kStorageMarketCodeCid =
+  const static CodeId kStorageMarketCodeId =
       CodeId(makeRawIdentityCid("fil/2/storagemarket"));
-  const static CodeId kStorageMinerCodeCid =
+  const static CodeId kStorageMinerCodeId =
       CodeId(makeRawIdentityCid("fil/2/storageminer"));
-  const static CodeId kMultisigCodeCid =
+  const static CodeId kMultisigCodeId =
       CodeId(makeRawIdentityCid("fil/2/multisig"));
-  const static CodeId kInitCodeCid = CodeId(makeRawIdentityCid("fil/2/init"));
-  const static CodeId kPaymentChannelCodeCid =
+  const static CodeId kInitCodeId = CodeId(makeRawIdentityCid("fil/2/init"));
+  const static CodeId kPaymentChannelCodeId =
       CodeId(makeRawIdentityCid("fil/2/paymentchannel"));
-  const static CodeId kRewardActorCodeID =
+  const static CodeId kRewardActorCodeId =
       CodeId(makeRawIdentityCid("fil/2/reward"));
-  const static CodeId kSystemActorCodeID =
+  const static CodeId kSystemActorCodeId =
       CodeId(makeRawIdentityCid("fil/2/system"));
-  const static CodeId kVerifiedRegistryCode =
+  const static CodeId kVerifiedRegistryCodeId =
       CodeId(makeRawIdentityCid("fil/2/verifiedregistry"));
 
 }  // namespace fc::vm::actor::builtin::v2
-
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V2_CODES_HPP

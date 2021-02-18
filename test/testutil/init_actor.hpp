@@ -22,7 +22,7 @@ std::shared_ptr<fc::vm::state::StateTree> setupInitActor(
   EXPECT_OUTCOME_TRUE(head, store->setCbor(init_state));
   EXPECT_OUTCOME_TRUE_1(
       state_tree->set(fc::vm::actor::kInitAddress,
-                      {fc::vm::actor::builtin::v0::kInitCodeCid, head, 0, 0}));
+                      {fc::vm::actor::builtin::v0::kInitCodeId, head, 0, 0}));
   return state_tree;
 }
 

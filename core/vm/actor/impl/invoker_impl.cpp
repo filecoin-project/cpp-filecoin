@@ -36,48 +36,48 @@ namespace fc::vm::actor {
 
   InvokerImpl::InvokerImpl() {
     // v0
-    builtin_[builtin::v0::kAccountCodeCid] = builtin::v0::account::exports;
-    builtin_[builtin::v0::kCronCodeCid] = builtin::v0::cron::exports;
-    builtin_[builtin::v0::kInitCodeCid] = builtin::v0::init::exports;
-    builtin_[builtin::v0::kStorageMarketCodeCid] = builtin::v0::market::exports;
-    builtin_[builtin::v0::kStorageMinerCodeCid] = builtin::v0::miner::exports;
-    builtin_[builtin::v0::kMultisigCodeCid] = builtin::v0::multisig::exports;
-    builtin_[builtin::v0::kPaymentChannelCodeCid] =
+    builtin_[builtin::v0::kAccountCodeId] = builtin::v0::account::exports;
+    builtin_[builtin::v0::kCronCodeId] = builtin::v0::cron::exports;
+    builtin_[builtin::v0::kInitCodeId] = builtin::v0::init::exports;
+    builtin_[builtin::v0::kStorageMarketCodeId] = builtin::v0::market::exports;
+    builtin_[builtin::v0::kStorageMinerCodeId] = builtin::v0::miner::exports;
+    builtin_[builtin::v0::kMultisigCodeId] = builtin::v0::multisig::exports;
+    builtin_[builtin::v0::kPaymentChannelCodeId] =
         builtin::v0::payment_channel::exports;
-    builtin_[builtin::v0::kRewardActorCodeID] = builtin::v0::reward::exports;
-    builtin_[builtin::v0::kStoragePowerCodeCid] =
+    builtin_[builtin::v0::kRewardActorCodeId] = builtin::v0::reward::exports;
+    builtin_[builtin::v0::kStoragePowerCodeId] =
         builtin::v0::storage_power::exports;
-    builtin_[builtin::v0::kSystemActorCodeID] = builtin::v0::system::exports;
-    builtin_[builtin::v0::kVerifiedRegistryCode] =
+    builtin_[builtin::v0::kSystemActorCodeId] = builtin::v0::system::exports;
+    builtin_[builtin::v0::kVerifiedRegistryCodeId] =
         builtin::v0::verified_registry::exports;
 
     // v2
-    builtin_[builtin::v2::kAccountCodeCid] = builtin::v2::account::exports;
-    builtin_[builtin::v2::kCronCodeCid] = builtin::v2::cron::exports;
-    builtin_[builtin::v2::kInitCodeCid] = builtin::v2::init::exports;
-    // builtin_[builtin::v2::kStorageMarketCodeCid] =
+    builtin_[builtin::v2::kAccountCodeId] = builtin::v2::account::exports;
+    builtin_[builtin::v2::kCronCodeId] = builtin::v2::cron::exports;
+    builtin_[builtin::v2::kInitCodeId] = builtin::v2::init::exports;
+    // builtin_[builtin::v2::kStorageMarketCodeId] =
     // builtin::v2::market::exports;
-    builtin_[builtin::v2::kStorageMinerCodeCid] = builtin::v2::miner::exports;
-    builtin_[builtin::v2::kRewardActorCodeID] = builtin::v2::reward::exports;
-    builtin_[builtin::v2::kMultisigCodeCid] = builtin::v2::multisig::exports;
-    builtin_[builtin::v2::kPaymentChannelCodeCid] =
+    builtin_[builtin::v2::kStorageMinerCodeId] = builtin::v2::miner::exports;
+    builtin_[builtin::v2::kRewardActorCodeId] = builtin::v2::reward::exports;
+    builtin_[builtin::v2::kMultisigCodeId] = builtin::v2::multisig::exports;
+    builtin_[builtin::v2::kPaymentChannelCodeId] =
         builtin::v2::payment_channel::exports;
-    builtin_[builtin::v2::kStoragePowerCodeCid] =
+    builtin_[builtin::v2::kStoragePowerCodeId] =
         builtin::v2::storage_power::exports;
-    builtin_[builtin::v2::kSystemActorCodeID] = builtin::v2::system::exports;
-    builtin_[builtin::v2::kVerifiedRegistryCode] =
+    builtin_[builtin::v2::kSystemActorCodeId] = builtin::v2::system::exports;
+    builtin_[builtin::v2::kVerifiedRegistryCodeId] =
         builtin::v2::verified_registry::exports;
   }
 
   outcome::result<InvocationOutput> InvokerImpl::invoke(
       const Actor &actor, const std::shared_ptr<Runtime> &runtime) {
-    if (actor.code == builtin::v0::kStorageMinerCodeCid) {
+    if (actor.code == builtin::v0::kStorageMinerCodeId) {
       if (runtime->getMessage().get().method
           != builtin::v0::miner::Construct::Number) {
         return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
       }
     }
-    if (actor.code == builtin::v2::kStorageMinerCodeCid) {
+    if (actor.code == builtin::v2::kStorageMinerCodeId) {
       if (runtime->getMessage().get().method
           != builtin::v2::miner::Construct::Number) {
         return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
@@ -87,32 +87,32 @@ namespace fc::vm::actor {
     // TODO (a.chernyshov) remove after all cpp actors are implemented
     if (
         // v0
-        (actor.code != builtin::v0::kAccountCodeCid)            // < tested OK
-        && (actor.code != builtin::v0::kCronCodeCid)            // < tested OK
-        && (actor.code != builtin::v0::kInitCodeCid)            // < tested OK
-        && (actor.code != builtin::v0::kStorageMarketCodeCid)   // < tested OK
-        && (actor.code != builtin::v0::kStorageMinerCodeCid)    // WiP
-        && (actor.code != builtin::v0::kMultisigCodeCid)        // < tested OK
-        && (actor.code != builtin::v0::kPaymentChannelCodeCid)  // < tested OK
-        && (actor.code != builtin::v0::kStoragePowerCodeCid)    // < tested OK
-        && (actor.code != builtin::v0::kRewardActorCodeID)      // < tested OK
-        && (actor.code != builtin::v0::kSystemActorCodeID)      // < tested OK
+        (actor.code != builtin::v0::kAccountCodeId)            // < tested OK
+        && (actor.code != builtin::v0::kCronCodeId)            // < tested OK
+        && (actor.code != builtin::v0::kInitCodeId)            // < tested OK
+        && (actor.code != builtin::v0::kStorageMarketCodeId)   // < tested OK
+        && (actor.code != builtin::v0::kStorageMinerCodeId)    // WiP
+        && (actor.code != builtin::v0::kMultisigCodeId)        // < tested OK
+        && (actor.code != builtin::v0::kPaymentChannelCodeId)  // < tested OK
+        && (actor.code != builtin::v0::kStoragePowerCodeId)    // < tested OK
+        && (actor.code != builtin::v0::kRewardActorCodeId)     // < tested OK
+        && (actor.code != builtin::v0::kSystemActorCodeId)     // < tested OK
         && (actor.code
-            != builtin::v0::kVerifiedRegistryCode)  // < OK, but not tested
+            != builtin::v0::kVerifiedRegistryCodeId)  // < OK, but not tested
 
         // v2
-        && (actor.code != builtin::v2::kAccountCodeCid)  // < tested OK
-        && (actor.code != builtin::v2::kCronCodeCid)     // < tested OK
-        && (actor.code != builtin::v2::kInitCodeCid)     // < tested OK
-        // && (actor.code != builtin::v2::kStorageMarketCodeCid)   // TODO
-        && (actor.code != builtin::v2::kStorageMinerCodeCid)    // WiP
-        && (actor.code != builtin::v2::kMultisigCodeCid)        // < tested OK
-        && (actor.code != builtin::v2::kPaymentChannelCodeCid)  // < tested OK
-        && (actor.code != builtin::v2::kStoragePowerCodeCid)    // < tested OK
-        && (actor.code != builtin::v2::kRewardActorCodeID)      // < tested OK
-        && (actor.code != builtin::v2::kSystemActorCodeID)      // < tested OK
+        && (actor.code != builtin::v2::kAccountCodeId)  // < tested OK
+        && (actor.code != builtin::v2::kCronCodeId)     // < tested OK
+        && (actor.code != builtin::v2::kInitCodeId)     // < tested OK
+        // && (actor.code != builtin::v2::kStorageMarketCodeId)   // TODO
+        && (actor.code != builtin::v2::kStorageMinerCodeId)    // WiP
+        && (actor.code != builtin::v2::kMultisigCodeId)        // < tested OK
+        && (actor.code != builtin::v2::kPaymentChannelCodeId)  // < tested OK
+        && (actor.code != builtin::v2::kStoragePowerCodeId)    // < tested OK
+        && (actor.code != builtin::v2::kRewardActorCodeId)     // < tested OK
+        && (actor.code != builtin::v2::kSystemActorCodeId)     // < tested OK
         && (actor.code
-            != builtin::v2::kVerifiedRegistryCode)  // < OK, but not tested
+            != builtin::v2::kVerifiedRegistryCodeId)  // < OK, but not tested
     ) {
       return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
     }

@@ -15,6 +15,7 @@
 #include "vm/actor/cgo/go_actors.h"
 #include "vm/dvm/dvm.hpp"
 #include "vm/runtime/env.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 #define RUNTIME_METHOD(name)                             \
   void rt_##name(const std::shared_ptr<Runtime> &,       \
@@ -41,7 +42,7 @@ namespace fc::vm::actor::cgo {
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using runtime::resolveKey;
-  using storage::hamt::HamtError;
+  using toolchain::Toolchain;
 
   void configMainnet() {
     cgoCall<cgoActorsConfigMainnet>(BytesIn{});
@@ -189,15 +190,15 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtActorId) {
-    auto r{rt->execution()->state_tree->lookupId(arg.get<Address>())};
-    if (!r) {
-      if (r.error() == HamtError::kNotFound) {
-        ret << kOk << false;
+    if (auto _id{
+            rt->execution()->state_tree->tryLookupId(arg.get<Address>())}) {
+      if (auto &id{_id.value()}) {
+        ret << kOk << true << *id;
       } else {
-        ret << kFatal;
+        ret << kOk << false;
       }
     } else {
-      ret << kOk << true << r.value();
+      ret << kFatal;
     }
   }
 
@@ -254,7 +255,10 @@ namespace fc::vm::actor::cgo {
   RUNTIME_METHOD(gocRtCreateActor) {
     auto code{arg.get<CID>()};
     auto address{arg.get<Address>()};
-    if (!actor::isBuiltinActor(code) || actor::isSingletonActor(code)
+    const auto address_matcher =
+        toolchain::Toolchain::createAddressMatcher(rt->getActorVersion());
+    if (!address_matcher->isBuiltinActor(code)
+        || address_matcher->isSingletonActor(code)
         || rt->execution()->state_tree->get(address)) {
       ret << VMExitCode::kSysErrIllegalArgument;
     } else if (charge(
@@ -269,14 +273,14 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtActorCode) {
-    if (auto _actor{rt->execution()->state_tree->get(arg.get<Address>())}) {
-      ret << kOk << true << _actor.value().code;
-    } else {
-      if (_actor.error() == HamtError::kNotFound) {
-        ret << kOk << false;
+    if (auto _actor{rt->execution()->state_tree->tryGet(arg.get<Address>())}) {
+      if (auto &actor{_actor.value()}) {
+        ret << kOk << true << actor->code;
       } else {
-        ret << kFatal;
+        ret << kOk << false;
       }
+    } else {
+      ret << kFatal;
     }
   }
 

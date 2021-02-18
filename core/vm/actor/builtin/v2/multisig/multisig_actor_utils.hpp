@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/multisig/impl/multisig_utils_impl_v0.hpp"
+#include "vm/actor/builtin/v0/multisig/multisig_actor_utils.hpp"
 #include "vm/actor/builtin/v2/multisig/multisig_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::multisig {
@@ -17,8 +17,10 @@ namespace fc::vm::actor::builtin::v2::multisig {
   using utils::multisig::ApproveTransactionResult;
   using v0::multisig::TransactionId;
 
-  class MultisigUtilsImplV2 : public v0::multisig::MultisigUtilsImplV0 {
+  class MultisigUtils : public v0::multisig::MultisigUtils {
    public:
+    MultisigUtils(Runtime &r) : v0::multisig::MultisigUtils::MultisigUtils(r) {}
+
     BigInt amountLocked(const State &state,
                         const ChainEpoch &elapsed_epoch) const override;
 
@@ -29,7 +31,6 @@ namespace fc::vm::actor::builtin::v2::multisig {
         const ChainEpoch &current_epoch) const override;
 
     outcome::result<ApproveTransactionResult> executeTransaction(
-        Runtime &runtime,
         State &state,
         const TransactionId &tx_id,
         const Transaction &transaction) const override;

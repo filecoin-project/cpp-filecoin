@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v2/multisig/impl/multisig_utils_impl_v2.hpp"
+#include "vm/actor/builtin/v2/multisig/multisig_actor_utils.hpp"
 
 namespace fc::vm::actor::builtin::v2::multisig {
 
-  BigInt MultisigUtilsImplV2::amountLocked(
-      const State &state, const ChainEpoch &elapsed_epoch) const {
+  BigInt MultisigUtils::amountLocked(const State &state,
+                                     const ChainEpoch &elapsed_epoch) const {
     if (elapsed_epoch >= state.unlock_duration) {
       return 0;
     }
@@ -25,7 +25,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
     return locked;
   }
 
-  outcome::result<void> MultisigUtilsImplV2::assertAvailable(
+  outcome::result<void> MultisigUtils::assertAvailable(
       const State &state,
       const TokenAmount &current_balance,
       const TokenAmount &amount_to_spend,
@@ -51,9 +51,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
     return outcome::success();
   }
 
-  outcome::result<ApproveTransactionResult>
-  MultisigUtilsImplV2::executeTransaction(
-      Runtime &runtime,
+  outcome::result<ApproveTransactionResult> MultisigUtils::executeTransaction(
       State &state,
       const TransactionId &tx_id,
       const Transaction &transaction) const {
@@ -103,7 +101,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
     return std::make_tuple(applied, out, code);
   }
 
-  outcome::result<void> MultisigUtilsImplV2::purgeApprovals(
+  outcome::result<void> MultisigUtils::purgeApprovals(
       State &state, const Address &address) const {
     OUTCOME_TRY(tx_ids, state.pending_transactions.keys());
 

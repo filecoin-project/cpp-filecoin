@@ -29,6 +29,7 @@
 #include "miner/impl/miner_impl.hpp"
 #include "miner/mining.hpp"
 #include "miner/windowpost.hpp"
+#include "primitives/address/config.hpp"
 #include "proofs/proof_param_provider.hpp"
 #include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/manager_impl.hpp"
@@ -99,6 +100,7 @@ namespace fc {
     option("owner", po::value(&raw.owner));
     option("worker", po::value(&raw.worker));
     option("sector-size", po::value(&raw.sector_size));
+    primitives::address::configCurrentNetwork(option);
 
     po::variables_map vm;
     po::store(parse_command_line(argc, argv, desc), vm);
@@ -303,7 +305,7 @@ namespace fc {
     host->connect(node_peer);
 
     auto storage{std::make_shared<sector_storage::stores::LocalStorageImpl>(
-        config.join("storage.json"))};
+        config.repo_path.string())};
     OUTCOME_TRY(storage->setStorage([&](auto &config2) {
       if (config2.storage_paths.empty()) {
         boost::filesystem::path path{config.join("sectors")};

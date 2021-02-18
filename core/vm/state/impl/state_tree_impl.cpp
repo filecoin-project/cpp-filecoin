@@ -31,23 +31,29 @@ namespace fc::vm::state {
     return outcome::success();
   }
 
-  outcome::result<Actor> StateTreeImpl::get(const Address &address) const {
-    OUTCOME_TRY(address_id, lookupId(address));
+  outcome::result<boost::optional<Actor>> StateTreeImpl::tryGet(
+      const Address &address) const {
+    OUTCOME_TRY(id, tryLookupId(address));
+    if (!id) {
+      return boost::none;
+    }
     for (auto it{tx_.rbegin()}; it != tx_.rend(); ++it) {
-      if (it->removed.count(address_id.getId())) {
-        return storage::hamt::HamtError::kNotFound;
+      if (it->removed.count(id->getId())) {
+        return boost::none;
       }
-      const auto actor{it->actors.find(address_id.getId())};
+      const auto actor{it->actors.find(id->getId())};
       if (actor != it->actors.end()) {
         return actor->second;
       }
     }
-    OUTCOME_TRY(actor, by_id.get(address_id));
-    _set(address_id.getId(), actor);
+    OUTCOME_TRY(actor, by_id.tryGet(*id));
+    if (actor) {
+      _set(id->getId(), *actor);
+    }
     return std::move(actor);
   }
 
-  outcome::result<Address> StateTreeImpl::lookupId(
+  outcome::result<boost::optional<Address>> StateTreeImpl::tryLookupId(
       const Address &address) const {
     if (address.isId()) {
       return address;
@@ -59,9 +65,12 @@ namespace fc::vm::state {
       }
     }
     OUTCOME_TRY(init_actor_state, state<InitActorState>(actor::kInitAddress));
-    OUTCOME_TRY(id, init_actor_state.address_map.get(address));
-    tx().lookup.emplace(address, id);
-    return Address::makeFromId(id);
+    OUTCOME_TRY(id, init_actor_state.address_map.tryGet(address));
+    if (id) {
+      tx().lookup.emplace(address, *id);
+      return Address::makeFromId(*id);
+    }
+    return boost::none;
   }
 
   outcome::result<Address> StateTreeImpl::registerNewAddress(

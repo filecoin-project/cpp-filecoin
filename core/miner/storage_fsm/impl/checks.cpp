@@ -12,9 +12,12 @@
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/miner/policy.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
+#include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
 
 namespace fc::mining::checks {
   using crypto::randomness::DomainSeparationTag;
@@ -44,6 +47,9 @@ namespace fc::mining::checks {
       case vm::actor::ActorVersion::kVersion0:
         return maxSealDuration(sector_info->sector_type);
       case vm::actor::ActorVersion::kVersion2:
+        return vm::actor::builtin::v2::miner::kMaxProveCommitDuration;
+      // TODO (m.tagirov or a.chernyshov) change to v3
+      case vm::actor::ActorVersion::kVersion3:
         return vm::actor::builtin::v2::miner::kMaxProveCommitDuration;
     }
   }
@@ -123,12 +129,18 @@ namespace fc::mining::checks {
     OUTCOME_TRY(actor, api->StateGetActor(miner_address, tipset_key));
     auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
     vm::actor::builtin::v0::miner::MinerActorState state;
-    if (actor.code == vm::actor::builtin::v0::kStorageMinerCodeCid) {
+    if (actor.code == vm::actor::builtin::v0::kStorageMinerCodeId) {
       OUTCOME_TRYA(state, ipfs->getCbor<decltype(state)>(actor.head));
-    } else if (actor.code == vm::actor::builtin::v2::kStorageMinerCodeCid) {
+    } else if (actor.code == vm::actor::builtin::v2::kStorageMinerCodeId) {
       OUTCOME_TRY(
           state2,
           ipfs->getCbor<vm::actor::builtin::v2::miner::State>(actor.head));
+      state.precommitted_sectors = state2.precommitted_sectors;
+      state.allocated_sectors = state2.allocated_sectors;
+    } else if (actor.code == vm::actor::builtin::v3::kStorageMinerCodeId) {
+      OUTCOME_TRY(
+          state2,
+          ipfs->getCbor<vm::actor::builtin::v3::miner::State>(actor.head));
       state.precommitted_sectors = state2.precommitted_sectors;
       state.allocated_sectors = state2.allocated_sectors;
     } else {

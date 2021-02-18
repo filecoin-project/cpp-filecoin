@@ -16,9 +16,10 @@ namespace fc::sectorblocks {
    public:
     SectorBlocksImpl(std::shared_ptr<Miner> miner);
 
-    outcome::result<PieceAttributes> addPiece(UnpaddedPieceSize size,
-                                              const std::string &piece_data,
-                                              DealInfo deal) override;
+    outcome::result<PieceAttributes> addPiece(
+        UnpaddedPieceSize size,
+        const std::string &piece_data_path,
+        DealInfo deal) override;
 
     outcome::result<std::vector<PieceLocation>> getRefs(
         DealId deal_id) const override;
@@ -35,7 +36,7 @@ namespace fc::sectorblocks {
 
     std::mutex mutex_;
     std::map<DealId, std::vector<PieceLocation>>
-        storage_;  // TODO: change to DataStore
+        storage_;  // TODO(ortyomka): [FIL-353] change to DataStore
   };
 
 }  // namespace fc::sectorblocks

@@ -7,10 +7,8 @@
 
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/v0/multisig/multisig_actor_state.hpp"
-#include "vm/actor/builtin/v0/multisig/multisig_utils.hpp"
 
 namespace fc::vm::actor::builtin::v0::multisig {
-  using utils::multisig::MultisigUtils;
 
   struct Construct : ActorMethodBase<1> {
     struct Params {
@@ -21,11 +19,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     ACTOR_METHOD_DECL();
     static outcome::result<Result> execute(Runtime &runtime,
-                                           const Params &params,
-                                           const MultisigUtils &utils);
+                                           const Params &params);
 
     static outcome::result<std::vector<Address>> getResolvedSigners(
-        const Runtime &runtime, const std::vector<Address> &signers);
+        Runtime &runtime, const std::vector<Address> &signers);
     static outcome::result<void> checkParams(
         const std::vector<Address> &signers,
         size_t threshold,
@@ -59,12 +56,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
-    static outcome::result<Result> execute(Runtime &runtime,
-                                           const Params &params,
-                                           const MultisigUtils &utils);
-
-    static outcome::result<std::tuple<TransactionId, Transaction>>
-    createTransaction(const Params &params, State &state);
   };
   CBOR_TUPLE(Propose::Params, to, value, method, params)
   CBOR_TUPLE(Propose::Result, tx_id, applied, code, return_value)
@@ -86,15 +77,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
-    static outcome::result<Result> execute(Runtime &runtime,
-                                           const Params &params,
-                                           const MultisigUtils &utils);
-
-    static outcome::result<Result> approveTransaction(
-        Runtime &runtime,
-        const Params &params,
-        State &state,
-        const MultisigUtils &utils);
   };
   CBOR_TUPLE(Approve::Params, tx_id, proposal_hash)
   CBOR_TUPLE(Approve::Result, applied, code, return_value)
@@ -106,15 +88,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
-    static outcome::result<Result> execute(Runtime &runtime,
-                                           const Params &params,
-                                           const MultisigUtils &utils);
-
-    static outcome::result<void> checkTransaction(Runtime &runtime,
-                                                  const Params &params,
-                                                  const State &state);
-    static outcome::result<void> removeTransaction(const Params &params,
-                                                   State &state);
   };
   CBOR_TUPLE(Cancel::Params, tx_id, proposal_hash)
 
@@ -125,9 +98,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
-    static outcome::result<Result> execute(Runtime &runtime,
-                                           const Params &params,
-                                           const MultisigUtils &utils);
 
     static outcome::result<void> addSigner(const Params &params,
                                            State &state,
@@ -142,16 +112,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
-    static outcome::result<Result> execute(Runtime &runtime,
-                                           const Params &params,
-                                           const MultisigUtils &utils);
 
     static outcome::result<void> checkState(const Params &params,
                                             const State &state,
                                             const Address &signer);
-    static void removeSigner(const Params &params,
-                             State &state,
-                             const Address &signer);
   };
   CBOR_TUPLE(RemoveSigner::Params, signer, decrease_threshold)
 
@@ -163,8 +127,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     ACTOR_METHOD_DECL();
     static outcome::result<Result> execute(Runtime &runtime,
-                                           const Params &params,
-                                           const MultisigUtils &utils);
+                                           const Params &params);
 
     static outcome::result<void> swapSigner(State &state,
                                             const Address &from,
@@ -178,12 +141,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
-    static outcome::result<Result> execute(Runtime &runtime,
-                                           const Params &params,
-                                           const MultisigUtils &utils);
-
-    static outcome::result<void> changeThreshold(const Params &params,
-                                                 State &state);
   };
   CBOR_TUPLE(ChangeThreshold::Params, new_threshold)
 
@@ -195,11 +152,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
-    static outcome::result<Result> execute(Runtime &runtime,
-                                           const Params &params,
-                                           const MultisigUtils &utils);
-
-    static outcome::result<void> checkNetwork(const Runtime &runtime);
     static outcome::result<void> lockBalance(const Params &params,
                                              State &state);
   };

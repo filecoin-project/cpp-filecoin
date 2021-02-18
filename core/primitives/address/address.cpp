@@ -27,6 +27,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::address, AddressError, e) {
 namespace fc::primitives::address {
   using crypto::blake2b::blake2b_160;
 
+  Network currentNetwork{TESTNET};
+
   bool Address::isKeyType() const {
     return visit_in_place(
         data,

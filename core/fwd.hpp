@@ -6,6 +6,7 @@
 #pragma once
 
 #include <memory>
+#include <set>
 
 #include "const.hpp"
 

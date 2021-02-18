@@ -13,7 +13,7 @@
 #include "vm/runtime/env.hpp"
 
 namespace fc::vm::actor {
-  using builtin::v0::kCronCodeCid;
+  using builtin::v0::kCronCodeId;
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
   using runtime::Env;
@@ -40,7 +40,7 @@ namespace fc::vm::actor {
     message.method = MethodNumber{1000};
     EXPECT_CALL(*runtime, getMessage()).WillOnce(testing::Return(message));
     EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrInvalidMethod,
-                         invoker.invoke({kCronCodeCid}, runtime));
+                         invoker.invoke({kCronCodeId}, runtime));
   }
 
   /// decodeActorParams returns error or decoded params

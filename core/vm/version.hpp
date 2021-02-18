@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_VM_VERSION_HPP
-#define FILECOIN_CORE_VM_VERSION_HPP
+#pragma once
 
 #include "primitives/chain_epoch/chain_epoch.hpp"
 
@@ -25,6 +24,9 @@ namespace fc::vm::version {
     kVersion7,
     kVersion8,
     kVersion9,
+    kVersion10,
+    kVersion11,
+    kVersion12,
   };
 
   const NetworkVersion kLatestVersion = NetworkVersion::kVersion9;
@@ -60,6 +62,9 @@ namespace fc::vm::version {
   const ChainEpoch kUpgradeOrangeHeight = 336458;
   const ChainEpoch kUpgradeClausHeight = 343200;
 
+  // TODO
+  const ChainEpoch kUpgradeActorsV3Height = 999999999;
+
   /**
    * Returns network version for blockchain height
    * @param height - blockchain height
@@ -77,8 +82,7 @@ namespace fc::vm::version {
     if (height <= kUpgradeCalicoHeight) return NetworkVersion::kVersion6;
     if (height <= kUpgradePersianHeight) return NetworkVersion::kVersion7;
     if (height <= kUpgradeOrangeHeight) return NetworkVersion::kVersion8;
+    if (height <= kUpgradeActorsV3Height) return NetworkVersion::kVersion9;
     return kLatestVersion;
   }
 }  // namespace fc::vm::version
-
-#endif  // FILECOIN_CORE_VM_VERSION_HPP
