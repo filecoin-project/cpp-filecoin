@@ -862,8 +862,8 @@ namespace fc::sector_storage::stores {
         .id = non_primary_id,
         .weight = 0,
         .urls = urls_,
-        .can_store = false,
         .can_seal = true,
+        .can_store = false,
         .is_primary = false,
     };
 
@@ -941,16 +941,16 @@ namespace fc::sector_storage::stores {
         .id = non_primary_id,
         .weight = 0,
         .urls = urls_,
-        .can_store = false,
         .can_seal = true,
+        .can_store = false,
         .is_primary = false,
     };
     StorageInfo info1{
         .id = primary_id,
         .weight = 0,
         .urls = urls_,
-        .can_store = true,
         .can_seal = true,
+        .can_store = true,
         .is_primary = false,
     };
 
@@ -1038,16 +1038,16 @@ namespace fc::sector_storage::stores {
         .id = non_primary_id,
         .weight = 0,
         .urls = urls_,
-        .can_store = false,
         .can_seal = true,
+        .can_store = false,
         .is_primary = false,
     };
     StorageInfo info1{
         .id = primary_id,
         .weight = 0,
         .urls = urls_,
-        .can_store = true,
         .can_seal = true,
+        .can_store = true,
         .is_primary = false,
     };
 
@@ -1145,8 +1145,8 @@ namespace fc::sector_storage::stores {
         .id = storage_id,
         .weight = 0,
         .urls = urls_,
-        .can_store = false,
         .can_seal = true,
+        .can_store = false,
         .is_primary = false,
     };
 
