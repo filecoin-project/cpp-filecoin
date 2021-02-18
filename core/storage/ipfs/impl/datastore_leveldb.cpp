@@ -8,17 +8,11 @@
 #include "storage/leveldb/leveldb_error.hpp"
 
 namespace fc::storage::ipfs {
-  namespace {
-    /**
-     * @brief convenience function to encode value
-     * @param value key value to encode
-     * @return encoded value as Buffer
-     */
-    inline outcome::result<common::Buffer> encodeKey(const CID &value) {
-      OUTCOME_TRY(encoded, value.toBytes());
-      return common::Buffer(std::move(encoded));
-    }
-  }  // namespace
+  outcome::result<common::Buffer> LeveldbDatastore::encodeKey(
+      const CID &value) {
+    OUTCOME_TRY(encoded, value.toBytes());
+    return common::Buffer(std::move(encoded));
+  }
 
   LeveldbDatastore::LeveldbDatastore(std::shared_ptr<BufferMap> leveldb)
       : leveldb_{std::move(leveldb)} {

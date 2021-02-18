@@ -15,16 +15,16 @@
 
 namespace fc::mining {
   using api::Address;
-  using api::FullNodeApi;
-  using primitives::BigInt;
   using api::BlockTemplate;
   using api::ChainEpoch;
+  using api::FullNodeApi;
   using api::MiningBaseInfo;
   using api::SignedMessage;
-  using primitives::tipset::Tipset;
-  using primitives::tipset::TipsetKey;
   using clock::UTCClock;
   using libp2p::protocol::Scheduler;
+  using primitives::BigInt;
+  using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetKey;
   using sector_storage::Prover;
 
   struct pair_hash {

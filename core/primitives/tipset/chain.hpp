@@ -29,7 +29,7 @@ namespace fc::primitives::tipset::chain {
                                              const TipsetKey &key,
                                              TsBranchPtr parent);
 
-    static outcome::result<TsBranchPtr> load(KvPtr kv);
+    static TsBranchPtr load(KvPtr kv);
     static outcome::result<TsBranchPtr> create(KvPtr kv,
                                                const TipsetKey &key,
                                                TsLoadPtr ts_load);
@@ -49,8 +49,11 @@ namespace fc::primitives::tipset::chain {
       TsBranchPtr branch, TsBranchIter to_it, KvPtr kv = nullptr);
 
   using TsBranches = std::set<TsBranchPtr>;
+  using TsBranchesPtr = std::shared_ptr<TsBranches>;
   TsBranchIter find(const TsBranches &branches, TipsetCPtr ts);
   TsBranchIter insert(TsBranches &branches, TipsetCPtr ts);
+
+  std::vector<TsBranchIter> children(TsBranchIter ts_it);
 
   /**
    * @return valid iterator

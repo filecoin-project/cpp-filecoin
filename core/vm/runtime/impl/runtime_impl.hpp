@@ -92,7 +92,7 @@ namespace fc::vm::runtime {
 
     outcome::result<void> commit(const CID &new_state) override;
 
-    outcome::result<Address> resolveAddress(
+    outcome::result<boost::optional<Address>> tryResolveAddress(
         const Address &address) const override;
 
     outcome::result<bool> verifySignature(

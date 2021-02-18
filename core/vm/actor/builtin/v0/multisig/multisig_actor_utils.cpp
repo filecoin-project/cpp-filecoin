@@ -19,7 +19,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   outcome::result<Address> MultisigUtils::getResolvedAddress(
       const Address &address) const {
     REQUIRE_NO_ERROR_A(resolved,
-                       runtime.resolveAddress(address),
+                       runtime.resolveOrCreate(address),
                        VMExitCode::kErrIllegalState);
     return std::move(resolved);
   }
