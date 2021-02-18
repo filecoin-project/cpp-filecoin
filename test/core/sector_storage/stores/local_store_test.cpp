@@ -864,6 +864,7 @@ namespace fc::sector_storage::stores {
         .urls = urls_,
         .can_store = false,
         .can_seal = true,
+        .is_primary = false,
     };
 
     std::string sector_file = (storage_path / toString(type)
@@ -883,8 +884,6 @@ namespace fc::sector_storage::stores {
         .WillOnce(testing::Return(outcome::success()));
 
     EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
-
-    info.is_primary = false;
 
     std::vector<StorageInfo> sector_infos = {info};
 
@@ -944,6 +943,7 @@ namespace fc::sector_storage::stores {
         .urls = urls_,
         .can_store = false,
         .can_seal = true,
+        .is_primary = false,
     };
     StorageInfo info1{
         .id = primary_id,
@@ -951,6 +951,7 @@ namespace fc::sector_storage::stores {
         .urls = urls_,
         .can_store = true,
         .can_seal = true,
+        .is_primary = false,
     };
 
     std::string sector_file = (storage_path / toString(type)
@@ -983,7 +984,6 @@ namespace fc::sector_storage::stores {
     EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
     EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path1.string()));
 
-    info.is_primary = false;
     info1.is_primary = true;
 
     std::vector<StorageInfo> sector_infos = {info, info1};
@@ -1040,6 +1040,7 @@ namespace fc::sector_storage::stores {
         .urls = urls_,
         .can_store = false,
         .can_seal = true,
+        .is_primary = false,
     };
     StorageInfo info1{
         .id = primary_id,
@@ -1047,6 +1048,7 @@ namespace fc::sector_storage::stores {
         .urls = urls_,
         .can_store = true,
         .can_seal = true,
+        .is_primary = false,
     };
 
     EXPECT_CALL(*storage_, getStat(storage_path.string()))
@@ -1145,6 +1147,7 @@ namespace fc::sector_storage::stores {
         .urls = urls_,
         .can_store = false,
         .can_seal = true,
+        .is_primary = false,
     };
 
     EXPECT_CALL(*storage_, getStat(storage_path.string()))
