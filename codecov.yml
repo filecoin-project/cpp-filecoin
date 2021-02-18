@@ -1,2 +1,3 @@
 ignore:
   - "test" # exclude 'test' directory from coverage
+  - "core/sector_storage/stores/impl/remote_*"
