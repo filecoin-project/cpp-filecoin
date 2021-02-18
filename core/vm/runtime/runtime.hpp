@@ -9,7 +9,7 @@
 
 #include "adt/address_key.hpp"
 #include "adt/map.hpp"
-#include "common/outcome.hpp"
+#include "common/outcome2.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
@@ -206,8 +206,16 @@ namespace fc::vm::runtime {
     virtual outcome::result<void> commit(const CID &new_state) = 0;
 
     /// Resolve address to id-address
-    virtual outcome::result<Address> resolveAddress(
+    virtual outcome::result<boost::optional<Address>> tryResolveAddress(
         const Address &address) const = 0;
+
+    outcome::result<Address> resolveAddress(const Address &address) const {
+      OUTCOME_TRY(id, tryResolveAddress(address));
+      if (id) {
+        return *id;
+      }
+      return OutcomeError::kDefault;
+    }
 
     /// Verify signature
     virtual outcome::result<bool> verifySignature(
@@ -374,6 +382,15 @@ namespace fc::vm::runtime {
       } else {
         ABORT(VMExitCode::kSysErrReserved1);
       }
+    }
+
+    inline outcome::result<Address> resolveOrCreate(const Address &address) {
+      OUTCOME_TRY(id, tryResolveAddress(address));
+      if (id) {
+        return *id;
+      }
+      OUTCOME_TRY(sendFunds(address, 0));
+      return resolveAddress(address);
     }
   };
 

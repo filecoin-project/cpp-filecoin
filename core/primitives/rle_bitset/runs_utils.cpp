@@ -6,8 +6,8 @@
 #include "primitives/rle_bitset/runs_utils.hpp"
 
 namespace {
-  using fc::primitives::bitvec::BitvecReader;
   using fc::primitives::RunsError;
+  using fc::primitives::bitvec::BitvecReader;
 
   fc::outcome::result<uint64_t> decodeVarint(BitvecReader &reader) {
     uint64_t result = 0;

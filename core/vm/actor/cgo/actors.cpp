@@ -42,7 +42,6 @@ namespace fc::vm::actor::cgo {
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using runtime::resolveKey;
-  using storage::hamt::HamtError;
   using toolchain::Toolchain;
 
   void configMainnet() {
@@ -191,15 +190,15 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtActorId) {
-    auto r{rt->execution()->state_tree->lookupId(arg.get<Address>())};
-    if (!r) {
-      if (r.error() == HamtError::kNotFound) {
-        ret << kOk << false;
+    if (auto _id{
+            rt->execution()->state_tree->tryLookupId(arg.get<Address>())}) {
+      if (auto &id{_id.value()}) {
+        ret << kOk << true << *id;
       } else {
-        ret << kFatal;
+        ret << kOk << false;
       }
     } else {
-      ret << kOk << true << r.value();
+      ret << kFatal;
     }
   }
 
@@ -274,14 +273,14 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtActorCode) {
-    if (auto _actor{rt->execution()->state_tree->get(arg.get<Address>())}) {
-      ret << kOk << true << _actor.value().code;
-    } else {
-      if (_actor.error() == HamtError::kNotFound) {
-        ret << kOk << false;
+    if (auto _actor{rt->execution()->state_tree->tryGet(arg.get<Address>())}) {
+      if (auto &actor{_actor.value()}) {
+        ret << kOk << true << actor->code;
       } else {
-        ret << kFatal;
+        ret << kOk << false;
       }
+    } else {
+      ret << kFatal;
     }
   }
 

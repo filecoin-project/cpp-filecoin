@@ -43,6 +43,6 @@ namespace fc::adt {
       const std::string &key) {
     OUTCOME_TRY(value2, UvarintKeyer::decode(key));
     int64_t value = value2 >> 1;
-    return value & 1 ? ~value : value;
+    return value2 & 1 ? ~value : value;
   }
 }  // namespace fc::adt

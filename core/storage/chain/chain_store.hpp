@@ -29,8 +29,6 @@ namespace fc::storage::blockchain {
    public:
     virtual ~ChainStore() = default;
 
-    virtual outcome::result<void> start() = 0;
-
     virtual outcome::result<void> addBlock(const BlockHeader &block) = 0;
 
     virtual TipsetCPtr heaviestTipset() const = 0;
@@ -41,11 +39,7 @@ namespace fc::storage::blockchain {
     virtual connection_t subscribeHeadChanges(
         const std::function<HeadChangeSignature> &subscriber) = 0;
 
-    virtual const std::string &getNetworkName() const = 0;
-
-    virtual const CID &genesisCID() const = 0;
-
-    virtual primitives::BigInt getHeaviestWeight() = 0;
+    virtual primitives::BigInt getHeaviestWeight() const = 0;
   };
 
 }  // namespace fc::storage::blockchain

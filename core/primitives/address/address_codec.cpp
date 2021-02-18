@@ -86,7 +86,7 @@ namespace fc::primitives::address {
   std::string encodeToString(const Address &address) {
     std::string res{};
 
-    char networkPrefix = kDefaultNetwork == Network::TESTNET ? 't' : 'f';
+    const char networkPrefix = currentNetwork == Network::TESTNET ? 't' : 'f';
     res.push_back(networkPrefix);
 
     Protocol p = address.getProtocol();

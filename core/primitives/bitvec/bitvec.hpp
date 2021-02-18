@@ -158,4 +158,4 @@ namespace fc::primitives::bitvec {
     uint8_t bitsCap;
   };
 
-}  // namespace fc::primitives
+}  // namespace fc::primitives::bitvec

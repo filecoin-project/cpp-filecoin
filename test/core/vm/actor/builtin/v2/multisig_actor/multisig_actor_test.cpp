@@ -48,10 +48,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
 
       ON_CALL_3(runtime, getIpfsDatastore(), ipld);
 
-      EXPECT_CALL(runtime, resolveAddress(testing::_))
-          .Times(testing::AnyNumber())
-          .WillRepeatedly(testing::Invoke(
-              [&](auto &address) { return state_tree.lookupId(address); }));
+      runtime.resolveAddressWith(state_tree);
 
       EXPECT_CALL(runtime, getCurrentEpoch())
           .Times(testing::AnyNumber())

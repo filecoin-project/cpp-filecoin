@@ -21,11 +21,11 @@ namespace fc::hello {
 
   Hello::Hello(std::shared_ptr<Host> host,
                std::shared_ptr<ChainStore> chain_store,
+               CID genesis,
                StateCb state_cb)
-      : MOVE(host), chain_store{chain_store} {
+      : MOVE(host), chain_store{chain_store}, genesis{genesis} {
     this->host->setProtocolHandler(
-        kProtocolId,
-        [genesis{chain_store->genesisCID()}, MOVE(state_cb)](auto _stream) {
+        kProtocolId, [genesis, MOVE(state_cb)](auto _stream) {
           auto stream{std::make_shared<CborStream>(_stream)};
           stream->template read<State>([stream, MOVE(genesis), MOVE(state_cb)](
                                            auto _state) {
@@ -54,7 +54,7 @@ namespace fc::hello {
     State hello{ts->key.cids(),
                 ts->height(),
                 chain_store->getHeaviestWeight(),
-                chain_store->genesisCID()};
+                genesis};
     host->newStream(peer, kProtocolId, [MOVE(hello)](auto _stream) {
       if (_stream) {
         auto stream{std::make_shared<CborStream>(_stream.value())};

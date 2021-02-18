@@ -8,6 +8,7 @@
 
 #include "api/make.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
+#include "primitives/address/config.hpp"
 
 namespace fc {
   struct Config {
@@ -28,6 +29,7 @@ namespace fc {
     option("repo", po::value(&repo_path)->required());
     option("p2p_port", po::value(&config.p2p_port)->default_value(3020));
     option("api_port", po::value(&config.api_port)->default_value(3021));
+    primitives::address::configCurrentNetwork(option);
     po::variables_map vm;
     po::store(parse_command_line(argc, argv, desc), vm);
     po::notify(vm);

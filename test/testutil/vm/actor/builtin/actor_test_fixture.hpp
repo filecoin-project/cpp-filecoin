@@ -39,7 +39,7 @@ namespace fc::testutil::vm::actor::builtin {
       EXPECT_CALL(runtime, getIpfsDatastore())
           .WillRepeatedly(testing::Invoke([&]() { return ipld; }));
 
-      EXPECT_CALL(runtime, resolveAddress(_))
+      EXPECT_CALL(runtime, tryResolveAddress(_))
           .WillRepeatedly(testing::Invoke([&](const auto &address) {
             auto found = resolve_addresses.find(address);
             if (found != resolve_addresses.end()) return found->second;
