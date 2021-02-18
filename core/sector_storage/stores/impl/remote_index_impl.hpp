@@ -45,14 +45,14 @@ namespace fc::sector_storage::stores {
         RegisteredSealProof seal_proof_type,
         bool sealing_mode) override;
 
-    outcome::result<std::unique_ptr<Lock>> storageLock(
+    outcome::result<std::unique_ptr<WLock>> storageLock(
         const SectorId &sector,
         SectorFileType read,
         SectorFileType write) override;
 
-    std::unique_ptr<Lock> storageTryLock(const SectorId &sector,
-                                         SectorFileType read,
-                                         SectorFileType write) override;
+    std::unique_ptr<WLock> storageTryLock(const SectorId &sector,
+                                          SectorFileType read,
+                                          SectorFileType write) override;
 
    private:
     std::shared_ptr<StorageMinerApi> api_;

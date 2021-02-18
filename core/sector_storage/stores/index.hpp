@@ -13,9 +13,9 @@
 #include "primitives/types.hpp"
 
 namespace fc::sector_storage::stores {
-  class Lock {
+  class WLock {
    public:
-    virtual ~Lock() = default;
+    virtual ~WLock() = default;
   };
 
   using fc::primitives::sector::SectorId;
@@ -88,12 +88,12 @@ namespace fc::sector_storage::stores {
         RegisteredSealProof seal_proof_type,
         bool sealing_mode) = 0;
 
-    virtual outcome::result<std::unique_ptr<Lock>> storageLock(
+    virtual outcome::result<std::unique_ptr<WLock>> storageLock(
         const SectorId &sector, SectorFileType read, SectorFileType write) = 0;
 
-    virtual std::unique_ptr<Lock> storageTryLock(const SectorId &sector,
-                                                 SectorFileType read,
-                                                 SectorFileType write) = 0;
+    virtual std::unique_ptr<WLock> storageTryLock(const SectorId &sector,
+                                                  SectorFileType read,
+                                                  SectorFileType write) = 0;
   };
 
   enum class IndexErrors {

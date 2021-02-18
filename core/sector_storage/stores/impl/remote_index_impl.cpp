@@ -53,14 +53,14 @@ namespace fc::sector_storage::stores {
     return api_->StorageBestAlloc(allocate, seal_proof_type, sealing_mode);
   }
 
-  outcome::result<std::unique_ptr<Lock>>
+  outcome::result<std::unique_ptr<WLock>>
   stores::RemoteSectorIndexImpl::storageLock(const SectorId &sector,
                                              SectorFileType read,
                                              SectorFileType write) {
     return IndexErrors::kNotSupportedMethod;
   }
 
-  std::unique_ptr<Lock> stores::RemoteSectorIndexImpl::storageTryLock(
+  std::unique_ptr<WLock> stores::RemoteSectorIndexImpl::storageTryLock(
       const SectorId &sector, SectorFileType read, SectorFileType write) {
     return nullptr;  // kNotSupported
   }

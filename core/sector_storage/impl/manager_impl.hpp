@@ -111,7 +111,7 @@ namespace fc::sector_storage {
 
     struct Response {
       stores::SectorPaths paths;
-      std::unique_ptr<stores::Lock> lock;
+      std::unique_ptr<stores::WLock> lock;
     };
 
     outcome::result<Response> acquireSector(SectorId sector_id,
@@ -122,7 +122,7 @@ namespace fc::sector_storage {
     struct PubToPrivateResponse {
       proofs::SortedPrivateSectorInfo private_info;
       std::vector<SectorId> skipped;
-      std::vector<std::unique_ptr<stores::Lock>> locks;
+      std::vector<std::unique_ptr<stores::WLock>> locks;
     };
 
     outcome::result<PubToPrivateResponse> publicSectorToPrivate(

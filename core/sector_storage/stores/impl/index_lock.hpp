@@ -18,7 +18,7 @@ namespace fc::sector_storage::stores {
   using primitives::sector_file::SectorFileType;
 
   struct IndexLock : public std::enable_shared_from_this<IndexLock> {
-    struct Lock : public stores::Lock {
+    struct Lock : public stores::WLock {
       const SectorId sector;
       const SectorFileType read, write;
       std::shared_ptr<IndexLock> index;

@@ -47,12 +47,12 @@ namespace fc::sector_storage::stores {
                      bool sealing_mode));
 
     MOCK_METHOD3(storageLock,
-                 outcome::result<std::unique_ptr<Lock>>(const SectorId &,
+                 outcome::result<std::unique_ptr<WLock>>(const SectorId &,
                                                         SectorFileType,
                                                         SectorFileType));
 
     MOCK_METHOD3(storageTryLock,
-                 std::unique_ptr<Lock>(const SectorId &,
+                 std::unique_ptr<WLock>(const SectorId &,
                                        SectorFileType,
                                        SectorFileType));
   };
