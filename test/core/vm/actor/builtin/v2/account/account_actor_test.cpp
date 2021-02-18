@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v2/account/account_actor.hpp"
+#include "vm/actor/builtin/v2/account/account_actor_state.hpp"
 
 #include "testutil/init_actor.hpp"
 
@@ -14,6 +14,7 @@ using fc::vm::state::StateTree;
 
 /// Account actor state CBOR encoding and decoding
 TEST(AccountActorTest, AccountActorStateCbor) {
-  AccountActorState state{Address::makeFromId(3)};
+  AccountActorState state;
+  state.address = Address::makeFromId(3);
   expectEncodeAndReencode(state, "81420003"_unhex);
 }

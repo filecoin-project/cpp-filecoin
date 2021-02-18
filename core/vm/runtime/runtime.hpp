@@ -20,6 +20,7 @@
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/actor_encoding.hpp"
+#include "vm/actor/builtin/states/state_manager.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/message/message.hpp"
 #include "vm/runtime/runtime_types.hpp"
@@ -35,6 +36,7 @@ namespace fc::vm::runtime {
   using actor::kSendMethodNumber;
   using actor::MethodNumber;
   using actor::MethodParams;
+  using actor::builtin::states::StateManager;
   using common::Buffer;
   using crypto::blake2b::Blake2b256Hash;
   using crypto::randomness::DomainSeparationTag;
@@ -68,6 +70,8 @@ namespace fc::vm::runtime {
     virtual ~Runtime() = default;
 
     virtual std::shared_ptr<Execution> execution() const = 0;
+
+    virtual std::shared_ptr<StateManager> stateManager() const = 0;
 
     virtual NetworkVersion getNetworkVersion() const = 0;
 

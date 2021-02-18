@@ -12,12 +12,13 @@
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/miner/policy.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
+#include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::mining::checks {
   using crypto::randomness::DomainSeparationTag;
@@ -39,10 +40,11 @@ namespace fc::mining::checks {
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::UnsignedMessage;
+  using vm::toolchain::Toolchain;
 
   outcome::result<EpochDuration> getMaxProveCommitDuration(
       NetworkVersion network, const std::shared_ptr<SectorInfo> &sector_info) {
-    auto version{vm::actor::getActorVersionForNetwork(network)};
+    auto version{Toolchain::getActorVersionForNetwork(network)};
     switch (version) {
       case vm::actor::ActorVersion::kVersion0:
         return maxSealDuration(sector_info->sector_type);

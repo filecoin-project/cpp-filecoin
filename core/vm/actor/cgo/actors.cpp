@@ -10,7 +10,6 @@
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
-#include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/cgo/c_actors.h"
 #include "vm/actor/cgo/go_actors.h"
 #include "vm/dvm/dvm.hpp"
@@ -29,7 +28,6 @@
                  CborEncodeStream &ret)
 
 namespace fc::vm::actor::cgo {
-  using builtin::v0::account::AccountActorState;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;

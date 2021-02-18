@@ -11,7 +11,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"
 #include "testutil/resources/resources.hpp"
-#include "vm/actor/builtin/v0/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/account/account_actor_state.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"

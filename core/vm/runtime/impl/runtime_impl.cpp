@@ -26,10 +26,15 @@ namespace fc::vm::runtime {
                            const Address &caller_id)
       : execution_{std::move(execution)},
         message_{std::move(message)},
-        caller_id{caller_id} {}
+        caller_id{caller_id},
+        state_manager(std::make_shared<StateManager>(execution_->charging_ipld, execution_->state_tree, message_.to)) {}
 
   std::shared_ptr<Execution> RuntimeImpl::execution() const {
     return execution_;
+  }
+
+  std::shared_ptr<StateManager> RuntimeImpl::stateManager() const {
+    return state_manager;
   }
 
   NetworkVersion RuntimeImpl::getNetworkVersion() const {
@@ -41,7 +46,7 @@ namespace fc::vm::runtime {
   }
 
   ActorVersion RuntimeImpl::getActorVersion() const {
-    return actor::getActorVersionForNetwork(getNetworkVersion());
+    return Toolchain::getActorVersionForNetwork(getNetworkVersion());
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomnessFromTickets(

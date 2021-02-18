@@ -15,7 +15,6 @@
 #include "primitives/tipset/chain.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/hamt/hamt.hpp"
-#include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/market/actor.hpp"
 #include "vm/actor/builtin/v0/miner/types.hpp"
@@ -25,6 +24,7 @@
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/actor/builtin/states/state_provider.hpp"
 
 #define MOVE(x)  \
   x {            \
@@ -36,7 +36,6 @@ namespace fc::api {
   using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
-  using vm::actor::builtin::v0::account::AccountActorState;
   using vm::actor::builtin::v0::init::InitActorState;
   using vm::actor::builtin::v0::market::DealState;
   using vm::actor::builtin::v0::miner::MinerActorState;
@@ -55,6 +54,7 @@ namespace fc::api {
   using vm::state::StateTreeImpl;
   using connection_t = boost::signals2::connection;
   using MarketActorState = vm::actor::builtin::v0::market::State;
+  using vm::actor::builtin::states::StateProvider;
 
   // TODO: reuse for block validation
   inline bool minerHasMinPower(const StoragePower &claim_qa,
@@ -116,9 +116,10 @@ namespace fc::api {
     }
 
     outcome::result<Address> accountKey(const Address &id) {
-      // TODO(turuslan): error if not account
-      OUTCOME_TRY(state, state_tree.state<AccountActorState>(id));
-      return state.address;
+      const StateProvider provider(state_tree.getStore());
+      OUTCOME_TRY(actor, state_tree.get(id));
+      OUTCOME_TRY(state, provider.getAccountActorState(actor));
+      return state->address;
     }
   };
 

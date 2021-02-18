@@ -21,6 +21,8 @@ namespace fc::vm::runtime {
 
     std::shared_ptr<Execution> execution() const override;
 
+    std::shared_ptr<StateManager> stateManager() const override;
+
     NetworkVersion getNetworkVersion() const override;
 
     /** \copydoc Runtime::getCurrentEpoch() */
@@ -126,6 +128,7 @@ namespace fc::vm::runtime {
     std::shared_ptr<Execution> execution_;
     UnsignedMessage message_;
     Address caller_id;
+    std::shared_ptr<StateManager> state_manager;
   };
 
 }  // namespace fc::vm::runtime

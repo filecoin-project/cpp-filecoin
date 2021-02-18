@@ -18,6 +18,8 @@ namespace fc::vm::runtime {
    public:
     MOCK_CONST_METHOD0(execution, std::shared_ptr<Execution>());
 
+    MOCK_CONST_METHOD0(stateManager, std::shared_ptr<StateManager>());
+
     MOCK_CONST_METHOD0(getNetworkVersion, NetworkVersion());
 
     MOCK_CONST_METHOD0(getCurrentEpoch, ChainEpoch());
