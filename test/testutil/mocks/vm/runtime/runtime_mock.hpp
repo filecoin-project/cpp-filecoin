@@ -10,6 +10,7 @@
 
 #include "testutil/outcome.hpp"
 #include "vm/runtime/runtime.hpp"
+#include "vm/state/state_tree.hpp"
 
 namespace fc::vm::runtime {
 
@@ -124,8 +125,7 @@ namespace fc::vm::runtime {
           .WillOnce(testing::Return(fc::outcome::success(result2)));
     }
 
-    template <typename T>
-    void resolveAddressWith(const T &state_tree) {
+    void resolveAddressWith(const state::StateTree &state_tree) {
       EXPECT_CALL(*this, tryResolveAddress(testing::_))
           .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke(
