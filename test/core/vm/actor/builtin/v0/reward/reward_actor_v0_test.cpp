@@ -40,7 +40,7 @@ namespace fc::vm::actor::builtin::v0::reward {
                                 const TokenAmount &expected_reward) {
       const Address winner = Address::makeFromId(1000);
       const Address miner = Address::makeFromId(1100);
-      EXPECT_CALL(runtime, resolveAddress(Eq(winner)))
+      EXPECT_CALL(runtime, tryResolveAddress(Eq(winner)))
           .WillOnce(Return(outcome::success(miner)));
 
       runtime.expectSendM<miner::AddLockedFund>(
@@ -273,7 +273,7 @@ namespace fc::vm::actor::builtin::v0::reward {
 
     const Address winner = Address::makeFromId(1000);
     const Address miner = Address::makeFromId(1100);
-    EXPECT_CALL(runtime, resolveAddress(Eq(winner)))
+    EXPECT_CALL(runtime, tryResolveAddress(Eq(winner)))
         .WillOnce(Return(outcome::success(miner)));
 
     const TokenAmount penalty{0};

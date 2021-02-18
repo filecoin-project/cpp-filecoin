@@ -81,10 +81,7 @@ struct MarketActorTest : testing::Test {
   void SetUp() override {
     ON_CALL_3(runtime, getIpfsDatastore(), ipld);
 
-    EXPECT_CALL(runtime, resolveAddress(testing::_))
-        .Times(testing::AnyNumber())
-        .WillRepeatedly(testing::Invoke(
-            [&](auto &address) { return state_tree.lookupId(address); }));
+    runtime.resolveAddressWith(state_tree);
 
     ON_CALL_3(runtime, getCurrentEpoch(), epoch);
 

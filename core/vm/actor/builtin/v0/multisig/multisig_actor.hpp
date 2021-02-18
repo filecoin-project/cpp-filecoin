@@ -22,7 +22,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
                                            const Params &params);
 
     static outcome::result<std::vector<Address>> getResolvedSigners(
-        const Runtime &runtime, const std::vector<Address> &signers);
+        Runtime &runtime, const std::vector<Address> &signers);
     static outcome::result<void> checkParams(
         const std::vector<Address> &signers,
         size_t threshold,

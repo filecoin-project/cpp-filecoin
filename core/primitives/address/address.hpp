@@ -33,8 +33,7 @@ namespace fc::primitives::address {
    */
   enum Network : uint8_t { MAINNET = 0x0, TESTNET = 0x1 };
 
-  // TODO(turuslan): FIL-118 remove hardcoded TESTNET
-  constexpr auto kDefaultNetwork = TESTNET;
+  extern Network currentNetwork;
 
   /**
    * @brief Known Address protocols

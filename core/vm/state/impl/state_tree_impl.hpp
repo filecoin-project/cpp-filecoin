@@ -27,9 +27,11 @@ namespace fc::vm::state {
     outcome::result<void> set(const Address &address,
                               const Actor &actor) override;
     /// Get actor state
-    outcome::result<Actor> get(const Address &address) const override;
+    outcome::result<boost::optional<Actor>> tryGet(
+        const Address &address) const override;
     /// Lookup id address from address
-    outcome::result<Address> lookupId(const Address &address) const override;
+    outcome::result<boost::optional<Address>> tryLookupId(
+        const Address &address) const override;
     /// Allocate id address and set actor state, does not write to storage
     outcome::result<Address> registerNewAddress(
         const Address &address) override;
@@ -50,7 +52,7 @@ namespace fc::vm::state {
      * @param root - cid of hamt for StateTree v0 or cid of struct StateRoot for
      * StateTree v1
      */
-    outcome::result<void> setRoot(const CID &root);
+    void setRoot(const CID &root);
 
     StateTreeVersion version_;
     std::shared_ptr<IpfsDatastore> store_;

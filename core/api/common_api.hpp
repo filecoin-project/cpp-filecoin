@@ -19,6 +19,10 @@ namespace fc::api {
 
     API_METHOD(NetAddrsListen, PeerInfo)
 
+    API_METHOD(NetConnect, void, const PeerInfo &)
+
+    API_METHOD(NetPeers, std::vector<PeerInfo>)
+
     API_METHOD(Version, VersionResult)
   };
 }  // namespace fc::api

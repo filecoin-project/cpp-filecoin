@@ -32,11 +32,13 @@ namespace fc::hello {
 
     Hello(std::shared_ptr<Host> host,
           std::shared_ptr<ChainStore> chain_store,
+          CID genesis,
           StateCb state_cb);
     void say(const PeerInfo &peer);
 
     std::shared_ptr<Host> host;
     std::shared_ptr<ChainStore> chain_store;
+    CID genesis;
   };
   CBOR_TUPLE(Hello::State, blocks, height, weight, genesis)
   CBOR_TUPLE(Hello::Latency, arrival, sent)

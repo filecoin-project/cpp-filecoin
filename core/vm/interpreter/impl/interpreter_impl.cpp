@@ -19,10 +19,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
   switch (e) {
     case E::kDuplicateMiner:
       return "InterpreterError: Duplicate miner";
-    case E::kMinerSubmitFailed:
-      return "InterpreterError: Miner submit failed";
-    case E::kCronTickFailed:
-      return "InterpreterError: Cron tick failed";
     case E::kTipsetMarkedBad:
       return "InterpreterError: Tipset marked as bad";
     case E::kChainInconsistency:

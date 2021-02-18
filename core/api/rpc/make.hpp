@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_API_RPC_MAKE_HPP
 #define CPP_FILECOIN_CORE_API_RPC_MAKE_HPP
 
+#include "api/rpc/json.hpp"
 #include "api/rpc/rpc.hpp"
 #include "api/utils.hpp"
 #include "api/visit.hpp"

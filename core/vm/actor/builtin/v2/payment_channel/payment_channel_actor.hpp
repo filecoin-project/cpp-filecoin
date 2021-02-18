@@ -18,8 +18,11 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
   constexpr auto kSettleDelay = v0::payment_channel::kSettleDelay;
   constexpr auto kMaxSecretSize = v0::payment_channel::kMaxSecretSize;
 
-  using Construct = v0::payment_channel::Construct;
-  
+  struct Construct : ActorMethodBase<1> {
+    using Params = v0::payment_channel::Construct::Params;
+    ACTOR_METHOD_DECL();
+  };
+
   struct UpdateChannelState : ActorMethodBase<2> {
     struct Params {
       SignedVoucher signed_voucher;
