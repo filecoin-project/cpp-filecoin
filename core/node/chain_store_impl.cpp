@@ -43,6 +43,8 @@ namespace fc::sync {
 
     head_constructor_.start(events_);
 
+    events_->signalCurrentHead({.tipset = head_, .weight = heaviest_weight_});
+
     return outcome::success();
   }
 

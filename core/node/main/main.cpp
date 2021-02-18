@@ -100,7 +100,7 @@ namespace fc {
     o.host->start();
     auto peer_info = o.host->getPeerInfo();
     if (peer_info.addresses.empty()) {
-      log()->error("Cannot listen to {}: {}",
+      log()->error("Cannot listen to {}",
                    config.listen_address.getStringAddress());
       exit(-1);
     }

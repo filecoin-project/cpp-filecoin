@@ -240,14 +240,14 @@ namespace fc::node {
     auto weight_calculator =
         std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
 
+    o.interpreter = std::make_shared<vm::interpreter::InterpreterImpl>(
+        std::make_shared<vm::actor::InvokerImpl>(),
+        o.ts_load,
+        weight_calculator,
+        std::make_shared<vm::runtime::TipsetRandomness>(o.ts_load),
+        std::move(circulating));
     o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
-        std::make_shared<vm::interpreter::InterpreterImpl>(
-            std::make_shared<vm::actor::InvokerImpl>(),
-            o.ts_load,
-            weight_calculator,
-            std::make_shared<vm::runtime::TipsetRandomness>(o.ts_load),
-            std::move(circulating)),
-        std::make_shared<storage::MapPrefix>("vm/", o.kv_store));
+        o.interpreter, std::make_shared<storage::MapPrefix>("vm/", o.kv_store));
 
     auto snapshot_cids{loadSnapshot(config, o)};
 

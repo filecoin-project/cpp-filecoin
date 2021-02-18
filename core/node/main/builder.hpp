@@ -67,6 +67,7 @@ namespace fc::node {
 
     // chain sync components
     std::shared_ptr<sync::blocksync::BlocksyncServer> blocksync_server;
+    std::shared_ptr<vm::interpreter::InterpreterImpl> interpreter;
     std::shared_ptr<vm::interpreter::CachedInterpreter> vm_interpreter;
     std::shared_ptr<sync::SyncJob> sync_job;
     std::shared_ptr<sync::InterpretJob> interpret_job;
