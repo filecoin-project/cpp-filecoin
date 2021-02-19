@@ -113,14 +113,14 @@ namespace fc::sector_storage {
         std::make_shared<WorkerHandle>();
 
     not_best_handle->info.resources = WorkerResources{
-        .physical_memory = 2048,
+        .physical_memory = 1024,
         .swap_memory = 0,
         .reserved_memory = 0,
-        .cpus = 4,
+        .cpus = 6,
         .gpus = {},
     };
 
-    not_best_handle->active.memory_used_min = 5;
+    not_best_handle->active.memory_used_min = 2048;
 
     EXPECT_CALL(*worker_, getSupportedTask())
         .WillOnce(testing::Return(
@@ -134,19 +134,20 @@ namespace fc::sector_storage {
     auto one_more_worker{std::make_shared<WorkerMock>()};
 
     EXPECT_CALL(*one_more_worker, getSupportedTask())
-        .WillOnce(testing::Return(outcome::success(std::set<TaskType>())));
+        .WillOnce(testing::Return(
+            outcome::success(std::set<TaskType>({primitives::kTTAddPiece}))));
 
     some_handle->worker = one_more_worker;
 
     some_handle->info.resources = WorkerResources{
-        .physical_memory = 4096,
+        .physical_memory = 1024,
         .swap_memory = 0,
         .reserved_memory = 0,
         .cpus = 6,
         .gpus = {},
     };
 
-    some_handle->active.memory_used_min = 10;
+    some_handle->active.memory_used_min = 1024;
 
     EXPECT_OUTCOME_EQ(
         task_selector_->is_preferred(
