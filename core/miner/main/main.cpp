@@ -287,8 +287,8 @@ namespace fc {
         libp2p::injector::useKeyPair(peer_key))};
     auto io{injector.create<std::shared_ptr<io_context>>()};
     auto host{injector.create<std::shared_ptr<libp2p::Host>>()};
-    auto scheduler{
-        injector.create<std::shared_ptr<libp2p::protocol::AsioScheduler>>()};
+    auto scheduler{std::make_shared<libp2p::protocol::AsioScheduler>(
+        *io, libp2p::protocol::SchedulerConfig{})};
 
     IoThread sealing_thread;
 

@@ -11,12 +11,14 @@ namespace fc::sector_storage::stores {
   struct LocalStorageImpl : LocalStorage {
     LocalStorageImpl(std::string path);
 
-    outcome::result<FsStat> getStat(const std::string &path) override;
-    outcome::result<StorageConfig> getStorage() override;
+    outcome::result<FsStat> getStat(const std::string &path) const override;
+    outcome::result<boost::optional<StorageConfig>> getStorage() const override;
     outcome::result<void> setStorage(
         std::function<void(StorageConfig &)> action) override;
-    outcome::result<uint64_t> getDiskUsage(const std::string &path) override;
+    outcome::result<uint64_t> getDiskUsage(
+        const std::string &path) const override;
 
-    std::string config_path;
+   private:
+    std::string config_path_;
   };
 }  // namespace fc::sector_storage::stores

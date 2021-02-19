@@ -5,9 +5,9 @@
 
 #include "sector_storage/stores/impl/local_store.hpp"
 
-#include <time.h>
 #include <boost/filesystem.hpp>
 #include <chrono>
+#include <ctime>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <map>
 #include <random>
@@ -385,12 +385,15 @@ namespace fc::sector_storage::stores {
     }
 
     OUTCOME_TRY(config, local->storage_->getStorage());
+    if (!config.has_value()) {
+      return StorageError::kConfigFileNotExist;
+    }
     std::mt19937 rng(std::time(0));
     std::uniform_int_distribution<> gen(0, 1000);
     local->heartbeat_interval_ =
         duration_cast<std::chrono::milliseconds>(kHeartbeatInterval).count()
         + gen(rng);
-    for (const auto &path : config.storage_paths) {
+    for (const auto &path : config->storage_paths) {
       OUTCOME_TRY(local->openPath(path.path));
     }
     local->handler_ =
