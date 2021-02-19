@@ -1,3 +1,5 @@
 ignore:
   - "test" # exclude 'test' directory from coverage
   - "core/sector_storage/stores/impl/remote_*"
+  - "core/sector_storage/impl/remote_*"
+  - "core/sector_storage/impl/fetch_handler.cpp"

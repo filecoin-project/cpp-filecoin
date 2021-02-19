@@ -6,6 +6,16 @@
 add_subdirectory(stores)
 add_subdirectory(zerocomm)
 
+addtest(selector_test
+        allocate_selector_test.cpp
+        existing_selector_test.cpp
+        task_selector_test.cpp
+        )
+
+target_link_libraries(selector_test
+        selector
+        )
+
 addtest(local_worker_test
         local_worker_test.cpp)
 
