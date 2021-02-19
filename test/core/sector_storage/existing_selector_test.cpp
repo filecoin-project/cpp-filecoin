@@ -199,6 +199,7 @@ namespace fc::sector_storage {
 
     best_handle->info.resources = WorkerResources{
         .physical_memory = 4096,
+        .swap_memory = 0,
         .reserved_memory = 0,
         .cpus = 6,
         .gpus = {},
@@ -211,6 +212,7 @@ namespace fc::sector_storage {
 
     some_handle->info.resources = WorkerResources{
         .physical_memory = 2048,
+        .swap_memory = 0,
         .reserved_memory = 0,
         .cpus = 4,
         .gpus = {},
