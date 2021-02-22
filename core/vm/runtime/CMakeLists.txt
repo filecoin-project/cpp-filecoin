@@ -17,6 +17,7 @@ target_link_libraries(runtime
     bls_provider
     cgo_actors
     dvm
+    interpreter
     ipfs_datastore_error
     ipld_traverser
     keystore

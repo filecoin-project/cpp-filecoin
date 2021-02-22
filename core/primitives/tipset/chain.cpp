@@ -8,6 +8,8 @@
 #include <boost/endian/conversion.hpp>
 
 #include "common/outcome2.hpp"
+#include "vm/actor/builtin/v0/miner/policy.hpp"
+#include "vm/version.hpp"
 
 namespace fc::primitives::tipset::chain {
   using common::Hash256;
@@ -43,7 +45,7 @@ namespace fc::primitives::tipset::chain {
     auto bottom{child->chain.begin()};
     assert(*parent->chain.find(bottom->first) == *bottom);
     ++bottom;
-    auto _parent{parent->chain.find(bottom->first)};
+    [[maybe_unused]] auto _parent{parent->chain.find(bottom->first)};
     assert(_parent == parent->chain.end() || *_parent != *bottom);
     child->parent = parent;
     --bottom;
@@ -348,9 +350,7 @@ namespace fc::primitives::tipset::chain {
   }
 
   outcome::result<BeaconEntry> latestBeacon(TsLoadPtr ts_load,
-                                            TsBranchPtr branch,
-                                            Height height) {
-    OUTCOME_TRY(it, find(branch, height));
+                                            TsBranchIter it) {
     // magic number from lotus
     for (auto i{0}; i < 20; ++i) {
       OUTCOME_TRY(ts, ts_load->loadw(it.second->second));
@@ -365,4 +365,21 @@ namespace fc::primitives::tipset::chain {
     }
     return TipsetError::kNoBeacons;
   }
+
+  outcome::result<TsBranchIter> getLookbackTipSetForRound(TsBranchIter it,
+                                                          ChainEpoch epoch) {
+    constexpr ChainEpoch kWinningPoStSectorSetLookback{10};
+    Height lookback = std::max<ChainEpoch>(
+        0,
+        epoch
+            - (vm::version::getNetworkVersion(epoch)
+                       > vm::version::NetworkVersion::kVersion3
+                   ? vm::actor::builtin::v0::miner::kChainFinalityish
+                   : kWinningPoStSectorSetLookback));
+    if (lookback < it.second->first) {
+      return find(it.first, lookback);
+    }
+    return it;
+  }
+
 }  // namespace fc::primitives::tipset::chain

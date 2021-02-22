@@ -49,35 +49,52 @@ namespace fc::vm::interpreter {
   using runtime::Env;
   using runtime::MessageReceipt;
 
-  outcome::result<boost::optional<Result>> Interpreter::tryGetCached(
-      const TipsetKey &tsk) const {
-    return boost::none;
+  InterpreterCache::Key::Key(const TipsetKey &tsk) : key{tsk.hash()} {}
+
+  InterpreterCache::InterpreterCache(std::shared_ptr<PersistentBufferMap> kv)
+      : kv{kv} {}
+
+  boost::optional<outcome::result<Result>> InterpreterCache::tryGet(
+      const Key &key) const {
+    boost::optional<outcome::result<Result>> result;
+    if (kv->contains(key.key)) {
+      auto raw{kv->get(key.key).value()};
+      if (auto cached{
+              codec::cbor::decode<boost::optional<Result>>(raw).value()}) {
+        result.emplace(std::move(*cached));
+      } else {
+        result.emplace(InterpreterError::kTipsetMarkedBad);
+      }
+    }
+    return result;
   }
 
-  outcome::result<Result> Interpreter::getCached(const TipsetKey &tsk) const {
-    OUTCOME_TRY(cached, tryGetCached(tsk));
-    if (!cached) {
-      return InterpreterError::kNotCached;
+  outcome::result<Result> InterpreterCache::get(const Key &key) const {
+    if (auto cached{tryGet(key)}) {
+      return *cached;
     }
-    return *cached;
+    return InterpreterError::kNotCached;
+  }
+
+  void InterpreterCache::set(const Key &key, const Result &result) {
+    kv->put(key.key, codec::cbor::encode(result).value()).value();
+  }
+
+  void InterpreterCache::markBad(const Key &key) {
+    static const auto kNull{codec::cbor::encode(nullptr).value()};
+    kv->put(key.key, kNull).value();
+  }
+
+  void InterpreterCache::remove(const Key &key) {
+    kv->remove(key.key).value();
   }
 
   InterpreterImpl::InterpreterImpl(
-      std::shared_ptr<Invoker> invoker,
-      TsLoadPtr ts_load,
-      std::shared_ptr<WeightCalculator> weight_calculator,
-      std::shared_ptr<RuntimeRandomness> randomness,
-      std::shared_ptr<Circulating> circulating)
-      : invoker_{std::move(invoker)},
-        ts_load{std::move(ts_load)},
-        weight_calculator_{std::move(weight_calculator)},
-        randomness_{std::move(randomness)},
-        circulating_{std::move(circulating)} {}
+      const Env0 &env0, std::shared_ptr<WeightCalculator> weight_calculator)
+      : env0_{env0}, weight_calculator_{std::move(weight_calculator)} {}
 
   outcome::result<Result> InterpreterImpl::interpret(
-      TsBranchPtr ts_branch,
-      const IpldPtr &ipld,
-      const TipsetCPtr &tipset) const {
+      TsBranchPtr ts_branch, const TipsetCPtr &tipset) const {
     if (tipset->height() == 0) {
       OUTCOME_TRY(weight, getWeight(tipset));
       return Result{
@@ -86,14 +103,15 @@ namespace fc::vm::interpreter {
           weight,
       };
     }
-    return applyBlocks(ts_branch, ipld, tipset, {});
+    return applyBlocks(ts_branch, tipset, {});
   }
 
   outcome::result<Result> InterpreterImpl::applyBlocks(
       TsBranchPtr ts_branch,
-      const IpldPtr &ipld,
       const TipsetCPtr &tipset,
       std::vector<MessageReceipt> *all_receipts) const {
+    auto &ipld{env0_.ipld};
+
     auto on_receipt{[&](auto &receipt) {
       if (all_receipts) {
         all_receipts->push_back(receipt);
@@ -104,10 +122,7 @@ namespace fc::vm::interpreter {
       return InterpreterError::kDuplicateMiner;
     }
 
-    auto env =
-        std::make_shared<Env>(invoker_, randomness_, ipld, ts_branch, tipset);
-
-    env->circulating = circulating_;
+    auto env = std::make_shared<Env>(env0_, ts_branch, tipset);
 
     auto cron{[&]() -> outcome::result<void> {
       OUTCOME_TRY(receipt,
@@ -129,7 +144,7 @@ namespace fc::vm::interpreter {
     }};
 
     if (tipset->height() > 1) {
-      OUTCOME_TRY(parent, ts_load->load(tipset->getParents()));
+      OUTCOME_TRY(parent, env0_.ts_load->load(tipset->getParents()));
       for (auto epoch{parent->height() + 1}; epoch < tipset->height();
            ++epoch) {
         env->epoch = epoch;
@@ -209,44 +224,22 @@ namespace fc::vm::interpreter {
     return 0;
   }
 
-  namespace {
-    outcome::result<boost::optional<Result>> getSavedResult(
-        const PersistentBufferMap &store, const common::Buffer &key) {
-      if (store.contains(key)) {
-        OUTCOME_TRY(raw, store.get(key));
-        OUTCOME_TRY(result, codec::cbor::decode<boost::optional<Result>>(raw));
-        if (!result) {
-          return InterpreterError::kTipsetMarkedBad;
-        }
-        return std::move(result);
-      }
-      return boost::none;
-    }
-
-  }  // namespace
+  CachedInterpreter::CachedInterpreter(std::shared_ptr<Interpreter> interpreter,
+                                       std::shared_ptr<InterpreterCache> cache)
+      : interpreter{std::move(interpreter)}, cache{std::move(cache)} {}
 
   outcome::result<Result> CachedInterpreter::interpret(
-      TsBranchPtr ts_branch,
-      const IpldPtr &ipld,
-      const TipsetCPtr &tipset) const {
-    common::Buffer key(tipset->key.hash());
-    OUTCOME_TRY(saved_result, getSavedResult(*store, key));
-    if (saved_result) {
-      return saved_result.value();
+      TsBranchPtr ts_branch, const TipsetCPtr &tipset) const {
+    InterpreterCache::Key key{tipset->key};
+    if (auto cached{cache->tryGet(key)}) {
+      return *cached;
     }
-    auto result = interpreter->interpret(ts_branch, ipld, tipset);
+    auto result = interpreter->interpret(ts_branch, tipset);
     if (!result) {
-      OUTCOME_TRY(raw, codec::cbor::encode(boost::optional<Result>{}));
-      OUTCOME_TRY(store->put(key, raw));
+      cache->markBad(key);
     } else {
-      OUTCOME_TRY(raw, codec::cbor::encode(result.value()));
-      OUTCOME_TRY(store->put(key, raw));
+      cache->set(key, result.value());
     }
     return result;
-  }
-
-  outcome::result<boost::optional<Result>> CachedInterpreter::tryGetCached(
-      const TipsetKey &tsk) const {
-    return getSavedResult(*store, Buffer{tsk.hash()});
   }
 }  // namespace fc::vm::interpreter

@@ -227,6 +227,22 @@ namespace fc::vm::actor::cgo {
     }
   }
 
+  RUNTIME_METHOD(gocRtVerifyConsensusFault) {
+    auto block1{arg.get<Buffer>()};
+    auto block2{arg.get<Buffer>()};
+    auto extra{arg.get<Buffer>()};
+    auto _fault{rt->verifyConsensusFault(block1, block2, extra)};
+    // TODO(turuslan): correct error handling
+    if (!charge(ret, _fault)) {
+      auto &fault{_fault.value()};
+      if (fault) {
+        ret << kOk << true << fault->target << fault->epoch << fault->type;
+      } else {
+        ret << kOk << false;
+      }
+    }
+  }
+
   RUNTIME_METHOD(gocRtCommD) {
     auto type{arg.get<RegisteredSealProof>()};
     auto pieces{arg.get<std::vector<PieceInfo>>()};
