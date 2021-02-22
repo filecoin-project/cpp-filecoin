@@ -67,7 +67,7 @@ namespace fc::vm::actor::cgo {
 
   template <typename T>
   inline auto charge(CborEncodeStream &ret, const outcome::result<T> &r) {
-    if (!r && r.error() == VMExitCode::kSysErrOutOfGas) {
+    if (!r && r.error() == asAbort(VMExitCode::kSysErrOutOfGas)) {
       ret << VMExitCode::kSysErrOutOfGas;
       return true;
     }

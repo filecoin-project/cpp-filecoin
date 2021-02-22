@@ -202,6 +202,7 @@ namespace fc::vm::runtime {
       if (!ret.empty()) {
         auto charge =
             execution->chargeGas(pricelist.onChainReturnValue(ret.size()));
+        catchAbort(charge);
         OUTCOME_TRYA(exit_code, asExitCode(charge));
         if (charge) {
           apply.receipt.return_value = std::move(ret);
@@ -279,7 +280,7 @@ namespace fc::vm::runtime {
     gas_used += amount;
     if (gas_used > gas_limit) {
       gas_used = gas_limit;
-      return VMExitCode::kSysErrOutOfGas;
+      return asAbort(VMExitCode::kSysErrOutOfGas);
     }
     return outcome::success();
   }
@@ -299,7 +300,7 @@ namespace fc::vm::runtime {
 
   outcome::result<Actor> Execution::tryCreateAccountActor(
       const Address &address) {
-    OUTCOME_TRY(chargeGas(env->pricelist.onCreateActor()));
+    OUTCOME_TRY(catchAbort(chargeGas(env->pricelist.onCreateActor())));
     OUTCOME_TRY(id, state_tree->registerNewAddress(address));
     if (!address.isKeyType()) {
       return VMExitCode::kSysErrInvalidReceiver;
@@ -344,7 +345,7 @@ namespace fc::vm::runtime {
     dvm::onSend(message);
     DVM_INDENT;
 
-    OUTCOME_TRY(chargeGas(charge));
+    OUTCOME_TRY(catchAbort(chargeGas(charge)));
     Actor to_actor;
     OUTCOME_TRY(maybe_to_actor, state_tree->tryGet(message.to));
     if (!maybe_to_actor) {
@@ -353,8 +354,8 @@ namespace fc::vm::runtime {
     } else {
       to_actor = maybe_to_actor.value();
     }
-    OUTCOME_TRY(chargeGas(
-        env->pricelist.onMethodInvocation(message.value, message.method)));
+    OUTCOME_TRY(catchAbort(chargeGas(
+        env->pricelist.onMethodInvocation(message.value, message.method))));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
     auto _message{message};
     _message.from = caller_id;
@@ -386,10 +387,7 @@ namespace fc::vm::runtime {
       auto runtime = std::make_shared<RuntimeImpl>(
           shared_from_this(), _message, caller_id);
       auto result = env->invoker->invoke(to_actor, runtime);
-      // Transform VMAbortExitCode code to VMExitCode
-      if (result.has_error() && isAbortExitCode(result.error())) {
-        return VMExitCode{result.error().value()};
-      }
+      catchAbort(result);
       return result;
     }
 
