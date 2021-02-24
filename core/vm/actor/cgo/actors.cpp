@@ -67,7 +67,7 @@ namespace fc::vm::actor::cgo {
 
   template <typename T>
   inline auto charge(CborEncodeStream &ret, const outcome::result<T> &r) {
-    if (!r && r.error() == VMExitCode::kSysErrOutOfGas) {
+    if (!r && r.error() == asAbort(VMExitCode::kSysErrOutOfGas)) {
       ret << VMExitCode::kSysErrOutOfGas;
       return true;
     }
@@ -224,6 +224,22 @@ namespace fc::vm::actor::cgo {
     auto ok{rt->verifySignatureBytes(signature_bytes, address, data)};
     if (!chargeFatal(ret, ok)) {
       ret << kOk << ok.value();
+    }
+  }
+
+  RUNTIME_METHOD(gocRtVerifyConsensusFault) {
+    auto block1{arg.get<Buffer>()};
+    auto block2{arg.get<Buffer>()};
+    auto extra{arg.get<Buffer>()};
+    auto _fault{rt->verifyConsensusFault(block1, block2, extra)};
+    // TODO(turuslan): correct error handling
+    if (!charge(ret, _fault)) {
+      auto &fault{_fault.value()};
+      if (fault) {
+        ret << kOk << true << fault->target << fault->epoch << fault->type;
+      } else {
+        ret << kOk << false;
+      }
     }
   }
 

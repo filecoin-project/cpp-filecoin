@@ -62,7 +62,8 @@ namespace fc::primitives::tipset::chain {
                                      Height height,
                                      bool allow_less = true);
 
-  outcome::result<BeaconEntry> latestBeacon(TsLoadPtr ts_load,
-                                            TsBranchPtr branch,
-                                            Height height);
+  outcome::result<BeaconEntry> latestBeacon(TsLoadPtr ts_load, TsBranchIter it);
+
+  outcome::result<TsBranchIter> getLookbackTipSetForRound(TsBranchIter it,
+                                                          ChainEpoch epoch);
 }  // namespace fc::primitives::tipset::chain

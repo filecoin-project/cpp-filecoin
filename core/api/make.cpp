@@ -21,6 +21,7 @@
 #include "vm/actor/builtin/v0/miner/types.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
+#include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
@@ -63,8 +64,6 @@ namespace fc::api {
                ? !claim_qa.is_zero()
                : claim_qa > kConsensusMinerMinPower;
   }
-
-  constexpr EpochDuration kWinningPoStSectorSetLookback{10};
 
   void beaconEntriesForBlock(const DrandSchedule &schedule,
                              Beaconizer &beaconizer,
@@ -164,16 +163,17 @@ namespace fc::api {
       std::shared_ptr<ChainStore> chain_store,
       const std::string &network_name,
       std::shared_ptr<WeightCalculator> weight_calculator,
-      TsLoadPtr ts_load,
+      const EnvironmentContext &env_context,
       TsBranchPtr ts_main,
-      std::shared_ptr<Ipld> ipld,
       std::shared_ptr<Mpool> mpool,
-      std::shared_ptr<Interpreter> interpreter,
       std::shared_ptr<MsgWaiter> msg_waiter,
       std::shared_ptr<Beaconizer> beaconizer,
       std::shared_ptr<DrandSchedule> drand_schedule,
       std::shared_ptr<PubSub> pubsub,
       std::shared_ptr<KeyStore> key_store) {
+    auto ts_load{env_context.ts_load};
+    auto ipld{env_context.ipld};
+    auto interpreter_cache{env_context.interpreter_cache};
     auto tipsetContext = [=](const TipsetKey &tipset_key,
                              bool interpret =
                                  false) -> outcome::result<TipsetContext> {
@@ -185,31 +185,11 @@ namespace fc::api {
       }
       TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
       if (interpret) {
-        OUTCOME_TRY(result, interpreter->getCached(tipset->key));
+        OUTCOME_TRY(result, interpreter_cache->get(tipset->key));
         context.state_tree = {ipld, result.state_root};
         context.interpreted = result;
       }
       return context;
-    };
-    auto getLookbackTipSetForRound =
-        [=](auto tipset,
-            auto ts_branch,
-            auto epoch) -> outcome::result<TipsetContext> {
-      auto lookback{
-          std::max(ChainEpoch{0}, epoch - kWinningPoStSectorSetLookback)};
-      if (vm::version::getNetworkVersion(tipset->height())
-          > vm::version::NetworkVersion::kVersion3) {
-        lookback =
-            std::max(ChainEpoch{0},
-                     epoch - vm::actor::builtin::v0::miner::kChainFinalityish);
-      }
-      if (lookback < tipset->epoch()) {
-        OUTCOME_TRY(it, find(ts_branch, lookback));
-        OUTCOME_TRYA(tipset, ts_load->loadw(it.second->second));
-      }
-      OUTCOME_TRY(result, interpreter->getCached(tipset->key));
-      return TipsetContext{
-          std::move(tipset), {ipld, std::move(result.state_root)}, {}};
     };
 
     auto api = std::make_shared<FullNodeApi>();
@@ -354,7 +334,7 @@ namespace fc::api {
       OUTCOME_TRY(miner_state, context.minerState(t.miner));
       OUTCOME_TRY(block,
                   blockchain::production::generate(
-                      *interpreter, ts_load, ipld, std::move(t)));
+                      *interpreter_cache, ts_load, ipld, std::move(t)));
 
       OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
       OUTCOME_TRY(minfo, miner_state.info.get());
@@ -380,9 +360,11 @@ namespace fc::api {
           MiningBaseInfo info;
           OUTCOME_CB(auto ts_branch,
                      TsBranch::make(ts_load, tipset_key, ts_main));
-          OUTCOME_CB(
-              info.prev_beacon,
-              latestBeacon(ts_load, ts_branch, context.tipset->height()));
+          OUTCOME_CB(auto it, find(ts_branch, context.tipset->height()));
+          OUTCOME_CB(info.prev_beacon, latestBeacon(ts_load, it));
+          OUTCOME_CB(auto it2, getLookbackTipSetForRound(it, epoch));
+          OUTCOME_CB(auto cached,
+                     interpreter_cache->get(it2.second->second.key));
           auto prev{info.prev_beacon.round};
           beaconEntriesForBlock(
               *drand_schedule,
@@ -391,9 +373,8 @@ namespace fc::api {
               prev,
               [=, MOVE(cb), MOVE(context), MOVE(info)](auto _beacons) mutable {
                 OUTCOME_CB(info.beacons, _beacons);
-                OUTCOME_CB(auto lookback,
-                           getLookbackTipSetForRound(
-                               context.tipset, ts_branch, epoch));
+                TipsetContext lookback{
+                    nullptr, {ipld, std::move(cached.state_root)}, {}};
                 OUTCOME_CB(auto state, lookback.minerState(miner));
                 OUTCOME_CB(auto seed, codec::cbor::encode(miner));
                 auto post_rand{crypto::randomness::drawRandomness(
@@ -467,22 +448,18 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           return context.accountKey(address);
         }};
-    api->StateCall = {
-        [=](auto &message, auto &tipset_key) -> outcome::result<InvocResult> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+    api->StateCall = {[=](auto &message,
+                          auto &tipset_key) -> outcome::result<InvocResult> {
+      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
 
-          auto randomness = std::make_shared<TipsetRandomness>(ts_load);
-          auto env = std::make_shared<Env>(std::make_shared<InvokerImpl>(),
-                                           randomness,
-                                           ipld,
-                                           ts_branch,
-                                           context.tipset);
-          InvocResult result;
-          result.message = message;
-          OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
-          return result;
-        }};
+      auto randomness = std::make_shared<TipsetRandomness>(ts_load);
+      auto env = std::make_shared<Env>(env_context, ts_branch, context.tipset);
+      InvocResult result;
+      result.message = message;
+      OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
+      return result;
+    }};
     api->StateListMessages = {[=](auto &match, auto &tipset_key, auto to_height)
                                   -> outcome::result<std::vector<CID>> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));

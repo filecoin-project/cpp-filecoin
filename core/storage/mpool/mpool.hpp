@@ -9,6 +9,7 @@
 #include "fwd.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "vm/message/message.hpp"
+#include "vm/runtime/env_context.hpp"
 
 namespace fc::storage::mpool {
   using crypto::signature::Signature;
@@ -16,11 +17,11 @@ namespace fc::storage::mpool {
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
   using storage::blockchain::ChainStore;
-  using vm::interpreter::Interpreter;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using connection_t = boost::signals2::connection;
   using primitives::tipset::TipsetCPtr;
+  using vm::runtime::EnvironmentContext;
 
   struct MpoolUpdate {
     enum class Type : int64_t { ADD, REMOVE };
@@ -37,10 +38,8 @@ namespace fc::storage::mpool {
     using Subscriber = void(const MpoolUpdate &);
 
     static std::shared_ptr<Mpool> create(
-        TsLoadPtr ts_load,
+        const EnvironmentContext &env_context,
         TsBranchPtr ts_main,
-        IpldPtr ipld,
-        std::shared_ptr<Interpreter> interpreter,
         std::shared_ptr<ChainStore> chain_store);
     std::vector<SignedMessage> pending() const;
     outcome::result<uint64_t> nonce(const Address &from) const;
@@ -53,10 +52,9 @@ namespace fc::storage::mpool {
     }
 
    private:
-    TsLoadPtr ts_load;
+    EnvironmentContext env_context;
     TsBranchPtr ts_main;
     IpldPtr ipld;
-    std::shared_ptr<Interpreter> interpreter;
     ChainStore::connection_t head_sub;
     TipsetCPtr head;
     std::map<Address, Pending> by_from;

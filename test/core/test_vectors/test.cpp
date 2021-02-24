@@ -282,12 +282,10 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
     std::shared_ptr<Invoker> invoker = std::make_shared<InvokerImpl>();
     std::shared_ptr<RuntimeRandomness> randomness =
         std::make_shared<ReplayingRandomness>(mv.randomness);
-    fc::vm::interpreter::InterpreterImpl vmi{
-        invoker,
-        std::make_shared<fc::primitives::tipset::TsLoadIpld>(ipld),
-        nullptr,
-        randomness,
-        nullptr};
+    auto ts_load{std::make_shared<fc::primitives::tipset::TsLoadIpld>(ipld)};
+    fc::vm::runtime::EnvironmentContext env_context{
+        ipld, invoker, randomness, ts_load};
+    fc::vm::interpreter::InterpreterImpl vmi{env_context, nullptr};
     CID state{mv.state_before};
     BlockHeader parent;
     parent.ticket.emplace();
@@ -335,7 +333,7 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
       }
       std::vector<MessageReceipt> receipts;
       auto tipset{cr.getTipset(true)};
-      OUTCOME_EXCEPT(res, vmi.applyBlocks(nullptr, ipld, tipset, &receipts));
+      OUTCOME_EXCEPT(res, vmi.applyBlocks(nullptr, tipset, &receipts));
       state = res.state_root;
       EXPECT_EQ(res.message_receipts, mv.receipts_roots[i]);
       for (auto &actual : receipts) {
@@ -363,8 +361,8 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
     std::shared_ptr<Invoker> invoker = std::make_shared<InvokerImpl>();
     std::shared_ptr<RuntimeRandomness> randomness =
         std::make_shared<ReplayingRandomness>(mv.randomness);
-    auto env{std::make_shared<fc::vm::runtime::Env>(
-        invoker, randomness, ipld, nullptr, ts)};
+    fc::vm::runtime::EnvironmentContext env_context{ipld, invoker, randomness};
+    auto env{std::make_shared<fc::vm::runtime::Env>(env_context, nullptr, ts)};
     auto i{0};
     for (const auto &[epoch_offset, message] : mv.messages) {
       const auto &receipt{mv.receipts[i]};

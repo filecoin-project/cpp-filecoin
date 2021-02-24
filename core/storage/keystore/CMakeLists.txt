@@ -12,5 +12,6 @@ target_link_libraries(keystore
     bls_provider
     filestore
     outcome
+    secp256k1_provider
     signature
     )

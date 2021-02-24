@@ -27,9 +27,8 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    OUTCOME_TRY(
-        beacon,
-        latestBeacon(ts_load, ts_branch, std::max<ChainEpoch>(0, epoch)));
+    OUTCOME_TRY(it, find(ts_branch, std::max<ChainEpoch>(0, epoch)));
+    OUTCOME_TRY(beacon, latestBeacon(ts_load, it));
     return crypto::randomness::drawRandomness(beacon.data, tag, epoch, seed);
   }
 
