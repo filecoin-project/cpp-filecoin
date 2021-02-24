@@ -11,7 +11,7 @@ namespace fc::vm::runtime {
   using actor::Invoker;
   using interpreter::InterpreterCache;
 
-  struct Env0 {
+  struct EnvironmentContext {
     IpldPtr ipld;
     std::shared_ptr<Invoker> invoker;
     std::shared_ptr<RuntimeRandomness> randomness;

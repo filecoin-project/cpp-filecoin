@@ -9,7 +9,7 @@
 #include "primitives/types.hpp"
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/circulating.hpp"
-#include "vm/runtime/env0.hpp"
+#include "vm/runtime/env_context.hpp"
 #include "vm/runtime/pricelist.hpp"
 #include "vm/runtime/runtime_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -53,7 +53,9 @@ namespace fc::vm::runtime {
 
   /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {
-    Env(const Env0 &env0, TsBranchPtr ts_branch, TipsetCPtr tipset);
+    Env(const EnvironmentContext &env_context,
+        TsBranchPtr ts_branch,
+        TipsetCPtr tipset);
 
     struct Apply {
       MessageReceipt receipt;
@@ -68,7 +70,7 @@ namespace fc::vm::runtime {
 
     std::shared_ptr<IpldBuffered> ipld;
     std::shared_ptr<StateTreeImpl> state_tree;
-    Env0 env0;
+    EnvironmentContext env_context;
     uint64_t epoch;  // mutable epoch for cron()
     TsBranchPtr ts_branch;
     TipsetCPtr tipset;

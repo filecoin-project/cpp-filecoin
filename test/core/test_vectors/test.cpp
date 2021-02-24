@@ -283,8 +283,9 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
     std::shared_ptr<RuntimeRandomness> randomness =
         std::make_shared<ReplayingRandomness>(mv.randomness);
     auto ts_load{std::make_shared<fc::primitives::tipset::TsLoadIpld>(ipld)};
-    fc::vm::runtime::Env0 env0{ipld, invoker, randomness, ts_load};
-    fc::vm::interpreter::InterpreterImpl vmi{env0, nullptr};
+    fc::vm::runtime::EnvironmentContext env_context{
+        ipld, invoker, randomness, ts_load};
+    fc::vm::interpreter::InterpreterImpl vmi{env_context, nullptr};
     CID state{mv.state_before};
     BlockHeader parent;
     parent.ticket.emplace();
@@ -360,8 +361,8 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
     std::shared_ptr<Invoker> invoker = std::make_shared<InvokerImpl>();
     std::shared_ptr<RuntimeRandomness> randomness =
         std::make_shared<ReplayingRandomness>(mv.randomness);
-    fc::vm::runtime::Env0 env0{ipld, invoker, randomness};
-    auto env{std::make_shared<fc::vm::runtime::Env>(env0, nullptr, ts)};
+    fc::vm::runtime::EnvironmentContext env_context{ipld, invoker, randomness};
+    auto env{std::make_shared<fc::vm::runtime::Env>(env_context, nullptr, ts)};
     auto i{0};
     for (const auto &[epoch_offset, message] : mv.messages) {
       const auto &receipt{mv.receipts[i]};

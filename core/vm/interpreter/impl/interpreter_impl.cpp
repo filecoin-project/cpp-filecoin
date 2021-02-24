@@ -90,8 +90,10 @@ namespace fc::vm::interpreter {
   }
 
   InterpreterImpl::InterpreterImpl(
-      const Env0 &env0, std::shared_ptr<WeightCalculator> weight_calculator)
-      : env0_{env0}, weight_calculator_{std::move(weight_calculator)} {}
+      const EnvironmentContext &env_context,
+      std::shared_ptr<WeightCalculator> weight_calculator)
+      : env_context_{env_context},
+        weight_calculator_{std::move(weight_calculator)} {}
 
   outcome::result<Result> InterpreterImpl::interpret(
       TsBranchPtr ts_branch, const TipsetCPtr &tipset) const {
@@ -110,7 +112,7 @@ namespace fc::vm::interpreter {
       TsBranchPtr ts_branch,
       const TipsetCPtr &tipset,
       std::vector<MessageReceipt> *all_receipts) const {
-    auto &ipld{env0_.ipld};
+    auto &ipld{env_context_.ipld};
 
     auto on_receipt{[&](auto &receipt) {
       if (all_receipts) {
@@ -122,7 +124,7 @@ namespace fc::vm::interpreter {
       return InterpreterError::kDuplicateMiner;
     }
 
-    auto env = std::make_shared<Env>(env0_, ts_branch, tipset);
+    auto env = std::make_shared<Env>(env_context_, ts_branch, tipset);
 
     auto cron{[&]() -> outcome::result<void> {
       OUTCOME_TRY(receipt,
@@ -144,7 +146,7 @@ namespace fc::vm::interpreter {
     }};
 
     if (tipset->height() > 1) {
-      OUTCOME_TRY(parent, env0_.ts_load->load(tipset->getParents()));
+      OUTCOME_TRY(parent, env_context_.ts_load->load(tipset->getParents()));
       for (auto epoch{parent->height() + 1}; epoch < tipset->height();
            ++epoch) {
         env->epoch = epoch;

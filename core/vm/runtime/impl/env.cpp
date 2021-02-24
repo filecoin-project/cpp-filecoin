@@ -122,11 +122,13 @@ namespace fc::vm::runtime {
     return shared_from_this();
   }
 
-  Env::Env(const Env0 &env0, TsBranchPtr ts_branch, TipsetCPtr tipset)
-      : ipld{std::make_shared<IpldBuffered>(env0.ipld)},
+  Env::Env(const EnvironmentContext &env_context,
+           TsBranchPtr ts_branch,
+           TipsetCPtr tipset)
+      : ipld{std::make_shared<IpldBuffered>(env_context.ipld)},
         state_tree{std::make_shared<StateTreeImpl>(
             this->ipld, tipset->getParentStateRoot())},
-        env0{env0},
+        env_context{env_context},
         epoch{tipset->height()},
         ts_branch{std::move(ts_branch)},
         tipset{std::move(tipset)} {
@@ -382,7 +384,7 @@ namespace fc::vm::runtime {
       _message.from = caller_id;
       auto runtime = std::make_shared<RuntimeImpl>(
           shared_from_this(), _message, caller_id);
-      auto result = env->env0.invoker->invoke(to_actor, runtime);
+      auto result = env->env_context.invoker->invoke(to_actor, runtime);
       catchAbort(result);
       return result;
     }

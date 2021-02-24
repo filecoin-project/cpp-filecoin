@@ -11,13 +11,13 @@
 #include "vm/actor/invoker.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/circulating.hpp"
-#include "vm/runtime/env0.hpp"
+#include "vm/runtime/env_context.hpp"
 #include "vm/runtime/runtime_randomness.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::interpreter {
   using blockchain::weight::WeightCalculator;
-  using runtime::Env0;
+  using runtime::EnvironmentContext;
   using runtime::MessageReceipt;
   using runtime::RuntimeRandomness;
   using storage::PersistentBufferMap;
@@ -26,7 +26,7 @@ namespace fc::vm::interpreter {
 
   class InterpreterImpl : public Interpreter {
    public:
-    InterpreterImpl(const Env0 &env0,
+    InterpreterImpl(const EnvironmentContext &env_context,
                     std::shared_ptr<WeightCalculator> weight_calculator);
 
     outcome::result<Result> interpret(TsBranchPtr ts_branch,
@@ -43,7 +43,7 @@ namespace fc::vm::interpreter {
     bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) const;
     outcome::result<BigInt> getWeight(const TipsetCPtr &tipset) const;
 
-    Env0 env0_;
+    EnvironmentContext env_context_;
     std::shared_ptr<WeightCalculator> weight_calculator_;
   };
 

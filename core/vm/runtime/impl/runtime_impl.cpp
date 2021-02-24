@@ -55,7 +55,7 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return execution_->env->env0.randomness->getRandomnessFromTickets(
+    return execution_->env->env_context.randomness->getRandomnessFromTickets(
         execution_->env->ts_branch, tag, epoch, seed);
   }
 
@@ -63,7 +63,7 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return execution_->env->env0.randomness->getRandomnessFromBeacon(
+    return execution_->env->env_context.randomness->getRandomnessFromBeacon(
         execution_->env->ts_branch, tag, epoch, seed);
   }
 
@@ -183,7 +183,7 @@ namespace fc::vm::runtime {
 
   outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
       const {
-    if (auto circulating{execution_->env->env0.circulating}) {
+    if (auto circulating{execution_->env->env_context.circulating}) {
       return circulating->circulating(execution_->state_tree,
                                       getCurrentEpoch());
     }
@@ -370,8 +370,9 @@ namespace fc::vm::runtime {
         auto &env{execution_->env};
         OUTCOME_TRY(it, find(env->ts_branch, getCurrentEpoch()));
         OUTCOME_TRYA(it, getLookbackTipSetForRound(it, block.height));
-        OUTCOME_TRY(cached,
-                    env->env0.interpreter_cache->get(it.second->second.key));
+        OUTCOME_TRY(
+            cached,
+            env->env_context.interpreter_cache->get(it.second->second.key));
         const StateTreeImpl state_tree{env->ipld, cached.state_root};
         OUTCOME_TRY(actor, state_tree.get(block.miner));
         Address worker;

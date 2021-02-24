@@ -9,7 +9,7 @@
 #include "fwd.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "vm/message/message.hpp"
-#include "vm/runtime/env0.hpp"
+#include "vm/runtime/env_context.hpp"
 
 namespace fc::storage::mpool {
   using crypto::signature::Signature;
@@ -21,7 +21,7 @@ namespace fc::storage::mpool {
   using vm::message::UnsignedMessage;
   using connection_t = boost::signals2::connection;
   using primitives::tipset::TipsetCPtr;
-  using vm::runtime::Env0;
+  using vm::runtime::EnvironmentContext;
 
   struct MpoolUpdate {
     enum class Type : int64_t { ADD, REMOVE };
@@ -38,7 +38,7 @@ namespace fc::storage::mpool {
     using Subscriber = void(const MpoolUpdate &);
 
     static std::shared_ptr<Mpool> create(
-        const Env0 &env0,
+        const EnvironmentContext &env_context,
         TsBranchPtr ts_main,
         std::shared_ptr<ChainStore> chain_store);
     std::vector<SignedMessage> pending() const;
@@ -52,7 +52,7 @@ namespace fc::storage::mpool {
     }
 
    private:
-    Env0 env0;
+    EnvironmentContext env_context;
     TsBranchPtr ts_main;
     IpldPtr ipld;
     ChainStore::connection_t head_sub;

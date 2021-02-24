@@ -163,7 +163,7 @@ namespace fc::api {
       std::shared_ptr<ChainStore> chain_store,
       const std::string &network_name,
       std::shared_ptr<WeightCalculator> weight_calculator,
-      const Env0 &env0,
+      const EnvironmentContext &env_context,
       TsBranchPtr ts_main,
       std::shared_ptr<Mpool> mpool,
       std::shared_ptr<MsgWaiter> msg_waiter,
@@ -171,9 +171,9 @@ namespace fc::api {
       std::shared_ptr<DrandSchedule> drand_schedule,
       std::shared_ptr<PubSub> pubsub,
       std::shared_ptr<KeyStore> key_store) {
-    auto ts_load{env0.ts_load};
-    auto ipld{env0.ipld};
-    auto interpreter_cache{env0.interpreter_cache};
+    auto ts_load{env_context.ts_load};
+    auto ipld{env_context.ipld};
+    auto interpreter_cache{env_context.interpreter_cache};
     auto tipsetContext = [=](const TipsetKey &tipset_key,
                              bool interpret =
                                  false) -> outcome::result<TipsetContext> {
@@ -448,18 +448,18 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           return context.accountKey(address);
         }};
-    api->StateCall = {
-        [=](auto &message, auto &tipset_key) -> outcome::result<InvocResult> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+    api->StateCall = {[=](auto &message,
+                          auto &tipset_key) -> outcome::result<InvocResult> {
+      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
 
-          auto randomness = std::make_shared<TipsetRandomness>(ts_load);
-          auto env = std::make_shared<Env>(env0, ts_branch, context.tipset);
-          InvocResult result;
-          result.message = message;
-          OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
-          return result;
-        }};
+      auto randomness = std::make_shared<TipsetRandomness>(ts_load);
+      auto env = std::make_shared<Env>(env_context, ts_branch, context.tipset);
+      InvocResult result;
+      result.message = message;
+      OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
+      return result;
+    }};
     api->StateListMessages = {[=](auto &match, auto &tipset_key, auto to_height)
                                   -> outcome::result<std::vector<CID>> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));

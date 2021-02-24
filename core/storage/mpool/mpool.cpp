@@ -17,13 +17,13 @@ namespace fc::storage::mpool {
   using vm::message::UnsignedMessage;
 
   std::shared_ptr<Mpool> Mpool::create(
-      const Env0 &env0,
+      const EnvironmentContext &env_context,
       TsBranchPtr ts_main,
       std::shared_ptr<ChainStore> chain_store) {
     auto mpool{std::make_shared<Mpool>()};
-    mpool->env0 = env0;
+    mpool->env_context = env_context;
     mpool->ts_main = std::move(ts_main);
-    mpool->ipld = env0.ipld;
+    mpool->ipld = env_context.ipld;
     mpool->head_sub = chain_store->subscribeHeadChanges([=](auto &change) {
       auto res{mpool->onHeadChange(change)};
       if (!res) {
@@ -46,7 +46,7 @@ namespace fc::storage::mpool {
   }
 
   outcome::result<uint64_t> Mpool::nonce(const Address &from) const {
-    OUTCOME_TRY(interpeted, env0.interpreter_cache->get(head->key));
+    OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head->key));
     OUTCOME_TRY(
         actor, vm::state::StateTreeImpl{ipld, interpeted.state_root}.get(from));
     auto by_from_it{by_from.find(from)};
@@ -63,8 +63,8 @@ namespace fc::storage::mpool {
       msg.gas_limit = kBlockGasLimit;
       msg.gas_fee_cap = kMinimumBaseFee + 1;
       msg.gas_premium = 1;
-      OUTCOME_TRY(interpeted, env0.interpreter_cache->get(head->key));
-      auto env{std::make_shared<vm::runtime::Env>(env0, ts_main, head)};
+      OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head->key));
+      auto env{std::make_shared<vm::runtime::Env>(env_context, ts_main, head)};
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
           ipld, interpeted.state_root);
       ++env->epoch;
@@ -154,7 +154,8 @@ namespace fc::storage::mpool {
       if (apply) {
         head = change.value;
       } else {
-        OUTCOME_TRYA(head, env0.ts_load->load(change.value->getParents()));
+        OUTCOME_TRYA(head,
+                     env_context.ts_load->load(change.value->getParents()));
       }
     }
     return outcome::success();
