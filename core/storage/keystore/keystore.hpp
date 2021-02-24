@@ -116,6 +116,7 @@ namespace fc::storage::keystore {
     std::shared_ptr<Secp256k1ProviderDefault> secp256k1_provider_;
   };
 
+  extern const std::shared_ptr<KeyStore> kDefaultKeystore;
 }  // namespace fc::storage::keystore
 
 #endif  // FILECOIN_CORE_STORAGE_KEYSTORE_HPP

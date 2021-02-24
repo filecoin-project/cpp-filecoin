@@ -58,7 +58,7 @@ namespace fc::vm::interpreter {
       const Key &key) const {
     boost::optional<outcome::result<Result>> result;
     if (kv->contains(key.key)) {
-      auto raw{kv->get(key.key).value()};
+      const auto raw{kv->get(key.key).value()};
       if (auto cached{
               codec::cbor::decode<boost::optional<Result>>(raw).value()}) {
         result.emplace(std::move(*cached));

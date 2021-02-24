@@ -6,11 +6,9 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 
 #include "codec/cbor/cbor.hpp"
-#include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/proofs.hpp"
-#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "storage/keystore/keystore.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
@@ -228,10 +226,8 @@ namespace fc::vm::runtime {
         account,
         resolveKey(
             *execution_->state_tree, execution_->charging_ipld, address));
-    return storage::keystore::InMemoryKeyStore{
-        std::make_shared<crypto::bls::BlsProviderImpl>(),
-        std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}
-        .verify(account, data, signature);
+    return storage::keystore::kDefaultKeystore->verify(
+        account, data, signature);
   }
 
   outcome::result<bool> RuntimeImpl::verifySignatureBytes(
@@ -254,10 +250,8 @@ namespace fc::vm::runtime {
       return false;
     }
 
-    return storage::keystore::InMemoryKeyStore{
-        std::make_shared<crypto::bls::BlsProviderImpl>(),
-        std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}
-        .verify(account, data, signature.value());
+    return storage::keystore::kDefaultKeystore->verify(
+        account, data, signature.value());
   }
 
   outcome::result<bool> RuntimeImpl::verifyPoSt(
@@ -303,10 +297,8 @@ namespace fc::vm::runtime {
     auto block2{block};
     block2.block_sig.reset();
     OUTCOME_TRY(data, codec::cbor::encode(block2));
-    return storage::keystore::InMemoryKeyStore{
-        std::make_shared<crypto::bls::BlsProviderImpl>(),
-        std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}
-        .verify(worker, data, *block.block_sig);
+    return storage::keystore::kDefaultKeystore->verify(
+        worker, data, *block.block_sig);
   }
 
   // TODO: reuse
@@ -380,8 +372,7 @@ namespace fc::vm::runtime {
         OUTCOME_TRYA(it, getLookbackTipSetForRound(it, block.height));
         OUTCOME_TRY(cached,
                     env->env0.interpreter_cache->get(it.second->second.key));
-        spdlog::info("VCF L {} {}", it.second->first, cached.state_root);
-        StateTreeImpl state_tree{env->ipld, cached.state_root};
+        const StateTreeImpl state_tree{env->ipld, cached.state_root};
         OUTCOME_TRY(actor, state_tree.get(block.miner));
         Address worker;
         auto &ipld{execution_->charging_ipld};

@@ -368,8 +368,8 @@ namespace fc::primitives::tipset::chain {
 
   outcome::result<TsBranchIter> getLookbackTipSetForRound(TsBranchIter it,
                                                           ChainEpoch epoch) {
-    constexpr ChainEpoch kWinningPoStSectorSetLookback{10};
-    Height lookback = std::max<ChainEpoch>(
+    static constexpr ChainEpoch kWinningPoStSectorSetLookback{10};
+    const Height lookback = std::max<ChainEpoch>(
         0,
         epoch
             - (vm::version::getNetworkVersion(epoch)
