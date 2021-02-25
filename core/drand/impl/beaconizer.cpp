@@ -92,9 +92,10 @@ namespace fc::drand {
                            }
                          }
                        }
-                       spdlog::error("drand host {} error {}",
+                       spdlog::error("drand host {} error {} {}",
                                      self->peers_[self->peer_index_],
-                                     error);
+                                     error,
+                                     error.message());
                        self->rotatePeersIndex();
                        // TODO: retry
                        return cb(error);
