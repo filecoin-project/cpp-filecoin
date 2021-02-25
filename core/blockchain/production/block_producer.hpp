@@ -4,17 +4,18 @@
  */
 
 #include "fwd.hpp"
-#include "vm/interpreter/interpreter.hpp"
+#include "primitives/block/block.hpp"
 
 namespace fc::blockchain::production {
   using primitives::block::BlockTemplate;
   using primitives::block::BlockWithMessages;
-  using vm::interpreter::Interpreter;
+  using vm::interpreter::InterpreterCache;
 
   constexpr size_t kBlockMaxMessagesCount = 1000;
 
-  outcome::result<BlockWithMessages> generate(Interpreter &interpreter,
-                                              TsLoadPtr ts_load,
-                                              std::shared_ptr<Ipld> ipld,
-                                              BlockTemplate t);
+  outcome::result<BlockWithMessages> generate(
+      InterpreterCache &interpreter_cache,
+      TsLoadPtr ts_load,
+      std::shared_ptr<Ipld> ipld,
+      BlockTemplate t);
 }  // namespace fc::blockchain::production

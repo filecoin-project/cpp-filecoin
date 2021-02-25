@@ -118,7 +118,7 @@ namespace fc::vm::runtime {
         RegisteredSealProof type,
         const std::vector<PieceInfo> &pieces) override;
 
-    outcome::result<ConsensusFault> verifyConsensusFault(
+    outcome::result<boost::optional<ConsensusFault>> verifyConsensusFault(
         const Buffer &block1,
         const Buffer &block2,
         const Buffer &extra) override;

@@ -97,16 +97,13 @@ namespace fc::vm::runtime {
     return shared_from_this();
   }
 
-  Env::Env(std::shared_ptr<Invoker> invoker,
-           std::shared_ptr<RuntimeRandomness> randomness,
-           IpldPtr ipld,
+  Env::Env(const EnvironmentContext &env_context,
            TsBranchPtr ts_branch,
            TipsetCPtr tipset)
-      : ipld{std::make_shared<IpldBuffered>(std::move(ipld))},
+      : ipld{std::make_shared<IpldBuffered>(env_context.ipld)},
         state_tree{std::make_shared<StateTreeImpl>(
             this->ipld, tipset->getParentStateRoot())},
-        invoker{std::move(invoker)},
-        randomness{std::move(randomness)},
+        env_context{env_context},
         epoch{tipset->height()},
         ts_branch{std::move(ts_branch)},
         tipset{std::move(tipset)} {
@@ -177,6 +174,7 @@ namespace fc::vm::runtime {
       if (!ret.empty()) {
         auto charge =
             execution->chargeGas(pricelist.onChainReturnValue(ret.size()));
+        catchAbort(charge);
         OUTCOME_TRYA(exit_code, asExitCode(charge));
         if (charge) {
           apply.receipt.return_value = std::move(ret);
@@ -214,10 +212,11 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(add_locked(kRewardAddress, apply.reward));
     auto over{limit - 11 * used / 10};
     auto gas_burned{
-        used == 0  ? limit
-        : over < 0 ? 0
-                   : static_cast<GasAmount>(bigdiv(
-                       BigInt{limit - used} * std::min(used, over), used))};
+        used == 0
+            ? limit
+            : over < 0 ? 0
+                       : static_cast<GasAmount>(bigdiv(
+                           BigInt{limit - used} * std::min(used, over), used))};
     if (gas_burned != 0) {
       OUTCOME_TRY(add_locked(actor::kBurntFundsActorAddress,
                              base_fee_pay * gas_burned));
@@ -254,7 +253,7 @@ namespace fc::vm::runtime {
     gas_used += amount;
     if (gas_used > gas_limit) {
       gas_used = gas_limit;
-      return VMExitCode::kSysErrOutOfGas;
+      return asAbort(VMExitCode::kSysErrOutOfGas);
     }
     return outcome::success();
   }
@@ -274,7 +273,7 @@ namespace fc::vm::runtime {
 
   outcome::result<Actor> Execution::tryCreateAccountActor(
       const Address &address) {
-    OUTCOME_TRY(chargeGas(env->pricelist.onCreateActor()));
+    OUTCOME_TRY(catchAbort(chargeGas(env->pricelist.onCreateActor())));
     OUTCOME_TRY(id, state_tree->registerNewAddress(address));
     if (!address.isKeyType()) {
       return VMExitCode::kSysErrInvalidReceiver;
@@ -319,7 +318,7 @@ namespace fc::vm::runtime {
     dvm::onSend(message);
     DVM_INDENT;
 
-    OUTCOME_TRY(chargeGas(charge));
+    OUTCOME_TRY(catchAbort(chargeGas(charge)));
     Actor to_actor;
     OUTCOME_TRY(maybe_to_actor, state_tree->tryGet(message.to));
     if (!maybe_to_actor) {
@@ -328,8 +327,8 @@ namespace fc::vm::runtime {
     } else {
       to_actor = maybe_to_actor.value();
     }
-    OUTCOME_TRY(chargeGas(
-        env->pricelist.onMethodInvocation(message.value, message.method)));
+    OUTCOME_TRY(catchAbort(chargeGas(
+        env->pricelist.onMethodInvocation(message.value, message.method))));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
     auto _message{message};
     _message.from = caller_id;
@@ -360,11 +359,8 @@ namespace fc::vm::runtime {
       _message.from = caller_id;
       auto runtime = std::make_shared<RuntimeImpl>(
           shared_from_this(), _message, caller_id);
-      auto result = env->invoker->invoke(to_actor, runtime);
-      // Transform VMAbortExitCode code to VMExitCode
-      if (result.has_error() && isAbortExitCode(result.error())) {
-        return VMExitCode{result.error().value()};
-      }
+      auto result = env->env_context.invoker->invoke(to_actor, runtime);
+      catchAbort(result);
       return result;
     }
 

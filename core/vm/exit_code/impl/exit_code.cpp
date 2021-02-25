@@ -42,4 +42,11 @@ namespace fc::vm {
     }
     return outcome::failure(error);
   }
+
+  std::error_code catchAbort(const std::error_code &error) {
+    if (isAbortExitCode(error)) {
+      return VMExitCode{error.value()};
+    }
+    return error;
+  }
 }  // namespace fc::vm

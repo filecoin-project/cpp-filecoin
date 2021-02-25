@@ -5,9 +5,9 @@
 
 #include "blockchain/production/block_producer.hpp"
 
-#include "blockchain/impl/weight_calculator_impl.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "primitives/tipset/load.hpp"
+#include "vm/interpreter/interpreter.hpp"
 
 namespace fc::blockchain::production {
   using crypto::signature::BlsSignature;
@@ -16,12 +16,13 @@ namespace fc::blockchain::production {
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
-  outcome::result<BlockWithMessages> generate(Interpreter &interpreter,
-                                              TsLoadPtr ts_load,
-                                              std::shared_ptr<Ipld> ipld,
-                                              BlockTemplate t) {
+  outcome::result<BlockWithMessages> generate(
+      InterpreterCache &interpreter_cache,
+      TsLoadPtr ts_load,
+      std::shared_ptr<Ipld> ipld,
+      BlockTemplate t) {
     OUTCOME_TRY(parent_tipset, ts_load->load(t.parents));
-    OUTCOME_TRY(vm_result, interpreter.getCached(parent_tipset->key));
+    OUTCOME_TRY(vm_result, interpreter_cache.get(parent_tipset->key));
     BlockWithMessages b;
     MsgMeta msg_meta;
     ipld->load(msg_meta);
@@ -49,9 +50,7 @@ namespace fc::blockchain::production {
     b.header.beacon_entries = std::move(t.beacon_entries);
     b.header.win_post_proof = std::move(t.win_post_proof);
     b.header.parents = std::move(t.parents);
-    OUTCOME_TRYA(
-        b.header.parent_weight,
-        weight::WeightCalculatorImpl{ipld}.calculateWeight(*parent_tipset));
+    b.header.parent_weight = vm_result.weight;
     b.header.height = t.height;
     b.header.parent_state_root = std::move(vm_result.state_root);
     b.header.parent_message_receipts = std::move(vm_result.message_receipts);

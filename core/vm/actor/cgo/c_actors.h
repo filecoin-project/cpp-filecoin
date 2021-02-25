@@ -22,6 +22,7 @@ Raw gocRtVerifySeals(Raw);
 Raw gocRtActorId(Raw);
 Raw gocRtSend(Raw);
 Raw gocRtVerifySig(Raw);
+Raw gocRtVerifyConsensusFault(Raw);
 Raw gocRtCommD(Raw);
 Raw gocRtNewAddress(Raw);
 Raw gocRtCreateActor(Raw);

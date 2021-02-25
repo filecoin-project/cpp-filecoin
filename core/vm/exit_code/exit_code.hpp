@@ -129,6 +129,7 @@ namespace fc::vm {
   bool isAbortExitCode(const std::error_code &error);
 
   outcome::result<VMExitCode> asExitCode(const std::error_code &error);
+  std::error_code catchAbort(const std::error_code &error);
 }  // namespace fc::vm
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMExitCode);
@@ -138,6 +139,20 @@ OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMFatal);
 OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMAbortExitCode);
 
 namespace fc::vm {
+  template <typename T>
+  outcome::result<T> catchAbort(outcome::result<T> &&result) {
+    if (!result) {
+      return catchAbort(result.error());
+    }
+    return result;
+  }
+
+  template <typename T>
+  void catchAbort(outcome::result<T> &result) {
+    if (!result) {
+      result = catchAbort(result.error());
+    }
+  }
 
   template <typename T>
   outcome::result<VMExitCode> asExitCode(const outcome::result<T> &result) {

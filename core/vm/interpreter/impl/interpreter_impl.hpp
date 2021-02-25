@@ -11,11 +11,13 @@
 #include "vm/actor/invoker.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/circulating.hpp"
+#include "vm/runtime/env_context.hpp"
 #include "vm/runtime/runtime_randomness.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::interpreter {
   using blockchain::weight::WeightCalculator;
+  using runtime::EnvironmentContext;
   using runtime::MessageReceipt;
   using runtime::RuntimeRandomness;
   using storage::PersistentBufferMap;
@@ -24,18 +26,13 @@ namespace fc::vm::interpreter {
 
   class InterpreterImpl : public Interpreter {
    public:
-    InterpreterImpl(std::shared_ptr<Invoker> invoker,
-                    TsLoadPtr ts_load,
-                    std::shared_ptr<WeightCalculator> weight_calculator,
-                    std::shared_ptr<RuntimeRandomness> randomness,
-                    std::shared_ptr<Circulating> circulating);
+    InterpreterImpl(const EnvironmentContext &env_context,
+                    std::shared_ptr<WeightCalculator> weight_calculator);
 
     outcome::result<Result> interpret(TsBranchPtr ts_branch,
-                                      const IpldPtr &store,
                                       const TipsetCPtr &tipset) const override;
     outcome::result<Result> applyBlocks(
         TsBranchPtr ts_branch,
-        const IpldPtr &store,
         const TipsetCPtr &tipset,
         std::vector<MessageReceipt> *all_receipts) const;
 
@@ -46,27 +43,20 @@ namespace fc::vm::interpreter {
     bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) const;
     outcome::result<BigInt> getWeight(const TipsetCPtr &tipset) const;
 
-    std::shared_ptr<Invoker> invoker_;
-    TsLoadPtr ts_load;
+    EnvironmentContext env_context_;
     std::shared_ptr<WeightCalculator> weight_calculator_;
-    std::shared_ptr<RuntimeRandomness> randomness_;
-    std::shared_ptr<Circulating> circulating_;
   };
 
   class CachedInterpreter : public Interpreter {
    public:
     CachedInterpreter(std::shared_ptr<Interpreter> interpreter,
-                      std::shared_ptr<PersistentBufferMap> store)
-        : interpreter{std::move(interpreter)}, store{std::move(store)} {}
+                      std::shared_ptr<InterpreterCache> cache);
     outcome::result<Result> interpret(TsBranchPtr ts_branch,
-                                      const IpldPtr &store,
                                       const TipsetCPtr &tipset) const override;
-    outcome::result<boost::optional<Result>> tryGetCached(
-        const TipsetKey &tsk) const override;
 
    private:
     std::shared_ptr<Interpreter> interpreter;
-    std::shared_ptr<PersistentBufferMap> store;
+    std::shared_ptr<InterpreterCache> cache;
   };
 }  // namespace fc::vm::interpreter
 

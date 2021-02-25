@@ -244,8 +244,10 @@ namespace fc::vm::runtime {
         RegisteredSealProof type, const std::vector<PieceInfo> &pieces) = 0;
 
     /// Verify consensus fault
-    virtual outcome::result<ConsensusFault> verifyConsensusFault(
-        const Buffer &block1, const Buffer &block2, const Buffer &extra) = 0;
+    virtual outcome::result<boost::optional<ConsensusFault>>
+    verifyConsensusFault(const Buffer &block1,
+                         const Buffer &block2,
+                         const Buffer &extra) = 0;
 
     /// Return a hash of data
     virtual outcome::result<Blake2b256Hash> hashBlake2b(

@@ -109,10 +109,11 @@ namespace fc::vm::runtime {
                  outcome::result<CID>(RegisteredSealProof,
                                       const std::vector<PieceInfo> &));
 
-    MOCK_METHOD3(verifyConsensusFault,
-                 outcome::result<ConsensusFault>(const Buffer &block1,
-                                                 const Buffer &block2,
-                                                 const Buffer &extra));
+    MOCK_METHOD3(
+        verifyConsensusFault,
+        outcome::result<boost::optional<ConsensusFault>>(const Buffer &block1,
+                                                         const Buffer &block2,
+                                                         const Buffer &extra));
 
     /// Expect call to send with params returning result
     template <typename M>
