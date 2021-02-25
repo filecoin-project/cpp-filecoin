@@ -4,8 +4,9 @@
 #
 
 add_library(actor_state
-    state_provider.cpp
-    state_manager.cpp
+    impl/state_provider.cpp
+    impl/state_manager_impl.cpp
+    impl/multisig_actor_state.cpp
     )
 target_link_libraries(actor_state
     actor

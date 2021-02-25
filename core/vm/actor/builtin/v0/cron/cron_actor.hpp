@@ -6,22 +6,12 @@
 #pragma once
 
 #include "vm/actor/actor_method.hpp"
+#include "vm/actor/builtin/states/cron_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::cron {
 
-  struct CronTableEntry {
-    Address to_addr;
-    MethodNumber method_num{};
-  };
-  CBOR_TUPLE(CronTableEntry, to_addr, method_num)
-
-  struct State {
-    std::vector<CronTableEntry> entries;
-  };
-  CBOR_TUPLE(State, entries)
-
   struct Construct : ActorMethodBase<1> {
-    using Params = std::vector<CronTableEntry>;
+    using Params = std::vector<states::CronTableEntry>;
     ACTOR_METHOD_DECL();
   };
 

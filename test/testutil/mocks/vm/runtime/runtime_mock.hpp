@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_RUNTIME_MOCK_HPP
-#define CPP_FILECOIN_RUNTIME_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -135,5 +134,3 @@ namespace fc::vm::runtime {
     }
   };
 }  // namespace fc::vm::runtime
-
-#endif  // CPP_FILECOIN_RUNTIME_MOCK_HPP

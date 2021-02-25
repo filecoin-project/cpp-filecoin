@@ -4,6 +4,7 @@
  */
 
 #include "vm/actor/builtin/v3/verified_registry/verified_registry_actor.hpp"
+#include "vm/actor/builtin/v3/verified_registry/policy.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v3::verified_registry {
@@ -21,15 +22,15 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
 
     const auto utils = Toolchain::createVerifRegUtils(runtime);
     OUTCOME_TRY(utils->checkDealSize(params.deal_size));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getVerifiedRegistryActorState());
 
     auto clientCapAssert = [&runtime](bool condition) -> outcome::result<void> {
       return runtime.requireState(condition);
     };
 
     OUTCOME_TRY(v0::verified_registry::UseBytes::useBytes(
-        runtime, state, client, params.deal_size, clientCapAssert));
-    OUTCOME_TRY(runtime.commitState(state));
+        runtime, *state, client, params.deal_size, clientCapAssert));
+    OUTCOME_TRY(runtime.stateManager()->commitState(state));
     return outcome::success();
   }
 

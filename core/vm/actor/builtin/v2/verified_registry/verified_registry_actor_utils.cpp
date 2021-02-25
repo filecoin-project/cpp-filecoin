@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor_utils.hpp"
-#include "vm/actor/builtin/v2/verified_registry/verified_registry_actor_state.hpp"
+#include "vm/actor/builtin/v2/verified_registry/policy.hpp"
 
 namespace fc::vm::actor::builtin::v2::verified_registry {
 

@@ -12,7 +12,7 @@
 #include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "storage/ipld/ipld_block.hpp"
-#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/v0/payment_channel/types.hpp"
 
 namespace fc::markets::retrieval {
   using primitives::TokenAmount;

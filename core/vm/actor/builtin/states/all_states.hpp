@@ -8,3 +8,31 @@
 #include "vm/actor/builtin/v0/account/account_actor_state.hpp"
 #include "vm/actor/builtin/v2/account/account_actor_state.hpp"
 #include "vm/actor/builtin/v3/account/account_actor_state.hpp"
+
+#include "vm/actor/builtin/v0/cron/cron_actor_state.hpp"
+#include "vm/actor/builtin/v2/cron/cron_actor_state.hpp"
+#include "vm/actor/builtin/v3/cron/cron_actor_state.hpp"
+
+#include "vm/actor/builtin/v0/init/init_actor_state.hpp"
+#include "vm/actor/builtin/v2/init/init_actor_state.hpp"
+#include "vm/actor/builtin/v3/init/init_actor_state.hpp"
+
+#include "vm/actor/builtin/v0/multisig/multisig_actor_state.hpp"
+#include "vm/actor/builtin/v2/multisig/multisig_actor_state.hpp"
+#include "vm/actor/builtin/v3/multisig/multisig_actor_state.hpp"
+
+#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/v2/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/v3/payment_channel/payment_channel_actor_state.hpp"
+
+#include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
+#include "vm/actor/builtin/v2/reward/reward_actor_state.hpp"
+// TODO reward state v3
+
+#include "vm/actor/builtin/v0/system/system_actor_state.hpp"
+#include "vm/actor/builtin/v2/system/system_actor_state.hpp"
+#include "vm/actor/builtin/v3/system/system_actor_state.hpp"
+
+#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_state.hpp"
+#include "vm/actor/builtin/v2/verified_registry/verified_registry_actor_state.hpp"
+#include "vm/actor/builtin/v3/verified_registry/verified_registry_actor_state.hpp"

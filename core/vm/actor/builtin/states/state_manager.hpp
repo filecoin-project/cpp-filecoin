@@ -17,55 +17,47 @@ namespace fc::vm::actor::builtin::states {
 
   class StateManager {
    public:
-    StateManager(const IpldPtr &ipld,
-                 StateTreePtr state_tree,
-                 Address receiver);
-    ~StateManager() = default;
+    virtual ~StateManager() = default;
 
-    AccountActorStatePtr createAccountActorState(ActorVersion version) const;
+    virtual AccountActorStatePtr createAccountActorState(
+        ActorVersion version) const = 0;
+    virtual outcome::result<AccountActorStatePtr> getAccountActorState()
+        const = 0;
 
-    outcome::result<AccountActorStatePtr> getAccountActorState() const;
+    virtual CronActorStatePtr createCronActorState(
+        ActorVersion version) const = 0;
+    virtual outcome::result<CronActorStatePtr> getCronActorState() const = 0;
 
-    outcome::result<void> commitState(const std::shared_ptr<State> &state);
+    virtual InitActorStatePtr createInitActorState(
+        ActorVersion version) const = 0;
+    virtual outcome::result<InitActorStatePtr> getInitActorState() const = 0;
 
-   private:
-    template <typename T, typename Tv0, typename Tv2, typename Tv3>
-    std::shared_ptr<T> createStatePtr(ActorVersion version) const {
-      switch (version) {
-        case ActorVersion::kVersion0:
-          return std::make_shared<Tv0>();
-        case ActorVersion::kVersion2:
-          return std::make_shared<Tv2>();
-        case ActorVersion::kVersion3:
-          return std::make_shared<Tv3>();
-      }
-    }
+    virtual MultisigActorStatePtr createMultisigActorState(
+        ActorVersion version) const = 0;
+    virtual outcome::result<MultisigActorStatePtr> getMultisigActorState()
+        const = 0;
 
-    template <typename T>
-    outcome::result<void> commitCborState(const T &state) {
-      OUTCOME_TRY(state_cid, ipld->setCbor(state));
-      OUTCOME_TRY(commit(state_cid));
-      return outcome::success();
-    }
+    virtual PaymentChannelActorStatePtr createPaymentChannelActorState(
+        ActorVersion version) const = 0;
+    virtual outcome::result<PaymentChannelActorStatePtr>
+    getPaymentChannelActorState() const = 0;
 
-    template <typename Tv0, typename Tv2, typename Tv3>
-    outcome::result<void> commitVersionState(
-        const std::shared_ptr<State> &state) {
-      switch (state->version) {
-        case ActorVersion::kVersion0:
-          return commitCborState(static_cast<const Tv0 &>(*state));
-        case ActorVersion::kVersion2:
-          return commitCborState(static_cast<const Tv2 &>(*state));
-        case ActorVersion::kVersion3:
-          return commitCborState(static_cast<const Tv3 &>(*state));
-      }
-    }
+    virtual RewardActorStatePtr createRewardActorState(
+        ActorVersion version) const = 0;
+    virtual outcome::result<RewardActorStatePtr> getRewardActorState()
+        const = 0;
 
-    outcome::result<void> commit(const CID &new_state);
+    virtual SystemActorStatePtr createSystemActorState(
+        ActorVersion version) const = 0;
+    virtual outcome::result<SystemActorStatePtr> getSystemActorState()
+        const = 0;
 
-    IpldPtr ipld;
-    StateTreePtr state_tree;
-    Address receiver;
-    StateProvider provider;
+    virtual VerifiedRegistryActorStatePtr createVerifiedRegistryActorState(
+        ActorVersion version) const = 0;
+    virtual outcome::result<VerifiedRegistryActorStatePtr>
+    getVerifiedRegistryActorState() const = 0;
+
+    virtual outcome::result<void> commitState(
+        const std::shared_ptr<State> &state) = 0;
   };
 }  // namespace fc::vm::actor::builtin::states

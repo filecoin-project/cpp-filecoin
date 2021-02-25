@@ -9,8 +9,9 @@ namespace fc::vm::actor::builtin::v0::system {
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    State state;
-    OUTCOME_TRY(runtime.commitState(state));
+    auto state = runtime.stateManager()->createSystemActorState(
+        runtime.getActorVersion());
+    OUTCOME_TRY(runtime.stateManager()->commitState(state));
     return outcome::success();
   }
 

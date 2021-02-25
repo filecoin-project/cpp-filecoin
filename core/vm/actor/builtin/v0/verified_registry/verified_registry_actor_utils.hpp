@@ -13,8 +13,8 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
   class VerifRegUtils : public utils::verified_registry::VerifRegUtils {
    public:
-    VerifRegUtils(Runtime &r)
-        : utils::verified_registry::VerifRegUtils::VerifRegUtils(r) {}
+    explicit VerifRegUtils(Runtime &r)
+        : utils::verified_registry::VerifRegUtils(r) {}
 
     outcome::result<void> checkDealSize(
         const StoragePower &deal_size) const override;

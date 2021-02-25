@@ -8,7 +8,7 @@
 #include "const.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/v0/payment_channel/types.hpp"
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
   using primitives::EpochDuration;
@@ -16,10 +16,6 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   constexpr size_t kLaneLimit{INT64_MAX};
   constexpr EpochDuration kSettleDelay{fc::kEpochsInHour * 12};
   constexpr size_t kMaxSecretSize{256};
-
-  outcome::result<Address> resolveAccount(const Runtime &runtime,
-                                          const Address &address,
-                                          const CodeId &accountCodeCid);
 
   struct Construct : ActorMethodBase<1> {
     struct Params {
@@ -38,9 +34,10 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     };
     ACTOR_METHOD_DECL();
 
-    static outcome::result<void> checkSignature(Runtime &runtime,
-                                                const State &state,
-                                                const SignedVoucher &voucher);
+    static outcome::result<void> checkSignature(
+        Runtime &runtime,
+        const states::PaymentChannelActorState &state,
+        const SignedVoucher &voucher);
     static outcome::result<void> checkPaychannelAddr(
         const Runtime &runtime, const SignedVoucher &voucher);
     static outcome::result<void> checkVoucher(Runtime &runtime,
@@ -49,9 +46,10 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     static outcome::result<void> voucherExtra(Runtime &runtime,
                                               const Buffer &proof,
                                               const SignedVoucher &voucher);
-    static outcome::result<void> calculate(const Runtime &runtime,
-                                           State &state,
-                                           const SignedVoucher &voucher);
+    static outcome::result<void> calculate(
+        const Runtime &runtime,
+        states::PaymentChannelActorStatePtr state,
+        const SignedVoucher &voucher);
   };
   CBOR_TUPLE(UpdateChannelState::Params, signed_voucher, secret, proof)
 

@@ -15,7 +15,7 @@
 #include "primitives/tipset/chain.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/hamt/hamt.hpp"
-#include "vm/actor/builtin/v0/init/init_actor.hpp"
+#include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/v0/market/actor.hpp"
 #include "vm/actor/builtin/v0/miner/types.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
@@ -24,7 +24,6 @@
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
 
 #define MOVE(x)  \
   x {            \
@@ -36,7 +35,6 @@ namespace fc::api {
   using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
-  using vm::actor::builtin::v0::init::InitActorState;
   using vm::actor::builtin::v0::market::DealState;
   using vm::actor::builtin::v0::miner::MinerActorState;
   using vm::actor::builtin::v0::storage_power::StoragePowerActorState;
@@ -54,6 +52,7 @@ namespace fc::api {
   using vm::state::StateTreeImpl;
   using connection_t = boost::signals2::connection;
   using MarketActorState = vm::actor::builtin::v0::market::State;
+  using vm::actor::builtin::states::AccountActorStatePtr;
   using vm::actor::builtin::states::StateProvider;
 
   // TODO: reuse for block validation
@@ -85,7 +84,7 @@ namespace fc::api {
 
   template <typename T, typename F>
   auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&... args) {
+    return [f{std::forward<F>(f)}](auto &&...args) {
       auto channel{std::make_shared<Channel<outcome::result<T>>>()};
       f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
         channel->write(std::forward<decltype(_r)>(_r));
@@ -111,8 +110,11 @@ namespace fc::api {
       return state_tree.state<StoragePowerActorState>(kStoragePowerAddress);
     }
 
-    auto initState() {
-      return state_tree.state<InitActorState>(kInitAddress);
+    auto initState() -> outcome::result<AccountActorStatePtr> {
+      const StateProvider provider(state_tree.getStore());
+      OUTCOME_TRY(actor, state_tree.get(kInitAddress));
+      OUTCOME_TRY(state, provider.getAccountActorState(actor));
+      return std::move(state);
     }
 
     outcome::result<Address> accountKey(const Address &id) {

@@ -8,9 +8,9 @@
 namespace fc::vm::actor::builtin::v0::multisig {
 
   outcome::result<void> MultisigUtils::assertCallerIsSigner(
-      const State &state) const {
+      const states::MultisigActorStatePtr &state) const {
     const auto proposer = runtime.getImmediateCaller();
-    if (!state.isSigner(proposer)) {
+    if (!state->isSigner(proposer)) {
       ABORT(VMExitCode::kErrForbidden);
     }
     return outcome::success();
@@ -24,22 +24,22 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return std::move(resolved);
   }
 
-  BigInt MultisigUtils::amountLocked(const State &state,
+  BigInt MultisigUtils::amountLocked(const states::MultisigActorStatePtr &state,
                                      const ChainEpoch &elapsed_epoch) const {
-    if (elapsed_epoch >= state.unlock_duration) {
+    if (elapsed_epoch >= state->unlock_duration) {
       return 0;
     }
     if (elapsed_epoch < 0) {
-      return state.initial_balance;
+      return state->initial_balance;
     }
 
     const auto unit_locked =
-        bigdiv(state.initial_balance, state.unlock_duration);
-    return unit_locked * (state.unlock_duration - elapsed_epoch);
+        bigdiv(state->initial_balance, state->unlock_duration);
+    return unit_locked * (state->unlock_duration - elapsed_epoch);
   }
 
   outcome::result<void> MultisigUtils::assertAvailable(
-      const State &state,
+      const states::MultisigActorStatePtr &state,
       const TokenAmount &current_balance,
       const TokenAmount &amount_to_spend,
       const ChainEpoch &current_epoch) const {
@@ -52,7 +52,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     const auto remaining_balance = current_balance - amount_to_spend;
     const auto amount_locked =
-        amountLocked(state, current_epoch - state.start_epoch);
+        amountLocked(state, current_epoch - state->start_epoch);
     if (remaining_balance < amount_locked) {
       ABORT(VMExitCode::kErrInsufficientFunds);
     }
@@ -69,25 +69,25 @@ namespace fc::vm::actor::builtin::v0::multisig {
     }
     transaction.approved.push_back(caller);
 
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
 
-    REQUIRE_NO_ERROR(state.pending_transactions.set(tx_id, transaction),
+    REQUIRE_NO_ERROR(state->pending_transactions.set(tx_id, transaction),
                      VMExitCode::kErrIllegalState);
 
-    OUTCOME_TRY(runtime.commitState(state));
+    OUTCOME_TRY(runtime.stateManager()->commitState(state));
 
     return executeTransaction(state, tx_id, transaction);
   }
 
   outcome::result<ApproveTransactionResult> MultisigUtils::executeTransaction(
-      State &state,
+      states::MultisigActorStatePtr state,
       const TransactionId &tx_id,
       const Transaction &transaction) const {
     bool applied = false;
     Buffer out{};
     VMExitCode code = VMExitCode::kOk;
 
-    if (transaction.approved.size() >= state.threshold) {
+    if (transaction.approved.size() >= state->threshold) {
       OUTCOME_TRY(balance, runtime.getCurrentBalance());
       OUTCOME_TRY(assertAvailable(
           state, balance, transaction.value, runtime.getCurrentEpoch()));
@@ -103,11 +103,11 @@ namespace fc::vm::actor::builtin::v0::multisig {
       applied = true;
 
       // Lotus gas conformance
-      OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
+      OUTCOME_TRYA(state, runtime.stateManager()->getMultisigActorState());
 
-      REQUIRE_NO_ERROR(state.pending_transactions.remove(tx_id),
+      REQUIRE_NO_ERROR(state->pending_transactions.remove(tx_id),
                        VMExitCode::kErrIllegalState);
-      OUTCOME_TRY(runtime.commitState(state));
+      OUTCOME_TRY(runtime.stateManager()->commitState(state));
     }
 
     return std::make_tuple(applied, out, code);

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "codec/cbor/streams_annotation.hpp"
+#include "primitives/address/address_codec.hpp"
 #include "vm/actor/builtin/states/account_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::account {

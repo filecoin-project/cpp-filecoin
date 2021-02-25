@@ -4,23 +4,49 @@
  */
 
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor.hpp"
+#include "vm/actor/builtin/v2/verified_registry/policy.hpp"
+#include "vm/actor/builtin/v2/verified_registry/verified_registry_actor_state.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
 
 namespace fc::vm::actor::builtin::v2::verified_registry {
+  using primitives::StoragePower;
   using primitives::address::Address;
   using testutil::vm::actor::builtin::ActorTestFixture;
+  using v0::verified_registry::DataCap;
   using version::kUpgradeBreezeHeight;
   using version::kUpgradeKumquatHeight;
   using vm::VMExitCode;
 
-  struct VerifiedRegistryActorTest : public ActorTestFixture<State> {
+  struct VerifiedRegistryActorTest
+      : public ActorTestFixture<VerifiedRegistryActorState> {
     void SetUp() override {
-      ActorTestFixture<State>::SetUp();
+      ActorTestFixture<VerifiedRegistryActorState>::SetUp();
       actorVersion = ActorVersion::kVersion2;
 
       setupState();
+
+      EXPECT_CALL(*state_manager, createVerifiedRegistryActorState(testing::_))
+          .Times(testing::AnyNumber())
+          .WillRepeatedly(testing::Invoke([&](auto) {
+            auto s = std::make_shared<VerifiedRegistryActorState>();
+            ipld->load(*s);
+            return std::static_pointer_cast<states::VerifiedRegistryActorState>(
+                s);
+          }));
+
+      EXPECT_CALL(*state_manager, getVerifiedRegistryActorState())
+          .Times(testing::AnyNumber())
+          .WillRepeatedly(testing::Invoke([&]() {
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(current_state,
+                                ipld->getCbor<VerifiedRegistryActorState>(cid));
+            auto s =
+                std::make_shared<VerifiedRegistryActorState>(current_state);
+            return std::static_pointer_cast<states::VerifiedRegistryActorState>(
+                s);
+          }));
     }
 
     void setupState() {
@@ -269,6 +295,8 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
 
     EXPECT_OUTCOME_TRUE_1(
         state.verified_clients.set(verified_client, wrong_allowance));
+
+    // Test VM_ASSERT
 
     currentEpochIs(kUpgradeBreezeHeight);
 

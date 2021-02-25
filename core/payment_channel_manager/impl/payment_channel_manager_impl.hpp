@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_IMPL_HPP
-#define CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_IMPL_HPP
+#pragma once
 
 #include <shared_mutex>
 
@@ -12,13 +11,14 @@
 #include "common/buffer.hpp"
 #include "payment_channel_manager/payment_channel_manager.hpp"
 #include "storage/ipfs/datastore.hpp"
+#include "vm/actor/builtin/states/state_provider.hpp"
 
 namespace fc::payment_channel_manager {
   using api::FullNodeApi;
   using common::Buffer;
   using vm::actor::builtin::v0::payment_channel::SignedVoucher;
   using Ipld = fc::storage::ipfs::IpfsDatastore;
-  using PaymentChannelState = vm::actor::builtin::v0::payment_channel::State;
+  using vm::actor::builtin::states::PaymentChannelActorStatePtr;
 
   struct ChannelInfo {
     Address channel_actor;
@@ -96,7 +96,7 @@ namespace fc::payment_channel_manager {
      * @param channel_address payment channel actor address
      * @return payment channel actor state
      */
-    outcome::result<PaymentChannelState> loadPaymentChannelActorState(
+    outcome::result<PaymentChannelActorStatePtr> loadPaymentChannelActorState(
         const Address &channel_address) const;
 
     /**
@@ -119,5 +119,3 @@ namespace fc::payment_channel_manager {
   };
 
 }  // namespace fc::payment_channel_manager
-
-#endif  // CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_IMPL_HPP

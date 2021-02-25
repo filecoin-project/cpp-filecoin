@@ -4,53 +4,70 @@
  */
 
 #include "vm/actor/builtin/v2/cron/cron_actor.hpp"
+#include "vm/actor/builtin/v2/cron/cron_actor_state.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 
 #include <gtest/gtest.h>
 
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
-#include "testutil/mocks/vm/runtime/runtime_mock.hpp"
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+#include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
 
-using namespace fc::vm;
-using actor::MethodParams;
-using actor::builtin::v2::cron::EpochTick;
-using actor::builtin::v2::storage_power::OnEpochTickEnd;
-using runtime::MockRuntime;
+namespace fc::vm::actor::builtin::v2::cron {
+  using actor::MethodParams;
+  using actor::builtin::v2::cron::EpochTick;
+  using actor::builtin::v2::storage_power::OnEpochTickEnd;
+  using testutil::vm::actor::builtin::ActorTestFixture;
 
-/**
- * @given Virtual Machine context
- * @when get message not from CronActor
- * @then error WRONG_CALL
- */
-TEST(CronActorV2Test, WrongSender) {
-  MockRuntime runtime;
-  EXPECT_CALL(runtime, getImmediateCaller())
-      .WillOnce(testing::Return(actor::kInitAddress));
-  EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
-                       EpochTick::call(runtime, {}));
-}
+  struct CronActorTest : public ActorTestFixture<CronActorState> {
+    void SetUp() override {
+      ActorTestFixture<CronActorState>::SetUp();
+      actorVersion = ActorVersion::kVersion0;
 
-/**
- * @given Virtual Machine context
- * @when get message from CronActor
- * @then success
- */
-TEST(CronActorV2Test, Correct) {
-  MockRuntime runtime;
-  auto ipld = std::make_shared<fc::storage::ipfs::InMemoryDatastore>();
-  EXPECT_OUTCOME_TRUE(
-      state,
-      ipld->setCbor(actor::builtin::v2::cron::State{
-          {{actor::kStoragePowerAddress, OnEpochTickEnd::Number}}}));
-  EXPECT_CALL(runtime, getCurrentActorState()).WillOnce(testing::Return(state));
-  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(ipld));
-  EXPECT_CALL(runtime,
-              send(actor::kStoragePowerAddress,
-                   OnEpochTickEnd::Number,
-                   MethodParams{},
-                   fc::primitives::TokenAmount{0}))
-      .WillOnce(testing::Return(fc::outcome::success()));
-  EXPECT_CALL(runtime, getImmediateCaller())
-      .WillOnce(testing::Return(actor::kSystemActorAddress));
-  EXPECT_OUTCOME_TRUE_1(EpochTick::call(runtime, {}));
-}
+      EXPECT_CALL(*state_manager, createCronActorState(testing::_))
+          .Times(testing::AnyNumber())
+          .WillRepeatedly(testing::Invoke([&](auto) {
+            auto s = std::make_shared<CronActorState>();
+            return std::static_pointer_cast<states::CronActorState>(s);
+          }));
+
+      EXPECT_CALL(*state_manager, getCronActorState())
+          .Times(testing::AnyNumber())
+          .WillRepeatedly(testing::Invoke([&]() {
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(current_state,
+                                ipld->getCbor<CronActorState>(cid));
+            auto s = std::make_shared<CronActorState>(current_state);
+            return std::static_pointer_cast<states::CronActorState>(s);
+          }));
+    }
+  };
+
+  /**
+   * @given Virtual Machine context
+   * @when get message not from CronActor
+   * @then error WRONG_CALL
+   */
+  TEST_F(CronActorTest, WrongSender) {
+    callerIs(kInitAddress);
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
+                         EpochTick::call(runtime, {}));
+  }
+
+  /**
+   * @given Virtual Machine context
+   * @when get message from CronActor
+   * @then success
+   */
+  TEST_F(CronActorTest, Correct) {
+    state.entries = {{kStoragePowerAddress, OnEpochTickEnd::Number}};
+    callerIs(kSystemActorAddress);
+
+    EXPECT_CALL(runtime,
+                send(actor::kStoragePowerAddress,
+                     OnEpochTickEnd::Number,
+                     MethodParams{},
+                     primitives::TokenAmount{0}))
+        .WillOnce(testing::Return(fc::outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(EpochTick::call(runtime, {}));
+  }
+}  // namespace fc::vm::actor::builtin::v2::cron

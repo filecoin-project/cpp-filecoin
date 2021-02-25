@@ -7,14 +7,13 @@
 
 #include "const.hpp"
 #include "primitives/block/block.hpp"
+#include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/market/actor.hpp"
 #include "vm/actor/builtin/v0/miner/policy.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/market/actor.hpp"
-#include "vm/actor/builtin/v2/reward/reward_actor_state.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/v3/codes.hpp"
 #include "vm/actor/builtin/v3/storage_power/storage_power_actor_state.hpp"
@@ -22,6 +21,8 @@
 #include "vm/version.hpp"
 
 namespace fc::vm {
+  using actor::builtin::states::StateProvider;
+
   outcome::result<TokenAmount> getLocked(StateTreePtr state_tree) {
     const auto ipld{state_tree->getStore()};
     TokenAmount locked;
@@ -105,19 +106,10 @@ namespace fc::vm {
       vested += genesis;
     }
 
-    OUTCOME_TRY(reward, state_tree->get(actor::kRewardAddress));
-    if (reward.code == actor::builtin::v0::kRewardActorCodeId) {
-      OUTCOME_TRY(
-          state, ipld->getCbor<actor::builtin::v0::reward::State>(reward.head));
-      mined = state.total_mined;
-    } else if (reward.code == actor::builtin::v2::kRewardActorCodeId) {
-      OUTCOME_TRY(
-          state, ipld->getCbor<actor::builtin::v2::reward::State>(reward.head));
-      mined = state.total_storage_power_reward;
-      // TODO (m.tagirov or a.chernyshov) - v3
-    } else {
-      return std::errc::owner_dead;
-    }
+    OUTCOME_TRY(reward_actor, state_tree->get(actor::kRewardAddress));
+    StateProvider provider(ipld);
+    OUTCOME_TRY(reward_state, provider.getRewardActorState(reward_actor));
+    mined = reward_state->total_reward;
 
     TokenAmount disbursed;
     if (epoch > version::kUpgradeActorsV2Height) {

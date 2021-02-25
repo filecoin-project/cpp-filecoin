@@ -29,7 +29,7 @@ namespace fc::vm::state {
   };
 
   /// State tree
-  class StateTree {
+  class StateTree : public std::enable_shared_from_this<StateTree> {
    public:
     /** Used in StateRoot v1 */
     struct StateTreeInfo {

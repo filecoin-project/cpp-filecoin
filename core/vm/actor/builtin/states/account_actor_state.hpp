@@ -15,7 +15,7 @@ namespace fc::vm::actor::builtin::states {
     explicit AccountActorState(ActorVersion version)
         : State(ActorType::kAccount, version) {}
 
-    Address address{};
+    Address address;
   };
 
   using AccountActorStatePtr = std::shared_ptr<AccountActorState>;

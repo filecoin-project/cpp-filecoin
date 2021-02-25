@@ -5,20 +5,33 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v2/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/states/payment_channel_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::payment_channel {
 
-  /**
-   * Payment channel actor state v3 is identical to Payment channel actor state
-   * v2
-   */
-
-  using LaneState = v2::payment_channel::LaneState;
-  using State = v2::payment_channel::State;
-  using Merge = v2::payment_channel::Merge;
-  using ModularVerificationParameter =
-      v2::payment_channel::ModularVerificationParameter;
-  using SignedVoucher = v2::payment_channel::SignedVoucher;
-
+  struct PaymentChannelActorState : states::PaymentChannelActorState {
+    explicit PaymentChannelActorState()
+        : states::PaymentChannelActorState(ActorVersion::kVersion3) {}
+  };
+  CBOR_TUPLE(PaymentChannelActorState,
+             from,
+             to,
+             to_send,
+             settling_at,
+             min_settling_height,
+             lanes)
 }  // namespace fc::vm::actor::builtin::v3::payment_channel
+
+namespace fc {
+  template <>
+  struct Ipld::Visit<
+      vm::actor::builtin::v3::payment_channel::PaymentChannelActorState> {
+    template <typename Visitor>
+    static void call(
+        vm::actor::builtin::v3::payment_channel::PaymentChannelActorState
+            &state,
+        const Visitor &visit) {
+      visit(state.lanes);
+    }
+  };
+}  // namespace fc

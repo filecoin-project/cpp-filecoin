@@ -13,7 +13,7 @@ namespace fc::vm::actor::builtin::utils::init {
 
   class InitUtils {
    public:
-    InitUtils(Runtime &r) : runtime(r) {}
+    explicit InitUtils(Runtime &r) : runtime(r) {}
     virtual ~InitUtils() = default;
 
     virtual outcome::result<void> assertCaller(bool condition) const = 0;

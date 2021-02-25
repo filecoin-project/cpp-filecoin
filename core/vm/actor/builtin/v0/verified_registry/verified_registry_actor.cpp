@@ -4,6 +4,7 @@
  */
 
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
+#include "vm/actor/builtin/v0/verified_registry/policy.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::verified_registry {
@@ -19,23 +20,22 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     OUTCOME_TRY(runtime.validateArgument(!id_addr.has_error()));
 
-    State state(id_addr.value());
-    IpldPtr {
-      runtime
-    }
-    ->load(state);
+    auto state = runtime.stateManager()->createVerifiedRegistryActorState(
+        runtime.getActorVersion());
+    state->root_key = id_addr.value();
 
-    OUTCOME_TRY(runtime.commitState(state));
+    OUTCOME_TRY(runtime.stateManager()->commitState(state));
     return outcome::success();
   }
 
   // AddVerifier
   //============================================================================
 
-  outcome::result<void> AddVerifier::addVerifier(const Runtime &runtime,
-                                                 State &state,
-                                                 const Address &verifier,
-                                                 const DataCap &allowance) {
+  outcome::result<void> AddVerifier::addVerifier(
+      const Runtime &runtime,
+      states::VerifiedRegistryActorState &state,
+      const Address &verifier,
+      const DataCap &allowance) {
     REQUIRE_NO_ERROR_A(found,
                        state.verified_clients.tryGet(verifier),
                        VMExitCode::kErrIllegalState);
@@ -49,14 +49,15 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   ACTOR_METHOD_IMPL(AddVerifier) {
     const auto utils = Toolchain::createVerifRegUtils(runtime);
     OUTCOME_TRY(utils->checkDealSize(params.allowance));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(runtime.validateImmediateCallerIs(state.root_key));
-    OUTCOME_TRY(utils->checkAddress<State>(state, params.address));
+    OUTCOME_TRY(state, runtime.stateManager()->getVerifiedRegistryActorState());
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(state->root_key));
+    OUTCOME_TRY(utils->checkAddress(*state, params.address));
     OUTCOME_TRYA(
         state,
-        runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
-    OUTCOME_TRY(addVerifier(runtime, state, params.address, params.allowance));
-    OUTCOME_TRY(runtime.commitState(state));
+        runtime.stateManager()
+            ->getVerifiedRegistryActorState());  // Lotus gas conformance
+    OUTCOME_TRY(addVerifier(runtime, *state, params.address, params.allowance));
+    OUTCOME_TRY(runtime.stateManager()->commitState(state));
     return outcome::success();
   }
 
@@ -64,25 +65,27 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   //============================================================================
 
   ACTOR_METHOD_IMPL(RemoveVerifier) {
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(runtime.validateImmediateCallerIs(state.root_key));
+    OUTCOME_TRY(state, runtime.stateManager()->getVerifiedRegistryActorState());
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(state->root_key));
     OUTCOME_TRYA(
         state,
-        runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
+        runtime.stateManager()
+            ->getVerifiedRegistryActorState());  // Lotus gas conformance
 
-    REQUIRE_NO_ERROR(state.verifiers.remove(params),
+    REQUIRE_NO_ERROR(state->verifiers.remove(params),
                      VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.commitState(state));
+    OUTCOME_TRY(runtime.stateManager()->commitState(state));
     return outcome::success();
   }
 
   // AddVerifiedClient
   //============================================================================
 
-  outcome::result<void> AddVerifiedClient::addClient(const Runtime &runtime,
-                                                     State &state,
-                                                     const Address &client,
-                                                     const DataCap &allowance) {
+  outcome::result<void> AddVerifiedClient::addClient(
+      const Runtime &runtime,
+      states::VerifiedRegistryActorState &state,
+      const Address &client,
+      const DataCap &allowance) {
     // Validate caller is one of the verifiers.
     const auto verifier = runtime.getImmediateCaller();
     REQUIRE_NO_ERROR_A(maybe_verifier_cap,
@@ -120,24 +123,26 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   ACTOR_METHOD_IMPL(AddVerifiedClient) {
     const auto utils = Toolchain::createVerifRegUtils(runtime);
     OUTCOME_TRY(utils->checkDealSize(params.allowance));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(utils->checkAddress<State>(state, params.address));
+    OUTCOME_TRY(state, runtime.stateManager()->getVerifiedRegistryActorState());
+    OUTCOME_TRY(utils->checkAddress(*state, params.address));
     OUTCOME_TRYA(
         state,
-        runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
-    OUTCOME_TRY(addClient(runtime, state, params.address, params.allowance));
-    OUTCOME_TRY(runtime.commitState(state));
+        runtime.stateManager()
+            ->getVerifiedRegistryActorState());  // Lotus gas conformance
+    OUTCOME_TRY(addClient(runtime, *state, params.address, params.allowance));
+    OUTCOME_TRY(runtime.stateManager()->commitState(state));
     return outcome::success();
   }
 
   // UseBytes
   //============================================================================
 
-  outcome::result<void> UseBytes::useBytes(const Runtime &runtime,
-                                           State &state,
-                                           const Address &client,
-                                           const StoragePower &deal_size,
-                                           CapAssert cap_assert) {
+  outcome::result<void> UseBytes::useBytes(
+      const Runtime &runtime,
+      states::VerifiedRegistryActorState &state,
+      const Address &client,
+      const StoragePower &deal_size,
+      CapAssert cap_assert) {
     REQUIRE_NO_ERROR_A(maybe_client_cap,
                        state.verified_clients.tryGet(client),
                        VMExitCode::kErrIllegalState);
@@ -167,14 +172,14 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kStorageMarketAddress));
     const auto utils = Toolchain::createVerifRegUtils(runtime);
     OUTCOME_TRY(utils->checkDealSize(params.deal_size));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getVerifiedRegistryActorState());
 
     auto clientCapAssert = [&runtime](bool condition) -> outcome::result<void> {
       return runtime.vm_assert(condition);
     };
     OUTCOME_TRY(useBytes(
-        runtime, state, params.address, params.deal_size, clientCapAssert));
-    OUTCOME_TRY(runtime.commitState(state));
+        runtime, *state, params.address, params.deal_size, clientCapAssert));
+    OUTCOME_TRY(runtime.stateManager()->commitState(state));
     return outcome::success();
   }
 
@@ -183,7 +188,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
   outcome::result<void> RestoreBytes::restoreBytes(
       const Runtime &runtime,
-      State &state,
+      states::VerifiedRegistryActorState &state,
       const Address &client,
       const StoragePower &deal_size) {
     REQUIRE_NO_ERROR_A(maybe_verifier_cap,
@@ -207,13 +212,15 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kStorageMarketAddress));
     const auto utils = Toolchain::createVerifRegUtils(runtime);
     OUTCOME_TRY(utils->checkDealSize(params.deal_size));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(utils->checkAddress<State>(state, params.address));
+    OUTCOME_TRY(state, runtime.stateManager()->getVerifiedRegistryActorState());
+    OUTCOME_TRY(utils->checkAddress(*state, params.address));
     OUTCOME_TRYA(
         state,
-        runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
-    OUTCOME_TRY(restoreBytes(runtime, state, params.address, params.deal_size));
-    OUTCOME_TRY(runtime.commitState(state));
+        runtime.stateManager()
+            ->getVerifiedRegistryActorState());  // Lotus gas conformance
+    OUTCOME_TRY(
+        restoreBytes(runtime, *state, params.address, params.deal_size));
+    OUTCOME_TRY(runtime.stateManager()->commitState(state));
     return outcome::success();
   }
 

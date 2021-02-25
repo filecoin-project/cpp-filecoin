@@ -110,26 +110,9 @@ namespace fc::vm::actor::builtin::v0::reward {
      * @param params method
      * @param baseline_exponent - constant
      */
-    template <class TState>
     static outcome::result<void> updateKPI(Runtime &runtime,
                                            const Params &params,
-                                           const BigInt &baseline_exponent) {
-      OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<TState>());
-      const ChainEpoch prev_epoch = state.epoch;
-      const ChainEpoch now = runtime.getCurrentEpoch();
-      while (state.epoch < now) {
-        updateToNextEpoch(state, params, baseline_exponent);
-      }
-
-      updateToNextEpochWithReward(state, params, baseline_exponent);
-      // only update smoothed estimates after updating reward and epoch
-      updateSmoothedEstimates(state, state.epoch - prev_epoch);
-
-      // Lotus gas conformance
-      OUTCOME_TRY(runtime.commitState(state));
-
-      return outcome::success();
-    }
+                                           const BigInt &baseline_exponent);
 
     ACTOR_METHOD_DECL();
   };

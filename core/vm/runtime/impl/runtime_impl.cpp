@@ -27,7 +27,8 @@ namespace fc::vm::runtime {
       : execution_{std::move(execution)},
         message_{std::move(message)},
         caller_id{caller_id},
-        state_manager(std::make_shared<StateManager>(execution_->charging_ipld, execution_->state_tree, message_.to)) {}
+        state_manager(std::make_shared<StateManagerImpl>(
+            execution_->charging_ipld, execution_->state_tree, message_.to)) {}
 
   std::shared_ptr<Execution> RuntimeImpl::execution() const {
     return execution_;

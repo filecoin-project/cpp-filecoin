@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/multisig/multisig_actor_state.hpp"
+#include "vm/actor/builtin/states/multisig_actor_state.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::utils::multisig {
   using primitives::ChainEpoch;
@@ -13,14 +14,13 @@ namespace fc::vm::actor::builtin::utils::multisig {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
-  using v0::multisig::State;
-  using v0::multisig::Transaction;
-  using v0::multisig::TransactionId;
+  using states::Transaction;
+  using states::TransactionId;
   using ApproveTransactionResult = std::tuple<bool, Buffer, VMExitCode>;
 
   class MultisigUtils {
    public:
-    MultisigUtils(Runtime &r) : runtime(r) {}
+    explicit MultisigUtils(Runtime &r) : runtime(r) {}
     virtual ~MultisigUtils() = default;
 
     /**
@@ -28,7 +28,7 @@ namespace fc::vm::actor::builtin::utils::multisig {
      * @param state - actor state
      */
     virtual outcome::result<void> assertCallerIsSigner(
-        const State &state) const = 0;
+        const states::MultisigActorStatePtr &state) const = 0;
 
     /**
      * Resolve address
@@ -44,7 +44,7 @@ namespace fc::vm::actor::builtin::utils::multisig {
      * @param elapsed_epoch - elapsed block number
      * @return - return amount locked
      */
-    virtual BigInt amountLocked(const State &state,
+    virtual BigInt amountLocked(const states::MultisigActorStatePtr &state,
                                 const ChainEpoch &elapsed_epoch) const = 0;
 
     /**
@@ -56,7 +56,7 @@ namespace fc::vm::actor::builtin::utils::multisig {
      * @return nothing or error occurred
      */
     virtual outcome::result<void> assertAvailable(
-        const State &state,
+        const states::MultisigActorStatePtr &state,
         const TokenAmount &current_balance,
         const TokenAmount &amount_to_spend,
         const ChainEpoch &current_epoch) const = 0;
@@ -81,7 +81,7 @@ namespace fc::vm::actor::builtin::utils::multisig {
      * sending a message
      */
     virtual outcome::result<ApproveTransactionResult> executeTransaction(
-        State &state,
+        states::MultisigActorStatePtr state,
         const TransactionId &tx_id,
         const Transaction &transaction) const = 0;
 
@@ -93,7 +93,7 @@ namespace fc::vm::actor::builtin::utils::multisig {
      * @param address - address to purge
      */
     virtual outcome::result<void> purgeApprovals(
-        State &state, const Address &address) const = 0;
+        states::MultisigActorStatePtr state, const Address &address) const = 0;
 
    protected:
     Runtime &runtime;

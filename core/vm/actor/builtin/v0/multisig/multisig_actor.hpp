@@ -6,9 +6,16 @@
 #pragma once
 
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/multisig/multisig_actor_state.hpp"
+#include "vm/actor/builtin/states/multisig_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::multisig {
+  using primitives::ChainEpoch;
+  using primitives::EpochDuration;
+  using primitives::TokenAmount;
+  using primitives::address::Address;
+  using states::ProposalHashData;
+  using states::Transaction;
+  using states::TransactionId;
 
   struct Construct : ActorMethodBase<1> {
     struct Params {
@@ -27,12 +34,13 @@ namespace fc::vm::actor::builtin::v0::multisig {
         const std::vector<Address> &signers,
         size_t threshold,
         const EpochDuration &unlock_duration);
-    static State createState(Runtime &runtime,
-                             size_t threshold,
-                             const std::vector<Address> &signers);
+    static states::MultisigActorStatePtr createState(
+        Runtime &runtime,
+        size_t threshold,
+        const std::vector<Address> &signers);
     static void setLocked(const Runtime &runtime,
                           const EpochDuration &unlock_duration,
-                          State &state);
+                          states::MultisigActorStatePtr state);
   };
   CBOR_TUPLE(Construct::Params, signers, threshold, unlock_duration)
 
@@ -100,7 +108,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     ACTOR_METHOD_DECL();
 
     static outcome::result<void> addSigner(const Params &params,
-                                           State &state,
+                                           states::MultisigActorStatePtr state,
                                            const Address &signer);
   };
   CBOR_TUPLE(AddSigner::Params, signer, increase_threshold)
@@ -113,9 +121,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     ACTOR_METHOD_DECL();
 
-    static outcome::result<void> checkState(const Params &params,
-                                            const State &state,
-                                            const Address &signer);
+    static outcome::result<void> checkState(
+        const Params &params,
+        const states::MultisigActorStatePtr &state,
+        const Address &signer);
   };
   CBOR_TUPLE(RemoveSigner::Params, signer, decrease_threshold)
 
@@ -129,7 +138,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     static outcome::result<Result> execute(Runtime &runtime,
                                            const Params &params);
 
-    static outcome::result<void> swapSigner(State &state,
+    static outcome::result<void> swapSigner(states::MultisigActorStatePtr state,
                                             const Address &from,
                                             const Address &to);
   };
@@ -152,8 +161,8 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
-    static outcome::result<void> lockBalance(const Params &params,
-                                             State &state);
+    static outcome::result<void> lockBalance(
+        const Params &params, states::MultisigActorStatePtr state);
   };
   CBOR_TUPLE(LockBalance::Params, start_epoch, unlock_duration, amount)
 

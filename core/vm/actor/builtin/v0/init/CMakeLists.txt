@@ -4,7 +4,6 @@
 #
 
 add_library(init_actor_v0
-    init_actor_state.cpp
     init_actor.cpp
     init_actor_utils.cpp
     )

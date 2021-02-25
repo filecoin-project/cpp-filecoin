@@ -6,9 +6,9 @@
 #pragma once
 
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
-#include "vm/actor/builtin/v2/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::payment_channel {
+  using v0::payment_channel::SignedVoucher;
 
   /**
    * Payment channel actor v2 is almost identical to Payment channel actor v0
@@ -18,10 +18,7 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
   constexpr auto kSettleDelay = v0::payment_channel::kSettleDelay;
   constexpr auto kMaxSecretSize = v0::payment_channel::kMaxSecretSize;
 
-  struct Construct : ActorMethodBase<1> {
-    using Params = v0::payment_channel::Construct::Params;
-    ACTOR_METHOD_DECL();
-  };
+  using Construct = v0::payment_channel::Construct;
 
   struct UpdateChannelState : ActorMethodBase<2> {
     struct Params {

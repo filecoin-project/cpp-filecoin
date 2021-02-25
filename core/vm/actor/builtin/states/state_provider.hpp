@@ -11,6 +11,13 @@
 #include "vm/exit_code/exit_code.hpp"
 
 #include "vm/actor/builtin/states/account_actor_state.hpp"
+#include "vm/actor/builtin/states/cron_actor_state.hpp"
+#include "vm/actor/builtin/states/init_actor_state.hpp"
+#include "vm/actor/builtin/states/multisig_actor_state.hpp"
+#include "vm/actor/builtin/states/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/states/reward_actor_state.hpp"
+#include "vm/actor/builtin/states/system_actor_state.hpp"
+#include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::states {
 
@@ -21,6 +28,27 @@ namespace fc::vm::actor::builtin::states {
 
     outcome::result<AccountActorStatePtr> getAccountActorState(
         const Actor &actor) const;
+
+    outcome::result<CronActorStatePtr> getCronActorState(
+        const Actor &actor) const;
+
+    outcome::result<InitActorStatePtr> getInitActorState(
+        const Actor &actor) const;
+
+    outcome::result<MultisigActorStatePtr> getMultisigActorState(
+        const Actor &actor) const;
+
+    outcome::result<PaymentChannelActorStatePtr> getPaymentChannelActorState(
+        const Actor &actor) const;
+
+    outcome::result<SystemActorStatePtr> getSystemActorState(
+        const Actor &actor) const;
+
+    outcome::result<RewardActorStatePtr> getRewardActorState(
+        const Actor &actor) const;
+
+    outcome::result<VerifiedRegistryActorStatePtr>
+    getVerifiedRegistryActorState(const Actor &actor) const;
 
    private:
     ActorVersion getVersion(const CodeId &code) const;
@@ -36,22 +64,20 @@ namespace fc::vm::actor::builtin::states {
         const Actor &actor) const {
       const auto version = getVersion(actor.code);
 
-      std::shared_ptr<T> result;
-
-      if (version == ActorVersion::kVersion0) {
-        OUTCOME_TRY(state0, getStatePtr<Tv0>(actor.head));
-        result = std::static_pointer_cast<T>(state0);
-      } else if (version == ActorVersion::kVersion2) {
-        OUTCOME_TRY(state2, getStatePtr<Tv2>(actor.head));
-        result = std::static_pointer_cast<T>(state2);
-      } else if (version == ActorVersion::kVersion3) {
-        OUTCOME_TRY(state3, getStatePtr<Tv3>(actor.head));
-        result = std::static_pointer_cast<T>(state3);
-      } else {
-        return VMExitCode::kSysErrIllegalArgument;
+      switch (version) {
+        case ActorVersion::kVersion0: {
+          OUTCOME_TRY(state, getStatePtr<Tv0>(actor.head));
+          return std::static_pointer_cast<T>(state);
+        }
+        case ActorVersion::kVersion2: {
+          OUTCOME_TRY(state, getStatePtr<Tv2>(actor.head));
+          return std::static_pointer_cast<T>(state);
+        }
+        case ActorVersion::kVersion3: {
+          OUTCOME_TRY(state, getStatePtr<Tv3>(actor.head));
+          return std::static_pointer_cast<T>(state);
+        }
       }
-
-      return std::move(result);
     }
 
     IpldPtr ipld;

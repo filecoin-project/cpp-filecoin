@@ -13,7 +13,7 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
 
   class VerifRegUtils : public utils::verified_registry::VerifRegUtils {
    public:
-    VerifRegUtils(Runtime &r)
+    explicit VerifRegUtils(Runtime &r)
         : utils::verified_registry::VerifRegUtils::VerifRegUtils(r) {}
 
     outcome::result<void> checkDealSize(

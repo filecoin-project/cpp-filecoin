@@ -3,9 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/multisig/multisig_actor_state.hpp"
+#include "vm/actor/builtin/states/multisig_actor_state.hpp"
+#include "vm/runtime/runtime.hpp"
 
-namespace fc::vm::actor::builtin::v0::multisig {
+namespace fc::vm::actor::builtin::states {
+  using fc::vm::runtime::Runtime;
 
   bool Transaction::operator==(const Transaction &other) const {
     return to == other.to && value == other.value && method == other.method
@@ -19,15 +21,15 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return Buffer{gsl::make_span(hash)};
   }
 
-  void State::setLocked(const ChainEpoch &start_epoch,
-                        const EpochDuration &unlock_duration,
-                        const TokenAmount &lockedAmount) {
+  void MultisigActorState::setLocked(const ChainEpoch &start_epoch,
+                                     const EpochDuration &unlock_duration,
+                                     const TokenAmount &lockedAmount) {
     this->start_epoch = start_epoch;
     this->unlock_duration = unlock_duration;
     this->initial_balance = lockedAmount;
   }
 
-  fc::outcome::result<Transaction> State::getPendingTransaction(
+  outcome::result<Transaction> MultisigActorState::getPendingTransaction(
       const TransactionId &tx_id) const {
     OUTCOME_TRY(pending_tx, pending_transactions.tryGet(tx_id));
     if (!pending_tx) {
@@ -37,7 +39,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return std::move(pending_tx.get());
   }
 
-  outcome::result<Transaction> State::getTransaction(
+  outcome::result<Transaction> MultisigActorState::getTransaction(
       Runtime &runtime,
       const TransactionId &tx_id,
       const Buffer &proposal_hash) const {
@@ -50,4 +52,4 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     return std::move(transaction);
   }
-}  // namespace fc::vm::actor::builtin::v0::multisig
+}  // namespace fc::vm::actor::builtin::states

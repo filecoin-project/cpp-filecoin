@@ -8,24 +8,30 @@
 #include "vm/actor/builtin/utils/multisig_actor_utils.hpp"
 
 namespace fc::vm::actor::builtin::v0::multisig {
+  using primitives::ChainEpoch;
+  using primitives::EpochDuration;
+  using primitives::TokenAmount;
+  using primitives::address::Address;
+  using runtime::Runtime;
+  using states::Transaction;
+  using states::TransactionId;
   using utils::multisig::ApproveTransactionResult;
 
   class MultisigUtils : public utils::multisig::MultisigUtils {
    public:
-    MultisigUtils(Runtime &r)
-        : utils::multisig::MultisigUtils::MultisigUtils(r) {}
+    explicit MultisigUtils(Runtime &r) : utils::multisig::MultisigUtils(r) {}
 
     outcome::result<void> assertCallerIsSigner(
-        const State &state) const override;
+        const states::MultisigActorStatePtr &state) const override;
 
     outcome::result<Address> getResolvedAddress(
         const Address &address) const override;
 
-    BigInt amountLocked(const State &state,
+    BigInt amountLocked(const states::MultisigActorStatePtr &state,
                         const ChainEpoch &elapsed_epoch) const override;
 
     outcome::result<void> assertAvailable(
-        const State &state,
+        const states::MultisigActorStatePtr &state,
         const TokenAmount &current_balance,
         const TokenAmount &amount_to_spend,
         const ChainEpoch &current_epoch) const override;
@@ -34,12 +40,13 @@ namespace fc::vm::actor::builtin::v0::multisig {
         const TransactionId &tx_id, Transaction &transaction) const override;
 
     outcome::result<ApproveTransactionResult> executeTransaction(
-        State &state,
+        states::MultisigActorStatePtr state,
         const TransactionId &tx_id,
         const Transaction &transaction) const override;
 
     outcome::result<void> purgeApprovals(
-        State &state, const Address &address) const override {
+        states::MultisigActorStatePtr state,
+        const Address &address) const override {
       // Not implemented for v0
       return outcome::success();
     }

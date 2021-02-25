@@ -14,18 +14,18 @@ namespace fc::vm::actor::builtin::utils::verified_registry {
   using primitives::StoragePower;
   using primitives::address::Address;
   using runtime::Runtime;
+  using states::VerifiedRegistryActorState;
 
   class VerifRegUtils {
    public:
-    VerifRegUtils(Runtime &r) : runtime(r) {}
+    explicit VerifRegUtils(Runtime &r) : runtime(r) {}
     virtual ~VerifRegUtils() = default;
 
     virtual outcome::result<void> checkDealSize(
         const StoragePower &deal_size) const = 0;
 
-    template <typename State>
-    outcome::result<void> checkAddress(const State &state,
-                                       const Address &address) const {
+    inline outcome::result<void> checkAddress(
+        const VerifiedRegistryActorState &state, const Address &address) const {
       if (state.root_key == address) {
         ABORT(VMExitCode::kErrIllegalArgument);
       }

@@ -12,7 +12,7 @@ namespace fc::vm::actor::builtin::v0::init {
 
   class InitUtils : public utils::init::InitUtils {
    public:
-    InitUtils(Runtime &r) : utils::init::InitUtils::InitUtils(r) {}
+    explicit InitUtils(Runtime &r) : utils::init::InitUtils(r) {}
 
     outcome::result<void> assertCaller(bool condition) const override;
   };
