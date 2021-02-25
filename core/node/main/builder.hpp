@@ -17,6 +17,7 @@
 #include "primitives/tipset/load.hpp"
 #include "storage/buffer_map.hpp"
 #include "storage/leveldb/leveldb.hpp"
+#include "vm/runtime/env_context.hpp"
 
 namespace fc::node {
 
@@ -71,6 +72,7 @@ namespace fc::node {
     std::shared_ptr<vm::interpreter::CachedInterpreter> vm_interpreter;
     std::shared_ptr<sync::SyncJob> sync_job;
     std::shared_ptr<sync::InterpretJob> interpret_job;
+    vm::runtime::EnvironmentContext env_context;
 
     // high level objects
     std::shared_ptr<sync::ChainStoreImpl> chain_store;

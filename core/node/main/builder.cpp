@@ -205,7 +205,7 @@ namespace fc::node {
       auto it{std::prev(o.ts_main->chain.end())};
       log()->info("interpret head {}", it->first);
       auto ts{o.ts_load->loadw(it->second).value()};
-      o.vm_interpreter->interpret(o.ts_main, o.ipld, ts).assume_value();
+      o.vm_interpreter->interpret(o.ts_main, ts).assume_value();
     }
     log()->info("chain loaded");
     assert(o.ts_main->chain.begin()->second.key == genesis_tsk);
@@ -234,20 +234,24 @@ namespace fc::node {
     assert(genesis_cids.size() == 1);
     config.genesis_cid = genesis_cids[0];
 
-    OUTCOME_TRY(circulating,
-                vm::Circulating::make(o.ipld, *config.genesis_cid));
+    o.env_context.ipld = o.ipld;
+    o.env_context.invoker = std::make_shared<vm::actor::InvokerImpl>();
+    o.env_context.randomness =
+        std::make_shared<vm::runtime::TipsetRandomness>(o.ts_load);
+    o.env_context.ts_load = o.ts_load;
+    o.env_context.interpreter_cache =
+        std::make_shared<vm::interpreter::InterpreterCache>(
+            std::make_shared<storage::MapPrefix>("vm/", o.kv_store));
+    OUTCOME_TRYA(o.env_context.circulating,
+                 vm::Circulating::make(o.ipld, *config.genesis_cid));
 
     auto weight_calculator =
         std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
 
     o.interpreter = std::make_shared<vm::interpreter::InterpreterImpl>(
-        std::make_shared<vm::actor::InvokerImpl>(),
-        o.ts_load,
-        weight_calculator,
-        std::make_shared<vm::runtime::TipsetRandomness>(o.ts_load),
-        std::move(circulating));
+        o.env_context, weight_calculator);
     o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
-        o.interpreter, std::make_shared<storage::MapPrefix>("vm/", o.kv_store));
+        o.interpreter, o.env_context.interpreter_cache);
 
     auto snapshot_cids{loadSnapshot(config, o)};
 
@@ -364,29 +368,31 @@ namespace fc::node {
             power_table,
             bls_provider,
             secp_provider,
-            o.vm_interpreter);
+            o.env_context.interpreter_cache);
 
     auto head{
         o.ts_load->loadw(std::prev(o.ts_main->chain.end())->second).value()};
-    auto head_weight{o.vm_interpreter->getCached(head->key).value().weight};
+    auto head_weight{
+        o.env_context.interpreter_cache->get(head->key).value().weight};
     o.chain_store = std::make_shared<sync::ChainStoreImpl>(
         o.ipld, o.ts_load, head, head_weight, std::move(block_validator));
 
-    o.sync_job = std::make_shared<sync::SyncJob>(o.host,
-                                                 o.chain_store,
-                                                 o.scheduler,
-                                                 o.interpret_job,
-                                                 o.vm_interpreter,
-                                                 *o.ts_branches,
-                                                 o.ts_main_kv,
-                                                 o.ts_main,
-                                                 o.ts_load,
-                                                 o.ipld);
+    o.sync_job =
+        std::make_shared<sync::SyncJob>(o.host,
+                                        o.chain_store,
+                                        o.scheduler,
+                                        o.interpret_job,
+                                        o.env_context.interpreter_cache,
+                                        *o.ts_branches,
+                                        o.ts_main_kv,
+                                        o.ts_main,
+                                        o.ts_load,
+                                        o.ipld);
 
     log()->debug("Creating API...");
 
-    auto mpool = storage::mpool::Mpool::create(
-        o.ts_load, o.ts_main, o.ipld, o.vm_interpreter, o.chain_store);
+    auto mpool =
+        storage::mpool::Mpool::create(o.env_context, o.ts_main, o.chain_store);
 
     auto msg_waiter = storage::blockchain::MsgWaiter::create(
         o.ts_load, o.ipld, o.chain_store);
@@ -420,11 +426,9 @@ namespace fc::node {
     o.api = api::makeImpl(o.chain_store,
                           config.network_name,
                           weight_calculator,
-                          o.ts_load,
+                          o.env_context,
                           o.ts_main,
-                          o.ipld,
                           mpool,
-                          o.vm_interpreter,
                           msg_waiter,
                           beaconizer,
                           drand_schedule,

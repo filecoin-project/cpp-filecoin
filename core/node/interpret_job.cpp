@@ -37,7 +37,7 @@ namespace fc::sync {
                     head->height(),
                     fmt::join(head->key.cids(), " "));
         auto branch{find(ts_branches_, head)};
-        auto result{interpreter_->interpret(branch.first, ipld_, head)};
+        auto result{interpreter_->interpret(branch.first, head)};
         if (!result) {
           log()->warn("interpret error {} {}",
                       result.error(),

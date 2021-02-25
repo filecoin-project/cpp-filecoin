@@ -58,7 +58,6 @@ class BlockValidatorTest : public testing::Test {
     BOOST_ASSERT(!result.has_error());
     auto bls_provider = std::make_shared<BlsProvider>();
     auto secp_provider = std::make_shared<Secp256k1Provider>();
-    auto vm_interpreter = std::make_shared<Interpreter>();
     return std::make_shared<BlockValidator>(datastore,
                                             utc_clock,
                                             epoch_clock,
@@ -66,7 +65,7 @@ class BlockValidatorTest : public testing::Test {
                                             power_table,
                                             bls_provider,
                                             secp_provider,
-                                            vm_interpreter);
+                                            nullptr);
   }
 
   BlockHeader getCorrectBlockHeader() const {
