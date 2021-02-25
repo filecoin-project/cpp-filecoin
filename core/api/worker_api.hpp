@@ -10,8 +10,9 @@
 #include "sector_storage/worker.hpp"
 
 namespace fc::api {
-
   using primitives::piece::PieceInfo;
+  using primitives::piece::UnpaddedByteIndex;
+  using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::InteractiveRandomness;
   using primitives::sector::SealRandomness;
   using primitives::sector::SectorId;

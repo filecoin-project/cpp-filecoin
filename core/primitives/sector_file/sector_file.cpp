@@ -14,14 +14,13 @@
 #include "primitives/cid/comm_cid.hpp"
 #include "primitives/rle_bitset/runs_utils.hpp"
 #include "primitives/sector/sector.hpp"
-#include "proofs/proofs.hpp"
+#include "proofs/impl/proof_engine_impl.hpp"
 
 namespace fc::primitives::sector_file {
 
   namespace fs = boost::filesystem;
   using bitvec::BitvecWriter;
   using piece::PieceInfo;
-  using proofs::Proofs;
   using sector::RegisteredSealProof;
 
   std::string toString(const SectorFileType &file_type) {
@@ -381,6 +380,9 @@ namespace fc::primitives::sector_file {
       chunk_size = size;
     }
 
+    static std::shared_ptr<proofs::ProofEngine> proofs =
+        std::make_shared<proofs::ProofEngineImpl>();
+
     std::vector<PieceInfo> cids;
 
     std::vector<uint8_t> buffer(chunk_size.unpadded());
@@ -417,7 +419,7 @@ namespace fc::primitives::sector_file {
 
       if (maybe_seal_proof_type.has_value()) {
         OUTCOME_TRY(cid,
-                    Proofs::generatePieceCID(
+                    proofs->generatePieceCID(
                         maybe_seal_proof_type.value(),
                         gsl::make_span<uint8_t>(buffer.data(), read)));
 
@@ -439,7 +441,7 @@ namespace fc::primitives::sector_file {
     }
 
     OUTCOME_TRY(
-        cid, Proofs::generateUnsealedCID(maybe_seal_proof_type.value(), cids));
+        cid, proofs->generateUnsealedCID(maybe_seal_proof_type.value(), cids));
 
     OUTCOME_TRY(cid::CIDToPieceCommitmentV1(cid));
 

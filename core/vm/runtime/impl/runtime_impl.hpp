@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "proofs/proof_engine.hpp"
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime.hpp"
@@ -126,6 +127,8 @@ namespace fc::vm::runtime {
     std::shared_ptr<Execution> execution_;
     UnsignedMessage message_;
     Address caller_id;
+
+    std::shared_ptr<proofs::ProofEngine> proofs_;
   };
 
 }  // namespace fc::vm::runtime

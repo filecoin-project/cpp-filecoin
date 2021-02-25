@@ -7,17 +7,17 @@
 
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/sector/sector.hpp"
-#include "proofs/proofs.hpp"
+#include "proofs/impl/proof_engine_impl.hpp"
 #include "sector_storage/zerocomm/zerocomm.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/miner/policy.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
+#include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
 
 namespace fc::mining::checks {
   using crypto::randomness::DomainSeparationTag;
@@ -25,7 +25,6 @@ namespace fc::mining::checks {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::sector::SealVerifyInfo;
-  using proofs::Proofs;
   using sector_storage::zerocomm::getZeroPieceCommitment;
   using storage::ipfs::ApiIpfsDatastore;
   using vm::VMExitCode;
@@ -241,8 +240,10 @@ namespace fc::mining::checks {
     if (sector_info->comm_r != state_sector_precommit_info->info.sealed_cid) {
       return ChecksError::kBadSealedCid;
     }
+    static std::shared_ptr<proofs::ProofEngine> proofs =
+        std::make_shared<proofs::ProofEngineImpl>();
     OUTCOME_TRY(verified,
-                Proofs::verifySeal(SealVerifyInfo{
+                proofs->verifySeal(SealVerifyInfo{
                     .seal_proof = minfo.seal_proof_type,
                     .sector = SectorId{.miner = miner_address.getId(),
                                        .sector = sector_info->sector_number},

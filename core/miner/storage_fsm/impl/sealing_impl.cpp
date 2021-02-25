@@ -343,8 +343,7 @@ namespace fc::mining {
     auto sector_size = sealer_->getSectorSize();
 
     for (const auto &[key, value] : unsealed_sectors_) {
-      auto pads =
-          proofs::Proofs::GetRequiredPadding(value.stored, size.padded());
+      auto pads = proofs::getRequiredPadding(value.stored, size.padded());
       if (value.stored + size.padded() + pads.size <= sector_size) {
         return SectorPaddingResponse{
             .sector = key,

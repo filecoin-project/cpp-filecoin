@@ -14,16 +14,16 @@
 #include "primitives/piece/piece_data.hpp"
 #include "primitives/sector/sector.hpp"
 
-using fc::primitives::piece::PaddedByteIndex;
-using fc::primitives::piece::PaddedPieceSize;
-using fc::primitives::piece::PieceData;
-using fc::primitives::piece::PieceInfo;
-using fc::primitives::piece::UnpaddedByteIndex;
-using fc::primitives::piece::UnpaddedPieceSize;
-using fc::primitives::sector::RegisteredSealProof;
-using fc::primitives::sector::SectorId;
-
 namespace fc::primitives::sector_file {
+  using piece::PaddedByteIndex;
+  using piece::PaddedPieceSize;
+  using piece::PieceData;
+  using piece::PieceInfo;
+  using piece::UnpaddedByteIndex;
+  using piece::UnpaddedPieceSize;
+  using sector::RegisteredSealProof;
+  using sector::SectorId;
+
   enum SectorFileType : int64_t {
     FTNone = 0,
     FTUnsealed = 1,
@@ -80,6 +80,11 @@ namespace fc::primitives::sector_file {
     outcome::result<std::string> getPathByType(
         const SectorFileType &file_type) const;
   };
+
+  inline bool operator==(const SectorPaths &lhs, const SectorPaths &rhs) {
+    return lhs.id == rhs.id && lhs.unsealed == rhs.unsealed
+           && lhs.sealed == rhs.sealed && lhs.cache == rhs.cache;
+  }
 
   class SectorFile {
    public:

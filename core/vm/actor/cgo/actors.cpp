@@ -8,7 +8,7 @@
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
-#include "proofs/proofs.hpp"
+#include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/cgo/c_actors.h"
@@ -57,6 +57,9 @@ namespace fc::vm::actor::cgo {
   static storage::keystore::InMemoryKeyStore keystore{
       std::make_shared<crypto::bls::BlsProviderImpl>(),
       std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()};
+
+  static std::shared_ptr<proofs::ProofEngine> proofs =
+      std::make_shared<proofs::ProofEngineImpl>();
 
   outcome::result<Buffer> invoke(const CID &code,
                                  const std::shared_ptr<Runtime> &runtime) {
@@ -175,7 +178,7 @@ namespace fc::vm::actor::cgo {
     auto info{arg.get<WindowPoStVerifyInfo>()};
     if (charge(ret, rt, rt->execution()->env->pricelist.onVerifyPost(info))) {
       info.randomness[31] &= 0x3f;
-      auto r{proofs::Proofs::verifyWindowPoSt(info)};
+      auto r{proofs->verifyWindowPoSt(info)};
       ret << kOk << (r && r.value());
     }
   }
@@ -184,7 +187,7 @@ namespace fc::vm::actor::cgo {
     auto n{arg.get<size_t>()};
     ret << kOk;
     for (auto i{0u}; i < n; ++i) {
-      auto r{proofs::Proofs::verifySeal(arg.get<SealVerifyInfo>())};
+      auto r{proofs->verifySeal(arg.get<SealVerifyInfo>())};
       ret << (r && r.value());
     }
   }

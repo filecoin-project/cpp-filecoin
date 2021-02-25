@@ -10,6 +10,7 @@
 
 #include "common/logger.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
+#include "proofs/impl/proof_engine_impl.hpp"
 
 namespace fc::sector_storage {
 
@@ -21,7 +22,9 @@ namespace fc::sector_storage {
   class LocalWorker : public Worker {
    public:
     LocalWorker(WorkerConfig config,
-                std::shared_ptr<stores::RemoteStore> store);
+                std::shared_ptr<stores::RemoteStore> store,
+                std::shared_ptr<proofs::ProofEngine> proofs =
+                        std::make_shared<proofs::ProofEngineImpl>());
 
     outcome::result<PreCommit1Output> sealPreCommit1(
         const SectorId &sector,
@@ -94,6 +97,8 @@ namespace fc::sector_storage {
 
     std::shared_ptr<stores::RemoteStore> remote_store_;
     std::shared_ptr<stores::SectorIndex> index_;
+
+    std::shared_ptr<proofs::ProofEngine> proofs_;
 
     WorkerConfig config_;
     std::string hostname_;

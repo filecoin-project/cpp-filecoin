@@ -13,6 +13,8 @@
 #include "primitives/types.hpp"
 
 namespace fc::sector_storage::stores {
+  using primitives::sector::RegisteredSealProof;
+
   class WLock {
    public:
     virtual ~WLock() = default;

@@ -8,7 +8,7 @@
 #include "codec/cbor/cbor.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
-#include "proofs/proofs.hpp"
+#include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/runtime/env.hpp"
@@ -26,7 +26,8 @@ namespace fc::vm::runtime {
                            const Address &caller_id)
       : execution_{std::move(execution)},
         message_{std::move(message)},
-        caller_id{caller_id} {}
+        caller_id{caller_id},
+        proofs_(std::make_shared<proofs::ProofEngineImpl>()) {}
 
   std::shared_ptr<Execution> RuntimeImpl::execution() const {
     return execution_;
@@ -256,7 +257,7 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onVerifyPost(info)));
     WindowPoStVerifyInfo preprocess_info = info;
     preprocess_info.randomness[31] &= 0x3f;
-    return proofs::Proofs::verifyWindowPoSt(preprocess_info);
+    return proofs_->verifyWindowPoSt(preprocess_info);
   }
 
   outcome::result<BatchSealsOut> RuntimeImpl::batchVerifySeals(
@@ -267,7 +268,7 @@ namespace fc::vm::runtime {
       successful.reserve(seals.size());
       std::set<SectorNumber> seen;
       for (auto &seal : seals) {
-        auto verified{proofs::Proofs::verifySeal(seal)};
+        auto verified{proofs_->verifySeal(seal)};
         if (verified && verified.value()
             && seen.insert(seal.sector.sector).second) {
           successful.push_back(seal.sector.sector);
@@ -282,7 +283,7 @@ namespace fc::vm::runtime {
       RegisteredSealProof type, const std::vector<PieceInfo> &pieces) {
     OUTCOME_TRY(
         chargeGas(execution_->env->pricelist.onComputeUnsealedSectorCid()));
-    return proofs::Proofs::generateUnsealedCID(type, pieces, true);
+    return proofs_->generateUnsealedCID(type, pieces, true);
   }
 
   outcome::result<ConsensusFault> RuntimeImpl::verifyConsensusFault(

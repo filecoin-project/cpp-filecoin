@@ -12,11 +12,11 @@
 #include "primitives/seal_tasks/task.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/sector_file/sector_file.hpp"
-#include "proofs/proofs.hpp"
+#include "proofs/proof_engine.hpp"
 #include "sector_storage/stores/store.hpp"
 
 namespace fc::sector_storage {
-  using fc::primitives::piece::PieceInfo;
+  using primitives::piece::PieceInfo;
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::piece::UnpaddedPieceSize;
@@ -26,9 +26,9 @@ namespace fc::sector_storage {
   using PreCommit1Output = proofs::Phase1Output;
   using Commit1Output = proofs::Phase1Output;
   using SectorCids = proofs::SealedAndUnsealedCID;
-  using fc::primitives::sector::InteractiveRandomness;
-  using fc::primitives::sector::Proof;
-  using fc::primitives::sector::SealRandomness;
+  using primitives::sector::InteractiveRandomness;
+  using primitives::sector::Proof;
+  using primitives::sector::SealRandomness;
   using stores::AcquireMode;
   using stores::PathType;
 

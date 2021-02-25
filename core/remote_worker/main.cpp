@@ -33,6 +33,9 @@
 namespace fc {
   using api::VersionResult;
   using boost::asio::io_context;
+  using primitives::piece::PieceInfo;
+  using primitives::piece::UnpaddedByteIndex;
+  using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::SealRandomness;
   using proofs::ProofParamProvider;
   using sector_storage::AcquireMode;

@@ -8,9 +8,8 @@
 
 #include "sector_storage/manager.hpp"
 
+#include "proofs/impl/proof_engine_impl.hpp"
 #include "sector_storage/scheduler.hpp"
-#include "sector_storage/stores/impl/local_store.hpp"
-#include "sector_storage/stores/impl/remote_store.hpp"
 #include "sector_storage/stores/index.hpp"
 #include "sector_storage/stores/store.hpp"
 
@@ -30,7 +29,9 @@ namespace fc::sector_storage {
     static outcome::result<std::shared_ptr<Manager>> newManager(
         const std::shared_ptr<stores::RemoteStore> &remote,
         const std::shared_ptr<Scheduler> &scheduler,
-        const SealerConfig &config);
+        const SealerConfig &config,
+        const std::shared_ptr<proofs::ProofEngine> &proofs =
+            std::make_shared<proofs::ProofEngineImpl>());
 
     outcome::result<std::vector<SectorId>> checkProvable(
         RegisteredSealProof seal_proof_type,
@@ -107,7 +108,8 @@ namespace fc::sector_storage {
                 std::shared_ptr<stores::LocalStorage> local_storage,
                 std::shared_ptr<stores::LocalStore> local_store,
                 std::shared_ptr<stores::RemoteStore> store,
-                std::shared_ptr<Scheduler> scheduler);
+                std::shared_ptr<Scheduler> scheduler,
+                std::shared_ptr<proofs::ProofEngine> proofs);
 
     struct Response {
       stores::SectorPaths paths;
@@ -143,6 +145,8 @@ namespace fc::sector_storage {
     std::shared_ptr<Scheduler> scheduler_;
 
     common::Logger logger_;
+
+    std::shared_ptr<proofs::ProofEngine> proofs_;
   };
 
 }  // namespace fc::sector_storage

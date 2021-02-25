@@ -13,7 +13,7 @@
 #include "drand/beaconizer.hpp"
 #include "node/pubsub.hpp"
 #include "primitives/tipset/chain.hpp"
-#include "proofs/proofs.hpp"
+#include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
@@ -145,9 +145,10 @@ namespace fc::api {
       OUTCOME_TRY(win_type,
                   primitives::sector::getRegisteredWinningPoStProof(
                       minfo.seal_proof_type));
+      static auto proofs{std::make_shared<proofs::ProofEngineImpl>()};
       OUTCOME_TRY(
           indices,
-          proofs::Proofs::generateWinningPoStSectorChallenge(
+          proofs->generateWinningPoStSectorChallenge(
               win_type, miner.getId(), post_rand, sectors_bitset.size()));
       std::vector<uint64_t> sector_ids{sectors_bitset.begin(),
                                        sectors_bitset.end()};

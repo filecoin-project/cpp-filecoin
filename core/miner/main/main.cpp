@@ -38,6 +38,7 @@
 #include "sector_storage/impl/scheduler_impl.hpp"
 #include "sector_storage/stores/impl/index_impl.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
+#include "sector_storage/stores/impl/remote_store.hpp"
 #include "sector_storage/stores/impl/storage_impl.hpp"
 #include "sectorblocks/impl/blocks_impl.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_filestore.hpp"

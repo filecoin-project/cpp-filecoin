@@ -7,15 +7,15 @@
 
 #include <unistd.h>
 #include <boost/filesystem.hpp>
+
 #include "markets/pieceio/pieceio_error.hpp"
-#include "proofs/proofs.hpp"
+#include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/car/car.hpp"
 
 namespace fc::markets::pieceio {
   namespace fs = boost::filesystem;
   using primitives::piece::paddedSize;
   using primitives::piece::PieceData;
-  using proofs::Proofs;
   using storage::car::makeSelectiveCar;
 
   PieceIOImpl::PieceIOImpl(std::shared_ptr<Ipld> ipld, std::string temp_dir)
@@ -53,11 +53,13 @@ namespace fc::markets::pieceio {
 
     auto _ = gsl::finally([&copy_path]() { fs::remove_all(copy_path); });
 
-    auto padded_size{proofs::Proofs::padPiece(copy_path.string())};
+    auto padded_size{proofs::padPiece(copy_path.string())};
+
+    static auto proofs{std::make_shared<proofs::ProofEngineImpl>()};
 
     OUTCOME_TRY(
         commitment,
-        Proofs::generatePieceCID(
+        proofs->generatePieceCID(
             registered_proof, PieceData(copy_path.string()), padded_size));
 
     return {commitment, padded_size};
