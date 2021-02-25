@@ -8,6 +8,7 @@
 #include <boost/algorithm/string.hpp>
 #include <libp2p/peer/peer_id.hpp>
 
+#include "api/version.hpp"
 #include "blockchain/production/block_producer.hpp"
 #include "const.hpp"
 #include "drand/beaconizer.hpp"
@@ -84,7 +85,7 @@ namespace fc::api {
 
   template <typename T, typename F>
   auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&... args) {
+    return [f{std::forward<F>(f)}](auto &&...args) {
       auto channel{std::make_shared<Channel<outcome::result<T>>>()};
       f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
         channel->write(std::forward<decltype(_r)>(_r));
@@ -738,7 +739,9 @@ namespace fc::api {
       OUTCOME_TRY(pubsub->publish(block));
       return outcome::success();
     }};
-    api->Version = {[]() { return VersionResult{"fuhon", 0x000C00, 5}; }};
+    api->Version = {[]() {
+      return VersionResult{"fuhon", makeApiVersion(1, 0, 0), 5};
+    }};
     api->WalletBalance = {[=](auto &address) -> outcome::result<TokenAmount> {
       OUTCOME_TRY(context, tipsetContext({}));
       OUTCOME_TRY(actor, context.state_tree.get(address));
