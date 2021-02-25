@@ -163,10 +163,10 @@ namespace fc::node {
               ->put(storage::ipfs::LeveldbDatastore::encodeKey(item.first)
                         .value(),
                     Buffer{item.second})
-              .assume_value();
+              .value();
           ++current_batch_size;
           if (current_batch_size >= kBatchSize || reader.end()) {
-            batch->commit().assume_value();
+            batch->commit().value();
             batch->clear();
             current_batch_size = 0;
           }
@@ -203,10 +203,32 @@ namespace fc::node {
       o.ts_main = TsBranch::create(o.ts_main_kv, tsk, o.ts_load_ipld).value();
 
       auto it{std::prev(o.ts_main->chain.end())};
-      log()->info("interpret head {}", it->first);
-      auto ts{o.ts_load->loadw(it->second).value()};
-      o.vm_interpreter->interpret(o.ts_main, ts).assume_value();
+      while (true) {
+        auto ts{o.ts_load->loadw(it->second).value()};
+        if (auto _has{o.ipld->contains(ts->getParentStateRoot())};
+            _has && _has.value()) {
+          o.env_context.interpreter_cache->set(
+              ts->getParents(),
+              {
+                  ts->getParentStateRoot(),
+                  ts->getParentMessageReceipts(),
+                  ts->getParentWeight(),
+              });
+          if (it != o.ts_main->chain.begin()) {
+            --it;
+            continue;
+          }
+        }
+        break;
+      }
     }
+    auto it{std::prev(o.ts_main->chain.end())};
+    auto ts{o.ts_load->loadw(it->second).value()};
+    if (!o.env_context.interpreter_cache->tryGet(ts->key)) {
+      log()->info("interpret head {}", it->first);
+      o.vm_interpreter->interpret(o.ts_main, ts).value();
+    }
+
     log()->info("chain loaded");
     assert(o.ts_main->chain.begin()->second.key == genesis_tsk);
   }
