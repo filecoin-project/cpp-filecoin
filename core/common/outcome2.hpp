@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <spdlog/fmt/fmt.h>
+
 #include "common/enum.hpp"
 #include "common/outcome.hpp"
 
@@ -22,7 +24,7 @@ namespace fc {
     using O = outcome::result<T>;
     Outcome() : O{outcome::failure(OutcomeError::kDefault)} {}
     template <typename... A>
-    Outcome(A &&... a) : O{std::forward<A>(a)...} {}
+    Outcome(A &&...a) : O{std::forward<A>(a)...} {}
     const T &operator*() const & {
       return O::value();
     }
@@ -42,7 +44,7 @@ namespace fc {
       return O::error();
     }
     template <typename... A>
-    void emplace(A &&... a) {
+    void emplace(A &&...a) {
       *this = T{std::forward<A>(a)...};
     }
     O &&o() && {
@@ -59,5 +61,32 @@ namespace fc {
     }
   }
 }  // namespace fc
+
+template <>
+struct fmt::formatter<std::error_code, char, void> {
+  bool alt{false};
+
+  template <typename ParseContext>
+  constexpr auto parse(ParseContext &ctx) {
+    auto it{ctx.begin()};
+    if (it != ctx.end() && *it == '#') {
+      alt = true;
+      ++it;
+    }
+    return it;
+  }
+
+  template <typename FormatContext>
+  auto format(const std::error_code &e, FormatContext &ctx) {
+    if (alt) {
+      return fmt::format_to(ctx.out(),
+                            "{} error {}: \"{}\"",
+                            e.category().name(),
+                            e.value(),
+                            e.message());
+    }
+    return fmt::format_to(ctx.out(), "{}:{}", e.category().name(), e.value());
+  }
+};
 
 OUTCOME_HPP_DECLARE_ERROR(fc, OutcomeError);

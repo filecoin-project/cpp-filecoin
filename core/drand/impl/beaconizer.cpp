@@ -12,6 +12,7 @@
 
 #include "clock/utc_clock.hpp"
 #include "common/logger.hpp"
+#include "common/outcome2.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "drand/impl/http.hpp"
 
@@ -92,7 +93,7 @@ namespace fc::drand {
                            }
                          }
                        }
-                       spdlog::error("drand host {} error {}",
+                       spdlog::error("drand host {} error: {:#}",
                                      self->peers_[self->peer_index_],
                                      error);
                        self->rotatePeersIndex();
