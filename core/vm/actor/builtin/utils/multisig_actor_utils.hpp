@@ -8,15 +8,18 @@
 #include "vm/actor/builtin/states/multisig_actor_state.hpp"
 #include "vm/runtime/runtime.hpp"
 
-namespace fc::vm::actor::builtin::utils::multisig {
+namespace fc::vm::actor::builtin::utils {
   using primitives::ChainEpoch;
   using primitives::EpochDuration;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
-  using states::Transaction;
-  using states::TransactionId;
-  using ApproveTransactionResult = std::tuple<bool, Buffer, VMExitCode>;
+  using states::multisig::Transaction;
+  using states::multisig::TransactionId;
+
+  namespace multisig {
+    using ApproveTransactionResult = std::tuple<bool, Buffer, VMExitCode>;
+  }
 
   class MultisigUtils {
    public:
@@ -68,8 +71,9 @@ namespace fc::vm::actor::builtin::utils::multisig {
      * @return applied flag, result of sending a message and result code of
      * sending a message
      */
-    virtual outcome::result<ApproveTransactionResult> approveTransaction(
-        const TransactionId &tx_id, Transaction &transaction) const = 0;
+    virtual outcome::result<multisig::ApproveTransactionResult>
+    approveTransaction(const TransactionId &tx_id,
+                       Transaction &transaction) const = 0;
 
     /**
      * Execute transaction if approved. Send pending transaction if threshold is
@@ -80,10 +84,10 @@ namespace fc::vm::actor::builtin::utils::multisig {
      * @return applied flag, result of sending a message and result code of
      * sending a message
      */
-    virtual outcome::result<ApproveTransactionResult> executeTransaction(
-        states::MultisigActorStatePtr state,
-        const TransactionId &tx_id,
-        const Transaction &transaction) const = 0;
+    virtual outcome::result<multisig::ApproveTransactionResult>
+    executeTransaction(states::MultisigActorStatePtr state,
+                       const TransactionId &tx_id,
+                       const Transaction &transaction) const = 0;
 
     /**
      * Iterates all pending transactions and removes an address from each list
@@ -101,4 +105,4 @@ namespace fc::vm::actor::builtin::utils::multisig {
 
   using MultisigUtilsPtr = std::shared_ptr<MultisigUtils>;
 
-}  // namespace fc::vm::actor::builtin::utils::multisig
+}  // namespace fc::vm::actor::builtin::utils

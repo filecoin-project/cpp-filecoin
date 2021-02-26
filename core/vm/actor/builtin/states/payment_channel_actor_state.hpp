@@ -14,16 +14,18 @@ namespace fc::vm::actor::builtin::states {
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
 
-  struct LaneState {
-    /** Total amount for vouchers have been redeemed from the lane */
-    TokenAmount redeem{};
-    uint64_t nonce{};
+  namespace payment_channel {
+    struct LaneState {
+      /** Total amount for vouchers have been redeemed from the lane */
+      TokenAmount redeem{};
+      uint64_t nonce{};
 
-    inline bool operator==(const LaneState &other) const {
-      return redeem == other.redeem && nonce == other.nonce;
-    }
-  };
-  CBOR_TUPLE(LaneState, redeem, nonce)
+      inline bool operator==(const LaneState &other) const {
+        return redeem == other.redeem && nonce == other.nonce;
+      }
+    };
+    CBOR_TUPLE(LaneState, redeem, nonce)
+  }  // namespace payment_channel
 
   struct PaymentChannelActorState : State {
     explicit PaymentChannelActorState(ActorVersion version)
@@ -35,7 +37,7 @@ namespace fc::vm::actor::builtin::states {
     TokenAmount to_send{};
     ChainEpoch settling_at{};
     ChainEpoch min_settling_height{};
-    adt::Array<LaneState> lanes;
+    adt::Array<payment_channel::LaneState> lanes;
   };
 
   using PaymentChannelActorStatePtr = std::shared_ptr<PaymentChannelActorState>;

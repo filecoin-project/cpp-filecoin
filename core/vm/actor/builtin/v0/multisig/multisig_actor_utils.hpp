@@ -13,13 +13,13 @@ namespace fc::vm::actor::builtin::v0::multisig {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
-  using states::Transaction;
-  using states::TransactionId;
+  using states::multisig::Transaction;
+  using states::multisig::TransactionId;
   using utils::multisig::ApproveTransactionResult;
 
-  class MultisigUtils : public utils::multisig::MultisigUtils {
+  class MultisigUtils : public utils::MultisigUtils {
    public:
-    explicit MultisigUtils(Runtime &r) : utils::multisig::MultisigUtils(r) {}
+    explicit MultisigUtils(Runtime &r) : utils::MultisigUtils(r) {}
 
     outcome::result<void> assertCallerIsSigner(
         const states::MultisigActorStatePtr &state) const override;

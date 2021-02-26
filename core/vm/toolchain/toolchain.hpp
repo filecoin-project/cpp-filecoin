@@ -19,8 +19,8 @@ namespace fc::vm::toolchain {
   using actor::ActorVersion;
   using actor::CodeId;
   using actor::builtin::utils::MarketUtilsPtr;
-  using actor::builtin::utils::init::InitUtilsPtr;
-  using actor::builtin::utils::multisig::MultisigUtilsPtr;
+  using actor::builtin::utils::InitUtilsPtr;
+  using actor::builtin::utils::MultisigUtilsPtr;
   using actor::builtin::utils::payment_channel::PaymentChannelUtilsPtr;
   using actor::builtin::utils::verified_registry::VerifRegUtilsPtr;
   using runtime::Runtime;

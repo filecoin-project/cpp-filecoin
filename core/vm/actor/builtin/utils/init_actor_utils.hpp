@@ -8,7 +8,7 @@
 #include "common/outcome.hpp"
 #include "vm/runtime/runtime.hpp"
 
-namespace fc::vm::actor::builtin::utils::init {
+namespace fc::vm::actor::builtin::utils {
   using runtime::Runtime;
 
   class InitUtils {
@@ -24,4 +24,4 @@ namespace fc::vm::actor::builtin::utils::init {
 
   using InitUtilsPtr = std::shared_ptr<InitUtils>;
 
-}  // namespace fc::vm::actor::builtin::utils::init
+}  // namespace fc::vm::actor::builtin::utils

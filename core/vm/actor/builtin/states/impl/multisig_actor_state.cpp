@@ -9,12 +9,13 @@
 namespace fc::vm::actor::builtin::states {
   using fc::vm::runtime::Runtime;
 
-  bool Transaction::operator==(const Transaction &other) const {
+  bool multisig::Transaction::operator==(
+      const multisig::Transaction &other) const {
     return to == other.to && value == other.value && method == other.method
            && params == other.params && approved == other.approved;
   }
 
-  outcome::result<Buffer> Transaction::hash(Runtime &runtime) const {
+  outcome::result<Buffer> multisig::Transaction::hash(Runtime &runtime) const {
     ProposalHashData hash_data(*this);
     OUTCOME_TRY(to_hash, codec::cbor::encode(hash_data));
     OUTCOME_TRY(hash, runtime.hashBlake2b(to_hash));
@@ -29,8 +30,9 @@ namespace fc::vm::actor::builtin::states {
     this->initial_balance = lockedAmount;
   }
 
-  outcome::result<Transaction> MultisigActorState::getPendingTransaction(
-      const TransactionId &tx_id) const {
+  outcome::result<multisig::Transaction>
+  MultisigActorState::getPendingTransaction(
+      const multisig::TransactionId &tx_id) const {
     OUTCOME_TRY(pending_tx, pending_transactions.tryGet(tx_id));
     if (!pending_tx) {
       ABORT(VMExitCode::kErrNotFound);
@@ -39,9 +41,9 @@ namespace fc::vm::actor::builtin::states {
     return std::move(pending_tx.get());
   }
 
-  outcome::result<Transaction> MultisigActorState::getTransaction(
+  outcome::result<multisig::Transaction> MultisigActorState::getTransaction(
       Runtime &runtime,
-      const TransactionId &tx_id,
+      const multisig::TransactionId &tx_id,
       const Buffer &proposal_hash) const {
     OUTCOME_TRY(transaction, getPendingTransaction(tx_id));
     REQUIRE_NO_ERROR_A(

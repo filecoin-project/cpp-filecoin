@@ -10,8 +10,8 @@
 
 namespace fc::vm::actor::builtin::v3::multisig {
   using runtime::Runtime;
-  using states::Transaction;
-  using states::TransactionId;
+  using states::multisig::Transaction;
+  using states::multisig::TransactionId;
   using utils::multisig::ApproveTransactionResult;
 
   class MultisigUtils : public v2::multisig::MultisigUtils {

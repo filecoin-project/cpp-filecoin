@@ -13,9 +13,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
   using primitives::EpochDuration;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using states::ProposalHashData;
-  using states::Transaction;
-  using states::TransactionId;
+  using states::multisig::ProposalHashData;
+  using states::multisig::Transaction;
+  using states::multisig::TransactionId;
 
   struct Construct : ActorMethodBase<1> {
     struct Params {

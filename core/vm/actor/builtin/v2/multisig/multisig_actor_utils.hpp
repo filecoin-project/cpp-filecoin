@@ -14,8 +14,8 @@ namespace fc::vm::actor::builtin::v2::multisig {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
-  using states::Transaction;
-  using states::TransactionId;
+  using states::multisig::Transaction;
+  using states::multisig::TransactionId;
   using utils::multisig::ApproveTransactionResult;
 
   class MultisigUtils : public v0::multisig::MultisigUtils {

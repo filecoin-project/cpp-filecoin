@@ -11,17 +11,19 @@
 namespace fc::vm::actor::builtin::states {
   using primitives::address::Address;
 
-  struct CronTableEntry {
-    Address to_addr{};
-    MethodNumber method_num{};
-  };
-  CBOR_TUPLE(CronTableEntry, to_addr, method_num)
+  namespace cron {
+    struct CronTableEntry {
+      Address to_addr{};
+      MethodNumber method_num{};
+    };
+    CBOR_TUPLE(CronTableEntry, to_addr, method_num)
+  }  // namespace cron
 
   struct CronActorState : State {
     explicit CronActorState(ActorVersion version)
         : State(ActorType::kCron, version) {}
 
-    std::vector<CronTableEntry> entries;
+    std::vector<cron::CronTableEntry> entries;
   };
 
   using CronActorStatePtr = std::shared_ptr<CronActorState>;

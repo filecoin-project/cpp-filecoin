@@ -11,7 +11,7 @@
 namespace fc::vm::actor::builtin::v0::cron {
 
   struct Construct : ActorMethodBase<1> {
-    using Params = std::vector<states::CronTableEntry>;
+    using Params = std::vector<states::cron::CronTableEntry>;
     ACTOR_METHOD_DECL();
   };
 

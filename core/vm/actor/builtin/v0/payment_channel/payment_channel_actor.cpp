@@ -7,7 +7,7 @@
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
-  using states::LaneState;
+  using states::payment_channel::LaneState;
   using toolchain::Toolchain;
 
   // Construct

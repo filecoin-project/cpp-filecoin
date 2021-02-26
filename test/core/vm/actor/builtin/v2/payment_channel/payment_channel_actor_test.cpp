@@ -31,8 +31,8 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
   using primitives::address::Address;
   using runtime::MockRuntime;
   using state::StateTreeImpl;
-  using states::LaneState;
   using states::MockStateManager;
+  using states::payment_channel::LaneState;
   using storage::ipfs::InMemoryDatastore;
   using testing::Return;
   using v0::payment_channel::LaneId;

@@ -25,52 +25,55 @@ namespace fc::vm::actor::builtin::states {
   using primitives::EpochDuration;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using TransactionId = int64_t;
-  using TransactionKeyer = adt::VarintKeyer;
 
-  /**
-   * Multisignaure pending transaction
-   */
-  struct Transaction {
-    Address to;
-    TokenAmount value{};
-    MethodNumber method{};
-    MethodParams params;
+  namespace multisig {
+    using TransactionId = int64_t;
+    using TransactionKeyer = adt::VarintKeyer;
 
     /**
-     * @brief List of addresses that approved transaction
-     * This address at index 0 is the transaction proposer, order of this slice
-     * must be preserved
+     * Multisignaure pending transaction
      */
-    std::vector<Address> approved;
+    struct Transaction {
+      Address to;
+      TokenAmount value{};
+      MethodNumber method{};
+      MethodParams params;
 
-    bool operator==(const Transaction &other) const;
-    outcome::result<Buffer> hash(fc::vm::runtime::Runtime &runtime) const;
-  };
-  CBOR_TUPLE(Transaction, to, value, method, params, approved)
+      /**
+       * @brief List of addresses that approved transaction
+       * This address at index 0 is the transaction proposer, order of this
+       * slice must be preserved
+       */
+      std::vector<Address> approved;
 
-  /**
-   * Data for a BLAKE2B-256 to be attached to methods referencing proposals via
-   * TXIDs. Ensures the existence of a cryptographic reference to the original
-   * proposal. Useful for offline signers and for protection when reorgs change
-   * a multisig TXID.
-   */
-  struct ProposalHashData {
-    Address requester;
-    Address to;
-    TokenAmount value{};
-    MethodNumber method{};
-    MethodParams params;
+      bool operator==(const Transaction &other) const;
+      outcome::result<Buffer> hash(fc::vm::runtime::Runtime &runtime) const;
+    };
+    CBOR_TUPLE(Transaction, to, value, method, params, approved)
 
-    ProposalHashData(const Transaction &transaction)
-        : requester(!transaction.approved.empty() ? transaction.approved[0]
-                                                  : Address{}),
-          to(transaction.to),
-          value(transaction.value),
-          method(transaction.method),
-          params(transaction.params) {}
-  };
-  CBOR_TUPLE(ProposalHashData, requester, to, value, method, params)
+    /**
+     * Data for a BLAKE2B-256 to be attached to methods referencing proposals
+     * via TXIDs. Ensures the existence of a cryptographic reference to the
+     * original proposal. Useful for offline signers and for protection when
+     * reorgs change a multisig TXID.
+     */
+    struct ProposalHashData {
+      Address requester;
+      Address to;
+      TokenAmount value{};
+      MethodNumber method{};
+      MethodParams params;
+
+      ProposalHashData(const Transaction &transaction)
+          : requester(!transaction.approved.empty() ? transaction.approved[0]
+                                                    : Address{}),
+            to(transaction.to),
+            value(transaction.value),
+            method(transaction.method),
+            params(transaction.params) {}
+    };
+    CBOR_TUPLE(ProposalHashData, requester, to, value, method, params)
+  }  // namespace multisig
 
   /**
    * State of Multisig Actor instance
@@ -81,7 +84,7 @@ namespace fc::vm::actor::builtin::states {
 
     std::vector<Address> signers;
     size_t threshold{0};
-    TransactionId next_transaction_id{0};
+    multisig::TransactionId next_transaction_id{0};
 
     // Linear lock
     TokenAmount initial_balance{0};
@@ -89,7 +92,8 @@ namespace fc::vm::actor::builtin::states {
     EpochDuration unlock_duration{0};
 
     // List of pending transactions
-    adt::Map<Transaction, TransactionKeyer> pending_transactions;
+    adt::Map<multisig::Transaction, multisig::TransactionKeyer>
+        pending_transactions;
 
     void setLocked(const ChainEpoch &start_epoch,
                    const EpochDuration &unlock_duration,
@@ -110,8 +114,8 @@ namespace fc::vm::actor::builtin::states {
      * @param tx_id - transaction id
      * @return transaction
      */
-    outcome::result<Transaction> getPendingTransaction(
-        const TransactionId &tx_id) const;
+    outcome::result<multisig::Transaction> getPendingTransaction(
+        const multisig::TransactionId &tx_id) const;
 
     /**
      * Get transaction from the state tree
@@ -119,9 +123,9 @@ namespace fc::vm::actor::builtin::states {
      * @param proposal_hash - expected hash of transaction
      * @return transaction
      */
-    outcome::result<Transaction> getTransaction(
+    outcome::result<multisig::Transaction> getTransaction(
         fc::vm::runtime::Runtime &runtime,
-        const TransactionId &tx_id,
+        const multisig::TransactionId &tx_id,
         const Buffer &proposal_hash) const;
   };
 

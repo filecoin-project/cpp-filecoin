@@ -34,8 +34,8 @@ namespace fc::vm::actor::builtin::v3::multisig {
   using runtime::MockRuntime;
   using state::StateTreeImpl;
   using states::MockStateManager;
-  using states::Transaction;
-  using states::TransactionId;
+  using states::multisig::Transaction;
+  using states::multisig::TransactionId;
   using storage::ipfs::InMemoryDatastore;
   using testing::Eq;
   using testing::Return;
