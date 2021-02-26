@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTOR_STORES_STORAGE_HPP
-#define CPP_FILECOIN_CORE_SECTOR_STORES_STORAGE_HPP
+#pragma once
+
+#include <boost/optional.hpp>
 
 #include "common/outcome.hpp"
 #include "primitives/types.hpp"
@@ -35,16 +36,16 @@ namespace fc::sector_storage::stores {
    public:
     virtual ~LocalStorage() = default;
 
-    virtual outcome::result<FsStat> getStat(const std::string &path) = 0;
+    virtual outcome::result<FsStat> getStat(const std::string &path) const = 0;
 
-    virtual outcome::result<StorageConfig> getStorage() = 0;
+    virtual outcome::result<boost::optional<StorageConfig>> getStorage()
+        const = 0;
 
     virtual outcome::result<void> setStorage(
         std::function<void(StorageConfig &)> action) = 0;
 
     // when file doesn't exist should return StorageError::kFileNotExist
-    virtual outcome::result<uint64_t> getDiskUsage(const std::string &path) = 0;
+    virtual outcome::result<uint64_t> getDiskUsage(
+        const std::string &path) const = 0;
   };
 }  // namespace fc::sector_storage::stores
-
-#endif  // CPP_FILECOIN_CORE_SECTOR_STORES_STORAGE_HPP

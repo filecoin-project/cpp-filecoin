@@ -16,9 +16,10 @@ namespace fc::sectorblocks {
    public:
     SectorBlocksImpl(std::shared_ptr<Miner> miner);
 
-    outcome::result<PieceAttributes> addPiece(UnpaddedPieceSize size,
-                                              const std::string &piece_data_path,
-                                              DealInfo deal) override;
+    outcome::result<PieceAttributes> addPiece(
+        UnpaddedPieceSize size,
+        const std::string &piece_data_path,
+        DealInfo deal) override;
 
     outcome::result<std::vector<PieceLocation>> getRefs(
         DealId deal_id) const override;

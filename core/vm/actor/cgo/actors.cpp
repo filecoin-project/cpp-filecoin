@@ -5,12 +5,7 @@
 
 #include "vm/actor/cgo/actors.hpp"
 
-#include "crypto/blake2/blake2b160.hpp"
-#include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
-#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
-#include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/cgo/c_actors.h"
 #include "vm/actor/cgo/go_actors.h"
 #include "vm/dvm/dvm.hpp"
@@ -29,10 +24,8 @@
                  CborEncodeStream &ret)
 
 namespace fc::vm::actor::cgo {
-  using builtin::v0::account::AccountActorState;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
-  using crypto::signature::Signature;
   using primitives::ChainEpoch;
   using primitives::GasAmount;
   using primitives::TokenAmount;
@@ -41,7 +34,6 @@ namespace fc::vm::actor::cgo {
   using primitives::sector::RegisteredSealProof;
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
-  using runtime::resolveKey;
   using toolchain::Toolchain;
 
   void configMainnet() {
@@ -53,10 +45,6 @@ namespace fc::vm::actor::cgo {
 
   static std::map<size_t, std::shared_ptr<Runtime>> runtimes;
   static size_t next_runtime{0};
-
-  static storage::keystore::InMemoryKeyStore keystore{
-      std::make_shared<crypto::bls::BlsProviderImpl>(),
-      std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()};
 
   static std::shared_ptr<proofs::ProofEngine> proofs =
       std::make_shared<proofs::ProofEngineImpl>();
@@ -81,13 +69,21 @@ namespace fc::vm::actor::cgo {
   }
 
   template <typename T>
+  inline auto charge(CborEncodeStream &ret, const outcome::result<T> &r) {
+    if (!r && r.error() == asAbort(VMExitCode::kSysErrOutOfGas)) {
+      ret << VMExitCode::kSysErrOutOfGas;
+      return true;
+    }
+    return false;
+  }
+
+  template <typename T>
   inline auto chargeFatal(CborEncodeStream &ret, const outcome::result<T> &r) {
+    if (charge(ret, r)) {
+      return true;
+    }
     if (!r) {
-      if (r.error() == VMExitCode::kSysErrOutOfGas) {
-        ret << VMExitCode::kSysErrOutOfGas;
-      } else {
-        ret << kFatal;
-      }
+      ret << kFatal;
       return true;
     }
     return false;
@@ -167,10 +163,9 @@ namespace fc::vm::actor::cgo {
 
   RUNTIME_METHOD(gocRtBlake) {
     auto data{arg.get<Buffer>()};
-    if (auto hash{rt->hashBlake2b(data)}) {
+    auto hash{rt->hashBlake2b(data)};
+    if (!chargeFatal(ret, hash)) {
       ret << kOk << hash.value();
-    } else {
-      ret << hash.error().value();
     }
   }
 
@@ -229,20 +224,34 @@ namespace fc::vm::actor::cgo {
     auto signature_bytes{arg.get<Buffer>()};
     auto address{arg.get<Address>()};
     auto data{arg.get<Buffer>()};
-    if (auto ok{rt->verifySignatureBytes(signature_bytes, address, data)}) {
+    auto ok{rt->verifySignatureBytes(signature_bytes, address, data)};
+    if (!chargeFatal(ret, ok)) {
       ret << kOk << ok.value();
-    } else {
-      ret << kFatal;
+    }
+  }
+
+  RUNTIME_METHOD(gocRtVerifyConsensusFault) {
+    auto block1{arg.get<Buffer>()};
+    auto block2{arg.get<Buffer>()};
+    auto extra{arg.get<Buffer>()};
+    auto _fault{rt->verifyConsensusFault(block1, block2, extra)};
+    // TODO(turuslan): correct error handling
+    if (!charge(ret, _fault)) {
+      auto &fault{_fault.value()};
+      if (fault) {
+        ret << kOk << true << fault->target << fault->epoch << fault->type;
+      } else {
+        ret << kOk << false;
+      }
     }
   }
 
   RUNTIME_METHOD(gocRtCommD) {
     auto type{arg.get<RegisteredSealProof>()};
     auto pieces{arg.get<std::vector<PieceInfo>>()};
-
     if (auto cid{rt->computeUnsealedSectorCid(type, pieces)}) {
       ret << kOk << true << cid.value();
-    } else {
+    } else if (!charge(ret, cid)) {
       ret << kOk << false;
     }
   }

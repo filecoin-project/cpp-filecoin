@@ -8,6 +8,7 @@
 #include <future>
 
 #include "adt/channel.hpp"
+#include "api/version.hpp"
 #include "common/outcome.hpp"
 #include "common/todo_error.hpp"
 
@@ -28,7 +29,7 @@ namespace fc::api {
 
   struct VersionResult {
     std::string version;
-    uint64_t api_version;
+    ApiVersion api_version;
     uint64_t block_delay;
   };
 

@@ -61,7 +61,7 @@ ctest
 
 We follow [CppCoreGuidelines](https://github.com/isocpp/CppCoreGuidelines).
 
-Please use provided [.clang-format](.clang-format) file to autoformat the code.  
+Please use clang-format 11.0.0 with provided [.clang-format](.clang-format) file to autoformat the code.  
 
 ## Maintenance
 

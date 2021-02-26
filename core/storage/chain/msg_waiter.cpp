@@ -6,6 +6,7 @@
 #include "storage/chain/msg_waiter.hpp"
 #include "adt/array.hpp"
 #include "common/logger.hpp"
+#include "common/outcome2.hpp"
 #include "primitives/tipset/load.hpp"
 
 namespace fc::storage::blockchain {
@@ -21,9 +22,7 @@ namespace fc::storage::blockchain {
     waiter->head_sub = chain_store->subscribeHeadChanges([=](auto &change) {
       auto res{waiter->onHeadChange(change)};
       if (!res) {
-        spdlog::error("MsgWaiter.onHeadChange: error {} \"{}\"",
-                      res.error(),
-                      res.error().message());
+        spdlog::error("MsgWaiter.onHeadChange: {:#}", res.error());
       }
     });
     return waiter;

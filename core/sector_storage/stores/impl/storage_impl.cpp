@@ -29,10 +29,11 @@
 
 namespace fc::sector_storage::stores {
   LocalStorageImpl::LocalStorageImpl(std::string path)
-      : config_path{(boost::filesystem::path(path) / kStorageConfig).string()} {
-  }
+      : config_path_{
+          (boost::filesystem::path(path) / kStorageConfig).string()} {}
 
-  outcome::result<FsStat> LocalStorageImpl::getStat(const std::string &path) {
+  outcome::result<FsStat> LocalStorageImpl::getStat(
+      const std::string &path) const {
     struct STAT64(statfs) stat;
     if (STAT64(statfs)(path.c_str(), &stat) != 0) {
       return StorageError::kFilesystemStatError;
@@ -42,26 +43,31 @@ namespace fc::sector_storage::stores {
                   .reserved = 0};
   }
 
-  outcome::result<StorageConfig> LocalStorageImpl::getStorage() {
-    if (!boost::filesystem::exists(config_path)) {
-      return StorageError::kConfigFileNotExist;
+  outcome::result<boost::optional<StorageConfig>> LocalStorageImpl::getStorage()
+      const {
+    if (!boost::filesystem::exists(config_path_)) {
+      return boost::none;
     }
-    OUTCOME_TRY(text, common::readFile(config_path));
+    OUTCOME_TRY(text, common::readFile(config_path_));
     OUTCOME_TRY(j_file, codec::json::parse(text));
-    return api::decode<StorageConfig>(j_file);
+    OUTCOME_TRY(decoded, api::decode<StorageConfig>(j_file));
+    return std::move(decoded);
   }
 
   outcome::result<void> LocalStorageImpl::setStorage(
       std::function<void(StorageConfig &)> action) {
     OUTCOME_TRY(config, getStorage());
-    action(config);
+    if (!config.has_value()) {
+      config = StorageConfig{};
+    }
+    action(config.value());
     OUTCOME_TRY(text, codec::json::format(api::encode(config)));
-    OUTCOME_TRY(common::writeFile(config_path, text));
+    OUTCOME_TRY(common::writeFile(config_path_, text));
     return outcome::success();
   }
 
   outcome::result<uint64_t> LocalStorageImpl::getDiskUsage(
-      const std::string &path) {
+      const std::string &path) const {
     if (!boost::filesystem::exists(path)) {
       return StorageError::kFileNotExist;
     }

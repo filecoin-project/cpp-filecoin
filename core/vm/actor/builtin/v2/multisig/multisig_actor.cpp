@@ -28,7 +28,9 @@ namespace fc::vm::actor::builtin::v2::multisig {
         runtime, params.threshold, resolved_signers);
 
     if (params.unlock_duration != 0) {
-      state.setLocked(params.start_epoch, params.unlock_duration, runtime.getValueReceived());
+      state.setLocked(params.start_epoch,
+                      params.unlock_duration,
+                      runtime.getValueReceived());
     }
 
     OUTCOME_TRY(runtime.commitState(state));

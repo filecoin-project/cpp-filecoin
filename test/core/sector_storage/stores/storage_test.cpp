@@ -32,11 +32,10 @@ namespace fc::sector_storage::stores {
   /**
    * @given empty storage
    * @when try to get storage config
-   * @then StorageError::kConfigFileNotExist error occurs
+   * @then returns none
    */
   TEST_F(LocalStorageTest, GetStorageFileNotExist) {
-    EXPECT_OUTCOME_ERROR(StorageError::kConfigFileNotExist,
-                         storage_->getStorage());
+    EXPECT_OUTCOME_EQ(storage_->getStorage(), boost::none);
   }
 
   /**
