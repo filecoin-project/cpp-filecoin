@@ -6,6 +6,7 @@
 #include "chain_store_impl.hpp"
 
 #include "common/logger.hpp"
+#include "common/outcome2.hpp"
 #include "events.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "vm/interpreter/interpreter.hpp"
@@ -83,8 +84,7 @@ namespace fc::sync {
         head_change_signal_(event);
         events_->signalHeadChange(event);
       } else {
-        log()->error(
-            "update ts_load {} {}", _ts.error(), _ts.error().message());
+        log()->error("update ts_load {:#}", _ts.error());
       }
     }};
     event.type = HeadChangeType::REVERT;

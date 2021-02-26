@@ -7,6 +7,7 @@
 
 #include "blocksync_common.hpp"
 #include "common/logger.hpp"
+#include "common/outcome2.hpp"
 #include "events.hpp"
 #include "node/chain_store_impl.hpp"
 #include "vm/interpreter/interpreter.hpp"
@@ -25,7 +26,8 @@ namespace fc::sync {
                    std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
                    std::shared_ptr<InterpretJob> interpret_job,
                    std::shared_ptr<InterpreterCache> interpreter_cache,
-                   TsBranches &ts_branches,
+                   SharedMutexPtr ts_branches_mutex,
+                   TsBranchesPtr ts_branches,
                    KvPtr ts_main_kv,
                    TsBranchPtr ts_main,
                    TsLoadPtr ts_load,
@@ -35,7 +37,8 @@ namespace fc::sync {
         scheduler_(std::move(scheduler)),
         interpret_job_(std::move(interpret_job)),
         interpreter_cache_(std::move(interpreter_cache)),
-        ts_branches_{ts_branches},
+        ts_branches_mutex_{std::move(ts_branches_mutex)},
+        ts_branches_{std::move(ts_branches)},
         ts_main_kv_(std::move(ts_main_kv)),
         ts_main_(std::move(ts_main)),
         ts_load_(std::move(ts_load)),
@@ -56,7 +59,7 @@ namespace fc::sync {
     head_interpreted_event_ = events_->subscribeHeadInterpreted(
         [this](const events::HeadInterpreted &e) {
           thread.io->post([this, e] {
-            std::lock_guard lock{branches_mutex_};
+            std::unique_lock lock{*ts_branches_mutex_};
             interpret_queue_.push(e.head);
             interpretDequeue();
           });
@@ -94,9 +97,9 @@ namespace fc::sync {
   }
 
   void SyncJob::onTs(const boost::optional<PeerId> &peer, TipsetCPtr ts) {
-    std::lock_guard lock{branches_mutex_};
+    std::unique_lock lock{*ts_branches_mutex_};
     while (true) {
-      auto branch{insert(ts_branches_, ts).first};
+      auto branch{insert(*ts_branches_, ts).first};
       if (branch == ts_main_) {
         interpret_queue_.push(ts);
       } else {
@@ -131,7 +134,7 @@ namespace fc::sync {
           if (!heaviest.first || res.weight > heaviest.second) {
             heaviest = {ts, res.weight};
           }
-          auto it{find(ts_branches_, ts)};
+          auto it{find(*ts_branches_, ts)};
           for (auto it2 : children(it)) {
             if (auto _ts{ts_load_->loadw(it2.second->second)}) {
               auto &ts{_ts.value()};
@@ -163,16 +166,15 @@ namespace fc::sync {
       }
     }
     if (heaviest.first && heaviest.second > chain_store_->getHeaviestWeight()) {
-      // TODO(turuslan): branches write lock (TODO branches read locks)
       if (auto _path{update(
-              ts_main_, find(ts_branches_, heaviest.first), ts_main_kv_)}) {
+              ts_main_, find(*ts_branches_, heaviest.first), ts_main_kv_)}) {
         auto &[path, removed]{_path.value()};
         for (auto &branch : removed) {
-          ts_branches_.erase(branch);
+          ts_branches_->erase(branch);
         }
         chain_store_->update(path, heaviest.second);
       } else {
-        log()->error("update {} {}", _path.error(), _path.error().message());
+        log()->error("update {:#}", _path.error());
       }
     }
   }

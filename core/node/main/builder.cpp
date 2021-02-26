@@ -256,10 +256,11 @@ namespace fc::node {
     assert(genesis_cids.size() == 1);
     config.genesis_cid = genesis_cids[0];
 
+    o.env_context.ts_branches_mutex = std::make_shared<std::shared_mutex>();
     o.env_context.ipld = o.ipld;
     o.env_context.invoker = std::make_shared<vm::actor::InvokerImpl>();
-    o.env_context.randomness =
-        std::make_shared<vm::runtime::TipsetRandomness>(o.ts_load);
+    o.env_context.randomness = std::make_shared<vm::runtime::TipsetRandomness>(
+        o.ts_load, o.env_context.ts_branches_mutex);
     o.env_context.ts_load = o.ts_load;
     o.env_context.interpreter_cache =
         std::make_shared<vm::interpreter::InterpreterCache>(
@@ -405,7 +406,8 @@ namespace fc::node {
                                         o.scheduler,
                                         o.interpret_job,
                                         o.env_context.interpreter_cache,
-                                        *o.ts_branches,
+                                        o.env_context.ts_branches_mutex,
+                                        o.ts_branches,
                                         o.ts_main_kv,
                                         o.ts_main,
                                         o.ts_load,

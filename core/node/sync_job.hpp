@@ -29,7 +29,8 @@ namespace fc::sync {
             std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
             std::shared_ptr<InterpretJob> interpret_job,
             std::shared_ptr<InterpreterCache> interpreter_cache,
-            TsBranches &ts_branches,
+            SharedMutexPtr ts_branches_mutex,
+            TsBranchesPtr ts_branches,
             KvPtr ts_main_kv,
             TsBranchPtr ts_main,
             TsLoadPtr ts_load,
@@ -39,19 +40,6 @@ namespace fc::sync {
     void start(std::shared_ptr<events::Events> events);
 
    private:
-    struct DownloadTarget {
-      TipsetKey head;
-      uint64_t height;
-
-      // peers reported this target
-      std::unordered_set<PeerId> peers;
-
-      boost::optional<PeerId> active_peer;
-    };
-
-    using DownloadTargets =
-        std::map<std::pair<Height, TipsetHash>, DownloadTarget>;
-
     void onPossibleHead(const events::PossibleHead &e);
 
     TipsetCPtr getLocal(const TipsetKey &tsk);
@@ -71,12 +59,12 @@ namespace fc::sync {
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<InterpretJob> interpret_job_;
     std::shared_ptr<InterpreterCache> interpreter_cache_;
-    TsBranches &ts_branches_;
+    SharedMutexPtr ts_branches_mutex_;
+    TsBranchesPtr ts_branches_;
     KvPtr ts_main_kv_;
     TsBranchPtr ts_main_;
     TsLoadPtr ts_load_;
     IpldPtr ipld_;
-    std::mutex branches_mutex_;
     IoThread thread;
 
     std::queue<std::pair<PeerId, TipsetKey>> requests_;
