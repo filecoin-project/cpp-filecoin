@@ -4,3 +4,4 @@ ignore:
   - "core/sector_storage/impl/remote_*"
   - "core/sector_storage/impl/fetch_handler.cpp"
   - "core/sector_storage/zerocomm/*"
+  - "core/sector_storage/impl/scheduler_*"
