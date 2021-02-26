@@ -62,6 +62,11 @@ namespace fc {
   }
 }  // namespace fc
 
+/**
+ * std::error_code error;
+ * fmt::format("... {}", error); // "... CATEGORY:VALUE"
+ * fmt::format("... {:#}", error); // "... CATEGORY error VALUE \"MESSAGE\""
+ */
 template <>
 struct fmt::formatter<std::error_code, char, void> {
   bool alt{false};
