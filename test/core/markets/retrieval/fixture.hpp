@@ -26,13 +26,13 @@
 namespace fc::markets::retrieval::test {
   using api::AddChannelInfo;
   using api::MinerInfo;
-  using markets::retrieval::RetrievalAsk;
   using common::Buffer;
   using data_transfer::DataTransfer;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::piece::DealInfo;
   using fc::storage::piece::PayloadLocation;
+  using markets::retrieval::RetrievalAsk;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;

@@ -9,3 +9,7 @@ addtest(api_json_test
 target_link_libraries(api_json_test
     rpc
     )
+
+addtest(api_version_test
+    version_test.cpp
+    )

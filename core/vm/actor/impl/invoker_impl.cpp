@@ -95,8 +95,8 @@ namespace fc::vm::actor {
         && (actor.code != builtin::v0::kMultisigCodeId)        // < tested OK
         && (actor.code != builtin::v0::kPaymentChannelCodeId)  // < tested OK
         && (actor.code != builtin::v0::kStoragePowerCodeId)    // < tested OK
-        && (actor.code != builtin::v0::kRewardActorCodeId)      // < tested OK
-        && (actor.code != builtin::v0::kSystemActorCodeId)      // < tested OK
+        && (actor.code != builtin::v0::kRewardActorCodeId)     // < tested OK
+        && (actor.code != builtin::v0::kSystemActorCodeId)     // < tested OK
         && (actor.code
             != builtin::v0::kVerifiedRegistryCodeId)  // < OK, but not tested
 
@@ -109,8 +109,8 @@ namespace fc::vm::actor {
         && (actor.code != builtin::v2::kMultisigCodeId)        // < tested OK
         && (actor.code != builtin::v2::kPaymentChannelCodeId)  // < tested OK
         && (actor.code != builtin::v2::kStoragePowerCodeId)    // < tested OK
-        && (actor.code != builtin::v2::kRewardActorCodeId)      // < tested OK
-        && (actor.code != builtin::v2::kSystemActorCodeId)      // < tested OK
+        && (actor.code != builtin::v2::kRewardActorCodeId)     // < tested OK
+        && (actor.code != builtin::v2::kSystemActorCodeId)     // < tested OK
         && (actor.code
             != builtin::v2::kVerifiedRegistryCodeId)  // < OK, but not tested
     ) {

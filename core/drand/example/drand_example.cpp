@@ -7,6 +7,7 @@
 
 #include "clock/time.hpp"
 #include "common/logger.hpp"
+#include "common/outcome2.hpp"
 #include "drand/impl/http.hpp"
 
 int main(int argc, char *argv[]) {
@@ -16,7 +17,7 @@ int main(int argc, char *argv[]) {
   fc::drand::ChainInfo info;
   fc::drand::http::getInfo(io, host, [&](auto _info) {
     if (!_info) {
-      return spdlog::error("getInfo: {}", _info.error());
+      return spdlog::error("getInfo: {:#}", _info.error());
     }
     info = std::move(_info.value());
     fc::drand::http::getEntry(io, host, 0, [&](auto _latest) {

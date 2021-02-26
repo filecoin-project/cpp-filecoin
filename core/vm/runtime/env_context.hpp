@@ -18,5 +18,6 @@ namespace fc::vm::runtime {
     TsLoadPtr ts_load{};
     std::shared_ptr<InterpreterCache> interpreter_cache{};
     std::shared_ptr<Circulating> circulating{};
+    SharedMutexPtr ts_branches_mutex{};
   };
 }  // namespace fc::vm::runtime
