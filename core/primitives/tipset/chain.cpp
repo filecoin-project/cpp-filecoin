@@ -150,29 +150,46 @@ namespace fc::primitives::tipset::chain {
     return path;
   }
 
-  TsBranchPtr findChild(TsChain::const_iterator &it,
-                        TsChain::const_iterator end,
-                        TsBranchChildren &children) {
-    for (auto _child{children.begin()};
-         _child != children.end() && it != end;) {
-      if (_child->first > it->first) {
-        ++it;
+  auto absorbChildren(TsBranchIter branch_it) {
+    auto &[branch, _branch]{branch_it};
+    std::vector<TsBranchPtr> removed;
+    std::vector<std::pair<TsChain::iterator, TsBranchPtr>> queue;
+    auto [begin, end]{branch->children.equal_range(_branch->first)};
+    for (auto _child{begin}; _child != end;) {
+      if (auto child{_child->second.lock()}) {
+        queue.emplace_back(_branch, child);
+        ++_child;
       } else {
-        if (auto child{_child->second.lock()}) {
-          auto next{std::next(it)};
-          if (next != end && *std::next(child->chain.begin()) == *next) {
-            return child;
-          }
-          ++_child;
-        } else {
-          _child = children.erase(_child);
-        }
+        _child = branch->children.erase(_child);
       }
     }
-    if (it == end) {
-      --it;
+    while (!queue.empty()) {
+      auto [_branch, parent]{queue.back()};
+      queue.pop_back();
+      auto _parent{parent->chain.begin()};
+      auto _child{parent->children.begin()};
+      while (_parent != parent->chain.end() && _branch != branch->chain.end()
+             && *_parent == *_branch) {
+        while (_child != parent->children.end()
+               && _child->first == _branch->first) {
+          if (auto child{_child->second.lock()}) {
+            queue.emplace_back(_branch, child);
+            child->parent = branch;
+            branch->children.emplace(*_child);
+          }
+          _child = parent->children.erase(_child);
+        }
+        ++_parent;
+        ++_branch;
+      }
+      --_parent;
+      --_branch;
+      parent->chain.erase(parent->chain.begin(), _parent);
+      if (parent->chain.size() <= 1) {
+        removed.push_back(parent);
+      }
     }
-    return nullptr;
+    return removed;
   }
 
   outcome::result<std::vector<TsBranchPtr>> update(TsBranchPtr branch,
@@ -197,9 +214,6 @@ namespace fc::primitives::tipset::chain {
       OUTCOME_TRY(batch->commit());
     }
 
-    from.erase(revert_to, from.end());
-    from.insert(apply.begin(), apply.end());
-
     for (auto _child{branch->children.lower_bound(revert_to->first + 1)};
          _child != branch->children.end();) {
       if (auto child{_child->second.lock()}) {
@@ -210,30 +224,10 @@ namespace fc::primitives::tipset::chain {
       }
     }
 
-    std::vector<TsBranchPtr> removed;
-    auto _apply{apply.begin()};
-    auto parent{findChild(_apply, apply.end(), branch->children)};
-    while (parent) {
-      auto next{findChild(_apply, apply.end(), parent->children)};
-      for (auto _child{parent->children.begin()};
-           _child != parent->children.end()
-           && _child->first <= _apply->first;) {
-        if (auto child{_child->second.lock()}) {
-          child->parent = branch;
-          branch->children.emplace(*_child);
-        }
-        _child = parent->children.erase(_child);
-      }
-      parent->chain.erase(parent->chain.begin(),
-                          parent->chain.find(_apply->first));
-      if (parent->chain.size() <= 1) {
-        detach(parent->parent, parent);
-        removed.push_back(parent);
-      }
-      assert(next || std::next(_apply) == apply.end());
-      parent = next;
-    }
-    return removed;
+    from.erase(revert_to, from.end());
+    from.insert(apply.begin(), apply.end());
+
+    return absorbChildren({branch, revert_to});
   }
 
   outcome::result<std::pair<Path, std::vector<TsBranchPtr>>> update(

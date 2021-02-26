@@ -40,8 +40,7 @@ TEST(GenesisTest, DISABLED_Decode) {
   auto visit_actors = [&](auto &a, auto &actor) {
     if (actor.code == fc::vm::actor::builtin::v0::kStorageMinerCodeId) {
       // TODO: update genesis
-    } else if (actor.code
-               == fc::vm::actor::builtin::v0::kStorageMarketCodeId) {
+    } else if (actor.code == fc::vm::actor::builtin::v0::kStorageMarketCodeId) {
       EXPECT_OUTCOME_TRUE(
           state,
           ipld->getCbor<fc::vm::actor::builtin::v0::market::State>(actor.head));

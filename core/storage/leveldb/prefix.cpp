@@ -149,6 +149,6 @@ namespace fc::storage {
   }
 
   void OneKey::set(Buffer value) {
-    map->put(key, std::move(value)).assume_value();
+    map->put(key, std::move(value)).value();
   }
 }  // namespace fc::storage
