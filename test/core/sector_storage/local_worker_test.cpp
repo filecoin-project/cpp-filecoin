@@ -11,6 +11,7 @@
 #include <boost/filesystem.hpp>
 #include <random>
 #include "sector_storage/stores/store_error.hpp"
+#include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/local_store_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/remote_store_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
@@ -20,12 +21,14 @@
 
 namespace fc::sector_storage {
   using primitives::StoragePath;
+  using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::InteractiveRandomness;
   using primitives::sector::RegisteredSealProof;
   using primitives::sector_file::SectorFileType;
   using proofs::PieceInfo;
+  using proofs::ProofEngineMock;
   using proofs::SealVerifyInfo;
   using stores::AcquireMode;
   using stores::AcquireSectorResponse;
@@ -51,6 +54,7 @@ namespace fc::sector_storage {
       store_ = std::make_shared<RemoteStoreMock>();
       local_store_ = std::make_shared<LocalStoreMock>();
       sector_index_ = std::make_shared<SectorIndexMock>();
+      proof_engine_ = std::make_shared<ProofEngineMock>();
 
       EXPECT_CALL(*store_, getLocalStore())
           .WillRepeatedly(testing::Return(local_store_));
@@ -61,7 +65,8 @@ namespace fc::sector_storage {
       EXPECT_CALL(*local_store_, getSectorIndex())
           .WillRepeatedly(testing::Return(sector_index_));
 
-      local_worker_ = std::make_unique<LocalWorker>(config_, store_);
+      local_worker_ =
+          std::make_unique<LocalWorker>(config_, store_, proof_engine_);
     }
 
    protected:
@@ -71,6 +76,7 @@ namespace fc::sector_storage {
     std::shared_ptr<RemoteStoreMock> store_;
     std::shared_ptr<LocalStoreMock> local_store_;
     std::shared_ptr<SectorIndexMock> sector_index_;
+    std::shared_ptr<ProofEngineMock> proof_engine_;
     std::unique_ptr<LocalWorker> local_worker_;
   };
 
@@ -89,8 +95,13 @@ namespace fc::sector_storage {
    * @then gets info about the worker
    */
   TEST_F(LocalWorkerTest, getInfo) {
+    std::vector<std::string> gpus = {"GPU1", "GPU2"};
+    EXPECT_CALL(*proof_engine_, getGPUDevices())
+        .WillOnce(testing::Return(gpus));
+
     EXPECT_OUTCOME_TRUE(info, local_worker_->getInfo());
     ASSERT_EQ(info.hostname, boost::asio::ip::host_name());
+    ASSERT_EQ(info.resources.gpus, gpus);
   }
 
   /**
@@ -188,6 +199,174 @@ namespace fc::sector_storage {
                          local_worker_->sealPreCommit1(sector, ticket, {}));
 
     ASSERT_TRUE(is_storage_clear);
+  }
+
+  TEST_F(LocalWorkerTest, FinalizeSectorWithoutKeepUnsealed) {
+    EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
+
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    SectorPaths paths{
+        .id = sector,
+        .unsealed = "",
+        .sealed = "",
+        .cache = "some/cache/path",
+    };
+
+    SectorPaths storages{
+        .id = sector,
+        .unsealed = "",
+        .sealed = "",
+        .cache = "cache-storage-id",
+    };
+
+    AcquireSectorResponse resp{
+        .paths = paths,
+        .storages = storages,
+    };
+
+    EXPECT_CALL(*store_,
+                acquireSector(sector,
+                              seal_proof_type_,
+                              SectorFileType::FTCache,
+                              SectorFileType::FTNone,
+                              PathType::kStorage,
+                              AcquireMode::kCopy))
+        .WillOnce(testing::Return(resp));
+
+    bool is_clear = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTNone,
+                        storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear = true; }));
+
+    EXPECT_CALL(*proof_engine_, clearCache(size, paths.cache))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_CALL(*store_, remove(sector, SectorFileType::FTUnsealed))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(local_worker_->finalizeSector(sector, {}));
+    ASSERT_TRUE(is_clear);
+  }
+
+  TEST_F(LocalWorkerTest, FinalizeSectorWithKeepUnsealed) {
+    EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
+
+    std::vector<Range> ranges = {
+        Range{
+            .offset = UnpaddedPieceSize(0),
+            .size = UnpaddedPieceSize(127),
+        },
+    };
+
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    auto file_path = base_path / primitives::sector_file::sectorName(sector);
+    PaddedPieceSize piece_size(256);
+    PaddedPieceSize max_size(size);
+    {
+      EXPECT_OUTCOME_TRUE(file,
+                          primitives::sector_file::SectorFile::createFile(
+                              file_path.string(), max_size));
+
+      EXPECT_OUTCOME_TRUE_1(file->write(
+          PieceData("/dev/random"), PaddedPieceSize(0), piece_size));
+
+      EXPECT_OUTCOME_EQ(file->hasAllocated(0, piece_size.unpadded()), true);
+    }
+
+    SectorPaths unsealed_paths{
+        .id = sector,
+        .unsealed = file_path.string(),
+        .sealed = "",
+        .cache = "",
+    };
+
+    SectorPaths unsealed_storages{
+        .id = sector,
+        .unsealed = "unsealed-storage-id",
+        .sealed = "",
+        .cache = "",
+    };
+
+    AcquireSectorResponse unsealed_resp{
+        .paths = unsealed_paths,
+        .storages = unsealed_storages,
+    };
+
+    bool is_clear_unsealed = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTNone,
+                        unsealed_storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear_unsealed = true; }));
+
+    EXPECT_CALL(*store_,
+                acquireSector(sector,
+                              seal_proof_type_,
+                              SectorFileType::FTUnsealed,
+                              SectorFileType::FTNone,
+                              PathType::kStorage,
+                              AcquireMode::kCopy))
+        .WillOnce(testing::Return(unsealed_resp));
+
+    SectorPaths cache_paths{
+        .id = sector,
+        .unsealed = "",
+        .sealed = "",
+        .cache = "some/cache/path",
+    };
+
+    SectorPaths cache_storages{
+        .id = sector,
+        .unsealed = "",
+        .sealed = "",
+        .cache = "cache-storage-id",
+    };
+
+    AcquireSectorResponse cache_resp{
+        .paths = cache_paths,
+        .storages = cache_storages,
+    };
+
+    bool is_clear = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTNone,
+                        cache_storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear = true; }));
+
+    EXPECT_CALL(*store_,
+                acquireSector(sector,
+                              seal_proof_type_,
+                              SectorFileType::FTCache,
+                              SectorFileType::FTNone,
+                              PathType::kStorage,
+                              AcquireMode::kCopy))
+        .WillOnce(testing::Return(cache_resp));
+
+    EXPECT_CALL(*proof_engine_, clearCache(size, cache_paths.cache))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(local_worker_->finalizeSector(sector, ranges));
+    ASSERT_TRUE(is_clear);
+    ASSERT_TRUE(is_clear_unsealed);
+    EXPECT_OUTCOME_TRUE(file,
+                        primitives::sector_file::SectorFile::openFile(
+                            file_path.string(), max_size));
+    EXPECT_OUTCOME_EQ(file->hasAllocated(0, piece_size.unpadded()), false);
+    EXPECT_OUTCOME_EQ(file->hasAllocated(0, ranges[0].size), true);
   }
 
   /**
