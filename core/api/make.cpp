@@ -8,6 +8,7 @@
 #include <boost/algorithm/string.hpp>
 #include <libp2p/peer/peer_id.hpp>
 
+#include "api/version.hpp"
 #include "blockchain/production/block_producer.hpp"
 #include "const.hpp"
 #include "drand/beaconizer.hpp"
@@ -746,7 +747,9 @@ namespace fc::api {
       OUTCOME_TRY(pubsub->publish(block));
       return outcome::success();
     }};
-    api->Version = {[]() { return VersionResult{"fuhon", 0x000C00, 5}; }};
+    api->Version = {[]() {
+      return VersionResult{"fuhon", makeApiVersion(1, 0, 0), 5};
+    }};
     api->WalletBalance = {[=](auto &address) -> outcome::result<TokenAmount> {
       OUTCOME_TRY(context, tipsetContext({}));
       OUTCOME_TRY(actor, context.state_tree.get(address));
