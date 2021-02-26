@@ -9,6 +9,7 @@
 #include <boost/system/system_error.hpp>
 #include <boost/throw_exception.hpp>
 #include <libp2p/outcome/outcome.hpp>
+#include <sstream>
 
 #define PP_CAT(a, b) PP_CAT_I(a, b)
 #define PP_CAT_I(a, b) PP_CAT_II(~, a##b)
@@ -50,6 +51,18 @@ namespace fc::outcome {
    */
   [[noreturn]] inline void raise(const std::error_code &ec) {
     boost::throw_exception(std::system_error(ec));
+  }
+
+  /**
+   * Returns human readable error code string
+   * @param ec - error code
+   * @return string representation of error
+   */
+  inline std::string errorToPrettyString(const std::error_code &ec) {
+    std::stringstream ss;
+    ss << ec.category().name() << " error " << std::to_string(ec.value())
+       << ": \"" << ec.message() + "\"";
+    return ss.str();
   }
 
   /**

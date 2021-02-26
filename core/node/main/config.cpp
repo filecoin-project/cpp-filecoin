@@ -16,6 +16,7 @@
 namespace fc::node {
 
   namespace {
+    constexpr int kDefaultApiPort = 1234;
     constexpr int kDefaultPort = 2000;
     constexpr std::string_view kDefaultConfigFileName = "default.cfg";
 
@@ -99,7 +100,7 @@ namespace fc::node {
       std::string snapshot;
       std::string repo_path;
       std::vector<std::string> bootstrap_list;
-      std::vector<std::string> drand_list;
+      std::vector<std::string> drand_servers;
       std::string drand_pubkey;
       uint64_t drand_genesis_time = 0;
       uint64_t drand_period = 0;
@@ -114,7 +115,9 @@ namespace fc::node {
       auto option{desc.add_options()};
       option("help,h", "print usage message");
       option("repo", po::value(&raw.repo_path)->required());
-      option("api", po::value(&raw.api_port)->default_value(1234));
+      option("api",
+             po::value(&raw.api_port)->default_value(kDefaultApiPort),
+             "API port (default: \"1234\")");
       option("config,c",
              po::value(&config_file),
              "config file name (default.cfg)");
@@ -125,7 +128,7 @@ namespace fc::node {
       option("log,l", po::value(&raw.log_level), "log level, [e,w,i,d,t]");
       option("import-snapshot", po::value(&raw.snapshot));
       option("drand-server",
-             po::value(&raw.drand_list)->composing(),
+             po::value(&raw.drand_servers)->composing(),
              "drand server uri");
       option("drand-pubkey",
              po::value(&raw.drand_pubkey),
@@ -215,8 +218,8 @@ namespace fc::node {
       summary += fmt::format(
           "\tLog level: {}\n\tLocal IP: {}", raw.log_level, config.local_ip);
 
-      if (!raw.drand_list.empty()) {
-        config.drand_servers = std::move(raw.drand_list);
+      if (!raw.drand_servers.empty()) {
+        config.drand_servers = std::move(raw.drand_servers);
 
         if (raw.drand_pubkey.size() != BlsPublicKey::size() * 2) {
           std::cerr << "Invalid drand public key format " << raw.drand_pubkey
@@ -230,7 +233,7 @@ namespace fc::node {
           return false;
         }
 
-        config.drand_bls_pubkey = std::move(unhex_res.value());
+        config.drand_bls_pubkey = unhex_res.value();
         config.drand_genesis = raw.drand_genesis_time;
         config.drand_period = raw.drand_period;
       }

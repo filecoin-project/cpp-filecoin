@@ -37,7 +37,7 @@ namespace fc::node {
     /** Drand genesis time in seconds */
     int64_t drand_genesis = 0;
     /** Drand round time in seconds */
-    int64_t drand_period = 1;
+    int64_t drand_period = 0;
     unsigned beaconizer_cache_size = 100;
 
     Config();
