@@ -36,7 +36,6 @@
 #include "node/chain_store_impl.hpp"
 #include "node/graphsync_server.hpp"
 #include "node/identify.hpp"
-#include "node/interpret_job.hpp"
 #include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
 #include "node/receive_hello.hpp"
@@ -370,9 +369,6 @@ namespace fc::node {
     o.blocksync_server = std::make_shared<fc::sync::blocksync::BlocksyncServer>(
         o.host, o.ts_load_ipld, o.ipld);
 
-    o.interpret_job = sync::InterpretJob::create(
-        o.vm_interpreter, *o.ts_branches, o.ipld, o.events);
-
     log()->debug("Creating chain store...");
 
     auto power_table = std::make_shared<power::PowerTableImpl>();
@@ -404,7 +400,7 @@ namespace fc::node {
         std::make_shared<sync::SyncJob>(o.host,
                                         o.chain_store,
                                         o.scheduler,
-                                        o.interpret_job,
+                                        o.vm_interpreter,
                                         o.env_context.interpreter_cache,
                                         o.env_context.ts_branches_mutex,
                                         o.ts_branches,

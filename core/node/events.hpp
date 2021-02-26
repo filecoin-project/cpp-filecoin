@@ -13,8 +13,6 @@
 
 #include <libp2p/protocol/common/scheduler.hpp>
 
-#include "vm/interpreter/interpreter.hpp"
-
 namespace fc::sync::events {
 
   using primitives::tipset::HeadChange;
@@ -56,11 +54,6 @@ namespace fc::sync::events {
     boost::optional<PeerId> source;
     TipsetKey head;
     Height height = 0;
-  };
-
-  struct HeadInterpreted {
-    TipsetCPtr head;
-    outcome::result<vm::interpreter::Result> result;
   };
 
   struct CurrentHead {
@@ -105,7 +98,6 @@ namespace fc::sync::events {
     DEFINE_EVENT(BlockFromPubSub);
     DEFINE_EVENT(MessageFromPubSub);
     DEFINE_EVENT(PossibleHead);
-    DEFINE_EVENT(HeadInterpreted);
     DEFINE_EVENT(HeadChange);
     DEFINE_EVENT(FatalError);
 

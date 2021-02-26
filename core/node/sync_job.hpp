@@ -10,7 +10,6 @@
 
 #include "blocksync_request.hpp"
 #include "common/io_thread.hpp"
-#include "node/interpret_job.hpp"
 #include "peers.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/buffer_map.hpp"
@@ -18,6 +17,7 @@
 namespace fc::sync {
   using blocksync::BlocksyncRequest;
   using primitives::tipset::chain::KvPtr;
+  using vm::interpreter::Interpreter;
   using vm::interpreter::InterpreterCache;
 
   /// Active object which downloads and indexes tipsets. Keeps track of peers
@@ -27,7 +27,7 @@ namespace fc::sync {
     SyncJob(std::shared_ptr<libp2p::Host> host,
             std::shared_ptr<ChainStoreImpl> chain_store,
             std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-            std::shared_ptr<InterpretJob> interpret_job,
+            std::shared_ptr<Interpreter> interpreter,
             std::shared_ptr<InterpreterCache> interpreter_cache,
             SharedMutexPtr ts_branches_mutex,
             TsBranchesPtr ts_branches,
@@ -57,7 +57,7 @@ namespace fc::sync {
     std::shared_ptr<libp2p::Host> host_;
     std::shared_ptr<ChainStoreImpl> chain_store_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
-    std::shared_ptr<InterpretJob> interpret_job_;
+    std::shared_ptr<Interpreter> interpreter_;
     std::shared_ptr<InterpreterCache> interpreter_cache_;
     SharedMutexPtr ts_branches_mutex_;
     TsBranchesPtr ts_branches_;
@@ -66,6 +66,7 @@ namespace fc::sync {
     TsLoadPtr ts_load_;
     IpldPtr ipld_;
     IoThread thread;
+    IoThread interpret_thread;
 
     std::queue<std::pair<PeerId, TipsetKey>> requests_;
     std::mutex requests_mutex_;
@@ -75,7 +76,6 @@ namespace fc::sync {
     std::shared_ptr<events::Events> events_;
     Peers peers_;
 
-    events::Connection head_interpreted_event_;
     events::Connection possible_head_event_;
 
     std::shared_ptr<BlocksyncRequest> request_;

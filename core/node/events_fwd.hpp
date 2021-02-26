@@ -24,7 +24,6 @@ namespace fc::sync {
     struct BlockFromPubSub;
     struct MessageFromPubSub;
     struct PossibleHead;
-    struct HeadInterpreted;
     struct CurrentHead;
     struct FatalError;
   }  // namespace events

@@ -24,7 +24,7 @@ namespace fc::sync {
   SyncJob::SyncJob(std::shared_ptr<libp2p::Host> host,
                    std::shared_ptr<ChainStoreImpl> chain_store,
                    std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-                   std::shared_ptr<InterpretJob> interpret_job,
+                   std::shared_ptr<Interpreter> interpreter,
                    std::shared_ptr<InterpreterCache> interpreter_cache,
                    SharedMutexPtr ts_branches_mutex,
                    TsBranchesPtr ts_branches,
@@ -35,7 +35,7 @@ namespace fc::sync {
       : host_(std::move(host)),
         chain_store_(std::move(chain_store)),
         scheduler_(std::move(scheduler)),
-        interpret_job_(std::move(interpret_job)),
+        interpreter_(std::move(interpreter)),
         interpreter_cache_(std::move(interpreter_cache)),
         ts_branches_mutex_{std::move(ts_branches_mutex)},
         ts_branches_{std::move(ts_branches)},
@@ -55,15 +55,6 @@ namespace fc::sync {
 
     possible_head_event_ = events_->subscribePossibleHead(
         [this](const events::PossibleHead &e) { onPossibleHead(e); });
-
-    head_interpreted_event_ = events_->subscribeHeadInterpreted(
-        [this](const events::HeadInterpreted &e) {
-          thread.io->post([this, e] {
-            std::unique_lock lock{*ts_branches_mutex_};
-            interpret_queue_.push(e.head);
-            interpretDequeue();
-          });
-        });
 
     peers_.start(
         host_, *events_, [](const std::set<std::string> &protocols) -> bool {
@@ -162,7 +153,20 @@ namespace fc::sync {
                       fmt::join(ts->key.cids(), ","));
           continue;
         }
-        interpret_job_->add(ts);
+
+        auto branch{find(*ts_branches_, ts).first};
+        interpret_thread.io->post([=] {
+          auto result{interpreter_->interpret(branch, ts)};
+          if (!result) {
+            log()->warn("interpret error {:#}", result.error());
+          }
+
+          thread.io->post([=] {
+            std::unique_lock lock{*ts_branches_mutex_};
+            interpret_queue_.push(ts);
+            interpretDequeue();
+          });
+        });
       }
     }
     if (heaviest.first && heaviest.second > chain_store_->getHeaviestWeight()) {

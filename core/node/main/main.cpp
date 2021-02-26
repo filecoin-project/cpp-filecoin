@@ -16,7 +16,6 @@
 #include "node/chain_store_impl.hpp"
 #include "node/graphsync_server.hpp"
 #include "node/identify.hpp"
-#include "node/interpret_job.hpp"
 #include "node/main/builder.hpp"
 #include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
