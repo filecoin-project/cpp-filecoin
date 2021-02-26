@@ -8,11 +8,11 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/states/market_actor_state.hpp"
 
-namespace fc::vm::actor::builtin::v0::market {
+namespace fc::vm::actor::builtin::v2::market {
 
   struct MarketActorState : states::MarketActorState {
     explicit MarketActorState()
-        : states::MarketActorState(ActorVersion::kVersion0) {}
+        : states::MarketActorState(ActorVersion::kVersion2) {}
   };
 
   CBOR_TUPLE(MarketActorState,
@@ -28,13 +28,13 @@ namespace fc::vm::actor::builtin::v0::market {
              total_provider_locked_collateral,
              total_client_storage_fee)
 
-}  // namespace fc::vm::actor::builtin::v0::market
+}  // namespace fc::vm::actor::builtin::v2::market
 
 namespace fc {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::v0::market::MarketActorState> {
+  struct Ipld::Visit<vm::actor::builtin::v2::market::MarketActorState> {
     template <typename Visitor>
-    static void call(vm::actor::builtin::v0::market::MarketActorState &state,
+    static void call(vm::actor::builtin::v2::market::MarketActorState &state,
                      const Visitor &visit) {
       visit(state.proposals);
       visit(state.states);

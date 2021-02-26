@@ -15,7 +15,7 @@
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor_state.hpp"
 #include "vm/actor/builtin/v0/init/init_actor_state.hpp"
-#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/actor/builtin/v0/market/market_actor_state.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/v0/system/system_actor_state.hpp"
@@ -44,7 +44,8 @@ TEST(GenesisTest, DISABLED_Decode) {
     } else if (actor.code == fc::vm::actor::builtin::v0::kStorageMarketCodeId) {
       EXPECT_OUTCOME_TRUE(
           state,
-          ipld->getCbor<fc::vm::actor::builtin::v0::market::State>(actor.head));
+          ipld->getCbor<fc::vm::actor::builtin::v0::market::MarketActorState>(
+              actor.head));
       EXPECT_OUTCOME_TRUE_1(state.proposals.visit(nop));
       EXPECT_OUTCOME_TRUE_1(state.states.visit(nop));
       EXPECT_OUTCOME_TRUE_1(state.escrow_table.visit(nop));

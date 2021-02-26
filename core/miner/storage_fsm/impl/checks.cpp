@@ -12,6 +12,7 @@
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"

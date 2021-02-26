@@ -9,11 +9,9 @@
 #include "primitives/block/block.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v0/market/actor.hpp"
 #include "vm/actor/builtin/v0/miner/policy.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v2/market/actor.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/v3/codes.hpp"
 #include "vm/actor/builtin/v3/storage_power/storage_power_actor_state.hpp"
@@ -26,20 +24,13 @@ namespace fc::vm {
   outcome::result<TokenAmount> getLocked(StateTreePtr state_tree) {
     const auto ipld{state_tree->getStore()};
     TokenAmount locked;
-    OUTCOME_TRY(market, state_tree->get(actor::kStorageMarketAddress));
-    if (market.code == actor::builtin::v0::kStorageMarketCodeId
-        || market.code == actor::builtin::v2::kStorageMarketCodeId) {
-      // TODO (m.tagirov or a.chernyshov) - v3
-      static_assert(std::is_same_v<actor::builtin::v0::market::State,
-                                   actor::builtin::v2::market::State>);
-      OUTCOME_TRY(
-          state, ipld->getCbor<actor::builtin::v0::market::State>(market.head));
-      locked += state.total_client_locked_collateral
-                + state.total_provider_locked_collateral
-                + state.total_client_storage_fee;
-    } else {
-      return std::errc::owner_dead;
-    }
+    OUTCOME_TRY(market_actor, state_tree->get(actor::kStorageMarketAddress));
+    StateProvider provider(ipld);
+    OUTCOME_TRY(market_state, provider.getMarketActorState(market_actor));
+    locked += market_state->total_client_locked_collateral
+              + market_state->total_provider_locked_collateral
+              + market_state->total_client_storage_fee;
+
     OUTCOME_TRY(power, state_tree->get(actor::kStoragePowerAddress));
     if (power.code == actor::builtin::v0::kStoragePowerCodeId) {
       OUTCOME_TRY(

@@ -26,6 +26,11 @@ namespace fc::vm::actor::builtin::states {
                        InitActorStatePtr(ActorVersion version));
     MOCK_CONST_METHOD0(getInitActorState, outcome::result<InitActorStatePtr>());
 
+    MOCK_CONST_METHOD1(createMarketActorState,
+                       MarketActorStatePtr(ActorVersion version));
+    MOCK_CONST_METHOD0(getMarketActorState,
+                       outcome::result<MarketActorStatePtr>());
+
     MOCK_CONST_METHOD1(createMultisigActorState,
                        MultisigActorStatePtr(ActorVersion version));
     MOCK_CONST_METHOD0(getMultisigActorState,

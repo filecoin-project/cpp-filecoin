@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_API_RPC_JSON_HPP
-#define CPP_FILECOIN_CORE_API_RPC_JSON_HPP
+#pragma once
 
 #include <rapidjson/document.h>
 #include <cppcodec/base64_rfc4648.hpp>
@@ -20,6 +19,7 @@
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "sector_storage/stores/storage.hpp"
+#include "vm/actor/builtin/v0/market/types.hpp"
 
 #define COMMA ,
 
@@ -67,8 +67,8 @@ namespace fc::api {
   using sector_storage::stores::PathType;
   using sector_storage::stores::StorageConfig;
   using sector_storage::stores::StorageInfo;
-  using vm::actor::builtin::v0::market::DealProposal;
-  using vm::actor::builtin::v0::market::DealState;
+  using vm::actor::builtin::states::market::DealProposal;
+  using vm::actor::builtin::states::market::DealState;
   using vm::actor::builtin::v0::market::StorageParticipantBalance;
   using vm::actor::builtin::v0::miner::PowerPair;
   using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
@@ -1800,5 +1800,3 @@ namespace fc::api {
     }
   }
 }  // namespace fc::api
-
-#endif  // CPP_FILECOIN_CORE_API_RPC_JSON_HPP

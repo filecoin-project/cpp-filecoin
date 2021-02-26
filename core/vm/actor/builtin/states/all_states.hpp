@@ -17,6 +17,10 @@
 #include "vm/actor/builtin/v2/init/init_actor_state.hpp"
 #include "vm/actor/builtin/v3/init/init_actor_state.hpp"
 
+#include "vm/actor/builtin/v0/market/market_actor_state.hpp"
+#include "vm/actor/builtin/v2/market/market_actor_state.hpp"
+// TODDO market actor v3
+
 #include "vm/actor/builtin/v0/multisig/multisig_actor_state.hpp"
 #include "vm/actor/builtin/v2/multisig/multisig_actor_state.hpp"
 #include "vm/actor/builtin/v3/multisig/multisig_actor_state.hpp"

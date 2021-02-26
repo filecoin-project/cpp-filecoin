@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_CORE_MARKETS_STORAGE_STORAGE_MARKET_FIXTURE_HPP
-#define CPP_FILECOIN_TEST_CORE_MARKETS_STORAGE_STORAGE_MARKET_FIXTURE_HPP
+#pragma once
 
 #include <gtest/gtest.h>
 #include <boost/di/extension/scopes/shared.hpp>
@@ -32,6 +31,7 @@
 #include "testutil/mocks/markets/storage/chain_events/chain_events_mock.hpp"
 #include "testutil/mocks/miner/miner_mock.hpp"
 #include "testutil/mocks/sectorblocks/blocks_mock.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
 
 namespace fc::markets::storage::test {
   using adt::Channel;
@@ -518,5 +518,3 @@ namespace fc::markets::storage::test {
   };
 
 }  // namespace fc::markets::storage::test
-
-#endif  // CPP_FILECOIN_TEST_CORE_MARKETS_STORAGE_STORAGE_MARKET_FIXTURE_HPP

@@ -71,6 +71,24 @@ namespace fc::vm::actor::builtin::states {
     return provider.getInitActorState(actor);
   }
 
+  // Market Actor State
+  //============================================================================
+
+  MarketActorStatePtr StateManagerImpl::createMarketActorState(
+      ActorVersion version) const {
+    return createStatePtr<MarketActorState,
+                          v0::market::MarketActorState,
+                          v2::market::MarketActorState,
+                          v2::market::MarketActorState>(
+        version);  // TODO change v3
+  }
+
+  outcome::result<MarketActorStatePtr> StateManagerImpl::getMarketActorState()
+      const {
+    OUTCOME_TRY(actor, state_tree->get(receiver));
+    return provider.getMarketActorState(actor);
+  }
+
   // Multisig Actor State
   //============================================================================
 
@@ -179,6 +197,12 @@ namespace fc::vm::actor::builtin::states {
         return commitVersionState<v0::init::InitActorState,
                                   v2::init::InitActorState,
                                   v3::init::InitActorState>(state);
+
+      case ActorType::kMarket:
+        return commitVersionState<v0::market::MarketActorState,
+                                  v2::market::MarketActorState,
+                                  v2::market::MarketActorState>(
+            state);  // TODO v3
 
       case ActorType::kMultisig:
         return commitVersionState<v0::multisig::MultisigActorState,

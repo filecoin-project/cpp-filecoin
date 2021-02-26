@@ -7,6 +7,7 @@
 
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/utils/init_actor_utils.hpp"
+#include "vm/actor/builtin/utils/market_actor_utils.hpp"
 #include "vm/actor/builtin/utils/multisig_actor_utils.hpp"
 #include "vm/actor/builtin/utils/payment_channel_actor_utils.hpp"
 #include "vm/actor/builtin/utils/verified_registry_actor_utils.hpp"
@@ -17,6 +18,7 @@ namespace fc::vm::toolchain {
   using actor::Actor;
   using actor::ActorVersion;
   using actor::CodeId;
+  using actor::builtin::utils::MarketUtilsPtr;
   using actor::builtin::utils::init::InitUtilsPtr;
   using actor::builtin::utils::multisig::MultisigUtilsPtr;
   using actor::builtin::utils::payment_channel::PaymentChannelUtilsPtr;
@@ -52,6 +54,7 @@ namespace fc::vm::toolchain {
         const NetworkVersion &network_version);
 
     static InitUtilsPtr createInitActorUtils(Runtime &runtime);
+    static MarketUtilsPtr createMarketUtils(Runtime &runtime);
     static MultisigUtilsPtr createMultisigActorUtils(Runtime &runtime);
     static PaymentChannelUtilsPtr createPaymentChannelUtils(Runtime &runtime);
     static VerifRegUtilsPtr createVerifRegUtils(Runtime &runtime);

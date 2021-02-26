@@ -56,6 +56,18 @@ namespace fc::vm::actor::builtin::states {
                              v3::init::InitActorState>(actor);
   }
 
+  outcome::result<MarketActorStatePtr> StateProvider::getMarketActorState(
+      const Actor &actor) const {
+    if (!CommonAddressMatcher::isStorageMarketActor(actor.code)) {
+      return VMExitCode::kSysErrIllegalActor;
+    }
+
+    return getCommonStatePtr<MarketActorState,
+                             v0::market::MarketActorState,
+                             v2::market::MarketActorState,
+                             v2::market::MarketActorState>(actor);  // TODO v3
+  }
+
   outcome::result<MultisigActorStatePtr> StateProvider::getMultisigActorState(
       const Actor &actor) const {
     if (!CommonAddressMatcher::isMultisigActor(actor.code)) {
@@ -68,7 +80,8 @@ namespace fc::vm::actor::builtin::states {
                              v3::multisig::MultisigActorState>(actor);
   }
 
-  outcome::result<PaymentChannelActorStatePtr> StateProvider::getPaymentChannelActorState(const Actor &actor) const {
+  outcome::result<PaymentChannelActorStatePtr>
+  StateProvider::getPaymentChannelActorState(const Actor &actor) const {
     if (!CommonAddressMatcher::isPaymentChannelActor(actor.code)) {
       return VMExitCode::kSysErrIllegalActor;
     }
@@ -76,10 +89,12 @@ namespace fc::vm::actor::builtin::states {
     return getCommonStatePtr<PaymentChannelActorState,
                              v0::payment_channel::PaymentChannelActorState,
                              v2::payment_channel::PaymentChannelActorState,
-                             v3::payment_channel::PaymentChannelActorState>(actor);
+                             v3::payment_channel::PaymentChannelActorState>(
+        actor);
   }
 
-  outcome::result<SystemActorStatePtr> StateProvider::getSystemActorState(const Actor &actor) const {
+  outcome::result<SystemActorStatePtr> StateProvider::getSystemActorState(
+      const Actor &actor) const {
     if (!CommonAddressMatcher::isSystemActor(actor.code)) {
       return VMExitCode::kSysErrIllegalActor;
     }
@@ -90,7 +105,8 @@ namespace fc::vm::actor::builtin::states {
                              v3::system::SystemActorState>(actor);
   }
 
-  outcome::result<RewardActorStatePtr> StateProvider::getRewardActorState(const Actor &actor) const {
+  outcome::result<RewardActorStatePtr> StateProvider::getRewardActorState(
+      const Actor &actor) const {
     if (!CommonAddressMatcher::isRewardActor(actor.code)) {
       return VMExitCode::kSysErrIllegalActor;
     }
@@ -98,7 +114,7 @@ namespace fc::vm::actor::builtin::states {
     return getCommonStatePtr<RewardActorState,
                              v0::reward::RewardActorState,
                              v2::reward::RewardActorState,
-                             v2::reward::RewardActorState>(actor); // TODO v3
+                             v2::reward::RewardActorState>(actor);  // TODO v3
   }
 
   outcome::result<VerifiedRegistryActorStatePtr>

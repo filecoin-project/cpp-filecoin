@@ -16,7 +16,6 @@
 #include "proofs/proofs.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
-#include "vm/actor/builtin/v0/market/actor.hpp"
 #include "vm/actor/builtin/v0/miner/types.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
@@ -36,7 +35,7 @@ namespace fc::api {
   using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
-  using vm::actor::builtin::v0::market::DealState;
+  using vm::actor::builtin::states::market::DealState;
   using vm::actor::builtin::v0::miner::MinerActorState;
   using vm::actor::builtin::v0::storage_power::StoragePowerActorState;
   using InterpreterResult = vm::interpreter::Result;
@@ -52,8 +51,8 @@ namespace fc::api {
   using vm::runtime::TipsetRandomness;
   using vm::state::StateTreeImpl;
   using connection_t = boost::signals2::connection;
-  using MarketActorState = vm::actor::builtin::v0::market::State;
   using vm::actor::builtin::states::AccountActorStatePtr;
+  using vm::actor::builtin::states::MarketActorStatePtr;
   using vm::actor::builtin::states::StateProvider;
 
   // TODO: reuse for block validation
@@ -97,8 +96,11 @@ namespace fc::api {
     StateTreeImpl state_tree;
     boost::optional<InterpreterResult> interpreted;
 
-    auto marketState() {
-      return state_tree.state<MarketActorState>(kStorageMarketAddress);
+    auto marketState() -> outcome::result<MarketActorStatePtr> {
+      const StateProvider provider(state_tree.getStore());
+      OUTCOME_TRY(actor, state_tree.get(kStorageMarketAddress));
+      OUTCOME_TRY(state, provider.getMarketActorState(actor));
+      return std::move(state);
     }
 
     auto minerState(const Address &address) {
@@ -570,8 +572,8 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
           OUTCOME_TRY(id_address, context.state_tree.lookupId(address));
-          OUTCOME_TRY(escrow, state.escrow_table.tryGet(id_address));
-          OUTCOME_TRY(locked, state.locked_table.tryGet(id_address));
+          OUTCOME_TRY(escrow, state->escrow_table.tryGet(id_address));
+          OUTCOME_TRY(locked, state->locked_table.tryGet(id_address));
           if (!escrow) {
             escrow = 0;
           }
@@ -585,9 +587,9 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
           MarketDealMap map;
-          OUTCOME_TRY(state.proposals.visit([&](auto deal_id, auto &deal)
-                                                -> outcome::result<void> {
-            OUTCOME_TRY(deal_state, state.states.get(deal_id));
+          OUTCOME_TRY(state->proposals.visit([&](auto deal_id, auto &deal)
+                                                 -> outcome::result<void> {
+            OUTCOME_TRY(deal_state, state->states.get(deal_id));
             map.emplace(std::to_string(deal_id), StorageDeal{deal, deal_state});
             return outcome::success();
           }));
@@ -602,8 +604,8 @@ namespace fc::api {
         [=](auto deal_id, auto &tipset_key) -> outcome::result<StorageDeal> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
-          OUTCOME_TRY(deal, state.proposals.get(deal_id));
-          OUTCOME_TRY(deal_state, state.states.tryGet(deal_id));
+          OUTCOME_TRY(deal, state->proposals.get(deal_id));
+          OUTCOME_TRY(deal_state, state->states.tryGet(deal_id));
           if (!deal_state) {
             deal_state = DealState{kChainEpochUndefined,
                                    kChainEpochUndefined,

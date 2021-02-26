@@ -5,11 +5,16 @@
 
 #pragma once
 
+#include "primitives/sector/sector.hpp"
+#include "primitives/types.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/market/market_actor_state.hpp"
+#include "vm/actor/builtin/v0/market/types.hpp"
 
 namespace fc::vm::actor::builtin::v0::market {
+  using primitives::ChainEpoch;
+  using primitives::DealId;
   using primitives::DealWeight;
+  using primitives::TokenAmount;
   using primitives::sector::RegisteredSealProof;
   using runtime::Runtime;
 
