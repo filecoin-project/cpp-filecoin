@@ -86,7 +86,7 @@ namespace fc::node {
         std::shared_ptr<libp2p::peer::IdentityManager> id_manager,
         std::shared_ptr<libp2p::event::Bus> bus) {
       config.kademlia_config.protocolId =
-          std::string("/fil/kad/") + config.network_name + "/kad/1.0.0";
+          std::string("/fil/kad/") + *config.network_name + "/kad/1.0.0";
 
       config.kademlia_config.randomWalk.enabled = false;
 
@@ -145,8 +145,8 @@ namespace fc::node {
     if (snapshot_key->has()) {
       snapshot_key->getCbor(snapshot_cids);
     }
-    if (!config.snapshot.empty()) {
-      auto file{*common::mapFile(config.snapshot)};
+    if (config.snapshot) {
+      auto file{*common::mapFile(*config.snapshot)};
       auto reader{storage::car::CarReader::make(file.second).value()};
       if (snapshot_cids.empty()) {
         snapshot_cids = reader.roots;
@@ -180,7 +180,7 @@ namespace fc::node {
         snapshot_key->setCbor(snapshot_cids);
       } else if (snapshot_cids != reader.roots) {
         log()->error("another snapshot already imported");
-        exit(-1);
+        exit(EXIT_FAILURE);
       }
     }
     return snapshot_cids;
@@ -251,7 +251,7 @@ namespace fc::node {
         o.ts_load_ipld, 8 << 10);
 
     auto genesis_cids{
-        storage::car::loadCar(*o.ipld, config.join("genesis.car")).value()};
+        storage::car::loadCar(*o.ipld, config.genesisCar()).value()};
     assert(genesis_cids.size() == 1);
     config.genesis_cid = genesis_cids[0];
 
@@ -283,7 +283,7 @@ namespace fc::node {
 
     OUTCOME_EXCEPT(genesis, o.ts_load->load(genesis_cids));
     OUTCOME_TRY(initNetworkName(*genesis, o.ipld, config));
-    log()->info("Network name: {}", config.network_name);
+    log()->info("Network name: {}", *config.network_name);
 
     auto genesis_timestamp = clock::UnixTime(genesis->blks[0].timestamp);
 
@@ -421,9 +421,9 @@ namespace fc::node {
         bls_provider, secp_provider);
 
     drand::ChainInfo drand_chain_info{
-        .key = config.drand_bls_pubkey,
-        .genesis = std::chrono::seconds(config.drand_genesis),
-        .period = std::chrono::seconds(config.drand_period),
+        .key = *config.drand_bls_pubkey,
+        .genesis = std::chrono::seconds(*config.drand_genesis),
+        .period = std::chrono::seconds(*config.drand_period),
     };
 
     if (config.drand_servers.empty()) {
@@ -444,7 +444,7 @@ namespace fc::node {
         std::chrono::seconds(kEpochDurationSeconds));
 
     o.api = api::makeImpl(o.chain_store,
-                          config.network_name,
+                          *config.network_name,
                           weight_calculator,
                           o.env_context,
                           o.ts_main,

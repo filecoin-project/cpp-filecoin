@@ -8,6 +8,7 @@
 #include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
 
+#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/logger.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 
@@ -77,7 +78,7 @@ namespace fc::node {
       auto pi = host_->getPeerInfo();
 
       log()->info("started at {}/p2p/{}",
-                  pi.addresses[0].getStringAddress(),
+                  nonZeroAddr(pi.addresses)->getStringAddress(),
                   pi.id.toBase58());
 
       started_ = true;
@@ -98,16 +99,15 @@ namespace fc::node {
       const std::vector<libp2p::peer::PeerInfo> &bootstrap_list,
       const libp2p::protocol::gossip::Config &gossip_config,
       std::string network_name) {
-    auto injector = libp2p::injector::makeHostInjector<
-        boost::di::extension::shared_config>(
-        boost::di::bind<boost::asio::io_context>.template to(
-            io_context)[boost::di::override]);
+    auto injector =
+        libp2p::injector::makeHostInjector<boost::di::extension::shared_config>(
+            boost::di::bind<boost::asio::io_context>.template to(
+                io_context)[boost::di::override]);
     auto host = injector.create<std::shared_ptr<libp2p::Host>>();
-    auto gossip =
-        libp2p::protocol::gossip::create(
-            injector.create<std::shared_ptr<libp2p::protocol::Scheduler>>(),
-            host,
-            gossip_config);
+    auto gossip = libp2p::protocol::gossip::create(
+        injector.create<std::shared_ptr<libp2p::protocol::Scheduler>>(),
+        host,
+        gossip_config);
     for (const auto &b : bootstrap_list) {
       gossip->addBootstrapPeer(b.id, b.addresses[0]);
     }
