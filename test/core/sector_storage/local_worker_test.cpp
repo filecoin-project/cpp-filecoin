@@ -10,7 +10,9 @@
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <random>
+
 #include "sector_storage/stores/store_error.hpp"
+#include "testutil/literals.hpp"
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/local_store_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/remote_store_mock.hpp"
@@ -195,8 +197,11 @@ namespace fc::sector_storage {
     ASSERT_TRUE(boost::filesystem::create_directory(
         base_path / toString(SectorFileType::FTCache)));
 
+    std::vector<PieceInfo> pieces{
+        {.size = PaddedPieceSize(1024), .cid = "010001020001"_cid}};
+
     EXPECT_OUTCOME_ERROR(WorkerErrors::kPiecesDoNotMatchSectorSize,
-                         local_worker_->sealPreCommit1(sector, ticket, {}));
+                         local_worker_->sealPreCommit1(sector, ticket, pieces));
 
     ASSERT_TRUE(is_storage_clear);
   }
@@ -367,6 +372,267 @@ namespace fc::sector_storage {
                             file_path.string(), max_size));
     EXPECT_OUTCOME_EQ(file->hasAllocated(0, piece_size.unpadded()), false);
     EXPECT_OUTCOME_EQ(file->hasAllocated(0, ranges[0].size), true);
+  }
+
+  TEST_F(LocalWorkerTest, SealPreCommit1) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    proofs::Ticket randomness{{1, 2, 3}};
+
+    std::vector<PieceInfo> pieces = {PieceInfo{
+                                         .size = PaddedPieceSize(1024),
+                                         .cid = CID(),
+                                     },
+                                     PieceInfo{
+                                         .size = PaddedPieceSize(1024),
+                                         .cid = CID(),
+                                     }};
+
+    EXPECT_CALL(*store_, remove(sector, SectorFileType::FTSealed))
+        .WillOnce(testing::Return(outcome::success()));
+    EXPECT_CALL(*store_, remove(sector, SectorFileType::FTCache))
+        .WillOnce(testing::Return(outcome::success()));
+
+    bool is_storage_clear = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        static_cast<SectorFileType>(SectorFileType::FTCache
+                                                    | SectorFileType::FTSealed),
+                        _,
+                        PathType::kSealing))
+        .WillOnce(testing::Return(
+            outcome::success([&]() { is_storage_clear = true; })));
+
+    auto cache{base_path / toString(SectorFileType::FTCache)};
+
+    ASSERT_TRUE(fs::create_directories(cache));
+
+    SectorPaths paths{
+        .id = sector,
+        .unsealed = "",
+        .sealed =
+            (base_path / primitives::sector_file::sectorName(sector)).string(),
+        .cache = (cache / primitives::sector_file::sectorName(sector)).string(),
+    };
+
+    SectorPaths storages{
+        .id = sector,
+        .unsealed = "",
+        .sealed = "sealed-id",
+        .cache = "cache-id",
+    };
+
+    AcquireSectorResponse resp{
+        .paths = paths,
+        .storages = storages,
+    };
+
+    EXPECT_CALL(
+        *store_,
+        acquireSector(sector,
+                      config_.seal_proof_type,
+                      SectorFileType::FTUnsealed,
+                      static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                  | SectorFileType::FTCache),
+                      PathType::kSealing,
+                      AcquireMode::kCopy))
+        .WillOnce(testing::Return(outcome::success(resp)));
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageDeclareSector(
+            resp.storages.cache, sector, SectorFileType::FTCache, false))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageDeclareSector(
+            resp.storages.sealed, sector, SectorFileType::FTSealed, false))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_CALL(*proof_engine_,
+                sealPreCommitPhase1(seal_proof_type_,
+                                    resp.paths.cache,
+                                    resp.paths.unsealed,
+                                    resp.paths.sealed,
+                                    sector.sector,
+                                    sector.miner,
+                                    randomness,
+                                    gsl::make_span<const PieceInfo>(
+                                        pieces.data(), pieces.size())))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(
+        local_worker_->sealPreCommit1(sector, randomness, pieces));
+    ASSERT_TRUE(fs::exists(paths.sealed));
+    ASSERT_TRUE(is_storage_clear);
+  }
+
+  TEST_F(LocalWorkerTest, SealPreCommit2) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    auto cache{base_path / toString(SectorFileType::FTCache)};
+
+    ASSERT_TRUE(fs::create_directories(cache));
+
+    SectorPaths paths{
+        .id = sector,
+        .unsealed = "",
+        .sealed =
+            (base_path / primitives::sector_file::sectorName(sector)).string(),
+        .cache = (cache / primitives::sector_file::sectorName(sector)).string(),
+    };
+
+    SectorPaths storages{
+        .id = sector,
+        .unsealed = "",
+        .sealed = "sealed-id",
+        .cache = "cache-id",
+    };
+
+    AcquireSectorResponse resp{
+        .paths = paths,
+        .storages = storages,
+    };
+
+    bool is_clear = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTNone,
+                        storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear = true; }));
+
+    EXPECT_CALL(
+        *store_,
+        acquireSector(sector,
+                      config_.seal_proof_type,
+                      static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                  | SectorFileType::FTCache),
+                      SectorFileType::FTNone,
+                      PathType::kSealing,
+                      AcquireMode::kCopy))
+        .WillOnce(testing::Return(outcome::success(resp)));
+
+    proofs::Phase1Output p1o = {0, 1, 2, 3};
+
+    EXPECT_CALL(*proof_engine_,
+                sealPreCommitPhase2(
+                    gsl::make_span<const uint8_t>(p1o.data(), p1o.size()),
+                    paths.cache,
+                    paths.sealed))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(local_worker_->sealPreCommit2(sector, p1o));
+    ASSERT_TRUE(is_clear);
+  }
+
+  TEST_F(LocalWorkerTest, SealCommit1) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+    CID unsealed_cid = "010001020001"_cid;
+    CID sealed_cid = "010001020002"_cid;
+    SectorCids cids{
+        .sealed_cid = sealed_cid,
+        .unsealed_cid = unsealed_cid,
+    };
+    proofs::Ticket randomness{{1, 2, 3}};
+    primitives::sector::InteractiveRandomness seed{{4, 5, 6}};
+    std::vector<PieceInfo> pieces = {PieceInfo{
+                                         .size = PaddedPieceSize(1024),
+                                         .cid = CID(),
+                                     },
+                                     PieceInfo{
+                                         .size = PaddedPieceSize(1024),
+                                         .cid = CID(),
+                                     }};
+
+    auto cache{base_path / toString(SectorFileType::FTCache)};
+
+    ASSERT_TRUE(fs::create_directories(cache));
+
+    SectorPaths paths{
+        .id = sector,
+        .unsealed = "",
+        .sealed =
+            (base_path / primitives::sector_file::sectorName(sector)).string(),
+        .cache = (cache / primitives::sector_file::sectorName(sector)).string(),
+    };
+
+    SectorPaths storages{
+        .id = sector,
+        .unsealed = "",
+        .sealed = "sealed-id",
+        .cache = "cache-id",
+    };
+
+    AcquireSectorResponse resp{
+        .paths = paths,
+        .storages = storages,
+    };
+
+    bool is_clear = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTNone,
+                        storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear = true; }));
+
+    EXPECT_CALL(
+        *store_,
+        acquireSector(sector,
+                      config_.seal_proof_type,
+                      static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                  | SectorFileType::FTCache),
+                      SectorFileType::FTNone,
+                      PathType::kSealing,
+                      AcquireMode::kCopy))
+        .WillOnce(testing::Return(outcome::success(resp)));
+
+    EXPECT_CALL(*proof_engine_,
+                sealCommitPhase1(seal_proof_type_,
+                                 sealed_cid,
+                                 unsealed_cid,
+                                 paths.cache,
+                                 paths.sealed,
+                                 sector.sector,
+                                 sector.miner,
+                                 randomness,
+                                 seed,
+                                 gsl::make_span<const PieceInfo>(
+                                     pieces.data(), pieces.size())))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(
+        local_worker_->sealCommit1(sector, randomness, seed, pieces, cids));
+    ASSERT_TRUE(is_clear);
+  }
+
+  TEST_F(LocalWorkerTest, SealCommit2) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    Commit1Output c1o{{1, 2, 3}};
+
+    EXPECT_CALL(
+        *proof_engine_,
+        sealCommitPhase2(gsl::make_span<const uint8_t>(c1o.data(), c1o.size()),
+                         sector.sector,
+                         sector.miner))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(local_worker_->sealCommit2(sector, c1o));
   }
 
   /**
