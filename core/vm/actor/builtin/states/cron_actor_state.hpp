@@ -6,24 +6,17 @@
 #pragma once
 
 #include "primitives/address/address.hpp"
+#include "vm/actor/builtin/types/cron/cron_table_entry.hpp"
 #include "vm/actor/builtin/states/state.hpp"
 
 namespace fc::vm::actor::builtin::states {
-  using primitives::address::Address;
-
-  namespace cron {
-    struct CronTableEntry {
-      Address to_addr{};
-      MethodNumber method_num{};
-    };
-    CBOR_TUPLE(CronTableEntry, to_addr, method_num)
-  }  // namespace cron
+  using types::cron::CronTableEntry;
 
   struct CronActorState : State {
     explicit CronActorState(ActorVersion version)
         : State(ActorType::kCron, version) {}
 
-    std::vector<cron::CronTableEntry> entries;
+    std::vector<CronTableEntry> entries;
   };
 
   using CronActorStatePtr = std::shared_ptr<CronActorState>;

@@ -9,9 +9,10 @@
 #include "vm/actor/builtin/states/cron_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::cron {
+  using types::cron::CronTableEntry;
 
   struct Construct : ActorMethodBase<1> {
-    using Params = std::vector<states::cron::CronTableEntry>;
+    using Params = std::vector<CronTableEntry>;
     ACTOR_METHOD_DECL();
   };
 
