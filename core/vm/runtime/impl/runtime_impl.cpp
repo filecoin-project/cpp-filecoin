@@ -374,11 +374,15 @@ namespace fc::vm::runtime {
           return false;
         }
         auto &env{execution_->env};
+
+        std::shared_lock ts_lock{*env->env_context.ts_branches_mutex};
         OUTCOME_TRY(it, find(env->ts_branch, getCurrentEpoch()));
         OUTCOME_TRYA(it, getLookbackTipSetForRound(it, block.height));
         OUTCOME_TRY(
             cached,
             env->env_context.interpreter_cache->get(it.second->second.key));
+        ts_lock.unlock();
+
         const StateTreeImpl state_tree{env->ipld, cached.state_root};
         OUTCOME_TRY(actor, state_tree.get(block.miner));
         Address worker;

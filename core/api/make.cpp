@@ -8,6 +8,7 @@
 #include <boost/algorithm/string.hpp>
 #include <libp2p/peer/peer_id.hpp>
 
+#include "api/version.hpp"
 #include "blockchain/production/block_producer.hpp"
 #include "const.hpp"
 #include "drand/beaconizer.hpp"
@@ -46,7 +47,6 @@ namespace fc::api {
   using vm::VMExitCode;
   using vm::actor::InvokerImpl;
   using vm::runtime::Env;
-  using vm::runtime::TipsetRandomness;
   using vm::state::StateTreeImpl;
   using connection_t = boost::signals2::connection;
   using vm::actor::builtin::states::AccountActorStatePtr;
@@ -280,21 +280,24 @@ namespace fc::api {
     api->ChainGetRandomnessFromBeacon = {
         [=](auto &tipset_key, auto tag, auto epoch, auto &entropy)
             -> outcome::result<Randomness> {
+          std::shared_lock ts_lock{*env_context.ts_branches_mutex};
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
-          return TipsetRandomness{ts_load}.getRandomnessFromBeacon(
+          return env_context.randomness->getRandomnessFromBeacon(
               ts_branch, tag, epoch, entropy);
         }};
     api->ChainGetRandomnessFromTickets = {
         [=](auto &tipset_key, auto tag, auto epoch, auto &entropy)
             -> outcome::result<Randomness> {
+          std::shared_lock ts_lock{*env_context.ts_branches_mutex};
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
-          return TipsetRandomness{ts_load}.getRandomnessFromTickets(
+          return env_context.randomness->getRandomnessFromTickets(
               ts_branch, tag, epoch, entropy);
         }};
     api->ChainGetTipSet = {
         [=](auto &tipset_key) { return ts_load->load(tipset_key); }};
     api->ChainGetTipSetByHeight = {
         [=](auto height, auto &tipset_key) -> outcome::result<TipsetCPtr> {
+          std::shared_lock ts_lock{*env_context.ts_branches_mutex};
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
           OUTCOME_TRY(it, find(ts_branch, height));
           return ts_load->loadw(it.second->second);
@@ -366,6 +369,8 @@ namespace fc::api {
         [=](auto &&miner, auto epoch, auto &&tipset_key, auto &&cb) {
           OUTCOME_CB(auto context, tipsetContext(tipset_key, true));
           MiningBaseInfo info;
+
+          std::shared_lock ts_lock{*env_context.ts_branches_mutex};
           OUTCOME_CB(auto ts_branch,
                      TsBranch::make(ts_load, tipset_key, ts_main));
           OUTCOME_CB(auto it, find(ts_branch, context.tipset->height()));
@@ -373,6 +378,8 @@ namespace fc::api {
           OUTCOME_CB(auto it2, getLookbackTipSetForRound(it, epoch));
           OUTCOME_CB(auto cached,
                      interpreter_cache->get(it2.second->second.key));
+          ts_lock.unlock();
+
           auto prev{info.prev_beacon.round};
           beaconEntriesForBlock(
               *drand_schedule,
@@ -459,9 +466,11 @@ namespace fc::api {
     api->StateCall = {[=](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
-      OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
 
-      auto randomness = std::make_shared<TipsetRandomness>(ts_load);
+      std::shared_lock ts_lock{*env_context.ts_branches_mutex};
+      OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+      ts_lock.unlock();
+
       auto env = std::make_shared<Env>(env_context, ts_branch, context.tipset);
       InvocResult result;
       result.message = message;
@@ -747,7 +756,9 @@ namespace fc::api {
       OUTCOME_TRY(pubsub->publish(block));
       return outcome::success();
     }};
-    api->Version = {[]() { return VersionResult{"fuhon", 0x000C00, 5}; }};
+    api->Version = {[]() {
+      return VersionResult{"fuhon", makeApiVersion(1, 0, 0), 5};
+    }};
     api->WalletBalance = {[=](auto &address) -> outcome::result<TokenAmount> {
       OUTCOME_TRY(context, tipsetContext({}));
       OUTCOME_TRY(actor, context.state_tree.get(address));

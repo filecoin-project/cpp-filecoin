@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <set>
+#include <shared_mutex>
 
 namespace boost {
   namespace asio {
@@ -179,4 +180,5 @@ namespace fc {
 
   using Ipld = storage::ipfs::IpfsDatastore;
   using IpldPtr = std::shared_ptr<Ipld>;
+  using SharedMutexPtr = std::shared_ptr<std::shared_mutex>;
 }  // namespace fc
