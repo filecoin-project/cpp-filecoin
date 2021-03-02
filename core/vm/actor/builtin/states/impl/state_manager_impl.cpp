@@ -124,6 +124,23 @@ namespace fc::vm::actor::builtin::states {
     return provider.getPaymentChannelActorState(actor);
   }
 
+  // Power Actor State
+  //============================================================================
+
+  PowerActorStatePtr StateManagerImpl::createPowerActorState(
+      ActorVersion version) const {
+    return createStatePtr<PowerActorState,
+                          v0::storage_power::PowerActorState,
+                          v2::storage_power::PowerActorState,
+                          v3::storage_power::PowerActorState>(version);
+  }
+
+  outcome::result<PowerActorStatePtr> StateManagerImpl::getPowerActorState()
+      const {
+    OUTCOME_TRY(actor, state_tree->get(receiver));
+    return provider.getPowerActorState(actor);
+  }
+
   // Reward Actor State
   //============================================================================
 
@@ -204,6 +221,10 @@ namespace fc::vm::actor::builtin::states {
                                   v2::market::MarketActorState>(
             state);  // TODO v3
 
+      case ActorType::kMiner:
+        // TODO
+        return outcome::success();
+
       case ActorType::kMultisig:
         return commitVersionState<v0::multisig::MultisigActorState,
                                   v2::multisig::MultisigActorState,
@@ -214,6 +235,11 @@ namespace fc::vm::actor::builtin::states {
             v0::payment_channel::PaymentChannelActorState,
             v2::payment_channel::PaymentChannelActorState,
             v3::payment_channel::PaymentChannelActorState>(state);
+
+      case ActorType::kPower:
+        return commitVersionState<v0::storage_power::PowerActorState,
+                                  v2::storage_power::PowerActorState,
+                                  v3::storage_power::PowerActorState>(state);
 
       case ActorType::kReward:
         return commitVersionState<v0::reward::RewardActorState,
@@ -231,8 +257,6 @@ namespace fc::vm::actor::builtin::states {
             v0::verified_registry::VerifiedRegistryActorState,
             v2::verified_registry::VerifiedRegistryActorState,
             v3::verified_registry::VerifiedRegistryActorState>(state);
-      default:
-        return outcome::success();
     }
   }
 

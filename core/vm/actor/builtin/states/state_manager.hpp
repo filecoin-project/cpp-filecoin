@@ -47,6 +47,10 @@ namespace fc::vm::actor::builtin::states {
     virtual outcome::result<PaymentChannelActorStatePtr>
     getPaymentChannelActorState() const = 0;
 
+    virtual PowerActorStatePtr createPowerActorState(
+        ActorVersion version) const = 0;
+    virtual outcome::result<PowerActorStatePtr> getPowerActorState() const = 0;
+
     virtual RewardActorStatePtr createRewardActorState(
         ActorVersion version) const = 0;
     virtual outcome::result<RewardActorStatePtr> getRewardActorState()

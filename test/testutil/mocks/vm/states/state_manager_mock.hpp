@@ -41,6 +41,11 @@ namespace fc::vm::actor::builtin::states {
     MOCK_CONST_METHOD0(getPaymentChannelActorState,
                        outcome::result<PaymentChannelActorStatePtr>());
 
+    MOCK_CONST_METHOD1(createPowerActorState,
+                       PowerActorStatePtr(ActorVersion version));
+    MOCK_CONST_METHOD0(getPowerActorState,
+                       outcome::result<PowerActorStatePtr>());
+
     MOCK_CONST_METHOD1(createRewardActorState,
                        RewardActorStatePtr(ActorVersion version));
     MOCK_CONST_METHOD0(getRewardActorState,

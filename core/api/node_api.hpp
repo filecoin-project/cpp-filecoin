@@ -48,6 +48,7 @@ namespace fc::api {
   using primitives::tipset::TipsetKey;
   using storage::mpool::MpoolUpdate;
   using vm::actor::Actor;
+  using vm::actor::builtin::states::storage_power::Claim;
   using vm::actor::builtin::v0::miner::DeadlineInfo;
   using vm::actor::builtin::v0::miner::Deadlines;
   using vm::actor::builtin::v0::miner::MinerInfo;
@@ -56,7 +57,6 @@ namespace fc::api {
   using vm::actor::builtin::v0::miner::SectorPreCommitOnChainInfo;
   using vm::actor::builtin::v0::payment_channel::LaneId;
   using vm::actor::builtin::v0::payment_channel::SignedVoucher;
-  using vm::actor::builtin::v0::storage_power::Claim;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::runtime::MessageReceipt;
@@ -140,7 +140,8 @@ namespace fc::api {
   };
 
   struct MinerPower {
-    Claim miner, total;
+    Claim miner;
+    Claim total;
   };
 
   struct MsgWait {

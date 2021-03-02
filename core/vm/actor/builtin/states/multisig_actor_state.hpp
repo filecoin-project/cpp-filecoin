@@ -16,6 +16,7 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/states/state.hpp"
 
+// Forward declaration
 namespace fc::vm::runtime {
   class Runtime;
 }

@@ -4,133 +4,83 @@
  */
 
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
-#include "common/math/math.hpp"
-#include "const.hpp"
+
 #include "vm/actor/builtin/v0/storage_power/policy.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v2::storage_power {
-  using adt::Multimap;
-  using common::math::kPrecision128;
+  using runtime::Runtime;
 
-  State State::empty(const IpldPtr &ipld) {
-    State state{
-        .total_raw_power = 0,
-        .total_raw_commited = {},
-        .total_qa_power = 0,
-        .total_qa_commited = {},
-        .total_pledge = 0,
-        .this_epoch_raw_power = {},
-        .this_epoch_qa_power = {},
-        .this_epoch_pledge = {},
-        .this_epoch_qa_power_smoothed =
-            {.position = v0::storage_power::kInitialQAPowerEstimatePosition
-                         << kPrecision128,
-             .velocity = v0::storage_power::kInitialQAPowerEstimateVelocity
-                         << kPrecision128},
-        .miner_count = 0,
-        .num_miners_meeting_min_power = {},
-        .cron_event_queue = {},
-        .first_cron_epoch = {},
-        .claims = {},
-        .proof_validation_batch = {},
-    };
-    ipld->load(state);
-    return state;
-  }
+  outcome::result<void> PowerActorState::setClaim(
+      const Runtime &runtime,
+      const Address &address,
+      const StoragePower &raw,
+      const StoragePower &qa,
+      RegisteredSealProof seal_proof) {
+    VM_ASSERT(raw >= 0);
+    VM_ASSERT(qa >= 0);
 
-  outcome::result<void> State::addToClaim(const Runtime &runtime,
-                                          const Address &miner,
-                                          const StoragePower &raw,
-                                          const StoragePower &qa) {
-    OUTCOME_TRY(claim_found, claims.tryGet(miner));
-    if (!claim_found.has_value()) {
-      return VMExitCode::kErrNotFound;
-    }
-    auto claim{claim_found.value()};
+    states::storage_power::ClaimV2 claim;
+    claim.seal_proof_type = seal_proof;
+    claim.raw_power = raw;
+    claim.qa_power = qa;
 
-    // TotalBytes always update directly
-    total_raw_commited += raw;
-    total_qa_commited += qa;
-
-    const auto old_claim{claim};
-    claim.raw_power += raw;
-    claim.qa_power += qa;
-
-    const auto prev_below{old_claim.raw_power
-                          < v0::storage_power::kConsensusMinerMinPower};
-    const auto still_below{claim.raw_power
-                           < v0::storage_power::kConsensusMinerMinPower};
-
-    if (prev_below && !still_below) {
-      ++num_miners_meeting_min_power;
-      total_raw_power += claim.raw_power;
-      total_qa_power += claim.qa_power;
-    } else if (!prev_below && still_below) {
-      --num_miners_meeting_min_power;
-      total_raw_power -= old_claim.raw_power;
-      total_qa_power -= old_claim.qa_power;
-    } else if (!prev_below && !still_below) {
-      total_raw_power += raw;
-      total_qa_power += qa;
-    }
-    VM_ASSERT(claim.raw_power >= 0);
-    VM_ASSERT(claim.qa_power >= 0);
-    VM_ASSERT(num_miners_meeting_min_power >= 0);
-
-    return setClaim(runtime, miner, claim);
-  }
-
-  outcome::result<void> State::setClaim(const Runtime &runtime,
-                                        const Address &address,
-                                        const Claim &claim) {
-    VM_ASSERT(claim.raw_power >= 0);
-    VM_ASSERT(claim.qa_power >= 0);
-
-    OUTCOME_TRY(claims.set(address, claim));
+    OUTCOME_TRY(claims2.set(address, claim));
     return outcome::success();
   }
 
-  outcome::result<void> State::deleteClaim(const Runtime &runtime,
-                                           const Address &miner) {
-    OUTCOME_TRY(claim_found, claims.tryGet(miner));
+  outcome::result<void> PowerActorState::deleteClaim(const Runtime &runtime,
+                                                     const Address &address) {
+    OUTCOME_TRY(claim_found, tryGetClaim(address));
     if (!claim_found.has_value()) {
       return outcome::success();
     }
     // subtract from stats as if we were simply removing power
     OUTCOME_TRY(addToClaim(runtime,
-                           miner,
+                           address,
                            -claim_found.value().raw_power,
                            -claim_found.value().qa_power));
     // delete claim from state to invalidate miner
-    OUTCOME_TRY(claims.remove(miner));
+    OUTCOME_TRY(claims2.remove(address));
     return outcome::success();
   }
 
-  outcome::result<void> State::addPledgeTotal(const Runtime &runtime,
-                                              const TokenAmount &amount) {
-    total_pledge += amount;
-    VM_ASSERT(total_pledge >= 0);
-    return outcome::success();
+  outcome::result<bool> PowerActorState::hasClaim(
+      const Address &address) const {
+    return claims2.has(address);
   }
 
-  outcome::result<void> State::appendCronEvent(const ChainEpoch &epoch,
-                                               const CronEvent &event) {
-    if (epoch < first_cron_epoch) {
-      first_cron_epoch = epoch;
+  outcome::result<boost::optional<Claim>> PowerActorState::tryGetClaim(
+      const Address &address) const {
+    OUTCOME_TRY(claim, claims2.tryGet(address));
+    if (claim) {
+      return *claim;
     }
-    return Multimap::append(cron_event_queue, epoch, event);
+    return boost::none;
   }
 
-  void State::updateSmoothedEstimate(int64_t delta) {
-    this_epoch_qa_power_smoothed =
-        nextEstimate(this_epoch_qa_power_smoothed, this_epoch_qa_power, delta);
+  outcome::result<Claim> PowerActorState::getClaim(
+      const Address &address) const {
+    OUTCOME_TRY(claim, claims2.get(address));
+    return std::move(claim);
   }
 
-  std::tuple<StoragePower, StoragePower> State::getCurrentTotalPower() const {
-    if (num_miners_meeting_min_power < kConsensusMinerMinMiners) {
-      return std::make_tuple(total_raw_commited, total_qa_commited);
-    }
-    return std::make_tuple(total_raw_power, total_qa_power);
+  outcome::result<std::vector<adt::AddressKeyer::Key>>
+  PowerActorState::getClaimsKeys() const {
+    return claims2.keys();
+  }
+
+  outcome::result<void> PowerActorState::loadClaimsRoot() {
+    return claims2.hamt.loadRoot();
+  }
+
+  std::tuple<bool, bool> PowerActorState::claimsAreBelow(
+      const Claim &old_claim, const Claim &new_claim) const {
+    const auto prev_below{old_claim.raw_power
+                          < v0::storage_power::kConsensusMinerMinPower};
+    const auto still_below{new_claim.raw_power
+                           < v0::storage_power::kConsensusMinerMinPower};
+
+    return std::make_tuple(prev_below, still_below);
   }
 }  // namespace fc::vm::actor::builtin::v2::storage_power

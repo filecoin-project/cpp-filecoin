@@ -93,6 +93,18 @@ namespace fc::vm::actor::builtin::states {
         actor);
   }
 
+  outcome::result<PowerActorStatePtr> StateProvider::getPowerActorState(
+      const Actor &actor) const {
+    if (!CommonAddressMatcher::isStoragePowerActor(actor.code)) {
+      return VMExitCode::kSysErrIllegalActor;
+    }
+
+    return getCommonStatePtr<PowerActorState,
+                             v0::storage_power::PowerActorState,
+                             v2::storage_power::PowerActorState,
+                             v3::storage_power::PowerActorState>(actor);
+  }
+
   outcome::result<SystemActorStatePtr> StateProvider::getSystemActorState(
       const Actor &actor) const {
     if (!CommonAddressMatcher::isSystemActor(actor.code)) {

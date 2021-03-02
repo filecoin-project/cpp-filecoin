@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_POLICY_HPP
-#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_POLICY_HPP
+#pragma once
 
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 
@@ -45,5 +44,3 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     return bigdiv(qa * per_epoch_reward, total_qa);
   }
 }  // namespace fc::vm::actor::builtin::v0::storage_power
-
-#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_POLICY_HPP

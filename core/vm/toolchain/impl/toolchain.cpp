@@ -27,6 +27,10 @@
 #include "vm/actor/builtin/v2/payment_channel/payment_channel_actor_utils.hpp"
 #include "vm/actor/builtin/v3/payment_channel/payment_channel_actor_utils.hpp"
 
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor_utils.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_utils.hpp"
+#include "vm/actor/builtin/v3/storage_power/storage_power_actor_utils.hpp"
+
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_utils.hpp"
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor_utils.hpp"
 #include "vm/actor/builtin/v3/verified_registry/verified_registry_actor_utils.hpp"
@@ -162,6 +166,18 @@ namespace fc::vm::toolchain {
       case ActorVersion::kVersion3:
         return std::make_shared<v3::payment_channel::PaymentChannelUtils>(
             runtime);
+    }
+  }
+
+  PowerUtilsPtr Toolchain::createPowerUtils(Runtime &runtime) {
+    const auto version = runtime.getActorVersion();
+    switch (version) {
+      case ActorVersion::kVersion0:
+        return std::make_shared<v0::storage_power::PowerUtils>(runtime);
+      case ActorVersion::kVersion2:
+        return std::make_shared<v2::storage_power::PowerUtils>(runtime);
+      case ActorVersion::kVersion3:
+        return std::make_shared<v3::storage_power::PowerUtils>(runtime);
     }
   }
 

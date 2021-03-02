@@ -17,7 +17,6 @@
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/v0/miner/types.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
@@ -37,7 +36,6 @@ namespace fc::api {
   using vm::actor::kStoragePowerAddress;
   using vm::actor::builtin::states::market::DealState;
   using vm::actor::builtin::v0::miner::MinerActorState;
-  using vm::actor::builtin::v0::storage_power::StoragePowerActorState;
   using InterpreterResult = vm::interpreter::Result;
   using crypto::randomness::DomainSeparationTag;
   using crypto::signature::BlsSignature;
@@ -52,7 +50,9 @@ namespace fc::api {
   using vm::state::StateTreeImpl;
   using connection_t = boost::signals2::connection;
   using vm::actor::builtin::states::AccountActorStatePtr;
+  using vm::actor::builtin::states::InitActorStatePtr;
   using vm::actor::builtin::states::MarketActorStatePtr;
+  using vm::actor::builtin::states::PowerActorStatePtr;
   using vm::actor::builtin::states::StateProvider;
 
   // TODO: reuse for block validation
@@ -107,14 +107,17 @@ namespace fc::api {
       return state_tree.state<MinerActorState>(address);
     }
 
-    auto powerState() {
-      return state_tree.state<StoragePowerActorState>(kStoragePowerAddress);
+    auto powerState() -> outcome::result<PowerActorStatePtr> {
+      const StateProvider provider(state_tree.getStore());
+      OUTCOME_TRY(actor, state_tree.get(kStoragePowerAddress));
+      OUTCOME_TRY(state, provider.getPowerActorState(actor));
+      return std::move(state);
     }
 
-    auto initState() -> outcome::result<AccountActorStatePtr> {
+    auto initState() -> outcome::result<InitActorStatePtr> {
       const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(kInitAddress));
-      OUTCOME_TRY(state, provider.getAccountActorState(actor));
+      OUTCOME_TRY(state, provider.getInitActorState(actor));
       return std::move(state);
     }
 
@@ -393,14 +396,14 @@ namespace fc::api {
                   return cb(boost::none);
                 }
                 OUTCOME_CB(auto power_state, lookback.powerState());
-                OUTCOME_CB(auto claim, power_state.claims.get(miner));
+                OUTCOME_CB(auto claim, power_state->getClaim(miner));
                 info.miner_power = claim.qa_power;
-                info.network_power = power_state.total_qa_power;
+                info.network_power = power_state->total_qa_power;
                 OUTCOME_CB(auto minfo, state.info.get());
                 OUTCOME_CB(info.worker, context.accountKey(minfo.worker));
                 info.sector_size = minfo.sector_size;
                 info.has_min_power = minerHasMinPower(
-                    claim.qa_power, power_state.num_miners_meeting_min_power);
+                    claim.qa_power, power_state->num_miners_meeting_min_power);
                 cb(std::move(info));
               });
         });
@@ -557,7 +560,7 @@ namespace fc::api {
         [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(power_state, context.powerState());
-          return power_state.claims.keys();
+          return power_state->getClaimsKeys();
         }};
     api->StateListActors = {
         [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
@@ -665,11 +668,12 @@ namespace fc::api {
         [=](auto &address, auto &tipset_key) -> outcome::result<MinerPower> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(power_state, context.powerState());
-          OUTCOME_TRY(miner_power, power_state.claims.get(address));
-          return MinerPower{
-              miner_power,
-              {power_state.total_raw_power, power_state.total_qa_power},
-          };
+          OUTCOME_TRY(miner_power, power_state->getClaim(address));
+          Claim total;
+          total.raw_power = power_state->total_raw_power;
+          total.qa_power = power_state->total_qa_power;
+
+          return MinerPower{miner_power, total};
         }};
     api->StateMinerProvingDeadline = {
         [=](auto &address, auto &tipset_key) -> outcome::result<DeadlineInfo> {

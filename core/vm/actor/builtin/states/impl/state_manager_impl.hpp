@@ -46,6 +46,10 @@ namespace fc::vm::actor::builtin::states {
     outcome::result<PaymentChannelActorStatePtr> getPaymentChannelActorState()
         const override;
 
+    PowerActorStatePtr createPowerActorState(
+        ActorVersion version) const override;
+    outcome::result<PowerActorStatePtr> getPowerActorState() const override;
+
     RewardActorStatePtr createRewardActorState(
         ActorVersion version) const override;
     outcome::result<RewardActorStatePtr> getRewardActorState() const override;

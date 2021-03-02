@@ -10,7 +10,7 @@
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
-namespace fc::vm::actor::builtin::utils::verified_registry {
+namespace fc::vm::actor::builtin::utils {
   using primitives::StoragePower;
   using primitives::address::Address;
   using runtime::Runtime;
@@ -40,4 +40,4 @@ namespace fc::vm::actor::builtin::utils::verified_registry {
 
   using VerifRegUtilsPtr = std::shared_ptr<VerifRegUtils>;
 
-}  // namespace fc::vm::actor::builtin::utils::verified_registry
+}  // namespace fc::vm::actor::builtin::utils

@@ -84,9 +84,10 @@ TEST(GenesisTest, DISABLED_Decode) {
     } else if (actor.code == fc::vm::actor::builtin::v0::kStorageMarketCodeId) {
       EXPECT_OUTCOME_TRUE(
           state,
-          ipld->getCbor<fc::vm::actor::builtin::v0::storage_power::State>(
+          ipld->getCbor<
+              fc::vm::actor::builtin::v0::storage_power::PowerActorState>(
               actor.head));
-      EXPECT_OUTCOME_TRUE_1(state.claims.visit(nop));
+      EXPECT_OUTCOME_TRUE_1(state.claims0.visit(nop));
       EXPECT_OUTCOME_TRUE_1(state.cron_event_queue.visit(
           [&](auto, auto events) { return events.visit(nop); }));
     }

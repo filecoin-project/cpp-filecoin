@@ -11,11 +11,9 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   using primitives::address::Address;
   using runtime::Runtime;
 
-  class PaymentChannelUtils
-      : public utils::payment_channel::PaymentChannelUtils {
+  class PaymentChannelUtils : public utils::PaymentChannelUtils {
    public:
-    explicit PaymentChannelUtils(Runtime &r)
-        : utils::payment_channel::PaymentChannelUtils(r) {}
+    explicit PaymentChannelUtils(Runtime &r) : utils::PaymentChannelUtils(r) {}
 
     outcome::result<Address> resolveAccount(
         const Address &address, const CodeId &accountCodeCid) const override;

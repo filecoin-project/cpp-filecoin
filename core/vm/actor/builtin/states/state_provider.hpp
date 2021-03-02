@@ -16,6 +16,7 @@
 #include "vm/actor/builtin/states/market_actor_state.hpp"
 #include "vm/actor/builtin/states/multisig_actor_state.hpp"
 #include "vm/actor/builtin/states/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/states/power_actor_state.hpp"
 #include "vm/actor/builtin/states/reward_actor_state.hpp"
 #include "vm/actor/builtin/states/system_actor_state.hpp"
 #include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
@@ -43,6 +44,9 @@ namespace fc::vm::actor::builtin::states {
         const Actor &actor) const;
 
     outcome::result<PaymentChannelActorStatePtr> getPaymentChannelActorState(
+        const Actor &actor) const;
+
+    outcome::result<PowerActorStatePtr> getPowerActorState(
         const Actor &actor) const;
 
     outcome::result<SystemActorStatePtr> getSystemActorState(

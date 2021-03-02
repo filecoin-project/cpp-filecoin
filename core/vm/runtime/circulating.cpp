@@ -8,13 +8,7 @@
 #include "const.hpp"
 #include "primitives/block/block.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/policy.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
-#include "vm/actor/builtin/v3/storage_power/storage_power_actor_state.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/version.hpp"
 
@@ -24,32 +18,18 @@ namespace fc::vm {
   outcome::result<TokenAmount> getLocked(StateTreePtr state_tree) {
     const auto ipld{state_tree->getStore()};
     TokenAmount locked;
-    OUTCOME_TRY(market_actor, state_tree->get(actor::kStorageMarketAddress));
     StateProvider provider(ipld);
+
+    OUTCOME_TRY(market_actor, state_tree->get(actor::kStorageMarketAddress));
     OUTCOME_TRY(market_state, provider.getMarketActorState(market_actor));
     locked += market_state->total_client_locked_collateral
               + market_state->total_provider_locked_collateral
               + market_state->total_client_storage_fee;
 
-    OUTCOME_TRY(power, state_tree->get(actor::kStoragePowerAddress));
-    if (power.code == actor::builtin::v0::kStoragePowerCodeId) {
-      OUTCOME_TRY(
-          state,
-          ipld->getCbor<actor::builtin::v0::storage_power::State>(power.head));
-      locked += state.total_pledge;
-    } else if (power.code == actor::builtin::v2::kStoragePowerCodeId) {
-      OUTCOME_TRY(
-          state,
-          ipld->getCbor<actor::builtin::v2::storage_power::State>(power.head));
-      locked += state.total_pledge;
-    } else if (power.code == actor::builtin::v3::kStoragePowerCodeId) {
-      OUTCOME_TRY(
-          state,
-          ipld->getCbor<actor::builtin::v3::storage_power::State>(power.head));
-      locked += state.total_pledge;
-    } else {
-      return std::errc::owner_dead;
-    }
+    OUTCOME_TRY(power_actor, state_tree->get(actor::kStoragePowerAddress));
+    OUTCOME_TRY(power_state, provider.getPowerActorState(power_actor));
+    locked += power_state->total_pledge;
+
     return locked;
   }
 

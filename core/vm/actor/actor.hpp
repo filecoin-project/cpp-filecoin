@@ -33,12 +33,12 @@ namespace fc::vm::actor {
   enum class ActorType {
     kAccount,
     kCron,
-    kPower,
     kMarket,
     kMiner,
     kMultisig,
     kInit,
     kPaymentChannel,
+    kPower,
     kReward,
     kSystem,
     kVerifiedRegistry,
