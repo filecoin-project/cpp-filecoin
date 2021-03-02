@@ -13,12 +13,14 @@
 #include "peers.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/buffer_map.hpp"
+#include "vm/interpreter/interpreter.hpp"
 
 namespace fc::sync {
   using blocksync::BlocksyncRequest;
   using primitives::tipset::chain::KvPtr;
   using vm::interpreter::Interpreter;
   using vm::interpreter::InterpreterCache;
+  using InterpreterResult = vm::interpreter::Result;
 
   /// Active object which downloads and indexes tipsets. Keeps track of peers
   /// which are also nodes (to make requests to them)
@@ -46,6 +48,14 @@ namespace fc::sync {
 
     void onTs(const boost::optional<PeerId> &peer, TipsetCPtr ts);
 
+    void attach(TsBranchPtr branch);
+
+    void updateTarget(TsBranchPtr last);
+
+    void onInterpret(TipsetCPtr ts, const InterpreterResult &result);
+
+    bool checkParent(TipsetCPtr ts);
+
     void interpretDequeue();
 
     void fetch(const PeerId &peer, const TipsetKey &tsk);
@@ -65,6 +75,10 @@ namespace fc::sync {
     TsBranchPtr ts_main_;
     TsLoadPtr ts_load_;
     IpldPtr ipld_;
+    TsBranches attached_;
+    std::pair<TsBranchPtr, BigInt> attached_heaviest_;
+    TipsetCPtr interpret_ts_;
+    bool interpreting_{false};
     IoThread thread;
     IoThread interpret_thread;
 

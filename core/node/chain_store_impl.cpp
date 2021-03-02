@@ -64,8 +64,8 @@ namespace fc::sync {
   ChainStoreImpl::subscribeHeadChanges(
       const std::function<HeadChangeSignature> &subscriber) {
     assert(head_);
-    subscriber(
-        events::HeadChange{primitives::tipset::HeadChangeType::CURRENT, head_});
+    subscriber(primitives::tipset::HeadChange{
+        primitives::tipset::HeadChangeType::CURRENT, head_});
     return head_change_signal_.connect(subscriber);
   }
 
@@ -82,7 +82,6 @@ namespace fc::sync {
       if (auto _ts{ts_load_->loadw(it->second)}) {
         event.value = _ts.value();
         head_change_signal_(event);
-        events_->signalHeadChange(event);
       } else {
         log()->error("update ts_load {:#}", _ts.error());
       }

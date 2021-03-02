@@ -14,9 +14,6 @@
 #include <libp2p/protocol/common/scheduler.hpp>
 
 namespace fc::sync::events {
-
-  using primitives::tipset::HeadChange;
-
   struct PeerConnected {
     PeerId peer_id;
     std::set<std::string> protocols;
@@ -98,7 +95,6 @@ namespace fc::sync::events {
     DEFINE_EVENT(BlockFromPubSub);
     DEFINE_EVENT(MessageFromPubSub);
     DEFINE_EVENT(PossibleHead);
-    DEFINE_EVENT(HeadChange);
     DEFINE_EVENT(FatalError);
 
 #undef DEFINE_EVENT
