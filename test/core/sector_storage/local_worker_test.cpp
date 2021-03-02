@@ -1358,6 +1358,215 @@ namespace fc::sector_storage {
     ASSERT_EQ(data, some_bytes);
   }
 
+  TEST_F(LocalWorkerTest, AddPieceOutOfBound) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    std::vector<UnpaddedPieceSize> pieces = {UnpaddedPieceSize(1016),
+                                             UnpaddedPieceSize(1016)};
+
+    EXPECT_OUTCOME_ERROR(
+        WorkerErrors::kOutOfBound,
+        local_worker_->addPiece(
+            sector, pieces, UnpaddedPieceSize(127), PieceData("/dev/null")));
+  }
+
+  TEST_F(LocalWorkerTest, AddPieceWithoutPiece) {
+    EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
+    PaddedPieceSize max_size(size);
+
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    auto result_cid =
+        "baga6ea4seaqbart3og52jb2gmglvn5av45lm3i5gewpvf7clp5sb7jryk5prqcy";
+    std::string data =
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed "
+        "do "
+        "eiusmod tempor incididunt ut labore et dolore magna aliqua. "
+        "Vi ";
+
+    std::string input_path = (base_path / "temp").string();
+
+    {
+      std::ofstream out(input_path);
+      ASSERT_TRUE(out.good());
+      out.write(data.data(), data.size());
+    }
+
+    auto file_path = base_path / primitives::sector_file::sectorName(sector);
+    UnpaddedPieceSize piece_size(data.size());
+    ASSERT_TRUE(piece_size.validate());
+
+    SectorPaths unsealed_paths{
+        .id = sector,
+        .unsealed = file_path.string(),
+        .sealed = "",
+        .cache = "",
+    };
+
+    SectorPaths unsealed_storages{
+        .id = sector,
+        .unsealed = "unsealed-storage-id",
+        .sealed = "",
+        .cache = "",
+    };
+
+    AcquireSectorResponse unsealed_resp{
+        .paths = unsealed_paths,
+        .storages = unsealed_storages,
+    };
+
+    EXPECT_CALL(*sector_index_,
+                storageDeclareSector(unsealed_storages.unsealed,
+                                     sector,
+                                     SectorFileType::FTUnsealed,
+                                     false))
+        .WillOnce(testing::Return(outcome::success()));
+
+    bool is_clear_unsealed = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTUnsealed,
+                        unsealed_storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear_unsealed = true; }));
+
+    EXPECT_CALL(*store_,
+                acquireSector(sector,
+                              seal_proof_type_,
+                              SectorFileType::FTNone,
+                              SectorFileType::FTUnsealed,
+
+                              PathType::kSealing,
+                              AcquireMode::kCopy))
+        .WillOnce(testing::Return(unsealed_resp));
+
+    EXPECT_OUTCOME_TRUE(
+        info,
+        local_worker_->addPiece(sector, {}, piece_size, PieceData(input_path)));
+    ASSERT_TRUE(is_clear_unsealed);
+    EXPECT_OUTCOME_EQ(info.cid.toString(), result_cid);
+    ASSERT_EQ(info.size, piece_size.padded());
+    EXPECT_OUTCOME_TRUE(file,
+                        SectorFile::openFile(file_path.string(), max_size));
+
+    int p[2];
+    ASSERT_EQ(pipe(p), 0);
+
+    PieceData in(p[0]);
+    EXPECT_OUTCOME_EQ(file->read(PieceData(p[1]), 0, piece_size.padded()),
+                      true);
+
+    std::vector<char> read_data(piece_size);
+    ASSERT_NE(read(in.getFd(), read_data.data(), piece_size), -1);
+
+    ASSERT_EQ(gsl::make_span<char>(read_data.data(), read_data.size()),
+              gsl::make_span<char>(data.data(), data.size()));
+  }
+
+  TEST_F(LocalWorkerTest, AddPieceWithPieces) {
+    EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
+    PaddedPieceSize max_size(size);
+
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    auto result_cid =
+        "baga6ea4seaqbart3og52jb2gmglvn5av45lm3i5gewpvf7clp5sb7jryk5prqcy";
+    std::string data =
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed "
+        "do "
+        "eiusmod tempor incididunt ut labore et dolore magna aliqua. "
+        "Vi ";
+
+    std::string input_path = (base_path / "temp").string();
+
+    {
+      std::ofstream out(input_path);
+      ASSERT_TRUE(out.good());
+      out.write(data.data(), data.size());
+    }
+
+    auto file_path = base_path / primitives::sector_file::sectorName(sector);
+
+    {
+      EXPECT_OUTCOME_TRUE_1(
+          SectorFile::createFile(file_path.string(), max_size));
+    }
+
+    UnpaddedPieceSize piece_size(data.size());
+    ASSERT_TRUE(piece_size.validate());
+
+    SectorPaths unsealed_paths{
+        .id = sector,
+        .unsealed = file_path.string(),
+        .sealed = "",
+        .cache = "",
+    };
+
+    SectorPaths unsealed_storages{
+        .id = sector,
+        .unsealed = "unsealed-storage-id",
+        .sealed = "",
+        .cache = "",
+    };
+
+    AcquireSectorResponse unsealed_resp{
+        .paths = unsealed_paths,
+        .storages = unsealed_storages,
+    };
+
+    bool is_clear_unsealed = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTNone,
+                        unsealed_storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear_unsealed = true; }));
+
+    EXPECT_CALL(*store_,
+                acquireSector(sector,
+                              seal_proof_type_,
+                              SectorFileType::FTUnsealed,
+                              SectorFileType::FTNone,
+                              PathType::kSealing,
+                              AcquireMode::kCopy))
+        .WillOnce(testing::Return(unsealed_resp));
+
+    std::vector<UnpaddedPieceSize> pieces = {UnpaddedPieceSize(127)};
+
+    EXPECT_OUTCOME_TRUE(info,
+                        local_worker_->addPiece(
+                            sector, pieces, piece_size, PieceData(input_path)));
+    ASSERT_TRUE(is_clear_unsealed);
+    EXPECT_OUTCOME_EQ(info.cid.toString(), result_cid);
+    ASSERT_EQ(info.size, piece_size.padded());
+    EXPECT_OUTCOME_TRUE(file,
+                        SectorFile::openFile(file_path.string(), max_size));
+
+    int p[2];
+    ASSERT_EQ(pipe(p), 0);
+
+    PieceData in(p[0]);
+    EXPECT_OUTCOME_EQ(file->read(PieceData(p[1]),
+                                 primitives::piece::paddedIndex(pieces[0]),
+                                 piece_size.padded()),
+                      true);
+
+    std::vector<char> read_data(piece_size);
+    ASSERT_NE(read(in.getFd(), read_data.data(), piece_size), -1);
+
+    ASSERT_EQ(gsl::make_span<char>(read_data.data(), read_data.size()),
+              gsl::make_span<char>(data.data(), data.size()));
+  }
+
   /**
    * @given sector
    * @when try to remove sector
