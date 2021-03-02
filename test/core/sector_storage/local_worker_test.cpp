@@ -11,6 +11,7 @@
 #include <boost/filesystem.hpp>
 #include <random>
 
+#include "proofs/proofs_error.hpp"
 #include "sector_storage/stores/store_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
@@ -22,16 +23,21 @@
 #include "testutil/storage/base_fs_test.hpp"
 
 namespace fc::sector_storage {
+  using primitives::ActorId;
+  using primitives::SectorNumber;
   using primitives::StoragePath;
   using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::InteractiveRandomness;
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector_file::SectorFile;
   using primitives::sector_file::SectorFileType;
   using proofs::PieceInfo;
   using proofs::ProofEngineMock;
   using proofs::SealVerifyInfo;
+  using proofs::Ticket;
+  using proofs::UnsealedCID;
   using stores::AcquireMode;
   using stores::AcquireSectorResponse;
   using stores::LocalStoreMock;
@@ -280,8 +286,7 @@ namespace fc::sector_storage {
     PaddedPieceSize max_size(size);
     {
       EXPECT_OUTCOME_TRUE(file,
-                          primitives::sector_file::SectorFile::createFile(
-                              file_path.string(), max_size));
+                          SectorFile::createFile(file_path.string(), max_size));
 
       EXPECT_OUTCOME_TRUE_1(file->write(
           PieceData("/dev/random"), PaddedPieceSize(0), piece_size));
@@ -368,8 +373,7 @@ namespace fc::sector_storage {
     ASSERT_TRUE(is_clear);
     ASSERT_TRUE(is_clear_unsealed);
     EXPECT_OUTCOME_TRUE(file,
-                        primitives::sector_file::SectorFile::openFile(
-                            file_path.string(), max_size));
+                        SectorFile::openFile(file_path.string(), max_size));
     EXPECT_OUTCOME_EQ(file->hasAllocated(0, piece_size.unpadded()), false);
     EXPECT_OUTCOME_EQ(file->hasAllocated(0, ranges[0].size), true);
   }
@@ -633,6 +637,509 @@ namespace fc::sector_storage {
         .WillOnce(testing::Return(outcome::success()));
 
     EXPECT_OUTCOME_TRUE_1(local_worker_->sealCommit2(sector, c1o));
+  }
+
+  TEST_F(LocalWorkerTest, UnsealPieceAlreadyUnsealed) {
+    EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
+    PaddedPieceSize max_size(size);
+
+    auto offset{127};
+    UnpaddedPieceSize piece_size(127);
+
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    SealRandomness randomness{{1, 2, 3}};
+
+    CID unsealed_cid = "010001020001"_cid;
+
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
+      ASSERT_TRUE(fs::create_directories(base_path / toString(type)));
+    }
+
+    SectorPaths unseal_paths{
+        .id = sector,
+        .unsealed = (base_path / toString(SectorFileType::FTUnsealed)
+                     / primitives::sector_file::sectorName(sector))
+                        .string(),
+        .sealed = "",
+        .cache = "",
+    };
+
+    {
+      EXPECT_OUTCOME_TRUE(
+          file, SectorFile::createFile(unseal_paths.unsealed, max_size));
+      EXPECT_OUTCOME_TRUE_1(file->write(PieceData("/dev/random"),
+                                        primitives::piece::paddedIndex(offset),
+                                        piece_size.padded()));
+    }
+
+    SectorPaths unseal_storages{
+        .id = sector,
+        .unsealed = "unsealed-id",
+        .sealed = "",
+        .cache = "",
+    };
+
+    AcquireSectorResponse unseal_resp{
+        .paths = unseal_paths,
+        .storages = unseal_storages,
+    };
+
+    EXPECT_CALL(*store_,
+                acquireSector(sector,
+                              seal_proof_type_,
+                              SectorFileType::FTUnsealed,
+                              SectorFileType::FTNone,
+                              PathType::kStorage,
+                              AcquireMode::kCopy))
+        .WillOnce(testing::Return(outcome::success(unseal_resp)));
+
+    bool is_clear = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTNone,
+                        unseal_storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear = true; }));
+
+    EXPECT_OUTCOME_TRUE_1(local_worker_->unsealPiece(
+        sector, offset, piece_size, randomness, unsealed_cid));
+    ASSERT_TRUE(is_clear);
+  }
+
+  TEST_F(LocalWorkerTest, UnsealPieceAlreadyExistFile) {
+    EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
+    PaddedPieceSize max_size(size);
+
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    SealRandomness randomness{{1, 2, 3}};
+
+    CID unsealed_cid = "010001020001"_cid;
+
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
+      ASSERT_TRUE(fs::create_directories(base_path / toString(type)));
+    }
+
+    SectorPaths unseal_paths{
+        .id = sector,
+        .unsealed = (base_path / toString(SectorFileType::FTUnsealed)
+                     / primitives::sector_file::sectorName(sector))
+                        .string(),
+        .sealed = "",
+        .cache = "",
+    };
+
+    {
+      EXPECT_OUTCOME_TRUE_1(
+          SectorFile::createFile(unseal_paths.unsealed, max_size));
+    }
+
+    SectorPaths unseal_storages{
+        .id = sector,
+        .unsealed = "unsealed-id",
+        .sealed = "",
+        .cache = "",
+    };
+
+    AcquireSectorResponse unseal_resp{
+        .paths = unseal_paths,
+        .storages = unseal_storages,
+    };
+
+    EXPECT_CALL(*store_,
+                acquireSector(sector,
+                              seal_proof_type_,
+                              SectorFileType::FTUnsealed,
+                              SectorFileType::FTNone,
+                              PathType::kStorage,
+                              AcquireMode::kCopy))
+        .WillOnce(testing::Return(outcome::success(unseal_resp)));
+
+    bool is_clear = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTNone,
+                        unseal_storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear = true; }));
+
+    SectorPaths paths{
+        .id = sector,
+        .unsealed = "",
+        .sealed = (base_path / toString(SectorFileType::FTSealed)
+                   / primitives::sector_file::sectorName(sector))
+                      .string(),
+        .cache = (base_path / toString(SectorFileType::FTCache)
+                  / primitives::sector_file::sectorName(sector))
+                     .string(),
+    };
+    {
+      std::ofstream o(paths.sealed);
+      ASSERT_TRUE(o.good());
+      o.close();
+    }
+
+    SectorPaths storages{
+        .id = sector,
+        .unsealed = "",
+        .sealed = "sealed-id",
+        .cache = "cache-id",
+    };
+
+    AcquireSectorResponse resp{
+        .paths = paths,
+        .storages = storages,
+    };
+
+    bool is_clear2 = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTNone,
+                        storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear2 = true; }));
+
+    EXPECT_CALL(
+        *store_,
+        acquireSector(sector,
+                      config_.seal_proof_type,
+                      static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                  | SectorFileType::FTCache),
+                      SectorFileType::FTNone,
+                      PathType::kStorage,
+                      AcquireMode::kCopy))
+        .WillOnce(testing::Return(outcome::success(resp)));
+
+    EXPECT_CALL(*store_, removeCopies(sector, SectorFileType::FTSealed))
+        .WillOnce(testing::Return(outcome::success()));
+    EXPECT_CALL(*store_, removeCopies(sector, SectorFileType::FTCache))
+        .WillOnce(testing::Return(outcome::success()));
+
+    std::vector<char> some_bytes(127);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint8_t> dis(0, 255);
+    for (size_t i = 0; i < some_bytes.size(); i++) {
+      some_bytes[i] = dis(gen);
+    }
+
+    auto offset{127};
+    UnpaddedPieceSize piece_size(127);
+
+    EXPECT_CALL(*proof_engine_,
+                doUnsealRange(seal_proof_type_,
+                              paths.cache,
+                              _,
+                              _,
+                              sector.sector,
+                              sector.miner,
+                              randomness,
+                              unsealed_cid,
+                              primitives::piece::paddedIndex(offset),
+                              uint64_t(piece_size.padded())))
+        .WillOnce(
+            testing::Invoke([&](RegisteredSealProof proof_type,
+                                const std::string &cache_dir_path,
+                                int seal_fd,
+                                int unseal_fd,
+                                SectorNumber sector_num,
+                                ActorId miner_id,
+                                const Ticket &ticket,
+                                const UnsealedCID &unsealed_cid,
+                                uint64_t offset,
+                                uint64_t length) -> outcome::result<void> {
+              if (unseal_fd == -1) {
+                return proofs::ProofsError::kUnknown;
+              }
+              write(unseal_fd, some_bytes.data(), some_bytes.size());
+              return outcome::success();
+            }));
+
+    EXPECT_OUTCOME_TRUE_1(local_worker_->unsealPiece(
+        sector, offset, piece_size, randomness, unsealed_cid));
+    ASSERT_TRUE(is_clear);
+    ASSERT_TRUE(is_clear2);
+
+    EXPECT_OUTCOME_TRUE(file,
+                        SectorFile::openFile(unseal_paths.unsealed, max_size));
+
+    int p[2];
+    ASSERT_EQ(pipe(p), 0);
+
+    PieceData in(p[0]);
+
+    EXPECT_OUTCOME_EQ(file->read(PieceData(p[1]),
+                                 primitives::piece::paddedIndex(offset),
+                                 piece_size.padded()),
+                      true);
+
+    std::vector<char> data(piece_size);
+    ASSERT_NE(read(in.getFd(), data.data(), data.size()), -1);
+    ASSERT_EQ(data, some_bytes);
+  }
+
+  TEST_F(LocalWorkerTest, UnsealPiece) {
+    EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
+    PaddedPieceSize max_size(size);
+
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    SealRandomness randomness{{1, 2, 3}};
+
+    CID unsealed_cid = "010001020001"_cid;
+
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
+      ASSERT_TRUE(fs::create_directories(base_path / toString(type)));
+    }
+
+    SectorPaths unseal_paths{
+        .id = sector,
+        .unsealed = (base_path / toString(SectorFileType::FTUnsealed)
+                     / primitives::sector_file::sectorName(sector))
+                        .string(),
+        .sealed = "",
+        .cache = "",
+    };
+
+    SectorPaths unseal_storages{
+        .id = sector,
+        .unsealed = "unsealed-id",
+        .sealed = "",
+        .cache = "",
+    };
+
+    AcquireSectorResponse unseal_resp{
+        .paths = unseal_paths,
+        .storages = unseal_storages,
+    };
+
+    EXPECT_CALL(*store_,
+                acquireSector(sector,
+                              seal_proof_type_,
+                              SectorFileType::FTUnsealed,
+                              SectorFileType::FTNone,
+                              PathType::kStorage,
+                              AcquireMode::kCopy))
+        .WillOnce(testing::Return(
+            outcome::failure(stores::StoreErrors::kNotFoundSector)));
+
+    EXPECT_CALL(*sector_index_,
+                storageDeclareSector(unseal_storages.unsealed,
+                                     sector,
+                                     SectorFileType::FTUnsealed,
+                                     false))
+        .WillOnce(testing::Return(outcome::success()));
+
+    bool is_clear = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTUnsealed,
+                        unseal_storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear = true; }));
+
+    EXPECT_CALL(*store_,
+                acquireSector(sector,
+                              seal_proof_type_,
+                              SectorFileType::FTNone,
+                              SectorFileType::FTUnsealed,
+                              PathType::kStorage,
+                              AcquireMode::kCopy))
+        .WillOnce(testing::Return(outcome::success(unseal_resp)));
+
+    SectorPaths paths{
+        .id = sector,
+        .unsealed = "",
+        .sealed = (base_path / toString(SectorFileType::FTSealed)
+                   / primitives::sector_file::sectorName(sector))
+                      .string(),
+        .cache = (base_path / toString(SectorFileType::FTCache)
+                  / primitives::sector_file::sectorName(sector))
+                     .string(),
+    };
+    {
+      std::ofstream o(paths.sealed);
+      ASSERT_TRUE(o.good());
+      o.close();
+    }
+
+    SectorPaths storages{
+        .id = sector,
+        .unsealed = "",
+        .sealed = "sealed-id",
+        .cache = "cache-id",
+    };
+
+    AcquireSectorResponse resp{
+        .paths = paths,
+        .storages = storages,
+    };
+
+    bool is_clear2 = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTNone,
+                        storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear2 = true; }));
+
+    EXPECT_CALL(
+        *store_,
+        acquireSector(sector,
+                      config_.seal_proof_type,
+                      static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                  | SectorFileType::FTCache),
+                      SectorFileType::FTNone,
+                      PathType::kStorage,
+                      AcquireMode::kCopy))
+        .WillOnce(testing::Return(outcome::success(resp)));
+
+    EXPECT_CALL(*store_, removeCopies(sector, SectorFileType::FTSealed))
+        .WillOnce(testing::Return(outcome::success()));
+    EXPECT_CALL(*store_, removeCopies(sector, SectorFileType::FTCache))
+        .WillOnce(testing::Return(outcome::success()));
+
+    std::vector<char> some_bytes(127);
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint8_t> dis(0, 255);
+    for (size_t i = 0; i < some_bytes.size(); i++) {
+      some_bytes[i] = dis(gen);
+    }
+
+    auto offset{127};
+    UnpaddedPieceSize piece_size(127);
+
+    EXPECT_CALL(*proof_engine_,
+                doUnsealRange(seal_proof_type_,
+                              paths.cache,
+                              _,
+                              _,
+                              sector.sector,
+                              sector.miner,
+                              randomness,
+                              unsealed_cid,
+                              primitives::piece::paddedIndex(offset),
+                              uint64_t(piece_size.padded())))
+        .WillOnce(
+            testing::Invoke([&](RegisteredSealProof proof_type,
+                                const std::string &cache_dir_path,
+                                int seal_fd,
+                                int unseal_fd,
+                                SectorNumber sector_num,
+                                ActorId miner_id,
+                                const Ticket &ticket,
+                                const UnsealedCID &unsealed_cid,
+                                uint64_t offset,
+                                uint64_t length) -> outcome::result<void> {
+              if (unseal_fd == -1) {
+                return proofs::ProofsError::kUnknown;
+              }
+              write(unseal_fd, some_bytes.data(), some_bytes.size());
+              return outcome::success();
+            }));
+
+    EXPECT_OUTCOME_TRUE_1(local_worker_->unsealPiece(
+        sector, offset, piece_size, randomness, unsealed_cid));
+    ASSERT_TRUE(is_clear);
+    ASSERT_TRUE(is_clear2);
+
+    EXPECT_OUTCOME_TRUE(file,
+                        SectorFile::openFile(unseal_paths.unsealed, max_size));
+
+    int p[2];
+    ASSERT_EQ(pipe(p), 0);
+
+    PieceData in(p[0]);
+
+    EXPECT_OUTCOME_EQ(file->read(PieceData(p[1]),
+                                 primitives::piece::paddedIndex(offset),
+                                 piece_size.padded()),
+                      true);
+
+    std::vector<char> data(piece_size);
+    ASSERT_NE(read(in.getFd(), data.data(), data.size()), -1);
+    ASSERT_EQ(data, some_bytes);
+  }
+
+  TEST_F(LocalWorkerTest, MoveStorage) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    EXPECT_CALL(
+        *store_,
+        moveStorage(sector,
+                    seal_proof_type_,
+                    static_cast<SectorFileType>(SectorFileType::FTCache
+                                                | SectorFileType::FTSealed)))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(local_worker_->moveStorage(sector))
+  }
+
+  TEST_F(LocalWorkerTest, Fetch) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    auto type{SectorFileType::FTSealed};
+
+    auto path{PathType::kSealing};
+
+    auto acquire{AcquireMode::kMove};
+
+    SectorPaths paths{
+        .id = sector,
+        .unsealed = "",
+        .sealed =
+            (base_path / primitives::sector_file::sectorName(sector)).string(),
+        .cache = "",
+    };
+
+    SectorPaths storages{
+        .id = sector,
+        .unsealed = "",
+        .sealed = "sealed-id",
+        .cache = "",
+    };
+
+    AcquireSectorResponse resp{
+        .paths = paths,
+        .storages = storages,
+    };
+
+    bool is_clear = false;
+    EXPECT_CALL(*local_store_,
+                reserve(seal_proof_type_,
+                        SectorFileType::FTNone,
+                        storages,
+                        PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear = true; }));
+
+    EXPECT_CALL(*store_,
+                acquireSector(sector,
+                              seal_proof_type_,
+                              SectorFileType::FTSealed,
+                              SectorFileType::FTNone,
+                              path,
+                              acquire))
+        .WillOnce(testing::Return(outcome::success(resp)));
+
+    EXPECT_OUTCOME_TRUE_1(local_worker_->fetch(sector, type, path, acquire));
+    ASSERT_TRUE(is_clear);
   }
 
   /**

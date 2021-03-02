@@ -130,11 +130,33 @@ namespace fc::proofs {
                                        const Ticket &,
                                        const UnsealedCID &));
 
-    MOCK_METHOD10(unsealRange,
+    outcome::result<void> unsealRange(RegisteredSealProof proof_type,
+                                      const std::string &cache_dir_path,
+                                      const PieceData &seal_fd,
+                                      const PieceData &unseal_fd,
+                                      SectorNumber sector_num,
+                                      ActorId miner_id,
+                                      const Ticket &ticket,
+                                      const UnsealedCID &unsealed_cid,
+                                      uint64_t offset,
+                                      uint64_t length) override {
+      return doUnsealRange(proof_type,
+                           cache_dir_path,
+                           seal_fd.getFd(),
+                           unseal_fd.getFd(),
+                           sector_num,
+                           miner_id,
+                           ticket,
+                           unsealed_cid,
+                           offset,
+                           length);
+    }
+
+    MOCK_METHOD10(doUnsealRange,
                   outcome::result<void>(RegisteredSealProof,
                                         const std::string &,
-                                        const PieceData &,
-                                        const PieceData &,
+                                        int,
+                                        int,
                                         SectorNumber,
                                         ActorId,
                                         const Ticket &,
