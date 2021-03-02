@@ -6,7 +6,6 @@
 #pragma once
 
 #include "vm/actor/builtin/v0/multisig/multisig_actor_utils.hpp"
-#include "vm/actor/builtin/v2/multisig/multisig_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::multisig {
   using primitives::ChainEpoch;
@@ -14,8 +13,8 @@ namespace fc::vm::actor::builtin::v2::multisig {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
-  using states::multisig::Transaction;
-  using states::multisig::TransactionId;
+  using types::multisig::Transaction;
+  using types::multisig::TransactionId;
   using utils::multisig::ApproveTransactionResult;
 
   class MultisigUtils : public v0::multisig::MultisigUtils {

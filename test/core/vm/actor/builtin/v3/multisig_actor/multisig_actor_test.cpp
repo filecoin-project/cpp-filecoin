@@ -34,11 +34,11 @@ namespace fc::vm::actor::builtin::v3::multisig {
   using runtime::MockRuntime;
   using state::StateTreeImpl;
   using states::MockStateManager;
-  using states::multisig::Transaction;
-  using states::multisig::TransactionId;
   using storage::ipfs::InMemoryDatastore;
   using testing::Eq;
   using testing::Return;
+  using types::multisig::Transaction;
+  using types::multisig::TransactionId;
   using version::NetworkVersion;
 
   class MultisigActorTest : public ::testing::Test {

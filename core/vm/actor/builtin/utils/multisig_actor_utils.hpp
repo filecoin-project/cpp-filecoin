@@ -14,8 +14,8 @@ namespace fc::vm::actor::builtin::utils {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
-  using states::multisig::Transaction;
-  using states::multisig::TransactionId;
+  using types::multisig::Transaction;
+  using types::multisig::TransactionId;
 
   namespace multisig {
     using ApproveTransactionResult = std::tuple<bool, Buffer, VMExitCode>;

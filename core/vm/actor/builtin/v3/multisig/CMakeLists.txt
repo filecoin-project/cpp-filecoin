@@ -9,5 +9,6 @@ add_library(multisig_actor_v3
     )
 target_link_libraries(multisig_actor_v3
     actor
+    multisig_types
     outcome
     )
