@@ -15,15 +15,25 @@ namespace fc::vm::actor::builtin::states {
   using common::math::kPrecision128;
   using common::smoothing::nextEstimate;
   using fc::vm::runtime::Runtime;
+  using primitives::BigInt;
   using primitives::kChainEpochUndefined;
+
+  /** genesis power in bytes = 750,000 GiB */
+  static const BigInt kInitialQAPowerEstimatePosition =
+      BigInt(750000) * BigInt(1 << 30);
+
+  /**
+   * Max chain throughput in bytes per epoch = 120 ProveCommits / epoch =
+   * 3,840 GiB
+   */
+  static const BigInt kInitialQAPowerEstimateVelocity =
+      BigInt(3840) * BigInt(1 << 30);
 
   PowerActorState::PowerActorState(ActorVersion version)
       : State(ActorType::kPower, version),
         this_epoch_qa_power_smoothed{
-            .position = storage_power::kInitialQAPowerEstimatePosition
-                        << kPrecision128,
-            .velocity = storage_power::kInitialQAPowerEstimateVelocity
-                        << kPrecision128},
+            .position = kInitialQAPowerEstimatePosition << kPrecision128,
+            .velocity = kInitialQAPowerEstimateVelocity << kPrecision128},
         last_processed_cron_epoch(kChainEpochUndefined) {}
 
   outcome::result<void> PowerActorState::addToClaim(
@@ -78,7 +88,7 @@ namespace fc::vm::actor::builtin::states {
   }
 
   outcome::result<void> PowerActorState::appendCronEvent(
-      const ChainEpoch &epoch, const storage_power::CronEvent &event) {
+      const ChainEpoch &epoch, const CronEvent &event) {
     if (epoch < first_cron_epoch) {
       first_cron_epoch = epoch;
     }

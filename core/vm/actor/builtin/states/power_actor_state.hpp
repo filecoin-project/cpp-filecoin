@@ -13,6 +13,8 @@
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/states/state.hpp"
+#include "vm/actor/builtin/types/storage_power/claim.hpp"
+#include "vm/actor/builtin/types/storage_power/cron_event.hpp"
 
 // Forward declaration
 namespace fc::vm::runtime {
@@ -22,7 +24,6 @@ namespace fc::vm::runtime {
 namespace fc::vm::actor::builtin::states {
   using common::Buffer;
   using common::smoothing::FilterEstimate;
-  using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::StoragePower;
   using primitives::TokenAmount;
@@ -30,50 +31,16 @@ namespace fc::vm::actor::builtin::states {
   using primitives::sector::RegisteredSealProof;
   using primitives::sector::SealVerifyInfo;
   using ChainEpochKeyer = adt::VarintKeyer;
+  using types::storage_power::Claim;
+  using types::storage_power::CronEvent;
 
   namespace storage_power {
-    /** genesis power in bytes = 750,000 GiB */
-    static const BigInt kInitialQAPowerEstimatePosition =
-        BigInt(750000) * BigInt(1 << 30);
-
-    /**
-     * Max chain throughput in bytes per epoch = 120 ProveCommits / epoch =
-     * 3,840 GiB
-     */
-    static const BigInt kInitialQAPowerEstimateVelocity =
-        BigInt(3840) * BigInt(1 << 30);
-
-    struct CronEvent {
-      Address miner_address;
-      Buffer callback_payload;
-    };
-    CBOR_TUPLE(CronEvent, miner_address, callback_payload)
-
-    struct Claim {
-      /** Miner's proof type used to determine minimum miner size */
-      RegisteredSealProof seal_proof_type;
-
-      /** Sum of raw byte power for a miner's sectors */
-      StoragePower raw_power;
-
-      /** Sum of quality adjusted power for a miner's sectors */
-      StoragePower qa_power;
-
-      inline bool operator==(const Claim &other) const {
-        return seal_proof_type == other.seal_proof_type
-               && raw_power == other.raw_power && qa_power == other.qa_power;
-      }
-    };
-
     struct ClaimV0 : Claim {};
     CBOR_TUPLE(ClaimV0, raw_power, qa_power)
 
     struct ClaimV2 : Claim {};
     CBOR_TUPLE(ClaimV2, seal_proof_type, raw_power, qa_power)
-
   }  // namespace storage_power
-
-  using storage_power::Claim;
 
   struct PowerActorState : State {
     explicit PowerActorState(ActorVersion version);
@@ -99,8 +66,7 @@ namespace fc::vm::actor::builtin::states {
 
     size_t miner_count{};
     size_t num_miners_meeting_min_power{};
-    adt::Map<adt::Array<storage_power::CronEvent>, ChainEpochKeyer>
-        cron_event_queue;
+    adt::Map<adt::Array<CronEvent>, ChainEpochKeyer> cron_event_queue;
 
     /**
      * First epoch in which a cron task may be stored.
@@ -149,8 +115,8 @@ namespace fc::vm::actor::builtin::states {
     outcome::result<void> addPledgeTotal(
         const fc::vm::runtime::Runtime &runtime, const TokenAmount &amount);
 
-    outcome::result<void> appendCronEvent(
-        const ChainEpoch &epoch, const storage_power::CronEvent &event);
+    outcome::result<void> appendCronEvent(const ChainEpoch &epoch,
+                                          const CronEvent &event);
 
     void updateSmoothedEstimate(int64_t delta);
 

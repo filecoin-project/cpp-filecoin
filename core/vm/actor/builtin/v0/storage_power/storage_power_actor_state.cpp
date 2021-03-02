@@ -5,11 +5,12 @@
 
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 
-#include "vm/actor/builtin/v0/storage_power/policy.hpp"
+#include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
   using runtime::Runtime;
+  using types::storage_power::kConsensusMinerMinPower;
 
   outcome::result<void> PowerActorState::setClaim(
       const Runtime &runtime,

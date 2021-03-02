@@ -5,13 +5,14 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
+#include "primitives/types.hpp"
 
-namespace fc::vm::actor::builtin::v0::storage_power {
-  using fc::primitives::GasAmount;
-  using fc::primitives::SectorStorageWeightDesc;
-  using fc::primitives::StoragePower;
-  using fc::primitives::TokenAmount;
+namespace fc::vm::actor::builtin::types::storage_power {
+  using primitives::BigInt;
+  using primitives::GasAmount;
+  using primitives::SectorStorageWeightDesc;
+  using primitives::StoragePower;
+  using primitives::TokenAmount;
 
   /**
    * Minimum power of an individual miner to meet the threshold for leader
@@ -43,4 +44,4 @@ namespace fc::vm::actor::builtin::v0::storage_power {
       const TokenAmount &per_epoch_reward) {
     return bigdiv(qa * per_epoch_reward, total_qa);
   }
-}  // namespace fc::vm::actor::builtin::v0::storage_power
+}  // namespace fc::vm::actor::builtin::types::storage_power

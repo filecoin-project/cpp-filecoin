@@ -11,7 +11,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   using primitives::StoragePower;
   using primitives::address::Address;
   using primitives::sector::RegisteredSealProof;
-  using states::storage_power::Claim;
+  using types::storage_power::Claim;
 
   struct PowerActorState : states::PowerActorState {
     PowerActorState() : states::PowerActorState(ActorVersion::kVersion2) {}

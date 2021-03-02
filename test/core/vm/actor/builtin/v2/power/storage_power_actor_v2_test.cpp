@@ -30,7 +30,8 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   using states::MockStateManager;
   using storage::ipfs::InMemoryDatastore;
   using testing::Return;
-  using v0::storage_power::kGasOnSubmitVerifySeal;
+  using types::storage_power::kConsensusMinerMinPower;
+  using types::storage_power::kGasOnSubmitVerifySeal;
 
   class StoragePowerActorV2Test : public testing::Test {
     void SetUp() override {

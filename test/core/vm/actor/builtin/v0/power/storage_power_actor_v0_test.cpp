@@ -14,6 +14,7 @@
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/version.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
@@ -25,6 +26,8 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   using states::MockStateManager;
   using storage::ipfs::InMemoryDatastore;
   using testing::Return;
+  using types::storage_power::kConsensusMinerMinPower;
+  using types::storage_power::kGasOnSubmitVerifySeal;
   using version::kUpgradeBreezeHeight;
   using version::kUpgradeKumquatHeight;
 

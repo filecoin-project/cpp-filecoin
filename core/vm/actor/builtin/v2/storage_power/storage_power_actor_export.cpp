@@ -14,11 +14,8 @@
 namespace fc::vm::actor::builtin::v2::storage_power {
   using adt::Multimap;
   using primitives::SectorNumber;
-  using states::storage_power::CronEvent;
   using toolchain::Toolchain;
-  using v0::storage_power::kErrTooManyProveCommits;
-  using v0::storage_power::kGasOnSubmitVerifySeal;
-  using v0::storage_power::kMaxMinerProveCommitsPerEpoch;
+  using types::storage_power::CronEvent;
 
   outcome::result<void> processDeferredCronEvents(Runtime &runtime) {
     const auto now{runtime.getCurrentEpoch()};

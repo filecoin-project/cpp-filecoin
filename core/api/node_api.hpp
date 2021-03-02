@@ -48,7 +48,7 @@ namespace fc::api {
   using primitives::tipset::TipsetKey;
   using storage::mpool::MpoolUpdate;
   using vm::actor::Actor;
-  using vm::actor::builtin::states::storage_power::Claim;
+  using vm::actor::builtin::types::storage_power::Claim;
   using vm::actor::builtin::v0::miner::DeadlineInfo;
   using vm::actor::builtin::v0::miner::Deadlines;
   using vm::actor::builtin::v0::miner::MinerInfo;

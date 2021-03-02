@@ -5,11 +5,12 @@
 
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
 
-#include "vm/actor/builtin/v0/storage_power/policy.hpp"
+#include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v2::storage_power {
   using runtime::Runtime;
+  using types::storage_power::kConsensusMinerMinPower;
 
   outcome::result<void> PowerActorState::setClaim(
       const Runtime &runtime,
@@ -76,10 +77,8 @@ namespace fc::vm::actor::builtin::v2::storage_power {
 
   std::tuple<bool, bool> PowerActorState::claimsAreBelow(
       const Claim &old_claim, const Claim &new_claim) const {
-    const auto prev_below{old_claim.raw_power
-                          < v0::storage_power::kConsensusMinerMinPower};
-    const auto still_below{new_claim.raw_power
-                           < v0::storage_power::kConsensusMinerMinPower};
+    const auto prev_below{old_claim.raw_power < kConsensusMinerMinPower};
+    const auto still_below{new_claim.raw_power < kConsensusMinerMinPower};
 
     return std::make_tuple(prev_below, still_below);
   }
