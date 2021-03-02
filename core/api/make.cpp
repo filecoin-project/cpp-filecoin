@@ -17,6 +17,7 @@
 #include "proofs/proofs.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/v0/miner/types.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/interpreter.hpp"
@@ -31,29 +32,29 @@
   }
 
 namespace fc::api {
-  using primitives::kChainEpochUndefined;
-  using vm::actor::kInitAddress;
-  using vm::actor::kStorageMarketAddress;
-  using vm::actor::kStoragePowerAddress;
-  using vm::actor::builtin::states::market::DealState;
-  using vm::actor::builtin::v0::miner::MinerActorState;
+  using connection_t = boost::signals2::connection;
   using InterpreterResult = vm::interpreter::Result;
   using crypto::randomness::DomainSeparationTag;
   using crypto::signature::BlsSignature;
   using libp2p::peer::PeerId;
+  using primitives::kChainEpochUndefined;
   using primitives::block::MsgMeta;
   using primitives::tipset::Tipset;
   using vm::isVMExitCode;
   using vm::VMExitCode;
   using vm::actor::InvokerImpl;
-  using vm::runtime::Env;
-  using vm::state::StateTreeImpl;
-  using connection_t = boost::signals2::connection;
+  using vm::actor::kInitAddress;
+  using vm::actor::kStorageMarketAddress;
+  using vm::actor::kStoragePowerAddress;
   using vm::actor::builtin::states::AccountActorStatePtr;
   using vm::actor::builtin::states::InitActorStatePtr;
   using vm::actor::builtin::states::MarketActorStatePtr;
   using vm::actor::builtin::states::PowerActorStatePtr;
   using vm::actor::builtin::states::StateProvider;
+  using vm::actor::builtin::types::market::DealState;
+  using vm::actor::builtin::v0::miner::MinerActorState;
+  using vm::runtime::Env;
+  using vm::state::StateTreeImpl;
 
   // TODO: reuse for block validation
   inline bool minerHasMinPower(const StoragePower &claim_qa,

@@ -12,10 +12,10 @@
 #define GCC_DISABLE(name) name
 #endif
 
+#include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/v0/market/actor.hpp"
 #include "vm/actor/builtin/v0/market/market_actor_state.hpp"
 #include "vm/actor/builtin/v0/market/policy.hpp"
-#include "vm/actor/builtin/v0/market/types.hpp"
 
 #include <gtest/gtest.h>
 
@@ -51,12 +51,12 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceInfo;
   using primitives::sector::RegisteredSealProof;
-  using states::market::DealProposal;
-  using states::market::DealState;
   using storage::ipfs::InMemoryDatastore;
   using testing::_;
   using testing::Return;
   using testutil::vm::actor::builtin::ActorTestFixture;
+  using types::market::DealProposal;
+  using types::market::DealState;
   using vm::runtime::MockRuntime;
   using vm::state::StateTreeImpl;
   using vm::version::NetworkVersion;

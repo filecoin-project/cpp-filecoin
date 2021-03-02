@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include "primitives/address/address.hpp"
+#include "primitives/cid/cid.hpp"
 
 namespace fc::adt {
-  struct AddressKeyer {
-    using Key = primitives::address::Address;
+  struct CidKeyer {
+    using Key = CID;
 
     static std::string encode(const Key &key);
 

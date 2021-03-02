@@ -15,10 +15,10 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
-  using states::market::DealProposal;
-  using states::market::DealState;
-  using v0::market::BalanceLockingReason;
-  using v0::market::ClientDealProposal;
+  using types::market::BalanceLockingReason;
+  using types::market::ClientDealProposal;
+  using types::market::DealProposal;
+  using types::market::DealState;
 
   class MarketUtils : public utils::MarketUtils {
    public:

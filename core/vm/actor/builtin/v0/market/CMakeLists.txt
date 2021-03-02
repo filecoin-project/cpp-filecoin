@@ -11,5 +11,6 @@ target_link_libraries(market_actor_v0
     actor
     array
     balance_table
+    cid_key
     piece
     )

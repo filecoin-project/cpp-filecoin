@@ -18,8 +18,8 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::kChainEpochUndefined;
   using primitives::cid::kCommitmentBytesLen;
   using primitives::piece::PieceInfo;
-  using states::market::DealState;
   using toolchain::Toolchain;
+  using types::market::DealState;
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));

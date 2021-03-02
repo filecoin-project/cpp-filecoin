@@ -8,7 +8,7 @@
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/market/types.hpp"
+#include "vm/actor/builtin/types/market/deal.hpp"
 
 namespace fc::vm::actor::builtin::v0::market {
   using primitives::ChainEpoch;
@@ -17,6 +17,7 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::TokenAmount;
   using primitives::sector::RegisteredSealProof;
   using runtime::Runtime;
+  using types::market::ClientDealProposal;
 
   struct Construct : ActorMethodBase<1> {
     ACTOR_METHOD_DECL();

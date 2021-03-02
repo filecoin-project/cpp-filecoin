@@ -7,7 +7,7 @@
 
 #include "const.hpp"
 #include "primitives/piece/piece.hpp"
-#include "vm/actor/builtin/v0/market/market_actor_state.hpp"
+#include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/v0/shared/shared.hpp"
 #include "vm/version.hpp"
 
@@ -18,6 +18,7 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::piece::PaddedPieceSize;
+  using types::market::DealProposal;
   using version::NetworkVersion;
 
   inline const TokenAmount kTotalFilecoin{2000000000

@@ -9,7 +9,7 @@
 #include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/states/market_actor_state.hpp"
-#include "vm/actor/builtin/v0/market/types.hpp"
+#include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
@@ -21,10 +21,10 @@ namespace fc::vm::actor::builtin::utils {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
-  using states::market::DealProposal;
-  using states::market::DealState;
-  using v0::market::BalanceLockingReason;
-  using v0::market::ClientDealProposal;
+  using types::market::BalanceLockingReason;
+  using types::market::ClientDealProposal;
+  using types::market::DealProposal;
+  using types::market::DealState;
 
   class MarketUtils {
    public:

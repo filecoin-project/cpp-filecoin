@@ -19,7 +19,7 @@
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "sector_storage/stores/storage.hpp"
-#include "vm/actor/builtin/v0/market/types.hpp"
+#include "vm/actor/builtin/types/market/deal.hpp"
 
 #define COMMA ,
 
@@ -67,9 +67,9 @@ namespace fc::api {
   using sector_storage::stores::PathType;
   using sector_storage::stores::StorageConfig;
   using sector_storage::stores::StorageInfo;
-  using vm::actor::builtin::states::market::DealProposal;
-  using vm::actor::builtin::states::market::DealState;
-  using vm::actor::builtin::v0::market::StorageParticipantBalance;
+  using vm::actor::builtin::types::market::DealProposal;
+  using vm::actor::builtin::types::market::DealState;
+  using vm::actor::builtin::types::market::StorageParticipantBalance;
   using vm::actor::builtin::v0::miner::PowerPair;
   using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
   using vm::actor::builtin::v0::miner::WorkerKeyChange;
