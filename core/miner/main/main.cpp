@@ -13,7 +13,6 @@
 #include "api/node_api.hpp"
 #include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
-#include "api/rpc/json.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
 #include "api/storage_api.hpp"
@@ -86,48 +85,33 @@ namespace fc {
     namespace po = boost::program_options;
     Config config;
     struct {
-      std::string repo;
-      std::string node_repo;
-      std::string actor, owner, worker;
+      boost::filesystem::path node_repo;
       std::string sector_size;
     } raw;
 
     po::options_description desc("Fuhon miner options");
     auto option{desc.add_options()};
-    option("miner-repo", po::value(&raw.repo)->required());
+    option("miner-repo", po::value(&config.repo_path)->required());
     option("repo", po::value(&raw.node_repo));
     option("miner-api", po::value(&config.api_port)->default_value(2345));
-    option("actor", po::value(&raw.actor));
-    option("owner", po::value(&raw.owner));
-    option("worker", po::value(&raw.worker));
+    option("actor", po::value(&config.actor));
+    option("owner", po::value(&config.owner));
+    option("worker", po::value(&config.worker));
     option("sector-size", po::value(&raw.sector_size));
     primitives::address::configCurrentNetwork(option);
 
     po::variables_map vm;
     po::store(parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
-    config.repo_path = raw.repo;
-    if (!boost::filesystem::exists(config.repo_path)) {
-      boost::filesystem::create_directories(config.repo_path);
-    }
+    boost::filesystem::create_directories(config.repo_path);
     std::ifstream config_file{config.join("config.cfg")};
     if (config_file.good()) {
       po::store(po::parse_config_file(config_file, desc), vm);
       po::notify(vm);
     }
 
-    auto address{[&](auto &out, auto &str) {
-      if (str.empty()) {
-        out.reset();
-      } else {
-        out = primitives::address::decodeFromString(str).value();
-      }
-    }};
     OUTCOME_TRYA(config.node_api,
                  api::rpc::loadInfo(raw.node_repo, "FULLNODE_API_INFO"));
-    address(config.actor, raw.actor);
-    address(config.owner, raw.owner);
-    address(config.worker, raw.worker);
     if (!raw.sector_size.empty()) {
       boost::algorithm::to_lower(raw.sector_size);
       if (raw.sector_size == "2kib") {
@@ -142,7 +126,7 @@ namespace fc {
         config.seal_type = RegisteredSealProof::StackedDrg64GiBV1;
       } else {
         spdlog::error("invalid --sector-size value");
-        exit(-1);
+        exit(EXIT_FAILURE);
       }
     }
 
@@ -216,7 +200,7 @@ namespace fc {
         if (result.receipt.exit_code != vm::VMExitCode::kOk) {
           spdlog::error("failed to create miner actor: {}",
                         result.receipt.exit_code);
-          exit(-1);
+          exit(EXIT_FAILURE);
         }
         OUTCOME_TRY(created,
                     codec::cbor::decode<CreateMiner::Result>(

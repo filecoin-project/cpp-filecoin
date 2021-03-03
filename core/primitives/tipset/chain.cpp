@@ -158,10 +158,8 @@ namespace fc::primitives::tipset::chain {
     for (auto _child{begin}; _child != end;) {
       if (auto child{_child->second.lock()}) {
         queue.emplace_back(_branch, child);
-        ++_child;
-      } else {
-        _child = branch->children.erase(_child);
       }
+      _child = branch->children.erase(_child);
     }
     while (!queue.empty()) {
       auto [_branch, parent]{queue.back()};
@@ -175,7 +173,6 @@ namespace fc::primitives::tipset::chain {
           if (auto child{_child->second.lock()}) {
             queue.emplace_back(_branch, child);
             child->parent = branch;
-            branch->children.emplace(*_child);
           }
           _child = parent->children.erase(_child);
         }
@@ -185,6 +182,7 @@ namespace fc::primitives::tipset::chain {
       --_parent;
       --_branch;
       parent->chain.erase(parent->chain.begin(), _parent);
+      branch->children.emplace(_parent->first, parent);
       if (parent->chain.size() <= 1) {
         removed.push_back(parent);
       }
@@ -224,8 +222,8 @@ namespace fc::primitives::tipset::chain {
       }
     }
 
-    from.erase(revert_to, from.end());
-    from.insert(apply.begin(), apply.end());
+    from.erase(std::next(revert_to), from.end());
+    from.insert(std::next(apply.begin()), apply.end());
 
     return absorbChildren({branch, revert_to});
   }
@@ -251,11 +249,16 @@ namespace fc::primitives::tipset::chain {
     return {};
   }
 
-  TsBranchIter insert(TsBranches &branches, TipsetCPtr ts) {
+  TsBranchIter insert(TsBranches &branches,
+                      TipsetCPtr ts,
+                      std::vector<TsBranchPtr> *children) {
     TsChain::value_type p{ts->height(), TsLazy{ts->key, ts}};
     auto [branch, it]{find(branches, ts)};
     for (auto &child : branches) {
       if (child->parent_key && child->parent_key == ts->key) {
+        if (children) {
+          children->push_back(child);
+        }
         child->chain.emplace(p);
         if (branch) {
           attach(branch, child);
@@ -333,11 +336,11 @@ namespace fc::primitives::tipset::chain {
   outcome::result<TsBranchIter> stepParent(TsBranchIter it) {
     auto &branch{it.first};
     if (it.second == branch->chain.begin()) {
-      branch = branch->parent;
-      if (!branch) {
+      if (!branch->parent) {
         return OutcomeError::kDefault;
       }
-      it.second = branch->chain.end();
+      it.second = branch->parent->chain.find(it.second->first);
+      branch = branch->parent;
     }
     --it.second;
     return it;

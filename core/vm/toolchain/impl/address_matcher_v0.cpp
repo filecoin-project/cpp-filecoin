@@ -17,6 +17,10 @@ namespace fc::vm::toolchain {
     return code == v0::kStorageMinerCodeId;
   }
 
+  bool AddressMatcherV0::isPaymentChannelActor(const CodeId &code) const {
+    return code == v0::kPaymentChannelCodeId;
+  }
+
   bool AddressMatcherV0::isBuiltinActor(const CodeId &code) const {
     return code == v0::kStorageMarketCodeId || code == v0::kStoragePowerCodeId
            || code == v0::kStorageMinerCodeId || code == v0::kAccountCodeId
