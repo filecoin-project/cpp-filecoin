@@ -14,6 +14,7 @@
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::storage::mpool {
+  using primitives::GasAmount;
   using primitives::block::MsgMeta;
   using primitives::tipset::HeadChangeType;
   using vm::message::UnsignedMessage;
@@ -95,7 +96,9 @@ namespace fc::storage::mpool {
         auto matcher{vm::toolchain::Toolchain::createAddressMatcher(
             vm::version::getNetworkVersion(head->height()))};
         if (matcher->isPaymentChannelActor(actor.code)) {
-          apply.receipt.gas_used += 76000;
+          // https://github.com/filecoin-project/lotus/blob/191a05da4872bf9849f178e6db5c0d6e87d05baa/node/impl/full/gas.go#L281
+          constexpr GasAmount kGas{76000};
+          apply.receipt.gas_used += kGas;
         }
       }
       message.gas_limit = apply.receipt.gas_used * kGasLimitOverestimation;
