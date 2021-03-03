@@ -892,8 +892,10 @@ namespace fc::vm::actor::builtin::v3::multisig {
     resetSigners();
     pushSigner(kInitAddress);
 
-    const std::vector<Address> expected_signers{resolveAddr(kCronAddress),
-                                                resolveAddr(kInitAddress)};
+    const std::vector<Address> expected_signers{
+        resolveAddr(kInitAddress),
+        resolveAddr(kCronAddress),
+    };
 
     EXPECT_OUTCOME_TRUE_1(SwapSigner::call(runtime, {caller, kCronAddress}));
 

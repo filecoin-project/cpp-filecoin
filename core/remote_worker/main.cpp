@@ -13,7 +13,6 @@
 
 #include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
-#include "api/rpc/json.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
 #include "api/storage_api.hpp"
