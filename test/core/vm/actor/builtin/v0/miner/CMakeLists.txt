@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(miner_actor_test_v0
+addtest(miner_actor_v0_test
     miner_actor_v0_test.cpp
     )
-target_link_libraries(miner_actor_test_v0
+target_link_libraries(miner_actor_v0_test
     miner_actor_v0
     ipfs_datastore_in_memory
     )

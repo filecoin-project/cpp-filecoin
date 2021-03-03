@@ -7,11 +7,14 @@
 #include "common/logger.hpp"
 #include "const.hpp"
 #include "primitives/tipset/chain.hpp"
+#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::storage::mpool {
+  using primitives::GasAmount;
   using primitives::block::MsgMeta;
   using primitives::tipset::HeadChangeType;
   using vm::message::UnsignedMessage;
@@ -88,7 +91,16 @@ namespace fc::storage::mpool {
       if (apply.receipt.exit_code != vm::VMExitCode::kOk) {
         return apply.receipt.exit_code;
       }
-      // TODO: paych.collect
+      if (msg.method
+          == vm::actor::builtin::v0::payment_channel::Collect::Number) {
+        auto matcher{vm::toolchain::Toolchain::createAddressMatcher(
+            vm::version::getNetworkVersion(head->height()))};
+        if (matcher->isPaymentChannelActor(actor.code)) {
+          // https://github.com/filecoin-project/lotus/blob/191a05da4872bf9849f178e6db5c0d6e87d05baa/node/impl/full/gas.go#L281
+          constexpr GasAmount kGas{76000};
+          apply.receipt.gas_used += kGas;
+        }
+      }
       message.gas_limit = apply.receipt.gas_used * kGasLimitOverestimation;
     }
     // TODO: premium

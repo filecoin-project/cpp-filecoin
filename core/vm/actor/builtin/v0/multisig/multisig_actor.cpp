@@ -257,7 +257,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
       ABORT(VMExitCode::kErrIllegalArgument);
     }
 
-    std::replace(state->signers.begin(), state->signers.end(), from, to);
+    state->signers.erase(
+        std::remove(state->signers.begin(), state->signers.end(), from),
+        state->signers.end());
+    state->signers.push_back(to);
     return outcome::success();
   }
 
