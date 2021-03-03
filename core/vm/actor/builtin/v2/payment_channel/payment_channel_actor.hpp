@@ -8,7 +8,7 @@
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
 
 namespace fc::vm::actor::builtin::v2::payment_channel {
-  using v0::payment_channel::SignedVoucher;
+  using types::payment_channel::SignedVoucher;
 
   /**
    * Payment channel actor v2 is almost identical to Payment channel actor v0

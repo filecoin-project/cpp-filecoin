@@ -6,12 +6,14 @@
 #pragma once
 
 #include "const.hpp"
-#include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/payment_channel/types.hpp"
+#include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
+  using common::Buffer;
   using primitives::EpochDuration;
+  using primitives::address::Address;
+  using types::payment_channel::SignedVoucher;
 
   constexpr size_t kLaneLimit{INT64_MAX};
   constexpr EpochDuration kSettleDelay{fc::kEpochsInHour * 12};

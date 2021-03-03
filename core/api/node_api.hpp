@@ -16,8 +16,8 @@
 #include "primitives/tipset/tipset.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v0/payment_channel/types.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/types/payment_channel/voucher.hpp"
+#include "vm/actor/builtin/types/storage_power/claim.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::api {
@@ -55,8 +55,8 @@ namespace fc::api {
   using vm::actor::builtin::v0::miner::SectorOnChainInfo;
   using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
   using vm::actor::builtin::v0::miner::SectorPreCommitOnChainInfo;
-  using vm::actor::builtin::v0::payment_channel::LaneId;
-  using vm::actor::builtin::v0::payment_channel::SignedVoucher;
+  using vm::actor::builtin::types::payment_channel::LaneId;
+  using vm::actor::builtin::types::payment_channel::SignedVoucher;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::runtime::MessageReceipt;

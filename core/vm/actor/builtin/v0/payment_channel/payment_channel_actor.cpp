@@ -7,8 +7,10 @@
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
-  using states::payment_channel::LaneState;
+  using primitives::TokenAmount;
   using toolchain::Toolchain;
+  using types::payment_channel::LaneState;
+  using types::payment_channel::PaymentVerifyParams;
 
   // Construct
   //============================================================================

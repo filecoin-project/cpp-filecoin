@@ -6,16 +6,28 @@
 #pragma once
 
 #include "primitives/address/address.hpp"
+#include "primitives/address/address_codec.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/actor.hpp"
 
-namespace fc::vm::actor::builtin::v0::payment_channel {
+namespace fc::vm::actor::builtin::types::payment_channel {
   using common::Buffer;
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
   using primitives::address::Address;
 
   using LaneId = uint64_t;
+
+  struct LaneState {
+    /** Total amount for vouchers have been redeemed from the lane */
+    TokenAmount redeem{};
+    uint64_t nonce{};
+
+    inline bool operator==(const LaneState &other) const {
+      return redeem == other.redeem && nonce == other.nonce;
+    }
+  };
+  CBOR_TUPLE(LaneState, redeem, nonce)
 
   struct Merge {
     LaneId lane{};
@@ -88,4 +100,4 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     Buffer proof;
   };
   CBOR_TUPLE(PaymentVerifyParams, extra, proof);
-}  // namespace fc::vm::actor::builtin::v0::payment_channel
+}  // namespace fc::vm::actor::builtin::types::payment_channel

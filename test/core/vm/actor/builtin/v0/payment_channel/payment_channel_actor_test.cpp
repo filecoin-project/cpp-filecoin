@@ -32,9 +32,14 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   using runtime::MockRuntime;
   using state::StateTreeImpl;
   using states::MockStateManager;
-  using states::payment_channel::LaneState;
   using storage::ipfs::InMemoryDatastore;
   using testing::Return;
+  using types::payment_channel::LaneId;
+  using types::payment_channel::LaneState;
+  using types::payment_channel::Merge;
+  using types::payment_channel::ModularVerificationParameter;
+  using types::payment_channel::PaymentVerifyParams;
+  using types::payment_channel::SignedVoucher;
 
   struct PaymentChannelActorTest : testing::Test {
     void SetUp() override {

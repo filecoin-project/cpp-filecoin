@@ -7,6 +7,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include "adt/address_key.hpp"
 #include "codec/cbor/cbor_resolve.hpp"
 
 namespace fc::api {

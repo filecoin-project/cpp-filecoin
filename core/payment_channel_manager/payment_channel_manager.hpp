@@ -8,15 +8,15 @@
 #include "api/node_api.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/v0/payment_channel/types.hpp"
+#include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::payment_channel_manager {
   using api::AddChannelInfo;
   using api::FullNodeApi;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using vm::actor::builtin::v0::payment_channel::LaneId;
-  using vm::actor::builtin::v0::payment_channel::SignedVoucher;
+  using vm::actor::builtin::types::payment_channel::LaneId;
+  using vm::actor::builtin::types::payment_channel::SignedVoucher;
 
   /**
    * PaymentChannelManager is a module responsible for off-chain payments via

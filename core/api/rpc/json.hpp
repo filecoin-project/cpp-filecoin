@@ -70,11 +70,12 @@ namespace fc::api {
   using vm::actor::builtin::types::market::DealProposal;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::market::StorageParticipantBalance;
+  using vm::actor::builtin::types::payment_channel::Merge;
+  using vm::actor::builtin::types::payment_channel::
+      ModularVerificationParameter;
   using vm::actor::builtin::v0::miner::PowerPair;
   using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
   using vm::actor::builtin::v0::miner::WorkerKeyChange;
-  using vm::actor::builtin::v0::payment_channel::Merge;
-  using vm::actor::builtin::v0::payment_channel::ModularVerificationParameter;
   using vm::runtime::ExecutionResult;
   using base64 = cppcodec::base64_rfc4648;
 
