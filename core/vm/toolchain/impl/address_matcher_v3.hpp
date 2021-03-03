@@ -14,6 +14,7 @@ namespace fc::vm::toolchain {
 
     bool isAccountActor(const CodeId &code) const override;
     bool isStorageMinerActor(const CodeId &code) const override;
+    bool isPaymentChannelActor(const CodeId &code) const override;
     bool isBuiltinActor(const CodeId &code) const override;
     bool isSingletonActor(const CodeId &code) const override;
     bool isSignableActor(const CodeId &code) const override;
