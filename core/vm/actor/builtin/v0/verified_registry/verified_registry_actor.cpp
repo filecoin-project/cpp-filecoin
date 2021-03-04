@@ -4,11 +4,12 @@
  */
 
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
-#include "vm/actor/builtin/v0/verified_registry/policy.hpp"
+#include "vm/actor/builtin/types/verified_registry/policy.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::verified_registry {
   using toolchain::Toolchain;
+  using types::verified_registry::kMinVerifiedDealSize;
 
   // Construct
   //============================================================================

@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor.hpp"
-#include "vm/actor/builtin/v2/verified_registry/policy.hpp"
+#include "vm/actor/builtin/types/verified_registry/policy.hpp"
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor_state.hpp"
 
 #include <gtest/gtest.h>
@@ -13,8 +13,9 @@
 namespace fc::vm::actor::builtin::v2::verified_registry {
   using primitives::StoragePower;
   using primitives::address::Address;
+  using states::DataCap;
   using testutil::vm::actor::builtin::ActorTestFixture;
-  using v0::verified_registry::DataCap;
+  using types::verified_registry::kMinVerifiedDealSize;
   using version::kUpgradeBreezeHeight;
   using version::kUpgradeKumquatHeight;
   using vm::VMExitCode;
