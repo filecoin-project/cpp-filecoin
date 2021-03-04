@@ -29,7 +29,7 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
 
     OUTCOME_TRY(v0::verified_registry::UseBytes::useBytes(
         runtime, *state, client, params.deal_size, clientCapAssert));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 

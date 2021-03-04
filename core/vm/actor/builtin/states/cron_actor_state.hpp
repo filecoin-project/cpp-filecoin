@@ -5,9 +5,10 @@
 
 #pragma once
 
+#include "vm/actor/builtin/states/state.hpp"
+
 #include "primitives/address/address.hpp"
 #include "vm/actor/builtin/types/cron/cron_table_entry.hpp"
-#include "vm/actor/builtin/states/state.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using types::cron::CronTableEntry;

@@ -36,7 +36,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
       }
     }
     state->first_cron_epoch = now + 1;
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     // TODO: can one miner fail several times here?
     std::vector<Address> failed_miners;
     for (auto &event : cron_events) {
@@ -58,7 +58,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
               runtime, miner, -claim->raw_power, -claim->qa_power));
         }
       }
-      OUTCOME_TRY(runtime.stateManager()->commitState(state));
+      OUTCOME_TRY(runtime.commitState(state));
     }
     return outcome::success();
   }
@@ -78,7 +78,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
               }),
           VMExitCode::kErrIllegalState);
     }
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     REQUIRE_NO_ERROR_A(verified,
                        runtime.batchVerifySeals(batch),
                        VMExitCode::kErrIllegalState);
@@ -95,7 +95,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     auto state = runtime.stateManager()->createPowerActorState(
         runtime.getActorVersion());
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -124,7 +124,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
         state->setClaim(runtime, addresses_created.id_address, 0, 0),
         VMExitCode::kErrIllegalState);
     ++state->miner_count;
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return Result{addresses_created.id_address,
                   addresses_created.robust_address};
   }
@@ -141,7 +141,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
                                        params.raw_byte_delta,
                                        params.quality_adjusted_delta),
                      VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -157,7 +157,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
                                {.miner_address = runtime.getImmediateCaller(),
                                 .callback_payload = params.payload}),
         VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -178,7 +178,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
     state->last_processed_cron_epoch = now;
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     REQUIRE_SUCCESS(runtime.sendM<reward::UpdateNetworkKPI>(
         kRewardAddress, state->this_epoch_raw_power, 0));
     return outcome::success();
@@ -196,7 +196,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
         utils->validateMinerHasClaim(state, runtime.getImmediateCaller()));
 
     OUTCOME_TRY(state->addPledgeTotal(runtime, params));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -222,7 +222,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     REQUIRE_NO_ERROR(state->deleteClaim(runtime, miner),
                      VMExitCode::kErrIllegalState);
     --state->miner_count;
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -258,7 +258,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(state->proof_validation_batch->hamt.flush());
 
     OUTCOME_TRY(runtime.chargeGas(kGasOnSubmitVerifySeal));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 

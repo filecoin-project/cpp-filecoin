@@ -38,7 +38,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     state->from = from;
     state->to = to;
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -180,7 +180,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
                  runtime.stateManager()
                      ->getPaymentChannelActorState());  // Lotus gas conformance
     OUTCOME_TRY(calculate(runtime, state, voucher));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -197,7 +197,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     }
     state->settling_at = std::max(state->min_settling_height,
                                   runtime.getCurrentEpoch() + kSettleDelay);
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 

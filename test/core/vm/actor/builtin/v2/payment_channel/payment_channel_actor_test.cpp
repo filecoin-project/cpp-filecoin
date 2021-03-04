@@ -75,22 +75,6 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
           .WillRepeatedly(
               testing::Invoke([&](auto &data) { return blake2b_256(data); }));
 
-      EXPECT_CALL(runtime, getCurrentActorState())
-          .Times(testing::AnyNumber())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            return std::move(cid);
-          }));
-
-      EXPECT_CALL(runtime, commit(testing::_))
-          .Times(testing::AtMost(1))
-          .WillOnce(testing::Invoke([&](auto &cid) {
-            EXPECT_OUTCOME_TRUE(new_state,
-                                ipld->getCbor<PaymentChannelActorState>(cid));
-            state = std::move(new_state);
-            return fc::outcome::success();
-          }));
-
       EXPECT_CALL(runtime, stateManager())
           .WillRepeatedly(testing::Return(state_manager));
 

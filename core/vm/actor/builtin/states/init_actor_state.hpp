@@ -5,9 +5,10 @@
 
 #pragma once
 
+#include "vm/actor/builtin/states/state.hpp"
+
 #include "adt/address_key.hpp"
 #include "adt/map.hpp"
-#include "vm/actor/builtin/states/state.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using primitives::address::Address;

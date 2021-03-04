@@ -24,7 +24,7 @@ namespace fc::vm::actor::builtin::v2::reward {
                     runtime, params, state->this_epoch_reward, balance));
     const auto &[block_reward, total_reward] = reward;
     state->total_reward += block_reward;
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
 
     VM_ASSERT(total_reward <= balance);
 

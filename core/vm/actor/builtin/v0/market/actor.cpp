@@ -27,7 +27,7 @@ namespace fc::vm::actor::builtin::v0::market {
         runtime.getActorVersion());
     state->last_cron = kChainEpochUndefined;
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -56,7 +56,7 @@ namespace fc::vm::actor::builtin::v0::market {
     REQUIRE_NO_ERROR(state->locked_table.hamt.flush(),
                      VMExitCode::kErrIllegalState);
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -77,7 +77,7 @@ namespace fc::vm::actor::builtin::v0::market {
         extracted,
         state->escrow_table.subtractWithMin(nominal, params.amount, min),
         VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     REQUIRE_SUCCESS(runtime.sendFunds(recipient, extracted));
     return outcome::success();
   }
@@ -182,7 +182,7 @@ namespace fc::vm::actor::builtin::v0::market {
       deals.emplace_back(deal_id);
     }
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
 
     for (const auto &client_deal : params.deals) {
       const auto &deal = client_deal.proposal;
@@ -256,7 +256,7 @@ namespace fc::vm::actor::builtin::v0::market {
       REQUIRE_NO_ERROR(state->states.set(deal_id, deal_state),
                        VMExitCode::kErrIllegalState);
     }
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -308,7 +308,7 @@ namespace fc::vm::actor::builtin::v0::market {
                        VMExitCode::kErrIllegalState);
     }
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -437,7 +437,7 @@ namespace fc::vm::actor::builtin::v0::market {
     }
 
     state->last_cron = now;
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
 
     for (const auto &deal : timed_out_verified) {
       OUTCOME_TRY(runtime.sendM<verified_registry::RestoreBytes>(

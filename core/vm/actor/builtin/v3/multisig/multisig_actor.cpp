@@ -16,7 +16,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
     OUTCOME_TRY(runtime.validateArgument(params.amount >= 0));
     OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
     OUTCOME_TRY(v0::multisig::LockBalance::lockBalance(params, state));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 

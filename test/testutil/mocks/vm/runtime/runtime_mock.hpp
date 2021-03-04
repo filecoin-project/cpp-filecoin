@@ -77,10 +77,6 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD1(chargeGas, outcome::result<void>(GasAmount amount));
 
-    MOCK_CONST_METHOD0(getCurrentActorState, outcome::result<CID>());
-
-    MOCK_METHOD1(commit, outcome::result<void>(const CID &new_state));
-
     MOCK_CONST_METHOD1(
         tryResolveAddress,
         outcome::result<boost::optional<Address>>(const Address &address));

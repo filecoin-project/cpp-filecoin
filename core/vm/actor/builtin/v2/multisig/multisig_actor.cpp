@@ -33,7 +33,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
                        runtime.getValueReceived());
     }
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -57,7 +57,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
     OUTCOME_TRY(checkSignersCount(state->signers));
     OUTCOME_TRY(
         v0::multisig::AddSigner::addSigner(params, state, resolved_signer));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -85,7 +85,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
 
     REQUIRE_NO_ERROR(utils->purgeApprovals(state, resolved_signer),
                      VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -103,7 +103,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
         state, from_resolved, to_resolved));
     REQUIRE_NO_ERROR(utils->purgeApprovals(state, from_resolved),
                      VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -118,7 +118,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
           && (params.amount < 0))));
     OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
     OUTCOME_TRY(v0::multisig::LockBalance::lockBalance(params, state));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 

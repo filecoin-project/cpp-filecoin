@@ -203,12 +203,6 @@ namespace fc::vm::runtime {
     /// Try to charge gas or throw if there is not enoght gas
     virtual outcome::result<void> chargeGas(GasAmount amount) = 0;
 
-    /// Get current actor state root CID
-    virtual outcome::result<CID> getCurrentActorState() const = 0;
-
-    /// Update actor state CID
-    virtual outcome::result<void> commit(const CID &new_state) = 0;
-
     /// Resolve address to id-address
     virtual outcome::result<boost::optional<Address>> tryResolveAddress(
         const Address &address) const = 0;
@@ -298,24 +292,14 @@ namespace fc::vm::runtime {
       return send(to_address, method_number, MethodParams{params2}, value);
     }
 
-    /// Get decoded current actor state
-    template <typename T>
-    outcome::result<T> getCurrentActorStateCbor() const {
-      OUTCOME_TRY(head, getCurrentActorState());
-      return getIpfsDatastore()->getCbor<T>(head);
-    }
-
     /**
      * Commit actor state
-     * @tparam T - POD state type
      * @param state - actor state structure
      * @return error in case of failure
      */
-    template <typename T>
-    outcome::result<void> commitState(const T &state) {
-      OUTCOME_TRY(state_cid, getIpfsDatastore()->setCbor(state));
-      OUTCOME_TRY(commit(state_cid));
-      return outcome::success();
+    outcome::result<void> commitState(
+        const std::shared_ptr<actor::builtin::states::State> &state) {
+      return stateManager()->commitState(state);
     }
 
     inline operator std::shared_ptr<IpfsDatastore>() const {

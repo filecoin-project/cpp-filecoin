@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "vm/actor/builtin/states/state.hpp"
+
 #include "adt/map.hpp"
 #include "adt/uvarint_key.hpp"
 #include "common/buffer.hpp"
@@ -12,7 +14,6 @@
 #include "primitives/address/address.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/states/state.hpp"
 #include "vm/actor/builtin/types/multisig/transaction.hpp"
 
 // Forward declaration

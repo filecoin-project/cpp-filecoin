@@ -117,7 +117,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     state->sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid,
                                                    runtime.getIpfsDatastore());
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
 
     const ChainEpoch deadline_close =
         period_start + kWPoStChallengeWindow * (1 + deadline_index);

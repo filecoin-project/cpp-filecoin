@@ -5,9 +5,10 @@
 
 #pragma once
 
+#include "vm/actor/builtin/states/state.hpp"
+
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/states/state.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using common::smoothing::FilterEstimate;

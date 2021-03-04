@@ -79,7 +79,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     state->threshold = params.threshold;
 
     setLocked(runtime, params.unlock_duration, state);
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -101,7 +101,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     REQUIRE_NO_ERROR(state->pending_transactions.set(tx_id, transaction),
                      VMExitCode::kErrIllegalState);
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     OUTCOME_TRY(approve, utils->approveTransaction(tx_id, transaction));
     const auto &[applied, return_value, code] = approve;
 
@@ -123,7 +123,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     OUTCOME_TRY(
         transaction,
         state_copy.getTransaction(runtime, params.tx_id, params.proposal_hash));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
 
     OUTCOME_TRY(execute,
                 utils->executeTransaction(state, params.tx_id, transaction));
@@ -169,7 +169,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     REQUIRE_NO_ERROR(state->pending_transactions.remove(params.tx_id),
                      VMExitCode::kErrIllegalState);
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -197,7 +197,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     OUTCOME_TRY(resolved_signer, utils->getResolvedAddress(params.signer));
     OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
     OUTCOME_TRY(addSigner(params, state, resolved_signer));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -238,7 +238,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     state->signers.erase(std::find(
         state->signers.begin(), state->signers.end(), resolved_signer));
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -272,7 +272,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     OUTCOME_TRY(to_resolved, utils->getResolvedAddress(params.to));
     OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
     OUTCOME_TRY(swapSigner(state, from_resolved, to_resolved));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -290,7 +290,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     state->threshold = params.new_threshold;
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -317,7 +317,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     OUTCOME_TRY(runtime.validateArgument(params.unlock_duration > 0));
     OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
     OUTCOME_TRY(lockBalance(params, state));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 

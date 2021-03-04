@@ -5,13 +5,14 @@
 
 #pragma once
 
+#include "vm/actor/builtin/states/state.hpp"
+
 #include "adt/array.hpp"
 #include "adt/balance_table.hpp"
 #include "adt/cid_key.hpp"
 #include "adt/set.hpp"
 #include "adt/uvarint_key.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/states/state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 
 namespace fc::vm::actor::builtin::states {

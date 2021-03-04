@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include "primitives/address/address.hpp"
 #include "vm/actor/builtin/states/state.hpp"
+
+#include "primitives/address/address.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using primitives::address::Address;

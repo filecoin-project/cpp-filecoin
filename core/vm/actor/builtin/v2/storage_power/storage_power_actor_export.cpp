@@ -42,7 +42,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
       }
     }
     state->first_cron_epoch = now + 1;
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     // TODO: can one miner fail several times here?
     std::vector<Address> failed_miners;
     for (auto &event : cron_events) {
@@ -63,7 +63,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
           --state->miner_count;
         }
       }
-      OUTCOME_TRY(runtime.stateManager()->commitState(state));
+      OUTCOME_TRY(runtime.commitState(state));
     }
     return outcome::success();
   }
@@ -88,7 +88,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
       }),
                        VMExitCode::kErrIllegalState);
     }
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     REQUIRE_NO_ERROR_A(verified,
                        runtime.batchVerifySeals(batch),
                        VMExitCode::kErrIllegalState);
@@ -127,7 +127,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
                                      params.seal_proof_type),
                      VMExitCode::kErrIllegalState);
     ++state->miner_count;
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return Result{addresses_created.id_address,
                   addresses_created.robust_address};
   }
@@ -145,7 +145,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
 
     state->updateSmoothedEstimate(1);
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     REQUIRE_SUCCESS(runtime.sendM<reward::UpdateNetworkKPI>(
         kRewardAddress, state->this_epoch_raw_power, 0));
     return outcome::success();

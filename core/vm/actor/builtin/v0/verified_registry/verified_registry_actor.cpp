@@ -25,7 +25,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
         runtime.getActorVersion());
     state->root_key = id_addr.value();
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -58,7 +58,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
         runtime.stateManager()
             ->getVerifiedRegistryActorState());  // Lotus gas conformance
     OUTCOME_TRY(addVerifier(runtime, *state, params.address, params.allowance));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -75,7 +75,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     REQUIRE_NO_ERROR(state->verifiers.remove(params),
                      VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -131,7 +131,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
         runtime.stateManager()
             ->getVerifiedRegistryActorState());  // Lotus gas conformance
     OUTCOME_TRY(addClient(runtime, *state, params.address, params.allowance));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -180,7 +180,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     };
     OUTCOME_TRY(useBytes(
         runtime, *state, params.address, params.deal_size, clientCapAssert));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -221,7 +221,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
             ->getVerifiedRegistryActorState());  // Lotus gas conformance
     OUTCOME_TRY(
         restoreBytes(runtime, *state, params.address, params.deal_size));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 

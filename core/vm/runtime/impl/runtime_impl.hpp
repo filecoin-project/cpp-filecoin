@@ -92,10 +92,6 @@ namespace fc::vm::runtime {
 
     outcome::result<void> chargeGas(GasAmount amount) override;
 
-    outcome::result<CID> getCurrentActorState() const override;
-
-    outcome::result<void> commit(const CID &new_state) override;
-
     outcome::result<boost::optional<Address>> tryResolveAddress(
         const Address &address) const override;
 

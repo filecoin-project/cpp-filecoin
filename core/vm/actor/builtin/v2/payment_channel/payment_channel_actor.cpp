@@ -45,7 +45,7 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
                      ->getPaymentChannelActorState());  // Lotus gas conformance
     OUTCOME_TRY(v0::payment_channel::UpdateChannelState::calculate(
         runtime, state, voucher));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 

@@ -200,18 +200,6 @@ namespace fc::vm::runtime {
     return message_;
   }
 
-  outcome::result<CID> RuntimeImpl::getCurrentActorState() const {
-    OUTCOME_TRY(actor, execution_->state_tree->get(getCurrentReceiver()));
-    return actor.head;
-  }
-
-  outcome::result<void> RuntimeImpl::commit(const CID &new_state) {
-    OUTCOME_TRY(actor, execution_->state_tree->get(getCurrentReceiver()));
-    actor.head = new_state;
-    OUTCOME_TRY(execution_->state_tree->set(getCurrentReceiver(), actor));
-    return outcome::success();
-  }
-
   outcome::result<boost::optional<Address>> RuntimeImpl::tryResolveAddress(
       const Address &address) const {
     return execution_->state_tree->tryLookupId(address);

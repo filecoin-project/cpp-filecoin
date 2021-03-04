@@ -22,7 +22,7 @@ namespace fc::vm::actor::builtin::v0::reward {
         runtime.getActorVersion());
     state->initialize(params);
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -65,7 +65,7 @@ namespace fc::vm::actor::builtin::v0::reward {
         calculateReward(runtime, params, state->this_epoch_reward, balance));
     const auto &[block_reward, total_reward] = reward;
     state->total_reward += block_reward;
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
 
     // Cap the penalty at the total reward value.
     const TokenAmount penalty = std::min(params.penalty, total_reward);
@@ -112,7 +112,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     updateSmoothedEstimates(*state, state->epoch - prev_epoch);
 
     // Lotus gas conformance
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
 
     return outcome::success();
   }

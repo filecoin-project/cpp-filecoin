@@ -29,7 +29,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
             ->getVerifiedRegistryActorState());  // Lotus gas conformance
     OUTCOME_TRY(v0::verified_registry::AddVerifier::addVerifier(
         runtime, *state, verifier, params.allowance));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -50,7 +50,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
 
     REQUIRE_NO_ERROR(state->verifiers.remove(verifier),
                      VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -73,7 +73,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
             ->getVerifiedRegistryActorState());  // Lotus gas conformance
     OUTCOME_TRY(v0::verified_registry::AddVerifiedClient::addClient(
         runtime, *state, client, params.allowance));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -96,7 +96,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     };
     OUTCOME_TRY(v0::verified_registry::UseBytes::useBytes(
         runtime, *state, client, params.deal_size, clientCapAssert));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -120,7 +120,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
             ->getVerifiedRegistryActorState());  // Lotus gas conformance
     OUTCOME_TRY(v0::verified_registry::RestoreBytes::restoreBytes(
         runtime, *state, client, params.deal_size));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 

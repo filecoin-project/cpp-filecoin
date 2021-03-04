@@ -11,7 +11,7 @@ namespace fc::vm::actor::builtin::v0::cron {
     auto state =
         runtime.stateManager()->createCronActorState(runtime.getActorVersion());
     state->entries = params;
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
   ACTOR_METHOD_IMPL(EpochTick) {

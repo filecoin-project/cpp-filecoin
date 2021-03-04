@@ -17,7 +17,7 @@ namespace fc::vm::actor::builtin::v0::init {
     auto state =
         runtime.stateManager()->createInitActorState(runtime.getActorVersion());
     state->network_name = params.network_name;
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -53,7 +53,7 @@ namespace fc::vm::actor::builtin::v0::init {
 
     OUTCOME_TRY(state, runtime.stateManager()->getInitActorState());
     OUTCOME_TRY(id_address, state->addActor(actor_address));
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
 
     OUTCOME_TRY(runtime.createActor(id_address,
                                     Actor{params.code, kEmptyObjectCid, 0, 0}));

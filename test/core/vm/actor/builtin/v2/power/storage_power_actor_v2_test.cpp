@@ -51,21 +51,6 @@ namespace fc::vm::actor::builtin::v2::storage_power {
           .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() { return caller; }));
 
-      EXPECT_CALL(runtime, getCurrentActorState())
-          .Times(testing::AnyNumber())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            return std::move(cid);
-          }));
-
-      EXPECT_CALL(runtime, commit(testing::_))
-          .Times(testing::AnyNumber())
-          .WillRepeatedly(testing::Invoke([&](auto &cid) {
-            EXPECT_OUTCOME_TRUE(new_state, ipld->getCbor<PowerActorState>(cid));
-            state = std::move(new_state);
-            return fc::outcome::success();
-          }));
-
       EXPECT_CALL(runtime, stateManager())
           .WillRepeatedly(testing::Return(state_manager));
 

@@ -89,13 +89,6 @@ namespace fc::vm::state {
     virtual void txBegin() = 0;
     virtual void txRevert() = 0;
     virtual void txEnd() = 0;
-
-    /// Get decoded actor state
-    template <typename T>
-    outcome::result<T> state(const Address &address) const {
-      OUTCOME_TRY(actor, get(address));
-      return getStore()->template getCbor<T>(actor.head);
-    }
   };
 
   CBOR_TUPLE_0(StateTree::StateTreeInfo)

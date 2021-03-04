@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "vm/actor/builtin/states/state.hpp"
+
 #include <tuple>
 #include "adt/address_key.hpp"
 #include "adt/multimap.hpp"
@@ -12,7 +14,6 @@
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/states/state.hpp"
 #include "vm/actor/builtin/types/storage_power/claim.hpp"
 #include "vm/actor/builtin/types/storage_power/cron_event.hpp"
 

@@ -74,7 +74,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     REQUIRE_NO_ERROR(state->pending_transactions.set(tx_id, transaction),
                      VMExitCode::kErrIllegalState);
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
 
     return executeTransaction(state, tx_id, transaction);
   }
@@ -107,7 +107,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
       REQUIRE_NO_ERROR(state->pending_transactions.remove(tx_id),
                        VMExitCode::kErrIllegalState);
-      OUTCOME_TRY(runtime.stateManager()->commitState(state));
+      OUTCOME_TRY(runtime.commitState(state));
     }
 
     return std::make_tuple(applied, out, code);

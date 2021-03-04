@@ -18,7 +18,7 @@ namespace fc::vm::actor::builtin::v0::account {
         runtime.getActorVersion());
     state->address = params;
 
-    OUTCOME_TRY(runtime.stateManager()->commitState(state));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 

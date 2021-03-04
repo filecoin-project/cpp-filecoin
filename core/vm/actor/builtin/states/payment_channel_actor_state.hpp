@@ -5,10 +5,11 @@
 
 #pragma once
 
+#include "vm/actor/builtin/states/state.hpp"
+
 #include "adt/array.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/states/state.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::vm::actor::builtin::states {
