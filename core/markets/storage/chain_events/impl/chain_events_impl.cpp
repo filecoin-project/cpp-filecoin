@@ -4,13 +4,14 @@
  */
 
 #include "markets/storage/chain_events/impl/chain_events_impl.hpp"
+#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::markets::storage::chain_events {
   using primitives::tipset::HeadChangeType;
+  using vm::actor::builtin::types::miner::SectorPreCommitInfo;
   using vm::actor::builtin::v0::miner::PreCommitSector;
   using vm::actor::builtin::v0::miner::ProveCommitSector;
-  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
   using vm::message::SignedMessage;
 
   ChainEventsImpl::ChainEventsImpl(std::shared_ptr<FullNodeApi> api)

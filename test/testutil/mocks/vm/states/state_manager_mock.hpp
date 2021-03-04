@@ -31,6 +31,11 @@ namespace fc::vm::actor::builtin::states {
     MOCK_CONST_METHOD0(getMarketActorState,
                        outcome::result<MarketActorStatePtr>());
 
+    MOCK_CONST_METHOD1(createMinerActorState,
+                       MinerActorStatePtr(ActorVersion version));
+    MOCK_CONST_METHOD0(getMinerActorState,
+                       outcome::result<MinerActorStatePtr>());
+
     MOCK_CONST_METHOD1(createMultisigActorState,
                        MultisigActorStatePtr(ActorVersion version));
     MOCK_CONST_METHOD0(getMultisigActorState,

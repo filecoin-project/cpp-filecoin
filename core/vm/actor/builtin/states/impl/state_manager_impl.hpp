@@ -36,6 +36,10 @@ namespace fc::vm::actor::builtin::states {
         ActorVersion version) const override;
     outcome::result<MarketActorStatePtr> getMarketActorState() const override;
 
+    MinerActorStatePtr createMinerActorState(
+        ActorVersion version) const override;
+    outcome::result<MinerActorStatePtr> getMinerActorState() const override;
+
     MultisigActorStatePtr createMultisigActorState(
         ActorVersion version) const override;
     outcome::result<MultisigActorStatePtr> getMultisigActorState()

@@ -15,7 +15,10 @@
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/mpool/mpool.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/types/miner/dead_line.hpp"
+#include "vm/actor/builtin/types/miner/deadline_info.hpp"
+#include "vm/actor/builtin/types/miner/miner_info.hpp"
+#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 #include "vm/actor/builtin/types/storage_power/claim.hpp"
 #include "vm/runtime/runtime_types.hpp"
@@ -48,15 +51,15 @@ namespace fc::api {
   using primitives::tipset::TipsetKey;
   using storage::mpool::MpoolUpdate;
   using vm::actor::Actor;
-  using vm::actor::builtin::types::storage_power::Claim;
-  using vm::actor::builtin::v0::miner::DeadlineInfo;
-  using vm::actor::builtin::v0::miner::Deadlines;
-  using vm::actor::builtin::v0::miner::MinerInfo;
-  using vm::actor::builtin::v0::miner::SectorOnChainInfo;
-  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
-  using vm::actor::builtin::v0::miner::SectorPreCommitOnChainInfo;
+  using vm::actor::builtin::types::miner::DeadlineInfo;
+  using vm::actor::builtin::types::miner::Deadlines;
+  using vm::actor::builtin::types::miner::MinerInfo;
+  using vm::actor::builtin::types::miner::SectorOnChainInfo;
+  using vm::actor::builtin::types::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::types::miner::SectorPreCommitOnChainInfo;
   using vm::actor::builtin::types::payment_channel::LaneId;
   using vm::actor::builtin::types::payment_channel::SignedVoucher;
+  using vm::actor::builtin::types::storage_power::Claim;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::runtime::MessageReceipt;

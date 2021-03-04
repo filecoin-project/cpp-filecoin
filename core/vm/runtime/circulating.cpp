@@ -8,7 +8,7 @@
 #include "const.hpp"
 #include "primitives/block/block.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
-#include "vm/actor/builtin/v0/miner/policy.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/version.hpp"
 
@@ -50,7 +50,8 @@ namespace fc::vm {
     TokenAmount mined;
 
     auto vest{[&](auto days, TokenAmount amount) {
-      ChainEpoch duration(days * vm::actor::builtin::v0::miner::kEpochsInDay);
+      ChainEpoch duration(days
+                          * vm::actor::builtin::types::miner::kEpochsInDay);
       auto elapsed{epoch};
       if (epoch > version::kUpgradeIgnitionHeight) {
         amount *= kFilecoinPrecision;

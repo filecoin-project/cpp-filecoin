@@ -18,7 +18,7 @@
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
-#include "vm/actor/builtin/v0/miner/types.hpp"
+#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
@@ -49,10 +49,10 @@ namespace fc::api {
   using vm::actor::builtin::states::AccountActorStatePtr;
   using vm::actor::builtin::states::InitActorStatePtr;
   using vm::actor::builtin::states::MarketActorStatePtr;
+  using vm::actor::builtin::states::MinerActorStatePtr;
   using vm::actor::builtin::states::PowerActorStatePtr;
   using vm::actor::builtin::states::StateProvider;
   using vm::actor::builtin::types::market::DealState;
-  using vm::actor::builtin::v0::miner::MinerActorState;
   using vm::runtime::Env;
   using vm::state::StateTreeImpl;
 
@@ -104,8 +104,12 @@ namespace fc::api {
       return std::move(state);
     }
 
-    auto minerState(const Address &address) {
-      return state_tree.state<MinerActorState>(address);
+    auto minerState(const Address &address)
+        -> outcome::result<MinerActorStatePtr> {
+      const StateProvider provider(state_tree.getStore());
+      OUTCOME_TRY(actor, state_tree.get(address));
+      OUTCOME_TRY(state, provider.getMinerActorState(actor));
+      return std::move(state);
     }
 
     auto powerState() -> outcome::result<PowerActorStatePtr> {
@@ -132,13 +136,14 @@ namespace fc::api {
 
   outcome::result<std::vector<SectorInfo>> getSectorsForWinningPoSt(
       const Address &miner,
-      MinerActorState &state,
-      const Randomness &post_rand) {
+      MinerActorStatePtr state,
+      const Randomness &post_rand,
+      IpldPtr ipld) {
     std::vector<SectorInfo> sectors;
     RleBitset sectors_bitset;
-    OUTCOME_TRY(deadlines, state.deadlines.get());
-    for (auto &_deadline : deadlines.due) {
-      OUTCOME_TRY(deadline, _deadline.get());
+    OUTCOME_TRY(deadlines, state->deadlines.get());
+    for (auto &deadline_cid : deadlines.due) {
+      OUTCOME_TRY(deadline, state->getDeadline(ipld, deadline_cid));
       OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &part) {
         for (auto sector : part.sectors) {
           if (!part.faults.has(sector)) {
@@ -149,7 +154,7 @@ namespace fc::api {
       }));
     }
     if (!sectors_bitset.empty()) {
-      OUTCOME_TRY(minfo, state.info.get());
+      OUTCOME_TRY(minfo, state->getInfo(ipld));
       OUTCOME_TRY(win_type,
                   primitives::sector::getRegisteredWinningPoStProof(
                       minfo.seal_proof_type));
@@ -160,7 +165,7 @@ namespace fc::api {
       std::vector<uint64_t> sector_ids{sectors_bitset.begin(),
                                        sectors_bitset.end()};
       for (auto &i : indices) {
-        OUTCOME_TRY(sector, state.sectors.get(sector_ids[i]));
+        OUTCOME_TRY(sector, state->sectors.get(sector_ids[i]));
         sectors.push_back(
             {minfo.seal_proof_type, sector.sector, sector.sealed_cid});
       }
@@ -349,7 +354,7 @@ namespace fc::api {
                       *interpreter_cache, ts_load, ipld, std::move(t)));
 
       OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
-      OUTCOME_TRY(minfo, miner_state.info.get());
+      OUTCOME_TRY(minfo, miner_state->getInfo(ipld));
       OUTCOME_TRY(worker_key, context.accountKey(minfo.worker));
       OUTCOME_TRY(block_sig, key_store->sign(worker_key, block_signable));
       block.header.block_sig = block_sig;
@@ -391,7 +396,7 @@ namespace fc::api {
                 OUTCOME_CB(info.beacons, _beacons);
                 TipsetContext lookback{
                     nullptr, {ipld, std::move(cached.state_root)}, {}};
-                OUTCOME_CB(auto state, lookback.minerState(miner));
+                OUTCOME_CB(auto miner_state, lookback.minerState(miner));
                 OUTCOME_CB(auto seed, codec::cbor::encode(miner));
                 auto post_rand{crypto::randomness::drawRandomness(
                     info.beacon().data,
@@ -399,7 +404,8 @@ namespace fc::api {
                     epoch,
                     seed)};
                 OUTCOME_CB(info.sectors,
-                           getSectorsForWinningPoSt(miner, state, post_rand));
+                           getSectorsForWinningPoSt(
+                               miner, miner_state, post_rand, ipld));
                 if (info.sectors.empty()) {
                   return cb(boost::none);
                 }
@@ -407,7 +413,7 @@ namespace fc::api {
                 OUTCOME_CB(auto claim, power_state->getClaim(miner));
                 info.miner_power = claim.qa_power;
                 info.network_power = power_state->total_qa_power;
-                OUTCOME_CB(auto minfo, state.info.get());
+                OUTCOME_CB(auto minfo, miner_state->getInfo(ipld));
                 OUTCOME_CB(info.worker, context.accountKey(minfo.worker));
                 info.sector_size = minfo.sector_size;
                 info.has_min_power = minerHasMinPower(
@@ -630,16 +636,16 @@ namespace fc::api {
         [=](auto &address, auto &tipset_key) -> outcome::result<Deadlines> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          return state.deadlines.get();
+          return state->deadlines.get();
         }};
     api->StateMinerFaults = {
         [=](auto address, auto tipset_key) -> outcome::result<RleBitset> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          OUTCOME_TRY(deadlines, state.deadlines.get());
+          OUTCOME_TRY(deadlines, state->deadlines.get());
           RleBitset faults;
-          for (auto &_deadline : deadlines.due) {
-            OUTCOME_TRY(deadline, _deadline.get());
+          for (auto &deadline_cid : deadlines.due) {
+            OUTCOME_TRY(deadline, state->getDeadline(ipld, deadline_cid));
             OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &part) {
               faults += part.faults;
               return outcome::success();
@@ -651,7 +657,7 @@ namespace fc::api {
         [=](auto &address, auto &tipset_key) -> outcome::result<MinerInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(miner_state, context.minerState(address));
-          return miner_state.info.get();
+          return miner_state->getInfo(ipld);
         }};
     api->StateMinerPartitions = {
         [=](auto &miner,
@@ -659,8 +665,9 @@ namespace fc::api {
             auto &tsk) -> outcome::result<std::vector<Partition>> {
           OUTCOME_TRY(context, tipsetContext(tsk));
           OUTCOME_TRY(state, context.minerState(miner));
-          OUTCOME_TRY(deadlines, state.deadlines.get());
-          OUTCOME_TRY(deadline, deadlines.due[_deadline].get());
+          OUTCOME_TRY(deadlines, state->deadlines.get());
+          OUTCOME_TRY(deadline,
+                      state->getDeadline(ipld, deadlines.due[_deadline]));
           std::vector<Partition> parts;
           OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &v) {
             parts.push_back({
@@ -691,7 +698,7 @@ namespace fc::api {
           // TODO (a.chernyshov) miner version depends on actor code/version
           OUTCOME_TRY(state, context.minerState(address));
           const auto deadline_info =
-              state.deadlineInfo(context.tipset->height());
+              state->deadlineInfo(context.tipset->height());
           return deadline_info.nextNotElapsed();
         }};
     api->StateMinerSectors = {
@@ -700,7 +707,7 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           std::vector<SectorOnChainInfo> sectors;
-          OUTCOME_TRY(state.sectors.visit([&](auto id, auto &info) {
+          OUTCOME_TRY(state->sectors.visit([&](auto id, auto &info) {
             if (!filter || filter->count(id)) {
               sectors.push_back(info);
             }
@@ -726,7 +733,7 @@ namespace fc::api {
             -> outcome::result<boost::optional<SectorOnChainInfo>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          return state.sectors.tryGet(sector_number);
+          return state->sectors.tryGet(sector_number);
         }};
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSectorPartition = {};

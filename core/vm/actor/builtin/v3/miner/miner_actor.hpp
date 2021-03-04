@@ -9,7 +9,9 @@
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
+  using libp2p::multi::Multiaddress;
   using primitives::TokenAmount;
+  using primitives::address::Address;
   using primitives::sector::RegisteredPoStProof;
 
   struct Construct : ActorMethodBase<1> {

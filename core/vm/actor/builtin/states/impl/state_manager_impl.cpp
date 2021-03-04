@@ -89,6 +89,23 @@ namespace fc::vm::actor::builtin::states {
     return provider.getMarketActorState(actor);
   }
 
+  // Miner Actor State
+  //============================================================================
+
+  MinerActorStatePtr StateManagerImpl::createMinerActorState(
+      ActorVersion version) const {
+    return createStatePtr<MinerActorState,
+                          v0::miner::MinerActorState,
+                          v2::miner::MinerActorState,
+                          v3::miner::MinerActorState>(version);
+  }
+
+  outcome::result<MinerActorStatePtr> StateManagerImpl::getMinerActorState()
+      const {
+    OUTCOME_TRY(actor, state_tree->get(receiver));
+    return provider.getMinerActorState(actor);
+  }
+
   // Multisig Actor State
   //============================================================================
 
@@ -222,8 +239,9 @@ namespace fc::vm::actor::builtin::states {
             state);  // TODO v3
 
       case ActorType::kMiner:
-        // TODO
-        return outcome::success();
+        return commitVersionState<v0::miner::MinerActorState,
+                                  v2::miner::MinerActorState,
+                                  v3::miner::MinerActorState>(state);
 
       case ActorType::kMultisig:
         return commitVersionState<v0::multisig::MultisigActorState,

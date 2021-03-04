@@ -31,6 +31,7 @@
 #include "testutil/mocks/markets/storage/chain_events/chain_events_mock.hpp"
 #include "testutil/mocks/miner/miner_mock.hpp"
 #include "testutil/mocks/sectorblocks/blocks_mock.hpp"
+#include "vm/actor/builtin/types/miner/miner_info.hpp"
 #include "vm/actor/builtin/v0/market/actor.hpp"
 
 namespace fc::markets::storage::test {
@@ -68,6 +69,7 @@ namespace fc::markets::storage::test {
   using pieceio::PieceIO;
   using pieceio::PieceIOImpl;
   using primitives::GasAmount;
+  using primitives::kChainEpochUndefined;
   using primitives::cid::getCidOfCbor;
   using primitives::sector::RegisteredSealProof;
   using primitives::tipset::Tipset;
@@ -77,8 +79,8 @@ namespace fc::markets::storage::test {
   using provider::StoredAsk;
   using sectorblocks::SectorBlocksMock;
   using vm::VMExitCode;
+  using vm::actor::builtin::types::miner::MinerInfo;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
-  using vm::actor::builtin::v0::miner::MinerInfo;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::runtime::MessageReceipt;
@@ -265,7 +267,9 @@ namespace fc::markets::storage::test {
                              .peer_id = {},
                              .multiaddrs = {},
                              .seal_proof_type = {},
+                             .window_post_proof_type = {},
                              .sector_size = {},
+                             .consensus_fault_elapsed = kChainEpochUndefined,
                              .window_post_partition_sectors = {}};
           }};
 

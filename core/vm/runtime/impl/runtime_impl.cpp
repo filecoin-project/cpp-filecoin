@@ -9,14 +9,8 @@
 #include "primitives/tipset/chain.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/keystore.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v0/miner/policy.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
-#include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime_error.hpp"
@@ -24,8 +18,9 @@
 #include "vm/version.hpp"
 
 namespace fc::vm::runtime {
-  using fc::primitives::BigInt;
-  using fc::primitives::address::Protocol;
+  using actor::builtin::states::StateProvider;
+  using primitives::BigInt;
+  using primitives::address::Protocol;
   using toolchain::Toolchain;
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
@@ -315,7 +310,7 @@ namespace fc::vm::runtime {
 
   // TODO: reuse in slash filter
   inline bool isNearOrange(ChainEpoch epoch) {
-    using actor::builtin::v0::miner::kChainFinalityish;
+    using actor::builtin::types::miner::kChainFinalityish;
     using version::kUpgradeOrangeHeight;
     return epoch > kUpgradeOrangeHeight - kChainFinalityish
            && epoch < kUpgradeOrangeHeight + kChainFinalityish;
@@ -370,7 +365,8 @@ namespace fc::vm::runtime {
         if (getNetworkVersion() >= NetworkVersion::kVersion7
             && static_cast<ChainEpoch>(block.height)
                    < getCurrentEpoch()
-                         - vm::actor::builtin::v0::miner::kChainFinalityish) {
+                         - vm::actor::builtin::types::miner::
+                             kChainFinalityish) {
           return false;
         }
         auto &env{execution_->env};
@@ -384,29 +380,15 @@ namespace fc::vm::runtime {
         ts_lock.unlock();
 
         const StateTreeImpl state_tree{env->ipld, cached.state_root};
-        OUTCOME_TRY(actor, state_tree.get(block.miner));
-        Address worker;
         auto &ipld{execution_->charging_ipld};
-        if (actor.code == actor::builtin::v0::kStorageMinerCodeId) {
-          OUTCOME_TRY(
-              state,
-              ipld->getCbor<actor::builtin::v0::miner::State>(actor.head));
-          OUTCOME_TRY(info, state.info.get());
-          worker = info.worker;
-        } else if (actor.code == actor::builtin::v2::kStorageMinerCodeId) {
-          OUTCOME_TRY(
-              state,
-              ipld->getCbor<actor::builtin::v2::miner::State>(actor.head));
-          OUTCOME_TRY(info, state.info.get());
-          worker = info.worker;
-        } else if (actor.code == actor::builtin::v3::kStorageMinerCodeId) {
-          OUTCOME_TRY(
-              state,
-              ipld->getCbor<actor::builtin::v3::miner::State>(actor.head));
-          OUTCOME_TRY(info, state.info.get());
-          worker = info.worker;
-        }
-        OUTCOME_TRY(key, resolveKey(*execution_->state_tree, ipld, worker));
+        StateProvider provider(ipld);
+
+        OUTCOME_TRY(actor, state_tree.get(block.miner));
+        OUTCOME_TRY(state, provider.getMinerActorState(actor));
+        OUTCOME_TRY(miner_info, state->getInfo(ipld));
+
+        OUTCOME_TRY(
+            key, resolveKey(*execution_->state_tree, ipld, miner_info.worker));
         return checkBlockSignature(block, key);
       }};
       auto verify{[&](const BlockHeader &block) -> outcome::result<bool> {

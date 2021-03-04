@@ -37,6 +37,10 @@ namespace fc::vm::actor::builtin::states {
     virtual outcome::result<MarketActorStatePtr> getMarketActorState()
         const = 0;
 
+    virtual MinerActorStatePtr createMinerActorState(
+        ActorVersion version) const = 0;
+    virtual outcome::result<MinerActorStatePtr> getMinerActorState() const = 0;
+
     virtual MultisigActorStatePtr createMultisigActorState(
         ActorVersion version) const = 0;
     virtual outcome::result<MultisigActorStatePtr> getMultisigActorState()

@@ -10,6 +10,8 @@
 #include "miner/storage_fsm/impl/checks.hpp"
 #include "miner/storage_fsm/impl/sector_stat_impl.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 #define WAIT(cb)                                                         \
   logger_->info("sector {}: wait before retrying", info->sector_number); \
@@ -27,12 +29,11 @@
 
 namespace fc::mining {
   using api::SectorSize;
-  namespace miner = vm::actor::builtin::v0::miner;
   using checks::ChecksError;
   using types::kDealSectorPriority;
   using types::Piece;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::v0::miner::kMinSectorExpiration;
+  using vm::actor::builtin::types::miner::kMinSectorExpiration;
   using vm::actor::builtin::v0::miner::ProveCommitSector;
 
   Ticks getWaitingTime(uint64_t errors_count = 0) {
@@ -1051,7 +1052,7 @@ namespace fc::mining {
 
     auto random_height =
         precommit_info->precommit_epoch
-        + vm::actor::builtin::v0::miner::kPreCommitChallengeDelay;
+        + vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
 
     auto maybe_error = events_->chainAt(
         [=](const Tipset &,
@@ -1628,7 +1629,7 @@ namespace fc::mining {
     OUTCOME_TRY(head, api_->ChainHead());
 
     ChainEpoch ticket_epoch =
-        head->height() - vm::actor::builtin::v0::miner::kChainFinalityish;
+        head->height() - vm::actor::builtin::types::miner::kChainFinalityish;
 
     OUTCOME_TRY(address_encoded, codec::cbor::encode(miner_address_));
 

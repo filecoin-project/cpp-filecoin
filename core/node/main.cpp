@@ -5,12 +5,15 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <libp2p/multi/multiaddress.hpp>
 
 #include "api/make.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
 #include "primitives/address/config.hpp"
 
 namespace fc {
+  using libp2p::multi::Multiaddress;
+
   struct Config {
     boost::filesystem::path repo_path;
     int p2p_port, api_port;

@@ -68,6 +68,18 @@ namespace fc::vm::actor::builtin::states {
                              v2::market::MarketActorState>(actor);  // TODO v3
   }
 
+  outcome::result<MinerActorStatePtr> StateProvider::getMinerActorState(
+      const Actor &actor) const {
+    if (!CommonAddressMatcher::isStorageMinerActor(actor.code)) {
+      return VMExitCode::kSysErrIllegalActor;
+    }
+
+    return getCommonStatePtr<MinerActorState,
+                             v0::miner::MinerActorState,
+                             v2::miner::MinerActorState,
+                             v3::miner::MinerActorState>(actor);
+  }
+
   outcome::result<MultisigActorStatePtr> StateProvider::getMultisigActorState(
       const Actor &actor) const {
     if (!CommonAddressMatcher::isMultisigActor(actor.code)) {

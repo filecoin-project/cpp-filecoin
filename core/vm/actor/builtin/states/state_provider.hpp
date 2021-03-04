@@ -14,6 +14,7 @@
 #include "vm/actor/builtin/states/cron_actor_state.hpp"
 #include "vm/actor/builtin/states/init_actor_state.hpp"
 #include "vm/actor/builtin/states/market_actor_state.hpp"
+#include "vm/actor/builtin/states/miner_actor_state.hpp"
 #include "vm/actor/builtin/states/multisig_actor_state.hpp"
 #include "vm/actor/builtin/states/payment_channel_actor_state.hpp"
 #include "vm/actor/builtin/states/power_actor_state.hpp"
@@ -38,6 +39,9 @@ namespace fc::vm::actor::builtin::states {
         const Actor &actor) const;
 
     outcome::result<MarketActorStatePtr> getMarketActorState(
+        const Actor &actor) const;
+
+    outcome::result<MinerActorStatePtr> getMinerActorState(
         const Actor &actor) const;
 
     outcome::result<MultisigActorStatePtr> getMultisigActorState(

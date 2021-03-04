@@ -8,7 +8,10 @@
 #include <boost/algorithm/string.hpp>
 
 #include "adt/address_key.hpp"
+#include "adt/uvarint_key.hpp"
 #include "codec/cbor/cbor_resolve.hpp"
+#include "storage/amt/amt.hpp"
+#include "storage/hamt/hamt.hpp"
 
 namespace fc::api {
   using boost::starts_with;
