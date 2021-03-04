@@ -5,10 +5,12 @@
 
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 
+#include "vm/actor/builtin/types/reward/policy.hpp"
+#include "vm/actor/builtin/types/reward/reward_actor_calculus.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor_calculus.hpp"
 
 namespace fc::vm::actor::builtin::v0::reward {
+  using namespace types::reward;
 
   /// The expected number of block producers in each epoch.
   constexpr auto kExpectedLeadersPerEpoch{5};

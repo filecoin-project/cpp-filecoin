@@ -7,8 +7,6 @@
 
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor_calculus.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::reward {
   using common::smoothing::FilterEstimate;

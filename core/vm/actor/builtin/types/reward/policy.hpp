@@ -7,7 +7,7 @@
 
 #include "primitives/types.hpp"
 
-namespace fc::vm::actor::builtin::v0::reward {
+namespace fc::vm::actor::builtin::types::reward {
   using primitives::BigInt;
   using primitives::StoragePower;
   using primitives::TokenAmount;
@@ -19,6 +19,9 @@ namespace fc::vm::actor::builtin::v0::reward {
 
   /// 1EiB
   static const StoragePower kBaselineInitialValueV0 = BigInt(1) << 60;
+
+  /// 2.5057116798121726 EiB
+  static const StoragePower kBaselineInitialValueV2{"2888888880000000000"};
 
   /**
    * 36.266260308195979333 FIL
@@ -53,4 +56,8 @@ namespace fc::vm::actor::builtin::v0::reward {
    */
   static const BigInt kBaselineExponentV3{
       "340282591298641078465964189926313473653"};
-}  // namespace fc::vm::actor::builtin::v0::reward
+
+  /// PenaltyMultiplier is the factor miner penalties are scaled up by
+  constexpr uint kPenaltyMultiplier = 3;
+
+}  // namespace fc::vm::actor::builtin::types::reward

@@ -7,7 +7,6 @@
 
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/states/reward_actor_state.hpp"
-#include "vm/actor/builtin/v2/reward/policy.hpp"
 
 namespace fc::vm::actor::builtin::v2::reward {
   using primitives::StoragePower;

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "vm/actor/builtin/types/reward/policy.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v2/reward/policy.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor_state.hpp"
 
@@ -18,8 +18,7 @@ namespace fc::vm::actor::builtin::v2::reward {
   using testing::Return;
   using testutil::vm::actor::builtin::reward::kEpochZeroReward;
   using testutil::vm::actor::builtin::reward::RewardActorTestFixture;
-  using v0::reward::kInitialRewardPositionEstimate;
-  using v0::reward::kInitialRewardVelocityEstimate;
+  using namespace types::reward;
 
   /**
    * Fixture with state of Reward Actor v2

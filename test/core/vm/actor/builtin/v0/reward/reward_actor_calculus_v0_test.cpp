@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/reward/reward_actor_calculus.hpp"
+#include "vm/actor/builtin/types/reward/reward_actor_calculus.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
@@ -11,9 +11,9 @@
 #include "const.hpp"
 #include "testutil/resources/parse.hpp"
 #include "testutil/resources/resources.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
+#include "vm/actor/builtin/types/reward/policy.hpp"
 
-namespace fc::vm::actor::builtin::v0::reward {
+namespace fc::vm::actor::builtin::types::reward {
   using common::math::kPrecision128;
   using BigFloat = boost::multiprecision::cpp_dec_float_100;
 
@@ -154,4 +154,4 @@ namespace fc::vm::actor::builtin::v0::reward {
                               Params{StoragePower{"513633559722596517"},
                                      BigFloat{1e-8}}));
 
-}  // namespace fc::vm::actor::builtin::v0::reward
+}  // namespace fc::vm::actor::builtin::types::reward

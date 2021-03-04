@@ -9,7 +9,7 @@
 #include "vm/actor/builtin/states/reward_actor_state.hpp"
 #include "vm/version.hpp"
 
-namespace fc::vm::actor::builtin::v0::reward {
+namespace fc::vm::actor::builtin::types::reward {
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::SpaceTime;
@@ -107,4 +107,4 @@ namespace fc::vm::actor::builtin::v0::reward {
   void updateSmoothedEstimates(states::RewardActorState &state,
                                const ChainEpoch &delta);
 
-}  // namespace fc::vm::actor::builtin::v0::reward
+}  // namespace fc::vm::actor::builtin::types::reward

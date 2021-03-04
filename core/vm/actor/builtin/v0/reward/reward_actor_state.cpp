@@ -6,11 +6,13 @@
 #include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 #include "common/math/math.hpp"
 #include "common/smoothing/alpha_beta_filter.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor_calculus.hpp"
+#include "vm/actor/builtin/types/reward/policy.hpp"
+#include "vm/actor/builtin/types/reward/reward_actor_calculus.hpp"
 
 namespace fc::vm::actor::builtin::v0::reward {
   using common::smoothing::FilterEstimate;
   using primitives::kChainEpochUndefined;
+  using namespace types::reward;
 
   void RewardActorState::initialize(
       const StoragePower &current_realized_power) {

@@ -3,12 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/reward/reward_actor_calculus.hpp"
+#include "vm/actor/builtin/types/reward/reward_actor_calculus.hpp"
 
 #include "common/math/math.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 
-namespace fc::vm::actor::builtin::v0::reward {
+namespace fc::vm::actor::builtin::types::reward {
   using common::math::expneg;
   using common::math::kLambda;
   using common::math::kPrecision128;
@@ -132,4 +131,4 @@ namespace fc::vm::actor::builtin::v0::reward {
     state.this_epoch_reward_smoothed = nextEstimate(
         state.this_epoch_reward_smoothed, state.this_epoch_reward, delta);
   }
-}  // namespace fc::vm::actor::builtin::v0::reward
+}  // namespace fc::vm::actor::builtin::types::reward

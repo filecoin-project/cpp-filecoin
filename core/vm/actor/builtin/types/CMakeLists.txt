@@ -5,4 +5,5 @@
 
 add_subdirectory(multisig)
 add_subdirectory(miner)
+add_subdirectory(reward)
 add_subdirectory(storage_power)
