@@ -39,4 +39,6 @@ addtest(manager_test
 
 target_link_libraries(manager_test
         manager
+        base_fs_test
+        Boost::filesystem
         )
