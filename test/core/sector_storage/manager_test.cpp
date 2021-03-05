@@ -10,6 +10,7 @@
 #include <sector_storage/stores/store_error.hpp>
 
 #include "testutil/literals.hpp"
+#include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/mocks/sector_storage/scheduler_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/local_storage_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/local_store_mock.hpp"
@@ -63,6 +64,12 @@ namespace fc::sector_storage {
       EXPECT_CALL(*scheduler_, doNewWorker(_))
           .WillRepeatedly(::testing::Return());
 
+      proof_engine_ = std::make_shared<proofs::ProofEngineMock>();
+
+      EXPECT_CALL(*proof_engine_, getGPUDevices())
+          .WillRepeatedly(
+              testing::Return(outcome::success(std::vector<std::string>())));
+
       auto maybe_manager =
           ManagerImpl::newManager(remote_store_,
                                   scheduler_,
@@ -71,7 +78,8 @@ namespace fc::sector_storage {
                                       .allow_precommit_2 = true,
                                       .allow_commit = true,
                                       .allow_unseal = true,
-                                  });
+                                  },
+                                  proof_engine_);
       if (maybe_manager.has_value()) {
         manager_ = std::move(maybe_manager.value());
       } else {
@@ -82,6 +90,7 @@ namespace fc::sector_storage {
    protected:
     RegisteredSealProof seal_proof_type_;
 
+    std::shared_ptr<proofs::ProofEngineMock> proof_engine_;
     std::shared_ptr<SectorIndexMock> sector_index_;
     std::shared_ptr<LocalStorageMock> local_storage_;
     std::shared_ptr<LocalStoreMock> local_store_;
@@ -327,6 +336,304 @@ namespace fc::sector_storage {
                                               non_exist_sector,
                                               cannot_lock_sector));
   }
+
+  TEST_F(ManagerTest, GetSectorSize) {
+    EXPECT_OUTCOME_TRUE(ssize,
+                        primitives::sector::getSectorSize(seal_proof_type_));
+    ASSERT_EQ(manager_->getSectorSize(), ssize);
+  }
+
+  TEST_F(ManagerTest, GetSectorSizeWrongProofType) {
+    auto proof = static_cast<RegisteredSealProof>(-1);
+
+    EXPECT_CALL(*scheduler_, getSealProofType())
+        .WillOnce(testing::Return(proof));
+
+    EXPECT_OUTCOME_TRUE(manager,
+                        ManagerImpl::newManager(remote_store_,
+                                                scheduler_,
+                                                SealerConfig{
+                                                    .allow_precommit_1 = true,
+                                                    .allow_precommit_2 = true,
+                                                    .allow_commit = true,
+                                                    .allow_unseal = true,
+                                                }));
+
+    ASSERT_EQ(manager->getSectorSize(), 0);
+  }
+
+  TEST_F(ManagerTest, GenerateWinningPoSt) {
+    EXPECT_OUTCOME_TRUE(
+        post_proof,
+        primitives::sector::getRegisteredWinningPoStProof(seal_proof_type_));
+
+    EXPECT_OUTCOME_TRUE(randomness,
+                        PoStRandomness::fromString(std::string(32, '\xff')));
+
+    auto new_randomness = randomness;
+    new_randomness[31] &= 0x3f;
+
+    std::vector<proofs::PoStProof> result = {{
+        .registered_proof = post_proof,
+        .proof = {1, 2, 3, 4, 5},
+    }};
+
+    uint64_t miner_id = 42;
+
+    std::vector<SectorInfo> public_sectors = {
+        SectorInfo{.registered_proof = seal_proof_type_,
+                   .sector = 1,
+                   .sealed_cid = "010001020001"_cid},
+    };
+
+    SectorId success_sector{
+        .miner = miner_id,
+        .sector = public_sectors[0].sector,
+    };
+
+    SectorPaths success_paths{
+        .id = success_sector,
+        .unsealed = "",
+        .sealed = (base_path / toString(SectorFileType::FTSealed)
+                   / primitives::sector_file::sectorName(success_sector))
+                      .string(),
+        .cache = (base_path / toString(SectorFileType::FTCache)
+                  / primitives::sector_file::sectorName(success_sector))
+                     .string(),
+    };
+
+    AcquireSectorResponse success_response{
+        .paths = success_paths,
+        .storages = {},
+    };
+
+    EXPECT_CALL(
+        *local_store_,
+        acquireSector(success_sector,
+                      seal_proof_type_,
+                      static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                  | SectorFileType::FTCache),
+                      SectorFileType::FTNone,
+                      PathType::kStorage,
+                      AcquireMode::kMove))
+        .WillOnce(testing::Return(outcome::success(success_response)));
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageTryLock(success_sector,
+                       static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                   | SectorFileType::FTCache),
+                       SectorFileType::FTNone))
+        .WillOnce(testing::Return(
+            testing::ByMove(std::make_unique<stores::WLock>())));
+
+    std::vector<proofs::PrivateSectorInfo> private_sector = {
+        proofs::PrivateSectorInfo{.info = public_sectors[0],
+                                  .cache_dir_path = success_paths.cache,
+                                  .post_proof_type = post_proof,
+                                  .sealed_sector_path = success_paths.sealed}};
+
+    auto s = proofs::newSortedPrivateSectorInfo(private_sector);
+
+    EXPECT_CALL(*proof_engine_,
+                generateWinningPoSt(miner_id, s, new_randomness))
+        .WillOnce(testing::Return(outcome::success(result)));
+
+    EXPECT_OUTCOME_EQ(
+        manager_->generateWinningPoSt(miner_id, public_sectors, randomness),
+        result)
+  }
+
+  TEST_F(ManagerTest, GenerateWinningPoStWithSkip) {
+    EXPECT_OUTCOME_TRUE(
+        post_proof,
+        primitives::sector::getRegisteredWinningPoStProof(seal_proof_type_));
+
+    EXPECT_OUTCOME_TRUE(randomness,
+                        PoStRandomness::fromString(std::string(32, '\xff')));
+
+    auto new_randomness = randomness;
+    new_randomness[31] &= 0x3f;
+
+    std::vector<proofs::PoStProof> result = {{
+        .registered_proof = post_proof,
+        .proof = {1, 2, 3, 4, 5},
+    }};
+
+    uint64_t miner_id = 42;
+
+    std::vector<SectorInfo> public_sectors = {
+        SectorInfo{.registered_proof = seal_proof_type_,
+                   .sector = 1,
+                   .sealed_cid = "010001020001"_cid},
+        SectorInfo{.registered_proof = seal_proof_type_,
+                   .sector = 2,
+                   .sealed_cid = "010001020002"_cid},
+    };
+
+    EXPECT_CALL(*sector_index_,
+                storageTryLock(
+                    SectorId{
+                        .miner = miner_id,
+                        .sector = public_sectors[1].sector,
+                    },
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                    SectorFileType::FTNone))
+        .WillOnce(testing::Return(testing::ByMove(nullptr)));
+
+    SectorId success_sector{
+        .miner = miner_id,
+        .sector = public_sectors[0].sector,
+    };
+
+    SectorPaths success_paths{
+        .id = success_sector,
+        .unsealed = "",
+        .sealed = (base_path / toString(SectorFileType::FTSealed)
+                   / primitives::sector_file::sectorName(success_sector))
+                      .string(),
+        .cache = (base_path / toString(SectorFileType::FTCache)
+                  / primitives::sector_file::sectorName(success_sector))
+                     .string(),
+    };
+
+    AcquireSectorResponse success_response{
+        .paths = success_paths,
+        .storages = {},
+    };
+
+    EXPECT_CALL(
+        *local_store_,
+        acquireSector(success_sector,
+                      seal_proof_type_,
+                      static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                  | SectorFileType::FTCache),
+                      SectorFileType::FTNone,
+                      PathType::kStorage,
+                      AcquireMode::kMove))
+        .WillOnce(testing::Return(outcome::success(success_response)));
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageTryLock(success_sector,
+                       static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                   | SectorFileType::FTCache),
+                       SectorFileType::FTNone))
+        .WillOnce(testing::Return(
+            testing::ByMove(std::make_unique<stores::WLock>())));
+
+    EXPECT_OUTCOME_ERROR(
+        ManagerErrors::kSomeSectorSkipped,
+        manager_->generateWinningPoSt(miner_id, public_sectors, randomness))
+  }
+
+  TEST_F(ManagerTest, GenerateWindowPoSt) {
+    EXPECT_OUTCOME_TRUE(
+        post_proof,
+        primitives::sector::getRegisteredWindowPoStProof(seal_proof_type_));
+
+    EXPECT_OUTCOME_TRUE(randomness,
+                        PoStRandomness::fromString(std::string(32, '\xff')));
+
+    auto new_randomness = randomness;
+    new_randomness[31] &= 0x3f;
+
+    std::vector<proofs::PoStProof> proof = {{
+        .registered_proof = post_proof,
+        .proof = {1, 2, 3, 4, 5},
+    }};
+
+    uint64_t miner_id = 42;
+
+    std::vector<SectorInfo> public_sectors = {
+        SectorInfo{.registered_proof = seal_proof_type_,
+                   .sector = 1,
+                   .sealed_cid = "010001020001"_cid},
+        SectorInfo{.registered_proof = seal_proof_type_,
+                   .sector = 2,
+                   .sealed_cid = "010001020002"_cid},
+    };
+
+    std::vector<SectorId> skipped({
+        SectorId{
+            .miner = miner_id,
+            .sector = public_sectors[1].sector,
+        },
+    });
+
+    Prover::WindowPoStResponse result{
+        .proof = proof,
+        .skipped = skipped,
+    };
+
+    EXPECT_CALL(*sector_index_,
+                storageTryLock(
+                    SectorId{
+                        .miner = miner_id,
+                        .sector = public_sectors[1].sector,
+                    },
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                    SectorFileType::FTNone))
+        .WillOnce(testing::Return(testing::ByMove(nullptr)));
+
+    SectorId success_sector{
+        .miner = miner_id,
+        .sector = public_sectors[0].sector,
+    };
+
+    SectorPaths success_paths{
+        .id = success_sector,
+        .unsealed = "",
+        .sealed = (base_path / toString(SectorFileType::FTSealed)
+                   / primitives::sector_file::sectorName(success_sector))
+                      .string(),
+        .cache = (base_path / toString(SectorFileType::FTCache)
+                  / primitives::sector_file::sectorName(success_sector))
+                     .string(),
+    };
+
+    AcquireSectorResponse success_response{
+        .paths = success_paths,
+        .storages = {},
+    };
+
+    EXPECT_CALL(
+        *local_store_,
+        acquireSector(success_sector,
+                      seal_proof_type_,
+                      static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                  | SectorFileType::FTCache),
+                      SectorFileType::FTNone,
+                      PathType::kStorage,
+                      AcquireMode::kMove))
+        .WillOnce(testing::Return(outcome::success(success_response)));
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageTryLock(success_sector,
+                       static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                   | SectorFileType::FTCache),
+                       SectorFileType::FTNone))
+        .WillOnce(testing::Return(
+            testing::ByMove(std::make_unique<stores::WLock>())));
+
+    std::vector<proofs::PrivateSectorInfo> private_sector = {
+        proofs::PrivateSectorInfo{.info = public_sectors[0],
+                                  .cache_dir_path = success_paths.cache,
+                                  .post_proof_type = post_proof,
+                                  .sealed_sector_path = success_paths.sealed}};
+
+    auto s = proofs::newSortedPrivateSectorInfo(private_sector);
+
+    EXPECT_CALL(*proof_engine_, generateWindowPoSt(miner_id, s, new_randomness))
+        .WillOnce(testing::Return(outcome::success(proof)));
+
+    EXPECT_OUTCOME_EQ(
+        manager_->generateWindowPoSt(miner_id, public_sectors, randomness),
+        result)
+  }  // namespace fc::sector_storage
 
   /**
    * @given absolute path

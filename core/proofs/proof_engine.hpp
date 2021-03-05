@@ -48,12 +48,23 @@ namespace fc::proofs {
     RegisteredPoStProof post_proof_type;
     std::string sealed_sector_path;
   };
+  inline bool operator==(const PrivateSectorInfo &lhs,
+                         const PrivateSectorInfo &rhs) {
+    return lhs.info == rhs.info && lhs.cache_dir_path == rhs.cache_dir_path
+           && lhs.post_proof_type == rhs.post_proof_type
+           && lhs.sealed_sector_path == rhs.sealed_sector_path;
+  }
 
   // SortedPrivateSectorInfo is a sorted vector of PrivateSectorInfo
   struct SortedPrivateSectorInfo {
    public:
     std::vector<PrivateSectorInfo> values;
   };
+
+  inline bool operator==(const SortedPrivateSectorInfo &lhs,
+                         const SortedPrivateSectorInfo &rhs) {
+    return lhs.values == rhs.values;
+  }
 
   struct RequiredPadding {
     std::vector<PaddedPieceSize> pads;

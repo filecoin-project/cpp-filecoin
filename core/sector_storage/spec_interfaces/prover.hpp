@@ -36,5 +36,10 @@ namespace fc::sector_storage {
         gsl::span<const SectorInfo> sector_info,
         PoStRandomness randomness) = 0;
   };
+
+  inline bool operator==(const Prover::WindowPoStResponse &lhs,
+                         const Prover::WindowPoStResponse &rhs) {
+    return lhs.proof == rhs.proof && lhs.skipped == rhs.skipped;
+  };
 }  // namespace fc::sector_storage
 #endif  // CPP_FILECOIN_SECTOR_STROAGE_SPEC_INTERFACES_PROVER_HPP

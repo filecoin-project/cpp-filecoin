@@ -130,7 +130,6 @@ namespace fc::sector_storage {
     outcome::result<PubToPrivateResponse> publicSectorToPrivate(
         ActorId miner,
         gsl::span<const SectorInfo> sector_info,
-        gsl::span<const SectorNumber> faults,
         const std::function<outcome::result<RegisteredPoStProof>(
             RegisteredSealProof)> &to_post_transform);
 

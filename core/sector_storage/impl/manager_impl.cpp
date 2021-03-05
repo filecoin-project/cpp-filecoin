@@ -279,7 +279,6 @@ namespace fc::sector_storage {
                 publicSectorToPrivate(
                     miner_id,
                     sector_info,
-                    {},
                     primitives::sector::getRegisteredWinningPoStProof));
 
     if (!res.skipped.empty()) {
@@ -306,7 +305,6 @@ namespace fc::sector_storage {
                 publicSectorToPrivate(
                     miner_id,
                     sector_info,
-                    {},
                     primitives::sector::getRegisteredWindowPoStProof));
 
     OUTCOME_TRYA(
@@ -635,22 +633,12 @@ namespace fc::sector_storage {
   ManagerImpl::publicSectorToPrivate(
       ActorId miner,
       gsl::span<const SectorInfo> sector_info,
-      gsl::span<const SectorNumber> faults,
       const std::function<outcome::result<RegisteredPoStProof>(
           RegisteredSealProof)> &to_post_transform) {
     PubToPrivateResponse result;
 
-    std::unordered_set<SectorNumber> faults_set;
-    for (const auto &fault : faults) {
-      faults_set.insert(fault);
-    }
-
     std::vector<proofs::PrivateSectorInfo> out{};
     for (const auto &sector : sector_info) {
-      if (faults_set.find(sector.sector) != faults_set.end()) {
-        continue;
-      }
-
       SectorId sector_id{
           .miner = miner,
           .sector = sector.sector,
