@@ -7,7 +7,7 @@
 
 #include "common/libp2p/multi/cbor_multiaddress.hpp"
 #include "primitives/address/address_codec.hpp"
-#include "vm/actor/builtin/types/miner/dead_line.hpp"
+#include "vm/actor/builtin/types/miner/deadline.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
@@ -24,7 +24,12 @@ namespace fc::vm::actor::builtin::v0::miner {
              sector_size,
              window_post_partition_sectors)
 
-  struct Deadline : types::miner::Deadline {};
+  struct Deadline : types::miner::Deadline {
+    Deadline() = default;
+    Deadline(const types::miner::Deadline &other)
+        : types::miner::Deadline(other) {}
+    Deadline(types::miner::Deadline &&other) : types::miner::Deadline(other) {}
+  };
   CBOR_TUPLE(Deadline,
              partitions,
              expirations_epochs,

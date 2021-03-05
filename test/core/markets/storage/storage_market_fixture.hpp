@@ -269,8 +269,9 @@ namespace fc::markets::storage::test {
                              .seal_proof_type = {},
                              .window_post_proof_type = {},
                              .sector_size = {},
+                             .window_post_partition_sectors = {},
                              .consensus_fault_elapsed = kChainEpochUndefined,
-                             .window_post_partition_sectors = {}};
+                             .pending_owner_address = {}};
           }};
 
       api->StateMarketBalance = {

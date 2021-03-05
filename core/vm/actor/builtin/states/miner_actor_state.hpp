@@ -14,7 +14,7 @@
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "primitives/types.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "vm/actor/builtin/types/miner/dead_line.hpp"
+#include "vm/actor/builtin/types/miner/deadline.hpp"
 #include "vm/actor/builtin/types/miner/deadline_info.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"

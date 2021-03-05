@@ -29,7 +29,8 @@ namespace fc::vm::actor::builtin::types::miner {
         const std::vector<Address> &control,
         const Buffer &peer_id,
         const std::vector<Multiaddress> &multiaddrs,
-        const RegisteredSealProof &seal_proof_type) {
+        const RegisteredSealProof &seal_proof_type,
+        const RegisteredPoStProof &window_post_proof_type) {
       OUTCOME_TRY(sector_size,
                   primitives::sector::getSectorSize(seal_proof_type));
       OUTCOME_TRY(partition_sectors,
@@ -42,33 +43,11 @@ namespace fc::vm::actor::builtin::types::miner {
                        .peer_id = peer_id,
                        .multiaddrs = multiaddrs,
                        .seal_proof_type = seal_proof_type,
-                       .sector_size = sector_size,
-                       .consensus_fault_elapsed = kChainEpochUndefined,
-                       .window_post_partition_sectors = partition_sectors};
-    }
-
-    static outcome::result<MinerInfo> make(
-        const Address &owner,
-        const Address &worker,
-        const std::vector<Address> &control,
-        const Buffer &peer_id,
-        const std::vector<Multiaddress> &multiaddrs,
-        const RegisteredPoStProof &window_post_proof_type) {
-      OUTCOME_TRY(sector_size,
-                  primitives::sector::getSectorSize(window_post_proof_type));
-      OUTCOME_TRY(partition_sectors,
-                  primitives::sector::getWindowPoStPartitionSectors(
-                      window_post_proof_type));
-      return MinerInfo{.owner = owner,
-                       .worker = worker,
-                       .control = control,
-                       .pending_worker_key = boost::none,
-                       .peer_id = peer_id,
-                       .multiaddrs = multiaddrs,
                        .window_post_proof_type = window_post_proof_type,
                        .sector_size = sector_size,
+                       .window_post_partition_sectors = partition_sectors,
                        .consensus_fault_elapsed = kChainEpochUndefined,
-                       .window_post_partition_sectors = partition_sectors};
+                       .pending_owner_address = boost::none};
     }
 
     /**

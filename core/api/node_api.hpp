@@ -15,7 +15,7 @@
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/mpool/mpool.hpp"
-#include "vm/actor/builtin/types/miner/dead_line.hpp"
+#include "vm/actor/builtin/types/miner/deadline.hpp"
 #include "vm/actor/builtin/types/miner/deadline_info.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"

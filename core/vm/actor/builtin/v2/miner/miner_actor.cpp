@@ -180,7 +180,8 @@ namespace fc::vm::actor::builtin::v2::miner {
                                        control_addresses,
                                        params.peer_id,
                                        params.multiaddresses,
-                                       params.seal_proof_type),
+                                       params.seal_proof_type,
+                                       RegisteredPoStProof::undefined),
                        VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(state->setInfo(runtime.getIpfsDatastore(), miner_info));
 

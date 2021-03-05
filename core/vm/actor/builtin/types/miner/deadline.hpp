@@ -16,6 +16,10 @@ namespace fc::vm::actor::builtin::types::miner {
 
   /** Deadline holds the state for all sectors due at a specific deadline */
   struct Deadline {
+    Deadline() = default;
+    Deadline(const Deadline &other) = default;
+    Deadline(Deadline &&other) = default;
+
     /**
      * Makes empty deadline with adt::Array already flushed on ipld in order not
      * to charge extra gas for creation.
@@ -26,8 +30,8 @@ namespace fc::vm::actor::builtin::types::miner {
       // TODO (a.chernyshov) initialize amt with correct bitwidth
       // construct with empty already cid stored in ipld to avoid gas charge
       Deadline deadline;
-      deadline.partitions = adt::Array<Partition>(empty_amt_cid, ipld);
-      deadline.expirations_epochs = adt::Array<RleBitset>(empty_amt_cid, ipld);
+      deadline.partitions = {empty_amt_cid, ipld};
+      deadline.expirations_epochs = {empty_amt_cid, ipld};
       return deadline;
     }
 
