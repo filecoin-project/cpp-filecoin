@@ -731,12 +731,14 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "MinerPower", v.miner);
       Set(j, "TotalPower", v.total);
+      Set(j, "HasMinPower", v.has_min_power);
       return j;
     }
 
     DECODE(MinerPower) {
       decode(v.miner, Get(j, "MinerPower"));
       decode(v.total, Get(j, "TotalPower"));
+      decode(v.has_min_power, Get(j, "HasMinPower"));
     }
 
     ENCODE(Claim) {

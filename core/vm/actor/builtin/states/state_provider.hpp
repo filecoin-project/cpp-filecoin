@@ -27,7 +27,6 @@ namespace fc::vm::actor::builtin::states {
   class StateProvider {
    public:
     explicit StateProvider(IpldPtr ipld);
-    ~StateProvider() = default;
 
     outcome::result<AccountActorStatePtr> getAccountActorState(
         const Actor &actor) const;
@@ -76,20 +75,22 @@ namespace fc::vm::actor::builtin::states {
         const Actor &actor) const {
       const auto version = getVersion(actor.code);
 
+      std::shared_ptr<T> state;
       switch (version) {
         case ActorVersion::kVersion0: {
-          OUTCOME_TRY(state, getStatePtr<Tv0>(actor.head));
-          return std::static_pointer_cast<T>(state);
+          OUTCOME_TRYA(state, getStatePtr<Tv0>(actor.head));
+          break;
         }
         case ActorVersion::kVersion2: {
-          OUTCOME_TRY(state, getStatePtr<Tv2>(actor.head));
-          return std::static_pointer_cast<T>(state);
+          OUTCOME_TRYA(state, getStatePtr<Tv2>(actor.head));
+          break;
         }
         case ActorVersion::kVersion3: {
-          OUTCOME_TRY(state, getStatePtr<Tv3>(actor.head));
-          return std::static_pointer_cast<T>(state);
+          OUTCOME_TRYA(state, getStatePtr<Tv3>(actor.head));
+          break;
         }
       }
+      return state;
     }
 
     IpldPtr ipld;

@@ -78,8 +78,7 @@ namespace fc::vm::actor::builtin::types::payment_channel {
     inline outcome::result<Buffer> signingBytes() const {
       auto copy = *this;
       copy.signature_bytes = boost::none;
-      OUTCOME_TRY(signable_bytes, codec::cbor::encode(copy));
-      return std::move(signable_bytes);
+      return codec::cbor::encode(copy);
     }
   };
   CBOR_TUPLE(SignedVoucher,
@@ -99,5 +98,5 @@ namespace fc::vm::actor::builtin::types::payment_channel {
     Buffer extra;
     Buffer proof;
   };
-  CBOR_TUPLE(PaymentVerifyParams, extra, proof);
+  CBOR_TUPLE(PaymentVerifyParams, extra, proof)
 }  // namespace fc::vm::actor::builtin::types::payment_channel
