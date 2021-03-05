@@ -21,6 +21,7 @@
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
 #include "common/io_thread.hpp"
+#include "common/outcome.hpp"
 #include "common/peer_key.hpp"
 #include "data_transfer/dt.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
@@ -524,5 +525,8 @@ namespace fc {
 
 int main(int argc, char **argv) {
   OUTCOME_EXCEPT(config, fc::readConfig(argc, argv));
-  OUTCOME_EXCEPT(fc::main(config));
+  const auto &res = fc::main(config);
+  if (res.has_error()) {
+    std::cerr << fc::outcome::errorToPrettyString(res.error()) << std::endl;
+  }
 }

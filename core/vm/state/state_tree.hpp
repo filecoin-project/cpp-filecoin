@@ -10,6 +10,7 @@
 #include "primitives/types.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
+#include "vm/state/state_tree_error.hpp"
 
 namespace fc::vm::state {
   using actor::Actor;
@@ -62,7 +63,7 @@ namespace fc::vm::state {
       if (actor) {
         return *actor;
       }
-      return OutcomeError::kDefault;
+      return StateTreeError::kStateNotFound;
     }
 
     /// Lookup id address from address
@@ -74,7 +75,7 @@ namespace fc::vm::state {
       if (id) {
         return *id;
       }
-      return OutcomeError::kDefault;
+      return StateTreeError::kStateNotFound;
     }
 
     /// Allocate id address and set actor state, does not write to storage

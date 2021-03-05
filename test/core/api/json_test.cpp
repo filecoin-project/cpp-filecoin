@@ -47,8 +47,11 @@ auto jsonDecode(fc::BytesIn str) {
 
 template <typename T>
 void expectJson(const T &value, std::string _expected) {
-  EXPECT_EQ(jsonEncode(fc::api::encode(value)), fc::common::span::cbytes(_expected));
-  EXPECT_OUTCOME_TRUE(decoded, fc::api::decode<T>(jsonDecode(fc::common::span::cbytes(_expected))));
+  const auto encoded = jsonEncode(fc::api::encode(value));
+  EXPECT_EQ(std::string(encoded.begin(), encoded.end()), _expected);
+  EXPECT_OUTCOME_TRUE(
+      decoded,
+      fc::api::decode<T>(jsonDecode(fc::common::span::cbytes(_expected))));
   EXPECT_EQ(decoded, value);
 }
 
@@ -101,4 +104,33 @@ TEST(ApiJsonTest, BigInt) {
   expectJson(BigInt{0}, "\"0\"");
   expectJson(BigInt{-1}, "\"-1\"");
   expectJson(BigInt{1}, "\"1\"");
+}
+
+TEST(ApiJsonTest, MinerInfoPendingWorkerKeyNotSet) {
+  using fc::vm::actor::builtin::v0::miner::MinerInfo;
+  MinerInfo miner_info;
+  miner_info.seal_proof_type = RegisteredSealProof::StackedDrg2KiBV1;
+  miner_info.sector_size = 1;
+  miner_info.window_post_partition_sectors = 1;
+  expectJson(miner_info,
+             "{\"Owner\":\"t00\",\"Worker\":\"t00\",\"NewWorker\":\"<empty>\","
+             "\"WorkerChangeEpoch\":-1,\"ControlAddresses\":[],\"PeerId\":null,"
+             "\"Multiaddrs\":[],\"SealProofType\":0,\"SectorSize\":1,"
+             "\"WindowPoStPartitionSectors\":1}");
+}
+
+TEST(ApiJsonTest, MinerInfoPendingWorkerKeyPresent) {
+  using fc::vm::actor::builtin::v0::miner::MinerInfo;
+  using fc::vm::actor::builtin::v0::miner::WorkerKeyChange;
+  MinerInfo miner_info;
+  miner_info.pending_worker_key =
+      WorkerKeyChange{.new_worker = Address::makeFromId(2), .effective_at = 2};
+  miner_info.seal_proof_type = RegisteredSealProof::StackedDrg2KiBV1;
+  miner_info.sector_size = 1;
+  miner_info.window_post_partition_sectors = 1;
+  expectJson(miner_info,
+             "{\"Owner\":\"t00\",\"Worker\":\"t00\",\"NewWorker\":\"t02\","
+             "\"WorkerChangeEpoch\":2,\"ControlAddresses\":[],\"PeerId\":null,"
+             "\"Multiaddrs\":[],\"SealProofType\":0,\"SectorSize\":1,"
+             "\"WindowPoStPartitionSectors\":1}");
 }

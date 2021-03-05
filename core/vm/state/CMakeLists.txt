@@ -4,6 +4,7 @@
 #
 
 add_library(state_tree
+    state_tree_error.cpp
     impl/state_tree_impl.cpp
     )
 target_link_libraries(state_tree
