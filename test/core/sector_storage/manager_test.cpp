@@ -113,8 +113,8 @@ namespace fc::sector_storage {
     SealRandomness randomness({1, 2, 3});
     std::vector<PieceInfo> pieces = {
         PieceInfo{
-            .cid = "010001020001"_cid,
             .size = PaddedPieceSize(128),
+            .cid = "010001020001"_cid,
         },
     };
 
