@@ -16,6 +16,7 @@
 #include "testutil/mocks/sector_storage/stores/local_store_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/remote_store_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
+#include "testutil/mocks/sector_storage/worker_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
@@ -23,6 +24,7 @@ namespace fc::sector_storage {
   namespace fs = boost::filesystem;
 
   using primitives::StoragePath;
+  using primitives::piece::PaddedPieceSize;
   using stores::AcquireSectorResponse;
   using stores::LocalStorageMock;
   using stores::LocalStoreMock;
@@ -64,6 +66,8 @@ namespace fc::sector_storage {
       EXPECT_CALL(*scheduler_, doNewWorker(_))
           .WillRepeatedly(::testing::Return());
 
+      worker_ = std::make_shared<WorkerMock>();
+
       proof_engine_ = std::make_shared<proofs::ProofEngineMock>();
 
       EXPECT_CALL(*proof_engine_, getGPUDevices())
@@ -91,6 +95,7 @@ namespace fc::sector_storage {
     RegisteredSealProof seal_proof_type_;
 
     std::shared_ptr<proofs::ProofEngineMock> proof_engine_;
+    std::shared_ptr<WorkerMock> worker_;
     std::shared_ptr<SectorIndexMock> sector_index_;
     std::shared_ptr<LocalStorageMock> local_storage_;
     std::shared_ptr<LocalStoreMock> local_store_;
@@ -98,6 +103,58 @@ namespace fc::sector_storage {
     std::shared_ptr<SchedulerMock> scheduler_;
     std::shared_ptr<Manager> manager_;
   };
+
+  TEST_F(ManagerTest, SealPreCommit1) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    SealRandomness randomness({1, 2, 3});
+    std::vector<PieceInfo> pieces = {
+        PieceInfo{
+            .cid = "010001020001"_cid,
+            .size = PaddedPieceSize(128),
+        },
+    };
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageLock(sector,
+                    SectorFileType::FTUnsealed,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache)))
+        .WillOnce(testing::Return(testing::ByMove(
+            outcome::success(std::make_unique<stores::WLock>()))));
+
+    std::vector<uint8_t> result = {1, 2, 3, 4, 5};
+
+    EXPECT_CALL(*worker_,
+                sealPreCommit1(sector,
+                               randomness,
+                               gsl::make_span<const PieceInfo>(pieces.data(),
+                                                               pieces.size())))
+        .WillOnce(testing::Return(outcome::success(result)));
+
+    EXPECT_CALL(
+        *scheduler_,
+        schedule(
+            sector, primitives::kTTPreCommit1, _, _, _, kDefaultTaskPriority))
+        .WillOnce(
+            testing::Invoke([&](const SectorId &sector,
+                                const TaskType &task_type,
+                                const std::shared_ptr<WorkerSelector> &selector,
+                                const WorkerAction &prepare,
+                                const WorkerAction &work,
+                                uint64_t priority) -> outcome::result<void> {
+              OUTCOME_TRY(work(worker_));
+              return outcome::success();
+            }));
+
+    EXPECT_OUTCOME_EQ(manager_->sealPreCommit1(
+                          sector, randomness, pieces, kDefaultTaskPriority),
+                      result);
+  }
 
   TEST_F(ManagerTest, GetFsStat) {
     StorageID storage = "storage-id";
