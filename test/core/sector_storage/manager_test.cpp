@@ -156,6 +156,414 @@ namespace fc::sector_storage {
                       result);
   }
 
+  TEST_F(ManagerTest, SealPreCommit2) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+    std::vector<uint8_t> pre_commit_1_output = {1, 2, 3, 4, 5};
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageLock(sector, SectorFileType::FTSealed, SectorFileType::FTCache))
+        .WillOnce(testing::Return(testing::ByMove(
+            outcome::success(std::make_unique<stores::WLock>()))));
+
+    proofs::SealedAndUnsealedCID result_cids{
+        .sealed_cid = "010001020001"_cid,
+        .unsealed_cid = "010001020002"_cid,
+    };
+
+    EXPECT_CALL(*worker_, sealPreCommit2(sector, pre_commit_1_output))
+        .WillOnce(testing::Return(outcome::success(result_cids)));
+
+    EXPECT_CALL(
+        *scheduler_,
+        schedule(
+            sector, primitives::kTTPreCommit2, _, _, _, kDefaultTaskPriority))
+        .WillOnce(
+            testing::Invoke([&](const SectorId &sector,
+                                const TaskType &task_type,
+                                const std::shared_ptr<WorkerSelector> &selector,
+                                const WorkerAction &prepare,
+                                const WorkerAction &work,
+                                uint64_t priority) -> outcome::result<void> {
+              OUTCOME_TRY(work(worker_));
+              return outcome::success();
+            }));
+
+    EXPECT_OUTCOME_EQ(manager_->sealPreCommit2(
+                          sector, pre_commit_1_output, kDefaultTaskPriority),
+                      result_cids);
+  }
+
+  TEST_F(ManagerTest, SealCommit1) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+    SealRandomness ticket({1, 2, 3});
+    InteractiveRandomness seed({4, 5, 6});
+
+    std::vector<PieceInfo> pieces = {PieceInfo{
+        .size = PaddedPieceSize(128),
+        .cid = "010001020003"_cid,
+    }};
+
+    proofs::SealedAndUnsealedCID cids{
+        .sealed_cid = "010001020001"_cid,
+        .unsealed_cid = "010001020002"_cid,
+    };
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageLock(sector, SectorFileType::FTSealed, SectorFileType::FTCache))
+        .WillOnce(testing::Return(testing::ByMove(
+            outcome::success(std::make_unique<stores::WLock>()))));
+
+    std::vector<uint8_t> result = {1, 2, 3, 4, 5};
+
+    EXPECT_CALL(
+        *worker_,
+        sealCommit1(
+            sector, ticket, seed, gsl::span<const PieceInfo>(pieces), cids))
+        .WillOnce(testing::Return(outcome::success(result)));
+
+    EXPECT_CALL(
+        *scheduler_,
+        schedule(sector, primitives::kTTCommit1, _, _, _, kDefaultTaskPriority))
+        .WillOnce(
+            testing::Invoke([&](const SectorId &sector,
+                                const TaskType &task_type,
+                                const std::shared_ptr<WorkerSelector> &selector,
+                                const WorkerAction &prepare,
+                                const WorkerAction &work,
+                                uint64_t priority) -> outcome::result<void> {
+              OUTCOME_TRY(work(worker_));
+              return outcome::success();
+            }));
+
+    EXPECT_OUTCOME_EQ(
+        manager_->sealCommit1(
+            sector, ticket, seed, pieces, cids, kDefaultTaskPriority),
+        result);
+  }
+
+  TEST_F(ManagerTest, SealCommit2) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+    std::vector<uint8_t> commit_1_output = {1, 2, 3, 4, 5};
+
+    std::vector<uint8_t> result = {1, 2, 3, 4, 5};
+    EXPECT_CALL(*worker_, sealCommit2(sector, commit_1_output))
+        .WillOnce(testing::Return(outcome::success(result)));
+
+    EXPECT_CALL(
+        *scheduler_,
+        schedule(sector, primitives::kTTCommit2, _, _, _, kDefaultTaskPriority))
+        .WillOnce(
+            testing::Invoke([&](const SectorId &sector,
+                                const TaskType &task_type,
+                                const std::shared_ptr<WorkerSelector> &selector,
+                                const WorkerAction &prepare,
+                                const WorkerAction &work,
+                                uint64_t priority) -> outcome::result<void> {
+              OUTCOME_TRY(work(worker_));
+              return outcome::success();
+            }));
+    EXPECT_OUTCOME_EQ(
+        manager_->sealCommit2(sector, commit_1_output, kDefaultTaskPriority),
+        result);
+  }
+
+  TEST_F(ManagerTest, FinalizeSector) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    std::vector<Range> keep_unsealed = {Range{
+        .offset = UnpaddedPieceSize(127),
+        .size = UnpaddedPieceSize(127),
+    }};
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageLock(sector,
+                    SectorFileType::FTNone,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache
+                                                | SectorFileType::FTUnsealed)))
+        .WillOnce(testing::Return(testing::ByMove(
+            outcome::success(std::make_unique<stores::WLock>()))));
+
+    EXPECT_CALL(*sector_index_,
+                storageFindSector(sector, SectorFileType::FTUnsealed, _))
+        .WillOnce(testing::Return(
+            outcome::success(std::vector<stores::StorageInfo>())));
+
+    EXPECT_CALL(*worker_,
+                finalizeSector(sector, gsl::span<const Range>(keep_unsealed)))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_CALL(
+        *scheduler_,
+        schedule(
+            sector, primitives::kTTFinalize, _, _, _, kDefaultTaskPriority))
+        .WillOnce(
+            testing::Invoke([&](const SectorId &sector,
+                                const TaskType &task_type,
+                                const std::shared_ptr<WorkerSelector> &selector,
+                                const WorkerAction &prepare,
+                                const WorkerAction &work,
+                                uint64_t priority) -> outcome::result<void> {
+              OUTCOME_TRY(work(worker_));
+              return outcome::success();
+            }));
+
+    EXPECT_CALL(*worker_, moveStorage(sector))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_CALL(
+        *scheduler_,
+        schedule(sector, primitives::kTTFetch, _, _, _, kDefaultTaskPriority))
+        .WillOnce(
+            testing::Invoke([&](const SectorId &sector,
+                                const TaskType &task_type,
+                                const std::shared_ptr<WorkerSelector> &selector,
+                                const WorkerAction &prepare,
+                                const WorkerAction &work,
+                                uint64_t priority) -> outcome::result<void> {
+              OUTCOME_TRY(work(worker_));
+              return outcome::success();
+            }));
+
+    EXPECT_OUTCOME_TRUE_1(
+        manager_->finalizeSector(sector, keep_unsealed, kDefaultTaskPriority));
+  }
+
+  TEST_F(ManagerTest, Remove) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageLock(sector,
+                    SectorFileType::FTNone,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache
+                                                | SectorFileType::FTUnsealed)))
+        .WillOnce(testing::Return(testing::ByMove(
+            outcome::success(std::make_unique<stores::WLock>()))));
+
+    EXPECT_CALL(*sector_index_,
+                storageFindSector(sector, SectorFileType::FTUnsealed, _))
+        .WillOnce(testing::Return(
+            outcome::success(std::vector<stores::StorageInfo>())));
+
+    EXPECT_CALL(*worker_, remove(sector))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_CALL(
+        *scheduler_,
+        schedule(
+            sector, primitives::kTTFinalize, _, _, _, kDefaultTaskPriority))
+        .WillOnce(
+            testing::Invoke([&](const SectorId &sector,
+                                const TaskType &task_type,
+                                const std::shared_ptr<WorkerSelector> &selector,
+                                const WorkerAction &prepare,
+                                const WorkerAction &work,
+                                uint64_t priority) -> outcome::result<void> {
+              OUTCOME_TRY(work(worker_));
+              return outcome::success();
+            }));
+
+    EXPECT_OUTCOME_TRUE_1(manager_->remove(sector));
+  }
+
+  TEST_F(ManagerTest, AddPiece) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+    UnpaddedPieceSize piece_size(127);
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageLock(sector, SectorFileType::FTNone, SectorFileType::FTUnsealed))
+        .WillOnce(testing::Return(testing::ByMove(
+            outcome::success(std::make_unique<stores::WLock>()))));
+
+    PieceInfo result{
+        .size = PaddedPieceSize(128),
+        .cid = "010001020001"_cid,
+    };
+
+    EXPECT_CALL(
+        *worker_,
+        addPiece(sector, gsl::span<const UnpaddedPieceSize>({}), piece_size, _))
+        .WillOnce(testing::Return(outcome::success(result)));
+
+    EXPECT_CALL(
+        *scheduler_,
+        schedule(
+            sector, primitives::kTTAddPiece, _, _, _, kDefaultTaskPriority))
+        .WillOnce(
+            testing::Invoke([&](const SectorId &sector,
+                                const TaskType &task_type,
+                                const std::shared_ptr<WorkerSelector> &selector,
+                                const WorkerAction &prepare,
+                                const WorkerAction &work,
+                                uint64_t priority) -> outcome::result<void> {
+              OUTCOME_TRY(work(worker_));
+              return outcome::success();
+            }));
+
+    EXPECT_OUTCOME_EQ(manager_->addPiece(sector,
+                                         {},
+                                         piece_size,
+                                         PieceData("/dev/random"),
+                                         kDefaultTaskPriority),
+                      result);
+  }
+
+  TEST_F(ManagerTest, ReadPiece) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+    UnpaddedByteIndex offset(127);
+    UnpaddedPieceSize piece_size(127);
+    CID cid = "010001020001"_cid;
+
+    SealRandomness randomness({1, 2, 3, 4, 5});
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageLock(sector,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                    SectorFileType::FTUnsealed))
+        .WillOnce(testing::Return(testing::ByMove(
+            outcome::success(std::make_unique<stores::WLock>()))));
+    EXPECT_CALL(*sector_index_,
+                storageFindSector(sector, SectorFileType::FTUnsealed, _))
+        .WillOnce(testing::Return(
+            outcome::success(std::vector<stores::StorageInfo>())));
+
+    EXPECT_CALL(*worker_,
+                unsealPiece(sector, offset, piece_size, randomness, cid))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_CALL(
+        *scheduler_,
+        schedule(sector, primitives::kTTUnseal, _, _, _, kDefaultTaskPriority))
+        .WillOnce(
+            testing::Invoke([&](const SectorId &sector,
+                                const TaskType &task_type,
+                                const std::shared_ptr<WorkerSelector> &selector,
+                                const WorkerAction &prepare,
+                                const WorkerAction &work,
+                                uint64_t priority) -> outcome::result<void> {
+              OUTCOME_TRY(work(worker_));
+              return outcome::success();
+            }));
+
+    EXPECT_CALL(*worker_, doReadPiece(_, sector, offset, piece_size))
+        .WillOnce(testing::Return(outcome::success(true)));
+
+    EXPECT_CALL(
+        *scheduler_,
+        schedule(
+            sector, primitives::kTTReadUnsealed, _, _, _, kDefaultTaskPriority))
+        .WillOnce(
+            testing::Invoke([&](const SectorId &sector,
+                                const TaskType &task_type,
+                                const std::shared_ptr<WorkerSelector> &selector,
+                                const WorkerAction &prepare,
+                                const WorkerAction &work,
+                                uint64_t priority) -> outcome::result<void> {
+              OUTCOME_TRY(work(worker_));
+              return outcome::success();
+            }));
+
+    int fd = -1;
+    EXPECT_OUTCOME_TRUE_1(manager_->readPiece(
+        PieceData(fd), sector, offset, piece_size, randomness, cid));
+  }
+
+  TEST_F(ManagerTest, ReadPieceFailed) {
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+    UnpaddedByteIndex offset(127);
+    UnpaddedPieceSize piece_size(127);
+    CID cid = "010001020001"_cid;
+
+    SealRandomness randomness({1, 2, 3, 4, 5});
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageLock(sector,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                    SectorFileType::FTUnsealed))
+        .WillOnce(testing::Return(testing::ByMove(
+            outcome::success(std::make_unique<stores::WLock>()))));
+    EXPECT_CALL(*sector_index_,
+                storageFindSector(sector, SectorFileType::FTUnsealed, _))
+        .WillOnce(testing::Return(
+            outcome::success(std::vector<stores::StorageInfo>())));
+
+    EXPECT_CALL(*worker_,
+                unsealPiece(sector, offset, piece_size, randomness, cid))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_CALL(
+        *scheduler_,
+        schedule(sector, primitives::kTTUnseal, _, _, _, kDefaultTaskPriority))
+        .WillOnce(
+            testing::Invoke([&](const SectorId &sector,
+                                const TaskType &task_type,
+                                const std::shared_ptr<WorkerSelector> &selector,
+                                const WorkerAction &prepare,
+                                const WorkerAction &work,
+                                uint64_t priority) -> outcome::result<void> {
+              OUTCOME_TRY(work(worker_));
+              return outcome::success();
+            }));
+
+    EXPECT_CALL(*worker_, doReadPiece(_, sector, offset, piece_size))
+        .WillOnce(testing::Return(outcome::success(false)));
+
+    EXPECT_CALL(
+        *scheduler_,
+        schedule(
+            sector, primitives::kTTReadUnsealed, _, _, _, kDefaultTaskPriority))
+        .WillOnce(
+            testing::Invoke([&](const SectorId &sector,
+                                const TaskType &task_type,
+                                const std::shared_ptr<WorkerSelector> &selector,
+                                const WorkerAction &prepare,
+                                const WorkerAction &work,
+                                uint64_t priority) -> outcome::result<void> {
+              OUTCOME_TRY(work(worker_));
+              return outcome::success();
+            }));
+
+    int fd = -1;
+    EXPECT_OUTCOME_ERROR(
+        ManagerErrors::kCannotReadData,
+        manager_->readPiece(
+            PieceData(fd), sector, offset, piece_size, randomness, cid));
+  }
+
   TEST_F(ManagerTest, GetFsStat) {
     StorageID storage = "storage-id";
 

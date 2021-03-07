@@ -16,8 +16,8 @@
 #include "sector_storage/stores/store.hpp"
 
 namespace fc::sector_storage {
-  using primitives::piece::PieceInfo;
   using primitives::piece::PieceData;
+  using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::SealRandomness;
@@ -36,6 +36,10 @@ namespace fc::sector_storage {
     UnpaddedPieceSize offset;
     UnpaddedPieceSize size;
   };
+
+  inline bool operator==(const Range &lhs, const Range &rhs) {
+    return lhs.offset == rhs.offset && lhs.size == rhs.size;
+  }
 
   class Worker {
    public:

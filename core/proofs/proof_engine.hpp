@@ -87,6 +87,12 @@ namespace fc::proofs {
     CID unsealed_cid;
   };
 
+  inline bool operator==(const SealedAndUnsealedCID &lhs,
+                         const SealedAndUnsealedCID &rhs) {
+    return lhs.sealed_cid == rhs.sealed_cid
+           && lhs.unsealed_cid == rhs.unsealed_cid;
+  }
+
   inline SortedPrivateSectorInfo newSortedPrivateSectorInfo(
       gsl::span<const PrivateSectorInfo> replica_info) {
     SortedPrivateSectorInfo sorted_replica_info;
