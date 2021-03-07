@@ -5,3 +5,7 @@ ignore:
   - "core/sector_storage/impl/fetch_handler.cpp"
   - "core/sector_storage/zerocomm/*"
   - "core/sector_storage/impl/scheduler_*"
+  - "core/sector_storage/impl/worker_error.cpp"
+  - "core/sector_storage/stores/impl/store_error.cpp"
+  - "core/sector_storage/stores/impl/storage_error.cpp"
+  - "core/sector_storage/stores/impl/storage_impl.cpp"
