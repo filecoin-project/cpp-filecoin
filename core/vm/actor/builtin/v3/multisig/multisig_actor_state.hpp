@@ -5,13 +5,14 @@
 
 #pragma once
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "vm/actor/builtin/states/multisig_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::multisig {
 
   struct MultisigActorState : states::MultisigActorState {
-    MultisigActorState()
-        : states::MultisigActorState(ActorVersion::kVersion3) {}
+    outcome::result<Buffer> toCbor() const override;
+    std::shared_ptr<states::MultisigActorState> copy() const override;
   };
 
   CBOR_TUPLE(MultisigActorState,

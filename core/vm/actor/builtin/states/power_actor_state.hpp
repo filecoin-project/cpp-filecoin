@@ -44,9 +44,8 @@ namespace fc::vm::actor::builtin::states {
   }  // namespace storage_power
 
   struct PowerActorState : State {
-    explicit PowerActorState(ActorVersion version);
-    virtual std::shared_ptr<PowerActorState> copy() const = 0;
-
+    PowerActorState();
+    
     StoragePower total_raw_power{};
 
     /** includes claims from miners below min power threshold */
@@ -86,6 +85,8 @@ namespace fc::vm::actor::builtin::states {
         proof_validation_batch;
 
     // Methods
+    virtual std::shared_ptr<PowerActorState> copy() const = 0;
+    
     outcome::result<void> addToClaim(const fc::vm::runtime::Runtime &runtime,
                                      const Address &address,
                                      const StoragePower &raw,

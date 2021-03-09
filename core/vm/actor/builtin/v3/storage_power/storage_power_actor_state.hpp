@@ -5,14 +5,13 @@
 
 #pragma once
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::storage_power {
 
   struct PowerActorState : v2::storage_power::PowerActorState {
-    PowerActorState() : v2::storage_power::PowerActorState() {
-      version = ActorVersion::kVersion3;
-    }
+    outcome::result<Buffer> toCbor() const override;
   };
 
   CBOR_TUPLE(PowerActorState,

@@ -30,20 +30,6 @@ namespace fc::vm::actor {
     kVersion3 = 3,
   };
 
-  enum class ActorType {
-    kAccount,
-    kCron,
-    kMarket,
-    kMiner,
-    kMultisig,
-    kInit,
-    kPaymentChannel,
-    kPower,
-    kReward,
-    kSystem,
-    kVerifiedRegistry,
-  };
-
   /**
    * Consider MethodNum numbers to be similar in concerns as for offsets in
    * function tables (in programming languages), and for tags in ProtocolBuffer

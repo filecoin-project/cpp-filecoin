@@ -10,8 +10,6 @@
 namespace fc::vm::actor::builtin::states {
 
   struct SystemActorState : State {
-    explicit SystemActorState(ActorVersion version)
-        : State(ActorType::kSystem, version) {}
     // empty state
   };
 

@@ -6,10 +6,7 @@
 #include "vm/runtime/env.hpp"
 
 #include "storage/ipld/traverser.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"

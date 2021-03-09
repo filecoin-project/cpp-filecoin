@@ -119,10 +119,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
     OUTCOME_TRY(utils->assertCallerIsSigner(state));
 
     // We need a copy to avoid the Flush of original state
-    const states::MultisigActorState state_copy(*state);
+    auto state_copy = state->copy();
     OUTCOME_TRY(
         transaction,
-        state_copy.getTransaction(runtime, params.tx_id, params.proposal_hash));
+        state_copy->getTransaction(runtime, params.tx_id, params.proposal_hash));
     OUTCOME_TRY(runtime.commitState(state));
 
     OUTCOME_TRY(execute,

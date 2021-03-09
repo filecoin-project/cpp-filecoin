@@ -10,7 +10,7 @@
 
 namespace fc::vm::actor::builtin::v0::cron {
   struct CronActorState : states::CronActorState {
-    CronActorState() : states::CronActorState(ActorVersion::kVersion0) {}
+    outcome::result<Buffer> toCbor() const override;
   };
   CBOR_TUPLE(CronActorState, entries)
 }  // namespace fc::vm::actor::builtin::v0::cron

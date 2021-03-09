@@ -14,9 +14,6 @@ namespace fc::vm::actor::builtin::states {
   using types::cron::CronTableEntry;
 
   struct CronActorState : State {
-    explicit CronActorState(ActorVersion version)
-        : State(ActorType::kCron, version) {}
-
     std::vector<CronTableEntry> entries;
   };
 

@@ -19,13 +19,6 @@ namespace fc::vm::actor::builtin::states {
   using primitives::TokenAmount;
 
   struct RewardActorState : State {
-    explicit RewardActorState(ActorVersion version)
-        : State(ActorType::kReward, version) {}
-
-    virtual void initialize(const StoragePower &current_realized_power) = 0;
-    virtual TokenAmount simpleTotal() const = 0;
-    virtual TokenAmount baselineTotal() const = 0;
-
     /**
      * Target CumsumRealized needs to reach for EffectiveNetworkTime to
      * increase. Expressed in byte-epochs.
@@ -88,6 +81,11 @@ namespace fc::vm::actor::builtin::states {
      */
     TokenAmount simple_total;
     TokenAmount baseline_total;
+
+    // Methods
+    virtual void initialize(const StoragePower &current_realized_power) = 0;
+    virtual TokenAmount simpleTotal() const = 0;
+    virtual TokenAmount baselineTotal() const = 0;
   };
 
   using RewardActorStatePtr = std::shared_ptr<RewardActorState>;

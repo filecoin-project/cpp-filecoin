@@ -12,7 +12,7 @@
 namespace fc::vm::actor::builtin::v2::miner {
 
   struct MinerActorState : states::MinerActorState {
-    MinerActorState() : states::MinerActorState(ActorVersion::kVersion2) {}
+    outcome::result<Buffer> toCbor() const override;
 
     outcome::result<types::miner::MinerInfo> getInfo(
         IpldPtr ipld) const override;

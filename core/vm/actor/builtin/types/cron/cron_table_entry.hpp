@@ -7,6 +7,7 @@
 
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
+#include "vm/actor/actor.hpp"
 
 namespace fc::vm::actor::builtin::types::cron {
   using primitives::address::Address;

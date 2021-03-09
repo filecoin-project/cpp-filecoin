@@ -11,7 +11,7 @@
 
 namespace fc::vm::actor::builtin::v3::account {
   struct AccountActorState : states::AccountActorState {
-    AccountActorState() : states::AccountActorState(ActorVersion::kVersion3) {}
+    outcome::result<Buffer> toCbor() const override;
   };
   CBOR_TUPLE(AccountActorState, address)
 }  // namespace fc::vm::actor::builtin::v3::account

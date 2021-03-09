@@ -10,7 +10,7 @@
 
 namespace fc::vm::actor::builtin::v0::init {
   struct InitActorState : states::InitActorState {
-    InitActorState() : states::InitActorState(ActorVersion::kVersion0) {}
+    outcome::result<Buffer> toCbor() const override;
   };
   CBOR_TUPLE(InitActorState, address_map, next_id, network_name)
 }  // namespace fc::vm::actor::builtin::v0::init

@@ -18,9 +18,6 @@ namespace fc::vm::actor::builtin::states {
   using types::payment_channel::LaneState;
 
   struct PaymentChannelActorState : State {
-    explicit PaymentChannelActorState(ActorVersion version)
-        : State(ActorType::kPaymentChannel, version) {}
-
     Address from;
     Address to;
     /** Token amount to send on collect after voucher was redeemed */

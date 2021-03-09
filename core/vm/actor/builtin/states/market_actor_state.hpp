@@ -26,9 +26,6 @@ namespace fc::vm::actor::builtin::states {
   using types::market::DealState;
 
   struct MarketActorState : State {
-    explicit MarketActorState(ActorVersion version)
-        : State(ActorType::kMarket, version) {}
-
     using DealSet = adt::Set<UvarintKeyer>;
 
     adt::Array<DealProposal> proposals;

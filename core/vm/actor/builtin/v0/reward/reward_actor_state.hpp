@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/states/reward_actor_state.hpp"
 
@@ -13,7 +14,7 @@ namespace fc::vm::actor::builtin::v0::reward {
   using primitives::TokenAmount;
 
   struct RewardActorState : states::RewardActorState {
-    RewardActorState() : states::RewardActorState(ActorVersion::kVersion0) {}
+    outcome::result<Buffer> toCbor() const override;
 
     void initialize(const StoragePower &current_realized_power) override;
     TokenAmount simpleTotal() const override;

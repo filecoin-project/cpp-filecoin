@@ -34,9 +34,6 @@ namespace fc::vm::actor::builtin::states {
    * State of Multisig Actor instance
    */
   struct MultisigActorState : State {
-    explicit MultisigActorState(ActorVersion version)
-        : State(ActorType::kMultisig, version) {}
-
     std::vector<Address> signers;
     size_t threshold{0};
     TransactionId next_transaction_id{0};
@@ -48,6 +45,9 @@ namespace fc::vm::actor::builtin::states {
 
     // List of pending transactions
     adt::Map<Transaction, TransactionKeyer> pending_transactions;
+
+    // Methods
+    virtual std::shared_ptr<MultisigActorState> copy() const = 0;
 
     void setLocked(const ChainEpoch &start_epoch,
                    const EpochDuration &unlock_duration,

@@ -216,66 +216,11 @@ namespace fc::vm::actor::builtin::states {
 
   outcome::result<void> StateManagerImpl::commitState(
       const std::shared_ptr<State> &state) {
-    switch (state->type) {
-      case ActorType::kAccount:
-        return commitVersionState<v0::account::AccountActorState,
-                                  v2::account::AccountActorState,
-                                  v3::account::AccountActorState>(state);
-
-      case ActorType::kCron:
-        return commitVersionState<v0::cron::CronActorState,
-                                  v2::cron::CronActorState,
-                                  v3::cron::CronActorState>(state);
-
-      case ActorType::kInit:
-        return commitVersionState<v0::init::InitActorState,
-                                  v2::init::InitActorState,
-                                  v3::init::InitActorState>(state);
-
-      case ActorType::kMarket:
-        return commitVersionState<v0::market::MarketActorState,
-                                  v2::market::MarketActorState,
-                                  v2::market::MarketActorState>(
-            state);  // TODO v3
-
-      case ActorType::kMiner:
-        return commitVersionState<v0::miner::MinerActorState,
-                                  v2::miner::MinerActorState,
-                                  v3::miner::MinerActorState>(state);
-
-      case ActorType::kMultisig:
-        return commitVersionState<v0::multisig::MultisigActorState,
-                                  v2::multisig::MultisigActorState,
-                                  v3::multisig::MultisigActorState>(state);
-
-      case ActorType::kPaymentChannel:
-        return commitVersionState<
-            v0::payment_channel::PaymentChannelActorState,
-            v2::payment_channel::PaymentChannelActorState,
-            v3::payment_channel::PaymentChannelActorState>(state);
-
-      case ActorType::kPower:
-        return commitVersionState<v0::storage_power::PowerActorState,
-                                  v2::storage_power::PowerActorState,
-                                  v3::storage_power::PowerActorState>(state);
-
-      case ActorType::kReward:
-        return commitVersionState<v0::reward::RewardActorState,
-                                  v2::reward::RewardActorState,
-                                  v2::reward::RewardActorState>(
-            state);  // TODO v3
-
-      case ActorType::kSystem:
-        return commitVersionState<v0::system::SystemActorState,
-                                  v2::system::SystemActorState,
-                                  v3::system::SystemActorState>(state);
-
-      case ActorType::kVerifiedRegistry:
-        return commitVersionState<
-            v0::verified_registry::VerifiedRegistryActorState,
-            v2::verified_registry::VerifiedRegistryActorState,
-            v3::verified_registry::VerifiedRegistryActorState>(state);
-    }
+    OUTCOME_TRY(bytes, state->toCbor());
+    OUTCOME_TRY(cid, common::getCidOf(bytes));
+    OUTCOME_TRY(ipld->set(cid, std::move(bytes)));
+    OUTCOME_TRY(commit(cid));
+    return outcome::success();
   }
 
   outcome::result<void> StateManagerImpl::commit(const CID &new_state) {

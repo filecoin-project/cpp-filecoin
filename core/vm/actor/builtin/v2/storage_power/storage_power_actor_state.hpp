@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "vm/actor/builtin/states/power_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::storage_power {
@@ -14,7 +15,8 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   using types::storage_power::Claim;
 
   struct PowerActorState : states::PowerActorState {
-    PowerActorState() : states::PowerActorState(ActorVersion::kVersion2) {}
+    outcome::result<Buffer> toCbor() const override;
+
     std::shared_ptr<states::PowerActorState> copy() const override;
 
     outcome::result<void> setClaim(

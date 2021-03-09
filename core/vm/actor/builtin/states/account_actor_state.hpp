@@ -13,9 +13,6 @@ namespace fc::vm::actor::builtin::states {
   using primitives::address::Address;
 
   struct AccountActorState : State {
-    explicit AccountActorState(ActorVersion version)
-        : State(ActorType::kAccount, version) {}
-
     Address address;
   };
 

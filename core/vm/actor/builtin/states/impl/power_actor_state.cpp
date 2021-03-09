@@ -29,11 +29,11 @@ namespace fc::vm::actor::builtin::states {
   static const BigInt kInitialQAPowerEstimateVelocity =
       BigInt(3840) * BigInt(1 << 30);
 
-  PowerActorState::PowerActorState(ActorVersion version)
-      : State(ActorType::kPower, version),
-        this_epoch_qa_power_smoothed{
-            .position = kInitialQAPowerEstimatePosition << kPrecision128,
-            .velocity = kInitialQAPowerEstimateVelocity << kPrecision128},
+  PowerActorState::PowerActorState()
+      : this_epoch_qa_power_smoothed{.position = kInitialQAPowerEstimatePosition
+                                                 << kPrecision128,
+                                     .velocity = kInitialQAPowerEstimateVelocity
+                                                 << kPrecision128},
         last_processed_cron_epoch(kChainEpochUndefined) {}
 
   outcome::result<void> PowerActorState::addToClaim(

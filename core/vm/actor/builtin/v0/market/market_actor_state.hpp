@@ -5,14 +5,13 @@
 
 #pragma once
 
-#include "vm/actor/actor.hpp"
+#include "codec/cbor/streams_annotation.hpp"
 #include "vm/actor/builtin/states/market_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::market {
 
   struct MarketActorState : states::MarketActorState {
-    explicit MarketActorState()
-        : states::MarketActorState(ActorVersion::kVersion0) {}
+    outcome::result<Buffer> toCbor() const override;
   };
 
   CBOR_TUPLE(MarketActorState,

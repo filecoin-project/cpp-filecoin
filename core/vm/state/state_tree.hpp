@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
-#define CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
+#pragma once
 
 #include "common/outcome2.hpp"
 #include "primitives/types.hpp"
@@ -95,5 +94,3 @@ namespace fc::vm::state {
   CBOR_TUPLE(StateTree::StateRoot, version, actor_tree_root, info)
 
 }  // namespace fc::vm::state
-
-#endif  // CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP

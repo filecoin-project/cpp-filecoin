@@ -8,7 +8,6 @@
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
 #include "vm/actor/builtin/states/state_manager.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/state/state_tree.hpp"
 
 namespace fc::vm::actor::builtin::states {
@@ -91,26 +90,6 @@ namespace fc::vm::actor::builtin::states {
       auto state = std::make_shared<T>();
       ipld->load(*state);
       return state;
-    }
-
-    template <typename T>
-    outcome::result<void> commitCborState(const T &state) {
-      OUTCOME_TRY(state_cid, ipld->setCbor(state));
-      OUTCOME_TRY(commit(state_cid));
-      return outcome::success();
-    }
-
-    template <typename Tv0, typename Tv2, typename Tv3>
-    outcome::result<void> commitVersionState(
-        const std::shared_ptr<State> &state) {
-      switch (state->version) {
-        case ActorVersion::kVersion0:
-          return commitCborState(static_cast<const Tv0 &>(*state));
-        case ActorVersion::kVersion2:
-          return commitCborState(static_cast<const Tv2 &>(*state));
-        case ActorVersion::kVersion3:
-          return commitCborState(static_cast<const Tv3 &>(*state));
-      }
     }
 
     outcome::result<void> commit(const CID &new_state);

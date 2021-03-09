@@ -5,12 +5,17 @@
 
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 
+#include "storage/ipfs/datastore.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
   using runtime::Runtime;
   using types::storage_power::kConsensusMinerMinPower;
+
+  outcome::result<Buffer> PowerActorState::toCbor() const {
+    return Ipld::encode(*this);
+  }
 
   std::shared_ptr<states::PowerActorState> PowerActorState::copy() const {
     auto copy = std::make_shared<PowerActorState>(*this);

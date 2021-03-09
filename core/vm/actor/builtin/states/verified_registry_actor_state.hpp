@@ -17,9 +17,6 @@ namespace fc::vm::actor::builtin::states {
   using DataCap = primitives::StoragePower;
 
   struct VerifiedRegistryActorState : State {
-    explicit VerifiedRegistryActorState(ActorVersion version)
-        : State(ActorType::kVerifiedRegistry, version) {}
-
     Address root_key;
     adt::Map<DataCap, adt::AddressKeyer> verifiers;
     adt::Map<DataCap, adt::AddressKeyer> verified_clients;

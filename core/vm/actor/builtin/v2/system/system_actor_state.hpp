@@ -13,7 +13,7 @@ namespace fc::vm::actor::builtin::v2::system {
 
   /// System actor state
   struct SystemActorState : states::SystemActorState {
-    SystemActorState() : states::SystemActorState(ActorVersion::kVersion2) {}
+    outcome::result<Buffer> toCbor() const override;
   };
   CBOR_TUPLE_0(SystemActorState)
 

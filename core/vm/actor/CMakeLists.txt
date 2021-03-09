@@ -22,6 +22,7 @@ target_link_libraries(actor
     init_actor_v2
     init_actor_v3
     market_actor_v0
+    market_actor_v2
     miner_actor_v0
     miner_actor_v2
     miner_actor_v3
@@ -30,6 +31,7 @@ target_link_libraries(actor
     multisig_actor_v3
     storage_power_actor_v0
     storage_power_actor_v2
+    storage_power_actor_v3
     cron_actor_v0
     cron_actor_v2
     cron_actor_v3

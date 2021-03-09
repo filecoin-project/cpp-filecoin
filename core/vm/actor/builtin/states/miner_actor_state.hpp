@@ -41,9 +41,6 @@ namespace fc::vm::actor::builtin::states {
    * withdrawable or usable for pre-commit deposit <or> pledge lock-up.
    */
   struct MinerActorState : State {
-    explicit MinerActorState(ActorVersion version)
-        : State(ActorType::kMiner, version) {}
-
     /** Information not related to sectors. */
     CID miner_info;  // MinerInfo
 

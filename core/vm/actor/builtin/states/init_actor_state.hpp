@@ -15,9 +15,10 @@ namespace fc::vm::actor::builtin::states {
 
   /// Init actor state
   struct InitActorState : State {
-    explicit InitActorState(ActorVersion version)
-        : State(ActorType::kInit, version) {}
-
+    adt::Map<uint64_t, adt::AddressKeyer> address_map;
+    uint64_t next_id{};
+    std::string network_name;
+    
     /// Allocate new id address
     inline outcome::result<Address> addActor(const Address &address) {
       const auto id = next_id;
@@ -25,10 +26,6 @@ namespace fc::vm::actor::builtin::states {
       ++next_id;
       return Address::makeFromId(id);
     }
-
-    adt::Map<uint64_t, adt::AddressKeyer> address_map;
-    uint64_t next_id{};
-    std::string network_name;
   };
 
   using InitActorStatePtr = std::shared_ptr<InitActorState>;

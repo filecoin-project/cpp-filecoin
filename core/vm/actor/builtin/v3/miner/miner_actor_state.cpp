@@ -4,10 +4,15 @@
  */
 
 #include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
+
 #include "vm/actor/builtin/v3/miner/types.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
   using types::miner::kWPoStPeriodDeadlines;
+
+  outcome::result<Buffer> MinerActorState::toCbor() const {
+    return Ipld::encode(*this);
+  }
 
   outcome::result<types::miner::MinerInfo> MinerActorState::getInfo(
       IpldPtr ipld) const {

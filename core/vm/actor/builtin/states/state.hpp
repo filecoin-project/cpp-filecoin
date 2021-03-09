@@ -5,15 +5,16 @@
 
 #pragma once
 
-#include "vm/actor/actor.hpp"
+#include "common/outcome.hpp"
+#include "common/buffer.hpp"
 
 namespace fc::vm::actor::builtin::states {
+  using common::Buffer;
+
   struct State {
-    State(ActorType type, ActorVersion version)
-        : type(type), version(version) {}
+    State() = default;
     virtual ~State() = default;
 
-    ActorType type;
-    ActorVersion version;
+    virtual outcome::result<Buffer> toCbor() const = 0;
   };
 }  // namespace fc::vm::actor::builtin::states
