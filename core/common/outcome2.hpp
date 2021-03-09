@@ -84,11 +84,7 @@ struct fmt::formatter<std::error_code, char, void> {
   template <typename FormatContext>
   auto format(const std::error_code &e, FormatContext &ctx) {
     if (alt) {
-      return fmt::format_to(ctx.out(),
-                            "{} error {}: \"{}\"",
-                            e.category().name(),
-                            e.value(),
-                            e.message());
+      return fmt::format_to(ctx.out(), fc::outcome::errorToPrettyString(e));
     }
     return fmt::format_to(ctx.out(), "{}:{}", e.category().name(), e.value());
   }
