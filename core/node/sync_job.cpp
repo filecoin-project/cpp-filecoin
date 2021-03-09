@@ -7,11 +7,13 @@
 
 #include "blocksync_common.hpp"
 #include "common/logger.hpp"
+#include "common/outcome2.hpp"
 #include "events.hpp"
 #include "node/chain_store_impl.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::sync {
+  using primitives::tipset::chain::stepParent;
 
   namespace {
     auto log() {
@@ -20,12 +22,26 @@ namespace fc::sync {
     }
   }  // namespace
 
+  outcome::result<TipsetCPtr> stepUp(TsLoadPtr ts_load,
+                                     TsBranchPtr branch,
+                                     TipsetCPtr ts) {
+    if (branch->chain.rbegin()->second.key != ts->key) {
+      OUTCOME_TRY(it, find(branch, ts->height() + 1, false));
+      OUTCOME_TRY(it2, stepParent(it));
+      if (it2.second->second.key == ts->key) {
+        return ts_load->loadw(it.second->second);
+      }
+    }
+    return OutcomeError::kDefault;
+  }
+
   SyncJob::SyncJob(std::shared_ptr<libp2p::Host> host,
                    std::shared_ptr<ChainStoreImpl> chain_store,
                    std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-                   std::shared_ptr<InterpretJob> interpret_job,
+                   std::shared_ptr<Interpreter> interpreter,
                    std::shared_ptr<InterpreterCache> interpreter_cache,
-                   TsBranches &ts_branches,
+                   SharedMutexPtr ts_branches_mutex,
+                   TsBranchesPtr ts_branches,
                    KvPtr ts_main_kv,
                    TsBranchPtr ts_main,
                    TsLoadPtr ts_load,
@@ -33,13 +49,16 @@ namespace fc::sync {
       : host_(std::move(host)),
         chain_store_(std::move(chain_store)),
         scheduler_(std::move(scheduler)),
-        interpret_job_(std::move(interpret_job)),
+        interpreter_(std::move(interpreter)),
         interpreter_cache_(std::move(interpreter_cache)),
-        ts_branches_{ts_branches},
+        ts_branches_mutex_{std::move(ts_branches_mutex)},
+        ts_branches_{std::move(ts_branches)},
         ts_main_kv_(std::move(ts_main_kv)),
         ts_main_(std::move(ts_main)),
         ts_load_(std::move(ts_load)),
-        ipld_(std::move(ipld)) {}
+        ipld_(std::move(ipld)) {
+    attached_.insert(ts_main_);
+  }
 
   void SyncJob::start(std::shared_ptr<events::Events> events) {
     if (events_) {
@@ -52,15 +71,6 @@ namespace fc::sync {
 
     possible_head_event_ = events_->subscribePossibleHead(
         [this](const events::PossibleHead &e) { onPossibleHead(e); });
-
-    head_interpreted_event_ = events_->subscribeHeadInterpreted(
-        [this](const events::HeadInterpreted &e) {
-          thread.io->post([this, e] {
-            std::lock_guard lock{branches_mutex_};
-            interpret_queue_.push(e.head);
-            interpretDequeue();
-          });
-        });
 
     peers_.start(
         host_, *events_, [](const std::set<std::string> &protocols) -> bool {
@@ -94,11 +104,16 @@ namespace fc::sync {
   }
 
   void SyncJob::onTs(const boost::optional<PeerId> &peer, TipsetCPtr ts) {
-    std::lock_guard lock{branches_mutex_};
+    std::unique_lock lock{*ts_branches_mutex_};
     while (true) {
-      auto branch{insert(ts_branches_, ts).first};
-      if (branch == ts_main_) {
-        interpret_queue_.push(ts);
+      std::vector<TsBranchPtr> children;
+      auto branch{insert(*ts_branches_, ts, &children).first};
+      if (attached_.count(branch)) {
+        auto last{attached_heaviest_.first};
+        for (auto &child : children) {
+          attach(child);
+        }
+        updateTarget(last);
       } else {
         while (branch->parent) {
           branch = branch->parent;
@@ -120,61 +135,149 @@ namespace fc::sync {
     interpretDequeue();
   }
 
-  void SyncJob::interpretDequeue() {
-    std::pair<TipsetCPtr, BigInt> heaviest;
-    while (!interpret_queue_.empty()) {
-      auto ts{interpret_queue_.front()};
-      interpret_queue_.pop();
-      if (auto _res{interpreter_cache_->tryGet(ts->key)}) {
+  void SyncJob::attach(TsBranchPtr branch) {
+    std::vector<TsBranchPtr> queue{branch};
+    while (!queue.empty()) {
+      branch = queue.back();
+      queue.pop_back();
+      attached_.insert(branch);
+      if (auto _ts{ts_load_->loadw(branch->chain.rbegin()->second)}) {
+        auto &ts{_ts.value()};
+        if (ts->getParentWeight() > attached_heaviest_.second) {
+          attached_heaviest_ = {branch, ts->getParentWeight()};
+        }
+      }
+      for (auto &_child : branch->children) {
+        if (auto child{_child.second.lock()}) {
+          queue.push_back(child);
+        }
+      }
+    }
+  }
+
+  void SyncJob::updateTarget(TsBranchPtr last) {
+    auto branch{attached_heaviest_.first};
+    if (branch == last) {
+      return;
+    }
+    auto it{std::prev(branch->chain.end())};
+    while (true) {
+      if (auto _res{interpreter_cache_->tryGet(it->second.key)}) {
+        if (*_res) {
+          if (auto _ts{ts_load_->loadw(it->second)}) {
+            interpret_ts_ = _ts.value();
+          }
+        }
+        break;
+      }
+      if (auto _it{stepParent({branch, it})}) {
+        std::tie(branch, it) = _it.value();
+      } else {
+        break;
+      }
+      if (branch == ts_main_) {
+        log()->info("main not interpreted {}", it->first);
+        break;
+      }
+    }
+  }
+
+  void SyncJob::onInterpret(TipsetCPtr ts, const InterpreterResult &result) {
+    auto &weight{result.weight};
+    if (weight > chain_store_->getHeaviestWeight()) {
+      if (auto _update{
+              update(ts_main_, find(*ts_branches_, ts), ts_main_kv_)}) {
+        auto &[path, removed]{_update.value()};
+        for (auto &branch : removed) {
+          ts_branches_->erase(branch);
+          attached_.erase(branch);
+        }
+        chain_store_->update(path, weight);
+      } else {
+        log()->error("update {:#}", _update.error());
+      }
+    }
+  }
+
+  bool SyncJob::checkParent(TipsetCPtr ts) {
+    if (ts->height() != 0) {
+      if (auto _res{interpreter_cache_->tryGet(ts->getParents())}) {
         if (*_res) {
           auto &res{_res->value()};
-          if (!heaviest.first || res.weight > heaviest.second) {
-            heaviest = {ts, res.weight};
+          if (ts->getParentStateRoot() != res.state_root) {
+            log()->warn("parent state mismatch {} {}",
+                        ts->height(),
+                        fmt::join(ts->key.cids(), ","));
+            return false;
           }
-          auto it{find(ts_branches_, ts)};
-          for (auto it2 : children(it)) {
-            if (auto _ts{ts_load_->loadw(it2.second->second)}) {
-              auto &ts{_ts.value()};
-              if (ts->getParentStateRoot() != res.state_root) {
-                log()->warn("parent state mismatch {} {}",
-                            ts->height(),
-                            fmt::join(ts->key.cids(), ","));
-                continue;
-              }
-              if (ts->getParentMessageReceipts() != res.message_receipts) {
-                log()->warn("parent receipts mismatch {} {}",
-                            ts->height(),
-                            fmt::join(ts->key.cids(), ","));
-                continue;
-              }
-              interpret_queue_.push(ts);
-            }
+          if (ts->getParentMessageReceipts() != res.message_receipts) {
+            log()->warn("parent receipts mismatch {} {}",
+                        ts->height(),
+                        fmt::join(ts->key.cids(), ","));
+            return false;
           }
-        }
-      } else {
-        if (auto _has{ipld_->contains(ts->getParentStateRoot())};
-            !_has || !_has.value()) {
-          log()->warn("no parent state {} {}",
+        } else {
+          log()->warn("parent interpret error {} {}",
                       ts->height(),
                       fmt::join(ts->key.cids(), ","));
-          continue;
+          return false;
         }
-        interpret_job_->add(ts);
-      }
-    }
-    if (heaviest.first && heaviest.second > chain_store_->getHeaviestWeight()) {
-      // TODO(turuslan): branches write lock (TODO branches read locks)
-      if (auto _path{update(
-              ts_main_, find(ts_branches_, heaviest.first), ts_main_kv_)}) {
-        auto &[path, removed]{_path.value()};
-        for (auto &branch : removed) {
-          ts_branches_.erase(branch);
-        }
-        chain_store_->update(path, heaviest.second);
       } else {
-        log()->error("update {} {}", _path.error(), _path.error().message());
+        log()->warn("parent not interpreted {} {}",
+                    ts->height(),
+                    fmt::join(ts->key.cids(), ","));
+        return false;
+      }
+      if (auto _has{ipld_->contains(ts->getParentStateRoot())};
+          !_has || !_has.value()) {
+        log()->warn("no parent state {} {}",
+                    ts->height(),
+                    fmt::join(ts->key.cids(), ","));
+        return false;
       }
     }
+    return true;
+  }
+
+  void SyncJob::interpretDequeue() {
+    if (interpreting_ || !interpret_ts_) {
+      return;
+    }
+    auto ts{interpret_ts_};
+    auto branch{find(*ts_branches_, ts).first};
+    if (!checkParent(ts)) {
+      // TODO: detach and ban branches
+      interpret_ts_ = nullptr;
+      return;
+    }
+    interpreting_ = true;
+    interpret_thread.io->post([=] {
+      auto result{interpreter_->interpret(branch, ts)};
+      if (!result) {
+        log()->warn("interpret error {:#}", result.error());
+      }
+      thread.io->post([=] {
+        std::unique_lock lock{*ts_branches_mutex_};
+        interpreting_ = false;
+        if (result) {
+          onInterpret(ts, result.value());
+        }
+        if (interpret_ts_ == ts) {
+          if (result) {
+            if (auto _ts{stepUp(
+                    ts_load_, attached_heaviest_.first, interpret_ts_)}) {
+              interpret_ts_ = _ts.value();
+            } else {
+              interpret_ts_ = nullptr;
+            }
+          } else {
+            // TODO: detach and ban branches
+            interpret_ts_ = nullptr;
+          }
+        }
+        interpretDequeue();
+      });
+    });
   }
 
   void SyncJob::fetch(const PeerId &peer, const TipsetKey &tsk) {

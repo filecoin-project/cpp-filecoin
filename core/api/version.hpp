@@ -6,7 +6,6 @@
 #pragma once
 
 namespace fc::api {
-
   using ApiVersion = uint64_t;
 
   /**
@@ -16,10 +15,9 @@ namespace fc::api {
    * @param patch - patch version
    * @return api version
    */
-  inline ApiVersion makeApiVersion(uint32_t major,
-                                   uint32_t minor,
-                                   uint32_t patch) {
+  inline constexpr ApiVersion makeApiVersion(uint32_t major,
+                                             uint32_t minor,
+                                             uint32_t patch) {
     return major << 16 | minor << 8 | patch;
   }
-
 }  // namespace fc::api

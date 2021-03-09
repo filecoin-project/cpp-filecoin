@@ -12,7 +12,7 @@
 namespace fc::vm::runtime {
   class TipsetRandomness : public RuntimeRandomness {
    public:
-    explicit TipsetRandomness(TsLoadPtr ts_load);
+    TipsetRandomness(TsLoadPtr ts_load, SharedMutexPtr ts_branches_mutex);
 
     outcome::result<Randomness> getRandomnessFromTickets(
         const TsBranchPtr &ts_branch,
@@ -28,6 +28,7 @@ namespace fc::vm::runtime {
 
    private:
     TsLoadPtr ts_load;
+    SharedMutexPtr ts_branches_mutex;
   };
 
 }  // namespace fc::vm::runtime

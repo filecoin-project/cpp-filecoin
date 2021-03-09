@@ -36,7 +36,6 @@
 #include "node/chain_store_impl.hpp"
 #include "node/graphsync_server.hpp"
 #include "node/identify.hpp"
-#include "node/interpret_job.hpp"
 #include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
 #include "node/receive_hello.hpp"
@@ -87,7 +86,7 @@ namespace fc::node {
         std::shared_ptr<libp2p::peer::IdentityManager> id_manager,
         std::shared_ptr<libp2p::event::Bus> bus) {
       config.kademlia_config.protocolId =
-          std::string("/fil/kad/") + config.network_name + "/kad/1.0.0";
+          std::string("/fil/kad/") + *config.network_name + "/kad/1.0.0";
 
       config.kademlia_config.randomWalk.enabled = false;
 
@@ -146,8 +145,8 @@ namespace fc::node {
     if (snapshot_key->has()) {
       snapshot_key->getCbor(snapshot_cids);
     }
-    if (!config.snapshot.empty()) {
-      auto file{*common::mapFile(config.snapshot)};
+    if (config.snapshot) {
+      auto file{*common::mapFile(*config.snapshot)};
       auto reader{storage::car::CarReader::make(file.second).value()};
       if (snapshot_cids.empty()) {
         snapshot_cids = reader.roots;
@@ -181,7 +180,7 @@ namespace fc::node {
         snapshot_key->setCbor(snapshot_cids);
       } else if (snapshot_cids != reader.roots) {
         log()->error("another snapshot already imported");
-        exit(-1);
+        exit(EXIT_FAILURE);
       }
     }
     return snapshot_cids;
@@ -252,14 +251,15 @@ namespace fc::node {
         o.ts_load_ipld, 8 << 10);
 
     auto genesis_cids{
-        storage::car::loadCar(*o.ipld, config.join("genesis.car")).value()};
+        storage::car::loadCar(*o.ipld, config.genesisCar()).value()};
     assert(genesis_cids.size() == 1);
     config.genesis_cid = genesis_cids[0];
 
+    o.env_context.ts_branches_mutex = std::make_shared<std::shared_mutex>();
     o.env_context.ipld = o.ipld;
     o.env_context.invoker = std::make_shared<vm::actor::InvokerImpl>();
-    o.env_context.randomness =
-        std::make_shared<vm::runtime::TipsetRandomness>(o.ts_load);
+    o.env_context.randomness = std::make_shared<vm::runtime::TipsetRandomness>(
+        o.ts_load, o.env_context.ts_branches_mutex);
     o.env_context.ts_load = o.ts_load;
     o.env_context.interpreter_cache =
         std::make_shared<vm::interpreter::InterpreterCache>(
@@ -283,7 +283,7 @@ namespace fc::node {
 
     OUTCOME_EXCEPT(genesis, o.ts_load->load(genesis_cids));
     OUTCOME_TRY(initNetworkName(*genesis, o.ipld, config));
-    log()->info("Network name: {}", config.network_name);
+    log()->info("Network name: {}", *config.network_name);
 
     auto genesis_timestamp = clock::UnixTime(genesis->blks[0].timestamp);
 
@@ -369,9 +369,6 @@ namespace fc::node {
     o.blocksync_server = std::make_shared<fc::sync::blocksync::BlocksyncServer>(
         o.host, o.ts_load_ipld, o.ipld);
 
-    o.interpret_job = sync::InterpretJob::create(
-        o.vm_interpreter, *o.ts_branches, o.ipld, o.events);
-
     log()->debug("Creating chain store...");
 
     auto power_table = std::make_shared<power::PowerTableImpl>();
@@ -403,9 +400,10 @@ namespace fc::node {
         std::make_shared<sync::SyncJob>(o.host,
                                         o.chain_store,
                                         o.scheduler,
-                                        o.interpret_job,
+                                        o.vm_interpreter,
                                         o.env_context.interpreter_cache,
-                                        *o.ts_branches,
+                                        o.env_context.ts_branches_mutex,
+                                        o.ts_branches,
                                         o.ts_main_kv,
                                         o.ts_main,
                                         o.ts_load,
@@ -423,9 +421,9 @@ namespace fc::node {
         bls_provider, secp_provider);
 
     drand::ChainInfo drand_chain_info{
-        .key = config.drand_bls_pubkey,
-        .genesis = std::chrono::seconds(config.drand_genesis),
-        .period = std::chrono::seconds(config.drand_period),
+        .key = *config.drand_bls_pubkey,
+        .genesis = std::chrono::seconds(*config.drand_genesis),
+        .period = std::chrono::seconds(*config.drand_period),
     };
 
     if (config.drand_servers.empty()) {
@@ -446,7 +444,7 @@ namespace fc::node {
         std::chrono::seconds(kEpochDurationSeconds));
 
     o.api = api::makeImpl(o.chain_store,
-                          config.network_name,
+                          *config.network_name,
                           weight_calculator,
                           o.env_context,
                           o.ts_main,

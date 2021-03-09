@@ -29,15 +29,7 @@ namespace fc::sync {
   using primitives::tipset::TipsetHash;
   using primitives::tipset::TipsetKey;
   using vm::message::UnsignedMessage;
-  using BranchId = uint64_t;
   using Height = uint64_t;
-
-  /// Non-existent branch marked as 0
-  constexpr BranchId kNoBranch = 0;
-
-  /// Branch which contains genesis has ID==1, other branches are assigned IDs
-  /// > 1
-  constexpr BranchId kGenesisBranch = 1;
 }  // namespace fc::sync
 
 #endif  // CPP_FILECOIN_SYNC_COMMON_HPP

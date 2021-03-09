@@ -12,6 +12,7 @@
 
 #include "clock/utc_clock.hpp"
 #include "common/logger.hpp"
+#include "common/outcome2.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "drand/impl/http.hpp"
 
@@ -41,6 +42,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::drand, BeaconizerImpl::Error, e) {
 }
 
 namespace fc::drand {
+  Round DrandScheduleImpl::maxRound(ChainEpoch epoch) const {
+    BOOST_ASSERT_MSG(drand_period.count() > 0, "drand period must be > 0");
+    return ((epoch - 1) * fc_period + fc_genesis - drand_genesis)
+           / drand_period;
+  }
+
   BeaconizerImpl::BeaconizerImpl(std::shared_ptr<io_context> io,
                                  std::shared_ptr<UTCClock> clock,
                                  std::shared_ptr<Scheduler> scheduler,
@@ -86,7 +93,7 @@ namespace fc::drand {
                            }
                          }
                        }
-                       spdlog::error("drand host {} error {}",
+                       spdlog::error("drand host {} error: {:#}",
                                      self->peers_[self->peer_index_],
                                      error);
                        self->rotatePeersIndex();

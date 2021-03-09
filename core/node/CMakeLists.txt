@@ -13,7 +13,6 @@ add_library(sync
     blocksync_server.cpp
     graphsync_server.cpp
     sync_job.cpp
-    interpret_job.cpp
     head_constructor.cpp
     chain_store_impl.cpp
     pubsub_workaround.cpp

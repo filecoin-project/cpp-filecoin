@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "config.hpp"
+#include "node/main/config.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -13,251 +13,159 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
+#include "primitives/address/config.hpp"
+
+namespace fc::common {
+  template <size_t N>
+  inline void validate(boost::any &out,
+                       const std::vector<std::string> &values,
+                       Blob<N> *,
+                       long) {
+    using namespace boost::program_options;
+    check_first_occurrence(out);
+    auto &value{get_single_string(values)};
+    if (auto _bytes{Blob<N>::fromHex(value)}) {
+      out = _bytes.value();
+      return;
+    }
+    boost::throw_exception(invalid_option_value{value});
+  }
+}  // namespace fc::common
+
+namespace libp2p::peer {
+  inline void validate(boost::any &out,
+                       const std::vector<std::string> &values,
+                       PeerInfo *,
+                       long) {
+    using namespace boost::program_options;
+    check_first_occurrence(out);
+    auto &value{get_single_string(values)};
+    if (auto _address{multi::Multiaddress::create(value)}) {
+      auto &address{_address.value()};
+      if (auto base58{address.getPeerId()}) {
+        if (auto _id{PeerId::fromBase58(*base58)}) {
+          out = PeerInfo{_id.value(), {address}};
+          return;
+        }
+      }
+    }
+    boost::throw_exception(invalid_option_value{value});
+  }
+}  // namespace libp2p::peer
+
 namespace fc::node {
-
-  namespace {
-    constexpr int kDefaultPort = 2000;
-    constexpr std::string_view kDefaultConfigFileName = "default.cfg";
-
-    const std::string &getLocalIP() {
-      static const std::string a = [] {
-        boost::asio::io_context io;
-        boost::asio::ip::tcp::resolver resolver(io);
-        boost::asio::ip::tcp::resolver::query query(
-            boost::asio::ip::host_name(), "");
-        boost::system::error_code ec;
-        boost::asio::ip::tcp::resolver::iterator it =
-            resolver.resolve(query, ec);
-        boost::asio::ip::tcp::resolver::iterator end;
-        std::string addr("127.0.0.1");
-        while (it != end) {
-          auto ep = it->endpoint();
-          if (ep.address().is_v4()) {
-            addr = ep.address().to_string();
-            break;
-          }
-          ++it;
-        }
-        return addr;
-      }();
-
-      return a;
+  spdlog::level::level_enum getLogLevel(char level) {
+    switch (level) {
+      case 'e':
+        return spdlog::level::err;
+      case 'w':
+        return spdlog::level::warn;
+      case 'd':
+        return spdlog::level::debug;
+      case 't':
+        return spdlog::level::trace;
     }
+    return spdlog::level::info;
+  }
 
-    libp2p::multi::Multiaddress getListenAddress(int port) {
-      return libp2p::multi::Multiaddress::create(
-                 fmt::format("/ip4/0.0.0.0/tcp/{}", port))
-          .value();
+  Config Config::read(int argc, char *argv[]) {
+    Config config;
+    struct {
+      char log_level;
+      boost::optional<boost::filesystem::path> copy_genesis, copy_config;
+    } raw;
+    namespace po = boost::program_options;
+    po::options_description desc("Fuhon node options");
+    auto option{desc.add_options()};
+    option("help,h", "print usage message");
+    option("repo", po::value(&config.repo_path)->required());
+    option("config", po::value(&raw.copy_config), "copy config from file");
+    option("genesis", po::value(&raw.copy_genesis), "copy genesis from file");
+    option("api", po::value(&config.api_port)->default_value(1234), "API port");
+    option("port,p", po::value(&config.port), "port to listen to");
+    option("bootstrap,b",
+           po::value(&config.bootstrap_list)->composing(),
+           "remote bootstrap peer uri to connect to");
+    option("log,l",
+           po::value(&raw.log_level)->default_value('i'),
+           "log level, [e,w,i,d,t]");
+    option("import-snapshot", po::value(&config.snapshot));
+    option("drand-server",
+           po::value(&config.drand_servers)->composing(),
+           "drand server uri");
+    option("drand-pubkey",
+           po::value(&config.drand_bls_pubkey),
+           "drand public key (bls)");
+    option("drand-genesis-time",
+           po::value(&config.drand_genesis),
+           "drand genesis time (seconds)");
+    option("drand-period",
+           po::value(&config.drand_period),
+           "drand period (seconds)");
+    primitives::address::configCurrentNetwork(option);
+
+    po::variables_map vm;
+    po::store(parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+    if (vm.count("help") != 0) {
+      std::cerr << desc << std::endl;
+      exit(EXIT_SUCCESS);
     }
-
-    boost::optional<libp2p::peer::PeerInfo> str2peerInfo(
-        const std::string &str) {
-      auto ma_res = libp2p::multi::Multiaddress::create(str);
-      if (!ma_res) {
-        return boost::none;
-      }
-      auto ma = std::move(ma_res.value());
-
-      auto peer_id_str = ma.getPeerId();
-      if (!peer_id_str) {
-        return boost::none;
-      }
-
-      auto peer_id_res = libp2p::peer::PeerId::fromBase58(*peer_id_str);
-      if (!peer_id_res) {
-        return boost::none;
-      }
-
-      return libp2p::peer::PeerInfo{peer_id_res.value(), {ma}};
+    boost::filesystem::create_directories(config.repo_path);
+    auto config_path{config.join("config.cfg")};
+    if (raw.copy_config) {
+      boost::filesystem::copy_file(
+          *raw.copy_config,
+          config_path,
+          boost::filesystem::copy_option::overwrite_if_exists);
     }
-
-    spdlog::level::level_enum getLogLevel(char level) {
-      spdlog::level::level_enum spdlog_level = spdlog::level::info;
-      switch (level) {
-        case 'e':
-          spdlog_level = spdlog::level::err;
-          break;
-        case 'w':
-          spdlog_level = spdlog::level::warn;
-          break;
-        case 'd':
-          spdlog_level = spdlog::level::debug;
-          break;
-        case 't':
-          spdlog_level = spdlog::level::trace;
-          break;
-        default:
-          break;
-      }
-      return spdlog_level;
+    if (raw.copy_config) {
+      boost::filesystem::copy_file(
+          *raw.copy_genesis,
+          config.genesisCar(),
+          boost::filesystem::copy_option::overwrite_if_exists);
     }
-
-    struct ConfigRaw {
-      char log_level = 'i';
-      int port = 0;
-      int api_port;
-      std::string snapshot;
-      std::string repo_path;
-      std::vector<std::string> bootstrap_list;
-      std::vector<std::string> drand_list;
-      std::string drand_pubkey;
-      uint64_t drand_genesis_time = 0;
-      uint64_t drand_period = 0;
-    };
-
-    bool parseCommandLine(int argc, char **argv, ConfigRaw &raw) {
-      namespace po = boost::program_options;
-      std::string config_file;
-
-      po::options_description desc("Fuhon node options");
-
-      auto option{desc.add_options()};
-      option("help,h", "print usage message");
-      option("repo", po::value(&raw.repo_path)->required());
-      option("api", po::value(&raw.api_port)->default_value(1234));
-      option("config,c",
-             po::value(&config_file),
-             "config file name (default.cfg)");
-      option("port,p", po::value(&raw.port), "port to listen to");
-      option("bootstrap,b",
-             po::value(&raw.bootstrap_list)->composing(),
-             "remote bootstrap peer uri to connect to");
-      option("log,l", po::value(&raw.log_level), "log level, [e,w,i,d,t]");
-      option("import-snapshot", po::value(&raw.snapshot));
-      option("drand-server",
-             po::value(&raw.drand_list)->composing(),
-             "drand server uri");
-      option("drand-pubkey",
-             po::value(&raw.drand_pubkey),
-             "drand public key (bls)");
-      option("drand-genesis-time",
-             po::value(&raw.drand_genesis_time),
-             "drand genesis time (seconds)");
-      option("drand-period",
-             po::value(&raw.drand_period),
-             "drand period (seconds)");
-
-      po::variables_map vm;
-      po::store(parse_command_line(argc, argv, desc), vm);
-
-      if (vm.count("help") != 0) {
-        std::cerr << desc << std::endl;
-        return false;
-      }
-
-      // if config specified explicitly, then it must exist
-      bool config_file_must_exist = vm.count("config") > 0;
-      if (config_file_must_exist) {
-        config_file = vm["config"].as<std::string>();
-      } else {
-        // will be parsing default config file, if it exists
-        config_file = kDefaultConfigFileName;
-      }
-
-      std::ifstream ifs(config_file.c_str());
-      if (ifs.fail()) {
-        if (config_file_must_exist) {
-          std::cerr << "Cannot open config file " << config_file << std::endl;
-          return false;
-        }
-      } else {
-        po::store(po::parse_config_file(ifs, desc), vm);
-      }
-
+    std::ifstream config_file{config_path};
+    if (config_file.good()) {
+      po::store(po::parse_config_file(config_file, desc), vm);
       po::notify(vm);
-
-      return true;
     }
 
-    bool applyRawConfig(ConfigRaw &raw, fc::node::Config &config) {
-      if (raw.repo_path.empty()) {
-        std::cerr << "Storage path must be specified\n";
-        return false;
-      }
+    config.log_level = getLogLevel(raw.log_level);
+    spdlog::set_level(config.log_level);
 
-      boost::filesystem::create_directories(raw.repo_path);
-      config.repo_path = boost::filesystem::canonical(raw.repo_path);
-
-      if (raw.port != 0) {
-        config.listen_address = getListenAddress(raw.port);
-        config.port = raw.port;
-      }
-      config.api_port = raw.api_port;
-
-      std::string summary = fmt::format(
-          "Node is going to run with the following settings:\n"
-          "\tStorage path: {}\n\tListen address: {}\n",
-          config.repo_path,
-          config.listen_address.getStringAddress());
-
-      if (!raw.snapshot.empty()) {
-        config.snapshot = boost::filesystem::canonical(raw.snapshot).string();
-        summary += fmt::format("\tImporting snapshot {}\n", config.snapshot);
-      }
-
-      if (!raw.bootstrap_list.empty()) {
-        summary += fmt::format("\tBootstrap peers:\n");
-
-        for (const auto &b : raw.bootstrap_list) {
-          auto res = str2peerInfo(b);
-          if (!res) {
-            std::cerr << "Cannot resolve remote peer address from " << b
-                      << "\n";
-            return false;
-          }
-          config.bootstrap_list.push_back(res.value());
-          summary += fmt::format("\t\t{}\n", b);
-        }
-      }
-
-      config.log_level = getLogLevel(raw.log_level);
-      spdlog::set_level(config.log_level);
-      summary += fmt::format(
-          "\tLog level: {}\n\tLocal IP: {}", raw.log_level, config.local_ip);
-
-      if (!raw.drand_list.empty()) {
-        config.drand_servers = std::move(raw.drand_list);
-
-        if (raw.drand_pubkey.size() != BlsPublicKey::size() * 2) {
-          std::cerr << "Invalid drand public key format " << raw.drand_pubkey
-                    << "\n";
-          return false;
-        }
-        auto unhex_res = BlsPublicKey::fromHex(raw.drand_pubkey);
-        if (!unhex_res) {
-          std::cerr << "Cannot decode drand public key, "
-                    << unhex_res.error().message() << "\n";
-          return false;
-        }
-
-        config.drand_bls_pubkey = std::move(unhex_res.value());
-        config.drand_genesis = raw.drand_genesis_time;
-        config.drand_period = raw.drand_period;
-      }
-
-      spdlog::info(summary);
-
-      return true;
-    }
-
-  }  // namespace
-
-  Config::Config()
-      : log_level(spdlog::level::info),
-        listen_address(getListenAddress(kDefaultPort)),
-        local_ip(getLocalIP()) {}
-
-  bool Config::init(int argc, char *argv[]) {
-    try {
-      ConfigRaw raw;
-      return parseCommandLine(argc, argv, raw) && applyRawConfig(raw, *this);
-    } catch (const std::exception &e) {
-      std::cerr << "Cannot parse options: " << e.what() << "\n";
-    }
-    return false;
+    return config;
   }
 
   std::string Config::join(const std::string &path) const {
     return (repo_path / path).string();
+  }
+
+  std::string Config::genesisCar() const {
+    return join("genesis.car");
+  }
+
+  Multiaddress Config::p2pListenAddress() const {
+    return libp2p::multi::Multiaddress::create(
+               fmt::format("/ip4/0.0.0.0/tcp/{}", port))
+        .value();
+  }
+
+  const std::string &Config::localIp() const {
+    static const std::string ip{[] {
+      using namespace boost::asio::ip;
+      boost::asio::io_context io;
+      tcp::resolver resolver{io};
+      boost::system::error_code ec;
+      tcp::resolver::iterator end;
+      for (auto it{resolver.resolve(host_name(), "", ec)}; it != end; ++it) {
+        auto addr{it->endpoint().address()};
+        if (addr.is_v4()) {
+          return addr.to_string();
+        }
+      }
+      return std::string{"127.0.0.1"};
+    }()};
+    return ip;
   }
 }  // namespace fc::node

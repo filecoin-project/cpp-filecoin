@@ -20,6 +20,9 @@ namespace fc::vm::toolchain {
     /** Checks if code is miner actor */
     virtual bool isStorageMinerActor(const CodeId &code) const = 0;
 
+    /** Checks if code is payment channel actor */
+    virtual bool isPaymentChannelActor(const CodeId &code) const = 0;
+
     /** Check if code specifies builtin actor implementation */
     virtual bool isBuiltinActor(const CodeId &code) const = 0;
 

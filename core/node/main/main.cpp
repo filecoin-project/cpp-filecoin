@@ -11,12 +11,13 @@
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
+#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/logger.hpp"
+#include "drand/impl/http.hpp"
 #include "node/blocksync_server.hpp"
 #include "node/chain_store_impl.hpp"
 #include "node/graphsync_server.hpp"
 #include "node/identify.hpp"
-#include "node/interpret_job.hpp"
 #include "node/main/builder.hpp"
 #include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
@@ -54,14 +55,8 @@ namespace fc {
 
   }  // namespace
 
-  int main(int argc, char *argv[]) {
+  void main(node::Config &config) {
     vm::actor::cgo::configMainnet();
-
-    node::Config config;
-
-    if (!config.init(argc, argv)) {
-      return __LINE__;
-    }
 
     if (config.log_level <= spdlog::level::debug) {
       suppressVerboseLoggers();
@@ -70,18 +65,51 @@ namespace fc {
     auto obj_res = node::createNodeObjects(config);
     if (!obj_res) {
       log()->error("Cannot initialize node: {}", obj_res.error().message());
-      return __LINE__;
+      exit(EXIT_FAILURE);
     }
     auto &o = obj_res.value();
+
+    o.io_context->post([&] {
+      for (auto &host : config.drand_servers) {
+        drand::http::getInfo(*o.io_context, host, [&, host](auto _info) {
+          if (_info) {
+            auto &info{_info.value()};
+            auto expect{[&](const auto &label,
+                            const auto &actual,
+                            const auto &expected) {
+              if (actual != expected) {
+                log()->error("drand config {}: {} expected {} got {}",
+                             host,
+                             label,
+                             expected,
+                             actual);
+                return false;
+              }
+              return true;
+            }};
+            if (expect("key", info.key, *config.drand_bls_pubkey)
+                && expect(
+                    "genesis", info.genesis.count(), *config.drand_genesis)
+                && expect(
+                    "period", info.period.count(), *config.drand_period)) {
+              return;
+            }
+          } else {
+            log()->warn("drand config {}: {:#}", host, _info.error());
+          }
+          exit(EXIT_FAILURE);
+        });
+      }
+    });
 
     log()->info("Starting components");
 
     auto events = o.events;
 
-    node::PubsubWorkaround pubsub2(o.io_context,
+    node::PubsubWorkaround pubsub2{o.io_context,
                                    config.bootstrap_list,
                                    config.gossip_config,
-                                   config.network_name);
+                                   *config.network_name};
 
     auto conn = events->subscribeCurrentHead(
         [&](const sync::events::CurrentHead &head) {
@@ -90,43 +118,45 @@ namespace fc {
               head.tipset->height());
         });
 
-    if (auto r = o.host->listen(config.listen_address); !r) {
+    if (auto r = o.host->listen(config.p2pListenAddress()); !r) {
       log()->error("Cannot listen to {}: {}",
-                   config.listen_address.getStringAddress(),
+                   config.p2pListenAddress().getStringAddress(),
                    r.error().message());
-      exit(-1);
+      exit(EXIT_FAILURE);
     }
 
     o.host->start();
     auto peer_info = o.host->getPeerInfo();
     if (peer_info.addresses.empty()) {
       log()->error("Cannot listen to {}",
-                   config.listen_address.getStringAddress());
-      exit(-1);
+                   config.p2pListenAddress().getStringAddress());
+      exit(EXIT_FAILURE);
     }
 
-    log()->info("Node started at /ip4/{}/tcp/{}/p2p/{}",
-                config.local_ip,
-                config.port,
-                peer_info.id.toBase58());
+    log()->info("Node started at {}",
+                nonZeroAddr(peer_info.addresses, &config.localIp())
+                    ->getStringAddress());
 
     for (const auto &pi : config.bootstrap_list) {
       o.host->connect(pi);
     }
 
-    auto p2_res = pubsub2.start(config.port == -1 ? -1 : config.port + 2);
+    auto p2_res = pubsub2.start(0);
     if (!p2_res) {
       log()->warn("cannot start pubsub workaround, {}",
                   p2_res.error().message());
     } else {
       o.gossip->addBootstrapPeer(p2_res.value().id,
-                                 p2_res.value().addresses[0]);
+                                 *nonZeroAddr(p2_res.value().addresses));
     }
 
     o.api->NetConnect = [&](auto &peer) {
       o.host->connect(peer);
       return outcome::success();
     };
+    PeerInfo api_peer_info{
+        peer_info.id, nonZeroAddrs(peer_info.addresses, &config.localIp())};
+    o.api->NetAddrsListen = [&] { return api_peer_info; };
 
     auto rpc{api::makeRpc(*o.api)};
     auto routes{std::make_shared<api::Routes>()};
@@ -138,7 +168,7 @@ namespace fc {
     o.say_hello->start(config.genesis_cid.value(), events);
     o.receive_hello->start();
     o.gossip->start();
-    o.pubsub_gate->start(config.network_name, events);
+    o.pubsub_gate->start(*config.network_name, events);
     o.graphsync_server->start();
     o.blocksync_server->start();
     o.sync_job->start(events);
@@ -156,7 +186,7 @@ namespace fc {
     // and emits possible heads
     if (auto r = o.chain_store->start(events); !r) {
       log()->error("Cannot start node: {}", r.error().message());
-      return __LINE__;
+      exit(EXIT_FAILURE);
     }
 
     // gracefully shutdown on signal
@@ -167,23 +197,16 @@ namespace fc {
     // run event loop
     o.io_context->run();
     log()->info("Node stopped");
-
-    return fatal_error_occured ? __LINE__ : 0;
   }
-
 }  // namespace fc
 
 int main(int argc, char *argv[]) {
-#ifdef NDEBUG
   try {
-    return fc::main(argc, argv);
+    auto config{fc::node::Config::read(argc, argv)};
+    fc::main(config);
   } catch (const std::exception &e) {
     std::cerr << "UNEXPECTED EXCEPTION, " << e.what() << "\n";
   } catch (...) {
     std::cerr << "UNEXPECTED EXCEPTION\n";
   }
-  return __LINE__;
-#else
-  return fc::main(argc, argv);
-#endif
 }

@@ -63,6 +63,16 @@ namespace fc::outcome {
   }
 }  // namespace fc::outcome
 
+namespace fmt {
+  inline namespace v6 {
+    template <typename T, typename Char, typename Enable>
+    struct formatter;
+  }  // namespace v6
+
+  template <>
+  struct formatter<std::error_code, char, void>;
+}  // namespace fmt
+
 #define _OUTCOME_ALTERNATIVE(res, var, expression, alternative) \
   auto &&res = (expression);                                    \
   auto &&var = (res) ? (res.value()) : (alternative);

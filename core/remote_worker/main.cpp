@@ -13,7 +13,6 @@
 
 #include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
-#include "api/rpc/json.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
 #include "api/storage_api.hpp"
@@ -66,8 +65,7 @@ namespace fc {
     namespace po = boost::program_options;
     Config config;
     struct {
-      std::string miner_repo;
-      std::string repo;
+      boost::filesystem::path miner_repo;
       bool can_add_piece = false;
       bool can_precommit1 = false;
       bool can_precommit2 = false;
@@ -77,7 +75,7 @@ namespace fc {
 
     po::options_description desc("Fuhon worker options");
     auto option{desc.add_options()};
-    option("worker-repo", po::value(&raw.repo)->required());
+    option("worker-repo", po::value(&config.repo_path)->required());
     option("miner-repo", po::value(&raw.miner_repo));
     option("worker-api", po::value(&config.api_port)->default_value(3456));
     option("addpiece", po::value(&raw.can_add_piece)->default_value(true));
@@ -90,10 +88,7 @@ namespace fc {
     po::variables_map vm;
     po::store(parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
-    config.repo_path = raw.repo;
-    if (!boost::filesystem::exists(config.repo_path)) {
-      boost::filesystem::create_directories(config.repo_path);
-    }
+    boost::filesystem::create_directories(config.repo_path);
     std::ifstream config_file{config.join("config.cfg")};
     if (config_file.good()) {
       po::store(po::parse_config_file(config_file, desc), vm);
@@ -101,7 +96,7 @@ namespace fc {
     }
 
     OUTCOME_TRYA(config.miner_api,
-                 api::rpc::loadInfo(raw.miner_repo, "STORAGE_API_INFO"));
+                 api::rpc::loadInfo(raw.miner_repo, "MINER_API_INFO"));
     config.tasks = {
         primitives::kTTFetch, primitives::kTTCommit1, primitives::kTTFinalize};
 
