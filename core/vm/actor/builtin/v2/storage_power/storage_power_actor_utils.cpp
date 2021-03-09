@@ -7,10 +7,12 @@
 
 namespace fc::vm::actor::builtin::v2::storage_power {
   outcome::result<void> PowerUtils::validateMinerHasClaim(
-      states::PowerActorStatePtr state, const Address &miner) const {
-    REQUIRE_NO_ERROR(state->loadClaimsRoot(), VMExitCode::kErrIllegalState);
+      PowerActorStatePtr state, const Address &miner) const {
+    auto state_copy = state->copy();
+    REQUIRE_NO_ERROR(state_copy->loadClaimsRoot(),
+                     VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR_A(
-        has, state->hasClaim(miner), VMExitCode::kErrIllegalState);
+        has, state_copy->hasClaim(miner), VMExitCode::kErrIllegalState);
     if (!has) {
       ABORT(VMExitCode::kErrForbidden);
     }

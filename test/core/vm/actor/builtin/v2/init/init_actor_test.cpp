@@ -30,7 +30,6 @@ namespace fc::vm::actor::builtin::v2::init {
       actorVersion = ActorVersion::kVersion2;
 
       EXPECT_CALL(*state_manager, createInitActorState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<InitActorState>();
             ipld->load(*s);
@@ -38,7 +37,6 @@ namespace fc::vm::actor::builtin::v2::init {
           }));
 
       EXPECT_CALL(*state_manager, getInitActorState())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() {
             EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
             EXPECT_OUTCOME_TRUE(current_state,
@@ -106,8 +104,6 @@ namespace fc::vm::actor::builtin::v2::init {
 
   TEST_F(InitActorTest, CallerIdHasError) {
     callerIs(kSystemActorAddress);
-
-    // Test VM_ASSERT
 
     currentEpochIs(kUpgradeBreezeHeight);
     EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kOldErrActorFailure),

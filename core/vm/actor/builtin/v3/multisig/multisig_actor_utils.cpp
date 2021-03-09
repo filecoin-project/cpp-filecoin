@@ -8,7 +8,7 @@
 namespace fc::vm::actor::builtin::v3::multisig {
 
   outcome::result<ApproveTransactionResult> MultisigUtils::executeTransaction(
-      states::MultisigActorStatePtr state,
+      MultisigActorStatePtr state,
       const TransactionId &tx_id,
       const Transaction &transaction) const {
     bool applied = false;

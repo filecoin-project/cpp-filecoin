@@ -18,7 +18,6 @@
 
 #define ON_CALL_3(object, call, result) \
   EXPECT_CALL(object, call)             \
-      .Times(testing::AnyNumber())      \
       .WillRepeatedly(Return(result))
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
@@ -56,12 +55,10 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       ON_CALL_3(runtime, getCurrentEpoch(), epoch);
 
       EXPECT_CALL(runtime, getBalance(actor_address))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke(
               [&](auto &) { return fc::outcome::success(balance); }));
 
       EXPECT_CALL(runtime, getImmediateCaller())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() { return caller; }));
 
       ON_CALL_3(runtime, getCurrentReceiver(), actor_address);
@@ -71,7 +68,6 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       ON_CALL_3(runtime, getActorCodeID(to_address), kAccountCodeId);
 
       EXPECT_CALL(runtime, hashBlake2b(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(
               testing::Invoke([&](auto &data) { return blake2b_256(data); }));
 
@@ -79,7 +75,6 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
           .WillRepeatedly(testing::Return(state_manager));
 
       EXPECT_CALL(*state_manager, commitState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](const auto &s) {
             auto temp_state =
                 std::static_pointer_cast<PaymentChannelActorState>(s);
@@ -91,7 +86,6 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
           }));
 
       EXPECT_CALL(*state_manager, createPaymentChannelActorState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<PaymentChannelActorState>();
             ipld->load(*s);
@@ -100,7 +94,6 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
           }));
 
       EXPECT_CALL(*state_manager, getPaymentChannelActorState())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() {
             EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
             EXPECT_OUTCOME_TRUE(current_state,

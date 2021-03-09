@@ -15,6 +15,7 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
+  using states::MarketActorStatePtr;
   using types::market::BalanceLockingReason;
   using types::market::ClientDealProposal;
   using types::market::DealProposal;
@@ -28,29 +29,28 @@ namespace fc::vm::actor::builtin::v0::market {
     escrowAddress(const Address &address) const override;
 
     outcome::result<void> unlockBalance(
-        states::MarketActorStatePtr state,
+        MarketActorStatePtr state,
         const Address &address,
         const TokenAmount &amount,
         BalanceLockingReason lock_reason) const override;
 
     outcome::result<void> slashBalance(
-        states::MarketActorStatePtr state,
+        MarketActorStatePtr state,
         const Address &address,
         const TokenAmount &amount,
         BalanceLockingReason reason) const override;
 
     outcome::result<void> transferBalance(
-        states::MarketActorStatePtr state,
+        MarketActorStatePtr state,
         const Address &from,
         const Address &to,
         const TokenAmount &amount) const override;
 
     outcome::result<TokenAmount> processDealInitTimedOut(
-        states::MarketActorStatePtr state,
-        const DealProposal &deal) const override;
+        MarketActorStatePtr state, const DealProposal &deal) const override;
 
     outcome::result<void> processDealExpired(
-        states::MarketActorStatePtr state,
+        MarketActorStatePtr state,
         const DealProposal &deal,
         const DealState &deal_state) const override;
 
@@ -61,26 +61,25 @@ namespace fc::vm::actor::builtin::v0::market {
         const DealProposal &deal, ChainEpoch slash_epoch) const override;
 
     outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
-    updatePendingDealState(states::MarketActorStatePtr state,
+    updatePendingDealState(MarketActorStatePtr state,
                            DealId deal_id,
                            const DealProposal &deal,
                            const DealState &deal_state,
                            ChainEpoch epoch) const override;
 
     outcome::result<void> maybeLockBalance(
-        states::MarketActorStatePtr state,
+        MarketActorStatePtr state,
         const Address &address,
         const TokenAmount &amount) const override;
 
     outcome::result<void> lockClientAndProviderBalances(
-        states::MarketActorStatePtr state,
-        const DealProposal &deal) const override;
+        MarketActorStatePtr state, const DealProposal &deal) const override;
 
     outcome::result<ChainEpoch> genRandNextEpoch(
         const DealProposal &deal) const override;
 
     outcome::result<void> deleteDealProposalAndState(
-        states::MarketActorStatePtr state,
+        MarketActorStatePtr state,
         DealId deal_id,
         bool remove_proposal,
         bool remove_state) const override;
@@ -98,7 +97,7 @@ namespace fc::vm::actor::builtin::v0::market {
         const StoragePower &network_qa_power) const override;
 
     outcome::result<std::tuple<DealWeight, DealWeight>>
-    validateDealsForActivation(states::MarketActorStatePtr state,
+    validateDealsForActivation(MarketActorStatePtr state,
                                const std::vector<DealId> &deals,
                                const ChainEpoch &sector_expiry) const override;
   };

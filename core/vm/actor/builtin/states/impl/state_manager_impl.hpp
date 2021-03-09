@@ -73,7 +73,6 @@ namespace fc::vm::actor::builtin::states {
    private:
     template <typename T, typename Tv0, typename Tv2, typename Tv3>
     std::shared_ptr<T> createStatePtr(ActorVersion version) const {
-      std::shared_ptr<T> state;
       switch (version) {
         case ActorVersion::kVersion0: {
           return createLoadedStatePtr<Tv0>();

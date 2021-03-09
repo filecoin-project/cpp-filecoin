@@ -15,6 +15,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
   struct PowerActorState : states::PowerActorState {
     PowerActorState() : states::PowerActorState(ActorVersion::kVersion0) {}
+    std::shared_ptr<states::PowerActorState> copy() const override;
 
     outcome::result<void> setClaim(const fc::vm::runtime::Runtime &runtime,
                                    const Address &address,

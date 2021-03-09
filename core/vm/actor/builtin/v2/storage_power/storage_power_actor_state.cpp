@@ -12,6 +12,11 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   using runtime::Runtime;
   using types::storage_power::kConsensusMinerMinPower;
 
+  std::shared_ptr<states::PowerActorState> PowerActorState::copy() const {
+    auto copy = std::make_shared<PowerActorState>(*this);
+    return copy;
+  }
+  
   outcome::result<void> PowerActorState::setClaim(
       const Runtime &runtime,
       const Address &address,

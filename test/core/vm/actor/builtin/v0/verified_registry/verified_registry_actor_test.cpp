@@ -28,7 +28,6 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
       setupState();
 
       EXPECT_CALL(*state_manager, createVerifiedRegistryActorState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<VerifiedRegistryActorState>();
             ipld->load(*s);
@@ -37,7 +36,6 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
           }));
 
       EXPECT_CALL(*state_manager, getVerifiedRegistryActorState())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() {
             EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
             EXPECT_OUTCOME_TRUE(current_state,
@@ -295,8 +293,6 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     EXPECT_OUTCOME_TRUE_1(
         state.verified_clients.set(verified_client, wrong_allowance));
-
-    // Test VM_ASSERT
 
     currentEpochIs(kUpgradeBreezeHeight);
 

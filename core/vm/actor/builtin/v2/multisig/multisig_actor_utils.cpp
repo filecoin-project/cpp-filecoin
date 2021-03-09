@@ -7,7 +7,7 @@
 
 namespace fc::vm::actor::builtin::v2::multisig {
 
-  BigInt MultisigUtils::amountLocked(const states::MultisigActorStatePtr &state,
+  BigInt MultisigUtils::amountLocked(const MultisigActorStatePtr &state,
                                      const ChainEpoch &elapsed_epoch) const {
     if (elapsed_epoch >= state->unlock_duration) {
       return 0;
@@ -26,7 +26,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
   }
 
   outcome::result<void> MultisigUtils::assertAvailable(
-      const states::MultisigActorStatePtr &state,
+      const MultisigActorStatePtr &state,
       const TokenAmount &current_balance,
       const TokenAmount &amount_to_spend,
       const ChainEpoch &current_epoch) const {
@@ -52,7 +52,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
   }
 
   outcome::result<ApproveTransactionResult> MultisigUtils::executeTransaction(
-      states::MultisigActorStatePtr state,
+      MultisigActorStatePtr state,
       const TransactionId &tx_id,
       const Transaction &transaction) const {
     bool applied = false;
@@ -102,7 +102,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
   }
 
   outcome::result<void> MultisigUtils::purgeApprovals(
-      states::MultisigActorStatePtr state, const Address &address) const {
+      MultisigActorStatePtr state, const Address &address) const {
     OUTCOME_TRY(tx_ids, state->pending_transactions.keys());
 
     for (const auto &tx_id : tx_ids) {

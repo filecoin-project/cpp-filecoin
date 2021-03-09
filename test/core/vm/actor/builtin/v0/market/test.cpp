@@ -34,7 +34,7 @@
 #include "vm/version.hpp"
 
 #define ON_CALL_3(a, b, c) \
-  EXPECT_CALL(a, b).Times(testing::AnyNumber()).WillRepeatedly(Return(c))
+  EXPECT_CALL(a, b).WillRepeatedly(Return(c))
 
 namespace fc::vm::actor::builtin::v0::market {
   namespace MinerActor = miner;
@@ -86,7 +86,6 @@ namespace fc::vm::actor::builtin::v0::market {
       addressCodeIdIs(kInitAddress, kInitCodeId);
 
       EXPECT_CALL(*state_manager, createMarketActorState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<MarketActorState>();
             ipld->load(*s);
@@ -94,7 +93,6 @@ namespace fc::vm::actor::builtin::v0::market {
           }));
 
       EXPECT_CALL(*state_manager, getMarketActorState())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() {
             EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
             EXPECT_OUTCOME_TRUE(current_state,

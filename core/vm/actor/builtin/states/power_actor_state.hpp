@@ -45,6 +45,7 @@ namespace fc::vm::actor::builtin::states {
 
   struct PowerActorState : State {
     explicit PowerActorState(ActorVersion version);
+    virtual std::shared_ptr<PowerActorState> copy() const = 0;
 
     StoragePower total_raw_power{};
 

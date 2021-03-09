@@ -145,7 +145,6 @@ namespace fc::api {
   struct MinerPower {
     Claim miner;
     Claim total;
-    bool has_min_power;
   };
 
   struct MsgWait {

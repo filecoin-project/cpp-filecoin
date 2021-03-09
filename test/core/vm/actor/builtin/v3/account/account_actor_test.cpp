@@ -21,14 +21,12 @@ namespace fc::vm::actor::builtin::v3::account {
       actorVersion = ActorVersion::kVersion3;
 
       EXPECT_CALL(*state_manager, createAccountActorState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<AccountActorState>();
             return std::static_pointer_cast<states::AccountActorState>(s);
           }));
 
       EXPECT_CALL(*state_manager, getAccountActorState())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() {
             EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
             EXPECT_OUTCOME_TRUE(current_state,

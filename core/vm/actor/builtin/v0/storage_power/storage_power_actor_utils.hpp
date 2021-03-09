@@ -10,12 +10,13 @@
 namespace fc::vm::actor::builtin::v0::storage_power {
   using primitives::address::Address;
   using runtime::Runtime;
+  using states::PowerActorStatePtr;
 
   class PowerUtils : public utils::PowerUtils {
    public:
     explicit PowerUtils(Runtime &r) : utils::PowerUtils(r) {}
 
     outcome::result<void> validateMinerHasClaim(
-        states::PowerActorStatePtr state, const Address &miner) const override;
+        PowerActorStatePtr state, const Address &miner) const override;
   };
 }  // namespace fc::vm::actor::builtin::v0::storage_power

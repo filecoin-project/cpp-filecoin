@@ -20,7 +20,6 @@
 
 #define ON_CALL_3(object, call, result) \
   EXPECT_CALL(object, call)             \
-      .Times(testing::AnyNumber())      \
       .WillRepeatedly(Return(result))
 
 namespace fc::vm::actor::builtin::v2::multisig {
@@ -54,8 +53,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
       runtime.resolveAddressWith(state_tree);
 
       EXPECT_CALL(runtime, getCurrentEpoch())
-          .Times(testing::AnyNumber())
-          .WillOnce(testing::Invoke([&]() { return epoch; }));
+          .WillRepeatedly(testing::Invoke([&]() { return epoch; }));
 
       ON_CALL_3(runtime, getValueReceived(), value_received);
 
@@ -65,12 +63,10 @@ namespace fc::vm::actor::builtin::v2::multisig {
               [&]() { return version::getNetworkVersion(epoch); }));
 
       EXPECT_CALL(runtime, getBalance(actor_address))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke(
               [&](auto &) { return fc::outcome::success(balance); }));
 
       EXPECT_CALL(runtime, getImmediateCaller())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() { return caller; }));
 
       ON_CALL_3(runtime, getCurrentReceiver(), actor_address);
@@ -80,7 +76,6 @@ namespace fc::vm::actor::builtin::v2::multisig {
       ON_CALL_3(runtime, getActorCodeID(wrong_caller), kCronCodeId);
 
       EXPECT_CALL(runtime, hashBlake2b(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke(
               [&](auto &data) { return crypto::blake2b::blake2b_256(data); }));
 
@@ -88,7 +83,6 @@ namespace fc::vm::actor::builtin::v2::multisig {
           .WillRepeatedly(testing::Return(state_manager));
 
       EXPECT_CALL(*state_manager, commitState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](const auto &s) {
             auto temp_state = std::static_pointer_cast<MultisigActorState>(s);
             EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(*temp_state));
@@ -99,7 +93,6 @@ namespace fc::vm::actor::builtin::v2::multisig {
           }));
 
       EXPECT_CALL(*state_manager, createMultisigActorState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<MultisigActorState>();
             ipld->load(*s);
@@ -107,7 +100,6 @@ namespace fc::vm::actor::builtin::v2::multisig {
           }));
 
       EXPECT_CALL(*state_manager, getMultisigActorState())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() {
             EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
             EXPECT_OUTCOME_TRUE(current_state,

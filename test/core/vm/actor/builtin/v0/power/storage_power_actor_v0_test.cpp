@@ -48,18 +48,15 @@ namespace fc::vm::actor::builtin::v0::storage_power {
           }));
 
       EXPECT_CALL(runtime, getIpfsDatastore())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(Return(ipld));
 
       EXPECT_CALL(runtime, getImmediateCaller())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() { return caller; }));
 
       EXPECT_CALL(runtime, stateManager())
           .WillRepeatedly(testing::Return(state_manager));
 
       EXPECT_CALL(*state_manager, commitState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](const auto &s) {
             auto temp_state = std::static_pointer_cast<PowerActorState>(s);
             EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(*temp_state));
@@ -69,7 +66,6 @@ namespace fc::vm::actor::builtin::v0::storage_power {
           }));
 
       EXPECT_CALL(*state_manager, createPowerActorState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<PowerActorState>();
             ipld->load(*s);
@@ -77,7 +73,6 @@ namespace fc::vm::actor::builtin::v0::storage_power {
           }));
 
       EXPECT_CALL(*state_manager, getPowerActorState())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() {
             EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
             EXPECT_OUTCOME_TRUE(current_state,
@@ -344,8 +339,6 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     caller = miner_address;
     callerCodeIdIs(kStorageMinerCodeId);
     const TokenAmount slash{50};
-
-    // Test VM_ASSERT
 
     current_epoch = kUpgradeBreezeHeight;
 

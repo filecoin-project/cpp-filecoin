@@ -27,14 +27,12 @@ namespace fc::vm::actor::builtin::v0::reward {
       actorVersion = ActorVersion::kVersion0;
 
       EXPECT_CALL(*state_manager, createRewardActorState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<RewardActorState>();
             return std::static_pointer_cast<states::RewardActorState>(s);
           }));
 
       EXPECT_CALL(*state_manager, getRewardActorState())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() {
             EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
             EXPECT_OUTCOME_TRUE(current_state,

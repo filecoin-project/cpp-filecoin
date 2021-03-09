@@ -13,6 +13,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
+  using states::MultisigActorStatePtr;
   using types::multisig::Transaction;
   using types::multisig::TransactionId;
   using utils::multisig::ApproveTransactionResult;
@@ -22,16 +23,16 @@ namespace fc::vm::actor::builtin::v0::multisig {
     explicit MultisigUtils(Runtime &r) : utils::MultisigUtils(r) {}
 
     outcome::result<void> assertCallerIsSigner(
-        const states::MultisigActorStatePtr &state) const override;
+        const MultisigActorStatePtr &state) const override;
 
     outcome::result<Address> getResolvedAddress(
         const Address &address) const override;
 
-    BigInt amountLocked(const states::MultisigActorStatePtr &state,
+    BigInt amountLocked(const MultisigActorStatePtr &state,
                         const ChainEpoch &elapsed_epoch) const override;
 
     outcome::result<void> assertAvailable(
-        const states::MultisigActorStatePtr &state,
+        const MultisigActorStatePtr &state,
         const TokenAmount &current_balance,
         const TokenAmount &amount_to_spend,
         const ChainEpoch &current_epoch) const override;
@@ -40,13 +41,12 @@ namespace fc::vm::actor::builtin::v0::multisig {
         const TransactionId &tx_id, Transaction &transaction) const override;
 
     outcome::result<ApproveTransactionResult> executeTransaction(
-        states::MultisigActorStatePtr state,
+        MultisigActorStatePtr state,
         const TransactionId &tx_id,
         const Transaction &transaction) const override;
 
     outcome::result<void> purgeApprovals(
-        states::MultisigActorStatePtr state,
-        const Address &address) const override {
+        MultisigActorStatePtr state, const Address &address) const override {
       // Not implemented for v0
       return outcome::success();
     }

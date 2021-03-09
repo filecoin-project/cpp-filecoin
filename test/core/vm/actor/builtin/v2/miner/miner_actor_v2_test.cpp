@@ -41,7 +41,6 @@ namespace fc::vm::actor::builtin::v2::miner {
       ipld->load(state);
 
       EXPECT_CALL(*state_manager, createMinerActorState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<MinerActorState>();
             ipld->load(*s);
@@ -49,7 +48,6 @@ namespace fc::vm::actor::builtin::v2::miner {
           }));
 
       EXPECT_CALL(*state_manager, getMinerActorState())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() {
             EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
             EXPECT_OUTCOME_TRUE(current_state,

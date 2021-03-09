@@ -14,6 +14,7 @@ namespace fc::vm::actor::builtin::utils {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
+  using states::MultisigActorStatePtr;
   using types::multisig::Transaction;
   using types::multisig::TransactionId;
 
@@ -31,7 +32,7 @@ namespace fc::vm::actor::builtin::utils {
      * @param state - actor state
      */
     virtual outcome::result<void> assertCallerIsSigner(
-        const states::MultisigActorStatePtr &state) const = 0;
+        const MultisigActorStatePtr &state) const = 0;
 
     /**
      * Resolve address
@@ -47,7 +48,7 @@ namespace fc::vm::actor::builtin::utils {
      * @param elapsed_epoch - elapsed block number
      * @return - return amount locked
      */
-    virtual BigInt amountLocked(const states::MultisigActorStatePtr &state,
+    virtual BigInt amountLocked(const MultisigActorStatePtr &state,
                                 const ChainEpoch &elapsed_epoch) const = 0;
 
     /**
@@ -59,7 +60,7 @@ namespace fc::vm::actor::builtin::utils {
      * @return nothing or error occurred
      */
     virtual outcome::result<void> assertAvailable(
-        const states::MultisigActorStatePtr &state,
+        const MultisigActorStatePtr &state,
         const TokenAmount &current_balance,
         const TokenAmount &amount_to_spend,
         const ChainEpoch &current_epoch) const = 0;
@@ -85,7 +86,7 @@ namespace fc::vm::actor::builtin::utils {
      * sending a message
      */
     virtual outcome::result<multisig::ApproveTransactionResult>
-    executeTransaction(states::MultisigActorStatePtr state,
+    executeTransaction(MultisigActorStatePtr state,
                        const TransactionId &tx_id,
                        const Transaction &transaction) const = 0;
 
@@ -97,7 +98,7 @@ namespace fc::vm::actor::builtin::utils {
      * @param address - address to purge
      */
     virtual outcome::result<void> purgeApprovals(
-        states::MultisigActorStatePtr state, const Address &address) const = 0;
+        MultisigActorStatePtr state, const Address &address) const = 0;
 
    protected:
     Runtime &runtime;

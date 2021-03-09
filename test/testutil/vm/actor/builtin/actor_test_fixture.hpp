@@ -73,7 +73,6 @@ namespace fc::testutil::vm::actor::builtin {
           .WillRepeatedly(testing::Return(state_manager));
 
       EXPECT_CALL(*state_manager, commitState(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&](const auto &s) {
             auto temp_state = std::static_pointer_cast<State>(s);
             EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(*temp_state));

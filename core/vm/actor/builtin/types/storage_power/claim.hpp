@@ -13,6 +13,16 @@ namespace fc::vm::actor::builtin::types::storage_power {
   using primitives::sector::RegisteredSealProof;
 
   struct Claim {
+    Claim() = default;
+    Claim(const StoragePower &raw, const StoragePower &qa)
+        : seal_proof_type(RegisteredSealProof::undefined),
+          raw_power(raw),
+          qa_power(qa) {}
+    Claim(const StoragePower &raw,
+          const StoragePower &qa,
+          RegisteredSealProof seal_proof)
+        : seal_proof_type(seal_proof), raw_power(raw), qa_power(qa) {}
+
     /** Miner's proof type used to determine minimum miner size */
     RegisteredSealProof seal_proof_type;
 

@@ -19,6 +19,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
 
 namespace fc::blockchain::weight {
   using primitives::BigInt;
+  using primitives::StoragePower;
   using vm::actor::kStoragePowerAddress;
   using vm::actor::builtin::states::StateProvider;
   using vm::state::StateTreeImpl;
@@ -37,7 +38,7 @@ namespace fc::blockchain::weight {
                 StateTreeImpl{ipld_, tipset.getParentStateRoot()}.get(
                     kStoragePowerAddress));
     OUTCOME_TRY(state, provider.getPowerActorState(actor));
-    const BigInt network_power = state->total_qa_power;
+    const StoragePower network_power = state->total_qa_power;
 
     if (network_power <= 0) {
       return outcome::failure(WeightCalculatorError::kNoNetworkPower);

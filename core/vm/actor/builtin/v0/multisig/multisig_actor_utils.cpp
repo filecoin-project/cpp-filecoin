@@ -8,7 +8,7 @@
 namespace fc::vm::actor::builtin::v0::multisig {
 
   outcome::result<void> MultisigUtils::assertCallerIsSigner(
-      const states::MultisigActorStatePtr &state) const {
+      const MultisigActorStatePtr &state) const {
     const auto proposer = runtime.getImmediateCaller();
     if (!state->isSigner(proposer)) {
       ABORT(VMExitCode::kErrForbidden);
@@ -24,7 +24,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return std::move(resolved);
   }
 
-  BigInt MultisigUtils::amountLocked(const states::MultisigActorStatePtr &state,
+  BigInt MultisigUtils::amountLocked(const MultisigActorStatePtr &state,
                                      const ChainEpoch &elapsed_epoch) const {
     if (elapsed_epoch >= state->unlock_duration) {
       return 0;
@@ -39,7 +39,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   }
 
   outcome::result<void> MultisigUtils::assertAvailable(
-      const states::MultisigActorStatePtr &state,
+      const MultisigActorStatePtr &state,
       const TokenAmount &current_balance,
       const TokenAmount &amount_to_spend,
       const ChainEpoch &current_epoch) const {
@@ -80,7 +80,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   }
 
   outcome::result<ApproveTransactionResult> MultisigUtils::executeTransaction(
-      states::MultisigActorStatePtr state,
+      MultisigActorStatePtr state,
       const TransactionId &tx_id,
       const Transaction &transaction) const {
     bool applied = false;

@@ -43,7 +43,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<void> MarketUtils::unlockBalance(
-      states::MarketActorStatePtr state,
+      MarketActorStatePtr state,
       const Address &address,
       const TokenAmount &amount,
       BalanceLockingReason lock_reason) const {
@@ -66,7 +66,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<void> MarketUtils::slashBalance(
-      states::MarketActorStatePtr state,
+      MarketActorStatePtr state,
       const Address &address,
       const TokenAmount &amount,
       BalanceLockingReason reason) const {
@@ -76,7 +76,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<void> MarketUtils::transferBalance(
-      states::MarketActorStatePtr state,
+      MarketActorStatePtr state,
       const Address &from,
       const Address &to,
       const TokenAmount &amount) const {
@@ -93,7 +93,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<TokenAmount> MarketUtils::processDealInitTimedOut(
-      states::MarketActorStatePtr state, const DealProposal &deal) const {
+      MarketActorStatePtr state, const DealProposal &deal) const {
     CHANGE_ERROR_ABORT(unlockBalance(state,
                                      deal.client,
                                      deal.getTotalStorageFee(),
@@ -124,7 +124,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<void> MarketUtils::processDealExpired(
-      states::MarketActorStatePtr state,
+      MarketActorStatePtr state,
       const DealProposal &deal,
       const DealState &deal_state) const {
     VM_ASSERT(deal_state.sector_start_epoch != kChainEpochUndefined);
@@ -170,7 +170,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
-  MarketUtils::updatePendingDealState(states::MarketActorStatePtr state,
+  MarketUtils::updatePendingDealState(MarketActorStatePtr state,
                                       DealId deal_id,
                                       const DealProposal &deal,
                                       const DealState &deal_state,
@@ -250,7 +250,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<void> MarketUtils::maybeLockBalance(
-      states::MarketActorStatePtr state,
+      MarketActorStatePtr state,
       const Address &address,
       const TokenAmount &amount) const {
     VM_ASSERT(amount >= 0);
@@ -271,7 +271,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<void> MarketUtils::lockClientAndProviderBalances(
-      states::MarketActorStatePtr state, const DealProposal &deal) const {
+      MarketActorStatePtr state, const DealProposal &deal) const {
     OUTCOME_TRY(
         maybeLockBalance(state, deal.client, deal.clientBalanceRequirement()));
     OUTCOME_TRY(maybeLockBalance(
@@ -295,7 +295,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<void> MarketUtils::deleteDealProposalAndState(
-      states::MarketActorStatePtr state,
+      MarketActorStatePtr state,
       DealId deal_id,
       bool remove_proposal,
       bool remove_state) const {
@@ -390,7 +390,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
   outcome::result<std::tuple<DealWeight, DealWeight>>
   MarketUtils::validateDealsForActivation(
-      states::MarketActorStatePtr state,
+      MarketActorStatePtr state,
       const std::vector<DealId> &deals,
       const ChainEpoch &sector_expiry) const {
     const auto miner = runtime.getImmediateCaller();
