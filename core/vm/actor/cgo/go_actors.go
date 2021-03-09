@@ -10,6 +10,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
+	"runtime/debug"
+
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/filecoin-project/go-state-types/cbor"
@@ -46,8 +49,6 @@ import (
 	rt2 "github.com/filecoin-project/specs-actors/v2/actors/runtime"
 	"github.com/ipfs/go-cid"
 	"github.com/whyrusleeping/cbor-gen"
-	"reflect"
-	"runtime/debug"
 )
 
 //#include "c_actors.h"
@@ -390,9 +391,13 @@ func (rt *rt) VerifyPoSt(info proof1.WindowPoStVerifyInfo) error {
 	return errors.New("VerifyPost")
 }
 
-func (rt *rt) VerifyConsensusFault([]byte, []byte, []byte) (*rt1.ConsensusFault, error) {
-	// TODO: implement
-	panic(cgoErrors("NOT IMPLEMENTED VerifyConsensusFault"))
+func (rt *rt) VerifyConsensusFault(block1, block2, extra []byte) (*rt1.ConsensusFault, error) {
+	ret := rt.gocRet(C.gocRtVerifyConsensusFault(rt.gocArg().bytes(block1).bytes(block2).bytes(extra).arg()))
+	if ret.bool() {
+		target, epoch, _type := ret.addr(), abi.ChainEpoch(ret.int()), rt1.ConsensusFaultType(ret.int())
+		return &rt1.ConsensusFault{target, epoch, _type}, nil
+	}
+	return nil, errors.New("VerifyConsensusFault")
 }
 
 func (rt *rt) Abort(exit exitcode.ExitCode) {

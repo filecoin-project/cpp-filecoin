@@ -51,7 +51,9 @@ namespace fc::primitives::tipset::chain {
   using TsBranches = std::set<TsBranchPtr>;
   using TsBranchesPtr = std::shared_ptr<TsBranches>;
   TsBranchIter find(const TsBranches &branches, TipsetCPtr ts);
-  TsBranchIter insert(TsBranches &branches, TipsetCPtr ts);
+  TsBranchIter insert(TsBranches &branches,
+                      TipsetCPtr ts,
+                      std::vector<TsBranchPtr> *children = {});
 
   std::vector<TsBranchIter> children(TsBranchIter ts_it);
 
@@ -62,7 +64,10 @@ namespace fc::primitives::tipset::chain {
                                      Height height,
                                      bool allow_less = true);
 
-  outcome::result<BeaconEntry> latestBeacon(TsLoadPtr ts_load,
-                                            TsBranchPtr branch,
-                                            Height height);
+  outcome::result<TsBranchIter> stepParent(TsBranchIter it);
+
+  outcome::result<BeaconEntry> latestBeacon(TsLoadPtr ts_load, TsBranchIter it);
+
+  outcome::result<TsBranchIter> getLookbackTipSetForRound(TsBranchIter it,
+                                                          ChainEpoch epoch);
 }  // namespace fc::primitives::tipset::chain

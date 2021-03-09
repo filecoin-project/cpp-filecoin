@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <set>
+#include <shared_mutex>
 
 namespace boost {
   namespace asio {
@@ -137,13 +138,17 @@ namespace fc {
   }      // namespace storage
 
   namespace vm {
+    struct Circulating;
+
     namespace actor {
       struct Actor;
+      class Invoker;
     }  // namespace actor
 
     namespace interpreter {
       class CachedInterpreter;
       class Interpreter;
+      struct InterpreterCache;
       class InterpreterImpl;
     }  // namespace interpreter
 
@@ -156,6 +161,7 @@ namespace fc {
       struct Execution;
       struct MessageReceipt;
       class Runtime;
+      class RuntimeRandomness;
     }  // namespace runtime
 
     namespace state {
@@ -174,4 +180,5 @@ namespace fc {
 
   using Ipld = storage::ipfs::IpfsDatastore;
   using IpldPtr = std::shared_ptr<Ipld>;
+  using SharedMutexPtr = std::shared_ptr<std::shared_mutex>;
 }  // namespace fc

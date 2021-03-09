@@ -15,7 +15,7 @@
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "storage/mpool/mpool.hpp"
-#include "vm/interpreter/interpreter.hpp"
+#include "vm/runtime/env_context.hpp"
 
 namespace fc::api {
   using blockchain::weight::WeightCalculator;
@@ -27,7 +27,7 @@ namespace fc::api {
   using storage::blockchain::MsgWaiter;
   using storage::keystore::KeyStore;
   using storage::mpool::Mpool;
-  using vm::interpreter::Interpreter;
+  using vm::runtime::EnvironmentContext;
   using Logger = common::Logger;
 
   outcome::result<IpldObject> getNode(std::shared_ptr<Ipld> ipld,
@@ -38,11 +38,9 @@ namespace fc::api {
       std::shared_ptr<ChainStore> chain_store,
       const std::string &network_name,
       std::shared_ptr<WeightCalculator> weight_calculator,
-      TsLoadPtr ts_load,
+      const EnvironmentContext &env_context,
       TsBranchPtr ts_main,
-      std::shared_ptr<Ipld> ipld,
       std::shared_ptr<Mpool> mpool,
-      std::shared_ptr<Interpreter> interpreter,
       std::shared_ptr<MsgWaiter> msg_waiter,
       std::shared_ptr<Beaconizer> beaconizer,
       std::shared_ptr<DrandSchedule> drand_schedule,

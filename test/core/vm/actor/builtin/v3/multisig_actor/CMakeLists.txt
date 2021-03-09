@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(multisig_actor_test_v3
+addtest(multisig_actor_v3_test
     multisig_actor_test.cpp
     )
-target_link_libraries(multisig_actor_test_v3
+target_link_libraries(multisig_actor_v3_test
     multisig_actor_v3
     ipfs_datastore_in_memory
     )

@@ -8,6 +8,8 @@
 #include <boost/endian/conversion.hpp>
 
 #include "common/outcome2.hpp"
+#include "vm/actor/builtin/v0/miner/policy.hpp"
+#include "vm/version.hpp"
 
 namespace fc::primitives::tipset::chain {
   using common::Hash256;
@@ -43,7 +45,7 @@ namespace fc::primitives::tipset::chain {
     auto bottom{child->chain.begin()};
     assert(*parent->chain.find(bottom->first) == *bottom);
     ++bottom;
-    auto _parent{parent->chain.find(bottom->first)};
+    [[maybe_unused]] auto _parent{parent->chain.find(bottom->first)};
     assert(_parent == parent->chain.end() || *_parent != *bottom);
     child->parent = parent;
     --bottom;
@@ -148,29 +150,44 @@ namespace fc::primitives::tipset::chain {
     return path;
   }
 
-  TsBranchPtr findChild(TsChain::const_iterator &it,
-                        TsChain::const_iterator end,
-                        TsBranchChildren &children) {
-    for (auto _child{children.begin()};
-         _child != children.end() && it != end;) {
-      if (_child->first > it->first) {
-        ++it;
-      } else {
-        if (auto child{_child->second.lock()}) {
-          auto next{std::next(it)};
-          if (next != end && *std::next(child->chain.begin()) == *next) {
-            return child;
+  auto absorbChildren(TsBranchIter branch_it) {
+    auto &[branch, _branch]{branch_it};
+    std::vector<TsBranchPtr> removed;
+    std::vector<std::pair<TsChain::iterator, TsBranchPtr>> queue;
+    auto [begin, end]{branch->children.equal_range(_branch->first)};
+    for (auto _child{begin}; _child != end;) {
+      if (auto child{_child->second.lock()}) {
+        queue.emplace_back(_branch, child);
+      }
+      _child = branch->children.erase(_child);
+    }
+    while (!queue.empty()) {
+      auto [_branch, parent]{queue.back()};
+      queue.pop_back();
+      auto _parent{parent->chain.begin()};
+      auto _child{parent->children.begin()};
+      while (_parent != parent->chain.end() && _branch != branch->chain.end()
+             && *_parent == *_branch) {
+        while (_child != parent->children.end()
+               && _child->first == _branch->first) {
+          if (auto child{_child->second.lock()}) {
+            queue.emplace_back(_branch, child);
+            child->parent = branch;
           }
-          ++_child;
-        } else {
-          _child = children.erase(_child);
+          _child = parent->children.erase(_child);
         }
+        ++_parent;
+        ++_branch;
+      }
+      --_parent;
+      --_branch;
+      parent->chain.erase(parent->chain.begin(), _parent);
+      branch->children.emplace(_parent->first, parent);
+      if (parent->chain.size() <= 1) {
+        removed.push_back(parent);
       }
     }
-    if (it == end) {
-      --it;
-    }
-    return nullptr;
+    return removed;
   }
 
   outcome::result<std::vector<TsBranchPtr>> update(TsBranchPtr branch,
@@ -195,9 +212,6 @@ namespace fc::primitives::tipset::chain {
       OUTCOME_TRY(batch->commit());
     }
 
-    from.erase(revert_to, from.end());
-    from.insert(apply.begin(), apply.end());
-
     for (auto _child{branch->children.lower_bound(revert_to->first + 1)};
          _child != branch->children.end();) {
       if (auto child{_child->second.lock()}) {
@@ -208,30 +222,10 @@ namespace fc::primitives::tipset::chain {
       }
     }
 
-    std::vector<TsBranchPtr> removed;
-    auto _apply{apply.begin()};
-    auto parent{findChild(_apply, apply.end(), branch->children)};
-    while (parent) {
-      auto next{findChild(_apply, apply.end(), parent->children)};
-      for (auto _child{parent->children.begin()};
-           _child != parent->children.end()
-           && _child->first <= _apply->first;) {
-        if (auto child{_child->second.lock()}) {
-          child->parent = branch;
-          branch->children.emplace(*_child);
-        }
-        _child = parent->children.erase(_child);
-      }
-      parent->chain.erase(parent->chain.begin(),
-                          parent->chain.find(_apply->first));
-      if (parent->chain.size() <= 1) {
-        detach(parent->parent, parent);
-        removed.push_back(parent);
-      }
-      assert(next || std::next(_apply) == apply.end());
-      parent = next;
-    }
-    return removed;
+    from.erase(std::next(revert_to), from.end());
+    from.insert(std::next(apply.begin()), apply.end());
+
+    return absorbChildren({branch, revert_to});
   }
 
   outcome::result<std::pair<Path, std::vector<TsBranchPtr>>> update(
@@ -255,11 +249,16 @@ namespace fc::primitives::tipset::chain {
     return {};
   }
 
-  TsBranchIter insert(TsBranches &branches, TipsetCPtr ts) {
+  TsBranchIter insert(TsBranches &branches,
+                      TipsetCPtr ts,
+                      std::vector<TsBranchPtr> *children) {
     TsChain::value_type p{ts->height(), TsLazy{ts->key, ts}};
     auto [branch, it]{find(branches, ts)};
     for (auto &child : branches) {
       if (child->parent_key && child->parent_key == ts->key) {
+        if (children) {
+          children->push_back(child);
+        }
         child->chain.emplace(p);
         if (branch) {
           attach(branch, child);
@@ -337,20 +336,18 @@ namespace fc::primitives::tipset::chain {
   outcome::result<TsBranchIter> stepParent(TsBranchIter it) {
     auto &branch{it.first};
     if (it.second == branch->chain.begin()) {
-      branch = branch->parent;
-      if (!branch) {
+      if (!branch->parent) {
         return OutcomeError::kDefault;
       }
-      it.second = branch->chain.end();
+      it.second = branch->parent->chain.find(it.second->first);
+      branch = branch->parent;
     }
     --it.second;
     return it;
   }
 
   outcome::result<BeaconEntry> latestBeacon(TsLoadPtr ts_load,
-                                            TsBranchPtr branch,
-                                            Height height) {
-    OUTCOME_TRY(it, find(branch, height));
+                                            TsBranchIter it) {
     // magic number from lotus
     for (auto i{0}; i < 20; ++i) {
       OUTCOME_TRY(ts, ts_load->loadw(it.second->second));
@@ -365,4 +362,21 @@ namespace fc::primitives::tipset::chain {
     }
     return TipsetError::kNoBeacons;
   }
+
+  outcome::result<TsBranchIter> getLookbackTipSetForRound(TsBranchIter it,
+                                                          ChainEpoch epoch) {
+    static constexpr ChainEpoch kWinningPoStSectorSetLookback{10};
+    const Height lookback = std::max<ChainEpoch>(
+        0,
+        epoch
+            - (vm::version::getNetworkVersion(epoch)
+                       > vm::version::NetworkVersion::kVersion3
+                   ? vm::actor::builtin::v0::miner::kChainFinalityish
+                   : kWinningPoStSectorSetLookback));
+    if (lookback < it.second->first) {
+      return find(it.first, lookback);
+    }
+    return it;
+  }
+
 }  // namespace fc::primitives::tipset::chain

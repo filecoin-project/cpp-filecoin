@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(verified_registry_actor_test_v0
+addtest(verified_registry_actor_v0_test
     verified_registry_actor_test.cpp
     )
-target_link_libraries(verified_registry_actor_test_v0
+target_link_libraries(verified_registry_actor_v0_test
     ipfs_datastore_in_memory
     verified_registry_actor_v0
     )

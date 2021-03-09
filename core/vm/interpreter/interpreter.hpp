@@ -13,6 +13,7 @@
 
 namespace fc::vm::interpreter {
   using primitives::BigInt;
+  using storage::PersistentBufferMap;
 
   enum class InterpreterError {
     kDuplicateMiner = 1,
@@ -28,6 +29,21 @@ namespace fc::vm::interpreter {
   };
   CBOR_TUPLE(Result, state_root, message_receipts, weight)
 
+  struct InterpreterCache {
+    struct Key {
+      Key(const TipsetKey &tsk);
+      Buffer key;
+    };
+    InterpreterCache(std::shared_ptr<PersistentBufferMap> kv);
+    boost::optional<outcome::result<Result>> tryGet(const Key &key) const;
+    outcome::result<Result> get(const Key &key) const;
+    void set(const Key &key, const Result &result);
+    void markBad(const Key &key);
+    void remove(const Key &key);
+
+    std::shared_ptr<PersistentBufferMap> kv;
+  };
+
   class Interpreter {
    protected:
     using TipsetCPtr = primitives::tipset::TipsetCPtr;
@@ -36,12 +52,7 @@ namespace fc::vm::interpreter {
     virtual ~Interpreter() = default;
 
     virtual outcome::result<Result> interpret(
-        TsBranchPtr ts_branch,
-        const IpldPtr &store,
-        const TipsetCPtr &tipset) const = 0;
-    virtual outcome::result<boost::optional<Result>> tryGetCached(
-        const TipsetKey &tsk) const;
-    outcome::result<Result> getCached(const TipsetKey &tsk) const;
+        TsBranchPtr ts_branch, const TipsetCPtr &tipset) const = 0;
   };
 }  // namespace fc::vm::interpreter
 

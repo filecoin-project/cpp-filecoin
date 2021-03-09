@@ -28,16 +28,24 @@ namespace fc::drand {
     DrandScheduleImpl(const ChainInfo &info,
                       seconds fc_genesis,
                       seconds fc_period)
-        : genesis{info.genesis},
-          period{info.period},
+        : drand_genesis{info.genesis},
+          drand_period{info.period},
           fc_genesis{fc_genesis},
           fc_period{fc_period} {}
 
-    Round maxRound(ChainEpoch epoch) const override {
-      return ((epoch - 1) * fc_period + fc_genesis - genesis) / period;
-    }
+    Round maxRound(ChainEpoch epoch) const override;
 
-    seconds genesis, period, fc_genesis, fc_period;
+    /** Drand genesis time */
+    seconds drand_genesis;
+
+    /** Drand round time */
+    seconds drand_period;
+
+    /** FFilecoin genesis time */
+    seconds fc_genesis;
+
+    /** Filecoin round time */
+    seconds fc_period;
   };
 
   class BeaconizerImpl : public Beaconizer,

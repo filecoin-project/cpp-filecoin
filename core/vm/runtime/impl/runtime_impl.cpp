@@ -6,11 +6,18 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 
 #include "codec/cbor/cbor.hpp"
-#include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
+#include "primitives/tipset/chain.hpp"
 #include "proofs/proofs.hpp"
-#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "storage/keystore/keystore.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/v0/miner/policy.hpp"
+#include "vm/actor/builtin/v2/codes.hpp"
+#include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
+#include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
+#include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime_error.hpp"
 #include "vm/toolchain/toolchain.hpp"
@@ -48,7 +55,7 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return execution_->env->randomness->getRandomnessFromTickets(
+    return execution_->env->env_context.randomness->getRandomnessFromTickets(
         execution_->env->ts_branch, tag, epoch, seed);
   }
 
@@ -56,7 +63,7 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return execution_->env->randomness->getRandomnessFromBeacon(
+    return execution_->env->env_context.randomness->getRandomnessFromBeacon(
         execution_->env->ts_branch, tag, epoch, seed);
   }
 
@@ -176,7 +183,7 @@ namespace fc::vm::runtime {
 
   outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
       const {
-    if (auto circulating{execution_->env->circulating}) {
+    if (auto circulating{execution_->env->env_context.circulating}) {
       return circulating->circulating(execution_->state_tree,
                                       getCurrentEpoch());
     }
@@ -219,10 +226,8 @@ namespace fc::vm::runtime {
         account,
         resolveKey(
             *execution_->state_tree, execution_->charging_ipld, address));
-    return storage::keystore::InMemoryKeyStore{
-        std::make_shared<crypto::bls::BlsProviderImpl>(),
-        std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}
-        .verify(account, data, signature);
+    return storage::keystore::kDefaultKeystore->verify(
+        account, data, signature);
   }
 
   outcome::result<bool> RuntimeImpl::verifySignatureBytes(
@@ -245,10 +250,8 @@ namespace fc::vm::runtime {
       return false;
     }
 
-    return storage::keystore::InMemoryKeyStore{
-        std::make_shared<crypto::bls::BlsProviderImpl>(),
-        std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}
-        .verify(account, data, signature.value());
+    return storage::keystore::kDefaultKeystore->verify(
+        account, data, signature.value());
   }
 
   outcome::result<bool> RuntimeImpl::verifyPoSt(
@@ -285,10 +288,142 @@ namespace fc::vm::runtime {
     return proofs::Proofs::generateUnsealedCID(type, pieces, true);
   }
 
-  outcome::result<ConsensusFault> RuntimeImpl::verifyConsensusFault(
-      const Buffer &block1, const Buffer &block2, const Buffer &extra) {
-    // TODO(a.chernyshov): implement
-    return RuntimeError::kUnknown;
+  // TODO: reuse in block validation
+  outcome::result<bool> checkBlockSignature(const BlockHeader &block,
+                                            const Address &worker) {
+    if (!block.block_sig) {
+      return false;
+    }
+    auto block2{block};
+    block2.block_sig.reset();
+    OUTCOME_TRY(data, codec::cbor::encode(block2));
+    return storage::keystore::kDefaultKeystore->verify(
+        worker, data, *block.block_sig);
+  }
+
+  // TODO: reuse
+  template <typename T>
+  inline bool has(const std::vector<T> &xs, const T &x) {
+    return std::find(xs.begin(), xs.end(), x) != xs.end();
+  }
+
+  // TODO: reuse in slash filter
+  inline bool isNearOrange(ChainEpoch epoch) {
+    using actor::builtin::v0::miner::kChainFinalityish;
+    using version::kUpgradeOrangeHeight;
+    return epoch > kUpgradeOrangeHeight - kChainFinalityish
+           && epoch < kUpgradeOrangeHeight + kChainFinalityish;
+  }
+
+  outcome::result<boost::optional<ConsensusFault>>
+  RuntimeImpl::verifyConsensusFault(const Buffer &block1,
+                                    const Buffer &block2,
+                                    const Buffer &extra) {
+    using common::getCidOf;
+    OUTCOME_TRY(chargeGas(execution_->env->pricelist.onVerifyConsensusFault()));
+    if (block1 == block2) {
+      return boost::none;
+    }
+    auto _blockA{codec::cbor::decode<BlockHeader>(block1)};
+    if (!_blockA) {
+      return boost::none;
+    }
+    auto &blockA{_blockA.value()};
+    auto _blockB{codec::cbor::decode<BlockHeader>(block2)};
+    if (!_blockB) {
+      return boost::none;
+    }
+    auto &blockB{_blockB.value()};
+    ConsensusFault fault;
+    fault.target = blockA.miner;
+    fault.epoch = blockB.height;
+    boost::optional<ConsensusFaultType> type;
+    if (isNearOrange(blockA.height) || isNearOrange(blockB.height)
+        || blockA.miner != blockB.miner || blockA.height > blockB.height) {
+      return boost::none;
+    }
+    if (blockA.height == blockB.height) {
+      type = ConsensusFaultType::DoubleForkMining;
+    } else if (blockA.parents == blockB.parents) {
+      type = ConsensusFaultType::TimeOffsetMining;
+    }
+    if (!extra.empty()) {
+      if (auto _blockC{codec::cbor::decode<BlockHeader>(extra)}) {
+        auto &blockC{_blockC.value()};
+        if (blockA.parents == blockC.parents && blockA.height == blockC.height
+            && has(blockB.parents, getCidOf(extra).value())
+            && !has(blockB.parents, getCidOf(block1).value())) {
+          type = ConsensusFaultType::ParentGrinding;
+        }
+      } else {
+        return boost::none;
+      }
+    }
+    if (type) {
+      auto verify2{[&](const BlockHeader &block) -> outcome::result<bool> {
+        if (getNetworkVersion() >= NetworkVersion::kVersion7
+            && static_cast<ChainEpoch>(block.height)
+                   < getCurrentEpoch()
+                         - vm::actor::builtin::v0::miner::kChainFinalityish) {
+          return false;
+        }
+        auto &env{execution_->env};
+
+        std::shared_lock ts_lock{*env->env_context.ts_branches_mutex};
+        OUTCOME_TRY(it, find(env->ts_branch, getCurrentEpoch()));
+        OUTCOME_TRYA(it, getLookbackTipSetForRound(it, block.height));
+        OUTCOME_TRY(
+            cached,
+            env->env_context.interpreter_cache->get(it.second->second.key));
+        ts_lock.unlock();
+
+        const StateTreeImpl state_tree{env->ipld, cached.state_root};
+        OUTCOME_TRY(actor, state_tree.get(block.miner));
+        Address worker;
+        auto &ipld{execution_->charging_ipld};
+        if (actor.code == actor::builtin::v0::kStorageMinerCodeId) {
+          OUTCOME_TRY(
+              state,
+              ipld->getCbor<actor::builtin::v0::miner::State>(actor.head));
+          OUTCOME_TRY(info, state.info.get());
+          worker = info.worker;
+        } else if (actor.code == actor::builtin::v2::kStorageMinerCodeId) {
+          OUTCOME_TRY(
+              state,
+              ipld->getCbor<actor::builtin::v2::miner::State>(actor.head));
+          OUTCOME_TRY(info, state.info.get());
+          worker = info.worker;
+        } else if (actor.code == actor::builtin::v3::kStorageMinerCodeId) {
+          OUTCOME_TRY(
+              state,
+              ipld->getCbor<actor::builtin::v3::miner::State>(actor.head));
+          OUTCOME_TRY(info, state.info.get());
+          worker = info.worker;
+        }
+        OUTCOME_TRY(key, resolveKey(*execution_->state_tree, ipld, worker));
+        return checkBlockSignature(block, key);
+      }};
+      auto verify{[&](const BlockHeader &block) -> outcome::result<bool> {
+        if (auto _ok{verify2(block)}) {
+          return _ok;
+        } else if (isAbortExitCode(_ok.error())) {
+          return _ok;
+        } else {
+          return false;
+        }
+      }};
+      OUTCOME_TRY(okA, verify(blockA));
+      if (!okA) {
+        return boost::none;
+      }
+      OUTCOME_TRY(okB, verify(blockA));
+      if (!okB) {
+        return boost::none;
+      }
+      fault.type = *type;
+      return fault;
+    }
+    return boost::none;
   }
 
   outcome::result<Blake2b256Hash> RuntimeImpl::hashBlake2b(
