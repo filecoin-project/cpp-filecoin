@@ -106,6 +106,11 @@ TEST(ApiJsonTest, BigInt) {
   expectJson(BigInt{1}, "\"1\"");
 }
 
+/**
+ * @given MinerInfo without PendingWorkerKey
+ * @when JSON serialized
+ * @then equal to lotus serialization
+ */
 TEST(ApiJsonTest, MinerInfoPendingWorkerKeyNotSet) {
   using fc::vm::actor::builtin::v0::miner::MinerInfo;
   MinerInfo miner_info;
@@ -119,6 +124,11 @@ TEST(ApiJsonTest, MinerInfoPendingWorkerKeyNotSet) {
              "\"WindowPoStPartitionSectors\":1}");
 }
 
+/**
+ * @given MinerInfo with PendingWorkerKey present
+ * @when JSON serialized
+ * @then equal to lotus serialization
+ */
 TEST(ApiJsonTest, MinerInfoPendingWorkerKeyPresent) {
   using fc::vm::actor::builtin::v0::miner::MinerInfo;
   using fc::vm::actor::builtin::v0::miner::WorkerKeyChange;
