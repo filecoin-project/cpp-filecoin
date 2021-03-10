@@ -44,6 +44,7 @@ namespace fc::api {
   using markets::storage::StorageAsk;
   using primitives::BigInt;
   using primitives::FsStat;
+  using primitives::kChainEpochUndefined;
   using primitives::LocalStorageMeta;
   using primitives::StoragePath;
   using primitives::TaskType;
@@ -478,6 +479,13 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Owner", v.owner);
       Set(j, "Worker", v.worker);
+      if (v.pending_worker_key.has_value()) {
+        Set(j, "NewWorker", v.pending_worker_key.value().new_worker);
+        Set(j, "WorkerChangeEpoch", v.pending_worker_key.value().effective_at);
+      } else {
+        Set(j, "NewWorker", "<empty>");
+        Set(j, "WorkerChangeEpoch", kChainEpochUndefined);
+      }
       Set(j, "ControlAddresses", v.control);
       boost::optional<std::string> peer_id;
       if (!v.peer_id.empty()) {
@@ -496,6 +504,20 @@ namespace fc::api {
       Get(j, "Owner", v.owner);
       Get(j, "Worker", v.worker);
       Get(j, "ControlAddresses", v.control);
+      std::string new_worker;
+      Get(j, "NewWorker", new_worker);
+      ChainEpoch worker_change_epoch;
+      Get(j, "WorkerChangeEpoch", worker_change_epoch);
+      if (new_worker == "<empty>"
+          && worker_change_epoch == kChainEpochUndefined) {
+        v.pending_worker_key = boost::none;
+      } else {
+        OUTCOME_EXCEPT(new_worker_address,
+                       primitives::address::decodeFromString(new_worker));
+        v.pending_worker_key =
+            WorkerKeyChange{.new_worker = new_worker_address,
+                            .effective_at = worker_change_epoch};
+      }
       boost::optional<PeerId> peer_id;
       Get(j, "PeerId", peer_id);
       if (peer_id) {
@@ -564,16 +586,6 @@ namespace fc::api {
 
     DECODE(MessageSendSpec) {
       Get(j, "MaxFee", v.max_fee);
-    }
-
-    ENCODE(Deadlines) {
-      Value j{rapidjson::kObjectType};
-      Set(j, "Due", v.due);
-      return j;
-    }
-
-    DECODE(Deadlines) {
-      Get(j, "Due", v.due);
     }
 
     ENCODE(BlockHeader) {
@@ -976,6 +988,16 @@ namespace fc::api {
       Get(j, "RecoveringSectors", v.recovering);
       Get(j, "LiveSectors", v.live);
       Get(j, "ActiveSectors", v.active);
+    }
+
+    ENCODE(Deadline) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PostSubmissions", v.post_submissions);
+      return j;
+    }
+
+    DECODE(Deadline) {
+      Get(j, "PostSubmissions", v.post_submissions);
     }
 
     ENCODE(SectorPreCommitInfo) {

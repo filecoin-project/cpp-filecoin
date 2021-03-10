@@ -12,6 +12,7 @@
 #include "api/visit.hpp"
 
 namespace fc::api {
+  using outcome::errorToPrettyString;
   using rpc::Rpc;
 
   template <typename A>
@@ -33,13 +34,13 @@ namespace fc::api {
             rpc::Send send) {
           auto maybe_params = decode<typename M::Params>(jparams);
           if (!maybe_params) {
-            return respond(Response::Error{kInvalidParams,
-                                           maybe_params.error().message()});
+            return respond(Response::Error{
+                kInvalidParams, errorToPrettyString(maybe_params.error())});
           }
           auto maybe_result = std::apply(method, maybe_params.value());
           if (!maybe_result) {
-            return respond(Response::Error{kInternalError,
-                                           maybe_result.error().message()});
+            return respond(Response::Error{
+                kInternalError, errorToPrettyString(maybe_result.error())});
           }
           if constexpr (!std::is_same_v<Result, void>) {
             auto &result = maybe_result.value();
@@ -49,8 +50,9 @@ namespace fc::api {
             if constexpr (is_wait<Result>{}) {
               result.waitOwn([respond{std::move(respond)}](auto maybe_result) {
                 if (!maybe_result) {
-                  respond(Response::Error{kInternalError,
-                                          maybe_result.error().message()});
+                  respond(Response::Error{
+                      kInternalError,
+                      errorToPrettyString(maybe_result.error())});
                 } else {
                   respond(encode(maybe_result.value()));
                 }

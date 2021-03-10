@@ -137,6 +137,10 @@ namespace fc::api {
     RleBitset all, faulty, recovering, live, active;
   };
 
+  struct Deadline {
+    RleBitset post_submissions;
+  };
+
   struct SectorLocation {
     uint64_t deadline;
     uint64_t partition;
@@ -376,8 +380,10 @@ namespace fc::api {
     API_METHOD(StateMarketDeals, MarketDealMap, const TipsetKey &)
     API_METHOD(StateLookupID, Address, const Address &, const TipsetKey &)
     API_METHOD(StateMarketStorageDeal, StorageDeal, DealId, const TipsetKey &)
+
+    /** Returns PoSt submissions since the proving period started. */
     API_METHOD(StateMinerDeadlines,
-               Deadlines,
+               std::vector<Deadline>,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)

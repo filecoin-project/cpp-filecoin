@@ -633,10 +633,17 @@ namespace fc::api {
           return StorageDeal{deal, *deal_state};
         }};
     api->StateMinerDeadlines = {
-        [=](auto &address, auto &tipset_key) -> outcome::result<Deadlines> {
+        [=](auto &address,
+            auto &tipset_key) -> outcome::result<std::vector<Deadline>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          return state->deadlines.get();
+          OUTCOME_TRY(deadlines, state.deadlines.get());
+          std::vector<Deadline> result;
+          for (const auto &deadline_cid : deadlines.due) {
+            OUTCOME_TRY(deadline, state->getDeadline(ipld, deadline_cid));
+            result.push_back(Deadline{deadline.post_submissions});
+          }
+          return result;
         }};
     api->StateMinerFaults = {
         [=](auto address, auto tipset_key) -> outcome::result<RleBitset> {
