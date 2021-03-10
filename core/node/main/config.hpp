@@ -38,6 +38,12 @@ namespace fc::node {
     boost::optional<int64_t> drand_period;
     size_t beaconizer_cache_size = 100;
 
+    /**
+     * Adds libp2p connection in order to increase host score. Used for
+     * debugging.
+     */
+    bool use_pubsub_workaround = true;
+
     static Config read(int argc, char *argv[]);
 
     std::string join(const std::string &path) const;

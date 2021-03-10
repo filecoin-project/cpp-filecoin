@@ -8,18 +8,23 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <sstream>
 
-using libp2p::peer::PeerInfo;
-
 /**
  * Represent peer info as human readable string
  * @param peer_info to prettify
  * @return string
  */
-inline std::string peerInfoToPrettyString(const PeerInfo &peer_info) {
+inline std::string peerInfoToPrettyString(
+    const libp2p::peer::PeerInfo &peer_info) {
   std::stringstream ss;
-  for (const auto &address : peer_info.addresses) {
-    ss << std::string(address.getStringAddress()) << " ";
+  ss << peer_info.id.toBase58() << ", [";
+  for (auto it = peer_info.addresses.begin(); it != peer_info.addresses.end();
+       ++it) {
+    if (it != peer_info.addresses.begin()) {
+      ss << " ";
+    }
+    ss << std::string(it->getStringAddress());
   }
+  ss << "]";
   return ss.str();
 }
 
@@ -62,7 +67,7 @@ namespace fc {
 
   inline boost::optional<Multiaddress> nonZeroAddr(
       const std::vector<Multiaddress> &addrs, const std::string *ip = {}) {
-    for (auto &addr : addrs) {
+    for (const auto &addr : addrs) {
       if (auto addr2{nonZeroAddr(addr, ip)}) {
         return addr2;
       }
@@ -73,7 +78,7 @@ namespace fc {
   inline auto nonZeroAddrs(const std::vector<Multiaddress> &addrs,
                            const std::string *ip = {}) {
     std::vector<Multiaddress> addrs2;
-    for (auto &addr : addrs) {
+    for (const auto &addr : addrs) {
       if (auto addr2{nonZeroAddr(addr, ip)}) {
         addrs2.push_back(std::move(*addr2));
       }
