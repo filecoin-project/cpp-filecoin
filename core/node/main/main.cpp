@@ -5,9 +5,6 @@
 
 #include <iostream>
 
-#include <libp2p/host/host.hpp>
-
-#include "api/node_api.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
@@ -28,6 +25,7 @@
 #include "vm/actor/cgo/actors.hpp"
 
 namespace fc {
+  using fc::node::NodeObjects;
 
   namespace {
     auto log() {
@@ -54,6 +52,38 @@ namespace fc {
     }
 
   }  // namespace
+
+  void startApi(const node::Config &config, NodeObjects &node_objects) {
+    auto peer_info = node_objects.host->getPeerInfo();
+    PeerInfo api_peer_info{
+        peer_info.id, nonZeroAddrs(peer_info.addresses, &config.localIp())};
+    node_objects.api->NetAddrsListen = [&] { return api_peer_info; };
+    node_objects.api->NetConnect = [&](auto &peer) {
+      node_objects.host->connect(peer);
+      return outcome::success();
+    };
+    node_objects.api->NetPeers = [&]() {
+      const auto &peer_repository = node_objects.host->getPeerRepository();
+      auto connections = node_objects.host->getNetwork()
+                             .getConnectionManager()
+                             .getConnections();
+      std::vector<PeerInfo> result;
+      for (const auto &conncection : connections) {
+        auto remote = conncection->remotePeer();
+        if (remote.has_error())
+          log()->error("get remote peer error", remote.error().message());
+        result.push_back(peer_repository.getPeerInfo(remote.value()));
+      }
+      return result;
+    };
+
+    auto rpc{api::makeRpc(*node_objects.api)};
+    auto routes{std::make_shared<api::Routes>()};
+    api::serve(
+        rpc, routes, *node_objects.io_context, "127.0.0.1", config.api_port);
+    api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
+    log()->info("API started at ws://127.0.0.1:{}", config.api_port);
+  }
 
   void main(node::Config &config) {
     vm::actor::cgo::configMainnet();
@@ -133,36 +163,30 @@ namespace fc {
       exit(EXIT_FAILURE);
     }
 
-    log()->info("Node started at {}",
-                nonZeroAddr(peer_info.addresses, &config.localIp())
-                    ->getStringAddress());
+    log()->info(
+        "Node started at {}, host PeerId {}",
+        nonZeroAddr(peer_info.addresses, &config.localIp())->getStringAddress(),
+        o.host->getId().toBase58());
 
     for (const auto &pi : config.bootstrap_list) {
       o.host->connect(pi);
     }
 
-    auto p2_res = pubsub2.start(0);
-    if (!p2_res) {
-      log()->warn("cannot start pubsub workaround, {}",
-                  p2_res.error().message());
-    } else {
-      o.gossip->addBootstrapPeer(p2_res.value().id,
-                                 *nonZeroAddr(p2_res.value().addresses));
+    if (config.use_pubsub_workaround) {
+      auto workaround_peer_res = pubsub2.start(0);
+      if (!workaround_peer_res) {
+        log()->warn("cannot start pubsub workaround, {}",
+                    workaround_peer_res.error().message());
+      } else {
+        o.gossip->addBootstrapPeer(
+            workaround_peer_res.value().id,
+            *nonZeroAddr(workaround_peer_res.value().addresses));
+        log()->info("Started PubsubWorkaround at {}",
+                    peerInfoToPrettyString(workaround_peer_res.value()));
+      }
     }
 
-    o.api->NetConnect = [&](auto &peer) {
-      o.host->connect(peer);
-      return outcome::success();
-    };
-    PeerInfo api_peer_info{
-        peer_info.id, nonZeroAddrs(peer_info.addresses, &config.localIp())};
-    o.api->NetAddrsListen = [&] { return api_peer_info; };
-
-    auto rpc{api::makeRpc(*o.api)};
-    auto routes{std::make_shared<api::Routes>()};
-    api::serve(rpc, routes, *o.io_context, "127.0.0.1", config.api_port);
-    api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
-    log()->info("API started at ws://127.0.0.1:{}", config.api_port);
+    startApi(config, o);
 
     o.identify->start(events);
     o.say_hello->start(config.genesis_cid.value(), events);
