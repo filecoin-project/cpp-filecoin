@@ -133,6 +133,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     /// Must be an ID address
     Address new_worker;
     ChainEpoch effective_at;
+
+    inline bool operator==(const WorkerKeyChange &other) const {
+      return new_worker == other.new_worker
+             && effective_at == other.effective_at;
+    }
   };
   CBOR_TUPLE(WorkerKeyChange, new_worker, effective_at)
 
@@ -208,6 +213,17 @@ namespace fc::vm::actor::builtin::v0::miner {
      * computed from the proof type and represented here redundantly.
      */
     uint64_t window_post_partition_sectors;
+
+    inline bool operator==(const MinerInfo &other) const {
+      return owner == other.owner && worker == other.worker
+             && control == other.control
+             && pending_worker_key == other.pending_worker_key
+             && peer_id == other.peer_id && multiaddrs == other.multiaddrs
+             && seal_proof_type == other.seal_proof_type
+             && sector_size == other.sector_size
+             && window_post_partition_sectors
+                    == other.window_post_partition_sectors;
+    }
   };
   CBOR_TUPLE(MinerInfo,
              owner,
