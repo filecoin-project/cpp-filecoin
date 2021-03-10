@@ -3,13 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_CHAIN_STORE_IMPL_HPP
-#define CPP_FILECOIN_SYNC_CHAIN_STORE_IMPL_HPP
-
-#include "common.hpp"
+#pragma once
 
 #include "blockchain/block_validator/block_validator.hpp"
-#include "head_constructor.hpp"
+#include "node/common.hpp"
+#include "node/head_constructor.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/chain/chain_store.hpp"
 
@@ -53,5 +51,3 @@ namespace fc::sync {
     boost::signals2::signal<HeadChangeSignature> head_change_signal_;
   };
 }  // namespace fc::sync
-
-#endif  // CPP_FILECOIN_CORE_STORAGE_CHAIN_CHAIN_STORE_IMPL_HPP

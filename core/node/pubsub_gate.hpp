@@ -3,12 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_PUBSUB_GATE_HPP
-#define CPP_FILECOIN_SYNC_PUBSUB_GATE_HPP
+#pragma once
 
 #include <libp2p/protocol/gossip/gossip.hpp>
 
-#include "events.hpp"
+#include "node/events.hpp"
 
 namespace fc::clock {
   class UTCClock;
@@ -20,10 +19,6 @@ namespace fc::sync {
 
   class PubSubGate : public std::enable_shared_from_this<PubSubGate> {
    public:
-    enum class Error {
-      GOSSIP_PUBLISH_ERROR = 1,
-    };
-
     explicit PubSubGate(std::shared_ptr<Gossip> gossip);
 
     void start(const std::string &network_name,
@@ -59,7 +54,3 @@ namespace fc::sync {
   };
 
 }  // namespace fc::sync
-
-OUTCOME_HPP_DECLARE_ERROR(fc::sync, PubSubGate::Error);
-
-#endif  // CPP_FILECOIN_SYNC_PUBSUB_GATE_HPP

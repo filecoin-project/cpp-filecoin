@@ -3,17 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "peer_discovery.hpp"
+#include "node/peer_discovery.hpp"
 
 #include <stdlib.h>
 #include <time.h>
-
 #include <libp2p/host/host.hpp>
 #include <libp2p/protocol/kademlia/kademlia.hpp>
 #include <libp2p/protocol/kademlia/node_id.hpp>
 
 #include "common/logger.hpp"
-#include "events.hpp"
+#include "node/events.hpp"
 
 namespace fc::sync {
 

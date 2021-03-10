@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_NODE_GRAPHSYNC_SERVER_HPP
-#define CPP_FILECOIN_NODE_GRAPHSYNC_SERVER_HPP
+#pragma once
 
 #include "fwd.hpp"
 
@@ -32,5 +31,3 @@ namespace fc::sync {
     // 3) MerkleDagService performance
   };
 }  // namespace fc::sync
-
-#endif  // CPP_FILECOIN_NODE_GRAPHSYNC_SERVER_HPP

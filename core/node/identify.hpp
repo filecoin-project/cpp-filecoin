@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_IDENTIFY_HPP
-#define CPP_FILECOIN_SYNC_IDENTIFY_HPP
+#pragma once
 
-#include "events_fwd.hpp"
+#include "node/events_fwd.hpp"
 
 #include <libp2p/peer/peer_info.hpp>
 
@@ -38,5 +37,3 @@ namespace fc::sync {
   };
 
 }  // namespace fc::sync
-
-#endif  // CPP_FILECOIN_SYNC_IDENTIFY_HPP

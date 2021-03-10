@@ -3,12 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_BLOCKSYNC_SERVER_HPP
-#define CPP_FILECOIN_SYNC_BLOCKSYNC_SERVER_HPP
-
-#include "blocksync_common.hpp"
+#pragma once
 
 #include "common/libp2p/cbor_stream.hpp"
+#include "node/blocksync_common.hpp"
 
 namespace libp2p {
   struct Host;
@@ -39,5 +37,3 @@ namespace fc::sync::blocksync {
   };
 
 }  // namespace fc::sync::blocksync
-
-#endif  // CPP_FILECOIN_SYNC_BLOCKSYNC_SERVER_HPP

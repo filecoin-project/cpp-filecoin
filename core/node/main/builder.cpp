@@ -239,7 +239,7 @@ namespace fc::node {
 
     auto leveldb_res = storage::LevelDB::create(config.join("leveldb"));
     if (!leveldb_res) {
-      return Error::STORAGE_INIT_ERROR;
+      return Error::kStorageInitError;
     }
     o.ipld_leveldb = storage::LevelDB::create(config.join("ipld_leveldb"),
                                               ipldLeveldbOptions())
@@ -463,15 +463,15 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::node, Error, e) {
   using E = fc::node::Error;
 
   switch (e) {
-    case E::STORAGE_INIT_ERROR:
+    case E::kStorageInitError:
       return "cannot initialize storage";
-    case E::CAR_FILE_OPEN_ERROR:
+    case E::kCarOpenFileError:
       return "cannot open initial car file";
-    case E::CAR_FILE_SIZE_ABOVE_LIMIT:
+    case E::kCarFileAboveLimit:
       return "car file size above limit";
-    case E::NO_GENESIS_BLOCK:
+    case E::kNoGenesisBlock:
       return "no genesis block";
-    case E::GENESIS_MISMATCH:
+    case E::kGenesisMismatch:
       return "genesis mismatch";
     default:
       break;

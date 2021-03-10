@@ -3,15 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_COMMON_HPP
-#define CPP_FILECOIN_SYNC_COMMON_HPP
-
-#include "events_fwd.hpp"
+#pragma once
 
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/common/scheduler.hpp>
 
 #include "crypto/signature/signature.hpp"
+#include "node/events_fwd.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -31,5 +29,3 @@ namespace fc::sync {
   using vm::message::UnsignedMessage;
   using Height = uint64_t;
 }  // namespace fc::sync
-
-#endif  // CPP_FILECOIN_SYNC_COMMON_HPP

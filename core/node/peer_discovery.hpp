@@ -3,15 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_NODE_PEER_DISCOVERY_HPP
-#define CPP_FILECOIN_NODE_PEER_DISCOVERY_HPP
+#pragma once
 
+#include <libp2p/peer/peer_id.hpp>
+#include <libp2p/protocol/common/scheduler.hpp>
 #include <unordered_set>
 
-#include "events_fwd.hpp"
-
-#include <libp2p/protocol/common/scheduler.hpp>
-#include <libp2p/peer/peer_id.hpp>
+#include "node/events_fwd.hpp"
 
 namespace fc::sync {
 
@@ -30,7 +28,7 @@ namespace fc::sync {
 
     void onPossibleConnection(const libp2p::peer::PeerId &peer_id);
 
-    void onPeerResolved(const libp2p::peer::PeerInfo& peer_info);
+    void onPeerResolved(const libp2p::peer::PeerInfo &peer_info);
 
     void onTimer();
 
@@ -47,5 +45,3 @@ namespace fc::sync {
     std::unordered_set<libp2p::peer::PeerId> requests_in_progress_;
   };
 }  // namespace fc::sync
-
-#endif  // CPP_FILECOIN_NODE_PEER_DISCOVERY_HPP

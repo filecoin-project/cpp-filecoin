@@ -25,6 +25,7 @@ target_link_libraries(sync
     p2p::libp2p_sqlite
     p2p::p2p_gossip
     p2p::p2p_identify
-    p2p::p2p_kademlia)
+    p2p::p2p_kademlia
+    )
 
 add_subdirectory(main)

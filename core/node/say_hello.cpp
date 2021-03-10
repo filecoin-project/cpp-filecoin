@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "say_hello.hpp"
+#include "node/say_hello.hpp"
 
 #include <cassert>
-
 #include "codec/cbor/cbor_decode_stream.hpp"
 #include "codec/cbor/cbor_encode_stream.hpp"
 #include "common/logger.hpp"
-#include "events.hpp"
+#include "node/events.hpp"
 #include "primitives/tipset/tipset.hpp"
 
 namespace fc::sync {
