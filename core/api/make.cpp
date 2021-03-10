@@ -637,7 +637,7 @@ namespace fc::api {
             auto &tipset_key) -> outcome::result<std::vector<Deadline>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          OUTCOME_TRY(deadlines, state.deadlines.get());
+          OUTCOME_TRY(deadlines, state->deadlines.get());
           std::vector<Deadline> result;
           for (const auto &deadline_cid : deadlines.due) {
             OUTCOME_TRY(deadline, state->getDeadline(ipld, deadline_cid));
@@ -693,7 +693,8 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(power_state, context.powerState());
           OUTCOME_TRY(miner_power, power_state->getClaim(address));
-          Claim total(power_state->total_raw_power, power_state->total_qa_power);
+          Claim total(power_state->total_raw_power,
+                      power_state->total_qa_power);
 
           return MinerPower{miner_power, total};
         }};
