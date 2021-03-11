@@ -25,6 +25,7 @@ target_link_libraries(blob
     )
 
 add_library(outcome
+    error_text.cpp
     outcome2.cpp
     )
 target_link_libraries(outcome
