@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "identify.hpp"
+#include "node/identify.hpp"
 
 #include <common/logger.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/protocol/identify.hpp>
 
-#include "events.hpp"
+#include "node/events.hpp"
 
 namespace fc::sync {
 
@@ -82,10 +82,8 @@ namespace fc::sync {
     log()->debug(
         "peer {} handles {}", peer_id.toBase58(), fmt::join(protocols, ", "));
 
-    events_->signalPeerConnected(events::PeerConnected {
-        .peer_id = peer_id,
-        .protocols = { protocols.begin(), protocols.end() }
-    });
+    events_->signalPeerConnected(events::PeerConnected{
+        .peer_id = peer_id, .protocols = {protocols.begin(), protocols.end()}});
   }
 
 }  // namespace fc::sync

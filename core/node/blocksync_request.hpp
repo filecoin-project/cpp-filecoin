@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_BLOCKSYNC_REQUEST_HPP
-#define CPP_FILECOIN_SYNC_BLOCKSYNC_REQUEST_HPP
+#pragma once
 
-#include "blocksync_common.hpp"
+#include "node/blocksync_common.hpp"
 
 namespace fc::sync::blocksync {
 
@@ -15,11 +14,11 @@ namespace fc::sync::blocksync {
   class BlocksyncRequest {
    public:
     enum class Error : int {
-      BLOCKSYNC_FEATURE_NYI,
-      BLOCKSYNC_STORE_ERROR_CIDS_MISMATCH,
-      BLOCKSYNC_INCONSISTENT_RESPONSE,
-      BLOCKSYNC_INCOMPLETE_RESPONSE,
-      BLOCKSYNC_TIMEOUT,
+      kNotImplemented,
+      kStoreCidsMismatch,
+      kInconsistentResponse,
+      kIncompleteResponse,
+      kTimeout,
     };
 
     /// Blocks downloaded but may be not yet indexed
@@ -67,5 +66,3 @@ namespace fc::sync::blocksync {
 }  // namespace fc::sync::blocksync
 
 OUTCOME_HPP_DECLARE_ERROR(fc::sync::blocksync, BlocksyncRequest::Error);
-
-#endif  // CPP_FILECOIN_SYNC_BLOCKSYNC_REQUEST_HPP

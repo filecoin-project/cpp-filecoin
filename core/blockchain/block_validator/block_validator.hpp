@@ -3,12 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_CHAIN_BLOCK_VALIDATOR_HPP
-#define CPP_FILECOIN_CORE_CHAIN_BLOCK_VALIDATOR_HPP
-
-#include "common/outcome.hpp"
+#pragma once
 
 #include "blockchain/block_validator/block_validator_scenarios.hpp"
+#include "common/outcome.hpp"
 #include "primitives/block/block.hpp"
 
 namespace fc::blockchain::block_validator {
@@ -28,10 +26,8 @@ namespace fc::blockchain::block_validator {
      * @param scenario - required validation stages
      * @return validation result
      */
-    virtual outcome::result<void> validateBlock(const BlockHeader &header,
-                                                scenarios::Scenario scenario) const = 0;
+    virtual outcome::result<void> validateBlock(
+        const BlockHeader &header, scenarios::Scenario scenario) const = 0;
   };
 
 }  // namespace fc::blockchain::block_validator
-
-#endif  // CPP_FILECOIN_CORE_CHAIN_BLOCK_VALIDATOR_HPP

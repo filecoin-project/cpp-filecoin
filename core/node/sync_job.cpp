@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "sync_job.hpp"
+#include "node/sync_job.hpp"
 
-#include "blocksync_common.hpp"
 #include "common/logger.hpp"
 #include "common/outcome2.hpp"
-#include "events.hpp"
+#include "node/blocksync_common.hpp"
 #include "node/chain_store_impl.hpp"
+#include "node/events.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::sync {
@@ -309,7 +309,7 @@ namespace fc::sync {
         peer,
         tsk.cids(),
         probable_depth,
-        blocksync::BLOCKS_AND_MESSAGES,
+        blocksync::kBlocksAndMessages,
         60000,
         [this](auto r) { downloaderCallback(std::move(r)); });
   }

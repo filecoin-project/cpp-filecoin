@@ -5,7 +5,8 @@
 
 add_library(node_builder
     config.cpp
-    builder.cpp)
+    builder.cpp
+    )
 
 target_link_libraries(node_builder
     sync

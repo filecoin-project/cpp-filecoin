@@ -3,15 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_EVENTS_HPP
-#define CPP_FILECOIN_SYNC_EVENTS_HPP
+#pragma once
 
-#include "common.hpp"
-
+#include <libp2p/protocol/common/scheduler.hpp>
 #include <set>
 #include <string>
 
-#include <libp2p/protocol/common/scheduler.hpp>
+#include "node/common.hpp"
 
 namespace fc::sync::events {
   struct PeerConnected {
@@ -105,5 +103,3 @@ namespace fc::sync::events {
   };
 
 }  // namespace fc::sync::events
-
-#endif  // CPP_FILECOIN_SYNC_EVENTS_HPP

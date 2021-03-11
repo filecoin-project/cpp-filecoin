@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "pubsub_gate.hpp"
+#include "node/pubsub_gate.hpp"
 
 #include "codec/cbor/cbor.hpp"
 #include "common/logger.hpp"

@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <unordered_set>
-
-#include "blocksync_request.hpp"
+#include "node/blocksync_request.hpp"
 
 #include <libp2p/host/host.hpp>
+#include <unordered_set>
 
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
@@ -30,7 +29,7 @@ namespace fc::sync::blocksync {
     }
 
     template <typename... Args>
-    inline void trace(spdlog::string_view_t fmt, const Args &... args) {
+    inline void trace(spdlog::string_view_t fmt, const Args &...args) {
 #if TRACE_ENABLED
       log()->trace(fmt, args...);
 #endif
@@ -42,12 +41,12 @@ namespace fc::sync::blocksync {
   case ResponseStatus::Case: \
     return #Case;
 
-        CASE(RESPONSE_COMPLETE)
-        CASE(RESPONSE_PARTIAL)
-        CASE(BLOCK_NOT_FOUND)
-        CASE(GO_AWAY)
-        CASE(INTERNAL_ERROR)
-        CASE(BAD_REQUEST)
+        CASE(kResponseComplete)
+        CASE(kResponsePartial)
+        CASE(kBlockNotFound)
+        CASE(kGoAway)
+        CASE(kInternalError)
+        CASE(kBadRequest)
 #undef CASE
 
         default:
@@ -63,7 +62,7 @@ namespace fc::sync::blocksync {
     /// \param require_meta If set when all messages are required too
     /// \return Non-empty object if block found
     boost::optional<BlockHeader> findBlockInLocalStore(const CID &cid,
-                                                       Ipld &ipld,
+                                                       const Ipld &ipld,
                                                        bool require_meta) {
       auto header = ipld.getCbor<BlockHeader>(cid);
       if (!header) {
@@ -168,7 +167,7 @@ namespace fc::sync::blocksync {
           if (_msgs->secp_msg_includes.size() != sz
               || _msgs->bls_msg_includes.size() != sz) {
             throw std::system_error(
-                BlocksyncRequest::Error::BLOCKSYNC_INCONSISTENT_RESPONSE);
+                BlocksyncRequest::Error::kInconsistentResponse);
           }
 
           secp_cids.reserve(_msgs->secp_msgs.size());
@@ -196,19 +195,19 @@ namespace fc::sync::blocksync {
           ipld.load(meta);
           for (auto idx : _msgs->secp_msg_includes[i]) {
             if (idx >= secp_cids.size()) {
-              return BlocksyncRequest::Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
+              return BlocksyncRequest::Error::kInconsistentResponse;
             }
             OUTCOME_TRY(meta.secp_messages.append(secp_cids[idx]));
           }
           for (auto idx : _msgs->bls_msg_includes[i]) {
             if (idx >= bls_cids.size()) {
-              return BlocksyncRequest::Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
+              return BlocksyncRequest::Error::kInconsistentResponse;
             }
             OUTCOME_TRY(meta.bls_messages.append(bls_cids[idx]));
           }
           OUTCOME_TRY(meta_cid, ipld.setCbor(meta));
           if (meta_cid != header.messages) {
-            return BlocksyncRequest::Error::BLOCKSYNC_STORE_ERROR_CIDS_MISMATCH;
+            return BlocksyncRequest::Error::kStoreCidsMismatch;
           }
           block_stored(std::move(block_cid), std::move(header));
         }
@@ -217,9 +216,6 @@ namespace fc::sync::blocksync {
       return outcome::success();
     }
 
-    // XXX
-    static int xxx = 0;
-
     class BlocksyncRequestImpl
         : public BlocksyncRequest,
           public std::enable_shared_from_this<BlocksyncRequestImpl> {
@@ -227,12 +223,9 @@ namespace fc::sync::blocksync {
       BlocksyncRequestImpl(libp2p::Host &host,
                            libp2p::protocol::Scheduler &scheduler,
                            Ipld &ipld)
-          : host_(host), scheduler_(scheduler), ipld_(ipld) {
-        log()->debug("++++++ {}", ++xxx);
-      }
+          : host_(host), scheduler_(scheduler), ipld_(ipld) {}
 
-      ~BlocksyncRequestImpl() {
-        log()->debug("------ {}", xxx--);
+      ~BlocksyncRequestImpl() override {
         cancel();
       }
 
@@ -245,7 +238,7 @@ namespace fc::sync::blocksync {
         callback_ = std::move(callback);
         result_.emplace();
         result_->blocks_requested = std::move(blocks);
-        result_->messages_stored = (options & MESSAGES_ONLY);
+        result_->messages_stored = (options & kMessagesOnly);
 
         std::vector<CID> blocks_reduced =
             tryReduceRequest(result_->blocks_requested,
@@ -258,9 +251,9 @@ namespace fc::sync::blocksync {
           return;
         }
 
-        if (options == MESSAGES_ONLY) {
+        if (options == kMessagesOnly) {
           // not supported yet
-          result_->error = BlocksyncRequest::Error::BLOCKSYNC_FEATURE_NYI;
+          result_->error = BlocksyncRequest::Error::kNotImplemented;
           scheduleResult();
           return;
         }
@@ -305,7 +298,7 @@ namespace fc::sync::blocksync {
 
         if (timeoutMsec > 0) {
           handle_ = scheduler_.schedule(timeoutMsec + depth * 100, [this] {
-            result_->error = BlocksyncRequest::Error::BLOCKSYNC_TIMEOUT;
+            result_->error = BlocksyncRequest::Error::kTimeout;
             scheduleResult(true);
           });
         }
@@ -335,20 +328,17 @@ namespace fc::sync::blocksync {
 
         if (result_->error) {
           int64_t dr = 0;
-          auto &category =
-              std::error_code(BlocksyncRequest::Error::BLOCKSYNC_TIMEOUT)
-                  .category();
+          const auto &category =
+              std::error_code(BlocksyncRequest::Error::kTimeout).category();
           if (result_->error.category() == category) {
             switch (result_->error.value()) {
-              case int(
-                  BlocksyncRequest::Error::BLOCKSYNC_STORE_ERROR_CIDS_MISMATCH):
+              case int(BlocksyncRequest::Error::kStoreCidsMismatch):
                 dr = -700;
                 break;
-              case int(
-                  BlocksyncRequest::Error::BLOCKSYNC_INCONSISTENT_RESPONSE):
+              case int(BlocksyncRequest::Error::kInconsistentResponse):
                 dr = -500;
                 break;
-              case int(BlocksyncRequest::Error::BLOCKSYNC_TIMEOUT):
+              case int(BlocksyncRequest::Error::kTimeout):
                 dr = -200;
                 break;
               default:
@@ -434,7 +424,7 @@ namespace fc::sync::blocksync {
                        response.message,
                        response.chain.size());
 
-          if (response.status == ResponseStatus::RESPONSE_COMPLETE) {
+          if (response.status == ResponseStatus::kResponseComplete) {
             result_->delta_rating += 100;
           }
           if (response.chain.size() > 0) {
@@ -442,8 +432,7 @@ namespace fc::sync::blocksync {
             storeChain(std::move(response.chain));
           } else {
             result_->delta_rating -= 50;
-            result_->error =
-                BlocksyncRequest::Error::BLOCKSYNC_INCOMPLETE_RESPONSE;
+            result_->error = BlocksyncRequest::Error::kIncompleteResponse;
           }
         }
         scheduleResult(true);
@@ -478,7 +467,7 @@ namespace fc::sync::blocksync {
           log()->debug("got incomplete response, got {} of {}",
                        result_->blocks_available.size(),
                        result_->blocks_requested.size());
-          result_->error = Error::BLOCKSYNC_INCOMPLETE_RESPONSE;
+          result_->error = Error::kIncompleteResponse;
         }
 
         if (sz == 1 || !expected_parent) {
@@ -499,14 +488,14 @@ namespace fc::sync::blocksync {
                   if (auto r = creator.canExpandTipset(header); !r) {
                     log()->warn("cannot expand tipset, {}",
                                 r.error().message());
-                    result_->error = Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
+                    result_->error = Error::kInconsistentResponse;
                     expected_parent.reset();
                   } else if (auto r1 = creator.expandTipset(std::move(cid),
                                                             std::move(header));
                              !r1) {
                     log()->warn("cannot expand tipset, {}",
                                 r1.error().message());
-                    result_->error = Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
+                    result_->error = Error::kInconsistentResponse;
                     expected_parent.reset();
                   }
                 }
@@ -519,7 +508,7 @@ namespace fc::sync::blocksync {
                 log()->warn("unexpected parent returned");
                 // dont try to save parents anymore
                 expected_parent.reset();
-                result_->error = Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
+                result_->error = Error::kInconsistentResponse;
               } else {
                 expected_parent = tipset->getParents().hash();
                 result_->parents.push_back(std::move(tipset));
@@ -548,7 +537,7 @@ namespace fc::sync::blocksync {
       Ipld &ipld_;
       std::function<void(Result)> callback_;
       boost::optional<Result> result_;
-      RequestOptions options_ = BLOCKS_AND_MESSAGES;
+      RequestOptions options_ = kBlocksAndMessages;
       std::unordered_set<CID> waitlist_;
       libp2p::protocol::scheduler::Handle handle_;
       StreamPtr stream_;
@@ -589,15 +578,15 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sync::blocksync, BlocksyncRequest::Error, e) {
   using E = fc::sync::blocksync::BlocksyncRequest::Error;
 
   switch (e) {
-    case E::BLOCKSYNC_FEATURE_NYI:
-      return "blocksync client: feature NYI";
-    case E::BLOCKSYNC_STORE_ERROR_CIDS_MISMATCH:
+    case E::kNotImplemented:
+      return "blocksync client: feature is not yet implemented";
+    case E::kStoreCidsMismatch:
       return "blocksync client: CIDs mismatch";
-    case E::BLOCKSYNC_INCONSISTENT_RESPONSE:
+    case E::kInconsistentResponse:
       return "blocksync client: inconsistent response";
-    case E::BLOCKSYNC_INCOMPLETE_RESPONSE:
+    case E::kIncompleteResponse:
       return "blocksync client: incomplete response";
-    case E::BLOCKSYNC_TIMEOUT:
+    case E::kTimeout:
       return "blocksync client: timeout";
     default:
       break;

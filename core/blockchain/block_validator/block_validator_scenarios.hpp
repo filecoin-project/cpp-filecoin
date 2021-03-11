@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_CHAIN_BLOCK_VALIDATOR_SCENARIOS_HPP
-#define CPP_FILECOIN_CORE_CHAIN_BLOCK_VALIDATOR_SCENARIOS_HPP
+#pragma once
+
+#include <initializer_list>
 
 namespace fc::blockchain::block_validator::scenarios {
   /**
@@ -35,5 +36,3 @@ namespace fc::blockchain::block_validator::scenarios {
                                  Stage::STATE_TREE_BV5};
 
 }  // namespace fc::blockchain::block_validator::scenarios
-
-#endif

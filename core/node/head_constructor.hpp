@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_HEAD_CONSTRUCTOR_HPP
-#define CPP_FILECOIN_SYNC_HEAD_CONSTRUCTOR_HPP
+#pragma once
 
-#include "common.hpp"
+#include "node/common.hpp"
 
 namespace fc::sync {
 
@@ -34,5 +33,3 @@ namespace fc::sync {
     events::Connection current_head_event_;
   };
 }  // namespace fc::sync
-
-#endif  // CPP_FILECOIN_SYNC_HEAD_CONSTRUCTOR_HPP

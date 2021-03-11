@@ -3,17 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_PEERS_HPP
-#define CPP_FILECOIN_SYNC_PEERS_HPP
+#pragma once
 
+#include <libp2p/peer/peer_id.hpp>
 #include <map>
 #include <set>
 #include <unordered_map>
 #include <unordered_set>
 
-#include "events_fwd.hpp"
-
-#include <libp2p/peer/peer_id.hpp>
+#include "node/events_fwd.hpp"
 
 namespace fc::sync {
   class Peers {
@@ -49,7 +47,7 @@ namespace fc::sync {
     void changeRating(const PeerId &peer, Rating delta);
 
    private:
-    void removePeer(const PeerId& peer);
+    void removePeer(const PeerId &peer);
 
     void removeFromRatings(const PeersAndRatings::iterator &it);
 
@@ -66,5 +64,3 @@ namespace fc::sync {
     events::Connection peer_latency_event_;
   };
 }  // namespace fc::sync
-
-#endif  // CPP_FILECOIN_SYNC_PEERS_HPP

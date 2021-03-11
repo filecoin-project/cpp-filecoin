@@ -3,13 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "head_constructor.hpp"
+#include "node/head_constructor.hpp"
 
 #include "common/logger.hpp"
-#include "events.hpp"
-
-// XXX
-#include "primitives/cid/cid_of_cbor.hpp"
+#include "node/events.hpp"
 
 namespace fc::sync {
 
@@ -98,20 +95,13 @@ namespace fc::sync {
     res = creator.expandTipset(block_cid, header);
     if (!res) {
       log()->error("cannot expand tipset with new block, {}",
-                     res.error().message());
+                   res.error().message());
       return;
     }
 
     log()->debug("new possible head");
 
-    // XXX
-
-//    events_->signalPossibleHead({.source = boost::none, //std::move(source),
-//                                 .head = creator.key(),
-//                                 .height = current_height_});
-
-    // check if parents are already synced / downloaded
-
+    // TODO check if parents are already synced / downloaded
 
     events_->signalPossibleHead({.source = boost::none,
                                  .head = TipsetKey(header.parents),

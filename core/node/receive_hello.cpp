@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "receive_hello.hpp"
+#include "node/receive_hello.hpp"
 
 #include <cassert>
 

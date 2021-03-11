@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "peers.hpp"
+#include "node/peers.hpp"
 
 #include <libp2p/host/host.hpp>
 

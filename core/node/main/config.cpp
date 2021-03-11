@@ -5,13 +5,11 @@
 
 #include "node/main/config.hpp"
 
-#include <fstream>
-#include <iostream>
-
 #include <spdlog/fmt/fmt.h>
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <iostream>
 
 #include "primitives/address/config.hpp"
 

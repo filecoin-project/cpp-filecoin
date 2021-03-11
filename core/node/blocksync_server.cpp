@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blocksync_server.hpp"
+#include "node/blocksync_server.hpp"
 
 #include <libp2p/host/host.hpp>
 
@@ -49,7 +49,7 @@ namespace fc::sync::blocksync {
         log()->debug("invalid request: zero depth");
         return false;
       }
-      if ((r.options & BLOCKS_AND_MESSAGES) == 0) {
+      if ((r.options & kBlocksAndMessages) == 0) {
         log()->debug("invalid request: bad options");
         return false;
       }
@@ -90,7 +90,7 @@ namespace fc::sync::blocksync {
         OUTCOME_EXCEPT(ts, ts_load->load(request.block_cids));
         while (true) {
           TipsetBundle packed;
-          if (request.options & MESSAGES_ONLY) {
+          if (request.options & kMessagesOnly) {
             TipsetBundle::Messages msgs;
             MessageVisitor<UnsignedMessage> bls_visitor{
                 ipld, msgs.bls_msgs, msgs.bls_msg_includes};
@@ -107,7 +107,7 @@ namespace fc::sync::blocksync {
             }
             packed.messages = std::move(msgs);
           }
-          if (request.options & BLOCKS_ONLY) {
+          if (request.options & kBlocksOnly) {
             packed.blocks = ts->blks;
           }
           response.chain.push_back(std::move(packed));
@@ -126,11 +126,11 @@ namespace fc::sync::blocksync {
       }
 
       if (response.chain.empty()) {
-        response.status = ResponseStatus::BLOCK_NOT_FOUND;
+        response.status = ResponseStatus::kBlockNotFound;
         response.message = "not found";
       } else {
-        response.status = partial ? ResponseStatus::RESPONSE_PARTIAL
-                                  : ResponseStatus::RESPONSE_COMPLETE;
+        response.status = partial ? ResponseStatus::kResponsePartial
+                                  : ResponseStatus::kResponseComplete;
       }
     }
 
@@ -206,11 +206,11 @@ namespace fc::sync::blocksync {
                      request.value().depth);
         getChain(ts_load_, ipld_, request.value(), response);
       } else {
-        response.status = ResponseStatus::BAD_REQUEST;
+        response.status = ResponseStatus::kBadRequest;
         response.message = "bad request";
       }
     } else {
-      response.status = ResponseStatus::GO_AWAY;
+      response.status = ResponseStatus::kGoAway;
       response.message = "blocksync server stopped";
     }
     stream->write(response, [stream](auto) {

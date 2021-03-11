@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "graphsync_server.hpp"
+#include "node/graphsync_server.hpp"
 
 #include "common/hexutil.hpp"
 #include "common/logger.hpp"

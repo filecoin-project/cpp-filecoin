@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_SYNC_JOB_HPP
-#define CPP_FILECOIN_SYNC_SYNC_JOB_HPP
+#pragma once
 
 #include <queue>
 
 #include "blocksync_request.hpp"
 #include "common/io_thread.hpp"
-#include "peers.hpp"
+#include "node/peers.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/buffer_map.hpp"
 #include "vm/interpreter/interpreter.hpp"
@@ -96,5 +95,3 @@ namespace fc::sync {
   };
 
 }  // namespace fc::sync
-
-#endif  // CPP_FILECOIN_SYNC_SYNC_JOB_HPP

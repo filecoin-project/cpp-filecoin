@@ -3,12 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_BUILDER_HPP
-#define CPP_FILECOIN_SYNC_BUILDER_HPP
-
-#include <memory>
+#pragma once
 
 #include <boost/asio.hpp>
+#include <memory>
 
 #include "common/outcome.hpp"
 #include "fwd.hpp"
@@ -22,11 +20,11 @@
 namespace fc::node {
 
   enum Error {
-    STORAGE_INIT_ERROR = 1,
-    CAR_FILE_OPEN_ERROR,
-    CAR_FILE_SIZE_ABOVE_LIMIT,
-    NO_GENESIS_BLOCK,
-    GENESIS_MISMATCH,
+    kStorageInitError = 1,
+    kCarOpenFileError,
+    kCarFileAboveLimit,
+    kNoGenesisBlock,
+    kGenesisMismatch,
   };
 
   struct NodeObjects {
@@ -82,5 +80,3 @@ namespace fc::node {
 }  // namespace fc::node
 
 OUTCOME_HPP_DECLARE_ERROR(fc::node, Error);
-
-#endif  // CPP_FILECOIN_SYNC_BUILDER_HPP

@@ -3,23 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_SAY_HELLO_HPP
-#define CPP_FILECOIN_SYNC_SAY_HELLO_HPP
+#pragma once
 
 #include "fwd.hpp"
-
-#include <set>
-#include <unordered_map>
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/common/scheduler.hpp>
+#include <set>
+#include <unordered_map>
 
 #include "clock/utc_clock.hpp"
 #include "common/buffer.hpp"
 #include "common/libp2p/cbor_stream.hpp"
-#include "hello.hpp"
+#include "node/hello.hpp"
 
 namespace fc::sync {
   using common::libp2p::CborStream;
@@ -89,5 +87,3 @@ namespace fc::sync {
   };
 
 }  // namespace fc::sync
-
-#endif  // CPP_FILECOIN_SYNC_SAY_HELLO_HPP

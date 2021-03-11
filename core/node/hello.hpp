@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "events_fwd.hpp"
+#include "node/events_fwd.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::sync {

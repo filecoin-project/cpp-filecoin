@@ -3,27 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SYNC_BLOCKSYNC_COMMON_HPP
-#define CPP_FILECOIN_SYNC_BLOCKSYNC_COMMON_HPP
-
-#include "common.hpp"
+#pragma once
 
 #include "codec/cbor/cbor.hpp"
+#include "node/common.hpp"
 
 namespace fc::sync::blocksync {
 
   constexpr auto kProtocolId = "/fil/sync/blk/0.0.1";
 
   enum RequestOptions {
-    BLOCKS_ONLY = 1,
-    MESSAGES_ONLY = 2,
-    BLOCKS_AND_MESSAGES = 3,
+    kBlocksOnly = 1,
+    kMessagesOnly = 2,
+    kBlocksAndMessages = 3,
   };
 
   struct Request {
     std::vector<CID> block_cids;
     uint64_t depth = 1;
-    RequestOptions options = BLOCKS_AND_MESSAGES;
+    RequestOptions options = kBlocksAndMessages;
   };
 
   using MsgIncudes = std::vector<std::vector<uint64_t>>;
@@ -43,12 +41,12 @@ namespace fc::sync::blocksync {
   };
 
   enum class ResponseStatus : int {
-    RESPONSE_COMPLETE = 0,
-    RESPONSE_PARTIAL = 101,
-    BLOCK_NOT_FOUND = 201,
-    GO_AWAY = 202,
-    INTERNAL_ERROR = 203,
-    BAD_REQUEST = 204,
+    kResponseComplete = 0,
+    kResponsePartial = 101,
+    kBlockNotFound = 201,
+    kGoAway = 202,
+    kInternalError = 203,
+    kBadRequest = 204,
   };
 
   struct Response {
@@ -67,5 +65,3 @@ namespace fc::sync::blocksync {
   CBOR_TUPLE(Response, status, message, chain);
 
 }  // namespace fc::sync::blocksync
-
-#endif  // CPP_FILECOIN_SYNC_BLOCKSYNC_COMMON_HPP

@@ -3,17 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "chain_store_impl.hpp"
-
+#include "node/chain_store_impl.hpp"
 #include "common/logger.hpp"
 #include "common/outcome2.hpp"
-#include "events.hpp"
-#include "primitives/cid/cid_of_cbor.hpp"
+#include "node/events.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::sync {
-
-  using primitives::cid::getCidOfCbor;
 
   namespace {
     auto log() {
