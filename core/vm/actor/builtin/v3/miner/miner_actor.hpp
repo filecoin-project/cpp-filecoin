@@ -9,7 +9,9 @@
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
+  using libp2p::multi::Multiaddress;
   using primitives::TokenAmount;
+  using primitives::address::Address;
   using primitives::sector::RegisteredPoStProof;
 
   struct Construct : ActorMethodBase<1> {
@@ -17,7 +19,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       Address owner;
       Address worker;
       std::vector<Address> control_addresses;
-      RegisteredPoStProof seal_proof_type;
+      RegisteredPoStProof post_proof_type;
       Buffer peer_id;
       std::vector<Multiaddress> multiaddresses;
     };
@@ -27,7 +29,7 @@ namespace fc::vm::actor::builtin::v3::miner {
              owner,
              worker,
              control_addresses,
-             seal_proof_type,
+             post_proof_type,
              peer_id,
              multiaddresses)
 

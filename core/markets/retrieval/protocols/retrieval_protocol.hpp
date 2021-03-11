@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_PROTOCOL_HPP
-#define CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_PROTOCOL_HPP
+#pragma once
 
 #include <string>
 #include <vector>
@@ -16,7 +15,7 @@
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
 #include "storage/ipld/selector.hpp"
-#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::markets::retrieval {
   using common::Buffer;
@@ -24,7 +23,7 @@ namespace fc::markets::retrieval {
   using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using vm::actor::builtin::v0::payment_channel::SignedVoucher;
+  using vm::actor::builtin::types::payment_channel::SignedVoucher;
 
   /**
    * @struct Deal proposal params
@@ -145,5 +144,3 @@ namespace fc::markets::retrieval {
     TokenAmount paid, owed;
   };
 }  // namespace fc::markets::retrieval
-
-#endif

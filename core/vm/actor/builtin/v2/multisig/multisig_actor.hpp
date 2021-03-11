@@ -7,11 +7,12 @@
 
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/v0/multisig/multisig_actor.hpp"
-#include "vm/actor/builtin/v2/multisig/multisig_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::multisig {
   using primitives::ChainEpoch;
   using primitives::EpochDuration;
+
+  constexpr int kSignersMax = 256;
 
   struct Construct : ActorMethodBase<1> {
     struct Params {

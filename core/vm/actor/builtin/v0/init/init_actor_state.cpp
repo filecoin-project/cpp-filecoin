@@ -5,11 +5,10 @@
 
 #include "vm/actor/builtin/v0/init/init_actor_state.hpp"
 
+#include "storage/ipfs/datastore.hpp"
+
 namespace fc::vm::actor::builtin::v0::init {
-  outcome::result<Address> InitActorState::addActor(const Address &address) {
-    const auto id = next_id;
-    OUTCOME_TRY(address_map.set(address, id));
-    ++next_id;
-    return Address::makeFromId(id);
+  outcome::result<Buffer> InitActorState::toCbor() const {
+    return Ipld::encode(*this);
   }
 }  // namespace fc::vm::actor::builtin::v0::init

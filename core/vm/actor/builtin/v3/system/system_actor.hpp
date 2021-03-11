@@ -12,7 +12,6 @@ namespace fc::vm::actor::builtin::v3::system {
   /**
    * System actor v3 is identical to System actor v2
    */
-  using State = v2::system::State;
   using Construct = v2::system::Construct;
 
   extern const ActorExports exports;

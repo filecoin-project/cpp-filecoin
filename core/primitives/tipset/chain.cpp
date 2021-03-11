@@ -8,7 +8,7 @@
 #include <boost/endian/conversion.hpp>
 
 #include "common/outcome2.hpp"
-#include "vm/actor/builtin/v0/miner/policy.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/version.hpp"
 
 namespace fc::primitives::tipset::chain {
@@ -371,7 +371,7 @@ namespace fc::primitives::tipset::chain {
         epoch
             - (vm::version::getNetworkVersion(epoch)
                        > vm::version::NetworkVersion::kVersion3
-                   ? vm::actor::builtin::v0::miner::kChainFinalityish
+                   ? vm::actor::builtin::types::miner::kChainFinalityish
                    : kWinningPoStSectorSetLookback));
     if (lookback < it.second->first) {
       return find(it.first, lookback);

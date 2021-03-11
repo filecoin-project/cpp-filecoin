@@ -4,6 +4,7 @@
  */
 
 #include "vm/actor/builtin/v3/init/init_actor.hpp"
+#include "vm/actor/builtin/v3/init/init_actor_state.hpp"
 
 #include <gmock/gmock.h>
 
@@ -27,6 +28,22 @@ namespace fc::vm::actor::builtin::v3::init {
       ActorTestFixture<InitActorState>::SetUp();
       ipld->load(state);
       actorVersion = ActorVersion::kVersion3;
+
+      EXPECT_CALL(*state_manager, createInitActorState(testing::_))
+          .WillRepeatedly(testing::Invoke([&](auto) {
+            auto s = std::make_shared<InitActorState>();
+            ipld->load(*s);
+            return std::static_pointer_cast<states::InitActorState>(s);
+          }));
+
+      EXPECT_CALL(*state_manager, getInitActorState())
+          .WillRepeatedly(testing::Invoke([&]() {
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(current_state,
+                                ipld->getCbor<InitActorState>(cid));
+            auto s = std::make_shared<InitActorState>(current_state);
+            return std::static_pointer_cast<states::InitActorState>(s);
+          }));
     }
 
     const std::string network_name = "test_network_name";
@@ -35,7 +52,11 @@ namespace fc::vm::actor::builtin::v3::init {
 
   /** Init actor state CBOR encoding and decoding */
   TEST_F(InitActorTest, InitActorStateCbor) {
-    InitActorState init_actor_state{{"010001020000"_cid}, 3, "n"};
+    InitActorState init_actor_state;
+    init_actor_state.address_map = {"010001020000"_cid};
+    init_actor_state.next_id = 3;
+    init_actor_state.network_name = "n";
+
     expectEncodeAndReencode(init_actor_state,
                             "83d82a470001000102000003616e"_unhex);
   }
@@ -68,7 +89,10 @@ namespace fc::vm::actor::builtin::v3::init {
    * @then Actor address is mapped to id
    */
   TEST_F(InitActorTest, AddActor) {
-    state = {{ipld}, 3, network_name};
+    state.address_map = {ipld};
+    state.next_id = 3;
+    state.network_name = network_name;
+
     const Address address{primitives::address::ActorExecHash{}};
     const auto expected = Address::makeFromId(state.next_id);
 

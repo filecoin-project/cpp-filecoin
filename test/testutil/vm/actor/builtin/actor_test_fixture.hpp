@@ -10,6 +10,7 @@
 #include "primitives/types.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
+#include "testutil/mocks/vm/states/state_manager_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
@@ -19,6 +20,7 @@
 namespace fc::testutil::vm::actor::builtin {
   using ::fc::vm::actor::ActorVersion;
   using ::fc::vm::actor::CodeId;
+  using ::fc::vm::actor::builtin::states::MockStateManager;
   using ::fc::vm::runtime::MockRuntime;
   using primitives::ChainEpoch;
   using primitives::address::Address;
@@ -29,7 +31,7 @@ namespace fc::testutil::vm::actor::builtin {
   /**
    * Fixture class for actor testing
    */
-  template <class State>
+  template <typename State>
   class ActorTestFixture : public testing::Test {
    public:
     void SetUp() override {
@@ -50,20 +52,6 @@ namespace fc::testutil::vm::actor::builtin {
           .WillRepeatedly(testing::Invoke(
               [&](auto &data) { return crypto::blake2b::blake2b_256(data); }));
 
-      EXPECT_CALL(runtime, commit(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto &cid) {
-            EXPECT_OUTCOME_TRUE(new_state, ipld->getCbor<State>(cid));
-            state = std::move(new_state);
-            return outcome::success();
-          }));
-
-      EXPECT_CALL(runtime, getCurrentActorState())
-          .Times(testing::AnyNumber())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            return std::move(cid);
-          }));
-
       EXPECT_CALL(runtime, getActorCodeID(_))
           .WillRepeatedly(testing::Invoke([&](auto &address) {
             auto found = code_ids.find(address);
@@ -79,6 +67,18 @@ namespace fc::testutil::vm::actor::builtin {
           .WillRepeatedly(testing::Invoke([&]() {
             return fc::vm::version::getNetworkVersion(
                 runtime.getCurrentEpoch());
+          }));
+
+      EXPECT_CALL(runtime, stateManager())
+          .WillRepeatedly(testing::Return(state_manager));
+
+      EXPECT_CALL(*state_manager, commitState(testing::_))
+          .WillRepeatedly(testing::Invoke([&](const auto &s) {
+            auto temp_state = std::static_pointer_cast<State>(s);
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(*temp_state));
+            EXPECT_OUTCOME_TRUE(new_state, ipld->getCbor<State>(cid));
+            state = std::move(new_state);
+            return outcome::success();
           }));
     }
 
@@ -132,6 +132,8 @@ namespace fc::testutil::vm::actor::builtin {
     }
 
     MockRuntime runtime;
+    std::shared_ptr<MockStateManager> state_manager{
+        std::make_shared<MockStateManager>()};
     std::shared_ptr<InMemoryDatastore> ipld{
         std::make_shared<InMemoryDatastore>()};
     State state;

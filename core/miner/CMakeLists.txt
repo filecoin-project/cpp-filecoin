@@ -12,6 +12,7 @@ add_library(miner
 target_link_libraries(miner
     api
     storage_fsm
+    miner_types
     )
 
 add_library(mining
@@ -23,4 +24,5 @@ target_link_libraries(mining
     message
     rle_plus_codec
     tipset
+    miner_types
     )

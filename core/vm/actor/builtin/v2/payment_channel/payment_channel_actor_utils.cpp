@@ -1,0 +1,21 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "vm/actor/builtin/v2/payment_channel/payment_channel_actor_utils.hpp"
+
+namespace fc::vm::actor::builtin::v2::payment_channel {
+  outcome::result<Address> PaymentChannelUtils::resolveAccount(
+      const Address &address, const CodeId &accountCodeCid) const {
+    CHANGE_ERROR_A(
+        resolved, runtime.resolveOrCreate(address), VMExitCode::kErrNotFound);
+
+    CHANGE_ERROR_A(
+        code, runtime.getActorCodeID(resolved), VMExitCode::kErrForbidden);
+    if (code != accountCodeCid) {
+      return VMExitCode::kErrForbidden;
+    }
+    return std::move(resolved);
+  }
+}  // namespace fc::vm::actor::builtin::v2::payment_channel

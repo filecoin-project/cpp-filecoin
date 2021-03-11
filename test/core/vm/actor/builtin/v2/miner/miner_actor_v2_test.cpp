@@ -12,27 +12,49 @@
 #include "testutil/resources/parse.hpp"
 #include "testutil/resources/resources.hpp"
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v2/miner/policy.hpp"
+#include "vm/actor/builtin/v2/miner/types.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
+  using primitives::kChainEpochUndefined;
   using primitives::address::decodeFromString;
+  using primitives::sector::RegisteredSealProof;
   using testing::Return;
   using testutil::vm::actor::builtin::ActorTestFixture;
-  using v0::miner::CronEventPayload;
-  using v0::miner::CronEventType;
-  using v0::miner::Deadline;
-  using v0::miner::kWPoStChallengeWindow;
-  using v0::miner::kWPoStPeriodDeadlines;
+  using types::miner::CronEventPayload;
+  using types::miner::CronEventType;
+  using types::miner::Deadlines;
+  using types::miner::kMaxControlAddresses;
+  using types::miner::kMaxPeerIDLength;
+  using types::miner::kWPoStChallengeWindow;
+  using types::miner::kWPoStPeriodDeadlines;
 
-  class MinerActorV2Test : public ActorTestFixture<State> {
+  class MinerActorV2Test : public ActorTestFixture<MinerActorState> {
    public:
     void SetUp() override {
-      ActorTestFixture<State>::SetUp();
+      ActorTestFixture<MinerActorState>::SetUp();
       actorVersion = ActorVersion::kVersion2;
       anyCodeIdAddressIs(kAccountCodeId);
+      ipld->load(state);
+
+      EXPECT_CALL(*state_manager, createMinerActorState(testing::_))
+          .WillRepeatedly(testing::Invoke([&](auto) {
+            auto s = std::make_shared<MinerActorState>();
+            ipld->load(*s);
+            return std::static_pointer_cast<states::MinerActorState>(s);
+          }));
+
+      EXPECT_CALL(*state_manager, getMinerActorState())
+          .WillRepeatedly(testing::Invoke([&]() {
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(current_state,
+                                ipld->getCbor<MinerActorState>(cid));
+            auto s = std::make_shared<MinerActorState>(current_state);
+            return std::static_pointer_cast<states::MinerActorState>(s);
+          }));
     }
 
     /**
@@ -96,7 +118,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     params.worker = worker;
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, params));
 
-    EXPECT_OUTCOME_TRUE(miner_info, ipld->getCbor<MinerInfo>(state.info));
+    EXPECT_OUTCOME_TRUE(miner_info, ipld->getCbor<MinerInfo>(state.miner_info));
     EXPECT_EQ(miner_info.owner, params.owner);
     EXPECT_EQ(miner_info.worker, params.worker);
     EXPECT_EQ(miner_info.control, params.control_addresses);
@@ -167,7 +189,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     params.control_addresses = control_addresses;
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, params));
 
-    EXPECT_OUTCOME_TRUE(miner_info, ipld->getCbor<MinerInfo>(state.info));
+    EXPECT_OUTCOME_TRUE(miner_info, ipld->getCbor<MinerInfo>(state.miner_info));
     EXPECT_EQ(miner_info.control.size(), 2);
     EXPECT_EQ(miner_info.control[0], controlId1);
     EXPECT_EQ(miner_info.control[1], controlId2);

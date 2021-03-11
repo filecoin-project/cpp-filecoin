@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "vm/actor/builtin/states/impl/state_manager_impl.hpp"
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime.hpp"
@@ -12,6 +13,7 @@
 
 namespace fc::vm::runtime {
   using actor::Invoker;
+  using actor::builtin::states::StateManagerImpl;
 
   class RuntimeImpl : public Runtime {
    public:
@@ -20,6 +22,8 @@ namespace fc::vm::runtime {
                 const Address &caller_id);
 
     std::shared_ptr<Execution> execution() const override;
+
+    std::shared_ptr<StateManager> stateManager() const override;
 
     NetworkVersion getNetworkVersion() const override;
 
@@ -88,10 +92,6 @@ namespace fc::vm::runtime {
 
     outcome::result<void> chargeGas(GasAmount amount) override;
 
-    outcome::result<CID> getCurrentActorState() const override;
-
-    outcome::result<void> commit(const CID &new_state) override;
-
     outcome::result<boost::optional<Address>> tryResolveAddress(
         const Address &address) const override;
 
@@ -126,6 +126,7 @@ namespace fc::vm::runtime {
     std::shared_ptr<Execution> execution_;
     UnsignedMessage message_;
     Address caller_id;
+    std::shared_ptr<StateManagerImpl> state_manager;
   };
 
 }  // namespace fc::vm::runtime

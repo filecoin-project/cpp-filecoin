@@ -14,13 +14,7 @@ namespace fc::vm::actor::builtin::v2::reward {
   using common::smoothing::FilterEstimate;
   using primitives::StoragePower;
 
-  /// PenaltyMultiplier is the factor miner penalties are scaled up by
-  constexpr uint kPenaltyMultiplier = 3;
-
-  struct Constructor : ActorMethodBase<1> {
-    using Params = StoragePower;  // current realized power
-    ACTOR_METHOD_DECL();
-  };
+  using Constructor = v0::reward::Constructor;
 
   /**
    * Awards a reward to a block producer.

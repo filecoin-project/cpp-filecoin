@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "vm/actor/builtin/types/reward/policy.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 
@@ -15,18 +16,30 @@ namespace fc::vm::actor::builtin::v0::reward {
   using testing::Return;
   using testutil::vm::actor::builtin::reward::kEpochZeroReward;
   using testutil::vm::actor::builtin::reward::RewardActorTestFixture;
+  using namespace types::reward;
 
   /**
    * Fixture with state of Reward Actor v0
    */
-  class RewardActorV0Test : public RewardActorTestFixture<State> {
-   public:
-    using RewardActorTestFixture<State>::runtime;
-    using RewardActorTestFixture<State>::callerIs;
-
+  struct RewardActorV0Test : public RewardActorTestFixture<RewardActorState> {
     void SetUp() override {
-      RewardActorTestFixture<State>::SetUp();
+      RewardActorTestFixture<RewardActorState>::SetUp();
       actorVersion = ActorVersion::kVersion0;
+
+      EXPECT_CALL(*state_manager, createRewardActorState(testing::_))
+          .WillRepeatedly(testing::Invoke([&](auto) {
+            auto s = std::make_shared<RewardActorState>();
+            return std::static_pointer_cast<states::RewardActorState>(s);
+          }));
+
+      EXPECT_CALL(*state_manager, getRewardActorState())
+          .WillRepeatedly(testing::Invoke([&]() {
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(current_state,
+                                ipld->getCbor<RewardActorState>(cid));
+            auto s = std::make_shared<RewardActorState>(current_state);
+            return std::static_pointer_cast<states::RewardActorState>(s);
+          }));
     }
 
     /**
@@ -84,7 +97,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     const auto epoch_zero_baseline = kBaselineInitialValueV0 - 1;
     EXPECT_EQ(epoch_zero_baseline, state.this_epoch_baseline_power);
     EXPECT_EQ(ChainEpoch{0}, state.epoch);
-    EXPECT_EQ(TokenAmount{0}, state.total_mined);
+    EXPECT_EQ(TokenAmount{0}, state.total_reward);
   }
 
   /**
@@ -258,7 +271,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     expected_reward = 500;
     expectAwardBlockReward(penalty, gas_reward, expected_reward);
 
-    EXPECT_EQ(total_payout, state.total_mined);
+    EXPECT_EQ(total_payout, state.total_reward);
   }
 
   /**

@@ -36,7 +36,7 @@ namespace fc::markets::retrieval::test {
   using primitives::piece::UnpaddedPieceSize;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
-  using vm::actor::builtin::v0::payment_channel::SignedVoucher;
+  using vm::actor::builtin::types::payment_channel::SignedVoucher;
 
   static auto port{40010};
 

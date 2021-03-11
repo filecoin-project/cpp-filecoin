@@ -8,6 +8,7 @@
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
+  using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
 

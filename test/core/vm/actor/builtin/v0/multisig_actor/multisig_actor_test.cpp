@@ -4,12 +4,14 @@
  */
 
 #include "vm/actor/builtin/v0/multisig/multisig_actor.hpp"
+#include "vm/actor/builtin/v0/multisig/multisig_actor_state.hpp"
 
 #include <gtest/gtest.h>
 #include "primitives/address/address.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
+#include "testutil/mocks/vm/states/state_manager_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
@@ -18,25 +20,23 @@
 
 #define ON_CALL_3(object, call, result) \
   EXPECT_CALL(object, call)             \
-      .Times(testing::AnyNumber())      \
       .WillRepeatedly(Return(result))
 
 namespace fc::vm::actor::builtin::v0::multisig {
-  using fc::CID;
-  using fc::common::Buffer;
-  using fc::primitives::BigInt;
-  using fc::primitives::ChainEpoch;
-  using fc::primitives::EpochDuration;
-  using fc::primitives::TokenAmount;
-  using fc::primitives::address::Address;
-  using fc::storage::ipfs::InMemoryDatastore;
-  using fc::vm::VMExitCode;
-  using fc::vm::runtime::InvocationOutput;
-  using fc::vm::runtime::MockRuntime;
-  using fc::vm::state::StateTreeImpl;
-  using fc::vm::version::NetworkVersion;
+  using common::Buffer;
+  using primitives::BigInt;
+  using primitives::ChainEpoch;
+  using primitives::EpochDuration;
+  using primitives::TokenAmount;
+  using primitives::address::Address;
+  using runtime::InvocationOutput;
+  using runtime::MockRuntime;
+  using state::StateTreeImpl;
+  using states::MockStateManager;
+  using storage::ipfs::InMemoryDatastore;
   using testing::Eq;
   using testing::Return;
+  using version::NetworkVersion;
 
   class MultisigActorTest : public ::testing::Test {
     void SetUp() override {
@@ -51,8 +51,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       runtime.resolveAddressWith(state_tree);
 
       EXPECT_CALL(runtime, getCurrentEpoch())
-          .Times(testing::AnyNumber())
-          .WillOnce(testing::Invoke([&]() { return epoch; }));
+          .WillRepeatedly(testing::Invoke([&]() { return epoch; }));
 
       ON_CALL_3(runtime, getValueReceived(), value_received);
 
@@ -62,12 +61,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
               [&]() { return version::getNetworkVersion(epoch); }));
 
       EXPECT_CALL(runtime, getBalance(actor_address))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke(
               [&](auto &) { return fc::outcome::success(balance); }));
 
       EXPECT_CALL(runtime, getImmediateCaller())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() { return caller; }));
 
       ON_CALL_3(runtime, getCurrentReceiver(), actor_address);
@@ -77,23 +74,36 @@ namespace fc::vm::actor::builtin::v0::multisig {
       ON_CALL_3(runtime, getActorCodeID(wrong_caller), kCronCodeId);
 
       EXPECT_CALL(runtime, hashBlake2b(testing::_))
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke(
               [&](auto &data) { return crypto::blake2b::blake2b_256(data); }));
 
-      EXPECT_CALL(runtime, getCurrentActorState())
-          .Times(testing::AnyNumber())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            return std::move(cid);
+      EXPECT_CALL(runtime, stateManager())
+          .WillRepeatedly(testing::Return(state_manager));
+
+      EXPECT_CALL(*state_manager, commitState(testing::_))
+          .WillRepeatedly(testing::Invoke([&](const auto &s) {
+            auto temp_state = std::static_pointer_cast<MultisigActorState>(s);
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(*temp_state));
+            EXPECT_OUTCOME_TRUE(new_state,
+                                ipld->getCbor<MultisigActorState>(cid));
+            state = std::move(new_state);
+            return outcome::success();
           }));
 
-      EXPECT_CALL(runtime, commit(testing::_))
-          .Times(testing::AnyNumber())
-          .WillRepeatedly(testing::Invoke([&](auto &cid) {
-            EXPECT_OUTCOME_TRUE(new_state, ipld->getCbor<State>(cid));
-            state = std::move(new_state);
-            return fc::outcome::success();
+      EXPECT_CALL(*state_manager, createMultisigActorState(testing::_))
+          .WillRepeatedly(testing::Invoke([&](auto) {
+            auto s = std::make_shared<MultisigActorState>();
+            ipld->load(*s);
+            return std::static_pointer_cast<states::MultisigActorState>(s);
+          }));
+
+      EXPECT_CALL(*state_manager, getMultisigActorState())
+          .WillRepeatedly(testing::Invoke([&]() {
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(current_state,
+                                ipld->getCbor<MultisigActorState>(cid));
+            auto s = std::make_shared<MultisigActorState>(current_state);
+            return std::static_pointer_cast<states::MultisigActorState>(s);
           }));
     }
 
@@ -135,6 +145,8 @@ namespace fc::vm::actor::builtin::v0::multisig {
     Address actor_address{Address::makeFromId(103)};
 
     MockRuntime runtime;
+    std::shared_ptr<MockStateManager> state_manager{
+        std::make_shared<MockStateManager>()};
     std::shared_ptr<InMemoryDatastore> ipld{
         std::make_shared<InMemoryDatastore>()};
 
@@ -146,7 +158,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     TokenAmount balance;
     BigInt value_received;
 
-    State state{};
+    MultisigActorState state{};
 
     StateTreeImpl state_tree{ipld};
     ActorVersion actorVersion;

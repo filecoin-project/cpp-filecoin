@@ -112,7 +112,7 @@ TEST(ApiJsonTest, BigInt) {
  * @then equal to lotus serialization
  */
 TEST(ApiJsonTest, MinerInfoPendingWorkerKeyNotSet) {
-  using fc::vm::actor::builtin::v0::miner::MinerInfo;
+  using fc::vm::actor::builtin::types::miner::MinerInfo;
   MinerInfo miner_info;
   miner_info.seal_proof_type = RegisteredSealProof::StackedDrg2KiBV1;
   miner_info.sector_size = 1;
@@ -130,8 +130,8 @@ TEST(ApiJsonTest, MinerInfoPendingWorkerKeyNotSet) {
  * @then equal to lotus serialization
  */
 TEST(ApiJsonTest, MinerInfoPendingWorkerKeyPresent) {
-  using fc::vm::actor::builtin::v0::miner::MinerInfo;
-  using fc::vm::actor::builtin::v0::miner::WorkerKeyChange;
+  using fc::vm::actor::builtin::types::miner::MinerInfo;
+  using fc::vm::actor::builtin::types::miner::WorkerKeyChange;
   MinerInfo miner_info;
   miner_info.pending_worker_key =
       WorkerKeyChange{.new_worker = Address::makeFromId(2), .effective_at = 2};

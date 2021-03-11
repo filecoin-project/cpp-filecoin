@@ -10,9 +10,11 @@
 #include <libp2p/peer/peer_id.hpp>
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
+#include "testutil/mocks/vm/states/state_manager_mock.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/version.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
@@ -21,8 +23,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   using primitives::kChainEpochUndefined;
   using primitives::SectorNumber;
   using runtime::MockRuntime;
+  using states::MockStateManager;
   using storage::ipfs::InMemoryDatastore;
   using testing::Return;
+  using types::storage_power::kConsensusMinerMinPower;
+  using types::storage_power::kGasOnSubmitVerifySeal;
   using version::kUpgradeBreezeHeight;
   using version::kUpgradeKumquatHeight;
 
@@ -43,26 +48,37 @@ namespace fc::vm::actor::builtin::v0::storage_power {
           }));
 
       EXPECT_CALL(runtime, getIpfsDatastore())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(Return(ipld));
 
       EXPECT_CALL(runtime, getImmediateCaller())
-          .Times(testing::AnyNumber())
           .WillRepeatedly(testing::Invoke([&]() { return caller; }));
 
-      EXPECT_CALL(runtime, getCurrentActorState())
-          .Times(testing::AnyNumber())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            return std::move(cid);
+      EXPECT_CALL(runtime, stateManager())
+          .WillRepeatedly(testing::Return(state_manager));
+
+      EXPECT_CALL(*state_manager, commitState(testing::_))
+          .WillRepeatedly(testing::Invoke([&](const auto &s) {
+            auto temp_state = std::static_pointer_cast<PowerActorState>(s);
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(*temp_state));
+            EXPECT_OUTCOME_TRUE(new_state, ipld->getCbor<PowerActorState>(cid));
+            state = std::move(new_state);
+            return outcome::success();
           }));
 
-      EXPECT_CALL(runtime, commit(testing::_))
-          .Times(testing::AnyNumber())
-          .WillRepeatedly(testing::Invoke([&](auto &cid) {
-            EXPECT_OUTCOME_TRUE(new_state, ipld->getCbor<State>(cid));
-            state = std::move(new_state);
-            return fc::outcome::success();
+      EXPECT_CALL(*state_manager, createPowerActorState(testing::_))
+          .WillRepeatedly(testing::Invoke([&](auto) {
+            auto s = std::make_shared<PowerActorState>();
+            ipld->load(*s);
+            return std::static_pointer_cast<states::PowerActorState>(s);
+          }));
+
+      EXPECT_CALL(*state_manager, getPowerActorState())
+          .WillRepeatedly(testing::Invoke([&]() {
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(current_state,
+                                ipld->getCbor<PowerActorState>(cid));
+            auto s = std::make_shared<PowerActorState>(current_state);
+            return std::static_pointer_cast<states::PowerActorState>(s);
           }));
     }
 
@@ -133,11 +149,13 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     }
 
     MockRuntime runtime;
+    std::shared_ptr<MockStateManager> state_manager{
+        std::make_shared<MockStateManager>()};
     ChainEpoch current_epoch{1};
     std::shared_ptr<InMemoryDatastore> ipld{
         std::make_shared<InMemoryDatastore>()};
     Address caller;
-    State state;
+    PowerActorState state;
     ActorVersion actorVersion;
   };
 
@@ -168,7 +186,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     EXPECT_EQ(state.num_miners_meeting_min_power, 0);
     EXPECT_EQ(state.first_cron_epoch, ChainEpoch{0});
     EXPECT_EQ(state.last_processed_cron_epoch, kChainEpochUndefined);
-    EXPECT_OUTCOME_EQ(state.claims.size(), 0);
+    EXPECT_OUTCOME_EQ(state.claims0.size(), 0);
     EXPECT_OUTCOME_EQ(state.cron_event_queue.size(), 0);
   }
 
@@ -188,7 +206,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     const auto res = createMiner(owner, worker, id_address, robust_address);
 
     EXPECT_EQ(state.miner_count, 1);
-    EXPECT_OUTCOME_TRUE(claim, state.claims.get(id_address));
+    EXPECT_OUTCOME_TRUE(claim, state.claims0.get(id_address));
     EXPECT_EQ(claim.raw_power, StoragePower{0});
     EXPECT_EQ(claim.qa_power, StoragePower{0});
     EXPECT_EQ(res.id_address, id_address);
@@ -322,8 +340,6 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     callerCodeIdIs(kStorageMinerCodeId);
     const TokenAmount slash{50};
 
-    // Test VM_ASSERT
-
     current_epoch = kUpgradeBreezeHeight;
 
     EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kOldErrActorFailure),
@@ -380,7 +396,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
     caller = miner_address;
     callerCodeIdIs(kStorageMinerCodeId);
-    SectorNumber verified_sector_number = 25;
+    const SectorNumber verified_sector_number = 25;
     SealVerifyInfo seal;
     seal.sector.sector = verified_sector_number;
     seal.sealed_cid = kEmptyObjectCid;

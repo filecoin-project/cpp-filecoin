@@ -6,7 +6,6 @@
 #pragma once
 
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/init/init_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::init {
 
@@ -45,14 +44,3 @@ namespace fc::vm::actor::builtin::v0::init {
   extern const ActorExports exports;
 
 }  // namespace fc::vm::actor::builtin::v0::init
-
-namespace fc {
-  template <>
-  struct Ipld::Visit<vm::actor::builtin::v0::init::InitActorState> {
-    template <typename Visitor>
-    static void call(vm::actor::builtin::v0::init::InitActorState &state,
-                     const Visitor &visit) {
-      visit(state.address_map);
-    }
-  };
-}  // namespace fc

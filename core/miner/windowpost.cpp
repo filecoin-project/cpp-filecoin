@@ -5,12 +5,13 @@
 
 #include "miner/windowpost.hpp"
 
+#include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/version.hpp"
 
 namespace fc::mining {
+  using vm::actor::builtin::types::miner::kWPoStPeriodDeadlines;
   using vm::actor::builtin::v0::miner::DeclareFaults;
   using vm::actor::builtin::v0::miner::DeclareFaultsRecovered;
-  using vm::actor::builtin::v0::miner::kWPoStPeriodDeadlines;
 
   inline const api::MessageSendSpec kSpec{50 * kFilecoinPrecision};
 
@@ -243,11 +244,9 @@ namespace fc::mining {
     wait.waitOwn([method](auto _r) {
       auto name{method == DeclareFaultsRecovered::Number
                     ? "DeclareFaultsRecovered"
-                    : method == DeclareFaults::Number
-                          ? "DeclareFaults"
-                          : method == SubmitWindowedPoSt::Number
-                                ? "SubmitWindowedPoSt"
-                                : "(unexpected)"};
+                : method == DeclareFaults::Number      ? "DeclareFaults"
+                : method == SubmitWindowedPoSt::Number ? "SubmitWindowedPoSt"
+                                                       : "(unexpected)"};
       if (!_r) {
         spdlog::error("WindowPoStScheduler {} error {}", name, _r.error());
       } else {

@@ -6,12 +6,7 @@
 #include "blockchain/impl/weight_calculator_impl.hpp"
 
 #include "common/logger.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
-#include "vm/actor/builtin/v3/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
@@ -24,7 +19,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
 
 namespace fc::blockchain::weight {
   using primitives::BigInt;
+  using primitives::StoragePower;
   using vm::actor::kStoragePowerAddress;
+  using vm::actor::builtin::states::StateProvider;
   using vm::state::StateTreeImpl;
 
   constexpr uint64_t kWRatioNum{1};
@@ -36,33 +33,13 @@ namespace fc::blockchain::weight {
 
   outcome::result<BigInt> WeightCalculatorImpl::calculateWeight(
       const Tipset &tipset) {
+    StateProvider provider(ipld_);
     OUTCOME_TRY(actor,
                 StateTreeImpl{ipld_, tipset.getParentStateRoot()}.get(
                     kStoragePowerAddress));
-    BigInt network_power;
-    if (actor.code == vm::actor::builtin::v0::kStoragePowerCodeId) {
-      OUTCOME_TRY(state,
-                  ipld_->getCbor<vm::actor::builtin::v0::storage_power::State>(
-                      actor.head));
-      network_power = state.total_qa_power;
-    } else if (actor.code == vm::actor::builtin::v2::kStoragePowerCodeId) {
-      OUTCOME_TRY(state,
-                  ipld_->getCbor<vm::actor::builtin::v2::storage_power::State>(
-                      actor.head));
-      network_power = state.total_qa_power;
-    } else if (actor.code == vm::actor::builtin::v3::kStoragePowerCodeId) {
-      OUTCOME_TRY(state,
-                  ipld_->getCbor<vm::actor::builtin::v3::storage_power::State>(
-                      actor.head));
-      network_power = state.total_qa_power;
-    } else {
-      spdlog::error(
-          "WeightCalculatorImpl: unknown power actor code {} at {} {}",
-          actor.code,
-          tipset.height(),
-          fmt::join(tipset.key.cids(), " "));
-      return std::errc::owner_dead;
-    }
+    OUTCOME_TRY(state, provider.getPowerActorState(actor));
+    const StoragePower network_power = state->total_qa_power;
+
     if (network_power <= 0) {
       return outcome::failure(WeightCalculatorError::kNoNetworkPower);
     }

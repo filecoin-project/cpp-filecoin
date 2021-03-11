@@ -6,20 +6,16 @@
 #pragma once
 
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/states/reward_actor_state.hpp"
 #include "vm/version.hpp"
 
-namespace fc::vm::actor::builtin::v0::reward {
+namespace fc::vm::actor::builtin::types::reward {
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::SpaceTime;
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using version::NetworkVersion;
-
-  /// 330M for testnet
-  static const TokenAmount kSimpleTotal = BigInt(330e6) * BigInt(1e18);
-  /// 770M for testnet
-  static const TokenAmount kBaselineTotal = BigInt(770e6) * BigInt(1e18);
 
   /**
    * expLamSubOne = e^lambda - 1
@@ -88,22 +84,9 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @param current_realized_power
    * @param baseline_exponent - depends on actor version
    */
-  template <typename State>
-  void updateToNextEpoch(State &state,
+  void updateToNextEpoch(states::RewardActorState &state,
                          const StoragePower &current_realized_power,
-                         const BigInt &baseline_exponent) {
-    ++state.epoch;
-    state.this_epoch_baseline_power = baselinePowerFromPrev(
-        state.this_epoch_baseline_power, baseline_exponent);
-    state.cumsum_realized +=
-        std::min(state.this_epoch_baseline_power, current_realized_power);
-    if (state.cumsum_realized > state.cumsum_baseline) {
-      ++state.effective_network_time;
-      state.effective_baseline_power = baselinePowerFromPrev(
-          state.effective_baseline_power, baseline_exponent);
-      state.cumsum_baseline += state.effective_baseline_power;
-    }
-  }
+                         const BigInt &baseline_exponent);
 
   /**
    * Updates reward state to track reward for the next epoch
@@ -111,26 +94,9 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @param state to update
    * @param current_realized_power
    */
-  template <typename State>
-  void updateToNextEpochWithReward(State &state,
+  void updateToNextEpochWithReward(states::RewardActorState &state,
                                    const StoragePower &current_realized_power,
-                                   const BigInt &baseline_exponent) {
-    const auto prev_reward_theta = computeRTheta(state.effective_network_time,
-                                                 state.effective_baseline_power,
-                                                 state.cumsum_realized,
-                                                 state.cumsum_baseline);
-    updateToNextEpoch(state, current_realized_power, baseline_exponent);
-    const auto current_reward_theta =
-        computeRTheta(state.effective_network_time,
-                      state.effective_baseline_power,
-                      state.cumsum_realized,
-                      state.cumsum_baseline);
-    state.this_epoch_reward = computeReward(state.epoch,
-                                            prev_reward_theta,
-                                            current_reward_theta,
-                                            simpleTotal(state),
-                                            baselineTotal(state));
-  }
+                                   const BigInt &baseline_exponent);
 
   /**
    * Update smoothed estimate for state
@@ -138,10 +104,7 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @param state to update
    * @param delta
    */
-  template <typename State>
-  void updateSmoothedEstimates(State &state, const ChainEpoch &delta) {
-    state.this_epoch_reward_smoothed = nextEstimate(
-        state.this_epoch_reward_smoothed, state.this_epoch_reward, delta);
-  }
+  void updateSmoothedEstimates(states::RewardActorState &state,
+                               const ChainEpoch &delta);
 
-}  // namespace fc::vm::actor::builtin::v0::reward
+}  // namespace fc::vm::actor::builtin::types::reward

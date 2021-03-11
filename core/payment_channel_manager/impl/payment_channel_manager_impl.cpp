@@ -8,6 +8,7 @@
 #include "payment_channel_manager/impl/payment_channel_manager_error.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
 #include "vm/message/message_util.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -19,8 +20,8 @@ namespace fc::payment_channel_manager {
   using vm::VMExitCode;
   using vm::actor::kInitAddress;
   using vm::actor::MethodParams;
+  using vm::actor::builtin::states::StateProvider;
   using vm::actor::builtin::v0::kPaymentChannelCodeId;
-  using vm::actor::builtin::v0::payment_channel::State;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::UnsignedMessage;
@@ -99,8 +100,8 @@ namespace fc::payment_channel_manager {
     auto channel_lookup = channels_.find(channel_address);
     if (channel_lookup == channels_.end()) {
       saveChannel(channel_address,
-                  payment_channel_actor_state.from,
-                  payment_channel_actor_state.to);
+                  payment_channel_actor_state->from,
+                  payment_channel_actor_state->to);
       channel_lookup = channels_.find(channel_address);
     }
 
@@ -113,7 +114,7 @@ namespace fc::payment_channel_manager {
     // get redeemed
     TokenAmount redeemed{0};
     OUTCOME_TRY(lane_lookup,
-                payment_channel_actor_state.lanes.tryGet(voucher.lane));
+                payment_channel_actor_state->lanes.tryGet(voucher.lane));
     if (lane_lookup) {
       redeemed = lane_lookup->redeem;
     }
@@ -135,7 +136,7 @@ namespace fc::payment_channel_manager {
     voucher_to_verify.signature_bytes = boost::none;
     OUTCOME_TRY(bytes_to_verify, codec::cbor::encode(voucher_to_verify));
     OUTCOME_TRY(verified,
-                api_->WalletVerify(payment_channel_actor_state.from,
+                api_->WalletVerify(payment_channel_actor_state->from,
                                    bytes_to_verify,
                                    signature.value()));
     if (!verified) {
@@ -145,7 +146,7 @@ namespace fc::payment_channel_manager {
     // check lane nonce if any lane exists
     auto voucher_send_amount = voucher.amount;
     OUTCOME_TRY(lane_lookup,
-                payment_channel_actor_state.lanes.tryGet(voucher.lane));
+                payment_channel_actor_state->lanes.tryGet(voucher.lane));
     if (lane_lookup) {
       if (lane_lookup->nonce >= voucher.nonce) {
         return PaymentChannelManagerError::kWrongNonce;
@@ -158,7 +159,7 @@ namespace fc::payment_channel_manager {
 
     // check amount
     auto total_amoun =
-        payment_channel_actor_state.to_send + voucher_send_amount;
+        payment_channel_actor_state->to_send + voucher_send_amount;
     OUTCOME_TRY(payment_channel_actor_balance,
                 api_->WalletBalance(channel_address));
     if (payment_channel_actor_balance < total_amoun) {
@@ -289,13 +290,15 @@ namespace fc::payment_channel_manager {
     return AddChannelInfo{channel_actor_address, message_cid};
   }
 
-  outcome::result<PaymentChannelState>
+  outcome::result<PaymentChannelActorStatePtr>
   PaymentChannelManagerImpl::loadPaymentChannelActorState(
       const Address &channel_address) const {
     OUTCOME_TRY(tipset, api_->ChainHead());
     auto state_tree =
         std::make_shared<StateTreeImpl>(ipld_, tipset->getParentStateRoot());
-    return state_tree->state<PaymentChannelState>(channel_address);
+    OUTCOME_TRY(actor, state_tree->get(channel_address));
+    const StateProvider provider(ipld_);
+    return provider.getPaymentChannelActorState(actor);
   }
 
   outcome::result<uint64_t> PaymentChannelManagerImpl::getNextNonce(

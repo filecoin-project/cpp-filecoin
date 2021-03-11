@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_COMMON_HPP
-#define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_COMMON_HPP
+#pragma once
 
 #include "miner/storage_fsm/sealing_states.hpp"
 #include "miner/storage_fsm/types.hpp"
@@ -13,7 +12,7 @@
 #include "primitives/tipset/tipset_key.hpp"
 #include "primitives/types.hpp"
 #include "sector_storage/manager.hpp"
-#include "vm/actor/builtin/v0/miner/types.hpp"
+#include "vm/actor/builtin/types/miner/types.hpp"
 
 namespace fc::mining::types {
   using primitives::ChainEpoch;
@@ -27,7 +26,7 @@ namespace fc::mining::types {
   using sector_storage::InteractiveRandomness;
   using sector_storage::PreCommit1Output;
   using sector_storage::Range;
-  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::types::miner::SectorPreCommitInfo;
 
   constexpr uint64_t kDealSectorPriority = 1024;
 
@@ -202,5 +201,3 @@ namespace fc::mining::types {
   }
 
 }  // namespace fc::mining::types
-
-#endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_COMMON_HPP

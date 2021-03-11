@@ -6,24 +6,18 @@
 #include "vm/runtime/env.hpp"
 
 #include "storage/ipld/traverser.hpp"
-#include "vm/actor/builtin/v0/account/account_actor.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v2/account/account_actor.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v3/account/account_actor.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"
 #include "vm/toolchain/toolchain.hpp"
+#include "vm/actor/builtin/states/state_provider.hpp"
 
 #include "vm/dvm/dvm.hpp"
 
 namespace fc::vm::runtime {
   using actor::ActorVersion;
-  using actor::getActorVersionForNetwork;
   using actor::kConstructorMethodNumber;
   using actor::kEmptyObjectCid;
   using actor::kRewardAddress;
@@ -31,6 +25,7 @@ namespace fc::vm::runtime {
   using actor::kSystemActorAddress;
   using toolchain::Toolchain;
   using version::getNetworkVersion;
+  using actor::builtin::states::StateProvider;
 
   outcome::result<Address> resolveKey(StateTree &state_tree,
                                       IpldPtr ipld,
@@ -41,33 +36,10 @@ namespace fc::vm::runtime {
     }
     if (auto _actor{state_tree.get(address)}) {
       auto &actor{_actor.value()};
-      if (actor.code == actor::builtin::v0::kAccountCodeId) {
-        if (auto _state{
-                ipld->getCbor<actor::builtin::v0::account::AccountActorState>(
-                    actor.head)}) {
-          auto &key{_state.value().address};
-          if (allow_actor || key.isKeyType()) {
-            return key;
-          }
-        }
-      } else if (actor.code == actor::builtin::v2::kAccountCodeId) {
-        if (auto _state{
-                ipld->getCbor<actor::builtin::v2::account::AccountActorState>(
-                    actor.head)}) {
-          auto &key{_state.value().address};
-          if (allow_actor || key.isKeyType()) {
-            return key;
-          }
-        }
-      } else if (actor.code == actor::builtin::v3::kAccountCodeId) {
-        if (auto _state{
-                ipld->getCbor<actor::builtin::v3::account::AccountActorState>(
-                    actor.head)}) {
-          auto &key{_state.value().address};
-          if (allow_actor || key.isKeyType()) {
-            return key;
-          }
-        }
+      StateProvider provider(ipld);
+      OUTCOME_TRY(state, provider.getAccountActorState(actor));
+      if (allow_actor || state->address.isKeyType()) {
+        return state->address;
       }
     }
     return VMExitCode::kSysErrIllegalArgument;

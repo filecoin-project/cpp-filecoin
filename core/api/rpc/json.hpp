@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_API_RPC_JSON_HPP
-#define CPP_FILECOIN_CORE_API_RPC_JSON_HPP
+#pragma once
 
 #include <rapidjson/document.h>
 #include <cppcodec/base64_rfc4648.hpp>
@@ -20,6 +19,9 @@
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "sector_storage/stores/storage.hpp"
+#include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/miner/miner_info.hpp"
+#include "vm/actor/builtin/types/miner/types.hpp"
 
 #define COMMA ,
 
@@ -68,14 +70,16 @@ namespace fc::api {
   using sector_storage::stores::PathType;
   using sector_storage::stores::StorageConfig;
   using sector_storage::stores::StorageInfo;
-  using vm::actor::builtin::v0::market::DealProposal;
-  using vm::actor::builtin::v0::market::DealState;
-  using vm::actor::builtin::v0::market::StorageParticipantBalance;
-  using vm::actor::builtin::v0::miner::PowerPair;
-  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
-  using vm::actor::builtin::v0::miner::WorkerKeyChange;
-  using vm::actor::builtin::v0::payment_channel::Merge;
-  using vm::actor::builtin::v0::payment_channel::ModularVerificationParameter;
+  using vm::actor::builtin::types::market::DealProposal;
+  using vm::actor::builtin::types::market::DealState;
+  using vm::actor::builtin::types::market::StorageParticipantBalance;
+  using vm::actor::builtin::types::miner::MinerInfo;
+  using vm::actor::builtin::types::miner::PowerPair;
+  using vm::actor::builtin::types::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::types::miner::WorkerKeyChange;
+  using vm::actor::builtin::types::payment_channel::Merge;
+  using vm::actor::builtin::types::payment_channel::
+      ModularVerificationParameter;
   using vm::runtime::ExecutionResult;
   using base64 = cppcodec::base64_rfc4648;
 
@@ -1822,5 +1826,3 @@ namespace fc::api {
     }
   }
 }  // namespace fc::api
-
-#endif  // CPP_FILECOIN_CORE_API_RPC_JSON_HPP
