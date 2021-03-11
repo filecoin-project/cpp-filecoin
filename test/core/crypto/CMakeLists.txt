@@ -18,13 +18,6 @@ target_link_libraries(bls_provider_test
     bls_provider
     )
 
-addtest(murmur_test
-    murmur_test.cpp
-    )
-target_link_libraries(murmur_test
-    murmur
-    )
-
 addtest(secp256k1_provider_test
     secp256k1_provider_test.cpp
     )
@@ -32,6 +25,3 @@ target_link_libraries(secp256k1_provider_test
     secp256k1_provider
     hexutil
     )
-
-add_subdirectory(vrf)
-
