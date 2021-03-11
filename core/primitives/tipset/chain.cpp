@@ -305,29 +305,14 @@ namespace fc::primitives::tipset::chain {
     if (height > branch->chain.rbegin()->first) {
       return OutcomeError::kDefault;
     }
-    TsBranchPtr parent;
     while (branch->chain.begin()->first > height) {
       if (!branch->parent) {
         return OutcomeError::kDefault;
       }
-      parent = branch;
       branch = branch->parent;
     }
     auto it{branch->chain.lower_bound(height)};
-    if (it == branch->chain.end()) {
-      if (!allow_less) {
-        // example: find 3 in [[1, 2], [4, 5]]
-        if (!parent) {
-          return OutcomeError::kDefault;
-        }
-        return std::make_pair(parent, parent->chain.begin());
-      }
-      --it;
-    }
     if (it->first > height && allow_less) {
-      if (it == branch->chain.begin()) {
-        return OutcomeError::kDefault;
-      }
       --it;
     }
     return std::make_pair(branch, it);
