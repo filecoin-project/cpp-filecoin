@@ -10,6 +10,7 @@
 #include "api/rpc/rpc.hpp"
 #include "api/utils.hpp"
 #include "api/visit.hpp"
+#include "common/outcome_fmt.hpp"
 
 namespace fc::api {
   using outcome::errorToPrettyString;

@@ -509,8 +509,7 @@ namespace fc {
 
 int main(int argc, char **argv) {
   OUTCOME_EXCEPT(config, fc::readConfig(argc, argv));
-  const auto &res = fc::main(config);
-  if (res.has_error()) {
-    std::cerr << fc::outcome::errorToPrettyString(res.error()) << std::endl;
+  if (const auto res{fc::main(config)}; !res) {
+    spdlog::error("main: {:#}", res.error());
   }
 }

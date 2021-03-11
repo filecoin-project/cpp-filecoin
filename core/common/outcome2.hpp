@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include <spdlog/fmt/fmt.h>
-
 #include "common/enum.hpp"
 #include "common/outcome.hpp"
 
@@ -61,33 +59,5 @@ namespace fc {
     }
   }
 }  // namespace fc
-
-/**
- * std::error_code error;
- * fmt::format("... {}", error); // "... CATEGORY:VALUE"
- * fmt::format("... {:#}", error); // "... CATEGORY error VALUE \"MESSAGE\""
- */
-template <>
-struct fmt::formatter<std::error_code, char, void> {
-  bool alt{false};
-
-  template <typename ParseContext>
-  constexpr auto parse(ParseContext &ctx) {
-    auto it{ctx.begin()};
-    if (it != ctx.end() && *it == '#') {
-      alt = true;
-      ++it;
-    }
-    return it;
-  }
-
-  template <typename FormatContext>
-  auto format(const std::error_code &e, FormatContext &ctx) {
-    if (alt) {
-      return fmt::format_to(ctx.out(), fc::outcome::errorToPrettyString(e));
-    }
-    return fmt::format_to(ctx.out(), "{}:{}", e.category().name(), e.value());
-  }
-};
 
 OUTCOME_HPP_DECLARE_ERROR(fc, OutcomeError);

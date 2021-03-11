@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "common/outcome2.hpp"
 #include "primitives/types.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
