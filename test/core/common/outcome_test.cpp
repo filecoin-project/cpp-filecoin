@@ -8,7 +8,6 @@
 #include <gtest/gtest.h>
 
 #include "common/error_text.hpp"
-#include "common/todo_error.hpp"
 
 namespace fc {
 
@@ -22,7 +21,7 @@ namespace fc {
   }
 
   outcome::result<void> funcFailure() {
-    return TodoError::kError;
+    return error;
   }
 
   outcome::result<int> funcSuccessReturn() {
@@ -30,7 +29,7 @@ namespace fc {
   }
 
   outcome::result<int> funcFailureReturn() {
-    return TodoError::kError;
+    return error;
   }
 
   /**

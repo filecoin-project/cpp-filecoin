@@ -23,8 +23,10 @@ namespace fc::api {
   outcome::result<IpldObject> getNode(std::shared_ptr<Ipld> ipld,
                                       const CID &root,
                                       gsl::span<const std::string> parts) {
+    static const auto error_dag_cbor{
+        ERROR_TEXT("getNode: cid is not dag-cbor")};
     if (root.content_type != CID::Multicodec::DAG_CBOR) {
-      return TodoError::kError;
+      return error_dag_cbor;
     }
     OUTCOME_TRY(raw, ipld->get(root));
     try {
@@ -77,7 +79,7 @@ namespace fc::api {
             s = CborDecodeStream{raw2};
           } else {
             if (i != parts.size() - 1) {
-              return TodoError::kError;
+              return error_dag_cbor;
             }
           }
         }
