@@ -216,9 +216,6 @@ namespace fc::sync::blocksync {
       return outcome::success();
     }
 
-    // XXX
-    static int xxx = 0;
-
     class BlocksyncRequestImpl
         : public BlocksyncRequest,
           public std::enable_shared_from_this<BlocksyncRequestImpl> {
@@ -226,12 +223,9 @@ namespace fc::sync::blocksync {
       BlocksyncRequestImpl(libp2p::Host &host,
                            libp2p::protocol::Scheduler &scheduler,
                            Ipld &ipld)
-          : host_(host), scheduler_(scheduler), ipld_(ipld) {
-        log()->debug("++++++ {}", ++xxx);
-      }
+          : host_(host), scheduler_(scheduler), ipld_(ipld) {}
 
-      ~BlocksyncRequestImpl() {
-        log()->debug("------ {}", xxx--);
+      ~BlocksyncRequestImpl() override {
         cancel();
       }
 

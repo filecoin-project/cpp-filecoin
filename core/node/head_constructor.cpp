@@ -101,14 +101,7 @@ namespace fc::sync {
 
     log()->debug("new possible head");
 
-    // XXX
-
-    //    events_->signalPossibleHead({.source = boost::none,
-    //    //std::move(source),
-    //                                 .head = creator.key(),
-    //                                 .height = current_height_});
-
-    // check if parents are already synced / downloaded
+    // TODO check if parents are already synced / downloaded
 
     events_->signalPossibleHead({.source = boost::none,
                                  .head = TipsetKey(header.parents),
