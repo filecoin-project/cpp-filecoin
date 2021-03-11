@@ -5,6 +5,7 @@
 
 #include "node/sync_job.hpp"
 
+#include "common/error_text.hpp"
 #include "common/logger.hpp"
 #include "common/outcome2.hpp"
 #include "node/blocksync_common.hpp"
@@ -32,7 +33,7 @@ namespace fc::sync {
         return ts_load->loadw(it.second->second);
       }
     }
-    return OutcomeError::kDefault;
+    return ERROR_TEXT("stepUp: error");
   }
 
   SyncJob::SyncJob(std::shared_ptr<libp2p::Host> host,
