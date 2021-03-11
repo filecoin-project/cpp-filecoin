@@ -66,7 +66,7 @@ namespace fc::node {
     return spdlog::level::info;
   }
 
-  Config Config::read(int argc, char *argv[]) {
+  Config Config::read(int argc, char **argv) {
     Config config;
     struct {
       char log_level;
@@ -88,18 +88,23 @@ namespace fc::node {
            po::value(&raw.log_level)->default_value('i'),
            "log level, [e,w,i,d,t]");
     option("import-snapshot", po::value(&config.snapshot));
-    option("drand-server",
-           po::value(&config.drand_servers)->composing(),
-           "drand server uri");
-    option("drand-pubkey",
-           po::value(&config.drand_bls_pubkey),
-           "drand public key (bls)");
-    option("drand-genesis-time",
-           po::value(&config.drand_genesis),
-           "drand genesis time (seconds)");
-    option("drand-period",
-           po::value(&config.drand_period),
-           "drand period (seconds)");
+
+    po::options_description drand_desc("Drand server options");
+    auto drand_option{drand_desc.add_options()};
+    drand_option("drand-server",
+                 po::value(&config.drand_servers)->composing(),
+                 "drand server uri");
+    drand_option("drand-pubkey",
+                 po::value(&config.drand_bls_pubkey),
+                 "drand public key (bls)");
+    drand_option("drand-genesis-time",
+                 po::value(&config.drand_genesis),
+                 "drand genesis time (seconds)");
+    drand_option("drand-period",
+                 po::value(&config.drand_period),
+                 "drand period (seconds)");
+    desc.add(drand_desc);
+
     primitives::address::configCurrentNetwork(option);
 
     po::variables_map vm;
@@ -117,7 +122,7 @@ namespace fc::node {
           config_path,
           boost::filesystem::copy_option::overwrite_if_exists);
     }
-    if (raw.copy_config) {
+    if (raw.copy_genesis) {
       boost::filesystem::copy_file(
           *raw.copy_genesis,
           config.genesisCar(),
