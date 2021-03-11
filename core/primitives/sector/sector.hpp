@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PROOFS_SECTOR_HPP
-#define CPP_FILECOIN_CORE_PROOFS_SECTOR_HPP
+#pragma once
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
@@ -33,6 +32,8 @@ namespace fc::primitives::sector {
   }
 
   enum class RegisteredSealProof : int64_t {
+    undefined = -1,
+
     StackedDrg2KiBV1,
     StackedDrg8MiBV1,
     StackedDrg512MiBV1,
@@ -47,6 +48,8 @@ namespace fc::primitives::sector {
   };
 
   enum class RegisteredPoStProof : int64_t {
+    undefined = -1,
+
     StackedDRG2KiBWinningPoSt,
     StackedDRG8MiBWinningPoSt,
     StackedDRG512MiBWinningPoSt,
@@ -171,5 +174,3 @@ namespace fc::primitives::sector {
 }  // namespace fc::primitives::sector
 
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::sector, Errors);
-
-#endif  // CPP_FILECOIN_CORE_PROOFS_SECTOR_HPP

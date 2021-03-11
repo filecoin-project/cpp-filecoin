@@ -10,9 +10,9 @@
 namespace fc::vm::actor::builtin::v0::init {
   using runtime::Runtime;
 
-  class InitUtils : public utils::init::InitUtils {
+  class InitUtils : public utils::InitUtils {
    public:
-    InitUtils(Runtime &r) : utils::init::InitUtils::InitUtils(r) {}
+    explicit InitUtils(Runtime &r) : utils::InitUtils(r) {}
 
     outcome::result<void> assertCaller(bool condition) const override;
   };

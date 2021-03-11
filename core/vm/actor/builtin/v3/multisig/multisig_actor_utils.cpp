@@ -8,14 +8,14 @@
 namespace fc::vm::actor::builtin::v3::multisig {
 
   outcome::result<ApproveTransactionResult> MultisigUtils::executeTransaction(
-      State &state,
+      MultisigActorStatePtr state,
       const TransactionId &tx_id,
       const Transaction &transaction) const {
     bool applied = false;
     Buffer out{};
     VMExitCode code = VMExitCode::kOk;
 
-    if (transaction.approved.size() >= state.threshold) {
+    if (transaction.approved.size() >= state->threshold) {
       OUTCOME_TRY(balance, runtime.getCurrentBalance());
       OUTCOME_TRY(assertAvailable(
           state, balance, transaction.value, runtime.getCurrentEpoch()));
@@ -31,7 +31,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
       applied = true;
 
       // Lotus gas conformance
-      OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
+      OUTCOME_TRYA(state, runtime.stateManager()->getMultisigActorState());
 
       // Starting at version 6 we first check if the transaction exists before
       // deleting. This allows 1 out of n multisig swaps and removes initiated
@@ -39,11 +39,11 @@ namespace fc::vm::actor::builtin::v3::multisig {
       // error
 
       REQUIRE_NO_ERROR_A(tx_exists,
-                         state.pending_transactions.has(tx_id),
+                         state->pending_transactions.has(tx_id),
                          VMExitCode::kErrIllegalState);
 
       if (tx_exists) {
-        REQUIRE_NO_ERROR(state.pending_transactions.remove(tx_id),
+        REQUIRE_NO_ERROR(state->pending_transactions.remove(tx_id),
                          VMExitCode::kErrIllegalState);
       }
       OUTCOME_TRY(runtime.commitState(state));

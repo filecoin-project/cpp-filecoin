@@ -24,13 +24,13 @@ namespace fc::vm::actor::builtin::v2::multisig {
         v0::multisig::Construct::getResolvedSigners(runtime, params.signers));
     OUTCOME_TRY(v0::multisig::Construct::checkParams(
         params.signers, params.threshold, params.unlock_duration));
-    State state = v0::multisig::Construct::createState(
+    auto state = v0::multisig::Construct::createState(
         runtime, params.threshold, resolved_signers);
 
     if (params.unlock_duration != 0) {
-      state.setLocked(params.start_epoch,
-                      params.unlock_duration,
-                      runtime.getValueReceived());
+      state->setLocked(params.start_epoch,
+                       params.unlock_duration,
+                       runtime.getValueReceived());
     }
 
     OUTCOME_TRY(runtime.commitState(state));
@@ -53,8 +53,8 @@ namespace fc::vm::actor::builtin::v2::multisig {
 
     const auto utils = Toolchain::createMultisigActorUtils(runtime);
     OUTCOME_TRY(resolved_signer, utils->getResolvedAddress(params.signer));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(checkSignersCount(state.signers));
+    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(checkSignersCount(state->signers));
     OUTCOME_TRY(
         v0::multisig::AddSigner::addSigner(params, state, resolved_signer));
     OUTCOME_TRY(runtime.commitState(state));
@@ -69,19 +69,19 @@ namespace fc::vm::actor::builtin::v2::multisig {
 
     const auto utils = Toolchain::createMultisigActorUtils(runtime);
     OUTCOME_TRY(resolved_signer, utils->getResolvedAddress(params.signer));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
     OUTCOME_TRY(
         v0::multisig::RemoveSigner::checkState(params, state, resolved_signer));
 
     if (params.decrease_threshold) {
-      if (state.threshold < 2) {
+      if (state->threshold < 2) {
         ABORT(VMExitCode::kErrIllegalState);
       }
-      state.threshold--;
+      state->threshold--;
     }
 
-    state.signers.erase(
-        std::find(state.signers.begin(), state.signers.end(), resolved_signer));
+    state->signers.erase(std::find(
+        state->signers.begin(), state->signers.end(), resolved_signer));
 
     REQUIRE_NO_ERROR(utils->purgeApprovals(state, resolved_signer),
                      VMExitCode::kErrIllegalState);
@@ -98,7 +98,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
     const auto utils = Toolchain::createMultisigActorUtils(runtime);
     OUTCOME_TRY(from_resolved, utils->getResolvedAddress(params.from));
     OUTCOME_TRY(to_resolved, utils->getResolvedAddress(params.to));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
     OUTCOME_TRY(v0::multisig::SwapSigner::swapSigner(
         state, from_resolved, to_resolved));
     REQUIRE_NO_ERROR(utils->purgeApprovals(state, from_resolved),
@@ -116,7 +116,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
     OUTCOME_TRY(runtime.validateArgument(
         !((runtime.getNetworkVersion() >= NetworkVersion::kVersion7)
           && (params.amount < 0))));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
     OUTCOME_TRY(v0::multisig::LockBalance::lockBalance(params, state));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();

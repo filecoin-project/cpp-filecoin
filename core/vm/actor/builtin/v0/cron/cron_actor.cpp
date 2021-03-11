@@ -8,13 +8,16 @@
 namespace fc::vm::actor::builtin::v0::cron {
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    OUTCOME_TRY(runtime.commitState(State{params}));
+    auto state =
+        runtime.stateManager()->createCronActorState(runtime.getActorVersion());
+    state->entries = params;
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
   ACTOR_METHOD_IMPL(EpochTick) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    for (const auto &entry : state.entries) {
+    OUTCOME_TRY(state, runtime.stateManager()->getCronActorState());
+    for (const auto &entry : state->entries) {
       OUTCOME_TRY(asExitCode(
           runtime.send(entry.to_addr, entry.method_num, {}, BigInt(0))));
     }

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_ADT_UVARINT_KEY_HPP
-#define CPP_FILECOIN_ADT_UVARINT_KEY_HPP
+#pragma once
 
 #include <string>
 
@@ -31,5 +30,3 @@ namespace fc::adt {
 }  // namespace fc::adt
 
 OUTCOME_HPP_DECLARE_ERROR(fc::adt, UvarintKeyError);
-
-#endif  // CPP_FILECOIN_ADT_UVARINT_KEY_HPP

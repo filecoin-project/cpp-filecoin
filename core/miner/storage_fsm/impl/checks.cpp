@@ -11,13 +11,11 @@
 #include "sector_storage/zerocomm/zerocomm.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v2/miner/policy.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
-#include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
+#include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::mining::checks {
   using crypto::randomness::DomainSeparationTag;
@@ -31,26 +29,28 @@ namespace fc::mining::checks {
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::MethodParams;
+  using vm::actor::builtin::states::StateProvider;
+  using vm::actor::builtin::types::miner::kChainFinalityish;
+  using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
+  using vm::actor::builtin::types::miner::maxSealDuration;
+  using vm::actor::builtin::types::miner::SectorPreCommitOnChainInfo;
   using vm::actor::builtin::v0::market::ComputeDataCommitment;
-  using vm::actor::builtin::v0::miner::kChainFinalityish;
-  using vm::actor::builtin::v0::miner::kPreCommitChallengeDelay;
-  using vm::actor::builtin::v0::miner::maxSealDuration;
-  using vm::actor::builtin::v0::miner::SectorPreCommitOnChainInfo;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::UnsignedMessage;
+  using vm::toolchain::Toolchain;
 
   outcome::result<EpochDuration> getMaxProveCommitDuration(
       NetworkVersion network, const std::shared_ptr<SectorInfo> &sector_info) {
-    auto version{vm::actor::getActorVersionForNetwork(network)};
+    auto version{Toolchain::getActorVersionForNetwork(network)};
     switch (version) {
       case vm::actor::ActorVersion::kVersion0:
         return maxSealDuration(sector_info->sector_type);
       case vm::actor::ActorVersion::kVersion2:
-        return vm::actor::builtin::v2::miner::kMaxProveCommitDuration;
+        return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
       // TODO (m.tagirov or a.chernyshov) change to v3
       case vm::actor::ActorVersion::kVersion3:
-        return vm::actor::builtin::v2::miner::kMaxProveCommitDuration;
+        return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
     }
   }
 
@@ -128,31 +128,17 @@ namespace fc::mining::checks {
 
     OUTCOME_TRY(actor, api->StateGetActor(miner_address, tipset_key));
     auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
-    vm::actor::builtin::v0::miner::MinerActorState state;
-    if (actor.code == vm::actor::builtin::v0::kStorageMinerCodeId) {
-      OUTCOME_TRYA(state, ipfs->getCbor<decltype(state)>(actor.head));
-    } else if (actor.code == vm::actor::builtin::v2::kStorageMinerCodeId) {
-      OUTCOME_TRY(
-          state2,
-          ipfs->getCbor<vm::actor::builtin::v2::miner::State>(actor.head));
-      state.precommitted_sectors = state2.precommitted_sectors;
-      state.allocated_sectors = state2.allocated_sectors;
-    } else if (actor.code == vm::actor::builtin::v3::kStorageMinerCodeId) {
-      OUTCOME_TRY(
-          state2,
-          ipfs->getCbor<vm::actor::builtin::v3::miner::State>(actor.head));
-      state.precommitted_sectors = state2.precommitted_sectors;
-      state.allocated_sectors = state2.allocated_sectors;
-    } else {
-      return ChecksError::kMinerVersion;
-    }
+
+    StateProvider provider(ipfs);
+    OUTCOME_TRY(state, provider.getMinerActorState(actor));
+
     OUTCOME_TRY(has,
-                state.precommitted_sectors.has(sector_info->sector_number));
+                state->precommitted_sectors.has(sector_info->sector_number));
     if (has) {
       OUTCOME_TRYA(result,
-                   state.precommitted_sectors.get(sector_info->sector_number));
+                   state->precommitted_sectors.get(sector_info->sector_number));
     } else {
-      OUTCOME_TRY(allocated_bitset, state.allocated_sectors.get());
+      OUTCOME_TRY(allocated_bitset, state->allocated_sectors.get());
       if (allocated_bitset.has(sector_info->sector_number)) {
         return ChecksError::kSectorAllocated;
       }

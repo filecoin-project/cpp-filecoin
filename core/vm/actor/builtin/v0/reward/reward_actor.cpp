@@ -5,18 +5,24 @@
 
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 
+#include "vm/actor/builtin/types/reward/policy.hpp"
+#include "vm/actor/builtin/types/reward/reward_actor_calculus.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor_calculus.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::reward {
+  using namespace types::reward;
 
   /// The expected number of block producers in each epoch.
   constexpr auto kExpectedLeadersPerEpoch{5};
 
   ACTOR_METHOD_IMPL(Constructor) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    OUTCOME_TRY(runtime.commitState(State(params)));
+
+    auto state = runtime.stateManager()->createRewardActorState(
+        runtime.getActorVersion());
+    state->initialize(params);
+
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -53,12 +59,12 @@ namespace fc::vm::actor::builtin::v0::reward {
     OUTCOME_TRY(balance, validateParams(runtime, params));
     CHANGE_ERROR_A(
         miner, runtime.resolveAddress(params.miner), VMExitCode::kErrNotFound);
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getRewardActorState());
     OUTCOME_TRY(
         reward,
-        calculateReward(runtime, params, state.this_epoch_reward, balance));
+        calculateReward(runtime, params, state->this_epoch_reward, balance));
     const auto &[block_reward, total_reward] = reward;
-    state.total_mined += block_reward;
+    state->total_reward += block_reward;
     OUTCOME_TRY(runtime.commitState(state));
 
     // Cap the penalty at the total reward value.
@@ -85,11 +91,30 @@ namespace fc::vm::actor::builtin::v0::reward {
   }
 
   ACTOR_METHOD_IMPL(ThisEpochReward) {
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getRewardActorState());
     return Result{
-        .this_epoch_reward = state.this_epoch_reward,
-        .this_epoch_reward_smoothed = state.this_epoch_reward_smoothed,
-        .this_epoch_baseline_power = state.this_epoch_baseline_power};
+        .this_epoch_reward = state->this_epoch_reward,
+        .this_epoch_reward_smoothed = state->this_epoch_reward_smoothed,
+        .this_epoch_baseline_power = state->this_epoch_baseline_power};
+  }
+
+  outcome::result<void> UpdateNetworkKPI::updateKPI(
+      Runtime &runtime, const Params &params, const BigInt &baseline_exponent) {
+    OUTCOME_TRY(state, runtime.stateManager()->getRewardActorState());
+    const ChainEpoch prev_epoch = state->epoch;
+    const ChainEpoch now = runtime.getCurrentEpoch();
+    while (state->epoch < now) {
+      updateToNextEpoch(*state, params, baseline_exponent);
+    }
+
+    updateToNextEpochWithReward(*state, params, baseline_exponent);
+    // only update smoothed estimates after updating reward and epoch
+    updateSmoothedEstimates(*state, state->epoch - prev_epoch);
+
+    // Lotus gas conformance
+    OUTCOME_TRY(runtime.commitState(state));
+
+    return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(UpdateNetworkKPI) {
@@ -98,7 +123,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     const BigInt baseline_exponent = network_version < NetworkVersion::kVersion3
                                          ? kBaselineExponentV0
                                          : kBaselineExponentV3;
-    OUTCOME_TRY(updateKPI<State>(runtime, params, baseline_exponent));
+    OUTCOME_TRY(updateKPI(runtime, params, baseline_exponent));
     return outcome::success();
   }
 

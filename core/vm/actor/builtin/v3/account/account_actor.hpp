@@ -12,7 +12,6 @@ namespace fc::vm::actor::builtin::v3::account {
   /**
    * Account actor v3 is identical to Account actor v2
    */
-  using AccountActorState = v2::account::AccountActorState;
   using Construct = v2::account::Construct;
   using PubkeyAddress = v2::account::PubkeyAddress;
 

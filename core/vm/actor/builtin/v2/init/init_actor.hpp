@@ -6,7 +6,6 @@
 #pragma once
 
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
-#include "vm/actor/builtin/v2/init/init_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::init {
 

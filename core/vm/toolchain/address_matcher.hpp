@@ -17,11 +17,35 @@ namespace fc::vm::toolchain {
     /** Checks if code is an account actor */
     virtual bool isAccountActor(const CodeId &code) const = 0;
 
+    /** Checks if code is cron actor */
+    virtual bool isCronActor(const CodeId &code) const = 0;
+
+    /** Checks if code is power actor */
+    virtual bool isStoragePowerActor(const CodeId &code) const = 0;
+
+    /** Checks if code is market actor */
+    virtual bool isStorageMarketActor(const CodeId &code) const = 0;
+
     /** Checks if code is miner actor */
     virtual bool isStorageMinerActor(const CodeId &code) const = 0;
 
+    /** Checks if code is multisig actor */
+    virtual bool isMultisigActor(const CodeId &code) const = 0;
+
+    /** Checks if code is init actor */
+    virtual bool isInitActor(const CodeId &code) const = 0;
+
     /** Checks if code is payment channel actor */
     virtual bool isPaymentChannelActor(const CodeId &code) const = 0;
+
+    /** Checks if code is reward actor */
+    virtual bool isRewardActor(const CodeId &code) const = 0;
+
+    /** Checks if code is system actor */
+    virtual bool isSystemActor(const CodeId &code) const = 0;
+
+    /** Checks if code is verified registry actor */
+    virtual bool isVerifiedRegistryActor(const CodeId &code) const = 0;
 
     /** Check if code specifies builtin actor implementation */
     virtual bool isBuiltinActor(const CodeId &code) const = 0;

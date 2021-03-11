@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_SEALING_IMPL_HPP
-#define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_SEALING_IMPL_HPP
+#pragma once
 
 #include "miner/storage_fsm/sealing.hpp"
 
@@ -18,11 +17,11 @@
 #include "primitives/stored_counter/stored_counter.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 #include "storage/buffer_map.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/actor/builtin/types/miner/types.hpp"
 
 namespace fc::mining {
-  using adt::TokenAmount;
   using api::FullNodeApi;
+  using primitives::TokenAmount;
   using primitives::piece::PaddedPieceSize;
   using proofs::SealRandomness;
   using sector_storage::Manager;
@@ -37,7 +36,7 @@ namespace fc::mining {
   using primitives::Counter;
   using primitives::tipset::TipsetKey;
   using storage::BufferMap;
-  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::types::miner::SectorPreCommitInfo;
 
   struct Config {
     // 0 = no limit
@@ -299,5 +298,3 @@ namespace fc::mining {
     std::shared_ptr<Scheduler> scheduler_;
   };
 }  // namespace fc::mining
-
-#endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_SEALING_IMPL_HPP

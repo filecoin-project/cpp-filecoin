@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_RUNTIME_MOCK_HPP
-#define CPP_FILECOIN_RUNTIME_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -17,6 +16,8 @@ namespace fc::vm::runtime {
   class MockRuntime : public Runtime {
    public:
     MOCK_CONST_METHOD0(execution, std::shared_ptr<Execution>());
+
+    MOCK_CONST_METHOD0(stateManager, std::shared_ptr<StateManager>());
 
     MOCK_CONST_METHOD0(getNetworkVersion, NetworkVersion());
 
@@ -76,10 +77,6 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD1(chargeGas, outcome::result<void>(GasAmount amount));
 
-    MOCK_CONST_METHOD0(getCurrentActorState, outcome::result<CID>());
-
-    MOCK_METHOD1(commit, outcome::result<void>(const CID &new_state));
-
     MOCK_CONST_METHOD1(
         tryResolveAddress,
         outcome::result<boost::optional<Address>>(const Address &address));
@@ -134,5 +131,3 @@ namespace fc::vm::runtime {
     }
   };
 }  // namespace fc::vm::runtime
-
-#endif  // CPP_FILECOIN_RUNTIME_MOCK_HPP

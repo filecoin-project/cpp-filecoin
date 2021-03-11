@@ -13,8 +13,17 @@ namespace fc::vm::toolchain {
     AddressMatcherV3() = default;
 
     bool isAccountActor(const CodeId &code) const override;
+    bool isCronActor(const CodeId &code) const override;
+    bool isStoragePowerActor(const CodeId &code) const override;
+    bool isStorageMarketActor(const CodeId &code) const override;
     bool isStorageMinerActor(const CodeId &code) const override;
+    bool isMultisigActor(const CodeId &code) const override;
+    bool isInitActor(const CodeId &code) const override;
     bool isPaymentChannelActor(const CodeId &code) const override;
+    bool isRewardActor(const CodeId &code) const override;
+    bool isSystemActor(const CodeId &code) const override;
+    bool isVerifiedRegistryActor(const CodeId &code) const override;
+
     bool isBuiltinActor(const CodeId &code) const override;
     bool isSingletonActor(const CodeId &code) const override;
     bool isSignableActor(const CodeId &code) const override;

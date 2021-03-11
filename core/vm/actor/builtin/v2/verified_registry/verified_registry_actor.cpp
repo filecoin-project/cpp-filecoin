@@ -20,14 +20,15 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
                        runtime.resolveOrCreate(params.address),
                        VMExitCode::kErrIllegalState);
 
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(runtime.validateImmediateCallerIs(state.root_key));
-    OUTCOME_TRY(utils->checkAddress<State>(state, verifier));
+    OUTCOME_TRY(state, runtime.stateManager()->getVerifiedRegistryActorState());
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(state->root_key));
+    OUTCOME_TRY(utils->checkAddress(*state, verifier));
     OUTCOME_TRYA(
         state,
-        runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
+        runtime.stateManager()
+            ->getVerifiedRegistryActorState());  // Lotus gas conformance
     OUTCOME_TRY(v0::verified_registry::AddVerifier::addVerifier(
-        runtime, state, verifier, params.allowance));
+        runtime, *state, verifier, params.allowance));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -40,13 +41,14 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
                        runtime.resolveOrCreate(params),
                        VMExitCode::kErrIllegalState);
 
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(runtime.validateImmediateCallerIs(state.root_key));
+    OUTCOME_TRY(state, runtime.stateManager()->getVerifiedRegistryActorState());
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(state->root_key));
     OUTCOME_TRYA(
         state,
-        runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
+        runtime.stateManager()
+            ->getVerifiedRegistryActorState());  // Lotus gas conformance
 
-    REQUIRE_NO_ERROR(state.verifiers.remove(verifier),
+    REQUIRE_NO_ERROR(state->verifiers.remove(verifier),
                      VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
@@ -63,13 +65,14 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
                        runtime.resolveOrCreate(params.address),
                        VMExitCode::kErrIllegalState);
 
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(utils->checkAddress<State>(state, client));
+    OUTCOME_TRY(state, runtime.stateManager()->getVerifiedRegistryActorState());
+    OUTCOME_TRY(utils->checkAddress(*state, client));
     OUTCOME_TRYA(
         state,
-        runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
+        runtime.stateManager()
+            ->getVerifiedRegistryActorState());  // Lotus gas conformance
     OUTCOME_TRY(v0::verified_registry::AddVerifiedClient::addClient(
-        runtime, state, client, params.allowance));
+        runtime, *state, client, params.allowance));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -86,13 +89,13 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
 
     const auto utils = Toolchain::createVerifRegUtils(runtime);
     OUTCOME_TRY(utils->checkDealSize(params.deal_size));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getVerifiedRegistryActorState());
 
     auto clientCapAssert = [&runtime](bool condition) -> outcome::result<void> {
       return runtime.vm_assert(condition);
     };
     OUTCOME_TRY(v0::verified_registry::UseBytes::useBytes(
-        runtime, state, client, params.deal_size, clientCapAssert));
+        runtime, *state, client, params.deal_size, clientCapAssert));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -109,13 +112,14 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
                        runtime.resolveOrCreate(params.address),
                        VMExitCode::kErrIllegalState);
 
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(utils->checkAddress<State>(state, client));
+    OUTCOME_TRY(state, runtime.stateManager()->getVerifiedRegistryActorState());
+    OUTCOME_TRY(utils->checkAddress(*state, client));
     OUTCOME_TRYA(
         state,
-        runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
+        runtime.stateManager()
+            ->getVerifiedRegistryActorState());  // Lotus gas conformance
     OUTCOME_TRY(v0::verified_registry::RestoreBytes::restoreBytes(
-        runtime, state, client, params.deal_size));
+        runtime, *state, client, params.deal_size));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }

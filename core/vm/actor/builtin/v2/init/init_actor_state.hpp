@@ -5,8 +5,23 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/init/init_actor_state.hpp"
+#include "codec/cbor/streams_annotation.hpp"
+#include "vm/actor/builtin/states/init_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::init {
-  using InitActorState = v0::init::InitActorState;
+  struct InitActorState : states::InitActorState {
+    outcome::result<Buffer> toCbor() const override;
+  };
+  CBOR_TUPLE(InitActorState, address_map, next_id, network_name)
 }  // namespace fc::vm::actor::builtin::v2::init
+
+namespace fc {
+  template <>
+  struct Ipld::Visit<vm::actor::builtin::v2::init::InitActorState> {
+    template <typename Visitor>
+    static void call(vm::actor::builtin::v2::init::InitActorState &state,
+                     const Visitor &visit) {
+      visit(state.address_map);
+    }
+  };
+}  // namespace fc

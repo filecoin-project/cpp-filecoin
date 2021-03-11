@@ -10,4 +10,5 @@ target_link_libraries(state_tree_test
     hexutil
     ipfs_datastore_in_memory
     state_tree
+    toolchain
     )

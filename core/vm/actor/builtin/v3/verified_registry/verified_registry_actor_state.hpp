@@ -5,15 +5,28 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v2/verified_registry/verified_registry_actor_state.hpp"
+#include "codec/cbor/streams_annotation.hpp"
+#include "primitives/address/address_codec.hpp"
+#include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::verified_registry {
-  using primitives::StoragePower;
-  using primitives::address::Address;
-  using v2::verified_registry::DataCap;
-
-  using v2::verified_registry::kMinVerifiedDealSize;
-
-  using State = v2::verified_registry::State;
-
+  struct VerifiedRegistryActorState : states::VerifiedRegistryActorState {
+    outcome::result<Buffer> toCbor() const override;
+  };
+  CBOR_TUPLE(VerifiedRegistryActorState, root_key, verifiers, verified_clients)
 }  // namespace fc::vm::actor::builtin::v3::verified_registry
+
+namespace fc {
+  template <>
+  struct Ipld::Visit<
+      vm::actor::builtin::v3::verified_registry::VerifiedRegistryActorState> {
+    template <typename Visitor>
+    static void call(
+        vm::actor::builtin::v3::verified_registry::VerifiedRegistryActorState
+            &state,
+        const Visitor &visit) {
+      visit(state.verifiers);
+      visit(state.verified_clients);
+    }
+  };
+}  // namespace fc

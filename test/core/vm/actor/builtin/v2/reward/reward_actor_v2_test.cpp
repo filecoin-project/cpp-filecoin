@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "vm/actor/builtin/types/reward/policy.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor_state.hpp"
@@ -11,24 +12,36 @@
 #include "testutil/vm/actor/builtin/reward/reward_actor_test_fixture.hpp"
 
 namespace fc::vm::actor::builtin::v2::reward {
+  using primitives::ChainEpoch;
+  using primitives::SpaceTime;
   using testing::Eq;
   using testing::Return;
   using testutil::vm::actor::builtin::reward::kEpochZeroReward;
   using testutil::vm::actor::builtin::reward::RewardActorTestFixture;
-  using v0::reward::kInitialRewardPositionEstimate;
-  using v0::reward::kInitialRewardVelocityEstimate;
+  using namespace types::reward;
 
   /**
    * Fixture with state of Reward Actor v2
    */
-  class RewardActorV2Test : public RewardActorTestFixture<State> {
-   public:
-    using ActorTestFixture<State>::runtime;
-    using ActorTestFixture<State>::callerIs;
-
+  struct RewardActorV2Test : public RewardActorTestFixture<RewardActorState> {
     void SetUp() override {
-      RewardActorTestFixture<State>::SetUp();
+      RewardActorTestFixture<RewardActorState>::SetUp();
       actorVersion = ActorVersion::kVersion2;
+
+      EXPECT_CALL(*state_manager, createRewardActorState(testing::_))
+          .WillRepeatedly(testing::Invoke([&](auto) {
+            auto s = std::make_shared<RewardActorState>();
+            return std::static_pointer_cast<states::RewardActorState>(s);
+          }));
+
+      EXPECT_CALL(*state_manager, getRewardActorState())
+          .WillRepeatedly(testing::Invoke([&]() {
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(current_state,
+                                ipld->getCbor<RewardActorState>(cid));
+            auto s = std::make_shared<RewardActorState>(current_state);
+            return std::static_pointer_cast<states::RewardActorState>(s);
+          }));
     }
 
     /**
@@ -81,9 +94,9 @@ namespace fc::vm::actor::builtin::v2::reward {
     const auto epoch_zero_baseline = kBaselineInitialValueV2 - 1;
     EXPECT_EQ(epoch_zero_baseline, state.this_epoch_baseline_power);
     EXPECT_EQ(ChainEpoch{0}, state.epoch);
-    EXPECT_EQ(TokenAmount{0}, state.total_storage_power_reward);
-    EXPECT_EQ(kDefaultSimpleTotal, state.simple_total);
-    EXPECT_EQ(kDefaultBaselineTotal, state.baseline_total);
+    EXPECT_EQ(TokenAmount{0}, state.total_reward);
+    EXPECT_EQ(kSimpleTotal, state.simple_total);
+    EXPECT_EQ(kBaselineTotal, state.baseline_total);
   }
 
   /**
@@ -112,9 +125,9 @@ namespace fc::vm::actor::builtin::v2::reward {
     const auto epoch_zero_baseline = kBaselineInitialValueV2 - 1;
     EXPECT_EQ(epoch_zero_baseline, state.this_epoch_baseline_power);
     EXPECT_EQ(ChainEpoch{0}, state.epoch);
-    EXPECT_EQ(TokenAmount{0}, state.total_storage_power_reward);
-    EXPECT_EQ(kDefaultSimpleTotal, state.simple_total);
-    EXPECT_EQ(kDefaultBaselineTotal, state.baseline_total);
+    EXPECT_EQ(TokenAmount{0}, state.total_reward);
+    EXPECT_EQ(kSimpleTotal, state.simple_total);
+    EXPECT_EQ(kBaselineTotal, state.baseline_total);
   }
 
   /**
@@ -267,7 +280,7 @@ namespace fc::vm::actor::builtin::v2::reward {
     expected_reward = 500;
     expectAwardBlockReward(penalty, gas_reward, expected_reward);
 
-    EXPECT_EQ(total_payout, state.total_storage_power_reward);
+    EXPECT_EQ(total_payout, state.total_reward);
   }
 
   /**

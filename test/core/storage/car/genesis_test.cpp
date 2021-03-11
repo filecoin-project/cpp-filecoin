@@ -11,14 +11,15 @@
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"
 #include "testutil/resources/resources.hpp"
-#include "vm/actor/builtin/v0/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/account/account_actor_state.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v0/cron/cron_actor.hpp"
-#include "vm/actor/builtin/v0/init/init_actor.hpp"
-#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/actor/builtin/v0/cron/cron_actor_state.hpp"
+#include "vm/actor/builtin/v0/init/init_actor_state.hpp"
+#include "vm/actor/builtin/v0/market/market_actor_state.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
-#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
+#include "vm/actor/builtin/v0/system/system_actor_state.hpp"
+#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_state.hpp"
 
 namespace outcome = fc::outcome;
 
@@ -43,7 +44,8 @@ TEST(GenesisTest, DISABLED_Decode) {
     } else if (actor.code == fc::vm::actor::builtin::v0::kStorageMarketCodeId) {
       EXPECT_OUTCOME_TRUE(
           state,
-          ipld->getCbor<fc::vm::actor::builtin::v0::market::State>(actor.head));
+          ipld->getCbor<fc::vm::actor::builtin::v0::market::MarketActorState>(
+              actor.head));
       EXPECT_OUTCOME_TRUE_1(state.proposals.visit(nop));
       EXPECT_OUTCOME_TRUE_1(state.states.visit(nop));
       EXPECT_OUTCOME_TRUE_1(state.escrow_table.visit(nop));
@@ -60,27 +62,32 @@ TEST(GenesisTest, DISABLED_Decode) {
       }
     } else if (actor.code == fc::vm::actor::builtin::v0::kCronCodeId) {
       EXPECT_OUTCOME_TRUE_1(
-          ipld->getCbor<fc::vm::actor::builtin::v0::cron::State>(actor.head));
+          ipld->getCbor<fc::vm::actor::builtin::v0::cron::CronActorState>(
+              actor.head));
     } else if (actor.code == fc::vm::actor::builtin::v0::kInitCodeId) {
       EXPECT_OUTCOME_TRUE_1(
           ipld->getCbor<fc::vm::actor::builtin::v0::init::InitActorState>(
               actor.head));
     } else if (actor.code == fc::vm::actor::builtin::v0::kRewardActorCodeId) {
       EXPECT_OUTCOME_TRUE_1(
-          ipld->getCbor<fc::vm::actor::builtin::v0::reward::State>(actor.head));
+          ipld->getCbor<fc::vm::actor::builtin::v0::reward::RewardActorState>(
+              actor.head));
     } else if (actor.code == fc::vm::actor::builtin::v0::kSystemActorCodeId) {
-      // TODO: system actor state
+      EXPECT_OUTCOME_TRUE_1(
+          ipld->getCbor<fc::vm::actor::builtin::v0::system::SystemActorState>(
+              actor.head));
     } else if (actor.code
                == fc::vm::actor::builtin::v0::kVerifiedRegistryCodeId) {
       EXPECT_OUTCOME_TRUE_1(
-          ipld->getCbor<fc::vm::actor::builtin::v0::verified_registry::State>(
-              actor.head));
+          ipld->getCbor<fc::vm::actor::builtin::v0::verified_registry::
+                            VerifiedRegistryActorState>(actor.head));
     } else if (actor.code == fc::vm::actor::builtin::v0::kStorageMarketCodeId) {
       EXPECT_OUTCOME_TRUE(
           state,
-          ipld->getCbor<fc::vm::actor::builtin::v0::storage_power::State>(
+          ipld->getCbor<
+              fc::vm::actor::builtin::v0::storage_power::PowerActorState>(
               actor.head));
-      EXPECT_OUTCOME_TRUE_1(state.claims.visit(nop));
+      EXPECT_OUTCOME_TRUE_1(state.claims0.visit(nop));
       EXPECT_OUTCOME_TRUE_1(state.cron_event_queue.visit(
           [&](auto, auto events) { return events.visit(nop); }));
     }

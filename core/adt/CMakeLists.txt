@@ -8,6 +8,7 @@ add_custom_target(adt
     address_key
     array
     balance_table
+    cid_key
     map
     multimap
     uvarint_key
@@ -41,6 +42,13 @@ add_library(address_key
     )
 target_link_libraries(address_key
     address
+    )
+
+add_library(cid_key
+    cid_key.cpp
+    )
+target_link_libraries(cid_key
+    cid
     )
 
 add_library(balance_table

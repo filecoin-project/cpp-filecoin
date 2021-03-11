@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/miner/deadline_info.hpp"
+#include "vm/actor/builtin/types/miner/deadline_info.hpp"
 
-#include "vm/actor/builtin/v0/miner/policy.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
 
-namespace fc::vm::actor::builtin::v0::miner {
+namespace fc::vm::actor::builtin::types::miner {
 
   DeadlineInfo::DeadlineInfo(ChainEpoch start,
                              size_t deadline_index,
@@ -78,4 +78,4 @@ namespace fc::vm::actor::builtin::v0::miner {
                : DeadlineInfo(period_start, index + 1, current_epoch);
   }
 
-}  // namespace fc::vm::actor::builtin::v0::miner
+}  // namespace fc::vm::actor::builtin::types::miner

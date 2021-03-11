@@ -14,6 +14,7 @@ target_link_libraries(api
     const
     interpreter
     message
+    miner_types
     msg_waiter
     state_tree
     todo_error
@@ -23,6 +24,7 @@ add_library(rpc
     rpc/json_errors.cpp
     rpc/ws.cpp
     rpc/wsc.cpp
+    rpc/web_socket_client_error.cpp
     )
 target_link_libraries(rpc
     api

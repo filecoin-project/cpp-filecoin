@@ -58,6 +58,7 @@
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/actor/builtin/states/state_provider.hpp"
 
 namespace fc::node {
 
@@ -71,12 +72,12 @@ namespace fc::node {
         const primitives::tipset::Tipset &genesis_tipset,
         const std::shared_ptr<storage::ipfs::IpfsDatastore> &ipld,
         Config &config) {
-      OUTCOME_TRY(init_state,
+      OUTCOME_TRY(init_actor,
                   vm::state::StateTreeImpl(
                       ipld, genesis_tipset.blks[0].parent_state_root)
-                      .state<vm::actor::builtin::v0::init::InitActorState>(
-                          vm::actor::kInitAddress));
-      config.network_name = init_state.network_name;
+                      .get(vm::actor::kInitAddress));
+      OUTCOME_TRY(init_state, vm::actor::builtin::states::StateProvider{ipld}.getInitActorState(init_actor));
+      config.network_name = init_state->network_name;
       return outcome::success();
     }
 

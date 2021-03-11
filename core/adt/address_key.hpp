@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_ADT_ADDRESS_KEY_HPP
-#define CPP_FILECOIN_ADT_ADDRESS_KEY_HPP
+#pragma once
 
 #include "primitives/address/address.hpp"
 
@@ -17,5 +16,3 @@ namespace fc::adt {
     static outcome::result<Key> decode(const std::string &key);
   };
 }  // namespace fc::adt
-
-#endif  // CPP_FILECOIN_ADT_ADDRESS_KEY_HPP

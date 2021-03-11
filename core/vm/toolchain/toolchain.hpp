@@ -7,7 +7,10 @@
 
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/utils/init_actor_utils.hpp"
+#include "vm/actor/builtin/utils/market_actor_utils.hpp"
 #include "vm/actor/builtin/utils/multisig_actor_utils.hpp"
+#include "vm/actor/builtin/utils/payment_channel_actor_utils.hpp"
+#include "vm/actor/builtin/utils/power_actor_utils.hpp"
 #include "vm/actor/builtin/utils/verified_registry_actor_utils.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/toolchain/address_matcher.hpp"
@@ -16,20 +19,47 @@ namespace fc::vm::toolchain {
   using actor::Actor;
   using actor::ActorVersion;
   using actor::CodeId;
-  using actor::builtin::utils::init::InitUtilsPtr;
-  using actor::builtin::utils::multisig::MultisigUtilsPtr;
-  using actor::builtin::utils::verified_registry::VerifRegUtilsPtr;
+  using actor::builtin::utils::InitUtilsPtr;
+  using actor::builtin::utils::MarketUtilsPtr;
+  using actor::builtin::utils::MultisigUtilsPtr;
+  using actor::builtin::utils::PaymentChannelUtilsPtr;
+  using actor::builtin::utils::PowerUtilsPtr;
+  using actor::builtin::utils::VerifRegUtilsPtr;
   using runtime::Runtime;
   using version::NetworkVersion;
 
   class Toolchain {
    public:
+    /**
+     * Returns actor version for network version
+     *
+     * Network version [0...3] => Actor version v0
+     * Network version [4...9] => Actor version v2
+     * Network version [10..?] => Actor version v3
+     *
+     * @param network_version - version of network
+     * @return v0, v2 or v3 actor version
+     */
+    static ActorVersion getActorVersionForNetwork(
+        const NetworkVersion &network_version);
+
+    /**
+     * Returns actor version for actor code id
+     *
+     * @param actorCid - actor code id
+     * @return v0, v2 or v3 actor version
+     */
+    static ActorVersion getActorVersionForCid(const CodeId &actorCid);
+
     static AddressMatcherPtr createAddressMatcher(ActorVersion version);
     static AddressMatcherPtr createAddressMatcher(
         const NetworkVersion &network_version);
 
     static InitUtilsPtr createInitActorUtils(Runtime &runtime);
+    static MarketUtilsPtr createMarketUtils(Runtime &runtime);
     static MultisigUtilsPtr createMultisigActorUtils(Runtime &runtime);
+    static PaymentChannelUtilsPtr createPaymentChannelUtils(Runtime &runtime);
+    static PowerUtilsPtr createPowerUtils(Runtime &runtime);
     static VerifRegUtilsPtr createVerifRegUtils(Runtime &runtime);
   };
 }  // namespace fc::vm::toolchain

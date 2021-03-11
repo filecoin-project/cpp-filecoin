@@ -22,7 +22,7 @@ namespace fc::markets::storage::provider {
   using fc::crypto::secp256k1::Secp256k1ProviderDefault;
   using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
   using fc::storage::InMemoryStorage;
-  using vm::actor::builtin::v0::miner::MinerInfo;
+  using vm::actor::builtin::types::miner::MinerInfo;
   using BlsSignature = fc::crypto::bls::Signature;
 
   class StoredAskTest : public ::testing::Test {

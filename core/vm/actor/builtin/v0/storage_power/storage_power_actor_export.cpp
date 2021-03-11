@@ -6,7 +6,6 @@
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
 
 #include "common/logger.hpp"
-#include "storage_power_actor_state.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
@@ -16,24 +15,27 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   using adt::Multimap;
   using primitives::SectorNumber;
   using toolchain::Toolchain;
+  using types::storage_power::CronEvent;
+  using types::storage_power::kGasOnSubmitVerifySeal;
+  using types::storage_power::kMaxMinerProveCommitsPerEpoch;
 
   outcome::result<void> processDeferredCronEvents(Runtime &runtime) {
     const auto now{runtime.getCurrentEpoch()};
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    REQUIRE_NO_ERROR(state.cron_event_queue.hamt.loadRoot(),
+    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    REQUIRE_NO_ERROR(state->cron_event_queue.hamt.loadRoot(),
                      VMExitCode::kErrIllegalState);
     std::vector<CronEvent> cron_events;
-    for (auto epoch = state.first_cron_epoch; epoch <= now; ++epoch) {
+    for (auto epoch = state->first_cron_epoch; epoch <= now; ++epoch) {
       REQUIRE_NO_ERROR_A(events,
-                         Multimap::values(state.cron_event_queue, epoch),
+                         Multimap::values(state->cron_event_queue, epoch),
                          VMExitCode::kErrIllegalState);
       cron_events.insert(cron_events.end(), events.begin(), events.end());
       if (!events.empty()) {
-        REQUIRE_NO_ERROR(state.cron_event_queue.remove(epoch),
+        REQUIRE_NO_ERROR(state->cron_event_queue.remove(epoch),
                          VMExitCode::kErrIllegalState);
       }
     }
-    state.first_cron_epoch = now + 1;
+    state->first_cron_epoch = now + 1;
     OUTCOME_TRY(runtime.commitState(state));
     // TODO: can one miner fail several times here?
     std::vector<Address> failed_miners;
@@ -48,11 +50,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
       }
     }
     if (!failed_miners.empty()) {
-      OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
+      OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
       for (auto &miner : failed_miners) {
-        OUTCOME_TRY(claim, state.claims.tryGet(miner));
+        OUTCOME_TRY(claim, state->tryGetClaim(miner));
         if (claim) {
-          OUTCOME_TRY(state.addToClaim(
+          OUTCOME_TRY(state->addToClaim(
               runtime, miner, -claim->raw_power, -claim->qa_power));
         }
       }
@@ -62,10 +64,10 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   }
 
   outcome::result<void> processBatchProofVerifiers(Runtime &runtime) {
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
     runtime::BatchSealsIn batch;
-    const auto _batch{state.proof_validation_batch};
-    state.proof_validation_batch.reset();
+    const auto _batch{state->proof_validation_batch};
+    state->proof_validation_batch.reset();
     if (_batch) {
       REQUIRE_NO_ERROR(
           _batch->visit(
@@ -87,40 +89,13 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     return outcome::success();
   }
 
-  outcome::result<void> deleteMinerActor(State &state, const Address &miner) {
-    OUTCOME_TRY(state.claims.remove(miner));
-    --state.miner_count;
-    return outcome::success();
-  }
-
-  std::pair<StoragePower, StoragePower> powersForWeights(
-      const std::vector<SectorStorageWeightDesc> &weights) {
-    StoragePower raw{}, qa{};
-    for (auto &w : weights) {
-      raw += w.sector_size;
-      qa += qaPowerForWeight(w);
-    }
-    return {raw, qa};
-  }
-
-  outcome::result<None> addToClaim(
-      Runtime &runtime,
-      bool add,
-      const std::vector<SectorStorageWeightDesc> &weights) {
-    OUTCOME_TRY(runtime.validateImmediateCallerIsMiner());
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    const auto [raw, qa] = powersForWeights(weights);
-    OUTCOME_TRY(state.addToClaim(runtime,
-                                 runtime.getImmediateCaller(),
-                                 add ? raw : -raw,
-                                 add ? qa : -qa));
-    OUTCOME_TRY(runtime.commitState(state));
-    return outcome::success();
-  }
-
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    OUTCOME_TRY(runtime.commitState(State::empty(runtime)));
+
+    auto state = runtime.stateManager()->createPowerActorState(
+        runtime.getActorVersion());
+
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -144,11 +119,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
             kInitAddress,
             {address_matcher->getStorageMinerCodeId(), miner_params},
             runtime.getValueReceived()));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
     REQUIRE_NO_ERROR(
-        state.setClaim(runtime, addresses_created.id_address, {0, 0}),
+        state->setClaim(runtime, addresses_created.id_address, 0, 0),
         VMExitCode::kErrIllegalState);
-    ++state.miner_count;
+    ++state->miner_count;
     OUTCOME_TRY(runtime.commitState(state));
     return Result{addresses_created.id_address,
                   addresses_created.robust_address};
@@ -160,11 +135,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     const Address miner_address = runtime.getImmediateCaller();
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    REQUIRE_NO_ERROR(state.addToClaim(runtime,
-                                      miner_address,
-                                      params.raw_byte_delta,
-                                      params.quality_adjusted_delta),
+    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    REQUIRE_NO_ERROR(state->addToClaim(runtime,
+                                       miner_address,
+                                       params.raw_byte_delta,
+                                       params.quality_adjusted_delta),
                      VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
@@ -176,11 +151,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     OUTCOME_TRY(runtime.validateArgument(params.event_epoch >= 0));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
     REQUIRE_NO_ERROR(
-        state.appendCronEvent(params.event_epoch,
-                              {.miner_address = runtime.getImmediateCaller(),
-                               .callback_payload = params.payload}),
+        state->appendCronEvent(params.event_epoch,
+                               {.miner_address = runtime.getImmediateCaller(),
+                                .callback_payload = params.payload}),
         VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
@@ -190,22 +165,22 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kCronAddress));
     OUTCOME_TRY(processDeferredCronEvents(runtime));
     OUTCOME_TRY(processBatchProofVerifiers(runtime));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
 
-    const auto [raw_power, qa_power] = state.getCurrentTotalPower();
-    state.this_epoch_pledge = state.total_pledge;
-    state.this_epoch_raw_power = raw_power;
-    state.this_epoch_qa_power = qa_power;
+    const auto [raw_power, qa_power] = state->getCurrentTotalPower();
+    state->this_epoch_pledge = state->total_pledge;
+    state->this_epoch_raw_power = raw_power;
+    state->this_epoch_qa_power = qa_power;
 
     const auto now{runtime.getCurrentEpoch()};
-    const auto delta = now - state.last_processed_cron_epoch;
-    state.updateSmoothedEstimate(delta);
+    const auto delta = now - state->last_processed_cron_epoch;
+    state->updateSmoothedEstimate(delta);
 
-    state.last_processed_cron_epoch = now;
+    state->last_processed_cron_epoch = now;
 
     OUTCOME_TRY(runtime.commitState(state));
     REQUIRE_SUCCESS(runtime.sendM<reward::UpdateNetworkKPI>(
-        kRewardAddress, state.this_epoch_raw_power, 0));
+        kRewardAddress, state->this_epoch_raw_power, 0));
     return outcome::success();
   }
 
@@ -214,8 +189,13 @@ namespace fc::vm::actor::builtin::v0::storage_power {
         Toolchain::createAddressMatcher(runtime.getActorVersion());
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(state.addPledgeTotal(runtime, params));
+    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+
+    const auto utils = Toolchain::createPowerUtils(runtime);
+    OUTCOME_TRY(
+        utils->validateMinerHasClaim(state, runtime.getImmediateCaller()));
+
+    OUTCOME_TRY(state->addPledgeTotal(runtime, params));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -226,9 +206,9 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     const auto miner{runtime.getImmediateCaller()};
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
     REQUIRE_NO_ERROR_A(
-        found_claim, state.claims.tryGet(miner), VMExitCode::kErrIllegalState);
+        found_claim, state->tryGetClaim(miner), VMExitCode::kErrIllegalState);
     if (!found_claim.has_value()) {
       return VMExitCode::kErrNotFound;
     }
@@ -236,11 +216,12 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     VM_ASSERT(claim.raw_power >= 0);
     VM_ASSERT(claim.qa_power >= 0);
     REQUIRE_NO_ERROR(
-        state.addToClaim(runtime, miner, -claim.raw_power, -claim.qa_power),
+        state->addToClaim(runtime, miner, -claim.raw_power, -claim.qa_power),
         VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(state.addPledgeTotal(runtime, -params));
-    REQUIRE_NO_ERROR(deleteMinerActor(state, miner),
+    OUTCOME_TRY(state->addPledgeTotal(runtime, -params));
+    REQUIRE_NO_ERROR(state->deleteClaim(runtime, miner),
                      VMExitCode::kErrIllegalState);
+    --state->miner_count;
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -251,12 +232,17 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     const auto miner{runtime.getImmediateCaller()};
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    if (!state.proof_validation_batch.has_value()) {
-      state.proof_validation_batch.emplace(runtime.getIpfsDatastore());
+    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+
+    const auto utils = Toolchain::createPowerUtils(runtime);
+    OUTCOME_TRY(
+        utils->validateMinerHasClaim(state, runtime.getImmediateCaller()));
+
+    if (!state->proof_validation_batch.has_value()) {
+      state->proof_validation_batch.emplace(runtime.getIpfsDatastore());
     }
     REQUIRE_NO_ERROR_A(found,
-                       state.proof_validation_batch->tryGet(miner),
+                       state->proof_validation_batch->tryGet(miner),
                        VMExitCode::kErrIllegalState);
     if (found.has_value()) {
       OUTCOME_TRY(size, found.value().size());
@@ -265,11 +251,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
       }
     }
     REQUIRE_NO_ERROR(
-        Multimap::append(state.proof_validation_batch.value(), miner, params),
+        Multimap::append(state->proof_validation_batch.value(), miner, params),
         VMExitCode::kErrIllegalState);
 
     // Lotus gas conformance
-    OUTCOME_TRY(state.proof_validation_batch->hamt.flush());
+    OUTCOME_TRY(state->proof_validation_batch->hamt.flush());
 
     OUTCOME_TRY(runtime.chargeGas(kGasOnSubmitVerifySeal));
     OUTCOME_TRY(runtime.commitState(state));
@@ -277,12 +263,12 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   }
 
   ACTOR_METHOD_IMPL(CurrentTotalPower) {
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
     return Result{
-        .raw_byte_power = state.this_epoch_raw_power,
-        .quality_adj_power = state.this_epoch_qa_power,
-        .pledge_collateral = state.this_epoch_pledge,
-        .quality_adj_power_smoothed = state.this_epoch_qa_power_smoothed};
+        .raw_byte_power = state->this_epoch_raw_power,
+        .quality_adj_power = state->this_epoch_qa_power,
+        .pledge_collateral = state->this_epoch_pledge,
+        .quality_adj_power_smoothed = state->this_epoch_qa_power_smoothed};
   }
 
   const ActorExports exports{

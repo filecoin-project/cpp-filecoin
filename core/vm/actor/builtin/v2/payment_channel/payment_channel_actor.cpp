@@ -5,53 +5,7 @@
 
 #include "vm/actor/builtin/v2/payment_channel/payment_channel_actor.hpp"
 
-#include "vm/toolchain/toolchain.hpp"
-
 namespace fc::vm::actor::builtin::v2::payment_channel {
-  using toolchain::Toolchain;
-
-  outcome::result<Address> resolveAccount(Runtime &runtime,
-                                          const Address &address,
-                                          const CodeId &accountCodeCid) {
-    CHANGE_ERROR_A(
-        resolved, runtime.resolveOrCreate(address), VMExitCode::kErrNotFound);
-
-    CHANGE_ERROR_A(
-        code, runtime.getActorCodeID(resolved), VMExitCode::kErrForbidden);
-    if (code != accountCodeCid) {
-      return VMExitCode::kErrForbidden;
-    }
-    return std::move(resolved);
-  }
-
-  // Construct
-  //============================================================================
-
-  ACTOR_METHOD_IMPL(Construct) {
-    OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
-
-    const auto address_matcher =
-        Toolchain::createAddressMatcher(runtime.getActorVersion());
-
-    REQUIRE_NO_ERROR_A(
-        to,
-        resolveAccount(runtime, params.to, address_matcher->getAccountCodeId()),
-        VMExitCode::kErrIllegalState);
-
-    REQUIRE_NO_ERROR_A(
-        from,
-        resolveAccount(
-            runtime, params.from, address_matcher->getAccountCodeId()),
-        VMExitCode::kErrIllegalState);
-
-    State state{from, to, 0, 0, 0, {}};
-    IpldPtr {
-      runtime
-    }
-    ->load(state);
-    OUTCOME_TRY(runtime.commitState(state));
-    return outcome::success();
-  }
 
   // UpdateChannelState
   //============================================================================
@@ -76,19 +30,19 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
   }
 
   ACTOR_METHOD_IMPL(UpdateChannelState) {
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getPaymentChannelActorState());
     OUTCOME_TRY(runtime.validateImmediateCallerIs(
-        std::vector<Address>{state.from, state.to}));
+        std::vector<Address>{state->from, state->to}));
     const auto &voucher = params.signed_voucher;
     OUTCOME_TRY(v0::payment_channel::UpdateChannelState::checkSignature(
-        runtime, state, voucher));
+        runtime, *state, voucher));
     OUTCOME_TRY(checkPaychannelAddr(runtime, voucher));
     OUTCOME_TRY(v0::payment_channel::UpdateChannelState::checkVoucher(
         runtime, params.secret, voucher));
     OUTCOME_TRY(voucherExtra(runtime, voucher));
-    OUTCOME_TRYA(
-        state,
-        runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
+    OUTCOME_TRYA(state,
+                 runtime.stateManager()
+                     ->getPaymentChannelActorState());  // Lotus gas conformance
     OUTCOME_TRY(v0::payment_channel::UpdateChannelState::calculate(
         runtime, state, voucher));
     OUTCOME_TRY(runtime.commitState(state));

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_COMMON_TYPES_HPP
-#define CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_COMMON_TYPES_HPP
+#pragma once
 
 #include <libp2p/host/basic_host/basic_host.hpp>
 #include <libp2p/peer/peer_info.hpp>
@@ -12,12 +11,12 @@
 #include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "storage/ipld/ipld_block.hpp"
-#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::markets::retrieval {
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using vm::actor::builtin::v0::payment_channel::LaneId;
+  using vm::actor::builtin::types::payment_channel::LaneId;
 
   struct RetrievalAsk {
     TokenAmount price_per_byte;
@@ -105,5 +104,3 @@ namespace fc::markets::retrieval {
     kDealStatusWaitForAcceptanceLegacy,
   };
 }  // namespace fc::markets::retrieval
-
-#endif

@@ -13,7 +13,6 @@ namespace fc::vm::actor::builtin::v3::cron {
   /**
    * Cron actor v3 is identical to Cron actor v2
    */
-  using State = v2::cron::State;
   using Construct = v2::cron::Construct;
   using EpochTick = v2::cron::EpochTick;
 

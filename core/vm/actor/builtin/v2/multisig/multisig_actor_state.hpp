@@ -5,16 +5,35 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/multisig/multisig_actor_state.hpp"
+#include "codec/cbor/streams_annotation.hpp"
+#include "vm/actor/builtin/states/multisig_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::multisig {
-  using TransactionId = v0::multisig::TransactionId;
 
-  constexpr int kSignersMax = 256;
+  struct MultisigActorState : states::MultisigActorState {
+    outcome::result<Buffer> toCbor() const override;
+    std::shared_ptr<states::MultisigActorState> copy() const override;
+  };
 
-  // Multisig actor state v2 is identical to Multisigl actor state v0
-  using Transaction = v0::multisig::Transaction;
-  using ProposalHashData = v0::multisig::ProposalHashData;
-  using State = v0::multisig::State;
+  CBOR_TUPLE(MultisigActorState,
+             signers,
+             threshold,
+             next_transaction_id,
+             initial_balance,
+             start_epoch,
+             unlock_duration,
+             pending_transactions)
 
 }  // namespace fc::vm::actor::builtin::v2::multisig
+
+namespace fc {
+  template <>
+  struct Ipld::Visit<vm::actor::builtin::v2::multisig::MultisigActorState> {
+    template <typename Visitor>
+    static void call(
+        vm::actor::builtin::v2::multisig::MultisigActorState &state,
+        const Visitor &visit) {
+      visit(state.pending_transactions);
+    }
+  };
+}  // namespace fc
