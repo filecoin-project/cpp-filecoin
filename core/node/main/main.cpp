@@ -57,7 +57,9 @@ namespace fc {
     auto peer_info = node_objects.host->getPeerInfo();
     PeerInfo api_peer_info{
         peer_info.id, nonZeroAddrs(peer_info.addresses, &config.localIp())};
-    node_objects.api->NetAddrsListen = [&] { return api_peer_info; };
+    node_objects.api->NetAddrsListen = [api_peer_info] {
+      return api_peer_info;
+    };
     node_objects.api->NetConnect = [&](auto &peer) {
       node_objects.host->connect(peer);
       return outcome::success();
