@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/actor/builtin/v0/market/market_actor.hpp"
 
 namespace fc::vm::actor::builtin::v2::market {
   // TODO implement market actor v2
