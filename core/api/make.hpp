@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_API_MAKE_HPP
-#define CPP_FILECOIN_CORE_API_MAKE_HPP
+#pragma once
 
 #include "api/node_api.hpp"
 #include "blockchain/weight_calculator.hpp"
@@ -46,5 +45,3 @@ namespace fc::api {
       std::shared_ptr<PubSubGate> pubsub,
       std::shared_ptr<KeyStore> key_store);
 }  // namespace fc::api
-
-#endif  // CPP_FILECOIN_CORE_API_MAKE_HPP

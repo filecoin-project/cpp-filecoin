@@ -3,19 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_OUTCOME_HPP
-#define CPP_FILECOIN_CORE_COMMON_OUTCOME_HPP
+#pragma once
 
-#include <boost/system/system_error.hpp>
 #include <boost/throw_exception.hpp>
 #include <libp2p/outcome/outcome.hpp>
-#include <sstream>
 
-#define PP_CAT(a, b) PP_CAT_I(a, b)
-#define PP_CAT_I(a, b) PP_CAT_II(~, a##b)
-#define PP_CAT_II(p, res) res
-
-#define UNIQUE_NAME(base) PP_CAT(base, __LINE__)
+#include "common/fmt_fwd.hpp"
 
 /**
  * OUTCOME_EXCEPT raises exception in case of result has error.
@@ -23,22 +16,22 @@
  * OUTCOME_EXCEPT(expr);
  * OUTCOME_EXCEPT(var, expr); // var = expr
  */
-#define _OUTCOME_EXCEPT_1(var, expr) \
-  auto &&var = expr;                 \
-  if (!var) ::fc::outcome::raise(var.error());
-#define _OUTCOME_EXCEPT_2(var, val, expr) \
-  _OUTCOME_EXCEPT_1(var, expr)            \
-  auto &&val = var.value();
+#define _OUTCOME_EXCEPT_1(expr) (expr).value()
+#define _OUTCOME_EXCEPT_2(val, expr) \
+  auto val {                         \
+    (expr).value()                   \
+  }
 #define _OUTCOME_EXCEPT_OVERLOAD(_1, _2, NAME, ...) NAME
 #define OUTCOME_EXCEPT(...)                                                   \
   _OUTCOME_EXCEPT_OVERLOAD(__VA_ARGS__, _OUTCOME_EXCEPT_2, _OUTCOME_EXCEPT_1) \
-  (UNIQUE_NAME(_r), __VA_ARGS__)
+  (__VA_ARGS__)
 
 #define _OUTCOME_TRYA(var, val, expr) \
   auto &&var = expr;                  \
   if (!var) return var.error();       \
   val = std::move(var.value());
-#define OUTCOME_TRYA(val, expr) _OUTCOME_TRYA(UNIQUE_NAME(_r), val, expr)
+#define OUTCOME_TRYA(val, expr) \
+  _OUTCOME_TRYA(BOOST_OUTCOME_TRY_UNIQUE_NAME, val, expr)
 
 namespace fc::outcome {
   using libp2p::outcome::failure;
@@ -64,22 +57,8 @@ namespace fc::outcome {
   }
 }  // namespace fc::outcome
 
-namespace fmt {
-  inline namespace v6 {
-    template <typename T, typename Char, typename Enable>
-    struct formatter;
-  }  // namespace v6
-
-  template <>
-  struct formatter<std::error_code, char, void>;
-}  // namespace fmt
-
-#define _OUTCOME_ALTERNATIVE(res, var, expression, alternative) \
-  auto &&res = (expression);                                    \
-  auto &&var = (res) ? (res.value()) : (alternative);
-
-#define OUTCOME_ALTERNATIVE(var, expression, alternative) \
-  _OUTCOME_ALTERNATIVE(UNIQUE_NAME(_r), var, expression, alternative)
+template <>
+struct fmt::formatter<std::error_code, char, void>;
 
 #define _OUTCOME_CB1(u, r) \
   auto &&u{r};             \
@@ -91,5 +70,3 @@ namespace fmt {
   _OUTCOME_CB1(u, r)         \
   l = std::move(u.value());
 #define OUTCOME_CB(l, r) _OUTCOME_CB(BOOST_OUTCOME_TRY_UNIQUE_NAME, l, r)
-
-#endif  // CPP_FILECOIN_CORE_COMMON_OUTCOME_HPP

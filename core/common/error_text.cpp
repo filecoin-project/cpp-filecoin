@@ -19,8 +19,14 @@ namespace fc::error_text {
       return (const char *)(base + (uintptr_t)(unsigned int)value);
     }
   };
+
   const Category category_0{0};
-  std::unordered_map<uintptr_t, Category> categories;
+
+  auto &_categories() {
+    static std::unordered_map<uintptr_t, Category> categories;
+    return categories;
+  }
+
   std::atomic_flag lock = ATOMIC_FLAG_INIT;
 
   std::error_code _make_error_code(const char *message) {
@@ -34,6 +40,7 @@ namespace fc::error_text {
       const auto base{ptr - offset};
       while (lock.test_and_set(std::memory_order_acquire))
         ;
+      auto &categories{_categories()};
       auto it{categories.find(base)};
       if (it == categories.end()) {
         it = categories.emplace(base, base).first;
