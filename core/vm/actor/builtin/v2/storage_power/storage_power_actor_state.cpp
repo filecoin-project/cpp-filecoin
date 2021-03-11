@@ -21,7 +21,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     auto copy = std::make_shared<PowerActorState>(*this);
     return copy;
   }
-  
+
   outcome::result<void> PowerActorState::setClaim(
       const Runtime &runtime,
       const Address &address,

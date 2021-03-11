@@ -17,8 +17,7 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 #define ON_CALL_3(object, call, result) \
-  EXPECT_CALL(object, call)             \
-      .WillRepeatedly(Return(result))
+  EXPECT_CALL(object, call).WillRepeatedly(Return(result))
 
 namespace fc::vm::actor::builtin::v3::payment_channel {
   using common::Buffer;

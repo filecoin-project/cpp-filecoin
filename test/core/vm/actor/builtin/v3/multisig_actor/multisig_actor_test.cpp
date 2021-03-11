@@ -19,8 +19,7 @@
 #include "vm/version.hpp"
 
 #define ON_CALL_3(object, call, result) \
-  EXPECT_CALL(object, call)             \
-      .WillRepeatedly(Return(result))
+  EXPECT_CALL(object, call).WillRepeatedly(Return(result))
 
 namespace fc::vm::actor::builtin::v3::multisig {
   using common::Buffer;

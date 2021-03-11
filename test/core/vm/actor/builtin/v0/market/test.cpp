@@ -33,8 +33,7 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/version.hpp"
 
-#define ON_CALL_3(a, b, c) \
-  EXPECT_CALL(a, b).WillRepeatedly(Return(c))
+#define ON_CALL_3(a, b, c) EXPECT_CALL(a, b).WillRepeatedly(Return(c))
 
 namespace fc::vm::actor::builtin::v0::market {
   namespace MinerActor = miner;

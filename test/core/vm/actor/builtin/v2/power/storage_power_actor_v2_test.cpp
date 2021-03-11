@@ -43,8 +43,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
       EXPECT_CALL(runtime, getCurrentEpoch())
           .WillRepeatedly(testing::Invoke([&]() { return current_epoch; }));
 
-      EXPECT_CALL(runtime, getIpfsDatastore())
-          .WillRepeatedly(Return(ipld));
+      EXPECT_CALL(runtime, getIpfsDatastore()).WillRepeatedly(Return(ipld));
 
       EXPECT_CALL(runtime, getImmediateCaller())
           .WillRepeatedly(testing::Invoke([&]() { return caller; }));

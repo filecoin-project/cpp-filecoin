@@ -9,6 +9,8 @@
 #include <set>
 #include <shared_mutex>
 
+#include "const.hpp"
+
 namespace boost {
   namespace asio {
     class io_context;
@@ -80,10 +82,6 @@ namespace fc {
     struct DrandSchedule;
   }  // namespace drand
 
-  namespace hello {
-    struct Hello;
-  }  // namespace hello
-
   namespace markets {
     namespace storage {
       namespace provider {
@@ -119,10 +117,6 @@ namespace fc {
     }    // namespace tipset
   }      // namespace primitives
 
-  namespace pubsub {
-    struct PubSub;
-  }  // namespace pubsub
-
   namespace storage {
     namespace blockchain {
       class ChainStore;
@@ -136,6 +130,22 @@ namespace fc {
       }  // namespace graphsync
     }    // namespace ipfs
   }      // namespace storage
+
+  namespace sync {
+    class ChainStoreImpl;
+    class GraphsyncServer;
+    class Identify;
+    class InterpretJob;
+    class PeerDiscovery;
+    class PubSubGate;
+    class ReceiveHello;
+    class SayHello;
+    class SyncJob;
+
+    namespace blocksync {
+      class BlocksyncServer;
+    }  // namespace blocksync
+  }    // namespace sync
 
   namespace vm {
     struct Circulating;

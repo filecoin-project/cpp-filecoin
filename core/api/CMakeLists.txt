@@ -14,6 +14,7 @@ target_link_libraries(api
     const
     interpreter
     message
+    miner_types
     msg_waiter
     state_tree
     todo_error

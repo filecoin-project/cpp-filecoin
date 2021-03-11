@@ -17,10 +17,19 @@ namespace fc::api {
   struct CommonApi {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
+    /**
+     * Returns listen addresses.
+     */
     API_METHOD(NetAddrsListen, PeerInfo)
 
+    /**
+     * Initiates the connection to the peer.
+     */
     API_METHOD(NetConnect, void, const PeerInfo &)
 
+    /**
+     * Returns all peers connected to the this host.
+     */
     API_METHOD(NetPeers, std::vector<PeerInfo>)
 
     API_METHOD(Version, VersionResult)

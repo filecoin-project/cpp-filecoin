@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "common/outcome.hpp"
 #include "common/buffer.hpp"
+#include "common/outcome.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using common::Buffer;

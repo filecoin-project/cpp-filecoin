@@ -98,6 +98,7 @@ namespace fc::vm::toolchain {
     }
 
     assert(false);
+    abort();
   }
 
   AddressMatcherPtr Toolchain::createAddressMatcher(ActorVersion version) {

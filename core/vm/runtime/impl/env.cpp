@@ -6,13 +6,13 @@
 #include "vm/runtime/env.hpp"
 
 #include "storage/ipld/traverser.hpp"
+#include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"
 #include "vm/toolchain/toolchain.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
 
 #include "vm/dvm/dvm.hpp"
 
@@ -23,9 +23,9 @@ namespace fc::vm::runtime {
   using actor::kRewardAddress;
   using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
+  using actor::builtin::states::StateProvider;
   using toolchain::Toolchain;
   using version::getNetworkVersion;
-  using actor::builtin::states::StateProvider;
 
   outcome::result<Address> resolveKey(StateTree &state_tree,
                                       IpldPtr ipld,

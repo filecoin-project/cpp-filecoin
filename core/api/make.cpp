@@ -12,7 +12,7 @@
 #include "blockchain/production/block_producer.hpp"
 #include "const.hpp"
 #include "drand/beaconizer.hpp"
-#include "node/pubsub.hpp"
+#include "node/pubsub_gate.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/hamt/hamt.hpp"
@@ -183,7 +183,7 @@ namespace fc::api {
       std::shared_ptr<MsgWaiter> msg_waiter,
       std::shared_ptr<Beaconizer> beaconizer,
       std::shared_ptr<DrandSchedule> drand_schedule,
-      std::shared_ptr<PubSub> pubsub,
+      std::shared_ptr<PubSubGate> pubsub,
       std::shared_ptr<KeyStore> key_store) {
     auto ts_load{env_context.ts_load};
     auto ipld{env_context.ipld};

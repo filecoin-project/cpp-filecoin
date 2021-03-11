@@ -18,7 +18,7 @@ namespace fc::vm::actor::builtin::states {
     adt::Map<uint64_t, adt::AddressKeyer> address_map;
     uint64_t next_id{};
     std::string network_name;
-    
+
     /// Allocate new id address
     inline outcome::result<Address> addActor(const Address &address) {
       const auto id = next_id;

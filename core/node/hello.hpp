@@ -5,41 +5,29 @@
 
 #pragma once
 
-#include "fwd.hpp"
-#include "primitives/big_int.hpp"
+#include "node/events_fwd.hpp"
 #include "primitives/cid/cid.hpp"
 
-namespace fc::hello {
-  using libp2p::Host;
-  using libp2p::peer::PeerId;
-  using libp2p::peer::PeerInfo;
-  using primitives::BigInt;
-  using storage::blockchain::ChainStore;
+namespace fc::sync {
 
-  struct Hello {
-    struct State {
-      std::vector<CID> blocks;
-      uint64_t height;
-      BigInt weight;
-      CID genesis;
-    };
+  inline constexpr auto kHelloProtocol = "/fil/hello/1.0.0";
 
-    struct Latency {
-      int64_t arrival{0}, sent{0};
-    };
-
-    using StateCb = std::function<void(const PeerId &, State)>;
-
-    Hello(std::shared_ptr<Host> host,
-          std::shared_ptr<ChainStore> chain_store,
-          CID genesis,
-          StateCb state_cb);
-    void say(const PeerInfo &peer);
-
-    std::shared_ptr<Host> host;
-    std::shared_ptr<ChainStore> chain_store;
+  struct HelloMessage {
+    std::vector<CID> heaviest_tipset;
+    uint64_t heaviest_tipset_height;
+    BigInt heaviest_tipset_weight;
     CID genesis;
   };
-  CBOR_TUPLE(Hello::State, blocks, height, weight, genesis)
-  CBOR_TUPLE(Hello::Latency, arrival, sent)
-}  // namespace fc::hello
+
+  struct LatencyMessage {
+    uint64_t arrival, sent;
+  };
+
+  CBOR_TUPLE(HelloMessage,
+             heaviest_tipset,
+             heaviest_tipset_height,
+             heaviest_tipset_weight,
+             genesis)
+  CBOR_TUPLE(LatencyMessage, arrival, sent)
+
+}  // namespace fc::sync
