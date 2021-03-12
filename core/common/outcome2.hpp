@@ -20,9 +20,15 @@ namespace fc {
   template <typename T>
   struct Outcome : outcome::result<T> {
     using O = outcome::result<T>;
+    using E = typename O::error_type;
+    using F = libp2p::outcome::failure_type<E>;
+    using D = libp2p::outcome::detail::devoid<T>;
+
     Outcome() : O{outcome::failure(OutcomeError::kDefault)} {}
-    template <typename... A>
-    Outcome(A &&...a) : O{std::forward<A>(a)...} {}
+    Outcome(O &&o) : O{std::move(o)} {}
+    Outcome(D &&v) : O{std::move(v)} {}
+    Outcome(F &&f) : O{std::move(f)} {}
+
     const T &operator*() const & {
       return O::value();
     }
