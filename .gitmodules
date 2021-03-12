@@ -13,3 +13,6 @@
 [submodule "test/testutil/resources/test-vectors"]
 	path = test/testutil/resources/test-vectors
 	url = https://github.com/filecoin-project/test-vectors
+[submodule "deps/indicators"]
+	path = deps/indicators
+	url = https://github.com/p-ranav/indicators.git
