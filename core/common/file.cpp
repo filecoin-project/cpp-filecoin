@@ -32,9 +32,10 @@ namespace fc::common {
     return {};
   }
 
-  outcome::result<void> writeFile(std::string_view path, BytesIn input) {
-    // TODO: mkdir
-    std::ofstream file{path.data(), std::ios::binary};
+  outcome::result<void> writeFile(const boost::filesystem::path &path,
+                                  BytesIn input) {
+    boost::filesystem::create_directories(path.parent_path());
+    std::ofstream file{path.c_str(), std::ios::binary};
     if (file.good()) {
       file.write(span::bytestr(input.data()), input.size());
       return outcome::success();

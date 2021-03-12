@@ -26,6 +26,15 @@ namespace fc::sector_storage::stores {
   // .storage/storage.json
   struct StorageConfig {
     std::vector<LocalPath> storage_paths;
+
+    inline bool has(const std::string &path) const {
+      return std::find_if(storage_paths.begin(),
+                          storage_paths.end(),
+                          [&](const auto &local_path) {
+                            return local_path.path == path;
+                          })
+             != storage_paths.end();
+    }
   };
 
   inline bool operator==(const StorageConfig &lhs, const StorageConfig &rhs) {

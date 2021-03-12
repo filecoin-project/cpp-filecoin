@@ -9,6 +9,15 @@ find_package(GMock CONFIG REQUIRED)
 hunter_add_package(libarchive)
 find_package(libarchive CONFIG REQUIRED)
 
+# assume built-in pthreads on MacOS
+IF(APPLE)
+  set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+  set(CMAKE_HAVE_THREADS_LIBRARY 1)
+  set(CMAKE_USE_WIN32_THREADS_INIT 0)
+  set(CMAKE_USE_PTHREADS_INIT 1)
+  set(THREADS_PREFER_PTHREAD_FLAG ON)
+ENDIF()
+
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS date_time filesystem iostreams random program_options thread)
 find_package(Boost CONFIG REQUIRED date_time filesystem iostreams random program_options thread)
