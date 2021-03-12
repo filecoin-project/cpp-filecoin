@@ -77,6 +77,9 @@ namespace fc {
     boost::optional<RegisteredSealProof> seal_type;
     int api_port;
 
+    /** Path to presealed sectors */
+    boost::optional<boost::filesystem::path> preseal_path;
+
     auto join(const std::string &path) const {
       return (repo_path / path).string();
     }
@@ -99,6 +102,9 @@ namespace fc {
     option("owner", po::value(&config.owner));
     option("worker", po::value(&config.worker));
     option("sector-size", po::value(&raw.sector_size));
+    option("pre-sealed-sectors",
+           po::value(&config.preseal_path),
+           "Path to presealed sectors");
     primitives::address::configCurrentNetwork(option);
 
     po::variables_map vm;
@@ -292,19 +298,22 @@ namespace fc {
 
     auto storage{std::make_shared<sector_storage::stores::LocalStorageImpl>(
         config.repo_path.string())};
-    OUTCOME_TRY(storage->setStorage([&](auto &config2) {
-      if (config2.storage_paths.empty()) {
+    OUTCOME_TRY(storage->setStorage([&](auto &storage_config) {
+      if (storage_config.storage_paths.empty()) {
         boost::filesystem::path path{config.join("sectors")};
-        boost::filesystem::create_directories(path);
         OUTCOME_EXCEPT(common::writeFile(
-            (path / sector_storage::stores::kMetaFileName).string(),
+            path / sector_storage::stores::kMetaFileName,
             *codec::json::format(api::encode(primitives::LocalStorageMeta{
                 uuids::to_string(uuids::random_generator()()),
                 kDefaultStorageWeight,
                 true,
                 true,
             }))));
-        config2.storage_paths.push_back({path.string()});
+        storage_config.storage_paths.push_back({path.string()});
+      }
+      if (config.preseal_path
+          && !storage_config.has(config.preseal_path->string())) {
+        storage_config.storage_paths.push_back({config.preseal_path->string()});
       }
     }));
 

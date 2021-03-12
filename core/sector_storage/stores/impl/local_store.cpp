@@ -354,11 +354,8 @@ namespace fc::sector_storage::stores {
     }
 
     OUTCOME_TRY(storage_->setStorage([path](stores::StorageConfig &config) {
-      auto &xs{config.storage_paths};
-      if (std::find_if(
-              xs.begin(), xs.end(), [&](auto &x) { return x.path == path; })
-          == xs.end()) {
-        xs.push_back({std::move(path)});
+      if (!config.has(path)) {
+        config.storage_paths.push_back({path});
       }
     }));
     paths_[meta.id] = out;
