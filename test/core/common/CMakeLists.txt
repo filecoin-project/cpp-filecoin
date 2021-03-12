@@ -37,7 +37,6 @@ addtest(outcome_test
     )
 target_link_libraries(outcome_test
     outcome
-    todo_error
     )
 
 addtest(tarutil_test

@@ -25,6 +25,7 @@ target_link_libraries(blob
     )
 
 add_library(outcome
+    error_text.cpp
     outcome2.cpp
     )
 target_link_libraries(outcome
@@ -56,14 +57,6 @@ target_link_libraries(tarutil
     outcome
     logger
     libarchive::archive
-    )
-
-add_library(todo_error
-    todo_error.hpp
-    todo_error.cpp
-    )
-target_link_libraries(todo_error
-    outcome
     )
 
 add_library(file

@@ -66,7 +66,7 @@ namespace fc::api {
         return _write(Response{{}, Response::Error{kParseError, "Parse error"}},
                       {});
       }
-      auto maybe_req = decode<Request>(j_req);
+      auto maybe_req = decode<Request>(*j_req);
       if (!maybe_req) {
         return _write(
             Response{{}, Response::Error{kInvalidRequest, "Invalid request"}},

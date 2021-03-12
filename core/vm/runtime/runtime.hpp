@@ -9,7 +9,7 @@
 
 #include "adt/address_key.hpp"
 #include "adt/map.hpp"
-#include "common/outcome2.hpp"
+#include "common/error_text.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
@@ -212,7 +212,7 @@ namespace fc::vm::runtime {
       if (id) {
         return *id;
       }
-      return OutcomeError::kDefault;
+      return ERROR_TEXT("Runtime::resolveAddress: not found");
     }
 
     /// Verify signature

@@ -5,7 +5,7 @@
 
 #include "node/chain_store_impl.hpp"
 #include "common/logger.hpp"
-#include "common/outcome2.hpp"
+#include "common/outcome_fmt.hpp"
 #include "node/events.hpp"
 #include "vm/interpreter/interpreter.hpp"
 

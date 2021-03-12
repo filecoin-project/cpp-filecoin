@@ -242,7 +242,7 @@ namespace fc::api {
       std::vector<std::string> parts;
       boost::split(parts, path, [](auto c) { return c == '/'; });
       if (parts.size() < 3 || !parts[0].empty() || parts[1] != "ipfs") {
-        return TodoError::kError;
+        return ERROR_TEXT("ChainGetNode: invalid path");
       }
       OUTCOME_TRY(root, CID::fromString(parts[2]));
       return getNode(ipld, root, gsl::make_span(parts).subspan(3));
@@ -426,8 +426,7 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           if (context.tipset->height()
               > chain_store->heaviestTipset()->height()) {
-            // tipset from future requested
-            return TodoError::kError;
+            return ERROR_TEXT("MpoolPending: tipset from future requested");
           }
           return mpool->pending();
         }};
@@ -570,7 +569,7 @@ namespace fc::api {
               return result->second.first;
             }
           }
-          return TodoError::kError;
+          return ERROR_TEXT("StateGetReceipt: no receipt");
         }};
     api->StateListMiners = {
         [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
@@ -764,7 +763,7 @@ namespace fc::api {
       }
       OUTCOME_TRY(messages, ipld->setCbor(meta));
       if (block.header.messages != messages) {
-        return TodoError::kError;
+        return ERROR_TEXT("SyncSubmitBlock: messages cid doesn't match");
       }
       OUTCOME_TRY(chain_store->addBlock(block.header));
       OUTCOME_TRY(pubsub->publish(block));

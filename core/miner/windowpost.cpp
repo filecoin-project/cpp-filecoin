@@ -5,6 +5,7 @@
 
 #include "miner/windowpost.hpp"
 
+#include "common/outcome_fmt.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/version.hpp"
 

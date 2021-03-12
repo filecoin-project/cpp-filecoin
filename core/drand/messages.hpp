@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_DRAND_PROTOBUF_MESSAGES_HPP
-#define CPP_FILECOIN_CORE_DRAND_PROTOBUF_MESSAGES_HPP
+#pragma once
+
+#include <chrono>
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
@@ -34,5 +35,3 @@ namespace fc::drand {
     Buffer prev;  // Hash256 if genesis else BlsSignature
   };
 }  // namespace fc::drand
-
-#endif  // CPP_FILECOIN_CORE_DRAND_PROTOBUF_MESSAGES_HPP
