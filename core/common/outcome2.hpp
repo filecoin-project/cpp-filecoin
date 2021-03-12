@@ -32,12 +32,6 @@ namespace fc {
     T *operator->() {
       return &O::value();
     }
-    operator const T &() const & {
-      return O::value();
-    }
-    operator T &&() && {
-      return std::move(O::value());
-    }
     const auto &operator~() const {
       return O::error();
     }
