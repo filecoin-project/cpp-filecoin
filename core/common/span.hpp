@@ -3,14 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_SPAN_HPP
-#define CPP_FILECOIN_CORE_COMMON_SPAN_HPP
+#pragma once
 
 #include <gsl/span>
 
-namespace fc::common::span {
+namespace fc {
   using BytesIn = gsl::span<const uint8_t>;
 
+  inline bool startsWith(BytesIn l, BytesIn r) {
+    return l.size() >= r.size() && memcmp(l.data(), r.data(), r.size()) == 0;
+  }
+}  // namespace fc
+
+namespace fc::common::span {
   template <typename To, typename From>
   constexpr auto cast(From *ptr) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
@@ -43,5 +48,3 @@ namespace fc::common::span {
     return cast<const char>(ptr);
   }
 }  // namespace fc::common::span
-
-#endif  // CPP_FILECOIN_CORE_COMMON_SPAN_HPP
