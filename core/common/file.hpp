@@ -6,9 +6,11 @@
 #pragma once
 
 #include <boost/iostreams/device/mapped_file.hpp>
+#include <iosfwd>
 
 #include "common/buffer.hpp"
 #include "common/outcome2.hpp"
+#include "common/span.hpp"
 
 namespace fc::common {
   using MappedFile = boost::iostreams::mapped_file_source;
@@ -18,4 +20,15 @@ namespace fc::common {
   Outcome<Buffer> readFile(std::string_view path);
 
   outcome::result<void> writeFile(std::string_view path, BytesIn input);
+
+  /** returns true on success */
+  inline bool read(std::istream &is, gsl::span<uint8_t> bytes) {
+    return is.read((char *)bytes.data(), bytes.size()).good();
+  }
+
+  /** returns true on success */
+  template <typename T>
+  inline bool read(std::istream &is, gsl::span<T> values) {
+    return read(is, span::cast<uint8_t>(values));
+  }
 }  // namespace fc::common
