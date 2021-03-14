@@ -6,6 +6,7 @@
 #include "storage/car/car.hpp"
 
 #include <fstream>
+#include <libp2p/multi/uvarint.hpp>
 
 #include "codec/uvarint.hpp"
 #include "common/file.hpp"
