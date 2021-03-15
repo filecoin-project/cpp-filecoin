@@ -9,6 +9,7 @@
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include "codec/cbor/cbor.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
+#include "common/outcome_fmt.hpp"
 #include "common/ptr.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/common.hpp"

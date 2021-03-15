@@ -6,18 +6,22 @@
 #include "common/outcome.hpp"
 
 #include <gtest/gtest.h>
-#include "common/todo_error.hpp"
+
+#include "common/error_text.hpp"
 
 namespace fc {
 
   const int ret = 42;
+
+  constexpr auto error_message{"meaningful text"};
+  const auto error{ERROR_TEXT(error_message)};
 
   outcome::result<void> funcSuccess() {
     return outcome::success();
   }
 
   outcome::result<void> funcFailure() {
-    return TodoError::kError;
+    return error;
   }
 
   outcome::result<int> funcSuccessReturn() {
@@ -25,7 +29,7 @@ namespace fc {
   }
 
   outcome::result<int> funcFailureReturn() {
-    return TodoError::kError;
+    return error;
   }
 
   /**
@@ -57,4 +61,7 @@ namespace fc {
     EXPECT_THROW(OUTCOME_EXCEPT(funcFailureReturn()), std::system_error);
   }
 
+  TEST(ErrorText, ErrorText) {
+    EXPECT_EQ(error.message(), error_message);
+  }
 }  // namespace fc

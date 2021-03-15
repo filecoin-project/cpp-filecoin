@@ -5,6 +5,8 @@
 
 #include "vm/message/message.hpp"
 
+#include "primitives/cid/cid_of_cbor.hpp"
+
 namespace fc::vm::message {
   using primitives::BigInt;
 
@@ -25,9 +27,7 @@ namespace fc::vm::message {
   }
 
   CID UnsignedMessage::getCid() const {
-    OUTCOME_EXCEPT(data, codec::cbor::encode(*this));
-    OUTCOME_EXCEPT(res, getCidOf(data));
-    return res;
+    return primitives::cid::getCidOfCbor(*this).value();
   }
 
   size_t UnsignedMessage::chainSize() const {
@@ -39,9 +39,7 @@ namespace fc::vm::message {
     if (signature.isBls()) {
       return message.getCid();
     }
-    OUTCOME_EXCEPT(data, codec::cbor::encode(*this));
-    OUTCOME_EXCEPT(res, getCidOf(data));
-    return res;
+    return primitives::cid::getCidOfCbor(*this).value();
   }
 
   size_t SignedMessage::chainSize() const {

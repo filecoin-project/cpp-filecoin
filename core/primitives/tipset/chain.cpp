@@ -7,7 +7,7 @@
 
 #include <boost/endian/conversion.hpp>
 
-#include "common/outcome2.hpp"
+#include "common/error_text.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/version.hpp"
 
@@ -90,7 +90,7 @@ namespace fc::primitives::tipset::chain {
       auto _bottom{chain.emplace(ts->height(), TsLazy{ts->key, ts}).first};
       while (_parent->first > _bottom->first) {
         if (_parent == parent->chain.begin()) {
-          return OutcomeError::kDefault;
+          return ERROR_TEXT("TsBranch::make: not connected");
         }
         --_parent;
       }
@@ -139,7 +139,7 @@ namespace fc::primitives::tipset::chain {
     apply.insert(*_to);
     while (to != from) {
       if (!to->parent) {
-        return OutcomeError::kDefault;
+        return ERROR_TEXT("findPath: no path");
       }
       auto bottom{to->chain.begin()};
       apply.insert(bottom, _to);
@@ -303,31 +303,16 @@ namespace fc::primitives::tipset::chain {
                                      Height height,
                                      bool allow_less) {
     if (height > branch->chain.rbegin()->first) {
-      return OutcomeError::kDefault;
+      return ERROR_TEXT("find: too high");
     }
-    TsBranchPtr parent;
     while (branch->chain.begin()->first > height) {
       if (!branch->parent) {
-        return OutcomeError::kDefault;
+        return ERROR_TEXT("find: too low");
       }
-      parent = branch;
       branch = branch->parent;
     }
     auto it{branch->chain.lower_bound(height)};
-    if (it == branch->chain.end()) {
-      if (!allow_less) {
-        // example: find 3 in [[1, 2], [4, 5]]
-        if (!parent) {
-          return OutcomeError::kDefault;
-        }
-        return std::make_pair(parent, parent->chain.begin());
-      }
-      --it;
-    }
     if (it->first > height && allow_less) {
-      if (it == branch->chain.begin()) {
-        return OutcomeError::kDefault;
-      }
       --it;
     }
     return std::make_pair(branch, it);
@@ -337,7 +322,7 @@ namespace fc::primitives::tipset::chain {
     auto &branch{it.first};
     if (it.second == branch->chain.begin()) {
       if (!branch->parent) {
-        return OutcomeError::kDefault;
+        return ERROR_TEXT("stepParent: error");
       }
       it.second = branch->parent->chain.find(it.second->first);
       branch = branch->parent;

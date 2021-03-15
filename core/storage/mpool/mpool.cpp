@@ -5,6 +5,7 @@
 
 #include "storage/mpool/mpool.hpp"
 #include "common/logger.hpp"
+#include "common/outcome_fmt.hpp"
 #include "const.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"

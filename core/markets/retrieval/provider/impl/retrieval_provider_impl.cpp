@@ -6,19 +6,11 @@
 #include "markets/retrieval/provider/impl/retrieval_provider_impl.hpp"
 
 #include <boost/filesystem.hpp>
+
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "markets/common.hpp"
 #include "storage/car/car.hpp"
 #include "storage/piece/impl/piece_storage_error.hpp"
-
-#define _SELF_IF_ERROR_RESPOND_AND_RETURN(res, expr, status, stream)        \
-  auto &&res = (expr);                                                      \
-  if (res.has_error()) {                                                    \
-    self->respondErrorRetrievalDeal(stream, status, res.error().message()); \
-    return;                                                                 \
-  }
-#define SELF_IF_ERROR_RESPOND_AND_RETURN(expr, status, stream) \
-  _SELF_IF_ERROR_RESPOND_AND_RETURN(UNIQUE_NAME(_r), expr, status, stream)
 
 namespace fc::markets::retrieval::provider {
   using ::fc::storage::piece::PieceStorageError;

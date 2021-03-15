@@ -7,7 +7,6 @@
 
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include "common/libp2p/peer/peer_info_helper.hpp"
-#include "common/todo_error.hpp"
 #include "host/context/host_context.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/storage/provider/storage_provider_error.hpp"
@@ -163,12 +162,14 @@ namespace fc::markets::storage::provider {
   outcome::result<void> StorageProviderImpl::addStorageCollateral(
       const TokenAmount &amount) {
     // TODO
-    return TodoError::kError;
+    return ERROR_TEXT(
+        "StorageProviderImpl::addStorageCollateral: not implemented");
   }
 
   outcome::result<TokenAmount> StorageProviderImpl::getStorageCollateral() {
     // TODO
-    return outcome::failure(TodoError::kError);
+    return ERROR_TEXT(
+        "StorageProviderImpl::getStorageCollateral: not implemented");
   }
 
   outcome::result<void> StorageProviderImpl::importDataForDeal(

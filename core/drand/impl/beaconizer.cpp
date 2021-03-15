@@ -12,7 +12,7 @@
 
 #include "clock/utc_clock.hpp"
 #include "common/logger.hpp"
-#include "common/outcome2.hpp"
+#include "common/outcome_fmt.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "drand/impl/http.hpp"
 
