@@ -16,7 +16,6 @@ target_link_libraries(storage_market_provider
     outcome
     piece
     market_actor_v0
-    todo_error
     piece_storage
     sectorblocks
     )
