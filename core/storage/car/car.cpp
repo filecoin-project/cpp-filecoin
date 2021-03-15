@@ -70,6 +70,11 @@ namespace fc::storage::car {
     return loadCar(store, file.second);
   }
 
+  outcome::result<std::vector<CID>> loadCar(
+      Ipld &store, const boost::filesystem::path &car_path) {
+    return loadCar(store, car_path.string());
+  }
+
   void writeUvarint(Buffer &output, uint64_t value) {
     output.put(libp2p::multi::UVarint{value}.toBytes());
   }

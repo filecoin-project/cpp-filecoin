@@ -47,7 +47,7 @@ namespace fc::sector_storage::stores {
     if (!boost::filesystem::exists(config_path_)) {
       return boost::none;
     }
-    OUTCOME_TRY(text, common::readFile(config_path_.c_str()));
+    OUTCOME_TRY(text, common::readFile(config_path_));
     OUTCOME_TRY(j_file, codec::json::parse(text));
     OUTCOME_TRY(decoded, api::decode<StorageConfig>(j_file));
     return std::move(decoded);

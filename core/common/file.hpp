@@ -16,7 +16,7 @@ namespace fc::common {
 
   Outcome<std::pair<MappedFile, BytesIn>> mapFile(const std::string &path);
 
-  Outcome<Buffer> readFile(std::string_view path);
+  Outcome<Buffer> readFile(const boost::filesystem::path &path);
 
   outcome::result<void> writeFile(const boost::filesystem::path &path,
                                   BytesIn input);

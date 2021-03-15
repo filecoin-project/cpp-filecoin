@@ -12,11 +12,11 @@
 #include <boost/iostreams/filtering_stream.hpp>
 
 #include "codec/json/json.hpp"
-#include "common/file.hpp"
 #include "core/test_vectors/replaying_randomness.hpp"
 #include "primitives/tipset/load.hpp"
 #include "storage/car/car.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "testutil/read_file.hpp"
 #include "testutil/resources/resources.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
@@ -28,13 +28,13 @@
 const bool kEnableChaos = false;
 
 const auto kCorpusRoot{resourcePath("test-vectors/corpus")};
-auto brief(const std::string &path) {
-  auto n{kCorpusRoot.size() + 1};
+inline auto brief(const std::string &path) {
+  auto n{kCorpusRoot.string().size() + 1};
   return path.substr(n, path.size() - n - 5);
 }
 
-auto testName(std::string s) {
-  s = brief(s);
+inline auto testName(const boost::filesystem::path &path) {
+  auto s = brief(path.string());
   for (auto &c : s) {
     if (!isalnum(c)) {
       c = '_';
@@ -209,8 +209,8 @@ struct MessageVector {
     return mv;
   }
 
-  static auto read(const std::string &path) {
-    auto jdoc{*Json::parse(*fc::common::readFile(path))};
+  static auto read(const boost::filesystem::path &path) {
+    auto jdoc{*Json::parse(readFile(path))};
     auto mv{MessageVector::decode(&jdoc)};
     mv.path = path;
     return mv;
@@ -228,7 +228,7 @@ struct MessageVector {
   CID state_before, state_after;
   std::vector<CID> receipts_roots;
   bool chaos{false};
-  std::string path;
+  boost::filesystem::path path;
 };
 
 /**
@@ -245,16 +245,16 @@ auto search() {
     if (item.status().type() == boost::filesystem::file_type::regular_file
         && path.extension() == ".json") {
       // Skip tests that fail in Fuhon
-      static std::vector<std::string> fail_in_fuhon{
+      static std::vector<boost::filesystem::path> fail_in_fuhon{
           // TODO (a.chernyshov) test-vectors hamt have incorrect order
           // Lotus implementation loads and reorders amt while cpp
           // implementation uses lazy approach and keeps initial incorrect order
-          kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storagepower/CreateMiner/Ok/ext-0004-fil_1_storagepower-CreateMiner-Ok-6.json",
-          kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storagepower/CreateMiner/Ok/ext-0004-fil_1_storagepower-CreateMiner-Ok-10.json",
-          kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storagepower/CreateMiner/Ok/ext-0001-fil_1_storagepower-CreateMiner-Ok-6.json",
+          kCorpusRoot / "extracted/0004-coverage-boost/fil_1_storagepower/CreateMiner/Ok/ext-0004-fil_1_storagepower-CreateMiner-Ok-6.json",
+          kCorpusRoot / "extracted/0004-coverage-boost/fil_1_storagepower/CreateMiner/Ok/ext-0004-fil_1_storagepower-CreateMiner-Ok-10.json",
+          kCorpusRoot / "extracted/0001-initial-extraction/fil_1_storagepower/CreateMiner/Ok/ext-0001-fil_1_storagepower-CreateMiner-Ok-6.json",
       };
 
-      if (std::find(fail_in_fuhon.cbegin(), fail_in_fuhon.cend(), path.string())
+      if (std::find(fail_in_fuhon.cbegin(), fail_in_fuhon.cend(), path)
           != fail_in_fuhon.cend()) {
         continue;
       }
@@ -264,7 +264,7 @@ auto search() {
         continue;
       }
 
-      auto vector = MessageVector::read(path.string());
+      auto vector = MessageVector::read(path);
       // skip tests with chaos actors
       if (!kEnableChaos && vector.chaos) {
         continue;

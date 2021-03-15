@@ -141,7 +141,7 @@ TEST(SelectiveCar, MakeSelectiveCarToFile) {
       makeSelectiveCar(ipld, {{root_cid, {}}}, car_path.string()));
 
   auto expected_car = readFile(CAR_FROM_PAYLOAD_FILE);
-  auto selective_car = readFile(car_path.string());
+  auto selective_car = readFile(car_path);
   EXPECT_EQ(selective_car, expected_car) << std::endl
                                          << "actual" << std::endl
                                          << selective_car << std::endl

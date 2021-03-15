@@ -20,8 +20,8 @@ namespace fc::common {
     return std::make_pair(std::move(file), input);
   }
 
-  Outcome<Buffer> readFile(std::string_view path) {
-    std::ifstream file{path.data(), std::ios::binary | std::ios::ate};
+  Outcome<Buffer> readFile(const boost::filesystem::path &path) {
+    std::ifstream file{path.c_str(), std::ios::binary | std::ios::ate};
     if (file.good()) {
       Buffer buffer;
       buffer.resize(file.tellg());

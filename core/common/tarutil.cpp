@@ -135,6 +135,11 @@ namespace fc::common {
     return outcome::success();
   }
 
+  outcome::result<void> zipTar(const boost::filesystem::path &input_path,
+                               const boost::filesystem::path &output_path) {
+    return zipTar(input_path.string(), output_path.string());
+  }
+
   outcome::result<void> extractTar(const std::string &tar_path,
                                    const std::string &output_path) {
     if (!fs::exists(output_path)) {
@@ -214,6 +219,11 @@ namespace fc::common {
     archive_write_close(ext.get());
 
     return outcome::success();
+  }
+
+  outcome::result<void> extractTar(const boost::filesystem::path &input_path,
+                                   const boost::filesystem::path &output_path) {
+    return extractTar(input_path.string(), output_path.string());
   }
 
 }  // namespace fc::common

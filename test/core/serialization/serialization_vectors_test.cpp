@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "serialization_vectors.hpp"
-
 #include <gtest/gtest.h>
 #include <rapidjson/writer.h>
 #include <boost/filesystem.hpp>
@@ -16,6 +14,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"
+#include "testutil/resources/resources.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/message/message_util.hpp"
 
@@ -30,9 +29,8 @@ using fc::vm::message::MessageSignerImpl;
 using BlsPrivateKey = fc::crypto::bls::PrivateKey;
 
 auto loadJson(const std::string &name) {
-  auto str = readFile(boost::filesystem::path{SERIALIZATION_VECTORS_ROOT}
-                          .append(name)
-                          .string());
+  auto str =
+      readFile(resourcePath("serialization/serialization_vectors") / name);
   rapidjson::Document document;
   document.Parse(fc::common::span::cstring(str).data(), str.size());
   EXPECT_FALSE(document.HasParseError());
