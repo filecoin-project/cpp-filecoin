@@ -37,7 +37,9 @@ namespace fc::common {
   outcome::result<void> writeFile(const boost::filesystem::path &path,
                                   BytesIn input,
                                   bool tmp) {
-    boost::filesystem::create_directories(path.parent_path());
+    if (path.has_parent_path()) {
+      boost::filesystem::create_directories(path.parent_path());
+    }
     if (tmp) {
       auto tmp_path{boost::filesystem::temp_directory_path()
                     / boost::filesystem::unique_path()};

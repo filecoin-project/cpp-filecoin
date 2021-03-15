@@ -50,7 +50,7 @@ int main(int argc, char **argv) {
       auto head{envx.ts_load->load(head_tsk).value()};
       primitives::tipset::chain::TsChain _chain;
       Height state_min_height{head->height()}, state_max_height{0};
-      auto ts_lookback{3 * 900};
+      auto ts_lookback{4000};
       auto had_states{true};
       auto ts{head};
       while (true) {
