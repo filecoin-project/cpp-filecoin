@@ -4,7 +4,6 @@
  */
 
 #include "payment_channel_manager/impl/payment_channel_manager_impl.hpp"
-#include "common/todo_error.hpp"
 #include "payment_channel_manager/impl/payment_channel_manager_error.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
@@ -168,7 +167,9 @@ namespace fc::payment_channel_manager {
 
     if (!voucher.merges.empty()) {
       // TODO don't currently support paych lane merges
-      return TodoError::kError;
+      return ERROR_TEXT(
+          "PaymentChannelManagerImpl::validateVoucher: don't currently support "
+          "paych lane merges");
     }
 
     return outcome::success();

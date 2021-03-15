@@ -105,11 +105,11 @@ struct MessageVector {
   static auto decode(Json::JIn j) {
     using namespace Json;
     MessageVector mv;
-    mv.type = *jStr(jGet(j, "class"));
-    mv.car = gunzip(*jBytes(jGet(j, "car")));
+    mv.type = *jStr(*jGet(j, "class"));
+    mv.car = gunzip(*jBytes(*jGet(j, "car")));
 
     if (auto randomness{jGet(j, "randomness")}) {
-      mv.randomness = *jList(randomness, [](auto j) {
+      mv.randomness = *jList(*randomness, [](auto j) {
         TestVectorRandomness new_randomness;
         // "on" in randomness is an array
         auto it = j->FindMember("on")->value.Begin();
@@ -130,7 +130,7 @@ struct MessageVector {
         // 4th element is entropy
         new_randomness.entropy = *jBytes(++it);
 
-        auto ret = jBytes(jGet(j, "ret"))->toVector();
+        auto ret = jBytes(*jGet(j, "ret"))->toVector();
         BOOST_ASSERT_MSG(ret.size() == new_randomness.ret.size(),
                          "Wrong randomness size");
         std::move(
@@ -139,54 +139,54 @@ struct MessageVector {
       });
     }
 
-    auto pre{jGet(j, "preconditions")};
-    mv.state_before = *jCid(jGet(jGet(pre, "state_tree"), "root_cid"));
-    mv.precondition_variants = *jList(jGet(pre, "variants"), [&](auto j) {
+    auto pre{*jGet(j, "preconditions")};
+    mv.state_before = *jCid(*jGet(*jGet(pre, "state_tree"), "root_cid"));
+    mv.precondition_variants = *jList(*jGet(pre, "variants"), [&](auto j) {
       PreconditionVariant precondition_variant;
-      precondition_variant.id = *jStr(jGet(j, "id"));
-      precondition_variant.epoch = *jInt(jGet(j, "epoch"));
-      precondition_variant.network_version = *jInt(jGet(j, "nv"));
+      precondition_variant.id = *jStr(*jGet(j, "id"));
+      precondition_variant.epoch = *jInt(*jGet(j, "epoch"));
+      precondition_variant.network_version = *jInt(*jGet(j, "nv"));
       return precondition_variant;
     });
 
     if (auto base_fee{jGet(pre, "basefee")}) {
-      mv.parent_base_fee = *jBigInt(base_fee);
+      mv.parent_base_fee = *jBigInt(*base_fee);
     } else {
       mv.parent_base_fee = 100;
     }
-    auto post{jGet(j, "postconditions")};
-    mv.state_after = *jCid(jGet(jGet(post, "state_tree"), "root_cid"));
+    auto post{*jGet(j, "postconditions")};
+    mv.state_after = *jCid(*jGet(*jGet(post, "state_tree"), "root_cid"));
     if (auto selector{jGet(j, "selector")}) {
-      if (auto chaos{jGet(selector, "chaos_actor")}) {
-        mv.chaos = *jStr(chaos) == "true";
+      if (auto chaos{jGet(*selector, "chaos_actor")}) {
+        mv.chaos = *jStr(*chaos) == "true";
       }
     }
     if (auto messages{jGet(j, "apply_messages")}) {
-      mv.messages = *jList(messages, [&](auto j) {
+      mv.messages = *jList(*messages, [&](auto j) {
         ChainEpoch epoch_offset{};
         if (auto maybe_epoch_offset{jGet(j, "epoch_offset")}) {
-          epoch_offset = *jInt(maybe_epoch_offset);
+          epoch_offset = *jInt(*maybe_epoch_offset);
         }
         return std::make_pair(
             epoch_offset,
-            fc::codec::cbor::decode<UnsignedMessage>(*jBytes(jGet(j, "bytes")))
+            fc::codec::cbor::decode<UnsignedMessage>(*jBytes(*jGet(j, "bytes")))
                 .value());
       });
     }
     if (auto tipsets{jGet(j, "apply_tipsets")}) {
-      mv.tipsets = *jList(tipsets, [](auto j) {
+      mv.tipsets = *jList(*tipsets, [](auto j) {
         return Ts{
-            *jInt(jGet(j, "epoch_offset")),
-            *jInt(jGet(j, "basefee")),
-            *jList(jGet(j, "blocks"),
+            *jInt(*jGet(j, "epoch_offset")),
+            *jInt(*jGet(j, "basefee")),
+            *jList(*jGet(j, "blocks"),
                    [](auto j) {
                      return Ts::Blk{
                          fc::primitives::address::decodeFromString(
-                             std::string{*jStr(jGet(j, "miner_addr"))})
+                             std::string{*jStr(*jGet(j, "miner_addr"))})
                              .value(),
-                         *jInt(jGet(j, "win_count")),
+                         *jInt(*jGet(j, "win_count")),
                          *jList(
-                             jGet(j, "messages"),
+                             *jGet(j, "messages"),
                              [](auto j) {
                                return fc::codec::cbor::decode<UnsignedMessage>(
                                           *jBytes(j))
@@ -197,14 +197,14 @@ struct MessageVector {
         };
       });
     }
-    mv.receipts = *jList(jGet(post, "receipts"), [](auto j) {
-      return MessageReceipt{fc::vm::VMExitCode{*jInt(jGet(j, "exit_code"))},
-                            *jBytes(jGet(j, "return")),
-                            *jInt(jGet(j, "gas_used"))};
+    mv.receipts = *jList(*jGet(post, "receipts"), [](auto j) {
+      return MessageReceipt{fc::vm::VMExitCode{*jInt(*jGet(j, "exit_code"))},
+                            *jBytes(*jGet(j, "return")),
+                            *jInt(*jGet(j, "gas_used"))};
     });
     if (auto receipts_roots{jGet(post, "receipts_roots")}) {
       mv.receipts_roots =
-          *jList(receipts_roots, [](auto j) { return *jCid(j); });
+          *jList(*receipts_roots, [](auto j) { return *jCid(j); });
     }
     return mv;
   }

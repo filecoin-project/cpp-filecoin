@@ -9,6 +9,5 @@ add_library(payment_channel_manager
     )
 target_link_libraries(payment_channel_manager
     address
-    todo_error
     state_tree
     )

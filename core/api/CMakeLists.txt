@@ -17,7 +17,6 @@ target_link_libraries(api
     miner_types
     msg_waiter
     state_tree
-    todo_error
     )
 
 add_library(rpc

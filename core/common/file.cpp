@@ -7,6 +7,7 @@
 
 #include <fstream>
 
+#include "common/error_text.hpp"
 #include "common/span.hpp"
 
 namespace fc::common {
@@ -40,6 +41,6 @@ namespace fc::common {
       file.write(span::bytestr(input.data()), input.size());
       return outcome::success();
     }
-    return OutcomeError::kDefault;
+    return ERROR_TEXT("writeFile: error");
   }
 }  // namespace fc::common

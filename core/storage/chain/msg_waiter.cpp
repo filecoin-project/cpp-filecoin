@@ -6,7 +6,7 @@
 #include "storage/chain/msg_waiter.hpp"
 #include "adt/array.hpp"
 #include "common/logger.hpp"
-#include "common/outcome2.hpp"
+#include "common/outcome_fmt.hpp"
 #include "primitives/tipset/load.hpp"
 
 namespace fc::storage::blockchain {
