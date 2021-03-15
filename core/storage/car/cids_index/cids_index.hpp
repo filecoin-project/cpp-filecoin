@@ -7,6 +7,7 @@
 
 #include <boost/endian/buffers.hpp>
 #include <fstream>
+#include <mutex>
 
 #include "common/blob.hpp"
 #include "common/enum.hpp"
