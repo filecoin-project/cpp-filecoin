@@ -19,7 +19,9 @@ namespace fc::common {
 
   Outcome<Buffer> readFile(std::string_view path);
 
-  outcome::result<void> writeFile(std::string_view path, BytesIn input);
+  outcome::result<void> writeFile(const std::string &path,
+                                  BytesIn input,
+                                  bool tmp = false);
 
   /** returns true on success */
   inline bool read(std::istream &is, gsl::span<uint8_t> bytes) {

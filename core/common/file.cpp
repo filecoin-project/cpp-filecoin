@@ -5,6 +5,7 @@
 
 #include "common/file.hpp"
 
+#include <boost/filesystem/operations.hpp>
 #include <fstream>
 
 #include "common/error_text.hpp"
@@ -33,8 +34,21 @@ namespace fc::common {
     return {};
   }
 
-  outcome::result<void> writeFile(std::string_view path, BytesIn input) {
+  outcome::result<void> writeFile(const std::string &path,
+                                  BytesIn input,
+                                  bool tmp) {
     // TODO: mkdir
+    if (tmp) {
+      auto tmp_path{boost::filesystem::temp_directory_path()
+                    / boost::filesystem::unique_path()};
+      OUTCOME_TRY(writeFile(tmp_path.string(), input, false));
+      boost::system::error_code ec;
+      boost::filesystem::rename(tmp_path, path, ec);
+      if (ec) {
+        return ec;
+      }
+      return outcome::success();
+    }
     std::ofstream file{path.data(), std::ios::binary};
     if (file.good()) {
       file.write(span::bytestr(input.data()), input.size());
