@@ -51,6 +51,8 @@ namespace fc::storage::car {
     size_t position{}, objects{};
   };
 
+  outcome::result<std::vector<CID>> readHeader(const std::string &car_path);
+
   outcome::result<std::vector<CID>> loadCar(Ipld &store,
                                             const std::string &car_path);
 
