@@ -22,6 +22,7 @@
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v2/init/init_actor.hpp"
+#include "vm/actor/builtin/v2/market/market_actor.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/multisig/multisig_actor.hpp"
 #include "vm/actor/builtin/v2/payment_channel/payment_channel_actor.hpp"
@@ -55,8 +56,7 @@ namespace fc::vm::actor {
     builtin_[builtin::v2::kAccountCodeId] = builtin::v2::account::exports;
     builtin_[builtin::v2::kCronCodeId] = builtin::v2::cron::exports;
     builtin_[builtin::v2::kInitCodeId] = builtin::v2::init::exports;
-    // builtin_[builtin::v2::kStorageMarketCodeId] =
-    // builtin::v2::market::exports;
+    builtin_[builtin::v2::kStorageMarketCodeId] = builtin::v2::market::exports;
     builtin_[builtin::v2::kStorageMinerCodeId] = builtin::v2::miner::exports;
     builtin_[builtin::v2::kRewardActorCodeId] = builtin::v2::reward::exports;
     builtin_[builtin::v2::kMultisigCodeId] = builtin::v2::multisig::exports;
@@ -101,10 +101,10 @@ namespace fc::vm::actor {
             != builtin::v0::kVerifiedRegistryCodeId)  // < OK, but not tested
 
         // v2
-        && (actor.code != builtin::v2::kAccountCodeId)  // < tested OK
-        && (actor.code != builtin::v2::kCronCodeId)     // < tested OK
-        && (actor.code != builtin::v2::kInitCodeId)     // < tested OK
-        // && (actor.code != builtin::v2::kStorageMarketCodeId)   // TODO
+        && (actor.code != builtin::v2::kAccountCodeId)         // < tested OK
+        && (actor.code != builtin::v2::kCronCodeId)            // < tested OK
+        && (actor.code != builtin::v2::kInitCodeId)            // < tested OK
+        && (actor.code != builtin::v2::kStorageMarketCodeId)   // < OK, but not tested
         && (actor.code != builtin::v2::kStorageMinerCodeId)    // WiP
         && (actor.code != builtin::v2::kMultisigCodeId)        // < tested OK
         && (actor.code != builtin::v2::kPaymentChannelCodeId)  // < tested OK

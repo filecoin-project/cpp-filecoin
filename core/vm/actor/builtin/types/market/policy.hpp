@@ -11,7 +11,7 @@
 #include "vm/actor/builtin/v0/shared/shared.hpp"
 #include "vm/version.hpp"
 
-namespace fc::vm::actor::builtin::v0::market {
+namespace fc::vm::actor::builtin::types::market {
   using primitives::ChainEpoch;
   using primitives::DealWeight;
   using primitives::EpochDuration;
@@ -40,6 +40,9 @@ namespace fc::vm::actor::builtin::v0::market {
    */
   inline const BigInt kProvCollateralPercentSupplyDenom{100};
 
+  // DealMaxLabelSize is the maximum size of a deal label.
+  inline const int kDealMaxLabelSize = 256;
+
   template <typename T>
   struct Bounds {
     bool in(T value) const {
@@ -63,16 +66,16 @@ namespace fc::vm::actor::builtin::v0::market {
                                   bool verified) {
     BigInt scaled_up_quality{0};
     if (verified) {
-      scaled_up_quality =
-          bigdiv(kVerifiedDealWeightMultiplier << kSectorQualityPrecision,
-                 kQualityBaseMultiplier);
+      scaled_up_quality = bigdiv(
+          v0::kVerifiedDealWeightMultiplier << v0::kSectorQualityPrecision,
+          v0::kQualityBaseMultiplier);
     } else {
       scaled_up_quality =
-          bigdiv(kDealWeightMultiplier << kSectorQualityPrecision,
-                 kQualityBaseMultiplier);
+          bigdiv(v0::kDealWeightMultiplier << v0::kSectorQualityPrecision,
+                 v0::kQualityBaseMultiplier);
     }
     scaled_up_quality *= static_cast<uint64_t>(deal_size);
-    return scaled_up_quality >> kSectorQualityPrecision;
+    return scaled_up_quality >> v0::kSectorQualityPrecision;
   }
 
   inline Bounds<TokenAmount> dealProviderCollateralBounds(
@@ -118,4 +121,4 @@ namespace fc::vm::actor::builtin::v0::market {
     const auto deal_size = static_cast<uint64_t>(deal.piece_size);
     return deal_duration * deal_size;
   }
-}  // namespace fc::vm::actor::builtin::v0::market
+}  // namespace fc::vm::actor::builtin::types::market

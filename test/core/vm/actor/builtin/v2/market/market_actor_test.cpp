@@ -14,8 +14,8 @@
 
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
-#include "vm/actor/builtin/v0/market/market_actor.hpp"
-#include "vm/actor/builtin/v0/market/market_actor_state.hpp"
+#include "vm/actor/builtin/v2/market/market_actor.hpp"
+#include "vm/actor/builtin/v2/market/market_actor_state.hpp"
 
 #include <gtest/gtest.h>
 
@@ -24,16 +24,16 @@
 #include "testutil/cbor.hpp"
 #include "testutil/crypto/sample_signatures.hpp"
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v2/codes.hpp"
+#include "vm/actor/builtin/v2/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v2/reward/reward_actor.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/version.hpp"
 
 #define ON_CALL_3(a, b, c) EXPECT_CALL(a, b).WillRepeatedly(Return(c))
 
-namespace fc::vm::actor::builtin::v0::market {
+namespace fc::vm::actor::builtin::v2::market {
   namespace MinerActor = miner;
   namespace RewardActor = reward;
   namespace PowerActor = storage_power;
@@ -69,7 +69,7 @@ namespace fc::vm::actor::builtin::v0::market {
     void SetUp() override {
       ActorTestFixture<MarketActorState>::SetUp();
       ipld->load(state);
-      actorVersion = ActorVersion::kVersion0;
+      actorVersion = ActorVersion::kVersion2;
 
       runtime.resolveAddressWith(state_tree);
 
@@ -353,7 +353,7 @@ namespace fc::vm::actor::builtin::v0::market {
         dealClientCollateralBounds(deal.piece_size, deal.duration()).max + 1;
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
-        kRewardAddress, {}, 0, {0, {0, 0}, {}});
+        kRewardAddress, {}, 0, {{0, 0}, {}});
     runtime.expectSendM<PowerActor::CurrentTotalPower>(
         kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
 
@@ -390,7 +390,7 @@ namespace fc::vm::actor::builtin::v0::market {
     EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(miner_address, 0));
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
-        kRewardAddress, {}, 0, {0, {0, 0}, {}});
+        kRewardAddress, {}, 0, {{0, 0}, {}});
     runtime.expectSendM<PowerActor::CurrentTotalPower>(
         kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
     EXPECT_CALL(runtime, getTotalFilCirculationSupply()).WillOnce(Return(0));
@@ -406,7 +406,7 @@ namespace fc::vm::actor::builtin::v0::market {
     EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(client_address, 0));
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
-        kRewardAddress, {}, 0, {0, {0, 0}, {}});
+        kRewardAddress, {}, 0, {{0, 0}, {}});
     runtime.expectSendM<PowerActor::CurrentTotalPower>(
         kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
     EXPECT_CALL(runtime, getTotalFilCirculationSupply()).WillOnce(Return(0));
@@ -421,7 +421,7 @@ namespace fc::vm::actor::builtin::v0::market {
     state.next_deal = deal_1_id;
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
-        kRewardAddress, {}, 0, {0, {0, 0}, {}});
+        kRewardAddress, {}, 0, {{0, 0}, {}});
     runtime.expectSendM<PowerActor::CurrentTotalPower>(
         kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
     EXPECT_CALL(runtime, getTotalFilCirculationSupply()).WillOnce(Return(0));
@@ -571,4 +571,4 @@ namespace fc::vm::actor::builtin::v0::market {
     EXPECT_OUTCOME_EQ(
         ComputeDataCommitment::call(runtime, {deal_ids, sector_type}), comm_d);
   }
-}  // namespace fc::vm::actor::builtin::v0::market
+}  // namespace fc::vm::actor::builtin::v2::market
