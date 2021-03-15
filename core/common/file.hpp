@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <boost/filesystem/path.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <iosfwd>
 
@@ -17,9 +18,9 @@ namespace fc::common {
 
   Outcome<std::pair<MappedFile, BytesIn>> mapFile(const std::string &path);
 
-  Outcome<Buffer> readFile(std::string_view path);
+  Outcome<Buffer> readFile(const boost::filesystem::path &path);
 
-  outcome::result<void> writeFile(const std::string &path,
+  outcome::result<void> writeFile(const boost::filesystem::path &path,
                                   BytesIn input,
                                   bool tmp = false);
 
