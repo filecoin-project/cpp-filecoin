@@ -69,18 +69,6 @@ namespace fc::vm::actor {
   /** Make code cid from raw string */
   CID makeRawIdentityCid(const std::string &str);
 
-  /**
-   * Returns actor version for network version
-   *
-   * Network version [0...3] => Actor version v0
-   * Network version [4...9] => Actor version v2
-   * Network version [10..?] => Actor version v3
-   *
-   * @param network_version - version of network
-   * @return v0, v2 or v3 actor version
-   */
-  ActorVersion getActorVersionForNetwork(const NetworkVersion &network_version);
-
   /** Reserved method number for send operation */
   constexpr MethodNumber kSendMethodNumber{0};
 

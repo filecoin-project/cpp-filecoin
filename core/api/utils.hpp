@@ -9,8 +9,8 @@
 
 #include "adt/channel.hpp"
 #include "api/version.hpp"
+#include "common/error_text.hpp"
 #include "common/outcome.hpp"
-#include "common/todo_error.hpp"
 
 #define API_METHOD(_name, _result, ...)                                    \
   struct _##_name : std::function<outcome::result<_result>(__VA_ARGS__)> { \
@@ -73,7 +73,7 @@ namespace fc::api {
         if (opt) {
           cb(std::move(*opt));
         } else {
-          cb(TodoError::kError);
+          cb(ERROR_TEXT("Wait::wait: channel closed"));
         }
         return false;
       });

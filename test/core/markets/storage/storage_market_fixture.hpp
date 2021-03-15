@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_CORE_MARKETS_STORAGE_STORAGE_MARKET_FIXTURE_HPP
-#define CPP_FILECOIN_TEST_CORE_MARKETS_STORAGE_STORAGE_MARKET_FIXTURE_HPP
+#pragma once
 
 #include <gtest/gtest.h>
 #include <boost/di/extension/scopes/shared.hpp>
@@ -32,6 +31,8 @@
 #include "testutil/mocks/markets/storage/chain_events/chain_events_mock.hpp"
 #include "testutil/mocks/miner/miner_mock.hpp"
 #include "testutil/mocks/sectorblocks/blocks_mock.hpp"
+#include "vm/actor/builtin/types/miner/miner_info.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
 
 namespace fc::markets::storage::test {
   using adt::Channel;
@@ -68,6 +69,7 @@ namespace fc::markets::storage::test {
   using pieceio::PieceIO;
   using pieceio::PieceIOImpl;
   using primitives::GasAmount;
+  using primitives::kChainEpochUndefined;
   using primitives::cid::getCidOfCbor;
   using primitives::sector::RegisteredSealProof;
   using primitives::tipset::Tipset;
@@ -77,8 +79,8 @@ namespace fc::markets::storage::test {
   using provider::StoredAsk;
   using sectorblocks::SectorBlocksMock;
   using vm::VMExitCode;
+  using vm::actor::builtin::types::miner::MinerInfo;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
-  using vm::actor::builtin::v0::miner::MinerInfo;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::runtime::MessageReceipt;
@@ -265,8 +267,11 @@ namespace fc::markets::storage::test {
                              .peer_id = {},
                              .multiaddrs = {},
                              .seal_proof_type = {},
+                             .window_post_proof_type = {},
                              .sector_size = {},
-                             .window_post_partition_sectors = {}};
+                             .window_post_partition_sectors = {},
+                             .consensus_fault_elapsed = kChainEpochUndefined,
+                             .pending_owner_address = {}};
           }};
 
       api->StateMarketBalance = {
@@ -518,5 +523,3 @@ namespace fc::markets::storage::test {
   };
 
 }  // namespace fc::markets::storage::test
-
-#endif  // CPP_FILECOIN_TEST_CORE_MARKETS_STORAGE_STORAGE_MARKET_FIXTURE_HPP

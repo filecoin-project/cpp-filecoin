@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_EVENTS_HPP
-#define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_EVENTS_HPP
+#pragma once
 
 #include "primitives/tipset/tipset.hpp"
-#include "vm/actor/builtin/v0/miner/policy.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
 
 namespace fc::mining {
   using primitives::ChainEpoch;
@@ -15,7 +14,7 @@ namespace fc::mining {
   using primitives::tipset::Tipset;
 
   constexpr ChainEpoch kGlobalChainConfidence =
-      2 * vm::actor::builtin::v0::miner::kChainFinalityish;
+      2 * vm::actor::builtin::types::miner::kChainFinalityish;
 
   class Events {
    public:
@@ -45,5 +44,3 @@ namespace fc::mining {
 }  // namespace fc::mining
 
 OUTCOME_HPP_DECLARE_ERROR(fc::mining, EventsError);
-
-#endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_EVENTS_HPP

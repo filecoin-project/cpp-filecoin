@@ -13,21 +13,47 @@
 #include "testutil/resources/parse.hpp"
 #include "testutil/resources/resources.hpp"
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/v0/miner/types.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
+  using primitives::kChainEpochUndefined;
   using primitives::address::decodeFromString;
+  using primitives::sector::RegisteredSealProof;
   using testing::Return;
   using testutil::vm::actor::builtin::ActorTestFixture;
+  using types::miner::CronEventPayload;
+  using types::miner::CronEventType;
+  using types::miner::Deadlines;
+  using types::miner::kWPoStChallengeWindow;
+  using types::miner::kWPoStPeriodDeadlines;
 
-  class MinerActorV0Test : public ActorTestFixture<State> {
+  class MinerActorV0Test : public ActorTestFixture<MinerActorState> {
    public:
     void SetUp() override {
-      ActorTestFixture<State>::SetUp();
+      ActorTestFixture<MinerActorState>::SetUp();
       actorVersion = ActorVersion::kVersion0;
       anyCodeIdAddressIs(kAccountCodeId);
+      ipld->load(state);
+
+      EXPECT_CALL(*state_manager, createMinerActorState(testing::_))
+          .WillRepeatedly(testing::Invoke([&](auto) {
+            auto s = std::make_shared<MinerActorState>();
+            ipld->load(*s);
+            return std::static_pointer_cast<states::MinerActorState>(s);
+          }));
+
+      EXPECT_CALL(*state_manager, getMinerActorState())
+          .WillRepeatedly(testing::Invoke([&]() {
+            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(current_state,
+                                ipld->getCbor<MinerActorState>(cid));
+            auto s = std::make_shared<MinerActorState>(current_state);
+            return std::static_pointer_cast<states::MinerActorState>(s);
+          }));
     }
 
     void expectEnrollCronEvent(const ChainEpoch &proving_period_start) {
@@ -118,7 +144,7 @@ namespace fc::vm::actor::builtin::v0::miner {
             .peer_id = peer_id,
             .multiaddresses = multiaddresses}));
 
-    EXPECT_OUTCOME_TRUE(miner_info, ipld->getCbor<MinerInfo>(state.info));
+    EXPECT_OUTCOME_TRUE(miner_info, ipld->getCbor<MinerInfo>(state.miner_info));
     EXPECT_EQ(miner_info.owner, owner);
     EXPECT_EQ(miner_info.worker, worker);
     EXPECT_EQ(miner_info.control, control_addresses);
@@ -191,7 +217,7 @@ namespace fc::vm::actor::builtin::v0::miner {
             .peer_id = {},
             .multiaddresses = {}}));
 
-    EXPECT_OUTCOME_TRUE(miner_info, ipld->getCbor<MinerInfo>(state.info));
+    EXPECT_OUTCOME_TRUE(miner_info, ipld->getCbor<MinerInfo>(state.miner_info));
     EXPECT_EQ(miner_info.control.size(), 2);
     EXPECT_EQ(miner_info.control[0], controlId1);
     EXPECT_EQ(miner_info.control[1], controlId2);

@@ -14,7 +14,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
     OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(runtime.validateArgument(params.unlock_duration > 0));
     OUTCOME_TRY(runtime.validateArgument(params.amount >= 0));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
     OUTCOME_TRY(v0::multisig::LockBalance::lockBalance(params, state));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();

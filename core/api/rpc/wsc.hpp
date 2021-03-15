@@ -18,10 +18,12 @@
 #include "api/rpc/json.hpp"
 #include "api/rpc/rpc.hpp"
 #include "api/visit.hpp"
+#include "common/logger.hpp"
 
 namespace fc::api::rpc {
   using boost::asio::io_context;
   using libp2p::multi::Multiaddress;
+  using Logger = common::Logger;
 
   struct Client {
     using ResultCb = std::function<void(outcome::result<Document>)>;
@@ -57,5 +59,8 @@ namespace fc::api::rpc {
 
     template <typename M>
     void _setup(Client &c, M &m);
+
+   private:
+    Logger logger_;
   };
 }  // namespace fc::api::rpc

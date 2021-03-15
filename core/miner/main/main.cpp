@@ -20,6 +20,7 @@
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
 #include "common/io_thread.hpp"
+#include "common/outcome.hpp"
 #include "common/peer_key.hpp"
 #include "data_transfer/dt.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
@@ -509,5 +510,7 @@ namespace fc {
 
 int main(int argc, char **argv) {
   OUTCOME_EXCEPT(config, fc::readConfig(argc, argv));
-  OUTCOME_EXCEPT(fc::main(config));
+  if (const auto res{fc::main(config)}; !res) {
+    spdlog::error("main: {:#}", res.error());
+  }
 }

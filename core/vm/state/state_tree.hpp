@@ -3,13 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
-#define CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
+#pragma once
 
-#include "common/outcome2.hpp"
 #include "primitives/types.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
+#include "vm/state/state_tree_error.hpp"
 
 namespace fc::vm::state {
   using actor::Actor;
@@ -29,7 +28,7 @@ namespace fc::vm::state {
   };
 
   /// State tree
-  class StateTree {
+  class StateTree : public std::enable_shared_from_this<StateTree> {
    public:
     /** Used in StateRoot v1 */
     struct StateTreeInfo {
@@ -62,7 +61,7 @@ namespace fc::vm::state {
       if (actor) {
         return *actor;
       }
-      return OutcomeError::kDefault;
+      return StateTreeError::kStateNotFound;
     }
 
     /// Lookup id address from address
@@ -74,7 +73,7 @@ namespace fc::vm::state {
       if (id) {
         return *id;
       }
-      return OutcomeError::kDefault;
+      return StateTreeError::kStateNotFound;
     }
 
     /// Allocate id address and set actor state, does not write to storage
@@ -89,18 +88,9 @@ namespace fc::vm::state {
     virtual void txBegin() = 0;
     virtual void txRevert() = 0;
     virtual void txEnd() = 0;
-
-    /// Get decoded actor state
-    template <typename T>
-    outcome::result<T> state(const Address &address) const {
-      OUTCOME_TRY(actor, get(address));
-      return getStore()->template getCbor<T>(actor.head);
-    }
   };
 
   CBOR_TUPLE_0(StateTree::StateTreeInfo)
   CBOR_TUPLE(StateTree::StateRoot, version, actor_tree_root, info)
 
 }  // namespace fc::vm::state
-
-#endif  // CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP

@@ -13,12 +13,44 @@ namespace fc::vm::toolchain {
     return code == v2::kAccountCodeId;
   }
 
+  bool AddressMatcherV2::isCronActor(const CodeId &code) const {
+    return code == v2::kCronCodeId;
+  }
+
+  bool AddressMatcherV2::isStoragePowerActor(const CodeId &code) const {
+    return code == v2::kStoragePowerCodeId;
+  }
+
+  bool AddressMatcherV2::isStorageMarketActor(const CodeId &code) const {
+    return code == v2::kStorageMarketCodeId;
+  }
+
   bool AddressMatcherV2::isStorageMinerActor(const CodeId &code) const {
     return code == v2::kStorageMinerCodeId;
   }
 
+  bool AddressMatcherV2::isMultisigActor(const CodeId &code) const {
+    return code == v2::kMultisigCodeId;
+  }
+
+  bool AddressMatcherV2::isInitActor(const CodeId &code) const {
+    return code == v2::kInitCodeId;
+  }
+
   bool AddressMatcherV2::isPaymentChannelActor(const CodeId &code) const {
     return code == v2::kPaymentChannelCodeId;
+  }
+
+  bool AddressMatcherV2::isRewardActor(const CodeId &code) const {
+    return code == v2::kRewardActorCodeId;
+  }
+
+  bool AddressMatcherV2::isSystemActor(const CodeId &code) const {
+    return code == v2::kSystemActorCodeId;
+  }
+
+  bool AddressMatcherV2::isVerifiedRegistryActor(const CodeId &code) const {
+    return code == v2::kVerifiedRegistryCodeId;
   }
 
   bool AddressMatcherV2::isBuiltinActor(const CodeId &code) const {

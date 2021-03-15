@@ -3,22 +3,29 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(node
-    blocksync.cpp
-    hello.cpp
-    peermgr.cpp
-    pubsub.cpp
-    )
-target_link_libraries(node
-    cbor_stream
+add_library(sync
+    peers.cpp
+    identify.cpp
+    say_hello.cpp
+    receive_hello.cpp
+    pubsub_gate.cpp
+    blocksync_request.cpp
+    blocksync_server.cpp
+    graphsync_server.cpp
+    sync_job.cpp
+    head_constructor.cpp
+    chain_store_impl.cpp
+    pubsub_workaround.cpp
+    peer_discovery.cpp
     )
 
-add_executable(node_main
-    main.cpp
+target_link_libraries(sync
+    cbor_stream
+    interpreter
+    p2p::libp2p_sqlite
+    p2p::p2p_gossip
+    p2p::p2p_identify
+    p2p::p2p_kademlia
     )
-target_link_libraries(node_main
-    Boost::program_options
-    clock
-    node
-    rpc
-    )
+
+add_subdirectory(main)

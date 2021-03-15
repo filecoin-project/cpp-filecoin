@@ -10,7 +10,7 @@
 #include "miner/storage_fsm/impl/tipset_cache_impl.hpp"
 #include "miner/storage_fsm/precommit_policy.hpp"
 #include "primitives/tipset/tipset_key.hpp"
-#include "vm/actor/builtin/v0/miner/policy.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
 
 namespace fc::miner {
   using mining::BasicPreCommitPolicy;
@@ -22,8 +22,8 @@ namespace fc::miner {
   using mining::TipsetCache;
   using mining::TipsetCacheImpl;
   using primitives::tipset::TipsetKey;
-  using vm::actor::builtin::v0::miner::kMaxSectorExpirationExtension;
-  using vm::actor::builtin::v0::miner::kWPoStProvingPeriod;
+  using vm::actor::builtin::types::miner::kMaxSectorExpirationExtension;
+  using vm::actor::builtin::types::miner::kWPoStProvingPeriod;
 
   MinerImpl::MinerImpl(std::shared_ptr<FullNodeApi> api,
                        Address miner_address,

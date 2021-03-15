@@ -5,14 +5,28 @@
 
 #pragma once
 
+#include <libp2p/multi/multiaddress.hpp>
 #include "codec/cbor/streams_annotation.hpp"
+#include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/miner/types.hpp"
+#include "vm/actor/builtin/types/miner/types.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
+  using common::Buffer;
+  using crypto::randomness::Randomness;
+  using libp2p::multi::Multiaddress;
+  using primitives::ChainEpoch;
+  using primitives::RleBitset;
+  using primitives::SectorNumber;
+  using primitives::TokenAmount;
+  using primitives::address::Address;
   using primitives::sector::PoStProof;
+  using primitives::sector::Proof;
   using primitives::sector::RegisteredSealProof;
+  using types::miner::CronEventPayload;
+  using types::miner::SectorDeclaration;
+  using types::miner::SectorPreCommitInfo;
 
   /**
    * Resolves an address to an ID address and verifies that it is address of an

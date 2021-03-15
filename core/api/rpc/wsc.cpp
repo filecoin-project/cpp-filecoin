@@ -6,14 +6,17 @@
 #include "api/rpc/wsc.hpp"
 
 #include "api/rpc/json.hpp"
-#include "api/visit.hpp"
+#include "api/rpc/web_socket_client_error.hpp"
 #include "codec/json/json.hpp"
 #include "common/ptr.hpp"
 #include "common/which.hpp"
 
 namespace fc::api::rpc {
   Client::Client(io_context &io2)
-      : io2{io2}, work_guard{io.get_executor()}, socket{io} {
+      : io2{io2},
+        work_guard{io.get_executor()},
+        socket{io},
+        logger_{common::createLogger("WebSocket Client")} {
     thread = std::thread{[=]() { io.run(); }};
   }
 
@@ -159,7 +162,9 @@ namespace fc::api::rpc {
             if (common::which<Document>(res.result)) {
               it->second(std::move(boost::get<Document>(res.result)));
             } else {
-              it->second(std::errc::owner_dead);
+              auto err = boost::get<Response::Error>(res.result);
+              logger_->warn("API error: {} {}", err.code, err.message);
+              it->second(WebSocketClientError::kRpcErrorResponse);
             }
             result_queue.erase(it);
           }

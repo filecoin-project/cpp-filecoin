@@ -3,21 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_HPP
-#define CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_HPP
+#pragma once
 
 #include "api/node_api.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::payment_channel_manager {
   using api::AddChannelInfo;
   using api::FullNodeApi;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using vm::actor::builtin::v0::payment_channel::LaneId;
-  using vm::actor::builtin::v0::payment_channel::SignedVoucher;
+  using vm::actor::builtin::types::payment_channel::LaneId;
+  using vm::actor::builtin::types::payment_channel::SignedVoucher;
 
   /**
    * PaymentChannelManager is a module responsible for off-chain payments via
@@ -98,5 +97,3 @@ namespace fc::payment_channel_manager {
     virtual void makeApi(FullNodeApi &api) = 0;
   };
 }  // namespace fc::payment_channel_manager
-
-#endif  // CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_HPP

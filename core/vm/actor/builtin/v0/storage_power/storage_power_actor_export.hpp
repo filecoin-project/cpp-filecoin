@@ -11,13 +11,14 @@
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/storage_power/policy.hpp"
+#include "vm/actor/builtin/types/storage_power/policy.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
   using common::smoothing::FilterEstimate;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
   using primitives::SectorStorageWeightDesc;
+  using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::sector::RegisteredSealProof;
   using primitives::sector::SealVerifyInfo;

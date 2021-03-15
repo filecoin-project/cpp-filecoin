@@ -95,10 +95,10 @@ namespace fc::drand::http {
             [](auto &&j) {
               using namespace Json;
               return ChainInfo{
-                  BlsPublicKey::fromSpan(*jUnhex(jGet(j, "public_key")))
+                  BlsPublicKey::fromSpan(*jUnhex(*jGet(j, "public_key")))
                       .value(),
-                  seconds{*jInt(jGet(j, "genesis_time"))},
-                  seconds{*jUint(jGet(j, "period"))},
+                  seconds{*jInt(*jGet(j, "genesis_time"))},
+                  seconds{*jUint(*jGet(j, "period"))},
               };
             },
             std::move(cb)));
@@ -122,9 +122,10 @@ namespace fc::drand::http {
             [](auto &&j) {
               using namespace Json;
               PublicRandResponse r{
-                  *jUint(jGet(j, "round")),
-                  BlsSignature::fromSpan(*jUnhex(jGet(j, "signature"))).value(),
-                  *jUnhex(jGet(j, "previous_signature")),
+                  *jUint(*jGet(j, "round")),
+                  BlsSignature::fromSpan(*jUnhex(*jGet(j, "signature")))
+                      .value(),
+                  *jUnhex(*jGet(j, "previous_signature")),
               };
               if (r.prev.size()
                   != (r.round == 1 ? common::Hash256::size()

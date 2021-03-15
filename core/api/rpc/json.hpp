@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_API_RPC_JSON_HPP
-#define CPP_FILECOIN_CORE_API_RPC_JSON_HPP
+#pragma once
 
 #include <rapidjson/document.h>
 #include <cppcodec/base64_rfc4648.hpp>
@@ -20,6 +19,9 @@
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "sector_storage/stores/storage.hpp"
+#include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/miner/miner_info.hpp"
+#include "vm/actor/builtin/types/miner/types.hpp"
 
 #define COMMA ,
 
@@ -43,6 +45,7 @@ namespace fc::api {
   using markets::storage::StorageAsk;
   using primitives::BigInt;
   using primitives::FsStat;
+  using primitives::kChainEpochUndefined;
   using primitives::LocalStorageMeta;
   using primitives::StoragePath;
   using primitives::TaskType;
@@ -67,14 +70,16 @@ namespace fc::api {
   using sector_storage::stores::PathType;
   using sector_storage::stores::StorageConfig;
   using sector_storage::stores::StorageInfo;
-  using vm::actor::builtin::v0::market::DealProposal;
-  using vm::actor::builtin::v0::market::DealState;
-  using vm::actor::builtin::v0::market::StorageParticipantBalance;
-  using vm::actor::builtin::v0::miner::PowerPair;
-  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
-  using vm::actor::builtin::v0::miner::WorkerKeyChange;
-  using vm::actor::builtin::v0::payment_channel::Merge;
-  using vm::actor::builtin::v0::payment_channel::ModularVerificationParameter;
+  using vm::actor::builtin::types::market::DealProposal;
+  using vm::actor::builtin::types::market::DealState;
+  using vm::actor::builtin::types::market::StorageParticipantBalance;
+  using vm::actor::builtin::types::miner::MinerInfo;
+  using vm::actor::builtin::types::miner::PowerPair;
+  using vm::actor::builtin::types::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::types::miner::WorkerKeyChange;
+  using vm::actor::builtin::types::payment_channel::Merge;
+  using vm::actor::builtin::types::payment_channel::
+      ModularVerificationParameter;
   using vm::runtime::ExecutionResult;
   using base64 = cppcodec::base64_rfc4648;
 
@@ -476,6 +481,13 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Owner", v.owner);
       Set(j, "Worker", v.worker);
+      if (v.pending_worker_key.has_value()) {
+        Set(j, "NewWorker", v.pending_worker_key.value().new_worker);
+        Set(j, "WorkerChangeEpoch", v.pending_worker_key.value().effective_at);
+      } else {
+        Set(j, "NewWorker", "<empty>");
+        Set(j, "WorkerChangeEpoch", kChainEpochUndefined);
+      }
       Set(j, "ControlAddresses", v.control);
       boost::optional<std::string> peer_id;
       if (!v.peer_id.empty()) {
@@ -494,6 +506,20 @@ namespace fc::api {
       Get(j, "Owner", v.owner);
       Get(j, "Worker", v.worker);
       Get(j, "ControlAddresses", v.control);
+      std::string new_worker;
+      Get(j, "NewWorker", new_worker);
+      ChainEpoch worker_change_epoch;
+      Get(j, "WorkerChangeEpoch", worker_change_epoch);
+      if (new_worker == "<empty>"
+          && worker_change_epoch == kChainEpochUndefined) {
+        v.pending_worker_key = boost::none;
+      } else {
+        OUTCOME_EXCEPT(new_worker_address,
+                       primitives::address::decodeFromString(new_worker));
+        v.pending_worker_key =
+            WorkerKeyChange{.new_worker = new_worker_address,
+                            .effective_at = worker_change_epoch};
+      }
       boost::optional<PeerId> peer_id;
       Get(j, "PeerId", peer_id);
       if (peer_id) {
@@ -562,16 +588,6 @@ namespace fc::api {
 
     DECODE(MessageSendSpec) {
       Get(j, "MaxFee", v.max_fee);
-    }
-
-    ENCODE(Deadlines) {
-      Value j{rapidjson::kObjectType};
-      Set(j, "Due", v.due);
-      return j;
-    }
-
-    DECODE(Deadlines) {
-      Get(j, "Due", v.due);
     }
 
     ENCODE(BlockHeader) {
@@ -974,6 +990,16 @@ namespace fc::api {
       Get(j, "RecoveringSectors", v.recovering);
       Get(j, "LiveSectors", v.live);
       Get(j, "ActiveSectors", v.active);
+    }
+
+    ENCODE(Deadline) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PostSubmissions", v.post_submissions);
+      return j;
+    }
+
+    DECODE(Deadline) {
+      Get(j, "PostSubmissions", v.post_submissions);
     }
 
     ENCODE(SectorPreCommitInfo) {
@@ -1800,5 +1826,3 @@ namespace fc::api {
     }
   }
 }  // namespace fc::api
-
-#endif  // CPP_FILECOIN_CORE_API_RPC_JSON_HPP

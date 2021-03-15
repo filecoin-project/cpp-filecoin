@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_IMPL_HPP
-#define CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_IMPL_HPP
+#pragma once
 
 #include "vm/state/state_tree.hpp"
 
@@ -60,5 +59,3 @@ namespace fc::vm::state {
     mutable std::vector<Tx> tx_;
   };
 }  // namespace fc::vm::state
-
-#endif  // CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_IMPL_HPP

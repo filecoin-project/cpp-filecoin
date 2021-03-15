@@ -56,7 +56,7 @@ namespace fc::sector_storage {
 
     auto maybe_json = fc::codec::json::format(&json_doc);
 
-    if (maybe_json.has_error()) {
+    if (!maybe_json) {
       logger->error("Error remote get sector: {}",
                     maybe_json.error().message());
       return makeErrorResponse(request, http::status::internal_server_error);

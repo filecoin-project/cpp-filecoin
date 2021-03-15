@@ -74,6 +74,9 @@ namespace fc::storage::ipfs::graphsync {
       return res.error();
     }
 
+    logger()->debug(
+        "enqueueing response, size=", res.value()->size());
+
     return enqueue(std::move(res.value()));
   }
 

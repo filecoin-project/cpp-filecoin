@@ -13,13 +13,18 @@ namespace fc::vm::actor::builtin::v0::account {
     if (!params.isKeyType()) {
       ABORT(VMExitCode::kErrIllegalArgument);
     }
-    OUTCOME_TRY(runtime.commitState(AccountActorState{params}));
+
+    auto state = runtime.stateManager()->createAccountActorState(
+        runtime.getActorVersion());
+    state->address = params;
+
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(PubkeyAddress) {
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<AccountActorState>());
-    return state.address;
+    OUTCOME_TRY(state, runtime.stateManager()->getAccountActorState());
+    return state->address;
   }
 
   const ActorExports exports{

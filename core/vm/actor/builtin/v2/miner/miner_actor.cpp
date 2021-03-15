@@ -4,10 +4,9 @@
  */
 
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
+
+#include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
-#include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v2/miner/policy.hpp"
-#include "vm/actor/builtin/v2/miner/types.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
@@ -15,15 +14,8 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::RleBitset;
   using primitives::sector::RegisteredSealProof;
   using toolchain::Toolchain;
-  using v0::miner::CronEventPayload;
-  using v0::miner::CronEventType;
-  using v0::miner::Deadlines;
-  using v0::miner::kWPoStChallengeWindow;
-  using v0::miner::kWPoStPeriodDeadlines;
-  using v0::miner::kWPoStProvingPeriod;
   using v0::miner::resolveControlAddress;
-  using v0::miner::SectorOnChainInfo;
-  using v0::miner::VestingFunds;
+  using namespace types::miner;
 
   /**
    * Resolves an address to an ID address and verifies that it is address of an
@@ -147,29 +139,26 @@ namespace fc::vm::actor::builtin::v2::miner {
       control_addresses.push_back(resolved);
     }
 
-    State state;
+    auto state = runtime.stateManager()->createMinerActorState(
+        runtime.getActorVersion());
 
     // Lotus gas conformance - flush empty hamt
-    state.precommitted_sectors = {};
-    runtime.getIpfsDatastore()->load(state);
-    OUTCOME_TRY(state.precommitted_sectors.hamt.flush());
+    OUTCOME_TRY(state->precommitted_sectors.hamt.flush());
 
     // Lotus gas conformance - flush empty hamt
-    state.precommitted_setctors_expiry = {};
-    runtime.getIpfsDatastore()->load(state);
 
-    OUTCOME_TRY(empty_amt_cid, state.precommitted_setctors_expiry.amt.flush());
+    OUTCOME_TRY(empty_amt_cid, state->precommitted_setctors_expiry.amt.flush());
 
     RleBitset allocated_sectors;
-    OUTCOME_TRY(state.allocated_sectors.set(allocated_sectors));
+    OUTCOME_TRY(state->allocated_sectors.set(allocated_sectors));
 
     OUTCOME_TRY(
         deadlines,
-        Deadlines::makeEmpty(runtime.getIpfsDatastore(), empty_amt_cid));
-    OUTCOME_TRY(state.deadlines.set(deadlines));
+        state->makeEmptyDeadlines(runtime.getIpfsDatastore(), empty_amt_cid));
+    OUTCOME_TRY(state->deadlines.set(deadlines));
 
     VestingFunds vesting_funds;
-    OUTCOME_TRY(state.vesting_funds.set(vesting_funds));
+    OUTCOME_TRY(state->vesting_funds.set(vesting_funds));
 
     const auto current_epoch = runtime.getCurrentEpoch();
     REQUIRE_NO_ERROR_A(
@@ -178,12 +167,12 @@ namespace fc::vm::actor::builtin::v2::miner {
         VMExitCode::kErrSerialization);
     const auto period_start = currentProvingPeriodStart(current_epoch, offset);
     VM_ASSERT(period_start <= current_epoch);
-    state.proving_period_start = period_start;
+    state->proving_period_start = period_start;
 
     OUTCOME_TRY(deadline_index,
                 currentDeadlineIndex(runtime, current_epoch, period_start));
     VM_ASSERT(deadline_index < kWPoStPeriodDeadlines);
-    state.current_deadline = deadline_index;
+    state->current_deadline = deadline_index;
 
     REQUIRE_NO_ERROR_A(miner_info,
                        MinerInfo::make(owner,
@@ -191,13 +180,14 @@ namespace fc::vm::actor::builtin::v2::miner {
                                        control_addresses,
                                        params.peer_id,
                                        params.multiaddresses,
-                                       params.seal_proof_type),
+                                       params.seal_proof_type,
+                                       RegisteredPoStProof::undefined),
                        VMExitCode::kErrIllegalArgument);
-    OUTCOME_TRY(state.info.set(miner_info));
+    OUTCOME_TRY(state->setInfo(runtime.getIpfsDatastore(), miner_info));
 
     // construct with empty already cid stored in ipld to avoid gas charge
-    state.sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid,
-                                                  runtime.getIpfsDatastore());
+    state->sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid,
+                                                   runtime.getIpfsDatastore());
 
     OUTCOME_TRY(runtime.commitState(state));
 

@@ -9,12 +9,14 @@
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include "codec/cbor/cbor.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
+#include "common/outcome_fmt.hpp"
 #include "common/ptr.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/common.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
 

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_CLIENT_IMPL_HPP
-#define CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_CLIENT_IMPL_HPP
+#pragma once
 
 #include <memory>
 
@@ -17,7 +16,7 @@
 #include "markets/retrieval/client/retrieval_client_error.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "storage/ipld/verifier.hpp"
-#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::markets::retrieval::client {
   using api::FullNodeApi;
@@ -28,7 +27,7 @@ namespace fc::markets::retrieval::client {
   using fc::storage::ipld::verifier::Verifier;
   using libp2p::Host;
   using primitives::BigInt;
-  using vm::actor::builtin::v0::payment_channel::LaneId;
+  using vm::actor::builtin::types::payment_channel::LaneId;
 
   /**
    * State of ongoing retrieval deal.
@@ -118,5 +117,3 @@ namespace fc::markets::retrieval::client {
   };
 
 }  // namespace fc::markets::retrieval::client
-
-#endif

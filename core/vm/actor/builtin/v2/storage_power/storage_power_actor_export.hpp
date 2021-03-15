@@ -10,9 +10,7 @@
 
 namespace fc::vm::actor::builtin::v2::storage_power {
 
-  struct Construct : ActorMethodBase<1> {
-    ACTOR_METHOD_DECL();
-  };
+  using Construct = v0::storage_power::Construct;
 
   struct CreateMiner : ActorMethodBase<2> {
     using Params = v0::storage_power::CreateMiner::Params;
@@ -21,41 +19,17 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     ACTOR_METHOD_DECL();
   };
 
-  struct UpdateClaimedPower : ActorMethodBase<3> {
-    using Params = v0::storage_power::UpdateClaimedPower::Params;
-
-    ACTOR_METHOD_DECL();
-  };
-
-  struct EnrollCronEvent : ActorMethodBase<4> {
-    using Params = v0::storage_power::EnrollCronEvent::Params;
-
-    ACTOR_METHOD_DECL();
-  };
+  using UpdateClaimedPower = v0::storage_power::UpdateClaimedPower;
+  using EnrollCronEvent = v0::storage_power::EnrollCronEvent;
 
   struct OnEpochTickEnd : ActorMethodBase<5> {
     ACTOR_METHOD_DECL();
   };
 
-  struct UpdatePledgeTotal : ActorMethodBase<6> {
-    using Params = v0::storage_power::UpdatePledgeTotal::Params;
-
-    ACTOR_METHOD_DECL();
-  };
-
+  using UpdatePledgeTotal = v0::storage_power::UpdatePledgeTotal;
   // method number 7 (OnConsensusFault) deprecated
-
-  struct SubmitPoRepForBulkVerify : ActorMethodBase<8> {
-    using Params = v0::storage_power::SubmitPoRepForBulkVerify::Params;
-
-    ACTOR_METHOD_DECL();
-  };
-
-  struct CurrentTotalPower : ActorMethodBase<9> {
-    using Result = v0::storage_power::CurrentTotalPower::Result;
-
-    ACTOR_METHOD_DECL();
-  };
+  using SubmitPoRepForBulkVerify = v0::storage_power::SubmitPoRepForBulkVerify;
+  using CurrentTotalPower = v0::storage_power::CurrentTotalPower;
 
   extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::v2::storage_power

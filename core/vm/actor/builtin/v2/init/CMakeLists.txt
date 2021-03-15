@@ -5,6 +5,7 @@
 
 add_library(init_actor_v2
     init_actor.cpp
+    init_actor_state.cpp
     )
 target_link_libraries(init_actor_v2
     actor

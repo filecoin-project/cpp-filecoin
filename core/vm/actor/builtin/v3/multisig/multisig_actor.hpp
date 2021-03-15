@@ -7,7 +7,6 @@
 
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/v2/multisig/multisig_actor.hpp"
-#include "vm/actor/builtin/v3/multisig/multisig_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::multisig {
   using primitives::ChainEpoch;
