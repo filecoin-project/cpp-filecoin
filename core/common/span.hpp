@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <cstring>
 #include <gsl/span>
 
 namespace fc {
