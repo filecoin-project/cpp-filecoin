@@ -87,8 +87,9 @@ int main(int argc, char **argv) {
             std::max<Height>(state_min_height, std::stoull(argv[2]))};
         auto max_height{min_height};
         if (argc > 3) {
-          max_height = std::min(state_max_height,
-                                std::max(min_height, std::stoull(argv[3])));
+          max_height =
+              std::min(state_max_height,
+                       std::max<Height>(min_height, std::stoull(argv[3])));
         }
         if (dvm::logger) {
           dvm::logging = true;
