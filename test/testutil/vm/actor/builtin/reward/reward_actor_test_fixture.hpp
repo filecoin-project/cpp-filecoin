@@ -5,9 +5,6 @@
 
 #pragma once
 
-#include <gtest/gtest.h>
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
-#include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
 
 namespace fc::testutil::vm::actor::builtin::reward {

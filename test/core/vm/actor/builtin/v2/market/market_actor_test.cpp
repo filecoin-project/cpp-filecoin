@@ -12,23 +12,17 @@
 #define GCC_DISABLE(name) name
 #endif
 
-#include "vm/actor/builtin/types/market/deal.hpp"
-#include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/v2/market/market_actor.hpp"
 #include "vm/actor/builtin/v2/market/market_actor_state.hpp"
 
-#include <gtest/gtest.h>
-
 #include "primitives/cid/comm_cid.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/crypto/sample_signatures.hpp"
-#include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
+#include "testutil/vm/actor/builtin/market/market_actor_test_fixture.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
-#include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/version.hpp"
 
 #define ON_CALL_3(a, b, c) EXPECT_CALL(a, b).WillRepeatedly(Return(c))
@@ -48,81 +42,82 @@ namespace fc::vm::actor::builtin::v2::market {
   using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceInfo;
   using primitives::sector::RegisteredSealProof;
-  using storage::ipfs::InMemoryDatastore;
   using testing::_;
   using testing::Return;
-  using testutil::vm::actor::builtin::ActorTestFixture;
-  using vm::runtime::MockRuntime;
+  using testutil::vm::actor::builtin::market::MarketActorTestFixture;
   using vm::state::StateTreeImpl;
   using vm::version::NetworkVersion;
   using namespace types::market;
-
-  const auto some_cid = "01000102ffff"_cid;
-  DealId deal_1_id = 13, deal_2_id = 24;
+  using namespace testutil::vm::actor::builtin::market;
 
   /// DealState cbor encoding
   TEST(MarketActorCborTest, DealState) {
     expectEncodeAndReencode(DealState{1, 2, 3}, "83010203"_unhex);
   }
 
-  struct MarketActorTest : public ActorTestFixture<MarketActorState> {
+  struct MarketActorTest : public MarketActorTestFixture<MarketActorState> {
     void SetUp() override {
-      ActorTestFixture<MarketActorState>::SetUp();
+      MarketActorTestFixture<MarketActorState>::SetUp();
       ipld->load(state);
       actorVersion = ActorVersion::kVersion2;
-
-      runtime.resolveAddressWith(state_tree);
-
-      currentEpochIs(50000);
 
       addressCodeIdIs(miner_address, kStorageMinerCodeId);
       addressCodeIdIs(owner_address, kAccountCodeId);
       addressCodeIdIs(worker_address, kAccountCodeId);
       addressCodeIdIs(client_address, kAccountCodeId);
       addressCodeIdIs(kInitAddress, kInitCodeId);
-
-      EXPECT_CALL(*state_manager, createMarketActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<MarketActorState>();
-            ipld->load(*s);
-            return std::static_pointer_cast<states::MarketActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getMarketActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<MarketActorState>(cid));
-            auto s = std::make_shared<MarketActorState>(current_state);
-            return std::static_pointer_cast<states::MarketActorState>(s);
-          }));
-    }
-
-    void expectSendFunds(const Address &address, TokenAmount amount) {
-      EXPECT_CALL(runtime, send(address, kSendMethodNumber, testing::_, amount))
-          .WillOnce(Return(outcome::success()));
-    }
-
-    void expectHasDeal(DealId deal_id, const DealProposal &deal, bool has) {
-      if (has) {
-        EXPECT_OUTCOME_EQ(state.proposals.get(deal_id), deal);
-      } else {
-        EXPECT_OUTCOME_EQ(state.proposals.has(deal_id), has);
-      }
     }
 
     ClientDealProposal setupPublishStorageDeals();
-
-    DealProposal setupVerifyDealsOnSectorProveCommit(
-        const std::function<void(DealProposal &)> &prepare);
-
-    Address miner_address{Address::makeFromId(100)};
-    Address owner_address{Address::makeFromId(101)};
-    Address worker_address{Address::makeFromId(102)};
-    Address client_address{Address::makeFromId(103)};
-
-    StateTreeImpl state_tree{ipld};
   };
+
+  ClientDealProposal MarketActorTest::setupPublishStorageDeals() {
+    ClientDealProposal proposal;
+    auto &deal = proposal.proposal;
+    auto duration = dealDurationBounds(deal.piece_size).min + 1;
+    deal.piece_cid =
+        dataCommitmentV1ToCID(std::vector<uint8_t>(32, 'x')).value();
+    deal.piece_size = 128;
+    deal.verified = false;
+    deal.start_epoch = current_epoch;
+    deal.end_epoch = deal.start_epoch + duration;
+    deal.storage_price_per_epoch =
+        dealPricePerEpochBounds(deal.piece_size, duration).min + 1;
+    deal.provider_collateral =
+        dealProviderCollateralBounds(deal.piece_size,
+                                     deal.verified,
+                                     0,
+                                     0,
+                                     0,
+                                     0,
+                                     NetworkVersion::kVersion0)
+            .min
+        + 1;
+    deal.client_collateral =
+        dealClientCollateralBounds(deal.piece_size, duration).min + 1;
+    deal.provider = miner_address;
+    deal.client = client_address;
+
+    EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(
+        miner_address, deal.providerBalanceRequirement()));
+    EXPECT_OUTCOME_TRUE_1(state.locked_table.set(miner_address, 0));
+    EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(
+        client_address, deal.clientBalanceRequirement()));
+    EXPECT_OUTCOME_TRUE_1(state.locked_table.set(client_address, 0));
+
+    callerIs(worker_address);
+    runtime.expectSendM<MinerActor::ControlAddresses>(
+        miner_address, {}, 0, {owner_address, worker_address, {}});
+    ON_CALL_3(runtime,
+              verifySignature(testing::_, client_address, testing::_),
+              outcome::success(true));
+    ON_CALL_3(
+        runtime,
+        verifySignature(testing::_, testing::Not(client_address), testing::_),
+        outcome::success(false));
+
+    return proposal;
+  }
 
   TEST_F(MarketActorTest, ConstructorCallerNotInit) {
     callerIs(client_address);
@@ -179,54 +174,6 @@ namespace fc::vm::actor::builtin::v2::market {
     EXPECT_OUTCOME_EQ(state.escrow_table.get(miner_address),
                       escrow - extracted);
     EXPECT_OUTCOME_EQ(state.locked_table.get(miner_address), locked);
-  }
-
-  ClientDealProposal MarketActorTest::setupPublishStorageDeals() {
-    ClientDealProposal proposal;
-    auto &deal = proposal.proposal;
-    auto duration = dealDurationBounds(deal.piece_size).min + 1;
-    deal.piece_cid =
-        dataCommitmentV1ToCID(std::vector<uint8_t>(32, 'x')).value();
-    deal.piece_size = 128;
-    deal.verified = false;
-    deal.start_epoch = current_epoch;
-    deal.end_epoch = deal.start_epoch + duration;
-    deal.storage_price_per_epoch =
-        dealPricePerEpochBounds(deal.piece_size, duration).min + 1;
-    deal.provider_collateral =
-        dealProviderCollateralBounds(deal.piece_size,
-                                     deal.verified,
-                                     0,
-                                     0,
-                                     0,
-                                     0,
-                                     NetworkVersion::kVersion0)
-            .min
-        + 1;
-    deal.client_collateral =
-        dealClientCollateralBounds(deal.piece_size, duration).min + 1;
-    deal.provider = miner_address;
-    deal.client = client_address;
-
-    EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(
-        miner_address, deal.providerBalanceRequirement()));
-    EXPECT_OUTCOME_TRUE_1(state.locked_table.set(miner_address, 0));
-    EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(
-        client_address, deal.clientBalanceRequirement()));
-    EXPECT_OUTCOME_TRUE_1(state.locked_table.set(client_address, 0));
-
-    callerIs(worker_address);
-    runtime.expectSendM<MinerActor::ControlAddresses>(
-        miner_address, {}, 0, {owner_address, worker_address, {}});
-    ON_CALL_3(runtime,
-              verifySignature(testing::_, client_address, testing::_),
-              outcome::success(true));
-    ON_CALL_3(
-        runtime,
-        verifySignature(testing::_, testing::Not(client_address), testing::_),
-        outcome::success(false));
-
-    return proposal;
   }
 
   TEST_F(MarketActorTest, PublishStorageDealsNoDeals) {
@@ -439,22 +386,6 @@ namespace fc::vm::actor::builtin::v2::market {
                       deal.providerBalanceRequirement());
     EXPECT_OUTCOME_EQ(state.locked_table.get(client_address),
                       deal.clientBalanceRequirement());
-  }
-
-  DealProposal MarketActorTest::setupVerifyDealsOnSectorProveCommit(
-      const std::function<void(DealProposal &)> &prepare) {
-    DealProposal deal;
-    deal.piece_size = 3;
-    deal.piece_cid = some_cid;
-    deal.provider = miner_address;
-    deal.start_epoch = current_epoch;
-    deal.end_epoch = deal.start_epoch + 10;
-    prepare(deal);
-    EXPECT_OUTCOME_TRUE_1(state.proposals.set(deal_1_id, deal));
-
-    callerIs(miner_address);
-
-    return deal;
   }
 
   TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitCallerNotMiner) {
