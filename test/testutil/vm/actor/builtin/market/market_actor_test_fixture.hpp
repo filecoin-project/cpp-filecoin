@@ -49,7 +49,7 @@ namespace fc::testutil::vm::actor::builtin::market {
       EXPECT_CALL(*state_manager, createMarketActorState(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<State>();
-            ipld->load(*s);
+            loadState(*s);
             return std::static_pointer_cast<BaseMarketActorState>(s);
           }));
 
@@ -61,6 +61,10 @@ namespace fc::testutil::vm::actor::builtin::market {
             auto s = std::make_shared<State>(current_state);
             return std::static_pointer_cast<BaseMarketActorState>(s);
           }));
+    }
+
+    void loadState(State &s) {
+      ipld->load(s);
     }
 
     void expectSendFunds(const Address &address, TokenAmount amount) {
