@@ -382,7 +382,7 @@ namespace fc::sector_storage::stores {
     ec.clear();
 
     if (content_type == "application/x-tar") {
-      auto result = fc::common::extractTar(temp_file_path, output_path);
+      auto result = common::extractTar(temp_file_path, output_path);
       fs::remove_all(temp_file_path, ec);
       if (ec.failed()) {
         logger_->warn("fetch: failed to remove archive - {}", ec.message());
