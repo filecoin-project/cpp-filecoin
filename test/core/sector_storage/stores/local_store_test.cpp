@@ -50,7 +50,7 @@ void createMetaFile(const std::string &storage_path,
   boost::filesystem::path file(storage_path);
   file /= kMetaFileName;
   OUTCOME_EXCEPT(text, fc::codec::json::format(fc::api::encode(meta)));
-  OUTCOME_EXCEPT(fc::common::writeFile(file.string(), text));
+  OUTCOME_EXCEPT(fc::common::writeFile(file, text));
 }
 
 class LocalStoreTest : public test::BaseFS_Test {

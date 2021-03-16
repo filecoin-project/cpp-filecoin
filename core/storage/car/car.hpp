@@ -6,6 +6,8 @@
 #ifndef CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
 #define CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
 
+#include <boost/filesystem.hpp>
+
 #include "storage/ipfs/datastore.hpp"
 #include "storage/ipld/selector.hpp"
 
@@ -55,6 +57,9 @@ namespace fc::storage::car {
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store,
                                             const std::string &car_path);
+
+  outcome::result<std::vector<CID>> loadCar(
+      Ipld &store, const boost::filesystem::path &car_path);
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input);
 

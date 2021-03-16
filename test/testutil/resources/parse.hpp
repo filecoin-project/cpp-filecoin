@@ -5,15 +5,17 @@
 
 #pragma once
 
+#include <boost/filesystem.hpp>
 #include <fstream>
+
 #include "primitives/big_int.hpp"
 
 namespace fc {
   using primitives::BigInt;
 
-  inline void parseFile(const std::string &path,
+  inline void parseFile(const boost::filesystem::path &path,
                         std::function<void(std::stringstream &)> f) {
-    std::ifstream in(path);
+    std::ifstream in(path.c_str());
     std::vector<std::pair<BigInt, BigInt>> res;
 
     std::string line;
@@ -31,7 +33,7 @@ namespace fc {
    * @return (x, y) vector
    */
   inline std::vector<std::pair<BigInt, BigInt>> parseCsvPair(
-      const std::string &path) {
+      const boost::filesystem::path &path) {
     std::vector<std::pair<BigInt, BigInt>> res;
     auto parsePair = [&res](std::stringstream &ss) {
       std::string x;
@@ -54,7 +56,7 @@ namespace fc {
    * @return (x, y, z) vector
    */
   inline std::vector<std::tuple<BigInt, BigInt, BigInt>> parseCsvTriples(
-      const std::string &path) {
+      const boost::filesystem::path &path) {
     std::vector<std::tuple<BigInt, BigInt, BigInt>> res;
     auto parsePair = [&res](std::stringstream &ss) {
       std::string x;

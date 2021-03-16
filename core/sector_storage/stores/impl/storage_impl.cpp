@@ -28,9 +28,8 @@
 #include "api/rpc/json.hpp"
 
 namespace fc::sector_storage::stores {
-  LocalStorageImpl::LocalStorageImpl(std::string path)
-      : config_path_{
-          (boost::filesystem::path(path) / kStorageConfig).string()} {}
+  LocalStorageImpl::LocalStorageImpl(const boost::filesystem::path &path)
+      : config_path_{boost::filesystem::path(path) / kStorageConfig} {}
 
   outcome::result<FsStat> LocalStorageImpl::getStat(
       const std::string &path) const {

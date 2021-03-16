@@ -3,23 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <string>
+#include <boost/filesystem.hpp>
 
 #define RESOURCES_ROOT "@TEST_RESOURCES_PATH@"
 
-auto resourcePath(std::string s) {
-  return std::string{RESOURCES_ROOT} + "/" + s;
+inline auto resourcePath(const std::string &resource) {
+  return boost::filesystem::path{RESOURCES_ROOT} / resource;
 }
 
 /**
  * Binary payload from go-fil-markets integration tests
  * https://github.com/filecoin-project/go-fil-markets/blob/5e9a9cbac406599049c4cef6f67527fbc49a9684/storagemarket/fixtures/payload.txt
  */
-#define PAYLOAD_FILE "@TEST_RESOURCES_PATH@/payload.txt"
+#define PAYLOAD_FILE resourcePath("payload.txt")
 
 /**
  * Selective car generated from binary payload from go-fil-markets integration
  * test
  * https://github.com/filecoin-project/go-fil-markets/blob/5e9a9cbac406599049c4cef6f67527fbc49a9684/storagemarket/integration_test.go#L39
  */
-#define CAR_FROM_PAYLOAD_FILE "@TEST_RESOURCES_PATH@/payload_selective.car"
+#define CAR_FROM_PAYLOAD_FILE resourcePath("payload_selective.car")

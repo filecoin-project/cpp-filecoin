@@ -5,11 +5,13 @@
 
 #pragma once
 
+#include <boost/filesystem.hpp>
+
 #include "sector_storage/stores/storage.hpp"
 
 namespace fc::sector_storage::stores {
   struct LocalStorageImpl : LocalStorage {
-    LocalStorageImpl(std::string path);
+    LocalStorageImpl(const boost::filesystem::path &path);
 
     outcome::result<FsStat> getStat(const std::string &path) const override;
     outcome::result<boost::optional<StorageConfig>> getStorage() const override;
@@ -19,6 +21,6 @@ namespace fc::sector_storage::stores {
         const std::string &path) const override;
 
    private:
-    std::string config_path_;
+    boost::filesystem::path config_path_;
   };
 }  // namespace fc::sector_storage::stores
