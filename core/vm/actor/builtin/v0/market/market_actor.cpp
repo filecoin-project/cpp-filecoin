@@ -204,7 +204,7 @@ namespace fc::vm::actor::builtin::v0::market {
                        utils->validateDealsForActivation(
                            state, params.deals, params.sector_expiry),
                        VMExitCode::kErrIllegalState);
-    return result;
+    return std::move(result);
   }
 
   ACTOR_METHOD_IMPL(VerifyDealsForActivation) {
