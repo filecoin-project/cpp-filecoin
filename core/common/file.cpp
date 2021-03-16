@@ -5,6 +5,7 @@
 
 #include "common/file.hpp"
 
+#include <boost/filesystem/operations.hpp>
 #include <fstream>
 
 #include "common/error_text.hpp"
