@@ -40,8 +40,7 @@ namespace fc::common {
       boost::filesystem::create_directories(path.parent_path());
     }
     std::ofstream file{path.c_str(), std::ios::binary};
-    if (file.good()) {
-      file.write(span::bytestr(input.data()), input.size());
+    if (file.write(span::bytestr(input.data()), input.size()).good()) {
       return outcome::success();
     }
     return ERROR_TEXT("writeFile: error");
