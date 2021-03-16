@@ -21,8 +21,7 @@ namespace fc::common {
   Outcome<Buffer> readFile(const boost::filesystem::path &path);
 
   outcome::result<void> writeFile(const boost::filesystem::path &path,
-                                  BytesIn input,
-                                  bool tmp = false);
+                                  BytesIn input);
 
   /** returns true on success */
   inline bool read(std::istream &is, gsl::span<uint8_t> bytes) {

@@ -133,10 +133,15 @@ namespace fc::storage::cids_index {
     }
     std::sort(rows.begin() + 1, rows.end() - 1);
 
+    auto tmp_index_path{boost::filesystem::temp_directory_path()
+                        / boost::filesystem::unique_path()};
     OUTCOME_TRY(common::writeFile(
-        index_path,
-        common::span::cast<const uint8_t>(gsl::make_span(rows)),
-        true));
+        tmp_index_path,
+        common::span::cast<const uint8_t>(gsl::make_span(rows))));
+    boost::filesystem::rename(tmp_index_path, index_path, ec);
+    if (ec) {
+      return ec;
+    }
 
     auto index{std::make_shared<MemoryIndex>()};
     index->rows = std::move(rows);

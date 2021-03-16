@@ -23,7 +23,7 @@ namespace fc::common {
   }
 
   Outcome<Buffer> readFile(const boost::filesystem::path &path) {
-    std::ifstream file{path.string(), std::ios::binary | std::ios::ate};
+    std::ifstream file{path.c_str(), std::ios::binary | std::ios::ate};
     if (file.good()) {
       Buffer buffer;
       buffer.resize(file.tellg());
@@ -35,25 +35,12 @@ namespace fc::common {
   }
 
   outcome::result<void> writeFile(const boost::filesystem::path &path,
-                                  BytesIn input,
-                                  bool tmp) {
+                                  BytesIn input) {
     if (path.has_parent_path()) {
       boost::filesystem::create_directories(path.parent_path());
     }
-    if (tmp) {
-      auto tmp_path{boost::filesystem::temp_directory_path()
-                    / boost::filesystem::unique_path()};
-      OUTCOME_TRY(writeFile(tmp_path.string(), input, false));
-      boost::system::error_code ec;
-      boost::filesystem::rename(tmp_path, path, ec);
-      if (ec) {
-        return ec;
-      }
-      return outcome::success();
-    }
-    std::ofstream file{path.string(), std::ios::binary};
-    if (file.good()) {
-      file.write(span::bytestr(input.data()), input.size());
+    std::ofstream file{path.c_str(), std::ios::binary};
+    if (file.write(span::bytestr(input.data()), input.size()).good()) {
       return outcome::success();
     }
     return ERROR_TEXT("writeFile: error");
