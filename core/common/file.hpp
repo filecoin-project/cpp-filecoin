@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
 
 #include "common/buffer.hpp"
