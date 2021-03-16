@@ -8,3 +8,9 @@ addtest(sector_stat_test
         )
 target_link_libraries(sector_stat_test
         sector_stat)
+
+addtest(tipset_cache_test
+        tipset_cache_test.cpp
+        )
+target_link_libraries(tipset_cache_test
+        tipset_cache)

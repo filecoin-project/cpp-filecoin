@@ -10,9 +10,12 @@
 
 #include "primitives/tipset/tipset_key.hpp"
 
+#include <shared_mutex>
+
 namespace fc::mining {
   using primitives::tipset::TipsetKey;
 
+  // TODO(ortyomka): [FIL-370] update it
   class TipsetCacheImpl : public TipsetCache {
    public:
     using GetTipsetFunction =
@@ -33,6 +36,8 @@ namespace fc::mining {
 
    private:
     int64_t mod(int64_t x);
+
+    mutable std::shared_mutex mutex_;
 
     std::vector<boost::optional<Tipset>> cache_;
 
