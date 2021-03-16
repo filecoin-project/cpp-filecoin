@@ -35,7 +35,9 @@ namespace fc::common {
 
   outcome::result<void> writeFile(const boost::filesystem::path &path,
                                   BytesIn input) {
-    boost::filesystem::create_directories(path.parent_path());
+    if (path.has_parent_path()) {
+      boost::filesystem::create_directories(path.parent_path());
+    }
     std::ofstream file{path.c_str(), std::ios::binary};
     if (file.good()) {
       file.write(span::bytestr(input.data()), input.size());
