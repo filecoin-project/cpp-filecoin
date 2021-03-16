@@ -438,10 +438,11 @@ namespace fc::markets::storage::test {
       return new_client;
     }
 
-    outcome::result<DataRef> makeDataRef(const std::string &file_path) {
-      OUTCOME_TRY(
-          piece_commitment,
-          piece_io_->generatePieceCommitment(registered_proof, file_path));
+    outcome::result<DataRef> makeDataRef(
+        const boost::filesystem::path &file_path) {
+      OUTCOME_TRY(piece_commitment,
+                  piece_io_->generatePieceCommitment(registered_proof,
+                                                     file_path.string()));
       OUTCOME_TRY(roots, fc::storage::car::loadCar(*ipld_client, file_path));
       return DataRef{.transfer_type = kTransferTypeManual,
                      .root = roots[0],

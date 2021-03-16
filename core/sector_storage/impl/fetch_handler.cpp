@@ -129,8 +129,7 @@ namespace fc::sector_storage {
           fs::remove_all(temp_file);
         }
       };
-      auto maybe_tar =
-          fc::common::zipTar(maybe_path.value(), temp_file.string());
+      auto maybe_tar = fc::common::zipTar(maybe_path.value(), temp_file);
       if (maybe_tar.has_error()) {
         logger->error("Error remote get sector: {}",
                       maybe_tar.error().message());

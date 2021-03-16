@@ -6,15 +6,15 @@
 #ifndef CPP_FILECOIN_TEST_TESTUTIL_READ_FILE_HPP
 #define CPP_FILECOIN_TEST_TESTUTIL_READ_FILE_HPP
 
-#include <fstream>
-
 #include <gtest/gtest.h>
+#include <boost/filesystem.hpp>
+#include <fstream>
 
 #include "common/buffer.hpp"
 #include "common/span.hpp"
 
-auto readFile(const std::string &path) {
-  std::ifstream file{path, std::ios::binary | std::ios::ate};
+auto readFile(const boost::filesystem::path &path) {
+  std::ifstream file{path.c_str(), std::ios::binary | std::ios::ate};
   EXPECT_TRUE(file.good()) << "Cannot open file: " << path;
   fc::common::Buffer buffer;
   buffer.resize(file.tellg());
