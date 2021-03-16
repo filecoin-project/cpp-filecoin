@@ -6,7 +6,6 @@
 #pragma once
 
 #include <spdlog/fmt/fmt.h>
-#include <indicators/cursor_control.hpp>
 #include <indicators/progress_bar.hpp>
 
 namespace fc::storage::cids_index {
@@ -53,7 +52,6 @@ namespace fc::storage::cids_index {
     size_t max_progress{};
 
     inline void begin() {
-      indicators::show_console_cursor(false);
       max_progress = car_size + 1;
       bar.set_option(indicators::option::MaxProgress{max_progress});
       bar.set_option(indicators::option::PrefixText{"reading "});
@@ -77,7 +75,6 @@ namespace fc::storage::cids_index {
     inline void end() {
       bar.set_option(indicators::option::PrefixText{"indexed "});
       bar.set_progress(max_progress);
-      indicators::show_console_cursor(true);
     }
   };
 }  // namespace fc::storage::cids_index
