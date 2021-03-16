@@ -135,10 +135,6 @@ namespace fc::vm::actor::builtin::v0::market {
                        VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(runtime.validateArgument(proposal.piece_cid != CID()));
 
-    // TODO (a.chernyshov or m.tagirov) check if proposal.piece_cid is defined
-    // can the CID be undef? if so, add optional<CID> to proposal and decode
-    // if no, just remove the comment
-
     // validate CID prefix
     OUTCOME_TRY(runtime.validateArgument(
         proposal.piece_cid.version == CID::Version::V1
