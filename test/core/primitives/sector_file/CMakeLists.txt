@@ -10,5 +10,4 @@ addtest(sector_file_test
 target_link_libraries(sector_file_test
         sector_file
         base_fs_test
-        file
         )

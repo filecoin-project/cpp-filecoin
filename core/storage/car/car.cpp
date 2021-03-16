@@ -6,8 +6,10 @@
 #include "storage/car/car.hpp"
 
 #include <fstream>
+#include <libp2p/multi/uvarint.hpp>
 
 #include "codec/uvarint.hpp"
+#include "common/error_text.hpp"
 #include "common/file.hpp"
 #include "common/span.hpp"
 #include "storage/ipld/traverser.hpp"
@@ -55,6 +57,16 @@ namespace fc::storage::car {
     return std::make_pair(std::move(cid), node);
   }
 
+  outcome::result<std::vector<CID>> readHeader(const std::string &car_path) {
+    std::ifstream car_file{car_path, std::ios::binary};
+    Buffer buffer;
+    if (codec::uvarint::readBytes(car_file, buffer)) {
+      OUTCOME_TRY(header, codec::cbor::decode<CarHeader>(buffer));
+      return header.roots;
+    }
+    return ERROR_TEXT("readHeader: read car header failed");
+  }
+
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input) {
     OUTCOME_TRY(reader, CarReader::make(input));
     while (!reader.end()) {
@@ -68,6 +80,11 @@ namespace fc::storage::car {
                                             const std::string &car_path) {
     OUTCOME_TRY(file, common::mapFile(car_path));
     return loadCar(store, file.second);
+  }
+
+  outcome::result<std::vector<CID>> loadCar(
+      Ipld &store, const boost::filesystem::path &car_path) {
+    return loadCar(store, car_path.string());
   }
 
   void writeUvarint(Buffer &output, uint64_t value) {

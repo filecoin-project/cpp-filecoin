@@ -4,8 +4,8 @@
 [submodule "deps/filecoin-ffi"]
 	path = deps/filecoin-ffi
 	url = https://github.com/filecoin-project/filecoin-ffi.git
-[submodule "test/core/serialization/serialization_vectors"]
-	path = test/core/serialization/serialization_vectors
+[submodule "test/testutil/resources/serialization/serialization_vectors"]
+	path = test/testutil/resources/serialization/serialization_vectors
 	url = https://github.com/filecoin-project/serialization-vectors.git
 [submodule "deps/libsecp256k1"]
 	path = deps/libsecp256k1
@@ -13,3 +13,6 @@
 [submodule "test/testutil/resources/test-vectors"]
 	path = test/testutil/resources/test-vectors
 	url = https://github.com/filecoin-project/test-vectors
+[submodule "deps/indicators"]
+	path = deps/indicators
+	url = https://github.com/p-ranav/indicators.git

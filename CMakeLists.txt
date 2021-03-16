@@ -113,6 +113,7 @@ include_directories(
 include_directories(
     SYSTEM
     # system includes
+    deps/indicators/include
     deps/tinycbor/src
     deps/libsecp256k1/include
 )

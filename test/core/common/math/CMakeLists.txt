@@ -6,3 +6,6 @@
 addtest(math_test
     math_test.cpp
     )
+target_link_libraries(math_test
+    Boost::filesystem
+    )

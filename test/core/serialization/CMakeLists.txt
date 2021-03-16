@@ -9,8 +9,3 @@ addtest(serialization_vectors_test
 target_link_libraries(serialization_vectors_test
     rpc
     )
-target_include_directories(serialization_vectors_test PUBLIC
-  "${CMAKE_CURRENT_BINARY_DIR}"
-  )
-
-configure_file(serialization_vectors.hpp.in serialization_vectors.hpp @ONLY)
