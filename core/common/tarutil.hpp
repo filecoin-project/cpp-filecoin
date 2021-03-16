@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_COMMON_TAR_UTIL_HPP
 #define CPP_FILECOIN_CORE_COMMON_TAR_UTIL_HPP
 
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
 #include <string>
 #include "common/outcome.hpp"
 
