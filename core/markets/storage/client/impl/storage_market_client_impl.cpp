@@ -16,7 +16,7 @@
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
-#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
 

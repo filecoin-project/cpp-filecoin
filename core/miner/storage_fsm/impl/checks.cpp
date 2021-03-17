@@ -14,7 +14,7 @@
 #include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
-#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::mining::checks {

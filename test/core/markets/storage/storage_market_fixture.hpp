@@ -32,7 +32,7 @@
 #include "testutil/mocks/miner/miner_mock.hpp"
 #include "testutil/mocks/sectorblocks/blocks_mock.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
-#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/actor/builtin/v0/market/market_actor.hpp"
 
 namespace fc::markets::storage::test {
   using adt::Channel;

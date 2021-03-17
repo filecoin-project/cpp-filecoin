@@ -4,7 +4,7 @@
 #
 
 add_library(market_actor_v0
-    actor.cpp
+    market_actor.cpp
     market_actor_state.cpp
     market_actor_utils.cpp
     )

@@ -193,7 +193,7 @@ namespace fc::storage::amt {
     --root.count;
     while (root.height > 0) {
       auto &links = boost::get<Node::Links>(root.node.items);
-      if (links.size() != 1 && links.find(0) == links.end()) {
+      if (links.size() != 1 || links.find(0) == links.end()) {
         break;
       }
       OUTCOME_TRY(child, loadLink(root.node, 0, false));

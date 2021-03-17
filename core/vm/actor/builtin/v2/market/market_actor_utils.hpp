@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "vm/actor/builtin/utils/market_actor_utils.hpp"
+#include "vm/actor/builtin/v0/market/market_actor_utils.hpp"
 
-namespace fc::vm::actor::builtin::v0::market {
+namespace fc::vm::actor::builtin::v2::market {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::DealWeight;
@@ -19,35 +19,11 @@ namespace fc::vm::actor::builtin::v0::market {
   using types::market::ClientDealProposal;
   using types::market::DealProposal;
 
-  class MarketUtils : public utils::MarketUtils {
+  class MarketUtils : public v0::market::MarketUtils {
    public:
-    explicit MarketUtils(Runtime &r) : utils::MarketUtils(r) {}
+    explicit MarketUtils(Runtime &r) : v0::market::MarketUtils(r) {}
 
     outcome::result<void> checkWithdrawCaller() const override;
-
-    outcome::result<std::tuple<Address, Address, std::vector<Address>>>
-    escrowAddress(const Address &address) const override;
-
-    outcome::result<void> dealProposalIsInternallyValid(
-        const ClientDealProposal &client_deal) const override;
-
-    outcome::result<TokenAmount> dealGetPaymentRemaining(
-        const DealProposal &deal, ChainEpoch slash_epoch) const override;
-
-    outcome::result<ChainEpoch> genRandNextEpoch(
-        const DealProposal &deal) const override;
-
-    outcome::result<void> deleteDealProposalAndState(
-        MarketActorStatePtr state,
-        DealId deal_id,
-        bool remove_proposal,
-        bool remove_state) const override;
-
-    outcome::result<void> validateDealCanActivate(
-        const DealProposal &deal,
-        const Address &miner,
-        const ChainEpoch &sector_expiration,
-        const ChainEpoch &current_epoch) const override;
 
     outcome::result<void> validateDeal(
         const ClientDealProposal &client_deal,
@@ -73,4 +49,4 @@ namespace fc::vm::actor::builtin::v0::market {
         const DealProposal &deal) const override;
   };
 
-}  // namespace fc::vm::actor::builtin::v0::market
+}  // namespace fc::vm::actor::builtin::v2::market
