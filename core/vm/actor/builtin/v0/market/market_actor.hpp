@@ -77,6 +77,10 @@ namespace fc::vm::actor::builtin::v0::market {
       DealWeight verified_deal_weight;
     };
     ACTOR_METHOD_DECL();
+
+    static outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
+    verifyDealsForActivation(Runtime &runtime,
+                             const VerifyDealsForActivation::Params &params);
   };
   CBOR_TUPLE(VerifyDealsForActivation::Params,
              deals,

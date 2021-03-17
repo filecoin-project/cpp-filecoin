@@ -3,19 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/market/market_actor_utils.hpp"
+#include "vm/actor/builtin/v2/market/market_actor_utils.hpp"
 
 #include <boost/endian/conversion.hpp>
+#include <set>
 
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
-#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
+#include "vm/actor/builtin/v2/reward/reward_actor.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v2/verified_registry/verified_registry_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
-namespace fc::vm::actor::builtin::v0::market {
+namespace fc::vm::actor::builtin::v2::market {
   using crypto::randomness::DomainSeparationTag;
   using libp2p::multi::HashType;
   using primitives::cid::kCommitmentBytesLen;
@@ -23,102 +24,7 @@ namespace fc::vm::actor::builtin::v0::market {
   using namespace types::market;
 
   outcome::result<void> MarketUtils::checkWithdrawCaller() const {
-    return runtime.validateImmediateCallerIsSignable();
-  }
-
-  outcome::result<std::tuple<Address, Address, std::vector<Address>>>
-  MarketUtils::escrowAddress(const Address &address) const {
-    const auto nominal = runtime.resolveAddress(address);
-    OUTCOME_TRY(runtime.validateArgument(!nominal.has_error()));
-
-    const auto code = runtime.getActorCodeID(nominal.value());
-    OUTCOME_TRY(runtime.validateArgument(!code.has_error()));
-
-    const auto address_matcher =
-        Toolchain::createAddressMatcher(runtime.getActorVersion());
-    if (code.value() == address_matcher->getStorageMinerCodeId()) {
-      OUTCOME_TRY(miner,
-                  v0::requestMinerControlAddress(runtime, nominal.value()));
-      return std::make_tuple(nominal.value(),
-                             miner.owner,
-                             std::vector<Address>{miner.owner, miner.worker});
-    }
-    return std::make_tuple(nominal.value(),
-                           nominal.value(),
-                           std::vector<Address>{nominal.value()});
-  }
-
-  outcome::result<void> MarketUtils::dealProposalIsInternallyValid(
-      const ClientDealProposal &client_deal) const {
-    OUTCOME_TRY(buf, codec::cbor::encode(client_deal.proposal));
-    OUTCOME_TRY(
-        verified,
-        runtime.verifySignature(
-            client_deal.client_signature, client_deal.proposal.client, buf));
-    OUTCOME_TRY(runtime.validateArgument(verified));
-
-    return outcome::success();
-  }
-
-  outcome::result<TokenAmount> MarketUtils::dealGetPaymentRemaining(
-      const DealProposal &deal, ChainEpoch slash_epoch) const {
-    VM_ASSERT(slash_epoch <= deal.end_epoch);
-
-    if (slash_epoch < deal.start_epoch) {
-      slash_epoch = deal.start_epoch;
-    }
-
-    const auto duration_remaining = deal.end_epoch - slash_epoch;
-    VM_ASSERT(duration_remaining >= 0);
-
-    return duration_remaining * deal.storage_price_per_epoch;
-  }
-
-  outcome::result<ChainEpoch> MarketUtils::genRandNextEpoch(
-      const DealProposal &deal) const {
-    OUTCOME_TRY(bytes, codec::cbor::encode(deal));
-    OUTCOME_TRY(
-        randomness,
-        runtime.getRandomnessFromBeacon(DomainSeparationTag::MarketDealCronSeed,
-                                        runtime.getCurrentEpoch() - 1,
-                                        bytes));
-    const uint64_t offset = boost::endian::load_big_u64(randomness.data());
-    return deal.start_epoch + offset % kDealUpdatesInterval;
-  }
-
-  outcome::result<void> MarketUtils::deleteDealProposalAndState(
-      MarketActorStatePtr state,
-      DealId deal_id,
-      bool remove_proposal,
-      bool remove_state) const {
-    if (remove_proposal) {
-      OUTCOME_TRY(state->proposals.remove(deal_id));
-    }
-
-    if (remove_state) {
-      OUTCOME_TRY(state->states.remove(deal_id));
-    }
-
-    return outcome::success();
-  }
-
-  outcome::result<void> MarketUtils::validateDealCanActivate(
-      const DealProposal &deal,
-      const Address &miner,
-      const ChainEpoch &sector_expiration,
-      const ChainEpoch &current_epoch) const {
-    if (deal.provider != miner) {
-      return VMExitCode::kErrForbidden;
-    }
-
-    if (current_epoch > deal.start_epoch) {
-      return VMExitCode::kErrIllegalArgument;
-    }
-
-    if (deal.end_epoch > sector_expiration) {
-      return VMExitCode::kErrIllegalArgument;
-    }
-
+    // Do nothing for v2
     return outcome::success();
   }
 
@@ -131,6 +37,8 @@ namespace fc::vm::actor::builtin::v0::market {
                        VMExitCode::kErrIllegalArgument);
 
     const auto &proposal = client_deal.proposal;
+    OUTCOME_TRY(
+        runtime.validateArgument(proposal.label.length() <= kDealMaxLabelSize));
     CHANGE_ERROR_ABORT(proposal.piece_size.validate(),
                        VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(runtime.validateArgument(proposal.piece_cid != CID()));
@@ -186,10 +94,19 @@ namespace fc::vm::actor::builtin::v0::market {
     // Lotus gas conformance
     OUTCOME_TRY(state->proposals.amt.loadRoot());
 
+    std::set<DealId> seen_deals;
+
     DealWeight weight;
     DealWeight verified_weight;
+    uint64_t deal_space = 0;
 
     for (const auto deal_id : deals) {
+      // Make sure we don't double-count deals.
+      const auto seen = seen_deals.insert(deal_id);
+      if (!seen.second) {
+        return VMExitCode::kErrIllegalArgument;
+      }
+
       OUTCOME_TRY(deal, state->proposals.tryGet(deal_id));
       if (!deal.has_value()) {
         return VMExitCode::kErrNotFound;
@@ -205,11 +122,12 @@ namespace fc::vm::actor::builtin::v0::market {
                                            <= deal->start_epoch));
       OUTCOME_TRY(runtime.validateArgument(deal->end_epoch <= sector_expiry));
 
+      deal_space += deal->piece_size;
       const auto space_time = dealWeight(deal.value());
 
       (deal->verified ? verified_weight : weight) += space_time;
     }
-    return std::make_tuple(weight, verified_weight, 0);
+    return std::make_tuple(weight, verified_weight, deal_space);
   }
 
   outcome::result<StoragePower> MarketUtils::getBaselinePowerFromRewardActor()
@@ -242,4 +160,4 @@ namespace fc::vm::actor::builtin::v0::market {
     return outcome::success();
   }
 
-}  // namespace fc::vm::actor::builtin::v0::market
+}  // namespace fc::vm::actor::builtin::v2::market

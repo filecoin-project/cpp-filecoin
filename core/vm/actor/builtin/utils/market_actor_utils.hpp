@@ -32,55 +32,16 @@ namespace fc::vm::actor::builtin::utils {
     explicit MarketUtils(Runtime &r) : runtime(r) {}
     virtual ~MarketUtils() = default;
 
+    virtual outcome::result<void> checkWithdrawCaller() const = 0;
+
     virtual outcome::result<std::tuple<Address, Address, std::vector<Address>>>
     escrowAddress(const Address &address) const = 0;
-
-    virtual outcome::result<void> unlockBalance(
-        MarketActorStatePtr state,
-        const Address &address,
-        const TokenAmount &amount,
-        BalanceLockingReason lock_reason) const = 0;
-
-    virtual outcome::result<void> slashBalance(
-        MarketActorStatePtr state,
-        const Address &address,
-        const TokenAmount &amount,
-        BalanceLockingReason reason) const = 0;
-
-    virtual outcome::result<void> transferBalance(
-        MarketActorStatePtr state,
-        const Address &from,
-        const Address &to,
-        const TokenAmount &amount) const = 0;
-
-    virtual outcome::result<TokenAmount> processDealInitTimedOut(
-        MarketActorStatePtr state, const DealProposal &deal) const = 0;
-
-    virtual outcome::result<void> processDealExpired(
-        MarketActorStatePtr state,
-        const DealProposal &deal,
-        const DealState &deal_state) const = 0;
 
     virtual outcome::result<void> dealProposalIsInternallyValid(
         const ClientDealProposal &client_deal) const = 0;
 
     virtual outcome::result<TokenAmount> dealGetPaymentRemaining(
         const DealProposal &deal, ChainEpoch slash_epoch) const = 0;
-
-    virtual outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
-    updatePendingDealState(MarketActorStatePtr state,
-                           DealId deal_id,
-                           const DealProposal &deal,
-                           const DealState &deal_state,
-                           ChainEpoch epoch) const = 0;
-
-    virtual outcome::result<void> maybeLockBalance(
-        MarketActorStatePtr state,
-        const Address &address,
-        const TokenAmount &amount) const = 0;
-
-    virtual outcome::result<void> lockClientAndProviderBalances(
-        MarketActorStatePtr state, const DealProposal &deal) const = 0;
 
     virtual outcome::result<ChainEpoch> genRandNextEpoch(
         const DealProposal &deal) const = 0;
@@ -103,10 +64,22 @@ namespace fc::vm::actor::builtin::utils {
         const StoragePower &network_raw_power,
         const StoragePower &network_qa_power) const = 0;
 
-    virtual outcome::result<std::tuple<DealWeight, DealWeight>>
+    virtual outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
     validateDealsForActivation(MarketActorStatePtr state,
                                const std::vector<DealId> &deals,
                                const ChainEpoch &sector_expiry) const = 0;
+
+    virtual outcome::result<StoragePower> getBaselinePowerFromRewardActor()
+        const = 0;
+
+    virtual outcome::result<std::tuple<StoragePower, StoragePower>>
+    getRawAndQaPowerFromPowerActor() const = 0;
+
+    virtual outcome::result<void> callVerifRegUseBytes(
+        const DealProposal &deal) const = 0;
+
+    virtual outcome::result<void> callVerifRegRestoreBytes(
+        const DealProposal &deal) const = 0;
 
    protected:
     Runtime &runtime;

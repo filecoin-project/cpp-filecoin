@@ -6,6 +6,7 @@
 add_library(actor_state
     impl/state_provider.cpp
     impl/state_manager_impl.cpp
+    impl/market_actor_state.cpp
     impl/multisig_actor_state.cpp
     impl/power_actor_state.cpp
     )
