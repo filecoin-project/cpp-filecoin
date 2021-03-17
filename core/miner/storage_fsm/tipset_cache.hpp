@@ -18,14 +18,39 @@ namespace fc::mining {
    public:
     virtual ~TipsetCache() = default;
 
+    /**
+     * Added tipset to cache
+     * fill difference in height with boost::none
+     * @param tipset is tipset that should be added
+     * @return success or error
+     */
     virtual outcome::result<void> add(const Tipset &tipset) = 0;
 
+    /**
+     * Revert tipset if it is head
+     * @param tipset is tipset that should be reverted
+     * @return success or error
+     */
     virtual outcome::result<void> revert(const Tipset &tipset) = 0;
 
+    /**
+     * getNotNull tipset from this height
+     * @param height is height of tipset that we want get
+     * @return Tipset or error
+     */
     virtual outcome::result<Tipset> getNonNull(uint64_t height) = 0;
 
+    /**
+     * get Tipset from cache with this height
+     * @param height is height of tipset that we want get
+     * @return optional Tipset or error
+     */
     virtual outcome::result<boost::optional<Tipset>> get(uint64_t height) = 0;
 
+    /**
+     * Get Head tipset
+     * @return head tipset
+     */
     virtual boost::optional<Tipset> best() const = 0;
   };
 
