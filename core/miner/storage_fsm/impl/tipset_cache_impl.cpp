@@ -18,6 +18,8 @@ namespace fc::mining {
   }
 
   outcome::result<void> TipsetCacheImpl::add(const Tipset &tipset) {
+    std::unique_lock lock(mutex_);
+
     if (len_ > 0) {
       if (cache_[start_]->height() >= tipset.height()) {
         return TipsetCacheError::kSmallerHeight;
@@ -29,21 +31,26 @@ namespace fc::mining {
       current_height = cache_[start_]->height();
     }
 
-    while (current_height <= tipset.height()) {
+    while (++current_height < tipset.height()) {
       start_ = mod(start_ + 1);
       cache_[start_] = boost::none;
       if (len_ < cache_.size()) {
         len_++;
       }
-      current_height++;
     }
 
+    start_ = mod(start_ + 1);
     cache_[start_] = tipset;
+    if (len_ < cache_.size()) {
+      len_++;
+    }
 
     return outcome::success();
   }
 
   outcome::result<void> TipsetCacheImpl::revert(const Tipset &tipset) {
+    std::unique_lock lock(mutex_);
+
     if (len_ == 0) {
       return outcome::success();
     }
@@ -75,10 +82,11 @@ namespace fc::mining {
 
   outcome::result<boost::optional<Tipset>> TipsetCacheImpl::get(
       uint64_t height) {
+    std::shared_lock lock(mutex_);
+
     if (len_ == 0) {
       OUTCOME_TRY(tipset, get_function_(height));
-      OUTCOME_TRY(add(*tipset));
-      return std::move(*tipset);
+      return *tipset;
     }
 
     auto head_height = cache_[start_]->height();
@@ -98,17 +106,14 @@ namespace fc::mining {
 
     if (height < tail->height()) {
       OUTCOME_TRY(tipset, get_function_(height));
-      if (i > (tail->height() - height)) {
-        cache_[mod(start_ - len_ + i - (tail->height() - height))] = *tipset;
-        // TODO: Maybe extend cache, if len less than cache size
-      }
-      return std::move(*tipset);
+      return *tipset;
     }
 
     return cache_[mod(start_ - (head_height - height))];
   }
 
   boost::optional<Tipset> TipsetCacheImpl::best() const {
+    std::shared_lock lock(mutex_);
     return cache_[start_];
   }
 
