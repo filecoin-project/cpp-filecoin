@@ -68,7 +68,7 @@ namespace fc::vm::state {
     const StateProvider provider(store_);
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
     OUTCOME_TRY(init_actor_state, provider.getInitActorState(init_actor));
-    OUTCOME_TRY(id, init_actor_state->address_map.tryGet(address));
+    OUTCOME_TRY(id, init_actor_state->tryGet(address));
     if (id) {
       tx().lookup.emplace(address, *id);
       return Address::makeFromId(*id);
@@ -155,7 +155,12 @@ namespace fc::vm::state {
         if (auto _state_root{codec::cbor::decode<StateRoot>(_raw.value())}) {
           auto &state_root{_state_root.value()};
           version_ = state_root.version;
-          by_id = {state_root.actor_tree_root, store_};
+          by_id.hamt = {
+              store_,
+              state_root.actor_tree_root,
+              storage::hamt::kDefaultBitWidth,
+              version_ >= StateTreeVersion::kVersion2,
+          };
           return;
         }
       }

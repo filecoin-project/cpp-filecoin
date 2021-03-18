@@ -19,24 +19,15 @@ using fc::storage::hamt::Node;
 
 class HamtTest : public ::testing::Test {
  public:
-  decltype(auto) minItem(const Node &node) {
-    return node.items.begin()->second;
-  }
-
-  template <typename T>
-  auto minItemIs(const Node &node) {
-    return which<T>(minItem(node));
-  }
-
   std::shared_ptr<fc::storage::ipfs::IpfsDatastore> store_{
       std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
-  std::shared_ptr<Node> root_{std::make_shared<Node>()};
-  Hamt hamt_{store_, root_, 8};
+  std::shared_ptr<Node> root_{std::make_shared<Node>(Node{{}, false})};
+  Hamt hamt_{store_, root_, 8, false};
 };
 
 /** Hamt node CBOR encoding and decoding, correct CID */
 TEST_F(HamtTest, NodeCbor) {
-  Node n;
+  Node n{{}, false};
   expectEncodeAndReencode(n, "824080"_unhex);
 
   n.items[17] = "010000020000"_cid;

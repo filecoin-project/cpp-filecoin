@@ -18,15 +18,17 @@ namespace fc::adt {
     return s;
   }
 
-  template <typename Keyer>
-  struct Set : Map<SetValue, Keyer> {};
+  template <typename Keyer,
+            size_t bit_width = storage::hamt::kDefaultBitWidth,
+            bool v3 = false>
+  struct Set : Map<SetValue, Keyer, bit_width, v3> {};
 }  // namespace fc::adt
 
 namespace fc {
-  template <typename Keyer>
-  struct Ipld::Visit<adt::Set<Keyer>> {
+  template <typename Keyer, size_t bit_width, bool v3>
+  struct Ipld::Visit<adt::Set<Keyer, bit_width, v3>> {
     template <typename Visitor>
-    static void call(adt::Map<adt::SetValue, Keyer> &map,
+    static void call(adt::Map<adt::SetValue, Keyer, bit_width, v3> &map,
                      const Visitor &visit) {
       visit(map);
     }

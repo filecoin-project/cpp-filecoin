@@ -18,6 +18,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
       return "Not found";
     case HamtError::kMaxDepth:
       return "Max depth exceeded";
+    case HamtError::kInconsistent:
+      return "HamtError::kInconsistent";
   }
   return "Unknown error";
 }
@@ -25,24 +27,108 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
 namespace fc::storage::hamt {
   using fc::common::which;
 
+  CBOR2_ENCODE(Node) {
+    Bits bits;
+    auto l_items{s.list()};
+    for (auto &[index, value] : v.items) {
+      bit_set(bits, index);
+      if (boost::get<Node::Ptr>(&value)) {
+        outcome::raise(HamtError::kExpectedCID);
+      }
+      codec::cbor::CborEncodeStream _item;
+      auto _cid{boost::get<CID>(&value)};
+      if (_cid) {
+        _item << *_cid;
+      } else {
+        auto &leaf{boost::get<Node::Leaf>(value)};
+        _item = s.list();
+        for (auto &[key, value] : leaf) {
+          _item << (s.list() << common::span::cbytes(key) << s.wrap(value, 1));
+        }
+      }
+      if (*v.v3) {
+        l_items << _item;
+      } else {
+        auto m_item{s.map()};
+        m_item[_cid ? "0" : "1"] << _item;
+        l_items << m_item;
+      }
+    }
+    return s << (s.list() << bits << l_items);
+  }
+
+  CBOR2_DECODE(Node) {
+    v.items.clear();
+    auto l_node = s.list();
+    Bits bits;
+    l_node >> bits;
+    auto n_items = l_node.listLength();
+    auto l_items = l_node.list();
+    size_t j = 0;
+    for (size_t i = 0; i < n_items; ++i) {
+      while (!bit_test(bits, j)) {
+        ++j;
+      }
+      auto _item{l_items};
+      l_items.next();
+      auto v3{true};
+      if (_item.isMap()) {
+        v3 = false;
+        auto m_item{_item.map()};
+        if (m_item.empty()) {
+          outcome::raise(HamtError::kInconsistent);
+        }
+        _item = m_item.begin()->second;
+      }
+      if (!v.v3) {
+        v.v3 = v3;
+      } else if (v3 != *v.v3) {
+        outcome::raise(HamtError::kInconsistent);
+      }
+      if (_item.isCid()) {
+        v.items[j] = _item.get<CID>();
+      } else {
+        auto n_leaf{_item.listLength()};
+        auto l_leaf{_item.list()};
+        Node::Leaf leaf;
+        for (size_t j = 0; j < n_leaf; ++j) {
+          auto l_pair{l_leaf.list()};
+          auto key{l_pair.get<Buffer>()};
+          leaf.emplace(std::string{key.begin(), key.end()}, l_pair.raw());
+        }
+        v.items[j] = std::move(leaf);
+      }
+      ++j;
+    }
+    return s;
+  }
+
   auto consumeIndex(gsl::span<const size_t> indices) {
     return indices.subspan(1);
   }
 
-  Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bit_width)
+  Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
+             size_t bit_width,
+             bool v3)
       : ipld{std::move(store)},
-        root_{std::make_shared<Node>()},
-        bit_width_{bit_width} {}
+        root_{std::make_shared<Node>(Node{{}, v3})},
+        bit_width_{bit_width},
+        v3_{v3} {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
              Node::Ptr root,
-             size_t bit_width)
-      : ipld{std::move(store)}, root_{std::move(root)}, bit_width_{bit_width} {}
+             size_t bit_width,
+             bool v3)
+      : ipld{std::move(store)},
+        root_{std::move(root)},
+        bit_width_{bit_width},
+        v3_{v3} {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
              const CID &root,
-             size_t bit_width)
-      : ipld{std::move(store)}, root_{root}, bit_width_{bit_width} {}
+             size_t bit_width,
+             bool v3)
+      : ipld{std::move(store)}, root_{root}, bit_width_{bit_width}, v3_{v3} {}
 
   outcome::result<void> Hamt::set(const std::string &key,
                                   gsl::span<const uint8_t> value) {
@@ -146,6 +232,7 @@ namespace fc::storage::hamt {
       leaf[key] = Value(value);
     } else {
       auto child = std::make_shared<Node>();
+      child->v3 = v3_;
       OUTCOME_TRY(set(*child, consumeIndex(indices), key, value));
       for (auto &pair : leaf) {
         auto indices2 = keyToIndices(pair.first, indices.size());
@@ -231,6 +318,11 @@ namespace fc::storage::hamt {
   outcome::result<void> Hamt::loadItem(Node::Item &item) const {
     if (which<CID>(item)) {
       OUTCOME_TRY(child, ipld->getCbor<Node>(boost::get<CID>(item)));
+      if (!child.v3) {
+        child.v3 = v3_;
+      } else if (*child.v3 != v3_) {
+        return HamtError::kInconsistent;
+      }
       item = std::make_shared<Node>(std::move(child));
     }
     return outcome::success();

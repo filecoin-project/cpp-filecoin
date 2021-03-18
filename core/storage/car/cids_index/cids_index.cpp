@@ -133,8 +133,7 @@ namespace fc::storage::cids_index {
     }
     std::sort(rows.begin() + 1, rows.end() - 1);
 
-    auto tmp_index_path{boost::filesystem::temp_directory_path()
-                        / boost::filesystem::unique_path()};
+    auto tmp_index_path{index_path + ".tmp"};
     OUTCOME_TRY(common::writeFile(
         tmp_index_path,
         common::span::cast<const uint8_t>(gsl::make_span(rows))));

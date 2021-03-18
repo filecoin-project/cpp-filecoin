@@ -21,7 +21,12 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::hamt {
-  enum class HamtError { kExpectedCID = 1, kNotFound, kMaxDepth };
+  enum class HamtError {
+    kExpectedCID = 1,
+    kNotFound,
+    kMaxDepth,
+    kInconsistent,
+  };
 }  // namespace fc::storage::hamt
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::hamt, HamtError);
@@ -62,67 +67,11 @@ namespace fc::storage::hamt {
     using Item = boost::variant<CID, Ptr, Leaf>;
 
     std::map<size_t, Item> items;
+    boost::optional<bool> v3;
   };
+  CBOR2_DECODE_ENCODE(Node)
 
-  CBOR_ENCODE(Node, node) {
-    auto l_items = s.list();
-    Bits bits;
-    for (auto &item : node.items) {
-      bit_set(bits, item.first);
-      auto m_item = s.map();
-      visit_in_place(
-          item.second,
-          [&m_item](const CID &cid) { m_item["0"] << cid; },
-          [](const Node::Ptr &ptr) { outcome::raise(HamtError::kExpectedCID); },
-          [&m_item](const Node::Leaf &leaf) {
-            auto &s_leaf = m_item["1"];
-            auto l_pairs = s_leaf.list();
-            for (auto &pair : leaf) {
-              l_pairs << (l_pairs.list() << common::span::cbytes(pair.first)
-                                         << l_pairs.wrap(pair.second, 1));
-            }
-            s_leaf << l_pairs;
-          });
-      l_items << m_item;
-    }
-    return s << (s.list() << bits << l_items);
-  }
-
-  CBOR_DECODE(Node, node) {
-    node.items.clear();
-    auto l_node = s.list();
-    Bits bits;
-    l_node >> bits;
-    auto n_items = l_node.listLength();
-    auto l_items = l_node.list();
-    size_t j = 0;
-    for (size_t i = 0; i < n_items; ++i) {
-      while (!bit_test(bits, j)) {
-        ++j;
-      }
-      auto m_item = l_items.map();
-      if (m_item.find("0") != m_item.end()) {
-        CID cid;
-        m_item.at("0") >> cid;
-        node.items[j] = std::move(cid);
-      } else {
-        auto s_leaf = m_item.at("1");
-        auto n_leaf = s_leaf.listLength();
-        auto l_leaf = s_leaf.list();
-        Node::Leaf leaf;
-        for (size_t j = 0; j < n_leaf; ++j) {
-          auto l_pair = l_leaf.list();
-          Buffer key;
-          l_pair >> key;
-          leaf.emplace(std::string{key.begin(), key.end()}, l_pair.raw());
-        }
-        node.items[j] = std::move(leaf);
-      }
-      ++j;
-    }
-    return s;
-  }
-
+  // TODO(turuslan): v3 caching
   /**
    * Hamt map
    * https://github.com/ipld/specs/blob/c1b0d3f4dc26850071d0e4d67854408e970ed29c/data-structures/hashmap.md
@@ -132,14 +81,15 @@ namespace fc::storage::hamt {
     using Visitor = std::function<outcome::result<void>(const std::string &,
                                                         const Value &)>;
 
-    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
-         size_t bit_width = kDefaultBitWidth);
+    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bit_width, bool v3);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
          Node::Ptr root,
-         size_t bit_width = kDefaultBitWidth);
+         size_t bit_width,
+         bool v3);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
          const CID &root,
-         size_t bit_width = kDefaultBitWidth);
+         size_t bit_width,
+         bool v3);
     /** Set value by key, does not write to storage */
     outcome::result<void> set(const std::string &key,
                               gsl::span<const uint8_t> value);
@@ -220,6 +170,7 @@ namespace fc::storage::hamt {
 
     mutable Node::Item root_;
     size_t bit_width_;
+    bool v3_;
   };
 }  // namespace fc::storage::hamt
 
