@@ -66,10 +66,10 @@ namespace fc::sync {
                                        const CID &block_cid,
                                        const BlockHeader &header) {
     if (header.height < current_height_) {
-      log()->debug("ignoring block from {} with height {}<{}",
-                   source.has_value() ? source->toBase58() : "API",
-                   header.height,
-                   current_height_);
+      log()->warn("ignoring block from {} with height {}<{}",
+                  source.has_value() ? source->toBase58() : "API",
+                  header.height,
+                  current_height_);
       return;
     }
 
@@ -88,7 +88,7 @@ namespace fc::sync {
     auto &creator = candidates_[TipsetKey::hash(header.parents)];
     auto res = creator.canExpandTipset(header);
     if (!res) {
-      log()->debug("cannot expand tipset with new block, {}",
+      log()->warn("cannot expand tipset with new block, {}",
                    res.error().message());
       return;
     }
@@ -104,8 +104,8 @@ namespace fc::sync {
     // TODO check if parents are already synced / downloaded
 
     events_->signalPossibleHead({.source = boost::none,
-                                 .head = TipsetKey(header.parents),
-                                 .height = current_height_ - 1});
+                                 .head = creator.key(),
+                                 .height = creator.height()});
   }
 
 }  // namespace fc::sync
