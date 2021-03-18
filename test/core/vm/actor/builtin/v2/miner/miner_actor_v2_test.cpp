@@ -41,7 +41,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       return {.owner = owner,
               .worker = worker,
               .control_addresses = {},
-              .seal_proof_type = RegisteredSealProof::StackedDrg32GiBV1_1,
+              .seal_proof_type = RegisteredSealProof::kStackedDrg32GiBV1_1,
               .peer_id = {},
               .multiaddresses = {}};
     }
@@ -99,7 +99,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(miner_info.peer_id, params.peer_id);
     EXPECT_EQ(miner_info.multiaddrs, params.multiaddresses);
     EXPECT_EQ(static_cast<RegisteredSealProof>(miner_info.seal_proof_type),
-              RegisteredSealProof::StackedDrg32GiBV1_1);
+              RegisteredSealProof::kStackedDrg32GiBV1_1);
     EXPECT_EQ(miner_info.sector_size, BigInt{1} << 35);
     EXPECT_EQ(miner_info.window_post_partition_sectors, 2349);
     EXPECT_EQ(miner_info.consensus_fault_elapsed, kChainEpochUndefined);
@@ -286,15 +286,15 @@ namespace fc::vm::actor::builtin::v2::miner {
       ::testing::Values(
           // version < 7 accepts only StackedDrg32GiBV1
           ConstructParams{NetworkVersion::kVersion6,
-                          RegisteredSealProof::StackedDrg32GiBV1},
+                          RegisteredSealProof::kStackedDrg32GiBV1},
           // version 7 accepts both StackedDrg32GiBV1 and StackedDrg32GiBV1_1
           ConstructParams{NetworkVersion::kVersion7,
-                          RegisteredSealProof::StackedDrg32GiBV1},
+                          RegisteredSealProof::kStackedDrg32GiBV1},
           ConstructParams{NetworkVersion::kVersion7,
-                          RegisteredSealProof::StackedDrg32GiBV1_1},
+                          RegisteredSealProof::kStackedDrg32GiBV1_1},
           // version > 7 accepts only StackedDrg32GiBV1_1
           ConstructParams{NetworkVersion::kVersion8,
-                          RegisteredSealProof::StackedDrg32GiBV1_1}));
+                          RegisteredSealProof::kStackedDrg32GiBV1_1}));
 
   /**
    * Failed construction tests
@@ -348,9 +348,9 @@ namespace fc::vm::actor::builtin::v2::miner {
       ::testing::Values(
           // version < 7 accepts only StackedDrg32GiBV1
           ConstructParams{NetworkVersion::kVersion6,
-                          RegisteredSealProof::StackedDrg32GiBV1_1},
+                          RegisteredSealProof::kStackedDrg32GiBV1_1},
           // version > 7 accepts only StackedDrg32GiBV1_1
           ConstructParams{NetworkVersion::kVersion8,
-                          RegisteredSealProof::StackedDrg32GiBV1}));
+                          RegisteredSealProof::kStackedDrg32GiBV1}));
 
 }  // namespace fc::vm::actor::builtin::v2::miner

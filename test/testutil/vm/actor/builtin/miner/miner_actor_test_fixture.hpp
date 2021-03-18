@@ -78,8 +78,8 @@ namespace fc::testutil::vm::actor::builtin::miner {
                                           control_addresses,
                                           {},
                                           {},
-                                          RegisteredSealProof::undefined,
-                                          RegisteredPoStProof::undefined));
+                                          RegisteredSealProof::kUndefined,
+                                          RegisteredPoStProof::kUndefined));
 
       EXPECT_OUTCOME_TRUE_1(state.setInfo(ipld, miner_info));
     }

@@ -32,35 +32,35 @@ namespace fc::primitives::sector {
   }
 
   enum class RegisteredSealProof : int64_t {
-    undefined = -1,
+    kUndefined = -1,
 
-    StackedDrg2KiBV1,
-    StackedDrg8MiBV1,
-    StackedDrg512MiBV1,
-    StackedDrg32GiBV1,
-    StackedDrg64GiBV1,
+    kStackedDrg2KiBV1,
+    kStackedDrg8MiBV1,
+    kStackedDrg512MiBV1,
+    kStackedDrg32GiBV1,
+    kStackedDrg64GiBV1,
 
-    StackedDrg2KiBV1_1,
-    StackedDrg8MiBV1_1,
-    StackedDrg512MiBV1_1,
-    StackedDrg32GiBV1_1,
-    StackedDrg64GiBV1_1,
+    kStackedDrg2KiBV1_1,
+    kStackedDrg8MiBV1_1,
+    kStackedDrg512MiBV1_1,
+    kStackedDrg32GiBV1_1,
+    kStackedDrg64GiBV1_1,
   };
 
   enum class RegisteredPoStProof : int64_t {
-    undefined = -1,
+    kUndefined = -1,
 
-    StackedDRG2KiBWinningPoSt,
-    StackedDRG8MiBWinningPoSt,
-    StackedDRG512MiBWinningPoSt,
-    StackedDRG32GiBWinningPoSt,
-    StackedDRG64GiBWinningPoSt,
+    kStackedDRG2KiBWinningPoSt,
+    kStackedDRG8MiBWinningPoSt,
+    kStackedDRG512MiBWinningPoSt,
+    kStackedDRG32GiBWinningPoSt,
+    kStackedDRG64GiBWinningPoSt,
 
-    StackedDRG2KiBWindowPoSt,
-    StackedDRG8MiBWindowPoSt,
-    StackedDRG512MiBWindowPoSt,
-    StackedDRG32GiBWindowPoSt,
-    StackedDRG64GiBWindowPoSt,
+    kStackedDRG2KiBWindowPoSt,
+    kStackedDRG8MiBWindowPoSt,
+    kStackedDRG512MiBWindowPoSt,
+    kStackedDRG32GiBWindowPoSt,
+    kStackedDRG64GiBWindowPoSt,
   };
 
   /**

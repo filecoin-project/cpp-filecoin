@@ -481,7 +481,7 @@ namespace fc::vm::actor::builtin::v2::market {
 
   TEST_F(MarketActorTest, GCC_DISABLE(ComputeDataCommitment)) {
     auto comm_d = "010001020001"_cid;
-    auto sector_type = RegisteredSealProof::StackedDrg32GiBV1;
+    auto sector_type = RegisteredSealProof::kStackedDrg32GiBV1;
     std::vector<DealId> deal_ids{deal_1_id, deal_2_id};
     std::vector<PieceInfo> pieces{
         {PaddedPieceSize(31), "010001020002"_cid},

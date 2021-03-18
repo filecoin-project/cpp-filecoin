@@ -63,9 +63,9 @@ TEST_F(ProofsTest, Lifecycle) {
   ActorId miner_id = 42;
   Randomness randomness{{9, 9, 9}};
   fc::proofs::RegisteredSealProof seal_proof_type =
-      fc::primitives::sector::RegisteredSealProof::StackedDrg2KiBV1;
+      fc::primitives::sector::RegisteredSealProof::kStackedDrg2KiBV1;
   fc::proofs::RegisteredPoStProof winning_post_proof_type =
-      fc::primitives::sector::RegisteredPoStProof::StackedDRG2KiBWinningPoSt;
+      fc::primitives::sector::RegisteredPoStProof::kStackedDRG2KiBWinningPoSt;
   SectorNumber sector_num = 42;
   EXPECT_OUTCOME_TRUE(sector_size,
                       fc::primitives::sector::getSectorSize(seal_proof_type));
@@ -338,7 +338,7 @@ TEST_F(ProofsTest, Lifecycle) {
  */
 TEST_F(ProofsTest, WriteAndReadPiecesFile) {
   fc::proofs::RegisteredSealProof seal_proof_type =
-      fc::primitives::sector::RegisteredSealProof::StackedDrg2KiBV1;
+      fc::primitives::sector::RegisteredSealProof::kStackedDrg2KiBV1;
 
   fc::common::Blob<2032> some_bytes;
   std::random_device rd;

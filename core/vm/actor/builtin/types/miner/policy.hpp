@@ -87,8 +87,8 @@ namespace fc::vm::actor::builtin::types::miner {
    * List of proof types which can be used when creating new miner actors
    */
   static const std::set<RegisteredSealProof> kSupportedProofs{
-      RegisteredSealProof::StackedDrg32GiBV1,
-      RegisteredSealProof::StackedDrg64GiBV1,
+      RegisteredSealProof::kStackedDrg32GiBV1,
+      RegisteredSealProof::kStackedDrg64GiBV1,
   };
 
   /**
@@ -102,11 +102,11 @@ namespace fc::vm::actor::builtin::types::miner {
   inline outcome::result<EpochDuration> maxSealDuration(
       RegisteredSealProof type) {
     switch (type) {
-      case RegisteredSealProof::StackedDrg32GiBV1:
-      case RegisteredSealProof::StackedDrg2KiBV1:
-      case RegisteredSealProof::StackedDrg8MiBV1:
-      case RegisteredSealProof::StackedDrg512MiBV1:
-      case RegisteredSealProof::StackedDrg64GiBV1:
+      case RegisteredSealProof::kStackedDrg32GiBV1:
+      case RegisteredSealProof::kStackedDrg2KiBV1:
+      case RegisteredSealProof::kStackedDrg8MiBV1:
+      case RegisteredSealProof::kStackedDrg512MiBV1:
+      case RegisteredSealProof::kStackedDrg64GiBV1:
         return 10000;
       default:
         return VMExitCode::kErrIllegalArgument;
@@ -140,15 +140,15 @@ namespace fc::vm::actor::builtin::types::miner {
    * pre-committing a new sector.
    */
   static const std::set<RegisteredSealProof> kPreCommitSealProofTypesV0{
-      RegisteredSealProof::StackedDrg32GiBV1,
-      RegisteredSealProof::StackedDrg64GiBV1,
+      RegisteredSealProof::kStackedDrg32GiBV1,
+      RegisteredSealProof::kStackedDrg64GiBV1,
   };
 
   static const std::set<RegisteredSealProof> kPreCommitSealProofTypesV7{
-      RegisteredSealProof::StackedDrg32GiBV1,
-      RegisteredSealProof::StackedDrg64GiBV1,
-      RegisteredSealProof::StackedDrg32GiBV1_1,
-      RegisteredSealProof::StackedDrg64GiBV1_1,
+      RegisteredSealProof::kStackedDrg32GiBV1,
+      RegisteredSealProof::kStackedDrg64GiBV1,
+      RegisteredSealProof::kStackedDrg32GiBV1_1,
+      RegisteredSealProof::kStackedDrg64GiBV1_1,
   };
 
   /**
@@ -156,8 +156,8 @@ namespace fc::vm::actor::builtin::types::miner {
    * be committed
    */
   static const std::set<RegisteredSealProof> kPreCommitSealProofTypesV8{
-      RegisteredSealProof::StackedDrg32GiBV1_1,
-      RegisteredSealProof::StackedDrg64GiBV1_1,
+      RegisteredSealProof::kStackedDrg32GiBV1_1,
+      RegisteredSealProof::kStackedDrg64GiBV1_1,
   };
 
   /// Libp2p peer info limits.

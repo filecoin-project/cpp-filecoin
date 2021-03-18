@@ -114,7 +114,7 @@ TEST(ApiJsonTest, BigInt) {
 TEST(ApiJsonTest, MinerInfoPendingWorkerKeyNotSet) {
   using fc::vm::actor::builtin::types::miner::MinerInfo;
   MinerInfo miner_info;
-  miner_info.seal_proof_type = RegisteredSealProof::StackedDrg2KiBV1;
+  miner_info.seal_proof_type = RegisteredSealProof::kStackedDrg2KiBV1;
   miner_info.sector_size = 1;
   miner_info.window_post_partition_sectors = 1;
   expectJson(miner_info,
@@ -135,7 +135,7 @@ TEST(ApiJsonTest, MinerInfoPendingWorkerKeyPresent) {
   MinerInfo miner_info;
   miner_info.pending_worker_key =
       WorkerKeyChange{.new_worker = Address::makeFromId(2), .effective_at = 2};
-  miner_info.seal_proof_type = RegisteredSealProof::StackedDrg2KiBV1;
+  miner_info.seal_proof_type = RegisteredSealProof::kStackedDrg2KiBV1;
   miner_info.sector_size = 1;
   miner_info.window_post_partition_sectors = 1;
   expectJson(miner_info,

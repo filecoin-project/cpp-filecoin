@@ -116,7 +116,7 @@ namespace fc::vm::actor::builtin::v0::miner {
             .owner = owner,
             .worker = worker,
             .control_addresses = control_addresses,
-            .seal_proof_type = RegisteredSealProof::StackedDrg32GiBV1,
+            .seal_proof_type = RegisteredSealProof::kStackedDrg32GiBV1,
             .peer_id = peer_id,
             .multiaddresses = multiaddresses}));
 
@@ -127,7 +127,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(miner_info.peer_id, peer_id);
     EXPECT_EQ(miner_info.multiaddrs, multiaddresses);
     EXPECT_EQ(static_cast<RegisteredSealProof>(miner_info.seal_proof_type),
-              RegisteredSealProof::StackedDrg32GiBV1);
+              RegisteredSealProof::kStackedDrg32GiBV1);
     EXPECT_EQ(miner_info.sector_size, BigInt{1} << 35);
     EXPECT_EQ(miner_info.window_post_partition_sectors, 2349);
 
@@ -187,7 +187,7 @@ namespace fc::vm::actor::builtin::v0::miner {
             .owner = owner,
             .worker = worker,
             .control_addresses = control_addresses,
-            .seal_proof_type = RegisteredSealProof::StackedDrg32GiBV1,
+            .seal_proof_type = RegisteredSealProof::kStackedDrg32GiBV1,
             .peer_id = {},
             .multiaddresses = {}}));
 
@@ -222,7 +222,7 @@ namespace fc::vm::actor::builtin::v0::miner {
                 .owner = owner,
                 .worker = worker,
                 .control_addresses = control_addresses,
-                .seal_proof_type = RegisteredSealProof::StackedDrg32GiBV1,
+                .seal_proof_type = RegisteredSealProof::kStackedDrg32GiBV1,
                 .peer_id = {},
                 .multiaddresses = {}}));
   }
