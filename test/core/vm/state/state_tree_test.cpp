@@ -11,7 +11,6 @@
 
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
-using fc::storage::hamt::Hamt;
 using fc::vm::actor::Actor;
 using fc::vm::actor::CodeId;
 using fc::vm::state::StateTreeImpl;

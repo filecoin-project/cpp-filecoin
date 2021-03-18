@@ -29,7 +29,7 @@ namespace fc::vm::version {
     kVersion12,
   };
 
-  const NetworkVersion kLatestVersion = NetworkVersion::kVersion9;
+  const NetworkVersion kLatestVersion = NetworkVersion::kVersion10;
 
   /**
    * Network version end heights
@@ -62,8 +62,7 @@ namespace fc::vm::version {
   const ChainEpoch kUpgradeOrangeHeight = 336458;
   const ChainEpoch kUpgradeClausHeight = 343200;
 
-  // TODO
-  const ChainEpoch kUpgradeActorsV3Height = 999999999;
+  const ChainEpoch kUpgradeActorsV3Height = 550321;
 
   /**
    * Returns network version for blockchain height
