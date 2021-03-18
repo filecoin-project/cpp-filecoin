@@ -5,14 +5,13 @@
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
-#include <gtest/gtest.h>
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/resources/parse.hpp"
 #include "testutil/resources/resources.hpp"
-#include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
+#include "testutil/vm/actor/builtin/miner/miner_actor_test_fixture.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
@@ -24,36 +23,20 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::address::decodeFromString;
   using primitives::sector::RegisteredSealProof;
   using testing::Return;
-  using testutil::vm::actor::builtin::ActorTestFixture;
+  using testutil::vm::actor::builtin::miner::MinerActorTestFixture;
   using types::miner::CronEventPayload;
   using types::miner::CronEventType;
   using types::miner::Deadlines;
   using types::miner::kWPoStChallengeWindow;
   using types::miner::kWPoStPeriodDeadlines;
 
-  class MinerActorV0Test : public ActorTestFixture<MinerActorState> {
+  class MinerActorV0Test : public MinerActorTestFixture<MinerActorState> {
    public:
     void SetUp() override {
-      ActorTestFixture<MinerActorState>::SetUp();
+      MinerActorTestFixture<MinerActorState>::SetUp();
       actorVersion = ActorVersion::kVersion0;
       anyCodeIdAddressIs(kAccountCodeId);
       ipld->load(state);
-
-      EXPECT_CALL(*state_manager, createMinerActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<MinerActorState>();
-            ipld->load(*s);
-            return std::static_pointer_cast<states::MinerActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getMinerActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<MinerActorState>(cid));
-            auto s = std::make_shared<MinerActorState>(current_state);
-            return std::static_pointer_cast<states::MinerActorState>(s);
-          }));
     }
 
     void expectEnrollCronEvent(const ChainEpoch &proving_period_start) {
