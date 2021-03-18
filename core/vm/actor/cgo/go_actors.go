@@ -47,6 +47,19 @@ import (
 	system2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/system"
 	verifreg2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/verifreg"
 	rt2 "github.com/filecoin-project/specs-actors/v2/actors/runtime"
+	builtin3 "github.com/filecoin-project/specs-actors/v3/actors/builtin"
+	account3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/account"
+	cron3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/cron"
+	init3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/init"
+	market3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/market"
+	miner3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/miner"
+	multisig3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/multisig"
+	paych3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/paych"
+	power3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/power"
+	reward3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/reward"
+	system3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/system"
+	verifreg3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/verifreg"
+	rt3 "github.com/filecoin-project/specs-actors/v3/actors/runtime"
 	"github.com/ipfs/go-cid"
 	"github.com/whyrusleeping/cbor-gen"
 )
@@ -81,6 +94,7 @@ type rt struct {
 
 var _ rt1.Runtime = &rt{}
 var _ rt2.Runtime = &rt{}
+var _ rt3.Runtime = &rt{}
 
 func (rt *rt) NetworkVersion() network.Version {
 	return network.Version(rt.version)
@@ -218,6 +232,7 @@ func (rt *rt) Log(rtt.LogLevel, string, ...interface{}) {
 
 var _ rt1.StateHandle = &rt{}
 var _ rt2.StateHandle = &rt{}
+var _ rt3.StateHandle = &rt{}
 
 func (rt *rt) StateCreate(o cbor.Marshaler) {
 	rt.commit(empty, o)
@@ -240,6 +255,7 @@ func (rt *rt) StateTransaction(o cbor.Er, f func()) {
 
 var _ rt1.Store = &rt{}
 var _ rt2.Store = &rt{}
+var _ rt3.Store = &rt{}
 
 func (rt *rt) StoreGet(c cid.Cid, o cbor.Unmarshaler) bool {
 	ret := rt.gocRet(C.gocRtIpldGet(rt.gocArg().cid(c).arg()))
@@ -260,6 +276,7 @@ func (rt *rt) StorePut(o cbor.Marshaler) cid.Cid {
 
 var _ rt1.Message = &rt{}
 var _ rt2.Message = &rt{}
+var _ rt3.Message = &rt{}
 
 func (rt *rt) Caller() address.Address {
 	return rt.from
@@ -275,6 +292,7 @@ func (rt *rt) ValueReceived() abi.TokenAmount {
 
 var _ rt1.Syscalls = &rt{}
 var _ rt2.Syscalls = &rt{}
+var _ rt3.Syscalls = &rt{}
 
 func (rt *rt) VerifySignature(sig crypto.Signature, addr address.Address, input []byte) error {
 	b, e := sig.MarshalBinary()
@@ -480,6 +498,18 @@ var _actors = map[cid.Cid]rtt.VMActor{
 	builtin2.PaymentChannelActorCodeID:   paych2.Actor{},
 	builtin2.VerifiedRegistryActorCodeID: verifreg2.Actor{},
 	builtin2.AccountActorCodeID:          account2.Actor{},
+
+	builtin3.SystemActorCodeID:           system3.Actor{},
+	builtin3.InitActorCodeID:             init3.Actor{},
+	builtin3.RewardActorCodeID:           reward3.Actor{},
+	builtin3.CronActorCodeID:             cron3.Actor{},
+	builtin3.StoragePowerActorCodeID:     power3.Actor{},
+	builtin3.StorageMarketActorCodeID:    market3.Actor{},
+	builtin3.StorageMinerActorCodeID:     miner3.Actor{},
+	builtin3.MultisigActorCodeID:         multisig3.Actor{},
+	builtin3.PaymentChannelActorCodeID:   paych3.Actor{},
+	builtin3.VerifiedRegistryActorCodeID: verifreg3.Actor{},
+	builtin3.AccountActorCodeID:          account3.Actor{},
 }
 var actors = map[cid.Cid]methods{}
 
@@ -548,36 +578,13 @@ func cgoActorsInvoke(raw C.Raw) C.Raw {
 	return CborOut().int(int64(exit)).bytes(ret).ret()
 }
 
-//export cgoActorsConfig
-func cgoActorsConfig(raw C.Raw) C.Raw {
-	arg := cgoArgCbor(raw)
-	verifreg1.MinVerifiedDealSize = arg.big()
-	power1.ConsensusMinerMinPower = arg.big()
-	verifreg2.MinVerifiedDealSize = verifreg1.MinVerifiedDealSize
-	n := int(arg.int())
-	miner1.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{})
-	miner2.PreCommitSealProofTypesV0 = make(map[abi.RegisteredSealProof]struct{})
-	miner2.PreCommitSealProofTypesV7 = make(map[abi.RegisteredSealProof]struct{})
-	miner2.PreCommitSealProofTypesV8 = make(map[abi.RegisteredSealProof]struct{})
-	v11 := abi.RegisteredSealProof_StackedDrg2KiBV1_1
-	for i := 0; i < n; i++ {
-		proof := abi.RegisteredSealProof(arg.int())
-		if proof >= v11 {
-			panic("must specify v1 proof types only")
-		}
-		miner1.SupportedProofTypes[proof] = struct{}{}
-		miner2.PreCommitSealProofTypesV0[proof] = struct{}{}
-		miner2.PreCommitSealProofTypesV7[proof] = struct{}{}
-		miner2.PreCommitSealProofTypesV7[proof+v11] = struct{}{}
-		miner2.PreCommitSealProofTypesV8[proof+v11] = struct{}{}
-	}
-	return cgoRet(nil)
-}
-
 //export cgoActorsConfigMainnet
 func cgoActorsConfigMainnet(C.Raw) C.Raw {
 	power1.ConsensusMinerMinPower = abi.NewStoragePower(10 << 40)
 	for _, x := range builtin2.SealProofPolicies {
+		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
+	}
+	for _, x := range builtin3.PoStProofPolicies {
 		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
 	}
 	return cgoRet(nil)

@@ -11,4 +11,13 @@ namespace fc::vm::actor::builtin::v2::init {
   outcome::result<Buffer> InitActorState::toCbor() const {
     return Ipld::encode(*this);
   }
+
+  outcome::result<Address> InitActorState::addActor(const Address &address) {
+    return _addActor(address, false);
+  }
+
+  outcome::result<boost::optional<uint64_t>> InitActorState::tryGet(
+      const Address &address) {
+    return address_map_0.tryGet(address);
+  }
 }  // namespace fc::vm::actor::builtin::v2::init
