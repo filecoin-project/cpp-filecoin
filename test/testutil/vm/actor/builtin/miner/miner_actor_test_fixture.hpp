@@ -25,7 +25,7 @@ namespace fc::testutil::vm::actor::builtin::miner {
       EXPECT_CALL(*state_manager, createMinerActorState(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<State>();
-            ipld->load(*s);
+            loadState(*s);
             return std::static_pointer_cast<BaseMinerActorState>(s);
           }));
 
@@ -37,6 +37,10 @@ namespace fc::testutil::vm::actor::builtin::miner {
             auto s = std::make_shared<State>(current_state);
             return std::static_pointer_cast<BaseMinerActorState>(s);
           }));
+    }
+
+    void loadState(State &s) {
+      ipld->load(s);
     }
   };
 }  // namespace fc::testutil::vm::actor::builtin::miner
