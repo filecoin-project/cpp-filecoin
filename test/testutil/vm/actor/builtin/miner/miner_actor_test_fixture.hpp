@@ -10,6 +10,13 @@
 #include "vm/actor/builtin/states/miner_actor_state.hpp"
 
 namespace fc::testutil::vm::actor::builtin::miner {
+  using ::fc::vm::actor::builtin::types::miner::MinerInfo;
+  using ::fc::vm::actor::builtin::types::miner::SectorOnChainInfo;
+  using ::fc::vm::actor::builtin::types::miner::VestingFunds;
+  using primitives::RleBitset;
+  using primitives::address::Address;
+  using primitives::sector::RegisteredPoStProof;
+  using primitives::sector::RegisteredSealProof;
   using BaseMinerActorState = fc::vm::actor::builtin::states::MinerActorState;
 
   template <class State>
@@ -42,5 +49,43 @@ namespace fc::testutil::vm::actor::builtin::miner {
     void loadState(State &s) {
       ipld->load(s);
     }
+
+    void initEmptyState() {
+      EXPECT_OUTCOME_TRUE(empty_amt_cid,
+                          state.precommitted_setctors_expiry.amt.flush());
+
+      state.miner_info = empty_amt_cid;
+
+      RleBitset allocated_sectors;
+      EXPECT_OUTCOME_TRUE_1(state.allocated_sectors.set(allocated_sectors));
+      EXPECT_OUTCOME_TRUE(deadlines,
+                          state.makeEmptyDeadlines(ipld, empty_amt_cid));
+      EXPECT_OUTCOME_TRUE_1(state.deadlines.set(deadlines));
+
+      VestingFunds vesting_funds;
+      EXPECT_OUTCOME_TRUE_1(state.vesting_funds.set(vesting_funds));
+
+      state.sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid, ipld);
+    }
+
+    void initDefaultMinerInfo() {
+      std::vector<Address> control_addresses;
+      control_addresses.emplace_back(control);
+
+      EXPECT_OUTCOME_TRUE(miner_info,
+                          MinerInfo::make(owner,
+                                          worker,
+                                          control_addresses,
+                                          {},
+                                          {},
+                                          RegisteredSealProof::undefined,
+                                          RegisteredPoStProof::undefined));
+
+      EXPECT_OUTCOME_TRUE_1(state.setInfo(ipld, miner_info));
+    }
+
+    Address owner{Address::makeFromId(100)};
+    Address worker{Address::makeFromId(101)};
+    Address control{Address::makeFromId(501)};
   };
 }  // namespace fc::testutil::vm::actor::builtin::miner

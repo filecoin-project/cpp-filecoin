@@ -5,7 +5,6 @@
 
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 
-#include <gtest/gtest.h>
 #include "primitives/address/address.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -24,15 +23,9 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::sector::RegisteredSealProof;
   using testing::Return;
   using testutil::vm::actor::builtin::miner::MinerActorTestFixture;
-  using types::miner::CronEventPayload;
-  using types::miner::CronEventType;
-  using types::miner::Deadlines;
-  using types::miner::kMaxControlAddresses;
-  using types::miner::kMaxPeerIDLength;
-  using types::miner::kWPoStChallengeWindow;
-  using types::miner::kWPoStPeriodDeadlines;
+  using namespace types::miner;
 
-  class MinerActorV2Test : public MinerActorTestFixture<MinerActorState> {
+  class MinerActorTest : public MinerActorTestFixture<MinerActorState> {
    public:
     void SetUp() override {
       MinerActorTestFixture<MinerActorState>::SetUp();
@@ -45,8 +38,6 @@ namespace fc::vm::actor::builtin::v2::miner {
      * Creates simple valid construct parameters
      */
     Construct::Params makeConstructParams() {
-      const Address owner = Address::makeFromId(100);
-      const Address worker = Address::makeFromId(101);
       return {.owner = owner,
               .worker = worker,
               .control_addresses = {},
@@ -81,11 +72,10 @@ namespace fc::vm::actor::builtin::v2::miner {
    * @when construct method called
    * @then empty miner actor created
    */
-  TEST_F(MinerActorV2Test, SimpleConstruct) {
+  TEST_F(MinerActorTest, SimpleConstruct) {
     callerIs(kInitAddress);
     currentEpochIs(0);
 
-    const Address worker = Address::makeFromId(101);
     expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     EXPECT_CALL(runtime, getCurrentReceiver())
@@ -102,7 +92,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     params.worker = worker;
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, params));
 
-    EXPECT_OUTCOME_TRUE(miner_info, ipld->getCbor<MinerInfo>(state.miner_info));
+    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo(ipld));
     EXPECT_EQ(miner_info.owner, params.owner);
     EXPECT_EQ(miner_info.worker, params.worker);
     EXPECT_EQ(miner_info.control, params.control_addresses);
@@ -141,11 +131,10 @@ namespace fc::vm::actor::builtin::v2::miner {
    * @when miner is constructed
    * @then control addresses are resolved
    */
-  TEST_F(MinerActorV2Test, ConstructResolvedControl) {
+  TEST_F(MinerActorTest, ConstructResolvedControl) {
     callerIs(kInitAddress);
     currentEpochIs(0);
 
-    const Address worker = Address::makeFromId(101);
     expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     std::vector<Address> control_addresses;
@@ -173,7 +162,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     params.control_addresses = control_addresses;
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, params));
 
-    EXPECT_OUTCOME_TRUE(miner_info, ipld->getCbor<MinerInfo>(state.miner_info));
+    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo(ipld));
     EXPECT_EQ(miner_info.control.size(), 2);
     EXPECT_EQ(miner_info.control[0], controlId1);
     EXPECT_EQ(miner_info.control[1], controlId2);
@@ -184,15 +173,13 @@ namespace fc::vm::actor::builtin::v2::miner {
    * @when miner constructor called
    * @then error returned
    */
-  TEST_F(MinerActorV2Test, ConstructControlNotId) {
+  TEST_F(MinerActorTest, ConstructControlNotId) {
     callerIs(kInitAddress);
     currentEpochIs(0);
 
-    const Address worker = Address::makeFromId(101);
     expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     std::vector<Address> control_addresses;
-    const Address control = Address::makeFromId(501);
     control_addresses.emplace_back(control);
     addressCodeIdIs(control, kCronCodeId);
 
@@ -211,7 +198,7 @@ namespace fc::vm::actor::builtin::v2::miner {
    * @when miner constructor called
    * @then error returned
    */
-  TEST_F(MinerActorV2Test, ConstructTooLargePeerId) {
+  TEST_F(MinerActorTest, ConstructTooLargePeerId) {
     callerIs(kInitAddress);
     const Buffer wrong_peer_id(kMaxPeerIDLength + 1, 'x');
 
@@ -226,9 +213,8 @@ namespace fc::vm::actor::builtin::v2::miner {
    * @when miner constructor called
    * @then error returned
    */
-  TEST_F(MinerActorV2Test, ConstructControlAddressesExceedLimit) {
+  TEST_F(MinerActorTest, ConstructControlAddressesExceedLimit) {
     callerIs(kInitAddress);
-    const Address control = Address::makeFromId(501);
     std::vector<Address> control_addresses(kMaxControlAddresses + 1, control);
 
     Construct::Params params = makeConstructParams();
@@ -242,7 +228,7 @@ namespace fc::vm::actor::builtin::v2::miner {
    * @when miner constructor called
    * @then error returned
    */
-  TEST_F(MinerActorV2Test, ConstructMultiaddressesTooLarge) {
+  TEST_F(MinerActorTest, ConstructMultiaddressesTooLarge) {
     callerIs(kInitAddress);
     Multiaddress multiaddress =
         Multiaddress::create("/ip4/127.0.0.1/tcp/111").value();
@@ -262,8 +248,8 @@ namespace fc::vm::actor::builtin::v2::miner {
   /**
    * Successful construction tests
    */
-  struct ConstructSuccesssMinerActorV2Test
-      : public MinerActorV2Test,
+  struct ConstructSuccesssMinerActorTest
+      : public MinerActorTest,
         public ::testing::WithParamInterface<ConstructParams> {};
 
   /**
@@ -271,7 +257,7 @@ namespace fc::vm::actor::builtin::v2::miner {
    * @when miner constructor called
    * @then success
    */
-  TEST_P(ConstructSuccesssMinerActorV2Test, ConstructParametrizedNVSuccess) {
+  TEST_P(ConstructSuccesssMinerActorTest, ConstructParametrizedNVSuccess) {
     callerIs(kInitAddress);
     currentEpochIs(0);
 
@@ -282,7 +268,6 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_CALL(runtime, getNetworkVersion())
         .WillRepeatedly(Return(netwrok_version));
 
-    const Address worker = Address::makeFromId(101);
     expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     // This is just set from running the code.
@@ -296,8 +281,8 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   INSTANTIATE_TEST_CASE_P(
-      ConstructSuccesssMinerActorV2TestCases,
-      ConstructSuccesssMinerActorV2Test,
+      ConstructSuccesssMinerActorTestCases,
+      ConstructSuccesssMinerActorTest,
       ::testing::Values(
           // version < 7 accepts only StackedDrg32GiBV1
           ConstructParams{NetworkVersion::kVersion6,
@@ -314,8 +299,8 @@ namespace fc::vm::actor::builtin::v2::miner {
   /**
    * Failed construction tests
    */
-  struct ConstructFailureMinerActorV2Test
-      : public MinerActorV2Test,
+  struct ConstructFailureMinerActorTest
+      : public MinerActorTest,
         public ::testing::WithParamInterface<ConstructParams> {};
 
   /**
@@ -323,7 +308,7 @@ namespace fc::vm::actor::builtin::v2::miner {
    * @when miner constructor called
    * @then error returned
    */
-  TEST_P(ConstructFailureMinerActorV2Test, ConstructParametrizedNVFailure) {
+  TEST_P(ConstructFailureMinerActorTest, ConstructParametrizedNVFailure) {
     callerIs(kInitAddress);
     currentEpochIs(0);
 
@@ -340,9 +325,26 @@ namespace fc::vm::actor::builtin::v2::miner {
                          Construct::call(runtime, params));
   }
 
+  /**
+   * @given state is created
+   * @when miner ControlAddresses called
+   * @then properly values are returned
+   */
+  TEST_F(MinerActorTest, ControlAddressesSuccess) {
+    initEmptyState();
+    initDefaultMinerInfo();
+
+    EXPECT_OUTCOME_TRUE(result, ControlAddresses::call(runtime, {}));
+
+    EXPECT_EQ(result.owner, owner);
+    EXPECT_EQ(result.worker, worker);
+    EXPECT_EQ(result.control.size(), 1);
+    EXPECT_EQ(result.control[0], control);
+  }
+
   INSTANTIATE_TEST_CASE_P(
-      ConstructFailureMinerActorV2TestCases,
-      ConstructFailureMinerActorV2Test,
+      ConstructFailureMinerActorTestCases,
+      ConstructFailureMinerActorTest,
       ::testing::Values(
           // version < 7 accepts only StackedDrg32GiBV1
           ConstructParams{NetworkVersion::kVersion6,

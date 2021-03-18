@@ -98,7 +98,7 @@ namespace fc::vm::actor::builtin::states {
         const StoragePower &raw,
         const StoragePower &qa,
         RegisteredSealProof seal_proof =
-            RegisteredSealProof::StackedDrg2KiBV1) = 0;
+            RegisteredSealProof::undefined) = 0;
 
     virtual outcome::result<void> deleteClaim(
         const fc::vm::runtime::Runtime &runtime, const Address &address) = 0;

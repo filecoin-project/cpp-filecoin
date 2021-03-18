@@ -25,7 +25,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
         const StoragePower &raw,
         const StoragePower &qa,
         RegisteredSealProof seal_proof =
-            RegisteredSealProof::StackedDrg2KiBV1) override;
+            RegisteredSealProof::undefined) override;
 
     outcome::result<void> deleteClaim(const fc::vm::runtime::Runtime &runtime,
                                       const Address &address) override;

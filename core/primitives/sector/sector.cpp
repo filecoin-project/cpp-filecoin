@@ -24,6 +24,8 @@ namespace fc::primitives::sector {
       case RegisteredSealProof::StackedDrg2KiBV1:
       case RegisteredSealProof::StackedDrg2KiBV1_1:
         return RegisteredPoStProof::StackedDRG2KiBWindowPoSt;
+      case RegisteredSealProof::undefined:
+        return RegisteredPoStProof::undefined;
       default:
         return Errors::kInvalidPoStProof;
     }
@@ -47,6 +49,8 @@ namespace fc::primitives::sector {
       case RegisteredSealProof::StackedDrg2KiBV1:
       case RegisteredSealProof::StackedDrg2KiBV1_1:
         return RegisteredPoStProof::StackedDRG2KiBWinningPoSt;
+      case RegisteredSealProof::undefined:
+        return RegisteredPoStProof::undefined;
       default:
         return Errors::kInvalidPoStProof;
     }
@@ -69,6 +73,8 @@ namespace fc::primitives::sector {
       case RegisteredSealProof::StackedDrg2KiBV1:
       case RegisteredSealProof::StackedDrg2KiBV1_1:
         return SectorSize{2} << 10;
+      case RegisteredSealProof::undefined:
+        return 0;
       default:
         return Errors::kInvalidPoStProof;
     }
@@ -91,6 +97,8 @@ namespace fc::primitives::sector {
       case RegisteredPoStProof::StackedDRG2KiBWinningPoSt:
       case RegisteredPoStProof::StackedDRG2KiBWindowPoSt:
         return SectorSize{2} << 10;
+      case RegisteredPoStProof::undefined:
+        return 0;
       default:
         return Errors::kInvalidPoStProof;
     }
@@ -114,6 +122,8 @@ namespace fc::primitives::sector {
       case RegisteredPoStProof::StackedDRG2KiBWinningPoSt:
       case RegisteredPoStProof::StackedDRG2KiBWindowPoSt:
         return 2;
+      case RegisteredPoStProof::undefined:
+        return 0;
       default:
         return Errors::kInvalidPoStProof;
     }
