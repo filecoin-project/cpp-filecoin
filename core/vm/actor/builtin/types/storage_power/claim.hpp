@@ -15,7 +15,7 @@ namespace fc::vm::actor::builtin::types::storage_power {
   struct Claim {
     Claim() = default;
     Claim(const StoragePower &raw, const StoragePower &qa)
-        : seal_proof_type(RegisteredSealProof::undefined),
+        : seal_proof_type(RegisteredSealProof::kUndefined),
           raw_power(raw),
           qa_power(qa) {}
     Claim(const StoragePower &raw,

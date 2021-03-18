@@ -46,6 +46,8 @@ namespace fc::vm::actor::builtin::v2::miner {
   };
 
   using ControlAddresses = v0::miner::ControlAddresses;
+
+  // TODO implement
   using ChangeWorkerAddress = v0::miner::ChangeWorkerAddress;
   using ChangePeerId = v0::miner::ChangePeerId;
   using SubmitWindowedPoSt = v0::miner::SubmitWindowedPoSt;

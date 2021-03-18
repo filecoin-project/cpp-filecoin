@@ -514,7 +514,7 @@ namespace fc::markets::storage::test {
     std::shared_ptr<DataTransfer> datatransfer;
 
     RegisteredSealProof registered_proof{
-        RegisteredSealProof::StackedDrg32GiBV1};
+        RegisteredSealProof::kStackedDrg32GiBV1};
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<boost::asio::io_context> context_;
 

@@ -67,19 +67,29 @@ namespace fc::vm::actor {
     builtin_[builtin::v2::kSystemActorCodeId] = builtin::v2::system::exports;
     builtin_[builtin::v2::kVerifiedRegistryCodeId] =
         builtin::v2::verified_registry::exports;
+
+    // Temp for miner actor
+    ready_miner_actor_methods_v0.insert(builtin::v0::miner::Construct::Number);
+    ready_miner_actor_methods_v0.insert(
+        builtin::v0::miner::ControlAddresses::Number);
+
+    ready_miner_actor_methods_v2.insert(builtin::v2::miner::Construct::Number);
+    ready_miner_actor_methods_v2.insert(
+        builtin::v2::miner::ControlAddresses::Number);
   }
 
   outcome::result<InvocationOutput> InvokerImpl::invoke(
       const Actor &actor, const std::shared_ptr<Runtime> &runtime) {
+    // Temp for miner actor
     if (actor.code == builtin::v0::kStorageMinerCodeId) {
-      if (runtime->getMessage().get().method
-          != builtin::v0::miner::Construct::Number) {
+      if (ready_miner_actor_methods_v0.find(runtime->getMessage().get().method)
+          == ready_miner_actor_methods_v0.end()) {
         return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
       }
     }
     if (actor.code == builtin::v2::kStorageMinerCodeId) {
-      if (runtime->getMessage().get().method
-          != builtin::v2::miner::Construct::Number) {
+      if (ready_miner_actor_methods_v2.find(runtime->getMessage().get().method)
+          == ready_miner_actor_methods_v2.end()) {
         return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
       }
     }
@@ -101,10 +111,11 @@ namespace fc::vm::actor {
             != builtin::v0::kVerifiedRegistryCodeId)  // < OK, but not tested
 
         // v2
-        && (actor.code != builtin::v2::kAccountCodeId)         // < tested OK
-        && (actor.code != builtin::v2::kCronCodeId)            // < tested OK
-        && (actor.code != builtin::v2::kInitCodeId)            // < tested OK
-        && (actor.code != builtin::v2::kStorageMarketCodeId)   // < OK, but not tested
+        && (actor.code != builtin::v2::kAccountCodeId)  // < tested OK
+        && (actor.code != builtin::v2::kCronCodeId)     // < tested OK
+        && (actor.code != builtin::v2::kInitCodeId)     // < tested OK
+        && (actor.code
+            != builtin::v2::kStorageMarketCodeId)  // < OK, but not tested
         && (actor.code != builtin::v2::kStorageMinerCodeId)    // WiP
         && (actor.code != builtin::v2::kMultisigCodeId)        // < tested OK
         && (actor.code != builtin::v2::kPaymentChannelCodeId)  // < tested OK

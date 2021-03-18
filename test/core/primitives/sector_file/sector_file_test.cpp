@@ -19,9 +19,9 @@ namespace fc::primitives::sector_file {
 
    protected:
     RegisteredSealProof min_seal_proof_type =
-        RegisteredSealProof::StackedDrg2KiBV1;
+        RegisteredSealProof::kStackedDrg2KiBV1;
     RegisteredSealProof border_seal_proof_type =
-        RegisteredSealProof::StackedDrg8MiBV1;
+        RegisteredSealProof::kStackedDrg8MiBV1;
     SectorFileType file_type = SectorFileType::FTCache;
   };
 

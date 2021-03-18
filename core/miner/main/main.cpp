@@ -122,15 +122,15 @@ namespace fc {
     if (!raw.sector_size.empty()) {
       boost::algorithm::to_lower(raw.sector_size);
       if (raw.sector_size == "2kib") {
-        config.seal_type = RegisteredSealProof::StackedDrg2KiBV1;
+        config.seal_type = RegisteredSealProof::kStackedDrg2KiBV1;
       } else if (raw.sector_size == "8mib") {
-        config.seal_type = RegisteredSealProof::StackedDrg8MiBV1;
+        config.seal_type = RegisteredSealProof::kStackedDrg8MiBV1;
       } else if (raw.sector_size == "512mib") {
-        config.seal_type = RegisteredSealProof::StackedDrg512MiBV1;
+        config.seal_type = RegisteredSealProof::kStackedDrg512MiBV1;
       } else if (raw.sector_size == "32gib") {
-        config.seal_type = RegisteredSealProof::StackedDrg32GiBV1;
+        config.seal_type = RegisteredSealProof::kStackedDrg32GiBV1;
       } else if (raw.sector_size == "64gib") {
-        config.seal_type = RegisteredSealProof::StackedDrg64GiBV1;
+        config.seal_type = RegisteredSealProof::kStackedDrg64GiBV1;
       } else {
         spdlog::error("invalid --sector-size value");
         exit(EXIT_FAILURE);
@@ -158,20 +158,20 @@ namespace fc {
         assert(config.seal_type);
         if (version >= api::NetworkVersion::kVersion7) {
           switch (*config.seal_type) {
-            case RegisteredSealProof::StackedDrg2KiBV1:
-              config.seal_type = RegisteredSealProof::StackedDrg2KiBV1_1;
+            case RegisteredSealProof::kStackedDrg2KiBV1:
+              config.seal_type = RegisteredSealProof::kStackedDrg2KiBV1_1;
               break;
-            case RegisteredSealProof::StackedDrg8MiBV1:
-              config.seal_type = RegisteredSealProof::StackedDrg8MiBV1_1;
+            case RegisteredSealProof::kStackedDrg8MiBV1:
+              config.seal_type = RegisteredSealProof::kStackedDrg8MiBV1_1;
               break;
-            case RegisteredSealProof::StackedDrg512MiBV1:
-              config.seal_type = RegisteredSealProof::StackedDrg512MiBV1_1;
+            case RegisteredSealProof::kStackedDrg512MiBV1:
+              config.seal_type = RegisteredSealProof::kStackedDrg512MiBV1_1;
               break;
-            case RegisteredSealProof::StackedDrg32GiBV1:
-              config.seal_type = RegisteredSealProof::StackedDrg32GiBV1_1;
+            case RegisteredSealProof::kStackedDrg32GiBV1:
+              config.seal_type = RegisteredSealProof::kStackedDrg32GiBV1_1;
               break;
-            case RegisteredSealProof::StackedDrg64GiBV1:
-              config.seal_type = RegisteredSealProof::StackedDrg64GiBV1_1;
+            case RegisteredSealProof::kStackedDrg64GiBV1:
+              config.seal_type = RegisteredSealProof::kStackedDrg64GiBV1_1;
               break;
             default:
               break;

@@ -106,7 +106,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
       CreateMiner::Params params{
           .owner = owner,
           .worker = worker,
-          .seal_proof_type = RegisteredSealProof::StackedDrg32GiBV1,
+          .seal_proof_type = RegisteredSealProof::kStackedDrg32GiBV1,
           .peer_id = peer_id,
           .multiaddresses = {}};
       EXPECT_OUTCOME_TRUE(miner_params,

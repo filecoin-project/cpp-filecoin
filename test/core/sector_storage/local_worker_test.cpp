@@ -46,7 +46,7 @@ class LocalWorkerTest : public test::BaseFS_Test {
         fc::primitives::kTTPreCommit1,
         fc::primitives::kTTPreCommit2,
     };
-    seal_proof_type_ = RegisteredSealProof::StackedDrg2KiBV1;
+    seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
 
     config_ =
         WorkerConfig{.seal_proof_type = seal_proof_type_, .task_types = tasks_};
