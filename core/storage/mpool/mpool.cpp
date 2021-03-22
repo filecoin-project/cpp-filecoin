@@ -49,7 +49,7 @@ namespace fc::storage::mpool {
     return messages;
   }
 
-  outcome::result<uint64_t> Mpool::nonce(const Address &from) const {
+  outcome::result<Nonce> Mpool::nonce(const Address &from) const {
     OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head->key));
     OUTCOME_TRY(
         actor, vm::state::StateTreeImpl{ipld, interpeted.state_root}.get(from));
@@ -124,7 +124,7 @@ namespace fc::storage::mpool {
     return outcome::success();
   }
 
-  void Mpool::remove(const Address &from, uint64_t nonce) {
+  void Mpool::remove(const Address &from, Nonce nonce) {
     auto by_from_it{by_from.find(from)};
     if (by_from_it != by_from.end()) {
       auto &pending{by_from_it->second};

@@ -3,19 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_HPP
-
-#include <cstdint>
+#pragma once
 
 #include <spdlog/fmt/fmt.h>
-
 #include <boost/variant.hpp>
+
 #include "common/blob.hpp"
 #include "crypto/bls/bls_types.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
+#include "primitives/types.hpp"
 
 namespace fc::primitives::address {
+  using primitives::ActorId;
   using Sec256k1PublicKey = crypto::secp256k1::PublicKey;
   using BlsPublicKey = crypto::bls::PublicKey;
 
@@ -52,10 +51,8 @@ namespace fc::primitives::address {
     using Blob::Blob;
   };
 
-  using Payload = boost::variant<uint64_t,
-                                 Secp256k1PublicKeyHash,
-                                 ActorExecHash,
-                                 BLSPublicKeyHash>;
+  using Payload = boost::
+      variant<ActorId, Secp256k1PublicKeyHash, ActorExecHash, BLSPublicKeyHash>;
 
   /**
    * @brief Address refers to an actor in the Filecoin state
@@ -84,7 +81,7 @@ namespace fc::primitives::address {
     bool isSecp256k1() const;
 
     /// id - number assigned to actors in a Filecoin Chain
-    static Address makeFromId(uint64_t id);
+    static Address makeFromId(ActorId id);
 
     static Address makeSecp256k1(const Sec256k1PublicKey &public_key);
 
@@ -92,7 +89,7 @@ namespace fc::primitives::address {
 
     static Address makeBls(const BlsPublicKey &public_key);
 
-    uint64_t getId() const;
+    ActorId getId() const;
 
     bool verifySyntax(gsl::span<const uint8_t> seed_data) const;
 
@@ -115,7 +112,7 @@ namespace fc::primitives::address {
   bool operator<(const Address &lhs, const Address &rhs);
 
   std::string encodeToString(const Address &address);
-};  // namespace fc::primitives::address
+}  // namespace fc::primitives::address
 
 template <>
 struct fmt::formatter<fc::primitives::address::Address>
@@ -131,5 +128,3 @@ struct fmt::formatter<fc::primitives::address::Address>
  * @brief Outcome errors declaration
  */
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::address, AddressError);
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_HPP

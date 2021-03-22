@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_TYPES_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_TYPES_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -29,6 +28,8 @@ namespace fc::primitives {
   using DealId = uint64_t;
 
   using GasAmount = int64_t;
+
+  using Nonce = uint64_t;
 
   // StorageID identifies sector storage by UUID. One sector storage should map
   // to one
@@ -110,5 +111,3 @@ namespace fc::primitives {
 
   CBOR_TUPLE(SectorStorageWeightDesc, sector_size, duration, deal_weight)
 }  // namespace fc::primitives
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_TYPES_HPP
