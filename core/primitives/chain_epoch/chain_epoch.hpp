@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_PRIMITIVES_CHAIN_EPOCH_HPP
-#define CPP_FILECOIN_PRIMITIVES_CHAIN_EPOCH_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -21,5 +20,3 @@ namespace fc::primitives {
   constexpr ChainEpoch kChainEpochUndefined{-1};
 
 }  // namespace fc::primitives
-
-#endif  // CPP_FILECOIN_PRIMITIVES_CHAIN_EPOCH_HPP

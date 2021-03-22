@@ -5,15 +5,14 @@
 
 #pragma once
 
-#include "const.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::vm::actor::builtin::types::payment_channel {
+  using primitives::EpochDuration;
+
   constexpr size_t kLaneLimit{INT64_MAX};
-  static EpochDuration kSettleDelay = fc::kEpochsInHour * 12;
+  extern EpochDuration kSettleDelay;
   constexpr size_t kMaxSecretSize{256};
 
-  inline void setPolicy(const EpochDuration &epochsInHour) {
-    kSettleDelay = epochsInHour * 12;
-  }
+  void setPolicy(const EpochDuration &epochsInHour);
 }  // namespace fc::vm::actor::builtin::types::payment_channel

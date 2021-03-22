@@ -11,4 +11,5 @@ add_library(verified_registry_actor_v0
 target_link_libraries(verified_registry_actor_v0
     actor
     outcome
+    verified_registry_types
     )

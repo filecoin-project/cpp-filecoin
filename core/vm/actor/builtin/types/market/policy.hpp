@@ -25,7 +25,7 @@ namespace fc::vm::actor::builtin::types::market {
                                           * TokenAmount{"1000000000000000000"}};
 
   /// The number of blocks between payouts for deals
-  static EpochDuration kDealUpdatesInterval = fc::kEpochsInDay;
+  extern EpochDuration kDealUpdatesInterval;
 
   /**
    * ProvCollateralPercentSupplyNum is the numerator of the percentage of
@@ -123,7 +123,5 @@ namespace fc::vm::actor::builtin::types::market {
     return deal_duration * deal_size;
   }
 
-  inline void setPolicy(size_t epochsInDay) {
-    kDealUpdatesInterval = epochsInDay;
-  }
+  void setPolicy(size_t epochsInDay);
 }  // namespace fc::vm::actor::builtin::types::market

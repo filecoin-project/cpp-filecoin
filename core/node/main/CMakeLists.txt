@@ -9,7 +9,7 @@ add_library(node_builder
     )
 
 target_link_libraries(node_builder
-    const
+    filecoin_config
     sync
     p2p::p2p_basic_host
     p2p::p2p_default_network

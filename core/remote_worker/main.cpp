@@ -21,7 +21,7 @@
 #include "common/file.hpp"
 #include "common/io_thread.hpp"
 #include "common/outcome.hpp"
-#include "const.hpp"
+#include "config/profile_config.hpp"
 #include "primitives/address/config.hpp"
 #include "proofs/proof_param_provider.hpp"
 #include "sector_storage/fetch_handler.hpp"
@@ -33,6 +33,7 @@
 namespace fc {
   using api::VersionResult;
   using boost::asio::io_context;
+  using config::configProfile;
   using primitives::sector::SealRandomness;
   using proofs::ProofParamProvider;
   using sector_storage::AcquireMode;

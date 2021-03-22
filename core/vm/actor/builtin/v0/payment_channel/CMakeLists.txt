@@ -13,4 +13,5 @@ target_link_libraries(payment_channel_actor_v0
     array
     outcome
     signature
+    payment_channel_types
     )

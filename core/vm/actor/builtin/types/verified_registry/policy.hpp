@@ -11,10 +11,8 @@
 namespace fc::vm::actor::builtin::types::verified_registry {
   using primitives::StoragePower;
 
-  inline static StoragePower kMinVerifiedDealSize = StoragePower{1} << 20;
+  extern StoragePower kMinVerifiedDealSize;
 
-  inline void setPolicy(const StoragePower &minVerifiedDealSize) {
-    kMinVerifiedDealSize = minVerifiedDealSize;
-  }
+  void setPolicy(const StoragePower &minVerifiedDealSize);
 
 }  // namespace fc::vm::actor::builtin::types::verified_registry

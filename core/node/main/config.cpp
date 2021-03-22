@@ -11,7 +11,7 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 
-#include "const.hpp"
+#include "config/profile_config.hpp"
 #include "primitives/address/config.hpp"
 
 namespace fc::common {
@@ -53,6 +53,8 @@ namespace libp2p::peer {
 }  // namespace libp2p::peer
 
 namespace fc::node {
+  using config::configProfile;
+
   spdlog::level::level_enum getLogLevel(char level) {
     switch (level) {
       case 'e':

@@ -8,7 +8,7 @@ add_executable(remote_worker_main
     )
 target_link_libraries(remote_worker_main
     Boost::program_options
-    const
+    filecoin_config
     remote_index
     fetch_handler
     worker

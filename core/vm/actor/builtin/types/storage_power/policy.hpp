@@ -18,7 +18,7 @@ namespace fc::vm::actor::builtin::types::storage_power {
    * Minimum power of an individual miner to meet the threshold for leader
    * election.
    */
-  static StoragePower kConsensusMinerMinPower = StoragePower{10} << 40;
+  extern StoragePower kConsensusMinerMinPower;
   constexpr size_t kSectorQualityPrecision{20};
 
   /**
@@ -43,7 +43,5 @@ namespace fc::vm::actor::builtin::types::storage_power {
     return bigdiv(qa * per_epoch_reward, total_qa);
   }
 
-  inline void setPolicy(const StoragePower &consensusMinerMinPower) {
-    kConsensusMinerMinPower = consensusMinerMinPower;
-  }
+  void setPolicy(const StoragePower &consensusMinerMinPower);
 }  // namespace fc::vm::actor::builtin::types::storage_power
