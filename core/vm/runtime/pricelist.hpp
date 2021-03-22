@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_VM_RUNTIME_PRICELIST_HPP
-#define FILECOIN_CORE_VM_RUNTIME_PRICELIST_HPP
+#pragma once
 
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
@@ -16,6 +15,8 @@ namespace fc::vm::runtime {
   using primitives::sector::WindowPoStVerifyInfo;
 
   struct Pricelist {
+    Pricelist(ChainEpoch epoch)
+        : calico{epoch >= vm::version::kUpgradeCalicoHeight} {}
     inline GasAmount make(GasAmount compute, GasAmount storage) const {
       return compute + storage;
     }
@@ -92,5 +93,3 @@ namespace fc::vm::runtime {
     bool calico{};
   };
 }  // namespace fc::vm::runtime
-
-#endif  // FILECOIN_CORE_VM_RUNTIME_PRICELIST_HPP
