@@ -27,10 +27,6 @@ namespace fc::mining {
 
     virtual ~Events() = default;
 
-    virtual outcome::result<void> subscribeHeadChanges() = 0;
-
-    virtual void unsubscribeHeadChanges() = 0;
-
     virtual outcome::result<void> chainAt(HeightHandler,
                                           RevertHandler,
                                           EpochDuration confidence,

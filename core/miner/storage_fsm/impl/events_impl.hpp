@@ -21,12 +21,11 @@ namespace fc::mining {
   class EventsImpl : public Events,
                      public std::enable_shared_from_this<EventsImpl> {
    public:
-    EventsImpl(std::shared_ptr<FullNodeApi> api,
-               std::shared_ptr<TipsetCache> tipset_cache);
+    ~EventsImpl() override;
 
-    outcome::result<void> subscribeHeadChanges() override;
-
-    void unsubscribeHeadChanges() override;
+    static outcome::result<std::shared_ptr<EventsImpl>> createEvents(
+        const std::shared_ptr<FullNodeApi> &api,
+        std::shared_ptr<TipsetCache> tipset_cache);
 
     outcome::result<void> chainAt(HeightHandler handler,
                                   RevertHandler revert_handler,
@@ -34,6 +33,9 @@ namespace fc::mining {
                                   ChainEpoch height) override;
 
    private:
+    EventsImpl(
+               std::shared_ptr<TipsetCache> tipset_cache);
+
     struct HeightHandle {
       EpochDuration confidence;
       bool called;

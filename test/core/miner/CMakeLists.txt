@@ -3,6 +3,18 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+addtest(events_test
+        events_test.cpp
+        )
+target_link_libraries(events_test
+        events)
+
+addtest(precommit_policy_test
+        precommit_policy_test.cpp
+        )
+target_link_libraries(precommit_policy_test
+        precommit_policy)
+
 addtest(sector_stat_test
         sector_stat_test.cpp
         )
@@ -14,10 +26,4 @@ addtest(tipset_cache_test
         )
 target_link_libraries(tipset_cache_test
         tipset_cache)
-
-addtest(precommit_policy_test
-        precommit_policy_test.cpp
-        )
-target_link_libraries(precommit_policy_test
-        precommit_policy)
 
