@@ -19,7 +19,7 @@ namespace fc::sector_storage {
   class TaskSelectorTest : public ::testing::Test {
    protected:
     void SetUp() override {
-      seal_proof_type_ = RegisteredSealProof::StackedDrg2KiBV1;
+      seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
 
       worker_ = std::make_shared<WorkerMock>();
 
