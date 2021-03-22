@@ -3,28 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_CODEC_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_CODEC_HPP
+#pragma once
 
-#include <string>
-#include <vector>
-
-#include "address.hpp"
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/outcome.hpp"
-#include "common/outcome.hpp"
+#include "common/buffer.hpp"
+#include "primitives/address/address.hpp"
 
 namespace fc::primitives::address {
 
   /**
    * @brief Encodes an Address to an array of bytes
    */
-  std::vector<uint8_t> encode(const Address &address) noexcept;
+  Buffer encode(const Address &address) noexcept;
 
   /**
    * @brief Decodes an Address from an array of bytes
    */
-  outcome::result<Address> decode(gsl::span<const uint8_t> v);
+  outcome::result<Address> decode(BytesIn v);
 
   /**
    * @brief Encodes an Address to a string
@@ -41,10 +36,7 @@ namespace fc::primitives::address {
   }
 
   CBOR_DECODE(Address, address) {
-    std::vector<uint8_t> data{};
-    s >> data;
-    OUTCOME_EXCEPT(decoded, decode(data));
-    address = std::move(decoded);
+    address = decode(s.template get<Buffer>()).value();
     return s;
   }
 
@@ -52,14 +44,5 @@ namespace fc::primitives::address {
    * @brief A helper function that calculates a checksum of an Address protocol
    * + payload
    */
-  std::vector<uint8_t> checksum(const Address &address);
-
-  /**
-   * @brief Validates whether the Address' checksum matches the provided expect
-   */
-  bool validateChecksum(const Address &address,
-                        const std::vector<uint8_t> &expect);
-
-};  // namespace fc::primitives::address
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_CODEC_HPP
+  Buffer checksum(const Address &address);
+}  // namespace fc::primitives::address
