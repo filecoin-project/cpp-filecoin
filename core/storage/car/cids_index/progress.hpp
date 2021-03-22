@@ -45,11 +45,17 @@ namespace fc::storage::cids_index {
     indicators::ProgressBar bar{
         indicators::option::ShowPercentage{true},
         indicators::option::ShowElapsedTime{true},
+        indicators::option::Completed{!isTty()},
     };
     Each car_offset;
     Each items;
     size_t car_size{};
     size_t max_progress{};
+
+    static inline bool isTty() {
+      static auto cached{indicators::terminal_width() != 0};
+      return cached;
+    }
 
     inline void begin() {
       max_progress = car_size + 1;
@@ -58,7 +64,7 @@ namespace fc::storage::cids_index {
       bar.print_progress();
     }
     inline void update(bool force = false) {
-      if (force || car_offset.update() || items.update()) {
+      if (force + car_offset.update() + items.update()) {
         bar.set_option(indicators::option::PostfixText{
             fmt::format("{}/{}, {} items",
                         bytesUnits(car_offset.value),

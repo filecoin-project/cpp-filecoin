@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CODEC_RLE_PLUS_HPP
-#define CODEC_RLE_PLUS_HPP
+#pragma once
 
 #include "codec/rle/rle_plus_decoding_stream.hpp"
 #include "codec/rle/rle_plus_encoding_stream.hpp"
@@ -53,6 +52,4 @@ namespace fc::codec::rle {
     }
     return data;
   }
-};  // namespace fc::codec::rle
-
-#endif
+}  // namespace fc::codec::rle

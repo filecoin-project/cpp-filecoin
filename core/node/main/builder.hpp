@@ -14,6 +14,8 @@
 #include "node/main/config.hpp"
 #include "primitives/tipset/load.hpp"
 #include "storage/buffer_map.hpp"
+#include "storage/car/cids_index/cids_index.hpp"
+#include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "vm/runtime/env_context.hpp"
 
@@ -29,8 +31,10 @@ namespace fc::node {
 
   struct NodeObjects {
     // storage objects
-    std::shared_ptr<storage::LevelDB> ipld_leveldb;
-    std::shared_ptr<storage::ipfs::IpfsDatastore> ipld;
+    std::shared_ptr<storage::LevelDB> ipld_leveldb_kv;
+    std::shared_ptr<storage::ipfs::LeveldbDatastore> ipld_leveldb;
+    std::shared_ptr<storage::cids_index::CidsIpld> ipld_cids;
+    IpldPtr ipld;
     std::shared_ptr<primitives::tipset::TsLoadIpld> ts_load_ipld;
     std::shared_ptr<primitives::tipset::TsLoadCache> ts_load;
     std::shared_ptr<storage::PersistentBufferMap> kv_store;

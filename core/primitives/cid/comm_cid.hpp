@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_CID_COMM_CID_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_CID_COMM_CID_HPP
+#pragma once
 
 #include <unordered_map>
 #include "common/blob.hpp"
@@ -33,8 +32,6 @@ namespace fc::primitives::cid {
     kIncorrectHash,
     kInvalidCommSize,
   };
-};  // namespace fc::primitives::cid
+}  // namespace fc::primitives::cid
 
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::cid, CommCidErrors);
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_CID_COMM_CID_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_RLE_PLUS_ENCODING_STREAM_HPP
-#define CPP_FILECOIN_RLE_PLUS_ENCODING_STREAM_HPP
+#pragma once
 
 #include <set>
 #include <vector>
@@ -135,6 +134,4 @@ namespace fc::codec::rle {
   using Runs64 = std::vector<uint64_t>;
   Runs64 toRuns(const Set64 &set);
   Set64 fromRuns(const Runs64 &runs);
-};  // namespace fc::codec::rle
-
-#endif
+}  // namespace fc::codec::rle

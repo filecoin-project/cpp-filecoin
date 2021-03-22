@@ -134,7 +134,7 @@ namespace fc::primitives::sector {
     OUTCOME_TRY(wpost_proof_type, getRegisteredWindowPoStProof(proof));
     return getWindowPoStPartitionSectors(wpost_proof_type);
   }
-};  // namespace fc::primitives::sector
+}  // namespace fc::primitives::sector
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::sector, Errors, e) {
   using fc::primitives::sector::Errors;
