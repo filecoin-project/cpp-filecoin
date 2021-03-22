@@ -5,8 +5,6 @@
 
 #include "vm/message/impl/message_signer_impl.hpp"
 
-#include "vm/message/message_util.hpp"
-
 namespace fc::vm::message {
 
   MessageSignerImpl::MessageSignerImpl(std::shared_ptr<KeyStore> ks)
@@ -15,12 +13,7 @@ namespace fc::vm::message {
 
   outcome::result<SignedMessage> MessageSignerImpl::sign(
       const Address &address, const UnsignedMessage &msg) noexcept {
-    auto maybe_cid = cid(msg);
-    if (maybe_cid.has_error()) {
-      logger_->error(maybe_cid.error().message());
-      return outcome::failure(MessageError::kSerializationFailure);
-    }
-    auto maybe_cid_bytes = maybe_cid.value().toBytes();
+    auto maybe_cid_bytes = msg.getCid().toBytes();
     if (maybe_cid_bytes.has_error()) {
       logger_->error(maybe_cid_bytes.error().message());
       return outcome::failure(MessageError::kSerializationFailure);
@@ -31,12 +24,7 @@ namespace fc::vm::message {
 
   outcome::result<UnsignedMessage> MessageSignerImpl::verify(
       const Address &address, const SignedMessage &msg) const noexcept {
-    auto maybe_cid = cid(msg.message);
-    if (maybe_cid.has_error()) {
-      logger_->error(maybe_cid.error().message());
-      return outcome::failure(MessageError::kSerializationFailure);
-    }
-    auto maybe_cid_bytes = maybe_cid.value().toBytes();
+    auto maybe_cid_bytes = msg.message.getCid().toBytes();
     if (maybe_cid_bytes.has_error()) {
       logger_->error(maybe_cid_bytes.error().message());
       return outcome::failure(MessageError::kSerializationFailure);
@@ -50,4 +38,4 @@ namespace fc::vm::message {
     return msg.message;
   }
 
-};  // namespace fc::vm::message
+}  // namespace fc::vm::message

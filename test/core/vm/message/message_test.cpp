@@ -15,7 +15,6 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
-#include "vm/message/message_util.hpp"
 
 using fc::crypto::bls::BlsProvider;
 using fc::crypto::bls::BlsProviderImpl;
@@ -36,7 +35,6 @@ using fc::storage::keystore::InMemoryKeyStore;
 using fc::storage::keystore::KeyStore;
 using fc::storage::keystore::KeyStoreError;
 
-using fc::vm::message::cid;
 using fc::vm::message::MessageError;
 using fc::vm::message::MessageSigner;
 using fc::vm::message::MessageSignerImpl;
@@ -127,8 +125,8 @@ struct MessageTest : public testing::Test {
  */
 TEST_F(MessageTest, BlsSignedMessageCID) {
   EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
-  EXPECT_OUTCOME_EQ(
-      cid(signed_message),
+  EXPECT_EQ(
+      signed_message.getCid(),
       "0171a0e4022024b47692c1f890ba09cb197926ddfdb8a9ec714cf083ea866250463b2976af0a"_cid);
 }
 
@@ -143,7 +141,7 @@ TEST_F(MessageTest, BlsSignedMessageCID) {
  */
 TEST_F(MessageTest, DISABLED_Secp256k1SignedMessageCID) {
   EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(secp, message));
-  EXPECT_OUTCOME_EQ(
-      cid(signed_message),
+  EXPECT_EQ(
+      signed_message.getCid(),
       "0171a0e402201c9a054f1d0918cf9e215903078d5fa72e3d4de95b11ba5c49c1dffaf1d917c2"_cid);
 }
