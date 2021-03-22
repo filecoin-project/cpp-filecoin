@@ -12,6 +12,7 @@ target_link_libraries(miner_actor_v0
     address
     array
     cbor
+    const
     exit_code
     map
     rle_bitset

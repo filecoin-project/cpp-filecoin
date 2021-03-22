@@ -12,7 +12,7 @@
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
-#include "vm/version.hpp"
+#include "vm/version/version.hpp"
 
 namespace fc::vm::actor {
 

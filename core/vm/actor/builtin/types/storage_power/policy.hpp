@@ -17,10 +17,8 @@ namespace fc::vm::actor::builtin::types::storage_power {
   /**
    * Minimum power of an individual miner to meet the threshold for leader
    * election.
-   * 1 << 40
-   * MAINNET: 10 << 40
    */
-  inline const StoragePower kConsensusMinerMinPower{StoragePower{10} << 40};
+  static StoragePower kConsensusMinerMinPower = StoragePower{10} << 40;
   constexpr size_t kSectorQualityPrecision{20};
 
   /**
@@ -43,5 +41,9 @@ namespace fc::vm::actor::builtin::types::storage_power {
       const TokenAmount &total_pledge,
       const TokenAmount &per_epoch_reward) {
     return bigdiv(qa * per_epoch_reward, total_qa);
+  }
+
+  inline void setPolicy(const StoragePower &consensusMinerMinPower) {
+    kConsensusMinerMinPower = consensusMinerMinPower;
   }
 }  // namespace fc::vm::actor::builtin::types::storage_power

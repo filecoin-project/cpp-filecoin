@@ -14,10 +14,6 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
    * Payment channel actor v2 is almost identical to Payment channel actor v0
    */
 
-  constexpr auto kLaneLimit = v0::payment_channel::kLaneLimit;
-  constexpr auto kSettleDelay = v0::payment_channel::kSettleDelay;
-  constexpr auto kMaxSecretSize = v0::payment_channel::kMaxSecretSize;
-
   using Construct = v0::payment_channel::Construct;
 
   struct UpdateChannelState : ActorMethodBase<2> {

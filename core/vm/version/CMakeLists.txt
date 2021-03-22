@@ -3,12 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(miner_types
-    deadline_info.cpp
+add_library(version
+    version.cpp
     )
-target_link_libraries(miner_types
-    actor
-    address
+
+target_link_libraries(version
     const
-    outcome
     )

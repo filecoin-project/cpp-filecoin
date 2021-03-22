@@ -15,7 +15,7 @@
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
-#include "vm/version.hpp"
+#include "vm/version/version.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
   using libp2p::multi::Multihash;
@@ -28,8 +28,6 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   using testing::Return;
   using types::storage_power::kConsensusMinerMinPower;
   using types::storage_power::kGasOnSubmitVerifySeal;
-  using version::kUpgradeBreezeHeight;
-  using version::kUpgradeKumquatHeight;
 
   class StoragePowerActorV0Test : public testing::Test {
     void SetUp() override {

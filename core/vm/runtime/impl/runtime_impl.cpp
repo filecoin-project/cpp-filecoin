@@ -6,6 +6,7 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 
 #include "codec/cbor/cbor.hpp"
+#include "const.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/keystore.hpp"
@@ -15,7 +16,7 @@
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime_error.hpp"
 #include "vm/toolchain/toolchain.hpp"
-#include "vm/version.hpp"
+#include "vm/version/version.hpp"
 
 namespace fc::vm::runtime {
   using actor::builtin::states::StateProvider;
@@ -299,7 +300,6 @@ namespace fc::vm::runtime {
   // TODO: reuse in slash filter
   inline bool isNearOrange(ChainEpoch epoch) {
     using actor::builtin::types::miner::kChainFinalityish;
-    using version::kUpgradeOrangeHeight;
     return epoch > kUpgradeOrangeHeight - kChainFinalityish
            && epoch < kUpgradeOrangeHeight + kChainFinalityish;
   }

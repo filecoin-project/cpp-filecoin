@@ -22,6 +22,7 @@
 #include "common/io_thread.hpp"
 #include "common/outcome.hpp"
 #include "common/peer_key.hpp"
+#include "const.hpp"
 #include "data_transfer/dt.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/retrieval/provider/impl/retrieval_provider_impl.hpp"
@@ -105,6 +106,7 @@ namespace fc {
     option("pre-sealed-sectors",
            po::value(&config.preseal_path),
            "Path to presealed sectors");
+    desc.add(configProfile());
     primitives::address::configCurrentNetwork(option);
 
     po::variables_map vm;

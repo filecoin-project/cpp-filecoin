@@ -6,6 +6,7 @@
 #pragma once
 
 #include "common/outcome.hpp"
+#include "const.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 #include "vm/exit_code/exit_code.hpp"
@@ -17,27 +18,18 @@ namespace fc::vm::actor::builtin::types::miner {
   using primitives::TokenAmount;
   using primitives::sector::RegisteredSealProof;
 
-  constexpr size_t kEpochDurationSeconds{30};
-  constexpr size_t kSecondsInHour{3600};
-  constexpr size_t kSecondsInDay{86400};
-  constexpr size_t kSecondsInYear{31556925};
-  constexpr size_t kEpochsInHour{kSecondsInHour / kEpochDurationSeconds};
-  constexpr size_t kEpochsInDay{kSecondsInDay / kEpochDurationSeconds};
-  constexpr size_t kEpochsInYear{kSecondsInYear / kEpochDurationSeconds};
-
   /**
    * The period over which all a miner's active sectors will be challenged.
    * 24 hours
    */
-  constexpr ChainEpoch kWPoStProvingPeriod{kEpochsInDay};
+  static ChainEpoch kWPoStProvingPeriod = kEpochsInDay;
 
   /**
    * The duration of a deadline's challenge window, the period before a deadline
    * when the challenge is available.
    * 30 minutes (48 per day)
    */
-  constexpr EpochDuration kWPoStChallengeWindow{30 * 60
-                                                / kEpochDurationSeconds};
+  static EpochDuration kWPoStChallengeWindow = 30 * 60 / kEpochDurationSeconds;
 
   /** The number of non-overlapping PoSt deadlines in each proving period. */
   constexpr size_t kWPoStPeriodDeadlines{48};
@@ -75,18 +67,18 @@ namespace fc::vm::actor::builtin::types::miner {
   constexpr EpochDuration kFaultDeclarationCutoff{kWPoStChallengeLookback + 50};
 
   /** The maximum age of a fault before the sector is terminated. */
-  constexpr EpochDuration kFaultMaxAge{kWPoStProvingPeriod * 14};
+  static EpochDuration kFaultMaxAge = kWPoStProvingPeriod * 14;
 
   constexpr auto kWorkerKeyChangeDelay{2 * kElectionLookback};
 
-  constexpr auto kMinSectorExpiration = 180 * kEpochsInDay;
+  static auto kMinSectorExpiration = 180 * kEpochsInDay;
 
   constexpr auto kAddressedSectorsMax{10000};
 
   /**
    * List of proof types which can be used when creating new miner actors
    */
-  static const std::set<RegisteredSealProof> kSupportedProofs{
+  static std::set<RegisteredSealProof> kSupportedProofs{
       RegisteredSealProof::kStackedDrg32GiBV1,
       RegisteredSealProof::kStackedDrg64GiBV1,
   };
@@ -97,7 +89,7 @@ namespace fc::vm::actor::builtin::types::miner {
    * MaximumSectorExpirationExtension and
    * sector.ActivationEpoch+sealProof.SectorMaximumLifetime()
    */
-  constexpr auto kMaxSectorExpirationExtension = 540 * kEpochsInDay;
+  static auto kMaxSectorExpirationExtension = 540 * kEpochsInDay;
 
   inline outcome::result<EpochDuration> maxSealDuration(
       RegisteredSealProof type) {
@@ -173,6 +165,27 @@ namespace fc::vm::actor::builtin::types::miner {
    */
   constexpr size_t kMaxMultiaddressData = 1024;
 
-  constexpr primitives::EpochDuration kMaxProveCommitDuration{
-      kEpochsInDay + kPreCommitChallengeDelay};
+  static primitives::EpochDuration kMaxProveCommitDuration =
+      kEpochsInDay + kPreCommitChallengeDelay;
+
+  /**
+   * Sets miner policy parameters
+   * @param epochDurationSeconds - block delay in seconds
+   * @param supportedProofs - proof types supported by miner
+   */
+  inline void setPolicy(size_t epochDurationSeconds,
+                        std::set<RegisteredSealProof> supportedProofs) {
+    kWPoStChallengeWindow = 30 * 60 / kEpochDurationSeconds;
+
+    const auto epochsInHour = kSecondsInHour / epochDurationSeconds;
+    const auto epochsInDay = 24 * epochsInHour;
+    kWPoStProvingPeriod = epochsInDay;
+
+    kFaultMaxAge = kWPoStProvingPeriod * 14;
+    kMinSectorExpiration = 180 * epochsInDay;
+    kMaxSectorExpirationExtension = 540 * epochsInDay;
+    kMaxProveCommitDuration = epochsInDay + kPreCommitChallengeDelay;
+
+    kSupportedProofs = std::move(supportedProofs);
+  }
 }  // namespace fc::vm::actor::builtin::types::miner

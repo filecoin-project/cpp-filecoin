@@ -9,7 +9,7 @@
 #include "primitives/piece/piece.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/v0/shared/shared.hpp"
-#include "vm/version.hpp"
+#include "vm/version/version.hpp"
 
 namespace fc::vm::actor::builtin::types::market {
   using primitives::ChainEpoch;
@@ -25,7 +25,7 @@ namespace fc::vm::actor::builtin::types::market {
                                           * TokenAmount{"1000000000000000000"}};
 
   /// The number of blocks between payouts for deals
-  constexpr EpochDuration kDealUpdatesInterval{fc::kEpochsInDay};
+  static EpochDuration kDealUpdatesInterval = fc::kEpochsInDay;
 
   /**
    * ProvCollateralPercentSupplyNum is the numerator of the percentage of
@@ -54,7 +54,8 @@ namespace fc::vm::actor::builtin::types::market {
   };
 
   inline Bounds<EpochDuration> dealDurationBounds(PaddedPieceSize) {
-    return {180 * fc::kEpochsInDay, 540 * fc::kEpochsInDay};
+    return {static_cast<EpochDuration>(180 * fc::kEpochsInDay),
+            static_cast<EpochDuration>(540 * fc::kEpochsInDay)};
   }
 
   inline Bounds<TokenAmount> dealPricePerEpochBounds(PaddedPieceSize,
@@ -120,5 +121,9 @@ namespace fc::vm::actor::builtin::types::market {
     const auto deal_duration = static_cast<int64_t>(deal.duration());
     const auto deal_size = static_cast<uint64_t>(deal.piece_size);
     return deal_duration * deal_size;
+  }
+
+  inline void setPolicy(size_t epochsInDay) {
+    kDealUpdatesInterval = epochsInDay;
   }
 }  // namespace fc::vm::actor::builtin::types::market

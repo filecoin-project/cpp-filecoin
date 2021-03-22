@@ -9,6 +9,8 @@
 namespace fc::vm::actor::builtin::v0::payment_channel {
   using primitives::TokenAmount;
   using toolchain::Toolchain;
+  using types::payment_channel::kLaneLimit;
+  using types::payment_channel::kSettleDelay;
   using types::payment_channel::LaneState;
   using types::payment_channel::PaymentVerifyParams;
 

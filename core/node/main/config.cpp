@@ -11,6 +11,7 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 
+#include "const.hpp"
 #include "primitives/address/config.hpp"
 
 namespace fc::common {
@@ -105,6 +106,7 @@ namespace fc::node {
                  "drand period (seconds)");
     desc.add(drand_desc);
 
+    desc.add(configProfile());
     primitives::address::configCurrentNetwork(option);
 
     po::variables_map vm;

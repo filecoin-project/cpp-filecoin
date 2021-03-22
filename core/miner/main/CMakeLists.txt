@@ -8,6 +8,7 @@ add_executable(miner_main
     )
 target_link_libraries(miner_main
     Boost::program_options
+    const
     clock
     leveldb
     manager

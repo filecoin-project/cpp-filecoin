@@ -9,7 +9,7 @@
 
 #include "common/error_text.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/version.hpp"
+#include "vm/version/version.hpp"
 
 namespace fc::primitives::tipset::chain {
   using common::Hash256;

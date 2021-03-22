@@ -47,4 +47,5 @@ target_link_libraries(actor
     verified_registry_actor_v2
     verified_registry_actor_v3
     cgo_actors
+    version
     )

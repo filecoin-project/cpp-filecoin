@@ -7,7 +7,7 @@
 
 #include "common/outcome_fmt.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/version.hpp"
+#include "vm/version/version.hpp"
 
 namespace fc::mining {
   using vm::actor::builtin::types::miner::kWPoStPeriodDeadlines;
@@ -95,7 +95,7 @@ namespace fc::mining {
           }
         }};
         declare(false);
-        if (apply->epoch() <= vm::version::kUpgradeIgnitionHeight) {
+        if (apply->epoch() <= kUpgradeIgnitionHeight) {
           declare(true);
         }
       }

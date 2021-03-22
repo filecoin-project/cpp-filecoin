@@ -184,9 +184,6 @@ namespace fc::mining::types {
              invalid_proofs,
              fault_report_message)
 
-  // Epochs
-  constexpr int kInteractivePoRepConfidence = 6;
-
   struct PieceAttributes {
     SectorNumber sector = 0;
 

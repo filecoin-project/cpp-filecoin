@@ -6,6 +6,7 @@
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
 
 #include "common/bitsutil.hpp"
+#include "const.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "miner/storage_fsm/impl/checks.hpp"
 #include "miner/storage_fsm/impl/sector_stat_impl.hpp"
@@ -1087,7 +1088,7 @@ namespace fc::mining {
           // TODO: cancel running and restart
           return outcome::success();
         },
-        types::kInteractivePoRepConfidence,
+        kInteractivePoRepConfidence,
         random_height);
 
     if (maybe_error.has_error()) {

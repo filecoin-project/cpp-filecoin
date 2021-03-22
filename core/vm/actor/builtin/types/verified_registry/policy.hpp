@@ -5,11 +5,16 @@
 
 #pragma once
 
+#include "const.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::vm::actor::builtin::types::verified_registry {
   using primitives::StoragePower;
 
-  inline const StoragePower kMinVerifiedDealSize{1 << 20};
+  inline static StoragePower kMinVerifiedDealSize = StoragePower{1} << 20;
+
+  inline void setPolicy(const StoragePower &minVerifiedDealSize) {
+    kMinVerifiedDealSize = minVerifiedDealSize;
+  }
 
 }  // namespace fc::vm::actor::builtin::types::verified_registry
