@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_MPOOL_MPOOL_HPP
-#define CPP_FILECOIN_CORE_STORAGE_MPOOL_MPOOL_HPP
+#pragma once
 
 #include "fwd.hpp"
 #include "storage/chain/chain_store.hpp"
@@ -13,6 +12,7 @@
 
 namespace fc::storage::mpool {
   using crypto::signature::Signature;
+  using primitives::Nonce;
   using primitives::address::Address;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
@@ -32,8 +32,8 @@ namespace fc::storage::mpool {
 
   struct Mpool : public std::enable_shared_from_this<Mpool> {
     struct Pending {
-      std::map<uint64_t, SignedMessage> by_nonce;
-      uint64_t nonce;
+      std::map<Nonce, SignedMessage> by_nonce;
+      Nonce nonce;
     };
     using Subscriber = void(const MpoolUpdate &);
 
@@ -42,10 +42,10 @@ namespace fc::storage::mpool {
         TsBranchPtr ts_main,
         std::shared_ptr<ChainStore> chain_store);
     std::vector<SignedMessage> pending() const;
-    outcome::result<uint64_t> nonce(const Address &from) const;
+    outcome::result<Nonce> nonce(const Address &from) const;
     outcome::result<void> estimate(UnsignedMessage &message) const;
     outcome::result<void> add(const SignedMessage &message);
-    void remove(const Address &from, uint64_t nonce);
+    void remove(const Address &from, Nonce nonce);
     outcome::result<void> onHeadChange(const HeadChange &change);
     connection_t subscribe(const std::function<Subscriber> &subscriber) {
       return signal.connect(subscriber);
@@ -62,5 +62,3 @@ namespace fc::storage::mpool {
     boost::signals2::signal<Subscriber> signal;
   };
 }  // namespace fc::storage::mpool
-
-#endif  // CPP_FILECOIN_CORE_STORAGE_MPOOL_MPOOL_HPP

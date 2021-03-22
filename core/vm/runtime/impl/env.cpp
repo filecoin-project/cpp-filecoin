@@ -103,9 +103,8 @@ namespace fc::vm::runtime {
         env_context{env_context},
         epoch{tipset->height()},
         ts_branch{std::move(ts_branch)},
-        tipset{std::move(tipset)} {
-    pricelist.calico = epoch >= vm::version::kUpgradeCalicoHeight;
-  }
+        tipset{std::move(tipset)},
+        pricelist{(ChainEpoch)epoch} {}
 
   outcome::result<Env::Apply> Env::applyMessage(const UnsignedMessage &message,
                                                 size_t size) {

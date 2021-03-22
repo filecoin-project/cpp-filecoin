@@ -86,7 +86,7 @@ namespace fc::crypto::bls {
     }
     return ffi::array(response->signature.inner);
   }
-};  // namespace fc::crypto::bls
+}  // namespace fc::crypto::bls
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::crypto::bls, Errors, e) {
   using fc::crypto::bls::Errors;

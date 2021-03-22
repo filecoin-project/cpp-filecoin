@@ -4,7 +4,6 @@
 #
 
 add_subdirectory(block_validator)
-add_subdirectory(message_pool)
 add_subdirectory(production)
 
 add_library(weight_calculator

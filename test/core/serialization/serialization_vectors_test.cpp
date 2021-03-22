@@ -16,7 +16,6 @@
 #include "testutil/read_file.hpp"
 #include "testutil/resources/resources.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
-#include "vm/message/message_util.hpp"
 
 using fc::api::BlockHeader;
 using fc::api::Codec;
@@ -62,7 +61,7 @@ TEST(SerializationVectorsTest, DISABLED_SignedMessage) {
   auto tests = loadJson("message_signing.json");
   for (auto it = tests.Begin(); it != tests.End(); ++it) {
     auto message = Codec::decode<UnsignedMessage>(Codec::Get(*it, "Unsigned"));
-    EXPECT_OUTCOME_TRUE(cid, fc::vm::message::cid(message));
+    auto cid{message.getCid()};
     EXPECT_OUTCOME_TRUE(cid_bytes, cid.toBytes());
 
     auto expected_cid_hex = Codec::AsString(Codec::Get(*it, "CidHexBytes"));

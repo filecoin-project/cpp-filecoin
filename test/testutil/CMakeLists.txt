@@ -5,4 +5,3 @@
 
 add_subdirectory(resources)
 add_subdirectory(storage)
-add_subdirectory(vm)

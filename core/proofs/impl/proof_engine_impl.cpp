@@ -242,7 +242,7 @@ namespace fc::proofs {
         primitives::address::Address::makeFromId(miner_id));
     fil_32ByteArray prover = {};
     // +1: because payload start from 1 position
-    std::copy(maddr.cbegin() + 1, maddr.cend(), prover.inner);
+    std::copy(maddr.begin() + 1, maddr.end(), prover.inner);
     return prover;
   }
 

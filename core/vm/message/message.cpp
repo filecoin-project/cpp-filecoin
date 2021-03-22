@@ -8,8 +8,6 @@
 #include "primitives/cid/cid_of_cbor.hpp"
 
 namespace fc::vm::message {
-  using primitives::BigInt;
-
   bool UnsignedMessage::operator==(const UnsignedMessage &other) const {
     return to == other.to && from == other.from && nonce == other.nonce
            && value == other.value && gas_limit == other.gas_limit
@@ -22,7 +20,7 @@ namespace fc::vm::message {
     return !(*this == other);
   }
 
-  BigInt UnsignedMessage::requiredFunds() const {
+  TokenAmount UnsignedMessage::requiredFunds() const {
     return gas_limit * gas_fee_cap;
   }
 
@@ -48,6 +46,13 @@ namespace fc::vm::message {
     }
     OUTCOME_EXCEPT(bytes, codec::cbor::encode(*this));
     return bytes.size();
+  }
+
+  void capGasFee(UnsignedMessage &msg, const TokenAmount &max) {
+    if (msg.gas_limit * msg.gas_fee_cap > max) {
+      msg.gas_fee_cap = max / msg.gas_limit;
+      msg.gas_premium = std::min(msg.gas_premium, msg.gas_fee_cap);
+    }
   }
 }  // namespace fc::vm::message
 

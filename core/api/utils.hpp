@@ -93,4 +93,4 @@ namespace fc::api {
 
   template <typename T>
   struct is_wait<Wait<T>> : std::true_type {};
-};  // namespace fc::api
+}  // namespace fc::api
