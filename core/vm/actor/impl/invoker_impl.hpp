@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_INVOKER_IMPL_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_INVOKER_IMPL_HPP
+#pragma once
 
 #include "vm/actor/invoker.hpp"
 
@@ -27,7 +26,10 @@ namespace fc::vm::actor {
 
    private:
     std::map<CID, ActorExports> builtin_;
+
+    // Temp for miner actor
+    std::set<MethodNumber> ready_miner_actor_methods_v0;
+    std::set<MethodNumber> ready_miner_actor_methods_v2;
+    std::set<MethodNumber> ready_miner_actor_methods_v3;
   };
 }  // namespace fc::vm::actor
-
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_INVOKER_IMPL_HPP

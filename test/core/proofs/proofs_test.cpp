@@ -62,9 +62,9 @@ namespace fc::proofs {
         ActorId miner_id = 42;
         Randomness randomness{{9, 9, 9}};
         RegisteredSealProof seal_proof_type =
-                primitives::sector::RegisteredSealProof::StackedDrg2KiBV1;
+                primitives::sector::RegisteredSealProof::kStackedDrg2KiBV1;
         RegisteredPoStProof winning_post_proof_type =
-                primitives::sector::RegisteredPoStProof::StackedDRG2KiBWinningPoSt;
+                primitives::sector::RegisteredPoStProof::kStackedDRG2KiBWinningPoSt;
         SectorNumber sector_num = 42;
         EXPECT_OUTCOME_TRUE(sector_size,
                             primitives::sector::getSectorSize(seal_proof_type));
@@ -337,7 +337,7 @@ namespace fc::proofs {
  */
     TEST_F(ProofsTest, WriteAndReadPiecesFile) {
         RegisteredSealProof seal_proof_type =
-                primitives::sector::RegisteredSealProof::StackedDrg2KiBV1;
+                primitives::sector::RegisteredSealProof::kStackedDrg2KiBV1;
 
         common::Blob<2032> some_bytes;
         std::random_device rd;

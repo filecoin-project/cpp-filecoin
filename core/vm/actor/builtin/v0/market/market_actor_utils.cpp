@@ -9,16 +9,22 @@
 
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/comm_cid.hpp"
-#include "vm/actor/builtin/v0/market/policy.hpp"
-#include "vm/actor/builtin/v0/shared/shared.hpp"
+#include "vm/actor/builtin/types/market/policy.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::market {
   using crypto::randomness::DomainSeparationTag;
   using libp2p::multi::HashType;
-  using primitives::kChainEpochUndefined;
   using primitives::cid::kCommitmentBytesLen;
   using toolchain::Toolchain;
+  using namespace types::market;
+
+  outcome::result<void> MarketUtils::checkWithdrawCaller() const {
+    return runtime.validateImmediateCallerIsSignable();
+  }
 
   outcome::result<std::tuple<Address, Address, std::vector<Address>>>
   MarketUtils::escrowAddress(const Address &address) const {
@@ -40,107 +46,6 @@ namespace fc::vm::actor::builtin::v0::market {
     return std::make_tuple(nominal.value(),
                            nominal.value(),
                            std::vector<Address>{nominal.value()});
-  }
-
-  outcome::result<void> MarketUtils::unlockBalance(
-      MarketActorStatePtr state,
-      const Address &address,
-      const TokenAmount &amount,
-      BalanceLockingReason lock_reason) const {
-    VM_ASSERT(amount >= 0);
-
-    OUTCOME_TRY(state->locked_table.subtract(address, amount));
-
-    switch (lock_reason) {
-      case BalanceLockingReason::kClientCollateral:
-        state->total_client_locked_collateral -= amount;
-        break;
-      case BalanceLockingReason::kClientStorageFee:
-        state->total_client_storage_fee -= amount;
-        break;
-      case BalanceLockingReason::kProviderCollateral:
-        state->total_provider_locked_collateral -= amount;
-        break;
-    }
-    return outcome::success();
-  }
-
-  outcome::result<void> MarketUtils::slashBalance(
-      MarketActorStatePtr state,
-      const Address &address,
-      const TokenAmount &amount,
-      BalanceLockingReason reason) const {
-    VM_ASSERT(amount >= 0);
-    OUTCOME_TRY(state->escrow_table.subtract(address, amount));
-    return unlockBalance(state, address, amount, reason);
-  }
-
-  outcome::result<void> MarketUtils::transferBalance(
-      MarketActorStatePtr state,
-      const Address &from,
-      const Address &to,
-      const TokenAmount &amount) const {
-    VM_ASSERT(amount >= 0);
-    CHANGE_ERROR_ABORT(state->escrow_table.subtract(from, amount),
-                       VMExitCode::kErrIllegalState);
-    CHANGE_ERROR_ABORT(
-        unlockBalance(
-            state, from, amount, BalanceLockingReason::kClientStorageFee),
-        VMExitCode::kErrIllegalState);
-    CHANGE_ERROR_ABORT(state->escrow_table.add(to, amount),
-                       VMExitCode::kErrIllegalState);
-    return outcome::success();
-  }
-
-  outcome::result<TokenAmount> MarketUtils::processDealInitTimedOut(
-      MarketActorStatePtr state, const DealProposal &deal) const {
-    CHANGE_ERROR_ABORT(unlockBalance(state,
-                                     deal.client,
-                                     deal.getTotalStorageFee(),
-                                     BalanceLockingReason::kClientStorageFee),
-                       VMExitCode::kErrIllegalState);
-    CHANGE_ERROR_ABORT(unlockBalance(state,
-                                     deal.client,
-                                     deal.client_collateral,
-                                     BalanceLockingReason::kClientCollateral),
-                       VMExitCode::kErrIllegalState);
-
-    const auto slashed =
-        collateralPenaltyForDealActivationMissed(deal.provider_collateral);
-    const auto amount_remaining = deal.providerBalanceRequirement() - slashed;
-
-    CHANGE_ERROR_ABORT(slashBalance(state,
-                                    deal.provider,
-                                    slashed,
-                                    BalanceLockingReason::kProviderCollateral),
-                       VMExitCode::kErrIllegalState);
-    CHANGE_ERROR_ABORT(unlockBalance(state,
-                                     deal.provider,
-                                     amount_remaining,
-                                     BalanceLockingReason::kProviderCollateral),
-                       VMExitCode::kErrIllegalState);
-
-    return slashed;
-  }
-
-  outcome::result<void> MarketUtils::processDealExpired(
-      MarketActorStatePtr state,
-      const DealProposal &deal,
-      const DealState &deal_state) const {
-    VM_ASSERT(deal_state.sector_start_epoch != kChainEpochUndefined);
-
-    CHANGE_ERROR_ABORT(unlockBalance(state,
-                                     deal.provider,
-                                     deal.provider_collateral,
-                                     BalanceLockingReason::kProviderCollateral),
-                       VMExitCode::kErrIllegalState);
-    CHANGE_ERROR_ABORT(unlockBalance(state,
-                                     deal.client,
-                                     deal.client_collateral,
-                                     BalanceLockingReason::kClientCollateral),
-                       VMExitCode::kErrIllegalState);
-
-    return outcome::success();
   }
 
   outcome::result<void> MarketUtils::dealProposalIsInternallyValid(
@@ -167,119 +72,6 @@ namespace fc::vm::actor::builtin::v0::market {
     VM_ASSERT(duration_remaining >= 0);
 
     return duration_remaining * deal.storage_price_per_epoch;
-  }
-
-  outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
-  MarketUtils::updatePendingDealState(MarketActorStatePtr state,
-                                      DealId deal_id,
-                                      const DealProposal &deal,
-                                      const DealState &deal_state,
-                                      ChainEpoch epoch) const {
-    // std::pair<TokenAmount, ChainEpoch> result{0, kChainEpochUndefined};
-
-    TokenAmount slashed_sum;
-
-    const auto updated{deal_state.last_updated_epoch != kChainEpochUndefined};
-    const auto slashed{deal_state.slash_epoch != kChainEpochUndefined};
-
-    VM_ASSERT(!updated || (deal_state.last_updated_epoch <= epoch));
-
-    if (deal.start_epoch > epoch) {
-      return std::make_tuple(slashed_sum, kChainEpochUndefined, false);
-    }
-
-    auto payment_end_epoch = deal.end_epoch;
-    if (slashed) {
-      VM_ASSERT(epoch >= deal_state.slash_epoch);
-      VM_ASSERT(deal_state.slash_epoch <= deal.end_epoch);
-      payment_end_epoch = deal_state.slash_epoch;
-    } else if (epoch < payment_end_epoch) {
-      payment_end_epoch = epoch;
-    }
-
-    auto payment_start_epoch = deal.start_epoch;
-    if (updated && (deal_state.last_updated_epoch > payment_start_epoch)) {
-      payment_start_epoch = deal_state.last_updated_epoch;
-    }
-
-    const auto epochs_elapsed = payment_end_epoch - payment_start_epoch;
-    const TokenAmount total_payment =
-        epochs_elapsed * deal.storage_price_per_epoch;
-
-    if (total_payment > 0) {
-      OUTCOME_TRY(
-          transferBalance(state, deal.client, deal.provider, total_payment));
-    }
-
-    if (slashed) {
-      OUTCOME_TRY(remaining,
-                  dealGetPaymentRemaining(deal, deal_state.slash_epoch));
-
-      CHANGE_ERROR_ABORT(unlockBalance(state,
-                                       deal.client,
-                                       remaining,
-                                       BalanceLockingReason::kClientStorageFee),
-                         VMExitCode::kErrIllegalState);
-
-      CHANGE_ERROR_ABORT(unlockBalance(state,
-                                       deal.client,
-                                       deal.client_collateral,
-                                       BalanceLockingReason::kClientCollateral),
-                         VMExitCode::kErrIllegalState);
-
-      slashed_sum = deal.provider_collateral;
-
-      CHANGE_ERROR_ABORT(
-          slashBalance(state,
-                       deal.provider,
-                       slashed_sum,
-                       BalanceLockingReason::kProviderCollateral),
-          VMExitCode::kErrIllegalState);
-
-      return std::make_tuple(slashed_sum, kChainEpochUndefined, true);
-    }
-
-    if (epoch >= deal.end_epoch) {
-      OUTCOME_TRY(processDealExpired(state, deal, deal_state));
-      return std::make_tuple(slashed_sum, kChainEpochUndefined, true);
-    }
-
-    const auto next_epoch = epoch + kDealUpdatesInterval;
-
-    return std::make_tuple(slashed_sum, next_epoch, false);
-  }
-
-  outcome::result<void> MarketUtils::maybeLockBalance(
-      MarketActorStatePtr state,
-      const Address &address,
-      const TokenAmount &amount) const {
-    VM_ASSERT(amount >= 0);
-
-    CHANGE_ERROR_A(
-        locked, state->locked_table.get(address), VMExitCode::kErrIllegalState);
-    CHANGE_ERROR_A(
-        escrow, state->escrow_table.get(address), VMExitCode::kErrIllegalState);
-
-    if ((locked + amount) > escrow) {
-      return VMExitCode::kErrInsufficientFunds;
-    }
-
-    CHANGE_ERROR(state->locked_table.add(address, amount),
-                 VMExitCode::kErrIllegalState);
-
-    return outcome::success();
-  }
-
-  outcome::result<void> MarketUtils::lockClientAndProviderBalances(
-      MarketActorStatePtr state, const DealProposal &deal) const {
-    OUTCOME_TRY(
-        maybeLockBalance(state, deal.client, deal.clientBalanceRequirement()));
-    OUTCOME_TRY(maybeLockBalance(
-        state, deal.provider, deal.providerBalanceRequirement()));
-    state->total_client_locked_collateral += deal.client_collateral;
-    state->total_client_storage_fee += deal.getTotalStorageFee();
-    state->total_provider_locked_collateral += deal.provider_collateral;
-    return outcome::success();
   }
 
   outcome::result<ChainEpoch> MarketUtils::genRandNextEpoch(
@@ -343,10 +135,6 @@ namespace fc::vm::actor::builtin::v0::market {
                        VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(runtime.validateArgument(proposal.piece_cid != CID()));
 
-    // TODO (a.chernyshov or m.tagirov) check if proposal.piece_cid is defined
-    // can the CID be undef? if so, add optional<CID> to proposal and decode
-    // if no, just remove the comment
-
     // validate CID prefix
     OUTCOME_TRY(runtime.validateArgument(
         proposal.piece_cid.version == CID::Version::V1
@@ -388,7 +176,7 @@ namespace fc::vm::actor::builtin::v0::market {
     return outcome::success();
   }
 
-  outcome::result<std::tuple<DealWeight, DealWeight>>
+  outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
   MarketUtils::validateDealsForActivation(
       MarketActorStatePtr state,
       const std::vector<DealId> &deals,
@@ -421,7 +209,37 @@ namespace fc::vm::actor::builtin::v0::market {
 
       (deal->verified ? verified_weight : weight) += space_time;
     }
-    return std::make_tuple(weight, verified_weight);
+    return std::make_tuple(weight, verified_weight, 0);
+  }
+
+  outcome::result<StoragePower> MarketUtils::getBaselinePowerFromRewardActor()
+      const {
+    OUTCOME_TRY(epoch_reward,
+                runtime.sendM<reward::ThisEpochReward>(kRewardAddress, {}, 0));
+    return epoch_reward.this_epoch_baseline_power;
+  }
+
+  outcome::result<std::tuple<StoragePower, StoragePower>>
+  MarketUtils::getRawAndQaPowerFromPowerActor() const {
+    OUTCOME_TRY(current_power,
+                runtime.sendM<storage_power::CurrentTotalPower>(
+                    kStoragePowerAddress, {}, 0));
+    return std::make_tuple(current_power.raw_byte_power,
+                           current_power.quality_adj_power);
+  }
+
+  outcome::result<void> MarketUtils::callVerifRegUseBytes(
+      const DealProposal &deal) const {
+    OUTCOME_TRY(runtime.sendM<verified_registry::UseBytes>(
+        kVerifiedRegistryAddress, {deal.client, uint64_t{deal.piece_size}}, 0));
+    return outcome::success();
+  }
+
+  outcome::result<void> MarketUtils::callVerifRegRestoreBytes(
+      const DealProposal &deal) const {
+    OUTCOME_TRY(runtime.sendM<verified_registry::RestoreBytes>(
+        kVerifiedRegistryAddress, {deal.client, uint64_t{deal.piece_size}}, 0));
+    return outcome::success();
   }
 
 }  // namespace fc::vm::actor::builtin::v0::market

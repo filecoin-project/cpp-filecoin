@@ -13,3 +13,14 @@ target_link_libraries(dvm
     message
     state_tree
     )
+
+add_executable(dvm_main
+    main.cpp
+    )
+target_link_libraries(dvm_main
+    car
+    cids_index
+    in_memory_storage
+    interpreter
+    ipfs_datastore_in_memory
+    )

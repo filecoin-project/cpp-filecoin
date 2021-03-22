@@ -36,7 +36,7 @@ namespace fc::sector_storage {
   class ManagerTest : public test::BaseFS_Test {
    public:
     ManagerTest() : test::BaseFS_Test("fc_manager_test") {
-      seal_proof_type_ = RegisteredSealProof::StackedDrg2KiBV1;
+      seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
 
       sector_index_ = std::make_shared<SectorIndexMock>();
 

@@ -11,9 +11,9 @@
 
 namespace fc::adt {
   struct Multimap {
-    template <typename Value, typename Keyer, size_t bit_width>
+    template <typename Value, typename Keyer, size_t bit_width, bool v3>
     static outcome::result<void> append(
-        Map<Array<Value>, Keyer, bit_width> &map,
+        Map<Array<Value>, Keyer, bit_width, v3> &map,
         const typename Keyer::Key &key,
         const Value &value) {
       OUTCOME_TRY(array, map.tryGet(key));
@@ -24,9 +24,9 @@ namespace fc::adt {
       return map.set(key, *array);
     }
 
-    template <typename Value, typename Keyer, size_t bit_width>
+    template <typename Value, typename Keyer, size_t bit_width, bool v3>
     static outcome::result<void> visit(
-        Map<Array<Value>, Keyer, bit_width> &map,
+        Map<Array<Value>, Keyer, bit_width, v3> &map,
         const typename Keyer::Key &key,
         const std::function<outcome::result<void>(const Value &)> &visitor) {
       OUTCOME_TRY(array, map.tryGet(key));
@@ -37,9 +37,9 @@ namespace fc::adt {
       return outcome::success();
     }
 
-    template <typename Value, typename Keyer, size_t bit_width>
+    template <typename Value, typename Keyer, size_t bit_width, bool v3>
     static outcome::result<std::vector<Value>> values(
-        Map<Array<Value>, Keyer, bit_width> &map,
+        Map<Array<Value>, Keyer, bit_width, v3> &map,
         const typename Keyer::Key &key) {
       OUTCOME_TRY(array, map.tryGet(key));
       std::vector<Value> values;

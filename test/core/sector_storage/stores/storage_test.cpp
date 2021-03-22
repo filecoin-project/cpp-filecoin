@@ -46,8 +46,7 @@ namespace fc::sector_storage::stores {
   TEST_F(LocalStorageTest, GetStorage) {
     EXPECT_OUTCOME_TRUE(text,
                         codec::json::format(api::encode(storage_config_)));
-    OUTCOME_EXCEPT(
-        common::writeFile((base_path / kStorageConfig).string(), text));
+    OUTCOME_EXCEPT(common::writeFile(base_path / kStorageConfig, text));
     EXPECT_OUTCOME_EQ(storage_->getStorage(), storage_config_);
   }
 
@@ -59,8 +58,7 @@ namespace fc::sector_storage::stores {
   TEST_F(LocalStorageTest, SetStorage) {
     EXPECT_OUTCOME_TRUE(text,
                         codec::json::format(api::encode(storage_config_)));
-    OUTCOME_EXCEPT(
-        common::writeFile((base_path / kStorageConfig).string(), text));
+    OUTCOME_EXCEPT(common::writeFile(base_path / kStorageConfig, text));
     auto new_path = (base_path / "some2").string();
     EXPECT_OUTCOME_TRUE_1(storage_->setStorage([&](StorageConfig &config) {
       config.storage_paths.push_back(LocalPath{new_path});

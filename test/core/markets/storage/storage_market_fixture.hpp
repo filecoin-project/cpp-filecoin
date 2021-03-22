@@ -32,7 +32,7 @@
 #include "testutil/mocks/miner/miner_mock.hpp"
 #include "testutil/mocks/sectorblocks/blocks_mock.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
-#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/actor/builtin/v0/market/market_actor.hpp"
 
 namespace fc::markets::storage::test {
   using adt::Channel;
@@ -438,10 +438,11 @@ namespace fc::markets::storage::test {
       return new_client;
     }
 
-    outcome::result<DataRef> makeDataRef(const std::string &file_path) {
-      OUTCOME_TRY(
-          piece_commitment,
-          piece_io_->generatePieceCommitment(registered_proof, file_path));
+    outcome::result<DataRef> makeDataRef(
+        const boost::filesystem::path &file_path) {
+      OUTCOME_TRY(piece_commitment,
+                  piece_io_->generatePieceCommitment(registered_proof,
+                                                     file_path.string()));
       OUTCOME_TRY(roots, fc::storage::car::loadCar(*ipld_client, file_path));
       return DataRef{.transfer_type = kTransferTypeManual,
                      .root = roots[0],
@@ -513,7 +514,7 @@ namespace fc::markets::storage::test {
     std::shared_ptr<DataTransfer> datatransfer;
 
     RegisteredSealProof registered_proof{
-        RegisteredSealProof::StackedDrg32GiBV1};
+        RegisteredSealProof::kStackedDrg32GiBV1};
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<boost::asio::io_context> context_;
 

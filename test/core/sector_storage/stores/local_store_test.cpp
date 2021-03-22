@@ -40,13 +40,13 @@ namespace fc::sector_storage::stores {
     boost::filesystem::path file(storage_path);
     file /= kMetaFileName;
     OUTCOME_EXCEPT(text, codec::json::format(api::encode(meta)));
-    OUTCOME_EXCEPT(common::writeFile(file.string(), text));
+    OUTCOME_EXCEPT(common::writeFile(file, text));
   }
 
   class LocalStoreTest : public test::BaseFS_Test {
    public:
     LocalStoreTest() : test::BaseFS_Test("fc_local_store_test") {
-      seal_proof_type_ = RegisteredSealProof::StackedDrg2KiBV1;
+      seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
       index_ = std::make_shared<SectorIndexMock>();
       storage_ = std::make_shared<LocalStorageMock>();
       urls_ = {"http://url1.com", "http://url2.com"};

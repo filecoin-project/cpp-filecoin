@@ -5,6 +5,7 @@
 
 #include "common/file.hpp"
 
+#include <boost/filesystem/operations.hpp>
 #include <fstream>
 
 #include "common/error_text.hpp"
@@ -21,8 +22,8 @@ namespace fc::common {
     return std::make_pair(std::move(file), input);
   }
 
-  Outcome<Buffer> readFile(std::string_view path) {
-    std::ifstream file{path.data(), std::ios::binary | std::ios::ate};
+  Outcome<Buffer> readFile(const boost::filesystem::path &path) {
+    std::ifstream file{path.c_str(), std::ios::binary | std::ios::ate};
     if (file.good()) {
       Buffer buffer;
       buffer.resize(file.tellg());
@@ -33,11 +34,13 @@ namespace fc::common {
     return {};
   }
 
-  outcome::result<void> writeFile(std::string_view path, BytesIn input) {
-    // TODO: mkdir
-    std::ofstream file{path.data(), std::ios::binary};
-    if (file.good()) {
-      file.write(span::bytestr(input.data()), input.size());
+  outcome::result<void> writeFile(const boost::filesystem::path &path,
+                                  BytesIn input) {
+    if (path.has_parent_path()) {
+      boost::filesystem::create_directories(path.parent_path());
+    }
+    std::ofstream file{path.c_str(), std::ios::binary};
+    if (file.write(span::bytestr(input.data()), input.size()).good()) {
       return outcome::success();
     }
     return ERROR_TEXT("writeFile: error");

@@ -5,14 +5,12 @@
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
-#include <gtest/gtest.h>
 #include "primitives/address/address.hpp"
-#include "primitives/address/address_codec.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/resources/parse.hpp"
 #include "testutil/resources/resources.hpp"
-#include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
+#include "testutil/vm/actor/builtin/miner/miner_actor_test_fixture.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
@@ -24,36 +22,16 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::address::decodeFromString;
   using primitives::sector::RegisteredSealProof;
   using testing::Return;
-  using testutil::vm::actor::builtin::ActorTestFixture;
-  using types::miner::CronEventPayload;
-  using types::miner::CronEventType;
-  using types::miner::Deadlines;
-  using types::miner::kWPoStChallengeWindow;
-  using types::miner::kWPoStPeriodDeadlines;
+  using testutil::vm::actor::builtin::miner::MinerActorTestFixture;
+  using namespace types::miner;
 
-  class MinerActorV0Test : public ActorTestFixture<MinerActorState> {
+  class MinerActorTest : public MinerActorTestFixture<MinerActorState> {
    public:
     void SetUp() override {
-      ActorTestFixture<MinerActorState>::SetUp();
+      MinerActorTestFixture<MinerActorState>::SetUp();
       actorVersion = ActorVersion::kVersion0;
       anyCodeIdAddressIs(kAccountCodeId);
       ipld->load(state);
-
-      EXPECT_CALL(*state_manager, createMinerActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<MinerActorState>();
-            ipld->load(*s);
-            return std::static_pointer_cast<states::MinerActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getMinerActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<MinerActorState>(cid));
-            auto s = std::make_shared<MinerActorState>(current_state);
-            return std::static_pointer_cast<states::MinerActorState>(s);
-          }));
     }
 
     void expectEnrollCronEvent(const ChainEpoch &proving_period_start) {
@@ -76,7 +54,7 @@ namespace fc::vm::actor::builtin::v0::miner {
    * Test input data and result are from TestAssignProvingPeriodBoundary in
    * specs-actors 'miner_internal_test.go'
    */
-  TEST_F(MinerActorV0Test, assignProvingPeriodOffset) {
+  TEST_F(MinerActorTest, assignProvingPeriodOffset) {
     const Address address1 =
         decodeFromString("t2ssgkulnwdpcm3nh2652azver6gkqioiu2ez3zma").value();
     const Address address2 =
@@ -96,7 +74,7 @@ namespace fc::vm::actor::builtin::v0::miner {
    * Test input data and result are generated from
    * TestAssignProvingPeriodBoundary in specs-actors 'miner_internal_test.go'
    */
-  TEST_F(MinerActorV0Test, assignProvingPeriodOffsetFromFile) {
+  TEST_F(MinerActorTest, assignProvingPeriodOffsetFromFile) {
     const Address address =
         decodeFromString("t2ssgkulnwdpcm3nh2652azver6gkqioiu2ez3zma").value();
     EXPECT_CALL(runtime, getCurrentReceiver()).WillRepeatedly(Return(address));
@@ -115,12 +93,10 @@ namespace fc::vm::actor::builtin::v0::miner {
    * @when construct method called
    * @then empty miner actor created
    */
-  TEST_F(MinerActorV0Test, SimpleConstruct) {
+  TEST_F(MinerActorTest, SimpleConstruct) {
     callerIs(kInitAddress);
     currentEpochIs(0);
 
-    const Address owner = Address::makeFromId(100);
-    const Address worker = Address::makeFromId(101);
     expectAccountV0PubkeyAddressSend(worker, bls_pubkey);
 
     const std::vector<Address> control_addresses;
@@ -140,18 +116,18 @@ namespace fc::vm::actor::builtin::v0::miner {
             .owner = owner,
             .worker = worker,
             .control_addresses = control_addresses,
-            .seal_proof_type = RegisteredSealProof::StackedDrg32GiBV1,
+            .seal_proof_type = RegisteredSealProof::kStackedDrg32GiBV1,
             .peer_id = peer_id,
             .multiaddresses = multiaddresses}));
 
-    EXPECT_OUTCOME_TRUE(miner_info, ipld->getCbor<MinerInfo>(state.miner_info));
+    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo(ipld));
     EXPECT_EQ(miner_info.owner, owner);
     EXPECT_EQ(miner_info.worker, worker);
     EXPECT_EQ(miner_info.control, control_addresses);
     EXPECT_EQ(miner_info.peer_id, peer_id);
     EXPECT_EQ(miner_info.multiaddrs, multiaddresses);
     EXPECT_EQ(static_cast<RegisteredSealProof>(miner_info.seal_proof_type),
-              RegisteredSealProof::StackedDrg32GiBV1);
+              RegisteredSealProof::kStackedDrg32GiBV1);
     EXPECT_EQ(miner_info.sector_size, BigInt{1} << 35);
     EXPECT_EQ(miner_info.window_post_partition_sectors, 2349);
 
@@ -181,12 +157,10 @@ namespace fc::vm::actor::builtin::v0::miner {
    * @when miner is constructed
    * @then control addresses are resolved
    */
-  TEST_F(MinerActorV0Test, ConstructResolvedControl) {
+  TEST_F(MinerActorTest, ConstructResolvedControl) {
     callerIs(kInitAddress);
     currentEpochIs(0);
 
-    const Address owner = Address::makeFromId(100);
-    const Address worker = Address::makeFromId(101);
     expectAccountV0PubkeyAddressSend(worker, bls_pubkey);
 
     std::vector<Address> control_addresses;
@@ -213,11 +187,11 @@ namespace fc::vm::actor::builtin::v0::miner {
             .owner = owner,
             .worker = worker,
             .control_addresses = control_addresses,
-            .seal_proof_type = RegisteredSealProof::StackedDrg32GiBV1,
+            .seal_proof_type = RegisteredSealProof::kStackedDrg32GiBV1,
             .peer_id = {},
             .multiaddresses = {}}));
 
-    EXPECT_OUTCOME_TRUE(miner_info, ipld->getCbor<MinerInfo>(state.miner_info));
+    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo(ipld));
     EXPECT_EQ(miner_info.control.size(), 2);
     EXPECT_EQ(miner_info.control[0], controlId1);
     EXPECT_EQ(miner_info.control[1], controlId2);
@@ -228,7 +202,7 @@ namespace fc::vm::actor::builtin::v0::miner {
    * @when miner constructor called
    * @then error returned
    */
-  TEST_F(MinerActorV0Test, ConstructControlNotId) {
+  TEST_F(MinerActorTest, ConstructControlNotId) {
     callerIs(kInitAddress);
     currentEpochIs(0);
 
@@ -237,7 +211,6 @@ namespace fc::vm::actor::builtin::v0::miner {
     expectAccountV0PubkeyAddressSend(worker, bls_pubkey);
 
     std::vector<Address> control_addresses;
-    const Address control = Address::makeFromId(501);
     control_addresses.emplace_back(control);
     addressCodeIdIs(control, kCronCodeId);
 
@@ -249,9 +222,26 @@ namespace fc::vm::actor::builtin::v0::miner {
                 .owner = owner,
                 .worker = worker,
                 .control_addresses = control_addresses,
-                .seal_proof_type = RegisteredSealProof::StackedDrg32GiBV1,
+                .seal_proof_type = RegisteredSealProof::kStackedDrg32GiBV1,
                 .peer_id = {},
                 .multiaddresses = {}}));
+  }
+
+  /**
+   * @given state is created
+   * @when miner ControlAddresses called
+   * @then properly values are returned
+   */
+  TEST_F(MinerActorTest, ControlAddressesSuccess) {
+    initEmptyState();
+    initDefaultMinerInfo();
+
+    EXPECT_OUTCOME_TRUE(result, ControlAddresses::call(runtime, {}));
+
+    EXPECT_EQ(result.owner, owner);
+    EXPECT_EQ(result.worker, worker);
+    EXPECT_EQ(result.control.size(), 1);
+    EXPECT_EQ(result.control[0], control);
   }
 
 }  // namespace fc::vm::actor::builtin::v0::miner

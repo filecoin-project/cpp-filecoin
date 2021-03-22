@@ -22,7 +22,7 @@ std::shared_ptr<fc::vm::state::StateTree> setupInitActor(
   }
   auto store = state_tree->getStore();
   fc::vm::actor::builtin::v0::init::InitActorState init_state;
-  init_state.address_map = {store};
+  init_state.address_map_0 = {store};
   init_state.next_id = next_id;
   init_state.network_name = "n";
   EXPECT_OUTCOME_TRUE(head, store->setCbor(init_state));

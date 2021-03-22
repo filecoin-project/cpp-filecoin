@@ -3,14 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/actor/builtin/v0/market/market_actor.hpp"
 
 #include "primitives/cid/comm_cid.hpp"
-#include "vm/actor/builtin/v0/market/policy.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
-#include "vm/actor/builtin/v0/shared/shared.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
-#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
+#include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::market {
@@ -19,7 +15,7 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::cid::kCommitmentBytesLen;
   using primitives::piece::PieceInfo;
   using toolchain::Toolchain;
-  using types::market::DealState;
+  using namespace types::market;
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
@@ -62,8 +58,8 @@ namespace fc::vm::actor::builtin::v0::market {
 
   ACTOR_METHOD_IMPL(WithdrawBalance) {
     OUTCOME_TRY(runtime.validateArgument(params.amount >= 0));
-    OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
     const auto utils = Toolchain::createMarketUtils(runtime);
+    OUTCOME_TRY(utils->checkWithdrawCaller());
     OUTCOME_TRY(addresses, utils->escrowAddress(params.address));
     const auto &[nominal, recipient, approved_callers] = addresses;
     OUTCOME_TRY(runtime.validateImmediateCallerIs(approved_callers));
@@ -103,14 +99,13 @@ namespace fc::vm::actor::builtin::v0::market {
       ABORT(VMExitCode::kErrForbidden);
     }
 
+    const auto utils = Toolchain::createMarketUtils(runtime);
+
     // request current baseline power
-    OUTCOME_TRY(epoch_reward,
-                runtime.sendM<reward::ThisEpochReward>(kRewardAddress, {}, 0));
-    OUTCOME_TRY(current_power,
-                runtime.sendM<storage_power::CurrentTotalPower>(
-                    kStoragePowerAddress, {}, 0));
-    const auto &network_raw_power = current_power.raw_byte_power;
-    const auto &network_qa_power = current_power.quality_adj_power;
+    OUTCOME_TRY(baseline_power, utils->getBaselinePowerFromRewardActor());
+    OUTCOME_TRY(current_power, utils->getRawAndQaPowerFromPowerActor());
+    const auto &[network_raw_power, network_qa_power] = current_power;
+
     std::vector<DealId> deals;
     std::map<Address, Address> resolved_addresses;
     REQUIRE_NO_ERROR_A(state,
@@ -129,13 +124,9 @@ namespace fc::vm::actor::builtin::v0::market {
     REQUIRE_NO_ERROR(state->deals_by_epoch.hamt.loadRoot(),
                      VMExitCode::kErrIllegalState);
 
-    const auto utils = Toolchain::createMarketUtils(runtime);
-
     for (const auto &client_deals : params.deals) {
-      OUTCOME_TRY(utils->validateDeal(client_deals,
-                                      epoch_reward.this_epoch_baseline_power,
-                                      network_raw_power,
-                                      network_qa_power));
+      OUTCOME_TRY(utils->validateDeal(
+          client_deals, baseline_power, network_raw_power, network_qa_power));
 
       auto deal{client_deals.proposal};
       OUTCOME_TRY(runtime.validateArgument(deal.provider == provider
@@ -148,7 +139,7 @@ namespace fc::vm::actor::builtin::v0::market {
       resolved_addresses[deal.client] = client;
       deal.client = client;
 
-      const auto lock = utils->lockClientAndProviderBalances(state, deal);
+      const auto lock = state->lockClientAndProviderBalances(runtime, deal);
       if (lock.has_error()) {
         REQUIRE_NO_ERROR(lock, static_cast<VMExitCode>(lock.error().value()));
       }
@@ -191,17 +182,16 @@ namespace fc::vm::actor::builtin::v0::market {
         OUTCOME_TRY(runtime.validateArgument(resolved_client
                                              != resolved_addresses.end()));
 
-        REQUIRE_SUCCESS(runtime.sendM<verified_registry::UseBytes>(
-            kVerifiedRegistryAddress,
-            {deal.client, uint64_t{deal.piece_size}},
-            0));
+        REQUIRE_SUCCESS(utils->callVerifRegUseBytes(deal));
       }
     }
 
     return Result{.deals = deals};
   }
 
-  ACTOR_METHOD_IMPL(VerifyDealsForActivation) {
+  outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
+  VerifyDealsForActivation::verifyDealsForActivation(
+      Runtime &runtime, const VerifyDealsForActivation::Params &params) {
     const auto address_matcher =
         Toolchain::createAddressMatcher(runtime.getActorVersion());
     OUTCOME_TRY(runtime.validateImmediateCallerType(
@@ -214,7 +204,12 @@ namespace fc::vm::actor::builtin::v0::market {
                        utils->validateDealsForActivation(
                            state, params.deals, params.sector_expiry),
                        VMExitCode::kErrIllegalState);
-    const auto &[deal_weight, verified_weight] = result;
+    return std::move(result);
+  }
+
+  ACTOR_METHOD_IMPL(VerifyDealsForActivation) {
+    OUTCOME_TRY(result, verifyDealsForActivation(runtime, params));
+    const auto &[deal_weight, verified_weight, deal_space] = result;
 
     return Result{deal_weight, verified_weight};
   }
@@ -379,7 +374,7 @@ namespace fc::vm::actor::builtin::v0::market {
           // has timed out
           if (!maybe_deal_state.has_value()) {
             VM_ASSERT(now >= deal.start_epoch);
-            OUTCOME_TRY(slashed, utils->processDealInitTimedOut(state, deal));
+            OUTCOME_TRY(slashed, state->processDealInitTimedOut(runtime, deal));
             slashed_sum += slashed;
             if (deal.verified) {
               timed_out_verified.push_back(deal);
@@ -400,8 +395,8 @@ namespace fc::vm::actor::builtin::v0::market {
           }
 
           OUTCOME_TRY(slashed_next,
-                      utils->updatePendingDealState(
-                          state, deal_id, deal, deal_state, now));
+                      state->updatePendingDealState(
+                          runtime, deal_id, deal, deal_state, now));
           const auto &[slash_amount, next_epoch, remove_deal] = slashed_next;
 
           VM_ASSERT(slash_amount >= 0);
@@ -440,10 +435,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.commitState(state));
 
     for (const auto &deal : timed_out_verified) {
-      OUTCOME_TRY(runtime.sendM<verified_registry::RestoreBytes>(
-          kVerifiedRegistryAddress,
-          {deal.client, uint64_t{deal.piece_size}},
-          0));
+      OUTCOME_TRY(utils->callVerifRegRestoreBytes(deal));
     }
     if (slashed_sum != 0) {
       REQUIRE_SUCCESS(runtime.sendFunds(kBurntFundsActorAddress, slashed_sum));

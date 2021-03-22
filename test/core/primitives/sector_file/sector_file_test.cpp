@@ -6,8 +6,8 @@
 #include "primitives/sector_file/sector_file.hpp"
 
 #include <gtest/gtest.h>
-#include <common/file.hpp>
 #include "testutil/outcome.hpp"
+#include "testutil/read_file.hpp"
 #include "testutil/resources/resources.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
@@ -19,9 +19,9 @@ namespace fc::primitives::sector_file {
 
    protected:
     RegisteredSealProof min_seal_proof_type =
-        RegisteredSealProof::StackedDrg2KiBV1;
+        RegisteredSealProof::kStackedDrg2KiBV1;
     RegisteredSealProof border_seal_proof_type =
-        RegisteredSealProof::StackedDrg8MiBV1;
+        RegisteredSealProof::kStackedDrg8MiBV1;
     SectorFileType file_type = SectorFileType::FTCache;
   };
 
@@ -75,11 +75,12 @@ namespace fc::primitives::sector_file {
                 .string(),
             PaddedPieceSize(sector_size)));
 
-    EXPECT_OUTCOME_TRUE(piece_info,
-                        file->write(PieceData(resourcePath("payload.txt")),
-                                    0,
-                                    piece_size,
-                                    min_seal_proof_type));
+    EXPECT_OUTCOME_TRUE(
+        piece_info,
+        file->write(PieceData(resourcePath("payload.txt").string()),
+                    0,
+                    piece_size,
+                    min_seal_proof_type));
 
     ASSERT_EQ(piece_info->size, piece_size);
     EXPECT_OUTCOME_EQ(piece_info->cid.toString(), result_cid);
@@ -114,7 +115,7 @@ namespace fc::primitives::sector_file {
 
     EXPECT_OUTCOME_TRUE(
         piece_info,
-        file->write(PieceData(resourcePath("unpad_medium_file.txt")),
+        file->write(PieceData(resourcePath("unpad_medium_file.txt").string()),
                     0,
                     piece_size,
                     border_seal_proof_type));
@@ -148,11 +149,11 @@ namespace fc::primitives::sector_file {
                 .string(),
             PaddedPieceSize(sector_size)));
 
-    EXPECT_OUTCOME_TRUE_1(
-        file->write(PieceData(resourcePath("payload.txt")), 0, piece_size));
+    EXPECT_OUTCOME_TRUE_1(file->write(
+        PieceData(resourcePath("payload.txt").string()), 0, piece_size));
 
     EXPECT_OUTCOME_TRUE_1(file->write(
-        PieceData(resourcePath("payload.txt")), offset, piece_size));
+        PieceData(resourcePath("payload.txt").string()), offset, piece_size));
 
     EXPECT_OUTCOME_EQ(file->hasAllocated(0, piece_size.unpadded()), true);
     EXPECT_OUTCOME_EQ(
@@ -182,19 +183,17 @@ namespace fc::primitives::sector_file {
                 .string(),
             PaddedPieceSize(sector_size)));
 
-    EXPECT_OUTCOME_TRUE_1(
-        file->write(PieceData(resourcePath("payload.txt")), 0, piece_size));
+    EXPECT_OUTCOME_TRUE_1(file->write(
+        PieceData(resourcePath("payload.txt").string()), 0, piece_size));
 
-    EXPECT_OUTCOME_TRUE(result_data,
-                        fc::common::readFile(resourcePath("payload.txt")));
+    auto result_data = readFile(resourcePath("payload.txt").string());
 
     result_data.resize(piece_size.unpadded());
 
     auto read_file_path = base_path / fs::unique_path();
     EXPECT_OUTCOME_TRUE_1(file->read(
         PieceData(read_file_path.string(), O_WRONLY | O_CREAT), 0, piece_size));
-    EXPECT_OUTCOME_TRUE(read_data,
-                        fc::common::readFile(read_file_path.string()));
+    const auto read_data = readFile(read_file_path);
 
     ASSERT_EQ(read_data.size(), piece_size.unpadded());
     ASSERT_EQ(read_data, result_data);
@@ -223,8 +222,8 @@ namespace fc::primitives::sector_file {
                 .string(),
             PaddedPieceSize(sector_size)));
 
-    EXPECT_OUTCOME_TRUE_1(
-        file->write(PieceData(resourcePath("payload.txt")), 0, piece_size));
+    EXPECT_OUTCOME_TRUE_1(file->write(
+        PieceData(resourcePath("payload.txt").string()), 0, piece_size));
 
     auto read_file_path = base_path / fs::unique_path();
     EXPECT_OUTCOME_EQ(file->hasAllocated(0, piece_size.unpadded()), true);

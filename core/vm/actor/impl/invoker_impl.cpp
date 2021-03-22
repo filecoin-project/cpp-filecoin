@@ -9,7 +9,7 @@
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
-#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v0/multisig/multisig_actor.hpp"
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
@@ -22,6 +22,7 @@
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v2/init/init_actor.hpp"
+#include "vm/actor/builtin/v2/market/market_actor.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/multisig/multisig_actor.hpp"
 #include "vm/actor/builtin/v2/payment_channel/payment_channel_actor.hpp"
@@ -55,8 +56,7 @@ namespace fc::vm::actor {
     builtin_[builtin::v2::kAccountCodeId] = builtin::v2::account::exports;
     builtin_[builtin::v2::kCronCodeId] = builtin::v2::cron::exports;
     builtin_[builtin::v2::kInitCodeId] = builtin::v2::init::exports;
-    // builtin_[builtin::v2::kStorageMarketCodeId] =
-    // builtin::v2::market::exports;
+    builtin_[builtin::v2::kStorageMarketCodeId] = builtin::v2::market::exports;
     builtin_[builtin::v2::kStorageMinerCodeId] = builtin::v2::miner::exports;
     builtin_[builtin::v2::kRewardActorCodeId] = builtin::v2::reward::exports;
     builtin_[builtin::v2::kMultisigCodeId] = builtin::v2::multisig::exports;
@@ -67,19 +67,29 @@ namespace fc::vm::actor {
     builtin_[builtin::v2::kSystemActorCodeId] = builtin::v2::system::exports;
     builtin_[builtin::v2::kVerifiedRegistryCodeId] =
         builtin::v2::verified_registry::exports;
+
+    // Temp for miner actor
+    ready_miner_actor_methods_v0.insert(builtin::v0::miner::Construct::Number);
+    ready_miner_actor_methods_v0.insert(
+        builtin::v0::miner::ControlAddresses::Number);
+
+    ready_miner_actor_methods_v2.insert(builtin::v2::miner::Construct::Number);
+    ready_miner_actor_methods_v2.insert(
+        builtin::v2::miner::ControlAddresses::Number);
   }
 
   outcome::result<InvocationOutput> InvokerImpl::invoke(
       const Actor &actor, const std::shared_ptr<Runtime> &runtime) {
+    // Temp for miner actor
     if (actor.code == builtin::v0::kStorageMinerCodeId) {
-      if (runtime->getMessage().get().method
-          != builtin::v0::miner::Construct::Number) {
+      if (ready_miner_actor_methods_v0.find(runtime->getMessage().get().method)
+          == ready_miner_actor_methods_v0.end()) {
         return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
       }
     }
     if (actor.code == builtin::v2::kStorageMinerCodeId) {
-      if (runtime->getMessage().get().method
-          != builtin::v2::miner::Construct::Number) {
+      if (ready_miner_actor_methods_v2.find(runtime->getMessage().get().method)
+          == ready_miner_actor_methods_v2.end()) {
         return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
       }
     }
@@ -104,7 +114,8 @@ namespace fc::vm::actor {
         && (actor.code != builtin::v2::kAccountCodeId)  // < tested OK
         && (actor.code != builtin::v2::kCronCodeId)     // < tested OK
         && (actor.code != builtin::v2::kInitCodeId)     // < tested OK
-        // && (actor.code != builtin::v2::kStorageMarketCodeId)   // TODO
+        && (actor.code
+            != builtin::v2::kStorageMarketCodeId)  // < OK, but not tested
         && (actor.code != builtin::v2::kStorageMinerCodeId)    // WiP
         && (actor.code != builtin::v2::kMultisigCodeId)        // < tested OK
         && (actor.code != builtin::v2::kPaymentChannelCodeId)  // < tested OK

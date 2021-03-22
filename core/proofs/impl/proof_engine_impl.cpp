@@ -73,34 +73,34 @@ namespace fc::proofs {
     switch (proof_type) {
       case fil_RegisteredPoStProof::
           fil_RegisteredPoStProof_StackedDrgWindow2KiBV1:
-        return RegisteredPoStProof::StackedDRG2KiBWindowPoSt;
+        return RegisteredPoStProof::kStackedDRG2KiBWindowPoSt;
       case fil_RegisteredPoStProof::
           fil_RegisteredPoStProof_StackedDrgWindow8MiBV1:
-        return RegisteredPoStProof::StackedDRG8MiBWindowPoSt;
+        return RegisteredPoStProof::kStackedDRG8MiBWindowPoSt;
       case fil_RegisteredPoStProof::
           fil_RegisteredPoStProof_StackedDrgWindow512MiBV1:
-        return RegisteredPoStProof::StackedDRG512MiBWindowPoSt;
+        return RegisteredPoStProof::kStackedDRG512MiBWindowPoSt;
       case fil_RegisteredPoStProof::
           fil_RegisteredPoStProof_StackedDrgWindow32GiBV1:
-        return RegisteredPoStProof::StackedDRG32GiBWindowPoSt;
+        return RegisteredPoStProof::kStackedDRG32GiBWindowPoSt;
       case fil_RegisteredPoStProof::
           fil_RegisteredPoStProof_StackedDrgWindow64GiBV1:
-        return RegisteredPoStProof::StackedDRG64GiBWindowPoSt;
+        return RegisteredPoStProof::kStackedDRG64GiBWindowPoSt;
       case fil_RegisteredPoStProof::
           fil_RegisteredPoStProof_StackedDrgWinning2KiBV1:
-        return RegisteredPoStProof::StackedDRG2KiBWinningPoSt;
+        return RegisteredPoStProof::kStackedDRG2KiBWinningPoSt;
       case fil_RegisteredPoStProof::
           fil_RegisteredPoStProof_StackedDrgWinning8MiBV1:
-        return RegisteredPoStProof::StackedDRG8MiBWinningPoSt;
+        return RegisteredPoStProof::kStackedDRG8MiBWinningPoSt;
       case fil_RegisteredPoStProof::
           fil_RegisteredPoStProof_StackedDrgWinning512MiBV1:
-        return RegisteredPoStProof::StackedDRG512MiBWinningPoSt;
+        return RegisteredPoStProof::kStackedDRG512MiBWinningPoSt;
       case fil_RegisteredPoStProof::
           fil_RegisteredPoStProof_StackedDrgWinning32GiBV1:
-        return RegisteredPoStProof::StackedDRG32GiBWinningPoSt;
+        return RegisteredPoStProof::kStackedDRG32GiBWinningPoSt;
       case fil_RegisteredPoStProof::
           fil_RegisteredPoStProof_StackedDrgWinning64GiBV1:
-        return RegisteredPoStProof::StackedDRG64GiBWinningPoSt;
+        return RegisteredPoStProof::kStackedDRG64GiBWinningPoSt;
       default:
         return ProofsError::kInvalidPostProof;
     }
@@ -129,35 +129,35 @@ namespace fc::proofs {
   outcome::result<fil_RegisteredPoStProof> cRegisteredPoStProof(
       RegisteredPoStProof proof_type) {
     switch (proof_type) {
-      case RegisteredPoStProof::StackedDRG2KiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG2KiBWindowPoSt:
         return fil_RegisteredPoStProof::
             fil_RegisteredPoStProof_StackedDrgWindow2KiBV1;
-      case RegisteredPoStProof::StackedDRG8MiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG8MiBWindowPoSt:
         return fil_RegisteredPoStProof::
             fil_RegisteredPoStProof_StackedDrgWindow8MiBV1;
-      case RegisteredPoStProof::StackedDRG512MiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG512MiBWindowPoSt:
         return fil_RegisteredPoStProof::
             fil_RegisteredPoStProof_StackedDrgWindow512MiBV1;
-      case RegisteredPoStProof::StackedDRG32GiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG32GiBWindowPoSt:
         return fil_RegisteredPoStProof::
             fil_RegisteredPoStProof_StackedDrgWindow32GiBV1;
-      case RegisteredPoStProof::StackedDRG64GiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG64GiBWindowPoSt:
         return fil_RegisteredPoStProof::
             fil_RegisteredPoStProof_StackedDrgWindow64GiBV1;
 
-      case RegisteredPoStProof::StackedDRG2KiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG2KiBWinningPoSt:
         return fil_RegisteredPoStProof::
             fil_RegisteredPoStProof_StackedDrgWinning2KiBV1;
-      case RegisteredPoStProof::StackedDRG8MiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG8MiBWinningPoSt:
         return fil_RegisteredPoStProof::
             fil_RegisteredPoStProof_StackedDrgWinning8MiBV1;
-      case RegisteredPoStProof::StackedDRG512MiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG512MiBWinningPoSt:
         return fil_RegisteredPoStProof::
             fil_RegisteredPoStProof_StackedDrgWinning512MiBV1;
-      case RegisteredPoStProof::StackedDRG32GiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG32GiBWinningPoSt:
         return fil_RegisteredPoStProof::
             fil_RegisteredPoStProof_StackedDrgWinning32GiBV1;
-      case RegisteredPoStProof::StackedDRG64GiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG64GiBWinningPoSt:
         return fil_RegisteredPoStProof::
             fil_RegisteredPoStProof_StackedDrgWinning64GiBV1;
       default:
@@ -202,34 +202,34 @@ namespace fc::proofs {
   outcome::result<fil_RegisteredSealProof> cRegisteredSealProof(
       RegisteredSealProof proof_type) {
     switch (proof_type) {
-      case RegisteredSealProof::StackedDrg2KiBV1:
+      case RegisteredSealProof::kStackedDrg2KiBV1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg2KiBV1;
-      case RegisteredSealProof::StackedDrg8MiBV1:
+      case RegisteredSealProof::kStackedDrg8MiBV1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg8MiBV1;
-      case RegisteredSealProof::StackedDrg512MiBV1:
+      case RegisteredSealProof::kStackedDrg512MiBV1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg512MiBV1;
-      case RegisteredSealProof::StackedDrg32GiBV1:
+      case RegisteredSealProof::kStackedDrg32GiBV1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg32GiBV1;
-      case RegisteredSealProof::StackedDrg64GiBV1:
+      case RegisteredSealProof::kStackedDrg64GiBV1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg64GiBV1;
-      case RegisteredSealProof::StackedDrg2KiBV1_1:
+      case RegisteredSealProof::kStackedDrg2KiBV1_1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg2KiBV1_1;
-      case RegisteredSealProof::StackedDrg8MiBV1_1:
+      case RegisteredSealProof::kStackedDrg8MiBV1_1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg8MiBV1_1;
-      case RegisteredSealProof::StackedDrg512MiBV1_1:
+      case RegisteredSealProof::kStackedDrg512MiBV1_1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg512MiBV1_1;
-      case RegisteredSealProof::StackedDrg32GiBV1_1:
+      case RegisteredSealProof::kStackedDrg32GiBV1_1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg32GiBV1_1;
-      case RegisteredSealProof::StackedDrg64GiBV1_1:
+      case RegisteredSealProof::kStackedDrg64GiBV1_1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg64GiBV1_1;
       default:

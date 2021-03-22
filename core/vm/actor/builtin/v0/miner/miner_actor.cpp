@@ -133,7 +133,7 @@ namespace fc::vm::actor::builtin::v0::miner {
                                        params.peer_id,
                                        params.multiaddresses,
                                        params.seal_proof_type,
-                                       RegisteredPoStProof::undefined),
+                                       RegisteredPoStProof::kUndefined),
                        VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(state->setInfo(runtime.getIpfsDatastore(), miner_info));
 
@@ -150,8 +150,13 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   ACTOR_METHOD_IMPL(ControlAddresses) {
-    // TODO (a.chernyshov) FIL-279 - implement
-    return VMExitCode::kNotImplemented;
+    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+    REQUIRE_NO_ERROR_A(miner_info,
+                       state->getInfo(runtime.getIpfsDatastore()),
+                       VMExitCode::kErrIllegalState);
+    return Result{.owner = miner_info.owner,
+                  .worker = miner_info.worker,
+                  .control = miner_info.control};
   }
 
   ACTOR_METHOD_IMPL(ChangeWorkerAddress) {

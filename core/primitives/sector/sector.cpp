@@ -9,21 +9,23 @@ namespace fc::primitives::sector {
   outcome::result<RegisteredPoStProof> getRegisteredWindowPoStProof(
       RegisteredSealProof proof) {
     switch (proof) {
-      case RegisteredSealProof::StackedDrg64GiBV1:
-      case RegisteredSealProof::StackedDrg64GiBV1_1:
-        return RegisteredPoStProof::StackedDRG64GiBWindowPoSt;
-      case RegisteredSealProof::StackedDrg32GiBV1:
-      case RegisteredSealProof::StackedDrg32GiBV1_1:
-        return RegisteredPoStProof::StackedDRG32GiBWindowPoSt;
-      case RegisteredSealProof::StackedDrg512MiBV1:
-      case RegisteredSealProof::StackedDrg512MiBV1_1:
-        return RegisteredPoStProof::StackedDRG512MiBWindowPoSt;
-      case RegisteredSealProof::StackedDrg8MiBV1:
-      case RegisteredSealProof::StackedDrg8MiBV1_1:
-        return RegisteredPoStProof::StackedDRG8MiBWindowPoSt;
-      case RegisteredSealProof::StackedDrg2KiBV1:
-      case RegisteredSealProof::StackedDrg2KiBV1_1:
-        return RegisteredPoStProof::StackedDRG2KiBWindowPoSt;
+      case RegisteredSealProof::kStackedDrg64GiBV1:
+      case RegisteredSealProof::kStackedDrg64GiBV1_1:
+        return RegisteredPoStProof::kStackedDRG64GiBWindowPoSt;
+      case RegisteredSealProof::kStackedDrg32GiBV1:
+      case RegisteredSealProof::kStackedDrg32GiBV1_1:
+        return RegisteredPoStProof::kStackedDRG32GiBWindowPoSt;
+      case RegisteredSealProof::kStackedDrg512MiBV1:
+      case RegisteredSealProof::kStackedDrg512MiBV1_1:
+        return RegisteredPoStProof::kStackedDRG512MiBWindowPoSt;
+      case RegisteredSealProof::kStackedDrg8MiBV1:
+      case RegisteredSealProof::kStackedDrg8MiBV1_1:
+        return RegisteredPoStProof::kStackedDRG8MiBWindowPoSt;
+      case RegisteredSealProof::kStackedDrg2KiBV1:
+      case RegisteredSealProof::kStackedDrg2KiBV1_1:
+        return RegisteredPoStProof::kStackedDRG2KiBWindowPoSt;
+      case RegisteredSealProof::kUndefined:
+        return RegisteredPoStProof::kUndefined;
       default:
         return Errors::kInvalidPoStProof;
     }
@@ -32,21 +34,23 @@ namespace fc::primitives::sector {
   outcome::result<RegisteredPoStProof> getRegisteredWinningPoStProof(
       RegisteredSealProof proof) {
     switch (proof) {
-      case RegisteredSealProof::StackedDrg64GiBV1:
-      case RegisteredSealProof::StackedDrg64GiBV1_1:
-        return RegisteredPoStProof::StackedDRG64GiBWinningPoSt;
-      case RegisteredSealProof::StackedDrg32GiBV1:
-      case RegisteredSealProof::StackedDrg32GiBV1_1:
-        return RegisteredPoStProof::StackedDRG32GiBWinningPoSt;
-      case RegisteredSealProof::StackedDrg512MiBV1:
-      case RegisteredSealProof::StackedDrg512MiBV1_1:
-        return RegisteredPoStProof::StackedDRG512MiBWinningPoSt;
-      case RegisteredSealProof::StackedDrg8MiBV1:
-      case RegisteredSealProof::StackedDrg8MiBV1_1:
-        return RegisteredPoStProof::StackedDRG8MiBWinningPoSt;
-      case RegisteredSealProof::StackedDrg2KiBV1:
-      case RegisteredSealProof::StackedDrg2KiBV1_1:
-        return RegisteredPoStProof::StackedDRG2KiBWinningPoSt;
+      case RegisteredSealProof::kStackedDrg64GiBV1:
+      case RegisteredSealProof::kStackedDrg64GiBV1_1:
+        return RegisteredPoStProof::kStackedDRG64GiBWinningPoSt;
+      case RegisteredSealProof::kStackedDrg32GiBV1:
+      case RegisteredSealProof::kStackedDrg32GiBV1_1:
+        return RegisteredPoStProof::kStackedDRG32GiBWinningPoSt;
+      case RegisteredSealProof::kStackedDrg512MiBV1:
+      case RegisteredSealProof::kStackedDrg512MiBV1_1:
+        return RegisteredPoStProof::kStackedDRG512MiBWinningPoSt;
+      case RegisteredSealProof::kStackedDrg8MiBV1:
+      case RegisteredSealProof::kStackedDrg8MiBV1_1:
+        return RegisteredPoStProof::kStackedDRG8MiBWinningPoSt;
+      case RegisteredSealProof::kStackedDrg2KiBV1:
+      case RegisteredSealProof::kStackedDrg2KiBV1_1:
+        return RegisteredPoStProof::kStackedDRG2KiBWinningPoSt;
+      case RegisteredSealProof::kUndefined:
+        return RegisteredPoStProof::kUndefined;
       default:
         return Errors::kInvalidPoStProof;
     }
@@ -54,21 +58,23 @@ namespace fc::primitives::sector {
 
   outcome::result<SectorSize> getSectorSize(RegisteredSealProof proof) {
     switch (proof) {
-      case RegisteredSealProof::StackedDrg64GiBV1:
-      case RegisteredSealProof::StackedDrg64GiBV1_1:
+      case RegisteredSealProof::kStackedDrg64GiBV1:
+      case RegisteredSealProof::kStackedDrg64GiBV1_1:
         return SectorSize{64} << 30;
-      case RegisteredSealProof::StackedDrg32GiBV1:
-      case RegisteredSealProof::StackedDrg32GiBV1_1:
+      case RegisteredSealProof::kStackedDrg32GiBV1:
+      case RegisteredSealProof::kStackedDrg32GiBV1_1:
         return SectorSize{32} << 30;
-      case RegisteredSealProof::StackedDrg512MiBV1:
-      case RegisteredSealProof::StackedDrg512MiBV1_1:
+      case RegisteredSealProof::kStackedDrg512MiBV1:
+      case RegisteredSealProof::kStackedDrg512MiBV1_1:
         return SectorSize{512} << 20;
-      case RegisteredSealProof::StackedDrg8MiBV1:
-      case RegisteredSealProof::StackedDrg8MiBV1_1:
+      case RegisteredSealProof::kStackedDrg8MiBV1:
+      case RegisteredSealProof::kStackedDrg8MiBV1_1:
         return SectorSize{8} << 20;
-      case RegisteredSealProof::StackedDrg2KiBV1:
-      case RegisteredSealProof::StackedDrg2KiBV1_1:
+      case RegisteredSealProof::kStackedDrg2KiBV1:
+      case RegisteredSealProof::kStackedDrg2KiBV1_1:
         return SectorSize{2} << 10;
+      case RegisteredSealProof::kUndefined:
+        return 0;
       default:
         return Errors::kInvalidPoStProof;
     }
@@ -76,21 +82,23 @@ namespace fc::primitives::sector {
 
   outcome::result<SectorSize> getSectorSize(RegisteredPoStProof proof) {
     switch (proof) {
-      case RegisteredPoStProof::StackedDRG64GiBWinningPoSt:
-      case RegisteredPoStProof::StackedDRG64GiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG64GiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG64GiBWindowPoSt:
         return SectorSize{64} << 30;
-      case RegisteredPoStProof::StackedDRG32GiBWinningPoSt:
-      case RegisteredPoStProof::StackedDRG32GiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG32GiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG32GiBWindowPoSt:
         return SectorSize{32} << 30;
-      case RegisteredPoStProof::StackedDRG512MiBWinningPoSt:
-      case RegisteredPoStProof::StackedDRG512MiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG512MiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG512MiBWindowPoSt:
         return SectorSize{512} << 20;
-      case RegisteredPoStProof::StackedDRG8MiBWinningPoSt:
-      case RegisteredPoStProof::StackedDRG8MiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG8MiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG8MiBWindowPoSt:
         return SectorSize{8} << 20;
-      case RegisteredPoStProof::StackedDRG2KiBWinningPoSt:
-      case RegisteredPoStProof::StackedDRG2KiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG2KiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG2KiBWindowPoSt:
         return SectorSize{2} << 10;
+      case RegisteredPoStProof::kUndefined:
+        return 0;
       default:
         return Errors::kInvalidPoStProof;
     }
@@ -99,21 +107,23 @@ namespace fc::primitives::sector {
   outcome::result<size_t> getWindowPoStPartitionSectors(
       RegisteredPoStProof proof) {
     switch (proof) {
-      case RegisteredPoStProof::StackedDRG64GiBWinningPoSt:
-      case RegisteredPoStProof::StackedDRG64GiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG64GiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG64GiBWindowPoSt:
         return 2300;
-      case RegisteredPoStProof::StackedDRG32GiBWinningPoSt:
-      case RegisteredPoStProof::StackedDRG32GiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG32GiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG32GiBWindowPoSt:
         return 2349;
-      case RegisteredPoStProof::StackedDRG512MiBWinningPoSt:
-      case RegisteredPoStProof::StackedDRG512MiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG512MiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG512MiBWindowPoSt:
         return 2;
-      case RegisteredPoStProof::StackedDRG8MiBWinningPoSt:
-      case RegisteredPoStProof::StackedDRG8MiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG8MiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG8MiBWindowPoSt:
         return 2;
-      case RegisteredPoStProof::StackedDRG2KiBWinningPoSt:
-      case RegisteredPoStProof::StackedDRG2KiBWindowPoSt:
+      case RegisteredPoStProof::kStackedDRG2KiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG2KiBWindowPoSt:
         return 2;
+      case RegisteredPoStProof::kUndefined:
+        return 0;
       default:
         return Errors::kInvalidPoStProof;
     }

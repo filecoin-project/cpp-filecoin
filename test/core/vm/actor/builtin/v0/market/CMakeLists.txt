@@ -4,7 +4,7 @@
 #
 
 addtest(market_actor_v0_test
-    test.cpp
+    market_actor_test.cpp
     )
 target_link_libraries(market_actor_v0_test
     comm_cid

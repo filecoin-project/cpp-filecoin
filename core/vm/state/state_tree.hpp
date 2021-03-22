@@ -24,7 +24,9 @@ namespace fc::vm::state {
     // kVersion0 corresponds to actors < v2.
     kVersion0,
     // kVersion1 corresponds to actors >= v2.
-    kVersion1
+    kVersion1,
+    // kVersion2 corresponds to actors >= v3.
+    kVersion2,
   };
 
   /// State tree

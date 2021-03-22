@@ -73,8 +73,8 @@ namespace fc::vm::runtime {
         scale = 43780;
       } else if (!info.proofs.empty()) {
         auto type{info.proofs[0].registered_proof};
-        if (type == RegisteredPoStProof::StackedDRG32GiBWindowPoSt
-            || type == RegisteredPoStProof::StackedDRG64GiBWindowPoSt) {
+        if (type == RegisteredPoStProof::kStackedDRG32GiBWindowPoSt
+            || type == RegisteredPoStProof::kStackedDRG64GiBWindowPoSt) {
           flat = 748593537;
           scale = 85639;
         }

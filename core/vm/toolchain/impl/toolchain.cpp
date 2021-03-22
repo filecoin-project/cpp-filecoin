@@ -18,6 +18,7 @@
 #include "vm/actor/builtin/v3/init/init_actor_utils.hpp"
 
 #include "vm/actor/builtin/v0/market/market_actor_utils.hpp"
+#include "vm/actor/builtin/v2/market/market_actor_utils.hpp"
 
 #include "vm/actor/builtin/v0/multisig/multisig_actor_utils.hpp"
 #include "vm/actor/builtin/v2/multisig/multisig_actor_utils.hpp"
@@ -136,9 +137,9 @@ namespace fc::vm::toolchain {
       case ActorVersion::kVersion0:
         return std::make_shared<v0::market::MarketUtils>(runtime);
       case ActorVersion::kVersion2:
-        return std::make_shared<v0::market::MarketUtils>(runtime);  // TODO v2
+        return std::make_shared<v2::market::MarketUtils>(runtime);
       case ActorVersion::kVersion3:
-        return std::make_shared<v0::market::MarketUtils>(runtime);  // TODO v3
+        return std::make_shared<v2::market::MarketUtils>(runtime);  // TODO v3
     }
   }
 

@@ -309,7 +309,7 @@ namespace fc::sector_storage::stores {
   outcome::result<void> LocalStoreImpl::openPath(const std::string &path) {
     std::unique_lock lock(mutex_);
     auto root = boost::filesystem::path(path);
-    OUTCOME_TRY(text, common::readFile((root / kMetaFileName).string()));
+    OUTCOME_TRY(text, common::readFile(root / kMetaFileName));
     OUTCOME_TRY(j_file, codec::json::parse(text));
     OUTCOME_TRY(meta, api::decode<LocalStorageMeta>(j_file));
 
@@ -354,11 +354,8 @@ namespace fc::sector_storage::stores {
     }
 
     OUTCOME_TRY(storage_->setStorage([path](stores::StorageConfig &config) {
-      auto &xs{config.storage_paths};
-      if (std::find_if(
-              xs.begin(), xs.end(), [&](auto &x) { return x.path == path; })
-          == xs.end()) {
-        xs.push_back({std::move(path)});
+      if (!config.has(path)) {
+        config.storage_paths.push_back({path});
       }
     }));
     paths_[meta.id] = out;
