@@ -17,6 +17,8 @@ target_link_libraries(api
     miner_types
     msg_waiter
     state_tree
+    mpool
+    sync
     )
 
 add_library(rpc
