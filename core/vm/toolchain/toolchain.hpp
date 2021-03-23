@@ -8,6 +8,7 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/utils/init_actor_utils.hpp"
 #include "vm/actor/builtin/utils/market_actor_utils.hpp"
+#include "vm/actor/builtin/utils/miner_actor.utils.hpp"
 #include "vm/actor/builtin/utils/multisig_actor_utils.hpp"
 #include "vm/actor/builtin/utils/payment_channel_actor_utils.hpp"
 #include "vm/actor/builtin/utils/power_actor_utils.hpp"
@@ -21,6 +22,7 @@ namespace fc::vm::toolchain {
   using actor::CodeId;
   using actor::builtin::utils::InitUtilsPtr;
   using actor::builtin::utils::MarketUtilsPtr;
+  using actor::builtin::utils::MinerUtilsPtr;
   using actor::builtin::utils::MultisigUtilsPtr;
   using actor::builtin::utils::PaymentChannelUtilsPtr;
   using actor::builtin::utils::PowerUtilsPtr;
@@ -57,6 +59,7 @@ namespace fc::vm::toolchain {
 
     static InitUtilsPtr createInitActorUtils(Runtime &runtime);
     static MarketUtilsPtr createMarketUtils(Runtime &runtime);
+    static MinerUtilsPtr createMinerUtils(Runtime &runtime);
     static MultisigUtilsPtr createMultisigActorUtils(Runtime &runtime);
     static PaymentChannelUtilsPtr createPaymentChannelUtils(Runtime &runtime);
     static PowerUtilsPtr createPowerUtils(Runtime &runtime);

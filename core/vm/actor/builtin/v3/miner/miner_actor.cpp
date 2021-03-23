@@ -11,95 +11,39 @@
 
 namespace fc::vm::actor::builtin::v3::miner {
   using toolchain::Toolchain;
-  using v0::miner::resolveControlAddress;
-  using v2::miner::checkControlAddresses;
-  using v2::miner::checkPeerInfo;
   using namespace types::miner;
-
-  /**
-   * Resolves address via v3 Account actor
-   */
-  outcome::result<Address> resolveWorkerAddress(Runtime &runtime,
-                                                const Address &address) {
-    const auto resolved = runtime.resolveAddress(address);
-    OUTCOME_TRY(runtime.validateArgument(!resolved.has_error()));
-    VM_ASSERT(resolved.value().isId());
-    const auto resolved_code = runtime.getActorCodeID(resolved.value());
-    OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
-    const auto address_matcher =
-        Toolchain::createAddressMatcher(runtime.getActorVersion());
-    OUTCOME_TRY(runtime.validateArgument(
-        resolved_code.value() == address_matcher->getAccountCodeId()));
-
-    if (!address.isBls()) {
-      const auto pubkey_addres =
-          runtime.sendM<account::PubkeyAddress>(resolved.value(), {}, 0);
-      OUTCOME_TRY(runtime.validateArgument(pubkey_addres.value().isBls()));
-    }
-
-    return std::move(resolved.value());
-  }
-
-  /**
-   * Registers first cron callback for epoch before the first proving period
-   * starts.
-   * Calls StoragePowerActor v3
-   */
-  outcome::result<void> enrollCronEvent(Runtime &runtime,
-                                        ChainEpoch event_epoch,
-                                        const CronEventPayload &payload) {
-    const auto encoded_params = codec::cbor::encode(payload);
-    OUTCOME_TRY(runtime.validateArgument(!encoded_params.has_error()));
-    REQUIRE_SUCCESS(runtime.sendM<storage_power::EnrollCronEvent>(
-        kStoragePowerAddress, {event_epoch, encoded_params.value()}, 0));
-    return outcome::success();
-  }
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
-    OUTCOME_TRY(checkControlAddresses(runtime, params.control_addresses));
-    OUTCOME_TRY(checkPeerInfo(runtime, params.peer_id, params.multiaddresses));
-    OUTCOME_TRY(owner, resolveControlAddress(runtime, params.owner));
-    OUTCOME_TRY(worker, resolveWorkerAddress(runtime, params.worker));
+
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(utils->checkControlAddresses(params.control_addresses));
+    OUTCOME_TRY(utils->checkPeerInfo(params.peer_id, params.multiaddresses));
+    OUTCOME_TRY(owner, utils->resolveControlAddress(params.owner));
+    OUTCOME_TRY(worker, utils->resolveWorkerAddress(params.worker));
     std::vector<Address> control_addresses;
     for (const auto &control_address : params.control_addresses) {
-      OUTCOME_TRY(resolved, resolveControlAddress(runtime, control_address));
+      OUTCOME_TRY(resolved, utils->resolveControlAddress(control_address));
       control_addresses.push_back(resolved);
     }
 
     auto state = runtime.stateManager()->createMinerActorState(
         runtime.getActorVersion());
 
-    // Lotus gas conformance - flush empty hamt
-    OUTCOME_TRY(state->precommitted_sectors.hamt.flush());
-
-    // Lotus gas conformance - flush empty hamt
-    OUTCOME_TRY(empty_amt_cid, state->precommitted_setctors_expiry.amt.flush());
-
-    RleBitset allocated_sectors;
-    OUTCOME_TRY(state->allocated_sectors.set(allocated_sectors));
-
-    OUTCOME_TRY(
-        deadlines,
-        state->makeEmptyDeadlines(runtime.getIpfsDatastore(), empty_amt_cid));
-    OUTCOME_TRY(state->deadlines.set(deadlines));
-
-    VestingFunds vesting_funds;
-    OUTCOME_TRY(state->vesting_funds.set(vesting_funds));
+    OUTCOME_TRY(v0::miner::Construct::makeEmptyState(runtime, state));
 
     const auto current_epoch = runtime.getCurrentEpoch();
-    REQUIRE_NO_ERROR_A(
-        offset,
-        v0::miner::Construct::assignProvingPeriodOffset(runtime, current_epoch),
-        VMExitCode::kErrSerialization);
+    REQUIRE_NO_ERROR_A(offset,
+                       utils->assignProvingPeriodOffset(current_epoch),
+                       VMExitCode::kErrSerialization);
     const auto period_start =
-        v2::miner::Construct::currentProvingPeriodStart(current_epoch, offset);
+        utils->currentProvingPeriodStart(current_epoch, offset);
     OUTCOME_TRY(runtime.requireState(period_start <= current_epoch));
     state->proving_period_start = period_start;
 
     OUTCOME_TRY(deadline_index,
-                v2::miner::Construct::currentDeadlineIndex(
-                    runtime, current_epoch, period_start));
+                utils->currentDeadlineIndex(current_epoch, period_start));
     OUTCOME_TRY(runtime.requireState(deadline_index < kWPoStPeriodDeadlines));
     state->current_deadline = deadline_index;
 
@@ -114,16 +58,12 @@ namespace fc::vm::actor::builtin::v3::miner {
                        VMExitCode::kErrIllegalState);
     OUTCOME_TRY(state->setInfo(runtime.getIpfsDatastore(), miner_info));
 
-    // construct with empty already cid stored in ipld to avoid gas charge
-    state->sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid,
-                                                   runtime.getIpfsDatastore());
-
     OUTCOME_TRY(runtime.commitState(state));
 
     const ChainEpoch deadline_close =
         period_start + kWPoStChallengeWindow * (1 + deadline_index);
-    OUTCOME_TRY(enrollCronEvent(
-        runtime, deadline_close - 1, {CronEventType::kProvingDeadline}));
+    OUTCOME_TRY(utils->enrollCronEvent(deadline_close - 1,
+                                       {CronEventType::kProvingDeadline}));
 
     return outcome::success();
   }
