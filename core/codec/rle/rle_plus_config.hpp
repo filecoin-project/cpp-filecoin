@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CODEC_RLE_PLUS_CONFIG_HPP
-#define CODEC_RLE_PLUS_CONFIG_HPP
+#pragma once
 
 namespace fc::codec::rle {
   /**
@@ -42,6 +41,4 @@ namespace fc::codec::rle {
    */
   const int OBJECT_MAX_SIZE = 0x100000;
 
-};  // namespace fc::codec::rle
-
-#endif
+}  // namespace fc::codec::rle

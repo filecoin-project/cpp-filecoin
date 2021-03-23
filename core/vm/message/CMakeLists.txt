@@ -5,7 +5,6 @@
 
 add_library(message
     message.cpp
-    message_util.cpp
     impl/message_signer_impl.cpp
     )
 

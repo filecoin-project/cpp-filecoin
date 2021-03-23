@@ -142,4 +142,4 @@ namespace fc::vm::actor::builtin::v3::init {
     EXPECT_EQ(result.id_address, actor_id_address);
     EXPECT_EQ(result.robust_address, actor_address);
   }
-};  // namespace fc::vm::actor::builtin::v3::init
+}  // namespace fc::vm::actor::builtin::v3::init

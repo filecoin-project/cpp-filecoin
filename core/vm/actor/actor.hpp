@@ -12,12 +12,15 @@
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
+#include "primitives/types.hpp"
 #include "vm/version/version.hpp"
 
 namespace fc::vm::actor {
 
   using fc::common::Buffer;
   using primitives::BigInt;
+  using primitives::Nonce;
+  using primitives::TokenAmount;
   using primitives::address::Address;
   using version::NetworkVersion;
 
@@ -55,9 +58,9 @@ namespace fc::vm::actor {
     /// CID of the root of optional actor-specific sub-state
     CID head{};
     /// Expected sequence number of the next message sent by this actor
-    uint64_t nonce{};
+    Nonce nonce{};
     /// Balance of tokens held by this actor
-    BigInt balance{};
+    TokenAmount balance{};
   };
   CBOR_TUPLE(Actor, code, head, nonce, balance)
 

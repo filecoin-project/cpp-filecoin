@@ -103,9 +103,8 @@ namespace fc::vm::runtime {
         env_context{env_context},
         epoch{tipset->height()},
         ts_branch{std::move(ts_branch)},
-        tipset{std::move(tipset)} {
-    pricelist.calico = static_cast<int64_t>(epoch) >= kUpgradeCalicoHeight;
-  }
+        tipset{std::move(tipset)},
+        pricelist{epoch} {}
 
   outcome::result<Env::Apply> Env::applyMessage(const UnsignedMessage &message,
                                                 size_t size) {
@@ -186,8 +185,7 @@ namespace fc::vm::runtime {
       used = 0;
     }
     auto no_fee{false};
-    if (static_cast<int64_t>(epoch) > kUpgradeClausHeight
-        && exit_code == VMExitCode::kOk
+    if (epoch > vm::version::kUpgradeClausHeight && exit_code == VMExitCode::kOk
         && message.method
                == vm::actor::builtin::v0::miner::SubmitWindowedPoSt::Number) {
       OUTCOME_TRY(to, state_tree->tryGet(message.to));

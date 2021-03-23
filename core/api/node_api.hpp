@@ -36,6 +36,7 @@ namespace fc::api {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::EpochDuration;
+  using primitives::GasAmount;
   using primitives::RleBitset;
   using primitives::SectorNumber;
   using primitives::SectorSize;
@@ -196,12 +197,6 @@ namespace fc::api {
   };
 
   struct MessageSendSpec {
-    static TokenAmount maxFee(const boost::optional<MessageSendSpec> &spec) {
-      if (spec) {
-        return spec->max_fee;
-      }
-      return kFilecoinPrecision / 10;
-    };
     TokenAmount max_fee;
   };
 
@@ -256,6 +251,17 @@ namespace fc::api {
                const FileRef &)
     API_METHOD(ClientStartDeal, Wait<CID>, const StartDealParams &)
 
+    API_METHOD(GasEstimateFeeCap,
+               TokenAmount,
+               const UnsignedMessage &,
+               int64_t,
+               const TipsetKey &)
+    API_METHOD(GasEstimateGasPremium,
+               TokenAmount,
+               uint64_t,
+               const Address &,
+               GasAmount,
+               const TipsetKey &)
     API_METHOD(GasEstimateMessageGas,
                UnsignedMessage,
                const UnsignedMessage &,

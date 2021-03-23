@@ -32,7 +32,7 @@ namespace fc::primitives::address {
   bool Address::isKeyType() const {
     return visit_in_place(
         data,
-        [](uint64_t v) { return false; },
+        [](ActorId v) { return false; },
         [](const Secp256k1PublicKeyHash &v) { return true; },
         [](const ActorExecHash &v) { return false; },
         [](const BLSPublicKeyHash &v) { return true; });
@@ -41,7 +41,7 @@ namespace fc::primitives::address {
   bool Address::isId() const {
     return visit_in_place(
         data,
-        [](uint64_t v) { return true; },
+        [](ActorId v) { return true; },
         [](const auto &) { return false; });
   }
 
@@ -62,13 +62,13 @@ namespace fc::primitives::address {
   Protocol Address::getProtocol() const {
     return visit_in_place(
         data,
-        [](uint64_t v) { return Protocol::ID; },
+        [](ActorId v) { return Protocol::ID; },
         [](const Secp256k1PublicKeyHash &v) { return Protocol::SECP256K1; },
         [](const ActorExecHash &v) { return Protocol::ACTOR; },
         [](const BLSPublicKeyHash &v) { return Protocol::BLS; });
   }
 
-  Address Address::makeFromId(uint64_t id) {
+  Address Address::makeFromId(ActorId id) {
     return {id};
   }
 
@@ -84,14 +84,14 @@ namespace fc::primitives::address {
     return {BLSPublicKeyHash{public_key}};
   }
 
-  uint64_t Address::getId() const {
-    return boost::get<uint64_t>(data);
+  ActorId Address::getId() const {
+    return boost::get<ActorId>(data);
   }
 
   bool Address::verifySyntax(gsl::span<const uint8_t> seed_data) const {
     return visit_in_place(
         data,
-        [](uint64_t v) { return true; },
+        [](ActorId v) { return true; },
         [&seed_data](const Secp256k1PublicKeyHash &v) {
           if (seed_data.size()
               != crypto::secp256k1::kPublicKeyUncompressedLength) {
@@ -124,4 +124,4 @@ namespace fc::primitives::address {
     return less(lhs.getProtocol(), rhs.getProtocol(), lhs.data, rhs.data);
   }
 
-};  // namespace fc::primitives::address
+}  // namespace fc::primitives::address
