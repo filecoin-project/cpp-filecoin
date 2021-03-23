@@ -104,7 +104,7 @@ namespace fc::vm::runtime {
         epoch{tipset->height()},
         ts_branch{std::move(ts_branch)},
         tipset{std::move(tipset)},
-        pricelist{epoch} {}
+        pricelist{(ChainEpoch)epoch} {}
 
   outcome::result<Env::Apply> Env::applyMessage(const UnsignedMessage &message,
                                                 size_t size) {
@@ -185,7 +185,8 @@ namespace fc::vm::runtime {
       used = 0;
     }
     auto no_fee{false};
-    if (epoch > vm::version::kUpgradeClausHeight && exit_code == VMExitCode::kOk
+    if (static_cast<ChainEpoch>(epoch) > kUpgradeClausHeight
+        && exit_code == VMExitCode::kOk
         && message.method
                == vm::actor::builtin::v0::miner::SubmitWindowedPoSt::Number) {
       OUTCOME_TRY(to, state_tree->tryGet(message.to));

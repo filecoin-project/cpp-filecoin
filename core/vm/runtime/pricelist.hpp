@@ -15,8 +15,7 @@ namespace fc::vm::runtime {
   using primitives::sector::WindowPoStVerifyInfo;
 
   struct Pricelist {
-    Pricelist(ChainEpoch epoch)
-        : calico{epoch >= vm::version::kUpgradeCalicoHeight} {}
+    Pricelist(ChainEpoch epoch) : calico{epoch >= kUpgradeCalicoHeight} {}
     inline GasAmount make(GasAmount compute, GasAmount storage) const {
       return compute + storage;
     }
