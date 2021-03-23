@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CRYPTO_BLS_PROVIDER_TYPES_HPP
-#define CRYPTO_BLS_PROVIDER_TYPES_HPP
+#pragma once
 
 #include "common/blob.hpp"
 #include "common/outcome.hpp"
@@ -35,8 +34,6 @@ namespace fc::crypto::bls {
     kInvalidPublicKey,
     kAggregateError,
   };
-};  // namespace fc::crypto::bls
+}  // namespace fc::crypto::bls
 
 OUTCOME_HPP_DECLARE_ERROR(fc::crypto::bls, Errors);
-
-#endif

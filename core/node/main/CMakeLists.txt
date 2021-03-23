@@ -19,6 +19,7 @@ target_link_libraries(node_builder
     p2p::asio_scheduler
     p2p::p2p_random_generator
     graphsync
+    cids_index
     clock
     car
     block_validator

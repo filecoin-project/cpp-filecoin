@@ -201,7 +201,7 @@ func (rt *rt) NewActorAddress() address.Address {
 }
 
 func (rt *rt) CreateActor(code cid.Cid, addr address.Address) {
-	if !(builtin2.IsBuiltinActor(code) || builtin1.IsBuiltinActor(code)) || IsSingletonActor(code) {
+	if !(builtin3.IsBuiltinActor(code) || builtin2.IsBuiltinActor(code) || builtin1.IsBuiltinActor(code)) || IsSingletonActor(code) {
 		rt.Abort(exitcode.SysErrorIllegalArgument)
 	}
 	rt.gocRet(C.gocRtCreateActor(rt.gocArg().cid(code).addr(addr).arg()))

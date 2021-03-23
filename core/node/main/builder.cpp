@@ -44,6 +44,7 @@
 #include "power/impl/power_table_impl.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/car/car.hpp"
+#include "storage/car/cids_index/util.hpp"
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
@@ -53,19 +54,19 @@
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/prefix.hpp"
 #include "storage/mpool/mpool.hpp"
+#include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
 
 namespace fc::node {
 
   namespace {
     auto log() {
       static common::Logger logger = common::createLogger("node");
-      return logger.get();
+      return logger;
     }
 
     outcome::result<void> initNetworkName(
@@ -76,7 +77,10 @@ namespace fc::node {
                   vm::state::StateTreeImpl(
                       ipld, genesis_tipset.blks[0].parent_state_root)
                       .get(vm::actor::kInitAddress));
-      OUTCOME_TRY(init_state, vm::actor::builtin::states::StateProvider{ipld}.getInitActorState(init_actor));
+      OUTCOME_TRY(
+          init_state,
+          vm::actor::builtin::states::StateProvider{ipld}.getInitActorState(
+              init_actor));
       config.network_name = init_state->network_name;
       return outcome::success();
     }
@@ -145,43 +149,25 @@ namespace fc::node {
         std::make_shared<storage::OneKey>("snapshot", o.kv_store)};
     if (snapshot_key->has()) {
       snapshot_key->getCbor(snapshot_cids);
+      if (!config.snapshot) {
+        log()->warn(
+            "snapshot was imported before, but snapshot argument is missing");
+      }
     }
     if (config.snapshot) {
-      auto file{*common::mapFile(*config.snapshot)};
-      auto reader{storage::car::CarReader::make(file.second).value()};
-      if (snapshot_cids.empty()) {
-        snapshot_cids = reader.roots;
-        log()->info("importing snapshot");
-
-        static constexpr size_t kBatchSize{100000};
-        size_t current_batch_size{0};
-        auto batch{o.ipld_leveldb->batch()};
-        size_t last_progress{0};
-        while (!reader.end()) {
-          auto item{reader.next().value()};
-          batch
-              ->put(storage::ipfs::LeveldbDatastore::encodeKey(item.first)
-                        .value(),
-                    Buffer{item.second})
-              .value();
-          ++current_batch_size;
-          if (current_batch_size >= kBatchSize || reader.end()) {
-            batch->commit().value();
-            batch->clear();
-            current_batch_size = 0;
-          }
-          auto progress{100 * reader.position / reader.file.size()};
-          if (progress != last_progress) {
-            last_progress = progress;
-            log()->info("{}%, {} objects stored", progress, reader.objects);
-          }
-        }
-
-        log()->info("snapshot imported");
-        snapshot_key->setCbor(snapshot_cids);
-      } else if (snapshot_cids != reader.roots) {
+      auto roots{storage::car::readHeader(*config.snapshot).value()};
+      if (!snapshot_cids.empty() && snapshot_cids != roots) {
         log()->error("another snapshot already imported");
         exit(EXIT_FAILURE);
+      }
+      o.ipld_cids = storage::cids_index::loadOrCreateWithProgress(
+                        *config.snapshot, o.ipld, log())
+                        .value();
+      o.ipld = o.ipld_cids;
+      if (snapshot_cids.empty()) {
+        snapshot_cids = roots;
+        log()->info("snapshot imported");
+        snapshot_key->setCbor(snapshot_cids);
       }
     }
     return snapshot_cids;
@@ -242,11 +228,16 @@ namespace fc::node {
     if (!leveldb_res) {
       return Error::kStorageInitError;
     }
-    o.ipld_leveldb = storage::LevelDB::create(config.join("ipld_leveldb"),
-                                              ipldLeveldbOptions())
-                         .value();
-    o.ipld = std::make_shared<storage::ipfs::LeveldbDatastore>(o.ipld_leveldb);
     o.kv_store = std::move(leveldb_res.value());
+
+    o.ipld_leveldb_kv = storage::LevelDB::create(config.join("ipld_leveldb"),
+                                                 ipldLeveldbOptions())
+                            .value();
+    o.ipld_leveldb =
+        std::make_shared<storage::ipfs::LeveldbDatastore>(o.ipld_leveldb_kv);
+    o.ipld = o.ipld_leveldb;
+    auto snapshot_cids{loadSnapshot(config, o)};
+
     o.ts_load_ipld = std::make_shared<primitives::tipset::TsLoadIpld>(o.ipld);
     o.ts_load = std::make_shared<primitives::tipset::TsLoadCache>(
         o.ts_load_ipld, 8 << 10);
@@ -275,8 +266,6 @@ namespace fc::node {
         o.env_context, weight_calculator);
     o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
         o.interpreter, o.env_context.interpreter_cache);
-
-    auto snapshot_cids{loadSnapshot(config, o)};
 
     loadChain(config, o, snapshot_cids);
     o.ts_branches = std::make_shared<TsBranches>();

@@ -18,7 +18,6 @@
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/message/message.hpp"
-#include "vm/message/message_util.hpp"
 
 #define MOVE(x)  \
   x {            \
@@ -341,8 +340,9 @@ namespace fc::markets::storage::client {
         {}};
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
-    OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
-    OUTCOME_TRY(msg_wait, api_->StateWaitMsg(message_cid, api::kNoConfidence));
+    OUTCOME_TRY(
+        msg_wait,
+        api_->StateWaitMsg(signed_message.getCid(), api::kNoConfidence));
     OUTCOME_TRY(msg_state, msg_wait.waitSync());
     if (msg_state.receipt.exit_code != VMExitCode::kOk) {
       return StorageMarketClientError::kAddFundsCallError;

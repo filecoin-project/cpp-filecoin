@@ -9,13 +9,11 @@
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
-#include "vm/message/message_util.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::payment_channel_manager {
   using api::AddChannelInfo;
   using crypto::signature::Signature;
-  using fc::vm::message::cid;
   using vm::VMExitCode;
   using vm::actor::kInitAddress;
   using vm::actor::MethodParams;
@@ -239,7 +237,7 @@ namespace fc::payment_channel_manager {
         {}};
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
-    OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
+    auto message_cid{signed_message.getCid()};
     OUTCOME_TRY(message_wait,
                 api_->StateWaitMsg(message_cid, api::kNoConfidence));
     OUTCOME_TRY(message_state, message_wait.waitSync());
@@ -274,7 +272,7 @@ namespace fc::payment_channel_manager {
                                      MethodParams{encoded_init_params}};
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
-    OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
+    auto message_cid{signed_message.getCid()};
     OUTCOME_TRY(message_wait,
                 api_->StateWaitMsg(message_cid, api::kNoConfidence));
     OUTCOME_TRY(message_state, message_wait.waitSync());

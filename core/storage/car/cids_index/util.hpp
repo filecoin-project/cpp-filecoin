@@ -32,8 +32,16 @@ namespace fc::storage::cids_index {
     if (!index) {
       log->info("generating index");
       Progress progress;
-      progress.items.step = 100000;
-      progress.car_offset.step = 64 << 20;
+      if (Progress::isTty()) {
+        // each 100,000 items
+        progress.items.step = 100000;
+        // each 64MB
+        progress.car_offset.step = 64 << 20;
+      } else {
+        // each 1% or 1GB
+        progress.car_offset.step = std::min<size_t>(
+            boost::filesystem::file_size(car_path) / 100, 1 << 30);
+      }
       if (auto _index{create(car_path, cids_path, nullptr, &progress)}) {
         index = _index.value();
         log->info("index generated: {}", cids_path);

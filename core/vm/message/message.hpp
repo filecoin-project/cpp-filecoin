@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_MESSAGE_HPP
-#define CPP_FILECOIN_CORE_VM_MESSAGE_HPP
+#pragma once
 
 #include <codec/cbor/cbor.hpp>
 #include <gsl/span>
@@ -32,13 +31,13 @@ namespace fc::vm::message {
   using actor::MethodNumber;
   using actor::MethodParams;
   using crypto::signature::Signature;
-  using primitives::BigInt;
   using primitives::GasAmount;
+  using primitives::Nonce;
   using primitives::TokenAmount;
   using primitives::address::Address;
 
   static constexpr int64_t kMessageVersion = 0;
-  static const BigInt kDefaultGasPrice = 0;
+  static const TokenAmount kDefaultGasPrice = 0;
   static constexpr GasAmount kDefaultGasLimit = 1000000;
 
   /**
@@ -49,8 +48,8 @@ namespace fc::vm::message {
 
     UnsignedMessage(Address to,
                     Address from,
-                    uint64_t nonce,
-                    BigInt value,
+                    Nonce nonce,
+                    TokenAmount value,
                     TokenAmount gas_fee_cap,
                     GasAmount gas_limit,
                     MethodNumber method,
@@ -71,9 +70,9 @@ namespace fc::vm::message {
     Address to;
     Address from;
 
-    uint64_t nonce{};
+    Nonce nonce{};
 
-    BigInt value{};
+    TokenAmount value{};
 
     GasAmount gas_limit{};
     TokenAmount gas_fee_cap;
@@ -92,7 +91,7 @@ namespace fc::vm::message {
      */
     bool operator!=(const UnsignedMessage &other) const;
 
-    BigInt requiredFunds() const;
+    TokenAmount requiredFunds() const;
 
     CID getCid() const;
 
@@ -129,13 +128,10 @@ namespace fc::vm::message {
 
   CBOR_TUPLE(SignedMessage, message, signature)
 
-  constexpr uint64_t kMessageMaxSize = 32 * 1024;
-
-};  // namespace fc::vm::message
+  void capGasFee(UnsignedMessage &msg, const TokenAmount &max);
+}  // namespace fc::vm::message
 
 /**
  * @brief Outcome errors declaration
  */
 OUTCOME_HPP_DECLARE_ERROR(fc::vm::message, MessageError);
-
-#endif  // CPP_FILECOIN_CORE_VM_MESSAGE_HPP
