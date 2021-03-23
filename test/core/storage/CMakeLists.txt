@@ -3,7 +3,6 @@
 
 add_subdirectory(amt)
 add_subdirectory(car)
-add_subdirectory(config)
 add_subdirectory(filestore)
 add_subdirectory(hamt)
 add_subdirectory(keystore)
@@ -11,5 +10,4 @@ add_subdirectory(ipfs)
 add_subdirectory(ipld)
 add_subdirectory(leveldb)
 add_subdirectory(piece)
-add_subdirectory(repository)
 add_subdirectory(unixfs)
