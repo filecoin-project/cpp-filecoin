@@ -14,6 +14,7 @@
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor_utils.hpp"
 #include "vm/actor/builtin/v0/miner/types.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
 
@@ -61,13 +62,13 @@ namespace fc::vm::actor::builtin::v0::miner {
         decodeFromString("t2mzc3knjb7dvps7r5mqcdqwyygxnaxmjviyirqii").value();
     ChainEpoch epoch{1};
 
+    MinerUtils utils{runtime};
+
     EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(Return(address1));
-    EXPECT_OUTCOME_EQ(Construct::assignProvingPeriodOffset(runtime, epoch),
-                      ChainEpoch{863});
+    EXPECT_OUTCOME_EQ(utils.assignProvingPeriodOffset(epoch), ChainEpoch{863});
 
     EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(Return(address2));
-    EXPECT_OUTCOME_EQ(Construct::assignProvingPeriodOffset(runtime, epoch),
-                      ChainEpoch{1603});
+    EXPECT_OUTCOME_EQ(utils.assignProvingPeriodOffset(epoch), ChainEpoch{1603});
   }
 
   /**
@@ -80,10 +81,13 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_CALL(runtime, getCurrentReceiver()).WillRepeatedly(Return(address));
     const auto test_data = parseCsvPair(resourcePath(
         "vm/actor/builtin/v0/miner/test_assign_proving_period_offset.txt"));
+
+    MinerUtils utils{runtime};
+
     for (const auto &p : test_data) {
-      EXPECT_OUTCOME_EQ(Construct::assignProvingPeriodOffset(
-                            runtime, p.first.convert_to<ChainEpoch>()),
-                        ChainEpoch{p.second.convert_to<ChainEpoch>()});
+      EXPECT_OUTCOME_EQ(
+          utils.assignProvingPeriodOffset(p.first.convert_to<ChainEpoch>()),
+          ChainEpoch{p.second.convert_to<ChainEpoch>()});
     }
   }
 

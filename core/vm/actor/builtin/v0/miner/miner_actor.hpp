@@ -8,8 +8,11 @@
 #include <libp2p/multi/multiaddress.hpp>
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
+#include "common/libp2p/multi/cbor_multiaddress.hpp"
 #include "primitives/address/address.hpp"
+#include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor_method.hpp"
+#include "vm/actor/builtin/states/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
@@ -28,15 +31,6 @@ namespace fc::vm::actor::builtin::v0::miner {
   using types::miner::SectorDeclaration;
   using types::miner::SectorPreCommitInfo;
 
-  /**
-   * Resolves an address to an ID address and verifies that it is address of an
-   * account or multisig actor
-   * @param address to resolve
-   * @return resolved address
-   */
-  outcome::result<Address> resolveControlAddress(const Runtime &runtime,
-                                                 const Address &address);
-
   struct Construct : ActorMethodBase<1> {
     struct Params {
       Address owner;
@@ -48,30 +42,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     };
     ACTOR_METHOD_DECL();
 
-    /**
-     * Checks if seal proof type is supported
-     */
-    static outcome::result<void> checkSealProofType(
-        const Runtime &runtime, const RegisteredSealProof &seal_proof_type);
-
-    /**
-     * Assigns proving period offset randomly in the range [0,
-     * WPoStProvingPeriod) by hashing the actor's address and current epoch
-     * @param runtime - runtime
-     * @param current_epoch - current epoch
-     * @return random offset
-     */
-    static outcome::result<ChainEpoch> assignProvingPeriodOffset(
-        Runtime &runtime, ChainEpoch current_epoch);
-
-    /**
-     * Computes the epoch at which a proving period should start such that it is
-     * greater than the current epoch, and has a defined offset from being an
-     * exact multiple of WPoStProvingPeriod. A miner is exempt from Winow PoSt
-     * until the first full proving period starts.
-     */
-    static ChainEpoch nextProvingPeriodStart(ChainEpoch current_epoch,
-                                             ChainEpoch offset);
+    static outcome::result<void> makeEmptyState(
+        const Runtime &runtime, states::MinerActorStatePtr state);
   };
   CBOR_TUPLE(Construct::Params,
              owner,
