@@ -13,7 +13,7 @@
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/runtime/runtime.hpp"
-#include "vm/version.hpp"
+#include "vm/version/version.hpp"
 
 namespace fc::vm::actor::builtin::utils {
   using common::Buffer;
@@ -68,7 +68,7 @@ namespace fc::vm::actor::builtin::utils {
     /**
      * Computes the epoch at which a proving period should start such that it is
      * greater than the current epoch, and has a defined offset from being an
-     * exact multiple of WPoStProvingPeriod. A miner is exempt from Winow PoSt
+     * exact multiple of WPoStProvingPeriod. A miner is exempt from Window PoSt
      * until the first full proving period starts.
      */
     virtual ChainEpoch nextProvingPeriodStart(ChainEpoch current_epoch,
@@ -77,7 +77,7 @@ namespace fc::vm::actor::builtin::utils {
     /**
      * Computes the epoch at which a proving period should start such that it is
      * greater than the current epoch, and has a defined offset from being an
-     * exact multiple of WPoStProvingPeriod. A miner is exempt from Winow PoSt
+     * exact multiple of WPoStProvingPeriod. A miner is exempt from Window PoSt
      * until the first full proving period starts.
      */
     virtual ChainEpoch currentProvingPeriodStart(ChainEpoch current_epoch,

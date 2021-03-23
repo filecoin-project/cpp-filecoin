@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/utils/miner_actor.utils.hpp"
+#include "vm/actor/builtin/utils/miner_actor_utils.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using common::Buffer;
