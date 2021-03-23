@@ -17,10 +17,8 @@ namespace fc::vm::actor::builtin::types::storage_power {
   /**
    * Minimum power of an individual miner to meet the threshold for leader
    * election.
-   * 1 << 40
-   * MAINNET: 10 << 40
    */
-  inline const StoragePower kConsensusMinerMinPower{StoragePower{10} << 40};
+  extern StoragePower kConsensusMinerMinPower;
   constexpr size_t kSectorQualityPrecision{20};
 
   /**

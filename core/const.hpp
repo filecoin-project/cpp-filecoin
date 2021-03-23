@@ -5,10 +5,23 @@
 
 #pragma once
 
-#include <boost/multiprecision/cpp_int.hpp>
+#include "primitives/chain_epoch/chain_epoch.hpp"
+#include "primitives/types.hpp"
 
 namespace fc {
-  using BigInt = boost::multiprecision::cpp_int;
+  using primitives::ChainEpoch;
+  using primitives::EpochDuration;
+  using primitives::StoragePower;
+
+  constexpr auto kSecondsInHour{60 * 60};
+  constexpr auto kSecondsInDay{24 * kSecondsInHour};
+
+  extern size_t kEpochDurationSeconds;
+  extern size_t kEpochsInHour;
+  extern size_t kEpochsInDay;
+  extern size_t kEpochsInYear;
+
+  extern size_t kPropagationDelaySecs;
 
   constexpr auto kBaseFeeMaxChangeDenom{8};
   constexpr auto kBlockGasLimit{10000000000};
@@ -16,25 +29,41 @@ namespace fc {
   constexpr auto kBlockMessageLimit{10000};
   constexpr auto kBlocksPerEpoch{5};
   constexpr auto kConsensusMinerMinMiners{3};
-  constexpr auto kEpochDurationSeconds{30};
   constexpr uint64_t kFilReserve{300000000};
   constexpr uint64_t kFilecoinPrecision{1000000000000000000};
   constexpr auto kGasLimitOverestimation{1.25};
   constexpr auto kMessageConfidence{5};
   constexpr auto kMinimumBaseFee{100};
-  constexpr auto kBlockDelaySecs{kEpochDurationSeconds};
   constexpr auto kPackingEfficiencyDenom{5};
   constexpr auto kPackingEfficiencyNum{4};
-  constexpr auto kPropagationDelaySecs{6};
-  constexpr auto kUpgradeSmokeHeight{51000};
-  constexpr auto kSecondsInHour{60 * 60};
-  constexpr auto kSecondsInDay{24 * kSecondsInHour};
-  constexpr auto kEpochsInHour{kSecondsInHour / kEpochDurationSeconds};
-  constexpr auto kEpochsInDay{24 * kEpochsInHour};
-  constexpr auto kEpochsInYear{365 * kEpochsInDay};
+
+  // ******************
+  // Network versions
+  // ******************
+  /**
+   * Network version heights. The last height before network upgrade.
+   */
+  extern ChainEpoch kUpgradeBreezeHeight;
+  extern ChainEpoch kUpgradeSmokeHeight;
+  extern ChainEpoch kUpgradeIgnitionHeight;
+  extern ChainEpoch kUpgradeRefuelHeight;
+  extern ChainEpoch kUpgradeActorsV2Height;
+  extern ChainEpoch kUpgradeTapeHeight;
+  extern ChainEpoch kUpgradeLiftoffHeight;
+  extern ChainEpoch kUpgradeKumquatHeight;
+  extern ChainEpoch kUpgradeCalicoHeight;
+  extern ChainEpoch kUpgradePersianHeight;
+  extern ChainEpoch kUpgradeOrangeHeight;
+  extern ChainEpoch kUpgradeClausHeight;
+  extern ChainEpoch kUpgradeActorsV3Height;
 
   constexpr uint64_t kMinerApiVersion{0};
   constexpr uint64_t kDefaultStorageWeight{10};
 
-  extern BigInt kConsensusMinerMinPower;
+  extern EpochDuration kInteractivePoRepConfidence;
+
+  /**
+   * Sets parameters for test network with 2k seal proof type
+   */
+  void setParams2K();
 }  // namespace fc

@@ -11,6 +11,7 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 
+#include "config/profile_config.hpp"
 #include "primitives/address/config.hpp"
 
 namespace fc::common {
@@ -52,6 +53,8 @@ namespace libp2p::peer {
 }  // namespace libp2p::peer
 
 namespace fc::node {
+  using config::configProfile;
+
   spdlog::level::level_enum getLogLevel(char level) {
     switch (level) {
       case 'e':
@@ -105,6 +108,7 @@ namespace fc::node {
                  "drand period (seconds)");
     desc.add(drand_desc);
 
+    desc.add(configProfile());
     primitives::address::configCurrentNetwork(option);
 
     po::variables_map vm;

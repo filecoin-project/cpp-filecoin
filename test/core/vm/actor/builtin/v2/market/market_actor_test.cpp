@@ -23,7 +23,7 @@
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
-#include "vm/version.hpp"
+#include "vm/version/version.hpp"
 
 #define ON_CALL_3(a, b, c) EXPECT_CALL(a, b).WillRepeatedly(Return(c))
 

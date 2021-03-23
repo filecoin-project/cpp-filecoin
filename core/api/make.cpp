@@ -19,6 +19,7 @@
 #include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
@@ -53,6 +54,7 @@ namespace fc::api {
   using vm::actor::builtin::states::PowerActorStatePtr;
   using vm::actor::builtin::states::StateProvider;
   using vm::actor::builtin::types::market::DealState;
+  using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
   using vm::runtime::Env;
   using vm::state::StateTreeImpl;
 

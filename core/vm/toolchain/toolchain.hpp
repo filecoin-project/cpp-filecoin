@@ -8,7 +8,7 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/utils/init_actor_utils.hpp"
 #include "vm/actor/builtin/utils/market_actor_utils.hpp"
-#include "vm/actor/builtin/utils/miner_actor.utils.hpp"
+#include "vm/actor/builtin/utils/miner_actor_utils.hpp"
 #include "vm/actor/builtin/utils/multisig_actor_utils.hpp"
 #include "vm/actor/builtin/utils/payment_channel_actor_utils.hpp"
 #include "vm/actor/builtin/utils/power_actor_utils.hpp"

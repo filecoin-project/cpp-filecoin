@@ -32,6 +32,7 @@ namespace fc::api {
   using markets::storage::DataRef;
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
+  using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::EpochDuration;

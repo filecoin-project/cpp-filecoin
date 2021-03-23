@@ -26,4 +26,5 @@ target_link_libraries(runtime
     signature
     toolchain
     actor_state
+    version
     )

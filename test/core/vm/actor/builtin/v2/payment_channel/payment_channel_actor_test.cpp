@@ -32,6 +32,7 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
   using states::MockStateManager;
   using storage::ipfs::InMemoryDatastore;
   using testing::Return;
+  using types::payment_channel::kSettleDelay;
   using types::payment_channel::LaneId;
   using types::payment_channel::LaneState;
   using types::payment_channel::Merge;

@@ -8,6 +8,7 @@
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor_state.hpp"
 
 #include <gtest/gtest.h>
+#include "const.hpp"
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
 
 namespace fc::vm::actor::builtin::v2::verified_registry {
@@ -16,8 +17,6 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
   using states::DataCap;
   using testutil::vm::actor::builtin::ActorTestFixture;
   using types::verified_registry::kMinVerifiedDealSize;
-  using version::kUpgradeBreezeHeight;
-  using version::kUpgradeKumquatHeight;
   using vm::VMExitCode;
 
   struct VerifiedRegistryActorTest

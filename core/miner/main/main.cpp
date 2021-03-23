@@ -22,6 +22,7 @@
 #include "common/io_thread.hpp"
 #include "common/outcome.hpp"
 #include "common/peer_key.hpp"
+#include "config/profile_config.hpp"
 #include "data_transfer/dt.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/retrieval/provider/impl/retrieval_provider_impl.hpp"
@@ -54,6 +55,7 @@ namespace fc {
   using api::SignedStorageAsk;
   using boost::asio::io_context;
   using common::span::cbytes;
+  using config::configProfile;
   using libp2p::multi::Multiaddress;
   using markets::retrieval::RetrievalAsk;
   using primitives::StorageID;
@@ -105,6 +107,7 @@ namespace fc {
     option("pre-sealed-sectors",
            po::value(&config.preseal_path),
            "Path to presealed sectors");
+    desc.add(configProfile());
     primitives::address::configCurrentNetwork(option);
 
     po::variables_map vm;

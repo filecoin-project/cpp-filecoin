@@ -3,12 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(miner_types
-    deadline_info.cpp
+add_library(filecoin_config
+    profile_config.cpp
     )
-target_link_libraries(miner_types
-    actor
-    address
+target_link_libraries(filecoin_config
+    Boost::boost
     const
-    outcome
     )

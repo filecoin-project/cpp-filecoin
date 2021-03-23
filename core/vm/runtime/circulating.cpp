@@ -10,7 +10,6 @@
 #include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
-#include "vm/version.hpp"
 
 namespace fc::vm {
   using actor::builtin::states::StateProvider;
@@ -50,12 +49,11 @@ namespace fc::vm {
     TokenAmount mined;
 
     auto vest{[&](auto days, TokenAmount amount) {
-      ChainEpoch duration(days
-                          * vm::actor::builtin::types::miner::kEpochsInDay);
+      ChainEpoch duration(days * kEpochsInDay);
       auto elapsed{epoch};
-      if (epoch > version::kUpgradeIgnitionHeight) {
+      if (epoch > kUpgradeIgnitionHeight) {
         amount *= kFilecoinPrecision;
-        elapsed -= version::kUpgradeLiftoffHeight;
+        elapsed -= kUpgradeLiftoffHeight;
       }
       if (elapsed >= duration) {
         vested += amount;
@@ -65,7 +63,7 @@ namespace fc::vm {
     }};
     constexpr auto sixMonths{183};
     constexpr auto year{365};
-    auto calico{epoch > version::kUpgradeCalicoHeight};
+    auto calico{epoch > kUpgradeCalicoHeight};
     vest(sixMonths, (calico ? 19015887 : 49929341) + 32787700);
     vest(year, 22421712 + (calico ? 9400000 : 0));
     vest(2 * year, 7223364);
@@ -74,7 +72,7 @@ namespace fc::vm {
     if (calico) {
       vest(0, 10632000);
     }
-    if (epoch <= version::kUpgradeActorsV2Height) {
+    if (epoch <= kUpgradeActorsV2Height) {
       vested += genesis;
     }
 
@@ -84,7 +82,7 @@ namespace fc::vm {
     mined = reward_state->total_reward;
 
     TokenAmount disbursed;
-    if (epoch > version::kUpgradeActorsV2Height) {
+    if (epoch > kUpgradeActorsV2Height) {
       OUTCOME_TRY(reserve, state_tree->get(actor::kReserveActorAddress));
       disbursed =
           TokenAmount{kFilReserve} * kFilecoinPrecision - reserve.balance;

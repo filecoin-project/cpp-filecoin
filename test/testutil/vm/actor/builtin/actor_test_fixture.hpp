@@ -15,7 +15,7 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
-#include "vm/version.hpp"
+#include "vm/version/version.hpp"
 
 namespace fc::testutil::vm::actor::builtin {
   using ::fc::vm::actor::ActorVersion;
