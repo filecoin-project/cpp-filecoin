@@ -8,8 +8,6 @@
 namespace fc::vm::actor::builtin::types::storage_power {
   using primitives::SectorQuality;
 
-  StoragePower kConsensusMinerMinPower{StoragePower{10} << 40};
-
   SectorQuality sectorQualityFromWeight(const SectorStorageWeightDesc &weight) {
     constexpr auto kBaseMultiplier{10};
     constexpr auto kDealWeightMultiplier{11};
@@ -30,9 +28,5 @@ namespace fc::vm::actor::builtin::types::storage_power {
   StoragePower qaPowerForWeight(const SectorStorageWeightDesc &weight) {
     return (weight.sector_size * sectorQualityFromWeight(weight))
            >> kSectorQualityPrecision;
-  }
-
-  void setPolicy(const StoragePower &consensusMinerMinPower) {
-    kConsensusMinerMinPower = consensusMinerMinPower;
   }
 }  // namespace fc::vm::actor::builtin::types::storage_power

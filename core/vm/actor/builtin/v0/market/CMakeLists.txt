@@ -14,5 +14,4 @@ target_link_libraries(market_actor_v0
     balance_table
     cid_key
     piece
-    market_types
     )

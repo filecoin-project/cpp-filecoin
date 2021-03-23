@@ -9,9 +9,4 @@ add_library(filecoin_config
 target_link_libraries(filecoin_config
     Boost::boost
     const
-    market_types
-    miner_types
-    payment_channel_types
-    storage_power_types
-    verified_registry_types
     )

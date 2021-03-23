@@ -6,20 +6,12 @@
 #include "config/profile_config.hpp"
 
 #include "const.hpp"
-#include "primitives/sector/sector.hpp"
-#include "vm/actor/builtin/types/market/policy.hpp"
-#include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/actor/builtin/types/payment_channel/policy.hpp"
-#include "vm/actor/builtin/types/storage_power/policy.hpp"
-#include "vm/actor/builtin/types/verified_registry/policy.hpp"
 
 namespace fc::config {
-  using primitives::sector::RegisteredSealProof;
-
   /**
    * Class for profile name validation with boost::program_options
    */
-  using Profile = std::string;
+  class Profile : public std::string {};
 
   /**
    * Checks that profile name is expected one.
@@ -41,40 +33,6 @@ namespace fc::config {
     } else {
       throw validation_error(validation_error::invalid_option_value);
     }
-  }
-
-  void setParams2K() {
-    kEpochDurationSeconds = 4;
-    kEpochsInHour = kSecondsInHour / kEpochDurationSeconds;
-    kEpochsInDay = 24 * kEpochsInHour;
-    kEpochsInYear = 365 * kEpochsInDay;
-
-    kPropagationDelaySecs = 1;
-
-    // Network versions
-    kUpgradeBreezeHeight = -1;
-    kUpgradeSmokeHeight = -1;
-    kUpgradeIgnitionHeight = -2;
-    kUpgradeRefuelHeight = -3;
-    kUpgradeTapeHeight = -4;
-    kUpgradeActorsV2Height = 10;
-    kUpgradeLiftoffHeight = -5;
-    kUpgradeKumquatHeight = 15;
-    kUpgradeCalicoHeight = 20;
-    kUpgradePersianHeight = 25;
-    kUpgradeOrangeHeight = 27;
-    kUpgradeClausHeight = 30;
-    kUpgradeActorsV3Height = 35;
-
-    // Update policies
-    std::set<RegisteredSealProof> supportedProofs;
-    supportedProofs.insert(RegisteredSealProof::kStackedDrg2KiBV1);
-    vm::actor::builtin::types::miner::setPolicy(kEpochDurationSeconds,
-                                                supportedProofs);
-    vm::actor::builtin::types::storage_power::setPolicy(2048);
-    vm::actor::builtin::types::verified_registry::setPolicy(256);
-    vm::actor::builtin::types::payment_channel::setPolicy(kEpochsInHour);
-    vm::actor::builtin::types::market::setPolicy(kEpochsInDay);
   }
 
   boost::program_options::options_description configProfile() {

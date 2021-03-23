@@ -61,4 +61,9 @@ namespace fc {
   constexpr uint64_t kDefaultStorageWeight{10};
 
   extern EpochDuration kInteractivePoRepConfidence;
+
+  /**
+   * Sets parameters for test network with 2k seal proof type
+   */
+  void setParams2K();
 }  // namespace fc

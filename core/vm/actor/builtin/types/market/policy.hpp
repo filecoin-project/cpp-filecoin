@@ -122,6 +122,4 @@ namespace fc::vm::actor::builtin::types::market {
     const auto deal_size = static_cast<uint64_t>(deal.piece_size);
     return deal_duration * deal_size;
   }
-
-  void setPolicy(size_t epochsInDay);
 }  // namespace fc::vm::actor::builtin::types::market

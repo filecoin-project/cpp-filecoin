@@ -13,6 +13,4 @@ namespace fc::vm::actor::builtin::types::payment_channel {
   constexpr size_t kLaneLimit{INT64_MAX};
   extern EpochDuration kSettleDelay;
   constexpr size_t kMaxSecretSize{256};
-
-  void setPolicy(const EpochDuration &epochsInHour);
 }  // namespace fc::vm::actor::builtin::types::payment_channel

@@ -163,12 +163,4 @@ namespace fc::vm::actor::builtin::types::miner {
   constexpr size_t kMaxMultiaddressData = 1024;
 
   extern EpochDuration kMaxProveCommitDuration;
-
-  /**
-   * Sets miner policy parameters
-   * @param epochDurationSeconds - block delay in seconds
-   * @param supportedProofs - proof types supported by miner
-   */
-  void setPolicy(size_t epochDurationSeconds,
-                 std::set<RegisteredSealProof> supportedProofs);
 }  // namespace fc::vm::actor::builtin::types::miner

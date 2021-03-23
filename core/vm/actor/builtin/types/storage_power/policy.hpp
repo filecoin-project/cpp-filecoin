@@ -42,6 +42,4 @@ namespace fc::vm::actor::builtin::types::storage_power {
       const TokenAmount &per_epoch_reward) {
     return bigdiv(qa * per_epoch_reward, total_qa);
   }
-
-  void setPolicy(const StoragePower &consensusMinerMinPower);
 }  // namespace fc::vm::actor::builtin::types::storage_power
