@@ -74,6 +74,39 @@ namespace fc::vm::actor::builtin::v2::miner {
     return outcome::success();
   }
 
+  ACTOR_METHOD_IMPL(ChangeWorkerAddress) {
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(utils->checkControlAddresses(params.new_control_addresses));
+
+    OUTCOME_TRY(new_worker, utils->resolveWorkerAddress(params.new_worker));
+
+    std::vector<Address> control_addresses;
+    for (const auto &address : params.new_control_addresses) {
+      OUTCOME_TRY(resolved, utils->resolveControlAddress(address));
+      control_addresses.emplace_back(resolved);
+    }
+
+    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+    OUTCOME_TRY(miner_info, state->getInfo(runtime.getIpfsDatastore()));
+
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(miner_info.owner));
+
+    miner_info.control = control_addresses;
+
+    if ((new_worker != miner_info.worker) && !miner_info.pending_worker_key) {
+      miner_info.pending_worker_key = WorkerKeyChange{
+          .new_worker = new_worker,
+          .effective_at = runtime.getCurrentEpoch() + kWorkerKeyChangeDelay};
+    }
+
+    REQUIRE_NO_ERROR(state->setInfo(runtime.getIpfsDatastore(), miner_info),
+                     VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(runtime.commitState(state));
+
+    return outcome::success();
+  }
+
   ACTOR_METHOD_IMPL(ApplyRewards) {
     // TODO (a.chernyshov) FIL-310 - implement
     return VMExitCode::kNotImplemented;

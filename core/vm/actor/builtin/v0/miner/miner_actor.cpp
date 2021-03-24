@@ -99,8 +99,46 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   ACTOR_METHOD_IMPL(ChangeWorkerAddress) {
-    // TODO (a.chernyshov) FIL-280 - implement
-    return VMExitCode::kNotImplemented;
+    ChainEpoch effective_epoch{};
+
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(new_worker, utils->resolveWorkerAddress(params.new_worker));
+
+    std::vector<Address> control_addresses;
+    for (const auto &address : params.new_control_addresses) {
+      OUTCOME_TRY(resolved, utils->resolveControlAddress(address));
+      control_addresses.emplace_back(resolved);
+    }
+
+    bool worker_changed = false;
+
+    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+    OUTCOME_TRY(miner_info, state->getInfo(runtime.getIpfsDatastore()));
+
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(miner_info.owner));
+
+    miner_info.control = control_addresses;
+
+    if (new_worker != miner_info.worker) {
+      worker_changed = true;
+      effective_epoch = runtime.getCurrentEpoch() + kWorkerKeyChangeDelay;
+
+      miner_info.pending_worker_key = WorkerKeyChange{
+          .new_worker = new_worker, .effective_at = effective_epoch};
+    }
+
+    REQUIRE_NO_ERROR(state->setInfo(runtime.getIpfsDatastore(), miner_info),
+                     VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(runtime.commitState(state));
+
+    if (worker_changed) {
+      const CronEventPayload cron_payload{.event_type =
+                                              CronEventType::kWorkerKeyChange};
+      OUTCOME_TRY(utils->enrollCronEvent(effective_epoch, cron_payload));
+    }
+
+    return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(ChangePeerId) {
