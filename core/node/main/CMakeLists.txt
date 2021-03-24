@@ -10,7 +10,20 @@ add_library(node_builder
 
 target_link_libraries(node_builder
     filecoin_config
-    sync
+    Boost::program_options
+    Boost::random
+    block_validator
+    car
+    cids_index
+    clock
+    drand_beacon
+    drand_http
+    graphsync
+    in_memory_storage
+    ipfs_datastore_in_memory
+    ipfs_datastore_leveldb
+    interpreter
+    mpool
     p2p::p2p_basic_host
     p2p::p2p_default_network
     p2p::p2p_peer_repository
@@ -19,24 +32,13 @@ target_link_libraries(node_builder
     p2p::p2p_inmem_protocol_repository
     p2p::asio_scheduler
     p2p::p2p_random_generator
-    graphsync
-    cids_index
-    clock
-    car
-    block_validator
-    interpreter
-    runtime
-    ipfs_datastore_leveldb
-    ipfs_datastore_in_memory
-    in_memory_storage
-    weight_calculator
-    secp256k1_provider
+    pieceio
     rpc
-    mpool
-    drand_http
-    drand_beacon
-    Boost::program_options
-    Boost::random
+    runtime
+    secp256k1_provider
+    storage_market_client
+    sync
+    weight_calculator
     )
 
 add_executable(node

@@ -27,11 +27,13 @@
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
-#include "common/file.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "drand/impl/beaconizer.hpp"
+#include "markets/discovery/discovery.hpp"
+#include "markets/pieceio/pieceio_impl.hpp"
+#include "markets/storage/client/impl/storage_market_client_impl.hpp"
 #include "node/blocksync_server.hpp"
 #include "node/chain_store_impl.hpp"
 #include "node/graphsync_server.hpp"
@@ -55,13 +57,18 @@
 #include "storage/leveldb/prefix.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
-#include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::node {
+  using data_transfer::DataTransfer;
+  using markets::discovery::Discovery;
+  using markets::pieceio::PieceIOImpl;
+  using markets::storage::client::StorageMarketClientImpl;
+  using storage::InMemoryStorage;
+  using storage::ipfs::InMemoryDatastore;
 
   namespace {
     auto log() {
@@ -432,6 +439,17 @@ namespace fc::node {
         drand_chain_info,
         genesis_timestamp,
         std::chrono::seconds(kEpochDurationSeconds));
+
+    o.storage_market_ipld = std::make_shared<InMemoryDatastore>();
+    o.storage_market_client = std::make_shared<StorageMarketClientImpl>(
+        o.host,
+        o.io_context,
+        o.storage_market_ipld,
+        DataTransfer::make(o.host, o.graphsync),
+        std::make_shared<Discovery>(std::make_shared<InMemoryStorage>()),
+        o.api,
+        std::make_shared<PieceIOImpl>(o.storage_market_ipld, "/tmp/fuhon/piece_io"));
+    OUTCOME_TRY(o.storage_market_client->init());
 
     o.api = api::makeImpl(o.chain_store,
                           *config.network_name,

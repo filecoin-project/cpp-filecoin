@@ -29,7 +29,7 @@ namespace fc::config {
     // one string, it's an error, and exception will be thrown.
     std::string const &value = validators::get_single_string(values);
     if (value == "mainnet" || value == "2k") {
-      v = boost::any(value);
+      v = boost::any(Profile{value});
     } else {
       throw validation_error(validation_error::invalid_option_value);
     }

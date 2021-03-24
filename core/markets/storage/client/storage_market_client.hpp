@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_HPP
-#define CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 #include "markets/storage/ask_protocol.hpp"
@@ -94,5 +93,3 @@ namespace fc::markets::storage::client {
   };
 
 }  // namespace fc::markets::storage::client
-
-#endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_HPP

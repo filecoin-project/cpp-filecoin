@@ -7,6 +7,7 @@
 
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
+
 #include "codec/cbor/cbor.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/outcome_fmt.hpp"
@@ -15,7 +16,6 @@
 #include "markets/common.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
-#include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/message/message.hpp"
 

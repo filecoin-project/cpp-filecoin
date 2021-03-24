@@ -10,6 +10,7 @@
 
 #include "common/outcome.hpp"
 #include "fwd.hpp"
+#include "markets/storage/client/storage_market_client.hpp"
 #include "node/events.hpp"
 #include "node/main/config.hpp"
 #include "primitives/tipset/load.hpp"
@@ -20,6 +21,7 @@
 #include "vm/runtime/env_context.hpp"
 
 namespace fc::node {
+  using markets::storage::client::StorageMarketClient;
 
   enum Error {
     kStorageInitError = 1,
@@ -74,6 +76,11 @@ namespace fc::node {
     std::shared_ptr<vm::interpreter::CachedInterpreter> vm_interpreter;
     std::shared_ptr<sync::SyncJob> sync_job;
     vm::runtime::EnvironmentContext env_context;
+
+    // storage market client
+    /** Distinct Storage Market IPLD */
+    IpldPtr storage_market_ipld;
+    std::shared_ptr<StorageMarketClient> storage_market_client;
 
     // high level objects
     std::shared_ptr<sync::ChainStoreImpl> chain_store;
