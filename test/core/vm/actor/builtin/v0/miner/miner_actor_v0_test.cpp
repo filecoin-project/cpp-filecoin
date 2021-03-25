@@ -35,12 +35,13 @@ namespace fc::vm::actor::builtin::v0::miner {
       ipld->load(state);
     }
 
-    void expectEnrollCronEvent(const ChainEpoch &proving_period_start) {
-      CronEventPayload payload{CronEventType::kProvingDeadline};
+    void expectEnrollCronEvent(ChainEpoch event_epoch,
+                               CronEventType event_type) {
+      CronEventPayload payload{event_type};
       EXPECT_OUTCOME_TRUE(encoded_payload, codec::cbor::encode(payload));
       runtime.expectSendM<storage_power::EnrollCronEvent>(
           kStoragePowerAddress,
-          {.event_epoch = proving_period_start - 1, .payload = encoded_payload},
+          {.event_epoch = event_epoch, .payload = encoded_payload},
           0,
           {});
     }
@@ -112,7 +113,8 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     // This is just set from running the code.
     const ChainEpoch proving_period_start{658};
-    expectEnrollCronEvent(proving_period_start);
+    expectEnrollCronEvent(proving_period_start - 1,
+                          CronEventType::kProvingDeadline);
 
     EXPECT_OUTCOME_TRUE_1(Construct::call(
         runtime,
@@ -183,7 +185,8 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     // This is just set from running the code.
     const ChainEpoch proving_period_start{658};
-    expectEnrollCronEvent(proving_period_start);
+    expectEnrollCronEvent(proving_period_start - 1,
+                          CronEventType::kProvingDeadline);
 
     EXPECT_OUTCOME_TRUE_1(Construct::call(
         runtime,
@@ -219,7 +222,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     addressCodeIdIs(control, kCronCodeId);
 
     EXPECT_OUTCOME_ERROR(
-        VMAbortExitCode{VMExitCode::kErrIllegalArgument},
+        asAbort(VMExitCode::kErrIllegalArgument),
         Construct::call(
             runtime,
             Construct::Params{
@@ -246,6 +249,81 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(result.worker, worker);
     EXPECT_EQ(result.control.size(), 1);
     EXPECT_EQ(result.control[0], control);
+  }
+
+  /**
+   * @given caller is not owner
+   * @when miner ChangeWorkerAddress called
+   * @then kSysErrForbidden returned
+   */
+  TEST_F(MinerActorTest, ChangeWorkerAddressWrongCaller) {
+    initEmptyState();
+    initDefaultMinerInfo();
+
+    callerIs(kInitAddress);
+
+    const Address new_worker = Address::makeFromId(201);
+    expectAccountV0PubkeyAddressSend(new_worker, bls_pubkey);
+
+    std::vector<Address> new_control_addresses;
+    const Address control1 = Address::makeFromId(701);
+    const Address controlId1 = Address::makeFromId(751);
+    new_control_addresses.emplace_back(control1);
+    resolveAddressAs(control1, controlId1);
+
+    const Address control2 = Address::makeFromId(702);
+    const Address controlId2 = Address::makeFromId(752);
+    new_control_addresses.emplace_back(control2);
+    resolveAddressAs(control2, controlId2);
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kSysErrForbidden),
+        ChangeWorkerAddress::call(
+            runtime,
+            ChangeWorkerAddress::Params{new_worker, new_control_addresses}));
+  }
+
+  /**
+   * @given vm
+   * @when miner ChangeWorkerAddress called
+   * @then new worker is recorded to pending_worker_key
+   */
+  TEST_F(MinerActorTest, ChangeWorkerAddressSuccess) {
+    initEmptyState();
+    initDefaultMinerInfo();
+
+    currentEpochIs(10);
+    const ChainEpoch effective_epoch{10 + kWorkerKeyChangeDelay};
+
+    callerIs(owner);
+
+    const Address new_worker = Address::makeFromId(201);
+    expectAccountV0PubkeyAddressSend(new_worker, bls_pubkey);
+
+    std::vector<Address> new_control_addresses;
+    const Address control1 = Address::makeFromId(701);
+    const Address controlId1 = Address::makeFromId(751);
+    new_control_addresses.emplace_back(control1);
+    resolveAddressAs(control1, controlId1);
+
+    const Address control2 = Address::makeFromId(702);
+    const Address controlId2 = Address::makeFromId(752);
+    new_control_addresses.emplace_back(control2);
+    resolveAddressAs(control2, controlId2);
+
+    expectEnrollCronEvent(effective_epoch, CronEventType::kWorkerKeyChange);
+
+    EXPECT_OUTCOME_TRUE_1(ChangeWorkerAddress::call(
+        runtime,
+        ChangeWorkerAddress::Params{new_worker, new_control_addresses}));
+
+    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo(ipld));
+    EXPECT_EQ(miner_info.pending_worker_key.get().new_worker, new_worker);
+    EXPECT_EQ(miner_info.pending_worker_key.get().effective_at,
+              effective_epoch);
+    EXPECT_EQ(miner_info.control.size(), 2);
+    EXPECT_EQ(miner_info.control[0], controlId1);
+    EXPECT_EQ(miner_info.control[1], controlId2);
   }
 
   /**

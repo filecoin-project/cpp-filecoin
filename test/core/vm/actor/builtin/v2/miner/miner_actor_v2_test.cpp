@@ -189,7 +189,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     Construct::Params params = makeConstructParams();
     params.worker = worker;
     params.control_addresses = control_addresses;
-    EXPECT_OUTCOME_ERROR(VMAbortExitCode{VMExitCode::kErrIllegalArgument},
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          Construct::call(runtime, params));
   }
 
@@ -204,7 +204,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     Construct::Params params = makeConstructParams();
     params.peer_id = wrong_peer_id;
-    EXPECT_OUTCOME_ERROR(VMAbortExitCode{VMExitCode::kErrIllegalArgument},
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          Construct::call(runtime, params));
   }
 
@@ -219,7 +219,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     Construct::Params params = makeConstructParams();
     params.control_addresses = control_addresses;
-    EXPECT_OUTCOME_ERROR(VMAbortExitCode{VMExitCode::kErrIllegalArgument},
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          Construct::call(runtime, params));
   }
 
@@ -235,7 +235,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     Construct::Params params = makeConstructParams();
     params.multiaddresses = std::vector<Multiaddress>(1000, multiaddress);
-    EXPECT_OUTCOME_ERROR(VMAbortExitCode{VMExitCode::kErrIllegalArgument},
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          Construct::call(runtime, params));
   }
 
@@ -303,6 +303,17 @@ namespace fc::vm::actor::builtin::v2::miner {
       : public MinerActorTest,
         public ::testing::WithParamInterface<ConstructParams> {};
 
+  INSTANTIATE_TEST_CASE_P(
+      ConstructFailureMinerActorTestCases,
+      ConstructFailureMinerActorTest,
+      ::testing::Values(
+          // version < 7 accepts only StackedDrg32GiBV1
+          ConstructParams{NetworkVersion::kVersion6,
+                          RegisteredSealProof::kStackedDrg32GiBV1_1},
+          // version > 7 accepts only StackedDrg32GiBV1_1
+          ConstructParams{NetworkVersion::kVersion8,
+                          RegisteredSealProof::kStackedDrg32GiBV1}));
+
   /**
    * @given Construction with wrong network version and proof type
    * @when miner constructor called
@@ -321,7 +332,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     Construct::Params params = makeConstructParams();
     params.seal_proof_type = seal_proof_type;
-    EXPECT_OUTCOME_ERROR(VMAbortExitCode{VMExitCode::kErrIllegalArgument},
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          Construct::call(runtime, params));
   }
 
@@ -342,16 +353,78 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(result.control[0], control);
   }
 
-  INSTANTIATE_TEST_CASE_P(
-      ConstructFailureMinerActorTestCases,
-      ConstructFailureMinerActorTest,
-      ::testing::Values(
-          // version < 7 accepts only StackedDrg32GiBV1
-          ConstructParams{NetworkVersion::kVersion6,
-                          RegisteredSealProof::kStackedDrg32GiBV1_1},
-          // version > 7 accepts only StackedDrg32GiBV1_1
-          ConstructParams{NetworkVersion::kVersion8,
-                          RegisteredSealProof::kStackedDrg32GiBV1}));
+  /**
+   * @given caller is not owner
+   * @when miner ChangeWorkerAddress called
+   * @then kSysErrForbidden returned
+   */
+  TEST_F(MinerActorTest, ChangeWorkerAddressWrongCaller) {
+    initEmptyState();
+    initDefaultMinerInfo();
+
+    callerIs(kInitAddress);
+
+    const Address new_worker = Address::makeFromId(201);
+    expectAccountV2PubkeyAddressSend(new_worker, bls_pubkey);
+
+    std::vector<Address> new_control_addresses;
+    const Address control1 = Address::makeFromId(701);
+    const Address controlId1 = Address::makeFromId(751);
+    new_control_addresses.emplace_back(control1);
+    resolveAddressAs(control1, controlId1);
+
+    const Address control2 = Address::makeFromId(702);
+    const Address controlId2 = Address::makeFromId(752);
+    new_control_addresses.emplace_back(control2);
+    resolveAddressAs(control2, controlId2);
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kSysErrForbidden),
+        ChangeWorkerAddress::call(
+            runtime,
+            ChangeWorkerAddress::Params{new_worker, new_control_addresses}));
+  }
+
+  /**
+   * @given vm
+   * @when miner ChangeWorkerAddress called
+   * @then new worker is recorded to pending_worker_key
+   */
+  TEST_F(MinerActorTest, ChangeWorkerAddressSuccess) {
+    initEmptyState();
+    initDefaultMinerInfo();
+
+    currentEpochIs(10);
+    const ChainEpoch effective_epoch{10 + kWorkerKeyChangeDelay};
+
+    callerIs(owner);
+
+    const Address new_worker = Address::makeFromId(201);
+    expectAccountV2PubkeyAddressSend(new_worker, bls_pubkey);
+
+    std::vector<Address> new_control_addresses;
+    const Address control1 = Address::makeFromId(701);
+    const Address controlId1 = Address::makeFromId(751);
+    new_control_addresses.emplace_back(control1);
+    resolveAddressAs(control1, controlId1);
+
+    const Address control2 = Address::makeFromId(702);
+    const Address controlId2 = Address::makeFromId(752);
+    new_control_addresses.emplace_back(control2);
+    resolveAddressAs(control2, controlId2);
+
+    EXPECT_OUTCOME_TRUE_1(ChangeWorkerAddress::call(
+        runtime,
+        ChangeWorkerAddress::Params{new_worker, new_control_addresses}));
+
+    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo(ipld));
+    EXPECT_EQ(miner_info.pending_worker_key.get().new_worker, new_worker);
+    EXPECT_EQ(miner_info.pending_worker_key.get().effective_at,
+              effective_epoch);
+    EXPECT_EQ(miner_info.control.size(), 2);
+    EXPECT_EQ(miner_info.control[0], controlId1);
+    EXPECT_EQ(miner_info.control[1], controlId2);
+  }
 
   /**
    * @given caller is not owner, worker or control address
