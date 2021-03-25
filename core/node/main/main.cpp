@@ -158,8 +158,8 @@ namespace fc {
     }
 
     o.host->start();
-    auto peer_info = o.host->getPeerInfo();
-    if (peer_info.addresses.empty()) {
+    auto listen_addresses = o.host->getAddresses();
+    if (listen_addresses.empty()) {
       log()->error("Cannot listen to {}",
                    config.p2pListenAddress().getStringAddress());
       exit(EXIT_FAILURE);
@@ -167,7 +167,7 @@ namespace fc {
 
     log()->info(
         "Node started at {}, host PeerId {}",
-        nonZeroAddr(peer_info.addresses, &config.localIp())->getStringAddress(),
+        nonZeroAddr(listen_addresses, &config.localIp())->getStringAddress(),
         o.host->getId().toBase58());
 
     for (const auto &pi : config.bootstrap_list) {
