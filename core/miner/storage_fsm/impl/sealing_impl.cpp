@@ -5,6 +5,8 @@
 
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
 
+#include <utility>
+
 #include "common/bitsutil.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "miner/storage_fsm/impl/checks.hpp"
@@ -44,12 +46,13 @@ namespace fc::mining {
 
   SealingImpl::SealingImpl(std::shared_ptr<FullNodeApi> api,
                            std::shared_ptr<Events> events,
-                           const Address &miner_address,
+                           Address miner_address,
                            std::shared_ptr<Counter> counter,
                            std::shared_ptr<BufferMap> fsm_kv,
                            std::shared_ptr<Manager> sealer,
                            std::shared_ptr<PreCommitPolicy> policy,
                            std::shared_ptr<boost::asio::io_context> context,
+                           Config config,
                            Ticks ticks)
       : context_(std::move(context)),
         api_(std::move(api)),
@@ -57,8 +60,9 @@ namespace fc::mining {
         policy_(std::move(policy)),
         counter_(std::move(counter)),
         fsm_kv_{std::move(fsm_kv)},
-        miner_address_(miner_address),
-        sealer_(std::move(sealer)) {
+        miner_address_(std::move(miner_address)),
+        sealer_(std::move(sealer)),
+        config_(config) {
     std::shared_ptr<host::HostContext> fsm_context =
         std::make_shared<host::HostContextImpl>(context_);
     scheduler_ = std::make_shared<libp2p::protocol::AsioScheduler>(
@@ -79,34 +83,80 @@ namespace fc::mining {
     return 512;
   }
 
-  outcome::result<void> SealingImpl::run() {
-    OUTCOME_TRY(fsmLoad());
-    if (config_.wait_deals_delay == 0) {
-      return outcome::success();
+  outcome::result<std::shared_ptr<SealingImpl>> SealingImpl::newSealing(
+      std::shared_ptr<FullNodeApi> api,
+      std::shared_ptr<Events> events,
+      Address miner_address,
+      std::shared_ptr<Counter> counter,
+      std::shared_ptr<BufferMap> fsm_kv,
+      std::shared_ptr<Manager> sealer,
+      std::shared_ptr<PreCommitPolicy> policy,
+      std::shared_ptr<boost::asio::io_context> context,
+      Config config,
+      Ticks ticks) {
+    struct make_unique_enabler : public SealingImpl {
+      make_unique_enabler(std::shared_ptr<FullNodeApi> api,
+                          std::shared_ptr<Events> events,
+                          Address miner_address,
+                          std::shared_ptr<Counter> counter,
+                          std::shared_ptr<BufferMap> fsm_kv,
+                          std::shared_ptr<Manager> sealer,
+                          std::shared_ptr<PreCommitPolicy> policy,
+                          std::shared_ptr<boost::asio::io_context> context,
+                          Config config,
+                          Ticks ticks)
+          : SealingImpl{std::move(api),
+                        std::move(events),
+                        miner_address,
+                        std::move(counter),
+                        std::move(fsm_kv),
+                        std::move(sealer),
+                        std::move(policy),
+                        std::move(context),
+                        std::move(config),
+                        std::move(ticks)} {};
+    };
+
+    std::shared_ptr<SealingImpl> sealing =
+        std::make_shared<make_unique_enabler>(api,
+                                              events,
+                                              miner_address,
+                                              counter,
+                                              fsm_kv,
+                                              sealer,
+                                              policy,
+                                              context,
+                                              config,
+                                              ticks);
+
+    OUTCOME_TRY(sealing->fsmLoad());
+    if (config.wait_deals_delay == 0) {
+      return sealing;
     }
-    std::lock_guard lock(sectors_mutex_);
-    for (const auto &sector : sectors_) {
-      OUTCOME_TRY(state, fsm_->get(sector.second));
+    std::lock_guard lock(sealing->sectors_mutex_);
+    for (const auto &sector : sealing->sectors_) {
+      OUTCOME_TRY(state, sealing->fsm_->get(sector.second));
       if (state == SealingState::kWaitDeals) {
-        scheduler_
-            ->schedule(config_.max_wait_deals_sectors,
-                       [this, sector_id = sector.second->sector_number]() {
-                         auto maybe_error = startPacking(sector_id);
-                         if (maybe_error.has_error()) {
-                           logger_->error("starting sector {}: {}",
-                                          sector_id,
-                                          maybe_error.error().message());
-                         }
-                       })
+        sealing->scheduler_
+            ->schedule(
+                config.max_wait_deals_sectors,
+                [self{sealing}, sector_id = sector.second->sector_number]() {
+                  auto maybe_error = self->startPacking(sector_id);
+                  if (maybe_error.has_error()) {
+                    self->logger_->error("starting sector {}: {}",
+                                         sector_id,
+                                         maybe_error.error().message());
+                  }
+                })
             .detach();
       }
     }
 
     // TODO: Grab on-chain sector set and diff with sectors_
-    return outcome::success();
+    return sealing;
   }
 
-  void SealingImpl::stop() {
+  SealingImpl::~SealingImpl() {
     logger_->info("Sealing is stopped");
     fsm_->stop();
   }
@@ -244,7 +294,7 @@ namespace fc::mining {
     }
 
     if (sector_info->pieces.size() != 1) {
-      return SealingError::kUpgradeSeveralPiece;
+      return SealingError::kUpgradeSeveralPieces;
     }
 
     if (sector_info->pieces[0].deal_info.has_value()) {
@@ -461,9 +511,9 @@ namespace fc::mining {
     context->seal_proof_type = minfo.seal_proof_type;
     FSM_SEND_CONTEXT(sector, SealingEvent::kSectorStart, context);
 
-    if (config_.max_wait_deals_sectors > 0) {
+    if (config_.wait_deals_delay > 0) {
       scheduler_
-          ->schedule(config_.max_wait_deals_sectors,
+          ->schedule(config_.wait_deals_delay,
                      [this, sector_id]() {
                        auto maybe_error = startPacking(sector_id);
                        if (maybe_error.has_error()) {
@@ -472,7 +522,8 @@ namespace fc::mining {
                                         maybe_error.error().message());
                        }
                      })
-          .detach();
+          .detach();  // TODO: maybe we should save it and decline if it starts
+                      // early
     }
 
     return sector_id;
@@ -1726,7 +1777,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::mining, SealingError, e) {
     case E::kNotProvingState:
       return "SealingError: can't mark sectors not in the 'Proving' state for "
              "upgrade";
-    case E::kUpgradeSeveralPiece:
+    case E::kUpgradeSeveralPieces:
       return "SealingError: not a committed-capacity sector, expected 1 piece";
     case E::kUpgradeWithDeal:
       return "SealingError: not a committed-capacity sector, has deals";

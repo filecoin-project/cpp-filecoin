@@ -61,7 +61,7 @@ TEST(Dev, Main) {
       entity, Events::START, std::make_shared<EventContext>(1, "starting")))
   EXPECT_OUTCOME_TRUE_1(fsm.send(
       entity, Events::STOP, std::make_shared<EventContext>(2, "stopping")))
-  context->runIoContext(2);
+  context->runIoContext(1);
   ASSERT_EQ(entity->x, 2);
   ASSERT_EQ(entity->content, "stopped after stopping");
   EXPECT_OUTCOME_TRUE_1(fsm.force(entity, States::WORKING));

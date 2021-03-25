@@ -54,19 +54,19 @@ namespace fc::mining {
   class SealingImpl : public Sealing,
                       public std::enable_shared_from_this<SealingImpl> {
    public:
-    SealingImpl(std::shared_ptr<FullNodeApi> api,
-                std::shared_ptr<Events> events,
-                const Address &miner_address,
-                std::shared_ptr<Counter> counter,
-                std::shared_ptr<BufferMap> fsm_kv,
-                std::shared_ptr<Manager> sealer,
-                std::shared_ptr<PreCommitPolicy> policy,
-                std::shared_ptr<boost::asio::io_context> context,
-                Ticks ticks = 50);
+    ~SealingImpl() override;
 
-    outcome::result<void> run() override;
-
-    void stop() override;
+    static outcome::result<std::shared_ptr<SealingImpl>> newSealing(
+        std::shared_ptr<FullNodeApi> api,
+        std::shared_ptr<Events> events,
+        Address miner_address,
+        std::shared_ptr<Counter> counter,
+        std::shared_ptr<BufferMap> fsm_kv,
+        std::shared_ptr<Manager> sealer,
+        std::shared_ptr<PreCommitPolicy> policy,
+        std::shared_ptr<boost::asio::io_context> context,
+        Config config,
+        Ticks ticks = 50);
 
     outcome::result<void> fsmLoad();
     void fsmSave(const std::shared_ptr<SectorInfo> &info);
@@ -98,6 +98,17 @@ namespace fc::mining {
     outcome::result<void> pledgeSector() override;
 
    private:
+    SealingImpl(std::shared_ptr<FullNodeApi> api,
+                std::shared_ptr<Events> events,
+                Address miner_address,
+                std::shared_ptr<Counter> counter,
+                std::shared_ptr<BufferMap> fsm_kv,
+                std::shared_ptr<Manager> sealer,
+                std::shared_ptr<PreCommitPolicy> policy,
+                std::shared_ptr<boost::asio::io_context> context,
+                Config config,
+                Ticks ticks);
+
     struct SectorPaddingResponse {
       SectorNumber sector;
       std::vector<PaddedPieceSize> pads;

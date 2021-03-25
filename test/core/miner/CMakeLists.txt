@@ -27,3 +27,10 @@ addtest(tipset_cache_test
 target_link_libraries(tipset_cache_test
         tipset_cache)
 
+addtest(sealing_test
+        sealing_test.cpp
+        )
+target_link_libraries(sealing_test
+        storage_fsm
+        fuhon_host)
+

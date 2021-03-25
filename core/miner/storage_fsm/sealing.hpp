@@ -25,10 +25,6 @@ namespace fc::mining {
    public:
     virtual ~Sealing() = default;
 
-    virtual outcome::result<void> run() = 0;
-
-    virtual void stop() = 0;
-
     virtual outcome::result<PieceAttributes> addPieceToAnySector(
         UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) = 0;
 
@@ -60,7 +56,7 @@ namespace fc::mining {
     kCannotFindSector,
     kAlreadyUpgradeMarked,
     kNotProvingState,
-    kUpgradeSeveralPiece,
+    kUpgradeSeveralPieces,
     kUpgradeWithDeal,
     kTooManySectors,
     kNoFaultMessage,

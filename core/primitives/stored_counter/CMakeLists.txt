@@ -4,7 +4,7 @@
 #
 
 add_library(stored_counter
-        stored_counter.cpp
+        stored_counter_mock.cpp
         )
 target_link_libraries(stored_counter
         outcome
