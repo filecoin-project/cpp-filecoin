@@ -35,6 +35,8 @@ namespace fc {
   DEFINE(kUpgradeClausHeight){343200};
   DEFINE(kUpgradeActorsV3Height){550321};
 
+  DEFINE(kBreezeGasTampingDuration){120};
+
   DEFINE(kInteractivePoRepConfidence){6};
 }  // namespace fc
 
@@ -91,6 +93,8 @@ namespace fc {
     kUpgradeOrangeHeight = 27;
     kUpgradeClausHeight = 30;
     kUpgradeActorsV3Height = 35;
+
+    kBreezeGasTampingDuration = 0;
 
     // Update actor constants
     vm::actor::builtin::types::market::kDealUpdatesInterval =
