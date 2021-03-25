@@ -248,4 +248,42 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(result.control[0], control);
   }
 
+  /**
+   * @given caller is not owner, worker or control address
+   * @when miner ChangePeerId called
+   * @then kSysErrForbidden returned
+   */
+  TEST_F(MinerActorTest, ChangePeerIdWrongCaller) {
+    initEmptyState();
+    initDefaultMinerInfo();
+
+    callerIs(kInitAddress);
+
+    const Buffer new_peer_id{"0102"_unhex};
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kSysErrForbidden),
+        ChangePeerId::call(runtime, ChangePeerId::Params{new_peer_id}));
+  }
+
+  /**
+   * @given vm
+   * @when miner ChangePeerId called
+   * @then new peer id is recorded to miner info
+   */
+  TEST_F(MinerActorTest, ChangePeerIdSuccess) {
+    initEmptyState();
+    initDefaultMinerInfo();
+
+    callerIs(owner);
+
+    const Buffer new_peer_id{"0102"_unhex};
+
+    EXPECT_OUTCOME_TRUE_1(
+        ChangePeerId::call(runtime, ChangePeerId::Params{new_peer_id}));
+
+    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo(ipld));
+    EXPECT_EQ(miner_info.peer_id, new_peer_id);
+  }
+
 }  // namespace fc::vm::actor::builtin::v0::miner

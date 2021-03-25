@@ -104,8 +104,26 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   ACTOR_METHOD_IMPL(ChangePeerId) {
-    // TODO (a.chernyshov) FIL-281 - implement
-    return VMExitCode::kNotImplemented;
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(utils->checkPeerInfo(params.new_id, {}));
+
+    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+
+    OUTCOME_TRY(miner_info, state->getInfo(runtime.getIpfsDatastore()));
+
+    auto callers = miner_info.control;
+    callers.emplace_back(miner_info.owner);
+    callers.emplace_back(miner_info.worker);
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
+
+    miner_info.peer_id = params.new_id;
+    REQUIRE_NO_ERROR(state->setInfo(runtime.getIpfsDatastore(), miner_info),
+                     VMExitCode::kErrIllegalState);
+
+    OUTCOME_TRY(runtime.commitState(state));
+
+    return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(SubmitWindowedPoSt) {

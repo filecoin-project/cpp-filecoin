@@ -34,10 +34,10 @@ namespace fc::vm::actor::builtin::v3::miner {
              multiaddresses)
 
   using ControlAddresses = v2::miner::ControlAddresses;
-
-  // TODO implement
   using ChangeWorkerAddress = v2::miner::ChangeWorkerAddress;
   using ChangePeerId = v2::miner::ChangePeerId;
+
+  // TODO implement
   using SubmitWindowedPoSt = v2::miner::SubmitWindowedPoSt;
   using PreCommitSector = v2::miner::PreCommitSector;
   using ProveCommitSector = v2::miner::ProveCommitSector;
