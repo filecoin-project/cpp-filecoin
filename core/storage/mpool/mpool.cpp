@@ -444,18 +444,18 @@ namespace fc::storage::mpool {
     return messages;
   }
 
-  std::shared_ptr<Mpool> Mpool::create(
+  std::shared_ptr<MessagePool> MessagePool::create(
       const EnvironmentContext &env_context,
       TsBranchPtr ts_main,
       std::shared_ptr<ChainStore> chain_store) {
-    auto mpool{std::make_shared<Mpool>()};
+    auto mpool{std::make_shared<MessagePool>()};
     mpool->env_context = env_context;
     mpool->ts_main = std::move(ts_main);
     mpool->ipld = env_context.ipld;
     mpool->head_sub = chain_store->subscribeHeadChanges([=](auto &change) {
       auto res{mpool->onHeadChange(change)};
       if (!res) {
-        spdlog::error("Mpool.onHeadChange: error {} \"{}\"",
+        spdlog::error("MessagePool.onHeadChange: error {} \"{}\"",
                       res.error(),
                       res.error().message());
       }
@@ -463,7 +463,7 @@ namespace fc::storage::mpool {
     return mpool;
   }
 
-  std::vector<SignedMessage> Mpool::pending() const {
+  std::vector<SignedMessage> MessagePool::pending() const {
     std::vector<SignedMessage> messages;
     for (auto &[addr, pending] : by_from) {
       for (auto &[nonce, message] : pending) {
@@ -493,7 +493,7 @@ namespace fc::storage::mpool {
     }
   }
 
-  outcome::result<std::vector<SignedMessage>> Mpool::select(
+  outcome::result<std::vector<SignedMessage>> MessagePool::select(
       TipsetCPtr ts, double ticket_quality) const {
     OUTCOME_TRY(base_fee, ts->nextBaseFee(env_context.ipld));
     vm::runtime::Pricelist pricelist{ts->epoch()};
@@ -565,7 +565,7 @@ namespace fc::storage::mpool {
     return messages;
   }
 
-  outcome::result<Nonce> Mpool::nonce(const Address &from) const {
+  outcome::result<Nonce> MessagePool::nonce(const Address &from) const {
     assert(from.isKeyType());
     OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head->key));
     OUTCOME_TRY(
@@ -578,8 +578,8 @@ namespace fc::storage::mpool {
     return actor.nonce;
   }
 
-  outcome::result<void> Mpool::estimate(UnsignedMessage &message,
-                                        const TokenAmount &max_fee) const {
+  outcome::result<void> MessagePool::estimate(
+      UnsignedMessage &message, const TokenAmount &max_fee) const {
     assert(message.from.isKeyType());
     if (message.gas_limit == 0) {
       auto msg{message};
@@ -633,8 +633,8 @@ namespace fc::storage::mpool {
     return outcome::success();
   }
 
-  TokenAmount Mpool::estimateFeeCap(const TokenAmount &premium,
-                                    int64_t max_blocks) const {
+  TokenAmount MessagePool::estimateFeeCap(const TokenAmount &premium,
+                                          int64_t max_blocks) const {
     return bigdiv(
                head->getParentBaseFee()
                    * static_cast<uint64_t>(
@@ -643,7 +643,7 @@ namespace fc::storage::mpool {
            + premium;
   }
 
-  outcome::result<TokenAmount> Mpool::estimateGasPremium(
+  outcome::result<TokenAmount> MessagePool::estimateGasPremium(
       int64_t max_blocks) const {
     if (max_blocks == 0) {
       max_blocks = 1;
@@ -700,7 +700,7 @@ namespace fc::storage::mpool {
     return premium;
   }
 
-  outcome::result<void> Mpool::add(const SignedMessage &message) {
+  outcome::result<void> MessagePool::add(const SignedMessage &message) {
     if (message.signature.isBls()) {
       bls_cache.emplace(message.getCid(), message.signature);
     }
@@ -711,13 +711,13 @@ namespace fc::storage::mpool {
     return outcome::success();
   }
 
-  void Mpool::remove(const Address &from, Nonce nonce) {
+  void MessagePool::remove(const Address &from, Nonce nonce) {
     if (auto smsg{mpool::remove(by_from, from, nonce)}) {
       signal({MpoolUpdate::Type::REMOVE, *smsg});
     }
   }
 
-  outcome::result<void> Mpool::onHeadChange(const HeadChange &change) {
+  outcome::result<void> MessagePool::onHeadChange(const HeadChange &change) {
     if (change.type == HeadChangeType::CURRENT) {
       head = change.value;
     } else {

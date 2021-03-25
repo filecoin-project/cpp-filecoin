@@ -35,10 +35,10 @@ namespace fc::storage::mpool {
     SignedMessage message;
   };
 
-  struct Mpool : public std::enable_shared_from_this<Mpool> {
+  struct MessagePool : public std::enable_shared_from_this<MessagePool> {
     using Subscriber = void(const MpoolUpdate &);
 
-    static std::shared_ptr<Mpool> create(
+    static std::shared_ptr<MessagePool> create(
         const EnvironmentContext &env_context,
         TsBranchPtr ts_main,
         std::shared_ptr<ChainStore> chain_store);
