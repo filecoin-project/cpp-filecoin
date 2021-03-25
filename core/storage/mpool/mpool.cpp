@@ -30,6 +30,7 @@ namespace fc::storage::mpool {
   constexpr size_t kMaxBlocks{15};
   constexpr size_t kMaxBlockMessages{16000};
 
+  // https://github.com/filecoin-project/lotus/blob/8f78066d4f3c4981da73e3328716631202c6e614/chain/messagepool/selection.go#L677
   TokenAmount getGasReward(const UnsignedMessage &msg,
                            const TokenAmount &base_fee) {
     TokenAmount reward{
@@ -42,13 +43,16 @@ namespace fc::storage::mpool {
     return reward;
   }
 
+  // https://github.com/filecoin-project/lotus/blob/8f78066d4f3c4981da73e3328716631202c6e614/chain/messagepool/selection.go#L677
   double getGasPerf(const TokenAmount &reward, GasAmount limit) {
     return (double)boost::multiprecision::cpp_rational{reward * kBlockGasLimit,
                                                        limit};
   }
 
+  // https://github.com/filecoin-project/lotus/blob/8f78066d4f3c4981da73e3328716631202c6e614/chain/messagepool/block_proba.go#L64
   auto blockProbabilities(double ticket_quality) {
     // TODO(turuslan): what to use from boost/math/distributions/poisson.hpp
+    // https://github.com/filecoin-project/lotus/blob/8f78066d4f3c4981da73e3328716631202c6e614/chain/messagepool/block_proba.go#L32
     static auto no_winners{[] {
       std::vector<double> out;
       out.resize(kMaxBlocks);

@@ -43,6 +43,7 @@ namespace fc::storage::mpool {
         TsBranchPtr ts_main,
         std::shared_ptr<ChainStore> chain_store);
     std::vector<SignedMessage> pending() const;
+    // https://github.com/filecoin-project/lotus/blob/8f78066d4f3c4981da73e3328716631202c6e614/chain/messagepool/selection.go#L41
     outcome::result<std::vector<SignedMessage>> select(
         TipsetCPtr ts, double ticket_quality) const;
     outcome::result<Nonce> nonce(const Address &from) const;
