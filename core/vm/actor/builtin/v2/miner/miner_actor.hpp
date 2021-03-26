@@ -24,8 +24,9 @@ namespace fc::vm::actor::builtin::v2::miner {
     ACTOR_METHOD_DECL();
   };
 
-  // TODO implement
   using ChangePeerId = v0::miner::ChangePeerId;
+
+  // TODO implement
   using SubmitWindowedPoSt = v0::miner::SubmitWindowedPoSt;
   using PreCommitSector = v0::miner::PreCommitSector;
   using ProveCommitSector = v0::miner::ProveCommitSector;
