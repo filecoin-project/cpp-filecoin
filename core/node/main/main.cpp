@@ -103,7 +103,7 @@ namespace fc {
                   node_objects.api->StateMinerInfo(params.miner, {}));
 
       OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
-      PeerInfo peer_info{.id = peer_id, .addresses = miner_info.multiaddrs};
+      const PeerInfo peer_info{.id = peer_id, .addresses = miner_info.multiaddrs};
       StorageProviderInfo provider_info{.address = params.miner,
                                         .owner = {},
                                         .worker = miner_info.worker,
@@ -121,8 +121,8 @@ namespace fc {
       OUTCOME_TRY(
           deadline_info,
           node_objects.api->StateMinerProvingDeadline(params.miner, {}));
-      auto min_exp = start_epoch + params.min_blocks_duration;
-      auto end_epoch =
+      const auto min_exp = start_epoch + params.min_blocks_duration;
+      const auto end_epoch =
           min_exp + deadline_info.wpost_proving_period
           - (min_exp % deadline_info.wpost_proving_period)
           + (deadline_info.period_start % deadline_info.wpost_proving_period)
