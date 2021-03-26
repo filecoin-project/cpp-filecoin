@@ -66,7 +66,7 @@ namespace fc::storage::mpool {
     }()};
     std::vector<double> out;
     out.resize(kMaxBlocks);
-    auto p{1 - ticket_quality};
+    auto p{1 - std::clamp<double>(ticket_quality, 0, 1)};
     for (auto k{0u}; k < out.size(); ++k) {
       for (auto n{0u}; n < no_winners.size(); ++n) {
         if (k <= n) {
@@ -235,6 +235,7 @@ namespace fc::storage::mpool {
       }
       actor_balance -= msg.message.requiredFunds();
       actor_balance -= msg.message.value;
+      msgs.push_back(msg);
     }
     std::vector<MsgChain::Ptr> chains;
     if (msgs.empty()) {
@@ -388,12 +389,15 @@ namespace fc::storage::mpool {
           --i;
         }
       } else {
-        do {
+        while (true) {
           dep->merged = true;
           append(messages, dep->msgs);
           gas_limit -= dep->gas_limit;
+          if (dep == chain) {
+            break;
+          }
           dep = mustLock(dep->next);
-        } while (dep != chain);
+        }
         auto next{mustLock(chain->next)};
         if (next && next->eff_perf > 0) {
           next->eff_perf += next->parent_offset;
@@ -404,12 +408,6 @@ namespace fc::storage::mpool {
           std::stable_sort(
               chains.begin() + i, chains.end(), deref(beforeEffective));
         }
-      }
-      if (chain->gas_limit <= gas_limit) {
-        gas_limit -= chain->gas_limit;
-        append(messages, chain->msgs);
-      } else {
-        trim(*chain, gas_limit, base_fee);
       }
     }
     return messages;
@@ -479,10 +477,10 @@ namespace fc::storage::mpool {
 
   outcome::result<std::pair<std::vector<TipsetCPtr>, std::vector<TipsetCPtr>>>
   findPath(TsLoadPtr ts_load, TipsetCPtr from, TipsetCPtr to, size_t depth) {
-    std::vector<TipsetCPtr> apply, revert;
+    std::vector<TipsetCPtr> revert, apply;
     while (true) {
-      if (from == to) {
-        return std::make_pair(std::move(apply), std::move(revert));
+      if (from->key == to->key) {
+        return std::make_pair(std::move(revert), std::move(apply));
       }
       if (apply.size() > depth || revert.size() > depth) {
         return ERROR_TEXT("findPath: too deep");
