@@ -154,7 +154,7 @@ namespace fc::node {
 
   Multiaddress Config::p2pListenAddress() const {
     return libp2p::multi::Multiaddress::create(
-        fmt::format("/ip4/127.0.0.1/tcp/{}", port))
+               fmt::format("/ip4/0.0.0.0/tcp/{}", port))
         .value();
   }
 
