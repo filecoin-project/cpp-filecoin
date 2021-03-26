@@ -18,9 +18,15 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   using ControlAddresses = v0::miner::ControlAddresses;
 
-  // TODO implement
-  using ChangeWorkerAddress = v0::miner::ChangeWorkerAddress;
+  struct ChangeWorkerAddress : ActorMethodBase<3> {
+    using Params = v0::miner::ChangeWorkerAddress::Params;
+
+    ACTOR_METHOD_DECL();
+  };
+
   using ChangePeerId = v0::miner::ChangePeerId;
+
+  // TODO implement
   using SubmitWindowedPoSt = v0::miner::SubmitWindowedPoSt;
   using PreCommitSector = v0::miner::PreCommitSector;
   using ProveCommitSector = v0::miner::ProveCommitSector;
