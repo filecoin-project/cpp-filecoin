@@ -4,7 +4,7 @@
 #
 
 addtest(mpool_test
-    test.cpp
+    message_pool_test.cpp
     )
 target_link_libraries(mpool_test
     car

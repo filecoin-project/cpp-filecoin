@@ -115,7 +115,8 @@ namespace fc::storage::mpool {
     double parent_offset{};
     bool valid{};
     bool merged{};
-    std::weak_ptr<MsgChain> prev, next;
+    std::weak_ptr<MsgChain> prev;
+    std::weak_ptr<MsgChain> next;
   };
 
   auto mustLock(const std::weak_ptr<MsgChain> weak) {
@@ -477,7 +478,8 @@ namespace fc::storage::mpool {
 
   outcome::result<std::pair<std::vector<TipsetCPtr>, std::vector<TipsetCPtr>>>
   findPath(TsLoadPtr ts_load, TipsetCPtr from, TipsetCPtr to, size_t depth) {
-    std::vector<TipsetCPtr> revert, apply;
+    std::vector<TipsetCPtr> revert;
+    std::vector<TipsetCPtr> apply;
     while (true) {
       if (from->key == to->key) {
         return std::make_pair(std::move(revert), std::move(apply));
@@ -670,7 +672,8 @@ namespace fc::storage::mpool {
       return less(r.first, l.first, l.second, r.second);
     });
     auto at{kBlockGasTarget * blocks / 2};
-    TokenAmount premium, prev;
+    TokenAmount premium;
+    TokenAmount prev;
     for (auto &[price, limit] : prices) {
       prev = premium;
       premium = price;
