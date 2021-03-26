@@ -440,7 +440,11 @@ namespace fc::node {
         genesis_timestamp,
         std::chrono::seconds(kEpochDurationSeconds));
 
-    o.storage_market_ipld = std::make_shared<InMemoryDatastore>();
+    o.storage_market_ipld = o.ipld_leveldb;
+    o.storage_market_import_manager = std::make_shared<ImportManager>(
+        std::make_shared<storage::MapPrefix>("storage_market_imports/",
+                                             o.kv_store),
+        o.storage_market_ipld);
     o.storage_market_client = std::make_shared<StorageMarketClientImpl>(
         o.host,
         o.io_context,
@@ -448,7 +452,8 @@ namespace fc::node {
         DataTransfer::make(o.host, o.graphsync),
         std::make_shared<Discovery>(std::make_shared<InMemoryStorage>()),
         o.api,
-        std::make_shared<PieceIOImpl>(o.storage_market_ipld, "/tmp/fuhon/piece_io"));
+        std::make_shared<PieceIOImpl>(o.storage_market_ipld,
+                                      "/tmp/fuhon/piece_io"));
     OUTCOME_TRY(o.storage_market_client->init());
 
     o.api = api::makeImpl(o.chain_store,

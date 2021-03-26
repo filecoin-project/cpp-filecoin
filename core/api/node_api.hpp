@@ -10,6 +10,7 @@
 #include "const.hpp"
 #include "drand/messages.hpp"
 #include "markets/storage/ask_protocol.hpp"
+#include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/deal_protocol.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
@@ -32,6 +33,7 @@ namespace fc::api {
   using markets::storage::DataRef;
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
+  using markets::storage::client::import_manager::Import;
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::DealId;
@@ -100,7 +102,10 @@ namespace fc::api {
     Address miner;
     TokenAmount epoch_price;
     EpochDuration min_blocks_duration;
+    TokenAmount provider_collateral;
     ChainEpoch deal_start_epoch;
+    bool fast_retrieval;
+    bool verified_deal;
   };
 
   struct MarketBalance {
@@ -116,13 +121,6 @@ namespace fc::api {
     uint64_t payment_interval_increase;
     Address miner;
     PeerId peer;
-  };
-
-  struct Import {
-    int64_t status;
-    CID key;
-    std::string path;
-    uint64_t size;
   };
 
   struct AddChannelInfo {
@@ -239,17 +237,37 @@ namespace fc::api {
 
     API_METHOD(ClientFindData, Wait<std::vector<QueryOffer>>, const CID &)
     API_METHOD(ClientHasLocal, bool, const CID &)
+
+    /**
+     * Imports file under the specified path into Storage Market Client
+     * filestore.
+     * @param FielRef - path to the file and flag if the file is a CAR. CAR file
+     * must be a one single root CAR.
+     * @return CID - root CID to the data
+     */
     API_METHOD(ClientImport, CID, const FileRef &)
+
+    /**
+     * Lists imported files and their root CIDs
+     */
     API_METHOD(ClientListImports, std::vector<Import>)
     API_METHOD(ClientQueryAsk,
                Wait<SignedStorageAsk>,
                const std::string &,
                const Address &)
+
+    /**
+     * Initiates the retrieval of a file, as specified in the order
+     */
     API_METHOD(ClientRetrieve,
                Wait<None>,
                const RetrievalOrder &,
                const FileRef &)
-    API_METHOD(ClientStartDeal, Wait<CID>, const StartDealParams &)
+
+    /**
+     * Proposes a storage deal with a miner
+     */
+    API_METHOD(ClientStartDeal, CID, const StartDealParams &)
 
     API_METHOD(GasEstimateFeeCap,
                TokenAmount,

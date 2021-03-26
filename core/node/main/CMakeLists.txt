@@ -37,6 +37,7 @@ target_link_libraries(node_builder
     runtime
     secp256k1_provider
     storage_market_client
+    storage_market_import_manager
     sync
     weight_calculator
     )

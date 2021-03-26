@@ -35,7 +35,6 @@ namespace fc::markets::storage::client {
   using ClientTransition =
       fsm::Transition<ClientEvent, void, StorageDealStatus, ClientDeal>;
   using ClientFSM = fsm::FSM<ClientEvent, void, StorageDealStatus, ClientDeal>;
-  using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
 
   const Path kFilestoreTempDir = "/tmp/fuhon/storage-market/";
 

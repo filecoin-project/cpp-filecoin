@@ -5,6 +5,8 @@
 
 #include "primitives/sector/sector.hpp"
 
+#include "common/error_text.hpp"
+
 namespace fc::primitives::sector {
   outcome::result<RegisteredPoStProof> getRegisteredWindowPoStProof(
       RegisteredSealProof proof) {
@@ -133,6 +135,48 @@ namespace fc::primitives::sector {
       RegisteredSealProof proof) {
     OUTCOME_TRY(wpost_proof_type, getRegisteredWindowPoStProof(proof));
     return getWindowPoStPartitionSectors(wpost_proof_type);
+  }
+
+  outcome::result<RegisteredSealProof>
+  getPreferredSealProofTypeFromWindowPoStType(NetworkVersion network_version,
+                                              RegisteredPoStProof proof) {
+    // support for the new proofs in network added in version 7, and removed
+    // support for the old ones in network version 8.
+    if (network_version < NetworkVersion::kVersion7) {
+      switch (proof) {
+        case RegisteredPoStProof::kStackedDRG2KiBWindowPoSt:
+          return RegisteredSealProof::kStackedDrg2KiBV1;
+        case RegisteredPoStProof::kStackedDRG8MiBWindowPoSt:
+          return RegisteredSealProof::kStackedDrg8MiBV1;
+        case RegisteredPoStProof::kStackedDRG512MiBWindowPoSt:
+          return RegisteredSealProof::kStackedDrg512MiBV1;
+        case RegisteredPoStProof::kStackedDRG32GiBWindowPoSt:
+          return RegisteredSealProof::kStackedDrg32GiBV1;
+        case RegisteredPoStProof::kStackedDRG64GiBWindowPoSt:
+          return RegisteredSealProof::kStackedDrg64GiBV1;
+        default:
+          return ERROR_TEXT(
+              "getPreferredSealProofTypeFromWindowPoStType: unrecognized "
+              "window post type");
+      }
+    }
+
+    switch (proof) {
+      case RegisteredPoStProof::kStackedDRG2KiBWindowPoSt:
+        return RegisteredSealProof::kStackedDrg2KiBV1_1;
+      case RegisteredPoStProof::kStackedDRG8MiBWindowPoSt:
+        return RegisteredSealProof::kStackedDrg8MiBV1_1;
+      case RegisteredPoStProof::kStackedDRG512MiBWindowPoSt:
+        return RegisteredSealProof::kStackedDrg512MiBV1_1;
+      case RegisteredPoStProof::kStackedDRG32GiBWindowPoSt:
+        return RegisteredSealProof::kStackedDrg32GiBV1_1;
+      case RegisteredPoStProof::kStackedDRG64GiBWindowPoSt:
+        return RegisteredSealProof::kStackedDrg64GiBV1_1;
+      default:
+        return ERROR_TEXT(
+            "getPreferredSealProofTypeFromWindowPoStType: unrecognized "
+            "window post type");
+    }
   }
 }  // namespace fc::primitives::sector
 

@@ -10,6 +10,7 @@
 
 #include "common/outcome.hpp"
 #include "fwd.hpp"
+#include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/client/storage_market_client.hpp"
 #include "node/events.hpp"
 #include "node/main/config.hpp"
@@ -22,6 +23,7 @@
 
 namespace fc::node {
   using markets::storage::client::StorageMarketClient;
+  using markets::storage::client::import_manager::ImportManager;
 
   enum Error {
     kStorageInitError = 1,
@@ -80,6 +82,7 @@ namespace fc::node {
     // storage market client
     /** Distinct Storage Market IPLD */
     IpldPtr storage_market_ipld;
+    std::shared_ptr<ImportManager> storage_market_import_manager;
     std::shared_ptr<StorageMarketClient> storage_market_client;
 
     // high level objects
