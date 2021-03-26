@@ -17,7 +17,7 @@ namespace fc {
 
   template <typename T, typename F>
   auto weakCb0(std::weak_ptr<T> weak, F &&f) {
-    return [weak, f{std::forward<F>(f)}](auto &&... args) {
+    return [weak, f{std::forward<F>(f)}](auto &&...args) {
       if (auto ptr{weak.lock()}) {
         f(std::forward<decltype(args)>(args)...);
       }
@@ -25,7 +25,7 @@ namespace fc {
   }
 
   template <typename T, typename F>
-  void weakFor(std::vector<std::weak_ptr<T>> ws, const F &f) {
+  void weakFor(std::vector<std::weak_ptr<T>> &ws, const F &f) {
     ws.erase(std::remove_if(ws.begin(),
                             ws.end(),
                             [&](auto &w) {
@@ -41,5 +41,12 @@ namespace fc {
   template <typename L, typename R>
   bool ownerEq(const L &l, const R &r) {
     return !l.owner_before(r) && !r.owner_before(l);
+  }
+
+  // https://stackoverflow.com/a/45507610
+  template <typename T>
+  inline bool weakEmpty(const std::weak_ptr<T> &weak) {
+    const static std::weak_ptr<T> empty;
+    return ownerEq(weak, empty);
   }
 }  // namespace fc

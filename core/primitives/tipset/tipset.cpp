@@ -253,6 +253,10 @@ namespace fc::primitives::tipset {
   }
 
   outcome::result<BigInt> Tipset::nextBaseFee(IpldPtr ipld) const {
+    if (kUpgradeBreezeHeight >= 0 && epoch() > kUpgradeBreezeHeight
+        && epoch() < kUpgradeBreezeHeight + kBreezeGasTampingDuration) {
+      return 100;
+    }
     GasAmount gas_limit{};
     OUTCOME_TRY(
         visitMessages({ipld, false, true},
