@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
-#define CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
+#pragma once
 
 #include <libp2p/host/host.hpp>
 #include <mutex>
@@ -322,5 +321,3 @@ namespace fc::markets::storage::client {
 
 OUTCOME_HPP_DECLARE_ERROR(fc::markets::storage::client,
                           StorageMarketClientError);
-
-#endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
