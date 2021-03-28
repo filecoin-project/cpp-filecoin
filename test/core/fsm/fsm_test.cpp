@@ -9,10 +9,7 @@
 
 #include <gtest/gtest.h>
 
-#include "host/context/impl/host_context_impl.hpp"
 #include "testutil/outcome.hpp"
-
-using HostContext = fc::host::HostContextImpl;
 
 enum class Events { START, STOP };
 
@@ -35,7 +32,7 @@ using Fsm = fc::fsm::FSM<Events, EventContext, States, Data>;
 using Transition = Fsm::TransitionRule;
 
 TEST(Dev, Main) {
-  auto context = std::make_shared<HostContext>();
+  boost::asio::io_context io_context;
   Fsm fsm{{Transition(Events::START)
                .from(States::READY)
                .to(States::WORKING)
@@ -51,7 +48,7 @@ TEST(Dev, Main) {
                  data->x *= ctx->multiplier;
                  data->content = "stopped";
                })},
-          context};
+          io_context};
   auto entity = std::make_shared<Data>();
   fsm.setAnyChangeAction([](auto entity, auto, auto ctx, auto, auto) {
     entity->content = entity->content + std::string(" after ") + ctx->message;
@@ -61,7 +58,9 @@ TEST(Dev, Main) {
       entity, Events::START, std::make_shared<EventContext>(1, "starting")))
   EXPECT_OUTCOME_TRUE_1(fsm.send(
       entity, Events::STOP, std::make_shared<EventContext>(2, "stopping")))
-  context->runIoContext(2);
+  for (auto i{0}; i < 2; ++i) {
+    io_context.run_one();
+  }
   ASSERT_EQ(entity->x, 2);
   ASSERT_EQ(entity->content, "stopped after stopping");
   EXPECT_OUTCOME_TRUE_1(fsm.force(entity, States::WORKING));

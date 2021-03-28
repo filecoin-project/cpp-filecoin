@@ -11,7 +11,6 @@
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/outcome_fmt.hpp"
 #include "common/ptr.hpp"
-#include "host/context/impl/host_context_impl.hpp"
 #include "markets/common.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
@@ -47,8 +46,6 @@
 
 namespace fc::markets::storage::client {
   using api::MsgWait;
-  using host::HostContext;
-  using host::HostContextImpl;
   using libp2p::peer::PeerId;
   using primitives::BigInt;
   using primitives::sector::RegisteredSealProof;
@@ -140,9 +137,7 @@ namespace fc::markets::storage::client {
 
   outcome::result<void> StorageMarketClientImpl::init() {
     // init fsm transitions
-    std::shared_ptr<HostContext> fsm_context =
-        std::make_shared<HostContextImpl>(context_);
-    fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), fsm_context);
+    fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), *context_);
     return outcome::success();
   }
 

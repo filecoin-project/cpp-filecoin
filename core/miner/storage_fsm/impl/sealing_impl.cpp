@@ -5,9 +5,10 @@
 
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
 
+#include <libp2p/protocol/common/scheduler.hpp>
+
 #include "common/bitsutil.hpp"
 #include "const.hpp"
-#include "host/context/impl/host_context_impl.hpp"
 #include "miner/storage_fsm/impl/checks.hpp"
 #include "miner/storage_fsm/impl/sector_stat_impl.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
@@ -37,22 +38,23 @@ namespace fc::mining {
   using vm::actor::builtin::types::miner::kMinSectorExpiration;
   using vm::actor::builtin::v0::miner::ProveCommitSector;
 
-  Ticks getWaitingTime(uint64_t errors_count = 0) {
+  auto getWaitingTime(uint64_t errors_count = 0) {
     // TODO: Exponential backoff when we see consecutive failures
 
     return 60000;  // 1 minute
   }
 
-  SealingImpl::SealingImpl(std::shared_ptr<FullNodeApi> api,
-                           std::shared_ptr<Events> events,
-                           const Address &miner_address,
-                           std::shared_ptr<Counter> counter,
-                           std::shared_ptr<BufferMap> fsm_kv,
-                           std::shared_ptr<Manager> sealer,
-                           std::shared_ptr<PreCommitPolicy> policy,
-                           std::shared_ptr<boost::asio::io_context> context,
-                           Ticks ticks)
-      : context_(std::move(context)),
+  SealingImpl::SealingImpl(
+      std::shared_ptr<FullNodeApi> api,
+      std::shared_ptr<Events> events,
+      const Address &miner_address,
+      std::shared_ptr<Counter> counter,
+      std::shared_ptr<BufferMap> fsm_kv,
+      std::shared_ptr<Manager> sealer,
+      std::shared_ptr<PreCommitPolicy> policy,
+      std::shared_ptr<boost::asio::io_context> context,
+      std::shared_ptr<libp2p::protocol::Scheduler> scheduler)
+      : scheduler_{std::move(scheduler)},
         api_(std::move(api)),
         events_(std::move(events)),
         policy_(std::move(policy)),
@@ -60,11 +62,7 @@ namespace fc::mining {
         fsm_kv_{std::move(fsm_kv)},
         miner_address_(miner_address),
         sealer_(std::move(sealer)) {
-    std::shared_ptr<host::HostContext> fsm_context =
-        std::make_shared<host::HostContextImpl>(context_);
-    scheduler_ = std::make_shared<libp2p::protocol::AsioScheduler>(
-        *fsm_context->getIoContext(), libp2p::protocol::SchedulerConfig{ticks});
-    fsm_ = std::make_shared<StorageFSM>(makeFSMTransitions(), fsm_context);
+    fsm_ = std::make_shared<StorageFSM>(makeFSMTransitions(), *context);
     fsm_->setAnyChangeAction(
         [this](auto info, auto event, auto context, auto from, auto to) {
           callbackHandle(info, event, context, from, to);
