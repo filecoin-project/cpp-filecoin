@@ -378,7 +378,7 @@ namespace fc {
             napi)};
     OUTCOME_TRY(chain_events->init());
     auto piece_io{std::make_shared<markets::pieceio::PieceIOImpl>(
-        markets_ipld, config.join("piece_io"))};
+        config.join("piece_io"))};
     auto filestore{std::make_shared<storage::filestore::FileSystemFileStore>()};
     auto storage_provider{
         std::make_shared<markets::storage::provider::StorageProviderImpl>(

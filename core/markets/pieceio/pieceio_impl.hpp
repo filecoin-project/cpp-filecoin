@@ -12,28 +12,19 @@
 #include "primitives/cid/cid.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
-#include "storage/ipfs/datastore.hpp"
-#include "storage/ipld/selector.hpp"
 
 namespace fc::markets::pieceio {
-  using Ipld = fc::storage::ipfs::IpfsDatastore;
 
   class PieceIOImpl : public PieceIO {
    public:
-    explicit PieceIOImpl(std::shared_ptr<Ipld> ipld, std::string temp_dir);
+    explicit PieceIOImpl(const boost::filesystem::path &temp_dir);
 
     outcome::result<std::pair<CID, UnpaddedPieceSize>> generatePieceCommitment(
         const RegisteredSealProof &registered_proof,
-        const CID &payload_cid,
-        const Selector &selector) override;
-
-    outcome::result<std::pair<CID, UnpaddedPieceSize>> generatePieceCommitment(
-        const RegisteredSealProof &registered_proof,
-        const std::string &path) override;
+        const boost::filesystem::path &path) override;
 
    private:
-    std::shared_ptr<Ipld> ipld_;
-    std::string temp_dir_;
+    boost::filesystem::path temp_dir_;
   };
 
 }  // namespace fc::markets::pieceio

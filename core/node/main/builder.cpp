@@ -452,11 +452,7 @@ namespace fc::node {
         DataTransfer::make(o.host, o.graphsync),
         std::make_shared<Discovery>(std::make_shared<InMemoryStorage>()),
         o.api,
-        // TODO (a.chernyshov) PieceIO doesn't need IPLD for storage market
-        // because it generates commitment by filename. Rework PieceIO so
-        // ipld is passed as param only when it is needed
-        std::make_shared<PieceIOImpl>(std::make_shared<InMemoryDatastore>(),
-                                      "/tmp/fuhon/piece_io"));
+        std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
     OUTCOME_TRY(o.storage_market_client->init());
 
     o.api = api::makeImpl(o.chain_store,
