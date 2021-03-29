@@ -9,7 +9,10 @@
 #include <memory>
 
 #include "common/outcome.hpp"
+#include "data_transfer/dt.hpp"
 #include "fwd.hpp"
+#include "markets/storage/client/import_manager/import_manager.hpp"
+#include "markets/storage/client/storage_market_client.hpp"
 #include "node/events.hpp"
 #include "node/main/config.hpp"
 #include "primitives/tipset/load.hpp"
@@ -20,6 +23,9 @@
 #include "vm/runtime/env_context.hpp"
 
 namespace fc::node {
+  using data_transfer::DataTransfer;
+  using markets::storage::client::StorageMarketClient;
+  using markets::storage::client::import_manager::ImportManager;
 
   enum Error {
     kStorageInitError = 1,
@@ -74,6 +80,11 @@ namespace fc::node {
     std::shared_ptr<vm::interpreter::CachedInterpreter> vm_interpreter;
     std::shared_ptr<sync::SyncJob> sync_job;
     vm::runtime::EnvironmentContext env_context;
+
+    // storage market
+    std::shared_ptr<DataTransfer> datatransfer;
+    std::shared_ptr<ImportManager> storage_market_import_manager;
+    std::shared_ptr<StorageMarketClient> storage_market_client;
 
     // high level objects
     std::shared_ptr<sync::ChainStoreImpl> chain_store;

@@ -22,7 +22,7 @@ namespace fc::markets::storage {
     Address address;  // actor address
     Address owner;
     Address worker;  // signs messages
-    SectorSize sector_size;
+    SectorSize sector_size{};
     PeerInfo peer_info;
   };
 

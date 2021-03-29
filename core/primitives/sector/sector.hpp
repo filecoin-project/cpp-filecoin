@@ -11,6 +11,7 @@
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
+#include "vm/version/version.hpp"
 
 namespace fc::primitives::sector {
   using common::Buffer;
@@ -19,6 +20,7 @@ namespace fc::primitives::sector {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::SectorNumber;
+  using vm::version::NetworkVersion;
 
   struct SectorId {
     ActorId miner;
@@ -171,6 +173,17 @@ namespace fc::primitives::sector {
     kInvalidSealProof,
     kInvalidProofType,
   };
+
+  /**
+   * Returns SealProofType for WindowPoStType taking into account the network
+   * version
+   * @param network_version - network version
+   * @param proof - RegisteredPoStProof type
+   * @return appropriate RegisteredSealProof
+   */
+  outcome::result<RegisteredSealProof>
+  getPreferredSealProofTypeFromWindowPoStType(NetworkVersion network_version,
+                                              RegisteredPoStProof proof);
 }  // namespace fc::primitives::sector
 
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::sector, Errors);

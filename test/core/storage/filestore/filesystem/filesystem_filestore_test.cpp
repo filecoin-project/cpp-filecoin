@@ -98,8 +98,8 @@ TEST_F(FileSystemFileStoreTest, OpenFile) {
  * @then file created and returned
  */
 TEST_F(FileSystemFileStoreTest, CreateFile) {
-  auto filename = getPathString() + "/new_file.txt";
-  EXPECT_OUTCOME_TRUE(file, fs->create(filename));
+  const auto filename = getPathString() / "new_file.txt";
+  EXPECT_OUTCOME_TRUE(file, fs->create(filename.string()));
   ASSERT_TRUE(file->is_open());
   ASSERT_EQ(filename, file->path());
 }

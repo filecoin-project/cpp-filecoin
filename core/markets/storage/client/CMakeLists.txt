@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(import_manager)
+
 add_library(storage_market_client
     impl/storage_market_client_impl.cpp
     )
@@ -19,4 +21,6 @@ target_link_libraries(storage_market_client
     market_actor_v0
     message
     tipset
+    ipfs_datastore_in_memory
+    storage_market_import_manager
     )

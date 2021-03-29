@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
-#define CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
+#pragma once
 
 #include <boost/filesystem.hpp>
 
@@ -55,9 +54,17 @@ namespace fc::storage::car {
 
   outcome::result<std::vector<CID>> readHeader(const std::string &car_path);
 
+  /**
+   * Loads car to ipld
+   * @return root cids for data loaded
+   */
   outcome::result<std::vector<CID>> loadCar(Ipld &store,
                                             const std::string &car_path);
 
+  /**
+   * Loads car to ipld
+   * @return root cids for data loaded
+   */
   outcome::result<std::vector<CID>> loadCar(
       Ipld &store, const boost::filesystem::path &car_path);
 
@@ -75,5 +82,3 @@ namespace fc::storage::car {
 }  // namespace fc::storage::car
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::car, CarError);
-
-#endif  // CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP

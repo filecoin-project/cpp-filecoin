@@ -11,6 +11,7 @@
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/logger.hpp"
 #include "drand/impl/http.hpp"
+#include "markets/storage/types.hpp"
 #include "node/blocksync_server.hpp"
 #include "node/chain_store_impl.hpp"
 #include "node/graphsync_server.hpp"
@@ -25,7 +26,10 @@
 #include "vm/actor/cgo/actors.hpp"
 
 namespace fc {
-  using fc::node::NodeObjects;
+  using api::Import;
+  using markets::storage::StorageProviderInfo;
+  using node::NodeObjects;
+  using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
 
   namespace {
     auto log() {
@@ -54,6 +58,7 @@ namespace fc {
   }  // namespace
 
   void startApi(const node::Config &config, NodeObjects &node_objects) {
+    // Network API
     auto peer_info = node_objects.host->getPeerInfo();
     PeerInfo api_peer_info{
         peer_info.id, nonZeroAddrs(peer_info.addresses, &config.localIp())};
@@ -77,6 +82,70 @@ namespace fc {
         result.push_back(peer_repository.getPeerInfo(remote.value()));
       }
       return result;
+    };
+
+    // Market Client API
+    node_objects.api->ClientImport = [&](auto &file_ref) {
+      return node_objects.storage_market_import_manager->import(
+          file_ref.path, file_ref.is_car);
+    };
+    node_objects.api->ClientStartDeal =
+        [&](auto &params) -> outcome::result<CID> {
+      // resolve wallet address and check if address exists in wallet
+      OUTCOME_TRY(wallet_key,
+                  node_objects.api->StateAccountKey(params.wallet, {}));
+      OUTCOME_TRY(wallet_exists, node_objects.api->WalletHas(wallet_key));
+      if (!wallet_exists) {
+        return ERROR_TEXT("Node API: provided address doesn't exist in wallet");
+      }
+
+      OUTCOME_TRY(miner_info,
+                  node_objects.api->StateMinerInfo(params.miner, {}));
+
+      OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
+      const PeerInfo peer_info{.id = peer_id, .addresses = miner_info.multiaddrs};
+      StorageProviderInfo provider_info{.address = params.miner,
+                                        .owner = {},
+                                        .worker = miner_info.worker,
+                                        .sector_size = miner_info.sector_size,
+                                        .peer_info = peer_info};
+
+      auto start_epoch = params.deal_start_epoch;
+      if (start_epoch <= 0) {
+        static const size_t kDealStartBufferHours = 49;
+        OUTCOME_TRY(chain_head, node_objects.api->ChainHead());
+        start_epoch =
+            chain_head->height() + kDealStartBufferHours * kEpochsInHour;
+      }
+
+      OUTCOME_TRY(
+          deadline_info,
+          node_objects.api->StateMinerProvingDeadline(params.miner, {}));
+      const auto min_exp = start_epoch + params.min_blocks_duration;
+      const auto end_epoch =
+          min_exp + deadline_info.wpost_proving_period
+          - (min_exp % deadline_info.wpost_proving_period)
+          + (deadline_info.period_start % deadline_info.wpost_proving_period)
+          - 1;
+
+      OUTCOME_TRY(network_version, node_objects.api->StateNetworkVersion({}));
+      OUTCOME_TRY(seal_proof_type,
+                  getPreferredSealProofTypeFromWindowPoStType(
+                      network_version, miner_info.window_post_proof_type));
+
+      return node_objects.storage_market_client->proposeStorageDeal(
+          params.wallet,
+          provider_info,
+          params.data,
+          start_epoch,
+          end_epoch,
+          params.epoch_price,
+          params.provider_collateral,
+          seal_proof_type,
+          params.fast_retrieval);
+    };
+    node_objects.api->ClientListImports = [&]() {
+      return node_objects.storage_market_import_manager->list();
     };
 
     auto rpc{api::makeRpc(*node_objects.api)};
@@ -158,8 +227,8 @@ namespace fc {
     }
 
     o.host->start();
-    auto peer_info = o.host->getPeerInfo();
-    if (peer_info.addresses.empty()) {
+    auto listen_addresses = o.host->getAddresses();
+    if (listen_addresses.empty()) {
       log()->error("Cannot listen to {}",
                    config.p2pListenAddress().getStringAddress());
       exit(EXIT_FAILURE);
@@ -167,7 +236,7 @@ namespace fc {
 
     log()->info(
         "Node started at {}, host PeerId {}",
-        nonZeroAddr(peer_info.addresses, &config.localIp())->getStringAddress(),
+        nonZeroAddr(listen_addresses, &config.localIp())->getStringAddress(),
         o.host->getId().toBase58());
 
     for (const auto &pi : config.bootstrap_list) {

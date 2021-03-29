@@ -1295,7 +1295,10 @@ namespace fc::api {
       Set(j, "Miner", v.miner);
       Set(j, "EpochPrice", v.epoch_price);
       Set(j, "MinBlocksDuration", v.min_blocks_duration);
+      Set(j, "ProviderCollateral", v.provider_collateral);
       Set(j, "DealStartEpoch", v.deal_start_epoch);
+      Set(j, "FastRetrieval", v.fast_retrieval);
+      Set(j, "VerifiedDeal", v.verified_deal);
       return j;
     }
 
@@ -1305,7 +1308,10 @@ namespace fc::api {
       decode(v.miner, Get(j, "Miner"));
       decode(v.epoch_price, Get(j, "EpochPrice"));
       decode(v.min_blocks_duration, Get(j, "MinBlocksDuration"));
+      decode(v.provider_collateral, Get(j, "ProviderCollateral"));
       decode(v.deal_start_epoch, Get(j, "DealStartEpoch"));
+      decode(v.fast_retrieval, Get(j, "FastRetrieval"));
+      decode(v.verified_deal, Get(j, "VerifiedDeal"));
     }
 
     template <typename T>
@@ -1604,18 +1610,20 @@ namespace fc::api {
 
     ENCODE(Import) {
       Value j{rapidjson::kObjectType};
-      Set(j, "Status", v.status);
-      Set(j, "Key", v.key);
+      Set(j, "StoreId", v.store_id);
+      Set(j, "Error", v.error);
+      Set(j, "Root", v.root);
+      Set(j, "Source", v.source);
       Set(j, "FilePath", v.path);
-      Set(j, "Size", v.size);
       return j;
     }
 
     DECODE(Import) {
-      Get(j, "Status", v.status);
-      Get(j, "Key", v.key);
+      Get(j, "StoreId", v.store_id);
+      Get(j, "Error", v.error);
+      Get(j, "Root", v.root);
+      Get(j, "Source", v.source);
       Get(j, "FilePath", v.path);
-      Get(j, "Size", v.size);
     }
 
     ENCODE(LocalStorageMeta) {

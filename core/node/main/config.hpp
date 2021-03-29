@@ -20,7 +20,7 @@ namespace fc::node {
   struct Config {
     boost::filesystem::path repo_path;
     spdlog::level::level_enum log_level;
-    int port = 0;
+    int port = 2000;
     int api_port;
     boost::optional<std::string> snapshot;
     boost::optional<CID> genesis_cid;

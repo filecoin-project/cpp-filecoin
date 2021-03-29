@@ -8,7 +8,6 @@ add_library(pieceio
     pieceio_error.cpp
     )
 target_link_libraries(pieceio
-    car
     comm_cid
     piece
     piece_data
