@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
-#define CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
+#pragma once
 
 #include <libp2p/host/host.hpp>
 #include <mutex>
@@ -12,7 +11,6 @@
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
 #include "fsm/fsm.hpp"
-#include "host/context/host_context.hpp"
 #include "markets/common.hpp"
 #include "markets/discovery/discovery.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
@@ -36,7 +34,6 @@ namespace fc::markets::storage::client {
       fsm::Transition<ClientEvent, void, StorageDealStatus, ClientDeal>;
   using ClientFSM = fsm::FSM<ClientEvent, void, StorageDealStatus, ClientDeal>;
   using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
-  using Ticks = libp2p::protocol::Scheduler::Ticks;
   using data_transfer::DataTransfer;
 
   const Path kFilestoreTempDir = "/tmp/fuhon/storage-market/";
@@ -324,5 +321,3 @@ namespace fc::markets::storage::client {
 
 OUTCOME_HPP_DECLARE_ERROR(fc::markets::storage::client,
                           StorageMarketClientError);
-
-#endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP

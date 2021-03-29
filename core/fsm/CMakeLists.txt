@@ -8,8 +8,5 @@ add_library(fuhon_fsm
     error.cpp
     )
 target_link_libraries(fuhon_fsm
-    p2p::p2p
-    p2p::asio_scheduler
     outcome
-    fuhon_host
     )

@@ -18,35 +18,83 @@ namespace fc {
   enum class OutcomeError { kDefault = 1 };
 
   template <typename T>
-  struct Outcome : outcome::result<T> {
+  struct _Outcome {
     using O = outcome::result<T>;
     using E = typename O::error_type;
-    using F = libp2p::outcome::failure_type<E>;
-    using D = libp2p::outcome::detail::devoid<T>;
 
-    Outcome() : O{outcome::failure(OutcomeError::kDefault)} {}
-    Outcome(O &&o) : O{std::move(o)} {}
-    Outcome(D &&v) : O{std::move(v)} {}
-    Outcome(F &&f) : O{std::move(f)} {}
+    O o;
+
+    _Outcome() : o{outcome::failure(OutcomeError::kDefault)} {}
+    template <typename... Args>
+    _Outcome(Args &&...args) : o{std::forward<Args>(args)...} {}
+
+    // try_operation_has_value
+    bool has_value() const {
+      return o.has_value();
+    }
+    // try_operation_return_as
+    const E &error() const {
+      return o.error();
+    }
+
+    operator O &&() && {
+      return std::move(o);
+    }
+
+    operator bool() const {
+      return o.has_value();
+    }
+    const E &operator~() const {
+      return o.error();
+    }
+  };
+
+  template <typename T>
+  struct Outcome : _Outcome<T> {
+    using _O = _Outcome<T>;
+    using _O::_O;
+
+    Outcome(outcome::result<T> &&o) : _O{std::move(o)} {}
+
+    // try_operation_extract_value
+    const T &value() const & {
+      return _O::o.value();
+    }
+    T &value() & {
+      return _O::o.value();
+    }
+    T &&value() && {
+      return std::move(_O::o.value());
+    }
 
     const T &operator*() const & {
-      return O::value();
+      return _O::o.value();
+    }
+    T &operator*() & {
+      return _O::o.value();
     }
     T &&operator*() && {
-      return std::move(O::value());
+      return std::move(_O::o.value());
+    }
+    const T *operator->() const {
+      return &_O::o.value();
     }
     T *operator->() {
-      return &O::value();
-    }
-    const auto &operator~() const {
-      return O::error();
+      return &_O::o.value();
     }
     template <typename... A>
     void emplace(A &&...a) {
       *this = T{std::forward<A>(a)...};
     }
-    O &&o() && {
-      return std::move(*this);
+  };
+
+  template <>
+  struct Outcome<void> : _Outcome<void> {
+    using _O = _Outcome<void>;
+    using _O::_O;
+
+    void operator*() const {
+      o.value();
     }
   };
 

@@ -8,6 +8,7 @@
 #include <libp2p/host/host.hpp>
 
 #include "common/logger.hpp"
+#include "common/outcome_fmt.hpp"
 #include "primitives/tipset/load.hpp"
 #include "storage/ipfs/datastore.hpp"
 
@@ -86,8 +87,8 @@ namespace fc::sync::blocksync {
         depth = kBlockSyncMaxRequestLength;
       }
 
-      try {
-        OUTCOME_EXCEPT(ts, ts_load->load(request.block_cids));
+      auto _result{[&]() -> outcome::result<void> {
+        OUTCOME_TRY(ts, ts_load->load(request.block_cids));
         while (true) {
           TipsetBundle packed;
           if (request.options & kMessagesOnly) {
@@ -97,13 +98,13 @@ namespace fc::sync::blocksync {
             MessageVisitor<SignedMessage> secp_visitor{
                 ipld, msgs.secp_msgs, msgs.secp_msg_includes};
             for (auto &block : ts->blks) {
-              OUTCOME_EXCEPT(
+              OUTCOME_TRY(
                   meta,
                   ipld->getCbor<primitives::block::MsgMeta>(block.messages));
               msgs.bls_msg_includes.emplace_back();
-              OUTCOME_EXCEPT(meta.bls_messages.visit(bls_visitor));
+              OUTCOME_TRY(meta.bls_messages.visit(bls_visitor));
               msgs.secp_msg_includes.emplace_back();
-              OUTCOME_EXCEPT(meta.secp_messages.visit(secp_visitor));
+              OUTCOME_TRY(meta.secp_messages.visit(secp_visitor));
             }
             packed.messages = std::move(msgs);
           }
@@ -118,11 +119,13 @@ namespace fc::sync::blocksync {
             partial = false;
             break;
           }
-          OUTCOME_EXCEPT(parent, ts_load->load(ts->getParents()));
+          OUTCOME_TRY(parent, ts_load->load(ts->getParents()));
           ts = std::move(parent);
         }
-      } catch (const std::system_error &e) {
-        log()->debug("failed filling response: {}", e.code().message());
+        return outcome::success();
+      }()};
+      if (!_result) {
+        log()->debug("failed filling response: {:#}", _result.error());
       }
 
       if (response.chain.empty()) {
