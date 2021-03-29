@@ -30,9 +30,8 @@ namespace fc::mining {
       Transition<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
   using StorageFSM =
       fsm::FSM<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
-  using libp2p::protocol::Scheduler;
-  using Ticks = libp2p::protocol::Scheduler::Ticks;
   using api::SectorPreCommitOnChainInfo;
+  using libp2p::protocol::Scheduler;
   using primitives::Counter;
   using primitives::tipset::TipsetKey;
   using storage::BufferMap;
@@ -62,7 +61,7 @@ namespace fc::mining {
                 std::shared_ptr<Manager> sealer,
                 std::shared_ptr<PreCommitPolicy> policy,
                 std::shared_ptr<boost::asio::io_context> context,
-                Ticks ticks = 50);
+                std::shared_ptr<libp2p::protocol::Scheduler> scheduler);
 
     outcome::result<void> run() override;
 
@@ -276,7 +275,7 @@ namespace fc::mining {
     std::shared_mutex upgrade_mutex_;
 
     /** State machine */
-    std::shared_ptr<boost::asio::io_context> context_;
+    std::shared_ptr<Scheduler> scheduler_;
     std::shared_ptr<StorageFSM> fsm_;
 
     std::shared_ptr<FullNodeApi> api_;
@@ -295,6 +294,5 @@ namespace fc::mining {
     std::shared_ptr<Manager> sealer_;
 
     Config config_;
-    std::shared_ptr<Scheduler> scheduler_;
   };
 }  // namespace fc::mining

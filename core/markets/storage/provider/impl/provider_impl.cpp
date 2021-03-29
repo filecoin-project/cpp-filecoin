@@ -7,8 +7,6 @@
 
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include "common/libp2p/peer/peer_info_helper.hpp"
-#include "host/context/host_context.hpp"
-#include "host/context/impl/host_context_impl.hpp"
 #include "markets/storage/provider/storage_provider_error.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
@@ -41,8 +39,6 @@ namespace fc::markets::storage::provider {
   using data_transfer::Selector;
   using fc::storage::piece::DealInfo;
   using fc::storage::piece::PayloadLocation;
-  using host::HostContext;
-  using host::HostContextImpl;
   using mining::SealingState;
   using vm::VMExitCode;
   using vm::actor::MethodParams;
@@ -105,9 +101,7 @@ namespace fc::markets::storage::provider {
         });
 
     // init fsm transitions
-    std::shared_ptr<HostContext> fsm_context =
-        std::make_shared<HostContextImpl>(context_);
-    fsm_ = std::make_shared<ProviderFSM>(makeFSMTransitions(), fsm_context);
+    fsm_ = std::make_shared<ProviderFSM>(makeFSMTransitions(), *context_);
 
     datatransfer_->on_push.emplace(
         StorageDataTransferVoucherType,

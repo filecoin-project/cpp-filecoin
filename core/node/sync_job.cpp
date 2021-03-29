@@ -70,6 +70,30 @@ namespace fc::sync {
     events_ = std::move(events);
     assert(events_);
 
+    message_event_ =
+        events_->subscribeMessageFromPubSub([ipld{ipld_}](auto &e) {
+          std::ignore = e.msg.signature.isBls() ? ipld->setCbor(e.msg.message)
+                                                : ipld->setCbor(e.msg);
+        });
+
+    block_event_ = events_->subscribeBlockFromPubSub([ipld{ipld_}](auto &e) {
+      std::ignore = [&]() -> outcome::result<void> {
+        OUTCOME_TRY(ipld->setCbor(e.block.header));
+        primitives::block::MsgMeta meta;
+        ipld->load(meta);
+        for (auto &cid : e.block.bls_messages) {
+          OUTCOME_TRY(ipld->get(cid));
+          OUTCOME_TRY(meta.bls_messages.append(cid));
+        }
+        for (auto &cid : e.block.secp_messages) {
+          OUTCOME_TRY(ipld->get(cid));
+          OUTCOME_TRY(meta.secp_messages.append(cid));
+        }
+        OUTCOME_TRY(ipld->setCbor(meta));
+        return outcome::success();
+      }();
+    });
+
     possible_head_event_ = events_->subscribePossibleHead(
         [this](const events::PossibleHead &e) { onPossibleHead(e); });
 

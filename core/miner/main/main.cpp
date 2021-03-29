@@ -346,6 +346,7 @@ namespace fc {
         std::make_shared<primitives::StoredCounter>(leveldb, "sector_counter"),
         prefixed("sealing_fsm/"),
         manager,
+        scheduler,
         sealing_thread.io)};
     OUTCOME_TRY(miner->run());
     auto sealing{miner->getSealing()};

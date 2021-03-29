@@ -89,6 +89,8 @@ namespace fc::sync {
     std::shared_ptr<events::Events> events_;
     Peers peers_;
 
+    events::Connection message_event_;
+    events::Connection block_event_;
     events::Connection possible_head_event_;
 
     std::shared_ptr<BlocksyncRequest> request_;

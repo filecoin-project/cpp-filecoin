@@ -34,7 +34,7 @@ namespace fc::drand::http {
     return [MOVE(parse), MOVE(cb)](auto &&_str) {
       OUTCOME_CB(auto str, _str);
       OUTCOME_CB(auto jdoc, Json::parse(str));
-      cb(outcomeCatch([&] { return parse(&jdoc); }).o());
+      cb(outcomeCatch([&] { return parse(&jdoc); }));
     };
   }
 

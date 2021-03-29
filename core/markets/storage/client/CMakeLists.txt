@@ -7,7 +7,6 @@ add_subdirectory(import_manager)
 
 add_library(storage_market_client
     impl/storage_market_client_impl.cpp
-    impl/client_state_store.cpp
     )
 target_link_libraries(storage_market_client
     address

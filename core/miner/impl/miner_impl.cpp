@@ -31,6 +31,7 @@ namespace fc::miner {
                        std::shared_ptr<Counter> counter,
                        std::shared_ptr<BufferMap> sealing_fsm_kv,
                        std::shared_ptr<Manager> sector_manager,
+                       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
                        std::shared_ptr<boost::asio::io_context> context)
       : api_{std::move(api)},
         miner_address_{std::move(miner_address)},
@@ -38,6 +39,7 @@ namespace fc::miner {
         counter_{std::move(counter)},
         sealing_fsm_kv_{std::move(sealing_fsm_kv)},
         sector_manager_{std::move(sector_manager)},
+        scheduler_{std::move(scheduler)},
         context_{std::move(context)} {}
 
   outcome::result<void> MinerImpl::run() {
@@ -66,7 +68,8 @@ namespace fc::miner {
                                              sealing_fsm_kv_,
                                              sector_manager_,
                                              precommit_policy,
-                                             context_);
+                                             context_,
+                                             scheduler_);
     OUTCOME_TRY(sealing_->run());
 
     return outcome::success();
