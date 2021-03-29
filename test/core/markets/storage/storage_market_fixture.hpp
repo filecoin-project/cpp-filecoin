@@ -444,6 +444,7 @@ namespace fc::markets::storage::test {
           datatransfer,
           std::make_shared<markets::discovery::Discovery>(datastore),
           api,
+          chain_events_,
           piece_io_);
       OUTCOME_EXCEPT(new_client->init());
       return new_client;
