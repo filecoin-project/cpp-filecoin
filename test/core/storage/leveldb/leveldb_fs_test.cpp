@@ -28,7 +28,7 @@ TEST_F(LevelDB_Open, OpenNonExistingDB) {
   leveldb::Options options;
   options.create_if_missing = false;  // intentionally
 
-  auto r = LevelDB::create(getPathString().string(), options);
+  const auto r = LevelDB::create(getPathString().string(), options);
   EXPECT_FALSE(r);
   EXPECT_EQ(r.error(), LevelDBError::kInvalidArgument);
 }

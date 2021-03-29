@@ -14,7 +14,7 @@ namespace test {
     leveldb::Options options;
     options.create_if_missing = true;
 
-    auto r = LevelDB::create(getPathString().string(), options);
+    const auto r = LevelDB::create(getPathString().string(), options);
     if (!r) {
       throw std::invalid_argument(r.error().message());
     }
