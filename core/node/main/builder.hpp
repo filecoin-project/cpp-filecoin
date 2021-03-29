@@ -80,8 +80,6 @@ namespace fc::node {
     vm::runtime::EnvironmentContext env_context;
 
     // storage market client
-    /** Distinct Storage Market IPLD */
-    IpldPtr storage_market_ipld;
     std::shared_ptr<ImportManager> storage_market_import_manager;
     std::shared_ptr<StorageMarketClient> storage_market_client;
 

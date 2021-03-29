@@ -13,6 +13,9 @@
 namespace fc::markets::storage::client::import_manager {
   using ::fc::storage::PersistentBufferMap;
 
+  /** Where all imported CAR files are stored */
+  const boost::filesystem::path kImportsDir = "/tmp/fuhon/storage-market/";
+
   /**
    * Stores import information
    */
@@ -31,12 +34,16 @@ namespace fc::markets::storage::client::import_manager {
   class ImportManager {
    public:
     ImportManager(std::shared_ptr<PersistentBufferMap> imports_storage,
-                  IpldPtr ipld);
+                  const boost::filesystem::path &imports_dir);
 
     /**
-     * Imports data for deal.
+     * Imports data for deal
+     * If file is not a CAR file, then methods creates CAR file from imported
+     * file. Imported CAR files are stored into 'kImportsDir' where CAR filename
+     * is root CID.
+     *
      * @param path - path to file with data
-     * @param is_car - is it a car? If yes, it shoud contain single root,
+     * @param is_car - is it a car? If yes, it should contain single root,
      * otherwise method returns error
      * @return root cid of imported data
      */
@@ -48,12 +55,22 @@ namespace fc::markets::storage::client::import_manager {
      */
     outcome::result<std::vector<Import>> list() const;
 
+    /**
+     * Return imported CAR file path
+     * @param root - root CID
+     * @return path to CAR file
+     */
+    outcome::result<boost::filesystem::path> get(const CID &root) const;
+
    private:
+    outcome::result<boost::filesystem::path> makeFilename(
+        const CID &root) const;
+
     outcome::result<void> addImported(const CID &root,
                                       const boost::filesystem::path &path);
 
     std::shared_ptr<PersistentBufferMap> imported_;
-    IpldPtr ipld_;
+    boost::filesystem::path imports_dir_;
   };
 
 }  // namespace fc::markets::storage::client::import_manager

@@ -17,9 +17,8 @@
 #include "markets/discovery/discovery.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/client_events.hpp"
+#include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/client/storage_market_client.hpp"
-#include "storage/filestore/filestore.hpp"
-#include "storage/ipfs/datastore.hpp"
 
 namespace fc::markets::storage::client {
   using api::FullNodeApi;
@@ -27,16 +26,13 @@ namespace fc::markets::storage::client {
   using common::libp2p::CborStream;
   using data_transfer::DataTransfer;
   using discovery::Discovery;
-  using fc::storage::filestore::FileStore;
-  using fc::storage::ipfs::IpfsDatastore;
   using fsm::FSM;
   using libp2p::Host;
   using pieceio::PieceIO;
+  using import_manager::ImportManager;
   using ClientTransition =
       fsm::Transition<ClientEvent, void, StorageDealStatus, ClientDeal>;
   using ClientFSM = fsm::FSM<ClientEvent, void, StorageDealStatus, ClientDeal>;
-
-  const Path kFilestoreTempDir = "/tmp/fuhon/storage-market/";
 
   class StorageMarketClientImpl
       : public StorageMarketClient,
@@ -44,7 +40,7 @@ namespace fc::markets::storage::client {
    public:
     StorageMarketClientImpl(std::shared_ptr<Host> host,
                             std::shared_ptr<boost::asio::io_context> context,
-                            IpldPtr ipld,
+                            std::shared_ptr<ImportManager> import_manager,
                             std::shared_ptr<DataTransfer> datatransfer,
                             std::shared_ptr<Discovery> discovery,
                             std::shared_ptr<FullNodeApi> api,
@@ -287,7 +283,7 @@ namespace fc::markets::storage::client {
     std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<Discovery> discovery_;
-    IpldPtr ipld;
+    std::shared_ptr<ImportManager> import_manager_;
     std::shared_ptr<DataTransfer> datatransfer_;
 
     std::mutex waiting_mutex;

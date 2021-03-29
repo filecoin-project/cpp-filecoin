@@ -45,6 +45,7 @@ namespace fc::markets::storage::test {
   using chain_events::ChainEventsMock;
   using client::StorageMarketClient;
   using client::StorageMarketClientImpl;
+  using client::import_manager::ImportManager;
   using common::Buffer;
   using crypto::bls::BlsProvider;
   using crypto::bls::BlsProviderImpl;
@@ -88,6 +89,9 @@ namespace fc::markets::storage::test {
   using testing::_;
 
   static auto port{40010};
+  const boost::filesystem::path kImportsTempDir =
+      "tmp/fuhon/test/storage_market_client";
+  const boost::filesystem::path kPieceIoTempDir = "tmp/fuhon/test/piece_io";
 
   class StorageMarketTest : public ::testing::Test {
    public:
@@ -127,10 +131,12 @@ namespace fc::markets::storage::test {
           std::make_shared<Secp256k1Sha256ProviderImpl>();
       std::shared_ptr<Datastore> datastore =
           std::make_shared<InMemoryStorage>();
-      ipld_client = std::make_shared<InMemoryDatastore>();
       ipld_provider = std::make_shared<InMemoryDatastore>();
-      piece_io_ =
-          std::make_shared<PieceIOImpl>(ipld_client, client::kFilestoreTempDir);
+      piece_io_ = std::make_shared<PieceIOImpl>(
+          std::make_shared<InMemoryDatastore>(), kImportsTempDir.string());
+
+      import_manager = std::make_shared<ImportManager>(
+          std::make_shared<InMemoryStorage>(), kImportsTempDir);
 
       OUTCOME_EXCEPT(miner_worker_keypair, bls_provider->generateKeyPair());
       miner_worker_address = Address::makeBls(miner_worker_keypair.public_key);
@@ -216,6 +222,8 @@ namespace fc::markets::storage::test {
     void TearDown() override {
       OUTCOME_EXCEPT(provider->stop());
       OUTCOME_EXCEPT(client->stop());
+      boost::filesystem::remove_all(kPieceIoTempDir);
+      boost::filesystem::remove_all(kImportsTempDir);
     }
 
    protected:
@@ -429,7 +437,7 @@ namespace fc::markets::storage::test {
       auto new_client = std::make_shared<StorageMarketClientImpl>(
           client_host,
           context,
-          ipld_client,
+          import_manager,
           datatransfer,
           std::make_shared<markets::discovery::Discovery>(datastore),
           api,
@@ -440,12 +448,12 @@ namespace fc::markets::storage::test {
 
     outcome::result<DataRef> makeDataRef(
         const boost::filesystem::path &file_path) {
+      OUTCOME_TRY(root, import_manager->import(file_path, true));
       OUTCOME_TRY(piece_commitment,
                   piece_io_->generatePieceCommitment(registered_proof,
                                                      file_path.string()));
-      OUTCOME_TRY(roots, fc::storage::car::loadCar(*ipld_client, file_path));
       return DataRef{.transfer_type = kTransferTypeManual,
-                     .root = roots[0],
+                     .root = root,
                      .piece_cid = piece_commitment.first,
                      .piece_size = piece_commitment.second};
     }
@@ -509,9 +517,10 @@ namespace fc::markets::storage::test {
     std::shared_ptr<StorageMarketClientImpl> client;
     std::shared_ptr<StorageProvider> provider;
     std::shared_ptr<StoredAsk> stored_ask;
-    IpldPtr ipld_client, ipld_provider;
+    IpldPtr ipld_provider;
     std::shared_ptr<StorageProviderInfo> storage_provider_info;
     std::shared_ptr<DataTransfer> datatransfer;
+    std::shared_ptr<ImportManager> import_manager;
 
     RegisteredSealProof registered_proof{
         RegisteredSealProof::kStackedDrg32GiBV1};

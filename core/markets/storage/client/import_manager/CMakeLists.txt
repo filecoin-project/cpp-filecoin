@@ -12,4 +12,5 @@ target_link_libraries(storage_market_import_manager
     file
     outcome
     unixfs
+    ipfs_datastore_in_memory
     )
