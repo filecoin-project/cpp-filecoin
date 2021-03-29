@@ -28,7 +28,7 @@ TEST_F(LevelDB_Open, OpenNonExistingDB) {
   leveldb::Options options;
   options.create_if_missing = false;  // intentionally
 
-  auto r = LevelDB::create(getPathString(), options);
+  auto r = LevelDB::create(getPathString().string(), options);
   EXPECT_FALSE(r);
   EXPECT_EQ(r.error(), LevelDBError::kInvalidArgument);
 }
@@ -42,9 +42,8 @@ TEST_F(LevelDB_Open, OpenExistingDB) {
   leveldb::Options options;
   options.create_if_missing = true;  // intentionally
 
-  EXPECT_OUTCOME_TRUE_2(db, LevelDB::create(getPathString(), options));
+  EXPECT_OUTCOME_TRUE_2(db, LevelDB::create(getPathString().string(), options));
   EXPECT_TRUE(db) << "db is nullptr";
 
-  boost::filesystem::path p(getPathString());
-  EXPECT_TRUE(fs::exists(p));
+  EXPECT_TRUE(fs::exists(getPathString()));
 }

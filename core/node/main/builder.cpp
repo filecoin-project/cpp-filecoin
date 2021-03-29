@@ -63,7 +63,6 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::node {
-  using data_transfer::DataTransfer;
   using markets::discovery::Discovery;
   using markets::pieceio::PieceIOImpl;
   using markets::storage::client::StorageMarketClientImpl;
@@ -441,6 +440,8 @@ namespace fc::node {
         genesis_timestamp,
         std::chrono::seconds(kEpochDurationSeconds));
 
+    o.datatransfer = DataTransfer::make(o.host, o.graphsync);
+
     o.storage_market_import_manager = std::make_shared<ImportManager>(
         std::make_shared<storage::MapPrefix>("storage_market_imports/",
                                              o.kv_store),
@@ -449,8 +450,9 @@ namespace fc::node {
         o.host,
         o.io_context,
         o.storage_market_import_manager,
-        DataTransfer::make(o.host, o.graphsync),
-        std::make_shared<Discovery>(std::make_shared<InMemoryStorage>()),
+        o.datatransfer,
+        std::make_shared<Discovery>(
+            std::make_shared<storage::MapPrefix>("discovery/", o.kv_store)),
         o.api,
         std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
     OUTCOME_TRY(o.storage_market_client->init());

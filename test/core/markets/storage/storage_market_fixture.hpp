@@ -31,6 +31,7 @@
 #include "testutil/mocks/markets/storage/chain_events/chain_events_mock.hpp"
 #include "testutil/mocks/miner/miner_mock.hpp"
 #include "testutil/mocks/sectorblocks/blocks_mock.hpp"
+#include "testutil/storage/base_fs_test.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 
@@ -89,16 +90,20 @@ namespace fc::markets::storage::test {
   using testing::_;
 
   static auto port{40010};
-  const boost::filesystem::path kImportsTempDir =
-      "tmp/fuhon/test/storage_market_client";
-  const boost::filesystem::path kPieceIoTempDir = "tmp/fuhon/test/piece_io";
 
-  class StorageMarketTest : public ::testing::Test {
+  class StorageMarketTest : public ::test::BaseFS_Test {
    public:
     static constexpr auto kWaitTime = std::chrono::milliseconds(100);
     static const int kNumberOfWaitCycles = 50;  // 5 sec
+    static inline const std::string kImportsTempDir = "storage_market_client";
+    static inline const std::string kPieceIoTempDir = "piece_io";
+
+    StorageMarketTest() : ::test::BaseFS_Test("storage_market_test") {}
 
     void SetUp() override {
+      createDir(kImportsTempDir);
+      createDir(kPieceIoTempDir);
+
       std::string address_string = fmt::format(
           "/ip4/127.0.0.1/tcp/{}/ipfs/"
           "12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV",
@@ -132,10 +137,12 @@ namespace fc::markets::storage::test {
       std::shared_ptr<Datastore> datastore =
           std::make_shared<InMemoryStorage>();
       ipld_provider = std::make_shared<InMemoryDatastore>();
-      piece_io_ = std::make_shared<PieceIOImpl>(kImportsTempDir);
+      piece_io_ =
+          std::make_shared<PieceIOImpl>(getPathString() / kPieceIoTempDir);
 
-      import_manager = std::make_shared<ImportManager>(
-          std::make_shared<InMemoryStorage>(), kImportsTempDir);
+      import_manager =
+          std::make_shared<ImportManager>(std::make_shared<InMemoryStorage>(),
+                                          getPathString() / kImportsTempDir);
 
       OUTCOME_EXCEPT(miner_worker_keypair, bls_provider->generateKeyPair());
       miner_worker_address = Address::makeBls(miner_worker_keypair.public_key);
@@ -221,8 +228,6 @@ namespace fc::markets::storage::test {
     void TearDown() override {
       OUTCOME_EXCEPT(provider->stop());
       OUTCOME_EXCEPT(client->stop());
-      boost::filesystem::remove_all(kPieceIoTempDir);
-      boost::filesystem::remove_all(kImportsTempDir);
     }
 
    protected:

@@ -12,7 +12,7 @@ namespace test {
     clear();
     mkdir();
 
-    logger = fc::common::createLogger(getPathString());
+    logger = fc::common::createLogger(getPathString().string());
     logger->set_level(spdlog::level::debug);
   }
 
@@ -30,8 +30,8 @@ namespace test {
     fs::create_directory(base_path);
   }
 
-  std::string BaseFS_Test::getPathString() const {
-    return fs::canonical(base_path).string();
+  fs::path BaseFS_Test::getPathString() const {
+    return fs::canonical(base_path);
   }
 
   fs::path BaseFS_Test::createDir(const fs::path &dirname) const {

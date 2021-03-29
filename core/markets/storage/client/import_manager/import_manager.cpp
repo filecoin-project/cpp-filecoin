@@ -59,7 +59,7 @@ namespace fc::markets::storage::client::import_manager {
     std::vector<Import> result;
     while (cursor->isValid()) {
       OUTCOME_TRY(root, CID::fromBytes(cursor->key()));
-      std::string path((char *)cursor->value().data(), cursor->value().size());
+      std::string path{common::span::bytestr(cursor->value())};
       result.emplace_back(Import{0, "", root, "import", path});
       cursor->next();
     }

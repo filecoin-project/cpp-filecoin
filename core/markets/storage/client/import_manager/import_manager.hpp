@@ -7,8 +7,8 @@
 
 #include <boost/filesystem/path.hpp>
 
+#include "primitives/cid/cid.hpp"
 #include "storage/buffer_map.hpp"
-#include "storage/ipfs/datastore.hpp"
 
 namespace fc::markets::storage::client::import_manager {
   using ::fc::storage::PersistentBufferMap;

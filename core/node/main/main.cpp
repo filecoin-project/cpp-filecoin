@@ -111,7 +111,7 @@ namespace fc {
                                         .peer_info = peer_info};
 
       auto start_epoch = params.deal_start_epoch;
-      if (start_epoch < 0) {
+      if (start_epoch <= 0) {
         static const size_t kDealStartBufferHours = 49;
         OUTCOME_TRY(chain_head, node_objects.api->ChainHead());
         start_epoch =

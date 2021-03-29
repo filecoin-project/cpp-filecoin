@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "common/outcome.hpp"
+#include "data_transfer/dt.hpp"
 #include "fwd.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/client/storage_market_client.hpp"
@@ -22,6 +23,7 @@
 #include "vm/runtime/env_context.hpp"
 
 namespace fc::node {
+  using data_transfer::DataTransfer;
   using markets::storage::client::StorageMarketClient;
   using markets::storage::client::import_manager::ImportManager;
 
@@ -79,7 +81,8 @@ namespace fc::node {
     std::shared_ptr<sync::SyncJob> sync_job;
     vm::runtime::EnvironmentContext env_context;
 
-    // storage market client
+    // storage market
+    std::shared_ptr<DataTransfer> datatransfer;
     std::shared_ptr<ImportManager> storage_market_import_manager;
     std::shared_ptr<StorageMarketClient> storage_market_client;
 
