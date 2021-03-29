@@ -273,7 +273,7 @@ namespace fc::fsm {
       scheduler_ = std::make_shared<libp2p::protocol::AsioScheduler>(
           *host_context_->getIoContext(),
           libp2p::protocol::SchedulerConfig{ticks});
-      scheduler_handle_ = scheduler_->schedule(1000, [this] { onTimer(); });
+      scheduler_handle_ = scheduler_->schedule(0, [this] { onTimer(); });
     }
 
     ~FSM() {

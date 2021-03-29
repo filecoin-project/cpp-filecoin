@@ -11,5 +11,6 @@ target_link_libraries(tipset
     block
     buffer
     cid
+    const
     logger
     )

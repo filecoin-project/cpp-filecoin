@@ -409,8 +409,8 @@ namespace fc::node {
 
     log()->debug("Creating API...");
 
-    auto mpool =
-        storage::mpool::Mpool::create(o.env_context, o.ts_main, o.chain_store);
+    auto mpool = storage::mpool::MessagePool::create(
+        o.env_context, o.ts_main, o.chain_store);
 
     auto msg_waiter = storage::blockchain::MsgWaiter::create(
         o.ts_load, o.ipld, o.chain_store);

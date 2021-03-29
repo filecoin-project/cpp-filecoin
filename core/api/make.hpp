@@ -23,7 +23,7 @@ namespace fc::api {
   using storage::blockchain::ChainStore;
   using storage::blockchain::MsgWaiter;
   using storage::keystore::KeyStore;
-  using storage::mpool::Mpool;
+  using storage::mpool::MessagePool;
   using sync::PubSubGate;
   using vm::runtime::EnvironmentContext;
   using Logger = common::Logger;
@@ -38,7 +38,7 @@ namespace fc::api {
       std::shared_ptr<WeightCalculator> weight_calculator,
       const EnvironmentContext &env_context,
       TsBranchPtr ts_main,
-      std::shared_ptr<Mpool> mpool,
+      std::shared_ptr<MessagePool> mpool,
       std::shared_ptr<MsgWaiter> msg_waiter,
       std::shared_ptr<Beaconizer> beaconizer,
       std::shared_ptr<DrandSchedule> drand_schedule,
