@@ -38,7 +38,7 @@ namespace fc::mining {
   using vm::actor::builtin::types::miner::kMinSectorExpiration;
   using vm::actor::builtin::v0::miner::ProveCommitSector;
 
-  auto getWaitingTime(uint64_t errors_count = 0) {
+  libp2p::protocol::scheduler::Ticks getWaitingTime(uint64_t errors_count = 0) {
     // TODO: Exponential backoff when we see consecutive failures
 
     return 60000;  // 1 minute
