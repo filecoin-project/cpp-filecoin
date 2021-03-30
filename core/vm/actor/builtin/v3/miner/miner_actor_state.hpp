@@ -29,6 +29,7 @@ namespace fc::vm::actor::builtin::v3::miner {
              precommit_deposit,
              locked_funds,
              vesting_funds,
+             fee_debt,
              initial_pledge_requirement,
              precommitted_sectors,
              precommitted_setctors_expiry,
