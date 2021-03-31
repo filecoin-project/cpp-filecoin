@@ -60,7 +60,6 @@ int main(int argc, char **argv) {
             state_min_height = std::min(state_min_height, ts->height());
             state_max_height = std::max(state_max_height, ts->height());
           }
-          // TODO(turuslan): cached states for VerifyConsensusFault
         } else {
           had_states = false;
         }

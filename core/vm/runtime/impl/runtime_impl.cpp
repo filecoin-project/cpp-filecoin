@@ -362,12 +362,13 @@ namespace fc::vm::runtime {
         std::shared_lock ts_lock{*env->env_context.ts_branches_mutex};
         OUTCOME_TRY(it, find(env->ts_branch, getCurrentEpoch()));
         OUTCOME_TRYA(it, getLookbackTipSetForRound(it, block.height));
-        OUTCOME_TRY(
-            cached,
-            env->env_context.interpreter_cache->get(it.second->second.key));
+        OUTCOME_TRYA(it, find(env->ts_branch, it.second->first + 1, false));
+        OUTCOME_TRY(child_ts,
+                    env->env_context.ts_load->loadw(it.second->second));
         ts_lock.unlock();
 
-        const StateTreeImpl state_tree{env->ipld, cached.state_root};
+        const StateTreeImpl state_tree{env->ipld,
+                                       child_ts->getParentStateRoot()};
         auto &ipld{execution_->charging_ipld};
         StateProvider provider(ipld);
 
@@ -392,7 +393,7 @@ namespace fc::vm::runtime {
       if (!okA) {
         return boost::none;
       }
-      OUTCOME_TRY(okB, verify(blockA));
+      OUTCOME_TRY(okB, verify(blockB));
       if (!okB) {
         return boost::none;
       }
