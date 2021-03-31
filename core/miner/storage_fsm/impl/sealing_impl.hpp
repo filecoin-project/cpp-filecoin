@@ -37,19 +37,6 @@ namespace fc::mining {
   using storage::BufferMap;
   using vm::actor::builtin::types::miner::SectorPreCommitInfo;
 
-  struct Config {
-    // 0 = no limit
-    uint64_t max_wait_deals_sectors = 0;
-
-    // includes failed, 0 = no limit
-    uint64_t max_sealing_sectors = 0;
-
-    // includes failed, 0 = no limit
-    uint64_t max_sealing_sectors_for_deals = 0;
-
-    uint64_t wait_deals_delay;  // in milliseconds
-  };
-
   class SealingImpl : public Sealing,
                       public std::enable_shared_from_this<SealingImpl> {
    public:

@@ -22,10 +22,6 @@ namespace fc::miner {
    public:
     virtual ~Miner() = default;
 
-    virtual outcome::result<void> run() = 0;
-
-    virtual void stop() = 0;
-
     virtual outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber sector_id) const = 0;
 

@@ -13,7 +13,6 @@
 namespace fc::markets::pieceio {
   namespace fs = boost::filesystem;
   using primitives::piece::PieceData;
-  using proofs::Proofs;
 
   PieceIOImpl::PieceIOImpl(const boost::filesystem::path &temp_dir)
       : temp_dir_{temp_dir} {
