@@ -788,6 +788,10 @@ namespace fc::sector_storage {
     return Response{.paths = res.paths, .lock = std::move(locked)};
   }
 
+  std::shared_ptr<proofs::ProofEngine> ManagerImpl::getProofEngine() const {
+    return proofs_;
+  }
+
 }  // namespace fc::sector_storage
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, ManagerErrors, e) {

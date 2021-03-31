@@ -1212,8 +1212,12 @@ namespace fc::mining {
 
     OUTCOME_TRY(head, api_->ChainHead());
 
-    auto maybe_error = checks::checkCommit(
-        miner_address_, info, maybe_proof.value(), head->key, api_);
+    auto maybe_error = checks::checkCommit(miner_address_,
+                                           info,
+                                           maybe_proof.value(),
+                                           head->key,
+                                           api_,
+                                           sealer_->getProofEngine());
     if (maybe_error.has_error()) {
       logger_->error("commit check error: {}", maybe_error.error().message());
       FSM_SEND(info, SealingEvent::kSectorCommitFailed);
@@ -1564,8 +1568,12 @@ namespace fc::mining {
       }
     }
 
-    maybe_error =
-        checks::checkCommit(miner_address_, info, info->proof, head->key, api_);
+    maybe_error = checks::checkCommit(miner_address_,
+                                      info,
+                                      info->proof,
+                                      head->key,
+                                      api_,
+                                      sealer_->getProofEngine());
     if (maybe_error.has_error()) {
       if (maybe_error == outcome::failure(ChecksError::kBadSeed)) {
         logger_->error("seed changed, will retry: {}",

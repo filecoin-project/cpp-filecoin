@@ -183,7 +183,8 @@ namespace fc::mining::checks {
       const std::shared_ptr<SectorInfo> &sector_info,
       const Proof &proof,
       const TipsetKey &tipset_key,
-      const std::shared_ptr<FullNodeApi> &api) {
+      const std::shared_ptr<FullNodeApi> &api,
+      const std::shared_ptr<proofs::ProofEngine> &proofs) {
     if (sector_info->seed_epoch == 0) {
       return ChecksError::kBadSeed;
     }
@@ -226,8 +227,6 @@ namespace fc::mining::checks {
     if (sector_info->comm_r != state_sector_precommit_info->info.sealed_cid) {
       return ChecksError::kBadSealedCid;
     }
-    static std::shared_ptr<proofs::ProofEngine> proofs =
-        std::make_shared<proofs::ProofEngineImpl>();
     OUTCOME_TRY(verified,
                 proofs->verifySeal(SealVerifyInfo{
                     .seal_proof = minfo.seal_proof_type,

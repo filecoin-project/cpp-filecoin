@@ -20,6 +20,8 @@ namespace fc::sector_storage {
 
   class Manager : public Prover, public FaultTracker {
    public:
+    virtual std::shared_ptr<proofs::ProofEngine> getProofEngine() const = 0;
+
     virtual SectorSize getSectorSize() = 0;
 
     virtual outcome::result<void> readPiece(PieceData output,

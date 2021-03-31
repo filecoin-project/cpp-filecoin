@@ -13,6 +13,8 @@
 namespace fc::sector_storage {
   class ManagerMock : public Manager {
    public:
+    MOCK_CONST_METHOD0(getProofEngine, std::shared_ptr<proofs::ProofEngine>());
+
     MOCK_METHOD2(checkProvable,
                  outcome::result<std::vector<SectorId>>(
                      RegisteredSealProof, gsl::span<const SectorId>));

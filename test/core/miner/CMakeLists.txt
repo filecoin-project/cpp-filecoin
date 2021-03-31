@@ -32,5 +32,5 @@ addtest(sealing_test
         )
 target_link_libraries(sealing_test
         storage_fsm
-        fuhon_host)
+        ipfs_datastore_in_memory)
 

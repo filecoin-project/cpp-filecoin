@@ -37,6 +37,8 @@ namespace fc::sector_storage {
         RegisteredSealProof seal_proof_type,
         gsl::span<const SectorId> sectors) override;
 
+    std::shared_ptr<proofs::ProofEngine> getProofEngine() const override;
+
     SectorSize getSectorSize() override;
 
     outcome::result<void> readPiece(proofs::PieceData output,
