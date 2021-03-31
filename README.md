@@ -6,7 +6,7 @@ Filecoin is a decentralized protocol described in [spec](https://filecoin-projec
 
 ## Dependencies
 
-All C++ dependencies are managed using [Hunter](hunter.sh).
+All C++ dependencies are managed using [Hunter](https://github.com/cpp-pm/hunter).
 It uses cmake to download required libraries and do not require to download and install packages manually.
 Target C++ compilers are:
 * GCC 7.4
