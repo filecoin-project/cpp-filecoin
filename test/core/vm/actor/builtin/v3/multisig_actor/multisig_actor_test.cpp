@@ -16,7 +16,7 @@
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/v3/codes.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
-#include "vm/version.hpp"
+#include "vm/version/version.hpp"
 
 #define ON_CALL_3(object, call, result) \
   EXPECT_CALL(object, call).WillRepeatedly(Return(result))

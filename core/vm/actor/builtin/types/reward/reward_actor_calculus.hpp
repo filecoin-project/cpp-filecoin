@@ -7,7 +7,7 @@
 
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/states/reward_actor_state.hpp"
-#include "vm/version.hpp"
+#include "vm/version/version.hpp"
 
 namespace fc::vm::actor::builtin::types::reward {
   using primitives::BigInt;

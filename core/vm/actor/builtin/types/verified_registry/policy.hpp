@@ -10,6 +10,5 @@
 namespace fc::vm::actor::builtin::types::verified_registry {
   using primitives::StoragePower;
 
-  inline const StoragePower kMinVerifiedDealSize{1 << 20};
-
+  extern StoragePower kMinVerifiedDealSize;
 }  // namespace fc::vm::actor::builtin::types::verified_registry

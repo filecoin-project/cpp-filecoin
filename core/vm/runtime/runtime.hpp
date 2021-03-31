@@ -24,7 +24,7 @@
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/message/message.hpp"
 #include "vm/runtime/runtime_types.hpp"
-#include "vm/version.hpp"
+#include "vm/version/version.hpp"
 
 #define VM_ASSERT(condition) OUTCOME_TRY(runtime.vm_assert(condition))
 

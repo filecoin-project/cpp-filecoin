@@ -5,21 +5,18 @@
 
 #include "markets/pieceio/pieceio_impl.hpp"
 
-#include <unistd.h>
 #include <boost/filesystem.hpp>
-
 #include "markets/pieceio/pieceio_error.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/car/car.hpp"
 
 namespace fc::markets::pieceio {
   namespace fs = boost::filesystem;
-  using primitives::piece::paddedSize;
   using primitives::piece::PieceData;
-  using storage::car::makeSelectiveCar;
+  using proofs::Proofs;
 
-  PieceIOImpl::PieceIOImpl(std::shared_ptr<Ipld> ipld, std::string temp_dir)
-      : ipld_{std::move(ipld)}, temp_dir_{std::move(temp_dir)} {
+  PieceIOImpl::PieceIOImpl(const boost::filesystem::path &temp_dir)
+      : temp_dir_{temp_dir} {
     if (!fs::exists(temp_dir_)) {
       fs::create_directories(temp_dir_);
     }
@@ -28,26 +25,12 @@ namespace fc::markets::pieceio {
   outcome::result<std::pair<CID, UnpaddedPieceSize>>
   PieceIOImpl::generatePieceCommitment(
       const RegisteredSealProof &registered_proof,
-      const CID &payload_cid,
-      const Selector &selector) {
-    auto car_file = fs::path(temp_dir_) / fs::unique_path();
-    auto _ = gsl::finally([&car_file]() {
-      fs::remove_all(car_file);
-    });  // or we can store it like cache
-    OUTCOME_TRY(
-        makeSelectiveCar(*ipld_, {{payload_cid, selector}}, car_file.string()));
-
-    return generatePieceCommitment(registered_proof, car_file.string());
-  }
-
-  outcome::result<std::pair<CID, UnpaddedPieceSize>>
-  PieceIOImpl::generatePieceCommitment(
-      const RegisteredSealProof &registered_proof, const std::string &path) {
+      const boost::filesystem::path &path) {
     if (!fs::exists(path)) {
       return PieceIOError::kFileNotExist;
     }
 
-    auto copy_path = fs::path(temp_dir_) / fs::unique_path();
+    auto copy_path = temp_dir_ / fs::unique_path();
 
     fs::copy_file(path, copy_path);
 

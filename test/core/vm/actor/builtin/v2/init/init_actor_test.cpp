@@ -9,6 +9,7 @@
 #include <gmock/gmock.h>
 
 #include "adt/address_key.hpp"
+#include "const.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
@@ -20,8 +21,6 @@ namespace fc::vm::actor::builtin::v2::init {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using testutil::vm::actor::builtin::ActorTestFixture;
-  using version::kUpgradeBreezeHeight;
-  using version::kUpgradeKumquatHeight;
 
   struct InitActorTest : public ActorTestFixture<InitActorState> {
     void SetUp() override {

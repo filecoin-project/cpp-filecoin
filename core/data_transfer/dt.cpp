@@ -133,7 +133,8 @@ namespace fc::data_transfer {
     assert(on_begin);
     pushing_out.emplace(
         PeerDtId{peer.id, dtid},
-        PushingOut{root, ipld, std::move(on_begin), std::move(on_end)});
+        PushingOut{
+            root, std::move(ipld), std::move(on_begin), std::move(on_end)});
     dtSend(peer,
            DataTransferRequest{
                root,

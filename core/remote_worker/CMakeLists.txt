@@ -4,12 +4,13 @@
 #
 
 add_executable(remote_worker_main
-        main.cpp
-        )
+    main.cpp
+    )
 target_link_libraries(remote_worker_main
-        Boost::program_options
-        remote_index
-        fetch_handler
-        worker
-        proof_param_provider
-        )
+    Boost::program_options
+    filecoin_config
+    remote_index
+    fetch_handler
+    worker
+    proof_param_provider
+    )

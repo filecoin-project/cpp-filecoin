@@ -72,10 +72,18 @@ namespace fc::vm::actor {
     ready_miner_actor_methods_v0.insert(builtin::v0::miner::Construct::Number);
     ready_miner_actor_methods_v0.insert(
         builtin::v0::miner::ControlAddresses::Number);
+    ready_miner_actor_methods_v0.insert(
+        builtin::v0::miner::ChangePeerId::Number);
+    ready_miner_actor_methods_v0.insert(
+        builtin::v0::miner::ChangeWorkerAddress::Number);
 
     ready_miner_actor_methods_v2.insert(builtin::v2::miner::Construct::Number);
     ready_miner_actor_methods_v2.insert(
         builtin::v2::miner::ControlAddresses::Number);
+    ready_miner_actor_methods_v2.insert(
+        builtin::v2::miner::ChangePeerId::Number);
+    ready_miner_actor_methods_v2.insert(
+        builtin::v2::miner::ChangeWorkerAddress::Number);
   }
 
   outcome::result<InvocationOutput> InvokerImpl::invoke(

@@ -6,9 +6,11 @@
 #pragma once
 
 #include "node/events_fwd.hpp"
+#include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::sync {
+  using primitives::BigInt;
 
   inline constexpr auto kHelloProtocol = "/fil/hello/1.0.0";
 

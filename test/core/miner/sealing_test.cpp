@@ -12,6 +12,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/context_wait.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/mocks/libp2p/scheduler_mock.hpp"
 #include "testutil/mocks/miner/events_mock.hpp"
 #include "testutil/mocks/miner/precommit_policy_mock.hpp"
 #include "testutil/mocks/primitives/stored_counter_mock.hpp"
@@ -36,6 +37,7 @@ namespace fc::mining {
   using api::Wait;
   using crypto::randomness::Randomness;
   using fc::storage::ipfs::InMemoryDatastore;
+  using libp2p::protocol::SchedulerMock;
   using markets::storage::DealProposal;
   using primitives::CounterMock;
   using primitives::block::BlockHeader;
@@ -93,6 +95,8 @@ namespace fc::mining {
       EXPECT_CALL(*kv_, cursor())
           .WillOnce(testing::Return(testing::ByMove(nullptr)));
 
+      scheduler_ = std::make_shared<SchedulerMock>();
+
       EXPECT_OUTCOME_TRUE(sealing,
                           SealingImpl::newSealing(api_,
                                                   events_,
@@ -102,6 +106,7 @@ namespace fc::mining {
                                                   manager_,
                                                   policy_,
                                                   context_,
+                                                  scheduler_,
                                                   config_));
       sealing_ = sealing;
     }
@@ -124,6 +129,7 @@ namespace fc::mining {
     std::shared_ptr<proofs::ProofEngineMock> proofs_;
     std::shared_ptr<PreCommitPolicyMock> policy_;
     std::shared_ptr<boost::asio::io_context> context_;
+    std::shared_ptr<SchedulerMock> scheduler_;
 
     std::shared_ptr<Sealing> sealing_;
   };
@@ -821,7 +827,7 @@ namespace fc::mining {
     EXPECT_CALL(*events_,
                 chainAt(_,
                         _,
-                        types::kInteractivePoRepConfidence,
+                        kInteractivePoRepConfidence,
                         height + kPreCommitChallengeDelay))
         .WillOnce(testing::Invoke(
             [](auto &apply, auto, auto, auto) -> outcome::result<void> {

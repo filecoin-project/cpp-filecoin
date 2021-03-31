@@ -3,37 +3,42 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_FSM_FSM_HPP
-#define CPP_FILECOIN_CORE_FSM_FSM_HPP
+#pragma once
 
+#include <boost/asio/io_context.hpp>
+#include <boost/optional.hpp>
 #include <functional>
 #include <mutex>
 #include <queue>
 #include <set>
 #include <shared_mutex>
-#include <string>
 #include <unordered_map>
 #include <utility>
 
-#include <boost/optional.hpp>
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
-#include <libp2p/protocol/common/scheduler.hpp>
-#include "common/outcome.hpp"
-#include "host/context/host_context.hpp"
-
 #include "fsm/error.hpp"
-#include "fsm/type_hashers.hpp"
 
 /**
  * The namespace is related to a generic implementation of a finite state
  * machine
  */
 namespace fc::fsm {
-  using fc::common::EnumClassHash;
-  using libp2p::protocol::Scheduler;
-  using Ticks = libp2p::protocol::Scheduler::Ticks;
+  struct EnumClassHash {
+    template <typename T>
+    std::size_t operator()(T t) const {
+      return static_cast<std::size_t>(t);
+    }
+  };
 
-  const Scheduler::Ticks kSlowModeDelayMs = 100;
+  template <typename F>
+  void postWithFlag(boost::asio::io_context &io,
+                    std::weak_ptr<bool> flag,
+                    F f) {
+    io.post([f{std::move(f)}, flag] {
+      if (auto _flag{flag.lock()}; _flag && *_flag) {
+        f();
+      }
+    });
+  }
 
   /**
    * Container for state transitions caused by an event
@@ -248,7 +253,6 @@ namespace fc::fsm {
         Transition<EventEnumType, EventContextType, StateEnumType, Entity>;
     using ParametrizedEvent = std::pair<EventEnumType, EventContextPtr>;
     using EventQueueItem = std::pair<EntityPtr, ParametrizedEvent>;
-    using HostContext = std::shared_ptr<fc::host::HostContext>;
     using ActionFunction = std::function<void(
         std::shared_ptr<Entity> /* pointer to tracked entity */,
         EventEnumType /* event that caused state transition */,
@@ -261,19 +265,12 @@ namespace fc::fsm {
     /**
      * Creates a state machine
      * @param transition_rules - defines state transitions
-     * @param scheduler - libp2p Scheduler for async events processing
+     * @param io_context - async queue
      */
     FSM(std::vector<TransitionRule> transition_rules,
-        HostContext context,
-        Ticks ticks = 50)
-        : running_{true},
-          delay_{kSlowModeDelayMs},
-          host_context_(std::move(context)) {
+        boost::asio::io_context &io_context)
+        : running_{std::make_shared<bool>(true)}, io_context_{io_context} {
       initTransitions(std::move(transition_rules));
-      scheduler_ = std::make_shared<libp2p::protocol::AsioScheduler>(
-          *host_context_->getIoContext(),
-          libp2p::protocol::SchedulerConfig{ticks});
-      scheduler_handle_ = scheduler_->schedule(0, [this] { onTimer(); });
     }
 
     ~FSM() {
@@ -318,12 +315,16 @@ namespace fc::fsm {
     outcome::result<void> send(const EntityPtr &entity_ptr,
                                EventEnumType event,
                                const EventContextPtr &event_context) {
-      if (not running_) {
+      if (!*running_) {
         return FsmError::kMachineStopped;
       }
       std::lock_guard lock(event_queue_mutex_);
+      auto was_empty{event_queue_.empty()};
       event_queue_.emplace(entity_ptr,
                            std::make_pair(event, std::move(event_context)));
+      if (was_empty) {
+        tickAsync();
+      }
       return outcome::success();
     }
 
@@ -362,13 +363,7 @@ namespace fc::fsm {
 
     /// Prevent further events processing
     void stop() {
-      running_ = false;
-      scheduler_handle_.cancel();
-    }
-
-    /// Is events processing still enabled
-    bool isRunning() const {
-      return running_;
+      *running_ = false;
     }
 
     /**
@@ -398,21 +393,20 @@ namespace fc::fsm {
       }
     }
 
+    void tickAsync() {
+      postWithFlag(io_context_, running_, [this] { tick(); });
+    }
+
     /// async events processor routine
-    void onTimer() {
+    void tick() {
       EventQueueItem event_pair;
-      if (not running_) {
-        return;
-      }
       {
         std::lock_guard lock(event_queue_mutex_);
-        if (event_queue_.empty()) {
-          scheduler_handle_.reschedule(kSlowModeDelayMs);
-          return;
-        }
-        scheduler_handle_.reschedule(0);
         event_pair = event_queue_.front();
         event_queue_.pop();
+        if (!event_queue_.empty()) {
+          tickAsync();
+        }
       }
 
       StateEnumType source_state;
@@ -449,14 +443,11 @@ namespace fc::fsm {
       }
     }
 
-    bool running_;            ///< FSM is enabled to process events
-    Scheduler::Ticks delay_;  ///< minimum async loop delay
+    std::shared_ptr<bool> running_;
+    boost::asio::io_context &io_context_;
 
     std::mutex event_queue_mutex_;
     std::queue<EventQueueItem> event_queue_;
-    std::shared_ptr<Scheduler> scheduler_;
-    Scheduler::Handle scheduler_handle_;
-    HostContext host_context_;
 
     /// a dispatching list of events and what to do on event
     std::unordered_map<EventEnumType, TransitionRule> transitions_;
@@ -468,7 +459,4 @@ namespace fc::fsm {
     /// optional callback called after any transition
     boost::optional<ActionFunction> any_change_cb_;
   };
-
 }  // namespace fc::fsm
-
-#endif  // CPP_FILECOIN_CORE_FSM_FSM_HPP

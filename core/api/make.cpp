@@ -19,6 +19,7 @@
 #include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
@@ -53,6 +54,7 @@ namespace fc::api {
   using vm::actor::builtin::states::PowerActorStatePtr;
   using vm::actor::builtin::states::StateProvider;
   using vm::actor::builtin::types::market::DealState;
+  using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
   using vm::runtime::Env;
   using vm::state::StateTreeImpl;
 
@@ -180,7 +182,7 @@ namespace fc::api {
       std::shared_ptr<WeightCalculator> weight_calculator,
       const EnvironmentContext &env_context,
       TsBranchPtr ts_main,
-      std::shared_ptr<Mpool> mpool,
+      std::shared_ptr<MessagePool> mpool,
       std::shared_ptr<MsgWaiter> msg_waiter,
       std::shared_ptr<Beaconizer> beaconizer,
       std::shared_ptr<DrandSchedule> drand_schedule,
@@ -343,8 +345,18 @@ namespace fc::api {
     api->ClientRetrieve = {};
     // TODO(turuslan): FIL-165 implement method
     api->ClientStartDeal = {};
-    // TODO(turuslan): FIL-165 implement method
-    api->GasEstimateMessageGas = {};
+    api->GasEstimateFeeCap = {[=](auto &msg, auto max_blocks, auto &) {
+      return mpool->estimateFeeCap(msg.gas_premium, max_blocks);
+    }};
+    api->GasEstimateGasPremium = {[=](auto max_blocks, auto &, auto, auto &) {
+      return mpool->estimateGasPremium(max_blocks);
+    }};
+    api->GasEstimateMessageGas = {
+        [=](auto msg, auto &spec, auto &) -> outcome::result<UnsignedMessage> {
+          OUTCOME_TRY(mpool->estimate(
+              msg, spec ? spec->max_fee : storage::mpool::kDefaultMaxFee));
+          return msg;
+        }};
     // TODO(turuslan): FIL-165 implement method
     api->MarketReserveFunds = {};
     api->MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockWithCids> {
@@ -432,14 +444,15 @@ namespace fc::api {
           return mpool->pending();
         }};
     api->MpoolPushMessage = {
-        [=](auto message, auto) -> outcome::result<SignedMessage> {
+        [=](auto message, auto &spec) -> outcome::result<SignedMessage> {
           OUTCOME_TRY(context, tipsetContext({}));
           if (message.from.isId()) {
             OUTCOME_TRYA(message.from,
                          vm::runtime::resolveKey(
                              context.state_tree, ipld, message.from, false));
           }
-          OUTCOME_TRY(mpool->estimate(message));
+          OUTCOME_TRY(mpool->estimate(
+              message, spec ? spec->max_fee : storage::mpool::kDefaultMaxFee));
           OUTCOME_TRYA(message.nonce, mpool->nonce(message.from));
           OUTCOME_TRY(signed_message,
                       vm::message::MessageSignerImpl{key_store}.sign(
@@ -447,9 +460,10 @@ namespace fc::api {
           OUTCOME_TRY(mpool->add(signed_message));
           return std::move(signed_message);
         }};
-    api->MpoolSelect = {[=](auto &, auto) {
-      // TODO: implement
-      return mpool->pending();
+    api->MpoolSelect = {[=](auto &tsk, auto ticket_quality)
+                            -> outcome::result<std::vector<SignedMessage>> {
+      OUTCOME_TRY(ts, ts_load->load(tsk));
+      return mpool->select(ts, ticket_quality);
     }};
     api->MpoolSub = {[=]() {
       auto channel{std::make_shared<Channel<MpoolUpdate>>()};

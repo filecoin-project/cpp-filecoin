@@ -9,5 +9,6 @@ add_library(miner_types
 target_link_libraries(miner_types
     actor
     address
+    const
     outcome
     )

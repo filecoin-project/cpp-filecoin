@@ -12,6 +12,8 @@ addtest(storage_market_test
     )
 target_link_libraries(storage_market_test
     address
+    api_ipfs_datastore
+    base_fs_test
     bls_provider
     cbor
     secp256k1_provider
@@ -22,5 +24,4 @@ target_link_libraries(storage_market_test
     storage_market_client
     storage_market_provider
     keystore
-    api_ipfs_datastore
     )

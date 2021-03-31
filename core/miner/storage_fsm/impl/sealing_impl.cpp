@@ -5,10 +5,10 @@
 
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
 
+#include <libp2p/protocol/common/scheduler.hpp>
 #include <utility>
-
 #include "common/bitsutil.hpp"
-#include "host/context/impl/host_context_impl.hpp"
+#include "const.hpp"
 #include "miner/storage_fsm/impl/checks.hpp"
 #include "miner/storage_fsm/impl/sector_stat_impl.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
@@ -38,36 +38,33 @@ namespace fc::mining {
   using vm::actor::builtin::types::miner::kMinSectorExpiration;
   using vm::actor::builtin::v0::miner::ProveCommitSector;
 
-  Ticks getWaitingTime(uint64_t errors_count = 0) {
+  libp2p::protocol::scheduler::Ticks getWaitingTime(uint64_t errors_count = 0) {
     // TODO: Exponential backoff when we see consecutive failures
 
     return 60000;  // 1 minute
   }
 
-  SealingImpl::SealingImpl(std::shared_ptr<FullNodeApi> api,
-                           std::shared_ptr<Events> events,
-                           Address miner_address,
-                           std::shared_ptr<Counter> counter,
-                           std::shared_ptr<BufferMap> fsm_kv,
-                           std::shared_ptr<Manager> sealer,
-                           std::shared_ptr<PreCommitPolicy> policy,
-                           std::shared_ptr<boost::asio::io_context> context,
-                           Config config,
-                           Ticks ticks)
-      : context_(std::move(context)),
+  SealingImpl::SealingImpl(
+      std::shared_ptr<FullNodeApi> api,
+      std::shared_ptr<Events> events,
+      Address miner_address,
+      std::shared_ptr<Counter> counter,
+      std::shared_ptr<BufferMap> fsm_kv,
+      std::shared_ptr<Manager> sealer,
+      std::shared_ptr<PreCommitPolicy> policy,
+      std::shared_ptr<boost::asio::io_context> context,
+      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      Config config)
+      : scheduler_{std::move(scheduler)},
         api_(std::move(api)),
         events_(std::move(events)),
         policy_(std::move(policy)),
         counter_(std::move(counter)),
         fsm_kv_{std::move(fsm_kv)},
-        miner_address_(std::move(miner_address)),
+        miner_address_(miner_address),
         sealer_(std::move(sealer)),
         config_(config) {
-    std::shared_ptr<host::HostContext> fsm_context =
-        std::make_shared<host::HostContextImpl>(context_);
-    scheduler_ = std::make_shared<libp2p::protocol::AsioScheduler>(
-        *fsm_context->getIoContext(), libp2p::protocol::SchedulerConfig{ticks});
-    fsm_ = std::make_shared<StorageFSM>(makeFSMTransitions(), fsm_context);
+    fsm_ = std::make_shared<StorageFSM>(makeFSMTransitions(), *context);
     fsm_->setAnyChangeAction(
         [this](auto info, auto event, auto context, auto from, auto to) {
           callbackHandle(info, event, context, from, to);
@@ -86,25 +83,26 @@ namespace fc::mining {
   outcome::result<std::shared_ptr<SealingImpl>> SealingImpl::newSealing(
       std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<Events> events,
-      Address miner_address,
+      const Address &miner_address,
       std::shared_ptr<Counter> counter,
       std::shared_ptr<BufferMap> fsm_kv,
       std::shared_ptr<Manager> sealer,
       std::shared_ptr<PreCommitPolicy> policy,
       std::shared_ptr<boost::asio::io_context> context,
-      Config config,
-      Ticks ticks) {
+      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      Config config) {
     struct make_unique_enabler : public SealingImpl {
-      make_unique_enabler(std::shared_ptr<FullNodeApi> api,
-                          std::shared_ptr<Events> events,
-                          Address miner_address,
-                          std::shared_ptr<Counter> counter,
-                          std::shared_ptr<BufferMap> fsm_kv,
-                          std::shared_ptr<Manager> sealer,
-                          std::shared_ptr<PreCommitPolicy> policy,
-                          std::shared_ptr<boost::asio::io_context> context,
-                          Config config,
-                          Ticks ticks)
+      make_unique_enabler(
+          std::shared_ptr<FullNodeApi> api,
+          std::shared_ptr<Events> events,
+          Address miner_address,
+          std::shared_ptr<Counter> counter,
+          std::shared_ptr<BufferMap> fsm_kv,
+          std::shared_ptr<Manager> sealer,
+          std::shared_ptr<PreCommitPolicy> policy,
+          std::shared_ptr<boost::asio::io_context> context,
+          std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+          Config config)
           : SealingImpl{std::move(api),
                         std::move(events),
                         miner_address,
@@ -113,8 +111,8 @@ namespace fc::mining {
                         std::move(sealer),
                         std::move(policy),
                         std::move(context),
-                        std::move(config),
-                        std::move(ticks)} {};
+                        std::move(scheduler),
+                        std::move(config)} {};
     };
 
     std::shared_ptr<SealingImpl> sealing =
@@ -126,8 +124,8 @@ namespace fc::mining {
                                               sealer,
                                               policy,
                                               context,
-                                              config,
-                                              ticks);
+                                              scheduler,
+                                              config);
 
     OUTCOME_TRY(sealing->fsmLoad());
     if (config.wait_deals_delay == 0) {
@@ -1137,7 +1135,7 @@ namespace fc::mining {
           // TODO: cancel running and restart
           return outcome::success();
         },
-        types::kInteractivePoRepConfidence,
+        kInteractivePoRepConfidence,
         random_height);
 
     if (maybe_error.has_error()) {

@@ -36,9 +36,6 @@ namespace fc::markets::storage::test {
                                                    registered_proof,
                                                    false));
     waitForProviderDealStatus(proposal_cid,
-                              StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA);
-
-    waitForProviderDealStatus(proposal_cid,
                               StorageDealStatus::STORAGE_DEAL_ACTIVE);
     EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));
     EXPECT_EQ(provider_deal_state.state,
@@ -128,9 +125,6 @@ namespace fc::markets::storage::test {
                                                    collateral,
                                                    registered_proof,
                                                    false));
-    waitForProviderDealStatus(proposal_cid,
-                              StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA);
-
     waitForProviderDealStatus(proposal_cid,
                               StorageDealStatus::STORAGE_DEAL_ACTIVE);
     EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));

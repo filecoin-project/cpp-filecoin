@@ -7,15 +7,17 @@
 
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
+
 #include "codec/cbor/cbor.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/outcome_fmt.hpp"
 #include "common/ptr.hpp"
-#include "host/context/impl/host_context_impl.hpp"
 #include "markets/common.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
+#include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
-#include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
+#include "storage/car/car.hpp"
+#include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/message/message.hpp"
 
@@ -47,8 +49,8 @@
 
 namespace fc::markets::storage::client {
   using api::MsgWait;
-  using host::HostContext;
-  using host::HostContextImpl;
+  using ::fc::storage::car::loadCar;
+  using ::fc::storage::ipfs::InMemoryDatastore;
   using libp2p::peer::PeerId;
   using primitives::BigInt;
   using primitives::sector::RegisteredSealProof;
@@ -63,7 +65,7 @@ namespace fc::markets::storage::client {
   StorageMarketClientImpl::StorageMarketClientImpl(
       std::shared_ptr<Host> host,
       std::shared_ptr<boost::asio::io_context> context,
-      IpldPtr ipld,
+      std::shared_ptr<ImportManager> import_manager,
       std::shared_ptr<DataTransfer> datatransfer,
       std::shared_ptr<Discovery> discovery,
       std::shared_ptr<FullNodeApi> api,
@@ -73,7 +75,7 @@ namespace fc::markets::storage::client {
         api_{std::move(api)},
         piece_io_{std::move(piece_io)},
         discovery_{std::move(discovery)},
-        ipld{ipld},
+        import_manager_{import_manager},
         datatransfer_{std::move(datatransfer)} {}
 
   bool StorageMarketClientImpl::pollWaiting() {
@@ -140,9 +142,7 @@ namespace fc::markets::storage::client {
 
   outcome::result<void> StorageMarketClientImpl::init() {
     // init fsm transitions
-    std::shared_ptr<HostContext> fsm_context =
-        std::make_shared<HostContextImpl>(context_);
-    fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), fsm_context);
+    fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), *context_);
     return outcome::success();
   }
 
@@ -386,10 +386,12 @@ namespace fc::markets::storage::client {
       return StorageMarketClientError::kPieceDataNotSetManualTransfer;
     }
 
+    OUTCOME_EXCEPT(car_file, import_manager_->get(data_ref.root));
+
     // TODO (a.chernyshov) selector builder
     // https://github.com/filecoin-project/go-fil-markets/blob/master/storagemarket/impl/clientutils/clientutils.go#L31
-    return piece_io_->generatePieceCommitment(
-        registered_proof, data_ref.root, {});
+    return piece_io_->generatePieceCommitment(registered_proof,
+                                              car_file.string());
   }
 
   outcome::result<ClientDealProposal> StorageMarketClientImpl::signProposal(
@@ -631,13 +633,18 @@ namespace fc::markets::storage::client {
         return;
       }
 
+      auto ipld = std::make_shared<InMemoryDatastore>();
+      OUTCOME_EXCEPT(car_file, self->import_manager_->get(deal->data_ref.root));
+      OUTCOME_EXCEPT(roots, loadCar(*ipld, car_file.string()));
+
       OUTCOME_EXCEPT(
           voucher,
           codec::cbor::encode(StorageDataTransferVoucher{deal->proposal_cid}));
+
       self->datatransfer_->push(
           deal->miner,
           deal->data_ref.root,
-          self->ipld,
+          ipld,
           StorageDataTransferVoucherType,
           voucher,
           [](auto) {},

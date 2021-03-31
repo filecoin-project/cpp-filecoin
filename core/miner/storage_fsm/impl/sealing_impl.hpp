@@ -30,9 +30,8 @@ namespace fc::mining {
       Transition<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
   using StorageFSM =
       fsm::FSM<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
-  using libp2p::protocol::Scheduler;
-  using Ticks = libp2p::protocol::Scheduler::Ticks;
   using api::SectorPreCommitOnChainInfo;
+  using libp2p::protocol::Scheduler;
   using primitives::Counter;
   using primitives::tipset::TipsetKey;
   using storage::BufferMap;
@@ -59,14 +58,14 @@ namespace fc::mining {
     static outcome::result<std::shared_ptr<SealingImpl>> newSealing(
         std::shared_ptr<FullNodeApi> api,
         std::shared_ptr<Events> events,
-        Address miner_address,
+        const Address &miner_address,
         std::shared_ptr<Counter> counter,
         std::shared_ptr<BufferMap> fsm_kv,
         std::shared_ptr<Manager> sealer,
         std::shared_ptr<PreCommitPolicy> policy,
         std::shared_ptr<boost::asio::io_context> context,
-        Config config,
-        Ticks ticks = 50);
+        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+        Config config);
 
     outcome::result<void> fsmLoad();
     void fsmSave(const std::shared_ptr<SectorInfo> &info);
@@ -106,8 +105,8 @@ namespace fc::mining {
                 std::shared_ptr<Manager> sealer,
                 std::shared_ptr<PreCommitPolicy> policy,
                 std::shared_ptr<boost::asio::io_context> context,
-                Config config,
-                Ticks ticks);
+                std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+                Config config);
 
     struct SectorPaddingResponse {
       SectorNumber sector;
@@ -287,7 +286,7 @@ namespace fc::mining {
     std::shared_mutex upgrade_mutex_;
 
     /** State machine */
-    std::shared_ptr<boost::asio::io_context> context_;
+    std::shared_ptr<Scheduler> scheduler_;
     std::shared_ptr<StorageFSM> fsm_;
 
     std::shared_ptr<FullNodeApi> api_;
@@ -306,6 +305,5 @@ namespace fc::mining {
     std::shared_ptr<Manager> sealer_;
 
     Config config_;
-    std::shared_ptr<Scheduler> scheduler_;
   };
 }  // namespace fc::mining

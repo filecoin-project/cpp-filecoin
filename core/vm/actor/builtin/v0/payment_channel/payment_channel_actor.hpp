@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "const.hpp"
 #include "vm/actor/actor_method.hpp"
+#include "vm/actor/builtin/types/payment_channel/policy.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
@@ -14,10 +14,6 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   using primitives::EpochDuration;
   using primitives::address::Address;
   using types::payment_channel::SignedVoucher;
-
-  constexpr size_t kLaneLimit{INT64_MAX};
-  constexpr EpochDuration kSettleDelay{fc::kEpochsInHour * 12};
-  constexpr size_t kMaxSecretSize{256};
 
   struct Construct : ActorMethodBase<1> {
     struct Params {

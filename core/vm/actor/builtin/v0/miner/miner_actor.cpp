@@ -5,102 +5,14 @@
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
-#include <boost/endian/conversion.hpp>
-
-#include "vm/actor/builtin/v0/account/account_actor.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using toolchain::Toolchain;
   using namespace types::miner;
 
-  outcome::result<Address> resolveControlAddress(const Runtime &runtime,
-                                                 const Address &address) {
-    const auto resolved = runtime.resolveAddress(address);
-    OUTCOME_TRY(runtime.validateArgument(!resolved.has_error()));
-    VM_ASSERT(resolved.value().isId());
-    const auto resolved_code = runtime.getActorCodeID(resolved.value());
-    OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
-
-    const auto address_matcher =
-        Toolchain::createAddressMatcher(runtime.getActorVersion());
-    OUTCOME_TRY(runtime.validateArgument(
-        address_matcher->isSignableActor(resolved_code.value())));
-    return std::move(resolved.value());
-  }
-
-  outcome::result<Address> resolveWorkerAddress(Runtime &runtime,
-                                                const Address &address) {
-    const auto resolved = runtime.resolveAddress(address);
-    OUTCOME_TRY(runtime.validateArgument(!resolved.has_error()));
-    VM_ASSERT(resolved.value().isId());
-    const auto resolved_code = runtime.getActorCodeID(resolved.value());
-    OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
-    const auto address_matcher =
-        Toolchain::createAddressMatcher(runtime.getActorVersion());
-    OUTCOME_TRY(runtime.validateArgument(
-        resolved_code.value() == address_matcher->getAccountCodeId()));
-
-    if (!address.isBls()) {
-      const auto pubkey_addres =
-          runtime.sendM<account::PubkeyAddress>(resolved.value(), {}, 0);
-      OUTCOME_TRY(runtime.validateArgument(pubkey_addres.value().isBls()));
-    }
-
-    return std::move(resolved.value());
-  }
-
-  outcome::result<void> enrollCronEvent(Runtime &runtime,
-                                        ChainEpoch event_epoch,
-                                        const CronEventPayload &payload) {
-    const auto encoded_params = codec::cbor::encode(payload);
-    OUTCOME_TRY(runtime.validateArgument(!encoded_params.has_error()));
-    REQUIRE_SUCCESS(runtime.sendM<storage_power::EnrollCronEvent>(
-        kStoragePowerAddress, {event_epoch, encoded_params.value()}, 0));
-    return outcome::success();
-  }
-
-  outcome::result<ChainEpoch> Construct::assignProvingPeriodOffset(
-      Runtime &runtime, ChainEpoch current_epoch) {
-    OUTCOME_TRY(address_encoded,
-                codec::cbor::encode(runtime.getCurrentReceiver()));
-    address_encoded.putUint64(current_epoch);
-    OUTCOME_TRY(digest, runtime.hashBlake2b(address_encoded));
-    const uint64_t offset = boost::endian::load_big_u64(digest.data());
-    return offset % kWPoStProvingPeriod;
-  }
-
-  ChainEpoch Construct::nextProvingPeriodStart(ChainEpoch current_epoch,
-                                               ChainEpoch offset) {
-    const auto current_modulus = current_epoch % kWPoStProvingPeriod;
-    const ChainEpoch period_progress =
-        current_modulus >= offset
-            ? current_modulus - offset
-            : kWPoStProvingPeriod - (offset - current_modulus);
-    const ChainEpoch period_start =
-        current_epoch - period_progress + kWPoStProvingPeriod;
-    return period_start;
-  }
-
-  ACTOR_METHOD_IMPL(Construct) {
-    OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
-
-    // proof is supported
-    OUTCOME_TRY(
-        runtime.validateArgument(kSupportedProofs.find(params.seal_proof_type)
-                                 != kSupportedProofs.end()));
-    OUTCOME_TRY(owner, resolveControlAddress(runtime, params.owner));
-    OUTCOME_TRY(worker, resolveWorkerAddress(runtime, params.worker));
-    std::vector<Address> control_addresses;
-    for (const auto &control_address : params.control_addresses) {
-      OUTCOME_TRY(resolved, resolveControlAddress(runtime, control_address));
-      control_addresses.push_back(resolved);
-    }
-
-    auto state = runtime.stateManager()->createMinerActorState(
-        runtime.getActorVersion());
-
+  outcome::result<void> Construct::makeEmptyState(
+      const Runtime &runtime, states::MinerActorStatePtr state) {
     // Lotus gas conformance - flush empty hamt
     OUTCOME_TRY(state->precommitted_sectors.hamt.flush());
 
@@ -118,11 +30,42 @@ namespace fc::vm::actor::builtin::v0::miner {
     VestingFunds vesting_funds;
     OUTCOME_TRY(state->vesting_funds.set(vesting_funds));
 
+    // construct with empty already cid stored in ipld to avoid gas charge
+    state->sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid,
+                                                   runtime.getIpfsDatastore());
+
+    return outcome::success();
+  }
+
+  ACTOR_METHOD_IMPL(Construct) {
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
+
+    // proof is supported
+    OUTCOME_TRY(
+        runtime.validateArgument(kSupportedProofs.find(params.seal_proof_type)
+                                 != kSupportedProofs.end()));
+
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(owner, utils->resolveControlAddress(params.owner));
+    OUTCOME_TRY(worker, utils->resolveWorkerAddress(params.worker));
+    std::vector<Address> control_addresses;
+    for (const auto &control_address : params.control_addresses) {
+      OUTCOME_TRY(resolved, utils->resolveControlAddress(control_address));
+      control_addresses.push_back(resolved);
+    }
+
+    auto state = runtime.stateManager()->createMinerActorState(
+        runtime.getActorVersion());
+
+    OUTCOME_TRY(makeEmptyState(runtime, state));
+
     const auto current_epoch = runtime.getCurrentEpoch();
     REQUIRE_NO_ERROR_A(offset,
-                       assignProvingPeriodOffset(runtime, current_epoch),
+                       utils->assignProvingPeriodOffset(current_epoch),
                        VMExitCode::kErrSerialization);
-    const auto period_start = nextProvingPeriodStart(current_epoch, offset);
+    const auto period_start =
+        utils->nextProvingPeriodStart(current_epoch, offset);
     VM_ASSERT(period_start > current_epoch);
     state->proving_period_start = period_start;
 
@@ -137,14 +80,10 @@ namespace fc::vm::actor::builtin::v0::miner {
                        VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(state->setInfo(runtime.getIpfsDatastore(), miner_info));
 
-    // construct with empty already cid stored in ipld to avoid gas charge
-    state->sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid,
-                                                   runtime.getIpfsDatastore());
-
     OUTCOME_TRY(runtime.commitState(state));
 
-    OUTCOME_TRY(enrollCronEvent(
-        runtime, period_start - 1, {CronEventType::kProvingDeadline}));
+    OUTCOME_TRY(utils->enrollCronEvent(period_start - 1,
+                                       {CronEventType::kProvingDeadline}));
 
     return outcome::success();
   }
@@ -160,13 +99,69 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   ACTOR_METHOD_IMPL(ChangeWorkerAddress) {
-    // TODO (a.chernyshov) FIL-280 - implement
-    return VMExitCode::kNotImplemented;
+    ChainEpoch effective_epoch{};
+
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(new_worker, utils->resolveWorkerAddress(params.new_worker));
+
+    std::vector<Address> control_addresses;
+    for (const auto &address : params.new_control_addresses) {
+      OUTCOME_TRY(resolved, utils->resolveControlAddress(address));
+      control_addresses.emplace_back(resolved);
+    }
+
+    bool worker_changed = false;
+
+    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+    OUTCOME_TRY(miner_info, state->getInfo(runtime.getIpfsDatastore()));
+
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(miner_info.owner));
+
+    miner_info.control = control_addresses;
+
+    if (new_worker != miner_info.worker) {
+      worker_changed = true;
+      effective_epoch = runtime.getCurrentEpoch() + kWorkerKeyChangeDelay;
+
+      miner_info.pending_worker_key = WorkerKeyChange{
+          .new_worker = new_worker, .effective_at = effective_epoch};
+    }
+
+    REQUIRE_NO_ERROR(state->setInfo(runtime.getIpfsDatastore(), miner_info),
+                     VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(runtime.commitState(state));
+
+    if (worker_changed) {
+      const CronEventPayload cron_payload{.event_type =
+                                              CronEventType::kWorkerKeyChange};
+      OUTCOME_TRY(utils->enrollCronEvent(effective_epoch, cron_payload));
+    }
+
+    return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(ChangePeerId) {
-    // TODO (a.chernyshov) FIL-281 - implement
-    return VMExitCode::kNotImplemented;
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(utils->checkPeerInfo(params.new_id, {}));
+
+    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+
+    OUTCOME_TRY(miner_info, state->getInfo(runtime.getIpfsDatastore()));
+
+    auto callers = miner_info.control;
+    callers.emplace_back(miner_info.owner);
+    callers.emplace_back(miner_info.worker);
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
+
+    miner_info.peer_id = params.new_id;
+    REQUIRE_NO_ERROR(state->setInfo(runtime.getIpfsDatastore(), miner_info),
+                     VMExitCode::kErrIllegalState);
+
+    OUTCOME_TRY(runtime.commitState(state));
+
+    return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(SubmitWindowedPoSt) {

@@ -8,48 +8,25 @@
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
-  using libp2p::multi::Multiaddress;
-  using primitives::ChainEpoch;
   using primitives::TokenAmount;
-
-  outcome::result<void> checkControlAddresses(
-      const Runtime &runtime, const std::vector<Address> &control_addresses);
-
-  outcome::result<void> checkPeerInfo(
-      const Runtime &runtime,
-      const Buffer &peer_id,
-      const std::vector<Multiaddress> &multiaddresses);
 
   struct Construct : ActorMethodBase<1> {
     using Params = v0::miner::Construct::Params;
 
     ACTOR_METHOD_DECL();
-
-    /**
-     * Computes the epoch at which a proving period should start such that it is
-     * greater than the current epoch, and has a defined offset from being an
-     * exact multiple of WPoStProvingPeriod. A miner is exempt from Winow PoSt
-     * until the first full proving period starts.
-     */
-    static ChainEpoch currentProvingPeriodStart(ChainEpoch current_epoch,
-                                                ChainEpoch offset);
-
-    /**
-     * Computes the deadline index for the current epoch for a given period
-     * start. currEpoch must be within the proving period that starts at
-     * provingPeriodStart to produce a valid index.
-     */
-    static outcome::result<uint64_t> currentDeadlineIndex(
-        const Runtime &runtime,
-        const ChainEpoch &current_epoch,
-        const ChainEpoch &period_start);
   };
 
   using ControlAddresses = v0::miner::ControlAddresses;
 
-  // TODO implement
-  using ChangeWorkerAddress = v0::miner::ChangeWorkerAddress;
+  struct ChangeWorkerAddress : ActorMethodBase<3> {
+    using Params = v0::miner::ChangeWorkerAddress::Params;
+
+    ACTOR_METHOD_DECL();
+  };
+
   using ChangePeerId = v0::miner::ChangePeerId;
+
+  // TODO implement
   using SubmitWindowedPoSt = v0::miner::SubmitWindowedPoSt;
   using PreCommitSector = v0::miner::PreCommitSector;
   using ProveCommitSector = v0::miner::ProveCommitSector;

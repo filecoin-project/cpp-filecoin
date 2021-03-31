@@ -16,11 +16,8 @@
 namespace fc::vm::actor::builtin::types::reward {
   using common::math::kPrecision128;
   using BigFloat = boost::multiprecision::cpp_dec_float_100;
-
-  static constexpr uint kDaysInYear = 365;
-  static constexpr uint kEpochsInYear = kDaysInYear * kEpochsInDay;
-
   using Params = std::tuple<StoragePower, BigFloat>;
+
   struct RewardActorCalculusV0 : testing::TestWithParam<Params> {};
 
   /**
@@ -41,7 +38,8 @@ namespace fc::vm::actor::builtin::types::reward {
   StoragePower baselineInYears(const StoragePower &start,
                                const ChainEpoch &epoch) {
     auto baseline = start;
-    for (ChainEpoch i = 0; i < epoch * kEpochsInYear; ++i) {
+    for (ChainEpoch i = 0; i < static_cast<ChainEpoch>(epoch * kEpochsInYear);
+         ++i) {
       baseline = baselinePowerFromPrev(baseline, kBaselineExponentV0);
     }
     return baseline;
