@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
   using namespace fc;
   using primitives::tipset::Height;
 
-  vm::actor::cgo::configMainnet();
+  vm::actor::cgo::configParams();
   // mainnet genesis
   auto genesis_cid{
       CID::fromString(

@@ -157,8 +157,6 @@ namespace fc {
   }
 
   void main(node::Config &config) {
-    vm::actor::cgo::configMainnet();
-
     if (config.log_level <= spdlog::level::debug) {
       suppressVerboseLoggers();
     }
@@ -288,6 +286,8 @@ namespace fc {
     boost::asio::signal_set signals(*o.io_context, SIGINT, SIGTERM);
     signals.async_wait(
         [&](const boost::system::error_code &, int) { o.io_context->stop(); });
+
+    vm::actor::cgo::configParams();
 
     // run event loop
     o.io_context->run();
