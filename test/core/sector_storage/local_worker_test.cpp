@@ -212,6 +212,11 @@ namespace fc::sector_storage {
     ASSERT_TRUE(is_storage_clear);
   }
 
+  /**
+   * @given local worker
+   * @when when try to finalize sector without keep unsealed
+   * @then sector file is removed
+   */
   TEST_F(LocalWorkerTest, FinalizeSectorWithoutKeepUnsealed) {
     EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
 
@@ -266,6 +271,11 @@ namespace fc::sector_storage {
     ASSERT_TRUE(is_clear);
   }
 
+  /**
+   * @given local worker
+   * @when when try to finalize sector with keep unsealed
+   * @then sector file is keeped
+   */
   TEST_F(LocalWorkerTest, FinalizeSectorWithKeepUnsealed) {
     EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
 
@@ -378,6 +388,11 @@ namespace fc::sector_storage {
     EXPECT_OUTCOME_EQ(file->hasAllocated(0, ranges[0].size), true);
   }
 
+  /**
+   * @given local worker, sector
+   * @when when try to seal pre commit 1
+   * @then success
+   */
   TEST_F(LocalWorkerTest, SealPreCommit1) {
     SectorId sector{
         .miner = 42,
@@ -475,6 +490,11 @@ namespace fc::sector_storage {
     ASSERT_TRUE(is_storage_clear);
   }
 
+  /**
+   * @given local worker, sector, precommit1 output
+   * @when when try to seal pre commit 2
+   * @then success
+   */
   TEST_F(LocalWorkerTest, SealPreCommit2) {
     SectorId sector{
         .miner = 42,
@@ -537,6 +557,11 @@ namespace fc::sector_storage {
     ASSERT_TRUE(is_clear);
   }
 
+  /**
+   * @given local worker, sector, precommit2 output
+   * @when when try to seal commit 1
+   * @then success
+   */
   TEST_F(LocalWorkerTest, SealCommit1) {
     SectorId sector{
         .miner = 42,
@@ -621,6 +646,11 @@ namespace fc::sector_storage {
     ASSERT_TRUE(is_clear);
   }
 
+  /**
+   * @given local worker, sector, commit1 output
+   * @when when try to seal commit 2
+   * @then success
+   */
   TEST_F(LocalWorkerTest, SealCommit2) {
     SectorId sector{
         .miner = 42,
@@ -639,6 +669,11 @@ namespace fc::sector_storage {
     EXPECT_OUTCOME_TRUE_1(local_worker_->sealCommit2(sector, c1o));
   }
 
+  /**
+   * @given local worker, unsealed sector file
+   * @when when try to unseal already unsealed
+   * @then success, without unseal twice
+   */
   TEST_F(LocalWorkerTest, UnsealPieceAlreadyUnsealed) {
     EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
     PaddedPieceSize max_size(size);
@@ -709,6 +744,11 @@ namespace fc::sector_storage {
     ASSERT_TRUE(is_clear);
   }
 
+  /**
+   * @given local worker, unsealed sector file(empty)
+   * @when when try to unseal
+   * @then file is unsealed
+   */
   TEST_F(LocalWorkerTest, UnsealPieceAlreadyExistFile) {
     EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
     PaddedPieceSize max_size(size);
@@ -884,6 +924,11 @@ namespace fc::sector_storage {
     ASSERT_EQ(data, some_bytes);
   }
 
+  /**
+   * @given local worker
+   * @when when try to unseal
+   * @then file is created and unsealed
+   */
   TEST_F(LocalWorkerTest, UnsealPiece) {
     EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
     PaddedPieceSize max_size(size);
@@ -1071,6 +1116,11 @@ namespace fc::sector_storage {
     ASSERT_EQ(data, some_bytes);
   }
 
+  /**
+   * @given local worker, storage
+   * @when when try to move storage
+   * @then storage is moved
+   */
   TEST_F(LocalWorkerTest, MoveStorage) {
     SectorId sector{
         .miner = 42,
@@ -1088,6 +1138,11 @@ namespace fc::sector_storage {
     EXPECT_OUTCOME_TRUE_1(local_worker_->moveStorage(sector))
   }
 
+  /**
+   * @given local worker, sector in another storage
+   * @when when try to fetch
+   * @then file is fetched
+   */
   TEST_F(LocalWorkerTest, Fetch) {
     SectorId sector{
         .miner = 42,
@@ -1141,6 +1196,11 @@ namespace fc::sector_storage {
     ASSERT_TRUE(is_clear);
   }
 
+  /**
+   * @given local worker
+   * @when when try to read piece from not unsealed
+   * @then piece is unsealed and read
+   */
   TEST_F(LocalWorkerTest, readPieceNotExistFile) {
     EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
     PaddedPieceSize max_size(size);
@@ -1202,6 +1262,11 @@ namespace fc::sector_storage {
     ASSERT_TRUE(is_clear);
   }
 
+  /**
+   * @given local worker, unsealed file(without piece)
+   * @when when try to read not unsealed piece
+   * @then piece is unsealed and read
+   */
   TEST_F(LocalWorkerTest, readPieceNotAllocated) {
     EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
     PaddedPieceSize max_size(size);
@@ -1268,6 +1333,11 @@ namespace fc::sector_storage {
     ASSERT_TRUE(is_clear);
   }
 
+  /**
+   * @given local worker, unsealed file
+   * @when when try to read  piece
+   * @then piece is read
+   */
   TEST_F(LocalWorkerTest, readPiece) {
     EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
     PaddedPieceSize max_size(size);
@@ -1358,6 +1428,11 @@ namespace fc::sector_storage {
     ASSERT_EQ(data, some_bytes);
   }
 
+  /**
+   * @given local worker, unsealed file, piece
+   * @when when try to add piece more than max size
+   * @then WorkerErrors::kOutOfBound occurs
+   */
   TEST_F(LocalWorkerTest, AddPieceOutOfBound) {
     SectorId sector{
         .miner = 42,
@@ -1373,7 +1448,12 @@ namespace fc::sector_storage {
             sector, pieces, UnpaddedPieceSize(127), PieceData("/dev/null")));
   }
 
-  TEST_F(LocalWorkerTest, AddPieceWithoutPiece) {
+  /**
+   * @given local worker, unsealed file, piece
+   * @when when try to add piece without exist pieces
+   * @then file is created and piece is added
+   */
+  TEST_F(LocalWorkerTest, AddPieceWithoutExistPieces) {
     EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
     PaddedPieceSize max_size(size);
 
@@ -1469,7 +1549,12 @@ namespace fc::sector_storage {
               gsl::make_span<char>(data.data(), data.size()));
   }
 
-  TEST_F(LocalWorkerTest, AddPieceWithPieces) {
+  /**
+   * @given local worker, unsealed file, piece, exist pieces
+   * @when when try to add piece with exist pieces
+   * @then file is opened and piece is added
+   */
+  TEST_F(LocalWorkerTest, AddPieceWithExistPieces) {
     EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
     PaddedPieceSize max_size(size);
 

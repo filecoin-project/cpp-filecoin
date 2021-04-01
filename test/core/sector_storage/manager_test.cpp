@@ -104,6 +104,11 @@ namespace fc::sector_storage {
     std::shared_ptr<Manager> manager_;
   };
 
+  /**
+   * @given manager, sector
+   * @when when try to seal precommit 1
+   * @then success
+   */
   TEST_F(ManagerTest, SealPreCommit1) {
     SectorId sector{
         .miner = 42,
@@ -156,6 +161,11 @@ namespace fc::sector_storage {
                       result);
   }
 
+  /**
+   * @given manager, sector, output precommit1
+   * @when when try to seal precommit 2
+   * @then success
+   */
   TEST_F(ManagerTest, SealPreCommit2) {
     SectorId sector{
         .miner = 42,
@@ -197,6 +207,11 @@ namespace fc::sector_storage {
                       result_cids);
   }
 
+  /**
+   * @given manager, sector, output precommit2
+   * @when when try to seal commit 1
+   * @then success
+   */
   TEST_F(ManagerTest, SealCommit1) {
     SectorId sector{
         .miner = 42,
@@ -249,6 +264,11 @@ namespace fc::sector_storage {
         result);
   }
 
+  /**
+   * @given manager, sector, output commit1
+   * @when when try to seal commit 2
+   * @then success
+   */
   TEST_F(ManagerTest, SealCommit2) {
     SectorId sector{
         .miner = 42,
@@ -278,6 +298,11 @@ namespace fc::sector_storage {
         result);
   }
 
+  /**
+   * @given manager, sector
+   * @when when try to finalize
+   * @then success
+   */
   TEST_F(ManagerTest, FinalizeSector) {
     SectorId sector{
         .miner = 42,
@@ -344,6 +369,11 @@ namespace fc::sector_storage {
         manager_->finalizeSector(sector, keep_unsealed, kDefaultTaskPriority));
   }
 
+  /**
+   * @given manager, sector
+   * @when when try to remove
+   * @then success
+   */
   TEST_F(ManagerTest, Remove) {
     SectorId sector{
         .miner = 42,
@@ -386,6 +416,11 @@ namespace fc::sector_storage {
     EXPECT_OUTCOME_TRUE_1(manager_->remove(sector));
   }
 
+  /**
+   * @given manager, sector, piece
+   * @when when try to add piece
+   * @then success
+   */
   TEST_F(ManagerTest, AddPiece) {
     SectorId sector{
         .miner = 42,
@@ -432,6 +467,11 @@ namespace fc::sector_storage {
                       result);
   }
 
+  /**
+   * @given manager, sector, piece
+   * @when when try to read piece
+   * @then pieces are equal
+   */
   TEST_F(ManagerTest, ReadPiece) {
     SectorId sector{
         .miner = 42,
@@ -497,6 +537,11 @@ namespace fc::sector_storage {
         PieceData(fd), sector, offset, piece_size, randomness, cid));
   }
 
+  /**
+   * @given manager, sector, piece
+   * @when when try to add piece, but it is failed
+   * @then ManagerErrors::kCannotReadData occurs
+   */
   TEST_F(ManagerTest, ReadPieceFailed) {
     SectorId sector{
         .miner = 42,
@@ -564,6 +609,11 @@ namespace fc::sector_storage {
             PieceData(fd), sector, offset, piece_size, randomness, cid));
   }
 
+  /**
+   * @given manager
+   * @when when try to get fs stat
+   * @then success
+   */
   TEST_F(ManagerTest, GetFsStat) {
     StorageID storage = "storage-id";
 
@@ -579,6 +629,11 @@ namespace fc::sector_storage {
     EXPECT_OUTCOME_EQ(manager_->getFsStat(storage), stat);
   }
 
+  /**
+   * @given manager, proofs files
+   * @when when try to check provable
+   * @then success
+   */
   TEST_F(ManagerTest, CheckProvable) {
     EXPECT_OUTCOME_TRUE(ssize,
                         primitives::sector::getSectorSize(seal_proof_type_));
@@ -802,12 +857,22 @@ namespace fc::sector_storage {
                                               cannot_lock_sector));
   }
 
+  /**
+   * @given manager
+   * @when when try to get size
+   * @then success
+   */
   TEST_F(ManagerTest, GetSectorSize) {
     EXPECT_OUTCOME_TRUE(ssize,
                         primitives::sector::getSectorSize(seal_proof_type_));
     ASSERT_EQ(manager_->getSectorSize(), ssize);
   }
 
+  /**
+   * @given manager, invalid proof type
+   * @when when try to get size with invalid type
+   * @then 0 is getted
+   */
   TEST_F(ManagerTest, GetSectorSizeWrongProofType) {
     auto proof = static_cast<RegisteredSealProof>(-1);
 
@@ -827,6 +892,11 @@ namespace fc::sector_storage {
     ASSERT_EQ(manager->getSectorSize(), 0);
   }
 
+  /**
+   * @given manager
+   * @when when try to generate winning post
+   * @then success
+   */
   TEST_F(ManagerTest, GenerateWinningPoSt) {
     EXPECT_OUTCOME_TRUE(
         post_proof,
@@ -909,6 +979,11 @@ namespace fc::sector_storage {
         result)
   }
 
+  /**
+   * @given manager
+   * @when when try to generate winning post with skip sectors
+   * @then ManagerErrors::kSomeSectorSkipped occurs
+   */
   TEST_F(ManagerTest, GenerateWinningPoStWithSkip) {
     EXPECT_OUTCOME_TRUE(
         post_proof,
@@ -993,6 +1068,11 @@ namespace fc::sector_storage {
         manager_->generateWinningPoSt(miner_id, public_sectors, randomness))
   }
 
+  /**
+   * @given manager
+   * @when when try to generate window post
+   * @then success
+   */
   TEST_F(ManagerTest, GenerateWindowPoSt) {
     EXPECT_OUTCOME_TRUE(
         post_proof,
