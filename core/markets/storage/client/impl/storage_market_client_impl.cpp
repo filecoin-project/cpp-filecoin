@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage_market_client_impl.hpp"
+#include "markets/storage/client/impl/storage_market_client_impl.hpp"
 
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
@@ -104,6 +104,7 @@ namespace fc::markets::storage::client {
               FSM_SEND(deal, ClientEvent::ClientEventDealAccepted);
             } else if (state == StorageDealStatus::STORAGE_DEAL_FAILING
                        || state == StorageDealStatus::STORAGE_DEAL_ERROR) {
+              deal->message = res.state.message;
               FSM_SEND(deal, ClientEvent::ClientEventDealRejected);
             } else {
               std::lock_guard lock{waiting_mutex};

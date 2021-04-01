@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "provider_impl.hpp"
+#include "markets/storage/provider/impl/provider_impl.hpp"
 
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include "common/libp2p/peer/peer_info_helper.hpp"
@@ -49,7 +49,6 @@ namespace fc::markets::storage::provider {
   using vm::message::UnsignedMessage;
 
   StorageProviderImpl::StorageProviderImpl(
-      const RegisteredSealProof &registered_proof,
       std::shared_ptr<Host> host,
       IpldPtr ipld,
       std::shared_ptr<DataTransfer> datatransfer,
@@ -62,8 +61,7 @@ namespace fc::markets::storage::provider {
       const Address &miner_actor_address,
       std::shared_ptr<PieceIO> piece_io,
       std::shared_ptr<FileStore> filestore)
-      : registered_proof_{registered_proof},
-        host_{std::move(host)},
+      : host_{std::move(host)},
         context_{std::move(context)},
         stored_ask_{std::move(stored_ask)},
         api_{std::move(api)},
@@ -185,8 +183,9 @@ namespace fc::markets::storage::provider {
     if (unpadded.padded() != deal->client_deal_proposal.proposal.piece_size) {
       return StorageMarketProviderError::kPieceCIDDoesNotMatch;
     }
+    OUTCOME_TRY(registered_proof, api_->GetProofType(miner_actor_address_, {}));
     OUTCOME_TRY(piece_commitment,
-                piece_io_->generatePieceCommitment(registered_proof_, path));
+                piece_io_->generatePieceCommitment(registered_proof, path));
 
     if (piece_commitment.first
         != deal->client_deal_proposal.proposal.piece_cid) {
@@ -540,7 +539,14 @@ namespace fc::markets::storage::provider {
     FSM_HALT_ON_ERROR(
         sendSignedResponse(deal), "Error when sending response", deal);
 
-    FSM_SEND(deal, ProviderEvent::ProviderEventWaitingForManualData);
+    if (deal->ref.transfer_type == kTransferTypeManual) {
+      FSM_SEND(deal, ProviderEvent::ProviderEventWaitingForManualData);
+    } else if (deal->ref.transfer_type == kTransferTypeGraphsync) {
+      FSM_SEND(deal, ProviderEvent::ProviderEventDataTransferInitiated);
+    } else {
+      deal->message = "Wrong transfer type: '" + deal->ref.transfer_type + "'";
+      FSM_SEND(deal, ProviderEvent::ProviderEventFailed);
+    }
   }
 
   void StorageProviderImpl::onProviderEventWaitingForManualData(

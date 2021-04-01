@@ -40,6 +40,7 @@ namespace fc::api {
   using libp2p::peer::PeerId;
   using primitives::kChainEpochUndefined;
   using primitives::block::MsgMeta;
+  using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
   using primitives::tipset::Tipset;
   using vm::isVMExitCode;
   using vm::VMExitCode;
@@ -57,6 +58,7 @@ namespace fc::api {
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
   using vm::runtime::Env;
   using vm::state::StateTreeImpl;
+  using vm::version::getNetworkVersion;
 
   // TODO: reuse for block validation
   inline bool minerHasMinPower(const StoragePower &claim_qa,
@@ -739,12 +741,24 @@ namespace fc::api {
     api->StateNetworkVersion =
         [=](auto &tipset_key) -> outcome::result<NetworkVersion> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
-      return vm::version::getNetworkVersion(context.tipset->height());
+      return getNetworkVersion(context.tipset->height());
     };
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateMinerPreCommitDepositForPower = {};
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateMinerInitialPledgeCollateral = {};
+
+    api->GetProofType = [=](const Address &miner_address,
+                            const TipsetKey &tipset_key)
+        -> outcome::result<RegisteredSealProof> {
+      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(miner_state, context.minerState(miner_address));
+      OUTCOME_TRY(miner_info, miner_state->getInfo(ipld));
+      auto network_version = getNetworkVersion(context.tipset->height());
+      return getPreferredSealProofTypeFromWindowPoStType(
+          network_version, miner_info.window_post_proof_type);
+    };
+
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSectorPreCommitInfo = {};
     api->StateSectorGetInfo = {

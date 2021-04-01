@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_MARKETS_STORAGE_PROVIDER_PROVIDER_HPP
-#define CPP_FILECOIN_MARKETS_STORAGE_PROVIDER_PROVIDER_HPP
+#pragma once
 
 #include <libp2p/host/host.hpp>
 #include <mutex>
+
 #include "api/storage_api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
@@ -51,8 +51,7 @@ namespace fc::markets::storage::provider {
       : public StorageProvider,
         public std::enable_shared_from_this<StorageProviderImpl> {
    public:
-    StorageProviderImpl(const RegisteredSealProof &registered_proof,
-                        std::shared_ptr<Host> host,
+    StorageProviderImpl(std::shared_ptr<Host> host,
                         IpldPtr ipld,
                         std::shared_ptr<DataTransfer> datatransfer,
                         std::shared_ptr<StoredAsk> stored_ask,
@@ -348,8 +347,6 @@ namespace fc::markets::storage::provider {
       return true;
     };
 
-    RegisteredSealProof registered_proof_;
-
     // coonnection manager
     std::mutex connections_mutex_;
     std::map<CID, std::shared_ptr<CborStream>> connections_;
@@ -388,5 +385,3 @@ namespace fc::markets::storage::provider {
 
 OUTCOME_HPP_DECLARE_ERROR(fc::markets::storage::provider,
                           StorageMarketProviderError);
-
-#endif  // CPP_FILECOIN_MARKETS_STORAGE_PROVIDER_PROVIDER_HPP

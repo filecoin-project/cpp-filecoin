@@ -49,6 +49,7 @@ namespace fc::api {
   using primitives::block::BlockHeader;
   using primitives::block::BlockTemplate;
   using primitives::block::BlockWithCids;
+  using primitives::sector::RegisteredSealProof;
   using primitives::sector::SectorInfo;
   using primitives::tipset::HeadChange;
   using primitives::tipset::TipsetCPtr;
@@ -440,6 +441,18 @@ namespace fc::api {
                const Address &,
                const SectorPreCommitInfo &,
                const TipsetKey &);
+
+    /**
+     * Gets the current seal proof type for the given miner
+     * @param Address - miner address
+     * @param tipset
+     * @returns preferred registered seal proof type
+     */
+    API_METHOD(GetProofType,
+               RegisteredSealProof,
+               const Address &,
+               const TipsetKey &);
+
     API_METHOD(StateSectorPreCommitInfo,
                SectorPreCommitOnChainInfo,
                const Address &,

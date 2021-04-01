@@ -193,7 +193,6 @@ namespace fc::markets::storage::test {
       datatransfer = DataTransfer::make(host, graphsync);
 
       provider = makeProvider(*provider_multiaddress,
-                              registered_proof,
                               miner_worker_keypair,
                               bls_provider,
                               secp256k1_provider,
@@ -286,6 +285,12 @@ namespace fc::markets::storage::test {
                              .pending_owner_address = {}};
           }};
 
+      api->GetProofType = {
+          [this](auto &miner_address,
+                 auto &tipset_key) -> outcome::result<RegisteredSealProof> {
+            return registered_proof;
+          }};
+
       api->StateMarketBalance = {
           [this](auto &address,
                  auto &tipset_key) -> outcome::result<MarketBalance> {
@@ -325,7 +330,7 @@ namespace fc::markets::storage::test {
               this->messages[signed_message.getCid()] = signed_message;
               this->logger->debug("MpoolPushMessage: message committed "
                                   + signed_message.getCid().toString().value());
-              this->context_->post([this] { this->client->pollWaiting(); });
+              waitForDealsTerminalStatuses();
               return signed_message;
             };
             throw "MpoolPushMessage: Wrong from address parameter";
@@ -380,7 +385,6 @@ namespace fc::markets::storage::test {
 
     std::shared_ptr<StorageProviderImpl> makeProvider(
         const Multiaddress &provider_multiaddress,
-        const RegisteredSealProof &registered_proof,
         const BlsKeyPair &miner_worker_keypair,
         const std::shared_ptr<BlsProvider> &bls_provider,
         const std::shared_ptr<Secp256k1ProviderDefault> &secp256k1_provider,
@@ -399,7 +403,6 @@ namespace fc::markets::storage::test {
 
       std::shared_ptr<StorageProviderImpl> new_provider =
           std::make_shared<StorageProviderImpl>(
-              registered_proof,
               provider_host,
               ipld_provider,
               datatransfer,
@@ -503,6 +506,13 @@ namespace fc::markets::storage::test {
       }
     }
 
+    /**
+     * Awaits terminal statuses for all ongoing deals.
+     */
+    void waitForDealsTerminalStatuses() {
+      this->context_->post([this] { this->client->pollWaiting(); });
+    }
+
     common::Logger logger = common::createLogger("StorageMarketTest");
 
     std::shared_ptr<libp2p::Host> host;
@@ -524,9 +534,8 @@ namespace fc::markets::storage::test {
     std::shared_ptr<StorageProviderInfo> storage_provider_info;
     std::shared_ptr<DataTransfer> datatransfer;
     std::shared_ptr<ImportManager> import_manager;
-
     RegisteredSealProof registered_proof{
-        RegisteredSealProof::kStackedDrg32GiBV1};
+        RegisteredSealProof::kStackedDrg2KiBV1};
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<boost::asio::io_context> context_;
 

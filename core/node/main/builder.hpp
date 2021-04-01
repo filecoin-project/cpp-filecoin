@@ -81,7 +81,7 @@ namespace fc::node {
     std::shared_ptr<sync::SyncJob> sync_job;
     vm::runtime::EnvironmentContext env_context;
 
-    // storage market
+    // storage market client
     std::shared_ptr<DataTransfer> datatransfer;
     std::shared_ptr<ImportManager> storage_market_import_manager;
     std::shared_ptr<StorageMarketClient> storage_market_client;

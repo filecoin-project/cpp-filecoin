@@ -137,4 +137,43 @@ namespace fc::markets::storage::test {
     EXPECT_EQ(client_deal_state.state, StorageDealStatus::STORAGE_DEAL_ACTIVE);
   }
 
+  /**
+   * @given client sends deal with incorrect transfer type
+   * @when provider accepts deal and start deal data transfer
+   * @then error returned, deal isn't activated
+   */
+  TEST_F(StorageMarketTest, WrongTransferType) {
+    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
+    data_ref.transfer_type = "wrong_transfer_type";
+    ChainEpoch start_epoch{210};
+    ChainEpoch end_epoch{300};
+    TokenAmount client_price{20000};
+    TokenAmount collateral{10};
+    EXPECT_OUTCOME_TRUE(proposal_cid,
+                        client->proposeStorageDeal(client_id_address,
+                                                   *storage_provider_info,
+                                                   data_ref,
+                                                   start_epoch,
+                                                   end_epoch,
+                                                   client_price,
+                                                   collateral,
+                                                   registered_proof,
+                                                   false));
+
+    waitForProviderDealStatus(proposal_cid,
+                              StorageDealStatus::STORAGE_DEAL_ERROR);
+    EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));
+    EXPECT_EQ(provider_deal_state.state, StorageDealStatus::STORAGE_DEAL_ERROR);
+    EXPECT_EQ(provider_deal_state.message,
+              "Wrong transfer type: 'wrong_transfer_type'");
+
+    waitForDealsTerminalStatuses();
+    waitForClientDealStatus(proposal_cid,
+                            StorageDealStatus::STORAGE_DEAL_ERROR);
+    EXPECT_OUTCOME_TRUE(client_deal_state, client->getLocalDeal(proposal_cid));
+    EXPECT_EQ(client_deal_state.state, StorageDealStatus::STORAGE_DEAL_ERROR);
+    EXPECT_EQ(client_deal_state.message,
+              "Wrong transfer type: 'wrong_transfer_type'");
+  }
+
 }  // namespace fc::markets::storage::test

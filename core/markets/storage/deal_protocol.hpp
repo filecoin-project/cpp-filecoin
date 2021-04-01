@@ -60,7 +60,7 @@ namespace fc::markets::storage {
     STORAGE_DEAL_FAILING,
     // Internal
 
-    /** Deposited funds as neccesary to create a deal, ready to move forward */
+    /** Deposited funds as necessary to create a deal, ready to move forward */
     STORAGE_DEAL_FUNDS_ENSURED,
     STORAGE_DEAL_CHECK_FOR_ACCEPTANCE,
     /** Verifying that deal parameters are good */
