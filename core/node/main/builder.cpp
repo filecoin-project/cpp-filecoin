@@ -33,6 +33,7 @@
 #include "drand/impl/beaconizer.hpp"
 #include "markets/discovery/discovery.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
+#include "markets/storage/chain_events/impl/chain_events_impl.hpp"
 #include "markets/storage/client/impl/storage_market_client_impl.hpp"
 #include "node/blocksync_server.hpp"
 #include "node/chain_store_impl.hpp"
@@ -65,6 +66,7 @@
 namespace fc::node {
   using markets::discovery::Discovery;
   using markets::pieceio::PieceIOImpl;
+  using markets::storage::chain_events::ChainEventsImpl;
   using markets::storage::client::StorageMarketClientImpl;
   using markets::storage::client::import_manager::kImportsDir;
   using storage::InMemoryStorage;
@@ -446,6 +448,7 @@ namespace fc::node {
         std::make_shared<storage::MapPrefix>("storage_market_imports/",
                                              o.kv_store),
         kImportsDir);
+    o.chain_events = std::make_shared<ChainEventsImpl>(o.api);
     o.storage_market_client = std::make_shared<StorageMarketClientImpl>(
         o.host,
         o.io_context,
@@ -454,6 +457,7 @@ namespace fc::node {
         std::make_shared<Discovery>(
             std::make_shared<storage::MapPrefix>("discovery/", o.kv_store)),
         o.api,
+        o.chain_events,
         std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
     OUTCOME_TRY(o.storage_market_client->init());
 

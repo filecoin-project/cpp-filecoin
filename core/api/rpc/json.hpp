@@ -1584,6 +1584,18 @@ namespace fc::api {
       decode(v.is_car, Get(j, "IsCAR"));
     }
 
+    ENCODE(ImportRes) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Root", v.root);
+      Set(j, "ImportID", v.import_id);
+      return j;
+    }
+
+    DECODE(ImportRes) {
+      decode(v.root, Get(j, "Root"));
+      decode(v.import_id, Get(j, "ImportID"));
+    }
+
     ENCODE(RetrievalOrder) {
       Value j{rapidjson::kObjectType};
       Set(j, "Root", v.root);

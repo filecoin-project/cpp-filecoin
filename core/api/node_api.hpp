@@ -85,6 +85,20 @@ namespace fc::api {
     bool is_car;
   };
 
+  /**
+   * Client import response
+   */
+  struct ImportRes {
+    /** root CID of imported data */
+    CID root;
+
+    /**
+     * Storage id of multistorage in Lotus
+     * Not supported in Fuhon, returns 0
+     */
+    uint64_t import_id;
+  };
+
   struct RetrievalOrder {
     CID root;
     uint64_t size;
@@ -245,7 +259,7 @@ namespace fc::api {
      * must be a one single root CAR.
      * @return CID - root CID to the data
      */
-    API_METHOD(ClientImport, CID, const FileRef &)
+    API_METHOD(ClientImport, ImportRes, const FileRef &)
 
     /**
      * Lists imported files and their root CIDs
