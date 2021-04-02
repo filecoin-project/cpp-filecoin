@@ -15,6 +15,10 @@
 #include "storage/ipfs/ipfs_datastore_error.hpp"
 
 namespace fc::storage::cids_index {
+  inline bool read(std::istream &is, Row &row) {
+    return common::read(is, gsl::make_span(&row, 1));
+  }
+
   outcome::result<std::shared_ptr<Index>> load(const std::string &index_path) {
     auto index_size{boost::filesystem::file_size(index_path)};
     if (index_size % sizeof(Row) != 0) {
@@ -22,7 +26,7 @@ namespace fc::storage::cids_index {
     }
     std::ifstream index_file{index_path, std::ios::binary};
     Row header;
-    if (!common::read(index_file, gsl::make_span(&header, 1))) {
+    if (!read(index_file, header)) {
       return ERROR_TEXT("cids_index load: read header failed");
     }
     if (header != kHeaderV0) {
@@ -30,16 +34,16 @@ namespace fc::storage::cids_index {
     }
     index_file.seekg(-sizeof(Row), std::ios::end);
     Row trailer;
-    if (!common::read(index_file, gsl::make_span(&trailer, 1))) {
+    if (!read(index_file, trailer)) {
       return ERROR_TEXT("cids_index load: read trailer failed");
     }
     if (trailer != kTrailerV0) {
       return ERROR_TEXT("cids_index load: invalid trailer");
     }
 
-    index_file.seekg(0, std::ios::beg);
+    index_file.seekg(sizeof(Row));
     auto index{std::make_shared<MemoryIndex>()};
-    index->rows.resize(index_size / sizeof(Row));
+    index->rows.resize(index_size / sizeof(Row) - 2);
     if (!common::read(index_file, gsl::make_span(index->rows))) {
       return ERROR_TEXT("cids_index load: read rows failed");
     }
@@ -50,6 +54,7 @@ namespace fc::storage::cids_index {
                                                  const std::string &index_path,
                                                  IpldPtr ipld,
                                                  Progress *progress) {
+    auto write_error{ERROR_TEXT("cids_index create: write error")};
     boost::system::error_code ec;
     auto init_car_size{boost::filesystem::file_size(car_path, ec)};
     if (ec) {
@@ -83,7 +88,6 @@ namespace fc::storage::cids_index {
     std::vector<Row> rows;
     // estimated
     rows.reserve(init_car_size * 33 / 23520);
-    rows.push_back(kHeaderV0);
 
     Buffer item;
     while (offset < init_car_size) {
@@ -127,16 +131,23 @@ namespace fc::storage::cids_index {
       return ERROR_TEXT("cids_index create: invalid car");
     }
 
-    rows.push_back(kTrailerV0);
     if (progress) {
       progress->sort();
     }
-    std::sort(rows.begin() + 1, rows.end() - 1);
+    std::sort(rows.begin(), rows.end());
 
     auto tmp_index_path{index_path + ".tmp"};
-    OUTCOME_TRY(common::writeFile(
-        tmp_index_path,
-        common::span::cast<const uint8_t>(gsl::make_span(rows))));
+    std::ofstream index_file{tmp_index_path, std::ios::binary};
+    if (!common::write(index_file, gsl::make_span(&kHeaderV0, 1))) {
+      return write_error;
+    }
+    if (!common::write(index_file, gsl::make_span(rows))) {
+      return write_error;
+    }
+    if (!common::write(index_file, gsl::make_span(&kTrailerV0, 1))) {
+      return write_error;
+    }
+    index_file.close();
     boost::filesystem::rename(tmp_index_path, index_path, ec);
     if (ec) {
       return ec;
@@ -149,7 +160,7 @@ namespace fc::storage::cids_index {
 
   outcome::result<boost::optional<Row>> MemoryIndex::find(
       const Key &key) const {
-    auto it{std::lower_bound(rows.begin() + 1, rows.end() - 1, key)};
+    auto it{std::lower_bound(rows.begin(), rows.end(), key)};
     if (it != rows.end() && it->key == key) {
       if (it->max_size64.value() == 0) {
         return ERROR_TEXT("MemoryIndex.find: inconsistent");
@@ -160,7 +171,7 @@ namespace fc::storage::cids_index {
   }
 
   size_t MemoryIndex::size() const {
-    return rows.size() - 2;
+    return rows.size();
   }
 
   CidsIpld::CidsIpld(const std::string &car_path,

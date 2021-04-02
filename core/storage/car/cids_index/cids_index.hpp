@@ -19,9 +19,13 @@ namespace fc::storage::cids_index {
   constexpr std::array<uint8_t, 6> kCborBlakePrefix{
       0x01, 0x71, 0xA0, 0xE4, 0x02, 0x20};
 
+  constexpr size_t ceilDiv(size_t l, size_t r) {
+    return (l + r - 1) / r;
+  }
+
   /** max_size64 = ceil(size / 64) */
   constexpr size_t maxSize64(size_t size) {
-    return (size + 63) / 64;
+    return ceilDiv(size, 64);
   }
   /** size <= max_size64 * 64 */
   constexpr size_t maxSize(size_t max_size64) {
