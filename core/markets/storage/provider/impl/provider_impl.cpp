@@ -170,7 +170,8 @@ namespace fc::markets::storage::provider {
     // copy imported file
     OUTCOME_TRY(cid_str, deal->ref.root.toString());
     auto car_path = kStorageMarketImportDir / cid_str;
-    boost::filesystem::copy_file(
+    if (path != car_path)
+      boost::filesystem::copy_file(
         path, car_path, boost::filesystem::copy_option::overwrite_if_exists);
 
     auto unpadded{proofs::Proofs::padPiece(car_path)};
@@ -463,7 +464,7 @@ namespace fc::markets::storage::provider {
             .to(StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA)
             .action(CALLBACK_ACTION(onProviderEventWaitingForManualData)),
         ProviderTransition(ProviderEvent::ProviderEventDataTransferInitiated)
-            .from(StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA)
+            .from(StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED)
             .to(StorageDealStatus::STORAGE_DEAL_TRANSFERRING)
             .action(CALLBACK_ACTION(onProviderEventDataTransferInitiated)),
         ProviderTransition(ProviderEvent::ProviderEventDataTransferCompleted)
@@ -529,11 +530,12 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    deal->state = StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA;
+    deal->state = StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED;
     FSM_HALT_ON_ERROR(
         sendSignedResponse(deal), "Error when sending response", deal);
 
     if (deal->ref.transfer_type == kTransferTypeManual) {
+      deal->state = StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA;
       FSM_SEND(deal, ProviderEvent::ProviderEventWaitingForManualData);
     } else if (deal->ref.transfer_type == kTransferTypeGraphsync) {
       FSM_SEND(deal, ProviderEvent::ProviderEventDataTransferInitiated);

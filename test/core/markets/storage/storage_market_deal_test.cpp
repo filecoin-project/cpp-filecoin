@@ -174,4 +174,35 @@ namespace fc::markets::storage::test {
               "'wrong_transfer_type'");
   }
 
+  /**
+   * @given provider and client
+   * @when client send deal proposal, then send data in graphsync mode
+   * @then deal activated
+   */
+  TEST_F(StorageMarketTest, GraphsyncDatatransfer) {
+    EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _, _))
+        .WillOnce(testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
+
+    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
+    data_ref.transfer_type = kTransferTypeGraphsync;
+    ChainEpoch start_epoch{210};
+    ChainEpoch end_epoch{300};
+    TokenAmount client_price{20000};
+    TokenAmount collateral{10};
+    EXPECT_OUTCOME_TRUE(proposal_cid,
+                        client->proposeStorageDeal(client_id_address,
+                                                   *storage_provider_info,
+                                                   data_ref,
+                                                   start_epoch,
+                                                   end_epoch,
+                                                   client_price,
+                                                   collateral,
+                                                   registered_proof,
+                                                   false));
+    EXPECT_TRUE(waitForProviderDealStatus(
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_ACTIVE));
+    EXPECT_TRUE(waitForClientDealStatus(
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_ACTIVE));
+  }
+
 }  // namespace fc::markets::storage::test

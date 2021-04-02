@@ -629,7 +629,7 @@ namespace fc::markets::storage::client {
         return;
       }
       auto &res{response.value().response};
-      if (res.state != StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA) {
+      if (res.state != StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED) {
         deal->message = res.message;
         SELF_FSM_SEND(deal, ClientEvent::ClientEventDealRejected);
         return;
