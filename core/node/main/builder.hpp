@@ -24,6 +24,7 @@
 
 namespace fc::node {
   using data_transfer::DataTransfer;
+  using libp2p::protocol::Scheduler;
   using markets::storage::client::StorageMarketClient;
   using markets::storage::client::import_manager::ImportManager;
 
@@ -54,7 +55,7 @@ namespace fc::node {
 
     // libp2p + async base objects
     std::shared_ptr<boost::asio::io_context> io_context;
-    std::shared_ptr<libp2p::protocol::Scheduler> scheduler;
+    std::shared_ptr<Scheduler> scheduler;
     std::shared_ptr<sync::events::Events> events;
     std::shared_ptr<libp2p::Host> host;
 

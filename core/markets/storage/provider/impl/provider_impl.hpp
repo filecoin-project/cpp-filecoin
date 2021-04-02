@@ -28,7 +28,6 @@ namespace fc::markets::storage::provider {
   using chain_events::ChainEvents;
   using common::libp2p::CborStream;
   using fc::storage::filestore::FileStore;
-  using fc::storage::filestore::Path;
   using fc::storage::piece::PieceStorage;
   using libp2p::Host;
   using pieceio::PieceIO;
@@ -44,8 +43,6 @@ namespace fc::markets::storage::provider {
   using data_transfer::DataTransfer;
 
   const EpochDuration kDefaultDealAcceptanceBuffer{100};
-
-  const Path kFilestoreTempDir = "/tmp/fuhon/storage-market/";
 
   class StorageProviderImpl
       : public StorageProvider,
@@ -75,12 +72,8 @@ namespace fc::markets::storage::provider {
     auto getDeal(const CID &proposal_cid) const
         -> outcome::result<MinerDeal> override;
 
-    auto addStorageCollateral(const TokenAmount &amount)
-        -> outcome::result<void> override;
-
-    auto getStorageCollateral() -> outcome::result<TokenAmount> override;
-
-    auto importDataForDeal(const CID &proposal_cid, const std::string &path)
+    auto importDataForDeal(const CID &proposal_cid,
+                           const boost::filesystem::path &path)
         -> outcome::result<void> override;
 
     outcome::result<Signature> sign(const Buffer &input);

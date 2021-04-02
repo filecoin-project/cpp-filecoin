@@ -6,8 +6,8 @@
 #pragma once
 
 #include <libp2p/host/host.hpp>
-
 #include <mutex>
+
 #include "api/node_api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
@@ -26,16 +26,14 @@ namespace fc::markets::storage::client {
   using data_transfer::DataTransfer;
   using discovery::Discovery;
   using fsm::FSM;
+  using import_manager::ImportManager;
   using libp2p::Host;
   using pieceio::PieceIO;
-  using import_manager::ImportManager;
   using ClientTransition =
       fsm::Transition<ClientEvent, void, StorageDealStatus, ClientDeal>;
   using ClientFSM = fsm::FSM<ClientEvent, void, StorageDealStatus, ClientDeal>;
   using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
   using data_transfer::DataTransfer;
-
-  const Path kFilestoreTempDir = "/tmp/fuhon/storage-market/";
 
   class StorageMarketClientImpl
       : public StorageMarketClient,
@@ -49,15 +47,13 @@ namespace fc::markets::storage::client {
                             std::shared_ptr<FullNodeApi> api,
                             std::shared_ptr<PieceIO> piece_io);
 
-    bool pollWaiting();
-
-    void askDealStatus(std::shared_ptr<ClientDeal> deal);
-
     outcome::result<void> init() override;
 
     void run() override;
 
     outcome::result<void> stop() override;
+
+    bool pollWaiting() override;
 
     outcome::result<std::vector<StorageProviderInfo>> listProviders()
         const override;
@@ -91,6 +87,8 @@ namespace fc::markets::storage::client {
                                            const TokenAmount &amount) override;
 
    private:
+    void askDealStatus(std::shared_ptr<ClientDeal> deal);
+
     outcome::result<SignedStorageAsk> validateAskResponse(
         const outcome::result<AskResponse> &response,
         const StorageProviderInfo &info) const;

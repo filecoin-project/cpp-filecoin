@@ -13,7 +13,7 @@ namespace fc::markets::storage::test {
 
   /**
    * @given provider and client
-   * @when client send deal proposal, then send data
+   * @when client send deal proposal, then send data in manual mode
    * @then deal activated
    */
   TEST_F(StorageMarketTest, Deal) {
@@ -35,16 +35,18 @@ namespace fc::markets::storage::test {
                                                    collateral,
                                                    registered_proof,
                                                    false));
-    waitForProviderDealStatus(proposal_cid,
-                              StorageDealStatus::STORAGE_DEAL_ACTIVE);
-    EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));
-    EXPECT_EQ(provider_deal_state.state,
-              StorageDealStatus::STORAGE_DEAL_ACTIVE);
+    EXPECT_TRUE(waitForProviderDealStatus(
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA));
+    EXPECT_TRUE(waitForClientDealStatus(
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_TRANSFERRING));
 
-    waitForClientDealStatus(proposal_cid,
-                            StorageDealStatus::STORAGE_DEAL_ACTIVE);
-    EXPECT_OUTCOME_TRUE(client_deal_state, client->getLocalDeal(proposal_cid));
-    EXPECT_EQ(client_deal_state.state, StorageDealStatus::STORAGE_DEAL_ACTIVE);
+    EXPECT_OUTCOME_TRUE_1(
+        provider->importDataForDeal(proposal_cid, CAR_FROM_PAYLOAD_FILE));
+
+    EXPECT_TRUE(waitForProviderDealStatus(
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_ACTIVE));
+    EXPECT_TRUE(waitForClientDealStatus(
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_ACTIVE));
   }
 
   /**
@@ -75,15 +77,10 @@ namespace fc::markets::storage::test {
                                                    collateral,
                                                    registered_proof,
                                                    false));
-    waitForProviderDealStatus(proposal_cid,
-                              StorageDealStatus::STORAGE_DEAL_ERROR);
-    EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));
-    EXPECT_EQ(provider_deal_state.state, StorageDealStatus::STORAGE_DEAL_ERROR);
-
-    waitForClientDealStatus(proposal_cid,
-                            StorageDealStatus::STORAGE_DEAL_ERROR);
-    EXPECT_OUTCOME_TRUE(client_deal_state, client->getLocalDeal(proposal_cid));
-    EXPECT_EQ(client_deal_state.state, StorageDealStatus::STORAGE_DEAL_ERROR);
+    EXPECT_TRUE(waitForProviderDealStatus(
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_ERROR));
+    EXPECT_TRUE(waitForClientDealStatus(proposal_cid,
+                                        StorageDealStatus::STORAGE_DEAL_ERROR));
   }
 
   /**
@@ -125,16 +122,18 @@ namespace fc::markets::storage::test {
                                                    collateral,
                                                    registered_proof,
                                                    false));
-    waitForProviderDealStatus(proposal_cid,
-                              StorageDealStatus::STORAGE_DEAL_ACTIVE);
-    EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));
-    EXPECT_EQ(provider_deal_state.state,
-              StorageDealStatus::STORAGE_DEAL_ACTIVE);
+    EXPECT_TRUE(waitForProviderDealStatus(
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA));
+    EXPECT_TRUE(waitForClientDealStatus(
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_TRANSFERRING));
 
-    waitForClientDealStatus(proposal_cid,
-                            StorageDealStatus::STORAGE_DEAL_ACTIVE);
-    EXPECT_OUTCOME_TRUE(client_deal_state, client->getLocalDeal(proposal_cid));
-    EXPECT_EQ(client_deal_state.state, StorageDealStatus::STORAGE_DEAL_ACTIVE);
+    EXPECT_OUTCOME_TRUE_1(
+        provider->importDataForDeal(proposal_cid, CAR_FROM_PAYLOAD_FILE));
+
+    EXPECT_TRUE(waitForProviderDealStatus(
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_ACTIVE));
+    EXPECT_TRUE(waitForClientDealStatus(
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_ACTIVE));
   }
 
   /**
@@ -160,20 +159,19 @@ namespace fc::markets::storage::test {
                                                    registered_proof,
                                                    false));
 
-    waitForProviderDealStatus(proposal_cid,
-                              StorageDealStatus::STORAGE_DEAL_ERROR);
+    EXPECT_TRUE(waitForProviderDealStatus(
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_ERROR));
     EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));
-    EXPECT_EQ(provider_deal_state.state, StorageDealStatus::STORAGE_DEAL_ERROR);
     EXPECT_EQ(provider_deal_state.message,
               "Wrong transfer type: 'wrong_transfer_type'");
 
-    waitForDealsTerminalStatuses();
-    waitForClientDealStatus(proposal_cid,
-                            StorageDealStatus::STORAGE_DEAL_ERROR);
+    clientWaitsForProviderResponse();
+    EXPECT_TRUE(waitForClientDealStatus(proposal_cid,
+                                        StorageDealStatus::STORAGE_DEAL_ERROR));
     EXPECT_OUTCOME_TRUE(client_deal_state, client->getLocalDeal(proposal_cid));
-    EXPECT_EQ(client_deal_state.state, StorageDealStatus::STORAGE_DEAL_ERROR);
     EXPECT_EQ(client_deal_state.message,
-              "Wrong transfer type: 'wrong_transfer_type'");
+              "Got error deal status response: Wrong transfer type: "
+              "'wrong_transfer_type'");
   }
 
 }  // namespace fc::markets::storage::test

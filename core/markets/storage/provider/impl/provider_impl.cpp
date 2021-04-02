@@ -10,6 +10,7 @@
 #include "markets/storage/provider/storage_provider_error.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
+#include "markets/storage/types.hpp"
 #include "storage/car/car.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 
@@ -85,7 +86,8 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<void> StorageProviderImpl::init() {
-    OUTCOME_TRY(filestore_->createDirectories(kFilestoreTempDir));
+    OUTCOME_TRY(
+        filestore_->createDirectories(kStorageMarketImportDir.string()));
 
     serveAsk(*host_, stored_ask_);
 
@@ -151,49 +153,41 @@ namespace fc::markets::storage::provider {
     return StorageMarketProviderError::kLocalDealNotFound;
   }
 
-  outcome::result<void> StorageProviderImpl::addStorageCollateral(
-      const TokenAmount &amount) {
-    // TODO
-    return ERROR_TEXT(
-        "StorageProviderImpl::addStorageCollateral: not implemented");
-  }
-
-  outcome::result<TokenAmount> StorageProviderImpl::getStorageCollateral() {
-    // TODO
-    return ERROR_TEXT(
-        "StorageProviderImpl::getStorageCollateral: not implemented");
-  }
-
   outcome::result<void> StorageProviderImpl::importDataForDeal(
-      const CID &proposal_cid, const std::string &path) {
+      const CID &proposal_cid, const boost::filesystem::path &path) {
     auto fsm_state_table = fsm_->list();
     auto found_fsm_entity =
         std::find_if(fsm_state_table.begin(),
                      fsm_state_table.end(),
                      [proposal_cid](const auto &it) -> bool {
-                       if (it.first->proposal_cid == proposal_cid) return true;
-                       return false;
+                       return it.first->proposal_cid == proposal_cid;
                      });
     if (found_fsm_entity == fsm_state_table.end()) {
       return StorageMarketProviderError::kLocalDealNotFound;
     }
     auto deal = found_fsm_entity->first;
 
-    auto unpadded{proofs::Proofs::padPiece(path)};
+    // copy imported file
+    OUTCOME_TRY(cid_str, deal->ref.root.toString());
+    auto car_path = kStorageMarketImportDir / cid_str;
+    boost::filesystem::copy_file(
+        path, car_path, boost::filesystem::copy_option::overwrite_if_exists);
+
+    auto unpadded{proofs::Proofs::padPiece(car_path)};
     if (unpadded.padded() != deal->client_deal_proposal.proposal.piece_size) {
       return StorageMarketProviderError::kPieceCIDDoesNotMatch;
     }
     OUTCOME_TRY(registered_proof, api_->GetProofType(miner_actor_address_, {}));
     OUTCOME_TRY(piece_commitment,
-                piece_io_->generatePieceCommitment(registered_proof, path));
+                piece_io_->generatePieceCommitment(registered_proof, car_path));
 
     if (piece_commitment.first
         != deal->client_deal_proposal.proposal.piece_cid) {
       return StorageMarketProviderError::kPieceCIDDoesNotMatch;
     }
-    deal->piece_path = path;
+    deal->piece_path = car_path.string();
 
-    OUTCOME_TRY(fsm_->send(deal, ProviderEvent::ProviderEventVerifiedData, {}));
+    FSM_SEND(deal, ProviderEvent::ProviderEventVerifiedData);
     return outcome::success();
   }
 
@@ -603,23 +597,17 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // todo verify data
-    // pieceCid, piecePath, metadataPath = generatePieceCommitmentToFile
-    //  - if universalRetrievalEnabled GeneratePieceCommitmentWithMetadata
-    //    - generates a piece commitment along with block metadata
-    //  - else pio.GeneratePieceCommitmentToFile
-    // if compare pieceCid != deal.Proposal.PieceCID error
-    // else ok
-
-    auto _cid_str{deal->proposal_cid.toString()};
-    FSM_HALT_ON_ERROR(_cid_str, "CIDtoString", deal);
-    auto &cid_str{_cid_str.value()};
-    Path car_path = kFilestoreTempDir + cid_str;
-    auto _error{fc::storage::car::makeSelectiveCar(
-        *ipld_, {{deal->ref.root, Selector{}}}, car_path)};
-    FSM_HALT_ON_ERROR(_error, "makeSelectiveCar", deal);
-    auto _import{importDataForDeal(deal->proposal_cid, car_path)};
-    FSM_HALT_ON_ERROR(_import, "importDataForDeal", deal);
+    auto cid_str{deal->ref.root.toString()};
+    FSM_HALT_ON_ERROR(cid_str, "CIDtoString", deal);
+    auto car_path = kStorageMarketImportDir / cid_str.value();
+    FSM_HALT_ON_ERROR(
+        fc::storage::car::makeSelectiveCar(
+            *ipld_, {{deal->ref.root, Selector{}}}, car_path.string()),
+        "makeSelectiveCar",
+        deal);
+    FSM_HALT_ON_ERROR(importDataForDeal(deal->proposal_cid, car_path),
+                      "importDataForDeal",
+                      deal);
   }
 
   void StorageProviderImpl::onProviderEventVerifiedData(

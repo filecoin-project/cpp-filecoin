@@ -7,6 +7,7 @@
 
 #include "common/error_text.hpp"
 #include "common/file.hpp"
+#include "proofs/proofs.hpp"
 #include "storage/car/car.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/unixfs/unixfs.hpp"
@@ -19,6 +20,7 @@ namespace fc::markets::storage::client::import_manager {
   using ::fc::storage::car::makeCar;
   using ::fc::storage::ipfs::InMemoryDatastore;
   using ::fc::storage::unixfs::wrapFile;
+  using proofs::Proofs;
 
   ImportManager::ImportManager(
       std::shared_ptr<PersistentBufferMap> imports_storage,
@@ -41,6 +43,7 @@ namespace fc::markets::storage::client::import_manager {
       OUTCOME_TRY(car_path, makeFilename(root));
       boost::filesystem::copy_file(
           path, car_path, boost::filesystem::copy_option::overwrite_if_exists);
+      Proofs::padPiece(car_path);
     } else {
       // make CAR
       OUTCOME_TRY(data, readFile(path));
@@ -48,6 +51,7 @@ namespace fc::markets::storage::client::import_manager {
       OUTCOME_TRY(car_data, makeCar(ipld, {root}));
       OUTCOME_TRY(car_path, makeFilename(root));
       OUTCOME_TRY(writeFile(car_path, car_data));
+      Proofs::padPiece(car_path);
     }
     OUTCOME_TRY(addImported(root, path));
     return root;

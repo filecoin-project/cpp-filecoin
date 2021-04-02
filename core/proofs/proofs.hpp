@@ -6,7 +6,9 @@
 #ifndef CPP_FILECOIN_CORE_PROOFS_HPP
 #define CPP_FILECOIN_CORE_PROOFS_HPP
 
+#include <boost/filesystem/path.hpp>
 #include <vector>
+
 #include "common/blob.hpp"
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
@@ -276,7 +278,7 @@ namespace fc::proofs {
      */
     static outcome::result<Devices> getGPUDevices();
 
-    static UnpaddedPieceSize padPiece(const std::string &path);
+    static UnpaddedPieceSize padPiece(const boost::filesystem::path &path);
 
    private:
     static fc::common::Logger logger_;

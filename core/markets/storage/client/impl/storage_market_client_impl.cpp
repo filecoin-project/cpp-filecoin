@@ -104,7 +104,8 @@ namespace fc::markets::storage::client {
               FSM_SEND(deal, ClientEvent::ClientEventDealAccepted);
             } else if (state == StorageDealStatus::STORAGE_DEAL_FAILING
                        || state == StorageDealStatus::STORAGE_DEAL_ERROR) {
-              deal->message = res.state.message;
+              deal->message =
+                  "Got error deal status response: " + res.state.message;
               FSM_SEND(deal, ClientEvent::ClientEventDealRejected);
             } else {
               std::lock_guard lock{waiting_mutex};
@@ -633,6 +634,7 @@ namespace fc::markets::storage::client {
         SELF_FSM_SEND(deal, ClientEvent::ClientEventDealRejected);
         return;
       }
+      deal->state = StorageDealStatus::STORAGE_DEAL_TRANSFERRING;
 
       auto ipld = std::make_shared<InMemoryDatastore>();
       OUTCOME_EXCEPT(car_file, self->import_manager_->get(deal->data_ref.root));
@@ -642,17 +644,23 @@ namespace fc::markets::storage::client {
           voucher,
           codec::cbor::encode(StorageDataTransferVoucher{deal->proposal_cid}));
 
-      self->datatransfer_->push(
-          deal->miner,
-          deal->data_ref.root,
-          ipld,
-          StorageDataTransferVoucherType,
-          voucher,
-          [](auto) {},
-          [](auto) {});
+      // if manual, do nothing
+      if (deal->data_ref.transfer_type == kTransferTypeGraphsync) {
+        self->datatransfer_->push(
+            deal->miner,
+            deal->data_ref.root,
+            ipld,
+            StorageDataTransferVoucherType,
+            voucher,
+            [](auto) {},
+            [](auto) {});
+      }
 
       std::lock_guard lock{self->waiting_mutex};
       self->waiting_deals.push_back(deal);
+
+      // now wait for response in pollWaiting to check if deal is activated
+      // or rejected
     });
   }
 

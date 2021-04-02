@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_PROVIDER_IMPL_HPP
-#define CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_PROVIDER_IMPL_HPP
+#pragma once
 
 #include "api/node_api.hpp"
 #include "common/io_thread.hpp"
@@ -35,10 +34,7 @@ namespace fc::markets::retrieval::provider {
   using primitives::SectorNumber;
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedPieceSize;
-  using storage::Path;
   using GsResStatus = ::fc::storage::ipfs::graphsync::ResponseStatusCode;
-
-  const Path kFilestoreTempDir = "/tmp/fuhon/retrieval-market/";
 
   struct DealState {
     DealState(std::shared_ptr<Ipld> ipld,
@@ -139,5 +135,3 @@ namespace fc::markets::retrieval::provider {
     IoThread io_;
   };
 }  // namespace fc::markets::retrieval::provider
-
-#endif

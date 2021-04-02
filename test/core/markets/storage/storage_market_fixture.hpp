@@ -330,7 +330,7 @@ namespace fc::markets::storage::test {
               this->messages[signed_message.getCid()] = signed_message;
               this->logger->debug("MpoolPushMessage: message committed "
                                   + signed_message.getCid().toString().value());
-              waitForDealsTerminalStatuses();
+              clientWaitsForProviderResponse();
               return signed_message;
             };
             throw "MpoolPushMessage: Wrong from address parameter";
@@ -413,7 +413,7 @@ namespace fc::markets::storage::test {
               sector_blocks,
               chain_events,
               miner_actor_address,
-              std::make_shared<PieceIOImpl>(provider::kFilestoreTempDir),
+              std::make_shared<PieceIOImpl>(kStorageMarketImportDir),
               filestore);
       OUTCOME_EXCEPT(new_provider->init());
       return new_provider;
@@ -468,14 +468,18 @@ namespace fc::markets::storage::test {
      * Waits for deal state in provider
      * @param proposal_cid - proposal deal cid
      * @param state - desired state
+     * @returns true if expected state is met
      */
-    void waitForProviderDealStatus(const CID &proposal_cid,
+    bool waitForProviderDealStatus(const CID &proposal_cid,
                                    const StorageDealStatus &state) {
       for (int i = 0; i < kNumberOfWaitCycles; i++) {
         context_->run_for(kWaitTime);
         auto deal = provider->getDeal(proposal_cid);
-        if (deal.has_value() && deal.value().state == state) break;
+        if (deal.has_value() && deal.value().state == state) {
+          return true;
+        }
       }
+      return false;
     }
 
     /**
@@ -495,21 +499,30 @@ namespace fc::markets::storage::test {
     /**
      * Waits for deal state in client
      * @param proposal_cid - proposal deal cid
-     * @param state - desired state
+     * @param expected - desired state
+     * @returns true if expected state is met
      */
-    void waitForClientDealStatus(const CID &proposal_cid,
-                                 const StorageDealStatus &state) {
+    bool waitForClientDealStatus(const CID &proposal_cid,
+                                 const StorageDealStatus &expected) {
+      StorageDealStatus last_state;
       for (int i = 0; i < kNumberOfWaitCycles; i++) {
         context_->run_for(kWaitTime);
         auto deal = client->getLocalDeal(proposal_cid);
-        if (deal.has_value() && deal.value().state == state) break;
+        if (deal.has_value()) {
+          if (deal.value().state == expected) {
+            return true;
+          }
+          last_state = deal.value().state;
+        }
       }
+      EXPECT_EQ(last_state, expected) << "Deal status doesn't match expected";
+      return false;
     }
 
     /**
      * Awaits terminal statuses for all ongoing deals.
      */
-    void waitForDealsTerminalStatuses() {
+    void clientWaitsForProviderResponse() {
       this->context_->post([this] { this->client->pollWaiting(); });
     }
 

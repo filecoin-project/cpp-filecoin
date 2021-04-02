@@ -13,9 +13,6 @@
 namespace fc::markets::storage::client::import_manager {
   using ::fc::storage::PersistentBufferMap;
 
-  /** Where all imported CAR files are stored */
-  const boost::filesystem::path kImportsDir = "/tmp/fuhon/storage-market/";
-
   /**
    * Stores import information
    */
@@ -39,8 +36,8 @@ namespace fc::markets::storage::client::import_manager {
     /**
      * Imports data for deal
      * If file is not a CAR file, then methods creates CAR file from imported
-     * file. Imported CAR files are stored into 'kImportsDir' where CAR filename
-     * is root CID.
+     * file. Imported CAR files are stored into import directory where CAR
+     * filename is root CID.
      *
      * @param path - path to file with data
      * @param is_car - is it a car? If yes, it should contain single root,
