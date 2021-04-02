@@ -443,11 +443,10 @@ namespace fc::fsm {
                                resulting_state.get());  // destination state
         }
       } else {
-        // there were no rule for transition put event in queue in case it can
-        // be handled when initial state is changed
+        // There were no rule for transition. Put event in queue in case it can
+        // be handled when initial state is changed.
         std::lock_guard lock(event_queue_mutex_);
         event_queue_.push(event_pair);
-        tickAsync();
       }
     }
 
