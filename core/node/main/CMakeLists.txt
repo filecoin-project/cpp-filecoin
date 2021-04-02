@@ -14,6 +14,7 @@ target_link_libraries(node_builder
     Boost::random
     block_validator
     car
+    chain_events
     cids_index
     clock
     drand_beacon
