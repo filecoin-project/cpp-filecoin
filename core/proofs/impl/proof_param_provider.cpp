@@ -217,6 +217,7 @@ namespace fc::proofs {
     try {
       pt::read_json(path, tree);
     } catch (pt::json_parser_error &e) {
+      logger_->error("Cannot read '{}'. Got error '{}'", path, e.message());
       return ProofParamProviderError::kInvalidJSON;
     }
 

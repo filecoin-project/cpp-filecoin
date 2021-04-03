@@ -163,7 +163,7 @@ namespace fc {
   }
 
   void main(node::Config &config) {
-    vm::actor::cgo::configMainnet();
+    vm::actor::cgo::configParams();
 
     if (config.log_level <= spdlog::level::debug) {
       suppressVerboseLoggers();

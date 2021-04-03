@@ -386,7 +386,7 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
 
 TEST_P(TestVectors, Vector) {
   auto &mv{GetParam()};
-  fc::vm::actor::cgo::configMainnet();
+  fc::vm::actor::cgo::configParams();
 
   auto ipld{std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
   OUTCOME_EXCEPT(fc::storage::car::loadCar(*ipld, mv.car));

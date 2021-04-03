@@ -578,9 +578,10 @@ func cgoActorsInvoke(raw C.Raw) C.Raw {
 	return CborOut().int(int64(exit)).bytes(ret).ret()
 }
 
-//export cgoActorsConfigMainnet
-func cgoActorsConfigMainnet(C.Raw) C.Raw {
-	power1.ConsensusMinerMinPower = abi.NewStoragePower(10 << 40)
+//export cgoActorsConfigParams
+func cgoActorsConfigParams(raw C.Raw) C.Raw {
+    arg := cgoArgCbor(raw)
+	power1.ConsensusMinerMinPower = arg.big()
 	for _, x := range builtin2.SealProofPolicies {
 		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
 	}
