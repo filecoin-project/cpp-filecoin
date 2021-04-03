@@ -256,22 +256,30 @@ namespace fc::fsm {
     using ParametrizedEvent = std::pair<EventEnumType, EventContextPtr>;
     using EventQueueItem = std::pair<EntityPtr, ParametrizedEvent>;
     using ActionFunction = std::function<void(
-        std::shared_ptr<Entity> /* pointer to tracked entity */,
-        EventEnumType /* event that caused state transition */,
-        EventContextPtr /* pointer to event context to pass event's parameters
-                         */
-        ,
-        StateEnumType /* transition source state */,
-        StateEnumType /* transition destination state */)>;
+        /* pointer to tracked entity */
+        std::shared_ptr<Entity>,
+        /* event that caused state transition */
+        EventEnumType,
+        /* pointer to event context to pass event's parameters */
+        EventContextPtr,
+        /* transition source state */
+        StateEnumType,
+        /* transition destination state */
+        StateEnumType)>;
 
     /**
      * Creates a state machine
      * @param transition_rules - defines state transitions
      * @param io_context - async queue
+     * @param discard_event - discards event if it cannot be applied instantly.
+     * If set to false the event will be preserved in event queue.
      */
     FSM(std::vector<TransitionRule> transition_rules,
-        boost::asio::io_context &io_context)
-        : running_{std::make_shared<bool>(true)}, io_context_{io_context} {
+        boost::asio::io_context &io_context,
+        bool discard_event)
+        : running_{std::make_shared<bool>(true)},
+          io_context_{io_context},
+          discard_event_(discard_event) {
       initTransitions(std::move(transition_rules));
     }
 
@@ -442,9 +450,9 @@ namespace fc::fsm {
                                source_state,          // source state
                                resulting_state.get());  // destination state
         }
-      } else {
+      } else if (!discard_event_) {
         // There were no rule for transition. Put event in queue in case it can
-        // be handled when initial state is changed.
+        // be handled when 'from' state is changed.
         std::lock_guard lock(event_queue_mutex_);
         event_queue_.push(event_pair);
       }
@@ -465,5 +473,7 @@ namespace fc::fsm {
 
     /// optional callback called after any transition
     boost::optional<ActionFunction> any_change_cb_;
+
+    bool discard_event_;
   };
 }  // namespace fc::fsm

@@ -62,7 +62,7 @@ namespace fc::mining {
         fsm_kv_{std::move(fsm_kv)},
         miner_address_(miner_address),
         sealer_(std::move(sealer)) {
-    fsm_ = std::make_shared<StorageFSM>(makeFSMTransitions(), *context);
+    fsm_ = std::make_shared<StorageFSM>(makeFSMTransitions(), *context, true);
     fsm_->setAnyChangeAction(
         [this](auto info, auto event, auto context, auto from, auto to) {
           callbackHandle(info, event, context, from, to);
