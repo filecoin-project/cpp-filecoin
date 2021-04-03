@@ -13,7 +13,6 @@ target_link_libraries(storage_market_client
     blob
     data_transfer
     discovery
-    fuhon_fsm
     outcome
     logger
     piece
