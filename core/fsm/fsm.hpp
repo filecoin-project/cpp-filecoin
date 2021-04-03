@@ -15,7 +15,8 @@
 #include <unordered_map>
 #include <utility>
 
-#include "fsm/error.hpp"
+#include "common/error_text.hpp"
+#include "common/outcome.hpp"
 
 /**
  * The namespace is related to a generic implementation of a finite state
@@ -33,7 +34,7 @@ namespace fc::fsm {
   void postWithFlag(boost::asio::io_context &io,
                     std::weak_ptr<bool> flag,
                     F f) {
-    io.post([f{std::move(f)}, flag] {
+    io.post([f{std::move(f)}, flag{std::move(flag)}] {
       if (auto _flag{flag.lock()}; _flag && *_flag) {
         f();
       }
@@ -189,7 +190,8 @@ namespace fc::fsm {
      * @param from_state - transition source state
      * @param entity_ptr - a shared pointer to an entity. Required for being
      * able to apply transition callback over the entity.
-     * @return  returns a resulting state if there is a transition rule
+     * @return  returns a resulting state if there is a transition rule or
+     * boost::none if there is no transition rule for the current state
      */
     boost::optional<StateEnumType> dispatch(
         StateEnumType from_state,
@@ -288,7 +290,7 @@ namespace fc::fsm {
       std::unique_lock lock(states_mutex_);
       auto lookup = states_.find(entity_ptr);
       if (states_.end() != lookup) {
-        return FsmError::kEntityAlreadyBeingTracked;
+        return ERROR_TEXT("FSM is tracking the entity's state already");
       }
       states_.emplace(entity_ptr, initial_state);
       return outcome::success();
@@ -305,7 +307,7 @@ namespace fc::fsm {
       std::unique_lock lock(states_mutex_);
       auto lookup = states_.find(entity_ptr);
       if (states_.end() == lookup) {
-        return FsmError::kEntityNotTracked;
+        return ERROR_TEXT("Specified element was not tracked by FSM");
       }
       lookup->second = state;
       return outcome::success();
@@ -316,7 +318,7 @@ namespace fc::fsm {
                                EventEnumType event,
                                const EventContextPtr &event_context) {
       if (!*running_) {
-        return FsmError::kMachineStopped;
+        return ERROR_TEXT("FSM has been stopped. No more events get processed");
       }
       std::lock_guard lock(event_queue_mutex_);
       auto was_empty{event_queue_.empty()};
@@ -346,7 +348,7 @@ namespace fc::fsm {
       std::shared_lock lock(states_mutex_);
       auto lookup = states_.find(entity_pointer);
       if (states_.end() == lookup) {
-        return FsmError::kEntityNotTracked;
+        return ERROR_TEXT("Specified element was not tracked by FSM.");
       }
       return lookup->second;
     }
@@ -440,6 +442,11 @@ namespace fc::fsm {
                                source_state,          // source state
                                resulting_state.get());  // destination state
         }
+      } else {
+        // There were no rule for transition. Put event in queue in case it can
+        // be handled when initial state is changed.
+        std::lock_guard lock(event_queue_mutex_);
+        event_queue_.push(event_pair);
       }
     }
 

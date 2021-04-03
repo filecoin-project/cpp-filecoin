@@ -40,7 +40,6 @@ add_library(storage_fsm
         impl/checks.cpp
         )
 target_link_libraries(storage_fsm
-        fuhon_fsm
         logger
         address
         tipset
