@@ -69,6 +69,16 @@ namespace fc::storage::cids_index {
   static inline const Row kTrailerV0{
       {}, decltype(Row::offset){common::to_int(Meta::kTrailerV0)}, {}};
 
+  struct RowsInfo {
+    bool valid{true};
+    bool sorted{true};
+    size_t count{};
+    uint64_t max_offset{};
+    Key max_key;
+
+    void feed(const Row &row);
+  };
+
   struct Index {
     virtual ~Index() = default;
     virtual outcome::result<boost::optional<Row>> find(

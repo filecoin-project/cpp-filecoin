@@ -49,6 +49,17 @@ namespace fc::storage::cids_index {
     return size / sizeof(Row) - 2;
   }
 
+  void RowsInfo::feed(const Row &row) {
+    valid = valid && !row.isMeta();
+    if (valid) {
+      sorted = count == 0 || max_key < row.key;
+      valid = sorted;
+      ++count;
+      max_offset = std::max(max_offset, row.offset.value());
+      max_key = std::max(max_key, row.key);
+    }
+  }
+
   outcome::result<std::shared_ptr<Index>> load(const std::string &index_path) {
     std::ifstream index_file{index_path, std::ios::binary};
     auto index{std::make_shared<MemoryIndex>()};
