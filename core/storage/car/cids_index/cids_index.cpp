@@ -267,6 +267,32 @@ namespace fc::storage::cids_index {
     return sparse_range.total;
   }
 
+  outcome::result<std::shared_ptr<SparseIndex>> SparseIndex::load(
+      std::ifstream &&file, size_t max_keys) {
+    OUTCOME_TRY(count, checkIndex(file));
+    auto index{std::make_shared<SparseIndex>()};
+    index->sparse_range = {count, max_keys};
+    index->sparse_keys.resize(index->sparse_range.buckets);
+    RowsInfo info;
+    for (size_t i_sparse{0}, i_row{0}; i_sparse < index->sparse_range.buckets;
+         ++i_sparse) {
+      auto i_next{index->sparse_range.fromSparse(i_sparse)};
+      Row row;
+      do {
+        if (!read(file, row)) {
+          return ERROR_TEXT("SparseIndex::load: read row failed");
+        }
+        if (!info.feed(row).valid) {
+          return ERROR_TEXT("SparseIndex::load: invalid index");
+        }
+        ++i_row;
+      } while (i_row <= i_next);
+      index->sparse_keys[i_sparse] = row.key;
+    }
+    index->index_file = std::move(file);
+    return index;
+  }
+
   CidsIpld::CidsIpld(const std::string &car_path,
                      std::shared_ptr<Index> index,
                      IpldPtr ipld)

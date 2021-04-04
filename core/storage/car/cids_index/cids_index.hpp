@@ -112,6 +112,9 @@ namespace fc::storage::cids_index {
 
     outcome::result<boost::optional<Row>> find(const Key &key) const override;
     size_t size() const override;
+
+    static outcome::result<std::shared_ptr<SparseIndex>> load(
+        std::ifstream &&file, size_t max_keys);
   };
 
   // TODO(turuslan): sparse index when car is too big
