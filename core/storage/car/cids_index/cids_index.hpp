@@ -45,6 +45,10 @@ namespace fc::storage::cids_index {
     /** 24bit(+6bit) size, up to 1GB */
     /** size64=0 means this row is meta */
     boost::endian::big_uint24_buf_t max_size64;
+
+    inline bool isMeta() const {
+      return max_size64.value() == 0;
+    }
   };
   static_assert(sizeof(Row) == 40);
   inline bool operator==(const Row &l, const Row &r) {
@@ -74,6 +78,7 @@ namespace fc::storage::cids_index {
 
   struct MemoryIndex : Index {
     std::vector<Row> rows;
+
     outcome::result<boost::optional<Row>> find(const Key &key) const override;
     size_t size() const override;
   };

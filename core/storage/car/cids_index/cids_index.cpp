@@ -162,7 +162,7 @@ namespace fc::storage::cids_index {
       const Key &key) const {
     auto it{std::lower_bound(rows.begin(), rows.end(), key)};
     if (it != rows.end() && it->key == key) {
-      if (it->max_size64.value() == 0) {
+      if (it->isMeta()) {
         return ERROR_TEXT("MemoryIndex.find: inconsistent");
       }
       return *it;
