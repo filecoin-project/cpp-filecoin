@@ -208,6 +208,28 @@ namespace fc::storage::cids_index {
     return index;
   }
 
+  SparseRange::SparseRange(size_t total, size_t max_buckets) : total{total} {
+    if (total == 1) {
+      buckets = 1;
+      bucket_size = 1;
+    } else if (total != 0) {
+      buckets = std::clamp<size_t>(max_buckets, 2, total);
+      bucket_size = (total - 1) / (buckets - 1);
+      bucket_split = (total - 1) % (buckets - 1);
+    }
+  }
+
+  size_t SparseRange::fromSparse(size_t bucket) const {
+    assert(bucket_size != 0);
+    assert(buckets >= 1);
+    assert(buckets <= total);
+    assert(bucket < buckets);
+    if (bucket == buckets - 1) {
+      return total - 1;
+    }
+    return bucket * bucket_size + std::min(bucket, bucket_split);
+  }
+
   CidsIpld::CidsIpld(const std::string &car_path,
                      std::shared_ptr<Index> index,
                      IpldPtr ipld)

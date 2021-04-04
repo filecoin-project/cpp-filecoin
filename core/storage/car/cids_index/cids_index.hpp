@@ -96,6 +96,14 @@ namespace fc::storage::cids_index {
         std::ifstream &file);
   };
 
+  struct SparseRange {
+    size_t total{}, buckets{}, bucket_size{}, bucket_split{};
+
+    SparseRange() = default;
+    SparseRange(size_t total, size_t max_buckets);
+    size_t fromSparse(size_t bucket) const;
+  };
+
   // TODO(turuslan): sparse index when car is too big
   outcome::result<std::shared_ptr<Index>> load(const std::string &index_path);
 
