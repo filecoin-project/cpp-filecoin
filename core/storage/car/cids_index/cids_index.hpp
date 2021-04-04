@@ -76,7 +76,7 @@ namespace fc::storage::cids_index {
     uint64_t max_offset{};
     Key max_key;
 
-    void feed(const Row &row);
+    RowsInfo &feed(const Row &row);
   };
 
   struct Index {

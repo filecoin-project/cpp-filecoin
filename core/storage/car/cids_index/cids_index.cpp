@@ -49,7 +49,7 @@ namespace fc::storage::cids_index {
     return size / sizeof(Row) - 2;
   }
 
-  void RowsInfo::feed(const Row &row) {
+  RowsInfo &RowsInfo::feed(const Row &row) {
     valid = valid && !row.isMeta();
     if (valid) {
       sorted = count == 0 || max_key < row.key;
@@ -58,6 +58,7 @@ namespace fc::storage::cids_index {
       max_offset = std::max(max_offset, row.offset.value());
       max_key = std::max(max_key, row.key);
     }
+    return *this;
   }
 
   outcome::result<std::shared_ptr<Index>> load(const std::string &index_path) {
@@ -200,8 +201,7 @@ namespace fc::storage::cids_index {
     }
     RowsInfo info;
     for (auto &row : index->rows) {
-      info.feed(row);
-      if (!info.valid) {
+      if (!info.feed(row).valid) {
         return ERROR_TEXT("MemoryIndex::load: invalid index");
       }
     }
