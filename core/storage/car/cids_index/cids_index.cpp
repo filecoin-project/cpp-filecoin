@@ -19,31 +19,41 @@ namespace fc::storage::cids_index {
     return common::read(is, gsl::make_span(&row, 1));
   }
 
-  outcome::result<std::shared_ptr<Index>> load(const std::string &index_path) {
-    auto index_size{boost::filesystem::file_size(index_path)};
-    if (index_size % sizeof(Row) != 0) {
-      return ERROR_TEXT("cids_index load: invalid index file size");
+  outcome::result<size_t> checkIndex(std::ifstream &file) {
+    file.seekg(0, std::ios::end);
+    auto _size{file.tellg()};
+    if (_size < 0) {
+      return ERROR_TEXT("checkIndex: get file size failed");
     }
-    std::ifstream index_file{index_path, std::ios::binary};
+    auto size{(size_t)_size};
+    if (size % sizeof(Row) != 0) {
+      return ERROR_TEXT("checkIndex: invalid file size");
+    }
+    file.seekg(0);
     Row header;
-    if (!read(index_file, header)) {
-      return ERROR_TEXT("cids_index load: read header failed");
+    if (!read(file, header)) {
+      return ERROR_TEXT("checkIndex: read header failed");
     }
     if (header != kHeaderV0) {
-      return ERROR_TEXT("cids_index load: invalid header");
+      return ERROR_TEXT("checkIndex: invalid header");
     }
-    index_file.seekg(-sizeof(Row), std::ios::end);
+    file.seekg(-sizeof(Row), std::ios::end);
     Row trailer;
-    if (!read(index_file, trailer)) {
-      return ERROR_TEXT("cids_index load: read trailer failed");
+    if (!read(file, trailer)) {
+      return ERROR_TEXT("checkIndex: read trailer failed");
     }
     if (trailer != kTrailerV0) {
-      return ERROR_TEXT("cids_index load: invalid trailer");
+      return ERROR_TEXT("checkIndex: invalid trailer");
     }
+    file.seekg(sizeof(Row));
+    return size / sizeof(Row) - 2;
+  }
 
-    index_file.seekg(sizeof(Row));
+  outcome::result<std::shared_ptr<Index>> load(const std::string &index_path) {
+    std::ifstream index_file{index_path, std::ios::binary};
     auto index{std::make_shared<MemoryIndex>()};
-    index->rows.resize(index_size / sizeof(Row) - 2);
+    OUTCOME_TRY(count, checkIndex(index_file));
+    index->rows.resize(count);
     if (!common::read(index_file, gsl::make_span(index->rows))) {
       return ERROR_TEXT("cids_index load: read rows failed");
     }
