@@ -91,6 +91,9 @@ namespace fc::storage::cids_index {
 
     outcome::result<boost::optional<Row>> find(const Key &key) const override;
     size_t size() const override;
+
+    static outcome::result<std::shared_ptr<MemoryIndex>> load(
+        std::ifstream &file);
   };
 
   // TODO(turuslan): sparse index when car is too big

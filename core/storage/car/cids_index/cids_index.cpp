@@ -62,13 +62,8 @@ namespace fc::storage::cids_index {
 
   outcome::result<std::shared_ptr<Index>> load(const std::string &index_path) {
     std::ifstream index_file{index_path, std::ios::binary};
-    auto index{std::make_shared<MemoryIndex>()};
-    OUTCOME_TRY(count, checkIndex(index_file));
-    index->rows.resize(count);
-    if (!common::read(index_file, gsl::make_span(index->rows))) {
-      return ERROR_TEXT("cids_index load: read rows failed");
-    }
-    return index;
+    OUTCOME_TRY(index, MemoryIndex::load(index_file));
+    return std::move(index);
   }
 
   outcome::result<std::shared_ptr<Index>> create(const std::string &car_path,
@@ -193,6 +188,24 @@ namespace fc::storage::cids_index {
 
   size_t MemoryIndex::size() const {
     return rows.size();
+  }
+
+  outcome::result<std::shared_ptr<MemoryIndex>> MemoryIndex::load(
+      std::ifstream &file) {
+    OUTCOME_TRY(count, checkIndex(file));
+    auto index{std::make_shared<MemoryIndex>()};
+    index->rows.resize(count);
+    if (!common::read(file, gsl::make_span(index->rows))) {
+      return ERROR_TEXT("MemoryIndex::load: read rows failed");
+    }
+    RowsInfo info;
+    for (auto &row : index->rows) {
+      info.feed(row);
+      if (!info.valid) {
+        return ERROR_TEXT("MemoryIndex::load: invalid index");
+      }
+    }
+    return index;
   }
 
   CidsIpld::CidsIpld(const std::string &car_path,
