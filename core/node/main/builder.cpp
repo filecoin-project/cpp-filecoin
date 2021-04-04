@@ -170,7 +170,7 @@ namespace fc::node {
         exit(EXIT_FAILURE);
       }
       o.ipld_cids = storage::cids_index::loadOrCreateWithProgress(
-                        *config.snapshot, o.ipld, log())
+                        *config.snapshot, -1, o.ipld, log())
                         .value();
       o.ipld = o.ipld_cids;
       if (snapshot_cids.empty()) {

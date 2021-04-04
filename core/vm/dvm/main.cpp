@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     std::string car_path{argv[1]};
     auto ipld_mem{std::make_shared<storage::ipfs::InMemoryDatastore>()};
     if (auto _ipld{storage::cids_index::loadOrCreateWithProgress(
-            car_path, ipld_mem, nullptr)}) {
+            car_path, -1, ipld_mem, nullptr)}) {
       vm::runtime::EnvironmentContext envx;
       envx.ipld = _ipld.value();
       envx.ts_branches_mutex = std::make_shared<std::shared_mutex>();

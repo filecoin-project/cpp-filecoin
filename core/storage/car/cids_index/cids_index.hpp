@@ -69,6 +69,8 @@ namespace fc::storage::cids_index {
   static inline const Row kTrailerV0{
       {}, decltype(Row::offset){common::to_int(Meta::kTrailerV0)}, {}};
 
+  outcome::result<size_t> checkIndex(std::ifstream &file);
+
   struct RowsInfo {
     bool valid{true};
     bool sorted{true};
@@ -93,7 +95,7 @@ namespace fc::storage::cids_index {
     size_t size() const override;
 
     static outcome::result<std::shared_ptr<MemoryIndex>> load(
-        std::ifstream &file);
+        std::ifstream &file, size_t count);
   };
 
   struct SparseRange {
@@ -114,11 +116,11 @@ namespace fc::storage::cids_index {
     size_t size() const override;
 
     static outcome::result<std::shared_ptr<SparseIndex>> load(
-        std::ifstream &&file, size_t max_keys);
+        std::ifstream &&file, size_t count, size_t max_keys);
   };
 
-  // TODO(turuslan): sparse index when car is too big
-  outcome::result<std::shared_ptr<Index>> load(const std::string &index_path);
+  outcome::result<std::shared_ptr<Index>> load(const std::string &index_path,
+                                               size_t max_memory);
 
   struct Progress;
   // TODO(turuslan): tmp file and sparse index when car is too big

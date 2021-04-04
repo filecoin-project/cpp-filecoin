@@ -14,7 +14,10 @@
 
 namespace fc::storage::cids_index {
   inline outcome::result<std::shared_ptr<CidsIpld>> loadOrCreateWithProgress(
-      const std::string &car_path, IpldPtr ipld, common::Logger log) {
+      const std::string &car_path,
+      size_t max_memory,
+      IpldPtr ipld,
+      common::Logger log) {
     if (!log) {
       log = spdlog::default_logger();
     }
@@ -22,7 +25,7 @@ namespace fc::storage::cids_index {
     std::shared_ptr<Index> index;
     if (boost::filesystem::exists(cids_path)) {
       log->info("loading index");
-      if (auto _index{load(cids_path)}) {
+      if (auto _index{load(cids_path, max_memory)}) {
         index = _index.value();
         log->info("index loaded: {}", cids_path);
       } else {

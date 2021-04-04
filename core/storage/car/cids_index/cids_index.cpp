@@ -61,12 +61,6 @@ namespace fc::storage::cids_index {
     return *this;
   }
 
-  outcome::result<std::shared_ptr<Index>> load(const std::string &index_path) {
-    std::ifstream index_file{index_path, std::ios::binary};
-    OUTCOME_TRY(index, MemoryIndex::load(index_file));
-    return std::move(index);
-  }
-
   outcome::result<std::shared_ptr<Index>> create(const std::string &car_path,
                                                  const std::string &index_path,
                                                  IpldPtr ipld,
@@ -192,8 +186,7 @@ namespace fc::storage::cids_index {
   }
 
   outcome::result<std::shared_ptr<MemoryIndex>> MemoryIndex::load(
-      std::ifstream &file) {
-    OUTCOME_TRY(count, checkIndex(file));
+      std::ifstream &file, size_t count) {
     auto index{std::make_shared<MemoryIndex>()};
     index->rows.resize(count);
     if (!common::read(file, gsl::make_span(index->rows))) {
@@ -268,8 +261,7 @@ namespace fc::storage::cids_index {
   }
 
   outcome::result<std::shared_ptr<SparseIndex>> SparseIndex::load(
-      std::ifstream &&file, size_t max_keys) {
-    OUTCOME_TRY(count, checkIndex(file));
+      std::ifstream &&file, size_t count, size_t max_keys) {
     auto index{std::make_shared<SparseIndex>()};
     index->sparse_range = {count, max_keys};
     index->sparse_keys.resize(index->sparse_range.buckets);
@@ -291,6 +283,22 @@ namespace fc::storage::cids_index {
     }
     index->index_file = std::move(file);
     return index;
+  }
+
+  outcome::result<std::shared_ptr<Index>> load(const std::string &index_path,
+                                               size_t max_memory) {
+    std::ifstream index_file{index_path, std::ios::binary};
+    // estimated
+    index_file.rdbuf()->pubsetbuf(nullptr, 64 << 10);
+    OUTCOME_TRY(count, checkIndex(index_file));
+    if (count * sizeof(Row) > max_memory) {
+      OUTCOME_TRY(index,
+                  SparseIndex::load(
+                      std::move(index_file), count, max_memory / sizeof(Key)));
+      return std::move(index);
+    }
+    OUTCOME_TRY(index, MemoryIndex::load(index_file, count));
+    return std::move(index);
   }
 
   CidsIpld::CidsIpld(const std::string &car_path,
