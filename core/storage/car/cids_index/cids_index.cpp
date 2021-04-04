@@ -230,6 +230,43 @@ namespace fc::storage::cids_index {
     return bucket * bucket_size + std::min(bucket, bucket_split);
   }
 
+  outcome::result<boost::optional<Row>> SparseIndex::find(
+      const Key &key) const {
+    if (sparse_keys.empty() || key < sparse_keys[0]) {
+      return boost::none;
+    }
+    auto it{std::lower_bound(sparse_keys.begin(), sparse_keys.end(), key)};
+    if (it == sparse_keys.end()) {
+      return boost::none;
+    }
+    auto i_sparse{it - sparse_keys.begin()};
+    auto i_end{sparse_range.fromSparse(i_sparse)};
+    auto i_begin{i_end};
+    if (*it != key) {
+      i_begin = sparse_range.fromSparse(i_sparse - 1) + 1;
+      --i_end;
+    }
+    std::unique_lock lock{mutex};
+    index_file.seekg((1 + i_begin) * sizeof(Row));
+    for (auto i{i_begin}; i <= i_end; ++i) {
+      Row row;
+      if (!read(index_file, row)) {
+        return ERROR_TEXT("SparseIndex.find: read error");
+      }
+      if (row.isMeta()) {
+        return ERROR_TEXT("SparseIndex.find: inconsistent");
+      }
+      if (row.key == key) {
+        return row;
+      }
+    }
+    return boost::none;
+  }
+
+  size_t SparseIndex::size() const {
+    return sparse_range.total;
+  }
+
   CidsIpld::CidsIpld(const std::string &car_path,
                      std::shared_ptr<Index> index,
                      IpldPtr ipld)

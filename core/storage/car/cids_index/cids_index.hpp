@@ -104,6 +104,16 @@ namespace fc::storage::cids_index {
     size_t fromSparse(size_t bucket) const;
   };
 
+  struct SparseIndex : Index {
+    mutable std::mutex mutex;
+    mutable std::ifstream index_file;
+    SparseRange sparse_range;
+    std::vector<Key> sparse_keys;
+
+    outcome::result<boost::optional<Row>> find(const Key &key) const override;
+    size_t size() const override;
+  };
+
   // TODO(turuslan): sparse index when car is too big
   outcome::result<std::shared_ptr<Index>> load(const std::string &index_path);
 
