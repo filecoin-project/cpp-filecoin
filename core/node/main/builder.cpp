@@ -169,6 +169,7 @@ namespace fc::node {
         log()->error("another snapshot already imported");
         exit(EXIT_FAILURE);
       }
+      // TODO(turuslan): max memory
       o.ipld_cids = storage::cids_index::loadOrCreateWithProgress(
                         *config.snapshot, -1, o.ipld, log())
                         .value();

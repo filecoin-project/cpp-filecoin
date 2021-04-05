@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
   if (argc > 1) {
     std::string car_path{argv[1]};
     auto ipld_mem{std::make_shared<storage::ipfs::InMemoryDatastore>()};
+    // TODO(turuslan): max memory
     if (auto _ipld{storage::cids_index::loadOrCreateWithProgress(
             car_path, -1, ipld_mem, nullptr)}) {
       vm::runtime::EnvironmentContext envx;
