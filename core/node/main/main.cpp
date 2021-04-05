@@ -60,9 +60,9 @@ namespace fc {
 
   void startApi(const node::Config &config, NodeObjects &node_objects) {
     // Network API
-    auto peer_info = node_objects.host->getPeerInfo();
     PeerInfo api_peer_info{
-        peer_info.id, nonZeroAddrs(peer_info.addresses, &config.localIp())};
+        node_objects.host->getPeerInfo().id,
+        nonZeroAddrs(node_objects.host->getAddresses(), &config.localIp())};
     node_objects.api->NetAddrsListen = [api_peer_info] {
       return api_peer_info;
     };
