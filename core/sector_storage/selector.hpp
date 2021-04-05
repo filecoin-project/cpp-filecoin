@@ -14,6 +14,7 @@
 
 namespace fc::sector_storage {
   using primitives::ActiveResources;
+  using primitives::sector::RegisteredSealProof;
   using primitives::TaskType;
 
   struct WorkerHandle {

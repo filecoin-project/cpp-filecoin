@@ -9,17 +9,24 @@
 
 namespace fc::mining {
 
-  EventsImpl::EventsImpl(std::shared_ptr<FullNodeApi> api,
-                         std::shared_ptr<TipsetCache> tipset_cache)
-      : api_{std::move(api)},
-        global_id_(0),
-        tipset_cache_(std::move(tipset_cache)) {}
+  EventsImpl::EventsImpl(std::shared_ptr<TipsetCache> tipset_cache)
+      : global_id_(0), tipset_cache_(std::move(tipset_cache)) {}
 
-  outcome::result<void> EventsImpl::subscribeHeadChanges() {
-    OUTCOME_TRY(chan, api_->ChainNotify());
-    channel_ = chan.channel;
-    channel_->read(
-        [self_weak{weak_from_this()}](
+  outcome::result<std::shared_ptr<EventsImpl>> EventsImpl::createEvents(
+      const std::shared_ptr<FullNodeApi> &api,
+      std::shared_ptr<TipsetCache> tipset_cache) {
+    struct make_unique_enabler : public EventsImpl {
+      make_unique_enabler(std::shared_ptr<TipsetCache> tipset_cache)
+          : EventsImpl{std::move(tipset_cache)} {};
+    };
+
+    std::shared_ptr<EventsImpl> events =
+        std::make_unique<make_unique_enabler>(std::move(tipset_cache));
+
+    OUTCOME_TRY(chan, api->ChainNotify());
+    events->channel_ = chan.channel;
+    events->channel_->read(
+        [self_weak{events->weak_from_this()}](
             boost::optional<std::vector<HeadChange>> changes) -> bool {
           if (auto self = self_weak.lock()) {
             if (changes) {
@@ -32,11 +39,7 @@ namespace fc::mining {
           return false;
         });
 
-    return outcome::success();
-  }
-
-  void EventsImpl::unsubscribeHeadChanges() {
-    channel_ = nullptr;
+    return events;
   }
 
   outcome::result<void> EventsImpl::chainAt(HeightHandler handler,
@@ -46,6 +49,7 @@ namespace fc::mining {
     std::unique_lock<std::mutex> lock(mutex_);
     auto best_tipset = tipset_cache_->best();
 
+    // TODO(ortyomka): [FIL-370] should be updated after update TipSetCache
     if (!best_tipset) {
       return EventsError::kNotFoundTipset;
     }
@@ -62,18 +66,20 @@ namespace fc::mining {
       lock.lock();
       best_tipset = tipset_cache_->best();
 
+      // TODO(ortyomka): [FIL-370] should be updated after update TipSetCache
       if (!best_tipset) {
         return EventsError::kNotFoundTipset;
       }
       best_height = best_tipset->height();
-    }
 
-    if (best_height >= height + confidence + kGlobalChainConfidence) {
-      return outcome::success();
+      if (best_height >= height + confidence + kGlobalChainConfidence) {
+        return outcome::success();
+      }
     }
 
     ChainEpoch trigger_at = height + confidence;
 
+    // TODO: maybe overflow
     uint64_t id = global_id_++;
 
     height_triggers_[id] = HeightHandle{
@@ -163,34 +169,10 @@ namespace fc::mining {
     if (change.type == HeadChangeType::REVERT) {
       std::unique_lock<std::mutex> lock(mutex_);
 
-      auto best_tipset = tipset_cache_->best();
-
-      if (!best_tipset) {
-        logger_->error("Cache is empty");
-        return false;
-      }
-
-      ChainEpoch best_height = best_tipset->height();
+      // TODO (ortyomka):[FIL-371] log error if h below gcconfidence
+      // revert height-based triggers
 
       auto revert = [&](ChainEpoch height, const Tipset &tipset) {
-        if (best_height >= height + kGlobalChainConfidence) {
-          logger_->warn("Tipset is deprecated");
-          for (const auto tid : message_height_to_trigger_[height]) {
-            auto &trigger{height_triggers_.at(tid)};
-            auto id = height + trigger.confidence;
-            auto maybe_error = trigger.revert(tipset);
-            if (maybe_error.has_error()) {
-              logger_->error("Revert tipset (height {}) is failed: {}",
-                             tipset.height(),
-                             maybe_error.has_error());
-            }
-            height_to_trigger_[id].erase(tid);
-            height_triggers_.erase(tid);
-          }
-          message_height_to_trigger_.erase(height);
-          return;
-        }
-
         for (const auto tid : message_height_to_trigger_[height]) {
           auto &revert_handle{height_triggers_[tid].revert};
           lock.unlock();
@@ -202,15 +184,6 @@ namespace fc::mining {
             logger_->error("Revert handler is failed: {}",
                            maybe_error.error().message());
           }
-
-          auto best_tipset = tipset_cache_->best();
-
-          if (!best_tipset) {
-            logger_->error("Cache is empty");
-            return;
-          }
-
-          best_height = best_tipset->height();
         }
       };
 
@@ -246,6 +219,10 @@ namespace fc::mining {
     }
 
     return true;
+  }
+
+  EventsImpl::~EventsImpl() {
+    channel_ = nullptr;
   }
 
 }  // namespace fc::mining

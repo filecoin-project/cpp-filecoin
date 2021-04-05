@@ -8,7 +8,7 @@
 #include "codec/cbor/cbor.hpp"
 #include "const.hpp"
 #include "primitives/tipset/chain.hpp"
-#include "proofs/proofs.hpp"
+#include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
@@ -31,7 +31,8 @@ namespace fc::vm::runtime {
         message_{std::move(message)},
         caller_id{caller_id},
         state_manager(std::make_shared<StateManagerImpl>(
-            execution_->charging_ipld, execution_->state_tree, message_.to)) {}
+            execution_->charging_ipld, execution_->state_tree, message_.to)),
+        proofs_(std::make_shared<proofs::ProofEngineImpl>()) {}
 
   std::shared_ptr<Execution> RuntimeImpl::execution() const {
     return execution_;
@@ -249,7 +250,7 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onVerifyPost(info)));
     WindowPoStVerifyInfo preprocess_info = info;
     preprocess_info.randomness[31] &= 0x3f;
-    return proofs::Proofs::verifyWindowPoSt(preprocess_info);
+    return proofs_->verifyWindowPoSt(preprocess_info);
   }
 
   outcome::result<BatchSealsOut> RuntimeImpl::batchVerifySeals(
@@ -260,7 +261,7 @@ namespace fc::vm::runtime {
       successful.reserve(seals.size());
       std::set<SectorNumber> seen;
       for (auto &seal : seals) {
-        auto verified{proofs::Proofs::verifySeal(seal)};
+        auto verified{proofs_->verifySeal(seal)};
         if (verified && verified.value()
             && seen.insert(seal.sector.sector).second) {
           successful.push_back(seal.sector.sector);
@@ -275,7 +276,7 @@ namespace fc::vm::runtime {
       RegisteredSealProof type, const std::vector<PieceInfo> &pieces) {
     OUTCOME_TRY(
         chargeGas(execution_->env->pricelist.onComputeUnsealedSectorCid()));
-    return proofs::Proofs::generateUnsealedCID(type, pieces, true);
+    return proofs_->generateUnsealedCID(type, pieces, true);
   }
 
   // TODO: reuse in block validation

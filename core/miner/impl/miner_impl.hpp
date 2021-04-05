@@ -33,18 +33,16 @@ namespace fc::miner {
 
   class MinerImpl : public Miner {
    public:
-    MinerImpl(std::shared_ptr<FullNodeApi> api,
-              Address miner_address,
-              Address worker_address,
-              std::shared_ptr<Counter> counter,
-              std::shared_ptr<BufferMap> sealing_fsm_kv,
-              std::shared_ptr<Manager> sector_manager,
-              std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-              std::shared_ptr<boost::asio::io_context> context);
-
-    outcome::result<void> run() override;
-
-    void stop() override;
+    static outcome::result<std::shared_ptr<MinerImpl>> newMiner(
+        std::shared_ptr<FullNodeApi> api,
+        Address miner_address,
+        Address worker_address,
+        std::shared_ptr<Counter> counter,
+        std::shared_ptr<BufferMap> sealing_fsm_kv,
+        std::shared_ptr<Manager> sector_manager,
+        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+        std::shared_ptr<boost::asio::io_context> context,
+        mining::Config config);
 
     outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber sector_id) const override;
@@ -61,21 +59,11 @@ namespace fc::miner {
     }
 
    private:
-    /**
-     * Checks miner worker address
-     * @return error if worker address is incorrect
-     */
-    outcome::result<void> runPreflightChecks();
+    MinerImpl(std::shared_ptr<FullNodeApi> api,
+              std::shared_ptr<Sealing> sealing);
 
     std::shared_ptr<FullNodeApi> api_;
-    Address miner_address_;
-    Address worker_address_;
     std::shared_ptr<Sealing> sealing_;
-    std::shared_ptr<Counter> counter_;
-    std::shared_ptr<BufferMap> sealing_fsm_kv_;
-    std::shared_ptr<Manager> sector_manager_;
-    std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
-    std::shared_ptr<boost::asio::io_context> context_;
   };
 
 }  // namespace fc::miner

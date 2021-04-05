@@ -54,6 +54,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreErrors, e) {
       return "Store: cannot move file";
     case (StoreErrors::kCannotReserve):
       return "Store: not enough bytes. Cannot reserve";
+    case (StoreErrors::kAlreadyReserved):
+      return "Store: the type is already reserved";
     default:
       return "Store: unknown error";
   }

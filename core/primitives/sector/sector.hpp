@@ -143,6 +143,11 @@ namespace fc::primitives::sector {
   };
   CBOR_TUPLE(SectorInfo, registered_proof, sector, sealed_cid)
 
+  inline bool operator==(const SectorInfo &lhs, const SectorInfo &rhs) {
+    return lhs.registered_proof == rhs.registered_proof
+           && lhs.sector == rhs.sector && lhs.sealed_cid == rhs.sealed_cid;
+  }
+
   // Information needed to verify a Winning PoSt attached to a block header.
   // Note: this is not used within the state machine, but by the
   // consensus/election mechanisms.

@@ -11,169 +11,166 @@
 #include "testutil/mocks/sector_storage/selector_mock.hpp"
 #include "testutil/outcome.hpp"
 
-using fc::primitives::WorkerInfo;
-using fc::primitives::WorkerResources;
-using fc::sector_storage::Scheduler;
-using fc::sector_storage::SchedulerImpl;
-using fc::sector_storage::SelectorMock;
-using fc::sector_storage::Worker;
-using fc::sector_storage::WorkerAction;
-using fc::sector_storage::WorkerHandle;
-using ::testing::_;
+namespace fc::sector_storage {
+  using primitives::WorkerInfo;
+  using primitives::WorkerResources;
+  using ::testing::_;
 
-MATCHER_P(workerNameMatcher, worker_name, "compare workers name") {
-  return (arg->info.hostname == worker_name);
-}
-
-class SchedulerTest : public ::testing::Test {
- protected:
-  void SetUp() override {
-    seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
-
-    scheduler_ = std::make_unique<SchedulerImpl>(seal_proof_type_);
-
-    std::unique_ptr<WorkerHandle> worker = std::make_unique<WorkerHandle>();
-
-    worker_name_ = "worker";
-
-    worker->info = WorkerInfo{
-        .hostname = worker_name_,
-        .resources = WorkerResources{.physical_memory = uint64_t(1) << 20,
-                                     .swap_memory = 0,
-                                     .reserved_memory = 0,
-                                     .cpus = 0,
-                                     .gpus = {}}};
-    scheduler_->newWorker(std::move(worker));
-
-    selector_ = std::make_shared<SelectorMock>();
+  MATCHER_P(workerNameMatcher, worker_name, "compare workers name") {
+    return (arg->info.hostname == worker_name);
   }
 
-  std::string worker_name_;
+  class SchedulerTest : public ::testing::Test {
+   protected:
+    void SetUp() override {
+      seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
 
-  RegisteredSealProof seal_proof_type_;
-  std::shared_ptr<SelectorMock> selector_;
-  std::unique_ptr<Scheduler> scheduler_;
-};
+      scheduler_ = std::make_unique<SchedulerImpl>(seal_proof_type_);
 
-/**
- * @given Task data
- * @when when try to schedule it
- * @then work is done
- * @note Disabled due to the fact that there are not always threads in the
- * thread pool
- */
-TEST_F(SchedulerTest, DISABLED_ScheuleTask) {
-  uint64_t counter = 0;
+      std::unique_ptr<WorkerHandle> worker = std::make_unique<WorkerHandle>();
 
-  WorkerAction prepare = [&](const std::shared_ptr<Worker> &worker) {
-    EXPECT_EQ(counter++, 0);
-    return fc::outcome::success();
-  };
-  WorkerAction work = [&](const std::shared_ptr<Worker> &worker) {
-    EXPECT_EQ(counter++, 1);
-    return fc::outcome::success();
-  };
+      worker_name_ = "worker";
 
-  SectorId sector{
-      .miner = 42,
-      .sector = 1,
-  };
+      worker->info = WorkerInfo{
+          .hostname = worker_name_,
+          .resources = WorkerResources{.physical_memory = uint64_t(1) << 20,
+                                       .swap_memory = 0,
+                                       .reserved_memory = 0,
+                                       .cpus = 0,
+                                       .gpus = {}}};
+      scheduler_->newWorker(std::move(worker));
 
-  auto task = fc::primitives::kTTFinalize;
-  EXPECT_CALL(
-      *selector_,
-      is_satisfying(task, seal_proof_type_, workerNameMatcher(worker_name_)))
-      .WillOnce(testing::Return(fc::outcome::success(true)));
+      selector_ = std::make_shared<SelectorMock>();
+    }
 
-  EXPECT_OUTCOME_TRUE_1(
-      scheduler_->schedule(sector, task, selector_, prepare, work))
+    std::string worker_name_;
 
-  EXPECT_EQ(counter, 2);
-}
-
-/**
- * @given 2 tasks data
- * @when when try to schedule first, it will be in request queue
- * the second will processed
- * @then worker gets first from request queue and process it
- * @note Disabled due to the fact that there are not always threads in the
- * thread pool
- */
-TEST_F(SchedulerTest, DISABLED_RequestQueue) {
-  std::unique_ptr<WorkerHandle> worker1 = std::make_unique<WorkerHandle>();
-
-  std::string worker1_name_ = "everything";
-
-  worker1->info =
-      WorkerInfo{.hostname = worker1_name_, .resources = WorkerResources{}};
-
-  EXPECT_CALL(*selector_, is_satisfying(_, _, workerNameMatcher("everything")))
-      .WillRepeatedly(testing::Return(fc::outcome::success(true)));
-
-  EXPECT_CALL(
-      *selector_,
-      is_preferred(
-          _, workerNameMatcher(worker_name_), workerNameMatcher(worker1_name_)))
-      .WillRepeatedly(testing::Return(fc::outcome::success(true)));
-
-  EXPECT_CALL(*selector_,
-              is_preferred(_,
-                           workerNameMatcher(worker1_name_),
-                           workerNameMatcher(worker_name_)))
-      .WillRepeatedly(
-          testing::Return(fc::outcome::success(false)));  // Just reverse
-
-  scheduler_->newWorker(std::move(worker1));
-
-  uint64_t counter = 0;
-
-  WorkerAction prepare1 = [&](const std::shared_ptr<Worker> &worker) {
-    EXPECT_EQ(counter++, 2);
-    return fc::outcome::success();
-  };
-  WorkerAction work1 = [&](const std::shared_ptr<Worker> &worker) {
-    EXPECT_EQ(counter++, 3);
-    return fc::outcome::success();
+    RegisteredSealProof seal_proof_type_;
+    std::shared_ptr<SelectorMock> selector_;
+    std::unique_ptr<Scheduler> scheduler_;
   };
 
-  WorkerAction prepare2 = [&](const std::shared_ptr<Worker> &worker) {
-    EXPECT_EQ(counter++, 0);
-    return fc::outcome::success();
-  };
-  WorkerAction work2 = [&](const std::shared_ptr<Worker> &worker) {
-    EXPECT_EQ(counter++, 1);
-    return fc::outcome::success();
-  };
+  /**
+   * @given Task data
+   * @when when try to schedule it
+   * @then work is done
+   * @note Disabled due to the fact that there are not always threads in the
+   * thread pool
+   */
+  TEST_F(SchedulerTest, DISABLED_ScheuleTask) {
+    uint64_t counter = 0;
 
-  SectorId sector{
-      .miner = 42,
-      .sector = 1,
-  };
-  auto task1 = fc::primitives::kTTReadUnsealed;
-  EXPECT_CALL(
-      *selector_,
-      is_satisfying(task1, seal_proof_type_, workerNameMatcher(worker_name_)))
-      .WillOnce(testing::Return(fc::outcome::success(false)))
-      .WillOnce(testing::Return(fc::outcome::success(true)))
-      .WillOnce(testing::Return(fc::outcome::success(true)));
-  bool thread_error;
-  std::thread t([&]() {
-    auto maybe_err =
-        scheduler_->schedule(sector, task1, selector_, prepare1, work1);
+    WorkerAction prepare = [&](const std::shared_ptr<Worker> &worker) {
+      EXPECT_EQ(counter++, 0);
+      return outcome::success();
+    };
+    WorkerAction work = [&](const std::shared_ptr<Worker> &worker) {
+      EXPECT_EQ(counter++, 1);
+      return outcome::success();
+    };
 
-    thread_error = maybe_err.has_error();
-  });
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
 
-  auto task2 = fc::primitives::kTTFinalize;
-  EXPECT_CALL(
-      *selector_,
-      is_satisfying(task2, seal_proof_type_, workerNameMatcher(worker_name_)))
-      .WillOnce(testing::Return(fc::outcome::success(true)));
+    auto task = primitives::kTTFinalize;
+    EXPECT_CALL(
+        *selector_,
+        is_satisfying(task, seal_proof_type_, workerNameMatcher(worker_name_)))
+        .WillOnce(testing::Return(outcome::success(true)));
 
-  EXPECT_OUTCOME_TRUE_1(
-      scheduler_->schedule(sector, task2, selector_, prepare2, work2))
+    EXPECT_OUTCOME_TRUE_1(
+        scheduler_->schedule(sector, task, selector_, prepare, work))
 
-  t.join();
-  ASSERT_FALSE(thread_error);
-  EXPECT_EQ(counter, 4);
-}
+    EXPECT_EQ(counter, 2);
+  }
+
+  /**
+   * @given 2 tasks data
+   * @when when try to schedule first, it will be in request queue
+   * the second will processed
+   * @then worker gets first from request queue and process it
+   * @note Disabled due to the fact that there are not always threads in the
+   * thread pool
+   */
+  TEST_F(SchedulerTest, DISABLED_RequestQueue) {
+    std::unique_ptr<WorkerHandle> worker1 = std::make_unique<WorkerHandle>();
+
+    std::string worker1_name_ = "everything";
+
+    worker1->info =
+        WorkerInfo{.hostname = worker1_name_, .resources = WorkerResources{}};
+
+    EXPECT_CALL(*selector_,
+                is_satisfying(_, _, workerNameMatcher("everything")))
+        .WillRepeatedly(testing::Return(outcome::success(true)));
+
+    EXPECT_CALL(*selector_,
+                is_preferred(_,
+                             workerNameMatcher(worker_name_),
+                             workerNameMatcher(worker1_name_)))
+        .WillRepeatedly(testing::Return(outcome::success(true)));
+
+    EXPECT_CALL(*selector_,
+                is_preferred(_,
+                             workerNameMatcher(worker1_name_),
+                             workerNameMatcher(worker_name_)))
+        .WillRepeatedly(
+            testing::Return(outcome::success(false)));  // Just reverse
+
+    scheduler_->newWorker(std::move(worker1));
+
+    uint64_t counter = 0;
+
+    WorkerAction prepare1 = [&](const std::shared_ptr<Worker> &worker) {
+      EXPECT_EQ(counter++, 2);
+      return outcome::success();
+    };
+    WorkerAction work1 = [&](const std::shared_ptr<Worker> &worker) {
+      EXPECT_EQ(counter++, 3);
+      return outcome::success();
+    };
+
+    WorkerAction prepare2 = [&](const std::shared_ptr<Worker> &worker) {
+      EXPECT_EQ(counter++, 0);
+      return outcome::success();
+    };
+    WorkerAction work2 = [&](const std::shared_ptr<Worker> &worker) {
+      EXPECT_EQ(counter++, 1);
+      return outcome::success();
+    };
+
+    SectorId sector{
+        .miner = 42,
+        .sector = 1,
+    };
+    auto task1 = primitives::kTTReadUnsealed;
+    EXPECT_CALL(
+        *selector_,
+        is_satisfying(task1, seal_proof_type_, workerNameMatcher(worker_name_)))
+        .WillOnce(testing::Return(outcome::success(false)))
+        .WillOnce(testing::Return(outcome::success(true)))
+        .WillOnce(testing::Return(outcome::success(true)));
+    bool thread_error;
+    std::thread t([&]() {
+      auto maybe_err =
+          scheduler_->schedule(sector, task1, selector_, prepare1, work1);
+
+      thread_error = maybe_err.has_error();
+    });
+
+    auto task2 = primitives::kTTFinalize;
+    EXPECT_CALL(
+        *selector_,
+        is_satisfying(task2, seal_proof_type_, workerNameMatcher(worker_name_)))
+        .WillOnce(testing::Return(outcome::success(true)));
+
+    EXPECT_OUTCOME_TRUE_1(
+        scheduler_->schedule(sector, task2, selector_, prepare2, work2))
+
+    t.join();
+    ASSERT_FALSE(thread_error);
+    EXPECT_EQ(counter, 4);
+  }
+}  // namespace fc::sector_storage

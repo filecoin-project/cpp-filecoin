@@ -50,7 +50,8 @@ namespace fc::mining::checks {
       const std::shared_ptr<SectorInfo> &sector_info,
       const Proof &proof,
       const TipsetKey &tipset_key,
-      const std::shared_ptr<FullNodeApi> &api);
+      const std::shared_ptr<FullNodeApi> &api,
+      const std::shared_ptr<proofs::ProofEngine> &proofs);
 
   enum class ChecksError {
     kInvalidDeal = 1,

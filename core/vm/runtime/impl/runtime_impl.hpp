@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "proofs/proof_engine.hpp"
 #include "vm/actor/builtin/states/impl/state_manager_impl.hpp"
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/env.hpp"
@@ -127,6 +128,8 @@ namespace fc::vm::runtime {
     UnsignedMessage message_;
     Address caller_id;
     std::shared_ptr<StateManagerImpl> state_manager;
+
+    std::shared_ptr<proofs::ProofEngine> proofs_;
   };
 
 }  // namespace fc::vm::runtime

@@ -39,6 +39,7 @@
 #include "sector_storage/impl/scheduler_impl.hpp"
 #include "sector_storage/stores/impl/index_impl.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
+#include "sector_storage/stores/impl/remote_store.hpp"
 #include "sector_storage/stores/impl/storage_impl.hpp"
 #include "sectorblocks/impl/blocks_impl.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_filestore.hpp"
@@ -339,16 +340,25 @@ namespace fc {
     OUTCOME_TRY(manager,
                 sector_storage::ManagerImpl::newManager(
                     remote_store, wscheduler, {true, true, true, true}));
-    auto miner{std::make_shared<miner::MinerImpl>(
-        napi,
-        *config.actor,
-        *config.worker,
-        std::make_shared<primitives::StoredCounter>(leveldb, "sector_counter"),
-        prefixed("sealing_fsm/"),
-        manager,
-        scheduler,
-        sealing_thread.io)};
-    OUTCOME_TRY(miner->run());
+
+    // TODO(ortyomka): make param
+    mining::Config default_config{
+        .max_wait_deals_sectors = 2,
+        .max_sealing_sectors = 0,
+        .max_sealing_sectors_for_deals = 0,
+        .wait_deals_delay = std::chrono::hours(6).count()};
+    OUTCOME_TRY(
+        miner,
+        miner::MinerImpl::newMiner(napi,
+                                   *config.actor,
+                                   *config.worker,
+                                   std::make_shared<primitives::StoredCounter>(
+                                       leveldb, "sector_counter"),
+                                   prefixed("sealing_fsm/"),
+                                   manager,
+                                   scheduler,
+                                   sealing_thread.io,
+                                   default_config));
     auto sealing{miner->getSealing()};
 
     OUTCOME_TRY(
