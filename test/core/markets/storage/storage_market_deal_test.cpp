@@ -41,7 +41,7 @@ namespace fc::markets::storage::test {
     EXPECT_TRUE(waitForProviderDealStatus(
         proposal_cid, StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA));
     EXPECT_TRUE(waitForClientDealStatus(
-        proposal_cid, StorageDealStatus::STORAGE_DEAL_TRANSFERRING));
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_VALIDATING));
 
     EXPECT_OUTCOME_TRUE_1(
         provider->importDataForDeal(proposal_cid, CAR_FROM_PAYLOAD_FILE));
@@ -131,7 +131,7 @@ namespace fc::markets::storage::test {
     EXPECT_TRUE(waitForProviderDealStatus(
         proposal_cid, StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA));
     EXPECT_TRUE(waitForClientDealStatus(
-        proposal_cid, StorageDealStatus::STORAGE_DEAL_TRANSFERRING));
+        proposal_cid, StorageDealStatus::STORAGE_DEAL_VALIDATING));
 
     EXPECT_OUTCOME_TRUE_1(
         provider->importDataForDeal(proposal_cid, CAR_FROM_PAYLOAD_FILE));
@@ -176,8 +176,7 @@ namespace fc::markets::storage::test {
                                         StorageDealStatus::STORAGE_DEAL_ERROR));
     EXPECT_OUTCOME_TRUE(client_deal_state, client->getLocalDeal(proposal_cid));
     EXPECT_EQ(client_deal_state.message,
-              "Got error deal status response: Wrong transfer type: "
-              "'wrong_transfer_type'");
+              "Wrong transfer type: 'wrong_transfer_type'");
   }
 
   /**
@@ -187,7 +186,10 @@ namespace fc::markets::storage::test {
    */
   TEST_F(StorageMarketTest, GraphsyncDatatransfer) {
     EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _, _))
-        .WillOnce(testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
+        // one for client and one for provider
+        .Times(2)
+        .WillRepeatedly(
+            testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
 
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
     data_ref.transfer_type = kTransferTypeGraphsync;

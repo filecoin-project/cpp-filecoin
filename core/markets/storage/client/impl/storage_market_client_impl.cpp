@@ -636,7 +636,6 @@ namespace fc::markets::storage::client {
         SELF_FSM_SEND(deal, ClientEvent::ClientEventDealRejected);
         return;
       }
-      deal->state = StorageDealStatus::STORAGE_DEAL_TRANSFERRING;
 
       auto ipld = std::make_shared<InMemoryDatastore>();
       OUTCOME_EXCEPT(car_file, self->import_manager_->get(deal->data_ref.root));
@@ -647,7 +646,12 @@ namespace fc::markets::storage::client {
           codec::cbor::encode(StorageDataTransferVoucher{deal->proposal_cid}));
 
       // if manual, do nothing
-      if (deal->data_ref.transfer_type == kTransferTypeGraphsync) {
+      if (deal->data_ref.transfer_type == kTransferTypeManual) {
+        // now wait for response in pollWaiting to check if deal is activated
+        // or rejected
+        std::lock_guard lock{self->waiting_mutex};
+        self->waiting_deals.push_back(deal);
+      } else if (deal->data_ref.transfer_type == kTransferTypeGraphsync) {
         self->datatransfer_->push(
             deal->miner,
             deal->data_ref.root,
@@ -656,13 +660,13 @@ namespace fc::markets::storage::client {
             voucher,
             [](auto) {},
             [](auto) {});
+        // datatransfer completed, the deal must be accepted
+        self->askDealStatus(deal);
+      } else {
+        deal->message =
+            "Wrong transfer type: '" + deal->data_ref.transfer_type + "'";
+        SELF_FSM_SEND(deal, ClientEvent::ClientEventFailed);
       }
-
-      std::lock_guard lock{self->waiting_mutex};
-      self->waiting_deals.push_back(deal);
-
-      // now wait for response in pollWaiting to check if deal is activated
-      // or rejected
     });
   }
 
