@@ -75,19 +75,17 @@ namespace fc::miner {
             deadline_info.period_start % kWPoStProvingPeriod,
             kMaxSectorExpirationExtension - 2 * kWPoStProvingPeriod);
 
-
-
     OUTCOME_TRY(sealing,
-                 SealingImpl::newSealing(api,
-                                         events,
-                                         miner_address,
-                                         counter,
-                                         sealing_fsm_kv,
-                                         sector_manager,
-                                         precommit_policy,
-                                         context,
-                                         scheduler,
-                                         config));
+                SealingImpl::newSealing(api,
+                                        events,
+                                        miner_address,
+                                        counter,
+                                        sealing_fsm_kv,
+                                        sector_manager,
+                                        precommit_policy,
+                                        context,
+                                        scheduler,
+                                        config));
 
     struct make_unique_enabler : public MinerImpl {
       make_unique_enabler(std::shared_ptr<FullNodeApi> api,

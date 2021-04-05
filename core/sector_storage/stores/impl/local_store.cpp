@@ -486,7 +486,7 @@ namespace fc::sector_storage::stores {
       auto reserved_types{path_iter->second->reservations[storages.id]};
 
       if ((reserved_types & type) != SectorFileType::FTNone) {
-        return StoreErrors::kAlreadyReserve;
+        return StoreErrors::kAlreadyReserved;
       }
 
       OUTCOME_TRY(stat, path_iter->second->getStat(storage_));

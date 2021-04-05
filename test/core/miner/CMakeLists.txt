@@ -32,5 +32,7 @@ addtest(sealing_test
         )
 target_link_libraries(sealing_test
         storage_fsm
-        ipfs_datastore_in_memory)
+        ipfs_datastore_in_memory
+        in_memory_storage
+        )
 

@@ -9,6 +9,7 @@
 #include <chrono>
 
 #include "primitives/sector/sector.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/context_wait.hpp"
 #include "testutil/literals.hpp"
@@ -18,7 +19,6 @@
 #include "testutil/mocks/primitives/stored_counter_mock.hpp"
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/mocks/sector_storage/manager_mock.hpp"
-#include "testutil/mocks/storage/buffer_map_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
@@ -44,7 +44,7 @@ namespace fc::mining {
   using primitives::sector::Proof;
   using sector_storage::Commit1Output;
   using sector_storage::ManagerMock;
-  using storage::BufferMapMock;
+  using storage::InMemoryStorage;
   using testing::_;
   using types::kDealSectorPriority;
   using vm::actor::Actor;
@@ -67,10 +67,7 @@ namespace fc::mining {
       miner_id_ = 42;
       miner_addr_ = Address::makeFromId(miner_id_);
       counter_ = std::make_shared<CounterMock>();
-      kv_ = std::make_shared<BufferMapMock>();
-
-      EXPECT_CALL(*kv_, doPut(_, _))
-          .WillRepeatedly(testing::Return(outcome::success()));
+      kv_ = std::make_shared<InMemoryStorage>();
 
       proofs_ = std::make_shared<proofs::ProofEngineMock>();
 
@@ -91,9 +88,6 @@ namespace fc::mining {
           .max_sealing_sectors_for_deals = 0,
           .wait_deals_delay = 0  // by default 6 hours
       };
-
-      EXPECT_CALL(*kv_, cursor())
-          .WillOnce(testing::Return(testing::ByMove(nullptr)));
 
       scheduler_ = std::make_shared<SchedulerMock>();
 
@@ -124,7 +118,7 @@ namespace fc::mining {
     uint64_t miner_id_;
     Address miner_addr_;
     std::shared_ptr<CounterMock> counter_;
-    std::shared_ptr<BufferMapMock> kv_;
+    std::shared_ptr<InMemoryStorage> kv_;
     std::shared_ptr<ManagerMock> manager_;
     std::shared_ptr<proofs::ProofEngineMock> proofs_;
     std::shared_ptr<PreCommitPolicyMock> policy_;
@@ -192,7 +186,7 @@ namespace fc::mining {
         info.seal_proof_type = seal_proof_type_;
         return info;
       }
-      return SealingError::kPieceNotFit;  // some error
+      return ERROR_TEXT("ERROR");
     };
 
     PieceInfo info{
@@ -327,7 +321,7 @@ namespace fc::mining {
         info.seal_proof_type = seal_proof_type_;
         return info;
       }
-      return SealingError::kPieceNotFit;  // some error
+      return ERROR_TEXT("ERROR");
     };
 
     PieceInfo info{
@@ -386,7 +380,7 @@ namespace fc::mining {
         info.seal_proof_type = seal_proof_type_;
         return info;
       }
-      return SealingError::kPieceNotFit;  // some error
+      return ERROR_TEXT("ERROR");
     };
 
     PieceInfo info{
@@ -439,7 +433,7 @@ namespace fc::mining {
         info.seal_proof_type = seal_proof_type_;
         return info;
       }
-      return SealingError::kPieceNotFit;  // some error
+      return ERROR_TEXT("ERROR");
     };
 
     PieceInfo info1{
@@ -512,7 +506,7 @@ namespace fc::mining {
         info.seal_proof_type = seal_proof_type_;
         return info;
       }
-      return SealingError::kPieceNotFit;  // some error
+      return ERROR_TEXT("ERROR");
     };
 
     PieceInfo info{
@@ -570,7 +564,7 @@ namespace fc::mining {
         info.seal_proof_type = seal_proof_type_;
         return info;
       }
-      return SealingError::kPieceNotFit;  // some error
+      return ERROR_TEXT("ERROR");
     };
 
     PieceInfo info{
@@ -625,7 +619,7 @@ namespace fc::mining {
         info.seal_proof_type = seal_proof_type_;
         return info;
       }
-      return SealingError::kPieceNotFit;  // some error
+      return ERROR_TEXT("ERROR");
     };
 
     PieceInfo info{
@@ -653,6 +647,7 @@ namespace fc::mining {
     DealProposal proposal;
     proposal.piece_cid = info.cid;
     proposal.piece_size = info.size;
+    proposal.start_epoch = tipset->height() + 1;
     StorageDeal storage_deal;
     storage_deal.proposal = proposal;
 
@@ -662,7 +657,7 @@ namespace fc::mining {
       if (deal_id == deal.deal_id and tipset_key == key) {
         return storage_deal;
       }
-      return SealingError::kPieceNotFit;  // some error
+      return ERROR_TEXT("ERROR");
     };
 
     auto actor_key{"010001020003"_cid};
@@ -699,7 +694,7 @@ namespace fc::mining {
       if (key == actor_state.allocated_sectors) {
         return codec::cbor::encode(primitives::RleBitset());
       }
-      return SealingError::kPieceNotFit;  // some error
+      return ERROR_TEXT("ERROR");
     };
 
     Actor actor;
@@ -813,7 +808,7 @@ namespace fc::mining {
         return Wait(chan);
       }
 
-      return SealingError::kPieceNotFit;  // some error
+      return ERROR_TEXT("ERROR");
     };
 
     // Wait Seed
@@ -868,7 +863,7 @@ namespace fc::mining {
         return SectorOnChainInfo{};
       }
 
-      return SealingError::kPieceNotFit;  // some error
+      return ERROR_TEXT("ERROR");
     };
 
     // Finalize
