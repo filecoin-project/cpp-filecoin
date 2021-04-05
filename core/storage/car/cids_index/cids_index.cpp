@@ -83,6 +83,13 @@ namespace fc::storage::cids_index {
     return *this;
   }
 
+  inline boost::optional<size_t> sparseSize(size_t count, size_t max_memory) {
+    if (count * sizeof(Row) > max_memory) {
+      return max_memory / sizeof(Key);
+    }
+    return boost::none;
+  }
+
   outcome::result<std::shared_ptr<Index>> create(const std::string &car_path,
                                                  const std::string &index_path,
                                                  IpldPtr ipld,
@@ -311,10 +318,9 @@ namespace fc::storage::cids_index {
     // estimated
     index_file.rdbuf()->pubsetbuf(nullptr, 64 << 10);
     OUTCOME_TRY(count, checkIndex(index_file));
-    if (count * sizeof(Row) > max_memory) {
+    if (auto sparse{sparseSize(count, max_memory)}) {
       OUTCOME_TRY(index,
-                  SparseIndex::load(
-                      std::move(index_file), count, max_memory / sizeof(Key)));
+                  SparseIndex::load(std::move(index_file), count, *sparse));
       return std::move(index);
     }
     OUTCOME_TRY(index, MemoryIndex::load(index_file, count));
