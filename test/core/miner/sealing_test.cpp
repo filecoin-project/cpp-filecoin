@@ -459,9 +459,10 @@ namespace fc::mining {
                          kDealSectorPriority))
         .WillOnce(testing::Return(info1));
 
+    std::vector<UnpaddedPieceSize> exist_pieces({piece_size});
     EXPECT_CALL(*manager_,
                 addPiece(SectorId{.miner = miner_id_, .sector = sector},
-                         gsl::span<const UnpaddedPieceSize>({piece_size}),
+                         gsl::span<const UnpaddedPieceSize>(exist_pieces),
                          piece_size,
                          _,
                          kDealSectorPriority))
