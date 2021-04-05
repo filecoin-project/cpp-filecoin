@@ -146,7 +146,7 @@ namespace fc::markets::storage::client {
 
   outcome::result<void> StorageMarketClientImpl::init() {
     // init fsm transitions
-    fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), *context_);
+    fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), *context_, false);
     return outcome::success();
   }
 

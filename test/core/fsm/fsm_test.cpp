@@ -55,7 +55,8 @@ namespace fc::fsm {
                    data->x *= ctx->multiplier;
                    data->content = "stopped";
                  })},
-            io_context};
+            io_context,
+            true};
     auto entity = std::make_shared<Data>();
     fsm.setAnyChangeAction([](auto entity, auto, auto ctx, auto, auto) {
       entity->content = entity->content + std::string(" after ") + ctx->message;
@@ -72,6 +73,50 @@ namespace fc::fsm {
     EXPECT_EQ(entity->content, "stopped after stopping");
     EXPECT_OUTCOME_TRUE_1(fsm.force(entity, States::WORKING));
     EXPECT_OUTCOME_EQ(fsm.get(entity), States::WORKING);
+  }
+
+  /**
+   * @given events sent in reverse order (STOP, START), so it cannot be executed
+   * in the initial order and FSM discards such events
+   * @when execute
+   * @then the first event (STOP) discarded, then START event executed
+   */
+  TEST_F(FsmTest, SendBeforeConditionMetAndDiscard) {
+    boost::asio::io_context io_context;
+
+    Fsm fsm{{TransitionRule(Events::START)
+                 .from(States::READY)
+                 .to(States::WORKING)
+                 .action([](auto data, auto, auto ctx, auto, auto) {
+                   data->content = "working";
+                 }),
+             TransitionRule(Events::STOP)
+                 .from(States::WORKING)
+                 .to(States::STOPPED)
+                 .action([](auto data, auto, auto ctx, auto, auto) {
+                   data->content = "stopped";
+                 })},
+            io_context,
+            true};
+    auto entity = std::make_shared<Data>(Data{0, "ready"});
+
+    EXPECT_OUTCOME_TRUE_1(fsm.begin(entity, States::READY))
+    EXPECT_OUTCOME_TRUE_1(fsm.send(entity, Events::STOP, {}));
+    EXPECT_OUTCOME_TRUE_1(fsm.send(entity, Events::START, {}));
+
+    // initial state
+    EXPECT_OUTCOME_EQ(fsm.get(entity), States::READY);
+    ASSERT_EQ(entity->content, "ready");
+
+    // discard STOP
+    io_context.run_one();
+    EXPECT_OUTCOME_EQ(fsm.get(entity), States::READY);
+    ASSERT_EQ(entity->content, "ready");
+
+    // serve START
+    io_context.run_one();
+    EXPECT_OUTCOME_EQ(fsm.get(entity), States::WORKING);
+    ASSERT_EQ(entity->content, "working");
   }
 
   /**
@@ -94,7 +139,8 @@ namespace fc::fsm {
                  .action([](auto data, auto, auto ctx, auto, auto) {
                    data->content = "stopped";
                  })},
-            io_context};
+            io_context,
+            false};
     auto entity = std::make_shared<Data>(Data{0, "ready"});
 
     EXPECT_OUTCOME_TRUE_1(fsm.begin(entity, States::READY))
