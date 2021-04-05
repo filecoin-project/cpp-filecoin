@@ -49,7 +49,9 @@ namespace fc::storage::cids_index {
     return size / sizeof(Row) - 2;
   }
 
-  std::pair<bool, size_t> readCarItem(std::ifstream &car_file, const Row &row) {
+  std::pair<bool, size_t> readCarItem(std::ifstream &car_file,
+                                      const Row &row,
+                                      uint64_t *end) {
     car_file.seekg(row.offset.value());
     auto prefix{kCborBlakePrefix};
     Key key;
@@ -57,6 +59,9 @@ namespace fc::storage::cids_index {
     if (read(car_file, varint)) {
       if (common::read(car_file, prefix) && prefix == kCborBlakePrefix) {
         if (common::read(car_file, key) && key == row.key) {
+          if (end) {
+            *end = row.offset.value() + varint.length + varint.value;
+          }
           return {true, varint.value - prefix.size() - key.size()};
         }
       }
@@ -350,7 +355,7 @@ namespace fc::storage::cids_index {
       OUTCOME_TRY(row, index->find(*key));
       if (row) {
         std::unique_lock lock{mutex};
-        auto [good, size]{readCarItem(car_file, *row)};
+        auto [good, size]{readCarItem(car_file, *row, nullptr)};
         if (!good) {
           return ERROR_TEXT("CidsIpld.get: inconsistent");
         }
