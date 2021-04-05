@@ -69,10 +69,12 @@ namespace fc::markets::storage::client {
       std::shared_ptr<DataTransfer> datatransfer,
       std::shared_ptr<Discovery> discovery,
       std::shared_ptr<FullNodeApi> api,
+      std::shared_ptr<ChainEvents> chain_events,
       std::shared_ptr<PieceIO> piece_io)
       : host_{std::move(host)},
         context_{std::move(context)},
         api_{std::move(api)},
+        chain_events_{std::move(chain_events)},
         piece_io_{std::move(piece_io)},
         discovery_{std::move(discovery)},
         import_manager_{import_manager},
@@ -142,7 +144,7 @@ namespace fc::markets::storage::client {
 
   outcome::result<void> StorageMarketClientImpl::init() {
     // init fsm transitions
-    fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), *context_);
+    fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), *context_, false);
     return outcome::success();
   }
 
@@ -258,8 +260,7 @@ namespace fc::markets::storage::client {
       const RegisteredSealProof &registered_proof,
       bool is_fast_retrieval) {
     OUTCOME_TRY(comm_p_res, calculateCommP(registered_proof, data_ref));
-    CID comm_p = comm_p_res.first;
-    UnpaddedPieceSize piece_size = comm_p_res.second;
+    const auto &[comm_p, piece_size] = comm_p_res;
     if (piece_size.padded() > provider_info.sector_size) {
       return StorageMarketClientError::kPieceSizeGreaterSectorSize;
     }
@@ -547,16 +548,17 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto maybe_cid = ensureFunds(deal);
-    if (maybe_cid.has_error()) {
-      deal->message = "Ensure funds failed: " + maybe_cid.error().message();
+    auto maybe_funding_message_cid = ensureFunds(deal);
+    if (maybe_funding_message_cid.has_error()) {
+      deal->message =
+          "Ensure funds failed: " + maybe_funding_message_cid.error().message();
       FSM_SEND(deal, ClientEvent::ClientEventFailed);
       return;
     }
 
     // funding message was sent
-    if (maybe_cid.value().has_value()) {
-      deal->add_funds_cid = *maybe_cid.value();
+    if (maybe_funding_message_cid.value().has_value()) {
+      deal->add_funds_cid = *maybe_funding_message_cid.value();
       FSM_SEND(deal, ClientEvent::ClientEventFundingInitiated);
       return;
     }
@@ -683,8 +685,13 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO (a.chernyshov) verify deal activated - on deal sector commit
-    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealActivated, {}));
+    chain_events_->onDealSectorCommitted(
+        deal->client_deal_proposal.proposal.provider,
+        deal->deal_id,
+        [self{shared_from_this()}, deal] {
+          OUTCOME_EXCEPT(self->fsm_->send(
+              deal, ClientEvent::ClientEventDealActivated, {}));
+        });
   }
 
   void StorageMarketClientImpl::onClientEventDealActivated(

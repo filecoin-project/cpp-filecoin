@@ -11,7 +11,11 @@
 namespace fc::vm::actor::cgo {
   using runtime::Runtime;
 
-  void configMainnet();
+  /**
+   * Sets actors parameters with ones defined in profile:
+   *  - miner minimal power
+   */
+  void configParams();
 
   outcome::result<Buffer> invoke(const CID &code,
                                  const std::shared_ptr<Runtime> &runtime);

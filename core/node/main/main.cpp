@@ -27,6 +27,7 @@
 
 namespace fc {
   using api::Import;
+  using api::ImportRes;
   using markets::storage::StorageProviderInfo;
   using node::NodeObjects;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
@@ -85,9 +86,13 @@ namespace fc {
     };
 
     // Market Client API
-    node_objects.api->ClientImport = [&](auto &file_ref) {
-      return node_objects.storage_market_import_manager->import(
-          file_ref.path, file_ref.is_car);
+    node_objects.api->ClientImport =
+        [&](auto &file_ref) -> outcome::result<ImportRes> {
+      OUTCOME_TRY(root,
+                  node_objects.storage_market_import_manager->import(
+                      file_ref.path, file_ref.is_car));
+      // storage id set to 0
+      return ImportRes{root, 0};
     };
     node_objects.api->ClientStartDeal =
         [&](auto &params) -> outcome::result<CID> {
@@ -103,7 +108,8 @@ namespace fc {
                   node_objects.api->StateMinerInfo(params.miner, {}));
 
       OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
-      const PeerInfo peer_info{.id = peer_id, .addresses = miner_info.multiaddrs};
+      const PeerInfo peer_info{.id = peer_id,
+                               .addresses = miner_info.multiaddrs};
       StorageProviderInfo provider_info{.address = params.miner,
                                         .owner = {},
                                         .worker = miner_info.worker,
@@ -157,7 +163,7 @@ namespace fc {
   }
 
   void main(node::Config &config) {
-    vm::actor::cgo::configMainnet();
+    vm::actor::cgo::configParams();
 
     if (config.log_level <= spdlog::level::debug) {
       suppressVerboseLoggers();

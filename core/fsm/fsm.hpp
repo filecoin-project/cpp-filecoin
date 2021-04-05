@@ -15,7 +15,8 @@
 #include <unordered_map>
 #include <utility>
 
-#include "fsm/error.hpp"
+#include "common/error_text.hpp"
+#include "common/outcome.hpp"
 
 /**
  * The namespace is related to a generic implementation of a finite state
@@ -33,7 +34,7 @@ namespace fc::fsm {
   void postWithFlag(boost::asio::io_context &io,
                     std::weak_ptr<bool> flag,
                     F f) {
-    io.post([f{std::move(f)}, flag] {
+    io.post([f{std::move(f)}, flag{std::move(flag)}] {
       if (auto _flag{flag.lock()}; _flag && *_flag) {
         f();
       }
@@ -189,7 +190,8 @@ namespace fc::fsm {
      * @param from_state - transition source state
      * @param entity_ptr - a shared pointer to an entity. Required for being
      * able to apply transition callback over the entity.
-     * @return  returns a resulting state if there is a transition rule
+     * @return  returns a resulting state if there is a transition rule or
+     * boost::none if there is no transition rule for the current state
      */
     boost::optional<StateEnumType> dispatch(
         StateEnumType from_state,
@@ -254,22 +256,30 @@ namespace fc::fsm {
     using ParametrizedEvent = std::pair<EventEnumType, EventContextPtr>;
     using EventQueueItem = std::pair<EntityPtr, ParametrizedEvent>;
     using ActionFunction = std::function<void(
-        std::shared_ptr<Entity> /* pointer to tracked entity */,
-        EventEnumType /* event that caused state transition */,
-        EventContextPtr /* pointer to event context to pass event's parameters
-                         */
-        ,
-        StateEnumType /* transition source state */,
-        StateEnumType /* transition destination state */)>;
+        /* pointer to tracked entity */
+        std::shared_ptr<Entity>,
+        /* event that caused state transition */
+        EventEnumType,
+        /* pointer to event context to pass event's parameters */
+        EventContextPtr,
+        /* transition source state */
+        StateEnumType,
+        /* transition destination state */
+        StateEnumType)>;
 
     /**
      * Creates a state machine
      * @param transition_rules - defines state transitions
      * @param io_context - async queue
+     * @param discard_event - discards event if it cannot be applied instantly.
+     * If set to false the event will be preserved in event queue.
      */
     FSM(std::vector<TransitionRule> transition_rules,
-        boost::asio::io_context &io_context)
-        : running_{std::make_shared<bool>(true)}, io_context_{io_context} {
+        boost::asio::io_context &io_context,
+        bool discard_event)
+        : running_{std::make_shared<bool>(true)},
+          io_context_{io_context},
+          discard_event_(discard_event) {
       initTransitions(std::move(transition_rules));
     }
 
@@ -288,7 +298,7 @@ namespace fc::fsm {
       std::unique_lock lock(states_mutex_);
       auto lookup = states_.find(entity_ptr);
       if (states_.end() != lookup) {
-        return FsmError::kEntityAlreadyBeingTracked;
+        return ERROR_TEXT("FSM is tracking the entity's state already");
       }
       states_.emplace(entity_ptr, initial_state);
       return outcome::success();
@@ -305,7 +315,7 @@ namespace fc::fsm {
       std::unique_lock lock(states_mutex_);
       auto lookup = states_.find(entity_ptr);
       if (states_.end() == lookup) {
-        return FsmError::kEntityNotTracked;
+        return ERROR_TEXT("Specified element was not tracked by FSM");
       }
       lookup->second = state;
       return outcome::success();
@@ -316,7 +326,7 @@ namespace fc::fsm {
                                EventEnumType event,
                                const EventContextPtr &event_context) {
       if (!*running_) {
-        return FsmError::kMachineStopped;
+        return ERROR_TEXT("FSM has been stopped. No more events get processed");
       }
       std::lock_guard lock(event_queue_mutex_);
       auto was_empty{event_queue_.empty()};
@@ -346,7 +356,7 @@ namespace fc::fsm {
       std::shared_lock lock(states_mutex_);
       auto lookup = states_.find(entity_pointer);
       if (states_.end() == lookup) {
-        return FsmError::kEntityNotTracked;
+        return ERROR_TEXT("Specified element was not tracked by FSM.");
       }
       return lookup->second;
     }
@@ -440,6 +450,11 @@ namespace fc::fsm {
                                source_state,          // source state
                                resulting_state.get());  // destination state
         }
+      } else if (!discard_event_) {
+        // There were no rule for transition. Put event in queue in case it can
+        // be handled when 'from' state is changed.
+        std::lock_guard lock(event_queue_mutex_);
+        event_queue_.push(event_pair);
       }
     }
 
@@ -458,5 +473,7 @@ namespace fc::fsm {
 
     /// optional callback called after any transition
     boost::optional<ActionFunction> any_change_cb_;
+
+    bool discard_event_;
   };
 }  // namespace fc::fsm

@@ -101,7 +101,8 @@ namespace fc::markets::storage::provider {
         });
 
     // init fsm transitions
-    fsm_ = std::make_shared<ProviderFSM>(makeFSMTransitions(), *context_);
+    fsm_ =
+        std::make_shared<ProviderFSM>(makeFSMTransitions(), *context_, false);
 
     datatransfer_->on_push.emplace(
         StorageDataTransferVoucherType,
