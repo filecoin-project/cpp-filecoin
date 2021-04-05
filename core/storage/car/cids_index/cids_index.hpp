@@ -71,6 +71,8 @@ namespace fc::storage::cids_index {
 
   outcome::result<size_t> checkIndex(std::ifstream &file);
 
+  std::pair<bool, size_t> readCarItem(std::ifstream &car_file, const Row &row);
+
   struct RowsInfo {
     bool valid{true};
     bool sorted{true};

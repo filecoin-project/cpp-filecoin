@@ -49,6 +49,21 @@ namespace fc::storage::cids_index {
     return size / sizeof(Row) - 2;
   }
 
+  std::pair<bool, size_t> readCarItem(std::ifstream &car_file, const Row &row) {
+    car_file.seekg(row.offset.value());
+    auto prefix{kCborBlakePrefix};
+    Key key;
+    codec::uvarint::VarintDecoder varint;
+    if (read(car_file, varint)) {
+      if (common::read(car_file, prefix) && prefix == kCborBlakePrefix) {
+        if (common::read(car_file, key) && key == row.key) {
+          return {true, varint.value - prefix.size() - key.size()};
+        }
+      }
+    }
+    return {false, 0};
+  }
+
   RowsInfo &RowsInfo::feed(const Row &row) {
     valid = valid && !row.isMeta();
     if (valid) {
@@ -335,24 +350,16 @@ namespace fc::storage::cids_index {
       OUTCOME_TRY(row, index->find(*key));
       if (row) {
         std::unique_lock lock{mutex};
-        car_file.seekg(row->offset.value());
-        Buffer item;
-        if (codec::uvarint::readBytes(car_file, item)) {
-          lock.unlock();
-          BytesIn input{item};
-          if (startsWith(input, kCborBlakePrefix)) {
-            input = input.subspan(kCborBlakePrefix.size());
-            if (startsWith(input, row->key)) {
-              input = input.subspan(row->key.size());
-              memmove(item.data(), input.data(), input.size());
-              item.resize(input.size());
-              return std::move(item);
-            }
-          }
+        auto [good, size]{readCarItem(car_file, *row)};
+        if (!good) {
           return ERROR_TEXT("CidsIpld.get: inconsistent");
-        } else {
+        }
+        Buffer item;
+        item.resize(size);
+        if (!common::read(car_file, item)) {
           return ERROR_TEXT("CidsIpld.get: read error");
         }
+        return item;
       }
     }
     if (ipld) {
