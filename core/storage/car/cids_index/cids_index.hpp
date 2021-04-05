@@ -75,13 +75,15 @@ namespace fc::storage::cids_index {
     bool valid{true};
     bool sorted{true};
     size_t count{};
-    uint64_t max_offset{};
+    Row max_offset;
     Key max_key;
 
     RowsInfo &feed(const Row &row);
   };
 
   struct Index {
+    RowsInfo info;
+
     virtual ~Index() = default;
     virtual outcome::result<boost::optional<Row>> find(
         const Key &key) const = 0;

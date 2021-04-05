@@ -55,7 +55,9 @@ namespace fc::storage::cids_index {
       sorted = count == 0 || max_key < row.key;
       valid = sorted;
       ++count;
-      max_offset = std::max(max_offset, row.offset.value());
+      if (row.offset.value() > max_offset.offset.value()) {
+        max_offset = row;
+      }
       max_key = std::max(max_key, row.key);
     }
     return *this;
@@ -192,9 +194,8 @@ namespace fc::storage::cids_index {
     if (!common::read(file, gsl::make_span(index->rows))) {
       return ERROR_TEXT("MemoryIndex::load: read rows failed");
     }
-    RowsInfo info;
     for (auto &row : index->rows) {
-      if (!info.feed(row).valid) {
+      if (!index->info.feed(row).valid) {
         return ERROR_TEXT("MemoryIndex::load: invalid index");
       }
     }
@@ -265,7 +266,6 @@ namespace fc::storage::cids_index {
     auto index{std::make_shared<SparseIndex>()};
     index->sparse_range = {count, max_keys};
     index->sparse_keys.resize(index->sparse_range.buckets);
-    RowsInfo info;
     for (size_t i_sparse{0}, i_row{0}; i_sparse < index->sparse_range.buckets;
          ++i_sparse) {
       auto i_next{index->sparse_range.fromSparse(i_sparse)};
@@ -274,7 +274,7 @@ namespace fc::storage::cids_index {
         if (!read(file, row)) {
           return ERROR_TEXT("SparseIndex::load: read row failed");
         }
-        if (!info.feed(row).valid) {
+        if (!index->info.feed(row).valid) {
           return ERROR_TEXT("SparseIndex::load: invalid index");
         }
         ++i_row;
