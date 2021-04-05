@@ -11,6 +11,7 @@
 #include "common/outcome.hpp"
 #include "data_transfer/dt.hpp"
 #include "fwd.hpp"
+#include "markets/storage/chain_events/chain_events.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/client/storage_market_client.hpp"
 #include "node/events.hpp"
@@ -25,6 +26,7 @@
 namespace fc::node {
   using data_transfer::DataTransfer;
   using libp2p::protocol::Scheduler;
+  using markets::storage::chain_events::ChainEvents;
   using markets::storage::client::StorageMarketClient;
   using markets::storage::client::import_manager::ImportManager;
 
@@ -85,6 +87,7 @@ namespace fc::node {
     // storage market client
     std::shared_ptr<DataTransfer> datatransfer;
     std::shared_ptr<ImportManager> storage_market_import_manager;
+    std::shared_ptr<ChainEvents> chain_events;
     std::shared_ptr<StorageMarketClient> storage_market_client;
 
     // high level objects

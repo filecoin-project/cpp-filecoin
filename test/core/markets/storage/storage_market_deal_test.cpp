@@ -18,7 +18,10 @@ namespace fc::markets::storage::test {
    */
   TEST_F(StorageMarketTest, Deal) {
     EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _, _))
-        .WillOnce(testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
+        // one for client and one for provider
+        .Times(2)
+        .WillRepeatedly(
+            testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
 
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
     ChainEpoch start_epoch{210};
@@ -90,7 +93,10 @@ namespace fc::markets::storage::test {
    */
   TEST_F(StorageMarketTest, WaitFundingDeal) {
     EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _, _))
-        .WillOnce(testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
+        // one for client and one for provider
+        .Times(2)
+        .WillRepeatedly(
+            testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
 
     // some unique valid CID of funding message
     CID client_funding_cid = "010001020002"_cid;

@@ -6,6 +6,7 @@
 #include "vm/actor/cgo/actors.hpp"
 
 #include "proofs/proofs.hpp"
+#include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/actor/cgo/c_actors.h"
 #include "vm/actor/cgo/go_actors.h"
 #include "vm/dvm/dvm.hpp"
@@ -24,6 +25,7 @@
                  CborEncodeStream &ret)
 
 namespace fc::vm::actor::cgo {
+  using builtin::types::storage_power::kConsensusMinerMinPower;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using primitives::ChainEpoch;
@@ -36,8 +38,10 @@ namespace fc::vm::actor::cgo {
   using primitives::sector::WindowPoStVerifyInfo;
   using toolchain::Toolchain;
 
-  void configMainnet() {
-    cgoCall<cgoActorsConfigMainnet>(BytesIn{});
+  void configParams() {
+    CborEncodeStream arg;
+    arg << kConsensusMinerMinPower;
+    cgoCall<cgoActorsConfigParams>(arg);
   }
 
   constexpr auto kFatal{VMExitCode::kFatal};

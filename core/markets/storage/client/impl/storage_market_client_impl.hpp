@@ -15,12 +15,14 @@
 #include "markets/common.hpp"
 #include "markets/discovery/discovery.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
+#include "markets/storage/chain_events/chain_events.hpp"
 #include "markets/storage/client/client_events.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/client/storage_market_client.hpp"
 
 namespace fc::markets::storage::client {
   using api::FullNodeApi;
+  using chain_events::ChainEvents;
   using common::Buffer;
   using common::libp2p::CborStream;
   using data_transfer::DataTransfer;
@@ -45,6 +47,7 @@ namespace fc::markets::storage::client {
                             std::shared_ptr<DataTransfer> datatransfer,
                             std::shared_ptr<Discovery> discovery,
                             std::shared_ptr<FullNodeApi> api,
+                            std::shared_ptr<ChainEvents> chain_events,
                             std::shared_ptr<PieceIO> piece_io);
 
     outcome::result<void> init() override;
@@ -282,6 +285,7 @@ namespace fc::markets::storage::client {
     std::shared_ptr<boost::asio::io_context> context_;
 
     std::shared_ptr<FullNodeApi> api_;
+    std::shared_ptr<ChainEvents> chain_events_;
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<Discovery> discovery_;
     std::shared_ptr<ImportManager> import_manager_;
