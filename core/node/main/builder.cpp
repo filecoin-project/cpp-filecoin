@@ -236,12 +236,12 @@ namespace fc::node {
    * @param ticks - timer tick
    * @param cb - callback to call
    */
-  void timerLoop(std::shared_ptr<Scheduler> scheduler,
+  void timerLoop(const std::shared_ptr<Scheduler> &scheduler,
                  const Ticks &ticks,
                  const std::function<void()> &cb) {
     scheduler
         ->schedule(ticks,
-                   [&]() {
+                   [scheduler, ticks, cb]() {
                      cb();
                      timerLoop(scheduler, ticks, cb);
                    })
