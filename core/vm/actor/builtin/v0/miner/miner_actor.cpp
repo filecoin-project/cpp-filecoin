@@ -8,6 +8,7 @@
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
+  using crypto::randomness::DomainSeparationTag;
   using toolchain::Toolchain;
   using namespace types::miner;
 
@@ -165,8 +166,92 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   ACTOR_METHOD_IMPL(SubmitWindowedPoSt) {
-    // TODO (a.chernyshov) FIL-282 - implement
-    return VMExitCode::kNotImplemented;
+    const auto current_epoch = runtime.getCurrentEpoch();
+    const auto network_version = runtime.getNetworkVersion();
+
+    OUTCOME_TRY(
+        runtime.validateArgument(params.deadline < kWPoStPeriodDeadlines));
+    OUTCOME_TRY(
+        runtime.validateArgument(params.chain_commit_epoch < current_epoch));
+    OUTCOME_TRY(runtime.validateArgument(
+        params.chain_commit_epoch >= current_epoch - kWPoStChallengeWindow));
+
+    OUTCOME_TRY(
+        randomness,
+        runtime.getRandomnessFromTickets(DomainSeparationTag::PoStChainCommit,
+                                         params.chain_commit_epoch,
+                                         {}));
+    OUTCOME_TRY(
+        runtime.validateArgument(randomness == params.chain_commit_rand));
+
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(reward, utils->requestCurrentEpochBlockReward());
+    OUTCOME_TRY(total_power, utils->requestCurrentTotalPower());
+
+    TokenAmount penalty_total{0};
+    TokenAmount pledge_delta{0};
+    // todo post_result
+
+    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+
+    OUTCOME_TRY(miner_info, state->getInfo(runtime.getIpfsDatastore()));
+
+    auto callers = miner_info.control;
+    callers.emplace_back(miner_info.owner);
+    callers.emplace_back(miner_info.worker);
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
+
+    // todo
+    const auto submission_partition_limit =
+        100;  // loadPartitionsSectorsMax(miner_info.window_post_partition_sectors);
+    OUTCOME_TRY(runtime.validateArgument(params.partitions.size()
+                                         <= submission_partition_limit));
+
+    const auto deadline_info = state->deadlineInfo(current_epoch);
+    REQUIRE_NO_ERROR_A(
+        deadlines, state->deadlines.get(), VMExitCode::kErrIllegalState);
+
+    // todo
+    // if(!deadline_info.isOpen()) {
+    //  ABORT(VMExitCode::kErrIllegalState);
+    //}
+
+    OUTCOME_TRY(
+        runtime.validateArgument(params.deadline == deadline_info.index));
+
+    // Lotus gas conformance
+    REQUIRE_NO_ERROR(state->sectors.amt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR_A(deadline,
+                       state->getDeadline(runtime.getIpfsDatastore(),
+                                          deadlines.due[params.deadline]),
+                       VMExitCode::kErrIllegalState);
+
+    // todo
+    const auto fault_expiration =
+        EpochDuration{1000000000};  // deadline_info.last() + kFaultMaxAge;
+    // REQUIRE_NO_ERROR_A(post_result, deadline.recordProvenSectors(),
+    // VMExitCode::kErrIllegalState);
+
+    // todo
+    const std::vector<SectorOnChainInfo> sector_infos;  // remove
+    // REQUIRE_NO_ERROR_A(sector_infos, state->loadSectorInfosForProof(),
+    // VMExitCode::kErrIllegalState);
+
+    if (sector_infos.size() > 0) {
+      OUTCOME_TRY(utils->verifyWindowedPost(
+          deadline_info.challenge, sector_infos, params.proofs));
+    }
+
+    // todo
+
+    REQUIRE_SUCCESS(
+        runtime.sendFunds(kBurntFundsActorAddress, 0));  // todo penalty_total
+    OUTCOME_TRY(utils->notifyPledgeChanged(0));          // todo pledge_delta
+
+    return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(PreCommitSector) {

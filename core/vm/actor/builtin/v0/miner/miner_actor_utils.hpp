@@ -11,10 +11,15 @@ namespace fc::vm::actor::builtin::v0::miner {
   using common::Buffer;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
+  using primitives::TokenAmount;
   using primitives::address::Address;
+  using primitives::sector::PoStProof;
   using primitives::sector::RegisteredSealProof;
   using runtime::Runtime;
   using types::miner::CronEventPayload;
+  using types::miner::EpochReward;
+  using types::miner::SectorOnChainInfo;
+  using types::miner::TotalPower;
   using version::NetworkVersion;
 
   class MinerUtils : public utils::MinerUtils {
@@ -52,6 +57,19 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     outcome::result<void> checkControlAddresses(
         const std::vector<Address> &control_addresses) const override;
+
+    outcome::result<EpochReward> requestCurrentEpochBlockReward()
+        const override;
+
+    outcome::result<TotalPower> requestCurrentTotalPower() const override;
+
+    outcome::result<void> verifyWindowedPost(
+        ChainEpoch challenge_epoch,
+        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<PoStProof> &proofs) const override;
+
+    outcome::result<void> notifyPledgeChanged(
+        const TokenAmount &pledge_delta) const override;
 
    protected:
     outcome::result<Address> getPubkeyAddressFromAccountActor(

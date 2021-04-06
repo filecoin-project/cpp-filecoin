@@ -8,21 +8,29 @@
 #include <libp2p/multi/multiaddress.hpp>
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
+#include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/types/miner/transit.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/version/version.hpp"
 
 namespace fc::vm::actor::builtin::utils {
   using common::Buffer;
+  using common::smoothing::FilterEstimate;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
+  using primitives::TokenAmount;
   using primitives::address::Address;
+  using primitives::sector::PoStProof;
   using primitives::sector::RegisteredSealProof;
   using runtime::Runtime;
   using types::miner::CronEventPayload;
+  using types::miner::EpochReward;
+  using types::miner::SectorOnChainInfo;
+  using types::miner::TotalPower;
   using version::NetworkVersion;
 
   class MinerUtils {
@@ -99,6 +107,19 @@ namespace fc::vm::actor::builtin::utils {
         const std::vector<Multiaddress> &multiaddresses) const = 0;
     virtual outcome::result<void> checkControlAddresses(
         const std::vector<Address> &control_addresses) const = 0;
+
+    virtual outcome::result<EpochReward> requestCurrentEpochBlockReward()
+        const = 0;
+
+    virtual outcome::result<TotalPower> requestCurrentTotalPower() const = 0;
+
+    virtual outcome::result<void> verifyWindowedPost(
+        ChainEpoch challenge_epoch,
+        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<PoStProof> &proofs) const = 0;
+
+    virtual outcome::result<void> notifyPledgeChanged(
+        const TokenAmount &pledge_delta) const = 0;
 
    protected:
     virtual outcome::result<Address> getPubkeyAddressFromAccountActor(
