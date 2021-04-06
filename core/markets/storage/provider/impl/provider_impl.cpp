@@ -175,7 +175,7 @@ namespace fc::markets::storage::provider {
       boost::filesystem::copy_file(
         path, car_path, boost::filesystem::copy_option::overwrite_if_exists);
 
-    auto unpadded{proofs::Proofs::padPiece(car_path)};
+    auto unpadded{proofs::padPiece(car_path)};
     if (unpadded.padded() != deal->client_deal_proposal.proposal.piece_size) {
       return StorageMarketProviderError::kPieceCIDDoesNotMatch;
     }

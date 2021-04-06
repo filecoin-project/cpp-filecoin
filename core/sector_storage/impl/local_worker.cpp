@@ -16,11 +16,10 @@
 #include <thread>
 #include "primitives/rle_bitset/runs_utils.hpp"
 #include "primitives/sector_file/sector_file.hpp"
-#include "proofs/proofs.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage {
-
+  using primitives::piece::PaddedByteIndex;
   using primitives::piece::PaddedPieceSize;
   using primitives::sector_file::SectorFile;
   using primitives::sector_file::SectorFileError;
@@ -84,9 +83,11 @@ namespace fc::sector_storage {
   }
 
   LocalWorker::LocalWorker(WorkerConfig config,
-                           std::shared_ptr<stores::RemoteStore> store)
+                           std::shared_ptr<stores::RemoteStore> store,
+                           std::shared_ptr<proofs::ProofEngine> proofs)
       : remote_store_(std::move(store)),
         index_(remote_store_->getSectorIndex()),
+        proofs_(std::move(proofs)),
         config_(std::move(config)),
         hostname_(boost::asio::ip::host_name()),
         logger_(common::createLogger("local worker")) {}
@@ -142,14 +143,14 @@ namespace fc::sector_storage {
       return WorkerErrors::kPiecesDoNotMatchSectorSize;
     }
 
-    return proofs::Proofs::sealPreCommitPhase1(config_.seal_proof_type,
-                                               response.paths.cache,
-                                               response.paths.unsealed,
-                                               response.paths.sealed,
-                                               sector.sector,
-                                               sector.miner,
-                                               ticket,
-                                               pieces);
+    return proofs_->sealPreCommitPhase1(config_.seal_proof_type,
+                                        response.paths.cache,
+                                        response.paths.unsealed,
+                                        response.paths.sealed,
+                                        sector.sector,
+                                        sector.miner,
+                                        ticket,
+                                        pieces);
   }
 
   outcome::result<sector_storage::SectorCids>
@@ -165,7 +166,7 @@ namespace fc::sector_storage {
                       PathType::kSealing));
     auto _ = gsl::finally([&]() { response.release_function(); });
 
-    return proofs::Proofs::sealPreCommitPhase2(
+    return proofs_->sealPreCommitPhase2(
         pre_commit_1_output, response.paths.cache, response.paths.sealed);
   }
 
@@ -185,23 +186,23 @@ namespace fc::sector_storage {
                       PathType::kSealing));
     auto _ = gsl::finally([&]() { response.release_function(); });
 
-    return proofs::Proofs::sealCommitPhase1(config_.seal_proof_type,
-                                            cids.sealed_cid,
-                                            cids.unsealed_cid,
-                                            response.paths.cache,
-                                            response.paths.sealed,
-                                            sector.sector,
-                                            sector.miner,
-                                            ticket,
-                                            seed,
-                                            pieces);
+    return proofs_->sealCommitPhase1(config_.seal_proof_type,
+                                     cids.sealed_cid,
+                                     cids.unsealed_cid,
+                                     response.paths.cache,
+                                     response.paths.sealed,
+                                     sector.sector,
+                                     sector.miner,
+                                     ticket,
+                                     seed,
+                                     pieces);
   }
 
   outcome::result<primitives::sector::Proof>
   sector_storage::LocalWorker::sealCommit2(
       const SectorId &sector,
       const sector_storage::Commit1Output &commit_1_output) {
-    return proofs::Proofs::sealCommitPhase2(
+    return proofs_->sealCommitPhase2(
         commit_1_output, sector.sector, sector.miner);
   }
 
@@ -254,7 +255,7 @@ namespace fc::sector_storage {
                                 PathType::kStorage));
       auto _ = gsl::finally([&]() { response.release_function(); });
 
-      OUTCOME_TRY(proofs::Proofs::clearCache(size, response.paths.cache));
+      OUTCOME_TRY(proofs_->clearCache(size, response.paths.cache));
     }
 
     if (keep_unsealed.empty()) {
@@ -406,17 +407,17 @@ namespace fc::sector_storage {
         PieceData reader(fds[0]);
 
         // TODO: can be in another thread
-        OUTCOME_TRY(proofs::Proofs::unsealRange(
-            config_.seal_proof_type,
-            response.paths.cache,
-            sealed,
-            PieceData(fds[1]),
-            sector.sector,
-            sector.miner,
-            randomness,
-            unsealed_cid,
-            primitives::piece::paddedIndex(range.offset),
-            range.size.padded()));
+        OUTCOME_TRY(
+            proofs_->unsealRange(config_.seal_proof_type,
+                                 response.paths.cache,
+                                 sealed,
+                                 PieceData(fds[1]),
+                                 sector.sector,
+                                 sector.miner,
+                                 randomness,
+                                 unsealed_cid,
+                                 primitives::piece::paddedIndex(range.offset),
+                                 range.size.padded()));
 
         OUTCOME_TRY(file->write(reader,
                                 primitives::piece::paddedIndex(range.offset),
@@ -580,7 +581,7 @@ namespace fc::sector_storage {
       return WorkerErrors::kCannotGetNumberOfCPUs;
     }
 
-    OUTCOME_TRYA(result.resources.gpus, proofs::Proofs::getGPUDevices());
+    OUTCOME_TRYA(result.resources.gpus, proofs_->getGPUDevices());
 
     return std::move(result);
   }

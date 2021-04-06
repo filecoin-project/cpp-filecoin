@@ -20,6 +20,8 @@ namespace fc::sector_storage::stores {
   using primitives::sector_file::SectorFileType;
   using primitives::sector_file::SectorPaths;
 
+  const std::string kMetaFileName = "sectorstore.json";
+
   struct AcquireSectorResponse {
     SectorPaths paths;
     SectorPaths storages;
@@ -66,8 +68,6 @@ namespace fc::sector_storage::stores {
 
     virtual std::shared_ptr<SectorIndex> getSectorIndex() const = 0;
   };
-
-  const std::string kMetaFileName = "sectorstore.json";
 
   class LocalStore : public Store {
    public:

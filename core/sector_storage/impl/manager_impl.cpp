@@ -279,7 +279,6 @@ namespace fc::sector_storage {
                 publicSectorToPrivate(
                     miner_id,
                     sector_info,
-                    {},
                     primitives::sector::getRegisteredWinningPoStProof));
 
     if (!res.skipped.empty()) {
@@ -291,8 +290,7 @@ namespace fc::sector_storage {
       return ManagerErrors::kSomeSectorSkipped;
     }
 
-    return proofs::Proofs::generateWinningPoSt(
-        miner_id, res.private_info, randomness);
+    return proofs_->generateWinningPoSt(miner_id, res.private_info, randomness);
   }
 
   outcome::result<Prover::WindowPoStResponse> ManagerImpl::generateWindowPoSt(
@@ -307,12 +305,11 @@ namespace fc::sector_storage {
                 publicSectorToPrivate(
                     miner_id,
                     sector_info,
-                    {},
                     primitives::sector::getRegisteredWindowPoStProof));
 
-    OUTCOME_TRYA(response.proof,
-                 proofs::Proofs::generateWindowPoSt(
-                     miner_id, res.private_info, randomness));
+    OUTCOME_TRYA(
+        response.proof,
+        proofs_->generateWindowPoSt(miner_id, res.private_info, randomness));
 
     response.skipped = std::move(res.skipped);
 
@@ -636,22 +633,12 @@ namespace fc::sector_storage {
   ManagerImpl::publicSectorToPrivate(
       ActorId miner,
       gsl::span<const SectorInfo> sector_info,
-      gsl::span<const SectorNumber> faults,
       const std::function<outcome::result<RegisteredPoStProof>(
           RegisteredSealProof)> &to_post_transform) {
     PubToPrivateResponse result;
 
-    std::unordered_set<SectorNumber> faults_set;
-    for (const auto &fault : faults) {
-      faults_set.insert(fault);
-    }
-
     std::vector<proofs::PrivateSectorInfo> out{};
     for (const auto &sector : sector_info) {
-      if (faults_set.find(sector.sector) != faults_set.end()) {
-        continue;
-      }
-
       SectorId sector_id{
           .miner = miner,
           .sector = sector.sector,
@@ -681,7 +668,7 @@ namespace fc::sector_storage {
       });
     }
 
-    result.private_info = proofs::Proofs::newSortedPrivateSectorInfo(out);
+    result.private_info = proofs::newSortedPrivateSectorInfo(out);
 
     return std::move(result);
   }
@@ -689,20 +676,23 @@ namespace fc::sector_storage {
   outcome::result<std::shared_ptr<Manager>> ManagerImpl::newManager(
       const std::shared_ptr<stores::RemoteStore> &remote,
       const std::shared_ptr<Scheduler> &scheduler,
-      const SealerConfig &config) {
+      const SealerConfig &config,
+      const std::shared_ptr<proofs::ProofEngine> &proofs) {
     struct make_unique_enabler : public ManagerImpl {
       make_unique_enabler(std::shared_ptr<stores::SectorIndex> sector_index,
                           RegisteredSealProof seal_proof_type,
                           std::shared_ptr<stores::LocalStorage> local_storage,
                           std::shared_ptr<stores::LocalStore> local_store,
                           std::shared_ptr<stores::RemoteStore> store,
-                          std::shared_ptr<Scheduler> scheduler)
+                          std::shared_ptr<Scheduler> scheduler,
+                          std::shared_ptr<proofs::ProofEngine> proofs)
           : ManagerImpl{std::move(sector_index),
                         seal_proof_type,
                         std::move(local_storage),
                         std::move(local_store),
                         std::move(store),
-                        std::move(scheduler)} {};
+                        std::move(scheduler),
+                        std::move(proofs)} {};
     };
 
     auto proof_type = scheduler->getSealProofType();
@@ -715,7 +705,8 @@ namespace fc::sector_storage {
                                               local_storage,
                                               local_store,
                                               remote,
-                                              scheduler);
+                                              scheduler,
+                                              proofs);
 
     std::set<TaskType> local_tasks{
         primitives::kTTAddPiece,
@@ -747,7 +738,8 @@ namespace fc::sector_storage {
             .seal_proof_type = proof_type,
             .task_types = std::move(local_tasks),
         },
-        remote);
+        remote,
+        proofs);
 
     OUTCOME_TRY(manager->addWorker(std::move(worker)));
     return std::move(manager);
@@ -758,14 +750,16 @@ namespace fc::sector_storage {
                            std::shared_ptr<stores::LocalStorage> local_storage,
                            std::shared_ptr<stores::LocalStore> local_store,
                            std::shared_ptr<stores::RemoteStore> store,
-                           std::shared_ptr<Scheduler> scheduler)
+                           std::shared_ptr<Scheduler> scheduler,
+                           std::shared_ptr<proofs::ProofEngine> proofs)
       : index_(std::move(sector_index)),
         seal_proof_type_(seal_proof_type),
         local_storage_(std::move(local_storage)),
         local_store_(std::move(local_store)),
         remote_store_(std::move(store)),
         scheduler_(std::move(scheduler)),
-        logger_(common::createLogger("manager")) {}
+        logger_(common::createLogger("manager")),
+        proofs_(std::move(proofs)) {}
 
   outcome::result<ManagerImpl::Response> ManagerImpl::acquireSector(
       SectorId sector_id,
@@ -792,6 +786,10 @@ namespace fc::sector_storage {
                                             AcquireMode::kMove));
 
     return Response{.paths = res.paths, .lock = std::move(locked)};
+  }
+
+  std::shared_ptr<proofs::ProofEngine> ManagerImpl::getProofEngine() const {
+    return proofs_;
   }
 
 }  // namespace fc::sector_storage

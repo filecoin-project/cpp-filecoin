@@ -26,58 +26,8 @@ namespace fc::miner {
   using vm::actor::builtin::types::miner::kWPoStProvingPeriod;
 
   MinerImpl::MinerImpl(std::shared_ptr<FullNodeApi> api,
-                       Address miner_address,
-                       Address worker_address,
-                       std::shared_ptr<Counter> counter,
-                       std::shared_ptr<BufferMap> sealing_fsm_kv,
-                       std::shared_ptr<Manager> sector_manager,
-                       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-                       std::shared_ptr<boost::asio::io_context> context)
-      : api_{std::move(api)},
-        miner_address_{std::move(miner_address)},
-        worker_address_{std::move(worker_address)},
-        counter_{std::move(counter)},
-        sealing_fsm_kv_{std::move(sealing_fsm_kv)},
-        sector_manager_{std::move(sector_manager)},
-        scheduler_{std::move(scheduler)},
-        context_{std::move(context)} {}
-
-  outcome::result<void> MinerImpl::run() {
-    OUTCOME_TRY(runPreflightChecks());
-
-    // use empty TipsetKey
-    OUTCOME_TRY(deadline_info,
-                api_->StateMinerProvingDeadline(miner_address_, TipsetKey{}));
-
-    std::shared_ptr<TipsetCache> tipset_cache =
-        std::make_shared<TipsetCacheImpl>(
-            2 * kGlobalChainConfidence,
-            [=](auto h) { return api_->ChainGetTipSetByHeight(h, {}); });
-    std::shared_ptr<Events> events =
-        std::make_shared<EventsImpl>(api_, tipset_cache);
-    OUTCOME_TRY(events->subscribeHeadChanges());
-    std::shared_ptr<PreCommitPolicy> precommit_policy =
-        std::make_shared<BasicPreCommitPolicy>(
-            api_,
-            deadline_info.period_start % kWPoStProvingPeriod,
-            kMaxSectorExpirationExtension - 2 * kWPoStProvingPeriod);
-    sealing_ = std::make_shared<SealingImpl>(api_,
-                                             events,
-                                             miner_address_,
-                                             counter_,
-                                             sealing_fsm_kv_,
-                                             sector_manager_,
-                                             precommit_policy,
-                                             context_,
-                                             scheduler_);
-    OUTCOME_TRY(sealing_->run());
-
-    return outcome::success();
-  }
-
-  void MinerImpl::stop() {
-    sealing_->stop();
-  }
+                       std::shared_ptr<Sealing> sealing)
+      : api_{std::move(api)}, sealing_{std::move(sealing)} {}
 
   outcome::result<std::shared_ptr<SectorInfo>> MinerImpl::getSectorInfo(
       SectorNumber sector_id) const {
@@ -93,13 +43,60 @@ namespace fc::miner {
     return sealing_->getAddress();
   }
 
-  outcome::result<void> MinerImpl::runPreflightChecks() {
-    OUTCOME_TRY(key, api_->StateAccountKey(worker_address_, {}));
-    OUTCOME_TRY(has, api_->WalletHas(key));
+  outcome::result<std::shared_ptr<MinerImpl>> MinerImpl::newMiner(
+      std::shared_ptr<FullNodeApi> api,
+      Address miner_address,
+      Address worker_address,
+      std::shared_ptr<Counter> counter,
+      std::shared_ptr<BufferMap> sealing_fsm_kv,
+      std::shared_ptr<Manager> sector_manager,
+      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      std::shared_ptr<boost::asio::io_context> context,
+      mining::Config config) {
+    // Checks miner worker address
+    OUTCOME_TRY(key, api->StateAccountKey(worker_address, {}));
+    OUTCOME_TRY(has, api->WalletHas(key));
     if (!has) {
       return MinerError::kWorkerNotFound;
     }
-    return outcome::success();
+
+    // use empty TipsetKey
+    OUTCOME_TRY(deadline_info,
+                api->StateMinerProvingDeadline(miner_address, TipsetKey{}));
+
+    std::shared_ptr<TipsetCache> tipset_cache =
+        std::make_shared<TipsetCacheImpl>(
+            2 * kGlobalChainConfidence,
+            [=](auto h) { return api->ChainGetTipSetByHeight(h, {}); });
+    OUTCOME_TRY(events, EventsImpl::createEvents(api, tipset_cache));
+    std::shared_ptr<PreCommitPolicy> precommit_policy =
+        std::make_shared<BasicPreCommitPolicy>(
+            api,
+            deadline_info.period_start % kWPoStProvingPeriod,
+            kMaxSectorExpirationExtension - 2 * kWPoStProvingPeriod);
+
+    OUTCOME_TRY(sealing,
+                SealingImpl::newSealing(api,
+                                        events,
+                                        miner_address,
+                                        counter,
+                                        sealing_fsm_kv,
+                                        sector_manager,
+                                        precommit_policy,
+                                        context,
+                                        scheduler,
+                                        config));
+
+    struct make_unique_enabler : public MinerImpl {
+      make_unique_enabler(std::shared_ptr<FullNodeApi> api,
+                          std::shared_ptr<Sealing> sealing)
+          : MinerImpl{std::move(api), std::move(sealing)} {};
+    };
+
+    std::shared_ptr<MinerImpl> miner =
+        std::make_shared<make_unique_enabler>(api, sealing);
+
+    return std::move(miner);
   }
 
 }  // namespace fc::miner

@@ -63,6 +63,7 @@ add_library(selector
 target_link_libraries(selector
         outcome
         resources
+        worker
         )
 
 add_library(manager

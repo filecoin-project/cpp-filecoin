@@ -33,6 +33,7 @@ namespace fc::sector_storage::stores {
     kCannotRemovePath,
     kCannotMoveFile,
     kCannotReserve,
+    kAlreadyReserved,
   };
 }  // namespace fc::sector_storage::stores
 

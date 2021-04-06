@@ -37,35 +37,22 @@ namespace fc::mining {
   using storage::BufferMap;
   using vm::actor::builtin::types::miner::SectorPreCommitInfo;
 
-  struct Config {
-    // 0 = no limit
-    uint64_t max_wait_deals_sectors = 0;
-
-    // includes failed, 0 = no limit
-    uint64_t max_sealing_sectors = 0;
-
-    // includes failed, 0 = no limit
-    uint64_t max_sealing_sectors_for_deals = 0;
-
-    uint64_t wait_deals_delay;  // in milliseconds
-  };
-
   class SealingImpl : public Sealing,
                       public std::enable_shared_from_this<SealingImpl> {
    public:
-    SealingImpl(std::shared_ptr<FullNodeApi> api,
-                std::shared_ptr<Events> events,
-                const Address &miner_address,
-                std::shared_ptr<Counter> counter,
-                std::shared_ptr<BufferMap> fsm_kv,
-                std::shared_ptr<Manager> sealer,
-                std::shared_ptr<PreCommitPolicy> policy,
-                std::shared_ptr<boost::asio::io_context> context,
-                std::shared_ptr<libp2p::protocol::Scheduler> scheduler);
+    ~SealingImpl() override;
 
-    outcome::result<void> run() override;
-
-    void stop() override;
+    static outcome::result<std::shared_ptr<SealingImpl>> newSealing(
+        std::shared_ptr<FullNodeApi> api,
+        std::shared_ptr<Events> events,
+        const Address &miner_address,
+        std::shared_ptr<Counter> counter,
+        std::shared_ptr<BufferMap> fsm_kv,
+        std::shared_ptr<Manager> sealer,
+        std::shared_ptr<PreCommitPolicy> policy,
+        std::shared_ptr<boost::asio::io_context> context,
+        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+        Config config);
 
     outcome::result<void> fsmLoad();
     void fsmSave(const std::shared_ptr<SectorInfo> &info);
@@ -97,6 +84,17 @@ namespace fc::mining {
     outcome::result<void> pledgeSector() override;
 
    private:
+    SealingImpl(std::shared_ptr<FullNodeApi> api,
+                std::shared_ptr<Events> events,
+                Address miner_address,
+                std::shared_ptr<Counter> counter,
+                std::shared_ptr<BufferMap> fsm_kv,
+                std::shared_ptr<Manager> sealer,
+                std::shared_ptr<PreCommitPolicy> policy,
+                std::shared_ptr<boost::asio::io_context> context,
+                std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+                Config config);
+
     struct SectorPaddingResponse {
       SectorNumber sector;
       std::vector<PaddedPieceSize> pads;

@@ -27,8 +27,8 @@ add_custom_command(
         /var/tmp/filecoin-proof-parameters/parameters.json)
 
 add_library(proofs
-        impl/proofs.cpp
         impl/proofs_error.cpp
+        impl/proof_engine_impl.cpp
         )
 
 target_link_libraries(proofs

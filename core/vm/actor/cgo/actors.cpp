@@ -5,7 +5,7 @@
 
 #include "vm/actor/cgo/actors.hpp"
 
-#include "proofs/proofs.hpp"
+#include "proofs/impl/proof_engine_impl.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/actor/cgo/c_actors.h"
 #include "vm/actor/cgo/go_actors.h"
@@ -49,6 +49,9 @@ namespace fc::vm::actor::cgo {
 
   static std::map<size_t, std::shared_ptr<Runtime>> runtimes;
   static size_t next_runtime{0};
+
+  static std::shared_ptr<proofs::ProofEngine> proofs =
+      std::make_shared<proofs::ProofEngineImpl>();
 
   outcome::result<Buffer> invoke(const CID &code,
                                  const std::shared_ptr<Runtime> &runtime) {
@@ -174,7 +177,7 @@ namespace fc::vm::actor::cgo {
     auto info{arg.get<WindowPoStVerifyInfo>()};
     if (charge(ret, rt, rt->execution()->env->pricelist.onVerifyPost(info))) {
       info.randomness[31] &= 0x3f;
-      auto r{proofs::Proofs::verifyWindowPoSt(info)};
+      auto r{proofs->verifyWindowPoSt(info)};
       ret << kOk << (r && r.value());
     }
   }
@@ -183,7 +186,7 @@ namespace fc::vm::actor::cgo {
     auto n{arg.get<size_t>()};
     ret << kOk;
     for (auto i{0u}; i < n; ++i) {
-      auto r{proofs::Proofs::verifySeal(arg.get<SealVerifyInfo>())};
+      auto r{proofs->verifySeal(arg.get<SealVerifyInfo>())};
       ret << (r && r.value());
     }
   }
