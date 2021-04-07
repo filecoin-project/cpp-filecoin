@@ -117,7 +117,26 @@ namespace fc::storage::cids_index {
         log->error("index generation error: {:#}", _index.error());
         return _index.error();
       }
+      if (!readCarItem(car_file, index->info.max_offset, &indexed_end).first
+          || indexed_end > car_size) {
+        return ERROR_TEXT("loadOrCreateWithProgress: invalid index");
+      }
+      if (indexed_end < car_size) {
+        car_file.seekg(indexed_end);
+        codec::uvarint::VarintDecoder varint;
+        if (!codec::uvarint::read(car_file, varint) || !varint.value
+            || indexed_end + varint.length + varint.value > car_size) {
+          car_size = indexed_end;
+          boost::filesystem::resize_file(car_path, car_size);
+        }
+      }
     }
-    return std::make_shared<CidsIpld>(car_path, index, ipld);
+    auto _ipld{std::make_shared<CidsIpld>()};
+    _ipld->car_file.open(car_path,
+                         std::ios::in | std::ios::app | std::ios::binary);
+    _ipld->index = index;
+    _ipld->ipld = ipld;
+    _ipld->car_offset = car_size;
+    return _ipld;
   }
 }  // namespace fc::storage::cids_index

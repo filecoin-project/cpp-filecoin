@@ -70,6 +70,8 @@ namespace fc::storage::car {
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input);
 
+  void writeItem(Buffer &output, const CID &cid, Input bytes);
+
   outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots);
 
   outcome::result<Buffer> makeSelectiveCar(

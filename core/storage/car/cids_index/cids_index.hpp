@@ -8,6 +8,7 @@
 #include <boost/endian/buffers.hpp>
 #include <fstream>
 #include <mutex>
+#include <shared_mutex>
 
 #include "common/blob.hpp"
 #include "common/enum.hpp"
@@ -73,7 +74,7 @@ namespace fc::storage::cids_index {
 
   outcome::result<size_t> checkIndex(std::ifstream &file);
 
-  std::pair<bool, size_t> readCarItem(std::ifstream &car_file,
+  std::pair<bool, size_t> readCarItem(std::istream &car_file,
                                       const Row &row,
                                       uint64_t *end);
 
@@ -161,9 +162,6 @@ namespace fc::storage::cids_index {
       const std::string &index_path, boost::optional<size_t> max_memory);
 
   struct CidsIpld : public Ipld, public std::enable_shared_from_this<CidsIpld> {
-    CidsIpld(const std::string &car_path,
-             std::shared_ptr<Index> index,
-             IpldPtr ipld);
     outcome::result<bool> contains(const CID &cid) const override;
     outcome::result<void> set(const CID &cid, Buffer value) override;
     outcome::result<Buffer> get(const CID &cid) const override;
@@ -175,8 +173,12 @@ namespace fc::storage::cids_index {
     }
 
     mutable std::mutex mutex;
-    mutable std::ifstream car_file;
+    mutable std::fstream car_file;
     std::shared_ptr<Index> index;
     IpldPtr ipld;
+    bool writable{};
+    mutable std::shared_mutex written_mutex;
+    std::set<Row> written;
+    uint64_t car_offset{};
   };
 }  // namespace fc::storage::cids_index

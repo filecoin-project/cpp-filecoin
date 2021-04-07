@@ -11,6 +11,7 @@
 #include "common/error_text.hpp"
 #include "common/file.hpp"
 #include "common/from_span.hpp"
+#include "storage/car/car.hpp"
 #include "storage/car/cids_index/progress.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
 
@@ -49,7 +50,7 @@ namespace fc::storage::cids_index {
     return size / sizeof(Row) - 2;
   }
 
-  std::pair<bool, size_t> readCarItem(std::ifstream &car_file,
+  std::pair<bool, size_t> readCarItem(std::istream &car_file,
                                       const Row &row,
                                       uint64_t *end) {
     car_file.seekg(row.offset.value());
@@ -382,15 +383,24 @@ namespace fc::storage::cids_index {
     return std::move(index);
   }
 
-  CidsIpld::CidsIpld(const std::string &car_path,
-                     std::shared_ptr<Index> index,
-                     IpldPtr ipld)
-      : car_file{car_path, std::ios::binary}, index{index}, ipld{ipld} {}
+  inline boost::optional<Row> findWritten(const CidsIpld &ipld,
+                                          const Key &key) {
+    assert(ipld.writable);
+    std::shared_lock lock{ipld.written_mutex};
+    auto it{ipld.written.lower_bound(Row{key, {}, {}})};
+    if (it != ipld.written.end() && it->key == key) {
+      return *it;
+    }
+    return boost::none;
+  }
 
   outcome::result<bool> CidsIpld::contains(const CID &cid) const {
     if (auto key{asBlake(cid)}) {
       OUTCOME_TRY(row, index->find(*key));
       if (row) {
+        return true;
+      }
+      if (writable && findWritten(*this, *key)) {
         return true;
       }
     }
@@ -405,6 +415,24 @@ namespace fc::storage::cids_index {
     if (has) {
       return outcome::success();
     }
+    if (auto key{asBlake(cid)}) {
+      if (writable) {
+        std::unique_lock lock{written_mutex};
+        Buffer item;
+        car::writeItem(item, cid, value);
+        Row row;
+        row.key = *key;
+        row.offset = car_offset;
+        row.max_size64 = maxSize64(item.size());
+        // TODO(turuslan): flush
+        if (!common::write(car_file, item)) {
+          return ERROR_TEXT("CidsIpld.set: write error");
+        }
+        car_offset += item.size();
+        written.insert(row);
+        return outcome::success();
+      }
+    }
     if (ipld) {
       return ipld->set(cid, std::move(value));
     }
@@ -414,6 +442,9 @@ namespace fc::storage::cids_index {
   outcome::result<Buffer> CidsIpld::get(const CID &cid) const {
     if (auto key{asBlake(cid)}) {
       OUTCOME_TRY(row, index->find(*key));
+      if (!row && writable) {
+        row = findWritten(*this, *key);
+      }
       if (row) {
         std::unique_lock lock{mutex};
         auto [good, size]{readCarItem(car_file, *row, nullptr)};
