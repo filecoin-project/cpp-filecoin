@@ -108,6 +108,15 @@ namespace fc::storage::cids_index {
   outcome::result<void> merge(std::ostream &out,
                               std::vector<MergeRange> &&ranges);
 
+  outcome::result<size_t> readCar(std::istream &car_file,
+                                  uint64_t car_min,
+                                  uint64_t car_max,
+                                  boost::optional<size_t> max_memory,
+                                  IpldPtr ipld,
+                                  Progress *progress,
+                                  std::fstream &rows_file,
+                                  std::vector<MergeRange> &ranges);
+
   struct Index {
     RowsInfo info;
 

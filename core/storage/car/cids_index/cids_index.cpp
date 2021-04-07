@@ -155,6 +155,95 @@ namespace fc::storage::cids_index {
     return outcome::success();
   }
 
+  outcome::result<size_t> readCar(std::istream &car_file,
+                                  uint64_t car_min,
+                                  uint64_t car_max,
+                                  boost::optional<size_t> max_memory,
+                                  IpldPtr ipld,
+                                  Progress *progress,
+                                  std::fstream &rows_file,
+                                  std::vector<MergeRange> &ranges) {
+    auto write_error{ERROR_TEXT("readCar: write error")};
+    // estimated, 64kb
+    car_file.rdbuf()->pubsetbuf(nullptr, 64 << 10);
+    if (car_min == 0) {
+      car_file.seekg(0);
+      codec::uvarint::VarintDecoder varint;
+      if (!read(car_file, varint)) {
+        return ERROR_TEXT("readCar: read header failed");
+      }
+      car_min = varint.length + varint.value;
+    }
+    std::vector<Row> rows;
+    if (max_memory) {
+      // estimated, 16mb, 512mb
+      rows.reserve(std::clamp<size_t>(*max_memory, 16 << 20, 512 << 20)
+                   / sizeof(Row));
+    } else {
+      // estimated
+      rows.reserve((car_max - car_min) * 33 / 23520);
+    }
+    if (!common::write(rows_file, gsl::make_span(&kHeaderV0, 1))) {
+      return write_error;
+    }
+    size_t offset{car_min};
+    car_file.seekg(offset);
+    size_t total{};
+    Buffer item;
+    while (true) {
+      auto varint{codec::uvarint::readBytes(car_file, item)};
+      if (!varint) {
+        break;
+      }
+      BytesIn input{item};
+      auto size{varint + item.size()};
+      auto stored{false};
+      if (startsWith(item, kCborBlakePrefix)) {
+        input = input.subspan(kCborBlakePrefix.size());
+        OUTCOME_TRY(key, fromSpan<Key>(input, false));
+        auto &row{rows.emplace_back()};
+        row.key = key;
+        row.offset = offset;
+        row.max_size64 = maxSize64(size);
+        ++total;
+        stored = true;
+      }
+      if (!stored && ipld) {
+        OUTCOME_TRY(cid, CID::read(input));
+        if (!asIdentity(cid)) {
+          OUTCOME_TRY(ipld->set(cid, Buffer{input}));
+        }
+        stored = true;
+      }
+      offset += size;
+      auto stop{offset >= car_max};
+      if ((max_memory && rows.size() == rows.capacity()) || stop) {
+        auto &range{ranges.emplace_back()};
+        range.begin = 1 + total - rows.size();
+        range.end = 1 + total;
+        range.file = &rows_file;
+        std::sort(rows.begin(), rows.end());
+        if (!common::write(rows_file, gsl::make_span(rows))) {
+          return write_error;
+        }
+        rows.resize(0);
+      }
+      if (progress) {
+        progress->car_offset.value = offset;
+        ++progress->items.value;
+        progress->update();
+      }
+      if (stop) {
+        break;
+      }
+    }
+    if (!common::write(rows_file, gsl::make_span(&kTrailerV0, 1))) {
+      return write_error;
+    }
+    rows_file.flush();
+    return total;
+  }
+
   inline boost::optional<size_t> sparseSize(
       size_t count, boost::optional<size_t> max_memory) {
     if (max_memory && count * sizeof(Row) > *max_memory) {
