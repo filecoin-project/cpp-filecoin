@@ -155,17 +155,20 @@ namespace fc::storage::cids_index {
     return outcome::success();
   }
 
-  inline boost::optional<size_t> sparseSize(size_t count, size_t max_memory) {
-    if (count * sizeof(Row) > max_memory) {
-      return max_memory / sizeof(Key);
+  inline boost::optional<size_t> sparseSize(
+      size_t count, boost::optional<size_t> max_memory) {
+    if (max_memory && count * sizeof(Row) > *max_memory) {
+      return *max_memory / sizeof(Key);
     }
     return boost::none;
   }
 
-  outcome::result<std::shared_ptr<Index>> create(const std::string &car_path,
-                                                 const std::string &index_path,
-                                                 IpldPtr ipld,
-                                                 Progress *progress) {
+  outcome::result<std::shared_ptr<Index>> create(
+      const std::string &car_path,
+      const std::string &index_path,
+      boost::optional<size_t> max_memory,
+      IpldPtr ipld,
+      Progress *progress) {
     auto write_error{ERROR_TEXT("cids_index create: write error")};
     boost::system::error_code ec;
     auto init_car_size{boost::filesystem::file_size(car_path, ec)};
@@ -181,10 +184,6 @@ namespace fc::storage::cids_index {
         progress->end();
       }
     })};
-    if (init_car_size > (size_t{40} << 30)) {
-      return ERROR_TEXT(
-          "cids_index create: TODO: safe indexing for car over 40gb");
-    }
     std::ifstream car_file{car_path, std::ios::binary};
     // estimated
     car_file.rdbuf()->pubsetbuf(nullptr, 64 << 10);
@@ -384,8 +383,8 @@ namespace fc::storage::cids_index {
     return index;
   }
 
-  outcome::result<std::shared_ptr<Index>> load(const std::string &index_path,
-                                               size_t max_memory) {
+  outcome::result<std::shared_ptr<Index>> load(
+      const std::string &index_path, boost::optional<size_t> max_memory) {
     std::ifstream index_file{index_path, std::ios::binary};
     // estimated
     index_file.rdbuf()->pubsetbuf(nullptr, 64 << 10);

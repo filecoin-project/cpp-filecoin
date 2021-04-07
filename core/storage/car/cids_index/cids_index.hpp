@@ -69,6 +69,8 @@ namespace fc::storage::cids_index {
   static inline const Row kTrailerV0{
       {}, decltype(Row::offset){common::to_int(Meta::kTrailerV0)}, {}};
 
+  struct Progress;
+
   outcome::result<size_t> checkIndex(std::ifstream &file);
 
   std::pair<bool, size_t> readCarItem(std::ifstream &car_file,
@@ -146,15 +148,15 @@ namespace fc::storage::cids_index {
         std::ifstream &&file, size_t count, size_t max_keys);
   };
 
-  outcome::result<std::shared_ptr<Index>> load(const std::string &index_path,
-                                               size_t max_memory);
+  outcome::result<std::shared_ptr<Index>> load(
+      const std::string &index_path, boost::optional<size_t> max_memory);
 
-  struct Progress;
-  // TODO(turuslan): tmp file and sparse index when car is too big
-  outcome::result<std::shared_ptr<Index>> create(const std::string &car_path,
-                                                 const std::string &index_path,
-                                                 IpldPtr ipld,
-                                                 Progress *progress);
+  outcome::result<std::shared_ptr<Index>> create(
+      const std::string &car_path,
+      const std::string &index_path,
+      boost::optional<size_t> max_memory,
+      IpldPtr ipld,
+      Progress *progress);
 
   struct CidsIpld : public Ipld, public std::enable_shared_from_this<CidsIpld> {
     CidsIpld(const std::string &car_path,

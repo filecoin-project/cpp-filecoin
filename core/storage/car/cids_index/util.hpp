@@ -15,7 +15,7 @@
 namespace fc::storage::cids_index {
   inline outcome::result<std::shared_ptr<CidsIpld>> loadOrCreateWithProgress(
       const std::string &car_path,
-      size_t max_memory,
+      boost::optional<size_t> max_memory,
       IpldPtr ipld,
       common::Logger log) {
     if (!log) {
@@ -45,7 +45,8 @@ namespace fc::storage::cids_index {
         progress.car_offset.step = std::min<size_t>(
             boost::filesystem::file_size(car_path) / 100, 1 << 30);
       }
-      if (auto _index{create(car_path, cids_path, nullptr, &progress)}) {
+      if (auto _index{
+              create(car_path, cids_path, max_memory, nullptr, &progress)}) {
         index = _index.value();
         log->info("index generated: {}", cids_path);
       } else {
