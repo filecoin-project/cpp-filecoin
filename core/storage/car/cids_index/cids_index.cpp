@@ -25,7 +25,7 @@ namespace fc::storage::cids_index {
     if (_size < 0) {
       return ERROR_TEXT("checkIndex: get file size failed");
     }
-    auto size{(size_t)_size};
+    auto size{(uint64_t)_size};
     if (size % sizeof(Row) != 0) {
       return ERROR_TEXT("checkIndex: invalid file size");
     }
@@ -81,6 +81,78 @@ namespace fc::storage::cids_index {
       max_key = std::max(max_key, row.key);
     }
     return *this;
+  }
+
+  bool MergeRange::empty() const {
+    return current >= rows.size() && begin >= end;
+  }
+
+  bool MergeRange::read() {
+    assert(!empty());
+    if (current >= rows.size()) {
+      file->seekg(begin * sizeof(Row));
+      rows.resize(std::min(rows.size(), end - begin));
+      if (!common::read(*file, gsl::make_span(rows))) {
+        return false;
+      }
+      begin += rows.size();
+      current = 0;
+    }
+    return true;
+  }
+
+  void MergeRange::pop() {
+    assert(current < rows.size());
+    ++current;
+  }
+
+  outcome::result<void> merge(std::ostream &out,
+                              std::vector<MergeRange> &&ranges) {
+    auto read_error{ERROR_TEXT("merge: read error")};
+    auto write_error{ERROR_TEXT("merge: write error")};
+    std::greater<MergeRange> cmp;
+    for (auto it{ranges.begin()}; it != ranges.end();) {
+      auto &range{*it};
+      if (range.empty()) {
+        it = ranges.erase(it);
+      } else {
+        // estimated, 64kb
+        range.rows.resize(1638);
+        if (!range.read()) {
+          return read_error;
+        }
+        ++it;
+      }
+    }
+    ranges.erase(
+        std::remove_if(
+            ranges.begin(), ranges.end(), [](auto &x) { return x.empty(); }),
+        ranges.end());
+    std::make_heap(ranges.begin(), ranges.end(), cmp);
+    if (!common::write(out, gsl::make_span(&kHeaderV0, 1))) {
+      return write_error;
+    }
+    while (!ranges.empty()) {
+      std::pop_heap(ranges.begin(), ranges.end(), cmp);
+      auto &range{ranges.back()};
+      if (!range.read()) {
+        return read_error;
+      }
+      if (!common::write(out, gsl::make_span(&range.front(), 1))) {
+        return write_error;
+      }
+      range.pop();
+      if (range.empty()) {
+        ranges.pop_back();
+      } else {
+        std::push_heap(ranges.begin(), ranges.end(), cmp);
+      }
+    }
+    if (!common::write(out, gsl::make_span(&kTrailerV0, 1))) {
+      return write_error;
+    }
+    out.flush();
+    return outcome::success();
   }
 
   inline boost::optional<size_t> sparseSize(size_t count, size_t max_memory) {

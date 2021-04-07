@@ -85,6 +85,27 @@ namespace fc::storage::cids_index {
     RowsInfo &feed(const Row &row);
   };
 
+  struct MergeRange {
+    std::istream *file{};
+    std::vector<Row> rows;
+    size_t current{(size_t)-1}, begin{}, end{};
+
+    inline auto &front() const {
+      assert(current < rows.size());
+      return rows[current];
+    }
+
+    bool empty() const;
+    bool read();
+    void pop();
+  };
+  inline auto operator>(const MergeRange &l, const MergeRange &r) {
+    return r.front() < l.front();
+  }
+
+  outcome::result<void> merge(std::ostream &out,
+                              std::vector<MergeRange> &&ranges);
+
   struct Index {
     RowsInfo info;
 
