@@ -258,7 +258,6 @@ namespace fc::storage::cids_index {
       boost::optional<size_t> max_memory,
       IpldPtr ipld,
       Progress *progress) {
-    auto write_error{ERROR_TEXT("cids_index create: write error")};
     boost::system::error_code ec;
     auto init_car_size{boost::filesystem::file_size(car_path, ec)};
     if (ec) {
@@ -277,47 +276,29 @@ namespace fc::storage::cids_index {
     // estimated
     car_file.rdbuf()->pubsetbuf(nullptr, 64 << 10);
 
-    size_t offset{};
-    Buffer header;
-    if (auto varint{codec::uvarint::readBytes(car_file, header)}) {
-      offset += varint + header.size();
+    auto rows_path{index_path + ".tmp2"};
+    std::fstream rows_file{
+        rows_path,
+        std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc};
+    std::vector<MergeRange> ranges;
+    OUTCOME_TRY(readCar(car_file,
+                        0,
+                        init_car_size,
+                        max_memory,
+                        ipld,
+                        progress,
+                        rows_file,
+                        ranges));
+    auto tmp_index_path{index_path + ".tmp"};
+    if (ranges.size() == 1) {
+      tmp_index_path = rows_path;
     } else {
-      return ERROR_TEXT("cids_index create: read header failed");
-    }
-
-    std::vector<Row> rows;
-    // estimated
-    rows.reserve(init_car_size * 33 / 23520);
-
-    Buffer item;
-    while (offset < init_car_size) {
-      auto varint{codec::uvarint::readBytes(car_file, item)};
-      if (!varint) {
-        break;
-      }
-      BytesIn input{item};
-      auto size{varint + item.size()};
-      auto stored{false};
-      if (startsWith(item, kCborBlakePrefix)) {
-        input = input.subspan(kCborBlakePrefix.size());
-        OUTCOME_TRY(key, fromSpan<Key>(input, false));
-        auto &row{rows.emplace_back()};
-        row.key = key;
-        row.offset = offset;
-        row.max_size64 = maxSize64(size);
-        stored = true;
-      }
-      if (!stored && ipld) {
-        OUTCOME_TRY(cid, CID::read(input));
-        OUTCOME_TRY(ipld->set(cid, Buffer{input}));
-      }
-      offset += size;
-
       if (progress) {
-        progress->car_offset.value = offset;
-        ++progress->items.value;
-        progress->update();
+        progress->sort();
       }
+      std::ofstream index_file{tmp_index_path, std::ios::binary};
+      OUTCOME_TRY(merge(index_file, std::move(ranges)));
+      index_file.close();
     }
 
     auto car_size{boost::filesystem::file_size(car_path, ec)};
@@ -327,35 +308,13 @@ namespace fc::storage::cids_index {
     if (car_size != init_car_size) {
       return ERROR_TEXT("cids_index create: car size changed");
     }
-    if (offset != init_car_size) {
-      return ERROR_TEXT("cids_index create: invalid car");
-    }
 
-    if (progress) {
-      progress->sort();
-    }
-    std::sort(rows.begin(), rows.end());
-
-    auto tmp_index_path{index_path + ".tmp"};
-    std::ofstream index_file{tmp_index_path, std::ios::binary};
-    if (!common::write(index_file, gsl::make_span(&kHeaderV0, 1))) {
-      return write_error;
-    }
-    if (!common::write(index_file, gsl::make_span(rows))) {
-      return write_error;
-    }
-    if (!common::write(index_file, gsl::make_span(&kTrailerV0, 1))) {
-      return write_error;
-    }
-    index_file.close();
     boost::filesystem::rename(tmp_index_path, index_path, ec);
     if (ec) {
       return ec;
     }
 
-    auto index{std::make_shared<MemoryIndex>()};
-    index->rows = std::move(rows);
-    return index;
+    return load(index_path, max_memory);
   }
 
   outcome::result<boost::optional<Row>> MemoryIndex::find(
