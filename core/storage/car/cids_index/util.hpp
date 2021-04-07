@@ -7,6 +7,9 @@
 
 #include <boost/filesystem/operations.hpp>
 
+#include "codec/uvarint.hpp"
+#include "common/error_text.hpp"
+#include "common/file.hpp"
 #include "common/logger.hpp"
 #include "common/outcome_fmt.hpp"
 #include "storage/car/cids_index/cids_index.hpp"
@@ -21,6 +24,12 @@ namespace fc::storage::cids_index {
     if (!log) {
       log = spdlog::default_logger();
     }
+    std::ifstream car_file{car_path, std::ios::ate | std::ios::binary};
+    if (!car_file.good()) {
+      log->error("open car failed: {}", car_path);
+      return ERROR_TEXT("loadOrCreateWithProgress: open car failed");
+    }
+    auto car_size{(uint64_t)car_file.tellg()};
     auto cids_path{car_path + ".cids"};
     std::shared_ptr<Index> index;
     if (boost::filesystem::exists(cids_path)) {
@@ -32,7 +41,32 @@ namespace fc::storage::cids_index {
         log->error("index loading error: {:#}", _index.error());
       }
     }
-    if (!index) {
+    uint64_t indexed_end{};
+    std::vector<MergeRange> ranges;
+    std::ifstream index_file;
+    if (index) {
+      if (!readCarItem(car_file, index->info.max_offset, &indexed_end).first
+          || indexed_end > car_size) {
+        log->warn("index invalidated: {}", cids_path);
+        index = nullptr;
+        indexed_end = 0;
+      } else if (indexed_end < car_size) {
+        car_file.seekg(indexed_end);
+        codec::uvarint::VarintDecoder varint;
+        if (!codec::uvarint::read(car_file, varint) || !varint.value
+            || indexed_end + varint.length + varint.value > car_size) {
+          car_size = indexed_end;
+          boost::filesystem::resize_file(car_path, car_size);
+        } else {
+          auto &range{ranges.emplace_back()};
+          range.begin = 1;
+          range.end = 1 + index->size();
+          index_file.open(cids_path, std::ios::binary);
+          range.file = &index_file;
+        }
+      }
+    }
+    if (indexed_end < car_size) {
       log->info("generating index");
       Progress progress;
       if (Progress::isTty()) {
@@ -42,11 +76,41 @@ namespace fc::storage::cids_index {
         progress.car_offset.step = 64 << 20;
       } else {
         // each 1% or 1GB
-        progress.car_offset.step = std::min<size_t>(
-            boost::filesystem::file_size(car_path) / 100, 1 << 30);
+        progress.car_offset.step = std::min<size_t>(car_size / 100, 1 << 30);
       }
-      if (auto _index{
-              create(car_path, cids_path, max_memory, nullptr, &progress)}) {
+      progress.car_size = car_size - indexed_end;
+      auto _index{[&]() -> outcome::result<std::shared_ptr<Index>> {
+        progress.begin();
+        auto BOOST_OUTCOME_TRY_UNIQUE_NAME{
+            gsl::finally([&] { progress.end(); })};
+        auto rows_path{cids_path + ".tmp2"};
+        std::fstream rows_file{
+            rows_path,
+            std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc};
+        OUTCOME_TRY(readCar(car_file,
+                            indexed_end,
+                            car_size,
+                            max_memory,
+                            ipld,
+                            &progress,
+                            rows_file,
+                            ranges));
+        auto tmp_cids_path{cids_path + ".tmp"};
+        if (ranges.size() == 1) {
+          tmp_cids_path = rows_path;
+        } else {
+          progress.sort();
+          std::ofstream index_file{tmp_cids_path, std::ios::binary};
+          OUTCOME_TRY(merge(index_file, std::move(ranges)));
+        }
+        boost::system::error_code ec;
+        boost::filesystem::rename(tmp_cids_path, cids_path, ec);
+        if (ec) {
+          return ec;
+        }
+        return load(cids_path, max_memory);
+      }()};
+      if (_index) {
         index = _index.value();
         log->info("index generated: {}", cids_path);
       } else {

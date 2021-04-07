@@ -167,6 +167,7 @@ namespace fc::storage::cids_index {
     // estimated, 64kb
     car_file.rdbuf()->pubsetbuf(nullptr, 64 << 10);
     if (car_min == 0) {
+      car_file.clear();
       car_file.seekg(0);
       codec::uvarint::VarintDecoder varint;
       if (!read(car_file, varint)) {
@@ -229,7 +230,7 @@ namespace fc::storage::cids_index {
         rows.resize(0);
       }
       if (progress) {
-        progress->car_offset.value = offset;
+        progress->car_offset.value = offset - car_min;
         ++progress->items.value;
         progress->update();
       }
@@ -250,71 +251,6 @@ namespace fc::storage::cids_index {
       return *max_memory / sizeof(Key);
     }
     return boost::none;
-  }
-
-  outcome::result<std::shared_ptr<Index>> create(
-      const std::string &car_path,
-      const std::string &index_path,
-      boost::optional<size_t> max_memory,
-      IpldPtr ipld,
-      Progress *progress) {
-    boost::system::error_code ec;
-    auto init_car_size{boost::filesystem::file_size(car_path, ec)};
-    if (ec) {
-      return ec;
-    }
-    if (progress) {
-      progress->car_size = init_car_size;
-      progress->begin();
-    }
-    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{gsl::finally([&] {
-      if (progress) {
-        progress->end();
-      }
-    })};
-    std::ifstream car_file{car_path, std::ios::binary};
-    // estimated
-    car_file.rdbuf()->pubsetbuf(nullptr, 64 << 10);
-
-    auto rows_path{index_path + ".tmp2"};
-    std::fstream rows_file{
-        rows_path,
-        std::ios::in | std::ios::out | std::ios::binary | std::ios::trunc};
-    std::vector<MergeRange> ranges;
-    OUTCOME_TRY(readCar(car_file,
-                        0,
-                        init_car_size,
-                        max_memory,
-                        ipld,
-                        progress,
-                        rows_file,
-                        ranges));
-    auto tmp_index_path{index_path + ".tmp"};
-    if (ranges.size() == 1) {
-      tmp_index_path = rows_path;
-    } else {
-      if (progress) {
-        progress->sort();
-      }
-      std::ofstream index_file{tmp_index_path, std::ios::binary};
-      OUTCOME_TRY(merge(index_file, std::move(ranges)));
-      index_file.close();
-    }
-
-    auto car_size{boost::filesystem::file_size(car_path, ec)};
-    if (ec) {
-      return ec;
-    }
-    if (car_size != init_car_size) {
-      return ERROR_TEXT("cids_index create: car size changed");
-    }
-
-    boost::filesystem::rename(tmp_index_path, index_path, ec);
-    if (ec) {
-      return ec;
-    }
-
-    return load(index_path, max_memory);
   }
 
   outcome::result<boost::optional<Row>> MemoryIndex::find(

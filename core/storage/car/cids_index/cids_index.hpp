@@ -160,13 +160,6 @@ namespace fc::storage::cids_index {
   outcome::result<std::shared_ptr<Index>> load(
       const std::string &index_path, boost::optional<size_t> max_memory);
 
-  outcome::result<std::shared_ptr<Index>> create(
-      const std::string &car_path,
-      const std::string &index_path,
-      boost::optional<size_t> max_memory,
-      IpldPtr ipld,
-      Progress *progress);
-
   struct CidsIpld : public Ipld, public std::enable_shared_from_this<CidsIpld> {
     CidsIpld(const std::string &car_path,
              std::shared_ptr<Index> index,
