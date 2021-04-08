@@ -125,10 +125,6 @@ namespace fc::storage::cids_index {
         ++it;
       }
     }
-    ranges.erase(
-        std::remove_if(
-            ranges.begin(), ranges.end(), [](auto &x) { return x.empty(); }),
-        ranges.end());
     std::make_heap(ranges.begin(), ranges.end(), cmp);
     if (!common::write(out, gsl::make_span(&kHeaderV0, 1))) {
       return write_error;
@@ -136,9 +132,6 @@ namespace fc::storage::cids_index {
     while (!ranges.empty()) {
       std::pop_heap(ranges.begin(), ranges.end(), cmp);
       auto &range{ranges.back()};
-      if (!range.read()) {
-        return read_error;
-      }
       if (!common::write(out, gsl::make_span(&range.front(), 1))) {
         return write_error;
       }
@@ -146,6 +139,9 @@ namespace fc::storage::cids_index {
       if (range.empty()) {
         ranges.pop_back();
       } else {
+        if (!range.read()) {
+          return read_error;
+        }
         std::push_heap(ranges.begin(), ranges.end(), cmp);
       }
     }
