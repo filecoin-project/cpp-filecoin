@@ -421,10 +421,10 @@ namespace fc::storage::cids_index {
         row.key = *key;
         row.offset = car_offset;
         row.max_size64 = maxSize64(item.size());
-        // TODO(turuslan): flush
         if (!common::write(car_file, item)) {
           return ERROR_TEXT("CidsIpld.set: write error");
         }
+        car_file.flush();
         car_offset += item.size();
         written.insert(row);
         return outcome::success();
