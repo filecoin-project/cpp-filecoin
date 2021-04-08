@@ -18,6 +18,7 @@
 namespace fc::storage::cids_index {
   inline outcome::result<std::shared_ptr<CidsIpld>> loadOrCreateWithProgress(
       const std::string &car_path,
+      bool writable,
       boost::optional<size_t> max_memory,
       IpldPtr ipld,
       common::Logger log) {
@@ -132,10 +133,12 @@ namespace fc::storage::cids_index {
       }
     }
     auto _ipld{std::make_shared<CidsIpld>()};
-    _ipld->car_file.open(car_path,
-                         std::ios::in | std::ios::app | std::ios::binary);
+    _ipld->car_file.open(
+        car_path,
+        std::ios::in | std::ios::binary | (writable ? std::ios::app : 0));
     _ipld->index = index;
     _ipld->ipld = ipld;
+    _ipld->writable = writable;
     _ipld->car_offset = car_size;
     return _ipld;
   }

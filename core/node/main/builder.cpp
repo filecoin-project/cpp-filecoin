@@ -171,7 +171,7 @@ namespace fc::node {
       }
       // TODO(turuslan): max memory
       o.ipld_cids = storage::cids_index::loadOrCreateWithProgress(
-                        *config.snapshot, boost::none, o.ipld, log())
+                        *config.snapshot, false, boost::none, o.ipld, log())
                         .value();
       o.ipld = o.ipld_cids;
       if (snapshot_cids.empty()) {

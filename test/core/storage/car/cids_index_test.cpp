@@ -21,24 +21,27 @@ namespace fc::storage::cids_index {
       cids_path = car_path + ".cids";
     }
 
-    auto load() {
-      return loadOrCreateWithProgress(car_path, boost::none, nullptr, nullptr);
+    auto load(bool writable) {
+      return loadOrCreateWithProgress(
+          car_path, writable, boost::none, nullptr, nullptr);
     }
   };
 
   TEST_F(CidsIndexTest, Test) {
+    std::shared_ptr<CidsIpld> ipld;
+
     // using existing car
     fs::copy(genesis_path, car_path);
-    EXPECT_OUTCOME_TRUE(ipld, load());
+    ipld = load(false).value();
 
-    // must set writable
+    // must be writable
     EXPECT_OUTCOME_FALSE_1(ipld->setCbor(value1));
-    ipld->writable = true;
+    ipld = load(true).value();
     EXPECT_OUTCOME_TRUE(cid1, ipld->setCbor(value1));
     EXPECT_OUTCOME_EQ(ipld->getCbor<decltype(value1)>(cid1), value1);
 
     // value persists
-    ipld = load().value();
+    ipld = load(true).value();
     EXPECT_OUTCOME_EQ(ipld->getCbor<decltype(value1)>(cid1), value1);
 
     // inserted only once
