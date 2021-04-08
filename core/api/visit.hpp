@@ -87,6 +87,7 @@ namespace fc::api {
     f(a.ClientFindData);
     f(a.ClientHasLocal);
     f(a.ClientImport);
+    f(a.ClientListDeals);
     f(a.ClientListImports);
     f(a.ClientQueryAsk);
     f(a.ClientRetrieve);
@@ -132,6 +133,7 @@ namespace fc::api {
     f(a.StateSearchMsg);
     f(a.StateSectorGetInfo);
     f(a.StateSectorPartition);
+    f(a.StateVerifiedClientStatus);
     f(a.StateSectorPreCommitInfo);
     f(a.StateWaitMsg);
     f(a.SyncSubmitBlock);

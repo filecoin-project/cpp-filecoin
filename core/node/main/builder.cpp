@@ -490,8 +490,6 @@ namespace fc::node {
 
     o.datatransfer = DataTransfer::make(o.host, o.graphsync);
 
-    OUTCOME_TRY(createStorageMarketClient(o));
-
     o.api = api::makeImpl(o.chain_store,
                           *config.network_name,
                           weight_calculator,
@@ -503,6 +501,8 @@ namespace fc::node {
                           drand_schedule,
                           o.pubsub_gate,
                           key_store);
+
+    OUTCOME_TRY(createStorageMarketClient(o));
 
     return o;
   }

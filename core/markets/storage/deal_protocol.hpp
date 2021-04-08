@@ -45,7 +45,7 @@ namespace fc::markets::storage {
 
   CBOR_TUPLE(DataRef, transfer_type, root, piece_cid, piece_size)
 
-  enum class StorageDealStatus {
+  enum class StorageDealStatus : uint64_t {
     STORAGE_DEAL_UNKNOWN = 0,
     STORAGE_DEAL_PROPOSAL_NOT_FOUND,
     STORAGE_DEAL_PROPOSAL_REJECTED,

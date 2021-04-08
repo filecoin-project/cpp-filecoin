@@ -17,6 +17,7 @@
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
@@ -48,12 +49,14 @@ namespace fc::api {
   using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
+  using vm::actor::kVerifiedRegistryAddress;
   using vm::actor::builtin::states::AccountActorStatePtr;
   using vm::actor::builtin::states::InitActorStatePtr;
   using vm::actor::builtin::states::MarketActorStatePtr;
   using vm::actor::builtin::states::MinerActorStatePtr;
   using vm::actor::builtin::states::PowerActorStatePtr;
   using vm::actor::builtin::states::StateProvider;
+  using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
   using vm::runtime::Env;
@@ -128,6 +131,13 @@ namespace fc::api {
       OUTCOME_TRY(actor, state_tree.get(kInitAddress));
       OUTCOME_TRY(state, provider.getInitActorState(actor));
       return std::move(state);
+    }
+
+    auto verifiedRegistryState()
+        -> outcome::result<VerifiedRegistryActorStatePtr> {
+      const StateProvider provider(state_tree.getStore());
+      OUTCOME_TRY(actor, state_tree.get(kVerifiedRegistryAddress));
+      return provider.getVerifiedRegistryActorState(actor);
     }
 
     outcome::result<Address> accountKey(const Address &id) {
@@ -345,8 +355,9 @@ namespace fc::api {
     api->ClientQueryAsk = {};
     // TODO(turuslan): FIL-165 implement method
     api->ClientRetrieve = {};
-    // TODO(turuslan): FIL-165 implement method
-    api->ClientStartDeal = {};
+
+    api->ClientStartDeal = {/* impemented in node/main.cpp */};
+
     api->GasEstimateFeeCap = {[=](auto &msg, auto max_blocks, auto &) {
       return mpool->estimateFeeCap(msg.gas_premium, max_blocks);
     }};
@@ -359,8 +370,15 @@ namespace fc::api {
               msg, spec ? spec->max_fee : storage::mpool::kDefaultMaxFee));
           return msg;
         }};
-    // TODO(turuslan): FIL-165 implement method
-    api->MarketReserveFunds = {};
+
+    api->MarketReserveFunds = {[=](const Address &from,
+                                   const Address &address,
+                                   const TokenAmount &amount)
+                                   -> outcome::result<boost::optional<CID>> {
+      // TODO(turuslan): FIL-165 implement method
+      return boost::none;
+    }};
+
     api->MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockWithCids> {
       OUTCOME_TRY(context, tipsetContext(t.parents, true));
       OUTCOME_TRY(miner_state, context.minerState(t.miner));
@@ -771,6 +789,16 @@ namespace fc::api {
         }};
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSectorPartition = {};
+
+    api->StateVerifiedClientStatus = [=](const Address &address,
+                                         const TipsetKey &tipset_key)
+        -> outcome::result<boost::optional<StoragePower>> {
+      OUTCOME_TRY(context, tipsetContext(tipset_key, true));
+      OUTCOME_TRY(id, context.state_tree.lookupId(address));
+      OUTCOME_TRY(state, context.verifiedRegistryState());
+      return state->getVerifiedClientDataCap(id);
+    };
+
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSearchMsg = {};
     api->StateWaitMsg =
