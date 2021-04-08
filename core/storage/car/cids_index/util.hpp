@@ -135,7 +135,7 @@ namespace fc::storage::cids_index {
     auto _ipld{std::make_shared<CidsIpld>()};
     _ipld->car_file.open(
         car_path,
-        std::ios::in | std::ios::binary | (writable ? std::ios::app : 0));
+        std::ios::in | std::ios::binary | (writable ? std::ios::app : std::ios::openmode{}));
     _ipld->index = index;
     _ipld->ipld = ipld;
     _ipld->writable = writable;
