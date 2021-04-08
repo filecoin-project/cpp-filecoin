@@ -192,7 +192,17 @@ namespace fc::storage::cids_index {
     car_file.seekg(offset);
     size_t total{};
     Buffer item;
-    while (true) {
+    auto flush{[&] {
+      auto &range{ranges.emplace_back()};
+      range.begin = 1 + total - rows.size();
+      range.end = 1 + total;
+      range.file = &rows_file;
+      std::sort(rows.begin(), rows.end());
+      auto res{common::write(rows_file, gsl::make_span(rows))};
+      rows.resize(0);
+      return res;
+    }};
+    while (offset < car_max) {
       auto varint{codec::uvarint::readBytes(car_file, item)};
       if (!varint) {
         break;
@@ -219,16 +229,8 @@ namespace fc::storage::cids_index {
       }
       offset += size;
       auto stop{offset >= car_max};
-      if ((max_memory && rows.size() == rows.capacity()) || stop) {
-        auto &range{ranges.emplace_back()};
-        range.begin = 1 + total - rows.size();
-        range.end = 1 + total;
-        range.file = &rows_file;
-        std::sort(rows.begin(), rows.end());
-        if (!common::write(rows_file, gsl::make_span(rows))) {
-          return write_error;
-        }
-        rows.resize(0);
+      if (max_memory && rows.size() == rows.capacity() && !flush()) {
+        return write_error;
       }
       if (progress) {
         progress->car_offset.value = offset - car_min;
@@ -238,6 +240,9 @@ namespace fc::storage::cids_index {
       if (stop) {
         break;
       }
+    }
+    if (!flush()) {
+      return write_error;
     }
     if (!common::write(rows_file, gsl::make_span(&kTrailerV0, 1))) {
       return write_error;

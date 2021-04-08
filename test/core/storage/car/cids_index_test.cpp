@@ -38,7 +38,6 @@ namespace fc::storage::cids_index {
     EXPECT_OUTCOME_EQ(ipld->getCbor<decltype(value1)>(cid1), value1);
 
     // value persists
-    ipld->car_file.flush();
     ipld = load().value();
     EXPECT_OUTCOME_EQ(ipld->getCbor<decltype(value1)>(cid1), value1);
 
