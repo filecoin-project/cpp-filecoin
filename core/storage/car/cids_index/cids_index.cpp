@@ -164,18 +164,10 @@ namespace fc::storage::cids_index {
                                   Progress *progress,
                                   std::fstream &rows_file,
                                   std::vector<MergeRange> &ranges) {
+    assert(car_min <= car_max);
     auto write_error{ERROR_TEXT("readCar: write error")};
     // estimated, 64kb
     car_file.rdbuf()->pubsetbuf(nullptr, 64 << 10);
-    if (car_min == 0) {
-      car_file.clear();
-      car_file.seekg(0);
-      codec::uvarint::VarintDecoder varint;
-      if (!read(car_file, varint)) {
-        return ERROR_TEXT("readCar: read header failed");
-      }
-      car_min = varint.length + varint.value;
-    }
     std::vector<Row> rows;
     if (max_memory) {
       // estimated, 16mb, 512mb

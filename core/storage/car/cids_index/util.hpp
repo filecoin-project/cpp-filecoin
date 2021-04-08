@@ -31,6 +31,12 @@ namespace fc::storage::cids_index {
       return ERROR_TEXT("loadOrCreateWithProgress: open car failed");
     }
     auto car_size{(uint64_t)car_file.tellg()};
+    car_file.seekg(0);
+    codec::uvarint::VarintDecoder header;
+    if (!read(car_file, header)) {
+      return ERROR_TEXT("loadOrCreateWithProgress: read header failed");
+    }
+    auto indexed_end{header.length + header.value};
     auto cids_path{car_path + ".cids"};
     std::shared_ptr<Index> index;
     if (boost::filesystem::exists(cids_path)) {
@@ -42,32 +48,32 @@ namespace fc::storage::cids_index {
         log->error("index loading error: {:#}", _index.error());
       }
     }
-    uint64_t indexed_end{};
     std::vector<MergeRange> ranges;
     std::ifstream index_file;
-    if (index) {
+    if (index && index->size()) {
       if (!readCarItem(car_file, index->info.max_offset, &indexed_end).first
           || indexed_end > car_size) {
         log->warn("index invalidated: {}", cids_path);
         index = nullptr;
         indexed_end = 0;
-      } else if (indexed_end < car_size) {
-        car_file.seekg(indexed_end);
-        codec::uvarint::VarintDecoder varint;
-        if (!codec::uvarint::read(car_file, varint) || !varint.value
-            || indexed_end + varint.length + varint.value > car_size) {
-          car_size = indexed_end;
-          boost::filesystem::resize_file(car_path, car_size);
-        } else {
-          auto &range{ranges.emplace_back()};
-          range.begin = 1;
-          range.end = 1 + index->size();
-          index_file.open(cids_path, std::ios::binary);
-          range.file = &index_file;
-        }
       }
     }
-    if (indexed_end < car_size) {
+    if (index && indexed_end < car_size) {
+      car_file.seekg(indexed_end);
+      codec::uvarint::VarintDecoder varint;
+      if (!codec::uvarint::read(car_file, varint) || !varint.value
+          || indexed_end + varint.length + varint.value > car_size) {
+        car_size = indexed_end;
+        boost::filesystem::resize_file(car_path, car_size);
+      } else {
+        auto &range{ranges.emplace_back()};
+        range.begin = 1;
+        range.end = 1 + index->size();
+        index_file.open(cids_path, std::ios::binary);
+        range.file = &index_file;
+      }
+    }
+    if (!index || indexed_end < car_size) {
       log->info("generating index");
       Progress progress;
       if (Progress::isTty()) {
@@ -118,24 +124,27 @@ namespace fc::storage::cids_index {
         log->error("index generation error: {:#}", _index.error());
         return _index.error();
       }
-      if (!readCarItem(car_file, index->info.max_offset, &indexed_end).first
-          || indexed_end > car_size) {
-        return ERROR_TEXT("loadOrCreateWithProgress: invalid index");
-      }
-      if (indexed_end < car_size) {
-        car_file.seekg(indexed_end);
-        codec::uvarint::VarintDecoder varint;
-        if (!codec::uvarint::read(car_file, varint) || !varint.value
-            || indexed_end + varint.length + varint.value > car_size) {
-          car_size = indexed_end;
-          boost::filesystem::resize_file(car_path, car_size);
+      if (index->size()) {
+        if (!readCarItem(car_file, index->info.max_offset, &indexed_end).first
+            || indexed_end > car_size) {
+          return ERROR_TEXT("loadOrCreateWithProgress: invalid index");
+        }
+        if (indexed_end < car_size) {
+          car_file.seekg(indexed_end);
+          codec::uvarint::VarintDecoder varint;
+          if (!codec::uvarint::read(car_file, varint) || !varint.value
+              || indexed_end + varint.length + varint.value > car_size) {
+            car_size = indexed_end;
+            boost::filesystem::resize_file(car_path, car_size);
+          }
         }
       }
     }
     auto _ipld{std::make_shared<CidsIpld>()};
     _ipld->car_file.open(
         car_path,
-        std::ios::in | std::ios::binary | (writable ? std::ios::app : std::ios::openmode{}));
+        std::ios::in | std::ios::binary
+            | (writable ? std::ios::app : std::ios::openmode{}));
     _ipld->index = index;
     _ipld->ipld = ipld;
     _ipld->writable = writable;
