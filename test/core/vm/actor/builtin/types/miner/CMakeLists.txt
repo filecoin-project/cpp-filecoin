@@ -6,6 +6,7 @@
 addtest(miner_types_test
     quantize_test.cpp
     bitfield_queue_test.cpp
+    termination_test.cpp
     )
 target_link_libraries(miner_types_test
     miner_types
