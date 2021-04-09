@@ -6,6 +6,7 @@
 #pragma once
 
 namespace fc::api {
+  /** Is a binary encoded semver */
   using ApiVersion = uint64_t;
 
   /**
