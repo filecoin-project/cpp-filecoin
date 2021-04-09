@@ -6,6 +6,7 @@
 add_library(miner_types
     deadline_info.cpp
     quantize.cpp
+    bitfield_queue.cpp
     )
 target_link_libraries(miner_types
     actor

@@ -41,6 +41,22 @@ namespace fc::primitives {
       }
       return result;
     }
+
+    inline RleBitset cut(const RleBitset &to_cut) const {
+      RleBitset result;
+      uint64_t shift = 0;
+      auto it = to_cut.begin();
+      for (auto element : *this) {
+        while ((it != to_cut.end()) && (*it < element)) {
+          ++shift;
+          ++it;
+        }
+        if ((it == to_cut.end()) || (*it > element)) {
+          result.insert(element - shift);
+        }
+      }
+      return result;
+    }
   };
 
   CBOR_ENCODE(RleBitset, set) {
