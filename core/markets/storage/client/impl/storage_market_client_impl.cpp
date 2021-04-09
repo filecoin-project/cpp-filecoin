@@ -645,13 +645,7 @@ namespace fc::markets::storage::client {
           voucher,
           codec::cbor::encode(StorageDataTransferVoucher{deal->proposal_cid}));
 
-      // if manual, do nothing
-      if (deal->data_ref.transfer_type == kTransferTypeManual) {
-        // now wait for response in pollWaiting to check if deal is activated
-        // or rejected
-        std::lock_guard lock{self->waiting_mutex};
-        self->waiting_deals.push_back(deal);
-      } else if (deal->data_ref.transfer_type == kTransferTypeGraphsync) {
+      if (deal->data_ref.transfer_type == kTransferTypeGraphsync) {
         self->datatransfer_->push(
             deal->miner,
             deal->data_ref.root,
@@ -660,8 +654,13 @@ namespace fc::markets::storage::client {
             voucher,
             [](auto) {},
             [](auto) {});
-        // datatransfer completed, the deal must be accepted
+        // data transfer completed, the deal must be accepted
         self->askDealStatus(deal);
+      } else if (deal->data_ref.transfer_type == kTransferTypeManual) {
+        // wait for response in pollWaiting to check if deal is activated
+        // or rejected
+        std::lock_guard lock{self->waiting_mutex};
+        self->waiting_deals.push_back(deal);
       } else {
         deal->message =
             "Wrong transfer type: '" + deal->data_ref.transfer_type + "'";
