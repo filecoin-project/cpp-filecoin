@@ -29,7 +29,7 @@ namespace fc::vm::actor::builtin::states {
     outcome::result<boost::optional<DataCap>> getVerifiedClientDataCap(
         const Address &address) {
       if (!address.isId()) {
-        ERROR_TEXT("Can only look up ID addresses");
+        return ERROR_TEXT("Can only look up ID addresses");
       }
       return verified_clients.tryGet(address);
     }

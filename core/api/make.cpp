@@ -22,7 +22,6 @@
 #include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
-#include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/message/message.hpp"
@@ -47,7 +46,6 @@ namespace fc::api {
   using primitives::tipset::Tipset;
   using vm::isVMExitCode;
   using vm::VMExitCode;
-  using vm::actor::InvokerImpl;
   using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
@@ -379,9 +377,8 @@ namespace fc::api {
                                    const Address &address,
                                    const TokenAmount &amount)
                                    -> outcome::result<boost::optional<CID>> {
-      // TODO(a.chernyshov): method should use fund manager to ensure there is
-      // no reserved funds in market actor. Rework method after the fund manager
-      // is implemented
+      // TODO(a.chernyshov): method should use fund manager batch reserve and
+      // release funds requests for market actor.
       vm::actor::builtin::v0::market::AddBalance::Params params{address};
       OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
       UnsignedMessage unsigned_message{
@@ -389,8 +386,8 @@ namespace fc::api {
           wallet,
           {},
           amount,
-          kDefaultGasPrice,
-          kDefaultGasLimit,
+          0,
+          0,
           // TODO (a.chernyshov) there is v0 actor method number, but the actor
           // methods do not depend on version. Should be changed to general
           // method number when methods number are made general
