@@ -170,7 +170,7 @@ namespace fc::markets::retrieval::provider {
     if (!fs::exists(kStorageMarketImportDir)) {
       fs::create_directories(kStorageMarketImportDir);
     }
-    auto car_path = kStorageMarketImportDir / fs::unique_path();
+    const auto car_path = kStorageMarketImportDir / fs::unique_path();
     auto _ = gsl::finally([&car_path]() {
       if (fs::exists(car_path)) {
         fs::remove_all(car_path);
