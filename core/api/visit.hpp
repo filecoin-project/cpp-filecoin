@@ -134,6 +134,7 @@ namespace fc::api {
     f(a.StateSectorGetInfo);
     f(a.StateSectorPartition);
     f(a.StateVerifiedClientStatus);
+    f(a.GetProofType);
     f(a.StateSectorPreCommitInfo);
     f(a.StateWaitMsg);
     f(a.SyncSubmitBlock);

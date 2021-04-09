@@ -348,12 +348,12 @@ namespace fc::api {
     /**
      * Ensures that a storage market participant has a certain amount of
      * available funds. If additional funds are needed, they will be sent from
-     * the 'wallet' address callback is immediately called if sufficient funds
-     * are available
+     * the 'wallet' address.
      * @param wallet to send from
      * @param address to ensure
      * @param amount to ensure
-     * @return CID of transfer message if message was sent
+     * @return CID of transfer message if message was sent or boost::none if
+     * required funds were already available
      */
     API_METHOD(MarketReserveFunds,
                boost::optional<CID>,

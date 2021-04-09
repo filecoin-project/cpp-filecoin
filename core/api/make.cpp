@@ -21,9 +21,11 @@
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
+#include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
+#include "vm/message/message.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -59,6 +61,8 @@ namespace fc::api {
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
+  using vm::message::kDefaultGasLimit;
+  using vm::message::kDefaultGasPrice;
   using vm::runtime::Env;
   using vm::state::StateTreeImpl;
   using vm::version::getNetworkVersion;
@@ -371,12 +375,30 @@ namespace fc::api {
           return msg;
         }};
 
-    api->MarketReserveFunds = {[=](const Address &from,
+    api->MarketReserveFunds = {[=](const Address &wallet,
                                    const Address &address,
                                    const TokenAmount &amount)
                                    -> outcome::result<boost::optional<CID>> {
-      // TODO(turuslan): FIL-165 implement method
-      return boost::none;
+      // TODO(a.chernyshov): method should use fund manager to ensure there is
+      // no reserved funds in market actor. Rework method after the fund manager
+      // is implemented
+      vm::actor::builtin::v0::market::AddBalance::Params params{address};
+      OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
+      UnsignedMessage unsigned_message{
+          kStorageMarketAddress,
+          wallet,
+          {},
+          amount,
+          kDefaultGasPrice,
+          kDefaultGasLimit,
+          // TODO (a.chernyshov) there is v0 actor method number, but the actor
+          // methods do not depend on version. Should be changed to general
+          // method number when methods number are made general
+          vm::actor::builtin::v0::market::AddBalance::Number,
+          encoded_params};
+      OUTCOME_TRY(signed_message,
+                  api->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
+      return signed_message.getCid();
     }};
 
     api->MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockWithCids> {
@@ -735,7 +757,6 @@ namespace fc::api {
     api->StateMinerProvingDeadline = {
         [=](auto &address, auto &tipset_key) -> outcome::result<DeadlineInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          // TODO (a.chernyshov) miner version depends on actor code/version
           OUTCOME_TRY(state, context.minerState(address));
           const auto deadline_info =
               state->deadlineInfo(context.tipset->height());
