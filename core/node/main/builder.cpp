@@ -170,9 +170,8 @@ namespace fc::node {
         exit(EXIT_FAILURE);
       }
       // TODO(turuslan): max memory
-      o.ipld_cids = storage::cids_index::loadOrCreateWithProgress(
-                        *config.snapshot, false, boost::none, o.ipld, log())
-                        .value();
+      o.ipld_cids = *storage::cids_index::loadOrCreateWithProgress(
+          *config.snapshot, false, boost::none, o.ipld, log());
       o.ipld = o.ipld_cids;
       if (snapshot_cids.empty()) {
         snapshot_cids = roots;
@@ -246,14 +245,15 @@ namespace fc::node {
     o.ipld_leveldb =
         std::make_shared<storage::ipfs::LeveldbDatastore>(o.ipld_leveldb_kv);
     o.ipld = o.ipld_leveldb;
+    o.ipld = *storage::cids_index::loadOrCreateWithProgress(
+        config.genesisCar(), false, boost::none, o.ipld, log());
     auto snapshot_cids{loadSnapshot(config, o)};
 
     o.ts_load_ipld = std::make_shared<primitives::tipset::TsLoadIpld>(o.ipld);
     o.ts_load = std::make_shared<primitives::tipset::TsLoadCache>(
         o.ts_load_ipld, 8 << 10);
 
-    auto genesis_cids{
-        storage::car::loadCar(*o.ipld, config.genesisCar()).value()};
+    auto genesis_cids{storage::car::readHeader(config.genesisCar()).value()};
     assert(genesis_cids.size() == 1);
     config.genesis_cid = genesis_cids[0];
 

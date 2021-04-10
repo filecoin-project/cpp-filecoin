@@ -12,11 +12,12 @@
 #include "common/file.hpp"
 #include "common/logger.hpp"
 #include "common/outcome_fmt.hpp"
+#include "storage/car/car.hpp"
 #include "storage/car/cids_index/cids_index.hpp"
 #include "storage/car/cids_index/progress.hpp"
 
 namespace fc::storage::cids_index {
-  inline outcome::result<std::shared_ptr<CidsIpld>> loadOrCreateWithProgress(
+  inline Outcome<std::shared_ptr<CidsIpld>> loadOrCreateWithProgress(
       const std::string &car_path,
       bool writable,
       boost::optional<size_t> max_memory,
@@ -24,6 +25,11 @@ namespace fc::storage::cids_index {
       common::Logger log) {
     if (!log) {
       log = spdlog::default_logger();
+    }
+    if (writable && !boost::filesystem::exists(car_path)) {
+      Buffer header;
+      car::writeHeader(header, {});
+      OUTCOME_TRY(common::writeFile(car_path, header));
     }
     std::ifstream car_file{car_path, std::ios::ate | std::ios::binary};
     if (!car_file.good()) {
@@ -36,7 +42,8 @@ namespace fc::storage::cids_index {
     if (!read(car_file, header)) {
       return ERROR_TEXT("loadOrCreateWithProgress: read header failed");
     }
-    auto indexed_end{header.length + header.value};
+    auto header_end{header.length + header.value};
+    auto indexed_end{header_end};
     auto cids_path{car_path + ".cids"};
     std::shared_ptr<Index> index;
     if (boost::filesystem::exists(cids_path)) {
@@ -55,7 +62,7 @@ namespace fc::storage::cids_index {
           || indexed_end > car_size) {
         log->warn("index invalidated: {}", cids_path);
         index = nullptr;
-        indexed_end = 0;
+        indexed_end = header_end;
       }
     }
     if (index && indexed_end < car_size) {
@@ -65,7 +72,7 @@ namespace fc::storage::cids_index {
           || indexed_end + varint.length + varint.value > car_size) {
         car_size = indexed_end;
         boost::filesystem::resize_file(car_path, car_size);
-      } else {
+      } else if (index->size()) {
         auto &range{ranges.emplace_back()};
         range.begin = 1;
         range.end = 1 + index->size();
@@ -109,6 +116,8 @@ namespace fc::storage::cids_index {
           progress.sort();
           std::ofstream index_file{tmp_cids_path, std::ios::binary};
           OUTCOME_TRY(merge(index_file, std::move(ranges)));
+          boost::system::error_code ec;
+          boost::filesystem::remove(rows_path, ec);
         }
         boost::system::error_code ec;
         boost::filesystem::rename(tmp_cids_path, cids_path, ec);
@@ -129,25 +138,24 @@ namespace fc::storage::cids_index {
             || indexed_end > car_size) {
           return ERROR_TEXT("loadOrCreateWithProgress: invalid index");
         }
-        if (indexed_end < car_size) {
-          car_file.seekg(indexed_end);
-          codec::uvarint::VarintDecoder varint;
-          if (!codec::uvarint::read(car_file, varint) || !varint.value
-              || indexed_end + varint.length + varint.value > car_size) {
-            car_size = indexed_end;
-            boost::filesystem::resize_file(car_path, car_size);
-          }
+      }
+      if (indexed_end < car_size) {
+        car_file.seekg(indexed_end);
+        codec::uvarint::VarintDecoder varint;
+        if (!codec::uvarint::read(car_file, varint) || !varint.value
+            || indexed_end + varint.length + varint.value > car_size) {
+          car_size = indexed_end;
+          boost::filesystem::resize_file(car_path, car_size);
         }
       }
     }
     auto _ipld{std::make_shared<CidsIpld>()};
-    _ipld->car_file.open(
-        car_path,
-        std::ios::in | std::ios::binary
-            | (writable ? std::ios::app : std::ios::openmode{}));
+    _ipld->car_file.open(car_path, std::ios::in | std::ios::binary);
     _ipld->index = index;
     _ipld->ipld = ipld;
-    _ipld->writable = writable;
+    if (writable) {
+      _ipld->writable.open(car_path, std::ios::app | std::ios::binary);
+    }
     _ipld->car_offset = car_size;
     return _ipld;
   }

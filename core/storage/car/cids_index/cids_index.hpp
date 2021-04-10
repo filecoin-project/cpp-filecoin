@@ -173,10 +173,10 @@ namespace fc::storage::cids_index {
     }
 
     mutable std::mutex mutex;
-    mutable std::fstream car_file;
+    mutable std::ifstream car_file;
     std::shared_ptr<Index> index;
     IpldPtr ipld;
-    bool writable{};
+    std::ofstream writable;
     mutable std::shared_mutex written_mutex;
     std::set<Row> written;
     uint64_t car_offset{};

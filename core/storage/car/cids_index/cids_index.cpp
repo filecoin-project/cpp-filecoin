@@ -53,6 +53,7 @@ namespace fc::storage::cids_index {
   std::pair<bool, size_t> readCarItem(std::istream &car_file,
                                       const Row &row,
                                       uint64_t *end) {
+    car_file.clear();
     car_file.seekg(row.offset.value());
     auto prefix{kCborBlakePrefix};
     Key key;
@@ -177,6 +178,7 @@ namespace fc::storage::cids_index {
       return write_error;
     }
     size_t offset{car_min};
+    car_file.clear();
     car_file.seekg(offset);
     size_t total{};
     Buffer item;
@@ -197,7 +199,6 @@ namespace fc::storage::cids_index {
       }
       BytesIn input{item};
       auto size{varint + item.size()};
-      auto stored{false};
       if (startsWith(item, kCborBlakePrefix)) {
         input = input.subspan(kCborBlakePrefix.size());
         OUTCOME_TRY(key, fromSpan<Key>(input, false));
@@ -206,17 +207,15 @@ namespace fc::storage::cids_index {
         row.offset = offset;
         row.max_size64 = maxSize64(size);
         ++total;
-        stored = true;
-      }
-      if (!stored && ipld) {
+      } else {
         OUTCOME_TRY(cid, CID::read(input));
-        if (!asIdentity(cid)) {
-          OUTCOME_TRY(ipld->set(cid, Buffer{input}));
+        if (ipld) {
+          if (!asIdentity(cid)) {
+            OUTCOME_TRY(ipld->set(cid, Buffer{input}));
+          }
         }
-        stored = true;
       }
       offset += size;
-      auto stop{offset >= car_max};
       if (max_memory && rows.size() == rows.capacity() && !flush()) {
         return write_error;
       }
@@ -224,9 +223,6 @@ namespace fc::storage::cids_index {
         progress->car_offset.value = offset - car_min;
         ++progress->items.value;
         progress->update();
-      }
-      if (stop) {
-        break;
       }
     }
     if (!flush()) {
@@ -378,7 +374,7 @@ namespace fc::storage::cids_index {
 
   inline boost::optional<Row> findWritten(const CidsIpld &ipld,
                                           const Key &key) {
-    assert(ipld.writable);
+    assert(ipld.writable.is_open());
     std::shared_lock lock{ipld.written_mutex};
     auto it{ipld.written.lower_bound(Row{key, {}, {}})};
     if (it != ipld.written.end() && it->key == key) {
@@ -393,7 +389,7 @@ namespace fc::storage::cids_index {
       if (row) {
         return true;
       }
-      if (writable && findWritten(*this, *key)) {
+      if (writable.is_open() && findWritten(*this, *key)) {
         return true;
       }
     }
@@ -409,7 +405,7 @@ namespace fc::storage::cids_index {
       return outcome::success();
     }
     if (auto key{asBlake(cid)}) {
-      if (writable) {
+      if (writable.is_open()) {
         std::unique_lock lock{written_mutex};
         Buffer item;
         car::writeItem(item, cid, value);
@@ -417,10 +413,10 @@ namespace fc::storage::cids_index {
         row.key = *key;
         row.offset = car_offset;
         row.max_size64 = maxSize64(item.size());
-        if (!common::write(car_file, item)) {
+        if (!common::write(writable, item)) {
           return ERROR_TEXT("CidsIpld.set: write error");
         }
-        car_file.flush();
+        writable.flush();
         car_offset += item.size();
         written.insert(row);
         return outcome::success();
@@ -435,7 +431,7 @@ namespace fc::storage::cids_index {
   outcome::result<Buffer> CidsIpld::get(const CID &cid) const {
     if (auto key{asBlake(cid)}) {
       OUTCOME_TRY(row, index->find(*key));
-      if (!row && writable) {
+      if (!row && writable.is_open()) {
         row = findWritten(*this, *key);
       }
       if (row) {
