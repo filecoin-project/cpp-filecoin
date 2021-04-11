@@ -142,16 +142,6 @@ namespace fc::node {
 
   }  // namespace
 
-  auto ipldLeveldbOptions() {
-    leveldb::Options options;
-    options.create_if_missing = true;
-    options.write_buffer_size = 128 << 20;
-    options.block_cache = leveldb::NewLRUCache(128 << 20);
-    options.block_size = 64 << 10;
-    options.max_file_size = 128 << 20;
-    return options;
-  }
-
   auto loadSnapshot(Config &config, NodeObjects &o) {
     std::vector<CID> snapshot_cids;
     auto snapshot_key{
@@ -169,9 +159,9 @@ namespace fc::node {
         log()->error("another snapshot already imported");
         exit(EXIT_FAILURE);
       }
-      o.ipld_cids = storage::cids_index::loadOrCreateWithProgress(
-                        *config.snapshot, o.ipld, log())
-                        .value();
+      // TODO(turuslan): max memory
+      o.ipld_cids = *storage::cids_index::loadOrCreateWithProgress(
+          *config.snapshot, false, boost::none, o.ipld, log());
       o.ipld = o.ipld_cids;
       if (snapshot_cids.empty()) {
         snapshot_cids = roots;
@@ -228,6 +218,15 @@ namespace fc::node {
     assert(o.ts_main->chain.begin()->second.key == genesis_tsk);
   }
 
+  void writableIpld(Config &config, NodeObjects &o) {
+    auto car_path{config.join("cids_index.car")};
+    // TODO(turuslan): max memory
+    // estimated, 1gb
+    o.ipld_cids_write = *storage::cids_index::loadOrCreateWithProgress(
+        car_path, true, 1 << 30, o.ipld, log());
+    o.ipld = o.ipld_cids_write;
+  }
+
   outcome::result<NodeObjects> createNodeObjects(Config &config) {
     NodeObjects o;
 
@@ -239,20 +238,22 @@ namespace fc::node {
     }
     o.kv_store = std::move(leveldb_res.value());
 
-    o.ipld_leveldb_kv = storage::LevelDB::create(config.join("ipld_leveldb"),
-                                                 ipldLeveldbOptions())
-                            .value();
+    o.ipld_leveldb_kv =
+        storage::LevelDB::create(config.join("ipld_leveldb")).value();
     o.ipld_leveldb =
         std::make_shared<storage::ipfs::LeveldbDatastore>(o.ipld_leveldb_kv);
     o.ipld = o.ipld_leveldb;
+    o.ipld = *storage::cids_index::loadOrCreateWithProgress(
+        config.genesisCar(), false, boost::none, o.ipld, log());
     auto snapshot_cids{loadSnapshot(config, o)};
+
+    writableIpld(config, o);
 
     o.ts_load_ipld = std::make_shared<primitives::tipset::TsLoadIpld>(o.ipld);
     o.ts_load = std::make_shared<primitives::tipset::TsLoadCache>(
         o.ts_load_ipld, 8 << 10);
 
-    auto genesis_cids{
-        storage::car::loadCar(*o.ipld, config.genesisCar()).value()};
+    auto genesis_cids{storage::car::readHeader(config.genesisCar()).value()};
     assert(genesis_cids.size() == 1);
     config.genesis_cid = genesis_cids[0];
 
