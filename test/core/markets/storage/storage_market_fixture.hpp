@@ -10,8 +10,10 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/security/plaintext.hpp>
+
 #include "api/node_api.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
+#include "common/soralog.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "data_transfer/dt.hpp"
@@ -101,6 +103,8 @@ namespace fc::markets::storage::test {
     StorageMarketTest() : ::test::BaseFS_Test("storage_market_test") {}
 
     void SetUp() override {
+      libp2pSoralog();
+
       createDir(kImportsTempDir);
       createDir(kPieceIoTempDir);
 

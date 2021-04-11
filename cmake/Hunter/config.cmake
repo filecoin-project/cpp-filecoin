@@ -13,13 +13,12 @@ hunter_config(
 
 hunter_config(
     spdlog
-    URL https://github.com/gabime/spdlog/archive/v1.4.2.zip
-    SHA1 4b10e9aa17f7d568e24f464b48358ab46cb6f39c
+    VERSION 1.4.2-58e6890-p0
 )
 
 hunter_config(libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/4c9f485187dca17e2b3136522a7c7de780e0462b.zip
-    SHA1 eb9a21445af5d623dbc11796738f9daf9db06a7d
+    URL https://github.com/soramitsu/cpp-libp2p/archive/v0.0.2-p0.tar.gz
+    SHA1 6156058ee32588502d0f5b8e7899f33a8de0476f
     CMAKE_ARGS TESTING=OFF EXAMPLES=OFF EXPOSE_MOCKS=ON
     KEEP_PACKAGE_SOURCES
     )

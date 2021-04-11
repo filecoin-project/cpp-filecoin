@@ -11,7 +11,9 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <libp2p/security/plaintext.hpp>
+
 #include "api/node_api.hpp"
+#include "common/soralog.hpp"
 #include "core/markets/retrieval/config.hpp"
 #include "core/markets/retrieval/data.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -95,6 +97,8 @@ namespace fc::markets::retrieval::test {
     common::Logger logger = common::createLogger("RetrievalMarketTest");
 
     void SetUp() override {
+      libp2pSoralog();
+
       std::string address_string = fmt::format(
           "/ip4/127.0.0.1/tcp/{}/ipfs/"
           "12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV",
