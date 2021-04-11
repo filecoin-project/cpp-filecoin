@@ -155,9 +155,7 @@ namespace fc::markets::retrieval::test {
           host, datatransfer, api, client_ipfs);
       provider->start();
 
-      BOOST_ASSERT_MSG(
-          addPieceSample(data::green_piece, provider_ipfs).has_value(),
-          "Failed to add sample green piece");
+      addPieceSample(data::green_piece, provider_ipfs).value();
 
       TipsetCPtr chain_head = std::make_shared<Tipset>();
       api->ChainHead = {[=]() { return chain_head; }};
