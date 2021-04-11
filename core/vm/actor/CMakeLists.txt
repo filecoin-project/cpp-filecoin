@@ -18,6 +18,7 @@ target_link_libraries(actor
     account_actor_v0
     account_actor_v2
     account_actor_v3
+    filecoin_hasher
     init_actor_v0
     init_actor_v2
     init_actor_v3
