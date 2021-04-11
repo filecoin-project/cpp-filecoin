@@ -29,10 +29,6 @@ find_package(CURL CONFIG REQUIRED)
 hunter_add_package(Protobuf)
 find_package(Protobuf CONFIG REQUIRED)
 
-# https://github.com/hunter-packages/grpc
-hunter_add_package(gRPC)
-find_package(gRPC CONFIG REQUIRED)
-
 # https://docs.hunter.sh/en/latest/packages/pkg/spdlog.html
 hunter_add_package(spdlog)
 find_package(spdlog CONFIG REQUIRED)
@@ -53,6 +49,9 @@ find_package(leveldb CONFIG REQUIRED)
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)
 
+hunter_add_package(c-ares)
+find_package(c-ares CONFIG REQUIRED)
+
 # https://docs.hunter.sh/en/latest/packages/pkg/cppcodec.html
 hunter_add_package(cppcodec)
 find_package(cppcodec CONFIG REQUIRED)
@@ -60,7 +59,3 @@ find_package(cppcodec CONFIG REQUIRED)
 # http://rapidjson.org
 hunter_add_package(RapidJSON)
 find_package(RapidJSON CONFIG REQUIRED)
-
-# https://github.com/soramitsu/libp2p-sqlite-modern-cpp/tree/hunter
-hunter_add_package(SQLiteModernCpp)
-find_package(SQLiteModernCpp CONFIG REQUIRED)
