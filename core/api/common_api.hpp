@@ -15,13 +15,6 @@ namespace fc::api {
   using common::Buffer;
   using libp2p::peer::PeerInfo;
 
-  struct VersionResult {
-    std::string version;
-    ApiVersion api_version;
-    /** Block delay in seconds */
-    uint64_t block_delay;
-  };
-
   struct CommonApi {
     /**
      * Creates auth token to the remote connection
