@@ -11,9 +11,9 @@
 #include "primitives/types.hpp"
 
 namespace fc::sectorblocks {
-  using api::DealInfo;
   using api::PieceLocation;
   using miner::Miner;
+  using mining::types::DealInfo;
   using mining::types::PieceAttributes;
   using primitives::DealId;
   using primitives::piece::UnpaddedPieceSize;

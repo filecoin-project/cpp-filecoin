@@ -30,10 +30,49 @@
 #define DECODE(type) static void decode(type &v, const Value &j)
 
 namespace fc::codec::cbor {
+  using api::ChannelId;
+  using api::DatatransferChannel;
+  using api::StorageMarketDealInfo;
+  using markets::storage::StorageDealStatus;
+
   template <>
   inline fc::api::QueryOffer kDefaultT<fc::api::QueryOffer>() {
     return {{}, {}, {}, {}, {}, {}, {}, kDefaultT<PeerId>()};
   }
+
+  template <>
+  inline ChannelId kDefaultT<ChannelId>() {
+    return {kDefaultT<PeerId>(), kDefaultT<PeerId>(), {}};
+  }
+
+  template <>
+  inline DatatransferChannel kDefaultT<DatatransferChannel>() {
+    return {{}, {}, {}, {}, {}, {}, {}, kDefaultT<PeerId>(), {}};
+  }
+
+  template <>
+  inline StorageDealStatus kDefaultT<StorageDealStatus>() {
+    return StorageDealStatus::STORAGE_DEAL_UNKNOWN;
+  }
+
+  template <>
+  inline StorageMarketDealInfo kDefaultT<StorageMarketDealInfo>() {
+    return {{},
+            kDefaultT<StorageDealStatus>(),
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+            kDefaultT<ChannelId>(),
+            kDefaultT<DatatransferChannel>()};
+  }
+
 }  // namespace fc::codec::cbor
 
 namespace fc::api {
@@ -261,6 +300,14 @@ namespace fc::api {
     }
 
     DECODE(NetworkVersion) {
+      decodeEnum(v, j);
+    }
+
+    ENCODE(StorageDealStatus) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(StorageDealStatus) {
       decodeEnum(v, j);
     }
 
@@ -496,9 +543,10 @@ namespace fc::api {
       }
       Set(j, "PeerId", peer_id);
       Set(j, "Multiaddrs", v.multiaddrs);
-      Set(j, "SealProofType", v.seal_proof_type);
+      Set(j, "WindowPoStProofType", v.window_post_proof_type);
       Set(j, "SectorSize", v.sector_size);
       Set(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
+      Set(j, "ConsensusFaultElapsed", v.consensus_fault_elapsed);
       return j;
     }
 
@@ -528,9 +576,10 @@ namespace fc::api {
         v.peer_id.clear();
       }
       Get(j, "Multiaddrs", v.multiaddrs);
-      Get(j, "SealProofType", v.seal_proof_type);
+      Get(j, "WindowPoStProofType", v.window_post_proof_type);
       Get(j, "SectorSize", v.sector_size);
       Get(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
+      Get(j, "ConsensusFaultElapsed", v.consensus_fault_elapsed);
     }
 
     ENCODE(WorkerKeyChange) {
@@ -1582,6 +1631,84 @@ namespace fc::api {
     DECODE(FileRef) {
       decode(v.path, Get(j, "Path"));
       decode(v.is_car, Get(j, "IsCAR"));
+    }
+
+    ENCODE(ChannelId) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Initiator", v.initiator);
+      Set(j, "Responder", v.responder);
+      Set(j, "ID", v.id);
+      return j;
+    }
+
+    DECODE(ChannelId) {
+      decode(v.initiator, Get(j, "Initiator"));
+      decode(v.responder, Get(j, "Responder"));
+      decode(v.id, Get(j, "ID"));
+    }
+
+    ENCODE(DatatransferChannel) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "TransferID", v.transfer_id);
+      Set(j, "Status", v.status);
+      Set(j, "BaseCID", v.base_cid);
+      Set(j, "IsInitiator", v.is_initiator);
+      Set(j, "IsSender", v.is_sender);
+      Set(j, "Voucher", v.voucher);
+      Set(j, "Message", v.message);
+      Set(j, "OtherPeer", v.other_peer);
+      Set(j, "Transferred", v.transferred);
+      return j;
+    }
+
+    DECODE(DatatransferChannel) {
+      decode(v.transfer_id, Get(j, "TransferID"));
+      decode(v.status, Get(j, "Status"));
+      decode(v.base_cid, Get(j, "BaseCID"));
+      decode(v.is_initiator, Get(j, "IsInitiator"));
+      decode(v.is_sender, Get(j, "IsSender"));
+      decode(v.voucher, Get(j, "Voucher"));
+      decode(v.message, Get(j, "Message"));
+      decode(v.other_peer, Get(j, "OtherPeer"));
+      decode(v.transferred, Get(j, "Transferred"));
+    }
+
+    ENCODE(StorageMarketDealInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ProposalCid", v.proposal_cid);
+      Set(j, "State", v.state);
+      Set(j, "Message", v.message);
+      Set(j, "Provider", v.provider);
+      Set(j, "DataRef", v.data_ref);
+      Set(j, "PieceCID", v.piece_cid);
+      Set(j, "Size", v.size);
+      Set(j, "PricePerEpoch", v.price_per_epoch);
+      Set(j, "Duration", v.duration);
+      Set(j, "DealID", v.deal_id);
+      // TODO (a.chernyshov) encode and decode time type
+      Set(j, "CreationTime", "2006-01-02T15:04:05Z");
+      Set(j, "Verified", v.verified);
+      Set(j, "TransferChannelID", v.transfer_channel_id);
+      Set(j, "DataTransfer", v.data_transfer);
+      return j;
+    }
+
+    DECODE(StorageMarketDealInfo) {
+      decode(v.proposal_cid, Get(j, "ProposalCid"));
+      decode(v.state, Get(j, "State"));
+      decode(v.message, Get(j, "Message"));
+      decode(v.provider, Get(j, "Provider"));
+      decode(v.data_ref, Get(j, "DataRef"));
+      decode(v.piece_cid, Get(j, "PieceCID"));
+      decode(v.size, Get(j, "Size"));
+      decode(v.price_per_epoch, Get(j, "PricePerEpoch"));
+      decode(v.duration, Get(j, "Duration"));
+      decode(v.deal_id, Get(j, "DealID"));
+      // TODO (a.chernyshov) encode and decode time type
+      v.creation_time = 0;
+      decode(v.verified, Get(j, "Verified"));
+      decode(v.transfer_channel_id, Get(j, "TransferChannelID"));
+      decode(v.data_transfer, Get(j, "DataTransfer"));
     }
 
     ENCODE(ImportRes) {

@@ -35,7 +35,7 @@ namespace fc::markets::pieceio {
 
     auto _ = gsl::finally([&copy_path]() { fs::remove_all(copy_path); });
 
-    auto padded_size{proofs::padPiece(copy_path.string())};
+    auto padded_size{proofs::padPiece(copy_path)};
 
     static auto proofs{std::make_shared<proofs::ProofEngineImpl>()};
 
