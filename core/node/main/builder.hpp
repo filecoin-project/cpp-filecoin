@@ -42,7 +42,7 @@ namespace fc::node {
     // storage objects
     std::shared_ptr<storage::LevelDB> ipld_leveldb_kv;
     std::shared_ptr<storage::ipfs::LeveldbDatastore> ipld_leveldb;
-    std::shared_ptr<storage::cids_index::CidsIpld> ipld_cids;
+    std::shared_ptr<storage::cids_index::CidsIpld> ipld_cids, ipld_cids_write;
     IpldPtr ipld;
     std::shared_ptr<primitives::tipset::TsLoadIpld> ts_load_ipld;
     std::shared_ptr<primitives::tipset::TsLoadCache> ts_load;
