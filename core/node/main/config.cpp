@@ -5,7 +5,6 @@
 
 #include "node/main/config.hpp"
 
-#include <spdlog/fmt/fmt.h>
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>

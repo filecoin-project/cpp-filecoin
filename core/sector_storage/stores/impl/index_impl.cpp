@@ -14,7 +14,7 @@
 namespace fc::sector_storage::stores {
 
   using fc::common::HttpUri;
-  using fc::primitives::TokenAmount;
+  using primitives::BigInt;
   using primitives::sector_file::sectorName;
   using std::chrono::duration_cast;
   using std::chrono::high_resolution_clock;
@@ -342,9 +342,8 @@ namespace fc::sector_storage::stores {
     std::sort(candidates.begin(),
               candidates.end(),
               [](const StorageEntry &lhs, const StorageEntry &rhs) {
-                auto lw = TokenAmount(lhs.fs_stat.available) * lhs.info.weight;
-                auto rw = TokenAmount(rhs.fs_stat.available) * rhs.info.weight;
-                return lw < rw;
+                return BigInt{lhs.fs_stat.available} * lhs.info.weight
+                       < BigInt{rhs.fs_stat.available} * rhs.info.weight;
               });
 
     std::vector<StorageInfo> result;
