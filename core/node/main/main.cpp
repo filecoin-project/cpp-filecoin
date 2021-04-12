@@ -10,6 +10,7 @@
 #include "api/rpc/ws.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/logger.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "drand/impl/http.hpp"
 #include "markets/storage/types.hpp"
 #include "node/blocksync_server.hpp"
@@ -333,6 +334,8 @@ namespace fc {
 }  // namespace fc
 
 int main(int argc, char *argv[]) {
+  fc::libp2pSoralog();
+
   try {
     auto config{fc::node::Config::read(argc, argv)};
     fc::main(config);
