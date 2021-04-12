@@ -8,6 +8,7 @@
 #include "vm/actor/builtin/v2/miner/types.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
+  using primitives::sector::getRegisteredWindowPoStProof;
   using types::miner::kWPoStPeriodDeadlines;
 
   outcome::result<Buffer> MinerActorState::toCbor() const {
@@ -16,8 +17,10 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   outcome::result<types::miner::MinerInfo> MinerActorState::getInfo(
       IpldPtr ipld) const {
-    OUTCOME_TRY(info2, ipld->getCbor<MinerInfo>(miner_info));
-    return std::move(info2);
+    OUTCOME_TRY(info, ipld->getCbor<MinerInfo>(miner_info));
+    OUTCOME_TRYA(info.window_post_proof_type,
+                 getRegisteredWindowPoStProof(info.seal_proof_type));
+    return std::move(info);
   }
 
   outcome::result<void> MinerActorState::setInfo(

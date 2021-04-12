@@ -9,12 +9,14 @@
 
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "markets/common.hpp"
+#include "markets/storage/types.hpp"
 #include "storage/car/car.hpp"
 #include "storage/piece/impl/piece_storage_error.hpp"
 
 namespace fc::markets::retrieval::provider {
   using ::fc::storage::piece::PieceStorageError;
   using primitives::piece::UnpaddedByteIndex;
+  using storage::kStorageMarketImportDir;
   namespace fs = boost::filesystem;
 
   RetrievalProviderImpl::RetrievalProviderImpl(
@@ -165,10 +167,10 @@ namespace fc::markets::retrieval::provider {
     if (!_piece) {
       return doFail(deal, _piece.error().message());
     }
-    if (!fs::exists(kFilestoreTempDir)) {
-      fs::create_directories(kFilestoreTempDir);
+    if (!fs::exists(kStorageMarketImportDir)) {
+      fs::create_directories(kStorageMarketImportDir);
     }
-    auto car_path = fs::path(kFilestoreTempDir) / fs::unique_path();
+    const auto car_path = kStorageMarketImportDir / fs::unique_path();
     auto _ = gsl::finally([&car_path]() {
       if (fs::exists(car_path)) {
         fs::remove_all(car_path);

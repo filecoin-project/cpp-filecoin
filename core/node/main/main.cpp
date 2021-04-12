@@ -28,6 +28,7 @@
 namespace fc {
   using api::Import;
   using api::ImportRes;
+  using api::StorageMarketDealInfo;
   using markets::storage::StorageProviderInfo;
   using node::NodeObjects;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
@@ -94,6 +95,36 @@ namespace fc {
       // storage id set to 0
       return ImportRes{root, 0};
     };
+
+    node_objects.api->ClientListDeals = [api_peer_info, &node_objects]()
+        -> outcome::result<std::vector<StorageMarketDealInfo>> {
+      std::vector<StorageMarketDealInfo> result;
+      OUTCOME_TRY(local_deals,
+                  node_objects.storage_market_client->listLocalDeals());
+      result.reserve(local_deals.size());
+      for (const auto &deal : local_deals) {
+        result.emplace_back(StorageMarketDealInfo{
+            deal.proposal_cid,
+            deal.state,
+            deal.message,
+            deal.client_deal_proposal.proposal.provider,
+            deal.data_ref,
+            deal.client_deal_proposal.proposal.piece_cid,
+            deal.client_deal_proposal.proposal.piece_size.unpadded(),
+            deal.client_deal_proposal.proposal.storage_price_per_epoch,
+            deal.client_deal_proposal.proposal.duration(),
+            deal.deal_id,
+            // TODO (a.chernyshov) creation time - actually not used
+            {},
+            deal.client_deal_proposal.proposal.verified,
+            // TODO (a.chernyshov) actual ChannelId
+            {api_peer_info.id, deal.miner.id, 0},
+            // TODO (a.chernyshov) actual data transfer
+            {0, 0, deal.proposal_cid, true, true, "", "", deal.miner.id, 0}});
+      }
+      return result;
+    };
+
     node_objects.api->ClientStartDeal =
         [&](auto &params) -> outcome::result<CID> {
       // resolve wallet address and check if address exists in wallet
