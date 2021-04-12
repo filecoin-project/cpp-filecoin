@@ -22,7 +22,7 @@
 #include "common/io_thread.hpp"
 #include "common/outcome.hpp"
 #include "common/peer_key.hpp"
-#include "common/soralog.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "config/profile_config.hpp"
 #include "data_transfer/dt.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"

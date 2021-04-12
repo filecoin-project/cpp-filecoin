@@ -13,7 +13,7 @@
 #include <libp2p/security/plaintext.hpp>
 
 #include "api/node_api.hpp"
-#include "common/soralog.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "core/markets/retrieval/config.hpp"
 #include "core/markets/retrieval/data.hpp"
 #include "primitives/tipset/tipset.hpp"

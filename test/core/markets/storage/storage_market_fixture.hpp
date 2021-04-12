@@ -13,7 +13,7 @@
 
 #include "api/node_api.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
-#include "common/soralog.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "data_transfer/dt.hpp"

@@ -9,6 +9,7 @@
 #include <libp2p/log/logger.hpp>
 
 namespace fc {
+  // default libp2p logger config, libp2p won't work without it
   inline void libp2pSoralog() {
     static auto done{false};
     if (!done) {

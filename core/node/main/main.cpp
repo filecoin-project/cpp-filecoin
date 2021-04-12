@@ -10,7 +10,7 @@
 #include "api/rpc/ws.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/logger.hpp"
-#include "common/soralog.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "drand/impl/http.hpp"
 #include "markets/storage/types.hpp"
 #include "node/blocksync_server.hpp"

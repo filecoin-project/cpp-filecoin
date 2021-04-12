@@ -8,7 +8,7 @@
 
 #include "codec/cbor/cbor.hpp"
 #include "common/logger.hpp"
-#include "common/soralog.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "graphsync_acceptance_common.hpp"
 
 // logger used by these tests
