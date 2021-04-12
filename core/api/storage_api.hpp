@@ -46,6 +46,11 @@ namespace fc::api {
 
     API_METHOD(PledgeSector, void)
 
+    /**
+     * Manually import data for a storage deal
+     * @param proposal CID
+     * @param path to a file with piece data
+     */
     API_METHOD(DealsImportData, void, const CID &, const std::string &)
 
     API_METHOD(MarketGetAsk, SignedStorageAsk)

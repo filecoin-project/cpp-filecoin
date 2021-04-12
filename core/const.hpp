@@ -66,6 +66,13 @@ namespace fc {
 
   /**
    * Sets parameters for test network with 2k seal proof type
+   * Identical to Lotus 2k build
    */
   void setParams2K();
+
+  /**
+   * Sets parameters for test network with high upgrade heights
+   * May be useful when want to avoid network upgrades
+   */
+  void setParamsNoUpgrades();
 }  // namespace fc

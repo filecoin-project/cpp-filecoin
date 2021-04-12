@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage_market_client_impl.hpp"
+#include "markets/storage/client/impl/storage_market_client_impl.hpp"
 
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
@@ -106,6 +106,8 @@ namespace fc::markets::storage::client {
               FSM_SEND(deal, ClientEvent::ClientEventDealAccepted);
             } else if (state == StorageDealStatus::STORAGE_DEAL_FAILING
                        || state == StorageDealStatus::STORAGE_DEAL_ERROR) {
+              deal->message =
+                  "Got error deal status response: " + res.state.message;
               FSM_SEND(deal, ClientEvent::ClientEventDealRejected);
             } else {
               std::lock_guard lock{waiting_mutex};
@@ -629,7 +631,7 @@ namespace fc::markets::storage::client {
         return;
       }
       auto &res{response.value().response};
-      if (res.state != StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA) {
+      if (res.state != StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED) {
         deal->message = res.message;
         SELF_FSM_SEND(deal, ClientEvent::ClientEventDealRejected);
         return;
@@ -643,17 +645,27 @@ namespace fc::markets::storage::client {
           voucher,
           codec::cbor::encode(StorageDataTransferVoucher{deal->proposal_cid}));
 
-      self->datatransfer_->push(
-          deal->miner,
-          deal->data_ref.root,
-          ipld,
-          StorageDataTransferVoucherType,
-          voucher,
-          [](auto) {},
-          [](auto) {});
-
-      std::lock_guard lock{self->waiting_mutex};
-      self->waiting_deals.push_back(deal);
+      if (deal->data_ref.transfer_type == kTransferTypeGraphsync) {
+        self->datatransfer_->push(
+            deal->miner,
+            deal->data_ref.root,
+            ipld,
+            StorageDataTransferVoucherType,
+            voucher,
+            [](auto) {},
+            [](auto) {});
+        // data transfer completed, the deal must be accepted
+        self->askDealStatus(deal);
+      } else if (deal->data_ref.transfer_type == kTransferTypeManual) {
+        // wait for response in pollWaiting to check if deal is activated
+        // or rejected
+        std::lock_guard lock{self->waiting_mutex};
+        self->waiting_deals.push_back(deal);
+      } else {
+        deal->message =
+            "Wrong transfer type: '" + deal->data_ref.transfer_type + "'";
+        SELF_FSM_SEND(deal, ClientEvent::ClientEventFailed);
+      }
     });
   }
 

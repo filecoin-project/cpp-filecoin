@@ -35,6 +35,7 @@
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/chain_events/impl/chain_events_impl.hpp"
 #include "markets/storage/client/impl/storage_market_client_impl.hpp"
+#include "markets/storage/types.hpp"
 #include "node/blocksync_server.hpp"
 #include "node/chain_store_impl.hpp"
 #include "node/graphsync_server.hpp"
@@ -64,11 +65,12 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::node {
+  using libp2p::protocol::scheduler::Ticks;
   using markets::discovery::Discovery;
   using markets::pieceio::PieceIOImpl;
+  using markets::storage::kStorageMarketImportDir;
   using markets::storage::chain_events::ChainEventsImpl;
   using markets::storage::client::StorageMarketClientImpl;
-  using markets::storage::client::import_manager::kImportsDir;
   using storage::InMemoryStorage;
   using storage::ipfs::InMemoryDatastore;
 
@@ -225,6 +227,50 @@ namespace fc::node {
     o.ipld_cids_write = *storage::cids_index::loadOrCreateWithProgress(
         car_path, true, 1 << 30, o.ipld, log());
     o.ipld = o.ipld_cids_write;
+  }
+
+  /**
+   * Run timer loop
+   * @param scheduler - timer scheduler
+   * @param ticks - timer tick
+   * @param cb - callback to call
+   */
+  void timerLoop(const std::shared_ptr<Scheduler> &scheduler,
+                 const Ticks &ticks,
+                 const std::function<void()> &cb) {
+    scheduler
+        ->schedule(ticks,
+                   [scheduler, ticks, cb]() {
+                     cb();
+                     timerLoop(scheduler, ticks, cb);
+                   })
+        .detach();
+  };
+
+  /**
+   * Creates and intialises Storage Market Client
+   * @param o - Node objecs
+   */
+  outcome::result<void> createStorageMarketClient(NodeObjects &o) {
+    o.storage_market_import_manager = std::make_shared<ImportManager>(
+        std::make_shared<storage::MapPrefix>("storage_market_imports/",
+                                             o.kv_store),
+        kStorageMarketImportDir);
+    o.chain_events = std::make_shared<ChainEventsImpl>(o.api);
+    o.storage_market_client = std::make_shared<StorageMarketClientImpl>(
+        o.host,
+        o.io_context,
+        o.storage_market_import_manager,
+        o.datatransfer,
+        std::make_shared<Discovery>(
+            std::make_shared<storage::MapPrefix>("discovery/", o.kv_store)),
+        o.api,
+        o.chain_events,
+        std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
+    // timer is set to 100 ms
+    timerLoop(
+        o.scheduler, 100, [&] { o.storage_market_client->pollWaiting(); });
+    return o.storage_market_client->init();
   }
 
   outcome::result<NodeObjects> createNodeObjects(Config &config) {
@@ -445,23 +491,6 @@ namespace fc::node {
 
     o.datatransfer = DataTransfer::make(o.host, o.graphsync);
 
-    o.storage_market_import_manager = std::make_shared<ImportManager>(
-        std::make_shared<storage::MapPrefix>("storage_market_imports/",
-                                             o.kv_store),
-        kImportsDir);
-    o.chain_events = std::make_shared<ChainEventsImpl>(o.api);
-    o.storage_market_client = std::make_shared<StorageMarketClientImpl>(
-        o.host,
-        o.io_context,
-        o.storage_market_import_manager,
-        o.datatransfer,
-        std::make_shared<Discovery>(
-            std::make_shared<storage::MapPrefix>("discovery/", o.kv_store)),
-        o.api,
-        o.chain_events,
-        std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
-    OUTCOME_TRY(o.storage_market_client->init());
-
     o.api = api::makeImpl(o.chain_store,
                           *config.network_name,
                           weight_calculator,
@@ -473,6 +502,8 @@ namespace fc::node {
                           drand_schedule,
                           o.pubsub_gate,
                           key_store);
+
+    OUTCOME_TRY(createStorageMarketClient(o));
 
     return o;
   }

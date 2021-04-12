@@ -17,12 +17,14 @@
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
-#include "vm/actor/impl/invoker_impl.hpp"
+#include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
+#include "vm/message/message.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -40,23 +42,28 @@ namespace fc::api {
   using libp2p::peer::PeerId;
   using primitives::kChainEpochUndefined;
   using primitives::block::MsgMeta;
+  using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
   using primitives::tipset::Tipset;
   using vm::isVMExitCode;
   using vm::VMExitCode;
-  using vm::actor::InvokerImpl;
   using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
+  using vm::actor::kVerifiedRegistryAddress;
   using vm::actor::builtin::states::AccountActorStatePtr;
   using vm::actor::builtin::states::InitActorStatePtr;
   using vm::actor::builtin::states::MarketActorStatePtr;
   using vm::actor::builtin::states::MinerActorStatePtr;
   using vm::actor::builtin::states::PowerActorStatePtr;
   using vm::actor::builtin::states::StateProvider;
+  using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
+  using vm::message::kDefaultGasLimit;
+  using vm::message::kDefaultGasPrice;
   using vm::runtime::Env;
   using vm::state::StateTreeImpl;
+  using vm::version::getNetworkVersion;
 
   // TODO: reuse for block validation
   inline bool minerHasMinPower(const StoragePower &claim_qa,
@@ -126,6 +133,13 @@ namespace fc::api {
       OUTCOME_TRY(actor, state_tree.get(kInitAddress));
       OUTCOME_TRY(state, provider.getInitActorState(actor));
       return std::move(state);
+    }
+
+    auto verifiedRegistryState()
+        -> outcome::result<VerifiedRegistryActorStatePtr> {
+      const StateProvider provider(state_tree.getStore());
+      OUTCOME_TRY(actor, state_tree.get(kVerifiedRegistryAddress));
+      return provider.getVerifiedRegistryActorState(actor);
     }
 
     outcome::result<Address> accountKey(const Address &id) {
@@ -343,8 +357,9 @@ namespace fc::api {
     api->ClientQueryAsk = {};
     // TODO(turuslan): FIL-165 implement method
     api->ClientRetrieve = {};
-    // TODO(turuslan): FIL-165 implement method
-    api->ClientStartDeal = {};
+
+    api->ClientStartDeal = {/* impemented in node/main.cpp */};
+
     api->GasEstimateFeeCap = {[=](auto &msg, auto max_blocks, auto &) {
       return mpool->estimateFeeCap(msg.gas_premium, max_blocks);
     }};
@@ -357,8 +372,32 @@ namespace fc::api {
               msg, spec ? spec->max_fee : storage::mpool::kDefaultMaxFee));
           return msg;
         }};
-    // TODO(turuslan): FIL-165 implement method
-    api->MarketReserveFunds = {};
+
+    api->MarketReserveFunds = {[=](const Address &wallet,
+                                   const Address &address,
+                                   const TokenAmount &amount)
+                                   -> outcome::result<boost::optional<CID>> {
+      // TODO(a.chernyshov): method should use fund manager batch reserve and
+      // release funds requests for market actor.
+      vm::actor::builtin::v0::market::AddBalance::Params params{address};
+      OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
+      UnsignedMessage unsigned_message{
+          kStorageMarketAddress,
+          wallet,
+          {},
+          amount,
+          0,
+          0,
+          // TODO (a.chernyshov) there is v0 actor method number, but the actor
+          // methods do not depend on version. Should be changed to general
+          // method number when methods number are made general
+          vm::actor::builtin::v0::market::AddBalance::Number,
+          encoded_params};
+      OUTCOME_TRY(signed_message,
+                  api->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
+      return signed_message.getCid();
+    }};
+
     api->MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockWithCids> {
       OUTCOME_TRY(context, tipsetContext(t.parents, true));
       OUTCOME_TRY(miner_state, context.minerState(t.miner));
@@ -715,7 +754,6 @@ namespace fc::api {
     api->StateMinerProvingDeadline = {
         [=](auto &address, auto &tipset_key) -> outcome::result<DeadlineInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          // TODO (a.chernyshov) miner version depends on actor code/version
           OUTCOME_TRY(state, context.minerState(address));
           const auto deadline_info =
               state->deadlineInfo(context.tipset->height());
@@ -740,12 +778,24 @@ namespace fc::api {
     api->StateNetworkVersion =
         [=](auto &tipset_key) -> outcome::result<NetworkVersion> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
-      return vm::version::getNetworkVersion(context.tipset->height());
+      return getNetworkVersion(context.tipset->height());
     };
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateMinerPreCommitDepositForPower = {};
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateMinerInitialPledgeCollateral = {};
+
+    api->GetProofType = [=](const Address &miner_address,
+                            const TipsetKey &tipset_key)
+        -> outcome::result<RegisteredSealProof> {
+      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(miner_state, context.minerState(miner_address));
+      OUTCOME_TRY(miner_info, miner_state->getInfo(ipld));
+      auto network_version = getNetworkVersion(context.tipset->height());
+      return getPreferredSealProofTypeFromWindowPoStType(
+          network_version, miner_info.window_post_proof_type);
+    };
+
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSectorPreCommitInfo = {};
     api->StateSectorGetInfo = {
@@ -757,6 +807,16 @@ namespace fc::api {
         }};
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSectorPartition = {};
+
+    api->StateVerifiedClientStatus = [=](const Address &address,
+                                         const TipsetKey &tipset_key)
+        -> outcome::result<boost::optional<StoragePower>> {
+      OUTCOME_TRY(context, tipsetContext(tipset_key, true));
+      OUTCOME_TRY(id, context.state_tree.lookupId(address));
+      OUTCOME_TRY(state, context.verifiedRegistryState());
+      return state->getVerifiedClientDataCap(id);
+    };
+
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSearchMsg = {};
     api->StateWaitMsg =

@@ -394,7 +394,6 @@ namespace fc {
     auto filestore{std::make_shared<storage::filestore::FileSystemFileStore>()};
     auto storage_provider{
         std::make_shared<markets::storage::provider::StorageProviderImpl>(
-            minfo.seal_proof_type,
             host,
             markets_ipld,
             datatransfer,

@@ -41,6 +41,17 @@ namespace fc::markets::storage::client {
     virtual outcome::result<void> stop() = 0;
 
     /**
+     * One round of waiting deals polling.
+     *
+     * Waiting deals await for terminal status from storage market provider.
+     * Once the status of the deal is changed in the provider, it can be
+     * retrieved by the client to proceed the deal pipeline. The function
+     * performs that retrieval for all waiting deals. It should be called in
+     * timer.
+     */
+    virtual bool pollWaiting() = 0;
+
+    /**
      * Lists the providers in the storage market state
      * @return vector of storage provider info
      */
