@@ -6,8 +6,8 @@
 #pragma once
 
 #include <libp2p/host/host.hpp>
-
 #include <mutex>
+
 #include "api/node_api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
@@ -37,8 +37,6 @@ namespace fc::markets::storage::client {
   using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
   using data_transfer::DataTransfer;
 
-  const Path kFilestoreTempDir = "/tmp/fuhon/storage-market/";
-
   class StorageMarketClientImpl
       : public StorageMarketClient,
         public std::enable_shared_from_this<StorageMarketClientImpl> {
@@ -52,15 +50,13 @@ namespace fc::markets::storage::client {
                             std::shared_ptr<ChainEvents> chain_events,
                             std::shared_ptr<PieceIO> piece_io);
 
-    bool pollWaiting();
-
-    void askDealStatus(std::shared_ptr<ClientDeal> deal);
-
     outcome::result<void> init() override;
 
     void run() override;
 
     outcome::result<void> stop() override;
+
+    bool pollWaiting() override;
 
     outcome::result<std::vector<StorageProviderInfo>> listProviders()
         const override;
@@ -94,6 +90,8 @@ namespace fc::markets::storage::client {
                                            const TokenAmount &amount) override;
 
    private:
+    void askDealStatus(std::shared_ptr<ClientDeal> deal);
+
     outcome::result<SignedStorageAsk> validateAskResponse(
         const outcome::result<AskResponse> &response,
         const StorageProviderInfo &info) const;

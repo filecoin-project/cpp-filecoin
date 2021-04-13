@@ -3,27 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE__PROVIDER_PROVIDER_HPP
-#define CPP_FILECOIN_CORE_MARKETS_STORAGE__PROVIDER_PROVIDER_HPP
+#pragma once
 
-#include <memory>
-#include <vector>
-
+#include <boost/filesystem/path.hpp>
 #include <libp2p/connection/stream.hpp>
-#include "common/buffer.hpp"
+#include <string>
+
 #include "common/outcome.hpp"
-#include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/deal_protocol.hpp"
-#include "primitives/address/address.hpp"
-#include "primitives/chain_epoch/chain_epoch.hpp"
+#include "markets/storage/provider/stored_ask.hpp"
 #include "primitives/cid/cid.hpp"
-#include "primitives/types.hpp"
 
 namespace fc::markets::storage::provider {
-  using common::Buffer;
-  using primitives::ChainEpoch;
-  using primitives::TokenAmount;
-  using primitives::address::Address;
 
   class StorageProvider {
    public:
@@ -43,17 +34,15 @@ namespace fc::markets::storage::provider {
     virtual auto getDeal(const CID &proposal_cid) const
         -> outcome::result<MinerDeal> = 0;
 
-    virtual auto addStorageCollateral(const TokenAmount &amount)
-        -> outcome::result<void> = 0;
-
-    virtual auto getStorageCollateral() -> outcome::result<TokenAmount> = 0;
-
+    /**
+     * Imports data to proceed deal with 'manual' transfer type
+     * @param proposal_cid - deal proposal CID
+     * @param path - path to piece data file for the deal
+     */
     virtual auto importDataForDeal(const CID &proposal_cid,
-                                   const std::string &path)
+                                   const boost::filesystem::path &path)
         -> outcome::result<void> = 0;
   };
 
   void serveAsk(libp2p::Host &host, std::weak_ptr<StoredAsk> _asker);
 }  // namespace fc::markets::storage::provider
-
-#endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE__PROVIDER_PROVIDER_HPP

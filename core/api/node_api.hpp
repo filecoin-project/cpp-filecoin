@@ -8,6 +8,7 @@
 #include "api/common_api.hpp"
 #include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "const.hpp"
+#include "data_transfer/types.hpp"
 #include "drand/messages.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
@@ -28,11 +29,13 @@ namespace fc::api {
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
+  using data_transfer::TransferId;
   using drand::BeaconEntry;
   using libp2p::peer::PeerId;
   using markets::storage::DataRef;
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
+  using markets::storage::StorageDealStatus;
   using markets::storage::client::import_manager::Import;
   using primitives::BigInt;
   using primitives::ChainEpoch;
@@ -49,6 +52,7 @@ namespace fc::api {
   using primitives::block::BlockHeader;
   using primitives::block::BlockTemplate;
   using primitives::block::BlockWithCids;
+  using primitives::sector::RegisteredSealProof;
   using primitives::sector::SectorInfo;
   using primitives::tipset::HeadChange;
   using primitives::tipset::TipsetCPtr;
@@ -83,6 +87,42 @@ namespace fc::api {
   struct FileRef {
     std::string path;
     bool is_car;
+  };
+
+  /** Unique identifier for a channel */
+  struct ChannelId {
+    PeerId initiator;
+    PeerId responder;
+    TransferId id;
+  };
+
+  struct DatatransferChannel {
+    TransferId transfer_id;
+    uint64_t status;
+    CID base_cid;
+    bool is_initiator;
+    bool is_sender;
+    std::string voucher;
+    std::string message;
+    PeerId other_peer;
+    uint64_t transferred;
+  };
+
+  struct StorageMarketDealInfo {
+    CID proposal_cid;
+    StorageDealStatus state;
+    std::string message;
+    Address provider;
+    DataRef data_ref;
+    CID piece_cid;
+    uint64_t size;
+    TokenAmount price_per_epoch;
+    EpochDuration duration;
+    DealId deal_id;
+    uint64_t creation_time;
+    bool verified;
+    ChannelId transfer_channel_id;
+    DatatransferChannel data_transfer;
   };
 
   /**
@@ -262,6 +302,11 @@ namespace fc::api {
     API_METHOD(ClientImport, ImportRes, const FileRef &)
 
     /**
+     * Returns information about the deals made by the local client
+     */
+    API_METHOD(ClientListDeals, std::vector<StorageMarketDealInfo>)
+
+    /**
      * Lists imported files and their root CIDs
      */
     API_METHOD(ClientListImports, std::vector<Import>)
@@ -303,12 +348,12 @@ namespace fc::api {
     /**
      * Ensures that a storage market participant has a certain amount of
      * available funds. If additional funds are needed, they will be sent from
-     * the 'wallet' address callback is immediately called if sufficient funds
-     * are available
+     * the 'wallet' address.
      * @param wallet to send from
      * @param address to ensure
      * @param amount to ensure
-     * @return CID of transfer message if message was sent
+     * @return CID of transfer message if message was sent or boost::none if
+     * required funds were already available
      */
     API_METHOD(MarketReserveFunds,
                boost::optional<CID>,
@@ -454,6 +499,18 @@ namespace fc::api {
                const Address &,
                const SectorPreCommitInfo &,
                const TipsetKey &);
+
+    /**
+     * Gets the current seal proof type for the given miner
+     * @param Address - miner address
+     * @param tipset
+     * @returns preferred registered seal proof type
+     */
+    API_METHOD(GetProofType,
+               RegisteredSealProof,
+               const Address &,
+               const TipsetKey &);
+
     API_METHOD(StateSectorPreCommitInfo,
                SectorPreCommitOnChainInfo,
                const Address &,
@@ -469,6 +526,16 @@ namespace fc::api {
                const Address &,
                SectorNumber,
                const TipsetKey &);
+
+    /**
+     * Verified registry actor state method
+     * @returns the data cap for the given address
+     */
+    API_METHOD(StateVerifiedClientStatus,
+               boost::optional<StoragePower>,
+               const Address &,
+               const TipsetKey &)
+
     API_METHOD(StateSearchMsg, boost::optional<MsgWait>, const CID &)
     API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &, uint64_t)
 

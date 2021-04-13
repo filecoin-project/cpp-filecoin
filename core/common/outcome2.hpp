@@ -93,6 +93,10 @@ namespace fc {
     using _O = _Outcome<void>;
     using _O::_O;
 
+    void value() const {
+      o.value();
+    }
+
     void operator*() const {
       o.value();
     }

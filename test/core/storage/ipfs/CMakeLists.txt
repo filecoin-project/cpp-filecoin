@@ -17,5 +17,4 @@ target_link_libraries(in_memory_ipfs_datastore_test
     ipfs_datastore_in_memory
     )
 
-add_subdirectory(merkledag)
 add_subdirectory(graphsync)

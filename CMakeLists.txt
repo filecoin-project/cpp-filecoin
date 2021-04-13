@@ -18,8 +18,8 @@ set(
 
 include("cmake/Hunter/init.cmake")
 HunterGate(
-    URL "https://github.com/soramitsu/soramitsu-hunter/archive/v0.23.257-soramitsu1.tar.gz"
-    SHA1 "130ab680eefe8d85e30ade39fd273c9dd36717f5"
+    URL "https://github.com/soramitsu/soramitsu-hunter/archive/tags/v0.23.257-soramitsu7.tar.gz"
+    SHA1 "24f3cae2b6b3212b87daf643cdaad0f9afc1b54b"
     LOCAL
 )
 
