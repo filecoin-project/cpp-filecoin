@@ -21,11 +21,11 @@ namespace fc::mining {
     OUTCOME_TRY(market_deal,
                 api_->StateMarketStorageDeal(deal.deal_id, tipset_key));
 
-    if (not proposal.has_value()) {
+    if (proposal.has_value()) {
       OUTCOME_TRY(equal,
                   checkDealEquality(
                       tipset_key, proposal.value(), market_deal.proposal));
-      if (equal) {
+      if (not equal) {
         OUTCOME_TRY(cid_str, publish_cid.toString());
         logger_->error("deal proposals for publish message {} did not match",
                        cid_str);
@@ -56,7 +56,7 @@ namespace fc::mining {
           "looking for publish deal message {}: non-ok exit code: {}",
           cid_str,
           lookup->receipt.exit_code);
-      return ERROR_TEXT("looking for publish deal message: non-ok exit code");
+      return DealInfoManagerError::kNotOkExitCode;
     }
 
     OUTCOME_TRY(return_value,
@@ -148,6 +148,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::mining, DealInfoManagerError, e) {
     case DealInfoManagerError::kMoreThanOneDeal:
       return "Deal info manager: no deal proposal supplied but message return "
              "value has more than one deal";
+    case DealInfoManagerError::kNotOkExitCode:
+      return "Deal info manager: looking for publish deal message: non-ok exit "
+             "code";
   }
   return "Deal info manager: unknown error";
 }

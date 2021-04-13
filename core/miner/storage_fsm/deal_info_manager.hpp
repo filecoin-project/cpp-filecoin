@@ -22,6 +22,12 @@ namespace fc::mining {
     TipsetKey publish_msg_tipset;
   };
 
+  inline bool operator==(const CurrentDealInfo &lhs,
+                         const CurrentDealInfo &rhs) {
+    return lhs.deal_id == rhs.deal_id && lhs.market_deal == rhs.market_deal
+           && lhs.publish_msg_tipset == rhs.publish_msg_tipset;
+  };
+
   class DealInfoManager {
    public:
     virtual ~DealInfoManager() = default;
@@ -37,6 +43,7 @@ namespace fc::mining {
     kOutOfRange,
     kNotFound,
     kMoreThanOneDeal,
+    kNotOkExitCode,
   };
 }  // namespace fc::mining
 
