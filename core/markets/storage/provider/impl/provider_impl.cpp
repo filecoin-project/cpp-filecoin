@@ -676,12 +676,14 @@ namespace fc::markets::storage::provider {
       StorageDealStatus to) {
     // TODO hand off
     auto &p{deal->client_deal_proposal.proposal};
-    OUTCOME_EXCEPT(sector_blocks_->addPiece(p.piece_size.unpadded(),
-                                            deal->piece_path,
-                                            {deal->publish_cid,
-                                             deal->deal_id,
-                                             {p.start_epoch, p.end_epoch},
-                                             deal->is_fast_retrieval}));
+    OUTCOME_EXCEPT(sector_blocks_->addPiece(
+        p.piece_size.unpadded(),
+        deal->piece_path,
+        mining::types::DealInfo{deal->publish_cid,
+                                deal->deal_id,
+                                p,
+                                {p.start_epoch, p.end_epoch},
+                                deal->is_fast_retrieval}));
     FSM_SEND(deal, ProviderEvent::ProviderEventDealHandedOff);
   }
 

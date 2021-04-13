@@ -648,6 +648,7 @@ namespace fc::mining {
     proposal.piece_cid = info.cid;
     proposal.piece_size = info.size;
     proposal.start_epoch = tipset->height() + 1;
+    proposal.provider = miner_addr_;
     StorageDeal storage_deal;
     storage_deal.proposal = proposal;
 
