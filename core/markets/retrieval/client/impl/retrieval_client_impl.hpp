@@ -90,13 +90,14 @@ namespace fc::markets::retrieval::client {
                const QueryRequest &request,
                const QueryResponseHandler &response_handler) override;
 
-    void retrieve(const CID &payload_cid,
-                  const DealProposalParams &deal_params,
-                  const PeerInfo &provider_peer,
-                  const Address &client_wallet,
-                  const Address &miner_wallet,
-                  const TokenAmount &total_funds,
-                  const RetrieveResponseHandler &handler) override;
+    outcome::result<void> retrieve(
+        const CID &payload_cid,
+        const DealProposalParams &deal_params,
+        const TokenAmount &total_funds,
+        const RetrievalPeer &provider_peer,
+        const Address &client_wallet,
+        const Address &miner_wallet,
+        const RetrieveResponseHandler &handler) override;
 
    private:
     void closeQueryStream(const std::shared_ptr<CborStream> &stream,

@@ -10,6 +10,7 @@
 #include "const.hpp"
 #include "data_transfer/types.hpp"
 #include "drand/messages.hpp"
+#include "markets/retrieval/types.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/deal_protocol.hpp"
@@ -32,6 +33,7 @@ namespace fc::api {
   using data_transfer::TransferId;
   using drand::BeaconEntry;
   using libp2p::peer::PeerId;
+  using markets::retrieval::RetrievalPeer;
   using markets::storage::DataRef;
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
@@ -141,13 +143,17 @@ namespace fc::api {
 
   struct RetrievalOrder {
     CID root;
+    boost::optional<CID> piece;
     uint64_t size;
+    /** StoreId of multistore (not implemented in Fuhon) */
+    boost::optional<uint64_t> local_store;
     TokenAmount total;
-    uint64_t interval;
-    uint64_t interval_inc;
+    TokenAmount unseal_price;
+    uint64_t payment_interval;
+    uint64_t payment_interval_increase;
     Address client;
     Address miner;
-    PeerId peer{codec::cbor::kDefaultT<PeerId>()};
+    RetrievalPeer peer;
   };
 
   struct StartDealParams {
@@ -318,10 +324,7 @@ namespace fc::api {
     /**
      * Initiates the retrieval of a file, as specified in the order
      */
-    API_METHOD(ClientRetrieve,
-               Wait<None>,
-               const RetrievalOrder &,
-               const FileRef &)
+    API_METHOD(ClientRetrieve, void, const RetrievalOrder &, const FileRef &)
 
     /**
      * Proposes a storage deal with a miner

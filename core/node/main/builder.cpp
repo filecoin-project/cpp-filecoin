@@ -33,6 +33,7 @@
 #include "drand/impl/beaconizer.hpp"
 #include "markets/discovery/discovery.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
+#include "markets/retrieval/client/impl/retrieval_client_impl.hpp"
 #include "markets/storage/chain_events/impl/chain_events_impl.hpp"
 #include "markets/storage/client/impl/storage_market_client_impl.hpp"
 #include "markets/storage/types.hpp"
@@ -68,6 +69,7 @@ namespace fc::node {
   using libp2p::protocol::scheduler::Ticks;
   using markets::discovery::Discovery;
   using markets::pieceio::PieceIOImpl;
+  using markets::retrieval::client::RetrievalClientImpl;
   using markets::storage::kStorageMarketImportDir;
   using markets::storage::chain_events::ChainEventsImpl;
   using markets::storage::client::StorageMarketClientImpl;
@@ -251,26 +253,39 @@ namespace fc::node {
    * Creates and intialises Storage Market Client
    * @param o - Node objecs
    */
-  outcome::result<void> createStorageMarketClient(NodeObjects &o) {
-    o.storage_market_import_manager = std::make_shared<ImportManager>(
-        std::make_shared<storage::MapPrefix>("storage_market_imports/",
-                                             o.kv_store),
-        kStorageMarketImportDir);
-    o.chain_events = std::make_shared<ChainEventsImpl>(o.api);
-    o.storage_market_client = std::make_shared<StorageMarketClientImpl>(
-        o.host,
-        o.io_context,
-        o.storage_market_import_manager,
-        o.datatransfer,
-        std::make_shared<Discovery>(
-            std::make_shared<storage::MapPrefix>("discovery/", o.kv_store)),
-        o.api,
-        o.chain_events,
-        std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
+  outcome::result<void> createStorageMarketClient(NodeObjects &node_objects) {
+    node_objects.storage_market_import_manager =
+        std::make_shared<ImportManager>(
+            std::make_shared<storage::MapPrefix>("storage_market_imports/",
+                                                 node_objects.kv_store),
+            kStorageMarketImportDir);
+    node_objects.chain_events =
+        std::make_shared<ChainEventsImpl>(node_objects.api);
+    node_objects.storage_market_client =
+        std::make_shared<StorageMarketClientImpl>(
+            node_objects.host,
+            node_objects.io_context,
+            node_objects.storage_market_import_manager,
+            node_objects.datatransfer,
+            std::make_shared<Discovery>(std::make_shared<storage::MapPrefix>(
+                "discovery/", node_objects.kv_store)),
+            node_objects.api,
+            node_objects.chain_events,
+            std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
     // timer is set to 100 ms
-    timerLoop(
-        o.scheduler, 100, [&] { o.storage_market_client->pollWaiting(); });
-    return o.storage_market_client->init();
+    timerLoop(node_objects.scheduler, 100, [&] {
+      node_objects.storage_market_client->pollWaiting();
+    });
+    return node_objects.storage_market_client->init();
+  }
+
+  outcome::result<void> createRetrievalMarketClient(NodeObjects &node_objects) {
+    node_objects.retrieval_market_client =
+        std::make_shared<RetrievalClientImpl>(node_objects.host,
+                                              node_objects.datatransfer,
+                                              node_objects.api,
+                                              node_objects.ipld);
+    return outcome::success();
   }
 
   outcome::result<NodeObjects> createNodeObjects(Config &config) {
@@ -490,6 +505,8 @@ namespace fc::node {
         std::chrono::seconds(kEpochDurationSeconds));
 
     o.datatransfer = DataTransfer::make(o.host, o.graphsync);
+    OUTCOME_TRY(createStorageMarketClient(o));
+    OUTCOME_TRY(createRetrievalMarketClient(o));
 
     o.api = api::makeImpl(o.chain_store,
                           *config.network_name,
@@ -501,9 +518,8 @@ namespace fc::node {
                           beaconizer,
                           drand_schedule,
                           o.pubsub_gate,
-                          key_store);
-
-    OUTCOME_TRY(createStorageMarketClient(o));
+                          key_store,
+                          o.retrieval_market_client);
 
     return o;
   }

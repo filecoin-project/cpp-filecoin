@@ -9,6 +9,7 @@
 #include "blockchain/weight_calculator.hpp"
 #include "common/logger.hpp"
 #include "fwd.hpp"
+#include "markets/retrieval/client/retrieval_client.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/keystore/keystore.hpp"
@@ -20,6 +21,7 @@ namespace fc::api {
   using crypto::bls::BlsProvider;
   using drand::Beaconizer;
   using drand::DrandSchedule;
+  using markets::retrieval::client::RetrievalClient;
   using storage::blockchain::ChainStore;
   using storage::blockchain::MsgWaiter;
   using storage::keystore::KeyStore;
@@ -43,5 +45,6 @@ namespace fc::api {
       std::shared_ptr<Beaconizer> beaconizer,
       std::shared_ptr<DrandSchedule> drand_schedule,
       std::shared_ptr<PubSubGate> pubsub,
-      std::shared_ptr<KeyStore> key_store);
+      std::shared_ptr<KeyStore> key_store,
+      const std::shared_ptr<RetrievalClient> &retrieval_market_client);
 }  // namespace fc::api

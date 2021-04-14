@@ -12,6 +12,7 @@
 #include "blockchain/production/block_producer.hpp"
 #include "const.hpp"
 #include "drand/beaconizer.hpp"
+#include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "node/pubsub_gate.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
@@ -40,10 +41,12 @@ namespace fc::api {
   using crypto::randomness::DomainSeparationTag;
   using crypto::signature::BlsSignature;
   using libp2p::peer::PeerId;
+  using markets::retrieval::DealProposalParams;
   using primitives::kChainEpochUndefined;
   using primitives::block::MsgMeta;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
   using primitives::tipset::Tipset;
+  using storage::ipld::kAllSelector;
   using vm::isVMExitCode;
   using vm::VMExitCode;
   using vm::actor::kInitAddress;
@@ -201,7 +204,8 @@ namespace fc::api {
       std::shared_ptr<Beaconizer> beaconizer,
       std::shared_ptr<DrandSchedule> drand_schedule,
       std::shared_ptr<PubSubGate> pubsub,
-      std::shared_ptr<KeyStore> key_store) {
+      std::shared_ptr<KeyStore> key_store,
+      const std::shared_ptr<RetrievalClient> &retrieval_market_client) {
     auto ts_load{env_context.ts_load};
     auto ipld{env_context.ipld};
     auto interpreter_cache{env_context.interpreter_cache};
@@ -355,8 +359,38 @@ namespace fc::api {
     api->ClientListImports = {};
     // TODO(turuslan): FIL-165 implement method
     api->ClientQueryAsk = {};
-    // TODO(turuslan): FIL-165 implement method
-    api->ClientRetrieve = {};
+
+    /**
+     * Initiates the retrieval deal of a file in retrieval market.
+     */
+    api->ClientRetrieve = {
+        [retrieval_market_client](
+            const RetrievalOrder &order,
+            const FileRef &file_ref) -> outcome::result<void> {
+          if (order.size == 0) {
+            return ERROR_TEXT("Cannot make retrieval deal for zero bytes");
+          }
+          auto price_per_byte = bigdiv(order.total, order.size);
+          DealProposalParams params{
+              .selector = kAllSelector,
+              .piece = order.piece,
+              .price_per_byte = price_per_byte,
+              .payment_interval = order.payment_interval,
+              .payment_interval_increase = order.payment_interval_increase,
+              .unseal_price = order.unseal_price};
+          OUTCOME_TRY(
+              retrieval_market_client->retrieve(order.root,
+                                                params,
+                                                order.total,
+                                                order.peer,
+                                                order.client,
+                                                order.miner,
+                                                [](outcome::result<void> res) {
+                                                  // TODO (a.chernysho) add logs
+                                                  return;
+                                                }));
+          return outcome::success();
+        }};
 
     api->ClientStartDeal = {/* impemented in node/main.cpp */};
 

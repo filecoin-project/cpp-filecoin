@@ -6,7 +6,7 @@
 #pragma once
 
 #include <libp2p/host/basic_host/basic_host.hpp>
-#include <libp2p/peer/peer_info.hpp>
+#include <libp2p/peer/peer_id.hpp>
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
@@ -14,6 +14,7 @@
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::markets::retrieval {
+  using libp2p::peer::PeerId;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using vm::actor::builtin::types::payment_channel::LaneId;
@@ -37,6 +38,16 @@ namespace fc::markets::retrieval {
     Address payment_channel;
     LaneId lane;
   };
+
+  /**
+   * Miner address and PeerId for retrieval deal
+   */
+  struct RetrievalPeer {
+    Address address;
+    PeerId peer_id;
+    boost::optional<CID> piece;
+  };
+  CBOR_TUPLE(RetrievalPeer, address, peer_id, piece)
 
   /**
    * @enum Deal statuses

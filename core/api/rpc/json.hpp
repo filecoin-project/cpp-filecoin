@@ -36,6 +36,11 @@ namespace fc::codec::cbor {
   using markets::storage::StorageDealStatus;
 
   template <>
+  inline fc::api::FileRef kDefaultT<fc::api::FileRef>() {
+    return {"", false};
+  }
+
+  template <>
   inline fc::api::QueryOffer kDefaultT<fc::api::QueryOffer>() {
     return {{}, {}, {}, {}, {}, {}, {}, kDefaultT<PeerId>()};
   }
@@ -1723,13 +1728,30 @@ namespace fc::api {
       decode(v.import_id, Get(j, "ImportID"));
     }
 
+    ENCODE(RetrievalPeer) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Address", v.address);
+      Set(j, "ID", v.peer_id);
+      Set(j, "PieceCID", v.piece);
+      return j;
+    }
+
+    DECODE(RetrievalPeer) {
+      decode(v.address, Get(j, "Address"));
+      decode(v.peer_id, Get(j, "ID"));
+      decode(v.piece, Get(j, "PieceCID"));
+    }
+
     ENCODE(RetrievalOrder) {
       Value j{rapidjson::kObjectType};
       Set(j, "Root", v.root);
+      Set(j, "Piece", v.piece);
       Set(j, "Size", v.size);
+      Set(j, "LocalStore", v.local_store);
       Set(j, "Total", v.total);
-      Set(j, "PaymentInterval", v.interval);
-      Set(j, "PaymentIntervalIncrease", v.interval_inc);
+      Set(j, "UnsealPrice", v.unseal_price);
+      Set(j, "PaymentInterval", v.payment_interval);
+      Set(j, "PaymentIntervalIncrease", v.payment_interval_increase);
       Set(j, "Client", v.client);
       Set(j, "Miner", v.miner);
       Set(j, "MinerPeerID", v.peer);
@@ -1738,10 +1760,13 @@ namespace fc::api {
 
     DECODE(RetrievalOrder) {
       decode(v.root, Get(j, "Root"));
+      decode(v.piece, Get(j, "Piece"));
       decode(v.size, Get(j, "Size"));
+      decode(v.local_store, Get(j, "LocalStore"));
       decode(v.total, Get(j, "Total"));
-      decode(v.interval, Get(j, "PaymentInterval"));
-      decode(v.interval_inc, Get(j, "PaymentIntervalIncrease"));
+      decode(v.unseal_price, Get(j, "UnsealPrice"));
+      decode(v.payment_interval, Get(j, "PaymentInterval"));
+      decode(v.payment_interval_increase, Get(j, "PaymentIntervalIncrease"));
       decode(v.client, Get(j, "Client"));
       decode(v.miner, Get(j, "Miner"));
       decode(v.peer, Get(j, "MinerPeerID"));
