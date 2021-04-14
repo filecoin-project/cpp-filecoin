@@ -26,6 +26,7 @@ namespace fc::vm::version {
     if (height <= kUpgradePersianHeight) return NetworkVersion::kVersion7;
     if (height <= kUpgradeOrangeHeight) return NetworkVersion::kVersion8;
     if (height <= kUpgradeActorsV3Height) return NetworkVersion::kVersion9;
+    if (height <= kUpgradeNorwegianHeight) return NetworkVersion::kVersion10;
     return kLatestVersion;
   }
 }  // namespace fc::vm::version

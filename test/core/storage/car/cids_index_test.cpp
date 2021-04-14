@@ -40,7 +40,7 @@ namespace fc::storage::cids_index {
     void testFlush(std::shared_ptr<boost::asio::io_context> io);
   };
 
-  TEST_F(CidsIndexTest, Test) {
+  TEST_F(CidsIndexTest, Flow) {
     // readable car must exist
     EXPECT_FALSE(fs::exists(car_path));
     EXPECT_OUTCOME_FALSE_1(load(false));
