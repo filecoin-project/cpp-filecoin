@@ -9,8 +9,8 @@
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
-#include "common/logger.hpp"
 #include "common/libp2p/soralog.hpp"
+#include "common/logger.hpp"
 #include "drand/impl/http.hpp"
 #include "markets/storage/types.hpp"
 #include "node/blocksync_server.hpp"
@@ -207,6 +207,9 @@ namespace fc {
       exit(EXIT_FAILURE);
     }
     auto &o = obj_res.value();
+
+    IoThread flush_thread;
+    o.ipld_cids_write->io = flush_thread.io;
 
     o.io_context->post([&] {
       for (auto &host : config.drand_servers) {

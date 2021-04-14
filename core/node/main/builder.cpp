@@ -226,6 +226,8 @@ namespace fc::node {
     // estimated, 1gb
     o.ipld_cids_write = *storage::cids_index::loadOrCreateWithProgress(
         car_path, true, 1 << 30, o.ipld, log());
+    // estimated
+    o.ipld_cids_write->flush_on = 200000;
     o.ipld = o.ipld_cids_write;
   }
 
@@ -268,8 +270,9 @@ namespace fc::node {
         o.chain_events,
         std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
     // timer is set to 100 ms
-    timerLoop(
-        o.scheduler, 100, [&] { o.storage_market_client->pollWaiting(); });
+    timerLoop(o.scheduler, 100, [client{o.storage_market_client}] {
+      client->pollWaiting();
+    });
     return o.storage_market_client->init();
   }
 
