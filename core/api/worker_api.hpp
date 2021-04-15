@@ -6,6 +6,7 @@
 #pragma once
 
 #include "api/utils.hpp"
+#include "api/version.hpp"
 #include "common/outcome.hpp"
 #include "sector_storage/worker.hpp"
 
