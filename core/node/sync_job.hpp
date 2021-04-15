@@ -96,6 +96,9 @@ namespace fc::sync {
     events::Connection possible_head_event_;
 
     std::shared_ptr<BlocksyncRequest> request_;
+
+    using Clock = std::chrono::steady_clock;
+    Clock::time_point request_expiry_;
   };
 
 }  // namespace fc::sync
