@@ -33,16 +33,45 @@ namespace fc::codec::cbor {
   using api::ChannelId;
   using api::DatatransferChannel;
   using api::StorageMarketDealInfo;
+  using fc::api::FileRef;
+  using fc::api::RetrievalOrder;
+  using fc::api::RetrievalPeer;
   using markets::storage::StorageDealStatus;
 
   template <>
-  inline fc::api::FileRef kDefaultT<fc::api::FileRef>() {
+  inline FileRef kDefaultT<FileRef>() {
     return {"", false};
   }
 
   template <>
+  inline RetrievalPeer kDefaultT<RetrievalPeer>() {
+    return {{}, kDefaultT<PeerId>(), boost::none};
+  }
+
+  template <>
+  inline RetrievalOrder kDefaultT<RetrievalOrder>() {
+    return {{},
+            boost::none,
+            {},
+            boost::none,
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+            kDefaultT<RetrievalPeer>()};
+  }
+
+  template <>
+  inline std::tuple<RetrievalOrder, FileRef>
+  kDefaultT<std::tuple<RetrievalOrder, FileRef>>() {
+    return std::make_tuple(kDefaultT<RetrievalOrder>(), kDefaultT<FileRef>());
+  }
+
+  template <>
   inline fc::api::QueryOffer kDefaultT<fc::api::QueryOffer>() {
-    return {{}, {}, {}, {}, {}, {}, {}, kDefaultT<PeerId>()};
+    return {{}, {}, boost::none, {}, {}, {}, {}, {}, {}, kDefaultT<PeerId>()};
   }
 
   template <>
@@ -1606,8 +1635,10 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Err", v.error);
       Set(j, "Root", v.root);
+      Set(j, "Piece", v.piece);
       Set(j, "Size", v.size);
       Set(j, "MinPrice", v.min_price);
+      Set(j, "UnsealPrice", v.unseal_price);
       Set(j, "PaymentInterval", v.payment_interval);
       Set(j, "PaymentIntervalIncrease", v.payment_interval_increase);
       Set(j, "Miner", v.miner);
@@ -1618,8 +1649,10 @@ namespace fc::api {
     DECODE(QueryOffer) {
       Get(j, "Err", v.error);
       Get(j, "Root", v.root);
+      Get(j, "Piece", v.piece);
       Get(j, "Size", v.size);
       Get(j, "MinPrice", v.min_price);
+      Get(j, "UnsealPrice", v.unseal_price);
       Get(j, "PaymentInterval", v.payment_interval);
       Get(j, "PaymentIntervalIncrease", v.payment_interval_increase);
       Get(j, "Miner", v.miner);

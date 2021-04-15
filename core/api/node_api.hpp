@@ -175,12 +175,15 @@ namespace fc::api {
   struct QueryOffer {
     std::string error;
     CID root;
+    boost::optional<CID> piece;
     uint64_t size;
     TokenAmount min_price;
+    TokenAmount unseal_price;
     uint64_t payment_interval;
     uint64_t payment_interval_increase;
     Address miner;
     PeerId peer;
+//    RetrievalPeer peer;
   };
 
   struct AddChannelInfo {
@@ -295,6 +298,10 @@ namespace fc::api {
     API_METHOD(ChainSetHead, void, const TipsetKey &)
     API_METHOD(ChainTipSetWeight, TipsetWeight, const TipsetKey &)
 
+    /**
+     * Identifies peers that have a certain file, and returns QueryOffers for
+     * each peer.
+     */
     API_METHOD(ClientFindData, Wait<std::vector<QueryOffer>>, const CID &)
     API_METHOD(ClientHasLocal, bool, const CID &)
 
