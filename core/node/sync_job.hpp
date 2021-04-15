@@ -40,6 +40,8 @@ namespace fc::sync {
     /// Listens to PossibleHead and PeerConnected events
     void start(std::shared_ptr<events::Events> events);
 
+    uint64_t metricAttachedHeight() const;
+
    private:
     void onPossibleHead(const events::PossibleHead &e);
 

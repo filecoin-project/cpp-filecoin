@@ -106,6 +106,14 @@ namespace fc::sync {
     log()->debug("started");
   }
 
+  uint64_t SyncJob::metricAttachedHeight() const {
+    std::shared_lock lock{*ts_branches_mutex_};
+    if (auto branch{attached_heaviest_.first}) {
+      return branch->chain.rbegin()->first;
+    }
+    return 0;
+  }
+
   void SyncJob::onPossibleHead(const events::PossibleHead &e) {
     if (auto ts{getLocal(e.head)}) {
       thread.io->post([this, peer{e.source}, ts] { onTs(peer, ts); });
