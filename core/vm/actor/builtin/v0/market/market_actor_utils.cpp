@@ -8,7 +8,6 @@
 #include <boost/endian/conversion.hpp>
 
 #include "crypto/randomness/randomness_types.hpp"
-#include "primitives/cid/comm_cid.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
@@ -17,8 +16,6 @@
 
 namespace fc::vm::actor::builtin::v0::market {
   using crypto::randomness::DomainSeparationTag;
-  using libp2p::multi::HashType;
-  using primitives::cid::kCommitmentBytesLen;
   using toolchain::Toolchain;
   using namespace types::market;
 
@@ -136,14 +133,8 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateArgument(proposal.piece_cid != CID()));
 
     // validate CID prefix
-    OUTCOME_TRY(runtime.validateArgument(
-        proposal.piece_cid.version == CID::Version::V1
-        && proposal.piece_cid.content_type
-               == CID::Multicodec::FILECOIN_COMMITMENT_UNSEALED
-        && proposal.piece_cid.content_address.getType()
-               == HashType::sha2_256_trunc254_padded
-        && proposal.piece_cid.content_address.getHash().size()
-               == kCommitmentBytesLen));
+    OUTCOME_TRY(runtime.validateArgument(proposal.piece_cid.getPrefix()
+                                         == kPieceCIDPrefix));
 
     OUTCOME_TRY(runtime.validateArgument(runtime.getCurrentEpoch()
                                          <= proposal.start_epoch));

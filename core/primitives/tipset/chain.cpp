@@ -356,7 +356,7 @@ namespace fc::primitives::tipset::chain {
         epoch
             - (vm::version::getNetworkVersion(epoch)
                        > vm::version::NetworkVersion::kVersion3
-                   ? vm::actor::builtin::types::miner::kChainFinalityish
+                   ? vm::actor::builtin::types::miner::kChainFinality
                    : kWinningPoStSectorSetLookback));
     if (lookback < it.second->first) {
       return find(it.first, lookback);

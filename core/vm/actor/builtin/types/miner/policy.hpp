@@ -7,16 +7,30 @@
 
 #include "common/outcome.hpp"
 #include "const.hpp"
+#include "primitives/cid/comm_cid.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/types/miner/sector_info.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
+  using libp2p::multi::HashType;
+  using primitives::BigInt;
   using primitives::ChainEpoch;
+  using primitives::DealWeight;
   using primitives::EpochDuration;
+  using primitives::SectorQuality;
   using primitives::SectorSize;
+  using primitives::StoragePower;
   using primitives::TokenAmount;
+  using primitives::cid::kCommitmentBytesLen;
   using primitives::sector::RegisteredSealProof;
+
+  // TODO remake shared.hpp
+  const uint64_t kSectorQualityPrecision{20};
+  const uint64_t kQualityBaseMultiplier{10};
+  const uint64_t kDealWeightMultiplier{10};
+  const uint64_t kVerifiedDealWeightMultiplier{100};
 
   /**
    * The period over which all a miner's active sectors will be challenged.
@@ -35,8 +49,23 @@ namespace fc::vm::actor::builtin::types::miner {
   constexpr size_t kWPoStPeriodDeadlines{48};
 
   constexpr size_t kSectorsMax{32 << 20};
+  constexpr uint64_t kAddressedPartitionsMax{200};
+  constexpr uint64_t kAddressedSectorsMax{10000};
+
+  inline uint64_t loadPartitionsSectorsMax(uint64_t partition_sector_count) {
+    return std::min(kAddressedSectorsMax / partition_sector_count,
+                    kAddressedPartitionsMax);
+  }
+
   constexpr size_t kNewSectorsPerPeriodMax{128 << 10};
-  constexpr EpochDuration kChainFinalityish{900};
+  constexpr EpochDuration kChainFinality{900};
+
+  const CidPrefix kSealedCIDPrefix{
+      .version = static_cast<uint64_t>(CID::Version::V1),
+      .codec =
+          static_cast<uint64_t>(CID::Multicodec::FILECOIN_COMMITMENT_SEALED),
+      .mh_type = HashType::poseidon_bls12_381_a1_fc1,
+      .mh_length = kCommitmentBytesLen};
 
   /**
    * Number of epochs between publishing the precommit and when the challenge
@@ -69,16 +98,11 @@ namespace fc::vm::actor::builtin::types::miner {
   /** The maximum age of a fault before the sector is terminated. */
   extern EpochDuration kFaultMaxAge;
 
-  constexpr auto kWorkerKeyChangeDelay{2 * kElectionLookback};
+  constexpr auto kWorkerKeyChangeDelay{kChainFinality};
 
+  /** Minimum number of epochs past the current epoch a sector may be set to
+   * expire. */
   extern ChainEpoch kMinSectorExpiration;
-
-  constexpr auto kAddressedSectorsMax{10000};
-
-  /**
-   * List of proof types which can be used when creating new miner actors
-   */
-  extern std::set<RegisteredSealProof> kSupportedProofs;
 
   /**
    * Maximum number of epochs past the current epoch a sector may be set to
@@ -87,6 +111,56 @@ namespace fc::vm::actor::builtin::types::miner {
    * sector.ActivationEpoch+sealProof.SectorMaximumLifetime()
    */
   extern ChainEpoch kMaxSectorExpirationExtension;
+
+  /**
+   * List of proof types which can be used when creating new miner actors
+   */
+  extern std::set<RegisteredSealProof> kSupportedProofs;
+
+  constexpr uint64_t kDealLimitDenominator{134217728};
+
+  inline SectorQuality qualityForWeight(SectorSize size,
+                                        ChainEpoch duration,
+                                        const DealWeight &deal_weight,
+                                        const DealWeight &verified_weight) {
+    const auto sector_space_time = size * duration;
+    const auto total_deal_space_time = deal_weight * verified_weight;
+    assert(sector_space_time >= total_deal_space_time);
+
+    const auto weighted_base_space_time =
+        (sector_space_time - total_deal_space_time) * kQualityBaseMultiplier;
+    const auto weighted_deal_space_time = deal_weight * kDealWeightMultiplier;
+    const auto weighted_verified_space_time =
+        verified_weight * kVerifiedDealWeightMultiplier;
+    const auto weighted_sum_space_time = weighted_base_space_time
+                                         + weighted_deal_space_time
+                                         + weighted_verified_space_time;
+    const auto scaled_up_weighted_sum_space_time = weighted_sum_space_time
+                                                   << kSectorQualityPrecision;
+
+    return bigdiv(bigdiv(scaled_up_weighted_sum_space_time, sector_space_time),
+                  kQualityBaseMultiplier);
+  }
+
+  inline StoragePower qaPowerForWeight(SectorSize size,
+                                       ChainEpoch duration,
+                                       const DealWeight &deal_weight,
+                                       const DealWeight &verified_weight) {
+    const auto quality =
+        qualityForWeight(size, duration, deal_weight, verified_weight);
+    return (size * quality) >> kSectorQualityPrecision;
+  }
+
+  inline StoragePower qaPowerForSector(SectorSize size,
+                                       const SectorOnChainInfo &sector) {
+    const auto duration = sector.expiration - sector.activation_epoch;
+    return qaPowerForWeight(
+        size, duration, sector.deal_weight, sector.verified_deal_weight);
+  }
+
+  inline uint64_t dealPerSectorLimit(SectorSize size) {
+    return std::max(static_cast<uint64_t>(256), size / kDealLimitDenominator);
+  }
 
   inline outcome::result<EpochDuration> maxSealDuration(
       RegisteredSealProof type) {
@@ -111,8 +185,8 @@ namespace fc::vm::actor::builtin::types::miner {
     return 0;
   }
 
-  inline TokenAmount rewardForConsensusSlashReport(EpochDuration age,
-                                                   TokenAmount collateral) {
+  inline TokenAmount rewardForConsensusSlashReport(
+      EpochDuration age, const TokenAmount &collateral) {
     const auto init{std::make_pair(1, 1000)};
     const auto grow{std::make_pair(TokenAmount{101251}, TokenAmount{100000})};
     using boost::multiprecision::pow;
@@ -163,4 +237,24 @@ namespace fc::vm::actor::builtin::types::miner {
   constexpr size_t kMaxMultiaddressData = 1024;
 
   extern EpochDuration kMaxProveCommitDuration;
+
+  struct VestSpec {
+    ChainEpoch initial_delay{};
+    ChainEpoch vest_period{};
+    ChainEpoch step_duration{};
+    ChainEpoch quantization{};
+  };
+
+  const VestSpec kRewardVestingSpecV0{
+      .initial_delay = static_cast<ChainEpoch>(20 * kEpochsInDay),
+      .vest_period = static_cast<ChainEpoch>(180 * kEpochsInDay),
+      .step_duration = static_cast<ChainEpoch>(kEpochsInDay),
+      .quantization = static_cast<ChainEpoch>(12 * kEpochsInHour)};
+
+  const VestSpec kRewardVestingSpecV1{
+      .initial_delay = 0,
+      .vest_period = static_cast<ChainEpoch>(180 * kEpochsInDay),
+      .step_duration = static_cast<ChainEpoch>(kEpochsInDay),
+      .quantization = static_cast<ChainEpoch>(12 * kEpochsInHour)};
+
 }  // namespace fc::vm::actor::builtin::types::miner

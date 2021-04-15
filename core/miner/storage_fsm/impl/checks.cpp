@@ -29,7 +29,7 @@ namespace fc::mining::checks {
   using vm::actor::kStorageMarketAddress;
   using vm::actor::MethodParams;
   using vm::actor::builtin::states::StateProvider;
-  using vm::actor::builtin::types::miner::kChainFinalityish;
+  using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::maxSealDuration;
   using vm::actor::builtin::types::miner::SectorPreCommitOnChainInfo;
@@ -159,8 +159,7 @@ namespace fc::mining::checks {
 
     OUTCOME_TRY(network, api->StateNetworkVersion(tipset_key));
     OUTCOME_TRY(seal_duration, getMaxProveCommitDuration(network, sector_info));
-    if (height - (sector_info->ticket_epoch + kChainFinalityish)
-        > seal_duration) {
+    if (height - (sector_info->ticket_epoch + kChainFinality) > seal_duration) {
       return ChecksError::kExpiredTicket;
     }
 
