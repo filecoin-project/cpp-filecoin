@@ -25,6 +25,7 @@ namespace fc::mining::checks {
       NetworkVersion network, const std::shared_ptr<SectorInfo> &sector_info);
 
   outcome::result<void> checkPieces(
+      const Address &miner_address,
       const std::shared_ptr<SectorInfo> &sector_info,
       const std::shared_ptr<FullNodeApi> &api);
 

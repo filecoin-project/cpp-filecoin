@@ -95,6 +95,12 @@ namespace fc::vm::actor::builtin::types::market {
   };
   CBOR_TUPLE(DealState, sector_start_epoch, last_updated_epoch, slash_epoch)
 
+  inline bool operator==(const DealState &lhs, const DealState &rhs) {
+    return lhs.sector_start_epoch == rhs.sector_start_epoch
+           and lhs.last_updated_epoch == rhs.last_updated_epoch
+           and lhs.slash_epoch == rhs.slash_epoch;
+  }
+
   struct ClientDealProposal {
     DealProposal proposal;
     Signature client_signature;

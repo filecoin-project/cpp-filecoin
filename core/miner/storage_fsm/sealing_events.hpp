@@ -29,13 +29,14 @@ namespace fc::mining {
     kSectorProving,
     kSectorFinalized,
 
-    kSectorPackingFailed,
     kSectorSealPreCommit1Failed,
     kSectorSealPreCommit2Failed,
     kSectorChainPreCommitFailed,
     kSectorComputeProofFailed,
     kSectorCommitFailed,
     kSectorFinalizeFailed,
+    kSectorDealsExpired,
+    kSectorInvalidDealIDs,
 
     kSectorRetryFinalize,
     kSectorRetrySealPreCommit1,
@@ -56,6 +57,7 @@ namespace fc::mining {
     kSectorRemoveFailed,
 
     kSectorForce,
+    kUpdateDealIds,
   };
 
   class SealingEventContext {
@@ -192,13 +194,34 @@ namespace fc::mining {
     CID report_message;
   };
 
+  struct SectorInvalidDealIDContext final : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      info->return_state = return_state;
+    }
+
+    SealingState return_state;
+  };
+
   // EXTERNAL EVENTS
 
-  struct SectorForceContext final : public SealingEventContext {
+  struct SectorForceContext : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
 
     SealingState state;
+  };
+
+  struct SectorUpdateDealIds final : public SectorForceContext {
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      state = info->return_state;
+      info->return_state = SealingState::kStateUnknown;
+      for (auto &[piece_index, id] : updates) {
+        info->pieces[piece_index].deal_info->deal_id = id;
+      }
+    }
+
+    std::unordered_map<uint64_t, primitives::DealId> updates;
   };
 }  // namespace fc::mining
 
