@@ -150,6 +150,8 @@ namespace fc::mining {
     CID publish_cid = "010001020001"_cid;
 
     DealProposal proposal;
+    proposal.verified = false;
+    proposal.client = Address::makeFromId(2);
     proposal.provider = Address::makeFromId(1);
 
     std::vector<CID> cids = {"010001020002"_cid};
@@ -193,6 +195,8 @@ namespace fc::mining {
         UnsignedMessage result;
         DealProposal proposal;
         proposal.piece_cid = "010001020005"_cid;
+        proposal.verified = false;
+        proposal.client = Address::makeFromId(2);
         proposal.provider = another_provider;
         PublishStorageDeals::Params params{
             .deals = {ClientDealProposal{
@@ -239,6 +243,8 @@ namespace fc::mining {
 
     DealProposal proposal;
     proposal.piece_cid = "010001020006"_cid;
+    proposal.verified = false;
+    proposal.client = Address::makeFromId(2);
     proposal.provider = Address::makeFromId(1);
 
     std::vector<CID> cids = {"010001020002"_cid};
@@ -281,6 +287,8 @@ namespace fc::mining {
       if (cid == publish_cid) {
         UnsignedMessage result;
         DealProposal proposal;
+        proposal.verified = false;
+        proposal.client = Address::makeFromId(2);
         proposal.piece_cid = "010001020005"_cid;
         proposal.provider = another_provider;
         PublishStorageDeals::Params params{
@@ -332,6 +340,8 @@ namespace fc::mining {
 
     DealProposal proposal;
     proposal.piece_cid = "010001020006"_cid;
+    proposal.verified = false;
+    proposal.client = Address::makeFromId(2);
     proposal.provider = Address::makeFromId(1);
 
     std::vector<CID> cids = {"010001020002"_cid};
@@ -416,6 +426,8 @@ namespace fc::mining {
 
     DealProposal proposal;
     proposal.piece_cid = "010001020006"_cid;
+    proposal.verified = false;
+    proposal.client = Address::makeFromId(2);
     proposal.provider = Address::makeFromId(1);
 
     std::vector<CID> cids = {"010001020002"_cid};
