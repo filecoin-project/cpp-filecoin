@@ -12,6 +12,14 @@ target_link_libraries(car_test
     unixfs
     )
 
+addtest(cids_index_test
+    cids_index_test.cpp
+    )
+target_link_libraries(cids_index_test
+    base_fs_test
+    cids_index
+    )
+
 addtest(genesis_test
     genesis_test.cpp
     )

@@ -120,8 +120,8 @@ TEST(ApiJsonTest, MinerInfoPendingWorkerKeyNotSet) {
   expectJson(miner_info,
              "{\"Owner\":\"t00\",\"Worker\":\"t00\",\"NewWorker\":\"<empty>\","
              "\"WorkerChangeEpoch\":-1,\"ControlAddresses\":[],\"PeerId\":null,"
-             "\"Multiaddrs\":[],\"SealProofType\":0,\"SectorSize\":1,"
-             "\"WindowPoStPartitionSectors\":1}");
+             "\"Multiaddrs\":[],\"WindowPoStProofType\":0,\"SectorSize\":1,"
+             "\"WindowPoStPartitionSectors\":1,\"ConsensusFaultElapsed\":0}");
 }
 
 /**
@@ -141,6 +141,6 @@ TEST(ApiJsonTest, MinerInfoPendingWorkerKeyPresent) {
   expectJson(miner_info,
              "{\"Owner\":\"t00\",\"Worker\":\"t00\",\"NewWorker\":\"t02\","
              "\"WorkerChangeEpoch\":2,\"ControlAddresses\":[],\"PeerId\":null,"
-             "\"Multiaddrs\":[],\"SealProofType\":0,\"SectorSize\":1,"
-             "\"WindowPoStPartitionSectors\":1}");
+             "\"Multiaddrs\":[],\"WindowPoStProofType\":0,\"SectorSize\":1,"
+             "\"WindowPoStPartitionSectors\":1,\"ConsensusFaultElapsed\":0}");
 }

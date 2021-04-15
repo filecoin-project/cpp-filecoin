@@ -20,8 +20,7 @@ namespace fc::common {
 
   Outcome<Buffer> readFile(const boost::filesystem::path &path);
 
-  outcome::result<void> writeFile(const boost::filesystem::path &path,
-                                  BytesIn input);
+  Outcome<void> writeFile(const boost::filesystem::path &path, BytesIn input);
 
   /** returns true on success */
   inline bool read(std::istream &is, gsl::span<uint8_t> bytes) {
@@ -32,5 +31,16 @@ namespace fc::common {
   template <typename T>
   inline bool read(std::istream &is, gsl::span<T> values) {
     return read(is, span::cast<uint8_t>(values));
+  }
+
+  /** returns true on success */
+  inline bool write(std::ostream &is, BytesIn bytes) {
+    return is.write((char *)bytes.data(), bytes.size()).good();
+  }
+
+  /** returns true on success */
+  template <typename T>
+  inline bool write(std::ostream &is, gsl::span<T> values) {
+    return write(is, span::cast<const uint8_t>(values));
   }
 }  // namespace fc::common

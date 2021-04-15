@@ -130,7 +130,7 @@ namespace fc::proofs {
     };
   }
 
-  inline UnpaddedPieceSize padPiece(const std::string &path) {
+  inline UnpaddedPieceSize padPiece(const boost::filesystem::path &path) {
     auto size{fs::file_size(path)};
     auto unpadded{primitives::piece::paddedSize(size)};
     if (size != unpadded) {

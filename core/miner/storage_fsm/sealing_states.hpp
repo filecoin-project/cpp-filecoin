@@ -14,13 +14,14 @@ namespace fc::mining {
    */
   enum class SealingState : uint64_t {
     kStateUnknown = 0,
-    kPackingFail,
     kSealPreCommit1Fail,
     kSealPreCommit2Fail,
     kPreCommitFail,
     kComputeProofFail,
     kCommitFail,
     kFinalizeFail,
+    kDealsExpired,
+    kRecoverDealIDs,
 
     // Internal
     kPacking,

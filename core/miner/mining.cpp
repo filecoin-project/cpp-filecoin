@@ -5,6 +5,7 @@
 
 #include "miner/mining.hpp"
 
+#include "common/logger.hpp"
 #include "common/math/math.hpp"
 #include "const.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"

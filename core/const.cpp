@@ -34,6 +34,7 @@ namespace fc {
   DEFINE(kUpgradeOrangeHeight){336458};
   DEFINE(kUpgradeClausHeight){343200};
   DEFINE(kUpgradeActorsV3Height){550321};
+  DEFINE(kUpgradeNorwegianHeight){665280};
 
   DEFINE(kBreezeGasTampingDuration){120};
 
@@ -93,6 +94,61 @@ namespace fc {
     kUpgradeOrangeHeight = 27;
     kUpgradeClausHeight = 30;
     kUpgradeActorsV3Height = 35;
+    kUpgradeNorwegianHeight = 40;
+
+    kBreezeGasTampingDuration = 0;
+
+    // Update actor constants
+    vm::actor::builtin::types::market::kDealUpdatesInterval =
+        static_cast<EpochDuration>(kEpochsInDay);
+
+    vm::actor::builtin::types::miner::kWPoStProvingPeriod = kEpochsInDay;
+    vm::actor::builtin::types::miner::kWPoStChallengeWindow =
+        30 * 60 / kEpochDurationSeconds;
+    vm::actor::builtin::types::miner::kFaultMaxAge =
+        vm::actor::builtin::types::miner::kWPoStProvingPeriod * 14;
+    vm::actor::builtin::types::miner::kMinSectorExpiration = 180 * kEpochsInDay;
+    vm::actor::builtin::types::miner::kMaxSectorExpirationExtension =
+        540 * kEpochsInDay;
+    vm::actor::builtin::types::miner::kMaxProveCommitDuration =
+        kEpochsInDay + kPreCommitChallengeDelay;
+    std::set<RegisteredSealProof> supportedProofs;
+    supportedProofs.insert(RegisteredSealProof::kStackedDrg2KiBV1);
+    vm::actor::builtin::types::miner::kSupportedProofs =
+        std::move(supportedProofs);
+
+    vm::actor::builtin::types::payment_channel::kSettleDelay =
+        kEpochsInHour * 12;
+
+    vm::actor::builtin::types::storage_power::kConsensusMinerMinPower = 2048;
+
+    fc::vm::actor::builtin::types::verified_registry::kMinVerifiedDealSize =
+        256;
+  }
+
+  void setParamsNoUpgrades() {
+    kEpochDurationSeconds = 4;
+    kEpochsInHour = kSecondsInHour / kEpochDurationSeconds;
+    kEpochsInDay = 24 * kEpochsInHour;
+    kEpochsInYear = 365 * kEpochsInDay;
+
+    kPropagationDelaySecs = 1;
+
+    // Network versions
+    kUpgradeBreezeHeight = 100000000;
+    kUpgradeSmokeHeight = 100000000;
+    kUpgradeIgnitionHeight = 100000000;
+    kUpgradeRefuelHeight = 100000000;
+    kUpgradeTapeHeight = 100000000;
+    kUpgradeActorsV2Height = 100000000;
+    kUpgradeLiftoffHeight = 100000000;
+    kUpgradeKumquatHeight = 100000000;
+    kUpgradeCalicoHeight = 100000000;
+    kUpgradePersianHeight = 100000000;
+    kUpgradeOrangeHeight = 100000000;
+    kUpgradeClausHeight = 100000000;
+    kUpgradeActorsV3Height = 100000000;
+    kUpgradeNorwegianHeight = 100000000;
 
     kBreezeGasTampingDuration = 0;
 

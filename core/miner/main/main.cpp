@@ -22,6 +22,7 @@
 #include "common/io_thread.hpp"
 #include "common/outcome.hpp"
 #include "common/peer_key.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "config/profile_config.hpp"
 #include "data_transfer/dt.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
@@ -393,7 +394,6 @@ namespace fc {
     auto filestore{std::make_shared<storage::filestore::FileSystemFileStore>()};
     auto storage_provider{
         std::make_shared<markets::storage::provider::StorageProviderImpl>(
-            minfo.seal_proof_type,
             host,
             markets_ipld,
             datatransfer,
@@ -531,6 +531,8 @@ namespace fc {
 }  // namespace fc
 
 int main(int argc, char **argv) {
+  fc::libp2pSoralog();
+
   OUTCOME_EXCEPT(config, fc::readConfig(argc, argv));
   if (const auto res{fc::main(config)}; !res) {
     spdlog::error("main: {:#}", res.error());

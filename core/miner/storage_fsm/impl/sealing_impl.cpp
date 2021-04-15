@@ -6,11 +6,14 @@
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
 
 #include <libp2p/protocol/common/scheduler.hpp>
+#include <unordered_set>
 #include <utility>
 #include "common/bitsutil.hpp"
 #include "const.hpp"
 #include "miner/storage_fsm/impl/checks.hpp"
+#include "miner/storage_fsm/impl/deal_info_manager_impl.hpp"
 #include "miner/storage_fsm/impl/sector_stat_impl.hpp"
+#include "sector_storage/zerocomm/zerocomm.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
@@ -582,9 +585,6 @@ namespace fc::mining {
                   info->invalid_proofs = 0;
                   info->precommit2_fails = 0;
                 }),
-        SealingTransition(SealingEvent::kSectorPackingFailed)
-            .fromMany(SealingState::kPreCommit1, SealingState::kPreCommit2)
-            .to(SealingState::kPackingFail),
         SealingTransition(SealingEvent::kSectorPreCommit2)
             .from(SealingState::kPreCommit2)
             .to(SealingState::kPreCommitting)
@@ -639,6 +639,12 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kSectorFinalizeFailed)
             .from(SealingState::kFinalizeSector)
             .to(SealingState::kFinalizeFail),
+        SealingTransition(SealingEvent::kSectorDealsExpired)
+            .fromMany(SealingState::kPreCommit1,
+                      SealingState::kPreCommitting,
+                      SealingState::kPreCommitFail,
+                      SealingState::kCommitFail)
+            .to(SealingState::kDealsExpired),
 
         SealingTransition(SealingEvent::kSectorRetrySealPreCommit1)
             .fromMany(SealingState::kSealPreCommit1Fail,
@@ -677,6 +683,13 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kSectorRetryFinalize)
             .from(SealingState::kFinalizeFail)
             .to(SealingState::kFinalizeSector),
+        SealingTransition(SealingEvent::kSectorInvalidDealIDs)
+            .fromMany(SealingState::kPreCommit1,
+                      SealingState::kPreCommitting,
+                      SealingState::kPreCommitFail,
+                      SealingState::kCommitFail)
+            .to(SealingState::kRecoverDealIDs)
+            .action(CALLBACK_ACTION),
 
         SealingTransition(SealingEvent::kSectorFaultReported)
             .fromMany(SealingState::kProving, SealingState::kFaulty)
@@ -686,7 +699,9 @@ namespace fc::mining {
             .from(SealingState::kProving)
             .to(SealingState::kFaulty),
         SealingTransition(SealingEvent::kSectorRemove)
-            .from(SealingState::kProving)
+            .fromMany(SealingState::kProving,
+                      SealingState::kDealsExpired,
+                      SealingState::kRecoverDealIDs)
             .to(SealingState::kRemoving),
         SealingTransition(SealingEvent::kSectorRemoved)
             .from(SealingState::kRemoving)
@@ -696,6 +711,9 @@ namespace fc::mining {
             .to(SealingState::kRemoveFail),
         SealingTransition(SealingEvent::kSectorForce)
             .fromAny()
+            .to(SealingState::kForce),
+        SealingTransition(SealingEvent::kUpdateDealIds)
+            .from(SealingState::kRecoverDealIDs)
             .to(SealingState::kForce),
     };
   }
@@ -747,6 +765,10 @@ namespace fc::mining {
           return handleCommitFail(info);
         case SealingState::kFinalizeFail:
           return handleFinalizeFail(info);
+        case SealingState::kDealsExpired:
+          return handleDealsExpired(info);
+        case SealingState::kRecoverDealIDs:
+          return handleRecoverDeal(info);
 
         case SealingState::kProving:
           return handleProvingSector(info);
@@ -870,16 +892,19 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handlePreCommit1(
       const std::shared_ptr<SectorInfo> &info) {
     logger_->info("PreCommit 1 sector {}", info->sector_number);
-    auto maybe_error = checks::checkPieces(info, api_);
+    auto maybe_error = checks::checkPieces(miner_address_, info, api_);
     if (maybe_error.has_error()) {
       if (maybe_error == outcome::failure(ChecksError::kInvalidDeal)) {
         logger_->error("invalid dealIDs in sector {}", info->sector_number);
-        FSM_SEND(info, SealingEvent::kSectorPackingFailed);
+        std::shared_ptr<SectorInvalidDealIDContext> context =
+            std::make_shared<SectorInvalidDealIDContext>();
+        context->return_state = SealingState::kPreCommit1;
+        FSM_SEND_CONTEXT(info, SealingEvent::kSectorInvalidDealIDs, context);
         return outcome::success();
       }
       if (maybe_error == outcome::failure(ChecksError::kExpiredDeal)) {
         logger_->error("expired dealIDs in sector {}", info->sector_number);
-        FSM_SEND(info, SealingEvent::kSectorPackingFailed);
+        FSM_SEND(info, SealingEvent::kSectorDealsExpired);
         return outcome::success();
       }
       return maybe_error.error();
@@ -962,6 +987,19 @@ namespace fc::mining {
       if (maybe_error == outcome::failure(ChecksError::kBadTicketEpoch)) {
         logger_->error("bad ticket epoch (sector {})", info->sector_number);
         FSM_SEND(info, SealingEvent::kSectorSealPreCommit1Failed);
+        return outcome::success();
+      }
+      if (maybe_error == outcome::failure(ChecksError::kInvalidDeal)) {
+        logger_->warn("invalid dealIDs in sector {}", info->sector_number);
+        std::shared_ptr<SectorInvalidDealIDContext> context =
+            std::make_shared<SectorInvalidDealIDContext>();
+        context->return_state = SealingState::kPreCommitting;
+        FSM_SEND_CONTEXT(info, SealingEvent::kSectorInvalidDealIDs, context);
+        return outcome::success();
+      }
+      if (maybe_error == outcome::failure(ChecksError::kExpiredDeal)) {
+        logger_->error("expired dealIDs in sector {}", info->sector_number);
+        FSM_SEND(info, SealingEvent::kSectorDealsExpired);
         return outcome::success();
       }
       if (maybe_error == outcome::failure(ChecksError::kPrecommitOnChain)) {
@@ -1436,7 +1474,19 @@ namespace fc::mining {
         FSM_SEND(info, SealingEvent::kSectorRetryPreCommit);
         return outcome::success();
       }
-
+      if (maybe_error == outcome::failure(ChecksError::kInvalidDeal)) {
+        logger_->warn("invalid dealIDs in sector {}", info->sector_number);
+        std::shared_ptr<SectorInvalidDealIDContext> context =
+            std::make_shared<SectorInvalidDealIDContext>();
+        context->return_state = SealingState::kPreCommitFail;
+        FSM_SEND_CONTEXT(info, SealingEvent::kSectorInvalidDealIDs, context);
+        return outcome::success();
+      }
+      if (maybe_error == outcome::failure(ChecksError::kExpiredDeal)) {
+        logger_->error("expired dealIDs in sector {}", info->sector_number);
+        FSM_SEND(info, SealingEvent::kSectorDealsExpired);
+        return outcome::success();
+      }
       if (maybe_error == outcome::failure(ChecksError::kSectorAllocated)) {
         logger_->error(
             "handlePreCommitFailed: sector number already allocated, not "
@@ -1553,7 +1603,19 @@ namespace fc::mining {
         FSM_SEND(info, SealingEvent::kSectorSealPreCommit1Failed);
         return outcome::success();
       }
-
+      if (maybe_error == outcome::failure(ChecksError::kInvalidDeal)) {
+        logger_->warn("invalid dealIDs in sector {}", info->sector_number);
+        std::shared_ptr<SectorInvalidDealIDContext> context =
+            std::make_shared<SectorInvalidDealIDContext>();
+        context->return_state = SealingState::kCommitFail;
+        FSM_SEND_CONTEXT(info, SealingEvent::kSectorInvalidDealIDs, context);
+        return outcome::success();
+      }
+      if (maybe_error == outcome::failure(ChecksError::kExpiredDeal)) {
+        logger_->error("expired dealIDs in sector {}", info->sector_number);
+        FSM_SEND(info, SealingEvent::kSectorDealsExpired);
+        return outcome::success();
+      }
       if (maybe_error == outcome::failure(ChecksError::kPrecommitNotFound)) {
         logger_->error("no precommit: {}", maybe_error.error().message());
         FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
@@ -1640,6 +1702,172 @@ namespace fc::mining {
       OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorRetryFinalize, {}));
     });
 
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleDealsExpired(
+      const std::shared_ptr<SectorInfo> &info) {
+    if (not info->precommit_info.has_value()) {
+      // TODO(ortyomka): [FIL-382] remove expire pieces and start PC1 again
+      logger_->warn("not recoverable yet");
+    }
+
+    FSM_SEND(info, SealingEvent::kSectorRemove);
+
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleRecoverDeal(
+      const std::shared_ptr<SectorInfo> &info) {
+    OUTCOME_TRY(head, api_->ChainHead());
+
+    uint64_t padding_piece = 0;
+    std::vector<uint64_t> to_fix;
+
+    for (size_t i = 0; i < info->pieces.size(); i++) {
+      auto &piece{info->pieces[i]};
+      if (not piece.deal_info.has_value()) {
+        OUTCOME_TRY(expect_cid,
+                    sector_storage::zerocomm::getZeroPieceCommitment(
+                        piece.piece.size.unpadded()));
+        if (piece.piece.cid != expect_cid) {
+          OUTCOME_TRY(cid_str, piece.piece.cid.toString());
+          logger_->error("sector {} piece {} had non-zero PieceCID {}",
+                         info->sector_number,
+                         i,
+                         cid_str);
+          return ERROR_TEXT("Invalid CID of non-zero piece");
+        }
+        padding_piece++;
+        continue;
+      }
+
+      auto maybe_proposal =
+          api_->StateMarketStorageDeal(piece.deal_info->deal_id, head->key);
+      if (maybe_proposal.has_error()) {
+        logger_->warn("getting deal {} for piece {}: {}",
+                      piece.deal_info->deal_id,
+                      i,
+                      maybe_proposal.error().message());
+        to_fix.push_back(i);
+        continue;
+      }
+      auto &proposal{maybe_proposal.value().proposal};
+
+      if (proposal.provider != miner_address_) {
+        logger_->warn(
+            "piece {} (of {}) of sector {} refers deal {} with wrong provider: "
+            "{} != {}",
+            i,
+            info->pieces.size(),
+            info->sector_number,
+            piece.deal_info->deal_id,
+            encodeToString(miner_address_),
+            encodeToString(proposal.provider));
+        to_fix.push_back(i);
+        continue;
+      }
+
+      if (proposal.piece_cid != piece.piece.cid) {
+        OUTCOME_TRY(expected_cid, proposal.piece_cid.toString());
+        OUTCOME_TRY(actual_cid, piece.piece.cid.toString());
+        logger_->warn(
+            "piece {} (of {}) of sector {} refers deal {} with wrong PieceCID: "
+            "{} != {}",
+            i,
+            info->pieces.size(),
+            info->sector_number,
+            piece.deal_info->deal_id,
+            actual_cid,
+            expected_cid);
+        to_fix.push_back(i);
+        continue;
+      }
+      if (proposal.piece_size != piece.piece.size) {
+        logger_->warn(
+            "piece {} (of {}) of sector {} refers deal {} with different size: "
+            "{} != {}",
+            i,
+            info->pieces.size(),
+            info->sector_number,
+            piece.deal_info->deal_id,
+
+            piece.piece.size,
+
+            proposal.piece_size);
+        to_fix.push_back(i);
+        continue;
+      }
+
+      if (head->height() >= uint64_t(proposal.start_epoch)) {
+        // TODO(ortyomka): [FIL-382] try to remove the offending pieces
+        logger_->error(
+            "can't fix sector deals: piece {} (of {}) of sector {} refers "
+            "expired deal {} - should start at {}, head {}",
+            i,
+            info->pieces.size(),
+            info->sector_number,
+            piece.deal_info->deal_id,
+            proposal.start_epoch,
+            head->height());
+        return ERROR_TEXT("Invalid Deal");
+      }
+    }
+
+    std::unordered_set<uint64_t> failed;
+    std::unordered_map<uint64_t, api::DealId> updates;
+    for (auto i : to_fix) {
+      auto &piece{info->pieces[i]};
+
+      if (not piece.deal_info->publish_cid.has_value()) {
+        // TODO(ortyomka): [FIL-382] try to remove the offending pieces
+        logger_->error(
+            "сan't fix sector deals: piece {} (of {}) of sector {} has nil "
+            "DealInfo.PublishCid (refers to deal {})",
+            i,
+            info->pieces.size(),
+            info->sector_number,
+            piece.deal_info->deal_id);
+
+        FSM_SEND(info, SealingEvent::kSectorRemove);
+        return outcome::success();
+      }
+
+      static std::shared_ptr<DealInfoManager> deal_info =
+          std::make_shared<DealInfoManagerImpl>(api_);
+      auto maybe_result =
+          deal_info->getCurrentDealInfo(head->key,
+                                        piece.deal_info->deal_proposal,
+                                        piece.deal_info->publish_cid.value());
+
+      if (maybe_result.has_error()) {
+        failed.insert(i);
+        logger_->error("getting current deal info for piece {}: {}",
+                       i,
+                       maybe_result.error().message());
+        continue;
+      }
+
+      updates[i] = maybe_result.value().deal_id;
+    }
+
+    if (not failed.empty()) {
+      if (failed.size() + padding_piece == info->pieces.size()) {
+        logger_->error("removing sector {}: all deals expired or unrecoverable",
+                       info->sector_number);
+        FSM_SEND(info, SealingEvent::kSectorRemove);
+        return outcome::success();
+      }
+
+      // TODO(ortyomka): [FIL-382] try to recover
+      return ERROR_TEXT("failed to recover some deals");
+    }
+
+    std::shared_ptr<SectorUpdateDealIds> context =
+        std::make_shared<SectorUpdateDealIds>();
+    context->updates = std::move(updates);
+
+    FSM_SEND_CONTEXT(info, SealingEvent::kUpdateDealIds, context);
     return outcome::success();
   }
 
