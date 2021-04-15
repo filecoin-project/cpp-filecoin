@@ -194,9 +194,11 @@ namespace fc::mining {
         DealProposal proposal;
         proposal.piece_cid = "010001020005"_cid;
         proposal.provider = another_provider;
-        PublishStorageDeals::Params params{.deals = {ClientDealProposal{
-                                               .proposal = proposal,
-                                           }}};
+        PublishStorageDeals::Params params{
+            .deals = {ClientDealProposal{
+                .proposal = proposal,
+                .client_signature = BlsSignature(),
+            }}};
         OUTCOME_TRYA(result.params, codec::cbor::encode(params));
         return result;
       }
@@ -284,9 +286,11 @@ namespace fc::mining {
         PublishStorageDeals::Params params{
             .deals = {ClientDealProposal{
                           .proposal = proposal,
+                          .client_signature = BlsSignature(),
                       },
                       ClientDealProposal{
                           .proposal = result_proposal,
+                          .client_signature = BlsSignature(),
                       }}};
         OUTCOME_TRYA(result.params, codec::cbor::encode(params));
         return result;
@@ -367,9 +371,11 @@ namespace fc::mining {
          &proposal](const CID &cid) -> outcome::result<UnsignedMessage> {
       if (cid == publish_cid) {
         UnsignedMessage result;
-        PublishStorageDeals::Params params{.deals = {ClientDealProposal{
-                                               .proposal = proposal,
-                                           }}};
+        PublishStorageDeals::Params params{
+            .deals = {ClientDealProposal{
+                .proposal = proposal,
+                .client_signature = BlsSignature(),
+            }}};
         OUTCOME_TRYA(result.params, codec::cbor::encode(params));
         return result;
       }
