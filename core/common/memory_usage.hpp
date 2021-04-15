@@ -9,7 +9,7 @@
 
 namespace fc {
   inline std::pair<size_t, size_t> memoryUsage();
-}
+}  // namespace fc
 
 #if __APPLE__
 
