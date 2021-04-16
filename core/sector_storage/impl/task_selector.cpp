@@ -9,7 +9,7 @@ libp2p::outcome::result<bool> fc::sector_storage::TaskSelector::is_satisfying(
     const fc::primitives::TaskType &task,
     RegisteredSealProof seal_proof_type,
     const std::shared_ptr<WorkerHandle> &worker) {
-  OUTCOME_TRY(tasks, worker->worker->getSupportedTask()); //LCOV_EXCL_BR_LINE
+  OUTCOME_TRY(tasks, worker->worker->getSupportedTask()); // LCOV_EXCL_BR_LINE
   return tasks.find(task) != tasks.end();
 }
 
@@ -17,8 +17,10 @@ libp2p::outcome::result<bool> fc::sector_storage::TaskSelector::is_preferred(
     const fc::primitives::TaskType &task,
     const std::shared_ptr<WorkerHandle> &challenger,
     const std::shared_ptr<WorkerHandle> &current_best) {
-  OUTCOME_TRY(challenger_tasks, challenger->worker->getSupportedTask()); //LCOV_EXCL_BR_LINE
-  OUTCOME_TRY(current_best_tasks, current_best->worker->getSupportedTask()); //LCOV_EXCL_BR_LINE
+  // LCOV_EXCL_START
+  OUTCOME_TRY(challenger_tasks, challenger->worker->getSupportedTask());
+  OUTCOME_TRY(current_best_tasks, current_best->worker->getSupportedTask());
+  // LCOV_EXCL_STOP
 
   if (challenger_tasks.size() != current_best_tasks.size()) {
     return challenger_tasks.size() < current_best_tasks.size();
