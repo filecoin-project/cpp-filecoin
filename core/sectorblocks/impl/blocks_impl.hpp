@@ -12,6 +12,11 @@ namespace fc::sectorblocks {
   using primitives::SectorNumber;
   using primitives::piece::PaddedPieceSize;
 
+  outcome::result<void> test1(std::shared_ptr<SectorBlocks> block);
+  outcome::result<void> test2(std::shared_ptr<SectorBlocks> block);
+  outcome::result<bool> test3(std::shared_ptr<SectorBlocks> block);
+  outcome::result<bool> test4(std::shared_ptr<SectorBlocks> block);
+
   class SectorBlocksImpl : public SectorBlocks {
    public:
     SectorBlocksImpl(std::shared_ptr<Miner> miner);

@@ -6,6 +6,34 @@
 #include "sectorblocks/impl/blocks_impl.hpp"
 
 namespace fc::sectorblocks {
+  outcome::result<void> test1(std::shared_ptr<SectorBlocks> block) {
+    OUTCOME_TRY(block->getRefs(1));
+
+    return outcome::success();
+  }
+
+  outcome::result<void> test2(std::shared_ptr<SectorBlocks> block) {
+    // LCOV_EXCL_START
+    OUTCOME_TRY(block->getRefs(1));
+    // LCOV_EXCL_END
+
+    return outcome::success();
+  }
+
+  outcome::result<bool> test3(std::shared_ptr<SectorBlocks> block) {
+    // LCOV_EXCL_START
+    OUTCOME_TRY(block->getRefs(1));
+    // LCOV_EXCL_END
+
+    return true;
+  }
+
+  outcome::result<bool> test4(std::shared_ptr<SectorBlocks> block) {
+    OUTCOME_TRY(block->getRefs(1));
+
+    return true;
+  }
+
   SectorBlocksImpl::SectorBlocksImpl(std::shared_ptr<Miner> miner)
       : miner_{miner} {}
 

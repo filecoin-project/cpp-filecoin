@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include "testutil/mocks/miner/miner_mock.hpp"
+#include "testutil/mocks/sectorblocks/blocks_mock.hpp"
 #include "testutil/outcome.hpp"
 
 namespace fc::sectorblocks {
@@ -27,6 +28,52 @@ namespace fc::sectorblocks {
     std::shared_ptr<MinerMock> miner_;
     std::shared_ptr<SectorBlocks> sector_blocks_;
   };
+
+  TEST(Experiment, OneS) {
+    std::shared_ptr<SectorBlocksMock> bloks =
+        std::make_shared<SectorBlocksMock>();
+
+    EXPECT_CALL(*bloks, getRefs(1))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(test1(bloks));
+  }
+  TEST(Experiment, OneF) {
+    std::shared_ptr<SectorBlocksMock> bloks =
+        std::make_shared<SectorBlocksMock>();
+
+    EXPECT_CALL(*bloks, getRefs(1))
+        .WillOnce(testing::Return(outcome::failure(ERROR_TEXT("ERROR"))));
+
+    ASSERT_TRUE(test1(bloks).has_error());
+  }
+  TEST(Experiment, Two) {
+    std::shared_ptr<SectorBlocksMock> bloks =
+        std::make_shared<SectorBlocksMock>();
+
+    EXPECT_CALL(*bloks, getRefs(1))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(test2(bloks));
+  }
+  TEST(Experiment, Three) {
+    std::shared_ptr<SectorBlocksMock> bloks =
+        std::make_shared<SectorBlocksMock>();
+
+    EXPECT_CALL(*bloks, getRefs(1))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(test3(bloks));
+  }
+  TEST(Experiment, Four) {
+    std::shared_ptr<SectorBlocksMock> bloks =
+        std::make_shared<SectorBlocksMock>();
+
+    EXPECT_CALL(*bloks, getRefs(1))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(test4(bloks));
+  }
 
   /**
    * @given sectorblocks
