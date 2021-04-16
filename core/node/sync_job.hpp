@@ -40,6 +40,8 @@ namespace fc::sync {
     /// Listens to PossibleHead and PeerConnected events
     void start(std::shared_ptr<events::Events> events);
 
+    uint64_t metricAttachedHeight() const;
+
    private:
     void onPossibleHead(const events::PossibleHead &e);
 
@@ -94,6 +96,9 @@ namespace fc::sync {
     events::Connection possible_head_event_;
 
     std::shared_ptr<BlocksyncRequest> request_;
+
+    using Clock = std::chrono::steady_clock;
+    Clock::time_point request_expiry_;
   };
 
 }  // namespace fc::sync
