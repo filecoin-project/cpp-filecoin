@@ -227,6 +227,7 @@ function(SETUP_TARGET_FOR_COVERAGE_GCOVR_XML)
     # Running gcovr
     COMMAND ${GCOVR_PATH} --xml
     --gcov-ignore-parse-errors
+    --exclude-throw-branches
     -r ${PROJECT_SOURCE_DIR} ${GCOVR_EXCLUDES}
     --object-directory=${PROJECT_BINARY_DIR}
     -o ${Coverage_NAME}.xml

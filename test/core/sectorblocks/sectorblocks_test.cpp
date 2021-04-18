@@ -74,28 +74,27 @@ namespace fc::sectorblocks {
 
     EXPECT_OUTCOME_TRUE_1(test4(bloks));
   }
-    TEST(Experiment, Five) {
-        std::shared_ptr<SectorBlocksMock> bloks =
-                std::make_shared<SectorBlocksMock>();
+  TEST(Experiment, Five) {
+    std::shared_ptr<SectorBlocksMock> bloks =
+        std::make_shared<SectorBlocksMock>();
 
-        EXPECT_CALL(*bloks, getRefs(1))
-                .WillOnce(testing::Return(outcome::success()));
+    EXPECT_CALL(*bloks, getRefs(1))
+        .WillOnce(testing::Return(outcome::success()));
 
-        EXPECT_OUTCOME_TRUE_1(test5(bloks));
-    }
-    TEST(Experiment, Six) {
-        std::shared_ptr<SectorBlocksMock> bloks =
-                std::make_shared<SectorBlocksMock>();
+    EXPECT_OUTCOME_TRUE_1(test5(bloks));
+  }
+  TEST(Experiment, Six) {
+    std::shared_ptr<SectorBlocksMock> bloks =
+        std::make_shared<SectorBlocksMock>();
 
-        EXPECT_CALL(*bloks, getRefs(1))
-                .WillOnce(testing::Return(outcome::success()));
+    EXPECT_CALL(*bloks, getRefs(1))
+        .WillOnce(testing::Return(outcome::success()));
 
-        EXPECT_OUTCOME_TRUE_1(test6(bloks));
-    }
-    TEST(Experiment, Seven) {
-
-        EXPECT_OUTCOME_TRUE_1(test7());
-    }
+    EXPECT_OUTCOME_TRUE_1(test6(bloks));
+  }
+  TEST(Experiment, Seven) {
+    EXPECT_OUTCOME_TRUE_1(test7());
+  }
 
   /**
    * @given sectorblocks

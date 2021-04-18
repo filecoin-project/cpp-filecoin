@@ -29,7 +29,7 @@ namespace fc::sectorblocks {
   outcome::result<bool> test3(std::shared_ptr<SectorBlocks> block) {
     OUTCOME_TRY(block->getRefs(1)); // LCOV_EXCL_BR_LINE
 
-    return true;
+    return true == false;
   }
 
   outcome::result<bool> test4(std::shared_ptr<SectorBlocks> block) {
@@ -45,9 +45,9 @@ namespace fc::sectorblocks {
   }
 
   outcome::result<bool> test6(std::shared_ptr<SectorBlocks> block) {
-    // LCOV_EXCL_START
+    // LCOV_EXCL_BR_START
     OUTCOME_TRY(block->getRefs(1));
-    // LCOV_EXCL_END
+    // LCOV_EXCL_BR_END
 
     return some(true);
   }
