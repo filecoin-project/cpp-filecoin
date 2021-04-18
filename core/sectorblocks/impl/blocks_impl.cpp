@@ -21,13 +21,13 @@ namespace fc::sectorblocks {
   }
 
   outcome::result<void> test2(std::shared_ptr<SectorBlocks> block) {
-    OUTCOME_TRY(block->getRefs(1)); // LCOV_EXCL_BR_LINE
+    OUTCOME_TRY(block->getRefs(1));  // LCOV_EXCL_BR_LINE
 
     return outcome::success();
   }
 
   outcome::result<bool> test3(std::shared_ptr<SectorBlocks> block) {
-    OUTCOME_TRY(block->getRefs(1)); // LCOV_EXCL_BR_LINE
+    OUTCOME_TRY(block->getRefs(1));  // LCOV_EXCL_BR_LINE
 
     return true == false;
   }
@@ -39,7 +39,7 @@ namespace fc::sectorblocks {
   }
 
   outcome::result<bool> test5(std::shared_ptr<SectorBlocks> block) {
-    OUTCOME_TRY(block->getRefs(1)); // LCOV_EXCL_BR_LINE
+    OUTCOME_TRY(block->getRefs(1));  // LCOV_EXCL_BR_LINE
 
     return some(true);
   }
@@ -52,6 +52,10 @@ namespace fc::sectorblocks {
 
   outcome::result<bool> test7() {
     return some(true);
+  }
+
+  outcome::result<void> test8() {
+    return outcome::success();
   }
 
   SectorBlocksImpl::SectorBlocksImpl(std::shared_ptr<Miner> miner)

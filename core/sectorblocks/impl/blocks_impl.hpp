@@ -19,6 +19,7 @@ namespace fc::sectorblocks {
   outcome::result<bool> test5(std::shared_ptr<SectorBlocks> block);
   outcome::result<bool> test6(std::shared_ptr<SectorBlocks> block);
   outcome::result<bool> test7();
+  outcome::result<void> test8();
 
   class SectorBlocksImpl : public SectorBlocks {
    public:

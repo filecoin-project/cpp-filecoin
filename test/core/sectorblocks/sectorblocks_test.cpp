@@ -95,6 +95,9 @@ namespace fc::sectorblocks {
   TEST(Experiment, Seven) {
     EXPECT_OUTCOME_TRUE_1(test7());
   }
+  TEST(Experiment, Eight) {
+    EXPECT_OUTCOME_TRUE_1(test8());
+  }
 
   /**
    * @given sectorblocks
