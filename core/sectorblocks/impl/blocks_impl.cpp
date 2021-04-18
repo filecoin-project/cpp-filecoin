@@ -45,9 +45,7 @@ namespace fc::sectorblocks {
   }
 
   outcome::result<bool> test6(std::shared_ptr<SectorBlocks> block) {
-    // LCOV_EXCL_BR_START
     OUTCOME_TRY(block->getRefs(1));
-    // LCOV_EXCL_BR_END
 
     return some(true);
   }
