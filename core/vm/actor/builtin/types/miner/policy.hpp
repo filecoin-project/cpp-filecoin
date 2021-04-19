@@ -56,7 +56,7 @@ namespace fc::vm::actor::builtin::types::miner {
   constexpr size_t kNewSectorsPerPeriodMax{128 << 10};
   constexpr EpochDuration kChainFinality{900};
 
-  const CidPrefix kSealedCIDPrefix{
+  inline const CidPrefix kSealedCIDPrefix{
       .version = static_cast<uint64_t>(CID::Version::V1),
       .codec =
           static_cast<uint64_t>(CID::Multicodec::FILECOIN_COMMITMENT_SEALED),

@@ -32,7 +32,7 @@ namespace fc::vm::actor::builtin::types::market {
     kProviderCollateral
   };
 
-  const CidPrefix kPieceCIDPrefix{
+  inline const CidPrefix kPieceCIDPrefix{
       .version = static_cast<uint64_t>(CID::Version::V1),
       .codec =
           static_cast<uint64_t>(CID::Multicodec::FILECOIN_COMMITMENT_UNSEALED),

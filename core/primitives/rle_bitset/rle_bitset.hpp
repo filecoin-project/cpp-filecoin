@@ -51,7 +51,7 @@ namespace fc::primitives {
           ++shift;
           ++it;
         }
-        if ((it == to_cut.end()) || (*it > element)) {
+        if (it == to_cut.end() || *it > element) {
           result.insert(element - shift);
         }
       }
