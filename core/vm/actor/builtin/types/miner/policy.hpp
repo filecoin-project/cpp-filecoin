@@ -11,6 +11,7 @@
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
+#include "vm/actor/builtin/types/shared.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
@@ -25,12 +26,6 @@ namespace fc::vm::actor::builtin::types::miner {
   using primitives::TokenAmount;
   using primitives::cid::kCommitmentBytesLen;
   using primitives::sector::RegisteredSealProof;
-
-  // TODO remake shared.hpp
-  const uint64_t kSectorQualityPrecision{20};
-  const uint64_t kQualityBaseMultiplier{10};
-  const uint64_t kDealWeightMultiplier{10};
-  const uint64_t kVerifiedDealWeightMultiplier{100};
 
   /**
    * The period over which all a miner's active sectors will be challenged.
