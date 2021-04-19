@@ -48,14 +48,15 @@ namespace fc::vm::actor::builtin::types::miner {
   /** The number of non-overlapping PoSt deadlines in each proving period. */
   constexpr size_t kWPoStPeriodDeadlines{48};
 
-  constexpr size_t kSectorsMax{32 << 20};
-  constexpr uint64_t kAddressedPartitionsMax{200};
-  constexpr uint64_t kAddressedSectorsMax{10000};
+  // MaxPartitionsPerDeadline is the maximum number of partitions that will be
+  // assigned to a deadline.
+  // For a minimum storage of upto 1Eib, we need 300 partitions per deadline.
+  // 48 * 32GiB * 2349 * 300 = 1.00808144 EiB
+  // So, to support upto 10Eib storage, we set this to 3000.
+  constexpr uint64_t kMaxPartitionsPerDeadline{3000};
 
-  inline uint64_t loadPartitionsSectorsMax(uint64_t partition_sector_count) {
-    return std::min(kAddressedSectorsMax / partition_sector_count,
-                    kAddressedPartitionsMax);
-  }
+  constexpr size_t kSectorsMax{32 << 20};
+  constexpr uint64_t kAddressedSectorsMax{10000};
 
   constexpr size_t kNewSectorsPerPeriodMax{128 << 10};
   constexpr EpochDuration kChainFinality{900};
@@ -117,7 +118,18 @@ namespace fc::vm::actor::builtin::types::miner {
    */
   extern std::set<RegisteredSealProof> kSupportedProofs;
 
+  // Ratio of sector size to maximum number of deals per sector.
+  // The maximum number of deals is the sector size divided by this number
+  // (2^27) which limits 32GiB sectors to 256 deals and 64GiB sectors to 512
   constexpr uint64_t kDealLimitDenominator{134217728};
+
+  // Number of epochs after a consensus fault for which a miner is ineligible
+  // for permissioned actor methods and winning block elections.
+  constexpr auto kConsensusFaultIneligibilityDuration{kChainFinality};
+
+  // WPoStDisputeWindow is the period after a challenge window ends during which
+  // PoSts submitted during that period may be disputed.
+  constexpr auto kWPoStDisputeWindow{2 * kChainFinality};
 
   inline SectorQuality qualityForWeight(SectorSize size,
                                         ChainEpoch duration,
@@ -158,7 +170,7 @@ namespace fc::vm::actor::builtin::types::miner {
         size, duration, sector.deal_weight, sector.verified_deal_weight);
   }
 
-  inline uint64_t dealPerSectorLimit(SectorSize size) {
+  inline uint64_t sectorDealsMax(SectorSize size) {
     return std::max(static_cast<uint64_t>(256), size / kDealLimitDenominator);
   }
 
@@ -223,7 +235,6 @@ namespace fc::vm::actor::builtin::types::miner {
       RegisteredSealProof::kStackedDrg64GiBV1_1,
   };
 
-  /// Libp2p peer info limits.
   /**
    * MaxPeerIDLength is the maximum length allowed for any on-chain peer ID.
    * Most Peer IDs are expected to be less than 50 bytes.
@@ -235,6 +246,16 @@ namespace fc::vm::actor::builtin::types::miner {
    * multiaddrs.
    */
   constexpr size_t kMaxMultiaddressData = 1024;
+
+  // Maximum size of a single prove-commit proof, in bytes.
+  // The 1024 maximum at network version 4 was an error (the expected size is
+  // 1920).
+  constexpr size_t kMaxProveCommitSizeV4{1024};
+  constexpr size_t kMaxProveCommitSizeV5{10240};
+
+  // Maximum size of a single prove-commit proof, in bytes (the expected size is
+  // 192).
+  constexpr size_t kMaxPoStProofSize{1024};
 
   extern EpochDuration kMaxProveCommitDuration;
 
