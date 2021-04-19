@@ -106,6 +106,14 @@ namespace fc::sync {
     log()->debug("started");
   }
 
+  uint64_t SyncJob::metricAttachedHeight() const {
+    std::shared_lock lock{*ts_branches_mutex_};
+    if (auto branch{attached_heaviest_.first}) {
+      return branch->chain.rbegin()->first;
+    }
+    return 0;
+  }
+
   void SyncJob::onPossibleHead(const events::PossibleHead &e) {
     if (auto ts{getLocal(e.head)}) {
       thread.io->post([this, peer{e.source}, ts] { onTs(peer, ts); });
@@ -314,6 +322,13 @@ namespace fc::sync {
 
   void SyncJob::fetchDequeue() {
     std::lock_guard lock{requests_mutex_};
+    static size_t hung_blocksync{};
+    if (request_ && Clock::now() >= request_expiry_) {
+      ++hung_blocksync;
+      log()->warn("hung blocksync {}", hung_blocksync);
+      request_->cancel();
+      request_.reset();
+    }
     if (request_) {
       return;
     }
@@ -327,6 +342,7 @@ namespace fc::sync {
       return;
     }
     uint64_t probable_depth = 5;
+    request_expiry_ = Clock::now() + std::chrono::seconds{20};
     request_ = BlocksyncRequest::newRequest(
         *host_,
         *scheduler_,
@@ -335,7 +351,7 @@ namespace fc::sync {
         tsk.cids(),
         probable_depth,
         blocksync::kBlocksAndMessages,
-        60000,
+        15000,
         [this](auto r) { downloaderCallback(std::move(r)); });
   }
 
