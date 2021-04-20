@@ -108,3 +108,16 @@ namespace fc::vm::actor::builtin::types::miner {
   CBOR_TUPLE(Deadlines, due)
 
 }  // namespace fc::vm::actor::builtin::types::miner
+
+namespace fc {
+  template <>
+  struct Ipld::Visit<vm::actor::builtin::types::miner::Deadline> {
+    template <typename Visitor>
+    static void call(vm::actor::builtin::types::miner::Deadline &p,
+                     const Visitor &visit) {
+      visit(p.partitions);
+      visit(p.expirations_epochs);
+      visit(p.optimistic_post_submissions);
+    }
+  };
+}  // namespace fc

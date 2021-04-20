@@ -16,6 +16,7 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::address::Address;
   using runtime::Runtime;
   using states::MarketActorStatePtr;
+  using types::Controls;
   using types::market::ClientDealProposal;
   using types::market::DealProposal;
 
@@ -71,6 +72,9 @@ namespace fc::vm::actor::builtin::v0::market {
 
     outcome::result<void> callVerifRegRestoreBytes(
         const DealProposal &deal) const override;
+
+    outcome::result<Controls> requestMinerControlAddress(
+        const Address &miner) const override;
   };
 
 }  // namespace fc::vm::actor::builtin::v0::market

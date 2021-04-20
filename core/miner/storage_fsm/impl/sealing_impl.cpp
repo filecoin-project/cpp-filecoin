@@ -1913,7 +1913,7 @@ namespace fc::mining {
     OUTCOME_TRY(head, api_->ChainHead());
 
     ChainEpoch ticket_epoch =
-        head->height() - vm::actor::builtin::types::miner::kChainFinalityish;
+        head->height() - vm::actor::builtin::types::miner::kChainFinality;
 
     OUTCOME_TRY(address_encoded, codec::cbor::encode(miner_address_));
 

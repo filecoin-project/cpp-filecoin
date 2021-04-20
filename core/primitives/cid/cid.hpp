@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_CID_HPP
-#define CPP_FILECOIN_CORE_COMMON_CID_HPP
+#pragma once
 
 #include <spdlog/fmt/fmt.h>
 #include <libp2p/multi/content_identifier.hpp>
@@ -12,6 +11,7 @@
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
+#include "primitives/cid/cid_prefix.hpp"
 
 namespace fc {
   using common::Hash256;
@@ -56,7 +56,7 @@ namespace fc {
      * Get cid prefix
      * @return
      */
-    outcome::result<std::vector<uint8_t>> getPrefix() const;
+    CidPrefix getPrefix() const;
 
     /**
      * @brief string-encodes cid
@@ -109,5 +109,3 @@ namespace fc::common {
   outcome::result<CID> getCidOf(gsl::span<const uint8_t> bytes);
 
 }  // namespace fc::common
-
-#endif  // CPP_FILECOIN_CORE_COMMON_CID_HPP
