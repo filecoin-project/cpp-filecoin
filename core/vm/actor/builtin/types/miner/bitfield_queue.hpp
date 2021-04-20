@@ -31,3 +31,14 @@ namespace fc::vm::actor::builtin::types::miner {
       const adt::Array<RleBitset> &queue, const QuantSpec &quant);
 
 }  // namespace fc::vm::actor::builtin::types::miner
+
+namespace fc {
+  template <>
+  struct Ipld::Visit<vm::actor::builtin::types::miner::BitfieldQueue> {
+    template <typename Visitor>
+    static void call(vm::actor::builtin::types::miner::BitfieldQueue &p,
+                     const Visitor &visit) {
+      visit(p.queue);
+    }
+  };
+}  // namespace fc

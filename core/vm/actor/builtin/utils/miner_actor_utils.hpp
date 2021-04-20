@@ -31,10 +31,12 @@ namespace fc::vm::actor::builtin::utils {
     explicit MinerUtils(Runtime &r) : runtime(r) {}
     virtual ~MinerUtils() = default;
 
-    // This limits the number of simultaneous fault, recovery, or
-    // sector-extension declarations. We set this to same as
-    // MaxPartitionsPerDeadline so we can process that many partitions every
-    // deadline.
+    /**
+     * This limits the number of simultaneous fault, recovery, or
+     * sector-extension declarations. We set this to same as
+     * MaxPartitionsPerDeadline so we can process that many partitions every
+     * deadline.
+     */
     virtual uint64_t getAddressedPartitionsMax() const = 0;
 
     inline uint64_t loadPartitionsSectorsMax(

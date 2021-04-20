@@ -9,5 +9,6 @@ addtest(miner_types_test
     termination_test.cpp
     )
 target_link_libraries(miner_types_test
+    ipfs_datastore_in_memory
     miner_types
     )

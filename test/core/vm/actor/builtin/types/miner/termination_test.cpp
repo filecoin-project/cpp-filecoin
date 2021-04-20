@@ -9,6 +9,9 @@
 
 namespace fc::vm::actor::builtin::types::miner {
 
+  /**
+   * Check methods of TerminationResult
+   */
   TEST(TerminationResultTest, Test) {
     TerminationResult result;
     EXPECT_EQ(result.isEmpty(), true);

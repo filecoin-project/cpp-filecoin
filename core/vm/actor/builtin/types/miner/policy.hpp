@@ -27,27 +27,21 @@ namespace fc::vm::actor::builtin::types::miner {
   using primitives::cid::kCommitmentBytesLen;
   using primitives::sector::RegisteredSealProof;
 
-  /**
-   * The period over which all a miner's active sectors will be challenged.
-   * 24 hours
-   */
+  // The period over which all a miner's active sectors will be challenged.
+  // 24 hours
   extern ChainEpoch kWPoStProvingPeriod;
 
-  /**
-   * The duration of a deadline's challenge window, the period before a deadline
-   * when the challenge is available.
-   * 30 minutes (48 per day)
-   */
+  // The duration of a deadline's challenge window, the period before a deadline
+  // when the challenge is available. 30 minutes (48 per day)
   extern EpochDuration kWPoStChallengeWindow;
 
-  /** The number of non-overlapping PoSt deadlines in each proving period. */
+  // The number of non-overlapping PoSt deadlines in each proving period.
   constexpr size_t kWPoStPeriodDeadlines{48};
 
   // MaxPartitionsPerDeadline is the maximum number of partitions that will be
-  // assigned to a deadline.
-  // For a minimum storage of upto 1Eib, we need 300 partitions per deadline.
-  // 48 * 32GiB * 2349 * 300 = 1.00808144 EiB
-  // So, to support upto 10Eib storage, we set this to 3000.
+  // assigned to a deadline. For a minimum storage of upto 1Eib, we need 300
+  // partitions per deadline. 48 * 32GiB * 2349 * 300 = 1.00808144 EiB So, to
+  // support upto 10Eib storage, we set this to 3000.
   constexpr uint64_t kMaxPartitionsPerDeadline{3000};
 
   constexpr size_t kSectorsMax{32 << 20};
@@ -63,54 +57,44 @@ namespace fc::vm::actor::builtin::types::miner {
       .mh_type = HashType::poseidon_bls12_381_a1_fc1,
       .mh_length = kCommitmentBytesLen};
 
-  /**
-   * Number of epochs between publishing the precommit and when the challenge
-   * for interactive PoRep is drawn used to ensure it is not predictable by
-   * miner
-   */
+  // Number of epochs between publishing the precommit and when the challenge
+  // for interactive PoRep is drawn used to ensure it is not predictable by
+  // miner
   constexpr EpochDuration kPreCommitChallengeDelay{150};
 
-  /** Lookback from the current epoch for state view for leader elections. */
+  // Lookback from the current epoch for state view for leader elections.
   constexpr EpochDuration kElectionLookback{1};
 
-  /**
-   * Lookback from the deadline's challenge window opening from which to sample
-   * chain randomness for the challenge seed. This lookback exists so that
-   * deadline windows can be non-overlapping (which make the programming
-   * simpler) but without making the miner wait for chain stability before being
-   * able to start on PoSt computation. The challenge is available this many
-   * epochs before the window is actually open to receiving a PoSt.
-   */
+  // Lookback from the deadline's challenge window opening from which to sample
+  // chain randomness for the challenge seed. This lookback exists so that
+  // deadline windows can be non-overlapping (which make the programming
+  // simpler) but without making the miner wait for chain stability before being
+  // able to start on PoSt computation. The challenge is available this many
+  // epochs before the window is actually open to receiving a PoSt.
   constexpr EpochDuration kWPoStChallengeLookback{20};
 
-  /**
-   * Minimum period before a deadline's challenge window opens that a fault must
-   * be declared for that deadline. This lookback must not be less than
-   * WPoStChallengeLookback lest a malicious miner be able to selectively
-   * declare faults after learning the challenge value.
-   */
+  // Minimum period before a deadline's challenge window opens that a fault must
+  // be declared for that deadline. This lookback must not be less than
+  // WPoStChallengeLookback lest a malicious miner be able to selectively
+  // declare faults after learning the challenge value.
   constexpr EpochDuration kFaultDeclarationCutoff{kWPoStChallengeLookback + 50};
 
-  /** The maximum age of a fault before the sector is terminated. */
+  // The maximum age of a fault before the sector is terminated.
   extern EpochDuration kFaultMaxAge;
 
   constexpr auto kWorkerKeyChangeDelay{kChainFinality};
 
-  /** Minimum number of epochs past the current epoch a sector may be set to
-   * expire. */
+  // Minimum number of epochs past the current epoch a sector may be set to
+  // expire.
   extern ChainEpoch kMinSectorExpiration;
 
-  /**
-   * Maximum number of epochs past the current epoch a sector may be set to
-   * expire. The actual maximum extension will be the minimum of CurrEpoch +
-   * MaximumSectorExpirationExtension and
-   * sector.ActivationEpoch+sealProof.SectorMaximumLifetime()
-   */
+  // Maximum number of epochs past the current epoch a sector may be set to
+  // expire. The actual maximum extension will be the minimum of CurrEpoch +
+  // MaximumSectorExpirationExtension and
+  // sector.ActivationEpoch+sealProof.SectorMaximumLifetime()
   extern ChainEpoch kMaxSectorExpirationExtension;
 
-  /**
-   * List of proof types which can be used when creating new miner actors
-   */
+  // List of proof types which can be used when creating new miner actors
   extern std::set<RegisteredSealProof> kSupportedProofs;
 
   // Ratio of sector size to maximum number of deals per sector.
@@ -202,13 +186,11 @@ namespace fc::vm::actor::builtin::types::miner {
                            init.second * pow(grow.second, age)));
   }
 
-  /** Maximum number of control addresses a miner may register. */
+  // Maximum number of control addresses a miner may register.
   constexpr size_t kMaxControlAddresses = 10;
 
-  /**
-   * List of proof types which may be used when creating a new miner actor or
-   * pre-committing a new sector.
-   */
+  // List of proof types which may be used when creating a new miner actor or
+  // pre-committing a new sector.
   static const std::set<RegisteredSealProof> kPreCommitSealProofTypesV0{
       RegisteredSealProof::kStackedDrg32GiBV1,
       RegisteredSealProof::kStackedDrg64GiBV1,
@@ -221,25 +203,19 @@ namespace fc::vm::actor::builtin::types::miner {
       RegisteredSealProof::kStackedDrg64GiBV1_1,
   };
 
-  /**
-   * From network version 8, sectors sealed with the V1 seal proof types cannot
-   * be committed
-   */
+  // From network version 8, sectors sealed with the V1 seal proof types cannot
+  // be committed
   static const std::set<RegisteredSealProof> kPreCommitSealProofTypesV8{
       RegisteredSealProof::kStackedDrg32GiBV1_1,
       RegisteredSealProof::kStackedDrg64GiBV1_1,
   };
 
-  /**
-   * MaxPeerIDLength is the maximum length allowed for any on-chain peer ID.
-   * Most Peer IDs are expected to be less than 50 bytes.
-   */
+  // MaxPeerIDLength is the maximum length allowed for any on-chain peer ID.
+  // Most Peer IDs are expected to be less than 50 bytes.
   constexpr size_t kMaxPeerIDLength = 128;
 
-  /**
-   * MaxMultiaddrData is the maximum amount of data that can be stored in
-   * multiaddrs.
-   */
+  // MaxMultiaddrData is the maximum amount of data that can be stored in
+  // multiaddrs.
   constexpr size_t kMaxMultiaddressData = 1024;
 
   // Maximum size of a single prove-commit proof, in bytes.

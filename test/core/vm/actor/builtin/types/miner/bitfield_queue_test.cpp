@@ -6,18 +6,31 @@
 #include "vm/actor/builtin/types/miner/bitfield_queue.hpp"
 
 #include <gtest/gtest.h>
+#include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/outcome.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
+  using storage::ipfs::InMemoryDatastore;
 
-  TEST(BitfieldQueueTest, AddValuesToEmptyQueue) {
-    const ChainEpoch epoch{42};
+  struct BitfieldQueueTest : testing::Test {
+    void SetUp() override {
+      ipld->load(expected);
+      ipld->load(queue);
+    }
+
+    std::shared_ptr<InMemoryDatastore> ipld{
+        std::make_shared<InMemoryDatastore>()};
 
     BitfieldQueue expected;
+    BitfieldQueue queue;
+  };
+
+  TEST_F(BitfieldQueueTest, AddValuesToEmptyQueue) {
+    const ChainEpoch epoch{42};
+
     EXPECT_OUTCOME_TRUE_1(expected.queue.set(epoch, {1, 2, 3, 4}));
     expected.quant = kNoQuantization;
 
-    BitfieldQueue queue;
     queue.quant = kNoQuantization;
 
     EXPECT_OUTCOME_TRUE_1(queue.addToQueue(epoch, {1, 2, 3, 4}));
@@ -28,16 +41,14 @@ namespace fc::vm::actor::builtin::types::miner {
     EXPECT_EQ(queue_values, expected_values);
   }
 
-  TEST(BitfieldQueueTest, AddValuesToQuantizedQueue) {
+  TEST_F(BitfieldQueueTest, AddValuesToQuantizedQueue) {
     const std::vector<ChainEpoch> values{0, 2, 3, 4, 7, 8, 9};
 
-    BitfieldQueue expected;
     EXPECT_OUTCOME_TRUE_1(expected.queue.set(3, {0, 2, 3}));
     EXPECT_OUTCOME_TRUE_1(expected.queue.set(8, {4, 7, 8}));
     EXPECT_OUTCOME_TRUE_1(expected.queue.set(13, {9}));
     expected.quant = kNoQuantization;
 
-    BitfieldQueue queue;
     queue.quant = QuantSpec(5, 3);
 
     for (auto value : values) {
@@ -51,14 +62,12 @@ namespace fc::vm::actor::builtin::types::miner {
     EXPECT_EQ(queue_values, expected_values);
   }
 
-  TEST(BitfieldQueueTest, MergeValuesWithSameEpoch) {
+  TEST_F(BitfieldQueueTest, MergeValuesWithSameEpoch) {
     const ChainEpoch epoch{42};
 
-    BitfieldQueue expected;
     EXPECT_OUTCOME_TRUE_1(expected.queue.set(epoch, {1, 2, 3, 4}));
     expected.quant = kNoQuantization;
 
-    BitfieldQueue queue;
     queue.quant = kNoQuantization;
 
     EXPECT_OUTCOME_TRUE_1(queue.addToQueue(epoch, {1, 2}));
@@ -70,8 +79,7 @@ namespace fc::vm::actor::builtin::types::miner {
     EXPECT_EQ(queue_values, expected_values);
   }
 
-  TEST(BitfieldQueueTest, AddValuesWithDifferentEpochs) {
-    BitfieldQueue queue;
+  TEST_F(BitfieldQueueTest, AddValuesWithDifferentEpochs) {
     queue.quant = kNoQuantization;
 
     const ChainEpoch epoch1{42};
@@ -87,8 +95,7 @@ namespace fc::vm::actor::builtin::types::miner {
     EXPECT_OUTCOME_EQ(queue.queue.get(epoch2), expected_values_epoch2);
   }
 
-  TEST(BitfieldQueueTest, PopUntilFromEmptyQueue) {
-    BitfieldQueue queue;
+  TEST_F(BitfieldQueueTest, PopUntilFromEmptyQueue) {
     queue.quant = kNoQuantization;
 
     EXPECT_OUTCOME_TRUE(result, queue.popUntil(42));
@@ -98,8 +105,7 @@ namespace fc::vm::actor::builtin::types::miner {
     EXPECT_EQ(next.empty(), true);
   }
 
-  TEST(BitfieldQueueTest, PopUntilBeforeFirstValue) {
-    BitfieldQueue queue;
+  TEST_F(BitfieldQueueTest, PopUntilBeforeFirstValue) {
     queue.quant = kNoQuantization;
 
     const ChainEpoch epoch1{42};
@@ -115,8 +121,7 @@ namespace fc::vm::actor::builtin::types::miner {
     EXPECT_EQ(next.empty(), true);
   }
 
-  TEST(BitfieldQueueTest, PopUntilSuccess) {
-    BitfieldQueue queue;
+  TEST_F(BitfieldQueueTest, PopUntilSuccess) {
     queue.quant = kNoQuantization;
 
     const ChainEpoch epoch1{42};
@@ -172,8 +177,7 @@ namespace fc::vm::actor::builtin::types::miner {
     EXPECT_EQ(values.empty(), true);
   }
 
-  TEST(BitfieldQueueTest, CutElements) {
-    BitfieldQueue queue;
+  TEST_F(BitfieldQueueTest, CutElements) {
     queue.quant = kNoQuantization;
 
     const ChainEpoch epoch1{42};

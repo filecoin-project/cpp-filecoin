@@ -17,6 +17,11 @@ namespace fc::vm::actor::builtin::types::miner {
     uint64_t partitions_processed{};
     uint64_t sectors_processed{};
 
+    /**
+     * Merge RleBitsets of sectors with one epoch and add new result's values to
+     * current result.
+     * @param new_result - new result to be added
+     */
     void add(const TerminationResult &new_result);
     bool belowLimit(uint64_t max_partitions, uint64_t max_sectors) const;
     bool isEmpty() const;
