@@ -300,9 +300,9 @@ namespace fc::vm::runtime {
 
   // TODO: reuse in slash filter
   inline bool isNearOrange(ChainEpoch epoch) {
-    using actor::builtin::types::miner::kChainFinalityish;
-    return epoch > kUpgradeOrangeHeight - kChainFinalityish
-           && epoch < kUpgradeOrangeHeight + kChainFinalityish;
+    using actor::builtin::types::miner::kChainFinality;
+    return epoch > kUpgradeOrangeHeight - kChainFinality
+           && epoch < kUpgradeOrangeHeight + kChainFinality;
   }
 
   outcome::result<boost::optional<ConsensusFault>>
@@ -354,8 +354,7 @@ namespace fc::vm::runtime {
         if (getNetworkVersion() >= NetworkVersion::kVersion7
             && static_cast<ChainEpoch>(block.height)
                    < getCurrentEpoch()
-                         - vm::actor::builtin::types::miner::
-                             kChainFinalityish) {
+                         - vm::actor::builtin::types::miner::kChainFinality) {
           return false;
         }
         auto &env{execution_->env};

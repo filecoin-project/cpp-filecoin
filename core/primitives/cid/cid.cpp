@@ -6,7 +6,6 @@
 #include "primitives/cid/cid.hpp"
 
 #include <libp2p/multi/content_identifier_codec.hpp>
-#include <libp2p/multi/uvarint.hpp>
 #include "codec/uvarint.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 
@@ -14,7 +13,6 @@ using libp2p::multi::HashType;
 using libp2p::multi::Multihash;
 
 namespace fc {
-  using libp2p::multi::UVarint;
 
   CID::CID() : ContentIdentifier({}, {}, Multihash::create({}, {}).value()) {}
 
@@ -52,19 +50,12 @@ namespace fc {
     return *this;
   }
 
-  outcome::result<std::vector<uint8_t>> CID::getPrefix() const {
-    std::vector<uint8_t> prefix;
-    auto version_encoded = UVarint(static_cast<uint64_t>(version)).toVector();
-    prefix.insert(prefix.end(), version_encoded.begin(), version_encoded.end());
-    auto code_encoded = UVarint(static_cast<uint64_t>(content_type)).toVector();
-    prefix.insert(prefix.end(), code_encoded.begin(), code_encoded.end());
-    auto type_encoded = UVarint(content_address.getType()).toVector();
-    prefix.insert(prefix.end(), type_encoded.begin(), type_encoded.end());
-    auto size_encoded =
-        UVarint(static_cast<uint64_t>(content_address.getHash().size()))
-            .toVector();
-    prefix.insert(prefix.end(), size_encoded.begin(), size_encoded.end());
-    return std::move(prefix);
+  CidPrefix CID::getPrefix() const {
+    return CidPrefix{
+        .version = static_cast<uint64_t>(version),
+        .codec = static_cast<uint64_t>(content_type),
+        .mh_type = content_address.getType(),
+        .mh_length = static_cast<int>(content_address.getHash().size())};
   }
 
   outcome::result<std::string> CID::toString() const {

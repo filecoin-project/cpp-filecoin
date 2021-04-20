@@ -17,5 +17,4 @@ target_link_libraries(storage_power_actor_v0
     hamt
     multimap
     uvarint_key
-    storage_power_types
     )

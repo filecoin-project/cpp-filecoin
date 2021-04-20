@@ -94,12 +94,13 @@ namespace fc::vm::actor::builtin::v0::market {
         Toolchain::createAddressMatcher(runtime.getActorVersion());
     OUTCOME_TRY(runtime.validateArgument(
         code_id.value() == address_matcher->getStorageMinerCodeId()));
-    OUTCOME_TRY(addresses, requestMinerControlAddress(runtime, provider));
+
+    const auto utils = Toolchain::createMarketUtils(runtime);
+
+    OUTCOME_TRY(addresses, utils->requestMinerControlAddress(provider));
     if (addresses.worker != runtime.getImmediateCaller()) {
       ABORT(VMExitCode::kErrForbidden);
     }
-
-    const auto utils = Toolchain::createMarketUtils(runtime);
 
     // request current baseline power
     OUTCOME_TRY(baseline_power, utils->getBaselinePowerFromRewardActor());

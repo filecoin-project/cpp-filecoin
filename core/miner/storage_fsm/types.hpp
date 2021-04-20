@@ -13,7 +13,7 @@
 #include "primitives/types.hpp"
 #include "sector_storage/manager.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/types/miner/sector_info.hpp"
 
 namespace fc::mining::types {
   using primitives::ChainEpoch;

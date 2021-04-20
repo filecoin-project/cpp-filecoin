@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_MINER_MINER_HPP
-#define CPP_FILECOIN_MINER_MINER_HPP
+#pragma once
 
 #include "miner/storage_fsm/types.hpp"
+#include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::miner {
@@ -38,5 +38,3 @@ namespace fc::miner {
 }  // namespace fc::miner
 
 OUTCOME_HPP_DECLARE_ERROR(fc::miner, MinerError);
-
-#endif  // CPP_FILECOIN_MINER_MINER_HPP

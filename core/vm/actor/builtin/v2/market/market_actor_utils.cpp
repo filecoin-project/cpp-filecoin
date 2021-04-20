@@ -11,6 +11,7 @@
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
+#include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor.hpp"
@@ -158,6 +159,15 @@ namespace fc::vm::actor::builtin::v2::market {
     OUTCOME_TRY(runtime.sendM<verified_registry::RestoreBytes>(
         kVerifiedRegistryAddress, {deal.client, uint64_t{deal.piece_size}}, 0));
     return outcome::success();
+  }
+
+  outcome::result<Controls> MarketUtils::requestMinerControlAddress(
+      const Address &miner) const {
+    OUTCOME_TRY(addresses,
+                runtime.sendM<miner::ControlAddresses>(miner, {}, 0));
+    return Controls{.owner = addresses.owner,
+                    .worker = addresses.worker,
+                    .control = addresses.control};
   }
 
 }  // namespace fc::vm::actor::builtin::v2::market

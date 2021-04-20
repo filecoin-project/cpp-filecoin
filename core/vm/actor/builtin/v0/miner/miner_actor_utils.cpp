@@ -14,6 +14,10 @@ namespace fc::vm::actor::builtin::v0::miner {
   using toolchain::Toolchain;
   using namespace types::miner;
 
+  uint64_t MinerUtils::getAddressedPartitionsMax() const {
+    return 200;
+  }
+
   outcome::result<Address> MinerUtils::resolveControlAddress(
       const Address &address) const {
     const auto resolved = runtime.resolveAddress(address);
