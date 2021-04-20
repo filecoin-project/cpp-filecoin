@@ -6,6 +6,7 @@
 #pragma once
 
 #include <boost/compute/detail/lru_cache.hpp>
+#include <mutex>
 
 #include "primitives/tipset/tipset.hpp"
 
@@ -39,6 +40,7 @@ namespace fc::primitives::tipset {
     outcome::result<TipsetCPtr> load(const TipsetKey &key) override;
     outcome::result<TipsetCPtr> load(std::vector<BlockHeader> blocks) override;
     TsLoadPtr ts_load;
+    std::mutex mutex;
     boost::compute::detail::lru_cache<TipsetKey, TipsetCPtr> cache;
   };
 }  // namespace fc::primitives::tipset
