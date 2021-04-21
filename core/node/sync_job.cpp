@@ -16,6 +16,8 @@
 namespace fc::sync {
   using primitives::tipset::chain::stepParent;
 
+  constexpr auto kBranchCompactTreshold{200u};
+
   namespace {
     auto log() {
       static common::Logger logger = common::createLogger("sync_job");
@@ -177,8 +179,7 @@ namespace fc::sync {
 
   void SyncJob::onTs(const boost::optional<PeerId> &peer, TipsetCPtr ts) {
     std::unique_lock lock{*ts_branches_mutex_};
-    // estimated
-    if (ts_branches_->size() > 200) {
+    if (ts_branches_->size() > kBranchCompactTreshold) {
       log()->info("compacting branches");
       compactBranches();
     }
