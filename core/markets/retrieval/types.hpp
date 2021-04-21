@@ -9,6 +9,7 @@
 #include <libp2p/peer/peer_id.hpp>
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
+#include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "primitives/address/address.hpp"
 #include "storage/ipld/ipld_block.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
@@ -44,8 +45,13 @@ namespace fc::markets::retrieval {
    */
   struct RetrievalPeer {
     Address address;
-    PeerId peer_id;
+    PeerId peer_id{codec::cbor::kDefaultT<PeerId>()};
     boost::optional<CID> piece;
+
+    inline bool operator==(const RetrievalPeer &other) const {
+      return address == other.address && peer_id == other.peer_id
+             && piece == other.piece;
+    }
   };
   CBOR_TUPLE(RetrievalPeer, address, peer_id, piece)
 

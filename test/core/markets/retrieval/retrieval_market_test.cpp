@@ -25,9 +25,12 @@ namespace fc::markets::retrieval::test {
         .payload_cid = payload_cid,
         .params = {.piece_cid = data::green_piece.info.piece_cid}};
     std::promise<outcome::result<QueryResponse>> query_result;
-    client->query(host->getPeerInfo(), request, [&](auto response) {
+    RetrievalPeer peer{.address = miner_worker_address,
+                       .peer_id = host->getId(),
+                       .piece = boost::none};
+    EXPECT_OUTCOME_TRUE_1(client->query(peer, request, [&](auto response) {
       query_result.set_value(response);
-    });
+    }));
     auto future = query_result.get_future();
     ASSERT_EQ(future.wait_for(std::chrono::seconds(3)),
               std::future_status::ready);

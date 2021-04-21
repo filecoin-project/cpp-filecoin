@@ -26,10 +26,11 @@ namespace fc::markets::retrieval::client {
     return outcome::failure(RetrievalClientError::kUnknownResponseReceived);
   }
 
-  void RetrievalClientImpl::query(
-      const PeerInfo &peer,
+  outcome::result<void> RetrievalClientImpl::query(
+      const RetrievalPeer &provider_peer,
       const QueryRequest &request,
       const QueryResponseHandler &response_handler) {
+    OUTCOME_TRY(peer, getPeerInfo(provider_peer));
     host_->newStream(
         peer,
         kQueryProtocolId,
@@ -56,6 +57,15 @@ namespace fc::markets::retrieval::client {
                     });
               });
         });
+    return outcome::success();
+  }
+
+  outcome::result<PeerInfo> RetrievalClientImpl::getPeerInfo(
+      const RetrievalPeer &provider_peer) {
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(miner_info,
+                api_->StateMinerInfo(provider_peer.address, chain_head->key));
+    return PeerInfo{provider_peer.peer_id, miner_info.multiaddrs};
   }
 
   void RetrievalClientImpl::closeQueryStream(
@@ -83,10 +93,7 @@ namespace fc::markets::retrieval::client {
                                   .params = deal_params}};
     auto deal{std::make_shared<DealState>(
         proposal, handler, client_wallet, miner_wallet, total_funds)};
-    OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(miner_info,
-                api_->StateMinerInfo(provider_peer.address, chain_head->key));
-    PeerInfo peer_info{provider_peer.peer_id, miner_info.multiaddrs};
+    OUTCOME_TRY(peer_info, getPeerInfo(provider_peer));
     deal->pdtid = datatransfer_->pull(
         peer_info,
         payload_cid,

@@ -86,7 +86,7 @@ namespace fc::markets::retrieval::client {
     outcome::result<std::vector<PeerInfo>> findProviders(
         const CID &piece_cid) const override;
 
-    void query(const PeerInfo &peer,
+    outcome::result<void> query(const RetrievalPeer &provider_peer,
                const QueryRequest &request,
                const QueryResponseHandler &response_handler) override;
 
@@ -100,6 +100,12 @@ namespace fc::markets::retrieval::client {
         const RetrieveResponseHandler &handler) override;
 
    private:
+    /**
+     * Get libp2p PeerInfo with multiaddresses
+     * @param provider_peer
+     */
+    outcome::result<PeerInfo> getPeerInfo(const RetrievalPeer &provider_peer);
+
     void closeQueryStream(const std::shared_ptr<CborStream> &stream,
                           const QueryResponseHandler &handler);
 

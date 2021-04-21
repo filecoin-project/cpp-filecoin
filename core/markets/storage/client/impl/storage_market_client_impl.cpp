@@ -317,7 +317,9 @@ namespace fc::markets::storage::client {
           SELF_FSM_SEND(client_deal, ClientEvent::ClientEventOpen);
         });
 
-    OUTCOME_TRY(discovery_->addPeer(data_ref.root, provider_info.peer_info));
+    OUTCOME_TRY(discovery_->addPeer(
+        data_ref.root,
+        {provider_info.address, provider_info.peer_info.id, comm_p}));
 
     return client_deal->proposal_cid;
   }
