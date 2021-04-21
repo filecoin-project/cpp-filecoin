@@ -5,7 +5,6 @@
 
 #include "node/main/config.hpp"
 
-#include <spdlog/fmt/fmt.h>
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -119,6 +118,7 @@ namespace fc::node {
       exit(EXIT_SUCCESS);
     }
     boost::filesystem::create_directories(config.repo_path);
+    std::ofstream{config.join(".pid")} << getpid();
     auto config_path{config.join("config.cfg")};
     if (raw.copy_config) {
       boost::filesystem::copy_file(

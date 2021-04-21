@@ -164,6 +164,10 @@ namespace fc::markets::storage {
 
   CBOR_TUPLE(StorageDeal, proposal, state)
 
+  inline bool operator==(const StorageDeal &lhs, const StorageDeal &rhs) {
+    return lhs.proposal == rhs.proposal and lhs.state == rhs.state;
+  }
+
   /**
    * Proposal is the data sent over the network from client to provider when
    * proposing a deal

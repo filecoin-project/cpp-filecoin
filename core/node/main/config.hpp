@@ -5,12 +5,12 @@
 
 #pragma once
 
-#include <spdlog/logger.h>
 #include <boost/filesystem/path.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/protocol/gossip/gossip.hpp>
 #include <libp2p/protocol/kademlia/config.hpp>
 
+#include "common/logger.hpp"
 #include "crypto/bls/bls_types.hpp"
 #include "primitives/cid/cid.hpp"
 

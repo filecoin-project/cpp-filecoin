@@ -100,7 +100,7 @@ namespace fc::vm {
 
     kErrFirstActorSpecificExitCode = 32,
 
-    kErrPlaceholder = 1000,
+    kErrBalanceInvariantBroken = 1000,
 
     kEncodeActorResultError,
 

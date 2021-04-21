@@ -49,10 +49,13 @@ namespace fc::primitives::tipset {
       : ts_load{ts_load}, cache{cache_size} {}
 
   outcome::result<TipsetCPtr> TsLoadCache::load(const TipsetKey &key) {
+    std::unique_lock lock{mutex};
     if (auto ts{cache.get(key)}) {
       return *ts;
     }
+    lock.unlock();
     OUTCOME_TRY(ts, ts_load->load(key));
+    lock.lock();
     cache.insert(key, ts);
     return std::move(ts);
   }
@@ -60,6 +63,7 @@ namespace fc::primitives::tipset {
   outcome::result<TipsetCPtr> TsLoadCache::load(
       std::vector<BlockHeader> blocks) {
     OUTCOME_TRY(ts, ts_load->load(blocks));
+    std::unique_lock lock{mutex};
     cache.insert(ts->key, ts);
     return std::move(ts);
   }

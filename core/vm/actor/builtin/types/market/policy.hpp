@@ -8,10 +8,11 @@
 #include "const.hpp"
 #include "primitives/piece/piece.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
-#include "vm/actor/builtin/v0/shared/shared.hpp"
+#include "vm/actor/builtin/types/shared.hpp"
 #include "vm/version/version.hpp"
 
 namespace fc::vm::actor::builtin::types::market {
+  using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::DealWeight;
   using primitives::EpochDuration;
@@ -67,16 +68,16 @@ namespace fc::vm::actor::builtin::types::market {
                                   bool verified) {
     BigInt scaled_up_quality{0};
     if (verified) {
-      scaled_up_quality = bigdiv(
-          v0::kVerifiedDealWeightMultiplier << v0::kSectorQualityPrecision,
-          v0::kQualityBaseMultiplier);
+      scaled_up_quality =
+          bigdiv(kVerifiedDealWeightMultiplier << kSectorQualityPrecision,
+                 kQualityBaseMultiplier);
     } else {
       scaled_up_quality =
-          bigdiv(v0::kDealWeightMultiplier << v0::kSectorQualityPrecision,
-                 v0::kQualityBaseMultiplier);
+          bigdiv(kDealWeightMultiplier << kSectorQualityPrecision,
+                 kQualityBaseMultiplier);
     }
     scaled_up_quality *= static_cast<uint64_t>(deal_size);
-    return scaled_up_quality >> v0::kSectorQualityPrecision;
+    return scaled_up_quality >> kSectorQualityPrecision;
   }
 
   inline Bounds<TokenAmount> dealProviderCollateralBounds(

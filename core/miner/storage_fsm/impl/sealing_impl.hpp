@@ -227,6 +227,18 @@ namespace fc::mining {
         const std::shared_ptr<SectorInfo> &info);
 
     /**
+     * @brief Handle incoming in kDealsExpired state
+     */
+    outcome::result<void> handleDealsExpired(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kRecoverDealIDs state
+     */
+    outcome::result<void> handleRecoverDeal(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
      * @brief Handle incoming in kFaultReported state
      */
     outcome::result<void> handleFaultReported(

@@ -35,6 +35,15 @@ target_link_libraries(events
         api
         )
 
+add_library(deal_info_manager
+        impl/deal_info_manager_impl.cpp
+        )
+target_link_libraries(deal_info_manager
+        logger
+        tipset
+        api
+        )
+
 add_library(storage_fsm
         impl/sealing_impl.cpp
         impl/checks.cpp
@@ -51,4 +60,5 @@ target_link_libraries(storage_fsm
         api_ipfs_datastore
         zerocomm
         sector_file
+        deal_info_manager
         )

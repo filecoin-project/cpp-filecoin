@@ -16,6 +16,8 @@
 namespace fc::sync {
   using primitives::tipset::chain::stepParent;
 
+  constexpr auto kBranchCompactTreshold{200u};
+
   namespace {
     auto log() {
       static common::Logger logger = common::createLogger("sync_job");
@@ -97,13 +99,15 @@ namespace fc::sync {
     possible_head_event_ = events_->subscribePossibleHead(
         [this](const events::PossibleHead &e) { onPossibleHead(e); });
 
-    peers_.start(
-        host_, *events_, [](const std::set<std::string> &protocols) -> bool {
-          static const std::string id(blocksync::kProtocolId);
-          return (protocols.count(id) > 0);
-        });
-
     log()->debug("started");
+  }
+
+  uint64_t SyncJob::metricAttachedHeight() const {
+    std::shared_lock lock{*ts_branches_mutex_};
+    if (auto branch{attached_heaviest_.first}) {
+      return branch->chain.rbegin()->first;
+    }
+    return 0;
   }
 
   void SyncJob::onPossibleHead(const events::PossibleHead &e) {
@@ -128,8 +132,57 @@ namespace fc::sync {
     return nullptr;
   }
 
+  void SyncJob::compactBranches() {
+    std::pair<TsBranchPtr, size_t> longest{};
+    for (auto &head : *ts_branches_) {
+      if (!attached_.count(head)) {
+        size_t length{};
+        for (auto branch{head}; branch; branch = branch->parent) {
+          length += branch->chain.size();
+        }
+        if (!longest.first || longest.second < length) {
+          longest = {head, length};
+        }
+      }
+    }
+    attached_ = {ts_main_};
+    *ts_branches_ = {ts_main_};
+    auto compact{[&](auto &head) -> TsBranchPtr {
+      if (head == ts_main_) {
+        return nullptr;
+      }
+      primitives::tipset::chain::TsChain chain;
+      TsBranchPtr last;
+      for (auto branch{head}; branch && branch != ts_main_;
+           branch = branch->parent) {
+        chain.insert(branch->chain.begin(), branch->chain.end());
+        last = branch;
+      }
+      auto branch{TsBranch::make(std::move(chain), last->parent)};
+      if (branch == ts_main_) {
+        return nullptr;
+      }
+      branch->parent_key = last->parent_key;
+      ts_branches_->insert(branch);
+      return branch;
+    }};
+    if (auto &heaviest{attached_heaviest_.first}) {
+      heaviest = compact(heaviest);
+      if (heaviest) {
+        attached_.insert(heaviest);
+      }
+    }
+    if (longest.first) {
+      compact(longest.first);
+    }
+  }
+
   void SyncJob::onTs(const boost::optional<PeerId> &peer, TipsetCPtr ts) {
     std::unique_lock lock{*ts_branches_mutex_};
+    if (ts_branches_->size() > kBranchCompactTreshold) {
+      log()->info("compacting branches");
+      compactBranches();
+    }
     while (true) {
       std::vector<TsBranchPtr> children;
       auto branch{insert(*ts_branches_, ts, &children).first};
@@ -314,6 +367,13 @@ namespace fc::sync {
 
   void SyncJob::fetchDequeue() {
     std::lock_guard lock{requests_mutex_};
+    static size_t hung_blocksync{};
+    if (request_ && Clock::now() >= request_expiry_) {
+      ++hung_blocksync;
+      log()->warn("hung blocksync {}", hung_blocksync);
+      request_->cancel();
+      request_.reset();
+    }
     if (request_) {
       return;
     }
@@ -327,6 +387,7 @@ namespace fc::sync {
       return;
     }
     uint64_t probable_depth = 5;
+    request_expiry_ = Clock::now() + std::chrono::seconds{20};
     request_ = BlocksyncRequest::newRequest(
         *host_,
         *scheduler_,
@@ -335,7 +396,7 @@ namespace fc::sync {
         tsk.cids(),
         probable_depth,
         blocksync::kBlocksAndMessages,
-        60000,
+        15000,
         [this](auto r) { downloaderCallback(std::move(r)); });
   }
 
@@ -352,10 +413,6 @@ namespace fc::sync {
       ts = _ts.value();
     } else {
       r.delta_rating -= 500;
-    }
-
-    if (r.from && r.delta_rating != 0) {
-      peers_.changeRating(r.from.value(), r.delta_rating);
     }
 
     if (ts) {

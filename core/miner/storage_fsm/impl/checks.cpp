@@ -29,7 +29,7 @@ namespace fc::mining::checks {
   using vm::actor::kStorageMarketAddress;
   using vm::actor::MethodParams;
   using vm::actor::builtin::states::StateProvider;
-  using vm::actor::builtin::types::miner::kChainFinalityish;
+  using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::maxSealDuration;
   using vm::actor::builtin::types::miner::SectorPreCommitOnChainInfo;
@@ -54,6 +54,7 @@ namespace fc::mining::checks {
   }
 
   outcome::result<void> checkPieces(
+      const Address &miner_address,
       const std::shared_ptr<SectorInfo> &sector_info,
       const std::shared_ptr<FullNodeApi> &api) {
     OUTCOME_TRY(chain_head, api->ChainHead());
@@ -71,6 +72,10 @@ namespace fc::mining::checks {
       OUTCOME_TRY(proposal,
                   api->StateMarketStorageDeal(piece.deal_info->deal_id,
                                               chain_head->key));
+
+      if (miner_address != proposal.proposal.provider) {
+        return ChecksError::kInvalidDeal;
+      }
 
       if (piece.piece.cid != proposal.proposal.piece_cid) {
         return ChecksError::kInvalidDeal;
@@ -151,6 +156,8 @@ namespace fc::mining::checks {
       const TipsetKey &tipset_key,
       const ChainEpoch &height,
       const std::shared_ptr<FullNodeApi> &api) {
+    OUTCOME_TRY(checkPieces(miner_address, sector_info, api));
+
     OUTCOME_TRY(commD,
                 getDataCommitment(miner_address, sector_info, tipset_key, api));
     if (commD != sector_info->comm_d) {
@@ -159,8 +166,7 @@ namespace fc::mining::checks {
 
     OUTCOME_TRY(network, api->StateNetworkVersion(tipset_key));
     OUTCOME_TRY(seal_duration, getMaxProveCommitDuration(network, sector_info));
-    if (height - (sector_info->ticket_epoch + kChainFinalityish)
-        > seal_duration) {
+    if (height - (sector_info->ticket_epoch + kChainFinality) > seal_duration) {
       return ChecksError::kExpiredTicket;
     }
 

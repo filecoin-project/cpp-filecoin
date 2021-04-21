@@ -11,16 +11,19 @@
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
+#include "primitives/cid/comm_cid.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::vm::actor::builtin::types::market {
   using crypto::Hasher;
   using crypto::signature::Signature;
+  using libp2p::multi::HashType;
   using primitives::ChainEpoch;
   using primitives::EpochDuration;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using primitives::cid::kCommitmentBytesLen;
   using primitives::piece::PaddedPieceSize;
 
   enum class BalanceLockingReason : int {
@@ -28,6 +31,13 @@ namespace fc::vm::actor::builtin::types::market {
     kClientStorageFee,
     kProviderCollateral
   };
+
+  inline const CidPrefix kPieceCIDPrefix{
+      .version = static_cast<uint64_t>(CID::Version::V1),
+      .codec =
+          static_cast<uint64_t>(CID::Multicodec::FILECOIN_COMMITMENT_UNSEALED),
+      .mh_type = HashType::sha2_256_trunc254_padded,
+      .mh_length = kCommitmentBytesLen};
 
   struct DealProposal {
     inline TokenAmount clientBalanceRequirement() const {
@@ -94,6 +104,12 @@ namespace fc::vm::actor::builtin::types::market {
     ChainEpoch slash_epoch;
   };
   CBOR_TUPLE(DealState, sector_start_epoch, last_updated_epoch, slash_epoch)
+
+  inline bool operator==(const DealState &lhs, const DealState &rhs) {
+    return lhs.sector_start_epoch == rhs.sector_start_epoch
+           and lhs.last_updated_epoch == rhs.last_updated_epoch
+           and lhs.slash_epoch == rhs.slash_epoch;
+  }
 
   struct ClientDealProposal {
     DealProposal proposal;

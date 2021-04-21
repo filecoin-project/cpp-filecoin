@@ -20,6 +20,7 @@
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
 #include "common/io_thread.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "common/outcome.hpp"
 #include "common/peer_key.hpp"
 #include "config/profile_config.hpp"
@@ -284,7 +285,7 @@ namespace fc {
     auto io{injector.create<std::shared_ptr<io_context>>()};
     auto host{injector.create<std::shared_ptr<libp2p::Host>>()};
     auto scheduler{std::make_shared<libp2p::protocol::AsioScheduler>(
-        *io, libp2p::protocol::SchedulerConfig{})};
+        io, libp2p::protocol::SchedulerConfig{})};
 
     IoThread sealing_thread;
 
@@ -530,6 +531,8 @@ namespace fc {
 }  // namespace fc
 
 int main(int argc, char **argv) {
+  fc::libp2pSoralog();
+
   OUTCOME_EXCEPT(config, fc::readConfig(argc, argv));
   if (const auto res{fc::main(config)}; !res) {
     spdlog::error("main: {:#}", res.error());

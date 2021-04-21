@@ -10,8 +10,10 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/security/plaintext.hpp>
+
 #include "api/node_api.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "data_transfer/dt.hpp"
@@ -101,6 +103,8 @@ namespace fc::markets::storage::test {
     StorageMarketTest() : ::test::BaseFS_Test("storage_market_test") {}
 
     void SetUp() override {
+      libp2pSoralog();
+
       createDir(kImportsTempDir);
       createDir(kPieceIoTempDir);
 
@@ -185,7 +189,7 @@ namespace fc::markets::storage::test {
           std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
               host,
               std::make_shared<libp2p::protocol::AsioScheduler>(
-                  *context_, libp2p::protocol::SchedulerConfig{}))};
+                  context_, libp2p::protocol::SchedulerConfig{}))};
       graphsync->subscribe([this](auto &from, auto &data) {
         OUTCOME_EXCEPT(ipld_provider->set(data.cid, data.content));
       });

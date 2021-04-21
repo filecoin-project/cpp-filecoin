@@ -9,6 +9,7 @@
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "common/logger.hpp"
 #include "drand/impl/http.hpp"
 #include "markets/storage/types.hpp"
@@ -17,6 +18,7 @@
 #include "node/graphsync_server.hpp"
 #include "node/identify.hpp"
 #include "node/main/builder.hpp"
+#include "node/main/metrics.hpp"
 #include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
 #include "node/pubsub_workaround.hpp"
@@ -30,6 +32,7 @@ namespace fc {
   using api::ImportRes;
   using api::StorageMarketDealInfo;
   using markets::storage::StorageProviderInfo;
+  using node::Metrics;
   using node::NodeObjects;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
 
@@ -59,7 +62,9 @@ namespace fc {
 
   }  // namespace
 
-  void startApi(const node::Config &config, NodeObjects &node_objects) {
+  void startApi(const node::Config &config,
+                NodeObjects &node_objects,
+                const Metrics &metrics) {
     // Network API
     PeerInfo api_peer_info{
         node_objects.host->getPeerInfo().id,
@@ -187,6 +192,19 @@ namespace fc {
 
     auto rpc{api::makeRpc(*node_objects.api)};
     auto routes{std::make_shared<api::Routes>()};
+
+    auto text_route{[](auto f) -> api::RouteHandler {
+      return [f{std::move(f)}](auto &) {
+        api::http::response<api::http::string_body> res;
+        res.body() = f();
+        return api::WrapperResponse{std::move(res)};
+      };
+    }};
+    routes->emplace("/health",
+                    text_route([] { return "{\"status\":\"UP\"}"; }));
+    routes->emplace("/metrics",
+                    text_route([&] { return metrics.prometheus(); }));
+
     api::serve(
         rpc, routes, *node_objects.io_context, "127.0.0.1", config.api_port);
     api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
@@ -206,6 +224,11 @@ namespace fc {
       exit(EXIT_FAILURE);
     }
     auto &o = obj_res.value();
+
+    Metrics metrics{o};
+
+    IoThread flush_thread;
+    o.ipld_cids_write->io = flush_thread.io;
 
     o.io_context->post([&] {
       for (auto &host : config.drand_servers) {
@@ -294,7 +317,7 @@ namespace fc {
       }
     }
 
-    startApi(config, o);
+    startApi(config, o, metrics);
 
     o.identify->start(events);
     o.say_hello->start(config.genesis_cid.value(), events);
@@ -333,6 +356,8 @@ namespace fc {
 }  // namespace fc
 
 int main(int argc, char *argv[]) {
+  fc::libp2pSoralog();
+
   try {
     auto config{fc::node::Config::read(argc, argv)};
     fc::main(config);

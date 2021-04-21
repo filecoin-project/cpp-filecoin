@@ -12,7 +12,8 @@
 #include "primitives/tipset/tipset_key.hpp"
 #include "primitives/types.hpp"
 #include "sector_storage/manager.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/miner/sector_info.hpp"
 
 namespace fc::mining::types {
   using primitives::ChainEpoch;
@@ -26,6 +27,7 @@ namespace fc::mining::types {
   using sector_storage::InteractiveRandomness;
   using sector_storage::PreCommit1Output;
   using sector_storage::Range;
+  using vm::actor::builtin::types::market::DealProposal;
   using vm::actor::builtin::types::miner::SectorPreCommitInfo;
 
   constexpr uint64_t kDealSectorPriority = 1024;
@@ -49,10 +51,16 @@ namespace fc::mining::types {
   struct DealInfo {
     boost::optional<CID> publish_cid;
     DealId deal_id;
+    boost::optional<DealProposal> deal_proposal;
     DealSchedule deal_schedule;
     bool is_keep_unsealed;
   };
-  CBOR_TUPLE(DealInfo, publish_cid, deal_id, deal_schedule, is_keep_unsealed)
+  CBOR_TUPLE(DealInfo,
+             publish_cid,
+             deal_id,
+             deal_proposal,
+             deal_schedule,
+             is_keep_unsealed)
 
   inline bool operator==(const DealInfo &lhs, const DealInfo &rhs) {
     return lhs.publish_cid == rhs.publish_cid && lhs.deal_id == rhs.deal_id
@@ -95,6 +103,8 @@ namespace fc::mining::types {
     uint64_t invalid_proofs;
 
     boost::optional<CID> fault_report_message;
+
+    SealingState return_state;
 
     inline std::vector<UnpaddedPieceSize> getExistingPieceSizes() const {
       std::vector<UnpaddedPieceSize> result;

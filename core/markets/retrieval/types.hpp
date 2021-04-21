@@ -11,7 +11,6 @@
 #include "common/buffer.hpp"
 #include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "primitives/address/address.hpp"
-#include "storage/ipld/ipld_block.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::markets::retrieval {

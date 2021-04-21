@@ -264,12 +264,11 @@ namespace fc::api {
 
     void doAccept() {
       acceptor.async_accept([self{shared_from_this()}](auto ec, auto socket) {
-        if (ec) {
-          return;
+        if (!ec) {
+          std::make_shared<HttpSession>(
+              std::move(socket), self->rpc, self->routes)
+              ->run();
         }
-        std::make_shared<HttpSession>(
-            std::move(socket), self->rpc, self->routes)
-            ->run();
         self->doAccept();
       });
     }

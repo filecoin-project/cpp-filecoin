@@ -14,6 +14,12 @@
 #include "common/enum.hpp"
 #include "storage/ipfs/datastore.hpp"
 
+namespace boost {
+  namespace asio {
+    class io_context;
+  }  // namespace asio
+}  // namespace boost
+
 namespace fc::storage::cids_index {
   using Key = common::Hash256;
 
@@ -172,13 +178,21 @@ namespace fc::storage::cids_index {
       return shared_from_this();
     }
 
-    mutable std::mutex mutex;
+    void asyncFlush();
+
+    mutable std::mutex car_mutex;
     mutable std::ifstream car_file;
+    mutable std::shared_mutex index_mutex;
     std::shared_ptr<Index> index;
     IpldPtr ipld;
     std::ofstream writable;
     mutable std::shared_mutex written_mutex;
     std::set<Row> written;
     uint64_t car_offset{};
+    std::atomic_flag flushing;
+    size_t flush_on{};
+    std::shared_ptr<boost::asio::io_context> io;
+    std::string index_path;
+    boost::optional<size_t> max_memory;
   };
 }  // namespace fc::storage::cids_index

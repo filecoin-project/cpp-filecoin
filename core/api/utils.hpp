@@ -8,7 +8,6 @@
 #include <future>
 
 #include "adt/channel.hpp"
-#include "api/version.hpp"
 #include "common/error_text.hpp"
 #include "common/outcome.hpp"
 
@@ -26,12 +25,6 @@ namespace fc::api {
   template <typename... T>
   using ParamsTuple =
       std::tuple<std::remove_const_t<std::remove_reference_t<T>>...>;
-
-  struct VersionResult {
-    std::string version;
-    ApiVersion api_version;
-    uint64_t block_delay;
-  };
 
   template <typename T>
   struct Chan {

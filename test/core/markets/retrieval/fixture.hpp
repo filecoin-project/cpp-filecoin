@@ -11,7 +11,9 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <libp2p/security/plaintext.hpp>
+
 #include "api/node_api.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "core/markets/retrieval/config.hpp"
 #include "core/markets/retrieval/data.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -95,6 +97,8 @@ namespace fc::markets::retrieval::test {
     common::Logger logger = common::createLogger("RetrievalMarketTest");
 
     void SetUp() override {
+      libp2pSoralog();
+
       std::string address_string = fmt::format(
           "/ip4/127.0.0.1/tcp/{}/ipfs/"
           "12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV",
@@ -128,7 +132,7 @@ namespace fc::markets::retrieval::test {
           std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
               host,
               std::make_shared<libp2p::protocol::AsioScheduler>(
-                  *context, libp2p::protocol::SchedulerConfig{}))};
+                  context, libp2p::protocol::SchedulerConfig{}))};
       graphsync->subscribe([this](auto &from, auto &data) {
         OUTCOME_EXCEPT(client_ipfs->set(data.cid, data.content));
       });
@@ -151,9 +155,7 @@ namespace fc::markets::retrieval::test {
           host, datatransfer, api, client_ipfs);
       provider->start();
 
-      BOOST_ASSERT_MSG(
-          addPieceSample(data::green_piece, provider_ipfs).has_value(),
-          "Failed to add sample green piece");
+      addPieceSample(data::green_piece, provider_ipfs).value();
 
       TipsetCPtr chain_head = std::make_shared<Tipset>();
       api->ChainHead = {[=]() { return chain_head; }};

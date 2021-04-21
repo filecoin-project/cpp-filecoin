@@ -8,6 +8,7 @@
 #include <libp2p/peer/peer_info.hpp>
 
 #include "api/utils.hpp"
+#include "api/version.hpp"
 #include "common/buffer.hpp"
 
 namespace fc::api {
@@ -15,6 +16,10 @@ namespace fc::api {
   using libp2p::peer::PeerInfo;
 
   struct CommonApi {
+    /**
+     * Creates auth token to the remote connection
+     * @returns auth token
+     */
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
     /**

@@ -10,6 +10,7 @@
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/states/market_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/transit.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
@@ -22,6 +23,7 @@ namespace fc::vm::actor::builtin::utils {
   using primitives::address::Address;
   using runtime::Runtime;
   using states::MarketActorStatePtr;
+  using types::Controls;
   using types::market::BalanceLockingReason;
   using types::market::ClientDealProposal;
   using types::market::DealProposal;
@@ -80,6 +82,9 @@ namespace fc::vm::actor::builtin::utils {
 
     virtual outcome::result<void> callVerifRegRestoreBytes(
         const DealProposal &deal) const = 0;
+
+    virtual outcome::result<Controls> requestMinerControlAddress(
+        const Address &miner) const = 0;
 
    protected:
     Runtime &runtime;

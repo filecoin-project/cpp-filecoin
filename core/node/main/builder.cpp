@@ -228,6 +228,8 @@ namespace fc::node {
     // estimated, 1gb
     o.ipld_cids_write = *storage::cids_index::loadOrCreateWithProgress(
         car_path, true, 1 << 30, o.ipld, log());
+    // estimated
+    o.ipld_cids_write->flush_on = 200000;
     o.ipld = o.ipld_cids_write;
   }
 
@@ -275,9 +277,11 @@ namespace fc::node {
             node_objects.chain_events,
             std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
     // timer is set to 100 ms
-    timerLoop(node_objects.scheduler, 100, [&] {
-      node_objects.storage_market_client->pollWaiting();
-    });
+    timerLoop(node_objects.scheduler,
+              100,
+              [client{node_objects.storage_market_client}] {
+                client->pollWaiting();
+              });
     return node_objects.storage_market_client->init();
   }
 
@@ -370,8 +374,8 @@ namespace fc::node {
 
     o.io_context = injector.create<std::shared_ptr<boost::asio::io_context>>();
 
-    o.scheduler =
-        injector.create<std::shared_ptr<libp2p::protocol::Scheduler>>();
+    o.scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
+        o.io_context, libp2p::protocol::SchedulerConfig{});
 
     o.events = std::make_shared<sync::events::Events>(o.scheduler);
 

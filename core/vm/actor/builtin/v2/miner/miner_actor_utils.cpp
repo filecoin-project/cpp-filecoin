@@ -11,6 +11,10 @@
 namespace fc::vm::actor::builtin::v2::miner {
   using namespace types::miner;
 
+  uint64_t MinerUtils::getAddressedPartitionsMax() const {
+    return kMaxPartitionsPerDeadline;
+  }
+
   ChainEpoch MinerUtils::nextProvingPeriodStart(ChainEpoch current_epoch,
                                                 ChainEpoch offset) const {
     // Do nothing for v2
