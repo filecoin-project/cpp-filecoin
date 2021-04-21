@@ -182,8 +182,7 @@ namespace fc::api {
     uint64_t payment_interval;
     uint64_t payment_interval_increase;
     Address miner;
-    PeerId peer;
-//    RetrievalPeer peer;
+    RetrievalPeer peer;
   };
 
   struct AddChannelInfo {
@@ -301,8 +300,13 @@ namespace fc::api {
     /**
      * Identifies peers that have a certain file, and returns QueryOffers for
      * each peer.
+     * @param data root cid
+     * @param optional piece cid
      */
-    API_METHOD(ClientFindData, Wait<std::vector<QueryOffer>>, const CID &)
+    API_METHOD(ClientFindData,
+               Wait<std::vector<QueryOffer>>,
+               const CID &,
+               const boost::optional<CID> &)
     API_METHOD(ClientHasLocal, bool, const CID &)
 
     /**

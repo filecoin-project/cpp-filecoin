@@ -6,12 +6,15 @@
 #include "api/make.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include <condition_variable>
 #include <libp2p/peer/peer_id.hpp>
 
 #include "api/version.hpp"
 #include "blockchain/production/block_producer.hpp"
+#include "common/logger.hpp"
 #include "const.hpp"
 #include "drand/beaconizer.hpp"
+#include "markets/discovery/impl/discovery_impl.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "node/pubsub_gate.hpp"
 #include "primitives/tipset/chain.hpp"
@@ -38,10 +41,12 @@
 namespace fc::api {
   using connection_t = boost::signals2::connection;
   using InterpreterResult = vm::interpreter::Result;
+  using common::Logger;
   using crypto::randomness::DomainSeparationTag;
   using crypto::signature::BlsSignature;
   using libp2p::peer::PeerId;
   using markets::retrieval::DealProposalParams;
+  using markets::retrieval::QueryResponse;
   using primitives::kChainEpochUndefined;
   using primitives::block::MsgMeta;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
@@ -67,6 +72,8 @@ namespace fc::api {
   using vm::runtime::Env;
   using vm::state::StateTreeImpl;
   using vm::version::getNetworkVersion;
+
+  static Logger logger = common::createLogger("Full node API");
 
   // TODO: reuse for block validation
   inline bool minerHasMinPower(const StoragePower &claim_qa,
@@ -205,6 +212,7 @@ namespace fc::api {
       std::shared_ptr<DrandSchedule> drand_schedule,
       std::shared_ptr<PubSubGate> pubsub,
       std::shared_ptr<KeyStore> key_store,
+      std::shared_ptr<Discovery> market_discovery,
       const std::shared_ptr<RetrievalClient> &retrieval_market_client) {
     auto ts_load{env_context.ts_load};
     auto ipld{env_context.ipld};
@@ -349,8 +357,80 @@ namespace fc::api {
           OUTCOME_TRY(tipset, ts_load->load(tipset_key));
           return weight_calculator->calculateWeight(*tipset);
         }};
-    // TODO(turuslan): FIL-165 implement method
-    api->ClientFindData = {};
+
+    api->ClientFindData = waitCb<std::vector<QueryOffer>>(
+        [=](auto &&root_cid, auto &&piece_cid, auto &&cb) {
+          OUTCOME_CB(auto peers, market_discovery->getPeers(root_cid));
+          // if piece_cid is specified, remove peers without the piece_cid
+          if (piece_cid.has_value()) {
+            peers.erase(std::remove_if(peers.begin(),
+                                       peers.end(),
+                                       [&piece_cid](auto &peer) {
+                                         return peer.piece == *piece_cid;
+                                       }),
+                        peers.end());
+          }
+
+          std::mutex mutex;
+          std::condition_variable cv;
+          size_t responses_processed{};
+          std::vector<QueryOffer> result;
+          for (size_t i = 0; i < peers.size(); ++i) {
+            OUTCOME_CB1(retrieval_market_client->query(
+                peers[i],
+                {root_cid, {piece_cid}},
+                [=, peer{peers[i]}, &mutex, &cv, &responses_processed, &result](
+                    const outcome::result<QueryResponse> &maybe_response) {
+                  if (maybe_response.has_error()) {
+                    logger->error("Error in ClientRetrieve {}",
+                                  maybe_response.error().message());
+                    std::lock_guard lock{mutex};
+                    ++responses_processed;
+                  } else {
+                    auto response{maybe_response.value()};
+                    std::string error_message;
+                    switch (response.response_status) {
+                      case markets::retrieval::QueryResponseStatus::
+                          kQueryResponseAvailable:
+                        break;
+                      case markets::retrieval::QueryResponseStatus::
+                          kQueryResponseUnavailable:
+                        error_message =
+                            "retrieval query offer was unavailable: "
+                            + response.message;
+                        break;
+                      case markets::retrieval::QueryResponseStatus::
+                          kQueryResponseError:
+                        error_message = "retrieval query offer errored: "
+                                        + response.message;
+                        break;
+                    }
+
+                    std::lock_guard lock{mutex};
+                    result.emplace_back(QueryOffer{
+                        error_message,
+                        root_cid,
+                        piece_cid,
+                        response.item_size,
+                        response.unseal_price
+                            + response.min_price_per_byte * response.item_size,
+                        response.unseal_price,
+                        response.payment_interval,
+                        response.interval_increase,
+                        response.payment_address,
+                        peer});
+                    ++responses_processed;
+                  }
+                  cv.notify_one();
+                }));
+          }
+          std::unique_lock lock(mutex);
+          cv.wait(lock, [total_requests{peers.size()}, &responses_processed] {
+            return total_requests == responses_processed;
+          });
+          cb(result);
+        });
+
     // TODO(turuslan): FIL-165 implement method
     api->ClientHasLocal = {};
     // TODO(turuslan): FIL-165 implement method
@@ -378,17 +458,21 @@ namespace fc::api {
               .payment_interval = order.payment_interval,
               .payment_interval_increase = order.payment_interval_increase,
               .unseal_price = order.unseal_price};
-          OUTCOME_TRY(
-              retrieval_market_client->retrieve(order.root,
-                                                params,
-                                                order.total,
-                                                order.peer,
-                                                order.client,
-                                                order.miner,
-                                                [](outcome::result<void> res) {
-                                                  // TODO (a.chernysho) add logs
-                                                  return;
-                                                }));
+          OUTCOME_TRY(retrieval_market_client->retrieve(
+              order.root,
+              params,
+              order.total,
+              order.peer,
+              order.client,
+              order.miner,
+              [](outcome::result<void> res) {
+                if (res.has_error()) {
+                  logger->error("Error in ClientRetrieve {}",
+                                res.error().message());
+                } else {
+                  logger->info("retrieval deal proposed");
+                }
+              }));
           return outcome::success();
         }};
 

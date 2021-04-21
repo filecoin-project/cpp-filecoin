@@ -71,7 +71,16 @@ namespace fc::codec::cbor {
 
   template <>
   inline fc::api::QueryOffer kDefaultT<fc::api::QueryOffer>() {
-    return {{}, {}, boost::none, {}, {}, {}, {}, {}, {}, kDefaultT<PeerId>()};
+    return {{},
+            {},
+            boost::none,
+            {},
+            {},
+            {},
+            {},
+            {},
+            {},
+            kDefaultT<RetrievalPeer>()};
   }
 
   template <>
