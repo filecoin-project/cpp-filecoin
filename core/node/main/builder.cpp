@@ -356,8 +356,8 @@ namespace fc::node {
 
     o.io_context = injector.create<std::shared_ptr<boost::asio::io_context>>();
 
-    o.scheduler =
-        injector.create<std::shared_ptr<libp2p::protocol::Scheduler>>();
+    o.scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
+        o.io_context, libp2p::protocol::SchedulerConfig{});
 
     o.events = std::make_shared<sync::events::Events>(o.scheduler);
 

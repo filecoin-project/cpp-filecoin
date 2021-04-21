@@ -132,7 +132,7 @@ namespace fc::markets::retrieval::test {
           std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
               host,
               std::make_shared<libp2p::protocol::AsioScheduler>(
-                  *context, libp2p::protocol::SchedulerConfig{}))};
+                  context, libp2p::protocol::SchedulerConfig{}))};
       graphsync->subscribe([this](auto &from, auto &data) {
         OUTCOME_EXCEPT(client_ipfs->set(data.cid, data.content));
       });

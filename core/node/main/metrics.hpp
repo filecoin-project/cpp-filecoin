@@ -32,6 +32,7 @@ namespace fc::node {
       metric("vm_rss", vm_rss);
 
       std::shared_lock ts_lock{*o.env_context.ts_branches_mutex};
+      metric("ts_branches", o.ts_branches->size());
       auto height_head{o.ts_main->chain.rbegin()->first};
       ts_lock.unlock();
 

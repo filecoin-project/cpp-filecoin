@@ -130,7 +130,7 @@ namespace fc {
   outcome::result<void> main(Config &config) {
     auto io{std::make_shared<io_context>()};
     auto scheduler{std::make_shared<libp2p::protocol::AsioScheduler>(
-        *io, libp2p::protocol::SchedulerConfig())};
+        io, libp2p::protocol::SchedulerConfig())};
 
     auto mapi{std::make_shared<api::StorageMinerApi>()};
     api::rpc::Client wsc{*io};

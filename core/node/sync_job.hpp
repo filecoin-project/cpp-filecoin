@@ -9,7 +9,6 @@
 
 #include "blocksync_request.hpp"
 #include "common/io_thread.hpp"
-#include "node/peers.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/buffer_map.hpp"
 #include "vm/interpreter/interpreter.hpp"
@@ -21,8 +20,6 @@ namespace fc::sync {
   using vm::interpreter::InterpreterCache;
   using InterpreterResult = vm::interpreter::Result;
 
-  /// Active object which downloads and indexes tipsets. Keeps track of peers
-  /// which are also nodes (to make requests to them)
   class SyncJob {
    public:
     SyncJob(std::shared_ptr<libp2p::Host> host,
@@ -46,6 +43,8 @@ namespace fc::sync {
     void onPossibleHead(const events::PossibleHead &e);
 
     TipsetCPtr getLocal(const TipsetKey &tsk);
+
+    void compactBranches();
 
     void onTs(const boost::optional<PeerId> &peer, TipsetCPtr ts);
 
@@ -89,7 +88,6 @@ namespace fc::sync {
     std::queue<TipsetCPtr> interpret_queue_;
 
     std::shared_ptr<events::Events> events_;
-    Peers peers_;
 
     events::Connection message_event_;
     events::Connection block_event_;

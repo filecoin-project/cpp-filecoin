@@ -189,7 +189,7 @@ namespace fc::markets::storage::test {
           std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
               host,
               std::make_shared<libp2p::protocol::AsioScheduler>(
-                  *context_, libp2p::protocol::SchedulerConfig{}))};
+                  context_, libp2p::protocol::SchedulerConfig{}))};
       graphsync->subscribe([this](auto &from, auto &data) {
         OUTCOME_EXCEPT(ipld_provider->set(data.cid, data.content));
       });
