@@ -338,7 +338,10 @@ namespace fc::api {
     /**
      * Initiates the retrieval of a file, as specified in the order
      */
-    API_METHOD(ClientRetrieve, void, const RetrievalOrder &, const FileRef &)
+    API_METHOD(ClientRetrieve,
+               Wait<None>,
+               const RetrievalOrder &,
+               const FileRef &)
 
     /**
      * Proposes a storage deal with a miner

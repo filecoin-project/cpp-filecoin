@@ -381,7 +381,7 @@ namespace fc::api {
                 [=, &mutex, &cv, &responses_processed, &result](
                     const outcome::result<QueryResponse> &maybe_response) {
                   if (maybe_response.has_error()) {
-                    logger->error("Error in ClientRetrieve {}",
+                    logger->error("Error when query peer {}",
                                   maybe_response.error().message());
                     std::lock_guard lock{mutex};
                     ++responses_processed;
@@ -442,12 +442,10 @@ namespace fc::api {
     /**
      * Initiates the retrieval deal of a file in retrieval market.
      */
-    api->ClientRetrieve = {
-        [retrieval_market_client](
-            const RetrievalOrder &order,
-            const FileRef &file_ref) -> outcome::result<void> {
+    api->ClientRetrieve = waitCb<None>(
+        [retrieval_market_client](auto &&order, auto &&file_ref, auto &&cb) {
           if (order.size == 0) {
-            return ERROR_TEXT("Cannot make retrieval deal for zero bytes");
+            cb(ERROR_TEXT("Cannot make retrieval deal for zero bytes"));
           }
           auto price_per_byte = bigdiv(order.total, order.size);
           DealProposalParams params{
@@ -457,7 +455,7 @@ namespace fc::api {
               .payment_interval = order.payment_interval,
               .payment_interval_increase = order.payment_interval_increase,
               .unseal_price = order.unseal_price};
-          OUTCOME_TRY(retrieval_market_client->retrieve(
+          OUTCOME_CB1(retrieval_market_client->retrieve(
               order.root,
               params,
               order.total,
@@ -472,8 +470,8 @@ namespace fc::api {
                   logger->info("retrieval deal proposed");
                 }
               }));
-          return outcome::success();
-        }};
+          cb(outcome::success());
+        });
 
     api->ClientStartDeal = {/* impemented in node/main.cpp */};
 
