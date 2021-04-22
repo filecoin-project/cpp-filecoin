@@ -112,13 +112,16 @@ namespace fc::crypto::secp256k1 {
    */
   TEST_F(Secp256k1ProviderTest, VerifyInvalidSignaturFailure) {
     EXPECT_OUTCOME_TRUE(key_pair, secp256K1_provider->generate());
+
+    EXPECT_OUTCOME_TRUE(one_more_key_pair, secp256K1_provider->generate());
+    EXPECT_OUTCOME_TRUE(wrong_signature,
+                        secp256K1_provider->sign(
+                            go_message_hash, one_more_key_pair.private_key));
+
     EXPECT_OUTCOME_TRUE(
-        signature,
-        secp256K1_provider->sign(go_message_hash, key_pair.private_key));
-    signature[0] = 0;  // Modify signature
-    EXPECT_OUTCOME_TRUE(verificationResult,
-                        secp256K1_provider->verify(
-                            go_message_hash, signature, key_pair.public_key));
+        verificationResult,
+        secp256K1_provider->verify(
+            go_message_hash, wrong_signature, key_pair.public_key));
     ASSERT_FALSE(verificationResult);
   }
 
