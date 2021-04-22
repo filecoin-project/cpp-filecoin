@@ -72,7 +72,7 @@ namespace fc::api {
   using vm::state::StateTreeImpl;
   using vm::version::getNetworkVersion;
 
-  static Logger logger = common::createLogger("Full node API");
+  const static Logger logger = common::createLogger("Full node API");
 
   // TODO: reuse for block validation
   inline bool minerHasMinPower(const StoragePower &claim_qa,
@@ -462,15 +462,16 @@ namespace fc::api {
               order.peer,
               order.client,
               order.miner,
-              [](outcome::result<void> res) {
+              [cb{std::move(cb)}](outcome::result<void> res) {
                 if (res.has_error()) {
                   logger->error("Error in ClientRetrieve {}",
                                 res.error().message());
+                  cb(res.error());
                 } else {
                   logger->info("retrieval deal proposed");
+                  cb(outcome::success());
                 }
               }));
-          cb(outcome::success());
         });
 
     api->ClientStartDeal = {/* impemented in node/main.cpp */};
