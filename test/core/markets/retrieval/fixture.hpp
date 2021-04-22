@@ -163,6 +163,7 @@ namespace fc::markets::retrieval::test {
       api->StateMinerInfo = [=](auto &address, auto &tipset_key) {
         MinerInfo info;
         info.worker = miner_worker_address;
+        info.multiaddrs = host->getAddresses();
         return info;
       };
 

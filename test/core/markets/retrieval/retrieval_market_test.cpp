@@ -27,7 +27,7 @@ namespace fc::markets::retrieval::test {
     std::promise<outcome::result<QueryResponse>> query_result;
     RetrievalPeer peer{.address = miner_worker_address,
                        .peer_id = host->getId(),
-                       .piece = boost::none};
+                       .piece = data::green_piece.info.piece_cid};
     EXPECT_OUTCOME_TRUE_1(client->query(peer, request, [&](auto response) {
       query_result.set_value(response);
     }));
@@ -35,7 +35,7 @@ namespace fc::markets::retrieval::test {
     ASSERT_EQ(future.wait_for(std::chrono::seconds(3)),
               std::future_status::ready);
     auto response_res = future.get();
-    EXPECT_TRUE(response_res.has_value());
+    ASSERT_TRUE(response_res.has_value());
     EXPECT_EQ(response_res.value().response_status,
               QueryResponseStatus::kQueryResponseAvailable);
     EXPECT_EQ(response_res.value().item_status,
@@ -49,11 +49,6 @@ namespace fc::markets::retrieval::test {
    */
   TEST_F(RetrievalMarketFixture, RetrieveSuccess) {
     EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), false);
-
-    api->StateMinerInfo = {[&](auto address,
-                               auto tipset) -> outcome::result<MinerInfo> {
-      return outcome::success(MinerInfo{.multiaddrs = host->getAddresses()});
-    }};
 
     auto sector_info = std::make_shared<mining::types::SectorInfo>();
     EXPECT_CALL(*miner, getSectorInfo(deal.sector_id))
