@@ -93,8 +93,8 @@ namespace fc::api {
 
   /** Unique identifier for a channel */
   struct ChannelId {
-    PeerId initiator;
-    PeerId responder;
+    PeerId initiator{codec::cbor::kDefaultT<PeerId>()};
+    PeerId responder{codec::cbor::kDefaultT<PeerId>()};
     TransferId id;
   };
 
@@ -106,7 +106,7 @@ namespace fc::api {
     bool is_sender;
     std::string voucher;
     std::string message;
-    PeerId other_peer;
+    PeerId other_peer{codec::cbor::kDefaultT<PeerId>()};
     uint64_t transferred;
   };
 

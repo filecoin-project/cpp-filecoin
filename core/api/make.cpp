@@ -14,7 +14,6 @@
 #include "common/logger.hpp"
 #include "const.hpp"
 #include "drand/beaconizer.hpp"
-#include "markets/discovery/impl/discovery_impl.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "node/pubsub_gate.hpp"
 #include "primitives/tipset/chain.hpp"
@@ -366,7 +365,7 @@ namespace fc::api {
             peers.erase(std::remove_if(peers.begin(),
                                        peers.end(),
                                        [&piece_cid](auto &peer) {
-                                         return peer.piece == *piece_cid;
+                                         return peer.piece != *piece_cid;
                                        }),
                         peers.end());
           }
@@ -375,11 +374,11 @@ namespace fc::api {
           std::condition_variable cv;
           size_t responses_processed{};
           std::vector<QueryOffer> result;
-          for (size_t i = 0; i < peers.size(); ++i) {
+          for (const auto &peer : peers) {
             OUTCOME_CB1(retrieval_market_client->query(
-                peers[i],
+                peer,
                 {root_cid, {piece_cid}},
-                [=, peer{peers[i]}, &mutex, &cv, &responses_processed, &result](
+                [=, &mutex, &cv, &responses_processed, &result](
                     const outcome::result<QueryResponse> &maybe_response) {
                   if (maybe_response.has_error()) {
                     logger->error("Error in ClientRetrieve {}",

@@ -8,7 +8,7 @@
 #include "api/node_api.hpp"
 #include "blockchain/weight_calculator.hpp"
 #include "fwd.hpp"
-#include "markets/discovery/impl/discovery_impl.hpp"
+#include "markets/discovery/discovery.hpp"
 #include "markets/retrieval/client/retrieval_client.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "storage/chain/msg_waiter.hpp"

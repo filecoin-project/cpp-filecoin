@@ -30,90 +30,11 @@
 #define DECODE(type) static void decode(type &v, const Value &j)
 
 namespace fc::codec::cbor {
-  using api::ChannelId;
-  using api::DatatransferChannel;
-  using api::StorageMarketDealInfo;
-  using fc::api::FileRef;
-  using fc::api::RetrievalOrder;
-  using fc::api::RetrievalPeer;
   using markets::storage::StorageDealStatus;
-
-  template <>
-  inline FileRef kDefaultT<FileRef>() {
-    return {"", false};
-  }
-
-  template <>
-  inline RetrievalPeer kDefaultT<RetrievalPeer>() {
-    return {{}, kDefaultT<PeerId>(), boost::none};
-  }
-
-  template <>
-  inline RetrievalOrder kDefaultT<RetrievalOrder>() {
-    return {{},
-            boost::none,
-            {},
-            boost::none,
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            kDefaultT<RetrievalPeer>()};
-  }
-
-  template <>
-  inline std::tuple<RetrievalOrder, FileRef>
-  kDefaultT<std::tuple<RetrievalOrder, FileRef>>() {
-    return std::make_tuple(kDefaultT<RetrievalOrder>(), kDefaultT<FileRef>());
-  }
-
-  template <>
-  inline fc::api::QueryOffer kDefaultT<fc::api::QueryOffer>() {
-    return {{},
-            {},
-            boost::none,
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            kDefaultT<RetrievalPeer>()};
-  }
-
-  template <>
-  inline ChannelId kDefaultT<ChannelId>() {
-    return {kDefaultT<PeerId>(), kDefaultT<PeerId>(), {}};
-  }
-
-  template <>
-  inline DatatransferChannel kDefaultT<DatatransferChannel>() {
-    return {{}, {}, {}, {}, {}, {}, {}, kDefaultT<PeerId>(), {}};
-  }
 
   template <>
   inline StorageDealStatus kDefaultT<StorageDealStatus>() {
     return StorageDealStatus::STORAGE_DEAL_UNKNOWN;
-  }
-
-  template <>
-  inline StorageMarketDealInfo kDefaultT<StorageMarketDealInfo>() {
-    return {{},
-            kDefaultT<StorageDealStatus>(),
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            kDefaultT<ChannelId>(),
-            kDefaultT<DatatransferChannel>()};
   }
 
 }  // namespace fc::codec::cbor

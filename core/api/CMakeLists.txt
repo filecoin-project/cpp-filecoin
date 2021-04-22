@@ -13,6 +13,7 @@ target_link_libraries(api
     cid
     const
     interpreter
+    logger
     message
     miner_types
     msg_waiter
