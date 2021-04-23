@@ -5,7 +5,7 @@
 
 #include "sector_storage/stores/store_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreErrors, e) {
+OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreError, e) {
   using fc::sector_storage::stores::StoreError;
   switch (e) {
     case (StoreError::kFindAndAllocate):
