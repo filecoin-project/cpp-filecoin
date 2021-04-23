@@ -5,6 +5,13 @@
 
 add_subdirectory(math)
 
+addtest(async_test
+    async_test.cpp
+    )
+target_link_libraries(async_test
+    outcome
+    )
+
 addtest(bitsutil_test
     bitsutil_test.cpp
     )
@@ -40,11 +47,11 @@ target_link_libraries(outcome_test
     )
 
 addtest(tarutil_test
-        tarutil_test.cpp
-        )
+    tarutil_test.cpp
+    )
 target_link_libraries(tarutil_test
-        tarutil
-        base_fs_test
-        buffer
-        file
-        )
+    tarutil
+    base_fs_test
+    buffer
+    file
+    )

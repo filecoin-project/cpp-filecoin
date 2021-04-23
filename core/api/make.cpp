@@ -370,21 +370,14 @@ namespace fc::api {
                         peers.end());
           }
 
-          std::mutex mutex;
-          std::condition_variable cv;
-          size_t responses_processed{};
-          std::vector<QueryOffer> result;
-          for (const auto &peer : peers) {
-            OUTCOME_CB1(retrieval_market_client->query(
-                peer,
-                {root_cid, {piece_cid}},
-                [=, &mutex, &cv, &responses_processed, &result](
-                    const outcome::result<QueryResponse> &maybe_response) {
+          auto waiter = std::make_shared<
+              AsyncWaiter<RetrievalPeer, outcome::result<QueryResponse>>>(
+              peers.size(), [=](auto all_calls) {
+                std::vector<QueryOffer> result;
+                for (const auto &[peer, maybe_response] : all_calls) {
                   if (maybe_response.has_error()) {
                     logger->error("Error when query peer {}",
                                   maybe_response.error().message());
-                    std::lock_guard lock{mutex};
-                    ++responses_processed;
                   } else {
                     auto response{maybe_response.value()};
                     std::string error_message;
@@ -405,7 +398,6 @@ namespace fc::api {
                         break;
                     }
 
-                    std::lock_guard lock{mutex};
                     result.emplace_back(QueryOffer{
                         error_message,
                         root_cid,
@@ -418,16 +410,14 @@ namespace fc::api {
                         response.interval_increase,
                         response.payment_address,
                         peer});
-                    ++responses_processed;
                   }
-                  cv.notify_one();
-                }));
+                }
+                cb(result);
+              });
+          for (const auto &peer : peers) {
+            OUTCOME_CB1(retrieval_market_client->query(
+                peer, {root_cid, {piece_cid}}, waiter->on(peer)));
           }
-          std::unique_lock lock(mutex);
-          cv.wait(lock, [total_requests{peers.size()}, &responses_processed] {
-            return total_requests == responses_processed;
-          });
-          cb(result);
         });
 
     // TODO(turuslan): FIL-165 implement method
