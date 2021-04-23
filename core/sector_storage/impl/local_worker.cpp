@@ -314,7 +314,7 @@ namespace fc::sector_storage {
 
       if (maybe_response.has_error()) {
         if (maybe_response
-            != outcome::failure(stores::StoreErrors::kNotFoundSector)) {
+            != outcome::failure(stores::StoreError::kNotFoundSector)) {
           return maybe_response.error();
         }
         OUTCOME_TRYA(unseal_response,

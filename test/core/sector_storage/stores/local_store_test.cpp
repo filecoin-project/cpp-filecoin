@@ -120,7 +120,7 @@ namespace fc::sector_storage::stores {
     auto file_type_existing = static_cast<SectorFileType>(
         SectorFileType::FTCache | SectorFileType::FTSealed);
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kFindAndAllocate,
+    EXPECT_OUTCOME_ERROR(StoreError::kFindAndAllocate,
                          local_store_->acquireSector(sector,
                                                      seal_proof_type_,
                                                      file_type_existing,
@@ -153,7 +153,7 @@ namespace fc::sector_storage::stores {
         storageBestAlloc(SectorFileType::FTCache, seal_proof_type_, false))
         .WillOnce(testing::Return(outcome::success(res)));
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kNotFoundPath,
+    EXPECT_OUTCOME_ERROR(StoreError::kNotFoundPath,
                          local_store_->acquireSector(sector,
                                                      seal_proof_type_,
                                                      SectorFileType::FTNone,
@@ -296,7 +296,7 @@ namespace fc::sector_storage::stores {
    * @then StoreErrors::NotFoundStorage error occurs
    */
   TEST_F(LocalStoreTest, getFSStatNotFound) {
-    EXPECT_OUTCOME_ERROR(StoreErrors::kNotFoundStorage,
+    EXPECT_OUTCOME_ERROR(StoreError::kNotFoundStorage,
                          local_store_->getFsStat("not_found_id"));
   }
 
@@ -456,7 +456,7 @@ namespace fc::sector_storage::stores {
                     stat))
         .WillOnce(testing::Return(outcome::success()));
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kInvalidSectorName,
+    EXPECT_OUTCOME_ERROR(StoreError::kInvalidSectorName,
                          local_store_->openPath(storage_path.string()));
   }
 
@@ -485,7 +485,7 @@ namespace fc::sector_storage::stores {
 
     createStorage(storage_path, storage_meta, stat);
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kDuplicateStorage,
+    EXPECT_OUTCOME_ERROR(StoreError::kDuplicateStorage,
                          local_store_->openPath(storage_path));
   }
 
@@ -539,10 +539,10 @@ namespace fc::sector_storage::stores {
     auto type = static_cast<SectorFileType>(SectorFileType::FTCache
                                             | SectorFileType::FTUnsealed);
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kRemoveSeveralFileTypes,
+    EXPECT_OUTCOME_ERROR(StoreError::kRemoveSeveralFileTypes,
                          local_store_->remove(sector, type));
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kRemoveSeveralFileTypes,
+    EXPECT_OUTCOME_ERROR(StoreError::kRemoveSeveralFileTypes,
                          local_store_->remove(sector, SectorFileType::FTNone));
   }
 
@@ -815,11 +815,11 @@ namespace fc::sector_storage::stores {
     auto type = static_cast<SectorFileType>(SectorFileType::FTCache
                                             | SectorFileType::FTUnsealed);
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kRemoveSeveralFileTypes,
+    EXPECT_OUTCOME_ERROR(StoreError::kRemoveSeveralFileTypes,
                          local_store_->removeCopies(sector, type));
 
     EXPECT_OUTCOME_ERROR(
-        StoreErrors::kRemoveSeveralFileTypes,
+        StoreError::kRemoveSeveralFileTypes,
         local_store_->removeCopies(sector, SectorFileType::FTNone));
   }
 
@@ -1217,6 +1217,19 @@ namespace fc::sector_storage::stores {
     ASSERT_EQ(before_reserve, after_release);
     ASSERT_EQ(after_reserve.reserved,
               before_reserve.available - after_reserve.available);
+  }
+
+  /**
+   * @given storage, index, urls, scheduler
+   * @when try to create store, but storage doesn't have config
+   * @then error kConfigFileNotExist occurs
+   */
+  TEST_F(LocalStoreTest, noExistConfig) {
+    EXPECT_CALL(*storage_, getStorage())
+        .WillOnce(testing::Return(outcome::success(boost::none)));
+    EXPECT_OUTCOME_ERROR(
+        StoreError::kConfigFileNotExist,
+        LocalStoreImpl::newLocalStore(storage_, index_, urls_, scheduler_));
   }
 
 }  // namespace fc::sector_storage::stores

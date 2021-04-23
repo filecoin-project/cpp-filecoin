@@ -10,8 +10,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StorageError, e) {
   switch (e) {
     case (StorageError::kFileNotExist):
       return "Storage: the file doesn't exist";
-    case (StorageError::kConfigFileNotExist):
-      return "Storage: config file doesn't exist";
     case StorageError::kFilesystemStatError:
       return "RepositoryError: cannot get statistic about proposed file";
     default:

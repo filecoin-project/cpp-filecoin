@@ -975,7 +975,7 @@ namespace fc::sector_storage {
                               PathType::kStorage,
                               AcquireMode::kCopy))
         .WillOnce(testing::Return(
-            outcome::failure(stores::StoreErrors::kNotFoundSector)));
+            outcome::failure(stores::StoreError::kNotFoundSector)));
 
     EXPECT_CALL(*sector_index_,
                 storageDeclareSector(unseal_storages.unsealed,
@@ -1688,7 +1688,7 @@ namespace fc::sector_storage {
         .WillOnce(testing::Return(outcome::success()));
     EXPECT_CALL(*store_, remove(sector, SectorFileType::FTCache))
         .WillOnce(testing::Return(
-            outcome::failure(stores::StoreErrors::kNotFoundSector)));
+            outcome::failure(stores::StoreError::kNotFoundSector)));
 
     EXPECT_OUTCOME_ERROR(WorkerErrors::kCannotRemoveSector,
                          local_worker_->remove(sector));

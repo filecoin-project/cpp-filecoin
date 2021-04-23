@@ -22,7 +22,7 @@ namespace fc::sector_storage::stores {
       fs::create_directories(temp_dir, ec);
       if (ec.failed()) {
         // TODO: log error
-        return StoreErrors::kCannotCreateDir;
+        return StoreError::kCannotCreateDir;
       }
     }
     return (temp_dir / dest_path.filename()).string();

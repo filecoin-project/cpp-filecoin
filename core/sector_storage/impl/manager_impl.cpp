@@ -124,7 +124,7 @@ namespace fc::sector_storage {
 
       if (maybe_response.has_error()) {
         if (maybe_response
-            == outcome::failure(stores::StoreErrors::kNotFoundSector)) {
+            == outcome::failure(stores::StoreError::kNotFoundSector)) {
           logger_->warn("cache an/or sealed paths not found for {} sector",
                         sectorName(sector));
           bad.push_back(sector);
