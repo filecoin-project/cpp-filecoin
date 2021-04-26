@@ -14,6 +14,11 @@ namespace fc::api {
     ApiVersion api_version;
     /** Block delay in seconds */
     uint64_t block_delay;
+
+    inline bool operator==(const VersionResult &other) const {
+      return version == other.version && api_version == other.api_version
+             && block_delay == other.block_delay;
+    }
   };
 
   /**

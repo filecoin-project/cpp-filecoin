@@ -153,7 +153,8 @@ namespace fc {
     api::FullNodeApi api;
     api::rpc::Client wsc{*io_thread.io};
     wsc.setup(api);
-    OUTCOME_TRY(wsc.connect(config.node_api.first, config.node_api.second));
+    OUTCOME_TRY(
+        wsc.connect(config.node_api.first, "/rpc/v0", config.node_api.second));
 
     Buffer _peer_id{peer_id.toVector()};
     if (!kv.contains(kActor)) {
@@ -294,7 +295,8 @@ namespace fc {
     auto napi{std::make_shared<api::FullNodeApi>()};
     api::rpc::Client wsc{*io};
     wsc.setup(*napi);
-    OUTCOME_TRY(wsc.connect(config.node_api.first, config.node_api.second));
+    OUTCOME_TRY(
+        wsc.connect(config.node_api.first, "/rpc/v0", config.node_api.second));
     OUTCOME_TRY(minfo, napi->StateMinerInfo(*config.actor, {}));
 
     host->start();

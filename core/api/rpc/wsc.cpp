@@ -26,6 +26,7 @@ namespace fc::api::rpc {
   }
 
   outcome::result<void> Client::connect(const Multiaddress &address,
+                                        const std::string &target,
                                         const std::string &token) {
     OUTCOME_TRY(
         ip,
@@ -44,7 +45,7 @@ namespace fc::api::rpc {
         boost::beast::websocket::stream_base::decorator([&](auto &req) {
           req.set(boost::beast::http::field::authorization, "Bearer " + token);
         }));
-    socket.handshake(ip, "/rpc/v0", ec);
+    socket.handshake(ip, target, ec);
     if (ec) {
       return ec;
     }

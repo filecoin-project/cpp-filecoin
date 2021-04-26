@@ -32,6 +32,7 @@ namespace fc::api::rpc {
     Client(io_context &io2);
     ~Client();
     outcome::result<void> connect(const Multiaddress &address,
+                                  const std::string &target,
                                   const std::string &token);
     void call(Request &&req, ResultCb &&cb);
     void _chan(uint64_t id, ChanCb &&cb);

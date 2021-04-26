@@ -100,7 +100,9 @@ namespace fc::node {
 
     // high level objects
     std::shared_ptr<sync::ChainStoreImpl> chain_store;
-    std::shared_ptr<api::FullNodeApiV1Wrapper> api_v0;
+    // Full node API v1.x.x
+    std::shared_ptr<api::FullNodeApiV1Wrapper> api_v1;
+    // Full node API v2.x.x (latest)
     std::shared_ptr<api::FullNodeApi> api;
   };
 

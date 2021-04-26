@@ -192,14 +192,14 @@ namespace fc {
       return node_objects.storage_market_import_manager->list();
     };
 
-    node_objects.api_v0 = makeFullNodeApiV1Wrapper();
-    auto rpc_v0{api::makeRpc(*node_objects.api)};
-    wrapRpc(rpc_v0, *node_objects.api_v0);
+    node_objects.api_v1 = makeFullNodeApiV1Wrapper();
+    auto rpc_v1{api::makeRpc(*node_objects.api)};
+    wrapRpc(rpc_v1, *node_objects.api_v1);
 
     auto rpc{api::makeRpc(*node_objects.api)};
 
     std::map<std::string, std::shared_ptr<api::Rpc>> rpcs;
-    rpcs.emplace("/rpc/v0", rpc_v0);
+    rpcs.emplace("/rpc/v0", rpc_v1);
     rpcs.emplace("/rpc/v1", rpc);
 
     auto routes{std::make_shared<api::Routes>()};

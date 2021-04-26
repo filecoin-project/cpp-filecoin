@@ -172,7 +172,7 @@ namespace fc::api {
 
       if (websocket::is_upgrade(request)) {
         for (const auto &api : rpc) {
-          // API version is specified in request (e.g. 'rpc/v0')
+          // API version is specified in request (e.g. '/rpc/v0')
           if (request.target().starts_with(api.first)) {
             std::make_shared<SocketSession>(stream.release_socket(),
                                             *api.second)
