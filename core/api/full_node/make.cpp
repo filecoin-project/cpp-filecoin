@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/make.hpp"
+#include "api/full_node/make.hpp"
 
 #include <boost/algorithm/string.hpp>
 #include <condition_variable>
@@ -951,7 +951,7 @@ namespace fc::api {
       return outcome::success();
     }};
     api->Version = {[]() {
-      return VersionResult{"fuhon", makeApiVersion(1, 0, 0), 5};
+      return VersionResult{"fuhon", makeApiVersion(2, 0, 0), 5};
     }};
     api->WalletBalance = {[=](auto &address) -> outcome::result<TokenAmount> {
       OUTCOME_TRY(context, tipsetContext({}));

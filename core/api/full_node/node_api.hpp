@@ -265,7 +265,8 @@ namespace fc::api {
   constexpr uint64_t kNoConfidence{};
 
   /**
-   * FullNode API is a low-level interface to the Filecoin network full node
+   * FullNode API is a low-level interface to the Filecoin network full node.
+   * Provides the latest node API v2.0.0
    */
   struct FullNodeApi : public CommonApi {
     API_METHOD(BeaconGetEntry, Wait<BeaconEntry>, ChainEpoch)

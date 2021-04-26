@@ -46,7 +46,7 @@ namespace fc::api {
       const http::request<http::dynamic_body> &request)>;
   using Routes = std::map<std::string, RouteHandler, std::greater<>>;
 
-  void serve(std::shared_ptr<rpc::Rpc> rpc,
+  void serve(std::map<std::string, std::shared_ptr<rpc::Rpc>> rpc,
              std::shared_ptr<Routes> routes,
              boost::asio::io_context &ioc,
              std::string_view ip,

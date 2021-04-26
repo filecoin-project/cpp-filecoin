@@ -8,7 +8,7 @@
 #include <rapidjson/document.h>
 #include <cppcodec/base64_rfc4648.hpp>
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "api/rpc/json_errors.hpp"
 #include "api/rpc/rpc.hpp"
 #include "api/storage_api.hpp"

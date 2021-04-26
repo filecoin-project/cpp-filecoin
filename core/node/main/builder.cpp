@@ -22,7 +22,7 @@
 #include <libp2p/protocol/kademlia/impl/storage_impl.hpp>
 #include <libp2p/protocol/kademlia/impl/validator_default.hpp>
 
-#include "api/make.hpp"
+#include "api/full_node/make.hpp"
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"

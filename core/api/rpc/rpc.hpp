@@ -54,7 +54,7 @@ namespace fc::api::rpc {
     std::map<std::string, Method> ms;
 
     inline void setup(const std::string &name, Method &&method) {
-      ms.emplace(name, std::move(method));
+      ms[name] = std::move(method);
     }
   };
 }  // namespace fc::api::rpc

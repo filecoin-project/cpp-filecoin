@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/make.hpp"
+#include "api/full_node/make.hpp"
 
 #include <boost/algorithm/string.hpp>
 

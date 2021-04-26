@@ -10,7 +10,7 @@
 #include <mutex>
 
 #include <boost/optional.hpp>
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/outcome.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "primitives/address/address.hpp"

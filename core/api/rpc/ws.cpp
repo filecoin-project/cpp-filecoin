@@ -11,6 +11,7 @@
 #include <boost/asio/dispatch.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
+#include <utility>
 
 #include "api/rpc/json.hpp"
 #include "api/rpc/make.hpp"
@@ -139,7 +140,7 @@ namespace fc::api {
 
   struct HttpSession : public std::enable_shared_from_this<HttpSession> {
     HttpSession(tcp::socket &&socket,
-                std::shared_ptr<Rpc> rpc,
+                std::map<std::string, std::shared_ptr<Rpc>> rpc,
                 std::shared_ptr<Routes> routes)
         : stream(std::move(socket)),
           routes(std::move(routes)),
@@ -172,8 +173,17 @@ namespace fc::api {
       }
 
       if (websocket::is_upgrade(request)) {
-        std::make_shared<SocketSession>(stream.release_socket(), *rpc)
-            ->doAccept(std::move(request));
+        for (const auto &api : rpc) {
+          // API version is specified in request (e.g. 'rpc/v0')
+          if (request.target().starts_with(api.first)) {
+            std::make_shared<SocketSession>(stream.release_socket(),
+                                            *api.second)
+                ->doAccept(std::move(request));
+            return;
+          }
+        }
+        logger->error("API version for '" + request.target().to_string()
+                      + "' not found.");
         return;
       }
 
@@ -247,12 +257,12 @@ namespace fc::api {
     http::request<http::dynamic_body> request;
     WrapperResponse w_response;
     std::shared_ptr<Routes> routes;
-    std::shared_ptr<Rpc> rpc;
+    std::map<std::string, std::shared_ptr<Rpc>> rpc;
   };
 
   struct Server : std::enable_shared_from_this<Server> {
     Server(tcp::acceptor &&acceptor,
-           std::shared_ptr<Rpc> rpc,
+           std::map<std::string, std::shared_ptr<Rpc>> rpc,
            std::shared_ptr<Routes> routes)
         : acceptor{std::move(acceptor)},
           rpc{std::move(rpc)},
@@ -274,11 +284,16 @@ namespace fc::api {
     }
 
     tcp::acceptor acceptor;
-    std::shared_ptr<Rpc> rpc;
+    /** API version -> API mapping */
+    std::map<std::string, std::shared_ptr<Rpc>> rpc;
     std::shared_ptr<Routes> routes;
   };
 
-  void serve(std::shared_ptr<Rpc> rpc,
+  /**
+   * Creates and runs Server.
+   * @param rpc - APIs to serve
+   */
+  void serve(std::map<std::string, std::shared_ptr<Rpc>> rpc,
              std::shared_ptr<Routes> routes,
              boost::asio::io_context &ioc,
              std::string_view ip,

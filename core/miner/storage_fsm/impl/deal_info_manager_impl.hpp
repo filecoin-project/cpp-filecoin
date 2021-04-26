@@ -7,7 +7,7 @@
 
 #include "miner/storage_fsm/deal_info_manager.hpp"
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/logger.hpp"
 
 namespace fc::mining {

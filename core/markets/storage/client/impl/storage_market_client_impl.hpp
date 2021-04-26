@@ -8,7 +8,7 @@
 #include <libp2p/host/host.hpp>
 #include <mutex>
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
 #include "fsm/fsm.hpp"

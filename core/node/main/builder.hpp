@@ -8,6 +8,7 @@
 #include <boost/asio.hpp>
 #include <memory>
 
+#include "api/full_node/node_api_v1_wrapper.hpp"
 #include "common/outcome.hpp"
 #include "data_transfer/dt.hpp"
 #include "fwd.hpp"
@@ -26,6 +27,7 @@
 #include "vm/runtime/env_context.hpp"
 
 namespace fc::node {
+  using api::FullNodeApiV1Wrapper;
   using data_transfer::DataTransfer;
   using libp2p::protocol::Scheduler;
   using markets::discovery::Discovery;
@@ -98,6 +100,7 @@ namespace fc::node {
 
     // high level objects
     std::shared_ptr<sync::ChainStoreImpl> chain_store;
+    std::shared_ptr<api::FullNodeApiV1Wrapper> api_v0;
     std::shared_ptr<api::FullNodeApi> api;
   };
 

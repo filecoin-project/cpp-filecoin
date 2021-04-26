@@ -8,7 +8,7 @@
 #include <memory>
 
 #include <libp2p/host/host.hpp>
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"

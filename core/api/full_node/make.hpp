@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "blockchain/weight_calculator.hpp"
 #include "fwd.hpp"
 #include "markets/discovery/discovery.hpp"

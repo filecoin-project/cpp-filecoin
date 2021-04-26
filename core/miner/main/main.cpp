@@ -10,7 +10,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <libp2p/injector/host_injector.hpp>
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
@@ -514,7 +514,8 @@ namespace fc {
       return manager->addWorker(std::move(worker));
     };
 
-    auto mrpc{api::makeRpc(*mapi)};
+    std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
+    mrpc.emplace("v0", api::makeRpc(*mapi));
     auto mroutes{std::make_shared<api::Routes>()};
 
     mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});

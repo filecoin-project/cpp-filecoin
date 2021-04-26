@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_STORAGE_IPFS_API_IPFS_DATASTORE_API_IPFS_DATASTORE_HPP
 #define CPP_FILECOIN_STORAGE_IPFS_API_IPFS_DATASTORE_API_IPFS_DATASTORE_HPP
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::ipfs {

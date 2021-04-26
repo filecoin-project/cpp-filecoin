@@ -5,6 +5,7 @@
 
 #include <iostream>
 
+#include "api/full_node/node_api_v1_wrapper.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
@@ -30,6 +31,7 @@
 namespace fc {
   using api::Import;
   using api::ImportRes;
+  using api::makeFullNodeApiV1Wrapper;
   using api::StorageMarketDealInfo;
   using markets::storage::StorageProviderInfo;
   using node::Metrics;
@@ -190,7 +192,16 @@ namespace fc {
       return node_objects.storage_market_import_manager->list();
     };
 
+    node_objects.api_v0 = makeFullNodeApiV1Wrapper();
+    auto rpc_v0{api::makeRpc(*node_objects.api)};
+    wrapRpc(rpc_v0, *node_objects.api_v0);
+
     auto rpc{api::makeRpc(*node_objects.api)};
+
+    std::map<std::string, std::shared_ptr<api::Rpc>> rpcs;
+    rpcs.emplace("/rpc/v0", rpc_v0);
+    rpcs.emplace("/rpc/v1", rpc);
+
     auto routes{std::make_shared<api::Routes>()};
 
     auto text_route{[](auto f) -> api::RouteHandler {
@@ -206,7 +217,7 @@ namespace fc {
                     text_route([&] { return metrics.prometheus(); }));
 
     api::serve(
-        rpc, routes, *node_objects.io_context, "127.0.0.1", config.api_port);
+        rpcs, routes, *node_objects.io_context, "127.0.0.1", config.api_port);
     api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
     log()->info("API started at ws://127.0.0.1:{}", config.api_port);
   }

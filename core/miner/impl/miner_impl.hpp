@@ -8,7 +8,7 @@
 #include <boost/asio.hpp>
 #include "miner/miner.hpp"
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/outcome.hpp"
 #include "miner/storage_fsm/sealing.hpp"
 #include "primitives/address/address.hpp"
