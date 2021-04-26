@@ -6,6 +6,7 @@
 #include "storage/in_memory/in_memory_storage.hpp"
 
 #include "storage/in_memory/in_memory_batch.hpp"
+#include "storage/in_memory/in_memory_cursor.hpp"
 
 using fc::common::Buffer;
 
@@ -44,8 +45,7 @@ namespace fc::storage {
     return std::make_unique<InMemoryBatch>(*this);
   }
 
-  std::unique_ptr<fc::storage::face::MapCursor<Buffer, Buffer>>
-  InMemoryStorage::cursor() {
-    return nullptr;
+  std::unique_ptr<BufferMapCursor> InMemoryStorage::cursor() {
+    return std::make_unique<InMemoryCursor>(shared_from_this());
   }
-}
+}  // namespace fc::storage

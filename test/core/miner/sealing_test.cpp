@@ -47,6 +47,8 @@ namespace fc::mining {
   using storage::InMemoryStorage;
   using testing::_;
   using types::kDealSectorPriority;
+  using types::Piece;
+  using types::SectorInfo;
   using vm::actor::Actor;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::SectorOnChainInfo;
@@ -68,6 +70,23 @@ namespace fc::mining {
       miner_addr_ = Address::makeFromId(miner_id_);
       counter_ = std::make_shared<CounterMock>();
       kv_ = std::make_shared<InMemoryStorage>();
+
+      update_sector_id_ = 2;
+      SectorInfo info;
+      info.sector_number = update_sector_id_;
+      info.state = SealingState::kProving;
+      info.pieces = {Piece{
+          .piece =
+              PieceInfo{
+                  .cid = "010001020011"_cid,
+                  .size = PaddedPieceSize(2048),
+              },
+          .deal_info = boost::none,
+      }};
+      EXPECT_OUTCOME_TRUE(buf, codec::cbor::encode(info));
+      Buffer key;
+      key.put("empty_sector");
+      EXPECT_OUTCOME_TRUE_1(kv_->put(key, buf));
 
       proofs_ = std::make_shared<proofs::ProofEngineMock>();
 
@@ -109,6 +128,7 @@ namespace fc::mining {
       context_->stop();
     }
 
+    uint64_t update_sector_id_;
     RegisteredSealProof seal_proof_type_;
 
     PaddedPieceSize sector_size_;
@@ -535,9 +555,31 @@ namespace fc::mining {
   }
 
   /**
+   * @given sector with blank piece
+   * @when try to mark for upgrade
+   * @then success
+   */
+  TEST_F(SealingTest, MarkForUpgrade) {
+    EXPECT_EQ(sealing_->isMarkedForUpgrade(update_sector_id_), false);
+    EXPECT_OUTCOME_TRUE_1(sealing_->markForUpgrade(update_sector_id_));
+    EXPECT_EQ(sealing_->isMarkedForUpgrade(update_sector_id_), true);
+  }
+  /**
+   * @given merked sector
+   * @when try to mark for upgrade
+   * @then SealingError::kAlreadyUpgradeMarked occurs
+   */
+  TEST_F(SealingTest, MarkForUpgradeAlreadyMarked) {
+    EXPECT_OUTCOME_TRUE_1(sealing_->markForUpgrade(update_sector_id_));
+    EXPECT_EQ(sealing_->isMarkedForUpgrade(update_sector_id_), true);
+    EXPECT_OUTCOME_ERROR(SealingError::kAlreadyUpgradeMarked,
+                         sealing_->markForUpgrade(update_sector_id_));
+  }
+
+  /**
    * @given sector in sealing
    * @when try to get List of sectors
-   * @then list size is 1
+   * @then list size is 2
    */
   TEST_F(SealingTest, ListOfSectors) {
     UnpaddedPieceSize piece_size(127);
@@ -584,7 +626,7 @@ namespace fc::mining {
         sealing_->addPieceToAnySector(piece_size, piece, deal));
 
     auto sectors = sealing_->getListSectors();
-    ASSERT_EQ(sectors.size(), 1);
+    ASSERT_EQ(sectors.size(), 2);
   }
 
   /**
