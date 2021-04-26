@@ -4,9 +4,11 @@
 #
 
 add_library(discovery
-    discovery.cpp
+    impl/discovery_impl.cpp
     )
 target_link_libraries(discovery
+    address
     cbor
+    cbor_stream
     outcome
     )

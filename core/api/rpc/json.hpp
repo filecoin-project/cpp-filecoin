@@ -30,47 +30,11 @@
 #define DECODE(type) static void decode(type &v, const Value &j)
 
 namespace fc::codec::cbor {
-  using api::ChannelId;
-  using api::DatatransferChannel;
-  using api::StorageMarketDealInfo;
   using markets::storage::StorageDealStatus;
-
-  template <>
-  inline fc::api::QueryOffer kDefaultT<fc::api::QueryOffer>() {
-    return {{}, {}, {}, {}, {}, {}, {}, kDefaultT<PeerId>()};
-  }
-
-  template <>
-  inline ChannelId kDefaultT<ChannelId>() {
-    return {kDefaultT<PeerId>(), kDefaultT<PeerId>(), {}};
-  }
-
-  template <>
-  inline DatatransferChannel kDefaultT<DatatransferChannel>() {
-    return {{}, {}, {}, {}, {}, {}, {}, kDefaultT<PeerId>(), {}};
-  }
 
   template <>
   inline StorageDealStatus kDefaultT<StorageDealStatus>() {
     return StorageDealStatus::STORAGE_DEAL_UNKNOWN;
-  }
-
-  template <>
-  inline StorageMarketDealInfo kDefaultT<StorageMarketDealInfo>() {
-    return {{},
-            kDefaultT<StorageDealStatus>(),
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            {},
-            kDefaultT<ChannelId>(),
-            kDefaultT<DatatransferChannel>()};
   }
 
 }  // namespace fc::codec::cbor
@@ -1601,8 +1565,10 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Err", v.error);
       Set(j, "Root", v.root);
+      Set(j, "Piece", v.piece);
       Set(j, "Size", v.size);
       Set(j, "MinPrice", v.min_price);
+      Set(j, "UnsealPrice", v.unseal_price);
       Set(j, "PaymentInterval", v.payment_interval);
       Set(j, "PaymentIntervalIncrease", v.payment_interval_increase);
       Set(j, "Miner", v.miner);
@@ -1613,8 +1579,10 @@ namespace fc::api {
     DECODE(QueryOffer) {
       Get(j, "Err", v.error);
       Get(j, "Root", v.root);
+      Get(j, "Piece", v.piece);
       Get(j, "Size", v.size);
       Get(j, "MinPrice", v.min_price);
+      Get(j, "UnsealPrice", v.unseal_price);
       Get(j, "PaymentInterval", v.payment_interval);
       Get(j, "PaymentIntervalIncrease", v.payment_interval_increase);
       Get(j, "Miner", v.miner);
@@ -1723,13 +1691,30 @@ namespace fc::api {
       decode(v.import_id, Get(j, "ImportID"));
     }
 
+    ENCODE(RetrievalPeer) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Address", v.address);
+      Set(j, "ID", v.peer_id);
+      Set(j, "PieceCID", v.piece);
+      return j;
+    }
+
+    DECODE(RetrievalPeer) {
+      decode(v.address, Get(j, "Address"));
+      decode(v.peer_id, Get(j, "ID"));
+      decode(v.piece, Get(j, "PieceCID"));
+    }
+
     ENCODE(RetrievalOrder) {
       Value j{rapidjson::kObjectType};
       Set(j, "Root", v.root);
+      Set(j, "Piece", v.piece);
       Set(j, "Size", v.size);
+      Set(j, "LocalStore", v.local_store);
       Set(j, "Total", v.total);
-      Set(j, "PaymentInterval", v.interval);
-      Set(j, "PaymentIntervalIncrease", v.interval_inc);
+      Set(j, "UnsealPrice", v.unseal_price);
+      Set(j, "PaymentInterval", v.payment_interval);
+      Set(j, "PaymentIntervalIncrease", v.payment_interval_increase);
       Set(j, "Client", v.client);
       Set(j, "Miner", v.miner);
       Set(j, "MinerPeerID", v.peer);
@@ -1738,10 +1723,13 @@ namespace fc::api {
 
     DECODE(RetrievalOrder) {
       decode(v.root, Get(j, "Root"));
+      decode(v.piece, Get(j, "Piece"));
       decode(v.size, Get(j, "Size"));
+      decode(v.local_store, Get(j, "LocalStore"));
       decode(v.total, Get(j, "Total"));
-      decode(v.interval, Get(j, "PaymentInterval"));
-      decode(v.interval_inc, Get(j, "PaymentIntervalIncrease"));
+      decode(v.unseal_price, Get(j, "UnsealPrice"));
+      decode(v.payment_interval, Get(j, "PaymentInterval"));
+      decode(v.payment_interval_increase, Get(j, "PaymentIntervalIncrease"));
       decode(v.client, Get(j, "Client"));
       decode(v.miner, Get(j, "Miner"));
       decode(v.peer, Get(j, "MinerPeerID"));

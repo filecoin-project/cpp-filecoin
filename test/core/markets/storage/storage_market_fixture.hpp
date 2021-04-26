@@ -449,7 +449,7 @@ namespace fc::markets::storage::test {
           context,
           import_manager,
           datatransfer,
-          std::make_shared<markets::discovery::Discovery>(datastore),
+          std::make_shared<markets::discovery::DiscoveryImpl>(datastore),
           api,
           chain_events_,
           piece_io_);

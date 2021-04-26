@@ -10,6 +10,7 @@
 #include "const.hpp"
 #include "data_transfer/types.hpp"
 #include "drand/messages.hpp"
+#include "markets/retrieval/types.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/deal_protocol.hpp"
@@ -32,6 +33,7 @@ namespace fc::api {
   using data_transfer::TransferId;
   using drand::BeaconEntry;
   using libp2p::peer::PeerId;
+  using markets::retrieval::RetrievalPeer;
   using markets::storage::DataRef;
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
@@ -91,8 +93,8 @@ namespace fc::api {
 
   /** Unique identifier for a channel */
   struct ChannelId {
-    PeerId initiator;
-    PeerId responder;
+    PeerId initiator{codec::cbor::kDefaultT<PeerId>()};
+    PeerId responder{codec::cbor::kDefaultT<PeerId>()};
     TransferId id;
   };
 
@@ -104,7 +106,7 @@ namespace fc::api {
     bool is_sender;
     std::string voucher;
     std::string message;
-    PeerId other_peer;
+    PeerId other_peer{codec::cbor::kDefaultT<PeerId>()};
     uint64_t transferred;
   };
 
@@ -141,13 +143,17 @@ namespace fc::api {
 
   struct RetrievalOrder {
     CID root;
+    boost::optional<CID> piece;
     uint64_t size;
+    /** StoreId of multistore (not implemented in Fuhon) */
+    boost::optional<uint64_t> local_store;
     TokenAmount total;
-    uint64_t interval;
-    uint64_t interval_inc;
+    TokenAmount unseal_price;
+    uint64_t payment_interval;
+    uint64_t payment_interval_increase;
     Address client;
     Address miner;
-    PeerId peer{codec::cbor::kDefaultT<PeerId>()};
+    RetrievalPeer peer;
   };
 
   struct StartDealParams {
@@ -169,12 +175,14 @@ namespace fc::api {
   struct QueryOffer {
     std::string error;
     CID root;
+    boost::optional<CID> piece;
     uint64_t size;
     TokenAmount min_price;
+    TokenAmount unseal_price;
     uint64_t payment_interval;
     uint64_t payment_interval_increase;
     Address miner;
-    PeerId peer;
+    RetrievalPeer peer;
   };
 
   struct AddChannelInfo {
@@ -292,7 +300,16 @@ namespace fc::api {
     API_METHOD(ChainSetHead, void, const TipsetKey &)
     API_METHOD(ChainTipSetWeight, TipsetWeight, const TipsetKey &)
 
-    API_METHOD(ClientFindData, Wait<std::vector<QueryOffer>>, const CID &)
+    /**
+     * Identifies peers that have a certain file, and returns QueryOffers for
+     * each peer.
+     * @param data root cid
+     * @param optional piece cid
+     */
+    API_METHOD(ClientFindData,
+               Wait<std::vector<QueryOffer>>,
+               const CID &,
+               const boost::optional<CID> &)
     API_METHOD(ClientHasLocal, bool, const CID &)
 
     /**
