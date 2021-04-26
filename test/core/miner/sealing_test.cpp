@@ -78,8 +78,8 @@ namespace fc::mining {
       info.pieces = {Piece{
           .piece =
               PieceInfo{
-                  .cid = "010001020011"_cid,
                   .size = PaddedPieceSize(2048),
+                  .cid = "010001020011"_cid,
               },
           .deal_info = boost::none,
       }};
