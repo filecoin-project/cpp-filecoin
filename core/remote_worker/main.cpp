@@ -260,7 +260,7 @@ namespace fc {
     };
 
     std::map<std::string, std::shared_ptr<api::Rpc>> wrpc;
-    wrpc.emplace("v0", api::makeRpc(*wapi));
+    wrpc.emplace("/rpc/v0", api::makeRpc(*wapi));
     auto wroutes{std::make_shared<api::Routes>()};
 
     wroutes->insert({"/remote", sector_storage::serveHttp(local_store)});

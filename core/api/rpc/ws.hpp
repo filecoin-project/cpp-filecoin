@@ -8,7 +8,9 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/http.hpp>
+#include <map>
 #include <variant>
+
 #include "api/rpc/rpc.hpp"
 
 namespace boost::asio {
@@ -18,6 +20,7 @@ namespace boost::asio {
 namespace fc::api {
   namespace http = boost::beast::http;
   using tcp = boost::asio::ip::tcp;
+  using rpc::Rpc;
 
   using ResponseType = std::variant<http::response<http::file_body>,
                                     http::response<http::string_body>,
@@ -46,7 +49,7 @@ namespace fc::api {
       const http::request<http::dynamic_body> &request)>;
   using Routes = std::map<std::string, RouteHandler, std::greater<>>;
 
-  void serve(std::map<std::string, std::shared_ptr<rpc::Rpc>> rpc,
+  void serve(std::map<std::string, std::shared_ptr<Rpc>> rpc,
              std::shared_ptr<Routes> routes,
              boost::asio::io_context &ioc,
              std::string_view ip,

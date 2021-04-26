@@ -515,7 +515,7 @@ namespace fc {
     };
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
-    mrpc.emplace("v0", api::makeRpc(*mapi));
+    mrpc.emplace("/rpc/v0", api::makeRpc(*mapi));
     auto mroutes{std::make_shared<api::Routes>()};
 
     mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});

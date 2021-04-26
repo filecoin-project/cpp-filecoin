@@ -11,10 +11,8 @@
 #include <boost/asio/dispatch.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
-#include <utility>
 
 #include "api/rpc/json.hpp"
-#include "api/rpc/make.hpp"
 #include "codec/json/json.hpp"
 #include "common/logger.hpp"
 
