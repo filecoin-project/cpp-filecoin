@@ -8,7 +8,7 @@
 
 #include "miner/storage_fsm/precommit_policy.hpp"
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 
 namespace fc::mining {
   using api::FullNodeApi;

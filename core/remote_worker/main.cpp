@@ -135,7 +135,8 @@ namespace fc {
     auto mapi{std::make_shared<api::StorageMinerApi>()};
     api::rpc::Client wsc{*io};
     wsc.setup(*mapi);
-    OUTCOME_TRY(wsc.connect(config.miner_api.first, config.miner_api.second));
+    OUTCOME_TRY(wsc.connect(
+        config.miner_api.first, "/rpc/v0", config.miner_api.second));
 
     OUTCOME_TRY(version, mapi->Version());
 
@@ -259,7 +260,8 @@ namespace fc {
       return worker->remove(sector);
     };
 
-    auto wrpc{api::makeRpc(*wapi)};
+    std::map<std::string, std::shared_ptr<api::Rpc>> wrpc;
+    wrpc.emplace("/rpc/v0", api::makeRpc(*wapi));
     auto wroutes{std::make_shared<api::Routes>()};
 
     wroutes->insert({"/remote", sector_storage::serveHttp(local_store)});

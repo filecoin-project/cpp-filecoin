@@ -7,7 +7,7 @@
 
 #include "miner/storage_fsm/sealing.hpp"
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
 #include "miner/storage_fsm/events.hpp"

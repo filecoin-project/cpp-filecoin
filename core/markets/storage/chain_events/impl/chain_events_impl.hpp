@@ -10,7 +10,7 @@
 
 #include <shared_mutex>
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/logger.hpp"
 
 namespace fc::markets::storage::chain_events {

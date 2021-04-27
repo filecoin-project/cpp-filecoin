@@ -3,24 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(api
-    make.cpp
-    get_node.cpp
-    )
-target_link_libraries(api
-    address
-    block_producer
-    cid
-    const
-    interpreter
-    logger
-    message
-    miner_types
-    msg_waiter
-    state_tree
-    mpool
-    sync
-    )
+add_subdirectory(full_node)
 
 add_library(rpc
     rpc/json_errors.cpp

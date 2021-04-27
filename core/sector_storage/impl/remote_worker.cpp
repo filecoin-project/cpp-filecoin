@@ -22,7 +22,7 @@ namespace fc::sector_storage {
 
     r_worker->wsc_.setup(r_worker->api_);
 
-    OUTCOME_TRY(r_worker->wsc_.connect(address, token));
+    OUTCOME_TRY(r_worker->wsc_.connect(address, "/rpc/v0", token));
 
     return std::move(r_worker);
   }

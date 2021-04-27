@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"

@@ -10,7 +10,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <libp2p/injector/host_injector.hpp>
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
@@ -153,7 +153,8 @@ namespace fc {
     api::FullNodeApi api;
     api::rpc::Client wsc{*io_thread.io};
     wsc.setup(api);
-    OUTCOME_TRY(wsc.connect(config.node_api.first, config.node_api.second));
+    OUTCOME_TRY(
+        wsc.connect(config.node_api.first, "/rpc/v0", config.node_api.second));
 
     Buffer _peer_id{peer_id.toVector()};
     if (!kv.contains(kActor)) {
@@ -294,7 +295,8 @@ namespace fc {
     auto napi{std::make_shared<api::FullNodeApi>()};
     api::rpc::Client wsc{*io};
     wsc.setup(*napi);
-    OUTCOME_TRY(wsc.connect(config.node_api.first, config.node_api.second));
+    OUTCOME_TRY(
+        wsc.connect(config.node_api.first, "/rpc/v0", config.node_api.second));
     OUTCOME_TRY(minfo, napi->StateMinerInfo(*config.actor, {}));
 
     host->start();
@@ -514,7 +516,8 @@ namespace fc {
       return manager->addWorker(std::move(worker));
     };
 
-    auto mrpc{api::makeRpc(*mapi)};
+    std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
+    mrpc.emplace("/rpc/v0", api::makeRpc(*mapi));
     auto mroutes{std::make_shared<api::Routes>()};
 
     mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/io_thread.hpp"
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"

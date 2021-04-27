@@ -9,7 +9,7 @@
 #include <libp2p/protocol/common/scheduler.hpp>
 #include <unordered_set>
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "clock/utc_clock.hpp"
 #include "sector_storage/spec_interfaces/prover.hpp"
 
