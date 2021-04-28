@@ -78,7 +78,7 @@ namespace fc::mining {
       info.pieces = {Piece{
           .piece =
               PieceInfo{
-                  .size = PaddedPieceSize(2048),
+                  .size = PaddedPieceSize(sector_size_),
                   .cid = "010001020011"_cid,
               },
           .deal_info = boost::none,
@@ -105,7 +105,7 @@ namespace fc::mining {
           .max_wait_deals_sectors = 2,
           .max_sealing_sectors = 0,
           .max_sealing_sectors_for_deals = 0,
-          .wait_deals_delay = 0  // by default 6 hours
+          .wait_deals_delay = std::chrono::hours(6).count(),
       };
 
       scheduler_ = std::make_shared<SchedulerMock>();
@@ -920,6 +920,52 @@ namespace fc::mining {
       ASSERT_NE(sector_info->state, state);
       state = sector_info->state;
     }
+  }
+
+  /**
+   * @given sealing, 1 sector
+   * @when try to add pledge sector
+   * @then 2 sectors in sealing
+   */
+  TEST_F(SealingTest, pledgeSector) {
+    SectorNumber sector = 1;
+    EXPECT_CALL(*counter_, next()).WillOnce(testing::Return(sector));
+
+    SectorId sector_id{
+        .miner = 42,
+        .sector = sector,
+    };
+
+    PieceInfo info{
+        .size = PaddedPieceSize(sector_size_),
+        .cid = "010001020002"_cid,
+    };
+
+    std::vector<UnpaddedPieceSize> exist_pieces = {};
+    EXPECT_CALL(*manager_,
+                addPiece(sector_id,
+                         gsl::span<const UnpaddedPieceSize>(exist_pieces),
+                         PaddedPieceSize(sector_size_).unpadded(),
+                         _,
+                         0))
+        .WillOnce(testing::Return(outcome::success(info)));
+
+    api_->StateMinerInfo =
+        [miner{miner_addr_}, spt{seal_proof_type_}](
+            const Address &address,
+            const TipsetKey &key) -> outcome::result<MinerInfo> {
+      if (address == miner and key == TipsetKey{}) {
+        MinerInfo minfo;
+        minfo.seal_proof_type = spt;
+        return std::move(minfo);
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
+
+    ASSERT_EQ(sealing_->getListSectors().size(), 1);
+    EXPECT_OUTCOME_TRUE_1(sealing_->pledgeSector());
+    ASSERT_EQ(sealing_->getListSectors().size(), 2);
   }
 
 }  // namespace fc::mining
