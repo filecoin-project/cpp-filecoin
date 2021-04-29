@@ -215,7 +215,7 @@ func (rt *rt) NewActorAddress() address.Address {
 }
 
 func (rt *rt) CreateActor(code cid.Cid, addr address.Address) {
-	if !(builtin3.IsBuiltinActor(code) || builtin2.IsBuiltinActor(code) || builtin1.IsBuiltinActor(code)) || IsSingletonActor(code) {
+	if !(builtin4.IsBuiltinActor(code) || builtin3.IsBuiltinActor(code) || builtin2.IsBuiltinActor(code) || builtin1.IsBuiltinActor(code)) || IsSingletonActor(code) {
 		rt.Abort(exitcode.SysErrorIllegalArgument)
 	}
 	rt.gocRet(C.gocRtCreateActor(rt.gocArg().cid(code).addr(addr).arg()))
@@ -247,6 +247,7 @@ func (rt *rt) Log(rtt.LogLevel, string, ...interface{}) {
 var _ rt1.StateHandle = &rt{}
 var _ rt2.StateHandle = &rt{}
 var _ rt3.StateHandle = &rt{}
+var _ rt4.StateHandle = &rt{}
 
 func (rt *rt) StateCreate(o cbor.Marshaler) {
 	rt.commit(empty, o)
@@ -270,6 +271,7 @@ func (rt *rt) StateTransaction(o cbor.Er, f func()) {
 var _ rt1.Store = &rt{}
 var _ rt2.Store = &rt{}
 var _ rt3.Store = &rt{}
+var _ rt4.Store = &rt{}
 
 func (rt *rt) StoreGet(c cid.Cid, o cbor.Unmarshaler) bool {
 	ret := rt.gocRet(C.gocRtIpldGet(rt.gocArg().cid(c).arg()))
@@ -291,6 +293,7 @@ func (rt *rt) StorePut(o cbor.Marshaler) cid.Cid {
 var _ rt1.Message = &rt{}
 var _ rt2.Message = &rt{}
 var _ rt3.Message = &rt{}
+var _ rt4.Message = &rt{}
 
 func (rt *rt) Caller() address.Address {
 	return rt.from
@@ -307,6 +310,7 @@ func (rt *rt) ValueReceived() abi.TokenAmount {
 var _ rt1.Syscalls = &rt{}
 var _ rt2.Syscalls = &rt{}
 var _ rt3.Syscalls = &rt{}
+var _ rt4.Syscalls = &rt{}
 
 func (rt *rt) VerifySignature(sig crypto.Signature, addr address.Address, input []byte) error {
 	b, e := sig.MarshalBinary()
