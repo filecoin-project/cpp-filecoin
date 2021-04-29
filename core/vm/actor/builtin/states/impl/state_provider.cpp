@@ -53,7 +53,8 @@ namespace fc::vm::actor::builtin::states {
     return getCommonStatePtr<InitActorState,
                              v0::init::InitActorState,
                              v2::init::InitActorState,
-                             v3::init::InitActorState>(actor);
+                             v3::init::InitActorState,
+                             v3::init::InitActorState>(actor);  // TODO v4
   }
 
   outcome::result<MarketActorStatePtr> StateProvider::getMarketActorState(
@@ -65,7 +66,8 @@ namespace fc::vm::actor::builtin::states {
     return getCommonStatePtr<MarketActorState,
                              v0::market::MarketActorState,
                              v2::market::MarketActorState,
-                             v2::market::MarketActorState>(actor);  // TODO v3
+                             v2::market::MarketActorState,          // TODO v3
+                             v2::market::MarketActorState>(actor);  // TODO v4
   }
 
   outcome::result<MinerActorStatePtr> StateProvider::getMinerActorState(
@@ -114,7 +116,9 @@ namespace fc::vm::actor::builtin::states {
     return getCommonStatePtr<PowerActorState,
                              v0::storage_power::PowerActorState,
                              v2::storage_power::PowerActorState,
-                             v3::storage_power::PowerActorState>(actor);
+                             v3::storage_power::PowerActorState,
+                             v3::storage_power::PowerActorState>(
+        actor);  // TODO v4
   }
 
   outcome::result<SystemActorStatePtr> StateProvider::getSystemActorState(
@@ -138,7 +142,8 @@ namespace fc::vm::actor::builtin::states {
     return getCommonStatePtr<RewardActorState,
                              v0::reward::RewardActorState,
                              v2::reward::RewardActorState,
-                             v2::reward::RewardActorState>(actor);  // TODO v3
+                             v2::reward::RewardActorState,          // TODO v3
+                             v2::reward::RewardActorState>(actor);  // TODO v4
   }
 
   outcome::result<VerifiedRegistryActorStatePtr>

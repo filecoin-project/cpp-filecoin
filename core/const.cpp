@@ -35,6 +35,7 @@ namespace fc {
   DEFINE(kUpgradeClausHeight){343200};
   DEFINE(kUpgradeActorsV3Height){550321};
   DEFINE(kUpgradeNorwegianHeight){665280};
+  DEFINE(kUpgradeActorsV4Height){712320};
 
   DEFINE(kBreezeGasTampingDuration){120};
 
@@ -95,6 +96,7 @@ namespace fc {
     kUpgradeClausHeight = 30;
     kUpgradeActorsV3Height = 35;
     kUpgradeNorwegianHeight = 40;
+    kUpgradeActorsV4Height = 45;
 
     kBreezeGasTampingDuration = 0;
 
@@ -149,6 +151,7 @@ namespace fc {
     kUpgradeClausHeight = 100000000;
     kUpgradeActorsV3Height = 100000000;
     kUpgradeNorwegianHeight = 100000000;
+    kUpgradeActorsV4Height = 100000000;
 
     kBreezeGasTampingDuration = 0;
 

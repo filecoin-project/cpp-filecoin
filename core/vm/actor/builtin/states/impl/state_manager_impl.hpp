@@ -70,7 +70,11 @@ namespace fc::vm::actor::builtin::states {
         const std::shared_ptr<State> &state) override;
 
    private:
-    template <typename T, typename Tv0, typename Tv2, typename Tv3>
+    template <typename T,
+              typename Tv0,
+              typename Tv2,
+              typename Tv3,
+              typename Tv4 = void>
     std::shared_ptr<T> createStatePtr(ActorVersion version) const {
       switch (version) {
         case ActorVersion::kVersion0: {
@@ -81,6 +85,13 @@ namespace fc::vm::actor::builtin::states {
         }
         case ActorVersion::kVersion3: {
           return createLoadedStatePtr<Tv3>();
+        }
+        case ActorVersion::kVersion4: {
+          if constexpr (std::is_same_v<Tv4, void>) {
+            TODO_ACTORS_V4();
+          } else {
+            return createLoadedStatePtr<Tv4>();
+          }
         }
       }
     }

@@ -57,6 +57,7 @@ namespace fc {
   extern ChainEpoch kUpgradeClausHeight;
   extern ChainEpoch kUpgradeActorsV3Height;
   extern ChainEpoch kUpgradeNorwegianHeight;
+  extern ChainEpoch kUpgradeActorsV4Height;
 
   extern EpochDuration kBreezeGasTampingDuration;
 
