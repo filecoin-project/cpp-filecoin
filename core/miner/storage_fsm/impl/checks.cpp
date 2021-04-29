@@ -50,6 +50,8 @@ namespace fc::mining::checks {
       // TODO (m.tagirov or a.chernyshov) change to v3
       case vm::actor::ActorVersion::kVersion3:
         return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
+      case vm::actor::ActorVersion::kVersion4:
+        TODO_ACTORS_V4();
     }
   }
 

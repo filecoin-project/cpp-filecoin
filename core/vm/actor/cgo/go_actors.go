@@ -60,6 +60,19 @@ import (
 	system3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/system"
 	verifreg3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/verifreg"
 	rt3 "github.com/filecoin-project/specs-actors/v3/actors/runtime"
+	builtin4 "github.com/filecoin-project/specs-actors/v4/actors/builtin"
+	account4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/account"
+	cron4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/cron"
+	init4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/init"
+	market4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/market"
+	miner4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/miner"
+	multisig4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/multisig"
+	paych4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/paych"
+	power4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/power"
+	reward4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/reward"
+	system4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/system"
+	verifreg4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/verifreg"
+	rt4 "github.com/filecoin-project/specs-actors/v4/actors/runtime"
 	"github.com/ipfs/go-cid"
 	"github.com/whyrusleeping/cbor-gen"
 )
@@ -95,6 +108,7 @@ type rt struct {
 var _ rt1.Runtime = &rt{}
 var _ rt2.Runtime = &rt{}
 var _ rt3.Runtime = &rt{}
+var _ rt4.Runtime = &rt{}
 
 func (rt *rt) NetworkVersion() network.Version {
 	return network.Version(rt.version)
@@ -510,6 +524,18 @@ var _actors = map[cid.Cid]rtt.VMActor{
 	builtin3.PaymentChannelActorCodeID:   paych3.Actor{},
 	builtin3.VerifiedRegistryActorCodeID: verifreg3.Actor{},
 	builtin3.AccountActorCodeID:          account3.Actor{},
+
+	builtin4.SystemActorCodeID:           system4.Actor{},
+	builtin4.InitActorCodeID:             init4.Actor{},
+	builtin4.RewardActorCodeID:           reward4.Actor{},
+	builtin4.CronActorCodeID:             cron4.Actor{},
+	builtin4.StoragePowerActorCodeID:     power4.Actor{},
+	builtin4.StorageMarketActorCodeID:    market4.Actor{},
+	builtin4.StorageMinerActorCodeID:     miner4.Actor{},
+	builtin4.MultisigActorCodeID:         multisig4.Actor{},
+	builtin4.PaymentChannelActorCodeID:   paych4.Actor{},
+	builtin4.VerifiedRegistryActorCodeID: verifreg4.Actor{},
+	builtin4.AccountActorCodeID:          account4.Actor{},
 }
 var actors = map[cid.Cid]methods{}
 
@@ -586,6 +612,9 @@ func cgoActorsConfigParams(raw C.Raw) C.Raw {
 		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
 	}
 	for _, x := range builtin3.PoStProofPolicies {
+		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
+	}
+	for _, x := range builtin4.PoStProofPolicies {
 		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
 	}
 	return cgoRet(nil)
