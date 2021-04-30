@@ -5,6 +5,7 @@
 
 #include "markets/storage/client/impl/storage_market_client_impl.hpp"
 
+#include <boost/assert.hpp>
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 
@@ -78,7 +79,9 @@ namespace fc::markets::storage::client {
         piece_io_{std::move(piece_io)},
         discovery_{std::move(discovery)},
         import_manager_{import_manager},
-        datatransfer_{std::move(datatransfer)} {}
+        datatransfer_{std::move(datatransfer)} {
+    BOOST_ASSERT_MSG(api_, "StorageMarketClientImpl(): api is nullptr");
+  }
 
   bool StorageMarketClientImpl::pollWaiting() {
     std::lock_guard lock{waiting_mutex};
@@ -391,7 +394,7 @@ namespace fc::markets::storage::client {
       return StorageMarketClientError::kPieceDataNotSetManualTransfer;
     }
 
-    OUTCOME_EXCEPT(car_file, import_manager_->get(data_ref.root));
+    OUTCOME_TRY(car_file, import_manager_->get(data_ref.root));
 
     // TODO (a.chernyshov) selector builder
     // https://github.com/filecoin-project/go-fil-markets/blob/master/storagemarket/impl/clientutils/clientutils.go#L31
@@ -640,12 +643,19 @@ namespace fc::markets::storage::client {
       }
 
       auto ipld = std::make_shared<InMemoryDatastore>();
-      OUTCOME_EXCEPT(car_file, self->import_manager_->get(deal->data_ref.root));
-      OUTCOME_EXCEPT(roots, loadCar(*ipld, car_file.string()));
+      auto car_file = self->import_manager_->get(deal->data_ref.root);
+      SELF_FSM_HALT_ON_ERROR(
+          car_file,
+          "Storage deal proposal error. Cannot get file from import manager",
+          deal);
+      SELF_FSM_HALT_ON_ERROR(loadCar(*ipld, car_file.value().string()),
+                             "Error on imported CAR load",
+                             deal);
 
-      OUTCOME_EXCEPT(
-          voucher,
-          codec::cbor::encode(StorageDataTransferVoucher{deal->proposal_cid}));
+      auto voucher =
+          codec::cbor::encode(StorageDataTransferVoucher{deal->proposal_cid});
+      SELF_FSM_HALT_ON_ERROR(
+          voucher, "StorageDataTransferVoucher encoding", deal);
 
       if (deal->data_ref.transfer_type == kTransferTypeGraphsync) {
         self->datatransfer_->push(
@@ -653,7 +663,7 @@ namespace fc::markets::storage::client {
             deal->data_ref.root,
             ipld,
             StorageDataTransferVoucherType,
-            voucher,
+            voucher.value(),
             [](auto) {},
             [](auto) {});
         // data transfer completed, the deal must be accepted
