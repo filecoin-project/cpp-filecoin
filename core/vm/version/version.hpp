@@ -29,7 +29,7 @@ namespace fc::vm::version {
     kVersion12,
   };
 
-  const NetworkVersion kLatestVersion = NetworkVersion::kVersion11;
+  const NetworkVersion kLatestVersion = NetworkVersion::kVersion12;
 
   /**
    * Returns network version for blockchain height
