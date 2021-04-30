@@ -510,10 +510,6 @@ namespace fc::node {
         genesis_timestamp,
         std::chrono::seconds(kEpochDurationSeconds));
 
-    o.datatransfer = DataTransfer::make(o.host, o.graphsync);
-    OUTCOME_TRY(createStorageMarketClient(o));
-    OUTCOME_TRY(createRetrievalMarketClient(o));
-
     o.api = api::makeImpl(o.chain_store,
                           *config.network_name,
                           weight_calculator,
@@ -527,6 +523,10 @@ namespace fc::node {
                           key_store,
                           o.market_discovery,
                           o.retrieval_market_client);
+
+    o.datatransfer = DataTransfer::make(o.host, o.graphsync);
+    OUTCOME_TRY(createStorageMarketClient(o));
+    OUTCOME_TRY(createRetrievalMarketClient(o));
 
     return o;
   }

@@ -11,7 +11,7 @@
 #include "api/full_node/node_api.hpp"
 #include "api/rpc/json_errors.hpp"
 #include "api/rpc/rpc.hpp"
-#include "api/storage_api.hpp"
+#include "api/storage_miner/storage_api.hpp"
 #include "api/worker_api.hpp"
 #include "common/enum.hpp"
 #include "common/libp2p/peer/cbor_peer_info.hpp"

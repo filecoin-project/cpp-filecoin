@@ -5,11 +5,13 @@
 
 #pragma once
 
+#include "miner/storage_fsm/sealing.hpp"
 #include "miner/storage_fsm/types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::miner {
+  using mining::Sealing;
   using mining::types::DealInfo;
   using mining::types::PieceAttributes;
   using mining::types::SectorInfo;
@@ -29,6 +31,8 @@ namespace fc::miner {
         UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) = 0;
 
     virtual Address getAddress() const = 0;
+
+    virtual std::shared_ptr<Sealing> getSealing() const = 0;
   };
 
   enum class MinerError {

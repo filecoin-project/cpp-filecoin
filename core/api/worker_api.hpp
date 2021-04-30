@@ -82,4 +82,22 @@ namespace fc::api {
 
     API_METHOD(Version, VersionResult)
   };
+
+  template <typename A, typename F>
+  void visit(const WorkerApi &, A &&a, const F &f) {
+    f(a.Fetch);
+    f(a.FinalizeSector);
+    f(a.Info);
+    f(a.MoveStorage);
+    f(a.Paths);
+    f(a.Remove);
+    f(a.SealCommit1);
+    f(a.SealCommit2);
+    f(a.SealPreCommit1);
+    f(a.SealPreCommit2);
+    f(a.StorageAddLocal);
+    f(a.TaskTypes);
+    f(a.UnsealPiece);
+    f(a.Version);
+  }
 }  // namespace fc::api

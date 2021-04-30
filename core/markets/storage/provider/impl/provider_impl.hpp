@@ -8,7 +8,7 @@
 #include <libp2p/host/host.hpp>
 #include <mutex>
 
-#include "api/storage_api.hpp"
+#include "api/storage_miner/storage_api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
 #include "fsm/fsm.hpp"

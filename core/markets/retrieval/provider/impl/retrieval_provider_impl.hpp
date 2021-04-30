@@ -68,8 +68,8 @@ namespace fc::markets::retrieval::provider {
                           std::shared_ptr<Manager> sealer,
                           std::shared_ptr<Miner> miner);
 
-    RetrievalAsk getAsk() const;
-    void setAsk(const RetrievalAsk &ask);
+    RetrievalAsk getAsk() const override;
+    void setAsk(const RetrievalAsk &ask) override;
 
     void onProposal(const PeerDtId &pdtid,
                     const PeerGsId &pgsid,
