@@ -60,7 +60,6 @@ namespace fc {
 
   extern EpochDuration kBreezeGasTampingDuration;
 
-  constexpr uint64_t kMinerApiVersion{0};
   constexpr uint64_t kDefaultStorageWeight{10};
 
   extern EpochDuration kInteractivePoRepConfidence;

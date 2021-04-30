@@ -43,6 +43,10 @@ namespace fc::miner {
     return sealing_->getAddress();
   }
 
+  std::shared_ptr<Sealing> MinerImpl::getSealing() const {
+    return sealing_;
+  }
+
   outcome::result<std::shared_ptr<MinerImpl>> MinerImpl::newMiner(
       std::shared_ptr<FullNodeApi> api,
       Address miner_address,

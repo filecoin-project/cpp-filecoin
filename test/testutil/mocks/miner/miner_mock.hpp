@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_MOCKS_MINER_MINER_MOCK_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_MOCKS_MINER_MINER_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -28,8 +27,8 @@ namespace fc::miner {
                  outcome::result<PieceAttributes>(UnpaddedPieceSize size,
                                                   const PieceData &piece_data,
                                                   DealInfo deal));
+
+    MOCK_CONST_METHOD0(getSealing, std::shared_ptr<Sealing>());
   };
 
 }  // namespace fc::miner
-
-#endif  // CPP_FILECOIN_TEST_TESTUTIL_MOCKS_MINER_MINER_MOCK_HPP

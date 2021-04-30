@@ -10,7 +10,6 @@
 
 #include "api/full_node/node_api.hpp"
 #include "common/outcome.hpp"
-#include "miner/storage_fsm/sealing.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/stored_counter/stored_counter.hpp"
 #include "sector_storage/manager.hpp"
@@ -21,7 +20,6 @@ namespace fc::miner {
   using api::FullNodeApi;
   using mining::DealInfo;
   using mining::PieceAttributes;
-  using mining::Sealing;
   using mining::types::SectorInfo;
   using primitives::Counter;
   using primitives::SectorNumber;
@@ -54,9 +52,7 @@ namespace fc::miner {
 
     Address getAddress() const override;
 
-    auto getSealing() {
-      return sealing_;
-    }
+    std::shared_ptr<Sealing> getSealing() const override;
 
    private:
     MinerImpl(std::shared_ptr<FullNodeApi> api,

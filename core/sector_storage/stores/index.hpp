@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTOR_INDEX_HPP
-#define CPP_FILECOIN_CORE_SECTOR_INDEX_HPP
+#pragma once
 
 #include <chrono>
 #include "common/outcome.hpp"
@@ -108,5 +107,3 @@ namespace fc::sector_storage::stores {
 }  // namespace fc::sector_storage::stores
 
 OUTCOME_HPP_DECLARE_ERROR(fc::sector_storage::stores, IndexErrors);
-
-#endif  // CPP_FILECOIN_CORE_SECTOR_INDEX_HPP

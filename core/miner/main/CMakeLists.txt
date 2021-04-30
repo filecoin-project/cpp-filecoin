@@ -20,6 +20,7 @@ target_link_libraries(miner_main
     store
     fetch_handler
     remote_worker
+    storage_miner_api
 
     chain_events
     data_transfer

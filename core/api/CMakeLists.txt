@@ -4,15 +4,5 @@
 #
 
 add_subdirectory(full_node)
-
-add_library(rpc
-    rpc/json_errors.cpp
-    rpc/ws.cpp
-    rpc/wsc.cpp
-    rpc/web_socket_client_error.cpp
-    )
-target_link_libraries(rpc
-    api
-    json
-    tipset
-    )
+add_subdirectory(rpc)
+add_subdirectory(storage_miner)
