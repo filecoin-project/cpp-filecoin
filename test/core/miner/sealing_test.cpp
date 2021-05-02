@@ -725,7 +725,6 @@ namespace fc::mining {
         adt::Array<SectorOnChainInfo>("010001020008"_cid, ipld);
     actor_state.precommitted_setctors_expiry =
         adt::Array<api::RleBitset>("010001020009"_cid, ipld);
-    actor_state.sectors.amt.cid();
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
