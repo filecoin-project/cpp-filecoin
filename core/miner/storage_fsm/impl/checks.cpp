@@ -228,11 +228,12 @@ namespace fc::mining::checks {
       return ChecksError::kBadSeed;
     }
 
-    OUTCOME_TRY(minfo, api->StateMinerInfo(miner_address, tipset_key));
-
     if (sector_info->comm_r != state_sector_precommit_info->info.sealed_cid) {
       return ChecksError::kBadSealedCid;
     }
+
+    OUTCOME_TRY(minfo, api->StateMinerInfo(miner_address, tipset_key));
+
     OUTCOME_TRY(verified,
                 proofs->verifySeal(SealVerifyInfo{
                     .seal_proof = minfo.seal_proof_type,

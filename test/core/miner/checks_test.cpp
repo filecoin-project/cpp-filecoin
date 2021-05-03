@@ -9,6 +9,7 @@
 
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
@@ -18,13 +19,17 @@
 #include "vm/exit_code/exit_code.hpp"
 
 namespace fc::mining::checks {
+  using api::DomainSeparationTag;
   using api::InvocResult;
+  using api::MinerInfo;
+  using api::Randomness;
   using api::SectorNumber;
   using api::SectorOnChainInfo;
   using api::UnsignedMessage;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
   using storage::ipfs::InMemoryDatastore;
+  using testing::_;
   using types::DealInfo;
   using types::DealSchedule;
   using types::PaddedPieceSize;
@@ -32,6 +37,7 @@ namespace fc::mining::checks {
   using types::PieceInfo;
   using vm::VMExitCode;
   using vm::actor::Actor;
+  using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::v0::market::ComputeDataCommitment;
   using vm::actor::builtin::v0::miner::MinerActorState;
 
@@ -595,9 +601,6 @@ namespace fc::mining::checks {
         actor_state.precommitted_sectors.set(sector, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state.precommitted_sectors.hamt.flush());
-    SectorPreCommitOnChainInfo precommit_info;
-    precommit_info.info.seal_epoch = 3;
-    precommit_info.info.sealed_cid = "010001020007"_cid;
     actor_state.sectors =
         adt::Array<SectorOnChainInfo>("010001020008"_cid, ipld);
     actor_state.precommitted_setctors_expiry =
@@ -733,9 +736,6 @@ namespace fc::mining::checks {
         actor_state.precommitted_sectors.set(sector, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state.precommitted_sectors.hamt.flush());
-    SectorPreCommitOnChainInfo precommit_info;
-    precommit_info.info.seal_epoch = 3;
-    precommit_info.info.sealed_cid = "010001020007"_cid;
     actor_state.sectors =
         adt::Array<SectorOnChainInfo>("010001020008"_cid, ipld);
     actor_state.precommitted_setctors_expiry =
@@ -763,6 +763,497 @@ namespace fc::mining::checks {
     EXPECT_OUTCOME_ERROR(
         ChecksError::kBadTicketEpoch,
         checkPrecommit(miner_addr_, info, precommit_key, height, api_));
+  }
+
+  class CheckCommit : public testing::Test {
+   protected:
+    void SetUp() override {
+      miner_id_ = 42;
+      miner_addr_ = Address::makeFromId(miner_id_);
+
+      api_ = std::make_shared<FullNodeApi>();
+
+      proofs_ = std::make_shared<proofs::ProofEngineMock>();
+    }
+
+    ActorId miner_id_;
+    Address miner_addr_;
+    std::shared_ptr<FullNodeApi> api_;
+    std::shared_ptr<proofs::ProofEngineMock> proofs_;
+  };
+
+  /**
+   * @given sector info, proof, tipset_key
+   * @when try to check commit, but info has 0 seed epoch
+   * @then ChecksError::kBadSeed occurs
+   */
+  TEST_F(CheckCommit, BadSeedWithZeroEpoch) {
+    std::shared_ptr<SectorInfo> info = std::make_shared<SectorInfo>();
+    info->seed_epoch = 0;
+
+    Proof proof{{1, 2, 3}};
+
+    std::vector<CID> cids = {
+        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
+    TipsetKey commit_key(cids);
+
+    EXPECT_OUTCOME_ERROR(
+        ChecksError::kBadSeed,
+        checkCommit(miner_addr_, info, proof, commit_key, api_, proofs_));
+  }
+
+  /**
+   * @given sector info, proof, tipset_key
+   * @when try to check commit, but precommit sector hasn't sector, but message
+   * in info
+   * @then ChecksError::kCommitWaitFail occurs
+   */
+  TEST_F(CheckCommit, CommitWaitFail) {
+    std::shared_ptr<SectorInfo> info = std::make_shared<SectorInfo>();
+    SectorNumber sector = 1;
+    info->sector_number = sector;
+    info->seed_epoch = 1;
+    info->message = "010001020001"_cid;
+
+    Proof proof{{1, 2, 3}};
+
+    std::vector<CID> cids = {
+        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
+    TipsetKey commit_key(cids);
+
+    auto actor_key{"010001020003"_cid};
+    auto ipld{std::make_shared<InMemoryDatastore>()};
+    MinerActorState actor_state;
+    actor_state.miner_info = "010001020004"_cid;
+    actor_state.vesting_funds = "010001020004"_cid;
+    actor_state.allocated_sectors = "010001020004"_cid;
+    actor_state.deadlines = "010001020006"_cid;
+    actor_state.precommitted_sectors =
+        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    SectorPreCommitOnChainInfo some_info;
+    some_info.info.sealed_cid = "010001020006"_cid;
+    some_info.info.seal_epoch = info->ticket_epoch + 1;
+    EXPECT_OUTCOME_TRUE_1(
+        actor_state.precommitted_sectors.set(sector + 1, some_info));
+    EXPECT_OUTCOME_TRUE(cid_root,
+                        actor_state.precommitted_sectors.hamt.flush());
+    actor_state.sectors =
+        adt::Array<SectorOnChainInfo>("010001020008"_cid, ipld);
+    actor_state.precommitted_setctors_expiry =
+        adt::Array<api::RleBitset>("010001020009"_cid, ipld);
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        auto bitset = primitives::RleBitset();
+        bitset.insert(sector);
+        return codec::cbor::encode(bitset);
+      }
+      return ERROR_TEXT("ERROR");
+    };
+
+    Actor actor;
+    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.head = actor_key;
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
+
+    EXPECT_OUTCOME_ERROR(
+        ChecksError::kCommitWaitFail,
+        checkCommit(miner_addr_, info, proof, commit_key, api_, proofs_));
+  }
+
+  /**
+   * @given sector info, proof, tipset_key
+   * @when try to check commit, but precommit not found
+   * @then ChecksError::kPrecommitNotFound occurs
+   */
+  TEST_F(CheckCommit, PrecommitNotFound) {
+    std::shared_ptr<SectorInfo> info = std::make_shared<SectorInfo>();
+    SectorNumber sector = 1;
+    info->sector_number = sector;
+    info->seed_epoch = 1;
+    info->message = "010001020001"_cid;
+
+    Proof proof{{1, 2, 3}};
+
+    std::vector<CID> cids = {
+        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
+    TipsetKey commit_key(cids);
+
+    auto actor_key{"010001020003"_cid};
+    auto ipld{std::make_shared<InMemoryDatastore>()};
+    MinerActorState actor_state;
+    actor_state.miner_info = "010001020004"_cid;
+    actor_state.vesting_funds = "010001020004"_cid;
+    actor_state.allocated_sectors = "010001020004"_cid;
+    actor_state.deadlines = "010001020006"_cid;
+    actor_state.precommitted_sectors =
+        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    SectorPreCommitOnChainInfo some_info;
+    some_info.info.sealed_cid = "010001020006"_cid;
+    some_info.info.seal_epoch = info->ticket_epoch + 1;
+    EXPECT_OUTCOME_TRUE_1(
+        actor_state.precommitted_sectors.set(sector + 1, some_info));
+    EXPECT_OUTCOME_TRUE(cid_root,
+                        actor_state.precommitted_sectors.hamt.flush());
+    actor_state.sectors =
+        adt::Array<SectorOnChainInfo>("010001020008"_cid, ipld);
+    actor_state.precommitted_setctors_expiry =
+        adt::Array<api::RleBitset>("010001020009"_cid, ipld);
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
+
+    Actor actor;
+    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.head = actor_key;
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
+
+    EXPECT_OUTCOME_ERROR(
+        ChecksError::kPrecommitNotFound,
+        checkCommit(miner_addr_, info, proof, commit_key, api_, proofs_));
+  }
+
+  /**
+   * @given sector info, proof, tipset_key
+   * @when try to check commit, but info has different seed epoch
+   * @then ChecksError::kBadSeed occurs
+   */
+  TEST_F(CheckCommit, BadSeedWithPrecommitEpoch) {
+    std::shared_ptr<SectorInfo> info = std::make_shared<SectorInfo>();
+    SectorNumber sector = 1;
+    info->sector_number = sector;
+    info->seed_epoch = kPreCommitChallengeDelay;
+    info->message = "010001020001"_cid;
+    info->seed = Randomness{{1, 2, 3, 4, 5}};
+
+    Proof proof{{1, 2, 3}};
+
+    std::vector<CID> cids = {
+        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
+    TipsetKey commit_key(cids);
+
+    auto actor_key{"010001020003"_cid};
+    auto ipld{std::make_shared<InMemoryDatastore>()};
+    MinerActorState actor_state;
+    actor_state.miner_info = "010001020004"_cid;
+    actor_state.vesting_funds = "010001020004"_cid;
+    actor_state.allocated_sectors = "010001020004"_cid;
+    actor_state.deadlines = "010001020006"_cid;
+    actor_state.precommitted_sectors =
+        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    SectorPreCommitOnChainInfo some_info;
+    some_info.info.sealed_cid = "010001020006"_cid;
+    some_info.info.seal_epoch = info->ticket_epoch + 1;
+    some_info.precommit_epoch = info->seed_epoch - kPreCommitChallengeDelay + 1;
+    EXPECT_OUTCOME_TRUE_1(
+        actor_state.precommitted_sectors.set(sector, some_info));
+    EXPECT_OUTCOME_TRUE(cid_root,
+                        actor_state.precommitted_sectors.hamt.flush());
+
+    actor_state.sectors =
+        adt::Array<SectorOnChainInfo>("010001020008"_cid, ipld);
+    actor_state.precommitted_setctors_expiry =
+        adt::Array<api::RleBitset>("010001020009"_cid, ipld);
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
+
+    Actor actor;
+    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.head = actor_key;
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
+
+    EXPECT_OUTCOME_ERROR(
+        ChecksError::kBadSeed,
+        checkCommit(miner_addr_, info, proof, commit_key, api_, proofs_));
+  }
+
+  /**
+   * @given sector info, proof, tipset_key
+   * @when try to check commit, but info has different seed from precommit
+   * @then ChecksError::kBadSeed occurs
+   */
+  TEST_F(CheckCommit, BadSeedWithPrecommitDifferntSeed) {
+    std::shared_ptr<SectorInfo> info = std::make_shared<SectorInfo>();
+    SectorNumber sector = 1;
+    info->sector_number = sector;
+    info->seed_epoch = kPreCommitChallengeDelay;
+    info->message = "010001020001"_cid;
+    info->seed = Randomness{{1, 2, 3, 4, 5}};
+
+    Proof proof{{1, 2, 3}};
+
+    std::vector<CID> cids = {
+        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
+    TipsetKey commit_key(cids);
+
+    auto actor_key{"010001020003"_cid};
+    auto ipld{std::make_shared<InMemoryDatastore>()};
+    MinerActorState actor_state;
+    actor_state.miner_info = "010001020004"_cid;
+    actor_state.vesting_funds = "010001020004"_cid;
+    actor_state.allocated_sectors = "010001020004"_cid;
+    actor_state.deadlines = "010001020006"_cid;
+    actor_state.precommitted_sectors =
+        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    SectorPreCommitOnChainInfo some_info;
+    some_info.info.sealed_cid = "010001020006"_cid;
+    some_info.info.seal_epoch = info->ticket_epoch + 1;
+    some_info.precommit_epoch = info->seed_epoch - kPreCommitChallengeDelay;
+    EXPECT_OUTCOME_TRUE_1(
+        actor_state.precommitted_sectors.set(sector, some_info));
+    EXPECT_OUTCOME_TRUE(cid_root,
+                        actor_state.precommitted_sectors.hamt.flush());
+
+    actor_state.sectors =
+        adt::Array<SectorOnChainInfo>("010001020008"_cid, ipld);
+    actor_state.precommitted_setctors_expiry =
+        adt::Array<api::RleBitset>("010001020009"_cid, ipld);
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
+
+    Actor actor;
+    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.head = actor_key;
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
+
+    api_->ChainGetRandomnessFromBeacon =
+        [&](const TipsetKey &key,
+            DomainSeparationTag tag,
+            ChainEpoch epoch,
+            const Buffer &buf) -> outcome::result<Randomness> {
+      if (key == commit_key
+          and tag == DomainSeparationTag::InteractiveSealChallengeSeed
+          and epoch == info->seed_epoch) {
+        auto new_seed = info->seed;
+        new_seed[0] = 0;
+        return new_seed;
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
+
+    EXPECT_OUTCOME_ERROR(
+        ChecksError::kBadSeed,
+        checkCommit(miner_addr_, info, proof, commit_key, api_, proofs_));
+  }
+
+  /**
+   * @given sector info, proof, tipset_key
+   * @when try to check commit, but comm_r not equal to sealed cid from
+   * precommit
+   * @then ChecksError::kBadSealedCid occurs
+   */
+  TEST_F(CheckCommit, BadSealedCid) {
+    std::shared_ptr<SectorInfo> info = std::make_shared<SectorInfo>();
+    SectorNumber sector = 1;
+    info->sector_number = sector;
+    info->seed_epoch = kPreCommitChallengeDelay;
+    info->message = "010001020001"_cid;
+    info->comm_r = "010001020005"_cid;
+    info->seed = Randomness{{1, 2, 3, 4, 5}};
+
+    Proof proof{{1, 2, 3}};
+
+    std::vector<CID> cids = {
+        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
+    TipsetKey commit_key(cids);
+
+    auto actor_key{"010001020003"_cid};
+    auto ipld{std::make_shared<InMemoryDatastore>()};
+    MinerActorState actor_state;
+    actor_state.miner_info = "010001020004"_cid;
+    actor_state.vesting_funds = "010001020004"_cid;
+    actor_state.allocated_sectors = "010001020004"_cid;
+    actor_state.deadlines = "010001020006"_cid;
+    actor_state.precommitted_sectors =
+        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    SectorPreCommitOnChainInfo some_info;
+    some_info.info.sealed_cid = "010001020006"_cid;
+    some_info.info.seal_epoch = info->ticket_epoch + 1;
+    some_info.precommit_epoch = info->seed_epoch - kPreCommitChallengeDelay;
+    EXPECT_OUTCOME_TRUE_1(
+        actor_state.precommitted_sectors.set(sector, some_info));
+    EXPECT_OUTCOME_TRUE(cid_root,
+                        actor_state.precommitted_sectors.hamt.flush());
+
+    actor_state.sectors =
+        adt::Array<SectorOnChainInfo>("010001020008"_cid, ipld);
+    actor_state.precommitted_setctors_expiry =
+        adt::Array<api::RleBitset>("010001020009"_cid, ipld);
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
+
+    Actor actor;
+    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.head = actor_key;
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
+
+    api_->ChainGetRandomnessFromBeacon =
+        [&](const TipsetKey &key,
+            DomainSeparationTag tag,
+            ChainEpoch epoch,
+            const Buffer &buf) -> outcome::result<Randomness> {
+      if (key == commit_key
+          and tag == DomainSeparationTag::InteractiveSealChallengeSeed
+          and epoch == info->seed_epoch) {
+        return info->seed;
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
+
+    EXPECT_OUTCOME_ERROR(
+        ChecksError::kBadSealedCid,
+        checkCommit(miner_addr_, info, proof, commit_key, api_, proofs_));
+  }
+
+  /**
+   * @given sector info, proof, tipset_key
+   * @when try to check commit, but seal is not correct
+   * @then ChecksError::kInvalidProof occurs
+   */
+  TEST_F(CheckCommit, InvalidProof) {
+    std::shared_ptr<SectorInfo> info = std::make_shared<SectorInfo>();
+    SectorNumber sector = 1;
+    info->sector_number = sector;
+    info->seed_epoch = kPreCommitChallengeDelay;
+    info->message = "010001020001"_cid;
+    info->comm_r = "010001020005"_cid;
+    info->comm_d = "010001020006"_cid;
+    info->seed = Randomness{{1, 2, 3, 4, 5}};
+
+    Proof proof{{1, 2, 3}};
+
+    std::vector<CID> cids = {
+        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
+    TipsetKey commit_key(cids);
+
+    auto actor_key{"010001020003"_cid};
+    auto ipld{std::make_shared<InMemoryDatastore>()};
+    MinerActorState actor_state;
+    actor_state.miner_info = "010001020004"_cid;
+    actor_state.vesting_funds = "010001020004"_cid;
+    actor_state.allocated_sectors = "010001020004"_cid;
+    actor_state.deadlines = "010001020006"_cid;
+    actor_state.precommitted_sectors =
+        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    SectorPreCommitOnChainInfo some_info;
+    some_info.info.sealed_cid = info->comm_r.value();
+    some_info.info.seal_epoch = info->ticket_epoch + 1;
+    some_info.precommit_epoch = info->seed_epoch - kPreCommitChallengeDelay;
+    EXPECT_OUTCOME_TRUE_1(
+        actor_state.precommitted_sectors.set(sector, some_info));
+    EXPECT_OUTCOME_TRUE(cid_root,
+                        actor_state.precommitted_sectors.hamt.flush());
+
+    actor_state.sectors =
+        adt::Array<SectorOnChainInfo>("010001020008"_cid, ipld);
+    actor_state.precommitted_setctors_expiry =
+        adt::Array<api::RleBitset>("010001020009"_cid, ipld);
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
+
+    Actor actor;
+    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.head = actor_key;
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
+
+    api_->ChainGetRandomnessFromBeacon =
+        [&](const TipsetKey &key,
+            DomainSeparationTag tag,
+            ChainEpoch epoch,
+            const Buffer &buf) -> outcome::result<Randomness> {
+      if (key == commit_key
+          and tag == DomainSeparationTag::InteractiveSealChallengeSeed
+          and epoch == info->seed_epoch) {
+        return info->seed;
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
+
+    api_->StateMinerInfo =
+        [&](const Address &address,
+            const TipsetKey &key) -> outcome::result<MinerInfo> {
+      if (address == miner_addr_ and key == commit_key) {
+        MinerInfo minfo;
+        minfo.seal_proof_type = info->sector_type;
+        return minfo;
+      }
+      return ERROR_TEXT("ERROR");
+    };
+
+    EXPECT_CALL(*proofs_, verifySeal(_))
+        .WillOnce(testing::Return(outcome::success(false)));
+    EXPECT_OUTCOME_ERROR(
+        ChecksError::kInvalidProof,
+        checkCommit(miner_addr_, info, proof, commit_key, api_, proofs_));
   }
 
 }  // namespace fc::mining::checks
