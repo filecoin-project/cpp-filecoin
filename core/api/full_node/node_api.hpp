@@ -10,6 +10,7 @@
 #include "const.hpp"
 #include "data_transfer/types.hpp"
 #include "drand/messages.hpp"
+#include "markets/retrieval/types.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/deal_protocol.hpp"
@@ -32,6 +33,7 @@ namespace fc::api {
   using data_transfer::TransferId;
   using drand::BeaconEntry;
   using libp2p::peer::PeerId;
+  using markets::retrieval::RetrievalPeer;
   using markets::storage::DataRef;
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
@@ -91,8 +93,8 @@ namespace fc::api {
 
   /** Unique identifier for a channel */
   struct ChannelId {
-    PeerId initiator;
-    PeerId responder;
+    PeerId initiator{codec::cbor::kDefaultT<PeerId>()};
+    PeerId responder{codec::cbor::kDefaultT<PeerId>()};
     TransferId id;
   };
 
@@ -104,7 +106,7 @@ namespace fc::api {
     bool is_sender;
     std::string voucher;
     std::string message;
-    PeerId other_peer;
+    PeerId other_peer{codec::cbor::kDefaultT<PeerId>()};
     uint64_t transferred;
   };
 
@@ -141,13 +143,17 @@ namespace fc::api {
 
   struct RetrievalOrder {
     CID root;
+    boost::optional<CID> piece;
     uint64_t size;
+    /** StoreId of multistore (not implemented in Fuhon) */
+    boost::optional<uint64_t> local_store;
     TokenAmount total;
-    uint64_t interval;
-    uint64_t interval_inc;
+    TokenAmount unseal_price;
+    uint64_t payment_interval;
+    uint64_t payment_interval_increase;
     Address client;
     Address miner;
-    PeerId peer{codec::cbor::kDefaultT<PeerId>()};
+    RetrievalPeer peer;
   };
 
   struct StartDealParams {
@@ -169,12 +175,14 @@ namespace fc::api {
   struct QueryOffer {
     std::string error;
     CID root;
+    boost::optional<CID> piece;
     uint64_t size;
     TokenAmount min_price;
+    TokenAmount unseal_price;
     uint64_t payment_interval;
     uint64_t payment_interval_increase;
     Address miner;
-    PeerId peer;
+    RetrievalPeer peer;
   };
 
   struct AddChannelInfo {
@@ -257,7 +265,8 @@ namespace fc::api {
   constexpr uint64_t kNoConfidence{};
 
   /**
-   * FullNode API is a low-level interface to the Filecoin network full node
+   * FullNode API is a low-level interface to the Filecoin network full node.
+   * Provides the latest node API v2.0.0
    */
   struct FullNodeApi : public CommonApi {
     API_METHOD(BeaconGetEntry, Wait<BeaconEntry>, ChainEpoch)
@@ -292,7 +301,16 @@ namespace fc::api {
     API_METHOD(ChainSetHead, void, const TipsetKey &)
     API_METHOD(ChainTipSetWeight, TipsetWeight, const TipsetKey &)
 
-    API_METHOD(ClientFindData, Wait<std::vector<QueryOffer>>, const CID &)
+    /**
+     * Identifies peers that have a certain file, and returns QueryOffers for
+     * each peer.
+     * @param data root cid
+     * @param optional piece cid
+     */
+    API_METHOD(ClientFindData,
+               Wait<std::vector<QueryOffer>>,
+               const CID &,
+               const boost::optional<CID> &)
     API_METHOD(ClientHasLocal, bool, const CID &)
 
     /**
@@ -554,4 +572,86 @@ namespace fc::api {
     API_METHOD(
         WalletVerify, bool, const Address &, const Buffer &, const Signature &)
   };
+
+  template <typename A, typename F>
+  void visit(const FullNodeApi &, A &&a, const F &f) {
+    visitCommon(a, f);
+    f(a.BeaconGetEntry);
+    f(a.ChainGetBlock);
+    f(a.ChainGetBlockMessages);
+    f(a.ChainGetGenesis);
+    f(a.ChainGetMessage);
+    f(a.ChainGetNode);
+    f(a.ChainGetParentMessages);
+    f(a.ChainGetParentReceipts);
+    f(a.ChainGetRandomnessFromBeacon);
+    f(a.ChainGetRandomnessFromTickets);
+    f(a.ChainGetTipSet);
+    f(a.ChainGetTipSetByHeight);
+    f(a.ChainHead);
+    f(a.ChainNotify);
+    f(a.ChainReadObj);
+    f(a.ChainSetHead);
+    f(a.ChainTipSetWeight);
+    f(a.ClientFindData);
+    f(a.ClientHasLocal);
+    f(a.ClientImport);
+    f(a.ClientListDeals);
+    f(a.ClientListImports);
+    f(a.ClientQueryAsk);
+    f(a.ClientRetrieve);
+    f(a.ClientStartDeal);
+    f(a.GasEstimateFeeCap);
+    f(a.GasEstimateGasPremium);
+    f(a.GasEstimateMessageGas);
+    f(a.MarketReserveFunds);
+    f(a.MinerCreateBlock);
+    f(a.MinerGetBaseInfo);
+    f(a.MpoolPending);
+    f(a.MpoolPushMessage);
+    f(a.MpoolSelect);
+    f(a.MpoolSub);
+    f(a.PaychAllocateLane);
+    f(a.PaychGet);
+    f(a.PaychVoucherAdd);
+    f(a.PaychVoucherCheckValid);
+    f(a.PaychVoucherCreate);
+    f(a.StateAccountKey);
+    f(a.StateCall);
+    f(a.StateGetActor);
+    f(a.StateGetReceipt);
+    f(a.StateListActors);
+    f(a.StateListMessages);
+    f(a.StateListMiners);
+    f(a.StateLookupID);
+    f(a.StateMarketBalance);
+    f(a.StateMarketDeals);
+    f(a.StateMarketStorageDeal);
+    f(a.StateMinerDeadlines);
+    f(a.StateMinerFaults);
+    f(a.StateMinerInfo);
+    f(a.StateMinerInitialPledgeCollateral);
+    f(a.StateMinerPartitions);
+    f(a.StateMinerPower);
+    f(a.StateMinerPreCommitDepositForPower);
+    f(a.StateMinerProvingDeadline);
+    f(a.StateMinerSectors);
+    f(a.StateNetworkName);
+    f(a.StateNetworkVersion);
+    f(a.StateReadState);
+    f(a.StateSearchMsg);
+    f(a.StateSectorGetInfo);
+    f(a.StateSectorPartition);
+    f(a.StateVerifiedClientStatus);
+    f(a.GetProofType);
+    f(a.StateSectorPreCommitInfo);
+    f(a.StateWaitMsg);
+    f(a.SyncSubmitBlock);
+    f(a.WalletBalance);
+    f(a.WalletDefaultAddress);
+    f(a.WalletHas);
+    f(a.WalletImport);
+    f(a.WalletSign);
+    f(a.WalletVerify);
+  }
 }  // namespace fc::api

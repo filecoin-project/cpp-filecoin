@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_CHECKS_CHECKS_HPP
 #define CPP_FILECOIN_CORE_SECTOR_STORAGE_CHECKS_CHECKS_HPP
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "miner/storage_fsm/types.hpp"
 
 namespace fc::mining::checks {

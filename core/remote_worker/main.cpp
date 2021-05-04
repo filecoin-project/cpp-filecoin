@@ -15,7 +15,7 @@
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
-#include "api/storage_api.hpp"
+#include "api/storage_miner/storage_api.hpp"
 #include "api/worker_api.hpp"
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
@@ -31,6 +31,7 @@
 #include "sector_storage/stores/impl/storage_impl.hpp"
 
 namespace fc {
+  using api::kMinerApiVersion;
   using api::VersionResult;
   using boost::asio::io_context;
   using config::configProfile;
@@ -50,6 +51,9 @@ namespace fc {
   using sector_storage::SectorFileType;
   using sector_storage::stores::LocalStore;
   namespace uuids = boost::uuids;
+
+  /** Required Miner API version */
+  const auto kExpectedMinerApiVersion = kMinerApiVersion;
 
   struct Config {
     boost::filesystem::path repo_path;
@@ -135,13 +139,14 @@ namespace fc {
     auto mapi{std::make_shared<api::StorageMinerApi>()};
     api::rpc::Client wsc{*io};
     wsc.setup(*mapi);
-    OUTCOME_TRY(wsc.connect(config.miner_api.first, config.miner_api.second));
+    OUTCOME_TRY(wsc.connect(
+        config.miner_api.first, "/rpc/v0", config.miner_api.second));
 
     OUTCOME_TRY(version, mapi->Version());
 
-    if (version.api_version != kMinerApiVersion) {
+    if (version.api_version != kExpectedMinerApiVersion) {
       spdlog::error("lotus-miner API version doesn't match: expected: {}",
-                    kMinerApiVersion);
+                    kExpectedMinerApiVersion);
       exit(EXIT_FAILURE);
     }
 
@@ -259,7 +264,8 @@ namespace fc {
       return worker->remove(sector);
     };
 
-    auto wrpc{api::makeRpc(*wapi)};
+    std::map<std::string, std::shared_ptr<api::Rpc>> wrpc;
+    wrpc.emplace("/rpc/v0", api::makeRpc(*wapi));
     auto wroutes{std::make_shared<api::Routes>()};
 
     wroutes->insert({"/remote", sector_storage::serveHttp(local_store)});

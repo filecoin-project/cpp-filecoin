@@ -8,12 +8,12 @@
 #include <libp2p/host/host.hpp>
 #include <mutex>
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
 #include "fsm/fsm.hpp"
 #include "markets/common.hpp"
-#include "markets/discovery/discovery.hpp"
+#include "markets/discovery/impl/discovery_impl.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/chain_events/chain_events.hpp"
 #include "markets/storage/client/client_events.hpp"

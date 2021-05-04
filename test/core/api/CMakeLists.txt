@@ -13,3 +13,11 @@ target_link_libraries(api_json_test
 addtest(api_version_test
     version_test.cpp
     )
+
+addtest(full_node_api_test
+    full_node_api_test.cpp
+    )
+target_link_libraries(full_node_api_test
+    api
+    rpc
+    )

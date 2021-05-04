@@ -5,10 +5,11 @@
 
 #pragma once
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "blockchain/weight_calculator.hpp"
-#include "common/logger.hpp"
 #include "fwd.hpp"
+#include "markets/discovery/discovery.hpp"
+#include "markets/retrieval/client/retrieval_client.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/keystore/keystore.hpp"
@@ -20,13 +21,14 @@ namespace fc::api {
   using crypto::bls::BlsProvider;
   using drand::Beaconizer;
   using drand::DrandSchedule;
+  using markets::discovery::Discovery;
+  using markets::retrieval::client::RetrievalClient;
   using storage::blockchain::ChainStore;
   using storage::blockchain::MsgWaiter;
   using storage::keystore::KeyStore;
   using storage::mpool::MessagePool;
   using sync::PubSubGate;
   using vm::runtime::EnvironmentContext;
-  using Logger = common::Logger;
 
   outcome::result<IpldObject> getNode(std::shared_ptr<Ipld> ipld,
                                       const CID &root,
@@ -43,5 +45,7 @@ namespace fc::api {
       std::shared_ptr<Beaconizer> beaconizer,
       std::shared_ptr<DrandSchedule> drand_schedule,
       std::shared_ptr<PubSubGate> pubsub,
-      std::shared_ptr<KeyStore> key_store);
+      std::shared_ptr<KeyStore> key_store,
+      std::shared_ptr<Discovery> market_discovery,
+      const std::shared_ptr<RetrievalClient> &retrieval_market_client);
 }  // namespace fc::api

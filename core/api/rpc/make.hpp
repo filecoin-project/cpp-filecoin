@@ -22,6 +22,17 @@ namespace fc::api {
     return rpc;
   }
 
+  /**
+   * Updates RPC by overriding API methods.
+   * @tparam A - updated API type with methods that should be overridden
+   * @param rpc - RPC to update
+   * @param api - API that contains methods to override
+   */
+  template <typename A>
+  void wrapRpc(const std::shared_ptr<Rpc> &rpc, A &&api_wrapper) {
+    api::visit(api_wrapper, [&](auto &m) { setup(*rpc, m); });
+  }
+
   template <typename M>
   void setup(Rpc &rpc, const M &method) {
     if (!method) return;

@@ -3,15 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "api/make.hpp"
+#include "api/full_node/make.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include <condition_variable>
 #include <libp2p/peer/peer_id.hpp>
 
 #include "api/version.hpp"
 #include "blockchain/production/block_producer.hpp"
+#include "common/logger.hpp"
 #include "const.hpp"
 #include "drand/beaconizer.hpp"
+#include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "node/pubsub_gate.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
@@ -37,13 +40,17 @@
 namespace fc::api {
   using connection_t = boost::signals2::connection;
   using InterpreterResult = vm::interpreter::Result;
+  using common::Logger;
   using crypto::randomness::DomainSeparationTag;
   using crypto::signature::BlsSignature;
   using libp2p::peer::PeerId;
+  using markets::retrieval::DealProposalParams;
+  using markets::retrieval::QueryResponse;
   using primitives::kChainEpochUndefined;
   using primitives::block::MsgMeta;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
   using primitives::tipset::Tipset;
+  using storage::ipld::kAllSelector;
   using vm::isVMExitCode;
   using vm::VMExitCode;
   using vm::actor::kInitAddress;
@@ -64,6 +71,8 @@ namespace fc::api {
   using vm::runtime::Env;
   using vm::state::StateTreeImpl;
   using vm::version::getNetworkVersion;
+
+  const static Logger logger = common::createLogger("Full node API");
 
   // TODO: reuse for block validation
   inline bool minerHasMinPower(const StoragePower &claim_qa,
@@ -201,7 +210,9 @@ namespace fc::api {
       std::shared_ptr<Beaconizer> beaconizer,
       std::shared_ptr<DrandSchedule> drand_schedule,
       std::shared_ptr<PubSubGate> pubsub,
-      std::shared_ptr<KeyStore> key_store) {
+      std::shared_ptr<KeyStore> key_store,
+      std::shared_ptr<Discovery> market_discovery,
+      const std::shared_ptr<RetrievalClient> &retrieval_market_client) {
     auto ts_load{env_context.ts_load};
     auto ipld{env_context.ipld};
     auto interpreter_cache{env_context.interpreter_cache};
@@ -345,8 +356,70 @@ namespace fc::api {
           OUTCOME_TRY(tipset, ts_load->load(tipset_key));
           return weight_calculator->calculateWeight(*tipset);
         }};
-    // TODO(turuslan): FIL-165 implement method
-    api->ClientFindData = {};
+
+    api->ClientFindData = waitCb<std::vector<QueryOffer>>(
+        [=](auto &&root_cid, auto &&piece_cid, auto &&cb) {
+          OUTCOME_CB(auto peers, market_discovery->getPeers(root_cid));
+          // if piece_cid is specified, remove peers without the piece_cid
+          if (piece_cid.has_value()) {
+            peers.erase(std::remove_if(peers.begin(),
+                                       peers.end(),
+                                       [&piece_cid](auto &peer) {
+                                         return peer.piece != *piece_cid;
+                                       }),
+                        peers.end());
+          }
+
+          auto waiter = std::make_shared<
+              AsyncWaiter<RetrievalPeer, outcome::result<QueryResponse>>>(
+              peers.size(), [=](auto all_calls) {
+                std::vector<QueryOffer> result;
+                for (const auto &[peer, maybe_response] : all_calls) {
+                  if (maybe_response.has_error()) {
+                    logger->error("Error when query peer {}",
+                                  maybe_response.error().message());
+                  } else {
+                    auto response{maybe_response.value()};
+                    std::string error_message;
+                    switch (response.response_status) {
+                      case markets::retrieval::QueryResponseStatus::
+                          kQueryResponseAvailable:
+                        break;
+                      case markets::retrieval::QueryResponseStatus::
+                          kQueryResponseUnavailable:
+                        error_message =
+                            "retrieval query offer was unavailable: "
+                            + response.message;
+                        break;
+                      case markets::retrieval::QueryResponseStatus::
+                          kQueryResponseError:
+                        error_message = "retrieval query offer errored: "
+                                        + response.message;
+                        break;
+                    }
+
+                    result.emplace_back(QueryOffer{
+                        error_message,
+                        root_cid,
+                        piece_cid,
+                        response.item_size,
+                        response.unseal_price
+                            + response.min_price_per_byte * response.item_size,
+                        response.unseal_price,
+                        response.payment_interval,
+                        response.interval_increase,
+                        response.payment_address,
+                        peer});
+                  }
+                }
+                cb(result);
+              });
+          for (const auto &peer : peers) {
+            OUTCOME_CB1(retrieval_market_client->query(
+                peer, {root_cid, {piece_cid}}, waiter->on(peer)));
+          }
+        });
+
     // TODO(turuslan): FIL-165 implement method
     api->ClientHasLocal = {};
     // TODO(turuslan): FIL-165 implement method
@@ -355,8 +428,41 @@ namespace fc::api {
     api->ClientListImports = {};
     // TODO(turuslan): FIL-165 implement method
     api->ClientQueryAsk = {};
-    // TODO(turuslan): FIL-165 implement method
-    api->ClientRetrieve = {};
+
+    /**
+     * Initiates the retrieval deal of a file in retrieval market.
+     */
+    api->ClientRetrieve = waitCb<None>(
+        [retrieval_market_client](auto &&order, auto &&file_ref, auto &&cb) {
+          if (order.size == 0) {
+            cb(ERROR_TEXT("Cannot make retrieval deal for zero bytes"));
+          }
+          auto price_per_byte = bigdiv(order.total, order.size);
+          DealProposalParams params{
+              .selector = kAllSelector,
+              .piece = order.piece,
+              .price_per_byte = price_per_byte,
+              .payment_interval = order.payment_interval,
+              .payment_interval_increase = order.payment_interval_increase,
+              .unseal_price = order.unseal_price};
+          OUTCOME_CB1(retrieval_market_client->retrieve(
+              order.root,
+              params,
+              order.total,
+              order.peer,
+              order.client,
+              order.miner,
+              [cb{std::move(cb)}](outcome::result<void> res) {
+                if (res.has_error()) {
+                  logger->error("Error in ClientRetrieve {}",
+                                res.error().message());
+                  cb(res.error());
+                } else {
+                  logger->info("retrieval deal proposed");
+                  cb(outcome::success());
+                }
+              }));
+        });
 
     api->ClientStartDeal = {/* impemented in node/main.cpp */};
 
@@ -845,7 +951,7 @@ namespace fc::api {
       return outcome::success();
     }};
     api->Version = {[]() {
-      return VersionResult{"fuhon", makeApiVersion(1, 0, 0), 5};
+      return VersionResult{"fuhon", makeApiVersion(2, 0, 0), 5};
     }};
     api->WalletBalance = {[=](auto &address) -> outcome::result<TokenAmount> {
       OUTCOME_TRY(context, tipsetContext({}));

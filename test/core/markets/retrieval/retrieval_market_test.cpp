@@ -25,14 +25,17 @@ namespace fc::markets::retrieval::test {
         .payload_cid = payload_cid,
         .params = {.piece_cid = data::green_piece.info.piece_cid}};
     std::promise<outcome::result<QueryResponse>> query_result;
-    client->query(host->getPeerInfo(), request, [&](auto response) {
+    RetrievalPeer peer{.address = miner_worker_address,
+                       .peer_id = host->getId(),
+                       .piece = data::green_piece.info.piece_cid};
+    EXPECT_OUTCOME_TRUE_1(client->query(peer, request, [&](auto response) {
       query_result.set_value(response);
-    });
+    }));
     auto future = query_result.get_future();
     ASSERT_EQ(future.wait_for(std::chrono::seconds(3)),
               std::future_status::ready);
     auto response_res = future.get();
-    EXPECT_TRUE(response_res.has_value());
+    ASSERT_TRUE(response_res.has_value());
     EXPECT_EQ(response_res.value().response_status,
               QueryResponseStatus::kQueryResponseAvailable);
     EXPECT_EQ(response_res.value().item_status,
@@ -84,14 +87,17 @@ namespace fc::markets::retrieval::test {
                               .payment_interval_increase = 10};
     TokenAmount total_funds{100};
     std::promise<outcome::result<void>> retrieve_result;
-    client->retrieve(
+    RetrievalPeer peer{.address = miner_worker_address,
+                       .peer_id = host->getId(),
+                       .piece = boost::none};
+    EXPECT_OUTCOME_TRUE_1(client->retrieve(
         payload_cid,
         params,
-        host->getPeerInfo(),
+        total_funds,
+        peer,
         client_wallet,
         miner_wallet,
-        total_funds,
-        [&](outcome::result<void> res) { retrieve_result.set_value(res); });
+        [&](outcome::result<void> res) { retrieve_result.set_value(res); }));
     auto future = retrieve_result.get_future();
     ASSERT_EQ(future.wait_for(std::chrono::seconds(5)),
               std::future_status::ready);

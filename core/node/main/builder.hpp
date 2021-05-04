@@ -8,9 +8,12 @@
 #include <boost/asio.hpp>
 #include <memory>
 
+#include "api/full_node/node_api_v1_wrapper.hpp"
 #include "common/outcome.hpp"
 #include "data_transfer/dt.hpp"
 #include "fwd.hpp"
+#include "markets/discovery/discovery.hpp"
+#include "markets/retrieval/client/retrieval_client.hpp"
 #include "markets/storage/chain_events/chain_events.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/client/storage_market_client.hpp"
@@ -24,8 +27,11 @@
 #include "vm/runtime/env_context.hpp"
 
 namespace fc::node {
+  using api::FullNodeApiV1Wrapper;
   using data_transfer::DataTransfer;
   using libp2p::protocol::Scheduler;
+  using markets::discovery::Discovery;
+  using markets::retrieval::client::RetrievalClient;
   using markets::storage::chain_events::ChainEvents;
   using markets::storage::client::StorageMarketClient;
   using markets::storage::client::import_manager::ImportManager;
@@ -84,14 +90,19 @@ namespace fc::node {
     std::shared_ptr<sync::SyncJob> sync_job;
     vm::runtime::EnvironmentContext env_context;
 
-    // storage market client
+    // markets
     std::shared_ptr<DataTransfer> datatransfer;
     std::shared_ptr<ImportManager> storage_market_import_manager;
     std::shared_ptr<ChainEvents> chain_events;
+    std::shared_ptr<Discovery> market_discovery;
     std::shared_ptr<StorageMarketClient> storage_market_client;
+    std::shared_ptr<RetrievalClient> retrieval_market_client;
 
     // high level objects
     std::shared_ptr<sync::ChainStoreImpl> chain_store;
+    // Full node API v1.x.x
+    std::shared_ptr<api::FullNodeApiV1Wrapper> api_v1;
+    // Full node API v2.x.x (latest)
     std::shared_ptr<api::FullNodeApi> api;
   };
 

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "sector_storage/fault_tracker.hpp"
 #include "sector_storage/spec_interfaces/prover.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"

@@ -195,7 +195,7 @@ namespace fc::data_transfer {
                               const CID &root,
                               Selector selector,
                               std::string type,
-                              Buffer vocuher,
+                              Buffer voucher,
                               OnData on_reply,
                               OnCid on_cid) {
     auto dtid{next_dtid++};
@@ -218,7 +218,7 @@ namespace fc::data_transfer {
             false,
             true,
             selector,
-            CborRaw{std::move(vocuher)},
+            CborRaw{std::move(voucher)},
             std::move(type),
             dtid,
         })},

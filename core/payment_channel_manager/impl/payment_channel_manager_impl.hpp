@@ -7,7 +7,7 @@
 
 #include <shared_mutex>
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/buffer.hpp"
 #include "payment_channel_manager/payment_channel_manager.hpp"
 #include "storage/ipfs/datastore.hpp"

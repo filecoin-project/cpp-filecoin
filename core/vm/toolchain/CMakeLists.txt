@@ -9,6 +9,7 @@ add_library(toolchain
     impl/address_matcher_v0.cpp
     impl/address_matcher_v2.cpp
     impl/address_matcher_v3.cpp
+    impl/address_matcher_v4.cpp
     )
 
 target_link_libraries(toolchain

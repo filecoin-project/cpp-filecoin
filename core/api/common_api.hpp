@@ -39,4 +39,13 @@ namespace fc::api {
 
     API_METHOD(Version, VersionResult)
   };
+
+  template <typename A, typename F>
+  void visitCommon(A &&a, const F &f) {
+    f(a.AuthNew);
+    f(a.NetAddrsListen);
+    f(a.NetConnect);
+    f(a.NetPeers);
+    f(a.Version);
+  }
 }  // namespace fc::api

@@ -22,6 +22,8 @@
 #include "vm/actor/builtin/states/system_actor_state.hpp"
 #include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
 
+#include "vm/actor/builtin/v4/todo.hpp"
+
 namespace fc::vm::actor::builtin::states {
 
   class StateProvider {
@@ -70,7 +72,11 @@ namespace fc::vm::actor::builtin::states {
       return std::make_shared<T>(state);
     }
 
-    template <typename T, typename Tv0, typename Tv2, typename Tv3>
+    template <typename T,
+              typename Tv0,
+              typename Tv2,
+              typename Tv3,
+              typename Tv4 = void>
     outcome::result<std::shared_ptr<T>> getCommonStatePtr(
         const Actor &actor) const {
       const auto version = getVersion(actor.code);
@@ -87,6 +93,14 @@ namespace fc::vm::actor::builtin::states {
         }
         case ActorVersion::kVersion3: {
           OUTCOME_TRYA(state, getStatePtr<Tv3>(actor.head));
+          break;
+        }
+        case ActorVersion::kVersion4: {
+          if constexpr (std::is_same_v<Tv4, void>) {
+            TODO_ACTORS_V4();
+          } else {
+            OUTCOME_TRYA(state, getStatePtr<Tv4>(actor.head));
+          }
           break;
         }
       }

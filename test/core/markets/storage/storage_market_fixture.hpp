@@ -11,7 +11,7 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/security/plaintext.hpp>
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
@@ -449,7 +449,7 @@ namespace fc::markets::storage::test {
           context,
           import_manager,
           datatransfer,
-          std::make_shared<markets::discovery::Discovery>(datastore),
+          std::make_shared<markets::discovery::DiscoveryImpl>(datastore),
           api,
           chain_events_,
           piece_io_);

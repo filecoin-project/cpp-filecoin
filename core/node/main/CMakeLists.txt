@@ -34,6 +34,7 @@ target_link_libraries(node_builder
     p2p::asio_scheduler
     p2p::p2p_random_generator
     pieceio
+    retrieval_market_client
     rpc
     runtime
     secp256k1_provider

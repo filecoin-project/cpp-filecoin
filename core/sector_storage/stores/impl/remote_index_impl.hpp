@@ -7,7 +7,7 @@
 
 #include "sector_storage/stores/index.hpp"
 
-#include "api/storage_api.hpp"
+#include "api/storage_miner/storage_api.hpp"
 
 namespace fc::sector_storage::stores {
   using api::StorageMinerApi;
