@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_FFI_HPP
-#define CPP_FILECOIN_CORE_COMMON_FFI_HPP
+#pragma once
 
 #include <memory>
 
@@ -28,5 +27,3 @@ namespace fc::common::ffi {
     std::copy(std::begin(rhs), std::end(rhs), std::begin(lhs));
   }
 }  // namespace fc::common::ffi
-
-#endif  // CPP_FILECOIN_CORE_COMMON_FFI_HPP

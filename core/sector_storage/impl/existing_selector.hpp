@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_EXISTING_SELECTOR_HPP
-#define CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_EXISTING_SELECTOR_HPP
+#pragma once
 
 #include "sector_storage/selector.hpp"
 
@@ -35,5 +34,3 @@ namespace fc::sector_storage {
     bool allow_fetch_;
   };
 }  // namespace fc::sector_storage
-
-#endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_EXISTING_SELECTOR_HPP

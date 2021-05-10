@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_PIECE_ERROR_HPP
-#define CPP_FILECOIN_PIECE_ERROR_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 
@@ -23,5 +22,3 @@ namespace fc::primitives::piece {
 }  // namespace fc::primitives::piece
 
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::piece, PieceError);
-
-#endif  // CPP_FILECOIN_PIECE_ERROR_HPP

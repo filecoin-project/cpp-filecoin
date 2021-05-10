@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
-#define CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
+#pragma once
 
 #include "sector_storage/worker.hpp"
 
@@ -106,5 +105,3 @@ namespace fc::sector_storage {
   };
 
 }  // namespace fc::sector_storage
-
-#endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP

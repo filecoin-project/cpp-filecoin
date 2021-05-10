@@ -1,9 +1,9 @@
-//
-// Created by Alexey Chernyshov on 16.04.2020.
-//
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_CRYPTO_SAMPLE_SIGNATURES_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_CRYPTO_SAMPLE_SIGNATURES_HPP
+#pragma once
 
 #include "crypto/secp256k1/secp256k1_types.hpp"
 #include "testutil/literals.hpp"
@@ -30,5 +30,3 @@ const fc::crypto::secp256k1::Signature kSampleSecp256k1Signature{
     kSampleSecp256k1SignatureBytes};
 
 const fc::crypto::bls::Signature kSampleBlsSignature{kSampleBlsSignatureBytes};
-
-#endif  // CPP_FILECOIN_TEST_TESTUTIL_CRYPTO_SAMPLE_SIGNATURES_HPP

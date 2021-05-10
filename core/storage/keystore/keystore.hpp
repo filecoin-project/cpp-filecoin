@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_STORAGE_KEYSTORE_HPP
-#define FILECOIN_CORE_STORAGE_KEYSTORE_HPP
+#pragma once
 
 #include <gsl/span>
 
@@ -118,5 +117,3 @@ namespace fc::storage::keystore {
 
   extern const std::shared_ptr<KeyStore> kDefaultKeystore;
 }  // namespace fc::storage::keystore
-
-#endif  // FILECOIN_CORE_STORAGE_KEYSTORE_HPP

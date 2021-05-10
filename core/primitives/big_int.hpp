@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_BIG_INT_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_BIG_INT_HPP
+#pragma once
 
 #include <boost/multiprecision/cpp_int.hpp>
 
@@ -58,5 +57,3 @@ namespace boost::multiprecision {
     return s;
   }
 }  // namespace boost::multiprecision
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_BIG_INT_HPP

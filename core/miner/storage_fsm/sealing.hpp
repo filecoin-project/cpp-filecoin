@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SEALING_HPP
-#define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SEALING_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 #include "miner/storage_fsm/sealing_states.hpp"
@@ -80,5 +79,3 @@ namespace fc::mining {
 }  // namespace fc::mining
 
 OUTCOME_HPP_DECLARE_ERROR(fc::mining, SealingError);
-
-#endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SEALING_HPP

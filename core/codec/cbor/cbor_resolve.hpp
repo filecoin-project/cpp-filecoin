@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_RESOLVE_HPP
-#define CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_RESOLVE_HPP
+#pragma once
 
 #include "codec/cbor/cbor_decode_stream.hpp"
 
@@ -26,5 +25,3 @@ namespace fc::codec::cbor {
 }  // namespace fc::codec::cbor
 
 OUTCOME_HPP_DECLARE_ERROR(fc::codec::cbor, CborResolveError);
-
-#endif  // CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_RESOLVE_HPP

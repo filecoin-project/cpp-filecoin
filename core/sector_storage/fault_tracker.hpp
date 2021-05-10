@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_FAULT_TRACKER_HPP
-#define CPP_FILECOIN_CORE_SECTOR_STORAGE_FAULT_TRACKER_HPP
+#pragma once
 
 #include <vector>
 #include "common/outcome.hpp"
@@ -25,5 +24,3 @@ namespace fc::sector_storage {
   };
 
 }  // namespace fc::sector_storage
-
-#endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_FAULT_TRACKER_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_STORAGE_IN_MEMORY_KEYSTORE_HPP
-#define FILECOIN_CORE_STORAGE_IN_MEMORY_KEYSTORE_HPP
+#pragma once
 
 #include <map>
 
@@ -47,5 +46,3 @@ namespace fc::storage::keystore {
   };
 
 }  // namespace fc::storage::keystore
-
-#endif  // FILECOIN_CORE_STORAGE_IN_MEMORY_KEYSTORE_HPP

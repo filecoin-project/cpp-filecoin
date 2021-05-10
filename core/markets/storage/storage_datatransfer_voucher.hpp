@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_MARKETS_STORAGE_DATATRANSFER_VOUCHER_HPP
-#define CPP_FILECOIN_MARKETS_STORAGE_DATATRANSFER_VOUCHER_HPP
+#pragma once
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/cid/cid.hpp"
@@ -27,5 +26,3 @@ namespace fc::markets::storage {
   CBOR_TUPLE(StorageDataTransferVoucher, proposal_cid);
 
 }  // namespace fc::markets::storage
-
-#endif  // CPP_FILECOIN_MARKETS_STORAGE_DATATRANSFER_VOUCHER_HPP

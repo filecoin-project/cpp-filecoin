@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_DRAND_IMPL_BEACONIZER_HPP
-#define CPP_FILECOIN_CORE_DRAND_IMPL_BEACONIZER_HPP
+#pragma once
 
 #include <atomic>
 #include <memory>
@@ -110,5 +109,3 @@ namespace fc::drand {
 }  // namespace fc::drand
 
 OUTCOME_HPP_DECLARE_ERROR(fc::drand, BeaconizerImpl::Error);
-
-#endif  // CPP_FILECOIN_CORE_DRAND_IMPL_BEACONIZER_HPP

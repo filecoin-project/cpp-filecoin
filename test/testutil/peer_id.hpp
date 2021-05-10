@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_PEER_ID_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_PEER_ID_HPP
+#pragma once
 
 #include <libp2p/multi/multihash.hpp>
 #include <libp2p/peer/peer_id.hpp>
@@ -23,5 +22,3 @@ inline PeerId generatePeerId(int value) {
   auto hash = Multihash::create(libp2p::multi::sha256, kBuffer).value();
   return PeerId::fromHash(hash).value();
 }
-
-#endif  // CPP_FILECOIN_TEST_TESTUTIL_PEER_ID_HPP
