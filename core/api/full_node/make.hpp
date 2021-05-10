@@ -47,5 +47,6 @@ namespace fc::api {
       std::shared_ptr<PubSubGate> pubsub,
       std::shared_ptr<KeyStore> key_store,
       std::shared_ptr<Discovery> market_discovery,
-      const std::shared_ptr<RetrievalClient> &retrieval_market_client);
+      const std::shared_ptr<RetrievalClient> &retrieval_market_client,
+      const boost::optional<Address> &wallet_default_address);
 }  // namespace fc::api

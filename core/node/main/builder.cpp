@@ -9,7 +9,6 @@
 #include <libp2p/injector/host_injector.hpp>
 
 #include <leveldb/cache.h>
-#include <libp2p/crypto/ed25519_provider/ed25519_provider_impl.hpp>
 #include <libp2p/protocol/gossip/gossip.hpp>
 #include <libp2p/protocol/identify/identify.hpp>
 #include <libp2p/protocol/identify/identify_delta.hpp>
@@ -27,6 +26,7 @@
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
+#include "common/error_text.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
@@ -51,10 +51,9 @@
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/util.hpp"
 #include "storage/chain/msg_waiter.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/prefix.hpp"
@@ -73,8 +72,9 @@ namespace fc::node {
   using markets::storage::kStorageMarketImportDir;
   using markets::storage::chain_events::ChainEventsImpl;
   using markets::storage::client::StorageMarketClientImpl;
-  using storage::InMemoryStorage;
+  using storage::filestore::FileSystemFile;
   using storage::ipfs::InMemoryDatastore;
+  using storage::keystore::InMemoryKeyStore;
 
   namespace {
     auto log() {
@@ -231,6 +231,21 @@ namespace fc::node {
     // estimated
     o.ipld_cids_write->flush_on = 200000;
     o.ipld = o.ipld_cids_write;
+  }
+
+  /**
+   * Reads bls private key from file
+   */
+  outcome::result<crypto::bls::PrivateKey> readBlsPrivateKeyFromFile(
+      const std::string &path) {
+    FileSystemFile file(path);
+    OUTCOME_TRY(file.open());
+    crypto::bls::PrivateKey private_key{};
+    OUTCOME_TRY(read_size, file.read(0, private_key));
+    if (read_size != private_key.size()) {
+      return ERROR_TEXT("Cannot read default key.");
+    }
+    return private_key;
   }
 
   /**
@@ -484,8 +499,22 @@ namespace fc::node {
     auto msg_waiter = storage::blockchain::MsgWaiter::create(
         o.ts_load, o.ipld, o.chain_store);
 
-    auto key_store = std::make_shared<storage::keystore::InMemoryKeyStore>(
+    o.key_store = std::make_shared<storage::keystore::InMemoryKeyStore>(
         bls_provider, secp_provider);
+    // If default key is set, import to keystore and save default key address.
+    // Default key must be a BLS key.
+    if (config.wallet_default_key_path) {
+      const auto maybe_default_key =
+          readBlsPrivateKeyFromFile(*config.wallet_default_key_path);
+      if (maybe_default_key.has_error()) {
+        log()->error("Cannot read default key from {}",
+                     *config.wallet_default_key_path);
+        return maybe_default_key.error();
+      }
+      OUTCOME_TRYA(o.wallet_default_address,
+                   o.key_store->put(true, maybe_default_key.value()));
+      log()->info("Default wallet address {}", *o.wallet_default_address);
+    }
 
     drand::ChainInfo drand_chain_info{
         .key = *config.drand_bls_pubkey,
@@ -494,7 +523,7 @@ namespace fc::node {
     };
 
     if (config.drand_servers.empty()) {
-      config.drand_servers.push_back("https://127.0.0.1:8080");
+      config.drand_servers.emplace_back("https://127.0.0.1:8080");
     }
 
     auto beaconizer =
@@ -520,9 +549,10 @@ namespace fc::node {
                           beaconizer,
                           drand_schedule,
                           o.pubsub_gate,
-                          key_store,
+                          o.key_store,
                           o.market_discovery,
-                          o.retrieval_market_client);
+                          o.retrieval_market_client,
+                          o.wallet_default_address);
 
     o.datatransfer = DataTransfer::make(o.host, o.graphsync);
     OUTCOME_TRY(createStorageMarketClient(o));

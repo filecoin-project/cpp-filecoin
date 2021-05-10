@@ -23,6 +23,7 @@
 #include "storage/buffer_map.hpp"
 #include "storage/car/cids_index/cids_index.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
+#include "storage/keystore/keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "vm/runtime/env_context.hpp"
 
@@ -35,6 +36,8 @@ namespace fc::node {
   using markets::storage::chain_events::ChainEvents;
   using markets::storage::client::StorageMarketClient;
   using markets::storage::client::import_manager::ImportManager;
+  using primitives::address::Address;
+  using storage::keystore::KeyStore;
 
   enum Error {
     kStorageInitError = 1,
@@ -97,6 +100,9 @@ namespace fc::node {
     std::shared_ptr<Discovery> market_discovery;
     std::shared_ptr<StorageMarketClient> storage_market_client;
     std::shared_ptr<RetrievalClient> retrieval_market_client;
+
+    std::shared_ptr<KeyStore> key_store;
+    boost::optional<Address> wallet_default_address;
 
     // high level objects
     std::shared_ptr<sync::ChainStoreImpl> chain_store;
