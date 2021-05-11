@@ -151,4 +151,8 @@ namespace fc::storage {
   void OneKey::set(Buffer value) {
     map->put(key, std::move(value)).value();
   }
+
+  void OneKey::remove() {
+    map->remove(key).value();
+  }
 }  // namespace fc::storage

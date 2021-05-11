@@ -60,11 +60,13 @@ namespace fc::storage {
   };
 
   struct OneKey {
+    OneKey() = default;
     OneKey(BytesIn key, MapPtr map);
     OneKey(std::string_view key, MapPtr map);
     bool has() const;
     Buffer get() const;
     void set(Buffer value);
+    void remove();
     template <typename T>
     auto getCbor() const {
       return codec::cbor::decode<T>(get()).value();

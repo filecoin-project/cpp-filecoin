@@ -390,17 +390,8 @@ namespace fc::storage::cids_index {
 
   outcome::result<bool> CidsIpld::contains(const CID &cid) const {
     if (auto key{asBlake(cid)}) {
-      std::shared_lock index_lock{index_mutex};
-      OUTCOME_TRY(row, index->find(*key));
-      index_lock.unlock();
-      if (row) {
+      if (has(*key)) {
         return true;
-      }
-      if (writable.is_open()) {
-        std::shared_lock written_lock{written_mutex};
-        if (findWritten(*this, *key)) {
-          return true;
-        }
       }
     }
     if (ipld) {
@@ -410,36 +401,17 @@ namespace fc::storage::cids_index {
   }
 
   outcome::result<void> CidsIpld::set(const CID &cid, Buffer value) {
-    OUTCOME_TRY(has, contains(cid));
-    if (has) {
-      return outcome::success();
-    }
     if (auto key{asBlake(cid)}) {
       if (writable.is_open()) {
-        std::unique_lock written_lock{written_mutex};
-        if (findWritten(*this, *key)) {
-          return outcome::success();
-        }
-        Buffer item;
-        car::writeItem(item, cid, value);
-        Row row;
-        row.key = *key;
-        row.offset = car_offset;
-        row.max_size64 = maxSize64(item.size());
-        if (!common::write(writable, item)) {
-          return ERROR_TEXT("CidsIpld.set: write error");
-        }
-        writable.flush();
-        car_offset += item.size();
-        written.insert(row);
-        if (flush_on && written.size() >= flush_on) {
-          written_lock.unlock();
-          asyncFlush();
-        }
+        put(*key, value);
         return outcome::success();
       }
     }
     if (ipld) {
+      OUTCOME_TRY(has, ipld->contains(cid));
+      if (has) {
+        return outcome::success();
+      }
       return ipld->set(cid, std::move(value));
     }
     return ERROR_TEXT("CidsIpld.set: no ipld set");
@@ -447,25 +419,9 @@ namespace fc::storage::cids_index {
 
   outcome::result<Buffer> CidsIpld::get(const CID &cid) const {
     if (auto key{asBlake(cid)}) {
-      std::shared_lock index_lock{index_mutex};
-      OUTCOME_TRY(row, index->find(*key));
-      index_lock.unlock();
-      if (!row && writable.is_open()) {
-        std::shared_lock written_lock{written_mutex};
-        row = findWritten(*this, *key);
-      }
-      if (row) {
-        std::unique_lock car_lock{car_mutex};
-        auto [good, size]{readCarItem(car_file, *row, nullptr)};
-        if (!good) {
-          return ERROR_TEXT("CidsIpld.get: inconsistent");
-        }
-        Buffer item;
-        item.resize(size);
-        if (!common::read(car_file, item)) {
-          return ERROR_TEXT("CidsIpld.get: read error");
-        }
-        return item;
+      Buffer value;
+      if (get(*key, value)) {
+        return std::move(value);
       }
     }
     if (ipld) {
@@ -524,6 +480,77 @@ namespace fc::storage::cids_index {
     return outcome::success();
   }
 
+  bool CidsIpld::get(const Hash256 &key, Buffer *value) const {
+    if (value) {
+      value->resize(0);
+    }
+    std::shared_lock index_lock{index_mutex};
+    auto row{index->find(key).value()};
+    index_lock.unlock();
+    if (!row && writable.is_open()) {
+      std::shared_lock written_lock{written_mutex};
+      row = findWritten(*this, key);
+    }
+    if (!row) {
+      return false;
+    }
+    if (value) {
+      std::unique_lock car_lock{car_mutex};
+      auto [good, size]{readCarItem(car_file, *row, nullptr)};
+      if (!good) {
+        spdlog::error("CidsIpld.get inconsistent");
+        outcome::raise(ERROR_TEXT("CidsIpld.get: inconsistent"));
+      }
+      value->resize(size);
+      if (!common::read(car_file, *value)) {
+        spdlog::error("CidsIpld.get read error");
+        outcome::raise(ERROR_TEXT("CidsIpld.get: read error"));
+      }
+    }
+    return true;
+  }
+
+  void CidsIpld::put(const Hash256 &key, BytesIn value) {
+    if (!writable.is_open()) {
+      outcome::raise(ERROR_TEXT("CidsIpld.put: not writable"));
+    }
+    if (has(key)) {
+      return;
+    }
+    std::unique_lock written_lock{written_mutex};
+    if (findWritten(*this, key)) {
+      return;
+    }
+
+    Buffer item;
+    codec::uvarint::VarintEncoder varint{kCborBlakePrefix.size() + key.size()
+                                         + value.size()};
+    item.reserve(varint.length + varint.value);
+    item.put(varint.bytes());
+    item.put(kCborBlakePrefix);
+    item.put(key);
+    item.put(value);
+
+    Row row;
+    row.key = key;
+    row.offset = car_offset;
+    row.max_size64 = maxSize64(item.size());
+    if (!common::write(writable, item)) {
+      spdlog::error("CidsIpld.put write error");
+      outcome::raise(ERROR_TEXT("CidsIpld.put: write error"));
+    }
+    if (!writable.flush().good()) {
+      spdlog::error("CidsIpld.put flush error");
+      outcome::raise(ERROR_TEXT("CidsIpld.put: flush error"));
+    }
+    car_offset += item.size();
+    written.insert(row);
+    if (flush_on && written.size() >= flush_on) {
+      written_lock.unlock();
+      asyncFlush();
+    }
+  }
+
   void CidsIpld::asyncFlush() {
     if (!flushing.test_and_set()) {
       if (io) {
@@ -538,5 +565,22 @@ namespace fc::storage::cids_index {
         }
       }
     }
+  }
+
+  outcome::result<bool> Ipld2Ipld::contains(const CID &cid) const {
+    return ipld->has(*asBlake(cid));
+  }
+
+  outcome::result<void> Ipld2Ipld::set(const CID &cid, Buffer value) {
+    ipld->put(*asBlake(cid), value);
+    return outcome::success();
+  }
+
+  outcome::result<Buffer> Ipld2Ipld::get(const CID &cid) const {
+    Buffer value;
+    if (!ipld->get(*asBlake(cid), value)) {
+      return ipfs::IpfsDatastoreError::kNotFound;
+    }
+    return std::move(value);
   }
 }  // namespace fc::storage::cids_index
