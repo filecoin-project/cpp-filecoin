@@ -6,8 +6,11 @@
 #include "storage/amt/amt.hpp"
 
 #include <gtest/gtest.h>
+
+#include "codec/amt.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
+#include "testutil/storage/ipld2.hpp"
 
 using fc::codec::cbor::encode;
 using fc::common::which;
@@ -148,4 +151,20 @@ TEST_F(AmtVisitTest, VisitError) {
                        amt.visit([](uint64_t, const Value &) {
                          return AmtError::kIndexTooBig;
                        }));
+}
+
+TEST_F(AmtVisitTest, Walk) {
+  using namespace fc;
+  codec::amt::AmtWalk walk{std::make_shared<IpldIpld2>(store),
+                           *asBlake(amt.flush().value())};
+  BytesIn value;
+  EXPECT_TRUE(walk.load());
+  EXPECT_FALSE(walk.empty());
+  EXPECT_TRUE(walk.next(value));
+  EXPECT_FALSE(walk.empty());
+  EXPECT_EQ(value, BytesIn{items[0].second});
+  EXPECT_TRUE(walk.next(value));
+  EXPECT_TRUE(walk.empty());
+  EXPECT_EQ(value, BytesIn{items[1].second});
+  EXPECT_FALSE(walk.next(value));
 }
