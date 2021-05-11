@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_WORKER_HPP
-#define CPP_FILECOIN_CORE_SECTOR_STORAGE_WORKER_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 #include "primitives/piece/piece.hpp"
@@ -125,5 +124,3 @@ namespace fc::sector_storage {
 }  // namespace fc::sector_storage
 
 OUTCOME_HPP_DECLARE_ERROR(fc::sector_storage, WorkerErrors);
-
-#endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_WORKER_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_EVENTS_IMPL_HPP
-#define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_EVENTS_IMPL_HPP
+#pragma once
 
 #include "miner/storage_fsm/events.hpp"
 
@@ -33,8 +32,7 @@ namespace fc::mining {
                                   ChainEpoch height) override;
 
    private:
-    EventsImpl(
-               std::shared_ptr<TipsetCache> tipset_cache);
+    EventsImpl(std::shared_ptr<TipsetCache> tipset_cache);
 
     struct HeightHandle {
       EpochDuration confidence;
@@ -70,5 +68,3 @@ namespace fc::mining {
   };
 
 }  // namespace fc::mining
-
-#endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_EVENTS_IMPL_HPP

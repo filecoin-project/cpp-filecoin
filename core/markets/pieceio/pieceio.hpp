@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_PIECEIO_PIECEIO_HPP
-#define CPP_FILECOIN_CORE_MARKETS_PIECEIO_PIECEIO_HPP
+#pragma once
 
 #include <boost/filesystem/path.hpp>
 
@@ -27,5 +26,3 @@ namespace fc::markets::pieceio {
   };
 
 }  // namespace fc::markets::pieceio
-
-#endif  // CPP_FILECOIN_CORE_MARKETS_PIECEIO_PIECEIO_HPP

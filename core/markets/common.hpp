@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_MARKETS_STORAGE_COMMON_HPP
-#define CPP_FILECOIN_MARKETS_STORAGE_COMMON_HPP
+#pragma once
 
 #include "common/libp2p/cbor_stream.hpp"
 
@@ -33,5 +32,3 @@ namespace fc::markets {
   }
 
 }  // namespace fc::markets
-
-#endif  // CPP_FILECOIN_MARKETS_STORAGE_COMMON_HPP

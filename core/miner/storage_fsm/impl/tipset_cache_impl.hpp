@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_TIPSET_CACHE_IMPL_HPP
-#define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_TIPSET_CACHE_IMPL_HPP
+#pragma once
 
 #include "miner/storage_fsm/tipset_cache.hpp"
 
@@ -48,5 +47,3 @@ namespace fc::mining {
     GetTipsetFunction get_function_;
   };
 }  // namespace fc::mining
-
-#endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_TIPSET_CACHE_IMPL_HPP

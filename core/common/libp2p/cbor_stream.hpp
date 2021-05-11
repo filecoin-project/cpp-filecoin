@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_LIBP2P_CBOR_STREAM_HPP
-#define CPP_FILECOIN_CORE_COMMON_LIBP2P_CBOR_STREAM_HPP
+#pragma once
 
 #include <libp2p/connection/stream.hpp>
 
@@ -69,5 +68,3 @@ namespace fc::common::libp2p {
     size_t size_{};
   };
 }  // namespace fc::common::libp2p
-
-#endif  // CPP_FILECOIN_CORE_COMMON_LIBP2P_CBOR_STREAM_HPP

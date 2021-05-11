@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_IMPL_HPP
-#define CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_IMPL_HPP
+#pragma once
 
 #include "blockchain/weight_calculator.hpp"
 #include "storage/buffer_map.hpp"
@@ -59,5 +58,3 @@ namespace fc::vm::interpreter {
     std::shared_ptr<InterpreterCache> cache;
   };
 }  // namespace fc::vm::interpreter
-
-#endif

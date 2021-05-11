@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_CBOR_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_CBOR_HPP
+#pragma once
 
 #include "codec/cbor/cbor.hpp"
 #include "common/hexutil.hpp"
@@ -28,5 +27,3 @@ void expectEncodeAndReencode(const T &value,
   EXPECT_OUTCOME_TRUE(decoded, fc::codec::cbor::decode<T>(expected_bytes));
   EXPECT_OUTCOME_EQ(fc::codec::cbor::encode(decoded), expected_bytes);
 }
-
-#endif  // CPP_FILECOIN_TEST_TESTUTIL_CBOR_HPP

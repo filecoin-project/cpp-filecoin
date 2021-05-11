@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP
+#pragma once
 
 #include <boost/assert.hpp>
 #include <boost/optional.hpp>
@@ -141,5 +140,3 @@ namespace fc {
     }
   };
 }  // namespace fc
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP

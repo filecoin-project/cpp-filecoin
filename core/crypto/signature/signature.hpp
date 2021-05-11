@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CRYPTO_SIGNATURE_HPP
-#define CPP_FILECOIN_CRYPTO_SIGNATURE_HPP
+#pragma once
 
 #include <boost/variant.hpp>
 
@@ -65,5 +64,3 @@ namespace fc::crypto::signature {
   }
 
 }  // namespace fc::crypto::signature
-
-#endif  // CPP_FILECOIN_CRYPTO_SIGNATURE_HPP

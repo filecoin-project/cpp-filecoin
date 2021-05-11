@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_BUFFER_MAP_HPP
-#define CPP_FILECOIN_BUFFER_MAP_HPP
+#pragma once
 
 /**
  * This file contains:
@@ -33,5 +32,3 @@ namespace fc::storage {
   using BufferMapCursor = face::MapCursor<Buffer, Buffer>;
 
 }  // namespace fc::storage
-
-#endif  // CPP_FILECOIN_BUFFER_MAP_HPP

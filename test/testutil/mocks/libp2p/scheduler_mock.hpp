@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_MOCKS_LIBP2P_SCHEDULER_MOCK_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_MOCKS_LIBP2P_SCHEDULER_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -23,5 +22,3 @@ namespace libp2p::protocol {
   };
 
 }  // namespace libp2p::protocol
-
-#endif  // CPP_FILECOIN_TEST_TESTUTIL_MOCKS_MINER_MINER_MOCK_HPP

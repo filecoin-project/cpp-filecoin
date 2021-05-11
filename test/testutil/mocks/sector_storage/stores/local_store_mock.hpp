@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_MOCKS_SECTOR_STORAGE_STORES_LOCAL_STORE_MOCK_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_MOCKS_SECTOR_STORAGE_STORES_LOCAL_STORE_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -49,5 +48,3 @@ namespace fc::sector_storage::stores {
                      PathType path_type));
   };
 }  // namespace fc::sector_storage::stores
-
-#endif  // CPP_FILECOIN_TEST_TESTUTIL_MOCKS_SECTOR_STORAGE_STORES_LOCAL_STORE_MOCK_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_API_RPC_WS_HPP
-#define CPP_FILECOIN_CORE_API_RPC_WS_HPP
+#pragma once
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/http.hpp>
@@ -55,5 +54,3 @@ namespace fc::api {
              std::string_view ip,
              unsigned short port);
 }  // namespace fc::api
-
-#endif  // CPP_FILECOIN_CORE_API_RPC_WS_HPP
