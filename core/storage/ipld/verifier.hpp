@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_IPLD_VERIFIER_HPP
-#define CPP_FILECOIN_CORE_STORAGE_IPLD_VERIFIER_HPP
+#pragma once
 
 #include "common/buffer.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
@@ -50,5 +49,3 @@ namespace fc::storage::ipld::verifier {
 }  // namespace fc::storage::ipld::verifier
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::ipld::verifier, VerifierError);
-
-#endif  // CPP_FILECOIN_CORE_STORAGE_IPLD_VERIFIER_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_MULTIMAP_HPP
-#define CPP_FILECOIN_MULTIMAP_HPP
+#pragma once
 
 #include "adt/array.hpp"
 #include "adt/map.hpp"
@@ -50,5 +49,3 @@ namespace fc::adt {
     }
   };
 }  // namespace fc::adt
-
-#endif  // CPP_FILECOIN_MULTIMAP_HPP

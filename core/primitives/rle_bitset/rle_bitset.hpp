@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RLE_BITSET_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RLE_BITSET_HPP
+#pragma once
 
 #include <set>
 
@@ -71,5 +70,3 @@ namespace fc::primitives {
     return s;
   }
 }  // namespace fc::primitives
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RLE_BITSET_HPP

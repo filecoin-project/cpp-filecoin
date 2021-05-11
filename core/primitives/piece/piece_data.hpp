@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_PIECE_DATA_HPP
-#define CPP_FILECOIN_PIECE_DATA_HPP
+#pragma once
 
 #include <fcntl.h>
 #include <string>
@@ -34,5 +33,3 @@ namespace fc::primitives::piece {
   };
 
 }  // namespace fc::primitives::piece
-
-#endif  // CPP_FILECOIN_PIECE_DATA_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_PROOF_PARAM_PROVIDER_HPP
-#define CPP_FILECOIN_PROOF_PARAM_PROVIDER_HPP
+#pragma once
 
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
@@ -40,5 +39,3 @@ namespace fc::proofs {
   };
 
 }  // namespace fc::proofs
-
-#endif  // CPP_FILECOIN_PROOF_PARAM_PROVIDER_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_CRYPTO_RANDOMNESS_RANDOMNESS_HPP
-#define CPP_FILECOIN_CORE_CRYPTO_RANDOMNESS_RANDOMNESS_HPP
+#pragma once
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
@@ -41,5 +40,3 @@ namespace fc::crypto::randomness {
     return crypto::blake2b::blake2b_256(buffer);
   }
 }  // namespace fc::crypto::randomness
-
-#endif  // CPP_FILECOIN_CORE_CRYPTO_RANDOMNESS_RANDOMNESS_HPP

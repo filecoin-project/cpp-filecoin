@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_CRYPTO_HASHER_HPP
-#define FILECOIN_CORE_CRYPTO_HASHER_HPP
+#pragma once
 
 #include <map>
 
@@ -44,5 +43,3 @@ namespace fc::crypto {
     static Multihash blake2b_256(gsl::span<const uint8_t> buffer);
   };
 }  // namespace fc::crypto
-
-#endif

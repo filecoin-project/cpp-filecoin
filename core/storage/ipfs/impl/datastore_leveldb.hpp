@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_IPFS_IMPL_DATASTORE_LEVELDB_HPP
-#define CPP_FILECOIN_CORE_STORAGE_IPFS_IMPL_DATASTORE_LEVELDB_HPP
+#pragma once
 
 #include <memory>
 
@@ -63,5 +62,3 @@ namespace fc::storage::ipfs {
   };
 
 }  // namespace fc::storage::ipfs
-
-#endif  // CPP_FILECOIN_CORE_STORAGE_IPFS_IMPL_DATASTORE_LEVELDB_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_CRYPTO_BLS_PROVIDER_MOCK_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_CRYPTO_BLS_PROVIDER_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 #include "crypto/bls/bls_provider.hpp"
@@ -30,5 +29,3 @@ namespace fc::crypto::bls {
         outcome::result<Signature>(gsl::span<const Signature>));
   };
 }  // namespace fc::crypto::bls
-
-#endif

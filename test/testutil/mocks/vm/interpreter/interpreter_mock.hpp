@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_MOCKS_VM_INTERPRETER
-#define CPP_FILECOIN_MOCKS_VM_INTERPRETER
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -18,5 +17,3 @@ namespace fc::vm::interpreter {
                                                const TipsetCPtr &tipset));
   };
 }  // namespace fc::vm::interpreter
-
-#endif

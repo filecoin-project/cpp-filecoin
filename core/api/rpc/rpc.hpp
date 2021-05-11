@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_API_RPC_RPC_HPP
-#define CPP_FILECOIN_CORE_API_RPC_RPC_HPP
+#pragma once
 
 #include <map>
 
@@ -58,5 +57,3 @@ namespace fc::api::rpc {
     }
   };
 }  // namespace fc::api::rpc
-
-#endif  // CPP_FILECOIN_CORE_API_RPC_RPC_HPP

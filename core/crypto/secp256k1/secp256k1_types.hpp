@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_CRYPTO_SECP256K1_SECP256K1_TYPES_HPP
-#define CPP_FILECOIN_CORE_CRYPTO_SECP256K1_SECP256K1_TYPES_HPP
+#pragma once
 
 #include <array>
 #include <vector>
@@ -68,5 +67,3 @@ namespace fc::crypto::secp256k1 {
   };
 
 }  // namespace fc::crypto::secp256k1
-
-#endif  // CPP_FILECOIN_CORE_CRYPTO_SECP256K1_SECP256K1_TYPES_HPP

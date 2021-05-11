@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_ARRAY_HPP
-#define CPP_FILECOIN_ARRAY_HPP
+#pragma once
 
 #include "storage/amt/amt.hpp"
 
@@ -125,5 +124,3 @@ namespace fc {
     }
   };
 }  // namespace fc
-
-#endif  // CPP_FILECOIN_ARRAY_HPP

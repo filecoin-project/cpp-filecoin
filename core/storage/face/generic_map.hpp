@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_GENERIC_MAP_HPP
-#define CPP_FILECOIN_GENERIC_MAP_HPP
+#pragma once
 
 #include "storage/face/iterable_map.hpp"
 #include "storage/face/readable_map.hpp"
@@ -22,5 +21,3 @@ namespace fc::storage::face {
                       public ReadableMap<K, V>,
                       public WriteableMap<K, V> {};
 }  // namespace fc::storage::face
-
-#endif  // CPP_FILECOIN_GENERIC_MAP_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CRYPTO_BLS_PROVIDER_HPP
-#define CRYPTO_BLS_PROVIDER_HPP
+#pragma once
 
 #include <gsl/span>
 
@@ -61,5 +60,3 @@ namespace fc::crypto::bls {
         gsl::span<const Signature> signatures) const = 0;
   };
 }  // namespace fc::crypto::bls
-
-#endif

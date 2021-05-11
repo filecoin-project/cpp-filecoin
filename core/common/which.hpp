@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_WHICH_HPP
-#define CPP_FILECOIN_CORE_COMMON_WHICH_HPP
+#pragma once
 
 #include <boost/variant.hpp>
 
@@ -40,5 +39,3 @@ namespace fc::common {
     return v.which() == 2;
   }
 }  // namespace fc::common
-
-#endif  // CPP_FILECOIN_CORE_COMMON_WHICH_HPP

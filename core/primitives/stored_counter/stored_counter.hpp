@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_STORED_COUNTER_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_STORED_COUNTER_HPP
+#pragma once
 
 #include <mutex>
 #include "common/buffer.hpp"
@@ -34,5 +33,3 @@ namespace fc::primitives {
     std::mutex mutex_;
   };
 }  // namespace fc::primitives
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_STORED_COUNTER_HPP

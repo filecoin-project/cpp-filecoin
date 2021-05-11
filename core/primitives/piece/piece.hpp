@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_PIECE_HPP
-#define CPP_FILECOIN_PIECE_HPP
+#pragma once
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/cid/cid.hpp"
@@ -98,5 +97,4 @@ namespace fc::primitives::piece {
   void pad(gsl::span<const uint8_t> in, gsl::span<uint8_t> out);
   void unpad(gsl::span<const uint8_t> in, gsl::span<uint8_t> out);
 
-};      // namespace fc::primitives::piece
-#endif  // CPP_FILECOIN_PIECE_HPP
+};  // namespace fc::primitives::piece

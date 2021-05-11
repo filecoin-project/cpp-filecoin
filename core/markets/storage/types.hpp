@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_MARKETS_STORAGE_TYPES_HPP
-#define CPP_FILECOIN_MARKETS_STORAGE_TYPES_HPP
+#pragma once
 
 #include <libp2p/peer/peer_info.hpp>
 #include "primitives/address/address.hpp"
@@ -30,5 +29,3 @@ namespace fc::markets::storage {
   };
 
 }  // namespace fc::markets::storage
-
-#endif  // CPP_FILECOIN_MARKETS_STORAGE_TYPES_HPP
