@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_GTEST_OUTCOME_UTIL_HPP
-#define CPP_FILECOIN_GTEST_OUTCOME_UTIL_HPP
+#pragma once
 
 #include <gtest/gtest.h>
 #include "common/outcome.hpp"
@@ -112,5 +111,3 @@
 
 #define EXPECT_OUTCOME_EQ(expr, value) \
   EXPECT_OUTCOME_EQ_3(UNIQUE_NAME(_v), expr, value)
-
-#endif  // CPP_FILECOIN_GTEST_OUTCOME_UTIL_HPP

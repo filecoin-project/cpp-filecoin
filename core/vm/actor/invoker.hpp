@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_INVOKER_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_INVOKER_HPP
+#pragma once
 
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
@@ -23,5 +22,3 @@ namespace fc::vm::actor {
         const Actor &actor, const std::shared_ptr<Runtime> &runtime) = 0;
   };
 }  // namespace fc::vm::actor
-
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_INVOKER_HPP

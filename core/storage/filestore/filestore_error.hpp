@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_STORAGE_FILESTORE_FILESTORE_ERROR_HPP
-#define FILECOIN_CORE_STORAGE_FILESTORE_FILESTORE_ERROR_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 
@@ -26,5 +25,3 @@ namespace fc::storage::filestore {
 }  // namespace fc::storage::filestore
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::filestore, FileStoreError);
-
-#endif  // FILECOIN_CORE_STORAGE_FILESTORE_FILESTORE_ERROR_HPP

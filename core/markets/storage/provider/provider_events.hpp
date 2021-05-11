@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE_PROVIDER_PROVIDER_EVENTS_HPP
-#define CPP_FILECOIN_CORE_MARKETS_STORAGE_PROVIDER_PROVIDER_EVENTS_HPP
+#pragma once
 
 namespace fc::markets::storage::provider {
 
@@ -91,5 +90,3 @@ namespace fc::markets::storage::provider {
   };
 
 }  // namespace fc::markets::storage::provider
-
-#endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE_PROVIDER_PROVIDER_EVENTS_HPP

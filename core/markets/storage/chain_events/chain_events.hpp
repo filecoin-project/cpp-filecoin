@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE_EVENTS_HPP
-#define CPP_FILECOIN_CORE_MARKETS_STORAGE_EVENTS_HPP
+#pragma once
 
 #include <future>
 #include "storage/mpool/mpool.hpp"
@@ -43,5 +42,3 @@ namespace fc::markets::storage::chain_events {
                                        Cb cb) = 0;
   };
 }  // namespace fc::markets::storage::chain_events
-
-#endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE_EVENTS_HPP

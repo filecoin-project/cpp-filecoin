@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_HPP
-#define CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_HPP
+#pragma once
 
 #include "fwd.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -57,5 +56,3 @@ namespace fc::vm::interpreter {
 }  // namespace fc::vm::interpreter
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm::interpreter, InterpreterError);
-
-#endif  // CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_HPP

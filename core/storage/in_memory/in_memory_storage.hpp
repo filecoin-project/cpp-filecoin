@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_STORAGE_IN_MEMORY_IN_MEMORY_STORAGE_HPP
-#define CPP_FILECOIN_STORAGE_IN_MEMORY_IN_MEMORY_STORAGE_HPP
+#pragma once
 
 #include <memory>
 
@@ -46,5 +45,3 @@ namespace fc::storage {
   };
 
 }  // namespace fc::storage
-
-#endif  // CPP_FILECOIN_STORAGE_IN_MEMORY_IN_MEMORY_STORAGE_HPP

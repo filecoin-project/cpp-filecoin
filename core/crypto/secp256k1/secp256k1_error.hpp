@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_CRYPTO_SECP256K1_SECP256K1_ERROR_HPP
-#define CPP_FILECOIN_CORE_CRYPTO_SECP256K1_SECP256K1_ERROR_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 
@@ -23,5 +22,3 @@ namespace fc::crypto::secp256k1 {
 }
 
 OUTCOME_HPP_DECLARE_ERROR(fc::crypto::secp256k1, Secp256k1Error);
-
-#endif  // CPP_FILECOIN_CORE_CRYPTO_SECP256K1_SECP256K1_ERROR_HPP

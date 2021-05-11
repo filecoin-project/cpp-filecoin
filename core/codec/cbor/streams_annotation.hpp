@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_STREAMS_ANNOTATION_HPP
-#define CPP_FILECOIN_STREAMS_ANNOTATION_HPP
+#pragma once
 
 #define CBOR_ENCODE(type, var)                                            \
   template <class Stream,                                                 \
@@ -155,5 +154,3 @@ namespace fc::codec::cbor {
   class CborDecodeStream;
   class CborEncodeStream;
 }  // namespace fc::codec::cbor
-
-#endif  // CPP_FILECOIN_STREAMS_ANNOTATION_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_POWER_TABLE_HPP
-#define FILECOIN_CORE_POWER_TABLE_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
@@ -65,4 +64,3 @@ namespace fc::power {
     virtual outcome::result<std::vector<Address>> getMiners() const = 0;
   };
 }  // namespace fc::power
-#endif  // FILECOIN_CORE_POWER_TABLE_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_STORAGE_IPFS_API_IPFS_DATASTORE_API_IPFS_DATASTORE_HPP
-#define CPP_FILECOIN_STORAGE_IPFS_API_IPFS_DATASTORE_API_IPFS_DATASTORE_HPP
+#pragma once
 
 #include "api/full_node/node_api.hpp"
 #include "storage/ipfs/datastore.hpp"
@@ -51,5 +50,3 @@ namespace fc::storage::ipfs {
   };
 
 }  // namespace fc::storage::ipfs
-
-#endif  // CPP_FILECOIN_STORAGE_IPFS_API_IPFS_DATASTORE_API_IPFS_DATASTORE_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_MESSAGE_SIGNER_IMPL_HPP
-#define CPP_FILECOIN_CORE_VM_MESSAGE_SIGNER_IMPL_HPP
+#pragma once
 
 #include "common/logger.hpp"
 #include "storage/keystore/keystore.hpp"
@@ -30,9 +29,9 @@ namespace fc::vm::message {
     /**
      * @copydoc MessageSigner::verify()
      */
-    outcome::result<UnsignedMessage> verify(const Address &address,
-                                            const SignedMessage &msg) const
-        noexcept override;
+    outcome::result<UnsignedMessage> verify(
+        const Address &address,
+        const SignedMessage &msg) const noexcept override;
 
    private:
     std::shared_ptr<KeyStore> keystore_;
@@ -40,4 +39,3 @@ namespace fc::vm::message {
   };
 
 }  // namespace fc::vm::message
-#endif  // CPP_FILECOIN_CORE_VM_MESSAGE_SIGNER_IMPL_HPP

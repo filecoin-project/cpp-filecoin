@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_CHAIN_CHAIN_STORE_HPP
-#define CPP_FILECOIN_CORE_STORAGE_CHAIN_CHAIN_STORE_HPP
+#pragma once
 
 #include <boost/signals2.hpp>
 #include "primitives/tipset/tipset.hpp"
@@ -45,5 +44,3 @@ namespace fc::storage::blockchain {
 }  // namespace fc::storage::blockchain
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::blockchain, ChainStoreError);
-
-#endif  // CPP_FILECOIN_CORE_STORAGE_CHAIN_CHAIN_STORE_HPP

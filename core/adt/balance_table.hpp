@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_ADT_BALANCE_TABLE_HPP
-#define CPP_FILECOIN_ADT_BALANCE_TABLE_HPP
+#pragma once
 
 #include "adt/address_key.hpp"
 #include "adt/map.hpp"
@@ -42,5 +41,3 @@ namespace fc {
 }  // namespace fc
 
 OUTCOME_HPP_DECLARE_ERROR(fc::adt, BalanceTableError);
-
-#endif  // CPP_FILECOIN_ADT_BALANCE_TABLE_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_FSLOCK_HPP
-#define FILECOIN_CORE_FSLOCK_HPP
+#pragma once
 
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <string>
@@ -26,5 +25,3 @@ namespace fc::fslock {
   };
 
 }  // namespace fc::fslock
-
-#endif  // FILECOIN_CORE_FSLOCK_HPP
