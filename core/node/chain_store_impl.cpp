@@ -75,7 +75,7 @@ namespace fc::sync {
     using primitives::tipset::HeadChangeType;
     HeadChange event;
     auto notify{[&](auto &it) {
-      if (auto _ts{ts_load_->loadw(it->second)}) {
+      if (auto _ts{ts_load_->lazyLoad(it->second)}) {
         event.value = _ts.value();
         head_change_signal_(event);
       } else {
@@ -90,7 +90,7 @@ namespace fc::sync {
     for (auto it{std::next(apply.begin())}; it != apply.end(); ++it) {
       notify(it);
     }
-    head_ = ts_load_->loadw(std::prev(apply.end())->second).value();
+    head_ = ts_load_->lazyLoad(std::prev(apply.end())->second).value();
     heaviest_weight_ = weight;
     events_->signalCurrentHead({.tipset = head_, .weight = heaviest_weight_});
   }

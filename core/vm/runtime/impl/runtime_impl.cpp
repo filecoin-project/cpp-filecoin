@@ -364,7 +364,7 @@ namespace fc::vm::runtime {
         OUTCOME_TRYA(it, getLookbackTipSetForRound(it, block.height));
         OUTCOME_TRYA(it, find(env->ts_branch, it.second->first + 1, false));
         OUTCOME_TRY(child_ts,
-                    env->env_context.ts_load->loadw(it.second->second));
+                    env->env_context.ts_load->lazyLoad(it.second->second));
         ts_lock.unlock();
 
         const StateTreeImpl state_tree{env->ipld,

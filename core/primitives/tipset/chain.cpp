@@ -81,7 +81,7 @@ namespace fc::primitives::tipset::chain {
       return parent;
     }
     TsChain chain;
-    OUTCOME_TRY(ts, ts_load->loadc(key));
+    OUTCOME_TRY(ts, ts_load->loadWithCacheInfo(key));
     auto _parent{parent->chain.lower_bound(ts.tipset->height())};
     if (_parent == parent->chain.end()) {
       --_parent;
@@ -89,7 +89,7 @@ namespace fc::primitives::tipset::chain {
     while (true) {
       auto _bottom{chain
                        .emplace(ts.tipset->height(),
-                                TsLazy{ts.tipset->key, ts.cache_index})
+                                TsLazy{ts.tipset->key, ts.index})
                        .first};
       while (_parent->first > _bottom->first) {
         if (_parent == parent->chain.begin()) {
@@ -100,7 +100,7 @@ namespace fc::primitives::tipset::chain {
       if (*_parent == *_bottom) {
         break;
       }
-      OUTCOME_TRYA(ts, ts_load->loadc(ts.tipset->getParents()));
+      OUTCOME_TRYA(ts, ts_load->loadWithCacheInfo(ts.tipset->getParents()));
     }
     return make(std::move(chain), parent);
   }
@@ -123,16 +123,16 @@ namespace fc::primitives::tipset::chain {
                                                 TsLoadPtr ts_load) {
     TsChain chain;
     auto batch{kv->batch()};
-    OUTCOME_TRY(ts, ts_load->loadc(key));
+    OUTCOME_TRY(ts, ts_load->loadWithCacheInfo(key));
     while (true) {
       OUTCOME_TRY(batch->put(encodeHeight(ts.tipset->height()),
                              encodeTsk(ts.tipset->key)));
       chain.emplace(ts.tipset->height(),
-                    TsLazy{ts.tipset->key, ts.cache_index});
+                    TsLazy{ts.tipset->key, ts.index});
       if (ts.tipset->height() == 0) {
         break;
       }
-      OUTCOME_TRYA(ts, ts_load->loadc(ts.tipset->getParents()));
+      OUTCOME_TRYA(ts, ts_load->loadWithCacheInfo(ts.tipset->getParents()));
     }
     OUTCOME_TRY(batch->commit());
     return make(std::move(chain), nullptr);
@@ -342,7 +342,7 @@ namespace fc::primitives::tipset::chain {
                                             TsBranchIter it) {
     // magic number from lotus
     for (auto i{0}; i < 20; ++i) {
-      OUTCOME_TRY(ts, ts_load->loadw(it.second->second));
+      OUTCOME_TRY(ts, ts_load->lazyLoad(it.second->second));
       auto &beacons{ts->blks[0].beacon_entries};
       if (!beacons.empty()) {
         return *beacons.rbegin();
