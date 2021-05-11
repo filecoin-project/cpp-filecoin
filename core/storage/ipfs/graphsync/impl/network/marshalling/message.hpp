@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_GRAPHSYNC_MESSAGE_HPP
-#define CPP_FILECOIN_GRAPHSYNC_MESSAGE_HPP
+#pragma once
 
 #include "storage/ipfs/graphsync/impl/common.hpp"
 
@@ -59,5 +58,3 @@ namespace fc::storage::ipfs::graphsync {
     std::vector<std::pair<CID, common::Buffer>> data;
   };
 }  // namespace fc::storage::ipfs::graphsync
-
-#endif  // CPP_FILECOIN_GRAPHSYNC_MESSAGE_HPP

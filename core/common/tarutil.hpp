@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_TAR_UTIL_HPP
-#define CPP_FILECOIN_CORE_COMMON_TAR_UTIL_HPP
+#pragma once
 
 #include <boost/filesystem/path.hpp>
 #include <string>
@@ -31,5 +30,3 @@ namespace fc::common {
 }  // namespace fc::common
 
 OUTCOME_HPP_DECLARE_ERROR(fc::common, TarErrors);
-
-#endif  // CPP_FILECOIN_CORE_COMMON_TAR_UTIL_HPP

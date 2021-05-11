@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_VM_RUNTIME_RUNTIM_ERROR
-#define FILECOIN_CORE_VM_RUNTIME_RUNTIM_ERROR
+#pragma once
 
 #include "common/outcome.hpp"
 
@@ -26,5 +25,3 @@ namespace fc::vm::runtime {
 }  // namespace fc::vm::runtime
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm::runtime, RuntimeError);
-
-#endif  // FILECOIN_CORE_VM_RUNTIME_RUNTIM_ERROR

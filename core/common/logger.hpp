@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_LOGGER_HPP
-#define CPP_FILECOIN_LOGGER_HPP
+#pragma once
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
@@ -19,5 +18,3 @@ namespace fc::common {
    */
   Logger createLogger(const std::string &tag);
 }  // namespace fc::common
-
-#endif  // CPP_FILECOIN_LOGGER_HPP

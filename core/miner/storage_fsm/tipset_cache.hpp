@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_TIPSET_CACHE_HPP
-#define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_TIPSET_CACHE_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
@@ -62,5 +61,3 @@ namespace fc::mining {
 }  // namespace fc::mining
 
 OUTCOME_HPP_DECLARE_ERROR(fc::mining, TipsetCacheError);
-
-#endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_TIPSET_CACHE_HPP

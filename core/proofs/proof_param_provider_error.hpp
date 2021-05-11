@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_PROOFS_PROOF_PARAM_PROVIDER_ERROR_HPP
-#define FILECOIN_CORE_PROOFS_PROOF_PARAM_PROVIDER_ERROR_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 
@@ -28,5 +27,3 @@ namespace fc::proofs {
 }  // namespace fc::proofs
 
 OUTCOME_HPP_DECLARE_ERROR(fc::proofs, ProofParamProviderError);
-
-#endif  // FILECOIN_CORE_PROOFS_PROOF_PARAM_PROVIDER_ERROR_HPP

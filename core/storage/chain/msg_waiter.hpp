@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_CHAIN_MSG_WAITER_HPP
-#define CPP_FILECOIN_CORE_STORAGE_CHAIN_MSG_WAITER_HPP
+#pragma once
 
 #include "fwd.hpp"
 #include "storage/chain/chain_store.hpp"
@@ -31,5 +30,3 @@ namespace fc::storage::blockchain {
     std::map<CID, std::vector<Callback>> waiting;
   };
 }  // namespace fc::storage::blockchain
-
-#endif  // CPP_FILECOIN_CORE_STORAGE_CHAIN_MSG_WAITER_HPP

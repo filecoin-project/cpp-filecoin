@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_ENUM_HPP
-#define CPP_FILECOIN_CORE_COMMON_ENUM_HPP
+#pragma once
 
 #include <type_traits>
 
@@ -37,5 +36,3 @@ namespace fc::common {
   }
 
 }  // namespace fc::common
-
-#endif  // CPP_FILECOIN_CORE_COMMON_ENUM_HPP

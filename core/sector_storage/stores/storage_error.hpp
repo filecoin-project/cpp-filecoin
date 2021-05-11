@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTOR_STORES_STORAGE_ERROR_HPP
-#define CPP_FILECOIN_CORE_SECTOR_STORES_STORAGE_ERROR_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 
@@ -19,5 +18,3 @@ namespace fc::sector_storage::stores {
 }
 
 OUTCOME_HPP_DECLARE_ERROR(fc::sector_storage::stores, StorageError);
-
-#endif  // CPP_FILECOIN_CORE_SECTOR_STORES_STORAGE_ERROR_HPP

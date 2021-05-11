@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_DATA_TRANSFER_TYPES_HPP
-#define CPP_FILECOIN_DATA_TRANSFER_TYPES_HPP
+#pragma once
 
 #include <libp2p/peer/peer_info.hpp>
 
@@ -22,5 +21,3 @@ namespace fc::data_transfer {
    */
   using TransferId = uint64_t;
 }  // namespace fc::data_transfer
-
-#endif  // CPP_FILECOIN_DATA_TRANSFER_TYPES_HPP

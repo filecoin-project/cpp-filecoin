@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_LEVELDB_BATCH_HPP
-#define CPP_FILECOIN_LEVELDB_BATCH_HPP
+#pragma once
 
 #include <leveldb/write_batch.h>
 #include "storage/leveldb/leveldb.hpp"
@@ -34,5 +33,3 @@ namespace fc::storage {
   };
 
 }  // namespace fc::storage
-
-#endif  // CPP_FILECOIN_LEVELDB_BATCH_HPP

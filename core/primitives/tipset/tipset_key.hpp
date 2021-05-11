@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_KEY_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_KEY_HPP
+#pragma once
 
 #include "primitives/cid/cid.hpp"
 
@@ -51,5 +50,3 @@ namespace std {
     size_t operator()(const fc::TipsetKey &x) const;
   };
 }  // namespace std
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_KEY_HPP

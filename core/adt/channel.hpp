@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_ADT_CHANNEL_HPP
-#define CPP_FILECOIN_ADT_CHANNEL_HPP
+#pragma once
 
 #include <mutex>
 
@@ -123,5 +122,3 @@ namespace fc::adt {
              cs.end());
   }
 }  // namespace fc::adt
-
-#endif  // CPP_FILECOIN_ADT_CHANNEL_HPP

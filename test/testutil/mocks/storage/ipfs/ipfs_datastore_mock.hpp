@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_STORAGE_IPFS_IPFS_DATASTORE_MOCK_
-#define CPP_FILECOIN_STORAGE_IPFS_IPFS_DATASTORE_MOCK_
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -26,5 +25,3 @@ namespace fc::storage::ipfs {
   };
 
 }  // namespace fc::storage::ipfs
-
-#endif  // CPP_FILECOIN_STORAGE_IPFS_IPFS_DATASTORE_MOCK_

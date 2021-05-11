@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE__STORED_ASK_HPP
-#define CPP_FILECOIN_CORE_MARKETS_STORAGE__STORED_ASK_HPP
+#pragma once
 
 #include <memory>
 #include <mutex>
@@ -78,5 +77,3 @@ namespace fc::markets::storage::provider {
 }  // namespace fc::markets::storage::provider
 
 OUTCOME_HPP_DECLARE_ERROR(fc::markets::storage::provider, StoredAskError);
-
-#endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE__STORED_ASK_HPP

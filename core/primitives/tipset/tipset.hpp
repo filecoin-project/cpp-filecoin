@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
+#pragma once
 
 #include "primitives/block/block.hpp"
 #include "primitives/tipset/tipset_key.hpp"
@@ -182,5 +181,3 @@ namespace fc::primitives::tipset {
   };
 
 }  // namespace fc::primitives::tipset
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
