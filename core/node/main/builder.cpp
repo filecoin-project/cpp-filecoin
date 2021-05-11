@@ -22,7 +22,6 @@
 #include <libp2p/protocol/kademlia/impl/validator_default.hpp>
 
 #include "api/full_node/make.hpp"
-#include "api/rpc/json.hpp"
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
@@ -233,16 +232,12 @@ namespace fc::node {
     o.ipld = o.ipld_cids_write;
   }
 
-  /**
-   * Reads bls private key from file
-   */
-  outcome::result<api::KeyInfo> readPrivateKeyFromFile(
-      const std::string &path) {
+  outcome::result<KeyInfo> readPrivateKeyFromFile(const std::string &path) {
     std::ifstream ifs(path);
     std::string hex_string(std::istreambuf_iterator<char>{ifs}, {});
     OUTCOME_TRY(blob, common::unhex(hex_string));
     OUTCOME_TRY(json, codec::json::parse(blob));
-    OUTCOME_TRY(key_info, api::decode<api::KeyInfo>(json));
+    OUTCOME_TRY(key_info, api::decode<KeyInfo>(json));
     return key_info;
   }
 
@@ -499,6 +494,8 @@ namespace fc::node {
 
     o.key_store = std::make_shared<storage::keystore::InMemoryKeyStore>(
         bls_provider, secp_provider);
+    o.wallet_default_address =
+        std::make_shared<OneKey>("wallet_default_address", o.kv_store);
     // If default key is set, import to keystore and save default key address.
     // Default key must be a BLS key.
     if (config.wallet_default_key_path) {
@@ -510,11 +507,17 @@ namespace fc::node {
         return maybe_default_key.error();
       }
       auto key_info{maybe_default_key.value()};
-      OUTCOME_TRYA(
-          o.wallet_default_address,
+      OUTCOME_TRY(
+          address,
           o.key_store->put(key_info.type == crypto::signature::Type::BLS,
                            key_info.private_key));
-      log()->info("Default wallet address {}", *o.wallet_default_address);
+      o.wallet_default_address->setCbor(address);
+      log()->info("Set default wallet address {}", address);
+    } else {
+      if (o.wallet_default_address->has()) {
+        log()->info("Load default wallet address {}",
+                    o.wallet_default_address->getCbor<Address>());
+      }
     }
 
     drand::ChainInfo drand_chain_info{

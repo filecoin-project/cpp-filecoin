@@ -8,7 +8,9 @@
 #include <boost/asio.hpp>
 #include <memory>
 
+#include "api/full_node/node_api.hpp"
 #include "api/full_node/node_api_v1_wrapper.hpp"
+#include "api/rpc/json.hpp"
 #include "common/outcome.hpp"
 #include "data_transfer/dt.hpp"
 #include "fwd.hpp"
@@ -25,10 +27,12 @@
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
+#include "storage/leveldb/prefix.hpp"
 #include "vm/runtime/env_context.hpp"
 
 namespace fc::node {
   using api::FullNodeApiV1Wrapper;
+  using api::KeyInfo;
   using data_transfer::DataTransfer;
   using libp2p::protocol::Scheduler;
   using markets::discovery::Discovery;
@@ -37,6 +41,7 @@ namespace fc::node {
   using markets::storage::client::StorageMarketClient;
   using markets::storage::client::import_manager::ImportManager;
   using primitives::address::Address;
+  using storage::OneKey;
   using storage::keystore::KeyStore;
 
   enum Error {
@@ -102,7 +107,7 @@ namespace fc::node {
     std::shared_ptr<RetrievalClient> retrieval_market_client;
 
     std::shared_ptr<KeyStore> key_store;
-    boost::optional<Address> wallet_default_address;
+    std::shared_ptr<OneKey> wallet_default_address;
 
     // high level objects
     std::shared_ptr<sync::ChainStoreImpl> chain_store;
@@ -111,6 +116,13 @@ namespace fc::node {
     // Full node API v2.x.x (latest)
     std::shared_ptr<api::FullNodeApi> api;
   };
+
+  /**
+   * Reads private key from file to import as default key
+   * @param path to the file
+   * @return KeyInfo
+   */
+  outcome::result<KeyInfo> readPrivateKeyFromFile(const std::string &path);
 
   outcome::result<NodeObjects> createNodeObjects(Config &config);
 }  // namespace fc::node

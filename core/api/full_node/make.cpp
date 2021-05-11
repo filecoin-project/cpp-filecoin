@@ -213,7 +213,7 @@ namespace fc::api {
       std::shared_ptr<KeyStore> key_store,
       std::shared_ptr<Discovery> market_discovery,
       const std::shared_ptr<RetrievalClient> &retrieval_market_client,
-      const boost::optional<Address> &wallet_default_address) {
+      const std::shared_ptr<OneKey> &wallet_default_address) {
     auto ts_load{env_context.ts_load};
     auto ipld{env_context.ipld};
     auto interpreter_cache{env_context.interpreter_cache};
@@ -960,9 +960,9 @@ namespace fc::api {
       return actor.balance;
     }};
     api->WalletDefaultAddress = {[=]() -> outcome::result<Address> {
-      if (!wallet_default_address)
+      if (!wallet_default_address->has())
         return ERROR_TEXT("WalletDefaultAddress: default wallet is not set");
-      return *wallet_default_address;
+      return wallet_default_address->getCbor<Address>();
     }};
     api->WalletHas = {[=](auto address) -> outcome::result<bool> {
       if (!address.isKeyType()) {
