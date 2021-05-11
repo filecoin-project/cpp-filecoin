@@ -22,10 +22,12 @@
 #include <libp2p/protocol/kademlia/impl/validator_default.hpp>
 
 #include "api/full_node/make.hpp"
+#include "api/rpc/json.hpp"
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
+#include "codec/json/json.hpp"
 #include "common/error_text.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
@@ -51,7 +53,6 @@
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/util.hpp"
 #include "storage/chain/msg_waiter.hpp"
-#include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
@@ -72,7 +73,6 @@ namespace fc::node {
   using markets::storage::kStorageMarketImportDir;
   using markets::storage::chain_events::ChainEventsImpl;
   using markets::storage::client::StorageMarketClientImpl;
-  using storage::filestore::FileSystemFile;
   using storage::ipfs::InMemoryDatastore;
   using storage::keystore::InMemoryKeyStore;
 
@@ -236,16 +236,14 @@ namespace fc::node {
   /**
    * Reads bls private key from file
    */
-  outcome::result<crypto::bls::PrivateKey> readBlsPrivateKeyFromFile(
+  outcome::result<api::KeyInfo> readPrivateKeyFromFile(
       const std::string &path) {
-    FileSystemFile file(path);
-    OUTCOME_TRY(file.open());
-    crypto::bls::PrivateKey private_key{};
-    OUTCOME_TRY(read_size, file.read(0, private_key));
-    if (read_size != private_key.size()) {
-      return ERROR_TEXT("Cannot read default key.");
-    }
-    return private_key;
+    std::ifstream ifs(path);
+    std::string hex_string(std::istreambuf_iterator<char>{ifs}, {});
+    OUTCOME_TRY(blob, common::unhex(hex_string));
+    OUTCOME_TRY(json, codec::json::parse(blob));
+    OUTCOME_TRY(key_info, api::decode<api::KeyInfo>(json));
+    return key_info;
   }
 
   /**
@@ -505,14 +503,17 @@ namespace fc::node {
     // Default key must be a BLS key.
     if (config.wallet_default_key_path) {
       const auto maybe_default_key =
-          readBlsPrivateKeyFromFile(*config.wallet_default_key_path);
+          readPrivateKeyFromFile(*config.wallet_default_key_path);
       if (maybe_default_key.has_error()) {
         log()->error("Cannot read default key from {}",
                      *config.wallet_default_key_path);
         return maybe_default_key.error();
       }
-      OUTCOME_TRYA(o.wallet_default_address,
-                   o.key_store->put(true, maybe_default_key.value()));
+      auto key_info{maybe_default_key.value()};
+      OUTCOME_TRYA(
+          o.wallet_default_address,
+          o.key_store->put(key_info.type == crypto::signature::Type::BLS,
+                           key_info.private_key));
       log()->info("Default wallet address {}", *o.wallet_default_address);
     }
 
