@@ -54,7 +54,7 @@
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
-#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "storage/keystore/impl/filesystem/filesystem_keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/prefix.hpp"
 #include "storage/mpool/mpool.hpp"
@@ -73,7 +73,7 @@ namespace fc::node {
   using markets::storage::chain_events::ChainEventsImpl;
   using markets::storage::client::StorageMarketClientImpl;
   using storage::ipfs::InMemoryDatastore;
-  using storage::keystore::InMemoryKeyStore;
+  using storage::keystore::FileSystemKeyStore;
 
   namespace {
     auto log() {
@@ -492,8 +492,8 @@ namespace fc::node {
     auto msg_waiter = storage::blockchain::MsgWaiter::create(
         o.ts_load, o.ipld, o.chain_store);
 
-    o.key_store = std::make_shared<storage::keystore::InMemoryKeyStore>(
-        bls_provider, secp_provider);
+    o.key_store = std::make_shared<storage::keystore::FileSystemKeyStore>(
+        (config.repo_path / "keystore").string(), bls_provider, secp_provider);
     o.wallet_default_address =
         std::make_shared<OneKey>("wallet_default_address", o.kv_store);
     // If default key is set, import to keystore and save default key address.
