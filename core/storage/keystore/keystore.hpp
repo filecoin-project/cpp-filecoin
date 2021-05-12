@@ -47,8 +47,8 @@ namespace fc::storage::keystore {
      * @brief Whether or not key exists in the Keystore
      * @param address key identifier
      */
-    virtual outcome::result<bool> has(const Address &address) const
-        noexcept = 0;
+    virtual outcome::result<bool> has(
+        const Address &address) const noexcept = 0;
 
     /**
      * @brief stores a key in the Keystore
@@ -85,10 +85,10 @@ namespace fc::storage::keystore {
      * @param data
      * @param signature
      */
-    virtual outcome::result<bool> verify(const Address &address,
-                                         gsl::span<const uint8_t> data,
-                                         const Signature &signature) const
-        noexcept;
+    virtual outcome::result<bool> verify(
+        const Address &address,
+        gsl::span<const uint8_t> data,
+        const Signature &signature) const noexcept;
 
     outcome::result<Address> put(bool bls, TPrivateKey key);
 
@@ -107,8 +107,8 @@ namespace fc::storage::keystore {
      * @param address
      * @return private key
      */
-    virtual outcome::result<TPrivateKey> get(const Address &address) const
-        noexcept = 0;
+    virtual outcome::result<TPrivateKey> get(
+        const Address &address) const noexcept = 0;
 
    private:
     std::shared_ptr<BlsProvider> bls_provider_;

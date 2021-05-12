@@ -106,7 +106,7 @@ namespace fc::markets::storage::provider {
      * @param deal to publish
      * @return CID of message sent
      */
-    outcome::result<CID> publishDeal(std::shared_ptr<MinerDeal> deal);
+    outcome::result<CID> publishDeal(const std::shared_ptr<MinerDeal> &deal);
 
     /**
      * Send signed response to storage deal proposal and close connection
