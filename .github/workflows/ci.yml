@@ -80,10 +80,10 @@ jobs:
         CTEST_OUTPUT_ON_FAILURE: 1
       run: cmake --build build --target test
     - name: prepare coverage report
-      if: runner.os == 'macOS'
+      if: runner.os == 'Linux'
       run: cmake --build build --target ctest_coverage_norun
     - name: upload report to codecov
-      if: runner.os == 'macOS'
+      if: runner.os == 'Linux'
       uses: codecov/codecov-action@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
