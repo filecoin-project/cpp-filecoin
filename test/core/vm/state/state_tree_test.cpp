@@ -79,6 +79,9 @@ TEST_F(StateTreeTest, RegisterNewAddressLookupId) {
   EXPECT_OUTCOME_EQ(tree->lookupId(address), kAddressId);
 }
 
+/**
+ * walk visits hamt key-values
+ */
 TEST_F(StateTreeTest, Walk) {
   using namespace fc;
   adt::Map<vm::actor::Actor, adt::AddressKeyer> map{store_};

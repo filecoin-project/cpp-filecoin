@@ -153,6 +153,9 @@ TEST_F(AmtVisitTest, VisitError) {
                        }));
 }
 
+/*
+ * walk visits amt values
+ */
 TEST_F(AmtVisitTest, Walk) {
   using namespace fc;
   codec::amt::AmtWalk walk{std::make_shared<IpldIpld2>(store),
