@@ -76,9 +76,9 @@ namespace fc::codec::hamt {
             if (!read(str, node, 1) || (str[0] != '0' && str[0] != '1')) {
               return false;
             }
-          }
-          if (!read(token, node)) {
-            return false;
+            if (!read(token, node)) {
+              return false;
+            }
           }
           if (token.cidSize()) {
             const Hash256 *cid;
