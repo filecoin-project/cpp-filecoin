@@ -13,6 +13,7 @@
 #include "storage/chain/chain_store.hpp"
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/keystore/keystore.hpp"
+#include "storage/leveldb/prefix.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/runtime/env_context.hpp"
 
@@ -23,6 +24,7 @@ namespace fc::api {
   using drand::DrandSchedule;
   using markets::discovery::Discovery;
   using markets::retrieval::client::RetrievalClient;
+  using storage::OneKey;
   using storage::blockchain::ChainStore;
   using storage::blockchain::MsgWaiter;
   using storage::keystore::KeyStore;
@@ -47,5 +49,6 @@ namespace fc::api {
       std::shared_ptr<PubSubGate> pubsub,
       std::shared_ptr<KeyStore> key_store,
       std::shared_ptr<Discovery> market_discovery,
-      const std::shared_ptr<RetrievalClient> &retrieval_market_client);
+      const std::shared_ptr<RetrievalClient> &retrieval_market_client,
+      const std::shared_ptr<OneKey> &wallet_default_address);
 }  // namespace fc::api

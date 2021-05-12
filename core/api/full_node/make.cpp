@@ -212,7 +212,8 @@ namespace fc::api {
       std::shared_ptr<PubSubGate> pubsub,
       std::shared_ptr<KeyStore> key_store,
       std::shared_ptr<Discovery> market_discovery,
-      const std::shared_ptr<RetrievalClient> &retrieval_market_client) {
+      const std::shared_ptr<RetrievalClient> &retrieval_market_client,
+      const std::shared_ptr<OneKey> &wallet_default_address) {
     auto ts_load{env_context.ts_load};
     auto ipld{env_context.ipld};
     auto interpreter_cache{env_context.interpreter_cache};
@@ -958,8 +959,11 @@ namespace fc::api {
       OUTCOME_TRY(actor, context.state_tree.get(address));
       return actor.balance;
     }};
-    // TODO(turuslan): FIL-165 implement method
-    api->WalletDefaultAddress = {};
+    api->WalletDefaultAddress = {[=]() -> outcome::result<Address> {
+      if (!wallet_default_address->has())
+        return ERROR_TEXT("WalletDefaultAddress: default wallet is not set");
+      return wallet_default_address->getCbor<Address>();
+    }};
     api->WalletHas = {[=](auto address) -> outcome::result<bool> {
       if (!address.isKeyType()) {
         OUTCOME_TRY(context, tipsetContext({}));

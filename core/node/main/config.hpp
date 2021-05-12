@@ -44,6 +44,9 @@ namespace fc::node {
      */
     bool use_pubsub_workaround = true;
 
+    /** Node default key path */
+    boost::optional<std::string> wallet_default_key_path;
+
     static Config read(int argc, char *argv[]);
 
     std::string join(const std::string &path) const;
