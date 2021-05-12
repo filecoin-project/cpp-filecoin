@@ -24,6 +24,7 @@ target_link_libraries(node_builder
     ipfs_datastore_in_memory
     ipfs_datastore_leveldb
     interpreter
+    keystore
     mpool
     p2p::p2p_basic_host
     p2p::p2p_default_network

@@ -90,6 +90,10 @@ namespace fc::node {
            po::value(&raw.log_level)->default_value('i'),
            "log level, [e,w,i,d,t]");
     option("import-snapshot", po::value(&config.snapshot));
+    option("import-key",
+           po::value(&config.wallet_default_key_path),
+           "on first run, imports a default key from a given file. The key "
+           "must be a BLS private key.");
 
     po::options_description drand_desc("Drand server options");
     auto drand_option{drand_desc.add_options()};
