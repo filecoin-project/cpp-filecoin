@@ -78,7 +78,7 @@ namespace fc::markets::storage::client {
         chain_events_{std::move(chain_events)},
         piece_io_{std::move(piece_io)},
         discovery_{std::move(discovery)},
-        import_manager_{import_manager},
+        import_manager_{std::move(import_manager)},
         datatransfer_{std::move(datatransfer)} {
     BOOST_ASSERT_MSG(api_, "StorageMarketClientImpl(): api is nullptr");
   }
