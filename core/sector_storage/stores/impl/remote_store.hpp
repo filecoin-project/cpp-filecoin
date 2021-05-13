@@ -8,6 +8,7 @@
 #include "sector_storage/stores/store.hpp"
 
 #include "sector_storage/stores/impl/local_store.hpp"
+#include <condition_variable>
 
 namespace fc::sector_storage::stores {
 
