@@ -17,8 +17,8 @@ hunter_config(
 )
 
 hunter_config(libp2p
-    URL https://github.com/soramitsu/cpp-libp2p/archive/c9fb62437133ddcd5d17c548aa9f0fa5eab3f59d.tar.gz
-    SHA1 e7a082e9c98796e15f7293aee0640210d265ce6a
+    URL https://github.com/soramitsu/cpp-libp2p/archive/7bd8ef1c7a4341f2045eaa04062ced6736cbf0bf.tar.gz
+    SHA1 ce911568445514ef1873c986f802f8eb971ff789
     CMAKE_ARGS TESTING=OFF EXAMPLES=OFF EXPOSE_MOCKS=ON
     KEEP_PACKAGE_SOURCES
     )
