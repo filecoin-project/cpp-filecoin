@@ -48,26 +48,28 @@ int main(int argc, char **argv) {
       vm::interpreter::InterpreterImpl vmi{envx, nullptr};
 
       TipsetKey head_tsk{storage::car::readHeader(car_path).value()};
-      auto head{envx.ts_load->load(head_tsk).value()};
+      auto head{envx.ts_load->loadWithCacheInfo(head_tsk).value()};
       primitives::tipset::chain::TsChain _chain;
-      Height state_min_height{head->height()}, state_max_height{0};
+      Height state_min_height{head.tipset->height()}, state_max_height{0};
       auto ts_lookback{4000};
       auto had_states{true};
       auto ts{head};
       while (true) {
-        _chain.emplace(ts->height(), primitives::tipset::TsLazy{ts->key, ts});
-        if (envx.ipld->contains(ts->getParentStateRoot()).value()) {
+        _chain.emplace(
+            ts.tipset->height(),
+            primitives::tipset::TsLazy{ts.tipset->key, ts.index});
+        if (envx.ipld->contains(ts.tipset->getParentStateRoot()).value()) {
           if (had_states) {
-            state_min_height = std::min(state_min_height, ts->height());
-            state_max_height = std::max(state_max_height, ts->height());
+            state_min_height = std::min(state_min_height, ts.tipset->height());
+            state_max_height = std::max(state_max_height, ts.tipset->height());
           }
         } else {
           had_states = false;
         }
-        if (ts->height() + ts_lookback < state_min_height) {
+        if (ts.tipset->height() + ts_lookback < state_min_height) {
           break;
         }
-        if (auto _ts{envx.ts_load->load(ts->getParents())}) {
+        if (auto _ts{envx.ts_load->loadWithCacheInfo(ts.tipset->getParents())}) {
           ts = _ts.value();
         } else {
           break;
@@ -97,10 +99,10 @@ int main(int argc, char **argv) {
         for (auto it{branch->chain.lower_bound(min_height)};
              it != branch->chain.end() && it->first <= max_height;
              ++it) {
-          auto parent{envx.ts_load->loadw(it->second).value()};
+          auto parent{envx.ts_load->lazyLoad(it->second).value()};
           primitives::tipset::TipsetCPtr child;
           if (auto _child{std::next(it)}; _child != branch->chain.end()) {
-            child = envx.ts_load->loadw(_child->second).value();
+            child = envx.ts_load->lazyLoad(_child->second).value();
           }
           spdlog::info("height {}", parent->height());
           if (auto _res{vmi.interpret(branch, parent)}) {
