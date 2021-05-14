@@ -9,11 +9,14 @@
 
 #include "common/io_thread.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
+#include "storage/ipld/cids_ipld.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/resources/resources.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
 namespace fc::storage::cids_index {
+  using ipld::CidsIpld;
+
   template <typename T>
   auto makeValue(T v) {
     return std::make_pair(primitives::cid::getCidOfCbor(v).value(), v);

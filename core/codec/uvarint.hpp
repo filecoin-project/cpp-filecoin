@@ -110,6 +110,6 @@ namespace fc::codec::uvarint {
   inline bool readBytes(BytesIn &out, BytesIn &input) {
     out = {};
     size_t length;
-    return read(length, input) && fc::read(out, input, length);
+    return read(length, input) && fc::codec::read(out, input, length);
   }
 }  // namespace fc::codec::uvarint

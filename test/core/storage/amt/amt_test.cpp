@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include "codec/amt.hpp"
+#include "codec/cbor/light_reader/amt_walk.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/storage/ipld2.hpp"
@@ -20,6 +20,7 @@ using fc::storage::amt::Node;
 using fc::storage::amt::Root;
 using fc::storage::amt::Value;
 using fc::storage::ipfs::InMemoryDatastore;
+using fc::storage::ipld::IpldIpld2;
 
 class AmtTest : public ::testing::Test {
  public:

@@ -18,6 +18,7 @@ addtest(cids_index_test
 target_link_libraries(cids_index_test
     base_fs_test
     cids_index
+    cids_ipld
     )
 
 addtest(genesis_test

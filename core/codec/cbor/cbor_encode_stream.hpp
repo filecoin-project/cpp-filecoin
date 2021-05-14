@@ -8,11 +8,14 @@
 #include "codec/cbor/cbor_common.hpp"
 
 #include <array>
+#include <map>
 #include <vector>
 
 #include <cbor.h>
+#include <boost/optional.hpp>
 
 #include "common/enum.hpp"
+#include "primitives/cid/cid.hpp"
 
 namespace fc::codec::cbor {
   /** Encodes CBOR */

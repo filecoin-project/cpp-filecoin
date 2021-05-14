@@ -11,7 +11,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/variant.hpp>
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome.hpp"
 #include "common/span.hpp"

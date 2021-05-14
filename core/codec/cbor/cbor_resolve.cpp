@@ -23,8 +23,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::codec::cbor, CborResolveError, e) {
 
 namespace fc::codec::cbor {
   outcome::result<uint64_t> parseIndex(const std::string &str) {
-    uint64_t value;
-    size_t chars;
+    uint64_t value{};
+    size_t chars{};
     try {
       value = std::stoul(str, &chars);
     } catch (std::invalid_argument &) {

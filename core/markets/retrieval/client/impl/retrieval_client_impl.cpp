@@ -5,7 +5,7 @@
 
 #include "markets/retrieval/client/impl/retrieval_client_impl.hpp"
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 
 namespace fc::markets::retrieval::client {

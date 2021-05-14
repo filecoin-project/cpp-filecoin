@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "storage/ipfs/graphsync/extension.hpp"

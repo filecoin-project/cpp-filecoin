@@ -7,7 +7,7 @@
 
 #include <vector>
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
 
 namespace fc::storage::ipfs {

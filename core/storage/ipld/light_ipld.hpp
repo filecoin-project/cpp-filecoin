@@ -5,14 +5,17 @@
 
 #pragma once
 
-#include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "common/span.hpp"
 
-namespace fc {
+namespace fc::storage::ipld {
   using common::Hash256;
 
-  struct Ipld2 {
-    virtual ~Ipld2() = default;
+  /**
+   * Light IPFS that uses only Blake CIDs as Hash256 keys.
+   */
+  struct LightIpld {
+    virtual ~LightIpld() = default;
     virtual bool get(const Hash256 &key, Buffer *value) const = 0;
     virtual void put(const Hash256 &key, BytesIn value) = 0;
 
@@ -23,5 +26,6 @@ namespace fc {
       return get(key, &value);
     }
   };
-  using Ipld2Ptr = std::shared_ptr<Ipld2>;
+
+  using LightIpldPtr = std::shared_ptr<LightIpld>;
 }  // namespace fc

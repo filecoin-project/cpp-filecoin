@@ -5,6 +5,8 @@
 
 #include "codec/cbor/cbor_encode_stream.hpp"
 
+#include "codec/cbor/cbor_errors.hpp"
+
 namespace fc::codec::cbor {
   CborEncodeStream &CborEncodeStream::operator<<(
       const std::vector<uint8_t> &bytes) {
@@ -51,7 +53,7 @@ namespace fc::codec::cbor {
     std::array<uint8_t, 9> encoded{0};
     CborEncoder encoder;
     cbor_encoder_init(&encoder, encoded.data(), encoded.size(), 0);
-    cbor_encode_tag(&encoder, kCidTag);
+    cbor_encode_tag(&encoder, kExtraCid);
     data_.insert(data_.end(),
                  encoded.begin(),
                  encoded.begin()

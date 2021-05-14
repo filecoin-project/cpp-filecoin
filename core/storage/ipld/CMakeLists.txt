@@ -17,3 +17,10 @@ target_link_libraries(ipld_verifier
     ipld_traverser
     ipfs_datastore_in_memory
     )
+
+add_library(cids_ipld
+    cids_ipld.cpp
+    )
+target_link_libraries(cids_ipld
+    cid
+    )

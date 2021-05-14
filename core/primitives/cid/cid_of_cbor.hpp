@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::primitives::cid {

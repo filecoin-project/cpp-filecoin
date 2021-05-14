@@ -5,7 +5,7 @@
 
 #include "response_builder.hpp"
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 
 #include "protobuf/message.pb.h"
 

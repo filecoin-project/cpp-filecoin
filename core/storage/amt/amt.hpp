@@ -7,7 +7,7 @@
 
 #include <boost/variant.hpp>
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "common/outcome.hpp"
 #include "common/visitor.hpp"
 #include "common/which.hpp"

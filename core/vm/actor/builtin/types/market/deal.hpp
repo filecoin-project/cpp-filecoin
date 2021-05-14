@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/hasher/hasher.hpp"
 #include "crypto/signature/signature.hpp"

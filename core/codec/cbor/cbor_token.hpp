@@ -5,19 +5,10 @@
 
 #pragma once
 
+#include "codec/cbor/cbor_common.hpp"
 #include "codec/common.hpp"
 
 namespace fc::codec::cbor {
-  constexpr uint8_t kExtraUint8{24};
-  constexpr uint8_t kExtraUint16{25};
-  constexpr uint8_t kExtraUint32{26};
-  constexpr uint8_t kExtraUint64{27};
-
-  constexpr uint64_t kExtraFalse{20};
-  constexpr uint64_t kExtraTrue{21};
-  constexpr uint64_t kExtraNull{22};
-  constexpr uint64_t kExtraCid{42};
-
   struct CborToken {
     enum Type : uint8_t {
       UINT,
@@ -61,7 +52,7 @@ namespace fc::codec::cbor {
         return extra;
       }
       if (type == Type::INT) {
-        return -(int64_t)extra - 1;
+        return -static_cast<int64_t>(extra) - 1;
       }
       return {};
     }
@@ -109,7 +100,8 @@ namespace fc::codec::cbor {
     CborToken value;
     size_t more{1};
     bool error{};
-    bool tag{}, cid{};
+    bool tag{};
+    bool cid{};
 
     inline void update(uint8_t byte) {
       using Type = CborToken::Type;
@@ -120,7 +112,7 @@ namespace fc::codec::cbor {
         return;
       }
       if (!value) {
-        value.type = (Type)(byte >> 5);
+        value.type = static_cast<Type>(byte >> 5);
         if (tag && value.type != Type::BYTES) {
           error = true;
           return;
@@ -163,12 +155,13 @@ namespace fc::codec::cbor {
 
   struct CborNestedDecoder {
     CborTokenDecoder token;
-    size_t more_count{}, more_size{};
+    size_t more_count{};
+    size_t more_size{};
 
-    constexpr size_t more() {
+    constexpr size_t more() const {
       return token.more + more_size + more_count;
     }
-    constexpr bool error() {
+    constexpr bool error() const {
       return token.error;
     }
   };
@@ -182,7 +175,7 @@ namespace fc::codec::cbor {
       if (decoder.error) {
         return false;
       }
-      fc::read(input, 1);
+      fc::codec::read(input, 1);
     }
     return true;
   }
@@ -197,7 +190,7 @@ namespace fc::codec::cbor {
       if (decoder.more_size) {
         auto n{std::min<size_t>(decoder.more_size, input.size())};
         decoder.more_size -= n;
-        fc::read(input, n);
+        fc::codec::read(input, n);
       } else {
         if (read(decoder.token, input)) {
           decoder.more_size = decoder.token.value.anySize();
@@ -244,9 +237,9 @@ namespace fc::codec::cbor {
         return false;
       }
       if (token.cidSize()) {
-        return fc::read(cid, input, *token.cidSize());
+        return fc::codec::read(cid, input, *token.cidSize());
       }
-      if (!fc::read(input, token.anySize())) {
+      if (!fc::codec::read(input, token.anySize())) {
         return false;
       }
     }

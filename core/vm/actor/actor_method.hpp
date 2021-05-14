@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "common/outcome.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/actor_encoding.hpp"

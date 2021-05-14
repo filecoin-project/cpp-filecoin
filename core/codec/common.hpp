@@ -5,14 +5,13 @@
 
 #pragma once
 
-#include <gsl/span>
 #include <optional>
 
-namespace fc {
-  using BytesIn = gsl::span<const uint8_t>;
+#include "common/span.hpp"
 
+namespace fc::codec {
   constexpr bool read(BytesIn &out, BytesIn &input, size_t n) {
-    if ((size_t)input.size() < n) {
+    if (static_cast<size_t>(input.size()) < n) {
       out = {};
       return false;
     }
@@ -34,4 +33,4 @@ namespace fc {
     return input.size() >= n && input.subspan(0, n) == expected
            && read(input, n);
   }
-}  // namespace fc
+}  // namespace fc::codec

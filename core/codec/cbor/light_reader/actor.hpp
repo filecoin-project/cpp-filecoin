@@ -7,17 +7,26 @@
 
 #include <string_view>
 
-#include "codec/address.hpp"
-#include "codec/cbor.hpp"
-#include "codec/cid.hpp"
+#include "cid.hpp"
+#include "codec/cbor/cbor_token.hpp"
+#include "codec/cbor/light_reader/address.hpp"
 
 namespace fc::codec::actor {
+  /**
+   * Partially decodes Actor state
+   * @param[out] id - actor id address value
+   * @param[out] code - actor code id
+   * @param[out] head - actor state root CID
+   * @param key
+   * @param value
+   * @return
+   */
   inline bool readActor(uint64_t &id,
                         std::string_view &code,
                         const Hash256 *&head,
                         BytesIn key,
                         BytesIn value) {
-    if (!address::readId(id, key)) {
+    if (!cbor::readIdAddress(id, key)) {
       return false;
     }
     cbor::CborToken token;
@@ -33,9 +42,6 @@ namespace fc::codec::actor {
       return false;
     }
     code = common::span::bytestr(_code);
-    if (!cbor::readCborBlake(head, value)) {
-      return false;
-    }
-    return true;
+    return cbor::readCborBlake(head, value);
   }
 }  // namespace fc::codec::actor

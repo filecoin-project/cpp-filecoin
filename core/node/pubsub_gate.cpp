@@ -5,7 +5,7 @@
 
 #include "node/pubsub_gate.hpp"
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "common/logger.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"

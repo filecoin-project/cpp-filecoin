@@ -9,7 +9,7 @@
 #include <unordered_map>
 
 #include "adt/address_key.hpp"
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"

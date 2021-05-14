@@ -4,7 +4,7 @@
  */
 
 #include "storage/piece/impl/piece_storage_impl.hpp"
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 
 namespace fc::storage::piece {
   bool DealInfo::operator==(const DealInfo &other) const {

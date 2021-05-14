@@ -7,7 +7,7 @@
 
 #include "blockchain/block_validator/impl/consensus_rules.hpp"
 #include "blockchain/block_validator/impl/syntax_rules.hpp"
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "storage/amt/amt.hpp"
 

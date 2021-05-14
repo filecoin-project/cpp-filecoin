@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "codec/cbor.hpp"
+#include "codec/cbor/cbor_token.hpp"
 #include "codec/uvarint.hpp"
 #include "common/blob.hpp"
 
@@ -17,6 +17,12 @@ namespace fc::codec::cid {
 
   constexpr std::array<uint8_t, 3> kRawIdPrefix{0x01, 0x55, 0x00};
 
+  /**
+   * Reads CID as Blake2b_256 hash
+   * @param[out] key - hash read
+   * @param input - bytes
+   * @return if input is not Blake2b_256 returns false and key is set to nullptr
+   */
   inline bool readCborBlake(const Hash256 *&key, BytesIn &input) {
     BytesIn hash;
     if (readPrefix(input, kCborBlakePrefix)
@@ -41,7 +47,7 @@ namespace fc::codec::cbor {
                             const CborToken &token,
                             BytesIn &input) {
     BytesIn cid;
-    return token.cidSize() && fc::read(cid, input, *token.cidSize())
+    return token.cidSize() && fc::codec::read(cid, input, *token.cidSize())
            && cid::readCborBlake(key, cid) && cid.empty();
   }
 

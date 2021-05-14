@@ -5,20 +5,18 @@
 
 #pragma once
 
-#include "codec/cbor.hpp"
-#include "codec/cid.hpp"
-#include "storage/ipld/ipld2.hpp"
+#include <utility>
+
+#include "cid.hpp"
+#include "codec/cbor/cbor_token.hpp"
+#include "storage/ipld/light_ipld.hpp"
 
 namespace fc::codec::hamt {
-  struct HamtWalk {
-    Ipld2Ptr ipld;
-    std::vector<Hash256> cids;
-    size_t next_cid{};
-    Buffer _node;
-    BytesIn node;
-    size_t _bucket{};
+  using storage::ipld::LightIpldPtr;
 
-    inline HamtWalk(Ipld2Ptr ipld, Hash256 root) : ipld{ipld} {
+  class HamtWalk {
+   public:
+    inline HamtWalk(LightIpldPtr ipld, Hash256 root) : ipld{std::move(ipld)} {
       cids.push_back(root);
     }
 
@@ -26,6 +24,12 @@ namespace fc::codec::hamt {
       return node.empty() && next_cid == cids.size();
     }
 
+    /**
+     * Iterate hamt
+     * @param[out] key
+     * @param[out] value
+     * @return
+     */
     inline bool next(BytesIn &key, BytesIn &value) {
       cbor::CborToken token;
       while (!empty()) {
@@ -34,17 +38,16 @@ namespace fc::codec::hamt {
           if (read(token, node).listCount() != 2) {
             return false;
           }
-          if (!read(token, node).bytesSize()) {
-            return false;
-          }
-          if (!read(key, node, *token.bytesSize())) {
+          if (!read(token, node).bytesSize()
+              || !read(key, node, *token.bytesSize())) {
             return false;
           }
           if (!codec::cbor::readNested(value, node)) {
             return false;
           }
           return true;
-        } else if (node.empty()) {
+        }
+        if (node.empty()) {
           if (ipld->get(cids[next_cid++], _node)) {
             node = _node;
             if (read(token, node).listCount() != 2) {
@@ -96,29 +99,13 @@ namespace fc::codec::hamt {
       }
       return false;
     }
-  };
 
-  inline bool stateTree(Hash256 &hamt, Ipld2Ptr ipld, const Hash256 &root) {
-    hamt = root;
-    Buffer value;
-    if (!ipld->get(root, value)) {
-      return false;
-    }
-    BytesIn input{value};
-    cbor::CborToken token;
-    if (!read(token, input).listCount()) {
-      return false;
-    }
-    if (token.listCount() == 3) {
-      if (!read(token, input).asUint()) {
-        return false;
-      }
-      const Hash256 *cid;
-      if (!cbor::readCborBlake(cid, input)) {
-        return false;
-      }
-      hamt = *cid;
-    }
-    return true;
-  }
+   private:
+    LightIpldPtr ipld;
+    std::vector<Hash256> cids;
+    size_t next_cid{};
+    Buffer _node;
+    BytesIn node;
+    size_t _bucket{};
+  };
 }  // namespace fc::codec::hamt

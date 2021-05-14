@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "common/hexutil.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"

@@ -4,7 +4,7 @@
 #
 
 add_library(amt
-    amt.cpp
+    amt_walk.cpp
     )
 target_link_libraries(amt
     buffer

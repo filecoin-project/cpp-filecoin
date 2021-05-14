@@ -15,8 +15,11 @@
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/cids_index.hpp"
 #include "storage/car/cids_index/progress.hpp"
+#include "storage/ipld/cids_ipld.hpp"
 
 namespace fc::storage::cids_index {
+  using ipld::CidsIpld;
+
   inline Outcome<std::shared_ptr<CidsIpld>> loadOrCreateWithProgress(
       const std::string &car_path,
       bool writable,

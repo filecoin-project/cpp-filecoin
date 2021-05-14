@@ -7,7 +7,7 @@
 
 #include <libp2p/connection/stream.hpp>
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "common/libp2p/cbor_buffering.hpp"
 
 namespace fc::common::libp2p {

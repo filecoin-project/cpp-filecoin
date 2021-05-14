@@ -7,8 +7,8 @@
 
 #include <gtest/gtest.h>
 
-#include "codec/actor.hpp"
-#include "codec/hamt.hpp"
+#include "codec/cbor/light_reader/actor.hpp"
+#include "codec/cbor/light_reader/hamt_walk.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "testutil/init_actor.hpp"
 #include "testutil/storage/ipld2.hpp"
@@ -16,11 +16,12 @@
 
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
+using fc::storage::ipld::IpldIpld2;
 using fc::vm::actor::Actor;
 using fc::vm::actor::CodeId;
 using fc::vm::state::StateTreeImpl;
 
-auto kAddressId = Address::makeFromId(13);
+const auto kAddressId = Address::makeFromId(13);
 const Actor kActor{
     CodeId{"010001020001"_cid}, "010001020002"_cid, 3, BigInt(5)};
 
@@ -92,11 +93,12 @@ TEST_F(StateTreeTest, Walk) {
       .value();
   codec::hamt::HamtWalk walk{std::make_shared<IpldIpld2>(store_),
                              *asBlake(map.hamt.flush().value())};
-  BytesIn key, value;
+  BytesIn key;
+  BytesIn value;
   EXPECT_FALSE(walk.empty());
   EXPECT_TRUE(walk.next(key, value));
   EXPECT_TRUE(walk.empty());
-  uint64_t id2;
+  uint64_t id2{};
   std::string_view code2;
   const Hash256 *head2;
   EXPECT_TRUE(codec::actor::readActor(id2, code2, head2, key, value));

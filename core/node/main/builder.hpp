@@ -25,6 +25,7 @@
 #include "storage/buffer_map.hpp"
 #include "storage/car/cids_index/cids_index.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
+#include "storage/ipld/cids_ipld.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/prefix.hpp"
@@ -56,7 +57,8 @@ namespace fc::node {
     // storage objects
     std::shared_ptr<storage::LevelDB> ipld_leveldb_kv;
     std::shared_ptr<storage::ipfs::LeveldbDatastore> ipld_leveldb;
-    std::shared_ptr<storage::cids_index::CidsIpld> ipld_cids, ipld_cids_write;
+    std::shared_ptr<storage::ipld::CidsIpld> ipld_cids;
+    std::shared_ptr<storage::ipld::CidsIpld> ipld_cids_write;
     IpldPtr ipld;
     std::shared_ptr<primitives::tipset::TsLoadIpld> ts_load_ipld;
     std::shared_ptr<primitives::tipset::TsLoadCache> ts_load;

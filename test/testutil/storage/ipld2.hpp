@@ -6,10 +6,10 @@
 #pragma once
 
 #include "storage/ipfs/datastore.hpp"
-#include "storage/ipld/ipld2.hpp"
+#include "storage/ipld/light_ipld.hpp"
 
-namespace fc {
-  struct IpldIpld2 : Ipld2 {
+namespace fc::storage::ipld {
+  struct IpldIpld2 : LightIpld {
     IpldPtr ipld;
 
     IpldIpld2(IpldPtr ipld) : ipld{ipld} {}
@@ -29,4 +29,4 @@ namespace fc {
       ipld->set(asCborBlakeCid(key), Buffer{value}).value();
     }
   };
-}  // namespace fc
+}  // namespace fc::storage::ipld

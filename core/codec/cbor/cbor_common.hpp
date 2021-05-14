@@ -7,12 +7,14 @@
 
 #include <cstdint>
 
-#include <boost/optional.hpp>
-
-#include "codec/cbor/cbor_errors.hpp"
-#include "common/outcome.hpp"
-#include "primitives/cid/cid.hpp"
-
 namespace fc::codec::cbor {
-  constexpr uint64_t kCidTag = 42;
+  constexpr uint8_t kExtraUint8{24};
+  constexpr uint8_t kExtraUint16{25};
+  constexpr uint8_t kExtraUint32{26};
+  constexpr uint8_t kExtraUint64{27};
+
+  constexpr uint64_t kExtraFalse{20};
+  constexpr uint64_t kExtraTrue{21};
+  constexpr uint64_t kExtraNull{22};
+  constexpr uint64_t kExtraCid{42};
 }  // namespace fc::codec::cbor
