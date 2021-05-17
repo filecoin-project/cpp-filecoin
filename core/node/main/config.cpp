@@ -87,7 +87,7 @@ namespace fc::node {
            po::value(&config.bootstrap_list)->composing(),
            "remote bootstrap peer uri to connect to");
     option("log,l",
-           po::value(&raw.log_level)->default_value('i'),
+           po::value(&raw.log_level)->default_value('d'),
            "log level, [e,w,i,d,t]");
     option("import-snapshot", po::value(&config.snapshot));
     option("import-key",

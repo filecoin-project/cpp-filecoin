@@ -382,6 +382,8 @@ namespace fc::node {
 
     o.io_context = injector.create<std::shared_ptr<boost::asio::io_context>>();
 
+    o.scheduler2 = injector.create<std::shared_ptr<libp2p::basic::Scheduler>>();
+
     o.scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
         o.io_context, libp2p::protocol::SchedulerConfig{});
 
@@ -411,7 +413,7 @@ namespace fc::node {
         o.host, o.utc_clock, *config.genesis_cid, o.events);
 
     o.gossip = libp2p::protocol::gossip::create(
-        o.scheduler, o.host, config.gossip_config);
+        o.scheduler2, o.host, config.gossip_config);
 
     using libp2p::protocol::gossip::ByteArray;
     o.gossip->setMessageIdFn(

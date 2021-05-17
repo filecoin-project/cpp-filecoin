@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <libp2p/common/instances.hpp>
 #include <sstream>
 
 #include "clock/chain_epoch_clock.hpp"
@@ -50,6 +51,14 @@ namespace fc::node {
       std::shared_lock written_lock{o.ipld_cids_write->written_mutex};
       metric("car_tmp", o.ipld_cids_write->written.size());
       written_lock.unlock();
+
+      std::unique_lock instances_lock{libp2p::Instances::mutex};
+      for (auto &[type, count] : libp2p::Instances::counts) {
+        std::stringstream name;
+        name << "instances{type=\"" << type << "\"}";
+        metric(name.str(), count);
+      }
+      instances_lock.unlock();
 
       return ss.str();
     }

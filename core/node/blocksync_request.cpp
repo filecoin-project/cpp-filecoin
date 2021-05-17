@@ -8,6 +8,8 @@
 #include <libp2p/host/host.hpp>
 #include <unordered_set>
 
+#include <libp2p/common/instances.hpp>
+
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
 #include "storage/ipfs/datastore.hpp"
@@ -542,6 +544,8 @@ namespace fc::sync::blocksync {
       libp2p::protocol::scheduler::Handle handle_;
       StreamPtr stream_;
       bool in_progress_ = true;
+
+      LIBP2P_INSTANCES(fc::sync::blocksync::BlocksyncRequestImpl);
     };
 
   }  // namespace

@@ -89,17 +89,18 @@ namespace fc::primitives::tipset {
     }
 
     if (tipset_cache.size() < capacity) {
-      begin_index += 1;
-      tipset_cache[begin_index - 1].prev = begin_index;
+      auto index{tipset_cache.size()};
+      tipset_cache[begin_index].prev = index;
       LoadNode tcn{
-          .prev = begin_index,
-          .next = begin_index - 1,
+          .prev = index,
+          .next = begin_index,
           .it = res.first,
           .tipset = std::move(tipset),
       };
-      tcn.it->second = begin_index;
+      tcn.it->second = index;
       tipset_cache.push_back(tcn);
-      return begin_index;
+      begin_index = index;
+      return index;
     }
 
     uint64_t new_index = end_index;
@@ -125,7 +126,7 @@ namespace fc::primitives::tipset {
   }
 
   TipsetCPtr TsLoadCache::getFromCache(uint64_t index) {
-    auto ts{tipset_cache[index]};
+    auto &ts{tipset_cache[index]};
     // when it first
     if (index == begin_index) {
       return ts.tipset;
@@ -153,6 +154,9 @@ namespace fc::primitives::tipset {
                                                         const TipsetKey &key) {
     std::lock_guard lock{mutex};
 
+    if (index >= tipset_cache.size()) {
+      return boost::none;
+    }
     if (key != tipset_cache[index].tipset->key) {
       return boost::none;
     }

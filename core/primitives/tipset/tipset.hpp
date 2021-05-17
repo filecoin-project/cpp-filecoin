@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/instances.hpp>
+
 #include "primitives/block/block.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
@@ -124,6 +126,8 @@ namespace fc::primitives::tipset {
 
     TipsetKey key;
     std::vector<block::BlockHeader> blks;  ///< block headers
+
+    LIBP2P_INSTANCES(fc::primitives::tipset::Tipset);
   };
 
   /**

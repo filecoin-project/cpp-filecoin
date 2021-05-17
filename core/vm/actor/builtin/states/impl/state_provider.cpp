@@ -29,7 +29,8 @@ namespace fc::vm::actor::builtin::states {
     return getCommonStatePtr<AccountActorState,
                              v0::account::AccountActorState,
                              v2::account::AccountActorState,
-                             v3::account::AccountActorState>(actor);
+                             v3::account::AccountActorState,
+                             v3::account::AccountActorState>(actor);  // TODO v4
   }
 
   outcome::result<CronActorStatePtr> StateProvider::getCronActorState(
@@ -79,7 +80,8 @@ namespace fc::vm::actor::builtin::states {
     return getCommonStatePtr<MinerActorState,
                              v0::miner::MinerActorState,
                              v2::miner::MinerActorState,
-                             v3::miner::MinerActorState>(actor);
+                             v3::miner::MinerActorState,
+                             v3::miner::MinerActorState>(actor);  // TODO v4
   }
 
   outcome::result<MultisigActorStatePtr> StateProvider::getMultisigActorState(

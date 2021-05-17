@@ -166,6 +166,7 @@ namespace fc::storage::ipfs::graphsync {
 
     auto peer_id_res = rstream.value()->remotePeerId();
     if (!peer_id_res) {
+      spdlog::warn("{}:{} .error()", __FILE__, __LINE__);
       logger()->error("no peer id for accepted stream, msg='{}'",
                       peer_id_res.error().message());
       return;
