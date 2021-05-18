@@ -81,13 +81,16 @@ namespace fc::primitives::tipset::chain {
       return parent;
     }
     TsChain chain;
-    OUTCOME_TRY(ts, ts_load->load(key));
-    auto _parent{parent->chain.lower_bound(ts->height())};
+    OUTCOME_TRY(ts, ts_load->loadWithCacheInfo(key));
+    auto _parent{parent->chain.lower_bound(ts.tipset->height())};
     if (_parent == parent->chain.end()) {
       --_parent;
     }
     while (true) {
-      auto _bottom{chain.emplace(ts->height(), TsLazy{ts->key, ts}).first};
+      auto _bottom{chain
+                       .emplace(ts.tipset->height(),
+                                TsLazy{ts.tipset->key, ts.index})
+                       .first};
       while (_parent->first > _bottom->first) {
         if (_parent == parent->chain.begin()) {
           return ERROR_TEXT("TsBranch::make: not connected");
@@ -97,7 +100,7 @@ namespace fc::primitives::tipset::chain {
       if (*_parent == *_bottom) {
         break;
       }
-      OUTCOME_TRYA(ts, ts_load->load(ts->getParents()));
+      OUTCOME_TRYA(ts, ts_load->loadWithCacheInfo(ts.tipset->getParents()));
     }
     return make(std::move(chain), parent);
   }
@@ -106,7 +109,8 @@ namespace fc::primitives::tipset::chain {
     TsChain chain;
     auto cur{kv->cursor()};
     for (cur->seekToFirst(); cur->isValid(); cur->next()) {
-      chain.emplace(decodeHeight(cur->key()), TsLazy{decodeTsk(cur->value())});
+      chain.emplace(decodeHeight(cur->key()),
+                    TsLazy{decodeTsk(cur->value()), 0});  // we don't know index
     }
     if (chain.empty()) {
       return nullptr;
@@ -119,14 +123,16 @@ namespace fc::primitives::tipset::chain {
                                                 TsLoadPtr ts_load) {
     TsChain chain;
     auto batch{kv->batch()};
-    OUTCOME_TRY(ts, ts_load->load(key));
+    OUTCOME_TRY(ts, ts_load->loadWithCacheInfo(key));
     while (true) {
-      OUTCOME_TRY(batch->put(encodeHeight(ts->height()), encodeTsk(ts->key)));
-      chain.emplace(ts->height(), TsLazy{ts->key, ts});
-      if (ts->height() == 0) {
+      OUTCOME_TRY(batch->put(encodeHeight(ts.tipset->height()),
+                             encodeTsk(ts.tipset->key)));
+      chain.emplace(ts.tipset->height(),
+                    TsLazy{ts.tipset->key, ts.index});
+      if (ts.tipset->height() == 0) {
         break;
       }
-      OUTCOME_TRYA(ts, ts_load->load(ts->getParents()));
+      OUTCOME_TRYA(ts, ts_load->loadWithCacheInfo(ts.tipset->getParents()));
     }
     OUTCOME_TRY(batch->commit());
     return make(std::move(chain), nullptr);
@@ -252,7 +258,8 @@ namespace fc::primitives::tipset::chain {
   TsBranchIter insert(TsBranches &branches,
                       TipsetCPtr ts,
                       std::vector<TsBranchPtr> *children) {
-    TsChain::value_type p{ts->height(), TsLazy{ts->key, ts}};
+    TsChain::value_type p{ts->height(),
+                          TsLazy{ts->key, 0}};  // we don't know index
     auto [branch, it]{find(branches, ts)};
     for (auto &child : branches) {
       if (child->parent_key && child->parent_key == ts->key) {
@@ -335,7 +342,7 @@ namespace fc::primitives::tipset::chain {
                                             TsBranchIter it) {
     // magic number from lotus
     for (auto i{0}; i < 20; ++i) {
-      OUTCOME_TRY(ts, ts_load->loadw(it.second->second));
+      OUTCOME_TRY(ts, ts_load->lazyLoad(it.second->second));
       auto &beacons{ts->blks[0].beacon_entries};
       if (!beacons.empty()) {
         return *beacons.rbegin();

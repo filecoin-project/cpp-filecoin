@@ -9,7 +9,6 @@
 #include <libp2p/injector/host_injector.hpp>
 
 #include <leveldb/cache.h>
-#include <libp2p/crypto/ed25519_provider/ed25519_provider_impl.hpp>
 #include <libp2p/protocol/gossip/gossip.hpp>
 #include <libp2p/protocol/identify/identify.hpp>
 #include <libp2p/protocol/identify/identify_delta.hpp>
@@ -27,6 +26,8 @@
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
+#include "codec/json/json.hpp"
+#include "common/error_text.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
@@ -51,11 +52,9 @@
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/util.hpp"
 #include "storage/chain/msg_waiter.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
-#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "storage/keystore/impl/filesystem/filesystem_keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/prefix.hpp"
 #include "storage/mpool/mpool.hpp"
@@ -73,8 +72,8 @@ namespace fc::node {
   using markets::storage::kStorageMarketImportDir;
   using markets::storage::chain_events::ChainEventsImpl;
   using markets::storage::client::StorageMarketClientImpl;
-  using storage::InMemoryStorage;
   using storage::ipfs::InMemoryDatastore;
+  using storage::keystore::FileSystemKeyStore;
 
   namespace {
     auto log() {
@@ -193,7 +192,7 @@ namespace fc::node {
 
       auto it{std::prev(o.ts_main->chain.end())};
       while (true) {
-        auto ts{o.ts_load->loadw(it->second).value()};
+        auto ts{o.ts_load->lazyLoad(it->second).value()};
         if (auto _has{o.ipld->contains(ts->getParentStateRoot())};
             _has && _has.value()) {
           o.env_context.interpreter_cache->set(
@@ -212,7 +211,7 @@ namespace fc::node {
       }
     }
     auto it{std::prev(o.ts_main->chain.end())};
-    auto ts{o.ts_load->loadw(it->second).value()};
+    auto ts{o.ts_load->lazyLoad(it->second).value()};
     if (!o.env_context.interpreter_cache->tryGet(ts->key)) {
       log()->info("interpret head {}", it->first);
       o.vm_interpreter->interpret(o.ts_main, ts).value();
@@ -231,6 +230,15 @@ namespace fc::node {
     // estimated
     o.ipld_cids_write->flush_on = 200000;
     o.ipld = o.ipld_cids_write;
+  }
+
+  outcome::result<KeyInfo> readPrivateKeyFromFile(const std::string &path) {
+    std::ifstream ifs(path);
+    std::string hex_string(std::istreambuf_iterator<char>{ifs}, {});
+    OUTCOME_TRY(blob, common::unhex(hex_string));
+    OUTCOME_TRY(json, codec::json::parse(blob));
+    OUTCOME_TRY(key_info, api::decode<KeyInfo>(json));
+    return key_info;
   }
 
   /**
@@ -457,7 +465,7 @@ namespace fc::node {
             o.env_context.interpreter_cache);
 
     auto head{
-        o.ts_load->loadw(std::prev(o.ts_main->chain.end())->second).value()};
+        o.ts_load->lazyLoad(std::prev(o.ts_main->chain.end())->second).value()};
     auto head_weight{
         o.env_context.interpreter_cache->get(head->key).value().weight};
     o.chain_store = std::make_shared<sync::ChainStoreImpl>(
@@ -484,8 +492,33 @@ namespace fc::node {
     auto msg_waiter = storage::blockchain::MsgWaiter::create(
         o.ts_load, o.ipld, o.chain_store);
 
-    auto key_store = std::make_shared<storage::keystore::InMemoryKeyStore>(
-        bls_provider, secp_provider);
+    o.key_store = std::make_shared<storage::keystore::FileSystemKeyStore>(
+        (config.repo_path / "keystore").string(), bls_provider, secp_provider);
+    o.wallet_default_address =
+        std::make_shared<OneKey>("wallet_default_address", o.kv_store);
+    // If default key is set, import to keystore and save default key address.
+    // Default key must be a BLS key.
+    if (config.wallet_default_key_path) {
+      const auto maybe_default_key =
+          readPrivateKeyFromFile(*config.wallet_default_key_path);
+      if (maybe_default_key.has_error()) {
+        log()->error("Cannot read default key from {}",
+                     *config.wallet_default_key_path);
+        return maybe_default_key.error();
+      }
+      auto key_info{maybe_default_key.value()};
+      OUTCOME_TRY(
+          address,
+          o.key_store->put(key_info.type == crypto::signature::Type::BLS,
+                           key_info.private_key));
+      o.wallet_default_address->setCbor(address);
+      log()->info("Set default wallet address {}", address);
+    } else {
+      if (o.wallet_default_address->has()) {
+        log()->info("Load default wallet address {}",
+                    o.wallet_default_address->getCbor<Address>());
+      }
+    }
 
     drand::ChainInfo drand_chain_info{
         .key = *config.drand_bls_pubkey,
@@ -494,7 +527,7 @@ namespace fc::node {
     };
 
     if (config.drand_servers.empty()) {
-      config.drand_servers.push_back("https://127.0.0.1:8080");
+      config.drand_servers.emplace_back("https://127.0.0.1:8080");
     }
 
     auto beaconizer =
@@ -520,9 +553,10 @@ namespace fc::node {
                           beaconizer,
                           drand_schedule,
                           o.pubsub_gate,
-                          key_store,
+                          o.key_store,
                           o.market_discovery,
-                          o.retrieval_market_client);
+                          o.retrieval_market_client,
+                          o.wallet_default_address);
 
     o.datatransfer = DataTransfer::make(o.host, o.graphsync);
     OUTCOME_TRY(createStorageMarketClient(o));
