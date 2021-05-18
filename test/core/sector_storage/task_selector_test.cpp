@@ -32,7 +32,13 @@ namespace fc::sector_storage {
     std::shared_ptr<TaskSelector> task_selector_;
   };
 
-  TEST_F(TaskSelectorTest, OutcomeTest) {
+  /**
+   * @given worker
+   * @when try to check is worker can handle task, but getSupportedTask return
+   * error
+   * @then getting this error
+   */
+  TEST_F(TaskSelectorTest, isSatisfyingOutcomeError) {
     std::shared_ptr<WorkerHandle> worker_handle =
         std::make_shared<WorkerHandle>();
 
