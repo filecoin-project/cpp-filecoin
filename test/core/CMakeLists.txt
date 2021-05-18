@@ -14,6 +14,7 @@ add_subdirectory(fslock)
 add_subdirectory(fsm)
 add_subdirectory(markets)
 add_subdirectory(miner)
+add_subdirectory(node)
 add_subdirectory(power)
 add_subdirectory(primitives)
 

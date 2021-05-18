@@ -32,7 +32,7 @@ namespace fc::sync {
       OUTCOME_TRY(it, find(branch, ts->height() + 1, false));
       OUTCOME_TRY(it2, stepParent(it));
       if (it2.second->second.key == ts->key) {
-        return ts_load->loadw(it.second->second);
+        return ts_load->lazyLoad(it.second->second);
       }
     }
     return ERROR_TEXT("stepUp: error");
@@ -219,7 +219,7 @@ namespace fc::sync {
       branch = queue.back();
       queue.pop_back();
       attached_.insert(branch);
-      if (auto _ts{ts_load_->loadw(branch->chain.rbegin()->second)}) {
+      if (auto _ts{ts_load_->lazyLoad(branch->chain.rbegin()->second)}) {
         auto &ts{_ts.value()};
         if (ts->getParentWeight() > attached_heaviest_.second) {
           attached_heaviest_ = {branch, ts->getParentWeight()};
@@ -242,7 +242,7 @@ namespace fc::sync {
     while (true) {
       if (auto _res{interpreter_cache_->tryGet(it->second.key)}) {
         if (*_res) {
-          if (auto _ts{ts_load_->loadw(it->second)}) {
+          if (auto _ts{ts_load_->lazyLoad(it->second)}) {
             interpret_ts_ = _ts.value();
           }
         }

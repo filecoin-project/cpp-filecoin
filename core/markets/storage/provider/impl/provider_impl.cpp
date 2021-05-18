@@ -173,7 +173,7 @@ namespace fc::markets::storage::provider {
     auto car_path = kStorageMarketImportDir / cid_str;
     if (path != car_path)
       boost::filesystem::copy_file(
-        path, car_path, boost::filesystem::copy_option::overwrite_if_exists);
+          path, car_path, boost::filesystem::copy_option::overwrite_if_exists);
 
     auto unpadded{proofs::padPiece(car_path)};
     if (unpadded.padded() != deal->client_deal_proposal.proposal.piece_size) {
@@ -331,7 +331,7 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<CID> StorageProviderImpl::publishDeal(
-      std::shared_ptr<MinerDeal> deal) {
+      const std::shared_ptr<MinerDeal> &deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(
         worker_info,

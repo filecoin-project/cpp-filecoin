@@ -101,7 +101,7 @@ namespace fc::api {
 
   template <typename T, typename F>
   auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&...args) {
+    return [f{std::forward<F>(f)}](auto &&... args) {
       auto channel{std::make_shared<Channel<outcome::result<T>>>()};
       f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
         channel->write(std::forward<decltype(_r)>(_r));
@@ -212,7 +212,8 @@ namespace fc::api {
       std::shared_ptr<PubSubGate> pubsub,
       std::shared_ptr<KeyStore> key_store,
       std::shared_ptr<Discovery> market_discovery,
-      const std::shared_ptr<RetrievalClient> &retrieval_market_client) {
+      const std::shared_ptr<RetrievalClient> &retrieval_market_client,
+      const std::shared_ptr<OneKey> &wallet_default_address) {
     auto ts_load{env_context.ts_load};
     auto ipld{env_context.ipld};
     auto interpreter_cache{env_context.interpreter_cache};
@@ -264,7 +265,7 @@ namespace fc::api {
           return messages;
         }};
     api->ChainGetGenesis = {[=]() -> outcome::result<TipsetCPtr> {
-      return ts_load->loadw(ts_main->chain.begin()->second);
+      return ts_load->lazyLoad(ts_main->chain.begin()->second);
     }};
     api->ChainGetNode = {[=](auto &path) -> outcome::result<IpldObject> {
       std::vector<std::string> parts;
@@ -334,7 +335,7 @@ namespace fc::api {
           std::shared_lock ts_lock{*env_context.ts_branches_mutex};
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
           OUTCOME_TRY(it, find(ts_branch, height));
-          return ts_load->loadw(it.second->second);
+          return ts_load->lazyLoad(it.second->second);
         }};
     api->ChainHead = {[=]() { return chain_store->heaviestTipset(); }};
     api->ChainNotify = {[=]() {
@@ -958,8 +959,11 @@ namespace fc::api {
       OUTCOME_TRY(actor, context.state_tree.get(address));
       return actor.balance;
     }};
-    // TODO(turuslan): FIL-165 implement method
-    api->WalletDefaultAddress = {};
+    api->WalletDefaultAddress = {[=]() -> outcome::result<Address> {
+      if (!wallet_default_address->has())
+        return ERROR_TEXT("WalletDefaultAddress: default wallet is not set");
+      return wallet_default_address->getCbor<Address>();
+    }};
     api->WalletHas = {[=](auto address) -> outcome::result<bool> {
       if (!address.isKeyType()) {
         OUTCOME_TRY(context, tipsetContext({}));
