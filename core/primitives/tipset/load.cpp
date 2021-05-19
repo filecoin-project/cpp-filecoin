@@ -76,7 +76,13 @@ namespace fc::primitives::tipset {
   uint64_t TsLoadCache::cacheInsert(TipsetCPtr tipset) {
     std::lock_guard lock{mutex};
 
-    auto it{map_cache.insert(std::make_pair(tipset->key, 0)).first};
+    auto res{map_cache.insert(std::make_pair(tipset->key, 0))};
+
+    // is inserted
+    if (not res.second)
+      return 0;  // it is not a problem, we check key before get tipset
+
+    auto it{res.first};
 
     if (tipset_cache.size() < capacity) {
       auto index{tipset_cache.size()};
