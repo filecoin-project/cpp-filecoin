@@ -30,15 +30,14 @@ namespace fc::primitives::tipset {
     uint64_t prev = 0;
     uint64_t next = 0;
 
-    std::map<TipsetKey, uint64_t>::iterator it;
-
     TipsetCPtr tipset = nullptr;
   };
 
   struct TsLoad {
    public:
     virtual ~TsLoad() = default;
-    virtual outcome::result<LoadCache> loadWithCacheInfo(const TipsetKey &key) = 0;
+    virtual outcome::result<LoadCache> loadWithCacheInfo(
+        const TipsetKey &key) = 0;
     virtual outcome::result<TipsetCPtr> load(const TipsetKey &key) = 0;
     virtual outcome::result<TipsetCPtr> load(std::vector<BlockHeader> blocks);
     virtual outcome::result<TipsetCPtr> lazyLoad(TsLazy &lazy) = 0;
@@ -68,7 +67,7 @@ namespace fc::primitives::tipset {
 
    private:
     outcome::result<TipsetCPtr> lazyLoad(uint64_t &cache_index,
-                                      const TipsetKey &key);
+                                         const TipsetKey &key);
     uint64_t cacheInsert(TipsetCPtr tipset);
     boost::optional<LoadCache> getFromCache(const TipsetKey &key);
     boost::optional<TipsetCPtr> getFromCache(uint64_t index,

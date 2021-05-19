@@ -31,7 +31,8 @@ namespace fc::primitives::tipset {
     return TsLoad::load(std::move(blocks));
   }
 
-  outcome::result<LoadCache> TsLoadIpld::loadWithCacheInfo(const TipsetKey &key) {
+  outcome::result<LoadCache> TsLoadIpld::loadWithCacheInfo(
+      const TipsetKey &key) {
     OUTCOME_TRY(ts, load(key));
     return LoadCache{.tipset = ts, .index = 0};  // we don't have cache
   }
@@ -41,7 +42,10 @@ namespace fc::primitives::tipset {
   }
 
   TsLoadCache::TsLoadCache(TsLoadPtr ts_load, size_t cache_size)
-      : ts_load{std::move(ts_load)}, capacity{cache_size} {}
+      : ts_load{std::move(ts_load)},
+        capacity{cache_size},
+        begin_index{0},
+        end_index{0} {}
 
   outcome::result<TipsetCPtr> TsLoadCache::load(const TipsetKey &key) {
     OUTCOME_TRY(ts, loadWithCacheInfo(key));
@@ -59,7 +63,7 @@ namespace fc::primitives::tipset {
   }
 
   outcome::result<TipsetCPtr> TsLoadCache::lazyLoad(uint64_t &cache_index,
-                                                 const TipsetKey &key) {
+                                                    const TipsetKey &key) {
     if (auto tipset{getFromCache(cache_index, key)}) {
       return tipset.get();
     }
@@ -72,42 +76,28 @@ namespace fc::primitives::tipset {
   uint64_t TsLoadCache::cacheInsert(TipsetCPtr tipset) {
     std::lock_guard lock{mutex};
 
-    auto res = map_cache.insert(std::make_pair(tipset->key, 0));
-
-    if (tipset_cache.empty()) {
-      begin_index = 0;
-      end_index = 0;
-      LoadNode tcn{
-          .prev = begin_index,
-          .next = begin_index,
-          .it = res.first,
-          .tipset = std::move(tipset),
-      };
-      tcn.it->second = begin_index;
-      tipset_cache.push_back(tcn);
-      return begin_index;
-    }
+    auto it{map_cache.insert(std::make_pair(tipset->key, 0)).first};
 
     if (tipset_cache.size() < capacity) {
       auto index{tipset_cache.size()};
-      tipset_cache[begin_index].prev = index;
+      if (index != 0) {
+        tipset_cache[begin_index].prev = index;
+      }
       LoadNode tcn{
           .prev = index,
           .next = begin_index,
-          .it = res.first,
           .tipset = std::move(tipset),
       };
-      tcn.it->second = index;
+      it->second = index;
       tipset_cache.push_back(tcn);
       begin_index = index;
       return index;
     }
 
     uint64_t new_index = end_index;
-    auto& new_tipset{tipset_cache[new_index]};
-    map_cache.erase(new_tipset.it);
-    new_tipset.it = res.first;
-    new_tipset.it->second = new_index;
+    auto &new_tipset{tipset_cache[new_index]};
+    map_cache.erase(new_tipset.tipset->key);
+    it->second = new_index;
 
     tipset_cache[new_tipset.prev].next = new_tipset.prev;
     end_index = new_tipset.prev;
@@ -175,7 +165,8 @@ namespace fc::primitives::tipset {
     return LoadCache{getFromCache(it->second), it->second};
   }
 
-  outcome::result<LoadCache> TsLoadCache::loadWithCacheInfo(const TipsetKey &key) {
+  outcome::result<LoadCache> TsLoadCache::loadWithCacheInfo(
+      const TipsetKey &key) {
     if (auto ts{getFromCache(key)}) {
       return ts.value();
     }
