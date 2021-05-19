@@ -30,8 +30,8 @@ jobs:
         include:
           - compiler:
               сс: gcc
-                env:
-                  COVERAGE: "-DCOVERAGE=ON"
+              env:
+                COVERAGE: "-DCOVERAGE=ON"
           - os: macOS-latest
             env:
               CFLAGS: "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
