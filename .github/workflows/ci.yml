@@ -28,6 +28,9 @@ jobs:
             compiler:
               cc: gcc
         include:
+          - compiler: gcc
+            env:
+              COVERAGE: "-DCOVERAGE=ON"
           - os: macOS-latest
             env:
               CFLAGS: "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
@@ -72,7 +75,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
         GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
-      run: cmake . -GNinja -Bbuild -D COVERAGE=ON -D TESTING_PROOFS=ON
+        COVERAGE: ${{ matrix.env.COVERAGE }}
+      run: cmake . -GNinja -Bbuild $COVERAGE -D TESTING_PROOFS=ON
     - name: build
       run: cmake --build build -- -j2
     - name: tests
@@ -80,10 +84,10 @@ jobs:
         CTEST_OUTPUT_ON_FAILURE: 1
       run: cmake --build build --target test
     - name: prepare coverage report
-      if: runner.os == 'Linux'
+      if: runner.os == 'Linux' && matrix.compiler.cc == 'gcc'
       run: cmake --build build --target ctest_coverage_norun
     - name: upload report to codecov
-      if: runner.os == 'Linux'
+      if: runner.os == 'Linux' && matrix.compiler.cc == 'gcc'
       uses: codecov/codecov-action@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
