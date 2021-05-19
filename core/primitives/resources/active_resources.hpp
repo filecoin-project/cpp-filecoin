@@ -6,6 +6,7 @@
 #pragma once
 
 #include <shared_mutex>
+#include <condition_variable>
 #include "primitives/resources/resources.hpp"
 #include "primitives/types.hpp"
 

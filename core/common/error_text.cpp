@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <unordered_map>
+#include <limits>
 
 namespace fc::error_text {
   constexpr auto kName{"ErrorText"};

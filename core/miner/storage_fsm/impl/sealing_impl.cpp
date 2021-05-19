@@ -8,6 +8,7 @@
 #include <libp2p/protocol/common/scheduler.hpp>
 #include <unordered_set>
 #include <utility>
+#include <thread>
 #include "common/bitsutil.hpp"
 #include "const.hpp"
 #include "miner/storage_fsm/impl/checks.hpp"
