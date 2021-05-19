@@ -65,7 +65,7 @@ namespace fc::vm::actor::builtin::types::market {
 
     CID piece_cid;
     PaddedPieceSize piece_size;
-    bool verified;
+    bool verified = false;
     Address client;
     Address provider;
     std::string label;

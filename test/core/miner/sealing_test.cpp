@@ -47,6 +47,8 @@ namespace fc::mining {
   using storage::InMemoryStorage;
   using testing::_;
   using types::kDealSectorPriority;
+  using types::Piece;
+  using types::SectorInfo;
   using vm::actor::Actor;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::SectorOnChainInfo;
@@ -69,6 +71,23 @@ namespace fc::mining {
       counter_ = std::make_shared<CounterMock>();
       kv_ = std::make_shared<InMemoryStorage>();
 
+      update_sector_id_ = 2;
+      SectorInfo info;
+      info.sector_number = update_sector_id_;
+      info.state = SealingState::kProving;
+      info.pieces = {Piece{
+          .piece =
+              PieceInfo{
+                  .size = PaddedPieceSize(sector_size_),
+                  .cid = "010001020011"_cid,
+              },
+          .deal_info = boost::none,
+      }};
+      EXPECT_OUTCOME_TRUE(buf, codec::cbor::encode(info));
+      Buffer key;
+      key.put("empty_sector");
+      EXPECT_OUTCOME_TRUE_1(kv_->put(key, buf));
+
       proofs_ = std::make_shared<proofs::ProofEngineMock>();
 
       manager_ = std::make_shared<ManagerMock>();
@@ -86,7 +105,7 @@ namespace fc::mining {
           .max_wait_deals_sectors = 2,
           .max_sealing_sectors = 0,
           .max_sealing_sectors_for_deals = 0,
-          .wait_deals_delay = 0  // by default 6 hours
+          .wait_deals_delay = std::chrono::hours(6).count(),
       };
 
       scheduler_ = std::make_shared<SchedulerMock>();
@@ -109,6 +128,7 @@ namespace fc::mining {
       context_->stop();
     }
 
+    uint64_t update_sector_id_;
     RegisteredSealProof seal_proof_type_;
 
     PaddedPieceSize sector_size_;
@@ -535,9 +555,31 @@ namespace fc::mining {
   }
 
   /**
+   * @given sector with blank piece
+   * @when try to mark for upgrade
+   * @then success
+   */
+  TEST_F(SealingTest, MarkForUpgrade) {
+    EXPECT_EQ(sealing_->isMarkedForUpgrade(update_sector_id_), false);
+    EXPECT_OUTCOME_TRUE_1(sealing_->markForUpgrade(update_sector_id_));
+    EXPECT_EQ(sealing_->isMarkedForUpgrade(update_sector_id_), true);
+  }
+  /**
+   * @given merked sector
+   * @when try to mark for upgrade
+   * @then SealingError::kAlreadyUpgradeMarked occurs
+   */
+  TEST_F(SealingTest, MarkForUpgradeAlreadyMarked) {
+    EXPECT_OUTCOME_TRUE_1(sealing_->markForUpgrade(update_sector_id_));
+    EXPECT_EQ(sealing_->isMarkedForUpgrade(update_sector_id_), true);
+    EXPECT_OUTCOME_ERROR(SealingError::kAlreadyUpgradeMarked,
+                         sealing_->markForUpgrade(update_sector_id_));
+  }
+
+  /**
    * @given sector in sealing
    * @when try to get List of sectors
-   * @then list size is 1
+   * @then list size is 2
    */
   TEST_F(SealingTest, ListOfSectors) {
     UnpaddedPieceSize piece_size(127);
@@ -584,7 +626,7 @@ namespace fc::mining {
         sealing_->addPieceToAnySector(piece_size, piece, deal));
 
     auto sectors = sealing_->getListSectors();
-    ASSERT_EQ(sectors.size(), 1);
+    ASSERT_EQ(sectors.size(), 2);
   }
 
   /**
@@ -683,7 +725,6 @@ namespace fc::mining {
         adt::Array<SectorOnChainInfo>("010001020008"_cid, ipld);
     actor_state.precommitted_setctors_expiry =
         adt::Array<api::RleBitset>("010001020009"_cid, ipld);
-    actor_state.sectors.amt.cid();
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
@@ -878,6 +919,52 @@ namespace fc::mining {
       ASSERT_NE(sector_info->state, state);
       state = sector_info->state;
     }
+  }
+
+  /**
+   * @given sealing, 1 sector
+   * @when try to add pledge sector
+   * @then 2 sectors in sealing
+   */
+  TEST_F(SealingTest, pledgeSector) {
+    SectorNumber sector = 1;
+    EXPECT_CALL(*counter_, next()).WillOnce(testing::Return(sector));
+
+    SectorId sector_id{
+        .miner = 42,
+        .sector = sector,
+    };
+
+    PieceInfo info{
+        .size = PaddedPieceSize(sector_size_),
+        .cid = "010001020002"_cid,
+    };
+
+    std::vector<UnpaddedPieceSize> exist_pieces = {};
+    EXPECT_CALL(*manager_,
+                addPiece(sector_id,
+                         gsl::span<const UnpaddedPieceSize>(exist_pieces),
+                         PaddedPieceSize(sector_size_).unpadded(),
+                         _,
+                         0))
+        .WillOnce(testing::Return(outcome::success(info)));
+
+    api_->StateMinerInfo =
+        [miner{miner_addr_}, spt{seal_proof_type_}](
+            const Address &address,
+            const TipsetKey &key) -> outcome::result<MinerInfo> {
+      if (address == miner and key == TipsetKey{}) {
+        MinerInfo minfo;
+        minfo.seal_proof_type = spt;
+        return std::move(minfo);
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
+
+    ASSERT_EQ(sealing_->getListSectors().size(), 1);
+    EXPECT_OUTCOME_TRUE_1(sealing_->pledgeSector());
+    ASSERT_EQ(sealing_->getListSectors().size(), 2);
   }
 
 }  // namespace fc::mining

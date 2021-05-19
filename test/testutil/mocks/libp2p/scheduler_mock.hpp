@@ -17,8 +17,11 @@ namespace libp2p::protocol {
     void next_clock() {
       pulse(false);
     }
+
    protected:
-    MOCK_METHOD0(scheduleImmediate, void());
+    void scheduleImmediate() override {
+      pulse(true);
+    }
   };
 
 }  // namespace libp2p::protocol

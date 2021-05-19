@@ -192,7 +192,8 @@ namespace fc::mining::types {
              proof,
              message,
              invalid_proofs,
-             fault_report_message)
+             fault_report_message,
+             return_state)
 
   struct PieceAttributes {
     SectorNumber sector = 0;

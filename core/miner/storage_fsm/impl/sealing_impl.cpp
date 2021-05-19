@@ -132,29 +132,28 @@ namespace fc::mining {
                                               config);
 
     OUTCOME_TRY(sealing->fsmLoad());
-    if (config.wait_deals_delay == 0) {
-      return sealing;
-    }
-    std::lock_guard lock(sealing->sectors_mutex_);
-    for (const auto &sector : sealing->sectors_) {
-      OUTCOME_TRY(state, sealing->fsm_->get(sector.second));
-      if (state == SealingState::kWaitDeals) {
-        sealing->scheduler_
-            ->schedule(
-                config.max_wait_deals_sectors,
-                [self{sealing}, sector_id = sector.second->sector_number]() {
-                  auto maybe_error = self->startPacking(sector_id);
-                  if (maybe_error.has_error()) {
-                    self->logger_->error("starting sector {}: {}",
-                                         sector_id,
-                                         maybe_error.error().message());
-                  }
-                })
-            .detach();
+    if (config.wait_deals_delay != 0) {
+      std::lock_guard lock(sealing->sectors_mutex_);
+      for (const auto &sector : sealing->sectors_) {
+        OUTCOME_TRY(state, sealing->fsm_->get(sector.second));
+        if (state == SealingState::kWaitDeals) {
+          sealing->scheduler_
+              ->schedule(
+                  config.max_wait_deals_sectors,
+                  [self{sealing}, sector_id = sector.second->sector_number]() {
+                    auto maybe_error = self->startPacking(sector_id);
+                    if (maybe_error.has_error()) {
+                      self->logger_->error("starting sector {}: {}",
+                                           sector_id,
+                                           maybe_error.error().message());
+                    }
+                  })
+              .detach();
+        }
       }
-    }
 
-    // TODO: Grab on-chain sector set and diff with sectors_
+      // TODO: Grab on-chain sector set and diff with sectors_
+    }
     return sealing;
   }
 

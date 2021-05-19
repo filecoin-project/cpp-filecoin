@@ -66,6 +66,8 @@
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_18(op, __VA_ARGS__)
 #define _CBOR_TUPLE_20(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_19(op, __VA_ARGS__)
+#define _CBOR_TUPLE_21(op, m, ...) \
+  _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_20(op, __VA_ARGS__)
 #define _CBOR_TUPLE_V(_1,  \
                       _2,  \
                       _3,  \
@@ -86,11 +88,13 @@
                       _18, \
                       _19, \
                       _20, \
+                      _21, \
                       f,   \
                       ...) \
   f
 #define _CBOR_TUPLE(op, ...)    \
   _CBOR_TUPLE_V(__VA_ARGS__,    \
+                _CBOR_TUPLE_21, \
                 _CBOR_TUPLE_20, \
                 _CBOR_TUPLE_19, \
                 _CBOR_TUPLE_18, \

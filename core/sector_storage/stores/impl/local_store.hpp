@@ -67,21 +67,17 @@ namespace fc::sector_storage::stores {
                                        SectorFileType type,
                                        const StorageID &storage);
     void reportHealth();
+
     struct Path {
-      static std::shared_ptr<Path> newPath(std::string path);
+      explicit Path(std::string path);
+
+      [[nodiscard]] outcome::result<FsStat> getStat(
+          const std::shared_ptr<LocalStorage> &local_storage,
+          const common::Logger &logger) const;
 
       std::string local_path;
-
       int64_t reserved = 0;
       std::map<SectorId, SectorFileType> reservations = {};
-
-      outcome::result<FsStat> getStat(
-          const std::shared_ptr<LocalStorage> &local_storage) const;
-
-      std::string sectorPath(const SectorId &sid, SectorFileType type) const;
-
-     protected:
-      Path(std::string path);
     };
 
     std::shared_ptr<LocalStorage> storage_;

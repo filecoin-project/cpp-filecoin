@@ -36,6 +36,7 @@ target_link_libraries(deal_info_manager_test
 
 addtest(sealing_test
         sealing_test.cpp
+        checks_test.cpp
         )
 target_link_libraries(sealing_test
         storage_fsm

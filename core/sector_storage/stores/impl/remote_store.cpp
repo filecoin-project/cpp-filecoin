@@ -56,7 +56,7 @@ namespace fc::sector_storage::stores {
       PathType path_type,
       AcquireMode mode) {
     if ((existing & allocate) != 0) {
-      return StoreErrors::kFindAndAllocate;
+      return StoreError::kFindAndAllocate;
     }
 
     while (true) {
@@ -195,7 +195,7 @@ namespace fc::sector_storage::stores {
 
   outcome::result<FsStat> RemoteStoreImpl::getFsStat(StorageID id) {
     auto maybe_stat = local_->getFsStat(id);
-    if (maybe_stat != outcome::failure(StoreErrors::kNotFoundStorage)) {
+    if (maybe_stat != outcome::failure(StoreError::kNotFoundStorage)) {
       return maybe_stat;
     }
 
@@ -203,14 +203,14 @@ namespace fc::sector_storage::stores {
 
     if (info.urls.empty()) {
       logger_->error("Remote Store: no known URLs for remote storage {}", id);
-      return StoreErrors::kNoRemoteStorageUrls;
+      return StoreError::kNoRemoteStorageUrls;
     }
 
     fc::common::HttpUri parser;
     try {
       parser.parse(info.urls[0]);
     } catch (const std::runtime_error &e) {
-      return StoreErrors::kInvalidUrl;
+      return StoreError::kInvalidUrl;
     }
 
     parser.setPath((fs::path(parser.path()) / "stat" / id).string());
@@ -218,7 +218,7 @@ namespace fc::sector_storage::stores {
     CURL *curl = curl_easy_init();
 
     if (!curl) {
-      return StoreErrors::kUnableCreateRequest;
+      return StoreError::kUnableCreateRequest;
     }
     curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 
@@ -254,10 +254,10 @@ namespace fc::sector_storage::stores {
 
     switch (status_code) {
       case 404:
-        return StoreErrors::kNotFoundPath;
+        return StoreError::kNotFoundPath;
       case 500:
         logger_->error("getFsStat: 500 error received - {}", body);
-        return StoreErrors::kInternalServerError;
+        return StoreError::kInternalServerError;
       default:
         break;
     }
@@ -273,7 +273,7 @@ namespace fc::sector_storage::stores {
         sector_index_->storageFindSector(sector, file_type, boost::none));
 
     if (infos.empty()) {
-      return StoreErrors::kNotFoundSector;
+      return StoreError::kNotFoundSector;
     }
 
     std::sort(infos.begin(),
@@ -283,13 +283,13 @@ namespace fc::sector_storage::stores {
               });
 
     for (const auto &info : infos) {
-      OUTCOME_TRY(temp_dest, tempFetchDest(dest, true));
+      OUTCOME_TRY(temp_dest, tempFetchDest(dest, true, logger_));
       for (const auto &url : info.urls) {
         boost::system::error_code ec;
         fs::remove_all(temp_dest, ec);
         if (ec.failed()) {
           logger_->error("cannot remove temp path: {}", ec.message());
-          return StoreErrors::kCannotRemovePath;
+          return StoreError::kCannotRemovePath;
         }
 
         auto maybe_error = fetch(url, temp_dest);
@@ -303,14 +303,14 @@ namespace fc::sector_storage::stores {
         fs::rename(temp_dest, dest, ec);
         if (ec.failed()) {
           logger_->error("cannot move from temp to dest: {}", ec.message());
-          return StoreErrors::kCannotMoveFile;
+          return StoreError::kCannotMoveFile;
         }
 
         return url;
       }
     }
 
-    return StoreErrors::kUnableRemoteAcquireSector;
+    return StoreError::kUnableRemoteAcquireSector;
   }
 
   outcome::result<void> RemoteStoreImpl::fetch(const std::string &url,
@@ -320,7 +320,7 @@ namespace fc::sector_storage::stores {
     CURL *curl = curl_easy_init();
 
     if (!curl) {
-      return StoreErrors::kUnableCreateRequest;
+      return StoreError::kUnableCreateRequest;
     }
     curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 
@@ -337,7 +337,7 @@ namespace fc::sector_storage::stores {
 
     if (!temp_file.good()) {
       curl_easy_cleanup(curl);
-      return StoreErrors::kCannotOpenTempFile;
+      return StoreError::kCannotOpenTempFile;
     }
 
     struct curl_slist *headers = nullptr;
@@ -369,7 +369,7 @@ namespace fc::sector_storage::stores {
 
     if (status_code != 200) {
       logger_->error("non-200 code - {}", status_code);
-      return StoreErrors::kNotOkStatusCode;
+      return StoreError::kNotOkStatusCode;
     }
 
     boost::system::error_code ec;
@@ -377,7 +377,7 @@ namespace fc::sector_storage::stores {
 
     if (ec.failed()) {
       logger_->error("Cannot remove output path: {}", ec.message());
-      return StoreErrors::kCannotRemovePath;
+      return StoreError::kCannotRemovePath;
     }
     ec.clear();
 
@@ -394,12 +394,12 @@ namespace fc::sector_storage::stores {
       fs::rename(temp_file_path, output_path, ec);
       if (ec.failed()) {
         logger_->error("Cannot move file: {}", ec.message());
-        return StoreErrors::kCannotMoveFile;
+        return StoreError::kCannotMoveFile;
       }
       return outcome::success();
     }
 
-    return StoreErrors::kUnknownContentType;
+    return StoreError::kUnknownContentType;
   }
 
   outcome::result<void> RemoteStoreImpl::deleteFromRemote(
@@ -409,7 +409,7 @@ namespace fc::sector_storage::stores {
     CURL *curl = curl_easy_init();
 
     if (!curl) {
-      return StoreErrors::kUnableCreateRequest;
+      return StoreError::kUnableCreateRequest;
     }
     curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 
@@ -437,7 +437,7 @@ namespace fc::sector_storage::stores {
 
     if (status_code != 200) {
       logger_->error("non-200 code - {}", status_code);
-      return StoreErrors::kNotOkStatusCode;
+      return StoreError::kNotOkStatusCode;
     }
 
     return outcome::success();
