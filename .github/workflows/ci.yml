@@ -67,6 +67,13 @@ jobs:
         sudo pip3 install scikit-build
         sudo pip3 install requests gitpython gcovr pyyaml
         sudo curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+        # Workaround to provide additional free space for testing.
+        #   https://github.com/actions/virtual-environments/issues/2840
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
+        sudo rm -rf "/usr/local/share/boost"
+        sudo rm -rf "$AGENT_TOOLSDIRECTORY"
     - name: cmake
       env:
         CC: ${{ matrix.compiler.cc }}
