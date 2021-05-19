@@ -72,7 +72,8 @@ namespace fc::sector_storage::stores {
       explicit Path(std::string path);
 
       [[nodiscard]] outcome::result<FsStat> getStat(
-          const std::shared_ptr<LocalStorage> &local_storage) const;
+          const std::shared_ptr<LocalStorage> &local_storage,
+          const common::Logger &logger) const;
 
       std::string local_path;
       int64_t reserved = 0;

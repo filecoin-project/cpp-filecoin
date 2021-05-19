@@ -320,7 +320,7 @@ namespace fc::sector_storage::stores {
 
     std::shared_ptr<Path> out = std::make_shared<Path>(path);
 
-    OUTCOME_TRY(stat, out->getStat(storage_));
+    OUTCOME_TRY(stat, out->getStat(storage_, logger_));
 
     OUTCOME_TRY(index_->storageAttach(
         StorageInfo{
@@ -485,7 +485,7 @@ namespace fc::sector_storage::stores {
         return StoreError::kAlreadyReserved;
       }
 
-      OUTCOME_TRY(stat, path_iter->second->getStat(storage_));
+      OUTCOME_TRY(stat, path_iter->second->getStat(storage_, logger_));
 
       uint64_t overhead =
           (path_type == PathType::kStorage
@@ -513,7 +513,7 @@ namespace fc::sector_storage::stores {
     {
       std::shared_lock lock(mutex_);
       for (auto path : paths_) {
-        auto stat = path.second->getStat(storage_);
+        auto stat = path.second->getStat(storage_, logger_);
         std::pair<StorageID, HealthReport> report;
         if (stat.has_error()) {
           report = std::make_pair(path.first,
@@ -544,7 +544,8 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<FsStat> LocalStoreImpl::Path::getStat(
-      const std::shared_ptr<LocalStorage> &local_storage) const {
+      const std::shared_ptr<LocalStorage> &local_storage,
+      const common::Logger &logger) const {
     OUTCOME_TRY(stat, local_storage->getStat(local_path));
 
     stat.reserved = reserved;
@@ -565,7 +566,7 @@ namespace fc::sector_storage::stores {
             return maybe_used.error();
           }
 
-          OUTCOME_TRY(path, tempFetchDest(sector_path, false, logger_));
+          OUTCOME_TRY(path, tempFetchDest(sector_path, false, logger));
 
           maybe_used = local_storage->getDiskUsage(path);
           if (maybe_used.has_error()) {
