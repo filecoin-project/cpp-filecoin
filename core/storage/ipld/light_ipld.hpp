@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "common/span.hpp"
 
@@ -28,4 +29,4 @@ namespace fc::storage::ipld {
   };
 
   using LightIpldPtr = std::shared_ptr<LightIpld>;
-}  // namespace fc
+}  // namespace fc::storage::ipld

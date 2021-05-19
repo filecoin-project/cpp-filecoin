@@ -11,7 +11,7 @@
 #include "codec/cbor/cbor_token.hpp"
 #include "storage/ipld/light_ipld.hpp"
 
-namespace fc::codec::hamt {
+namespace fc::codec::cbor::light_reader {
   using storage::ipld::LightIpldPtr;
 
   class HamtWalk {
@@ -39,7 +39,7 @@ namespace fc::codec::hamt {
             return false;
           }
           if (!read(token, node).bytesSize()
-              || !read(key, node, *token.bytesSize())) {
+              || !codec::read(key, node, *token.bytesSize())) {
             return false;
           }
           if (!codec::cbor::readNested(value, node)) {
@@ -54,7 +54,7 @@ namespace fc::codec::hamt {
               return false;
             }
             if (!read(token, node).bytesSize()
-                || !read(node, *token.bytesSize())) {
+                || !codec::read(node, *token.bytesSize())) {
               return false;
             }
             if (!read(token, node).listCount()) {
@@ -76,7 +76,8 @@ namespace fc::codec::hamt {
               return false;
             }
             BytesIn str;
-            if (!read(str, node, 1) || (str[0] != '0' && str[0] != '1')) {
+            if (!codec::read(str, node, 1)
+                || (str[0] != '0' && str[0] != '1')) {
               return false;
             }
             if (!read(token, node)) {
@@ -108,4 +109,4 @@ namespace fc::codec::hamt {
     BytesIn node;
     size_t _bucket{};
   };
-}  // namespace fc::codec::hamt
+}  // namespace fc::codec::cbor::light_reader

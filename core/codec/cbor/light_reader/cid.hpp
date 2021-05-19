@@ -9,7 +9,7 @@
 #include "codec/uvarint.hpp"
 #include "common/blob.hpp"
 
-namespace fc::codec::cid {
+namespace fc::codec::cbor::light_reader {
   using common::Hash256;
 
   constexpr std::array<uint8_t, 6> kCborBlakePrefix{
@@ -26,7 +26,7 @@ namespace fc::codec::cid {
   inline bool readCborBlake(const Hash256 *&key, BytesIn &input) {
     BytesIn hash;
     if (readPrefix(input, kCborBlakePrefix)
-        && read(hash, input, Hash256::size())) {
+        && codec::read(hash, input, Hash256::size())) {
       key = (const Hash256 *)hash.data();
       return true;
     }
@@ -38,7 +38,7 @@ namespace fc::codec::cid {
     key = {};
     return readPrefix(input, kRawIdPrefix) && uvarint::readBytes(key, input);
   }
-}  // namespace fc::codec::cid
+}  // namespace fc::codec::cbor::light_reader
 
 namespace fc::codec::cbor {
   using common::Hash256;
@@ -48,7 +48,7 @@ namespace fc::codec::cbor {
                             BytesIn &input) {
     BytesIn cid;
     return token.cidSize() && fc::codec::read(cid, input, *token.cidSize())
-           && cid::readCborBlake(key, cid) && cid.empty();
+           && light_reader::readCborBlake(key, cid) && cid.empty();
   }
 
   inline bool readCborBlake(const Hash256 *&key, BytesIn &input) {

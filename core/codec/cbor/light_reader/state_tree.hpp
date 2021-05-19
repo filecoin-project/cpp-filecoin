@@ -11,9 +11,11 @@
 #include "common/buffer.hpp"
 #include "storage/ipld/light_ipld.hpp"
 
-namespace fc::codec {
+namespace fc::codec::cbor::light_reader {
+  using storage::ipld::LightIpldPtr;
+
   inline bool readStateTree(Hash256 &hamt,
-                            const Ipld2Ptr &ipld,
+                            const LightIpldPtr &ipld,
                             const Hash256 &root) {
     hamt = root;
     Buffer value;
@@ -37,4 +39,4 @@ namespace fc::codec {
     }
     return true;
   }
-}  // namespace fc::codec
+}  // namespace fc::codec::cbor::light_reader

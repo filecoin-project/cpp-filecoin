@@ -159,8 +159,8 @@ TEST_F(AmtVisitTest, VisitError) {
  */
 TEST_F(AmtVisitTest, Walk) {
   using namespace fc;
-  codec::amt::AmtWalk walk{std::make_shared<IpldIpld2>(store),
-                           *asBlake(amt.flush().value())};
+  codec::cbor::light_reader::AmtWalk walk{std::make_shared<IpldIpld2>(store),
+                                          *asBlake(amt.flush().value())};
   BytesIn value;
   EXPECT_TRUE(walk.load());
   EXPECT_FALSE(walk.empty());

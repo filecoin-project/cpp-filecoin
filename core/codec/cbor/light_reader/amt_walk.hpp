@@ -11,7 +11,7 @@
 #include "codec/cbor/light_reader/cid.hpp"
 #include "storage/ipld/light_ipld.hpp"
 
-namespace fc::codec::amt {
+namespace fc::codec::cbor::light_reader {
   using storage::ipld::LightIpldPtr;
 
   class AmtWalk {
@@ -83,7 +83,8 @@ namespace fc::codec::amt {
       if (read(token, node).listCount() != 3) {
         return false;
       }
-      if (!read(token, node).bytesSize() || !read(node, *token.bytesSize())) {
+      if (!read(token, node).bytesSize()
+          || !codec::read(node, *token.bytesSize())) {
         return false;
       }
       if (!read(token, node).listCount()) {
@@ -111,4 +112,4 @@ namespace fc::codec::amt {
     BytesIn node;
     size_t _values{};
   };
-}  // namespace fc::codec::amt
+}  // namespace fc::codec::cbor::light_reader

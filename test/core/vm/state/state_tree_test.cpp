@@ -91,8 +91,8 @@ TEST_F(StateTreeTest, Walk) {
   map.set(Address::makeFromId(1),
           {vm::actor::makeRawIdentityCid(std::string{code1}), head1})
       .value();
-  codec::hamt::HamtWalk walk{std::make_shared<IpldIpld2>(store_),
-                             *asBlake(map.hamt.flush().value())};
+  codec::cbor::light_reader::HamtWalk walk{std::make_shared<IpldIpld2>(store_),
+                                           *asBlake(map.hamt.flush().value())};
   BytesIn key;
   BytesIn value;
   EXPECT_FALSE(walk.empty());
@@ -101,7 +101,8 @@ TEST_F(StateTreeTest, Walk) {
   uint64_t id2{};
   std::string_view code2;
   const Hash256 *head2;
-  EXPECT_TRUE(codec::actor::readActor(id2, code2, head2, key, value));
+  EXPECT_TRUE(
+      codec::cbor::light_reader::readActor(id2, code2, head2, key, value));
   EXPECT_EQ(id2, 1);
   EXPECT_EQ(code2, code1);
   EXPECT_EQ(*head2, *asBlake(head1));

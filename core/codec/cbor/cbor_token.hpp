@@ -219,6 +219,12 @@ namespace fc::codec::cbor {
     return token;
   }
 
+  /**
+   * Reads CBOR nested item into nested and advances input to the next item.
+   * @param[out] nested - read nested bytes
+   * @param input - cvor bytes to read
+   * @return true on success, otherwise false
+   */
   inline bool readNested(BytesIn &nested, BytesIn &input) {
     auto ptr{input.data()};
     CborNestedDecoder decoder;

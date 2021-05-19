@@ -11,10 +11,12 @@
 #include "common/buffer.hpp"
 #include "storage/ipld/light_ipld.hpp"
 
-namespace fc::codec::cbor {
+namespace fc::codec::cbor::light_reader {
+  using storage::ipld::LightIpldPtr;
+
   inline bool readMsgMeta(const Hash256 *&bls,
                           const Hash256 *&secp,
-                          Ipld2Ptr ipld,
+                          LightIpldPtr ipld,
                           const Hash256 &cid) {
     Buffer value;
     if (!ipld->get(cid, value)) {

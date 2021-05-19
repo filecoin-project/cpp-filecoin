@@ -8,7 +8,7 @@
 #include "codec/uvarint.hpp"
 #include "primitives/address/address.hpp"
 
-namespace fc::codec::cbor {
+namespace fc::codec::cbor::light_reader {
   using primitives::address::Protocol;
 
   /** Protocol indicator for ID-address */
@@ -24,4 +24,4 @@ namespace fc::codec::cbor {
     id = {};
     return readPrefix(input, kIdPrefix) && uvarint::read(id, input);
   }
-}  // namespace fc::codec::cbor
+}  // namespace fc::codec::cbor::light_reader

@@ -11,7 +11,7 @@
 #include "codec/cbor/cbor_token.hpp"
 #include "codec/cbor/light_reader/address.hpp"
 
-namespace fc::codec::actor {
+namespace fc::codec::cbor::light_reader {
   /**
    * Partially decodes Actor state
    * @param[out] id - actor id address value
@@ -26,7 +26,7 @@ namespace fc::codec::actor {
                         const Hash256 *&head,
                         BytesIn key,
                         BytesIn value) {
-    if (!cbor::readIdAddress(id, key)) {
+    if (!readIdAddress(id, key)) {
       return false;
     }
     cbor::CborToken token;
@@ -34,14 +34,15 @@ namespace fc::codec::actor {
       return false;
     }
     BytesIn _cid;
-    if (!read(token, value).cidSize() || !read(_cid, value, *token.cidSize())) {
+    if (!read(token, value).cidSize()
+        || !codec::read(_cid, value, *token.cidSize())) {
       return false;
     }
     BytesIn _code;
-    if (!cid::readRawId(_code, _cid) || !_cid.empty()) {
+    if (!readRawId(_code, _cid) || !_cid.empty()) {
       return false;
     }
     code = common::span::bytestr(_code);
     return cbor::readCborBlake(head, value);
   }
-}  // namespace fc::codec::actor
+}  // namespace fc::codec::cbor::light_reader
