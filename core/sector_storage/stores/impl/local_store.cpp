@@ -565,7 +565,7 @@ namespace fc::sector_storage::stores {
             return maybe_used.error();
           }
 
-          OUTCOME_TRY(path, tempFetchDest(sector_path, false));
+          OUTCOME_TRY(path, tempFetchDest(sector_path, false, logger_));
 
           maybe_used = local_storage->getDiskUsage(path);
           if (maybe_used.has_error()) {

@@ -17,36 +17,52 @@ namespace fc::storage {
    public:
     InMemoryCursor(std::shared_ptr<InMemoryStorage> storage)
         : storage_(std::move(storage)) {
-      current_iterator_ = storage_->storage.end();
+      current_iterator_ = invalid_;
     };
 
     void seekToFirst() override {
       current_iterator_ = storage_->storage.begin();
+      if (current_iterator_ == storage_->storage.end()) {
+        current_iterator_ = invalid_;
+      }
     }
 
     void seek(const Buffer &key) override {
-      current_iterator_ = storage_->storage.find(key.toHex());
+      current_iterator_ = storage_->storage.lower_bound(key.toHex());
     }
 
     void seekToLast() override {
-      current_iterator_ = (storage_->storage.rbegin()++).base();
+      current_iterator_ = storage_->storage.end();
+      if (current_iterator_ == storage_->storage.begin()) {
+        current_iterator_ = invalid_;
+      } else {
+        --current_iterator_;
+      }
     }
 
     bool isValid() const override {
-      return current_iterator_ != storage_->storage.end();
+      return current_iterator_ != invalid_;
     }
 
     void next() override {
+      assert(isValid());
       current_iterator_++;
+      if (current_iterator_ == storage_->storage.end()) {
+        current_iterator_ = invalid_;
+      }
     }
 
     void prev() override {
-      current_iterator_--;
+      assert(isValid());
+      if (current_iterator_ == storage_->storage.begin()) {
+        current_iterator_ = invalid_;
+      } else {
+        current_iterator_--;
+      }
     }
 
     Buffer key() const override {
-      OUTCOME_EXCEPT(key, Buffer::fromHex(current_iterator_->first));
-      return key;
+      return Buffer::fromHex(current_iterator_->first).value();
     }
 
     Buffer value() const override {
@@ -54,7 +70,7 @@ namespace fc::storage {
     }
 
    private:
-    std::map<std::string, Buffer>::iterator current_iterator_;
+    std::map<std::string, Buffer>::iterator current_iterator_, invalid_;
 
     std::shared_ptr<InMemoryStorage> storage_;
   };

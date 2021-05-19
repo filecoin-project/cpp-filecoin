@@ -283,7 +283,7 @@ namespace fc::sector_storage::stores {
               });
 
     for (const auto &info : infos) {
-      OUTCOME_TRY(temp_dest, tempFetchDest(dest, true));
+      OUTCOME_TRY(temp_dest, tempFetchDest(dest, true, logger_));
       for (const auto &url : info.urls) {
         boost::system::error_code ec;
         fs::remove_all(temp_dest, ec);
