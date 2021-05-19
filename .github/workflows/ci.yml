@@ -31,6 +31,7 @@ jobs:
           - os: ubuntu-20.04
             compiler:
               сс: gcc
+              cxx: g++
             env:
               COVERAGE: "-DCOVERAGE=ON"
           - os: macOS-latest
