@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(light_reader)
+
 addtest(cbor_test
     cbor_test.cpp
     )
