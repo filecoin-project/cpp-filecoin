@@ -23,15 +23,8 @@ namespace fc::primitives::tipset {
     return TsLoad::load(std::move(blocks));
   }
 
-  outcome::result<TipsetCPtr> TsLoadIpld::load(
-      std::vector<BlockHeader> blocks) {
-    for (auto &block : blocks) {
-      OUTCOME_TRY(ipld->setCbor(block));
-    }
-    return TsLoad::load(std::move(blocks));
-  }
-
-  outcome::result<LoadCache> TsLoadIpld::loadWithCacheInfo(const TipsetKey &key) {
+  outcome::result<LoadCache> TsLoadIpld::loadWithCacheInfo(
+      const TipsetKey &key) {
     OUTCOME_TRY(ts, load(key));
     return LoadCache{.tipset = ts, .index = 0};  // we don't have cache
   }
@@ -59,7 +52,7 @@ namespace fc::primitives::tipset {
   }
 
   outcome::result<TipsetCPtr> TsLoadCache::lazyLoad(uint64_t &cache_index,
-                                                 const TipsetKey &key) {
+                                                    const TipsetKey &key) {
     if (auto tipset{getFromCache(cache_index, key)}) {
       return tipset.get();
     }
@@ -103,7 +96,7 @@ namespace fc::primitives::tipset {
     }
 
     uint64_t new_index = end_index;
-    auto& new_tipset{tipset_cache[new_index]};
+    auto &new_tipset{tipset_cache[new_index]};
     map_cache.erase(new_tipset.it);
     new_tipset.it = res.first;
     new_tipset.it->second = new_index;
@@ -171,7 +164,8 @@ namespace fc::primitives::tipset {
     return LoadCache{getFromCache(it->second), it->second};
   }
 
-  outcome::result<LoadCache> TsLoadCache::loadWithCacheInfo(const TipsetKey &key) {
+  outcome::result<LoadCache> TsLoadCache::loadWithCacheInfo(
+      const TipsetKey &key) {
     if (auto ts{getFromCache(key)}) {
       return ts.value();
     }
@@ -179,5 +173,19 @@ namespace fc::primitives::tipset {
     OUTCOME_TRY(ts, ts_load->load(key));
 
     return LoadCache{.tipset = ts, .index = cacheInsert(ts)};
+  }
+
+  CID put(const IpldPtr &ipld,
+          const std::shared_ptr<PutBlockHeader> &put,
+          const BlockHeader &header) {
+    auto value{codec::cbor::encode(header).value()};
+    auto key{crypto::blake2b::blake2b_256(value)};
+    auto cid{asCborBlakeCid(key)};
+    if (put) {
+      put->put(key, value);
+    } else {
+      ipld->set(cid, std::move(value)).value();
+    }
+    return cid;
   }
 }  // namespace fc::primitives::tipset

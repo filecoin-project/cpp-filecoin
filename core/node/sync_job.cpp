@@ -51,6 +51,7 @@ namespace fc::sync {
                    KvPtr ts_main_kv,
                    TsBranchPtr ts_main,
                    TsLoadPtr ts_load,
+                   std::shared_ptr<PutBlockHeader> put_block_header,
                    IpldPtr ipld)
       : host_(std::move(host)),
         chain_store_(std::move(chain_store)),
@@ -62,6 +63,7 @@ namespace fc::sync {
         ts_main_kv_(std::move(ts_main_kv)),
         ts_main_(std::move(ts_main)),
         ts_load_(std::move(ts_load)),
+        put_block_header_{std::move(put_block_header)},
         ipld_(std::move(ipld)) {
     attached_.insert(ts_main_);
   }
@@ -81,9 +83,11 @@ namespace fc::sync {
                                                 : ipld->setCbor(e.msg);
         });
 
-    block_event_ = events_->subscribeBlockFromPubSub([ipld{ipld_}](auto &e) {
+    block_event_ = events_->subscribeBlockFromPubSub([=](auto &e) {
+      auto ipld{ipld_};
       std::ignore = [&]() -> outcome::result<void> {
-        OUTCOME_TRY(ipld->setCbor(e.block.header));
+        primitives::tipset::put(ipld, put_block_header_, e.block.header);
+        std::shared_lock ts_lock{*ts_branches_mutex_};
         primitives::block::MsgMeta meta;
         ipld->load(meta);
         for (auto &cid : e.block.bls_messages) {
@@ -121,16 +125,18 @@ namespace fc::sync {
     }
   }
 
+  TipsetCPtr SyncJob::getLocal(const TipsetCPtr &ts) {
+    for (auto &block : ts->blks) {
+      if (!ipld_->contains(block.messages).value()) {
+        return nullptr;
+      }
+    }
+    return ts;
+  }
+
   TipsetCPtr SyncJob::getLocal(const TipsetKey &tsk) {
     if (auto _ts{ts_load_->load(tsk)}) {
-      auto &ts{_ts.value()};
-      for (auto &block : ts->blks) {
-        if (auto _has{ipld_->contains(block.messages)};
-            !_has || !_has.value()) {
-          return nullptr;
-        }
-      }
-      return ts;
+      return getLocal(_ts.value());
     }
     return nullptr;
   }
@@ -182,6 +188,9 @@ namespace fc::sync {
 
   void SyncJob::onTs(const boost::optional<PeerId> &peer, TipsetCPtr ts) {
     std::unique_lock lock{*ts_branches_mutex_};
+    if (!getLocal(ts)) {
+      return;
+    }
     if (ts_branches_->size() > kBranchCompactTreshold) {
       log()->info("compacting branches");
       compactBranches();

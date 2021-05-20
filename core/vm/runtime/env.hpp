@@ -46,7 +46,6 @@ namespace fc::vm::runtime {
     IpldPtr shared() override;
 
     IpldPtr ipld;
-    bool flushing{false};
     // vm only stores "DAG_CBOR blake2b_256" cids
     std::unordered_map<Hash256, Buffer> write;
   };

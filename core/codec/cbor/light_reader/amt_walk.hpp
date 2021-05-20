@@ -5,27 +5,18 @@
 
 #pragma once
 
-#include <utility>
-
-#include "codec/cbor/cbor_token.hpp"
+#include "codec/cbor/light_reader/_walk.hpp"
 #include "codec/cbor/light_reader/cid.hpp"
-#include "storage/ipld/light_ipld.hpp"
 
 namespace fc::codec::cbor::light_reader {
-  using storage::ipld::LightIpldPtr;
-
-  class AmtWalk {
-   public:
-    inline AmtWalk(LightIpldPtr ipld, Hash256 root) : ipld{std::move(ipld)} {
-      cids.push_back(root);
-    }
+  struct AmtWalk : _Walk {
+    using _Walk::_Walk;
 
     inline bool load() {
       cbor::CborToken token;
-      if (!ipld->get(cids[next_cid++], _node)) {
+      if (!_next()) {
         return false;
       }
-      node = _node;
       if (!read(token, node).listCount()) {
         return false;
       }
@@ -51,10 +42,6 @@ namespace fc::codec::cbor::light_reader {
       return true;
     }
 
-    inline bool empty() const {
-      return node.empty() && next_cid == cids.size();
-    }
-
     inline bool next(BytesIn &value) {
       while (!empty()) {
         if (_values) {
@@ -64,20 +51,13 @@ namespace fc::codec::cbor::light_reader {
         if (!node.empty()) {
           return false;
         }
-        if (ipld->get(cids[next_cid++], _node)) {
-          node = _node;
-          if (!readNode()) {
-            return false;
-          }
-        } else {
-          _node.resize(0);
-          node = {};
+        if (_next() && !readNode()) {
+          return false;
         }
       }
       return false;
     }
 
-   private:
     inline bool readNode() {
       cbor::CborToken token;
       if (read(token, node).listCount() != 3) {
@@ -95,7 +75,7 @@ namespace fc::codec::cbor::light_reader {
         if (!cbor::readCborBlake(cid, node)) {
           return false;
         }
-        cids.push_back(*cid);
+        _push(*cid);
       }
       if (!read(token, node).listCount()) {
         return false;
@@ -104,12 +84,6 @@ namespace fc::codec::cbor::light_reader {
       return true;
     }
 
-    LightIpldPtr ipld;
-    /** All CIDs - visited and not visited yet */
-    std::vector<Hash256> cids;
-    size_t next_cid{};
-    Buffer _node;
-    BytesIn node;
     size_t _values{};
   };
 }  // namespace fc::codec::cbor::light_reader

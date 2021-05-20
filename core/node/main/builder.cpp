@@ -24,6 +24,7 @@
 #include "api/full_node/make.hpp"
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
+#include "cbor_blake/ipld_any.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
 #include "codec/json/json.hpp"
@@ -52,6 +53,7 @@
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/util.hpp"
 #include "storage/chain/msg_waiter.hpp"
+#include "storage/compacter/util.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/keystore/impl/filesystem/filesystem_keystore.hpp"
@@ -210,12 +212,6 @@ namespace fc::node {
         break;
       }
     }
-    auto it{std::prev(o.ts_main->chain.end())};
-    auto ts{o.ts_load->lazyLoad(it->second).value()};
-    if (!o.env_context.interpreter_cache->tryGet(ts->key)) {
-      log()->info("interpret head {}", it->first);
-      o.vm_interpreter->interpret(o.ts_main, ts).value();
-    }
 
     log()->info("chain loaded");
     assert(o.ts_main->chain.begin()->second.key == genesis_tsk);
@@ -324,7 +320,13 @@ namespace fc::node {
 
     writableIpld(config, o);
 
+    auto ts_mutex{std::make_shared<std::shared_mutex>()};
+    o.compacter = storage::compacter::make(
+        config.join("compacter"), o.kv_store, o.ipld_cids_write, ts_mutex);
+    o.ipld = std::make_shared<CbAsAnyIpld>(o.compacter);
+
     o.ts_load_ipld = std::make_shared<primitives::tipset::TsLoadIpld>(o.ipld);
+    o.compacter->ts_load = o.ts_load_ipld;
     o.ts_load = std::make_shared<primitives::tipset::TsLoadCache>(
         o.ts_load_ipld, 8 << 10);
 
@@ -332,7 +334,7 @@ namespace fc::node {
     assert(genesis_cids.size() == 1);
     config.genesis_cid = genesis_cids[0];
 
-    o.env_context.ts_branches_mutex = std::make_shared<std::shared_mutex>();
+    o.env_context.ts_branches_mutex = ts_mutex;
     o.env_context.ipld = o.ipld;
     o.env_context.invoker = std::make_shared<vm::actor::InvokerImpl>();
     o.env_context.randomness = std::make_shared<vm::runtime::TipsetRandomness>(
@@ -351,10 +353,15 @@ namespace fc::node {
         o.env_context, weight_calculator);
     o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
         o.interpreter, o.env_context.interpreter_cache);
+    o.compacter->interpreter->interpreter = o.vm_interpreter;
+    o.vm_interpreter = o.compacter->interpreter;
 
     loadChain(config, o, snapshot_cids);
     o.ts_branches = std::make_shared<TsBranches>();
     o.ts_branches->insert(o.ts_main);
+
+    o.compacter->ts_main = o.ts_main;
+    o.compacter->open();
 
     OUTCOME_EXCEPT(genesis, o.ts_load->load(genesis_cids));
     OUTCOME_TRY(initNetworkName(*genesis, o.ipld, config));
@@ -466,10 +473,19 @@ namespace fc::node {
 
     auto head{
         o.ts_load->lazyLoad(std::prev(o.ts_main->chain.end())->second).value()};
+    if (!o.env_context.interpreter_cache->tryGet(head->key)) {
+      log()->info("interpret head {}", head->height());
+      o.vm_interpreter->interpret(o.ts_main, head).value();
+    }
     auto head_weight{
         o.env_context.interpreter_cache->get(head->key).value().weight};
-    o.chain_store = std::make_shared<sync::ChainStoreImpl>(
-        o.ipld, o.ts_load, head, head_weight, std::move(block_validator));
+    o.chain_store =
+        std::make_shared<sync::ChainStoreImpl>(o.ipld,
+                                               o.ts_load,
+                                               o.compacter->put_block_header,
+                                               head,
+                                               head_weight,
+                                               std::move(block_validator));
 
     o.sync_job =
         std::make_shared<sync::SyncJob>(o.host,
@@ -482,6 +498,7 @@ namespace fc::node {
                                         o.ts_main_kv,
                                         o.ts_main,
                                         o.ts_load,
+                                        o.compacter->put_block_header,
                                         o.ipld);
 
     log()->debug("Creating API...");

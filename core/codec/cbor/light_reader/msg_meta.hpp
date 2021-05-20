@@ -5,18 +5,16 @@
 
 #pragma once
 
+#include "cbor_blake/ipld.hpp"
 #include "cid.hpp"
 #include "codec/cbor/cbor_token.hpp"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "storage/ipld/light_ipld.hpp"
 
 namespace fc::codec::cbor::light_reader {
-  using storage::ipld::LightIpldPtr;
-
   inline bool readMsgMeta(const Hash256 *&bls,
                           const Hash256 *&secp,
-                          LightIpldPtr ipld,
+                          CbIpldPtr ipld,
                           const Hash256 &cid) {
     Buffer value;
     if (!ipld->get(cid, value)) {
@@ -28,4 +26,4 @@ namespace fc::codec::cbor::light_reader {
            && cbor::readCborBlake(bls, input)
            && cbor::readCborBlake(secp, input);
   }
-}  // namespace fc::codec::cbor
+}  // namespace fc::codec::cbor::light_reader

@@ -5,24 +5,12 @@
 
 #pragma once
 
-#include <utility>
-
-#include "cid.hpp"
-#include "codec/cbor/cbor_token.hpp"
-#include "storage/ipld/light_ipld.hpp"
+#include "codec/cbor/light_reader/_walk.hpp"
+#include "codec/cbor/light_reader/cid.hpp"
 
 namespace fc::codec::cbor::light_reader {
-  using storage::ipld::LightIpldPtr;
-
-  class HamtWalk {
-   public:
-    inline HamtWalk(LightIpldPtr ipld, Hash256 root) : ipld{std::move(ipld)} {
-      cids.push_back(root);
-    }
-
-    inline bool empty() const {
-      return node.empty() && next_cid == cids.size();
-    }
+  struct HamtWalk : _Walk {
+    using _Walk::_Walk;
 
     /**
      * Iterate hamt
@@ -48,8 +36,7 @@ namespace fc::codec::cbor::light_reader {
           return true;
         }
         if (node.empty()) {
-          if (ipld->get(cids[next_cid++], _node)) {
-            node = _node;
+          if (_next()) {
             if (read(token, node).listCount() != 2) {
               return false;
             }
@@ -60,9 +47,6 @@ namespace fc::codec::cbor::light_reader {
             if (!read(token, node).listCount()) {
               return false;
             }
-          } else {
-            _node.resize(0);
-            node = {};
           }
         } else {
           if (!read(token, node)) {
@@ -89,7 +73,7 @@ namespace fc::codec::cbor::light_reader {
             if (!readCborBlake(cid, token, node)) {
               return false;
             }
-            cids.push_back(*cid);
+            _push(*cid);
           } else {
             if (!token.listCount()) {
               return false;
@@ -101,12 +85,6 @@ namespace fc::codec::cbor::light_reader {
       return false;
     }
 
-   private:
-    LightIpldPtr ipld;
-    std::vector<Hash256> cids;
-    size_t next_cid{};
-    Buffer _node;
-    BytesIn node;
     size_t _bucket{};
   };
 }  // namespace fc::codec::cbor::light_reader

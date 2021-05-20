@@ -26,7 +26,7 @@ namespace fc::primitives::tipset {
         headers[i].parent_message_receipts = "010001020005"_cid;
         headers[i].messages = "010001020005"_cid;
 
-        EXPECT_OUTCOME_TRUE(cid, ipld_->setCbor(headers[i]));
+        auto cid{put(ipld_, nullptr, headers[i])};
 
         keys_.push_back(TipsetKey({cid}));
       }
@@ -52,7 +52,8 @@ namespace fc::primitives::tipset {
    */
   TEST_F(CacheLoadTest, Load) {
     for (size_t i = 0; i < keys_.size() * 2; ++i) {
-      EXPECT_OUTCOME_TRUE(res, cache_load_->loadWithCacheInfo(keys_[i % keys_.size()]));
+      EXPECT_OUTCOME_TRUE(
+          res, cache_load_->loadWithCacheInfo(keys_[i % keys_.size()]));
       ASSERT_EQ(res.index, i % 3);
     }
   }

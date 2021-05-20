@@ -5,16 +5,15 @@
 
 #pragma once
 
+#include "cbor_blake/ipld.hpp"
 #include "codec/cbor/cbor_token.hpp"
 #include "codec/cbor/light_reader/cid.hpp"
 #include "common/error_text.hpp"
 #include "common/outcome.hpp"
-#include "storage/ipld/light_ipld.hpp"
 #include "vm/actor/actor.hpp"
 
 namespace fc::codec::cbor::light_reader {
   using common::Hash256;
-  using storage::ipld::LightIpldPtr;
   using vm::actor::ActorVersion;
 
   /**
@@ -27,7 +26,7 @@ namespace fc::codec::cbor::light_reader {
    * otherwise false
    */
   outcome::result<std::tuple<Hash256, Hash256, Hash256>> readMinerActorInfo(
-      const LightIpldPtr &ipld,
+      const CbIpldPtr &ipld,
       const Hash256 &state_root,
       ActorVersion actor_version) {
     const static auto kParseError =

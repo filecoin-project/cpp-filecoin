@@ -7,16 +7,15 @@
 
 #include <gtest/gtest.h>
 
+#include "cbor_blake/ipld_any.hpp"
 #include "codec/cbor/light_reader/actor.hpp"
 #include "codec/cbor/light_reader/hamt_walk.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "testutil/init_actor.hpp"
-#include "testutil/storage/ipld2.hpp"
 #include "vm/actor/codes.hpp"
 
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
-using fc::storage::ipld::IpldIpld2;
 using fc::vm::actor::Actor;
 using fc::vm::actor::CodeId;
 using fc::vm::state::StateTreeImpl;
@@ -91,8 +90,9 @@ TEST_F(StateTreeTest, Walk) {
   map.set(Address::makeFromId(1),
           {vm::actor::makeRawIdentityCid(std::string{code1}), head1})
       .value();
-  codec::cbor::light_reader::HamtWalk walk{std::make_shared<IpldIpld2>(store_),
-                                           *asBlake(map.hamt.flush().value())};
+  codec::cbor::light_reader::HamtWalk walk{
+      std::make_shared<AnyAsCbIpld>(store_),
+      *asBlake(map.hamt.flush().value())};
   BytesIn key;
   BytesIn value;
   EXPECT_FALSE(walk.empty());
@@ -101,9 +101,9 @@ TEST_F(StateTreeTest, Walk) {
   uint64_t id2{};
   std::string_view code2;
   const Hash256 *head2;
-  EXPECT_TRUE(
-      codec::cbor::light_reader::readActor(id2, code2, head2, key, value));
+  EXPECT_TRUE(codec::cbor::light_reader::readIdAddress(id2, key));
   EXPECT_EQ(id2, 1);
+  EXPECT_TRUE(codec::cbor::light_reader::readActor(code2, head2, value));
   EXPECT_EQ(code2, code1);
   EXPECT_EQ(*head2, *asBlake(head1));
   EXPECT_FALSE(walk.next(key, value));
