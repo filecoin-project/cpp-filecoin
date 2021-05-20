@@ -176,7 +176,7 @@ namespace fc::mining::checks {
                 getStateSectorPreCommitInfo(
                     miner_address, sector_info, tipset_key, api));
     if (state_sector_precommit_info.has_value()) {
-      if (state_sector_precommit_info.value().info.seal_epoch
+      if (state_sector_precommit_info->info.seal_epoch
           != sector_info->ticket_epoch) {
         return ChecksError::kBadTicketEpoch;
       }
@@ -230,11 +230,12 @@ namespace fc::mining::checks {
       return ChecksError::kBadSeed;
     }
 
-    OUTCOME_TRY(minfo, api->StateMinerInfo(miner_address, tipset_key));
-
     if (sector_info->comm_r != state_sector_precommit_info->info.sealed_cid) {
       return ChecksError::kBadSealedCid;
     }
+
+    OUTCOME_TRY(minfo, api->StateMinerInfo(miner_address, tipset_key));
+
     OUTCOME_TRY(verified,
                 proofs->verifySeal(SealVerifyInfo{
                     .seal_proof = minfo.seal_proof_type,

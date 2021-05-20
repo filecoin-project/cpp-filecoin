@@ -44,7 +44,7 @@ namespace fc::sector_storage {
     auto maybe_stat = local_store->getFsStat(storage_id);
     if (maybe_stat.has_error()) {
       if (maybe_stat
-          == outcome::failure(stores::StoreErrors::kNotFoundStorage)) {
+          == outcome::failure(stores::StoreError::kNotFoundStorage)) {
         return makeErrorResponse(request, http::status::not_found);
       }
       logger->error("Error remote get sector: {}",

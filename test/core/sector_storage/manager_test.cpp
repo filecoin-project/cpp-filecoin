@@ -679,7 +679,7 @@ namespace fc::sector_storage {
                       PathType::kStorage,
                       AcquireMode::kMove))
         .WillOnce(testing::Return(
-            outcome::failure(stores::StoreErrors::kNotFoundSector)));
+            outcome::failure(stores::StoreError::kNotFoundSector)));
 
     SectorId non_exist_path_sector{
         .miner = 42,

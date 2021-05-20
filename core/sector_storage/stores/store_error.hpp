@@ -8,7 +8,7 @@
 #include "common/outcome.hpp"
 
 namespace fc::sector_storage::stores {
-  enum class StoreErrors {
+  enum class StoreError {
     kFindAndAllocate = 1,
     kNotFoundPath,
     kNotFoundStorage,
@@ -19,7 +19,6 @@ namespace fc::sector_storage::stores {
     kNotFoundSector,
     kRemoveSeveralFileTypes,
     kCannotMoveSector,
-    kCannotInitLogger,
     kNoRemoteStorageUrls,
     kInvalidUrl,
     kInvalidFsStatResponse,
@@ -33,7 +32,8 @@ namespace fc::sector_storage::stores {
     kCannotMoveFile,
     kCannotReserve,
     kAlreadyReserved,
+    kConfigFileNotExist,
   };
 }  // namespace fc::sector_storage::stores
 
-OUTCOME_HPP_DECLARE_ERROR(fc::sector_storage::stores, StoreErrors);
+OUTCOME_HPP_DECLARE_ERROR(fc::sector_storage::stores, StoreError);
