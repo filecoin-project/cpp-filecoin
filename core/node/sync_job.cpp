@@ -30,6 +30,9 @@ namespace fc::sync {
                                      TipsetCPtr ts) {
     if (branch->chain.rbegin()->second.key != ts->key) {
       OUTCOME_TRY(it, find(branch, ts->height() + 1, false));
+      if (!it.first) {
+        return nullptr;
+      }
       OUTCOME_TRY(it2, stepParent(it));
       if (it2.second->second.key == ts->key) {
         return ts_load->lazyLoad(it.second->second);

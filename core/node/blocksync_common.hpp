@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "node/common.hpp"
 
 namespace fc::sync::blocksync {

@@ -44,7 +44,7 @@ namespace fc::codec::cbor {
     if (!cbor_value_is_text_string(&value_)) {
       outcome::raise(CborDecodeError::kWrongType);
     }
-    size_t size;
+    size_t size{};
     if (CborNoError != cbor_value_get_string_length(&value_, &size)) {
       outcome::raise(CborDecodeError::kInvalidCbor);
     }
@@ -65,7 +65,7 @@ namespace fc::codec::cbor {
     }
     CborTag tag;
     cbor_value_get_tag(&value_, &tag);
-    if (tag != kCidTag) {
+    if (tag != kExtraCid) {
       outcome::raise(CborDecodeError::kInvalidCborCID);
     }
     if (CborNoError != cbor_value_advance(&value_)) {
@@ -128,7 +128,7 @@ namespace fc::codec::cbor {
     }
     CborTag tag;
     cbor_value_get_tag(&value_, &tag);
-    return tag == kCidTag;
+    return tag == kExtraCid;
   }
 
   bool CborDecodeStream::isList() const {
@@ -167,7 +167,7 @@ namespace fc::codec::cbor {
     if (!isList()) {
       outcome::raise(CborDecodeError::kWrongType);
     }
-    size_t length;
+    size_t length{};
     if (CborNoError != cbor_value_get_array_length(&value_, &length)) {
       outcome::raise(CborDecodeError::kInvalidCbor);
     }
@@ -217,7 +217,7 @@ namespace fc::codec::cbor {
     if (!cbor_value_is_byte_string(&value_)) {
       outcome::raise(CborDecodeError::kWrongType);
     }
-    size_t size;
+    size_t size{};
     if (CborNoError != cbor_value_get_string_length(&value_, &size)) {
       outcome::raise(CborDecodeError::kInvalidCbor);
     }

@@ -5,7 +5,7 @@
 
 #include "vm/runtime/impl/runtime_impl.hpp"
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "const.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"

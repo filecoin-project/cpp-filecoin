@@ -19,7 +19,7 @@ void free(void *);
 
 #else
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 
 #define GOC_METHOD(name)                    \
   Buffer goc_##name(BytesIn);               \

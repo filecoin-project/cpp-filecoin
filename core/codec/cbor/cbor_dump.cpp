@@ -80,14 +80,14 @@ namespace fc {
       s >> str;
       dumpString(str);
     } else if (s.isInt()) {
-      int64_t i;
+      int64_t i{};
       s >> i;
       if (i >= 0) {
         o += "+";
       }
       o += std::to_string(i);
     } else if (s.isBool()) {
-      bool b;
+      bool b{};
       s >> b;
       o += b ? "T" : "F";
     } else if (s.isNull()) {

@@ -72,7 +72,7 @@ namespace fc::adt {
         keys.push_back(std::move(key2));
         return outcome::success();
       }));
-      return std::move(keys);
+      return keys;
     }
 
     outcome::result<size_t> size() const {

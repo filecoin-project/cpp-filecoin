@@ -4,7 +4,7 @@
  */
 
 #include "markets/discovery/impl/discovery_impl.hpp"
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 
 namespace fc::markets::discovery {
 

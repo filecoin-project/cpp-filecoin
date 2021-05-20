@@ -10,9 +10,12 @@
 #include <vector>
 
 #include <cbor.h>
+#include <boost/optional.hpp>
 #include <gsl/span>
 
+#include "codec/cbor/cbor_errors.hpp"
 #include "codec/cbor/streams_annotation.hpp"
+#include "primitives/cid/cid.hpp"
 
 namespace fc::codec::cbor {
   /** Decodes CBOR */
@@ -37,7 +40,7 @@ namespace fc::codec::cbor {
         if (!cbor_value_is_boolean(&value_)) {
           outcome::raise(CborDecodeError::kWrongType);
         }
-        bool bool_value;
+        bool bool_value{};
         cbor_value_get_boolean(&value_, &bool_value);
         num = bool_value;
       } else {
@@ -48,14 +51,14 @@ namespace fc::codec::cbor {
           if (!cbor_value_is_unsigned_integer(&value_)) {
             outcome::raise(CborDecodeError::kIntOverflow);
           }
-          uint64_t num64;
+          uint64_t num64{};
           cbor_value_get_uint64(&value_, &num64);
           if (num64 > std::numeric_limits<T>::max()) {
             outcome::raise(CborDecodeError::kIntOverflow);
           }
           num = static_cast<T>(num64);
         } else {
-          int64_t num64;
+          int64_t num64{};
           cbor_value_get_int64(&value_, &num64);
           if (num64 > static_cast<int64_t>(std::numeric_limits<T>::max())
               || num64 < static_cast<int64_t>(std::numeric_limits<T>::min())) {

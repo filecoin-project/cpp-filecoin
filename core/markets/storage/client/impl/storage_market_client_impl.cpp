@@ -9,7 +9,7 @@
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/outcome_fmt.hpp"
 #include "common/ptr.hpp"

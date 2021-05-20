@@ -87,24 +87,25 @@ namespace fc {
         return Multihash::Error::INCONSISTENT_LENGTH;
       }
     } else {
-      OUTCOME_TRY(version,
-                  codec::uvarint::read<Error::EMPTY_VERSION, Version>(input));
-      if (version != Version::V0 && version != Version::V1) {
+      if (!codec::uvarint::read(cid.version, input)) {
+        return Error::EMPTY_VERSION;
+      }
+      if (cid.version != Version::V0 && cid.version != Version::V1) {
         return Error::RESERVED_VERSION;
       }
-      cid.version = version;
-      OUTCOME_TRY(
-          codec,
-          codec::uvarint::read<Error::EMPTY_MULTICODEC, Multicodec>(input));
-      cid.content_type = codec;
+      if (!codec::uvarint::read(cid.content_type, input)) {
+        return Error::EMPTY_MULTICODEC;
+      }
     }
 
-    OUTCOME_TRY(
-        hash_type,
-        codec::uvarint::read<Multihash::Error::ZERO_INPUT_LENGTH, HashType>(
-            input));
-    OUTCOME_TRY(hash_size,
-                codec::uvarint::read<Multihash::Error::INPUT_TOO_SHORT>(input));
+    HashType hash_type;
+    if (!codec::uvarint::read(hash_type, input)) {
+      return Multihash::Error::ZERO_INPUT_LENGTH;
+    }
+    size_t hash_size;
+    if (!codec::uvarint::read(hash_size, input)) {
+      return Multihash::Error::INPUT_TOO_SHORT;
+    }
     gsl::span<const uint8_t> hash_span;
     if (prefix) {
       static const uint8_t empty[Multihash::kMaxHashLength]{};

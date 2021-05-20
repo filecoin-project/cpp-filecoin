@@ -32,9 +32,10 @@ namespace fc::storage::car {
     CarReader reader;
     reader.file = file;
     auto input{file};
-    OUTCOME_TRY(header_bytes,
-                codec::uvarint::readBytes<CarError::kDecodeError,
-                                          CarError::kDecodeError>(input));
+    BytesIn header_bytes;
+    if (!codec::uvarint::readBytes(header_bytes, input)) {
+      return CarError::kDecodeError;
+    }
     OUTCOME_TRY(header, codec::cbor::decode<CarHeader>(header_bytes));
     reader.position = input.data() - reader.file.data();
     reader.roots = std::move(header.roots);
@@ -48,9 +49,10 @@ namespace fc::storage::car {
   outcome::result<CarReader::Item> CarReader::next() {
     assert(!end());
     auto input{file.subspan(position)};
-    OUTCOME_TRY(node,
-                codec::uvarint::readBytes<CarError::kDecodeError,
-                                          CarError::kDecodeError>(input));
+    BytesIn node;
+    if (!codec::uvarint::readBytes(node, input)) {
+      return CarError::kDecodeError;
+    }
     OUTCOME_TRY(cid, CID::read(node));
     position = input.data() - file.data();
     ++objects;

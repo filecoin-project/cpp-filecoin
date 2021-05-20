@@ -5,15 +5,14 @@
 
 #pragma once
 
+#include <array>
 #include <gsl/span>
 #include <limits>
 
+#include "codec/common.hpp"
 #include "common/file.hpp"
-#include "common/outcome.hpp"
 
 namespace fc::codec::uvarint {
-  using Input = gsl::span<const uint8_t>;
-
   struct VarintDecoder {
     size_t max_bits{64};
     uint64_t value{0};
@@ -32,6 +31,27 @@ namespace fc::codec::uvarint {
       value |= bits7 << shift;
       shift += 7;
       ++length;
+    }
+  };
+
+  struct VarintEncoder {
+    uint64_t value;
+    std::array<uint8_t, 10> _bytes{};
+    size_t length{};
+
+    constexpr VarintEncoder(uint64_t _value) : value{_value} {
+      do {
+        auto byte{static_cast<uint8_t>(_value) & 0x7f};
+        _value >>= 7;
+        if (_value != 0) {
+          byte |= 0x80;
+        }
+        _bytes[length] = byte;
+        ++length;
+      } while (_value != 0);
+    }
+    constexpr auto bytes() const {
+      return gsl::make_span(_bytes).subspan(0, length);
     }
   };
 
@@ -64,8 +84,9 @@ namespace fc::codec::uvarint {
     return 0;
   }
 
-  template <auto error, typename T = uint64_t>
-  outcome::result<T> read(Input &input) {
+  template <typename T>
+  inline bool read(T &out, BytesIn &input) {
+    out = {};
     VarintDecoder varint;
     if constexpr (std::is_enum_v<T>) {
       varint.max_bits = std::numeric_limits<std::underlying_type_t<T>>::digits;
@@ -75,24 +96,20 @@ namespace fc::codec::uvarint {
     for (auto byte : input) {
       varint.update(byte);
       if (varint.overflow) {
-        return error;
+        return false;
       }
       if (!varint.more) {
         input = input.subspan(varint.length);
-        return static_cast<T>(varint.value);
+        out = static_cast<T>(varint.value);
+        return true;
       }
     }
-    return error;
+    return false;
   }
 
-  template <auto error_length, auto error_data>
-  outcome::result<Input> readBytes(Input &input) {
-    OUTCOME_TRY(size, read<error_length>(input));
-    if (input.size() < static_cast<ptrdiff_t>(size)) {
-      return error_data;
-    }
-    auto result = input.subspan(0, size);
-    input = input.subspan(size);
-    return result;
+  inline bool readBytes(BytesIn &out, BytesIn &input) {
+    out = {};
+    size_t length;
+    return read(length, input) && fc::codec::read(out, input, length);
   }
 }  // namespace fc::codec::uvarint

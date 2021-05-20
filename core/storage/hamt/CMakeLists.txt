@@ -4,7 +4,7 @@
 #
 
 add_library(hamt
-    hamt.cpp
+    hamt_walk.cpp
     )
 target_link_libraries(hamt
     blob

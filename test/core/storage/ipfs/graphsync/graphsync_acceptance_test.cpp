@@ -6,9 +6,9 @@
 #include <gtest/gtest.h>
 #include <spdlog/fmt/fmt.h>
 
-#include "codec/cbor/cbor.hpp"
-#include "common/logger.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "common/libp2p/soralog.hpp"
+#include "common/logger.hpp"
 #include "graphsync_acceptance_common.hpp"
 
 // logger used by these tests

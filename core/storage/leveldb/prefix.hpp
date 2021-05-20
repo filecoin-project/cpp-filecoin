@@ -65,6 +65,7 @@ namespace fc::storage {
     bool has() const;
     Buffer get() const;
     void set(Buffer value);
+    void remove();
     template <typename T>
     auto getCbor() const {
       return codec::cbor::decode<T>(get()).value();

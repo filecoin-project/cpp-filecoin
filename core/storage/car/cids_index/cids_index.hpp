@@ -8,7 +8,6 @@
 #include <boost/endian/buffers.hpp>
 #include <fstream>
 #include <mutex>
-#include <shared_mutex>
 
 #include "common/blob.hpp"
 #include "common/enum.hpp"
@@ -166,33 +165,4 @@ namespace fc::storage::cids_index {
 
   outcome::result<std::shared_ptr<Index>> load(
       const std::string &index_path, boost::optional<size_t> max_memory);
-
-  struct CidsIpld : public Ipld, public std::enable_shared_from_this<CidsIpld> {
-    outcome::result<bool> contains(const CID &cid) const override;
-    outcome::result<void> set(const CID &cid, Buffer value) override;
-    outcome::result<Buffer> get(const CID &cid) const override;
-    outcome::result<void> remove(const CID &cid) override {
-      throw "deprecated";
-    }
-    IpldPtr shared() override {
-      return shared_from_this();
-    }
-
-    void asyncFlush();
-
-    mutable std::mutex car_mutex;
-    mutable std::ifstream car_file;
-    mutable std::shared_mutex index_mutex;
-    std::shared_ptr<Index> index;
-    IpldPtr ipld;
-    std::ofstream writable;
-    mutable std::shared_mutex written_mutex;
-    std::set<Row> written;
-    uint64_t car_offset{};
-    std::atomic_flag flushing;
-    size_t flush_on{};
-    std::shared_ptr<boost::asio::io_context> io;
-    std::string index_path;
-    boost::optional<size_t> max_memory;
-  };
 }  // namespace fc::storage::cids_index

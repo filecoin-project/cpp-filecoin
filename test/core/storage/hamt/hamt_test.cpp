@@ -6,7 +6,7 @@
 #include "storage/hamt/hamt.hpp"
 
 #include <gtest/gtest.h>
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "common/which.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
