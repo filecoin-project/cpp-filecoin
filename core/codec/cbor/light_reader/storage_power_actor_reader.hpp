@@ -7,6 +7,7 @@
 
 #include "codec/cbor/cbor_token.hpp"
 #include "codec/cbor/light_reader/cid.hpp"
+#include "common/error_text.hpp"
 #include "common/outcome.hpp"
 #include "storage/ipld/light_ipld.hpp"
 #include "vm/actor/actor.hpp"
@@ -21,75 +22,77 @@ namespace fc::codec::cbor::light_reader {
    * @param ipld - Light Ipld
    * @param state_root - hash256 from StoragePower actor state root CID
    * @param actor_version - StoragePower actor version
-   * @param[out] claims - read hash256 from claims HAMT root CID
-   * returns true on successful parsing, otherwise false
+   * returns claims - hash256 from claims HAMT root CID on success, otherwise
+   * error
    */
-  bool readStoragePowerActorClaims(const LightIpldPtr &ipld,
-                                   const Hash256 &state_root,
-                                   ActorVersion actor_version,
-                                   Hash256 &claims) {
+  outcome::result<Hash256> readStoragePowerActorClaims(
+      const LightIpldPtr &ipld,
+      const Hash256 &state_root,
+      ActorVersion actor_version) {
+    const static auto kParseError =
+        ERROR_TEXT("StoragePowerActor compression: CBOR parsing error");
+
     Buffer encoded_state;
     if (!ipld->get(state_root, encoded_state)) {
-      return false;
+      return kParseError;
     }
     BytesIn input{encoded_state};
     cbor::CborToken token;
     if (!read(token, input).listCount()) {
-      return false;
+      return kParseError;
     }
     BytesIn nested;
     // total_raw_power
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }
     // total_raw_commited
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }  // total_qa_power
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }  // total_qa_commited
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }  // total_pledge
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }  // this_epoch_raw_power
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }  // this_epoch_qa_power
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }  // this_epoch_pledge
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }  // this_epoch_qa_power_smoothed
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }  // miner_count
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }  // num_miners_meeting_min_power
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }  // cron_event_queue
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }  // first_cron_epoch
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }  // last_processed_cron_epoch for V0
     if (actor_version == ActorVersion::kVersion0) {
       if (!readNested(nested, input)) {
-        return false;
+        return kParseError;
       }
     }
     // claims
     const Hash256 *cid;
     if (!cbor::readCborBlake(cid, input)) {
-      return false;
+      return kParseError;
     }
-    claims = *cid;
-    return true;
+    return *cid;
   }
 }  // namespace fc::codec::cbor::light_reader

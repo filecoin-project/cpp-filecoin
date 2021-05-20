@@ -7,6 +7,7 @@
 
 #include "codec/cbor/cbor_token.hpp"
 #include "codec/cbor/light_reader/cid.hpp"
+#include "common/error_text.hpp"
 #include "common/outcome.hpp"
 #include "storage/ipld/light_ipld.hpp"
 #include "vm/actor/actor.hpp"
@@ -22,85 +23,83 @@ namespace fc::codec::cbor::light_reader {
    * @param ipld - lightweight ipld
    * @param state_root - Miner actor state root
    * @param actor_version - Miner actor version
-   * @param[out] miner_info - parsed miner infor CID
-   * @param[out] sectors - parsed sectors CID
-   * @param[out] deadlines - parsed deadlines CID
-   * @return true on successful parsing, otherwise false
+   * @return tuple of CIDs (miner_info, sectors, deadlines) on success,
+   * otherwise false
    */
-  bool readMinerActorInfo(const LightIpldPtr &ipld,
-                          const Hash256 &state_root,
-                          ActorVersion actor_version,
-                          Hash256 &miner_info,
-                          Hash256 &sectors,
-                          Hash256 &deadlines) {
+  outcome::result<std::tuple<Hash256, Hash256, Hash256>> readMinerActorInfo(
+      const LightIpldPtr &ipld,
+      const Hash256 &state_root,
+      ActorVersion actor_version) {
+    const static auto kParseError =
+        ERROR_TEXT("MinerActor compression: CBOR parsing error");
+
     Buffer encoded_state;
     if (!ipld->get(state_root, encoded_state)) {
-      return false;
+      return kParseError;
     }
     BytesIn input{encoded_state};
     cbor::CborToken token;
     if (!read(token, input).listCount()) {
-      return false;
+      return kParseError;
     }
     // read miner info CID
-    const Hash256 *cid;
-    if (!cbor::readCborBlake(cid, input)) {
-      return false;
+    const Hash256 *miner_info;
+    if (!cbor::readCborBlake(miner_info, input)) {
+      return kParseError;
     }
-    miner_info = *cid;
     BytesIn nested;
     // precommit_deposit
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }
     // locked_funds
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }
     // vesting_funds
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }
     // fee_debt for actor version > 0
     if (actor_version != ActorVersion::kVersion0) {
       if (!readNested(nested, input)) {
-        return false;
+        return kParseError;
       }
     }
     // initial_pledge_requirement
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }
     // precommitted_sectors
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }
     // precommitted_setctors_expiry
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }
     // allocated_sectors
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }
     // sectors
-    if (!cbor::readCborBlake(cid, input)) {
-      return false;
+    const Hash256 *sectors;
+    if (!cbor::readCborBlake(sectors, input)) {
+      return kParseError;
     }
-    sectors = *cid;
     // proving_period_start
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }
     // current_deadline
     if (!readNested(nested, input)) {
-      return false;
+      return kParseError;
     }
     // deadlines
-    if (!cbor::readCborBlake(cid, input)) {
-      return false;
+    const Hash256 *deadlines;
+    if (!cbor::readCborBlake(deadlines, input)) {
+      return kParseError;
     }
-    deadlines = *cid;
-    return true;
+    return std::make_tuple(*miner_info, *sectors, *deadlines);
   }
 }  // namespace fc::codec::cbor::light_reader

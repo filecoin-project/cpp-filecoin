@@ -74,15 +74,11 @@ namespace fc::codec::cbor::light_reader {
     CID expected_miner_info = state.miner_info;
     CID expected_sectors = state.sectors.amt.cid();
     CID expected_deadlines = state.deadlines;
-    Hash256 actual_miner_info;
-    Hash256 actual_sectors;
-    Hash256 actual_deadlines;
-    EXPECT_TRUE(readMinerActorInfo(light_ipld,
-                                   *asBlake(state_root),
-                                   ActorVersion::kVersion0,
-                                   actual_miner_info,
-                                   actual_sectors,
-                                   actual_deadlines));
+    EXPECT_OUTCOME_TRUE(
+        actual,
+        readMinerActorInfo(
+            light_ipld, *asBlake(state_root), ActorVersion::kVersion0));
+    const auto [actual_miner_info, actual_sectors, actual_deadlines] = actual;
     EXPECT_EQ(*asBlake(expected_miner_info), actual_miner_info);
     EXPECT_EQ(*asBlake(expected_sectors), actual_sectors);
     EXPECT_EQ(*asBlake(expected_deadlines), actual_deadlines);
@@ -101,15 +97,11 @@ namespace fc::codec::cbor::light_reader {
     CID expected_miner_info = state.miner_info;
     CID expected_sectors = state.sectors.amt.cid();
     CID expected_deadlines = state.deadlines;
-    Hash256 actual_miner_info;
-    Hash256 actual_sectors;
-    Hash256 actual_deadlines;
-    EXPECT_TRUE(readMinerActorInfo(light_ipld,
-                                   *asBlake(state_root),
-                                   ActorVersion::kVersion2,
-                                   actual_miner_info,
-                                   actual_sectors,
-                                   actual_deadlines));
+    EXPECT_OUTCOME_TRUE(
+        actual,
+        readMinerActorInfo(
+            light_ipld, *asBlake(state_root), ActorVersion::kVersion2));
+    const auto [actual_miner_info, actual_sectors, actual_deadlines] = actual;
     EXPECT_EQ(*asBlake(expected_miner_info), actual_miner_info);
     EXPECT_EQ(*asBlake(expected_sectors), actual_sectors);
     EXPECT_EQ(*asBlake(expected_deadlines), actual_deadlines);
@@ -132,9 +124,10 @@ namespace fc::codec::cbor::light_reader {
     EXPECT_OUTCOME_TRUE(state_root, ipld->setCbor(state));
 
     auto expected = state.claims0.hamt.cid();
-    Hash256 actual;
-    EXPECT_TRUE(readStoragePowerActorClaims(
-        light_ipld, *asBlake(state_root), ActorVersion::kVersion0, actual));
+    EXPECT_OUTCOME_TRUE(
+        actual,
+        readStoragePowerActorClaims(
+            light_ipld, *asBlake(state_root), ActorVersion::kVersion0));
     EXPECT_EQ(*asBlake(expected), actual);
   }
 
@@ -156,9 +149,10 @@ namespace fc::codec::cbor::light_reader {
     EXPECT_OUTCOME_TRUE(state_root, ipld->setCbor(state));
 
     auto expected = state.claims2.hamt.cid();
-    Hash256 actual;
-    EXPECT_TRUE(readStoragePowerActorClaims(
-        light_ipld, *asBlake(state_root), ActorVersion::kVersion2, actual));
+    EXPECT_OUTCOME_TRUE(
+        actual,
+        readStoragePowerActorClaims(
+            light_ipld, *asBlake(state_root), ActorVersion::kVersion2));
     EXPECT_EQ(*asBlake(expected), actual);
   }
 
