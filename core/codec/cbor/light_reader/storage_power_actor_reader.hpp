@@ -89,10 +89,10 @@ namespace fc::codec::cbor::light_reader {
       }
     }
     // claims
-    const Hash256 *cid;
-    if (!cbor::readCborBlake(cid, input)) {
+    const Hash256 *claims;
+    if (!cbor::readCborBlake(claims, input)) {
       return kParseError;
     }
-    return *cid;
+    return *claims;
   }
 }  // namespace fc::codec::cbor::light_reader
