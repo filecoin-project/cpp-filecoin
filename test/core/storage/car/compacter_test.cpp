@@ -75,7 +75,14 @@ namespace fc::storage::compacter {
       compacter->ts_load = ts_load;
       compacter->ts_main = ts_main;
       compacter->ts_branches = ts_branches;
+
+      compacter->thread.work.reset();
+      compacter->thread.thread.join();
       compacter->thread.io = std::make_shared<boost::asio::io_context>();
+    }
+
+    void runOne() {
+      compacter->thread.io->run_one_for(std::chrono::seconds{10});
     }
   };
 
@@ -89,19 +96,19 @@ namespace fc::storage::compacter {
     std::ofstream{new_path + ".car.cids"};
     compacter->put(codec::cbor::encode("test").value());
     EXPECT_FALSE(compacter->start());
-    compacter->thread.io->run_one();
-    compacter->thread.io->run_one();
+    runOne();
+    runOne();
   }
 
   TEST_F(CompacterTest, Resume) {
     compacter->thread.io = std::make_shared<boost::asio::io_context>();
     compacter->open();
     EXPECT_TRUE(compacter->start());
-    compacter->thread.io->run_one();
+    runOne();
     compacter.reset();
     _init();
     compacter->open();
     EXPECT_FALSE(compacter->start());
-    compacter->thread.io->run_one();
+    runOne();
   }
 }  // namespace fc::storage::compacter
