@@ -47,6 +47,7 @@ namespace fc::storage::compacter {
       auto &[info, sectors, deadlines]{_r.value()};
       copy.push_back(head);
       copy.push_back(info);
+      return;
     }
     if (anyOf(code, power0, power2, power3, power4)) {
       auto _r{codec::cbor::light_reader::readStoragePowerActorClaims(
@@ -57,6 +58,7 @@ namespace fc::storage::compacter {
       auto &claims{_r.value()};
       copy.push_back(head);
       recurse.push_back(claims);
+      return;
     }
   }
 

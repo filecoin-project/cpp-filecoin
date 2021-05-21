@@ -49,7 +49,7 @@ namespace fc {
 
     AnyAsCbIpld(IpldPtr ipld) : ipld{ipld} {}
 
-    bool _get(const CbCid &key, Buffer *value) const override {
+    static bool _get(const IpldPtr &ipld, const CbCid &key, Buffer *value) {
       auto cid{asCborBlakeCid(key)};
       if (value) {
         if (auto r{ipld->get(cid)}) {
@@ -61,6 +61,9 @@ namespace fc {
         return false;
       }
       return ipld->contains(cid).value();
+    }
+    bool _get(const CbCid &key, Buffer *value) const override {
+      return _get(ipld, key, value);
     }
     void _put(const CbCid &key, BytesIn value) override {
       ipld->set(asCborBlakeCid(key), Buffer{value}).value();

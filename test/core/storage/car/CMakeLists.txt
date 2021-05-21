@@ -21,6 +21,14 @@ target_link_libraries(cids_index_test
     cids_ipld
     )
 
+addtest(compacter_test
+    compacter_test.cpp
+    )
+target_link_libraries(compacter_test
+    base_fs_test
+    compacter
+    in_memory_storage
+    )
 addtest(genesis_test
     genesis_test.cpp
     )

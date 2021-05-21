@@ -7,6 +7,8 @@
 
 #include <boost/asio/io_context.hpp>
 #include <boost/filesystem/operations.hpp>
+
+#include "cbor_blake/ipld_any.hpp"
 #include "codec/uvarint.hpp"
 #include "common/error_text.hpp"
 #include "common/logger.hpp"
@@ -132,12 +134,7 @@ namespace fc::storage::ipld {
     }
     if (!row) {
       if (ipld) {
-        if (auto v{ipld->get(asCborBlakeCid(key))}) {
-          if (value) {
-            *value = v.value();
-          }
-          return true;
-        }
+        return AnyAsCbIpld::_get(ipld, key, value);
       }
       return false;
     }

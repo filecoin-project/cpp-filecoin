@@ -98,7 +98,7 @@ namespace fc::storage::compacter {
       use_new_ipld = true;
     }
     vm_lock.unlock();
-    _flow();
+    thread.io->post([&] { _flow(); });
   }
 
   void CompacterIpld::_resume() {

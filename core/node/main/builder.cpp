@@ -360,6 +360,8 @@ namespace fc::node {
     o.ts_branches = std::make_shared<TsBranches>();
     o.ts_branches->insert(o.ts_main);
 
+    o.compacter->interpreter_cache = o.env_context.interpreter_cache;
+    o.compacter->ts_branches = o.ts_branches;
     o.compacter->ts_main = o.ts_main;
     o.compacter->open();
 
