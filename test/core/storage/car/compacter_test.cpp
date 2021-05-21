@@ -38,7 +38,19 @@ namespace fc::storage::compacter {
       _init();
     }
 
+    void _unref() {
+      if (compacter) {
+        compacter->ts_load.reset();
+      }
+    }
+
+    void TearDown() override {
+      _unref();
+      BaseFS_Test::TearDown();
+    }
+
     void _init() {
+      _unref();
       compacter = make(new_path,
                        compacter_kv,
                        old_ipld,
@@ -105,7 +117,6 @@ namespace fc::storage::compacter {
     compacter->open();
     EXPECT_TRUE(compacter->start());
     runOne();
-    compacter.reset();
     _init();
     compacter->open();
     EXPECT_FALSE(compacter->start());

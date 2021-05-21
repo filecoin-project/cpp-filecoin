@@ -17,7 +17,9 @@ namespace fc {
           thread{[this] { io->run(); }} {}
     inline ~IoThread() {
       io->stop();
-      thread.join();
+      if (thread.joinable()) {
+        thread.join();
+      }
     }
 
     std::shared_ptr<boost::asio::io_context> io;
