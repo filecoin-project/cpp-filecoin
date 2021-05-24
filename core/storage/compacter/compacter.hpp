@@ -40,8 +40,10 @@ namespace fc::storage::compacter {
   };
 
   struct CompacterIpld : CbIpld, std::enable_shared_from_this<CompacterIpld> {
-    bool _get(const CbCid &key, Buffer *value) const override;
-    void _put(const CbCid &key, BytesIn value) override;
+    using CbIpld::get, CbIpld::put;
+
+    bool get(const CbCid &key, Buffer *value) const override;
+    void put(const CbCid &key, BytesIn value) override;
 
     void open();
     bool start();

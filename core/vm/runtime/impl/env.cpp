@@ -52,7 +52,7 @@ namespace fc::vm::runtime {
     assert(isCbor(root));
     auto _root{*asBlake(root)};
     assert(write.count(_root));
-    std::vector<CbCidPtr> queue{&_root};
+    std::vector<const CbCid *> queue{&_root};
     std::set<CbCid> visited{_root};
     size_t next{};
     while (next < queue.size()) {
@@ -60,7 +60,7 @@ namespace fc::vm::runtime {
       BytesIn value{write.at(key)};
       BytesIn _cid;
       while (codec::cbor::findCid(_cid, value)) {
-        CbCidPtr cid;
+        const CbCid *cid;
         if (codec::cbor::light_reader::readCborBlake(cid, _cid)) {
           if (auto it{write.find(*cid)};
               it != write.end() && visited.emplace(*cid).second) {

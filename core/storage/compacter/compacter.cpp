@@ -25,15 +25,15 @@ namespace fc::storage::compacter {
     }
   }
 
-  bool CompacterIpld::_get(const CbCid &key, Buffer *value) const {
+  bool CompacterIpld::get(const CbCid &key, Buffer *value) const {
     std::shared_lock lock{ipld_mutex};
-    if (use_new_ipld && new_ipld->_get(key, value)) {
+    if (use_new_ipld && new_ipld->get(key, value)) {
       return true;
     }
-    return old_ipld->_get(key, value);
+    return old_ipld->get(key, value);
   }
 
-  void CompacterIpld::_put(const CbCid &key, BytesIn value) {
+  void CompacterIpld::put(const CbCid &key, BytesIn value) {
     std::shared_lock lock{ipld_mutex};
     if (compact_on_car && !flag.load()) {
       std::shared_lock written_lock{old_ipld->written_mutex};

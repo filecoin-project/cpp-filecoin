@@ -121,7 +121,7 @@ namespace fc::storage::ipld {
     return outcome::success();
   }
 
-  bool CidsIpld::_get(const CbCid &key, Buffer *value) const {
+  bool CidsIpld::get(const CbCid &key, Buffer *value) const {
     if (value) {
       value->resize(0);
     }
@@ -134,7 +134,7 @@ namespace fc::storage::ipld {
     }
     if (!row) {
       if (ipld) {
-        return AnyAsCbIpld::_get(ipld, key, value);
+        return AnyAsCbIpld::get(ipld, key, value);
       }
       return false;
     }
@@ -154,7 +154,7 @@ namespace fc::storage::ipld {
     return true;
   }
 
-  void CidsIpld::_put(const CbCid &key, BytesIn value) {
+  void CidsIpld::put(const CbCid &key, BytesIn value) {
     if (!writable.is_open()) {
       outcome::raise(ERROR_TEXT("CidsIpld.put: not writable"));
     }

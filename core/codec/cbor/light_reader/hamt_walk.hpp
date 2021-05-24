@@ -5,12 +5,12 @@
 
 #pragma once
 
-#include "codec/cbor/light_reader/_walk.hpp"
 #include "codec/cbor/light_reader/cid.hpp"
+#include "codec/cbor/light_reader/walk.hpp"
 
 namespace fc::codec::cbor::light_reader {
-  struct HamtWalk : _Walk {
-    using _Walk::_Walk;
+  struct HamtWalk : Walk {
+    using Walk::Walk;
 
     /**
      * Iterate hamt

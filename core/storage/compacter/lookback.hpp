@@ -79,7 +79,7 @@ namespace fc::storage::compacter {
     while (hamt.next(_addr, _actor)) {
       uint64_t id;
       std::string_view code;
-      CbCidPtr head;
+      const CbCid *head;
       if (!codec::cbor::light_reader::readIdAddress(id, _addr)) {
         throw std::logic_error{"lookbackActors readId"};
       }

@@ -8,7 +8,7 @@
 #include "cbor_blake/ipld.hpp"
 
 namespace fc::codec::cbor::light_reader {
-  struct _Walk {
+  struct Walk {
     CbIpldPtr ipld;
     std::vector<CbCid> cids;
     size_t next_cid{};
@@ -16,7 +16,7 @@ namespace fc::codec::cbor::light_reader {
     BytesIn node;
     CbIpldPtr visited;
 
-    _Walk(CbIpldPtr ipld, CbCid root) : ipld{ipld} {
+    Walk(CbIpldPtr ipld, CbCid root) : ipld{ipld} {
       cids.push_back(root);
     }
 

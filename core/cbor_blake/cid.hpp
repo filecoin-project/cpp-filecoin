@@ -9,5 +9,4 @@
 
 namespace fc {
   using CbCid = common::Hash256;
-  using CbCidPtr = const CbCid *;
 }  // namespace fc

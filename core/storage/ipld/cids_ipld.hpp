@@ -23,7 +23,7 @@ namespace fc::storage::ipld {
   struct CidsIpld : CbIpld,
                     public Ipld,
                     public std::enable_shared_from_this<CidsIpld> {
-    using CbIpld::get;
+    using CbIpld::get, CbIpld::put;
 
     outcome::result<bool> contains(const CID &cid) const override;
     outcome::result<void> set(const CID &cid, Buffer value) override;
@@ -35,8 +35,8 @@ namespace fc::storage::ipld {
       return shared_from_this();
     }
 
-    bool _get(const CbCid &key, Buffer *value) const override;
-    void _put(const CbCid &key, BytesIn value) override;
+    bool get(const CbCid &key, Buffer *value) const override;
+    void put(const CbCid &key, BytesIn value) override;
 
     void asyncFlush();
 

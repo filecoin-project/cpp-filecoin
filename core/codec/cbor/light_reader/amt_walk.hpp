@@ -5,12 +5,12 @@
 
 #pragma once
 
-#include "codec/cbor/light_reader/_walk.hpp"
 #include "codec/cbor/light_reader/cid.hpp"
+#include "codec/cbor/light_reader/walk.hpp"
 
 namespace fc::codec::cbor::light_reader {
-  struct AmtWalk : _Walk {
-    using _Walk::_Walk;
+  struct AmtWalk : Walk {
+    using Walk::Walk;
 
     inline bool load() {
       cbor::CborToken token;

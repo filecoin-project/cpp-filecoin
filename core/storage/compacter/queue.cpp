@@ -86,7 +86,7 @@ namespace fc::storage::compacter {
     BytesIn cid;
     auto any{false};
     while (codec::cbor::findCid(cid, input)) {
-      CbCidPtr key;
+      const CbCid *key;
       if (codec::cbor::light_reader::readCborBlake(key, cid)) {
         if (_push(*key)) {
           any = true;
