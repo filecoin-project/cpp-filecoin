@@ -325,6 +325,12 @@ namespace fc::node {
         config.join("compacter"), o.kv_store, o.ipld_cids_write, ts_mutex);
     o.ipld = std::make_shared<CbAsAnyIpld>(o.compacter);
 
+    // estimated, 80gb
+    o.compacter->compact_on_car = uint64_t{80} << 30;
+    o.compacter->epochs_full_state = 30;
+    o.compacter->epochs_lookback_state = 2000;
+    o.compacter->epochs_messages = 60;
+
     o.ts_load_ipld = std::make_shared<primitives::tipset::TsLoadIpld>(o.ipld);
     o.compacter->ts_load = o.ts_load_ipld;
     o.ts_load = std::make_shared<primitives::tipset::TsLoadCache>(

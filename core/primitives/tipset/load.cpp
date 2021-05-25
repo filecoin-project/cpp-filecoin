@@ -67,39 +67,33 @@ namespace fc::primitives::tipset {
 
     auto res = map_cache.insert(std::make_pair(tipset->key, 0));
 
-    if (tipset_cache.empty()) {
-      begin_index = 0;
-      end_index = 0;
-      LoadNode tcn{
-          .prev = begin_index,
-          .next = begin_index,
-          .it = res.first,
-          .tipset = std::move(tipset),
-      };
-      tcn.it->second = begin_index;
-      tipset_cache.push_back(tcn);
-      return begin_index;
+    // is inserted
+    if (!res.second) {
+      return 0;  // it is not a problem, we check key before get tipset
     }
 
+    auto it{res.first};
+
     if (tipset_cache.size() < capacity) {
-      begin_index += 1;
-      tipset_cache[begin_index - 1].prev = begin_index;
+      auto index{tipset_cache.size()};
+      if (index != 0) {
+        tipset_cache[begin_index].prev = index;
+      }
       LoadNode tcn{
-          .prev = begin_index,
-          .next = begin_index - 1,
-          .it = res.first,
+          .prev = index,
+          .next = begin_index,
           .tipset = std::move(tipset),
       };
-      tcn.it->second = begin_index;
+      it->second = index;
       tipset_cache.push_back(tcn);
-      return begin_index;
+      begin_index = index;
+      return index;
     }
 
     uint64_t new_index = end_index;
     auto &new_tipset{tipset_cache[new_index]};
-    map_cache.erase(new_tipset.it);
-    new_tipset.it = res.first;
-    new_tipset.it->second = new_index;
+    map_cache.erase(new_tipset.tipset->key);
+    it->second = new_index;
 
     tipset_cache[new_tipset.prev].next = new_tipset.prev;
     end_index = new_tipset.prev;
@@ -118,7 +112,7 @@ namespace fc::primitives::tipset {
   }
 
   TipsetCPtr TsLoadCache::getFromCache(uint64_t index) {
-    auto ts{tipset_cache[index]};
+    auto &ts{tipset_cache[index]};
     // when it first
     if (index == begin_index) {
       return ts.tipset;
@@ -146,6 +140,9 @@ namespace fc::primitives::tipset {
                                                         const TipsetKey &key) {
     std::lock_guard lock{mutex};
 
+    if (index >= tipset_cache.size()) {
+      return boost::none;
+    }
     if (key != tipset_cache[index].tipset->key) {
       return boost::none;
     }

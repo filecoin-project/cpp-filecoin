@@ -72,6 +72,7 @@ namespace fc::storage::ipld {
   }
 
   Outcome<void> CidsIpld::doFlush() {
+    std::unique_lock flush_lock{flush_mutex};
     std::shared_lock written_slock{written_mutex};
     uint64_t max_offset{};
     std::vector<Row> rows;

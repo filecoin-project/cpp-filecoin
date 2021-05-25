@@ -64,6 +64,7 @@ namespace fc::storage::compacter {
   }
 
   void CompacterIpld::_start() {
+    spdlog::info("CompacterIpld._start");
     auto car_path{path + ".car"};
     if (boost::filesystem::exists(car_path)) {
       boost::filesystem::remove(car_path);
@@ -73,7 +74,7 @@ namespace fc::storage::compacter {
       boost::filesystem::remove(index_path);
     }
     auto car{cids_index::loadOrCreateWithProgress(
-        car_path, true, boost::none, old_ipld->ipld, nullptr)};
+        car_path, true, old_ipld->max_memory, old_ipld->ipld, nullptr)};
     if (!car) {
       spdlog::error("CompacterIpld._start: create car failed: {:#}", ~car);
       return;
@@ -102,11 +103,12 @@ namespace fc::storage::compacter {
   }
 
   void CompacterIpld::_resume() {
+    spdlog::info("CompacterIpld._resume");
     flag.store(true);
     std::unique_lock vm_lock{*interpreter->mutex};
     std::unique_lock ts_lock{*ts_mutex};
     auto car{cids_index::loadOrCreateWithProgress(
-        path + ".car", true, boost::none, old_ipld->ipld, nullptr)};
+        path + ".car", true, old_ipld->max_memory, old_ipld->ipld, nullptr)};
     if (!car) {
       spdlog::error("CompacterIpld._resume: open car failed: {:#}", ~car);
       return;
@@ -127,6 +129,7 @@ namespace fc::storage::compacter {
   }
 
   void CompacterIpld::_flow() {
+    spdlog::info("CompacterIpld._flow");
     while (true) {
       std::shared_lock ts_lock{*ts_mutex};
       auto head1{ts_load->lazyLoad(ts_main->chain.rbegin()->second).value()};
@@ -209,6 +212,7 @@ namespace fc::storage::compacter {
   }
 
   void CompacterIpld::_finish() {
+    spdlog::info("CompacterIpld._finish");
     std::unique_lock vm_lock{*interpreter->mutex};
     std::unique_lock ts_lock{*ts_mutex};
     auto head{ts_load->lazyLoad(ts_main->chain.rbegin()->second).value()};
@@ -244,14 +248,23 @@ namespace fc::storage::compacter {
     _queueLoop();
     queue->clear();
     {
-      // TODO: swap files
+      std::unique_lock old_flush_lock{old_ipld->flush_mutex};
+      std::unique_lock new_flush_lock{new_ipld->flush_mutex};
       std::unique_lock ipld_lock{ipld_mutex};
+      // keep last car copy for debug
+      boost::filesystem::rename(old_ipld->car_path,
+                                old_ipld->car_path + ".old_ipld");
+      boost::filesystem::rename(new_ipld->car_path, old_ipld->car_path);
+      boost::filesystem::rename(new_ipld->index_path, old_ipld->index_path);
+      new_ipld->car_path = old_ipld->car_path;
+      new_ipld->index_path = old_ipld->index_path;
       use_new_ipld = false;
       old_ipld = new_ipld;
       new_ipld.reset();
     }
     start_head_key.remove();
     flag.store(false);
+    spdlog::info("CompacterIpld done");
   }
 
   void CompacterIpld::_pushState(const CbCid &state) {

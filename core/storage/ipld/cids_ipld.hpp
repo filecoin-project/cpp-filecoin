@@ -53,9 +53,11 @@ namespace fc::storage::ipld {
     std::set<Row> written;
     uint64_t car_offset{};
     std::atomic_flag flushing;
+    std::mutex flush_mutex;
     size_t flush_on{};
     std::shared_ptr<boost::asio::io_context> io;
     std::string index_path;
+    std::string car_path;
     boost::optional<size_t> max_memory;
   };
 }  // namespace fc::storage::ipld

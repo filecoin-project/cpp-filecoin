@@ -31,8 +31,6 @@ namespace fc::primitives::tipset {
     uint64_t prev = 0;
     uint64_t next = 0;
 
-    std::map<TipsetKey, uint64_t>::iterator it;
-
     TipsetCPtr tipset = nullptr;
   };
 
@@ -82,8 +80,8 @@ namespace fc::primitives::tipset {
     std::map<TipsetKey, uint64_t> map_cache;
     std::vector<LoadNode> tipset_cache;
     uint64_t capacity;
-    uint64_t begin_index;
-    uint64_t end_index;
+    uint64_t begin_index{};
+    uint64_t end_index{};
   };
 
   struct PutBlockHeader {
