@@ -21,8 +21,7 @@ namespace fc::sector_storage::stores {
                     std::unordered_map<HeaderName, HeaderValue> auth_headers);
 
     outcome::result<AcquireSectorResponse> acquireSector(
-        SectorId sector,
-        RegisteredSealProof seal_proof_type,
+            SectorRef sector,
         SectorFileType existing,
         SectorFileType allocate,
         PathType path_type,
@@ -33,8 +32,7 @@ namespace fc::sector_storage::stores {
     outcome::result<void> removeCopies(SectorId sector,
                                        SectorFileType type) override;
 
-    outcome::result<void> moveStorage(SectorId sector,
-                                      RegisteredSealProof seal_proof_type,
+    outcome::result<void> moveStorage(SectorRef sector,
                                       SectorFileType types) override;
 
     outcome::result<FsStat> getFsStat(StorageID id) override;

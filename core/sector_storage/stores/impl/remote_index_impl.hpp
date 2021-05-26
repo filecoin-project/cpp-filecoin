@@ -38,11 +38,11 @@ namespace fc::sector_storage::stores {
     outcome::result<std::vector<StorageInfo>> storageFindSector(
         const SectorId &sector,
         const SectorFileType &file_type,
-        boost::optional<RegisteredSealProof> fetch_seal_proof_type) override;
+        boost::optional<SectorSize> fetch_sector_size) override;
 
     outcome::result<std::vector<StorageInfo>> storageBestAlloc(
         const SectorFileType &allocate,
-        RegisteredSealProof seal_proof_type,
+        SectorSize sector_size,
         bool sealing_mode) override;
 
     outcome::result<std::unique_ptr<WLock>> storageLock(

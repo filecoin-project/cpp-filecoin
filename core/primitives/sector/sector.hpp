@@ -80,6 +80,11 @@ namespace fc::primitives::sector {
   outcome::result<size_t> getWindowPoStPartitionSectors(
       RegisteredPoStProof proof);
 
+  struct SectorRef {
+    SectorId id;
+    RegisteredSealProof proof_type;
+  };
+
   /**
    * Returns the partition size, in sectors, associated with a seal proof type.
    * The partition size is the number of sectors proved in a single PoSt proof.

@@ -111,11 +111,11 @@ namespace fc::api {
                std::vector<StorageInfo_>,
                const SectorId &,
                const SectorFileType &,
-               boost::optional<RegisteredSealProof>)
+               boost::optional<SectorSize>)
     API_METHOD(StorageBestAlloc,
                std::vector<StorageInfo_>,
                const SectorFileType &,
-               RegisteredSealProof,
+               SectorSize,
                bool)
 
     API_METHOD(WorkerConnect, void, const std::string &);

@@ -6,7 +6,9 @@
 #pragma once
 
 #include <functional>
+#include <primitives/sector/sector.hpp>
 #include "common/outcome.hpp"
+#include "primitives/sector/sector.hpp"
 #include "primitives/sector_file/sector_file.hpp"
 #include "primitives/types.hpp"
 #include "sector_storage/stores/index.hpp"
@@ -16,6 +18,7 @@ namespace fc::sector_storage::stores {
 
   using primitives::FsStat;
   using primitives::StorageID;
+  using primitives::sector::SectorRef;
   using primitives::sector_file::SectorFileType;
   using primitives::sector_file::SectorPaths;
 
@@ -41,8 +44,7 @@ namespace fc::sector_storage::stores {
     virtual ~Store() = default;
 
     virtual outcome::result<AcquireSectorResponse> acquireSector(
-        SectorId sector,
-        RegisteredSealProof seal_proof_type,
+        SectorRef sector,
         SectorFileType existing,
         SectorFileType allocate,
         PathType path_type,
@@ -58,10 +60,8 @@ namespace fc::sector_storage::stores {
     virtual outcome::result<void> removeCopies(SectorId sector,
                                                SectorFileType type) = 0;
 
-    virtual outcome::result<void> moveStorage(
-        SectorId sector,
-        RegisteredSealProof seal_proof_type,
-        SectorFileType types) = 0;
+    virtual outcome::result<void> moveStorage(SectorRef sector,
+                                              SectorFileType types) = 0;
 
     virtual outcome::result<FsStat> getFsStat(StorageID id) = 0;
 
@@ -78,7 +78,7 @@ namespace fc::sector_storage::stores {
     virtual std::shared_ptr<LocalStorage> getLocalStorage() const = 0;
 
     virtual outcome::result<std::function<void()>> reserve(
-        RegisteredSealProof seal_proof_type,
+        SectorRef sector,
         SectorFileType file_type,
         const SectorPaths &storages,
         PathType path_type) = 0;

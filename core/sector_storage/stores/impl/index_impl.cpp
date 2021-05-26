@@ -178,7 +178,7 @@ namespace fc::sector_storage::stores {
   outcome::result<std::vector<StorageInfo>> SectorIndexImpl::storageFindSector(
       const SectorId &sector,
       const fc::primitives::sector_file::SectorFileType &file_type,
-      boost::optional<RegisteredSealProof> fetch_seal_proof_type) {
+      boost::optional<SectorSize> fetch_sector_size) {
     std::shared_lock lock(mutex_);
     struct StorageMeta {
       uint64_t storage_count;
@@ -233,10 +233,10 @@ namespace fc::sector_storage::stores {
       result.push_back(store);
     }
 
-    if (fetch_seal_proof_type.has_value()) {
+    if (fetch_sector_size.has_value()) {
       OUTCOME_TRY(required_space,
                   primitives::sector_file::sealSpaceUse(
-                      file_type, fetch_seal_proof_type.get()));
+                      file_type, fetch_sector_size.get()));
       for (const auto &[id, storage_info] : stores_) {
         if (!storage_info.info.can_seal) {
           continue;
@@ -301,13 +301,13 @@ namespace fc::sector_storage::stores {
 
   outcome::result<std::vector<StorageInfo>> SectorIndexImpl::storageBestAlloc(
       const fc::primitives::sector_file::SectorFileType &allocate,
-      RegisteredSealProof seal_proof_type,
+      SectorSize sector_size,
       bool sealing_mode) {
     std::shared_lock lock(mutex_);
 
     OUTCOME_TRY(
         req_space,
-        fc::primitives::sector_file::sealSpaceUse(allocate, seal_proof_type));
+        fc::primitives::sector_file::sealSpaceUse(allocate, sector_size));
 
     std::vector<StorageEntry> candidates;
 
