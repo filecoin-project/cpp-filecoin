@@ -96,10 +96,6 @@ namespace fc::vm::runtime {
     return storage::ipfs::IpfsDatastoreError::kNotFound;
   }
 
-  outcome::result<void> IpldBuffered::remove(const CID &cid) {
-    throw "unused";
-  }
-
   IpldPtr IpldBuffered::shared() {
     return shared_from_this();
   }

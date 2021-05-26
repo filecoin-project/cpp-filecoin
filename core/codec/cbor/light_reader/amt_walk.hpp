@@ -14,7 +14,7 @@ namespace fc::codec::cbor::light_reader {
 
     inline bool load() {
       cbor::CborToken token;
-      if (!_next()) {
+      if (!Walk::next()) {
         return false;
       }
       if (!read(token, node).listCount()) {
@@ -51,7 +51,7 @@ namespace fc::codec::cbor::light_reader {
         if (!node.empty()) {
           return false;
         }
-        if (_next() && !readNode()) {
+        if (Walk::next() && !readNode()) {
           return false;
         }
       }
@@ -75,7 +75,7 @@ namespace fc::codec::cbor::light_reader {
         if (!cbor::readCborBlake(cid, node)) {
           return false;
         }
-        _push(*cid);
+        push(*cid);
       }
       if (!read(token, node).listCount()) {
         return false;

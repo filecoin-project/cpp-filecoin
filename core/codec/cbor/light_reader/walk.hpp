@@ -24,7 +24,7 @@ namespace fc::codec::cbor::light_reader {
       return node.empty() && next_cid == cids.size();
     }
 
-    bool _next() {
+    bool next() {
       assert(!empty());
       if (ipld->get(cids[next_cid++], _node)) {
         node = _node;
@@ -35,7 +35,7 @@ namespace fc::codec::cbor::light_reader {
       return false;
     }
 
-    void _push(const CbCid &cid) {
+    void push(const CbCid &cid) {
       if (!visited || !visited->has(cid)) {
         cids.push_back(cid);
       }

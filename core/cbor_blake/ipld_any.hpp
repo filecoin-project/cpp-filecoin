@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <cassert>
+
 #include "cbor_blake/ipld.hpp"
 #include "storage/ipfs/datastore.hpp"
 
@@ -21,11 +23,10 @@ namespace fc {
       return false;
     }
     outcome::result<void> set(const CID &key, Value value) override {
-      if (auto cid{asBlake(key)}) {
-        ipld->put(*cid, value);
-        return outcome::success();
-      }
-      throw std::logic_error{"CbAsAnyIpld.set"};
+      auto cid{asBlake(key)};
+      assert(cid);
+      ipld->put(*cid, value);
+      return outcome::success();
     }
     outcome::result<Value> get(const CID &key) const override {
       if (auto cid{asBlake(key)}) {
@@ -35,9 +36,6 @@ namespace fc {
         }
       }
       return storage::ipfs::IpfsDatastoreError::kNotFound;
-    }
-    outcome::result<void> remove(const CID &key) override {
-      throw std::logic_error{"deprecated"};
     }
     IpldPtr shared() override {
       return shared_from_this();
@@ -58,7 +56,7 @@ namespace fc {
           *value = std::move(r.value());
           return true;
         } else if (r.error() != storage::ipfs::IpfsDatastoreError::kNotFound) {
-          r.value();
+          r.value();  // throws
         }
         return false;
       }

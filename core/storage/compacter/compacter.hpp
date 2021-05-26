@@ -46,16 +46,16 @@ namespace fc::storage::compacter {
     void put(const CbCid &key, BytesIn value) override;
 
     void open();
-    bool start();
-    void _start();
-    void _resume();
-    void _flow();
-    void _headersBatch();
-    void _queueLoop();
-    void _finish();
-    void _pushState(const CbCid &state);
-    void _lookbackState(const CbCid &state);
-    void _copy(const CbCid &key);
+    bool asyncStart();
+    void doStart();
+    void resume();
+    void flow();
+    void headersBatch();
+    void queueLoop();
+    void finish();
+    void pushState(const CbCid &state);
+    void lookbackState(const CbCid &state);
+    void copy(const CbCid &key);
 
     uint64_t compact_on_car{};
     size_t epochs_full_state{};

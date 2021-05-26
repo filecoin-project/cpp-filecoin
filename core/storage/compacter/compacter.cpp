@@ -38,7 +38,7 @@ namespace fc::storage::compacter {
     if (compact_on_car && !flag.load()) {
       std::shared_lock written_lock{old_ipld->written_mutex};
       if (old_ipld->car_offset > compact_on_car) {
-        start();
+        asyncStart();
       }
     }
     if (use_new_ipld) {
@@ -51,20 +51,20 @@ namespace fc::storage::compacter {
 
   void CompacterIpld::open() {
     if (start_head_key.has()) {
-      _resume();
+      resume();
     }
   }
 
-  bool CompacterIpld::start() {
+  bool CompacterIpld::asyncStart() {
     if (flag.exchange(true)) {
       return false;
     }
-    thread.io->post([&] { _start(); });
+    thread.io->post([&] { doStart(); });
     return true;
   }
 
-  void CompacterIpld::_start() {
-    spdlog::info("CompacterIpld._start");
+  void CompacterIpld::doStart() {
+    spdlog::info("CompacterIpld.doStart");
     auto car_path{path + ".car"};
     if (boost::filesystem::exists(car_path)) {
       boost::filesystem::remove(car_path);
@@ -76,7 +76,7 @@ namespace fc::storage::compacter {
     auto car{cids_index::loadOrCreateWithProgress(
         car_path, true, old_ipld->max_memory, old_ipld->ipld, nullptr)};
     if (!car) {
-      spdlog::error("CompacterIpld._start: create car failed: {:#}", ~car);
+      spdlog::error("CompacterIpld.doStart: create car failed: {:#}", ~car);
       return;
     }
     new_ipld = *car;
@@ -91,8 +91,8 @@ namespace fc::storage::compacter {
     ts_lock.unlock();
     queue->push(*asBlake(genesis->getParentStateRoot()));
     headers_top = genesis;
-    _copy(*asBlake(genesis->key.cids()[0]));
-    _pushState(*asBlake(start_head->getParentStateRoot()));
+    copy(*asBlake(genesis->key.cids()[0]));
+    pushState(*asBlake(start_head->getParentStateRoot()));
     state_bottom = start_head;
     headers_top_key.setCbor(headers_top->key.cids());
     start_head_key.setCbor(start_head->key.cids());
@@ -101,18 +101,18 @@ namespace fc::storage::compacter {
       use_new_ipld = true;
     }
     vm_lock.unlock();
-    thread.io->post([&] { _flow(); });
+    thread.io->post([&] { flow(); });
   }
 
-  void CompacterIpld::_resume() {
-    spdlog::info("CompacterIpld._resume");
+  void CompacterIpld::resume() {
+    spdlog::info("CompacterIpld.resume");
     flag.store(true);
     std::unique_lock vm_lock{*interpreter->mutex};
     std::unique_lock ts_lock{*ts_mutex};
     auto car{cids_index::loadOrCreateWithProgress(
         path + ".car", true, old_ipld->max_memory, old_ipld->ipld, nullptr)};
     if (!car) {
-      spdlog::error("CompacterIpld._resume: open car failed: {:#}", ~car);
+      spdlog::error("CompacterIpld.resume: open car failed: {:#}", ~car);
       return;
     }
     new_ipld = *car;
@@ -129,20 +129,20 @@ namespace fc::storage::compacter {
       std::unique_lock ipld_lock{ipld_mutex};
       use_new_ipld = true;
     }
-    thread.io->post([&] { _flow(); });
+    thread.io->post([&] { flow(); });
   }
 
-  void CompacterIpld::_flow() {
-    spdlog::info("CompacterIpld._flow");
+  void CompacterIpld::flow() {
+    spdlog::info("CompacterIpld.flow");
     while (true) {
       std::shared_lock ts_lock{*ts_mutex};
       auto head1{ts_load->lazyLoad(ts_main->chain.rbegin()->second).value()};
       if (headers_top->key != head1->key) {
-        _headersBatch();
+        headersBatch();
       }
       auto done_headers{headers_top->key == head1->key};
       ts_lock.unlock();
-      _queueLoop();
+      queueLoop();
       ts_lock.lock();
       auto head2{ts_load->lazyLoad(ts_main->chain.rbegin()->second).value()};
       ts_lock.unlock();
@@ -159,9 +159,9 @@ namespace fc::storage::compacter {
             state_bottom.reset();
           } else {
             if (epochs <= epochs_full_state) {
-              _pushState(root);
+              pushState(root);
             } else {
-              _lookbackState(root);
+              lookbackState(root);
             }
           }
         } else {
@@ -172,10 +172,10 @@ namespace fc::storage::compacter {
         break;
       }
     }
-    _finish();
+    finish();
   }
 
-  void CompacterIpld::_headersBatch() {
+  void CompacterIpld::headersBatch() {
     constexpr size_t kTsBatch{1000};
     auto it{ts_main->chain.find(headers_top->height())};
     while (it == ts_main->chain.end() || it->second.key != headers_top->key) {
@@ -192,7 +192,7 @@ namespace fc::storage::compacter {
         break;
       }
       for (auto &cid : it->second.key.cids()) {
-        _copy(*asBlake(cid));
+        copy(*asBlake(cid));
       }
       ++batch_used;
       ++it;
@@ -202,11 +202,11 @@ namespace fc::storage::compacter {
     headers_top_key.setCbor(headers_top->key.cids());
   }
 
-  void CompacterIpld::_queueLoop() {
+  void CompacterIpld::queueLoop() {
     Buffer value;
     while (auto key{queue->pop()}) {
       if (!old_ipld->get(*key, value)) {
-        spdlog::warn("CompacterIpld._queueLoop not found {}",
+        spdlog::warn("CompacterIpld.queueLoop not found {}",
                      common::hex_lower(*key));
         continue;
       }
@@ -215,8 +215,8 @@ namespace fc::storage::compacter {
     }
   }
 
-  void CompacterIpld::_finish() {
-    spdlog::info("CompacterIpld._finish");
+  void CompacterIpld::finish() {
+    spdlog::info("CompacterIpld.finish");
     std::unique_lock vm_lock{*interpreter->mutex};
     std::unique_lock ts_lock{*ts_mutex};
     auto head{ts_load->lazyLoad(ts_main->chain.rbegin()->second).value()};
@@ -249,7 +249,7 @@ namespace fc::storage::compacter {
     auto head_res{interpreter_cache->get(head->key).value()};
     queue->push(*asBlake(head_res.state_root));
     queue->push(*asBlake(head_res.message_receipts));
-    _queueLoop();
+    queueLoop();
     queue->clear();
     {
       std::unique_lock old_flush_lock{old_ipld->flush_mutex};
@@ -271,25 +271,25 @@ namespace fc::storage::compacter {
     spdlog::info("CompacterIpld done");
   }
 
-  void CompacterIpld::_pushState(const CbCid &state) {
+  void CompacterIpld::pushState(const CbCid &state) {
     queue->push(state);
   }
 
-  void CompacterIpld::_lookbackState(const CbCid &state) {
+  void CompacterIpld::lookbackState(const CbCid &state) {
     std::vector<CbCid> copy, recurse;
     lookbackActors(copy, recurse, old_ipld, new_ipld, state);
     queue->push(recurse);
     for (auto it{copy.rbegin()}; it != copy.rend(); ++it) {
-      _copy(*it);
+      this->copy(*it);
     }
   }
 
-  void CompacterIpld::_copy(const CbCid &key) {
+  void CompacterIpld::copy(const CbCid &key) {
     static Buffer value;
     if (old_ipld->get(key, value)) {
       new_ipld->put(key, value);
     } else if (!new_ipld->has(key)) {
-      spdlog::warn("CompacterIpld._copy not found {}", common::hex_lower(key));
+      spdlog::warn("CompacterIpld.copy not found {}", common::hex_lower(key));
     }
   }
 }  // namespace fc::storage::compacter

@@ -51,8 +51,6 @@ namespace fc::storage::ipfs {
 
     outcome::result<Value> get(const CID &key) const override;
 
-    outcome::result<void> remove(const CID &key) override;
-
     IpldPtr shared() override {
       return shared_from_this();
     }

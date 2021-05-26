@@ -36,13 +36,6 @@ namespace fc::storage::ipfs {
 
     outcome::result<Value> get(const CID &key) const override;
 
-    /**
-     * Remove is not supported by API
-     * @param key
-     * @return Error not supported
-     */
-    outcome::result<void> remove(const CID &key) override;
-
     std::shared_ptr<IpfsDatastore> shared() override;
 
    private:

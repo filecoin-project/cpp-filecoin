@@ -28,9 +28,6 @@ namespace fc::storage::ipld {
     outcome::result<bool> contains(const CID &cid) const override;
     outcome::result<void> set(const CID &cid, Buffer value) override;
     outcome::result<Buffer> get(const CID &cid) const override;
-    outcome::result<void> remove(const CID &cid) override {
-      throw "deprecated";
-    }
     IpldPtr shared() override {
       return shared_from_this();
     }

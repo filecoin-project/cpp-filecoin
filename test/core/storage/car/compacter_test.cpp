@@ -107,7 +107,7 @@ namespace fc::storage::compacter {
     std::ofstream{new_path + ".car"};
     std::ofstream{new_path + ".car.cids"};
     compacter->put(codec::cbor::encode("test").value());
-    EXPECT_FALSE(compacter->start());
+    EXPECT_FALSE(compacter->asyncStart());
     runOne();
     runOne();
   }
@@ -115,11 +115,11 @@ namespace fc::storage::compacter {
   TEST_F(CompacterTest, Resume) {
     compacter->thread.io = std::make_shared<boost::asio::io_context>();
     compacter->open();
-    EXPECT_TRUE(compacter->start());
+    EXPECT_TRUE(compacter->asyncStart());
     runOne();
     _init();
     compacter->open();
-    EXPECT_FALSE(compacter->start());
+    EXPECT_FALSE(compacter->asyncStart());
     runOne();
   }
 }  // namespace fc::storage::compacter

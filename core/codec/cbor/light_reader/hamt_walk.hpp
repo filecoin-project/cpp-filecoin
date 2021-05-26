@@ -36,7 +36,7 @@ namespace fc::codec::cbor::light_reader {
           return true;
         }
         if (node.empty()) {
-          if (_next()) {
+          if (Walk::next()) {
             if (read(token, node).listCount() != 2) {
               return false;
             }
@@ -73,7 +73,7 @@ namespace fc::codec::cbor::light_reader {
             if (!readCborBlake(cid, token, node)) {
               return false;
             }
-            _push(*cid);
+            push(*cid);
           } else {
             if (!token.listCount()) {
               return false;
