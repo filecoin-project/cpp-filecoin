@@ -217,15 +217,17 @@ namespace fc::node {
     assert(o.ts_main->chain.begin()->second.key == genesis_tsk);
   }
 
-  void writableIpld(Config &config, NodeObjects &o) {
+  auto writableIpld(Config &config, NodeObjects &o) {
     auto car_path{config.join("cids_index.car")};
     // TODO(turuslan): max memory
     // estimated, 1gb
-    o.ipld_cids_write = *storage::cids_index::loadOrCreateWithProgress(
+    auto ipld = *storage::cids_index::loadOrCreateWithProgress(
         car_path, true, 1 << 30, o.ipld, log());
     // estimated
-    o.ipld_cids_write->flush_on = 200000;
-    o.ipld = o.ipld_cids_write;
+    ipld->flush_on = 200000;
+    o.ipld_flush_thread = std::make_shared<IoThread>();
+    ipld->io = o.ipld_flush_thread->io;
+    return ipld;
   }
 
   outcome::result<KeyInfo> readPrivateKeyFromFile(const std::string &path) {
@@ -318,11 +320,11 @@ namespace fc::node {
         config.genesisCar(), false, boost::none, o.ipld, log());
     auto snapshot_cids{loadSnapshot(config, o)};
 
-    writableIpld(config, o);
-
     auto ts_mutex{std::make_shared<std::shared_mutex>()};
-    o.compacter = storage::compacter::make(
-        config.join("compacter"), o.kv_store, o.ipld_cids_write, ts_mutex);
+    o.compacter = storage::compacter::make(config.join("compacter"),
+                                           o.kv_store,
+                                           writableIpld(config, o),
+                                           ts_mutex);
     o.ipld = std::make_shared<CbAsAnyIpld>(o.compacter);
 
     // estimated, 80gb

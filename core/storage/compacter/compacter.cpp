@@ -80,6 +80,8 @@ namespace fc::storage::compacter {
       return;
     }
     new_ipld = *car;
+    new_ipld->io = old_ipld->io;
+    new_ipld->flush_on = old_ipld->flush_on;
     queue->visited = new_ipld;
     queue->open(true);
     std::unique_lock vm_lock{*interpreter->mutex};
@@ -114,6 +116,8 @@ namespace fc::storage::compacter {
       return;
     }
     new_ipld = *car;
+    new_ipld->io = old_ipld->io;
+    new_ipld->flush_on = old_ipld->flush_on;
     queue->visited = new_ipld;
     queue->open(false);
     start_head =

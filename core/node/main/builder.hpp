@@ -59,7 +59,7 @@ namespace fc::node {
     std::shared_ptr<storage::LevelDB> ipld_leveldb_kv;
     std::shared_ptr<storage::ipfs::LeveldbDatastore> ipld_leveldb;
     std::shared_ptr<storage::ipld::CidsIpld> ipld_cids;
-    std::shared_ptr<storage::ipld::CidsIpld> ipld_cids_write;
+    std::shared_ptr<IoThread> ipld_flush_thread;
     std::shared_ptr<storage::compacter::CompacterIpld> compacter;
     IpldPtr ipld;
     std::shared_ptr<primitives::tipset::TsLoadIpld> ts_load_ipld;
