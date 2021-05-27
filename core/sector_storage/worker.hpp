@@ -21,6 +21,7 @@ namespace fc::sector_storage {
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::SealRandomness;
   using primitives::sector::SectorId;
+  using primitives::sector::SectorRef;
   using primitives::sector_file::SectorFileType;
   using PreCommit1Output = proofs::Phase1Output;
   using Commit1Output = proofs::Phase1Output;
@@ -40,31 +41,68 @@ namespace fc::sector_storage {
     return lhs.offset == rhs.offset && lhs.size == rhs.size;
   }
 
-  class Worker {
+  struct CallId {
+    SectorId sector;
+    std::string id;  // uuid
+  };
+
+  class WorkerCalls {
    public:
-    virtual ~Worker() = default;
+    virtual ~WorkerCalls() = default;
 
-    virtual outcome::result<void> moveStorage(const SectorId &sector) = 0;
+    virtual outcome::result<CallId> addPiece(
+        const SectorRef &sector,
+        gsl::span<const UnpaddedPieceSize> piece_sizes,
+        const UnpaddedPieceSize &new_piece_size,
+        PieceData piece_data) = 0;
 
-    virtual outcome::result<void> fetch(const SectorId &sector,
-                                        const SectorFileType &file_type,
-                                        PathType path_type,
-                                        AcquireMode mode) = 0;
+    virtual outcome::result<CallId> sealPreCommit1(
+        const SectorRef &sector,
+        const SealRandomness &ticket,
+        gsl::span<const PieceInfo> pieces) = 0;
 
-    virtual outcome::result<void> unsealPiece(const SectorId &sector,
-                                              UnpaddedByteIndex offset,
-                                              const UnpaddedPieceSize &size,
-                                              const SealRandomness &randomness,
-                                              const CID &unsealed_cid) = 0;
+    virtual outcome::result<CallId> sealPreCommit2(
+        const SectorRef &sector,
+        const PreCommit1Output &pre_commit_1_output) = 0;
 
-    /**
-     * @param output is PieceData with write part of pipe
-     */
-    virtual outcome::result<bool> readPiece(PieceData output,
-                                            const SectorId &sector,
-                                            UnpaddedByteIndex offset,
-                                            const UnpaddedPieceSize &size) = 0;
+    virtual outcome::result<CallId> sealCommit1(
+        const SectorRef &sector,
+        const SealRandomness &ticket,
+        const InteractiveRandomness &seed,
+        gsl::span<const PieceInfo> pieces,
+        const SectorCids &cids) = 0;
 
+    virtual outcome::result<CallId> sealCommit2(
+        const SectorRef &sector, const Commit1Output &commit_1_output) = 0;
+
+    virtual outcome::result<CallId> finalizeSector(
+        const SectorRef &sector,
+        const gsl::span<const Range> &keep_unsealed) = 0;
+
+    virtual outcome::result<CallId> moveStorage(const SectorRef &sector,
+                                                SectorFileType types) = 0;
+
+    virtual outcome::result<CallId> unsealPiece(
+        const SectorRef &sector,
+        UnpaddedByteIndex offset,
+        const UnpaddedPieceSize &size,
+        const SealRandomness &randomness,
+        const CID &unsealed_cid) = 0;
+
+    virtual outcome::result<CallId> readPiece(
+        PieceData output,
+        const SectorRef &sector,
+        UnpaddedByteIndex offset,
+        const UnpaddedPieceSize &size) = 0;
+
+    virtual outcome::result<CallId> fetch(const SectorRef &sector,
+                                          const SectorFileType &file_type,
+                                          PathType path_type,
+                                          AcquireMode mode) = 0;
+  };
+
+  class Worker : public WorkerCalls {
+   public:
     virtual outcome::result<primitives::WorkerInfo> getInfo() = 0;
 
     virtual outcome::result<std::set<primitives::TaskType>>
@@ -72,37 +110,6 @@ namespace fc::sector_storage {
 
     virtual outcome::result<std::vector<primitives::StoragePath>>
     getAccessiblePaths() = 0;
-
-    virtual outcome::result<PreCommit1Output> sealPreCommit1(
-        const SectorId &sector,
-        const SealRandomness &ticket,
-        gsl::span<const PieceInfo> pieces) = 0;
-
-    virtual outcome::result<SectorCids> sealPreCommit2(
-        const SectorId &sector,
-        const PreCommit1Output &pre_commit_1_output) = 0;
-
-    virtual outcome::result<Commit1Output> sealCommit1(
-        const SectorId &sector,
-        const SealRandomness &ticket,
-        const InteractiveRandomness &seed,
-        gsl::span<const PieceInfo> pieces,
-        const SectorCids &cids) = 0;
-
-    virtual outcome::result<Proof> sealCommit2(
-        const SectorId &sector, const Commit1Output &commit_1_output) = 0;
-
-    virtual outcome::result<void> finalizeSector(
-        const SectorId &sector,
-        const gsl::span<const Range> &keep_unsealed) = 0;
-
-    virtual outcome::result<void> remove(const SectorId &sector) = 0;
-
-    virtual outcome::result<PieceInfo> addPiece(
-        const SectorId &sector,
-        gsl::span<const UnpaddedPieceSize> piece_sizes,
-        const UnpaddedPieceSize &new_piece_size,
-        const proofs::PieceData &piece_data) = 0;
   };
 
   enum class WorkerErrors {
