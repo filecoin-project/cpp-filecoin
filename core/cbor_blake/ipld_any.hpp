@@ -14,7 +14,7 @@ namespace fc {
   struct CbAsAnyIpld : Ipld, std::enable_shared_from_this<CbAsAnyIpld> {
     CbIpldPtr ipld;
 
-    CbAsAnyIpld(CbIpldPtr ipld) : ipld{ipld} {}
+    CbAsAnyIpld(CbIpldPtr ipld) : ipld{std::move(ipld)} {}
 
     outcome::result<bool> contains(const CID &key) const override {
       if (auto cid{asBlake(key)}) {
@@ -47,7 +47,7 @@ namespace fc {
 
     IpldPtr ipld;
 
-    AnyAsCbIpld(IpldPtr ipld) : ipld{ipld} {}
+    AnyAsCbIpld(IpldPtr ipld) : ipld{std::move(ipld)} {}
 
     static bool get(const IpldPtr &ipld, const CbCid &key, Buffer *value) {
       auto cid{asCborBlakeCid(key)};

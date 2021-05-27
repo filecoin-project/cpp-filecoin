@@ -203,7 +203,7 @@ namespace fc::storage::compacter {
   }
 
   void CompacterIpld::queueLoop() {
-    Buffer value;
+    auto &value{reuse_buffer};
     while (auto key{queue->pop()}) {
       if (!old_ipld->get(*key, value)) {
         spdlog::warn("CompacterIpld.queueLoop not found {}",
@@ -285,7 +285,7 @@ namespace fc::storage::compacter {
   }
 
   void CompacterIpld::copy(const CbCid &key) {
-    static Buffer value;
+    auto &value{reuse_buffer};
     if (old_ipld->get(key, value)) {
       new_ipld->put(key, value);
     } else if (!new_ipld->has(key)) {

@@ -82,5 +82,6 @@ namespace fc::storage::compacter {
     std::shared_ptr<CidsIpld> new_ipld;
     std::atomic_bool flag;
     bool use_new_ipld{};
+    Buffer reuse_buffer;
   };
 }  // namespace fc::storage::compacter
