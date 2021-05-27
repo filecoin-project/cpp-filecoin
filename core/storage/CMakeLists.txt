@@ -6,6 +6,7 @@
 add_subdirectory(amt)
 add_subdirectory(car)
 add_subdirectory(chain)
+add_subdirectory(compacter)
 add_subdirectory(filestore)
 add_subdirectory(hamt)
 add_subdirectory(in_memory)

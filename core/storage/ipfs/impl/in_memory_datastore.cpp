@@ -24,8 +24,3 @@ fc::outcome::result<Value> InMemoryDatastore::get(const CID &key) const {
   }
   return storage_.at(key);
 }
-
-fc::outcome::result<void> InMemoryDatastore::remove(const CID &key) {
-  storage_.erase(key);
-  return fc::outcome::success();
-}

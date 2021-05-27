@@ -5,17 +5,15 @@
 
 #pragma once
 
+#include "cbor_blake/ipld.hpp"
 #include "cid.hpp"
 #include "codec/cbor/cbor_token.hpp"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
-#include "storage/ipld/light_ipld.hpp"
 
 namespace fc::codec::cbor::light_reader {
-  using storage::ipld::LightIpldPtr;
-
   inline bool readStateTree(Hash256 &hamt,
-                            const LightIpldPtr &ipld,
+                            const CbIpldPtr &ipld,
                             const Hash256 &root) {
     hamt = root;
     Buffer value;

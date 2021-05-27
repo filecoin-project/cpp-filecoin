@@ -238,9 +238,6 @@ namespace fc {
 
     Metrics metrics{o};
 
-    IoThread flush_thread;
-    o.ipld_cids_write->io = flush_thread.io;
-
     o.io_context->post([&] {
       for (auto &host : config.drand_servers) {
         drand::http::getInfo(*o.io_context, host, [&, host](auto _info) {

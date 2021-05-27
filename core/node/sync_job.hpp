@@ -15,6 +15,7 @@
 
 namespace fc::sync {
   using blocksync::BlocksyncRequest;
+  using primitives::tipset::PutBlockHeader;
   using primitives::tipset::chain::KvPtr;
   using vm::interpreter::Interpreter;
   using vm::interpreter::InterpreterCache;
@@ -32,6 +33,7 @@ namespace fc::sync {
             KvPtr ts_main_kv,
             TsBranchPtr ts_main,
             TsLoadPtr ts_load,
+            std::shared_ptr<PutBlockHeader> put_block_header,
             IpldPtr ipld);
 
     /// Listens to PossibleHead and PeerConnected events
@@ -42,6 +44,7 @@ namespace fc::sync {
    private:
     void onPossibleHead(const events::PossibleHead &e);
 
+    TipsetCPtr getLocal(const TipsetCPtr &ts);
     TipsetCPtr getLocal(const TipsetKey &tsk);
 
     void compactBranches();
@@ -74,6 +77,7 @@ namespace fc::sync {
     KvPtr ts_main_kv_;
     TsBranchPtr ts_main_;
     TsLoadPtr ts_load_;
+    std::shared_ptr<PutBlockHeader> put_block_header_;
     IpldPtr ipld_;
     TsBranches attached_;
     std::pair<TsBranchPtr, BigInt> attached_heaviest_;

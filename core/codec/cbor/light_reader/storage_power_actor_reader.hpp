@@ -5,16 +5,15 @@
 
 #pragma once
 
+#include "cbor_blake/ipld.hpp"
 #include "codec/cbor/cbor_token.hpp"
 #include "codec/cbor/light_reader/cid.hpp"
 #include "common/error_text.hpp"
 #include "common/outcome.hpp"
-#include "storage/ipld/light_ipld.hpp"
 #include "vm/actor/actor.hpp"
 
 namespace fc::codec::cbor::light_reader {
   using common::Hash256;
-  using storage::ipld::LightIpldPtr;
   using vm::actor::ActorVersion;
 
   /**
@@ -26,7 +25,7 @@ namespace fc::codec::cbor::light_reader {
    * error
    */
   outcome::result<Hash256> readStoragePowerActorClaims(
-      const LightIpldPtr &ipld,
+      const CbIpldPtr &ipld,
       const Hash256 &state_root,
       ActorVersion actor_version) {
     const static auto kParseError =
@@ -41,50 +40,11 @@ namespace fc::codec::cbor::light_reader {
     if (!read(token, input).listCount()) {
       return kParseError;
     }
-    BytesIn nested;
-    // total_raw_power
-    if (!readNested(nested, input)) {
+    if (!skipNested(input, 13)) {
       return kParseError;
     }
-    // total_raw_commited
-    if (!readNested(nested, input)) {
-      return kParseError;
-    }  // total_qa_power
-    if (!readNested(nested, input)) {
-      return kParseError;
-    }  // total_qa_commited
-    if (!readNested(nested, input)) {
-      return kParseError;
-    }  // total_pledge
-    if (!readNested(nested, input)) {
-      return kParseError;
-    }  // this_epoch_raw_power
-    if (!readNested(nested, input)) {
-      return kParseError;
-    }  // this_epoch_qa_power
-    if (!readNested(nested, input)) {
-      return kParseError;
-    }  // this_epoch_pledge
-    if (!readNested(nested, input)) {
-      return kParseError;
-    }  // this_epoch_qa_power_smoothed
-    if (!readNested(nested, input)) {
-      return kParseError;
-    }  // miner_count
-    if (!readNested(nested, input)) {
-      return kParseError;
-    }  // num_miners_meeting_min_power
-    if (!readNested(nested, input)) {
-      return kParseError;
-    }  // cron_event_queue
-    if (!readNested(nested, input)) {
-      return kParseError;
-    }  // first_cron_epoch
-    if (!readNested(nested, input)) {
-      return kParseError;
-    }  // last_processed_cron_epoch for V0
     if (actor_version == ActorVersion::kVersion0) {
-      if (!readNested(nested, input)) {
+      if (!skipNested(input, 1)) {
         return kParseError;
       }
     }

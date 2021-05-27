@@ -54,6 +54,7 @@ using fc::primitives::ChainEpoch;
 using fc::primitives::EpochDuration;
 using fc::primitives::address::Address;
 using fc::primitives::block::BlockHeader;
+using fc::primitives::tipset::put;
 using fc::primitives::tipset::Tipset;
 using fc::vm::actor::Invoker;
 using fc::vm::actor::InvokerImpl;
@@ -292,7 +293,7 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
     parent.height = precondition.epoch;
     parent.messages = parent.parent_message_receipts =
         parent.parent_state_root = mv.state_before;
-    OUTCOME_EXCEPT(ipld->setCbor(parent));
+    put(ipld, nullptr, parent);
     OUTCOME_EXCEPT(parents, Tipset::create({parent}));
     auto i{0}, j{0};
     for (const auto &ts : mv.tipsets) {
@@ -328,7 +329,7 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
         }
         block.messages = ipld->setCbor(meta).value();
         block.parent_message_receipts = block.parent_state_root = state;
-        OUTCOME_EXCEPT(ipld->setCbor(block));
+        put(ipld, nullptr, block);
         OUTCOME_EXCEPT(cr.expandTipset(block));
       }
       std::vector<MessageReceipt> receipts;

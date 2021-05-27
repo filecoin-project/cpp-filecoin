@@ -24,6 +24,7 @@
 #include "primitives/tipset/load.hpp"
 #include "storage/buffer_map.hpp"
 #include "storage/car/cids_index/cids_index.hpp"
+#include "storage/compacter/compacter.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/ipld/cids_ipld.hpp"
 #include "storage/keystore/keystore.hpp"
@@ -58,7 +59,8 @@ namespace fc::node {
     std::shared_ptr<storage::LevelDB> ipld_leveldb_kv;
     std::shared_ptr<storage::ipfs::LeveldbDatastore> ipld_leveldb;
     std::shared_ptr<storage::ipld::CidsIpld> ipld_cids;
-    std::shared_ptr<storage::ipld::CidsIpld> ipld_cids_write;
+    std::shared_ptr<IoThread> ipld_flush_thread;
+    std::shared_ptr<storage::compacter::CompacterIpld> compacter;
     IpldPtr ipld;
     std::shared_ptr<primitives::tipset::TsLoadIpld> ts_load_ipld;
     std::shared_ptr<primitives::tipset::TsLoadCache> ts_load;
@@ -96,7 +98,7 @@ namespace fc::node {
     // chain sync components
     std::shared_ptr<sync::blocksync::BlocksyncServer> blocksync_server;
     std::shared_ptr<vm::interpreter::InterpreterImpl> interpreter;
-    std::shared_ptr<vm::interpreter::CachedInterpreter> vm_interpreter;
+    std::shared_ptr<vm::interpreter::Interpreter> vm_interpreter;
     std::shared_ptr<sync::SyncJob> sync_job;
     vm::runtime::EnvironmentContext env_context;
 

@@ -160,6 +160,7 @@ namespace fc::storage::cids_index {
       _ipld->writable.open(car_path, std::ios::app | std::ios::binary);
     }
     _ipld->car_offset = car_size;
+    _ipld->car_path = car_path;
     _ipld->index_path = cids_path;
     _ipld->max_memory = max_memory;
     return _ipld;

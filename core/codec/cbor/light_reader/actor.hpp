@@ -14,21 +14,14 @@
 namespace fc::codec::cbor::light_reader {
   /**
    * Partially decodes Actor state
-   * @param[out] id - actor id address value
    * @param[out] code - actor code id
    * @param[out] head - actor state root CID
-   * @param key
    * @param value
    * @return
    */
-  inline bool readActor(uint64_t &id,
-                        std::string_view &code,
+  inline bool readActor(std::string_view &code,
                         const Hash256 *&head,
-                        BytesIn key,
                         BytesIn value) {
-    if (!readIdAddress(id, key)) {
-      return false;
-    }
     cbor::CborToken token;
     if (read(token, value).listCount() != 4) {
       return false;

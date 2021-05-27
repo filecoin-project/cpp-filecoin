@@ -104,28 +104,6 @@ TEST_F(DatastoreIntegrationTest, GetNotExistingFailure) {
   EXPECT_OUTCOME_ERROR(IpfsDatastoreError::kNotFound, datastore->get(cid2));
 }
 
-/**
- * @given opened datastore, CID instance and a value
- * @when put cid with value into datastore @and remove cid from datastore
- * @then all operations succeed and datastore doesn't contain cid anymore
- */
-TEST_F(DatastoreIntegrationTest, RemoveSuccess) {
-  EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
-  EXPECT_OUTCOME_TRUE_1(datastore->remove(cid1));
-  EXPECT_OUTCOME_EQ(datastore->contains(cid1), false);
-}
-
-/**
- * @given opened datastore, 2 CID instances and a value
- * @when put cid1 with value into datastore @and remove cid2 from datastore
- * @then all operations succeed and datastore still contains cid1
- */
-TEST_F(DatastoreIntegrationTest, RemoveNotExistingSuccess) {
-  EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
-  EXPECT_OUTCOME_TRUE_1(datastore->remove(cid2));
-  EXPECT_OUTCOME_EQ(datastore->contains(cid1), true);
-}
-
 /** Setting same key twice succeeds */
 TEST_F(DatastoreIntegrationTest, SetTwice) {
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));

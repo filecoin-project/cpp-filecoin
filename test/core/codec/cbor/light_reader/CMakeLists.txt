@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(light_actor_reader
+addtest(light_actor_reader_test
     light_actor_reader.cpp
     )
-target_link_libraries(light_actor_reader
+target_link_libraries(light_actor_reader_test
     cbor
     storage_power_actor_v0
     ipfs_datastore_in_memory

@@ -21,11 +21,13 @@ namespace fc::sync {
   ChainStoreImpl::ChainStoreImpl(
       std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
       TsLoadPtr ts_load,
+      std::shared_ptr<PutBlockHeader> put_block_header,
       TipsetCPtr head,
       BigInt weight,
       std::shared_ptr<BlockValidator> block_validator)
       : ipld_(std::move(ipld)),
         ts_load_(std::move(ts_load)),
+        put_block_header_(std::move(put_block_header)),
         block_validator_(std::move(block_validator)) {
     assert(ipld_);
     assert(block_validator_);
@@ -46,7 +48,7 @@ namespace fc::sync {
   }
 
   outcome::result<void> ChainStoreImpl::addBlock(const BlockHeader &block) {
-    OUTCOME_TRY(cid, ipld_->setCbor(block));
+    auto cid{primitives::tipset::put(ipld_, put_block_header_, block)};
     head_constructor_.blockFromApi(cid, block);
     return outcome::success();
   }

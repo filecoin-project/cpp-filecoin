@@ -13,6 +13,7 @@
 
 namespace fc::sync {
   using blockchain::block_validator::BlockValidator;
+  using primitives::tipset::PutBlockHeader;
   using primitives::tipset::chain::Path;
 
   class ChainStoreImpl : public fc::storage::blockchain::ChainStore,
@@ -20,6 +21,7 @@ namespace fc::sync {
    public:
     ChainStoreImpl(std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
                    TsLoadPtr ts_load,
+                   std::shared_ptr<PutBlockHeader> put_block_header,
                    TipsetCPtr head,
                    BigInt weight,
                    std::shared_ptr<BlockValidator> block_validator);
@@ -41,6 +43,7 @@ namespace fc::sync {
     HeadConstructor head_constructor_;
     std::shared_ptr<storage::ipfs::IpfsDatastore> ipld_;
     TsLoadPtr ts_load_;
+    std::shared_ptr<PutBlockHeader> put_block_header_;
     std::shared_ptr<BlockValidator> block_validator_;
 
     std::shared_ptr<events::Events> events_;

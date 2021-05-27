@@ -43,13 +43,24 @@ namespace fc::node {
       metric("height_expected",
              o.chain_epoch_clock->epochAtTime(o.utc_clock->nowUTC()).value());
 
-      metric("car_size", o.ipld_cids_write->car_offset);
-      std::shared_lock index_lock{o.ipld_cids_write->index_mutex};
-      metric("car_count", o.ipld_cids_write->index->size());
-      index_lock.unlock();
-      std::shared_lock written_lock{o.ipld_cids_write->written_mutex};
-      metric("car_tmp", o.ipld_cids_write->written.size());
-      written_lock.unlock();
+      auto car{[&](auto _size, auto _count, auto _tmp, auto &ipld) {
+        uint64_t size{}, count{}, tmp{};
+        if (ipld) {
+          std::shared_lock index_lock{ipld->index_mutex};
+          std::shared_lock written_lock{ipld->written_mutex};
+          size = ipld->car_offset;
+          count = ipld->index->size();
+          tmp = ipld->written.size();
+        }
+        metric(_size, size);
+        metric(_count, count);
+        metric(_tmp, tmp);
+      }};
+      {
+        std::unique_lock ipld_lock{o.compacter->ipld_mutex};
+        car("car_size", "car_count", "car_tmp", o.compacter->old_ipld);
+        car("car2_size", "car2_count", "car2_tmp", o.compacter->new_ipld);
+      }
 
       return ss.str();
     }

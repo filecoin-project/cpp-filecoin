@@ -26,9 +26,6 @@ namespace fc::storage::ipfs {
     /** @copydoc IpfsDatastore::get() */
     outcome::result<Value> get(const CID &key) const override;
 
-    /** @copydoc IpfsDatastore::remove() */
-    outcome::result<void> remove(const CID &key) override;
-
     IpldPtr shared() override {
       return shared_from_this();
     }

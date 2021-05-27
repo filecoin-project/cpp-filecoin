@@ -10,6 +10,10 @@
 #include "codec/cbor/cbor_codec.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
 
+namespace fc::primitives::block {
+  struct BlockHeader;
+}  // namespace fc::primitives::block
+
 namespace fc::storage::ipfs {
 
   class IpfsDatastore {
@@ -40,13 +44,6 @@ namespace fc::storage::ipfs {
      */
     virtual outcome::result<Value> get(const CID &key) const = 0;
 
-    /**
-     * @brief removes key from data store
-     * @param key key to remove
-     * @return success if removed or didn't exist, error otherwise
-     */
-    virtual outcome::result<void> remove(const CID &key) = 0;
-
     virtual std::shared_ptr<IpfsDatastore> shared() = 0;
 
     /**
@@ -61,6 +58,8 @@ namespace fc::storage::ipfs {
       OUTCOME_TRY(set(key, std::move(bytes)));
       return std::move(key);
     }
+
+    void setCbor(const primitives::block::BlockHeader &) = delete;
 
     /// Get CBOR decoded value by CID
     template <typename T>

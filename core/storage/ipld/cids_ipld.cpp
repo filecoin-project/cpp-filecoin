@@ -7,6 +7,8 @@
 
 #include <boost/asio/io_context.hpp>
 #include <boost/filesystem/operations.hpp>
+
+#include "cbor_blake/ipld_any.hpp"
 #include "codec/uvarint.hpp"
 #include "common/error_text.hpp"
 #include "common/logger.hpp"
@@ -70,6 +72,7 @@ namespace fc::storage::ipld {
   }
 
   Outcome<void> CidsIpld::doFlush() {
+    std::unique_lock flush_lock{flush_mutex};
     std::shared_lock written_slock{written_mutex};
     uint64_t max_offset{};
     std::vector<Row> rows;
@@ -119,7 +122,7 @@ namespace fc::storage::ipld {
     return outcome::success();
   }
 
-  bool CidsIpld::get(const Hash256 &key, Buffer *value) const {
+  bool CidsIpld::get(const CbCid &key, Buffer *value) const {
     if (value) {
       value->resize(0);
     }
@@ -131,6 +134,9 @@ namespace fc::storage::ipld {
       row = findWritten(key);
     }
     if (!row) {
+      if (ipld) {
+        return AnyAsCbIpld::get(ipld, key, value);
+      }
       return false;
     }
     if (value) {
@@ -149,7 +155,7 @@ namespace fc::storage::ipld {
     return true;
   }
 
-  void CidsIpld::put(const Hash256 &key, BytesIn value) {
+  void CidsIpld::put(const CbCid &key, BytesIn value) {
     if (!writable.is_open()) {
       outcome::raise(ERROR_TEXT("CidsIpld.put: not writable"));
     }
@@ -204,22 +210,5 @@ namespace fc::storage::ipld {
         }
       }
     }
-  }
-
-  outcome::result<bool> Ipld2Ipld::contains(const CID &cid) const {
-    return ipld->has(*asBlake(cid));
-  }
-
-  outcome::result<void> Ipld2Ipld::set(const CID &cid, Buffer value) {
-    ipld->put(*asBlake(cid), value);
-    return outcome::success();
-  }
-
-  outcome::result<Buffer> Ipld2Ipld::get(const CID &cid) const {
-    Buffer value;
-    if (!ipld->get(*asBlake(cid), value)) {
-      return ipfs::IpfsDatastoreError::kNotFound;
-    }
-    return std::move(value);
   }
 }  // namespace fc::storage::ipld

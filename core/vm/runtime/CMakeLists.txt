@@ -18,7 +18,6 @@ target_link_libraries(runtime
     dvm
     interpreter
     ipfs_datastore_error
-    ipld_traverser
     keystore
     message
     proofs

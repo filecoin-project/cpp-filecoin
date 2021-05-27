@@ -42,11 +42,9 @@ namespace fc::vm::runtime {
     outcome::result<bool> contains(const CID &key) const override;
     outcome::result<void> set(const CID &key, Value value) override;
     outcome::result<Value> get(const CID &key) const override;
-    outcome::result<void> remove(const CID &key) override;
     IpldPtr shared() override;
 
     IpldPtr ipld;
-    bool flushing{false};
     // vm only stores "DAG_CBOR blake2b_256" cids
     std::unordered_map<Hash256, Buffer> write;
   };
@@ -109,9 +107,6 @@ namespace fc::vm::runtime {
     }
     outcome::result<void> set(const CID &key, Value value) override;
     outcome::result<Value> get(const CID &key) const override;
-    outcome::result<void> remove(const CID &key) override {
-      throw "deprecated";
-    }
     IpldPtr shared() override {
       return shared_from_this();
     }

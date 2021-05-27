@@ -4,12 +4,13 @@
  */
 
 #include <gtest/gtest.h>
+
+#include "cbor_blake/ipld_any.hpp"
 #include "codec/cbor/light_reader/miner_actor_reader.hpp"
 #include "codec/cbor/light_reader/storage_power_actor_reader.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/storage/ipld2.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
@@ -20,7 +21,6 @@ namespace fc::codec::cbor::light_reader {
   using primitives::sector::RegisteredSealProof;
   using storage::ipfs::InMemoryDatastore;
   using storage::ipfs::IpfsDatastore;
-  using storage::ipld::IpldIpld2;
   using vm::actor::ActorVersion;
   using vm::actor::builtin::states::ChainEpochKeyer;
   using vm::actor::builtin::states::State;
@@ -58,7 +58,7 @@ namespace fc::codec::cbor::light_reader {
 
    protected:
     IpldPtr ipld = std::make_shared<InMemoryDatastore>();
-    LightIpldPtr light_ipld = std::make_shared<IpldIpld2>(ipld);
+    CbIpldPtr light_ipld = std::make_shared<AnyAsCbIpld>(ipld);
   };
 
   /**

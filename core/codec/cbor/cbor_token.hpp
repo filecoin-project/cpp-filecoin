@@ -52,7 +52,7 @@ namespace fc::codec::cbor {
         return extra;
       }
       if (type == Type::INT) {
-        return -static_cast<int64_t>(extra) - 1;
+        return ~static_cast<int64_t>(extra);
       }
       return {};
     }
@@ -234,6 +234,16 @@ namespace fc::codec::cbor {
     }
     nested = {};
     return false;
+  }
+
+  inline bool skipNested(BytesIn &input, size_t count) {
+    for (size_t i{}; i < count; ++i) {
+      BytesIn tmp;
+      if (!readNested(tmp, input)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   inline bool findCid(BytesIn &cid, BytesIn &input) {
