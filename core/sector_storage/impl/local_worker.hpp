@@ -14,8 +14,9 @@
 namespace fc::sector_storage {
 
   struct WorkerConfig {
-    primitives::sector::RegisteredSealProof seal_proof_type;
+    boost::optional<std::string> custom_hostname = boost::none;
     std::set<primitives::TaskType> task_types;
+    bool is_no_swap = false;
   };
 
   class LocalWorker : public Worker,
@@ -23,6 +24,7 @@ namespace fc::sector_storage {
    public:
     LocalWorker(std::shared_ptr<boost::asio::io_context> context,
                 WorkerConfig config,
+                std::shared_ptr<WorkerReturn> return_interface,
                 std::shared_ptr<stores::RemoteStore> store,
                 std::shared_ptr<proofs::ProofEngine> proofs =
                     std::make_shared<proofs::ProofEngineImpl>());
@@ -83,7 +85,7 @@ namespace fc::sector_storage {
 
    private:
     outcome::result<CallId> asyncCall(const SectorRef &sector,
-                                      const std::function<void()> &work);
+                                      std::function<void(CallId)> work);
 
     struct Response {
       stores::SectorPaths paths;
@@ -103,8 +105,10 @@ namespace fc::sector_storage {
     std::shared_ptr<stores::SectorIndex> index_;
 
     std::shared_ptr<proofs::ProofEngine> proofs_;
+    std::shared_ptr<WorkerReturn> return_;
 
-    WorkerConfig config_;
+    std::set<primitives::TaskType> task_types_;
+    bool is_no_swap;
     std::string hostname_;
     common::Logger logger_;
   };

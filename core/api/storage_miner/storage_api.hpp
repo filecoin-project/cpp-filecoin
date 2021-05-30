@@ -87,9 +87,6 @@ namespace fc::api {
 
     API_METHOD(MarketSetRetrievalAsk, void, const RetrievalAsk &)
 
-    // TODO(ortyomka): [FIL-347] remove it
-    API_METHOD(SealProof, RegisteredSealProof)
-
     API_METHOD(StorageAttach, void, const StorageInfo_ &, const FsStat &)
     API_METHOD(StorageInfo, StorageInfo_, const StorageID &)
     API_METHOD(StorageReportHealth,
@@ -148,7 +145,6 @@ namespace fc::api {
     f(a.MarketGetRetrievalAsk);
     f(a.MarketSetAsk);
     f(a.MarketSetRetrievalAsk);
-    f(a.SealProof);  // TODO(ortyomka): [FIL-347] remove it
     f(a.StorageAttach);
     f(a.StorageInfo);
     f(a.StorageReportHealth);

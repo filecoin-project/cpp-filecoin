@@ -13,6 +13,7 @@
 #include "primitives/sector_file/sector_file.hpp"
 #include "proofs/proof_engine.hpp"
 #include "sector_storage/stores/store.hpp"
+#include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage {
   using primitives::piece::PieceData;
@@ -31,6 +32,7 @@ namespace fc::sector_storage {
   using primitives::sector::SealRandomness;
   using stores::AcquireMode;
   using stores::PathType;
+  using stores::StoreError;
 
   struct Range {
     UnpaddedPieceSize offset;
@@ -110,6 +112,64 @@ namespace fc::sector_storage {
 
     virtual outcome::result<std::vector<primitives::StoragePath>>
     getAccessiblePaths() = 0;
+  };
+
+  enum class CallErrorCode {
+    Unknown = 0,
+    WorkerRestart = 101,  // from lotus
+    AllocateSpace         // same as StoreError::kCannotReserve
+  };
+
+  struct CallError {
+    uint64_t code;
+    std::string message;
+  };
+
+  class WorkerReturn {
+   public:
+    virtual ~WorkerReturn() = default;
+
+    virtual outcome::result<void> returnAddPiece(
+        CallId call_id,
+        boost::optional<PieceInfo> maybe_piece_info,
+        boost::optional<CallError> maybe_error) = 0;
+
+    virtual outcome::result<void> returnSealPreCommit1(
+        CallId call_id,
+        boost::optional<PreCommit1Output> maybe_precommit1_out,
+        boost::optional<CallError> maybe_error) = 0;
+
+    virtual outcome::result<void> returnSealPreCommit2(
+        CallId call_id,
+        boost::optional<SectorCids> maybe_sector_cids,
+        boost::optional<CallError> maybe_error) = 0;
+
+    virtual outcome::result<void> returnSealCommit1(
+        CallId call_id,
+        boost::optional<Commit1Output> maybe_commit1_out,
+        boost::optional<CallError> maybe_error) = 0;
+
+    virtual outcome::result<void> returnSealCommit2(
+        CallId call_id,
+        boost::optional<Proof> maybe_proof,
+        boost::optional<CallError> maybe_error) = 0;
+
+    virtual outcome::result<void> returnFinalizeSector(
+        CallId call_id, boost::optional<CallError> maybe_error) = 0;
+
+    virtual outcome::result<void> returnMoveStorage(
+        CallId call_id, boost::optional<CallError> maybe_error) = 0;
+
+    virtual outcome::result<void> returnUnsealPiece(
+        CallId call_id, boost::optional<CallError> maybe_error) = 0;
+
+    virtual outcome::result<void> returnReadPiece(
+        CallId call_id,
+        boost::optional<bool> maybe_status,
+        boost::optional<CallError> maybe_error) = 0;
+
+    virtual outcome::result<void> returnFetch(
+        CallId call_id, boost::optional<CallError> maybe_error) = 0;
   };
 
   enum class WorkerErrors {
