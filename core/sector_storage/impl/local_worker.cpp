@@ -115,7 +115,7 @@ namespace fc::sector_storage {
   }
 
   LocalWorker::LocalWorker(std::shared_ptr<boost::asio::io_context> context,
-                           WorkerConfig config,
+                           const WorkerConfig &config,
                            std::shared_ptr<WorkerReturn> return_interface,
                            std::shared_ptr<stores::RemoteStore> store,
                            std::shared_ptr<proofs::ProofEngine> proofs)
@@ -334,17 +334,14 @@ namespace fc::sector_storage {
           auto maybe_result = work();
 
           boost::optional<PieceInfo> value = boost::none;
-          boost::optional<CallError> call_error = boost::none;
 
           if (maybe_result.has_value()) {
             value = maybe_result.value();
-          } else {
-            call_error = CallError{};  // TODO: from error
           }
 
           returnFunction<PieceInfo>(std::move(call_id),
                                     value,
-                                    call_error,
+                                    toCallError(maybe_result),
                                     std::bind(&WorkerReturn::returnAddPiece,
                                               self->return_,
                                               std::placeholders::_1,
@@ -425,18 +422,15 @@ namespace fc::sector_storage {
           auto maybe_result = work();
 
           boost::optional<PreCommit1Output> value = boost::none;
-          boost::optional<CallError> call_error = boost::none;
 
           if (maybe_result.has_value()) {
             value = maybe_result.value();
-          } else {
-            call_error = CallError{};  // TODO: from error
           }
 
           returnFunction<PreCommit1Output>(
               std::move(call_id),
               value,
-              call_error,
+              toCallError(maybe_result),
               std::bind(&WorkerReturn::returnSealPreCommit1,
                         self->return_,
                         std::placeholders::_1,
@@ -470,18 +464,15 @@ namespace fc::sector_storage {
           auto maybe_result = work();
 
           boost::optional<SectorCids> value = boost::none;
-          boost::optional<CallError> call_error = boost::none;
 
           if (maybe_result.has_value()) {
             value = maybe_result.value();
-          } else {
-            call_error = CallError{};  // TODO: from error
           }
 
           returnFunction<SectorCids>(
               std::move(call_id),
               value,
-              call_error,
+              toCallError(maybe_result),
               std::bind(&WorkerReturn::returnSealPreCommit2,
                         self->return_,
                         std::placeholders::_1,
@@ -526,18 +517,15 @@ namespace fc::sector_storage {
           auto maybe_result = work();
 
           boost::optional<Commit1Output> value = boost::none;
-          boost::optional<CallError> call_error = boost::none;
 
           if (maybe_result.has_value()) {
             value = maybe_result.value();
-          } else {
-            call_error = CallError{};  // TODO: from error
           }
 
           returnFunction<Commit1Output>(
               std::move(call_id),
               value,
-              call_error,
+              toCallError(maybe_result),
               std::bind(&WorkerReturn::returnSealCommit1,
                         self->return_,
                         std::placeholders::_1,
@@ -562,17 +550,14 @@ namespace fc::sector_storage {
           auto maybe_result = work();
 
           boost::optional<Proof> value = boost::none;
-          boost::optional<CallError> call_error = boost::none;
 
           if (maybe_result.has_value()) {
             value = maybe_result.value();
-          } else {
-            call_error = CallError{};  // TODO: from error
           }
 
           returnFunction<Proof>(std::move(call_id),
                                 value,
-                                call_error,
+                                toCallError(maybe_result),
                                 std::bind(&WorkerReturn::returnSealCommit2,
                                           self->return_,
                                           std::placeholders::_1,
@@ -650,14 +635,8 @@ namespace fc::sector_storage {
         [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
           auto maybe_error = work();
 
-          boost::optional<CallError> call_error = boost::none;
-
-          if (maybe_error.has_error()) {
-            call_error = CallError{};  // TODO: from error
-          }
-
           returnFunction(std::move(call_id),
-                         call_error,
+                         toCallError(maybe_error),
                          std::bind(&WorkerReturn::returnFinalizeSector,
                                    self->return_,
                                    std::placeholders::_1,
@@ -677,14 +656,8 @@ namespace fc::sector_storage {
         [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
           auto maybe_error = work();
 
-          boost::optional<CallError> call_error = boost::none;
-
-          if (maybe_error.has_error()) {
-            call_error = CallError{};  // TODO: from error
-          }
-
           returnFunction(std::move(call_id),
-                         call_error,
+                         toCallError(maybe_error),
                          std::bind(&WorkerReturn::returnMoveStorage,
                                    self->return_,
                                    std::placeholders::_1,
@@ -851,15 +824,8 @@ namespace fc::sector_storage {
         [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
           auto maybe_error = work();
 
-          boost::optional<CallError> call_error = boost::none;
-
-          if (maybe_error.has_error()) {
-            call_error = CallError{};  // TODO: from error
-          }
-
           returnFunction(std::move(call_id),
-
-                         call_error,
+                         toCallError(maybe_error),
                          std::bind(&WorkerReturn::returnUnsealPiece,
                                    self->return_,
                                    std::placeholders::_1,
@@ -918,17 +884,14 @@ namespace fc::sector_storage {
           auto maybe_result = work();
 
           boost::optional<bool> value = boost::none;
-          boost::optional<CallError> call_error = boost::none;
 
           if (maybe_result.has_value()) {
             value = maybe_result.value();
-          } else {
-            call_error = CallError{};  // TODO: from error
           }
 
           returnFunction<bool>(std::move(call_id),
                                value,
-                               call_error,
+                               toCallError(maybe_result),
                                std::bind(&WorkerReturn::returnReadPiece,
                                          self->return_,
                                          std::placeholders::_1,
@@ -957,14 +920,8 @@ namespace fc::sector_storage {
         [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
           auto maybe_error = work();
 
-          boost::optional<CallError> call_error = boost::none;
-
-          if (maybe_error.has_error()) {
-            call_error = CallError{};  // TODO: from error
-          }
-
           returnFunction(std::move(call_id),
-                         call_error,
+                         toCallError(maybe_error),
                          std::bind(&WorkerReturn::returnFetch,
                                    self->return_,
                                    std::placeholders::_1,
@@ -980,5 +937,31 @@ namespace fc::sector_storage {
     context_->post([call_id, work = std::move(work)]() { work(call_id); });
 
     return call_id;
+  }
+
+  std::shared_ptr<LocalWorker> LocalWorker::newLocalWorker(
+      std::shared_ptr<boost::asio::io_context> context,
+      const WorkerConfig &config,
+      std::shared_ptr<WorkerReturn> return_interface,
+      std::shared_ptr<stores::RemoteStore> store,
+      std::shared_ptr<proofs::ProofEngine> proofs) {
+    struct make_unique_enabler : public LocalWorker {
+      make_unique_enabler(std::shared_ptr<boost::asio::io_context> context,
+                          const WorkerConfig &config,
+                          std::shared_ptr<WorkerReturn> return_interface,
+                          std::shared_ptr<stores::RemoteStore> store,
+                          std::shared_ptr<proofs::ProofEngine> proofs)
+          : LocalWorker{std::move(context),
+                        config,
+                        std::move(return_interface),
+                        std::move(store),
+                        std::move(proofs)} {};
+    };
+
+    return std::make_shared<make_unique_enabler>(std::move(context),
+                                                 config,
+                                                 std::move(return_interface),
+                                                 std::move(store),
+                                                 std::move(proofs));
   }
 }  // namespace fc::sector_storage

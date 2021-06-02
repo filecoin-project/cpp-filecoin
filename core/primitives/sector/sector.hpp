@@ -85,6 +85,10 @@ namespace fc::primitives::sector {
     RegisteredSealProof proof_type;
   };
 
+  inline bool operator==(const SectorRef &lhs, const SectorRef &rhs) {
+    return lhs.id == rhs.id and lhs.proof_type == rhs.proof_type;
+  }
+
   /**
    * Returns the partition size, in sectors, associated with a seal proof type.
    * The partition size is the number of sectors proved in a single PoSt proof.

@@ -46,7 +46,12 @@ namespace fc::sector_storage::stores {
   class LocalStoreTest : public test::BaseFS_Test {
    public:
     LocalStoreTest() : test::BaseFS_Test("fc_local_store_test") {
-      seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
+      sector_ = SectorRef{.proof_type = RegisteredSealProof::kStackedDrg2KiBV1,
+                          .id = SectorId{
+                              .miner = 42,
+                              .sector = 1,
+                          }};
+      sector_size_ = getSectorSize(sector_.proof_type).value();
       index_ = std::make_shared<SectorIndexMock>();
       storage_ = std::make_shared<LocalStorageMock>();
       urls_ = {"http://url1.com", "http://url2.com"};
@@ -93,7 +98,8 @@ namespace fc::sector_storage::stores {
     }
 
    protected:
-    RegisteredSealProof seal_proof_type_;
+    SectorRef sector_;
+    SectorSize sector_size_;
     std::shared_ptr<LocalStore> local_store_;
     std::shared_ptr<SectorIndexMock> index_;
     std::shared_ptr<LocalStorageMock> storage_;
@@ -109,11 +115,6 @@ namespace fc::sector_storage::stores {
    * @then StoreErrors::FindAndAllocate error occurs
    */
   TEST_F(LocalStoreTest, AcquireSectorFindAndAllocate) {
-    SectorId sector{
-        .miner = 42,
-        .sector = 1,
-    };
-
     auto file_type_allocate = static_cast<SectorFileType>(
         SectorFileType::FTCache | SectorFileType::FTUnsealed);
 
@@ -121,8 +122,7 @@ namespace fc::sector_storage::stores {
         SectorFileType::FTCache | SectorFileType::FTSealed);
 
     EXPECT_OUTCOME_ERROR(StoreError::kFindAndAllocate,
-                         local_store_->acquireSector(sector,
-                                                     seal_proof_type_,
+                         local_store_->acquireSector(sector_,
                                                      file_type_existing,
                                                      file_type_allocate,
                                                      PathType::kStorage,
@@ -135,11 +135,6 @@ namespace fc::sector_storage::stores {
    * @then StoreErrors::NotFoundPath error occurs
    */
   TEST_F(LocalStoreTest, AcquireSectorNotFoundPath) {
-    SectorId sector{
-        .miner = 42,
-        .sector = 1,
-    };
-
     std::vector res = {StorageInfo{
         .id = "not_found_id",
         .urls = {},
@@ -148,14 +143,12 @@ namespace fc::sector_storage::stores {
         .can_store = false,
     }};
 
-    EXPECT_CALL(
-        *index_,
-        storageBestAlloc(SectorFileType::FTCache, seal_proof_type_, false))
+    EXPECT_CALL(*index_,
+                storageBestAlloc(SectorFileType::FTCache, sector_size_, false))
         .WillOnce(testing::Return(outcome::success(res)));
 
     EXPECT_OUTCOME_ERROR(StoreError::kNotFoundPath,
-                         local_store_->acquireSector(sector,
-                                                     seal_proof_type_,
+                         local_store_->acquireSector(sector_,
                                                      SectorFileType::FTNone,
                                                      SectorFileType::FTCache,
                                                      PathType::kStorage,
@@ -168,11 +161,6 @@ namespace fc::sector_storage::stores {
    * @then get id of the storage and specific path for that storage
    */
   TEST_F(LocalStoreTest, AcquireSectorAllocateSuccess) {
-    SectorId sector{
-        .miner = 42,
-        .sector = 1,
-    };
-
     SectorFileType file_type = SectorFileType::FTCache;
 
     auto storage_path = boost::filesystem::unique_path(
@@ -206,12 +194,11 @@ namespace fc::sector_storage::stores {
 
     std::vector res = {storage_info};
 
-    EXPECT_CALL(*index_, storageBestAlloc(file_type, seal_proof_type_, false))
+    EXPECT_CALL(*index_, storageBestAlloc(file_type, sector_size_, false))
         .WillOnce(testing::Return(outcome::success(res)));
 
     EXPECT_OUTCOME_TRUE(sectors,
-                        local_store_->acquireSector(sector,
-                                                    seal_proof_type_,
+                        local_store_->acquireSector(sector_,
                                                     SectorFileType::FTNone,
                                                     file_type,
                                                     PathType::kStorage,
@@ -219,7 +206,7 @@ namespace fc::sector_storage::stores {
 
     std::string res_path =
         (boost::filesystem::path(storage_path) / toString(file_type)
-         / primitives::sector_file::sectorName(sector))
+         / primitives::sector_file::sectorName(sector_.id))
             .string();
 
     EXPECT_OUTCOME_EQ(sectors.paths.getPathByType(file_type), res_path);
@@ -232,11 +219,6 @@ namespace fc::sector_storage::stores {
    * @then get id of the storage and specific path for that storage
    */
   TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
-    SectorId sector{
-        .miner = 42,
-        .sector = 1,
-    };
-
     SectorFileType file_type = SectorFileType::FTCache;
 
     auto storage_path = boost::filesystem::unique_path(
@@ -270,12 +252,12 @@ namespace fc::sector_storage::stores {
 
     std::vector res = {storage_info};
 
-    EXPECT_CALL(*index_, storageFindSector(sector, file_type, Eq(boost::none)))
+    EXPECT_CALL(*index_,
+                storageFindSector(sector_.id, file_type, Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success(res)));
 
     EXPECT_OUTCOME_TRUE(sectors,
-                        local_store_->acquireSector(sector,
-                                                    seal_proof_type_,
+                        local_store_->acquireSector(sector_,
                                                     file_type,
                                                     SectorFileType::FTNone,
                                                     PathType::kStorage,
@@ -283,7 +265,7 @@ namespace fc::sector_storage::stores {
 
     std::string res_path =
         (boost::filesystem::path(storage_path) / toString(file_type)
-         / primitives::sector_file::sectorName(sector))
+         / primitives::sector_file::sectorName(sector_.id))
             .string();
 
     EXPECT_OUTCOME_EQ(sectors.paths.getPathByType(file_type), res_path);
@@ -753,11 +735,10 @@ namespace fc::sector_storage::stores {
     EXPECT_CALL(*index_, storageFindSector(sector, file_type, Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success(std::vector({info}))));
 
-    EXPECT_CALL(*index_, storageBestAlloc(file_type, seal_proof_type_, false))
+    EXPECT_CALL(*index_, storageBestAlloc(file_type, sector_size_, false))
         .WillOnce(testing::Return(outcome::success(std::vector({info2}))));
 
-    EXPECT_OUTCOME_TRUE_1(
-        local_store_->moveStorage(sector, seal_proof_type_, file_type));
+    EXPECT_OUTCOME_TRUE_1(local_store_->moveStorage(sector_, file_type));
 
     ASSERT_TRUE(boost::filesystem::exists(moved_sector_file));
     ASSERT_FALSE(boost::filesystem::exists(sector_file));
@@ -1198,7 +1179,7 @@ namespace fc::sector_storage::stores {
     scheduler_->next_clock();
     EXPECT_OUTCOME_TRUE(
         release,
-        local_store_->reserve(seal_proof_type_, type, spaths, path_type));
+        local_store_->reserve(sector_, type, spaths, path_type));
 
     std::string sector_file = (storage_path / toString(type)
                                / primitives::sector_file::sectorName(sector))

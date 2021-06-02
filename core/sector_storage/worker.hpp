@@ -48,6 +48,10 @@ namespace fc::sector_storage {
     std::string id;  // uuid
   };
 
+  inline bool operator==(const CallId &lhs, const CallId &rhs) {
+    return lhs.sector == rhs.sector && lhs.id == rhs.id;
+  }
+
   class WorkerCalls {
    public:
     virtual ~WorkerCalls() = default;
@@ -114,16 +118,32 @@ namespace fc::sector_storage {
     getAccessiblePaths() = 0;
   };
 
-  enum class CallErrorCode {
-    Unknown = 0,
-    WorkerRestart = 101,  // from lotus
-    AllocateSpace         // same as StoreError::kCannotReserve
+  enum class CallErrorCode : uint64_t {
+    kUnknown = 0,
+    kWorkerRestart = 101,  // from lotus
+    kAllocateSpace         // same as StoreError::kCannotReserve
   };
 
   struct CallError {
-    uint64_t code;
+    CallErrorCode code;
     std::string message;
   };
+
+  template <typename T>
+  boost::optional<CallError> toCallError(const outcome::result<T> &result) {
+    if (not result.has_error()) {
+      return boost::none;
+    }
+
+    CallError error{
+        .code = CallErrorCode::kUnknown,
+        .message = result.error().message(),
+    };
+    if (result == outcome::failure(StoreError::kCannotReserve)) {
+      error.code = CallErrorCode::kAllocateSpace;
+    }
+    return error;
+  }
 
   class WorkerReturn {
    public:
