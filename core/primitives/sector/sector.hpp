@@ -81,8 +81,8 @@ namespace fc::primitives::sector {
       RegisteredPoStProof proof);
 
   struct SectorRef {
-    SectorId id;
-    RegisteredSealProof proof_type;
+    SectorId id{};
+    RegisteredSealProof proof_type{RegisteredSealProof::kUndefined};
   };
 
   inline bool operator==(const SectorRef &lhs, const SectorRef &rhs) {

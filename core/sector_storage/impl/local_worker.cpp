@@ -31,14 +31,18 @@ namespace fc::sector_storage {
   namespace uuids = boost::uuids;
 
   template <typename T>
-  bool returnFunction(
-      CallId call_id,
-      boost::optional<T> return_value,
-      boost::optional<CallError> error,
-      const std::function<outcome::result<void>(
-          CallId, boost::optional<T>, boost::optional<CallError>)> &callback) {
+  using return_value_cb = std::function<outcome::result<void>(
+      CallId, boost::optional<T>, boost::optional<CallError>)>;
+  using return_error_cb =
+      std::function<outcome::result<void>(CallId, boost::optional<CallError>)>;
+
+  template <typename T>
+  bool returnFunction(const CallId &call_id,
+                      const boost::optional<T> &return_value,
+                      const boost::optional<CallError> &error,
+                      const return_value_cb<T> &callback) {
     while (true) {
-      auto maybe_error = callback(call_id, return_value, error);
+      const auto maybe_error = callback(call_id, return_value, error);
 
       if (not maybe_error.has_error()) break;
 
@@ -48,10 +52,9 @@ namespace fc::sector_storage {
     return true;
   }
 
-  bool returnFunction(CallId call_id,
-                      boost::optional<CallError> error,
-                      const std::function<outcome::result<void>(
-                          CallId, boost::optional<CallError>)> &callback) {
+  bool returnFunction(const CallId &call_id,
+                      const boost::optional<CallError> &error,
+                      const return_error_cb &callback) {
     while (true) {
       auto maybe_error = callback(call_id, error);
 
@@ -133,7 +136,7 @@ namespace fc::sector_storage {
 
     is_no_swap = config.is_no_swap;
 
-    task_types_ = std::move(config.task_types);
+    task_types_ = config.task_types;
   }
 
   outcome::result<primitives::WorkerInfo>
@@ -328,26 +331,23 @@ namespace fc::sector_storage {
       return piece_info.value();
     };
 
-    return asyncCall(
-        sector,
-        [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
-          auto maybe_result = work();
+    return asyncCall(sector,
+                     [self{shared_from_this()},
+                      work = std::move(work)](const CallId &call_id) {
+                       const auto maybe_result = work();
 
-          boost::optional<PieceInfo> value = boost::none;
-
-          if (maybe_result.has_value()) {
-            value = maybe_result.value();
-          }
-
-          returnFunction<PieceInfo>(std::move(call_id),
-                                    value,
-                                    toCallError(maybe_result),
-                                    std::bind(&WorkerReturn::returnAddPiece,
-                                              self->return_,
-                                              std::placeholders::_1,
-                                              std::placeholders::_2,
-                                              std::placeholders::_3));
-        });
+                       returnFunction<PieceInfo>(
+                           call_id,
+                           maybe_result.has_value()
+                               ? boost::make_optional(maybe_result.value())
+                               : boost::none,
+                           toCallError(maybe_result),
+                           std::bind(&WorkerReturn::returnAddPiece,
+                                     self->return_,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2,
+                                     std::placeholders::_3));
+                     });
   }
 
   outcome::result<CallId> LocalWorker::sealPreCommit1(
@@ -416,27 +416,23 @@ namespace fc::sector_storage {
                                                 pieces);
     };
 
-    return asyncCall(
-        sector,
-        [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
-          auto maybe_result = work();
+    return asyncCall(sector,
+                     [self{shared_from_this()},
+                      work = std::move(work)](const CallId &call_id) {
+                       const auto maybe_result = work();
 
-          boost::optional<PreCommit1Output> value = boost::none;
-
-          if (maybe_result.has_value()) {
-            value = maybe_result.value();
-          }
-
-          returnFunction<PreCommit1Output>(
-              std::move(call_id),
-              value,
-              toCallError(maybe_result),
-              std::bind(&WorkerReturn::returnSealPreCommit1,
-                        self->return_,
-                        std::placeholders::_1,
-                        std::placeholders::_2,
-                        std::placeholders::_3));
-        });
+                       returnFunction<PreCommit1Output>(
+                           call_id,
+                           maybe_result.has_value()
+                               ? boost::make_optional(maybe_result.value())
+                               : boost::none,
+                           toCallError(maybe_result),
+                           std::bind(&WorkerReturn::returnSealPreCommit1,
+                                     self->return_,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2,
+                                     std::placeholders::_3));
+                     });
   }
 
   outcome::result<CallId> LocalWorker::sealPreCommit2(
@@ -458,27 +454,23 @@ namespace fc::sector_storage {
           pre_commit_1_output, response.paths.cache, response.paths.sealed);
     };
 
-    return asyncCall(
-        sector,
-        [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
-          auto maybe_result = work();
+    return asyncCall(sector,
+                     [self{shared_from_this()},
+                      work = std::move(work)](const CallId &call_id) {
+                       const auto maybe_result = work();
 
-          boost::optional<SectorCids> value = boost::none;
-
-          if (maybe_result.has_value()) {
-            value = maybe_result.value();
-          }
-
-          returnFunction<SectorCids>(
-              std::move(call_id),
-              value,
-              toCallError(maybe_result),
-              std::bind(&WorkerReturn::returnSealPreCommit2,
-                        self->return_,
-                        std::placeholders::_1,
-                        std::placeholders::_2,
-                        std::placeholders::_3));
-        });
+                       returnFunction<SectorCids>(
+                           call_id,
+                           maybe_result.has_value()
+                               ? boost::make_optional(maybe_result.value())
+                               : boost::none,
+                           toCallError(maybe_result),
+                           std::bind(&WorkerReturn::returnSealPreCommit2,
+                                     self->return_,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2,
+                                     std::placeholders::_3));
+                     });
   }
 
   outcome::result<CallId> LocalWorker::sealCommit1(
@@ -511,27 +503,23 @@ namespace fc::sector_storage {
                                              pieces);
     };
 
-    return asyncCall(
-        sector,
-        [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
-          auto maybe_result = work();
+    return asyncCall(sector,
+                     [self{shared_from_this()},
+                      work = std::move(work)](const CallId &call_id) {
+                       const auto maybe_result = work();
 
-          boost::optional<Commit1Output> value = boost::none;
-
-          if (maybe_result.has_value()) {
-            value = maybe_result.value();
-          }
-
-          returnFunction<Commit1Output>(
-              std::move(call_id),
-              value,
-              toCallError(maybe_result),
-              std::bind(&WorkerReturn::returnSealCommit1,
-                        self->return_,
-                        std::placeholders::_1,
-                        std::placeholders::_2,
-                        std::placeholders::_3));
-        });
+                       returnFunction<Commit1Output>(
+                           call_id,
+                           maybe_result.has_value()
+                               ? boost::make_optional(maybe_result.value())
+                               : boost::none,
+                           toCallError(maybe_result),
+                           std::bind(&WorkerReturn::returnSealCommit1,
+                                     self->return_,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2,
+                                     std::placeholders::_3));
+                     });
   }
 
   outcome::result<CallId> LocalWorker::sealCommit2(
@@ -544,26 +532,23 @@ namespace fc::sector_storage {
           commit_1_output, sector.id.sector, sector.id.miner);
     };
 
-    return asyncCall(
-        sector,
-        [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
-          auto maybe_result = work();
+    return asyncCall(sector,
+                     [self{shared_from_this()},
+                      work = std::move(work)](const CallId &call_id) {
+                       const auto maybe_result = work();
 
-          boost::optional<Proof> value = boost::none;
-
-          if (maybe_result.has_value()) {
-            value = maybe_result.value();
-          }
-
-          returnFunction<Proof>(std::move(call_id),
-                                value,
-                                toCallError(maybe_result),
-                                std::bind(&WorkerReturn::returnSealCommit2,
-                                          self->return_,
-                                          std::placeholders::_1,
-                                          std::placeholders::_2,
-                                          std::placeholders::_3));
-        });
+                       returnFunction<Proof>(
+                           call_id,
+                           maybe_result.has_value()
+                               ? boost::make_optional(maybe_result.value())
+                               : boost::none,
+                           toCallError(maybe_result),
+                           std::bind(&WorkerReturn::returnSealCommit2,
+                                     self->return_,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2,
+                                     std::placeholders::_3));
+                     });
   }
 
   outcome::result<CallId> LocalWorker::finalizeSector(
@@ -630,18 +615,19 @@ namespace fc::sector_storage {
       return outcome::success();
     };
 
-    return asyncCall(
-        sector,
-        [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
-          auto maybe_error = work();
+    return asyncCall(sector,
+                     [self{shared_from_this()},
+                      work = std::move(work)](const CallId &call_id) {
+                       const auto maybe_error = work();
 
-          returnFunction(std::move(call_id),
-                         toCallError(maybe_error),
-                         std::bind(&WorkerReturn::returnFinalizeSector,
-                                   self->return_,
-                                   std::placeholders::_1,
-                                   std::placeholders::_2));
-        });
+                       returnFunction(
+                           call_id,
+                           toCallError(maybe_error),
+                           std::bind(&WorkerReturn::returnFinalizeSector,
+                                     self->return_,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2));
+                     });
   }
 
   outcome::result<CallId> LocalWorker::moveStorage(const SectorRef &sector,
@@ -651,18 +637,19 @@ namespace fc::sector_storage {
       return self->remote_store_->moveStorage(sector, types);
     };
 
-    return asyncCall(
-        sector,
-        [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
-          auto maybe_error = work();
+    return asyncCall(sector,
+                     [self{shared_from_this()},
+                      work = std::move(work)](const CallId &call_id) {
+                       const auto maybe_error = work();
 
-          returnFunction(std::move(call_id),
-                         toCallError(maybe_error),
-                         std::bind(&WorkerReturn::returnMoveStorage,
-                                   self->return_,
-                                   std::placeholders::_1,
-                                   std::placeholders::_2));
-        });
+                       returnFunction(
+                           call_id,
+                           toCallError(maybe_error),
+                           std::bind(&WorkerReturn::returnMoveStorage,
+                                     self->return_,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2));
+                     });
   }
 
   outcome::result<CallId> LocalWorker::unsealPiece(
@@ -682,7 +669,7 @@ namespace fc::sector_storage {
         OUTCOME_TRY(sector_size,
                     primitives::sector::getSectorSize(sector.proof_type));
 
-        PaddedPieceSize max_piece_size(sector_size);
+        const PaddedPieceSize max_piece_size(sector_size);
 
         Response unseal_response;
         auto _ = gsl::final_action([&]() {
@@ -819,18 +806,19 @@ namespace fc::sector_storage {
       return outcome::success();
     };
 
-    return asyncCall(
-        sector,
-        [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
-          auto maybe_error = work();
+    return asyncCall(sector,
+                     [self{shared_from_this()},
+                      work = std::move(work)](const CallId &call_id) {
+                       const auto maybe_error = work();
 
-          returnFunction(std::move(call_id),
-                         toCallError(maybe_error),
-                         std::bind(&WorkerReturn::returnUnsealPiece,
-                                   self->return_,
-                                   std::placeholders::_1,
-                                   std::placeholders::_2));
-        });
+                       returnFunction(
+                           call_id,
+                           toCallError(maybe_error),
+                           std::bind(&WorkerReturn::returnUnsealPiece,
+                                     self->return_,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2));
+                     });
   }
 
   outcome::result<CallId> LocalWorker::readPiece(
@@ -854,7 +842,7 @@ namespace fc::sector_storage {
       OUTCOME_TRY(sector_size,
                   primitives::sector::getSectorSize(sector.proof_type));
 
-      PaddedPieceSize max_piece_size(sector_size);
+      const PaddedPieceSize max_piece_size(sector_size);
 
       auto maybe_file =
           SectorFile::openFile(response.paths.unsealed, max_piece_size);
@@ -878,26 +866,23 @@ namespace fc::sector_storage {
           *output, primitives::piece::paddedIndex(offset), size.padded());
     };
 
-    return asyncCall(
-        sector,
-        [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
-          auto maybe_result = work();
+    return asyncCall(sector,
+                     [self{shared_from_this()},
+                      work = std::move(work)](const CallId &call_id) {
+                       const auto maybe_result = work();
 
-          boost::optional<bool> value = boost::none;
-
-          if (maybe_result.has_value()) {
-            value = maybe_result.value();
-          }
-
-          returnFunction<bool>(std::move(call_id),
-                               value,
-                               toCallError(maybe_result),
-                               std::bind(&WorkerReturn::returnReadPiece,
-                                         self->return_,
-                                         std::placeholders::_1,
-                                         std::placeholders::_2,
-                                         std::placeholders::_3));
-        });
+                       returnFunction<bool>(
+                           call_id,
+                           maybe_result.has_value()
+                               ? boost::make_optional(maybe_result.value())
+                               : boost::none,
+                           toCallError(maybe_result),
+                           std::bind(&WorkerReturn::returnReadPiece,
+                                     self->return_,
+                                     std::placeholders::_1,
+                                     std::placeholders::_2,
+                                     std::placeholders::_3));
+                     });
   }
 
   outcome::result<CallId> LocalWorker::fetch(const SectorRef &sector,
@@ -915,22 +900,22 @@ namespace fc::sector_storage {
       return outcome::success();
     };
 
-    return asyncCall(
-        sector,
-        [self{shared_from_this()}, work = std::move(work)](CallId call_id) {
-          auto maybe_error = work();
+    return asyncCall(sector,
+                     [self{shared_from_this()},
+                      work = std::move(work)](const CallId &call_id) {
+                       const auto maybe_error = work();
 
-          returnFunction(std::move(call_id),
-                         toCallError(maybe_error),
-                         std::bind(&WorkerReturn::returnFetch,
-                                   self->return_,
-                                   std::placeholders::_1,
-                                   std::placeholders::_2));
-        });
+                       returnFunction(call_id,
+                                      toCallError(maybe_error),
+                                      std::bind(&WorkerReturn::returnFetch,
+                                                self->return_,
+                                                std::placeholders::_1,
+                                                std::placeholders::_2));
+                     });
   }
 
   outcome::result<CallId> LocalWorker::asyncCall(
-      const SectorRef &sector, std::function<void(CallId)> work) {
+      const SectorRef &sector, std::function<void(const CallId &)> work) {
     CallId call_id{.sector = sector.id,
                    .id = uuids::to_string(uuids::random_generator()())};
 

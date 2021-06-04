@@ -23,7 +23,7 @@ namespace fc::sector_storage {
                       public std::enable_shared_from_this<LocalWorker> {
    public:
     /**
-     * @note Factory method simply replace constructor, because we need at least
+     * @note Factory method simply replaces constructor, because we need at least
      * 1 shared_ptr for correct job
      */
     static std::shared_ptr<LocalWorker> newLocalWorker(
@@ -96,7 +96,7 @@ namespace fc::sector_storage {
                 std::shared_ptr<proofs::ProofEngine> proofs);
 
     outcome::result<CallId> asyncCall(const SectorRef &sector,
-                                      std::function<void(CallId)> work);
+                                      std::function<void(const CallId&)> work);
 
     struct Response {
       stores::SectorPaths paths;
