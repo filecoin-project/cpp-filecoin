@@ -50,10 +50,7 @@ namespace fc::primitives::sector_file {
   }
 
   outcome::result<uint64_t> sealSpaceUse(SectorFileType file_type,
-                                         RegisteredSealProof seal_proof_type) {
-    OUTCOME_TRY(sector_size,
-                fc::primitives::sector::getSectorSize(seal_proof_type));
-
+                                         SectorSize sector_size) {
     uint64_t result = 0;
     for (const auto &type : kSectorFileTypes) {
       if ((file_type & type) == 0) {

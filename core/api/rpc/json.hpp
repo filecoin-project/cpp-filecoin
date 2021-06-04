@@ -62,10 +62,12 @@ namespace fc::api {
   using primitives::sector::RegisteredPoStProof;
   using primitives::sector::RegisteredSealProof;
   using primitives::sector::SectorId;
+  using primitives::sector::SectorRef;
   using primitives::tipset::HeadChangeType;
   using proofs::SealedAndUnsealedCID;
   using rapidjson::Document;
   using rapidjson::Value;
+  using sector_storage::CallId;
   using sector_storage::Range;
   using sector_storage::SectorFileType;
   using sector_storage::stores::AcquireMode;
@@ -1299,6 +1301,30 @@ namespace fc::api {
     DECODE(SectorId) {
       decode(v.miner, Get(j, "Miner"));
       decode(v.sector, Get(j, "Number"));
+    }
+
+    ENCODE(SectorRef) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id);
+      Set(j, "ProofType", v.proof_type);
+      return j;
+    }
+
+    DECODE(SectorRef) {
+      decode(v.id, Get(j, "ID"));
+      decode(v.proof_type, Get(j, "ProofType"));
+    }
+
+    ENCODE(CallId) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Sector", v.sector);
+      Set(j, "ID", v.id);
+      return j;
+    }
+
+    DECODE(CallId) {
+      decode(v.sector, Get(j, "Sector"));
+      decode(v.id, Get(j, "ID"));
     }
 
     ENCODE(StartDealParams) {

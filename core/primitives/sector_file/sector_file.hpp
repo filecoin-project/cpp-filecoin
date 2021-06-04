@@ -60,11 +60,11 @@ namespace fc::primitives::sector_file {
   /**
    * Get amount of used memory for sealing
    * @param file_type - type of sector file
-   * @param seal_proof_type - type of seal proof
+   * @param sector_size - size of sector
    * @return amount of used memory
    */
   outcome::result<uint64_t> sealSpaceUse(SectorFileType file_type,
-                                         RegisteredSealProof seal_proof_type);
+                                         SectorSize sector_size);
   std::string sectorName(const SectorId &sid);
   outcome::result<SectorId> parseSectorName(const std::string &sector_str);
 

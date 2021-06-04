@@ -57,8 +57,7 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<AcquireSectorResponse> LocalStoreImpl::acquireSector(
-      SectorId sector,
-      RegisteredSealProof seal_proof_type,
+      SectorRef sector,
       SectorFileType existing,
       SectorFileType allocate,
       PathType path_type,
@@ -66,6 +65,9 @@ namespace fc::sector_storage::stores {
     if ((existing & allocate) != 0) {
       return StoreError::kFindAndAllocate;
     }
+
+    OUTCOME_TRY(sector_size,
+                primitives::sector::getSectorSize(sector.proof_type));
 
     std::shared_lock lock(mutex_);
 
@@ -77,7 +79,7 @@ namespace fc::sector_storage::stores {
       }
 
       auto storages_info_opt =
-          index_->storageFindSector(sector, type, boost::none);
+          index_->storageFindSector(sector.id, type, boost::none);
 
       if (storages_info_opt.has_error()) {
         logger_->warn("Finding existing sector: "
@@ -97,7 +99,7 @@ namespace fc::sector_storage::stores {
 
         boost::filesystem::path spath(store_path_iter->second->local_path);
         spath /= toString(type);
-        spath /= primitives::sector_file::sectorName(sector);
+        spath /= primitives::sector_file::sectorName(sector.id);
 
         result.paths.setPathByType(type, spath.string());
         result.storages.setPathByType(type, info.id);
@@ -114,7 +116,7 @@ namespace fc::sector_storage::stores {
 
       OUTCOME_TRY(sectors_info,
                   index_->storageBestAlloc(
-                      type, seal_proof_type, path_type == PathType::kSealing));
+                      type, sector_size, path_type == PathType::kSealing));
 
       std::string best_path;
       StorageID best_storage;
@@ -139,7 +141,7 @@ namespace fc::sector_storage::stores {
 
         boost::filesystem::path spath(path_iter->second->local_path);
         spath /= toString(type);
-        spath /= primitives::sector_file::sectorName(sector);
+        spath /= primitives::sector_file::sectorName(sector.id);
 
         best_path = spath.string();
         best_storage = info.id;
@@ -238,13 +240,10 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<void> LocalStoreImpl::moveStorage(
-      SectorId sector,
-      RegisteredSealProof seal_proof_type,
-      SectorFileType types) {
+  outcome::result<void> LocalStoreImpl::moveStorage(SectorRef sector,
+                                                    SectorFileType types) {
     OUTCOME_TRY(dest,
                 acquireSector(sector,
-                              seal_proof_type,
                               SectorFileType::FTNone,
                               types,
                               PathType::kStorage,
@@ -252,7 +251,6 @@ namespace fc::sector_storage::stores {
 
     OUTCOME_TRY(src,
                 acquireSector(sector,
-                              seal_proof_type,
                               types,
                               SectorFileType::FTNone,
                               PathType::kStorage,
@@ -276,7 +274,8 @@ namespace fc::sector_storage::stores {
       if (sst.can_store) {
         continue;
       }
-      OUTCOME_TRY(index_->storageDropSector(source_storage_id, sector, type));
+      OUTCOME_TRY(
+          index_->storageDropSector(source_storage_id, sector.id, type));
 
       OUTCOME_TRY(source_path, src.paths.getPathByType(type));
       OUTCOME_TRY(dest_path, dest.paths.getPathByType(type));
@@ -288,7 +287,7 @@ namespace fc::sector_storage::stores {
       }
 
       OUTCOME_TRY(
-          index_->storageDeclareSector(dest_storage_id, sector, type, true));
+          index_->storageDeclareSector(dest_storage_id, sector.id, type, true));
     }
 
     return outcome::success();
@@ -433,12 +432,12 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<std::function<void()>> LocalStoreImpl::reserve(
-      RegisteredSealProof seal_proof_type,
+      SectorRef sector,
       SectorFileType file_type,
       const SectorPaths &storages,
       PathType path_type) {
     OUTCOME_TRY(sector_size,
-                primitives::sector::getSectorSize(seal_proof_type));
+                primitives::sector::getSectorSize(sector.proof_type));
 
     std::unique_lock lock(mutex_);
     std::vector<std::tuple<std::shared_ptr<Path>,
