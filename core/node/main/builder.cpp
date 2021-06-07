@@ -62,7 +62,9 @@
 #include "storage/mpool/mpool.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
+#include "vm/interpreter/impl/cached_interpreter.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
+#include "vm/runtime/circulating.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 

@@ -234,6 +234,9 @@ namespace fc::storage::compacter {
       }
       ts = ts_load->load(ts->getParents()).value();
     }
+    auto head_res{interpreter_cache->get(head->key).value()};
+    queue->push(*asBlake(head_res.state_root));
+    queue->push(*asBlake(head_res.message_receipts));
     for (auto &branch : *ts_branches) {
       if (branch == ts_main) {
         continue;
@@ -244,11 +247,15 @@ namespace fc::storage::compacter {
           primitives::tipset::put(nullptr, put_block_header, block);
           queue->push(*asBlake(block.messages));
         }
+        // if cache has tipsets with height > main_height, save them
+        if (ts->height() >= head->height()) {
+          if (auto res{interpreter_cache->tryGet(ts->key)}; res && *res) {
+            queue->push(*asBlake(tipset_res->value().state_root));
+            queue->push(*asBlake(tipset_res->value().message_receipts));
+          }
+        }
       }
     }
-    auto head_res{interpreter_cache->get(head->key).value()};
-    queue->push(*asBlake(head_res.state_root));
-    queue->push(*asBlake(head_res.message_receipts));
     queueLoop();
     queue->clear();
     {

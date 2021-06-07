@@ -12,6 +12,7 @@
 
 namespace fc::vm::interpreter {
   using primitives::BigInt;
+  using primitives::tipset::Height;
   using storage::PersistentBufferMap;
 
   enum class InterpreterError {
@@ -21,6 +22,7 @@ namespace fc::vm::interpreter {
     kNotCached,
   };
 
+  /** Tipset invocation result */
   struct Result {
     CID state_root;
     CID message_receipts;
@@ -34,6 +36,13 @@ namespace fc::vm::interpreter {
       Buffer key;
     };
     InterpreterCache(std::shared_ptr<PersistentBufferMap> kv);
+
+    /**
+     * Return tipset if it is present in cache
+     * @param key - tipset hash
+     * @return tipset invocation result if key is present or boost::none
+     * otherwise
+     */
     boost::optional<outcome::result<Result>> tryGet(const Key &key) const;
     outcome::result<Result> get(const Key &key) const;
     void set(const Key &key, const Result &result);

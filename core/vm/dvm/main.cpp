@@ -12,6 +12,7 @@
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/dvm/dvm.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
+#include "vm/runtime/circulating.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 
 int main(int argc, char **argv) {
@@ -55,9 +56,8 @@ int main(int argc, char **argv) {
       auto had_states{true};
       auto ts{head};
       while (true) {
-        _chain.emplace(
-            ts.tipset->height(),
-            primitives::tipset::TsLazy{ts.tipset->key, ts.index});
+        _chain.emplace(ts.tipset->height(),
+                       primitives::tipset::TsLazy{ts.tipset->key, ts.index});
         if (envx.ipld->contains(ts.tipset->getParentStateRoot()).value()) {
           if (had_states) {
             state_min_height = std::min(state_min_height, ts.tipset->height());
@@ -69,7 +69,8 @@ int main(int argc, char **argv) {
         if (ts.tipset->height() + ts_lookback < state_min_height) {
           break;
         }
-        if (auto _ts{envx.ts_load->loadWithCacheInfo(ts.tipset->getParents())}) {
+        if (auto _ts{
+                envx.ts_load->loadWithCacheInfo(ts.tipset->getParents())}) {
           ts = _ts.value();
         } else {
           break;
