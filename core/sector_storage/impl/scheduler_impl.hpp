@@ -17,7 +17,7 @@ namespace fc::sector_storage {
   using WorkerID = uint64_t;
 
   struct TaskRequest {
-    inline TaskRequest(const SectorId &sector,
+    inline TaskRequest(const SectorRef &sector,
                        TaskType task_type,
                        uint64_t priority,
                        std::shared_ptr<WorkerSelector> sel,
@@ -30,7 +30,7 @@ namespace fc::sector_storage {
           prepare(std::move(prepare)),
           work(std::move(work)){};
 
-    SectorId sector;
+    SectorRef sector;
     TaskType task_type;
     uint64_t priority;
     std::shared_ptr<WorkerSelector> sel;
@@ -54,16 +54,16 @@ namespace fc::sector_storage {
                 lhs.priority,
                 lhs.task_type,
                 rhs.task_type,
-                lhs.sector.sector,
-                rhs.sector.sector);
+                lhs.sector.id.sector,
+                rhs.sector.id.sector);
   }
 
   class SchedulerImpl : public Scheduler {
    public:
-    explicit SchedulerImpl(RegisteredSealProof seal_proof_type);
+    explicit SchedulerImpl();
 
     outcome::result<void> schedule(
-        const SectorId &sector,
+        const SectorRef &sector,
         const primitives::TaskType &task_type,
         const std::shared_ptr<WorkerSelector> &selector,
         const WorkerAction &prepare,
@@ -71,8 +71,6 @@ namespace fc::sector_storage {
         uint64_t priority) override;
 
     void newWorker(std::unique_ptr<WorkerHandle> worker) override;
-
-    RegisteredSealProof getSealProofType() const override;
 
    private:
     outcome::result<bool> maybeScheduleRequest(
@@ -83,8 +81,6 @@ namespace fc::sector_storage {
                       const std::shared_ptr<TaskRequest> &request);
 
     void freeWorker(WorkerID wid);
-
-    RegisteredSealProof seal_proof_type_;
 
     std::mutex workers_lock_;
     WorkerID current_worker_id_;

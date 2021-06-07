@@ -24,7 +24,7 @@ namespace fc::sector_storage {
     virtual ~Scheduler() = default;
 
     virtual outcome::result<void> schedule(
-        const SectorId &sector,
+        const SectorRef &sector,
         const TaskType &task_type,
         const std::shared_ptr<WorkerSelector> &selector,
         const WorkerAction &prepare,
@@ -32,8 +32,6 @@ namespace fc::sector_storage {
         uint64_t priority = kDefaultTaskPriority) = 0;
 
     virtual void newWorker(std::unique_ptr<WorkerHandle> worker) = 0;
-
-    virtual RegisteredSealProof getSealProofType() const = 0;
   };
 
   enum class SchedulerErrors {

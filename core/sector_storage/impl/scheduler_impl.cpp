@@ -13,10 +13,8 @@ namespace fc::sector_storage {
   using primitives::Resources;
   using primitives::WorkerResources;
 
-  SchedulerImpl::SchedulerImpl(RegisteredSealProof seal_proof_type)
-      : seal_proof_type_(seal_proof_type),
-        current_worker_id_(0),
-        logger_(common::createLogger("scheduler")) {
+  SchedulerImpl::SchedulerImpl()
+      : current_worker_id_(0), logger_(common::createLogger("scheduler")) {
     unsigned int nthreads = 0;
     if ((nthreads = std::thread::hardware_concurrency())
         || (nthreads = boost::thread::hardware_concurrency())) {
@@ -29,7 +27,7 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> SchedulerImpl::schedule(
-      const primitives::sector::SectorId &sector,
+      const primitives::sector::SectorRef &sector,
       const primitives::TaskType &task_type,
       const std::shared_ptr<WorkerSelector> &selector,
       const WorkerAction &prepare,
@@ -70,8 +68,8 @@ namespace fc::sector_storage {
     std::vector<WorkerID> acceptable;
     uint64_t tried = 0;
 
-    auto resource_iter =
-        primitives::kResourceTable.find({request->task_type, seal_proof_type_});
+    auto resource_iter = primitives::kResourceTable.find(
+        {request->task_type, request->sector.proof_type});
 
     Resources need_resources{};
     if (resource_iter != primitives::kResourceTable.end()) {
@@ -81,7 +79,7 @@ namespace fc::sector_storage {
     for (const auto &[wid, worker] : workers_) {
       OUTCOME_TRY(satisfies,
                   request->sel->is_satisfying(
-                      request->task_type, seal_proof_type_, worker));
+                      request->task_type, request->sector.proof_type, worker));
 
       if (!satisfies) {
         continue;
@@ -138,8 +136,8 @@ namespace fc::sector_storage {
       WorkerID wid,
       const std::shared_ptr<WorkerHandle> &worker,
       const std::shared_ptr<TaskRequest> &request) {
-    auto resource_iter =
-        primitives::kResourceTable.find({request->task_type, seal_proof_type_});
+    auto resource_iter = primitives::kResourceTable.find(
+        {request->task_type, request->sector.proof_type});
 
     Resources need_resources{};
     if (resource_iter != primitives::kResourceTable.end()) {
@@ -207,8 +205,8 @@ namespace fc::sector_storage {
     std::lock_guard<std::mutex> lock(request_lock_);
     for (auto it = request_queue_.begin(); it != request_queue_.cend(); ++it) {
       auto req = *it;
-      auto maybe_satisfying =
-          req->sel->is_satisfying(req->task_type, seal_proof_type_, worker);
+      auto maybe_satisfying = req->sel->is_satisfying(
+          req->task_type, req->sector.proof_type, worker);
       if (maybe_satisfying.has_error()) {
         logger_->error("free worker satisfactory check: "
                        + maybe_satisfying.error().message());
@@ -235,9 +233,6 @@ namespace fc::sector_storage {
     }
   }
 
-  RegisteredSealProof SchedulerImpl::getSealProofType() const {
-    return seal_proof_type_;
-  }
 }  // namespace fc::sector_storage
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, SchedulerErrors, e) {
