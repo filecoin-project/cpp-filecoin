@@ -234,7 +234,7 @@ namespace fc::storage::compacter {
       }
       ts = ts_load->load(ts->getParents()).value();
     }
-    auto head_res{interpreter_cache->get(head->key).value()};
+    const auto head_res{interpreter_cache->get(head->key).value()};
     queue->push(*asBlake(head_res.state_root));
     queue->push(*asBlake(head_res.message_receipts));
     for (auto &branch : *ts_branches) {

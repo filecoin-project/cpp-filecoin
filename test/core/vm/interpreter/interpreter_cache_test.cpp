@@ -22,17 +22,17 @@ namespace fc::vm::interpreter {
     auto interpreter_cache{std::make_shared<InterpreterCache>(
         std::make_shared<InMemoryStorage>(), ipld)};
 
-    CID state_root = asCborBlakeCid(common::Hash256());
-    Result result{.state_root = state_root,
+    const CID state_root = asCborBlakeCid(common::Hash256());
+    const Result result{.state_root = state_root,
                   .message_receipts = "010001020003"_cid,
                   .weight = 1};
-    TipsetKey tipset_key;
+    const TipsetKey tipset_key;
     interpreter_cache->set(tipset_key, result);
 
     EXPECT_CALL(*ipld, get(Eq(asBlake(state_root)), Eq(nullptr)))
         .WillOnce(Return(false));
 
-    auto res = interpreter_cache->tryGet(tipset_key);
+    const auto res = interpreter_cache->tryGet(tipset_key);
     EXPECT_FALSE(res.has_value());
   }
 }  // namespace fc::vm::interpreter

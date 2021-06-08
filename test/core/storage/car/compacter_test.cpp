@@ -41,6 +41,7 @@ namespace fc::storage::compacter {
     void _unref() {
       if (compacter) {
         compacter->ts_load.reset();
+        compacter->interpreter_cache.reset();
       }
     }
 
