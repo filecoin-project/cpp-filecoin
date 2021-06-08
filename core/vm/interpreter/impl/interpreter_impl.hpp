@@ -6,22 +6,14 @@
 #pragma once
 
 #include "blockchain/weight_calculator.hpp"
-#include "storage/buffer_map.hpp"
-#include "vm/actor/invoker.hpp"
 #include "vm/interpreter/interpreter.hpp"
-#include "vm/runtime/circulating.hpp"
 #include "vm/runtime/env_context.hpp"
-#include "vm/runtime/runtime_randomness.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::interpreter {
   using blockchain::weight::WeightCalculator;
   using runtime::EnvironmentContext;
   using runtime::MessageReceipt;
-  using runtime::RuntimeRandomness;
-  using storage::PersistentBufferMap;
-  using vm::actor::Invoker;
-  using vm::runtime::MessageReceipt;
 
   class InterpreterImpl : public Interpreter {
    public:
@@ -46,15 +38,4 @@ namespace fc::vm::interpreter {
     std::shared_ptr<WeightCalculator> weight_calculator_;
   };
 
-  class CachedInterpreter : public Interpreter {
-   public:
-    CachedInterpreter(std::shared_ptr<Interpreter> interpreter,
-                      std::shared_ptr<InterpreterCache> cache);
-    outcome::result<Result> interpret(TsBranchPtr ts_branch,
-                                      const TipsetCPtr &tipset) const override;
-
-   private:
-    std::shared_ptr<Interpreter> interpreter;
-    std::shared_ptr<InterpreterCache> cache;
-  };
 }  // namespace fc::vm::interpreter

@@ -41,6 +41,7 @@ namespace fc::storage::compacter {
     void _unref() {
       if (compacter) {
         compacter->ts_load.reset();
+        compacter->interpreter_cache.reset();
       }
     }
 
@@ -79,7 +80,7 @@ namespace fc::storage::compacter {
         ts_branches->insert(TsBranch::make(std::move(chain)));
       }
       auto interpreter_cache{std::make_shared<InterpreterCache>(
-          std::make_shared<InMemoryStorage>())};
+          std::make_shared<InMemoryStorage>(), compacter)};
       interpreter_cache->set(head->key,
                              {meta.head_state, meta.head_receipts, {}});
 

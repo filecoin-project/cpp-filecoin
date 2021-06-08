@@ -62,7 +62,9 @@
 #include "storage/mpool/mpool.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
+#include "vm/interpreter/impl/cached_interpreter.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
+#include "vm/runtime/circulating.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
@@ -350,7 +352,8 @@ namespace fc::node {
     o.env_context.ts_load = o.ts_load;
     o.env_context.interpreter_cache =
         std::make_shared<vm::interpreter::InterpreterCache>(
-            std::make_shared<storage::MapPrefix>("vm/", o.kv_store));
+            std::make_shared<storage::MapPrefix>("vm/", o.kv_store),
+            std::make_shared<AnyAsCbIpld>(o.ipld));
     OUTCOME_TRYA(o.env_context.circulating,
                  vm::Circulating::make(o.ipld, *config.genesis_cid));
 
