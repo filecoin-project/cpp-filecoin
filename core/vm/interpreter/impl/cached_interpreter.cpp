@@ -4,13 +4,15 @@
  */
 
 #include "cached_interpreter.hpp"
+#include "primitives/cid/cid.hpp"
 
 namespace fc::vm::interpreter {
 
   InterpreterCache::Key::Key(const TipsetKey &tsk) : key{tsk.hash()} {}
 
-  InterpreterCache::InterpreterCache(std::shared_ptr<PersistentBufferMap> kv)
-      : kv{kv} {}
+  InterpreterCache::InterpreterCache(std::shared_ptr<PersistentBufferMap> kv,
+                                     std::shared_ptr<CbIpld> ipld)
+      : kv{std::move(kv)}, ipld_{std::move(ipld)} {}
 
   boost::optional<outcome::result<Result>> InterpreterCache::tryGet(
       const Key &key) const {
@@ -19,7 +21,11 @@ namespace fc::vm::interpreter {
       const auto raw{kv->get(key.key).value()};
       if (auto cached{
               codec::cbor::decode<boost::optional<Result>>(raw).value()}) {
-        result.emplace(std::move(*cached));
+        // check if interpreted state root is still valid (can be deleted during
+        // compaction)
+        if (ipld_->has(*asBlake(cached->state_root))) {
+          result.emplace(std::move(*cached));
+        }
       } else {
         result.emplace(InterpreterError::kTipsetMarkedBad);
       }

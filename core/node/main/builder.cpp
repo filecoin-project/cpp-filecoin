@@ -352,7 +352,8 @@ namespace fc::node {
     o.env_context.ts_load = o.ts_load;
     o.env_context.interpreter_cache =
         std::make_shared<vm::interpreter::InterpreterCache>(
-            std::make_shared<storage::MapPrefix>("vm/", o.kv_store));
+            std::make_shared<storage::MapPrefix>("vm/", o.kv_store),
+            std::make_shared<AnyAsCbIpld>(o.ipld));
     OUTCOME_TRYA(o.env_context.circulating,
                  vm::Circulating::make(o.ipld, *config.genesis_cid));
 

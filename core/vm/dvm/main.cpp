@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "cbor_blake/ipld_any.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/util.hpp"
@@ -44,7 +45,8 @@ int main(int argc, char **argv) {
           envx.ts_load, envx.ts_branches_mutex);
       envx.interpreter_cache =
           std::make_shared<vm::interpreter::InterpreterCache>(
-              std::make_shared<storage::InMemoryStorage>());
+              std::make_shared<storage::InMemoryStorage>(),
+              std::make_shared<AnyAsCbIpld>(envx.ipld));
       envx.circulating = vm::Circulating::make(envx.ipld, genesis_cid).value();
       vm::interpreter::InterpreterImpl vmi{envx, nullptr};
 

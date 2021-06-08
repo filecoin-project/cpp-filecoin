@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "cbor_blake/ipld.hpp"
 #include "fwd.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/buffer_map.hpp"
@@ -35,7 +36,8 @@ namespace fc::vm::interpreter {
       Key(const TipsetKey &tsk);
       Buffer key;
     };
-    InterpreterCache(std::shared_ptr<PersistentBufferMap> kv);
+    InterpreterCache(std::shared_ptr<PersistentBufferMap> kv,
+                     std::shared_ptr<CbIpld> ipld);
 
     /**
      * Return tipset if it is present in cache
@@ -46,10 +48,17 @@ namespace fc::vm::interpreter {
     boost::optional<outcome::result<Result>> tryGet(const Key &key) const;
     outcome::result<Result> get(const Key &key) const;
     void set(const Key &key, const Result &result);
+
+    /**
+     * Marks that vm returned error for the tipset.
+     * @param key
+     */
     void markBad(const Key &key);
     void remove(const Key &key);
 
+   private:
     std::shared_ptr<PersistentBufferMap> kv;
+    std::shared_ptr<CbIpld> ipld_;
   };
 
   class Interpreter {

@@ -247,11 +247,11 @@ namespace fc::storage::compacter {
           primitives::tipset::put(nullptr, put_block_header, block);
           queue->push(*asBlake(block.messages));
         }
-        // if cache has tipsets with height > main_height, save them
+        // keep interpreted tipsets that can be attached to the main branch
         if (ts->height() >= head->height()) {
           if (auto res{interpreter_cache->tryGet(ts->key)}; res && *res) {
-            queue->push(*asBlake(tipset_res->value().state_root));
-            queue->push(*asBlake(tipset_res->value().message_receipts));
+            queue->push(*asBlake(res->value().state_root));
+            queue->push(*asBlake(res->value().message_receipts));
           }
         }
       }

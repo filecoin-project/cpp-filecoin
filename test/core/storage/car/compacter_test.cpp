@@ -79,7 +79,7 @@ namespace fc::storage::compacter {
         ts_branches->insert(TsBranch::make(std::move(chain)));
       }
       auto interpreter_cache{std::make_shared<InterpreterCache>(
-          std::make_shared<InMemoryStorage>())};
+          std::make_shared<InMemoryStorage>(), compacter)};
       interpreter_cache->set(head->key,
                              {meta.head_state, meta.head_receipts, {}});
 

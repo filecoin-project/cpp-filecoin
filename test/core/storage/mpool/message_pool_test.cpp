@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 
+#include "cbor_blake/ipld_any.hpp"
 #include "storage/car/car.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
@@ -44,7 +45,8 @@ namespace fc::storage::mpool {
   auto ts2{ts_load->load(ts1->getParents()).value()};
 
   auto interpreter_cache{std::make_shared<vm::interpreter::InterpreterCache>(
-      std::make_shared<InMemoryStorage>())};
+      std::make_shared<InMemoryStorage>(),
+      std::make_shared<AnyAsCbIpld>(ipld))};
   void cacheParentState(TipsetCPtr ts) {
     interpreter_cache->set(
         ts->getParents(),
