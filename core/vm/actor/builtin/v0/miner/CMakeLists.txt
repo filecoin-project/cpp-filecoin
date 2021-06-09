@@ -18,4 +18,5 @@ target_link_libraries(miner_actor_v0
     rle_bitset
     sector
     uvarint_key
+    miner_types
     )

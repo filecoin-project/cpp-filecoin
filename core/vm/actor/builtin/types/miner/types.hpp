@@ -8,6 +8,7 @@
 #include "adt/array.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
+#include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
@@ -21,6 +22,46 @@ namespace fc::vm::actor::builtin::types::miner {
   struct PowerPair {
     StoragePower raw{};
     StoragePower qa{};
+
+    PowerPair() : raw(0), qa(0) {}
+    PowerPair(const StoragePower &raw, const StoragePower &qa)
+        : raw(raw), qa(qa) {}
+
+    inline PowerPair operator+(const PowerPair &other) const {
+      auto result{*this};
+      result += other;
+      return result;
+    }
+
+    inline PowerPair &operator+=(const PowerPair &other) {
+      raw += other.raw;
+      qa += other.qa;
+      return *this;
+    }
+
+    inline PowerPair operator-(const PowerPair &other) const {
+      auto result{*this};
+      result -= other;
+      return result;
+    }
+
+    inline PowerPair &operator-=(const PowerPair &other) {
+      raw -= other.raw;
+      qa -= other.qa;
+      return *this;
+    }
+
+    inline bool operator==(const PowerPair &other) const {
+      return (raw == other.raw) && (qa == other.qa);
+    }
+
+    inline bool operator!=(const PowerPair &other) const {
+      return !(*this == other);
+    }
+
+    inline bool isZero() const {
+      return (raw == 0) && (qa == 0);
+    }
   };
   CBOR_TUPLE(PowerPair, raw, qa)
 
@@ -45,38 +86,6 @@ namespace fc::vm::actor::builtin::types::miner {
     }
   };
   CBOR_TUPLE(WorkerKeyChange, new_worker, effective_at)
-
-  struct ExpirationSet {
-    RleBitset on_time_sectors, early_sectors;
-    TokenAmount on_time_pledge{};
-    PowerPair active_power;
-    PowerPair faulty_power;
-  };
-  CBOR_TUPLE(ExpirationSet,
-             on_time_sectors,
-             early_sectors,
-             on_time_pledge,
-             active_power,
-             faulty_power)
-
-  struct Partition {
-    RleBitset sectors, faults, recoveries, terminated;
-    adt::Array<ExpirationSet> expirations_epochs;  // quanted
-    adt::Array<RleBitset> early_terminated;
-    PowerPair live_power;
-    PowerPair faulty_power;
-    PowerPair recovering_power;
-  };
-  CBOR_TUPLE(Partition,
-             sectors,
-             faults,
-             recoveries,
-             terminated,
-             expirations_epochs,
-             early_terminated,
-             live_power,
-             faulty_power,
-             recovering_power)
 
   enum class CronEventType {
     kWorkerKeyChange,
@@ -105,15 +114,3 @@ namespace fc::vm::actor::builtin::types::miner {
   };
   CBOR_TUPLE(WindowedPoSt, partitions, proofs)
 }  // namespace fc::vm::actor::builtin::types::miner
-
-namespace fc {
-  template <>
-  struct Ipld::Visit<vm::actor::builtin::types::miner::Partition> {
-    template <typename Visitor>
-    static void call(vm::actor::builtin::types::miner::Partition &p,
-                     const Visitor &visit) {
-      visit(p.expirations_epochs);
-      visit(p.early_terminated);
-    }
-  };
-}  // namespace fc

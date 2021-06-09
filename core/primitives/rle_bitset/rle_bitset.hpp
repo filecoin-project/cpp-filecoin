@@ -25,19 +25,38 @@ namespace fc::primitives {
       insert(other.begin(), other.end());
     }
 
+    inline void operator+=(const std::vector<RleBitset> &others) {
+      for (const auto &other : others) {
+        insert(other.begin(), other.end());
+      }
+    }
+
     inline RleBitset operator+(const RleBitset &other) const {
       auto result{*this};
       result += other;
       return result;
     }
 
-    inline RleBitset operator-(const RleBitset &other) const {
-      RleBitset result;
-      for (auto i : *this) {
-        if (!other.has(i)) {
-          result.insert(i);
+    inline RleBitset operator+(const std::vector<RleBitset> &others) const {
+      auto result{*this};
+      for (const auto &other : others) {
+        result += other;
+      }
+      return result;
+    }
+
+    inline void operator-=(const RleBitset &other) {
+      for (const auto i : other) {
+        const auto search = find(i);
+        if (search != end()) {
+          erase(search);
         }
       }
+    }
+
+    inline RleBitset operator-(const RleBitset &other) const {
+      auto result{*this};
+      result -= other;
       return result;
     }
 
@@ -45,7 +64,7 @@ namespace fc::primitives {
       RleBitset result;
       uint64_t shift = 0;
       auto it = to_cut.begin();
-      for (auto element : *this) {
+      for (const auto element : *this) {
         while ((it != to_cut.end()) && (*it < element)) {
           ++shift;
           ++it;
@@ -55,6 +74,24 @@ namespace fc::primitives {
         }
       }
       return result;
+    }
+
+    inline bool contains(const RleBitset &other) {
+      bool result = true;
+      for (const auto i : other) {
+        if (!this->has(i)) {
+          result = false;
+          break;
+        }
+      }
+      return result;
+    }
+
+    inline void unset(uint64_t v) {
+      const auto search = find(v);
+      if (search != end()) {
+        erase(search);
+      }
     }
   };
 

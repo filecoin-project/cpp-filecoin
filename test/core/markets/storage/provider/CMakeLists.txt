@@ -11,4 +11,5 @@ target_link_libraries(stored_ask_test
     secp256k1_provider
     bls_provider
     in_memory_storage
+    miner_types
     )
