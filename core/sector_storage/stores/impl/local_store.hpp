@@ -8,6 +8,7 @@
 #include "sector_storage/stores/store.hpp"
 
 #include <boost/asio/io_context.hpp>
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/protocol/common/scheduler.hpp>
 #include <shared_mutex>
 #include "common/logger.hpp"
@@ -78,6 +79,9 @@ namespace fc::sector_storage::stores {
       std::string local_path;
       int64_t reserved = 0;
       std::map<SectorId, SectorFileType> reservations = {};
+
+      LIBP2P_METRICS_INSTANCE_COUNT(
+          fc::sector_storage::stores::LocalStoreImpl::Path);
     };
 
     std::shared_ptr<LocalStorage> storage_;
@@ -88,6 +92,8 @@ namespace fc::sector_storage::stores {
     Scheduler::Handle handler_;
     int64_t heartbeat_interval_;
     mutable std::shared_mutex mutex_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::sector_storage::stores::LocalStoreImpl);
   };
 
 }  // namespace fc::sector_storage::stores

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <leveldb/write_batch.h>
+#include <libp2p/common/metrics/instance_count.hpp>
 #include "storage/leveldb/leveldb.hpp"
 
 namespace fc::storage {
@@ -30,6 +31,8 @@ namespace fc::storage {
    private:
     LevelDB &db_;
     leveldb::WriteBatch batch_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::LevelDB::Batch);
   };
 
 }  // namespace fc::storage

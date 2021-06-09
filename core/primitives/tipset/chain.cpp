@@ -327,7 +327,7 @@ namespace fc::primitives::tipset::chain {
 
   outcome::result<TsBranchIter> stepParent(TsBranchIter it) {
     auto &branch{it.first};
-    if (it.second == branch->chain.begin()) {
+    while (it.second == branch->chain.begin()) {
       if (!branch->parent) {
         return ERROR_TEXT("stepParent: error");
       }

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "common/ptr.hpp"
 #include "primitives/tipset/load.hpp"
 #include "storage/buffer_map.hpp"
@@ -38,6 +40,8 @@ namespace fc::primitives::tipset::chain {
     TsBranchPtr parent;
     TsBranchChildren children;
     boost::optional<TipsetKey> parent_key;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::primitives::tipset::chain::TsBranch);
   };
 
   /**

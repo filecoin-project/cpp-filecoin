@@ -73,6 +73,8 @@ namespace fc::storage {
     std::map<std::string, Buffer>::iterator current_iterator_, invalid_;
 
     std::shared_ptr<InMemoryStorage> storage_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::InMemoryCursor);
   };
 
 }  // namespace fc::storage

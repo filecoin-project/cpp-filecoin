@@ -9,6 +9,7 @@
 
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
+#include <libp2p/common/metrics/instance_count.hpp>
 
 #include "common/visitor.hpp"
 #include "common/which.hpp"
@@ -113,6 +114,8 @@ namespace fc::adt {
    private:
     boost::variant<Queue, Handler, Closed> state{Queue{{}, false}};
     std::mutex mutex;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::adt::Channel<T>);
   };
 
   template <typename T>

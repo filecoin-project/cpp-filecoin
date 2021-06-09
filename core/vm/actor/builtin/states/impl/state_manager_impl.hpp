@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
 #include "vm/actor/builtin/states/state_manager.hpp"
@@ -109,5 +111,8 @@ namespace fc::vm::actor::builtin::states {
     StateTreePtr state_tree;
     Address receiver;
     StateProvider provider;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(
+        fc::vm::actor::builtin::states::StateManagerImpl);
   };
 }  // namespace fc::vm::actor::builtin::states

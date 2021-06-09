@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <map>
 
 #include "storage/ipfs/datastore.hpp"
@@ -32,6 +33,8 @@ namespace fc::storage::ipfs {
 
    private:
     std::map<CID, Value> storage_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::ipfs::InMemoryDatastore);
   };
 
 }  // namespace fc::storage::ipfs

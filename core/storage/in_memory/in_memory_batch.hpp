@@ -5,26 +5,24 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "common/buffer.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 
 namespace fc::storage {
   using fc::common::Buffer;
 
-  class InMemoryBatch
-      : public fc::storage::face::WriteBatch<Buffer,
-                                                 Buffer> {
+  class InMemoryBatch : public fc::storage::face::WriteBatch<Buffer, Buffer> {
    public:
     explicit InMemoryBatch(InMemoryStorage &db) : db{db} {}
 
-    outcome::result<void> put(const Buffer &key,
-                              const Buffer &value) override {
+    outcome::result<void> put(const Buffer &key, const Buffer &value) override {
       entries[key.toHex()] = value;
       return outcome::success();
     }
 
-    outcome::result<void> put(const Buffer &key,
-                              Buffer &&value) override {
+    outcome::result<void> put(const Buffer &key, Buffer &&value) override {
       entries[key.toHex()] = std::move(value);
       return outcome::success();
     }
@@ -36,8 +34,7 @@ namespace fc::storage {
 
     outcome::result<void> commit() override {
       for (auto &entry : entries) {
-        OUTCOME_TRY(
-            db.put(Buffer::fromHex(entry.first).value(), entry.second));
+        OUTCOME_TRY(db.put(Buffer::fromHex(entry.first).value(), entry.second));
       }
       return outcome::success();
     }
@@ -49,5 +46,7 @@ namespace fc::storage {
    private:
     std::map<std::string, Buffer> entries;
     InMemoryStorage &db;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::InMemoryBatch);
   };
 }  // namespace fc::storage

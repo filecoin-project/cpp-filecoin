@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "blockchain/weight_calculator.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/env_context.hpp"
@@ -36,6 +38,8 @@ namespace fc::vm::interpreter {
 
     EnvironmentContext env_context_;
     std::shared_ptr<WeightCalculator> weight_calculator_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::vm::interpreter::InterpreterImpl);
   };
 
 }  // namespace fc::vm::interpreter

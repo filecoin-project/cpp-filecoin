@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::vm::interpreter {
@@ -19,6 +21,8 @@ namespace fc::vm::interpreter {
    private:
     std::shared_ptr<Interpreter> interpreter;
     std::shared_ptr<InterpreterCache> cache;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::vm::interpreter::CachedInterpreter);
   };
 
 }  // namespace fc::vm::interpreter

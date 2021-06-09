@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "api/common_api.hpp"
 #include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "const.hpp"
@@ -217,7 +219,9 @@ namespace fc::api {
     CID message;
     MessageReceipt receipt;
     TipsetKey tipset;
-    ChainEpoch height;
+    ChainEpoch height{};
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::api::MsgWait);
   };
 
   struct BlockMessages {

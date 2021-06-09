@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <random>
 
 #include "fwd.hpp"
@@ -33,6 +34,8 @@ namespace fc::storage::mpool {
 
     Type type;
     SignedMessage message;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::mpool::MpoolUpdate);
   };
 
   struct MessagePool : public std::enable_shared_from_this<MessagePool> {
@@ -70,6 +73,8 @@ namespace fc::storage::mpool {
     boost::signals2::signal<Subscriber> signal;
     mutable std::default_random_engine generator;
     mutable std::normal_distribution<> distribution;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::mpool::MessagePool);
   };
 
   extern TokenAmount kDefaultMaxFee;

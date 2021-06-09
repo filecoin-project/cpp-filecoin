@@ -7,6 +7,8 @@
 
 #include "miner/storage_fsm/precommit_policy.hpp"
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "api/full_node/node_api.hpp"
 
 namespace fc::mining {
@@ -27,6 +29,8 @@ namespace fc::mining {
     ChainEpoch duration_;
 
     common::Logger logger_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::mining::BasicPreCommitPolicy);
   };
 
 }  // namespace fc::mining

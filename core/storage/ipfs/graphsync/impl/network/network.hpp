@@ -7,6 +7,7 @@
 
 #include <functional>
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/protocol/common/scheduler.hpp>
 
@@ -110,6 +111,8 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Indicates if the node is active
     bool started_ = false;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::ipfs::graphsync::Network);
   };
 
 }  // namespace fc::storage::ipfs::graphsync

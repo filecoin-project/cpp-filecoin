@@ -117,6 +117,8 @@ namespace fc::storage::mpool {
     bool merged{};
     std::weak_ptr<MsgChain> prev;
     std::weak_ptr<MsgChain> next;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::mpool::MsgChain);
   };
 
   auto mustLock(const std::weak_ptr<MsgChain> weak) {

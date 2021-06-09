@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <memory>
 
 #include "common/outcome.hpp"
@@ -57,6 +58,8 @@ namespace fc::storage::ipfs {
 
    private:
     std::shared_ptr<BufferMap> leveldb_;  ///< underlying db wrapper
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::ipfs::LeveldbDatastore);
   };
 
 }  // namespace fc::storage::ipfs

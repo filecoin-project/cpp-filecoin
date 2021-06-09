@@ -7,6 +7,7 @@
 
 #include <map>
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/protocol/common/scheduler.hpp>
 
 #include "network/marshalling/request_builder.hpp"
@@ -108,6 +109,8 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Current rejected id, always negative and decremented
     RequestId current_rejected_request_id_ = 0;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::ipfs::graphsync::LocalRequests);
   };
 
 }  // namespace fc::storage::ipfs::graphsync

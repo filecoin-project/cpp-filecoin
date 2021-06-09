@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "network_fwd.hpp"
 
 namespace fc::storage::ipfs::graphsync {
@@ -35,6 +37,8 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Stream reader, not graphsync specific
     std::shared_ptr<LengthDelimitedMessageReader> stream_reader_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::ipfs::graphsync::MessageReader);
   };
 
 }  // namespace fc::storage::ipfs::graphsync

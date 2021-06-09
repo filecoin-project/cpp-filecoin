@@ -243,6 +243,9 @@ namespace fc::primitives::tipset {
     return creator.getTipset(true);
   }
 
+  Tipset::Tipset(const TipsetKey &key, std::vector<block::BlockHeader> blks)
+      : key(std::move(key)), blks(std::move(blks)) {}
+
   outcome::result<void> Tipset::visitMessages(
       MessageVisitor message_visitor,
       const MessageVisitor::Visitor &visitor) const {
@@ -281,7 +284,7 @@ namespace fc::primitives::tipset {
 
   TipsetKey Tipset::getParents() const {
     assert(!blks.empty());
-    return blks[0].parents;
+    return TipsetKey{blks[0].parents};
   }
 
   uint64_t Tipset::getMinTimestamp() const {

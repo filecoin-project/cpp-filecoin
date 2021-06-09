@@ -7,7 +7,9 @@
 
 #include <memory>
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/host/host.hpp>
+
 #include "api/full_node/node_api.hpp"
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
@@ -67,6 +69,8 @@ namespace fc::markets::retrieval::client {
      * Received ipld blocks verifier
      */
     Verifier verifier;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::markets::retrieval::client::DealState);
   };
 
   class RetrievalClientImpl
@@ -86,9 +90,10 @@ namespace fc::markets::retrieval::client {
     outcome::result<std::vector<PeerInfo>> findProviders(
         const CID &piece_cid) const override;
 
-    outcome::result<void> query(const RetrievalPeer &provider_peer,
-               const QueryRequest &request,
-               const QueryResponseHandler &response_handler) override;
+    outcome::result<void> query(
+        const RetrievalPeer &provider_peer,
+        const QueryRequest &request,
+        const QueryResponseHandler &response_handler) override;
 
     outcome::result<void> retrieve(
         const CID &payload_cid,

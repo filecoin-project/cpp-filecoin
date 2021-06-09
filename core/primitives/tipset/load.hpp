@@ -7,6 +7,7 @@
 
 #include <map>
 #include <mutex>
+#include <libp2p/common/metrics/instance_count.hpp>
 
 #include "cbor_blake/cid.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -17,6 +18,8 @@ namespace fc::primitives::tipset {
   struct TsLazy {
     TipsetKey key;
     CacheIndex index{};
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::primitives::tipset::TsLazy);
   };
   inline auto operator==(const TsLazy &lhs, const TsLazy &rhs) {
     return lhs.key == rhs.key;
@@ -25,6 +28,8 @@ namespace fc::primitives::tipset {
   struct LoadCache {
     TipsetCPtr tipset;
     CacheIndex index{};
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::primitives::tipset::LoadCache);
   };
 
   struct LoadNode {
@@ -32,6 +37,8 @@ namespace fc::primitives::tipset {
     uint64_t next = 0;
 
     TipsetCPtr tipset = nullptr;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::primitives::tipset::LoadNode);
   };
 
   struct TsLoad {
@@ -42,6 +49,8 @@ namespace fc::primitives::tipset {
     virtual outcome::result<TipsetCPtr> load(const TipsetKey &key) = 0;
     virtual outcome::result<TipsetCPtr> load(std::vector<BlockHeader> blocks);
     virtual outcome::result<TipsetCPtr> lazyLoad(TsLazy &lazy) = 0;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::primitives::tipset::TsLoad);
   };
 
   using TsLoadPtr = std::shared_ptr<TsLoad>;
@@ -55,6 +64,8 @@ namespace fc::primitives::tipset {
 
    private:
     IpldPtr ipld;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::primitives::tipset::TsLoadIpld);
   };
 
   struct TsLoadCache : public TsLoad {
@@ -82,6 +93,8 @@ namespace fc::primitives::tipset {
     uint64_t capacity;
     uint64_t begin_index{};
     uint64_t end_index{};
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::primitives::tipset::TsLoadCache);
   };
 
   struct PutBlockHeader {

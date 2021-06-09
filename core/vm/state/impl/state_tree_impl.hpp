@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "vm/state/state_tree.hpp"
 
 #include "adt/address_key.hpp"
@@ -57,5 +59,7 @@ namespace fc::vm::state {
     std::shared_ptr<IpfsDatastore> store_;
     adt::Map<actor::Actor, adt::AddressKeyer> by_id;
     mutable std::vector<Tx> tx_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::vm::state::StateTreeImpl);
   };
 }  // namespace fc::vm::state

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "crypto/bls/bls_provider.hpp"
 
 namespace fc::crypto::bls {
@@ -33,5 +35,7 @@ namespace fc::crypto::bls {
      */
     static outcome::result<Digest> generateHash(
         gsl::span<const uint8_t> message);
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::crypto::bls::BlsProviderImpl);
   };
 }  // namespace fc::crypto::bls

@@ -9,6 +9,7 @@
 
 #include <boost/asio/thread_pool.hpp>
 #include <future>
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <mutex>
 #include <unordered_map>
 #include <utility>
@@ -47,6 +48,8 @@ namespace fc::sector_storage {
     }
 
     std::promise<outcome::result<void>> response;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::sector_storage::TaskRequest);
   };
 
   inline bool operator<(const TaskRequest &lhs, const TaskRequest &rhs) {
@@ -100,6 +103,8 @@ namespace fc::sector_storage {
     common::Logger logger_;
 
     size_t active_jobs{};
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::sector_storage::SchedulerImpl);
   };
 
 }  // namespace fc::sector_storage

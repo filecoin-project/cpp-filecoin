@@ -134,6 +134,8 @@ namespace fc::api {
     net::deadline_timer timer;
     beast::flat_buffer buffer;
     Rpc rpc;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::api::SocketSession);
   };
 
   struct HttpSession : public std::enable_shared_from_this<HttpSession> {
@@ -256,6 +258,8 @@ namespace fc::api {
     WrapperResponse w_response;
     std::shared_ptr<Routes> routes;
     std::map<std::string, std::shared_ptr<Rpc>> rpc;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::api::HttpSession);
   };
 
   struct Server : std::enable_shared_from_this<Server> {
@@ -285,6 +289,8 @@ namespace fc::api {
     /** API version -> API mapping */
     std::map<std::string, std::shared_ptr<Rpc>> rpc;
     std::shared_ptr<Routes> routes;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::api::Server);
   };
 
   /**

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "api/full_node/node_api.hpp"
 #include "storage/ipfs/datastore.hpp"
 
@@ -40,6 +42,8 @@ namespace fc::storage::ipfs {
 
    private:
     std::shared_ptr<FullNodeApi> api_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::ipfs::ApiIpfsDatastore);
   };
 
 }  // namespace fc::storage::ipfs

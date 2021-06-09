@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "primitives/block/block.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
@@ -71,6 +73,10 @@ namespace fc::primitives::tipset {
     static outcome::result<TipsetCPtr> create(
         std::vector<block::BlockHeader> blocks);
 
+    Tipset() = default;
+
+    Tipset(const TipsetKey &key, std::vector<block::BlockHeader> blks);
+
     outcome::result<void> visitMessages(
         MessageVisitor message_visitor,
         const MessageVisitor::Visitor &visitor) const;
@@ -117,13 +123,10 @@ namespace fc::primitives::tipset {
      */
     bool contains(const CID &cid) const;
 
-    Tipset() = default;
-
-    Tipset(TipsetKey _key, std::vector<block::BlockHeader> _blks)
-        : key(std::move(_key)), blks(std::move(_blks)) {}
-
     TipsetKey key;
     std::vector<block::BlockHeader> blks;  ///< block headers
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::primitives::tipset::Tipset);
   };
 
   /**

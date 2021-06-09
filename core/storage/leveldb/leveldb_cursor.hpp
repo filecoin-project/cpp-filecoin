@@ -6,6 +6,7 @@
 #pragma once
 
 #include <leveldb/iterator.h>
+#include <libp2p/common/metrics/instance_count.hpp>
 #include "storage/leveldb/leveldb.hpp"
 
 namespace fc::storage {
@@ -38,6 +39,8 @@ namespace fc::storage {
 
    private:
     std::shared_ptr<leveldb::Iterator> i_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::LevelDB::Cursor);
   };
 
 }  // namespace fc::storage

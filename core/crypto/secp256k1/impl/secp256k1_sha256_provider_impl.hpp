@@ -7,6 +7,8 @@
 
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 namespace fc::crypto::secp256k1 {
 
   /**
@@ -25,6 +27,9 @@ namespace fc::crypto::secp256k1 {
     outcome::result<PublicKeyUncompressed> recoverPublicKey(
         gsl::span<const uint8_t> message,
         const SignatureCompact &signature) const override;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(
+        fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl);
   };
 
 }  // namespace fc::crypto::secp256k1

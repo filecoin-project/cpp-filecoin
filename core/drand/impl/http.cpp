@@ -8,6 +8,7 @@
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <libp2p/common/metrics/instance_count.hpp>
 
 #include "codec/json/json.hpp"
 
@@ -82,6 +83,8 @@ namespace fc::drand::http {
     http::request<http::empty_body> req;
     beast::flat_buffer buffer;
     http::response<http::string_body> res;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::drand::http::ClientSession);
   };
 
   void getInfo(io_context &io,

@@ -7,6 +7,8 @@
 
 #include "sector_storage/selector.hpp"
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "sector_storage/stores/index.hpp"
 
 namespace fc::sector_storage {
@@ -32,5 +34,7 @@ namespace fc::sector_storage {
     SectorId sector_;
     SectorFileType allocate_;
     bool allow_fetch_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::sector_storage::ExistingSelector);
   };
 }  // namespace fc::sector_storage

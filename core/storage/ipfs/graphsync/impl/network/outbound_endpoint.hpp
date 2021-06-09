@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "marshalling/response_builder.hpp"
 #include "network_fwd.hpp"
 
@@ -37,8 +39,8 @@ namespace fc::storage::ipfs::graphsync {
     outcome::result<void> enqueue(SharedData msg);
 
     /// Sends response via message queue
-    outcome::result<void> sendResponse(
-        const FullRequestId &id, const Response &response);
+    outcome::result<void> sendResponse(const FullRequestId &id,
+                                       const Response &response);
 
     /// Clears all pending messages
     void clearPendingMessages();
@@ -69,6 +71,9 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Wire protocol response messages builder
     ResponseBuilder response_builder_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(
+        fc::storage::ipfs::graphsync::OutboundEndpoint);
   };
 
 }  // namespace fc::storage::ipfs::graphsync

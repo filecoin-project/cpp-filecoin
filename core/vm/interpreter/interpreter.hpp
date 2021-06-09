@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "cbor_blake/ipld.hpp"
 #include "fwd.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -35,6 +37,8 @@ namespace fc::vm::interpreter {
     struct Key {
       Key(const TipsetKey &tsk);
       Buffer key;
+
+      LIBP2P_METRICS_INSTANCE_COUNT(fc::vm::interpreter::InterpreterCache::Key);
     };
     InterpreterCache(std::shared_ptr<PersistentBufferMap> kv,
                      std::shared_ptr<CbIpld> ipld);
@@ -59,6 +63,8 @@ namespace fc::vm::interpreter {
    private:
     std::shared_ptr<PersistentBufferMap> kv;
     std::shared_ptr<CbIpld> ipld_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::vm::interpreter::InterpreterCache);
   };
 
   class Interpreter {

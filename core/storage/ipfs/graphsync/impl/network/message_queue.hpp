@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "network_fwd.hpp"
 
 namespace fc::storage::ipfs::graphsync {
@@ -32,6 +34,9 @@ namespace fc::storage::ipfs::graphsync {
 
       /// True while queue is active
       bool active = false;
+
+      LIBP2P_METRICS_INSTANCE_COUNT(
+          fc::storage::ipfs::graphsync::MessageQueue::State);
     };
 
     MessageQueue(const MessageQueue &) = delete;
@@ -72,6 +77,8 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Current state of the queue
     State state_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::ipfs::graphsync::MessageQueue);
   };
 
 }  // namespace fc::storage::ipfs::graphsync

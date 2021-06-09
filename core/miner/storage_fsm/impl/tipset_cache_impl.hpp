@@ -9,6 +9,7 @@
 
 #include "primitives/tipset/tipset_key.hpp"
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <shared_mutex>
 
 namespace fc::mining {
@@ -45,5 +46,7 @@ namespace fc::mining {
     uint64_t len_;
 
     GetTipsetFunction get_function_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::mining::TipsetCacheImpl);
   };
 }  // namespace fc::mining

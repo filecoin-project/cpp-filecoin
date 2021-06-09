@@ -116,12 +116,12 @@ namespace fc::node {
               config.kademlia_config,
               std::make_shared<
                   libp2p::protocol::kademlia::StorageBackendDefault>(),
-              o.scheduler);
+              o.scheduler2);
 
       std::shared_ptr<libp2p::protocol::kademlia::ContentRoutingTable>
           content_routing_table = std::make_shared<
               libp2p::protocol::kademlia::ContentRoutingTableImpl>(
-              config.kademlia_config, *o.scheduler, bus);
+              config.kademlia_config, *o.scheduler2, bus);
 
       std::shared_ptr<libp2p::protocol::kademlia::PeerRoutingTable>
           peer_routing_table = std::make_shared<
@@ -142,7 +142,7 @@ namespace fc::node {
           std::move(content_routing_table),
           std::move(peer_routing_table),
           std::move(validator),
-          o.scheduler,
+          o.scheduler2,
           std::move(bus),
           std::move(random_generator));
     }
@@ -402,6 +402,8 @@ namespace fc::node {
 
     o.io_context = injector.create<std::shared_ptr<boost::asio::io_context>>();
 
+    o.scheduler2 = injector.create<std::shared_ptr<libp2p::basic::Scheduler>>();
+
     o.scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
         o.io_context, libp2p::protocol::SchedulerConfig{});
 
@@ -431,7 +433,7 @@ namespace fc::node {
         o.host, o.utc_clock, *config.genesis_cid, o.events);
 
     o.gossip = libp2p::protocol::gossip::create(
-        o.scheduler, o.host, config.gossip_config);
+        o.scheduler2, o.host, config.gossip_config);
 
     using libp2p::protocol::gossip::ByteArray;
     o.gossip->setMessageIdFn(

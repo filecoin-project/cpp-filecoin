@@ -5,8 +5,11 @@
 
 #include "node/blocksync_request.hpp"
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/host/host.hpp>
 #include <unordered_set>
+
+#include <libp2p/common/metrics/instance_count.hpp>
 
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
@@ -542,6 +545,8 @@ namespace fc::sync::blocksync {
       libp2p::protocol::scheduler::Handle handle_;
       StreamPtr stream_;
       bool in_progress_ = true;
+
+      LIBP2P_METRICS_INSTANCE_COUNT(fc::sync::blocksync::BlocksyncRequestImpl);
     };
 
   }  // namespace

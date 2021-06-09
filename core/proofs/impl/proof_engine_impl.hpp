@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "proofs/proof_engine.hpp"
 
 #include "common/logger.hpp"
@@ -99,5 +101,7 @@ namespace fc::proofs {
 
   private:
     common::Logger logger_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::proofs::ProofEngineImpl);
   };
 }  // namespace fc::proofs

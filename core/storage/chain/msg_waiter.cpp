@@ -35,27 +35,30 @@ namespace fc::storage::blockchain {
       OUTCOME_TRY(parent->visitMessages(
           {ipld, true, false},
           [&](auto i, auto, auto &cid, auto, auto) -> outcome::result<void> {
-            if (apply) {
-              OUTCOME_TRY(receipt, receipts.get(i));
-              auto result{
-                  results.emplace(cid, std::make_pair(receipt, ts->key))};
-              auto callbacks{waiting.find(cid)};
-              if (callbacks != waiting.end()) {
-                for (auto &callback : callbacks->second) {
-                  callback(result.first->second);
-                }
-                waiting.erase(cid);
-              }
-            } else {
-              results.erase(cid);
-            }
+            // TODO (a.chernyshov) results leaks memory, add clearing.
+            // now it is disabled to check mem consumption
+//            if (apply) {
+//              OUTCOME_TRY(receipt, receipts.get(i));
+//              auto result{
+//                  results.emplace(cid, std::make_pair(receipt, ts->key))};
+//              auto callbacks{waiting.find(cid)};
+//              if (callbacks != waiting.end()) {
+//                for (auto &callback : callbacks->second) {
+//                  callback(result.first->second);
+//                }
+//                waiting.erase(cid);
+//              }
+//            } else {
+//              results.erase(cid);
+//            }
             return outcome::success();
           }));
       return std::move(parent);
     };
     if (change.type == HeadChangeType::CURRENT) {
       auto ts{change.value};
-      while (ts->height() > 0) {
+      auto n{2};
+      while (ts->height() > 0 && n--) {
         OUTCOME_TRYA(ts, onTipset(ts, true));
       }
     } else {

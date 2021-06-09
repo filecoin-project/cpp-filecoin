@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "common/outcome.hpp"
 #include "primitives/resources/active_resources.hpp"
 #include "primitives/seal_tasks/task.hpp"
@@ -22,6 +24,8 @@ namespace fc::sector_storage {
 
     ActiveResources preparing;
     ActiveResources active;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::sector_storage::WorkerHandle);
   };
 
   class WorkerSelector {

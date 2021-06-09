@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "proofs/proof_engine.hpp"
 #include "vm/actor/builtin/states/impl/state_manager_impl.hpp"
 #include "vm/actor/invoker.hpp"
@@ -130,6 +132,8 @@ namespace fc::vm::runtime {
     std::shared_ptr<StateManagerImpl> state_manager;
 
     std::shared_ptr<proofs::ProofEngine> proofs_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::vm::runtime::RuntimeImpl);
   };
 
 }  // namespace fc::vm::runtime

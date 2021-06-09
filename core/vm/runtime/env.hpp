@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "primitives/tipset/tipset.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/invoker.hpp"
@@ -47,6 +49,8 @@ namespace fc::vm::runtime {
     IpldPtr ipld;
     // vm only stores "DAG_CBOR blake2b_256" cids
     std::unordered_map<Hash256, Buffer> write;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::vm::runtime::IpldBuffered);
   };
 
   /// Environment contains objects that are shared by runtime contexts
@@ -57,7 +61,8 @@ namespace fc::vm::runtime {
 
     struct Apply {
       MessageReceipt receipt;
-      TokenAmount penalty, reward;
+      TokenAmount penalty;
+      TokenAmount reward;
     };
 
     outcome::result<Apply> applyMessage(const UnsignedMessage &message,
@@ -73,6 +78,8 @@ namespace fc::vm::runtime {
     TsBranchPtr ts_branch;
     TipsetCPtr tipset;
     Pricelist pricelist;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::vm::runtime::Env);
   };
 
   struct Execution : std::enable_shared_from_this<Execution> {
@@ -97,6 +104,8 @@ namespace fc::vm::runtime {
     Address origin;
     uint64_t origin_nonce;
     size_t actors_created{};
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::vm::runtime::Execution);
   };
 
   struct ChargingIpld : public Ipld,
@@ -112,5 +121,7 @@ namespace fc::vm::runtime {
     }
 
     std::weak_ptr<Execution> execution_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::vm::runtime::ChargingIpld);
   };
 }  // namespace fc::vm::runtime

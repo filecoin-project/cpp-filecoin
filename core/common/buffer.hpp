@@ -10,6 +10,7 @@
 #include <gsl/span>
 #include <string_view>
 #include <vector>
+#include <libp2p/common/metrics/instance_count.hpp>
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome.hpp"
@@ -220,6 +221,8 @@ namespace fc::common {
 
     template <typename T>
     Buffer &putRange(const T &begin, const T &end);
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::common::Buffer);
   };
 
   /**

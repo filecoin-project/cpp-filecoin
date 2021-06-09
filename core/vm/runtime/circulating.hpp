@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "common/outcome.hpp"
 #include "fwd.hpp"
 #include "primitives/types.hpp"
@@ -21,5 +23,7 @@ namespace fc::vm {
                                              ChainEpoch epoch) const;
 
     TokenAmount genesis;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::vm::Circulating);
   };
 }  // namespace fc::vm

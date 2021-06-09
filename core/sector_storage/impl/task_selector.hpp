@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "sector_storage/selector.hpp"
 
 namespace fc::sector_storage {
@@ -20,6 +22,8 @@ namespace fc::sector_storage {
         const TaskType &task,
         const std::shared_ptr<WorkerHandle> &challenger,
         const std::shared_ptr<WorkerHandle> &current_best) override;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::sector_storage::TaskSelector);
   };
 
 }  // namespace fc::sector_storage

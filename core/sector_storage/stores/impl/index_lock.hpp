@@ -6,6 +6,7 @@
 #pragma once
 
 #include <condition_variable>
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <mutex>
 
 #include "primitives/sector_file/sector_file.hpp"
@@ -28,6 +29,9 @@ namespace fc::sector_storage::stores {
       }
       Lock(Lock &&) = default;
       ~Lock() override;
+
+      LIBP2P_METRICS_INSTANCE_COUNT(
+          fc::sector_storage::stores::IndexLock::Lock);
     };
 
     struct Sector {
@@ -45,5 +49,7 @@ namespace fc::sector_storage::stores {
 
     std::mutex mutex;
     std::map<SectorId, Sector> sectors;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::sector_storage::stores::IndexLock);
   };
 }  // namespace fc::sector_storage::stores

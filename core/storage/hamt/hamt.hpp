@@ -10,6 +10,7 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/variant.hpp>
+#include <libp2p/common/metrics/instance_count.hpp>
 
 #include "codec/cbor/cbor_codec.hpp"
 #include "codec/cbor/streams_annotation.hpp"
@@ -67,6 +68,8 @@ namespace fc::storage::hamt {
 
     std::map<size_t, Item> items;
     boost::optional<bool> v3;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::hamt::Node);
   };
   CBOR2_DECODE_ENCODE(Node)
 
@@ -170,5 +173,7 @@ namespace fc::storage::hamt {
     mutable Node::Item root_;
     size_t bit_width_;
     bool v3_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::hamt::Hamt);
   };
 }  // namespace fc::storage::hamt

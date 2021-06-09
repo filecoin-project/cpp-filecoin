@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <sstream>
 
 #include "clock/chain_epoch_clock.hpp"
@@ -61,6 +62,15 @@ namespace fc::node {
         car("car_size", "car_count", "car_tmp", o.compacter->old_ipld);
         car("car2_size", "car2_count", "car2_tmp", o.compacter->new_ipld);
       }
+
+      auto &instances{libp2p::metrics::instance::State::get()};
+      std::unique_lock instances_lock{instances.mutex};
+      for (auto &[type, count] : instances.counts) {
+        std::stringstream name;
+        name << "instances{type=\"" << type << "\"}";
+        metric(name.str(), count);
+      }
+      instances_lock.unlock();
 
       return ss.str();
     }

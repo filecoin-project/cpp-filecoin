@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "codec/cbor/fwd.hpp"
 #include "storage/buffer_map.hpp"
 
@@ -26,6 +28,8 @@ namespace fc::storage {
 
       MapPrefix &map;
       std::unique_ptr<BufferMapCursor> cursor;
+
+      LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::MapPrefix::Cursor);
     };
 
     struct Batch : BufferBatch {
@@ -41,6 +45,8 @@ namespace fc::storage {
 
       MapPrefix &map;
       std::unique_ptr<BufferBatch> batch;
+
+      LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::MapPrefix::Batch);
     };
 
     MapPrefix(BytesIn prefix, MapPtr map);
@@ -57,6 +63,8 @@ namespace fc::storage {
 
     Buffer prefix, _next;
     MapPtr map;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::MapPrefix);
   };
 
   struct OneKey {

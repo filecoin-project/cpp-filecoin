@@ -7,6 +7,7 @@
 
 #include <boost/endian/buffers.hpp>
 #include <fstream>
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <mutex>
 
 #include "common/blob.hpp"
@@ -140,6 +141,8 @@ namespace fc::storage::cids_index {
 
     static outcome::result<std::shared_ptr<MemoryIndex>> load(
         std::ifstream &file, size_t count);
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::cids_index::MemoryIndex);
   };
 
   struct SparseRange {
@@ -161,6 +164,8 @@ namespace fc::storage::cids_index {
 
     static outcome::result<std::shared_ptr<SparseIndex>> load(
         std::ifstream &&file, size_t count, size_t max_keys);
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::cids_index::SparseIndex);
   };
 
   outcome::result<std::shared_ptr<Index>> load(

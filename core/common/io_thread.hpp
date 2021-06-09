@@ -7,6 +7,7 @@
 
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/io_context.hpp>
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <thread>
 
 namespace fc {
@@ -26,5 +27,7 @@ namespace fc {
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type>
         work;
     std::thread thread;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::IoThread);
   };
 }  // namespace fc

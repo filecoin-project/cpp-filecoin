@@ -8,6 +8,7 @@
 #include <libp2p/protocol/common/scheduler.hpp>
 #include <set>
 #include <string>
+#include <libp2p/common/metrics/instance_count.hpp>
 
 #include "node/common.hpp"
 
@@ -49,6 +50,8 @@ namespace fc::sync::events {
     boost::optional<PeerId> source;
     TipsetKey head;
     Height height = 0;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::sync::events::PossibleHead);
   };
 
   struct CurrentHead {

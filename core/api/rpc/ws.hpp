@@ -9,6 +9,7 @@
 #include <boost/beast/http.hpp>
 #include <map>
 #include <variant>
+#include <libp2p/common/metrics/instance_count.hpp>
 
 #include "api/rpc/rpc.hpp"
 
@@ -42,6 +43,8 @@ namespace fc::api {
 
     ResponseType response;
     std::function<void()> release_resources;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::api::WrapperResponse);
   };
   // RouteHandler should write response
   using RouteHandler = std::function<WrapperResponse(

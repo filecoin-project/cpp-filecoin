@@ -3,6 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <signal.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <sys/resource.h>
+#include <unistd.h>
 #include <iostream>
 
 #include "api/full_node/node_api_v1_wrapper.hpp"
@@ -27,6 +31,40 @@
 #include "node/say_hello.hpp"
 #include "node/sync_job.hpp"
 #include "vm/actor/cgo/actors.hpp"
+
+void enableCoreDump() {
+  rlimit r;
+  r.rlim_cur = r.rlim_max = RLIM_INFINITY;
+  if (setrlimit(RLIMIT_CORE, &r) != 0) {
+    spdlog::warn("setrlimit failed");
+  }
+}
+
+void _write(std::string_view s) {
+  if (::write(STDERR_FILENO, s.data(), s.size()) != (ssize_t)s.size()) {
+    abort();
+  }
+}
+void _sigsegv(int sig, siginfo_t *info, void *ucontext) {
+  _write("\n\nSIGSEGV\nwaiting for debugger...\n");
+  volatile bool loop{true};
+  while (loop) {
+    _write("\a");
+    sleep(1);
+  }
+}
+void setSigsegv() {
+  struct sigaction act {};
+  act.sa_flags = SA_RESETHAND | SA_SIGINFO;
+  act.sa_sigaction = _sigsegv;
+  if (::sigaction(SIGSEGV, &act, nullptr) != 0) {
+    abort();
+  }
+}
+
+namespace fc::common {
+  extern spdlog::sink_ptr file_sink;
+}
 
 namespace fc {
   using api::Import;
@@ -222,6 +260,15 @@ namespace fc {
     log()->info("API started at ws://127.0.0.1:{}", config.api_port);
   }
 
+  template <typename F>
+  void _sighup(boost::asio::signal_set &sighup, F f) {
+    sighup.async_wait([&, f](auto &ec, auto) {
+      if (ec) return;
+      f();
+      _sighup(sighup, f);
+    });
+  }
+
   void main(node::Config &config) {
     vm::actor::cgo::configParams();
 
@@ -352,6 +399,10 @@ namespace fc {
       exit(EXIT_FAILURE);
     }
 
+    boost::asio::signal_set sighup{*o.compacter->thread.io, SIGHUP};
+    _sighup(sighup,
+            [&] { spdlog::warn("SIGHUP {}", o.compacter->asyncStart()); });
+
     // gracefully shutdown on signal
     boost::asio::signal_set signals(*o.io_context, SIGINT, SIGTERM);
     signals.async_wait(
@@ -364,14 +415,16 @@ namespace fc {
 }  // namespace fc
 
 int main(int argc, char *argv[]) {
-  fc::libp2pSoralog();
+  enableCoreDump();
+  setSigsegv();
 
-  try {
-    auto config{fc::node::Config::read(argc, argv)};
-    fc::main(config);
-  } catch (const std::exception &e) {
-    std::cerr << "UNEXPECTED EXCEPTION, " << e.what() << "\n";
-  } catch (...) {
-    std::cerr << "UNEXPECTED EXCEPTION\n";
-  }
+  auto config{fc::node::Config::read(argc, argv)};
+  fc::libp2pSoralog(config.join("libp2p.log"));
+
+  using fc::common::file_sink;
+  file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+      config.join("fuhon.log"));
+  spdlog::default_logger()->sinks().push_back(file_sink);
+
+  fc::main(config);
 }

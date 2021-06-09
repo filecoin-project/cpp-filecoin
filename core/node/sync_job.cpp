@@ -23,6 +23,8 @@ namespace fc::sync {
       static common::Logger logger = common::createLogger("sync_job");
       return logger.get();
     }
+
+    int fetch_ok{}, fetch_fail{}, interp{};
   }  // namespace
 
   outcome::result<TipsetCPtr> stepUp(TsLoadPtr ts_load,
@@ -199,6 +201,9 @@ namespace fc::sync {
       std::vector<TsBranchPtr> children;
       auto branch{insert(*ts_branches_, ts, &children).first};
       if (attached_.count(branch)) {
+        if (children.size()) {
+          log()->info("ATTACH {}", ts->height());
+        }
         auto last{attached_heaviest_.first};
         for (auto &child : children) {
           attach(child);
@@ -245,17 +250,58 @@ namespace fc::sync {
     }
   }
 
+  void logTarget(TsBranchPtr b, uint64_t h) {
+    auto _it{find(b, h, false)};
+    if (!_it) {
+      log()->error("logTarget {:#}", _it.error());
+    }
+    auto low{_it.value().second->first};
+    auto high{b->chain.rbegin()->first};
+    auto n{0};
+    auto it{std::prev(b->chain.end())};
+    while (it->first >= h) {
+      ++n;
+      if (auto _it{stepParent({b, it})}) {
+        std::tie(b, it) = _it.value();
+      } else {
+        log()->info("logTarget stepUp no way up");
+        break;
+      }
+    }
+    spdlog::info("TARGET {}..{} ({})", low, high, n);
+  }
+
   void SyncJob::updateTarget(TsBranchPtr last) {
     auto branch{attached_heaviest_.first};
     if (branch == last) {
       return;
     }
+    auto top{branch};
+    auto n{0};
     auto it{std::prev(branch->chain.end())};
     while (true) {
       if (auto _res{interpreter_cache_->tryGet(it->second.key)}) {
         if (*_res) {
-          if (auto _ts{ts_load_->lazyLoad(it->second)}) {
-            interpret_ts_ = _ts.value();
+          if (n) {
+            logTarget(top, it->first + 1);
+            if (auto _ts{ts_load_->lazyLoad(it->second)}) {
+              interpret_ts_ = _ts.value();
+            } else {
+              log()->info("updateTarget already top");
+            }
+          }
+        } else {
+          log()->warn("BAD CACHED {} {}",
+                      it->first,
+                      fmt::join(it->second.key.cids(), ","));
+
+          if (getenv("INTC")) {
+            static auto intc{false};
+            if (!intc) {
+              intc = true;
+              log()->info("cleared");
+              interpreter_cache_->remove(it->second.key);
+            }
           }
         }
         break;
@@ -269,14 +315,29 @@ namespace fc::sync {
         log()->info("main not interpreted {}", it->first);
         break;
       }
+      ++n;
     }
   }
 
   void SyncJob::onInterpret(TipsetCPtr ts, const InterpreterResult &result) {
     auto &weight{result.weight};
     if (weight > chain_store_->getHeaviestWeight()) {
-      if (auto _update{
-              update(ts_main_, find(*ts_branches_, ts), ts_main_kv_)}) {
+      auto it{find(*ts_branches_, ts)};
+      if (!it.first) {
+        std::string _branches;
+        for (auto &branch : *ts_branches_) {
+          fmt::format_to(std::back_inserter(_branches),
+                         " {}..{}",
+                         branch->chain.begin()->first,
+                         branch->chain.rbegin()->first);
+        }
+        log()->warn("onInterpret branch not found for {} {} in {}",
+                    ts->height(),
+                    fmt::join(ts->key.cids(), ","),
+                    _branches);
+        return;
+      }
+      if (auto _update{update(ts_main_, it, ts_main_kv_)}) {
         auto &[path, removed]{_update.value()};
         for (auto &branch : removed) {
           ts_branches_->erase(branch);
@@ -340,6 +401,8 @@ namespace fc::sync {
       interpret_ts_ = nullptr;
       return;
     }
+    ++interp;
+    log()->info("INTERP {} {}", ts->height(), interp);
     interpreting_ = true;
     interpret_thread.io->post([=] {
       auto result{interpreter_->interpret(branch, ts)};
@@ -427,8 +490,52 @@ namespace fc::sync {
       r.delta_rating -= 500;
     }
 
+    if (r.error) {
+      ++fetch_fail;
+      log()->info("FETCH +{} -{}, {:#}", fetch_ok, fetch_fail, r.error);
+    } else {
+      ++fetch_ok;
+      log()->info("FETCH +{} -{}, OK", fetch_ok, fetch_fail);
+    }
+
     if (ts) {
       thread.io->post([this, peer{r.from}, ts] { onTs(peer, ts); });
+
+      thread.io->post([this] {
+        std::unique_lock requests_lock{requests_mutex_};
+        auto active_peers{requests_.size()};
+        requests_lock.unlock();
+        std::unique_lock lock{*ts_branches_mutex_};
+        int ts{}, br{}, com{};
+        uint64_t m{};
+        for (auto &b : *ts_branches_) {
+          if (b != ts_main_) {
+            m = std::max(m, std::prev(b->chain.end())->first);
+            ++br;
+            if (!b->parent || b->parent == ts_main_) {
+              ++com;
+            }
+            ts += b->chain.size();
+          }
+        }
+        log()->info(
+            "QUEUE {}, FETCH +{} -{}, TS {}, BR {}, ATT {}, COM {}, HEAD "
+            "{}, MAX {}",
+            active_peers,
+            fetch_ok,
+            fetch_fail,
+            ts,
+            br,
+            attached_.size(),
+            com,
+            ts_main_->chain.rbegin()->first,
+            m);
+        for (auto &b : *ts_branches_) {
+          if (b != ts_main_ && !b->parent) {
+            log()->info("COM {}...", b->chain.begin()->first);
+          }
+        }
+      });
     }
 
     fetchDequeue();

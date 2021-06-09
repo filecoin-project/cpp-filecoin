@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "data_transfer/message.hpp"
 #include "fwd.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
@@ -98,5 +100,7 @@ namespace fc::data_transfer {
     std::unordered_map<PeerDtId, OnData> pulling_in;
     std::unordered_map<PeerDtId, PushingOut> pushing_out;
     DtId next_dtid;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::data_transfer::DataTransfer);
   };
 }  // namespace fc::data_transfer

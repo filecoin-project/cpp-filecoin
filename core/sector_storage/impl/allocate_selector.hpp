@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "sector_storage/selector.hpp"
 
 #include "sector_storage/stores/index.hpp"
@@ -30,5 +32,7 @@ namespace fc::sector_storage {
     std::shared_ptr<stores::SectorIndex> sector_index_;
     SectorFileType allocate_;
     PathType path_type_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::sector_storage::AllocateSelector);
   };
 }  // namespace fc::sector_storage

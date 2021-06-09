@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <libp2p/connection/stream.hpp>
 
 #include "codec/cbor/cbor_codec.hpp"
@@ -66,5 +67,7 @@ namespace fc::common::libp2p {
     CborBuffering buffering_;
     std::vector<uint8_t> buffer_;
     size_t size_{};
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::common::libp2p::CborStream);
   };
 }  // namespace fc::common::libp2p

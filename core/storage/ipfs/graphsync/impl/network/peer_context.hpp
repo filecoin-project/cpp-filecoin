@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <map>
 #include <set>
 
@@ -186,6 +187,8 @@ namespace fc::storage::ipfs::graphsync {
     /// Response status code stored to be forwarded asynchronously
     /// in the next cycle
     ResponseStatusCode close_status_ = RS_INTERNAL_ERROR;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::storage::ipfs::graphsync::PeerContext);
   };
 
 }  // namespace fc::storage::ipfs::graphsync

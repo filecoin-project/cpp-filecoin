@@ -10,9 +10,12 @@
 #include "common/file.hpp"
 #include "common/from_span.hpp"
 #include "common/logger.hpp"
+#include "common/outcome_fmt.hpp"
 #include "common/ptr.hpp"
 #include "storage/car/cids_index/progress.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
+
+#include "codec/cbor/cbor_dump.hpp"
 
 namespace fc::storage::cids_index {
   inline bool read(std::istream &is, Row &row) {
@@ -64,8 +67,29 @@ namespace fc::storage::cids_index {
             *end = row.offset.value() + varint.length + varint.value;
           }
           return {true, varint.value - prefix.size() - key.size()};
+        } else {
+          spdlog::warn("readCarItem({} {}): file={} gcount={} eq(key)={}",
+                       row.key,
+                       row.offset.value(),
+                       car_file.good(),
+                       car_file.gcount(),
+                       key == row.key);
         }
+      } else {
+        spdlog::warn("readCarItem({} {}): file={} gcount={} eq(prefix)={}",
+                     row.key,
+                     row.offset.value(),
+                     car_file.good(),
+                     car_file.gcount(),
+                     prefix == kCborBlakePrefix);
       }
+    } else {
+      spdlog::warn("readCarItem({} {}): file={} gcount={} varint.overflow={}",
+                   row.key,
+                   row.offset.value(),
+                   car_file.good(),
+                   car_file.gcount(),
+                   varint.overflow);
     }
     return {false, 0};
   }
@@ -209,6 +233,26 @@ namespace fc::storage::cids_index {
         row.max_size64 = maxSize64(size);
         ++total;
       } else {
+        if (Outcome cid{CID::read(input)}) {
+          if (auto id{asIdentity(*cid)}) {
+            spdlog::warn(
+                "readCar: wtf@{} id {}", offset, common::span::bytestr(*id));
+          } else {
+            if (cid->content_type == CID::Multicodec::DAG_CBOR) {
+              spdlog::warn(
+                  "readCar: wtf@{} cbor {} {}", offset, cid, dumpCbor(input));
+            } else {
+              spdlog::warn("readCar: wtf@{} {} {}",
+                           offset,
+                           cid,
+                           common::hex_lower(input));
+            }
+          }
+        } else {
+          spdlog::error(
+              "readCar: wtf@{} {} {:#}", offset, common::hex_lower(item), ~cid);
+        }
+        input = item;
         OUTCOME_TRY(cid, CID::read(input));
         if (ipld) {
           if (!asIdentity(cid)) {
