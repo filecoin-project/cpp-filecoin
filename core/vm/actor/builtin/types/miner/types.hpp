@@ -62,6 +62,13 @@ namespace fc::vm::actor::builtin::types::miner {
     inline bool isZero() const {
       return (raw == 0) && (qa == 0);
     }
+
+    inline PowerPair negative() const {
+      auto result{*this};
+      result.raw = -result.raw;
+      result.qa = -result.qa;
+      return result;
+    }
   };
   CBOR_TUPLE(PowerPair, raw, qa)
 
