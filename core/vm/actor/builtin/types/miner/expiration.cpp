@@ -127,7 +127,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
   outcome::result<PowerPair> ExpirationQueue::rescheduleRecovered(
       const std::vector<SectorOnChainInfo> &sectors, SectorSize ssize) {
-    std::vector<SectorNumber> remaining;
+    std::vector<SectorNumber> remaining(sectors.size());
     for (const auto &sector : sectors) {
       remaining.push_back(sector.sector);
     }
@@ -208,7 +208,7 @@ namespace fc::vm::actor::builtin::types::miner {
                                  const RleBitset &faults,
                                  const RleBitset &recovering,
                                  SectorSize ssize) {
-    std::vector<SectorNumber> remaining;
+    std::vector<SectorNumber> remaining(sectors.size());
     for (const auto &sector : sectors) {
       remaining.push_back(sector.sector);
     }
@@ -363,13 +363,7 @@ namespace fc::vm::actor::builtin::types::miner {
     OUTCOME_TRY(es, queue.get(epoch));
     OUTCOME_TRY(es.remove(
         on_time_sectors, early_sectors, pledge, active_power, faulty_power));
-
-    if (es.isEmpty()) {
-      OUTCOME_TRY(queue.remove(epoch));
-    } else {
-      OUTCOME_TRY(queue.set(epoch, es));
-    }
-    return outcome::success();
+    return mustUpdateOrDelete(epoch, es);
   }
 
   outcome::result<void> ExpirationQueue::traverseMutate(MutateFunction f) {

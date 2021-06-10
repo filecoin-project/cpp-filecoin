@@ -122,18 +122,17 @@ namespace fc::vm::actor::builtin::types::miner {
     outcome::result<void> mustUpdateOrDelete(ChainEpoch epoch,
                                              const ExpirationSet &es);
 
+   protected:
     std::vector<SectorEpochSet> groupNewSectorsByDeclaredExpiration(
         SectorSize sector_size,
         const std::vector<SectorOnChainInfo> &sectors) const;
-
-    virtual outcome::result<std::vector<SectorEpochSet>>
-    findSectorsByExpiration(SectorSize sector_size,
-                            const std::vector<SectorOnChainInfo> &sectors) = 0;
   };
+
+  using ExpirationQueuePtr = std::shared_ptr<ExpirationQueue>;
 
   struct SectorExpirationSet {
     SectorEpochSet sector_epoch_set;
-    ExpirationSet expiration_set;
+    ExpirationSet es;
   };
 
 }  // namespace fc::vm::actor::builtin::types::miner
