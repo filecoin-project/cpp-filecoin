@@ -122,7 +122,6 @@ namespace fc::vm::actor::builtin::types::miner {
     outcome::result<void> mustUpdateOrDelete(ChainEpoch epoch,
                                              const ExpirationSet &es);
 
-   protected:
     std::vector<SectorEpochSet> groupNewSectorsByDeclaredExpiration(
         SectorSize sector_size,
         const std::vector<SectorOnChainInfo> &sectors) const;

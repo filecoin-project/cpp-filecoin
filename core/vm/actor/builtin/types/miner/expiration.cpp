@@ -31,10 +31,10 @@ namespace fc::vm::actor::builtin::types::miner {
                                               const TokenAmount &on_time_pledge,
                                               const PowerPair &active_power,
                                               const PowerPair &faulty_power) {
-    if (this->on_time_sectors.contains(on_time_sectors)) {
+    if (!this->on_time_sectors.contains(on_time_sectors)) {
       return ERROR_TEXT("removing on-time sectors that are not contained");
     }
-    if (this->early_sectors.contains(early_sectors)) {
+    if (!this->early_sectors.contains(early_sectors)) {
       return ERROR_TEXT("removing early sectors that are not contained");
     }
 
