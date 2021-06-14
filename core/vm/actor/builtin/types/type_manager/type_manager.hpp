@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "storage/ipfs/datastore.hpp"
 #include "vm/actor/builtin/types/miner/expiration.hpp"
 #include "vm/runtime/runtime.hpp"
 
@@ -20,5 +21,18 @@ namespace fc::vm::actor::builtin::types {
         Runtime &runtime,
         const adt::Array<ExpirationSet> &expirations_epochs,
         const QuantSpec &quant);
+
+   private:
+    template <typename T>
+    static std::shared_ptr<T> createLoadedExpirationQueuePtr(
+        IpldPtr ipld,
+        const adt::Array<ExpirationSet> &expirations_epochs,
+        const QuantSpec &quant) {
+      auto eq = std::make_shared<T>();
+      eq->queue = expirations_epochs;
+      eq->quant = quant;
+      ipld->load(*eq);
+      return eq;
+    }
   };
 }  // namespace fc::vm::actor::builtin::types

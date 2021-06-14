@@ -29,3 +29,14 @@ namespace fc::vm::actor::builtin::v0::miner {
                         SectorSize ssize) override;
   };
 }  // namespace fc::vm::actor::builtin::v0::miner
+
+namespace fc {
+  template <>
+  struct Ipld::Visit<vm::actor::builtin::v0::miner::ExpirationQueue> {
+    template <typename Visitor>
+    static void call(vm::actor::builtin::v0::miner::ExpirationQueue &p,
+                     const Visitor &visit) {
+      visit(p.queue);
+    }
+  };
+}  // namespace fc

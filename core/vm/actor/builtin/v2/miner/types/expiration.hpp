@@ -43,3 +43,14 @@ namespace fc::vm::actor::builtin::v2::miner {
         ChainEpoch expiration);
   };
 }  // namespace fc::vm::actor::builtin::v2::miner
+
+namespace fc {
+  template <>
+  struct Ipld::Visit<vm::actor::builtin::v2::miner::ExpirationQueue> {
+    template <typename Visitor>
+    static void call(vm::actor::builtin::v2::miner::ExpirationQueue &p,
+                     const Visitor &visit) {
+      visit(p.queue);
+    }
+  };
+}  // namespace fc

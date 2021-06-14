@@ -19,24 +19,19 @@ namespace fc::vm::actor::builtin::types {
       const QuantSpec &quant) {
     const auto version = runtime.getActorVersion();
 
-    ExpirationQueuePtr expiration_queue;
-
     switch (version) {
       case ActorVersion::kVersion0:
-        expiration_queue = std::make_shared<v0::miner::ExpirationQueue>();
+        return createLoadedExpirationQueuePtr<v0::miner::ExpirationQueue>(
+            runtime.getIpfsDatastore(), expirations_epochs, quant);
       case ActorVersion::kVersion2:
-        expiration_queue = std::make_shared<v2::miner::ExpirationQueue>();
+        return createLoadedExpirationQueuePtr<v2::miner::ExpirationQueue>(
+            runtime.getIpfsDatastore(), expirations_epochs, quant);
       case ActorVersion::kVersion3:
-        expiration_queue = std::make_shared<v3::miner::ExpirationQueue>();
+        return createLoadedExpirationQueuePtr<v3::miner::ExpirationQueue>(
+            runtime.getIpfsDatastore(), expirations_epochs, quant);
       case ActorVersion::kVersion4:
         TODO_ACTORS_V4();
     }
-
-    expiration_queue->queue = expirations_epochs;
-    expiration_queue->quant = quant;
-    OUTCOME_TRY(expiration_queue->queue.amt.loadRoot());
-
-    return expiration_queue;
   }
 
 }  // namespace fc::vm::actor::builtin::types
