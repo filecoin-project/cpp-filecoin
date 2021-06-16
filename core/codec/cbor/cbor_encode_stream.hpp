@@ -5,15 +5,11 @@
 
 #pragma once
 
-#include "codec/cbor/cbor_common.hpp"
-
-#include <array>
 #include <map>
-#include <vector>
 
-#include <cbor.h>
 #include <boost/optional.hpp>
 
+#include "codec/cbor/cbor_token.hpp"
 #include "common/enum.hpp"
 #include "primitives/cid/cid.hpp"
 
@@ -30,22 +26,16 @@ namespace fc::codec::cbor {
     CborEncodeStream &operator<<(T num) {
       if constexpr (std::is_enum_v<T>) {
         return *this << common::to_int(num);
-      }
-      addCount(1);
-      std::array<uint8_t, 9> buffer{0};
-      CborEncoder encoder;
-      cbor_encoder_init(&encoder, buffer.data(), buffer.size(), 0);
-      if constexpr (std::is_same_v<T, bool>) {
-        cbor_encode_boolean(&encoder, num);
-      } else if constexpr (std::is_unsigned_v<T>) {
-        cbor_encode_uint(&encoder, static_cast<uint64_t>(num));
       } else {
-        cbor_encode_int(&encoder, static_cast<int64_t>(num));
+        addCount(1);
+        if constexpr (std::is_same_v<T, bool>) {
+          writeBool(data_, num);
+        } else if constexpr (std::is_unsigned_v<T>) {
+          writeUint(data_, num);
+        } else {
+          writeInt(data_, num);
+        }
       }
-      data_.insert(data_.end(),
-                   buffer.begin(),
-                   buffer.begin()
-                       + cbor_encoder_get_buffer_size(&encoder, buffer.data()));
       return *this;
     }
 
@@ -63,11 +53,14 @@ namespace fc::codec::cbor {
     /// Encodes elements into list
     template <typename T>
     CborEncodeStream &operator<<(const gsl::span<T> &values) {
-      auto l = list();
+      writeList(data_, values.size());
+      ++count_;
+      auto count{count_};
       for (auto &value : values) {
-        l << value;
+        *this << value;
       }
-      return *this << l;
+      count_ = count;
+      return *this;
     }
 
     /// Encodes elements into map
@@ -93,11 +86,11 @@ namespace fc::codec::cbor {
     }
 
     /** Encodes bytes */
-    CborEncodeStream &operator<<(const std::vector<uint8_t> &bytes);
+    CborEncodeStream &operator<<(const Bytes &bytes);
     /** Encodes bytes */
-    CborEncodeStream &operator<<(gsl::span<const uint8_t> bytes);
+    CborEncodeStream &operator<<(BytesIn bytes);
     /** Encodes string */
-    CborEncodeStream &operator<<(const std::string &str);
+    CborEncodeStream &operator<<(std::string_view str);
     /** Encodes CID */
     CborEncodeStream &operator<<(const CID &cid);
     /** Encodes list container encode substream */
@@ -108,19 +101,19 @@ namespace fc::codec::cbor {
     /** Encodes null */
     CborEncodeStream &operator<<(std::nullptr_t);
     /** Returns CBOR bytes of encoded elements */
-    std::vector<uint8_t> data() const;
+    Bytes data() const;
     /** Creates list container encode substream */
     static CborEncodeStream list();
     /** Creates map container encode substream map */
     static std::map<std::string, CborEncodeStream> map();
     /** Wraps CBOR bytes */
-    static CborEncodeStream wrap(gsl::span<const uint8_t> data, size_t count);
+    static CborEncodeStream wrap(BytesIn data, size_t count);
 
    private:
     void addCount(size_t count);
 
     bool is_list_{false};
-    std::vector<uint8_t> data_{};
+    Bytes data_{};
     size_t count_{0};
   };
 }  // namespace fc::codec::cbor

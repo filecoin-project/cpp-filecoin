@@ -55,7 +55,7 @@ namespace fc::storage::cids_index {
     car_file.clear();
     car_file.seekg(row.offset.value());
     auto prefix{kCborBlakePrefix};
-    Key key;
+    CbCid key;
     codec::uvarint::VarintDecoder varint;
     if (read(car_file, varint)) {
       if (common::read(car_file, prefix) && prefix == kCborBlakePrefix) {
@@ -202,7 +202,7 @@ namespace fc::storage::cids_index {
       auto size{varint + item.size()};
       if (startsWith(item, kCborBlakePrefix)) {
         input = input.subspan(kCborBlakePrefix.size());
-        OUTCOME_TRY(key, fromSpan<Key>(input, false));
+        OUTCOME_TRY(key, fromSpan<CbCid>(input, false));
         auto &row{rows.emplace_back()};
         row.key = key;
         row.offset = offset;
@@ -239,13 +239,13 @@ namespace fc::storage::cids_index {
   inline boost::optional<size_t> sparseSize(
       size_t count, boost::optional<size_t> max_memory) {
     if (max_memory && count * sizeof(Row) > *max_memory) {
-      return *max_memory / sizeof(Key);
+      return *max_memory / sizeof(CbCid);
     }
     return boost::none;
   }
 
   outcome::result<boost::optional<Row>> MemoryIndex::find(
-      const Key &key) const {
+      const CbCid &key) const {
     auto it{std::lower_bound(rows.begin(), rows.end(), key)};
     if (it != rows.end() && it->key == key) {
       if (it->isMeta()) {
@@ -298,7 +298,7 @@ namespace fc::storage::cids_index {
   }
 
   outcome::result<boost::optional<Row>> SparseIndex::find(
-      const Key &key) const {
+      const CbCid &key) const {
     if (sparse_keys.empty() || key < sparse_keys[0]) {
       return boost::none;
     }

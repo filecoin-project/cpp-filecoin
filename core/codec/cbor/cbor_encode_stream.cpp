@@ -6,139 +6,91 @@
 #include "codec/cbor/cbor_encode_stream.hpp"
 
 #include "codec/cbor/cbor_errors.hpp"
+#include "common/cmp.hpp"
 
 namespace fc::codec::cbor {
-  CborEncodeStream &CborEncodeStream::operator<<(
-      const std::vector<uint8_t> &bytes) {
+  CborEncodeStream &CborEncodeStream::operator<<(const Bytes &bytes) {
     return *this << gsl::make_span(bytes);
   }
 
-  CborEncodeStream &CborEncodeStream::operator<<(
-      gsl::span<const uint8_t> bytes) {
+  CborEncodeStream &CborEncodeStream::operator<<(BytesIn bytes) {
     addCount(1);
-
-    std::vector<uint8_t> encoded(9 + bytes.size());
-    CborEncoder encoder;
-    cbor_encoder_init(&encoder, encoded.data(), encoded.size(), 0);
-    cbor_encode_byte_string(&encoder, bytes.data(), bytes.size());
-    data_.insert(data_.end(),
-                 encoded.begin(),
-                 encoded.begin()
-                     + cbor_encoder_get_buffer_size(&encoder, encoded.data()));
+    writeBytes(data_, bytes.size());
+    append(data_, bytes);
     return *this;
   }
 
-  CborEncodeStream &CborEncodeStream::operator<<(const std::string &str) {
+  CborEncodeStream &CborEncodeStream::operator<<(std::string_view str) {
     addCount(1);
-
-    std::vector<uint8_t> encoded(9 + str.size());
-    CborEncoder encoder;
-    cbor_encoder_init(&encoder, encoded.data(), encoded.size(), 0);
-    cbor_encode_text_string(&encoder, str.data(), str.size());
-    data_.insert(data_.end(),
-                 encoded.begin(),
-                 encoded.begin()
-                     + cbor_encoder_get_buffer_size(&encoder, encoded.data()));
+    writeStr(data_, str.size());
+    append(data_, common::span::cbytes(str));
     return *this;
   }
 
   CborEncodeStream &CborEncodeStream::operator<<(const CID &cid) {
+    addCount(1);
     auto maybe_cid_bytes = cid.toBytes();
     if (maybe_cid_bytes.has_error()) {
       outcome::raise(CborEncodeError::kInvalidCID);
     }
-    auto cid_bytes = maybe_cid_bytes.value();
-    cid_bytes.insert(cid_bytes.begin(), 0);
-
-    std::array<uint8_t, 9> encoded{0};
-    CborEncoder encoder;
-    cbor_encoder_init(&encoder, encoded.data(), encoded.size(), 0);
-    cbor_encode_tag(&encoder, kExtraCid);
-    data_.insert(data_.end(),
-                 encoded.begin(),
-                 encoded.begin()
-                     + cbor_encoder_get_buffer_size(&encoder, encoded.data()));
-    *this << cid_bytes;
+    auto &bytes{maybe_cid_bytes.value()};
+    writeCid(data_, bytes.size());
+    append(data_, bytes);
     return *this;
   }
 
   CborEncodeStream &CborEncodeStream::operator<<(
       const CborEncodeStream &other) {
     addCount(other.is_list_ ? 1 : other.count_);
-    auto other_data = other.data();
-    data_.insert(data_.end(), other_data.begin(), other_data.end());
+    if (other.is_list_) {
+      writeList(data_, other.count_);
+    }
+    append(data_, other.data_);
     return *this;
   }
 
   struct LessCborKey {
-    bool operator()(const std::vector<uint8_t> &lhs,
-                    const std::vector<uint8_t> &rhs) const {
-      ssize_t diff = lhs.size() - rhs.size();
-      if (diff != 0) {
-        return diff < 0;
-      }
-      return std::memcmp(lhs.data(), rhs.data(), lhs.size()) < 0;
+    bool operator()(BytesIn lhs, BytesIn rhs) const {
+      return less(lhs.size(), rhs.size(), lhs, rhs);
     }
   };
 
   CborEncodeStream &CborEncodeStream::operator<<(
       const std::map<std::string, CborEncodeStream> &map) {
     addCount(1);
-
-    std::array<uint8_t, 9> prefix{0};
-    CborEncoder encoder;
-    CborEncoder container;
-    cbor_encoder_init(&encoder, prefix.data(), prefix.size(), 0);
-    cbor_encoder_create_map(&encoder, &container, map.size());
-    data_.insert(data_.end(),
-                 prefix.begin(),
-                 prefix.begin()
-                     + cbor_encoder_get_buffer_size(&container, prefix.data()));
-
-    std::map<std::vector<uint8_t>, std::vector<uint8_t>, LessCborKey> sorted;
+    writeMap(data_, map.size());
+    std::vector<std::pair<BytesIn, const CborEncodeStream *>> sorted;
+    sorted.reserve(map.size());
     for (const auto &pair : map) {
       if (pair.second.count_ != 1) {
         outcome::raise(CborEncodeError::kExpectedMapValueSingle);
       }
-      sorted.insert(std::make_pair((CborEncodeStream() << pair.first).data(),
-                                   pair.second.data()));
+      sorted.emplace_back(common::span::cbytes(pair.first), &pair.second);
     }
-    for (const auto &pair : sorted) {
-      data_.insert(data_.end(), pair.first.begin(), pair.first.end());
-      data_.insert(data_.end(), pair.second.begin(), pair.second.end());
+    std::sort(sorted.begin(), sorted.end(), [](auto &l, auto &r) {
+      return LessCborKey{}(l.first, r.first);
+    });
+    auto count{count_};
+    for (const auto &[key, value] : sorted) {
+      *this << common::span::bytestr(key);
+      *this << *value;
     }
-
+    count_ = count;
     return *this;
   }
 
   CborEncodeStream &CborEncodeStream::operator<<(std::nullptr_t) {
     addCount(1);
-
-    std::array<uint8_t, 1> prefix{0};
-    CborEncoder encoder;
-    cbor_encoder_init(&encoder, prefix.data(), prefix.size(), 0);
-    cbor_encode_null(&encoder);
-    data_.insert(
-        data_.end(),
-        prefix.begin(),
-        prefix.begin() + cbor_encoder_get_buffer_size(&encoder, prefix.data()));
+    writeNull(data_);
     return *this;
   }
 
-  std::vector<uint8_t> CborEncodeStream::data() const {
-    if (!is_list_) {
-      return data_;
+  Bytes CborEncodeStream::data() const {
+    Bytes result;
+    if (is_list_) {
+      writeList(result, count_);
     }
-    std::array<uint8_t, 9> prefix{0};
-    CborEncoder encoder;
-    CborEncoder container;
-    cbor_encoder_init(&encoder, prefix.data(), prefix.size(), 0);
-    cbor_encoder_create_array(&encoder, &container, count_);
-    std::vector<uint8_t> result(
-        prefix.begin(),
-        prefix.begin()
-            + cbor_encoder_get_buffer_size(&container, prefix.data()));
-    result.insert(result.end(), data_.begin(), data_.end());
+    append(result, data_);
     return result;
   }
 
@@ -152,10 +104,9 @@ namespace fc::codec::cbor {
     return {};
   }
 
-  CborEncodeStream CborEncodeStream::wrap(gsl::span<const uint8_t> data,
-                                          size_t count) {
+  CborEncodeStream CborEncodeStream::wrap(BytesIn data, size_t count) {
     CborEncodeStream s;
-    s.data_.assign(data.begin(), data.end());
+    copy(s.data_, data);
     s.count_ = count;
     return s;
   }

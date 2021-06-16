@@ -36,7 +36,7 @@ namespace fc::codec::uvarint {
 
   struct VarintEncoder {
     uint64_t value;
-    std::array<uint8_t, 10> _bytes{};
+    BytesN<10> _bytes{};
     size_t length{};
 
     constexpr VarintEncoder(uint64_t _value) : value{_value} {

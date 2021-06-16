@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
         for (auto i{2}; i < argc; ++i) {
           std::string str{argv[i]};
           boost::optional<CID> cid;
-          if (auto _key{storage::cids_index::Key::fromHex(str)}) {
+          if (auto _key{common::unhexT<CbCid>(str)}) {
             cid = asCborBlakeCid(_key.value());
           } else if (auto _cid{CID::fromString(str)}) {
             cid = _cid.value();
