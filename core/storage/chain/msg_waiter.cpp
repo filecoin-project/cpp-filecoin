@@ -35,30 +35,24 @@ namespace fc::storage::blockchain {
       OUTCOME_TRY(parent->visitMessages(
           {ipld, true, false},
           [&](auto i, auto, auto &cid, auto, auto) -> outcome::result<void> {
-            // TODO (a.chernyshov) results leaks memory, add clearing.
-            // now it is disabled to check mem consumption
-//            if (apply) {
-//              OUTCOME_TRY(receipt, receipts.get(i));
-//              auto result{
-//                  results.emplace(cid, std::make_pair(receipt, ts->key))};
-//              auto callbacks{waiting.find(cid)};
-//              if (callbacks != waiting.end()) {
-//                for (auto &callback : callbacks->second) {
-//                  callback(result.first->second);
-//                }
-//                waiting.erase(cid);
-//              }
-//            } else {
-//              results.erase(cid);
-//            }
+            if (apply) {
+              std::lock_guard lock{mutex_waiting_};
+              auto callbacks{waiting.find(cid)};
+              if (callbacks != waiting.end()) {
+                OUTCOME_TRY(receipt, receipts.get(i));
+                for (auto &callback : callbacks->second) {
+                  callback({receipt, ts->key});
+                }
+                waiting.erase(cid);
+              }
+            }
             return outcome::success();
           }));
       return std::move(parent);
     };
     if (change.type == HeadChangeType::CURRENT) {
       auto ts{change.value};
-      auto n{2};
-      while (ts->height() > 0 && n--) {
+      while (ts->height() > 0) {
         OUTCOME_TRYA(ts, onTipset(ts, true));
       }
     } else {
@@ -68,11 +62,7 @@ namespace fc::storage::blockchain {
   }
 
   void MsgWaiter::wait(const CID &cid, const Callback &callback) {
-    auto result{results.find(cid)};
-    if (result != results.end()) {
-      callback(result->second);
-    } else {
-      waiting[cid].push_back(callback);
-    }
+    std::lock_guard lock{mutex_waiting_};
+    waiting[cid].push_back(callback);
   }
 }  // namespace fc::storage::blockchain

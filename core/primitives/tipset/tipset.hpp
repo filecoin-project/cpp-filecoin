@@ -103,6 +103,9 @@ namespace fc::primitives::tipset {
      */
     const CID &getParentStateRoot() const;
 
+    /**
+     * @return adt::map root CID of message receipts
+     */
     const CID &getParentMessageReceipts() const;
 
     Height height() const;
