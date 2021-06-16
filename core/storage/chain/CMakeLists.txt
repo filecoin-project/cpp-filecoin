@@ -7,3 +7,10 @@ add_library(msg_waiter
 target_link_libraries(msg_waiter
     message
     )
+
+add_library(receipt_loader
+    receipt_loader.cpp
+    )
+target_link_libraries(receipt_loader
+    message
+    )

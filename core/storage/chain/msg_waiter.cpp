@@ -36,18 +36,15 @@ namespace fc::storage::blockchain {
           {ipld, true, false},
           [&](auto i, auto, auto &cid, auto, auto) -> outcome::result<void> {
             if (apply) {
-              OUTCOME_TRY(receipt, receipts.get(i));
-              auto result{
-                  results.emplace(cid, std::make_pair(receipt, ts->key))};
+              std::lock_guard lock{mutex_waiting_};
               auto callbacks{waiting.find(cid)};
               if (callbacks != waiting.end()) {
+                OUTCOME_TRY(receipt, receipts.get(i));
                 for (auto &callback : callbacks->second) {
-                  callback(result.first->second);
+                  callback({receipt, ts->key});
                 }
                 waiting.erase(cid);
               }
-            } else {
-              results.erase(cid);
             }
             return outcome::success();
           }));
@@ -65,11 +62,6 @@ namespace fc::storage::blockchain {
   }
 
   void MsgWaiter::wait(const CID &cid, const Callback &callback) {
-    auto result{results.find(cid)};
-    if (result != results.end()) {
-      callback(result->second);
-    } else {
-      waiting[cid].push_back(callback);
-    }
-  }
+    std::lock_guard lock{mutex_waiting_};
+    waiting[cid].push_back(callback);  }
 }  // namespace fc::storage::blockchain
