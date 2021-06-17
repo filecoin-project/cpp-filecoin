@@ -53,15 +53,14 @@ namespace fc::storage::ipfs {
      */
     template <typename T>
     outcome::result<CID> setCbor(const T &value) {
+      static_assert(
+          !std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>,
+                          primitives::block::BlockHeader>);
       OUTCOME_TRY(bytes, encode(value));
       OUTCOME_TRY(key, common::getCidOf(bytes));
       OUTCOME_TRY(set(key, std::move(bytes)));
       return std::move(key);
     }
-
-    template <>
-    outcome::result<CID> setCbor(const primitives::block::BlockHeader &) =
-        delete;
 
     /// Get CBOR decoded value by CID
     template <typename T>
