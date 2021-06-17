@@ -71,7 +71,7 @@ namespace fc::codec::cbor::light_reader {
         return false;
       }
       for (auto links{*token.listCount()}; links; --links) {
-        const Hash256 *cid;
+        const CbCid *cid;
         if (!cbor::readCborBlake(cid, node)) {
           return false;
         }

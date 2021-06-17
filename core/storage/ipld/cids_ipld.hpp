@@ -17,7 +17,6 @@
 
 namespace fc::storage::ipld {
   using cids_index::Index;
-  using cids_index::Key;
   using cids_index::Row;
 
   struct CidsIpld : CbIpld,
@@ -37,7 +36,7 @@ namespace fc::storage::ipld {
 
     void asyncFlush();
 
-    inline boost::optional<Row> findWritten(const Key &key) const;
+    inline boost::optional<Row> findWritten(const CbCid &key) const;
     Outcome<void> doFlush();
 
     mutable std::mutex car_mutex;

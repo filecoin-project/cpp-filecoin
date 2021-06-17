@@ -7,7 +7,7 @@
 
 #include <optional>
 
-#include "common/span.hpp"
+#include "common/bytes.hpp"
 
 namespace fc::codec {
   constexpr bool read(BytesIn &out, BytesIn &input, size_t n) {

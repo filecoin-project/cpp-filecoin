@@ -16,11 +16,10 @@
 #include "common/ptr.hpp"
 
 namespace fc::storage::ipld {
-  using cids_index::kCborBlakePrefix;
   using cids_index::maxSize64;
   using cids_index::MergeRange;
 
-  boost::optional<Row> CidsIpld::findWritten(const Key &key) const {
+  boost::optional<Row> CidsIpld::findWritten(const CbCid &key) const {
     assert(writable.is_open());
     auto it{written.lower_bound(Row{key, {}, {}})};
     if (it != written.end() && it->key == key) {

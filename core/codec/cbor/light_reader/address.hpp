@@ -12,7 +12,7 @@ namespace fc::codec::cbor::light_reader {
   using primitives::address::Protocol;
 
   /** Protocol indicator for ID-address */
-  constexpr std::array<uint8_t, 1> kIdPrefix{Protocol::ID};
+  constexpr BytesN<1> kIdPrefix{Protocol::ID};
 
   /**
    * Decodes an ID-address
