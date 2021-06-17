@@ -6,8 +6,9 @@
 #pragma once
 
 #include <string_view>
+#include <vector>
 
-#include "common/bytes.hpp"
+#include <gsl/span>
 #include "common/outcome.hpp"
 
 namespace fc::common {
@@ -52,11 +53,6 @@ namespace fc::common {
    */
   outcome::result<std::vector<uint8_t>> unhex(std::string_view hex);
 
-  template <typename T>
-  outcome::result<T> unhexT(std::string_view hex) {
-    OUTCOME_TRY(bytes, unhex(hex));
-    return *(const T *)bytes.data();
-  }
-}  // namespace fc::common
+}  // namespace filecoin::common
 
 OUTCOME_HPP_DECLARE_ERROR(fc::common, UnhexError);
