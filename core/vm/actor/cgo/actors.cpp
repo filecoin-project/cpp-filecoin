@@ -63,7 +63,7 @@ namespace fc::vm::actor::cgo {
         << runtime->getCurrentEpoch() << message.value << code << message.method
         << message.params;
     runtimes.emplace(id, runtime);
-    auto _ret{cgoCall<cgoActorsInvoke>(arg)};
+    const auto _ret{cgoCall<cgoActorsInvoke>(arg)};
     CborDecodeStream ret{_ret};
     runtimes.erase(id);
     auto exit{ret.get<VMExitCode>()};

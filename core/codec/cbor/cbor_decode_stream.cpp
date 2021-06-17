@@ -61,7 +61,7 @@ namespace fc::codec::cbor {
   }
 
   std::map<std::string, CborDecodeStream> CborDecodeStream::map() {
-    auto n{_as(token.mapCount())};
+    const auto n{_as(token.mapCount())};
     readToken();
     std::map<std::string, CborDecodeStream> map;
     std::string key;

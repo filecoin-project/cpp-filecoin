@@ -298,7 +298,7 @@ namespace fc::codec::cbor {
     size_t length{};
 
     constexpr CborTokenEncoder(CborToken::Type type, uint64_t extra) {
-      auto more{CborToken::_more(extra)};
+      const auto more{CborToken::_more(extra)};
       length = 1 + more;
       if (!more) {
         _bytes[0] = CborToken::_first(type, extra);

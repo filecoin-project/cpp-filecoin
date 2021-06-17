@@ -55,7 +55,7 @@ namespace fc::codec::cbor {
     CborEncodeStream &operator<<(const gsl::span<T> &values) {
       writeList(data_, values.size());
       ++count_;
-      auto count{count_};
+      const auto count{count_};
       for (auto &value : values) {
         *this << value;
       }

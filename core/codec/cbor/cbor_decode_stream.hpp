@@ -38,13 +38,13 @@ namespace fc::codec::cbor {
           if (token.type == CborToken::Type::INT) {
             outcome::raise(CborDecodeError::kIntOverflow);
           }
-          auto num64{_as(token.asUint())};
+          const auto num64{_as(token.asUint())};
           if (num64 > std::numeric_limits<T>::max()) {
             outcome::raise(CborDecodeError::kIntOverflow);
           }
           num = static_cast<T>(num64);
         } else {
-          auto num64{_as(token.asInt())};
+          const auto num64{_as(token.asInt())};
           if (num64 > static_cast<int64_t>(std::numeric_limits<T>::max())
               || num64 < static_cast<int64_t>(std::numeric_limits<T>::min())) {
             outcome::raise(CborDecodeError::kIntOverflow);
@@ -188,7 +188,8 @@ namespace fc::codec::cbor {
       return raw;
     }
 
-    BytesIn partial, input;
+    BytesIn partial;
+    BytesIn input;
     CborToken token;
   };
 }  // namespace fc::codec::cbor

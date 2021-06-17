@@ -33,7 +33,7 @@ namespace fc::codec::cbor {
     if (maybe_cid_bytes.has_error()) {
       outcome::raise(CborEncodeError::kInvalidCID);
     }
-    auto &bytes{maybe_cid_bytes.value()};
+    const auto &bytes{maybe_cid_bytes.value()};
     writeCid(data_, bytes.size());
     append(data_, bytes);
     return *this;
@@ -70,7 +70,7 @@ namespace fc::codec::cbor {
     std::sort(sorted.begin(), sorted.end(), [](auto &l, auto &r) {
       return LessCborKey{}(l.first, r.first);
     });
-    auto count{count_};
+    const auto count{count_};
     for (const auto &[key, value] : sorted) {
       *this << common::span::bytestr(key);
       *this << *value;

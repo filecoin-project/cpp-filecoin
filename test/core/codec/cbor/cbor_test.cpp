@@ -281,7 +281,7 @@ TEST(CborDecoder, CidNext) {
  * @then Decoded as expected
  */
 TEST(CborDecoder, Flat) {
-  auto cbor{"0504"_unhex};
+  const auto cbor{"0504"_unhex};
   CborDecodeStream s(cbor);
   int a, b;
   s >> a >> b;
@@ -295,7 +295,7 @@ TEST(CborDecoder, Flat) {
  * @then Decoded as expected
  */
 TEST(CborDecoder, List) {
-  auto cbor{"82050403"_unhex};
+  const auto cbor{"82050403"_unhex};
   CborDecodeStream s1(cbor);
   auto s2 = s1.list();
   int a, b;
@@ -324,7 +324,7 @@ TEST(CborDecoder, String) {
  * @then Decoded as expected
  */
 TEST(CborDecoder, Map) {
-  auto cbor{"A261610261628101"_unhex};
+  const auto cbor{"A261610261628101"_unhex};
   auto m = CborDecodeStream(cbor).map();
   int a, b;
   m.at("a") >> a;
