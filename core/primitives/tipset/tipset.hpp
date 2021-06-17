@@ -71,6 +71,10 @@ namespace fc::primitives::tipset {
     static outcome::result<TipsetCPtr> create(
         std::vector<block::BlockHeader> blocks);
 
+    Tipset() = default;
+
+    Tipset(const TipsetKey &key, std::vector<block::BlockHeader> blks);
+
     outcome::result<void> visitMessages(
         MessageVisitor message_visitor,
         const MessageVisitor::Visitor &visitor) const;
@@ -119,11 +123,6 @@ namespace fc::primitives::tipset {
      * @return true if contains, false otherwise
      */
     bool contains(const CID &cid) const;
-
-    Tipset() = default;
-
-    Tipset(TipsetKey _key, std::vector<block::BlockHeader> _blks)
-        : key(std::move(_key)), blks(std::move(_blks)) {}
 
     TipsetKey key;
     std::vector<block::BlockHeader> blks;  ///< block headers

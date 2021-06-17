@@ -57,7 +57,8 @@ namespace fc::vm::runtime {
 
     struct Apply {
       MessageReceipt receipt;
-      TokenAmount penalty, reward;
+      TokenAmount penalty;
+      TokenAmount reward;
     };
 
     outcome::result<Apply> applyMessage(const UnsignedMessage &message,

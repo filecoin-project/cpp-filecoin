@@ -63,5 +63,6 @@ namespace fc::storage::blockchain {
 
   void MsgWaiter::wait(const CID &cid, const Callback &callback) {
     std::lock_guard lock{mutex_waiting_};
-    waiting[cid].push_back(callback);  }
+    waiting[cid].push_back(callback);
+  }
 }  // namespace fc::storage::blockchain
