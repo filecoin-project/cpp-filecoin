@@ -681,7 +681,7 @@ namespace fc::mining {
         sealing_->addPieceToAnySector(piece_size, piece, deal));
 
     // Precommit 1
-    TipsetKey key({"010001020002"_cid});
+    TipsetKey key{{CbCid::hash("02"_unhex)}};
     auto tipset = std::make_shared<Tipset>(key, std::vector<BlockHeader>());
 
     api_->ChainHead = [&]() -> outcome::result<TipsetCPtr> { return tipset; };
@@ -815,12 +815,10 @@ namespace fc::mining {
 
     // Precommitted
 
-    std::vector<CID> precommit_tipset_cids(
-        {"010001020011"_cid, "010001020012"_cid});
-    TipsetKey precommit_tipset_key(precommit_tipset_cids);
-    std::vector<CID> commit_tipset_cids(
-        {"010001020013"_cid, "010001020014"_cid});
-    TipsetKey commit_tipset_key(commit_tipset_cids);
+    TipsetKey precommit_tipset_key{
+        {CbCid::hash("11"_unhex), CbCid::hash("12"_unhex)}};
+    TipsetKey commit_tipset_key{
+        {CbCid::hash("13"_unhex), CbCid::hash("14"_unhex)}};
     EpochDuration height = 3;
     api_->StateWaitMsg = [&](const CID &msg_cid,
                              uint64_t conf) -> outcome::result<Wait<MsgWait>> {

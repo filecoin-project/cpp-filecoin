@@ -185,12 +185,12 @@ namespace fc::node {
     o.ts_main_kv = std::make_shared<storage::MapPrefix>("ts_main/", o.kv_store);
     log()->info("loading chain");
     o.ts_main = TsBranch::load(o.ts_main_kv);
-    TipsetKey genesis_tsk{{*config.genesis_cid}};
+    TipsetKey genesis_tsk{{*asBlake(*config.genesis_cid)}};
     if (!o.ts_main) {
       auto tsk{genesis_tsk};
       if (!snapshot_cids.empty()) {
         log()->info("restoring chain from snapshot");
-        tsk = snapshot_cids;
+        tsk = *TipsetKey::make(snapshot_cids);
       }
       o.ts_main = TsBranch::create(o.ts_main_kv, tsk, o.ts_load_ipld).value();
 
@@ -376,7 +376,7 @@ namespace fc::node {
     o.compacter->ts_main = o.ts_main;
     o.compacter->open();
 
-    OUTCOME_EXCEPT(genesis, o.ts_load->load(genesis_cids));
+    OUTCOME_EXCEPT(genesis, o.ts_load->load(*TipsetKey::make(genesis_cids)));
     OUTCOME_TRY(initNetworkName(*genesis, o.ipld, config));
     log()->info("Network name: {}", *config.network_name);
 

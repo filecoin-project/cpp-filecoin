@@ -295,34 +295,29 @@ namespace fc::sync {
         if (*_res) {
           auto &res{_res->value()};
           if (ts->getParentStateRoot() != res.state_root) {
-            log()->warn("parent state mismatch {} {}",
-                        ts->height(),
-                        fmt::join(ts->key.cids(), ","));
+            log()->warn(
+                "parent state mismatch {} {}", ts->height(), ts->key.cidsStr());
             return false;
           }
           if (ts->getParentMessageReceipts() != res.message_receipts) {
             log()->warn("parent receipts mismatch {} {}",
                         ts->height(),
-                        fmt::join(ts->key.cids(), ","));
+                        ts->key.cidsStr());
             return false;
           }
         } else {
-          log()->warn("parent interpret error {} {}",
-                      ts->height(),
-                      fmt::join(ts->key.cids(), ","));
+          log()->warn(
+              "parent interpret error {} {}", ts->height(), ts->key.cidsStr());
           return false;
         }
       } else {
-        log()->warn("parent not interpreted {} {}",
-                    ts->height(),
-                    fmt::join(ts->key.cids(), ","));
+        log()->warn(
+            "parent not interpreted {} {}", ts->height(), ts->key.cidsStr());
         return false;
       }
       if (auto _has{ipld_->contains(ts->getParentStateRoot())};
           !_has || !_has.value()) {
-        log()->warn("no parent state {} {}",
-                    ts->height(),
-                    fmt::join(ts->key.cids(), ","));
+        log()->warn("no parent state {} {}", ts->height(), ts->key.cidsStr());
         return false;
       }
     }
@@ -403,7 +398,8 @@ namespace fc::sync {
     request_ = BlocksyncRequest::newRequest(
         *host_,
         *scheduler_,
-        *ipld_,
+        ipld_,
+        put_block_header_,
         peer,
         tsk.cids(),
         probable_depth,

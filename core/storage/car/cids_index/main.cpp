@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
           std::string str{argv[i]};
           boost::optional<CID> cid;
           if (auto _key{CbCid::fromHex(str)}) {
-            cid = asCborBlakeCid(_key.value());
+            cid = CID{CbCid{_key.value()}};
           } else if (auto _cid{CID::fromString(str)}) {
             cid = _cid.value();
           } else {

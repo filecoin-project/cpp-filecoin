@@ -22,10 +22,10 @@ namespace fc::vm::interpreter {
     auto interpreter_cache{std::make_shared<InterpreterCache>(
         std::make_shared<InMemoryStorage>(), ipld)};
 
-    const CID state_root = asCborBlakeCid(common::Hash256());
+    const CID state_root{CbCid{}};
     const Result result{.state_root = state_root,
-                  .message_receipts = "010001020003"_cid,
-                  .weight = 1};
+                        .message_receipts = "010001020003"_cid,
+                        .weight = 1};
     const TipsetKey tipset_key;
     interpreter_cache->set(tipset_key, result);
 

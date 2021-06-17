@@ -9,6 +9,7 @@
 
 #include <boost/optional.hpp>
 
+#include "cbor_blake/cid_block.hpp"
 #include "codec/cbor/cbor_token.hpp"
 #include "common/enum.hpp"
 #include "primitives/cid/cid.hpp"
@@ -93,6 +94,8 @@ namespace fc::codec::cbor {
     CborEncodeStream &operator<<(std::string_view str);
     /** Encodes CID */
     CborEncodeStream &operator<<(const CID &cid);
+    CborEncodeStream &operator<<(const CbCid &cid);
+    CborEncodeStream &operator<<(const BlockParentCbCids &parents);
     /** Encodes list container encode substream */
     CborEncodeStream &operator<<(const CborEncodeStream &other);
     /** Encodes map container encode substream map */

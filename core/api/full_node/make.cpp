@@ -290,7 +290,7 @@ namespace fc::api {
           std::vector<CidMessage> messages;
           OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
           for (auto &parent_cid : block.parents) {
-            OUTCOME_TRY(parent, ipld->getCbor<BlockHeader>(parent_cid));
+            OUTCOME_TRY(parent, ipld->getCbor<BlockHeader>(CID{parent_cid}));
             OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(parent.messages));
             OUTCOME_TRY(meta.bls_messages.visit(
                 [&](auto, auto &cid) -> outcome::result<void> {

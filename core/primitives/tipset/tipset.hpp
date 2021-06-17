@@ -117,13 +117,6 @@ namespace fc::primitives::tipset {
 
     const BigInt &getParentBaseFee() const;
 
-    /**
-     * @brief checks whether tipset contains block by cid
-     * @param cid content identifier to look for
-     * @return true if contains, false otherwise
-     */
-    bool contains(const CID &cid) const;
-
     TipsetKey key;
     std::vector<block::BlockHeader> blks;  ///< block headers
   };
@@ -164,9 +157,9 @@ namespace fc::primitives::tipset {
     /// returns success if the tipset created can be expanded with this block
     outcome::result<void> canExpandTipset(const block::BlockHeader &hdr) const;
 
-    outcome::result<CID> expandTipset(block::BlockHeader hdr);
+    outcome::result<CbCid> expandTipset(block::BlockHeader hdr);
 
-    outcome::result<void> expandTipset(CID cid, block::BlockHeader hdr);
+    outcome::result<void> expandTipset(CbCid cid, block::BlockHeader hdr);
 
     TipsetCPtr getTipset(bool clear);
 
@@ -178,7 +171,7 @@ namespace fc::primitives::tipset {
 
    private:
     std::vector<block::BlockHeader> blks_;
-    std::vector<CID> cids_;
+    std::vector<CbCid> cids_;
     std::vector<Hash256> ticket_hashes_;
   };
 

@@ -59,7 +59,9 @@ namespace fc::storage::ipfs {
       return std::move(key);
     }
 
-    void setCbor(const primitives::block::BlockHeader &) = delete;
+    template <>
+    outcome::result<CID> setCbor(const primitives::block::BlockHeader &) =
+        delete;
 
     /// Get CBOR decoded value by CID
     template <typename T>

@@ -16,7 +16,7 @@ namespace fc::primitives::tipset {
     TipsetHash emptyTipsetHash() {
       static const TipsetHash ones = [] {
         TipsetHash h;
-        h.resize(crypto::blake2b::BLAKE2B256_HASH_LENGTH, 0xFF);
+        h.fill(0xFF);
         return h;
       }();
       return ones;
@@ -24,7 +24,7 @@ namespace fc::primitives::tipset {
 
   }  // namespace
 
-  TipsetHash TipsetKey::hash(const std::vector<CID> &cids) {
+  TipsetHash TipsetKey::hash(CbCidsIn cids) {
     if (cids.empty()) {
       return emptyTipsetHash();
     }
@@ -32,38 +32,42 @@ namespace fc::primitives::tipset {
     crypto::blake2b::Ctx ctx(crypto::blake2b::BLAKE2B256_HASH_LENGTH);
 
     size_t sz = cids.size();
-    auto indices = (size_t *)alloca(sizeof(size_t) * sz);
-    auto ptr = indices;
-    for (size_t i = 0; i < sz; ++i, ++ptr) {
-      *ptr = i;
-    }
-
-    if (sz > 1) {
-      std::sort(indices, indices + sz, [&cids](auto x, auto y) {
-        return cids[x] < cids[y];
-      });
-    }
-
-    std::vector<uint8_t> bytes;
+    std::array<uint8_t, 254> indices;
+    assert((size_t)cids.size() <= indices.size());
     for (size_t i = 0; i < sz; ++i) {
-      // TODO: may manually hash cid parts to avoid exceptions
-      bytes = cids[indices[i]].toBytes().value();
-      ctx.update(bytes);
+      indices[i] = i;
+    }
+    std::sort(indices.data(),
+              indices.data() + cids.size(),
+              [&](auto &l, auto &r) { return cids[l] < cids[r]; });
+    for (size_t i = 0; i < sz; ++i) {
+      ctx.update(kCborBlakePrefix);
+      ctx.update(cids[indices[i]]);
     }
 
     TipsetHash hash;
-    hash.resize(crypto::blake2b::BLAKE2B256_HASH_LENGTH);
-
     ctx.final(hash);
     return hash;
   }
 
+  boost::optional<TipsetKey> TipsetKey::make(gsl::span<const CID> cids) {
+    std::vector<CbCid> hashes;
+    for (auto &cid : cids) {
+      if (auto hash{asBlake(cid)}) {
+        hashes.push_back(*hash);
+      } else {
+        return boost::none;
+      }
+    }
+    return TipsetKey{std::move(hashes)};
+  }
+
   TipsetKey::TipsetKey() : hash_(emptyTipsetHash()) {}
 
-  TipsetKey::TipsetKey(std::vector<CID> c)
+  TipsetKey::TipsetKey(std::vector<CbCid> c)
       : hash_{hash(c)}, cids_{std::move(c)} {}
 
-  TipsetKey::TipsetKey(TipsetHash h, std::vector<CID> c)
+  TipsetKey::TipsetKey(TipsetHash h, std::vector<CbCid> c)
       : hash_{std::move(h)}, cids_{std::move(c)} {
     assert(hash_ == hash(cids_));
   }
@@ -80,7 +84,7 @@ namespace fc::primitives::tipset {
     return hash_ < rhs.hash_;
   }
 
-  const std::vector<CID> &TipsetKey::cids() const {
+  const std::vector<CbCid> &TipsetKey::cids() const {
     return cids_;
   }
 
@@ -92,15 +96,23 @@ namespace fc::primitives::tipset {
     return common::hex_lower(hash_);
   }
 
-  std::string TipsetKey::toPrettyString() const {
-    return fmt::format("{{{}}}", fmt::join(cids_, ","));
+  std::string TipsetKey::cidsStr(std::string_view sep) const {
+    std::string s;
+    auto first{true};
+    for (auto &cid : cids_) {
+      s += cid.toHex();
+      if (first) {
+        first = false;
+      } else {
+        s += sep;
+      }
+    }
+    return s;
   }
 }  // namespace fc::primitives::tipset
 
 namespace std {
   size_t hash<fc::TipsetKey>::operator()(const fc::TipsetKey &x) const {
-    size_t h;
-    memcpy(&h, x.hash().data(), sizeof(size_t));
-    return h;
+    return *(const size_t *)x.hash().data();
   }
 }  // namespace std

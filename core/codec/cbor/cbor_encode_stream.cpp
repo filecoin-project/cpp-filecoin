@@ -39,6 +39,27 @@ namespace fc::codec::cbor {
     return *this;
   }
 
+  CborEncodeStream &CborEncodeStream::operator<<(const CbCid &cid) {
+    addCount(1);
+    writeCid(data_, kCborBlakePrefix.size() + sizeof(CbCid));
+    append(data_, kCborBlakePrefix);
+    append(data_, cid);
+    return *this;
+  }
+
+  CborEncodeStream &CborEncodeStream::operator<<(
+      const BlockParentCbCids &parents) {
+    if (parents.mainnet_genesis) {
+      addCount(1);
+      writeList(data_, 1);
+      writeCid(data_, kMainnetGenesisBlockParent.size());
+      append(data_, kMainnetGenesisBlockParent);
+    } else {
+      *this << gsl::make_span(parents);
+    }
+    return *this;
+  }
+
   CborEncodeStream &CborEncodeStream::operator<<(
       const CborEncodeStream &other) {
     addCount(other.is_list_ ? 1 : other.count_);

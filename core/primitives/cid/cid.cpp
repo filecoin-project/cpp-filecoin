@@ -25,6 +25,11 @@ namespace fc {
   CID::CID(Version version, Multicodec content_type, Multihash content_address)
       : ContentIdentifier(version, content_type, std::move(content_address)) {}
 
+  CID::CID(const CbCid &cid)
+      : CID{CID::Version::V1,
+            CID::Multicodec::DAG_CBOR,
+            Multihash::create(HashType::blake2b_256, cid).value()} {}
+
   CID &CID::operator=(CID &&cid) noexcept {
     version = cid.version;
     content_type = cid.content_type;
@@ -145,25 +150,19 @@ namespace fc {
     return {};
   }
 
-  boost::optional<Hash256> asBlake(const CID &cid) {
+  boost::optional<CbCid> asBlake(const CID &cid) {
     auto &mh{cid.content_address};
     if (mh.getType() == HashType::blake2b_256) {
-      if (auto hash{mh.getHash()}; hash.size() == Hash256::size()) {
-        return Hash256::fromSpan(hash).value();
+      if (auto hash{mh.getHash()}; hash.size() == CbCid::size()) {
+        return CbCid{CbCid::fromSpan(hash).value()};
       }
     }
     return {};
-  }
-
-  CID asCborBlakeCid(const Hash256 &hash) {
-    return CID(CID::Version::V1,
-               CID::Multicodec::DAG_CBOR,
-               Multihash::create(HashType::blake2b_256, hash).value());
   }
 }  // namespace fc
 
 namespace fc::common {
   outcome::result<CID> getCidOf(gsl::span<const uint8_t> bytes) {
-    return asCborBlakeCid(crypto::blake2b::blake2b_256(bytes));
+    return CID{CbCid::hash(bytes)};
   }
 }  // namespace fc::common

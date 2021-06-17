@@ -13,7 +13,6 @@
 #include "vm/actor/actor.hpp"
 
 namespace fc::codec::cbor::light_reader {
-  using common::Hash256;
   using vm::actor::ActorVersion;
 
   /**
@@ -24,9 +23,9 @@ namespace fc::codec::cbor::light_reader {
    * returns claims - hash256 from claims HAMT root CID on success, otherwise
    * error
    */
-  outcome::result<Hash256> readStoragePowerActorClaims(
+  outcome::result<CbCid> readStoragePowerActorClaims(
       const CbIpldPtr &ipld,
-      const Hash256 &state_root,
+      const CbCid &state_root,
       ActorVersion actor_version) {
     const static auto kParseError =
         ERROR_TEXT("StoragePowerActor compression: CBOR parsing error");
@@ -49,7 +48,7 @@ namespace fc::codec::cbor::light_reader {
       }
     }
     // claims
-    const Hash256 *claims;
+    const CbCid *claims;
     if (!cbor::readCborBlake(claims, input)) {
       return kParseError;
     }

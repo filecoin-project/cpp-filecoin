@@ -84,10 +84,6 @@ TEST(ApiJsonTest, Ticket) {
   expectJson(Ticket{Buffer{b96}}, "{\"VRFProof\":" J96 "}");
 }
 
-TEST(ApiJsonTest, TipsetKey) {
-  expectJson(TipsetKey{{"010001020001"_cid}}, "[{\"/\":\"baeaacaqaae\"}]");
-}
-
 TEST(ApiJsonTest, Address) {
   expectJson(Address::makeFromId(1), "\"t01\"");
   expectJson(Address::makeActorExec({}),

@@ -38,7 +38,7 @@ namespace fc::storage::mpool {
   auto ipld{std::make_shared<ipfs::InMemoryDatastore>()};
   auto ts_load{std::make_shared<primitives::tipset::TsLoadIpld>(ipld)};
   auto car_roots{car::loadCar(*ipld, resourcePath("mpool.car")).value()};
-  auto ts0{ts_load->load(car_roots).value()};
+  auto ts0{ts_load->load(*TipsetKey::make(car_roots)).value()};
   auto msgs0{tipsetMessages(ipld, ts0)};
   auto ts1{ts_load->load(ts0->getParents()).value()};
   auto msgs1{tipsetMessages(ipld, ts1)};

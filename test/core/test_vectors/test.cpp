@@ -306,7 +306,7 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
         block.miner = blk.miner;
         block.election_proof.win_count = blk.win_count;
         block.height = precondition.epoch + ts.epoch_offset;
-        block.parents = parents->key.cids();
+        (std::vector<fc::CbCid> &)block.parents = parents->key.cids();
         block.parent_base_fee = ts.base_fee;
         fc::primitives::block::MsgMeta meta;
         ipld->load(meta);

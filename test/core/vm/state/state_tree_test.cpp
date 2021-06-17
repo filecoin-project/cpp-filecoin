@@ -100,7 +100,7 @@ TEST_F(StateTreeTest, Walk) {
   EXPECT_TRUE(walk.empty());
   uint64_t id2{};
   std::string_view code2;
-  const Hash256 *head2;
+  const CbCid *head2;
   EXPECT_TRUE(codec::cbor::light_reader::readIdAddress(id2, key));
   EXPECT_EQ(id2, 1);
   EXPECT_TRUE(codec::cbor::light_reader::readActor(code2, head2, value));

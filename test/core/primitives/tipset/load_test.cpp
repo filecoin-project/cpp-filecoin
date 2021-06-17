@@ -26,7 +26,7 @@ namespace fc::primitives::tipset {
         headers[i].parent_message_receipts = "010001020005"_cid;
         headers[i].messages = "010001020005"_cid;
 
-        auto cid{put(ipld_, nullptr, headers[i])};
+        auto cid{*asBlake(put(ipld_, nullptr, headers[i]))};
 
         keys_.push_back(TipsetKey({cid}));
       }

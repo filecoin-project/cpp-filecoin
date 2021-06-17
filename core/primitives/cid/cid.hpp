@@ -8,6 +8,7 @@
 #include <spdlog/fmt/fmt.h>
 #include <libp2p/multi/content_identifier.hpp>
 
+#include "cbor_blake/cid.hpp"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
@@ -41,6 +42,8 @@ namespace fc {
     CID(Version version,
         Multicodec content_type,
         libp2p::multi::Multihash content_address);
+
+    explicit CID(const CbCid &cid);
 
     ~CID() = default;
 
@@ -81,9 +84,8 @@ namespace fc {
   size_t hash_value(const CID &cid);
 
   bool isCbor(const CID &cid);
-  boost::optional<Hash256> asBlake(const CID &cid);
+  boost::optional<CbCid> asBlake(const CID &cid);
   boost::optional<BytesIn> asIdentity(const CID &cid);
-  CID asCborBlakeCid(const Hash256 &hash);
 }  // namespace fc
 
 namespace std {

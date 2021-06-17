@@ -93,7 +93,7 @@ namespace fc::mining::types {
     primitives::TokenAmount precommit_deposit;
     boost::optional<SectorPreCommitInfo> precommit_info;
 
-    std::vector<CID> precommit_tipset;
+    std::vector<CbCid> precommit_tipset;
 
     InteractiveRandomness seed;
     ChainEpoch seed_epoch;

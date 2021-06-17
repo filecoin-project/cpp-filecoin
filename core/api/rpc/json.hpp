@@ -379,6 +379,18 @@ namespace fc::api {
       v = std::move(cid);
     }
 
+    ENCODE(CbCid) {
+      return encode(CID{v});
+    }
+
+    DECODE(CbCid) {
+      if (auto cid{asBlake(decode<CID>(j))}) {
+        v = std::move(*cid);
+      } else {
+        outcome::raise(JsonError::kWrongType);
+      }
+    }
+
     ENCODE(PeerId) {
       return encode(v.toBase58());
     }
@@ -403,7 +415,7 @@ namespace fc::api {
     }
 
     DECODE(TipsetKey) {
-      v = decode<std::vector<CID>>(j);
+      v = decode<std::vector<CbCid>>(j);
     }
 
     ENCODE(Address) {

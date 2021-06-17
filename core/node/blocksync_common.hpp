@@ -19,7 +19,7 @@ namespace fc::sync::blocksync {
   };
 
   struct Request {
-    std::vector<CID> block_cids;
+    std::vector<CbCid> block_cids;
     uint64_t depth = 1;
     RequestOptions options = kBlocksAndMessages;
   };

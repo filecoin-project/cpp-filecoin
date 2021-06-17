@@ -94,11 +94,8 @@ namespace fc::mining {
   TEST_F(DealInfoManagerTest, SuccessWithoutProposal) {
     CID publish_cid = "010001020001"_cid;
 
-    std::vector<CID> cids = {"010001020002"_cid};
-    TipsetKey key(cids);
-
-    std::vector<CID> result_cids = {"010001020003"_cid, "010001020004"_cid};
-    TipsetKey result_key(result_cids);
+    TipsetKey key{{CbCid::hash("02"_unhex)}};
+    TipsetKey result_key{{CbCid::hash("03"_unhex), CbCid::hash("04"_unhex)}};
 
     DealId result_deal_id = 1;
 
@@ -154,11 +151,8 @@ namespace fc::mining {
     proposal.client = Address::makeFromId(2);
     proposal.provider = Address::makeFromId(1);
 
-    std::vector<CID> cids = {"010001020002"_cid};
-    TipsetKey key(cids);
-
-    std::vector<CID> result_cids = {"010001020003"_cid, "010001020004"_cid};
-    TipsetKey result_key(result_cids);
+    TipsetKey key{{CbCid::hash("02"_unhex)}};
+    TipsetKey result_key{{CbCid::hash("03"_unhex), CbCid::hash("04"_unhex)}};
 
     DealId result_deal_id = 1;
 
@@ -247,11 +241,8 @@ namespace fc::mining {
     proposal.client = Address::makeFromId(2);
     proposal.provider = Address::makeFromId(1);
 
-    std::vector<CID> cids = {"010001020002"_cid};
-    TipsetKey key(cids);
-
-    std::vector<CID> result_cids = {"010001020003"_cid, "010001020004"_cid};
-    TipsetKey result_key(result_cids);
+    TipsetKey key{{CbCid::hash("02"_unhex)}};
+    TipsetKey result_key{{CbCid::hash("03"_unhex), CbCid::hash("04"_unhex)}};
 
     DealId result_deal_id = 1;
 
@@ -344,11 +335,8 @@ namespace fc::mining {
     proposal.client = Address::makeFromId(2);
     proposal.provider = Address::makeFromId(1);
 
-    std::vector<CID> cids = {"010001020002"_cid};
-    TipsetKey key(cids);
-
-    std::vector<CID> result_cids = {"010001020003"_cid, "010001020004"_cid};
-    TipsetKey result_key(result_cids);
+    TipsetKey key{{CbCid::hash("02"_unhex)}};
+    TipsetKey result_key{{CbCid::hash("03"_unhex), CbCid::hash("04"_unhex)}};
 
     DealId result_deal_id = 1;
 
@@ -430,11 +418,8 @@ namespace fc::mining {
     proposal.client = Address::makeFromId(2);
     proposal.provider = Address::makeFromId(1);
 
-    std::vector<CID> cids = {"010001020002"_cid};
-    TipsetKey key(cids);
-
-    std::vector<CID> result_cids = {"010001020003"_cid, "010001020004"_cid};
-    TipsetKey result_key(result_cids);
+    TipsetKey key{{CbCid::hash("02"_unhex)}};
+    TipsetKey result_key{{CbCid::hash("03"_unhex), CbCid::hash("04"_unhex)}};
 
     DealId result_deal_id = 1;
 

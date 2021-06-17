@@ -124,13 +124,14 @@ namespace fc::primitives::tipset {
     return outcome::success();
   }
 
-  outcome::result<CID> TipsetCreator::expandTipset(block::BlockHeader hdr) {
-    OUTCOME_TRY(cid, fc::primitives::cid::getCidOfCbor(hdr));
+  outcome::result<CbCid> TipsetCreator::expandTipset(block::BlockHeader hdr) {
+    OUTCOME_TRY(cbor, codec::cbor::encode(hdr));
+    auto cid{CbCid::hash(cbor)};
     OUTCOME_TRY(expandTipset(cid, std::move(hdr)));
     return std::move(cid);
   }
 
-  outcome::result<void> TipsetCreator::expandTipset(CID cid,
+  outcome::result<void> TipsetCreator::expandTipset(CbCid cid,
                                                     block::BlockHeader hdr) {
     // must be called prior to expand()
     assert(canExpandTipset(hdr));
@@ -157,7 +158,7 @@ namespace fc::primitives::tipset {
         break;
       }
       if (ticket_hash == h) {
-        if (cid.toBytes().value() >= cids_[idx].toBytes().value()) {
+        if (cid >= cids_[idx]) {
           continue;
         } else {
           break;
@@ -284,7 +285,7 @@ namespace fc::primitives::tipset {
 
   TipsetKey Tipset::getParents() const {
     assert(!blks.empty());
-    return TipsetKey{blks[0].parents};
+    return blks[0].parents;
   }
 
   uint64_t Tipset::getMinTimestamp() const {
@@ -328,11 +329,6 @@ namespace fc::primitives::tipset {
   const BigInt &Tipset::getParentBaseFee() const {
     assert(!blks.empty());
     return blks[0].parent_base_fee;
-  }
-
-  bool Tipset::contains(const CID &cid) const {
-    const auto &cids = key.cids();
-    return std::find(cids.begin(), cids.end(), cid) != std::end(cids);
   }
 
   bool operator==(const Tipset &lhs, const Tipset &rhs) {
