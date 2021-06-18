@@ -48,7 +48,7 @@ namespace fc::sync {
   }
 
   outcome::result<void> ChainStoreImpl::addBlock(const BlockHeader &block) {
-    auto cid{
+    const auto cid{
         *asBlake(primitives::tipset::put(ipld_, put_block_header_, block))};
     head_constructor_.blockFromApi(cid, block);
     return outcome::success();

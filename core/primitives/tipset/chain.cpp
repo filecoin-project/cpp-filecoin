@@ -85,7 +85,7 @@ namespace fc::primitives::tipset::chain {
       --_parent;
     }
     while (true) {
-      auto _bottom{
+      const auto _bottom{
           chain.emplace(ts.tipset->height(), TsLazy{ts.tipset->key, ts.index})
               .first};
       while (_parent->first > _bottom->first) {

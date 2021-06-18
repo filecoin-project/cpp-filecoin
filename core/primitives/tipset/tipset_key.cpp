@@ -98,13 +98,14 @@ namespace fc::primitives::tipset {
 
   std::string TipsetKey::cidsStr(std::string_view sep) const {
     std::string s;
-    auto first{true};
-    for (auto &cid : cids_) {
-      s += cid.toHex();
-      if (first) {
-        first = false;
-      } else {
+    auto it{cids_.begin()};
+    if (it != cids_.end()) {
+      s += it->toHex();
+      ++it;
+      while (it != cids_.end()) {
         s += sep;
+        s += it->toHex();
+        ++it;
       }
     }
     return s;

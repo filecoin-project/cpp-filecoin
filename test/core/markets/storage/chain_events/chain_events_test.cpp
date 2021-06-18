@@ -45,7 +45,7 @@ namespace fc::markets::storage::chain_events {
    * @then event is triggered
    */
   TEST_F(ChainEventsTest, CommitSector) {
-    auto block_cid{CbCid::hash("01"_unhex)};
+    const auto block_cid{CbCid::hash("01"_unhex)};
 
     api->ChainGetBlockMessages = {[block_cid, this](const CID &cid)
                                       -> outcome::result<BlockMessages> {

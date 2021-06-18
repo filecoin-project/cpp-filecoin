@@ -89,7 +89,9 @@ struct TipsetTest : public ::testing::Test {
   }
 
   BlockHeader bh1, bh2, bh3, bh4;
-  CbCid cid1, cid2, cid3;
+  CbCid cid1;
+  CbCid cid2;
+  CbCid cid3;
   CID parent_state_root;
   Ticket ticket1, ticket2;
   Signature signature;

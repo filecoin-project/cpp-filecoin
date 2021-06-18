@@ -191,7 +191,8 @@ namespace fc::sync::blocksync {
 
       for (size_t i = 0; i < sz; ++i) {
         auto &header{bundle.blocks[i]};
-        auto block_cid{primitives::tipset::put(ipld, put_block_header, header)};
+        const auto block_cid{
+            primitives::tipset::put(ipld, put_block_header, header)};
         if (_msgs) {
           MsgMeta meta;
           ipld->load(meta);
