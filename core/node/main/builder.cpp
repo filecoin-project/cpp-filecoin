@@ -184,6 +184,7 @@ namespace fc::node {
                  std::vector<CID> snapshot_cids) {
     o.ts_main_kv = std::make_shared<storage::MapPrefix>("ts_main/", o.kv_store);
     log()->info("loading chain");
+    // estimated const
     o.ts_main = TsBranch::load(o.ts_main_kv, 1000);
     TipsetKey genesis_tsk{{*asBlake(*config.genesis_cid)}};
     if (!o.ts_main) {

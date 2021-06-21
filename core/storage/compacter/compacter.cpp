@@ -86,7 +86,7 @@ namespace fc::storage::compacter {
     queue->open(true);
     std::unique_lock vm_lock{*interpreter->mutex};
     std::shared_lock ts_lock{*ts_mutex};
-    auto genesis{ts_load->lazyLoad(ts_main->bottom().second).value()};
+    const auto genesis{ts_load->lazyLoad(ts_main->bottom().second).value()};
     start_head = ts_load->lazyLoad(ts_main->chain.rbegin()->second).value();
     ts_lock.unlock();
     queue->push(*asBlake(genesis->getParentStateRoot()));

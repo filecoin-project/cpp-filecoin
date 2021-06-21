@@ -151,12 +151,12 @@ namespace fc::primitives::tipset::chain {
   }
 
   void TsBranch::lazyLoad(Height height) {
-    auto bottom{chain.begin()->first};
+    const auto bottom{chain.begin()->first};
     if (lazy && height >= lazy->bottom.first && height < bottom) {
       size_t batch{};
       auto cur{lazy->kv->cursor()};
       for (cur->seek(encodeHeight(bottom)); cur->isValid(); cur->prev()) {
-        auto current{decodeHeight(cur->key())};
+        const auto current{decodeHeight(cur->key())};
         chain.emplace(current, TsLazy{decodeTsk(cur->value()), {}});
         ++batch;
         if (current <= height && batch >= lazy->min_load) {
