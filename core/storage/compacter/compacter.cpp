@@ -86,7 +86,7 @@ namespace fc::storage::compacter {
     queue->open(true);
     std::unique_lock vm_lock{*interpreter->mutex};
     std::shared_lock ts_lock{*ts_mutex};
-    auto genesis{ts_load->lazyLoad(ts_main->chain.begin()->second).value()};
+    const auto genesis{ts_load->lazyLoad(ts_main->bottom().second).value()};
     start_head = ts_load->lazyLoad(ts_main->chain.rbegin()->second).value();
     ts_lock.unlock();
     queue->push(*asBlake(genesis->getParentStateRoot()));
@@ -177,9 +177,11 @@ namespace fc::storage::compacter {
 
   void CompacterIpld::headersBatch() {
     constexpr size_t kTsBatch{1000};
+    ts_main->lazyLoad(headers_top->height());
     auto it{ts_main->chain.find(headers_top->height())};
     while (it == ts_main->chain.end() || it->second.key != headers_top->key) {
       headers_top = ts_load->load(headers_top->getParents()).value();
+      ts_main->lazyLoad(headers_top->height());
       it = ts_main->chain.find(headers_top->height());
     }
     ++it;

@@ -29,15 +29,26 @@ namespace fc::primitives::tipset::chain {
                                              const TipsetKey &key,
                                              TsBranchPtr parent);
 
-    static TsBranchPtr load(KvPtr kv);
+    static TsBranchPtr load(KvPtr kv, boost::optional<size_t> limit);
     static outcome::result<TsBranchPtr> create(KvPtr kv,
                                                const TipsetKey &key,
                                                TsLoadPtr ts_load);
+
+    TsChain::value_type &bottom();
+    /// load to height if lazy
+    void lazyLoad(Height height);
+
+    struct Lazy {
+      TsChain::value_type bottom;
+      KvPtr kv;
+      size_t min_load{10};
+    };
 
     TsChain chain;
     TsBranchPtr parent;
     TsBranchChildren children;
     boost::optional<TipsetKey> parent_key;
+    boost::optional<Lazy> lazy;
   };
 
   /**
