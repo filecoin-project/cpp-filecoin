@@ -30,7 +30,7 @@ namespace fc::vm::actor::builtin::types::miner {
     RleBitset activeSectors() const;
     PowerPair activePower() const;
 
-    // todo
+    // TODO tagirov
   };
 
   CBOR_TUPLE(Partition,

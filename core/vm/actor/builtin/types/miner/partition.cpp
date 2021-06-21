@@ -6,5 +6,5 @@
 #include "vm/actor/builtin/types/miner/partition.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
-  //
+  // TODO tagirov
 }  // namespace fc::vm::actor::builtin::types::miner
