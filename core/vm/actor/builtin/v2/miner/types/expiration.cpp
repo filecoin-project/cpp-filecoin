@@ -129,7 +129,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     std::set<ChainEpoch> declared_expirations;
     std::map<SectorNumber, SectorOnChainInfo> sectors_by_number;
     RleBitset all_remaining;
-    std::vector<SectorExpirationSet> expiration_groups(sectors.size());
+    std::vector<SectorExpirationSet> expiration_groups;
 
     for (const auto &sector : sectors) {
       const auto q_expiration = quant.quantizeUp(sector.expiration);

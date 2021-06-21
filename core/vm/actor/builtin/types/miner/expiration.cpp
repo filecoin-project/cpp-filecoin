@@ -127,7 +127,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
   outcome::result<PowerPair> ExpirationQueue::rescheduleRecovered(
       const std::vector<SectorOnChainInfo> &sectors, SectorSize ssize) {
-    std::vector<SectorNumber> remaining(sectors.size());
+    std::vector<SectorNumber> remaining;
     for (const auto &sector : sectors) {
       remaining.push_back(sector.sector);
     }
@@ -208,7 +208,7 @@ namespace fc::vm::actor::builtin::types::miner {
                                  const RleBitset &faults,
                                  const RleBitset &recovering,
                                  SectorSize ssize) {
-    std::vector<SectorNumber> remaining(sectors.size());
+    std::vector<SectorNumber> remaining;
     for (const auto &sector : sectors) {
       remaining.push_back(sector.sector);
     }
@@ -345,7 +345,11 @@ namespace fc::vm::actor::builtin::types::miner {
                                              const PowerPair &faulty_power,
                                              const TokenAmount &pledge) {
     const auto epoch = quant.quantizeUp(raw_epoch);
-    OUTCOME_TRY(es, queue.get(epoch));
+    ExpirationSet es;
+    OUTCOME_TRY(maybe_es, queue.tryGet(epoch));
+    if (maybe_es) {
+      es = maybe_es.value();
+    }
     OUTCOME_TRY(es.add(
         on_time_sectors, early_sectors, pledge, active_power, faulty_power));
     OUTCOME_TRY(queue.set(epoch, es));
@@ -425,7 +429,7 @@ namespace fc::vm::actor::builtin::types::miner {
       sectors_by_expiration[q_expiration].push_back(sector);
     }
 
-    std::vector<SectorEpochSet> sector_epoch_sets(sectors_by_expiration.size());
+    std::vector<SectorEpochSet> sector_epoch_sets;
 
     for (const auto &[expiration, epoch_sectors] : sectors_by_expiration) {
       RleBitset sector_numbers;
