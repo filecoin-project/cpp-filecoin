@@ -266,7 +266,7 @@ namespace fc::api {
           return messages;
         }};
     api->ChainGetGenesis = {[=]() -> outcome::result<TipsetCPtr> {
-      return ts_load->lazyLoad(ts_main->chain.begin()->second);
+      return ts_load->lazyLoad(ts_main->bottom().second);
     }};
     api->ChainGetNode = {[=](auto &path) -> outcome::result<IpldObject> {
       std::vector<std::string> parts;
