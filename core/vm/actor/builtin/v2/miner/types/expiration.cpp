@@ -210,7 +210,7 @@ namespace fc::vm::actor::builtin::v2::miner {
         total_power +=
             PowerPair(ssize, types::miner::qaPowerForSector(ssize, sector));
         total_pledge += sector.init_pledge;
-        include_set.unset(u);
+        include_set.erase(u);
       }
     }
 

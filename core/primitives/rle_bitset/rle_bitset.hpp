@@ -47,10 +47,7 @@ namespace fc::primitives {
 
     inline void operator-=(const RleBitset &other) {
       for (const auto i : other) {
-        const auto search = find(i);
-        if (search != end()) {
-          erase(search);
-        }
+        erase(i);
       }
     }
 
@@ -85,13 +82,6 @@ namespace fc::primitives {
         }
       }
       return result;
-    }
-
-    inline void unset(uint64_t v) {
-      const auto search = find(v);
-      if (search != end()) {
-        erase(search);
-      }
     }
   };
 

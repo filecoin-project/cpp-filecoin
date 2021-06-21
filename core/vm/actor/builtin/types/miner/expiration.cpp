@@ -155,7 +155,7 @@ namespace fc::vm::actor::builtin::types::miner {
               found = true;
               // If the sector expires early at this epoch, remove it for
               // re-scheduling. It's not part of the on-time pledge number here.
-              es.early_sectors.unset(sector.sector);
+              es.early_sectors.erase(sector.sector);
               es.faulty_power -= power;
               sectors_rescheduled.push_back(sector);
             }
@@ -248,13 +248,13 @@ namespace fc::vm::actor::builtin::types::miner {
 
             if (es.on_time_sectors.has(sector.sector)) {
               found = true;
-              es.on_time_sectors.unset(sector.sector);
+              es.on_time_sectors.erase(sector.sector);
               removed.on_time_sectors.insert(sector.sector);
               es.on_time_pledge -= sector.init_pledge;
               removed.on_time_pledge += sector.init_pledge;
             } else if (es.early_sectors.has(sector.sector)) {
               found = true;
-              es.early_sectors.unset(sector.sector);
+              es.early_sectors.erase(sector.sector);
               removed.early_sectors.insert(sector.sector);
             }
 
