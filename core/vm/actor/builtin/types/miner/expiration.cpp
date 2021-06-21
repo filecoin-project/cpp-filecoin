@@ -199,8 +199,9 @@ namespace fc::vm::actor::builtin::types::miner {
     OUTCOME_TRY(add_result, addActiveSectors(new_sectors, ssize));
     const auto &[new_snos, new_power, new_pledge] = add_result;
 
-    return std::make_tuple(
-        old_snos, new_snos, new_power - old_power, new_pledge - old_pledge);
+    const TokenAmount pledge = new_pledge - old_pledge;
+
+    return std::make_tuple(old_snos, new_snos, new_power - old_power, pledge);
   }
 
   outcome::result<std::tuple<ExpirationSet, PowerPair>>
