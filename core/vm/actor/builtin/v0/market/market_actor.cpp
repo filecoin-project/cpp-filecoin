@@ -140,10 +140,8 @@ namespace fc::vm::actor::builtin::v0::market {
       resolved_addresses[deal.client] = client;
       deal.client = client;
 
-      const auto lock = state->lockClientAndProviderBalances(runtime, deal);
-      if (lock.has_error()) {
-        REQUIRE_NO_ERROR(lock, static_cast<VMExitCode>(lock.error().value()));
-      }
+      REQUIRE_NO_ERROR(state->lockClientAndProviderBalances(runtime, deal),
+                       VMExitCode::kErrIllegalState);
 
       const auto deal_id = state->next_deal++;
 
