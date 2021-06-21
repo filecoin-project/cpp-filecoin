@@ -24,9 +24,9 @@ namespace fc::storage::compacter {
       auto tmp_path{path + ".tmp"};
       std::ofstream tmp_file{tmp_path};
       CbCid key;
-      while (common::read(reader, gsl::make_span(&key, 1))) {
+      while (common::read1(reader, key)) {
         if (!visited->has(key)) {
-          if (!common::write(tmp_file, gsl::make_span(&key, 1))) {
+          if (!common::write1(tmp_file, key)) {
             _error();
           }
           stack.push_back(key);
@@ -54,7 +54,7 @@ namespace fc::storage::compacter {
     if (visited->has(key)) {
       return false;
     }
-    if (!common::write(writer, gsl::make_span(&key, 1))) {
+    if (!common::write1(writer, key)) {
       _error();
     }
     stack.push_back(key);

@@ -33,6 +33,11 @@ namespace fc::common {
     return read(is, span::cast<uint8_t>(values));
   }
 
+  template <typename T>
+  inline bool read1(std::istream &is, T &value) {
+    return read(is, gsl::make_span(&value, 1));
+  }
+
   /** returns true on success */
   inline bool write(std::ostream &is, BytesIn bytes) {
     return is.write((char *)bytes.data(), bytes.size()).good();
@@ -42,5 +47,10 @@ namespace fc::common {
   template <typename T>
   inline bool write(std::ostream &is, gsl::span<T> values) {
     return write(is, span::cast<const uint8_t>(values));
+  }
+
+  template <typename T>
+  inline bool write1(std::ostream &is, const T &value) {
+    return write(is, gsl::make_span(&value, 1));
   }
 }  // namespace fc::common
