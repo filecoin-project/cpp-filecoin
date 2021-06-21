@@ -184,7 +184,7 @@ namespace fc::node {
                  std::vector<CID> snapshot_cids) {
     o.ts_main_kv = std::make_shared<storage::MapPrefix>("ts_main/", o.kv_store);
     log()->info("loading chain");
-    o.ts_main = TsBranch::load(o.ts_main_kv);
+    o.ts_main = TsBranch::load(o.ts_main_kv, 1000);
     TipsetKey genesis_tsk{{*asBlake(*config.genesis_cid)}};
     if (!o.ts_main) {
       auto tsk{genesis_tsk};
@@ -216,7 +216,7 @@ namespace fc::node {
     }
 
     log()->info("chain loaded");
-    assert(o.ts_main->chain.begin()->second.key == genesis_tsk);
+    assert(o.ts_main->bottom().second.key == genesis_tsk);
   }
 
   auto writableIpld(Config &config, NodeObjects &o) {

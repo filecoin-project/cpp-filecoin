@@ -41,6 +41,7 @@ namespace fc::primitives::tipset::chain {
 
   void attach(TsBranchPtr parent, TsBranchPtr child) {
     auto bottom{child->chain.begin()};
+    parent->lazyLoad(bottom->first);
     assert(*parent->chain.find(bottom->first) == *bottom);
     ++bottom;
     [[maybe_unused]] auto _parent{parent->chain.find(bottom->first)};
@@ -80,6 +81,7 @@ namespace fc::primitives::tipset::chain {
     }
     TsChain chain;
     OUTCOME_TRY(ts, ts_load->loadWithCacheInfo(key));
+    parent->lazyLoad(ts.tipset->height());
     auto _parent{parent->chain.lower_bound(ts.tipset->height())};
     if (_parent == parent->chain.end()) {
       --_parent;
@@ -89,6 +91,7 @@ namespace fc::primitives::tipset::chain {
           chain.emplace(ts.tipset->height(), TsLazy{ts.tipset->key, ts.index})
               .first};
       while (_parent->first > _bottom->first) {
+        parent->lazyLoad(_parent->first - 1);
         if (_parent == parent->chain.begin()) {
           return ERROR_TEXT("TsBranch::make: not connected");
         }
@@ -102,17 +105,26 @@ namespace fc::primitives::tipset::chain {
     return make(std::move(chain), parent);
   }
 
-  TsBranchPtr TsBranch::load(KvPtr kv) {
+  TsBranchPtr TsBranch::load(KvPtr kv, boost::optional<size_t> limit) {
+    assert(!limit || *limit);
     TsChain chain;
     auto cur{kv->cursor()};
-    for (cur->seekToFirst(); cur->isValid(); cur->next()) {
+    for (cur->seekToLast(); cur->isValid() && (!limit || (*limit)--);
+         cur->prev()) {
       chain.emplace(decodeHeight(cur->key()),
                     TsLazy{decodeTsk(cur->value()), 0});  // we don't know index
     }
     if (chain.empty()) {
       return nullptr;
     }
-    return make(std::move(chain), nullptr);
+    auto branch{make(std::move(chain), nullptr)};
+    cur->seekToFirst();
+    assert(cur->isValid());
+    branch->lazy.emplace(Lazy{
+        {decodeHeight(cur->key()), TsLazy{decodeTsk(cur->value()), 0}},
+        kv,
+    });
+    return branch;
   }
 
   outcome::result<TsBranchPtr> TsBranch::create(KvPtr kv,
@@ -132,6 +144,26 @@ namespace fc::primitives::tipset::chain {
     }
     OUTCOME_TRY(batch->commit());
     return make(std::move(chain), nullptr);
+  }
+
+  TsChain::value_type &TsBranch::bottom() {
+    return lazy ? lazy->bottom : *chain.begin();
+  }
+
+  void TsBranch::lazyLoad(Height height) {
+    auto bottom{chain.begin()->first};
+    if (lazy && height >= lazy->bottom.first && height < bottom) {
+      size_t batch{};
+      auto cur{lazy->kv->cursor()};
+      for (cur->seek(encodeHeight(bottom)); cur->isValid(); cur->prev()) {
+        auto current{decodeHeight(cur->key())};
+        chain.emplace(current, TsLazy{decodeTsk(cur->value()), {}});
+        ++batch;
+        if (current <= height && batch >= lazy->min_load) {
+          break;
+        }
+      }
+    }
   }
 
   outcome::result<Path> findPath(TsBranchPtr from, TsBranchIter to_it) {
@@ -239,10 +271,12 @@ namespace fc::primitives::tipset::chain {
 
   TsBranchIter find(const TsBranches &branches, TipsetCPtr ts) {
     for (auto branch : branches) {
+      branch->lazyLoad(ts->height());
       auto it{branch->chain.find(ts->height())};
       if (it != branch->chain.end() && it->second.key == ts->key) {
         while (branch->parent && it == branch->chain.begin()) {
           branch = branch->parent;
+          branch->lazyLoad(ts->height());
           it = branch->chain.find(ts->height());
         }
         return std::make_pair(branch, it);
@@ -308,12 +342,13 @@ namespace fc::primitives::tipset::chain {
     if (height > branch->chain.rbegin()->first) {
       return ERROR_TEXT("find: too high");
     }
-    while (branch->chain.begin()->first > height) {
+    while (branch->bottom().first > height) {
       if (!branch->parent) {
         return ERROR_TEXT("find: too low");
       }
       branch = branch->parent;
     }
+    branch->lazyLoad(height);
     auto it{branch->chain.lower_bound(height)};
     if (it->first > height && allow_less) {
       --it;
@@ -323,12 +358,14 @@ namespace fc::primitives::tipset::chain {
 
   outcome::result<TsBranchIter> stepParent(TsBranchIter it) {
     auto &branch{it.first};
+    branch->lazyLoad(it.second->first - 1);
     while (it.second == branch->chain.begin()) {
       if (!branch->parent) {
         return ERROR_TEXT("stepParent: error");
       }
       it.second = branch->parent->chain.find(it.second->first);
       branch = branch->parent;
+      branch->lazyLoad(it.second->first - 1);
     }
     --it.second;
     return it;
