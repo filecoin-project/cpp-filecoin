@@ -71,7 +71,7 @@ namespace fc::vm::runtime {
     }
     for (auto it{queue.rbegin()}; it != queue.rend(); ++it) {
       auto &key{**it};
-      OUTCOME_TRY(ipld->set(asCborBlakeCid(key), write.at(key)));
+      OUTCOME_TRY(ipld->set(CID{key}, write.at(key)));
     }
     return outcome::success();
   }

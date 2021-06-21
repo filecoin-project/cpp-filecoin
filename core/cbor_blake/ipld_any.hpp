@@ -50,7 +50,7 @@ namespace fc {
     AnyAsCbIpld(IpldPtr ipld) : ipld{std::move(ipld)} {}
 
     static bool get(const IpldPtr &ipld, const CbCid &key, Buffer *value) {
-      auto cid{asCborBlakeCid(key)};
+      const CID cid{key};
       if (value) {
         if (auto r{ipld->get(cid)}) {
           *value = std::move(r.value());
@@ -66,7 +66,7 @@ namespace fc {
       return get(ipld, key, value);
     }
     void put(const CbCid &key, BytesIn value) override {
-      ipld->set(asCborBlakeCid(key), Buffer{value}).value();
+      ipld->set(CID{key}, Buffer{value}).value();
     }
   };
 }  // namespace fc

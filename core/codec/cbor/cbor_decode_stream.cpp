@@ -5,6 +5,8 @@
 
 #include "codec/cbor/cbor_decode_stream.hpp"
 
+#include "light_reader/block.hpp"
+
 namespace fc::codec::cbor {
   CborDecodeStream::CborDecodeStream(BytesIn data) : partial{data} {
     readToken();
@@ -49,6 +51,26 @@ namespace fc::codec::cbor {
       outcome::raise(CborDecodeError::kInvalidCID);
     }
     cid = std::move(maybe_cid.value());
+    readToken();
+    return *this;
+  }
+
+  CborDecodeStream &CborDecodeStream::operator>>(CbCid &cid) {
+    _as(token.cidSize());
+    const CbCid *_cid;
+    if (!readCborBlake(_cid, token, partial)) {
+      outcome::raise(CborDecodeError::kInvalidCID);
+    }
+    cid = *_cid;
+    readToken();
+    return *this;
+  }
+
+  CborDecodeStream &CborDecodeStream::operator>>(BlockParentCbCids &parents) {
+    listLength();
+    if (!light_reader::readBlockParents(parents, token, partial)) {
+      outcome::raise(CborDecodeError::kWrongType);
+    }
     readToken();
     return *this;
   }

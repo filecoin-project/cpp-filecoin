@@ -15,7 +15,7 @@ namespace fc::sync {
   inline constexpr auto kHelloProtocol = "/fil/hello/1.0.0";
 
   struct HelloMessage {
-    std::vector<CID> heaviest_tipset;
+    std::vector<CbCid> heaviest_tipset;
     uint64_t heaviest_tipset_height;
     BigInt heaviest_tipset_weight;
     CID genesis;

@@ -7,6 +7,7 @@
 
 #include <boost/optional.hpp>
 
+#include "cbor_blake/cid_block.hpp"
 #include "codec/cbor/cbor_errors.hpp"
 #include "codec/cbor/cbor_token.hpp"
 #include "codec/cbor/streams_annotation.hpp"
@@ -102,6 +103,8 @@ namespace fc::codec::cbor {
     CborDecodeStream &operator>>(std::string &str);
     /** Decodes CID */
     CborDecodeStream &operator>>(CID &cid);
+    CborDecodeStream &operator>>(CbCid &cid);
+    CborDecodeStream &operator>>(BlockParentCbCids &parents);
     /** Creates list container decode substream */
     CborDecodeStream list();
     /** Skips current element */

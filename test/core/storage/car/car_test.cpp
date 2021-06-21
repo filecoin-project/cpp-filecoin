@@ -9,6 +9,8 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem/operations.hpp>
 
+#include "codec/cbor/light_reader/block.hpp"
+#include "primitives/block/block.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/unixfs/unixfs.hpp"
 #include "testutil/literals.hpp"
@@ -36,7 +38,7 @@ TEST(CarTest, LoadSuccess) {
   EXPECT_THAT(
       roots,
       testing::ElementsAre(
-          "0171a0e402202d4c00840d4227f198ec6c5343b8c70af7f008a7775d67393d10430ea2fa012f"_cid));
+          "0171a0e402209a0640d0620af5d1c458effce4cbb8969779c9072b164d3fe6f5179d6378d8cd"_cid));
 }
 
 /**
@@ -50,7 +52,7 @@ TEST(CarTest, LoadFromFileSuccess) {
   EXPECT_THAT(
       roots,
       testing::ElementsAre(
-          "0171a0e402202d4c00840d4227f198ec6c5343b8c70af7f008a7775d67393d10430ea2fa012f"_cid));
+          "0171a0e402209a0640d0620af5d1c458effce4cbb8969779c9072b164d3fe6f5179d6378d8cd"_cid));
 }
 
 /**
@@ -63,6 +65,32 @@ TEST(CarTest, LoadTruncatedError) {
   auto input = readFile(resourcePath("genesis.car"));
   EXPECT_OUTCOME_ERROR(CarError::kDecodeError,
                        loadCar(ipld, input.subbuffer(0, input.size() - 1)));
+}
+
+TEST(CarTest, MainnetGenesisBlockRead) {
+  using namespace fc;
+  InMemoryDatastore ipld;
+  EXPECT_OUTCOME_TRUE(roots, loadCar(ipld, resourcePath("genesis.car")));
+  auto cbor{ipld.get(roots[0]).value()};
+  BytesIn input{cbor};
+  BytesIn ticket;
+  BlockParentCbCids parents;
+  uint64_t height;
+  EXPECT_TRUE(
+      codec::cbor::light_reader::readBlock(ticket, parents, height, input));
+  EXPECT_EQ(height, 0);
+  EXPECT_EQ(parents.size(), 0);
+}
+
+TEST(CarTest, MainnetGenesisBlockCbor) {
+  using namespace fc;
+  InMemoryDatastore ipld;
+  EXPECT_OUTCOME_TRUE(roots, loadCar(ipld, resourcePath("genesis.car")));
+  auto cbor{ipld.get(roots[0]).value()};
+  auto block{codec::cbor::decode<primitives::block::BlockHeader>(cbor).value()};
+  EXPECT_TRUE(block.parents.empty());
+  EXPECT_TRUE(block.parents.mainnet_genesis);
+  EXPECT_OUTCOME_EQ(codec::cbor::encode(block), cbor);
 }
 
 struct Sample1 {

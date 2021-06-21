@@ -91,13 +91,12 @@ namespace fc::sync {
   bool PubSubGate::onBlock(const PeerId &from, const Bytes &raw) {
     try {
       OUTCOME_EXCEPT(bm, codec::cbor::decode<BlockWithCids>(raw));
-      OUTCOME_EXCEPT(cid,
-                     primitives::cid::getCidOfCbor<BlockHeader>(bm.header));
+      auto cbor{codec::cbor::encode(bm.header).value()};
 
       // TODO validate
 
       events_->signalBlockFromPubSub(
-          events::BlockFromPubSub{from, std::move(cid), std::move(bm)});
+          events::BlockFromPubSub{from, CbCid::hash(cbor), std::move(bm)});
 
       return true;
     } catch (std::system_error &e) {

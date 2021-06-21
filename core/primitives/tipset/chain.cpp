@@ -12,19 +12,17 @@
 #include "vm/version/version.hpp"
 
 namespace fc::primitives::tipset::chain {
-  using common::Hash256;
-
   auto decodeHeight(BytesIn key) {
     assert(key.size() == sizeof(Height));
     return boost::endian::load_big_u64(key.data());
   }
 
   TipsetKey decodeTsk(BytesIn input) {
-    std::vector<CID> cids;
+    std::vector<CbCid> cids;
     while (!input.empty()) {
-      cids.push_back(asCborBlakeCid(
-          Hash256::fromSpan(input.subspan(0, Hash256::size())).value()));
-      input = input.subspan(Hash256::size());
+      cids.push_back(
+          CbCid{CbCid::fromSpan(input.subspan(0, CbCid::size())).value()});
+      input = input.subspan(CbCid::size());
     }
     return cids;
   }
@@ -36,7 +34,7 @@ namespace fc::primitives::tipset::chain {
   auto encodeTsk(const TipsetKey &tsk) {
     Buffer out;
     for (auto &cid : tsk.cids()) {
-      out.put(*asBlake(cid));
+      out.put(cid);
     }
     return out;
   }
@@ -87,10 +85,9 @@ namespace fc::primitives::tipset::chain {
       --_parent;
     }
     while (true) {
-      auto _bottom{chain
-                       .emplace(ts.tipset->height(),
-                                TsLazy{ts.tipset->key, ts.index})
-                       .first};
+      const auto _bottom{
+          chain.emplace(ts.tipset->height(), TsLazy{ts.tipset->key, ts.index})
+              .first};
       while (_parent->first > _bottom->first) {
         if (_parent == parent->chain.begin()) {
           return ERROR_TEXT("TsBranch::make: not connected");
@@ -127,8 +124,7 @@ namespace fc::primitives::tipset::chain {
     while (true) {
       OUTCOME_TRY(batch->put(encodeHeight(ts.tipset->height()),
                              encodeTsk(ts.tipset->key)));
-      chain.emplace(ts.tipset->height(),
-                    TsLazy{ts.tipset->key, ts.index});
+      chain.emplace(ts.tipset->height(), TsLazy{ts.tipset->key, ts.index});
       if (ts.tipset->height() == 0) {
         break;
       }

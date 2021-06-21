@@ -59,7 +59,7 @@ namespace fc::markets::storage::provider {
                   kStackedDRG2KiBWinningPoSt,
               "F00D"_unhex,
           }},
-          {"010001020002"_cid},
+          {CbCid::hash("01"_unhex)},
           fc::primitives::BigInt(3),
           epoch,
           "010001020005"_cid,

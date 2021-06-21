@@ -50,7 +50,8 @@ int main(int argc, char **argv) {
       envx.circulating = vm::Circulating::make(envx.ipld, genesis_cid).value();
       vm::interpreter::InterpreterImpl vmi{envx, nullptr};
 
-      TipsetKey head_tsk{storage::car::readHeader(car_path).value()};
+      const auto head_tsk{
+          *TipsetKey::make(storage::car::readHeader(car_path).value())};
       auto head{envx.ts_load->loadWithCacheInfo(head_tsk).value()};
       primitives::tipset::chain::TsChain _chain;
       Height state_min_height{head.tipset->height()}, state_max_height{0};

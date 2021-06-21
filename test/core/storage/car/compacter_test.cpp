@@ -11,9 +11,9 @@
 
 namespace fc::storage::compacter {
   struct CompacterTestMeta {
-    std::vector<CID> ts_main;
+    std::vector<CbCid> ts_main;
     CID head_state, head_receipts;
-    std::vector<std::vector<CID>> sync_branches;
+    std::vector<std::vector<CbCid>> sync_branches;
   };
   CBOR_TUPLE(
       CompacterTestMeta, ts_main, head_state, head_receipts, sync_branches);

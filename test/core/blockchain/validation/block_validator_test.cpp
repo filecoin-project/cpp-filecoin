@@ -81,7 +81,7 @@ class BlockValidatorTest : public testing::Test {
                     kStackedDRG2KiBWinningPoSt,
                 "F00D"_unhex,
             }},
-            {"010001020002"_cid},
+            {fc::CbCid::hash("01"_unhex)},
             3,
             4,
             "010001020005"_cid,

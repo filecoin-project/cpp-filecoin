@@ -12,9 +12,9 @@
 #include "common/buffer.hpp"
 
 namespace fc::codec::cbor::light_reader {
-  inline bool readStateTree(Hash256 &hamt,
+  inline bool readStateTree(CbCid &hamt,
                             const CbIpldPtr &ipld,
-                            const Hash256 &root) {
+                            const CbCid &root) {
     hamt = root;
     Buffer value;
     if (!ipld->get(root, value)) {
@@ -29,7 +29,7 @@ namespace fc::codec::cbor::light_reader {
       if (!read(token, input).asUint()) {
         return false;
       }
-      const Hash256 *cid;
+      const CbCid *cid;
       if (!cbor::readCborBlake(cid, input)) {
         return false;
       }

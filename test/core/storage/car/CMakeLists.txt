@@ -7,6 +7,7 @@ addtest(car_test
     car_test.cpp
     )
 target_link_libraries(car_test
+    block
     car
     ipfs_datastore_in_memory
     unixfs

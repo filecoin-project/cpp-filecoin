@@ -341,8 +341,8 @@ namespace fc::vm::runtime {
       if (auto _blockC{codec::cbor::decode<BlockHeader>(extra)}) {
         auto &blockC{_blockC.value()};
         if (blockA.parents == blockC.parents && blockA.height == blockC.height
-            && has(blockB.parents, getCidOf(extra).value())
-            && !has(blockB.parents, getCidOf(block1).value())) {
+            && has(blockB.parents, CbCid::hash(extra))
+            && !has(blockB.parents, CbCid::hash(block1))) {
           type = ConsensusFaultType::ParentGrinding;
         }
       } else {

@@ -9,6 +9,7 @@
 #include <boost/optional.hpp>
 
 #include "adt/array.hpp"
+#include "cbor_blake/cid_block.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/signature/signature.hpp"
 #include "drand/messages.hpp"
@@ -48,7 +49,7 @@ namespace fc::primitives::block {
 
   struct BlockTemplate {
     Address miner;
-    std::vector<CID> parents;
+    std::vector<CbCid> parents;
     boost::optional<Ticket> ticket;
     ElectionProof election_proof;
     std::vector<BeaconEntry> beacon_entries;
@@ -64,7 +65,7 @@ namespace fc::primitives::block {
     ElectionProof election_proof;
     std::vector<BeaconEntry> beacon_entries;
     std::vector<PoStProof> win_post_proof;
-    std::vector<CID> parents;
+    BlockParentCbCids parents;
     BigInt parent_weight;
     uint64_t height{};
     CID parent_state_root;

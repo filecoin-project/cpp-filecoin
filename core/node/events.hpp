@@ -28,14 +28,14 @@ namespace fc::sync::events {
 
   struct TipsetFromHello {
     PeerId peer_id;
-    std::vector<CID> tipset;
+    std::vector<CbCid> tipset;
     uint64_t height;
     BigInt weight;
   };
 
   struct BlockFromPubSub {
     PeerId from;
-    CID block_cid;
+    CbCid block_cid;
     BlockWithCids block;
   };
 
