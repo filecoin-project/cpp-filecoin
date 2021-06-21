@@ -20,7 +20,7 @@ namespace fc::codec::cbor::light_reader {
    * @return
    */
   inline bool readActor(std::string_view &code,
-                        const Hash256 *&head,
+                        const CbCid *&head,
                         BytesIn value) {
     cbor::CborToken token;
     if (read(token, value).listCount() != 4) {

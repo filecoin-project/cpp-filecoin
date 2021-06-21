@@ -10,10 +10,6 @@
 #include "cbor_blake/cid.hpp"
 #include "common/buffer.hpp"
 
-namespace fc::crypto::blake2b {
-  common::Hash256 blake2b_256(BytesIn);
-}  // namespace fc::crypto::blake2b
-
 namespace fc {
   struct CbIpld {
     virtual ~CbIpld() = default;
@@ -27,7 +23,7 @@ namespace fc {
       return get(key, &value);
     }
     CbCid put(BytesIn cbor) {
-      auto key{crypto::blake2b::blake2b_256(cbor)};
+      auto key{CbCid::hash(cbor)};
       put(key, cbor);
       return key;
     }

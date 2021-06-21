@@ -69,7 +69,7 @@ namespace fc::codec::cbor::light_reader {
             }
           }
           if (token.cidSize()) {
-            const Hash256 *cid;
+            const CbCid *cid;
             if (!readCborBlake(cid, token, node)) {
               return false;
             }

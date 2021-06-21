@@ -18,6 +18,7 @@
 #include "node/pubsub_gate.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
+#include "storage/chain/receipt_loader.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
@@ -101,7 +102,7 @@ namespace fc::api {
 
   template <typename T, typename F>
   auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&... args) {
+    return [f{std::forward<F>(f)}](auto &&...args) {
       auto channel{std::make_shared<Channel<outcome::result<T>>>()};
       f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
         channel->write(std::forward<decltype(_r)>(_r));
@@ -289,7 +290,7 @@ namespace fc::api {
           std::vector<CidMessage> messages;
           OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
           for (auto &parent_cid : block.parents) {
-            OUTCOME_TRY(parent, ipld->getCbor<BlockHeader>(parent_cid));
+            OUTCOME_TRY(parent, ipld->getCbor<BlockHeader>(CID{parent_cid}));
             OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(parent.messages));
             OUTCOME_TRY(meta.bls_messages.visit(
                 [&](auto, auto &cid) -> outcome::result<void> {
@@ -722,13 +723,14 @@ namespace fc::api {
         }};
     api->StateGetReceipt = {
         [=](auto &cid, auto &tipset_key) -> outcome::result<MessageReceipt> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          auto result{msg_waiter->results.find(cid)};
-          if (result != msg_waiter->results.end()) {
-            OUTCOME_TRY(ts, ts_load->load(result->second.second.cids()));
-            if (context.tipset->height() <= ts->height()) {
-              return result->second.first;
-            }
+          auto receipt_loader =
+              std::make_shared<storage::blockchain::ReceiptLoader>(ts_load,
+                                                                   ipld);
+          OUTCOME_TRY(
+              result,
+              receipt_loader->searchBackForMessageReceipt(cid, tipset_key, 0));
+          if (result.has_value()) {
+            return result->first;
           }
           return ERROR_TEXT("StateGetReceipt: no receipt");
         }};
@@ -928,6 +930,21 @@ namespace fc::api {
     api->StateSearchMsg = {};
     api->StateWaitMsg =
         waitCb<MsgWait>([=](auto &&cid, auto &&confidence, auto &&cb) {
+          // look for message on chain
+          const auto receipt_loader =
+              std::make_shared<storage::blockchain::ReceiptLoader>(ts_load,
+                                                                   ipld);
+          OUTCOME_CB(auto result,
+                     receipt_loader->searchBackForMessageReceipt(
+                         cid, chain_store->heaviestTipset()->getParents(), 0));
+          if (result.has_value()) {
+            OUTCOME_CB(auto ts, ts_load->load(result->second));
+            cb(MsgWait{
+                cid, result->first, result->second, (ChainEpoch)ts->height()});
+            return;
+          }
+
+          // if message was not found, wait for it
           msg_waiter->wait(cid, [=, MOVE(cb)](auto &result) {
             OUTCOME_CB(auto ts, ts_load->load(result.second));
             cb(MsgWait{cid, result.first, ts->key, (ChainEpoch)ts->height()});

@@ -43,8 +43,8 @@ namespace fc::api {
           OUTCOME_TRY(cid, common::getCidOf(raw));
           if (a) {
             OUTCOME_TRY(index, parseIndex(part.substr(3)));
-            OUTCOME_TRY(raw2, Amt{ipld, cid}.get(index));
-            s = CborDecodeStream{raw2};
+            OUTCOME_TRYA(raw, Amt{ipld, cid}.get(index));
+            s = CborDecodeStream{raw};
           } else {
             std::string key;
             if (hi) {
@@ -62,11 +62,11 @@ namespace fc::api {
             } else {
               key = part.substr(3);
             }
-            OUTCOME_TRY(
-                raw2,
+            OUTCOME_TRYA(
+                raw,
                 Hamt{ipld, cid, storage::hamt::kDefaultBitWidth, false}.get(
                     key));
-            s = CborDecodeStream{raw2};
+            s = CborDecodeStream{raw};
           }
           parts = parts.subspan(1);
           break;
@@ -78,8 +78,8 @@ namespace fc::api {
           CID cid;
           s2 >> cid;
           if (cid.content_type == CID::Multicodec::DAG_CBOR) {
-            OUTCOME_TRY(raw2, ipld->get(cid));
-            s = CborDecodeStream{raw2};
+            OUTCOME_TRYA(raw, ipld->get(cid));
+            s = CborDecodeStream{raw};
           } else {
             if (i != parts.size() - 1) {
               return error_dag_cbor;

@@ -381,9 +381,9 @@ namespace fc::mining::checks {
       return ERROR_TEXT("ERROR");
     };
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey precommit_key(cids);
+    TipsetKey precommit_key{{CbCid::hash("01"_unhex),
+                             CbCid::hash("02"_unhex),
+                             CbCid::hash("03"_unhex)}};
     api_->StateCall =
         [&precommit_key](const UnsignedMessage &msg,
                          const TipsetKey &key) -> outcome::result<InvocResult> {
@@ -456,9 +456,9 @@ namespace fc::mining::checks {
       return ERROR_TEXT("ERROR");
     };
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey precommit_key(cids);
+    TipsetKey precommit_key{{CbCid::hash("01"_unhex),
+                             CbCid::hash("02"_unhex),
+                             CbCid::hash("03"_unhex)}};
     api_->StateCall =
         [&precommit_key, &info](
             const UnsignedMessage &msg,
@@ -550,9 +550,9 @@ namespace fc::mining::checks {
       return ERROR_TEXT("ERROR");
     };
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey precommit_key(cids);
+    TipsetKey precommit_key{{CbCid::hash("01"_unhex),
+                             CbCid::hash("02"_unhex),
+                             CbCid::hash("03"_unhex)}};
     api_->StateCall =
         [&precommit_key, &info](
             const UnsignedMessage &msg,
@@ -684,9 +684,9 @@ namespace fc::mining::checks {
       return ERROR_TEXT("ERROR");
     };
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey precommit_key(cids);
+    TipsetKey precommit_key{{CbCid::hash("01"_unhex),
+                             CbCid::hash("02"_unhex),
+                             CbCid::hash("03"_unhex)}};
     api_->StateCall =
         [&precommit_key, &info](
             const UnsignedMessage &msg,
@@ -793,10 +793,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
-
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
     EXPECT_OUTCOME_ERROR(
         ChecksError::kBadSeed,
         checkCommit(miner_addr_, info, proof, commit_key, api_, proofs_));
@@ -817,9 +816,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
 
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
@@ -882,10 +881,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
-
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
     MinerActorState actor_state;
@@ -946,10 +944,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
-
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
     MinerActorState actor_state;
@@ -1012,10 +1009,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
-
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
     MinerActorState actor_state;
@@ -1096,10 +1092,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
-
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
     MinerActorState actor_state;
@@ -1178,10 +1173,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
-
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
     MinerActorState actor_state;

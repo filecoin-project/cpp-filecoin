@@ -46,7 +46,7 @@ namespace fc::vm::runtime {
 
     IpldPtr ipld;
     // vm only stores "DAG_CBOR blake2b_256" cids
-    std::unordered_map<Hash256, Buffer> write;
+    std::unordered_map<CbCid, Buffer> write;
   };
 
   /// Environment contains objects that are shared by runtime contexts
@@ -57,7 +57,8 @@ namespace fc::vm::runtime {
 
     struct Apply {
       MessageReceipt receipt;
-      TokenAmount penalty, reward;
+      TokenAmount penalty;
+      TokenAmount reward;
     };
 
     outcome::result<Apply> applyMessage(const UnsignedMessage &message,

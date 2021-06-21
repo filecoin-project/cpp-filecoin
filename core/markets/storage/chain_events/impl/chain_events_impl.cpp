@@ -51,7 +51,7 @@ namespace fc::markets::storage::chain_events {
       for (const auto &change : changes.get()) {
         if (change.type == HeadChangeType::APPLY) {
           for (auto &block_cid : change.value->key.cids()) {
-            auto block_messages = api_->ChainGetBlockMessages(block_cid);
+            auto block_messages = api_->ChainGetBlockMessages(CID{block_cid});
             if (block_messages.has_error()) {
               logger_->error("ChainGetBlockMessages error: "
                              + block_messages.error().message());

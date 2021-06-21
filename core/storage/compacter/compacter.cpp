@@ -91,7 +91,7 @@ namespace fc::storage::compacter {
     ts_lock.unlock();
     queue->push(*asBlake(genesis->getParentStateRoot()));
     headers_top = genesis;
-    copy(*asBlake(genesis->key.cids()[0]));
+    copy(genesis->key.cids()[0]);
     pushState(*asBlake(start_head->getParentStateRoot()));
     state_bottom = start_head;
     headers_top_key.setCbor(headers_top->key.cids());
@@ -121,10 +121,10 @@ namespace fc::storage::compacter {
     queue->visited = new_ipld;
     queue->open(false);
     start_head =
-        ts_load->load(start_head_key.getCbor<std::vector<CID>>()).value();
+        ts_load->load(start_head_key.getCbor<std::vector<CbCid>>()).value();
     state_bottom = start_head;
     headers_top =
-        ts_load->load(headers_top_key.getCbor<std::vector<CID>>()).value();
+        ts_load->load(headers_top_key.getCbor<std::vector<CbCid>>()).value();
     {
       std::unique_lock ipld_lock{ipld_mutex};
       use_new_ipld = true;
@@ -192,7 +192,7 @@ namespace fc::storage::compacter {
         break;
       }
       for (auto &cid : it->second.key.cids()) {
-        copy(*asBlake(cid));
+        copy(cid);
       }
       ++batch_used;
       ++it;

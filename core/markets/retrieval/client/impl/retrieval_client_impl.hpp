@@ -86,9 +86,10 @@ namespace fc::markets::retrieval::client {
     outcome::result<std::vector<PeerInfo>> findProviders(
         const CID &piece_cid) const override;
 
-    outcome::result<void> query(const RetrievalPeer &provider_peer,
-               const QueryRequest &request,
-               const QueryResponseHandler &response_handler) override;
+    outcome::result<void> query(
+        const RetrievalPeer &provider_peer,
+        const QueryRequest &request,
+        const QueryResponseHandler &response_handler) override;
 
     outcome::result<void> retrieve(
         const CID &payload_cid,

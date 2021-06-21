@@ -16,11 +16,11 @@ namespace fc::sync {
    public:
     void start(std::shared_ptr<events::Events> events);
 
-    void blockFromApi(const CID &block_cid, const BlockHeader &block);
+    void blockFromApi(const CbCid &block_cid, const BlockHeader &block);
 
    private:
     void tryAppendBlock(boost::optional<PeerId> source,
-                        const CID &block_cid,
+                        const CbCid &block_cid,
                         const BlockHeader &header);
 
     BigInt min_weight_;

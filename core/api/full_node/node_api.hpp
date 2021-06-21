@@ -221,7 +221,7 @@ namespace fc::api {
     CID message;
     MessageReceipt receipt;
     TipsetKey tipset;
-    ChainEpoch height;
+    ChainEpoch height{};
   };
 
   struct BlockMessages {

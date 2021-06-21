@@ -12,10 +12,10 @@
 #include "common/buffer.hpp"
 
 namespace fc::codec::cbor::light_reader {
-  inline bool readMsgMeta(const Hash256 *&bls,
-                          const Hash256 *&secp,
+  inline bool readMsgMeta(const CbCid *&bls,
+                          const CbCid *&secp,
                           CbIpldPtr ipld,
-                          const Hash256 &cid) {
+                          const CbCid &cid) {
     Buffer value;
     if (!ipld->get(cid, value)) {
       return false;

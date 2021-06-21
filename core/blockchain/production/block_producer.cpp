@@ -49,7 +49,7 @@ namespace fc::blockchain::production {
     b.header.election_proof = std::move(t.election_proof);
     b.header.beacon_entries = std::move(t.beacon_entries);
     b.header.win_post_proof = std::move(t.win_post_proof);
-    b.header.parents = std::move(t.parents);
+    (std::vector<fc::CbCid> &)b.header.parents = std::move(t.parents);
     b.header.parent_weight = vm_result.weight;
     b.header.height = t.height;
     b.header.parent_state_root = std::move(vm_result.state_root);

@@ -17,7 +17,7 @@ namespace fc::primitives::tipset {
     std::vector<BlockHeader> blocks;
     blocks.reserve(key.cids().size());
     for (auto &cid : key.cids()) {
-      OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(cid));
+      OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(CID{cid}));
       blocks.emplace_back(std::move(block));
     }
     return TsLoad::load(std::move(blocks));
@@ -176,8 +176,8 @@ namespace fc::primitives::tipset {
           const std::shared_ptr<PutBlockHeader> &put,
           const BlockHeader &header) {
     auto value{codec::cbor::encode(header).value()};
-    auto key{crypto::blake2b::blake2b_256(value)};
-    auto cid{asCborBlakeCid(key)};
+    auto key{CbCid::hash(value)};
+    const CID cid{key};
     if (put) {
       put->put(key, value);
     } else {

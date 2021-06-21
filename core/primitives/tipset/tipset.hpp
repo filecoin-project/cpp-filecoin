@@ -71,6 +71,10 @@ namespace fc::primitives::tipset {
     static outcome::result<TipsetCPtr> create(
         std::vector<block::BlockHeader> blocks);
 
+    Tipset() = default;
+
+    Tipset(const TipsetKey &key, std::vector<block::BlockHeader> blks);
+
     outcome::result<void> visitMessages(
         MessageVisitor message_visitor,
         const MessageVisitor::Visitor &visitor) const;
@@ -97,6 +101,9 @@ namespace fc::primitives::tipset {
      */
     const CID &getParentStateRoot() const;
 
+    /**
+     * @return adt::map root CID of message receipts
+     */
     const CID &getParentMessageReceipts() const;
 
     Height height() const;
@@ -109,18 +116,6 @@ namespace fc::primitives::tipset {
     const BigInt &getParentWeight() const;
 
     const BigInt &getParentBaseFee() const;
-
-    /**
-     * @brief checks whether tipset contains block by cid
-     * @param cid content identifier to look for
-     * @return true if contains, false otherwise
-     */
-    bool contains(const CID &cid) const;
-
-    Tipset() = default;
-
-    Tipset(TipsetKey _key, std::vector<block::BlockHeader> _blks)
-        : key(std::move(_key)), blks(std::move(_blks)) {}
 
     TipsetKey key;
     std::vector<block::BlockHeader> blks;  ///< block headers
@@ -162,9 +157,9 @@ namespace fc::primitives::tipset {
     /// returns success if the tipset created can be expanded with this block
     outcome::result<void> canExpandTipset(const block::BlockHeader &hdr) const;
 
-    outcome::result<CID> expandTipset(block::BlockHeader hdr);
+    outcome::result<CbCid> expandTipset(block::BlockHeader hdr);
 
-    outcome::result<void> expandTipset(CID cid, block::BlockHeader hdr);
+    outcome::result<void> expandTipset(CbCid cid, block::BlockHeader hdr);
 
     TipsetCPtr getTipset(bool clear);
 
@@ -176,7 +171,7 @@ namespace fc::primitives::tipset {
 
    private:
     std::vector<block::BlockHeader> blks_;
-    std::vector<CID> cids_;
+    std::vector<CbCid> cids_;
     std::vector<Hash256> ticket_hashes_;
   };
 
