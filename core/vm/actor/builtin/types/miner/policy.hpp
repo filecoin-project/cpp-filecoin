@@ -110,6 +110,8 @@ namespace fc::vm::actor::builtin::types::miner {
   // PoSts submitted during that period may be disputed.
   constexpr auto kWPoStDisputeWindow{2 * kChainFinality};
 
+  constexpr auto kMaxSectorNumber{INT64_MAX};
+
   inline SectorQuality qualityForWeight(SectorSize size,
                                         ChainEpoch duration,
                                         const DealWeight &deal_weight,
