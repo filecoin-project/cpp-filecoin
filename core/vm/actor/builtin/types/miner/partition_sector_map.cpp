@@ -28,15 +28,11 @@ namespace fc::vm::actor::builtin::types::miner {
     return std::make_tuple(m.size(), sectors);
   }
 
-  std::vector<uint64_t> PartitionSectorMap::partitions(
-      NetworkVersion version) const {
+  std::vector<uint64_t> PartitionSectorMap::partitions() const {
     std::vector<uint64_t> partitions;
 
     for (const auto &[part_id, bf] : m) {
       partitions.push_back(part_id);
-    }
-    if (version >= NetworkVersion::kVersion9) {
-      std::sort(partitions.begin(), partitions.end(), std::less<uint64_t>());
     }
 
     return partitions;
