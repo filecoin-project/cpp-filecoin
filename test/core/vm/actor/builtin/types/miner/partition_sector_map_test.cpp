@@ -19,7 +19,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
     psm.add(0, sector_nos);
 
-    EXPECT_EQ(psm.m[0], sector_nos);
+    EXPECT_EQ(psm.map[0], sector_nos);
   }
 
   TEST_F(PartitionSectorMapTest, Count) {

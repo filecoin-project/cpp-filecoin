@@ -10,14 +10,14 @@
 namespace fc::vm::actor::builtin::types::miner {
 
   void PartitionSectorMap::add(uint64_t part_id, const RleBitset &sector_nos) {
-    m[part_id] += sector_nos;
+    map[part_id] += sector_nos;
   }
 
   outcome::result<std::tuple<uint64_t, uint64_t>> PartitionSectorMap::count()
       const {
     uint64_t sectors{0};
 
-    for (const auto &[part_id, bf] : m) {
+    for (const auto &[part_id, bf] : map) {
       const auto count = bf.size();
       if (count > UINT64_MAX - sectors) {
         return ERROR_TEXT("uint64 overflow when counting sectors");
@@ -25,13 +25,13 @@ namespace fc::vm::actor::builtin::types::miner {
       sectors += count;
     }
 
-    return std::make_tuple(m.size(), sectors);
+    return std::make_tuple(map.size(), sectors);
   }
 
   std::vector<uint64_t> PartitionSectorMap::partitions() const {
     std::vector<uint64_t> partitions;
 
-    for (const auto &[part_id, bf] : m) {
+    for (const auto &[part_id, bf] : map) {
       partitions.push_back(part_id);
     }
 
@@ -39,7 +39,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   int PartitionSectorMap::length() const {
-    return m.size();
+    return map.size();
   }
 
 }  // namespace fc::vm::actor::builtin::types::miner

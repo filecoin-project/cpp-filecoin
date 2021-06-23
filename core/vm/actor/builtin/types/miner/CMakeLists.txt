@@ -5,6 +5,7 @@
 
 add_library(miner_types
     deadline_info.cpp
+    deadline_sector_map.cpp
     quantize.cpp
     bitfield_queue.cpp
     partition_sector_map.cpp
