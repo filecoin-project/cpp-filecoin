@@ -3,6 +3,7 @@
 
 add_library(tipset
     chain.cpp
+    file.cpp
     load.cpp
     tipset.cpp
     tipset_key.cpp

@@ -65,7 +65,6 @@ namespace fc::node {
     std::shared_ptr<primitives::tipset::TsLoadIpld> ts_load_ipld;
     std::shared_ptr<primitives::tipset::TsLoadCache> ts_load;
     std::shared_ptr<storage::PersistentBufferMap> kv_store;
-    std::shared_ptr<storage::PersistentBufferMap> ts_main_kv;
     TsBranchesPtr ts_branches;
     TsBranchPtr ts_main;
 

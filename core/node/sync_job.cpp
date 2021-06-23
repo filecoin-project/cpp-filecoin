@@ -48,7 +48,6 @@ namespace fc::sync {
                    std::shared_ptr<InterpreterCache> interpreter_cache,
                    SharedMutexPtr ts_branches_mutex,
                    TsBranchesPtr ts_branches,
-                   KvPtr ts_main_kv,
                    TsBranchPtr ts_main,
                    TsLoadPtr ts_load,
                    std::shared_ptr<PutBlockHeader> put_block_header,
@@ -60,7 +59,6 @@ namespace fc::sync {
         interpreter_cache_(std::move(interpreter_cache)),
         ts_branches_mutex_{std::move(ts_branches_mutex)},
         ts_branches_{std::move(ts_branches)},
-        ts_main_kv_(std::move(ts_main_kv)),
         ts_main_(std::move(ts_main)),
         ts_load_(std::move(ts_load)),
         put_block_header_{std::move(put_block_header)},
@@ -275,8 +273,7 @@ namespace fc::sync {
   void SyncJob::onInterpret(TipsetCPtr ts, const InterpreterResult &result) {
     auto &weight{result.weight};
     if (weight > chain_store_->getHeaviestWeight()) {
-      if (auto _update{
-              update(ts_main_, find(*ts_branches_, ts), ts_main_kv_)}) {
+      if (auto _update{update(ts_main_, find(*ts_branches_, ts))}) {
         auto &[path, removed]{_update.value()};
         for (auto &branch : removed) {
           ts_branches_->erase(branch);

@@ -8,6 +8,7 @@
 #include <boost/endian/conversion.hpp>
 
 #include "common/error_text.hpp"
+#include "primitives/tipset/file.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/version/version.hpp"
 
@@ -105,47 +106,6 @@ namespace fc::primitives::tipset::chain {
     return make(std::move(chain), parent);
   }
 
-  TsBranchPtr TsBranch::load(KvPtr kv, boost::optional<size_t> limit) {
-    assert(!limit || *limit);
-    TsChain chain;
-    auto cur{kv->cursor()};
-    for (cur->seekToLast(); cur->isValid() && (!limit || (*limit)--);
-         cur->prev()) {
-      chain.emplace(decodeHeight(cur->key()),
-                    TsLazy{decodeTsk(cur->value()), 0});  // we don't know index
-    }
-    if (chain.empty()) {
-      return nullptr;
-    }
-    auto branch{make(std::move(chain), nullptr)};
-    cur->seekToFirst();
-    assert(cur->isValid());
-    branch->lazy.emplace(Lazy{
-        {decodeHeight(cur->key()), TsLazy{decodeTsk(cur->value()), 0}},
-        kv,
-    });
-    return branch;
-  }
-
-  outcome::result<TsBranchPtr> TsBranch::create(KvPtr kv,
-                                                const TipsetKey &key,
-                                                TsLoadPtr ts_load) {
-    TsChain chain;
-    auto batch{kv->batch()};
-    OUTCOME_TRY(ts, ts_load->loadWithCacheInfo(key));
-    while (true) {
-      OUTCOME_TRY(batch->put(encodeHeight(ts.tipset->height()),
-                             encodeTsk(ts.tipset->key)));
-      chain.emplace(ts.tipset->height(), TsLazy{ts.tipset->key, ts.index});
-      if (ts.tipset->height() == 0) {
-        break;
-      }
-      OUTCOME_TRYA(ts, ts_load->loadWithCacheInfo(ts.tipset->getParents()));
-    }
-    OUTCOME_TRY(batch->commit());
-    return make(std::move(chain), nullptr);
-  }
-
   TsChain::value_type &TsBranch::bottom() {
     return lazy ? lazy->bottom : *chain.begin();
   }
@@ -153,16 +113,7 @@ namespace fc::primitives::tipset::chain {
   void TsBranch::lazyLoad(Height height) {
     const auto bottom{chain.begin()->first};
     if (lazy && height >= lazy->bottom.first && height < bottom) {
-      size_t batch{};
-      auto cur{lazy->kv->cursor()};
-      for (cur->seek(encodeHeight(bottom)); cur->isValid(); cur->prev()) {
-        const auto current{decodeHeight(cur->key())};
-        chain.emplace(current, TsLazy{decodeTsk(cur->value()), {}});
-        ++batch;
-        if (current <= height && batch >= lazy->min_load) {
-          break;
-        }
-      }
+      // TODO(turuslan): lazy
     }
   }
 
@@ -225,8 +176,7 @@ namespace fc::primitives::tipset::chain {
   }
 
   outcome::result<std::vector<TsBranchPtr>> update(TsBranchPtr branch,
-                                                   const Path &path,
-                                                   KvPtr kv) {
+                                                   const Path &path) {
     auto &from{branch->chain};
     auto &[revert, apply]{path};
     auto revert_to{from.find(revert.begin()->first)};
@@ -235,15 +185,27 @@ namespace fc::primitives::tipset::chain {
     assert(*apply.begin() == *revert_to);
     assert(*revert.rbegin() == *from.rbegin());
 
-    if (kv) {
-      auto batch{kv->batch()};
-      for (auto it{revert.rbegin()}; it != revert.rend(); ++it) {
-        OUTCOME_TRY(batch->remove(encodeHeight(it->first)));
+    if (branch->updater) {
+      const auto kError{ERROR_TEXT("update file failed")};
+      for (auto it{std::next(revert.begin())}; it != revert.end(); ++it) {
+        if (!branch->updater->revert()) {
+          return kError;
+        }
       }
-      for (auto &[height, ts] : apply) {
-        OUTCOME_TRY(batch->put(encodeHeight(height), encodeTsk(ts.key)));
+      auto height{apply.begin()->first};
+      for (auto it{std::next(apply.begin())}; it != apply.end(); ++it) {
+        while (++height < it->first) {
+          if (!branch->updater->apply({})) {
+            return kError;
+          }
+        }
+        if (!branch->updater->apply(it->second.key.cids())) {
+          return kError;
+        }
       }
-      OUTCOME_TRY(batch->commit());
+      if (!branch->updater->flush()) {
+        return kError;
+      }
     }
 
     for (auto _child{branch->children.lower_bound(revert_to->first + 1)};
@@ -263,9 +225,9 @@ namespace fc::primitives::tipset::chain {
   }
 
   outcome::result<std::pair<Path, std::vector<TsBranchPtr>>> update(
-      TsBranchPtr branch, TsBranchIter to_it, KvPtr kv) {
+      TsBranchPtr branch, TsBranchIter to_it) {
     OUTCOME_TRY(path, findPath(branch, to_it));
-    OUTCOME_TRY(removed, update(branch, path, kv));
+    OUTCOME_TRY(removed, update(branch, path));
     return std::make_pair(std::move(path), std::move(removed));
   }
 
