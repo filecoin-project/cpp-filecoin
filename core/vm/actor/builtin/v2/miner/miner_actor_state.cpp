@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
 
-#include "vm/actor/builtin/v2/miner/types.hpp"
+#include "vm/actor/builtin/v2/miner/types/types.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
   using primitives::sector::getRegisteredWindowPoStProof;

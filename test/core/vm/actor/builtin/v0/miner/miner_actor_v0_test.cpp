@@ -15,7 +15,7 @@
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_utils.hpp"
-#include "vm/actor/builtin/v0/miner/types.hpp"
+#include "vm/actor/builtin/v0/miner/types/types.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {

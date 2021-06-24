@@ -94,7 +94,7 @@ namespace fc::vm::actor::builtin::v0::miner {
      * Information submitted by a miner to provide a Window PoSt
      */
     struct Params {
-      struct Partition {
+      struct PoStPartition {
         /// Partitions are numbered per-deadline, from zero
         uint64_t index{0};
         // Sectors skipped while proving that weren't already declared faulty
@@ -105,7 +105,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       uint64_t deadline{0};
 
       /** The partitions being proven */
-      std::vector<Partition> partitions;
+      std::vector<PoStPartition> partitions;
 
       /**
        * Array of proofs, one per distinct registered proof type present in
@@ -129,7 +129,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(SubmitWindowedPoSt::Params::Partition, index, skipped)
+  CBOR_TUPLE(SubmitWindowedPoSt::Params::PoStPartition, index, skipped)
   CBOR_TUPLE(SubmitWindowedPoSt::Params,
              deadline,
              partitions,
