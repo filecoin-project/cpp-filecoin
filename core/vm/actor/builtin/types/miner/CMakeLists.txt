@@ -4,11 +4,13 @@
 #
 
 add_library(miner_types
+    bitfield_queue.cpp
     deadline_info.cpp
     deadline_sector_map.cpp
-    quantize.cpp
-    bitfield_queue.cpp
+    expiration.cpp
     partition_sector_map.cpp
+    partition.cpp
+    quantize.cpp
     sectors.cpp
     termination.cpp
     )
