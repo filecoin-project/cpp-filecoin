@@ -37,7 +37,7 @@ namespace fc::sync {
 
     primitives::BigInt getHeaviestWeight() const override;
 
-    void update(Path &path, const BigInt &weight);
+    void update(const Path &path, const BigInt &weight);
 
    private:
     HeadConstructor head_constructor_;

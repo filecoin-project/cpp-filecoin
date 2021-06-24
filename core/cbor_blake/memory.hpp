@@ -11,12 +11,13 @@
 
 namespace fc {
   struct MemoryCbIpld : CbIpld {
-    using CbIpld::get, CbIpld::put;
+    using CbIpld::get;
+    using CbIpld::put;
 
     std::map<CbCid, Buffer> map;
 
     bool get(const CbCid &key, Buffer *value) const override {
-      if (auto it{map.find(key)}; it != map.end()) {
+      if (const auto it{map.find(key)}; it != map.end()) {
         if (value) {
           *value = it->second;
         }

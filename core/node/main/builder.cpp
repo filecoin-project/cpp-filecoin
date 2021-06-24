@@ -184,9 +184,9 @@ namespace fc::node {
                  NodeObjects &o,
                  std::vector<CID> snapshot_cids) {
     log()->info("loading chain");
-    TipsetKey genesis_tsk{{*asBlake(*config.genesis_cid)}};
-    auto tsk{snapshot_cids.empty() ? genesis_tsk
-                                   : *TipsetKey::make(snapshot_cids)};
+    const TipsetKey genesis_tsk{{*asBlake(*config.genesis_cid)}};
+    const auto tsk{snapshot_cids.empty() ? genesis_tsk
+                                         : *TipsetKey::make(snapshot_cids)};
     bool updated{};
     // TODO: refactor o.ipld to CbIpld
     // estimated const

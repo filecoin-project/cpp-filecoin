@@ -72,7 +72,7 @@ namespace fc::sync {
     return heaviest_weight_;
   }
 
-  void ChainStoreImpl::update(Path &path, const BigInt &weight) {
+  void ChainStoreImpl::update(const Path &path, const BigInt &weight) {
     auto &[revert, apply]{path};
     using primitives::tipset::HeadChange;
     using primitives::tipset::HeadChangeType;

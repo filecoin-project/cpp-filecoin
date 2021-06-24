@@ -273,7 +273,7 @@ namespace fc::sync {
   void SyncJob::onInterpret(TipsetCPtr ts, const InterpreterResult &result) {
     auto &weight{result.weight};
     if (weight > chain_store_->getHeaviestWeight()) {
-      if (auto _update{update(ts_main_, find(*ts_branches_, ts))}) {
+      if (const auto _update{update(ts_main_, find(*ts_branches_, ts))}) {
         auto &[path, removed]{_update.value()};
         for (auto &branch : removed) {
           ts_branches_->erase(branch);

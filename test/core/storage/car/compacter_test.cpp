@@ -62,7 +62,7 @@ namespace fc::storage::compacter {
           old_ipld
               ->getCbor<CompacterTestMeta>(car::readHeader(old_car).value()[0])
               .value()};
-      auto ts_load{std::make_shared<primitives::tipset::TsLoadIpld>(
+      const auto ts_load{std::make_shared<primitives::tipset::TsLoadIpld>(
           std::make_shared<CbAsAnyIpld>(compacter))};
       head = ts_load->load(meta.ts_main).value();
       auto ts_main{primitives::tipset::chain::file::loadOrCreate(
