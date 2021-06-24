@@ -14,6 +14,7 @@ namespace fc::vm::actor::builtin::types::miner {
     DeadlineSectorMap dsm;
   };
 
+  // Test check() method
   TEST_F(DeadlineSectorMapTest, Check) {
     uint64_t dl_count{10};
     uint64_t part_count{5};
@@ -54,6 +55,7 @@ namespace fc::vm::actor::builtin::types::miner {
         dsm.check(part_count * dl_count, part_count * dl_count + 1));
   }
 
+  // Test add() method
   TEST_F(DeadlineSectorMapTest, Add) {
     const RleBitset sector_nos{0, 1, 2, 3};
 
@@ -65,6 +67,7 @@ namespace fc::vm::actor::builtin::types::miner {
     EXPECT_EQ(dsm.map[0].map[1], sector_nos);
   }
 
+  // Test count() method
   TEST_F(DeadlineSectorMapTest, Count) {
     RleBitset sector_nos;
     for (uint64_t i = 0; i < 100; i++) {
@@ -81,6 +84,7 @@ namespace fc::vm::actor::builtin::types::miner {
     EXPECT_EQ(sectors, 200);
   }
 
+  // Test empty map
   TEST_F(DeadlineSectorMapTest, Empty) {
     EXPECT_OUTCOME_TRUE(result, dsm.count());
     const auto &[partitions, sectors] = result;
@@ -90,6 +94,7 @@ namespace fc::vm::actor::builtin::types::miner {
     EXPECT_TRUE(dsm.deadlines().empty());
   }
 
+  // Test deadlines() method
   TEST_F(DeadlineSectorMapTest, Deadlines) {
     std::vector<uint64_t> expected_deadlines;
 
