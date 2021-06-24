@@ -6,3 +6,4 @@
 add_subdirectory(miner)
 add_subdirectory(multisig)
 add_subdirectory(reward)
+add_subdirectory(type_manager)

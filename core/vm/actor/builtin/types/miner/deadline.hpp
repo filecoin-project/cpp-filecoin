@@ -8,6 +8,7 @@
 #include "adt/array.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
+#include "vm/actor/builtin/types/miner/partition.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
 
