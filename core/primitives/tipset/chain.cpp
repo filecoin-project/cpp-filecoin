@@ -8,6 +8,7 @@
 #include <boost/endian/conversion.hpp>
 
 #include "common/error_text.hpp"
+#include "common/file.hpp"
 #include "primitives/tipset/file.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/version/version.hpp"
@@ -112,8 +113,41 @@ namespace fc::primitives::tipset::chain {
 
   void TsBranch::lazyLoad(Height height) {
     const auto bottom{chain.begin()->first};
-    if (lazy && height >= lazy->bottom.first && height < bottom) {
-      // TODO(turuslan): lazy
+    if (height < bottom && lazy && updater) {
+      if (height >= lazy->bottom.first) {
+        size_t batch{};
+        const auto min_height{lazy->bottom.first};
+        const auto &counts{updater->counts};
+        auto i{updater->counts.size() - 1};
+        auto offset{updater->count_sum};
+        while (true) {
+          if (counts[i]) {
+            offset -= counts[i];
+            ++batch;
+            if (min_height + i <= height && batch >= lazy->min_load) {
+              break;
+            }
+          }
+          if (!i) {
+            break;
+          }
+          --i;
+        }
+        std::unique_lock lock{updater->read_mutex};
+        updater->file_hash_read.seekg(sizeof(file::Seed)
+                                      + offset * sizeof(CbCid));
+        std::vector<CbCid> tsk;
+        while (i != counts.size() && min_height + i < bottom) {
+          if (counts[i]) {
+            tsk.resize(counts[i]);
+            if (!common::read(updater->file_hash_read, gsl::make_span(tsk))) {
+              outcome::raise(ERROR_TEXT("TsBranch::lazyLoad read error"));
+            }
+            chain.emplace(min_height + i, TsLazy{tsk});
+          }
+          ++i;
+        }
+      }
     }
   }
 

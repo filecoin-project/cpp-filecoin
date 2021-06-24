@@ -37,7 +37,7 @@ namespace fc::primitives::tipset::chain {
 
     struct Lazy {
       TsChain::value_type bottom;
-      size_t min_load{10};
+      size_t min_load{100};
     };
 
     TsChain chain;

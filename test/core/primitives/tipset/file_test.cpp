@@ -65,8 +65,9 @@ namespace fc::primitives::tipset::chain::file {
       head0110 = makeTs(7, {0}, head011);
     }
 
-    void load(const std::vector<CbCid> &head) {
-      branch = loadOrCreate(&updated, path, ipld, head, head.empty() ? 0 : 1);
+    void load(const std::vector<CbCid> &head, size_t lazy_limit = 0) {
+      branch = loadOrCreate(
+          &updated, path, ipld, head, head.empty() ? 0 : 1, lazy_limit);
       EXPECT_TRUE(branch);
     }
 
@@ -87,10 +88,24 @@ namespace fc::primitives::tipset::chain::file {
           EXPECT_EQ(height, it->first);
           if (expected_parents) {
             EXPECT_EQ(actual_parents, *expected_parents);
+          } else {
+            EXPECT_EQ(height, 0);
           }
         }
         expected_parents = &it->second.key.cids();
       }
+    }
+
+    void update(const std::vector<CbCid> &head) {
+      EXPECT_OUTCOME_TRUE(
+          branch2,
+          TsBranch::make(
+              std::make_shared<TsLoadIpld>(std::make_shared<CbAsAnyIpld>(ipld)),
+              head,
+              branch));
+      EXPECT_OUTCOME_TRUE_1(
+          chain::update(branch, {branch2, std::prev(branch2->chain.end())}));
+      EXPECT_TRUE(branch->updater->flush());
     }
 
     void cut(const std::string &path, size_t n) {
@@ -105,14 +120,7 @@ namespace fc::primitives::tipset::chain::file {
     checkChain(head00);
 
     // update
-    EXPECT_OUTCOME_TRUE(branch2,
-                        TsBranch::make(std::make_shared<TsLoadIpld>(
-                                           std::make_shared<CbAsAnyIpld>(ipld)),
-                                       head010,
-                                       branch));
-    EXPECT_OUTCOME_TRUE_1(
-        update(branch, {branch2, std::prev(branch2->chain.end())}));
-    EXPECT_TRUE(branch->updater->flush());
+    update(head010);
     load(head00);
     EXPECT_FALSE(updated);
     checkChain(head010);
@@ -140,5 +148,29 @@ namespace fc::primitives::tipset::chain::file {
     load(head00);
     EXPECT_TRUE(updated);
     checkChain(head00);
+  }
+
+  TEST_F(FileTest, Lazy) {
+    auto make{[&](uint64_t miner, std::set<uint64_t> heights) {
+      BlockParentCbCids head{{head00}};
+      for (auto &height : heights) {
+        head = makeTs(height, {miner}, head);
+      }
+      return head;
+    }};
+    auto head2{make(0, {6, 7, 9})};
+    load(head2);
+    auto head3{make(1, {6, 7, 9, 10})};
+    load(head3, 1);
+    EXPECT_TRUE(updated);
+    checkChain(head3);
+
+    load({}, 1);
+    EXPECT_EQ(branch->chain.size(), 1);
+    branch->lazy->min_load = 1;
+    update(head2);
+    EXPECT_EQ(branch->chain.size(), 4);
+    branch->lazyLoad(0);
+    checkChain(head2);
   }
 }  // namespace fc::primitives::tipset::chain::file

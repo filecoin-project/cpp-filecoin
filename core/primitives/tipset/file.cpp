@@ -12,31 +12,39 @@
 #include "codec/cbor/light_reader/block.hpp"
 #include "common/file.hpp"
 
-#define BOOL_TRY(...)                 \
-  do {                                \
-    if (!(__VA_ARGS__)) return false; \
+#define BOOL_TRY(...)              \
+  do {                             \
+    if (!(__VA_ARGS__)) return {}; \
   } while (0)
 
 namespace fc::primitives::tipset::chain::file {
   using boost::endian::big_uint64_buf_t;
-  using Seed = BytesN<32>;
 
   Updater::operator bool() const {
-    return hash && count;
+    return file_hash && file_count;
   }
   Updater &Updater::apply(gsl::span<const CbCid> ts) {
     assert(ts.size() < kRevert);
-    common::write(hash, ts);
-    count.put(ts.size());
+    if (!ts.empty()) {
+      common::write(file_hash, ts);
+    }
+    file_count.put(ts.size());
     return *this;
   }
   Updater &Updater::revert() {
-    count.put(kRevert);
+    assert(!counts.empty());
+    count_sum -= counts.back();
+    assert(count_sum);
+    do {
+      counts.pop_back();
+      assert(!counts.empty());
+    } while (!counts.back());
+    file_count.put(kRevert);
     return *this;
   }
   Updater &Updater::flush() {
-    hash.flush();
-    count.flush();
+    file_hash.flush();
+    file_count.flush();
     return *this;
   }
 
@@ -71,10 +79,14 @@ namespace fc::primitives::tipset::chain::file {
     return true;
   }
 
-  bool load(TsChain &chain,
+  bool load(std::vector<CbCid> &hashes,
+            uint64_t &min_height,
+            Bytes &counts,
             const std::string &path_hash,
             const std::string &path_count) {
-    chain = {};
+    hashes.resize(0);
+    min_height = 0;
+    counts.resize(0);
     std::ifstream file_hash{path_hash, std::ios::ate};
     BOOL_TRY(file_hash);
     auto size_hash{(size_t)file_hash.tellg()};
@@ -96,11 +108,9 @@ namespace fc::primitives::tipset::chain::file {
 
     BOOL_TRY(common::read1(file_count, seed_count));
     BOOL_TRY(common::read1(file_count, endian));
-    const auto min_height{endian.value()};
-    Bytes counts;
+    min_height = endian.value();
     counts.resize(size_count);
     BOOL_TRY(common::read(file_count, counts));
-    std::vector<CbCid> hashes;
     hashes.resize(size_hash / sizeof(CbCid));
     BOOL_TRY(common::read1(file_hash, seed_hash));
     BOOL_TRY(seed_count == seed_hash);
@@ -141,31 +151,32 @@ namespace fc::primitives::tipset::chain::file {
         ++count_out;
       }
     }
-    if (count_out != counts.end()) {
-      counts.erase(count_out, counts.end());
-      hashes.erase(hash_out, hashes.end());
-      BOOL_TRY(write(path_hash, path_count, hashes, min_height, counts));
-    } else if (hashes.size() * sizeof(CbCid) < size_hash) {
-      // maybe recover after interrupted revert-apply
-      boost::filesystem::resize_file(
-          path_hash, header_hash_size + hashes.size() * sizeof(CbCid));
+    auto reverted{count_out != counts.end()};
+    counts.erase(count_out, counts.end());
+    hashes.erase(hash_out, hashes.end());
+    auto zeros{counts.back() == 0};
+    while (!counts.back()) {
+      counts.pop_back();
     }
-    auto height{min_height};
-    hash_in = hashes.begin();
-    // TODO(turuslan): lazy
-    for (auto &count : counts) {
-      if (count) {
-        chain.emplace(height, TsLazy{{{hash_in, hash_in + count}}, {}});
-        hash_in += count;
+    if (reverted) {
+      BOOL_TRY(write(path_hash, path_count, hashes, min_height, counts));
+    } else {
+      if (zeros) {
+        boost::filesystem::resize_file(path_count,
+                                       header_count_size + counts.size());
       }
-      ++height;
+      if (hashes.size() * sizeof(CbCid) < size_hash) {
+        // maybe recover after interrupted revert-apply
+        boost::filesystem::resize_file(
+            path_hash, header_hash_size + hashes.size() * sizeof(CbCid));
+      }
     }
     return true;
   }
 
   struct Walk {
     CbIpldPtr ipld;
-    std::vector<uint8_t> counts;
+    Bytes counts;
     BlockParentCbCids parents, _parents;
     uint64_t min_height{}, max_height{};
     Hash256 max_ticket;
@@ -206,29 +217,29 @@ namespace fc::primitives::tipset::chain::file {
     }
   };
 
-  // TODO(turuslan): lazy
-  bool loadOrCreate(TsChain &chain,
-                    Updater *updater,
-                    bool *updated,
-                    const std::string &path,
-                    const CbIpldPtr &ipld,
-                    const std::vector<CbCid> &head_tsk,
-                    size_t update_when) {
+  TsBranchPtr loadOrCreate(bool *updated,
+                           const std::string &path,
+                           const CbIpldPtr &ipld,
+                           const std::vector<CbCid> &head_tsk,
+                           size_t update_when,
+                           size_t lazy_limit) {
+    auto branch{std::make_shared<TsBranch>()};
+    branch->updater = std::make_shared<Updater>();
     if (updated) {
       *updated = false;
     }
     auto path_hash{path + ".hash"};
     auto path_count{path + ".count"};
-    if (!load(chain, path_hash, path_count)) {
-      std::vector<CbCid> hashes;
+    std::vector<CbCid> hashes;
+    uint64_t min_height{};
+    Bytes counts;
+    if (!load(hashes, min_height, counts, path_hash, path_count)) {
       BOOL_TRY(!head_tsk.empty());
       auto tsk{head_tsk};
       Walk walk;
       walk.ipld = ipld;
       do {
         BOOL_TRY(walk.step(tsk));
-        // TODO(turuslan): lazy
-        chain.emplace(walk.min_height, TsLazy{tsk, {}});
         hashes.insert(hashes.end(), tsk.rbegin(), tsk.rend());
         tsk = walk.parents;
       } while (walk.min_height);
@@ -239,66 +250,73 @@ namespace fc::primitives::tipset::chain::file {
       if (updated) {
         *updated = true;
       }
+      std::swap(counts, walk.counts);
     }
-    if (updater) {
-      *updater = {};
-      updater->hash.open(path_hash, std::ios::app);
-      updater->count.open(path_count, std::ios::app);
-      BOOL_TRY(*updater);
-      if (update_when) {
-        // TODO(turuslan): lazy
-        BOOL_TRY(!head_tsk.empty());
-        auto tsk{head_tsk};
-        Walk walk;
-        walk.ipld = ipld;
-        BOOL_TRY(walk.step(tsk));
-        if (walk.min_height >= chain.rbegin()->first + update_when) {
-          auto it{std::prev(chain.end())};
-          while (walk.min_height != it->first || tsk != it->second.key.cids()) {
-            if (it->first < walk.min_height) {
-              chain.emplace(walk.min_height, TsLazy{tsk, {}});
-              tsk = walk.parents;
-              BOOL_TRY(walk.step(tsk));
-            } else {
-              chain.erase(it--);
-              BOOL_TRY(updater->revert());
-              if (updated) {
-                *updated = true;
-              }
-            }
+    {
+      auto height{min_height + counts.size() - 1};
+      auto hash_end{hashes.end()};
+      for (auto it{counts.rbegin()}; it != counts.rend(); ++it) {
+        if (const auto &count{*it}) {
+          auto hash_begin{hash_end - count};
+          branch->chain.emplace(height, TsLazy{{{hash_begin, hash_end}}});
+          if (lazy_limit && branch->chain.size() >= lazy_limit) {
+            break;
           }
-          auto height{it->first};
-          for (++it; it != chain.end(); ++it) {
-            while (++height < it->first) {
-              BOOL_TRY(updater->apply({}));
-            }
-            BOOL_TRY(updater->apply(it->second.key.cids()));
+          hash_end = hash_begin;
+        }
+        --height;
+      }
+    }
+    branch->updater->file_hash.open(path_hash, std::ios::app);
+    branch->updater->file_count.open(path_count, std::ios::app);
+    BOOL_TRY(*branch->updater);
+    branch->updater->counts = counts;
+    for (const auto &count : counts) {
+      branch->updater->count_sum += count;
+    }
+    if (lazy_limit) {
+      branch->updater->file_hash_read.open(path_hash);
+      BOOL_TRY(branch->updater->file_hash_read);
+      branch->lazy.emplace(TsBranch::Lazy{
+          {min_height, TsLazy{{{hashes.begin(), hashes.begin() + counts[0]}}}},
+      });
+    }
+    if (update_when) {
+      BOOL_TRY(!head_tsk.empty());
+      auto tsk{head_tsk};
+      Walk walk;
+      walk.ipld = ipld;
+      BOOL_TRY(walk.step(tsk));
+      if (walk.min_height >= branch->chain.rbegin()->first + update_when) {
+        auto it{std::prev(branch->chain.end())};
+        while (walk.min_height != it->first || tsk != it->second.key.cids()) {
+          if (it->first < walk.min_height) {
+            branch->chain.emplace(walk.min_height, TsLazy{tsk});
+            tsk = walk.parents;
+            BOOL_TRY(walk.step(tsk));
+          } else {
+            // maybe avoid reading
+            branch->lazyLoad(it->first - 1);
+            branch->chain.erase(it--);
+            BOOL_TRY(branch->updater->revert());
             if (updated) {
               *updated = true;
             }
           }
-          BOOL_TRY(updater->flush());
         }
+        auto height{it->first};
+        for (++it; it != branch->chain.end(); ++it) {
+          while (++height < it->first) {
+            BOOL_TRY(branch->updater->apply({}));
+          }
+          BOOL_TRY(branch->updater->apply(it->second.key.cids()));
+          if (updated) {
+            *updated = true;
+          }
+        }
+        BOOL_TRY(branch->updater->flush());
       }
     }
-    return true;
-  }
-  TsBranchPtr loadOrCreate(bool *updated,
-                           const std::string &path,
-                           const CbIpldPtr &ipld,
-                           const std::vector<CbCid> &head_tsk,
-                           size_t update_when) {
-    auto branch{std::make_shared<TsBranch>()};
-    branch->updater = std::make_shared<Updater>();
-    if (loadOrCreate(branch->chain,
-                     branch->updater.get(),
-                     updated,
-                     path,
-                     ipld,
-                     head_tsk,
-                     update_when)) {
-      return branch;
-    }
-    return nullptr;
+    return branch;
   }
 }  // namespace fc::primitives::tipset::chain::file

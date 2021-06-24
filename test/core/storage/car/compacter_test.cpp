@@ -70,6 +70,7 @@ namespace fc::storage::compacter {
           (getPathString() / "ts-chain").string(),
           compacter,
           head->key.cids(),
+          0,
           0)};
       EXPECT_TRUE(ts_main);
       auto ts_branches{std::make_shared<TsBranches>()};

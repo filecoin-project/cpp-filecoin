@@ -191,7 +191,7 @@ namespace fc::node {
     // TODO: refactor o.ipld to CbIpld
     // estimated const
     o.ts_main = primitives::tipset::chain::file::loadOrCreate(
-        &updated, config.join("ts-chain"), o.compacter, tsk.cids(), 20);
+        &updated, config.join("ts-chain"), o.compacter, tsk.cids(), 20, 1000);
     if (!o.ts_main) {
       log()->error("chain load error");
       exit(EXIT_FAILURE);
