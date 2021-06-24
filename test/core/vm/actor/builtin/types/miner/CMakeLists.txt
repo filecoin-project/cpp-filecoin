@@ -6,6 +6,9 @@
 addtest(miner_types_test
     quantize_test.cpp
     bitfield_queue_test.cpp
+    deadline_sector_map_test.cpp
+    sectors_test.cpp
+    partition_sector_map_test.cpp
     termination_test.cpp
     expiration_set_test.cpp
     expiration_queue_v0_test.cpp
