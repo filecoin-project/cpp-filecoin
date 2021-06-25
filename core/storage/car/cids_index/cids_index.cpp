@@ -27,7 +27,7 @@ namespace fc::storage::cids_index {
     }
     file.seekg(0);
     Row header;
-    if (!common::read1(file, header)) {
+    if (!common::readStruct(file, header)) {
       return ERROR_TEXT("checkIndex: read header failed");
     }
     if (header != kHeaderV0) {
@@ -35,7 +35,7 @@ namespace fc::storage::cids_index {
     }
     file.seekg(-sizeof(Row), std::ios::end);
     Row trailer;
-    if (!common::read1(file, trailer)) {
+    if (!common::readStruct(file, trailer)) {
       return ERROR_TEXT("checkIndex: read trailer failed");
     }
     if (trailer != kTrailerV0) {
@@ -124,13 +124,13 @@ namespace fc::storage::cids_index {
       }
     }
     std::make_heap(ranges.begin(), ranges.end(), cmp);
-    if (!common::write1(out, kHeaderV0)) {
+    if (!common::writeStruct(out, kHeaderV0)) {
       return write_error;
     }
     while (!ranges.empty()) {
       std::pop_heap(ranges.begin(), ranges.end(), cmp);
       auto &range{ranges.back()};
-      if (!common::write1(out, range.front())) {
+      if (!common::writeStruct(out, range.front())) {
         return write_error;
       }
       range.pop();
@@ -143,7 +143,7 @@ namespace fc::storage::cids_index {
         std::push_heap(ranges.begin(), ranges.end(), cmp);
       }
     }
-    if (!common::write1(out, kTrailerV0)) {
+    if (!common::writeStruct(out, kTrailerV0)) {
       return write_error;
     }
     out.flush();
@@ -171,7 +171,7 @@ namespace fc::storage::cids_index {
       // estimated
       rows.reserve((car_max - car_min) * 33 / 23520);
     }
-    if (!common::write1(rows_file, kHeaderV0)) {
+    if (!common::writeStruct(rows_file, kHeaderV0)) {
       return write_error;
     }
     size_t offset{car_min};
@@ -225,7 +225,7 @@ namespace fc::storage::cids_index {
     if (!flush()) {
       return write_error;
     }
-    if (!common::write1(rows_file, kTrailerV0)) {
+    if (!common::writeStruct(rows_file, kTrailerV0)) {
       return write_error;
     }
     rows_file.flush();
@@ -313,7 +313,7 @@ namespace fc::storage::cids_index {
     index_file.seekg((1 + i_begin) * sizeof(Row));
     for (auto i{i_begin}; i <= i_end; ++i) {
       Row row;
-      if (!common::read1(index_file, row)) {
+      if (!common::readStruct(index_file, row)) {
         return ERROR_TEXT("SparseIndex.find: read error");
       }
       if (row.isMeta()) {
@@ -340,7 +340,7 @@ namespace fc::storage::cids_index {
       auto i_next{index->sparse_range.fromSparse(i_sparse)};
       Row row;
       do {
-        if (!common::read1(file, row)) {
+        if (!common::readStruct(file, row)) {
           return ERROR_TEXT("SparseIndex::load: read row failed");
         }
         if (!index->info.feed(row).valid) {

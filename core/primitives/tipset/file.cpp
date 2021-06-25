@@ -62,14 +62,14 @@ namespace fc::primitives::tipset::chain::file {
         std::independent_bits_engine<std::random_device, 8, uint8_t>{});
 
     std::ofstream file_hash{path_hash_tmp};
-    BOOL_TRY(common::write1(file_hash, seed));
+    BOOL_TRY(common::writeStruct(file_hash, seed));
     BOOL_TRY(common::write(file_hash, hashes));
     BOOL_TRY(file_hash.flush());
     file_hash.close();
 
     std::ofstream file_count{path_count_tmp};
-    BOOL_TRY(common::write1(file_count, seed));
-    BOOL_TRY(common::write1(file_count, big_uint64_buf_t{min_height}));
+    BOOL_TRY(common::writeStruct(file_count, seed));
+    BOOL_TRY(common::writeStruct(file_count, big_uint64_buf_t{min_height}));
     BOOL_TRY(common::write(file_count, counts));
     BOOL_TRY(file_count.flush());
     file_count.close();
@@ -106,13 +106,13 @@ namespace fc::primitives::tipset::chain::file {
     BOOL_TRY(size_count > header_count_size);
     size_count -= header_count_size;
 
-    BOOL_TRY(common::read1(file_count, seed_count));
-    BOOL_TRY(common::read1(file_count, endian));
+    BOOL_TRY(common::readStruct(file_count, seed_count));
+    BOOL_TRY(common::readStruct(file_count, endian));
     min_height = endian.value();
     counts.resize(size_count);
     BOOL_TRY(common::read(file_count, counts));
     hashes.resize(size_hash / sizeof(CbCid));
-    BOOL_TRY(common::read1(file_hash, seed_hash));
+    BOOL_TRY(common::readStruct(file_hash, seed_hash));
     BOOL_TRY(seed_count == seed_hash);
     BOOL_TRY(common::read(file_hash, gsl::make_span(hashes)));
 

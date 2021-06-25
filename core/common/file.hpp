@@ -34,7 +34,7 @@ namespace fc::common {
   }
 
   template <typename T>
-  inline bool read1(std::istream &is, T &value) {
+  inline bool readStruct(std::istream &is, T &value) {
     return read(is, gsl::make_span(&value, 1));
   }
 
@@ -50,7 +50,7 @@ namespace fc::common {
   }
 
   template <typename T>
-  inline bool write1(std::ostream &is, const T &value) {
+  inline bool writeStruct(std::ostream &is, const T &value) {
     return write(is, gsl::make_span(&value, 1));
   }
 }  // namespace fc::common
