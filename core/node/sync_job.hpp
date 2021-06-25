@@ -16,7 +16,6 @@
 namespace fc::sync {
   using blocksync::BlocksyncRequest;
   using primitives::tipset::PutBlockHeader;
-  using primitives::tipset::chain::KvPtr;
   using vm::interpreter::Interpreter;
   using vm::interpreter::InterpreterCache;
   using InterpreterResult = vm::interpreter::Result;
@@ -30,7 +29,6 @@ namespace fc::sync {
             std::shared_ptr<InterpreterCache> interpreter_cache,
             SharedMutexPtr ts_branches_mutex,
             TsBranchesPtr ts_branches,
-            KvPtr ts_main_kv,
             TsBranchPtr ts_main,
             TsLoadPtr ts_load,
             std::shared_ptr<PutBlockHeader> put_block_header,
@@ -74,7 +72,6 @@ namespace fc::sync {
     std::shared_ptr<InterpreterCache> interpreter_cache_;
     SharedMutexPtr ts_branches_mutex_;
     TsBranchesPtr ts_branches_;
-    KvPtr ts_main_kv_;
     TsBranchPtr ts_main_;
     TsLoadPtr ts_load_;
     std::shared_ptr<PutBlockHeader> put_block_header_;

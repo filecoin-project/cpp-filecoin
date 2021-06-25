@@ -29,7 +29,7 @@ namespace fc::primitives::tipset {
     return LoadCache{.tipset = ts, .index = 0};  // we don't have cache
   }
 
-  outcome::result<TipsetCPtr> TsLoadIpld::lazyLoad(TsLazy &lazy) {
+  outcome::result<TipsetCPtr> TsLoadIpld::lazyLoad(const TsLazy &lazy) {
     return load(lazy.key);  // we don't have cache
   }
 
@@ -107,7 +107,7 @@ namespace fc::primitives::tipset {
     return new_index;
   }
 
-  outcome::result<TipsetCPtr> TsLoadCache::lazyLoad(TsLazy &lazy) {
+  outcome::result<TipsetCPtr> TsLoadCache::lazyLoad(const TsLazy &lazy) {
     return lazyLoad(lazy.index, lazy.key);
   }
 

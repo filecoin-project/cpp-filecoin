@@ -50,6 +50,7 @@
 #include "node/sync_job.hpp"
 #include "power/impl/power_table_impl.hpp"
 #include "primitives/tipset/chain.hpp"
+#include "primitives/tipset/file.hpp"
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/util.hpp"
 #include "storage/chain/msg_waiter.hpp"
@@ -182,19 +183,20 @@ namespace fc::node {
   void loadChain(Config &config,
                  NodeObjects &o,
                  std::vector<CID> snapshot_cids) {
-    o.ts_main_kv = std::make_shared<storage::MapPrefix>("ts_main/", o.kv_store);
     log()->info("loading chain");
+    const TipsetKey genesis_tsk{{*asBlake(*config.genesis_cid)}};
+    const auto tsk{snapshot_cids.empty() ? genesis_tsk
+                                         : *TipsetKey::make(snapshot_cids)};
+    bool updated{};
+    // TODO: refactor o.ipld to CbIpld
     // estimated const
-    o.ts_main = TsBranch::load(o.ts_main_kv, 1000);
-    TipsetKey genesis_tsk{{*asBlake(*config.genesis_cid)}};
+    o.ts_main = primitives::tipset::chain::file::loadOrCreate(
+        &updated, config.join("ts-chain"), o.compacter, tsk.cids(), 20, 1000);
     if (!o.ts_main) {
-      auto tsk{genesis_tsk};
-      if (!snapshot_cids.empty()) {
-        log()->info("restoring chain from snapshot");
-        tsk = *TipsetKey::make(snapshot_cids);
-      }
-      o.ts_main = TsBranch::create(o.ts_main_kv, tsk, o.ts_load_ipld).value();
-
+      log()->error("chain load error");
+      exit(EXIT_FAILURE);
+    }
+    if (updated) {
       auto it{std::prev(o.ts_main->chain.end())};
       while (true) {
         auto ts{o.ts_load->lazyLoad(it->second).value()};
@@ -509,7 +511,6 @@ namespace fc::node {
                                         o.env_context.interpreter_cache,
                                         o.env_context.ts_branches_mutex,
                                         o.ts_branches,
-                                        o.ts_main_kv,
                                         o.ts_main,
                                         o.ts_load,
                                         o.compacter->put_block_header,

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "primitives/tipset/file.hpp"
 #include "storage/car/cids_index/util.hpp"
 #include "storage/compacter/util.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -61,12 +62,17 @@ namespace fc::storage::compacter {
           old_ipld
               ->getCbor<CompacterTestMeta>(car::readHeader(old_car).value()[0])
               .value()};
-      auto ts_load{std::make_shared<primitives::tipset::TsLoadIpld>(
+      const auto ts_load{std::make_shared<primitives::tipset::TsLoadIpld>(
           std::make_shared<CbAsAnyIpld>(compacter))};
       head = ts_load->load(meta.ts_main).value();
-      auto ts_main{TsBranch::create(
-                       std::make_shared<InMemoryStorage>(), head->key, ts_load)
-                       .value()};
+      auto ts_main{primitives::tipset::chain::file::loadOrCreate(
+          nullptr,
+          (getPathString() / "ts-chain").string(),
+          compacter,
+          head->key.cids(),
+          0,
+          0)};
+      EXPECT_TRUE(ts_main);
       auto ts_branches{std::make_shared<TsBranches>()};
       ts_branches->insert(ts_main);
       for (auto &cids : meta.sync_branches) {

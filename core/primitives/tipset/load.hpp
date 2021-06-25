@@ -16,7 +16,7 @@ namespace fc::primitives::tipset {
 
   struct TsLazy {
     TipsetKey key;
-    CacheIndex index{};
+    mutable CacheIndex index{};
   };
   inline auto operator==(const TsLazy &lhs, const TsLazy &rhs) {
     return lhs.key == rhs.key;
@@ -41,7 +41,7 @@ namespace fc::primitives::tipset {
         const TipsetKey &key) = 0;
     virtual outcome::result<TipsetCPtr> load(const TipsetKey &key) = 0;
     virtual outcome::result<TipsetCPtr> load(std::vector<BlockHeader> blocks);
-    virtual outcome::result<TipsetCPtr> lazyLoad(TsLazy &lazy) = 0;
+    virtual outcome::result<TipsetCPtr> lazyLoad(const TsLazy &lazy) = 0;
   };
 
   using TsLoadPtr = std::shared_ptr<TsLoad>;
@@ -51,7 +51,7 @@ namespace fc::primitives::tipset {
     TsLoadIpld(IpldPtr ipld);
     outcome::result<LoadCache> loadWithCacheInfo(const TipsetKey &key) override;
     outcome::result<TipsetCPtr> load(const TipsetKey &key) override;
-    outcome::result<TipsetCPtr> lazyLoad(TsLazy &lazy) override;
+    outcome::result<TipsetCPtr> lazyLoad(const TsLazy &lazy) override;
 
    private:
     IpldPtr ipld;
@@ -63,7 +63,7 @@ namespace fc::primitives::tipset {
     outcome::result<LoadCache> loadWithCacheInfo(const TipsetKey &key) override;
     outcome::result<TipsetCPtr> load(const TipsetKey &key) override;
     outcome::result<TipsetCPtr> load(std::vector<BlockHeader> blocks) override;
-    outcome::result<TipsetCPtr> lazyLoad(TsLazy &lazy) override;
+    outcome::result<TipsetCPtr> lazyLoad(const TsLazy &lazy) override;
 
    private:
     outcome::result<TipsetCPtr> lazyLoad(uint64_t &cache_index,

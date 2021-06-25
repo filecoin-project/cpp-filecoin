@@ -22,7 +22,6 @@ namespace fc::storage::cids_index {
     return std::make_pair(primitives::cid::getCidOfCbor(v).value(), v);
   }
 
-  auto genesis_path{resourcePath("genesis.car")};
   auto [cid1, value1]{makeValue(1)};
   auto [cid2, value2]{makeValue(2)};
 
