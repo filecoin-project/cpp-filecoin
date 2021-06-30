@@ -73,11 +73,38 @@ namespace fc::primitives {
       return result;
     }
 
-    inline bool contains(const RleBitset &other) {
+    inline RleBitset intersect(const RleBitset &other) const {
+      RleBitset result;
+      for (const auto i : other) {
+        if (this->has(i)) {
+          result.insert(i);
+        }
+      }
+      return result;
+    }
+
+    inline RleBitset slice(uint64_t start, uint64_t count) const {
+      std::vector<uint64_t> temp{begin(), end()};
+      temp = {temp.begin() + start, temp.begin() + count};
+      return RleBitset(temp.begin(), temp.end());
+    }
+
+    inline bool contains(const RleBitset &other) const {
       bool result = true;
       for (const auto i : other) {
         if (!this->has(i)) {
           result = false;
+          break;
+        }
+      }
+      return result;
+    }
+
+    inline bool containsAny(const RleBitset &other) const {
+      bool result = false;
+      for (const auto i : other) {
+        if (this->has(i)) {
+          result = true;
           break;
         }
       }

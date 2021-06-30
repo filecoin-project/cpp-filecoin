@@ -7,13 +7,6 @@
 
 namespace fc::vm::actor::builtin::types::miner {
 
-  outcome::result<BitfieldQueue> loadBitfieldQueue(
-      const adt::Array<RleBitset> &queue, const QuantSpec &quant) {
-    BitfieldQueue bitfieldQueue{.queue = queue, .quant = quant};
-    OUTCOME_TRY(bitfieldQueue.queue.amt.loadRoot());
-    return bitfieldQueue;
-  }
-
   outcome::result<void> BitfieldQueue::addToQueue(ChainEpoch raw_epoch,
                                                   const RleBitset &values) {
     if (values.empty()) {
