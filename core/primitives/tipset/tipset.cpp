@@ -11,6 +11,7 @@
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "vm/message/message.hpp"
+#include "vm/state/impl/state_tree_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
   using fc::primitives::tipset::TipsetError;
@@ -57,6 +58,11 @@ namespace fc::primitives::tipset {
 
   outcome::result<void> MessageVisitor::visit(const BlockHeader &block,
                                               const Visitor &visitor) {
+    const auto lookupId{(ChainEpoch)block.height >= kUpgradeHyperdriveHeight};
+    if (nonce && lookupId && !state_tree) {
+      state_tree = std::make_shared<vm::state::StateTreeImpl>(
+          ipld, block.parent_state_root);
+    }
     auto onMessage = [&](auto bls, auto &cid) -> outcome::result<void> {
       if (visited.insert(cid).second) {
         SignedMessage smsg;
@@ -69,9 +75,15 @@ namespace fc::primitives::tipset {
           }
         }
         if (nonce) {
-          auto it{nonces.find(msg.from)};
+          Address id;
+          auto from{&msg.from};
+          if (lookupId) {
+            OUTCOME_TRYA(id, state_tree->lookupId(*from));
+            from = &id;
+          }
+          auto it{nonces.find(*from)};
           if (it == nonces.end()) {
-            it = nonces.emplace(msg.from, msg.nonce).first;
+            it = nonces.emplace(*from, msg.nonce).first;
           }
           if (msg.nonce != it->second) {
             return outcome::success();

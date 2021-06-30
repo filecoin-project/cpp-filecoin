@@ -32,6 +32,7 @@ namespace fc::vm::actor {
     kVersion2 = 2,
     kVersion3 = 3,
     kVersion4 = 4,
+    kVersion5 = 5,
   };
 
   /**

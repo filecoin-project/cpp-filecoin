@@ -119,6 +119,9 @@ namespace fc::proofs {
                  outcome::result<bool>(const WindowPoStVerifyInfo &));
 
     MOCK_METHOD1(verifySeal, outcome::result<bool>(const SealVerifyInfo &));
+    MOCK_METHOD1(verifyAggregateSeals,
+                 outcome::result<bool>(
+                     const AggregateSealVerifyProofAndInfos &aggregate));
 
     MOCK_METHOD8(unseal,
                  outcome::result<void>(RegisteredSealProof proof_type,

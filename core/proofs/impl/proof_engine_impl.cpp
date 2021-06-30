@@ -26,6 +26,7 @@ namespace fc::proofs {
   using primitives::cid::replicaCommitmentV1ToCID;
   using primitives::sector::getRegisteredWindowPoStProof;
   using primitives::sector::getRegisteredWinningPoStProof;
+  using primitives::sector::RegisteredAggregationProof;
   using sector_storage::zerocomm::getZeroPieceCommitment;
 
   outcome::result<WriteWithoutAlignmentResult> cppWriteWithoutAlignmentResult(
@@ -237,6 +238,16 @@ namespace fc::proofs {
     }
   }
 
+  outcome::result<fil_RegisteredAggregationProof> cRegisteredAggregationProof(
+      RegisteredAggregationProof type) {
+    switch (type) {
+      case RegisteredAggregationProof::SnarkPackV1:
+        return fil_RegisteredAggregationProof_SnarkPackV1;
+      default:
+        return ProofsError::kNoSuchAggregationProof;
+    }
+  }
+
   fil_32ByteArray toProverID(ActorId miner_id) {
     auto maddr = primitives::address::encode(
         primitives::address::Address::makeFromId(miner_id));
@@ -246,10 +257,8 @@ namespace fc::proofs {
     return prover;
   }
 
-  fil_32ByteArray c32ByteArray(const Blob<32> &arr) {
-    fil_32ByteArray array{};
-    ffi::array(array.inner, arr);
-    return array;
+  const fil_32ByteArray &c32ByteArray(const Hash256 &arr) {
+    return *(fil_32ByteArray *)arr.data();
   }
 
   outcome::result<fil_PublicReplicaInfo> cPublicReplicaInfo(
@@ -921,6 +930,45 @@ namespace fc::proofs {
                                   info.proof.data(),
                                   info.proof.size()),
                   fil_destroy_verify_seal_response);
+
+    if (res_ptr->status_code
+        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
+      logger_->error("verifySeal: " + std::string(res_ptr->error_msg));
+
+      return cppResponseStatus(res_ptr->status_code);
+    }
+
+    return res_ptr->is_valid;
+  }
+
+  outcome::result<bool> ProofEngineImpl::verifyAggregateSeals(
+      const AggregateSealVerifyProofAndInfos &aggregate) {
+    OUTCOME_TRY(c_seal_proof, cRegisteredSealProof(aggregate.seal_proof));
+    OUTCOME_TRY(c_aggregate_proof,
+                cRegisteredAggregationProof(aggregate.aggregate_proof));
+    auto prover_id{toProverID(aggregate.miner)};
+    std::vector<fil_AggregationInputs> c_infos;
+    c_infos.reserve(aggregate.infos.size());
+    for (auto &info : aggregate.infos) {
+      OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(info.sealed_cid));
+      OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(info.unsealed_cid));
+      c_infos.push_back(fil_AggregationInputs{
+          c32ByteArray(comm_r),
+          c32ByteArray(comm_d),
+          info.number,
+          c32ByteArray(info.randomness),
+          c32ByteArray(info.interactive_randomness),
+      });
+    }
+    auto res_ptr =
+        ffi::wrap(fil_verify_aggregate_seal_proof(c_seal_proof,
+                                                  c_aggregate_proof,
+                                                  prover_id,
+                                                  aggregate.proof.data(),
+                                                  aggregate.proof.size(),
+                                                  c_infos.data(),
+                                                  c_infos.size()),
+                  fil_destroy_verify_aggregate_seal_response);
 
     if (res_ptr->status_code
         != FCPResponseStatus::FCPResponseStatus_FCPNoError) {

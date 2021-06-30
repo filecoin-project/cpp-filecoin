@@ -28,6 +28,7 @@ namespace fc::proofs {
     kUnclassifiedError,
     kCallerError,
     kReceiverError,
+    kNoSuchAggregationProof,
     kUnknown = 1000
   };
 
