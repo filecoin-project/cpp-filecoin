@@ -946,10 +946,10 @@ namespace fc::proofs {
     OUTCOME_TRY(c_seal_proof, cRegisteredSealProof(aggregate.seal_proof));
     OUTCOME_TRY(c_aggregate_proof,
                 cRegisteredAggregationProof(aggregate.aggregate_proof));
-    auto prover_id{toProverID(aggregate.miner)};
+    const auto prover_id{toProverID(aggregate.miner)};
     std::vector<fil_AggregationInputs> c_infos;
     c_infos.reserve(aggregate.infos.size());
-    for (auto &info : aggregate.infos) {
+    for (const auto &info : aggregate.infos) {
       OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(info.sealed_cid));
       OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(info.unsealed_cid));
       c_infos.push_back(fil_AggregationInputs{
@@ -960,7 +960,7 @@ namespace fc::proofs {
           c32ByteArray(info.interactive_randomness),
       });
     }
-    auto res_ptr =
+    const auto res_ptr{
         ffi::wrap(fil_verify_aggregate_seal_proof(c_seal_proof,
                                                   c_aggregate_proof,
                                                   prover_id,
@@ -968,7 +968,7 @@ namespace fc::proofs {
                                                   aggregate.proof.size(),
                                                   c_infos.data(),
                                                   c_infos.size()),
-                  fil_destroy_verify_aggregate_seal_response);
+                  fil_destroy_verify_aggregate_seal_response)};
 
     if (res_ptr->status_code
         != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
