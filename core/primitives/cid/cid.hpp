@@ -45,7 +45,7 @@ namespace fc {
 
     explicit CID(const CbCid &cid);
 
-    ~CID() = default;
+    virtual ~CID() = default;
 
     CID &operator=(const CID &) = default;
 

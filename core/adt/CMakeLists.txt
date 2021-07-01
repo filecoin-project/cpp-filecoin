@@ -12,6 +12,7 @@ add_custom_target(adt
     map
     multimap
     uvarint_key
+    universal_types
     )
 
 add_library(array INTERFACE)
@@ -58,3 +59,5 @@ target_link_libraries(balance_table
     address_key
     map
     )
+
+add_subdirectory(universal)
