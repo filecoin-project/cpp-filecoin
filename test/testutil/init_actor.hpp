@@ -6,10 +6,10 @@
 #pragma once
 
 #include <gtest/gtest.h>
+
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v0/init/init_actor_state.hpp"
+#include "vm/actor/builtin/states/init_actor_state_raw.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 /// Sets up init actor state
@@ -21,13 +21,22 @@ std::shared_ptr<fc::vm::state::StateTree> setupInitActor(
         std::make_shared<fc::storage::ipfs::InMemoryDatastore>());
   }
   auto store = state_tree->getStore();
-  fc::vm::actor::builtin::v0::init::InitActorState init_state;
-  init_state.address_map_0 = {store};
+  using namespace fc;
+  vm::actor::InitActorStateRaw init_state;
+  init_state.address_map = {store, 0, false};
   init_state.next_id = next_id;
   init_state.network_name = "n";
   EXPECT_OUTCOME_TRUE(head, store->setCbor(init_state));
+  // TODO(turuslan): remove after PR#415
+  CID code{
+      CID::Version::V1,
+      libp2p::multi::MulticodecType::Code::RAW,
+      libp2p::multi::Multihash::create(
+          libp2p::multi::HashType::identity,
+          common::span::cbytes(vm::actor::code::init0))
+          .value(),
+  };
   EXPECT_OUTCOME_TRUE_1(
-      state_tree->set(fc::vm::actor::kInitAddress,
-                      {fc::vm::actor::builtin::v0::kInitCodeId, head, 0, 0}));
+      state_tree->set(fc::vm::actor::kInitAddress, {code, head, 0, 0}));
   return state_tree;
 }

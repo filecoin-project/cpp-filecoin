@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/v3/init/init_actor_state.hpp"
 
-#include "storage/ipfs/datastore.hpp"
+#include "vm/actor/builtin/states/init_actor_state_raw.hpp"
 
 namespace fc::vm::actor::builtin::v3::init {
   outcome::result<Buffer> InitActorState::toCbor() const {
@@ -13,7 +13,7 @@ namespace fc::vm::actor::builtin::v3::init {
   }
 
   outcome::result<Address> InitActorState::addActor(const Address &address) {
-    return _addActor(address, true);
+    return InitActorStateRaw::addActor(address_map_3.hamt, next_id, address);
   }
 
   outcome::result<boost::optional<uint64_t>> InitActorState::tryGet(
