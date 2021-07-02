@@ -10,6 +10,7 @@
 namespace fc {
   struct ActorCodeCid : std::string_view {};
   constexpr bool operator==(const ActorCodeCid &l, const ActorCodeCid &r) {
-    return (const std::string_view &)l == (const std::string_view &)r;
+    return static_cast<const std::string_view &>(l)
+           == static_cast<const std::string_view &>(r);
   }
 }  // namespace fc

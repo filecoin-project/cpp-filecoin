@@ -162,7 +162,7 @@ namespace fc {
         return ActorCodeCid{common::span::bytestr(*id)};
       }
     }
-    return {};
+    return boost::none;
   }
 
   boost::optional<CbCid> asBlake(const CID &cid) {
