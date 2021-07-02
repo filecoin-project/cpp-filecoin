@@ -5,10 +5,10 @@
 
 #include "payment_channel_manager/impl/payment_channel_manager_impl.hpp"
 #include "payment_channel_manager/impl/payment_channel_manager_error.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
+#include "vm/actor/codes.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::payment_channel_manager {

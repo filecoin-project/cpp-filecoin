@@ -55,9 +55,7 @@ namespace fc::storage::cids_index {
   inline bool operator==(const Row &l, const Row &r) {
     return memcmp(&l, &r, sizeof(Row)) == 0;
   }
-  inline bool operator!=(const Row &l, const Row &r) {
-    return memcmp(&l, &r, sizeof(Row)) != 0;
-  }
+  FC_OPERATOR_NOT_EQUAL(Row)
   inline bool operator<(const Row &l, const Row &r) {
     return memcmp(&l, &r, sizeof(Row)) < 0;
   }

@@ -76,10 +76,6 @@ namespace fc::primitives::tipset {
     return hash_ == rhs.hash_;
   }
 
-  bool TipsetKey::operator!=(const TipsetKey &rhs) const {
-    return hash_ != rhs.hash_;
-  }
-
   bool TipsetKey::operator<(const TipsetKey &rhs) const {
     return hash_ < rhs.hash_;
   }

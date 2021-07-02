@@ -334,8 +334,4 @@ namespace fc::primitives::tipset {
   bool operator==(const Tipset &lhs, const Tipset &rhs) {
     return lhs.blks == rhs.blks;
   }
-
-  bool operator!=(const Tipset &l, const Tipset &r) {
-    return !(l == r);
-  }
 }  // namespace fc::primitives::tipset

@@ -12,10 +12,10 @@
 #include "testutil/cbor.hpp"
 #include "testutil/crypto/sample_signatures.hpp"
 #include "testutil/vm/actor/builtin/market/market_actor_test_fixture.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/codes.hpp"
 #include "vm/version/version.hpp"
 
 #define ON_CALL_3(a, b, c) EXPECT_CALL(a, b).WillRepeatedly(Return(c))
@@ -443,13 +443,14 @@ namespace fc::vm::actor::builtin::v2::market {
     DealProposal deal;
     deal.piece_cid = some_cid;
     deal.provider = miner_address;
-    deal.end_epoch = 100;
+    deal.start_epoch = current_epoch + 1;
+    deal.end_epoch = deal.start_epoch + 100;
     EXPECT_OUTCOME_TRUE_1(state.proposals.set(deal_1_id, deal));
     EXPECT_OUTCOME_TRUE_1(state.pending_proposals.set(deal.cid(), deal));
 
     callerIs(miner_address);
     EXPECT_OUTCOME_TRUE_1(ActivateDeals::call(
-        runtime, {.deals = {deal_1_id}, .sector_expiry = 110}));
+        runtime, {.deals = {deal_1_id}, .sector_expiry = deal.end_epoch + 1}));
 
     EXPECT_OUTCOME_TRUE(deal_state, state.states.get(deal_1_id));
     EXPECT_EQ(deal_state.slash_epoch, kChainEpochUndefined);

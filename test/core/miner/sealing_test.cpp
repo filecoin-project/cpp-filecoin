@@ -20,8 +20,8 @@
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/mocks/sector_storage/manager_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
+#include "vm/actor/codes.hpp"
 
 namespace fc::mining {
 

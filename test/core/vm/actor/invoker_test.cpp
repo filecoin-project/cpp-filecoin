@@ -9,7 +9,7 @@
 #include "testutil/cbor.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/codes.hpp"
 #include "vm/runtime/env.hpp"
 
 namespace fc::vm::actor {

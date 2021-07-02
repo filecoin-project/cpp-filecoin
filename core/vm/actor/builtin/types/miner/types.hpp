@@ -55,10 +55,6 @@ namespace fc::vm::actor::builtin::types::miner {
       return (raw == other.raw) && (qa == other.qa);
     }
 
-    inline bool operator!=(const PowerPair &other) const {
-      return !(*this == other);
-    }
-
     inline bool isZero() const {
       return (raw == 0) && (qa == 0);
     }
@@ -70,6 +66,7 @@ namespace fc::vm::actor::builtin::types::miner {
       return result;
     }
   };
+  FC_OPERATOR_NOT_EQUAL(PowerPair)
   CBOR_TUPLE(PowerPair, raw, qa)
 
   struct VestingFunds {

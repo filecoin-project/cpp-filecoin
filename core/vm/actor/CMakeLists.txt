@@ -7,7 +7,6 @@ add_subdirectory(builtin)
 add_subdirectory(cgo)
 
 add_library(actor
-    actor.cpp
     impl/invoker_impl.cpp
     )
 target_link_libraries(actor

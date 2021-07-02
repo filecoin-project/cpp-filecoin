@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include <string_view>
+#include "vm/actor/code.hpp"
 
 namespace fc::vm::actor::code {
-  using Code = std::string_view;
+  using Code = ActorCodeCid;
 
   constexpr Code account0{"fil/1/account"};
   constexpr Code cron0{"fil/1/cron"};
@@ -58,3 +58,23 @@ namespace fc::vm::actor::code {
   constexpr Code system4{"fil/4/system"};
   constexpr Code verifreg4{"fil/4/verifiedregistry"};
 }  // namespace fc::vm::actor::code
+
+#define VM_ACTOR_BUILTIN_V_CODE(V)                             \
+  namespace fc::vm::actor::builtin::v##V {                     \
+    constexpr auto kAccountCodeId{code::account##V};           \
+    constexpr auto kCronCodeId{code::cron##V};                 \
+    constexpr auto kStoragePowerCodeId{code::power##V};        \
+    constexpr auto kStorageMarketCodeId{code::market##V};      \
+    constexpr auto kStorageMinerCodeId{code::miner##V};        \
+    constexpr auto kMultisigCodeId{code::multisig##V};         \
+    constexpr auto kInitCodeId{code::init##V};                 \
+    constexpr auto kPaymentChannelCodeId{code::paych##V};      \
+    constexpr auto kRewardActorCodeId{code::reward##V};        \
+    constexpr auto kSystemActorCodeId{code::system##V};        \
+    constexpr auto kVerifiedRegistryCodeId{code::verifreg##V}; \
+  }
+VM_ACTOR_BUILTIN_V_CODE(0)
+VM_ACTOR_BUILTIN_V_CODE(2)
+VM_ACTOR_BUILTIN_V_CODE(3)
+VM_ACTOR_BUILTIN_V_CODE(4)
+#undef VM_ACTOR_BUILTIN_V_CODE

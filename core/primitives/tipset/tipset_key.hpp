@@ -21,7 +21,6 @@ namespace fc::primitives::tipset {
     TipsetKey(TipsetHash h, std::vector<CbCid> c);
 
     bool operator==(const TipsetKey &rhs) const;
-    bool operator!=(const TipsetKey &rhs) const;
     bool operator<(const TipsetKey &rhs) const;
 
     const std::vector<CbCid> &cids() const;
@@ -37,7 +36,7 @@ namespace fc::primitives::tipset {
     TipsetHash hash_;
     std::vector<CbCid> cids_;
   };
-
+  FC_OPERATOR_NOT_EQUAL(TipsetKey)
 }  // namespace fc::primitives::tipset
 
 namespace fc {
