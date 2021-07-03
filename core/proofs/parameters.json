@@ -1,4 +1,9 @@
 {
+  "v28-fil-inner-product-v1.srs": {
+    "cid": "Qmdq44DjcQnFfU3PJcdX7J49GCqcUYszr1TxMbHtAkvQ3g",
+    "digest": "ae20310138f5ba81451d723f858e3797",
+    "sector_size": 0
+  },
   "v28-proof-of-spacetime-fallback-merkletree-poseidon_hasher-8-0-0-0170db1f394b35d995252228ee359194b13199d259380541dc529fb0099096b0.params": {
     "cid": "QmVxjFRyhmyQaZEtCh7nk2abc7LhFkzhnRX4rcHqCCpikR",
     "digest": "7610b9f82bfc88405b7a832b651ce2f6",
