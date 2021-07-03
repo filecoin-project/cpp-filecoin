@@ -5,14 +5,15 @@
 
 #pragma once
 
+#include "common/bytes.hpp"
 #include "primitives/address/address.hpp"
 
 namespace fc::adt {
   struct AddressKeyer {
     using Key = primitives::address::Address;
 
-    static std::string encode(const Key &key);
+    static Bytes encode(const Key &key);
 
-    static outcome::result<Key> decode(const std::string &key);
+    static outcome::result<Key> decode(BytesIn key);
   };
 }  // namespace fc::adt

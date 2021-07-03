@@ -21,7 +21,7 @@ struct MultimapTest : public ::testing::Test {
   std::shared_ptr<fc::storage::ipfs::IpfsDatastore> ipld{
       std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
   Map mmap{ipld};
-  std::string key = "mykey";
+  fc::Bytes key{4, 5, 6};
 
   void appendValues() {
     for (auto value : values) {
