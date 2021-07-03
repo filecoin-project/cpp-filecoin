@@ -8,8 +8,8 @@
 #include <filecoin-ffi/filcrypto.h>
 #include <thread>
 
+#include "codec/uvarint.hpp"
 #include "common/ffi.hpp"
-#include "primitives/address/address_codec.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs_error.hpp"
 #include "sector_storage/zerocomm/zerocomm.hpp"
@@ -35,6 +35,7 @@ namespace fc::proofs {
   using primitives::cid::replicaCommitmentV1ToCID;
   using primitives::sector::getRegisteredWindowPoStProof;
   using primitives::sector::getRegisteredWinningPoStProof;
+  using primitives::sector::RegisteredAggregationProof;
   using sector_storage::zerocomm::getZeroPieceCommitment;
 
   outcome::result<WriteWithoutAlignmentResult> cppWriteWithoutAlignmentResult(
@@ -246,19 +247,26 @@ namespace fc::proofs {
     }
   }
 
+  outcome::result<fil_RegisteredAggregationProof> cRegisteredAggregationProof(
+      RegisteredAggregationProof type) {
+    switch (type) {
+      case RegisteredAggregationProof::SnarkPackV1:
+        return fil_RegisteredAggregationProof_SnarkPackV1;
+      default:
+        return ProofsError::kNoSuchAggregationSealProof;
+    }
+  }
+
   fil_32ByteArray toProverID(ActorId miner_id) {
-    auto maddr = primitives::address::encode(
-        primitives::address::Address::makeFromId(miner_id));
     fil_32ByteArray prover = {};
-    // +1: because payload start from 1 position
-    std::copy(maddr.begin() + 1, maddr.end(), prover.inner);
+    const codec::uvarint::VarintEncoder _maddr{miner_id};
+    const auto maddr{_maddr.bytes()};
+    std::copy(maddr.begin(), maddr.end(), prover.inner);
     return prover;
   }
 
-  fil_32ByteArray c32ByteArray(const Blob<32> &arr) {
-    fil_32ByteArray array{};
-    ffi::array(array.inner, arr);
-    return array;
+  inline auto &c32ByteArray(const Hash256 &arr) {
+    return (const fil_32ByteArray &)arr;
   }
 
   outcome::result<fil_PublicReplicaInfo> cPublicReplicaInfo(
@@ -849,6 +857,73 @@ namespace fc::proofs {
                                   info.proof.size()),
                   fil_destroy_verify_seal_response);
     PROOFS_TRY("verifySeal");
+    return res_ptr->is_valid;
+  }
+
+  outcome::result<void> ProofEngineImpl::aggregateSealProofs(
+      AggregateSealVerifyProofAndInfos &aggregate,
+      const std::vector<BytesIn> &proofs) {
+    OUTCOME_TRY(c_seal_proof, cRegisteredSealProof(aggregate.seal_proof));
+    OUTCOME_TRY(c_aggregate_proof,
+                cRegisteredAggregationProof(aggregate.aggregate_proof));
+    std::vector<fil_32ByteArray> c_commrs, c_seeds;
+    c_commrs.reserve(aggregate.infos.size());
+    c_seeds.reserve(aggregate.infos.size());
+    for (const auto &info : aggregate.infos) {
+      OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(info.sealed_cid));
+      c_commrs.push_back(c32ByteArray(comm_r));
+      c_seeds.push_back(c32ByteArray(info.interactive_randomness));
+    }
+    std::vector<fil_SealCommitPhase2Response> c_proofs;
+    c_proofs.reserve(proofs.size());
+    for (const auto &proof : proofs) {
+      auto &c_proof{c_proofs.emplace_back()};
+      c_proof.proof_ptr = proof.data();
+      c_proof.proof_len = proof.size();
+    }
+    const auto res_ptr{ffi::wrap(fil_aggregate_seal_proofs(c_seal_proof,
+                                                           c_aggregate_proof,
+                                                           c_commrs.data(),
+                                                           c_commrs.size(),
+                                                           c_seeds.data(),
+                                                           c_seeds.size(),
+                                                           c_proofs.data(),
+                                                           c_proofs.size()),
+                                 fil_destroy_aggregate_proof)};
+    PROOFS_TRY("aggregateSealProofs");
+    copy(aggregate.proof, BytesIn(res_ptr->proof_ptr, res_ptr->proof_len));
+    return outcome::success();
+  }
+
+  outcome::result<bool> ProofEngineImpl::verifyAggregateSeals(
+      const AggregateSealVerifyProofAndInfos &aggregate) {
+    OUTCOME_TRY(c_seal_proof, cRegisteredSealProof(aggregate.seal_proof));
+    OUTCOME_TRY(c_aggregate_proof,
+                cRegisteredAggregationProof(aggregate.aggregate_proof));
+    const auto prover_id{toProverID(aggregate.miner)};
+    std::vector<fil_AggregationInputs> c_infos;
+    c_infos.reserve(aggregate.infos.size());
+    for (const auto &info : aggregate.infos) {
+      OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(info.sealed_cid));
+      OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(info.unsealed_cid));
+      c_infos.push_back(fil_AggregationInputs{
+          c32ByteArray(comm_r),
+          c32ByteArray(comm_d),
+          info.number,
+          c32ByteArray(info.randomness),
+          c32ByteArray(info.interactive_randomness),
+      });
+    }
+    const auto res_ptr{
+        ffi::wrap(fil_verify_aggregate_seal_proof(c_seal_proof,
+                                                  c_aggregate_proof,
+                                                  prover_id,
+                                                  aggregate.proof.data(),
+                                                  aggregate.proof.size(),
+                                                  c_infos.data(),
+                                                  c_infos.size()),
+                  fil_destroy_verify_aggregate_seal_response)};
+    PROOFS_TRY("verifyAggregateSeals");
     return res_ptr->is_valid;
   }
 

@@ -106,6 +106,13 @@ namespace fc::proofs {
 
     outcome::result<bool> verifySeal(const SealVerifyInfo &info) override;
 
+    outcome::result<void> aggregateSealProofs(
+        AggregateSealVerifyProofAndInfos &aggregate,
+        const std::vector<BytesIn> &proofs) override;
+
+    outcome::result<bool> verifyAggregateSeals(
+        const AggregateSealVerifyProofAndInfos &aggregate) override;
+
     outcome::result<void> unseal(RegisteredSealProof proof_type,
                                  const std::string &cache_dir_path,
                                  const std::string &sealed_sector_path,
