@@ -86,17 +86,13 @@ namespace fc::vm::message {
      */
     bool operator==(const UnsignedMessage &other) const;
 
-    /**
-     * @brief Message not equality operator
-     */
-    bool operator!=(const UnsignedMessage &other) const;
-
     TokenAmount requiredFunds() const;
 
     CID getCid() const;
 
     size_t chainSize() const;
   };
+  FC_OPERATOR_NOT_EQUAL(UnsignedMessage)
 
   CBOR_TUPLE(UnsignedMessage,
              version,

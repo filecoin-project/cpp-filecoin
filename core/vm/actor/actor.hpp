@@ -70,16 +70,13 @@ namespace fc::vm::actor {
            && lhs.nonce == rhs.nonce && lhs.balance == rhs.balance;
   }
 
-  /** Make code cid from raw string */
-  CID makeRawIdentityCid(const std::string &str);
-
   /** Reserved method number for send operation */
   constexpr MethodNumber kSendMethodNumber{0};
 
   /** Reserved method number for constructor */
   constexpr MethodNumber kConstructorMethodNumber{1};
 
-  extern const CID kEmptyObjectCid;
+  inline static const CID kEmptyObjectCid{CbCid::hash(BytesN<1>{0x80})};
 
   inline static const auto kSystemActorAddress = Address::makeFromId(0);
   inline static const auto kInitAddress = Address::makeFromId(1);

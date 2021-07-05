@@ -30,6 +30,12 @@ namespace fc {
             CID::Multicodec::DAG_CBOR,
             Multihash::create(HashType::blake2b_256, cid).value()} {}
 
+  CID::CID(const ActorCodeCid &cid)
+      : CID{CID::Version::V1,
+            CID::Multicodec::RAW,
+            Multihash::create(HashType::identity, common::span::cbytes(cid))
+                .value()} {}
+
   CID &CID::operator=(CID &&cid) noexcept {
     version = cid.version;
     content_type = cid.content_type;
@@ -148,6 +154,16 @@ namespace fc {
       return mh.getHash();
     }
     return {};
+  }
+
+  boost::optional<ActorCodeCid> asActorCode(const CID &cid) {
+    if (cid.version == CID::Version::V1
+        && cid.content_type == CID::Multicodec::RAW) {
+      if (auto id{asIdentity(cid)}) {
+        return ActorCodeCid{common::span::bytestr(*id)};
+      }
+    }
+    return boost::none;
   }
 
   boost::optional<CbCid> asBlake(const CID &cid) {

@@ -46,7 +46,7 @@ namespace fc::api {
             OUTCOME_TRYA(raw, Amt{ipld, cid}.get(index));
             s = CborDecodeStream{raw};
           } else {
-            std::string key;
+            Bytes key;
             if (hi) {
               auto neg = part.size() >= 4 && part[4] == '-';
               OUTCOME_TRY(value, parseIndex(part.substr(neg ? 5 : 4)));
@@ -60,7 +60,7 @@ namespace fc::api {
                   primitives::address::decodeFromString(part.substr(4)));
               key = adt::AddressKeyer::encode(address);
             } else {
-              key = part.substr(3);
+              copy(key, common::span::cbytes(part.substr(3)));
             }
             OUTCOME_TRYA(
                 raw,

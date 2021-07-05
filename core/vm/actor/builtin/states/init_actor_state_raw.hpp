@@ -10,6 +10,10 @@
 #include "vm/actor/codes.hpp"
 
 namespace fc::vm::actor {
+  /**
+   * Used only by StateTree and versioned InitActorState implementations.
+   * Prefer using versioned InitActorState interface.
+   */
   struct InitActorStateRaw {
     using Address = primitives::address::Address;
     using Hamt = storage::hamt::Hamt;
@@ -20,8 +24,7 @@ namespace fc::vm::actor {
     std::string network_name;
 
     void load(const IpldPtr &ipld, const CID &_code) {
-      // TODO(turuslan): asActorCode from PR#415
-      const auto code{common::span::bytestr(*asIdentity(_code))};
+      const auto code{asActorCode(_code)};
       const auto v3{code != code::init0 && code != code::init2};
       address_map = {
           ipld, address_map_cid, storage::hamt::kDefaultBitWidth, v3};

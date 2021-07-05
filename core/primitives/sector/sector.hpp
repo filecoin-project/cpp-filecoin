@@ -65,6 +65,10 @@ namespace fc::primitives::sector {
     kStackedDRG64GiBWindowPoSt,
   };
 
+  enum class RegisteredAggregationProof : int64_t {
+    SnarkPackV1,
+  };
+
   /**
    * Produces the PoSt-specific RegisteredProof corresponding to the receiving
    * RegisteredSealProof.
@@ -189,6 +193,34 @@ namespace fc::primitives::sector {
   outcome::result<RegisteredSealProof>
   getPreferredSealProofTypeFromWindowPoStType(NetworkVersion network_version,
                                               RegisteredPoStProof proof);
+
+  struct AggregateSealVerifyInfo {
+    SectorNumber number;
+    SealRandomness randomness;
+    InteractiveRandomness interactive_randomness;
+    CID sealed_cid;
+    CID unsealed_cid;
+  };
+  CBOR_TUPLE(AggregateSealVerifyInfo,
+             number,
+             randomness,
+             interactive_randomness,
+             sealed_cid,
+             unsealed_cid)
+
+  struct AggregateSealVerifyProofAndInfos {
+    ActorId miner;
+    RegisteredSealProof seal_proof;
+    RegisteredAggregationProof aggregate_proof;
+    Bytes proof;
+    std::vector<AggregateSealVerifyInfo> infos;
+  };
+  CBOR_TUPLE(AggregateSealVerifyProofAndInfos,
+             miner,
+             seal_proof,
+             aggregate_proof,
+             proof,
+             infos)
 }  // namespace fc::primitives::sector
 
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::sector, Errors);

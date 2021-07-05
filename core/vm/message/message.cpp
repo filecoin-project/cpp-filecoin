@@ -16,10 +16,6 @@ namespace fc::vm::message {
            && params == other.params;
   }
 
-  bool UnsignedMessage::operator!=(const UnsignedMessage &other) const {
-    return !(*this == other);
-  }
-
   TokenAmount UnsignedMessage::requiredFunds() const {
     return gas_limit * gas_fee_cap;
   }

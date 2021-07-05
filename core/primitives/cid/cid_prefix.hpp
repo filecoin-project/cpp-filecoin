@@ -34,9 +34,6 @@ namespace fc {
       return version == other.version && codec == other.codec
              && mh_type == other.mh_type && mh_length == other.mh_length;
     }
-
-    bool operator!=(const CidPrefix &other) const {
-      return !(*this == other);
-    }
   };
+  FC_OPERATOR_NOT_EQUAL(CidPrefix)
 }  // namespace fc

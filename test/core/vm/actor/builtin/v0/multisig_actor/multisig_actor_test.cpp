@@ -14,7 +14,7 @@
 #include "testutil/mocks/vm/states/state_manager_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/codes.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/version/version.hpp"
 

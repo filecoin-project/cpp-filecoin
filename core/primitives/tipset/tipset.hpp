@@ -128,14 +128,7 @@ namespace fc::primitives::tipset {
    * @return true if equal, false otherwise
    */
   bool operator==(const Tipset &l, const Tipset &r);
-
-  /**
-   * @brief compares two Tipset instances
-   * @param lhs first tipset
-   * @param rhs second tipset
-   * @return false if equal, true otherwise
-   */
-  bool operator!=(const Tipset &l, const Tipset &r);
+  FC_OPERATOR_NOT_EQUAL(Tipset)
 
   CBOR_ENCODE_TUPLE(Tipset, key.cids(), blks, height())
 

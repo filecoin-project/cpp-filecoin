@@ -39,6 +39,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::proofs, ProofsError, e) {
       return "Proofs: ffi error from caller side";
     case (ProofsError::kReceiverError):
       return "Proofs: ffi error from receiver side";
+    case (ProofsError::kNoSuchAggregationSealProof):
+      return "Proofs: No mapping to FFIAggregationSealProof";
     default:
       return "Proofs: unknown error";
   }

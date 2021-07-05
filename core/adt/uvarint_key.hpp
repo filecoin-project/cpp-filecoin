@@ -5,8 +5,7 @@
 
 #pragma once
 
-#include <string>
-
+#include "common/bytes.hpp"
 #include "common/outcome.hpp"
 
 namespace fc::adt {
@@ -15,17 +14,17 @@ namespace fc::adt {
   struct UvarintKeyer {
     using Key = uint64_t;
 
-    static std::string encode(Key key);
+    static Bytes encode(Key key);
 
-    static outcome::result<Key> decode(const std::string &key);
+    static outcome::result<Key> decode(BytesIn key);
   };
 
   struct VarintKeyer {
     using Key = int64_t;
 
-    static std::string encode(Key key);
+    static Bytes encode(Key key);
 
-    static outcome::result<Key> decode(const std::string &key);
+    static outcome::result<Key> decode(BytesIn key);
   };
 }  // namespace fc::adt
 
