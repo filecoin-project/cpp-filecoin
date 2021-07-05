@@ -8,7 +8,6 @@ add_library(state_tree
     impl/state_tree_impl.cpp
     )
 target_link_libraries(state_tree
-    actor
     address_key
     Boost::boost
     dvm

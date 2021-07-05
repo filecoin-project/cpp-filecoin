@@ -5,12 +5,11 @@
 
 #include "vm/state/impl/state_tree_impl.hpp"
 
-#include "vm/actor/builtin/states/impl/state_manager_impl.hpp"
+#include "vm/actor/builtin/states/init_actor_state_raw.hpp"
+
 #include "vm/dvm/dvm.hpp"
 
 namespace fc::vm::state {
-  using actor::builtin::states::StateManagerImpl;
-  using actor::builtin::states::StateProvider;
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store)
       : version_{StateTreeVersion::kVersion0}, store_{store}, by_id{store} {
@@ -65,10 +64,11 @@ namespace fc::vm::state {
         return Address::makeFromId(id->second);
       }
     }
-    const StateProvider provider(store_);
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
-    OUTCOME_TRY(init_actor_state, provider.getInitActorState(init_actor));
-    OUTCOME_TRY(id, init_actor_state->tryGet(address));
+    OUTCOME_TRY(initActorState,
+                store_->getCbor<actor::InitActorStateRaw>(init_actor.head));
+    initActorState.load(store_, init_actor.code);
+    OUTCOME_TRY(id, initActorState.tryGet(address));
     if (id) {
       tx().lookup.emplace(address, *id);
       return Address::makeFromId(*id);
@@ -78,11 +78,13 @@ namespace fc::vm::state {
 
   outcome::result<Address> StateTreeImpl::registerNewAddress(
       const Address &address) {
-    StateManagerImpl state_manager(
-        store_, shared_from_this(), actor::kInitAddress);
-    OUTCOME_TRY(init_actor_state, state_manager.getInitActorState());
-    OUTCOME_TRY(address_id, init_actor_state->addActor(address));
-    OUTCOME_TRY(state_manager.commitState(init_actor_state));
+    OUTCOME_TRY(init_actor, get(actor::kInitAddress));
+    OUTCOME_TRY(state,
+                store_->getCbor<actor::InitActorStateRaw>(init_actor.head));
+    state.load(store_, init_actor.code);
+    OUTCOME_TRY(address_id, state.addActor(address));
+    OUTCOME_TRYA(init_actor.head, store_->setCbor(state));
+    OUTCOME_TRY(set(actor::kInitAddress, init_actor));
     return std::move(address_id);
   }
 
