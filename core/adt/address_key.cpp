@@ -9,13 +9,11 @@
 #include "primitives/address/address_codec.hpp"
 
 namespace fc::adt {
-  std::string AddressKeyer::encode(const Key &key) {
-    auto bytes = primitives::address::encode(key);
-    return {bytes.begin(), bytes.end()};
+  Bytes AddressKeyer::encode(const Key &key) {
+    return primitives::address::encode(key);
   }
 
-  outcome::result<AddressKeyer::Key> AddressKeyer::decode(
-      const std::string &key) {
-    return primitives::address::decode(common::span::cbytes(key));
+  outcome::result<AddressKeyer::Key> AddressKeyer::decode(BytesIn key) {
+    return primitives::address::decode(key);
   }
 }  // namespace fc::adt

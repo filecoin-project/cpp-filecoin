@@ -5,7 +5,6 @@
 
 add_subdirectory(address)
 add_subdirectory(bitvec)
-add_subdirectory(chain_epoch)
 add_subdirectory(cid)
 add_subdirectory(piece)
 add_subdirectory(rle_bitset)
