@@ -5,10 +5,7 @@
 
 #include "vm/toolchain/toolchain.hpp"
 
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
-#include "vm/actor/builtin/v4/codes.hpp"
+#include "vm/actor/codes.hpp"
 
 #include "vm/toolchain/impl/address_matcher_v0.hpp"
 #include "vm/toolchain/impl/address_matcher_v2.hpp"

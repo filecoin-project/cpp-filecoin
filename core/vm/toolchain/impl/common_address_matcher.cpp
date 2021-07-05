@@ -4,10 +4,7 @@
  */
 
 #include "vm/toolchain/common_address_matcher.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
-#include "vm/actor/builtin/v4/codes.hpp"
+#include "vm/actor/codes.hpp"
 
 namespace fc::vm::toolchain {
   using namespace actor::builtin;

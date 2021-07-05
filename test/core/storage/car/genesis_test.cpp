@@ -12,7 +12,6 @@
 #include "testutil/read_file.hpp"
 #include "testutil/resources/resources.hpp"
 #include "vm/actor/builtin/v0/account/account_actor_state.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor_state.hpp"
 #include "vm/actor/builtin/v0/init/init_actor_state.hpp"
 #include "vm/actor/builtin/v0/market/market_actor_state.hpp"
@@ -20,6 +19,7 @@
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/v0/system/system_actor_state.hpp"
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_state.hpp"
+#include "vm/actor/codes.hpp"
 
 namespace outcome = fc::outcome;
 

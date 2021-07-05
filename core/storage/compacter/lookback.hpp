@@ -26,7 +26,7 @@ namespace fc::storage::compacter {
   inline void lookbackActor(std::vector<CbCid> &copy,
                             std::vector<CbCid> &recurse,
                             const CbIpldPtr &ipld,
-                            std::string_view code,
+                            const Code &code,
                             const CbCid &head) {
     using namespace vm::actor::code;
     using vm::actor::ActorVersion;
@@ -78,7 +78,7 @@ namespace fc::storage::compacter {
     BytesIn _addr, _actor;
     while (hamt.next(_addr, _actor)) {
       uint64_t id;
-      std::string_view code;
+      ActorCodeCid code;
       const CbCid *head;
       if (!codec::cbor::light_reader::readIdAddress(id, _addr)) {
         throw std::logic_error{"lookbackActors readId"};

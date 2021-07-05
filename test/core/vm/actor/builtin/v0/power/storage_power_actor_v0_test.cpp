@@ -11,10 +11,10 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/mocks/vm/states/state_manager_mock.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
+#include "vm/actor/codes.hpp"
 #include "vm/version/version.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {

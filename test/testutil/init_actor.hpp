@@ -8,8 +8,8 @@
 #include <gtest/gtest.h>
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/init/init_actor_state.hpp"
+#include "vm/actor/codes.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 /// Sets up init actor state
