@@ -24,6 +24,7 @@ namespace fc::proofs {
   using primitives::piece::PieceData;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
+  using primitives::sector::AggregateSealVerifyProofAndInfos;
   using primitives::sector::PoStProof;
   using primitives::sector::PoStRandomness;
   using primitives::sector::Proof;
@@ -258,6 +259,13 @@ namespace fc::proofs {
      * were derived was valid, and false if not.
      */
     virtual outcome::result<bool> verifySeal(const SealVerifyInfo &info) = 0;
+
+    virtual outcome::result<void> aggregateSealProofs(
+        AggregateSealVerifyProofAndInfos &aggregate,
+        const std::vector<BytesIn> &proofs) = 0;
+
+    virtual outcome::result<bool> verifyAggregateSeals(
+        const AggregateSealVerifyProofAndInfos &aggregate) = 0;
 
     /**
      * Unseals sector
