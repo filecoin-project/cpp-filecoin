@@ -157,8 +157,9 @@ namespace fc {
   }
 
   boost::optional<ActorCodeCid> asActorCode(const CID &cid) {
-    if (auto id{asIdentity(cid)}) {
-      if (cid.content_type == CID::Multicodec::RAW) {
+    if (cid.version == CID::Version::V1
+        && cid.content_type == CID::Multicodec::RAW) {
+      if (auto id{asIdentity(cid)}) {
         return ActorCodeCid{common::span::bytestr(*id)};
       }
     }
