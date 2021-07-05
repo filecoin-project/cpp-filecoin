@@ -239,6 +239,23 @@ namespace fc::proofs {
 
     ASSERT_TRUE(isValid);
 
+    AggregateSealVerifyProofAndInfos aggregate{
+        miner_id,
+        seal_proof_type,
+        primitives::sector::RegisteredAggregationProof::SnarkPackV1,
+        {},
+        {primitives::sector::AggregateSealVerifyInfo{
+            sector_num,
+            ticket,
+            seed,
+            sealed_and_unsealed_cid.sealed_cid,
+            sealed_and_unsealed_cid.unsealed_cid,
+        }},
+    };
+    EXPECT_OUTCOME_TRUE_1(
+        proofs_->aggregateSealProofs(aggregate, {seal_proof}));
+    EXPECT_OUTCOME_EQ(proofs_->verifyAggregateSeals(aggregate), true);
+
     EXPECT_OUTCOME_TRUE_1(
         proofs_->unseal(seal_proof_type,
                         sector_cache_dir_path,

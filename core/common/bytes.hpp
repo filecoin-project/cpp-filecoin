@@ -17,6 +17,13 @@ namespace fc {
   template <size_t N>
   using BytesN = std::array<uint8_t, N>;
 
+  struct BytesLess {
+    using is_transparent = void;
+    constexpr bool operator()(const BytesIn &l, const BytesIn &r) const {
+      return l < r;
+    }
+  };
+
   inline Bytes copy(BytesIn r) {
     return {r.begin(), r.end()};
   }

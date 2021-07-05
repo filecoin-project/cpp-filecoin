@@ -14,7 +14,6 @@ using fc::power::PowerTableError;
 using fc::power::PowerTableHamt;
 using fc::primitives::address::Address;
 using fc::storage::hamt::HamtError;
-using fc::storage::hamt::Value;
 
 PowerTableHamt::PowerTableHamt(Hamt hamt) : power_table_{std::move(hamt)} {}
 
