@@ -12,6 +12,6 @@ add_library(actor_state
     )
 target_link_libraries(actor_state
     actor
+    actors_toolchain
     outcome
-    toolchain
     )

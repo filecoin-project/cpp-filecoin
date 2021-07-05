@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(toolchain
+add_library(actors_toolchain
     impl/toolchain.cpp
     impl/common_address_matcher.cpp
     impl/address_matcher_v0.cpp
@@ -13,6 +13,6 @@ add_library(toolchain
     impl/address_matcher_v5.cpp
     )
 
-target_link_libraries(toolchain
+target_link_libraries(actors_toolchain
     actor
     )

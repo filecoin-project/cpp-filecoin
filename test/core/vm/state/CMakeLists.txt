@@ -7,8 +7,8 @@ addtest(state_tree_test
     state_tree_test.cpp
     )
 target_link_libraries(state_tree_test
+    actors_toolchain
     hexutil
     ipfs_datastore_in_memory
     state_tree
-    toolchain
     )

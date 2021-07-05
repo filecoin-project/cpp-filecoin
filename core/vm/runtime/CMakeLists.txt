@@ -13,6 +13,7 @@ add_library(runtime
     )
 target_link_libraries(runtime
     actor
+    actors_toolchain
     blake2
     cgo_actors
     dvm
@@ -23,7 +24,6 @@ target_link_libraries(runtime
     proofs
     tipset
     signature
-    toolchain
     actor_state
     version
     )
