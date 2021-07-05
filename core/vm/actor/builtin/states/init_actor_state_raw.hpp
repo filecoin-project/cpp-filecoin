@@ -14,7 +14,7 @@ namespace fc::vm::actor {
     using Address = primitives::address::Address;
     using Hamt = storage::hamt::Hamt;
 
-    CID _address_map;
+    CID address_map_cid;
     Hamt address_map{nullptr, 0, false};
     uint64_t next_id{};
     std::string network_name;
@@ -23,7 +23,8 @@ namespace fc::vm::actor {
       // TODO(turuslan): asActorCode from PR#415
       const auto code{common::span::bytestr(*asIdentity(_code))};
       const auto v3{code != code::init0 && code != code::init2};
-      address_map = {ipld, _address_map, storage::hamt::kDefaultBitWidth, v3};
+      address_map = {
+          ipld, address_map_cid, storage::hamt::kDefaultBitWidth, v3};
     }
 
     static outcome::result<Address> addActor(Hamt &hamt,
@@ -45,14 +46,14 @@ namespace fc::vm::actor {
       return tryGet(address_map, address);
     }
   };
-  CBOR_TUPLE(InitActorStateRaw, _address_map, next_id, network_name)
+  CBOR_TUPLE(InitActorStateRaw, address_map_cid, next_id, network_name)
 }  // namespace fc::vm::actor
 
 namespace fc {
   template <>
   struct Ipld::Flush<vm::actor::InitActorStateRaw> {
     static outcome::result<void> call(vm::actor::InitActorStateRaw &state) {
-      OUTCOME_TRYA(state._address_map, state.address_map.flush());
+      OUTCOME_TRYA(state.address_map_cid, state.address_map.flush());
       return outcome::success();
     }
   };
