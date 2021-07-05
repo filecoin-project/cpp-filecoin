@@ -34,7 +34,7 @@ add_library(uvarint_key
     uvarint_key.cpp
     )
 target_link_libraries(uvarint_key
-    p2p::p2p_uvarint
+    outcome
     )
 
 add_library(address_key

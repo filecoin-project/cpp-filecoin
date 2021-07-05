@@ -11,13 +11,13 @@ namespace fc::adt {
   using storage::hamt::Hamt;
 
   struct StringKeyer {
-    using Key = std::string;
+    using Key = BytesIn;
 
-    inline static std::string encode(const Key &key) {
-      return key;
+    inline static Bytes encode(const Key &key) {
+      return copy(key);
     }
 
-    inline static outcome::result<Key> decode(const std::string &key) {
+    inline static outcome::result<Key> decode(BytesIn key) {
       return key;
     }
   };
@@ -58,7 +58,7 @@ namespace fc::adt {
     }
 
     outcome::result<void> visit(const Visitor &visitor) const {
-      return hamt.visit([&](auto &key, auto &value) -> outcome::result<void> {
+      return hamt.visit([&](auto key, auto value) -> outcome::result<void> {
         OUTCOME_TRY(key2, Keyer::decode(key));
         OUTCOME_TRY(value2, hamt.ipld->decode<Value>(value));
         return visitor(key2, value2);
@@ -67,7 +67,7 @@ namespace fc::adt {
 
     outcome::result<std::vector<Key>> keys() const {
       std::vector<Key> keys;
-      OUTCOME_TRY(hamt.visit([&](auto &key, auto &) -> outcome::result<void> {
+      OUTCOME_TRY(hamt.visit([&](auto key, auto) -> outcome::result<void> {
         OUTCOME_TRY(key2, Keyer::decode(key));
         keys.push_back(std::move(key2));
         return outcome::success();
@@ -77,7 +77,7 @@ namespace fc::adt {
 
     outcome::result<size_t> size() const {
       size_t size{};
-      OUTCOME_TRY(hamt.visit([&](auto &key, auto &) -> outcome::result<void> {
+      OUTCOME_TRY(hamt.visit([&](auto key, auto) -> outcome::result<void> {
         ++size;
         return outcome::success();
       }));
