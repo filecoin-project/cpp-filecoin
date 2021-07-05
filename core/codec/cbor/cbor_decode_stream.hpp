@@ -177,7 +177,9 @@ namespace fc::codec::cbor {
     }
     void readToken() {
       input = partial;
-      if (!partial.empty() && !read(token, partial)) {
+      if (partial.empty()) {
+        token = {};
+      } else if (!read(token, partial)) {
         outcome::raise(CborDecodeError::kInvalidCbor);
       }
     }

@@ -29,15 +29,15 @@ namespace fc::adt {
   };
 }  // namespace fc::adt
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<adt::BalanceTable> {
+  struct CbVisitT<adt::BalanceTable> {
     template <typename Visitor>
     static void call(adt::Map<adt::TokenAmount, adt::AddressKeyer> &map,
                      const Visitor &visit) {
       visit(map);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake
 
 OUTCOME_HPP_DECLARE_ERROR(fc::adt, BalanceTableError);

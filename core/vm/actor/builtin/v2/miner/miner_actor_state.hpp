@@ -42,9 +42,9 @@ namespace fc::vm::actor::builtin::v2::miner {
 
 }  // namespace fc::vm::actor::builtin::v2::miner
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::v2::miner::MinerActorState> {
+  struct CbVisitT<vm::actor::builtin::v2::miner::MinerActorState> {
     template <typename Visitor>
     static void call(vm::actor::builtin::v2::miner::MinerActorState &state,
                      const Visitor &visit) {
@@ -56,4 +56,4 @@ namespace fc {
       visit(state.deadlines);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

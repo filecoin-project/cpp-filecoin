@@ -41,7 +41,7 @@ namespace fc::codec::cbor::light_reader {
     template <typename T>
     T makeSomeMinerActorState() {
       T state;
-      ipld->load(state);
+      cbor_blake::cbLoadT(ipld, state);
       MinerInfo info;
       info.window_post_partition_sectors = 100;
       info.sector_size = 101;
@@ -68,11 +68,11 @@ namespace fc::codec::cbor::light_reader {
    */
   TEST_F(LightActorReader, MinerActorV0) {
     auto state = makeSomeMinerActorState<MinerActorStateV0>();
-    EXPECT_OUTCOME_TRUE(state_root, ipld->setCbor(state));
+    EXPECT_OUTCOME_TRUE(state_root, setCbor(ipld, state));
 
     CID expected_miner_info = state.miner_info;
     CID expected_sectors = state.sectors.amt.cid();
-    CID expected_deadlines = state.deadlines;
+    CID expected_deadlines = state.deadlines.cid;
     EXPECT_OUTCOME_TRUE(
         actual, readMinerActorInfo(light_ipld, *asBlake(state_root), true));
     const auto [actual_miner_info, actual_sectors, actual_deadlines] = actual;
@@ -89,11 +89,11 @@ namespace fc::codec::cbor::light_reader {
    */
   TEST_F(LightActorReader, MinerActorV2) {
     auto state = makeSomeMinerActorState<MinerActorStateV2>();
-    EXPECT_OUTCOME_TRUE(state_root, ipld->setCbor(state));
+    EXPECT_OUTCOME_TRUE(state_root, setCbor(ipld, state));
 
     CID expected_miner_info = state.miner_info;
     CID expected_sectors = state.sectors.amt.cid();
-    CID expected_deadlines = state.deadlines;
+    CID expected_deadlines = state.deadlines.cid;
     EXPECT_OUTCOME_TRUE(
         actual, readMinerActorInfo(light_ipld, *asBlake(state_root), false));
     const auto [actual_miner_info, actual_sectors, actual_deadlines] = actual;
@@ -109,14 +109,14 @@ namespace fc::codec::cbor::light_reader {
    */
   TEST_F(LightActorReader, PowerActorV0) {
     PowerActorStateV0 state;
-    ipld->load(state);
+    cbor_blake::cbLoadT(ipld, state);
     primitives::address::Address address =
         primitives::address::Address::makeFromId(100);
     ClaimV0 claim;
     claim.raw_power = 101;
     claim.qa_power = 102;
     EXPECT_OUTCOME_TRUE_1(state.claims0.set(address, claim));
-    EXPECT_OUTCOME_TRUE(state_root, ipld->setCbor(state));
+    EXPECT_OUTCOME_TRUE(state_root, setCbor(ipld, state));
 
     auto expected = state.claims0.hamt.cid();
     EXPECT_OUTCOME_TRUE(
@@ -132,7 +132,7 @@ namespace fc::codec::cbor::light_reader {
    */
   TEST_F(LightActorReader, PowerActorV2) {
     PowerActorStateV2 state;
-    ipld->load(state);
+    cbor_blake::cbLoadT(ipld, state);
     primitives::address::Address address =
         primitives::address::Address::makeFromId(100);
     ClaimV2 claim;
@@ -140,7 +140,7 @@ namespace fc::codec::cbor::light_reader {
     claim.raw_power = 101;
     claim.qa_power = 102;
     EXPECT_OUTCOME_TRUE_1(state.claims2.set(address, claim));
-    EXPECT_OUTCOME_TRUE(state_root, ipld->setCbor(state));
+    EXPECT_OUTCOME_TRUE(state_root, setCbor(ipld, state));
 
     auto expected = state.claims2.hamt.cid();
     EXPECT_OUTCOME_TRUE(

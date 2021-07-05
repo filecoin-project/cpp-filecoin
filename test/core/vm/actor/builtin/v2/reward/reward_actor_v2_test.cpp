@@ -36,9 +36,9 @@ namespace fc::vm::actor::builtin::v2::reward {
 
       EXPECT_CALL(*state_manager, getRewardActorState())
           .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
             EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<RewardActorState>(cid));
+                                getCbor<RewardActorState>(ipld, cid));
             auto s = std::make_shared<RewardActorState>(current_state);
             return std::static_pointer_cast<states::RewardActorState>(s);
           }));

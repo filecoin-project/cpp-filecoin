@@ -107,7 +107,7 @@ namespace fc::vm::actor::builtin::states {
     template <typename T>
     std::shared_ptr<T> createLoadedStatePtr() const {
       auto state = std::make_shared<T>();
-      ipld->load(*state);
+      cbor_blake::cbLoadT(ipld, *state);
       return state;
     }
 

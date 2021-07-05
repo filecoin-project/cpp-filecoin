@@ -41,9 +41,9 @@ namespace fc::vm::actor::builtin::v0::miner {
 
 }  // namespace fc::vm::actor::builtin::v0::miner
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::v0::miner::Deadline> {
+  struct CbVisitT<vm::actor::builtin::v0::miner::Deadline> {
     template <typename Visitor>
     static void call(vm::actor::builtin::v0::miner::Deadline &d,
                      const Visitor &visit) {
@@ -51,4 +51,4 @@ namespace fc {
       visit(d.expirations_epochs);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

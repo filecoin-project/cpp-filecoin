@@ -373,7 +373,7 @@ TEST(CborDecoder, FlatErrors) {
   int i;
   EXPECT_OUTCOME_RAISE(CborDecodeError::kWrongType,
                        CborDecodeStream("01"_unhex).list() >> i >> i);
-  EXPECT_OUTCOME_RAISE(CborDecodeError::kWrongType,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kInvalidCbor,
                        CborDecodeStream("80"_unhex).list() >> i);
 }
 

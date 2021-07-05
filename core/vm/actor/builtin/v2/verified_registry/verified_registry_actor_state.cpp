@@ -8,7 +8,5 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::vm::actor::builtin::v2::verified_registry {
-  outcome::result<Buffer> VerifiedRegistryActorState::toCbor() const {
-    return Ipld::encode(*this);
-  }
+  ACTOR_STATE_TO_CBOR_THIS(VerifiedRegistryActorState)
 }  // namespace fc::vm::actor::builtin::v2::verified_registry

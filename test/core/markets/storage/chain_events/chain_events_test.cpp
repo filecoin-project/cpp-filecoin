@@ -16,7 +16,6 @@ namespace fc::markets::storage::chain_events {
   using api::Chan;
   using api::FullNodeApi;
   using fc::storage::ipfs::InMemoryDatastore;
-  using fc::storage::ipfs::IpfsDatastore;
   using primitives::block::BlockHeader;
   using primitives::block::MsgMeta;
   using primitives::tipset::HeadChange;

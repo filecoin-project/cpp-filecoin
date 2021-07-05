@@ -16,9 +16,9 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   CBOR_TUPLE(VerifiedRegistryActorState, root_key, verifiers, verified_clients)
 }  // namespace fc::vm::actor::builtin::v0::verified_registry
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<
+  struct CbVisitT<
       vm::actor::builtin::v0::verified_registry::VerifiedRegistryActorState> {
     template <typename Visitor>
     static void call(
@@ -29,4 +29,4 @@ namespace fc {
       visit(state.verified_clients);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

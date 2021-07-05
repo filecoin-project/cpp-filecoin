@@ -118,7 +118,7 @@ namespace fc::storage::hamt {
     /// Store CBOR encoded value by key
     template <typename T>
     outcome::result<void> setCbor(BytesIn key, const T &value) {
-      OUTCOME_TRY(bytes, Ipld::encode(value));
+      OUTCOME_TRY(bytes, cbor_blake::cbEncodeT(value));
       return set(key, bytes);
     }
 
@@ -126,7 +126,7 @@ namespace fc::storage::hamt {
     template <typename T>
     outcome::result<T> getCbor(BytesIn key) const {
       OUTCOME_TRY(bytes, get(key));
-      return ipld->decode<T>(bytes);
+      return cbor_blake::cbDecodeT<T>(ipld, bytes);
     }
 
     /// Get CBOR decoded value by key
@@ -139,7 +139,7 @@ namespace fc::storage::hamt {
         }
         return boost::none;
       }
-      OUTCOME_TRY(value, ipld->decode<T>(maybe.value()));
+      OUTCOME_TRY(value, cbor_blake::cbDecodeT<T>(ipld, maybe.value()));
       return std::move(value);
     }
 

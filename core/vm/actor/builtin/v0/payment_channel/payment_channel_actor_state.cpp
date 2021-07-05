@@ -8,7 +8,5 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
-  outcome::result<Buffer> PaymentChannelActorState::toCbor() const {
-    return Ipld::encode(*this);
-  }
+  ACTOR_STATE_TO_CBOR_THIS(PaymentChannelActorState)
 }  // namespace fc::vm::actor::builtin::v0::payment_channel
