@@ -8,11 +8,20 @@
 #include <filecoin-ffi/filcrypto.h>
 #include <thread>
 
+#include "codec/uvarint.hpp"
 #include "common/ffi.hpp"
-#include "primitives/address/address_codec.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs_error.hpp"
 #include "sector_storage/zerocomm/zerocomm.hpp"
+
+#define PROOFS_TRY(label)                                     \
+  do {                                                        \
+    if (res_ptr->status_code                                  \
+        != FCPResponseStatus::FCPResponseStatus_FCPNoError) { \
+      logger_->error("{}: {}", label, res_ptr->error_msg);    \
+      return cppResponseStatus(res_ptr->status_code);         \
+    }                                                         \
+  } while (0)
 
 namespace fc::proofs {
   namespace ffi = common::ffi;
@@ -26,6 +35,7 @@ namespace fc::proofs {
   using primitives::cid::replicaCommitmentV1ToCID;
   using primitives::sector::getRegisteredWindowPoStProof;
   using primitives::sector::getRegisteredWinningPoStProof;
+  using primitives::sector::RegisteredAggregationProof;
   using sector_storage::zerocomm::getZeroPieceCommitment;
 
   outcome::result<WriteWithoutAlignmentResult> cppWriteWithoutAlignmentResult(
@@ -237,19 +247,26 @@ namespace fc::proofs {
     }
   }
 
+  outcome::result<fil_RegisteredAggregationProof> cRegisteredAggregationProof(
+      RegisteredAggregationProof type) {
+    switch (type) {
+      case RegisteredAggregationProof::SnarkPackV1:
+        return fil_RegisteredAggregationProof_SnarkPackV1;
+      default:
+        return ProofsError::kNoSuchAggregationSealProof;
+    }
+  }
+
   fil_32ByteArray toProverID(ActorId miner_id) {
-    auto maddr = primitives::address::encode(
-        primitives::address::Address::makeFromId(miner_id));
     fil_32ByteArray prover = {};
-    // +1: because payload start from 1 position
-    std::copy(maddr.begin() + 1, maddr.end(), prover.inner);
+    const codec::uvarint::VarintEncoder _maddr{miner_id};
+    const auto maddr{_maddr.bytes()};
+    std::copy(maddr.begin(), maddr.end(), prover.inner);
     return prover;
   }
 
-  fil_32ByteArray c32ByteArray(const Blob<32> &arr) {
-    fil_32ByteArray array{};
-    ffi::array(array.inner, arr);
-    return array;
+  inline auto &c32ByteArray(const Hash256 &arr) {
+    return (const fil_32ByteArray &)arr;
   }
 
   outcome::result<fil_PublicReplicaInfo> cPublicReplicaInfo(
@@ -386,14 +403,7 @@ namespace fc::proofs {
     if (close(staged_sector_fd))
       logger_->warn("writeWithoutAlignment: error in closing file "
                     + staged_sector_file_path);
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("writeWithoutAlignment: "
-                     + std::string(res_ptr->error_msg));
-
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("writeWithoutAlignment");
     return cppWriteWithoutAlignmentResult(*res_ptr);
   }
 
@@ -442,11 +452,7 @@ namespace fc::proofs {
     if (close(staged_sector_fd))
       logger_->warn("writeWithAlignment: error in closing file "
                     + staged_sector_file_path);
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("writeWithAlignment: " + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
+    PROOFS_TRY("writeWithAlignment");
     return cppWriteWithAlignmentResult(*res_ptr);
   }
 
@@ -545,14 +551,7 @@ namespace fc::proofs {
                                              c_pieces.data(),
                                              c_pieces.size()),
                   fil_destroy_seal_pre_commit_phase1_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("Seal precommit phase 1: "
-                     + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("sealPreCommitPhase1");
     return Phase1Output(
         res_ptr->seal_pre_commit_phase1_output_ptr,
         res_ptr->seal_pre_commit_phase1_output_ptr
@@ -569,14 +568,7 @@ namespace fc::proofs {
                                              cache_dir_path.c_str(),
                                              sealed_sector_path.c_str()),
                   fil_destroy_seal_pre_commit_phase2_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("Seal precommit phase 2: "
-                     + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("sealPreCommitPhase2");
     SealedAndUnsealedCID result;
 
     OUTCOME_TRYA(result.sealed_cid,
@@ -623,13 +615,7 @@ namespace fc::proofs {
                                                     c_pieces.data(),
                                                     c_pieces.size()),
                              fil_destroy_seal_commit_phase1_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("sealCommit Phase 1: " + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("sealCommitPhase1");
     return Phase1Output(
         res_ptr->seal_commit_phase1_output_ptr,
         res_ptr->seal_commit_phase1_output_ptr
@@ -645,13 +631,7 @@ namespace fc::proofs {
         fil_seal_commit_phase2(
             phase1_output.data(), phase1_output.size(), sector_id, prover_id),
         fil_destroy_seal_commit_phase2_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("sealCommit Phase 2: " + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("sealCommitPhase2");
     return Proof(res_ptr->proof_ptr, res_ptr->proof_ptr + res_ptr->proof_len);
   }
 
@@ -703,14 +683,7 @@ namespace fc::proofs {
     auto res_ptr = ffi::wrap(
         fil_generate_piece_commitment(c_proof_type, piece.getFd(), piece_size),
         fil_destroy_generate_piece_commitment_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("GeneratePieceCIDFromFile: "
-                     + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("generatePieceCID");
     return dataCommitmentV1ToCID(
         gsl::make_span(res_ptr->comm_p, kCommitmentBytesLen));
   }
@@ -755,13 +728,7 @@ namespace fc::proofs {
         ffi::wrap(fil_generate_data_commitment(
                       c_proof_type, c_pieces.data(), c_pieces.size()),
                   fil_destroy_generate_data_commitment_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("generateUnsealedCID: " + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("generateUnsealedCID");
     return dataCommitmentV1ToCID(
         gsl::make_span(res_ptr->comm_d, kCommitmentBytesLen));
   }
@@ -784,15 +751,7 @@ namespace fc::proofs {
                                                    eligible_sectors_len,
                                                    prover_id),
         fil_destroy_generate_winning_post_sector_challenge);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("generateWinningPoStSectorChallenge: "
-                     + std::string(res_ptr->error_msg));
-
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("generateWinningPoStSectorChallenge");
     return ChallengeIndexes(res_ptr->ids_ptr,
                             res_ptr->ids_ptr + res_ptr->ids_len);  // NOLINT
   }
@@ -812,13 +771,7 @@ namespace fc::proofs {
                                             c_sorted_private_sector_info.size(),
                                             prover_id),
                   fil_destroy_generate_winning_post_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("generateWinningPoSt: " + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("generateWinningPoSt");
     return cppPoStProofs(
         gsl::make_span(res_ptr->proofs_ptr, res_ptr->proofs_len));
   }
@@ -838,13 +791,7 @@ namespace fc::proofs {
                                            c_sorted_private_sector_info.size(),
                                            prover_id),
                   fil_destroy_generate_window_post_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("generateWindowPoSt: " + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("generateWindowPoSt");
     return cppPoStProofs(
         gsl::make_span(res_ptr->proofs_ptr, res_ptr->proofs_len));
   }
@@ -865,13 +812,7 @@ namespace fc::proofs {
                                           c_post_proofs.size(),
                                           prover_id),
                   fil_destroy_verify_winning_post_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("verifyWindowPoSt: " + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("verifyWinningPoSt");
     return res_ptr->is_valid;
   }
 
@@ -890,13 +831,7 @@ namespace fc::proofs {
                                          c_post_proofs.size(),
                                          prover_id),
                   fil_destroy_verify_window_post_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("verifyWindowPoSt: " + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("verifyWindowPoSt");
     return res_ptr->is_valid;
   }
 
@@ -921,14 +856,74 @@ namespace fc::proofs {
                                   info.proof.data(),
                                   info.proof.size()),
                   fil_destroy_verify_seal_response);
+    PROOFS_TRY("verifySeal");
+    return res_ptr->is_valid;
+  }
 
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("verifySeal: " + std::string(res_ptr->error_msg));
-
-      return cppResponseStatus(res_ptr->status_code);
+  outcome::result<void> ProofEngineImpl::aggregateSealProofs(
+      AggregateSealVerifyProofAndInfos &aggregate,
+      const std::vector<BytesIn> &proofs) {
+    OUTCOME_TRY(c_seal_proof, cRegisteredSealProof(aggregate.seal_proof));
+    OUTCOME_TRY(c_aggregate_proof,
+                cRegisteredAggregationProof(aggregate.aggregate_proof));
+    std::vector<fil_32ByteArray> c_commrs, c_seeds;
+    c_commrs.reserve(aggregate.infos.size());
+    c_seeds.reserve(aggregate.infos.size());
+    for (const auto &info : aggregate.infos) {
+      OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(info.sealed_cid));
+      c_commrs.push_back(c32ByteArray(comm_r));
+      c_seeds.push_back(c32ByteArray(info.interactive_randomness));
     }
+    std::vector<fil_SealCommitPhase2Response> c_proofs;
+    c_proofs.reserve(proofs.size());
+    for (const auto &proof : proofs) {
+      auto &c_proof{c_proofs.emplace_back()};
+      c_proof.proof_ptr = proof.data();
+      c_proof.proof_len = proof.size();
+    }
+    const auto res_ptr{ffi::wrap(fil_aggregate_seal_proofs(c_seal_proof,
+                                                           c_aggregate_proof,
+                                                           c_commrs.data(),
+                                                           c_commrs.size(),
+                                                           c_seeds.data(),
+                                                           c_seeds.size(),
+                                                           c_proofs.data(),
+                                                           c_proofs.size()),
+                                 fil_destroy_aggregate_proof)};
+    PROOFS_TRY("aggregateSealProofs");
+    copy(aggregate.proof, BytesIn(res_ptr->proof_ptr, res_ptr->proof_len));
+    return outcome::success();
+  }
 
+  outcome::result<bool> ProofEngineImpl::verifyAggregateSeals(
+      const AggregateSealVerifyProofAndInfos &aggregate) {
+    OUTCOME_TRY(c_seal_proof, cRegisteredSealProof(aggregate.seal_proof));
+    OUTCOME_TRY(c_aggregate_proof,
+                cRegisteredAggregationProof(aggregate.aggregate_proof));
+    const auto prover_id{toProverID(aggregate.miner)};
+    std::vector<fil_AggregationInputs> c_infos;
+    c_infos.reserve(aggregate.infos.size());
+    for (const auto &info : aggregate.infos) {
+      OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(info.sealed_cid));
+      OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(info.unsealed_cid));
+      c_infos.push_back(fil_AggregationInputs{
+          c32ByteArray(comm_r),
+          c32ByteArray(comm_d),
+          info.number,
+          c32ByteArray(info.randomness),
+          c32ByteArray(info.interactive_randomness),
+      });
+    }
+    const auto res_ptr{
+        ffi::wrap(fil_verify_aggregate_seal_proof(c_seal_proof,
+                                                  c_aggregate_proof,
+                                                  prover_id,
+                                                  aggregate.proof.data(),
+                                                  aggregate.proof.size(),
+                                                  c_infos.data(),
+                                                  c_infos.size()),
+                  fil_destroy_verify_aggregate_seal_response)};
+    PROOFS_TRY("verifyAggregateSeals");
     return res_ptr->is_valid;
   }
 
@@ -981,14 +976,7 @@ namespace fc::proofs {
                                               offset,
                                               length),
                              fil_destroy_unseal_range_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("unsealRange: " + std::string(res_ptr->error_msg));
-
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("unsealRange");
     return outcome::success();
   }
 
@@ -1030,13 +1018,7 @@ namespace fc::proofs {
     auto res_ptr =
         ffi::wrap(fil_clear_cache(sector_size, cache_dir_path.c_str()),
                   fil_destroy_clear_cache_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("clearCache: " + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("clearCache");
     return outcome::success();
   }
 
@@ -1045,13 +1027,7 @@ namespace fc::proofs {
     OUTCOME_TRY(c_proof_type, cRegisteredPoStProof(proof_type));
     auto res_ptr = ffi::wrap(fil_get_post_version(c_proof_type),
                              fil_destroy_string_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("getPoStVersion: " + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("getPoStVersion");
     return std::string(res_ptr->string_val);
   }
 
@@ -1060,32 +1036,14 @@ namespace fc::proofs {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
     auto res_ptr = ffi::wrap(fil_get_seal_version(c_proof_type),
                              fil_destroy_string_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("getSealVersion: " + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
+    PROOFS_TRY("getSealVersion");
     return std::string(res_ptr->string_val);
   }
 
   outcome::result<Devices> ProofEngineImpl::getGPUDevices() {
     auto res_ptr =
         ffi::wrap(fil_get_gpu_devices(), fil_destroy_gpu_device_response);
-
-    if (res_ptr->status_code
-        != FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      logger_->error("getGPUDevices: " + std::string(res_ptr->error_msg));
-      return cppResponseStatus(res_ptr->status_code);
-    }
-
-    if (res_ptr->devices_ptr == nullptr
-        || res_ptr->devices_len
-               == FCPResponseStatus::FCPResponseStatus_FCPNoError) {
-      return Devices();
-    }
-
+    PROOFS_TRY("getGPUDevices");
     return Devices(res_ptr->devices_ptr,
                    res_ptr->devices_ptr + res_ptr->devices_len);  // NOLINT
   }

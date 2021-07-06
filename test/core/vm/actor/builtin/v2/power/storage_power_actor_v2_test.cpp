@@ -12,10 +12,10 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/mocks/vm/states/state_manager_mock.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/init/init_actor.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
+#include "vm/actor/codes.hpp"
 
 namespace fc::vm::actor::builtin::v2::storage_power {
   using libp2p::multi::Multihash;

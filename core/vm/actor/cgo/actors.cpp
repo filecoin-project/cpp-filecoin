@@ -33,14 +33,19 @@ namespace fc::vm::actor::cgo {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::PieceInfo;
+  using primitives::sector::AggregateSealVerifyProofAndInfos;
   using primitives::sector::RegisteredSealProof;
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using toolchain::Toolchain;
 
   void configParams() {
+    using vm::actor::builtin::types::miner::kSupportedProofs;
     CborEncodeStream arg;
-    arg << kConsensusMinerMinPower;
+    arg << kConsensusMinerMinPower << kSupportedProofs.size();
+    for (const auto &proof : kSupportedProofs) {
+      arg << proof;
+    }
     cgoCall<cgoActorsConfigParams>(arg);
   }
 
@@ -57,9 +62,10 @@ namespace fc::vm::actor::cgo {
                                  const std::shared_ptr<Runtime> &runtime) {
     CborEncodeStream arg;
     auto id{next_runtime++};  // TODO: mod
-    auto message{runtime->getMessage().get()};
+    const auto &message{runtime->getMessage().get()};
     auto version{runtime->getNetworkVersion()};
-    arg << id << version << message.from << message.to
+    const auto &base_fee{runtime->execution()->env->tipset->getParentBaseFee()};
+    arg << id << version << base_fee << message.from << message.to
         << runtime->getCurrentEpoch() << message.value << code << message.method
         << message.params;
     runtimes.emplace(id, runtime);
@@ -189,6 +195,17 @@ namespace fc::vm::actor::cgo {
     for (auto i{0u}; i < n; ++i) {
       auto r{proofs->verifySeal(arg.get<SealVerifyInfo>())};
       ret << (r && r.value());
+    }
+  }
+
+  RUNTIME_METHOD(gocRtVerifyAggregateSeals) {
+    const auto aggregate{arg.get<AggregateSealVerifyProofAndInfos>()};
+    if (charge(ret,
+               rt,
+               rt->execution()->env->pricelist.onVerifyAggregateSeals(
+                   aggregate))) {
+      const auto r{proofs->verifyAggregateSeals(aggregate)};
+      ret << kOk << (r && r.value());
     }
   }
 

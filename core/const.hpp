@@ -58,6 +58,7 @@ namespace fc {
   extern ChainEpoch kUpgradeActorsV3Height;
   extern ChainEpoch kUpgradeNorwegianHeight;
   extern ChainEpoch kUpgradeActorsV4Height;
+  extern ChainEpoch kUpgradeHyperdriveHeight;
 
   extern EpochDuration kBreezeGasTampingDuration;
 
@@ -76,4 +77,6 @@ namespace fc {
    * May be useful when want to avoid network upgrades
    */
   void setParamsNoUpgrades();
+
+  void setParamsInteropnet();
 }  // namespace fc

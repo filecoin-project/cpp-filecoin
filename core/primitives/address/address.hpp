@@ -100,11 +100,7 @@ namespace fc::primitives::address {
    * @brief Addresses equality operator
    */
   bool operator==(const Address &lhs, const Address &rhs);
-
-  /**
-   * @brief Addresses not equality operator
-   */
-  bool operator!=(const Address &lhs, const Address &rhs);
+  FC_OPERATOR_NOT_EQUAL(Address)
 
   /**
    * @brief Addresses "less than" operator

@@ -47,6 +47,7 @@ namespace fc::dvm {
   void onIpldSet(const CID &cid, const Buffer &data);
   void onCharge(GasAmount gas);
   void onSend(const UnsignedMessage &msg);
+  void onSendTo(const CID &code);
   void onReceipt(const outcome::result<InvocationOutput> &invocation_output,
                  const GasAmount &gas_used);
   void onReceipt(const MessageReceipt &receipt);

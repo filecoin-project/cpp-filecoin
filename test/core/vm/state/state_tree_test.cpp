@@ -87,9 +87,7 @@ TEST_F(StateTreeTest, Walk) {
   adt::Map<vm::actor::Actor, adt::AddressKeyer> map{store_};
   auto head1{store_->setCbor(3).value()};
   auto code1{vm::actor::code::init0};
-  map.set(Address::makeFromId(1),
-          {vm::actor::makeRawIdentityCid(std::string{code1}), head1})
-      .value();
+  map.set(Address::makeFromId(1), {code1, head1}).value();
   codec::cbor::light_reader::HamtWalk walk{
       std::make_shared<AnyAsCbIpld>(store_),
       *asBlake(map.hamt.flush().value())};
@@ -99,7 +97,7 @@ TEST_F(StateTreeTest, Walk) {
   EXPECT_TRUE(walk.next(key, value));
   EXPECT_TRUE(walk.empty());
   uint64_t id2{};
-  std::string_view code2;
+  ActorCodeCid code2;
   const CbCid *head2;
   EXPECT_TRUE(codec::cbor::light_reader::readIdAddress(id2, key));
   EXPECT_EQ(id2, 1);

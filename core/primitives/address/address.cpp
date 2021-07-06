@@ -116,10 +116,6 @@ namespace fc::primitives::address {
     return lhs.data == rhs.data;
   }
 
-  bool operator!=(const Address &lhs, const Address &rhs) {
-    return !(lhs == rhs);
-  }
-
   bool operator<(const Address &lhs, const Address &rhs) {
     return less(lhs.getProtocol(), rhs.getProtocol(), lhs.data, rhs.data);
   }

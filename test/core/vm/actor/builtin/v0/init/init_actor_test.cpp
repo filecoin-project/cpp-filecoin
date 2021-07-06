@@ -12,7 +12,7 @@
 #include "const.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/codes.hpp"
 
 namespace fc::vm::actor::builtin::v0::init {
   using actor::kConstructorMethodNumber;
