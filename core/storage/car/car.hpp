@@ -11,7 +11,6 @@
 #include "storage/ipld/selector.hpp"
 
 namespace fc::storage::car {
-  using Ipld = ipfs::IpfsDatastore;
   using Input = gsl::span<const uint8_t>;
   using common::Buffer;
   using ipld::Selector;

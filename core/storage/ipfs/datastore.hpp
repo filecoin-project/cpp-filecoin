@@ -9,6 +9,7 @@
 
 #include "codec/cbor/cbor_codec.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
+#include "vm/actor/version.hpp"
 
 namespace fc::primitives::block {
   struct BlockHeader;
@@ -16,8 +17,7 @@ namespace fc::primitives::block {
 
 namespace fc::storage::ipfs {
 
-  class IpfsDatastore {
-   public:
+  struct IpfsDatastore : vm::actor::WithActorVersion {
     using Value = common::Buffer;
 
     virtual ~IpfsDatastore() = default;
@@ -77,7 +77,14 @@ namespace fc::storage::ipfs {
 
     template <typename T>
     outcome::result<T> decode(gsl::span<const uint8_t> input) const {
-      OUTCOME_TRY(value, codec::cbor::decode<T>(input));
+      T value{};
+      WithActorVersion::set(value, *this);
+      try {
+        codec::cbor::CborDecodeStream s{input};
+        s >> value;
+      } catch (std::system_error &e) {
+        return outcome::failure(e.code());
+      }
       load(value);
       return std::move(value);
     }

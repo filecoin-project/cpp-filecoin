@@ -5,35 +5,22 @@
 
 #pragma once
 
-#include <boost/operators.hpp>
-
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/version.hpp"
 #include "vm/version/version.hpp"
 
 namespace fc::vm::actor {
-
   using fc::common::Buffer;
   using primitives::BigInt;
   using primitives::Nonce;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using version::NetworkVersion;
-
-  /**
-   * Actor version
-   */
-  enum class ActorVersion {
-    kVersion0 = 0,
-    kVersion2 = 2,
-    kVersion3 = 3,
-    kVersion4 = 4,
-    kVersion5 = 5,
-  };
 
   /**
    * Consider MethodNum numbers to be similar in concerns as for offsets in

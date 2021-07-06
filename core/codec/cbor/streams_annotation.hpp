@@ -17,15 +17,15 @@
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>> \
   Stream &operator>>(Stream &&s, type &var)
 
-#define CBOR2_DECODE(type)                       \
+#define CBOR2_DECODE(...)                       \
   fc::codec::cbor::CborDecodeStream &operator>>( \
-      fc::codec::cbor::CborDecodeStream &s, type &v)
-#define CBOR2_ENCODE(type)                       \
+      fc::codec::cbor::CborDecodeStream &s, __VA_ARGS__ &v)
+#define CBOR2_ENCODE(...)                       \
   fc::codec::cbor::CborEncodeStream &operator<<( \
-      fc::codec::cbor::CborEncodeStream &s, const type &v)
-#define CBOR2_DECODE_ENCODE(type) \
-  CBOR2_DECODE(type);             \
-  CBOR2_ENCODE(type);
+      fc::codec::cbor::CborEncodeStream &s, const __VA_ARGS__ &v)
+#define CBOR2_DECODE_ENCODE(__VA_ARGS__) \
+  CBOR2_DECODE(__VA_ARGS__);             \
+  CBOR2_ENCODE(__VA_ARGS__);
 
 #define _CBOR_TUPLE_1(op, m) op t.m
 #define _CBOR_TUPLE_2(op, m, ...) \

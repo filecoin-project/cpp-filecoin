@@ -10,6 +10,7 @@
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/runtime/env.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
   using E = fc::vm::interpreter::InterpreterError;
@@ -77,6 +78,11 @@ namespace fc::vm::interpreter {
     }
 
     auto env = std::make_shared<Env>(env_context_, ts_branch, tipset);
+    auto setActorVersion{[&] {
+      env->ipld->actor_version =
+          toolchain::Toolchain::getActorVersionForNetwork(
+              version::getNetworkVersion(env->epoch));
+    }};
 
     auto cron{[&]() -> outcome::result<void> {
       OUTCOME_TRY(receipt,
@@ -102,10 +108,13 @@ namespace fc::vm::interpreter {
       for (auto epoch{parent->height() + 1}; epoch < tipset->height();
            ++epoch) {
         env->epoch = epoch;
+        setActorVersion();
         OUTCOME_TRY(cron());
       }
       env->epoch = tipset->height();
     }
+    
+    setActorVersion();
 
     adt::Array<MessageReceipt> receipts{ipld};
     MessageVisitor message_visitor{ipld, true, true};
