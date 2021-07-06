@@ -6,9 +6,10 @@
 #pragma once
 
 #include "common/outcome.hpp"
-#include "primitives/cid/cid.hpp"
+#include "storage/ipfs/datastore.hpp"
 
-namespace fc::adt::universal {
+namespace fc::vm::actor::builtin::types {
+  using vm::actor::ActorVersion;
 
   /**
    * Universal type is destined for general work with actor's types which are
@@ -18,37 +19,60 @@ namespace fc::adt::universal {
    * Base class: T
    * Inheritors: Tv0, Tv2, Tv3 ... TvN
    *
-   * Where T is the common type with all fields of all versions (could be
-   * abstract). And Tv0 - TvN are implementations of this type for each of
-   * actor's version.
+   * Where T is the common type with all fields of all versions. And Tv0 - TvN
+   * are implementations of this type for each of actor's version with CBOR.
    */
   template <typename T>
-  class Universal {
+  class Universal : vm::actor::WithActorVersion {
    public:
-    virtual ~Universal() = default;
+    Universal() = default;
+    Universal(ActorVersion v) : WithActorVersion{v}, object{make(v)} {}
 
-    /**
-     * Loads an object from ipld.
-     * Must be called before get() or set().
-     */
-    virtual outcome::result<void> load() = 0;
+    static std::shared_ptr<T> make(ActorVersion v);
+    codec::cbor::CborDecodeStream &decode(codec::cbor::CborDecodeStream &s);
+    codec::cbor::CborEncodeStream &encode(
+        codec::cbor::CborEncodeStream &s) const;
+    void load(Ipld &ipld);
+    outcome::result<void> flush();
 
-    /**
-     * Returns the pointer to the common object.
-     * @returns pointer to the object
-     */
-    virtual std::shared_ptr<T> get() const = 0;
+    T *operator->() const {
+      return object.get();
+    }
 
-    /**
-     * Sets the object to ipld.
-     */
-    virtual outcome::result<CID> set() = 0;
+    T &operator*() const {
+      return *object;
+    }
 
-    /**
-     * Returns the actual CID of the object in ipld.
-     * @returns CID
-     */
-    virtual const CID &getCid() const = 0;
+   private:
+    std::shared_ptr<T> object;
   };
 
-}  // namespace fc::adt::universal
+  template <typename T>
+  CBOR2_DECODE(Universal<T>) {
+    v.object = v.make(v.actor_version);
+    return v.decode(s);
+  }
+
+  template <typename T>
+  CBOR2_ENCODE(Universal<T>) {
+    return v.encode(s);
+  }
+}  // namespace fc::vm::actor::builtin::types
+
+namespace fc {
+  template <typename T>
+  struct Ipld::Load<vm::actor::builtin::types::Universal<T>> {
+    static void call(Ipld &ipld,
+                     vm::actor::builtin::types::Universal<T> &universal) {
+      universal.load(ipld);
+    }
+  };
+
+  template <typename T>
+  struct Ipld::Flush<vm::actor::builtin::types::Universal<T>> {
+    static outcome::result<void> call(
+        vm::actor::builtin::types::Universal<T> &universal) {
+      return universal.flush();
+    }
+  };
+}  // namespace fc
