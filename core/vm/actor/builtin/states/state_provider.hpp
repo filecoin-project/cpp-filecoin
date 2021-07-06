@@ -76,7 +76,8 @@ namespace fc::vm::actor::builtin::states {
               typename Tv0,
               typename Tv2,
               typename Tv3,
-              typename Tv4 = void>
+              typename Tv4 = void,
+              typename Tv5 = void>
     outcome::result<std::shared_ptr<T>> getCommonStatePtr(
         const Actor &actor) const {
       const auto version = getVersion(actor.code);
@@ -100,6 +101,14 @@ namespace fc::vm::actor::builtin::states {
             TODO_ACTORS_V4();
           } else {
             OUTCOME_TRYA(state, getStatePtr<Tv4>(actor.head));
+          }
+          break;
+        }
+        case ActorVersion::kVersion5: {
+          if constexpr (std::is_same_v<Tv5, void>) {
+            TODO_ACTORS_V5();
+          } else {
+            OUTCOME_TRYA(state, getStatePtr<Tv5>(actor.head));
           }
           break;
         }

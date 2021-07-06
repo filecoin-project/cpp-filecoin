@@ -11,3 +11,7 @@
 #define TODO_ACTORS_V4()                            \
   throw std::logic_error("TODO_ACTORS_V4 " __FILE__ \
                          ":" BOOST_PP_STRINGIZE(__LINE__))
+
+#define TODO_ACTORS_V5()                            \
+  throw std::logic_error("TODO_ACTORS_V5 " __FILE__ \
+                         ":" BOOST_PP_STRINGIZE(__LINE__))

@@ -120,6 +120,8 @@ int main(int argc, char **argv) {
                 spdlog::error("receipts differ");
                 exit(EXIT_FAILURE);
               }
+            } else {
+              spdlog::warn("no child");
             }
           } else {
             spdlog::error("interpret {:#}", _res.error());

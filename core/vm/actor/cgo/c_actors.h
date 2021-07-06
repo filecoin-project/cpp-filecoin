@@ -19,6 +19,7 @@ Raw gocRtRandomnessFromBeacon(Raw);
 Raw gocRtBlake(Raw);
 Raw gocRtVerifyPost(Raw);
 Raw gocRtVerifySeals(Raw);
+Raw gocRtVerifyAggregateSeals(Raw);
 Raw gocRtActorId(Raw);
 Raw gocRtSend(Raw);
 Raw gocRtVerifySig(Raw);

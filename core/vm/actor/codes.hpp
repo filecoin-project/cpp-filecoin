@@ -57,6 +57,18 @@ namespace fc::vm::actor::code {
   constexpr Code reward4{"fil/4/reward"};
   constexpr Code system4{"fil/4/system"};
   constexpr Code verifreg4{"fil/4/verifiedregistry"};
+
+  constexpr Code account5{"fil/5/account"};
+  constexpr Code cron5{"fil/5/cron"};
+  constexpr Code power5{"fil/5/storagepower"};
+  constexpr Code market5{"fil/5/storagemarket"};
+  constexpr Code miner5{"fil/5/storageminer"};
+  constexpr Code multisig5{"fil/5/multisig"};
+  constexpr Code init5{"fil/5/init"};
+  constexpr Code paych5{"fil/5/paymentchannel"};
+  constexpr Code reward5{"fil/5/reward"};
+  constexpr Code system5{"fil/5/system"};
+  constexpr Code verifreg5{"fil/5/verifiedregistry"};
 }  // namespace fc::vm::actor::code
 
 #define VM_ACTOR_BUILTIN_V_CODE(V)                             \
@@ -77,4 +89,5 @@ VM_ACTOR_BUILTIN_V_CODE(0)
 VM_ACTOR_BUILTIN_V_CODE(2)
 VM_ACTOR_BUILTIN_V_CODE(3)
 VM_ACTOR_BUILTIN_V_CODE(4)
+VM_ACTOR_BUILTIN_V_CODE(5)
 #undef VM_ACTOR_BUILTIN_V_CODE

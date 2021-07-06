@@ -25,9 +25,17 @@ namespace fc::vm::actor {
     auto message =
         UnsignedMessage{kInitAddress, kInitAddress, {}, {}, {}, {}, {}, {}};
     auto runtime = std::make_shared<MockRuntime>();
+    auto ts{std::make_shared<primitives::tipset::Tipset>()};
+    ts->blks.emplace_back();
+    auto execution{std::make_shared<Execution>()};
+    execution->env =
+        std::make_shared<Env>(runtime::EnvironmentContext{}, nullptr, ts);
+
     InvokerImpl invoker;
 
     // Error on wrong actor
+    EXPECT_CALL(*runtime, execution())
+        .WillRepeatedly(testing::Return(execution));
     EXPECT_CALL(*runtime, getMessage()).WillOnce(testing::Return(message));
     EXPECT_CALL(*runtime, getCurrentEpoch())
         .WillOnce(testing::Return(ChainEpoch{}));

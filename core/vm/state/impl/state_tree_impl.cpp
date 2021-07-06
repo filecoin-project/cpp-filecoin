@@ -171,4 +171,14 @@ namespace fc::vm::state {
     version_ = StateTreeVersion::kVersion0;
     by_id = {root, store_};
   }
+
+  /**
+   * Compiler: "Apple clang version 12.0.0".
+   * "std::make_shared<StateTreeImpl>" in "primitives/tipset/tipset.cpp"
+   * produced object code with undefined symbols related to "std::shared_ptr"
+   * internals. This workaround defines these missing symbols.
+   */
+  [[maybe_unused]] auto workaround_makeShared_StateTreeImpl(StateTreeImpl &&r) {
+    return std::make_shared<StateTreeImpl>(std::move(r));
+  }
 }  // namespace fc::vm::state

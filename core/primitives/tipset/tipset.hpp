@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "fwd.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
@@ -53,6 +54,7 @@ namespace fc::primitives::tipset {
     std::set<CID> visited;
     std::map<Address, uint64_t> nonces;
     size_t index{};
+    std::shared_ptr<vm::state::StateTreeImpl> state_tree;
   };
 
   struct Tipset;

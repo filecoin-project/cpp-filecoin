@@ -31,6 +31,8 @@ namespace fc::vm::actor::builtin::types {
             runtime.getIpfsDatastore(), expirations_epochs, quant);
       case ActorVersion::kVersion4:
         TODO_ACTORS_V4();
+      case ActorVersion::kVersion5:
+        TODO_ACTORS_V5();
     }
   }
 

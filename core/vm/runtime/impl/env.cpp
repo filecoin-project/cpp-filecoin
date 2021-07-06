@@ -191,7 +191,8 @@ namespace fc::vm::runtime {
       used = 0;
     }
     auto no_fee{false};
-    if (static_cast<ChainEpoch>(epoch) > kUpgradeClausHeight
+    if (getNetworkVersion(epoch) <= NetworkVersion::kVersion12
+        && static_cast<ChainEpoch>(epoch) > kUpgradeClausHeight
         && exit_code == VMExitCode::kOk
         && message.method
                == vm::actor::builtin::v0::miner::SubmitWindowedPoSt::Number) {
@@ -329,6 +330,7 @@ namespace fc::vm::runtime {
     } else {
       to_actor = maybe_to_actor.value();
     }
+    dvm::onSendTo(to_actor.code);
     OUTCOME_TRY(catchAbort(chargeGas(
         env->pricelist.onMethodInvocation(message.value, message.method))));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
