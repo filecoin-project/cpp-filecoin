@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "fwd.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
@@ -43,6 +44,10 @@ namespace fc::primitives::tipset {
                                                         const CID &,
                                                         SignedMessage *smsg,
                                                         UnsignedMessage *msg)>;
+    MessageVisitor(const MessageVisitor &) = delete;
+    MessageVisitor(MessageVisitor &&) = delete;
+    ~MessageVisitor();
+
     MessageVisitor(IpldPtr ipld, bool nonce, bool load)
         : ipld{ipld}, nonce{nonce}, load{load || nonce} {}
     outcome::result<void> visit(const BlockHeader &block,
@@ -53,6 +58,12 @@ namespace fc::primitives::tipset {
     std::set<CID> visited;
     std::map<Address, uint64_t> nonces;
     size_t index{};
+    /**
+     * TODO(turuslan): Using "std::shared_ptr" produced object code with
+     * "undefined symbols" to "std::shared_ptr" internal implementation. Build
+     * failed because linker couldn't resolve these symbols.
+     */
+    vm::state::StateTreeImpl *state_tree{nullptr};
   };
 
   struct Tipset;

@@ -10,24 +10,19 @@
 #include "codec/cbor/light_reader/cid.hpp"
 #include "common/error_text.hpp"
 #include "common/outcome.hpp"
-#include "vm/actor/actor.hpp"
 
 namespace fc::codec::cbor::light_reader {
-  using vm::actor::ActorVersion;
-
   /**
    * Extracts miner_info, sectors, and deadlines CID from CBORed
    * Miner actor state.
    * @param ipld - lightweight ipld
    * @param state_root - Miner actor state root
-   * @param actor_version - Miner actor version
+   * @param v0 - Miner actor version 0
    * @return tuple of CIDs (miner_info, sectors, deadlines) on success,
    * otherwise false
    */
   outcome::result<std::tuple<CbCid, CbCid, CbCid>> readMinerActorInfo(
-      const CbIpldPtr &ipld,
-      const CbCid &state_root,
-      ActorVersion actor_version) {
+      const CbIpldPtr &ipld, const CbCid &state_root, bool v0) {
     const static auto kParseError =
         ERROR_TEXT("MinerActor compression: CBOR parsing error");
 
@@ -59,7 +54,7 @@ namespace fc::codec::cbor::light_reader {
       return kParseError;
     }
     // fee_debt for actor version > 0
-    if (actor_version != ActorVersion::kVersion0) {
+    if (!v0) {
       if (!readNested(nested, input)) {
         return kParseError;
       }

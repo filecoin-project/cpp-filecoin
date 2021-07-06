@@ -10,23 +10,19 @@
 #include "codec/cbor/light_reader/cid.hpp"
 #include "common/error_text.hpp"
 #include "common/outcome.hpp"
-#include "vm/actor/actor.hpp"
 
 namespace fc::codec::cbor::light_reader {
-  using vm::actor::ActorVersion;
-
   /**
    * Extracts claims CID from CBORed StoragePower actor state.
    * @param ipld - Light Ipld
    * @param state_root - hash256 from StoragePower actor state root CID
-   * @param actor_version - StoragePower actor version
+   * @param v0 - StoragePower actor version 0
    * returns claims - hash256 from claims HAMT root CID on success, otherwise
    * error
    */
-  outcome::result<CbCid> readStoragePowerActorClaims(
-      const CbIpldPtr &ipld,
-      const CbCid &state_root,
-      ActorVersion actor_version) {
+  outcome::result<CbCid> readStoragePowerActorClaims(const CbIpldPtr &ipld,
+                                                     const CbCid &state_root,
+                                                     bool v0) {
     const static auto kParseError =
         ERROR_TEXT("StoragePowerActor compression: CBOR parsing error");
 
@@ -42,7 +38,7 @@ namespace fc::codec::cbor::light_reader {
     if (!skipNested(input, 13)) {
       return kParseError;
     }
-    if (actor_version == ActorVersion::kVersion0) {
+    if (v0) {
       if (!skipNested(input, 1)) {
         return kParseError;
       }

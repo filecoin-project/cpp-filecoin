@@ -21,7 +21,6 @@ namespace fc::codec::cbor::light_reader {
   using primitives::sector::RegisteredSealProof;
   using storage::ipfs::InMemoryDatastore;
   using storage::ipfs::IpfsDatastore;
-  using vm::actor::ActorVersion;
   using vm::actor::builtin::states::ChainEpochKeyer;
   using vm::actor::builtin::states::State;
   using vm::actor::builtin::states::storage_power::ClaimV0;
@@ -75,9 +74,7 @@ namespace fc::codec::cbor::light_reader {
     CID expected_sectors = state.sectors.amt.cid();
     CID expected_deadlines = state.deadlines;
     EXPECT_OUTCOME_TRUE(
-        actual,
-        readMinerActorInfo(
-            light_ipld, *asBlake(state_root), ActorVersion::kVersion0));
+        actual, readMinerActorInfo(light_ipld, *asBlake(state_root), true));
     const auto [actual_miner_info, actual_sectors, actual_deadlines] = actual;
     EXPECT_EQ(*asBlake(expected_miner_info), actual_miner_info);
     EXPECT_EQ(*asBlake(expected_sectors), actual_sectors);
@@ -98,9 +95,7 @@ namespace fc::codec::cbor::light_reader {
     CID expected_sectors = state.sectors.amt.cid();
     CID expected_deadlines = state.deadlines;
     EXPECT_OUTCOME_TRUE(
-        actual,
-        readMinerActorInfo(
-            light_ipld, *asBlake(state_root), ActorVersion::kVersion2));
+        actual, readMinerActorInfo(light_ipld, *asBlake(state_root), false));
     const auto [actual_miner_info, actual_sectors, actual_deadlines] = actual;
     EXPECT_EQ(*asBlake(expected_miner_info), actual_miner_info);
     EXPECT_EQ(*asBlake(expected_sectors), actual_sectors);
@@ -126,8 +121,7 @@ namespace fc::codec::cbor::light_reader {
     auto expected = state.claims0.hamt.cid();
     EXPECT_OUTCOME_TRUE(
         actual,
-        readStoragePowerActorClaims(
-            light_ipld, *asBlake(state_root), ActorVersion::kVersion0));
+        readStoragePowerActorClaims(light_ipld, *asBlake(state_root), true));
     EXPECT_EQ(*asBlake(expected), actual);
   }
 
@@ -151,8 +145,7 @@ namespace fc::codec::cbor::light_reader {
     auto expected = state.claims2.hamt.cid();
     EXPECT_OUTCOME_TRUE(
         actual,
-        readStoragePowerActorClaims(
-            light_ipld, *asBlake(state_root), ActorVersion::kVersion2));
+        readStoragePowerActorClaims(light_ipld, *asBlake(state_root), false));
     EXPECT_EQ(*asBlake(expected), actual);
   }
 
