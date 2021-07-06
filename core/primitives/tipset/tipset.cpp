@@ -56,6 +56,13 @@ namespace fc::primitives::tipset {
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
+  MessageVisitor::~MessageVisitor() {
+    if (state_tree) {
+      delete state_tree;
+      state_tree = nullptr;
+    }
+  }
+
   outcome::result<void> MessageVisitor::visit(const BlockHeader &block,
                                               const Visitor &visitor) {
     const auto lookupId{(ChainEpoch)block.height >= kUpgradeHyperdriveHeight};
@@ -75,8 +82,8 @@ namespace fc::primitives::tipset {
           auto from{&msg.from};
           if (lookupId && !from->isId()) {
             if (!state_tree) {
-              state_tree = std::make_shared<vm::state::StateTreeImpl>(
-                  ipld, block.parent_state_root);
+              vm::state::StateTreeImpl impl{ipld, block.parent_state_root};
+              state_tree = new vm::state::StateTreeImpl{std::move(impl)};
             }
             OUTCOME_TRYA(id, state_tree->lookupId(*from));
             from = &id;
