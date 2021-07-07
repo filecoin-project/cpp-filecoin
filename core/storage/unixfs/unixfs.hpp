@@ -8,8 +8,6 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::unixfs {
-  using Ipld = ipfs::IpfsDatastore;
-
   constexpr size_t kMaxLinks = 1024;
   constexpr size_t kChunkSize = 1024;
 

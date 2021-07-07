@@ -20,13 +20,13 @@ namespace fc::vm::actor::builtin::v0::init {
   CBOR_TUPLE(InitActorState, address_map_0, next_id, network_name)
 }  // namespace fc::vm::actor::builtin::v0::init
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::v0::init::InitActorState> {
+  struct CbVisitT<vm::actor::builtin::v0::init::InitActorState> {
     template <typename Visitor>
     static void call(vm::actor::builtin::v0::init::InitActorState &state,
                      const Visitor &visit) {
       visit(state.address_map_0);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

@@ -68,7 +68,7 @@ namespace fc::vm::actor::builtin::states {
 
     template <typename T>
     outcome::result<std::shared_ptr<T>> getStatePtr(const CID &head) const {
-      OUTCOME_TRY(state, ipld->getCbor<T>(head));
+      OUTCOME_TRY(state, getCbor<T>(ipld, head));
       return std::make_shared<T>(state);
     }
 

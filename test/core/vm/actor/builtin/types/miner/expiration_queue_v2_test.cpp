@@ -24,7 +24,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   struct ExpirationQueueTestV2 : testing::Test {
     void SetUp() override {
       eq.quant = types::miner::kNoQuantization;
-      ipld->load(eq);
+      cbor_blake::cbLoadT(ipld, eq);
 
       sectors = {testSector(2, 1, 50, 60, 1000),
                  testSector(3, 2, 51, 61, 1001),

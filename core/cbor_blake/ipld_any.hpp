@@ -11,7 +11,7 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc {
-  struct CbAsAnyIpld : Ipld, std::enable_shared_from_this<CbAsAnyIpld> {
+  struct CbAsAnyIpld : Ipld {
     CbIpldPtr ipld;
 
     CbAsAnyIpld(CbIpldPtr ipld) : ipld{std::move(ipld)} {}
@@ -36,9 +36,6 @@ namespace fc {
         }
       }
       return storage::ipfs::IpfsDatastoreError::kNotFound;
-    }
-    IpldPtr shared() override {
-      return shared_from_this();
     }
   };
 

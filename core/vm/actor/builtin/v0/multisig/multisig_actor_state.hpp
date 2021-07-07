@@ -26,9 +26,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
 }  // namespace fc::vm::actor::builtin::v0::multisig
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::v0::multisig::MultisigActorState> {
+  struct CbVisitT<vm::actor::builtin::v0::multisig::MultisigActorState> {
     template <typename Visitor>
     static void call(
         vm::actor::builtin::v0::multisig::MultisigActorState &state,
@@ -36,4 +36,4 @@ namespace fc {
       visit(state.pending_transactions);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

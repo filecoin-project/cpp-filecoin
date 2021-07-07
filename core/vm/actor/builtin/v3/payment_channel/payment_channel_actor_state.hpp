@@ -22,9 +22,9 @@ namespace fc::vm::actor::builtin::v3::payment_channel {
              lanes)
 }  // namespace fc::vm::actor::builtin::v3::payment_channel
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<
+  struct CbVisitT<
       vm::actor::builtin::v3::payment_channel::PaymentChannelActorState> {
     template <typename Visitor>
     static void call(
@@ -34,4 +34,4 @@ namespace fc {
       visit(state.lanes);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

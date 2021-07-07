@@ -709,8 +709,8 @@ namespace fc::storage::mpool {
     if (message.signature.isBls()) {
       bls_cache.emplace(message.getCid(), message.signature);
     }
-    OUTCOME_TRY(ipld->setCbor(message));
-    OUTCOME_TRY(ipld->setCbor(message.message));
+    OUTCOME_TRY(setCbor(ipld, message));
+    OUTCOME_TRY(setCbor(ipld, message.message));
     mpool::add(by_from, message);
     signal({MpoolUpdate::Type::ADD, message});
     return outcome::success();

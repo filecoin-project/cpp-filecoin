@@ -105,22 +105,23 @@ struct Sample2 {
 CBOR_TUPLE(Sample2, i)
 
 TEST(CarTest, Writer) {
-  InMemoryDatastore ipld1;
+  using fc::setCbor;
+  auto ipld1{std::make_shared<InMemoryDatastore>()};
   Sample2 obj2{2}, obj3{3};
-  EXPECT_OUTCOME_TRUE(cid2, ipld1.setCbor(obj2));
-  EXPECT_OUTCOME_TRUE(cid3, ipld1.setCbor(obj3));
+  EXPECT_OUTCOME_TRUE(cid2, setCbor(ipld1, obj2));
+  EXPECT_OUTCOME_TRUE(cid3, setCbor(ipld1, obj3));
   Sample1 obj1{{cid2}, {{"a", cid3}}};
-  EXPECT_OUTCOME_TRUE(root, ipld1.setCbor(obj1));
-  EXPECT_OUTCOME_TRUE(car, makeCar(ipld1, {root}));
+  EXPECT_OUTCOME_TRUE(root, setCbor(ipld1, obj1));
+  EXPECT_OUTCOME_TRUE(car, makeCar(*ipld1, {root}));
 
   InMemoryDatastore ipld2;
   EXPECT_OUTCOME_TRUE(roots, loadCar(ipld2, car));
   EXPECT_THAT(roots, testing::ElementsAre(root));
-  EXPECT_OUTCOME_TRUE(raw1, ipld1.get(root));
+  EXPECT_OUTCOME_TRUE(raw1, ipld1->get(root));
   EXPECT_OUTCOME_EQ(ipld2.get(root), raw1);
-  EXPECT_OUTCOME_TRUE(raw2, ipld1.get(cid2));
+  EXPECT_OUTCOME_TRUE(raw2, ipld1->get(cid2));
   EXPECT_OUTCOME_EQ(ipld2.get(cid2), raw2);
-  EXPECT_OUTCOME_TRUE(raw3, ipld1.get(cid3));
+  EXPECT_OUTCOME_TRUE(raw3, ipld1->get(cid3));
   EXPECT_OUTCOME_EQ(ipld2.get(cid3), raw3);
 }
 

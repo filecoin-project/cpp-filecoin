@@ -730,7 +730,7 @@ namespace fc::mining {
         return codec::cbor::encode(actor_state);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state.allocated_sectors) {

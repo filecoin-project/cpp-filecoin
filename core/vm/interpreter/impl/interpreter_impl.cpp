@@ -148,7 +148,7 @@ namespace fc::vm::interpreter {
     OUTCOME_TRY(new_state_root, env->state_tree->flush());
     OUTCOME_TRY(env->ipld->flush(new_state_root));
 
-    OUTCOME_TRY(Ipld::flush(receipts));
+    OUTCOME_TRY(receipts.amt.flush());
 
     OUTCOME_TRY(weight, getWeight(tipset));
 

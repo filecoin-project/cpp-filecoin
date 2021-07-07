@@ -31,7 +31,7 @@ namespace fc::vm::actor::builtin::types {
       auto eq = std::make_shared<T>();
       eq->queue = expirations_epochs;
       eq->quant = quant;
-      ipld->load(*eq);
+      cbor_blake::cbLoadT(ipld, *eq);
       return eq;
     }
   };

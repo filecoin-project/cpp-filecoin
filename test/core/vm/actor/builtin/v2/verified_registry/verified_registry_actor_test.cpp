@@ -30,16 +30,16 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
       EXPECT_CALL(*state_manager, createVerifiedRegistryActorState(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<VerifiedRegistryActorState>();
-            ipld->load(*s);
+            cbor_blake::cbLoadT(ipld, *s);
             return std::static_pointer_cast<states::VerifiedRegistryActorState>(
                 s);
           }));
 
       EXPECT_CALL(*state_manager, getVerifiedRegistryActorState())
           .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
             EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<VerifiedRegistryActorState>(cid));
+                                getCbor<VerifiedRegistryActorState>(ipld, cid));
             auto s =
                 std::make_shared<VerifiedRegistryActorState>(current_state);
             return std::static_pointer_cast<states::VerifiedRegistryActorState>(
@@ -48,7 +48,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     }
 
     void setupState() {
-      ipld->load(state);
+      cbor_blake::cbLoadT(ipld, state);
       state.root_key = root_key;
     }
 
