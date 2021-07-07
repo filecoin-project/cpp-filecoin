@@ -17,9 +17,7 @@ namespace fc::storage::ipfs {
    * @class LeveldbDatastore IpfsDatastore implementation based on LevelDB
    * database wrapper
    */
-  class LeveldbDatastore
-      : public IpfsDatastore,
-        public std::enable_shared_from_this<LeveldbDatastore> {
+  class LeveldbDatastore : public Ipld {
    public:
     /**
      * @brief convenience function to encode value
@@ -50,10 +48,6 @@ namespace fc::storage::ipfs {
     outcome::result<void> set(const CID &key, Value value) override;
 
     outcome::result<Value> get(const CID &key) const override;
-
-    IpldPtr shared() override {
-      return shared_from_this();
-    }
 
    private:
     std::shared_ptr<BufferMap> leveldb_;  ///< underlying db wrapper

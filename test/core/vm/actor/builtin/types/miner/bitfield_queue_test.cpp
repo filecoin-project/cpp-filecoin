@@ -14,8 +14,8 @@ namespace fc::vm::actor::builtin::types::miner {
 
   struct BitfieldQueueTest : testing::Test {
     void SetUp() override {
-      ipld->load(expected);
-      ipld->load(queue);
+      cbor_blake::cbLoadT(ipld, expected);
+      cbor_blake::cbLoadT(ipld, queue);
     }
 
     std::shared_ptr<InMemoryDatastore> ipld{

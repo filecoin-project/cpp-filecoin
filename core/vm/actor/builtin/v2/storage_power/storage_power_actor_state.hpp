@@ -47,9 +47,9 @@ namespace fc::vm::actor::builtin::v2::storage_power {
 
 }  // namespace fc::vm::actor::builtin::v2::storage_power
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::v2::storage_power::PowerActorState> {
+  struct CbVisitT<vm::actor::builtin::v2::storage_power::PowerActorState> {
     template <typename Visitor>
     static void call(
         vm::actor::builtin::v2::storage_power::PowerActorState &state,
@@ -61,4 +61,4 @@ namespace fc {
       }
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

@@ -12,9 +12,7 @@
 namespace fc::vm::actor::builtin::v2::storage_power {
   using types::storage_power::kConsensusMinerMinPower;
 
-  outcome::result<Buffer> PowerActorState::toCbor() const {
-    return Ipld::encode(*this);
-  }
+  ACTOR_STATE_TO_CBOR_THIS(PowerActorState)
 
   std::shared_ptr<states::PowerActorState> PowerActorState::copy() const {
     auto copy = std::make_shared<PowerActorState>(*this);

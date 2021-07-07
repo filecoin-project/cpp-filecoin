@@ -51,9 +51,9 @@ namespace fc::vm::actor::builtin::v2::market {
   struct MarketActorTest : public MarketActorTestFixture<MarketActorState> {
     void SetUp() override {
       MarketActorTestFixture<MarketActorState>::SetUp();
-      ipld->load(state);
       actor_version = ActorVersion::kVersion2;
       ipld->actor_version = actor_version;
+      cbor_blake::cbLoadT(ipld, state);
 
       addressCodeIdIs(miner_address, kStorageMinerCodeId);
       addressCodeIdIs(owner_address, kAccountCodeId);

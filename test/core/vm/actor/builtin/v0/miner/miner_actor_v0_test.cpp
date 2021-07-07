@@ -33,7 +33,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       actor_version = ActorVersion::kVersion0;
       ipld->actor_version = actor_version;
       anyCodeIdAddressIs(kAccountCodeId);
-      ipld->load(state);
+      cbor_blake::cbLoadT(ipld, state);
     }
 
     void expectEnrollCronEvent(ChainEpoch event_epoch,
@@ -143,11 +143,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(state.proving_period_start, proving_period_start);
     EXPECT_EQ(state.current_deadline, 0);
 
-    EXPECT_OUTCOME_TRUE(deadlines, ipld->getCbor<Deadlines>(state.deadlines));
+    EXPECT_OUTCOME_TRUE(deadlines, state.deadlines.get());
     EXPECT_EQ(deadlines.due.size(), kWPoStPeriodDeadlines);
 
     for (const auto &deadline_cid : deadlines.due) {
-      EXPECT_OUTCOME_TRUE(deadline, ipld->getCbor<Deadline>(deadline_cid));
+      EXPECT_OUTCOME_TRUE(deadline, getCbor<Deadline>(ipld, deadline_cid));
       EXPECT_OUTCOME_EQ(deadline.partitions.size(), 0);
       EXPECT_OUTCOME_EQ(deadline.expirations_epochs.size(), 0);
       EXPECT_TRUE(deadline.post_submissions.empty());

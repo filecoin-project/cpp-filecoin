@@ -96,10 +96,6 @@ namespace fc::vm::runtime {
     return storage::ipfs::IpfsDatastoreError::kNotFound;
   }
 
-  IpldPtr IpldBuffered::shared() {
-    return shared_from_this();
-  }
-
   Env::Env(const EnvironmentContext &env_context,
            TsBranchPtr ts_branch,
            TipsetCPtr tipset)

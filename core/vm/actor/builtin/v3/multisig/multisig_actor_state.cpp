@@ -8,9 +8,7 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::vm::actor::builtin::v3::multisig {
-  outcome::result<Buffer> MultisigActorState::toCbor() const {
-    return Ipld::encode(*this);
-  }
+  ACTOR_STATE_TO_CBOR_THIS(MultisigActorState)
 
   std::shared_ptr<states::MultisigActorState> MultisigActorState::copy() const {
     auto copy = std::make_shared<MultisigActorState>(*this);

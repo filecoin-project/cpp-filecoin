@@ -8,7 +8,5 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::vm::actor::builtin::v3::cron {
-  outcome::result<Buffer> CronActorState::toCbor() const {
-    return Ipld::encode(*this);
-  }
+  ACTOR_STATE_TO_CBOR_THIS(CronActorState)
 }  // namespace fc::vm::actor::builtin::v3::cron

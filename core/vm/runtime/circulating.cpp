@@ -35,7 +35,7 @@ namespace fc::vm {
   outcome::result<std::shared_ptr<Circulating>> Circulating::make(
       IpldPtr ipld, const CID &genesis) {
     auto circulating{std::make_shared<Circulating>()};
-    OUTCOME_TRY(block, ipld->getCbor<primitives::block::BlockHeader>(genesis));
+    OUTCOME_TRY(block, getCbor<primitives::block::BlockHeader>(ipld, genesis));
     OUTCOME_TRYA(circulating->genesis,
                  getLocked(std::make_shared<state::StateTreeImpl>(
                      ipld, block.parent_state_root)));

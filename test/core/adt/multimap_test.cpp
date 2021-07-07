@@ -80,7 +80,7 @@ TEST_F(MultimapTest, AppendAndVisit) {
  */
 TEST_F(MultimapTest, ReloadFromCid) {
   appendValues();
-  EXPECT_OUTCOME_TRUE_1(fc::Ipld::flush(mmap));
+  EXPECT_OUTCOME_TRUE_1(mmap.hamt.flush());
   mmap = {mmap.hamt.cid(), ipld};
   expectVisitValues();
 }

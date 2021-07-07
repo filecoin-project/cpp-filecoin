@@ -75,8 +75,8 @@ namespace fc::testutil::vm::actor::builtin {
       EXPECT_CALL(*state_manager, commitState(testing::_))
           .WillRepeatedly(testing::Invoke([&](const auto &s) {
             auto temp_state = std::static_pointer_cast<State>(s);
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(*temp_state));
-            EXPECT_OUTCOME_TRUE(new_state, ipld->getCbor<State>(cid));
+            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, *temp_state));
+            EXPECT_OUTCOME_TRUE(new_state, getCbor<State>(ipld, cid));
             state = std::move(new_state);
             return outcome::success();
           }));

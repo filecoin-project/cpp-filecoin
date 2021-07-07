@@ -17,7 +17,7 @@ namespace fc::primitives::tipset {
     std::vector<BlockHeader> blocks;
     blocks.reserve(key.cids().size());
     for (auto &cid : key.cids()) {
-      OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(CID{cid}));
+      OUTCOME_TRY(block, getCbor<BlockHeader>(ipld, CID{cid}));
       blocks.emplace_back(std::move(block));
     }
     return TsLoad::load(std::move(blocks));

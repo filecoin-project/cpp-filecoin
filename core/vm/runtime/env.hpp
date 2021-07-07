@@ -34,15 +34,13 @@ namespace fc::vm::runtime {
                                       const Address &address,
                                       bool allow_actor = true);
 
-  struct IpldBuffered : public Ipld,
-                        public std::enable_shared_from_this<IpldBuffered> {
+  struct IpldBuffered : public Ipld {
     IpldBuffered(IpldPtr ipld);
     outcome::result<void> flush(const CID &root);
 
     outcome::result<bool> contains(const CID &key) const override;
     outcome::result<void> set(const CID &key, Value value) override;
     outcome::result<Value> get(const CID &key) const override;
-    IpldPtr shared() override;
 
     IpldPtr ipld;
     // vm only stores "DAG_CBOR blake2b_256" cids
@@ -100,17 +98,13 @@ namespace fc::vm::runtime {
     size_t actors_created{};
   };
 
-  struct ChargingIpld : public Ipld,
-                        public std::enable_shared_from_this<ChargingIpld> {
+  struct ChargingIpld : public Ipld {
     ChargingIpld(std::weak_ptr<Execution> execution) : execution_{execution} {}
     outcome::result<bool> contains(const CID &key) const override {
       throw "not implemented";
     }
     outcome::result<void> set(const CID &key, Value value) override;
     outcome::result<Value> get(const CID &key) const override;
-    IpldPtr shared() override {
-      return shared_from_this();
-    }
 
     std::weak_ptr<Execution> execution_;
   };

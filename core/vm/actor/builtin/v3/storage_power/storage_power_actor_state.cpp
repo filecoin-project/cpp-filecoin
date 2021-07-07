@@ -8,7 +8,5 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::vm::actor::builtin::v3::storage_power {
-  outcome::result<Buffer> PowerActorState::toCbor() const {
-    return Ipld::encode(*this);
-  }
+  ACTOR_STATE_TO_CBOR_THIS(PowerActorState)
 }  // namespace fc::vm::actor::builtin::v3::storage_power

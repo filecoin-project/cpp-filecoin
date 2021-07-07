@@ -8,6 +8,7 @@
 #include "vm/actor/builtin/states/state.hpp"
 
 #include "adt/array.hpp"
+#include "adt/cid_t.hpp"
 #include "adt/map.hpp"
 #include "adt/uvarint_key.hpp"
 #include "common/outcome.hpp"
@@ -51,7 +52,7 @@ namespace fc::vm::actor::builtin::states {
     TokenAmount locked_funds;
 
     /** VestingFunds (Vesting Funds schedule for the miner). */
-    CIDT<VestingFunds> vesting_funds;
+    adt::CbCidT<VestingFunds> vesting_funds;
 
     /**
      * Absolute value of debt this miner owes from unpaid fees
@@ -76,7 +77,7 @@ namespace fc::vm::actor::builtin::states {
      * Allocated sector IDs. Sector IDs can never be reused once allocated.
      * RleBitset
      */
-    CIDT<RleBitset> allocated_sectors;
+    adt::CbCidT<RleBitset> allocated_sectors;
 
     /**
      * Information for all proven and not-yet-garbage-collected sectors.
@@ -110,7 +111,7 @@ namespace fc::vm::actor::builtin::states {
      * removed at proving period boundary. Faults are not subtracted from this
      * in state, but on the fly.
      */
-    CIDT<Deadlines> deadlines;
+    adt::CbCidT<Deadlines> deadlines;
 
     /** Deadlines with outstanding fees for early sector termination. */
     RleBitset early_terminations;

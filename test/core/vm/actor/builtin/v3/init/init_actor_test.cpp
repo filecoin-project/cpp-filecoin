@@ -25,22 +25,22 @@ namespace fc::vm::actor::builtin::v3::init {
   struct InitActorTest : public ActorTestFixture<InitActorState> {
     void SetUp() override {
       ActorTestFixture<InitActorState>::SetUp();
-      ipld->load(state);
       actor_version = ActorVersion::kVersion3;
       ipld->actor_version = actor_version;
+      cbor_blake::cbLoadT(ipld, state);
 
       EXPECT_CALL(*state_manager, createInitActorState(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<InitActorState>();
-            ipld->load(*s);
+            cbor_blake::cbLoadT(ipld, *s);
             return std::static_pointer_cast<states::InitActorState>(s);
           }));
 
       EXPECT_CALL(*state_manager, getInitActorState())
           .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
             EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<InitActorState>(cid));
+                                getCbor<InitActorState>(ipld, cid));
             auto s = std::make_shared<InitActorState>(current_state);
             return std::static_pointer_cast<states::InitActorState>(s);
           }));

@@ -16,9 +16,7 @@ namespace fc::vm::actor::builtin::v0::reward {
   using primitives::kChainEpochUndefined;
   using namespace types::reward;
 
-  outcome::result<Buffer> RewardActorState::toCbor() const {
-    return Ipld::encode(*this);
-  }
+  ACTOR_STATE_TO_CBOR_THIS(RewardActorState)
 
   void RewardActorState::initialize(
       const StoragePower &current_realized_power) {

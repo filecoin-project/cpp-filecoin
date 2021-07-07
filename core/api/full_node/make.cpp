@@ -243,22 +243,22 @@ namespace fc::api {
       return beaconizer->entry(drand_schedule->maxRound(epoch), cb);
     });
     api->ChainGetBlock = {
-        [=](auto &block_cid) { return ipld->getCbor<BlockHeader>(block_cid); }};
+        [=](auto &block_cid) { return getCbor<BlockHeader>(ipld, block_cid); }};
     api->ChainGetBlockMessages = {
         [=](auto &block_cid) -> outcome::result<BlockMessages> {
           BlockMessages messages;
-          OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
-          OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
+          OUTCOME_TRY(block, getCbor<BlockHeader>(ipld, block_cid));
+          OUTCOME_TRY(meta, getCbor<MsgMeta>(ipld, block.messages));
           OUTCOME_TRY(meta.bls_messages.visit(
               [&](auto, auto &cid) -> outcome::result<void> {
-                OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+                OUTCOME_TRY(message, getCbor<UnsignedMessage>(ipld, cid));
                 messages.bls.push_back(std::move(message));
                 messages.cids.push_back(cid);
                 return outcome::success();
               }));
           OUTCOME_TRY(meta.secp_messages.visit(
               [&](auto, auto &cid) -> outcome::result<void> {
-                OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+                OUTCOME_TRY(message, getCbor<SignedMessage>(ipld, cid));
                 messages.secp.push_back(std::move(message));
                 messages.cids.push_back(cid);
                 return outcome::success();
@@ -278,29 +278,29 @@ namespace fc::api {
       return getNode(ipld, root, gsl::make_span(parts).subspan(3));
     }};
     api->ChainGetMessage = {[=](auto &cid) -> outcome::result<UnsignedMessage> {
-      auto res = ipld->getCbor<SignedMessage>(cid);
+      auto res = getCbor<SignedMessage>(ipld, cid);
       if (!res.has_error()) {
         return res.value().message;
       }
 
-      return ipld->getCbor<UnsignedMessage>(cid);
+      return getCbor<UnsignedMessage>(ipld, cid);
     }};
     api->ChainGetParentMessages = {
         [=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
           std::vector<CidMessage> messages;
-          OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
+          OUTCOME_TRY(block, getCbor<BlockHeader>(ipld, block_cid));
           for (auto &parent_cid : block.parents) {
-            OUTCOME_TRY(parent, ipld->getCbor<BlockHeader>(CID{parent_cid}));
-            OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(parent.messages));
+            OUTCOME_TRY(parent, getCbor<BlockHeader>(ipld, CID{parent_cid}));
+            OUTCOME_TRY(meta, getCbor<MsgMeta>(ipld, parent.messages));
             OUTCOME_TRY(meta.bls_messages.visit(
                 [&](auto, auto &cid) -> outcome::result<void> {
-                  OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+                  OUTCOME_TRY(message, getCbor<UnsignedMessage>(ipld, cid));
                   messages.push_back({cid, std::move(message)});
                   return outcome::success();
                 }));
             OUTCOME_TRY(meta.secp_messages.visit(
                 [&](auto, auto &cid) -> outcome::result<void> {
-                  OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+                  OUTCOME_TRY(message, getCbor<SignedMessage>(ipld, cid));
                   messages.push_back({cid, std::move(message.message)});
                   return outcome::success();
                 }));
@@ -309,7 +309,7 @@ namespace fc::api {
         }};
     api->ChainGetParentReceipts = {
         [=](auto &block_cid) -> outcome::result<std::vector<MessageReceipt>> {
-          OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
+          OUTCOME_TRY(block, getCbor<BlockHeader>(ipld, block_cid));
           return adt::Array<MessageReceipt>{block.parent_message_receipts, ipld}
               .values();
         }};
@@ -522,11 +522,11 @@ namespace fc::api {
       BlockWithCids block2;
       block2.header = block.header;
       for (auto &msg : block.bls_messages) {
-        OUTCOME_TRY(cid, ipld->setCbor(msg));
+        OUTCOME_TRY(cid, setCbor(ipld, msg));
         block2.bls_messages.emplace_back(std::move(cid));
       }
       for (auto &msg : block.secp_messages) {
-        OUTCOME_TRY(cid, ipld->setCbor(msg));
+        OUTCOME_TRY(cid, setCbor(ipld, msg));
         block2.secp_messages.emplace_back(std::move(cid));
       }
       return block2;
@@ -674,10 +674,10 @@ namespace fc::api {
         };
 
         for (const BlockHeader &block : context.tipset->blks) {
-          OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
+          OUTCOME_TRY(meta, getCbor<MsgMeta>(ipld, block.messages));
           OUTCOME_TRY(meta.bls_messages.visit(
               [&](auto, auto &cid) -> outcome::result<void> {
-                OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+                OUTCOME_TRY(message, getCbor<UnsignedMessage>(ipld, cid));
 
                 if (!isDuplicateMessage(cid) && matchFunc(message)) {
                   result.push_back(cid);
@@ -687,7 +687,7 @@ namespace fc::api {
               }));
           OUTCOME_TRY(meta.secp_messages.visit(
               [&](auto, auto &cid) -> outcome::result<void> {
-                OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+                OUTCOME_TRY(message, getCbor<SignedMessage>(ipld, cid));
 
                 if (!isDuplicateMessage(cid) && matchFunc(message.message)) {
                   result.push_back(cid);
@@ -953,14 +953,14 @@ namespace fc::api {
     api->SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
       // TODO(turuslan): chain store must validate blocks before adding
       MsgMeta meta;
-      ipld->load(meta);
+      cbor_blake::cbLoadT(ipld, meta);
       for (auto &cid : block.bls_messages) {
         OUTCOME_TRY(meta.bls_messages.append(cid));
       }
       for (auto &cid : block.secp_messages) {
         OUTCOME_TRY(meta.secp_messages.append(cid));
       }
-      OUTCOME_TRY(messages, ipld->setCbor(meta));
+      OUTCOME_TRY(messages, setCbor(ipld, meta));
       if (block.header.messages != messages) {
         return ERROR_TEXT("SyncSubmitBlock: messages cid doesn't match");
       }
