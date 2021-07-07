@@ -24,7 +24,14 @@ namespace fc::cbor_blake {
 
   template <typename T>
   outcome::result<T> cbDecodeT(CbIpldPtrIn ipld, BytesIn cbor) {
-    OUTCOME_TRY(value, codec::cbor::decode<T>(cbor));
+    T value{};
+    vm::actor::WithActorVersion::set(value, *ipld);
+    try {
+      codec::cbor::CborDecodeStream s{cbor};
+      s >> value;
+    } catch (std::system_error &e) {
+      return outcome::failure(e.code());
+    }
     cbLoadT(ipld, value);
     return std::move(value);
   }

@@ -31,7 +31,7 @@ namespace fc::vm::actor::builtin::types {
     codec::cbor::CborDecodeStream &decode(codec::cbor::CborDecodeStream &s);
     codec::cbor::CborEncodeStream &encode(
         codec::cbor::CborEncodeStream &s) const;
-    void load(Ipld &ipld);
+    void load(const IpldPtr &ipld);
     outcome::result<void> flush();
 
     T *operator->() const {
@@ -57,20 +57,20 @@ namespace fc::vm::actor::builtin::types {
   }
 }  // namespace fc::vm::actor::builtin::types
 
-namespace fc {
+namespace fc::cbor_blake {
   template <typename T>
-  struct Ipld::Load<vm::actor::builtin::types::Universal<T>> {
-    static void call(Ipld &ipld,
+  struct CbLoadT<vm::actor::builtin::types::Universal<T>> {
+    static void call(const IpldPtr &ipld,
                      vm::actor::builtin::types::Universal<T> &universal) {
       universal.load(ipld);
     }
   };
 
   template <typename T>
-  struct Ipld::Flush<vm::actor::builtin::types::Universal<T>> {
+  struct CbFlushT<vm::actor::builtin::types::Universal<T>> {
     static outcome::result<void> call(
         vm::actor::builtin::types::Universal<T> &universal) {
       return universal.flush();
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

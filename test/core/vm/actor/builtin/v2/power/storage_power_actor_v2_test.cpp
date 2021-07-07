@@ -37,6 +37,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     void SetUp() override {
       actor_version = ActorVersion::kVersion2;
       ipld->actor_version = actor_version;
+      cbor_blake::cbLoadT(ipld, state);
 
       EXPECT_CALL(runtime, getActorVersion())
           .WillRepeatedly(testing::Invoke([&]() { return actor_version; }));

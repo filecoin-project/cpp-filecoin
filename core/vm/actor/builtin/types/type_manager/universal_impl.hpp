@@ -57,33 +57,33 @@
       }                                                     \
     }                                                       \
     template <>                                             \
-    void Universal<T>::load(Ipld &ipld) {                   \
+    void Universal<T>::load(const IpldPtr &ipld) {          \
       switch (actor_version) {                              \
         case ActorVersion::kVersion0:                       \
-          return ipld.load((V0 &)*object);                  \
+          return cbor_blake::cbLoadT(ipld, (V0 &)*object);  \
         case ActorVersion::kVersion2:                       \
-          return ipld.load((V2 &)*object);                  \
+          return cbor_blake::cbLoadT(ipld, (V2 &)*object);  \
         case ActorVersion::kVersion3:                       \
-          return ipld.load((V3 &)*object);                  \
+          return cbor_blake::cbLoadT(ipld, (V3 &)*object);  \
         case ActorVersion::kVersion4:                       \
-          return ipld.load((V4 &)*object);                  \
+          return cbor_blake::cbLoadT(ipld, (V4 &)*object);  \
         case ActorVersion::kVersion5:                       \
-          return ipld.load((V5 &)*object);                  \
+          return cbor_blake::cbLoadT(ipld, (V5 &)*object);  \
       }                                                     \
     }                                                       \
     template <>                                             \
     outcome::result<void> Universal<T>::flush() {           \
       switch (actor_version) {                              \
         case ActorVersion::kVersion0:                       \
-          return Ipld::flush((V0 &)*object);                \
+          return cbor_blake::cbFlushT((V0 &)*object);       \
         case ActorVersion::kVersion2:                       \
-          return Ipld::flush((V2 &)*object);                \
+          return cbor_blake::cbFlushT((V2 &)*object);       \
         case ActorVersion::kVersion3:                       \
-          return Ipld::flush((V3 &)*object);                \
+          return cbor_blake::cbFlushT((V3 &)*object);       \
         case ActorVersion::kVersion4:                       \
-          return Ipld::flush((V4 &)*object);                \
+          return cbor_blake::cbFlushT((V4 &)*object);       \
         case ActorVersion::kVersion5:                       \
-          return Ipld::flush((V5 &)*object);                \
+          return cbor_blake::cbFlushT((V5 &)*object);       \
       }                                                     \
     }                                                       \
   }
