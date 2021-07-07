@@ -42,10 +42,11 @@ namespace fc::vm::actor::builtin::v2::multisig {
   class MultisigActorTest : public ::testing::Test {
     void SetUp() override {
       initState();
-      actorVersion = ActorVersion::kVersion2;
+      actor_version = ActorVersion::kVersion2;
+      ipld->actor_version = actor_version;
 
       EXPECT_CALL(runtime, getActorVersion())
-          .WillRepeatedly(testing::Invoke([&]() { return actorVersion; }));
+          .WillRepeatedly(testing::Invoke([&]() { return actor_version; }));
 
       ON_CALL_3(runtime, getIpfsDatastore(), ipld);
 
@@ -162,7 +163,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
     MultisigActorState state{};
 
     StateTreeImpl state_tree{ipld};
-    ActorVersion actorVersion;
+    ActorVersion actor_version;
   };
 
   /**

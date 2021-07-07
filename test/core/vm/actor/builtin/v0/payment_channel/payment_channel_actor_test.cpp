@@ -43,10 +43,11 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   struct PaymentChannelActorTest : testing::Test {
     void SetUp() override {
       ipld->load(state);
-      actorVersion = ActorVersion::kVersion0;
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
 
       EXPECT_CALL(runtime, getActorVersion())
-          .WillRepeatedly(testing::Invoke([&]() { return actorVersion; }));
+          .WillRepeatedly(testing::Invoke([&]() { return actor_version; }));
 
       ON_CALL_3(runtime, getIpfsDatastore(), ipld);
 
@@ -140,7 +141,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     PaymentChannelActorState state;
 
     StateTreeImpl state_tree{ipld};
-    ActorVersion actorVersion;
+    ActorVersion actor_version;
   };
 
   /// PaymentChannelActor Construct error: caller is not init actor

@@ -5,11 +5,18 @@
 
 #include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 
+#include "vm/actor/builtin/types/type_manager/universal_impl.hpp"
+
 #include "vm/actor/builtin/v0/miner/types/expiration.hpp"
 #include "vm/actor/builtin/v2/miner/types/expiration.hpp"
 #include "vm/actor/builtin/v3/miner/types/expiration.hpp"
 
 #include "vm/actor/builtin/v4/todo.hpp"
+
+#include "vm/actor/builtin/types/storage_power/claim.hpp"
+#include "vm/actor/builtin/v0/storage_power/types/claim.hpp"
+#include "vm/actor/builtin/v2/storage_power/types/claim.hpp"
+#include "vm/actor/builtin/v3/storage_power/types/claim.hpp"
 
 namespace fc::vm::actor::builtin::types {
 
@@ -37,3 +44,10 @@ namespace fc::vm::actor::builtin::types {
   }
 
 }  // namespace fc::vm::actor::builtin::types
+
+UNIVERSAL_IMPL(storage_power::Claim,
+               v0::storage_power::Claim,
+               v2::storage_power::Claim,
+               v3::storage_power::Claim,
+               v3::storage_power::Claim,
+               v3::storage_power::Claim)

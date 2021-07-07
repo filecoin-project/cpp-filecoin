@@ -23,8 +23,7 @@ namespace fc::vm::actor::builtin::types {
    * are implementations of this type for each of actor's version with CBOR.
    */
   template <typename T>
-  class Universal : vm::actor::WithActorVersion {
-   public:
+  struct Universal : vm::actor::WithActorVersion {
     Universal() = default;
     Universal(ActorVersion v) : WithActorVersion{v}, object{make(v)} {}
 
@@ -43,7 +42,6 @@ namespace fc::vm::actor::builtin::types {
       return *object;
     }
 
-   private:
     std::shared_ptr<T> object;
   };
 

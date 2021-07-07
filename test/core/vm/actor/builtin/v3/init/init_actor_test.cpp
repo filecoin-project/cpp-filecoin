@@ -26,7 +26,8 @@ namespace fc::vm::actor::builtin::v3::init {
     void SetUp() override {
       ActorTestFixture<InitActorState>::SetUp();
       ipld->load(state);
-      actorVersion = ActorVersion::kVersion3;
+      actor_version = ActorVersion::kVersion3;
+      ipld->actor_version = actor_version;
 
       EXPECT_CALL(*state_manager, createInitActorState(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto) {

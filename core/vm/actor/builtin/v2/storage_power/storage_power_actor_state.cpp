@@ -10,7 +10,6 @@
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v2::storage_power {
-  using runtime::Runtime;
   using types::storage_power::kConsensusMinerMinPower;
 
   outcome::result<Buffer> PowerActorState::toCbor() const {
@@ -22,24 +21,6 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     return copy;
   }
 
-  outcome::result<void> PowerActorState::setClaim(
-      const Runtime &runtime,
-      const Address &address,
-      const StoragePower &raw,
-      const StoragePower &qa,
-      RegisteredSealProof seal_proof) {
-    VM_ASSERT(raw >= 0);
-    VM_ASSERT(qa >= 0);
-
-    states::storage_power::ClaimV2 claim;
-    claim.seal_proof_type = seal_proof;
-    claim.raw_power = raw;
-    claim.qa_power = qa;
-
-    OUTCOME_TRY(claims2.set(address, claim));
-    return outcome::success();
-  }
-
   outcome::result<void> PowerActorState::deleteClaim(const Runtime &runtime,
                                                      const Address &address) {
     OUTCOME_TRY(claim_found, tryGetClaim(address));
@@ -49,40 +30,11 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     // subtract from stats as if we were simply removing power
     OUTCOME_TRY(addToClaim(runtime,
                            address,
-                           -claim_found.value().raw_power,
-                           -claim_found.value().qa_power));
+                           -claim_found.value()->raw_power,
+                           -claim_found.value()->qa_power));
     // delete claim from state to invalidate miner
-    OUTCOME_TRY(claims2.remove(address));
+    OUTCOME_TRY(claims.remove(address));
     return outcome::success();
-  }
-
-  outcome::result<bool> PowerActorState::hasClaim(
-      const Address &address) const {
-    return claims2.has(address);
-  }
-
-  outcome::result<boost::optional<Claim>> PowerActorState::tryGetClaim(
-      const Address &address) const {
-    OUTCOME_TRY(claim, claims2.tryGet(address));
-    if (claim) {
-      return *claim;
-    }
-    return boost::none;
-  }
-
-  outcome::result<Claim> PowerActorState::getClaim(
-      const Address &address) const {
-    OUTCOME_TRY(claim, claims2.get(address));
-    return std::move(claim);
-  }
-
-  outcome::result<std::vector<adt::AddressKeyer::Key>>
-  PowerActorState::getClaimsKeys() const {
-    return claims2.keys();
-  }
-
-  outcome::result<void> PowerActorState::loadClaimsRoot() {
-    return claims2.hamt.loadRoot();
   }
 
   std::tuple<bool, bool> PowerActorState::claimsAreBelow(

@@ -20,7 +20,8 @@ namespace fc::vm::actor::builtin::v2::cron {
   struct CronActorTest : public ActorTestFixture<CronActorState> {
     void SetUp() override {
       ActorTestFixture<CronActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion0;
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
 
       EXPECT_CALL(*state_manager, createCronActorState(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto) {

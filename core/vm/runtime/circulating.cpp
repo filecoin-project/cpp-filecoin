@@ -27,7 +27,7 @@ namespace fc::vm {
 
     OUTCOME_TRY(power_actor, state_tree->get(actor::kStoragePowerAddress));
     OUTCOME_TRY(power_state, provider.getPowerActorState(power_actor));
-    locked += power_state->total_pledge;
+    locked += power_state->total_pledge_collateral;
 
     return locked;
   }

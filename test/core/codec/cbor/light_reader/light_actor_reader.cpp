@@ -11,6 +11,8 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "vm/actor/builtin/types/storage_power/claim.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
@@ -20,14 +22,14 @@ namespace fc::codec::cbor::light_reader {
   using primitives::RleBitset;
   using primitives::sector::RegisteredSealProof;
   using storage::ipfs::InMemoryDatastore;
-  using storage::ipfs::IpfsDatastore;
+  using vm::actor::ActorVersion;
   using vm::actor::builtin::states::ChainEpochKeyer;
   using vm::actor::builtin::states::State;
-  using vm::actor::builtin::states::storage_power::ClaimV0;
-  using vm::actor::builtin::states::storage_power::ClaimV2;
+  using vm::actor::builtin::types::Universal;
   using vm::actor::builtin::types::miner::Deadlines;
   using vm::actor::builtin::types::miner::MinerInfo;
   using vm::actor::builtin::types::miner::VestingFunds;
+  using vm::actor::builtin::types::storage_power::Claim;
   using vm::actor::builtin::types::storage_power::CronEvent;
   using MinerActorStateV0 = vm::actor::builtin::v0::miner::MinerActorState;
   using MinerActorStateV2 = vm::actor::builtin::v2::miner::MinerActorState;
@@ -112,13 +114,13 @@ namespace fc::codec::cbor::light_reader {
     ipld->load(state);
     primitives::address::Address address =
         primitives::address::Address::makeFromId(100);
-    ClaimV0 claim;
-    claim.raw_power = 101;
-    claim.qa_power = 102;
-    EXPECT_OUTCOME_TRUE_1(state.claims0.set(address, claim));
+    Universal<Claim> claim{ActorVersion::kVersion0};
+    claim->raw_power = 101;
+    claim->qa_power = 102;
+    EXPECT_OUTCOME_TRUE_1(state.claims.set(address, claim));
     EXPECT_OUTCOME_TRUE(state_root, ipld->setCbor(state));
 
-    auto expected = state.claims0.hamt.cid();
+    auto expected = state.claims.hamt.cid();
     EXPECT_OUTCOME_TRUE(
         actual,
         readStoragePowerActorClaims(light_ipld, *asBlake(state_root), true));
@@ -135,14 +137,14 @@ namespace fc::codec::cbor::light_reader {
     ipld->load(state);
     primitives::address::Address address =
         primitives::address::Address::makeFromId(100);
-    ClaimV2 claim;
-    claim.seal_proof_type = RegisteredSealProof::kStackedDrg2KiBV1;
-    claim.raw_power = 101;
-    claim.qa_power = 102;
-    EXPECT_OUTCOME_TRUE_1(state.claims2.set(address, claim));
+    Universal<Claim> claim{ActorVersion::kVersion2};
+    claim->seal_proof_type = RegisteredSealProof::kStackedDrg2KiBV1;
+    claim->raw_power = 101;
+    claim->qa_power = 102;
+    EXPECT_OUTCOME_TRUE_1(state.claims.set(address, claim));
     EXPECT_OUTCOME_TRUE(state_root, ipld->setCbor(state));
 
-    auto expected = state.claims2.hamt.cid();
+    auto expected = state.claims.hamt.cid();
     EXPECT_OUTCOME_TRUE(
         actual,
         readStoragePowerActorClaims(light_ipld, *asBlake(state_root), false));

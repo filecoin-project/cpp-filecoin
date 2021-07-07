@@ -102,7 +102,7 @@ namespace fc::api {
 
   template <typename T, typename F>
   auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&...args) {
+    return [f{std::forward<F>(f)}](auto &&... args) {
       auto channel{std::make_shared<Channel<outcome::result<T>>>()};
       f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
         channel->write(std::forward<decltype(_r)>(_r));
@@ -571,13 +571,13 @@ namespace fc::api {
                 }
                 OUTCOME_CB(auto power_state, lookback.powerState());
                 OUTCOME_CB(auto claim, power_state->getClaim(miner));
-                info.miner_power = claim.qa_power;
+                info.miner_power = claim->qa_power;
                 info.network_power = power_state->total_qa_power;
                 OUTCOME_CB(auto minfo, miner_state->getInfo(ipld));
                 OUTCOME_CB(info.worker, context.accountKey(minfo.worker));
                 info.sector_size = minfo.sector_size;
                 info.has_min_power = minerHasMinPower(
-                    claim.qa_power, power_state->num_miners_meeting_min_power);
+                    claim->qa_power, power_state->num_miners_meeting_min_power);
                 cb(std::move(info));
               });
         });
@@ -738,7 +738,7 @@ namespace fc::api {
         [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(power_state, context.powerState());
-          return power_state->getClaimsKeys();
+          return power_state->claims.keys();
         }};
     api->StateListActors = {
         [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
@@ -858,7 +858,7 @@ namespace fc::api {
           Claim total(power_state->total_raw_power,
                       power_state->total_qa_power);
 
-          return MinerPower{miner_power, total};
+          return MinerPower{*miner_power, total};
         }};
     api->StateMinerProvingDeadline = {
         [=](auto &address, auto &tipset_key) -> outcome::result<DeadlineInfo> {

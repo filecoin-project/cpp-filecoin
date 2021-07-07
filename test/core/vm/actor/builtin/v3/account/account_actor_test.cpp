@@ -18,7 +18,8 @@ namespace fc::vm::actor::builtin::v3::account {
   struct AccountActorTest : public ActorTestFixture<AccountActorState> {
     void SetUp() override {
       ActorTestFixture<AccountActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion3;
+      actor_version = ActorVersion::kVersion3;
+      ipld->actor_version = actor_version;
 
       EXPECT_CALL(*state_manager, createAccountActorState(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto) {

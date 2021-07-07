@@ -30,7 +30,8 @@ namespace fc::vm::actor::builtin::v0::miner {
    public:
     void SetUp() override {
       MinerActorTestFixture<MinerActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion0;
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
       anyCodeIdAddressIs(kAccountCodeId);
       ipld->load(state);
     }

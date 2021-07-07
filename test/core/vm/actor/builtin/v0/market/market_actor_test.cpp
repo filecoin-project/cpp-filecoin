@@ -52,7 +52,8 @@ namespace fc::vm::actor::builtin::v0::market {
     void SetUp() override {
       MarketActorTestFixture<MarketActorState>::SetUp();
       ipld->load(state);
-      actorVersion = ActorVersion::kVersion0;
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
 
       addressCodeIdIs(miner_address, kStorageMinerCodeId);
       addressCodeIdIs(owner_address, kAccountCodeId);

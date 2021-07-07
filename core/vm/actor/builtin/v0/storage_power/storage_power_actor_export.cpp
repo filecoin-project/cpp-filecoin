@@ -50,12 +50,12 @@ namespace fc::vm::actor::builtin::v0::storage_power {
       }
     }
     if (!failed_miners.empty()) {
-      OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+      OUTCOME_TRYA(state, runtime.stateManager()->getPowerActorState());
       for (auto &miner : failed_miners) {
         OUTCOME_TRY(claim, state->tryGetClaim(miner));
         if (claim) {
           OUTCOME_TRY(state->addToClaim(
-              runtime, miner, -claim->raw_power, -claim->qa_power));
+              runtime, miner, -(**claim).raw_power, -(**claim).qa_power));
         }
       }
       OUTCOME_TRY(runtime.commitState(state));
@@ -168,7 +168,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
 
     const auto [raw_power, qa_power] = state->getCurrentTotalPower();
-    state->this_epoch_pledge = state->total_pledge;
+    state->this_epoch_pledge_collateral = state->total_pledge_collateral;
     state->this_epoch_raw_power = raw_power;
     state->this_epoch_qa_power = qa_power;
 
@@ -212,11 +212,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     if (!found_claim.has_value()) {
       return VMExitCode::kErrNotFound;
     }
-    auto claim{found_claim.value()};
-    VM_ASSERT(claim.raw_power >= 0);
-    VM_ASSERT(claim.qa_power >= 0);
+    const auto claim{found_claim.value()};
+    VM_ASSERT(claim->raw_power >= 0);
+    VM_ASSERT(claim->qa_power >= 0);
     REQUIRE_NO_ERROR(
-        state->addToClaim(runtime, miner, -claim.raw_power, -claim.qa_power),
+        state->addToClaim(runtime, miner, -claim->raw_power, -claim->qa_power),
         VMExitCode::kErrIllegalState);
     OUTCOME_TRY(state->addPledgeTotal(runtime, -params));
     REQUIRE_NO_ERROR(state->deleteClaim(runtime, miner),
@@ -267,7 +267,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     return Result{
         .raw_byte_power = state->this_epoch_raw_power,
         .quality_adj_power = state->this_epoch_qa_power,
-        .pledge_collateral = state->this_epoch_pledge,
+        .pledge_collateral = state->this_epoch_pledge_collateral,
         .quality_adj_power_smoothed = state->this_epoch_qa_power_smoothed};
   }
 

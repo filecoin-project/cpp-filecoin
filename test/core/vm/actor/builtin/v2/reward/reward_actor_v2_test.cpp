@@ -26,7 +26,8 @@ namespace fc::vm::actor::builtin::v2::reward {
   struct RewardActorV2Test : public RewardActorTestFixture<RewardActorState> {
     void SetUp() override {
       RewardActorTestFixture<RewardActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion2;
+      actor_version = ActorVersion::kVersion2;
+      ipld->actor_version = actor_version;
 
       EXPECT_CALL(*state_manager, createRewardActorState(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto) {

@@ -36,7 +36,7 @@ namespace fc::testutil::vm::actor::builtin {
    public:
     void SetUp() override {
       EXPECT_CALL(runtime, getActorVersion())
-          .WillRepeatedly(testing::Invoke([&]() { return actorVersion; }));
+          .WillRepeatedly(testing::Invoke([&]() { return actor_version; }));
 
       EXPECT_CALL(runtime, getIpfsDatastore())
           .WillRepeatedly(testing::Invoke([&]() { return ipld; }));
@@ -141,6 +141,6 @@ namespace fc::testutil::vm::actor::builtin {
     std::map<Address, CodeId> code_ids;
     boost::optional<CodeId> code_id_any;
     std::map<Address, Address> resolve_addresses;
-    ActorVersion actorVersion;
+    ActorVersion actor_version;
   };
 }  // namespace fc::testutil::vm::actor::builtin

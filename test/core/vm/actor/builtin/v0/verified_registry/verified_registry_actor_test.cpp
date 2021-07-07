@@ -22,7 +22,8 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
       : public ActorTestFixture<VerifiedRegistryActorState> {
     void SetUp() override {
       ActorTestFixture<VerifiedRegistryActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion0;
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
 
       setupState();
 

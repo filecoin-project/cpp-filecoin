@@ -22,7 +22,8 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
     REQUIRE_NO_ERROR(state->cron_event_queue.hamt.loadRoot(),
                      VMExitCode::kErrIllegalState);
-    REQUIRE_NO_ERROR(state->loadClaimsRoot(), VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state->claims.hamt.loadRoot(),
+                     VMExitCode::kErrIllegalState);
     std::vector<CronEvent> cron_events;
     for (auto epoch = state->first_cron_epoch; epoch <= now; ++epoch) {
       REQUIRE_NO_ERROR_A(events,
@@ -75,7 +76,8 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     state->proof_validation_batch.reset();
     if (_batch) {
       REQUIRE_NO_ERROR(_batch->hamt.loadRoot(), VMExitCode::kErrIllegalState);
-      REQUIRE_NO_ERROR(state->loadClaimsRoot(), VMExitCode::kErrIllegalState);
+      REQUIRE_NO_ERROR(state->claims.hamt.loadRoot(),
+                       VMExitCode::kErrIllegalState);
       REQUIRE_NO_ERROR(_batch->visit([&](auto &miner, auto &_seals)
                                          -> outcome::result<void> {
         REQUIRE_NO_ERROR_A(
@@ -139,7 +141,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
 
     const auto [raw_power, qa_power] = state->getCurrentTotalPower();
-    state->this_epoch_pledge = state->total_pledge;
+    state->this_epoch_pledge_collateral = state->total_pledge_collateral;
     state->this_epoch_raw_power = raw_power;
     state->this_epoch_qa_power = qa_power;
 
