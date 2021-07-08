@@ -29,7 +29,7 @@ namespace fc::mining {
   using api::SectorNumber;
   using api::SectorPreCommitInfo;
   using api::kPushNoSpec;
-
+  using libp2p::protocol::scheduler::Ticks;
   using boost::multiprecision::cpp_int;
   using fc::mining::types::SectorInfo;
   using libp2p::protocol::scheduler::Handle;
@@ -66,15 +66,17 @@ namespace fc::mining {
 
 
    private:
-    PreCommitBatcherImpl(size_t maxTime,  std::shared_ptr<FullNodeApi> api, std::shared_ptr<libp2p::protocol::Scheduler> scheduler);
+    PreCommitBatcherImpl(size_t maxTime,  std::shared_ptr<FullNodeApi> api);
     std::mutex mutex_;
     Address miner_address_;
     cpp_int mutualDeposit;
     std::map<uint64_t, preCommitEntry> batchStorage;
     std::shared_ptr<FullNodeApi> api_;
-    std::shared_ptr<libp2p::protocol::Scheduler> sch_;
     Handle handle_;
     size_t maxDelay;
+    Ticks closestCutoff;
+    std::chrono::system_clock::time_point cutoffStart;
+
   };
 
 }  // namespace fc::mining

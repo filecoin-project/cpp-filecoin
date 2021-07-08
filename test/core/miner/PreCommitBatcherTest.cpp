@@ -54,11 +54,6 @@ namespace fc::mining {
       batcher_ = result.value();
       ASSERT_FALSE(result.has_error());
     }
-    virtual void TearDown(){
-      batcher_.reset();
-      EXPECT_TRUE(Mock::VerifyAndClearExpectations(sch_.get()));
-    }
-
 
     std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<SchedulerMock> sch_;
@@ -86,7 +81,7 @@ namespace fc::mining {
     ASSERT_FALSE(batcher_->addPreCommit(si, deposit, precInf).has_error());
   };
 
-  TEST_F(PreCommitBatcherTest, BatcherSend) {
+  TEST_F(PreCommitBatcherTest, CallbackSend) {
     api::BlockHeader block;
     block.height = 9;
     primitives::TokenAmount mutualDeposit = 0;
@@ -130,59 +125,15 @@ namespace fc::mining {
     ASSERT_FALSE(maybe_result.has_error());
     mutualDeposit += 10;
 
-    auto maybe_force_send = batcher_->sendBatch();
-
-    if (maybe_force_send.has_error()) {
-      std::cout << maybe_force_send.error() << "\n";
-    }
-    ASSERT_FALSE(maybe_force_send.has_error());
-    ASSERT_TRUE(isCalled);
-  }
-
-  TEST_F(PreCommitBatcherTest, CallbackSend) {
-    api::BlockHeader block;
-    block.height = 9;
-    primitives::TokenAmount mutualDeposit = 0;
-    bool isCalled = false;
-    auto tipset = std::make_shared<Tipset>(
-        TipsetKey(), std::vector<api::BlockHeader>({block}));
-
-    api_->ChainHead = [&]() -> outcome::result<TipsetCPtr> {
-      return outcome::success(tipset);
-    };
-
-    api_->MpoolPushMessage = [&isCalled, &mutualDeposit](
-                                 const UnsignedMessage &msg,
-                                 const boost::optional<api::MessageSendSpec> &)
-        -> outcome::result<SignedMessage> {
-      std::cout << "testing\n";
-      if (msg.method == vm::actor::builtin::v0::miner::PreCommitSector::Number
-          && msg.value == mutualDeposit) {
-        isCalled = true;
-        return SignedMessage{.message = msg, .signature = BlsSignature()};
-      }
-
-      return ERROR_TEXT("ERROR");
-    };
-
-    SectorInfo si = SectorInfo();
-    api::SectorPreCommitInfo precInf;
-    primitives::TokenAmount deposit = 10;
-
-    precInf.sealed_cid = "010001020005"_cid;
-    si.sector_number = 2;
-
-    auto maybe_result = batcher_->addPreCommit(si, deposit, precInf);
-    ASSERT_FALSE(maybe_result.has_error());
-    mutualDeposit += 10;
-
     EXPECT_CALL(*sch_, now())
         .WillOnce(
             testing::Return(current_time_ + toTicks(std::chrono::seconds(11))))
-        .WillOnce( testing::Return(current_time_ + toTicks(std::chrono::seconds(11))));
+        .WillOnce(
+            testing::Return(current_time_ + toTicks(std::chrono::seconds(11))))
+        .WillRepeatedly(
+            testing::Return(current_time_ + toTicks(std::chrono::seconds(11))));
     sch_->next_clock();
     ASSERT_TRUE(isCalled);
-
   }
 
 }  // namespace fc::mining

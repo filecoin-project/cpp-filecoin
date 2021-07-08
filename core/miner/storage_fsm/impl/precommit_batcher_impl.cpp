@@ -9,18 +9,17 @@
 
 namespace fc::mining {
 
-  PreCommitBatcherImpl::PreCommitBatcherImpl(
-      size_t maxTime,
-      std::shared_ptr<FullNodeApi> api,
-      std::shared_ptr<libp2p::protocol::Scheduler> scheduler)
-      : api_(std::move(api)), sch_(std::move(scheduler)){};
+  PreCommitBatcherImpl::PreCommitBatcherImpl(size_t maxTime,
+                                             std::shared_ptr<FullNodeApi> api)
+      : api_(std::move(api)){};
 
   PreCommitBatcherImpl::preCommitEntry::preCommitEntry(
       primitives::TokenAmount number, api::SectorPreCommitInfo info)
       : deposit(std::move(number)), pci(std::move(info)){};
 
   PreCommitBatcherImpl::preCommitEntry &
-  PreCommitBatcherImpl::preCommitEntry::operator=(const preCommitEntry &x) = default;
+  PreCommitBatcherImpl::preCommitEntry::operator=(const preCommitEntry &x) =
+      default;
 
   outcome::result<std::shared_ptr<PreCommitBatcherImpl>>
   PreCommitBatcherImpl::makeBatcher(
@@ -28,33 +27,28 @@ namespace fc::mining {
       std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
       Address &miner_address) {
-
     struct make_unique_enabler : public PreCommitBatcherImpl {
-      make_unique_enabler(
-          size_t MaxTime,
-          std::shared_ptr<FullNodeApi> api,
-          std::shared_ptr<libp2p::protocol::Scheduler> scheduler)
-          : PreCommitBatcherImpl(
-              MaxTime, std::move(api), std::move(scheduler)){};
+      make_unique_enabler(size_t MaxTime, std::shared_ptr<FullNodeApi> api)
+          : PreCommitBatcherImpl(MaxTime, std::move(api)){};
     };
 
     std::shared_ptr<PreCommitBatcherImpl> batcher =
-        std::make_unique<make_unique_enabler>(
-            maxWait, std::move(api), std::move(scheduler));
+        std::make_unique<make_unique_enabler>(maxWait, std::move(api));
 
     batcher->miner_address_ = miner_address;
     batcher->maxDelay = maxWait;
 
-    batcher->handle_ = batcher->sch_->schedule(maxWait, [=](){
+    batcher->cutoffStart = std::chrono::system_clock::now();
+    batcher->handle_ = scheduler->schedule(maxWait, [=]() {
       auto maybe_send = batcher->sendBatch();
-      if(maybe_send.has_error()){
+      if (maybe_send.has_error()) {
         return maybe_send.error();
       }
     });
     return batcher;
   }
 
-    outcome::result<void> PreCommitBatcherImpl::sendBatch() {
+  outcome::result<void> PreCommitBatcherImpl::sendBatch() {
     std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
 
     OUTCOME_TRY(head, api_->ChainHead());
@@ -82,7 +76,7 @@ namespace fc::mining {
             MethodParams{encodedParams}),
         kPushNoSpec);
 
-    if(maybe_signed.has_error()){
+    if (maybe_signed.has_error()) {
       handle_.reschedule(maxDelay);
       return maybe_signed.error();
     }
@@ -90,6 +84,7 @@ namespace fc::mining {
     mutualDeposit = 0;
     batchStorage.clear();
     handle_.reschedule(maxDelay);  // TODO: maybe in gsl::finally
+    cutoffStart = std::chrono::system_clock::now();
     return outcome::success();
   }
 
@@ -98,9 +93,10 @@ namespace fc::mining {
     return outcome::success();
   }
 
-  void PreCommitBatcherImpl::getPreCommitCutoff(
-      primitives::ChainEpoch curEpoch, const SectorInfo& si) {
-    primitives::ChainEpoch cutoffEpoch = si.ticket_epoch + static_cast<int64_t>(fc::kEpochsInDay + 600);
+  void PreCommitBatcherImpl::getPreCommitCutoff(primitives::ChainEpoch curEpoch,
+                                                const SectorInfo &si) {
+    primitives::ChainEpoch cutoffEpoch =
+        si.ticket_epoch + static_cast<int64_t>(fc::kEpochsInDay + 600);
     primitives::ChainEpoch startEpoch{};
     for (auto p : si.pieces) {
       if (!p.deal_info) {
@@ -108,14 +104,22 @@ namespace fc::mining {
       }
       startEpoch = p.deal_info->deal_schedule.start_epoch;
       if (startEpoch < cutoffEpoch) {
-        cutoffEpoch = startEpoch ;
+        cutoffEpoch = startEpoch;
       }
     }
     if (cutoffEpoch <= curEpoch) {
       handle_.reschedule(0);
     } else {
-      handle_.reschedule(toTicks(std::chrono::seconds(
-          (cutoffEpoch - curEpoch) * kEpochDurationSeconds)));
+      Ticks tempCutoff = toTicks(std::chrono::seconds((cutoffEpoch - curEpoch)
+                                                      * kEpochDurationSeconds));
+      if ((closestCutoff
+               - toTicks(std::chrono::duration_cast<std::chrono::seconds>(
+                   std::chrono::system_clock::now() - cutoffStart))
+           > tempCutoff)) {
+        handle_.reschedule(tempCutoff);
+        closestCutoff = tempCutoff;
+        cutoffStart = std::chrono::system_clock::now();
+      }
     }
   }
 
@@ -126,7 +130,7 @@ namespace fc::mining {
     std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
     OUTCOME_TRY(head, api_->ChainHead());
 
-    //getPreCommitCutoff(head->epoch(), secInf);
+    getPreCommitCutoff(head->epoch(), secInf);
     auto sn = secInf.sector_number;
     batchStorage[sn] = preCommitEntry(std::move(deposit), std::move(pcInfo));
     return outcome::success();
