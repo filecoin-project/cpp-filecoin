@@ -96,8 +96,6 @@ namespace fc::vm::actor::builtin::states {
 
     OUTCOME_TRY(claims.set(address, claim));
     return outcome::success();
-
-    return outcome::success();
   }
 
   outcome::result<bool> PowerActorState::hasClaim(

@@ -180,10 +180,10 @@ namespace fc::api {
       }));
     }
     if (!sectors_bitset.empty()) {
-      OUTCOME_TRY(minfo, state->getInfo(ipld));
+      OUTCOME_TRY(miner_info, state->getInfo());
       OUTCOME_TRY(win_type,
                   primitives::sector::getRegisteredWinningPoStProof(
-                      minfo.seal_proof_type));
+                      miner_info->seal_proof_type));
       static auto proofs{std::make_shared<proofs::ProofEngineImpl>()};
       OUTCOME_TRY(
           indices,
@@ -194,7 +194,7 @@ namespace fc::api {
       for (auto &i : indices) {
         OUTCOME_TRY(sector, state->sectors.get(sector_ids[i]));
         sectors.push_back(
-            {minfo.seal_proof_type, sector.sector, sector.sealed_cid});
+            {miner_info->seal_proof_type, sector.sector, sector.sealed_cid});
       }
     }
     return sectors;
@@ -514,8 +514,8 @@ namespace fc::api {
                       *interpreter_cache, ts_load, ipld, std::move(t)));
 
       OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
-      OUTCOME_TRY(minfo, miner_state->getInfo(ipld));
-      OUTCOME_TRY(worker_key, context.accountKey(minfo.worker));
+      OUTCOME_TRY(miner_info, miner_state->getInfo());
+      OUTCOME_TRY(worker_key, context.accountKey(miner_info->worker));
       OUTCOME_TRY(block_sig, key_store->sign(worker_key, block_signable));
       block.header.block_sig = block_sig;
 
@@ -573,9 +573,9 @@ namespace fc::api {
                 OUTCOME_CB(auto claim, power_state->getClaim(miner));
                 info.miner_power = claim->qa_power;
                 info.network_power = power_state->total_qa_power;
-                OUTCOME_CB(auto minfo, miner_state->getInfo(ipld));
-                OUTCOME_CB(info.worker, context.accountKey(minfo.worker));
-                info.sector_size = minfo.sector_size;
+                OUTCOME_CB(auto miner_info, miner_state->getInfo());
+                OUTCOME_CB(info.worker, context.accountKey(miner_info->worker));
+                info.sector_size = miner_info->sector_size;
                 info.has_min_power = minerHasMinPower(
                     claim->qa_power, power_state->num_miners_meeting_min_power);
                 cb(std::move(info));
@@ -826,7 +826,7 @@ namespace fc::api {
         [=](auto &address, auto &tipset_key) -> outcome::result<MinerInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(miner_state, context.minerState(address));
-          return miner_state->getInfo(ipld);
+          return *(miner_state->getInfo());
         }};
     api->StateMinerPartitions = {
         [=](auto &miner,
@@ -899,10 +899,10 @@ namespace fc::api {
         -> outcome::result<RegisteredSealProof> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
       OUTCOME_TRY(miner_state, context.minerState(miner_address));
-      OUTCOME_TRY(miner_info, miner_state->getInfo(ipld));
-      auto network_version = getNetworkVersion(context.tipset->height());
+      OUTCOME_TRY(miner_info, miner_state->getInfo());
+      const auto network_version = getNetworkVersion(context.tipset->height());
       return getPreferredSealProofTypeFromWindowPoStType(
-          network_version, miner_info.window_post_proof_type);
+          network_version, miner_info->window_post_proof_type);
     };
 
     // TODO(artyom-yurin): FIL-165 implement method

@@ -374,10 +374,10 @@ namespace fc::vm::runtime {
 
         OUTCOME_TRY(actor, state_tree.get(block.miner));
         OUTCOME_TRY(state, provider.getMinerActorState(actor));
-        OUTCOME_TRY(miner_info, state->getInfo(ipld));
+        OUTCOME_TRY(miner_info, state->getInfo());
 
         OUTCOME_TRY(
-            key, resolveKey(*execution_->state_tree, ipld, miner_info.worker));
+            key, resolveKey(*execution_->state_tree, ipld, miner_info->worker));
         return checkBlockSignature(block, key);
       }};
       auto verify{[&](const BlockHeader &block) -> outcome::result<bool> {

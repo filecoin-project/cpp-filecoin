@@ -19,6 +19,7 @@
 #include "vm/actor/builtin/types/miner/deadline_info.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using adt::UvarintKeyer;
@@ -32,6 +33,7 @@ namespace fc::vm::actor::builtin::states {
   using types::miner::SectorOnChainInfo;
   using types::miner::SectorPreCommitOnChainInfo;
   using types::miner::VestingFunds;
+  using types::Universal;
 
   /**
    * Balance of Miner Actor should be greater than or equal to the sum of
@@ -43,7 +45,7 @@ namespace fc::vm::actor::builtin::states {
    */
   struct MinerActorState : State {
     /** Information not related to sectors. */
-    CID miner_info;  // MinerInfo
+    adt::CbCidT<Universal<MinerInfo>> miner_info;
 
     /** Total funds locked as PreCommitDeposits */
     TokenAmount precommit_deposit;
@@ -128,9 +130,7 @@ namespace fc::vm::actor::builtin::states {
       return DeadlineInfo(proving_period_start, current_deadline, now);
     }
 
-    virtual outcome::result<MinerInfo> getInfo(IpldPtr ipld) const = 0;
-    virtual outcome::result<void> setInfo(IpldPtr ipld,
-                                          const MinerInfo &info) = 0;
+    virtual outcome::result<Universal<MinerInfo>> getInfo() const = 0;
 
     virtual outcome::result<Deadlines> makeEmptyDeadlines(
         IpldPtr ipld, const CID &empty_amt_cid) = 0;

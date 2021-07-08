@@ -5,12 +5,14 @@
 
 #include "vm/actor/builtin/v3/miner/miner_actor.hpp"
 
+#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 #include "vm/actor/builtin/v3/account/account_actor.hpp"
 #include "vm/actor/builtin/v3/storage_power/storage_power_actor_export.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
   using toolchain::Toolchain;
+  using types::TypeManager;
   using namespace types::miner;
 
   ACTOR_METHOD_IMPL(Construct) {
@@ -47,16 +49,18 @@ namespace fc::vm::actor::builtin::v3::miner {
     OUTCOME_TRY(runtime.requireState(deadline_index < kWPoStPeriodDeadlines));
     state->current_deadline = deadline_index;
 
-    REQUIRE_NO_ERROR_A(miner_info,
-                       MinerInfo::make(owner,
-                                       worker,
-                                       control_addresses,
-                                       params.peer_id,
-                                       params.multiaddresses,
-                                       RegisteredSealProof::kUndefined,
-                                       params.post_proof_type),
-                       VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(state->setInfo(runtime.getIpfsDatastore(), miner_info));
+    REQUIRE_NO_ERROR_A(
+        miner_info,
+        TypeManager::makeMinerInfo(runtime,
+                                   owner,
+                                   worker,
+                                   control_addresses,
+                                   params.peer_id,
+                                   params.multiaddresses,
+                                   RegisteredSealProof::kUndefined,
+                                   params.post_proof_type),
+        VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(state->miner_info.set(miner_info));
 
     OUTCOME_TRY(runtime.commitState(state));
 

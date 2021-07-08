@@ -5,10 +5,12 @@
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
+#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using toolchain::Toolchain;
+  using types::TypeManager;
   using namespace types::miner;
 
   outcome::result<void> Construct::makeEmptyState(
@@ -69,16 +71,18 @@ namespace fc::vm::actor::builtin::v0::miner {
     VM_ASSERT(period_start > current_epoch);
     state->proving_period_start = period_start;
 
-    REQUIRE_NO_ERROR_A(miner_info,
-                       MinerInfo::make(owner,
-                                       worker,
-                                       control_addresses,
-                                       params.peer_id,
-                                       params.multiaddresses,
-                                       params.seal_proof_type,
-                                       RegisteredPoStProof::kUndefined),
-                       VMExitCode::kErrIllegalArgument);
-    OUTCOME_TRY(state->setInfo(runtime.getIpfsDatastore(), miner_info));
+    REQUIRE_NO_ERROR_A(
+        miner_info,
+        TypeManager::makeMinerInfo(runtime,
+                                   owner,
+                                   worker,
+                                   control_addresses,
+                                   params.peer_id,
+                                   params.multiaddresses,
+                                   params.seal_proof_type,
+                                   RegisteredPoStProof::kUndefined),
+        VMExitCode::kErrIllegalArgument);
+    OUTCOME_TRY(state->miner_info.set(miner_info));
 
     OUTCOME_TRY(runtime.commitState(state));
 
@@ -90,12 +94,11 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   ACTOR_METHOD_IMPL(ControlAddresses) {
     OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
-    REQUIRE_NO_ERROR_A(miner_info,
-                       state->getInfo(runtime.getIpfsDatastore()),
-                       VMExitCode::kErrIllegalState);
-    return Result{.owner = miner_info.owner,
-                  .worker = miner_info.worker,
-                  .control = miner_info.control};
+    REQUIRE_NO_ERROR_A(
+        miner_info, state->getInfo(), VMExitCode::kErrIllegalState);
+    return Result{.owner = miner_info->owner,
+                  .worker = miner_info->worker,
+                  .control = miner_info->control};
   }
 
   ACTOR_METHOD_IMPL(ChangeWorkerAddress) {
@@ -114,22 +117,21 @@ namespace fc::vm::actor::builtin::v0::miner {
     bool worker_changed = false;
 
     OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
-    OUTCOME_TRY(miner_info, state->getInfo(runtime.getIpfsDatastore()));
+    OUTCOME_TRY(miner_info, state->getInfo());
 
-    OUTCOME_TRY(runtime.validateImmediateCallerIs(miner_info.owner));
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(miner_info->owner));
 
-    miner_info.control = control_addresses;
+    miner_info->control = control_addresses;
 
-    if (new_worker != miner_info.worker) {
+    if (new_worker != miner_info->worker) {
       worker_changed = true;
       effective_epoch = runtime.getCurrentEpoch() + kWorkerKeyChangeDelay;
 
-      miner_info.pending_worker_key = WorkerKeyChange{
+      miner_info->pending_worker_key = WorkerKeyChange{
           .new_worker = new_worker, .effective_at = effective_epoch};
     }
 
-    REQUIRE_NO_ERROR(state->setInfo(runtime.getIpfsDatastore(), miner_info),
-                     VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state->miner_info.set(miner_info), VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
 
     if (worker_changed) {
@@ -148,16 +150,15 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
 
-    OUTCOME_TRY(miner_info, state->getInfo(runtime.getIpfsDatastore()));
+    OUTCOME_TRY(miner_info, state->getInfo());
 
-    auto callers = miner_info.control;
-    callers.emplace_back(miner_info.owner);
-    callers.emplace_back(miner_info.worker);
+    auto callers = miner_info->control;
+    callers.emplace_back(miner_info->owner);
+    callers.emplace_back(miner_info->worker);
     OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
 
-    miner_info.peer_id = params.new_id;
-    REQUIRE_NO_ERROR(state->setInfo(runtime.getIpfsDatastore(), miner_info),
-                     VMExitCode::kErrIllegalState);
+    miner_info->peer_id = params.new_id;
+    REQUIRE_NO_ERROR(state->miner_info.set(miner_info), VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(runtime.commitState(state));
 

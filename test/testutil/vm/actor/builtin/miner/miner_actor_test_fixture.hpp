@@ -8,6 +8,7 @@
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
 
 #include "vm/actor/builtin/states/miner_actor_state.hpp"
+#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 
 namespace fc::testutil::vm::actor::builtin::miner {
   using ::fc::vm::actor::builtin::types::miner::MinerInfo;
@@ -17,6 +18,7 @@ namespace fc::testutil::vm::actor::builtin::miner {
   using primitives::address::Address;
   using primitives::sector::RegisteredPoStProof;
   using primitives::sector::RegisteredSealProof;
+  using types::TypeManager;
   using BaseMinerActorState = fc::vm::actor::builtin::states::MinerActorState;
 
   template <class State>
@@ -71,16 +73,18 @@ namespace fc::testutil::vm::actor::builtin::miner {
       std::vector<Address> control_addresses;
       control_addresses.emplace_back(control);
 
-      EXPECT_OUTCOME_TRUE(miner_info,
-                          MinerInfo::make(owner,
-                                          worker,
-                                          control_addresses,
-                                          {},
-                                          {},
-                                          RegisteredSealProof::kUndefined,
-                                          RegisteredPoStProof::kUndefined));
+      EXPECT_OUTCOME_TRUE(
+          miner_info,
+          TypeManager::makeMinerInfo(runtime,
+                                     owner,
+                                     worker,
+                                     control_addresses,
+                                     {},
+                                     {},
+                                     RegisteredSealProof::kUndefined,
+                                     RegisteredPoStProof::kUndefined));
 
-      EXPECT_OUTCOME_TRUE_1(state.setInfo(ipld, miner_info));
+      EXPECT_OUTCOME_TRUE_1(state.miner_info.set(miner_info));
     }
 
     Address owner{Address::makeFromId(100)};
