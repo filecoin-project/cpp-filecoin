@@ -44,6 +44,14 @@ target_link_libraries(deal_info_manager
         api
         )
 
+add_library(batcher
+        impl/precommit_batcher_impl.cpp
+        )
+target_link_libraries(batcher
+        api
+        p2p::asio_scheduler
+        )
+
 add_library(storage_fsm
         impl/sealing_impl.cpp
         impl/checks.cpp
