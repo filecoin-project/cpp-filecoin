@@ -11,6 +11,7 @@
 #include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 
 namespace fc::testutil::vm::actor::builtin::miner {
+  using ::fc::vm::actor::builtin::types::TypeManager;
   using ::fc::vm::actor::builtin::types::miner::MinerInfo;
   using ::fc::vm::actor::builtin::types::miner::SectorOnChainInfo;
   using ::fc::vm::actor::builtin::types::miner::VestingFunds;
@@ -18,13 +19,13 @@ namespace fc::testutil::vm::actor::builtin::miner {
   using primitives::address::Address;
   using primitives::sector::RegisteredPoStProof;
   using primitives::sector::RegisteredSealProof;
-  using types::TypeManager;
   using BaseMinerActorState = fc::vm::actor::builtin::states::MinerActorState;
 
   template <class State>
   class MinerActorTestFixture : public ActorTestFixture<State> {
    public:
     using ActorTestFixture<State>::ipld;
+    using ActorTestFixture<State>::runtime;
     using ActorTestFixture<State>::state_manager;
     using ActorTestFixture<State>::state;
 
@@ -55,7 +56,7 @@ namespace fc::testutil::vm::actor::builtin::miner {
       EXPECT_OUTCOME_TRUE(empty_amt_cid,
                           state.precommitted_setctors_expiry.amt.flush());
 
-      state.miner_info = empty_amt_cid;
+      state.miner_info.cid = empty_amt_cid;
 
       RleBitset allocated_sectors;
       EXPECT_OUTCOME_TRUE_1(state.allocated_sectors.set(allocated_sectors));

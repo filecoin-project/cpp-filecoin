@@ -41,13 +41,11 @@ namespace fc::codec::cbor::light_reader {
   class LightActorReader : public ::testing::Test {
    public:
     template <typename T>
-    T makeSomeMinerActorState() {
+    T makeSomeMinerActorState(ActorVersion version) {
       T state;
       cbor_blake::cbLoadT(ipld, state);
-      MinerInfo info;
-      info.window_post_partition_sectors = 100;
-      info.sector_size = 101;
-      EXPECT_OUTCOME_TRUE_1(state.setInfo(ipld, info));
+      Universal<MinerInfo> miner_info{version};
+      EXPECT_OUTCOME_TRUE_1(state.miner_info.set(miner_info));
       VestingFunds vesting_funds;
       EXPECT_OUTCOME_TRUE_1(state.vesting_funds.set(vesting_funds));
       RleBitset allocated_sectors;
@@ -69,12 +67,13 @@ namespace fc::codec::cbor::light_reader {
    * @then correct CID returned
    */
   TEST_F(LightActorReader, MinerActorV0) {
-    auto state = makeSomeMinerActorState<MinerActorStateV0>();
+    const auto state =
+        makeSomeMinerActorState<MinerActorStateV0>(ActorVersion::kVersion0);
     EXPECT_OUTCOME_TRUE(state_root, setCbor(ipld, state));
 
-    CID expected_miner_info = state.miner_info;
-    CID expected_sectors = state.sectors.amt.cid();
-    CID expected_deadlines = state.deadlines.cid;
+    const CID expected_miner_info = state.miner_info;
+    const CID expected_sectors = state.sectors.amt.cid();
+    const CID expected_deadlines = state.deadlines.cid;
     EXPECT_OUTCOME_TRUE(
         actual, readMinerActorInfo(light_ipld, *asBlake(state_root), true));
     const auto [actual_miner_info, actual_sectors, actual_deadlines] = actual;
@@ -90,12 +89,13 @@ namespace fc::codec::cbor::light_reader {
    * @then correct CID returned
    */
   TEST_F(LightActorReader, MinerActorV2) {
-    auto state = makeSomeMinerActorState<MinerActorStateV2>();
+    const auto state =
+        makeSomeMinerActorState<MinerActorStateV2>(ActorVersion::kVersion2);
     EXPECT_OUTCOME_TRUE(state_root, setCbor(ipld, state));
 
-    CID expected_miner_info = state.miner_info;
-    CID expected_sectors = state.sectors.amt.cid();
-    CID expected_deadlines = state.deadlines.cid;
+    const CID expected_miner_info = state.miner_info;
+    const CID expected_sectors = state.sectors.amt.cid();
+    const CID expected_deadlines = state.deadlines.cid;
     EXPECT_OUTCOME_TRUE(
         actual, readMinerActorInfo(light_ipld, *asBlake(state_root), false));
     const auto [actual_miner_info, actual_sectors, actual_deadlines] = actual;

@@ -826,7 +826,8 @@ namespace fc::api {
         [=](auto &address, auto &tipset_key) -> outcome::result<MinerInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(miner_state, context.minerState(address));
-          return *(miner_state->getInfo());
+          OUTCOME_TRY(miner_info, miner_state->getInfo());
+          return *miner_info;
         }};
     api->StateMinerPartitions = {
         [=](auto &miner,

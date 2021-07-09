@@ -17,14 +17,14 @@
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>> \
   Stream &operator>>(Stream &&s, type &var)
 
-#define CBOR2_DECODE(...)                       \
+#define CBOR2_DECODE(...)                        \
   fc::codec::cbor::CborDecodeStream &operator>>( \
       fc::codec::cbor::CborDecodeStream &s, __VA_ARGS__ &v)
-#define CBOR2_ENCODE(...)                       \
+#define CBOR2_ENCODE(...)                        \
   fc::codec::cbor::CborEncodeStream &operator<<( \
       fc::codec::cbor::CborEncodeStream &s, const __VA_ARGS__ &v)
-#define CBOR2_DECODE_ENCODE(__VA_ARGS__) \
-  CBOR2_DECODE(__VA_ARGS__);             \
+#define CBOR2_DECODE_ENCODE(...) \
+  CBOR2_DECODE(__VA_ARGS__);     \
   CBOR2_ENCODE(__VA_ARGS__);
 
 #define _CBOR_TUPLE_1(op, m) op t.m
@@ -122,11 +122,12 @@
     return s << (s.list() _CBOR_TUPLE(<<, __VA_ARGS__)); \
   }
 
-#define CBOR_TUPLE(T, ...)                 \
-  CBOR_ENCODE_TUPLE(T, __VA_ARGS__)        \
-  CBOR_DECODE(T, t) {                      \
-    s.list() _CBOR_TUPLE(>>, __VA_ARGS__); \
-    return s;                              \
+#define CBOR_TUPLE(T, ...)          \
+  CBOR_ENCODE_TUPLE(T, __VA_ARGS__) \
+  CBOR_DECODE(T, t) {               \
+    auto l{s.list()};               \
+    l _CBOR_TUPLE(>>, __VA_ARGS__); \
+    return s;                       \
   }
 
 #define CBOR_TUPLE_0(T) \
