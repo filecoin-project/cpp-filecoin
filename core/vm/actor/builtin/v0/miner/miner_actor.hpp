@@ -335,4 +335,18 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   extern const ActorExports exports;
 
+  /**
+   *
+   *
+   *
+   */
+
+  struct PreCommitBatch: ActorMethodBase<25> {
+    struct Params {
+      std::vector<SectorInfo> sectors;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(PreCommitBatch::Params, sectors);
+
 }  // namespace fc::vm::actor::builtin::v0::miner

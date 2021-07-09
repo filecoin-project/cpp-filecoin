@@ -39,6 +39,7 @@ namespace fc::mining {
     batcher->maxDelay = maxWait;
 
     batcher->cutoffStart = std::chrono::system_clock::now();
+    batcher -> closestCutoff =  maxWait;
     batcher->handle_ = scheduler->schedule(maxWait, [=]() {
       auto maybe_send = batcher->sendBatch();
       if (maybe_send.has_error()) {
@@ -71,7 +72,6 @@ namespace fc::mining {
             mutualDeposit,
             {},
             {},
-            // TODO: PreCommitSectorBatch
             vm::actor::builtin::v0::miner::PreCommitSector::Number,
             MethodParams{encodedParams}),
         kPushNoSpec);
@@ -93,11 +93,11 @@ namespace fc::mining {
     return outcome::success();
   }
 
-  void PreCommitBatcherImpl::getPreCommitCutoff(primitives::ChainEpoch curEpoch,
+  void PreCommitBatcherImpl::getPreCommitCutoff(ChainEpoch curEpoch,
                                                 const SectorInfo &si) {
     primitives::ChainEpoch cutoffEpoch =
         si.ticket_epoch + static_cast<int64_t>(fc::kEpochsInDay + 600);
-    primitives::ChainEpoch startEpoch{};
+    ChainEpoch startEpoch{};
     for (auto p : si.pieces) {
       if (!p.deal_info) {
         continue;
@@ -116,9 +116,9 @@ namespace fc::mining {
                - toTicks(std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::system_clock::now() - cutoffStart))
            > tempCutoff)) {
+        cutoffStart = std::chrono::system_clock::now();
         handle_.reschedule(tempCutoff);
         closestCutoff = tempCutoff;
-        cutoffStart = std::chrono::system_clock::now();
       }
     }
   }

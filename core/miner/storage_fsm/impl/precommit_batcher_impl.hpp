@@ -30,11 +30,13 @@ namespace fc::mining {
   using api::SectorPreCommitInfo;
   using api::kPushNoSpec;
   using libp2p::protocol::scheduler::Ticks;
+  using libp2p::protocol::Scheduler;
   using boost::multiprecision::cpp_int;
-  using fc::mining::types::SectorInfo;
   using libp2p::protocol::scheduler::Handle;
   using libp2p::protocol::scheduler::toTicks;
   using primitives::address::Address;
+  using primitives::TokenAmount;
+  using primitives::ChainEpoch;
   using vm::actor::MethodParams;
   using StorageFSM =
       fsm::FSM<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
@@ -54,10 +56,10 @@ namespace fc::mining {
                                              const SectorInfo & si);
 
     static outcome::result<std::shared_ptr<PreCommitBatcherImpl>> makeBatcher(size_t maxWait, std::shared_ptr<FullNodeApi>  api,
-                                                                               std::shared_ptr<libp2p::protocol::Scheduler> scheduler, Address & miner_address);
+                                                                               std::shared_ptr<Scheduler> scheduler, Address & miner_address);
 
     outcome::result<void> addPreCommit(SectorInfo secInf,
-                                       primitives::TokenAmount deposit,
+                                       TokenAmount deposit,
                                        SectorPreCommitInfo pcInfo);
 
     outcome::result<void> forceSend();
