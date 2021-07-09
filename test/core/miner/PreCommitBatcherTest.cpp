@@ -53,6 +53,7 @@ namespace fc::mining {
           return info;
         }
       };
+
       EXPECT_CALL(*sch_, now()).WillOnce(testing::Return(current_time_));
       auto result = PreCommitBatcherImpl::makeBatcher(
           toTicks(std::chrono::seconds(60)), api_, sch_, miner_address_);
@@ -70,14 +71,13 @@ namespace fc::mining {
     primitives::TokenAmount mutualDeposit = 0;
   };
 
-  /** BatcherWrite checking that tgeё
-
   TEST_F(PreCommitBatcherTest, BatcherWrite) {
     SectorInfo si = SectorInfo();
     api::SectorPreCommitInfo precInf;
     primitives::TokenAmount deposit = 10;
     ASSERT_FALSE(batcher_->addPreCommit(si, deposit, precInf).has_error());
   };
+
 
   /**
    * CallbackSend test is checking that after the scheduled time for a Precommit
@@ -147,7 +147,16 @@ namespace fc::mining {
   TEST_F(PreCommitBatcherTest, ShortDistanceSending) {
     mutualDeposit = 0;
     bool isCall = false;
-    EXPECT_CALL(*sch_, now()).WillOnce(testing::Return(current_time_));
+    EXPECT_CALL(*sch_, now()).WillOnce(testing::Return(current_time_))
+        .WillOnce(testing::Return(
+            current_time_
+            + toTicks(std::chrono::seconds(kEpochDurationSeconds)) + 10))
+        .WillOnce(testing::Return(
+            current_time_
+            + toTicks(std::chrono::seconds(kEpochDurationSeconds )) + 11))
+        .WillRepeatedly(testing::Return(
+            current_time_
+            + toTicks(std::chrono::seconds(kEpochDurationSeconds)) + 12));
 
     api::BlockHeader block;
     block.height = 2;
@@ -193,14 +202,36 @@ namespace fc::mining {
     ASSERT_FALSE(maybe_result.has_error());
     mutualDeposit += 10;
 
-    EXPECT_CALL(*sch_, now())
-        .WillOnce(testing::Return(
-            current_time_
-            + toTicks(std::chrono::seconds(kEpochDurationSeconds + 10))))
-        .WillRepeatedly(
-            testing::Return(current_time_ + toTicks(std::chrono::seconds(10))));
     sch_->next_clock();
     EXPECT_TRUE(isCall);
+
+    block.height = 3;
+    tipset = std::make_shared<Tipset>(
+        TipsetKey(), std::vector<api::BlockHeader>({block}));
+
+    si.pieces = {};
+    mutualDeposit = 0;
+    deal.deal_schedule.start_epoch = 1;
+    Piece p3 = {.piece = PieceInfo{.size = PaddedPieceSize(128),
+        .cid = "010001020010"_cid},
+        .deal_info = deal};
+    si.pieces.push_back(p3);
+
+
+    maybe_result = batcher_->addPreCommit(si, deposit, precInf);
+    ASSERT_FALSE(maybe_result.has_error());
+    mutualDeposit += 10;
+
+    sch_->next_clock();
+    ASSERT_TRUE(isCall);
+
+
+
+
+
+
+
+
   }
 
 }  // namespace fc::mining

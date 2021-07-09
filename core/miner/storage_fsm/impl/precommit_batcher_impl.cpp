@@ -38,13 +38,15 @@ namespace fc::mining {
     batcher->miner_address_ = miner_address;
     batcher->maxDelay = maxWait;
 
-    batcher->cutoffStart = std::chrono::system_clock::now();
+    batcher -> cutoffStart = std::chrono::system_clock::now();
     batcher -> closestCutoff =  maxWait;
-    batcher->handle_ = scheduler->schedule(maxWait, [=]() {
+    batcher -> handle_ = scheduler->schedule(maxWait, [=]() {
       auto maybe_send = batcher->sendBatch();
       if (maybe_send.has_error()) {
+        batcher->handle_.reschedule(maxWait);
         return maybe_send.error();
       }
+      batcher->handle_.reschedule(maxWait); // TODO: maybe in gsl::finally
     });
     return batcher;
   }
@@ -77,13 +79,12 @@ namespace fc::mining {
         kPushNoSpec);
 
     if (maybe_signed.has_error()) {
-      handle_.reschedule(maxDelay);
       return maybe_signed.error();
     }
 
     mutualDeposit = 0;
     batchStorage.clear();
-    handle_.reschedule(maxDelay);  // TODO: maybe in gsl::finally
+
     cutoffStart = std::chrono::system_clock::now();
     return outcome::success();
   }
