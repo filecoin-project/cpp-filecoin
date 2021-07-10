@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/state.hpp"
-
 #include "adt/array.hpp"
 #include "adt/cid_t.hpp"
 #include "adt/map.hpp"
@@ -26,6 +24,7 @@ namespace fc::vm::actor::builtin::states {
   using primitives::ChainEpoch;
   using primitives::RleBitset;
   using primitives::TokenAmount;
+  using types::Universal;
   using types::miner::Deadline;
   using types::miner::DeadlineInfo;
   using types::miner::Deadlines;
@@ -33,7 +32,6 @@ namespace fc::vm::actor::builtin::states {
   using types::miner::SectorOnChainInfo;
   using types::miner::SectorPreCommitOnChainInfo;
   using types::miner::VestingFunds;
-  using types::Universal;
 
   /**
    * Balance of Miner Actor should be greater than or equal to the sum of
@@ -43,7 +41,9 @@ namespace fc::vm::actor::builtin::states {
    * withdrawals) Excess balance as computed by st.GetAvailableBalance will be
    * withdrawable or usable for pre-commit deposit <or> pledge lock-up.
    */
-  struct MinerActorState : State {
+  struct MinerActorState {
+    virtual ~MinerActorState() = default;
+
     /** Information not related to sectors. */
     adt::CbCidT<Universal<MinerInfo>> miner_info;
 
@@ -138,6 +138,6 @@ namespace fc::vm::actor::builtin::states {
                                                   const CID &cid) const = 0;
   };
 
-  using MinerActorStatePtr = std::shared_ptr<MinerActorState>;
+  using MinerActorStatePtr = Universal<MinerActorState>;
 
 }  // namespace fc::vm::actor::builtin::states

@@ -7,26 +7,31 @@
 
 #include "const.hpp"
 #include "primitives/block/block.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/states/market_actor_state.hpp"
+#include "vm/actor/builtin/states/power_actor_state.hpp"
+#include "vm/actor/builtin/states/reward_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::vm {
-  using actor::builtin::states::StateProvider;
+  using actor::builtin::states::MarketActorStatePtr;
+  using actor::builtin::states::PowerActorStatePtr;
+  using actor::builtin::states::RewardActorStatePtr;
 
   outcome::result<TokenAmount> getLocked(StateTreePtr state_tree) {
     const auto ipld{state_tree->getStore()};
     TokenAmount locked;
-    StateProvider provider(ipld);
 
     OUTCOME_TRY(market_actor, state_tree->get(actor::kStorageMarketAddress));
-    OUTCOME_TRY(market_state, provider.getMarketActorState(market_actor));
+    OUTCOME_TRY(market_state,
+                getCbor<MarketActorStatePtr>(ipld, market_actor.head));
     locked += market_state->total_client_locked_collateral
               + market_state->total_provider_locked_collateral
               + market_state->total_client_storage_fee;
 
     OUTCOME_TRY(power_actor, state_tree->get(actor::kStoragePowerAddress));
-    OUTCOME_TRY(power_state, provider.getPowerActorState(power_actor));
+    OUTCOME_TRY(power_state,
+                getCbor<PowerActorStatePtr>(ipld, power_actor.head));
     locked += power_state->total_pledge_collateral;
 
     return locked;
@@ -77,8 +82,8 @@ namespace fc::vm {
     }
 
     OUTCOME_TRY(reward_actor, state_tree->get(actor::kRewardAddress));
-    StateProvider provider(ipld);
-    OUTCOME_TRY(reward_state, provider.getRewardActorState(reward_actor));
+    OUTCOME_TRY(reward_state,
+                getCbor<RewardActorStatePtr>(ipld, reward_actor.head));
     mined = reward_state->total_reward;
 
     TokenAmount disbursed;

@@ -28,22 +28,6 @@ namespace fc::vm::actor::builtin::v3::init {
       actor_version = ActorVersion::kVersion3;
       ipld->actor_version = actor_version;
       cbor_blake::cbLoadT(ipld, state);
-
-      EXPECT_CALL(*state_manager, createInitActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<InitActorState>();
-            cbor_blake::cbLoadT(ipld, *s);
-            return std::static_pointer_cast<states::InitActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getInitActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                getCbor<InitActorState>(ipld, cid));
-            auto s = std::make_shared<InitActorState>(current_state);
-            return std::static_pointer_cast<states::InitActorState>(s);
-          }));
     }
 
     const std::string network_name = "test_network_name";

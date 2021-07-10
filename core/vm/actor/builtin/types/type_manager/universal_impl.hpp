@@ -86,4 +86,19 @@
           return cbor_blake::cbFlushT((V5 &)*object);       \
       }                                                     \
     }                                                       \
+    template <>                                             \
+    std::shared_ptr<T> Universal<T>::copy_object() const {  \
+      switch (actor_version) {                              \
+        case ActorVersion::kVersion0:                       \
+          return std::make_shared<V0>((V0 &)*object);       \
+        case ActorVersion::kVersion2:                       \
+          return std::make_shared<V2>((V2 &)*object);       \
+        case ActorVersion::kVersion3:                       \
+          return std::make_shared<V3>((V3 &)*object);       \
+        case ActorVersion::kVersion4:                       \
+          return std::make_shared<V4>((V4 &)*object);       \
+        case ActorVersion::kVersion5:                       \
+          return std::make_shared<V5>((V5 &)*object);       \
+      }                                                     \
+    }                                                       \
   }

@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/state.hpp"
-
 #include "adt/map.hpp"
 #include "adt/uvarint_key.hpp"
 #include "common/buffer.hpp"
@@ -15,6 +13,7 @@
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/multisig/transaction.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 // Forward declaration
 namespace fc::vm::runtime {
@@ -33,7 +32,9 @@ namespace fc::vm::actor::builtin::states {
   /**
    * State of Multisig Actor instance
    */
-  struct MultisigActorState : State {
+  struct MultisigActorState {
+    virtual ~MultisigActorState() = default;
+
     std::vector<Address> signers;
     size_t threshold{0};
     TransactionId next_transaction_id{0};
@@ -47,8 +48,6 @@ namespace fc::vm::actor::builtin::states {
     adt::Map<Transaction, TransactionKeyer> pending_transactions;
 
     // Methods
-    virtual std::shared_ptr<MultisigActorState> copy() const = 0;
-
     void setLocked(const ChainEpoch &start_epoch,
                    const EpochDuration &unlock_duration,
                    const TokenAmount &lockedAmount);
@@ -83,6 +82,6 @@ namespace fc::vm::actor::builtin::states {
         const Buffer &proposal_hash) const;
   };
 
-  using MultisigActorStatePtr = std::shared_ptr<MultisigActorState>;
+  using MultisigActorStatePtr = types::Universal<MultisigActorState>;
 
 }  // namespace fc::vm::actor::builtin::states

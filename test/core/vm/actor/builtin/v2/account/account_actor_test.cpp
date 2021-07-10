@@ -20,21 +20,6 @@ namespace fc::vm::actor::builtin::v2::account {
       ActorTestFixture<AccountActorState>::SetUp();
       actor_version = ActorVersion::kVersion2;
       ipld->actor_version = actor_version;
-
-      EXPECT_CALL(*state_manager, createAccountActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<AccountActorState>();
-            return std::static_pointer_cast<states::AccountActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getAccountActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                getCbor<AccountActorState>(ipld, cid));
-            auto s = std::make_shared<AccountActorState>(current_state);
-            return std::static_pointer_cast<states::AccountActorState>(s);
-          }));
     }
 
     Address address{Address::makeSecp256k1(

@@ -26,27 +26,7 @@ namespace fc::testutil::vm::actor::builtin::miner {
    public:
     using ActorTestFixture<State>::ipld;
     using ActorTestFixture<State>::runtime;
-    using ActorTestFixture<State>::state_manager;
     using ActorTestFixture<State>::state;
-
-    void SetUp() override {
-      ActorTestFixture<State>::SetUp();
-
-      EXPECT_CALL(*state_manager, createMinerActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<State>();
-            loadState(*s);
-            return std::static_pointer_cast<BaseMinerActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getMinerActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
-            EXPECT_OUTCOME_TRUE(current_state, getCbor<State>(ipld, cid));
-            auto s = std::make_shared<State>(current_state);
-            return std::static_pointer_cast<BaseMinerActorState>(s);
-          }));
-    }
 
     void loadState(State &s) {
       cbor_blake::cbLoadT(ipld, s);

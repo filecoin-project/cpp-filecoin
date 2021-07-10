@@ -5,14 +5,13 @@
 
 #pragma once
 
-#include "codec/cbor/streams_annotation.hpp"
-#include "primitives/address/address_codec.hpp"
 #include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
 
+#include "codec/cbor/streams_annotation.hpp"
+#include "primitives/address/address_codec.hpp"
+
 namespace fc::vm::actor::builtin::v0::verified_registry {
-  struct VerifiedRegistryActorState : states::VerifiedRegistryActorState {
-    outcome::result<Buffer> toCbor() const override;
-  };
+  struct VerifiedRegistryActorState : states::VerifiedRegistryActorState {};
   CBOR_TUPLE(VerifiedRegistryActorState, root_key, verifiers, verified_clients)
 }  // namespace fc::vm::actor::builtin::v0::verified_registry
 

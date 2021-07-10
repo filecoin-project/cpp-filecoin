@@ -11,7 +11,6 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
-#include "testutil/mocks/vm/states/state_manager_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/codes.hpp"
@@ -31,7 +30,6 @@ namespace fc::vm::actor::builtin::v2::multisig {
   using runtime::InvocationOutput;
   using runtime::MockRuntime;
   using state::StateTreeImpl;
-  using states::MockStateManager;
   using storage::ipfs::InMemoryDatastore;
   using testing::Eq;
   using testing::Return;
@@ -79,33 +77,18 @@ namespace fc::vm::actor::builtin::v2::multisig {
           .WillRepeatedly(testing::Invoke(
               [&](auto &data) { return crypto::blake2b::blake2b_256(data); }));
 
-      EXPECT_CALL(runtime, stateManager())
-          .WillRepeatedly(testing::Return(state_manager));
-
-      EXPECT_CALL(*state_manager, commitState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](const auto &s) {
-            auto temp_state = std::static_pointer_cast<MultisigActorState>(s);
-            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, *temp_state));
+      EXPECT_CALL(runtime, commit(testing::_))
+          .WillRepeatedly(testing::Invoke([&](auto &cid) {
             EXPECT_OUTCOME_TRUE(new_state,
                                 getCbor<MultisigActorState>(ipld, cid));
             state = std::move(new_state);
             return outcome::success();
           }));
 
-      EXPECT_CALL(*state_manager, createMultisigActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<MultisigActorState>();
-            cbor_blake::cbLoadT(ipld, *s);
-            return std::static_pointer_cast<states::MultisigActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getMultisigActorState())
+      EXPECT_CALL(runtime, getActorStateCid())
           .WillRepeatedly(testing::Invoke([&]() {
             EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                getCbor<MultisigActorState>(ipld, cid));
-            auto s = std::make_shared<MultisigActorState>(current_state);
-            return std::static_pointer_cast<states::MultisigActorState>(s);
+            return std::move(cid);
           }));
     }
 
@@ -147,8 +130,6 @@ namespace fc::vm::actor::builtin::v2::multisig {
     Address actor_address{Address::makeFromId(103)};
 
     MockRuntime runtime;
-    std::shared_ptr<MockStateManager> state_manager{
-        std::make_shared<MockStateManager>()};
     std::shared_ptr<InMemoryDatastore> ipld{
         std::make_shared<InMemoryDatastore>()};
 

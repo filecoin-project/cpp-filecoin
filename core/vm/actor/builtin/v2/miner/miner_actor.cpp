@@ -5,6 +5,7 @@
 
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 
+#include "vm/actor/builtin/states/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
@@ -14,6 +15,7 @@
 namespace fc::vm::actor::builtin::v2::miner {
   using primitives::ChainEpoch;
   using primitives::RleBitset;
+  using states::MinerActorStatePtr;
   using toolchain::Toolchain;
   using types::TypeManager;
   using namespace types::miner;
@@ -36,9 +38,8 @@ namespace fc::vm::actor::builtin::v2::miner {
       control_addresses.push_back(resolved);
     }
 
-    auto state = runtime.stateManager()->createMinerActorState(
-        runtime.getActorVersion());
-
+    MinerActorStatePtr state{runtime.getActorVersion()};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
     OUTCOME_TRY(v0::miner::Construct::makeEmptyState(runtime, state));
 
     const auto current_epoch = runtime.getCurrentEpoch();
@@ -91,7 +92,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       control_addresses.emplace_back(resolved);
     }
 
-    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
     OUTCOME_TRY(miner_info, state->getInfo());
 
     OUTCOME_TRY(runtime.validateImmediateCallerIs(miner_info->owner));
@@ -104,7 +105,8 @@ namespace fc::vm::actor::builtin::v2::miner {
           .effective_at = runtime.getCurrentEpoch() + kWorkerKeyChangeDelay};
     }
 
-    REQUIRE_NO_ERROR(state->miner_info.set(miner_info), VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state->miner_info.set(miner_info),
+                     VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
 
     return outcome::success();

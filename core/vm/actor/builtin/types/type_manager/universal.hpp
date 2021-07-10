@@ -25,7 +25,9 @@ namespace fc::vm::actor::builtin::types {
   template <typename T>
   struct Universal : vm::actor::WithActorVersion {
     Universal() = default;
-    Universal(ActorVersion v) : WithActorVersion{v}, object{make(v)} {}
+    explicit Universal(ActorVersion v) : WithActorVersion{v}, object{make(v)} {}
+    Universal(ActorVersion v, std::shared_ptr<T> obj)
+        : WithActorVersion{v}, object{obj} {}
 
     static std::shared_ptr<T> make(ActorVersion v);
     codec::cbor::CborDecodeStream &decode(codec::cbor::CborDecodeStream &s);
@@ -33,6 +35,7 @@ namespace fc::vm::actor::builtin::types {
         codec::cbor::CborEncodeStream &s) const;
     void load(const IpldPtr &ipld);
     outcome::result<void> flush();
+    std::shared_ptr<T> copy_object() const;
 
     T *operator->() const {
       return object.get();
@@ -40,6 +43,10 @@ namespace fc::vm::actor::builtin::types {
 
     T &operator*() const {
       return *object;
+    }
+
+    Universal<T> copy() const {
+      return Universal<T>{actor_version, copy_object()};
     }
 
     std::shared_ptr<T> object;

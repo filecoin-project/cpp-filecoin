@@ -11,8 +11,6 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::sector::getRegisteredWindowPoStProof;
   using types::miner::kWPoStPeriodDeadlines;
 
-  ACTOR_STATE_TO_CBOR_THIS(MinerActorState)
-
   outcome::result<Universal<types::miner::MinerInfo>> MinerActorState::getInfo()
       const {
     OUTCOME_TRY(info, miner_info.get());

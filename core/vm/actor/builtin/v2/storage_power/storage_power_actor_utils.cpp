@@ -7,8 +7,8 @@
 
 namespace fc::vm::actor::builtin::v2::storage_power {
   outcome::result<void> PowerUtils::validateMinerHasClaim(
-      PowerActorStatePtr state, const Address &miner) const {
-    auto state_copy = state->copy();
+      PowerActorStatePtr &state, const Address &miner) const {
+    auto state_copy = state.copy();
     REQUIRE_NO_ERROR(state_copy->claims.hamt.loadRoot(),
                      VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR_A(

@@ -10,16 +10,7 @@
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
-  using types::Universal;
-  using types::storage_power::Claim;
   using types::storage_power::kConsensusMinerMinPower;
-
-  ACTOR_STATE_TO_CBOR_THIS(PowerActorState)
-
-  std::shared_ptr<states::PowerActorState> PowerActorState::copy() const {
-    auto copy = std::make_shared<PowerActorState>(*this);
-    return copy;
-  }
 
   outcome::result<void> PowerActorState::deleteClaim(const Runtime &runtime,
                                                      const Address &address) {

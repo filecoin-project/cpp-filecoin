@@ -13,8 +13,8 @@ namespace fc::vm::actor::builtin::v0::miner {
   using types::TypeManager;
   using namespace types::miner;
 
-  outcome::result<void> Construct::makeEmptyState(
-      const Runtime &runtime, states::MinerActorStatePtr state) {
+  outcome::result<void> Construct::makeEmptyState(const Runtime &runtime,
+                                                  MinerActorStatePtr &state) {
     // Lotus gas conformance - flush empty hamt
     OUTCOME_TRY(state->precommitted_sectors.hamt.flush());
 
@@ -57,9 +57,8 @@ namespace fc::vm::actor::builtin::v0::miner {
       control_addresses.push_back(resolved);
     }
 
-    auto state = runtime.stateManager()->createMinerActorState(
-        runtime.getActorVersion());
-
+    MinerActorStatePtr state{runtime.getActorVersion()};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
     OUTCOME_TRY(makeEmptyState(runtime, state));
 
     const auto current_epoch = runtime.getCurrentEpoch();
@@ -93,7 +92,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   ACTOR_METHOD_IMPL(ControlAddresses) {
-    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
     REQUIRE_NO_ERROR_A(
         miner_info, state->getInfo(), VMExitCode::kErrIllegalState);
     return Result{.owner = miner_info->owner,
@@ -116,7 +115,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     bool worker_changed = false;
 
-    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
     OUTCOME_TRY(miner_info, state->getInfo());
 
     OUTCOME_TRY(runtime.validateImmediateCallerIs(miner_info->owner));
@@ -131,7 +130,8 @@ namespace fc::vm::actor::builtin::v0::miner {
           .new_worker = new_worker, .effective_at = effective_epoch};
     }
 
-    REQUIRE_NO_ERROR(state->miner_info.set(miner_info), VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state->miner_info.set(miner_info),
+                     VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
 
     if (worker_changed) {
@@ -148,7 +148,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     OUTCOME_TRY(utils->checkPeerInfo(params.new_id, {}));
 
-    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
 
     OUTCOME_TRY(miner_info, state->getInfo());
 
@@ -158,7 +158,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
 
     miner_info->peer_id = params.new_id;
-    REQUIRE_NO_ERROR(state->miner_info.set(miner_info), VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR(state->miner_info.set(miner_info),
+                     VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(runtime.commitState(state));
 

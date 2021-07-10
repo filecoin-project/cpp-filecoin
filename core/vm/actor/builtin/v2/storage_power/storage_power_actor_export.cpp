@@ -4,6 +4,7 @@
  */
 
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+
 #include "common/logger.hpp"
 #include "vm/actor/builtin/states/power_actor_state.hpp"
 #include "vm/actor/builtin/v2/init/init_actor.hpp"
@@ -15,11 +16,12 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   using adt::Multimap;
   using primitives::SectorNumber;
   using toolchain::Toolchain;
+  using states::PowerActorStatePtr;
   using types::storage_power::CronEvent;
 
   outcome::result<void> processDeferredCronEvents(Runtime &runtime) {
     const auto now{runtime.getCurrentEpoch()};
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
     REQUIRE_NO_ERROR(state->cron_event_queue.hamt.loadRoot(),
                      VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR(state->claims.hamt.loadRoot(),
@@ -57,7 +59,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
       }
     }
     if (!failed_miners.empty()) {
-      OUTCOME_TRYA(state, runtime.stateManager()->getPowerActorState());
+      OUTCOME_TRYA(state, runtime.getActorState<PowerActorStatePtr>());
       for (auto &miner : failed_miners) {
         OUTCOME_TRY(state->deleteClaim(runtime, miner));
         if (runtime.getNetworkVersion() >= NetworkVersion::kVersion7) {
@@ -70,7 +72,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   }
 
   outcome::result<void> processBatchProofVerifiers(Runtime &runtime) {
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
     runtime::BatchSealsIn batch;
     const auto _batch{state->proof_validation_batch};
     state->proof_validation_batch.reset();
@@ -121,7 +123,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
             kInitAddress,
             {address_matcher->getStorageMinerCodeId(), miner_params},
             runtime.getValueReceived()));
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
     REQUIRE_NO_ERROR(state->setClaim(runtime,
                                      addresses_created.id_address,
                                      0,
@@ -138,7 +140,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kCronAddress));
     OUTCOME_TRY(processBatchProofVerifiers(runtime));
     OUTCOME_TRY(processDeferredCronEvents(runtime));
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
 
     const auto [raw_power, qa_power] = state->getCurrentTotalPower();
     state->this_epoch_pledge_collateral = state->total_pledge_collateral;

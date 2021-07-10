@@ -11,10 +11,11 @@
 #include "sector_storage/zerocomm/zerocomm.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/states/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
+#include "vm/actor/builtin/v4/todo.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::mining::checks {
@@ -28,7 +29,7 @@ namespace fc::mining::checks {
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::states::StateProvider;
+  using vm::actor::builtin::states::MinerActorStatePtr;
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::maxSealDuration;
@@ -137,8 +138,7 @@ namespace fc::mining::checks {
     OUTCOME_TRY(actor, api->StateGetActor(miner_address, tipset_key));
     auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
 
-    StateProvider provider(ipfs);
-    OUTCOME_TRY(state, provider.getMinerActorState(actor));
+    OUTCOME_TRY(state, getCbor<MinerActorStatePtr>(ipfs, actor.head));
 
     OUTCOME_TRY(has,
                 state->precommitted_sectors.has(sector_info->sector_number));

@@ -24,7 +24,6 @@ namespace fc::codec::cbor::light_reader {
   using storage::ipfs::InMemoryDatastore;
   using vm::actor::ActorVersion;
   using vm::actor::builtin::states::ChainEpochKeyer;
-  using vm::actor::builtin::states::State;
   using vm::actor::builtin::types::Universal;
   using vm::actor::builtin::types::miner::Deadlines;
   using vm::actor::builtin::types::miner::MinerInfo;

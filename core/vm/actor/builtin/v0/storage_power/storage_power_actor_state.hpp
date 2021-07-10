@@ -5,21 +5,16 @@
 
 #pragma once
 
-#include "codec/cbor/streams_annotation.hpp"
 #include "vm/actor/builtin/states/power_actor_state.hpp"
 
+#include "codec/cbor/streams_annotation.hpp"
+
 namespace fc::vm::actor::builtin::v0::storage_power {
-  using primitives::StoragePower;
   using primitives::address::Address;
-  using primitives::sector::RegisteredSealProof;
   using runtime::Runtime;
   using types::storage_power::Claim;
 
   struct PowerActorState : states::PowerActorState {
-    outcome::result<Buffer> toCbor() const override;
-
-    std::shared_ptr<states::PowerActorState> copy() const override;
-
     outcome::result<void> deleteClaim(const Runtime &runtime,
                                       const Address &address) override;
 

@@ -6,6 +6,7 @@
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
 
 #include "common/logger.hpp"
+#include "vm/actor/builtin/states/power_actor_state.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
@@ -14,6 +15,7 @@
 namespace fc::vm::actor::builtin::v0::storage_power {
   using adt::Multimap;
   using primitives::SectorNumber;
+  using states::PowerActorStatePtr;
   using toolchain::Toolchain;
   using types::storage_power::CronEvent;
   using types::storage_power::kGasOnSubmitVerifySeal;
@@ -21,7 +23,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
   outcome::result<void> processDeferredCronEvents(Runtime &runtime) {
     const auto now{runtime.getCurrentEpoch()};
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
     REQUIRE_NO_ERROR(state->cron_event_queue.hamt.loadRoot(),
                      VMExitCode::kErrIllegalState);
     std::vector<CronEvent> cron_events;
@@ -50,7 +52,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
       }
     }
     if (!failed_miners.empty()) {
-      OUTCOME_TRYA(state, runtime.stateManager()->getPowerActorState());
+      OUTCOME_TRYA(state, runtime.getActorState<PowerActorStatePtr>());
       for (auto &miner : failed_miners) {
         OUTCOME_TRY(claim, state->tryGetClaim(miner));
         if (claim) {
@@ -64,7 +66,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   }
 
   outcome::result<void> processBatchProofVerifiers(Runtime &runtime) {
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
     runtime::BatchSealsIn batch;
     const auto _batch{state->proof_validation_batch};
     state->proof_validation_batch.reset();
@@ -92,8 +94,8 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
 
-    auto state = runtime.stateManager()->createPowerActorState(
-        runtime.getActorVersion());
+    PowerActorStatePtr state{runtime.getActorVersion()};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
 
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
@@ -119,7 +121,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
             kInitAddress,
             {address_matcher->getStorageMinerCodeId(), miner_params},
             runtime.getValueReceived()));
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
     REQUIRE_NO_ERROR(
         state->setClaim(runtime, addresses_created.id_address, 0, 0),
         VMExitCode::kErrIllegalState);
@@ -135,7 +137,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     const Address miner_address = runtime.getImmediateCaller();
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
     REQUIRE_NO_ERROR(state->addToClaim(runtime,
                                        miner_address,
                                        params.raw_byte_delta,
@@ -151,7 +153,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     OUTCOME_TRY(runtime.validateArgument(params.event_epoch >= 0));
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
     REQUIRE_NO_ERROR(
         state->appendCronEvent(params.event_epoch,
                                {.miner_address = runtime.getImmediateCaller(),
@@ -165,7 +167,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kCronAddress));
     OUTCOME_TRY(processDeferredCronEvents(runtime));
     OUTCOME_TRY(processBatchProofVerifiers(runtime));
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
 
     const auto [raw_power, qa_power] = state->getCurrentTotalPower();
     state->this_epoch_pledge_collateral = state->total_pledge_collateral;
@@ -189,7 +191,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
         Toolchain::createAddressMatcher(runtime.getActorVersion());
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
 
     const auto utils = Toolchain::createPowerUtils(runtime);
     OUTCOME_TRY(
@@ -206,7 +208,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     const auto miner{runtime.getImmediateCaller()};
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
     REQUIRE_NO_ERROR_A(
         found_claim, state->tryGetClaim(miner), VMExitCode::kErrIllegalState);
     if (!found_claim.has_value()) {
@@ -232,7 +234,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     const auto miner{runtime.getImmediateCaller()};
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
 
     const auto utils = Toolchain::createPowerUtils(runtime);
     OUTCOME_TRY(
@@ -263,7 +265,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   }
 
   ACTOR_METHOD_IMPL(CurrentTotalPower) {
-    OUTCOME_TRY(state, runtime.stateManager()->getPowerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
     return Result{
         .raw_byte_power = state->this_epoch_raw_power,
         .quality_adj_power = state->this_epoch_qa_power,

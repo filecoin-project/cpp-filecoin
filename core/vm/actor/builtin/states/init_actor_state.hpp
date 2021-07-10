@@ -5,16 +5,17 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/state.hpp"
-
 #include "adt/address_key.hpp"
 #include "adt/map.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using primitives::address::Address;
 
   /// Init actor state
-  struct InitActorState : State {
+  struct InitActorState {
+    virtual ~InitActorState() = default;
+
     adt::Map<uint64_t, adt::AddressKeyer> address_map_0;
     adt::MapV3<uint64_t, adt::AddressKeyer> address_map_3;
     uint64_t next_id{};
@@ -27,5 +28,6 @@ namespace fc::vm::actor::builtin::states {
         const Address &address) = 0;
   };
 
-  using InitActorStatePtr = std::shared_ptr<InitActorState>;
+  using InitActorStatePtr = types::Universal<InitActorState>;
+
 }  // namespace fc::vm::actor::builtin::states

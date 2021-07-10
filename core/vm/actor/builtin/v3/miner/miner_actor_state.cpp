@@ -10,8 +10,6 @@
 namespace fc::vm::actor::builtin::v3::miner {
   using types::miner::kWPoStPeriodDeadlines;
 
-  ACTOR_STATE_TO_CBOR_THIS(MinerActorState)
-
   outcome::result<Universal<types::miner::MinerInfo>> MinerActorState::getInfo()
       const {
     return miner_info.get();

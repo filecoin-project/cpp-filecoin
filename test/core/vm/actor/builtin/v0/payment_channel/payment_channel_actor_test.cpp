@@ -11,7 +11,6 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
-#include "testutil/mocks/vm/states/state_manager_mock.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/codes.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -29,7 +28,6 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   using primitives::address::Address;
   using runtime::MockRuntime;
   using state::StateTreeImpl;
-  using states::MockStateManager;
   using storage::ipfs::InMemoryDatastore;
   using testing::Return;
   using types::payment_channel::kSettleDelay;
@@ -72,36 +70,18 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
           .WillRepeatedly(
               testing::Invoke([&](auto &data) { return blake2b_256(data); }));
 
-      EXPECT_CALL(runtime, stateManager())
-          .WillRepeatedly(testing::Return(state_manager));
-
-      EXPECT_CALL(*state_manager, commitState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](const auto &s) {
-            auto temp_state =
-                std::static_pointer_cast<PaymentChannelActorState>(s);
-            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, *temp_state));
+      EXPECT_CALL(runtime, commit(testing::_))
+          .WillRepeatedly(testing::Invoke([&](auto &cid) {
             EXPECT_OUTCOME_TRUE(new_state,
                                 getCbor<PaymentChannelActorState>(ipld, cid));
             state = std::move(new_state);
             return outcome::success();
           }));
 
-      EXPECT_CALL(*state_manager, createPaymentChannelActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<PaymentChannelActorState>();
-            cbor_blake::cbLoadT(ipld, *s);
-            return std::static_pointer_cast<states::PaymentChannelActorState>(
-                s);
-          }));
-
-      EXPECT_CALL(*state_manager, getPaymentChannelActorState())
+      EXPECT_CALL(runtime, getActorStateCid())
           .WillRepeatedly(testing::Invoke([&]() {
             EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                getCbor<PaymentChannelActorState>(ipld, cid));
-            auto s = std::make_shared<PaymentChannelActorState>(current_state);
-            return std::static_pointer_cast<states::PaymentChannelActorState>(
-                s);
+            return std::move(cid);
           }));
     }
 
@@ -123,8 +103,6 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     SignedVoucher setupUpdateChannelState();
 
     MockRuntime runtime;
-    std::shared_ptr<MockStateManager> state_manager{
-        std::make_shared<MockStateManager>()};
     std::shared_ptr<InMemoryDatastore> ipld{
         std::make_shared<InMemoryDatastore>()};
 

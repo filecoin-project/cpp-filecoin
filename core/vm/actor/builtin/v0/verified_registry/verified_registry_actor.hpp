@@ -12,6 +12,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   using primitives::StoragePower;
   using primitives::address::Address;
   using states::DataCap;
+  using states::VerifiedRegistryActorStatePtr;
 
   struct Construct : ActorMethodBase<1> {
     using Params = Address;
@@ -27,7 +28,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     static outcome::result<void> addVerifier(
         const Runtime &runtime,
-        states::VerifiedRegistryActorState &state,
+        VerifiedRegistryActorStatePtr &state,
         const Address &verifier,
         const DataCap &allowance);
   };
@@ -45,11 +46,10 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     };
     ACTOR_METHOD_DECL();
 
-    static outcome::result<void> addClient(
-        const Runtime &runtime,
-        states::VerifiedRegistryActorState &state,
-        const Address &client,
-        const DataCap &allowance);
+    static outcome::result<void> addClient(const Runtime &runtime,
+                                           VerifiedRegistryActorStatePtr &state,
+                                           const Address &client,
+                                           const DataCap &allowance);
   };
   CBOR_TUPLE(AddVerifiedClient::Params, address, allowance)
 
@@ -62,12 +62,11 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     using CapAssert = std::function<outcome::result<void>(bool)>;
 
-    static outcome::result<void> useBytes(
-        const Runtime &runtime,
-        states::VerifiedRegistryActorState &state,
-        const Address &client,
-        const StoragePower &deal_size,
-        CapAssert cap_assert);
+    static outcome::result<void> useBytes(const Runtime &runtime,
+                                          VerifiedRegistryActorStatePtr &state,
+                                          const Address &client,
+                                          const StoragePower &deal_size,
+                                          CapAssert cap_assert);
   };
   CBOR_TUPLE(UseBytes::Params, address, deal_size)
 
@@ -80,7 +79,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     static outcome::result<void> restoreBytes(
         const Runtime &runtime,
-        states::VerifiedRegistryActorState &state,
+        VerifiedRegistryActorStatePtr &state,
         const Address &client,
         const StoragePower &deal_size);
   };

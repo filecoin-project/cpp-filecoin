@@ -5,19 +5,20 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/state.hpp"
-
 #include "adt/array.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
   using types::payment_channel::LaneState;
 
-  struct PaymentChannelActorState : State {
+  struct PaymentChannelActorState {
+    virtual ~PaymentChannelActorState() = default;
+
     Address from;
     Address to;
     /** Token amount to send on collect after voucher was redeemed */
@@ -27,6 +28,7 @@ namespace fc::vm::actor::builtin::states {
     adt::Array<LaneState> lanes;
   };
 
-  using PaymentChannelActorStatePtr = std::shared_ptr<PaymentChannelActorState>;
+  using PaymentChannelActorStatePtr =
+      types::Universal<PaymentChannelActorState>;
 
 }  // namespace fc::vm::actor::builtin::states

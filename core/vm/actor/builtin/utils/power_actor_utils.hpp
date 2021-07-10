@@ -21,7 +21,7 @@ namespace fc::vm::actor::builtin::utils {
     virtual ~PowerUtils() = default;
 
     virtual outcome::result<void> validateMinerHasClaim(
-        PowerActorStatePtr state, const Address &miner) const = 0;
+        PowerActorStatePtr &state, const Address &miner) const = 0;
 
    protected:
     Runtime &runtime;

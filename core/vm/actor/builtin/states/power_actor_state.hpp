@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/state.hpp"
-
 #include <tuple>
 #include "adt/address_key.hpp"
 #include "adt/multimap.hpp"
@@ -37,8 +35,9 @@ namespace fc::vm::actor::builtin::states {
   using types::storage_power::Claim;
   using types::storage_power::CronEvent;
 
-  struct PowerActorState : State {
+  struct PowerActorState {
     PowerActorState();
+    virtual ~PowerActorState() = default;
 
     StoragePower total_raw_power{};
 
@@ -78,8 +77,6 @@ namespace fc::vm::actor::builtin::states {
         proof_validation_batch;
 
     // Methods
-    virtual std::shared_ptr<PowerActorState> copy() const = 0;
-
     outcome::result<void> addToClaim(const Runtime &runtime,
                                      const Address &address,
                                      const StoragePower &raw,
@@ -117,5 +114,6 @@ namespace fc::vm::actor::builtin::states {
         const Claim &old_claim, const Claim &new_claim) const = 0;
   };
 
-  using PowerActorStatePtr = std::shared_ptr<PowerActorState>;
+  using PowerActorStatePtr = Universal<PowerActorState>;
+
 }  // namespace fc::vm::actor::builtin::states

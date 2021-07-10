@@ -20,7 +20,11 @@
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/chain/receipt_loader.hpp"
 #include "storage/hamt/hamt.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/states/account_actor_state.hpp"
+#include "vm/actor/builtin/states/init_actor_state.hpp"
+#include "vm/actor/builtin/states/market_actor_state.hpp"
+#include "vm/actor/builtin/states/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/power_actor_state.hpp"
 #include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
@@ -63,7 +67,6 @@ namespace fc::api {
   using vm::actor::builtin::states::MarketActorStatePtr;
   using vm::actor::builtin::states::MinerActorStatePtr;
   using vm::actor::builtin::states::PowerActorStatePtr;
-  using vm::actor::builtin::states::StateProvider;
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
@@ -117,52 +120,45 @@ namespace fc::api {
     boost::optional<InterpreterResult> interpreted;
 
     auto marketState() -> outcome::result<MarketActorStatePtr> {
-      const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(kStorageMarketAddress));
-      OUTCOME_TRY(state, provider.getMarketActorState(actor));
-      return std::move(state);
+      return getCbor<MarketActorStatePtr>(state_tree.getStore(), actor.head);
     }
 
     auto minerState(const Address &address)
         -> outcome::result<MinerActorStatePtr> {
-      const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(address));
-      OUTCOME_TRY(state, provider.getMinerActorState(actor));
-      return std::move(state);
+      return getCbor<MinerActorStatePtr>(state_tree.getStore(), actor.head);
     }
 
     auto powerState() -> outcome::result<PowerActorStatePtr> {
-      const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(kStoragePowerAddress));
-      OUTCOME_TRY(state, provider.getPowerActorState(actor));
-      return std::move(state);
+      return getCbor<PowerActorStatePtr>(state_tree.getStore(), actor.head);
     }
 
     auto initState() -> outcome::result<InitActorStatePtr> {
-      const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(kInitAddress));
-      OUTCOME_TRY(state, provider.getInitActorState(actor));
-      return std::move(state);
+      return getCbor<InitActorStatePtr>(state_tree.getStore(), actor.head);
     }
 
     auto verifiedRegistryState()
         -> outcome::result<VerifiedRegistryActorStatePtr> {
-      const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(kVerifiedRegistryAddress));
-      return provider.getVerifiedRegistryActorState(actor);
+      return getCbor<VerifiedRegistryActorStatePtr>(state_tree.getStore(),
+                                                    actor.head);
     }
 
     outcome::result<Address> accountKey(const Address &id) {
-      const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(id));
-      OUTCOME_TRY(state, provider.getAccountActorState(actor));
+      OUTCOME_TRY(
+          state,
+          getCbor<AccountActorStatePtr>(state_tree.getStore(), actor.head));
       return state->address;
     }
   };
 
   outcome::result<std::vector<SectorInfo>> getSectorsForWinningPoSt(
       const Address &miner,
-      MinerActorStatePtr state,
+      const MinerActorStatePtr &state,
       const Randomness &post_rand,
       IpldPtr ipld) {
     std::vector<SectorInfo> sectors;

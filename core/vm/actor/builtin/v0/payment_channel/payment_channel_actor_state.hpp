@@ -5,14 +5,13 @@
 
 #pragma once
 
-#include "codec/cbor/streams_annotation.hpp"
 #include "vm/actor/builtin/states/payment_channel_actor_state.hpp"
+
+#include "codec/cbor/streams_annotation.hpp"
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
 
-  struct PaymentChannelActorState : states::PaymentChannelActorState {
-    outcome::result<Buffer> toCbor() const override;
-  };
+  struct PaymentChannelActorState : states::PaymentChannelActorState {};
   CBOR_TUPLE(PaymentChannelActorState,
              from,
              to,

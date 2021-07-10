@@ -4,6 +4,7 @@
  */
 
 #include "vm/actor/builtin/states/power_actor_state.hpp"
+
 #include "common/math/math.hpp"
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "const.hpp"

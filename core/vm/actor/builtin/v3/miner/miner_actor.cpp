@@ -5,12 +5,14 @@
 
 #include "vm/actor/builtin/v3/miner/miner_actor.hpp"
 
+#include "vm/actor/builtin/states/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 #include "vm/actor/builtin/v3/account/account_actor.hpp"
 #include "vm/actor/builtin/v3/storage_power/storage_power_actor_export.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
+  using states::MinerActorStatePtr;
   using toolchain::Toolchain;
   using types::TypeManager;
   using namespace types::miner;
@@ -30,9 +32,8 @@ namespace fc::vm::actor::builtin::v3::miner {
       control_addresses.push_back(resolved);
     }
 
-    auto state = runtime.stateManager()->createMinerActorState(
-        runtime.getActorVersion());
-
+    MinerActorStatePtr state{runtime.getActorVersion()};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
     OUTCOME_TRY(v0::miner::Construct::makeEmptyState(runtime, state));
 
     const auto current_epoch = runtime.getCurrentEpoch();

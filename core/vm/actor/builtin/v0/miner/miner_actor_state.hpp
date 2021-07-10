@@ -5,16 +5,15 @@
 
 #pragma once
 
+#include "vm/actor/builtin/states/miner_actor_state.hpp"
+
 #include "codec/cbor/streams_annotation.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "vm/actor/builtin/states/miner_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using types::Universal;
 
   struct MinerActorState : states::MinerActorState {
-    outcome::result<Buffer> toCbor() const override;
-
     outcome::result<Universal<types::miner::MinerInfo>> getInfo()
         const override;
 
