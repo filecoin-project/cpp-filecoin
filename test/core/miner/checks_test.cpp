@@ -773,6 +773,11 @@ namespace fc::mining::checks {
 
       api_ = std::make_shared<FullNodeApi>();
 
+      api_->StateNetworkVersion = [](const TipsetKey &tipset_key)
+          -> outcome::result<api::NetworkVersion> {
+        return api::NetworkVersion::kVersion3;
+      };
+
       proofs_ = std::make_shared<proofs::ProofEngineMock>();
     }
 

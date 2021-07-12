@@ -34,8 +34,8 @@ namespace fc::vm::runtime {
                                       const Address &address,
                                       bool allow_actor = true);
 
-  struct IpldBuffered : public Ipld {
-    IpldBuffered(IpldPtr ipld);
+  struct IpldBuffered : Ipld {
+    explicit IpldBuffered(IpldPtr ipld);
     outcome::result<void> flush(const CID &root);
 
     outcome::result<bool> contains(const CID &key) const override;
@@ -98,8 +98,11 @@ namespace fc::vm::runtime {
     size_t actors_created{};
   };
 
-  struct ChargingIpld : public Ipld {
-    ChargingIpld(std::weak_ptr<Execution> execution) : execution_{execution} {}
+  struct ChargingIpld : Ipld {
+    explicit ChargingIpld(std::shared_ptr<Execution> execution)
+        : execution_{execution} {
+      actor_version = execution->env->ipld->actor_version;
+    }
     outcome::result<bool> contains(const CID &key) const override {
       throw "not implemented";
     }

@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <libp2p/peer/peer_id.hpp>
 
+#include "api/full_node/ipld_proxy.hpp"
 #include "api/version.hpp"
 #include "blockchain/production/block_producer.hpp"
 #include "common/logger.hpp"
@@ -36,6 +37,7 @@
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 #define MOVE(x)  \
   x {            \
@@ -74,6 +76,7 @@ namespace fc::api {
   using vm::message::kDefaultGasPrice;
   using vm::runtime::Env;
   using vm::state::StateTreeImpl;
+  using vm::toolchain::Toolchain;
   using vm::version::getNetworkVersion;
 
   const static Logger logger = common::createLogger("Full node API");
@@ -223,6 +226,9 @@ namespace fc::api {
       } else {
         OUTCOME_TRYA(tipset, ts_load->load(tipset_key));
       }
+      auto ipld = std::make_shared<IpldProxy>(env_context.ipld);
+      ipld->actor_version = Toolchain::getActorVersionForNetwork(
+          getNetworkVersion(tipset->height()));
       TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
       if (interpret) {
         OUTCOME_TRY(result, interpreter_cache->get(tipset->key));

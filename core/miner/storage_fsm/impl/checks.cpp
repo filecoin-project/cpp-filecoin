@@ -137,6 +137,8 @@ namespace fc::mining::checks {
 
     OUTCOME_TRY(actor, api->StateGetActor(miner_address, tipset_key));
     auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
+    OUTCOME_TRY(network, api->StateNetworkVersion(tipset_key));
+    ipfs->actor_version = Toolchain::getActorVersionForNetwork(network);
 
     OUTCOME_TRY(state, getCbor<MinerActorStatePtr>(ipfs, actor.head));
 
