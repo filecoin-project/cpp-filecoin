@@ -12,10 +12,11 @@
 #include "codec/cbor/cbor_token.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/cid/cid.hpp"
+#include "vm/actor/version.hpp"
 
 namespace fc::codec::cbor {
   /** Decodes CBOR */
-  class CborDecodeStream {
+  class CborDecodeStream : public vm::actor::WithActorVersion {
    public:
     static constexpr auto is_cbor_decoder_stream = true;
 

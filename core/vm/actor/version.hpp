@@ -22,15 +22,6 @@ namespace fc::vm::actor {
     WithActorVersion() = default;
     WithActorVersion(ActorVersion v) : actor_version{v} {}
 
-    virtual ~WithActorVersion() = default;
-
-    template <typename T>
-    static void set(T &t, ActorVersion v) {
-      if constexpr (std::is_base_of_v<WithActorVersion, T>) {
-        t.actor_version = v;
-      }
-    }
-
     operator ActorVersion() const {
       return actor_version;
     }

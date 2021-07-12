@@ -54,6 +54,7 @@ namespace fc::vm::actor::builtin::types {
 
   template <typename T>
   CBOR2_DECODE(Universal<T>) {
+    v.actor_version = s.actor_version;
     v.object = v.make(v.actor_version);
     return v.decode(s);
   }
