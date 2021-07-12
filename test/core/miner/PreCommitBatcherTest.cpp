@@ -52,6 +52,7 @@ namespace fc::mining {
           info.seal_proof_type = seal_proof_type_;
           return info;
         }
+        return ERROR_TEXT("Error");
       };
 
       EXPECT_CALL(*sch_, now()).WillOnce(testing::Return(current_time_));
@@ -78,10 +79,9 @@ namespace fc::mining {
     ASSERT_FALSE(batcher_->addPreCommit(si, deposit, precInf).has_error());
   };
 
-
   /**
    * CallbackSend test is checking that after the scheduled time for a Precommit
-   * collecting, all the stored batcher's data will be published in  a
+   * collecting, all the stored batcher's data will be published in a
    * messagePool
    */
   TEST_F(PreCommitBatcherTest, CallbackSend) {
@@ -101,7 +101,6 @@ namespace fc::mining {
     api_->MpoolPushMessage = [&](const UnsignedMessage &msg,
                                  const boost::optional<api::MessageSendSpec> &)
         -> outcome::result<SignedMessage> {
-      std::cout << "testing Sending\n";
       if (msg.method == vm::actor::builtin::v0::miner::PreCommitSector::Number
           && msg.value == mutualDeposit) {
         isCall = true;
@@ -132,8 +131,22 @@ namespace fc::mining {
     EXPECT_CALL(*sch_, now())
         .WillOnce(
             testing::Return(current_time_ + toTicks(std::chrono::seconds(61))))
-        .WillRepeatedly(
-            testing::Return(current_time_ + toTicks(std::chrono::seconds(61))));
+        .WillOnce(
+            testing::Return(current_time_ + toTicks(std::chrono::seconds(123))))
+        .WillRepeatedly(testing::Return(current_time_
+                                        + toTicks(std::chrono::seconds(300))));
+    sch_->next_clock();
+    ASSERT_TRUE(isCall);
+
+    isCall = false;
+    mutualDeposit = 0;
+
+    precInf.sealed_cid = "010001020008"_cid;
+    si.sector_number = 6;
+
+    maybe_result = batcher_->addPreCommit(si, deposit, precInf);
+    ASSERT_FALSE(maybe_result.has_error());
+    mutualDeposit += 10;
     sch_->next_clock();
     ASSERT_TRUE(isCall);
   }
@@ -147,16 +160,17 @@ namespace fc::mining {
   TEST_F(PreCommitBatcherTest, ShortDistanceSending) {
     mutualDeposit = 0;
     bool isCall = false;
-    EXPECT_CALL(*sch_, now()).WillOnce(testing::Return(current_time_))
+    EXPECT_CALL(*sch_, now())
+        .WillOnce(testing::Return(current_time_))
         .WillOnce(testing::Return(
-            current_time_
-            + toTicks(std::chrono::seconds(kEpochDurationSeconds)) + 10))
+            current_time_ + toTicks(std::chrono::seconds(kEpochDurationSeconds))
+            + 10))
         .WillOnce(testing::Return(
-            current_time_
-            + toTicks(std::chrono::seconds(kEpochDurationSeconds )) + 11))
+            current_time_ + toTicks(std::chrono::seconds(kEpochDurationSeconds))
+            + 11))
         .WillRepeatedly(testing::Return(
-            current_time_
-            + toTicks(std::chrono::seconds(kEpochDurationSeconds)) + 12));
+            current_time_ + toTicks(std::chrono::seconds(kEpochDurationSeconds))
+            + 12));
 
     api::BlockHeader block;
     block.height = 2;
@@ -206,17 +220,16 @@ namespace fc::mining {
     EXPECT_TRUE(isCall);
 
     block.height = 3;
-    tipset = std::make_shared<Tipset>(
-        TipsetKey(), std::vector<api::BlockHeader>({block}));
+    tipset = std::make_shared<Tipset>(TipsetKey(),
+                                      std::vector<api::BlockHeader>({block}));
 
     si.pieces = {};
     mutualDeposit = 0;
     deal.deal_schedule.start_epoch = 1;
     Piece p3 = {.piece = PieceInfo{.size = PaddedPieceSize(128),
-        .cid = "010001020010"_cid},
-        .deal_info = deal};
+                                   .cid = "010001020010"_cid},
+                .deal_info = deal};
     si.pieces.push_back(p3);
-
 
     maybe_result = batcher_->addPreCommit(si, deposit, precInf);
     ASSERT_FALSE(maybe_result.has_error());
@@ -224,14 +237,6 @@ namespace fc::mining {
 
     sch_->next_clock();
     ASSERT_TRUE(isCall);
-
-
-
-
-
-
-
-
   }
 
 }  // namespace fc::mining

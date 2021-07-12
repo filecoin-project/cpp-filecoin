@@ -18,6 +18,7 @@
 namespace fc::vm::actor::builtin::v0::miner {
   using common::Buffer;
   using crypto::randomness::Randomness;
+  using fc::primitives::sector::SectorInfo;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
   using primitives::RleBitset;
@@ -336,14 +337,15 @@ namespace fc::vm::actor::builtin::v0::miner {
   extern const ActorExports exports;
 
   /**
-   *
-   *
-   *
+   * Collects and stores precommit messages to make
+   * a packaged sending of a several messages within one transaction
+   * which reduces the general amount of transactions in the network
+   * with reduction of a gas fee for transactions.
    */
 
-  struct PreCommitBatch: ActorMethodBase<25> {
+  struct PreCommitBatch : ActorMethodBase<25> {
     struct Params {
-      std::vector<SectorInfo> sectors;
+      std::vector<SectorPreCommitInfo> sectors;
     };
     ACTOR_METHOD_DECL();
   };

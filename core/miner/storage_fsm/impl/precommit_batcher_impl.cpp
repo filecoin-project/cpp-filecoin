@@ -38,15 +38,11 @@ namespace fc::mining {
     batcher->miner_address_ = miner_address;
     batcher->maxDelay = maxWait;
 
-    batcher -> cutoffStart = std::chrono::system_clock::now();
-    batcher -> closestCutoff =  maxWait;
-    batcher -> handle_ = scheduler->schedule(maxWait, [=]() {
+    batcher->cutoffStart = std::chrono::system_clock::now();
+    batcher->closestCutoff = maxWait;
+    batcher->handle_ = scheduler->schedule(maxWait, [=]() {
       auto maybe_send = batcher->sendBatch();
-      if (maybe_send.has_error()) {
-        batcher->handle_.reschedule(maxWait);
-        return maybe_send.error();
-      }
-      batcher->handle_.reschedule(maxWait); // TODO: maybe in gsl::finally
+      batcher->handle_.reschedule(maxWait);  // TODO: maybe in gsl::finally
     });
     return batcher;
   }
@@ -57,40 +53,42 @@ namespace fc::mining {
     OUTCOME_TRY(head, api_->ChainHead());
     OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, head->key));
 
-    std::vector<SectorPreCommitInfo> params;
+    PreCommitBatch::Params params = {};
     for (auto &data : batchStorage) {
       mutualDeposit += data.second.deposit;
-      params.push_back(data.second.pci);
+      params.sectors.push_back(data.second.pci);
     }
     // TODO: goodFunds = mutualDeposit + MaxFee; -  for checking payable
+    if (params.sectors.size() != 0) {
+      OUTCOME_TRY(encodedParams, codec::cbor::encode(params));
 
-    OUTCOME_TRY(encodedParams, codec::cbor::encode(params));
+      auto maybe_signed = api_->MpoolPushMessage(
+          vm::message::UnsignedMessage(
+              miner_address_,
+              minfo.worker,  // TODO: handle worker
+              0,
+              mutualDeposit,
+              {},
+              {},
+              vm::actor::builtin::v0::miner::PreCommitSector::Number,
+              MethodParams{encodedParams}),
+          kPushNoSpec);
 
-    auto maybe_signed = api_->MpoolPushMessage(
-        vm::message::UnsignedMessage(
-            miner_address_,
-            minfo.worker,  // TODO: handle worker
-            0,
-            mutualDeposit,
-            {},
-            {},
-            vm::actor::builtin::v0::miner::PreCommitSector::Number,
-            MethodParams{encodedParams}),
-        kPushNoSpec);
+      if (maybe_signed.has_error()) {
+        return maybe_signed.error(); //TODO: maybe logs
+      }
 
-    if (maybe_signed.has_error()) {
-      return maybe_signed.error();
+      mutualDeposit = 0;
+      batchStorage.clear();
     }
-
-    mutualDeposit = 0;
-    batchStorage.clear();
-
     cutoffStart = std::chrono::system_clock::now();
     return outcome::success();
   }
 
   outcome::result<void> PreCommitBatcherImpl::forceSend() {
-    handle_.reschedule(0);
+    auto error = sendBatch();
+    assert(not error.has_error());
+    handle_.reschedule(maxDelay);
     return outcome::success();
   }
 
@@ -109,7 +107,7 @@ namespace fc::mining {
       }
     }
     if (cutoffEpoch <= curEpoch) {
-      handle_.reschedule(0);
+      auto maybe_error = forceSend();
     } else {
       Ticks tempCutoff = toTicks(std::chrono::seconds((cutoffEpoch - curEpoch)
                                                       * kEpochDurationSeconds));

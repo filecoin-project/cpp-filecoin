@@ -7,11 +7,11 @@
 
 #include <atomic>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <chrono>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <libp2p/protocol/common/scheduler.hpp>
 #include <map>
 #include <vm/actor/actor.hpp>
-#include <chrono>
 #include "api/full_node/node_api.hpp"
 #include "const.hpp"
 #include "fsm/fsm.hpp"
@@ -26,17 +26,18 @@
 
 namespace fc::mining {
   using api::FullNodeApi;
+  using api::kPushNoSpec;
   using api::SectorNumber;
   using api::SectorPreCommitInfo;
-  using api::kPushNoSpec;
-  using libp2p::protocol::scheduler::Ticks;
-  using libp2p::protocol::Scheduler;
   using boost::multiprecision::cpp_int;
+  using fc::vm::actor::builtin::v0::miner::PreCommitBatch;
+  using libp2p::protocol::Scheduler;
   using libp2p::protocol::scheduler::Handle;
+  using libp2p::protocol::scheduler::Ticks;
   using libp2p::protocol::scheduler::toTicks;
-  using primitives::address::Address;
-  using primitives::TokenAmount;
   using primitives::ChainEpoch;
+  using primitives::TokenAmount;
+  using primitives::address::Address;
   using vm::actor::MethodParams;
   using StorageFSM =
       fsm::FSM<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
@@ -44,19 +45,21 @@ namespace fc::mining {
   class PreCommitBatcherImpl : public PreCommitBatcher {
    public:
     struct preCommitEntry {
-      preCommitEntry(primitives::TokenAmount number,
-                     SectorPreCommitInfo info);
+      preCommitEntry(primitives::TokenAmount number, SectorPreCommitInfo info);
       preCommitEntry() = default;
       primitives::TokenAmount deposit;
       SectorPreCommitInfo pci;
-      preCommitEntry& operator=(const preCommitEntry &x);
+      preCommitEntry &operator=(const preCommitEntry &x);
     };
 
     void getPreCommitCutoff(primitives::ChainEpoch curEpoch,
-                                             const SectorInfo & si);
+                            const SectorInfo &si);
 
-    static outcome::result<std::shared_ptr<PreCommitBatcherImpl>> makeBatcher(size_t maxWait, std::shared_ptr<FullNodeApi>  api,
-                                                                               std::shared_ptr<Scheduler> scheduler, Address & miner_address);
+    static outcome::result<std::shared_ptr<PreCommitBatcherImpl>> makeBatcher(
+        size_t maxWait,
+        std::shared_ptr<FullNodeApi> api,
+        std::shared_ptr<Scheduler> scheduler,
+        Address &miner_address);
 
     outcome::result<void> addPreCommit(SectorInfo secInf,
                                        TokenAmount deposit,
@@ -66,9 +69,8 @@ namespace fc::mining {
 
     outcome::result<void> sendBatch();
 
-
    private:
-    PreCommitBatcherImpl(size_t maxTime,  std::shared_ptr<FullNodeApi> api);
+    PreCommitBatcherImpl(size_t maxTime, std::shared_ptr<FullNodeApi> api);
     std::mutex mutex_;
     Address miner_address_;
     cpp_int mutualDeposit;
@@ -78,7 +80,6 @@ namespace fc::mining {
     size_t maxDelay;
     Ticks closestCutoff;
     std::chrono::system_clock::time_point cutoffStart;
-
   };
 
 }  // namespace fc::mining
