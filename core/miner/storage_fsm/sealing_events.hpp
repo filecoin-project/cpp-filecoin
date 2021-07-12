@@ -13,6 +13,8 @@ namespace fc::mining {
   /**
    * SealingEventId is an id event that occurs in a sealing lifecycle
    */
+
+  using api::SectorNumber;
   enum class SealingEvent {
     kSectorStart = 1,
     kSectorStartWithPieces,
