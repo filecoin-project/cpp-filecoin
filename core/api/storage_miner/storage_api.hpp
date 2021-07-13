@@ -38,8 +38,15 @@ namespace fc::api {
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
   using primitives::sector_file::SectorFileType;
+  using sector_storage::CallError;
+  using sector_storage::CallId;
+  using sector_storage::Commit1Output;
   using sector_storage::Manager;
+  using sector_storage::PieceInfo;
+  using sector_storage::PreCommit1Output;
+  using sector_storage::Proof;
   using sector_storage::Scheduler;
+  using sector_storage::SectorCids;
   using sector_storage::stores::FsStat;
   using sector_storage::stores::HealthReport;
   using sector_storage::stores::SectorIndex;
@@ -114,6 +121,53 @@ namespace fc::api {
                const SectorFileType &,
                SectorSize,
                bool)
+
+    API_METHOD(ReturnAddPiece,
+               void,
+               const CallId &,
+               const boost::optional<PieceInfo> &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnSealPreCommit1,
+               void,
+               const CallId &,
+               const boost::optional<PreCommit1Output> &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnSealPreCommit2,
+               void,
+               const CallId &,
+               const boost::optional<SectorCids> &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnSealCommit1,
+               void,
+               const CallId &,
+               const boost::optional<Commit1Output> &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnSealCommit2,
+               void,
+               const CallId &,
+               const boost::optional<Proof> &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnFinalizeSector,
+               void,
+               const CallId &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnMoveStorage,
+               void,
+               const CallId &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnUnsealPiece,
+               void,
+               const CallId &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnReadPiece,
+               void,
+               const CallId &,
+               const boost::optional<bool> &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnFetch,
+               void,
+               const CallId &,
+               const boost::optional<CallError> &)
 
     API_METHOD(WorkerConnect, void, const std::string &);
   };

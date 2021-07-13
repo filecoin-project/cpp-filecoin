@@ -48,6 +48,10 @@ namespace fc::sector_storage {
     std::string id;  // uuid
   };
 
+  inline bool operator<(const CallId &lhs, const CallId &rhs) {
+    return less(lhs.sector, rhs.sector, lhs.id, rhs.id);
+  }
+
   inline bool operator==(const CallId &lhs, const CallId &rhs) {
     return lhs.sector == rhs.sector && lhs.id == rhs.id;
   }
@@ -144,6 +148,17 @@ namespace fc::sector_storage {
     }
     return error;
   }
+
+  using ReturnValues =
+      std::variant<PieceInfo,
+                   SectorCids,
+                   Proof,  // also PreCommit1Output, Commit1Output
+                   bool>;
+  struct CallResult {
+    boost::optional<ReturnValues> maybe_value;
+    boost::optional<CallError> maybe_error;
+  };
+  using ReturnCb = std::function<void(outcome::result<CallResult>)>;
 
   class WorkerReturn {
    public:

@@ -10,6 +10,7 @@ target_link_libraries(remote_worker_main
     Boost::program_options
     filecoin_config
     remote_index
+    remote_return
     fetch_handler
     worker
     proof_param_provider

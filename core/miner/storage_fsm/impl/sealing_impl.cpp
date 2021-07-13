@@ -6,9 +6,9 @@
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
 
 #include <libp2p/protocol/common/scheduler.hpp>
+#include <thread>
 #include <unordered_set>
 #include <utility>
-#include <thread>
 #include "common/bitsutil.hpp"
 #include "const.hpp"
 #include "miner/storage_fsm/impl/checks.hpp"
@@ -182,7 +182,7 @@ namespace fc::mining {
   }
 
   outcome::result<PieceAttributes> SealingImpl::addPieceToAnySector(
-      UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) {
+      UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) {
     if (not deal.publish_cid.has_value()) {
       return SealingError::kNotPublishedDeal;
     }
@@ -198,7 +198,9 @@ namespace fc::mining {
       return SealingError::kCannotAllocatePiece;
     }
 
-    auto sector_size = sealer_->getSectorSize();
+    OUTCOME_TRY(seal_proof_type, getCurrentSealProof());
+    OUTCOME_TRY(sector_size, getSectorSize(seal_proof_type));
+
     if (size > PaddedPieceSize(sector_size).unpadded()) {
       return SealingError::kPieceNotFit;
     }
@@ -213,15 +215,16 @@ namespace fc::mining {
 
       piece.sector = sector_and_padding.sector;
 
-      PieceData zero_file("/dev/zero");
       for (const auto &pad : sector_and_padding.pads) {
-        OUTCOME_TRY(addPiece(
-            sector_and_padding.sector, pad.unpadded(), zero_file, boost::none));
+        OUTCOME_TRY(addPiece(sector_and_padding.sector,
+                             pad.unpadded(),
+                             PieceData("/dev/zero"),
+                             boost::none));
       }
 
       piece.offset = unsealed_sectors_[sector_and_padding.sector].stored;
 
-      OUTCOME_TRY(addPiece(sector_and_padding.sector, size, piece_data, deal));
+      OUTCOME_TRY(addPiece(sector_and_padding.sector, size, std::move(piece_data), deal));
 
       is_start_packing =
           unsealed_sectors_[sector_and_padding.sector].deals_number
@@ -319,10 +322,12 @@ namespace fc::mining {
       return outcome::success();  // cur sealing
     }
 
+    OUTCOME_TRY(seal_proof_type, getCurrentSealProof());
+    OUTCOME_TRY(sector_size, getSectorSize(seal_proof_type));
+
     scheduler_
-        ->schedule([self{shared_from_this()}] {
-          UnpaddedPieceSize size =
-              PaddedPieceSize(self->sealer_->getSectorSize()).unpadded();
+        ->schedule([self{shared_from_this()}, sector_size] {
+          UnpaddedPieceSize size = PaddedPieceSize(sector_size).unpadded();
 
           auto maybe_sid = self->counter_->next();
           if (maybe_sid.has_error()) {
@@ -333,7 +338,7 @@ namespace fc::mining {
 
           std::vector<UnpaddedPieceSize> sizes = {size};
           auto maybe_pieces =
-              self->pledgeSector(self->minerSector(sid), {}, sizes);
+              self->pledgeSector(self->minerSectorId(sid), {}, sizes);
           if (maybe_pieces.has_error()) {
             self->logger_->error(maybe_pieces.error().message());
             return;
@@ -392,7 +397,8 @@ namespace fc::mining {
 
   outcome::result<SealingImpl::SectorPaddingResponse>
   SealingImpl::getSectorAndPadding(UnpaddedPieceSize size) {
-    auto sector_size = sealer_->getSectorSize();
+    OUTCOME_TRY(seal_proof_type, getCurrentSealProof());
+    OUTCOME_TRY(sector_size, getSectorSize(seal_proof_type));
 
     for (const auto &[key, value] : unsealed_sectors_) {
       auto pads = proofs::getRequiredPadding(value.stored, size.padded());
@@ -421,15 +427,16 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::addPiece(
       SectorNumber sector_id,
       UnpaddedPieceSize size,
-      const PieceData &piece,
+      PieceData piece,
       const boost::optional<DealInfo> &deal) {
     logger_->info("Add piece to sector {}", sector_id);
+    OUTCOME_TRY(seal_proof_type, getCurrentSealProof());
     OUTCOME_TRY(piece_info,
-                sealer_->addPiece(minerSector(sector_id),
-                                  unsealed_sectors_[sector_id].piece_sizes,
-                                  size,
-                                  piece,
-                                  kDealSectorPriority));
+                sealer_->addPieceSync(minerSector(seal_proof_type, sector_id),
+                                      unsealed_sectors_[sector_id].piece_sizes,
+                                      size,
+                                      std::move(piece),
+                                      kDealSectorPriority));
 
     Piece new_piece{
         .piece = piece_info,
@@ -724,7 +731,7 @@ namespace fc::mining {
       const std::shared_ptr<SealingEventContext> &event_context,
       SealingState from,
       SealingState to) {
-    stat_->updateSector(minerSector(info->sector_number), to);
+    stat_->updateSector(minerSectorId(info->sector_number), to);
     info->state = to;
     fsmSave(info);
 
@@ -816,7 +823,10 @@ namespace fc::mining {
       allocated += piece.piece.size.unpadded();
     }
 
-    auto ubytes = PaddedPieceSize(sealer_->getSectorSize()).unpadded();
+    OUTCOME_TRY(seal_proof_type, getCurrentSealProof());
+    OUTCOME_TRY(sector_size, getSectorSize(seal_proof_type));
+
+    auto ubytes = PaddedPieceSize(sector_size).unpadded();
 
     if (allocated > ubytes) {
       logger_->error("too much data in sector: {} > {}", allocated, ubytes);
@@ -832,7 +842,7 @@ namespace fc::mining {
     }
 
     OUTCOME_TRY(result,
-                pledgeSector(minerSector(info->sector_number),
+                pledgeSector(minerSectorId(info->sector_number),
                              info->getExistingPieceSizes(),
                              filler_sizes));
 
@@ -845,12 +855,14 @@ namespace fc::mining {
   }
 
   outcome::result<std::vector<PieceInfo>> SealingImpl::pledgeSector(
-      SectorId sector,
+      SectorId sector_id,
       std::vector<UnpaddedPieceSize> existing_piece_sizes,
       gsl::span<UnpaddedPieceSize> sizes) {
     if (sizes.empty()) {
       return outcome::success();
     }
+
+    OUTCOME_TRY(seal_proof_type, getCurrentSealProof());
 
     std::string existing_piece_str = "empty";
     if (!existing_piece_sizes.empty()) {
@@ -861,16 +873,21 @@ namespace fc::mining {
       }
     }
 
-    logger_->info("Pledge " + primitives::sector_file::sectorName(sector)
+    logger_->info("Pledge " + primitives::sector_file::sectorName(sector_id)
                   + ", contains " + existing_piece_str);
 
     std::vector<PieceInfo> result;
 
-    PieceData zero_file("/dev/zero");
+    SectorRef sector{
+        .id = sector_id,
+        .proof_type = seal_proof_type,
+    };
+
     for (const auto &size : sizes) {
       OUTCOME_TRY(
           piece_info,
-          sealer_->addPiece(sector, existing_piece_sizes, size, zero_file, 0));
+          sealer_->addPieceSync(
+              sector, existing_piece_sizes, size, PieceData("/dev/zero"), 0));
 
       existing_piece_sizes.push_back(size);
 
@@ -880,7 +897,15 @@ namespace fc::mining {
     return std::move(result);
   }
 
-  SectorId SealingImpl::minerSector(SectorNumber num) {
+  SectorRef SealingImpl::minerSector(RegisteredSealProof seal_proof_type,
+                                     SectorNumber num) {
+    return SectorRef{
+        .id = minerSectorId(num),
+        .proof_type = seal_proof_type,
+    };
+  }
+
+  SectorId SealingImpl::minerSectorId(SectorNumber num) {
     auto miner_id = miner_address_.getId();
 
     return SectorId{
@@ -919,11 +944,11 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    auto maybe_result =
-        sealer_->sealPreCommit1(minerSector(info->sector_number),
-                                maybe_ticket.value().ticket,
-                                info->getPieceInfos(),
-                                info->sealingPriority());
+    auto maybe_result = sealer_->sealPreCommit1Sync(
+        minerSector(info->sector_type, info->sector_number),
+        maybe_ticket.value().ticket,
+        info->getPieceInfos(),
+        info->sealingPriority());
 
     if (maybe_result.has_error()) {
       logger_->error("Seal pre commit 1 error: {}",
@@ -944,9 +969,10 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handlePreCommit2(
       const std::shared_ptr<SectorInfo> &info) {
     logger_->info("PreCommit 2 sector {}", info->sector_number);
-    auto maybe_cid = sealer_->sealPreCommit2(minerSector(info->sector_number),
-                                             info->precommit1_output,
-                                             info->sealingPriority());
+    auto maybe_cid = sealer_->sealPreCommit2Sync(
+        minerSector(info->sector_type, info->sector_number),
+        info->precommit1_output,
+        info->sealingPriority());
     if (maybe_cid.has_error()) {
       logger_->error("Seal pre commit 2 error: {}",
                      maybe_cid.error().message());
@@ -1221,13 +1247,13 @@ namespace fc::mining {
         .unsealed_cid = info->comm_d.get(),
     };
 
-    auto maybe_commit_1_output =
-        sealer_->sealCommit1(minerSector(info->sector_number),
-                             info->ticket,
-                             info->seed,
-                             info->getPieceInfos(),
-                             cids,
-                             info->sealingPriority());
+    auto maybe_commit_1_output = sealer_->sealCommit1Sync(
+        minerSector(info->sector_type, info->sector_number),
+        info->ticket,
+        info->seed,
+        info->getPieceInfos(),
+        cids,
+        info->sealingPriority());
     if (maybe_commit_1_output.has_error()) {
       logger_->error("computing seal proof failed(1): {}",
                      maybe_commit_1_output.error().message());
@@ -1235,9 +1261,10 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    auto maybe_proof = sealer_->sealCommit2(minerSector(info->sector_number),
-                                            maybe_commit_1_output.value(),
-                                            info->sealingPriority());
+    auto maybe_proof = sealer_->sealCommit2Sync(
+        minerSector(info->sector_type, info->sector_number),
+        maybe_commit_1_output.value(),
+        info->sealingPriority());
     if (maybe_proof.has_error()) {
       logger_->error("computing seal proof failed(2): {}",
                      maybe_proof.error().message());
@@ -1386,9 +1413,10 @@ namespace fc::mining {
       const std::shared_ptr<SectorInfo> &info) {
     // TODO: Maybe wait for some finality
 
-    auto maybe_error = sealer_->finalizeSector(minerSector(info->sector_number),
-                                               info->keepUnsealedRanges(),
-                                               info->sealingPriority());
+    auto maybe_error = sealer_->finalizeSectorSync(
+        minerSector(info->sector_type, info->sector_number),
+        info->keepUnsealedRanges(),
+        info->sealingPriority());
     if (maybe_error.has_error()) {
       logger_->error("finalize sector: {}", maybe_error.error().message());
       FSM_SEND(info, SealingEvent::kSectorFinalizeFailed);
@@ -1897,7 +1925,8 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handleRemoving(
       const std::shared_ptr<SectorInfo> &info) {
-    auto maybe_error = sealer_->remove(minerSector(info->sector_number));
+    auto maybe_error =
+        sealer_->remove(minerSector(info->sector_type, info->sector_number));
     if (maybe_error.has_error()) {
       logger_->error(maybe_error.error().message());
       FSM_SEND(info, SealingEvent::kSectorRemoveFailed);
@@ -1995,6 +2024,13 @@ namespace fc::mining {
     to_upgrade_.erase(to_upgrade_.begin());
     return result;
   }
+
+  outcome::result<RegisteredSealProof> SealingImpl::getCurrentSealProof() {
+    OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address_, {}));
+
+    return miner_info.seal_proof_type;
+  }
+
 }  // namespace fc::mining
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::mining, SealingError, e) {

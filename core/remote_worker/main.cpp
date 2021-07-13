@@ -26,6 +26,7 @@
 #include "proofs/proof_param_provider.hpp"
 #include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/local_worker.hpp"
+#include "sector_storage/impl/remote_return.hpp"
 #include "sector_storage/stores/impl/remote_index_impl.hpp"
 #include "sector_storage/stores/impl/remote_store.hpp"
 #include "sector_storage/stores/impl/storage_impl.hpp"
@@ -197,11 +198,11 @@ namespace fc {
         .is_no_swap = false,  // TODO: add flag for change it
     };
 
-    auto worker{std::make_unique<LocalWorker>(
-        io,
-        wconfig,
-        nullptr,  // TODO(ortyomka): [FIL-389] add api to return
-        remote_store)};
+    auto remote_return{std::make_shared<sector_storage::RemoteReturn>(mapi)};
+
+    auto worker{
+        LocalWorker::newLocalWorker(io, wconfig, remote_return, remote_store)};
+
     auto wapi{std::make_shared<api::WorkerApi>()};
     wapi->Version = []() { return VersionResult{"seal-worker", 0, 0}; };
     wapi->StorageAddLocal = [&](const std::string &path) {

@@ -13,14 +13,15 @@ using fc::primitives::sector::RegisteredSealProof;
 using fc::primitives::sector::SectorId;
 
 namespace fc::sector_storage {
+  using primitives::sector::RegisteredPoStProof;
+  using primitives::sector::SectorRef;
 
   class FaultTracker {
    public:
     virtual ~FaultTracker() = default;
 
     virtual outcome::result<std::vector<SectorId>> checkProvable(
-        RegisteredSealProof seal_proof_type,
-        gsl::span<const SectorId> sectors) = 0;
+        RegisteredPoStProof proof_type, gsl::span<const SectorRef> sectors) = 0;
   };
 
 }  // namespace fc::sector_storage

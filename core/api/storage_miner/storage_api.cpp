@@ -67,8 +67,6 @@ namespace fc::api {
       return outcome::success();
     };
 
-    api->SealProof = [=] { return sector_scheduler->getSealProofType(); };
-
     api->StorageAttach = [=](const StorageInfo_ &storage_info,
                              const FsStat &stat) {
       return sector_index->storageAttach(storage_info, stat);

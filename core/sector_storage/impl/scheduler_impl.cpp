@@ -4,27 +4,19 @@
  */
 
 #include "sector_storage/impl/scheduler_impl.hpp"
-#include <boost/asio/post.hpp>
-#include <boost/thread.hpp>
 #include <thread>
+#include <utility>
 #include "primitives/resources/active_resources.hpp"
 
 namespace fc::sector_storage {
   using primitives::Resources;
   using primitives::WorkerResources;
 
-  SchedulerImpl::SchedulerImpl()
-      : current_worker_id_(0), logger_(common::createLogger("scheduler")) {
-    unsigned int nthreads = 0;
-    if ((nthreads = std::thread::hardware_concurrency())
-        || (nthreads = boost::thread::hardware_concurrency())) {
-      pool_ = std::make_unique<boost::asio::thread_pool>(nthreads);
-    } else {
-      pool_ = std::make_unique<boost::asio::thread_pool>(
-          1);  // if we cannot get the number of cores, we think that the
-               // processor has 1 core
-    }
-  }
+  SchedulerImpl::SchedulerImpl(
+      std::shared_ptr<boost::asio::io_context> io_context)
+      : current_worker_id_(0),
+        io_(std::move(io_context)),
+        logger_(common::createLogger("scheduler")) {}
 
   outcome::result<void> SchedulerImpl::schedule(
       const primitives::sector::SectorRef &sector,
@@ -32,9 +24,10 @@ namespace fc::sector_storage {
       const std::shared_ptr<WorkerSelector> &selector,
       const WorkerAction &prepare,
       const WorkerAction &work,
+      const ReturnCb &cb,
       uint64_t priority) {
     std::shared_ptr<TaskRequest> request = std::make_shared<TaskRequest>(
-        sector, task_type, priority, selector, prepare, work);
+        sector, task_type, priority, selector, prepare, work, cb);
 
     {
       std::lock_guard<std::mutex> lock(request_lock_);
@@ -46,7 +39,7 @@ namespace fc::sector_storage {
       }
     }
 
-    return request->response.get_future().get();
+    return outcome::success();
   }
 
   void SchedulerImpl::newWorker(std::unique_ptr<WorkerHandle> worker) {
@@ -146,47 +139,103 @@ namespace fc::sector_storage {
 
     worker->preparing.add(worker->info.resources, need_resources);
 
-    boost::asio::post(*pool_, [this, wid, worker, request, need_resources]() {
-      {
-        auto maybe_err = request->prepare(worker->worker);
-        std::unique_lock<std::mutex> lock(workers_lock_);
-        if (maybe_err.has_error()) {
-          worker->preparing.free(worker->info.resources, need_resources);
-          request->respond(maybe_err.error());
-          lock.unlock();
-          freeWorker(wid);
-          return;
+    io_->post([this, wid, worker, request, need_resources]() {
+      auto cb = [this, wid, worker, request, need_resources](
+                    const outcome::result<CallResult> &res) -> void {
+        bool force;
+        {
+          std::unique_lock<std::mutex> lock(workers_lock_);
+          force = {workers_.size() == 1 && !active_jobs};
+          ++active_jobs;
         }
 
-        auto force{workers_.size() == 1 && !active_jobs};
-        ++active_jobs;
-        maybe_err = worker->active.withResources(
+        CallId call_id;
+
+        auto maybe_clear = worker->active.withResources(
             force,
             worker->info.resources,
             need_resources,
             workers_lock_,
             [&]() -> outcome::result<void> {
               worker->preparing.free(worker->info.resources, need_resources);
-              lock.unlock();
 
-              auto res = request->work(worker->worker);
+              auto maybe_call_id = request->work(worker->worker);
 
-              if (res.has_error()) {
-                request->respond(res.error());
-              } else {
-                request->respond(std::error_code());
+              if (maybe_call_id.has_value()) {
+                call_id = maybe_call_id.value();
+                return outcome::success();
               }
 
-              lock.lock();
-              return outcome::success();
+              return maybe_call_id.error();
             });
-        --active_jobs;
-        if (maybe_err.has_error()) {
-          logger_->error("worker's execution: " + maybe_err.error().message());
+
+        if (maybe_clear.has_error()) {
+          request->cb(maybe_clear.error());
+          logger_->error("worker's execution: "
+                         + maybe_clear.error().message());
+
+          {
+            std::unique_lock<std::mutex> lock(workers_lock_);
+            --active_jobs;
+          }
+          freeWorker(wid);
+        } else {
+          ReturnCb new_cb =
+              [this, wid, request, clear = std::move(maybe_clear.value())](
+                  outcome::result<CallResult> result) -> void {
+            clear();
+            {
+              std::unique_lock<std::mutex> lock(workers_lock_);
+              --active_jobs;
+            }
+
+            request->cb(std::move(result));
+
+            freeWorker(wid);
+          };
+          {
+            std::unique_lock lock(cbs_lock_);
+
+            auto it = results_.find(call_id);
+            if (it == results_.end()) {
+              callbacks_[call_id] = new_cb;
+            } else {
+              io_->post([cb = std::move(new_cb), value = it->second]() {
+                cb(value);
+              });
+              results_.erase(it);
+            }
+          }
         }
+      };
+
+      if (not request->prepare) {
+        worker->preparing.free(worker->info.resources, need_resources);
+        cb(outcome::success());
+        return;
       }
 
-      freeWorker(wid);
+      auto maybe_call_id = request->prepare(worker->worker);
+
+      if (maybe_call_id.has_error()) {
+        worker->preparing.free(worker->info.resources, need_resources);
+        request->cb(maybe_call_id.error());
+        freeWorker(wid);
+        return;
+      }
+
+      {
+        std::unique_lock lock(cbs_lock_);
+        auto it = results_.find(maybe_call_id.value());
+        if (it == results_.end()) {
+          callbacks_[maybe_call_id.value()] = cb;
+        } else {
+          io_->post([cb = std::move(cb), value = it->second]() {
+              cb(value);
+          });
+          results_.erase(it);
+        }
+      }
     });
   }
 
@@ -220,7 +269,7 @@ namespace fc::sector_storage {
       auto maybe_result = maybeScheduleRequest(req);
 
       if (maybe_result.has_error()) {
-        req->respond(maybe_result.error());
+        req->cb(maybe_result.error());
       } else if (!maybe_result.value()) {
         continue;
       }
@@ -231,6 +280,158 @@ namespace fc::sector_storage {
       }
       --it;
     }
+  }
+
+  outcome::result<void> SchedulerImpl::returnResult(const CallId &call_id,
+                                                    CallResult result) {
+    std::unique_lock lock(cbs_lock_);
+
+    auto it = callbacks_.find(call_id);
+    if (it == callbacks_.end()) {
+      results_[call_id] = result;
+      return outcome::success();
+    }
+
+    io_->post([&, cb = it->second, call_id, result]() {
+      cb(result);
+
+      std::unique_lock lock(cbs_lock_);
+      callbacks_.erase(callbacks_.find(call_id));
+    });
+
+    return outcome::success();
+  }
+
+  outcome::result<void> SchedulerImpl::returnAddPiece(
+      CallId call_id,
+      boost::optional<PieceInfo> maybe_piece_info,
+      boost::optional<CallError> maybe_error) {
+    CallResult result{
+        .maybe_value = boost::none,
+        .maybe_error = maybe_error,
+    };
+
+    if (maybe_piece_info.has_value()) {
+      result.maybe_value = maybe_piece_info.value();
+    }
+
+    return returnResult(call_id, result);
+  }
+
+  outcome::result<void> SchedulerImpl::returnSealPreCommit1(
+      CallId call_id,
+      boost::optional<PreCommit1Output> maybe_precommit1_out,
+      boost::optional<CallError> maybe_error) {
+    CallResult result{
+        .maybe_value = boost::none,
+        .maybe_error = maybe_error,
+    };
+
+    if (maybe_precommit1_out.has_value()) {
+      result.maybe_value = maybe_precommit1_out.value();
+    }
+
+    return returnResult(call_id, result);
+  }
+
+  outcome::result<void> SchedulerImpl::returnSealPreCommit2(
+      CallId call_id,
+      boost::optional<SectorCids> maybe_sector_cids,
+      boost::optional<CallError> maybe_error) {
+    CallResult result{
+        .maybe_value = boost::none,
+        .maybe_error = maybe_error,
+    };
+
+    if (maybe_sector_cids.has_value()) {
+      result.maybe_value = maybe_sector_cids.value();
+    }
+    return returnResult(call_id, result);
+  }
+
+  outcome::result<void> SchedulerImpl::returnSealCommit1(
+      CallId call_id,
+      boost::optional<Commit1Output> maybe_commit1_out,
+      boost::optional<CallError> maybe_error) {
+    CallResult result{
+        .maybe_value = boost::none,
+        .maybe_error = maybe_error,
+    };
+
+    if (maybe_commit1_out.has_value()) {
+      result.maybe_value = maybe_commit1_out.value();
+    }
+    return returnResult(call_id, result);
+  }
+
+  outcome::result<void> SchedulerImpl::returnSealCommit2(
+      CallId call_id,
+      boost::optional<Proof> maybe_proof,
+      boost::optional<CallError> maybe_error) {
+    CallResult result{
+        .maybe_value = boost::none,
+        .maybe_error = maybe_error,
+    };
+
+    if (maybe_proof.has_value()) {
+      result.maybe_value = maybe_proof.value();
+    }
+    return returnResult(call_id, result);
+  }
+
+  outcome::result<void> SchedulerImpl::returnFinalizeSector(
+      CallId call_id, boost::optional<CallError> maybe_error) {
+    CallResult result{
+        .maybe_value = boost::none,
+        .maybe_error = maybe_error,
+    };
+
+    return returnResult(call_id, result);
+  }
+
+  outcome::result<void> SchedulerImpl::returnMoveStorage(
+      CallId call_id, boost::optional<CallError> maybe_error) {
+    CallResult result{
+        .maybe_value = boost::none,
+        .maybe_error = maybe_error,
+    };
+
+    return returnResult(call_id, result);
+  }
+
+  outcome::result<void> SchedulerImpl::returnUnsealPiece(
+      CallId call_id, boost::optional<CallError> maybe_error) {
+    CallResult result{
+        .maybe_value = boost::none,
+        .maybe_error = maybe_error,
+    };
+
+    return returnResult(call_id, result);
+  }
+
+  outcome::result<void> SchedulerImpl::returnReadPiece(
+      CallId call_id,
+      boost::optional<bool> maybe_status,
+      boost::optional<CallError> maybe_error) {
+    CallResult result{
+        .maybe_value = boost::none,
+        .maybe_error = maybe_error,
+    };
+
+    if (maybe_status.has_value()) {
+      result.maybe_value = maybe_status.value();
+    }
+    return returnResult(call_id, result);
+  }
+
+  outcome::result<void> SchedulerImpl::returnFetch(
+      CallId call_id, boost::optional<CallError> maybe_error) {
+    CallResult result{
+        .maybe_value = boost::none,
+        .maybe_error = maybe_error,
+    };
+
+    return returnResult(call_id, result);
   }
 
 }  // namespace fc::sector_storage

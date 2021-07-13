@@ -7,10 +7,12 @@
 
 #include "common/logger.hpp"
 #include "common/outcome_fmt.hpp"
+#include "primitives/sector/sector.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/version/version.hpp"
 
 namespace fc::mining {
+  using sector_storage::SectorRef;
   using vm::actor::builtin::types::miner::kWPoStPeriodDeadlines;
   using vm::actor::builtin::v0::miner::DeclareFaults;
   using vm::actor::builtin::v0::miner::DeclareFaultsRecovered;
@@ -32,7 +34,8 @@ namespace fc::mining {
     OUTCOME_TRY(info, api->StateMinerInfo(miner, {}));
     OUTCOME_TRYA(scheduler->worker, api->StateAccountKey(info.worker, {}));
     scheduler->part_size = info.window_post_partition_sectors;
-    scheduler->proof_type = info.seal_proof_type;
+    OUTCOME_TRYA(scheduler->proof_type,
+                 getRegisteredWindowPoStProof(info.seal_proof_type));
     scheduler->channel->read([scheduler](auto changes) {
       if (changes) {
         TipsetCPtr revert, apply;
@@ -195,11 +198,11 @@ namespace fc::mining {
 
   outcome::result<RleBitset> WindowPoStScheduler::checkSectors(
       const RleBitset &sectors, bool ok) {
-    std::vector<SectorId> ids;
+    std::vector<SectorRef> refs;
     for (auto id : sectors) {
-      ids.push_back({miner.getId(), id});
+      refs.push_back({{miner.getId(), id}, RegisteredSealProof::kUndefined});
     }
-    OUTCOME_TRY(bad_ids, fault_tracker->checkProvable(proof_type, ids));
+    OUTCOME_TRY(bad_ids, fault_tracker->checkProvable(proof_type, refs));
     RleBitset bad;
     for (auto &id : bad_ids) {
       bad.insert(id.sector);
@@ -246,9 +249,11 @@ namespace fc::mining {
     wait.waitOwn([method](auto _r) {
       auto name{method == DeclareFaultsRecovered::Number
                     ? "DeclareFaultsRecovered"
-                : method == DeclareFaults::Number      ? "DeclareFaults"
-                : method == SubmitWindowedPoSt::Number ? "SubmitWindowedPoSt"
-                                                       : "(unexpected)"};
+                    : method == DeclareFaults::Number
+                          ? "DeclareFaults"
+                          : method == SubmitWindowedPoSt::Number
+                                ? "SubmitWindowedPoSt"
+                                : "(unexpected)"};
       if (!_r) {
         spdlog::error("WindowPoStScheduler {} error {}", name, _r.error());
       } else {

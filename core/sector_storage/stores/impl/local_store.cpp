@@ -66,9 +66,6 @@ namespace fc::sector_storage::stores {
       return StoreError::kFindAndAllocate;
     }
 
-    OUTCOME_TRY(sector_size,
-                primitives::sector::getSectorSize(sector.proof_type));
-
     std::shared_lock lock(mutex_);
 
     AcquireSectorResponse result{};
@@ -107,6 +104,12 @@ namespace fc::sector_storage::stores {
         existing = static_cast<SectorFileType>(existing ^ type);
         break;
       }
+    }
+
+    SectorSize sector_size = 0;
+    if (allocate != SectorFileType::FTNone) {
+      OUTCOME_TRYA(sector_size,
+                   primitives::sector::getSectorSize(sector.proof_type));
     }
 
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {

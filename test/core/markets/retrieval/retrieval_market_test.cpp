@@ -10,6 +10,7 @@
 namespace fc::markets::retrieval::test {
   using fc::storage::ipld::kAllSelector;
   using primitives::piece::UnpaddedByteIndex;
+  using primitives::sector::SectorRef;
   using proofs::ProofsError;
   using testing::_;
 
@@ -57,18 +58,21 @@ namespace fc::markets::retrieval::test {
     const Address result_address = Address::makeFromId(1000);
     EXPECT_CALL(*miner, getAddress()).WillOnce(testing::Return(result_address));
 
-    EXPECT_CALL(*sealer,
-                doReadPiece(_,
-                            SectorId{.miner = result_address.getId(),
+    EXPECT_CALL(
+        *sealer,
+        doReadPieceSync(
+            _,
+            SectorRef{.id = SectorId{.miner = result_address.getId(),
                                      .sector = deal.sector_id},
-                            UnpaddedByteIndex(deal.offset.unpadded()),
-                            deal.length.unpadded(),
-                            common::Hash256(),
-                            CID()))
+                      .proof_type = RegisteredSealProof::kStackedDrg2KiBV1},
+            UnpaddedByteIndex(deal.offset.unpadded()),
+            deal.length.unpadded(),
+            common::Hash256(),
+            CID()))
         .WillOnce(
             testing::Invoke([ipfs{provider_ipfs}, cid{payload_cid}](
                                 auto output_fd, auto, auto, auto, auto, auto)
-                                -> outcome::result<void> {
+                                -> outcome::result<bool> {
               if (output_fd == -1) {
                 return ProofsError::kCannotOpenFile;
               }
@@ -77,7 +81,7 @@ namespace fc::markets::retrieval::test {
               if ((bytes < 0) || (static_cast<size_t>(bytes) != car.size())) {
                 return ProofsError::kNotWriteEnough;
               }
-              return outcome::success();
+              return true;
             }));
 
     DealProposalParams params{.selector = kAllSelector,
@@ -104,5 +108,5 @@ namespace fc::markets::retrieval::test {
     EXPECT_OUTCOME_TRUE_1(future.get());
 
     EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), true);
-  }
+  }  // namespace fc::markets::retrieval::test
 }  // namespace fc::markets::retrieval::test

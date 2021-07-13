@@ -16,6 +16,7 @@
 namespace fc::markets::retrieval::provider {
   using ::fc::storage::piece::PieceStorageError;
   using primitives::piece::UnpaddedByteIndex;
+  using primitives::sector::SectorRef;
   using storage::kStorageMarketImportDir;
   namespace fs = boost::filesystem;
 
@@ -399,16 +400,22 @@ namespace fc::markets::retrieval::provider {
         .miner = miner_id,
         .sector = sid,
     };
+    SectorRef sector{
+        .id = sector_id,
+        .proof_type = sector_info->sector_type,
+    };
 
     CID comm_d = sector_info->comm_d.get_value_or(CID());
 
-    return sealer_->readPiece(
+    OUTCOME_TRY(sealer_->readPieceSync(
         PieceData(output_path.c_str(), O_WRONLY | O_CREAT),
-        sector_id,
+        sector,
         UnpaddedByteIndex(offset),
         size,
         sector_info->ticket,
-        comm_d);
+        comm_d));
+
+    return outcome::success();
   }
 
 }  // namespace fc::markets::retrieval::provider

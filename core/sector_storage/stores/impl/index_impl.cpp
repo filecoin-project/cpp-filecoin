@@ -355,7 +355,7 @@ namespace fc::sector_storage::stores {
     return result;
   }
 
-  outcome::result<std::unique_ptr<WLock>> SectorIndexImpl::storageLock(
+  outcome::result<std::shared_ptr<WLock>> SectorIndexImpl::storageLock(
       const SectorId &sector, SectorFileType read, SectorFileType write) {
     std::unique_ptr<IndexLock::Lock> lock =
         std::make_unique<IndexLock::Lock>(sector, read, write);
@@ -371,7 +371,7 @@ namespace fc::sector_storage::stores {
     return IndexErrors::kCannotLockStorage;
   }
 
-  std::unique_ptr<WLock> SectorIndexImpl::storageTryLock(const SectorId &sector,
+  std::shared_ptr<WLock> SectorIndexImpl::storageTryLock(const SectorId &sector,
                                                          SectorFileType read,
                                                          SectorFileType write) {
     auto lock = std::make_unique<IndexLock::Lock>(sector, read, write);
