@@ -206,6 +206,16 @@ namespace fc::api {
     f(a.StorageDropSector);
     f(a.StorageFindSector);
     f(a.StorageBestAlloc);
+    f(a.ReturnAddPiece);
+    f(a.ReturnSealPreCommit1);
+    f(a.ReturnSealPreCommit2);
+    f(a.ReturnSealCommit1);
+    f(a.ReturnSealCommit2);
+    f(a.ReturnFinalizeSector);
+    f(a.ReturnMoveStorage);
+    f(a.ReturnUnsealPiece);
+    f(a.ReturnReadPiece);
+    f(a.ReturnFetch);
     f(a.WorkerConnect);
   }
 }  // namespace fc::api

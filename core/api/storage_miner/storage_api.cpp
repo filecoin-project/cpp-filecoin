@@ -110,6 +110,69 @@ namespace fc::api {
           allocate, sector_size, sealing_mode);
     };
 
+    api->ReturnAddPiece = [=](const CallId &call_id,
+                              const boost::optional<PieceInfo> &piece_info,
+                              const boost::optional<CallError> &call_error) {
+      return sector_scheduler->returnAddPiece(call_id, piece_info, call_error);
+    };
+
+    api->ReturnSealPreCommit1 =
+        [=](const CallId &call_id,
+            const boost::optional<PreCommit1Output> &precommit1_output,
+            const boost::optional<CallError> &call_error) {
+          return sector_scheduler->returnSealPreCommit1(
+              call_id, precommit1_output, call_error);
+        };
+
+    api->ReturnSealPreCommit2 =
+        [=](const CallId &call_id,
+            const boost::optional<SectorCids> &cids,
+            const boost::optional<CallError> &call_error) {
+          return sector_scheduler->returnSealPreCommit2(
+              call_id, cids, call_error);
+        };
+
+    api->ReturnSealCommit1 =
+        [=](const CallId &call_id,
+            const boost::optional<Commit1Output> &commit1_out,
+            const boost::optional<CallError> &call_error) {
+          return sector_scheduler->returnSealCommit1(
+              call_id, commit1_out, call_error);
+        };
+
+    api->ReturnSealCommit2 = [=](const CallId &call_id,
+                                 const boost::optional<Proof> &proof,
+                                 const boost::optional<CallError> &call_error) {
+      return sector_scheduler->returnSealCommit2(call_id, proof, call_error);
+    };
+
+    api->ReturnFinalizeSector =
+        [=](const CallId &call_id,
+            const boost::optional<CallError> &call_error) {
+          return sector_scheduler->returnFinalizeSector(call_id, call_error);
+        };
+
+    api->ReturnMoveStorage = [=](const CallId &call_id,
+                                 const boost::optional<CallError> &call_error) {
+      return sector_scheduler->returnMoveStorage(call_id, call_error);
+    };
+
+    api->ReturnUnsealPiece = [=](const CallId &call_id,
+                                 const boost::optional<CallError> &call_error) {
+      return sector_scheduler->returnUnsealPiece(call_id, call_error);
+    };
+
+    api->ReturnReadPiece = [=](const CallId &call_id,
+                               const boost::optional<bool> &status,
+                               const boost::optional<CallError> &call_error) {
+      return sector_scheduler->returnReadPiece(call_id, status, call_error);
+    };
+
+    api->ReturnFetch = [=](const CallId &call_id,
+                           const boost::optional<CallError> &call_error) {
+      return sector_scheduler->returnFetch(call_id, call_error);
+    };
+
     api->WorkerConnect =
         [=, self{api}](const std::string &address) -> outcome::result<void> {
       OUTCOME_TRY(maddress, libp2p::multi::Multiaddress::create(address));
