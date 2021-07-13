@@ -57,8 +57,6 @@ namespace fc::sector_storage {
    * @given Task data
    * @when when try to schedule it
    * @then work is done
-   * @note Disabled due to the fact that there are not always threads in the
-   * thread pool
    */
   TEST_F(SchedulerTest, ScheuleTask) {
     uint64_t counter = 0;
@@ -114,8 +112,6 @@ namespace fc::sector_storage {
    * @when when try to schedule first, it will be in request queue
    * the second will processed
    * @then worker gets first from request queue and process it
-   * @note Disabled due to the fact that there are not always threads in the
-   * thread pool
    */
   TEST_F(SchedulerTest, RequestQueue) {
     std::unique_ptr<WorkerHandle> worker1 = std::make_unique<WorkerHandle>();
@@ -220,5 +216,85 @@ namespace fc::sector_storage {
     io_->run_one();
     io_->run_one();
     EXPECT_EQ(counter, 6);
+  }
+
+  /**
+   * @given 2 Task data
+   * @when when try to schedule them together
+   * @then they do not block each other
+   */
+  TEST_F(SchedulerTest, Scheule2Task) {
+    SectorId sector_id1{
+        .miner = 42,
+        .sector = 1,
+    };
+    SectorRef sector1{
+        .id = sector_id1,
+        .proof_type = seal_proof_type_,
+    };
+
+    auto task = primitives::kTTFinalize;
+    EXPECT_CALL(
+        *selector_,
+        is_satisfying(task, seal_proof_type_, workerNameMatcher(worker_name_)))
+        .WillOnce(testing::Return(outcome::success(true)))
+        .WillOnce(testing::Return(outcome::success(true)));
+
+    SectorId sector_id2{
+        .miner = 42,
+        .sector = 2,
+    };
+    SectorRef sector2{
+        .id = sector_id2,
+        .proof_type = seal_proof_type_,
+    };
+
+    std::mutex res;
+    std::condition_variable cv;
+    bool ready = false;
+
+    CallId call_id1{.sector = sector_id1, .id = "UUID1"};
+    WorkerAction work1 = [&](const std::shared_ptr<Worker> &worker) {
+      std::unique_lock<std::mutex> l(res);
+      cv.wait(l, [&]() { return ready; });
+      return outcome::success(call_id1);
+    };
+    bool cb1_call = false;
+    ReturnCb cb1 = [&](const outcome::result<CallResult> &res) {
+      cb1_call = not res.has_error();
+    };
+
+    CallId call_id2{.sector = sector_id2, .id = "UUID2"};
+    WorkerAction work2 = [&](const std::shared_ptr<Worker> &worker) {
+      ready = true;
+      cv.notify_one();
+      return outcome::success(call_id2);
+    };
+
+    bool cb2_call = false;
+    ReturnCb cb2 = [&](const outcome::result<CallResult> &res) {
+      cb2_call = not res.has_error();
+    };
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(
+        sector1, task, selector_, WorkerAction(), work1, cb1));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(
+        sector2, task, selector_, WorkerAction(), work2, cb2));
+
+    std::thread t([io = io_]() { io->run_one(); });
+
+    io_->run_one();
+    t.join();
+
+    io_->reset();
+    EXPECT_OUTCOME_TRUE_1(
+        scheduler_->returnFinalizeSector(call_id1, boost::none));
+
+    EXPECT_OUTCOME_TRUE_1(
+        scheduler_->returnFinalizeSector(call_id2, boost::none));
+
+    io_->run_one();
+    io_->run_one();
+    ASSERT_TRUE(cb1_call and cb2_call);
   }
 }  // namespace fc::sector_storage

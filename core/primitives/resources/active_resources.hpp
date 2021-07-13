@@ -32,7 +32,6 @@ namespace fc::primitives {
         bool force,
         const WorkerResources &worker_resources,
         const Resources &resources,
-        std::mutex &locker,
         const std::function<outcome::result<void>()> &callback);
 
     double utilization(const WorkerResources &worker_resources);
@@ -43,6 +42,7 @@ namespace fc::primitives {
 
    private:
     mutable std::shared_mutex mutex_;
+    std::mutex res_mutex_;
     bool unlock_;
     std::condition_variable cv_;
   };

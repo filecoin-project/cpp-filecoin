@@ -139,7 +139,7 @@ namespace fc::sector_storage {
 
     common::Logger logger_;
 
-    size_t active_jobs{};
+    std::atomic<size_t> active_jobs{};
   };
 
 }  // namespace fc::sector_storage

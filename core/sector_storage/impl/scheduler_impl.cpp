@@ -45,7 +45,7 @@ namespace fc::sector_storage {
   void SchedulerImpl::newWorker(std::unique_ptr<WorkerHandle> worker) {
     std::unique_lock<std::mutex> lock(workers_lock_);
     if (current_worker_id_ == std::numeric_limits<uint64_t>::max()) {
-      current_worker_id_ = 0;
+      current_worker_id_ = 0;  // TODO: maybe better mechanism
     }
     WorkerID wid = current_worker_id_++;
     workers_.insert({wid, std::move(worker)});
@@ -155,7 +155,6 @@ namespace fc::sector_storage {
             force,
             worker->info.resources,
             need_resources,
-            workers_lock_,
             [&]() -> outcome::result<void> {
               worker->preparing.free(worker->info.resources, need_resources);
 
@@ -174,20 +173,15 @@ namespace fc::sector_storage {
           logger_->error("worker's execution: "
                          + maybe_clear.error().message());
 
-          {
-            std::unique_lock<std::mutex> lock(workers_lock_);
-            --active_jobs;
-          }
+          --active_jobs;
           freeWorker(wid);
         } else {
           ReturnCb new_cb =
               [this, wid, request, clear = std::move(maybe_clear.value())](
                   outcome::result<CallResult> result) -> void {
             clear();
-            {
-              std::unique_lock<std::mutex> lock(workers_lock_);
-              --active_jobs;
-            }
+            --active_jobs;
+
 
             request->cb(std::move(result));
 
@@ -210,9 +204,7 @@ namespace fc::sector_storage {
       };
 
       if (not request->prepare) {
-        worker->preparing.free(worker->info.resources, need_resources);
-        cb(outcome::success());
-        return;
+        return cb(outcome::success());
       }
 
       auto maybe_call_id = request->prepare(worker->worker);
@@ -230,9 +222,7 @@ namespace fc::sector_storage {
         if (it == results_.end()) {
           callbacks_[maybe_call_id.value()] = cb;
         } else {
-          io_->post([cb = std::move(cb), value = it->second]() {
-              cb(value);
-          });
+          io_->post([cb = std::move(cb), value = it->second]() { cb(value); });
           results_.erase(it);
         }
       }
