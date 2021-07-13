@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "cbor_blake/ipld_any.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/util.hpp"
@@ -12,6 +13,7 @@
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/dvm/dvm.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
+#include "vm/runtime/circulating.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 
 int main(int argc, char **argv) {
@@ -43,11 +45,13 @@ int main(int argc, char **argv) {
           envx.ts_load, envx.ts_branches_mutex);
       envx.interpreter_cache =
           std::make_shared<vm::interpreter::InterpreterCache>(
-              std::make_shared<storage::InMemoryStorage>());
+              std::make_shared<storage::InMemoryStorage>(),
+              std::make_shared<AnyAsCbIpld>(envx.ipld));
       envx.circulating = vm::Circulating::make(envx.ipld, genesis_cid).value();
       vm::interpreter::InterpreterImpl vmi{envx, nullptr};
 
-      TipsetKey head_tsk{storage::car::readHeader(car_path).value()};
+      const auto head_tsk{
+          *TipsetKey::make(storage::car::readHeader(car_path).value())};
       auto head{envx.ts_load->loadWithCacheInfo(head_tsk).value()};
       primitives::tipset::chain::TsChain _chain;
       Height state_min_height{head.tipset->height()}, state_max_height{0};
@@ -55,9 +59,8 @@ int main(int argc, char **argv) {
       auto had_states{true};
       auto ts{head};
       while (true) {
-        _chain.emplace(
-            ts.tipset->height(),
-            primitives::tipset::TsLazy{ts.tipset->key, ts.index});
+        _chain.emplace(ts.tipset->height(),
+                       primitives::tipset::TsLazy{ts.tipset->key, ts.index});
         if (envx.ipld->contains(ts.tipset->getParentStateRoot()).value()) {
           if (had_states) {
             state_min_height = std::min(state_min_height, ts.tipset->height());
@@ -69,7 +72,8 @@ int main(int argc, char **argv) {
         if (ts.tipset->height() + ts_lookback < state_min_height) {
           break;
         }
-        if (auto _ts{envx.ts_load->loadWithCacheInfo(ts.tipset->getParents())}) {
+        if (auto _ts{
+                envx.ts_load->loadWithCacheInfo(ts.tipset->getParents())}) {
           ts = _ts.value();
         } else {
           break;
@@ -116,6 +120,8 @@ int main(int argc, char **argv) {
                 spdlog::error("receipts differ");
                 exit(EXIT_FAILURE);
               }
+            } else {
+              spdlog::warn("no child");
             }
           } else {
             spdlog::error("interpret {:#}", _res.error());

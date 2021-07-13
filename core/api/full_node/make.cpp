@@ -18,6 +18,7 @@
 #include "node/pubsub_gate.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
+#include "storage/chain/receipt_loader.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/states/state_provider.hpp"
 #include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
@@ -101,7 +102,7 @@ namespace fc::api {
 
   template <typename T, typename F>
   auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&... args) {
+    return [f{std::forward<F>(f)}](auto &&...args) {
       auto channel{std::make_shared<Channel<outcome::result<T>>>()};
       f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
         channel->write(std::forward<decltype(_r)>(_r));
@@ -242,22 +243,22 @@ namespace fc::api {
       return beaconizer->entry(drand_schedule->maxRound(epoch), cb);
     });
     api->ChainGetBlock = {
-        [=](auto &block_cid) { return ipld->getCbor<BlockHeader>(block_cid); }};
+        [=](auto &block_cid) { return getCbor<BlockHeader>(ipld, block_cid); }};
     api->ChainGetBlockMessages = {
         [=](auto &block_cid) -> outcome::result<BlockMessages> {
           BlockMessages messages;
-          OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
-          OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
+          OUTCOME_TRY(block, getCbor<BlockHeader>(ipld, block_cid));
+          OUTCOME_TRY(meta, getCbor<MsgMeta>(ipld, block.messages));
           OUTCOME_TRY(meta.bls_messages.visit(
               [&](auto, auto &cid) -> outcome::result<void> {
-                OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+                OUTCOME_TRY(message, getCbor<UnsignedMessage>(ipld, cid));
                 messages.bls.push_back(std::move(message));
                 messages.cids.push_back(cid);
                 return outcome::success();
               }));
           OUTCOME_TRY(meta.secp_messages.visit(
               [&](auto, auto &cid) -> outcome::result<void> {
-                OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+                OUTCOME_TRY(message, getCbor<SignedMessage>(ipld, cid));
                 messages.secp.push_back(std::move(message));
                 messages.cids.push_back(cid);
                 return outcome::success();
@@ -265,7 +266,7 @@ namespace fc::api {
           return messages;
         }};
     api->ChainGetGenesis = {[=]() -> outcome::result<TipsetCPtr> {
-      return ts_load->lazyLoad(ts_main->chain.begin()->second);
+      return ts_load->lazyLoad(ts_main->bottom().second);
     }};
     api->ChainGetNode = {[=](auto &path) -> outcome::result<IpldObject> {
       std::vector<std::string> parts;
@@ -277,29 +278,29 @@ namespace fc::api {
       return getNode(ipld, root, gsl::make_span(parts).subspan(3));
     }};
     api->ChainGetMessage = {[=](auto &cid) -> outcome::result<UnsignedMessage> {
-      auto res = ipld->getCbor<SignedMessage>(cid);
+      auto res = getCbor<SignedMessage>(ipld, cid);
       if (!res.has_error()) {
         return res.value().message;
       }
 
-      return ipld->getCbor<UnsignedMessage>(cid);
+      return getCbor<UnsignedMessage>(ipld, cid);
     }};
     api->ChainGetParentMessages = {
         [=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
           std::vector<CidMessage> messages;
-          OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
+          OUTCOME_TRY(block, getCbor<BlockHeader>(ipld, block_cid));
           for (auto &parent_cid : block.parents) {
-            OUTCOME_TRY(parent, ipld->getCbor<BlockHeader>(parent_cid));
-            OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(parent.messages));
+            OUTCOME_TRY(parent, getCbor<BlockHeader>(ipld, CID{parent_cid}));
+            OUTCOME_TRY(meta, getCbor<MsgMeta>(ipld, parent.messages));
             OUTCOME_TRY(meta.bls_messages.visit(
                 [&](auto, auto &cid) -> outcome::result<void> {
-                  OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+                  OUTCOME_TRY(message, getCbor<UnsignedMessage>(ipld, cid));
                   messages.push_back({cid, std::move(message)});
                   return outcome::success();
                 }));
             OUTCOME_TRY(meta.secp_messages.visit(
                 [&](auto, auto &cid) -> outcome::result<void> {
-                  OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+                  OUTCOME_TRY(message, getCbor<SignedMessage>(ipld, cid));
                   messages.push_back({cid, std::move(message.message)});
                   return outcome::success();
                 }));
@@ -308,7 +309,7 @@ namespace fc::api {
         }};
     api->ChainGetParentReceipts = {
         [=](auto &block_cid) -> outcome::result<std::vector<MessageReceipt>> {
-          OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
+          OUTCOME_TRY(block, getCbor<BlockHeader>(ipld, block_cid));
           return adt::Array<MessageReceipt>{block.parent_message_receipts, ipld}
               .values();
         }};
@@ -521,11 +522,11 @@ namespace fc::api {
       BlockWithCids block2;
       block2.header = block.header;
       for (auto &msg : block.bls_messages) {
-        OUTCOME_TRY(cid, ipld->setCbor(msg));
+        OUTCOME_TRY(cid, setCbor(ipld, msg));
         block2.bls_messages.emplace_back(std::move(cid));
       }
       for (auto &msg : block.secp_messages) {
-        OUTCOME_TRY(cid, ipld->setCbor(msg));
+        OUTCOME_TRY(cid, setCbor(ipld, msg));
         block2.secp_messages.emplace_back(std::move(cid));
       }
       return block2;
@@ -673,10 +674,10 @@ namespace fc::api {
         };
 
         for (const BlockHeader &block : context.tipset->blks) {
-          OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
+          OUTCOME_TRY(meta, getCbor<MsgMeta>(ipld, block.messages));
           OUTCOME_TRY(meta.bls_messages.visit(
               [&](auto, auto &cid) -> outcome::result<void> {
-                OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+                OUTCOME_TRY(message, getCbor<UnsignedMessage>(ipld, cid));
 
                 if (!isDuplicateMessage(cid) && matchFunc(message)) {
                   result.push_back(cid);
@@ -686,7 +687,7 @@ namespace fc::api {
               }));
           OUTCOME_TRY(meta.secp_messages.visit(
               [&](auto, auto &cid) -> outcome::result<void> {
-                OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+                OUTCOME_TRY(message, getCbor<SignedMessage>(ipld, cid));
 
                 if (!isDuplicateMessage(cid) && matchFunc(message.message)) {
                   result.push_back(cid);
@@ -722,13 +723,14 @@ namespace fc::api {
         }};
     api->StateGetReceipt = {
         [=](auto &cid, auto &tipset_key) -> outcome::result<MessageReceipt> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          auto result{msg_waiter->results.find(cid)};
-          if (result != msg_waiter->results.end()) {
-            OUTCOME_TRY(ts, ts_load->load(result->second.second.cids()));
-            if (context.tipset->height() <= ts->height()) {
-              return result->second.first;
-            }
+          auto receipt_loader =
+              std::make_shared<storage::blockchain::ReceiptLoader>(ts_load,
+                                                                   ipld);
+          OUTCOME_TRY(
+              result,
+              receipt_loader->searchBackForMessageReceipt(cid, tipset_key, 0));
+          if (result.has_value()) {
+            return result->first;
           }
           return ERROR_TEXT("StateGetReceipt: no receipt");
         }};
@@ -928,6 +930,21 @@ namespace fc::api {
     api->StateSearchMsg = {};
     api->StateWaitMsg =
         waitCb<MsgWait>([=](auto &&cid, auto &&confidence, auto &&cb) {
+          // look for message on chain
+          const auto receipt_loader =
+              std::make_shared<storage::blockchain::ReceiptLoader>(ts_load,
+                                                                   ipld);
+          OUTCOME_CB(auto result,
+                     receipt_loader->searchBackForMessageReceipt(
+                         cid, chain_store->heaviestTipset()->getParents(), 0));
+          if (result.has_value()) {
+            OUTCOME_CB(auto ts, ts_load->load(result->second));
+            cb(MsgWait{
+                cid, result->first, result->second, (ChainEpoch)ts->height()});
+            return;
+          }
+
+          // if message was not found, wait for it
           msg_waiter->wait(cid, [=, MOVE(cb)](auto &result) {
             OUTCOME_CB(auto ts, ts_load->load(result.second));
             cb(MsgWait{cid, result.first, ts->key, (ChainEpoch)ts->height()});
@@ -936,14 +953,14 @@ namespace fc::api {
     api->SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
       // TODO(turuslan): chain store must validate blocks before adding
       MsgMeta meta;
-      ipld->load(meta);
+      cbor_blake::cbLoadT(ipld, meta);
       for (auto &cid : block.bls_messages) {
         OUTCOME_TRY(meta.bls_messages.append(cid));
       }
       for (auto &cid : block.secp_messages) {
         OUTCOME_TRY(meta.secp_messages.append(cid));
       }
-      OUTCOME_TRY(messages, ipld->setCbor(meta));
+      OUTCOME_TRY(messages, setCbor(ipld, meta));
       if (block.header.messages != messages) {
         return ERROR_TEXT("SyncSubmitBlock: messages cid doesn't match");
       }

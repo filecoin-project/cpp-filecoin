@@ -9,7 +9,7 @@
 #include <fstream>
 #include <mutex>
 
-#include "common/blob.hpp"
+#include "cbor_blake/cid.hpp"
 #include "common/enum.hpp"
 #include "storage/ipfs/datastore.hpp"
 
@@ -20,11 +20,6 @@ namespace boost {
 }  // namespace boost
 
 namespace fc::storage::cids_index {
-  using Key = common::Hash256;
-
-  constexpr std::array<uint8_t, 6> kCborBlakePrefix{
-      0x01, 0x71, 0xA0, 0xE4, 0x02, 0x20};
-
   constexpr size_t ceilDiv(size_t l, size_t r) {
     return (l + r - 1) / r;
   }
@@ -45,7 +40,7 @@ namespace fc::storage::cids_index {
 
   struct Row {
     /** fixed-size key */
-    Key key;
+    CbCid key;
     /** 40bit offset, up to 1TB */
     boost::endian::big_uint40_buf_t offset;
     /** 24bit(+6bit) size, up to 1GB */
@@ -60,14 +55,12 @@ namespace fc::storage::cids_index {
   inline bool operator==(const Row &l, const Row &r) {
     return memcmp(&l, &r, sizeof(Row)) == 0;
   }
-  inline bool operator!=(const Row &l, const Row &r) {
-    return memcmp(&l, &r, sizeof(Row)) != 0;
-  }
+  FC_OPERATOR_NOT_EQUAL(Row)
   inline bool operator<(const Row &l, const Row &r) {
     return memcmp(&l, &r, sizeof(Row)) < 0;
   }
-  inline bool operator<(const Row &l, const Key &r) {
-    return memcmp(&l.key, &r, sizeof(Key)) < 0;
+  inline bool operator<(const Row &l, const CbCid &r) {
+    return memcmp(&l.key, &r, sizeof(CbCid)) < 0;
   }
 
   static inline const Row kHeaderV0{
@@ -88,7 +81,7 @@ namespace fc::storage::cids_index {
     bool sorted{true};
     size_t count{};
     Row max_offset;
-    Key max_key;
+    CbCid max_key;
 
     RowsInfo &feed(const Row &row);
   };
@@ -128,14 +121,14 @@ namespace fc::storage::cids_index {
 
     virtual ~Index() = default;
     virtual outcome::result<boost::optional<Row>> find(
-        const Key &key) const = 0;
+        const CbCid &key) const = 0;
     virtual size_t size() const = 0;
   };
 
   struct MemoryIndex : Index {
     std::vector<Row> rows;
 
-    outcome::result<boost::optional<Row>> find(const Key &key) const override;
+    outcome::result<boost::optional<Row>> find(const CbCid &key) const override;
     size_t size() const override;
 
     static outcome::result<std::shared_ptr<MemoryIndex>> load(
@@ -154,9 +147,9 @@ namespace fc::storage::cids_index {
     mutable std::mutex mutex;
     mutable std::ifstream index_file;
     SparseRange sparse_range;
-    std::vector<Key> sparse_keys;
+    std::vector<CbCid> sparse_keys;
 
-    outcome::result<boost::optional<Row>> find(const Key &key) const override;
+    outcome::result<boost::optional<Row>> find(const CbCid &key) const override;
     size_t size() const override;
 
     static outcome::result<std::shared_ptr<SparseIndex>> load(

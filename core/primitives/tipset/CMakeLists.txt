@@ -3,6 +3,7 @@
 
 add_library(tipset
     chain.cpp
+    file.cpp
     load.cpp
     tipset.cpp
     tipset_key.cpp
@@ -13,4 +14,5 @@ target_link_libraries(tipset
     cid
     const
     logger
+    state_tree
     )

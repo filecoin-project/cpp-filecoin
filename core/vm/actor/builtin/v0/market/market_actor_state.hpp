@@ -29,9 +29,9 @@ namespace fc::vm::actor::builtin::v0::market {
 
 }  // namespace fc::vm::actor::builtin::v0::market
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::v0::market::MarketActorState> {
+  struct CbVisitT<vm::actor::builtin::v0::market::MarketActorState> {
     template <typename Visitor>
     static void call(vm::actor::builtin::v0::market::MarketActorState &state,
                      const Visitor &visit) {
@@ -43,4 +43,4 @@ namespace fc {
       visit(state.deals_by_epoch);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

@@ -9,6 +9,8 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem/operations.hpp>
 
+#include "codec/cbor/light_reader/block.hpp"
+#include "primitives/block/block.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/unixfs/unixfs.hpp"
 #include "testutil/literals.hpp"
@@ -36,7 +38,7 @@ TEST(CarTest, LoadSuccess) {
   EXPECT_THAT(
       roots,
       testing::ElementsAre(
-          "0171a0e402202d4c00840d4227f198ec6c5343b8c70af7f008a7775d67393d10430ea2fa012f"_cid));
+          "0171a0e402209a0640d0620af5d1c458effce4cbb8969779c9072b164d3fe6f5179d6378d8cd"_cid));
 }
 
 /**
@@ -50,7 +52,7 @@ TEST(CarTest, LoadFromFileSuccess) {
   EXPECT_THAT(
       roots,
       testing::ElementsAre(
-          "0171a0e402202d4c00840d4227f198ec6c5343b8c70af7f008a7775d67393d10430ea2fa012f"_cid));
+          "0171a0e402209a0640d0620af5d1c458effce4cbb8969779c9072b164d3fe6f5179d6378d8cd"_cid));
 }
 
 /**
@@ -65,6 +67,32 @@ TEST(CarTest, LoadTruncatedError) {
                        loadCar(ipld, input.subbuffer(0, input.size() - 1)));
 }
 
+TEST(CarTest, MainnetGenesisBlockRead) {
+  using namespace fc;
+  InMemoryDatastore ipld;
+  EXPECT_OUTCOME_TRUE(roots, loadCar(ipld, resourcePath("genesis.car")));
+  auto cbor{ipld.get(roots[0]).value()};
+  BytesIn input{cbor};
+  BytesIn ticket;
+  BlockParentCbCids parents;
+  uint64_t height;
+  EXPECT_TRUE(
+      codec::cbor::light_reader::readBlock(ticket, parents, height, input));
+  EXPECT_EQ(height, 0);
+  EXPECT_EQ(parents.size(), 0);
+}
+
+TEST(CarTest, MainnetGenesisBlockCbor) {
+  using namespace fc;
+  InMemoryDatastore ipld;
+  EXPECT_OUTCOME_TRUE(roots, loadCar(ipld, resourcePath("genesis.car")));
+  auto cbor{ipld.get(roots[0]).value()};
+  auto block{codec::cbor::decode<primitives::block::BlockHeader>(cbor).value()};
+  EXPECT_TRUE(block.parents.empty());
+  EXPECT_TRUE(block.parents.mainnet_genesis);
+  EXPECT_OUTCOME_EQ(codec::cbor::encode(block), cbor);
+}
+
 struct Sample1 {
   std::vector<CID> list;
   std::map<std::string, CID> map;
@@ -77,22 +105,23 @@ struct Sample2 {
 CBOR_TUPLE(Sample2, i)
 
 TEST(CarTest, Writer) {
-  InMemoryDatastore ipld1;
+  using fc::setCbor;
+  auto ipld1{std::make_shared<InMemoryDatastore>()};
   Sample2 obj2{2}, obj3{3};
-  EXPECT_OUTCOME_TRUE(cid2, ipld1.setCbor(obj2));
-  EXPECT_OUTCOME_TRUE(cid3, ipld1.setCbor(obj3));
+  EXPECT_OUTCOME_TRUE(cid2, setCbor(ipld1, obj2));
+  EXPECT_OUTCOME_TRUE(cid3, setCbor(ipld1, obj3));
   Sample1 obj1{{cid2}, {{"a", cid3}}};
-  EXPECT_OUTCOME_TRUE(root, ipld1.setCbor(obj1));
-  EXPECT_OUTCOME_TRUE(car, makeCar(ipld1, {root}));
+  EXPECT_OUTCOME_TRUE(root, setCbor(ipld1, obj1));
+  EXPECT_OUTCOME_TRUE(car, makeCar(*ipld1, {root}));
 
   InMemoryDatastore ipld2;
   EXPECT_OUTCOME_TRUE(roots, loadCar(ipld2, car));
   EXPECT_THAT(roots, testing::ElementsAre(root));
-  EXPECT_OUTCOME_TRUE(raw1, ipld1.get(root));
+  EXPECT_OUTCOME_TRUE(raw1, ipld1->get(root));
   EXPECT_OUTCOME_EQ(ipld2.get(root), raw1);
-  EXPECT_OUTCOME_TRUE(raw2, ipld1.get(cid2));
+  EXPECT_OUTCOME_TRUE(raw2, ipld1->get(cid2));
   EXPECT_OUTCOME_EQ(ipld2.get(cid2), raw2);
-  EXPECT_OUTCOME_TRUE(raw3, ipld1.get(cid3));
+  EXPECT_OUTCOME_TRUE(raw3, ipld1->get(cid3));
   EXPECT_OUTCOME_EQ(ipld2.get(cid3), raw3);
 }
 

@@ -25,7 +25,7 @@ namespace fc::mining {
 
    private:
     struct DealFromMessage {
-      DealId deal_id;
+      DealId deal_id{};
       TipsetKey publish_msg_tipset;
     };
 

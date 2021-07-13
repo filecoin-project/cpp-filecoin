@@ -86,7 +86,7 @@ namespace fc::storage::amt {
     /// Store CBOR encoded value by key
     template <typename T>
     outcome::result<void> setCbor(uint64_t key, const T &value) {
-      OUTCOME_TRY(bytes, Ipld::encode(value));
+      OUTCOME_TRY(bytes, cbor_blake::cbEncodeT(value));
       return set(key, bytes);
     }
 
@@ -94,7 +94,7 @@ namespace fc::storage::amt {
     template <typename T>
     outcome::result<T> getCbor(uint64_t key) const {
       OUTCOME_TRY(bytes, get(key));
-      return ipld->decode<T>(bytes);
+      return cbor_blake::cbDecodeT<T>(ipld, bytes);
     }
 
     IpldPtr ipld;

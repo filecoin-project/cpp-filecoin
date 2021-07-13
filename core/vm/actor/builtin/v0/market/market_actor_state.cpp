@@ -8,7 +8,5 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::vm::actor::builtin::v0::market {
-  outcome::result<Buffer> MarketActorState::toCbor() const {
-    return Ipld::encode(*this);
-  }
+  ACTOR_STATE_TO_CBOR_THIS(MarketActorState)
 }  // namespace fc::vm::actor::builtin::v0::market

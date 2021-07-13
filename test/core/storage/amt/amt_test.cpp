@@ -7,10 +7,10 @@
 
 #include <gtest/gtest.h>
 
+#include "cbor_blake/ipld_any.hpp"
 #include "codec/cbor/light_reader/amt_walk.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
-#include "testutil/storage/ipld2.hpp"
 
 using fc::codec::cbor::encode;
 using fc::common::which;
@@ -20,12 +20,11 @@ using fc::storage::amt::Node;
 using fc::storage::amt::Root;
 using fc::storage::amt::Value;
 using fc::storage::ipfs::InMemoryDatastore;
-using fc::storage::ipld::IpldIpld2;
 
 class AmtTest : public ::testing::Test {
  public:
   auto getRoot() {
-    return store->getCbor<Root>(amt.flush().value()).value();
+    return fc::getCbor<Root>(store, amt.flush().value()).value();
   }
 
   std::shared_ptr<InMemoryDatastore> store{
@@ -159,7 +158,7 @@ TEST_F(AmtVisitTest, VisitError) {
  */
 TEST_F(AmtVisitTest, Walk) {
   using namespace fc;
-  codec::cbor::light_reader::AmtWalk walk{std::make_shared<IpldIpld2>(store),
+  codec::cbor::light_reader::AmtWalk walk{std::make_shared<AnyAsCbIpld>(store),
                                           *asBlake(amt.flush().value())};
   BytesIn value;
   EXPECT_TRUE(walk.load());

@@ -68,6 +68,10 @@ namespace fc::dvm {
             dumpCbor(msg.params));
   }
 
+  void onSendTo(const CID &code) {
+    DVM_LOG("TO {}", *asActorCode(code));
+  }
+
   void onReceipt(const outcome::result<InvocationOutput> &invocation_output,
                  const GasAmount &gas_used) {
     if (invocation_output.has_error()) {

@@ -48,9 +48,9 @@ namespace fc::sync {
                    std::shared_ptr<InterpreterCache> interpreter_cache,
                    SharedMutexPtr ts_branches_mutex,
                    TsBranchesPtr ts_branches,
-                   KvPtr ts_main_kv,
                    TsBranchPtr ts_main,
                    TsLoadPtr ts_load,
+                   std::shared_ptr<PutBlockHeader> put_block_header,
                    IpldPtr ipld)
       : host_(std::move(host)),
         chain_store_(std::move(chain_store)),
@@ -59,9 +59,9 @@ namespace fc::sync {
         interpreter_cache_(std::move(interpreter_cache)),
         ts_branches_mutex_{std::move(ts_branches_mutex)},
         ts_branches_{std::move(ts_branches)},
-        ts_main_kv_(std::move(ts_main_kv)),
         ts_main_(std::move(ts_main)),
         ts_load_(std::move(ts_load)),
+        put_block_header_{std::move(put_block_header)},
         ipld_(std::move(ipld)) {
     attached_.insert(ts_main_);
   }
@@ -77,15 +77,17 @@ namespace fc::sync {
 
     message_event_ =
         events_->subscribeMessageFromPubSub([ipld{ipld_}](auto &e) {
-          std::ignore = e.msg.signature.isBls() ? ipld->setCbor(e.msg.message)
-                                                : ipld->setCbor(e.msg);
+          std::ignore = e.msg.signature.isBls() ? setCbor(ipld, e.msg.message)
+                                                : setCbor(ipld, e.msg);
         });
 
-    block_event_ = events_->subscribeBlockFromPubSub([ipld{ipld_}](auto &e) {
+    block_event_ = events_->subscribeBlockFromPubSub([=](auto &e) {
+      auto ipld{ipld_};
       std::ignore = [&]() -> outcome::result<void> {
-        OUTCOME_TRY(ipld->setCbor(e.block.header));
+        primitives::tipset::put(ipld, put_block_header_, e.block.header);
+        std::shared_lock ts_lock{*ts_branches_mutex_};
         primitives::block::MsgMeta meta;
-        ipld->load(meta);
+        cbor_blake::cbLoadT(ipld, meta);
         for (auto &cid : e.block.bls_messages) {
           OUTCOME_TRY(ipld->get(cid));
           OUTCOME_TRY(meta.bls_messages.append(cid));
@@ -94,7 +96,7 @@ namespace fc::sync {
           OUTCOME_TRY(ipld->get(cid));
           OUTCOME_TRY(meta.secp_messages.append(cid));
         }
-        OUTCOME_TRY(ipld->setCbor(meta));
+        OUTCOME_TRY(setCbor(ipld, meta));
         return outcome::success();
       }();
     });
@@ -121,16 +123,18 @@ namespace fc::sync {
     }
   }
 
+  TipsetCPtr SyncJob::getLocal(const TipsetCPtr &ts) {
+    for (auto &block : ts->blks) {
+      if (!ipld_->contains(block.messages).value()) {
+        return nullptr;
+      }
+    }
+    return ts;
+  }
+
   TipsetCPtr SyncJob::getLocal(const TipsetKey &tsk) {
     if (auto _ts{ts_load_->load(tsk)}) {
-      auto &ts{_ts.value()};
-      for (auto &block : ts->blks) {
-        if (auto _has{ipld_->contains(block.messages)};
-            !_has || !_has.value()) {
-          return nullptr;
-        }
-      }
-      return ts;
+      return getLocal(_ts.value());
     }
     return nullptr;
   }
@@ -182,6 +186,9 @@ namespace fc::sync {
 
   void SyncJob::onTs(const boost::optional<PeerId> &peer, TipsetCPtr ts) {
     std::unique_lock lock{*ts_branches_mutex_};
+    if (!getLocal(ts)) {
+      return;
+    }
     if (ts_branches_->size() > kBranchCompactTreshold) {
       log()->info("compacting branches");
       compactBranches();
@@ -266,8 +273,7 @@ namespace fc::sync {
   void SyncJob::onInterpret(TipsetCPtr ts, const InterpreterResult &result) {
     auto &weight{result.weight};
     if (weight > chain_store_->getHeaviestWeight()) {
-      if (auto _update{
-              update(ts_main_, find(*ts_branches_, ts), ts_main_kv_)}) {
+      if (const auto _update{update(ts_main_, find(*ts_branches_, ts))}) {
         auto &[path, removed]{_update.value()};
         for (auto &branch : removed) {
           ts_branches_->erase(branch);
@@ -286,34 +292,29 @@ namespace fc::sync {
         if (*_res) {
           auto &res{_res->value()};
           if (ts->getParentStateRoot() != res.state_root) {
-            log()->warn("parent state mismatch {} {}",
-                        ts->height(),
-                        fmt::join(ts->key.cids(), ","));
+            log()->warn(
+                "parent state mismatch {} {}", ts->height(), ts->key.cidsStr());
             return false;
           }
           if (ts->getParentMessageReceipts() != res.message_receipts) {
             log()->warn("parent receipts mismatch {} {}",
                         ts->height(),
-                        fmt::join(ts->key.cids(), ","));
+                        ts->key.cidsStr());
             return false;
           }
         } else {
-          log()->warn("parent interpret error {} {}",
-                      ts->height(),
-                      fmt::join(ts->key.cids(), ","));
+          log()->warn(
+              "parent interpret error {} {}", ts->height(), ts->key.cidsStr());
           return false;
         }
       } else {
-        log()->warn("parent not interpreted {} {}",
-                    ts->height(),
-                    fmt::join(ts->key.cids(), ","));
+        log()->warn(
+            "parent not interpreted {} {}", ts->height(), ts->key.cidsStr());
         return false;
       }
       if (auto _has{ipld_->contains(ts->getParentStateRoot())};
           !_has || !_has.value()) {
-        log()->warn("no parent state {} {}",
-                    ts->height(),
-                    fmt::join(ts->key.cids(), ","));
+        log()->warn("no parent state {} {}", ts->height(), ts->key.cidsStr());
         return false;
       }
     }
@@ -394,7 +395,8 @@ namespace fc::sync {
     request_ = BlocksyncRequest::newRequest(
         *host_,
         *scheduler_,
-        *ipld_,
+        ipld_,
+        put_block_header_,
         peer,
         tsk.cids(),
         probable_depth,

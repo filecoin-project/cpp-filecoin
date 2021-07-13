@@ -12,11 +12,11 @@
 #include "testutil/resources/resources.hpp"
 #include "testutil/vm/actor/builtin/miner/miner_actor_test_fixture.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_utils.hpp"
-#include "vm/actor/builtin/v0/miner/types.hpp"
+#include "vm/actor/builtin/v0/miner/types/types.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/codes.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using primitives::kChainEpochUndefined;
@@ -32,7 +32,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       MinerActorTestFixture<MinerActorState>::SetUp();
       actorVersion = ActorVersion::kVersion0;
       anyCodeIdAddressIs(kAccountCodeId);
-      ipld->load(state);
+      cbor_blake::cbLoadT(ipld, state);
     }
 
     void expectEnrollCronEvent(ChainEpoch event_epoch,
@@ -142,11 +142,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(state.proving_period_start, proving_period_start);
     EXPECT_EQ(state.current_deadline, 0);
 
-    EXPECT_OUTCOME_TRUE(deadlines, ipld->getCbor<Deadlines>(state.deadlines));
+    EXPECT_OUTCOME_TRUE(deadlines, state.deadlines.get());
     EXPECT_EQ(deadlines.due.size(), kWPoStPeriodDeadlines);
 
     for (const auto &deadline_cid : deadlines.due) {
-      EXPECT_OUTCOME_TRUE(deadline, ipld->getCbor<Deadline>(deadline_cid));
+      EXPECT_OUTCOME_TRUE(deadline, getCbor<Deadline>(ipld, deadline_cid));
       EXPECT_OUTCOME_EQ(deadline.partitions.size(), 0);
       EXPECT_OUTCOME_EQ(deadline.expirations_epochs.size(), 0);
       EXPECT_TRUE(deadline.post_submissions.empty());

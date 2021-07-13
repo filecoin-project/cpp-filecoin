@@ -22,7 +22,6 @@ namespace fc::storage::cids_index {
     return std::make_pair(primitives::cid::getCidOfCbor(v).value(), v);
   }
 
-  auto genesis_path{resourcePath("genesis.car")};
   auto [cid1, value1]{makeValue(1)};
   auto [cid2, value2]{makeValue(2)};
 
@@ -54,20 +53,20 @@ namespace fc::storage::cids_index {
 
     // readable car can't write
     ipld = *load(false);
-    EXPECT_OUTCOME_FALSE_1(ipld->setCbor(value1));
+    EXPECT_OUTCOME_FALSE_1(setCbor(ipld, value1));
 
     // writeable car can write
     ipld = *load(true);
-    EXPECT_OUTCOME_TRUE_1(ipld->setCbor(value1));
-    EXPECT_OUTCOME_EQ(ipld->getCbor<decltype(value1)>(cid1), value1);
+    EXPECT_OUTCOME_TRUE_1(setCbor(ipld, value1));
+    EXPECT_OUTCOME_EQ(getCbor<decltype(value1)>(ipld, cid1), value1);
 
     // value persists
     ipld = *load(true);
-    EXPECT_OUTCOME_EQ(ipld->getCbor<decltype(value1)>(cid1), value1);
+    EXPECT_OUTCOME_EQ(getCbor<decltype(value1)>(ipld, cid1), value1);
 
     // inserted only once
     auto car_value1{*common::readFile(car_path)};
-    EXPECT_OUTCOME_TRUE_1(ipld->setCbor(value1));
+    EXPECT_OUTCOME_TRUE_1(setCbor(ipld, value1));
     ipld->writable.flush();
     EXPECT_EQ(fs::file_size(car_path), car_value1.size());
 
@@ -77,34 +76,34 @@ namespace fc::storage::cids_index {
     EXPECT_OUTCOME_EQ(ipld->contains(cid1), false);
 
     // changed car drops index
-    EXPECT_OUTCOME_TRUE_1(ipld->setCbor(value2));
+    EXPECT_OUTCOME_TRUE_1(setCbor(ipld, value2));
     ipld = *load(true);
-    EXPECT_OUTCOME_EQ(ipld->getCbor<decltype(value2)>(cid2), value2);
+    EXPECT_OUTCOME_EQ(getCbor<decltype(value2)>(ipld, cid2), value2);
     *common::writeFile(car_path, car_value1);
     ipld = *load(true);
     EXPECT_OUTCOME_EQ(ipld->contains(cid2), false);
-    EXPECT_OUTCOME_EQ(ipld->getCbor<decltype(value1)>(cid1), value1);
+    EXPECT_OUTCOME_EQ(getCbor<decltype(value1)>(ipld, cid1), value1);
 
     // incomplete car is truncated
     std::ofstream{car_path, std::ios::app | std::ios::binary} << "\x01";
     EXPECT_EQ(fs::file_size(car_path), car_value1.size() + 1);
     ipld = *load(true);
-    EXPECT_OUTCOME_EQ(ipld->getCbor<decltype(value1)>(cid1), value1);
+    EXPECT_OUTCOME_EQ(getCbor<decltype(value1)>(ipld, cid1), value1);
     EXPECT_EQ(fs::file_size(car_path), car_value1.size());
 
     // index is merged
-    EXPECT_OUTCOME_TRUE_1(ipld->setCbor(value2));
+    EXPECT_OUTCOME_TRUE_1(setCbor(ipld, value2));
     ipld = *load(true);
   }
 
   TEST_F(CidsIndexTest, FlushOn) {
     ipld = *load(true);
     ipld->flush_on = 3;
-    ipld->setCbor(1).value();
+    setCbor(ipld, 1).value();
     EXPECT_EQ(ipld->written.size(), 1);
-    ipld->setCbor(2).value();
+    setCbor(ipld, 2).value();
     EXPECT_EQ(ipld->written.size(), 2);
-    ipld->setCbor(3).value();
+    setCbor(ipld, 3).value();
     EXPECT_EQ(ipld->written.size(), 0);
   }
 
@@ -114,7 +113,7 @@ namespace fc::storage::cids_index {
     ipld->flush_on = 5;
     std::vector<CID> cids;
     for (auto i{0}; i < 40; ++i) {
-      ipld->setCbor(i).value();
+      setCbor(ipld, i).value();
     }
     if (io) {
       std::promise<void> wait;
@@ -122,7 +121,7 @@ namespace fc::storage::cids_index {
       wait.get_future().get();
     }
     for (auto i{0}; i < (int)cids.size(); ++i) {
-      EXPECT_OUTCOME_EQ(ipld->getCbor<int>(cids[i]), i);
+      EXPECT_OUTCOME_EQ(getCbor<int>(ipld, cids[i]), i);
     }
   }
 

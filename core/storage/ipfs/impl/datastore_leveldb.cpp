@@ -45,10 +45,4 @@ namespace fc::storage::ipfs {
       return fc::storage::ipfs::IpfsDatastoreError::kNotFound;
     return res;
   }
-
-  outcome::result<void> LeveldbDatastore::remove(const CID &key) {
-    OUTCOME_TRY(encoded_key, encodeKey(key));
-    return leveldb_->remove(encoded_key);
-  }
-
 }  // namespace fc::storage::ipfs

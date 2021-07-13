@@ -8,7 +8,5 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::vm::actor::builtin::v0::system {
-  outcome::result<Buffer> SystemActorState::toCbor() const {
-    return Ipld::encode(*this);
-  }
+  ACTOR_STATE_TO_CBOR_THIS(SystemActorState)
 }  // namespace fc::vm::actor::builtin::v0::system

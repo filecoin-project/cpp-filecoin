@@ -11,6 +11,7 @@
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
+#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/shared.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
@@ -110,6 +111,8 @@ namespace fc::vm::actor::builtin::types::miner {
   // PoSts submitted during that period may be disputed.
   constexpr auto kWPoStDisputeWindow{2 * kChainFinality};
 
+  constexpr auto kMaxSectorNumber{INT64_MAX};
+
   inline SectorQuality qualityForWeight(SectorSize size,
                                         ChainEpoch duration,
                                         const DealWeight &deal_weight,
@@ -184,6 +187,16 @@ namespace fc::vm::actor::builtin::types::miner {
     return std::min(bigdiv(collateral, 2),
                     bigdiv(collateral * init.first * pow(grow.first, age),
                            init.second * pow(grow.second, age)));
+  }
+
+  inline PowerPair powerForSectors(SectorSize ssize, const std::vector<SectorOnChainInfo> &sectors) {
+    StoragePower qa{0};
+
+    for (const auto &sector : sectors) {
+      qa += qaPowerForSector(ssize, sector);
+    }
+
+    return PowerPair(ssize * sectors.size(), qa);
   }
 
   // Maximum number of control addresses a miner may register.

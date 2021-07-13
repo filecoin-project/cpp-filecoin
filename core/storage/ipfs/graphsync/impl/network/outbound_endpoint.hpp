@@ -37,8 +37,8 @@ namespace fc::storage::ipfs::graphsync {
     outcome::result<void> enqueue(SharedData msg);
 
     /// Sends response via message queue
-    outcome::result<void> sendResponse(
-        const FullRequestId &id, const Response &response);
+    outcome::result<void> sendResponse(const FullRequestId &id,
+                                       const Response &response);
 
     /// Clears all pending messages
     void clearPendingMessages();

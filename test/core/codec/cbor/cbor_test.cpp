@@ -281,7 +281,8 @@ TEST(CborDecoder, CidNext) {
  * @then Decoded as expected
  */
 TEST(CborDecoder, Flat) {
-  CborDecodeStream s("0504"_unhex);
+  const auto cbor{"0504"_unhex};
+  CborDecodeStream s(cbor);
   int a, b;
   s >> a >> b;
   EXPECT_EQ(a, 5);
@@ -294,7 +295,8 @@ TEST(CborDecoder, Flat) {
  * @then Decoded as expected
  */
 TEST(CborDecoder, List) {
-  CborDecodeStream s1("82050403"_unhex);
+  const auto cbor{"82050403"_unhex};
+  CborDecodeStream s1(cbor);
   auto s2 = s1.list();
   int a, b;
   s2 >> a >> b;
@@ -322,7 +324,8 @@ TEST(CborDecoder, String) {
  * @then Decoded as expected
  */
 TEST(CborDecoder, Map) {
-  auto m = CborDecodeStream("A261610261628101"_unhex).map();
+  const auto cbor{"A261610261628101"_unhex};
+  auto m = CborDecodeStream(cbor).map();
   int a, b;
   m.at("a") >> a;
   m.at("b").list() >> b;
@@ -370,7 +373,7 @@ TEST(CborDecoder, FlatErrors) {
   int i;
   EXPECT_OUTCOME_RAISE(CborDecodeError::kWrongType,
                        CborDecodeStream("01"_unhex).list() >> i >> i);
-  EXPECT_OUTCOME_RAISE(CborDecodeError::kWrongType,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kInvalidCbor,
                        CborDecodeStream("80"_unhex).list() >> i);
 }
 
@@ -396,23 +399,23 @@ TEST(CborDecoder, ListErrors) {
 TEST(CborDecoder, CidErrors) {
   // no tag
   EXPECT_OUTCOME_ERROR(
-      CborDecodeError::kInvalidCborCID,
+      CborDecodeError::kWrongType,
       decode<CID>(
           "582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex));
   // not 42 tag
   EXPECT_OUTCOME_ERROR(
-      CborDecodeError::kInvalidCborCID,
+      CborDecodeError::kInvalidCbor,
       decode<CID>(
           "D82B582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex));
   // empty 42 tag
   EXPECT_OUTCOME_ERROR(CborDecodeError::kInvalidCbor,
                        decode<CID>("D82A"_unhex));
   // not bytes
-  EXPECT_OUTCOME_ERROR(CborDecodeError::kInvalidCborCID,
+  EXPECT_OUTCOME_ERROR(CborDecodeError::kInvalidCbor,
                        decode<CID>("D82B01"_unhex));
   // no multibase 00 prefix
   EXPECT_OUTCOME_ERROR(
-      CborDecodeError::kInvalidCborCID,
+      CborDecodeError::kInvalidCID,
       decode<CID>(
           "D82A5822122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex));
   // invalid cid
@@ -427,7 +430,6 @@ TEST(CborDecoder, CidErrors) {
  */
 TEST(CborDecoder, IsCid) {
   EXPECT_TRUE(CborDecodeStream(kCidCbor).isCid());
-  EXPECT_TRUE(CborDecodeStream("D82A"_unhex).isCid());
   EXPECT_FALSE(CborDecodeStream("01"_unhex).isCid());
 }
 

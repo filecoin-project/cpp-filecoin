@@ -13,9 +13,9 @@
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
+#include "vm/actor/codes.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
 namespace fc::mining::checks {
@@ -381,9 +381,9 @@ namespace fc::mining::checks {
       return ERROR_TEXT("ERROR");
     };
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey precommit_key(cids);
+    TipsetKey precommit_key{{CbCid::hash("01"_unhex),
+                             CbCid::hash("02"_unhex),
+                             CbCid::hash("03"_unhex)}};
     api_->StateCall =
         [&precommit_key](const UnsignedMessage &msg,
                          const TipsetKey &key) -> outcome::result<InvocResult> {
@@ -456,9 +456,9 @@ namespace fc::mining::checks {
       return ERROR_TEXT("ERROR");
     };
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey precommit_key(cids);
+    TipsetKey precommit_key{{CbCid::hash("01"_unhex),
+                             CbCid::hash("02"_unhex),
+                             CbCid::hash("03"_unhex)}};
     api_->StateCall =
         [&precommit_key, &info](
             const UnsignedMessage &msg,
@@ -550,9 +550,9 @@ namespace fc::mining::checks {
       return ERROR_TEXT("ERROR");
     };
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey precommit_key(cids);
+    TipsetKey precommit_key{{CbCid::hash("01"_unhex),
+                             CbCid::hash("02"_unhex),
+                             CbCid::hash("03"_unhex)}};
     api_->StateCall =
         [&precommit_key, &info](
             const UnsignedMessage &msg,
@@ -610,7 +610,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state.allocated_sectors) {
@@ -684,9 +684,9 @@ namespace fc::mining::checks {
       return ERROR_TEXT("ERROR");
     };
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey precommit_key(cids);
+    TipsetKey precommit_key{{CbCid::hash("01"_unhex),
+                             CbCid::hash("02"_unhex),
+                             CbCid::hash("03"_unhex)}};
     api_->StateCall =
         [&precommit_key, &info](
             const UnsignedMessage &msg,
@@ -745,7 +745,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state.allocated_sectors) {
@@ -793,10 +793,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
-
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
     EXPECT_OUTCOME_ERROR(
         ChecksError::kBadSeed,
         checkCommit(miner_addr_, info, proof, commit_key, api_, proofs_));
@@ -817,9 +816,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
 
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
@@ -846,7 +845,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state.allocated_sectors) {
@@ -882,10 +881,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
-
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
     MinerActorState actor_state;
@@ -911,7 +909,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state.allocated_sectors) {
@@ -946,10 +944,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
-
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
     MinerActorState actor_state;
@@ -977,7 +974,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state.allocated_sectors) {
@@ -1012,10 +1009,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
-
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
     MinerActorState actor_state;
@@ -1043,7 +1039,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state.allocated_sectors) {
@@ -1096,10 +1092,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
-
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
     MinerActorState actor_state;
@@ -1127,7 +1122,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state.allocated_sectors) {
@@ -1178,10 +1173,9 @@ namespace fc::mining::checks {
 
     Proof proof{{1, 2, 3}};
 
-    std::vector<CID> cids = {
-        "010001020001"_cid, "010001020002"_cid, "010001020003"_cid};
-    TipsetKey commit_key(cids);
-
+    TipsetKey commit_key{{CbCid::hash("01"_unhex),
+                          CbCid::hash("02"_unhex),
+                          CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
     MinerActorState actor_state;
@@ -1209,7 +1203,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state.allocated_sectors) {

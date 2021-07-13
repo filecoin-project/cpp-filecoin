@@ -3,9 +3,13 @@
 
 addtest(tipset_test
     tipset_test.cpp
+    file_test.cpp
     )
 target_link_libraries(tipset_test
+    base_fs_test
+    ipfs_datastore_error
     tipset
+    version
     )
 
 addtest(load_test

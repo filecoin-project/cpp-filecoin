@@ -36,6 +36,7 @@ namespace fc {
   DEFINE(kUpgradeActorsV3Height){550321};
   DEFINE(kUpgradeNorwegianHeight){665280};
   DEFINE(kUpgradeActorsV4Height){712320};
+  DEFINE(kUpgradeHyperdriveHeight){892800};
 
   DEFINE(kBreezeGasTampingDuration){120};
 
@@ -179,6 +180,38 @@ namespace fc {
 
     vm::actor::builtin::types::storage_power::kConsensusMinerMinPower = 2048;
 
+    fc::vm::actor::builtin::types::verified_registry::kMinVerifiedDealSize =
+        256;
+  }
+
+  void setParamsInteropnet() {
+    // Network versions
+    kUpgradeBreezeHeight = -1;
+    kUpgradeSmokeHeight = -1;
+    kUpgradeIgnitionHeight = -2;
+    kUpgradeRefuelHeight = -3;
+    kUpgradeTapeHeight = -4;
+    kUpgradeActorsV2Height = -5;
+    kUpgradeLiftoffHeight = -6;
+    kUpgradeKumquatHeight = -7;
+    kUpgradeCalicoHeight = -8;
+    kUpgradePersianHeight = -9;
+    kUpgradeOrangeHeight = -10;
+    kUpgradeClausHeight = -11;
+    kUpgradeActorsV3Height = -12;
+    kUpgradeNorwegianHeight = -13;
+    kUpgradeActorsV4Height = -14;
+    kUpgradeHyperdriveHeight = -15;
+
+    kBreezeGasTampingDuration = 0;
+
+    // Update actor constants
+    vm::actor::builtin::types::miner::kSupportedProofs = {
+        RegisteredSealProof::kStackedDrg2KiBV1,
+        RegisteredSealProof::kStackedDrg8MiBV1,
+        RegisteredSealProof::kStackedDrg512MiBV1,
+    };
+    vm::actor::builtin::types::storage_power::kConsensusMinerMinPower = 2048;
     fc::vm::actor::builtin::types::verified_registry::kMinVerifiedDealSize =
         256;
   }

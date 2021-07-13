@@ -196,7 +196,11 @@ namespace fc::api {
   };
 
   struct Partition {
-    RleBitset all, faulty, recovering, live, active;
+    RleBitset all;
+    RleBitset faulty;
+    RleBitset recovering;
+    RleBitset live;
+    RleBitset active;
   };
 
   struct Deadline {
@@ -217,7 +221,7 @@ namespace fc::api {
     CID message;
     MessageReceipt receipt;
     TipsetKey tipset;
-    ChainEpoch height;
+    ChainEpoch height{};
   };
 
   struct BlockMessages {

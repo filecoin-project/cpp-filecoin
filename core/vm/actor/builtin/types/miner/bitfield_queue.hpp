@@ -32,13 +32,13 @@ namespace fc::vm::actor::builtin::types::miner {
 
 }  // namespace fc::vm::actor::builtin::types::miner
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::types::miner::BitfieldQueue> {
+  struct CbVisitT<vm::actor::builtin::types::miner::BitfieldQueue> {
     template <typename Visitor>
     static void call(vm::actor::builtin::types::miner::BitfieldQueue &p,
                      const Visitor &visit) {
       visit(p.queue);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

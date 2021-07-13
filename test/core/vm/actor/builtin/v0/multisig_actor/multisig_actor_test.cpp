@@ -14,7 +14,7 @@
 #include "testutil/mocks/vm/states/state_manager_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/codes.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/version/version.hpp"
 
@@ -82,9 +82,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
       EXPECT_CALL(*state_manager, commitState(testing::_))
           .WillRepeatedly(testing::Invoke([&](const auto &s) {
             auto temp_state = std::static_pointer_cast<MultisigActorState>(s);
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(*temp_state));
+            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, *temp_state));
             EXPECT_OUTCOME_TRUE(new_state,
-                                ipld->getCbor<MultisigActorState>(cid));
+                                getCbor<MultisigActorState>(ipld, cid));
             state = std::move(new_state);
             return outcome::success();
           }));
@@ -92,15 +92,15 @@ namespace fc::vm::actor::builtin::v0::multisig {
       EXPECT_CALL(*state_manager, createMultisigActorState(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<MultisigActorState>();
-            ipld->load(*s);
+            cbor_blake::cbLoadT(ipld, *s);
             return std::static_pointer_cast<states::MultisigActorState>(s);
           }));
 
       EXPECT_CALL(*state_manager, getMultisigActorState())
           .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
             EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<MultisigActorState>(cid));
+                                getCbor<MultisigActorState>(ipld, cid));
             auto s = std::make_shared<MultisigActorState>(current_state);
             return std::static_pointer_cast<states::MultisigActorState>(s);
           }));
@@ -129,7 +129,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       state.start_epoch = 0;
       state.unlock_duration = 0;
 
-      ipld->load(state);
+      cbor_blake::cbLoadT(ipld, state);
     }
 
    protected:

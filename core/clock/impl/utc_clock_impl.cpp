@@ -6,7 +6,6 @@
 #include "clock/impl/utc_clock_impl.hpp"
 
 namespace fc::clock {
-  // TODO(turuslan): add NTP sync if necessary
   microseconds UTCClockImpl::nowMicro() const {
     return std::chrono::duration_cast<microseconds>(
         std::chrono::system_clock::now().time_since_epoch());

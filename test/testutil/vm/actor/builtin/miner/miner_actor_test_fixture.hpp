@@ -38,16 +38,15 @@ namespace fc::testutil::vm::actor::builtin::miner {
 
       EXPECT_CALL(*state_manager, getMinerActorState())
           .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->template getCbor<State>(cid));
+            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
+            EXPECT_OUTCOME_TRUE(current_state, getCbor<State>(ipld, cid));
             auto s = std::make_shared<State>(current_state);
             return std::static_pointer_cast<BaseMinerActorState>(s);
           }));
     }
 
     void loadState(State &s) {
-      ipld->load(s);
+      cbor_blake::cbLoadT(ipld, s);
     }
 
     void initEmptyState() {

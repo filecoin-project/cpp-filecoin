@@ -12,10 +12,10 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/mocks/vm/states/state_manager_mock.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/init/init_actor.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
+#include "vm/actor/codes.hpp"
 
 namespace fc::vm::actor::builtin::v2::storage_power {
   using libp2p::multi::Multihash;
@@ -54,8 +54,8 @@ namespace fc::vm::actor::builtin::v2::storage_power {
       EXPECT_CALL(*state_manager, commitState(testing::_))
           .WillRepeatedly(testing::Invoke([&](const auto &s) {
             auto temp_state = std::static_pointer_cast<PowerActorState>(s);
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(*temp_state));
-            EXPECT_OUTCOME_TRUE(new_state, ipld->getCbor<PowerActorState>(cid));
+            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, *temp_state));
+            EXPECT_OUTCOME_TRUE(new_state, getCbor<PowerActorState>(ipld, cid));
             state = std::move(new_state);
             return outcome::success();
           }));
@@ -63,15 +63,15 @@ namespace fc::vm::actor::builtin::v2::storage_power {
       EXPECT_CALL(*state_manager, createPowerActorState(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto) {
             auto s = std::make_shared<PowerActorState>();
-            ipld->load(*s);
+            cbor_blake::cbLoadT(ipld, *s);
             return std::static_pointer_cast<states::PowerActorState>(s);
           }));
 
       EXPECT_CALL(*state_manager, getPowerActorState())
           .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
+            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
             EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<PowerActorState>(cid));
+                                getCbor<PowerActorState>(ipld, cid));
             auto s = std::make_shared<PowerActorState>(current_state);
             return std::static_pointer_cast<states::PowerActorState>(s);
           }));

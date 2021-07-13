@@ -6,6 +6,8 @@
 #include "primitives/tipset/tipset.hpp"
 
 #include <gtest/gtest.h>
+
+#include "codec/cbor/light_reader/block.hpp"
 #include "common/hexutil.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
@@ -15,6 +17,8 @@
 #include "testutil/outcome.hpp"
 
 using fc::primitives::cid::getCidOfCbor;
+
+using fc::CbCid;
 
 struct TipsetTest : public ::testing::Test {
   using Address = fc::primitives::address::Address;
@@ -48,7 +52,7 @@ struct TipsetTest : public ::testing::Test {
                 kStackedDRG2KiBWinningPoSt,
             "F00D"_unhex,
         }},
-        {"010001020002"_cid},
+        {CbCid::hash("01"_unhex)},
         fc::primitives::BigInt(3),
         4,
         "010001020005"_cid,
@@ -73,21 +77,21 @@ struct TipsetTest : public ::testing::Test {
     bh3.miner = Address::makeFromId(3);
     bh3.height = 3;  // change height
     bh4 = makeBlock();
-    bh4.parents.push_back("010001020002"_cid);  // append parent cid
 
-    EXPECT_OUTCOME_TRUE(cid1_, getCidOfCbor(bh1));
-    EXPECT_OUTCOME_TRUE(cid2_, getCidOfCbor(bh2));
-    EXPECT_OUTCOME_TRUE(cid3_, getCidOfCbor(bh3));
-    cid1 = cid1_;
-    cid2 = cid2_;
-    cid3 = cid3_;
+    cid1 = *asBlake(getCidOfCbor(bh1).value());
+    cid2 = *asBlake(getCidOfCbor(bh2).value());
+    cid3 = *asBlake(getCidOfCbor(bh3).value());
+
+    bh4.parents.push_back(cid1);
 
     parent_state_root = "010001020005"_cid;
     parent_weight = BigInt(3);
   }
 
   BlockHeader bh1, bh2, bh3, bh4;
-  CID cid1, cid2, cid3;
+  CbCid cid1;
+  CbCid cid2;
+  CbCid cid3;
   CID parent_state_root;
   Ticket ticket1, ticket2;
   Signature signature;
@@ -138,14 +142,12 @@ TEST_F(TipsetTest, CreateSuccess) {
   auto ticket_hash_2 =
       fc::crypto::blake2b::blake2b_256(bh2.ticket.value().bytes);
 
-  std::vector<CID> cids{cid1, cid2};
-  std::vector<CID> cids_reverse{cid2, cid1};
+  std::vector<CbCid> cids{cid1, cid2};
   std::vector<BlockHeader> headers{bh1, bh2};
-  std::vector<BlockHeader> headers_reverse{bh2, bh1};
 
   if (ticket_hash_2 < ticket_hash_1) {
-    cids.swap(cids_reverse);
-    headers.swap(headers_reverse);
+    std::reverse(cids.begin(), cids.end());
+    std::reverse(headers.begin(), headers.end());
   }
 
   ASSERT_EQ(ts.key.cids(), cids);
@@ -155,12 +157,26 @@ TEST_F(TipsetTest, CreateSuccess) {
   ASSERT_EQ(ts.getMinTicketBlock(), bh1);
   ASSERT_EQ(ts.getParentStateRoot(), parent_state_root);
   ASSERT_EQ(ts.getParentWeight(), parent_weight);
-  ASSERT_TRUE(ts.contains(cid1));
-  ASSERT_TRUE(ts.contains(cid2));
-  ASSERT_FALSE(ts.contains(cid3));
 
   EXPECT_OUTCOME_TRUE(tipset2, Tipset::create({bh2, bh1}));
   const auto &ts2 = *tipset2;
   ASSERT_EQ(ts.key.cids(), ts2.key.cids());
   ASSERT_EQ(ts.blks, ts2.blks);
+}
+
+TEST_F(TipsetTest, BlockReader) {
+  using namespace fc;
+  auto cbor{codec::cbor::encode(bh1).value()};
+  BytesIn input{cbor};
+  BytesIn ticket;
+  BlockParentCbCids parents;
+  uint64_t height;
+  EXPECT_TRUE(
+      codec::cbor::light_reader::readBlock(ticket, parents, height, input));
+  EXPECT_EQ(ticket, BytesIn{bh1.ticket->bytes});
+  EXPECT_EQ(parents.size(), bh1.parents.size());
+  for (auto i{0u}; i < parents.size(); ++i) {
+    EXPECT_EQ(parents[i], bh1.parents[i]);
+  }
+  EXPECT_EQ(height, bh1.height);
 }

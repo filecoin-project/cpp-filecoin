@@ -5,14 +5,11 @@
 
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
-#include "blockchain/impl/weight_calculator_impl.hpp"
 #include "const.hpp"
 #include "primitives/tipset/load.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
-#include "vm/actor/impl/invoker_impl.hpp"
-#include "vm/runtime/impl/runtime_impl.hpp"
-#include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/runtime/env.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
   using E = fc::vm::interpreter::InterpreterError;
@@ -32,62 +29,17 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
 }
 
 namespace fc::vm::interpreter {
-  using actor::Actor;
-  using actor::InvokerImpl;
   using actor::kCronAddress;
   using actor::kRewardAddress;
   using actor::kSystemActorAddress;
   using actor::MethodParams;
   using actor::builtin::v0::cron::EpochTick;
   using actor::builtin::v0::reward::AwardBlockReward;
-  using message::Address;
-  using message::SignedMessage;
   using message::UnsignedMessage;
-  using primitives::TokenAmount;
-  using primitives::block::MsgMeta;
+  using primitives::address::Address;
   using primitives::tipset::MessageVisitor;
   using runtime::Env;
   using runtime::MessageReceipt;
-
-  InterpreterCache::Key::Key(const TipsetKey &tsk) : key{tsk.hash()} {}
-
-  InterpreterCache::InterpreterCache(std::shared_ptr<PersistentBufferMap> kv)
-      : kv{kv} {}
-
-  boost::optional<outcome::result<Result>> InterpreterCache::tryGet(
-      const Key &key) const {
-    boost::optional<outcome::result<Result>> result;
-    if (kv->contains(key.key)) {
-      const auto raw{kv->get(key.key).value()};
-      if (auto cached{
-              codec::cbor::decode<boost::optional<Result>>(raw).value()}) {
-        result.emplace(std::move(*cached));
-      } else {
-        result.emplace(InterpreterError::kTipsetMarkedBad);
-      }
-    }
-    return result;
-  }
-
-  outcome::result<Result> InterpreterCache::get(const Key &key) const {
-    if (auto cached{tryGet(key)}) {
-      return *cached;
-    }
-    return InterpreterError::kNotCached;
-  }
-
-  void InterpreterCache::set(const Key &key, const Result &result) {
-    kv->put(key.key, codec::cbor::encode(result).value()).value();
-  }
-
-  void InterpreterCache::markBad(const Key &key) {
-    static const auto kNull{codec::cbor::encode(nullptr).value()};
-    kv->put(key.key, kNull).value();
-  }
-
-  void InterpreterCache::remove(const Key &key) {
-    kv->remove(key.key).value();
-  }
 
   InterpreterImpl::InterpreterImpl(
       const EnvironmentContext &env_context,
@@ -196,20 +148,16 @@ namespace fc::vm::interpreter {
     OUTCOME_TRY(new_state_root, env->state_tree->flush());
     OUTCOME_TRY(env->ipld->flush(new_state_root));
 
-    OUTCOME_TRY(Ipld::flush(receipts));
+    OUTCOME_TRY(receipts.amt.flush());
 
     OUTCOME_TRY(weight, getWeight(tipset));
 
-    return Result{
-        new_state_root,
-        receipts.amt.cid(),
-        std::move(weight),
-    };
+    return Result{new_state_root, receipts.amt.cid(), std::move(weight)};
   }
 
   bool InterpreterImpl::hasDuplicateMiners(
       const std::vector<BlockHeader> &blocks) const {
-    std::set<primitives::address::Address> set;
+    std::set<Address> set;
     for (auto &block : blocks) {
       if (!set.insert(block.miner).second) {
         return true;
@@ -224,24 +172,5 @@ namespace fc::vm::interpreter {
       return weight_calculator_->calculateWeight(*tipset);
     }
     return 0;
-  }
-
-  CachedInterpreter::CachedInterpreter(std::shared_ptr<Interpreter> interpreter,
-                                       std::shared_ptr<InterpreterCache> cache)
-      : interpreter{std::move(interpreter)}, cache{std::move(cache)} {}
-
-  outcome::result<Result> CachedInterpreter::interpret(
-      TsBranchPtr ts_branch, const TipsetCPtr &tipset) const {
-    InterpreterCache::Key key{tipset->key};
-    if (auto cached{cache->tryGet(key)}) {
-      return *cached;
-    }
-    auto result = interpreter->interpret(ts_branch, tipset);
-    if (!result) {
-      cache->markBad(key);
-    } else {
-      cache->set(key, result.value());
-    }
-    return result;
   }
 }  // namespace fc::vm::interpreter

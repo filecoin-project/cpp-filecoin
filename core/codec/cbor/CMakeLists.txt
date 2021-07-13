@@ -14,5 +14,4 @@ target_link_libraries(cbor
     buffer
     cid
     outcome
-    tinycbor
     )

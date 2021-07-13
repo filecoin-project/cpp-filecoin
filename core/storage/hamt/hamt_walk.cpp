@@ -25,7 +25,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
 }
 
 namespace fc::storage::hamt {
-  using fc::common::which;
+  using common::which;
 
   CBOR2_ENCODE(Node) {
     Bits bits;
@@ -43,7 +43,7 @@ namespace fc::storage::hamt {
         auto &leaf{boost::get<Node::Leaf>(value)};
         _item = s.list();
         for (auto &[key, value] : leaf) {
-          _item << (s.list() << common::span::cbytes(key) << s.wrap(value, 1));
+          _item << (s.list() << key << s.wrap(value, 1));
         }
       }
       if (*v.v3) {
@@ -93,8 +93,8 @@ namespace fc::storage::hamt {
         Node::Leaf leaf;
         for (size_t j = 0; j < n_leaf; ++j) {
           auto l_pair{l_leaf.list()};
-          auto key{l_pair.get<Buffer>()};
-          leaf.emplace(std::string{key.begin(), key.end()}, l_pair.raw());
+          auto key{l_pair.get<Bytes>()};
+          leaf.emplace(std::move(key), l_pair.raw());
         }
         v.items[j] = std::move(leaf);
       }
@@ -130,13 +130,12 @@ namespace fc::storage::hamt {
              bool v3)
       : ipld{std::move(store)}, root_{root}, bit_width_{bit_width}, v3_{v3} {}
 
-  outcome::result<void> Hamt::set(const std::string &key,
-                                  gsl::span<const uint8_t> value) {
+  outcome::result<void> Hamt::set(BytesIn key, BytesIn value) {
     OUTCOME_TRY(loadItem(root_));
     return set(*boost::get<Node::Ptr>(root_), keyToIndices(key), key, value);
   }
 
-  outcome::result<Value> Hamt::get(const std::string &key) const {
+  outcome::result<Bytes> Hamt::get(BytesIn key) const {
     OUTCOME_TRY(loadItem(root_));
     auto node = boost::get<Node::Ptr>(root_);
     for (auto index : keyToIndices(key)) {
@@ -150,21 +149,22 @@ namespace fc::storage::hamt {
         node = boost::get<Node::Ptr>(item);
       } else {
         auto &leaf = boost::get<Node::Leaf>(item);
-        if (leaf.find(key) == leaf.end()) {
+        auto it{leaf.find(key)};
+        if (it == leaf.end()) {
           return HamtError::kNotFound;
         }
-        return leaf[key];
+        return it->second;
       }
     }
     return HamtError::kMaxDepth;
   }
 
-  outcome::result<void> Hamt::remove(const std::string &key) {
+  outcome::result<void> Hamt::remove(BytesIn key) {
     OUTCOME_TRY(loadItem(root_));
     return remove(*boost::get<Node::Ptr>(root_), keyToIndices(key), key);
   }
 
-  outcome::result<bool> Hamt::contains(const std::string &key) const {
+  outcome::result<bool> Hamt::contains(BytesIn key) const {
     auto res = get(key);
     if (!res) {
       if (res.error() == HamtError::kNotFound) return false;
@@ -182,7 +182,7 @@ namespace fc::storage::hamt {
     return boost::get<CID>(root_);
   }
 
-  std::vector<size_t> Hamt::keyToIndices(const std::string &key, int n) const {
+  std::vector<size_t> Hamt::keyToIndices(BytesIn key, int n) const {
     std::vector<uint8_t> key_bytes(key.begin(), key.end());
     auto hash = libp2p::crypto::sha256(key_bytes);
     std::vector<size_t> indices;
@@ -208,17 +208,15 @@ namespace fc::storage::hamt {
 
   outcome::result<void> Hamt::set(Node &node,
                                   gsl::span<const size_t> indices,
-                                  const std::string &key,
-                                  gsl::span<const uint8_t> value) {
+                                  BytesIn key,
+                                  BytesIn value) {
     if (indices.empty()) {
       return HamtError::kMaxDepth;
     }
     auto index = indices[0];
     auto it = node.items.find(index);
     if (it == node.items.end()) {
-      Node::Leaf leaf;
-      leaf.emplace(key, std::vector<uint8_t>(value.begin(), value.end()));
-      node.items[index] = leaf;
+      node.items[index] = Node::Leaf{{copy(key), copy(value)}};
       return outcome::success();
     }
     auto &item = it->second;
@@ -228,8 +226,10 @@ namespace fc::storage::hamt {
           *boost::get<Node::Ptr>(item), consumeIndex(indices), key, value);
     }
     auto &leaf = boost::get<Node::Leaf>(item);
-    if (leaf.find(key) != leaf.end() || leaf.size() < kLeafMax) {
-      leaf[key] = Value(value);
+    if (auto it2{leaf.find(key)}; it2 != leaf.end()) {
+      copy(it2->second, value);
+    } else if (leaf.size() < kLeafMax) {
+      leaf.emplace(copy(key), copy(value));
     } else {
       auto child = std::make_shared<Node>();
       child->v3 = v3_;
@@ -245,7 +245,7 @@ namespace fc::storage::hamt {
 
   outcome::result<void> Hamt::remove(Node &node,
                                      gsl::span<const size_t> indices,
-                                     const std::string &key) {
+                                     BytesIn key) {
     if (indices.empty()) {
       return HamtError::kMaxDepth;
     }
@@ -268,7 +268,7 @@ namespace fc::storage::hamt {
       if (leaf.size() == 1) {
         node.items.erase(index);
       } else {
-        leaf.erase(key);
+        leaf.erase(leaf.find(key));
       }
     }
     return outcome::success();
@@ -305,8 +305,7 @@ namespace fc::storage::hamt {
       for (auto &item2 : node.items) {
         OUTCOME_TRY(flush(item2.second));
       }
-      OUTCOME_TRY(cid, ipld->setCbor(node));
-      item = cid;
+      OUTCOME_TRYA(item, fc::setCbor(ipld, node));
     }
     return outcome::success();
   }
@@ -317,7 +316,7 @@ namespace fc::storage::hamt {
 
   outcome::result<void> Hamt::loadItem(Node::Item &item) const {
     if (which<CID>(item)) {
-      OUTCOME_TRY(child, ipld->getCbor<Node>(boost::get<CID>(item)));
+      OUTCOME_TRY(child, fc::getCbor<Node>(ipld, boost::get<CID>(item)));
       if (!child.v3) {
         child.v3 = v3_;
       } else if (*child.v3 != v3_) {

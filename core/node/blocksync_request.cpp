@@ -10,6 +10,7 @@
 
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
+#include "primitives/tipset/load.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 #define TRACE_ENABLED 0
@@ -61,10 +62,10 @@ namespace fc::sync::blocksync {
     /// \param ipld Local store
     /// \param require_meta If set when all messages are required too
     /// \return Non-empty object if block found
-    boost::optional<BlockHeader> findBlockInLocalStore(const CID &cid,
-                                                       const Ipld &ipld,
+    boost::optional<BlockHeader> findBlockInLocalStore(const CbCid &cid,
+                                                       const IpldPtr &ipld,
                                                        bool require_meta) {
-      auto header = ipld.getCbor<BlockHeader>(cid);
+      auto header = getCbor<BlockHeader>(ipld, CID{cid});
       if (!header) {
         return boost::none;
       }
@@ -73,7 +74,7 @@ namespace fc::sync::blocksync {
         return header.value();
       }
 
-      auto meta = ipld.getCbor<MsgMeta>(header.value().messages);
+      auto meta = getCbor<MsgMeta>(ipld, header.value().messages);
       if (!meta) {
         return boost::none;
       }
@@ -83,7 +84,7 @@ namespace fc::sync::blocksync {
       auto res = meta.value().bls_messages.visit(
           [&](auto, auto &cid) -> outcome::result<void> {
             if (all_messages_available) {
-              OUTCOME_TRY(contains, ipld.contains(cid));
+              OUTCOME_TRY(contains, ipld->contains(cid));
               if (!contains) {
                 all_messages_available = false;
               }
@@ -98,7 +99,7 @@ namespace fc::sync::blocksync {
       res = meta.value().secp_messages.visit(
           [&](auto, auto &cid) -> outcome::result<void> {
             if (all_messages_available) {
-              OUTCOME_TRY(contains, ipld.contains(cid));
+              OUTCOME_TRY(contains, ipld->contains(cid));
               if (!contains) {
                 all_messages_available = false;
               }
@@ -120,12 +121,12 @@ namespace fc::sync::blocksync {
     /// \param require_meta If set when block considered found if all maeeages
     /// are in store
     /// \return Reduced block CIDs
-    std::vector<CID> tryReduceRequest(
-        std::vector<CID> blocks,
+    std::vector<CbCid> tryReduceRequest(
+        std::vector<CbCid> blocks,
         std::vector<BlockHeader> &blocks_available,
-        storage::ipfs::IpfsDatastore &ipld,
+        const IpldPtr &ipld,
         bool require_meta) {
-      std::vector<CID> reduced;
+      std::vector<CbCid> reduced;
       reduced.reserve(blocks.size());
       blocks_available.reserve(blocks.size());
       for (auto &cid : blocks) {
@@ -141,10 +142,11 @@ namespace fc::sync::blocksync {
 
     /// Stores part of blocksync response (i.e. tipset bundle)
     outcome::result<void> storeTipsetBundle(
-        Ipld &ipld,
+        IpldPtr ipld,
+        std::shared_ptr<PutBlockHeader> put_block_header,
         TipsetBundle &bundle,
         bool store_messages,
-        const std::function<void(CID, BlockHeader)> &block_stored) {
+        const std::function<void(CbCid, BlockHeader)> &block_stored) {
       size_t sz = bundle.blocks.size();
 
       auto _msgs{bundle.messages};
@@ -172,13 +174,13 @@ namespace fc::sync::blocksync {
 
           secp_cids.reserve(_msgs->secp_msgs.size());
           for (const auto &msg : _msgs->secp_msgs) {
-            OUTCOME_EXCEPT(cid, ipld.setCbor(msg));
+            OUTCOME_EXCEPT(cid, setCbor(ipld, msg));
             secp_cids.push_back(std::move(cid));
           }
 
           bls_cids.reserve(_msgs->bls_msgs.size());
           for (const auto &msg : _msgs->bls_msgs) {
-            OUTCOME_EXCEPT(cid, ipld.setCbor(msg));
+            OUTCOME_EXCEPT(cid, setCbor(ipld, msg));
             bls_cids.push_back(std::move(cid));
           }
         }
@@ -189,10 +191,11 @@ namespace fc::sync::blocksync {
 
       for (size_t i = 0; i < sz; ++i) {
         auto &header{bundle.blocks[i]};
-        OUTCOME_TRY(block_cid, ipld.setCbor<BlockHeader>(header));
+        const auto block_cid{
+            primitives::tipset::put(ipld, put_block_header, header)};
         if (_msgs) {
           MsgMeta meta;
-          ipld.load(meta);
+          cbor_blake::cbLoadT(ipld, meta);
           for (auto idx : _msgs->secp_msg_includes[i]) {
             if (idx >= secp_cids.size()) {
               return BlocksyncRequest::Error::kInconsistentResponse;
@@ -205,11 +208,11 @@ namespace fc::sync::blocksync {
             }
             OUTCOME_TRY(meta.bls_messages.append(bls_cids[idx]));
           }
-          OUTCOME_TRY(meta_cid, ipld.setCbor(meta));
+          OUTCOME_TRY(meta_cid, setCbor(ipld, meta));
           if (meta_cid != header.messages) {
             return BlocksyncRequest::Error::kStoreCidsMismatch;
           }
-          block_stored(std::move(block_cid), std::move(header));
+          block_stored(std::move(*asBlake(block_cid)), std::move(header));
         }
       }
 
@@ -222,15 +225,19 @@ namespace fc::sync::blocksync {
      public:
       BlocksyncRequestImpl(libp2p::Host &host,
                            libp2p::protocol::Scheduler &scheduler,
-                           Ipld &ipld)
-          : host_(host), scheduler_(scheduler), ipld_(ipld) {}
+                           IpldPtr ipld,
+                           std::shared_ptr<PutBlockHeader> put_block_header)
+          : host_(host),
+            scheduler_(scheduler),
+            ipld_(ipld),
+            put_block_header_{put_block_header} {}
 
       ~BlocksyncRequestImpl() override {
         cancel();
       }
 
       void makeRequest(PeerId peer,
-                       std::vector<CID> blocks,
+                       std::vector<CbCid> blocks,
                        uint64_t depth,
                        RequestOptions options,
                        uint64_t timeoutMsec,
@@ -240,7 +247,7 @@ namespace fc::sync::blocksync {
         result_->blocks_requested = std::move(blocks);
         result_->messages_stored = (options & kMessagesOnly);
 
-        std::vector<CID> blocks_reduced =
+        std::vector<CbCid> blocks_reduced =
             tryReduceRequest(result_->blocks_requested,
                              result_->blocks_available,
                              ipld_,
@@ -448,9 +455,10 @@ namespace fc::sync::blocksync {
 
         auto res = storeTipsetBundle(
             ipld_,
+            put_block_header_,
             chain[0],
             result_->messages_stored,
-            [&, this](CID cid, BlockHeader header) {
+            [&, this](CbCid cid, BlockHeader header) {
               if (auto it = waitlist_.find(cid); it != waitlist_.end()) {
                 waitlist_.erase(it);
                 if (sz > 1 && !expected_parent) {
@@ -481,9 +489,10 @@ namespace fc::sync::blocksync {
         for (size_t i = 1; i < sz; ++i) {
           res = storeTipsetBundle(
               ipld_,
+              put_block_header_,
               chain[i],
               result_->messages_stored,
-              [&](CID cid, BlockHeader header) {
+              [&](CbCid cid, BlockHeader header) {
                 if (expected_parent) {
                   if (auto r = creator.canExpandTipset(header); !r) {
                     log()->warn("cannot expand tipset, {}",
@@ -534,11 +543,12 @@ namespace fc::sync::blocksync {
 
       libp2p::Host &host_;
       libp2p::protocol::Scheduler &scheduler_;
-      Ipld &ipld_;
+      IpldPtr ipld_;
+      std::shared_ptr<PutBlockHeader> put_block_header_;
       std::function<void(Result)> callback_;
       boost::optional<Result> result_;
       RequestOptions options_ = kBlocksAndMessages;
-      std::unordered_set<CID> waitlist_;
+      std::unordered_set<CbCid> waitlist_;
       libp2p::protocol::scheduler::Handle handle_;
       StreamPtr stream_;
       bool in_progress_ = true;
@@ -549,9 +559,10 @@ namespace fc::sync::blocksync {
   std::shared_ptr<BlocksyncRequest> BlocksyncRequest::newRequest(
       libp2p::Host &host,
       libp2p::protocol::Scheduler &scheduler,
-      Ipld &ipld,
+      IpldPtr ipld,
+      std::shared_ptr<PutBlockHeader> put_block_header,
       PeerId peer,
-      std::vector<CID> blocks,
+      std::vector<CbCid> blocks,
       uint64_t depth,
       RequestOptions options,
       uint64_t timeoutMsec,
@@ -559,7 +570,8 @@ namespace fc::sync::blocksync {
     assert(callback);
 
     std::shared_ptr<BlocksyncRequestImpl> impl =
-        std::make_shared<BlocksyncRequestImpl>(host, scheduler, ipld);
+        std::make_shared<BlocksyncRequestImpl>(
+            host, scheduler, ipld, put_block_header);
 
     // need shared_from_this there
     impl->makeRequest(std::move(peer),

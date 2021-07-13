@@ -8,6 +8,11 @@
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
 
+#define ACTOR_STATE_TO_CBOR_THIS(T)                 \
+  ::fc::outcome::result<Buffer> T::toCbor() const { \
+    return ::fc::cbor_blake::cbEncodeT(*this);      \
+  }
+
 namespace fc::vm::actor::builtin::states {
   using common::Buffer;
 

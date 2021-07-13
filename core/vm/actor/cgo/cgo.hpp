@@ -69,7 +69,7 @@ namespace fc {
 
   template <auto f>
   inline auto cgoCall(const CborEncodeStream &arg) {
-    return CborDecodeStream{cgoCall<f>(arg.data())};
+    return cgoCall<f>(arg.data());
   }
 }  // namespace fc
 

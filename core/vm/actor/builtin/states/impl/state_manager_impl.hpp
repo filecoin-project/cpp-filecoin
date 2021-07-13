@@ -74,7 +74,8 @@ namespace fc::vm::actor::builtin::states {
               typename Tv0,
               typename Tv2,
               typename Tv3,
-              typename Tv4 = void>
+              typename Tv4 = void,
+              typename Tv5 = void>
     std::shared_ptr<T> createStatePtr(ActorVersion version) const {
       switch (version) {
         case ActorVersion::kVersion0: {
@@ -93,13 +94,20 @@ namespace fc::vm::actor::builtin::states {
             return createLoadedStatePtr<Tv4>();
           }
         }
+        case ActorVersion::kVersion5: {
+          if constexpr (std::is_same_v<Tv5, void>) {
+            TODO_ACTORS_V5();
+          } else {
+            return createLoadedStatePtr<Tv5>();
+          }
+        }
       }
     }
 
     template <typename T>
     std::shared_ptr<T> createLoadedStatePtr() const {
       auto state = std::make_shared<T>();
-      ipld->load(*state);
+      cbor_blake::cbLoadT(ipld, *state);
       return state;
     }
 

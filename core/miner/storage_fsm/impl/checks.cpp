@@ -52,6 +52,8 @@ namespace fc::mining::checks {
         return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
       case vm::actor::ActorVersion::kVersion4:
         TODO_ACTORS_V4();
+      case vm::actor::ActorVersion::kVersion5:
+        TODO_ACTORS_V5();
     }
   }
 

@@ -17,6 +17,7 @@ target_link_libraries(node_builder
     chain_events
     cids_index
     clock
+    compacter
     drand_beacon
     drand_http
     graphsync

@@ -25,7 +25,7 @@ namespace fc::blockchain::production {
     OUTCOME_TRY(vm_result, interpreter_cache.get(parent_tipset->key));
     BlockWithMessages b;
     MsgMeta msg_meta;
-    ipld->load(msg_meta);
+    cbor_blake::cbLoadT(ipld, msg_meta);
     std::vector<crypto::bls::Signature> bls_signatures;
     for (auto &message : t.messages) {
       OUTCOME_TRY(visit_in_place(
@@ -33,13 +33,13 @@ namespace fc::blockchain::production {
           [&](const BlsSignature &signature) -> outcome::result<void> {
             b.bls_messages.emplace_back(message.message);
             bls_signatures.push_back(signature);
-            OUTCOME_TRY(message_cid, ipld->setCbor(message.message));
+            OUTCOME_TRY(message_cid, setCbor(ipld, message.message));
             OUTCOME_TRY(msg_meta.bls_messages.append(message_cid));
             return outcome::success();
           },
           [&](const Secp256k1Signature &signature) -> outcome::result<void> {
             b.secp_messages.emplace_back(message);
-            OUTCOME_TRY(message_cid, ipld->setCbor(message));
+            OUTCOME_TRY(message_cid, setCbor(ipld, message));
             OUTCOME_TRY(msg_meta.secp_messages.append(message_cid));
             return outcome::success();
           }));
@@ -49,12 +49,12 @@ namespace fc::blockchain::production {
     b.header.election_proof = std::move(t.election_proof);
     b.header.beacon_entries = std::move(t.beacon_entries);
     b.header.win_post_proof = std::move(t.win_post_proof);
-    b.header.parents = std::move(t.parents);
+    (std::vector<fc::CbCid> &)b.header.parents = std::move(t.parents);
     b.header.parent_weight = vm_result.weight;
     b.header.height = t.height;
     b.header.parent_state_root = std::move(vm_result.state_root);
     b.header.parent_message_receipts = std::move(vm_result.message_receipts);
-    OUTCOME_TRYA(b.header.messages, ipld->setCbor(msg_meta));
+    OUTCOME_TRYA(b.header.messages, setCbor(ipld, msg_meta));
     OUTCOME_TRYA(
         b.header.bls_aggregate,
         crypto::bls::BlsProviderImpl{}.aggregateSignatures(bls_signatures));

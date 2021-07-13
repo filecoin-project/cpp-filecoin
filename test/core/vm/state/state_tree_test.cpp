@@ -7,16 +7,15 @@
 
 #include <gtest/gtest.h>
 
+#include "cbor_blake/ipld_any.hpp"
 #include "codec/cbor/light_reader/actor.hpp"
 #include "codec/cbor/light_reader/hamt_walk.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "testutil/init_actor.hpp"
-#include "testutil/storage/ipld2.hpp"
 #include "vm/actor/codes.hpp"
 
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
-using fc::storage::ipld::IpldIpld2;
 using fc::vm::actor::Actor;
 using fc::vm::actor::CodeId;
 using fc::vm::state::StateTreeImpl;
@@ -86,24 +85,23 @@ TEST_F(StateTreeTest, RegisterNewAddressLookupId) {
 TEST_F(StateTreeTest, Walk) {
   using namespace fc;
   adt::Map<vm::actor::Actor, adt::AddressKeyer> map{store_};
-  auto head1{store_->setCbor(3).value()};
+  auto head1{setCbor(store_, 3).value()};
   auto code1{vm::actor::code::init0};
-  map.set(Address::makeFromId(1),
-          {vm::actor::makeRawIdentityCid(std::string{code1}), head1})
-      .value();
-  codec::cbor::light_reader::HamtWalk walk{std::make_shared<IpldIpld2>(store_),
-                                           *asBlake(map.hamt.flush().value())};
+  map.set(Address::makeFromId(1), {code1, head1}).value();
+  codec::cbor::light_reader::HamtWalk walk{
+      std::make_shared<AnyAsCbIpld>(store_),
+      *asBlake(map.hamt.flush().value())};
   BytesIn key;
   BytesIn value;
   EXPECT_FALSE(walk.empty());
   EXPECT_TRUE(walk.next(key, value));
   EXPECT_TRUE(walk.empty());
   uint64_t id2{};
-  std::string_view code2;
-  const Hash256 *head2;
-  EXPECT_TRUE(
-      codec::cbor::light_reader::readActor(id2, code2, head2, key, value));
+  ActorCodeCid code2;
+  const CbCid *head2;
+  EXPECT_TRUE(codec::cbor::light_reader::readIdAddress(id2, key));
   EXPECT_EQ(id2, 1);
+  EXPECT_TRUE(codec::cbor::light_reader::readActor(code2, head2, value));
   EXPECT_EQ(code2, code1);
   EXPECT_EQ(*head2, *asBlake(head1));
   EXPECT_FALSE(walk.next(key, value));

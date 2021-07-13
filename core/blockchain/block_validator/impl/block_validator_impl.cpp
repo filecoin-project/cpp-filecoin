@@ -154,8 +154,8 @@ namespace fc::blockchain::block_validator {
       return parent_tipset_cache_.value().second;
     }
     std::vector<BlockHeader> parent_blocks;
-    for (const CID &parent_block_cid : block.parents) {
-      auto block_bytes_response = datastore_->get(parent_block_cid);
+    for (const auto &parent_block_cid : block.parents) {
+      auto block_bytes_response = datastore_->get(CID{parent_block_cid});
       if (block_bytes_response.has_value()) {
         auto block_header_result =
             codec::cbor::decode<BlockHeader>(block_bytes_response.value());

@@ -29,7 +29,9 @@ namespace fc::vm::actor::builtin::states {
     return getCommonStatePtr<AccountActorState,
                              v0::account::AccountActorState,
                              v2::account::AccountActorState,
-                             v3::account::AccountActorState>(actor);
+                             v3::account::AccountActorState,
+                             v3::account::AccountActorState,          // TODO v4
+                             v3::account::AccountActorState>(actor);  // TODO v5
   }
 
   outcome::result<CronActorStatePtr> StateProvider::getCronActorState(
@@ -54,7 +56,8 @@ namespace fc::vm::actor::builtin::states {
                              v0::init::InitActorState,
                              v2::init::InitActorState,
                              v3::init::InitActorState,
-                             v3::init::InitActorState>(actor);  // TODO v4
+                             v3::init::InitActorState,          // TODO v4
+                             v3::init::InitActorState>(actor);  // TODO v5
   }
 
   outcome::result<MarketActorStatePtr> StateProvider::getMarketActorState(
@@ -67,7 +70,8 @@ namespace fc::vm::actor::builtin::states {
                              v0::market::MarketActorState,
                              v2::market::MarketActorState,
                              v2::market::MarketActorState,          // TODO v3
-                             v2::market::MarketActorState>(actor);  // TODO v4
+                             v2::market::MarketActorState,          // TODO v4
+                             v2::market::MarketActorState>(actor);  // TODO v5
   }
 
   outcome::result<MinerActorStatePtr> StateProvider::getMinerActorState(
@@ -79,7 +83,9 @@ namespace fc::vm::actor::builtin::states {
     return getCommonStatePtr<MinerActorState,
                              v0::miner::MinerActorState,
                              v2::miner::MinerActorState,
-                             v3::miner::MinerActorState>(actor);
+                             v3::miner::MinerActorState,
+                             v3::miner::MinerActorState,          // TODO v4
+                             v3::miner::MinerActorState>(actor);  // TODO v5
   }
 
   outcome::result<MultisigActorStatePtr> StateProvider::getMultisigActorState(
@@ -117,8 +123,9 @@ namespace fc::vm::actor::builtin::states {
                              v0::storage_power::PowerActorState,
                              v2::storage_power::PowerActorState,
                              v3::storage_power::PowerActorState,
+                             v3::storage_power::PowerActorState,  // TODO v4
                              v3::storage_power::PowerActorState>(
-        actor);  // TODO v4
+        actor);  // TODO v5
   }
 
   outcome::result<SystemActorStatePtr> StateProvider::getSystemActorState(
@@ -143,7 +150,8 @@ namespace fc::vm::actor::builtin::states {
                              v0::reward::RewardActorState,
                              v2::reward::RewardActorState,
                              v2::reward::RewardActorState,          // TODO v3
-                             v2::reward::RewardActorState>(actor);  // TODO v4
+                             v2::reward::RewardActorState,          // TODO v4
+                             v2::reward::RewardActorState>(actor);  // TODO v5
   }
 
   outcome::result<VerifiedRegistryActorStatePtr>

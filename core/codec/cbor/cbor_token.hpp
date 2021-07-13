@@ -5,10 +5,19 @@
 
 #pragma once
 
-#include "codec/cbor/cbor_common.hpp"
 #include "codec/common.hpp"
 
 namespace fc::codec::cbor {
+  constexpr uint8_t kExtraUint8{24};
+  constexpr uint8_t kExtraUint16{25};
+  constexpr uint8_t kExtraUint32{26};
+  constexpr uint8_t kExtraUint64{27};
+
+  constexpr uint64_t kExtraFalse{20};
+  constexpr uint64_t kExtraTrue{21};
+  constexpr uint64_t kExtraNull{22};
+  constexpr uint64_t kExtraCid{42};
+
   struct CborToken {
     enum Type : uint8_t {
       UINT,
@@ -52,7 +61,7 @@ namespace fc::codec::cbor {
         return extra;
       }
       if (type == Type::INT) {
-        return -static_cast<int64_t>(extra) - 1;
+        return ~static_cast<int64_t>(extra);
       }
       return {};
     }
@@ -94,7 +103,29 @@ namespace fc::codec::cbor {
     constexpr size_t anyCount() const {
       return type == Type::LIST ? extra : type == Type::MAP ? 2 * extra : 0;
     }
+
+    static constexpr uint8_t _first(Type type, uint8_t first) {
+      return (type << 5) | first;
+    }
+    static constexpr size_t _more(uint64_t extra) {
+      if (extra < kExtraUint8) {
+        return 0;
+      } else if (!(extra & 0xFFFFFFFFFFFFFF00)) {
+        return sizeof(uint8_t);
+      } else if (!(extra & 0xFFFFFFFFFFFF0000)) {
+        return sizeof(uint16_t);
+      } else if (!(extra & 0xFFFFFFFF00000000)) {
+        return sizeof(uint32_t);
+      } else {
+        return sizeof(uint64_t);
+      }
+    }
   };
+
+  constexpr BytesN<1> kNull{CborToken::_first(CborToken::SPECIAL, kExtraNull)};
+  constexpr BytesN<1> kFalse{
+      CborToken::_first(CborToken::SPECIAL, kExtraFalse)};
+  constexpr BytesN<1> kTrue{CborToken::_first(CborToken::SPECIAL, kExtraTrue)};
 
   struct CborTokenDecoder {
     CborToken value;
@@ -236,6 +267,16 @@ namespace fc::codec::cbor {
     return false;
   }
 
+  inline bool skipNested(BytesIn &input, size_t count) {
+    for (size_t i{}; i < count; ++i) {
+      BytesIn tmp;
+      if (!readNested(tmp, input)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   inline bool findCid(BytesIn &cid, BytesIn &input) {
     while (!input.empty()) {
       CborToken token;
@@ -250,5 +291,78 @@ namespace fc::codec::cbor {
       }
     }
     return false;
+  }
+
+  struct CborTokenEncoder {
+    BytesN<9> _bytes{};
+    size_t length{};
+
+    constexpr CborTokenEncoder(CborToken::Type type, uint64_t extra) {
+      const auto more{CborToken::_more(extra)};
+      length = 1 + more;
+      if (!more) {
+        _bytes[0] = CborToken::_first(type, extra);
+      } else if (more == sizeof(uint8_t)) {
+        _bytes[0] = CborToken::_first(type, kExtraUint8);
+        _bytes[1] = extra;
+      } else if (more == sizeof(uint16_t)) {
+        _bytes[0] = CborToken::_first(type, kExtraUint16);
+        _bytes[1] = extra >> 8;
+        _bytes[2] = extra;
+      } else if (more == sizeof(uint32_t)) {
+        _bytes[0] = CborToken::_first(type, kExtraUint32);
+        _bytes[1] = extra >> 24;
+        _bytes[2] = extra >> 16;
+        _bytes[3] = extra >> 8;
+        _bytes[4] = extra;
+      } else {
+        _bytes[0] = CborToken::_first(type, kExtraUint64);
+        _bytes[1] = extra >> 56;
+        _bytes[2] = extra >> 48;
+        _bytes[3] = extra >> 40;
+        _bytes[4] = extra >> 32;
+        _bytes[5] = extra >> 24;
+        _bytes[6] = extra >> 16;
+        _bytes[7] = extra >> 8;
+        _bytes[8] = extra;
+      }
+    }
+    constexpr operator BytesIn() const {
+      return gsl::make_span(_bytes).first(length);
+    }
+  };
+
+  inline void writeNull(Bytes &out) {
+    append(out, kNull);
+  }
+  inline void writeBool(Bytes &out, bool value) {
+    append(out, value ? kTrue : kFalse);
+  }
+  inline void writeUint(Bytes &out, uint64_t value) {
+    append(out, CborTokenEncoder{CborToken::Type::UINT, value});
+  }
+  inline void writeInt(Bytes &out, int64_t value) {
+    if (value < 0) {
+      append(out, CborTokenEncoder{CborToken::Type::INT, (uint64_t)~value});
+    } else {
+      writeUint(out, value);
+    }
+  }
+  inline void writeBytes(Bytes &out, size_t size) {
+    append(out, CborTokenEncoder{CborToken::Type::BYTES, size});
+  }
+  inline void writeStr(Bytes &out, size_t size) {
+    append(out, CborTokenEncoder{CborToken::Type::STR, size});
+  }
+  inline void writeCid(Bytes &out, size_t size) {
+    append(out, CborTokenEncoder{CborToken::Type::CID, kExtraCid});
+    writeBytes(out, size + 1);
+    out.push_back(0);
+  }
+  inline void writeList(Bytes &out, size_t count) {
+    append(out, CborTokenEncoder{CborToken::Type::LIST, count});
+  }
+  inline void writeMap(Bytes &out, size_t count) {
+    append(out, CborTokenEncoder{CborToken::Type::MAP, count});
   }
 }  // namespace fc::codec::cbor

@@ -31,7 +31,20 @@ namespace fc::vm::actor::builtin::types::miner {
     TokenAmount init_pledge{};
     TokenAmount expected_day_reward{};
     TokenAmount expected_storage_pledge{};
+
+    bool operator==(const SectorOnChainInfo &other) const {
+      return sector == other.sector && seal_proof == other.seal_proof
+             && sealed_cid == other.sealed_cid && deals == other.deals
+             && activation_epoch == other.activation_epoch
+             && expiration == other.expiration
+             && deal_weight == other.deal_weight
+             && verified_deal_weight == other.verified_deal_weight
+             && init_pledge == other.init_pledge
+             && expected_day_reward == other.expected_day_reward
+             && expected_storage_pledge == other.expected_storage_pledge;
+    }
   };
+  FC_OPERATOR_NOT_EQUAL(SectorOnChainInfo)
   CBOR_TUPLE(SectorOnChainInfo,
              sector,
              seal_proof,

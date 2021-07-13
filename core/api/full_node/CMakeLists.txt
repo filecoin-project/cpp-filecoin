@@ -18,6 +18,7 @@ target_link_libraries(api
     message
     miner_types
     msg_waiter
+    receipt_loader
     state_tree
     mpool
     sync

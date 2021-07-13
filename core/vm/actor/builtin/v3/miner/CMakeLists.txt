@@ -10,4 +10,5 @@ add_library(miner_actor_v3
     )
 target_link_libraries(miner_actor_v3
     miner_actor_v2
+    miner_types
     )

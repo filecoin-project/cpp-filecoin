@@ -14,21 +14,12 @@
 namespace fc::codec::cbor::light_reader {
   /**
    * Partially decodes Actor state
-   * @param[out] id - actor id address value
    * @param[out] code - actor code id
    * @param[out] head - actor state root CID
-   * @param key
    * @param value
    * @return
    */
-  inline bool readActor(uint64_t &id,
-                        std::string_view &code,
-                        const Hash256 *&head,
-                        BytesIn key,
-                        BytesIn value) {
-    if (!readIdAddress(id, key)) {
-      return false;
-    }
+  inline bool readActor(ActorCodeCid &code, const CbCid *&head, BytesIn value) {
     cbor::CborToken token;
     if (read(token, value).listCount() != 4) {
       return false;
@@ -42,7 +33,7 @@ namespace fc::codec::cbor::light_reader {
     if (!readRawId(_code, _cid) || !_cid.empty()) {
       return false;
     }
-    code = common::span::bytestr(_code);
+    code = ActorCodeCid{common::span::bytestr(_code)};
     return cbor::readCborBlake(head, value);
   }
 }  // namespace fc::codec::cbor::light_reader

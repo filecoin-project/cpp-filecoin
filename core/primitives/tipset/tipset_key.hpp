@@ -8,36 +8,35 @@
 #include "primitives/cid/cid.hpp"
 
 namespace fc::primitives::tipset {
-  using TipsetHash = std::vector<uint8_t>;
+  using TipsetHash = Hash256;
 
   /// TipsetKey: block cids + hash
   class TipsetKey {
    public:
-    static TipsetHash hash(const std::vector<CID> &cids);
+    static TipsetHash hash(CbCidsIn cids);
+    static boost::optional<TipsetKey> make(gsl::span<const CID> cids);
 
     TipsetKey();
-    TipsetKey(std::vector<CID> c);
-    TipsetKey(TipsetHash h, std::vector<CID> c);
+    TipsetKey(std::vector<CbCid> c);
+    TipsetKey(TipsetHash h, std::vector<CbCid> c);
 
     bool operator==(const TipsetKey &rhs) const;
-    bool operator!=(const TipsetKey &rhs) const;
     bool operator<(const TipsetKey &rhs) const;
 
-    const std::vector<CID> &cids() const;
+    const std::vector<CbCid> &cids() const;
 
     const TipsetHash &hash() const;
 
     /// Returns hash string representaion
     std::string toString() const;
 
-    /// Returns string representaion based on contained CIDs
-    std::string toPrettyString() const;
+    std::string cidsStr(std::string_view sep = ",") const;
 
    private:
     TipsetHash hash_;
-    std::vector<CID> cids_;
+    std::vector<CbCid> cids_;
   };
-
+  FC_OPERATOR_NOT_EQUAL(TipsetKey)
 }  // namespace fc::primitives::tipset
 
 namespace fc {
