@@ -335,4 +335,19 @@ namespace fc::vm::actor::builtin::v0::miner {
   CBOR_TUPLE(CompactSectorNumbers::Params, mask_sector_numbers)
 
   extern const ActorExports exports;
+
+  /**
+   * Collects and stores precommit messages to make
+   * a packaged sending of a several messages within one transaction
+   * which reduces the general amount of transactions in the network
+   * with reduction of a gas fee for transactions.
+   */
+  struct PreCommitBatch : ActorMethodBase<25> {
+    struct Params {
+      std::vector<SectorPreCommitInfo> sectors;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(PreCommitBatch::Params, sectors);
+
 }  // namespace fc::vm::actor::builtin::v0::miner
