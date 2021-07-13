@@ -39,21 +39,22 @@ namespace fc::mining {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using vm::actor::MethodParams;
+  using vm::actor::builtin::types::miner::kChainFinality;
   using StorageFSM =
       fsm::FSM<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
 
   class PreCommitBatcherImpl : public PreCommitBatcher {
    public:
-    struct preCommitEntry {
-      preCommitEntry(primitives::TokenAmount number, SectorPreCommitInfo info);
-      preCommitEntry() = default;
+    struct PreCommitEntry {
+      PreCommitEntry(primitives::TokenAmount number, SectorPreCommitInfo info);
+      PreCommitEntry() = default;
       primitives::TokenAmount deposit;
-      SectorPreCommitInfo pci;
-      preCommitEntry &operator=(const preCommitEntry &x);
+      SectorPreCommitInfo precommit_info;
+      PreCommitEntry &operator=(const PreCommitEntry & other) = default;
     };
 
-    void getPreCommitCutoff(primitives::ChainEpoch curEpoch,
-                            const SectorInfo &si);
+    outcome::result<void> setPreCommitCutoff(primitives::ChainEpoch curEpoch,
+                                             const SectorInfo &si);
 
     static outcome::result<std::shared_ptr<PreCommitBatcherImpl>> makeBatcher(
         size_t maxWait,
@@ -63,9 +64,9 @@ namespace fc::mining {
 
     outcome::result<void> addPreCommit(SectorInfo secInf,
                                        TokenAmount deposit,
-                                       SectorPreCommitInfo pcInfo);
+                                       SectorPreCommitInfo pcInfo) override;
 
-    outcome::result<void> forceSend();
+    outcome::result<void> forceSend() override;
 
     outcome::result<void> sendBatch();
 
@@ -74,7 +75,7 @@ namespace fc::mining {
     std::mutex mutex_;
     Address miner_address_;
     cpp_int mutualDeposit;
-    std::map<uint64_t, preCommitEntry> batchStorage;
+    std::map<SectorNumber, PreCommitEntry> batchStorage;
     std::shared_ptr<FullNodeApi> api_;
     Handle handle_;
     size_t maxDelay;

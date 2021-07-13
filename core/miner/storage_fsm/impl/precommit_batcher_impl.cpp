@@ -13,13 +13,9 @@ namespace fc::mining {
                                              std::shared_ptr<FullNodeApi> api)
       : api_(std::move(api)){};
 
-  PreCommitBatcherImpl::preCommitEntry::preCommitEntry(
-      primitives::TokenAmount number, api::SectorPreCommitInfo info)
-      : deposit(std::move(number)), pci(std::move(info)){};
-
-  PreCommitBatcherImpl::preCommitEntry &
-  PreCommitBatcherImpl::preCommitEntry::operator=(const preCommitEntry &x) =
-      default;
+  PreCommitBatcherImpl::PreCommitEntry::PreCommitEntry(
+      TokenAmount number, api::SectorPreCommitInfo info)
+      : deposit(std::move(number)), precommit_info(std::move(info)){};
 
   outcome::result<std::shared_ptr<PreCommitBatcherImpl>>
   PreCommitBatcherImpl::makeBatcher(
@@ -49,17 +45,16 @@ namespace fc::mining {
 
   outcome::result<void> PreCommitBatcherImpl::sendBatch() {
     std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
+    // TODO(Elestrias): [FIL-398] goodFunds = mutualDeposit + MaxFee; -  for checking payable
+    if (batchStorage.size() != 0) {
+      auto head = api_->ChainHead().value();
+      auto minfo = api_->StateMinerInfo(miner_address_, head->key).value();
 
-    OUTCOME_TRY(head, api_->ChainHead());
-    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, head->key));
-
-    PreCommitBatch::Params params = {};
-    for (auto &data : batchStorage) {
-      mutualDeposit += data.second.deposit;
-      params.sectors.push_back(data.second.pci);
-    }
-    // TODO: goodFunds = mutualDeposit + MaxFee; -  for checking payable
-    if (params.sectors.size() != 0) {
+      PreCommitBatch::Params params = {};
+      for (const auto &data : batchStorage) {
+        mutualDeposit += data.second.deposit;
+        params.sectors.push_back(data.second.precommit_info);
+      }
       OUTCOME_TRY(encodedParams, codec::cbor::encode(params));
 
       auto maybe_signed = api_->MpoolPushMessage(
@@ -70,7 +65,7 @@ namespace fc::mining {
               mutualDeposit,
               {},
               {},
-              vm::actor::builtin::v0::miner::PreCommitSector::Number,
+              25,  // TODO (m.tagirov) Miner actor v5 PreCommitBatch
               MethodParams{encodedParams}),
           kPushNoSpec);
 
@@ -86,16 +81,15 @@ namespace fc::mining {
   }
 
   outcome::result<void> PreCommitBatcherImpl::forceSend() {
-    auto error = sendBatch();
-    assert(not error.has_error());
+    OUTCOME_TRY(sendBatch());
     handle_.reschedule(maxDelay);
     return outcome::success();
   }
 
-  void PreCommitBatcherImpl::getPreCommitCutoff(ChainEpoch curEpoch,
+  outcome::result<void> PreCommitBatcherImpl::setPreCommitCutoff(ChainEpoch curEpoch,
                                                 const SectorInfo &si) {
-    primitives::ChainEpoch cutoffEpoch =
-        si.ticket_epoch + static_cast<int64_t>(fc::kEpochsInDay + 600);
+    ChainEpoch cutoffEpoch =
+        si.ticket_epoch + static_cast<int64_t>(fc::kEpochsInDay + kChainFinality);
     ChainEpoch startEpoch{};
     for (auto p : si.pieces) {
       if (!p.deal_info) {
@@ -107,7 +101,7 @@ namespace fc::mining {
       }
     }
     if (cutoffEpoch <= curEpoch) {
-      auto maybe_error = forceSend();
+      OUTCOME_TRY(forceSend());
     } else {
       Ticks tempCutoff = toTicks(std::chrono::seconds((cutoffEpoch - curEpoch)
                                                       * kEpochDurationSeconds));
@@ -120,18 +114,20 @@ namespace fc::mining {
         closestCutoff = tempCutoff;
       }
     }
+    return outcome::success();
   }
 
   outcome::result<void> PreCommitBatcherImpl::addPreCommit(
       SectorInfo secInf,
-      primitives::TokenAmount deposit,
+      TokenAmount deposit,
       api::SectorPreCommitInfo pcInfo) {
     std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
     OUTCOME_TRY(head, api_->ChainHead());
 
-    getPreCommitCutoff(head->epoch(), secInf);
     auto sn = secInf.sector_number;
-    batchStorage[sn] = preCommitEntry(std::move(deposit), std::move(pcInfo));
+    batchStorage[sn] = PreCommitEntry(std::move(deposit), std::move(pcInfo));
+
+    setPreCommitCutoff(head->epoch(), secInf);
     return outcome::success();
   }
 }  // namespace fc::mining

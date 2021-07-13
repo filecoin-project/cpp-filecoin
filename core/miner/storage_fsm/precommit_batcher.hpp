@@ -10,15 +10,15 @@
 
 namespace fc::mining {
   using api::SectorPreCommitInfo;
-  using primitives::TokenAmount;
   using fc::mining::types::SectorInfo;
+  using primitives::TokenAmount;
 
   class PreCommitBatcher {
    public:
     virtual outcome::result<void> addPreCommit(SectorInfo secInf,
-        TokenAmount deposit,
-        SectorPreCommitInfo pcInfo) = 0;
-    virtual outcome::result<void> forceSend()=0;
+                                               TokenAmount deposit,
+                                               SectorPreCommitInfo pcInfo) = 0;
+    virtual outcome::result<void> forceSend() = 0;
     virtual ~PreCommitBatcher() = default;
   };
 
