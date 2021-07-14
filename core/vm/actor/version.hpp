@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include <type_traits>
-
 namespace fc::vm::actor {
   enum class ActorVersion {
     kVersion0 = 0,
@@ -20,10 +18,9 @@ namespace fc::vm::actor {
     ActorVersion actor_version{};
 
     WithActorVersion() = default;
-    WithActorVersion(ActorVersion v) : actor_version{v} {}
+    explicit WithActorVersion(ActorVersion v) : actor_version{v} {}
 
-    operator ActorVersion() const {
-      return actor_version;
-    }
+   protected:
+    ~WithActorVersion() = default;
   };
 }  // namespace fc::vm::actor

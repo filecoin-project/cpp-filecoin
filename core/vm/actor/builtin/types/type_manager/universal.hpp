@@ -5,8 +5,7 @@
 
 #pragma once
 
-#include "common/outcome.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "cbor_blake/ipld_cbor.hpp"
 
 namespace fc::vm::actor::builtin::types {
   using vm::actor::ActorVersion;
