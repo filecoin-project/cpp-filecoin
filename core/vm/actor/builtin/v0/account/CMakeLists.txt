@@ -5,7 +5,6 @@
 
 add_library(account_actor_v0
     account_actor.cpp
-    account_actor_state.cpp
     )
 target_link_libraries(account_actor_v0
     actor

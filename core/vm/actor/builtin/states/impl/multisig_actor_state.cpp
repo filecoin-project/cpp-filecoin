@@ -4,6 +4,7 @@
  */
 
 #include "vm/actor/builtin/states/multisig_actor_state.hpp"
+
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::states {

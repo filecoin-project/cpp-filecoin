@@ -15,8 +15,6 @@ namespace fc::vm::actor::builtin::v2::reward {
   using primitives::kChainEpochUndefined;
   using namespace types::reward;
 
-  ACTOR_STATE_TO_CBOR_THIS(RewardActorState)
-
   void RewardActorState::initialize(
       const StoragePower &current_realized_power) {
     effective_network_time = 0;
@@ -29,8 +27,7 @@ namespace fc::vm::actor::builtin::v2::reward {
     epoch = kChainEpochUndefined;
     simple_total = kSimpleTotal;
     baseline_total = kBaselineTotal;
-    updateToNextEpochWithReward(
-        *this, current_realized_power, kBaselineExponentV3);
+    updateToNextEpochWithReward(current_realized_power, kBaselineExponentV3);
   }
 
   TokenAmount RewardActorState::simpleTotal() const {

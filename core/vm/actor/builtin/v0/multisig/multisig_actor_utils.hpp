@@ -41,12 +41,12 @@ namespace fc::vm::actor::builtin::v0::multisig {
         const TransactionId &tx_id, Transaction &transaction) const override;
 
     outcome::result<ApproveTransactionResult> executeTransaction(
-        MultisigActorStatePtr state,
+        MultisigActorStatePtr &state,
         const TransactionId &tx_id,
         const Transaction &transaction) const override;
 
     outcome::result<void> purgeApprovals(
-        MultisigActorStatePtr state, const Address &address) const override {
+        MultisigActorStatePtr &state, const Address &address) const override {
       // Not implemented for v0
       return outcome::success();
     }

@@ -9,11 +9,11 @@
 
 #include "codec/cbor/cbor_codec.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
+#include "vm/actor/version.hpp"
 
 namespace fc::storage::ipfs {
 
-  class IpfsDatastore {
-   public:
+  struct IpfsDatastore : vm::actor::WithActorVersion {
     using Value = common::Buffer;
 
     virtual ~IpfsDatastore() = default;

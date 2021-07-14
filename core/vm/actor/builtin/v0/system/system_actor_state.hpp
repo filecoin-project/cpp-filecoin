@@ -5,16 +5,14 @@
 
 #pragma once
 
-#include "codec/cbor/streams_annotation.hpp"
-#include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/states/system_actor_state.hpp"
+
+#include "codec/cbor/streams_annotation.hpp"
 
 namespace fc::vm::actor::builtin::v0::system {
 
   /// System actor state
-  struct SystemActorState : states::SystemActorState {
-    outcome::result<Buffer> toCbor() const override;
-  };
+  struct SystemActorState : states::SystemActorState {};
   CBOR_TUPLE_0(SystemActorState)
 
 }  // namespace fc::vm::actor::builtin::v0::system

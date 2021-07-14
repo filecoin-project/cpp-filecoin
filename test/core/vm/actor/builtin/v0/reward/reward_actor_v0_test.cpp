@@ -24,22 +24,8 @@ namespace fc::vm::actor::builtin::v0::reward {
   struct RewardActorV0Test : public RewardActorTestFixture<RewardActorState> {
     void SetUp() override {
       RewardActorTestFixture<RewardActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion0;
-
-      EXPECT_CALL(*state_manager, createRewardActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<RewardActorState>();
-            return std::static_pointer_cast<states::RewardActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getRewardActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                getCbor<RewardActorState>(ipld, cid));
-            auto s = std::make_shared<RewardActorState>(current_state);
-            return std::static_pointer_cast<states::RewardActorState>(s);
-          }));
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
     }
 
     /**

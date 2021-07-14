@@ -4,6 +4,7 @@
  */
 
 #include "vm/actor/builtin/v0/multisig/multisig_actor.hpp"
+
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::multisig {
@@ -47,10 +48,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return outcome::success();
   }
 
-  states::MultisigActorStatePtr Construct::createState(
+  MultisigActorStatePtr Construct::createState(
       Runtime &runtime, size_t threshold, const std::vector<Address> &signers) {
-    auto state = runtime.stateManager()->createMultisigActorState(
-        runtime.getActorVersion());
+    MultisigActorStatePtr state{runtime.getActorVersion()};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
     state->signers = signers;
     state->threshold = threshold;
 
@@ -59,7 +60,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   void Construct::setLocked(const Runtime &runtime,
                             const EpochDuration &unlock_duration,
-                            states::MultisigActorStatePtr state) {
+                            MultisigActorStatePtr &state) {
     if (unlock_duration != 0) {
       state->setLocked(runtime.getCurrentEpoch(),
                        unlock_duration,
@@ -88,7 +89,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   ACTOR_METHOD_IMPL(Propose) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
 
     const auto utils = Toolchain::createMultisigActorUtils(runtime);
     OUTCOME_TRY(utils->assertCallerIsSigner(state));
@@ -113,13 +114,13 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   ACTOR_METHOD_IMPL(Approve) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
 
     const auto utils = Toolchain::createMultisigActorUtils(runtime);
     OUTCOME_TRY(utils->assertCallerIsSigner(state));
 
     // We need a copy to avoid the Flush of original state
-    auto state_copy = state->copy();
+    auto state_copy = state.copy();
     OUTCOME_TRY(transaction,
                 state_copy->getTransaction(
                     runtime, params.tx_id, params.proposal_hash));
@@ -143,7 +144,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   ACTOR_METHOD_IMPL(Cancel) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
 
     const auto utils = Toolchain::createMultisigActorUtils(runtime);
     OUTCOME_TRY(utils->assertCallerIsSigner(state));
@@ -176,10 +177,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
   // AddSigner
   //============================================================================
 
-  outcome::result<void> AddSigner::addSigner(
-      const AddSigner::Params &params,
-      states::MultisigActorStatePtr state,
-      const Address &signer) {
+  outcome::result<void> AddSigner::addSigner(const AddSigner::Params &params,
+                                             MultisigActorStatePtr &state,
+                                             const Address &signer) {
     if (state->isSigner(signer)) {
       ABORT(VMExitCode::kErrForbidden);
     }
@@ -195,7 +195,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     const auto utils = Toolchain::createMultisigActorUtils(runtime);
     OUTCOME_TRY(resolved_signer, utils->getResolvedAddress(params.signer));
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
     OUTCOME_TRY(addSigner(params, state, resolved_signer));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
@@ -206,7 +206,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   outcome::result<void> RemoveSigner::checkState(
       const RemoveSigner::Params &params,
-      const states::MultisigActorStatePtr &state,
+      const MultisigActorStatePtr &state,
       const Address &signer) {
     if (!state->isSigner(signer)) {
       ABORT(VMExitCode::kErrForbidden);
@@ -228,7 +228,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     const auto utils = Toolchain::createMultisigActorUtils(runtime);
     OUTCOME_TRY(resolved_signer, utils->getResolvedAddress(params.signer));
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
     OUTCOME_TRY(checkState(params, state, resolved_signer));
 
     if (params.decrease_threshold) {
@@ -245,10 +245,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
   // SwapSigner
   //============================================================================
 
-  outcome::result<void> SwapSigner::swapSigner(
-      states::MultisigActorStatePtr state,
-      const Address &from,
-      const Address &to) {
+  outcome::result<void> SwapSigner::swapSigner(MultisigActorStatePtr &state,
+                                               const Address &from,
+                                               const Address &to) {
     if (!state->isSigner(from)) {
       ABORT(VMExitCode::kErrForbidden);
     }
@@ -270,7 +269,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     const auto utils = Toolchain::createMultisigActorUtils(runtime);
     OUTCOME_TRY(from_resolved, utils->getResolvedAddress(params.from));
     OUTCOME_TRY(to_resolved, utils->getResolvedAddress(params.to));
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
     OUTCOME_TRY(swapSigner(state, from_resolved, to_resolved));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
@@ -281,7 +280,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   ACTOR_METHOD_IMPL(ChangeThreshold) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
 
     if ((params.new_threshold == 0)
         || (params.new_threshold > state->signers.size())) {
@@ -298,7 +297,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   //============================================================================
 
   outcome::result<void> LockBalance::lockBalance(
-      const LockBalance::Params &params, states::MultisigActorStatePtr state) {
+      const LockBalance::Params &params, MultisigActorStatePtr &state) {
     if (state->unlock_duration != 0) {
       ABORT(VMExitCode::kErrForbidden);
     }
@@ -315,7 +314,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(runtime.validateArgument(params.unlock_duration > 0));
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
     OUTCOME_TRY(lockBalance(params, state));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();

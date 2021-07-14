@@ -7,7 +7,7 @@
 
 #include "cbor_blake/cid.hpp"
 #include "codec/cbor/light_reader/cid.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/states/account_actor_state.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
@@ -24,7 +24,7 @@ namespace fc::vm::runtime {
   using actor::kRewardAddress;
   using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
-  using actor::builtin::states::StateProvider;
+  using actor::builtin::states::AccountActorStatePtr;
   using toolchain::Toolchain;
   using version::getNetworkVersion;
 
@@ -37,8 +37,7 @@ namespace fc::vm::runtime {
     }
     if (auto _actor{state_tree.get(address)}) {
       auto &actor{_actor.value()};
-      StateProvider provider(ipld);
-      OUTCOME_TRY(state, provider.getAccountActorState(actor));
+      OUTCOME_TRY(state, getCbor<AccountActorStatePtr>(ipld, actor.head));
       if (allow_actor || state->address.isKeyType()) {
         return state->address;
       }

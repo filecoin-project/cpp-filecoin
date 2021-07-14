@@ -4,6 +4,7 @@
  */
 
 #include "vm/actor/builtin/states/power_actor_state.hpp"
+
 #include "common/math/math.hpp"
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "const.hpp"
@@ -45,7 +46,7 @@ namespace fc::vm::actor::builtin::states {
     if (!claim_found.has_value()) {
       return VMExitCode::kErrNotFound;
     }
-    auto claim{claim_found.value()};
+    auto claim{**claim_found};
 
     // TotalBytes always update directly
     total_raw_commited += raw;
@@ -80,10 +81,48 @@ namespace fc::vm::actor::builtin::states {
                     claim.seal_proof_type);
   }
 
+  outcome::result<void> PowerActorState::setClaim(
+      const Runtime &runtime,
+      const Address &address,
+      const StoragePower &raw,
+      const StoragePower &qa,
+      RegisteredSealProof seal_proof) {
+    VM_ASSERT(raw >= 0);
+    VM_ASSERT(qa >= 0);
+
+    Universal<Claim> claim{runtime.getActorVersion()};
+    claim->seal_proof_type = seal_proof;
+    claim->raw_power = raw;
+    claim->qa_power = qa;
+
+    OUTCOME_TRY(claims.set(address, claim));
+    return outcome::success();
+  }
+
+  outcome::result<bool> PowerActorState::hasClaim(
+      const Address &address) const {
+    return claims.has(address);
+  }
+
+  outcome::result<boost::optional<Universal<Claim>>>
+  PowerActorState::tryGetClaim(const Address &address) const {
+    OUTCOME_TRY(claim, claims.tryGet(address));
+    if (claim) {
+      return *claim;
+    }
+    return boost::none;
+  }
+
+  outcome::result<Universal<Claim>> PowerActorState::getClaim(
+      const Address &address) const {
+    OUTCOME_TRY(claim, claims.get(address));
+    return std::move(claim);
+  }
+
   outcome::result<void> PowerActorState::addPledgeTotal(
       const Runtime &runtime, const TokenAmount &amount) {
-    total_pledge += amount;
-    VM_ASSERT(total_pledge >= 0);
+    total_pledge_collateral += amount;
+    VM_ASSERT(total_pledge_collateral >= 0);
     return outcome::success();
   }
 

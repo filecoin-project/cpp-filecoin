@@ -788,7 +788,7 @@ namespace fc::mining {
 
     api_->StateNetworkVersion = [](const TipsetKey &tipset_key)
         -> outcome::result<api::NetworkVersion> {
-      return api::NetworkVersion::kVersion7;
+      return api::NetworkVersion::kVersion3;
     };
 
     EXPECT_CALL(*policy_, expiration(_)).WillOnce(testing::Return(0));

@@ -5,17 +5,16 @@
 
 #pragma once
 
+#include "vm/actor/builtin/states/reward_actor_state.hpp"
+
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/states/reward_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::reward {
   using primitives::StoragePower;
   using primitives::TokenAmount;
 
   struct RewardActorState : states::RewardActorState {
-    outcome::result<Buffer> toCbor() const override;
-
     void initialize(const StoragePower &current_realized_power) override;
     TokenAmount simpleTotal() const override;
     TokenAmount baselineTotal() const override;

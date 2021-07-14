@@ -14,6 +14,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
   struct BitfieldQueueTest : testing::Test {
     void SetUp() override {
+      ipld->actor_version = ActorVersion::kVersion0;
       cbor_blake::cbLoadT(ipld, expected);
       cbor_blake::cbLoadT(ipld, queue);
     }

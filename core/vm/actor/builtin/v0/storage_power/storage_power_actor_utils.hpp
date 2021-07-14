@@ -17,6 +17,6 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     explicit PowerUtils(Runtime &r) : utils::PowerUtils(r) {}
 
     outcome::result<void> validateMinerHasClaim(
-        PowerActorStatePtr state, const Address &miner) const override;
+        PowerActorStatePtr &state, const Address &miner) const override;
   };
 }  // namespace fc::vm::actor::builtin::v0::storage_power

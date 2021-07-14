@@ -89,46 +89,4 @@ namespace fc::vm::actor::builtin::types::reward {
     // Q.128 => Q.0
     return reward >> kPrecision128;
   }
-
-  void updateToNextEpoch(states::RewardActorState &state,
-                         const StoragePower &current_realized_power,
-                         const BigInt &baseline_exponent) {
-    ++state.epoch;
-    state.this_epoch_baseline_power = baselinePowerFromPrev(
-        state.this_epoch_baseline_power, baseline_exponent);
-    state.cumsum_realized +=
-        std::min(state.this_epoch_baseline_power, current_realized_power);
-    if (state.cumsum_realized > state.cumsum_baseline) {
-      ++state.effective_network_time;
-      state.effective_baseline_power = baselinePowerFromPrev(
-          state.effective_baseline_power, baseline_exponent);
-      state.cumsum_baseline += state.effective_baseline_power;
-    }
-  }
-
-  void updateToNextEpochWithReward(states::RewardActorState &state,
-                                   const StoragePower &current_realized_power,
-                                   const BigInt &baseline_exponent) {
-    const auto prev_reward_theta = computeRTheta(state.effective_network_time,
-                                                 state.effective_baseline_power,
-                                                 state.cumsum_realized,
-                                                 state.cumsum_baseline);
-    updateToNextEpoch(state, current_realized_power, baseline_exponent);
-    const auto current_reward_theta =
-        computeRTheta(state.effective_network_time,
-                      state.effective_baseline_power,
-                      state.cumsum_realized,
-                      state.cumsum_baseline);
-    state.this_epoch_reward = computeReward(state.epoch,
-                                            prev_reward_theta,
-                                            current_reward_theta,
-                                            state.simpleTotal(),
-                                            state.baselineTotal());
-  }
-
-  void updateSmoothedEstimates(states::RewardActorState &state,
-                               const ChainEpoch &delta) {
-    state.this_epoch_reward_smoothed = nextEstimate(
-        state.this_epoch_reward_smoothed, state.this_epoch_reward, delta);
-  }
 }  // namespace fc::vm::actor::builtin::types::reward

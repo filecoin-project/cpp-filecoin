@@ -14,7 +14,7 @@ namespace fc {
   struct CbAsAnyIpld : Ipld {
     CbIpldPtr ipld;
 
-    CbAsAnyIpld(CbIpldPtr ipld) : ipld{std::move(ipld)} {}
+    explicit CbAsAnyIpld(CbIpldPtr ipld) : ipld{std::move(ipld)} {}
 
     outcome::result<bool> contains(const CID &key) const override {
       if (auto cid{asBlake(key)}) {
@@ -44,7 +44,7 @@ namespace fc {
 
     IpldPtr ipld;
 
-    AnyAsCbIpld(IpldPtr ipld) : ipld{std::move(ipld)} {}
+    explicit AnyAsCbIpld(IpldPtr ipld) : ipld{std::move(ipld)} {}
 
     static bool get(const IpldPtr &ipld, const CbCid &key, Buffer *value) {
       const CID cid{key};

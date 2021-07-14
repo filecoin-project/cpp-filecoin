@@ -25,24 +25,9 @@ namespace fc::vm::actor::builtin::v2::init {
   struct InitActorTest : public ActorTestFixture<InitActorState> {
     void SetUp() override {
       ActorTestFixture<InitActorState>::SetUp();
+      actor_version = ActorVersion::kVersion2;
+      ipld->actor_version = actor_version;
       cbor_blake::cbLoadT(ipld, state);
-      actorVersion = ActorVersion::kVersion2;
-
-      EXPECT_CALL(*state_manager, createInitActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<InitActorState>();
-            cbor_blake::cbLoadT(ipld, *s);
-            return std::static_pointer_cast<states::InitActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getInitActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                getCbor<InitActorState>(ipld, cid));
-            auto s = std::make_shared<InitActorState>(current_state);
-            return std::static_pointer_cast<states::InitActorState>(s);
-          }));
     }
 
     const std::string network_name = "test_network_name";
