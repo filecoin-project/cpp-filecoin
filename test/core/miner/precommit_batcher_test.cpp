@@ -23,6 +23,8 @@ namespace fc::mining {
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
   using testing::Mock;
+  using libp2p::protocol::scheduler::toTicks;
+
 
   class PreCommitBatcherTest : public testing::Test {
    protected:

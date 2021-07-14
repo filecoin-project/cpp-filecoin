@@ -6,12 +6,22 @@
 #include "miner/storage_fsm/impl/precommit_batcher_impl.hpp"
 
 #include <utility>
-
+#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "const.hpp"
 namespace fc::mining {
-
-  PreCommitBatcherImpl::PreCommitBatcherImpl(size_t maxTime,
-                                             std::shared_ptr<FullNodeApi> api)
-      : api_(std::move(api)){};
+  using fc::vm::actor::builtin::v0::miner::PreCommitBatch;
+  using api::kPushNoSpec;
+  using vm::actor::builtin::types::miner::kChainFinality;
+  using libp2p::protocol::scheduler::toTicks;
+  using primitives::ChainEpoch;
+  PreCommitBatcherImpl::PreCommitBatcherImpl(const Ticks &max_time,
+                                             std::shared_ptr<FullNodeApi> api,
+                                             const Address &miner_address,
+                                             const Ticks &closest_cutoff)
+      : max_delay_(max_time),
+        api_(std::move(api)),
+        miner_address_(miner_address),
+        closest_cutoff_(closest_cutoff){};
 
   PreCommitBatcherImpl::PreCommitEntry::PreCommitEntry(
       TokenAmount number, api::SectorPreCommitInfo info)
@@ -19,77 +29,78 @@ namespace fc::mining {
 
   outcome::result<std::shared_ptr<PreCommitBatcherImpl>>
   PreCommitBatcherImpl::makeBatcher(
-      size_t maxWait,
+      const Ticks &max_wait,
       std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-      Address &miner_address) {
-    struct make_unique_enabler : public PreCommitBatcherImpl {
-      make_unique_enabler(size_t MaxTime, std::shared_ptr<FullNodeApi> api)
-          : PreCommitBatcherImpl(MaxTime, std::move(api)){};
-    };
-
+      const Address &miner_address) {
     std::shared_ptr<PreCommitBatcherImpl> batcher =
-        std::make_unique<make_unique_enabler>(maxWait, std::move(api));
+        std::make_shared<PreCommitBatcherImpl>(
+            max_wait, std::move(api), miner_address, max_wait);
 
-    batcher->miner_address_ = miner_address;
-    batcher->maxDelay = maxWait;
-
-    batcher->cutoffStart = std::chrono::system_clock::now();
-    batcher->closestCutoff = maxWait;
-    batcher->handle_ = scheduler->schedule(maxWait, [=]() {
-      auto maybe_send = batcher->sendBatch();
-      batcher->handle_.reschedule(maxWait);  // TODO: maybe in gsl::finally
+    batcher->cutoff_start_ = std::chrono::system_clock::now();
+    batcher->logger_ = common::createLogger("batcher");
+    batcher->logger_->info("Bather have been started");
+    batcher->handle_ = scheduler->schedule(max_wait, [=]()->outcome::result<void> {
+      batcher->sendBatch();
+      batcher->handle_.reschedule(max_wait);  // TODO: maybe in gsl::finally
     });
     return batcher;
   }
 
-  outcome::result<void> PreCommitBatcherImpl::sendBatch() {
+    void PreCommitBatcherImpl::sendBatch() {
     std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
-    // TODO(Elestrias): [FIL-398] goodFunds = mutualDeposit + MaxFee; -  for checking payable
-    if (batchStorage.size() != 0) {
+    // TODO(Elestrias): [FIL-398] goodFunds = mutualDeposit + MaxFee; -  for
+    // checking payable
+
+    if (batch_storage_.size() != 0) {
+      logger_ ->info("Sending procedure started");
       auto head = api_->ChainHead().value();
       auto minfo = api_->StateMinerInfo(miner_address_, head->key).value();
 
       PreCommitBatch::Params params = {};
-      for (const auto &data : batchStorage) {
-        mutualDeposit += data.second.deposit;
+      for (const auto &data : batch_storage_) {
+        mutual_deposit_ += data.second.deposit;
         params.sectors.push_back(data.second.precommit_info);
       }
-      OUTCOME_TRY(encodedParams, codec::cbor::encode(params));
-
+      auto encodedParams = codec::cbor::encode(params);
+      if (encodedParams.has_error()){
+        logger_->error("Error has occurred during parameters encoding: {}", encodedParams.error().message());
+      }
+      logger_->info("Sending data to the network...");
       auto maybe_signed = api_->MpoolPushMessage(
           vm::message::UnsignedMessage(
               miner_address_,
               minfo.worker,  // TODO: handle worker
               0,
-              mutualDeposit,
+              mutual_deposit_,
               {},
               {},
               25,  // TODO (m.tagirov) Miner actor v5 PreCommitBatch
-              MethodParams{encodedParams}),
+              MethodParams{encodedParams.value()}),
           kPushNoSpec);
 
       if (maybe_signed.has_error()) {
-        return maybe_signed.error(); //TODO: maybe logs
+        logger_->error("Error has occurred during batch sending: {}", maybe_signed.error().message());  // TODO: maybe logs
       }
 
-      mutualDeposit = 0;
-      batchStorage.clear();
+      mutual_deposit_ = 0;
+      batch_storage_.clear();
     }
-    cutoffStart = std::chrono::system_clock::now();
-    return outcome::success();
+    cutoff_start_ = std::chrono::system_clock::now();
+    logger_ ->info("Sending procedure completed");
   }
 
   outcome::result<void> PreCommitBatcherImpl::forceSend() {
-    OUTCOME_TRY(sendBatch());
-    handle_.reschedule(maxDelay);
+    sendBatch();
+    handle_.reschedule(max_delay_);
     return outcome::success();
   }
 
-  outcome::result<void> PreCommitBatcherImpl::setPreCommitCutoff(ChainEpoch curEpoch,
-                                                const SectorInfo &si) {
+  outcome::result<void> PreCommitBatcherImpl::setPreCommitCutoff(
+      const ChainEpoch &curEpoch, const SectorInfo &si) {
     ChainEpoch cutoffEpoch =
-        si.ticket_epoch + static_cast<int64_t>(fc::kEpochsInDay + kChainFinality);
+        si.ticket_epoch
+        + static_cast<int64_t>(fc::kEpochsInDay + kChainFinality);
     ChainEpoch startEpoch{};
     for (auto p : si.pieces) {
       if (!p.deal_info) {
@@ -105,27 +116,27 @@ namespace fc::mining {
     } else {
       Ticks tempCutoff = toTicks(std::chrono::seconds((cutoffEpoch - curEpoch)
                                                       * kEpochDurationSeconds));
-      if ((closestCutoff
+      if ((closest_cutoff_
                - toTicks(std::chrono::duration_cast<std::chrono::seconds>(
-                   std::chrono::system_clock::now() - cutoffStart))
+                   std::chrono::system_clock::now() - cutoff_start_))
            > tempCutoff)) {
-        cutoffStart = std::chrono::system_clock::now();
+        cutoff_start_ = std::chrono::system_clock::now();
         handle_.reschedule(tempCutoff);
-        closestCutoff = tempCutoff;
+        closest_cutoff_ = tempCutoff;
       }
     }
     return outcome::success();
   }
 
   outcome::result<void> PreCommitBatcherImpl::addPreCommit(
-      SectorInfo secInf,
-      TokenAmount deposit,
-      api::SectorPreCommitInfo pcInfo) {
+      const SectorInfo &secInf,
+      const TokenAmount &deposit,
+      const api::SectorPreCommitInfo &pcInfo) {
     std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
     OUTCOME_TRY(head, api_->ChainHead());
 
     auto sn = secInf.sector_number;
-    batchStorage[sn] = PreCommitEntry(std::move(deposit), std::move(pcInfo));
+    batch_storage_[sn] = PreCommitEntry(deposit, pcInfo);
 
     setPreCommitCutoff(head->epoch(), secInf);
     return outcome::success();

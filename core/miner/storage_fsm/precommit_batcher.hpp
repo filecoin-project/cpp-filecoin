@@ -15,9 +15,9 @@ namespace fc::mining {
 
   class PreCommitBatcher {
    public:
-    virtual outcome::result<void> addPreCommit(SectorInfo secInf,
-                                               TokenAmount deposit,
-                                               SectorPreCommitInfo pcInfo) = 0;
+    virtual outcome::result<void> addPreCommit(const SectorInfo & secInf,
+                                                const TokenAmount & deposit,
+                                                const SectorPreCommitInfo & pcInfo) = 0;
     virtual outcome::result<void> forceSend() = 0;
     virtual ~PreCommitBatcher() = default;
   };
