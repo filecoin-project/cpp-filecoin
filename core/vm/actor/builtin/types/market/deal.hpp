@@ -69,8 +69,8 @@ namespace fc::vm::actor::builtin::types::market {
     Address client;
     Address provider;
     std::string label;
-    ChainEpoch start_epoch;
-    ChainEpoch end_epoch;
+    ChainEpoch start_epoch{};
+    ChainEpoch end_epoch{};
     TokenAmount storage_price_per_epoch;
     TokenAmount provider_collateral;
     TokenAmount client_collateral;

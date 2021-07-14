@@ -68,7 +68,7 @@ namespace fc::adt {
 
     outcome::result<void> visit(const Visitor &visitor) const {
       return amt.visit([&](auto key, auto &value) -> outcome::result<void> {
-        OUTCOME_TRY(value2, amt.ipld->decode<Value>(value));
+        OUTCOME_TRY(value2, cbor_blake::cbDecodeT<Value>(amt.ipld, value));
         return visitor(key, value2);
       });
     }
@@ -109,18 +109,18 @@ namespace fc::adt {
   }
 }  // namespace fc::adt
 
-namespace fc {
+namespace fc::cbor_blake {
   template <typename V>
-  struct Ipld::Load<adt::Array<V>> {
-    static void call(Ipld &ipld, adt::Array<V> &array) {
-      array.amt.ipld = ipld.shared();
+  struct CbLoadT<adt::Array<V>> {
+    static void call(CbIpldPtrIn ipld, adt::Array<V> &array) {
+      array.amt.ipld = ipld;
     }
   };
 
   template <typename V>
-  struct Ipld::Flush<adt::Array<V>> {
+  struct CbFlushT<adt::Array<V>> {
     static auto call(adt::Array<V> &array) {
       return array.amt.flush();
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

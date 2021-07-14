@@ -77,8 +77,8 @@ namespace fc::sync {
 
     message_event_ =
         events_->subscribeMessageFromPubSub([ipld{ipld_}](auto &e) {
-          std::ignore = e.msg.signature.isBls() ? ipld->setCbor(e.msg.message)
-                                                : ipld->setCbor(e.msg);
+          std::ignore = e.msg.signature.isBls() ? setCbor(ipld, e.msg.message)
+                                                : setCbor(ipld, e.msg);
         });
 
     block_event_ = events_->subscribeBlockFromPubSub([=](auto &e) {
@@ -87,7 +87,7 @@ namespace fc::sync {
         primitives::tipset::put(ipld, put_block_header_, e.block.header);
         std::shared_lock ts_lock{*ts_branches_mutex_};
         primitives::block::MsgMeta meta;
-        ipld->load(meta);
+        cbor_blake::cbLoadT(ipld, meta);
         for (auto &cid : e.block.bls_messages) {
           OUTCOME_TRY(ipld->get(cid));
           OUTCOME_TRY(meta.bls_messages.append(cid));
@@ -96,7 +96,7 @@ namespace fc::sync {
           OUTCOME_TRY(ipld->get(cid));
           OUTCOME_TRY(meta.secp_messages.append(cid));
         }
-        OUTCOME_TRY(ipld->setCbor(meta));
+        OUTCOME_TRY(setCbor(ipld, meta));
         return outcome::success();
       }();
     });

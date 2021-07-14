@@ -20,7 +20,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
         : v2::multisig::MultisigUtils::MultisigUtils(r) {}
 
     outcome::result<ApproveTransactionResult> executeTransaction(
-        MultisigActorStatePtr state,
+        MultisigActorStatePtr &state,
         const TransactionId &tx_id,
         const Transaction &transaction) const override;
   };

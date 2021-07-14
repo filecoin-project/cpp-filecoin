@@ -5,12 +5,11 @@
 
 #pragma once
 
-#include "codec/cbor/streams_annotation.hpp"
 #include "vm/actor/builtin/states/cron_actor_state.hpp"
 
+#include "codec/cbor/streams_annotation.hpp"
+
 namespace fc::vm::actor::builtin::v0::cron {
-  struct CronActorState : states::CronActorState {
-    outcome::result<Buffer> toCbor() const override;
-  };
+  struct CronActorState : states::CronActorState {};
   CBOR_TUPLE(CronActorState, entries)
 }  // namespace fc::vm::actor::builtin::v0::cron

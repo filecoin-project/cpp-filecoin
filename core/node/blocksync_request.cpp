@@ -63,9 +63,9 @@ namespace fc::sync::blocksync {
     /// \param require_meta If set when all messages are required too
     /// \return Non-empty object if block found
     boost::optional<BlockHeader> findBlockInLocalStore(const CbCid &cid,
-                                                       const Ipld &ipld,
+                                                       const IpldPtr &ipld,
                                                        bool require_meta) {
-      auto header = ipld.getCbor<BlockHeader>(CID{cid});
+      auto header = getCbor<BlockHeader>(ipld, CID{cid});
       if (!header) {
         return boost::none;
       }
@@ -74,7 +74,7 @@ namespace fc::sync::blocksync {
         return header.value();
       }
 
-      auto meta = ipld.getCbor<MsgMeta>(header.value().messages);
+      auto meta = getCbor<MsgMeta>(ipld, header.value().messages);
       if (!meta) {
         return boost::none;
       }
@@ -84,7 +84,7 @@ namespace fc::sync::blocksync {
       auto res = meta.value().bls_messages.visit(
           [&](auto, auto &cid) -> outcome::result<void> {
             if (all_messages_available) {
-              OUTCOME_TRY(contains, ipld.contains(cid));
+              OUTCOME_TRY(contains, ipld->contains(cid));
               if (!contains) {
                 all_messages_available = false;
               }
@@ -99,7 +99,7 @@ namespace fc::sync::blocksync {
       res = meta.value().secp_messages.visit(
           [&](auto, auto &cid) -> outcome::result<void> {
             if (all_messages_available) {
-              OUTCOME_TRY(contains, ipld.contains(cid));
+              OUTCOME_TRY(contains, ipld->contains(cid));
               if (!contains) {
                 all_messages_available = false;
               }
@@ -124,7 +124,7 @@ namespace fc::sync::blocksync {
     std::vector<CbCid> tryReduceRequest(
         std::vector<CbCid> blocks,
         std::vector<BlockHeader> &blocks_available,
-        storage::ipfs::IpfsDatastore &ipld,
+        const IpldPtr &ipld,
         bool require_meta) {
       std::vector<CbCid> reduced;
       reduced.reserve(blocks.size());
@@ -174,13 +174,13 @@ namespace fc::sync::blocksync {
 
           secp_cids.reserve(_msgs->secp_msgs.size());
           for (const auto &msg : _msgs->secp_msgs) {
-            OUTCOME_EXCEPT(cid, ipld->setCbor(msg));
+            OUTCOME_EXCEPT(cid, setCbor(ipld, msg));
             secp_cids.push_back(std::move(cid));
           }
 
           bls_cids.reserve(_msgs->bls_msgs.size());
           for (const auto &msg : _msgs->bls_msgs) {
-            OUTCOME_EXCEPT(cid, ipld->setCbor(msg));
+            OUTCOME_EXCEPT(cid, setCbor(ipld, msg));
             bls_cids.push_back(std::move(cid));
           }
         }
@@ -195,7 +195,7 @@ namespace fc::sync::blocksync {
             primitives::tipset::put(ipld, put_block_header, header)};
         if (_msgs) {
           MsgMeta meta;
-          ipld->load(meta);
+          cbor_blake::cbLoadT(ipld, meta);
           for (auto idx : _msgs->secp_msg_includes[i]) {
             if (idx >= secp_cids.size()) {
               return BlocksyncRequest::Error::kInconsistentResponse;
@@ -208,7 +208,7 @@ namespace fc::sync::blocksync {
             }
             OUTCOME_TRY(meta.bls_messages.append(bls_cids[idx]));
           }
-          OUTCOME_TRY(meta_cid, ipld->setCbor(meta));
+          OUTCOME_TRY(meta_cid, setCbor(ipld, meta));
           if (meta_cid != header.messages) {
             return BlocksyncRequest::Error::kStoreCidsMismatch;
           }
@@ -250,7 +250,7 @@ namespace fc::sync::blocksync {
         std::vector<CbCid> blocks_reduced =
             tryReduceRequest(result_->blocks_requested,
                              result_->blocks_available,
-                             *ipld_,
+                             ipld_,
                              result_->messages_stored);
 
         if (blocks_reduced.empty()) {

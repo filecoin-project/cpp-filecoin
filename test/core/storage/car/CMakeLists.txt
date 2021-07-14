@@ -30,12 +30,3 @@ target_link_libraries(compacter_test
     compacter
     in_memory_storage
     )
-addtest(genesis_test
-    genesis_test.cpp
-    )
-target_link_libraries(genesis_test
-    block
-    car
-    ipfs_datastore_in_memory
-    state_tree
-    )

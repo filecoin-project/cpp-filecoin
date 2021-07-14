@@ -23,9 +23,4 @@ namespace fc::storage::ipfs {
       const CID &key) const {
     return api_->ChainReadObj(key);
   }
-
-  std::shared_ptr<IpfsDatastore> ApiIpfsDatastore::shared() {
-    return shared_from_this();
-  }
-
 }  // namespace fc::storage::ipfs

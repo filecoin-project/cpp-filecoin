@@ -21,7 +21,7 @@ struct MultimapTest : public ::testing::Test {
   std::shared_ptr<fc::storage::ipfs::IpfsDatastore> ipld{
       std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
   Map mmap{ipld};
-  std::string key = "mykey";
+  fc::Bytes key{4, 5, 6};
 
   void appendValues() {
     for (auto value : values) {
@@ -80,7 +80,7 @@ TEST_F(MultimapTest, AppendAndVisit) {
  */
 TEST_F(MultimapTest, ReloadFromCid) {
   appendValues();
-  EXPECT_OUTCOME_TRUE_1(fc::Ipld::flush(mmap));
+  EXPECT_OUTCOME_TRUE_1(mmap.hamt.flush());
   mmap = {mmap.hamt.cid(), ipld};
   expectVisitValues();
 }

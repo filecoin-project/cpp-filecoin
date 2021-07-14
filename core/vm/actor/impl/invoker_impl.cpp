@@ -6,7 +6,6 @@
 #include "vm/actor/impl/invoker_impl.hpp"
 
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
@@ -19,7 +18,6 @@
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
 
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v2/init/init_actor.hpp"
 #include "vm/actor/builtin/v2/market/market_actor.hpp"
@@ -31,6 +29,7 @@
 #include "vm/actor/builtin/v2/system/system_actor.hpp"
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor.hpp"
 #include "vm/actor/cgo/actors.hpp"
+#include "vm/actor/codes.hpp"
 
 namespace fc::vm::actor {
   using runtime::InvocationOutput;

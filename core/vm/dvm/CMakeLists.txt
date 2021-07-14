@@ -9,9 +9,8 @@ add_library(dvm
 target_link_libraries(dvm
     buffer
     cbor
+    exit_code
     logger
-    message
-    state_tree
     )
 
 add_executable(dvm_main

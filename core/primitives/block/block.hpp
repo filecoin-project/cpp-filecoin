@@ -131,13 +131,13 @@ namespace fc::primitives::block {
              parent_base_fee)
 }  // namespace fc::primitives::block
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<primitives::block::MsgMeta> {
+  struct CbVisitT<primitives::block::MsgMeta> {
     template <typename Visitor>
     static void call(primitives::block::MsgMeta &meta, const Visitor &visit) {
       visit(meta.bls_messages);
       visit(meta.secp_messages);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

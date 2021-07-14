@@ -11,6 +11,7 @@
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "vm/message/message.hpp"
+#include "vm/state/impl/state_tree_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
   using fc::primitives::tipset::TipsetError;
@@ -55,23 +56,41 @@ namespace fc::primitives::tipset {
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
+  MessageVisitor::~MessageVisitor() {
+    if (state_tree) {
+      delete state_tree;
+      state_tree = nullptr;
+    }
+  }
+
   outcome::result<void> MessageVisitor::visit(const BlockHeader &block,
                                               const Visitor &visitor) {
+    const auto lookupId{(ChainEpoch)block.height >= kUpgradeHyperdriveHeight};
     auto onMessage = [&](auto bls, auto &cid) -> outcome::result<void> {
       if (visited.insert(cid).second) {
         SignedMessage smsg;
         auto &msg{smsg.message};
         if (load) {
           if (bls) {
-            OUTCOME_TRYA(msg, ipld->getCbor<UnsignedMessage>(cid));
+            OUTCOME_TRYA(msg, getCbor<UnsignedMessage>(ipld, cid));
           } else {
-            OUTCOME_TRYA(smsg, ipld->getCbor<SignedMessage>(cid));
+            OUTCOME_TRYA(smsg, getCbor<SignedMessage>(ipld, cid));
           }
         }
         if (nonce) {
-          auto it{nonces.find(msg.from)};
+          Address id;
+          auto from{&msg.from};
+          if (lookupId && !from->isId()) {
+            if (!state_tree) {
+              vm::state::StateTreeImpl impl{ipld, block.parent_state_root};
+              state_tree = new vm::state::StateTreeImpl{std::move(impl)};
+            }
+            OUTCOME_TRYA(id, state_tree->lookupId(*from));
+            from = &id;
+          }
+          auto it{nonces.find(*from)};
           if (it == nonces.end()) {
-            it = nonces.emplace(msg.from, msg.nonce).first;
+            it = nonces.emplace(*from, msg.nonce).first;
           }
           if (msg.nonce != it->second) {
             return outcome::success();
@@ -87,7 +106,7 @@ namespace fc::primitives::tipset {
       }
       return outcome::success();
     };
-    OUTCOME_TRY(meta, ipld->getCbor<block::MsgMeta>(block.messages));
+    OUTCOME_TRY(meta, getCbor<block::MsgMeta>(ipld, block.messages));
     OUTCOME_TRY(meta.bls_messages.visit(
         [&](auto, auto &cid) { return onMessage(true, cid); }));
     OUTCOME_TRY(meta.secp_messages.visit(
@@ -333,9 +352,5 @@ namespace fc::primitives::tipset {
 
   bool operator==(const Tipset &lhs, const Tipset &rhs) {
     return lhs.blks == rhs.blks;
-  }
-
-  bool operator!=(const Tipset &l, const Tipset &r) {
-    return !(l == r);
   }
 }  // namespace fc::primitives::tipset

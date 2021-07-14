@@ -84,7 +84,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<void> MarketUtils::deleteDealProposalAndState(
-      MarketActorStatePtr state,
+      MarketActorStatePtr &state,
       DealId deal_id,
       bool remove_proposal,
       bool remove_state) const {
@@ -169,7 +169,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
   outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
   MarketUtils::validateDealsForActivation(
-      MarketActorStatePtr state,
+      MarketActorStatePtr &state,
       const std::vector<DealId> &deals,
       const ChainEpoch &sector_expiry) const {
     const auto miner = runtime.getImmediateCaller();

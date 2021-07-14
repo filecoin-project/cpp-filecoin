@@ -43,11 +43,8 @@ namespace fc::vm::actor::builtin::types::miner {
              && expected_day_reward == other.expected_day_reward
              && expected_storage_pledge == other.expected_storage_pledge;
     }
-
-    bool operator!=(const SectorOnChainInfo &other) const {
-      return !(*this == other);
-    }
   };
+  FC_OPERATOR_NOT_EQUAL(SectorOnChainInfo)
   CBOR_TUPLE(SectorOnChainInfo,
              sector,
              seal_proof,

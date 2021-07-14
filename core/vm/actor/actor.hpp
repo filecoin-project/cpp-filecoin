@@ -5,34 +5,22 @@
 
 #pragma once
 
-#include <boost/operators.hpp>
-
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/version.hpp"
 #include "vm/version/version.hpp"
 
 namespace fc::vm::actor {
-
   using fc::common::Buffer;
   using primitives::BigInt;
   using primitives::Nonce;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using version::NetworkVersion;
-
-  /**
-   * Actor version
-   */
-  enum class ActorVersion {
-    kVersion0 = 0,
-    kVersion2 = 2,
-    kVersion3 = 3,
-    kVersion4 = 4,
-  };
 
   /**
    * Consider MethodNum numbers to be similar in concerns as for offsets in
@@ -70,16 +58,13 @@ namespace fc::vm::actor {
            && lhs.nonce == rhs.nonce && lhs.balance == rhs.balance;
   }
 
-  /** Make code cid from raw string */
-  CID makeRawIdentityCid(const std::string &str);
-
   /** Reserved method number for send operation */
   constexpr MethodNumber kSendMethodNumber{0};
 
   /** Reserved method number for constructor */
   constexpr MethodNumber kConstructorMethodNumber{1};
 
-  extern const CID kEmptyObjectCid;
+  inline static const CID kEmptyObjectCid{CbCid::hash(BytesN<1>{0x80})};
 
   inline static const auto kSystemActorAddress = Address::makeFromId(0);
   inline static const auto kInitAddress = Address::makeFromId(1);

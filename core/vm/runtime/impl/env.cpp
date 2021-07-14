@@ -7,7 +7,7 @@
 
 #include "cbor_blake/cid.hpp"
 #include "codec/cbor/light_reader/cid.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/states/account_actor_state.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
@@ -24,7 +24,7 @@ namespace fc::vm::runtime {
   using actor::kRewardAddress;
   using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
-  using actor::builtin::states::StateProvider;
+  using actor::builtin::states::AccountActorStatePtr;
   using toolchain::Toolchain;
   using version::getNetworkVersion;
 
@@ -37,8 +37,7 @@ namespace fc::vm::runtime {
     }
     if (auto _actor{state_tree.get(address)}) {
       auto &actor{_actor.value()};
-      StateProvider provider(ipld);
-      OUTCOME_TRY(state, provider.getAccountActorState(actor));
+      OUTCOME_TRY(state, getCbor<AccountActorStatePtr>(ipld, actor.head));
       if (allow_actor || state->address.isKeyType()) {
         return state->address;
       }
@@ -94,10 +93,6 @@ namespace fc::vm::runtime {
       return ipld->get(cid);
     }
     return storage::ipfs::IpfsDatastoreError::kNotFound;
-  }
-
-  IpldPtr IpldBuffered::shared() {
-    return shared_from_this();
   }
 
   Env::Env(const EnvironmentContext &env_context,
@@ -191,7 +186,8 @@ namespace fc::vm::runtime {
       used = 0;
     }
     auto no_fee{false};
-    if (static_cast<ChainEpoch>(epoch) > kUpgradeClausHeight
+    if (getNetworkVersion(epoch) <= NetworkVersion::kVersion12
+        && static_cast<ChainEpoch>(epoch) > kUpgradeClausHeight
         && exit_code == VMExitCode::kOk
         && message.method
                == vm::actor::builtin::v0::miner::SubmitWindowedPoSt::Number) {
@@ -329,6 +325,7 @@ namespace fc::vm::runtime {
     } else {
       to_actor = maybe_to_actor.value();
     }
+    dvm::onSendTo(to_actor.code);
     OUTCOME_TRY(catchAbort(chargeGas(
         env->pricelist.onMethodInvocation(message.value, message.method))));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));

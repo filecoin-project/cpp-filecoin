@@ -4,7 +4,7 @@
  */
 
 #include "vm/toolchain/impl/address_matcher_v3.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
+#include "vm/actor/codes.hpp"
 
 namespace fc::vm::toolchain {
   using namespace actor::builtin;

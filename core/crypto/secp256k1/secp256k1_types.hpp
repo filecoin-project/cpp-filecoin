@@ -8,6 +8,8 @@
 #include <array>
 #include <vector>
 
+#include "common/cmp.hpp"
+
 namespace fc::crypto::secp256k1 {
 
   static const size_t kPrivateKeyLength = 32;
@@ -52,18 +54,9 @@ namespace fc::crypto::secp256k1 {
      * @param other - second keypair to compare
      * @return true, if keypairs are equal
      */
-    bool operator==(const KeyPair &other) {
+    bool operator==(const KeyPair &other) const {
       return private_key == other.private_key && public_key == other.public_key;
     }
-
-    /**
-     * @brief Comparing keypairs
-     * @param other - second keypair to compare
-     * @return true, if keypairs aren't equal
-     */
-    bool operator!=(const KeyPair &other) {
-      return !operator==(other);
-    }
   };
-
+  FC_OPERATOR_NOT_EQUAL(KeyPair)
 }  // namespace fc::crypto::secp256k1

@@ -5,16 +5,17 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/state.hpp"
-
 #include "adt/address_key.hpp"
 #include "adt/map.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using primitives::address::Address;
 
   /// Init actor state
-  struct InitActorState : State {
+  struct InitActorState {
+    virtual ~InitActorState() = default;
+
     adt::Map<uint64_t, adt::AddressKeyer> address_map_0;
     adt::MapV3<uint64_t, adt::AddressKeyer> address_map_3;
     uint64_t next_id{};
@@ -22,20 +23,11 @@ namespace fc::vm::actor::builtin::states {
 
     /// Allocate new id address
     virtual outcome::result<Address> addActor(const Address &address) = 0;
-    inline outcome::result<Address> _addActor(const Address &address, bool v3) {
-      const auto id = next_id;
-      if (v3) {
-        OUTCOME_TRY(address_map_3.set(address, id));
-      } else {
-        OUTCOME_TRY(address_map_0.set(address, id));
-      }
-      ++next_id;
-      return Address::makeFromId(id);
-    }
 
     virtual outcome::result<boost::optional<uint64_t>> tryGet(
         const Address &address) = 0;
   };
 
-  using InitActorStatePtr = std::shared_ptr<InitActorState>;
+  using InitActorStatePtr = types::Universal<InitActorState>;
+
 }  // namespace fc::vm::actor::builtin::states

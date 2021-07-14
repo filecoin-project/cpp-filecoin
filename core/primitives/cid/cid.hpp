@@ -11,8 +11,10 @@
 #include "cbor_blake/cid.hpp"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "common/cmp.hpp"
 #include "common/outcome.hpp"
 #include "primitives/cid/cid_prefix.hpp"
+#include "vm/actor/code.hpp"
 
 namespace fc {
   using common::Hash256;
@@ -44,8 +46,7 @@ namespace fc {
         libp2p::multi::Multihash content_address);
 
     explicit CID(const CbCid &cid);
-
-    ~CID() = default;
+    CID(const ActorCodeCid &cid);
 
     CID &operator=(const CID &) = default;
 
@@ -86,6 +87,12 @@ namespace fc {
   bool isCbor(const CID &cid);
   boost::optional<CbCid> asBlake(const CID &cid);
   boost::optional<BytesIn> asIdentity(const CID &cid);
+  boost::optional<ActorCodeCid> asActorCode(const CID &cid);
+
+  inline bool operator==(const CID &l, const ActorCodeCid &r) {
+    return asActorCode(l) == r;
+  }
+  FC_OPERATOR_NOT_EQUAL_2(CID, ActorCodeCid)
 }  // namespace fc
 
 namespace std {

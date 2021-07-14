@@ -7,12 +7,11 @@
 #include "common/span.hpp"
 
 namespace fc::adt {
-  std::string CidKeyer::encode(const Key &key) {
-    OUTCOME_EXCEPT(bytes, key.toBytes());
-    return {bytes.begin(), bytes.end()};
+  Bytes CidKeyer::encode(const Key &key) {
+    return key.toBytes().value();
   }
 
-  outcome::result<CidKeyer::Key> CidKeyer::decode(const std::string &key) {
-    return CID::fromBytes(common::span::cbytes(key));
+  outcome::result<CidKeyer::Key> CidKeyer::decode(BytesIn key) {
+    return CID::fromBytes(key);
   }
 }  // namespace fc::adt

@@ -5,19 +5,17 @@
 
 #pragma once
 
-#include "codec/cbor/streams_annotation.hpp"
-#include "storage/ipfs/datastore.hpp"
 #include "vm/actor/builtin/states/miner_actor_state.hpp"
 
+#include "codec/cbor/streams_annotation.hpp"
+#include "storage/ipfs/datastore.hpp"
+
 namespace fc::vm::actor::builtin::v0::miner {
+  using types::Universal;
 
   struct MinerActorState : states::MinerActorState {
-    outcome::result<Buffer> toCbor() const override;
-
-    outcome::result<types::miner::MinerInfo> getInfo(
-        IpldPtr ipld) const override;
-    outcome::result<void> setInfo(IpldPtr ipld,
-                                  const types::miner::MinerInfo &info) override;
+    outcome::result<Universal<types::miner::MinerInfo>> getInfo()
+        const override;
 
     outcome::result<types::miner::Deadlines> makeEmptyDeadlines(
         IpldPtr ipld, const CID &empty_amt_cid) override;
@@ -41,12 +39,13 @@ namespace fc::vm::actor::builtin::v0::miner {
 
 }  // namespace fc::vm::actor::builtin::v0::miner
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::v0::miner::MinerActorState> {
+  struct CbVisitT<vm::actor::builtin::v0::miner::MinerActorState> {
     template <typename Visitor>
     static void call(vm::actor::builtin::v0::miner::MinerActorState &state,
                      const Visitor &visit) {
+      visit(state.miner_info);
       visit(state.vesting_funds);
       visit(state.precommitted_sectors);
       visit(state.precommitted_setctors_expiry);
@@ -55,4 +54,4 @@ namespace fc {
       visit(state.deadlines);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

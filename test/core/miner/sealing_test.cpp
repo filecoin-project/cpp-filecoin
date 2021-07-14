@@ -20,8 +20,8 @@
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/mocks/sector_storage/manager_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
+#include "vm/actor/codes.hpp"
 
 namespace fc::mining {
 
@@ -730,7 +730,7 @@ namespace fc::mining {
         return codec::cbor::encode(actor_state);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, ipld->getCbor<storage::hamt::Node>(cid_root));
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state.allocated_sectors) {
@@ -788,7 +788,7 @@ namespace fc::mining {
 
     api_->StateNetworkVersion = [](const TipsetKey &tipset_key)
         -> outcome::result<api::NetworkVersion> {
-      return api::NetworkVersion::kVersion7;
+      return api::NetworkVersion::kVersion3;
     };
 
     EXPECT_CALL(*policy_, expiration(_)).WillOnce(testing::Return(0));
