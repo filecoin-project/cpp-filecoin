@@ -6,14 +6,14 @@
 #include "miner/storage_fsm/impl/precommit_batcher_impl.hpp"
 
 #include <utility>
-#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "const.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 namespace fc::mining {
-  using fc::vm::actor::builtin::v0::miner::PreCommitBatch;
   using api::kPushNoSpec;
-  using vm::actor::builtin::types::miner::kChainFinality;
+  using fc::vm::actor::builtin::v0::miner::PreCommitBatch;
   using libp2p::protocol::scheduler::toTicks;
   using primitives::ChainEpoch;
+  using vm::actor::builtin::types::miner::kChainFinality;
   PreCommitBatcherImpl::PreCommitBatcherImpl(const Ticks &max_time,
                                              std::shared_ptr<FullNodeApi> api,
                                              const Address &miner_address,
@@ -40,20 +40,20 @@ namespace fc::mining {
     batcher->cutoff_start_ = std::chrono::system_clock::now();
     batcher->logger_ = common::createLogger("batcher");
     batcher->logger_->info("Bather have been started");
-    batcher->handle_ = scheduler->schedule(max_wait, [=]()->outcome::result<void> {
+    batcher->handle_ = scheduler->schedule(max_wait, [=]() {
       batcher->sendBatch();
       batcher->handle_.reschedule(max_wait);  // TODO: maybe in gsl::finally
     });
     return batcher;
   }
 
-    void PreCommitBatcherImpl::sendBatch() {
+  void PreCommitBatcherImpl::sendBatch() {
     std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
     // TODO(Elestrias): [FIL-398] goodFunds = mutualDeposit + MaxFee; -  for
     // checking payable
 
     if (batch_storage_.size() != 0) {
-      logger_ ->info("Sending procedure started");
+      logger_->info("Sending procedure started");
       auto head = api_->ChainHead().value();
       auto minfo = api_->StateMinerInfo(miner_address_, head->key).value();
 
@@ -63,8 +63,9 @@ namespace fc::mining {
         params.sectors.push_back(data.second.precommit_info);
       }
       auto encodedParams = codec::cbor::encode(params);
-      if (encodedParams.has_error()){
-        logger_->error("Error has occurred during parameters encoding: {}", encodedParams.error().message());
+      if (encodedParams.has_error()) {
+        logger_->error("Error has occurred during parameters encoding: {}",
+                       encodedParams.error().message());
       }
       logger_->info("Sending data to the network...");
       auto maybe_signed = api_->MpoolPushMessage(
@@ -80,14 +81,15 @@ namespace fc::mining {
           kPushNoSpec);
 
       if (maybe_signed.has_error()) {
-        logger_->error("Error has occurred during batch sending: {}", maybe_signed.error().message());  // TODO: maybe logs
+        logger_->error("Error has occurred during batch sending: {}",
+                       maybe_signed.error().message());  // TODO: maybe logs
       }
 
       mutual_deposit_ = 0;
       batch_storage_.clear();
     }
     cutoff_start_ = std::chrono::system_clock::now();
-    logger_ ->info("Sending procedure completed");
+    logger_->info("Sending procedure completed");
   }
 
   outcome::result<void> PreCommitBatcherImpl::forceSend() {

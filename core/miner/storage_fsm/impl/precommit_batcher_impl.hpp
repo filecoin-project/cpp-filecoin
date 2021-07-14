@@ -19,7 +19,6 @@
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
 
-
 namespace fc::mining {
   using api::FullNodeApi;
   using api::SectorNumber;
@@ -31,7 +30,6 @@ namespace fc::mining {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using vm::actor::MethodParams;
-
 
   class PreCommitBatcherImpl : public PreCommitBatcher {
    public:

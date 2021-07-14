@@ -20,11 +20,10 @@ namespace fc::mining {
   using fc::mining::types::PieceInfo;
   using libp2p::protocol::SchedulerMock;
   using libp2p::protocol::scheduler::Ticks;
+  using libp2p::protocol::scheduler::toTicks;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
   using testing::Mock;
-  using libp2p::protocol::scheduler::toTicks;
-
 
   class PreCommitBatcherTest : public testing::Test {
    protected:
@@ -41,7 +40,7 @@ namespace fc::mining {
       api::BlockHeader block;
       block.height = 2;
 
-       tipset_ = std::make_shared<Tipset>(
+      tipset_ = std::make_shared<Tipset>(
           TipsetKey(), std::vector<api::BlockHeader>({block}));
 
       api_->ChainHead = [=]() -> outcome::result<TipsetCPtr> {
@@ -59,8 +58,9 @@ namespace fc::mining {
         return ERROR_TEXT("Error");
       };
 
-      api_->MpoolPushMessage = [&](const UnsignedMessage &msg,
-                                   const boost::optional<api::MessageSendSpec> &)
+      api_->MpoolPushMessage =
+          [&](const UnsignedMessage &msg,
+              const boost::optional<api::MessageSendSpec> &)
           -> outcome::result<SignedMessage> {
         if (msg.method == 25) {
           isCall = true;
@@ -87,7 +87,6 @@ namespace fc::mining {
     Ticks current_time_;
     TokenAmount mutualDeposit;
     bool isCall;
-
   };
 
   TEST_F(PreCommitBatcherTest, BatcherWrite) {
@@ -98,9 +97,10 @@ namespace fc::mining {
   };
 
   /**
-   * CallbackSend test is checking that after the scheduled time for a Precommit
-   * collecting, all the stored batcher's data will be published in a
-   * messagePool
+   * CallbackSend have 4 unic precommits sent in pairs
+   * a PrecommitBatcher should send the first two and after the rescheduling
+   * next pair the result should be 2 messages in message pool with pair of
+   * precommits in each
    */
   TEST_F(PreCommitBatcherTest, CallbackSend) {
     mutualDeposit = 0;
@@ -138,7 +138,7 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020008"_cid;
     si.sector_number = 6;
 
-    EXPECT_OUTCOME_TRUE_1( batcher_->addPreCommit(si, deposit, precInf));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf));
     mutualDeposit += 10;
     sch_->next_clock();
     ASSERT_TRUE(isCall);
@@ -146,10 +146,11 @@ namespace fc::mining {
   }
 
   /**
-   * ShortDistanceSending checking cutoff functionality
-   * that makes PreCommitBatcher rescheduling to be sure,
-   * that PreCommits with a short scheduled deals will be published
-   * in message pool before the deadline.
+   * ShortDistanceSending have 3 Precommits
+   * Test should send first two after 30 sec instead of 60 and one more
+   *immediately after the addition The result should be 2 new messages in
+   *message pool 1st: 2 precommits, have been sent after 30  sec, and 2nd: one
+   *precommmit, have been sent after the first one immediately
    **/
   TEST_F(PreCommitBatcherTest, ShortDistanceSending) {
     mutualDeposit = 0;
@@ -188,8 +189,6 @@ namespace fc::mining {
     sch_->next_clock();
     EXPECT_TRUE(isCall);
 
-
-
     isCall = false;
     si.pieces = {};
     mutualDeposit = 0;
@@ -203,10 +202,9 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020013"_cid;
     si.sector_number = 4;
 
-    EXPECT_OUTCOME_TRUE_1( batcher_->addPreCommit(si, deposit, precInf));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf));
     mutualDeposit += 10;
     ASSERT_TRUE(isCall);
   }
-
 
 }  // namespace fc::mining
