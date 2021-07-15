@@ -93,7 +93,7 @@ namespace fc::mining {
     SectorInfo si = SectorInfo();
     api::SectorPreCommitInfo precInf;
     TokenAmount deposit = 10;
-    ASSERT_FALSE(batcher_->addPreCommit(si, deposit, precInf).has_error());
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
   };
 
   /**
@@ -113,13 +113,13 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020005"_cid;
     si.sector_number = 2;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
     mutualDeposit += 10;
 
     precInf.sealed_cid = "010001020006"_cid;
     si.sector_number = 3;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
     mutualDeposit += 10;
 
     EXPECT_CALL(*sch_, now())
@@ -138,7 +138,7 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020008"_cid;
     si.sector_number = 6;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
     mutualDeposit += 10;
     sch_->next_clock();
     ASSERT_TRUE(isCall);
@@ -183,7 +183,7 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020005"_cid;
     si.sector_number = 2;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
     mutualDeposit += 10;
 
     sch_->next_clock();
@@ -202,7 +202,7 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020013"_cid;
     si.sector_number = 4;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
     mutualDeposit += 10;
     ASSERT_TRUE(isCall);
   }

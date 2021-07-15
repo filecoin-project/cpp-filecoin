@@ -12,13 +12,16 @@ namespace fc::mining {
   using api::SectorPreCommitInfo;
   using fc::mining::types::SectorInfo;
   using primitives::TokenAmount;
+  using PrecommitCallback = std::function<void(outcome::result<CID>)>;
 
   class PreCommitBatcher {
    public:
-    virtual outcome::result<void> addPreCommit(const SectorInfo & secInf,
-                                                const TokenAmount & deposit,
-                                                const SectorPreCommitInfo & pcInfo) = 0;
-    virtual outcome::result<void> forceSend() = 0;
+    virtual outcome::result<void> addPreCommit(
+        const SectorInfo &secInf,
+        const TokenAmount &deposit,
+        const SectorPreCommitInfo &pcPrecommitResultInfo,
+        const PrecommitCallback &callback) = 0;
+    virtual void forceSend() = 0;
     virtual ~PreCommitBatcher() = default;
   };
 
