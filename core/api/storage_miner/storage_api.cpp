@@ -111,14 +111,14 @@ namespace fc::api {
     };
 
     api->ReturnAddPiece = [=](const CallId &call_id,
-                              const boost::optional<PieceInfo> &piece_info,
+                              const PieceInfo &piece_info,
                               const boost::optional<CallError> &call_error) {
       return sector_scheduler->returnAddPiece(call_id, piece_info, call_error);
     };
 
     api->ReturnSealPreCommit1 =
         [=](const CallId &call_id,
-            const boost::optional<PreCommit1Output> &precommit1_output,
+            const PreCommit1Output &precommit1_output,
             const boost::optional<CallError> &call_error) {
           return sector_scheduler->returnSealPreCommit1(
               call_id, precommit1_output, call_error);
@@ -126,22 +126,21 @@ namespace fc::api {
 
     api->ReturnSealPreCommit2 =
         [=](const CallId &call_id,
-            const boost::optional<SectorCids> &cids,
+            const SectorCids &cids,
             const boost::optional<CallError> &call_error) {
           return sector_scheduler->returnSealPreCommit2(
               call_id, cids, call_error);
         };
 
-    api->ReturnSealCommit1 =
-        [=](const CallId &call_id,
-            const boost::optional<Commit1Output> &commit1_out,
-            const boost::optional<CallError> &call_error) {
-          return sector_scheduler->returnSealCommit1(
-              call_id, commit1_out, call_error);
-        };
+    api->ReturnSealCommit1 = [=](const CallId &call_id,
+                                 const Commit1Output &commit1_out,
+                                 const boost::optional<CallError> &call_error) {
+      return sector_scheduler->returnSealCommit1(
+          call_id, commit1_out, call_error);
+    };
 
     api->ReturnSealCommit2 = [=](const CallId &call_id,
-                                 const boost::optional<Proof> &proof,
+                                 const Proof &proof,
                                  const boost::optional<CallError> &call_error) {
       return sector_scheduler->returnSealCommit2(call_id, proof, call_error);
     };
@@ -163,7 +162,7 @@ namespace fc::api {
     };
 
     api->ReturnReadPiece = [=](const CallId &call_id,
-                               const boost::optional<bool> &status,
+                               bool status,
                                const boost::optional<CallError> &call_error) {
       return sector_scheduler->returnReadPiece(call_id, status, call_error);
     };

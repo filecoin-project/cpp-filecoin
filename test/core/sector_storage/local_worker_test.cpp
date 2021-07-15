@@ -51,6 +51,7 @@ namespace fc::sector_storage {
   using stores::SectorPaths;
   using testing::_;
   using testing::Eq;
+  using testing::Ne;
 
   class LocalWorkerTest : public test::BaseFS_Test {
    public:
@@ -232,7 +233,7 @@ namespace fc::sector_storage {
 
     CallError error;
     EXPECT_CALL(*return_interface_,
-                returnSealPreCommit1(call_id, Eq(boost::none), _))
+                returnSealPreCommit1(call_id, _, Ne(boost::none)))
         .WillOnce(
             testing::Invoke([&](CallId call_id,
                                 boost::optional<PreCommit1Output> maybe_value,
@@ -1531,7 +1532,7 @@ namespace fc::sector_storage {
             sector_, pieces, UnpaddedPieceSize(127), PieceData("/dev/null")));
 
     CallError error;
-    EXPECT_CALL(*return_interface_, returnAddPiece(call_id, Eq(boost::none), _))
+    EXPECT_CALL(*return_interface_, returnAddPiece(call_id, _, Ne(boost::none)))
         .WillOnce(
             testing::Invoke([&](const CallId &call_id,
                                 boost::optional<PieceInfo> maybe_piece_info,

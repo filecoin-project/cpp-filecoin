@@ -28,7 +28,7 @@ namespace fc::miner {
         SectorNumber sector_id) const = 0;
 
     virtual outcome::result<PieceAttributes> addPieceToAnySector(
-        UnpaddedPieceSize size,  PieceData piece_data, DealInfo deal) = 0;
+        UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) = 0;
 
     virtual Address getAddress() const = 0;
 

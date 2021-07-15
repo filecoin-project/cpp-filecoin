@@ -165,46 +165,50 @@ namespace fc::sector_storage {
     virtual ~WorkerReturn() = default;
 
     virtual outcome::result<void> returnAddPiece(
-        CallId call_id,
-        boost::optional<PieceInfo> maybe_piece_info,
-        boost::optional<CallError> maybe_error) = 0;
+        const CallId &call_id,
+        const PieceInfo &maybe_piece_info,
+        const boost::optional<CallError> &maybe_error) = 0;
 
     virtual outcome::result<void> returnSealPreCommit1(
-        CallId call_id,
-        boost::optional<PreCommit1Output> maybe_precommit1_out,
-        boost::optional<CallError> maybe_error) = 0;
+        const CallId &call_id,
+        const PreCommit1Output &maybe_precommit1_out,
+        const boost::optional<CallError> &maybe_error) = 0;
 
     virtual outcome::result<void> returnSealPreCommit2(
-        CallId call_id,
-        boost::optional<SectorCids> maybe_sector_cids,
-        boost::optional<CallError> maybe_error) = 0;
+        const CallId &call_id,
+        const SectorCids &maybe_sector_cids,
+        const boost::optional<CallError> &maybe_error) = 0;
 
     virtual outcome::result<void> returnSealCommit1(
-        CallId call_id,
-        boost::optional<Commit1Output> maybe_commit1_out,
-        boost::optional<CallError> maybe_error) = 0;
+        const CallId &call_id,
+        const Commit1Output &maybe_commit1_out,
+        const boost::optional<CallError> &maybe_error) = 0;
 
     virtual outcome::result<void> returnSealCommit2(
-        CallId call_id,
-        boost::optional<Proof> maybe_proof,
-        boost::optional<CallError> maybe_error) = 0;
+        const CallId &call_id,
+        const Proof &maybe_proof,
+        const boost::optional<CallError> &maybe_error) = 0;
 
     virtual outcome::result<void> returnFinalizeSector(
-        CallId call_id, boost::optional<CallError> maybe_error) = 0;
+        const CallId &call_id,
+        const boost::optional<CallError> &maybe_error) = 0;
 
     virtual outcome::result<void> returnMoveStorage(
-        CallId call_id, boost::optional<CallError> maybe_error) = 0;
+        const CallId &call_id,
+        const boost::optional<CallError> &maybe_error) = 0;
 
     virtual outcome::result<void> returnUnsealPiece(
-        CallId call_id, boost::optional<CallError> maybe_error) = 0;
+        const CallId &call_id,
+        const boost::optional<CallError> &maybe_error) = 0;
 
     virtual outcome::result<void> returnReadPiece(
-        CallId call_id,
-        boost::optional<bool> maybe_status,
-        boost::optional<CallError> maybe_error) = 0;
+        const CallId &call_id,
+        bool maybe_status,
+        const boost::optional<CallError> &maybe_error) = 0;
 
     virtual outcome::result<void> returnFetch(
-        CallId call_id, boost::optional<CallError> maybe_error) = 0;
+        const CallId &call_id,
+        const boost::optional<CallError> &maybe_error) = 0;
   };
 
   enum class WorkerErrors {

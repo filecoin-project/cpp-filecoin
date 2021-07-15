@@ -182,7 +182,6 @@ namespace fc::sector_storage {
             clear();
             --active_jobs;
 
-
             request->cb(std::move(result));
 
             freeWorker(wid);
@@ -293,84 +292,69 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> SchedulerImpl::returnAddPiece(
-      CallId call_id,
-      boost::optional<PieceInfo> maybe_piece_info,
-      boost::optional<CallError> maybe_error) {
+      const CallId &call_id,
+      const PieceInfo &maybe_piece_info,
+      const boost::optional<CallError> &maybe_error) {
     CallResult result{
         .maybe_value = boost::none,
         .maybe_error = maybe_error,
     };
-
-    if (maybe_piece_info.has_value()) {
-      result.maybe_value = maybe_piece_info.value();
-    }
-
+    result.maybe_value = maybe_piece_info;
     return returnResult(call_id, result);
   }
 
   outcome::result<void> SchedulerImpl::returnSealPreCommit1(
-      CallId call_id,
-      boost::optional<PreCommit1Output> maybe_precommit1_out,
-      boost::optional<CallError> maybe_error) {
+      const CallId &call_id,
+      const PreCommit1Output &maybe_precommit1_out,
+      const boost::optional<CallError> &maybe_error) {
     CallResult result{
         .maybe_value = boost::none,
         .maybe_error = maybe_error,
     };
-
-    if (maybe_precommit1_out.has_value()) {
-      result.maybe_value = maybe_precommit1_out.value();
-    }
-
+    result.maybe_value = maybe_precommit1_out;
     return returnResult(call_id, result);
   }
 
   outcome::result<void> SchedulerImpl::returnSealPreCommit2(
-      CallId call_id,
-      boost::optional<SectorCids> maybe_sector_cids,
-      boost::optional<CallError> maybe_error) {
+      const CallId &call_id,
+      const SectorCids &maybe_sector_cids,
+      const boost::optional<CallError> &maybe_error) {
     CallResult result{
         .maybe_value = boost::none,
         .maybe_error = maybe_error,
     };
-
-    if (maybe_sector_cids.has_value()) {
-      result.maybe_value = maybe_sector_cids.value();
-    }
+    result.maybe_value = maybe_sector_cids;
     return returnResult(call_id, result);
   }
 
   outcome::result<void> SchedulerImpl::returnSealCommit1(
-      CallId call_id,
-      boost::optional<Commit1Output> maybe_commit1_out,
-      boost::optional<CallError> maybe_error) {
+      const CallId &call_id,
+      const Commit1Output &maybe_commit1_out,
+      const boost::optional<CallError> &maybe_error) {
     CallResult result{
         .maybe_value = boost::none,
         .maybe_error = maybe_error,
     };
-
-    if (maybe_commit1_out.has_value()) {
-      result.maybe_value = maybe_commit1_out.value();
-    }
+    result.maybe_value = maybe_commit1_out;
     return returnResult(call_id, result);
   }
 
   outcome::result<void> SchedulerImpl::returnSealCommit2(
-      CallId call_id,
-      boost::optional<Proof> maybe_proof,
-      boost::optional<CallError> maybe_error) {
+      const CallId &call_id,
+      const Proof &maybe_proof,
+      const boost::optional<CallError> &maybe_error) {
     CallResult result{
         .maybe_value = boost::none,
         .maybe_error = maybe_error,
     };
 
-    if (maybe_proof.has_value()) {
-      result.maybe_value = maybe_proof.value();
-    }
+    result.maybe_value = maybe_proof;
+
     return returnResult(call_id, result);
   }
 
   outcome::result<void> SchedulerImpl::returnFinalizeSector(
-      CallId call_id, boost::optional<CallError> maybe_error) {
+      const CallId &call_id, const boost::optional<CallError> &maybe_error) {
     CallResult result{
         .maybe_value = boost::none,
         .maybe_error = maybe_error,
@@ -380,7 +364,7 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> SchedulerImpl::returnMoveStorage(
-      CallId call_id, boost::optional<CallError> maybe_error) {
+      const CallId &call_id, const boost::optional<CallError> &maybe_error) {
     CallResult result{
         .maybe_value = boost::none,
         .maybe_error = maybe_error,
@@ -390,7 +374,7 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> SchedulerImpl::returnUnsealPiece(
-      CallId call_id, boost::optional<CallError> maybe_error) {
+      const CallId &call_id, const boost::optional<CallError> &maybe_error) {
     CallResult result{
         .maybe_value = boost::none,
         .maybe_error = maybe_error,
@@ -400,22 +384,21 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> SchedulerImpl::returnReadPiece(
-      CallId call_id,
-      boost::optional<bool> maybe_status,
-      boost::optional<CallError> maybe_error) {
+      const CallId &call_id,
+      bool maybe_status,
+      const boost::optional<CallError> &maybe_error) {
     CallResult result{
         .maybe_value = boost::none,
         .maybe_error = maybe_error,
     };
 
-    if (maybe_status.has_value()) {
-      result.maybe_value = maybe_status.value();
-    }
+    result.maybe_value = maybe_status;
+
     return returnResult(call_id, result);
   }
 
   outcome::result<void> SchedulerImpl::returnFetch(
-      CallId call_id, boost::optional<CallError> maybe_error) {
+      const CallId &call_id, const boost::optional<CallError> &maybe_error) {
     CallResult result{
         .maybe_value = boost::none,
         .maybe_error = maybe_error,

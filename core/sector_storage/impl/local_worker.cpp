@@ -32,9 +32,9 @@ namespace fc::sector_storage {
 
   template <typename T>
   using return_value_cb = std::function<outcome::result<void>(
-      CallId, boost::optional<T>, boost::optional<CallError>)>;
-  using return_error_cb =
-      std::function<outcome::result<void>(CallId, boost::optional<CallError>)>;
+      const CallId &, const T &, const boost::optional<CallError> &)>;
+  using return_error_cb = std::function<outcome::result<void>(
+      const CallId &, const boost::optional<CallError> &)>;
 
   template <typename T>
   bool returnFunction(const CallId &call_id,
@@ -42,7 +42,11 @@ namespace fc::sector_storage {
                       const boost::optional<CallError> &error,
                       const return_value_cb<T> &callback) {
     while (true) {
-      const auto maybe_error = callback(call_id, return_value, error);
+      T value;
+      if (return_value.has_value()) {
+        value = return_value.value();
+      }
+      const auto maybe_error = callback(call_id, value, error);
 
       if (not maybe_error.has_error()) break;
 

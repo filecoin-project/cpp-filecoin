@@ -125,27 +125,27 @@ namespace fc::api {
     API_METHOD(ReturnAddPiece,
                void,
                const CallId &,
-               const boost::optional<PieceInfo> &,
+               const PieceInfo &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnSealPreCommit1,
                void,
                const CallId &,
-               const boost::optional<PreCommit1Output> &,
+               const PreCommit1Output &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnSealPreCommit2,
                void,
                const CallId &,
-               const boost::optional<SectorCids> &,
+               const SectorCids &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnSealCommit1,
                void,
                const CallId &,
-               const boost::optional<Commit1Output> &,
+               const Commit1Output &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnSealCommit2,
                void,
                const CallId &,
-               const boost::optional<Proof> &,
+               const Proof &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnFinalizeSector,
                void,
@@ -162,7 +162,7 @@ namespace fc::api {
     API_METHOD(ReturnReadPiece,
                void,
                const CallId &,
-               const boost::optional<bool> &,
+               bool,
                const boost::optional<CallError> &)
     API_METHOD(ReturnFetch,
                void,
