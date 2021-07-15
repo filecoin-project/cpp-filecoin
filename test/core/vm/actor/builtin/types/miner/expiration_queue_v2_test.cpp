@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "test_utils.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 
@@ -27,34 +28,12 @@ namespace fc::vm::actor::builtin::v2::miner {
       ipld->actor_version = ActorVersion::kVersion2;
       cbor_blake::cbLoadT(ipld, eq);
 
-      sectors = {testSector(2, 1, 50, 60, 1000),
-                 testSector(3, 2, 51, 61, 1001),
-                 testSector(7, 3, 52, 62, 1002),
-                 testSector(8, 4, 53, 63, 1003),
-                 testSector(11, 5, 54, 64, 1004),
-                 testSector(13, 6, 55, 65, 1005)};
-    }
-
-    static SectorOnChainInfo testSector(ChainEpoch expiration,
-                                        SectorNumber number,
-                                        DealWeight &&weight,
-                                        DealWeight &&vweight,
-                                        TokenAmount &&pledge) {
-      SectorOnChainInfo sector;
-
-      sector.expiration = expiration;
-      sector.sector = number;
-      sector.deal_weight = std::move(weight);
-      sector.verified_deal_weight = std::move(vweight);
-      sector.init_pledge = std::move(pledge);
-
-      return sector;
-    }
-
-    void requireNoExpirationGroupsBefore(ChainEpoch epoch,
-                                         ExpirationQueue &queue) const {
-      EXPECT_OUTCOME_TRUE(es, queue.popUntil(epoch - 1));
-      EXPECT_TRUE(es.isEmpty());
+      sectors = {Utils::testSector(2, 1, 50, 60, 1000),
+                 Utils::testSector(3, 2, 51, 61, 1001),
+                 Utils::testSector(7, 3, 52, 62, 1002),
+                 Utils::testSector(8, 4, 53, 63, 1003),
+                 Utils::testSector(11, 5, 54, 64, 1004),
+                 Utils::testSector(13, 6, 55, 65, 1005)};
     }
 
     std::shared_ptr<InMemoryDatastore> ipld{
@@ -195,7 +174,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                   std::vector<SectorOnChainInfo>(sectors.begin() + 1,
                                                  sectors.begin() + 5)));
 
-    requireNoExpirationGroupsBefore(5, eq);
+    Utils::requireNoExpirationGroupsBefore(5, eq);
     EXPECT_OUTCOME_TRUE(es1, eq.popUntil(5));
     const RleBitset expected_on_time_sectors1{1, 2};
     EXPECT_EQ(es1.on_time_sectors, expected_on_time_sectors1);
@@ -212,7 +191,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                   std::vector<SectorOnChainInfo>(sectors.begin() + 1,
                                                  sectors.begin() + 2)));
 
-    requireNoExpirationGroupsBefore(9, eq);
+    Utils::requireNoExpirationGroupsBefore(9, eq);
     EXPECT_OUTCOME_TRUE(es2, eq.popUntil(9));
     const RleBitset expected_on_time_sectors2{3, 4};
     EXPECT_EQ(es2.on_time_sectors, expected_on_time_sectors2);
@@ -226,7 +205,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                   std::vector<SectorOnChainInfo>(sectors.begin() + 2,
                                                  sectors.begin() + 5)));
 
-    requireNoExpirationGroupsBefore(13, eq);
+    Utils::requireNoExpirationGroupsBefore(13, eq);
     EXPECT_OUTCOME_TRUE(es3, eq.popUntil(13));
     const RleBitset expected_on_time_sectors3{6};
     EXPECT_EQ(es3.on_time_sectors, expected_on_time_sectors3);
@@ -246,7 +225,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     EXPECT_OUTCOME_TRUE_1(eq.rescheduleAllAsFaults(6));
 
-    requireNoExpirationGroupsBefore(5, eq);
+    Utils::requireNoExpirationGroupsBefore(5, eq);
     EXPECT_OUTCOME_TRUE(es1, eq.popUntil(5));
     const RleBitset expected_on_time_sectors1{1, 2};
     EXPECT_EQ(es1.on_time_sectors, expected_on_time_sectors1);
@@ -259,7 +238,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                   std::vector<SectorOnChainInfo>(sectors.begin(),
                                                  sectors.begin() + 2)));
 
-    requireNoExpirationGroupsBefore(9, eq);
+    Utils::requireNoExpirationGroupsBefore(9, eq);
     EXPECT_OUTCOME_TRUE(es2, eq.popUntil(9));
     const RleBitset expected_on_time_sectors2{3, 4};
     EXPECT_EQ(es2.on_time_sectors, expected_on_time_sectors2);
@@ -273,7 +252,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                                       std::vector<SectorOnChainInfo>(
                                           sectors.begin() + 2, sectors.end())));
 
-    requireNoExpirationGroupsBefore(13, eq);
+    Utils::requireNoExpirationGroupsBefore(13, eq);
     EXPECT_OUTCOME_TRUE(es3, eq.popUntil(13));
     EXPECT_TRUE(es3.on_time_sectors.empty());
     EXPECT_TRUE(es3.early_sectors.empty());
@@ -330,7 +309,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                   std::vector<SectorOnChainInfo>(sectors.begin() + 1,
                                                  sectors.begin() + 5)));
 
-    requireNoExpirationGroupsBefore(5, eq);
+    Utils::requireNoExpirationGroupsBefore(5, eq);
     EXPECT_OUTCOME_TRUE(es1, eq.popUntil(5));
     const RleBitset expected_on_time_sectors1{1, 2};
     EXPECT_EQ(es1.on_time_sectors, expected_on_time_sectors1);
@@ -343,7 +322,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                                                  sectors.begin() + 2)));
     EXPECT_EQ(es1.faulty_power, PowerPair());
 
-    requireNoExpirationGroupsBefore(9, eq);
+    Utils::requireNoExpirationGroupsBefore(9, eq);
     EXPECT_OUTCOME_TRUE(es2, eq.popUntil(9));
     const RleBitset expected_on_time_sectors2{3, 4};
     EXPECT_EQ(es2.on_time_sectors, expected_on_time_sectors2);
@@ -356,7 +335,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                                                  sectors.begin() + 4)));
     EXPECT_EQ(es2.faulty_power, PowerPair());
 
-    requireNoExpirationGroupsBefore(13, eq);
+    Utils::requireNoExpirationGroupsBefore(13, eq);
     EXPECT_OUTCOME_TRUE(es3, eq.popUntil(13));
     const RleBitset expected_on_time_sectors3{5, 6};
     EXPECT_EQ(es3.on_time_sectors, expected_on_time_sectors3);
@@ -392,7 +371,7 @@ namespace fc::vm::actor::builtin::v2::miner {
               added_power - types::miner::powerForSectors(ssize, to_remove));
     EXPECT_EQ(pledge_delta, 1002 + 1004 - 1000 - 1001 - 1003);
 
-    requireNoExpirationGroupsBefore(9, eq);
+    Utils::requireNoExpirationGroupsBefore(9, eq);
     EXPECT_OUTCOME_TRUE(es1, eq.popUntil(9));
     const RleBitset expected_on_time_sectors1{3};
     EXPECT_EQ(es1.on_time_sectors, expected_on_time_sectors1);
@@ -405,7 +384,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                                                  sectors.begin() + 3)));
     EXPECT_EQ(es1.faulty_power, PowerPair());
 
-    requireNoExpirationGroupsBefore(13, eq);
+    Utils::requireNoExpirationGroupsBefore(13, eq);
     EXPECT_OUTCOME_TRUE(es2, eq.popUntil(13));
     const RleBitset expected_on_time_sectors2{5, 6};
     EXPECT_EQ(es2.on_time_sectors, expected_on_time_sectors2);
@@ -456,7 +435,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                   std::vector<SectorOnChainInfo>(sectors.begin() + 5,
                                                  sectors.begin() + 6)));
 
-    requireNoExpirationGroupsBefore(5, eq);
+    Utils::requireNoExpirationGroupsBefore(5, eq);
     EXPECT_OUTCOME_TRUE(es1, eq.popUntil(5));
     const RleBitset expected_on_time_sectors1{2};
     EXPECT_EQ(es1.on_time_sectors, expected_on_time_sectors1);
@@ -469,7 +448,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                   std::vector<SectorOnChainInfo>(sectors.begin() + 1,
                                                  sectors.begin() + 2)));
 
-    requireNoExpirationGroupsBefore(9, eq);
+    Utils::requireNoExpirationGroupsBefore(9, eq);
     EXPECT_OUTCOME_TRUE(es2, eq.popUntil(9));
     const RleBitset expected_on_time_sectors2{3};
     EXPECT_EQ(es2.on_time_sectors, expected_on_time_sectors2);
@@ -482,7 +461,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                   std::vector<SectorOnChainInfo>(sectors.begin() + 2,
                                                  sectors.begin() + 3)));
 
-    requireNoExpirationGroupsBefore(20, eq);
+    Utils::requireNoExpirationGroupsBefore(20, eq);
   }
 
   TEST_F(ExpirationQueueTestV2, AddingNoSectorsLeavesTheQueueEmpty) {

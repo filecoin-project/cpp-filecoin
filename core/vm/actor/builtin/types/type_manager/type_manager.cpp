@@ -30,31 +30,19 @@
 namespace fc::vm::actor::builtin::types {
   using primitives::kChainEpochUndefined;
 
-  outcome::result<ExpirationQueuePtr> TypeManager::loadExpirationQueue(
-      Runtime &runtime,
+  outcome::result<Universal<ExpirationQueue>> TypeManager::loadExpirationQueue(
+      const Runtime &runtime,
       const adt::Array<ExpirationSet> &expirations_epochs,
       const QuantSpec &quant) {
-    const auto version = runtime.getActorVersion();
-
-    switch (version) {
-      case ActorVersion::kVersion0:
-        return createLoadedExpirationQueuePtr<v0::miner::ExpirationQueue>(
-            runtime.getIpfsDatastore(), expirations_epochs, quant);
-      case ActorVersion::kVersion2:
-        return createLoadedExpirationQueuePtr<v2::miner::ExpirationQueue>(
-            runtime.getIpfsDatastore(), expirations_epochs, quant);
-      case ActorVersion::kVersion3:
-        return createLoadedExpirationQueuePtr<v3::miner::ExpirationQueue>(
-            runtime.getIpfsDatastore(), expirations_epochs, quant);
-      case ActorVersion::kVersion4:
-        TODO_ACTORS_V4();
-      case ActorVersion::kVersion5:
-        TODO_ACTORS_V5();
-    }
+    Universal<ExpirationQueue> eq{runtime.getActorVersion()};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), eq);
+    eq->queue = expirations_epochs;
+    eq->quant = quant;
+    return eq;
   }
 
   outcome::result<Universal<MinerInfo>> TypeManager::makeMinerInfo(
-      Runtime &runtime,
+      const Runtime &runtime,
       const Address &owner,
       const Address &worker,
       const std::vector<Address> &control,
@@ -108,3 +96,10 @@ UNIVERSAL_IMPL(miner::Partition,
                v3::miner::Partition,
                v3::miner::Partition,
                v3::miner::Partition)
+
+UNIVERSAL_IMPL(miner::ExpirationQueue,
+               v0::miner::ExpirationQueue,
+               v2::miner::ExpirationQueue,
+               v3::miner::ExpirationQueue,
+               v3::miner::ExpirationQueue,
+               v3::miner::ExpirationQueue)
