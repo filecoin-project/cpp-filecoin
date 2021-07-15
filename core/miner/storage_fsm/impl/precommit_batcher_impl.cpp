@@ -13,11 +13,12 @@
 
 namespace fc::mining {
   using api::kPushNoSpec;
-  using fc::vm::actor::builtin::v0::miner::PreCommitBatch;
   using libp2p::protocol::scheduler::toTicks;
   using primitives::ChainEpoch;
-  using vm::actor::MethodParams;
   using vm::actor::builtin::types::miner::kChainFinality;
+  using vm::actor::builtin::v0::miner::PreCommitBatch;
+  using vm::actor::MethodParams;
+
   PreCommitBatcherImpl::PreCommitBatcherImpl(const Ticks &max_time,
                                              std::shared_ptr<FullNodeApi> api,
                                              const Address &miner_address,
@@ -35,7 +36,7 @@ namespace fc::mining {
   PreCommitBatcherImpl::makeBatcher(
       const Ticks &max_wait,
       std::shared_ptr<FullNodeApi> api,
-      const std::shared_ptr<libp2p::protocol::Scheduler>& scheduler,
+      const std::shared_ptr<libp2p::protocol::Scheduler> &scheduler,
       const Address &miner_address) {
     std::shared_ptr<PreCommitBatcherImpl> batcher =
         std::make_shared<PreCommitBatcherImpl>(
@@ -43,9 +44,10 @@ namespace fc::mining {
 
     batcher->cutoff_start_ = std::chrono::system_clock::now();
     batcher->logger_ = common::createLogger("batcher");
-    batcher->logger_->info("Bather have been started");
+    batcher->logger_->info("Bather has been started");
     batcher->handle_ = scheduler->schedule(max_wait, [=]() {
-      auto maybe_result = batcher->sendBatch();
+      std::unique_lock<std::mutex> locker(batcher->mutex_, std::defer_lock);
+      const auto maybe_result = batcher->sendBatch();
       for (const auto &[key, cb] : batcher->callbacks_) {
         cb(maybe_result);
       }
@@ -56,10 +58,8 @@ namespace fc::mining {
   }
 
   outcome::result<CID> PreCommitBatcherImpl::sendBatch() {
-    std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
     // TODO(Elestrias): [FIL-398] goodFunds = mutualDeposit + MaxFee; -  for
     // checking payable
-    CID message_cid;
     if (batch_storage_.size() != 0) {
       logger_->info("Sending procedure started");
 
@@ -90,17 +90,17 @@ namespace fc::mining {
 
       mutual_deposit_ = 0;
       batch_storage_.clear();
-      message_cid = signed_message.getCid();
       logger_->info("Sending procedure completed");
       cutoff_start_ = std::chrono::system_clock::now();
-      return message_cid;
+      return signed_message.getCid();
     }
     cutoff_start_ = std::chrono::system_clock::now();
     return ERROR_TEXT("Empty Batcher");
   }
 
   void PreCommitBatcherImpl::forceSend() {
-    auto maybe_result = sendBatch();
+    std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
+    const auto maybe_result = sendBatch();
     for (const auto &[key, cb] : callbacks_) {
       cb(maybe_result);
     }
@@ -112,9 +112,9 @@ namespace fc::mining {
                                                 const SectorInfo &sector_info) {
     ChainEpoch cutoff_epoch =
         sector_info.ticket_epoch
-        + static_cast<int64_t>(fc::kEpochsInDay + kChainFinality);
+        + static_cast<int64_t>(kEpochsInDay + kChainFinality);
     ChainEpoch start_epoch{};
-    for (auto p : sector_info.pieces) {
+    for (const auto &p : sector_info.pieces) {
       if (!p.deal_info) {
         continue;
       }

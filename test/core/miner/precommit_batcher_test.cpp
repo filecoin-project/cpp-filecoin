@@ -93,13 +93,15 @@ namespace fc::mining {
     SectorInfo si = SectorInfo();
     api::SectorPreCommitInfo precInf;
     TokenAmount deposit = 10;
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
+        si, deposit, precInf, [](outcome::result<CID>) {}));
   };
 
   /**
-   * CallbackSend have 4 unic precommits sent in pairs
-   * a PrecommitBatcher should send the first two and after the rescheduling
-   * next pair the result should be 2 messages in message pool with pair of
+   * CallbackSend have 4 precommits sent in pairs
+   * @when PrecommitBatcher send the first pair and after the rescheduling
+   * next pair
+   * @then The result should be 2 messages in message pool with pair of
    * precommits in each
    */
   TEST_F(PreCommitBatcherTest, CallbackSend) {
@@ -113,13 +115,15 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020005"_cid;
     si.sector_number = 2;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
+        si, deposit, precInf, [](outcome::result<CID>) {}));
     mutual_deposit_ += 10;
 
     precInf.sealed_cid = "010001020006"_cid;
     si.sector_number = 3;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
+        si, deposit, precInf, [](outcome::result<CID>) {}));
     mutual_deposit_ += 10;
 
     EXPECT_CALL(*sch_, now())
@@ -138,7 +142,8 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020008"_cid;
     si.sector_number = 6;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
+        si, deposit, precInf, [](outcome::result<CID>) {}));
     mutual_deposit_ += 10;
     sch_->next_clock();
     ASSERT_TRUE(is_called_);
@@ -146,11 +151,12 @@ namespace fc::mining {
   }
 
   /**
-   * ShortDistanceSending have 3 Precommits
-   * Test should send first two after 30 sec instead of 60 and one more
-   *immediately after the addition The result should be 2 new messages in
-   *message pool 1st: 2 precommits, have been sent after 30  sec, and 2nd: one
-   *precommmit, have been sent after the first one immediately
+   ShortDistanceSending have 3 Precommits
+   * @when First two are sent after 30 sec instead of 60 and one more
+   * immediately after the addition.
+   * @then The result should be 2 new messages in message pool 1st:
+   * 2 precommits, have been sent after 30  sec, and 2nd: one
+   * precommmit, have been sent after the first one immediately
    **/
   TEST_F(PreCommitBatcherTest, ShortDistanceSending) {
     mutual_deposit_ = 0;
@@ -183,7 +189,8 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020005"_cid;
     si.sector_number = 2;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
+        si, deposit, precInf, [](outcome::result<CID>) {}));
     mutual_deposit_ += 10;
 
     sch_->next_clock();
@@ -202,7 +209,8 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020013"_cid;
     si.sector_number = 4;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
+    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
+        si, deposit, precInf, [](outcome::result<CID>) {}));
     mutual_deposit_ += 10;
     ASSERT_TRUE(is_called_);
   }
