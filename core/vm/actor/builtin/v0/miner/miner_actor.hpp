@@ -18,7 +18,6 @@
 namespace fc::vm::actor::builtin::v0::miner {
   using common::Buffer;
   using crypto::randomness::Randomness;
-  using fc::primitives::sector::SectorInfo;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
   using primitives::RleBitset;

@@ -10,8 +10,6 @@
 #include "miner/storage_fsm/types.hpp"
 
 namespace fc::mining {
-  using api::SectorNumber;
-
   /**
    * SealingEventId is an id event that occurs in a sealing lifecycle
    */

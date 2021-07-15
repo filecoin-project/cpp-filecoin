@@ -35,7 +35,7 @@ namespace fc::mining {
   PreCommitBatcherImpl::makeBatcher(
       const Ticks &max_wait,
       std::shared_ptr<FullNodeApi> api,
-      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      const std::shared_ptr<libp2p::protocol::Scheduler>& scheduler,
       const Address &miner_address) {
     std::shared_ptr<PreCommitBatcherImpl> batcher =
         std::make_shared<PreCommitBatcherImpl>(
@@ -50,7 +50,7 @@ namespace fc::mining {
         cb(maybe_result);
       }
       batcher->callbacks_.clear();
-      batcher->handle_.reschedule(max_wait);  // TODO: maybe in gsl::finally
+      batcher->handle_.reschedule(max_wait);
     });
     return batcher;
   }
@@ -108,49 +108,49 @@ namespace fc::mining {
     handle_.reschedule(max_delay_);
   }
 
-  void PreCommitBatcherImpl::setPreCommitCutoff(const ChainEpoch &curEpoch,
-                                                const SectorInfo &si) {
-    ChainEpoch cutoffEpoch =
-        si.ticket_epoch
+  void PreCommitBatcherImpl::setPreCommitCutoff(const ChainEpoch &current_epoch,
+                                                const SectorInfo &sector_info) {
+    ChainEpoch cutoff_epoch =
+        sector_info.ticket_epoch
         + static_cast<int64_t>(fc::kEpochsInDay + kChainFinality);
-    ChainEpoch startEpoch{};
-    for (auto p : si.pieces) {
+    ChainEpoch start_epoch{};
+    for (auto p : sector_info.pieces) {
       if (!p.deal_info) {
         continue;
       }
-      startEpoch = p.deal_info->deal_schedule.start_epoch;
-      if (startEpoch < cutoffEpoch) {
-        cutoffEpoch = startEpoch;
+      start_epoch = p.deal_info->deal_schedule.start_epoch;
+      if (start_epoch < cutoff_epoch) {
+        cutoff_epoch = start_epoch;
       }
     }
-    if (cutoffEpoch <= curEpoch) {
+    if (cutoff_epoch <= current_epoch) {
       forceSend();
     } else {
-      const Ticks tempCutoff = toTicks(std::chrono::seconds(
-          (cutoffEpoch - curEpoch) * kEpochDurationSeconds));
+      const Ticks temp_cutoff = toTicks(std::chrono::seconds(
+          (cutoff_epoch - current_epoch) * kEpochDurationSeconds));
       if ((closest_cutoff_
                - toTicks(std::chrono::duration_cast<std::chrono::seconds>(
                    std::chrono::system_clock::now() - cutoff_start_))
-           > tempCutoff)) {
+           > temp_cutoff)) {
         cutoff_start_ = std::chrono::system_clock::now();
-        handle_.reschedule(tempCutoff);
-        closest_cutoff_ = tempCutoff;
+        handle_.reschedule(temp_cutoff);
+        closest_cutoff_ = temp_cutoff;
       }
     }
   }
 
   outcome::result<void> PreCommitBatcherImpl::addPreCommit(
-      const SectorInfo &secInf,
+      const SectorInfo &sector_info,
       const TokenAmount &deposit,
-      const api::SectorPreCommitInfo &pcInfo,
+      const api::SectorPreCommitInfo &precommit_info,
       const PrecommitCallback &callback) {
     std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
     OUTCOME_TRY(head, api_->ChainHead());
 
-    const auto &sn = secInf.sector_number;
-    batch_storage_[sn] = PreCommitEntry(deposit, pcInfo);
+    const auto &sn = sector_info.sector_number;
+    batch_storage_[sn] = PreCommitEntry(deposit, precommit_info);
     callbacks_[sn] = callback;  // TODO: batcher upper limit
-    setPreCommitCutoff(head->epoch(), secInf);
+    setPreCommitCutoff(head->epoch(), sector_info);
     return outcome::success();
   }
 }  // namespace fc::mining

@@ -19,7 +19,7 @@
 
 namespace fc::mining {
   using api::FullNodeApi;
-  using api::SectorNumber;
+  using primitives::SectorNumber;
   using libp2p::protocol::Scheduler;
   using libp2p::protocol::scheduler::Handle;
   using libp2p::protocol::scheduler::Ticks;
@@ -31,28 +31,28 @@ namespace fc::mining {
       PreCommitEntry(const TokenAmount &number,
                      const SectorPreCommitInfo &info);
       PreCommitEntry() = default;
-      primitives::TokenAmount deposit;
+      TokenAmount deposit;
       SectorPreCommitInfo precommit_info;
       PreCommitEntry &operator=(const PreCommitEntry &other) = default;
     };
 
-    void setPreCommitCutoff(const ChainEpoch &curEpoch, const SectorInfo &si);
+    void setPreCommitCutoff(const ChainEpoch &current_epoch, const SectorInfo &sector_info);
 
     static outcome::result<std::shared_ptr<PreCommitBatcherImpl>> makeBatcher(
-        const Ticks &maxWait,
+        const Ticks &max_wait,
         std::shared_ptr<FullNodeApi> api,
-        std::shared_ptr<Scheduler> scheduler,
+       const std::shared_ptr<Scheduler> & scheduler,
         const Address &miner_address);
 
-    outcome::result<void> addPreCommit(const SectorInfo &secInf,
+    outcome::result<void> addPreCommit(const SectorInfo &sector_info,
                                        const TokenAmount &deposit,
-                                       const SectorPreCommitInfo &pcInfo,
+                                       const SectorPreCommitInfo &precommit_info,
                                        const PrecommitCallback &callback);
 
     void forceSend() override;
 
     outcome::result<CID> sendBatch();
-    PreCommitBatcherImpl(const Ticks &maxTime,
+    PreCommitBatcherImpl(const Ticks &max_time,
                          std::shared_ptr<FullNodeApi> api,
                          const Address &miner_address,
                          const Ticks &closest_cutoff);
