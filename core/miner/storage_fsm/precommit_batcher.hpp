@@ -4,8 +4,7 @@
  */
 
 #pragma once
-#include <memory>
-#include <mutex>
+
 #include "miner/storage_fsm/types.hpp"
 
 namespace fc::mining {
@@ -16,13 +15,15 @@ namespace fc::mining {
 
   class PreCommitBatcher {
    public:
+    virtual ~PreCommitBatcher() = default;
+
     virtual outcome::result<void> addPreCommit(
         const SectorInfo &sector_info,
         const TokenAmount &deposit,
         const SectorPreCommitInfo &precommit_info,
         const PrecommitCallback &callback) = 0;
+
     virtual void forceSend() = 0;
-    virtual ~PreCommitBatcher() = default;
   };
 
 }  // namespace fc::mining

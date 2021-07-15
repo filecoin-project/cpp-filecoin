@@ -5,11 +5,8 @@
 
 #include "miner/storage_fsm/impl/precommit_batcher_impl.hpp"
 
-#include <utility>
-#include "const.hpp"
 #include "vm/actor/actor.hpp"
-#include "vm/actor/builtin/types/miner/sector_info.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v5/miner/miner_actor.hpp"
 
 namespace fc::mining {
   using api::kPushNoSpec;
@@ -17,7 +14,11 @@ namespace fc::mining {
   using primitives::ChainEpoch;
   using vm::actor::MethodParams;
   using vm::actor::builtin::types::miner::kChainFinality;
-  using vm::actor::builtin::v0::miner::PreCommitBatch;
+  using vm::actor::builtin::v5::miner::PreCommitBatch;
+
+  PreCommitBatcherImpl::PreCommitEntry::PreCommitEntry(
+      const TokenAmount &number, const SectorPreCommitInfo &info)
+      : deposit(number), precommit_info(info){};
 
   PreCommitBatcherImpl::PreCommitBatcherImpl(
       const Ticks &max_time,
@@ -30,8 +31,8 @@ namespace fc::mining {
         closest_cutoff_(max_time) {
     cutoff_start_ = std::chrono::system_clock::now();
     logger_ = common::createLogger("batcher");
-    logger_->info("Bather has been started");
-    handle_ = scheduler->schedule(max_delay_, [this]() {
+    logger_->info("Batcher has been started");
+    handle_ = scheduler->schedule(max_delay_, [&]() {
       std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
       const auto maybe_result = sendBatch();
       for (const auto &[key, cb] : callbacks_) {
@@ -42,10 +43,6 @@ namespace fc::mining {
     });
   }
 
-  PreCommitBatcherImpl::PreCommitEntry::PreCommitEntry(
-      const TokenAmount &number, const SectorPreCommitInfo &info)
-      : deposit(number), precommit_info(info){};
-
   outcome::result<CID> PreCommitBatcherImpl::sendBatch() {
     // TODO(Elestrias): [FIL-398] goodFunds = mutualDeposit + MaxFee; -  for
     // checking payable
@@ -55,7 +52,7 @@ namespace fc::mining {
       OUTCOME_TRY(head, api_->ChainHead());
       OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, head->key));
 
-      PreCommitBatch::Params params = {};
+      PreCommitBatch::Params params;
 
       for (const auto &data : batch_storage_) {
         mutual_deposit_ += data.second.deposit;
@@ -64,18 +61,18 @@ namespace fc::mining {
 
       OUTCOME_TRY(encodedParams, codec::cbor::encode(params));
 
-      OUTCOME_TRY(signed_message,
-                  api_->MpoolPushMessage(
-                      vm::message::UnsignedMessage(
-                          miner_address_,
-                          minfo.worker,  // TODO: handle worker
-                          0,
-                          mutual_deposit_,
-                          {},
-                          {},
-                          25,  // TODO (m.tagirov) Miner actor v5 PreCommitBatch
-                          MethodParams{encodedParams}),
-                      kPushNoSpec));
+      OUTCOME_TRY(
+          signed_message,
+          api_->MpoolPushMessage(
+              vm::message::UnsignedMessage(miner_address_,
+                                           minfo.worker,  // TODO: handle worker
+                                           0,
+                                           mutual_deposit_,
+                                           {},
+                                           {},
+                                           PreCommitBatch::Number,
+                                           MethodParams{encodedParams}),
+              kPushNoSpec));
 
       mutual_deposit_ = 0;
       batch_storage_.clear();
@@ -103,11 +100,11 @@ namespace fc::mining {
         sector_info.ticket_epoch
         + static_cast<int64_t>(kEpochsInDay + kChainFinality);
     ChainEpoch start_epoch{};
-    for (const auto &p : sector_info.pieces) {
-      if (!p.deal_info) {
+    for (const auto &piece : sector_info.pieces) {
+      if (!piece.deal_info) {
         continue;
       }
-      start_epoch = p.deal_info->deal_schedule.start_epoch;
+      start_epoch = piece.deal_info->deal_schedule.start_epoch;
       if (start_epoch < cutoff_epoch) {
         cutoff_epoch = start_epoch;
       }

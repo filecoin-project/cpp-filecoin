@@ -5,17 +5,14 @@
 
 #pragma once
 
-#include <boost/multiprecision/cpp_int.hpp>
+#include "miner/storage_fsm/precommit_batcher.hpp"
+
 #include <chrono>
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <libp2p/protocol/common/scheduler.hpp>
 #include <map>
+#include <mutex>
 #include "api/full_node/node_api.hpp"
-#include "miner/storage_fsm/precommit_batcher.hpp"
-#include "miner/storage_fsm/types.hpp"
 #include "primitives/address/address.hpp"
-#include "primitives/types.hpp"
-#include "vm/actor/actor.hpp"
 
 namespace fc::mining {
   using api::FullNodeApi;
@@ -28,12 +25,15 @@ namespace fc::mining {
   class PreCommitBatcherImpl : public PreCommitBatcher {
    public:
     struct PreCommitEntry {
+      PreCommitEntry() = default;
+
       PreCommitEntry(const TokenAmount &number,
                      const SectorPreCommitInfo &info);
-      PreCommitEntry() = default;
-      TokenAmount deposit;
-      SectorPreCommitInfo precommit_info;
+
       PreCommitEntry &operator=(const PreCommitEntry &other) = default;
+
+      TokenAmount deposit{};
+      SectorPreCommitInfo precommit_info;
     };
 
     PreCommitBatcherImpl(const Ticks &max_time,
@@ -48,7 +48,7 @@ namespace fc::mining {
         const SectorInfo &sector_info,
         const TokenAmount &deposit,
         const SectorPreCommitInfo &precommit_info,
-        const PrecommitCallback &callback);
+        const PrecommitCallback &callback) override;
 
     void forceSend() override;
 
