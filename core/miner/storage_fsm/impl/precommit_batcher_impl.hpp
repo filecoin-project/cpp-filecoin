@@ -27,11 +27,6 @@ namespace fc::mining {
 
   class PreCommitBatcherImpl : public PreCommitBatcher {
    public:
-    PreCommitBatcherImpl(const Ticks &max_time,
-                         std::shared_ptr<FullNodeApi> api,
-                         const Address &miner_address,
-                         const Ticks &closest_cutoff);
-
     struct PreCommitEntry {
       PreCommitEntry(const TokenAmount &number,
                      const SectorPreCommitInfo &info);
@@ -41,14 +36,13 @@ namespace fc::mining {
       PreCommitEntry &operator=(const PreCommitEntry &other) = default;
     };
 
+    PreCommitBatcherImpl(const Ticks &max_time,
+                         std::shared_ptr<FullNodeApi> api,
+                         const Address &miner_address,
+                         const std::shared_ptr<Scheduler> &scheduler);
+
     void setPreCommitCutoff(const ChainEpoch &current_epoch,
                             const SectorInfo &sector_info);
-
-    static outcome::result<std::shared_ptr<PreCommitBatcherImpl>> makeBatcher(
-        const Ticks &max_wait,
-        std::shared_ptr<FullNodeApi> api,
-        const std::shared_ptr<Scheduler> &scheduler,
-        const Address &miner_address);
 
     outcome::result<void> addPreCommit(
         const SectorInfo &sector_info,

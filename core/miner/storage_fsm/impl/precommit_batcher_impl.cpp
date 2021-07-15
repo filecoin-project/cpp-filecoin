@@ -15,47 +15,36 @@ namespace fc::mining {
   using api::kPushNoSpec;
   using libp2p::protocol::scheduler::toTicks;
   using primitives::ChainEpoch;
+  using vm::actor::MethodParams;
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::v0::miner::PreCommitBatch;
-  using vm::actor::MethodParams;
 
-  PreCommitBatcherImpl::PreCommitBatcherImpl(const Ticks &max_time,
-                                             std::shared_ptr<FullNodeApi> api,
-                                             const Address &miner_address,
-                                             const Ticks &closest_cutoff)
+  PreCommitBatcherImpl::PreCommitBatcherImpl(
+      const Ticks &max_time,
+      std::shared_ptr<FullNodeApi> api,
+      const Address &miner_address,
+      const std::shared_ptr<libp2p::protocol::Scheduler> &scheduler)
       : max_delay_(max_time),
         api_(std::move(api)),
         miner_address_(miner_address),
-        closest_cutoff_(closest_cutoff) {}
+        closest_cutoff_(max_time) {
+    cutoff_start_ = std::chrono::system_clock::now();
+    logger_ = common::createLogger("batcher");
+    logger_->info("Bather has been started");
+    handle_ = scheduler->schedule(max_delay_, [this]() {
+      std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
+      const auto maybe_result = sendBatch();
+      for (const auto &[key, cb] : callbacks_) {
+        cb(maybe_result);
+      }
+      callbacks_.clear();
+      handle_.reschedule(max_delay_);
+    });
+  }
 
   PreCommitBatcherImpl::PreCommitEntry::PreCommitEntry(
       const TokenAmount &number, const SectorPreCommitInfo &info)
       : deposit(number), precommit_info(info){};
-
-  outcome::result<std::shared_ptr<PreCommitBatcherImpl>>
-  PreCommitBatcherImpl::makeBatcher(
-      const Ticks &max_wait,
-      std::shared_ptr<FullNodeApi> api,
-      const std::shared_ptr<libp2p::protocol::Scheduler> &scheduler,
-      const Address &miner_address) {
-    std::shared_ptr<PreCommitBatcherImpl> batcher =
-        std::make_shared<PreCommitBatcherImpl>(
-            max_wait, std::move(api), miner_address, max_wait);
-
-    batcher->cutoff_start_ = std::chrono::system_clock::now();
-    batcher->logger_ = common::createLogger("batcher");
-    batcher->logger_->info("Bather has been started");
-    batcher->handle_ = scheduler->schedule(max_wait, [=]() {
-      std::unique_lock<std::mutex> locker(batcher->mutex_, std::defer_lock);
-      const auto maybe_result = batcher->sendBatch();
-      for (const auto &[key, cb] : batcher->callbacks_) {
-        cb(maybe_result);
-      }
-      batcher->callbacks_.clear();
-      batcher->handle_.reschedule(max_wait);
-    });
-    return batcher;
-  }
 
   outcome::result<CID> PreCommitBatcherImpl::sendBatch() {
     // TODO(Elestrias): [FIL-398] goodFunds = mutualDeposit + MaxFee; -  for

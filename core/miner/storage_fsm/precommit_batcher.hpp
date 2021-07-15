@@ -9,10 +9,10 @@
 #include "miner/storage_fsm/types.hpp"
 
 namespace fc::mining {
-  using vm::actor::builtin::types::miner::SectorPreCommitInfo;
-  using types::SectorInfo;
   using primitives::TokenAmount;
-  using PrecommitCallback = std::function<void(outcome::result<CID>)>;
+  using types::SectorInfo;
+  using vm::actor::builtin::types::miner::SectorPreCommitInfo;
+  using PrecommitCallback = std::function<void(const outcome::result<CID> &)>;
 
   class PreCommitBatcher {
    public:

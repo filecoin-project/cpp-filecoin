@@ -71,10 +71,8 @@ namespace fc::mining {
       };
 
       EXPECT_CALL(*sch_, now()).WillOnce(testing::Return(current_time_));
-      auto result = PreCommitBatcherImpl::makeBatcher(
-          toTicks(std::chrono::seconds(60)), api_, sch_, miner_address_);
-      batcher_ = result.value();
-      ASSERT_FALSE(result.has_error());
+      batcher_ = std::make_shared<PreCommitBatcherImpl>(
+          toTicks(std::chrono::seconds(60)), api_, miner_address_, sch_);
     }
 
     std::shared_ptr<FullNodeApi> api_;
@@ -94,7 +92,7 @@ namespace fc::mining {
     api::SectorPreCommitInfo precInf;
     TokenAmount deposit = 10;
     EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
-        si, deposit, precInf, [](outcome::result<CID>) {}));
+        si, deposit, precInf, [](const outcome::result<CID> &cid) {}));
   };
 
   /**
@@ -116,14 +114,19 @@ namespace fc::mining {
     si.sector_number = 2;
 
     EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
-        si, deposit, precInf, [](outcome::result<CID>) {}));
+        si, deposit, precInf, [](const outcome::result<CID> &cid) {
+          EXPECT_OUTCOME_TRUE_1(cid);
+          ASSERT_TRUE(cid.has_value());
+        }));
     mutual_deposit_ += 10;
 
     precInf.sealed_cid = "010001020006"_cid;
     si.sector_number = 3;
 
     EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
-        si, deposit, precInf, [](outcome::result<CID>) {}));
+        si, deposit, precInf, [](const outcome::result<CID> &cid) {
+          ASSERT_TRUE(cid.has_value());
+        }));
     mutual_deposit_ += 10;
 
     EXPECT_CALL(*sch_, now())
@@ -143,7 +146,9 @@ namespace fc::mining {
     si.sector_number = 6;
 
     EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
-        si, deposit, precInf, [](outcome::result<CID>) {}));
+        si, deposit, precInf, [](const outcome::result<CID> &cid) {
+          ASSERT_TRUE(cid.has_value());
+        }));
     mutual_deposit_ += 10;
     sch_->next_clock();
     ASSERT_TRUE(is_called_);
@@ -151,7 +156,7 @@ namespace fc::mining {
   }
 
   /**
-   ShortDistanceSending have 3 Precommits
+   * ShortDistanceSending have 3 Precommits
    * @when First two are sent after 30 sec instead of 60 and one more
    * immediately after the addition.
    * @then The result should be 2 new messages in message pool 1st:
@@ -190,7 +195,9 @@ namespace fc::mining {
     si.sector_number = 2;
 
     EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
-        si, deposit, precInf, [](outcome::result<CID>) {}));
+        si, deposit, precInf, [](const outcome::result<CID> &cid) {
+          ASSERT_TRUE(cid.has_value());
+        }));
     mutual_deposit_ += 10;
 
     sch_->next_clock();
@@ -210,9 +217,10 @@ namespace fc::mining {
     si.sector_number = 4;
 
     EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
-        si, deposit, precInf, [](outcome::result<CID>) {}));
+        si, deposit, precInf, [](const outcome::result<CID> &cid) {
+          ASSERT_TRUE(cid.has_value());
+        }));
     mutual_deposit_ += 10;
     ASSERT_TRUE(is_called_);
   }
-
 }  // namespace fc::mining
