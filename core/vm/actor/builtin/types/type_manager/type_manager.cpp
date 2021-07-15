@@ -22,6 +22,11 @@
 #include "vm/actor/builtin/v2/miner/types/miner_info.hpp"
 #include "vm/actor/builtin/v3/miner/types/miner_info.hpp"
 
+#include "vm/actor/builtin/types/miner/partition.hpp"
+#include "vm/actor/builtin/v0/miner/types/partition.hpp"
+#include "vm/actor/builtin/v2/miner/types/partition.hpp"
+#include "vm/actor/builtin/v3/miner/types/partition.hpp"
+
 namespace fc::vm::actor::builtin::types {
   using primitives::kChainEpochUndefined;
 
@@ -96,3 +101,10 @@ UNIVERSAL_IMPL(miner::MinerInfo,
                v3::miner::MinerInfo,
                v3::miner::MinerInfo,
                v3::miner::MinerInfo)
+
+UNIVERSAL_IMPL(miner::Partition,
+               v0::miner::Partition,
+               v2::miner::Partition,
+               v3::miner::Partition,
+               v3::miner::Partition,
+               v3::miner::Partition)

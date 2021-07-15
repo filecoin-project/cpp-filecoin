@@ -65,9 +65,9 @@ namespace fc::vm::actor::builtin::v0::miner {
 
 }  // namespace fc::vm::actor::builtin::v0::miner
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::v0::miner::Partition> {
+  struct CbVisitT<vm::actor::builtin::v0::miner::Partition> {
     template <typename Visitor>
     static void call(vm::actor::builtin::v0::miner::Partition &p,
                      const Visitor &visit) {
@@ -75,4 +75,4 @@ namespace fc {
       visit(p.early_terminated);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

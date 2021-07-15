@@ -170,8 +170,8 @@ namespace fc::api {
     for (auto &deadline_cid : deadlines.due) {
       OUTCOME_TRY(deadline, state->getDeadline(ipld, deadline_cid));
       OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &part) {
-        for (auto sector : part.sectors) {
-          if (!part.faults.has(sector)) {
+        for (auto sector : part->sectors) {
+          if (!part->faults.has(sector)) {
             sectors_bitset.insert(sector);
           }
         }
@@ -818,7 +818,7 @@ namespace fc::api {
           for (auto &deadline_cid : deadlines.due) {
             OUTCOME_TRY(deadline, state->getDeadline(ipld, deadline_cid));
             OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &part) {
-              faults += part.faults;
+              faults += part->faults;
               return outcome::success();
             }));
           }
@@ -843,11 +843,11 @@ namespace fc::api {
           std::vector<Partition> parts;
           OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &v) {
             parts.push_back({
-                v.sectors,
-                v.faults,
-                v.recoveries,
-                v.sectors - v.terminated,
-                v.sectors - v.terminated - v.faults,
+                v->sectors,
+                v->faults,
+                v->recoveries,
+                v->sectors - v->terminated,
+                v->sectors - v->terminated - v->faults,
             });
             return outcome::success();
           }));
