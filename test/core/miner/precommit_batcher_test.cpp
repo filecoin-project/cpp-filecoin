@@ -28,7 +28,7 @@ namespace fc::mining {
   class PreCommitBatcherTest : public testing::Test {
    protected:
     virtual void SetUp() {
-      mutualDeposit = 0;
+      mutual_deposit_ = 0;
       seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
       api_ = std::make_shared<FullNodeApi>();
       sch_ = std::make_shared<SchedulerMock>();
@@ -63,7 +63,7 @@ namespace fc::mining {
               const boost::optional<api::MessageSendSpec> &)
           -> outcome::result<SignedMessage> {
         if (msg.method == 25) {
-          isCall = true;
+          is_called_ = true;
           return SignedMessage{.message = msg, .signature = BlsSignature()};
         }
 
@@ -85,8 +85,8 @@ namespace fc::mining {
     uint64_t miner_id_;
     RegisteredSealProof seal_proof_type_;
     Ticks current_time_;
-    TokenAmount mutualDeposit;
-    bool isCall;
+    TokenAmount mutual_deposit_;
+    bool is_called_;
   };
 
   TEST_F(PreCommitBatcherTest, BatcherWrite) {
@@ -103,8 +103,8 @@ namespace fc::mining {
    * precommits in each
    */
   TEST_F(PreCommitBatcherTest, CallbackSend) {
-    mutualDeposit = 0;
-    isCall = false;
+    mutual_deposit_ = 0;
+    is_called_ = false;
 
     SectorInfo si = SectorInfo();
     api::SectorPreCommitInfo precInf;
@@ -114,13 +114,13 @@ namespace fc::mining {
     si.sector_number = 2;
 
     EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
-    mutualDeposit += 10;
+    mutual_deposit_ += 10;
 
     precInf.sealed_cid = "010001020006"_cid;
     si.sector_number = 3;
 
     EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
-    mutualDeposit += 10;
+    mutual_deposit_ += 10;
 
     EXPECT_CALL(*sch_, now())
         .WillOnce(
@@ -130,19 +130,19 @@ namespace fc::mining {
         .WillRepeatedly(testing::Return(current_time_
                                         + toTicks(std::chrono::seconds(300))));
     sch_->next_clock();
-    ASSERT_TRUE(isCall);
+    ASSERT_TRUE(is_called_);
 
-    isCall = false;
-    mutualDeposit = 0;
+    is_called_ = false;
+    mutual_deposit_ = 0;
 
     precInf.sealed_cid = "010001020008"_cid;
     si.sector_number = 6;
 
     EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
-    mutualDeposit += 10;
+    mutual_deposit_ += 10;
     sch_->next_clock();
-    ASSERT_TRUE(isCall);
-    isCall = false;
+    ASSERT_TRUE(is_called_);
+    is_called_ = false;
   }
 
   /**
@@ -153,8 +153,8 @@ namespace fc::mining {
    *precommmit, have been sent after the first one immediately
    **/
   TEST_F(PreCommitBatcherTest, ShortDistanceSending) {
-    mutualDeposit = 0;
-    isCall = false;
+    mutual_deposit_ = 0;
+    is_called_ = false;
 
     EXPECT_CALL(*sch_, now())
         .WillOnce(testing::Return(current_time_))
@@ -184,14 +184,14 @@ namespace fc::mining {
     si.sector_number = 2;
 
     EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
-    mutualDeposit += 10;
+    mutual_deposit_ += 10;
 
     sch_->next_clock();
-    EXPECT_TRUE(isCall);
+    EXPECT_TRUE(is_called_);
 
-    isCall = false;
+    is_called_ = false;
     si.pieces = {};
-    mutualDeposit = 0;
+    mutual_deposit_ = 0;
 
     deal.deal_schedule.start_epoch = 1;
     Piece p3 = {.piece = PieceInfo{.size = PaddedPieceSize(128),
@@ -203,8 +203,8 @@ namespace fc::mining {
     si.sector_number = 4;
 
     EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(si, deposit, precInf, [](outcome::result<CID>){}));
-    mutualDeposit += 10;
-    ASSERT_TRUE(isCall);
+    mutual_deposit_ += 10;
+    ASSERT_TRUE(is_called_);
   }
 
 }  // namespace fc::mining
