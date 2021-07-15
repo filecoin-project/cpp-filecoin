@@ -5,24 +5,9 @@
 
 #pragma once
 
-#include "common/libp2p/multi/cbor_multiaddress.hpp"
-#include "primitives/address/address_codec.hpp"
 #include "vm/actor/builtin/types/miner/deadline.hpp"
-#include "vm/actor/builtin/types/miner/miner_info.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
-
-  struct MinerInfo : types::miner::MinerInfo {};
-  CBOR_TUPLE(MinerInfo,
-             owner,
-             worker,
-             control,
-             pending_worker_key,
-             peer_id,
-             multiaddrs,
-             seal_proof_type,
-             sector_size,
-             window_post_partition_sectors)
 
   struct Deadline : types::miner::Deadline {
     Deadline() = default;
@@ -41,9 +26,9 @@ namespace fc::vm::actor::builtin::v0::miner {
 
 }  // namespace fc::vm::actor::builtin::v0::miner
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::v0::miner::Deadline> {
+  struct CbVisitT<vm::actor::builtin::v0::miner::Deadline> {
     template <typename Visitor>
     static void call(vm::actor::builtin::v0::miner::Deadline &d,
                      const Visitor &visit) {
@@ -51,4 +36,4 @@ namespace fc {
       visit(d.expirations_epochs);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

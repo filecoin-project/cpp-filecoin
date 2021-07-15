@@ -48,8 +48,6 @@ namespace fc {
     explicit CID(const CbCid &cid);
     CID(const ActorCodeCid &cid);
 
-    ~CID() = default;
-
     CID &operator=(const CID &) = default;
 
     CID &operator=(CID &&cid) noexcept;

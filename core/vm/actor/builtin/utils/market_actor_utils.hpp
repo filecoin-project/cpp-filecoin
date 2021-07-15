@@ -49,7 +49,7 @@ namespace fc::vm::actor::builtin::utils {
         const DealProposal &deal) const = 0;
 
     virtual outcome::result<void> deleteDealProposalAndState(
-        MarketActorStatePtr state,
+        MarketActorStatePtr &state,
         DealId deal_id,
         bool remove_proposal,
         bool remove_state) const = 0;
@@ -67,7 +67,7 @@ namespace fc::vm::actor::builtin::utils {
         const StoragePower &network_qa_power) const = 0;
 
     virtual outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
-    validateDealsForActivation(MarketActorStatePtr state,
+    validateDealsForActivation(MarketActorStatePtr &state,
                                const std::vector<DealId> &deals,
                                const ChainEpoch &sector_expiry) const = 0;
 

@@ -7,7 +7,7 @@
 
 namespace fc::vm::actor::builtin::v0::storage_power {
   outcome::result<void> PowerUtils::validateMinerHasClaim(
-      PowerActorStatePtr state, const Address &miner) const {
+      PowerActorStatePtr &state, const Address &miner) const {
     // Do nothing for v0
     return outcome::success();
   }

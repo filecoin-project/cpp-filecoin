@@ -208,7 +208,7 @@ namespace fc::storage::amt {
     if (which<Root>(root_)) {
       auto &root = boost::get<Root>(root_);
       OUTCOME_TRY(flush(root.node));
-      OUTCOME_TRY(root_cid, ipld->setCbor(root));
+      OUTCOME_TRY(root_cid, fc::setCbor(ipld, root));
       root_ = root_cid;
     }
     return cid();
@@ -282,7 +282,7 @@ namespace fc::storage::amt {
         if (which<Node::Ptr>(pair.second)) {
           auto &child = *boost::get<Node::Ptr>(pair.second);
           OUTCOME_TRY(flush(child));
-          OUTCOME_TRY(cid, ipld->setCbor(child));
+          OUTCOME_TRY(cid, fc::setCbor(ipld, child));
           pair.second = cid;
         }
       }
@@ -313,7 +313,7 @@ namespace fc::storage::amt {
 
   outcome::result<void> Amt::loadRoot() const {
     if (which<CID>(root_)) {
-      OUTCOME_TRY(root, ipld->getCbor<Root>(boost::get<CID>(root_)));
+      OUTCOME_TRY(root, fc::getCbor<Root>(ipld, boost::get<CID>(root_)));
       root_ = root;
       if (root.bits != bits_) {
         return AmtError::kRootBitsWrong;
@@ -342,7 +342,7 @@ namespace fc::storage::amt {
     }
     auto &link = it->second;
     if (which<CID>(link)) {
-      OUTCOME_TRY(node, ipld->getCbor<Node>(boost::get<CID>(link)));
+      OUTCOME_TRY(node, fc::getCbor<Node>(ipld, boost::get<CID>(link)));
       if (node.bits_bytes != bitsBytes()) {
         return AmtError::kRootBitsWrong;
       }

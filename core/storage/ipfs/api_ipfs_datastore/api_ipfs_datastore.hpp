@@ -14,9 +14,7 @@ namespace fc::storage::ipfs {
   /**
    * Read-only implementation of IPFS over node API
    */
-  class ApiIpfsDatastore
-      : public IpfsDatastore,
-        public std::enable_shared_from_this<ApiIpfsDatastore> {
+  class ApiIpfsDatastore : public Ipld {
    public:
     /**
      * Construct ApiIpfsDatastore
@@ -35,8 +33,6 @@ namespace fc::storage::ipfs {
     outcome::result<void> set(const CID &key, Value value) override;
 
     outcome::result<Value> get(const CID &key) const override;
-
-    std::shared_ptr<IpfsDatastore> shared() override;
 
    private:
     std::shared_ptr<FullNodeApi> api_;

@@ -5,12 +5,14 @@
 
 #include "vm/actor/builtin/v0/system/system_actor.hpp"
 
+#include "vm/actor/builtin/states/system_actor_state.hpp"
+
 namespace fc::vm::actor::builtin::v0::system {
+  using states::SystemActorStatePtr;
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    auto state = runtime.stateManager()->createSystemActorState(
-        runtime.getActorVersion());
+    SystemActorStatePtr state{runtime.getActorVersion()};
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }

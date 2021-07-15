@@ -24,7 +24,7 @@ using fc::storage::ipfs::InMemoryDatastore;
 class AmtTest : public ::testing::Test {
  public:
   auto getRoot() {
-    return store->getCbor<Root>(amt.flush().value()).value();
+    return fc::getCbor<Root>(store, amt.flush().value()).value();
   }
 
   std::shared_ptr<InMemoryDatastore> store{

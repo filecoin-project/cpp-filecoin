@@ -5,19 +5,20 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/state.hpp"
-
 #include "adt/address_key.hpp"
 #include "adt/map.hpp"
 #include "common/error_text.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using primitives::StoragePower;
   using primitives::address::Address;
   using DataCap = primitives::StoragePower;
 
-  struct VerifiedRegistryActorState : State {
+  struct VerifiedRegistryActorState {
+    virtual ~VerifiedRegistryActorState() = default;
+
     Address root_key;
     adt::Map<DataCap, adt::AddressKeyer> verifiers;
     adt::Map<DataCap, adt::AddressKeyer> verified_clients;
@@ -36,5 +37,6 @@ namespace fc::vm::actor::builtin::states {
   };
 
   using VerifiedRegistryActorStatePtr =
-      std::shared_ptr<VerifiedRegistryActorState>;
+      types::Universal<VerifiedRegistryActorState>;
+
 }  // namespace fc::vm::actor::builtin::states

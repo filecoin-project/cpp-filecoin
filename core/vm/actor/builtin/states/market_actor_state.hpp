@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/state.hpp"
-
 #include "adt/array.hpp"
 #include "adt/balance_table.hpp"
 #include "adt/cid_key.hpp"
@@ -15,6 +13,7 @@
 #include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 // Forward declaration
 namespace fc::vm::runtime {
@@ -33,7 +32,9 @@ namespace fc::vm::actor::builtin::states {
   using types::market::DealProposal;
   using types::market::DealState;
 
-  struct MarketActorState : State {
+  struct MarketActorState {
+    virtual ~MarketActorState() = default;
+
     using DealSet = adt::Set<UvarintKeyer>;
 
     adt::Array<DealProposal> proposals;
@@ -89,5 +90,6 @@ namespace fc::vm::actor::builtin::states {
         const fc::vm::runtime::Runtime &runtime, const DealProposal &deal);
   };
 
-  using MarketActorStatePtr = std::shared_ptr<MarketActorState>;
+  using MarketActorStatePtr = types::Universal<MarketActorState>;
+
 }  // namespace fc::vm::actor::builtin::states

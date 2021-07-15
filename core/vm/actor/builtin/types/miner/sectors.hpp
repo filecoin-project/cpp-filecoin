@@ -37,13 +37,13 @@ namespace fc::vm::actor::builtin::types::miner {
 
 }  // namespace fc::vm::actor::builtin::types::miner
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::types::miner::Sectors> {
+  struct CbVisitT<vm::actor::builtin::types::miner::Sectors> {
     template <typename Visitor>
     static void call(vm::actor::builtin::types::miner::Sectors &p,
                      const Visitor &visit) {
       visit(p.sectors);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

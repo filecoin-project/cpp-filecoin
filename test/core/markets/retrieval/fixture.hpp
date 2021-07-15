@@ -215,7 +215,7 @@ namespace fc::markets::retrieval::test {
       OUTCOME_TRY(piece_storage->addDealForPiece(piece_cid, deal));
       OUTCOME_TRY(piece_storage->addPayloadLocations(
           piece_cid, {{payload_cid, location}}));
-      OUTCOME_TRY(ipfs->setCbor(payload));
+      OUTCOME_TRY(setCbor(ipfs, payload));
       return outcome::success();
     }
   };

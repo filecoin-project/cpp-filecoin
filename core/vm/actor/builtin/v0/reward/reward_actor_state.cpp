@@ -7,7 +7,6 @@
 
 #include "common/math/math.hpp"
 #include "common/smoothing/alpha_beta_filter.hpp"
-#include "storage/ipfs/datastore.hpp"
 #include "vm/actor/builtin/types/reward/policy.hpp"
 #include "vm/actor/builtin/types/reward/reward_actor_calculus.hpp"
 
@@ -15,10 +14,6 @@ namespace fc::vm::actor::builtin::v0::reward {
   using common::smoothing::FilterEstimate;
   using primitives::kChainEpochUndefined;
   using namespace types::reward;
-
-  outcome::result<Buffer> RewardActorState::toCbor() const {
-    return Ipld::encode(*this);
-  }
 
   void RewardActorState::initialize(
       const StoragePower &current_realized_power) {
@@ -30,8 +25,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     this_epoch_baseline_power =
         initBaselinePower(kBaselineInitialValueV0, kBaselineExponentV0);
     epoch = kChainEpochUndefined;
-    updateToNextEpochWithReward(
-        *this, current_realized_power, kBaselineExponentV0);
+    updateToNextEpochWithReward(current_realized_power, kBaselineExponentV0);
   }
 
   TokenAmount RewardActorState::simpleTotal() const {

@@ -4,12 +4,15 @@
  */
 
 #include "vm/actor/builtin/v2/multisig/multisig_actor.hpp"
+
+#include "vm/actor/builtin/states/multisig_actor_state.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v2::multisig {
   using common::Buffer;
   using primitives::BigInt;
   using primitives::ChainEpoch;
+  using states::MultisigActorStatePtr;
   using toolchain::Toolchain;
 
   // Construct
@@ -53,7 +56,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
 
     const auto utils = Toolchain::createMultisigActorUtils(runtime);
     OUTCOME_TRY(resolved_signer, utils->getResolvedAddress(params.signer));
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
     OUTCOME_TRY(checkSignersCount(state->signers));
     OUTCOME_TRY(
         v0::multisig::AddSigner::addSigner(params, state, resolved_signer));
@@ -69,7 +72,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
 
     const auto utils = Toolchain::createMultisigActorUtils(runtime);
     OUTCOME_TRY(resolved_signer, utils->getResolvedAddress(params.signer));
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
     OUTCOME_TRY(
         v0::multisig::RemoveSigner::checkState(params, state, resolved_signer));
 
@@ -98,7 +101,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
     const auto utils = Toolchain::createMultisigActorUtils(runtime);
     OUTCOME_TRY(from_resolved, utils->getResolvedAddress(params.from));
     OUTCOME_TRY(to_resolved, utils->getResolvedAddress(params.to));
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
     OUTCOME_TRY(v0::multisig::SwapSigner::swapSigner(
         state, from_resolved, to_resolved));
     REQUIRE_NO_ERROR(utils->purgeApprovals(state, from_resolved),
@@ -116,7 +119,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
     OUTCOME_TRY(runtime.validateArgument(
         !((runtime.getNetworkVersion() >= NetworkVersion::kVersion7)
           && (params.amount < 0))));
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
     OUTCOME_TRY(v0::multisig::LockBalance::lockBalance(params, state));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();

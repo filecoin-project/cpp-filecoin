@@ -27,9 +27,6 @@ namespace fc::storage::ipld {
     outcome::result<bool> contains(const CID &cid) const override;
     outcome::result<void> set(const CID &cid, Buffer value) override;
     outcome::result<Buffer> get(const CID &cid) const override;
-    IpldPtr shared() override {
-      return shared_from_this();
-    }
 
     bool get(const CbCid &key, Buffer *value) const override;
     void put(const CbCid &key, BytesIn value) override;

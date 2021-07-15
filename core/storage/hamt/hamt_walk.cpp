@@ -305,7 +305,7 @@ namespace fc::storage::hamt {
       for (auto &item2 : node.items) {
         OUTCOME_TRY(flush(item2.second));
       }
-      OUTCOME_TRYA(item, ipld->setCbor(node));
+      OUTCOME_TRYA(item, fc::setCbor(ipld, node));
     }
     return outcome::success();
   }
@@ -316,7 +316,7 @@ namespace fc::storage::hamt {
 
   outcome::result<void> Hamt::loadItem(Node::Item &item) const {
     if (which<CID>(item)) {
-      OUTCOME_TRY(child, ipld->getCbor<Node>(boost::get<CID>(item)));
+      OUTCOME_TRY(child, fc::getCbor<Node>(ipld, boost::get<CID>(item)));
       if (!child.v3) {
         child.v3 = v3_;
       } else if (*child.v3 != v3_) {

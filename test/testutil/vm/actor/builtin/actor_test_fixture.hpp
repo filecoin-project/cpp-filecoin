@@ -10,7 +10,6 @@
 #include "primitives/types.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
-#include "testutil/mocks/vm/states/state_manager_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
@@ -20,7 +19,6 @@
 namespace fc::testutil::vm::actor::builtin {
   using ::fc::vm::actor::ActorVersion;
   using ::fc::vm::actor::CodeId;
-  using ::fc::vm::actor::builtin::states::MockStateManager;
   using ::fc::vm::runtime::MockRuntime;
   using primitives::ChainEpoch;
   using primitives::address::Address;
@@ -36,7 +34,7 @@ namespace fc::testutil::vm::actor::builtin {
    public:
     void SetUp() override {
       EXPECT_CALL(runtime, getActorVersion())
-          .WillRepeatedly(testing::Invoke([&]() { return actorVersion; }));
+          .WillRepeatedly(testing::Invoke([&]() { return actor_version; }));
 
       EXPECT_CALL(runtime, getIpfsDatastore())
           .WillRepeatedly(testing::Invoke([&]() { return ipld; }));
@@ -51,6 +49,19 @@ namespace fc::testutil::vm::actor::builtin {
       EXPECT_CALL(runtime, hashBlake2b(testing::_))
           .WillRepeatedly(testing::Invoke(
               [&](auto &data) { return crypto::blake2b::blake2b_256(data); }));
+
+      EXPECT_CALL(runtime, commit(testing::_))
+          .WillRepeatedly(testing::Invoke([&](auto &cid) {
+            EXPECT_OUTCOME_TRUE(new_state, getCbor<State>(ipld, cid));
+            state = std::move(new_state);
+            return outcome::success();
+          }));
+
+      EXPECT_CALL(runtime, getActorStateCid())
+          .WillRepeatedly(testing::Invoke([&]() {
+            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
+            return std::move(cid);
+          }));
 
       EXPECT_CALL(runtime, getActorCodeID(_))
           .WillRepeatedly(testing::Invoke([&](auto &address) {
@@ -67,18 +78,6 @@ namespace fc::testutil::vm::actor::builtin {
           .WillRepeatedly(testing::Invoke([&]() {
             return fc::vm::version::getNetworkVersion(
                 runtime.getCurrentEpoch());
-          }));
-
-      EXPECT_CALL(runtime, stateManager())
-          .WillRepeatedly(testing::Return(state_manager));
-
-      EXPECT_CALL(*state_manager, commitState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](const auto &s) {
-            auto temp_state = std::static_pointer_cast<State>(s);
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(*temp_state));
-            EXPECT_OUTCOME_TRUE(new_state, ipld->getCbor<State>(cid));
-            state = std::move(new_state);
-            return outcome::success();
           }));
     }
 
@@ -132,8 +131,6 @@ namespace fc::testutil::vm::actor::builtin {
     }
 
     MockRuntime runtime;
-    std::shared_ptr<MockStateManager> state_manager{
-        std::make_shared<MockStateManager>()};
     std::shared_ptr<InMemoryDatastore> ipld{
         std::make_shared<InMemoryDatastore>()};
     State state;
@@ -141,6 +138,6 @@ namespace fc::testutil::vm::actor::builtin {
     std::map<Address, CodeId> code_ids;
     boost::optional<CodeId> code_id_any;
     std::map<Address, Address> resolve_addresses;
-    ActorVersion actorVersion;
+    ActorVersion actor_version;
   };
 }  // namespace fc::testutil::vm::actor::builtin

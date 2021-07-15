@@ -7,6 +7,7 @@
 
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
+#include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
@@ -14,7 +15,7 @@ namespace fc::vm::actor::builtin::utils {
   using primitives::StoragePower;
   using primitives::address::Address;
   using runtime::Runtime;
-  using states::VerifiedRegistryActorState;
+  using states::VerifiedRegistryActorStatePtr;
 
   class VerifRegUtils {
    public:
@@ -25,8 +26,9 @@ namespace fc::vm::actor::builtin::utils {
         const StoragePower &deal_size) const = 0;
 
     inline outcome::result<void> checkAddress(
-        const VerifiedRegistryActorState &state, const Address &address) const {
-      if (state.root_key == address) {
+        const VerifiedRegistryActorStatePtr &state,
+        const Address &address) const {
+      if (state->root_key == address) {
         ABORT(VMExitCode::kErrIllegalArgument);
       }
       return outcome::success();

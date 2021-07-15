@@ -26,7 +26,7 @@ std::shared_ptr<fc::vm::state::StateTree> setupInitActor(
   init_state.address_map = {store, 0, false};
   init_state.next_id = next_id;
   init_state.network_name = "n";
-  EXPECT_OUTCOME_TRUE(head, store->setCbor(init_state));
+  EXPECT_OUTCOME_TRUE(head, fc::setCbor(store, init_state));
   EXPECT_OUTCOME_TRUE_1(state_tree->set(fc::vm::actor::kInitAddress,
                                         {vm::actor::code::init0, head, 0, 0}));
   return state_tree;

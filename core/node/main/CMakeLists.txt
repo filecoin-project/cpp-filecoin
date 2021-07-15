@@ -44,6 +44,10 @@ target_link_libraries(node_builder
     storage_market_import_manager
     sync
     weight_calculator
+    miner_actor_v0
+    miner_actor_v2
+    miner_actor_v3
+    miner_types
     )
 
 add_executable(node

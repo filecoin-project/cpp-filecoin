@@ -32,11 +32,11 @@ namespace fc::vm::actor::builtin::v2::multisig {
         const ChainEpoch &current_epoch) const override;
 
     outcome::result<ApproveTransactionResult> executeTransaction(
-        MultisigActorStatePtr state,
+        MultisigActorStatePtr &state,
         const TransactionId &tx_id,
         const Transaction &transaction) const override;
 
-    outcome::result<void> purgeApprovals(MultisigActorStatePtr state,
+    outcome::result<void> purgeApprovals(MultisigActorStatePtr &state,
                                          const Address &address) const override;
   };
 }  // namespace fc::vm::actor::builtin::v2::multisig

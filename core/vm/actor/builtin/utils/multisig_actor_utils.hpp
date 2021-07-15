@@ -86,7 +86,7 @@ namespace fc::vm::actor::builtin::utils {
      * sending a message
      */
     virtual outcome::result<multisig::ApproveTransactionResult>
-    executeTransaction(MultisigActorStatePtr state,
+    executeTransaction(MultisigActorStatePtr &state,
                        const TransactionId &tx_id,
                        const Transaction &transaction) const = 0;
 
@@ -98,7 +98,7 @@ namespace fc::vm::actor::builtin::utils {
      * @param address - address to purge
      */
     virtual outcome::result<void> purgeApprovals(
-        MultisigActorStatePtr state, const Address &address) const = 0;
+        MultisigActorStatePtr &state, const Address &address) const = 0;
 
    protected:
     Runtime &runtime;

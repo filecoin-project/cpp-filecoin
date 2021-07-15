@@ -6,6 +6,7 @@
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 
 #include "primitives/cid/comm_cid.hpp"
+#include "vm/actor/builtin/states/market_actor_state.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
@@ -14,13 +15,14 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::kChainEpochUndefined;
   using primitives::cid::kCommitmentBytesLen;
   using primitives::piece::PieceInfo;
+  using states::MarketActorStatePtr;
   using toolchain::Toolchain;
   using namespace types::market;
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    auto state = runtime.stateManager()->createMarketActorState(
-        runtime.getActorVersion());
+    MarketActorStatePtr state{runtime.getActorVersion()};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
     state->last_cron = kChainEpochUndefined;
 
     OUTCOME_TRY(runtime.commitState(state));
@@ -40,7 +42,7 @@ namespace fc::vm::actor::builtin::v0::market {
     std::tie(nominal, std::ignore, std::ignore) = addresses;
 
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR(state->escrow_table.addCreate(nominal, message_value),
                      VMExitCode::kErrIllegalState);
@@ -65,7 +67,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(approved_callers));
 
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR_A(
         min, state->locked_table.get(nominal), VMExitCode::kErrIllegalState);
@@ -110,7 +112,7 @@ namespace fc::vm::actor::builtin::v0::market {
     std::vector<DealId> deals;
     std::map<Address, Address> resolved_addresses;
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
 
     // Lotus gas conformance
@@ -196,7 +198,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
     const auto utils = Toolchain::createMarketUtils(runtime);
     REQUIRE_NO_ERROR_A(result,
@@ -219,7 +221,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
     const auto utils = Toolchain::createMarketUtils(runtime);
     REQUIRE_NO_ERROR(utils->validateDealsForActivation(
@@ -260,7 +262,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
 
     for (const auto deal_id : params.deals) {
@@ -312,7 +314,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
 
     // Lotus gas conformance
@@ -336,7 +338,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kCronAddress));
     const auto now{runtime.getCurrentEpoch()};
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
     TokenAmount slashed_sum;
     std::map<ChainEpoch, std::vector<DealId>> updates_needed;

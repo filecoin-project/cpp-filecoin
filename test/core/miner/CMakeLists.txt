@@ -48,5 +48,8 @@ target_link_libraries(sealing_test
         storage_fsm
         ipfs_datastore_in_memory
         in_memory_storage
+        miner_actor_v0
+        miner_actor_v2
+        miner_actor_v3
         )
 
