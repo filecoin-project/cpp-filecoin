@@ -6,7 +6,6 @@
 #pragma once
 
 #include "miner/storage_fsm/sealing_states.hpp"
-#include "miner/storage_fsm/types.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/tipset/tipset_key.hpp"
