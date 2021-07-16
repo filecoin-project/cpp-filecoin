@@ -91,7 +91,7 @@ namespace fc::sector_storage {
 
       return_interface_ = std::make_shared<WorkerReturnMock>();
 
-      local_worker_ = LocalWorker::newLocalWorker(
+      local_worker_ = std::make_shared<LocalWorker>(
           io_context_, config_, return_interface_, store_, proof_engine_);
     }
 

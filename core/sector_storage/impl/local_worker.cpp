@@ -928,7 +928,7 @@ namespace fc::sector_storage {
     return call_id;
   }
 
-  std::shared_ptr<LocalWorker> LocalWorker::newLocalWorker(
+  /*std::shared_ptr<LocalWorker> LocalWorker::newLocalWorker(
       std::shared_ptr<boost::asio::io_context> context,
       const WorkerConfig &config,
       std::shared_ptr<WorkerReturn> return_interface,
@@ -952,5 +952,5 @@ namespace fc::sector_storage {
                                                  std::move(return_interface),
                                                  std::move(store),
                                                  std::move(proofs));
-  }
+  }*/
 }  // namespace fc::sector_storage

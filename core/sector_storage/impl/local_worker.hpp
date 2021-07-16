@@ -23,16 +23,22 @@ namespace fc::sector_storage {
                       public std::enable_shared_from_this<LocalWorker> {
    public:
     /**
-     * @note Factory method simply replaces constructor, because we need at least
-     * 1 shared_ptr for correct job
+     * @note Factory method simply replaces constructor, because we need at
+     * least 1 shared_ptr for correct job
      */
-    static std::shared_ptr<LocalWorker> newLocalWorker(
+    /*static std::shared_ptr<LocalWorker> newLocalWorker(
         std::shared_ptr<boost::asio::io_context> context,
         const WorkerConfig &config,
         std::shared_ptr<WorkerReturn> return_interface,
         std::shared_ptr<stores::RemoteStore> store,
-        std::shared_ptr<proofs::ProofEngine> proofs =
-            std::make_shared<proofs::ProofEngineImpl>());
+        std::shared_ptr<proofs::ProofEngine> proofs);*/
+
+    LocalWorker(std::shared_ptr<boost::asio::io_context> context,
+                const WorkerConfig &config,
+                std::shared_ptr<WorkerReturn> return_interface,
+                std::shared_ptr<stores::RemoteStore> store,
+                std::shared_ptr<proofs::ProofEngine> proofs =
+                    std::make_shared<proofs::ProofEngineImpl>());
 
     outcome::result<CallId> addPiece(
         const SectorRef &sector,
@@ -89,14 +95,8 @@ namespace fc::sector_storage {
         override;
 
    private:
-    LocalWorker(std::shared_ptr<boost::asio::io_context> context,
-                const WorkerConfig &config,
-                std::shared_ptr<WorkerReturn> return_interface,
-                std::shared_ptr<stores::RemoteStore> store,
-                std::shared_ptr<proofs::ProofEngine> proofs);
-
     outcome::result<CallId> asyncCall(const SectorRef &sector,
-                                      std::function<void(const CallId&)> work);
+                                      std::function<void(const CallId &)> work);
 
     struct Response {
       stores::SectorPaths paths;

@@ -411,14 +411,14 @@ namespace fc::sector_storage {
     }
 
     std::shared_ptr<Worker> worker =
-        LocalWorker::newLocalWorker(io_context,
-                                    WorkerConfig{
-                                        .custom_hostname = boost::none,
-                                        .task_types = std::move(local_tasks),
-                                    },
-                                    scheduler,
-                                    remote,
-                                    proofs);
+        std::make_shared<LocalWorker>(io_context,
+                                      WorkerConfig{
+                                          .custom_hostname = boost::none,
+                                          .task_types = std::move(local_tasks),
+                                      },
+                                      scheduler,
+                                      remote,
+                                      proofs);
 
     OUTCOME_TRY(manager->addWorker(std::move(worker)));
     return std::move(manager);

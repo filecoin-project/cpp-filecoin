@@ -201,7 +201,7 @@ namespace fc {
     auto remote_return{std::make_shared<sector_storage::RemoteReturn>(mapi)};
 
     auto worker{
-        LocalWorker::newLocalWorker(io, wconfig, remote_return, remote_store)};
+        std::make_shared<LocalWorker>(io, wconfig, remote_return, remote_store)};
 
     auto wapi{std::make_shared<api::WorkerApi>()};
     wapi->Version = []() { return VersionResult{"seal-worker", 0, 0}; };
