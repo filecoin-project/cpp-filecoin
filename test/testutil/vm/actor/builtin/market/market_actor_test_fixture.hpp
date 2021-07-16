@@ -36,35 +36,16 @@ namespace fc::testutil::vm::actor::builtin::market {
     using ActorTestFixture<State>::callerIs;
     using ActorTestFixture<State>::currentEpochIs;
     using ActorTestFixture<State>::current_epoch;
-    using ActorTestFixture<State>::state_manager;
     using ActorTestFixture<State>::state;
 
     void SetUp() override {
       ActorTestFixture<State>::SetUp();
-
       runtime.resolveAddressWith(state_tree);
-
       currentEpochIs(50000);
-
-      EXPECT_CALL(*state_manager, createMarketActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<State>();
-            loadState(*s);
-            return std::static_pointer_cast<BaseMarketActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getMarketActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->template getCbor<State>(cid));
-            auto s = std::make_shared<State>(current_state);
-            return std::static_pointer_cast<BaseMarketActorState>(s);
-          }));
     }
 
     void loadState(State &s) {
-      ipld->load(s);
+      cbor_blake::cbLoadT(ipld, s);
     }
 
     void expectSendFunds(const Address &address, TokenAmount amount) {

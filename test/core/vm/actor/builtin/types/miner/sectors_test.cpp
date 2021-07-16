@@ -16,7 +16,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
   struct SectorsTest : testing::Test {
     void SetUp() override {
-      ipld->load(setup_sectors);
+      cbor_blake::cbLoadT(ipld, setup_sectors);
 
       EXPECT_OUTCOME_TRUE_1(
           setup_sectors.store({makeSector(0), makeSector(1), makeSector(5)}));

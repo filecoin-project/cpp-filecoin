@@ -123,7 +123,7 @@ namespace fc {
     }  // namespace blockchain
 
     namespace ipfs {
-      class IpfsDatastore;
+      struct IpfsDatastore;
 
       namespace graphsync {
         class Graphsync;

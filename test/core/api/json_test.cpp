@@ -10,6 +10,7 @@
 #include "codec/json/json.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "vm/actor/builtin/v0/miner/types/miner_info.hpp"
 
 using fc::api::Address;
 using fc::api::BigInt;
@@ -111,13 +112,17 @@ TEST(ApiJsonTest, MinerInfoPendingWorkerKeyNotSet) {
   using fc::vm::actor::builtin::types::miner::MinerInfo;
   MinerInfo miner_info;
   miner_info.seal_proof_type = RegisteredSealProof::kStackedDrg2KiBV1;
+  EXPECT_OUTCOME_TRUE(window_post_proof_type,
+                      getRegisteredWindowPoStProof(miner_info.seal_proof_type));
+  miner_info.window_post_proof_type = window_post_proof_type;
   miner_info.sector_size = 1;
   miner_info.window_post_partition_sectors = 1;
   expectJson(miner_info,
              "{\"Owner\":\"t00\",\"Worker\":\"t00\",\"NewWorker\":\"<empty>\","
              "\"WorkerChangeEpoch\":-1,\"ControlAddresses\":[],\"PeerId\":null,"
-             "\"Multiaddrs\":[],\"WindowPoStProofType\":0,\"SectorSize\":1,"
-             "\"WindowPoStPartitionSectors\":1,\"ConsensusFaultElapsed\":0}");
+             "\"Multiaddrs\":[],\"SealProofType\":0,\"WindowPoStProofType\":5,"
+             "\"SectorSize\":1,\"WindowPoStPartitionSectors\":1,"
+             "\"ConsensusFaultElapsed\":0}");
 }
 
 /**
@@ -132,11 +137,15 @@ TEST(ApiJsonTest, MinerInfoPendingWorkerKeyPresent) {
   miner_info.pending_worker_key =
       WorkerKeyChange{.new_worker = Address::makeFromId(2), .effective_at = 2};
   miner_info.seal_proof_type = RegisteredSealProof::kStackedDrg2KiBV1;
+  EXPECT_OUTCOME_TRUE(window_post_proof_type,
+                      getRegisteredWindowPoStProof(miner_info.seal_proof_type));
+  miner_info.window_post_proof_type = window_post_proof_type;
   miner_info.sector_size = 1;
   miner_info.window_post_partition_sectors = 1;
   expectJson(miner_info,
              "{\"Owner\":\"t00\",\"Worker\":\"t00\",\"NewWorker\":\"t02\","
              "\"WorkerChangeEpoch\":2,\"ControlAddresses\":[],\"PeerId\":null,"
-             "\"Multiaddrs\":[],\"WindowPoStProofType\":0,\"SectorSize\":1,"
-             "\"WindowPoStPartitionSectors\":1,\"ConsensusFaultElapsed\":0}");
+             "\"Multiaddrs\":[],\"SealProofType\":0,\"WindowPoStProofType\":5,"
+             "\"SectorSize\":1,\"WindowPoStPartitionSectors\":1,"
+             "\"ConsensusFaultElapsed\":0}");
 }

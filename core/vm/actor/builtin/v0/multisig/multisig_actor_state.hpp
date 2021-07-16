@@ -5,16 +5,13 @@
 
 #pragma once
 
-#include "codec/cbor/streams_annotation.hpp"
 #include "vm/actor/builtin/states/multisig_actor_state.hpp"
+
+#include "codec/cbor/streams_annotation.hpp"
 
 namespace fc::vm::actor::builtin::v0::multisig {
 
-  struct MultisigActorState : states::MultisigActorState {
-    outcome::result<Buffer> toCbor() const override;
-    std::shared_ptr<states::MultisigActorState> copy() const override;
-  };
-
+  struct MultisigActorState : states::MultisigActorState {};
   CBOR_TUPLE(MultisigActorState,
              signers,
              threshold,
@@ -26,9 +23,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
 }  // namespace fc::vm::actor::builtin::v0::multisig
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::v0::multisig::MultisigActorState> {
+  struct CbVisitT<vm::actor::builtin::v0::multisig::MultisigActorState> {
     template <typename Visitor>
     static void call(
         vm::actor::builtin::v0::multisig::MultisigActorState &state,
@@ -36,4 +33,4 @@ namespace fc {
       visit(state.pending_transactions);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

@@ -5,10 +5,9 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/state.hpp"
-
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using common::smoothing::FilterEstimate;
@@ -18,7 +17,9 @@ namespace fc::vm::actor::builtin::states {
   using primitives::StoragePower;
   using primitives::TokenAmount;
 
-  struct RewardActorState : State {
+  struct RewardActorState {
+    virtual ~RewardActorState() = default;
+
     /**
      * Target CumsumRealized needs to reach for EffectiveNetworkTime to
      * increase. Expressed in byte-epochs.
@@ -86,8 +87,33 @@ namespace fc::vm::actor::builtin::states {
     virtual void initialize(const StoragePower &current_realized_power) = 0;
     virtual TokenAmount simpleTotal() const = 0;
     virtual TokenAmount baselineTotal() const = 0;
+
+    /**
+     * Used for update of internal state during null rounds
+     *
+     * @tparam State - Reward Actor State
+     * @param current_realized_power
+     * @param baseline_exponent - depends on actor version
+     */
+    void updateToNextEpoch(const StoragePower &current_realized_power,
+                           const BigInt &baseline_exponent);
+
+    /**
+     * Updates reward state to track reward for the next epoch
+     * @tparam State - Reward Actor State
+     * @param current_realized_power
+     */
+    void updateToNextEpochWithReward(const StoragePower &current_realized_power,
+                                     const BigInt &baseline_exponent);
+
+    /**
+     * Update smoothed estimate for state
+     * @tparam State - Reward Actor State
+     * @param delta
+     */
+    void updateSmoothedEstimates(const ChainEpoch &delta);
   };
 
-  using RewardActorStatePtr = std::shared_ptr<RewardActorState>;
+  using RewardActorStatePtr = types::Universal<RewardActorState>;
 
 }  // namespace fc::vm::actor::builtin::states

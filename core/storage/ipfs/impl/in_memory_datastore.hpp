@@ -11,9 +11,7 @@
 
 namespace fc::storage::ipfs {
 
-  class InMemoryDatastore
-      : public IpfsDatastore,
-        public std::enable_shared_from_this<InMemoryDatastore> {
+  class InMemoryDatastore : public Ipld {
    public:
     ~InMemoryDatastore() override = default;
 
@@ -25,10 +23,6 @@ namespace fc::storage::ipfs {
 
     /** @copydoc IpfsDatastore::get() */
     outcome::result<Value> get(const CID &key) const override;
-
-    IpldPtr shared() override {
-      return shared_from_this();
-    }
 
    private:
     std::map<CID, Value> storage_;

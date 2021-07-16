@@ -110,9 +110,9 @@ namespace fc::vm::actor::builtin::types::miner {
 
 }  // namespace fc::vm::actor::builtin::types::miner
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::types::miner::Deadline> {
+  struct CbVisitT<vm::actor::builtin::types::miner::Deadline> {
     template <typename Visitor>
     static void call(vm::actor::builtin::types::miner::Deadline &p,
                      const Visitor &visit) {
@@ -121,4 +121,4 @@ namespace fc {
       visit(p.optimistic_post_submissions);
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

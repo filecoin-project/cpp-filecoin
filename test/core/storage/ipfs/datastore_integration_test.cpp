@@ -13,7 +13,6 @@
 
 using fc::CID;
 using fc::common::Buffer;
-using fc::storage::ipfs::IpfsDatastore;
 using fc::storage::ipfs::IpfsDatastoreError;
 using fc::storage::ipfs::LeveldbDatastore;
 using libp2p::multi::HashType;

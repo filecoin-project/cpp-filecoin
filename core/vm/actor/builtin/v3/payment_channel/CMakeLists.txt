@@ -5,7 +5,6 @@
 
 add_library(payment_channel_actor_v3
     payment_channel_actor.cpp
-    payment_channel_actor_state.cpp
     )
 target_link_libraries(payment_channel_actor_v3
     actor

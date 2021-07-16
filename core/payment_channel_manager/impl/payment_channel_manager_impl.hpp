@@ -11,14 +11,13 @@
 #include "common/buffer.hpp"
 #include "payment_channel_manager/payment_channel_manager.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/states/payment_channel_actor_state.hpp"
 
 namespace fc::payment_channel_manager {
   using api::FullNodeApi;
   using common::Buffer;
-  using vm::actor::builtin::types::payment_channel::SignedVoucher;
-  using Ipld = fc::storage::ipfs::IpfsDatastore;
   using vm::actor::builtin::states::PaymentChannelActorStatePtr;
+  using vm::actor::builtin::types::payment_channel::SignedVoucher;
 
   struct ChannelInfo {
     Address channel_actor;

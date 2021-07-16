@@ -16,54 +16,12 @@ namespace fc::vm::actor::builtin::types::miner {
   using common::Buffer;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
-  using primitives::kChainEpochUndefined;
   using primitives::SectorSize;
   using primitives::address::Address;
   using primitives::sector::RegisteredPoStProof;
   using primitives::sector::RegisteredSealProof;
 
   struct MinerInfo {
-    static outcome::result<MinerInfo> make(
-        const Address &owner,
-        const Address &worker,
-        const std::vector<Address> &control,
-        const Buffer &peer_id,
-        const std::vector<Multiaddress> &multiaddrs,
-        const RegisteredSealProof &seal_proof_type,
-        const RegisteredPoStProof &window_post_proof_type) {
-      OUTCOME_TRY(sector_size,
-                  primitives::sector::getSectorSize(seal_proof_type));
-      OUTCOME_TRY(partition_sectors,
-                  primitives::sector::getSealProofWindowPoStPartitionSectors(
-                      seal_proof_type));
-      return MinerInfo{.owner = owner,
-                       .worker = worker,
-                       .control = control,
-                       .pending_worker_key = boost::none,
-                       .peer_id = peer_id,
-                       .multiaddrs = multiaddrs,
-                       .seal_proof_type = seal_proof_type,
-                       .window_post_proof_type = window_post_proof_type,
-                       .sector_size = sector_size,
-                       .window_post_partition_sectors = partition_sectors,
-                       .consensus_fault_elapsed = kChainEpochUndefined,
-                       .pending_owner_address = boost::none};
-    }
-
-    inline bool operator==(const MinerInfo &other) const {
-      return owner == other.owner && worker == other.worker
-             && control == other.control
-             && pending_worker_key == other.pending_worker_key
-             && peer_id == other.peer_id && multiaddrs == other.multiaddrs
-             && seal_proof_type == other.seal_proof_type
-             && window_post_proof_type == other.window_post_proof_type
-             && sector_size == other.sector_size
-             && window_post_partition_sectors
-                    == other.window_post_partition_sectors
-             && consensus_fault_elapsed == other.consensus_fault_elapsed
-             && pending_owner_address == other.pending_owner_address;
-    }
-
     /**
      * Account that owns this miner.
      * - Income and returned collateral are paid to this address.
@@ -99,14 +57,14 @@ namespace fc::vm::actor::builtin::types::miner {
     std::vector<Multiaddress> multiaddrs;
 
     /** The proof type used by this miner for sealing sectors. */
-    RegisteredSealProof seal_proof_type{};
+    RegisteredSealProof seal_proof_type{RegisteredSealProof::kUndefined};
 
     /**
      * The proof type used for Window PoSt for this miner.
      * A miner may commit sectors with different seal proof types (but
      * compatible sector size and corresponding PoSt proof types).
      */
-    RegisteredPoStProof window_post_proof_type{};
+    RegisteredPoStProof window_post_proof_type{RegisteredPoStProof::kUndefined};
 
     /**
      * Amount of space in each sector committed to the network by this miner.
@@ -132,6 +90,20 @@ namespace fc::vm::actor::builtin::types::miner {
      * message from the pending address itself.
      */
     boost::optional<Address> pending_owner_address;
+
+    inline bool operator==(const MinerInfo &other) const {
+      return owner == other.owner && worker == other.worker
+             && control == other.control
+             && pending_worker_key == other.pending_worker_key
+             && peer_id == other.peer_id && multiaddrs == other.multiaddrs
+             && seal_proof_type == other.seal_proof_type
+             && window_post_proof_type == other.window_post_proof_type
+             && sector_size == other.sector_size
+             && window_post_partition_sectors
+                    == other.window_post_partition_sectors
+             && consensus_fault_elapsed == other.consensus_fault_elapsed
+             && pending_owner_address == other.pending_owner_address;
+    }
   };
 
 }  // namespace fc::vm::actor::builtin::types::miner

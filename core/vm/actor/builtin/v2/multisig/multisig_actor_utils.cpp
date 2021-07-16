@@ -52,7 +52,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
   }
 
   outcome::result<ApproveTransactionResult> MultisigUtils::executeTransaction(
-      MultisigActorStatePtr state,
+      MultisigActorStatePtr &state,
       const TransactionId &tx_id,
       const Transaction &transaction) const {
     bool applied = false;
@@ -75,7 +75,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
       applied = true;
 
       // Lotus gas conformance
-      OUTCOME_TRYA(state, runtime.stateManager()->getMultisigActorState());
+      OUTCOME_TRYA(state, runtime.getActorState<MultisigActorStatePtr>());
 
       // Prior to version 6 we attempt to delete all transactions, even those
       // no longer in the pending txns map because they have been purged.
@@ -102,7 +102,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
   }
 
   outcome::result<void> MultisigUtils::purgeApprovals(
-      MultisigActorStatePtr state, const Address &address) const {
+      MultisigActorStatePtr &state, const Address &address) const {
     OUTCOME_TRY(tx_ids, state->pending_transactions.keys());
 
     for (const auto &tx_id : tx_ids) {

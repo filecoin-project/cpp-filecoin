@@ -5,16 +5,18 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/state.hpp"
-
 #include "primitives/address/address.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using primitives::address::Address;
 
-  struct AccountActorState : State {
+  struct AccountActorState {
+    virtual ~AccountActorState() = default;
+
     Address address;
   };
 
-  using AccountActorStatePtr = std::shared_ptr<AccountActorState>;
+  using AccountActorStatePtr = types::Universal<AccountActorState>;
+
 }  // namespace fc::vm::actor::builtin::states

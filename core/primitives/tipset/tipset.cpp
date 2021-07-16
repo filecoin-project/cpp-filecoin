@@ -72,9 +72,9 @@ namespace fc::primitives::tipset {
         auto &msg{smsg.message};
         if (load) {
           if (bls) {
-            OUTCOME_TRYA(msg, ipld->getCbor<UnsignedMessage>(cid));
+            OUTCOME_TRYA(msg, getCbor<UnsignedMessage>(ipld, cid));
           } else {
-            OUTCOME_TRYA(smsg, ipld->getCbor<SignedMessage>(cid));
+            OUTCOME_TRYA(smsg, getCbor<SignedMessage>(ipld, cid));
           }
         }
         if (nonce) {
@@ -106,7 +106,7 @@ namespace fc::primitives::tipset {
       }
       return outcome::success();
     };
-    OUTCOME_TRY(meta, ipld->getCbor<block::MsgMeta>(block.messages));
+    OUTCOME_TRY(meta, getCbor<block::MsgMeta>(ipld, block.messages));
     OUTCOME_TRY(meta.bls_messages.visit(
         [&](auto, auto &cid) { return onMessage(true, cid); }));
     OUTCOME_TRY(meta.secp_messages.visit(

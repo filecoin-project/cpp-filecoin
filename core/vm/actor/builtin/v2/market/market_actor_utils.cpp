@@ -87,7 +87,7 @@ namespace fc::vm::actor::builtin::v2::market {
 
   outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
   MarketUtils::validateDealsForActivation(
-      MarketActorStatePtr state,
+      MarketActorStatePtr &state,
       const std::vector<DealId> &deals,
       const ChainEpoch &sector_expiry) const {
     const auto miner = runtime.getImmediateCaller();

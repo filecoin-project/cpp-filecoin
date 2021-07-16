@@ -52,12 +52,12 @@ namespace fc::vm::actor {
   CBOR_TUPLE(InitActorStateRaw, address_map_cid, next_id, network_name)
 }  // namespace fc::vm::actor
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Flush<vm::actor::InitActorStateRaw> {
+  struct CbFlushT<vm::actor::InitActorStateRaw> {
     static outcome::result<void> call(vm::actor::InitActorStateRaw &state) {
       OUTCOME_TRYA(state.address_map_cid, state.address_map.flush());
       return outcome::success();
     }
   };
-}  // namespace fc
+}  // namespace fc::cbor_blake

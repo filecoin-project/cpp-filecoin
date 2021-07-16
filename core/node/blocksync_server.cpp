@@ -63,7 +63,7 @@ namespace fc::sync::blocksync {
         auto index{visited.find(cid)};
         if (index == visited.end()) {
           index = visited.emplace(cid, messages.size()).first;
-          OUTCOME_TRY(message, ipld->getCbor<T>(cid));
+          OUTCOME_TRY(message, getCbor<T>(ipld, cid));
           messages.push_back(std::move(message));
         }
         indices.rbegin()->push_back(index->second);
@@ -100,7 +100,7 @@ namespace fc::sync::blocksync {
             for (auto &block : ts->blks) {
               OUTCOME_TRY(
                   meta,
-                  ipld->getCbor<primitives::block::MsgMeta>(block.messages));
+                  getCbor<primitives::block::MsgMeta>(ipld, block.messages));
               msgs.bls_msg_includes.emplace_back();
               OUTCOME_TRY(meta.bls_messages.visit(bls_visitor));
               msgs.secp_msg_includes.emplace_back();
