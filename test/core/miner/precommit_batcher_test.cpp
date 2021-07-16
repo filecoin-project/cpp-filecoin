@@ -9,6 +9,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/mocks/libp2p/scheduler_mock.hpp"
 #include "testutil/outcome.hpp"
+#include "vm/actor/builtin/v5/miner/miner_actor.hpp"
 
 namespace fc::mining {
   using api::MinerInfo;
@@ -24,6 +25,7 @@ namespace fc::mining {
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
   using testing::Mock;
+  using vm::actor::builtin::v5::miner::PreCommitBatch;
 
   class PreCommitBatcherTest : public testing::Test {
    protected:
@@ -62,7 +64,7 @@ namespace fc::mining {
           [&](const UnsignedMessage &msg,
               const boost::optional<api::MessageSendSpec> &)
           -> outcome::result<SignedMessage> {
-        if (msg.method == 25) {
+        if (msg.method == PreCommitBatch::Number) {
           is_called_ = true;
           return SignedMessage{.message = msg, .signature = BlsSignature()};
         }
@@ -96,8 +98,8 @@ namespace fc::mining {
   };
 
   /**
-   * CallbackSend have 4 precommits sent in pairs
-   * @when PrecommitBatcher send the first pair and after the rescheduling
+   * @given 4 precommits
+   * @when send the first pair and after the rescheduling
    * next pair
    * @then The result should be 2 messages in message pool with pair of
    * precommits in each
@@ -156,12 +158,12 @@ namespace fc::mining {
   }
 
   /**
-   * ShortDistanceSending have 3 Precommits
-   * @when First two are sent after 30 sec instead of 60 and one more
+   * @given 3 precommits
+   * @when first two are sent after 30 sec instead of 60 and one more
    * immediately after the addition.
-   * @then The result should be 2 new messages in message pool 1st:
-   * 2 precommits, have been sent after 30  sec, and 2nd: one
-   * precommmit, have been sent after the first one immediately
+   * @then The result should be 2 new messages in message pool 1st pair:
+   * have been sent after 30  sec, and 2nd pair:
+   * have been sent after the first one immediately
    **/
   TEST_F(PreCommitBatcherTest, ShortDistanceSending) {
     mutual_deposit_ = 0;

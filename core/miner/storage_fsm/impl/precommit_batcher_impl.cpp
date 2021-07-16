@@ -33,12 +33,14 @@ namespace fc::mining {
     logger_ = common::createLogger("batcher");
     logger_->info("Batcher has been started");
     handle_ = scheduler->schedule(max_delay_, [&]() {
-      std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
+      std::unique_lock<std::mutex> locker(mutex_);
       const auto maybe_result = sendBatch();
       for (const auto &[key, cb] : callbacks_) {
         cb(maybe_result);
       }
       callbacks_.clear();
+      cutoff_start_ = std::chrono::system_clock::now();
+      closest_cutoff_ = max_delay_;
       handle_.reschedule(max_delay_);
     });
   }
@@ -85,12 +87,18 @@ namespace fc::mining {
   }
 
   void PreCommitBatcherImpl::forceSend() {
-    std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
+    std::unique_lock<std::mutex> locker(mutex_);
+    forceSendWithoutLock();
+  }
+
+  void PreCommitBatcherImpl::forceSendWithoutLock(){
     const auto maybe_result = sendBatch();
     for (const auto &[key, cb] : callbacks_) {
       cb(maybe_result);
     }
     callbacks_.clear();
+    cutoff_start_ = std::chrono::system_clock::now();
+    closest_cutoff_ = max_delay_;
     handle_.reschedule(max_delay_);
   }
 
@@ -110,7 +118,7 @@ namespace fc::mining {
       }
     }
     if (cutoff_epoch <= current_epoch) {
-      forceSend();
+      forceSendWithoutLock();
     } else {
       const Ticks temp_cutoff = toTicks(std::chrono::seconds(
           (cutoff_epoch - current_epoch) * kEpochDurationSeconds));

@@ -24,6 +24,20 @@ namespace fc::mining {
 
   class PreCommitBatcherImpl : public PreCommitBatcher {
    public:
+    PreCommitBatcherImpl(const Ticks &max_time,
+                         std::shared_ptr<FullNodeApi> api,
+                         const Address &miner_address,
+                         const std::shared_ptr<Scheduler> &scheduler);
+
+    outcome::result<void> addPreCommit(
+        const SectorInfo &sector_info,
+        const TokenAmount &deposit,
+        const SectorPreCommitInfo &precommit_info,
+        const PrecommitCallback &callback) override;
+
+    void forceSend() override;
+
+   private:
     struct PreCommitEntry {
       PreCommitEntry() = default;
 
@@ -36,25 +50,6 @@ namespace fc::mining {
       SectorPreCommitInfo precommit_info;
     };
 
-    PreCommitBatcherImpl(const Ticks &max_time,
-                         std::shared_ptr<FullNodeApi> api,
-                         const Address &miner_address,
-                         const std::shared_ptr<Scheduler> &scheduler);
-
-    void setPreCommitCutoff(const ChainEpoch &current_epoch,
-                            const SectorInfo &sector_info);
-
-    outcome::result<void> addPreCommit(
-        const SectorInfo &sector_info,
-        const TokenAmount &deposit,
-        const SectorPreCommitInfo &precommit_info,
-        const PrecommitCallback &callback) override;
-
-    void forceSend() override;
-
-    outcome::result<CID> sendBatch();
-
-   private:
     std::mutex mutex_;
     TokenAmount mutual_deposit_;
     std::map<SectorNumber, PreCommitEntry> batch_storage_;
@@ -66,6 +61,13 @@ namespace fc::mining {
     std::chrono::system_clock::time_point cutoff_start_;
     common::Logger logger_;
     std::map<SectorNumber, PrecommitCallback> callbacks_;
+
+    void forceSendWithoutLock();
+
+    void setPreCommitCutoff(const ChainEpoch &current_epoch,
+                            const SectorInfo &sector_info);
+
+    outcome::result<CID> sendBatch();
   };
 
 }  // namespace fc::mining
