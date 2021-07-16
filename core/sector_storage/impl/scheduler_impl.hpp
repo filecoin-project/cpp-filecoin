@@ -67,56 +67,10 @@ namespace fc::sector_storage {
 
     void newWorker(std::unique_ptr<WorkerHandle> worker) override;
 
-    outcome::result<void> returnAddPiece(
-        const CallId &call_id,
-        const PieceInfo &maybe_piece_info,
-        const boost::optional<CallError> &maybe_error) override;
-
-    outcome::result<void> returnSealPreCommit1(
-        const CallId &call_id,
-        const PreCommit1Output &maybe_precommit1_out,
-        const boost::optional<CallError> &maybe_error) override;
-
-    outcome::result<void> returnSealPreCommit2(
-        const CallId &call_id,
-        const SectorCids &maybe_sector_cids,
-        const boost::optional<CallError> &maybe_error) override;
-
-    outcome::result<void> returnSealCommit1(
-        const CallId &call_id,
-        const Commit1Output &maybe_commit1_out,
-        const boost::optional<CallError> &maybe_error) override;
-
-    outcome::result<void> returnSealCommit2(
-        const CallId &call_id,
-        const Proof &maybe_proof,
-        const boost::optional<CallError> &maybe_error) override;
-
-    outcome::result<void> returnFinalizeSector(
-        const CallId &call_id,
-        const boost::optional<CallError> &maybe_error) override;
-
-    outcome::result<void> returnMoveStorage(
-        const CallId &call_id,
-        const boost::optional<CallError> &maybe_error) override;
-
-    outcome::result<void> returnUnsealPiece(
-        const CallId &call_id,
-        const boost::optional<CallError> &maybe_error) override;
-
-    outcome::result<void> returnReadPiece(
-        const CallId &call_id,
-        bool maybe_status,
-        const boost::optional<CallError> &maybe_error) override;
-
-    outcome::result<void> returnFetch(
-        const CallId &call_id,
-        const boost::optional<CallError> &maybe_error) override;
+    outcome::result<void> returnResult(const CallId &call_id,
+                                       CallResult result) override;
 
    private:
-    outcome::result<void> returnResult(const CallId &call_id,
-                                       CallResult result);
-
     outcome::result<bool> maybeScheduleRequest(
         const std::shared_ptr<TaskRequest> &request);
 

@@ -13,7 +13,9 @@
 #include <regex>
 #include <string>
 #include <unordered_set>
+
 #include "api/rpc/json.hpp"
+#include "api/storage_miner/return_api.hpp"
 #include "codec/json/json.hpp"
 #include "common/tarutil.hpp"
 #include "sector_storage/impl/allocate_selector.hpp"
@@ -410,13 +412,15 @@ namespace fc::sector_storage {
       local_tasks.insert(primitives::kTTUnseal);
     }
 
+    auto return_api{std::make_shared<WorkerReturn>()};
+    api::makeReturnApi(return_api, scheduler);
     std::shared_ptr<Worker> worker =
         std::make_shared<LocalWorker>(io_context,
                                       WorkerConfig{
                                           .custom_hostname = boost::none,
                                           .task_types = std::move(local_tasks),
                                       },
-                                      scheduler,
+                                      return_api,
                                       remote,
                                       proofs);
 

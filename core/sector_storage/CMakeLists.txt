@@ -54,14 +54,6 @@ target_link_libraries(scheduler
         Boost::thread
         )
 
-add_library(remote_return
-        impl/remote_return.cpp
-        )
-
-target_link_libraries(remote_return
-        rpc
-        )
-
 add_library(selector
         impl/allocate_selector.cpp
         impl/existing_selector.cpp

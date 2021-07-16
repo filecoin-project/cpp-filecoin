@@ -20,8 +20,10 @@ namespace fc::sector_storage {
 
   constexpr uint64_t kDefaultTaskPriority = 0;
 
-  class Scheduler : public WorkerReturn {
+  class Scheduler {
    public:
+    virtual ~Scheduler() = default;
+
     virtual outcome::result<void> schedule(
         const SectorRef &sector,
         const TaskType &task_type,
@@ -32,6 +34,9 @@ namespace fc::sector_storage {
         uint64_t priority = kDefaultTaskPriority) = 0;
 
     virtual void newWorker(std::unique_ptr<WorkerHandle> worker) = 0;
+
+    virtual outcome::result<void> returnResult(const CallId &call_id,
+                                               CallResult result) = 0;
   };
 
   enum class SchedulerErrors {

@@ -60,9 +60,6 @@ namespace fc::sector_storage {
 
       scheduler_ = std::make_shared<SchedulerMock>();
 
-      EXPECT_CALL(*scheduler_, getSealProofType())
-          .WillRepeatedly(::testing::Return(seal_proof_type_));
-
       EXPECT_CALL(*scheduler_, doNewWorker(_))
           .WillRepeatedly(::testing::Return());
 
@@ -168,9 +165,7 @@ namespace fc::sector_storage {
                                 const ReturnCb &cb,
                                 uint64_t priority) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
-              CallResult res;
-              res.maybe_value = result;
-              cb(res);
+              cb(CallResult{result, {}});
               return outcome::success();
             }));
 
@@ -230,9 +225,7 @@ namespace fc::sector_storage {
                                 const ReturnCb &cb,
                                 uint64_t priority) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
-              CallResult res;
-              res.maybe_value = result_cids;
-              cb(res);
+              cb(CallResult{result_cids, {}});
               return outcome::success();
             }));
 
@@ -298,9 +291,7 @@ namespace fc::sector_storage {
                                 const ReturnCb &cb,
                                 uint64_t priority) -> outcome::result<void> {
               OUTCOME_TRY(work(worker_));
-              CallResult res;
-              res.maybe_value = result;
-              cb(res);
+              cb(CallResult{result, {}});
               return outcome::success();
             }));
 
@@ -344,9 +335,7 @@ namespace fc::sector_storage {
                                 const ReturnCb &cb,
                                 uint64_t priority) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
-              CallResult res;
-              res.maybe_value = result;
-              cb(res);
+              cb(CallResult{result, {}});
               return outcome::success();
             }));
     EXPECT_OUTCOME_EQ(manager_->sealCommit2Sync(
@@ -528,9 +517,7 @@ namespace fc::sector_storage {
                                 const ReturnCb &cb,
                                 uint64_t priority) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
-              CallResult res;
-              res.maybe_value = result;
-              cb(res);
+              cb(CallResult{result, {}});
               return outcome::success();
             }));
 
@@ -620,9 +607,7 @@ namespace fc::sector_storage {
                                 const ReturnCb &cb,
                                 uint64_t priority) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id2);
-              CallResult res;
-              res.maybe_value = true;
-              cb(res);
+              cb(CallResult{true, {}});
               return outcome::success();
             }));
 
@@ -709,9 +694,7 @@ namespace fc::sector_storage {
                                 const ReturnCb &cb,
                                 uint64_t priority) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id2);
-              CallResult res;
-              res.maybe_value = false;
-              cb(res);
+              cb(CallResult{false, {}});
               return outcome::success();
             }));
 

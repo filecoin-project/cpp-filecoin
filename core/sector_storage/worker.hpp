@@ -15,6 +15,10 @@
 #include "sector_storage/stores/store.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
+namespace fc::api {
+  struct StorageMinerApi;
+}  // namespace fc::api
+
 namespace fc::sector_storage {
   using primitives::piece::PieceData;
   using primitives::piece::PieceInfo;
@@ -133,83 +137,14 @@ namespace fc::sector_storage {
     std::string message;
   };
 
-  template <typename T>
-  boost::optional<CallError> toCallError(const outcome::result<T> &result) {
-    if (not result.has_error()) {
-      return boost::none;
-    }
-
-    CallError error{
-        .code = CallErrorCode::kUnknown,
-        .message = result.error().message(),
-    };
-    if (result == outcome::failure(StoreError::kCannotReserve)) {
-      error.code = CallErrorCode::kAllocateSpace;
-    }
-    return error;
-  }
-
-  using ReturnValues =
-      std::variant<PieceInfo,
-                   SectorCids,
-                   Proof,  // also PreCommit1Output, Commit1Output
-                   bool>;
   struct CallResult {
-    boost::optional<ReturnValues> maybe_value;
+    // `Bytes` = (`Proof` | `PreCommit1Output` | `Commit1Output`)
+    std::variant<std::monostate, PieceInfo, SectorCids, Bytes, bool> value;
     boost::optional<CallError> maybe_error;
   };
   using ReturnCb = std::function<void(outcome::result<CallResult>)>;
 
-  class WorkerReturn {
-   public:
-    virtual ~WorkerReturn() = default;
-
-    virtual outcome::result<void> returnAddPiece(
-        const CallId &call_id,
-        const PieceInfo &maybe_piece_info,
-        const boost::optional<CallError> &maybe_error) = 0;
-
-    virtual outcome::result<void> returnSealPreCommit1(
-        const CallId &call_id,
-        const PreCommit1Output &maybe_precommit1_out,
-        const boost::optional<CallError> &maybe_error) = 0;
-
-    virtual outcome::result<void> returnSealPreCommit2(
-        const CallId &call_id,
-        const SectorCids &maybe_sector_cids,
-        const boost::optional<CallError> &maybe_error) = 0;
-
-    virtual outcome::result<void> returnSealCommit1(
-        const CallId &call_id,
-        const Commit1Output &maybe_commit1_out,
-        const boost::optional<CallError> &maybe_error) = 0;
-
-    virtual outcome::result<void> returnSealCommit2(
-        const CallId &call_id,
-        const Proof &maybe_proof,
-        const boost::optional<CallError> &maybe_error) = 0;
-
-    virtual outcome::result<void> returnFinalizeSector(
-        const CallId &call_id,
-        const boost::optional<CallError> &maybe_error) = 0;
-
-    virtual outcome::result<void> returnMoveStorage(
-        const CallId &call_id,
-        const boost::optional<CallError> &maybe_error) = 0;
-
-    virtual outcome::result<void> returnUnsealPiece(
-        const CallId &call_id,
-        const boost::optional<CallError> &maybe_error) = 0;
-
-    virtual outcome::result<void> returnReadPiece(
-        const CallId &call_id,
-        bool maybe_status,
-        const boost::optional<CallError> &maybe_error) = 0;
-
-    virtual outcome::result<void> returnFetch(
-        const CallId &call_id,
-        const boost::optional<CallError> &maybe_error) = 0;
-  };
+  using WorkerReturn = api::StorageMinerApi;
 
   enum class WorkerErrors {
     kCannotCreateSealedFile = 1,

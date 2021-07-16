@@ -306,6 +306,17 @@ namespace fc::mining {
         .is_keep_unsealed = true,
     };
 
+    api_->StateMinerInfo =
+        [&](const Address &address,
+            const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
+      if (address == miner_addr_) {
+        MinerInfo info;
+        info.seal_proof_type = seal_proof_type_;
+        return info;
+      }
+      return ERROR_TEXT("ERROR");
+    };
+
     EXPECT_OUTCOME_ERROR(
         SealingError::kPieceNotFit,
         sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));

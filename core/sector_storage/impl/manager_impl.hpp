@@ -185,7 +185,7 @@ namespace fc::sector_storage {
           return cb(CallError);
         }
 
-        if (auto value = std::get_if<T>(&(call_res.maybe_value.value()))) {
+        if (auto value = std::get_if<T>(&(call_res.value))) {
           return cb(*value);
         }
 

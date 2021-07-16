@@ -97,9 +97,8 @@ namespace fc::sector_storage {
     io_->run_one();
     io_->reset();
 
-    EXPECT_OUTCOME_TRUE_1(scheduler_->returnFetch(call_id, boost::none));
-    EXPECT_OUTCOME_TRUE_1(
-        scheduler_->returnFinalizeSector(call_id2, boost::none));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id, {}));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id2, {}));
 
     io_->run_one();
     io_->run_one();
@@ -200,19 +199,15 @@ namespace fc::sector_storage {
         scheduler_->schedule(sector, task2, selector_, prepare2, work2, cb2));
 
     io_->run_one();
-    EXPECT_OUTCOME_TRUE_1(
-        scheduler_->returnFinalizeSector(call_id3, boost::none));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id3, {}));
     io_->reset();
     io_->run_one();
-    EXPECT_OUTCOME_TRUE_1(
-        scheduler_->returnFinalizeSector(call_id4, boost::none));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id4, {}));
     io_->reset();
     io_->run_one();
-    EXPECT_OUTCOME_TRUE_1(
-        scheduler_->returnFinalizeSector(call_id, boost::none));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id, {}));
     io_->run_one();
-    EXPECT_OUTCOME_TRUE_1(
-        scheduler_->returnFinalizeSector(call_id2, boost::none));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id2, {}));
     io_->run_one();
     io_->run_one();
     EXPECT_EQ(counter, 6);
@@ -287,11 +282,9 @@ namespace fc::sector_storage {
     t.join();
 
     io_->reset();
-    EXPECT_OUTCOME_TRUE_1(
-        scheduler_->returnFinalizeSector(call_id1, boost::none));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id1, {}));
 
-    EXPECT_OUTCOME_TRUE_1(
-        scheduler_->returnFinalizeSector(call_id2, boost::none));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id2, {}));
 
     io_->run_one();
     io_->run_one();
