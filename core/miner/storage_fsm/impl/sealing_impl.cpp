@@ -224,7 +224,8 @@ namespace fc::mining {
 
       piece.offset = unsealed_sectors_[sector_and_padding.sector].stored;
 
-      OUTCOME_TRY(addPiece(sector_and_padding.sector, size, std::move(piece_data), deal));
+      OUTCOME_TRY(addPiece(
+          sector_and_padding.sector, size, std::move(piece_data), deal));
 
       is_start_packing =
           unsealed_sectors_[sector_and_padding.sector].deals_number
@@ -327,7 +328,8 @@ namespace fc::mining {
 
     scheduler_
         ->schedule([self{shared_from_this()}, sector_size] {
-          UnpaddedPieceSize size = PaddedPieceSize(sector_size).unpadded();
+          const UnpaddedPieceSize size =
+              PaddedPieceSize(sector_size).unpadded();
 
           auto maybe_sid = self->counter_->next();
           if (maybe_sid.has_error()) {
@@ -826,7 +828,7 @@ namespace fc::mining {
     OUTCOME_TRY(seal_proof_type, getCurrentSealProof());
     OUTCOME_TRY(sector_size, getSectorSize(seal_proof_type));
 
-    auto ubytes = PaddedPieceSize(sector_size).unpadded();
+    const auto ubytes = PaddedPieceSize(sector_size).unpadded();
 
     if (allocated > ubytes) {
       logger_->error("too much data in sector: {} > {}", allocated, ubytes);
@@ -878,7 +880,7 @@ namespace fc::mining {
 
     std::vector<PieceInfo> result;
 
-    SectorRef sector{
+    const SectorRef sector{
         .id = sector_id,
         .proof_type = seal_proof_type,
     };
@@ -898,18 +900,16 @@ namespace fc::mining {
   }
 
   SectorRef SealingImpl::minerSector(RegisteredSealProof seal_proof_type,
-                                     SectorNumber num) {
+                                     SectorNumber num) const {
     return SectorRef{
         .id = minerSectorId(num),
         .proof_type = seal_proof_type,
     };
   }
 
-  SectorId SealingImpl::minerSectorId(SectorNumber num) {
-    auto miner_id = miner_address_.getId();
-
+  SectorId SealingImpl::minerSectorId(SectorNumber num) const {
     return SectorId{
-        .miner = miner_id,
+        .miner = miner_address_.getId(),
         .sector = num,
     };
   }
@@ -959,7 +959,7 @@ namespace fc::mining {
 
     std::shared_ptr<SectorPreCommit1Context> context =
         std::make_shared<SectorPreCommit1Context>();
-    context->precommit1_output = maybe_result.value();
+    context->precommit1_output = std::move(maybe_result.value());
     context->ticket = maybe_ticket.value().ticket;
     context->epoch = maybe_ticket.value().epoch;
     FSM_SEND_CONTEXT(info, SealingEvent::kSectorPreCommit1, context);
@@ -982,8 +982,8 @@ namespace fc::mining {
 
     std::shared_ptr<SectorPreCommit2Context> context =
         std::make_shared<SectorPreCommit2Context>();
-    context->unsealed = maybe_cid.value().unsealed_cid;
-    context->sealed = maybe_cid.value().sealed_cid;
+    context->unsealed = std::move(maybe_cid.value().unsealed_cid);
+    context->sealed = std::move(maybe_cid.value().sealed_cid);
 
     FSM_SEND_CONTEXT(info, SealingEvent::kSectorPreCommit2, context);
     return outcome::success();
@@ -1261,9 +1261,9 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    auto maybe_proof = sealer_->sealCommit2Sync(
+    const auto maybe_proof = sealer_->sealCommit2Sync(
         minerSector(info->sector_type, info->sector_number),
-        maybe_commit_1_output.value(),
+        std::move(maybe_commit_1_output.value()),
         info->sealingPriority());
     if (maybe_proof.has_error()) {
       logger_->error("computing seal proof failed(2): {}",
@@ -1413,7 +1413,7 @@ namespace fc::mining {
       const std::shared_ptr<SectorInfo> &info) {
     // TODO: Maybe wait for some finality
 
-    auto maybe_error = sealer_->finalizeSectorSync(
+    const auto maybe_error = sealer_->finalizeSectorSync(
         minerSector(info->sector_type, info->sector_number),
         info->keepUnsealedRanges(),
         info->sealingPriority());
@@ -1925,7 +1925,7 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handleRemoving(
       const std::shared_ptr<SectorInfo> &info) {
-    auto maybe_error =
+    const auto maybe_error =
         sealer_->remove(minerSector(info->sector_type, info->sector_number));
     if (maybe_error.has_error()) {
       logger_->error(maybe_error.error().message());
@@ -2025,7 +2025,8 @@ namespace fc::mining {
     return result;
   }
 
-  outcome::result<RegisteredSealProof> SealingImpl::getCurrentSealProof() {
+  outcome::result<RegisteredSealProof> SealingImpl::getCurrentSealProof()
+      const {
     OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address_, {}));
 
     return miner_info.seal_proof_type;

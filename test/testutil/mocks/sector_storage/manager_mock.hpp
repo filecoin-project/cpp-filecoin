@@ -14,9 +14,9 @@ namespace fc::sector_storage {
    public:
     MOCK_CONST_METHOD0(getProofEngine, std::shared_ptr<proofs::ProofEngine>());
 
-    MOCK_METHOD2(checkProvable,
-                 outcome::result<std::vector<SectorId>>(
-                     RegisteredPoStProof, gsl::span<const SectorRef>));
+    MOCK_CONST_METHOD2(checkProvable,
+                       outcome::result<std::vector<SectorId>>(
+                           RegisteredPoStProof, gsl::span<const SectorRef>));
 
     outcome::result<void> readPiece(
         PieceData output,

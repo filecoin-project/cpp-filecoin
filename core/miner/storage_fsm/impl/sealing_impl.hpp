@@ -251,7 +251,7 @@ namespace fc::mining {
     outcome::result<void> handleRemoving(
         const std::shared_ptr<SectorInfo> &info);
 
-    outcome::result<RegisteredSealProof> getCurrentSealProof();
+    outcome::result<RegisteredSealProof> getCurrentSealProof() const;
 
     struct TicketInfo {
       SealRandomness ticket;
@@ -270,9 +270,9 @@ namespace fc::mining {
         SectorNumber sector_id, std::vector<types::Piece> &pieces);
 
     SectorRef minerSector(RegisteredSealProof seal_proof_type,
-                          SectorNumber num);
+                          SectorNumber num) const;
 
-    SectorId minerSectorId(SectorNumber num);
+    SectorId minerSectorId(SectorNumber num) const;
 
     mutable std::mutex sectors_mutex_;
     std::unordered_map<SectorNumber, std::shared_ptr<SectorInfo>> sectors_;

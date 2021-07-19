@@ -41,7 +41,7 @@ namespace fc::sector_storage {
     while (true) {
       boost::optional<CallError> error;
       if (!return_value) {
-        auto &e{return_value.error()};
+        const auto &e{return_value.error()};
         error.emplace(CallError{
             e == StoreError::kCannotReserve ? CallErrorCode::kAllocateSpace
                                             : CallErrorCode::kUnknown,

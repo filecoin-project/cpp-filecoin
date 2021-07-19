@@ -9,11 +9,9 @@
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 
-using fc::primitives::sector::RegisteredSealProof;
-using fc::primitives::sector::SectorId;
-
 namespace fc::sector_storage {
   using primitives::sector::RegisteredPoStProof;
+  using primitives::sector::SectorId;
   using primitives::sector::SectorRef;
 
   class FaultTracker {
@@ -21,7 +19,8 @@ namespace fc::sector_storage {
     virtual ~FaultTracker() = default;
 
     virtual outcome::result<std::vector<SectorId>> checkProvable(
-        RegisteredPoStProof proof_type, gsl::span<const SectorRef> sectors) = 0;
+        RegisteredPoStProof proof_type,
+        gsl::span<const SectorRef> sectors) const = 0;
   };
 
 }  // namespace fc::sector_storage

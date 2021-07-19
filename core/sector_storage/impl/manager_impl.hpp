@@ -132,7 +132,7 @@ namespace fc::sector_storage {
 
     outcome::result<std::vector<SectorId>> checkProvable(
         RegisteredPoStProof proof_type,
-        gsl::span<const SectorRef> sectors) override;
+        gsl::span<const SectorRef> sectors) const override;
 
     std::shared_ptr<proofs::ProofEngine> getProofEngine() const override;
 
@@ -169,8 +169,8 @@ namespace fc::sector_storage {
     ReturnCb callbackWrapper(std::function<void(outcome::result<T>)> cb) {
       return [self{shared_from_this()},
               cb](outcome::result<CallResult> res) -> void {
-        auto VariantError = ERROR_TEXT("Incorrect return type");
-        auto CallError = ERROR_TEXT("Call returns error");
+        static const auto VariantError = ERROR_TEXT("Incorrect return type");
+        static const auto CallError = ERROR_TEXT("Call returns error");
         if (res.has_error()) {
           return cb(res.error());
         }

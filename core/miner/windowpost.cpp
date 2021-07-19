@@ -12,6 +12,7 @@
 #include "vm/version/version.hpp"
 
 namespace fc::mining {
+  using primitives::sector::RegisteredSealProof;
   using sector_storage::SectorRef;
   using vm::actor::builtin::types::miner::kWPoStPeriodDeadlines;
   using vm::actor::builtin::v0::miner::DeclareFaults;
@@ -199,7 +200,7 @@ namespace fc::mining {
   outcome::result<RleBitset> WindowPoStScheduler::checkSectors(
       const RleBitset &sectors, bool ok) {
     std::vector<SectorRef> refs;
-    for (auto id : sectors) {
+    for (const auto &id : sectors) {
       refs.push_back({{miner.getId(), id}, RegisteredSealProof::kUndefined});
     }
     OUTCOME_TRY(bad_ids, fault_tracker->checkProvable(proof_type, refs));

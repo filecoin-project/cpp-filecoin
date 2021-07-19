@@ -90,10 +90,10 @@ namespace fc::sector_storage {
       return makeErrorResponse(request, http::status::internal_server_error);
     }
 
-    // Proof type is 0 because we don't allocate anything
-    SectorRef sector_ref{
+    // Proof type is kUndefined because we don't allocate anything
+    const SectorRef sector_ref{
         .id = maybe_sector.value(),
-        .proof_type = static_cast<RegisteredSealProof>(0),
+        .proof_type = RegisteredSealProof::kUndefined,
     };
 
     auto maybe_paths = local_store->acquireSector(

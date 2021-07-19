@@ -29,8 +29,6 @@ namespace fc::sector_storage {
   using fc::primitives::sector_file::sectorName;
   namespace fs = boost::filesystem;
 
-  auto CallError = ERROR_TEXT("Call is failed");
-
   WorkerAction schedFetch(const SectorRef &sector,
                           SectorFileType file_type,
                           PathType path_type,
@@ -98,7 +96,8 @@ namespace fc::sector_storage {
   }
 
   outcome::result<std::vector<SectorId>> ManagerImpl::checkProvable(
-      RegisteredPoStProof proof_type, gsl::span<const SectorRef> sectors) {
+      RegisteredPoStProof proof_type,
+      gsl::span<const SectorRef> sectors) const {
     std::vector<SectorId> bad{};
 
     OUTCOME_TRY(ssize, primitives::sector::getSectorSize(proof_type));

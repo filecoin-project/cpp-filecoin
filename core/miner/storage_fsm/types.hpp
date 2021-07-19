@@ -22,6 +22,7 @@ namespace fc::mining::types {
   using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
+  using primitives::sector::RegisteredSealProof;
   using primitives::tipset::TipsetKey;
   using proofs::SealRandomness;
   using sector_storage::InteractiveRandomness;

@@ -10,6 +10,7 @@
 namespace fc::markets::retrieval::test {
   using fc::storage::ipld::kAllSelector;
   using primitives::piece::UnpaddedByteIndex;
+  using primitives::sector::RegisteredSealProof;
   using primitives::sector::SectorRef;
   using proofs::ProofsError;
   using testing::_;
@@ -108,5 +109,5 @@ namespace fc::markets::retrieval::test {
     EXPECT_OUTCOME_TRUE_1(future.get());
 
     EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), true);
-  }  // namespace fc::markets::retrieval::test
+  }
 }  // namespace fc::markets::retrieval::test
