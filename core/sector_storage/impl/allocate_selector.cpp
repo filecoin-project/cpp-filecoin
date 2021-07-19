@@ -25,10 +25,11 @@ namespace fc::sector_storage {
       storages.insert(path.id);
     }
 
-    OUTCOME_TRY(
-        best,
-        sector_index_->storageBestAlloc(
-            allocate_, seal_proof_type, path_type_ == PathType::kSealing));
+    OUTCOME_TRY(sector_size, getSectorSize(seal_proof_type));
+
+    OUTCOME_TRY(best,
+                sector_index_->storageBestAlloc(
+                    allocate_, sector_size, path_type_ == PathType::kSealing));
 
     for (const auto &info : best) {
       if (storages.find(info.id) != storages.end()) {

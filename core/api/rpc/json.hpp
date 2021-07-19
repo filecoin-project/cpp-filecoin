@@ -67,6 +67,7 @@ namespace fc::api {
   using proofs::SealedAndUnsealedCID;
   using rapidjson::Document;
   using rapidjson::Value;
+  using sector_storage::CallErrorCode;
   using sector_storage::CallId;
   using sector_storage::Range;
   using sector_storage::SectorFileType;
@@ -492,6 +493,26 @@ namespace fc::api {
     DECODE(PoStProof) {
       Get(j, "PoStProof", v.registered_proof);
       decode(v.proof, Get(j, "ProofBytes"));
+    }
+
+    ENCODE(CallErrorCode) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(CallErrorCode) {
+      decodeEnum(v, j);
+    }
+
+    ENCODE(CallError) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Code", v.code);
+      Set(j, "ProofBytes", v.message);
+      return j;
+    }
+
+    DECODE(CallError) {
+      Get(j, "Code", v.code);
+      Get(j, "Message", v.message);
     }
 
     ENCODE(BigInt) {

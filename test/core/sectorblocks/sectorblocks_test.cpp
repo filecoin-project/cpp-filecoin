@@ -74,7 +74,7 @@ namespace fc::sectorblocks {
         .size = UnpaddedPieceSize(127),
     };
 
-    EXPECT_CALL(*miner_, addPieceToAnySector(size, _, deal))
+    EXPECT_CALL(*miner_, doAddPieceToAnySector(size, _, deal))
         .WillOnce(testing::Return(outcome::success(piece)));
 
     EXPECT_OUTCOME_EQ(sector_blocks_->addPiece(size, path, deal), piece);
