@@ -410,6 +410,32 @@ namespace fc::api {
       decode(v.bytes, Get(j, "VRFProof"));
     }
 
+    ENCODE(BlockParentCbCids) {
+      if (v.mainnet_genesis) {
+        static std::vector<CID> mainnet{
+            CID::fromBytes(kMainnetGenesisBlockParent).value()};
+        return encode(mainnet);
+      }
+      return encode((const std::vector<CbCid> &)(v));
+    }
+
+    DECODE(BlockParentCbCids) {
+      auto cids{decode<std::vector<CID>>(j)};
+      static std::vector<CID> mainnet{
+          CID::fromBytes(kMainnetGenesisBlockParent).value()};
+      v.resize(0);
+      v.mainnet_genesis = cids == mainnet;
+      if (!v.mainnet_genesis) {
+        for (auto &_cid : cids) {
+          if (auto cid{asBlake(_cid)}) {
+            v.push_back(std::move(*cid));
+          } else {
+            outcome::raise(JsonError::kWrongType);
+          }
+        }
+      }
+    }
+
     ENCODE(TipsetKey) {
       return encode(v.cids());
     }
@@ -920,7 +946,7 @@ namespace fc::api {
       Set(j, "Signature", v.signature);
       OUTCOME_EXCEPT(
           cid, v.signature.isBls() ? getCidOfCbor(v.message) : getCidOfCbor(v));
-      Set(j, "_cid", cid);
+      Set(j, "CID", cid);
       return j;
     }
 

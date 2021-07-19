@@ -32,6 +32,10 @@
 #include "storage/leveldb/prefix.hpp"
 #include "vm/runtime/env_context.hpp"
 
+namespace libp2p::basic {
+  class Scheduler;
+}  // namespace libp2p::basic
+
 namespace fc::node {
   using api::FullNodeApiV1Wrapper;
   using api::KeyInfo;
@@ -67,6 +71,7 @@ namespace fc::node {
     std::shared_ptr<storage::PersistentBufferMap> kv_store;
     TsBranchesPtr ts_branches;
     TsBranchPtr ts_main;
+    std::shared_ptr<storage::mpool::MessagePool> mpool;
 
     // clocks
     std::shared_ptr<clock::UTCClock> utc_clock;
@@ -75,6 +80,7 @@ namespace fc::node {
     // libp2p + async base objects
     std::shared_ptr<boost::asio::io_context> io_context;
     std::shared_ptr<Scheduler> scheduler;
+    std::shared_ptr<libp2p::basic::Scheduler> scheduler2;
     std::shared_ptr<sync::events::Events> events;
     std::shared_ptr<libp2p::Host> host;
 

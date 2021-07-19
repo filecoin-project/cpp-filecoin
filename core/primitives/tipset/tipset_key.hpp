@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
+
 #include "primitives/cid/cid.hpp"
 
 namespace fc::primitives::tipset {
@@ -35,6 +37,8 @@ namespace fc::primitives::tipset {
    private:
     TipsetHash hash_;
     std::vector<CbCid> cids_;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::primitives::tipset::TipsetKey);
   };
   FC_OPERATOR_NOT_EQUAL(TipsetKey)
 }  // namespace fc::primitives::tipset

@@ -88,6 +88,12 @@ namespace fc::sync {
     return outcome::success();
   }
 
+  void PubSubGate::publish(const SignedMessage &msg) {
+    if (!gossip_->publish({msgs_topic_}, codec::cbor::encode(msg).value())) {
+      log()->warn("cannot publish message");
+    }
+  }
+
   bool PubSubGate::onBlock(const PeerId &from, const Bytes &raw) {
     try {
       OUTCOME_EXCEPT(bm, codec::cbor::decode<BlockWithCids>(raw));

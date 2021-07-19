@@ -17,6 +17,8 @@ namespace fc::primitives::tipset {
   struct TsLazy {
     TipsetKey key;
     mutable CacheIndex index{};
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::primitives::tipset::TsLazy);
   };
   inline auto operator==(const TsLazy &lhs, const TsLazy &rhs) {
     return lhs.key == rhs.key;

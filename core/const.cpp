@@ -88,16 +88,17 @@ namespace fc {
     kUpgradeIgnitionHeight = -2;
     kUpgradeRefuelHeight = -3;
     kUpgradeTapeHeight = -4;
-    kUpgradeActorsV2Height = 10;
-    kUpgradeLiftoffHeight = -5;
-    kUpgradeKumquatHeight = 15;
-    kUpgradeCalicoHeight = 20;
-    kUpgradePersianHeight = 25;
-    kUpgradeOrangeHeight = 27;
-    kUpgradeClausHeight = 30;
-    kUpgradeActorsV3Height = 35;
-    kUpgradeNorwegianHeight = 40;
-    kUpgradeActorsV4Height = 45;
+    kUpgradeActorsV2Height = -5;
+    kUpgradeLiftoffHeight = -6;
+    kUpgradeKumquatHeight = -7;
+    kUpgradeCalicoHeight = -8;
+    kUpgradePersianHeight = -9;
+    kUpgradeOrangeHeight = -10;
+    kUpgradeClausHeight = -11;
+    kUpgradeActorsV3Height = -12;
+    kUpgradeNorwegianHeight = -13;
+    kUpgradeActorsV4Height = -14;
+    kUpgradeHyperdriveHeight = -15;
 
     kBreezeGasTampingDuration = 0;
 

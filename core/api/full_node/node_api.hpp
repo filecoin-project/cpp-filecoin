@@ -571,6 +571,8 @@ namespace fc::api {
     API_METHOD(WalletDefaultAddress, Address)
     API_METHOD(WalletHas, bool, const Address &)
     API_METHOD(WalletImport, Address, const KeyInfo &)
+    API_METHOD(WalletNew, Address, const std::string &)
+    API_METHOD(WalletSetDefault, void, const Address &)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
     /** Verify signature by address (may be id or key address) */
     API_METHOD(
@@ -655,6 +657,8 @@ namespace fc::api {
     f(a.WalletDefaultAddress);
     f(a.WalletHas);
     f(a.WalletImport);
+    f(a.WalletNew);
+    f(a.WalletSetDefault);
     f(a.WalletSign);
     f(a.WalletVerify);
   }

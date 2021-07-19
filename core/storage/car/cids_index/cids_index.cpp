@@ -60,8 +60,29 @@ namespace fc::storage::cids_index {
             *end = row.offset.value() + varint.length + varint.value;
           }
           return {true, varint.value - prefix.size() - key.size()};
+        } else {
+          spdlog::warn("readCarItem({} {}): file={} gcount={} eq(key)={}",
+                       row.key,
+                       row.offset.value(),
+                       car_file.good(),
+                       car_file.gcount(),
+                       key == row.key);
         }
+      } else {
+        spdlog::warn("readCarItem({} {}): file={} gcount={} eq(prefix)={}",
+                     row.key,
+                     row.offset.value(),
+                     car_file.good(),
+                     car_file.gcount(),
+                     prefix == kCborBlakePrefix);
       }
+    } else {
+      spdlog::warn("readCarItem({} {}): file={} gcount={} varint.overflow={}",
+                   row.key,
+                   row.offset.value(),
+                   car_file.good(),
+                   car_file.gcount(),
+                   varint.overflow);
     }
     return {false, 0};
   }

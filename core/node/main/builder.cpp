@@ -116,12 +116,12 @@ namespace fc::node {
               config.kademlia_config,
               std::make_shared<
                   libp2p::protocol::kademlia::StorageBackendDefault>(),
-              o.scheduler);
+              o.scheduler2);
 
       std::shared_ptr<libp2p::protocol::kademlia::ContentRoutingTable>
           content_routing_table = std::make_shared<
               libp2p::protocol::kademlia::ContentRoutingTableImpl>(
-              config.kademlia_config, *o.scheduler, bus);
+              config.kademlia_config, *o.scheduler2, bus);
 
       std::shared_ptr<libp2p::protocol::kademlia::PeerRoutingTable>
           peer_routing_table = std::make_shared<
@@ -142,7 +142,7 @@ namespace fc::node {
           std::move(content_routing_table),
           std::move(peer_routing_table),
           std::move(validator),
-          o.scheduler,
+          o.scheduler2,
           std::move(bus),
           std::move(random_generator));
     }
@@ -407,7 +407,9 @@ namespace fc::node {
     o.scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
         o.io_context, libp2p::protocol::SchedulerConfig{});
 
-    o.events = std::make_shared<sync::events::Events>(o.scheduler);
+    o.scheduler2 = injector.create<std::shared_ptr<libp2p::basic::Scheduler>>();
+
+    o.events = std::make_shared<sync::events::Events>(o.io_context);
 
     o.host = injector.create<std::shared_ptr<libp2p::Host>>();
 
@@ -433,7 +435,7 @@ namespace fc::node {
         o.host, o.utc_clock, *config.genesis_cid, o.events);
 
     o.gossip = libp2p::protocol::gossip::create(
-        o.scheduler, o.host, config.gossip_config);
+        o.scheduler2, o.host, config.gossip_config);
 
     using libp2p::protocol::gossip::ByteArray;
     o.gossip->setMessageIdFn(
@@ -517,7 +519,7 @@ namespace fc::node {
 
     log()->debug("Creating API...");
 
-    auto mpool = storage::mpool::MessagePool::create(
+    o.mpool = storage::mpool::MessagePool::create(
         o.env_context, o.ts_main, o.chain_store);
 
     auto msg_waiter = storage::blockchain::MsgWaiter::create(
@@ -579,7 +581,7 @@ namespace fc::node {
                           weight_calculator,
                           o.env_context,
                           o.ts_main,
-                          mpool,
+                          o.mpool,
                           msg_waiter,
                           beaconizer,
                           drand_schedule,

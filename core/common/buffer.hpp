@@ -8,6 +8,7 @@
 #include <boost/container_hash/hash.hpp>
 #include <boost/operators.hpp>
 #include <gsl/span>
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <string_view>
 #include <vector>
 
@@ -220,6 +221,8 @@ namespace fc::common {
 
     template <typename T>
     Buffer &putRange(const T &begin, const T &end);
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::common::Buffer);
   };
 
   /**

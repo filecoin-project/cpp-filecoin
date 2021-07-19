@@ -5,6 +5,7 @@
 
 #include "vm/runtime/circulating.hpp"
 
+#include "api/full_node/ipld_proxy.hpp"
 #include "const.hpp"
 #include "primitives/block/block.hpp"
 #include "vm/actor/builtin/states/market_actor_state.hpp"
@@ -12,6 +13,7 @@
 #include "vm/actor/builtin/states/reward_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm {
   using actor::builtin::states::MarketActorStatePtr;
@@ -39,6 +41,9 @@ namespace fc::vm {
 
   outcome::result<std::shared_ptr<Circulating>> Circulating::make(
       IpldPtr ipld, const CID &genesis) {
+    ipld = std::make_shared<IpldProxy>(ipld);
+    ipld->actor_version = toolchain::Toolchain::getActorVersionForNetwork(
+        version::getNetworkVersion(0));
     auto circulating{std::make_shared<Circulating>()};
     OUTCOME_TRY(block, getCbor<primitives::block::BlockHeader>(ipld, genesis));
     OUTCOME_TRYA(circulating->genesis,

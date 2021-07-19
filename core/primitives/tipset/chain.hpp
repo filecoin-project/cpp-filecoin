@@ -46,6 +46,8 @@ namespace fc::primitives::tipset::chain {
     boost::optional<TipsetKey> parent_key;
     boost::optional<Lazy> lazy;
     std::shared_ptr<file::Updater> updater;
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::primitives::tipset::chain::TsBranch);
   };
 
   /**

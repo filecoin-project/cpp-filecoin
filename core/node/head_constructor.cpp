@@ -103,9 +103,7 @@ namespace fc::sync {
 
     // TODO check if parents are already synced / downloaded
 
-    events_->signalPossibleHead({.source = boost::none,
-                                 .head = creator.key(),
-                                 .height = creator.height()});
+    events_->signalPossibleHead({source, creator.key(), creator.height()});
   }
 
 }  // namespace fc::sync

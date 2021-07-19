@@ -110,16 +110,16 @@ namespace fc::adt {
 }  // namespace fc::adt
 
 namespace fc::cbor_blake {
-  template <typename V>
-  struct CbLoadT<adt::Array<V>> {
-    static void call(CbIpldPtrIn ipld, adt::Array<V> &array) {
+  template <typename V, uint64_t bits>
+  struct CbLoadT<adt::Array<V, bits>> {
+    static void call(CbIpldPtrIn ipld, adt::Array<V, bits> &array) {
       array.amt.ipld = ipld;
     }
   };
 
-  template <typename V>
-  struct CbFlushT<adt::Array<V>> {
-    static auto call(adt::Array<V> &array) {
+  template <typename V, uint64_t bits>
+  struct CbFlushT<adt::Array<V, bits>> {
+    static auto call(adt::Array<V, bits> &array) {
       return array.amt.flush();
     }
   };

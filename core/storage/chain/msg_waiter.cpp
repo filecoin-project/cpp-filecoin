@@ -50,12 +50,7 @@ namespace fc::storage::blockchain {
           }));
       return std::move(parent);
     };
-    if (change.type == HeadChangeType::CURRENT) {
-      auto ts{change.value};
-      while (ts->height() > 0) {
-        OUTCOME_TRYA(ts, onTipset(ts, true));
-      }
-    } else {
+    if (change.type != HeadChangeType::CURRENT) {
       OUTCOME_TRY(onTipset(change.value, change.type == HeadChangeType::APPLY));
     }
     return outcome::success();

@@ -14,6 +14,8 @@
 #include "blockchain/production/block_producer.hpp"
 #include "common/logger.hpp"
 #include "const.hpp"
+#include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "drand/beaconizer.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "node/pubsub_gate.hpp"
@@ -108,7 +110,7 @@ namespace fc::api {
 
   template <typename T, typename F>
   auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&... args) {
+    return [f{std::forward<F>(f)}](auto &&...args) {
       auto channel{std::make_shared<Channel<outcome::result<T>>>()};
       f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
         channel->write(std::forward<decltype(_r)>(_r));
@@ -633,7 +635,7 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           return context.accountKey(address);
         }};
-    api->StateCall = {[=](auto &message,
+    api->StateCall = {[=](auto message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
 
@@ -641,6 +643,9 @@ namespace fc::api {
       OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
       ts_lock.unlock();
 
+      if (!message.gas_limit) {
+        message.gas_limit = kBlockGasLimit;
+      }
       auto env = std::make_shared<Env>(env_context, ts_branch, context.tipset);
       InvocResult result;
       result.message = message;
@@ -724,7 +729,10 @@ namespace fc::api {
           };
         }};
     api->StateGetReceipt = {
-        [=](auto &cid, auto &tipset_key) -> outcome::result<MessageReceipt> {
+        [=](auto &cid, auto tipset_key) -> outcome::result<MessageReceipt> {
+          if (tipset_key.cids().empty()) {
+            tipset_key = chain_store->heaviestTipset()->key;
+          }
           auto receipt_loader =
               std::make_shared<storage::blockchain::ReceiptLoader>(ts_load,
                                                                    ipld);
@@ -939,7 +947,7 @@ namespace fc::api {
                                                                    ipld);
           OUTCOME_CB(auto result,
                      receipt_loader->searchBackForMessageReceipt(
-                         cid, chain_store->heaviestTipset()->getParents(), 0));
+                         cid, chain_store->heaviestTipset()->key, 0));
           if (result.has_value()) {
             OUTCOME_CB(auto ts, ts_load->load(result->second));
             cb(MsgWait{
@@ -972,12 +980,15 @@ namespace fc::api {
       return outcome::success();
     }};
     api->Version = {[]() {
-      return VersionResult{"fuhon", makeApiVersion(2, 0, 0), 5};
+      return VersionResult{"fuhon", makeApiVersion(2, 1, 0), 5};
     }};
     api->WalletBalance = {[=](auto &address) -> outcome::result<TokenAmount> {
       OUTCOME_TRY(context, tipsetContext({}));
-      OUTCOME_TRY(actor, context.state_tree.get(address));
-      return actor.balance;
+      OUTCOME_TRY(actor, context.state_tree.tryGet(address));
+      if (actor) {
+        return actor->balance;
+      }
+      return 0;
     }};
     api->WalletDefaultAddress = {[=]() -> outcome::result<Address> {
       if (!wallet_default_address->has())
@@ -993,6 +1004,31 @@ namespace fc::api {
     }};
     api->WalletImport = {[=](auto &info) {
       return key_store->put(info.type == SignatureType::BLS, info.private_key);
+    }};
+    api->WalletNew = {[=](auto &type) -> outcome::result<Address> {
+      auto bls{type == "bls"}, secp{type == "secp256k1"};
+      if (!bls && !secp) {
+        return ERROR_TEXT("WalletNew: unknown type");
+      }
+      OUTCOME_TRY(
+          address,
+          key_store->put(bls,
+                         bls ? crypto::bls::BlsProviderImpl{}
+                                   .generateKeyPair()
+                                   .value()
+                                   .private_key
+                             : crypto::secp256k1::Secp256k1ProviderImpl{}
+                                   .generate()
+                                   .value()
+                                   .private_key));
+      if (!wallet_default_address->has()) {
+        wallet_default_address->setCbor(address);
+      }
+      return std::move(address);
+    }};
+    api->WalletSetDefault = {[=](auto &address) -> outcome::result<void> {
+      wallet_default_address->setCbor(address);
+      return outcome::success();
     }};
     api->WalletSign = {
         [=](auto address, auto data) -> outcome::result<Signature> {

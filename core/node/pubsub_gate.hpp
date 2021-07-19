@@ -28,6 +28,7 @@ namespace fc::sync {
     void stop();
 
     outcome::result<void> publish(const BlockWithCids &block);
+    void publish(const SignedMessage &msg);
 
    private:
     using GossipSubscription = libp2p::protocol::Subscription;

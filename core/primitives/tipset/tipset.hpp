@@ -130,6 +130,8 @@ namespace fc::primitives::tipset {
 
     TipsetKey key;
     std::vector<block::BlockHeader> blks;  ///< block headers
+
+    LIBP2P_METRICS_INSTANCE_COUNT(fc::primitives::tipset::Tipset);
   };
 
   /**

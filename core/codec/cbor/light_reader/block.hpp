@@ -13,7 +13,7 @@ namespace fc::codec::cbor::light_reader {
                                CborToken token,
                                BytesIn &input) {
     parents.resize(0);
-    parents.mainnet_genesis = 0;
+    parents.mainnet_genesis = false;
     if (!token.listCount()) {
       return false;
     }

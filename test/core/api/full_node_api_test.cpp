@@ -61,7 +61,7 @@ namespace fc::api::full_node {
     auto routes{std::make_shared<api::Routes>()};
     serve(rpcs, routes, *io.io, "127.0.0.1", api_port);
 
-    clientAsksVersion("/rpc/v0", {"fuhon", makeApiVersion(1, 2, 0), 5});
+    clientAsksVersion("/rpc/v0", api_v1->Version().value());
     clientAsksVersion("/rpc/v1", {"fuhon", makeApiVersion(2, 0, 0), 5});
   }
 
