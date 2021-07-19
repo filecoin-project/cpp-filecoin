@@ -1651,12 +1651,12 @@ namespace fc::sector_storage {
 
     MOCK_API(return_interface_, ReturnAddPiece);
 
-    EXPECT_OUTCOME_TRUE(сall_id,
+    EXPECT_OUTCOME_TRUE(call_id,
                         local_worker_->addPiece(
                             sector_, {}, piece_size, PieceData(input_path)));
 
     PieceInfo info;
-    EXPECT_CALL(mock_ReturnAddPiece, Call(сall_id, _, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnAddPiece, Call(call_id, _, Eq(boost::none)))
         .WillOnce(
             testing::Invoke([&](const CallId &call_id,
                                 boost::optional<PieceInfo> maybe_piece_info,
