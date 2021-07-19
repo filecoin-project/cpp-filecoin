@@ -7,7 +7,7 @@
 
 #include "sector_storage/scheduler.hpp"
 
-#include <boost/asio/thread_pool.hpp>
+#include <boost/asio/io_context.hpp>
 #include <future>
 #include <mutex>
 #include <unordered_map>
@@ -17,20 +17,22 @@ namespace fc::sector_storage {
   using WorkerID = uint64_t;
 
   struct TaskRequest {
-    inline TaskRequest(const SectorId &sector,
+    inline TaskRequest(const SectorRef &sector,
                        TaskType task_type,
                        uint64_t priority,
                        std::shared_ptr<WorkerSelector> sel,
                        WorkerAction prepare,
-                       WorkerAction work)
+                       WorkerAction work,
+                       ReturnCb cb)
         : sector(sector),
           task_type(std::move(task_type)),
           priority(priority),
           sel(std::move(sel)),
           prepare(std::move(prepare)),
-          work(std::move(work)){};
+          work(std::move(work)),
+          cb(std::move(cb)){};
 
-    SectorId sector;
+    SectorRef sector;
     TaskType task_type;
     uint64_t priority;
     std::shared_ptr<WorkerSelector> sel;
@@ -38,15 +40,7 @@ namespace fc::sector_storage {
     WorkerAction prepare;
     WorkerAction work;
 
-    inline void respond(const std::error_code &resp) {
-      if (resp) {
-        response.set_value(resp);
-      } else {
-        response.set_value(outcome::success());
-      }
-    }
-
-    std::promise<outcome::result<void>> response;
+    ReturnCb cb;
   };
 
   inline bool operator<(const TaskRequest &lhs, const TaskRequest &rhs) {
@@ -54,25 +48,27 @@ namespace fc::sector_storage {
                 lhs.priority,
                 lhs.task_type,
                 rhs.task_type,
-                lhs.sector.sector,
-                rhs.sector.sector);
+                lhs.sector.id.sector,
+                rhs.sector.id.sector);
   }
 
   class SchedulerImpl : public Scheduler {
    public:
-    explicit SchedulerImpl(RegisteredSealProof seal_proof_type);
+    explicit SchedulerImpl(std::shared_ptr<boost::asio::io_context> io_context);
 
     outcome::result<void> schedule(
-        const SectorId &sector,
+        const SectorRef &sector,
         const primitives::TaskType &task_type,
         const std::shared_ptr<WorkerSelector> &selector,
         const WorkerAction &prepare,
         const WorkerAction &work,
+        const ReturnCb &cb,
         uint64_t priority) override;
 
     void newWorker(std::unique_ptr<WorkerHandle> worker) override;
 
-    RegisteredSealProof getSealProofType() const override;
+    outcome::result<void> returnResult(const CallId &call_id,
+                                       CallResult result) override;
 
    private:
     outcome::result<bool> maybeScheduleRequest(
@@ -84,22 +80,24 @@ namespace fc::sector_storage {
 
     void freeWorker(WorkerID wid);
 
-    RegisteredSealProof seal_proof_type_;
-
     std::mutex workers_lock_;
     WorkerID current_worker_id_;
     std::unordered_map<WorkerID, std::shared_ptr<WorkerHandle>> workers_;
+
+    std::mutex cbs_lock_;
+    std::map<CallId, ReturnCb> callbacks_;
+    std::map<CallId, CallResult> results_;
 
     std::mutex request_lock_;
     std::multiset<std::shared_ptr<TaskRequest>,
                   std::owner_less<std::shared_ptr<TaskRequest>>>
         request_queue_;
 
-    std::unique_ptr<boost::asio::thread_pool> pool_;
+    std::shared_ptr<boost::asio::io_context> io_;
 
     common::Logger logger_;
 
-    size_t active_jobs{};
+    std::atomic<size_t> active_jobs{};
   };
 
 }  // namespace fc::sector_storage

@@ -24,23 +24,55 @@ namespace fc::sector_storage {
         const std::shared_ptr<CommonApi> &api,
         const Multiaddress &address);
 
-    outcome::result<void> moveStorage(const SectorId &sector) override;
+    outcome::result<CallId> addPiece(
+        const SectorRef &sector,
+        gsl::span<const UnpaddedPieceSize> piece_sizes,
+        const UnpaddedPieceSize &new_piece_size,
+        PieceData piece_data) override;
 
-    outcome::result<void> fetch(const SectorId &sector,
-                                const SectorFileType &file_type,
-                                PathType path_type,
-                                AcquireMode mode) override;
+    outcome::result<CallId> sealPreCommit1(
+        const SectorRef &sector,
+        const SealRandomness &ticket,
+        gsl::span<const PieceInfo> pieces) override;
 
-    outcome::result<void> unsealPiece(const SectorId &sector,
-                                      UnpaddedByteIndex offset,
-                                      const UnpaddedPieceSize &size,
-                                      const SealRandomness &randomness,
-                                      const CID &unsealed_cid) override;
+    outcome::result<CallId> sealPreCommit2(
+        const SectorRef &sector,
+        const PreCommit1Output &pre_commit_1_output) override;
 
-    outcome::result<bool> readPiece(PieceData output,
-                                    const SectorId &sector,
-                                    UnpaddedByteIndex offset,
-                                    const UnpaddedPieceSize &size) override;
+    outcome::result<CallId> sealCommit1(const SectorRef &sector,
+                                        const SealRandomness &ticket,
+                                        const InteractiveRandomness &seed,
+                                        gsl::span<const PieceInfo> pieces,
+                                        const SectorCids &cids) override;
+
+    outcome::result<CallId> sealCommit2(
+        const SectorRef &sector, const Commit1Output &commit_1_output) override;
+
+    outcome::result<CallId> finalizeSector(
+        const SectorRef &sector,
+        const gsl::span<const Range> &keep_unsealed) override;
+
+    outcome::result<fc::sector_storage::CallId> moveStorage(
+        const SectorRef &sector, SectorFileType types) override;
+
+    outcome::result<fc::sector_storage::CallId> unsealPiece(
+        const SectorRef &sector,
+        UnpaddedByteIndex offset,
+        const UnpaddedPieceSize &size,
+        const SealRandomness &randomness,
+        const CID &unsealed_cid) override;
+
+    outcome::result<fc::sector_storage::CallId> readPiece(
+        PieceData output,
+        const SectorRef &sector,
+        UnpaddedByteIndex offset,
+        const UnpaddedPieceSize &size) override;
+
+    outcome::result<fc::sector_storage::CallId> fetch(
+        const SectorRef &sector,
+        const SectorFileType &file_type,
+        PathType path_type,
+        AcquireMode mode) override;
 
     outcome::result<primitives::WorkerInfo> getInfo() override;
 
@@ -48,37 +80,6 @@ namespace fc::sector_storage {
 
     outcome::result<std::vector<primitives::StoragePath>> getAccessiblePaths()
         override;
-
-    outcome::result<PreCommit1Output> sealPreCommit1(
-        const SectorId &sector,
-        const SealRandomness &ticket,
-        gsl::span<const PieceInfo> pieces) override;
-
-    outcome::result<SectorCids> sealPreCommit2(
-        const SectorId &sector,
-        const PreCommit1Output &pre_commit_1_output) override;
-
-    outcome::result<Commit1Output> sealCommit1(
-        const SectorId &sector,
-        const SealRandomness &ticket,
-        const InteractiveRandomness &seed,
-        gsl::span<const PieceInfo> pieces,
-        const SectorCids &cids) override;
-
-    outcome::result<Proof> sealCommit2(
-        const SectorId &sector, const Commit1Output &commit_1_output) override;
-
-    outcome::result<void> finalizeSector(
-        const SectorId &sector,
-        const gsl::span<const Range> &keep_unsealed) override;
-
-    outcome::result<void> remove(const SectorId &sector) override;
-
-    outcome::result<PieceInfo> addPiece(
-        const SectorId &sector,
-        gsl::span<const UnpaddedPieceSize> piece_sizes,
-        const UnpaddedPieceSize &new_piece_size,
-        const proofs::PieceData &piece_data) override;
 
    private:
     RemoteWorker(io_context &context);

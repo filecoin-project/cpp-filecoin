@@ -35,8 +35,8 @@ namespace fc::miner {
   }
 
   outcome::result<PieceAttributes> MinerImpl::addPieceToAnySector(
-      UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) {
-    return sealing_->addPieceToAnySector(size, piece_data, deal);
+      UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) {
+    return sealing_->addPieceToAnySector(size, std::move(piece_data), deal);
   }
 
   Address MinerImpl::getAddress() const {

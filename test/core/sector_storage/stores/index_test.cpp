@@ -152,11 +152,12 @@ namespace fc::sector_storage::stores {
    * @then get error NoCandidates
    */
   TEST_F(SectorIndexTest, BestAllocationNoSuitableStorage) {
-    EXPECT_OUTCOME_ERROR(
-        IndexErrors::kNoSuitableCandidate,
-        sector_index_->storageBestAlloc(SectorFileType::FTCache,
-                                        RegisteredSealProof::kStackedDrg2KiBV1,
-                                        false));
+    EXPECT_OUTCOME_TRUE(sector_size,
+                        getSectorSize(RegisteredSealProof::kStackedDrg2KiBV1));
+
+    EXPECT_OUTCOME_ERROR(IndexErrors::kNoSuitableCandidate,
+                         sector_index_->storageBestAlloc(
+                             SectorFileType::FTCache, sector_size, false));
   }
 
   /**
@@ -217,11 +218,11 @@ namespace fc::sector_storage::stores {
     EXPECT_OUTCOME_TRUE_1(
         sector_index_->storageAttach(storage_info3, file_system_stat3));
 
-    EXPECT_OUTCOME_TRUE(
-        candidates,
-        sector_index_->storageBestAlloc(SectorFileType::FTCache,
-                                        RegisteredSealProof::kStackedDrg2KiBV1,
-                                        false));
+    EXPECT_OUTCOME_TRUE(sector_size,
+                        getSectorSize(RegisteredSealProof::kStackedDrg2KiBV1));
+    EXPECT_OUTCOME_TRUE(candidates,
+                        sector_index_->storageBestAlloc(
+                            SectorFileType::FTCache, sector_size, false));
 
     ASSERT_EQ(candidates.size(), 2);
     ASSERT_EQ(candidates.at(0).id, id3);
@@ -485,13 +486,13 @@ namespace fc::sector_storage::stores {
         .sector = 123,
     };
 
+    EXPECT_OUTCOME_TRUE(sector_size,
+                        getSectorSize(RegisteredSealProof::kStackedDrg2KiBV1));
     EXPECT_OUTCOME_TRUE_1(
         sector_index_->storageAttach(storage_info, file_system_stat));
     EXPECT_OUTCOME_TRUE(storages,
                         sector_index_->storageFindSector(
-                            sector,
-                            SectorFileType::FTCache,
-                            RegisteredSealProof::kStackedDrg2KiBV1));
+                            sector, SectorFileType::FTCache, sector_size));
     ASSERT_FALSE(storages.empty());
     auto store = storages[0];
     ASSERT_FALSE(store.urls.empty());

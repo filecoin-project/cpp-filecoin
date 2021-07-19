@@ -15,6 +15,7 @@
 
 namespace fc::sector_storage {
   using primitives::StoragePath;
+  using primitives::SectorSize;
   using primitives::WorkerResources;
   using stores::StorageInfo;
   using testing::_;
@@ -24,6 +25,10 @@ namespace fc::sector_storage {
     void SetUp() override {
       seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
       index_ = std::make_unique<stores::SectorIndexMock>();
+
+      EXPECT_OUTCOME_TRUE(size, getSectorSize(seal_proof_type_));
+
+      sector_size_ = size;
 
       file_type_ = SectorFileType::FTUnsealed;
 
@@ -35,10 +40,12 @@ namespace fc::sector_storage {
           std::make_unique<AllocateSelector>(index_, file_type_, path_type_);
     }
 
+
     std::shared_ptr<stores::SectorIndexMock> index_;
     SectorFileType file_type_;
     PathType path_type_;
     RegisteredSealProof seal_proof_type_;
+    SectorSize sector_size_;
     std::shared_ptr<WorkerMock> worker_;
     std::shared_ptr<AllocateSelector> allocate_selector_;
   };
@@ -90,7 +97,7 @@ namespace fc::sector_storage {
         .id = "index storage id",
     };
 
-    EXPECT_CALL(*index_, storageBestAlloc(file_type_, seal_proof_type_, false))
+    EXPECT_CALL(*index_, storageBestAlloc(file_type_, sector_size_, false))
         .WillOnce(
             testing::Return(outcome::success(std::vector({index_storage}))));
 
@@ -129,7 +136,7 @@ namespace fc::sector_storage {
         .id = id,
     };
 
-    EXPECT_CALL(*index_, storageBestAlloc(file_type_, seal_proof_type_, false))
+    EXPECT_CALL(*index_, storageBestAlloc(file_type_, sector_size_, false))
         .WillOnce(
             testing::Return(outcome::success(std::vector({index_storage}))));
 

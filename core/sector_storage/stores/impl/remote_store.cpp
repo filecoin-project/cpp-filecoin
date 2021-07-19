@@ -49,8 +49,7 @@ namespace fc::sector_storage::stores {
         logger_{common::createLogger("remote store")} {}
 
   outcome::result<AcquireSectorResponse> RemoteStoreImpl::acquireSector(
-      SectorId sector,
-      RegisteredSealProof seal_proof_type,
+      SectorRef sector,
       SectorFileType existing,
       SectorFileType allocate,
       PathType path_type,
@@ -62,7 +61,7 @@ namespace fc::sector_storage::stores {
     while (true) {
       {
         const std::lock_guard<std::mutex> lock(mutex_);
-        if (processing_.insert(sector).second) {
+        if (processing_.insert(sector.id).second) {
           unlock_ = false;
           break;
         }
@@ -75,7 +74,7 @@ namespace fc::sector_storage::stores {
 
     auto _ = gsl::finally([&]() {
       const std::lock_guard<std::mutex> lock(mutex_);
-      processing_.erase(sector);
+      processing_.erase(sector.id);
       unlock_ = true;
       cv_.notify_all();
     });
@@ -83,7 +82,7 @@ namespace fc::sector_storage::stores {
     OUTCOME_TRY(
         response,
         local_->acquireSector(
-            sector, seal_proof_type, existing, allocate, path_type, mode));
+            sector, existing, allocate, path_type, mode));
 
     int to_fetch = SectorFileType::FTNone;
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {
@@ -98,14 +97,13 @@ namespace fc::sector_storage::stores {
 
     OUTCOME_TRY(additional_paths,
                 local_->acquireSector(sector,
-                                      seal_proof_type,
                                       SectorFileType::FTNone,
                                       static_cast<SectorFileType>(to_fetch),
                                       path_type,
                                       mode));
 
     OUTCOME_TRY(release_storage,
-                local_->reserve(seal_proof_type,
+                local_->reserve(sector,
                                 static_cast<SectorFileType>(to_fetch),
                                 additional_paths.storages,
                                 path_type));
@@ -123,16 +121,16 @@ namespace fc::sector_storage::stores {
       OUTCOME_TRY(dest, additional_paths.paths.getPathByType(type));
       OUTCOME_TRY(storage_id, additional_paths.storages.getPathByType(type));
 
-      OUTCOME_TRY(url, acquireFromRemote(sector, type, dest));
+      OUTCOME_TRY(url, acquireFromRemote(sector.id, type, dest));
 
       response.paths.setPathByType(type, dest);
       response.storages.setPathByType(type, storage_id);
 
       auto maybe_err = sector_index_->storageDeclareSector(
-          storage_id, sector, type, mode == AcquireMode::kMove);
+          storage_id, sector.id, type, mode == AcquireMode::kMove);
       if (maybe_err.has_error()) {
         logger_->warn("acquireSector: failed to declare sector {} - {}",
-                      primitives::sector_file::sectorName(sector),
+                      primitives::sector_file::sectorName(sector.id),
                       maybe_err.error().message());
         continue;
       }
@@ -141,7 +139,7 @@ namespace fc::sector_storage::stores {
         auto maybe_error = deleteFromRemote(url);
         if (maybe_error.has_error()) {
           logger_->warn("deleting sector {} from {} (delete {}): {}",
-                        primitives::sector_file::sectorName(sector),
+                        primitives::sector_file::sectorName(sector.id),
                         storage_id,
                         url,
                         maybe_error.error().message());
@@ -180,17 +178,14 @@ namespace fc::sector_storage::stores {
     return local_->removeCopies(sector, type);
   }
 
-  outcome::result<void> RemoteStoreImpl::moveStorage(
-      SectorId sector,
-      RegisteredSealProof seal_proof_type,
-      SectorFileType types) {
+  outcome::result<void> RemoteStoreImpl::moveStorage(SectorRef sector,
+                                                     SectorFileType types) {
     OUTCOME_TRY(acquireSector(sector,
-                              seal_proof_type,
                               types,
                               SectorFileType::FTNone,
                               PathType::kStorage,
                               AcquireMode::kMove));
-    return local_->moveStorage(sector, seal_proof_type, types);
+    return local_->moveStorage(sector, types);
   }
 
   outcome::result<FsStat> RemoteStoreImpl::getFsStat(StorageID id) {

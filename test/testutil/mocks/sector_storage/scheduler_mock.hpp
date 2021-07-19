@@ -13,20 +13,22 @@ namespace fc::sector_storage {
 
   class SchedulerMock : public Scheduler {
    public:
-    MOCK_METHOD6(schedule,
-                 outcome::result<void>(const SectorId &,
+    MOCK_METHOD7(schedule,
+                 outcome::result<void>(const SectorRef &,
                                        const TaskType &,
                                        const std::shared_ptr<WorkerSelector> &,
                                        const WorkerAction &,
                                        const WorkerAction &,
+                                       const ReturnCb &,
                                        uint64_t));
 
     MOCK_METHOD1(doNewWorker, void(WorkerHandle *));
-    void newWorker(std::unique_ptr<WorkerHandle> worker) {
+    void newWorker(std::unique_ptr<WorkerHandle> worker) override {
       doNewWorker(worker.get());
     }
 
-    MOCK_CONST_METHOD0(getSealProofType, RegisteredSealProof());
+    MOCK_METHOD2(returnResult,
+                 outcome::result<void>(const CallId &, CallResult));
   };
 
 }  // namespace fc::sector_storage

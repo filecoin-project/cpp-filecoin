@@ -175,10 +175,11 @@ namespace fc::sector_storage {
         .id = id,
     };
 
-    EXPECT_CALL(
-        *index_,
-        storageFindSector(
-            sector_, file_type_, boost::make_optional(seal_proof_type_)))
+    EXPECT_OUTCOME_TRUE(sector_size, getSectorSize(seal_proof_type_));
+
+    EXPECT_CALL(*index_,
+                storageFindSector(
+                    sector_, file_type_, boost::make_optional(sector_size)))
         .WillOnce(
             testing::Return(outcome::success(std::vector({index_storage}))));
 
