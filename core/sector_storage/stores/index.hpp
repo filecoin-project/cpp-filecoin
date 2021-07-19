@@ -88,10 +88,10 @@ namespace fc::sector_storage::stores {
     virtual outcome::result<std::vector<StorageInfo>> storageBestAlloc(
         const SectorFileType &allocate, SectorSize sector_size, bool sealing_mode) = 0;
 
-    virtual outcome::result<std::unique_ptr<WLock>> storageLock(
+    virtual outcome::result<std::shared_ptr<WLock>> storageLock(
         const SectorId &sector, SectorFileType read, SectorFileType write) = 0;
 
-    virtual std::unique_ptr<WLock> storageTryLock(const SectorId &sector,
+    virtual std::shared_ptr<WLock> storageTryLock(const SectorId &sector,
                                                   SectorFileType read,
                                                   SectorFileType write) = 0;
   };

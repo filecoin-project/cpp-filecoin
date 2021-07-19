@@ -43,12 +43,12 @@ namespace fc::sector_storage::stores {
                      const SectorFileType &, SectorSize, bool));
 
     MOCK_METHOD3(storageLock,
-                 outcome::result<std::unique_ptr<WLock>>(const SectorId &,
+                 outcome::result<std::shared_ptr<WLock>>(const SectorId &,
                                                          SectorFileType,
                                                          SectorFileType));
 
     MOCK_METHOD3(storageTryLock,
-                 std::unique_ptr<WLock>(const SectorId &,
+                 std::shared_ptr<WLock>(const SectorId &,
                                         SectorFileType,
                                         SectorFileType));
   };

@@ -197,11 +197,8 @@ namespace fc {
         .is_no_swap = false,  // TODO: add flag for change it
     };
 
-    auto worker{std::make_unique<LocalWorker>(
-        io,
-        wconfig,
-        nullptr,  // TODO(ortyomka): [FIL-389] add api to return
-        remote_store)};
+    auto worker{std::make_shared<LocalWorker>(io, wconfig, mapi, remote_store)};
+
     auto wapi{std::make_shared<api::WorkerApi>()};
     wapi->Version = []() { return VersionResult{"seal-worker", 0, 0}; };
     wapi->StorageAddLocal = [&](const std::string &path) {

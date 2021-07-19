@@ -64,12 +64,12 @@ namespace fc::sector_storage::stores {
         SectorSize sector_size,
         bool sealing_mode) override;
 
-    outcome::result<std::unique_ptr<WLock>> storageLock(
+    outcome::result<std::shared_ptr<WLock>> storageLock(
         const SectorId &sector,
         SectorFileType read,
         SectorFileType write) override;
 
-    std::unique_ptr<WLock> storageTryLock(const SectorId &sector,
+    std::shared_ptr<WLock> storageTryLock(const SectorId &sector,
                                           SectorFileType read,
                                           SectorFileType write) override;
 

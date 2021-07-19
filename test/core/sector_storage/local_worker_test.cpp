@@ -11,15 +11,16 @@
 #include <boost/filesystem.hpp>
 #include <random>
 
+#include "api/storage_miner/storage_api.hpp"
 #include "common/error_text.hpp"
 #include "proofs/proofs_error.hpp"
 #include "sector_storage/stores/store_error.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/mocks/api.hpp"
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/local_store_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/remote_store_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
-#include "testutil/mocks/sector_storage/worker_return_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/resources/resources.hpp"
 #include "testutil/storage/base_fs_test.hpp"
@@ -51,6 +52,7 @@ namespace fc::sector_storage {
   using stores::SectorPaths;
   using testing::_;
   using testing::Eq;
+  using testing::Ne;
 
   class LocalWorkerTest : public test::BaseFS_Test {
    public:
@@ -88,9 +90,9 @@ namespace fc::sector_storage {
       EXPECT_CALL(*local_store_, getSectorIndex())
           .WillRepeatedly(testing::Return(sector_index_));
 
-      return_interface_ = std::make_shared<WorkerReturnMock>();
+      return_interface_ = std::make_shared<WorkerReturn>();
 
-      local_worker_ = LocalWorker::newLocalWorker(
+      local_worker_ = std::make_shared<LocalWorker>(
           io_context_, config_, return_interface_, store_, proof_engine_);
     }
 
@@ -108,7 +110,7 @@ namespace fc::sector_storage {
     std::shared_ptr<LocalStoreMock> local_store_;
     std::shared_ptr<SectorIndexMock> sector_index_;
     std::shared_ptr<ProofEngineMock> proof_engine_;
-    std::shared_ptr<WorkerReturnMock> return_interface_;
+    std::shared_ptr<WorkerReturn> return_interface_;
 
     std::shared_ptr<LocalWorker> local_worker_;
   };
@@ -227,12 +229,13 @@ namespace fc::sector_storage {
     std::vector<PieceInfo> pieces{
         {.size = PaddedPieceSize(1024), .cid = "010001020001"_cid}};
 
+    MOCK_API(return_interface_, ReturnSealPreCommit1);
+
     EXPECT_OUTCOME_TRUE(call_id,
                         local_worker_->sealPreCommit1(sector_, ticket, pieces));
 
     CallError error;
-    EXPECT_CALL(*return_interface_,
-                returnSealPreCommit1(call_id, Eq(boost::none), _))
+    EXPECT_CALL(mock_ReturnSealPreCommit1, Call(call_id, _, Ne(boost::none)))
         .WillOnce(
             testing::Invoke([&](CallId call_id,
                                 boost::optional<PreCommit1Output> maybe_value,
@@ -301,10 +304,10 @@ namespace fc::sector_storage {
     EXPECT_CALL(*store_, remove(sector_.id, SectorFileType::FTUnsealed))
         .WillOnce(testing::Return(outcome::success()));
 
+    MOCK_API(return_interface_, ReturnFinalizeSector);
     EXPECT_OUTCOME_TRUE(call_id, local_worker_->finalizeSector(sector_, {}));
 
-    EXPECT_CALL(*return_interface_,
-                returnFinalizeSector(call_id, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnFinalizeSector, Call(call_id, Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
@@ -412,11 +415,11 @@ namespace fc::sector_storage {
     EXPECT_CALL(*proof_engine_, clearCache(sector_size_, cache_paths.cache))
         .WillOnce(testing::Return(outcome::success()));
 
+    MOCK_API(return_interface_, ReturnFinalizeSector);
     EXPECT_OUTCOME_TRUE(call_id,
                         local_worker_->finalizeSector(sector_, ranges));
 
-    EXPECT_CALL(*return_interface_,
-                returnFinalizeSector(call_id, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnFinalizeSector, Call(call_id, Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
@@ -521,11 +524,13 @@ namespace fc::sector_storage {
                                         pieces.data(), pieces.size())))
         .WillOnce(testing::Return(outcome::success(p1o)));
 
+    MOCK_API(return_interface_, ReturnSealPreCommit1);
+
     EXPECT_OUTCOME_TRUE(
         call_id, local_worker_->sealPreCommit1(sector_, randomness, pieces));
 
-    EXPECT_CALL(*return_interface_,
-                returnSealPreCommit1(call_id, Eq(p1o), Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnSealPreCommit1,
+                Call(call_id, Eq(p1o), Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
@@ -595,12 +600,14 @@ namespace fc::sector_storage {
                     paths.sealed))
         .WillOnce(testing::Return(outcome::success(cids)));
 
+    MOCK_API(return_interface_, ReturnSealPreCommit2);
+
     EXPECT_OUTCOME_TRUE(
         call_id,
         local_worker_->sealPreCommit2(sector_, p1o));  // TODO: переделать
 
-    EXPECT_CALL(*return_interface_,
-                returnSealPreCommit2(call_id, Eq(cids), Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnSealPreCommit2,
+                Call(call_id, Eq(cids), Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success()));
     io_context_->run_one();
 
@@ -686,12 +693,13 @@ namespace fc::sector_storage {
                                      pieces.data(), pieces.size())))
         .WillOnce(testing::Return(outcome::success(c1o)));
 
+    MOCK_API(return_interface_, ReturnSealCommit1);
+
     EXPECT_OUTCOME_TRUE(
         call_id,
         local_worker_->sealCommit1(sector_, randomness, seed, pieces, cids));
 
-    EXPECT_CALL(*return_interface_,
-                returnSealCommit1(call_id, Eq(c1o), Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnSealCommit1, Call(call_id, Eq(c1o), Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
@@ -715,10 +723,12 @@ namespace fc::sector_storage {
                          sector_.id.miner))
         .WillOnce(testing::Return(outcome::success(proof)));
 
+    MOCK_API(return_interface_, ReturnSealCommit2);
+
     EXPECT_OUTCOME_TRUE(call_id, local_worker_->sealCommit2(sector_, c1o));
 
-    EXPECT_CALL(*return_interface_,
-                returnSealCommit2(call_id, Eq(proof), Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnSealCommit2,
+                Call(call_id, Eq(proof), Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
@@ -787,12 +797,14 @@ namespace fc::sector_storage {
                         PathType::kSealing))
         .WillOnce(testing::Return([&]() { is_clear = true; }));
 
+    MOCK_API(return_interface_, ReturnUnsealPiece);
+
     EXPECT_OUTCOME_TRUE(
         call_id,
         local_worker_->unsealPiece(
             sector_, offset, piece_size, randomness, unsealed_cid));
 
-    EXPECT_CALL(*return_interface_, returnUnsealPiece(call_id, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnUnsealPiece, Call(call_id, Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
@@ -946,12 +958,14 @@ namespace fc::sector_storage {
               return outcome::success();
             }));
 
+    MOCK_API(return_interface_, ReturnUnsealPiece);
+
     EXPECT_OUTCOME_TRUE(
         call_id,
         local_worker_->unsealPiece(
             sector_, offset, piece_size, randomness, unsealed_cid));
 
-    EXPECT_CALL(*return_interface_, returnUnsealPiece(call_id, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnUnsealPiece, Call(call_id, Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
@@ -1134,12 +1148,14 @@ namespace fc::sector_storage {
               return outcome::success();
             }));
 
+    MOCK_API(return_interface_, ReturnUnsealPiece);
+
     EXPECT_OUTCOME_TRUE(
         call_id,
         local_worker_->unsealPiece(
             sector_, offset, piece_size, randomness, unsealed_cid));
 
-    EXPECT_CALL(*return_interface_, returnUnsealPiece(call_id, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnUnsealPiece, Call(call_id, Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
@@ -1176,9 +1192,11 @@ namespace fc::sector_storage {
     EXPECT_CALL(*store_, moveStorage(sector_, types))
         .WillOnce(testing::Return(outcome::success()));
 
+    MOCK_API(return_interface_, ReturnMoveStorage);
+
     EXPECT_OUTCOME_TRUE(call_id, local_worker_->moveStorage(sector_, types))
 
-    EXPECT_CALL(*return_interface_, returnMoveStorage(call_id, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnMoveStorage, Call(call_id, Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
@@ -1235,10 +1253,12 @@ namespace fc::sector_storage {
                               acquire))
         .WillOnce(testing::Return(outcome::success(resp)));
 
+    MOCK_API(return_interface_, ReturnFetch);
+
     EXPECT_OUTCOME_TRUE(call_id,
                         local_worker_->fetch(sector_, type, path, acquire));
 
-    EXPECT_CALL(*return_interface_, returnFetch(call_id, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnFetch, Call(call_id, Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
@@ -1298,13 +1318,14 @@ namespace fc::sector_storage {
     std::string temp_path = (base_path / "temp").string();
     ASSERT_TRUE(std::ofstream(temp_path).good());
 
+    MOCK_API(return_interface_, ReturnReadPiece);
+
     EXPECT_OUTCOME_TRUE(call_id,
                         local_worker_->readPiece(
                             PieceData(temp_path), sector_, offset, piece_size));
 
     bool status = true;
-    EXPECT_CALL(*return_interface_,
-                returnReadPiece(call_id, _, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnReadPiece, Call(call_id, _, Eq(boost::none)))
         .WillOnce(
             testing::Invoke([&](CallId call_id,
                                 boost::optional<bool> maybe_status,
@@ -1383,13 +1404,14 @@ namespace fc::sector_storage {
     std::string temp_path = (base_path / "temp").string();
     ASSERT_TRUE(std::ofstream(temp_path).good());
 
+    MOCK_API(return_interface_, ReturnReadPiece);
+
     EXPECT_OUTCOME_TRUE(call_id,
                         local_worker_->readPiece(
                             PieceData(temp_path), sector_, offset, piece_size));
 
     bool status = true;
-    EXPECT_CALL(*return_interface_,
-                returnReadPiece(call_id, _, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnReadPiece, Call(call_id, _, Eq(boost::none)))
         .WillOnce(
             testing::Invoke([&](const CallId &call_id,
                                 boost::optional<bool> maybe_status,
@@ -1487,13 +1509,14 @@ namespace fc::sector_storage {
 
     PieceData in(p[0]);
 
+    MOCK_API(return_interface_, ReturnReadPiece);
+
     EXPECT_OUTCOME_TRUE(
         call_id,
         local_worker_->readPiece(PieceData(p[1]), sector_, offset, piece_size));
 
     bool status = false;
-    EXPECT_CALL(*return_interface_,
-                returnReadPiece(call_id, _, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnReadPiece, Call(call_id, _, Eq(boost::none)))
         .WillOnce(
             testing::Invoke([&](const CallId &call_id,
                                 boost::optional<bool> maybe_status,
@@ -1525,13 +1548,15 @@ namespace fc::sector_storage {
     std::vector<UnpaddedPieceSize> pieces = {UnpaddedPieceSize(1016),
                                              UnpaddedPieceSize(1016)};
 
+    MOCK_API(return_interface_, ReturnAddPiece);
+
     EXPECT_OUTCOME_TRUE(
         call_id,
         local_worker_->addPiece(
             sector_, pieces, UnpaddedPieceSize(127), PieceData("/dev/null")));
 
     CallError error;
-    EXPECT_CALL(*return_interface_, returnAddPiece(call_id, Eq(boost::none), _))
+    EXPECT_CALL(mock_ReturnAddPiece, Call(call_id, _, Ne(boost::none)))
         .WillOnce(
             testing::Invoke([&](const CallId &call_id,
                                 boost::optional<PieceInfo> maybe_piece_info,
@@ -1624,12 +1649,14 @@ namespace fc::sector_storage {
                               AcquireMode::kCopy))
         .WillOnce(testing::Return(unsealed_resp));
 
+    MOCK_API(return_interface_, ReturnAddPiece);
+
     EXPECT_OUTCOME_TRUE(сall_id,
                         local_worker_->addPiece(
                             sector_, {}, piece_size, PieceData(input_path)));
 
     PieceInfo info;
-    EXPECT_CALL(*return_interface_, returnAddPiece(сall_id, _, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnAddPiece, Call(сall_id, _, Eq(boost::none)))
         .WillOnce(
             testing::Invoke([&](const CallId &call_id,
                                 boost::optional<PieceInfo> maybe_piece_info,
@@ -1737,13 +1764,15 @@ namespace fc::sector_storage {
 
     std::vector<UnpaddedPieceSize> pieces = {UnpaddedPieceSize(127)};
 
+    MOCK_API(return_interface_, ReturnAddPiece);
+
     EXPECT_OUTCOME_TRUE(
         call_id,
         local_worker_->addPiece(
             sector_, pieces, piece_size, PieceData(input_path)));
 
     PieceInfo info;
-    EXPECT_CALL(*return_interface_, returnAddPiece(call_id, _, Eq(boost::none)))
+    EXPECT_CALL(mock_ReturnAddPiece, Call(call_id, _, Eq(boost::none)))
         .WillOnce(
             testing::Invoke([&](const CallId &call_id,
                                 boost::optional<PieceInfo> maybe_piece_info,
