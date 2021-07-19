@@ -16,7 +16,7 @@
     using function::function;                                              \
     using Result = _result;                                                \
     using Params = ParamsTuple<__VA_ARGS__>;                               \
-    using Signature = outcome::result<_result>(__VA_ARGS__);               \
+    using FunctionSignature = outcome::result<_result>(__VA_ARGS__);               \
     static constexpr auto name = "Filecoin." #_name;                       \
   } _name;
 

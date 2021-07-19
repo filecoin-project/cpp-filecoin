@@ -14,8 +14,8 @@
 
 namespace fc::api {
   template <typename A>
-  struct Mock : testing::MockFunction<typename A::Signature> {
-    Mock(std::function<typename A::Signature> &a) {
+  struct Mock : testing::MockFunction<typename A::FunctionSignature> {
+    Mock(std::function<typename A::FunctionSignature> &a) {
       a = this->AsStdFunction();
     }
   };
