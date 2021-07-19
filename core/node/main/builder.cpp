@@ -61,7 +61,7 @@
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/prefix.hpp"
 #include "storage/mpool/mpool.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/states/init_actor_state.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/impl/cached_interpreter.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
@@ -79,6 +79,7 @@ namespace fc::node {
   using markets::storage::client::StorageMarketClientImpl;
   using storage::ipfs::InMemoryDatastore;
   using storage::keystore::FileSystemKeyStore;
+  using vm::actor::builtin::states::InitActorStatePtr;
 
   namespace {
     auto log() {
@@ -94,10 +95,8 @@ namespace fc::node {
                   vm::state::StateTreeImpl(
                       ipld, genesis_tipset.blks[0].parent_state_root)
                       .get(vm::actor::kInitAddress));
-      OUTCOME_TRY(
-          init_state,
-          vm::actor::builtin::states::StateProvider{ipld}.getInitActorState(
-              init_actor));
+      OUTCOME_TRY(init_state,
+                  getCbor<InitActorStatePtr>(ipld, init_actor.head));
       config.network_name = init_state->network_name;
       return outcome::success();
     }

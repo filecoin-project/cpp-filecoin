@@ -8,7 +8,7 @@
 namespace fc::vm::actor::builtin::v3::multisig {
 
   outcome::result<ApproveTransactionResult> MultisigUtils::executeTransaction(
-      MultisigActorStatePtr state,
+      MultisigActorStatePtr &state,
       const TransactionId &tx_id,
       const Transaction &transaction) const {
     bool applied = false;
@@ -31,7 +31,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
       applied = true;
 
       // Lotus gas conformance
-      OUTCOME_TRYA(state, runtime.stateManager()->getMultisigActorState());
+      OUTCOME_TRYA(state, runtime.getActorState<MultisigActorStatePtr>());
 
       // Starting at version 6 we first check if the transaction exists before
       // deleting. This allows 1 out of n multisig swaps and removes initiated

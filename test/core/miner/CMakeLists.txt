@@ -9,6 +9,12 @@ addtest(events_test
 target_link_libraries(events_test
         events)
 
+addtest(batcher_test
+        precommit_batcher_test.cpp
+        )
+target_link_libraries(batcher_test
+        batcher)
+
 addtest(precommit_policy_test
         precommit_policy_test.cpp
         )
@@ -42,5 +48,8 @@ target_link_libraries(sealing_test
         storage_fsm
         ipfs_datastore_in_memory
         in_memory_storage
+        miner_actor_v0
+        miner_actor_v2
+        miner_actor_v3
         )
 

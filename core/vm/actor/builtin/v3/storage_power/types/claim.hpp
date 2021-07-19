@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v3/storage_power/storage_power_actor_state.hpp"
+#pragma once
 
-#include "storage/ipfs/datastore.hpp"
+#include "vm/actor/builtin/v2/storage_power/types/claim.hpp"
 
 namespace fc::vm::actor::builtin::v3::storage_power {
-  ACTOR_STATE_TO_CBOR_THIS(PowerActorState)
+
+  using Claim = v2::storage_power::Claim;
+
 }  // namespace fc::vm::actor::builtin::v3::storage_power

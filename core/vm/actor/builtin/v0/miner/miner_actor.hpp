@@ -27,6 +27,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::sector::PoStProof;
   using primitives::sector::Proof;
   using primitives::sector::RegisteredSealProof;
+  using states::MinerActorStatePtr;
   using types::miner::CronEventPayload;
   using types::miner::SectorDeclaration;
   using types::miner::SectorPreCommitInfo;
@@ -42,8 +43,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     };
     ACTOR_METHOD_DECL();
 
-    static outcome::result<void> makeEmptyState(
-        const Runtime &runtime, states::MinerActorStatePtr state);
+    static outcome::result<void> makeEmptyState(const Runtime &runtime,
+                                                MinerActorStatePtr &state);
   };
   CBOR_TUPLE(Construct::Params,
              owner,

@@ -69,7 +69,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     }
     transaction.approved.push_back(caller);
 
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
 
     REQUIRE_NO_ERROR(state->pending_transactions.set(tx_id, transaction),
                      VMExitCode::kErrIllegalState);
@@ -80,7 +80,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   }
 
   outcome::result<ApproveTransactionResult> MultisigUtils::executeTransaction(
-      MultisigActorStatePtr state,
+      MultisigActorStatePtr &state,
       const TransactionId &tx_id,
       const Transaction &transaction) const {
     bool applied = false;
@@ -103,7 +103,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       applied = true;
 
       // Lotus gas conformance
-      OUTCOME_TRYA(state, runtime.stateManager()->getMultisigActorState());
+      OUTCOME_TRYA(state, runtime.getActorState<MultisigActorStatePtr>());
 
       REQUIRE_NO_ERROR(state->pending_transactions.remove(tx_id),
                        VMExitCode::kErrIllegalState);

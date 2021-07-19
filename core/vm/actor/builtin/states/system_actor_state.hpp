@@ -5,13 +5,15 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/state.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
 
-  struct SystemActorState : State {
+  struct SystemActorState {
+    virtual ~SystemActorState() = default;
     // empty state
   };
 
-  using SystemActorStatePtr = std::shared_ptr<SystemActorState>;
+  using SystemActorStatePtr = types::Universal<SystemActorState>;
+
 }  // namespace fc::vm::actor::builtin::states

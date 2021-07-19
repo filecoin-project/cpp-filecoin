@@ -4,6 +4,7 @@
  */
 
 #include "payment_channel_manager/impl/payment_channel_manager_impl.hpp"
+
 #include "payment_channel_manager/impl/payment_channel_manager_error.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
@@ -17,7 +18,6 @@ namespace fc::payment_channel_manager {
   using vm::VMExitCode;
   using vm::actor::kInitAddress;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::states::StateProvider;
   using vm::actor::builtin::v0::kPaymentChannelCodeId;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
@@ -296,8 +296,7 @@ namespace fc::payment_channel_manager {
     auto state_tree =
         std::make_shared<StateTreeImpl>(ipld_, tipset->getParentStateRoot());
     OUTCOME_TRY(actor, state_tree->get(channel_address));
-    const StateProvider provider(ipld_);
-    return provider.getPaymentChannelActorState(actor);
+    return getCbor<PaymentChannelActorStatePtr>(ipld_, actor.head);
   }
 
   outcome::result<uint64_t> PaymentChannelManagerImpl::getNextNonce(

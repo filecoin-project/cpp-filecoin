@@ -11,21 +11,12 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::sector::getRegisteredWindowPoStProof;
   using types::miner::kWPoStPeriodDeadlines;
 
-  ACTOR_STATE_TO_CBOR_THIS(MinerActorState)
-
-  outcome::result<types::miner::MinerInfo> MinerActorState::getInfo(
-      IpldPtr ipld) const {
-    OUTCOME_TRY(info, getCbor<MinerInfo>(ipld, miner_info));
-    OUTCOME_TRYA(info.window_post_proof_type,
-                 getRegisteredWindowPoStProof(info.seal_proof_type));
+  outcome::result<Universal<types::miner::MinerInfo>> MinerActorState::getInfo()
+      const {
+    OUTCOME_TRY(info, miner_info.get());
+    OUTCOME_TRYA(info->window_post_proof_type,
+                 getRegisteredWindowPoStProof(info->seal_proof_type));
     return std::move(info);
-  }
-
-  outcome::result<void> MinerActorState::setInfo(
-      IpldPtr ipld, const types::miner::MinerInfo &info) {
-    MinerInfo info0{info};
-    OUTCOME_TRYA(miner_info, setCbor(ipld, info0));
-    return outcome::success();
   }
 
   outcome::result<types::miner::Deadlines> MinerActorState::makeEmptyDeadlines(

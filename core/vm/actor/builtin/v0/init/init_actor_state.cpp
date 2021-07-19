@@ -8,7 +8,6 @@
 #include "vm/actor/builtin/states/init_actor_state_raw.hpp"
 
 namespace fc::vm::actor::builtin::v0::init {
-  ACTOR_STATE_TO_CBOR_THIS(InitActorState)
 
   outcome::result<Address> InitActorState::addActor(const Address &address) {
     return InitActorStateRaw::addActor(address_map_0.hamt, next_id, address);

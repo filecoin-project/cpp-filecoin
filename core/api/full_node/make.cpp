@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <libp2p/peer/peer_id.hpp>
 
+#include "api/full_node/ipld_proxy.hpp"
 #include "api/version.hpp"
 #include "blockchain/production/block_producer.hpp"
 #include "common/logger.hpp"
@@ -20,7 +21,11 @@
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/chain/receipt_loader.hpp"
 #include "storage/hamt/hamt.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/states/account_actor_state.hpp"
+#include "vm/actor/builtin/states/init_actor_state.hpp"
+#include "vm/actor/builtin/states/market_actor_state.hpp"
+#include "vm/actor/builtin/states/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/power_actor_state.hpp"
 #include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
@@ -32,6 +37,7 @@
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 #define MOVE(x)  \
   x {            \
@@ -63,7 +69,6 @@ namespace fc::api {
   using vm::actor::builtin::states::MarketActorStatePtr;
   using vm::actor::builtin::states::MinerActorStatePtr;
   using vm::actor::builtin::states::PowerActorStatePtr;
-  using vm::actor::builtin::states::StateProvider;
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
@@ -71,6 +76,7 @@ namespace fc::api {
   using vm::message::kDefaultGasPrice;
   using vm::runtime::Env;
   using vm::state::StateTreeImpl;
+  using vm::toolchain::Toolchain;
   using vm::version::getNetworkVersion;
 
   const static Logger logger = common::createLogger("Full node API");
@@ -102,7 +108,7 @@ namespace fc::api {
 
   template <typename T, typename F>
   auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&...args) {
+    return [f{std::forward<F>(f)}](auto &&... args) {
       auto channel{std::make_shared<Channel<outcome::result<T>>>()};
       f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
         channel->write(std::forward<decltype(_r)>(_r));
@@ -117,52 +123,45 @@ namespace fc::api {
     boost::optional<InterpreterResult> interpreted;
 
     auto marketState() -> outcome::result<MarketActorStatePtr> {
-      const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(kStorageMarketAddress));
-      OUTCOME_TRY(state, provider.getMarketActorState(actor));
-      return std::move(state);
+      return getCbor<MarketActorStatePtr>(state_tree.getStore(), actor.head);
     }
 
     auto minerState(const Address &address)
         -> outcome::result<MinerActorStatePtr> {
-      const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(address));
-      OUTCOME_TRY(state, provider.getMinerActorState(actor));
-      return std::move(state);
+      return getCbor<MinerActorStatePtr>(state_tree.getStore(), actor.head);
     }
 
     auto powerState() -> outcome::result<PowerActorStatePtr> {
-      const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(kStoragePowerAddress));
-      OUTCOME_TRY(state, provider.getPowerActorState(actor));
-      return std::move(state);
+      return getCbor<PowerActorStatePtr>(state_tree.getStore(), actor.head);
     }
 
     auto initState() -> outcome::result<InitActorStatePtr> {
-      const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(kInitAddress));
-      OUTCOME_TRY(state, provider.getInitActorState(actor));
-      return std::move(state);
+      return getCbor<InitActorStatePtr>(state_tree.getStore(), actor.head);
     }
 
     auto verifiedRegistryState()
         -> outcome::result<VerifiedRegistryActorStatePtr> {
-      const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(kVerifiedRegistryAddress));
-      return provider.getVerifiedRegistryActorState(actor);
+      return getCbor<VerifiedRegistryActorStatePtr>(state_tree.getStore(),
+                                                    actor.head);
     }
 
     outcome::result<Address> accountKey(const Address &id) {
-      const StateProvider provider(state_tree.getStore());
       OUTCOME_TRY(actor, state_tree.get(id));
-      OUTCOME_TRY(state, provider.getAccountActorState(actor));
+      OUTCOME_TRY(
+          state,
+          getCbor<AccountActorStatePtr>(state_tree.getStore(), actor.head));
       return state->address;
     }
   };
 
   outcome::result<std::vector<SectorInfo>> getSectorsForWinningPoSt(
       const Address &miner,
-      MinerActorStatePtr state,
+      const MinerActorStatePtr &state,
       const Randomness &post_rand,
       IpldPtr ipld) {
     std::vector<SectorInfo> sectors;
@@ -180,10 +179,10 @@ namespace fc::api {
       }));
     }
     if (!sectors_bitset.empty()) {
-      OUTCOME_TRY(minfo, state->getInfo(ipld));
+      OUTCOME_TRY(miner_info, state->getInfo());
       OUTCOME_TRY(win_type,
                   primitives::sector::getRegisteredWinningPoStProof(
-                      minfo.seal_proof_type));
+                      miner_info->seal_proof_type));
       static auto proofs{std::make_shared<proofs::ProofEngineImpl>()};
       OUTCOME_TRY(
           indices,
@@ -194,7 +193,7 @@ namespace fc::api {
       for (auto &i : indices) {
         OUTCOME_TRY(sector, state->sectors.get(sector_ids[i]));
         sectors.push_back(
-            {minfo.seal_proof_type, sector.sector, sector.sealed_cid});
+            {miner_info->seal_proof_type, sector.sector, sector.sealed_cid});
       }
     }
     return sectors;
@@ -227,6 +226,9 @@ namespace fc::api {
       } else {
         OUTCOME_TRYA(tipset, ts_load->load(tipset_key));
       }
+      auto ipld = std::make_shared<IpldProxy>(env_context.ipld);
+      ipld->actor_version = Toolchain::getActorVersionForNetwork(
+          getNetworkVersion(tipset->height()));
       TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
       if (interpret) {
         OUTCOME_TRY(result, interpreter_cache->get(tipset->key));
@@ -514,8 +516,8 @@ namespace fc::api {
                       *interpreter_cache, ts_load, ipld, std::move(t)));
 
       OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
-      OUTCOME_TRY(minfo, miner_state->getInfo(ipld));
-      OUTCOME_TRY(worker_key, context.accountKey(minfo.worker));
+      OUTCOME_TRY(miner_info, miner_state->getInfo());
+      OUTCOME_TRY(worker_key, context.accountKey(miner_info->worker));
       OUTCOME_TRY(block_sig, key_store->sign(worker_key, block_signable));
       block.header.block_sig = block_sig;
 
@@ -571,13 +573,13 @@ namespace fc::api {
                 }
                 OUTCOME_CB(auto power_state, lookback.powerState());
                 OUTCOME_CB(auto claim, power_state->getClaim(miner));
-                info.miner_power = claim.qa_power;
+                info.miner_power = claim->qa_power;
                 info.network_power = power_state->total_qa_power;
-                OUTCOME_CB(auto minfo, miner_state->getInfo(ipld));
-                OUTCOME_CB(info.worker, context.accountKey(minfo.worker));
-                info.sector_size = minfo.sector_size;
+                OUTCOME_CB(auto miner_info, miner_state->getInfo());
+                OUTCOME_CB(info.worker, context.accountKey(miner_info->worker));
+                info.sector_size = miner_info->sector_size;
                 info.has_min_power = minerHasMinPower(
-                    claim.qa_power, power_state->num_miners_meeting_min_power);
+                    claim->qa_power, power_state->num_miners_meeting_min_power);
                 cb(std::move(info));
               });
         });
@@ -738,7 +740,7 @@ namespace fc::api {
         [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(power_state, context.powerState());
-          return power_state->getClaimsKeys();
+          return power_state->claims.keys();
         }};
     api->StateListActors = {
         [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
@@ -826,7 +828,8 @@ namespace fc::api {
         [=](auto &address, auto &tipset_key) -> outcome::result<MinerInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(miner_state, context.minerState(address));
-          return miner_state->getInfo(ipld);
+          OUTCOME_TRY(miner_info, miner_state->getInfo());
+          return *miner_info;
         }};
     api->StateMinerPartitions = {
         [=](auto &miner,
@@ -858,7 +861,7 @@ namespace fc::api {
           Claim total(power_state->total_raw_power,
                       power_state->total_qa_power);
 
-          return MinerPower{miner_power, total};
+          return MinerPower{*miner_power, total};
         }};
     api->StateMinerProvingDeadline = {
         [=](auto &address, auto &tipset_key) -> outcome::result<DeadlineInfo> {
@@ -899,10 +902,10 @@ namespace fc::api {
         -> outcome::result<RegisteredSealProof> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
       OUTCOME_TRY(miner_state, context.minerState(miner_address));
-      OUTCOME_TRY(miner_info, miner_state->getInfo(ipld));
-      auto network_version = getNetworkVersion(context.tipset->height());
+      OUTCOME_TRY(miner_info, miner_state->getInfo());
+      const auto network_version = getNetworkVersion(context.tipset->height());
       return getPreferredSealProofTypeFromWindowPoStType(
-          network_version, miner_info.window_post_proof_type);
+          network_version, miner_info->window_post_proof_type);
     };
 
     // TODO(artyom-yurin): FIL-165 implement method

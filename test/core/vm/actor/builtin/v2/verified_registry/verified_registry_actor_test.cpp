@@ -23,28 +23,9 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
       : public ActorTestFixture<VerifiedRegistryActorState> {
     void SetUp() override {
       ActorTestFixture<VerifiedRegistryActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion2;
-
+      actor_version = ActorVersion::kVersion2;
+      ipld->actor_version = actor_version;
       setupState();
-
-      EXPECT_CALL(*state_manager, createVerifiedRegistryActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<VerifiedRegistryActorState>();
-            cbor_blake::cbLoadT(ipld, *s);
-            return std::static_pointer_cast<states::VerifiedRegistryActorState>(
-                s);
-          }));
-
-      EXPECT_CALL(*state_manager, getVerifiedRegistryActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                getCbor<VerifiedRegistryActorState>(ipld, cid));
-            auto s =
-                std::make_shared<VerifiedRegistryActorState>(current_state);
-            return std::static_pointer_cast<states::VerifiedRegistryActorState>(
-                s);
-          }));
     }
 
     void setupState() {

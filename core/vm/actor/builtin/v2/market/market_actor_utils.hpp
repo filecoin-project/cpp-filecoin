@@ -33,7 +33,7 @@ namespace fc::vm::actor::builtin::v2::market {
         const StoragePower &network_qa_power) const override;
 
     outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
-    validateDealsForActivation(MarketActorStatePtr state,
+    validateDealsForActivation(MarketActorStatePtr &state,
                                const std::vector<DealId> &deals,
                                const ChainEpoch &sector_expiry) const override;
 

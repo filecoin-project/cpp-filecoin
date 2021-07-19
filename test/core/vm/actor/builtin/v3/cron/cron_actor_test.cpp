@@ -20,22 +20,8 @@ namespace fc::vm::actor::builtin::v3::cron {
   struct CronActorTest : public ActorTestFixture<CronActorState> {
     void SetUp() override {
       ActorTestFixture<CronActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion0;
-
-      EXPECT_CALL(*state_manager, createCronActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<CronActorState>();
-            return std::static_pointer_cast<states::CronActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getCronActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, setCbor(ipld, state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                getCbor<CronActorState>(ipld, cid));
-            auto s = std::make_shared<CronActorState>(current_state);
-            return std::static_pointer_cast<states::CronActorState>(s);
-          }));
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
     }
   };
 

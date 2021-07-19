@@ -17,7 +17,7 @@ namespace libp2p::protocol {
     void next_clock() {
       pulse(false);
     }
-
+    ~SchedulerMock() override = default;
    protected:
     void scheduleImmediate() override {
       pulse(true);

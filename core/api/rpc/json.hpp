@@ -521,6 +521,7 @@ namespace fc::api {
       }
       Set(j, "PeerId", peer_id);
       Set(j, "Multiaddrs", v.multiaddrs);
+      Set(j, "SealProofType", v.seal_proof_type);
       Set(j, "WindowPoStProofType", v.window_post_proof_type);
       Set(j, "SectorSize", v.sector_size);
       Set(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
@@ -554,6 +555,7 @@ namespace fc::api {
         v.peer_id.clear();
       }
       Get(j, "Multiaddrs", v.multiaddrs);
+      Get(j, "SealProofType", v.seal_proof_type);
       Get(j, "WindowPoStProofType", v.window_post_proof_type);
       Get(j, "SectorSize", v.sector_size);
       Get(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);

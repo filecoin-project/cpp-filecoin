@@ -5,14 +5,14 @@
 
 #pragma once
 
-#include "codec/cbor/streams_annotation.hpp"
 #include "vm/actor/builtin/states/init_actor_state.hpp"
+
+#include "codec/cbor/streams_annotation.hpp"
 
 namespace fc::vm::actor::builtin::v0::init {
   using primitives::address::Address;
 
   struct InitActorState : states::InitActorState {
-    outcome::result<Buffer> toCbor() const override;
     outcome::result<Address> addActor(const Address &address) override;
     outcome::result<boost::optional<uint64_t>> tryGet(
         const Address &address) override;

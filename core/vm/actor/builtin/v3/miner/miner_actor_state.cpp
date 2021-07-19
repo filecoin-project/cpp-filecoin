@@ -10,19 +10,9 @@
 namespace fc::vm::actor::builtin::v3::miner {
   using types::miner::kWPoStPeriodDeadlines;
 
-  ACTOR_STATE_TO_CBOR_THIS(MinerActorState)
-
-  outcome::result<types::miner::MinerInfo> MinerActorState::getInfo(
-      IpldPtr ipld) const {
-    OUTCOME_TRY(info3, getCbor<MinerInfo>(ipld, miner_info));
-    return std::move(info3);
-  }
-
-  outcome::result<void> MinerActorState::setInfo(
-      IpldPtr ipld, const types::miner::MinerInfo &info) {
-    MinerInfo info3{info};
-    OUTCOME_TRYA(miner_info, setCbor(ipld, info3));
-    return outcome::success();
+  outcome::result<Universal<types::miner::MinerInfo>> MinerActorState::getInfo()
+      const {
+    return miner_info.get();
   }
 
   outcome::result<types::miner::Deadlines> MinerActorState::makeEmptyDeadlines(

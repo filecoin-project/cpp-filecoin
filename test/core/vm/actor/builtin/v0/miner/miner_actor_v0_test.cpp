@@ -30,7 +30,8 @@ namespace fc::vm::actor::builtin::v0::miner {
    public:
     void SetUp() override {
       MinerActorTestFixture<MinerActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion0;
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
       anyCodeIdAddressIs(kAccountCodeId);
       cbor_blake::cbLoadT(ipld, state);
     }
@@ -126,16 +127,16 @@ namespace fc::vm::actor::builtin::v0::miner {
             .peer_id = peer_id,
             .multiaddresses = multiaddresses}));
 
-    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo(ipld));
-    EXPECT_EQ(miner_info.owner, owner);
-    EXPECT_EQ(miner_info.worker, worker);
-    EXPECT_EQ(miner_info.control, control_addresses);
-    EXPECT_EQ(miner_info.peer_id, peer_id);
-    EXPECT_EQ(miner_info.multiaddrs, multiaddresses);
-    EXPECT_EQ(static_cast<RegisteredSealProof>(miner_info.seal_proof_type),
+    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo());
+    EXPECT_EQ(miner_info->owner, owner);
+    EXPECT_EQ(miner_info->worker, worker);
+    EXPECT_EQ(miner_info->control, control_addresses);
+    EXPECT_EQ(miner_info->peer_id, peer_id);
+    EXPECT_EQ(miner_info->multiaddrs, multiaddresses);
+    EXPECT_EQ(static_cast<RegisteredSealProof>(miner_info->seal_proof_type),
               RegisteredSealProof::kStackedDrg32GiBV1);
-    EXPECT_EQ(miner_info.sector_size, BigInt{1} << 35);
-    EXPECT_EQ(miner_info.window_post_partition_sectors, 2349);
+    EXPECT_EQ(miner_info->sector_size, BigInt{1} << 35);
+    EXPECT_EQ(miner_info->window_post_partition_sectors, 2349);
 
     EXPECT_EQ(state.precommit_deposit, 0);
     EXPECT_EQ(state.locked_funds, 0);
@@ -198,10 +199,10 @@ namespace fc::vm::actor::builtin::v0::miner {
             .peer_id = {},
             .multiaddresses = {}}));
 
-    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo(ipld));
-    EXPECT_EQ(miner_info.control.size(), 2);
-    EXPECT_EQ(miner_info.control[0], controlId1);
-    EXPECT_EQ(miner_info.control[1], controlId2);
+    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo());
+    EXPECT_EQ(miner_info->control.size(), 2);
+    EXPECT_EQ(miner_info->control[0], controlId1);
+    EXPECT_EQ(miner_info->control[1], controlId2);
   }
 
   /**
@@ -317,13 +318,13 @@ namespace fc::vm::actor::builtin::v0::miner {
         runtime,
         ChangeWorkerAddress::Params{new_worker, new_control_addresses}));
 
-    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo(ipld));
-    EXPECT_EQ(miner_info.pending_worker_key.get().new_worker, new_worker);
-    EXPECT_EQ(miner_info.pending_worker_key.get().effective_at,
+    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo());
+    EXPECT_EQ(miner_info->pending_worker_key.get().new_worker, new_worker);
+    EXPECT_EQ(miner_info->pending_worker_key.get().effective_at,
               effective_epoch);
-    EXPECT_EQ(miner_info.control.size(), 2);
-    EXPECT_EQ(miner_info.control[0], controlId1);
-    EXPECT_EQ(miner_info.control[1], controlId2);
+    EXPECT_EQ(miner_info->control.size(), 2);
+    EXPECT_EQ(miner_info->control[0], controlId1);
+    EXPECT_EQ(miner_info->control[1], controlId2);
   }
 
   /**
@@ -360,8 +361,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_OUTCOME_TRUE_1(
         ChangePeerId::call(runtime, ChangePeerId::Params{new_peer_id}));
 
-    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo(ipld));
-    EXPECT_EQ(miner_info.peer_id, new_peer_id);
+    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo());
+    EXPECT_EQ(miner_info->peer_id, new_peer_id);
   }
 
 }  // namespace fc::vm::actor::builtin::v0::miner
