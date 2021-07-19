@@ -46,11 +46,12 @@ namespace fc::sector_storage::stores {
   class LocalStoreTest : public test::BaseFS_Test {
    public:
     LocalStoreTest() : test::BaseFS_Test("fc_local_store_test") {
-      sector_ = SectorRef{.proof_type = RegisteredSealProof::kStackedDrg2KiBV1,
-                          .id = SectorId{
-                              .miner = 42,
-                              .sector = 1,
-                          }};
+      sector_ = SectorRef{.id =
+                              SectorId{
+                                  .miner = 42,
+                                  .sector = 1,
+                              },
+                          .proof_type = RegisteredSealProof::kStackedDrg2KiBV1};
       sector_size_ = getSectorSize(sector_.proof_type).value();
       index_ = std::make_shared<SectorIndexMock>();
       storage_ = std::make_shared<LocalStorageMock>();
@@ -1178,8 +1179,7 @@ namespace fc::sector_storage::stores {
 
     scheduler_->next_clock();
     EXPECT_OUTCOME_TRUE(
-        release,
-        local_store_->reserve(sector_, type, spaths, path_type));
+        release, local_store_->reserve(sector_, type, spaths, path_type));
 
     std::string sector_file = (storage_path / toString(type)
                                / primitives::sector_file::sectorName(sector))
