@@ -158,9 +158,12 @@ namespace fc::sector_storage {
         if (!force
             && !primitives::canHandleRequest(
                 need_resources, worker->info.resources, worker->active)) {
-          request_queue_.insert(
-              request);  // if resource is not enough, then request would added
-                         // to request queue
+          {
+            std::unique_lock lock(request_lock_);
+            request_queue_.insert(request);  // if resource is not enough,
+                                             // then request would added
+                                             // to request queue
+          }
           return usual_clear();
         }
 
