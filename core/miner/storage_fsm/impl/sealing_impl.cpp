@@ -58,6 +58,7 @@ namespace fc::mining {
       std::shared_ptr<PreCommitPolicy> policy,
       std::shared_ptr<boost::asio::io_context> context,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      std::shared_ptr<PreCommitBatcher> precommit_batcher,
       Config config)
       : scheduler_{std::move(scheduler)},
         api_(std::move(api)),
@@ -67,6 +68,7 @@ namespace fc::mining {
         fsm_kv_{std::move(fsm_kv)},
         miner_address_(miner_address),
         sealer_(std::move(sealer)),
+        precommit_batcher_(std::move(precommit_batcher)),
         config_(config) {
     fsm_ = std::make_shared<StorageFSM>(makeFSMTransitions(), *context, true);
     fsm_->setAnyChangeAction(
@@ -94,6 +96,7 @@ namespace fc::mining {
       std::shared_ptr<PreCommitPolicy> policy,
       std::shared_ptr<boost::asio::io_context> context,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      std::shared_ptr<PreCommitBatcher> precommit_batcher,
       Config config) {
     struct make_unique_enabler : public SealingImpl {
       make_unique_enabler(
@@ -106,6 +109,7 @@ namespace fc::mining {
           std::shared_ptr<PreCommitPolicy> policy,
           std::shared_ptr<boost::asio::io_context> context,
           std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+          std::shared_ptr<PreCommitBatcher> precommit_bathcer,
           Config config)
           : SealingImpl{std::move(api),
                         std::move(events),
@@ -116,9 +120,9 @@ namespace fc::mining {
                         std::move(policy),
                         std::move(context),
                         std::move(scheduler),
+                        std::move(precommit_bathcer),
                         std::move(config)} {};
     };
-
     std::shared_ptr<SealingImpl> sealing =
         std::make_shared<make_unique_enabler>(api,
                                               events,
@@ -129,8 +133,8 @@ namespace fc::mining {
                                               policy,
                                               context,
                                               scheduler,
+                                              precommit_batcher,
                                               config);
-
     OUTCOME_TRY(sealing->fsmLoad());
     if (config.wait_deals_delay != 0) {
       std::lock_guard lock(sealing->sectors_mutex_);
@@ -1047,40 +1051,28 @@ namespace fc::mining {
     deposit = std::max(deposit, collateral);
 
     logger_->info("submitting precommit for sector: {}", info->sector_number);
-    auto maybe_signed_msg = api_->MpoolPushMessage(
-        vm::message::UnsignedMessage(
-            miner_address_,
-            minfo.worker,
-            0,
-            deposit,
-            {},
-            {},
-            vm::actor::builtin::v0::miner::PreCommitSector::Number,
-            MethodParams{maybe_params.value()}),
-        api::kPushNoSpec);  // TODO: max fee options
-
-    if (maybe_signed_msg.has_error()) {
-      if (params.replace_capacity) {
-        maybe_error = markForUpgrade(params.replace_sector);
-        if (maybe_error.has_error()) {
-          logger_->error("error re-marking sector {} as for upgrade: {}",
-                         info->sector_number,
-                         maybe_error.error().message());
+    auto maybe_batched = precommit_batcher_->addPreCommit(*info, deposit, params, [=](const outcome::result<CID> &maybe_cid){
+      if(maybe_cid.has_error()) {
+        if (params.replace_capacity) {
+          auto maybe_error = markForUpgrade(params.replace_sector);
+          if (maybe_error.has_error()) {
+            logger_->error("error re-marking sector {} as for upgrade: {}",
+                           info->sector_number,
+                           maybe_error.error().message());
+          }
         }
+        logger_->error("submitting message to precommit batcher: {}",
+                       maybe_cid.error().message());
+          FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
       }
-      logger_->error("pushing message to mpool: {}",
-                     maybe_signed_msg.error().message());
-      FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
-      return outcome::success();
-    }
+        std::shared_ptr<SectorPreCommittedContext> context =
+            std::make_shared<SectorPreCommittedContext>();
+        context->precommit_message = maybe_cid.value();
+        context->precommit_deposit = deposit;
+        context->precommit_info = params;
+      FSM_SEND_CONTEXT(info, SealingEvent::kSectorPreCommitted, context);
+      });
 
-    std::shared_ptr<SectorPreCommittedContext> context =
-        std::make_shared<SectorPreCommittedContext>();
-    context->precommit_message = maybe_signed_msg.value().getCid();
-    context->precommit_deposit = deposit;
-    context->precommit_info = std::move(params);
-
-    FSM_SEND_CONTEXT(info, SealingEvent::kSectorPreCommitted, context);
     return outcome::success();
   }
 

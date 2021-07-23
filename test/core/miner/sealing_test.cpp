@@ -15,6 +15,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/mocks/libp2p/scheduler_mock.hpp"
 #include "testutil/mocks/miner/events_mock.hpp"
+#include "testutil/mocks/miner/precommit_batcher_mock.hpp"
 #include "testutil/mocks/miner/precommit_policy_mock.hpp"
 #include "testutil/mocks/primitives/stored_counter_mock.hpp"
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
@@ -109,6 +110,7 @@ namespace fc::mining {
       };
 
       scheduler_ = std::make_shared<SchedulerMock>();
+      precommit_batcher_ = std::make_shared<PreCommitBatcherMock>();
 
       EXPECT_OUTCOME_TRUE(sealing,
                           SealingImpl::newSealing(api_,
@@ -120,6 +122,7 @@ namespace fc::mining {
                                                   policy_,
                                                   context_,
                                                   scheduler_,
+                                                  precommit_batcher_,
                                                   config_));
       sealing_ = sealing;
     }
@@ -146,6 +149,7 @@ namespace fc::mining {
     std::shared_ptr<SchedulerMock> scheduler_;
 
     std::shared_ptr<Sealing> sealing_;
+    std::shared_ptr<PreCommitBatcherMock> precommit_batcher_;
   };
 
   /**
@@ -798,17 +802,22 @@ namespace fc::mining {
            const SectorPreCommitInfo &,
            const TipsetKey &) -> outcome::result<TokenAmount> { return 10; };
 
-    CID precommit_msg_cid;
+    CID precommit_msg_cid = "010001020042"_cid;
+    EXPECT_CALL(*precommit_batcher_, addPreCommit(_, _, _, _))
+        .WillOnce(testing::Invoke(
+            [=](const SectorInfo &,
+                const TokenAmount &,
+                const SectorPreCommitInfo &,
+                const PrecommitCallback &cb) -> outcome::result<void> {
+              cb(precommit_msg_cid);
+              return outcome::success();
+            }));
+
     CID commit_msg_cid;  // for commit stage
     api_->MpoolPushMessage = [&precommit_msg_cid, &commit_msg_cid](
-                                 const UnsignedMessage &msg,
-                                 const boost::optional<api::MessageSendSpec> &)
+        const UnsignedMessage &msg,
+        const boost::optional<api::MessageSendSpec> &)
         -> outcome::result<SignedMessage> {
-      if (precommit_msg_cid == CID()) {
-        precommit_msg_cid = msg.getCid();
-        return SignedMessage{.message = msg, .signature = BlsSignature()};
-      }
-
       commit_msg_cid = msg.getCid();
       return SignedMessage{.message = msg, .signature = BlsSignature()};
     };
@@ -893,6 +902,7 @@ namespace fc::mining {
         [](const Address &,
            const SectorPreCommitInfo &,
            const TipsetKey &) -> outcome::result<TokenAmount> { return 0; };
+
 
     // Commit Wait
 

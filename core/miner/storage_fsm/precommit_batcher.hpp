@@ -6,11 +6,15 @@
 #pragma once
 
 #include "miner/storage_fsm/types.hpp"
+#include "vm/actor/builtin/types/miner/miner_info.hpp"
+
 
 namespace fc::mining {
   using primitives::TokenAmount;
   using types::SectorInfo;
+  using primitives::address::Address;
   using vm::actor::builtin::types::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::types::miner::MinerInfo;
   using PrecommitCallback = std::function<void(const outcome::result<CID> &)>;
 
   class PreCommitBatcher {
