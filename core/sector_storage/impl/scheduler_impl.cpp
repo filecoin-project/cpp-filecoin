@@ -149,44 +149,48 @@ namespace fc::sector_storage {
           ++active_jobs;
         }
 
-        CallId call_id;
+        worker->preparing.free(worker->info.resources, need_resources);
 
-        auto maybe_clear = worker->active.withResources(
-            force,
-            worker->info.resources,
-            need_resources,
-            [&]() -> outcome::result<void> {
-              worker->preparing.free(worker->info.resources, need_resources);
-
-              auto maybe_call_id = request->work(worker->worker);
-
-              if (maybe_call_id.has_value()) {
-                call_id = maybe_call_id.value();
-                return outcome::success();
-              }
-
-              return maybe_call_id.error();
-            });
-
-        if (maybe_clear.has_error()) {
-          request->cb(maybe_clear.error());
-          logger_->error("worker's execution: "
-                         + maybe_clear.error().message());
-
+        auto usual_clear = [this, wid]() {
           --active_jobs;
           freeWorker(wid);
-        } else {
-          ReturnCb new_cb =
-              [this, wid, request, clear = std::move(maybe_clear.value())](
-                  outcome::result<CallResult> result) -> void {
-            clear();
-            --active_jobs;
+        };
+        if (!force
+            && !primitives::canHandleRequest(
+                need_resources, worker->info.resources, worker->active)) {
+          {
+            std::unique_lock lock(request_lock_);
+            request_queue_.insert(request);  // if resource is not enough,
+                                             // then request would added
+                                             // to request queue
+          }
+          return usual_clear();
+        }
 
+        worker->active.add(worker->info.resources, need_resources);
+
+        auto clear =
+            [clear = std::move(usual_clear), worker, need_resources]() {
+              worker->active.free(worker->info.resources, need_resources);
+              clear();
+            };
+
+        auto maybe_call_id = request->work(worker->worker);
+
+        if (maybe_call_id.has_error()) {
+          request->cb(maybe_call_id.error());
+          logger_->error("worker's execution: "
+                         + maybe_call_id.error().message());
+          return clear();
+        } else {
+          ReturnCb new_cb = [request, clear = std::move(clear)](
+                                outcome::result<CallResult> result) -> void {
             request->cb(std::move(result));
 
-            freeWorker(wid);
+            return clear();
           };
           {
+            auto &call_id{maybe_call_id.value()};
             std::unique_lock lock(cbs_lock_);
 
             auto it = results_.find(call_id);

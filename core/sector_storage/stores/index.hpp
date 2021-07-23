@@ -78,7 +78,7 @@ namespace fc::sector_storage::stores {
         const SectorFileType &file_type) = 0;
 
     /**
-     * @note for unable fetch, need to specify sector size
+     * @note to able to fetch, need to specify sector size
      */
     virtual outcome::result<std::vector<StorageInfo>> storageFindSector(
         const SectorId &sector,
