@@ -22,6 +22,7 @@ namespace fc::mining {
   using libp2p::protocol::SchedulerMock;
   using libp2p::protocol::scheduler::Ticks;
   using libp2p::protocol::scheduler::toTicks;
+  using primitives::sector::RegisteredSealProof;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
   using testing::Mock;

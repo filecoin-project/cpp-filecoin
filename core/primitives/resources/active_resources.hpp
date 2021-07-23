@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include <shared_mutex>
 #include <condition_variable>
+#include <shared_mutex>
 #include "primitives/resources/resources.hpp"
 #include "primitives/types.hpp"
 
@@ -24,16 +24,6 @@ namespace fc::primitives {
     void free(const WorkerResources &worker_resources,
               const Resources &resources);
 
-    /**
-     * @brief run @callback with @resources
-     */
-    outcome::result<void> withResources(
-        bool force,
-        const WorkerResources &worker_resources,
-        const Resources &resources,
-        std::mutex &locker,
-        const std::function<outcome::result<void>()> &callback);
-
     double utilization(const WorkerResources &worker_resources);
 
     friend bool canHandleRequest(const Resources &need_resources,
@@ -42,8 +32,6 @@ namespace fc::primitives {
 
    private:
     mutable std::shared_mutex mutex_;
-    bool unlock_;
-    std::condition_variable cv_;
   };
 
   bool canHandleRequest(const Resources &need_resources,

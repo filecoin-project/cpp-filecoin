@@ -22,6 +22,7 @@ namespace fc::sector_storage::stores {
   using fc::primitives::sector::SectorId;
   using fc::primitives::sector_file::SectorFileType;
   using primitives::FsStat;
+  using primitives::SectorSize;
   using primitives::StorageID;
   using std::chrono::system_clock;
 
@@ -77,22 +78,20 @@ namespace fc::sector_storage::stores {
         const SectorFileType &file_type) = 0;
 
     /**
-     * @note for unable fetch, need to specify proof type
+     * @note to able to fetch, need to specify sector size
      */
     virtual outcome::result<std::vector<StorageInfo>> storageFindSector(
         const SectorId &sector,
         const SectorFileType &file_type,
-        boost::optional<RegisteredSealProof> fetch_seal_proof_type) = 0;
+        boost::optional<SectorSize> fetch_sector_size) = 0;
 
     virtual outcome::result<std::vector<StorageInfo>> storageBestAlloc(
-        const SectorFileType &allocate,
-        RegisteredSealProof seal_proof_type,
-        bool sealing_mode) = 0;
+        const SectorFileType &allocate, SectorSize sector_size, bool sealing_mode) = 0;
 
-    virtual outcome::result<std::unique_ptr<WLock>> storageLock(
+    virtual outcome::result<std::shared_ptr<WLock>> storageLock(
         const SectorId &sector, SectorFileType read, SectorFileType write) = 0;
 
-    virtual std::unique_ptr<WLock> storageTryLock(const SectorId &sector,
+    virtual std::shared_ptr<WLock> storageTryLock(const SectorId &sector,
                                                   SectorFileType read,
                                                   SectorFileType write) = 0;
   };

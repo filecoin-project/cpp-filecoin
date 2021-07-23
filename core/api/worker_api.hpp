@@ -16,8 +16,9 @@ namespace fc::api {
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::InteractiveRandomness;
   using primitives::sector::SealRandomness;
-  using primitives::sector::SectorId;
+  using primitives::sector::SectorRef;
   using sector_storage::AcquireMode;
+  using sector_storage::CallId;
   using sector_storage::Commit1Output;
   using sector_storage::PathType;
   using sector_storage::PreCommit1Output;
@@ -30,42 +31,42 @@ namespace fc::api {
     // TODO(ortyomka): [FIL-344] add AddPiece function
 
     API_METHOD(Fetch,
-               void,
-               const SectorId &,
+               CallId,
+               const SectorRef &,
                const SectorFileType &,
                PathType,
                AcquireMode)
+
     API_METHOD(FinalizeSector,
-               void,
-               const SectorId &,
+               CallId,
+               const SectorRef &,
                const std::vector<Range> &)
 
     API_METHOD(Info, primitives::WorkerInfo)
 
-    API_METHOD(MoveStorage, void, const SectorId &)
+    API_METHOD(MoveStorage, CallId, const SectorRef &, SectorFileType)
 
     API_METHOD(Paths, std::vector<primitives::StoragePath>)
-    API_METHOD(Remove, void, const SectorId &)
 
     API_METHOD(SealCommit1,
-               Commit1Output,
-               const SectorId &,
+               CallId,
+               const SectorRef &,
                const SealRandomness &,
                const InteractiveRandomness &,
                std::vector<PieceInfo>,
                const SectorCids &)
 
-    API_METHOD(SealCommit2, Proof, const SectorId &, const Commit1Output &)
+    API_METHOD(SealCommit2, CallId, const SectorRef &, const Commit1Output &)
 
     API_METHOD(SealPreCommit1,
-               PreCommit1Output,
-               const SectorId &,
+               CallId,
+               const SectorRef &,
                const SealRandomness &,
                std::vector<PieceInfo>)
 
     API_METHOD(SealPreCommit2,
-               SectorCids,
-               const SectorId &,
+               CallId,
+               const SectorRef &,
                const PreCommit1Output &)
 
     API_METHOD(StorageAddLocal, void, const std::string &)
@@ -73,8 +74,8 @@ namespace fc::api {
     API_METHOD(TaskTypes, std::set<primitives::TaskType>)
 
     API_METHOD(UnsealPiece,
-               void,
-               const SectorId &,
+               CallId,
+               const SectorRef &,
                UnpaddedByteIndex,
                const UnpaddedPieceSize &,
                const SealRandomness &,
@@ -90,7 +91,6 @@ namespace fc::api {
     f(a.Info);
     f(a.MoveStorage);
     f(a.Paths);
-    f(a.Remove);
     f(a.SealCommit1);
     f(a.SealCommit2);
     f(a.SealPreCommit1);
