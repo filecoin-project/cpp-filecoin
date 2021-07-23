@@ -18,6 +18,7 @@ namespace fc::mining::types {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::SectorNumber;
+  using primitives::TokenAmount;
   using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
@@ -207,5 +208,27 @@ namespace fc::mining::types {
     return lhs.sector == rhs.sector && lhs.offset == rhs.offset
            && lhs.size == rhs.size;
   }
+
+  struct BatchConfing{
+    TokenAmount base;
+    TokenAmount per_sector;
+
+    inline TokenAmount FeeForSector(const uint64_t & sector_number){
+      return base + static_cast<TokenAmount>(sector_number*per_sector);
+    }
+  };
+
+  struct FeeConfig{
+    TokenAmount MaxPreCommitGasFee;
+
+    // maxBatchFee = maxBase + maxPerSector * nSectors
+    BatchConfing MaxPreCommitBatchGasFee;
+
+    //TODO: TokenAmount max_terminate_gas_fee, max_window_poSt_gas_fee, max_publish_deals_fee, max_market_balance_ddd_fee
+
+
+  };
+
+
 
 }  // namespace fc::mining::types

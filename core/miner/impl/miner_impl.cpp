@@ -8,6 +8,7 @@
 #include "miner/storage_fsm/impl/events_impl.hpp"
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
 #include "miner/storage_fsm/impl/tipset_cache_impl.hpp"
+#include "miner/storage_fsm/precommit_batcher.hpp"
 #include "miner/storage_fsm/precommit_policy.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
@@ -17,6 +18,7 @@ namespace fc::miner {
   using mining::Events;
   using mining::EventsImpl;
   using mining::kGlobalChainConfidence;
+  using mining::PreCommitBatcher;
   using mining::PreCommitPolicy;
   using mining::SealingImpl;
   using mining::TipsetCache;
@@ -27,7 +29,7 @@ namespace fc::miner {
 
   MinerImpl::MinerImpl(std::shared_ptr<FullNodeApi> api,
                        std::shared_ptr<Sealing> sealing)
-      : api_{std::move(api)}, sealing_{std::move(sealing)} {}
+      : api_{std::move(api)}, sealing_{std::move(sealing)}{}
 
   outcome::result<std::shared_ptr<SectorInfo>> MinerImpl::getSectorInfo(
       SectorNumber sector_id) const {
@@ -78,7 +80,7 @@ namespace fc::miner {
             api,
             deadline_info.period_start % kWPoStProvingPeriod,
             kMaxSectorExpirationExtension - 2 * kWPoStProvingPeriod);
-
+    std::shared_ptr<PreCommitBatcher> precommit_batcher = std::make_shared<PreCommitBatcherImpl>(60000, api, miner_address, scheduler);
     OUTCOME_TRY(sealing,
                 SealingImpl::newSealing(api,
                                         events,
@@ -89,6 +91,7 @@ namespace fc::miner {
                                         precommit_policy,
                                         context,
                                         scheduler,
+                                        precommit_batcher,
                                         config));
 
     struct make_unique_enabler : public MinerImpl {
