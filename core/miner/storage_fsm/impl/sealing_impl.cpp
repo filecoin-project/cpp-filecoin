@@ -623,7 +623,11 @@ namespace fc::mining {
             .to(SealingState::kWaitSeed)
             .action(CALLBACK_ACTION),
         SealingTransition(SealingEvent::kSectorSeedReady)
-            .fromMany(SealingState::kWaitSeed, SealingState::kCommitting)
+            .fromMany(SealingState::kWaitSeed, SealingState::kComputeProof)
+            .to(SealingState::kComputeProof)
+            .action(CALLBACK_ACTION),
+        SealingTransition(SealingEvent::kSectorComputeProof)
+            .from(SealingState::kComputeProof)
             .to(SealingState::kCommitting)
             .action(CALLBACK_ACTION),
         SealingTransition(SealingEvent::kSectorCommitted)
@@ -631,13 +635,17 @@ namespace fc::mining {
             .to(SealingState::kCommitWait)
             .action(CALLBACK_ACTION),
         SealingTransition(SealingEvent::kSectorComputeProofFailed)
-            .from(SealingState::kCommitting)
+            .from(SealingState::kComputeProof)
             .to(SealingState::kComputeProofFail),
         SealingTransition(SealingEvent::kSectorCommitFailed)
-            .fromMany(SealingState::kCommitting, SealingState::kCommitWait)
+            .fromMany(SealingState::kCommitting,
+                      SealingState::kCommitWait,
+                      SealingState::kComputeProof)
             .to(SealingState::kCommitFail),
         SealingTransition(SealingEvent::kSectorRetryCommitWait)
-            .fromMany(SealingState::kCommitting, SealingState::kCommitFail)
+            .fromMany(SealingState::kCommitting,
+                      SealingState::kCommitFail,
+                      SealingState::kComputeProof)
             .to(SealingState::kCommitWait),
         SealingTransition(SealingEvent::kSectorProving)
             .from(SealingState::kCommitWait)
@@ -674,14 +682,14 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kSectorRetryComputeProof)
             .fromMany(SealingState::kComputeProofFail,
                       SealingState::kCommitFail)
-            .to(SealingState::kCommitting)
+            .to(SealingState::kComputeProof)
             .action(
                 [](auto info, auto event, auto context, auto from, auto to) {
                   info->invalid_proofs++;
                 }),
         SealingTransition(SealingEvent::kSectorRetryInvalidProof)
             .from(SealingState::kCommitFail)
-            .to(SealingState::kCommitting)
+            .to(SealingState::kComputeProof)
             .action(
                 [](auto info, auto event, auto context, auto from, auto to) {
                   info->invalid_proofs++;
@@ -689,6 +697,9 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kSectorRetryCommitWait)
             .from(SealingState::kCommitFail)
             .to(SealingState::kPreCommittingWait),
+        SealingTransition(SealingEvent::kSectorRetryCommitting)
+            .fromMany(SealingState::kCommitFail, SealingState::kCommitWait)
+            .to(SealingState::kCommitting),
         SealingTransition(SealingEvent::kSectorRetryFinalize)
             .from(SealingState::kFinalizeFail)
             .to(SealingState::kFinalizeSector),
@@ -755,6 +766,8 @@ namespace fc::mining {
           return handlePreCommitWaiting(info);
         case SealingState::kWaitSeed:
           return handleWaitSeed(info);
+        case SealingState::kComputeProof:
+          return handleComputeProof(info);
         case SealingState::kCommitting:
           return handleCommitting(info);
         case SealingState::kCommitWait:
@@ -1210,7 +1223,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
-  outcome::result<void> SealingImpl::handleCommitting(
+  outcome::result<void> SealingImpl::handleComputeProof(
       const std::shared_ptr<SectorInfo> &info) {
     if (info->message.has_value()) {
       logger_->warn(
@@ -1271,7 +1284,6 @@ namespace fc::mining {
       FSM_SEND(info, SealingEvent::kSectorComputeProofFailed);
       return outcome::success();
     }
-    info->proof = maybe_proof.value();
 
     OUTCOME_TRY(head, api_->ChainHead());
 
@@ -1283,15 +1295,36 @@ namespace fc::mining {
                                            sealer_->getProofEngine());
     if (maybe_error.has_error()) {
       logger_->error("commit check error: {}", maybe_error.error().message());
+      FSM_SEND(info, SealingEvent::kSectorComputeProofFailed);
+      return outcome::success();
+    }
+
+    std::shared_ptr<SectorComputeProofContext> context =
+        std::make_shared<SectorComputeProofContext>();
+    context->proof = std::move(maybe_proof.value());
+    FSM_SEND_CONTEXT(info, SealingEvent::kSectorComputeProof, context);
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleCommitting(
+      const std::shared_ptr<SectorInfo> &info) {
+    OUTCOME_TRY(head, api_->ChainHead());
+
+    auto maybe_error = checks::checkCommit(miner_address_,
+                                           info,
+                                           info->proof,
+                                           head->key,
+                                           api_,
+                                           sealer_->getProofEngine());
+    if (maybe_error.has_error()) {
+      logger_->error("commit check error: {}", maybe_error.error().message());
       FSM_SEND(info, SealingEvent::kSectorCommitFailed);
       return outcome::success();
     }
 
-    // TODO: maybe split into 2 states here
-
     auto params = ProveCommitSector::Params{
         .sector = info->sector_number,
-        .proof = maybe_proof.value(),
+        .proof = info->proof,
     };
 
     auto maybe_params_encoded = codec::cbor::encode(params);
@@ -1344,7 +1377,6 @@ namespace fc::mining {
 
     std::shared_ptr<SectorCommittedContext> context =
         std::make_shared<SectorCommittedContext>();
-    context->proof = maybe_proof.value();
     context->message = maybe_signed_msg.value().getCid();
     FSM_SEND_CONTEXT(info, SealingEvent::kSectorCommitted, context);
     return outcome::success();
@@ -1371,13 +1403,20 @@ namespace fc::mining {
         return;
       }
 
-      if (maybe_message_lookup.value().receipt.exit_code
-          != vm::VMExitCode::kOk) {
+      auto &exit_code{maybe_message_lookup.value().receipt.exit_code};
+      if (exit_code != vm::VMExitCode::kOk) {
         logger_->error(
             "submitting sector proof failed with code {}, message cid: {}",
             maybe_message_lookup.value().receipt.exit_code,
             info->message.get());
-        OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
+        if (exit_code == vm::VMExitCode::kSysErrOutOfGas
+            or exit_code == vm::VMExitCode::kErrInsufficientFunds) {
+          OUTCOME_EXCEPT(
+              fsm_->send(info, SealingEvent::kSectorRetryCommitting, {}));
+        } else {
+          OUTCOME_EXCEPT(
+              fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
+        }
         return;
       }
 
@@ -1653,6 +1692,35 @@ namespace fc::mining {
       if (maybe_error != outcome::failure(ChecksError::kPrecommitOnChain)
           && maybe_error != outcome::failure(ChecksError::kSectorAllocated)) {
         return maybe_error;
+      }
+    }
+
+    if (info->message.has_value()) {
+      auto maybe_message_wait = api_->StateSearchMsg(info->message.value());
+
+      if (maybe_message_wait.has_error()) {
+        auto time = getWaitingTime();
+
+        scheduler_
+            ->schedule(time,
+                       [=] {
+                         OUTCOME_EXCEPT(fsm_->send(
+                             info, SealingEvent::kSectorRetryCommitWait, {}));
+                       })
+            .detach();
+        return outcome::success();
+      }
+
+      auto &message_wait{maybe_message_wait.value()};
+      if (not message_wait.has_value()) {
+        FSM_SEND(info, SealingEvent::kSectorRetryCommitWait);
+      }
+
+      auto &exit_code{message_wait.value().receipt.exit_code};
+      if (exit_code == vm::VMExitCode::kOk) {
+        FSM_SEND(info, SealingEvent::kSectorRetryCommitWait);
+      } else if (exit_code == vm::VMExitCode::kSysErrOutOfGas) {
+        FSM_SEND(info, SealingEvent::kSectorRetryCommitting);
       }
     }
 
