@@ -59,9 +59,7 @@ namespace fc::mining {
     void fsmSave(const std::shared_ptr<SectorInfo> &info);
 
     outcome::result<PieceAttributes> addPieceToAnySector(
-        UnpaddedPieceSize size,
-         PieceData piece_data,
-        DealInfo deal) override;
+        UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) override;
 
     outcome::result<void> remove(SectorNumber sector_id) override;
 
@@ -165,6 +163,12 @@ namespace fc::mining {
      * @brief  Handle incoming in kWaitSeed state
      */
     outcome::result<void> handleWaitSeed(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kComputeProof state
+     */
+    outcome::result<void> handleComputeProof(
         const std::shared_ptr<SectorInfo> &info);
 
     /**

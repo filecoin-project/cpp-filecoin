@@ -895,7 +895,7 @@ namespace fc::mining {
               return outcome::success();
             }));
 
-    // Commiting
+    // Compute Proofs
 
     Commit1Output c1o({1, 2, 3, 4, 5, 6});
     EXPECT_CALL(*manager_,
@@ -911,7 +911,9 @@ namespace fc::mining {
                 sealCommit2Sync(sector_ref, c1o, kDealSectorPriority))
         .WillOnce(testing::Return(proof));
 
+    // Commiting
     EXPECT_CALL(*proofs_, verifySeal(_))
+        .WillOnce(testing::Return(outcome::success(true)))
         .WillOnce(testing::Return(outcome::success(true)));
 
     api_->StateMinerInitialPledgeCollateral =

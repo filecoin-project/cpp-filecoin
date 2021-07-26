@@ -30,6 +30,7 @@ namespace fc::mining {
     kPreCommitting,
     kPreCommittingWait,
     kWaitSeed,
+    kComputeProof,
     kCommitting,
     kCommitWait,
     kFinalizeSector,
