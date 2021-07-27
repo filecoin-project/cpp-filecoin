@@ -20,6 +20,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::SectorSize;
   using primitives::TokenAmount;
   using storage::ipfs::InMemoryDatastore;
+  using types::miner::powerForSectors;
   using types::miner::QuantSpec;
 
   struct ExpirationQueueTestV2 : testing::Test {
@@ -52,7 +53,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     const RleBitset expected_sec_nums{1, 2, 3, 4, 5, 6};
 
     EXPECT_EQ(sec_nums, expected_sec_nums);
-    EXPECT_EQ(power, types::miner::powerForSectors(ssize, sectors));
+    EXPECT_EQ(power, powerForSectors(ssize, sectors));
     EXPECT_EQ(pledge, 6015);
     EXPECT_OUTCOME_EQ(eq.queue.size(), sectors.size());
 
@@ -64,10 +65,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_TRUE(es1.early_sectors.empty());
     EXPECT_EQ(es1.on_time_pledge, 3003);
     EXPECT_EQ(es1.active_power,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin(),
-                                                 sectors.begin() + 3)));
+              powerForSectors(ssize, Utils::slice(sectors, 0, 3)));
     EXPECT_EQ(es1.faulty_power, PowerPair());
 
     EXPECT_OUTCOME_TRUE(es2, eq.popUntil(20));
@@ -77,11 +75,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(es2.on_time_sectors, expected_on_time_sectors2);
     EXPECT_TRUE(es2.early_sectors.empty());
     EXPECT_EQ(es2.on_time_pledge, 3012);
-    EXPECT_EQ(
-        es2.active_power,
-        types::miner::powerForSectors(ssize,
-                                      std::vector<SectorOnChainInfo>(
-                                          sectors.begin() + 3, sectors.end())));
+    EXPECT_EQ(es2.active_power,
+              powerForSectors(ssize, Utils::slice(sectors, 3)));
     EXPECT_EQ(es2.faulty_power, PowerPair());
   }
 
@@ -94,7 +89,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     const RleBitset expected_sec_nums{1, 2, 3, 4, 5, 6};
 
     EXPECT_EQ(sec_nums, expected_sec_nums);
-    EXPECT_EQ(power, types::miner::powerForSectors(ssize, sectors));
+    EXPECT_EQ(power, powerForSectors(ssize, sectors));
     EXPECT_EQ(pledge, 6015);
     EXPECT_OUTCOME_EQ(eq.queue.size(), 3);
 
@@ -128,10 +123,8 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   TEST_F(ExpirationQueueTestV2, ReschedulesSectorsToExpireLater) {
     EXPECT_OUTCOME_TRUE_1(eq.addActiveSectors(sectors, ssize));
-    EXPECT_OUTCOME_TRUE_1(eq.rescheduleExpirations(
-        20,
-        std::vector<SectorOnChainInfo>(sectors.begin(), sectors.begin() + 3),
-        ssize));
+    EXPECT_OUTCOME_TRUE_1(
+        eq.rescheduleExpirations(20, Utils::slice(sectors, 0, 3), ssize));
 
     EXPECT_OUTCOME_EQ(eq.queue.size(), 4);
 
@@ -150,11 +143,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_TRUE(es2.early_sectors.empty());
 
     EXPECT_EQ(es2.on_time_pledge, 3003);
-    EXPECT_EQ(
-        es2.active_power,
-        types::miner::powerForSectors(ssize,
-                                      std::vector<SectorOnChainInfo>(
-                                          sectors.begin() + 3, sectors.end())));
+    EXPECT_EQ(es2.active_power,
+              powerForSectors(ssize, Utils::slice(sectors, 3)));
     EXPECT_EQ(es2.faulty_power, PowerPair());
   }
 
@@ -164,15 +154,8 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     EXPECT_OUTCOME_TRUE(
         power_delta,
-        eq.rescheduleAsFaults(6,
-                              std::vector<SectorOnChainInfo>(
-                                  sectors.begin() + 1, sectors.begin() + 5),
-                              ssize));
-    EXPECT_EQ(power_delta,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin() + 1,
-                                                 sectors.begin() + 5)));
+        eq.rescheduleAsFaults(6, Utils::slice(sectors, 1, 5), ssize));
+    EXPECT_EQ(power_delta, powerForSectors(ssize, Utils::slice(sectors, 1, 5)));
 
     Utils::requireNoExpirationGroupsBefore(5, eq);
     EXPECT_OUTCOME_TRUE(es1, eq.popUntil(5));
@@ -181,15 +164,9 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_TRUE(es1.early_sectors.empty());
     EXPECT_EQ(es1.on_time_pledge, 2001);
     EXPECT_EQ(es1.active_power,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin(),
-                                                 sectors.begin() + 1)));
+              powerForSectors(ssize, Utils::slice(sectors, 0, 1)));
     EXPECT_EQ(es1.faulty_power,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin() + 1,
-                                                 sectors.begin() + 2)));
+              powerForSectors(ssize, Utils::slice(sectors, 1, 2)));
 
     Utils::requireNoExpirationGroupsBefore(9, eq);
     EXPECT_OUTCOME_TRUE(es2, eq.popUntil(9));
@@ -200,10 +177,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(es2.on_time_pledge, 2005);
     EXPECT_EQ(es2.active_power, PowerPair());
     EXPECT_EQ(es2.faulty_power,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin() + 2,
-                                                 sectors.begin() + 5)));
+              powerForSectors(ssize, Utils::slice(sectors, 2, 5)));
 
     Utils::requireNoExpirationGroupsBefore(13, eq);
     EXPECT_OUTCOME_TRUE(es3, eq.popUntil(13));
@@ -211,11 +185,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(es3.on_time_sectors, expected_on_time_sectors3);
     EXPECT_TRUE(es3.early_sectors.empty());
     EXPECT_EQ(es3.on_time_pledge, 1005);
-    EXPECT_EQ(
-        es3.active_power,
-        types::miner::powerForSectors(ssize,
-                                      std::vector<SectorOnChainInfo>(
-                                          sectors.begin() + 5, sectors.end())));
+    EXPECT_EQ(es3.active_power,
+              powerForSectors(ssize, Utils::slice(sectors, 5)));
     EXPECT_EQ(es3.faulty_power, PowerPair());
   }
 
@@ -233,10 +204,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(es1.on_time_pledge, 2001);
     EXPECT_EQ(es1.active_power, PowerPair());
     EXPECT_EQ(es1.faulty_power,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin(),
-                                                 sectors.begin() + 2)));
+              powerForSectors(ssize, Utils::slice(sectors, 0, 2)));
 
     Utils::requireNoExpirationGroupsBefore(9, eq);
     EXPECT_OUTCOME_TRUE(es2, eq.popUntil(9));
@@ -246,11 +214,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(es2.early_sectors, expected_early_sectors2);
     EXPECT_EQ(es2.on_time_pledge, 2005);
     EXPECT_EQ(es2.active_power, PowerPair());
-    EXPECT_EQ(
-        es2.faulty_power,
-        types::miner::powerForSectors(ssize,
-                                      std::vector<SectorOnChainInfo>(
-                                          sectors.begin() + 2, sectors.end())));
+    EXPECT_EQ(es2.faulty_power,
+              powerForSectors(ssize, Utils::slice(sectors, 2)));
 
     Utils::requireNoExpirationGroupsBefore(13, eq);
     EXPECT_OUTCOME_TRUE(es3, eq.popUntil(13));
@@ -269,22 +234,20 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     const std::vector<SectorOnChainInfo> faults{sectors[1], sectors[2]};
     EXPECT_OUTCOME_TRUE(power, eq.rescheduleAsFaults(4, faults, ssize));
-    const auto expected_power = types::miner::powerForSectors(ssize, faults);
+    const auto expected_power = powerForSectors(ssize, faults);
     EXPECT_EQ(power, expected_power);
 
     EXPECT_OUTCOME_TRUE(es1, eq.popUntil(5));
     const RleBitset expected_on_time_sectors1{1, 2, 3};
     EXPECT_EQ(es1.on_time_sectors, expected_on_time_sectors1);
-    EXPECT_EQ(es1.active_power,
-              types::miner::powerForSectors(ssize, {sectors[0]}));
+    EXPECT_EQ(es1.active_power, powerForSectors(ssize, {sectors[0]}));
     EXPECT_EQ(es1.faulty_power, expected_power);
 
     EXPECT_OUTCOME_TRUE(es2, eq.popUntil(20));
     const RleBitset expected_on_time_sectors2{4, 5, 6};
     EXPECT_EQ(es2.on_time_sectors, expected_on_time_sectors2);
     EXPECT_EQ(es2.active_power,
-              types::miner::powerForSectors(
-                  ssize, {sectors[3], sectors[4], sectors[5]}));
+              powerForSectors(ssize, {sectors[3], sectors[4], sectors[5]}));
     EXPECT_EQ(es2.faulty_power, PowerPair());
   }
 
@@ -293,21 +256,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_OUTCOME_TRUE_1(eq.addActiveSectors(sectors, ssize));
 
     EXPECT_OUTCOME_TRUE_1(
-        eq.rescheduleAsFaults(6,
-                              std::vector<SectorOnChainInfo>(
-                                  sectors.begin() + 1, sectors.begin() + 5),
-                              ssize));
+        eq.rescheduleAsFaults(6, Utils::slice(sectors, 1, 5), ssize));
 
     EXPECT_OUTCOME_TRUE(
-        recovered,
-        eq.rescheduleRecovered(std::vector<SectorOnChainInfo>(
-                                   sectors.begin() + 1, sectors.begin() + 5),
-                               ssize));
-    EXPECT_EQ(recovered,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin() + 1,
-                                                 sectors.begin() + 5)));
+        recovered, eq.rescheduleRecovered(Utils::slice(sectors, 1, 5), ssize));
+    EXPECT_EQ(recovered, powerForSectors(ssize, Utils::slice(sectors, 1, 5)));
 
     Utils::requireNoExpirationGroupsBefore(5, eq);
     EXPECT_OUTCOME_TRUE(es1, eq.popUntil(5));
@@ -316,10 +269,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_TRUE(es1.early_sectors.empty());
     EXPECT_EQ(es1.on_time_pledge, 2001);
     EXPECT_EQ(es1.active_power,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin(),
-                                                 sectors.begin() + 2)));
+              powerForSectors(ssize, Utils::slice(sectors, 0, 2)));
     EXPECT_EQ(es1.faulty_power, PowerPair());
 
     Utils::requireNoExpirationGroupsBefore(9, eq);
@@ -329,10 +279,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_TRUE(es2.early_sectors.empty());
     EXPECT_EQ(es2.on_time_pledge, 2005);
     EXPECT_EQ(es2.active_power,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin() + 2,
-                                                 sectors.begin() + 4)));
+              powerForSectors(ssize, Utils::slice(sectors, 2, 4)));
     EXPECT_EQ(es2.faulty_power, PowerPair());
 
     Utils::requireNoExpirationGroupsBefore(13, eq);
@@ -341,11 +288,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(es3.on_time_sectors, expected_on_time_sectors3);
     EXPECT_TRUE(es3.early_sectors.empty());
     EXPECT_EQ(es3.on_time_pledge, 2009);
-    EXPECT_EQ(
-        es3.active_power,
-        types::miner::powerForSectors(ssize,
-                                      std::vector<SectorOnChainInfo>(
-                                          sectors.begin() + 4, sectors.end())));
+    EXPECT_EQ(es3.active_power,
+              powerForSectors(ssize, Utils::slice(sectors, 4)));
     EXPECT_EQ(es3.faulty_power, PowerPair());
   }
 
@@ -366,9 +310,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     const RleBitset expected_added{3, 5};
     EXPECT_EQ(added, expected_added);
 
-    const auto added_power = types::miner::powerForSectors(ssize, to_add);
-    EXPECT_EQ(power_delta,
-              added_power - types::miner::powerForSectors(ssize, to_remove));
+    const auto added_power = powerForSectors(ssize, to_add);
+    EXPECT_EQ(power_delta, added_power - powerForSectors(ssize, to_remove));
     EXPECT_EQ(pledge_delta, 1002 + 1004 - 1000 - 1001 - 1003);
 
     Utils::requireNoExpirationGroupsBefore(9, eq);
@@ -378,10 +321,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_TRUE(es1.early_sectors.empty());
     EXPECT_EQ(es1.on_time_pledge, 1002);
     EXPECT_EQ(es1.active_power,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin() + 2,
-                                                 sectors.begin() + 3)));
+              powerForSectors(ssize, Utils::slice(sectors, 2, 3)));
     EXPECT_EQ(es1.faulty_power, PowerPair());
 
     Utils::requireNoExpirationGroupsBefore(13, eq);
@@ -390,11 +330,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(es2.on_time_sectors, expected_on_time_sectors2);
     EXPECT_TRUE(es2.early_sectors.empty());
     EXPECT_EQ(es2.on_time_pledge, 2009);
-    EXPECT_EQ(
-        es2.active_power,
-        types::miner::powerForSectors(ssize,
-                                      std::vector<SectorOnChainInfo>(
-                                          sectors.begin() + 4, sectors.end())));
+    EXPECT_EQ(es2.active_power,
+              powerForSectors(ssize, Utils::slice(sectors, 4)));
     EXPECT_EQ(es2.faulty_power, PowerPair());
   }
 
@@ -403,10 +340,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_OUTCOME_TRUE_1(eq.addActiveSectors(sectors, ssize));
 
     EXPECT_OUTCOME_TRUE_1(
-        eq.rescheduleAsFaults(6,
-                              std::vector<SectorOnChainInfo>(
-                                  sectors.begin() + 1, sectors.begin() + 6),
-                              ssize));
+        eq.rescheduleAsFaults(6, Utils::slice(sectors, 1, 6), ssize));
 
     const std::vector<SectorOnChainInfo> to_remove{
         sectors[0], sectors[3], sectors[4], sectors[5]};
@@ -422,18 +356,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     const RleBitset expected_removed_early_sectors{5, 6};
     EXPECT_EQ(removed.early_sectors, expected_removed_early_sectors);
     EXPECT_EQ(removed.on_time_pledge, 1000 + 1003);
-    EXPECT_EQ(removed.active_power,
-              types::miner::powerForSectors(ssize, {sectors[0]}));
+    EXPECT_EQ(removed.active_power, powerForSectors(ssize, {sectors[0]}));
     EXPECT_EQ(removed.faulty_power,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin() + 3,
-                                                 sectors.begin() + 6)));
+              powerForSectors(ssize, Utils::slice(sectors, 3, 6)));
     EXPECT_EQ(recovering_power,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin() + 5,
-                                                 sectors.begin() + 6)));
+              powerForSectors(ssize, Utils::slice(sectors, 5, 6)));
 
     Utils::requireNoExpirationGroupsBefore(5, eq);
     EXPECT_OUTCOME_TRUE(es1, eq.popUntil(5));
@@ -443,10 +370,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(es1.on_time_pledge, 1001);
     EXPECT_EQ(es1.active_power, PowerPair());
     EXPECT_EQ(es1.faulty_power,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin() + 1,
-                                                 sectors.begin() + 2)));
+              powerForSectors(ssize, Utils::slice(sectors, 1, 2)));
 
     Utils::requireNoExpirationGroupsBefore(9, eq);
     EXPECT_OUTCOME_TRUE(es2, eq.popUntil(9));
@@ -456,10 +380,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(es2.on_time_pledge, 1002);
     EXPECT_EQ(es2.active_power, PowerPair());
     EXPECT_EQ(es2.faulty_power,
-              types::miner::powerForSectors(
-                  ssize,
-                  std::vector<SectorOnChainInfo>(sectors.begin() + 2,
-                                                 sectors.begin() + 3)));
+              powerForSectors(ssize, Utils::slice(sectors, 2, 3)));
 
     Utils::requireNoExpirationGroupsBefore(20, eq);
   }

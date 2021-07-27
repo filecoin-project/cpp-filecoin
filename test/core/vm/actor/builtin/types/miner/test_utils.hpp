@@ -7,6 +7,7 @@
 
 #include "primitives/types.hpp"
 #include "testutil/outcome.hpp"
+#include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/types/miner/expiration.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
 
@@ -29,6 +30,7 @@ namespace fc::vm::actor::builtin {
 
       sector.expiration = expiration;
       sector.sector = number;
+      sector.sealed_cid = kEmptyObjectCid;
       sector.deal_weight = std::move(weight);
       sector.verified_deal_weight = std::move(vweight);
       sector.init_pledge = std::move(pledge);
@@ -40,6 +42,16 @@ namespace fc::vm::actor::builtin {
                                                 ExpirationQueue &queue) {
       EXPECT_OUTCOME_TRUE(es, queue.popUntil(epoch - 1));
       EXPECT_TRUE(es.isEmpty());
+    }
+
+    template <typename T>
+    static std::vector<T> slice(const std::vector<T> &source,
+                                int begin,
+                                int end = -1) {
+      typename std::vector<T>::const_iterator begin_it = source.begin() + begin;
+      typename std::vector<T>::const_iterator end_it =
+          end == -1 ? source.end() : source.begin() + end;
+      return std::vector<T>(begin_it, end_it);
     }
   };
 

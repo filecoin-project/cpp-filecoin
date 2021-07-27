@@ -73,6 +73,7 @@ namespace fc::vm::actor::builtin::types::miner {
     this->expirations_epochs = queue->queue;
 
     this->faults -= recoveries;
+    this->recoveries = {};
     this->faulty_power -= power;
     this->recovering_power -= power;
 
@@ -94,7 +95,8 @@ namespace fc::vm::actor::builtin::types::miner {
       return ERROR_TEXT("failed fault declaration");
     }
 
-    const auto recoveries = sector_nos.intersect(faults) - this->recoveries;
+    const auto recoveries =
+        sector_nos.intersect(this->faults) - this->recoveries;
 
     OUTCOME_TRY(recovery_sectors, sectors.load(recoveries));
 
