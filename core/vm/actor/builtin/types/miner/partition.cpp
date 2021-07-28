@@ -337,7 +337,7 @@ namespace fc::vm::actor::builtin::types::miner {
     }
 
     if (!this->sectors.contains(skipped)) {
-      return ERROR_TEXT("skipped faults contains sectors outside partition");
+      return VMExitCode::kErrIllegalArgument;
     }
 
     const auto retracted_recoveries = this->recoveries.intersect(skipped);
