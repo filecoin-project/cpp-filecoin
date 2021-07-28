@@ -18,7 +18,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<std::tuple<RleBitset, PowerPair, PowerPair>>
-  Partition::declareFaults(Runtime &runtime,
+  Partition::recordFaults(Runtime &runtime,
                            const Sectors &sectors,
                            const RleBitset &sector_nos,
                            ChainEpoch fault_expiration_epoch,

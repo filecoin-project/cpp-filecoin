@@ -59,7 +59,7 @@ namespace fc::vm::actor::builtin::types::miner {
         SectorSize ssize,
         const QuantSpec &quant) = 0;
 
-    outcome::result<std::tuple<RleBitset, PowerPair, PowerPair>> declareFaults(
+    outcome::result<std::tuple<RleBitset, PowerPair, PowerPair>> recordFaults(
         Runtime &runtime,
         const Sectors &sectors,
         const RleBitset &sector_nos,
