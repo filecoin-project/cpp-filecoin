@@ -23,6 +23,7 @@ namespace fc::mining {
   using api::FullNodeApi;
   using primitives::TokenAmount;
   using primitives::piece::PaddedPieceSize;
+  using primitives::sector::SectorRef;
   using proofs::SealRandomness;
   using sector_storage::Manager;
   using types::PieceInfo;
@@ -58,9 +59,7 @@ namespace fc::mining {
     void fsmSave(const std::shared_ptr<SectorInfo> &info);
 
     outcome::result<PieceAttributes> addPieceToAnySector(
-        UnpaddedPieceSize size,
-        const PieceData &piece_data,
-        DealInfo deal) override;
+        UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) override;
 
     outcome::result<void> remove(SectorNumber sector_id) override;
 
@@ -105,7 +104,7 @@ namespace fc::mining {
 
     outcome::result<void> addPiece(SectorNumber sector_id,
                                    UnpaddedPieceSize size,
-                                   const PieceData &piece,
+                                   PieceData piece,
                                    const boost::optional<DealInfo> &deal);
 
     outcome::result<SectorNumber> newDealSector();
@@ -164,6 +163,12 @@ namespace fc::mining {
      * @brief  Handle incoming in kWaitSeed state
      */
     outcome::result<void> handleWaitSeed(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kComputeProof state
+     */
+    outcome::result<void> handleComputeProof(
         const std::shared_ptr<SectorInfo> &info);
 
     /**
@@ -250,6 +255,8 @@ namespace fc::mining {
     outcome::result<void> handleRemoving(
         const std::shared_ptr<SectorInfo> &info);
 
+    outcome::result<RegisteredSealProof> getCurrentSealProof() const;
+
     struct TicketInfo {
       SealRandomness ticket;
       ChainEpoch epoch = 0;
@@ -259,14 +266,17 @@ namespace fc::mining {
         const std::shared_ptr<SectorInfo> &info);
 
     outcome::result<std::vector<PieceInfo>> pledgeSector(
-        SectorId sector,
+        SectorId sector_id,
         std::vector<UnpaddedPieceSize> existing_piece_sizes,
         gsl::span<UnpaddedPieceSize> sizes);
 
     outcome::result<void> newSectorWithPieces(
         SectorNumber sector_id, std::vector<types::Piece> &pieces);
 
-    SectorId minerSector(SectorNumber num);
+    SectorRef minerSector(RegisteredSealProof seal_proof_type,
+                          SectorNumber num) const;
+
+    SectorId minerSectorId(SectorNumber num) const;
 
     mutable std::mutex sectors_mutex_;
     std::unordered_map<SectorNumber, std::shared_ptr<SectorInfo>> sectors_;
