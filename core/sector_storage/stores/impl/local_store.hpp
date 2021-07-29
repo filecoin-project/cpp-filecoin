@@ -8,13 +8,13 @@
 #include "sector_storage/stores/store.hpp"
 
 #include <boost/asio/io_context.hpp>
-#include <libp2p/protocol/common/scheduler.hpp>
+#include <libp2p/basic/scheduler.hpp>
 #include <shared_mutex>
 #include "common/logger.hpp"
 #include "sector_storage/stores/index.hpp"
 
 namespace fc::sector_storage::stores {
-  using libp2p::protocol::Scheduler;
+  using libp2p::basic::Scheduler;
 
   class LocalStoreImpl : public LocalStore {
    public:
@@ -86,7 +86,7 @@ namespace fc::sector_storage::stores {
     std::unordered_map<StorageID, std::shared_ptr<Path>> paths_;
     fc::common::Logger logger_;
     Scheduler::Handle handler_;
-    int64_t heartbeat_interval_;
+    std::chrono::milliseconds heartbeat_interval_;
     mutable std::shared_mutex mutex_;
   };
 

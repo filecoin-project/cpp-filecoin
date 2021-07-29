@@ -7,6 +7,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <thread>
 
 #include "api/rpc/json.hpp"
@@ -23,10 +24,9 @@
 #include "testutil/storage/base_fs_test.hpp"
 
 namespace fc::sector_storage::stores {
-  using libp2p::protocol::Scheduler;
-  using libp2p::protocol::SchedulerMock;
-  using libp2p::protocol::scheduler::Ticks;
-  using libp2p::protocol::scheduler::toTicks;
+  using libp2p::basic::ManualSchedulerBackend;
+  using libp2p::basic::Scheduler;
+  using libp2p::basic::SchedulerImpl;
   using primitives::FsStat;
   using primitives::LocalStorageMeta;
   using primitives::StorageID;
@@ -50,7 +50,7 @@ namespace fc::sector_storage::stores {
       index_ = std::make_shared<SectorIndexMock>();
       storage_ = std::make_shared<LocalStorageMock>();
       urls_ = {"http://url1.com", "http://url2.com"};
-      scheduler_ = std::make_shared<SchedulerMock>();
+
       EXPECT_CALL(*storage_, getStorage())
           .WillOnce(testing::Return(outcome::success(
               StorageConfig{.storage_paths = std::vector<LocalPath>({})})));
@@ -58,9 +58,10 @@ namespace fc::sector_storage::stores {
       EXPECT_CALL(*storage_, setStorage(_))
           .WillRepeatedly(testing::Return(outcome::success()));
 
-      current_time_ = toTicks(std::chrono::duration_cast<std::chrono::seconds>(
-          std::chrono::system_clock::now().time_since_epoch()));
-      EXPECT_CALL(*scheduler_, now()).WillOnce(testing::Return(current_time_));
+      scheduler_backend_ = std::make_shared<ManualSchedulerBackend>();
+      scheduler_ = std::make_shared<SchedulerImpl>(scheduler_backend_,
+                                                   Scheduler::Config{});
+
       auto maybe_local =
           LocalStoreImpl::newLocalStore(storage_, index_, urls_, scheduler_);
       local_store_ = std::move(maybe_local.value());
@@ -98,8 +99,8 @@ namespace fc::sector_storage::stores {
     std::shared_ptr<SectorIndexMock> index_;
     std::shared_ptr<LocalStorageMock> storage_;
     std::vector<std::string> urls_;
-    std::shared_ptr<SchedulerMock> scheduler_;
-    Ticks current_time_;
+    std::shared_ptr<ManualSchedulerBackend> scheduler_backend_;
+    std::shared_ptr<Scheduler> scheduler_;
   };
 
   /**
@@ -789,16 +790,11 @@ namespace fc::sector_storage::stores {
     };
 
     createStorage(storage_path, storage_meta, stat);
-    EXPECT_CALL(*scheduler_, now())
-        .WillOnce(
-            testing::Return(current_time_ + toTicks(std::chrono::seconds(12))))
-        .WillOnce(
-            testing::Return(current_time_ + toTicks(std::chrono::seconds(24))));
     EXPECT_CALL(*index_, storageReportHealth(storage_id, _))
         .WillOnce(testing::Return(outcome::success()));
     EXPECT_CALL(*storage_, getStat(storage_path))
         .WillOnce(testing::Return(outcome::success(stat)));
-    scheduler_->next_clock();
+    scheduler_backend_->shiftToTimer();
   }
 
   /**
@@ -1168,16 +1164,6 @@ namespace fc::sector_storage::stores {
     FsStat after_reserve;
     FsStat after_release;
 
-    auto first_time = current_time_ + toTicks(std::chrono::seconds(12));
-    auto second_time = current_time_ + toTicks(std::chrono::seconds(24));
-    auto third_time = current_time_ + toTicks(std::chrono::seconds(36));
-
-    EXPECT_CALL(*scheduler_, now())
-        .WillOnce(testing::Return(first_time))
-        .WillOnce(testing::Return(first_time))  // new start point
-        .WillOnce(testing::Return(second_time))
-        .WillOnce(testing::Return(second_time))  // new start point
-        .WillRepeatedly(testing::Return(third_time));
     EXPECT_CALL(*index_, storageReportHealth(storage_id, _))
         .WillOnce(testing::Invoke([&](StorageID id, HealthReport report) {
           EXPECT_EQ(id, storage_id);
@@ -1195,7 +1181,7 @@ namespace fc::sector_storage::stores {
           return outcome::success();
         }));
 
-    scheduler_->next_clock();
+    scheduler_backend_->shiftToTimer();
     EXPECT_OUTCOME_TRUE(
         release,
         local_store_->reserve(seal_proof_type_, type, spaths, path_type));
@@ -1210,10 +1196,10 @@ namespace fc::sector_storage::stores {
     EXPECT_CALL(*storage_, getDiskUsage(sector_file))
         .WillRepeatedly(testing::Return(outcome::success(temp_file_size)));
 
-    scheduler_->next_clock();
+    scheduler_backend_->shiftToTimer();
     // some error occurred and file was removed
     release();
-    scheduler_->next_clock();
+    scheduler_backend_->shiftToTimer();
     ASSERT_EQ(before_reserve, after_release);
     ASSERT_EQ(after_reserve.reserved,
               before_reserve.available - after_reserve.available);

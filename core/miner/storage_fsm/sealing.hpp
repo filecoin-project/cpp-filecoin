@@ -21,7 +21,7 @@ namespace fc::mining {
   using types::SectorInfo;
 
   struct Config {
-    // 0 = no limit
+    // A cap of deals, 0 = no limit
     uint64_t max_wait_deals_sectors = 0;
 
     // includes failed, 0 = no limit
@@ -30,7 +30,7 @@ namespace fc::mining {
     // includes failed, 0 = no limit
     uint64_t max_sealing_sectors_for_deals = 0;
 
-    uint64_t wait_deals_delay;  // in milliseconds
+    std::chrono::milliseconds wait_deals_delay;  // in milliseconds
   };
 
   class Sealing {

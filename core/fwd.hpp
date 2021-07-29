@@ -20,6 +20,10 @@ namespace boost {
 namespace libp2p {
   struct Host;
 
+  namespace basic {
+    class Scheduler;
+  }
+
   namespace connection {
     class Stream;
   }  // namespace connection
@@ -33,7 +37,6 @@ namespace libp2p {
     class Identify;
     class IdentifyPush;
     class IdentifyDelta;
-    class Scheduler;
 
     namespace gossip {
       class Gossip;

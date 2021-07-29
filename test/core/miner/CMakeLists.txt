@@ -4,52 +4,56 @@
 #
 
 addtest(events_test
-        events_test.cpp
-        )
+    events_test.cpp
+    )
 target_link_libraries(events_test
-        events)
+    events
+    )
 
 addtest(batcher_test
-        precommit_batcher_test.cpp
-        )
+    precommit_batcher_test.cpp
+    )
 target_link_libraries(batcher_test
-        batcher)
+    batcher
+    )
 
 addtest(precommit_policy_test
-        precommit_policy_test.cpp
-        )
+    precommit_policy_test.cpp
+    )
 target_link_libraries(precommit_policy_test
-        precommit_policy)
+    precommit_policy)
 
 addtest(sector_stat_test
-        sector_stat_test.cpp
-        )
+    sector_stat_test.cpp
+    )
 target_link_libraries(sector_stat_test
-        sector_stat)
+    sector_stat)
 
 addtest(tipset_cache_test
-        tipset_cache_test.cpp
-        )
+    tipset_cache_test.cpp
+    )
 target_link_libraries(tipset_cache_test
-        tipset_cache)
+    tipset_cache
+    )
 
 addtest(deal_info_manager_test
-        deal_info_manager_test.cpp
-        )
+    deal_info_manager_test.cpp
+    )
 target_link_libraries(deal_info_manager_test
-        deal_info_manager
-        )
+    deal_info_manager
+    )
 
 addtest(sealing_test
-        sealing_test.cpp
-        checks_test.cpp
-        )
+    sealing_test.cpp
+    checks_test.cpp
+    )
 target_link_libraries(sealing_test
-        storage_fsm
-        ipfs_datastore_in_memory
-        in_memory_storage
-        miner_actor_v0
-        miner_actor_v2
-        miner_actor_v3
-        )
+    storage_fsm
+    ipfs_datastore_in_memory
+    in_memory_storage
+    miner_actor_v0
+    miner_actor_v2
+    miner_actor_v3
+    p2p::p2p_basic_scheduler
+    )
 

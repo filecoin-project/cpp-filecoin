@@ -5,10 +5,10 @@
 
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
 
-#include <libp2p/protocol/common/scheduler.hpp>
+#include <libp2p/basic/scheduler.hpp>
+#include <thread>
 #include <unordered_set>
 #include <utility>
-#include <thread>
 #include "common/bitsutil.hpp"
 #include "const.hpp"
 #include "miner/storage_fsm/impl/checks.hpp"
@@ -21,7 +21,7 @@
 
 #define WAIT(cb)                                                         \
   logger_->info("sector {}: wait before retrying", info->sector_number); \
-  scheduler_->schedule(getWaitingTime(), cb).detach();
+  scheduler_->schedule(cb, getWaitingTime());
 
 #define FSM_SEND_CONTEXT(info, event, context) \
   OUTCOME_TRY(fsm_->send(info, event, context))
@@ -42,23 +42,22 @@ namespace fc::mining {
   using vm::actor::builtin::types::miner::kMinSectorExpiration;
   using vm::actor::builtin::v0::miner::ProveCommitSector;
 
-  libp2p::protocol::scheduler::Ticks getWaitingTime(uint64_t errors_count = 0) {
+  std::chrono::milliseconds getWaitingTime(uint64_t errors_count = 0) {
     // TODO: Exponential backoff when we see consecutive failures
 
-    return 60000;  // 1 minute
+    return std::chrono::milliseconds(60000);  // 1 minute
   }
 
-  SealingImpl::SealingImpl(
-      std::shared_ptr<FullNodeApi> api,
-      std::shared_ptr<Events> events,
-      Address miner_address,
-      std::shared_ptr<Counter> counter,
-      std::shared_ptr<BufferMap> fsm_kv,
-      std::shared_ptr<Manager> sealer,
-      std::shared_ptr<PreCommitPolicy> policy,
-      std::shared_ptr<boost::asio::io_context> context,
-      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-      Config config)
+  SealingImpl::SealingImpl(std::shared_ptr<FullNodeApi> api,
+                           std::shared_ptr<Events> events,
+                           Address miner_address,
+                           std::shared_ptr<Counter> counter,
+                           std::shared_ptr<BufferMap> fsm_kv,
+                           std::shared_ptr<Manager> sealer,
+                           std::shared_ptr<PreCommitPolicy> policy,
+                           std::shared_ptr<boost::asio::io_context> context,
+                           std::shared_ptr<Scheduler> scheduler,
+                           Config config)
       : scheduler_{std::move(scheduler)},
         api_(std::move(api)),
         events_(std::move(events)),
@@ -93,20 +92,19 @@ namespace fc::mining {
       std::shared_ptr<Manager> sealer,
       std::shared_ptr<PreCommitPolicy> policy,
       std::shared_ptr<boost::asio::io_context> context,
-      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      std::shared_ptr<Scheduler> scheduler,
       Config config) {
     struct make_unique_enabler : public SealingImpl {
-      make_unique_enabler(
-          std::shared_ptr<FullNodeApi> api,
-          std::shared_ptr<Events> events,
-          Address miner_address,
-          std::shared_ptr<Counter> counter,
-          std::shared_ptr<BufferMap> fsm_kv,
-          std::shared_ptr<Manager> sealer,
-          std::shared_ptr<PreCommitPolicy> policy,
-          std::shared_ptr<boost::asio::io_context> context,
-          std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-          Config config)
+      make_unique_enabler(std::shared_ptr<FullNodeApi> api,
+                          std::shared_ptr<Events> events,
+                          Address miner_address,
+                          std::shared_ptr<Counter> counter,
+                          std::shared_ptr<BufferMap> fsm_kv,
+                          std::shared_ptr<Manager> sealer,
+                          std::shared_ptr<PreCommitPolicy> policy,
+                          std::shared_ptr<boost::asio::io_context> context,
+                          std::shared_ptr<Scheduler> scheduler,
+                          Config config)
           : SealingImpl{std::move(api),
                         std::move(events),
                         miner_address,
@@ -132,23 +130,21 @@ namespace fc::mining {
                                               config);
 
     OUTCOME_TRY(sealing->fsmLoad());
-    if (config.wait_deals_delay != 0) {
+    if (config.wait_deals_delay != std::chrono::milliseconds::zero()) {
       std::lock_guard lock(sealing->sectors_mutex_);
       for (const auto &sector : sealing->sectors_) {
         OUTCOME_TRY(state, sealing->fsm_->get(sector.second));
         if (state == SealingState::kWaitDeals) {
-          sealing->scheduler_
-              ->schedule(
-                  config.max_wait_deals_sectors,
-                  [self{sealing}, sector_id = sector.second->sector_number]() {
-                    auto maybe_error = self->startPacking(sector_id);
-                    if (maybe_error.has_error()) {
-                      self->logger_->error("starting sector {}: {}",
-                                           sector_id,
-                                           maybe_error.error().message());
-                    }
-                  })
-              .detach();
+          sealing->scheduler_->schedule(
+              [self{sealing}, sector_id = sector.second->sector_number]() {
+                auto maybe_error = self->startPacking(sector_id);
+                if (maybe_error.has_error()) {
+                  self->logger_->error("starting sector {}: {}",
+                                       sector_id,
+                                       maybe_error.error().message());
+                }
+              },
+              config.wait_deals_delay);
         }
       }
 
@@ -319,40 +315,37 @@ namespace fc::mining {
       return outcome::success();  // cur sealing
     }
 
-    scheduler_
-        ->schedule([self{shared_from_this()}] {
-          UnpaddedPieceSize size =
-              PaddedPieceSize(self->sealer_->getSectorSize()).unpadded();
+    scheduler_->schedule([self{shared_from_this()}] {
+      UnpaddedPieceSize size =
+          PaddedPieceSize(self->sealer_->getSectorSize()).unpadded();
 
-          auto maybe_sid = self->counter_->next();
-          if (maybe_sid.has_error()) {
-            self->logger_->error(maybe_sid.error().message());
-            return;
-          }
-          auto &sid{maybe_sid.value()};
+      auto maybe_sid = self->counter_->next();
+      if (maybe_sid.has_error()) {
+        self->logger_->error(maybe_sid.error().message());
+        return;
+      }
+      auto &sid{maybe_sid.value()};
 
-          std::vector<UnpaddedPieceSize> sizes = {size};
-          auto maybe_pieces =
-              self->pledgeSector(self->minerSector(sid), {}, sizes);
-          if (maybe_pieces.has_error()) {
-            self->logger_->error(maybe_pieces.error().message());
-            return;
-          }
+      std::vector<UnpaddedPieceSize> sizes = {size};
+      auto maybe_pieces = self->pledgeSector(self->minerSector(sid), {}, sizes);
+      if (maybe_pieces.has_error()) {
+        self->logger_->error(maybe_pieces.error().message());
+        return;
+      }
 
-          std::vector<Piece> pieces;
-          for (auto &piece : maybe_pieces.value()) {
-            pieces.push_back(Piece{
-                .piece = std::move(piece),
-                .deal_info = boost::none,
-            });
-          }
+      std::vector<Piece> pieces;
+      for (auto &piece : maybe_pieces.value()) {
+        pieces.push_back(Piece{
+            .piece = std::move(piece),
+            .deal_info = boost::none,
+        });
+      }
 
-          auto maybe_error = self->newSectorWithPieces(sid, pieces);
-          if (maybe_error.has_error()) {
-            self->logger_->error(maybe_error.error().message());
-          }
-        })
-        .detach();
+      auto maybe_error = self->newSectorWithPieces(sid, pieces);
+      if (maybe_error.has_error()) {
+        self->logger_->error(maybe_error.error().message());
+      }
+    });
 
     return outcome::success();
   }
@@ -512,19 +505,18 @@ namespace fc::mining {
     context->seal_proof_type = minfo.seal_proof_type;
     FSM_SEND_CONTEXT(sector, SealingEvent::kSectorStart, context);
 
-    if (config_.wait_deals_delay > 0) {
-      scheduler_
-          ->schedule(config_.wait_deals_delay,
-                     [this, sector_id]() {
-                       auto maybe_error = startPacking(sector_id);
-                       if (maybe_error.has_error()) {
-                         logger_->error("starting sector {}: {}",
-                                        sector_id,
-                                        maybe_error.error().message());
-                       }
-                     })
-          .detach();  // TODO: maybe we should save it and decline if it starts
-                      // early
+    if (config_.wait_deals_delay > std::chrono::milliseconds::zero()) {
+      scheduler_->schedule(
+          [this, sector_id]() {
+            auto maybe_error = startPacking(sector_id);
+            if (maybe_error.has_error()) {
+              logger_->error("starting sector {}: {}",
+                             sector_id,
+                             maybe_error.error().message());
+            }
+          },
+          config_.wait_deals_delay);
+      // TODO: maybe we should save it and decline if it starts early
     }
 
     return sector_id;
@@ -1427,23 +1419,21 @@ namespace fc::mining {
     auto time = getWaitingTime(info->precommit2_fails);
 
     if (info->precommit2_fails > 1) {
-      scheduler_
-          ->schedule(time,
-                     [=] {
-                       OUTCOME_EXCEPT(fsm_->send(
-                           info, SealingEvent::kSectorRetrySealPreCommit1, {}));
-                     })
-          .detach();
+      scheduler_->schedule(
+          [=] {
+            OUTCOME_EXCEPT(
+                fsm_->send(info, SealingEvent::kSectorRetrySealPreCommit1, {}));
+          },
+          time);
       return outcome::success();
     }
 
-    scheduler_
-        ->schedule(time,
-                   [=] {
-                     OUTCOME_EXCEPT(fsm_->send(
-                         info, SealingEvent::kSectorRetrySealPreCommit2, {}));
-                   })
-        .detach();
+    scheduler_->schedule(
+        [=] {
+          OUTCOME_EXCEPT(
+              fsm_->send(info, SealingEvent::kSectorRetrySealPreCommit2, {}));
+        },
+        time);
     return outcome::success();
   }
 
@@ -1559,24 +1549,21 @@ namespace fc::mining {
 
     if (info->invalid_proofs > 1) {
       logger_->error("consecutive compute fails");
-      scheduler_
-          ->schedule(
-              time,
-              [=] {
-                OUTCOME_EXCEPT(fsm_->send(
-                    info, SealingEvent::kSectorSealPreCommit1Failed, {}));
-              })
-          .detach();
+      scheduler_->schedule(
+          [=] {
+            OUTCOME_EXCEPT(fsm_->send(
+                info, SealingEvent::kSectorSealPreCommit1Failed, {}));
+          },
+          time);
       return outcome::success();
     }
 
-    scheduler_
-        ->schedule(time,
-                   [=] {
-                     OUTCOME_EXCEPT(fsm_->send(
-                         info, SealingEvent::kSectorRetryComputeProof, {}));
-                   })
-        .detach();
+    scheduler_->schedule(
+        [=] {
+          OUTCOME_EXCEPT(
+              fsm_->send(info, SealingEvent::kSectorRetryComputeProof, {}));
+        },
+        time);
     return outcome::success();
   }
 
@@ -1684,13 +1671,12 @@ namespace fc::mining {
     // TODO: Check sector files
 
     auto time = getWaitingTime(info->invalid_proofs);
-    scheduler_
-        ->schedule(time,
-                   [=] {
-                     OUTCOME_EXCEPT(fsm_->send(
-                         info, SealingEvent::kSectorRetryComputeProof, {}));
-                   })
-        .detach();
+    scheduler_->schedule(
+        [=] {
+          OUTCOME_EXCEPT(
+              fsm_->send(info, SealingEvent::kSectorRetryComputeProof, {}));
+        },
+        time);
     return outcome::success();
   }
 

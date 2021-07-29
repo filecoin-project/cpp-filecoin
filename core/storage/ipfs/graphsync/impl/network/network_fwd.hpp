@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <libp2p/protocol/common/scheduler.hpp>
+#include <libp2p/basic/scheduler.hpp>
 #include "marshalling/message.hpp"
 
 namespace libp2p {
@@ -24,7 +24,7 @@ namespace fc::storage::ipfs::graphsync {
   using Host = libp2p::Host;
 
   /// Libp2p scheduler
-  using Scheduler = libp2p::protocol::Scheduler;
+  using Scheduler = libp2p::basic::Scheduler;
 
   /// PeerContext used by Network component to communicate with any peer
   class PeerContext;
@@ -103,9 +103,11 @@ namespace fc::storage::ipfs::graphsync {
   constexpr size_t kMaxPendingBytes = 64 * 1024 * 1024;
 
   /// Cleanup delay for PeerContext, msec
-  constexpr unsigned kPeerCloseDelayMsec = 30000;
+  constexpr std::chrono::milliseconds kPeerCloseDelayMsec =
+      std::chrono::milliseconds(30000);
 
   /// Cleanup delay for stream, msec
-  constexpr unsigned kStreamCloseDelayMsec = 900000;
+  constexpr std::chrono::milliseconds kStreamCloseDelayMsec =
+      std::chrono::milliseconds(900000);
 
 }  // namespace fc::storage::ipfs::graphsync

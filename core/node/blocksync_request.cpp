@@ -5,6 +5,7 @@
 
 #include "node/blocksync_request.hpp"
 
+#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/host/host.hpp>
 #include <unordered_set>
 
@@ -18,6 +19,7 @@
 namespace fc::sync::blocksync {
 
   using common::libp2p::CborStream;
+  using libp2p::basic::Scheduler;
 
   namespace {
     constexpr size_t kMaxDepth = 100;
@@ -224,7 +226,7 @@ namespace fc::sync::blocksync {
           public std::enable_shared_from_this<BlocksyncRequestImpl> {
      public:
       BlocksyncRequestImpl(libp2p::Host &host,
-                           libp2p::protocol::Scheduler &scheduler,
+                           Scheduler &scheduler,
                            IpldPtr ipld,
                            std::shared_ptr<PutBlockHeader> put_block_header)
           : host_(host),
@@ -304,10 +306,12 @@ namespace fc::sync::blocksync {
             });
 
         if (timeoutMsec > 0) {
-          handle_ = scheduler_.schedule(timeoutMsec + depth * 100, [this] {
-            result_->error = BlocksyncRequest::Error::kTimeout;
-            scheduleResult(true);
-          });
+          handle_ = scheduler_.scheduleWithHandle(
+              [this] {
+                result_->error = BlocksyncRequest::Error::kTimeout;
+                scheduleResult(true);
+              },
+              std::chrono::milliseconds(timeoutMsec + depth * 100));
         }
       }
 
@@ -366,7 +370,7 @@ namespace fc::sync::blocksync {
         if (call_now) {
           callback_(std::move(result_.value()));
         } else {
-          handle_ = scheduler_.schedule(
+          handle_ = scheduler_.scheduleWithHandle(
               [this] { callback_(std::move(result_.value())); });
         }
       }
@@ -542,14 +546,14 @@ namespace fc::sync::blocksync {
       }
 
       libp2p::Host &host_;
-      libp2p::protocol::Scheduler &scheduler_;
+      Scheduler &scheduler_;
       IpldPtr ipld_;
       std::shared_ptr<PutBlockHeader> put_block_header_;
       std::function<void(Result)> callback_;
       boost::optional<Result> result_;
       RequestOptions options_ = kBlocksAndMessages;
       std::unordered_set<CbCid> waitlist_;
-      libp2p::protocol::scheduler::Handle handle_;
+      Scheduler::Handle handle_;
       StreamPtr stream_;
       bool in_progress_ = true;
     };
@@ -558,7 +562,7 @@ namespace fc::sync::blocksync {
 
   std::shared_ptr<BlocksyncRequest> BlocksyncRequest::newRequest(
       libp2p::Host &host,
-      libp2p::protocol::Scheduler &scheduler,
+      libp2p::basic::Scheduler &scheduler,
       IpldPtr ipld,
       std::shared_ptr<PutBlockHeader> put_block_header,
       PeerId peer,

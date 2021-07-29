@@ -8,8 +8,8 @@
 
 #include <gtest/gtest.h>
 #include <boost/di/extension/scopes/shared.hpp>
+#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/injector/host_injector.hpp>
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <libp2p/security/plaintext.hpp>
 
 #include "api/full_node/node_api.hpp"
@@ -131,8 +131,7 @@ namespace fc::markets::retrieval::test {
       auto graphsync{
           std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
               host,
-              std::make_shared<libp2p::protocol::AsioScheduler>(
-                  context, libp2p::protocol::SchedulerConfig{}))};
+              injector.create<std::shared_ptr<libp2p::basic::Scheduler>>())};
       graphsync->subscribe([this](auto &from, auto &data) {
         OUTCOME_EXCEPT(client_ipfs->set(data.cid, data.content));
       });

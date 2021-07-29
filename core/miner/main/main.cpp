@@ -55,6 +55,7 @@ namespace fc {
   using boost::asio::io_context;
   using common::span::cbytes;
   using config::configProfile;
+  using libp2p::basic::Scheduler;
   using libp2p::multi::Multiaddress;
   using primitives::address::Address;
   using primitives::sector::RegisteredSealProof;
@@ -275,8 +276,7 @@ namespace fc {
         libp2p::injector::useKeyPair(peer_key))};
     auto io{injector.create<std::shared_ptr<io_context>>()};
     auto host{injector.create<std::shared_ptr<libp2p::Host>>()};
-    auto scheduler{std::make_shared<libp2p::protocol::AsioScheduler>(
-        io, libp2p::protocol::SchedulerConfig{})};
+    auto scheduler{injector.create<std::shared_ptr<Scheduler>>()};
 
     IoThread sealing_thread;
 
@@ -335,11 +335,10 @@ namespace fc {
                     remote_store, wscheduler, {true, true, true, true}));
 
     // TODO(ortyomka): make param
-    mining::Config default_config{
-        .max_wait_deals_sectors = 2,
-        .max_sealing_sectors = 0,
-        .max_sealing_sectors_for_deals = 0,
-        .wait_deals_delay = std::chrono::hours(6).count()};
+    mining::Config default_config{.max_wait_deals_sectors = 2,
+                                  .max_sealing_sectors = 0,
+                                  .max_sealing_sectors_for_deals = 0,
+                                  .wait_deals_delay = std::chrono::hours(6)};
     OUTCOME_TRY(
         miner,
         miner::MinerImpl::newMiner(napi,

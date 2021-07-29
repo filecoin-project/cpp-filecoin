@@ -41,8 +41,8 @@ namespace fc::storage::ipfs::graphsync::test {
     std::pair<std::shared_ptr<Graphsync>, std::shared_ptr<libp2p::Host>>
         objects;
     objects.second = injector.template create<std::shared_ptr<libp2p::Host>>();
-    auto scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
-        io, libp2p::protocol::SchedulerConfig{});
+    auto scheduler =
+        injector.create<std::shared_ptr<libp2p::basic::Scheduler>>();
     objects.first =
         std::make_shared<GraphsyncImpl>(objects.second, std::move(scheduler));
     return objects;

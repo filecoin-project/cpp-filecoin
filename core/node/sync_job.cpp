@@ -43,7 +43,7 @@ namespace fc::sync {
 
   SyncJob::SyncJob(std::shared_ptr<libp2p::Host> host,
                    std::shared_ptr<ChainStoreImpl> chain_store,
-                   std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+                   std::shared_ptr<Scheduler> scheduler,
                    std::shared_ptr<Interpreter> interpreter,
                    std::shared_ptr<InterpreterCache> interpreter_cache,
                    SharedMutexPtr ts_branches_mutex,
