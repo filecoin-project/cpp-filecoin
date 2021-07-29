@@ -84,9 +84,9 @@ namespace fc::primitives {
     }
 
     inline RleBitset slice(uint64_t start, uint64_t count) const {
-      std::vector<uint64_t> temp{begin(), end()};
-      temp = {temp.begin() + start, temp.begin() + count};
-      return RleBitset(temp.begin(), temp.end());
+      assert(start + count <= size());
+      const auto it{std::next(begin(), start)};
+      return {it, std::next(it, count)};
     }
 
     inline bool contains(const RleBitset &other) const {
