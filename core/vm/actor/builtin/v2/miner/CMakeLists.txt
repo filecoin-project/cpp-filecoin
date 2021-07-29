@@ -8,6 +8,7 @@ add_library(miner_actor_v2
     miner_actor_state.cpp
     miner_actor_utils.cpp
     types/expiration.cpp
+    types/partition.cpp
     )
 target_link_libraries(miner_actor_v2
     miner_actor_v0

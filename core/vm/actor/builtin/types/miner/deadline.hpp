@@ -11,6 +11,7 @@
 #include "vm/actor/builtin/types/miner/partition.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
   using primitives::RleBitset;
@@ -40,7 +41,7 @@ namespace fc::vm::actor::builtin::types::miner {
      * Partitions in this deadline, in order.
      * The keys of this AMT are always sequential integers beginning with zero.
      */
-    adt::Array<Partition> partitions;
+    adt::Array<Universal<Partition>> partitions;
 
     /**
      * Maps epochs to partitions that _may_ have sectors that expire in or

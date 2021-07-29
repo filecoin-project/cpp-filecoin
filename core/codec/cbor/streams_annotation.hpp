@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <stdexcept>
+
 #define CBOR_ENCODE(type, var)                                            \
   template <class Stream,                                                 \
             typename = std::enable_if_t<                                  \
@@ -138,6 +140,14 @@
   CBOR_DECODE(T, t) {   \
     s.list();           \
     return s;           \
+  }
+
+#define CBOR_NON(T)                                                           \
+  CBOR_ENCODE(T, t) {                                                         \
+    throw std::runtime_error("CBOR encode must not be called for this type"); \
+  }                                                                           \
+  CBOR_DECODE(T, t) {                                                         \
+    throw std::runtime_error("CBOR decode must not be called for this type"); \
   }
 
 namespace fc::codec::cbor {

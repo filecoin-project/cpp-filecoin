@@ -73,11 +73,48 @@ namespace fc::primitives {
       return result;
     }
 
-    inline bool contains(const RleBitset &other) {
+    inline RleBitset intersect(const RleBitset &other) const {
+      RleBitset result;
+      for (const auto i : other) {
+        if (this->has(i)) {
+          result.insert(i);
+        }
+      }
+      return result;
+    }
+
+    inline RleBitset slice(uint64_t start, uint64_t count) const {
+      assert(start + count <= size());
+      const auto it{std::next(begin(), start)};
+      return {it, std::next(it, count)};
+    }
+
+    /**
+     * Checks that current bitset contains all bits of other bitset
+     * @param other - other bitset to check
+     * @return true if contains all bits
+     */
+    inline bool contains(const RleBitset &other) const {
       bool result = true;
       for (const auto i : other) {
         if (!this->has(i)) {
           result = false;
+          break;
+        }
+      }
+      return result;
+    }
+
+    /**
+     * Checks that current bitset contains any bit of other bitset
+     * @param other - other bitset to check
+     * @return true if contains any bit
+     */
+    inline bool containsAny(const RleBitset &other) const {
+      bool result = false;
+      for (const auto i : other) {
+        if (this->has(i)) {
+          result = true;
           break;
         }
       }
