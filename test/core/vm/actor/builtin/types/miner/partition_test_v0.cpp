@@ -46,12 +46,12 @@ namespace fc::vm::actor::builtin::v0::miner {
     }
 
     void setup() {
-      sectors = {Utils::testSector(2, 1, 50, 60, 1000),
-                 Utils::testSector(3, 2, 51, 61, 1001),
-                 Utils::testSector(7, 3, 52, 62, 1002),
-                 Utils::testSector(8, 4, 53, 63, 1003),
-                 Utils::testSector(11, 5, 54, 64, 1004),
-                 Utils::testSector(13, 6, 55, 65, 1005)};
+      sectors = {testSector(2, 1, 50, 60, 1000),
+                 testSector(3, 2, 51, 61, 1001),
+                 testSector(7, 3, 52, 62, 1002),
+                 testSector(8, 4, 53, 63, 1003),
+                 testSector(11, 5, 54, 64, 1004),
+                 testSector(13, 6, 55, 65, 1005)};
 
       EXPECT_OUTCOME_TRUE(
           power, partition.addSectors(runtime, false, sectors, ssize, quant));
@@ -65,7 +65,7 @@ namespace fc::vm::actor::builtin::v0::miner {
                               runtime, partition.expirations_epochs, quant));
 
       for (const auto &group : groups) {
-        Utils::requireNoExpirationGroupsBefore(group.expiration, *queue);
+        requireNoExpirationGroupsBefore(group.expiration, *queue);
         EXPECT_OUTCOME_TRUE(es, queue->popUntil(group.expiration));
 
         const auto all_sectors = es.on_time_sectors + es.early_sectors;
@@ -258,7 +258,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     setup();
 
     const auto result = partition.addSectors(
-        runtime, false, Utils::slice(sectors, 0, 1), ssize, quant);
+        runtime, false, slice(sectors, 0, 1), ssize, quant);
     EXPECT_EQ(result.error().message(), "not all added sectors are new");
   }
 
@@ -454,14 +454,14 @@ namespace fc::vm::actor::builtin::v0::miner {
   TEST_F(PartitionTestV0, ReplaceSectors) {
     setup();
 
-    const auto old_sectors = Utils::slice(sectors, 1, 4);
+    const auto old_sectors = slice(sectors, 1, 4);
     const auto old_sector_power = powerForSectors(ssize, old_sectors);
     const TokenAmount old_sector_pledge = 1001 + 1002 + 1003;
 
     const std::vector<SectorOnChainInfo> new_sectors = {
-        Utils::testSector(10, 2, 150, 260, 3000),
-        Utils::testSector(10, 7, 151, 261, 3001),
-        Utils::testSector(18, 8, 152, 262, 3002)};
+        testSector(10, 2, 150, 260, 3000),
+        testSector(10, 7, 151, 261, 3001),
+        testSector(18, 8, 152, 262, 3002)};
     const auto new_sector_power = powerForSectors(ssize, new_sectors);
     const TokenAmount new_sector_pledge = 3000 + 3001 + 3002;
 
@@ -496,9 +496,9 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
         runtime, sectors_arr, fault_set, 7, ssize, quant));
 
-    const auto old_sectors = Utils::slice(sectors, 1, 4);
+    const auto old_sectors = slice(sectors, 1, 4);
     const std::vector<SectorOnChainInfo> new_sectors = {
-        Utils::testSector(10, 2, 150, 260, 3000)};
+        testSector(10, 2, 150, 260, 3000)};
 
     const auto result = partition.replaceSectors(
         runtime, old_sectors, new_sectors, ssize, quant);
@@ -615,10 +615,10 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(exp_set.on_time_pledge, 1000 + 1001);
 
     EXPECT_EQ(exp_set.active_power,
-              powerForSectors(ssize, Utils::slice(sectors, 0, 2)));
+              powerForSectors(ssize, slice(sectors, 0, 2)));
 
     EXPECT_EQ(exp_set.faulty_power,
-              powerForSectors(ssize, Utils::slice(sectors, 3, 4)));
+              powerForSectors(ssize, slice(sectors, 3, 4)));
 
     assertPartitionState({1, 2, 3, 4, 5, 6}, {}, {}, {1, 2, 4});
 
@@ -662,10 +662,9 @@ namespace fc::vm::actor::builtin::v0::miner {
                         partition.recordMissedPostV0(runtime, 6, quant));
     const auto &[new_fault_power, failed_recovery_power] = result;
 
-    EXPECT_EQ(new_fault_power,
-              powerForSectors(ssize, Utils::slice(sectors, 0, 3)));
+    EXPECT_EQ(new_fault_power, powerForSectors(ssize, slice(sectors, 0, 3)));
     EXPECT_EQ(failed_recovery_power,
-              powerForSectors(ssize, Utils::slice(sectors, 3, 5)));
+              powerForSectors(ssize, slice(sectors, 3, 5)));
 
     assertPartitionState({1, 2, 3, 4, 5, 6}, {1, 2, 3, 4, 5, 6}, {}, {});
 
@@ -727,7 +726,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     for (size_t i = 0; i < partition_sectors; i++) {
       const uint64_t id = uint64_t(i + 1) << 50;
       sector_nos.insert(id);
-      many_sectors.push_back(Utils::testSector(i + 1, id, 50, 60, 1000));
+      many_sectors.push_back(testSector(i + 1, id, 50, 60, 1000));
     }
 
     EXPECT_OUTCOME_TRUE(
