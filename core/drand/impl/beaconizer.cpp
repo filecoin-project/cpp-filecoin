@@ -8,7 +8,6 @@
 #include <boost/random.hpp>
 #include <libp2p/common/byteutil.hpp>
 #include <libp2p/crypto/sha/sha256.hpp>
-#include <libp2p/protocol/common/scheduler.hpp>
 
 #include "clock/utc_clock.hpp"
 #include "common/logger.hpp"
@@ -104,10 +103,7 @@ namespace fc::drand {
     auto now{clock->nowUTC()};
     auto time{info.genesis + round * info.period};
     if (now < time) {
-      scheduler
-          ->schedule(libp2p::protocol::scheduler::toTicks(time - now),
-                     std::move(fetch))
-          .detach();
+      scheduler->schedule(std::move(fetch), time - now);
     } else {
       fetch();
     }

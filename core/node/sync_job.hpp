@@ -5,16 +5,18 @@
 
 #pragma once
 
+#include <libp2p/basic/scheduler.hpp>
 #include <queue>
 
-#include "blocksync_request.hpp"
 #include "common/io_thread.hpp"
+#include "node/blocksync_request.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/buffer_map.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::sync {
   using blocksync::BlocksyncRequest;
+  using libp2p::basic::Scheduler;
   using primitives::tipset::PutBlockHeader;
   using vm::interpreter::Interpreter;
   using vm::interpreter::InterpreterCache;
@@ -24,7 +26,7 @@ namespace fc::sync {
    public:
     SyncJob(std::shared_ptr<libp2p::Host> host,
             std::shared_ptr<ChainStoreImpl> chain_store,
-            std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+            std::shared_ptr<Scheduler> scheduler,
             std::shared_ptr<Interpreter> interpreter,
             std::shared_ptr<InterpreterCache> interpreter_cache,
             SharedMutexPtr ts_branches_mutex,
@@ -67,7 +69,7 @@ namespace fc::sync {
 
     std::shared_ptr<libp2p::Host> host_;
     std::shared_ptr<ChainStoreImpl> chain_store_;
-    std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
+    std::shared_ptr<Scheduler> scheduler_;
     std::shared_ptr<Interpreter> interpreter_;
     std::shared_ptr<InterpreterCache> interpreter_cache_;
     SharedMutexPtr ts_branches_mutex_;

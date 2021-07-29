@@ -32,7 +32,7 @@ namespace fc::mining {
   using StorageFSM =
       fsm::FSM<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
   using api::SectorPreCommitOnChainInfo;
-  using libp2p::protocol::Scheduler;
+  using libp2p::basic::Scheduler;
   using primitives::Counter;
   using primitives::tipset::TipsetKey;
   using storage::BufferMap;
@@ -52,7 +52,7 @@ namespace fc::mining {
         std::shared_ptr<Manager> sealer,
         std::shared_ptr<PreCommitPolicy> policy,
         std::shared_ptr<boost::asio::io_context> context,
-        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+        std::shared_ptr<Scheduler> scheduler,
         Config config);
 
     outcome::result<void> fsmLoad();
@@ -91,7 +91,7 @@ namespace fc::mining {
                 std::shared_ptr<Manager> sealer,
                 std::shared_ptr<PreCommitPolicy> policy,
                 std::shared_ptr<boost::asio::io_context> context,
-                std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+                std::shared_ptr<Scheduler> scheduler,
                 Config config);
 
     struct SectorPaddingResponse {

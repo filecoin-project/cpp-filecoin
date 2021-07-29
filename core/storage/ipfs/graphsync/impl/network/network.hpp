@@ -7,13 +7,14 @@
 
 #include <functional>
 
+#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/host/host.hpp>
-#include <libp2p/protocol/common/scheduler.hpp>
 
 #include "common/logger.hpp"
 #include "network_fwd.hpp"
 
 namespace fc::storage::ipfs::graphsync {
+  using libp2p::basic::Scheduler;
 
   /// Network part of graphsync component
   class Network : public std::enable_shared_from_this<Network>,
@@ -23,7 +24,7 @@ namespace fc::storage::ipfs::graphsync {
     /// \param host libp2p host object
     /// \param scheduler libp2p scheduler
     Network(std::shared_ptr<libp2p::Host> host,
-            std::shared_ptr<libp2p::protocol::Scheduler> scheduler);
+            std::shared_ptr<Scheduler> scheduler);
 
     ~Network() override;
 
@@ -91,7 +92,7 @@ namespace fc::storage::ipfs::graphsync {
     std::shared_ptr<libp2p::Host> host_;
 
     /// libp2p scheduler object
-    std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
+    std::shared_ptr<Scheduler> scheduler_;
 
     /// libp2p peorocol ID
     libp2p::peer::Protocol protocol_id_;

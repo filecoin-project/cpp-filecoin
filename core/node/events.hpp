@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <libp2p/protocol/common/scheduler.hpp>
+#include <boost/asio/io_context.hpp>
 #include <set>
 #include <string>
 
@@ -61,28 +61,26 @@ namespace fc::sync::events {
   };
 
   struct Events : std::enable_shared_from_this<Events> {
-    explicit Events(std::shared_ptr<libp2p::protocol::Scheduler> scheduler)
-        : scheduler_(std::move(scheduler)) {}
+    explicit Events(std::shared_ptr<boost::asio::io_context> io_context)
+        : io_context_(std::move(io_context)) {}
 
     void stop() {
       stopped_ = true;
     }
 
-#define DEFINE_EVENT(STRUCT)                                             \
-  using STRUCT##Callback = void(const STRUCT &);                         \
-  Connection subscribe##STRUCT(std::function<STRUCT##Callback> cb) {     \
-    return STRUCT##_signal_.connect(cb);                                 \
-  }                                                                      \
-  void signal##STRUCT(STRUCT event) {                                    \
-    scheduler_                                                           \
-        ->schedule([wptr = weak_from_this(), event = std::move(event)] { \
-          auto self = wptr.lock();                                       \
-          if (self && !self->stopped_) {                                 \
-            self->STRUCT##_signal_(event);                               \
-          }                                                              \
-        })                                                               \
-        .detach();                                                       \
-  }                                                                      \
+#define DEFINE_EVENT(STRUCT)                                                \
+  using STRUCT##Callback = void(const STRUCT &);                            \
+  Connection subscribe##STRUCT(std::function<STRUCT##Callback> cb) {        \
+    return STRUCT##_signal_.connect(cb);                                    \
+  }                                                                         \
+  void signal##STRUCT(STRUCT event) {                                       \
+    io_context_->post([wptr = weak_from_this(), event = std::move(event)] { \
+      auto self = wptr.lock();                                              \
+      if (self && !self->stopped_) {                                        \
+        self->STRUCT##_signal_(event);                                      \
+      }                                                                     \
+    });                                                                     \
+  }                                                                         \
   boost::signals2::signal<STRUCT##Callback> STRUCT##_signal_
 
     DEFINE_EVENT(PeerConnected);
@@ -98,7 +96,7 @@ namespace fc::sync::events {
 #undef DEFINE_EVENT
 
    private:
-    std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
+    std::shared_ptr<boost::asio::io_context> io_context_;
     bool stopped_ = false;
   };
 

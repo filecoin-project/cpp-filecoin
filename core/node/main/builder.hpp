@@ -36,7 +36,7 @@ namespace fc::node {
   using api::FullNodeApiV1Wrapper;
   using api::KeyInfo;
   using data_transfer::DataTransfer;
-  using libp2p::protocol::Scheduler;
+  using libp2p::basic::Scheduler;
   using markets::discovery::Discovery;
   using markets::retrieval::client::RetrievalClient;
   using markets::storage::chain_events::ChainEvents;

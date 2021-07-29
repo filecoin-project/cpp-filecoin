@@ -14,6 +14,7 @@
 
 #include <boost/compute/detail/lru_cache.hpp>
 #include <gsl/span>
+#include <libp2p/basic/scheduler.hpp>
 
 #include "drand/beaconizer.hpp"
 #include "fwd.hpp"
@@ -21,7 +22,7 @@
 namespace fc::drand {
   using boost::asio::io_context;
   using clock::UTCClock;
-  using libp2p::protocol::Scheduler;
+  using libp2p::basic::Scheduler;
 
   struct DrandScheduleImpl : DrandSchedule {
     DrandScheduleImpl(const ChainInfo &info,

@@ -7,10 +7,10 @@
 
 #include "fwd.hpp"
 
+#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
 #include <libp2p/peer/peer_id.hpp>
-#include <libp2p/protocol/common/scheduler.hpp>
 #include <set>
 #include <unordered_map>
 
@@ -21,13 +21,14 @@
 
 namespace fc::sync {
   using common::libp2p::CborStream;
+  using libp2p::basic::Scheduler;
 
   class SayHello : public std::enable_shared_from_this<SayHello> {
    public:
     using PeerId = libp2p::peer::PeerId;
 
     SayHello(std::shared_ptr<libp2p::Host> host,
-             std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+             std::shared_ptr<Scheduler> scheduler,
              std::shared_ptr<clock::UTCClock> clock);
 
     void start(CID genesis, std::shared_ptr<events::Events> events);
@@ -53,7 +54,7 @@ namespace fc::sync {
     void clearRequest(const PeerId &peer_id);
 
     std::shared_ptr<libp2p::Host> host_;
-    std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
+    std::shared_ptr<Scheduler> scheduler_;
     std::shared_ptr<clock::UTCClock> clock_;
 
     boost::optional<CID> genesis_;
@@ -83,7 +84,7 @@ namespace fc::sync {
 
     std::multiset<TimeAndPeerId> active_requests_by_sent_time_;
 
-    libp2p::protocol::scheduler::Handle heartbeat_handle_;
+    Scheduler::Handle heartbeat_handle_;
   };
 
 }  // namespace fc::sync

@@ -70,7 +70,6 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::node {
-  using libp2p::protocol::scheduler::Ticks;
   using markets::discovery::DiscoveryImpl;
   using markets::pieceio::PieceIOImpl;
   using markets::retrieval::client::RetrievalClientImpl;
@@ -246,19 +245,18 @@ namespace fc::node {
   /**
    * Run timer loop
    * @param scheduler - timer scheduler
-   * @param ticks - timer tick
+   * @param tick - timer tick
    * @param cb - callback to call
    */
   void timerLoop(const std::shared_ptr<Scheduler> &scheduler,
-                 const Ticks &ticks,
+                 const std::chrono::milliseconds &tick,
                  const std::function<void()> &cb) {
-    scheduler
-        ->schedule(ticks,
-                   [scheduler, ticks, cb]() {
-                     cb();
-                     timerLoop(scheduler, ticks, cb);
-                   })
-        .detach();
+    scheduler->schedule(
+        [scheduler, tick, cb]() {
+          cb();
+          timerLoop(scheduler, tick, cb);
+        },
+        tick);
   };
 
   /**
@@ -288,7 +286,7 @@ namespace fc::node {
             std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
     // timer is set to 100 ms
     timerLoop(node_objects.scheduler,
-              100,
+              std::chrono::milliseconds(100),
               [client{node_objects.storage_market_client}] {
                 client->pollWaiting();
               });
@@ -403,11 +401,9 @@ namespace fc::node {
         boost::di::bind<clock::UTCClock>.template to<clock::UTCClockImpl>());
 
     o.io_context = injector.create<std::shared_ptr<boost::asio::io_context>>();
+    o.scheduler = injector.create<std::shared_ptr<Scheduler>>();
 
-    o.scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
-        o.io_context, libp2p::protocol::SchedulerConfig{});
-
-    o.events = std::make_shared<sync::events::Events>(o.scheduler);
+    o.events = std::make_shared<sync::events::Events>(o.io_context);
 
     o.host = injector.create<std::shared_ptr<libp2p::Host>>();
 

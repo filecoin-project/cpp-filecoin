@@ -4,11 +4,13 @@
  */
 
 #include <boost/asio/io_context.hpp>
+#include <boost/di/extension/scopes/shared.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
+#include <libp2p/basic/scheduler.hpp>
+#include <libp2p/injector/host_injector.hpp>
 #include <set>
 
 #include "api/rpc/client_setup.hpp"
@@ -133,8 +135,12 @@ namespace fc {
 
   outcome::result<void> main(Config &config) {
     auto io{std::make_shared<io_context>()};
-    auto scheduler{std::make_shared<libp2p::protocol::AsioScheduler>(
-        io, libp2p::protocol::SchedulerConfig())};
+    auto injector =
+        libp2p::injector::makeHostInjector<boost::di::extension::shared_config>(
+            boost::di::bind<boost::asio::io_context>.template to(
+                io)[boost::di::override]);
+    auto scheduler{
+        injector.create<std::shared_ptr<libp2p::basic::Scheduler>>()};
 
     auto mapi{std::make_shared<api::StorageMinerApi>()};
     api::rpc::Client wsc{*io};

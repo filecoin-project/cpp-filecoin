@@ -10,7 +10,6 @@
 
 namespace fc::mining {
   using api::kPushNoSpec;
-  using libp2p::protocol::scheduler::toTicks;
   using primitives::ChainEpoch;
   using vm::actor::MethodParams;
   using vm::actor::builtin::types::miner::kChainFinality;
@@ -21,10 +20,10 @@ namespace fc::mining {
       : deposit(number), precommit_info(info){};
 
   PreCommitBatcherImpl::PreCommitBatcherImpl(
-      const Ticks &max_time,
+      const std::chrono::milliseconds &max_time,
       std::shared_ptr<FullNodeApi> api,
       const Address &miner_address,
-      const std::shared_ptr<libp2p::protocol::Scheduler> &scheduler)
+      const std::shared_ptr<Scheduler> &scheduler)
       : max_delay_(max_time),
         api_(std::move(api)),
         miner_address_(miner_address),
@@ -32,17 +31,19 @@ namespace fc::mining {
     cutoff_start_ = std::chrono::system_clock::now();
     logger_ = common::createLogger("batcher");
     logger_->info("Batcher has been started");
-    handle_ = scheduler->schedule(max_delay_, [&]() {
-      std::unique_lock<std::mutex> locker(mutex_);
-      const auto maybe_result = sendBatch();
-      for (const auto &[key, cb] : callbacks_) {
-        cb(maybe_result);
-      }
-      callbacks_.clear();
-      cutoff_start_ = std::chrono::system_clock::now();
-      closest_cutoff_ = max_delay_;
-      handle_.reschedule(max_delay_);
-    });
+    handle_ = scheduler->scheduleWithHandle(
+        [&]() {
+          std::unique_lock<std::mutex> locker(mutex_);
+          const auto maybe_result = sendBatch();
+          for (const auto &[key, cb] : callbacks_) {
+            cb(maybe_result);
+          }
+          callbacks_.clear();
+          cutoff_start_ = std::chrono::system_clock::now();
+          closest_cutoff_ = max_delay_;
+          handle_.reschedule(max_delay_);
+        },
+        max_delay_);
   }
 
   outcome::result<CID> PreCommitBatcherImpl::sendBatch() {
@@ -91,7 +92,7 @@ namespace fc::mining {
     forceSendWithoutLock();
   }
 
-  void PreCommitBatcherImpl::forceSendWithoutLock(){
+  void PreCommitBatcherImpl::forceSendWithoutLock() {
     const auto maybe_result = sendBatch();
     for (const auto &[key, cb] : callbacks_) {
       cb(maybe_result);
@@ -120,11 +121,11 @@ namespace fc::mining {
     if (cutoff_epoch <= current_epoch) {
       forceSendWithoutLock();
     } else {
-      const Ticks temp_cutoff = toTicks(std::chrono::seconds(
-          (cutoff_epoch - current_epoch) * kEpochDurationSeconds));
+      const auto temp_cutoff = std::chrono::milliseconds(
+          (cutoff_epoch - current_epoch) * kEpochDurationSeconds);
       if ((closest_cutoff_
-               - toTicks(std::chrono::duration_cast<std::chrono::seconds>(
-                   std::chrono::system_clock::now() - cutoff_start_))
+               - std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::system_clock::now() - cutoff_start_)
            > temp_cutoff)) {
         cutoff_start_ = std::chrono::system_clock::now();
         handle_.reschedule(temp_cutoff);
