@@ -19,6 +19,7 @@ target_link_libraries(local_store_test
     base_fs_test
     store
     p2p::p2p_basic_scheduler
+    p2p::p2p_manual_scheduler_backend
     )
 
 addtest(storage_test

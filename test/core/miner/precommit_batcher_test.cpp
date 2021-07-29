@@ -4,11 +4,12 @@
  */
 
 #include <gtest/gtest.h>
+#include <libp2p/basic/scheduler/manual_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <miner/storage_fsm/types.hpp>
+
 #include "miner/storage_fsm/impl/precommit_batcher_impl.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/mocks/libp2p/scheduler_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/v5/miner/miner_actor.hpp"
 
@@ -26,7 +27,6 @@ namespace fc::mining {
   using primitives::sector::RegisteredSealProof;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
-  using testing::Mock;
   using vm::actor::builtin::v5::miner::PreCommitBatch;
 
   class PreCommitBatcherTest : public testing::Test {

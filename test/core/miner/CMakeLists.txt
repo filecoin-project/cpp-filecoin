@@ -15,6 +15,7 @@ addtest(batcher_test
     )
 target_link_libraries(batcher_test
     batcher
+    p2p::p2p_manual_scheduler_backend
     )
 
 addtest(precommit_policy_test
@@ -55,5 +56,6 @@ target_link_libraries(sealing_test
     miner_actor_v2
     miner_actor_v3
     p2p::p2p_basic_scheduler
+    p2p::p2p_manual_scheduler_backend
     )
 
