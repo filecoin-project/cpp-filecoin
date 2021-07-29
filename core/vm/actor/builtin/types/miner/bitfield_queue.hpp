@@ -27,9 +27,6 @@ namespace fc::vm::actor::builtin::types::miner {
     outcome::result<std::tuple<RleBitset, bool>> popUntil(ChainEpoch until);
   };
 
-  outcome::result<BitfieldQueue> loadBitfieldQueue(
-      const adt::Array<RleBitset> &queue, const QuantSpec &quant);
-
 }  // namespace fc::vm::actor::builtin::types::miner
 
 namespace fc::cbor_blake {

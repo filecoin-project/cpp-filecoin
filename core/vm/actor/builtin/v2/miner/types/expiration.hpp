@@ -42,6 +42,7 @@ namespace fc::vm::actor::builtin::v2::miner {
         const ExpirationSet &es,
         ChainEpoch expiration);
   };
+  CBOR_NON(ExpirationQueue);
 }  // namespace fc::vm::actor::builtin::v2::miner
 
 namespace fc::cbor_blake {

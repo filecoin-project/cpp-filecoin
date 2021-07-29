@@ -127,8 +127,6 @@ namespace fc::vm::actor::builtin::types::miner {
         const std::vector<SectorOnChainInfo> &sectors) const;
   };
 
-  using ExpirationQueuePtr = std::shared_ptr<ExpirationQueue>;
-
   struct SectorExpirationSet {
     SectorEpochSet sector_epoch_set;
     ExpirationSet es;
