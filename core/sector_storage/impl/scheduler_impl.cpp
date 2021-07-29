@@ -4,39 +4,30 @@
  */
 
 #include "sector_storage/impl/scheduler_impl.hpp"
-#include <boost/asio/post.hpp>
-#include <boost/thread.hpp>
 #include <thread>
+#include <utility>
 #include "primitives/resources/active_resources.hpp"
 
 namespace fc::sector_storage {
   using primitives::Resources;
   using primitives::WorkerResources;
 
-  SchedulerImpl::SchedulerImpl(RegisteredSealProof seal_proof_type)
-      : seal_proof_type_(seal_proof_type),
-        current_worker_id_(0),
-        logger_(common::createLogger("scheduler")) {
-    unsigned int nthreads = 0;
-    if ((nthreads = std::thread::hardware_concurrency())
-        || (nthreads = boost::thread::hardware_concurrency())) {
-      pool_ = std::make_unique<boost::asio::thread_pool>(nthreads);
-    } else {
-      pool_ = std::make_unique<boost::asio::thread_pool>(
-          1);  // if we cannot get the number of cores, we think that the
-               // processor has 1 core
-    }
-  }
+  SchedulerImpl::SchedulerImpl(
+      std::shared_ptr<boost::asio::io_context> io_context)
+      : current_worker_id_(0),
+        io_(std::move(io_context)),
+        logger_(common::createLogger("scheduler")) {}
 
   outcome::result<void> SchedulerImpl::schedule(
-      const primitives::sector::SectorId &sector,
+      const primitives::sector::SectorRef &sector,
       const primitives::TaskType &task_type,
       const std::shared_ptr<WorkerSelector> &selector,
       const WorkerAction &prepare,
       const WorkerAction &work,
+      const ReturnCb &cb,
       uint64_t priority) {
     std::shared_ptr<TaskRequest> request = std::make_shared<TaskRequest>(
-        sector, task_type, priority, selector, prepare, work);
+        sector, task_type, priority, selector, prepare, work, cb);
 
     {
       std::lock_guard<std::mutex> lock(request_lock_);
@@ -48,13 +39,13 @@ namespace fc::sector_storage {
       }
     }
 
-    return request->response.get_future().get();
+    return outcome::success();
   }
 
   void SchedulerImpl::newWorker(std::unique_ptr<WorkerHandle> worker) {
     std::unique_lock<std::mutex> lock(workers_lock_);
     if (current_worker_id_ == std::numeric_limits<uint64_t>::max()) {
-      current_worker_id_ = 0;
+      current_worker_id_ = 0;  // TODO: maybe better mechanism
     }
     WorkerID wid = current_worker_id_++;
     workers_.insert({wid, std::move(worker)});
@@ -70,8 +61,8 @@ namespace fc::sector_storage {
     std::vector<WorkerID> acceptable;
     uint64_t tried = 0;
 
-    auto resource_iter =
-        primitives::kResourceTable.find({request->task_type, seal_proof_type_});
+    auto resource_iter = primitives::kResourceTable.find(
+        {request->task_type, request->sector.proof_type});
 
     Resources need_resources{};
     if (resource_iter != primitives::kResourceTable.end()) {
@@ -81,7 +72,7 @@ namespace fc::sector_storage {
     for (const auto &[wid, worker] : workers_) {
       OUTCOME_TRY(satisfies,
                   request->sel->is_satisfying(
-                      request->task_type, seal_proof_type_, worker));
+                      request->task_type, request->sector.proof_type, worker));
 
       if (!satisfies) {
         continue;
@@ -138,8 +129,8 @@ namespace fc::sector_storage {
       WorkerID wid,
       const std::shared_ptr<WorkerHandle> &worker,
       const std::shared_ptr<TaskRequest> &request) {
-    auto resource_iter =
-        primitives::kResourceTable.find({request->task_type, seal_proof_type_});
+    auto resource_iter = primitives::kResourceTable.find(
+        {request->task_type, request->sector.proof_type});
 
     Resources need_resources{};
     if (resource_iter != primitives::kResourceTable.end()) {
@@ -148,47 +139,96 @@ namespace fc::sector_storage {
 
     worker->preparing.add(worker->info.resources, need_resources);
 
-    boost::asio::post(*pool_, [this, wid, worker, request, need_resources]() {
-      {
-        auto maybe_err = request->prepare(worker->worker);
-        std::unique_lock<std::mutex> lock(workers_lock_);
-        if (maybe_err.has_error()) {
-          worker->preparing.free(worker->info.resources, need_resources);
-          request->respond(maybe_err.error());
-          lock.unlock();
+    io_->post([this, wid, worker, request, need_resources]() {
+      auto cb = [this, wid, worker, request, need_resources](
+                    const outcome::result<CallResult> &res) -> void {
+        bool force;
+        {
+          std::unique_lock<std::mutex> lock(workers_lock_);
+          force = {workers_.size() == 1 && !active_jobs};
+          ++active_jobs;
+        }
+
+        worker->preparing.free(worker->info.resources, need_resources);
+
+        auto usual_clear = [this, wid]() {
+          --active_jobs;
           freeWorker(wid);
-          return;
+        };
+        if (!force
+            && !primitives::canHandleRequest(
+                need_resources, worker->info.resources, worker->active)) {
+          {
+            std::unique_lock lock(request_lock_);
+            request_queue_.insert(request);  // if resource is not enough,
+                                             // then request would added
+                                             // to request queue
+          }
+          return usual_clear();
         }
 
-        auto force{workers_.size() == 1 && !active_jobs};
-        ++active_jobs;
-        maybe_err = worker->active.withResources(
-            force,
-            worker->info.resources,
-            need_resources,
-            workers_lock_,
-            [&]() -> outcome::result<void> {
-              worker->preparing.free(worker->info.resources, need_resources);
-              lock.unlock();
+        worker->active.add(worker->info.resources, need_resources);
 
-              auto res = request->work(worker->worker);
+        auto clear =
+            [clear = std::move(usual_clear), worker, need_resources]() {
+              worker->active.free(worker->info.resources, need_resources);
+              clear();
+            };
 
-              if (res.has_error()) {
-                request->respond(res.error());
-              } else {
-                request->respond(std::error_code());
-              }
+        auto maybe_call_id = request->work(worker->worker);
 
-              lock.lock();
-              return outcome::success();
-            });
-        --active_jobs;
-        if (maybe_err.has_error()) {
-          logger_->error("worker's execution: " + maybe_err.error().message());
+        if (maybe_call_id.has_error()) {
+          request->cb(maybe_call_id.error());
+          logger_->error("worker's execution: "
+                         + maybe_call_id.error().message());
+          return clear();
+        } else {
+          ReturnCb new_cb = [request, clear = std::move(clear)](
+                                outcome::result<CallResult> result) -> void {
+            request->cb(std::move(result));
+
+            return clear();
+          };
+          {
+            auto &call_id{maybe_call_id.value()};
+            std::unique_lock lock(cbs_lock_);
+
+            auto it = results_.find(call_id);
+            if (it == results_.end()) {
+              callbacks_[call_id] = new_cb;
+            } else {
+              io_->post([cb = std::move(new_cb), value = it->second]() {
+                cb(value);
+              });
+              results_.erase(it);
+            }
+          }
         }
+      };
+
+      if (not request->prepare) {
+        return cb(outcome::success());
       }
 
-      freeWorker(wid);
+      auto maybe_call_id = request->prepare(worker->worker);
+
+      if (maybe_call_id.has_error()) {
+        worker->preparing.free(worker->info.resources, need_resources);
+        request->cb(maybe_call_id.error());
+        freeWorker(wid);
+        return;
+      }
+
+      {
+        std::unique_lock lock(cbs_lock_);
+        auto it = results_.find(maybe_call_id.value());
+        if (it == results_.end()) {
+          callbacks_[maybe_call_id.value()] = cb;
+        } else {
+          io_->post([cb = std::move(cb), value = it->second]() { cb(value); });
+          results_.erase(it);
+        }
+      }
     });
   }
 
@@ -207,8 +247,8 @@ namespace fc::sector_storage {
     std::lock_guard<std::mutex> lock(request_lock_);
     for (auto it = request_queue_.begin(); it != request_queue_.cend(); ++it) {
       auto req = *it;
-      auto maybe_satisfying =
-          req->sel->is_satisfying(req->task_type, seal_proof_type_, worker);
+      auto maybe_satisfying = req->sel->is_satisfying(
+          req->task_type, req->sector.proof_type, worker);
       if (maybe_satisfying.has_error()) {
         logger_->error("free worker satisfactory check: "
                        + maybe_satisfying.error().message());
@@ -222,7 +262,7 @@ namespace fc::sector_storage {
       auto maybe_result = maybeScheduleRequest(req);
 
       if (maybe_result.has_error()) {
-        req->respond(maybe_result.error());
+        req->cb(maybe_result.error());
       } else if (!maybe_result.value()) {
         continue;
       }
@@ -235,8 +275,24 @@ namespace fc::sector_storage {
     }
   }
 
-  RegisteredSealProof SchedulerImpl::getSealProofType() const {
-    return seal_proof_type_;
+  outcome::result<void> SchedulerImpl::returnResult(const CallId &call_id,
+                                                    CallResult result) {
+    std::unique_lock lock(cbs_lock_);
+
+    auto it = callbacks_.find(call_id);
+    if (it == callbacks_.end()) {
+      results_[call_id] = result;
+      return outcome::success();
+    }
+
+    io_->post([&, cb = it->second, call_id, result]() {
+      cb(result);
+
+      std::unique_lock lock(cbs_lock_);
+      callbacks_.erase(call_id);
+    });
+
+    return outcome::success();
   }
 }  // namespace fc::sector_storage
 

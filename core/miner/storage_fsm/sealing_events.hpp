@@ -10,6 +10,8 @@
 #include "miner/storage_fsm/types.hpp"
 
 namespace fc::mining {
+  using primitives::sector::RegisteredSealProof;
+
   /**
    * SealingEventId is an id event that occurs in a sealing lifecycle
    */
@@ -24,6 +26,7 @@ namespace fc::mining {
     kSectorPreCommitLanded,
     kSectorPreCommitted,
     kSectorSeedReady,
+    kSectorComputeProof,
     kSectorCommitted,
     kSectorProving,
     kSectorFinalized,
@@ -45,6 +48,7 @@ namespace fc::mining {
     kSectorRetryPreCommitWait,
     kSectorRetryComputeProof,
     kSectorRetryInvalidProof,
+    kSectorRetryCommitting,
     kSectorRetryCommitWait,
 
     kSectorFaulty,
@@ -171,15 +175,22 @@ namespace fc::mining {
     ChainEpoch epoch;
   };
 
-  struct SectorCommittedContext final : public SealingEventContext {
+  struct SectorComputeProofContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->proof = proof;
+    }
+
+    proofs::Proof proof;
+  };
+
+  struct SectorCommittedContext final : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->message = message;
     }
 
     CID message;
-    proofs::Proof proof;
   };
 
   // FAULTS

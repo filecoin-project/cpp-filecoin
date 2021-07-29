@@ -23,6 +23,7 @@ namespace fc::mining {
   using libp2p::basic::ManualSchedulerBackend;
   using libp2p::basic::Scheduler;
   using libp2p::basic::SchedulerImpl;
+  using primitives::sector::RegisteredSealProof;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
   using testing::Mock;

@@ -79,30 +79,6 @@ namespace fc::primitives {
     memory_used_max -= resources.max_memory;
   }
 
-  outcome::result<void> ActiveResources::withResources(
-      bool force,
-      const WorkerResources &worker_resources,
-      const Resources &resources,
-      std::mutex &locker,
-      const std::function<outcome::result<void>()> &callback) {
-    while (!force && !canHandleRequest(resources, worker_resources, *this)) {
-      std::unique_lock<std::mutex> lock(locker);
-      cv_.wait(lock, [&]() { return unlock_; });
-    }
-    unlock_ = false;
-
-    add(worker_resources, resources);
-
-    auto res = callback();
-
-    free(worker_resources, resources);
-
-    unlock_ = true;
-    cv_.notify_all();
-
-    return res;
-  }
-
   double ActiveResources::utilization(const WorkerResources &worker_resources) {
     std::shared_lock lock(mutex_);
     double max = static_cast<double>(cpu_use) / worker_resources.cpus;

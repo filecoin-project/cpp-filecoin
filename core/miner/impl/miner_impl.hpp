@@ -48,7 +48,7 @@ namespace fc::miner {
 
     outcome::result<PieceAttributes> addPieceToAnySector(
         UnpaddedPieceSize size,
-        const PieceData &piece_data,
+        PieceData piece_data,
         DealInfo deal) override;
 
     Address getAddress() const override;

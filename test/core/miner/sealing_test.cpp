@@ -98,9 +98,6 @@ namespace fc::mining {
       EXPECT_CALL(*manager_, getProofEngine())
           .WillRepeatedly(testing::Return(proofs_));
 
-      EXPECT_CALL(*manager_, getSectorSize())
-          .WillRepeatedly(testing::Return(sector_size_));
-
       policy_ = std::make_shared<PreCommitPolicyMock>();
       context_ = std::make_shared<boost::asio::io_context>();
 
@@ -220,16 +217,20 @@ namespace fc::mining {
         .cid = "010001020001"_cid,
     };
 
+    SectorRef sector_ref{
+        .id = SectorId{.miner = miner_id_, .sector = sector},
+        .proof_type = seal_proof_type_,
+    };
     EXPECT_CALL(*manager_,
-                addPiece(SectorId{.miner = miner_id_, .sector = sector},
-                         gsl::span<const UnpaddedPieceSize>(),
-                         piece_size,
-                         _,
-                         kDealSectorPriority))
+                doAddPieceSync(sector_ref,
+                               gsl::span<const UnpaddedPieceSize>(),
+                               piece_size,
+                               _,
+                               kDealSectorPriority))
         .WillOnce(testing::Return(info));
 
     EXPECT_OUTCOME_TRUE_1(
-        sealing_->addPieceToAnySector(piece_size, piece, deal));
+        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
 
     EXPECT_OUTCOME_TRUE(info_before, sealing_->getSectorInfo(sector));
     EXPECT_EQ(info_before->state, SealingState::kStateUnknown);
@@ -237,8 +238,7 @@ namespace fc::mining {
         sealing_->forceSectorState(sector, SealingState::kProving));
     EXPECT_OUTCOME_TRUE_1(sealing_->remove(sector));
 
-    EXPECT_CALL(*manager_,
-                remove(SectorId{.miner = miner_id_, .sector = sector}))
+    EXPECT_CALL(*manager_, remove(sector_ref))
         .WillOnce(testing::Return(outcome::success()));
 
     runForSteps(*context_, 100);
@@ -267,7 +267,7 @@ namespace fc::mining {
     };
     EXPECT_OUTCOME_ERROR(
         SealingError::kNotPublishedDeal,
-        sealing_->addPieceToAnySector(piece_size, piece, deal));
+        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
   }
 
   /**
@@ -290,7 +290,7 @@ namespace fc::mining {
     };
     EXPECT_OUTCOME_ERROR(
         SealingError::kCannotAllocatePiece,
-        sealing_->addPieceToAnySector(piece_size, piece, deal));
+        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
   }
 
   /**
@@ -312,9 +312,20 @@ namespace fc::mining {
         .is_keep_unsealed = true,
     };
 
+    api_->StateMinerInfo =
+        [&](const Address &address,
+            const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
+      if (address == miner_addr_) {
+        MinerInfo info;
+        info.seal_proof_type = seal_proof_type_;
+        return info;
+      }
+      return ERROR_TEXT("ERROR");
+    };
+
     EXPECT_OUTCOME_ERROR(
         SealingError::kPieceNotFit,
-        sealing_->addPieceToAnySector(piece_size, piece, deal));
+        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
   }
 
   /**
@@ -355,16 +366,19 @@ namespace fc::mining {
         .cid = "010001020001"_cid,
     };
 
+    SectorRef sector_ref{.id = SectorId{.miner = miner_id_, .sector = sector},
+                         .proof_type = seal_proof_type_};
     EXPECT_CALL(*manager_,
-                addPiece(SectorId{.miner = miner_id_, .sector = sector},
-                         gsl::span<const UnpaddedPieceSize>(),
-                         piece_size,
-                         _,
-                         kDealSectorPriority))
+                doAddPieceSync(sector_ref,
+                               gsl::span<const UnpaddedPieceSize>(),
+                               piece_size,
+                               _,
+                               kDealSectorPriority))
         .WillOnce(testing::Return(info));
 
-    EXPECT_OUTCOME_TRUE(piece_attribute,
-                        sealing_->addPieceToAnySector(piece_size, piece, deal));
+    EXPECT_OUTCOME_TRUE(
+        piece_attribute,
+        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
     EXPECT_EQ(piece_attribute.sector, sector);
     EXPECT_EQ(piece_attribute.offset, 0);
     EXPECT_EQ(piece_attribute.size, piece_size);
@@ -414,16 +428,18 @@ namespace fc::mining {
         .cid = "010001020001"_cid,
     };
 
+    SectorRef sector_ref{.id = SectorId{.miner = miner_id_, .sector = sector},
+                         .proof_type = seal_proof_type_};
     EXPECT_CALL(*manager_,
-                addPiece(SectorId{.miner = miner_id_, .sector = sector},
-                         gsl::span<const UnpaddedPieceSize>(),
-                         piece_size,
-                         _,
-                         kDealSectorPriority))
+                doAddPieceSync(sector_ref,
+                               gsl::span<const UnpaddedPieceSize>(),
+                               piece_size,
+                               _,
+                               kDealSectorPriority))
         .WillOnce(testing::Return(info));
 
     EXPECT_OUTCOME_TRUE_1(
-        sealing_->addPieceToAnySector(piece_size, piece, deal));
+        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
 
     EXPECT_OUTCOME_ERROR(SealingError::kNotProvingState,
                          sealing_->markForUpgrade(sector));
@@ -471,27 +487,29 @@ namespace fc::mining {
         .cid = "010001020002"_cid,
     };
 
+    SectorRef sector_ref{.id = SectorId{.miner = miner_id_, .sector = sector},
+                         .proof_type = seal_proof_type_};
     EXPECT_CALL(*manager_,
-                addPiece(SectorId{.miner = miner_id_, .sector = sector},
-                         gsl::span<const UnpaddedPieceSize>(),
-                         piece_size,
-                         _,
-                         kDealSectorPriority))
+                doAddPieceSync(sector_ref,
+                               gsl::span<const UnpaddedPieceSize>(),
+                               piece_size,
+                               _,
+                               kDealSectorPriority))
         .WillOnce(testing::Return(info1));
 
     std::vector<UnpaddedPieceSize> exist_pieces({piece_size});
     EXPECT_CALL(*manager_,
-                addPiece(SectorId{.miner = miner_id_, .sector = sector},
-                         gsl::span<const UnpaddedPieceSize>(exist_pieces),
-                         piece_size,
-                         _,
-                         kDealSectorPriority))
+                doAddPieceSync(sector_ref,
+                               gsl::span<const UnpaddedPieceSize>(exist_pieces),
+                               piece_size,
+                               _,
+                               kDealSectorPriority))
         .WillOnce(testing::Return(info2));
 
     EXPECT_OUTCOME_TRUE_1(
-        sealing_->addPieceToAnySector(piece_size, piece, deal));
+        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
     EXPECT_OUTCOME_TRUE_1(
-        sealing_->addPieceToAnySector(piece_size, piece, deal));
+        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
 
     EXPECT_OUTCOME_TRUE_1(
         sealing_->forceSectorState(sector, SealingState::kProving));
@@ -540,16 +558,18 @@ namespace fc::mining {
         .cid = "010001020001"_cid,
     };
 
+    SectorRef sector_ref{.id = SectorId{.miner = miner_id_, .sector = sector},
+                         .proof_type = seal_proof_type_};
     EXPECT_CALL(*manager_,
-                addPiece(SectorId{.miner = miner_id_, .sector = sector},
-                         gsl::span<const UnpaddedPieceSize>(),
-                         piece_size,
-                         _,
-                         kDealSectorPriority))
+                doAddPieceSync(sector_ref,
+                               gsl::span<const UnpaddedPieceSize>(),
+                               piece_size,
+                               _,
+                               kDealSectorPriority))
         .WillOnce(testing::Return(info));
 
     EXPECT_OUTCOME_TRUE_1(
-        sealing_->addPieceToAnySector(piece_size, piece, deal));
+        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
 
     EXPECT_OUTCOME_TRUE_1(
         sealing_->forceSectorState(sector, SealingState::kProving));
@@ -620,16 +640,18 @@ namespace fc::mining {
         .cid = "010001020001"_cid,
     };
 
+    SectorRef sector_ref{.id = SectorId{.miner = miner_id_, .sector = sector},
+                         .proof_type = seal_proof_type_};
     EXPECT_CALL(*manager_,
-                addPiece(SectorId{.miner = miner_id_, .sector = sector},
-                         gsl::span<const UnpaddedPieceSize>(),
-                         piece_size,
-                         _,
-                         kDealSectorPriority))
+                doAddPieceSync(sector_ref,
+                               gsl::span<const UnpaddedPieceSize>(),
+                               piece_size,
+                               _,
+                               kDealSectorPriority))
         .WillOnce(testing::Return(info));
 
     EXPECT_OUTCOME_TRUE_1(
-        sealing_->addPieceToAnySector(piece_size, piece, deal));
+        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
 
     auto sectors = sealing_->getListSectors();
     ASSERT_EQ(sectors.size(), 2);
@@ -675,16 +697,17 @@ namespace fc::mining {
         .cid = "010001020001"_cid,
     };
 
+    SectorRef sector_ref{.id = sector_id, .proof_type = seal_proof_type_};
     EXPECT_CALL(*manager_,
-                addPiece(sector_id,
-                         gsl::span<const UnpaddedPieceSize>(),
-                         piece_size,
-                         _,
-                         kDealSectorPriority))
+                doAddPieceSync(sector_ref,
+                               gsl::span<const UnpaddedPieceSize>(),
+                               piece_size,
+                               _,
+                               kDealSectorPriority))
         .WillOnce(testing::Return(info));
 
     EXPECT_OUTCOME_TRUE_1(
-        sealing_->addPieceToAnySector(piece_size, piece, deal));
+        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
 
     // Precommit 1
     TipsetKey key{{CbCid::hash("02"_unhex)}};
@@ -764,10 +787,10 @@ namespace fc::mining {
     types::PreCommit1Output pc1o({4, 5, 6});
 
     EXPECT_CALL(*manager_,
-                sealPreCommit1(sector_id,
-                               rand,
-                               gsl::span<const PieceInfo>(infos),
-                               kDealSectorPriority))
+                sealPreCommit1Sync(sector_ref,
+                                   rand,
+                                   gsl::span<const PieceInfo>(infos),
+                                   kDealSectorPriority))
         .WillOnce(testing::Return(outcome::success(pc1o)));
 
     // Precommit 2
@@ -775,7 +798,8 @@ namespace fc::mining {
     sector_storage::SectorCids cids{.sealed_cid = "010001020010"_cid,
                                     .unsealed_cid = "010001020011"_cid};
 
-    EXPECT_CALL(*manager_, sealPreCommit2(sector_id, pc1o, kDealSectorPriority))
+    EXPECT_CALL(*manager_,
+                sealPreCommit2Sync(sector_ref, pc1o, kDealSectorPriority))
         .WillOnce(testing::Return(outcome::success(cids)));
 
     // Precommitting
@@ -877,22 +901,25 @@ namespace fc::mining {
               return outcome::success();
             }));
 
-    // Commiting
+    // Compute Proofs
 
     Commit1Output c1o({1, 2, 3, 4, 5, 6});
     EXPECT_CALL(*manager_,
-                sealCommit1(sector_id,
-                            rand,
-                            seed,
-                            gsl::span<const PieceInfo>(infos),
-                            cids,
-                            kDealSectorPriority))
+                sealCommit1Sync(sector_ref,
+                                rand,
+                                seed,
+                                gsl::span<const PieceInfo>(infos),
+                                cids,
+                                kDealSectorPriority))
         .WillOnce(testing::Return(c1o));
     Proof proof({7, 6, 5, 4, 3, 2, 1});
-    EXPECT_CALL(*manager_, sealCommit2(sector_id, c1o, kDealSectorPriority))
+    EXPECT_CALL(*manager_,
+                sealCommit2Sync(sector_ref, c1o, kDealSectorPriority))
         .WillOnce(testing::Return(proof));
 
+    // Commiting
     EXPECT_CALL(*proofs_, verifySeal(_))
+        .WillOnce(testing::Return(outcome::success(true)))
         .WillOnce(testing::Return(outcome::success(true)));
 
     api_->StateMinerInitialPledgeCollateral =
@@ -913,7 +940,8 @@ namespace fc::mining {
     };
 
     // Finalize
-    EXPECT_CALL(*manager_, finalizeSector(sector_id, _, kDealSectorPriority))
+    EXPECT_CALL(*manager_,
+                finalizeSectorSync(sector_ref, _, kDealSectorPriority))
         .WillOnce(testing::Return(outcome::success()));
 
     auto state{SealingState::kStateUnknown};
@@ -944,13 +972,14 @@ namespace fc::mining {
         .cid = "010001020002"_cid,
     };
 
+    SectorRef sector_ref{.id = sector_id, .proof_type = seal_proof_type_};
     std::vector<UnpaddedPieceSize> exist_pieces = {};
     EXPECT_CALL(*manager_,
-                addPiece(sector_id,
-                         gsl::span<const UnpaddedPieceSize>(exist_pieces),
-                         PaddedPieceSize(sector_size_).unpadded(),
-                         _,
-                         0))
+                doAddPieceSync(sector_ref,
+                               gsl::span<const UnpaddedPieceSize>(exist_pieces),
+                               PaddedPieceSize(sector_size_).unpadded(),
+                               _,
+                               0))
         .WillOnce(testing::Return(outcome::success(info)));
 
     api_->StateMinerInfo =

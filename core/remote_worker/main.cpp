@@ -41,6 +41,7 @@ namespace fc {
   using primitives::piece::UnpaddedByteIndex;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::SealRandomness;
+  using primitives::sector::SectorRef;
   using proofs::ProofParamProvider;
   using sector_storage::AcquireMode;
   using sector_storage::Commit1Output;
@@ -61,7 +62,6 @@ namespace fc {
     boost::filesystem::path repo_path;
     std::pair<Multiaddress, std::string> miner_api{
         codec::cbor::kDefaultT<Multiaddress>(), {}};
-    RegisteredSealProof seal_type;
     int api_port;
 
     std::set<primitives::TaskType> tasks;
@@ -156,9 +156,6 @@ namespace fc {
       exit(EXIT_FAILURE);
     }
 
-    // TODO(ortyomka): [FIL-347] remove it
-    OUTCOME_TRYA(config.seal_type, mapi->SealProof());
-
     if (config.need_download) {
       OUTCOME_TRY(address, mapi->ActorAddress());
       OUTCOME_TRY(sector_size, mapi->ActorSectorSize(address));
@@ -201,24 +198,25 @@ namespace fc {
         local_store, std::unordered_map<std::string, std::string>{})};
 
     sector_storage::WorkerConfig wconfig{
-        .seal_proof_type = config.seal_type,
+        .custom_hostname = boost::none,  // TODO: add flag for change it
         .task_types = config.tasks,
+        .is_no_swap = false,  // TODO: add flag for change it
     };
 
-    auto worker{std::make_unique<LocalWorker>(wconfig, remote_store)};
+    auto worker{std::make_shared<LocalWorker>(io, wconfig, mapi, remote_store)};
 
     auto wapi{std::make_shared<api::WorkerApi>()};
     wapi->Version = []() { return VersionResult{"seal-worker", 0, 0}; };
     wapi->StorageAddLocal = [&](const std::string &path) {
       return local_store->openPath(path);
     };
-    wapi->Fetch = [&](const SectorId &sector,
+    wapi->Fetch = [&](const SectorRef &sector,
                       const SectorFileType &file_type,
                       PathType path_type,
                       AcquireMode mode) {
       return worker->fetch(sector, file_type, path_type, mode);
     };
-    wapi->UnsealPiece = [&](const SectorId &sector,
+    wapi->UnsealPiece = [&](const SectorRef &sector,
                             UnpaddedByteIndex offset,
                             const UnpaddedPieceSize &size,
                             const SealRandomness &randomness,
@@ -226,11 +224,9 @@ namespace fc {
       return worker->unsealPiece(
           sector, offset, size, randomness, unsealed_cid);
     };
-    wapi->Remove = [&](const SectorId &sector) {
-      return worker->remove(sector);
-    };
-    wapi->MoveStorage = [&](const SectorId &sector) {
-      return worker->moveStorage(sector);
+    wapi->MoveStorage = [&](const SectorRef &sector,
+                            const SectorFileType &types) {
+      return worker->moveStorage(sector, types);
     };
 
     wapi->Info = [&]() { return worker->getInfo(); };
@@ -242,32 +238,29 @@ namespace fc {
       return std::move(tasks);
     };
 
-    wapi->SealPreCommit1 = [&](const SectorId &sector,
+    wapi->SealPreCommit1 = [&](const SectorRef &sector,
                                const SealRandomness &ticket,
                                std::vector<PieceInfo> pieces) {
       return worker->sealPreCommit1(sector, ticket, pieces);
     };
-    wapi->SealPreCommit2 = [&](const SectorId &sector,
+    wapi->SealPreCommit2 = [&](const SectorRef &sector,
                                const PreCommit1Output &pre_commit_1_output) {
       return worker->sealPreCommit2(sector, pre_commit_1_output);
     };
-    wapi->SealCommit1 = [&](const SectorId &sector,
+    wapi->SealCommit1 = [&](const SectorRef &sector,
                             const SealRandomness &ticket,
                             const InteractiveRandomness &seed,
                             std::vector<PieceInfo> pieces,
                             const SectorCids &cids) {
       return worker->sealCommit1(sector, ticket, seed, pieces, cids);
     };
-    wapi->SealCommit2 = [&](const SectorId &sector,
+    wapi->SealCommit2 = [&](const SectorRef &sector,
                             const Commit1Output &commit_1_output) {
       return worker->sealCommit2(sector, commit_1_output);
     };
-    wapi->FinalizeSector = [&](const SectorId &sector,
+    wapi->FinalizeSector = [&](const SectorRef &sector,
                                std::vector<Range> keep_unsealed) {
       return worker->finalizeSector(sector, keep_unsealed);
-    };
-    wapi->Remove = [&](const SectorId &sector) {
-      return worker->remove(sector);
     };
 
     std::map<std::string, std::shared_ptr<api::Rpc>> wrpc;

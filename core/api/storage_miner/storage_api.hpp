@@ -38,8 +38,15 @@ namespace fc::api {
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
   using primitives::sector_file::SectorFileType;
+  using sector_storage::CallError;
+  using sector_storage::CallId;
+  using sector_storage::Commit1Output;
   using sector_storage::Manager;
+  using sector_storage::PieceInfo;
+  using sector_storage::PreCommit1Output;
+  using sector_storage::Proof;
   using sector_storage::Scheduler;
+  using sector_storage::SectorCids;
   using sector_storage::stores::FsStat;
   using sector_storage::stores::HealthReport;
   using sector_storage::stores::SectorIndex;
@@ -87,9 +94,6 @@ namespace fc::api {
 
     API_METHOD(MarketSetRetrievalAsk, void, const RetrievalAsk &)
 
-    // TODO(ortyomka): [FIL-347] remove it
-    API_METHOD(SealProof, RegisteredSealProof)
-
     API_METHOD(StorageAttach, void, const StorageInfo_ &, const FsStat &)
     API_METHOD(StorageInfo, StorageInfo_, const StorageID &)
     API_METHOD(StorageReportHealth,
@@ -111,12 +115,59 @@ namespace fc::api {
                std::vector<StorageInfo_>,
                const SectorId &,
                const SectorFileType &,
-               boost::optional<RegisteredSealProof>)
+               boost::optional<SectorSize>)
     API_METHOD(StorageBestAlloc,
                std::vector<StorageInfo_>,
                const SectorFileType &,
-               RegisteredSealProof,
+               SectorSize,
                bool)
+
+    API_METHOD(ReturnAddPiece,
+               void,
+               const CallId &,
+               const PieceInfo &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnSealPreCommit1,
+               void,
+               const CallId &,
+               const PreCommit1Output &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnSealPreCommit2,
+               void,
+               const CallId &,
+               const SectorCids &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnSealCommit1,
+               void,
+               const CallId &,
+               const Commit1Output &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnSealCommit2,
+               void,
+               const CallId &,
+               const Proof &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnFinalizeSector,
+               void,
+               const CallId &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnMoveStorage,
+               void,
+               const CallId &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnUnsealPiece,
+               void,
+               const CallId &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnReadPiece,
+               void,
+               const CallId &,
+               bool,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnFetch,
+               void,
+               const CallId &,
+               const boost::optional<CallError> &)
 
     API_METHOD(WorkerConnect, void, const std::string &);
   };
@@ -148,7 +199,6 @@ namespace fc::api {
     f(a.MarketGetRetrievalAsk);
     f(a.MarketSetAsk);
     f(a.MarketSetRetrievalAsk);
-    f(a.SealProof);  // TODO(ortyomka): [FIL-347] remove it
     f(a.StorageAttach);
     f(a.StorageInfo);
     f(a.StorageReportHealth);
@@ -156,6 +206,16 @@ namespace fc::api {
     f(a.StorageDropSector);
     f(a.StorageFindSector);
     f(a.StorageBestAlloc);
+    f(a.ReturnAddPiece);
+    f(a.ReturnSealPreCommit1);
+    f(a.ReturnSealPreCommit2);
+    f(a.ReturnSealCommit1);
+    f(a.ReturnSealCommit2);
+    f(a.ReturnFinalizeSector);
+    f(a.ReturnMoveStorage);
+    f(a.ReturnUnsealPiece);
+    f(a.ReturnReadPiece);
+    f(a.ReturnFetch);
     f(a.WorkerConnect);
   }
 }  // namespace fc::api

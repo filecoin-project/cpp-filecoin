@@ -287,7 +287,6 @@ namespace fc {
     wsc.setup(*napi);
     OUTCOME_TRY(
         wsc.connect(config.node_api.first, "/rpc/v0", config.node_api.second));
-    OUTCOME_TRY(minfo, napi->StateMinerInfo(*config.actor, {}));
 
     host->start();
     OUTCOME_TRY(node_peer, napi->NetAddrsListen());
@@ -329,9 +328,9 @@ namespace fc {
         local_store, std::unordered_map<std::string, std::string>{})};
 
     auto wscheduler{
-        std::make_shared<sector_storage::SchedulerImpl>(minfo.seal_proof_type)};
+        std::make_shared<sector_storage::SchedulerImpl>(io)}; // maybe use another io_context
     OUTCOME_TRY(manager,
-                sector_storage::ManagerImpl::newManager(
+                sector_storage::ManagerImpl::newManager(io,
                     remote_store, wscheduler, {true, true, true, true}));
 
     // TODO(ortyomka): make param

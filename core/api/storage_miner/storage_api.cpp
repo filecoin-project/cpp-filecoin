@@ -5,6 +5,7 @@
 
 #include "api/storage_miner/storage_api.hpp"
 
+#include "api/storage_miner/return_api.hpp"
 #include "sector_storage/impl/remote_worker.hpp"
 
 namespace fc::api {
@@ -67,8 +68,6 @@ namespace fc::api {
       return outcome::success();
     };
 
-    api->SealProof = [=] { return sector_scheduler->getSealProofType(); };
-
     api->StorageAttach = [=](const StorageInfo_ &storage_info,
                              const FsStat &stat) {
       return sector_index->storageAttach(storage_info, stat);
@@ -100,17 +99,19 @@ namespace fc::api {
     api->StorageFindSector =
         [=](const SectorId &sector,
             const SectorFileType &file_type,
-            boost::optional<RegisteredSealProof> fetch_seal_proof_type) {
+            boost::optional<SectorSize> fetch_sector_size) {
           return sector_index->storageFindSector(
-              sector, file_type, fetch_seal_proof_type);
+              sector, file_type, fetch_sector_size);
         };
 
     api->StorageBestAlloc = [=](const SectorFileType &allocate,
-                                RegisteredSealProof seal_proof_type,
+                                SectorSize sector_size,
                                 bool sealing_mode) {
       return sector_index->storageBestAlloc(
-          allocate, seal_proof_type, sealing_mode);
+          allocate, sector_size, sealing_mode);
     };
+
+    makeReturnApi(api, sector_scheduler);
 
     api->WorkerConnect =
         [=, self{api}](const std::string &address) -> outcome::result<void> {
