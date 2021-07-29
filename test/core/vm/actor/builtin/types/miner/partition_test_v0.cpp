@@ -243,6 +243,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     std::vector<ExpectExpirationGroup> groups;
   };
 
+  /**
+   * @given partition with sectors
+   * @when check partition state
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV0, AddsSectorsAndReportsSectorStats) {
     setup();
 
@@ -254,6 +259,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when add already existed sector
+   * @then return error
+   */
   TEST_F(PartitionTestV0, DoesntAddSectorsTwice) {
     setup();
 
@@ -262,6 +272,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(result.error().message(), "not all added sectors are new");
   }
 
+  /**
+   * @given partition with sectors
+   * @when add some correct faults
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV0, AddsFaults) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -283,6 +298,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when add some correct faults twice
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV0, ReAddingFaultsIsANoOp) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -314,6 +334,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when add fault for missing sector
+   * @then return error
+   */
   TEST_F(PartitionTestV0, FailsToAddFaultsForMissingSectors) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -324,6 +349,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(result.error().message(), "failed fault declaration");
   }
 
+  /**
+   * @given partition with sectors
+   * @when add some correct recoveries for faults
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV0, AddsRecoveries) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -339,6 +369,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     assertPartitionState({1, 2, 3, 4, 5, 6}, {4, 5, 6}, {4, 5}, {});
   }
 
+  /**
+   * @given partition with sectors
+   * @when declare some faults to recover and then add these faults again
+   * @then partition is correct, recoveries don't contain faults added again
+   */
   TEST_F(PartitionTestV0, RemoveRecoveries) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -370,6 +405,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     assertPartitionState({1, 2, 3, 4, 5, 6}, {4, 5, 6}, {4}, {});
   }
 
+  /**
+   * @given partition with sectors and faults
+   * @when recover faults
+   * @then partition is correct and doesn't contain these faults anymore
+   */
   TEST_F(PartitionTestV0, RecoversFaults) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -396,6 +436,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors and faults
+   * @when declare some intersected faults to recover twice
+   * @then partition is correct, recoveries are not duplicated
+   */
   TEST_F(PartitionTestV0, FaultyPowerRecoveredExactlyOnce) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -416,6 +461,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     assertPartitionState({1, 2, 3, 4, 5, 6}, {4, 5, 6}, {4, 5, 6}, {});
   }
 
+  /**
+   * @given partition with sectors
+   * @when recover non-existed fault
+   * @then return error
+   */
   TEST_F(PartitionTestV0, MissingSectorsAreNotRecovered) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -426,6 +476,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(result.error().message(), "failed fault declaration");
   }
 
+  /**
+   * @given partition with sectors
+   * @when reschedule expirations
+   * @then partition is correct, expirations are rescheduled ecxept faults
+   */
   TEST_F(PartitionTestV0, ReschedulesExpirations) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -451,6 +506,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when replace some sectors
+   * @then partition is correct, sectors are replaced
+   */
   TEST_F(PartitionTestV0, ReplaceSectors) {
     setup();
 
@@ -487,6 +547,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when replace fault sector
+   * @then return error
+   */
   TEST_F(PartitionTestV0,
          ReplaceSectorsErrorsWhenAttemptingToReplaceInactiveSector) {
     setup();
@@ -505,6 +570,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(result.error().message(), "refusing to replace inactive sectors");
   }
 
+  /**
+   * @given partition with sectors
+   * @when terminate some sectors (include faults and recoveries)
+   * @then partition is correct, sectors are terminated
+   */
   TEST_F(PartitionTestV0, TerminateSectors) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -544,6 +614,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(terminated, terminations);
   }
 
+  /**
+   * @given partition with sectors
+   * @when terminate non-existed sector
+   * @then return error
+   */
   TEST_F(PartitionTestV0, TerminateNonExistentSectors) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -553,6 +628,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(result.error().message(), "can only terminate live sectors");
   }
 
+  /**
+   * @given partition with sectors
+   * @when terminate already terminated sectors
+   * @then return error
+   */
   TEST_F(PartitionTestV0, TerminateAlreadyTerminatedSector) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -576,6 +656,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(result.error().message(), "can only terminate live sectors");
   }
 
+  /**
+   * @given partition with sectors
+   * @when add faults sectors are already terminated
+   * @then partition is correct, sectors are moved to faults from termination
+   */
   TEST_F(PartitionTestV0, MarkTerminatedSectorsAsFaulty) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -594,6 +679,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_TRUE(new_faults.empty());
   }
 
+  /**
+   * @given partition with sectors
+   * @when pop expired sectors
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV0, PopExpiringSectors) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -632,6 +722,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(expired, fault_set);
   }
 
+  /**
+   * @given partition with sectors
+   * @when pop recovered sector
+   * @then return error
+   */
   TEST_F(PartitionTestV0, PopExpiringSectorsErrorsIfARecoveryExists) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -646,6 +741,11 @@ namespace fc::vm::actor::builtin::v0::miner {
               "unexpected recoveries while processing expirations");
   }
 
+  /**
+   * @given partition with sectors
+   * @when record missing post
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV0, RecordsMissingPost) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -673,6 +773,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when pop early terminations
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV0, PopsEarlyTerminations) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -714,6 +819,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_OUTCOME_EQ(queue2.queue.size(), 0);
   }
 
+  /**
+   * @given partition without sectors
+   * @when add a lot of sectors
+   * @then partition is correct, sectors added
+   */
   TEST_F(PartitionTestV0, TestMaxSectors) {
     const auto proof_type = RegisteredSealProof::kStackedDrg32GiBV1;
     EXPECT_OUTCOME_TRUE(sector_size, getSectorSize(proof_type));

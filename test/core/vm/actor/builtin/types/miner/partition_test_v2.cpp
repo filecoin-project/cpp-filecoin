@@ -274,6 +274,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     std::vector<ExpectExpirationGroup> groups;
   };
 
+  /**
+   * @given partition with sectors
+   * @when check partition state
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV2, AddsSectorsAndReportsSectorStats) {
     setup();
 
@@ -285,6 +290,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when add already existed sector
+   * @then return error
+   */
   TEST_F(PartitionTestV2, DoesntAddSectorsTwice) {
     setup();
 
@@ -293,6 +303,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(result.error().message(), "not all added sectors are new");
   }
 
+  /**
+   * @given partition with sectors
+   * @when add some correct faults are not proven
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV2, AddsFaultsNotProven) {
     setupUnproven();
     const auto sectors_arr = getSectorsArray();
@@ -317,6 +332,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when add some correct faults are proven
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV2, AddsFaultsProven) {
     setupUnproven();
     partition.activateUnproven();
@@ -343,6 +363,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when add some correct faults twice
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV2, ReAddingFaultsIsANoOp) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -380,6 +405,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when add fault for missing sector
+   * @then return error
+   */
   TEST_F(PartitionTestV2, FailsToAddFaultsForMissingSectors) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -390,6 +420,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(result.error().message(), "failed fault declaration");
   }
 
+  /**
+   * @given partition with sectors
+   * @when add some correct recoveries for faults
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV2, AddsRecoveries) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -405,6 +440,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionState({1, 2, 3, 4, 5, 6}, {4, 5, 6}, {4, 5}, {}, {});
   }
 
+  /**
+   * @given partition with sectors
+   * @when declare some faults to recover and then add these faults again
+   * @then partition is correct, recoveries don't contain faults added again
+   */
   TEST_F(PartitionTestV2, RemoveRecoveries) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -436,6 +476,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionState({1, 2, 3, 4, 5, 6}, {4, 5, 6}, {4}, {}, {});
   }
 
+  /**
+   * @given partition with sectors and faults
+   * @when recover faults
+   * @then partition is correct and doesn't contain these faults anymore
+   */
   TEST_F(PartitionTestV2, RecoversFaults) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -462,6 +507,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors and faults
+   * @when declare some intersected faults to recover twice
+   * @then partition is correct, recoveries are not duplicated
+   */
   TEST_F(PartitionTestV2, FaultyPowerRecoveredExactlyOnce) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -482,6 +532,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionState({1, 2, 3, 4, 5, 6}, {4, 5, 6}, {4, 5, 6}, {}, {});
   }
 
+  /**
+   * @given partition with sectors
+   * @when recover non-existed fault
+   * @then return error
+   */
   TEST_F(PartitionTestV2, MissingSectorsAreNotRecovered) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -492,6 +547,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(result.error().message(), "failed fault declaration");
   }
 
+  /**
+   * @given partition with sectors
+   * @when reschedule expirations
+   * @then partition is correct, expirations are rescheduled ecxept faults
+   */
   TEST_F(PartitionTestV2, ReschedulesExpirations) {
     setup();
     const auto unproven_sector = testSector(13, 7, 55, 65, 1006);
@@ -531,6 +591,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when replace some sectors
+   * @then partition is correct, sectors are replaced
+   */
   TEST_F(PartitionTestV2, ReplaceSectors) {
     setup();
 
@@ -567,6 +632,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when replace fault sector
+   * @then return error
+   */
   TEST_F(PartitionTestV2,
          ReplaceSectorsErrorsWhenAttemptingToReplaceInactiveSector) {
     setup();
@@ -585,6 +655,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(result.error().message(), "refusing to replace inactive sectors");
   }
 
+  /**
+   * @given partition with unproven sectors
+   * @when replace unproven sectors
+   * @then return error
+   */
   TEST_F(PartitionTestV2, ReplaceSectorsErrorsWhenAttemptingToUnprovenSector) {
     setupUnproven();
 
@@ -597,6 +672,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(result.error().message(), "refusing to replace inactive sectors");
   }
 
+  /**
+   * @given partition with sectors
+   * @when terminate some sectors (include faults and recoveries)
+   * @then partition is correct, sectors are terminated
+   */
   TEST_F(PartitionTestV2, TerminateSectors) {
     setup();
     const auto unproven_sector = testSector(13, 7, 55, 65, 1006);
@@ -643,6 +723,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(terminated, terminations);
   }
 
+  /**
+   * @given partition with sectors
+   * @when terminate non-existed sector
+   * @then return error
+   */
   TEST_F(PartitionTestV2, TerminateNonExistentSectors) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -652,6 +737,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(result.error().message(), "can only terminate live sectors");
   }
 
+  /**
+   * @given partition with sectors
+   * @when terminate already terminated sectors
+   * @then return error
+   */
   TEST_F(PartitionTestV2, TerminateAlreadyTerminatedSector) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -675,6 +765,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(result.error().message(), "can only terminate live sectors");
   }
 
+  /**
+   * @given partition with sectors
+   * @when add faults sectors are already terminated
+   * @then partition is correct, sectors are moved to faults from termination
+   */
   TEST_F(PartitionTestV2, MarkTerminatedSectorsAsFaulty) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -693,6 +788,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_TRUE(new_faults.empty());
   }
 
+  /**
+   * @given partition with sectors
+   * @when pop expired sectors
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV2, PopExpiringSectors) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -731,6 +831,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(expired, fault_set);
   }
 
+  /**
+   * @given partition with sectors
+   * @when pop recovered sector
+   * @then return error
+   */
   TEST_F(PartitionTestV2, PopExpiringSectorsErrorsIfARecoveryExists) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -745,6 +850,11 @@ namespace fc::vm::actor::builtin::v2::miner {
               "unexpected recoveries while processing expirations");
   }
 
+  /**
+   * @given partition with unproven sectors
+   * @when pop unproven expired sectors
+   * @then return error
+   */
   TEST_F(PartitionTestV2, PopExpiringSectorsErrorsIfUnprovenSectorsExist) {
     setupUnproven();
 
@@ -754,6 +864,11 @@ namespace fc::vm::actor::builtin::v2::miner {
         "cannot pop expired sectors from a partition with unproven sectors");
   }
 
+  /**
+   * @given partition with sectors
+   * @when record missing post
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV2, RecordsMissingPost) {
     setup();
     const auto unproven_sector = testSector(13, 7, 55, 65, 1006);
@@ -794,6 +909,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionExpirationQueue();
   }
 
+  /**
+   * @given partition with sectors
+   * @when pop early terminations
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV2, PopsEarlyTerminations) {
     setup();
     const auto sectors_arr = getSectorsArray();
@@ -835,6 +955,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_OUTCOME_EQ(queue2.queue.size(), 0);
   }
 
+  /**
+   * @given partition without sectors
+   * @when add a lot of sectors
+   * @then partition is correct, sectors added
+   */
   TEST_F(PartitionTestV2, TestMaxSectors) {
     const auto proof_type = RegisteredSealProof::kStackedDrg32GiBV1_1;
     EXPECT_OUTCOME_TRUE(sector_size, getSectorSize(proof_type));
@@ -861,6 +986,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionState(sector_nos, {}, {}, {}, sector_nos);
   }
 
+  /**
+   * @given partition with proven sectors
+   * @when record skipped faults are not exist
+   * @then return error
+   */
   TEST_F(PartitionTestV2, FailIfAllDeclaredSectorsAreNonInPartition) {
     setupProven();
     const auto sectors_arr = getSectorsArray();
@@ -872,6 +1002,11 @@ namespace fc::vm::actor::builtin::v2::miner {
                              runtime, sectors_arr, ssize, quant, exp, skipped));
   }
 
+  /**
+   * @given partition with proven sectors
+   * @when record skipped faults intersected with faults and terminations
+   * @then partition is correct, only not intersected skipped faults are added
+   */
   TEST_F(PartitionTestV2, AlreadyFaultyAndTerminatedSectorsAreIgnored) {
     setupProven();
     const auto sectors_arr = getSectorsArray();
@@ -902,6 +1037,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionState({1, 2, 3, 4, 5, 6}, {3, 4, 5}, {}, {1, 2}, {});
   }
 
+  /**
+   * @given partition with proven sectors
+   * @when record skipped faults intersected with recoveries
+   * @then partition is correct, recoveries retracted
+   */
   TEST_F(PartitionTestV2,
          RecoveriesAreRetractedWithoutBeingMarkedAsNewFaultyPower) {
     setupProven();
@@ -935,6 +1075,11 @@ namespace fc::vm::actor::builtin::v2::miner {
     assertPartitionState({1, 2, 3, 4, 5, 6}, {1, 4, 5, 6}, {}, {}, {});
   }
 
+  /**
+   * @given partition with proven sectors
+   * @when record empty skipped faults
+   * @then partition is correct
+   */
   TEST_F(PartitionTestV2, SuccessfulWhenSkippedFaultSetIsEmpty) {
     setupProven();
     const auto sectors_arr = getSectorsArray();

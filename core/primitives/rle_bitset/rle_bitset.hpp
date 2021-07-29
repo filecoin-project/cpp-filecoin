@@ -89,6 +89,11 @@ namespace fc::primitives {
       return {it, std::next(it, count)};
     }
 
+    /**
+     * Checks that current bitset contains all bits of other bitset
+     * @param other - other bitset to check
+     * @return true if contains all bits
+     */
     inline bool contains(const RleBitset &other) const {
       bool result = true;
       for (const auto i : other) {
@@ -100,6 +105,11 @@ namespace fc::primitives {
       return result;
     }
 
+    /**
+     * Checks that current bitset contains any bit of other bitset
+     * @param other - other bitset to check
+     * @return true if contains any bit
+     */
     inline bool containsAny(const RleBitset &other) const {
       bool result = false;
       for (const auto i : other) {

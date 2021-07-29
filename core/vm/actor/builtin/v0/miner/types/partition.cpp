@@ -12,9 +12,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using types::TypeManager;
 
   RleBitset Partition::activeSectors() const {
-    const auto live = liveSectors();
-    const auto active = live - this->faults;
-    return active;
+    return liveSectors() - this->faults;
   }
 
   PowerPair Partition::activePower() const {
