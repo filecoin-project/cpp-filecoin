@@ -52,7 +52,7 @@ namespace fc::storage::ipfs::graphsync {
             (outcome::result<libp2p::multi::UVarint> varint_opt) {
           auto self = wptr.lock();
           if (self && self->reading_) {
-            size_t length = varint_opt ? varint_opt.value().toUInt64() : 0;
+            const size_t length = varint_opt ? varint_opt.value().toUInt64() : 0;
             self->onLengthRead(length);
           }
         }
