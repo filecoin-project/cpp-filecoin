@@ -114,34 +114,6 @@ namespace fc::api {
         "{\"Owner\":\"t00\",\"Worker\":\"t00\",\"NewWorker\":\"<empty>\","
         "\"WorkerChangeEpoch\":-1,\"ControlAddresses\":[],\"PeerId\":null,"
         "\"Multiaddrs\":[],\"SealProofType\":0,\"WindowPoStProofType\":5,"
-        "\"SectorSize\":1,\"WindowPoStPartitionSectors\":1,"
-        "\"ConsensusFaultElapsed\":0}");
-  }
-
-  /**
-   * @given MinerInfo with PendingWorkerKey present
-   * @when JSON serialized
-   * @then equal to lotus serialization
-   */
-  TEST(ApiJsonTest, MinerInfoPendingWorkerKeyPresent) {
-    using fc::vm::actor::builtin::types::miner::MinerInfo;
-    using fc::vm::actor::builtin::types::miner::WorkerKeyChange;
-    MinerInfo miner_info;
-    miner_info.pending_worker_key = WorkerKeyChange{
-        .new_worker = Address::makeFromId(2), .effective_at = 2};
-    miner_info.seal_proof_type = RegisteredSealProof::kStackedDrg2KiBV1;
-    EXPECT_OUTCOME_TRUE(
-        window_post_proof_type,
-        getRegisteredWindowPoStProof(miner_info.seal_proof_type));
-    miner_info.window_post_proof_type = window_post_proof_type;
-    miner_info.sector_size = 1;
-    miner_info.window_post_partition_sectors = 1;
-    expectJson(
-        miner_info,
-        "{\"Owner\":\"t00\",\"Worker\":\"t00\",\"NewWorker\":\"t02\","
-        "\"WorkerChangeEpoch\":2,\"ControlAddresses\":[],\"PeerId\":null,"
-        "\"Multiaddrs\":[],\"SealProofType\":0,\"WindowPoStProofType\":5,"
-        "\"SectorSize\":1,\"WindowPoStPartitionSectors\":1,"
-        "\"ConsensusFaultElapsed\":0}");
+        "\"SectorSize\":1,\"WindowPoStPartitionSectors\":1}");
   }
 }  // namespace fc::api

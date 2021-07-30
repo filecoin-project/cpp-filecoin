@@ -61,7 +61,7 @@ namespace fc::vm::actor::builtin::types::miner {
   // Number of epochs between publishing the precommit and when the challenge
   // for interactive PoRep is drawn used to ensure it is not predictable by
   // miner
-  constexpr EpochDuration kPreCommitChallengeDelay{150};
+  extern EpochDuration kPreCommitChallengeDelay;
 
   // Lookback from the current epoch for state view for leader elections.
   constexpr EpochDuration kElectionLookback{1};
@@ -189,7 +189,8 @@ namespace fc::vm::actor::builtin::types::miner {
                            init.second * pow(grow.second, age)));
   }
 
-  inline PowerPair powerForSectors(SectorSize ssize, const std::vector<SectorOnChainInfo> &sectors) {
+  inline PowerPair powerForSectors(
+      SectorSize ssize, const std::vector<SectorOnChainInfo> &sectors) {
     StoragePower qa{0};
 
     for (const auto &sector : sectors) {

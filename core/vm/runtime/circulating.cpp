@@ -5,6 +5,7 @@
 
 #include "vm/runtime/circulating.hpp"
 
+#include "cbor_blake/ipld_version.hpp"
 #include "const.hpp"
 #include "primitives/block/block.hpp"
 #include "vm/actor/builtin/states/market_actor_state.hpp"
@@ -39,6 +40,7 @@ namespace fc::vm {
 
   outcome::result<std::shared_ptr<Circulating>> Circulating::make(
       IpldPtr ipld, const CID &genesis) {
+    ipld = withVersion(ipld, 0);
     auto circulating{std::make_shared<Circulating>()};
     OUTCOME_TRY(block, getCbor<primitives::block::BlockHeader>(ipld, genesis));
     OUTCOME_TRYA(circulating->genesis,
@@ -95,6 +97,7 @@ namespace fc::vm {
 
     OUTCOME_TRY(burn, state_tree->get(actor::kBurntFundsActorAddress));
     OUTCOME_TRY(locked, getLocked(state_tree));
-    return vested + mined + disbursed - burn.balance - locked;
+    return std::max<TokenAmount>(
+        0, vested + mined + disbursed - burn.balance - locked);
   }
 }  // namespace fc::vm

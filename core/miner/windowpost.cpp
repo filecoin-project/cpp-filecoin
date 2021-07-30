@@ -35,8 +35,7 @@ namespace fc::mining {
     OUTCOME_TRY(info, api->StateMinerInfo(miner, {}));
     OUTCOME_TRYA(scheduler->worker, api->StateAccountKey(info.worker, {}));
     scheduler->part_size = info.window_post_partition_sectors;
-    OUTCOME_TRYA(scheduler->proof_type,
-                 getRegisteredWindowPoStProof(info.seal_proof_type));
+    scheduler->proof_type = info.window_post_proof_type;
     scheduler->channel->read([scheduler](auto changes) {
       if (changes) {
         TipsetCPtr revert, apply;
@@ -250,11 +249,9 @@ namespace fc::mining {
     wait.waitOwn([method](auto _r) {
       auto name{method == DeclareFaultsRecovered::Number
                     ? "DeclareFaultsRecovered"
-                    : method == DeclareFaults::Number
-                          ? "DeclareFaults"
-                          : method == SubmitWindowedPoSt::Number
-                                ? "SubmitWindowedPoSt"
-                                : "(unexpected)"};
+                : method == DeclareFaults::Number      ? "DeclareFaults"
+                : method == SubmitWindowedPoSt::Number ? "SubmitWindowedPoSt"
+                                                       : "(unexpected)"};
       if (!_r) {
         spdlog::error("WindowPoStScheduler {} error {}", name, _r.error());
       } else {

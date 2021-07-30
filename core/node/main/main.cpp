@@ -236,6 +236,26 @@ namespace fc {
     }
     auto &o = obj_res.value();
 
+    auto gs_sub{o.graphsync->subscribe([&](auto &, auto &data) {
+      o.markets_ipld->set(data.cid, data.content).value();
+    })};
+
+    auto mpool_gossip{o.events->subscribeMessageFromPubSub([&](auto &e) {
+      auto res{o.mpool->add(e.msg)};
+      if (!res) {
+        spdlog::error("MessagePool.subscribeMessageFromPubSub: {:#}",
+                      res.error());
+      }
+    })};
+    o.api->MpoolPushMessage = [&, impl{std::move(o.api->MpoolPushMessage)}](
+                                  auto &arg1, auto &arg2) {
+      auto res{impl(arg1, arg2)};
+      if (res) {
+        o.pubsub_gate->publish(res.value());
+      }
+      return res;
+    };
+
     Metrics metrics{o};
 
     o.io_context->post([&] {

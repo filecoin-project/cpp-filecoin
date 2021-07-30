@@ -152,7 +152,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          VMExitCode::kErrIllegalState);
       OUTCOME_TRY(runtime.validateArgument(!has));
 
-      REQUIRE_NO_ERROR(state->pending_proposals.set(deal.cid(), deal),
+      REQUIRE_NO_ERROR(state->pending_proposals.set(deal.cid(), {}),
                        VMExitCode::kErrIllegalState);
 
       REQUIRE_NO_ERROR(state->proposals.set(deal_id, deal),

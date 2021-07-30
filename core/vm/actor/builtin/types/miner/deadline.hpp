@@ -53,7 +53,7 @@ namespace fc::vm::actor::builtin::types::miner {
      * at that epoch. Sectors expiring at this epoch may later be recovered, and
      * this queue will not be updated at that time.
      */
-    adt::Array<RleBitset> expirations_epochs;
+    adt::Array<RleBitset, 5> expirations_epochs;
 
     /**
      * Partitions numbers with PoSt submissions since the proving period
@@ -85,7 +85,7 @@ namespace fc::vm::actor::builtin::types::miner {
      * will be moved to PoStSubmissionsSnapshot. WindowPoSt proofs verified
      * on-chain do not appear in this AMT.
      */
-    adt::Array<WindowedPoSt> optimistic_post_submissions;
+    adt::Array<WindowedPoSt, 2> optimistic_post_submissions;
 
     /**
      * Snapshot of partition state at the end of the previous challenge window

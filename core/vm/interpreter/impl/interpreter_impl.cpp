@@ -78,11 +78,6 @@ namespace fc::vm::interpreter {
     }
 
     auto env = std::make_shared<Env>(env_context_, ts_branch, tipset);
-    auto setActorVersion{[&] {
-      env->ipld->actor_version =
-          toolchain::Toolchain::getActorVersionForNetwork(
-              version::getNetworkVersion(env->epoch));
-    }};
 
     auto cron{[&]() -> outcome::result<void> {
       OUTCOME_TRY(receipt,
@@ -107,14 +102,11 @@ namespace fc::vm::interpreter {
       OUTCOME_TRY(parent, env_context_.ts_load->load(tipset->getParents()));
       for (auto epoch{parent->height() + 1}; epoch < tipset->height();
            ++epoch) {
-        env->epoch = epoch;
-        setActorVersion();
+        env->setHeight(epoch);
         OUTCOME_TRY(cron());
       }
-      env->epoch = tipset->height();
+      env->setHeight(tipset->height());
     }
-    
-    setActorVersion();
 
     adt::Array<MessageReceipt> receipts{ipld};
     MessageVisitor message_visitor{ipld, true, true};

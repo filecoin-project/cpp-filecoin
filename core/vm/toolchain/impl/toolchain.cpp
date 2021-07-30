@@ -47,27 +47,7 @@ namespace fc::vm::toolchain {
 
   ActorVersion Toolchain::getActorVersionForNetwork(
       const NetworkVersion &network_version) {
-    switch (network_version) {
-      case NetworkVersion::kVersion0:
-      case NetworkVersion::kVersion1:
-      case NetworkVersion::kVersion2:
-      case NetworkVersion::kVersion3:
-        return ActorVersion::kVersion0;
-      case NetworkVersion::kVersion4:
-      case NetworkVersion::kVersion5:
-      case NetworkVersion::kVersion6:
-      case NetworkVersion::kVersion7:
-      case NetworkVersion::kVersion8:
-      case NetworkVersion::kVersion9:
-        return ActorVersion::kVersion2;
-      case NetworkVersion::kVersion10:
-      case NetworkVersion::kVersion11:
-        return ActorVersion::kVersion3;
-      case NetworkVersion::kVersion12:
-        return ActorVersion::kVersion4;
-      case NetworkVersion::kVersion13:
-        return ActorVersion::kVersion5;
-    }
+    return actorVersion(network_version);
   }
 
   ActorVersion Toolchain::getActorVersionForCid(const CodeId &actorCid) {

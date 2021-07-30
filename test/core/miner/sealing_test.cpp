@@ -7,8 +7,8 @@
 
 #include <gtest/gtest.h>
 #include <chrono>
-#include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <libp2p/basic/scheduler/manual_scheduler_backend.hpp>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
 
 #include "primitives/sector/sector.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -750,10 +750,8 @@ namespace fc::mining {
     SectorPreCommitOnChainInfo precommit_info;
     precommit_info.info.seal_epoch = 3;
     precommit_info.info.sealed_cid = "010001020007"_cid;
-    actor_state.sectors =
-        adt::Array<SectorOnChainInfo>("010001020008"_cid, ipld);
-    actor_state.precommitted_setctors_expiry =
-        adt::Array<api::RleBitset>("010001020009"_cid, ipld);
+    actor_state.sectors = {"010001020008"_cid, ipld};
+    actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);

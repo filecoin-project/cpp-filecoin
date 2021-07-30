@@ -5,6 +5,7 @@
 
 #include "primitives/tipset/tipset.hpp"
 
+#include "cbor_blake/ipld_version.hpp"
 #include "common/logger.hpp"
 #include "const.hpp"
 #include "crypto/blake2/blake2b160.hpp"
@@ -82,6 +83,7 @@ namespace fc::primitives::tipset {
           auto from{&msg.from};
           if (lookupId && !from->isId()) {
             if (!state_tree) {
+              ipld = withVersion(ipld, block.height);
               vm::state::StateTreeImpl impl{ipld, block.parent_state_root};
               state_tree = new vm::state::StateTreeImpl{std::move(impl)};
             }
@@ -288,13 +290,14 @@ namespace fc::primitives::tipset {
                         gas_limit += msg->gas_limit;
                         return outcome::success();
                       }));
-    auto delta{std::max<GasAmount>(
-        -kBlockGasTarget,
-        std::min<GasAmount>(
-            kBlockGasTarget,
-            kPackingEfficiencyDenom * gas_limit
-                    / ((int64_t)blks.size() * kPackingEfficiencyNum)
-                - kBlockGasTarget))};
+    auto delta{gas_limit};
+    if (epoch() <= kUpgradeSmokeHeight) {
+      delta *= kPackingEfficiencyDenom;
+      delta /= kPackingEfficiencyNum;
+    }
+    delta /= blks.size();
+    delta -= kBlockGasTarget;
+    delta = std::clamp<GasAmount>(delta, -kBlockGasTarget, kBlockGasTarget);
     auto base{getParentBaseFee()};
     return std::max<BigInt>(kMinimumBaseFee,
                             base

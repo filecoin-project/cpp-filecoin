@@ -37,7 +37,7 @@ namespace fc::vm::actor::builtin::v0::init {
   /** Init actor state CBOR encoding and decoding */
   TEST_F(InitActorTest, InitActorStateCbor) {
     InitActorState init_actor_state;
-    init_actor_state.address_map_0 = {"010001020000"_cid};
+    init_actor_state.address_map = {"010001020000"_cid};
     init_actor_state.next_id = 3;
     init_actor_state.network_name = "n";
 
@@ -61,7 +61,7 @@ namespace fc::vm::actor::builtin::v0::init {
 
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, {network_name}));
 
-    EXPECT_OUTCOME_TRUE(keys, state.address_map_0.keys());
+    EXPECT_OUTCOME_TRUE(keys, state.address_map.keys());
     EXPECT_TRUE(keys.empty());
     EXPECT_EQ(state.next_id, 0);
     EXPECT_EQ(state.network_name, network_name);
@@ -73,7 +73,7 @@ namespace fc::vm::actor::builtin::v0::init {
    * @then Actor address is mapped to id
    */
   TEST_F(InitActorTest, AddActor) {
-    state.address_map_0 = {ipld};
+    state.address_map = {ipld};
     state.next_id = 3;
     state.network_name = network_name;
 

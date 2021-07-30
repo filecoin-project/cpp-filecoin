@@ -37,6 +37,7 @@ namespace fc::api {
                                       gsl::span<const std::string> parts);
 
   std::shared_ptr<FullNodeApi> makeImpl(
+      std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<ChainStore> chain_store,
       const std::string &network_name,
       std::shared_ptr<WeightCalculator> weight_calculator,

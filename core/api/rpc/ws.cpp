@@ -79,6 +79,7 @@ namespace fc::api {
       };
       auto it = rpc.ms.find(req.method);
       if (it == rpc.ms.end() || !it->second) {
+        spdlog::error("rpc method {} not implemented", req.method);
         return respond(Response::Error{kMethodNotFound, "Method not found"});
       }
       it->second(

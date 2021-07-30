@@ -18,7 +18,7 @@ namespace fc::storage::unixfs {
   using google::protobuf::io::StringOutputStream;
 
   outcome::result<CID> makeLeaf(Ipld &ipld, gsl::span<const uint8_t> data) {
-    CID cid{CID::Version::V1, CID::Multicodec::RAW, Hasher::sha2_256(data)};
+    CID cid{CID::Version::V1, CID::Multicodec::RAW, Hasher::blake2b_256(data)};
     OUTCOME_TRY(ipld.set(cid, Ipld::Value{data}));
     return cid;
   }

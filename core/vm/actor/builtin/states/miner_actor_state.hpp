@@ -73,7 +73,7 @@ namespace fc::vm::actor::builtin::states {
     /**
      * Maintains the state required to expire PreCommittedSectors
      */
-    adt::Array<RleBitset> precommitted_setctors_expiry;
+    adt::Array<RleBitset, 6> precommitted_setctors_expiry;
 
     /**
      * Allocated sector IDs. Sector IDs can never be reused once allocated.
@@ -86,7 +86,7 @@ namespace fc::vm::actor::builtin::states {
      * Sectors are removed from this AMT when the partition to which the
      * sector belongs is compacted.
      */
-    adt::Array<SectorOnChainInfo> sectors;
+    adt::Array<SectorOnChainInfo, 5> sectors;
 
     /**
      * The first epoch in this miner's current proving period. This is the first

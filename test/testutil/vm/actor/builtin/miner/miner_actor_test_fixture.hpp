@@ -47,7 +47,7 @@ namespace fc::testutil::vm::actor::builtin::miner {
       VestingFunds vesting_funds;
       EXPECT_OUTCOME_TRUE_1(state.vesting_funds.set(vesting_funds));
 
-      state.sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid, ipld);
+      state.sectors = {empty_amt_cid, ipld};
     }
 
     void initDefaultMinerInfo() {

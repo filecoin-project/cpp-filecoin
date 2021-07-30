@@ -61,10 +61,10 @@ namespace fc::storage::amt {
         std::function<outcome::result<void>(uint64_t, const Value &)>;
 
     explicit Amt(std::shared_ptr<ipfs::IpfsDatastore> store,
-                 OptBitWidth bit_width = {});
+                 size_t bit_width = kDefaultBits);
     Amt(std::shared_ptr<ipfs::IpfsDatastore> store,
         const CID &root,
-        OptBitWidth bit_width = {});
+        size_t bit_width = kDefaultBits);
     /// Get values quantity
     outcome::result<uint64_t> count() const;
     /// Set value by key, does not write to storage
@@ -118,7 +118,10 @@ namespace fc::storage::amt {
     uint64_t maskAt(uint64_t height) const;
     uint64_t maxAt(uint64_t height) const;
 
-    mutable boost::variant<CID, Root> root_;
-    OptBitWidth bits_;
+    void lazyCreateRoot() const;
+    bool v3() const;
+
+    mutable boost::variant<std::monostate, CID, Root> root_;
+    size_t bits_;
   };
 }  // namespace fc::storage::amt

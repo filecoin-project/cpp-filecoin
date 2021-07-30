@@ -9,11 +9,13 @@
 #include <condition_variable>
 #include <libp2p/peer/peer_id.hpp>
 
-#include "api/full_node/ipld_proxy.hpp"
 #include "api/version.hpp"
 #include "blockchain/production/block_producer.hpp"
+#include "cbor_blake/ipld_version.hpp"
 #include "common/logger.hpp"
 #include "const.hpp"
+#include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "drand/beaconizer.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "node/pubsub_gate.hpp"
@@ -26,8 +28,10 @@
 #include "vm/actor/builtin/states/market_actor_state.hpp"
 #include "vm/actor/builtin/states/miner_actor_state.hpp"
 #include "vm/actor/builtin/states/power_actor_state.hpp"
+#include "vm/actor/builtin/states/reward_actor_state.hpp"
 #include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
@@ -69,6 +73,7 @@ namespace fc::api {
   using vm::actor::builtin::states::MarketActorStatePtr;
   using vm::actor::builtin::states::MinerActorStatePtr;
   using vm::actor::builtin::states::PowerActorStatePtr;
+  using vm::actor::builtin::states::RewardActorStatePtr;
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
@@ -106,17 +111,6 @@ namespace fc::api {
     }
   }
 
-  template <typename T, typename F>
-  auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&... args) {
-      auto channel{std::make_shared<Channel<outcome::result<T>>>()};
-      f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
-        channel->write(std::forward<decltype(_r)>(_r));
-      });
-      return Wait{channel};
-    };
-  }
-
   struct TipsetContext {
     TipsetCPtr tipset;
     StateTreeImpl state_tree;
@@ -138,6 +132,11 @@ namespace fc::api {
       return getCbor<PowerActorStatePtr>(state_tree.getStore(), actor.head);
     }
 
+    auto rewardState() -> outcome::result<RewardActorStatePtr> {
+      OUTCOME_TRY(actor, state_tree.get(vm::actor::kRewardAddress));
+      return getCbor<RewardActorStatePtr>(state_tree.getStore(), actor.head);
+    }
+
     auto initState() -> outcome::result<InitActorStatePtr> {
       OUTCOME_TRY(actor, state_tree.get(kInitAddress));
       return getCbor<InitActorStatePtr>(state_tree.getStore(), actor.head);
@@ -156,6 +155,10 @@ namespace fc::api {
           state,
           getCbor<AccountActorStatePtr>(state_tree.getStore(), actor.head));
       return state->address;
+    }
+
+    operator IpldPtr() const {
+      return state_tree.getStore();
     }
   };
 
@@ -193,13 +196,14 @@ namespace fc::api {
       for (auto &i : indices) {
         OUTCOME_TRY(sector, state->sectors.get(sector_ids[i]));
         sectors.push_back(
-            {miner_info->seal_proof_type, sector.sector, sector.sealed_cid});
+            {sector.seal_proof, sector.sector, sector.sealed_cid});
       }
     }
     return sectors;
   }
 
   std::shared_ptr<FullNodeApi> makeImpl(
+      std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<ChainStore> chain_store,
       const std::string &network_name,
       std::shared_ptr<WeightCalculator> weight_calculator,
@@ -226,9 +230,7 @@ namespace fc::api {
       } else {
         OUTCOME_TRYA(tipset, ts_load->load(tipset_key));
       }
-      auto ipld = std::make_shared<IpldProxy>(env_context.ipld);
-      ipld->actor_version = Toolchain::getActorVersionForNetwork(
-          getNetworkVersion(tipset->height()));
+      auto ipld{withVersion(env_context.ipld, tipset->height())};
       TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
       if (interpret) {
         OUTCOME_TRY(result, interpreter_cache->get(tipset->key));
@@ -237,8 +239,6 @@ namespace fc::api {
       }
       return context;
     };
-
-    auto api = std::make_shared<FullNodeApi>();
 
     api->AuthNew = {[](auto) { return Buffer{1, 2, 3}; }};
     api->BeaconGetEntry = waitCb<BeaconEntry>([=](auto epoch, auto &&cb) {
@@ -280,12 +280,14 @@ namespace fc::api {
       return getNode(ipld, root, gsl::make_span(parts).subspan(3));
     }};
     api->ChainGetMessage = {[=](auto &cid) -> outcome::result<UnsignedMessage> {
-      auto res = getCbor<SignedMessage>(ipld, cid);
-      if (!res.has_error()) {
-        return res.value().message;
+      OUTCOME_TRY(cbor, ipld->get(cid));
+      codec::cbor::CborToken token;
+      BytesIn input{cbor};
+      if (read(token, input).listCount() == 2) {
+        OUTCOME_TRY(smsg, codec::cbor::decode<SignedMessage>(cbor));
+        return smsg.message;
       }
-
-      return getCbor<UnsignedMessage>(ipld, cid);
+      return codec::cbor::decode<UnsignedMessage>(cbor);
     }};
     api->ChainGetParentMessages = {
         [=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
@@ -487,6 +489,9 @@ namespace fc::api {
                                    const Address &address,
                                    const TokenAmount &amount)
                                    -> outcome::result<boost::optional<CID>> {
+      if (!amount) {
+        return boost::none;
+      }
       // TODO(a.chernyshov): method should use fund manager batch reserve and
       // release funds requests for market actor.
       vm::actor::builtin::v0::market::AddBalance::Params params{address};
@@ -567,7 +572,7 @@ namespace fc::api {
                     seed)};
                 OUTCOME_CB(info.sectors,
                            getSectorsForWinningPoSt(
-                               miner, miner_state, post_rand, ipld));
+                               miner, miner_state, post_rand, lookback));
                 if (info.sectors.empty()) {
                   return cb(boost::none);
                 }
@@ -633,7 +638,7 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           return context.accountKey(address);
         }};
-    api->StateCall = {[=](auto &message,
+    api->StateCall = {[=](auto message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
 
@@ -641,12 +646,38 @@ namespace fc::api {
       OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
       ts_lock.unlock();
 
+      if (!message.gas_limit) {
+        message.gas_limit = kBlockGasLimit;
+      }
       auto env = std::make_shared<Env>(env_context, ts_branch, context.tipset);
       InvocResult result;
       result.message = message;
       OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
       return result;
     }};
+    api->StateDealProviderCollateralBounds =
+        [=](auto size,
+            auto verified,
+            auto &tsk) -> outcome::result<DealCollateralBounds> {
+      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(power, context.powerState());
+      OUTCOME_TRY(reward, context.rewardState());
+      OUTCOME_TRY(
+          circ,
+          env_context.circulating->circulating(
+              std::make_shared<StateTreeImpl>(std::move(context.state_tree)),
+              context.tipset->epoch()));
+      auto bounds{
+          vm::actor::builtin::types::market::dealProviderCollateralBounds(
+              size,
+              verified,
+              power->total_raw_power,
+              power->total_qa_power,
+              reward->this_epoch_baseline_power,
+              circ,
+              getNetworkVersion(context.tipset->epoch()))};
+      return DealCollateralBounds{bigdiv(bounds.min * 110, 100), bounds.max};
+    };
     api->StateListMessages = {[=](auto &match, auto &tipset_key, auto to_height)
                                   -> outcome::result<std::vector<CID>> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
@@ -724,7 +755,10 @@ namespace fc::api {
           };
         }};
     api->StateGetReceipt = {
-        [=](auto &cid, auto &tipset_key) -> outcome::result<MessageReceipt> {
+        [=](auto &cid, auto tipset_key) -> outcome::result<MessageReceipt> {
+          if (tipset_key.cids().empty()) {
+            tipset_key = chain_store->heaviestTipset()->key;
+          }
           auto receipt_loader =
               std::make_shared<storage::blockchain::ReceiptLoader>(ts_load,
                                                                    ipld);
@@ -804,7 +838,7 @@ namespace fc::api {
           OUTCOME_TRY(deadlines, state->deadlines.get());
           std::vector<Deadline> result;
           for (const auto &deadline_cid : deadlines.due) {
-            OUTCOME_TRY(deadline, state->getDeadline(ipld, deadline_cid));
+            OUTCOME_TRY(deadline, state->getDeadline(context, deadline_cid));
             result.push_back(Deadline{deadline.post_submissions});
           }
           return result;
@@ -816,7 +850,7 @@ namespace fc::api {
           OUTCOME_TRY(deadlines, state->deadlines.get());
           RleBitset faults;
           for (auto &deadline_cid : deadlines.due) {
-            OUTCOME_TRY(deadline, state->getDeadline(ipld, deadline_cid));
+            OUTCOME_TRY(deadline, state->getDeadline(context, deadline_cid));
             OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &part) {
               faults += part->faults;
               return outcome::success();
@@ -839,7 +873,7 @@ namespace fc::api {
           OUTCOME_TRY(state, context.minerState(miner));
           OUTCOME_TRY(deadlines, state->deadlines.get());
           OUTCOME_TRY(deadline,
-                      state->getDeadline(ipld, deadlines.due[_deadline]));
+                      state->getDeadline(context, deadlines.due[_deadline]));
           std::vector<Partition> parts;
           OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &v) {
             parts.push_back({
@@ -972,12 +1006,16 @@ namespace fc::api {
       return outcome::success();
     }};
     api->Version = {[]() {
-      return VersionResult{"fuhon", makeApiVersion(2, 0, 0), 5};
+      return VersionResult{
+          "fuhon", makeApiVersion(2, 1, 0), kEpochDurationSeconds};
     }};
     api->WalletBalance = {[=](auto &address) -> outcome::result<TokenAmount> {
       OUTCOME_TRY(context, tipsetContext({}));
-      OUTCOME_TRY(actor, context.state_tree.get(address));
-      return actor.balance;
+      OUTCOME_TRY(actor, context.state_tree.tryGet(address));
+      if (actor) {
+        return actor->balance;
+      }
+      return 0;
     }};
     api->WalletDefaultAddress = {[=]() -> outcome::result<Address> {
       if (!wallet_default_address->has())
@@ -993,6 +1031,31 @@ namespace fc::api {
     }};
     api->WalletImport = {[=](auto &info) {
       return key_store->put(info.type == SignatureType::BLS, info.private_key);
+    }};
+    api->WalletNew = {[=](auto &type) -> outcome::result<Address> {
+      auto bls{type == "bls"}, secp{type == "secp256k1"};
+      if (!bls && !secp) {
+        return ERROR_TEXT("WalletNew: unknown type");
+      }
+      OUTCOME_TRY(
+          address,
+          key_store->put(bls,
+                         bls ? crypto::bls::BlsProviderImpl{}
+                                   .generateKeyPair()
+                                   .value()
+                                   .private_key
+                             : crypto::secp256k1::Secp256k1ProviderImpl{}
+                                   .generate()
+                                   .value()
+                                   .private_key));
+      if (!wallet_default_address->has()) {
+        wallet_default_address->setCbor(address);
+      }
+      return std::move(address);
+    }};
+    api->WalletSetDefault = {[=](auto &address) -> outcome::result<void> {
+      wallet_default_address->setCbor(address);
+      return outcome::success();
     }};
     api->WalletSign = {
         [=](auto address, auto data) -> outcome::result<Signature> {

@@ -413,6 +413,32 @@ namespace fc::api {
       decode(v.bytes, Get(j, "VRFProof"));
     }
 
+    ENCODE(BlockParentCbCids) {
+      if (v.mainnet_genesis) {
+        static const std::vector<CID> mainnet{
+            CID::fromBytes(kMainnetGenesisBlockParent).value()};
+        return encode(mainnet);
+      }
+      return encode<std::vector<CbCid>>(v);
+    }
+
+    DECODE(BlockParentCbCids) {
+      const auto cids{decode<std::vector<CID>>(j)};
+      static const std::vector<CID> mainnet{
+          CID::fromBytes(kMainnetGenesisBlockParent).value()};
+      v.resize(0);
+      v.mainnet_genesis = cids == mainnet;
+      if (!v.mainnet_genesis) {
+        for (auto &_cid : cids) {
+          if (auto cid{asBlake(_cid)}) {
+            v.push_back(*cid);
+          } else {
+            outcome::raise(JsonError::kWrongType);
+          }
+        }
+      }
+    }
+
     ENCODE(TipsetKey) {
       return encode(v.cids());
     }
@@ -546,7 +572,6 @@ namespace fc::api {
       Set(j, "WindowPoStProofType", v.window_post_proof_type);
       Set(j, "SectorSize", v.sector_size);
       Set(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
-      Set(j, "ConsensusFaultElapsed", v.consensus_fault_elapsed);
       return j;
     }
 
@@ -554,20 +579,6 @@ namespace fc::api {
       Get(j, "Owner", v.owner);
       Get(j, "Worker", v.worker);
       Get(j, "ControlAddresses", v.control);
-      std::string new_worker;
-      Get(j, "NewWorker", new_worker);
-      ChainEpoch worker_change_epoch;
-      Get(j, "WorkerChangeEpoch", worker_change_epoch);
-      if (new_worker == "<empty>"
-          && worker_change_epoch == kChainEpochUndefined) {
-        v.pending_worker_key = boost::none;
-      } else {
-        OUTCOME_EXCEPT(new_worker_address,
-                       primitives::address::decodeFromString(new_worker));
-        v.pending_worker_key =
-            WorkerKeyChange{.new_worker = new_worker_address,
-                            .effective_at = worker_change_epoch};
-      }
       boost::optional<PeerId> peer_id;
       Get(j, "PeerId", peer_id);
       if (peer_id) {
@@ -580,7 +591,6 @@ namespace fc::api {
       Get(j, "WindowPoStProofType", v.window_post_proof_type);
       Get(j, "SectorSize", v.sector_size);
       Get(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
-      Get(j, "ConsensusFaultElapsed", v.consensus_fault_elapsed);
     }
 
     ENCODE(WorkerKeyChange) {
@@ -943,7 +953,7 @@ namespace fc::api {
       Set(j, "Signature", v.signature);
       OUTCOME_EXCEPT(
           cid, v.signature.isBls() ? getCidOfCbor(v.message) : getCidOfCbor(v));
-      Set(j, "_cid", cid);
+      Set(j, "CID", cid);
       return j;
     }
 
@@ -1158,7 +1168,9 @@ namespace fc::api {
       Set(j, "Amount", v.amount);
       Set(j, "MinSettleHeight", v.min_close_height);
       Set(j, "Merges", v.merges);
-      Set(j, "SignatureBytes", v.signature_bytes);
+      const auto sig{v.signature_bytes.map(
+          [](auto &bytes) { return Signature::fromBytes(bytes).value(); })};
+      Set(j, "Signature", sig);
       return j;
     }
 
@@ -1173,7 +1185,9 @@ namespace fc::api {
       decode(v.amount, Get(j, "Amount"));
       decode(v.min_close_height, Get(j, "MinSettleHeight"));
       decode(v.merges, Get(j, "Merges"));
-      decode(v.signature_bytes, Get(j, "SignatureBytes"));
+      boost::optional<Signature> sig;
+      Get(j, "Signature", sig);
+      v.signature_bytes = sig.map([](auto &sig) { return sig.toBytes(); });
     }
 
     ENCODE(HeadChange) {
@@ -1336,6 +1350,18 @@ namespace fc::api {
     DECODE(SectorId) {
       decode(v.miner, Get(j, "Miner"));
       decode(v.sector, Get(j, "Number"));
+    }
+
+    ENCODE(DealCollateralBounds) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Min", v.min);
+      Set(j, "Max", v.max);
+      return j;
+    }
+
+    DECODE(DealCollateralBounds) {
+      Get(j, "Min", v.min);
+      Get(j, "Max", v.max);
     }
 
     ENCODE(SectorRef) {
@@ -1633,7 +1659,7 @@ namespace fc::api {
       Set(j, "PaymentInterval", v.payment_interval);
       Set(j, "PaymentIntervalIncrease", v.payment_interval_increase);
       Set(j, "Miner", v.miner);
-      Set(j, "MinerPeerID", v.peer);
+      Set(j, "MinerPeer", v.peer);
       return j;
     }
 
@@ -1647,7 +1673,7 @@ namespace fc::api {
       Get(j, "PaymentInterval", v.payment_interval);
       Get(j, "PaymentIntervalIncrease", v.payment_interval_increase);
       Get(j, "Miner", v.miner);
-      Get(j, "MinerPeerID", v.peer);
+      Get(j, "MinerPeer", v.peer);
     }
 
     ENCODE(FileRef) {
@@ -1778,7 +1804,7 @@ namespace fc::api {
       Set(j, "PaymentIntervalIncrease", v.payment_interval_increase);
       Set(j, "Client", v.client);
       Set(j, "Miner", v.miner);
-      Set(j, "MinerPeerID", v.peer);
+      Set(j, "MinerPeer", v.peer);
       return j;
     }
 
@@ -1793,7 +1819,7 @@ namespace fc::api {
       decode(v.payment_interval_increase, Get(j, "PaymentIntervalIncrease"));
       decode(v.client, Get(j, "Client"));
       decode(v.miner, Get(j, "Miner"));
-      decode(v.peer, Get(j, "MinerPeerID"));
+      decode(v.peer, Get(j, "MinerPeer"));
     }
 
     ENCODE(Import) {
@@ -1984,6 +2010,11 @@ namespace fc::api {
     DECODE(std::tuple<T...>) {
       if (!j.IsArray()) {
         outcome::raise(JsonError::kWrongType);
+      }
+      if constexpr (i == 0) {
+        if (j.Size() > sizeof...(T)) {
+          outcome::raise(JsonError::kWrongLength);
+        }
       }
       if constexpr (i < sizeof...(T)) {
         if (i >= j.Size()) {

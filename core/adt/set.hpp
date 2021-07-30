@@ -17,17 +17,15 @@ namespace fc::adt {
     return s;
   }
 
-  template <typename Keyer,
-            size_t bit_width = storage::hamt::kDefaultBitWidth,
-            bool v3 = false>
-  struct Set : Map<SetValue, Keyer, bit_width, v3> {};
+  template <typename Keyer, size_t bit_width = storage::hamt::kDefaultBitWidth>
+  struct Set : Map<SetValue, Keyer, bit_width> {};
 }  // namespace fc::adt
 
 namespace fc::cbor_blake {
-  template <typename Keyer, size_t bit_width, bool v3>
-  struct CbVisitT<adt::Set<Keyer, bit_width, v3>> {
+  template <typename Keyer, size_t bit_width>
+  struct CbVisitT<adt::Set<Keyer, bit_width>> {
     template <typename Visitor>
-    static void call(adt::Map<adt::SetValue, Keyer, bit_width, v3> &map,
+    static void call(adt::Map<adt::SetValue, Keyer, bit_width> &map,
                      const Visitor &visit) {
       visit(map);
     }

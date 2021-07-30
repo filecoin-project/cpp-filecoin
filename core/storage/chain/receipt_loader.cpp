@@ -14,13 +14,13 @@ namespace fc::storage::blockchain {
   outcome::result<boost::optional<std::pair<MessageReceipt, TipsetKey>>>
   ReceiptLoader::searchBackForMessageReceipt(const CID &message_cid,
                                              const TipsetKey &top_tipset_key,
-                                             size_t lookback_limit) const {
+                                             ChainEpoch lookback_limit) const {
     boost::optional<MessageReceipt> found;
     auto tipset_key = top_tipset_key;
     OUTCOME_TRY(tipset, ts_load_->load(tipset_key));
     Height height_limit = tipset->height() - lookback_limit;
 
-    while ((lookback_limit == 0) || (height_limit < tipset->height())) {
+    while ((lookback_limit == -1) || (height_limit < tipset->height())) {
       // reached genesis
       if (tipset->height() == 0) {
         break;

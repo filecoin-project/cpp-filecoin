@@ -384,7 +384,7 @@ namespace fc::sync {
     if (requests_.empty()) {
       return;
     }
-    auto [peer, tsk]{std::move(requests_.back())};
+    auto [peer, tsk]{std::move(requests_.front())};
     requests_.pop();
     if (auto ts{getLocal(tsk)}) {
       onTs(peer, ts);

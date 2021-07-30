@@ -33,8 +33,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     OUTCOME_TRY(state->vesting_funds.set(vesting_funds));
 
     // construct with empty already cid stored in ipld to avoid gas charge
-    state->sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid,
-                                                   runtime.getIpfsDatastore());
+    state->sectors = {empty_amt_cid, runtime};
 
     return outcome::success();
   }

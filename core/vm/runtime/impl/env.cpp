@@ -105,7 +105,14 @@ namespace fc::vm::runtime {
         epoch{tipset->height()},
         ts_branch{std::move(ts_branch)},
         tipset{std::move(tipset)},
-        pricelist{(ChainEpoch)epoch} {}
+        pricelist{(ChainEpoch)epoch} {
+    setHeight(epoch);
+  }
+
+  void Env::setHeight(uint64_t height) {
+    epoch = height;
+    ipld->actor_version = actorVersion(height);
+  }
 
   outcome::result<Env::Apply> Env::applyMessage(const UnsignedMessage &message,
                                                 size_t size) {

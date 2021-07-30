@@ -25,6 +25,7 @@
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "cbor_blake/ipld_any.hpp"
+#include "cbor_blake/ipld_version.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
 #include "codec/json/json.hpp"
@@ -48,6 +49,7 @@
 #include "node/receive_hello.hpp"
 #include "node/say_hello.hpp"
 #include "node/sync_job.hpp"
+#include "payment_channel_manager/impl/payment_channel_manager_impl.hpp"
 #include "power/impl/power_table_impl.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "primitives/tipset/file.hpp"
@@ -74,7 +76,6 @@ namespace fc::node {
   using markets::pieceio::PieceIOImpl;
   using markets::retrieval::client::RetrievalClientImpl;
   using markets::storage::kStorageMarketImportDir;
-  using markets::storage::chain_events::ChainEventsImpl;
   using markets::storage::client::StorageMarketClientImpl;
   using storage::ipfs::InMemoryDatastore;
   using storage::keystore::FileSystemKeyStore;
@@ -88,8 +89,9 @@ namespace fc::node {
 
     outcome::result<void> initNetworkName(
         const primitives::tipset::Tipset &genesis_tipset,
-        const std::shared_ptr<storage::ipfs::IpfsDatastore> &ipld,
+        IpldPtr ipld,
         Config &config) {
+      ipld = withVersion(ipld, 0);
       OUTCOME_TRY(init_actor,
                   vm::state::StateTreeImpl(
                       ipld, genesis_tipset.blks[0].parent_state_root)
@@ -298,7 +300,7 @@ namespace fc::node {
         std::make_shared<RetrievalClientImpl>(node_objects.host,
                                               node_objects.datatransfer,
                                               node_objects.api,
-                                              node_objects.ipld);
+                                              node_objects.markets_ipld);
     return outcome::success();
   }
 
@@ -513,7 +515,7 @@ namespace fc::node {
 
     log()->debug("Creating API...");
 
-    auto mpool = storage::mpool::MessagePool::create(
+    o.mpool = storage::mpool::MessagePool::create(
         o.env_context, o.ts_main, o.chain_store);
 
     auto msg_waiter = storage::blockchain::MsgWaiter::create(
@@ -570,12 +572,20 @@ namespace fc::node {
         genesis_timestamp,
         std::chrono::seconds(kEpochDurationSeconds));
 
-    o.api = api::makeImpl(o.chain_store,
+    o.markets_ipld = o.ipld_leveldb;
+    o.api = std::make_shared<api::FullNodeApi>();
+    o.datatransfer = DataTransfer::make(o.host, o.graphsync);
+    OUTCOME_TRY(createStorageMarketClient(o));
+    OUTCOME_TRY(createRetrievalMarketClient(o));
+
+    o.api = api::makeImpl(o.api,
+                          o.chain_store,
+
                           *config.network_name,
                           weight_calculator,
                           o.env_context,
                           o.ts_main,
-                          mpool,
+                          o.mpool,
                           msg_waiter,
                           beaconizer,
                           drand_schedule,
@@ -585,9 +595,12 @@ namespace fc::node {
                           o.retrieval_market_client,
                           o.wallet_default_address);
 
-    o.datatransfer = DataTransfer::make(o.host, o.graphsync);
-    OUTCOME_TRY(createStorageMarketClient(o));
-    OUTCOME_TRY(createRetrievalMarketClient(o));
+    auto paych{
+        std::make_shared<payment_channel_manager::PaymentChannelManagerImpl>(
+            o.api, o.ipld)};
+    paych->makeApi(*o.api);
+
+    o.chain_events->init().value();
 
     return o;
   }
