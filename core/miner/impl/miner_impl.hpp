@@ -29,6 +29,7 @@ namespace fc::miner {
   using sector_storage::Manager;
   using storage::BufferMap;
 
+
   class MinerImpl : public Miner {
    public:
     static outcome::result<std::shared_ptr<MinerImpl>> newMiner(
@@ -40,7 +41,8 @@ namespace fc::miner {
         std::shared_ptr<Manager> sector_manager,
         std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
         std::shared_ptr<boost::asio::io_context> context,
-        mining::Config config);
+        mining::Config config,
+        std::vector<Address> precommit_control);
 
     outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber sector_id) const override;

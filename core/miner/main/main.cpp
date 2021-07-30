@@ -69,6 +69,7 @@ namespace fc {
         codec::cbor::kDefaultT<Multiaddress>(), {}};
     boost::optional<Address> actor, owner, worker;
     boost::optional<RegisteredSealProof> seal_type;
+    std::vector<boost::optional<Address>> precommit_control;
     int api_port;
 
     /** Path to presealed sectors */
@@ -96,6 +97,7 @@ namespace fc {
     option("owner", po::value(&config.owner));
     option("worker", po::value(&config.worker));
     option("sector-size", po::value(&raw.sector_size));
+    option("precommit-control", po::value(&config.precommit_control));
     option("pre-sealed-sectors",
            po::value(&config.preseal_path),
            "Path to presealed sectors");
@@ -350,7 +352,8 @@ namespace fc {
                                    manager,
                                    scheduler,
                                    sealing_thread.io,
-                                   default_config));
+                                   default_config,
+                                   *config.precommit_control));
     auto sealing{miner->getSealing()};
 
     OUTCOME_TRY(
