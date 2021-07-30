@@ -306,8 +306,8 @@ namespace fc::mining {
     common::Logger logger_;
     std::shared_ptr<Manager> sealer_;
 
-    Config config_;
-
     std::shared_ptr<PreCommitBatcher> precommit_batcher_;
+
+    Config config_;
   };
 }  // namespace fc::mining

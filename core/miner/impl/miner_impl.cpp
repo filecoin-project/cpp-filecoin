@@ -19,17 +19,21 @@ namespace fc::miner {
   using mining::EventsImpl;
   using mining::kGlobalChainConfidence;
   using mining::PreCommitBatcher;
+  using mining::PreCommitBatcherImpl;
   using mining::PreCommitPolicy;
   using mining::SealingImpl;
   using mining::TipsetCache;
   using mining::TipsetCacheImpl;
+  using mining::types::FeeConfig;
+  using primitives::TokenAmount;
   using primitives::tipset::TipsetKey;
   using vm::actor::builtin::types::miner::kMaxSectorExpirationExtension;
   using vm::actor::builtin::types::miner::kWPoStProvingPeriod;
+  using vm::actor::builtin::types::miner::MinerInfo;
 
   MinerImpl::MinerImpl(std::shared_ptr<FullNodeApi> api,
                        std::shared_ptr<Sealing> sealing)
-      : api_{std::move(api)}, sealing_{std::move(sealing)}{}
+      : api_{std::move(api)}, sealing_{std::move(sealing)} {}
 
   outcome::result<std::shared_ptr<SectorInfo>> MinerImpl::getSectorInfo(
       SectorNumber sector_id) const {
@@ -58,7 +62,8 @@ namespace fc::miner {
       std::shared_ptr<Manager> sector_manager,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
       std::shared_ptr<boost::asio::io_context> context,
-      mining::Config config) {
+      mining::Config config,
+      std::vector<Address> precommit_control) {
     // Checks miner worker address
     OUTCOME_TRY(key, api->StateAccountKey(worker_address, {}));
     OUTCOME_TRY(has, api->WalletHas(key));
@@ -80,7 +85,29 @@ namespace fc::miner {
             api,
             deadline_info.period_start % kWPoStProvingPeriod,
             kMaxSectorExpirationExtension - 2 * kWPoStProvingPeriod);
-    std::shared_ptr<PreCommitBatcher> precommit_batcher = std::make_shared<PreCommitBatcherImpl>(60000, api, miner_address, scheduler);
+    std::shared_ptr<FeeConfig> fee_config = std::make_shared<FeeConfig>();
+    fee_config->max_precommit_batch_gas_fee.base = static_cast<TokenAmount>(
+        0.05
+        * 10e18);  // TODO: config loading;
+    fee_config->max_precommit_batch_gas_fee.base =
+        static_cast<TokenAmount>(0.25 * 10e18);
+    std::shared_ptr<PreCommitBatcher> precommit_batcher =
+        std::make_shared<PreCommitBatcherImpl>(
+            60000,
+            api,
+            miner_address,
+            scheduler,
+            [=](MinerInfo miner_info,
+                TokenAmount deposit,
+                TokenAmount good_funds) -> outcome::result<Address> {
+              for (const auto &address : miner_info.control) {
+                if (api->WalletBalance(address).value() >= good_funds) {
+                  return address;
+                }
+              }
+              return miner_info.worker;
+            },
+            fee_config);
     OUTCOME_TRY(sealing,
                 SealingImpl::newSealing(api,
                                         events,

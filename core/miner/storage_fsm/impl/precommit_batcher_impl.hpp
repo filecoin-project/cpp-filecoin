@@ -13,6 +13,7 @@
 #include <mutex>
 #include "api/full_node/node_api.hpp"
 #include "primitives/address/address.hpp"
+#include "miner/storage_fsm/types.hpp"
 
 namespace fc::mining {
   using api::FullNodeApi;
@@ -21,13 +22,16 @@ namespace fc::mining {
   using libp2p::protocol::scheduler::Ticks;
   using primitives::SectorNumber;
   using primitives::address::Address;
+  using types::FeeConfig;
 
   class PreCommitBatcherImpl : public PreCommitBatcher {
    public:
     PreCommitBatcherImpl(const Ticks &max_time,
                          std::shared_ptr<FullNodeApi> api,
                          const Address &miner_address,
-                         const std::shared_ptr<Scheduler> &scheduler);
+                         const std::shared_ptr<Scheduler> &scheduler,
+                         const std::function<outcome::result<Address>(MinerInfo miner_info, TokenAmount deposit, TokenAmount good_funds)>&,
+                          std::shared_ptr<FeeConfig> fee_config);
 
     outcome::result<void> addPreCommit(
         const SectorInfo &sector_info,
@@ -61,6 +65,8 @@ namespace fc::mining {
     std::chrono::system_clock::time_point cutoff_start_;
     common::Logger logger_;
     std::map<SectorNumber, PrecommitCallback> callbacks_;
+    std::shared_ptr<FeeConfig> fee_config_;
+    std::function<outcome::result<Address>(MinerInfo miner_info, TokenAmount deposit, TokenAmount good_funds)> address_selector_;
 
     void forceSendWithoutLock();
 

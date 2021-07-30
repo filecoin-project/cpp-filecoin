@@ -22,6 +22,7 @@ namespace fc::mining::types {
   using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
+  using primitives::address::Address;
   using primitives::tipset::TipsetKey;
   using proofs::SealRandomness;
   using sector_storage::InteractiveRandomness;
@@ -221,11 +222,16 @@ namespace fc::mining::types {
     TokenAmount MaxPreCommitGasFee;
 
     // maxBatchFee = maxBase + maxPerSector * nSectors
-    BatchConfing MaxPreCommitBatchGasFee;
+    BatchConfing max_precommit_batch_gas_fee;
 
     //TODO: TokenAmount max_terminate_gas_fee, max_window_poSt_gas_fee, max_publish_deals_fee, max_market_balance_ddd_fee
 
 
+  };
+
+  struct AddressConfig{
+    std::vector<Address> precommit_control;
+    std::vector<Address> commit_control;
   };
 
 
