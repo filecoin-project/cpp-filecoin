@@ -25,10 +25,6 @@ namespace fc::vm::actor::builtin::states {
       ++next_id;
       return Address::makeFromId(id);
     }
-
-    outcome::result<boost::optional<uint64_t>> tryGet(const Address &address) {
-      return address_map.tryGet(address);
-    }
   };
   CBOR_TUPLE(InitActorState, address_map, next_id, network_name)
 

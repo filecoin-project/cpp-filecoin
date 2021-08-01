@@ -86,7 +86,7 @@ namespace fc::vm::actor::builtin::states {
      * Sectors are removed from this AMT when the partition to which the
      * sector belongs is compacted.
      */
-    adt::Array<SectorOnChainInfo, 5> sectors;
+    types::miner::SectorArray sectors;
 
     /**
      * The first epoch in this miner's current proving period. This is the first

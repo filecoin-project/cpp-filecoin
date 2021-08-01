@@ -25,7 +25,7 @@ namespace fc::vm::actor::builtin::states {
     TokenAmount to_send{};
     ChainEpoch settling_at{};
     ChainEpoch min_settling_height{};
-    adt::Array<LaneState> lanes;
+    adt::Array<LaneState, 3> lanes;
   };
 
   using PaymentChannelActorStatePtr =

@@ -29,8 +29,8 @@ namespace fc::vm::actor::builtin::types::miner {
     RleBitset faults;
     RleBitset recoveries;
     RleBitset terminated;
-    adt::Array<ExpirationSet> expirations_epochs;  // quanted
-    adt::Array<RleBitset> early_terminated;
+    PartitionExpirationsArray expirations_epochs;  // quanted
+    adt::Array<RleBitset, 3> early_terminated;
     PowerPair live_power;
     PowerPair unproven_power;
     PowerPair faulty_power;

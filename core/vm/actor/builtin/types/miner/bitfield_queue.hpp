@@ -16,6 +16,10 @@ namespace fc::vm::actor::builtin::types::miner {
   using primitives::RleBitset;
 
   struct BitfieldQueue {
+    // TODO(turuslan): must work with different bits
+    //   Deadline.ExpirationsEpochs=5
+    //   Partition.EarlyTerminated=3
+    //   miner State.PreCommittedSectorsExpiry=6
     adt::Array<RleBitset> queue;
     QuantSpec quant;
 

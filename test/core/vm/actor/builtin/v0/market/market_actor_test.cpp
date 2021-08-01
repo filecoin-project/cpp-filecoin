@@ -447,7 +447,7 @@ namespace fc::vm::actor::builtin::v0::market {
     deal.start_epoch = current_epoch + 1;
     deal.end_epoch = deal.start_epoch + 100;
     EXPECT_OUTCOME_TRUE_1(state.proposals.set(deal_1_id, deal));
-    EXPECT_OUTCOME_TRUE_1(state.pending_proposals.set(deal.cid(), {}));
+    EXPECT_OUTCOME_TRUE_1(state.pending_proposals_0.set(deal.cid(), deal));
 
     callerIs(miner_address);
     EXPECT_OUTCOME_TRUE_1(ActivateDeals::call(

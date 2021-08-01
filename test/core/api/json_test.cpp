@@ -111,8 +111,8 @@ namespace fc::api {
     miner_info.window_post_partition_sectors = 1;
     expectJson(
         miner_info,
-        "{\"Owner\":\"t00\",\"Worker\":\"t00\",\"NewWorker\":\"<empty>\","
-        "\"WorkerChangeEpoch\":-1,\"ControlAddresses\":[],\"PeerId\":null,"
+        "{\"Owner\":\"t00\",\"Worker\":\"t00\",\"ControlAddresses\":[],"
+        "\"PeerId\":null,"
         "\"Multiaddrs\":[],\"SealProofType\":0,\"WindowPoStProofType\":5,"
         "\"SectorSize\":1,\"WindowPoStPartitionSectors\":1}");
   }

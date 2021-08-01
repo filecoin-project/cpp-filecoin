@@ -14,7 +14,7 @@ namespace fc::storage::ipld::verifier {
 
   outcome::result<bool> Verifier::verifyNextBlock(const CID &block_cid,
                                                   const Buffer &data) {
-    auto &hash{block_cid.content_address};
+    const auto &hash{block_cid.content_address};
     if (hash != crypto::Hasher::calculate(hash.getType(), data)) {
       return VerifierError::kUnexpectedCid;
     }

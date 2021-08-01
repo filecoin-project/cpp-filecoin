@@ -68,7 +68,7 @@ namespace fc::vm::state {
     OUTCOME_TRY(initActorState,
                 getCbor<actor::builtin::states::InitActorState>(
                     store_, init_actor.head));
-    OUTCOME_TRY(id, initActorState.tryGet(address));
+    OUTCOME_TRY(id, initActorState.address_map.tryGet(address));
     if (id) {
       tx().lookup.emplace(address, *id);
       return Address::makeFromId(*id);

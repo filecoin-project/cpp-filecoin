@@ -56,8 +56,10 @@ namespace fc::vm::actor::builtin::types::miner {
     TokenAmount pledge;
   };
 
+  using PartitionExpirationsArray = adt::Array<ExpirationSet, 4>;
+
   struct ExpirationQueue {
-    adt::Array<ExpirationSet> queue;
+    PartitionExpirationsArray queue;
     QuantSpec quant;
 
     using MutateFunction =

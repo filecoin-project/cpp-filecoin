@@ -174,8 +174,7 @@ namespace fc::storage::hamt {
   }
 
   std::vector<size_t> Hamt::keyToIndices(BytesIn key, int n) const {
-    auto bits{v3() ? bit_width_ : kDefaultBitWidth};
-    if (!v3()) *(size_t *)&bit_width_ = kDefaultBitWidth;
+    const auto bits{v3() ? bit_width_ : kDefaultBitWidth};
     std::vector<uint8_t> key_bytes(key.begin(), key.end());
     auto hash = libp2p::crypto::sha256(key_bytes);
     std::vector<size_t> indices;

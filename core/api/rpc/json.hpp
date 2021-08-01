@@ -553,13 +553,6 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Owner", v.owner);
       Set(j, "Worker", v.worker);
-      if (v.pending_worker_key.has_value()) {
-        Set(j, "NewWorker", v.pending_worker_key.value().new_worker);
-        Set(j, "WorkerChangeEpoch", v.pending_worker_key.value().effective_at);
-      } else {
-        Set(j, "NewWorker", "<empty>");
-        Set(j, "WorkerChangeEpoch", kChainEpochUndefined);
-      }
       Set(j, "ControlAddresses", v.control);
       boost::optional<std::string> peer_id;
       if (!v.peer_id.empty()) {

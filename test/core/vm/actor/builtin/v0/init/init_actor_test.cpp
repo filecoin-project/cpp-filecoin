@@ -83,7 +83,7 @@ namespace fc::vm::actor::builtin::v0::init {
     EXPECT_OUTCOME_EQ(state.addActor(address), expected);
 
     EXPECT_EQ(state.next_id, 4);
-    EXPECT_EQ(*state.tryGet(address).value(), 3);
+    EXPECT_EQ(*state.address_map.tryGet(address).value(), 3);
   }
 
   TEST_F(InitActorTest, CallerIdHasError) {

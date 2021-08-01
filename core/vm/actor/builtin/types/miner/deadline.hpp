@@ -41,7 +41,7 @@ namespace fc::vm::actor::builtin::types::miner {
      * Partitions in this deadline, in order.
      * The keys of this AMT are always sequential integers beginning with zero.
      */
-    adt::Array<Universal<Partition>> partitions;
+    adt::Array<Universal<Partition>, 3> partitions;
 
     /**
      * Maps epochs to partitions that _may_ have sectors that expire in or
@@ -91,13 +91,13 @@ namespace fc::vm::actor::builtin::types::miner {
      * Snapshot of partition state at the end of the previous challenge window
      * for this deadline.
      */
-    CID partitions_snapshot;
+    decltype(partitions) partitions_snapshot;
 
     /**
      * These proofs may be disputed via DisputeWindowedPoSt. Successfully
      * disputed window PoSts are removed from the snapshot.
      */
-    CID optimistic_post_submissions_snapshot;
+    decltype(optimistic_post_submissions) optimistic_post_submissions_snapshot;
   };
 
   /**

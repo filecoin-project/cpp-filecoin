@@ -266,7 +266,8 @@ namespace fc::api {
   };
 
   struct DealCollateralBounds {
-    TokenAmount min, max;
+    TokenAmount min;
+    TokenAmount max;
   };
 
   inline const boost::optional<MessageSendSpec> kPushNoSpec;

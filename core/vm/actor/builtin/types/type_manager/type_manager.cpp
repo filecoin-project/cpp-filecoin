@@ -32,7 +32,7 @@ namespace fc::vm::actor::builtin::types {
 
   outcome::result<Universal<ExpirationQueue>> TypeManager::loadExpirationQueue(
       const Runtime &runtime,
-      const adt::Array<ExpirationSet> &expirations_epochs,
+      const PartitionExpirationsArray &expirations_epochs,
       const QuantSpec &quant) {
     Universal<ExpirationQueue> eq{runtime.getActorVersion()};
     cbor_blake::cbLoadT(runtime.getIpfsDatastore(), eq);
