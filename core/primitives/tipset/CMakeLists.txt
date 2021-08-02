@@ -15,4 +15,5 @@ target_link_libraries(tipset
     const
     logger
     state_tree
+    version
     )

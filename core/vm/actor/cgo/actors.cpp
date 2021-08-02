@@ -42,6 +42,7 @@ namespace fc::vm::actor::cgo {
   void configParams() {
     using vm::actor::builtin::types::miner::kSupportedProofs;
     CborEncodeStream arg;
+    arg << builtin::types::miner::kPreCommitChallengeDelay;
     arg << kConsensusMinerMinPower << kSupportedProofs.size();
     for (const auto &proof : kSupportedProofs) {
       arg << proof;

@@ -762,6 +762,14 @@ func AddSupportedProofTypes(t abi.RegisteredSealProof) {
 //export cgoActorsConfigParams
 func cgoActorsConfigParams(raw C.Raw) C.Raw {
 	arg := cgoArgCbor(raw)
+	
+	PreCommitChallengeDelay := abi.ChainEpoch(arg.int())
+	miner1.PreCommitChallengeDelay = PreCommitChallengeDelay
+	miner2.PreCommitChallengeDelay = PreCommitChallengeDelay
+	miner3.PreCommitChallengeDelay = PreCommitChallengeDelay
+	miner4.PreCommitChallengeDelay = PreCommitChallengeDelay
+	miner5.PreCommitChallengeDelay = PreCommitChallengeDelay
+
 	power1.ConsensusMinerMinPower = arg.big()
 	for _, x := range builtin2.SealProofPolicies {
 		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower

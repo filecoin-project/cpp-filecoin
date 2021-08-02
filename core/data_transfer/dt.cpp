@@ -321,6 +321,9 @@ namespace fc::data_transfer {
       auto &res{*msg.response};
       auto _pull{pulling_out.find(pdtid)};
       if (_pull != pulling_out.end()) {
+        if (!res.voucher) {
+          return;
+        }
         _pull->second(res.voucher_type, res.voucher->b);
       } else {
         auto _push{pushing_out.find(pdtid)};

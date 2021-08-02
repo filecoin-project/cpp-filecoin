@@ -14,20 +14,31 @@ namespace fc::vm::actor::builtin::states {
 
   /// Init actor state
   struct InitActorState {
-    virtual ~InitActorState() = default;
-
-    adt::Map<uint64_t, adt::AddressKeyer> address_map_0;
-    adt::MapV3<uint64_t, adt::AddressKeyer> address_map_3;
+    adt::Map<uint64_t, adt::AddressKeyer> address_map;
     uint64_t next_id{};
     std::string network_name;
 
     /// Allocate new id address
-    virtual outcome::result<Address> addActor(const Address &address) = 0;
-
-    virtual outcome::result<boost::optional<uint64_t>> tryGet(
-        const Address &address) = 0;
+    outcome::result<Address> addActor(const Address &address) {
+      const auto id = next_id;
+      OUTCOME_TRY(address_map.set(address, id));
+      ++next_id;
+      return Address::makeFromId(id);
+    }
   };
+  CBOR_TUPLE(InitActorState, address_map, next_id, network_name)
 
   using InitActorStatePtr = types::Universal<InitActorState>;
 
 }  // namespace fc::vm::actor::builtin::states
+
+namespace fc::cbor_blake {
+  template <>
+  struct CbVisitT<fc::vm::actor::builtin::states::InitActorState> {
+    template <typename Visitor>
+    static void call(fc::vm::actor::builtin::states::InitActorState &state,
+                     const Visitor &visit) {
+      visit(state.address_map);
+    }
+  };
+}  // namespace fc::cbor_blake

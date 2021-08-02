@@ -54,6 +54,7 @@ namespace fc::api {
   using primitives::block::BlockHeader;
   using primitives::block::BlockTemplate;
   using primitives::block::BlockWithCids;
+  using primitives::piece::PaddedPieceSize;
   using primitives::sector::RegisteredSealProof;
   using primitives::sector::SectorInfo;
   using primitives::tipset::HeadChange;
@@ -264,6 +265,11 @@ namespace fc::api {
     TokenAmount max_fee;
   };
 
+  struct DealCollateralBounds {
+    TokenAmount min;
+    TokenAmount max;
+  };
+
   inline const boost::optional<MessageSendSpec> kPushNoSpec;
 
   constexpr uint64_t kNoConfidence{};
@@ -472,6 +478,11 @@ namespace fc::api {
                InvocResult,
                const UnsignedMessage &,
                const TipsetKey &)
+    API_METHOD(StateDealProviderCollateralBounds,
+               DealCollateralBounds,
+               PaddedPieceSize,
+               bool,
+               const TipsetKey &)
     API_METHOD(StateListMessages,
                std::vector<CID>,
                const UnsignedMessage &,
@@ -571,6 +582,8 @@ namespace fc::api {
     API_METHOD(WalletDefaultAddress, Address)
     API_METHOD(WalletHas, bool, const Address &)
     API_METHOD(WalletImport, Address, const KeyInfo &)
+    API_METHOD(WalletNew, Address, const std::string &)
+    API_METHOD(WalletSetDefault, void, const Address &)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
     /** Verify signature by address (may be id or key address) */
     API_METHOD(
@@ -622,6 +635,7 @@ namespace fc::api {
     f(a.PaychVoucherCreate);
     f(a.StateAccountKey);
     f(a.StateCall);
+    f(a.StateDealProviderCollateralBounds);
     f(a.StateGetActor);
     f(a.StateGetReceipt);
     f(a.StateListActors);
@@ -655,6 +669,8 @@ namespace fc::api {
     f(a.WalletDefaultAddress);
     f(a.WalletHas);
     f(a.WalletImport);
+    f(a.WalletNew);
+    f(a.WalletSetDefault);
     f(a.WalletSign);
     f(a.WalletVerify);
   }

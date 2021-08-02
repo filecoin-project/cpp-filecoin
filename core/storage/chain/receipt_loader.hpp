@@ -21,13 +21,13 @@ namespace fc::storage::blockchain {
      * Looks back for message receipt from topmost tipset up to lookback_limit
      * @param message_cid - message to look for
      * @param top_tipset_key - topmost tipset to start search from
-     * @param lookback_limit - search depth, 0 means no depth, up to genesis
+     * @param lookback_limit - search depth, -1 means no limit, up to genesis
      * @return message receipt and tipset key where message is stored
      */
     outcome::result<boost::optional<std::pair<MessageReceipt, TipsetKey>>>
     searchBackForMessageReceipt(const CID &message_cid,
                                 const TipsetKey &top_tipset_key,
-                                size_t lookback_limit) const;
+                                ChainEpoch lookback_limit) const;
 
    private:
     TsLoadPtr ts_load_;

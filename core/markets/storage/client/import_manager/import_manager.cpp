@@ -25,7 +25,9 @@ namespace fc::markets::storage::client::import_manager {
   ImportManager::ImportManager(
       std::shared_ptr<PersistentBufferMap> imports_storage,
       const boost::filesystem::path &imports_dir)
-      : imported_{std::move(imports_storage)}, imports_dir_{imports_dir} {}
+      : imported_{std::move(imports_storage)}, imports_dir_{imports_dir} {
+    boost::filesystem::create_directories(imports_dir_);
+  }
 
   outcome::result<CID> ImportManager::import(
       const boost::filesystem::path &path, bool is_car) {

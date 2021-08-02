@@ -21,11 +21,11 @@ UNIVERSAL_IMPL(states::CronActorState,
                v3::cron::CronActorState)
 
 UNIVERSAL_IMPL(states::InitActorState,
-               v0::init::InitActorState,
-               v2::init::InitActorState,
-               v3::init::InitActorState,
-               v3::init::InitActorState,
-               v3::init::InitActorState)
+               states::InitActorState,
+               states::InitActorState,
+               states::InitActorState,
+               states::InitActorState,
+               states::InitActorState)
 
 UNIVERSAL_IMPL(states::MarketActorState,
                v0::market::MarketActorState,

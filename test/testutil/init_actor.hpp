@@ -9,7 +9,8 @@
 
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
-#include "vm/actor/builtin/states/init_actor_state_raw.hpp"
+#include "vm/actor/builtin/states/init_actor_state.hpp"
+#include "vm/actor/codes.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 /// Sets up init actor state
@@ -22,8 +23,8 @@ std::shared_ptr<fc::vm::state::StateTree> setupInitActor(
   }
   auto store = state_tree->getStore();
   using namespace fc;
-  vm::actor::InitActorStateRaw init_state;
-  init_state.address_map = {store, 0, false};
+  vm::actor::builtin::states::InitActorState init_state;
+  init_state.address_map = {store};
   init_state.next_id = next_id;
   init_state.network_name = "n";
   EXPECT_OUTCOME_TRUE(head, fc::setCbor(store, init_state));

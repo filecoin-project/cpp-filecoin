@@ -8,6 +8,7 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc {
+  // TODO(turuslan): refactor Ipld to CbIpld
   struct IpldProxy : Ipld {
     IpldPtr ipld;
 
@@ -23,4 +24,14 @@ namespace fc {
       return ipld->get(key);
     }
   };
+
+  // TODO(turuslan): refactor Ipld to CbIpld
+  inline IpldPtr withVersion(IpldPtr ipld, uint64_t height) {
+    const auto version{actorVersion(height)};
+    if (ipld->actor_version != version) {
+      ipld = std::make_shared<IpldProxy>(ipld);
+      ipld->actor_version = version;
+    }
+    return ipld;
+  }
 }  // namespace fc

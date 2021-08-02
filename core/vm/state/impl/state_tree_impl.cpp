@@ -5,7 +5,7 @@
 
 #include "vm/state/impl/state_tree_impl.hpp"
 
-#include "vm/actor/builtin/states/init_actor_state_raw.hpp"
+#include "vm/actor/builtin/states/init_actor_state.hpp"
 
 #include "vm/dvm/dvm.hpp"
 
@@ -66,9 +66,9 @@ namespace fc::vm::state {
     }
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
     OUTCOME_TRY(initActorState,
-                getCbor<actor::InitActorStateRaw>(store_, init_actor.head));
-    initActorState.load(store_, init_actor.code);
-    OUTCOME_TRY(id, initActorState.tryGet(address));
+                getCbor<actor::builtin::states::InitActorState>(
+                    store_, init_actor.head));
+    OUTCOME_TRY(id, initActorState.address_map.tryGet(address));
     if (id) {
       tx().lookup.emplace(address, *id);
       return Address::makeFromId(*id);
@@ -80,8 +80,8 @@ namespace fc::vm::state {
       const Address &address) {
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
     OUTCOME_TRY(state,
-                getCbor<actor::InitActorStateRaw>(store_, init_actor.head));
-    state.load(store_, init_actor.code);
+                getCbor<actor::builtin::states::InitActorState>(
+                    store_, init_actor.head));
     OUTCOME_TRY(address_id, state.addActor(address));
     OUTCOME_TRYA(init_actor.head, setCbor(store_, state));
     OUTCOME_TRY(set(actor::kInitAddress, init_actor));
@@ -160,7 +160,6 @@ namespace fc::vm::state {
               store_,
               state_root.actor_tree_root,
               storage::hamt::kDefaultBitWidth,
-              version_ >= StateTreeVersion::kVersion2,
           };
           return;
         }

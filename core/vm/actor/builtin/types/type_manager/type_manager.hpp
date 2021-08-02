@@ -14,8 +14,8 @@
 namespace fc::vm::actor::builtin::types {
   using libp2p::multi::Multiaddress;
   using miner::ExpirationQueue;
-  using miner::ExpirationSet;
   using miner::MinerInfo;
+  using miner::PartitionExpirationsArray;
   using miner::QuantSpec;
   using primitives::sector::RegisteredPoStProof;
   using primitives::sector::RegisteredSealProof;
@@ -25,7 +25,7 @@ namespace fc::vm::actor::builtin::types {
    public:
     static outcome::result<Universal<ExpirationQueue>> loadExpirationQueue(
         const Runtime &runtime,
-        const adt::Array<ExpirationSet> &expirations_epochs,
+        const PartitionExpirationsArray &expirations_epochs,
         const QuantSpec &quant);
 
     static outcome::result<Universal<MinerInfo>> makeMinerInfo(

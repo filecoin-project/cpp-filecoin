@@ -8,8 +8,6 @@
 #include "storage/hamt/hamt.hpp"
 
 namespace fc::adt {
-  using storage::hamt::Hamt;
-
   struct StringKeyer {
     using Key = BytesIn;
 
@@ -25,17 +23,16 @@ namespace fc::adt {
   /// Strongly typed hamt wrapper
   template <typename Value,
             typename Keyer = StringKeyer,
-            size_t bit_width = storage::hamt::kDefaultBitWidth,
-            bool v3 = false>
+            size_t bit_width = storage::hamt::kDefaultBitWidth>
   struct Map {
     using Key = typename Keyer::Key;
     using Visitor =
         std::function<outcome::result<void>(const Key &, const Value &)>;
 
-    Map(IpldPtr ipld = nullptr) : hamt{ipld, bit_width, v3} {}
+    Map(IpldPtr ipld = nullptr) : hamt{ipld, bit_width} {}
 
     Map(const CID &root, IpldPtr ipld = nullptr)
-        : hamt{ipld, root, bit_width, v3} {}
+        : hamt{ipld, root, bit_width} {}
 
     outcome::result<boost::optional<Value>> tryGet(const Key &key) const {
       return hamt.tryGetCbor<Value>(Keyer::encode(key));
@@ -84,23 +81,17 @@ namespace fc::adt {
       return size;
     }
 
-    mutable Hamt hamt;
+    mutable storage::hamt::Hamt hamt;
   };
-
-  template <typename Value,
-            typename Keyer = StringKeyer,
-            size_t bit_width = storage::hamt::kDefaultBitWidth>
-  using MapV3 = Map<Value, Keyer, bit_width, true>;
 
   /// Cbor encode map
   template <class Stream,
             typename Value,
             typename Keyer,
             size_t bit_width,
-            bool v3,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Map<Value, Keyer, bit_width, v3> &map) {
+  Stream &operator<<(Stream &&s, const Map<Value, Keyer, bit_width> &map) {
     return s << map.hamt.cid();
   }
 
@@ -109,28 +100,27 @@ namespace fc::adt {
             typename Value,
             typename Keyer,
             size_t bit_width,
-            bool v3,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Map<Value, Keyer, bit_width, v3> &map) {
+  Stream &operator>>(Stream &&s, Map<Value, Keyer, bit_width> &map) {
     CID root;
     s >> root;
-    map.hamt = {nullptr, root, bit_width, v3};
+    map.hamt = {nullptr, root, bit_width};
     return s;
   }
 }  // namespace fc::adt
 
 namespace fc::cbor_blake {
-  template <typename V, typename Keyer, size_t bit_width, bool v3>
-  struct CbLoadT<adt::Map<V, Keyer, bit_width, v3>> {
-    static void call(CbIpldPtrIn ipld, adt::Map<V, Keyer, bit_width, v3> &map) {
+  template <typename V, typename Keyer, size_t bit_width>
+  struct CbLoadT<adt::Map<V, Keyer, bit_width>> {
+    static void call(CbIpldPtrIn ipld, adt::Map<V, Keyer, bit_width> &map) {
       map.hamt.ipld = ipld;
     }
   };
 
-  template <typename V, typename Keyer, size_t bit_width, bool v3>
-  struct CbFlushT<adt::Map<V, Keyer, bit_width, v3>> {
-    static auto call(adt::Map<V, Keyer, bit_width, v3> &map) {
+  template <typename V, typename Keyer, size_t bit_width>
+  struct CbFlushT<adt::Map<V, Keyer, bit_width>> {
+    static auto call(adt::Map<V, Keyer, bit_width> &map) {
       return map.hamt.flush();
     }
   };

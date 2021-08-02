@@ -14,7 +14,7 @@ namespace fc::adt {
 
   enum class BalanceTableError { kInsufficientFunds = 1 };
 
-  struct BalanceTable : public Map<TokenAmount, AddressKeyer> {
+  struct BalanceTable : public Map<TokenAmount, AddressKeyer, 6> {
     using Map::Map;
 
     outcome::result<void> add(const Key &key, TokenAmount amount);
@@ -33,7 +33,7 @@ namespace fc::cbor_blake {
   template <>
   struct CbVisitT<adt::BalanceTable> {
     template <typename Visitor>
-    static void call(adt::Map<adt::TokenAmount, adt::AddressKeyer> &map,
+    static void call(adt::Map<adt::TokenAmount, adt::AddressKeyer, 6> &map,
                      const Visitor &visit) {
       visit(map);
     }

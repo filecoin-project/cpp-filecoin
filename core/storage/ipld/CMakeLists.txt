@@ -14,6 +14,7 @@ add_library(ipld_verifier
     verifier.cpp
     )
 target_link_libraries(ipld_verifier
+    filecoin_hasher
     ipld_traverser
     ipfs_datastore_in_memory
     )

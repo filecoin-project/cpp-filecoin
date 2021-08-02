@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/init/init_actor_state.hpp"
+#include "vm/actor/builtin/states/init_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::init {
-  using InitActorState = v0::init::InitActorState;
+  using states::InitActorState;
 }  // namespace fc::vm::actor::builtin::v2::init

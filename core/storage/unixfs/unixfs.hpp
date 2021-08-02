@@ -9,7 +9,7 @@
 
 namespace fc::storage::unixfs {
   constexpr size_t kMaxLinks = 1024;
-  constexpr size_t kChunkSize = 1024;
+  constexpr size_t kChunkSize{1 << 20};
 
   /**
    * Stores data as DAG

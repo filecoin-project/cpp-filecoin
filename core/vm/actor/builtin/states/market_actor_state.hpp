@@ -37,9 +37,10 @@ namespace fc::vm::actor::builtin::states {
 
     using DealSet = adt::Set<UvarintKeyer>;
 
-    adt::Array<DealProposal> proposals;
-    adt::Array<DealState> states;
-    adt::Map<DealProposal, CidKeyer> pending_proposals;
+    adt::Array<DealProposal, 5> proposals;
+    adt::Array<DealState, 6> states;
+    adt::Map<DealProposal, CidKeyer> pending_proposals_0;
+    adt::Set<CidKeyer> pending_proposals_3;
     BalanceTable escrow_table;
     BalanceTable locked_table;
     DealId next_deal{0};

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "vm/version/version.hpp"
+
 namespace fc::vm::actor {
   enum class ActorVersion {
     kVersion0 = 0,
@@ -24,3 +26,35 @@ namespace fc::vm::actor {
     ~WithActorVersion() = default;
   };
 }  // namespace fc::vm::actor
+
+namespace fc {
+  using vm::actor::ActorVersion;
+  using vm::version::NetworkVersion;
+
+  inline ActorVersion actorVersion(NetworkVersion version) {
+    switch (version) {
+      case NetworkVersion::kVersion0:
+      case NetworkVersion::kVersion1:
+      case NetworkVersion::kVersion2:
+      case NetworkVersion::kVersion3:
+        return ActorVersion::kVersion0;
+      case NetworkVersion::kVersion4:
+      case NetworkVersion::kVersion5:
+      case NetworkVersion::kVersion6:
+      case NetworkVersion::kVersion7:
+      case NetworkVersion::kVersion8:
+      case NetworkVersion::kVersion9:
+        return ActorVersion::kVersion2;
+      case NetworkVersion::kVersion10:
+      case NetworkVersion::kVersion11:
+        return ActorVersion::kVersion3;
+      case NetworkVersion::kVersion12:
+        return ActorVersion::kVersion4;
+      case NetworkVersion::kVersion13:
+        return ActorVersion::kVersion5;
+    }
+  }
+  inline ActorVersion actorVersion(primitives::ChainEpoch epoch) {
+    return actorVersion(vm::version::getNetworkVersion(epoch));
+  }
+}  // namespace fc

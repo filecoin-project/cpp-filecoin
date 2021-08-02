@@ -5,6 +5,7 @@
 
 #include "blockchain/impl/weight_calculator_impl.hpp"
 
+#include "cbor_blake/ipld_version.hpp"
 #include "common/logger.hpp"
 #include "vm/actor/builtin/states/power_actor_state.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -33,10 +34,11 @@ namespace fc::blockchain::weight {
 
   outcome::result<BigInt> WeightCalculatorImpl::calculateWeight(
       const Tipset &tipset) {
+    const auto ipld{withVersion(ipld_, tipset.height())};
     OUTCOME_TRY(actor,
-                StateTreeImpl{ipld_, tipset.getParentStateRoot()}.get(
+                StateTreeImpl{ipld, tipset.getParentStateRoot()}.get(
                     kStoragePowerAddress));
-    OUTCOME_TRY(state, getCbor<PowerActorStatePtr>(ipld_, actor.head));
+    OUTCOME_TRY(state, getCbor<PowerActorStatePtr>(ipld, actor.head));
     const StoragePower network_power = state->total_qa_power;
 
     if (network_power <= 0) {

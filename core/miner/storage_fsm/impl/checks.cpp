@@ -238,11 +238,9 @@ namespace fc::mining::checks {
       return ChecksError::kBadSealedCid;
     }
 
-    OUTCOME_TRY(minfo, api->StateMinerInfo(miner_address, tipset_key));
-
     OUTCOME_TRY(verified,
                 proofs->verifySeal(SealVerifyInfo{
-                    .seal_proof = minfo.seal_proof_type,
+                    .seal_proof = sector_info->sector_type,
                     .sector = SectorId{.miner = miner_address.getId(),
                                        .sector = sector_info->sector_number},
                     .deals = {},
