@@ -33,7 +33,7 @@ namespace fc::mining {
   using StorageFSM =
       fsm::FSM<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
   using api::SectorPreCommitOnChainInfo;
-  using libp2p::protocol::Scheduler;
+  using libp2p::basic::Scheduler;
   using primitives::Counter;
   using primitives::tipset::TipsetKey;
   using storage::BufferMap;
@@ -53,17 +53,15 @@ namespace fc::mining {
         std::shared_ptr<Manager> sealer,
         std::shared_ptr<PreCommitPolicy> policy,
         std::shared_ptr<boost::asio::io_context> context,
-        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
         std::shared_ptr<PreCommitBatcher> precommit_batcher_,
+        std::shared_ptr<Scheduler> scheduler,
         Config config);
 
     outcome::result<void> fsmLoad();
     void fsmSave(const std::shared_ptr<SectorInfo> &info);
 
     outcome::result<PieceAttributes> addPieceToAnySector(
-        UnpaddedPieceSize size,
-         PieceData piece_data,
-        DealInfo deal) override;
+        UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) override;
 
     outcome::result<void> remove(SectorNumber sector_id) override;
 
@@ -95,7 +93,7 @@ namespace fc::mining {
                 std::shared_ptr<Manager> sealer,
                 std::shared_ptr<PreCommitPolicy> policy,
                 std::shared_ptr<boost::asio::io_context> context,
-                std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+                std::shared_ptr<Scheduler> scheduler,
                 std::shared_ptr<PreCommitBatcher> precommit_batcher,
                 Config config);
 
@@ -168,6 +166,12 @@ namespace fc::mining {
      * @brief  Handle incoming in kWaitSeed state
      */
     outcome::result<void> handleWaitSeed(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kComputeProof state
+     */
+    outcome::result<void> handleComputeProof(
         const std::shared_ptr<SectorInfo> &info);
 
     /**

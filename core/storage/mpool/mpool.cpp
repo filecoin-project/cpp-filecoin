@@ -8,6 +8,7 @@
 #include <boost/math/distributions/binomial.hpp>
 #include <cmath>
 
+#include "cbor_blake/ipld_version.hpp"
 #include "common/append.hpp"
 #include "common/logger.hpp"
 #include "common/outcome_fmt.hpp"
@@ -502,7 +503,8 @@ namespace fc::storage::mpool {
     OUTCOME_TRY(base_fee, ts->nextBaseFee(env_context.ipld));
     vm::runtime::Pricelist pricelist{ts->epoch()};
     OUTCOME_TRY(cached, env_context.interpreter_cache->get(ts->key));
-    vm::state::StateTreeImpl state_tree{env_context.ipld, cached.state_root};
+    vm::state::StateTreeImpl state_tree{
+        withVersion(env_context.ipld, ts->height()), cached.state_root};
     auto pending{by_from};
     constexpr auto kDepth{20};
     OUTCOME_TRY(path, findPath(env_context.ts_load, head, ts, kDepth));
@@ -572,8 +574,10 @@ namespace fc::storage::mpool {
   outcome::result<Nonce> MessagePool::nonce(const Address &from) const {
     assert(from.isKeyType());
     OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head->key));
-    OUTCOME_TRY(
-        actor, vm::state::StateTreeImpl{ipld, interpeted.state_root}.get(from));
+    OUTCOME_TRY(actor,
+                vm::state::StateTreeImpl{withVersion(ipld, head->height()),
+                                         interpeted.state_root}
+                    .get(from));
     auto by_from_it{by_from.find(from)};
     if (by_from_it != by_from.end()) {
       auto next{by_from_it->second.rbegin()->first + 1};
@@ -593,7 +597,7 @@ namespace fc::storage::mpool {
       OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head->key));
       auto env{std::make_shared<vm::runtime::Env>(env_context, ts_main, head)};
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
-          ipld, interpeted.state_root);
+          env->ipld, interpeted.state_root);
       ++env->epoch;
       auto _pending{by_from.find(msg.from)};
       if (_pending != by_from.end()) {

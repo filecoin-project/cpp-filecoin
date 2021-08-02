@@ -5,6 +5,8 @@
 
 #include "storage/ipld/verifier.hpp"
 
+#include "crypto/hasher/hasher.hpp"
+
 namespace fc::storage::ipld::verifier {
 
   Verifier::Verifier(const CID &root, const Selector &selector)
@@ -12,8 +14,8 @@ namespace fc::storage::ipld::verifier {
 
   outcome::result<bool> Verifier::verifyNextBlock(const CID &block_cid,
                                                   const Buffer &data) {
-    OUTCOME_TRY(data_cid, common::getCidOf(data));
-    if (block_cid != data_cid) {
+    const auto &hash{block_cid.content_address};
+    if (hash != crypto::Hasher::calculate(hash.getType(), data)) {
       return VerifierError::kUnexpectedCid;
     }
     OUTCOME_TRY(store_.set(block_cid, data));

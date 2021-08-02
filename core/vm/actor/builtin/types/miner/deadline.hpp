@@ -11,6 +11,7 @@
 #include "vm/actor/builtin/types/miner/partition.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
   using primitives::RleBitset;
@@ -40,7 +41,7 @@ namespace fc::vm::actor::builtin::types::miner {
      * Partitions in this deadline, in order.
      * The keys of this AMT are always sequential integers beginning with zero.
      */
-    adt::Array<Partition> partitions;
+    adt::Array<Universal<Partition>, 3> partitions;
 
     /**
      * Maps epochs to partitions that _may_ have sectors that expire in or
@@ -52,7 +53,7 @@ namespace fc::vm::actor::builtin::types::miner {
      * at that epoch. Sectors expiring at this epoch may later be recovered, and
      * this queue will not be updated at that time.
      */
-    adt::Array<RleBitset> expirations_epochs;
+    adt::Array<RleBitset, 5> expirations_epochs;
 
     /**
      * Partitions numbers with PoSt submissions since the proving period
@@ -84,19 +85,19 @@ namespace fc::vm::actor::builtin::types::miner {
      * will be moved to PoStSubmissionsSnapshot. WindowPoSt proofs verified
      * on-chain do not appear in this AMT.
      */
-    adt::Array<WindowedPoSt> optimistic_post_submissions;
+    adt::Array<WindowedPoSt, 2> optimistic_post_submissions;
 
     /**
      * Snapshot of partition state at the end of the previous challenge window
      * for this deadline.
      */
-    CID partitions_snapshot;
+    decltype(partitions) partitions_snapshot;
 
     /**
      * These proofs may be disputed via DisputeWindowedPoSt. Successfully
      * disputed window PoSts are removed from the snapshot.
      */
-    CID optimistic_post_submissions_snapshot;
+    decltype(optimistic_post_submissions) optimistic_post_submissions_snapshot;
   };
 
   /**
@@ -119,6 +120,8 @@ namespace fc::cbor_blake {
       visit(p.partitions);
       visit(p.expirations_epochs);
       visit(p.optimistic_post_submissions);
+      visit(p.partitions_snapshot);
+      visit(p.optimistic_post_submissions_snapshot);
     }
   };
 }  // namespace fc::cbor_blake

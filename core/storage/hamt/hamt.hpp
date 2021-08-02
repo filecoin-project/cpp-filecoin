@@ -74,15 +74,13 @@ namespace fc::storage::hamt {
    public:
     using Visitor = std::function<outcome::result<void>(BytesIn, BytesIn)>;
 
-    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bit_width, bool v3);
+    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bit_width);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
          Node::Ptr root,
-         size_t bit_width,
-         bool v3);
+         size_t bit_width);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
          const CID &root,
-         size_t bit_width,
-         bool v3);
+         size_t bit_width);
     /** Set value by key, does not write to storage */
     outcome::result<void> set(BytesIn key, BytesIn value);
 
@@ -113,7 +111,7 @@ namespace fc::storage::hamt {
     outcome::result<void> visit(const Visitor &visitor) const;
 
     /** Loads root item */
-    outcome::result<void> loadRoot();
+    outcome::result<void> loadRoot() const;
 
     /// Store CBOR encoded value by key
     template <typename T>
@@ -159,8 +157,10 @@ namespace fc::storage::hamt {
     outcome::result<void> loadItem(Node::Item &item) const;
     outcome::result<void> visit(Node::Item &item, const Visitor &visitor) const;
 
+    void lazyCreateRoot() const;
+    bool v3() const;
+
     mutable Node::Item root_;
     size_t bit_width_;
-    bool v3_;
   };
 }  // namespace fc::storage::hamt

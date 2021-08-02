@@ -8,7 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <chrono>
 #include <ctime>
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
+#include <libp2p/basic/scheduler.hpp>
 #include <map>
 #include <random>
 #include <regex>
@@ -385,20 +385,19 @@ namespace fc::sector_storage::stores {
     }
     std::mt19937 rng(std::time(0));
     std::uniform_int_distribution<> gen(0, 1000);
-    local->heartbeat_interval_ =
-        duration_cast<std::chrono::milliseconds>(kHeartbeatInterval).count()
-        + gen(rng);
+    local->heartbeat_interval_ = std::chrono::milliseconds(kHeartbeatInterval)
+                                 + std::chrono::milliseconds(gen(rng));
     for (const auto &path : config->storage_paths) {
       OUTCOME_TRY(local->openPath(path.path));
     }
-    local->handler_ =
-        scheduler->schedule(local->heartbeat_interval_,
-                            [self = std::weak_ptr<LocalStoreImpl>(local)]() {
-                              auto shared_self = self.lock();
-                              if (shared_self) {
-                                shared_self->reportHealth();
-                              }
-                            });
+    local->handler_ = scheduler->scheduleWithHandle(
+        [self = std::weak_ptr<LocalStoreImpl>(local)]() {
+          auto shared_self = self.lock();
+          if (shared_self) {
+            shared_self->reportHealth();
+          }
+        },
+        local->heartbeat_interval_);
     return std::move(local);
   }
 

@@ -107,36 +107,26 @@ namespace fc::storage::hamt {
     return indices.subspan(1);
   }
 
-  Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
-             size_t bit_width,
-             bool v3)
-      : ipld{std::move(store)},
-        root_{std::make_shared<Node>(Node{{}, v3})},
-        bit_width_{bit_width},
-        v3_{v3} {}
+  Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bit_width)
+      : ipld{std::move(store)}, root_{nullptr}, bit_width_{bit_width} {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
              Node::Ptr root,
-             size_t bit_width,
-             bool v3)
-      : ipld{std::move(store)},
-        root_{std::move(root)},
-        bit_width_{bit_width},
-        v3_{v3} {}
+             size_t bit_width)
+      : ipld{std::move(store)}, root_{std::move(root)}, bit_width_{bit_width} {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
              const CID &root,
-             size_t bit_width,
-             bool v3)
-      : ipld{std::move(store)}, root_{root}, bit_width_{bit_width}, v3_{v3} {}
+             size_t bit_width)
+      : ipld{std::move(store)}, root_{root}, bit_width_{bit_width} {}
 
   outcome::result<void> Hamt::set(BytesIn key, BytesIn value) {
-    OUTCOME_TRY(loadItem(root_));
+    OUTCOME_TRY(loadRoot());
     return set(*boost::get<Node::Ptr>(root_), keyToIndices(key), key, value);
   }
 
   outcome::result<Bytes> Hamt::get(BytesIn key) const {
-    OUTCOME_TRY(loadItem(root_));
+    OUTCOME_TRY(loadRoot());
     auto node = boost::get<Node::Ptr>(root_);
     for (auto index : keyToIndices(key)) {
       auto it = node->items.find(index);
@@ -160,7 +150,7 @@ namespace fc::storage::hamt {
   }
 
   outcome::result<void> Hamt::remove(BytesIn key) {
-    OUTCOME_TRY(loadItem(root_));
+    OUTCOME_TRY(loadRoot());
     return remove(*boost::get<Node::Ptr>(root_), keyToIndices(key), key);
   }
 
@@ -174,6 +164,7 @@ namespace fc::storage::hamt {
   }
 
   outcome::result<CID> Hamt::flush() {
+    lazyCreateRoot();
     OUTCOME_TRY(flush(root_));
     return cid();
   }
@@ -183,19 +174,20 @@ namespace fc::storage::hamt {
   }
 
   std::vector<size_t> Hamt::keyToIndices(BytesIn key, int n) const {
+    const auto bits{v3() ? bit_width_ : kDefaultBitWidth};
     std::vector<uint8_t> key_bytes(key.begin(), key.end());
     auto hash = libp2p::crypto::sha256(key_bytes);
     std::vector<size_t> indices;
     constexpr auto byte_bits = 8;
     auto max_bits = byte_bits * hash.size();
-    max_bits -= max_bits % bit_width_;
+    max_bits -= max_bits % bits;
     auto offset = 0;
     if (n != -1) {
-      offset = max_bits - (n - 1) * bit_width_;
+      offset = max_bits - (n - 1) * bits;
     }
-    while (offset + bit_width_ <= max_bits) {
+    while (offset + bits <= max_bits) {
       size_t index = 0;
-      for (auto i = 0u; i < bit_width_; ++i, ++offset) {
+      for (auto i = 0u; i < bits; ++i, ++offset) {
         index <<= 1;
         index |= 1
                  & (hash[offset / byte_bits]
@@ -232,7 +224,7 @@ namespace fc::storage::hamt {
       leaf.emplace(copy(key), copy(value));
     } else {
       auto child = std::make_shared<Node>();
-      child->v3 = v3_;
+      child->v3 = v3();
       OUTCOME_TRY(set(*child, consumeIndex(indices), key, value));
       for (auto &pair : leaf) {
         auto indices2 = keyToIndices(pair.first, indices.size());
@@ -310,7 +302,8 @@ namespace fc::storage::hamt {
     return outcome::success();
   }
 
-  outcome::result<void> Hamt::loadRoot() {
+  outcome::result<void> Hamt::loadRoot() const {
+    lazyCreateRoot();
     return loadItem(root_);
   }
 
@@ -318,8 +311,8 @@ namespace fc::storage::hamt {
     if (which<CID>(item)) {
       OUTCOME_TRY(child, fc::getCbor<Node>(ipld, boost::get<CID>(item)));
       if (!child.v3) {
-        child.v3 = v3_;
-      } else if (*child.v3 != v3_) {
+        child.v3 = v3();
+      } else if (*child.v3 != v3()) {
         return HamtError::kInconsistent;
       }
       item = std::make_shared<Node>(std::move(child));
@@ -328,6 +321,7 @@ namespace fc::storage::hamt {
   }
 
   outcome::result<void> Hamt::visit(const Visitor &visitor) const {
+    lazyCreateRoot();
     return visit(root_, visitor);
   }
 
@@ -344,5 +338,15 @@ namespace fc::storage::hamt {
       }
     }
     return outcome::success();
+  }
+
+  void Hamt::lazyCreateRoot() const {
+    if (auto root{boost::get<Node::Ptr>(&root_)}; root && !*root) {
+      *root = std::make_shared<Node>(Node{{}, v3()});
+    }
+  }
+
+  bool Hamt::v3() const {
+    return ipld->actor_version >= vm::actor::ActorVersion::kVersion3;
   }
 }  // namespace fc::storage::hamt

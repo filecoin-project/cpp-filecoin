@@ -23,7 +23,7 @@ class PowerTableHamtTest : public ::testing::Test {
  public:
   std::shared_ptr<IpfsDatastore> datastore =
       std::make_shared<InMemoryDatastore>();
-  Hamt hamt{datastore, fc::storage::hamt::kDefaultBitWidth, false};
+  Hamt hamt{datastore, fc::storage::hamt::kDefaultBitWidth};
   PowerTableHamt power_table{hamt};
   Address addr{Address::makeFromId(3232104785)};
   Address addr1{Address::makeFromId(111)};

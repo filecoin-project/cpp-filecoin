@@ -133,11 +133,8 @@ namespace fc::mining {
       // stop condition or weak_ptr
       cb();
     };
-    scheduler
-        ->schedule(libp2p::protocol::scheduler::toTicks(
-                       std::chrono::seconds{std::max<int64_t>(0, sec)}),
-                   std::move(cb))
-        .detach();
+    scheduler->schedule(std::move(cb),
+                        std::chrono::seconds{std::max<int64_t>(0, sec)});
   }
 
   constexpr auto kTicketRandomnessLookback{1};

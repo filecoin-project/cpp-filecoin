@@ -12,18 +12,6 @@
 
 namespace fc::vm::actor::builtin::v3::miner {
 
-  struct MinerInfo : types::miner::MinerInfo {};
-  CBOR_TUPLE(MinerInfo,
-             owner,
-             worker,
-             control,
-             pending_worker_key,
-             peer_id,
-             multiaddrs,
-             window_post_proof_type,
-             sector_size,
-             window_post_partition_sectors)
-
   struct Deadline : types::miner::Deadline {
     Deadline() = default;
     Deadline(const types::miner::Deadline &other)

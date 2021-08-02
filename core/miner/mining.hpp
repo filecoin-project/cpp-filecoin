@@ -6,7 +6,7 @@
 #pragma once
 
 #include <boost/functional/hash.hpp>
-#include <libp2p/protocol/common/scheduler.hpp>
+#include <libp2p/basic/scheduler.hpp>
 #include <unordered_set>
 
 #include "api/full_node/node_api.hpp"
@@ -21,7 +21,7 @@ namespace fc::mining {
   using api::MiningBaseInfo;
   using api::SignedMessage;
   using clock::UTCClock;
-  using libp2p::protocol::Scheduler;
+  using libp2p::basic::Scheduler;
   using primitives::BigInt;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;

@@ -16,6 +16,10 @@ namespace fc::vm::actor::builtin::types::miner {
   using primitives::RleBitset;
 
   struct BitfieldQueue {
+    // TODO(turuslan): must work with different bits
+    //   Deadline.ExpirationsEpochs=5
+    //   Partition.EarlyTerminated=3
+    //   miner State.PreCommittedSectorsExpiry=6
     adt::Array<RleBitset> queue;
     QuantSpec quant;
 
@@ -26,9 +30,6 @@ namespace fc::vm::actor::builtin::types::miner {
         const std::map<ChainEpoch, std::vector<uint64_t>> &values);
     outcome::result<std::tuple<RleBitset, bool>> popUntil(ChainEpoch until);
   };
-
-  outcome::result<BitfieldQueue> loadBitfieldQueue(
-      const adt::Array<RleBitset> &queue, const QuantSpec &quant);
 
 }  // namespace fc::vm::actor::builtin::types::miner
 

@@ -59,6 +59,8 @@ namespace fc::vm::runtime {
       TokenAmount reward;
     };
 
+    void setHeight(uint64_t height);
+
     outcome::result<Apply> applyMessage(const UnsignedMessage &message,
                                         size_t size);
 

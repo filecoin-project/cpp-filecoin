@@ -18,6 +18,7 @@
 
 namespace fc::miner {
   using api::FullNodeApi;
+  using libp2p::basic::Scheduler;
   using mining::DealInfo;
   using mining::PieceAttributes;
   using mining::types::SectorInfo;
@@ -39,7 +40,7 @@ namespace fc::miner {
         std::shared_ptr<Counter> counter,
         std::shared_ptr<BufferMap> sealing_fsm_kv,
         std::shared_ptr<Manager> sector_manager,
-        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+        std::shared_ptr<Scheduler> scheduler,
         std::shared_ptr<boost::asio::io_context> context,
         mining::Config config,
         std::vector<Address> precommit_control);

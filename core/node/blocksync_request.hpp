@@ -53,7 +53,7 @@ namespace fc::sync::blocksync {
     /// Cancels existing request if still active and makes the new one
     static std::shared_ptr<BlocksyncRequest> newRequest(
         libp2p::Host &host,
-        libp2p::protocol::Scheduler &scheduler,
+        libp2p::basic::Scheduler &scheduler,
         IpldPtr ipld,
         std::shared_ptr<PutBlockHeader> put_block_header,
         PeerId peer,

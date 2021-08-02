@@ -14,9 +14,8 @@ namespace fc::storage::ipfs::graphsync {
   /// Selector that matches current node
   common::Buffer kSelectorMatcher{0xa1, 0x61, 0x2e, 0xa0};
 
-  GraphsyncImpl::GraphsyncImpl(
-      std::shared_ptr<libp2p::Host> host,
-      std::shared_ptr<libp2p::protocol::Scheduler> scheduler)
+  GraphsyncImpl::GraphsyncImpl(std::shared_ptr<libp2p::Host> host,
+                               std::shared_ptr<Scheduler> scheduler)
       : scheduler_(scheduler),
         network_(std::make_shared<Network>(std::move(host), scheduler)),
         local_requests_(std::make_shared<LocalRequests>(

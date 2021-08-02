@@ -33,6 +33,7 @@ namespace fc::storage::ipfs::graphsync {
         CHECK_CASE(NOT_ENOUGH_GAS)
         CHECK_CASE(OTHER_PROTOCOL)
         CHECK_CASE(PARTIAL_RESPONSE)
+        CHECK_CASE(PAUSE)
         CHECK_CASE(REJECTED)
         CHECK_CASE(TRY_AGAIN)
         CHECK_CASE(REQUEST_FAILED)

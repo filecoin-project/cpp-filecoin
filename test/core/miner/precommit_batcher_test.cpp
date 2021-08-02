@@ -4,10 +4,12 @@
  */
 
 #include <gtest/gtest.h>
+#include <libp2p/basic/scheduler/manual_scheduler_backend.hpp>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <miner/storage_fsm/types.hpp>
+
 #include "miner/storage_fsm/impl/precommit_batcher_impl.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/mocks/libp2p/scheduler_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/v5/miner/miner_actor.hpp"
 
@@ -20,13 +22,14 @@ namespace fc::mining {
   using fc::mining::types::Piece;
   using fc::mining::types::PieceInfo;
   using fc::mining::types::FeeConfig;
-  using libp2p::protocol::SchedulerMock;
   using libp2p::protocol::scheduler::Ticks;
   using libp2p::protocol::scheduler::toTicks;
+  using libp2p::basic::ManualSchedulerBackend;
+  using libp2p::basic::Scheduler;
+  using libp2p::basic::SchedulerImpl;
   using primitives::sector::RegisteredSealProof;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
-  using testing::Mock;
   using vm::actor::builtin::v5::miner::PreCommitBatch;
 
   class PreCommitBatcherTest : public testing::Test {
@@ -35,7 +38,9 @@ namespace fc::mining {
       mutual_deposit_ = 0;
       seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
       api_ = std::make_shared<FullNodeApi>();
-      sch_ = std::make_shared<SchedulerMock>();
+      scheduler_backend_ = std::make_shared<ManualSchedulerBackend>();
+      scheduler_ = std::make_shared<SchedulerImpl>(scheduler_backend_,
+                                                   Scheduler::Config{});
       miner_id_ = 42;
       miner_address_ = Address::makeFromId(miner_id_);
       side_address_ = Address::makeFromId(++miner_id_);
@@ -118,7 +123,8 @@ namespace fc::mining {
     }
 
     std::shared_ptr<FullNodeApi> api_;
-    std::shared_ptr<SchedulerMock> sch_;
+    std::shared_ptr<ManualSchedulerBackend> scheduler_backend_;
+    std::shared_ptr<Scheduler> scheduler_;
     std::shared_ptr<PreCommitBatcherImpl> batcher_;
     std::shared_ptr<Tipset> tipset_;
     Address miner_address_;
@@ -126,7 +132,6 @@ namespace fc::mining {
     Address wrong_side_address_;
     uint64_t miner_id_;
     RegisteredSealProof seal_proof_type_;
-    Ticks current_time_;
     TokenAmount mutual_deposit_;
     bool is_called_;
     bool side_address_called;
@@ -179,14 +184,7 @@ namespace fc::mining {
         }));
     mutual_deposit_ += 10;
 
-    EXPECT_CALL(*sch_, now())
-        .WillOnce(
-            testing::Return(current_time_ + toTicks(std::chrono::seconds(61))))
-        .WillOnce(
-            testing::Return(current_time_ + toTicks(std::chrono::seconds(123))))
-        .WillRepeatedly(testing::Return(current_time_
-                                        + toTicks(std::chrono::seconds(300))));
-    sch_->next_clock();
+    scheduler_backend_->shiftToTimer();
     ASSERT_TRUE(is_called_);
 
     is_called_ = false;
@@ -201,7 +199,7 @@ namespace fc::mining {
           return outcome::success();
         }));
     mutual_deposit_ += 10;
-    sch_->next_clock();
+    scheduler_backend_->shiftToTimer();
     ASSERT_TRUE(is_called_);
     is_called_ = false;
   }
@@ -218,15 +216,6 @@ namespace fc::mining {
     mutual_deposit_ = 0;
     is_called_ = false;
     side_address_called = false;
-
-    EXPECT_CALL(*sch_, now())
-        .WillOnce(testing::Return(current_time_))
-        .WillOnce(testing::Return(
-            current_time_ + toTicks(std::chrono::seconds(kEpochDurationSeconds))
-            + 10))
-        .WillRepeatedly(testing::Return(
-            current_time_ + toTicks(std::chrono::seconds(kEpochDurationSeconds))
-            + 12));
 
     SectorInfo si = SectorInfo();
     api::SectorPreCommitInfo precInf;
@@ -253,7 +242,7 @@ namespace fc::mining {
         }));
     mutual_deposit_ += 10;
 
-    sch_->next_clock();
+    scheduler_backend_->shiftToTimer();
     EXPECT_TRUE(is_called_);
 
     is_called_ = false;

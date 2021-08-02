@@ -60,7 +60,7 @@ namespace fc::vm::actor::builtin::states {
 
     size_t miner_count{};
     size_t num_miners_meeting_min_power{};
-    adt::Map<adt::Array<CronEvent>, ChainEpochKeyer> cron_event_queue;
+    adt::Map<adt::Array<CronEvent, 6>, ChainEpochKeyer, 6> cron_event_queue;
 
     /**
      * First epoch in which a cron task may be stored.
@@ -73,7 +73,7 @@ namespace fc::vm::actor::builtin::states {
     // Don't use these fields directly, use methods to manage claims
     adt::Map<Universal<Claim>, adt::AddressKeyer> claims;
 
-    boost::optional<adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer>>
+    boost::optional<adt::Map<adt::Array<SealVerifyInfo, 4>, adt::AddressKeyer>>
         proof_validation_batch;
 
     // Methods

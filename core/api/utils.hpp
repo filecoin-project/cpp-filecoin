@@ -16,7 +16,7 @@
     using function::function;                                              \
     using Result = _result;                                                \
     using Params = ParamsTuple<__VA_ARGS__>;                               \
-    using FunctionSignature = outcome::result<_result>(__VA_ARGS__);               \
+    using FunctionSignature = outcome::result<_result>(__VA_ARGS__);       \
     static constexpr auto name = "Filecoin." #_name;                       \
   } _name;
 
@@ -81,6 +81,17 @@ namespace fc::api {
 
     std::shared_ptr<Channel<Result>> channel;
   };
+
+  template <typename T, typename F>
+  auto waitCb(F &&f) {
+    return [f{std::forward<F>(f)}](auto &&...args) {
+      auto channel{std::make_shared<Channel<outcome::result<T>>>()};
+      f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
+        channel->write(std::forward<decltype(_r)>(_r));
+      });
+      return Wait{channel};
+    };
+  }
 
   template <typename T>
   struct is_wait : std::false_type {};

@@ -28,6 +28,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     removeActiveSectors(const std::vector<SectorOnChainInfo> &sectors,
                         SectorSize ssize) override;
   };
+  CBOR_NON(ExpirationQueue);
 }  // namespace fc::vm::actor::builtin::v0::miner
 
 namespace fc::cbor_blake {

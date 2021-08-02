@@ -7,13 +7,14 @@
 
 #include <gtest/gtest.h>
 #include <chrono>
+#include <libp2p/basic/scheduler/manual_scheduler_backend.hpp>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
 
 #include "primitives/sector/sector.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/context_wait.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/mocks/libp2p/scheduler_mock.hpp"
 #include "testutil/mocks/miner/events_mock.hpp"
 #include "testutil/mocks/miner/precommit_batcher_mock.hpp"
 #include "testutil/mocks/miner/precommit_policy_mock.hpp"
@@ -38,7 +39,9 @@ namespace fc::mining {
   using api::Wait;
   using crypto::randomness::Randomness;
   using fc::storage::ipfs::InMemoryDatastore;
-  using libp2p::protocol::SchedulerMock;
+  using libp2p::basic::ManualSchedulerBackend;
+  using libp2p::basic::Scheduler;
+  using libp2p::basic::SchedulerImpl;
   using markets::storage::DealProposal;
   using primitives::CounterMock;
   using primitives::block::BlockHeader;
@@ -103,11 +106,14 @@ namespace fc::mining {
           .max_wait_deals_sectors = 2,
           .max_sealing_sectors = 0,
           .max_sealing_sectors_for_deals = 0,
-          .wait_deals_delay = std::chrono::hours(6).count(),
+          .wait_deals_delay = std::chrono::hours(6),
       };
 
-      scheduler_ = std::make_shared<SchedulerMock>();
-      precommit_batcher_ = std::make_shared<PreCommitBatcherMock>();
+
+   scheduler_backend_ = std::make_shared<ManualSchedulerBackend>();
+   scheduler_ = std::make_shared<SchedulerImpl>(scheduler_backend_,
+                                                   Scheduler::Config{});
+  precommit_batcher_ = std::make_shared<PreCommitBatcherMock>();
 
       EXPECT_OUTCOME_TRUE(sealing,
                           SealingImpl::newSealing(api_,
@@ -143,7 +149,8 @@ namespace fc::mining {
     std::shared_ptr<proofs::ProofEngineMock> proofs_;
     std::shared_ptr<PreCommitPolicyMock> policy_;
     std::shared_ptr<boost::asio::io_context> context_;
-    std::shared_ptr<SchedulerMock> scheduler_;
+    std::shared_ptr<ManualSchedulerBackend> scheduler_backend_;
+    std::shared_ptr<Scheduler> scheduler_;
 
     std::shared_ptr<Sealing> sealing_;
     std::shared_ptr<PreCommitBatcherMock> precommit_batcher_;
@@ -748,10 +755,8 @@ namespace fc::mining {
     SectorPreCommitOnChainInfo precommit_info;
     precommit_info.info.seal_epoch = 3;
     precommit_info.info.sealed_cid = "010001020007"_cid;
-    actor_state.sectors =
-        adt::Array<SectorOnChainInfo>("010001020008"_cid, ipld);
-    actor_state.precommitted_setctors_expiry =
-        adt::Array<api::RleBitset>("010001020009"_cid, ipld);
+    actor_state.sectors = {"010001020008"_cid, ipld};
+    actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
@@ -904,7 +909,7 @@ namespace fc::mining {
               return outcome::success();
             }));
 
-    // Commiting
+    // Compute Proofs
 
     Commit1Output c1o({1, 2, 3, 4, 5, 6});
     EXPECT_CALL(*manager_,
@@ -920,7 +925,9 @@ namespace fc::mining {
                 sealCommit2Sync(sector_ref, c1o, kDealSectorPriority))
         .WillOnce(testing::Return(proof));
 
+    // Commiting
     EXPECT_CALL(*proofs_, verifySeal(_))
+        .WillOnce(testing::Return(outcome::success(true)))
         .WillOnce(testing::Return(outcome::success(true)));
 
     api_->StateMinerInitialPledgeCollateral =
@@ -999,6 +1006,7 @@ namespace fc::mining {
 
     ASSERT_EQ(sealing_->getListSectors().size(), 1);
     EXPECT_OUTCOME_TRUE_1(sealing_->pledgeSector());
+    scheduler_backend_->shiftToTimer();
     ASSERT_EQ(sealing_->getListSectors().size(), 2);
   }
 

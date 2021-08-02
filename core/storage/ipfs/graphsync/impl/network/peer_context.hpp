@@ -95,7 +95,7 @@ namespace fc::storage::ipfs::graphsync {
       /// Stream's expire time in Scheduler ticks (milliseconds in real life).
       /// Stream which is inactive during some cleanup period is closed
       /// (activity depends on remote peer)
-      uint64_t expire_time = 0;
+      std::chrono::milliseconds expire_time = std::chrono::milliseconds::zero();
     };
 
     /// Container for all active streams to/from the peer

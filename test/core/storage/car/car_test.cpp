@@ -133,13 +133,12 @@ TEST(CarTest, Writer) {
  * @then selective_car bytes are equal to CAR_FROM_PAYLOAD_FILE
  */
 TEST(SelectiveCar, MakeSelectiveCar) {
-  std::string root_cid_expected{
-      "QmXFz92Uc9gCyAVGKkCzD84HEiR9fmrFzPSrvUypaN2Yzx"};
-
   InMemoryDatastore ipld;
   auto input = readFile(PAYLOAD_FILE);
   EXPECT_OUTCOME_TRUE(root_cid, fc::storage::unixfs::wrapFile(ipld, input));
-  EXPECT_OUTCOME_EQ(root_cid.toString(), root_cid_expected);
+  EXPECT_OUTCOME_EQ(
+      root_cid.toString(),
+      "bafk2bzaceccuidfq6dimuhvvnr5kb3zwjdobkob7bsuht4hdduawbx664suy4");
   EXPECT_OUTCOME_TRUE(selective_car, makeSelectiveCar(ipld, {{root_cid, {}}}));
 
   auto expected_car = readFile(CAR_FROM_PAYLOAD_FILE);
@@ -158,14 +157,13 @@ TEST(SelectiveCar, MakeSelectiveCar) {
  * @then selective_car file are equal to CAR_FROM_PAYLOAD_FILE
  */
 TEST(SelectiveCar, MakeSelectiveCarToFile) {
-  std::string root_cid_expected{
-      "QmXFz92Uc9gCyAVGKkCzD84HEiR9fmrFzPSrvUypaN2Yzx"};
-
   InMemoryDatastore ipld;
   auto input = readFile(PAYLOAD_FILE);
   auto car_path = fs::temp_directory_path() / fs::unique_path();
   EXPECT_OUTCOME_TRUE(root_cid, fc::storage::unixfs::wrapFile(ipld, input));
-  EXPECT_OUTCOME_EQ(root_cid.toString(), root_cid_expected);
+  EXPECT_OUTCOME_EQ(
+      root_cid.toString(),
+      "bafk2bzaceccuidfq6dimuhvvnr5kb3zwjdobkob7bsuht4hdduawbx664suy4");
   EXPECT_OUTCOME_TRUE_1(
       makeSelectiveCar(ipld, {{root_cid, {}}}, car_path.string()));
 

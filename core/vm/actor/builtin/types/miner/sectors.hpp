@@ -14,8 +14,10 @@ namespace fc::vm::actor::builtin::types::miner {
   using primitives::RleBitset;
   using primitives::SectorNumber;
 
+  using SectorArray = adt::Array<SectorOnChainInfo, 5>;
+
   struct Sectors {
-    adt::Array<SectorOnChainInfo> sectors;
+    SectorArray sectors;
 
     outcome::result<std::vector<SectorOnChainInfo>> load(
         const RleBitset &sector_nos) const;

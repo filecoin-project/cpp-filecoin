@@ -32,7 +32,7 @@ namespace fc::storage::hamt {
     std::shared_ptr<storage::ipfs::IpfsDatastore> store_{
         std::make_shared<storage::ipfs::InMemoryDatastore>()};
     std::shared_ptr<Node> root_{std::make_shared<Node>(Node{{}, false})};
-    Hamt hamt_{store_, root_, 8, false};
+    Hamt hamt_{store_, root_, 8};
   };
 
   /** Hamt node CBOR encoding and decoding, correct CID */

@@ -9,6 +9,9 @@ addtest(miner_types_test
     deadline_sector_map_test.cpp
     sectors_test.cpp
     partition_sector_map_test.cpp
+    partition_test_v0.cpp
+    partition_test_v2.cpp
+    partition_test_v3.cpp
     termination_test.cpp
     expiration_set_test.cpp
     expiration_queue_v0_test.cpp
