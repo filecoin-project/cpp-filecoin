@@ -15,7 +15,7 @@ namespace fc::mining {
   using primitives::address::Address;
   using vm::actor::builtin::types::miner::SectorPreCommitInfo;
   using vm::actor::builtin::types::miner::MinerInfo;
-  using PrecommitCallback = std::function<void(const outcome::result<CID> &)>;
+  using PrecommitCallback = std::function<outcome::result<void>(const outcome::result<CID> &)>;
 
   class PreCommitBatcher {
    public:

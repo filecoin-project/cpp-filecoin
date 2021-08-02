@@ -1051,7 +1051,7 @@ namespace fc::mining {
     deposit = std::max(deposit, collateral);
 
     logger_->info("submitting precommit for sector: {}", info->sector_number);
-    auto maybe_batched = precommit_batcher_->addPreCommit(*info, deposit, params, [=](const outcome::result<CID> &maybe_cid){
+    auto maybe_batched = precommit_batcher_->addPreCommit(*info, deposit, params, [=](const outcome::result<CID> &maybe_cid) -> outcome::result<void>{
       if(maybe_cid.has_error()) {
         if (params.replace_capacity) {
           auto maybe_error = markForUpgrade(params.replace_sector);
@@ -1063,14 +1063,15 @@ namespace fc::mining {
         }
         logger_->error("submitting message to precommit batcher: {}",
                        maybe_cid.error().message());
-          FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
+          OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorChainPreCommitFailed, {}));
       }
         std::shared_ptr<SectorPreCommittedContext> context =
             std::make_shared<SectorPreCommittedContext>();
         context->precommit_message = maybe_cid.value();
         context->precommit_deposit = deposit;
         context->precommit_info = params;
-      FSM_SEND_CONTEXT(info, SealingEvent::kSectorPreCommitted, context);
+      OUTCOME_EXCEPT( fsm_->send(info, SealingEvent::kSectorPreCommitted, context));
+      return outcome::success();
       });
 
     return outcome::success();
