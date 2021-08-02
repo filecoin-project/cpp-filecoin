@@ -53,8 +53,8 @@ namespace fc::mining {
         std::shared_ptr<Manager> sealer,
         std::shared_ptr<PreCommitPolicy> policy,
         std::shared_ptr<boost::asio::io_context> context,
-        std::shared_ptr<PreCommitBatcher> precommit_batcher_,
         std::shared_ptr<Scheduler> scheduler,
+        std::shared_ptr<PreCommitBatcher> precommit_batcher_,
         Config config);
 
     outcome::result<void> fsmLoad();

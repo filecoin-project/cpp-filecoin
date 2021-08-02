@@ -22,8 +22,6 @@ namespace fc::mining {
   using fc::mining::types::Piece;
   using fc::mining::types::PieceInfo;
   using fc::mining::types::FeeConfig;
-  using libp2p::protocol::scheduler::Ticks;
-  using libp2p::protocol::scheduler::toTicks;
   using libp2p::basic::ManualSchedulerBackend;
   using libp2p::basic::Scheduler;
   using libp2p::basic::SchedulerImpl;
@@ -44,8 +42,6 @@ namespace fc::mining {
       miner_id_ = 42;
       miner_address_ = Address::makeFromId(miner_id_);
       side_address_ = Address::makeFromId(++miner_id_);
-      current_time_ = toTicks(std::chrono::duration_cast<std::chrono::seconds>(
-          std::chrono::system_clock::now().time_since_epoch()));
 
       api::BlockHeader block;
       block.height = 2;
@@ -87,7 +83,6 @@ namespace fc::mining {
         return ERROR_TEXT("ERROR");
       };
 
-      EXPECT_CALL(*sch_, now()).WillOnce(testing::Return(current_time_));
       std::shared_ptr<FeeConfig> fee_config = std::make_shared<FeeConfig>();
       fee_config->max_precommit_batch_gas_fee.base = static_cast<TokenAmount>(
           0.05
@@ -96,7 +91,7 @@ namespace fc::mining {
           static_cast<TokenAmount>(0.25 * 10e18);
       MinerInfo miner_info{.control = {side_address_, miner_address_}};
       batcher_ = std::make_shared<PreCommitBatcherImpl>(
-          toTicks(std::chrono::seconds(60)), api_, miner_address_, sch_, [=](MinerInfo miner_info,
+          std::chrono::seconds(60), api_, miner_address_, scheduler_, [=](MinerInfo miner_info,
                                                                              TokenAmount deposit,
                                                                              TokenAmount good_funds) -> outcome::result<Address> {
             Address minimal_balanced_address;

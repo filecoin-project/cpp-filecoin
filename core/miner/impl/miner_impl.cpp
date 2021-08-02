@@ -93,7 +93,7 @@ namespace fc::miner {
     fee_config->max_precommit_gas_fee = static_cast<TokenAmount>(0.025 * 10e18);
     std::shared_ptr<PreCommitBatcher> precommit_batcher =
         std::make_shared<PreCommitBatcherImpl>(
-            60000,
+            std::chrono::seconds(60),
             api,
             miner_address,
             scheduler,
