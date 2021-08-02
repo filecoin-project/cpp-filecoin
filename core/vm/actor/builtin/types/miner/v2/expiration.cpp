@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v2/miner/types/expiration.hpp"
+#include "vm/actor/builtin/types/miner/v2/expiration.hpp"
 
 #include "common/error_text.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"

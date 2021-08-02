@@ -3,20 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/miner/types/partition.hpp"
+#include "vm/actor/builtin/types/miner/v2/partition.hpp"
 
 #include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 #include "vm/runtime/runtime.hpp"
 
-namespace fc::vm::actor::builtin::v0::miner {
+namespace fc::vm::actor::builtin::v2::miner {
   using types::TypeManager;
 
   RleBitset Partition::activeSectors() const {
-    return liveSectors() - this->faults;
+    return liveSectors() - this->faults - this->unproven;
   }
 
   PowerPair Partition::activePower() const {
-    return this->live_power - this->faulty_power;
+    return this->live_power - this->faulty_power - this->unproven_power;
   }
 
   outcome::result<PowerPair> Partition::addSectors(
@@ -42,7 +42,16 @@ namespace fc::vm::actor::builtin::v0::miner {
     this->sectors += snos;
     this->live_power += power;
 
-    return power;
+    auto proven_power = power;
+    if (!proven) {
+      this->unproven_power += power;
+      this->unproven += snos;
+      proven_power = {};
+    }
+
+    OUTCOME_TRY(validateState());
+
+    return proven_power;
   }
 
   outcome::result<std::tuple<PowerPair, PowerPair>> Partition::addFaults(
@@ -63,7 +72,22 @@ namespace fc::vm::actor::builtin::v0::miner {
     this->faults += sector_nos;
     this->faulty_power += new_faulty_power;
 
-    return std::make_tuple(PowerPair{}, new_faulty_power);
+    const auto unproven = sector_nos.intersect(this->unproven);
+    this->unproven -= unproven;
+
+    auto power_delta = new_faulty_power.negative();
+
+    OUTCOME_TRY(unproven_infos, types::miner::selectSectors(sectors, unproven));
+    if (!unproven_infos.empty()) {
+      const auto lost_unproven_power =
+          types::miner::powerForSectors(ssize, unproven_infos);
+      this->unproven_power -= lost_unproven_power;
+      power_delta += lost_unproven_power;
+    }
+
+    OUTCOME_TRY(validateState());
+
+    return std::make_tuple(power_delta, new_faulty_power);
   }
 
   outcome::result<ExpirationSet> Partition::terminateSectors(
@@ -86,27 +110,44 @@ namespace fc::vm::actor::builtin::v0::miner {
     OUTCOME_TRY(result,
                 expirations->removeSectors(
                     sector_infos, this->faults, this->recoveries, ssize));
-    const auto &[removed, removed_recovering] = result;
+    auto &[removed, removed_recovering] = result;
     this->expirations_epochs = expirations->queue;
 
     const auto removed_sectors =
         removed.on_time_sectors + removed.early_sectors;
     OUTCOME_TRY(recordEarlyTermination(runtime, epoch, removed_sectors));
 
+    const auto unproven_nos = removed_sectors.intersect(this->unproven);
+
     this->faults -= removed_sectors;
     this->recoveries -= removed_sectors;
     this->terminated += removed_sectors;
+    this->unproven -= unproven_nos;
 
     this->live_power =
         this->live_power - removed.active_power - removed.faulty_power;
     this->faulty_power -= removed.faulty_power;
     this->recovering_power -= removed_recovering;
 
+    OUTCOME_TRY(unproven_infos,
+                types::miner::selectSectors(sector_infos, unproven_nos));
+    const auto removed_unproven_power =
+        types::miner::powerForSectors(ssize, unproven_infos);
+    this->unproven_power -= removed_unproven_power;
+    removed.active_power -= removed_unproven_power;
+
+    OUTCOME_TRY(validateState());
+
     return removed;
   }
 
   outcome::result<ExpirationSet> Partition::popExpiredSectors(
       Runtime &runtime, ChainEpoch until, const QuantSpec &quant) {
+    if (!this->unproven.empty()) {
+      return ERROR_TEXT(
+          "cannot pop expired sectors from a partition with unproven sectors");
+    }
+
     OUTCOME_TRY(expirations,
                 TypeManager::loadExpirationQueue(
                     runtime, this->expirations_epochs, quant));
@@ -135,12 +176,15 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     OUTCOME_TRY(recordEarlyTermination(runtime, until, popped.early_sectors));
 
+    OUTCOME_TRY(validateState());
+
     return std::move(popped);
   }
 
   outcome::result<void> Partition::validateState() const {
-    // do nothing for v0
+    OUTCOME_TRY(validatePowerState());
+    OUTCOME_TRY(validateBFState());
     return outcome::success();
   }
 
-}  // namespace fc::vm::actor::builtin::v0::miner
+}  // namespace fc::vm::actor::builtin::v2::miner

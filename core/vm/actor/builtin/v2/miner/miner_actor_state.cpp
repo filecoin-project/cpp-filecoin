@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
 
-#include "vm/actor/builtin/v2/miner/types/types.hpp"
+#include "vm/actor/builtin/types/miner/v2/deadline.hpp" //TODO (m.tagirov) remove
 
 namespace fc::vm::actor::builtin::v2::miner {
   using primitives::sector::getRegisteredWindowPoStProof;

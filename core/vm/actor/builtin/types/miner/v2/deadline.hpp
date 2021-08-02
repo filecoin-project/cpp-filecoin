@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/miner/types/types.hpp"
+#include "vm/actor/builtin/types/miner/v0/deadline.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
 

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v2/miner/types/expiration.hpp"
+#include "vm/actor/builtin/types/miner/v2/expiration.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
   using ExpirationQueue = v2::miner::ExpirationQueue;

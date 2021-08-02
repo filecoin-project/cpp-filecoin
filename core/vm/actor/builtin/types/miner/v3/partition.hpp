@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v2/miner/types/partition.hpp"
+#include "vm/actor/builtin/types/miner/v2/partition.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
   using primitives::SectorSize;
