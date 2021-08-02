@@ -120,6 +120,8 @@ namespace fc::cbor_blake {
       visit(p.partitions);
       visit(p.expirations_epochs);
       visit(p.optimistic_post_submissions);
+      visit(p.partitions_snapshot);
+      visit(p.optimistic_post_submissions_snapshot);
     }
   };
 }  // namespace fc::cbor_blake
