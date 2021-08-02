@@ -13,11 +13,6 @@
 
 #include "vm/actor/builtin/v4/todo.hpp"
 
-#include "vm/actor/builtin/types/storage_power/claim.hpp"
-#include "vm/actor/builtin/v0/storage_power/types/claim.hpp"
-#include "vm/actor/builtin/v2/storage_power/types/claim.hpp"
-#include "vm/actor/builtin/v3/storage_power/types/claim.hpp"
-
 #include "vm/actor/builtin/v0/miner/types/miner_info.hpp"
 #include "vm/actor/builtin/v2/miner/types/miner_info.hpp"
 #include "vm/actor/builtin/v3/miner/types/miner_info.hpp"
@@ -75,13 +70,6 @@ namespace fc::vm::actor::builtin::types {
   }
 
 }  // namespace fc::vm::actor::builtin::types
-
-UNIVERSAL_IMPL(storage_power::Claim,
-               v0::storage_power::Claim,
-               v2::storage_power::Claim,
-               v3::storage_power::Claim,
-               v3::storage_power::Claim,
-               v3::storage_power::Claim)
 
 UNIVERSAL_IMPL(miner::MinerInfo,
                v0::miner::MinerInfo,

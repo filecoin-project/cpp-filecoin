@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v2/storage_power/types/claim.hpp"
+#include "vm/actor/builtin/types/storage_power/v2/claim.hpp"
 
 namespace fc::vm::actor::builtin::v3::storage_power {
 

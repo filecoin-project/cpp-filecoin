@@ -14,4 +14,5 @@ target_link_libraries(actor_state
     actor
     outcome
     type_manager
+    storage_power_types
     )
