@@ -838,7 +838,7 @@ namespace fc::mining {
             }));
 
     CID commit_msg_cid;  // for commit stage
-    api_->MpoolPushMessage = [&precommit_msg_cid, &commit_msg_cid](
+    api_->MpoolPushMessage = [&commit_msg_cid](
         const UnsignedMessage &msg,
         const boost::optional<api::MessageSendSpec> &)
         -> outcome::result<SignedMessage> {

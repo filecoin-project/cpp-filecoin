@@ -219,7 +219,7 @@ namespace fc::mining::types {
   };
 
   struct FeeConfig{
-    TokenAmount MaxPreCommitGasFee;
+    TokenAmount max_precommit_gas_fee;
 
     // maxBatchFee = maxBase + maxPerSector * nSectors
     BatchConfing MaxPreCommitBatchGasFee;

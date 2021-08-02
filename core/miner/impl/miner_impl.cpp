@@ -86,11 +86,11 @@ namespace fc::miner {
             deadline_info.period_start % kWPoStProvingPeriod,
             kMaxSectorExpirationExtension - 2 * kWPoStProvingPeriod);
     std::shared_ptr<FeeConfig> fee_config = std::make_shared<FeeConfig>();
-    fee_config->max_precommit_batch_gas_fee.base = static_cast<TokenAmount>(
-        0.05
-        * 10e18);  // TODO: config loading;
-    fee_config->max_precommit_batch_gas_fee.base =
-        static_cast<TokenAmount>(0.25 * 10e18);
+    fee_config->max_precommit_batch_gas_fee.base = {
+        0};  // TODO: config loading;
+    fee_config->max_precommit_batch_gas_fee.per_sector =
+        static_cast<TokenAmount>(0.02 * 10e18);
+    fee_config->max_precommit_gas_fee = static_cast<TokenAmount>(0.025 * 10e18);
     std::shared_ptr<PreCommitBatcher> precommit_batcher =
         std::make_shared<PreCommitBatcherImpl>(
             60000,
@@ -100,12 +100,22 @@ namespace fc::miner {
             [=](MinerInfo miner_info,
                 TokenAmount deposit,
                 TokenAmount good_funds) -> outcome::result<Address> {
-              for (const auto &address : miner_info.control) {
-                if (api->WalletBalance(address).value() >= good_funds) {
-                  return address;
+              Address minimal_balanced_address;
+              auto finder = miner_info.control.end();
+              for (auto address = miner_info.control.begin();
+                   address != miner_info.control.end();
+                   ++address) {
+                if (api->WalletBalance(*address).value() >= good_funds
+                    && (finder == miner_info.control.end()
+                        || api->WalletBalance(*finder).value()
+                               > api->WalletBalance(*address).value())) {
+                  finder = address;
                 }
               }
-              return miner_info.worker;
+              if (finder == miner_info.control.end()) {
+                return miner_info.worker;
+              }
+              return *finder;
             },
             fee_config);
     OUTCOME_TRY(sealing,
