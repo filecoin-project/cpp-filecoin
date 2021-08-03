@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/market/market_actor_state.hpp"
+#include "vm/actor/builtin/states/market/v0/market_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::market {
   using MarketActorState = v0::market::MarketActorState;

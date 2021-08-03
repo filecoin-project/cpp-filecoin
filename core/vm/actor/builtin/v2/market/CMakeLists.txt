@@ -8,6 +8,7 @@ add_library(market_actor_v2
     market_actor_utils.cpp
     )
 target_link_libraries(market_actor_v2
+    market_actor_state
     market_actor_v0
     actor
     array

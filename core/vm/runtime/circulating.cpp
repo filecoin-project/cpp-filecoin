@@ -8,7 +8,7 @@
 #include "cbor_blake/ipld_version.hpp"
 #include "const.hpp"
 #include "primitives/block/block.hpp"
-#include "vm/actor/builtin/states/market_actor_state.hpp"
+#include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/states/power_actor_state.hpp"
 #include "vm/actor/builtin/states/reward_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
