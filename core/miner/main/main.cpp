@@ -70,7 +70,7 @@ namespace fc {
         codec::cbor::kDefaultT<Multiaddress>(), {}};
     boost::optional<Address> actor, owner, worker;
     boost::optional<RegisteredSealProof> seal_type;
-    std::vector<boost::optional<Address>> precommit_control;
+    std::vector<Address> precommit_control;
     int api_port;
 
     /** Path to presealed sectors */
@@ -329,11 +329,11 @@ namespace fc {
     auto remote_store{std::make_shared<sector_storage::stores::RemoteStoreImpl>(
         local_store, std::unordered_map<std::string, std::string>{})};
 
-    auto wscheduler{
-        std::make_shared<sector_storage::SchedulerImpl>(io)}; // maybe use another io_context
+    auto wscheduler{std::make_shared<sector_storage::SchedulerImpl>(
+        io)};  // maybe use another io_context
     OUTCOME_TRY(manager,
-                sector_storage::ManagerImpl::newManager(io,
-                    remote_store, wscheduler, {true, true, true, true}));
+                sector_storage::ManagerImpl::newManager(
+                    io, remote_store, wscheduler, {true, true, true, true}));
 
     // TODO(ortyomka): make param
     mining::Config default_config{.max_wait_deals_sectors = 2,
@@ -352,7 +352,7 @@ namespace fc {
                                    scheduler,
                                    sealing_thread.io,
                                    default_config,
-                                   *config.precommit_control));
+                                   config.precommit_control));
     auto sealing{miner->getSealing()};
 
     OUTCOME_TRY(

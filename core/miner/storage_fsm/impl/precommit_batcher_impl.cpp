@@ -24,13 +24,14 @@ namespace fc::mining {
       std::shared_ptr<FullNodeApi> api,
       const Address &miner_address,
       const std::shared_ptr<Scheduler> &scheduler,
-      const std::function<outcome::result<Address>(MinerInfo miner_info, TokenAmount deposit, TokenAmount good_funds)> &address_selector,
+      const AddressSelector &address_selector,
       std::shared_ptr<FeeConfig> fee_config)
       : max_delay_(max_time),
         api_(std::move(api)),
         miner_address_(miner_address),
         closest_cutoff_(max_time),
-  fee_config_(std::move(fee_config)), address_selector_(address_selector){
+        fee_config_(std::move(fee_config)),
+        address_selector_(address_selector) {
     cutoff_start_ = std::chrono::system_clock::now();
     logger_ = common::createLogger("batcher");
     logger_->info("Batcher has been started");
@@ -61,22 +62,23 @@ namespace fc::mining {
         mutual_deposit_ += data.second.deposit;
         params.sectors.push_back(data.second.precommit_info);
       }
-      TokenAmount max_fee = fee_config_->max_precommit_batch_gas_fee.FeeForSector(params.sectors.size());
+      TokenAmount max_fee =
+          fee_config_->max_precommit_batch_gas_fee.FeeForSector(
+              params.sectors.size());
       TokenAmount good_funds = mutual_deposit_ + max_fee;
       OUTCOME_TRY(encodedParams, codec::cbor::encode(params));
-      OUTCOME_TRY(address, address_selector_(minfo, mutual_deposit_, good_funds));
-      OUTCOME_TRY(
-          signed_message,
-          api_->MpoolPushMessage(
-              vm::message::UnsignedMessage(miner_address_,
-                                           address,
-                                           0,
-                                           mutual_deposit_,
-                                           max_fee,
-                                           {},
-                                           PreCommitBatch::Number,
-                                           MethodParams{encodedParams}),
-              kPushNoSpec));
+      OUTCOME_TRY(address, address_selector_(minfo, good_funds, api_));
+      OUTCOME_TRY(signed_message,
+                  api_->MpoolPushMessage(
+                      vm::message::UnsignedMessage(miner_address_,
+                                                   address,
+                                                   0,
+                                                   mutual_deposit_,
+                                                   max_fee,
+                                                   {},
+                                                   PreCommitBatch::Number,
+                                                   MethodParams{encodedParams}),
+                      kPushNoSpec));
 
       mutual_deposit_ = 0;
       batch_storage_.clear();

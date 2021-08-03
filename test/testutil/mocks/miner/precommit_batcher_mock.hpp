@@ -5,21 +5,19 @@
 
 #pragma once
 
-#include "miner/storage_fsm/precommit_batcher.hpp"
 #include <gmock/gmock.h>
+#include "miner/storage_fsm/precommit_batcher.hpp"
 
-namespace fc::mining{
+namespace fc::mining {
 
-  class PreCommitBatcherMock: public PreCommitBatcher{
+  class PreCommitBatcherMock : public PreCommitBatcher {
    public:
-   MOCK_METHOD4(addPreCommit, outcome::result<void> (
-       const SectorInfo &,
-       const TokenAmount &,
-       const SectorPreCommitInfo &,
-       const PrecommitCallback &));
-   MOCK_METHOD0(forceSend, void());
+    MOCK_METHOD4(addPreCommit,
+                 outcome::result<void>(const SectorInfo &,
+                                       const TokenAmount &,
+                                       const SectorPreCommitInfo &,
+                                       const PrecommitCallback &));
+    MOCK_METHOD0(forceSend, void());
   };
 
-
-
-}
+}  // namespace fc::mining

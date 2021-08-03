@@ -8,6 +8,7 @@
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <miner/storage_fsm/types.hpp>
 
+#include "miner/address_selector.hpp"
 #include "miner/storage_fsm/impl/precommit_batcher_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -18,17 +19,20 @@ namespace fc::mining {
   using api::SignedMessage;
   using api::UnsignedMessage;
   using fc::mining::types::DealInfo;
+  using fc::mining::types::FeeConfig;
   using fc::mining::types::PaddedPieceSize;
   using fc::mining::types::Piece;
   using fc::mining::types::PieceInfo;
-  using fc::mining::types::FeeConfig;
   using libp2p::basic::ManualSchedulerBackend;
   using libp2p::basic::Scheduler;
   using libp2p::basic::SchedulerImpl;
+  using mining::SelectAddress;
   using primitives::sector::RegisteredSealProof;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
   using vm::actor::builtin::v5::miner::PreCommitBatch;
+  using BatcherCallbackMock =
+      std::function<void(const outcome::result<CID> &cid)>;
 
   class PreCommitBatcherTest : public testing::Test {
    protected:
@@ -56,7 +60,7 @@ namespace fc::mining {
       api_->StateMinerInfo =
           [=](const Address &address,
               const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
-        if (address == miner_address_){
+        if (address == miner_address_) {
           MinerInfo info;
           info.seal_proof_type = seal_proof_type_;
           info.control = {wrong_side_address_, side_address_};
@@ -64,11 +68,12 @@ namespace fc::mining {
         }
         return ERROR_TEXT("Error");
       };
-      api_->WalletBalance = [=](const Address &address)->outcome::result<TokenAmount>{
-        if(address == wrong_side_address_){
-          return TokenAmount (5*10e19);
+      api_->WalletBalance =
+          [=](const Address &address) -> outcome::result<TokenAmount> {
+        if (address == wrong_side_address_) {
+          return TokenAmount{"500000000000000000000"};
         }
-        return TokenAmount(10e19);
+        return TokenAmount{"10000000000000000000"};
       };
 
       api_->MpoolPushMessage =
@@ -83,36 +88,31 @@ namespace fc::mining {
         return ERROR_TEXT("ERROR");
       };
 
+      callback_mock_ = [](const outcome::result<CID> &cid) -> void {
+        EXPECT_TRUE(cid.has_value());
+      };
+
       std::shared_ptr<FeeConfig> fee_config = std::make_shared<FeeConfig>();
-      fee_config->max_precommit_batch_gas_fee.base = static_cast<TokenAmount>(
-          0.05
-          * 10e18);  // TODO: config loading;
+      fee_config->max_precommit_batch_gas_fee.base =
+          TokenAmount{"50000000000000000"};
       fee_config->max_precommit_batch_gas_fee.per_sector =
-          static_cast<TokenAmount>(0.25 * 10e18);
+          TokenAmount{"250000000000000"};
       MinerInfo miner_info{.control = {side_address_, miner_address_}};
       batcher_ = std::make_shared<PreCommitBatcherImpl>(
-          std::chrono::seconds(60), api_, miner_address_, scheduler_, [=](MinerInfo miner_info,
-                                                                             TokenAmount deposit,
-                                                                             TokenAmount good_funds) -> outcome::result<Address> {
-            Address minimal_balanced_address;
-            auto finder = miner_info.control.end();
-            for (auto address = miner_info.control.begin();
-                 address != miner_info.control.end();
-                 ++address) {
-              if (api_->WalletBalance(*address).value() >= good_funds
-                  && (finder == miner_info.control.end()
-                      || api_->WalletBalance(*finder).value()
-                         > api_->WalletBalance(*address).value())) {
-                finder = address;
-              }
-            }
-            if (finder == miner_info.control.end()) {
-              return miner_info.worker;
-            }
-            if(*finder == side_address_){
+          std::chrono::seconds(60),
+          api_,
+          miner_address_,
+          scheduler_,
+          [=](const MinerInfo &miner_info,
+              const TokenAmount &good_funds,
+              const std::shared_ptr<FullNodeApi> &api)
+              -> outcome::result<Address> {
+            EXPECT_OUTCOME_TRUE(address,
+                                SelectAddress(miner_info, good_funds, api));
+            if (address == side_address_) {
               side_address_called = true;
             }
-            return *finder;
+            return address;
           },
           fee_config);
     }
@@ -128,6 +128,7 @@ namespace fc::mining {
     uint64_t miner_id_;
     RegisteredSealProof seal_proof_type_;
     TokenAmount mutual_deposit_;
+    BatcherCallbackMock callback_mock_;
     bool is_called_;
     bool side_address_called;
   };
@@ -137,7 +138,10 @@ namespace fc::mining {
     api::SectorPreCommitInfo precInf;
     TokenAmount deposit = 10;
     EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
-        si, deposit, precInf, [](const outcome::result<CID> &cid)->outcome::result<void>{
+        si,
+        deposit,
+        precInf,
+        [](const outcome::result<CID> &cid) -> outcome::result<void> {
           return outcome::success();
         }));
   };
@@ -161,22 +165,15 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020005"_cid;
     si.sector_number = 2;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
-        si, deposit, precInf, [](const outcome::result<CID> &cid)->outcome::result<void>{
-          EXPECT_OUTCOME_TRUE_1(cid);
-          EXPECT_TRUE(cid.has_value());
-          return outcome::success();
-        }));
+    EXPECT_OUTCOME_TRUE_1(
+        batcher_->addPreCommit(si, deposit, precInf, callback_mock_));
     mutual_deposit_ += 10;
 
     precInf.sealed_cid = "010001020006"_cid;
     si.sector_number = 3;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
-        si, deposit, precInf, [](const outcome::result<CID> &cid)->outcome::result<void> {
-          EXPECT_TRUE(cid.has_value());
-          return outcome::success();
-        }));
+    EXPECT_OUTCOME_TRUE_1(
+        batcher_->addPreCommit(si, deposit, precInf, callback_mock_));
     mutual_deposit_ += 10;
 
     scheduler_backend_->shiftToTimer();
@@ -188,11 +185,8 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020008"_cid;
     si.sector_number = 6;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
-        si, deposit, precInf, [](const outcome::result<CID> &cid)->outcome::result<void> {
-        EXPECT_TRUE(cid.has_value());
-          return outcome::success();
-        }));
+    EXPECT_OUTCOME_TRUE_1(
+        batcher_->addPreCommit(si, deposit, precInf, callback_mock_));
     mutual_deposit_ += 10;
     scheduler_backend_->shiftToTimer();
     ASSERT_TRUE(is_called_);
@@ -230,11 +224,8 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020005"_cid;
     si.sector_number = 2;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
-        si, deposit, precInf, [](const outcome::result<CID> &cid)->outcome::result<void> {
-          EXPECT_TRUE(cid.has_value());
-          return outcome::success();
-        }));
+    EXPECT_OUTCOME_TRUE_1(
+        batcher_->addPreCommit(si, deposit, precInf, callback_mock_));
     mutual_deposit_ += 10;
 
     scheduler_backend_->shiftToTimer();
@@ -253,13 +244,21 @@ namespace fc::mining {
     precInf.sealed_cid = "010001020013"_cid;
     si.sector_number = 4;
 
-    EXPECT_OUTCOME_TRUE_1(batcher_->addPreCommit(
-        si, deposit, precInf, [](const outcome::result<CID> &cid)->outcome::result<void> {
-          EXPECT_TRUE(cid.has_value());
-          return outcome::success();
-        }));
+    EXPECT_OUTCOME_TRUE_1(
+        batcher_->addPreCommit(si, deposit, precInf, callback_mock_));
     ASSERT_TRUE(side_address_called);
     mutual_deposit_ += 10;
+    ASSERT_TRUE(is_called_);
+
+    api_->WalletBalance =
+        [=](const Address &address) -> outcome::result<TokenAmount> {
+      return TokenAmount{"0"};
+    };
+
+    is_called_ = false;
+
+    EXPECT_OUTCOME_TRUE_1(
+        batcher_->addPreCommit(si, deposit, precInf, callback_mock_));
     ASSERT_TRUE(is_called_);
   }
 }  // namespace fc::mining

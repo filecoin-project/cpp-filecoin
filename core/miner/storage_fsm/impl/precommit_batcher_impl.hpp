@@ -11,12 +11,10 @@
 #include <libp2p/basic/scheduler.hpp>
 #include <map>
 #include <mutex>
-#include "api/full_node/node_api.hpp"
-#include "primitives/address/address.hpp"
 #include "miner/storage_fsm/types.hpp"
+#include "primitives/address/address.hpp"
 
 namespace fc::mining {
-  using api::FullNodeApi;
   using libp2p::basic::Scheduler;
   using primitives::SectorNumber;
   using primitives::address::Address;
@@ -28,8 +26,8 @@ namespace fc::mining {
                          std::shared_ptr<FullNodeApi> api,
                          const Address &miner_address,
                          const std::shared_ptr<Scheduler> &scheduler,
-                         const std::function<outcome::result<Address>(MinerInfo miner_info, TokenAmount deposit, TokenAmount good_funds)>&,
-                          std::shared_ptr<FeeConfig> fee_config);
+                         const AddressSelector &address_selector,
+                         std::shared_ptr<FeeConfig> fee_config);
 
     outcome::result<void> addPreCommit(
         const SectorInfo &sector_info,
@@ -64,8 +62,7 @@ namespace fc::mining {
     common::Logger logger_;
     std::map<SectorNumber, PrecommitCallback> callbacks_;
     std::shared_ptr<FeeConfig> fee_config_;
-    std::function<outcome::result<Address>(MinerInfo miner_info, TokenAmount deposit, TokenAmount good_funds)> address_selector_;
-
+    AddressSelector address_selector_;
     void forceSendWithoutLock();
 
     void setPreCommitCutoff(const ChainEpoch &current_epoch,

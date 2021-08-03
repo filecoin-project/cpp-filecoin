@@ -4,6 +4,7 @@
  */
 
 #include "miner_impl.hpp"
+#include "miner/address_selector.hpp"
 #include "miner/storage_fsm/impl/basic_precommit_policy.hpp"
 #include "miner/storage_fsm/impl/events_impl.hpp"
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
@@ -22,6 +23,7 @@ namespace fc::miner {
   using mining::PreCommitBatcherImpl;
   using mining::PreCommitPolicy;
   using mining::SealingImpl;
+  using mining::SelectAddress;
   using mining::TipsetCache;
   using mining::TipsetCacheImpl;
   using mining::types::FeeConfig;
@@ -62,7 +64,7 @@ namespace fc::miner {
       std::shared_ptr<Manager> sector_manager,
       std::shared_ptr<Scheduler> scheduler,
       std::shared_ptr<boost::asio::io_context> context,
-      mining::Config config,
+      const mining::Config &config,
       std::vector<Address> precommit_control) {
     // Checks miner worker address
     OUTCOME_TRY(key, api->StateAccountKey(worker_address, {}));
@@ -89,33 +91,19 @@ namespace fc::miner {
     fee_config->max_precommit_batch_gas_fee.base = {
         0};  // TODO: config loading;
     fee_config->max_precommit_batch_gas_fee.per_sector =
-        static_cast<TokenAmount>(0.02 * 10e18);
-    fee_config->max_precommit_gas_fee = static_cast<TokenAmount>(0.025 * 10e18);
+        TokenAmount{"2000000000000000"};
+    fee_config->max_precommit_gas_fee = TokenAmount{"25000000000000000"};
     std::shared_ptr<PreCommitBatcher> precommit_batcher =
         std::make_shared<PreCommitBatcherImpl>(
             std::chrono::seconds(60),
             api,
             miner_address,
             scheduler,
-            [=](MinerInfo miner_info,
-                TokenAmount deposit,
-                TokenAmount good_funds) -> outcome::result<Address> {
-              Address minimal_balanced_address;
-              auto finder = miner_info.control.end();
-              for (auto address = miner_info.control.begin();
-                   address != miner_info.control.end();
-                   ++address) {
-                if (api->WalletBalance(*address).value() >= good_funds
-                    && (finder == miner_info.control.end()
-                        || api->WalletBalance(*finder).value()
-                               > api->WalletBalance(*address).value())) {
-                  finder = address;
-                }
-              }
-              if (finder == miner_info.control.end()) {
-                return miner_info.worker;
-              }
-              return *finder;
+            [=](const MinerInfo &miner_info,
+                const TokenAmount &good_funds,
+                const std::shared_ptr<FullNodeApi> &api)
+                -> outcome::result<Address> {
+              return SelectAddress(miner_info, good_funds, api);
             },
             fee_config);
     OUTCOME_TRY(sealing,

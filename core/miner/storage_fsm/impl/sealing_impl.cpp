@@ -49,18 +49,17 @@ namespace fc::mining {
     return std::chrono::milliseconds(60000);  // 1 minute
   }
 
-  SealingImpl::SealingImpl(
-      std::shared_ptr<FullNodeApi> api,
-      std::shared_ptr<Events> events,
-      Address miner_address,
-      std::shared_ptr<Counter> counter,
-      std::shared_ptr<BufferMap> fsm_kv,
-      std::shared_ptr<Manager> sealer,
-      std::shared_ptr<PreCommitPolicy> policy,
-      std::shared_ptr<boost::asio::io_context> context,
-      std::shared_ptr<Scheduler> scheduler,
-      std::shared_ptr<PreCommitBatcher> precommit_batcher,
-      Config config)
+  SealingImpl::SealingImpl(std::shared_ptr<FullNodeApi> api,
+                           std::shared_ptr<Events> events,
+                           Address miner_address,
+                           std::shared_ptr<Counter> counter,
+                           std::shared_ptr<BufferMap> fsm_kv,
+                           std::shared_ptr<Manager> sealer,
+                           std::shared_ptr<PreCommitPolicy> policy,
+                           std::shared_ptr<boost::asio::io_context> context,
+                           std::shared_ptr<Scheduler> scheduler,
+                           std::shared_ptr<PreCommitBatcher> precommit_batcher,
+                           Config config)
       : scheduler_{std::move(scheduler)},
         api_(std::move(api)),
         events_(std::move(events)),
@@ -100,18 +99,17 @@ namespace fc::mining {
       std::shared_ptr<PreCommitBatcher> precommit_batcher,
       Config config) {
     struct make_unique_enabler : public SealingImpl {
-      make_unique_enabler(
-          std::shared_ptr<FullNodeApi> api,
-          std::shared_ptr<Events> events,
-          Address miner_address,
-          std::shared_ptr<Counter> counter,
-          std::shared_ptr<BufferMap> fsm_kv,
-          std::shared_ptr<Manager> sealer,
-          std::shared_ptr<PreCommitPolicy> policy,
-          std::shared_ptr<boost::asio::io_context> context,
-          std::shared_ptr<Scheduler> scheduler,
-          std::shared_ptr<PreCommitBatcher> precommit_bathcer,
-          Config config)
+      make_unique_enabler(std::shared_ptr<FullNodeApi> api,
+                          std::shared_ptr<Events> events,
+                          Address miner_address,
+                          std::shared_ptr<Counter> counter,
+                          std::shared_ptr<BufferMap> fsm_kv,
+                          std::shared_ptr<Manager> sealer,
+                          std::shared_ptr<PreCommitPolicy> policy,
+                          std::shared_ptr<boost::asio::io_context> context,
+                          std::shared_ptr<Scheduler> scheduler,
+                          std::shared_ptr<PreCommitBatcher> precommit_bathcer,
+                          Config config)
           : SealingImpl{std::move(api),
                         std::move(events),
                         miner_address,
@@ -1085,29 +1083,33 @@ namespace fc::mining {
     deposit = std::max(deposit, collateral);
 
     logger_->info("submitting precommit for sector: {}", info->sector_number);
-    auto maybe_batched = precommit_batcher_->addPreCommit(*info, deposit, params, [=](const outcome::result<CID> &maybe_cid) -> outcome::result<void>{
-      if(maybe_cid.has_error()) {
-        if (params.replace_capacity) {
-          auto maybe_error = markForUpgrade(params.replace_sector);
-          if (maybe_error.has_error()) {
-            logger_->error("error re-marking sector {} as for upgrade: {}",
-                           info->sector_number,
-                           maybe_error.error().message());
+    OUTCOME_TRY(precommit_batcher_->addPreCommit(
+        *info,
+        deposit,
+        params,
+        [=](const outcome::result<CID> &maybe_cid) -> void {
+          if (maybe_cid.has_error()) {
+            if (params.replace_capacity) {
+              const auto maybe_error = markForUpgrade(params.replace_sector);
+              if (maybe_error.has_error()) {
+                logger_->error("error re-marking sector {} as for upgrade: {}",
+                               info->sector_number,
+                               maybe_error.error().message());
+              }
+            }
+            logger_->error("submitting message to precommit batcher: {}",
+                           maybe_cid.error().message());
+            OUTCOME_EXCEPT(fsm_->send(
+                info, SealingEvent::kSectorChainPreCommitFailed, {}));
           }
-        }
-        logger_->error("submitting message to precommit batcher: {}",
-                       maybe_cid.error().message());
-          OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorChainPreCommitFailed, {}));
-      }
-        std::shared_ptr<SectorPreCommittedContext> context =
-            std::make_shared<SectorPreCommittedContext>();
-        context->precommit_message = maybe_cid.value();
-        context->precommit_deposit = deposit;
-        context->precommit_info = params;
-      OUTCOME_EXCEPT( fsm_->send(info, SealingEvent::kSectorPreCommitted, context));
-      return outcome::success();
-      });
-
+          std::shared_ptr<SectorPreCommittedContext> context =
+              std::make_shared<SectorPreCommittedContext>();
+          context->precommit_message = maybe_cid.value();
+          context->precommit_deposit = deposit;
+          context->precommit_info = params;
+          OUTCOME_EXCEPT(
+              fsm_->send(info, SealingEvent::kSectorPreCommitted, context));
+        }));
     return outcome::success();
   }
 

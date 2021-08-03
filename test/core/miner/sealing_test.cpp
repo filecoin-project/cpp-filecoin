@@ -109,11 +109,10 @@ namespace fc::mining {
           .wait_deals_delay = std::chrono::hours(6),
       };
 
-
-   scheduler_backend_ = std::make_shared<ManualSchedulerBackend>();
-   scheduler_ = std::make_shared<SchedulerImpl>(scheduler_backend_,
+      scheduler_backend_ = std::make_shared<ManualSchedulerBackend>();
+      scheduler_ = std::make_shared<SchedulerImpl>(scheduler_backend_,
                                                    Scheduler::Config{});
-  precommit_batcher_ = std::make_shared<PreCommitBatcherMock>();
+      precommit_batcher_ = std::make_shared<PreCommitBatcherMock>();
 
       EXPECT_OUTCOME_TRUE(sealing,
                           SealingImpl::newSealing(api_,
@@ -844,8 +843,8 @@ namespace fc::mining {
 
     CID commit_msg_cid;  // for commit stage
     api_->MpoolPushMessage = [&commit_msg_cid](
-        const UnsignedMessage &msg,
-        const boost::optional<api::MessageSendSpec> &)
+                                 const UnsignedMessage &msg,
+                                 const boost::optional<api::MessageSendSpec> &)
         -> outcome::result<SignedMessage> {
       commit_msg_cid = msg.getCid();
       return SignedMessage{.message = msg, .signature = BlsSignature()};
@@ -934,7 +933,6 @@ namespace fc::mining {
         [](const Address &,
            const SectorPreCommitInfo &,
            const TipsetKey &) -> outcome::result<TokenAmount> { return 0; };
-
 
     // Commit Wait
 

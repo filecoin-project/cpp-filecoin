@@ -5,17 +5,22 @@
 
 #pragma once
 
+#include "api/full_node/node_api.hpp"
 #include "miner/storage_fsm/types.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 
-
 namespace fc::mining {
+  using api::FullNodeApi;
   using primitives::TokenAmount;
-  using types::SectorInfo;
   using primitives::address::Address;
-  using vm::actor::builtin::types::miner::SectorPreCommitInfo;
+  using types::SectorInfo;
   using vm::actor::builtin::types::miner::MinerInfo;
-  using PrecommitCallback = std::function<outcome::result<void>(const outcome::result<CID> &)>;
+  using vm::actor::builtin::types::miner::SectorPreCommitInfo;
+  using PrecommitCallback = std::function<void(const outcome::result<CID> &)>;
+  using AddressSelector = std::function<outcome::result<Address>(
+      const MinerInfo &miner_info,
+      const TokenAmount &good_funds,
+      const std::shared_ptr<FullNodeApi> &api)>;
 
   class PreCommitBatcher {
    public:

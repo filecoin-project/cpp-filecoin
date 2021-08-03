@@ -209,26 +209,23 @@ namespace fc::mining::types {
            && lhs.size == rhs.size;
   }
 
-  struct BatchConfing{
+  struct BatchConfing {
     TokenAmount base;
     TokenAmount per_sector;
 
-    inline TokenAmount FeeForSector(const uint64_t & sector_number){
-      return base + static_cast<TokenAmount>(sector_number*per_sector);
+    inline TokenAmount FeeForSector(const size_t &sector_number) const {
+      return base + sector_number * per_sector;
     }
   };
 
-  struct FeeConfig{
+  struct FeeConfig {
     TokenAmount max_precommit_gas_fee;
 
     // maxBatchFee = maxBase + maxPerSector * nSectors
     BatchConfing max_precommit_batch_gas_fee;
 
-    //TODO: TokenAmount max_terminate_gas_fee, max_window_poSt_gas_fee, max_publish_deals_fee, max_market_balance_ddd_fee
-
-
+    // TODO: TokenAmount max_terminate_gas_fee, max_window_poSt_gas_fee,
+    // max_publish_deals_fee, max_market_balance_ddd_fee
   };
-
-
 
 }  // namespace fc::mining::types
