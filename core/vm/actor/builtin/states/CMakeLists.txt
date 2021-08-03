@@ -16,3 +16,5 @@ target_link_libraries(actor_state
     miner_types
     storage_power_types
     )
+
+add_subdirectory(account)

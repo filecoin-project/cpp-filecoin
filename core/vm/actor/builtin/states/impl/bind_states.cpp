@@ -6,13 +6,6 @@
 #include "vm/actor/builtin/states/all_states.hpp"
 #include "vm/actor/builtin/types/type_manager/universal_impl.hpp"
 
-UNIVERSAL_IMPL(states::AccountActorState,
-               v0::account::AccountActorState,
-               v2::account::AccountActorState,
-               v3::account::AccountActorState,
-               v3::account::AccountActorState,
-               v3::account::AccountActorState)
-
 UNIVERSAL_IMPL(states::CronActorState,
                v0::cron::CronActorState,
                v2::cron::CronActorState,

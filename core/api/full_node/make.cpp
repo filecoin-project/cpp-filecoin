@@ -23,7 +23,7 @@
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/chain/receipt_loader.hpp"
 #include "storage/hamt/hamt.hpp"
-#include "vm/actor/builtin/states/account_actor_state.hpp"
+#include "vm/actor/builtin/states/account/account_actor_state.hpp"
 #include "vm/actor/builtin/states/init_actor_state.hpp"
 #include "vm/actor/builtin/states/market_actor_state.hpp"
 #include "vm/actor/builtin/states/miner_actor_state.hpp"

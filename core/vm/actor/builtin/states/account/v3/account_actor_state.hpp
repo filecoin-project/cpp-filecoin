@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v2/account/account_actor_state.hpp"
+#include "vm/actor/builtin/states/account/v2/account_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::account {
   using AccountActorState = v2::account::AccountActorState;

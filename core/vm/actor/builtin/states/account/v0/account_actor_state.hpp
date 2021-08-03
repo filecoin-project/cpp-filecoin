@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/account_actor_state.hpp"
+#include "vm/actor/builtin/states/account/account_actor_state.hpp"
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/address/address_codec.hpp"
