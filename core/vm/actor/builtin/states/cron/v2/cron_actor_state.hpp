@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/cron/cron_actor_state.hpp"
+#include "vm/actor/builtin/states/cron/v0/cron_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::cron {
   using CronActorState = v0::cron::CronActorState;

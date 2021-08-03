@@ -18,3 +18,4 @@ target_link_libraries(actor_state
     )
 
 add_subdirectory(account)
+add_subdirectory(cron)

@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 
-#include "vm/actor/builtin/states/cron_actor_state.hpp"
+#include "vm/actor/builtin/states/cron/cron_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::cron {
   using states::CronActorStatePtr;
