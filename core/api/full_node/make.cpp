@@ -26,7 +26,7 @@
 #include "vm/actor/builtin/states/account/account_actor_state.hpp"
 #include "vm/actor/builtin/states/init/init_actor_state.hpp"
 #include "vm/actor/builtin/states/market/market_actor_state.hpp"
-#include "vm/actor/builtin/states/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/states/power_actor_state.hpp"
 #include "vm/actor/builtin/states/reward_actor_state.hpp"
 #include "vm/actor/builtin/states/verified_registry_actor_state.hpp"

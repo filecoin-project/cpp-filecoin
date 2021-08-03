@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 
-#include "vm/actor/builtin/states/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"

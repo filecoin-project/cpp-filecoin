@@ -3,20 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/v3/miner_actor_state.hpp"
 
-#include "vm/actor/builtin/types/miner/v2/deadline.hpp" //TODO (m.tagirov) remove
+#include "vm/actor/builtin/types/miner/v3/deadline.hpp" //TODO (m.tagirov) remove
 
-namespace fc::vm::actor::builtin::v2::miner {
-  using primitives::sector::getRegisteredWindowPoStProof;
+namespace fc::vm::actor::builtin::v3::miner {
   using types::miner::kWPoStPeriodDeadlines;
 
   outcome::result<Universal<types::miner::MinerInfo>> MinerActorState::getInfo()
       const {
-    OUTCOME_TRY(info, miner_info.get());
-    OUTCOME_TRYA(info->window_post_proof_type,
-                 getRegisteredWindowPoStProof(info->seal_proof_type));
-    return std::move(info);
+    return miner_info.get();
   }
 
   outcome::result<types::miner::Deadlines> MinerActorState::makeEmptyDeadlines(
@@ -29,7 +25,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   outcome::result<types::miner::Deadline> MinerActorState::getDeadline(
       IpldPtr ipld, const CID &cid) const {
-    OUTCOME_TRY(deadline2, getCbor<Deadline>(ipld, cid));
-    return std::move(deadline2);
+    OUTCOME_TRY(deadline3, getCbor<Deadline>(ipld, cid));
+    return std::move(deadline3);
   }
-}  // namespace fc::vm::actor::builtin::v2::miner
+}  // namespace fc::vm::actor::builtin::v3::miner

@@ -5,12 +5,12 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "storage/ipfs/datastore.hpp"
 
-namespace fc::vm::actor::builtin::v2::miner {
+namespace fc::vm::actor::builtin::v0::miner {
   using types::Universal;
 
   struct MinerActorState : states::MinerActorState {
@@ -27,7 +27,6 @@ namespace fc::vm::actor::builtin::v2::miner {
              precommit_deposit,
              locked_funds,
              vesting_funds,
-             fee_debt,
              initial_pledge_requirement,
              precommitted_sectors,
              precommitted_setctors_expiry,
@@ -38,13 +37,13 @@ namespace fc::vm::actor::builtin::v2::miner {
              deadlines,
              early_terminations)
 
-}  // namespace fc::vm::actor::builtin::v2::miner
+}  // namespace fc::vm::actor::builtin::v0::miner
 
 namespace fc::cbor_blake {
   template <>
-  struct CbVisitT<vm::actor::builtin::v2::miner::MinerActorState> {
+  struct CbVisitT<vm::actor::builtin::v0::miner::MinerActorState> {
     template <typename Visitor>
-    static void call(vm::actor::builtin::v2::miner::MinerActorState &state,
+    static void call(vm::actor::builtin::v0::miner::MinerActorState &state,
                      const Visitor &visit) {
       visit(state.miner_info);
       visit(state.vesting_funds);

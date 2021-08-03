@@ -10,7 +10,7 @@
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/keystore/keystore.hpp"
-#include "vm/actor/builtin/states/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/interpreter/interpreter.hpp"

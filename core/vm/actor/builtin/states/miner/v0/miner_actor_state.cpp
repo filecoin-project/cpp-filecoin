@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
 
 #include "vm/actor/builtin/types/miner/v0/deadline.hpp" //TODO (m.tagirov) remove
 

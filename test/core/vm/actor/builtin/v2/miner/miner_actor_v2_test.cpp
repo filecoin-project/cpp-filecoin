@@ -13,7 +13,7 @@
 #include "testutil/vm/actor/builtin/miner/miner_actor_test_fixture.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/v2/deadline.hpp"
-#include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/v2/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 #include "vm/actor/codes.hpp"
 

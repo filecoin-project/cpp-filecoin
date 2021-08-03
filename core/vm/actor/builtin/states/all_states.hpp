@@ -5,10 +5,6 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v3/miner/miner_actor_state.hpp"
-
 #include "vm/actor/builtin/v0/multisig/multisig_actor_state.hpp"
 #include "vm/actor/builtin/v2/multisig/multisig_actor_state.hpp"
 #include "vm/actor/builtin/v3/multisig/multisig_actor_state.hpp"

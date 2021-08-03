@@ -11,11 +11,11 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/v2/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/storage_power/claim.hpp"
 #include "vm/actor/builtin/types/type_manager/universal.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
-#include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
 
 namespace fc::codec::cbor::light_reader {

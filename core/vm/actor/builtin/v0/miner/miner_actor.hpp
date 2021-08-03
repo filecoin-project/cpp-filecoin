@@ -12,7 +12,7 @@
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/states/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {

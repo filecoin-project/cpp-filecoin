@@ -6,13 +6,6 @@
 #include "vm/actor/builtin/states/all_states.hpp"
 #include "vm/actor/builtin/types/type_manager/universal_impl.hpp"
 
-UNIVERSAL_IMPL(states::MinerActorState,
-               v0::miner::MinerActorState,
-               v2::miner::MinerActorState,
-               v3::miner::MinerActorState,
-               v3::miner::MinerActorState,
-               v3::miner::MinerActorState)
-
 UNIVERSAL_IMPL(states::MultisigActorState,
                v0::multisig::MultisigActorState,
                v2::multisig::MultisigActorState,
