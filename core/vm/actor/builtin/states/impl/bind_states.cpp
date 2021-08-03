@@ -6,13 +6,6 @@
 #include "vm/actor/builtin/states/all_states.hpp"
 #include "vm/actor/builtin/types/type_manager/universal_impl.hpp"
 
-UNIVERSAL_IMPL(states::InitActorState,
-               states::InitActorState,
-               states::InitActorState,
-               states::InitActorState,
-               states::InitActorState,
-               states::InitActorState)
-
 UNIVERSAL_IMPL(states::MarketActorState,
                v0::market::MarketActorState,
                v2::market::MarketActorState,

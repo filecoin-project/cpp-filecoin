@@ -19,26 +19,14 @@ namespace fc::vm::actor::builtin::states {
     std::string network_name;
 
     /// Allocate new id address
-    outcome::result<Address> addActor(const Address &address) {
+    inline outcome::result<Address> addActor(const Address &address) {
       const auto id = next_id;
       OUTCOME_TRY(address_map.set(address, id));
       ++next_id;
       return Address::makeFromId(id);
     }
   };
-  CBOR_TUPLE(InitActorState, address_map, next_id, network_name)
 
   using InitActorStatePtr = types::Universal<InitActorState>;
 
 }  // namespace fc::vm::actor::builtin::states
-
-namespace fc::cbor_blake {
-  template <>
-  struct CbVisitT<fc::vm::actor::builtin::states::InitActorState> {
-    template <typename Visitor>
-    static void call(fc::vm::actor::builtin::states::InitActorState &state,
-                     const Visitor &visit) {
-      visit(state.address_map);
-    }
-  };
-}  // namespace fc::cbor_blake
