@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/multisig_actor_state.hpp"
+#include "vm/actor/builtin/states/multisig/multisig_actor_state.hpp"
 
 #include "codec/cbor/streams_annotation.hpp"
 

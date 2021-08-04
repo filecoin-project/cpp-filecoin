@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/states/multisig_actor_state.hpp"
+#include "vm/actor/builtin/states/multisig/multisig_actor_state.hpp"
 
 #include "vm/runtime/runtime.hpp"
 

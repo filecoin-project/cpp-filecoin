@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/v3/multisig/multisig_actor.hpp"
 
-#include "vm/actor/builtin/states/multisig_actor_state.hpp"
+#include "vm/actor/builtin/states/multisig/multisig_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::multisig {
   using common::Buffer;

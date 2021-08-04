@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v2/multisig/multisig_actor_state.hpp"
+#include "vm/actor/builtin/states/multisig/v2/multisig_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::multisig {
   using MultisigActorState = v2::multisig::MultisigActorState;
