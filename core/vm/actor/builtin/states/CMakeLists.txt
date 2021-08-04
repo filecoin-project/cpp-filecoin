@@ -3,15 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(actor_state
-    impl/bind_states.cpp
-    )
-target_link_libraries(actor_state
-    actor
-    outcome
-    storage_power_types
-    )
-
 add_subdirectory(account)
 add_subdirectory(cron)
 add_subdirectory(init)

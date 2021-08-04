@@ -11,6 +11,5 @@ target_link_libraries(reward_actor_v0
     actor
     address
     exit_code
-    reward_types
     outcome
     )
