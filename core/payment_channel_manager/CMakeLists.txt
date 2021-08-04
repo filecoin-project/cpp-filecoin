@@ -9,5 +9,6 @@ add_library(payment_channel_manager
     )
 target_link_libraries(payment_channel_manager
     address
+    payment_channel_actor_state
     state_tree
     )

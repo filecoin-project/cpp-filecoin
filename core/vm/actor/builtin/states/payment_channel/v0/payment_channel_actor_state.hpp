@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/states/payment_channel/payment_channel_actor_state.hpp"
 
 #include "codec/cbor/streams_annotation.hpp"
 

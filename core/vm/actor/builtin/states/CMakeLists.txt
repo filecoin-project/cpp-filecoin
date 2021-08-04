@@ -11,7 +11,6 @@ add_library(actor_state
 target_link_libraries(actor_state
     actor
     outcome
-    miner_types
     storage_power_types
     )
 
@@ -21,3 +20,4 @@ add_subdirectory(init)
 add_subdirectory(market)
 add_subdirectory(miner)
 add_subdirectory(multisig)
+add_subdirectory(payment_channel)

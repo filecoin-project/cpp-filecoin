@@ -5,10 +5,6 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
-#include "vm/actor/builtin/v2/payment_channel/payment_channel_actor_state.hpp"
-#include "vm/actor/builtin/v3/payment_channel/payment_channel_actor_state.hpp"
-
 #include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor_state.hpp"
 // TODO reward state v3
