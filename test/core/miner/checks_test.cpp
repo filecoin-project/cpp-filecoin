@@ -1221,17 +1221,6 @@ namespace fc::mining::checks {
       return ERROR_TEXT("ERROR");
     };
 
-    api_->StateMinerInfo =
-        [&](const Address &address,
-            const TipsetKey &key) -> outcome::result<MinerInfo> {
-      if (address == miner_addr_ and key == commit_key) {
-        MinerInfo minfo;
-        minfo.seal_proof_type = info->sector_type;
-        return minfo;
-      }
-      return ERROR_TEXT("ERROR");
-    };
-
     EXPECT_CALL(*proofs_, verifySeal(_))
         .WillOnce(testing::Return(outcome::success(false)));
     EXPECT_OUTCOME_ERROR(

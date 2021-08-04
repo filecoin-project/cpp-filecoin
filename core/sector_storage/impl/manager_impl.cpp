@@ -187,11 +187,7 @@ namespace fc::sector_storage {
       PoStRandomness randomness) {
     randomness[31] &= 0x3f;
 
-    OUTCOME_TRY(res,
-                publicSectorToPrivate(
-                    miner_id,
-                    sector_info,
-                    primitives::sector::getRegisteredWinningPoStProof));
+    OUTCOME_TRY(res, publicSectorToPrivate(miner_id, sector_info, true));
 
     if (!res.skipped.empty()) {
       std::string skipped_sectors = sectorName(res.skipped[0]);
@@ -213,11 +209,7 @@ namespace fc::sector_storage {
 
     Prover::WindowPoStResponse response{};
 
-    OUTCOME_TRY(res,
-                publicSectorToPrivate(
-                    miner_id,
-                    sector_info,
-                    primitives::sector::getRegisteredWindowPoStProof));
+    OUTCOME_TRY(res, publicSectorToPrivate(miner_id, sector_info, false));
 
     OUTCOME_TRYA(
         response.proof,
@@ -307,11 +299,9 @@ namespace fc::sector_storage {
   }
 
   outcome::result<ManagerImpl::PubToPrivateResponse>
-  ManagerImpl::publicSectorToPrivate(
-      ActorId miner,
-      gsl::span<const SectorInfo> sector_info,
-      const std::function<outcome::result<RegisteredPoStProof>(
-          RegisteredSealProof)> &to_post_transform) {
+  ManagerImpl::publicSectorToPrivate(ActorId miner,
+                                     gsl::span<const SectorInfo> sector_info,
+                                     bool winning) {
     PubToPrivateResponse result;
 
     std::vector<proofs::PrivateSectorInfo> out{};
@@ -337,7 +327,10 @@ namespace fc::sector_storage {
         continue;
       }
 
-      OUTCOME_TRY(post_proof_type, to_post_transform(sector.registered_proof));
+      OUTCOME_TRY(post_proof_type,
+                  winning
+                      ? getRegisteredWinningPoStProof(sector.registered_proof)
+                      : getRegisteredWindowPoStProof(sector.registered_proof));
 
       result.locks.push_back(std::move(res.value().lock));
 
