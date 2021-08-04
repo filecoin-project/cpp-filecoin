@@ -29,7 +29,6 @@ namespace fc::codec::cbor::light_reader {
   using vm::actor::builtin::types::miner::MinerInfo;
   using vm::actor::builtin::types::miner::VestingFunds;
   using vm::actor::builtin::types::storage_power::Claim;
-  using vm::actor::builtin::types::storage_power::CronEvent;
   using MinerActorStateV0 = vm::actor::builtin::v0::miner::MinerActorState;
   using MinerActorStateV2 = vm::actor::builtin::v2::miner::MinerActorState;
   using PowerActorStateV0 =

@@ -8,6 +8,7 @@ addtest(light_actor_reader_test
     )
 target_link_libraries(light_actor_reader_test
     cbor
-    miner_types
+    miner_actor_state
+    storage_power_actor_state
     ipfs_datastore_in_memory
     )

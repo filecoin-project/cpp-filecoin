@@ -11,5 +11,6 @@ add_library(storage_power_actor_state
     )
 target_link_libraries(storage_power_actor_state
     cbor
+    alpha_beta_filter
     storage_power_types
     )
