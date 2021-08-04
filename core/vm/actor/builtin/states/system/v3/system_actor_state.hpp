@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v2/system/system_actor_state.hpp"
+#include "vm/actor/builtin/states/system/v2/system_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::system {
   using SystemActorState = v2::system::SystemActorState;

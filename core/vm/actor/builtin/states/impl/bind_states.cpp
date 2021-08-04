@@ -6,13 +6,6 @@
 #include "vm/actor/builtin/states/all_states.hpp"
 #include "vm/actor/builtin/types/type_manager/universal_impl.hpp"
 
-UNIVERSAL_IMPL(states::SystemActorState,
-               v0::system::SystemActorState,
-               v2::system::SystemActorState,
-               v3::system::SystemActorState,
-               v3::system::SystemActorState,
-               v3::system::SystemActorState)
-
 UNIVERSAL_IMPL(states::VerifiedRegistryActorState,
                v0::verified_registry::VerifiedRegistryActorState,
                v2::verified_registry::VerifiedRegistryActorState,

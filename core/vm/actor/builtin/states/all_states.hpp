@@ -5,10 +5,6 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v0/system/system_actor_state.hpp"
-#include "vm/actor/builtin/v2/system/system_actor_state.hpp"
-#include "vm/actor/builtin/v3/system/system_actor_state.hpp"
-
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/v3/verified_registry/verified_registry_actor_state.hpp"

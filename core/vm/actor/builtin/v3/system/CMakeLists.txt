@@ -7,5 +7,6 @@ add_library(system_actor_v3
     system_actor.cpp
     )
 target_link_libraries(system_actor_v3
+    system_actor_state
     actor
     )
