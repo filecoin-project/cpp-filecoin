@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/reward_actor_state.hpp"
+#include "vm/actor/builtin/states/reward/reward_actor_state.hpp"
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/types.hpp"

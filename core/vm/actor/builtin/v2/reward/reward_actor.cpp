@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 
-#include "vm/actor/builtin/states/reward_actor_state.hpp"
+#include "vm/actor/builtin/states/reward/reward_actor_state.hpp"
 #include "vm/actor/builtin/types/reward/policy.hpp"
 #include "vm/actor/builtin/types/reward/reward_actor_calculus.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"

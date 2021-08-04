@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/states/reward_actor_state.hpp"
+#include "vm/actor/builtin/states/reward/reward_actor_state.hpp"
 
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "vm/actor/builtin/types/reward/reward_actor_calculus.hpp"

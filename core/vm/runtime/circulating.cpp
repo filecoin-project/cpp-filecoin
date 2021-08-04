@@ -10,7 +10,7 @@
 #include "primitives/block/block.hpp"
 #include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/states/power_actor_state.hpp"
-#include "vm/actor/builtin/states/reward_actor_state.hpp"
+#include "vm/actor/builtin/states/reward/reward_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 

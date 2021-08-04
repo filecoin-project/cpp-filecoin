@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/types/reward/policy.hpp"
-#include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
-#include "vm/actor/builtin/v2/reward/reward_actor_state.hpp"
+#include "vm/actor/builtin/states/reward/v2/reward_actor_state.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/vm/actor/builtin/reward/reward_actor_test_fixture.hpp"
+#include "vm/actor/builtin/types/reward/policy.hpp"
+#include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 
 namespace fc::vm::actor::builtin::v2::reward {
   using primitives::ChainEpoch;
