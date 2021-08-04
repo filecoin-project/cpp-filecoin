@@ -6,13 +6,6 @@
 #include "vm/actor/builtin/states/all_states.hpp"
 #include "vm/actor/builtin/types/type_manager/universal_impl.hpp"
 
-UNIVERSAL_IMPL(states::PowerActorState,
-               v0::storage_power::PowerActorState,
-               v2::storage_power::PowerActorState,
-               v3::storage_power::PowerActorState,
-               v3::storage_power::PowerActorState,
-               v3::storage_power::PowerActorState)
-
 UNIVERSAL_IMPL(states::SystemActorState,
                v0::system::SystemActorState,
                v2::system::SystemActorState,

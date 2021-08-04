@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/states/storage_power/v2/storage_power_actor_state.hpp"
 
 #include <gtest/gtest.h>
 #include <libp2p/peer/peer_id.hpp>

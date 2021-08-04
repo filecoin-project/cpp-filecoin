@@ -7,7 +7,7 @@
 
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
-#include "vm/actor/builtin/states/power_actor_state.hpp"
+#include "vm/actor/builtin/states/storage_power/storage_power_actor_state.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::utils {

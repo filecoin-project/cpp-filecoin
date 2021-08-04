@@ -4,7 +4,6 @@
 #
 
 add_library(actor_state
-    impl/power_actor_state.cpp
     impl/bind_states.cpp
     )
 target_link_libraries(actor_state
@@ -21,3 +20,4 @@ add_subdirectory(miner)
 add_subdirectory(multisig)
 add_subdirectory(payment_channel)
 add_subdirectory(reward)
+add_subdirectory(storage_power)

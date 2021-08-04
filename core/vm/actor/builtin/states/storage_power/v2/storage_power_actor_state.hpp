@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/power_actor_state.hpp"
+#include "vm/actor/builtin/states/storage_power/storage_power_actor_state.hpp"
 
 #include "codec/cbor/streams_annotation.hpp"
 
-namespace fc::vm::actor::builtin::v0::storage_power {
+namespace fc::vm::actor::builtin::v2::storage_power {
   using primitives::address::Address;
   using runtime::Runtime;
   using types::storage_power::Claim;
@@ -37,18 +37,17 @@ namespace fc::vm::actor::builtin::v0::storage_power {
              num_miners_meeting_min_power,
              cron_event_queue,
              first_cron_epoch,
-             last_processed_cron_epoch,
              claims,
              proof_validation_batch)
 
-}  // namespace fc::vm::actor::builtin::v0::storage_power
+}  // namespace fc::vm::actor::builtin::v2::storage_power
 
 namespace fc::cbor_blake {
   template <>
-  struct CbVisitT<vm::actor::builtin::v0::storage_power::PowerActorState> {
+  struct CbVisitT<vm::actor::builtin::v2::storage_power::PowerActorState> {
     template <typename Visitor>
     static void call(
-        vm::actor::builtin::v0::storage_power::PowerActorState &state,
+        vm::actor::builtin::v2::storage_power::PowerActorState &state,
         const Visitor &visit) {
       visit(state.cron_event_queue);
       visit(state.claims);

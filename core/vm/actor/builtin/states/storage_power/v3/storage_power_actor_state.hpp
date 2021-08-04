@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/states/storage_power/v2/storage_power_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::storage_power {
   using PowerActorState = v2::storage_power::PowerActorState;
