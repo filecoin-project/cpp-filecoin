@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/v2/verified_registry/verified_registry_actor_state.hpp"
+#include "vm/actor/builtin/states/verified_registry/v2/verified_registry_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::verified_registry {
   using VerifiedRegistryActorState =

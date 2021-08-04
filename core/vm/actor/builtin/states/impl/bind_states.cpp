@@ -5,10 +5,3 @@
 
 #include "vm/actor/builtin/states/all_states.hpp"
 #include "vm/actor/builtin/types/type_manager/universal_impl.hpp"
-
-UNIVERSAL_IMPL(states::VerifiedRegistryActorState,
-               v0::verified_registry::VerifiedRegistryActorState,
-               v2::verified_registry::VerifiedRegistryActorState,
-               v3::verified_registry::VerifiedRegistryActorState,
-               v3::verified_registry::VerifiedRegistryActorState,
-               v3::verified_registry::VerifiedRegistryActorState)

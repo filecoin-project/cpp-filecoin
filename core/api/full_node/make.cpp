@@ -29,7 +29,7 @@
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/states/reward/reward_actor_state.hpp"
 #include "vm/actor/builtin/states/storage_power/storage_power_actor_state.hpp"
-#include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
+#include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
