@@ -15,6 +15,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/context_wait.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/mocks/api.hpp"
 #include "testutil/mocks/miner/events_mock.hpp"
 #include "testutil/mocks/miner/precommit_policy_mock.hpp"
 #include "testutil/mocks/primitives/stored_counter_mock.hpp"
@@ -67,7 +68,6 @@ namespace fc::mining {
       ASSERT_FALSE(sector_size.has_error());
       sector_size_ = PaddedPieceSize(sector_size.value());
 
-      api_ = std::make_shared<FullNodeApi>();
       events_ = std::make_shared<EventsMock>();
       miner_id_ = 42;
       miner_addr_ = Address::makeFromId(miner_id_);
@@ -124,6 +124,14 @@ namespace fc::mining {
                                                   scheduler_,
                                                   config_));
       sealing_ = sealing;
+
+      MinerInfo minfo;
+      minfo.window_post_proof_type =
+          primitives::sector::RegisteredPoStProof::kStackedDRG2KiBWindowPoSt;
+      EXPECT_CALL(mock_StateMinerInfo, Call(miner_addr_, _))
+          .WillRepeatedly(testing::Return(minfo));
+      EXPECT_CALL(mock_StateNetworkVersion, Call(_))
+          .WillRepeatedly(testing::Return(NetworkVersion::kVersion0));
     }
 
     void TearDown() override {
@@ -135,7 +143,7 @@ namespace fc::mining {
 
     PaddedPieceSize sector_size_;
     Config config_;
-    std::shared_ptr<FullNodeApi> api_;
+    std::shared_ptr<FullNodeApi> api_ = std::make_shared<FullNodeApi>();
     std::shared_ptr<EventsMock> events_;
     uint64_t miner_id_;
     Address miner_addr_;
@@ -149,6 +157,8 @@ namespace fc::mining {
     std::shared_ptr<Scheduler> scheduler_;
 
     std::shared_ptr<Sealing> sealing_;
+    MOCK_API(api_, StateMinerInfo);
+    MOCK_API(api_, StateNetworkVersion);
   };
 
   /**
@@ -200,17 +210,6 @@ namespace fc::mining {
 
     SectorNumber sector = 1;
     EXPECT_CALL(*counter_, next()).WillOnce(testing::Return(sector));
-
-    api_->StateMinerInfo =
-        [&](const Address &address,
-            const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
-      if (address == miner_addr_) {
-        MinerInfo info;
-        info.seal_proof_type = seal_proof_type_;
-        return info;
-      }
-      return ERROR_TEXT("ERROR");
-    };
 
     PieceInfo info{
         .size = piece_size.padded(),
@@ -312,17 +311,6 @@ namespace fc::mining {
         .is_keep_unsealed = true,
     };
 
-    api_->StateMinerInfo =
-        [&](const Address &address,
-            const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
-      if (address == miner_addr_) {
-        MinerInfo info;
-        info.seal_proof_type = seal_proof_type_;
-        return info;
-      }
-      return ERROR_TEXT("ERROR");
-    };
-
     EXPECT_OUTCOME_ERROR(
         SealingError::kPieceNotFit,
         sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
@@ -349,17 +337,6 @@ namespace fc::mining {
 
     SectorNumber sector = 1;
     EXPECT_CALL(*counter_, next()).WillOnce(testing::Return(sector));
-
-    api_->StateMinerInfo =
-        [&](const Address &address,
-            const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
-      if (address == miner_addr_) {
-        MinerInfo info;
-        info.seal_proof_type = seal_proof_type_;
-        return info;
-      }
-      return ERROR_TEXT("ERROR");
-    };
 
     PieceInfo info{
         .size = piece_size.padded(),
@@ -412,17 +389,6 @@ namespace fc::mining {
     SectorNumber sector = 1;
     EXPECT_CALL(*counter_, next()).WillOnce(testing::Return(sector));
 
-    api_->StateMinerInfo =
-        [&](const Address &address,
-            const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
-      if (address == miner_addr_) {
-        MinerInfo info;
-        info.seal_proof_type = seal_proof_type_;
-        return info;
-      }
-      return ERROR_TEXT("ERROR");
-    };
-
     PieceInfo info{
         .size = piece_size.padded(),
         .cid = "010001020001"_cid,
@@ -466,17 +432,6 @@ namespace fc::mining {
 
     SectorNumber sector = 1;
     EXPECT_CALL(*counter_, next()).WillOnce(testing::Return(sector));
-
-    api_->StateMinerInfo =
-        [&](const Address &address,
-            const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
-      if (address == miner_addr_) {
-        MinerInfo info;
-        info.seal_proof_type = seal_proof_type_;
-        return info;
-      }
-      return ERROR_TEXT("ERROR");
-    };
 
     PieceInfo info1{
         .size = piece_size.padded(),
@@ -541,17 +496,6 @@ namespace fc::mining {
 
     SectorNumber sector = 1;
     EXPECT_CALL(*counter_, next()).WillOnce(testing::Return(sector));
-
-    api_->StateMinerInfo =
-        [&](const Address &address,
-            const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
-      if (address == miner_addr_) {
-        MinerInfo info;
-        info.seal_proof_type = seal_proof_type_;
-        return info;
-      }
-      return ERROR_TEXT("ERROR");
-    };
 
     PieceInfo info{
         .size = piece_size.padded(),
@@ -624,17 +568,6 @@ namespace fc::mining {
     SectorNumber sector = 1;
     EXPECT_CALL(*counter_, next()).WillOnce(testing::Return(sector));
 
-    api_->StateMinerInfo =
-        [&](const Address &address,
-            const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
-      if (address == miner_addr_) {
-        MinerInfo info;
-        info.seal_proof_type = seal_proof_type_;
-        return info;
-      }
-      return ERROR_TEXT("ERROR");
-    };
-
     PieceInfo info{
         .size = piece_size.padded(),
         .cid = "010001020001"_cid,
@@ -680,17 +613,6 @@ namespace fc::mining {
     EXPECT_CALL(*counter_, next()).WillOnce(testing::Return(sector));
 
     SectorId sector_id{.miner = miner_id_, .sector = sector};
-
-    api_->StateMinerInfo =
-        [&](const Address &address,
-            const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
-      if (address == miner_addr_) {
-        MinerInfo info;
-        info.seal_proof_type = seal_proof_type_;
-        return info;
-      }
-      return ERROR_TEXT("ERROR");
-    };
 
     PieceInfo info{
         .size = piece_size.padded(),
@@ -979,19 +901,6 @@ namespace fc::mining {
                                _,
                                0))
         .WillOnce(testing::Return(outcome::success(info)));
-
-    api_->StateMinerInfo =
-        [miner{miner_addr_}, spt{seal_proof_type_}](
-            const Address &address,
-            const TipsetKey &key) -> outcome::result<MinerInfo> {
-      if (address == miner and key == TipsetKey{}) {
-        MinerInfo minfo;
-        minfo.seal_proof_type = spt;
-        return std::move(minfo);
-      }
-
-      return ERROR_TEXT("ERROR");
-    };
 
     ASSERT_EQ(sealing_->getListSectors().size(), 1);
     EXPECT_OUTCOME_TRUE_1(sealing_->pledgeSector());

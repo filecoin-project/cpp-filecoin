@@ -39,12 +39,13 @@ namespace fc::api {
 
   template <typename T>
   void expectJson(const T &value, std::string _expected) {
-    const auto encoded = jsonEncode(fc::api::encode(value));
+    auto encoded = jsonEncode(fc::api::encode(value));
     EXPECT_EQ(std::string(encoded.begin(), encoded.end()), _expected);
     EXPECT_OUTCOME_TRUE(
         decoded,
         fc::api::decode<T>(jsonDecode(fc::common::span::cbytes(_expected))));
-    EXPECT_EQ(decoded, value);
+    encoded = jsonEncode(fc::api::encode(decoded));
+    EXPECT_EQ(std::string(encoded.begin(), encoded.end()), _expected);
   }
 
   /// Following tests check json encoding and decoding
@@ -100,20 +101,15 @@ namespace fc::api {
    * @then equal to lotus serialization
    */
   TEST(ApiJsonTest, MinerInfoPendingWorkerKeyNotSet) {
-    using fc::vm::actor::builtin::types::miner::MinerInfo;
     MinerInfo miner_info;
-    miner_info.seal_proof_type = RegisteredSealProof::kStackedDrg2KiBV1;
-    EXPECT_OUTCOME_TRUE(
-        window_post_proof_type,
-        getRegisteredWindowPoStProof(miner_info.seal_proof_type));
-    miner_info.window_post_proof_type = window_post_proof_type;
+    miner_info.window_post_proof_type =
+        RegisteredPoStProof::kStackedDRG2KiBWindowPoSt;
     miner_info.sector_size = 1;
     miner_info.window_post_partition_sectors = 1;
-    expectJson(
-        miner_info,
-        "{\"Owner\":\"t00\",\"Worker\":\"t00\",\"ControlAddresses\":[],"
-        "\"PeerId\":null,"
-        "\"Multiaddrs\":[],\"SealProofType\":0,\"WindowPoStProofType\":5,"
-        "\"SectorSize\":1,\"WindowPoStPartitionSectors\":1}");
+    expectJson(miner_info,
+               "{\"Owner\":\"t00\",\"Worker\":\"t00\",\"ControlAddresses\":[],"
+               "\"PeerId\":null,"
+               "\"Multiaddrs\":[],\"WindowPoStProofType\":5,"
+               "\"SectorSize\":1,\"WindowPoStPartitionSectors\":1}");
   }
 }  // namespace fc::api
