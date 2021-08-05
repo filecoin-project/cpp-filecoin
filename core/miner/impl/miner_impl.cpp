@@ -65,7 +65,8 @@ namespace fc::miner {
       std::shared_ptr<Scheduler> scheduler,
       std::shared_ptr<boost::asio::io_context> context,
       const mining::Config &config,
-      std::vector<Address> precommit_control) {
+      const std::vector<Address>
+          &precommit_control) {  // TODO: Commit Batcher extension
     // Checks miner worker address
     OUTCOME_TRY(key, api->StateAccountKey(worker_address, {}));
     OUTCOME_TRY(has, api->WalletHas(key));

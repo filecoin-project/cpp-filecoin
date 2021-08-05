@@ -39,7 +39,6 @@ namespace fc::mining {
   class PreCommitBatcherTest : public testing::Test {
    protected:
     virtual void SetUp() {
-      seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
       scheduler_backend_ = std::make_shared<ManualSchedulerBackend>();
       scheduler_ = std::make_shared<SchedulerImpl>(scheduler_backend_,
                                                    Scheduler::Config{});
@@ -53,9 +52,8 @@ namespace fc::mining {
       tipset_ = std::make_shared<Tipset>(
           TipsetKey(), std::vector<api::BlockHeader>({block}));
 
-      api_->ChainHead = [=]() -> outcome::result<TipsetCPtr> {
-        return tipset_;
-      };
+      EXPECT_CALL(mock_ChainHead, Call()).WillRepeatedly(testing::Return(tipset_));
+
       MinerInfo minfo;
       minfo.window_post_proof_type =
           primitives::sector::RegisteredPoStProof::kStackedDRG2KiBWindowPoSt;
@@ -111,12 +109,11 @@ namespace fc::mining {
     Address side_address_;
     Address wrong_side_address_;
     uint64_t miner_id_;
-    RegisteredSealProof seal_proof_type_;
     BatcherCallbackMock callback_mock_;
     bool is_called_;
     MOCK_API(api_, StateMinerInfo);
-    MOCK_API(api_, StateNetworkVersion);
     MOCK_API(api_, WalletBalance);
+    MOCK_API(api_, ChainHead);
   };
 
   TEST_F(PreCommitBatcherTest, BatcherWrite) {

@@ -42,7 +42,7 @@ namespace fc::miner {
         std::shared_ptr<Scheduler> scheduler,
         std::shared_ptr<boost::asio::io_context> context,
         const mining::Config &config,
-        std::vector<Address> precommit_control);
+        const std::vector<Address> &precommit_control);
 
     outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber sector_id) const override;
