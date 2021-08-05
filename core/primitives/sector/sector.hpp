@@ -77,6 +77,8 @@ namespace fc::primitives::sector {
       RegisteredSealProof proof);
   outcome::result<RegisteredPoStProof> getRegisteredWinningPoStProof(
       RegisteredSealProof proof);
+  outcome::result<RegisteredPoStProof> getRegisteredWinningPoStProof(
+      RegisteredPoStProof proof);
 
   outcome::result<SectorSize> getSectorSize(RegisteredSealProof proof);
   outcome::result<SectorSize> getSectorSize(RegisteredPoStProof proof);

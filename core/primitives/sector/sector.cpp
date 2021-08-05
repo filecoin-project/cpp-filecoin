@@ -58,6 +58,31 @@ namespace fc::primitives::sector {
     }
   }
 
+  outcome::result<RegisteredPoStProof> getRegisteredWinningPoStProof(
+      RegisteredPoStProof proof) {
+    switch (proof) {
+      case RegisteredPoStProof::kStackedDRG64GiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG64GiBWindowPoSt:
+        return RegisteredPoStProof::kStackedDRG64GiBWinningPoSt;
+      case RegisteredPoStProof::kStackedDRG32GiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG32GiBWindowPoSt:
+        return RegisteredPoStProof::kStackedDRG32GiBWinningPoSt;
+      case RegisteredPoStProof::kStackedDRG512MiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG512MiBWindowPoSt:
+        return RegisteredPoStProof::kStackedDRG512MiBWinningPoSt;
+      case RegisteredPoStProof::kStackedDRG8MiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG8MiBWindowPoSt:
+        return RegisteredPoStProof::kStackedDRG8MiBWinningPoSt;
+      case RegisteredPoStProof::kStackedDRG2KiBWinningPoSt:
+      case RegisteredPoStProof::kStackedDRG2KiBWindowPoSt:
+        return RegisteredPoStProof::kStackedDRG2KiBWinningPoSt;
+      case RegisteredPoStProof::kUndefined:
+        return RegisteredPoStProof::kUndefined;
+      default:
+        return Errors::kInvalidPoStProof;
+    }
+  }
+
   outcome::result<SectorSize> getSectorSize(RegisteredSealProof proof) {
     switch (proof) {
       case RegisteredSealProof::kStackedDrg64GiBV1:

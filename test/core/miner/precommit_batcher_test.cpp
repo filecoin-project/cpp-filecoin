@@ -56,7 +56,6 @@ namespace fc::mining {
               const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
         if (address == miner_address_) {
           MinerInfo info;
-          info.seal_proof_type = seal_proof_type_;
           return info;
         }
         return ERROR_TEXT("Error");

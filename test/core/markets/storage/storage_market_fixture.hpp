@@ -41,6 +41,7 @@ namespace fc::markets::storage::test {
   using adt::Channel;
   using api::FullNodeApi;
   using api::MarketBalance;
+  using api::MinerInfo;
   using api::MsgWait;
   using api::PieceLocation;
   using api::Wait;
@@ -83,7 +84,6 @@ namespace fc::markets::storage::test {
   using provider::StoredAsk;
   using sectorblocks::SectorBlocksMock;
   using vm::VMExitCode;
-  using vm::actor::builtin::types::miner::MinerInfo;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
@@ -277,15 +277,11 @@ namespace fc::markets::storage::test {
             return MinerInfo{.owner = {},
                              .worker = miner_actor_address,
                              .control = {},
-                             .pending_worker_key = {},
                              .peer_id = {},
                              .multiaddrs = {},
-                             .seal_proof_type = {},
                              .window_post_proof_type = {},
                              .sector_size = {},
-                             .window_post_partition_sectors = {},
-                             .consensus_fault_elapsed = kChainEpochUndefined,
-                             .pending_owner_address = {}};
+                             .window_post_partition_sectors = {}};
           }};
 
       api->GetProofType = {

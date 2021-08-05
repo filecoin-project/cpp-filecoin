@@ -32,6 +32,7 @@ namespace fc::api {
   using crypto::signature::Signature;
   using data_transfer::TransferId;
   using drand::BeaconEntry;
+  using libp2p::multi::Multiaddress;
   using libp2p::peer::PeerId;
   using markets::retrieval::RetrievalPeer;
   using markets::storage::DataRef;
@@ -55,6 +56,7 @@ namespace fc::api {
   using primitives::block::BlockTemplate;
   using primitives::block::BlockWithCids;
   using primitives::piece::PaddedPieceSize;
+  using primitives::sector::RegisteredPoStProof;
   using primitives::sector::RegisteredSealProof;
   using primitives::sector::SectorInfo;
   using primitives::tipset::HeadChange;
@@ -64,7 +66,6 @@ namespace fc::api {
   using vm::actor::Actor;
   using vm::actor::builtin::types::miner::DeadlineInfo;
   using vm::actor::builtin::types::miner::Deadlines;
-  using vm::actor::builtin::types::miner::MinerInfo;
   using vm::actor::builtin::types::miner::SectorOnChainInfo;
   using vm::actor::builtin::types::miner::SectorPreCommitInfo;
   using vm::actor::builtin::types::miner::SectorPreCommitOnChainInfo;
@@ -263,6 +264,17 @@ namespace fc::api {
 
   struct MessageSendSpec {
     TokenAmount max_fee;
+  };
+
+  struct MinerInfo {
+    Address owner;
+    Address worker;
+    std::vector<Address> control;
+    Buffer peer_id;
+    std::vector<Multiaddress> multiaddrs;
+    RegisteredPoStProof window_post_proof_type{RegisteredPoStProof::kUndefined};
+    SectorSize sector_size{};
+    uint64_t window_post_partition_sectors{};
   };
 
   struct DealCollateralBounds {

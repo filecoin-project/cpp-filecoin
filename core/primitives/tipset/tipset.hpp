@@ -48,8 +48,7 @@ namespace fc::primitives::tipset {
     MessageVisitor(MessageVisitor &&) = delete;
     ~MessageVisitor();
 
-    MessageVisitor(IpldPtr ipld, bool nonce, bool load)
-        : ipld{ipld}, nonce{nonce}, load{load || nonce} {}
+    MessageVisitor(IpldPtr ipld, bool nonce, bool load);
     outcome::result<void> visit(const BlockHeader &block,
                                 const Visitor &visitor);
     IpldPtr ipld;
@@ -58,12 +57,7 @@ namespace fc::primitives::tipset {
     std::set<CID> visited;
     std::map<Address, uint64_t> nonces;
     size_t index{};
-    /**
-     * TODO(turuslan): Using "std::shared_ptr" produced object code with
-     * "undefined symbols" to "std::shared_ptr" internal implementation. Build
-     * failed because linker couldn't resolve these symbols.
-     */
-    vm::state::StateTreeImpl *state_tree{nullptr};
+    std::unique_ptr<vm::state::StateTreeImpl> state_tree;
   };
 
   struct Tipset;
