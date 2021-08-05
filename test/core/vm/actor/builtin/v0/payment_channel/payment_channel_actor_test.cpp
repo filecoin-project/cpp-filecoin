@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
-#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/states/payment_channel/v0/payment_channel_actor_state.hpp"
 
 #include <gtest/gtest.h>
 

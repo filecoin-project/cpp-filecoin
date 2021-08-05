@@ -4,8 +4,8 @@
  */
 
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
+#include "vm/actor/builtin/states/verified_registry/v0/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/verified_registry/policy.hpp"
-#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_state.hpp"
 
 #include <gtest/gtest.h>
 #include "const.hpp"

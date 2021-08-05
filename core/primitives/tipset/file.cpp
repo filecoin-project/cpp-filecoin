@@ -24,11 +24,14 @@ namespace fc::primitives::tipset::chain::file {
     return file_hash && file_count;
   }
   Updater &Updater::apply(gsl::span<const CbCid> ts) {
-    assert(ts.size() < kRevert);
-    if (!ts.empty()) {
+    const auto n{ts.size()};
+    assert(n < kRevert);
+    if (n) {
       common::write(file_hash, ts);
     }
-    file_count.put(ts.size());
+    count_sum += n;
+    counts.push_back(n);
+    file_count.put(n);
     return *this;
   }
   Updater &Updater::revert() {

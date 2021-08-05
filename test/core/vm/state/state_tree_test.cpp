@@ -13,10 +13,12 @@
 #include "primitives/address/address_codec.hpp"
 #include "testutil/init_actor.hpp"
 #include "vm/actor/codes.hpp"
+#include "vm/actor/version.hpp"
 
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
 using fc::vm::actor::Actor;
+using fc::vm::actor::ActorVersion;
 using fc::vm::actor::CodeId;
 using fc::vm::state::StateTreeImpl;
 
@@ -73,7 +75,7 @@ TEST_F(StateTreeTest, SetRevert) {
  * @then Actor state in the tree is same
  */
 TEST_F(StateTreeTest, RegisterNewAddressLookupId) {
-  auto tree = setupInitActor(nullptr, 13);
+  auto tree = setupInitActor(nullptr, ActorVersion::kVersion0, 13);
   Address address{fc::primitives::address::ActorExecHash{}};
   EXPECT_OUTCOME_EQ(tree->registerNewAddress(address), kAddressId);
   EXPECT_OUTCOME_EQ(tree->lookupId(address), kAddressId);

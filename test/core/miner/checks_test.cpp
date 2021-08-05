@@ -14,7 +14,7 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
 #include "vm/actor/codes.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
@@ -1218,17 +1218,6 @@ namespace fc::mining::checks {
         return info->seed;
       }
 
-      return ERROR_TEXT("ERROR");
-    };
-
-    api_->StateMinerInfo =
-        [&](const Address &address,
-            const TipsetKey &key) -> outcome::result<MinerInfo> {
-      if (address == miner_addr_ and key == commit_key) {
-        MinerInfo minfo;
-        minfo.seal_proof_type = info->sector_type;
-        return minfo;
-      }
       return ERROR_TEXT("ERROR");
     };
 

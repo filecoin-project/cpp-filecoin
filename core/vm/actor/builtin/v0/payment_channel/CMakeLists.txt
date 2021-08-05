@@ -8,6 +8,7 @@ add_library(payment_channel_actor_v0
     payment_channel_actor_utils.cpp
     )
 target_link_libraries(payment_channel_actor_v0
+    payment_channel_actor_state
     actor
     array
     outcome

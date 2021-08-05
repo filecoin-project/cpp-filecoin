@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 
-#include "vm/actor/builtin/states/init_actor_state.hpp"
+#include "vm/actor/builtin/states/init/init_actor_state.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::init {

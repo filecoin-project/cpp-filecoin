@@ -8,7 +8,7 @@
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/states/market_actor_state.hpp"
+#include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/transit.hpp"
 #include "vm/exit_code/exit_code.hpp"

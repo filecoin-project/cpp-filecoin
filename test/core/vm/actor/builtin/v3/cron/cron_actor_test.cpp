@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v3/cron/cron_actor.hpp"
-#include "vm/actor/builtin/v3/cron/cron_actor_state.hpp"
+#include "vm/actor/builtin/states/cron/v3/cron_actor_state.hpp"
 #include "vm/actor/builtin/v3/storage_power/storage_power_actor_export.hpp"
 
 #include <gtest/gtest.h>

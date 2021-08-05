@@ -13,7 +13,6 @@ target_link_libraries(storage_market_provider
     fuhon_stored_ask
     outcome
     piece
-    market_actor_v0
     piece_storage
     sectorblocks
     )

@@ -374,8 +374,7 @@ namespace fc::mining {
     std::shared_ptr<SectorStartWithPiecesContext> context =
         std::make_shared<SectorStartWithPiecesContext>();
     context->sector_id = sector_id;
-    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, {}));
-    context->seal_proof_type = minfo.seal_proof_type;
+    OUTCOME_TRYA(context->seal_proof_type, getCurrentSealProof());
     context->pieces = std::move(pieces);
     FSM_SEND_CONTEXT(sector, SealingEvent::kSectorStartWithPieces, context);
     return outcome::success();
@@ -515,8 +514,7 @@ namespace fc::mining {
     std::shared_ptr<SectorStartContext> context =
         std::make_shared<SectorStartContext>();
     context->sector_id = sector_id;
-    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, {}));
-    context->seal_proof_type = minfo.seal_proof_type;
+    OUTCOME_TRYA(context->seal_proof_type, getCurrentSealProof());
     FSM_SEND_CONTEXT(sector, SealingEvent::kSectorStart, context);
 
     if (config_.wait_deals_delay > std::chrono::milliseconds::zero()) {
@@ -2080,8 +2078,9 @@ namespace fc::mining {
   outcome::result<RegisteredSealProof> SealingImpl::getCurrentSealProof()
       const {
     OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address_, {}));
-
-    return miner_info.seal_proof_type;
+    OUTCOME_TRY(version, api_->StateNetworkVersion({}));
+    return getPreferredSealProofTypeFromWindowPoStType(
+        version, miner_info.window_post_proof_type);
   }
 
 }  // namespace fc::mining

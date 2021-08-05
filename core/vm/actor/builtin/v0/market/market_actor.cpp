@@ -6,7 +6,7 @@
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 
 #include "primitives/cid/comm_cid.hpp"
-#include "vm/actor/builtin/states/market_actor_state.hpp"
+#include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/toolchain/toolchain.hpp"
 

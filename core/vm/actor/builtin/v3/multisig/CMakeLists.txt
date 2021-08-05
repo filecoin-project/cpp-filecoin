@@ -8,7 +8,7 @@ add_library(multisig_actor_v3
     multisig_actor_utils.cpp
     )
 target_link_libraries(multisig_actor_v3
+    multisig_actor_state
     actor
-    multisig_types
     outcome
     )

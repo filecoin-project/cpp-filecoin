@@ -6,7 +6,7 @@
 #pragma once
 
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/states/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/states/payment_channel/payment_channel_actor_state.hpp"
 #include "vm/actor/builtin/types/payment_channel/policy.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 

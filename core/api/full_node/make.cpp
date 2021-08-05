@@ -23,13 +23,13 @@
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/chain/receipt_loader.hpp"
 #include "storage/hamt/hamt.hpp"
-#include "vm/actor/builtin/states/account_actor_state.hpp"
-#include "vm/actor/builtin/states/init_actor_state.hpp"
-#include "vm/actor/builtin/states/market_actor_state.hpp"
-#include "vm/actor/builtin/states/miner_actor_state.hpp"
-#include "vm/actor/builtin/states/power_actor_state.hpp"
-#include "vm/actor/builtin/states/reward_actor_state.hpp"
-#include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
+#include "vm/actor/builtin/states/account/account_actor_state.hpp"
+#include "vm/actor/builtin/states/init/init_actor_state.hpp"
+#include "vm/actor/builtin/states/market/market_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/reward/reward_actor_state.hpp"
+#include "vm/actor/builtin/states/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
@@ -183,9 +183,9 @@ namespace fc::api {
     }
     if (!sectors_bitset.empty()) {
       OUTCOME_TRY(miner_info, state->getInfo());
-      OUTCOME_TRY(win_type,
-                  primitives::sector::getRegisteredWinningPoStProof(
-                      miner_info->seal_proof_type));
+      OUTCOME_TRY(
+          win_type,
+          getRegisteredWinningPoStProof(miner_info->window_post_proof_type));
       static auto proofs{std::make_shared<proofs::ProofEngineImpl>()};
       OUTCOME_TRY(
           indices,
@@ -863,7 +863,17 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(miner_state, context.minerState(address));
           OUTCOME_TRY(miner_info, miner_state->getInfo());
-          return *miner_info;
+          return MinerInfo{
+              .owner = miner_info->owner,
+              .worker = miner_info->worker,
+              .control = miner_info->control,
+              .peer_id = miner_info->peer_id,
+              .multiaddrs = miner_info->multiaddrs,
+              .window_post_proof_type = miner_info->window_post_proof_type,
+              .sector_size = miner_info->sector_size,
+              .window_post_partition_sectors =
+                  miner_info->window_post_partition_sectors,
+          };
         }};
     api->StateMinerPartitions = {
         [=](auto &miner,

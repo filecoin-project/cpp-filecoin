@@ -232,10 +232,7 @@ namespace fc::sector_storage {
     };
 
     outcome::result<PubToPrivateResponse> publicSectorToPrivate(
-        ActorId miner,
-        gsl::span<const SectorInfo> sector_info,
-        const std::function<outcome::result<RegisteredPoStProof>(
-            RegisteredSealProof)> &to_post_transform);
+        ActorId miner, gsl::span<const SectorInfo> sector_info, bool winning);
 
     std::shared_ptr<stores::SectorIndex> index_;
 

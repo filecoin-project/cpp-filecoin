@@ -13,10 +13,17 @@ add_library(miner_types
     quantize.cpp
     sectors.cpp
     termination.cpp
+    v0/expiration.cpp
+    v0/partition.cpp
+    v2/expiration.cpp
+    v2/partition.cpp
+    v3/partition.cpp
+    bind_types.cpp
     )
 target_link_libraries(miner_types
     actor
     address
     const
     outcome
+    type_manager
     )

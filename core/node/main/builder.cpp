@@ -63,7 +63,7 @@
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/prefix.hpp"
 #include "storage/mpool/mpool.hpp"
-#include "vm/actor/builtin/states/init_actor_state.hpp"
+#include "vm/actor/builtin/states/init/init_actor_state.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/impl/cached_interpreter.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"

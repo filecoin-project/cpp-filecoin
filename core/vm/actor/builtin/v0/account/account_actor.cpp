@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 
-#include "vm/actor/builtin/states/account_actor_state.hpp"
+#include "vm/actor/builtin/states/account/account_actor_state.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::v0::account {
