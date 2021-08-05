@@ -7,7 +7,7 @@
 
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
 
-#include "vm/actor/builtin/states/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 
 namespace fc::testutil::vm::actor::builtin::miner {

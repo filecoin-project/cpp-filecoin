@@ -7,7 +7,7 @@
 
 #include "cbor_blake/ipld_version.hpp"
 #include "common/logger.hpp"
-#include "vm/actor/builtin/states/power_actor_state.hpp"
+#include "vm/actor/builtin/states/storage_power/storage_power_actor_state.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {

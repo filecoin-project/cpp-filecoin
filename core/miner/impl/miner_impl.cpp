@@ -15,6 +15,7 @@
 #include "vm/actor/builtin/types/miner/policy.hpp"
 
 namespace fc::miner {
+  using api::MinerInfo;
   using mining::BasicPreCommitPolicy;
   using mining::Events;
   using mining::EventsImpl;
@@ -31,7 +32,6 @@ namespace fc::miner {
   using primitives::tipset::TipsetKey;
   using vm::actor::builtin::types::miner::kMaxSectorExpirationExtension;
   using vm::actor::builtin::types::miner::kWPoStProvingPeriod;
-  using vm::actor::builtin::types::miner::MinerInfo;
 
   MinerImpl::MinerImpl(std::shared_ptr<FullNodeApi> api,
                        std::shared_ptr<Sealing> sealing)

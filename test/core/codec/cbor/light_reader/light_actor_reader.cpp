@@ -11,12 +11,12 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/v2/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/storage_power/claim.hpp"
 #include "vm/actor/builtin/types/type_manager/universal.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
-#include "vm/actor/builtin/v2/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/states/storage_power/v0/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/states/storage_power/v2/storage_power_actor_state.hpp"
 
 namespace fc::codec::cbor::light_reader {
   using primitives::RleBitset;
@@ -29,7 +29,6 @@ namespace fc::codec::cbor::light_reader {
   using vm::actor::builtin::types::miner::MinerInfo;
   using vm::actor::builtin::types::miner::VestingFunds;
   using vm::actor::builtin::types::storage_power::Claim;
-  using vm::actor::builtin::types::storage_power::CronEvent;
   using MinerActorStateV0 = vm::actor::builtin::v0::miner::MinerActorState;
   using MinerActorStateV2 = vm::actor::builtin::v2::miner::MinerActorState;
   using PowerActorStateV0 =

@@ -8,7 +8,7 @@
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
 
 #include "vm/actor/actor.hpp"
-#include "vm/actor/builtin/states/market_actor_state.hpp"
+#include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"

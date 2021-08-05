@@ -57,12 +57,10 @@ namespace fc::primitives::tipset {
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
-  MessageVisitor::~MessageVisitor() {
-    if (state_tree) {
-      delete state_tree;
-      state_tree = nullptr;
-    }
-  }
+  MessageVisitor::~MessageVisitor() = default;
+
+  MessageVisitor::MessageVisitor(IpldPtr ipld, bool nonce, bool load)
+      : ipld{ipld}, nonce{nonce}, load{load || nonce} {}
 
   outcome::result<void> MessageVisitor::visit(const BlockHeader &block,
                                               const Visitor &visitor) {
@@ -84,8 +82,8 @@ namespace fc::primitives::tipset {
           if (lookupId && !from->isId()) {
             if (!state_tree) {
               ipld = withVersion(ipld, block.height);
-              vm::state::StateTreeImpl impl{ipld, block.parent_state_root};
-              state_tree = new vm::state::StateTreeImpl{std::move(impl)};
+              state_tree = std::make_unique<vm::state::StateTreeImpl>(
+                  ipld, block.parent_state_root);
             }
             OUTCOME_TRYA(id, state_tree->lookupId(*from));
             from = &id;

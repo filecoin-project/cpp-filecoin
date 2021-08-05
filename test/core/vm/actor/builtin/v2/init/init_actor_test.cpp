@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v2/init/init_actor.hpp"
-#include "vm/actor/builtin/v2/init/init_actor_state.hpp"
+#include "vm/actor/builtin/states/init/v2/init_actor_state.hpp"
 
 #include <gmock/gmock.h>
 

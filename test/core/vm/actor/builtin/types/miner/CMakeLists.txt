@@ -21,7 +21,4 @@ addtest(miner_types_test
 target_link_libraries(miner_types_test
     ipfs_datastore_in_memory
     miner_types
-    miner_actor_v0
-    miner_actor_v2
-    miner_actor_v3
     )

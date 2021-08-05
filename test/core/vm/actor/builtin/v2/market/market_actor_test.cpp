@@ -6,7 +6,7 @@
 #include <boost/predef/compiler/gcc.h>
 
 #include "vm/actor/builtin/v2/market/market_actor.hpp"
-#include "vm/actor/builtin/v2/market/market_actor_state.hpp"
+#include "vm/actor/builtin/states/market/v2/market_actor_state.hpp"
 
 #include "primitives/cid/comm_cid.hpp"
 #include "testutil/cbor.hpp"

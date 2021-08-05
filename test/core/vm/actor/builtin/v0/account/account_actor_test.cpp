@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
-#include "vm/actor/builtin/v0/account/account_actor_state.hpp"
+#include "vm/actor/builtin/states/account/v0/account_actor_state.hpp"
 
 #include <gtest/gtest.h>
 

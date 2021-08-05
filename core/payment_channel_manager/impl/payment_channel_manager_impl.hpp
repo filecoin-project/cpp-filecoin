@@ -11,7 +11,7 @@
 #include "common/buffer.hpp"
 #include "payment_channel_manager/payment_channel_manager.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "vm/actor/builtin/states/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/states/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::payment_channel_manager {
   using api::FullNodeApi;

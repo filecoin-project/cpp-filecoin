@@ -11,10 +11,10 @@
 
 namespace fc::mining {
   using api::FullNodeApi;
+  using api::MinerInfo;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using types::SectorInfo;
-  using vm::actor::builtin::types::miner::MinerInfo;
   using vm::actor::builtin::types::miner::SectorPreCommitInfo;
   using PrecommitCallback = std::function<void(const outcome::result<CID> &)>;
   using AddressSelector = std::function<outcome::result<Address>(

@@ -12,9 +12,9 @@
 
 namespace fc::mining {
   using api::FullNodeApi;
+  using api::MinerInfo;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using vm::actor::builtin::types::miner::MinerInfo;
 
   /**
    * SelectAddress takes the maximal possible transaction fee from configs and

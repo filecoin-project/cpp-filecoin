@@ -7,7 +7,7 @@
 
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
-#include "vm/actor/builtin/states/verified_registry_actor_state.hpp"
+#include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 

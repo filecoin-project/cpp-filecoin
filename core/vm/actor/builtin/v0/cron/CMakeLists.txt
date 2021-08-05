@@ -7,5 +7,6 @@ add_library(cron_actor_v0
     cron_actor.cpp
     )
 target_link_libraries(cron_actor_v0
+    cron_actor_state
     actor
     )

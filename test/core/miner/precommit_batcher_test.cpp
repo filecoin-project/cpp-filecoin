@@ -11,6 +11,7 @@
 #include "miner/address_selector.hpp"
 #include "miner/storage_fsm/impl/precommit_batcher_impl.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/mocks/api.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/v5/miner/miner_actor.hpp"
 
@@ -30,6 +31,7 @@ namespace fc::mining {
   using primitives::sector::RegisteredSealProof;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
+  using testing::_;
   using vm::actor::builtin::v5::miner::PreCommitBatch;
   using BatcherCallbackMock =
       std::function<void(const outcome::result<CID> &cid)>;
@@ -37,9 +39,7 @@ namespace fc::mining {
   class PreCommitBatcherTest : public testing::Test {
    protected:
     virtual void SetUp() {
-      mutual_deposit_ = 0;
       seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
-      api_ = std::make_shared<FullNodeApi>();
       scheduler_backend_ = std::make_shared<ManualSchedulerBackend>();
       scheduler_ = std::make_shared<SchedulerImpl>(scheduler_backend_,
                                                    Scheduler::Config{});
@@ -56,25 +56,15 @@ namespace fc::mining {
       api_->ChainHead = [=]() -> outcome::result<TipsetCPtr> {
         return tipset_;
       };
-
-      api_->StateMinerInfo =
-          [=](const Address &address,
-              const TipsetKey &tipset_key) -> outcome::result<MinerInfo> {
-        if (address == miner_address_) {
-          MinerInfo info;
-          info.seal_proof_type = seal_proof_type_;
-          info.control = {wrong_side_address_, side_address_};
-          return info;
-        }
-        return ERROR_TEXT("Error");
-      };
-      api_->WalletBalance =
-          [=](const Address &address) -> outcome::result<TokenAmount> {
-        if (address == wrong_side_address_) {
-          return TokenAmount{"500000000000000000000"};
-        }
-        return TokenAmount{"10000000000000000000"};
-      };
+      MinerInfo minfo;
+      minfo.window_post_proof_type =
+          primitives::sector::RegisteredPoStProof::kStackedDRG2KiBWindowPoSt;
+      minfo.control = {side_address_, wrong_side_address_};
+      EXPECT_CALL(mock_StateMinerInfo, Call(miner_address_, _))
+          .WillRepeatedly(testing::Return(minfo));
+      EXPECT_CALL(mock_WalletBalance, Call(wrong_side_address_))
+          .WillRepeatedly(
+              testing::Return(TokenAmount("100000000000000000000")));
 
       api_->MpoolPushMessage =
           [&](const UnsignedMessage &msg,
@@ -107,17 +97,12 @@ namespace fc::mining {
               const TokenAmount &good_funds,
               const std::shared_ptr<FullNodeApi> &api)
               -> outcome::result<Address> {
-            EXPECT_OUTCOME_TRUE(address,
-                                SelectAddress(miner_info, good_funds, api));
-            if (address == side_address_) {
-              side_address_called = true;
-            }
-            return address;
+            return SelectAddress(miner_info, good_funds, api);
           },
           fee_config);
     }
 
-    std::shared_ptr<FullNodeApi> api_;
+    std::shared_ptr<FullNodeApi> api_ = std::make_shared<FullNodeApi>();
     std::shared_ptr<ManualSchedulerBackend> scheduler_backend_;
     std::shared_ptr<Scheduler> scheduler_;
     std::shared_ptr<PreCommitBatcherImpl> batcher_;
@@ -127,10 +112,11 @@ namespace fc::mining {
     Address wrong_side_address_;
     uint64_t miner_id_;
     RegisteredSealProof seal_proof_type_;
-    TokenAmount mutual_deposit_;
     BatcherCallbackMock callback_mock_;
     bool is_called_;
-    bool side_address_called;
+    MOCK_API(api_, StateMinerInfo);
+    MOCK_API(api_, StateNetworkVersion);
+    MOCK_API(api_, WalletBalance);
   };
 
   TEST_F(PreCommitBatcherTest, BatcherWrite) {
@@ -154,10 +140,10 @@ namespace fc::mining {
    * precommits in each
    */
   TEST_F(PreCommitBatcherTest, CallbackSend) {
-    mutual_deposit_ = 0;
     is_called_ = false;
-    side_address_called = false;
 
+    EXPECT_CALL(mock_WalletBalance, Call(side_address_))
+        .WillRepeatedly(testing::Return(TokenAmount("0")));
     SectorInfo si = SectorInfo();
     api::SectorPreCommitInfo precInf;
     TokenAmount deposit = 10;
@@ -167,27 +153,24 @@ namespace fc::mining {
 
     EXPECT_OUTCOME_TRUE_1(
         batcher_->addPreCommit(si, deposit, precInf, callback_mock_));
-    mutual_deposit_ += 10;
 
     precInf.sealed_cid = "010001020006"_cid;
     si.sector_number = 3;
 
     EXPECT_OUTCOME_TRUE_1(
         batcher_->addPreCommit(si, deposit, precInf, callback_mock_));
-    mutual_deposit_ += 10;
 
     scheduler_backend_->shiftToTimer();
     ASSERT_TRUE(is_called_);
 
     is_called_ = false;
-    mutual_deposit_ = 0;
 
     precInf.sealed_cid = "010001020008"_cid;
     si.sector_number = 6;
 
     EXPECT_OUTCOME_TRUE_1(
         batcher_->addPreCommit(si, deposit, precInf, callback_mock_));
-    mutual_deposit_ += 10;
+
     scheduler_backend_->shiftToTimer();
     ASSERT_TRUE(is_called_);
     is_called_ = false;
@@ -202,9 +185,11 @@ namespace fc::mining {
    * have been sent after the first one immediately
    **/
   TEST_F(PreCommitBatcherTest, ShortDistanceSending) {
-    mutual_deposit_ = 0;
     is_called_ = false;
-    side_address_called = false;
+
+    EXPECT_CALL(mock_WalletBalance, Call(side_address_))
+        .WillOnce(testing::Return(TokenAmount("5000000000000000000000")))
+        .WillRepeatedly(testing::Return(TokenAmount("0")));
 
     SectorInfo si = SectorInfo();
     api::SectorPreCommitInfo precInf;
@@ -226,14 +211,11 @@ namespace fc::mining {
 
     EXPECT_OUTCOME_TRUE_1(
         batcher_->addPreCommit(si, deposit, precInf, callback_mock_));
-    mutual_deposit_ += 10;
-
     scheduler_backend_->shiftToTimer();
     EXPECT_TRUE(is_called_);
 
     is_called_ = false;
     si.pieces = {};
-    mutual_deposit_ = 0;
 
     deal.deal_schedule.start_epoch = 1;
     Piece p3 = {.piece = PieceInfo{.size = PaddedPieceSize(128),
@@ -246,14 +228,7 @@ namespace fc::mining {
 
     EXPECT_OUTCOME_TRUE_1(
         batcher_->addPreCommit(si, deposit, precInf, callback_mock_));
-    ASSERT_TRUE(side_address_called);
-    mutual_deposit_ += 10;
     ASSERT_TRUE(is_called_);
-
-    api_->WalletBalance =
-        [=](const Address &address) -> outcome::result<TokenAmount> {
-      return TokenAmount{"0"};
-    };
 
     is_called_ = false;
 
