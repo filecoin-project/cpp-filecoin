@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v2/miner/types/partition.hpp"
+#include "vm/actor/builtin/types/miner/v2/partition.hpp"
 
 #include <gtest/gtest.h>
 #include "storage/ipfs/impl/in_memory_datastore.hpp"

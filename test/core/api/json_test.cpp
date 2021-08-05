@@ -10,7 +10,7 @@
 #include "codec/json/json.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/builtin/v0/miner/types/miner_info.hpp"
+#include "vm/actor/builtin/types/miner/miner_info.hpp"
 
 #define J32 "\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=\""
 #define J65                                                                    \

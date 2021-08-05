@@ -24,6 +24,5 @@ target_link_libraries(runtime
     tipset
     signature
     toolchain
-    actor_state
     version
     )

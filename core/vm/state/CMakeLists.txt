@@ -12,4 +12,5 @@ target_link_libraries(state_tree
     Boost::boost
     dvm
     hamt
+    init_actor_state
     )

@@ -14,7 +14,7 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
 #include "vm/actor/codes.hpp"
 #include "vm/exit_code/exit_code.hpp"
 

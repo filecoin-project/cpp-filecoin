@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v2/multisig/multisig_actor.hpp"
-#include "vm/actor/builtin/v2/multisig/multisig_actor_state.hpp"
+#include "vm/actor/builtin/states/multisig/v2/multisig_actor_state.hpp"
 
 #include <gtest/gtest.h>
 #include "primitives/address/address.hpp"
