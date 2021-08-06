@@ -42,40 +42,65 @@ namespace fc::vm::actor::builtin::types::miner {
     fault_declaration_cutoff = kFaultDeclarationCutoff;
   }
 
-  DeadlineInfo DeadlineInfo::nextNotElapsed() const {
-    return elapsed() ? DeadlineInfo(nextPeriodStart(), index, current_epoch)
-                     : *this;
-  }
-
-  ChainEpoch DeadlineInfo::nextPeriodStart() const {
-    return period_start + kWPoStProvingPeriod;
-  }
-
-  bool DeadlineInfo::elapsed() const {
-    return current_epoch >= close;
-  }
-
-  bool DeadlineInfo::faultCutoffPassed() const {
-    return current_epoch >= fault_cutoff;
-  }
-
   bool DeadlineInfo::periodStarted() const {
     return current_epoch >= period_start;
+  }
+
+  bool DeadlineInfo::periodElapsed() const {
+    return current_epoch >= nextPeriodStart();
   }
 
   ChainEpoch DeadlineInfo::periodEnd() const {
     return period_start + kWPoStProvingPeriod - 1;
   }
 
+  ChainEpoch DeadlineInfo::nextPeriodStart() const {
+    return period_start + kWPoStProvingPeriod;
+  }
+
+  bool DeadlineInfo::isOpen() const {
+    return (current_epoch >= open) && (current_epoch < close);
+  }
+
+  bool DeadlineInfo::hasElapsed() const {
+    return current_epoch >= close;
+  }
+
   ChainEpoch DeadlineInfo::last() const {
     return close - 1;
   }
 
-  DeadlineInfo DeadlineInfo::next() const {
-    return index == kWPoStPeriodDeadlines
-               ? DeadlineInfo(
-                   period_start + kWPoStProvingPeriod, 0, current_epoch)
-               : DeadlineInfo(period_start, index + 1, current_epoch);
+  ChainEpoch DeadlineInfo::nextOpen() const {
+    return close;
+  }
+
+  bool DeadlineInfo::faultCutoffPassed() const {
+    return current_epoch >= fault_cutoff;
+  }
+
+  DeadlineInfo DeadlineInfo::nextNotElapsed() const {
+    if (hasElapsed()) {
+      return *this;
+    }
+
+    auto offset = period_start % wpost_proving_period;
+    if (offset < 0) {
+      offset += wpost_proving_period;
+    }
+
+    const auto global_period = current_epoch / wpost_proving_period;
+    ChainEpoch start_period = global_period * wpost_proving_period + offset;
+
+    while (start_period > current_epoch) {
+      start_period -= wpost_proving_period;
+    }
+
+    if (current_epoch
+        >= ChainEpoch(start_period + (index + 1) * kWPoStChallengeWindow)) {
+      start_period += wpost_proving_period;
+    }
+
+    return DeadlineInfo(start_period, index, current_epoch);
   }
 
 }  // namespace fc::vm::actor::builtin::types::miner

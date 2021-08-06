@@ -22,28 +22,35 @@ namespace fc::vm::actor::builtin::types::miner {
 
     DeadlineInfo(ChainEpoch start, size_t deadline_index, ChainEpoch now);
 
-    /** Returns the next instance of this deadline that has not yet elapsed. */
-    DeadlineInfo nextNotElapsed() const;
-
-    /** The first epoch in the next proving period. */
-    ChainEpoch nextPeriodStart() const;
-
-    /** Whether the current deadline has already closed. */
-    bool elapsed() const;
-
-    /** Whether the deadline's fault cutoff has passed. */
-    bool faultCutoffPassed() const;
-
     /** Whether the proving period has begun. */
     bool periodStarted() const;
+
+    /** Whether the proving period has elapsed. */
+    bool periodElapsed() const;
 
     /** The last epoch in the proving period. */
     ChainEpoch periodEnd() const;
 
+    /** The first epoch in the next proving period. */
+    ChainEpoch nextPeriodStart() const;
+
+    /** Whether the current deadline is currently open. */
+    bool isOpen() const;
+
+    /** Whether the current deadline has already closed. */
+    bool hasElapsed() const;
+
     /** The last epoch during which a proof may be submitted. */
     ChainEpoch last() const;
 
-    DeadlineInfo next() const;
+    /** Epoch at which the subsequent deadline opens. */
+    ChainEpoch nextOpen() const;
+
+    /** Whether the deadline's fault cutoff has passed. */
+    bool faultCutoffPassed() const;
+
+    /** Returns the next instance of this deadline that has not yet elapsed. */
+    DeadlineInfo nextNotElapsed() const;
 
     /// Deadline parameters
 
