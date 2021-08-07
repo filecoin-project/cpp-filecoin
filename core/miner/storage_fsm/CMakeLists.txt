@@ -69,4 +69,5 @@ target_link_libraries(storage_fsm
         zerocomm
         sector_file
         deal_info_manager
+        batcher
         )

@@ -11,6 +11,7 @@
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
 #include "miner/storage_fsm/events.hpp"
+#include "miner/storage_fsm/impl/precommit_batcher_impl.hpp"
 #include "miner/storage_fsm/precommit_policy.hpp"
 #include "miner/storage_fsm/sealing_events.hpp"
 #include "miner/storage_fsm/sector_stat.hpp"
@@ -53,6 +54,7 @@ namespace fc::mining {
         std::shared_ptr<PreCommitPolicy> policy,
         std::shared_ptr<boost::asio::io_context> context,
         std::shared_ptr<Scheduler> scheduler,
+        std::shared_ptr<PreCommitBatcher> precommit_batcher_,
         Config config);
 
     outcome::result<void> fsmLoad();
@@ -92,6 +94,7 @@ namespace fc::mining {
                 std::shared_ptr<PreCommitPolicy> policy,
                 std::shared_ptr<boost::asio::io_context> context,
                 std::shared_ptr<Scheduler> scheduler,
+                std::shared_ptr<PreCommitBatcher> precommit_batcher,
                 Config config);
 
     struct SectorPaddingResponse {
@@ -312,6 +315,8 @@ namespace fc::mining {
 
     common::Logger logger_;
     std::shared_ptr<Manager> sealer_;
+
+    std::shared_ptr<PreCommitBatcher> precommit_batcher_;
 
     Config config_;
   };
