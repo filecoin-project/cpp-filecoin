@@ -348,9 +348,11 @@ namespace fc::markets::storage::client {
         {}};
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
-    OUTCOME_TRY(
-        msg_wait,
-        api_->StateWaitMsg(signed_message.getCid(), api::kNoConfidence));
+    OUTCOME_TRY(msg_wait,
+                api_->StateWaitMsg(signed_message.getCid(),
+                                   kMessageConfidence,
+                                   api::kLookbackNoLimit,
+                                   true));
     OUTCOME_TRY(msg_state, msg_wait.waitSync());
     if (msg_state.receipt.exit_code != VMExitCode::kOk) {
       return StorageMarketClientError::kAddFundsCallError;
@@ -438,7 +440,10 @@ namespace fc::markets::storage::client {
   outcome::result<bool> StorageMarketClientImpl::verifyDealPublished(
       std::shared_ptr<ClientDeal> deal) {
     OUTCOME_TRY(msg_wait,
-                api_->StateWaitMsg(deal->publish_message, api::kNoConfidence));
+                api_->StateWaitMsg(deal->publish_message,
+                                   kMessageConfidence,
+                                   api::kLookbackNoLimit,
+                                   true));
     OUTCOME_TRY(msg_state, msg_wait.waitSync());
     if (msg_state.receipt.exit_code != VMExitCode::kOk) {
       deal->message =
@@ -578,8 +583,10 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto maybe_wait =
-        api_->StateWaitMsg(deal->add_funds_cid.get(), api::kNoConfidence);
+    auto maybe_wait = api_->StateWaitMsg(deal->add_funds_cid.get(),
+                                         kMessageConfidence,
+                                         api::kLookbackNoLimit,
+                                         true);
     FSM_HALT_ON_ERROR(maybe_wait, "Wait for funding error", deal);
     maybe_wait.value().waitOwn(
         [self{shared_from_this()}, deal](outcome::result<MsgWait> result) {

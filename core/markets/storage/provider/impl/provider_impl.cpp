@@ -559,8 +559,10 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto maybe_wait =
-        api_->StateWaitMsg(deal->add_funds_cid.get(), api::kNoConfidence);
+    auto maybe_wait = api_->StateWaitMsg(deal->add_funds_cid.get(),
+                                         kMessageConfidence,
+                                         api::kLookbackNoLimit,
+                                         true);
     FSM_HALT_ON_ERROR(maybe_wait, "Wait for funding error", deal);
     maybe_wait.value().waitOwn(
         [self{shared_from_this()}, deal](outcome::result<MsgWait> result) {
@@ -636,8 +638,10 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto maybe_wait =
-        api_->StateWaitMsg(deal->publish_cid.get(), api::kNoConfidence);
+    auto maybe_wait = api_->StateWaitMsg(deal->publish_cid.get(),
+                                         kMessageConfidence,
+                                         api::kLookbackNoLimit,
+                                         true);
     FSM_HALT_ON_ERROR(maybe_wait, "Wait for publish failed", deal);
     maybe_wait.value().waitOwn(
         [self{shared_from_this()}, deal, to](outcome::result<MsgWait> result) {

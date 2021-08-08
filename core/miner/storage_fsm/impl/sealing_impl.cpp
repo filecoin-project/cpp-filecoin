@@ -1002,8 +1002,6 @@ namespace fc::mining {
     logger_->info("PreCommitting sector {}", info->sector_number);
     OUTCOME_TRY(head, api_->ChainHead());
 
-    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, head->key));
-
     auto maybe_error = checks::checkPrecommit(
         miner_address_, info, head->key, head->height(), api_);
 
@@ -1122,7 +1120,9 @@ namespace fc::mining {
     logger_->info("Sector precommitted: {}", info->sector_number);
     OUTCOME_TRY(channel,
                 api_->StateWaitMsg(info->precommit_message.value(),
-                                   api::kNoConfidence));
+                                   kMessageConfidence,
+                                   api::kLookbackNoLimit,
+                                   true));
 
     channel.waitOwn([info, this](auto &&maybe_lookup) {
       if (maybe_lookup.has_error()) {
@@ -1218,7 +1218,10 @@ namespace fc::mining {
           "sector {} entered committing state with a commit message cid",
           info->sector_number);
 
-      OUTCOME_TRY(message, api_->StateSearchMsg(*(info->message)));
+      OUTCOME_TRY(_message,
+                  api_->StateSearchMsg(
+                      {}, *(info->message), api::kLookbackNoLimit, true));
+      OUTCOME_TRY(message, _message.waitSync());
 
       if (message.has_value()) {
         FSM_SEND(info, SealingEvent::kSectorRetryCommitWait);
@@ -1381,7 +1384,10 @@ namespace fc::mining {
     }
 
     OUTCOME_TRY(channel,
-                api_->StateWaitMsg(info->message.get(), api::kNoConfidence));
+                api_->StateWaitMsg(info->message.get(),
+                                   kMessageConfidence,
+                                   api::kLookbackNoLimit,
+                                   true));
 
     channel.waitOwn([=](auto &&maybe_message_lookup) {
       if (maybe_message_lookup.has_error()) {
@@ -1679,8 +1685,16 @@ namespace fc::mining {
     }
 
     if (info->message.has_value()) {
-      const auto maybe_message_wait =
-          api_->StateSearchMsg(info->message.value());
+      auto _maybe_message_wait = api_->StateSearchMsg(
+          {}, info->message.value(), api::kLookbackNoLimit, true);
+
+      outcome::result<boost::optional<api::MsgWait>> maybe_message_wait{
+          outcome::success()};
+      if (_maybe_message_wait) {
+        maybe_message_wait = _maybe_message_wait.value().waitSync();
+      } else {
+        maybe_message_wait = _maybe_message_wait.error();
+      }
 
       if (maybe_message_wait.has_error()) {
         const auto time = getWaitingTime();
@@ -1957,7 +1971,9 @@ namespace fc::mining {
 
     OUTCOME_TRY(channel,
                 api_->StateWaitMsg(info->fault_report_message.get(),
-                                   api::kNoConfidence));
+                                   kMessageConfidence,
+                                   api::kLookbackNoLimit,
+                                   true));
     OUTCOME_TRY(message, channel.waitSync());
 
     if (message.receipt.exit_code != vm::VMExitCode::kOk) {

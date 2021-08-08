@@ -335,30 +335,30 @@ namespace fc::markets::storage::test {
             throw "MpoolPushMessage: Wrong from address parameter";
           }};
 
-      api->StateWaitMsg = {
-          [this](auto &message_cid, auto) -> outcome::result<Wait<MsgWait>> {
-            logger->debug("StateWaitMsg called for message cid "
-                          + message_cid.toString().value());
-            PublishStorageDeals::Result publish_deal_result{};
-            publish_deal_result.deals.emplace_back(1);
-            auto publish_deal_result_encoded =
-                codec::cbor::encode(publish_deal_result).value();
+      api->StateWaitMsg = {[this](auto &message_cid, auto, auto, auto)
+                               -> outcome::result<Wait<MsgWait>> {
+        logger->debug("StateWaitMsg called for message cid "
+                      + message_cid.toString().value());
+        PublishStorageDeals::Result publish_deal_result{};
+        publish_deal_result.deals.emplace_back(1);
+        auto publish_deal_result_encoded =
+            codec::cbor::encode(publish_deal_result).value();
 
-            MsgWait message_result{
-                .message = message_cid,
-                .receipt =
-                    MessageReceipt{.exit_code = VMExitCode::kOk,
-                                   .return_value = publish_deal_result_encoded,
-                                   .gas_used = GasAmount{0}},
-                .tipset = chain_head->key,
-                .height = (ChainEpoch)chain_head->height(),
-            };
-            auto channel = std::make_shared<Channel<Wait<MsgWait>::Result>>();
-            channel->write(message_result);
-            channel->closeWrite();
-            Wait<MsgWait> wait_msg{channel};
-            return wait_msg;
-          }};
+        MsgWait message_result{
+            .message = message_cid,
+            .receipt =
+                MessageReceipt{.exit_code = VMExitCode::kOk,
+                               .return_value = publish_deal_result_encoded,
+                               .gas_used = GasAmount{0}},
+            .tipset = chain_head->key,
+            .height = (ChainEpoch)chain_head->height(),
+        };
+        auto channel = std::make_shared<Channel<Wait<MsgWait>::Result>>();
+        channel->write(message_result);
+        channel->closeWrite();
+        Wait<MsgWait> wait_msg{channel};
+        return wait_msg;
+      }};
 
       std::weak_ptr<FullNodeApi> _api{api};
       api->WalletSign = {

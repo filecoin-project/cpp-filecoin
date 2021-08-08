@@ -201,7 +201,11 @@ namespace fc {
                                          api::kPushNoSpec));
         spdlog::info(
             "msg {}: CreateMiner owner={}", smsg.getCid(), *config.owner);
-        OUTCOME_TRY(wait, api.StateWaitMsg(smsg.getCid(), kMessageConfidence));
+        OUTCOME_TRY(wait,
+                    api.StateWaitMsg(smsg.getCid(),
+                                     kMessageConfidence,
+                                     api::kLookbackNoLimit,
+                                     true));
         OUTCOME_TRY(result, wait.waitSync());
         if (result.receipt.exit_code != vm::VMExitCode::kOk) {
           spdlog::error("failed to create miner actor: {}",
@@ -237,7 +241,10 @@ namespace fc {
                                        api::kPushNoSpec));
       spdlog::info(
           "msg {}: ChangePeerId peer={}", smsg.getCid(), peer_id.toBase58());
-      OUTCOME_TRY(wait, api.StateWaitMsg(smsg.getCid(), kMessageConfidence));
+      OUTCOME_TRY(
+          wait,
+          api.StateWaitMsg(
+              smsg.getCid(), kMessageConfidence, api::kLookbackNoLimit, true));
       wait.waitOwn([](auto _res) {
         if (_res) {
           auto &receipt{_res.value().receipt};
