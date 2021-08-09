@@ -34,6 +34,8 @@
 #include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
+#include "vm/actor/builtin/v5/market/validate.hpp"
+#include "vm/actor/builtin/v5/miner/monies.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/message/message.hpp"
@@ -920,10 +922,75 @@ namespace fc::api {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
       return getNetworkVersion(context.tipset->height());
     };
-    // TODO(artyom-yurin): FIL-165 implement method
-    api->StateMinerPreCommitDepositForPower = {};
-    // TODO(artyom-yurin): FIL-165 implement method
-    api->StateMinerInitialPledgeCollateral = {};
+    constexpr auto kInitialPledgeNum{110};
+    constexpr auto kInitialPledgeDen{100};
+    api->StateMinerPreCommitDepositForPower =
+        [=](auto &miner,
+            const SectorPreCommitInfo &precommit,
+            auto &tsk) -> outcome::result<TokenAmount> {
+      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
+      OUTCOME_TRY(market, context.marketState());
+      // TODO(turuslan): older market actor versions
+      OUTCOME_TRY(
+          weights,
+          vm::actor::builtin::v5::market::validate(market,
+                                                   miner,
+                                                   precommit.deal_ids,
+                                                   context.tipset->epoch(),
+                                                   precommit.expiration));
+      const auto weight{vm::actor::builtin::types::miner::qaPowerForWeight(
+          sector_size,
+          precommit.expiration - context.tipset->epoch(),
+          weights.space_time,
+          weights.space_time_verified)};
+      OUTCOME_TRY(power, context.powerState());
+      OUTCOME_TRY(reward, context.rewardState());
+      // TODO(turuslan): older miner actor versions
+      return kInitialPledgeNum
+             * vm::actor::builtin::v5::miner::preCommitDepositForPower(
+                 reward->this_epoch_reward_smoothed,
+                 power->this_epoch_qa_power_smoothed,
+                 weight)
+             / kInitialPledgeDen;
+    };
+    api->StateMinerInitialPledgeCollateral =
+        [=](auto &miner,
+            const SectorPreCommitInfo &precommit,
+            auto &tsk) -> outcome::result<TokenAmount> {
+      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
+      OUTCOME_TRY(market, context.marketState());
+      // TODO(turuslan): older market actor versions
+      OUTCOME_TRY(
+          weights,
+          vm::actor::builtin::v5::market::validate(market,
+                                                   miner,
+                                                   precommit.deal_ids,
+                                                   context.tipset->epoch(),
+                                                   precommit.expiration));
+      const auto weight{vm::actor::builtin::types::miner::qaPowerForWeight(
+          sector_size,
+          precommit.expiration - context.tipset->epoch(),
+          weights.space_time,
+          weights.space_time_verified)};
+      OUTCOME_TRY(power, context.powerState());
+      OUTCOME_TRY(reward, context.rewardState());
+      OUTCOME_TRY(
+          circ,
+          env_context.circulating->circulating(
+              std::make_shared<StateTreeImpl>(std::move(context.state_tree)),
+              context.tipset->epoch()));
+      // TODO(turuslan): older miner actor versions
+      return kInitialPledgeNum
+             * vm::actor::builtin::v5::miner::initialPledgeForPower(
+                 circ,
+                 reward->this_epoch_reward_smoothed,
+                 power->this_epoch_qa_power_smoothed,
+                 weight,
+                 reward->this_epoch_baseline_power)
+             / kInitialPledgeDen;
+    };
 
     api->GetProofType = [=](const Address &miner_address,
                             const TipsetKey &tipset_key)

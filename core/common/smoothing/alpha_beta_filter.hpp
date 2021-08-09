@@ -25,7 +25,12 @@ namespace fc::common::smoothing {
   };
   CBOR_TUPLE(FilterEstimate, position, velocity)
 
+  BigInt estimate(const FilterEstimate &filter);
   FilterEstimate nextEstimate(const FilterEstimate &previous_estimate,
                               const BigInt &observation,
                               uint64_t delta);
+  BigInt extrapolatedCumSumOfRatio(uint64_t delta,
+                                   uint64_t start,
+                                   const FilterEstimate &num,
+                                   const FilterEstimate &den);
 }  // namespace fc::common::smoothing
