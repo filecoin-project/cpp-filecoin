@@ -49,7 +49,10 @@ namespace fc::mining {
       const TipsetKey &tipset_key,
       const boost::optional<DealProposal> &proposal,
       const CID &publish_cid) {
-    OUTCOME_TRY(lookup, api_->StateSearchMsg(publish_cid));
+    OUTCOME_TRY(
+        _lookup,
+        api_->StateSearchMsg({}, publish_cid, api::kLookbackNoLimit, true));
+    OUTCOME_TRY(lookup, _lookup.waitSync());
     if (lookup->receipt.exit_code != VMExitCode::kOk) {
       OUTCOME_TRY(cid_str, publish_cid.toString());
       logger_->error(

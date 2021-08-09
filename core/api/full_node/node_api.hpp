@@ -286,6 +286,8 @@ namespace fc::api {
 
   constexpr uint64_t kNoConfidence{};
 
+  constexpr ChainEpoch kLookbackNoLimit{-1};
+
   /**
    * FullNode API is a low-level interface to the Filecoin network full node.
    * Provides the latest node API v2.0.0
@@ -502,7 +504,6 @@ namespace fc::api {
                ChainEpoch)
     API_METHOD(StateGetActor, Actor, const Address &, const TipsetKey &)
     API_METHOD(StateReadState, ActorState, const Actor &, const TipsetKey &)
-    API_METHOD(StateGetReceipt, MessageReceipt, const CID &, const TipsetKey &)
     API_METHOD(StateListMiners, std::vector<Address>, const TipsetKey &)
     API_METHOD(StateListActors, std::vector<Address>, const TipsetKey &)
     API_METHOD(StateMarketBalance,
@@ -584,8 +585,14 @@ namespace fc::api {
                const Address &,
                const TipsetKey &)
 
-    API_METHOD(StateSearchMsg, boost::optional<MsgWait>, const CID &)
-    API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &, uint64_t)
+    API_METHOD(StateSearchMsg,
+               Wait<boost::optional<MsgWait>>,
+               const TipsetKey &,
+               const CID &,
+               ChainEpoch,
+               bool)
+    API_METHOD(
+        StateWaitMsg, Wait<MsgWait>, const CID &, uint64_t, ChainEpoch, bool)
 
     API_METHOD(SyncSubmitBlock, void, const BlockWithCids &)
 
@@ -649,7 +656,6 @@ namespace fc::api {
     f(a.StateCall);
     f(a.StateDealProviderCollateralBounds);
     f(a.StateGetActor);
-    f(a.StateGetReceipt);
     f(a.StateListActors);
     f(a.StateListMessages);
     f(a.StateListMiners);

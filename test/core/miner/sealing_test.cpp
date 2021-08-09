@@ -779,7 +779,9 @@ namespace fc::mining {
         {CbCid::hash("13"_unhex), CbCid::hash("14"_unhex)}};
     EpochDuration height = 3;
     api_->StateWaitMsg = [&](const CID &msg_cid,
-                             uint64_t conf) -> outcome::result<Wait<MsgWait>> {
+                             auto,
+                             auto,
+                             auto) -> outcome::result<Wait<MsgWait>> {
       if (msg_cid == precommit_msg_cid) {
         // make precommit for actor
         {

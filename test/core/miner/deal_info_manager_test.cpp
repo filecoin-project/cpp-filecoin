@@ -9,6 +9,7 @@
 #include <vm/message/message.hpp>
 
 #include "testutil/literals.hpp"
+#include "testutil/mocks/api.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/exit_code/exit_code.hpp"
@@ -16,21 +17,32 @@
 namespace fc::mining {
   using api::Address;
   using api::MsgWait;
+  using testing::_;
   using vm::VMExitCode;
   using vm::actor::builtin::types::market::ClientDealProposal;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::UnsignedMessage;
 
+  template <typename F>
+  auto mockSearch(F f) {
+    return testing::Invoke(api::waitCb<boost::optional<MsgWait>>(
+        [f](auto, auto, auto, auto, auto cb) { cb(f()); }));
+  }
+
   class DealInfoManagerTest : public testing::Test {
    protected:
     virtual void SetUp() {
-      api_ = std::make_shared<FullNodeApi>();
-
       manager_ = std::make_shared<DealInfoManagerImpl>(api_);
     }
 
-    std::shared_ptr<FullNodeApi> api_;
+    std::shared_ptr<FullNodeApi> api_{std::make_shared<FullNodeApi>()};
     std::shared_ptr<DealInfoManager> manager_;
+    MOCK_API(api_, StateSearchMsg);
+
+    CID publish_cid{"010001020001"_cid};
+    TipsetKey key{{CbCid::hash("02"_unhex)}};
+    TipsetKey result_key{{CbCid::hash("03"_unhex), CbCid::hash("04"_unhex)}};
+    DealId result_deal_id{1};
   };
 
   /**
@@ -39,18 +51,12 @@ namespace fc::mining {
    * @then DealInfoManagerError::kNotOkExitCode occurs
    */
   TEST_F(DealInfoManagerTest, NonOkCode) {
-    CID publish_cid = "010001020001"_cid;
-
-    api_->StateSearchMsg =
-        [&publish_cid](
-            const CID &cid) -> outcome::result<boost::optional<MsgWait>> {
-      if (cid == publish_cid) {
-        MsgWait lookup;
-        lookup.receipt.exit_code = VMExitCode::kFatal;
-        return lookup;
-      }
-      return ERROR_TEXT("ERROR");
-    };
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
+        .WillRepeatedly(mockSearch([] {
+          MsgWait lookup;
+          lookup.receipt.exit_code = VMExitCode::kFatal;
+          return lookup;
+        }));
 
     EXPECT_OUTCOME_ERROR(
         DealInfoManagerError::kNotOkExitCode,
@@ -64,22 +70,16 @@ namespace fc::mining {
    * @then DealInfoManagerError::kMoreThanOneDeal occurs
    */
   TEST_F(DealInfoManagerTest, TwoDealsWithoutProposal) {
-    CID publish_cid = "010001020001"_cid;
-
-    api_->StateSearchMsg =
-        [&publish_cid](
-            const CID &cid) -> outcome::result<boost::optional<MsgWait>> {
-      if (cid == publish_cid) {
-        MsgWait lookup;
-        lookup.receipt.exit_code = VMExitCode::kOk;
-        PublishStorageDeals::Result result{
-            .deals = {1, 2},
-        };
-        OUTCOME_TRYA(lookup.receipt.return_value, codec::cbor::encode(result));
-        return lookup;
-      }
-      return ERROR_TEXT("ERROR");
-    };
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
+        .WillRepeatedly(mockSearch([] {
+          MsgWait lookup;
+          lookup.receipt.exit_code = VMExitCode::kOk;
+          PublishStorageDeals::Result result{
+              .deals = {1, 2},
+          };
+          lookup.receipt.return_value = codec::cbor::encode(result).value();
+          return lookup;
+        }));
 
     EXPECT_OUTCOME_ERROR(
         DealInfoManagerError::kMoreThanOneDeal,
@@ -92,13 +92,6 @@ namespace fc::mining {
    * @then success
    */
   TEST_F(DealInfoManagerTest, SuccessWithoutProposal) {
-    CID publish_cid = "010001020001"_cid;
-
-    TipsetKey key{{CbCid::hash("02"_unhex)}};
-    TipsetKey result_key{{CbCid::hash("03"_unhex), CbCid::hash("04"_unhex)}};
-
-    DealId result_deal_id = 1;
-
     StorageDeal market_deal;
 
     CurrentDealInfo result_deal{
@@ -107,25 +100,20 @@ namespace fc::mining {
         .publish_msg_tipset = result_key,
     };
 
-    api_->StateSearchMsg =
-        [&publish_cid, &result_deal_id, &result_key](
-            const CID &cid) -> outcome::result<boost::optional<MsgWait>> {
-      if (cid == publish_cid) {
-        MsgWait lookup;
-        lookup.receipt.exit_code = VMExitCode::kOk;
-        lookup.tipset = result_key;
-        PublishStorageDeals::Result result{
-            .deals = {result_deal_id},
-        };
-        OUTCOME_TRYA(lookup.receipt.return_value, codec::cbor::encode(result));
-        return lookup;
-      }
-      return ERROR_TEXT("ERROR");
-    };
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
+        .WillRepeatedly(mockSearch([&] {
+          MsgWait lookup;
+          lookup.receipt.exit_code = VMExitCode::kOk;
+          lookup.tipset = result_key;
+          PublishStorageDeals::Result result{
+              .deals = {result_deal_id},
+          };
+          lookup.receipt.return_value = codec::cbor::encode(result).value();
+          return lookup;
+        }));
 
     api_->StateMarketStorageDeal =
-        [&result_deal_id, &key, &market_deal](
-            DealId deal_id,
+        [&](DealId deal_id,
             const TipsetKey &tipset_key) -> outcome::result<StorageDeal> {
       if (deal_id == result_deal_id and tipset_key == key) {
         return market_deal;
@@ -144,17 +132,10 @@ namespace fc::mining {
    * @then DealInfoManagerError::kNotFound occurs
    */
   TEST_F(DealInfoManagerTest, NotFoundDeal) {
-    CID publish_cid = "010001020001"_cid;
-
     DealProposal proposal;
     proposal.verified = false;
     proposal.client = Address::makeFromId(2);
     proposal.provider = Address::makeFromId(1);
-
-    TipsetKey key{{CbCid::hash("02"_unhex)}};
-    TipsetKey result_key{{CbCid::hash("03"_unhex), CbCid::hash("04"_unhex)}};
-
-    DealId result_deal_id = 1;
 
     StorageDeal market_deal;
 
@@ -164,27 +145,22 @@ namespace fc::mining {
         .publish_msg_tipset = result_key,
     };
 
-    api_->StateSearchMsg =
-        [&publish_cid, &result_deal_id, &result_key](
-            const CID &cid) -> outcome::result<boost::optional<MsgWait>> {
-      if (cid == publish_cid) {
-        MsgWait lookup;
-        lookup.receipt.exit_code = VMExitCode::kOk;
-        lookup.tipset = result_key;
-        PublishStorageDeals::Result result{
-            .deals = {result_deal_id},
-        };
-        OUTCOME_TRYA(lookup.receipt.return_value, codec::cbor::encode(result));
-        return lookup;
-      }
-      return ERROR_TEXT("ERROR");
-    };
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
+        .WillRepeatedly(mockSearch([&] {
+          MsgWait lookup;
+          lookup.receipt.exit_code = VMExitCode::kOk;
+          lookup.tipset = result_key;
+          PublishStorageDeals::Result result{
+              .deals = {result_deal_id},
+          };
+          lookup.receipt.return_value = codec::cbor::encode(result).value();
+          return lookup;
+        }));
 
     Address another_provider = Address::makeFromId(2);
 
     api_->ChainGetMessage =
-        [&publish_cid, &another_provider](
-            const CID &cid) -> outcome::result<UnsignedMessage> {
+        [&](const CID &cid) -> outcome::result<UnsignedMessage> {
       if (cid == publish_cid) {
         UnsignedMessage result;
         DealProposal proposal;
@@ -204,8 +180,7 @@ namespace fc::mining {
     };
 
     api_->StateMarketStorageDeal =
-        [&result_deal_id, &key, &market_deal](
-            DealId deal_id,
+        [&](DealId deal_id,
             const TipsetKey &tipset_key) -> outcome::result<StorageDeal> {
       if (deal_id == result_deal_id and tipset_key == key) {
         return market_deal;
@@ -214,8 +189,8 @@ namespace fc::mining {
     };
 
     api_->StateLookupID =
-        [&key](const Address &address,
-               const TipsetKey &tipset_key) -> outcome::result<Address> {
+        [&](const Address &address,
+            const TipsetKey &tipset_key) -> outcome::result<Address> {
       if (tipset_key == key) {
         return address;
       }
@@ -233,18 +208,11 @@ namespace fc::mining {
    * @then DealInfoManagerError::kOutOfRange occurs
    */
   TEST_F(DealInfoManagerTest, OutOfRangeDeal) {
-    CID publish_cid = "010001020001"_cid;
-
     DealProposal proposal;
     proposal.piece_cid = "010001020006"_cid;
     proposal.verified = false;
     proposal.client = Address::makeFromId(2);
     proposal.provider = Address::makeFromId(1);
-
-    TipsetKey key{{CbCid::hash("02"_unhex)}};
-    TipsetKey result_key{{CbCid::hash("03"_unhex), CbCid::hash("04"_unhex)}};
-
-    DealId result_deal_id = 1;
 
     StorageDeal market_deal;
 
@@ -254,26 +222,22 @@ namespace fc::mining {
         .publish_msg_tipset = result_key,
     };
 
-    api_->StateSearchMsg =
-        [&publish_cid, &result_deal_id, &result_key](
-            const CID &cid) -> outcome::result<boost::optional<MsgWait>> {
-      if (cid == publish_cid) {
-        MsgWait lookup;
-        lookup.receipt.exit_code = VMExitCode::kOk;
-        lookup.tipset = result_key;
-        PublishStorageDeals::Result result{
-            .deals = {result_deal_id},
-        };
-        OUTCOME_TRYA(lookup.receipt.return_value, codec::cbor::encode(result));
-        return lookup;
-      }
-      return ERROR_TEXT("ERROR");
-    };
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
+        .WillRepeatedly(mockSearch([&] {
+          MsgWait lookup;
+          lookup.receipt.exit_code = VMExitCode::kOk;
+          lookup.tipset = result_key;
+          PublishStorageDeals::Result result{
+              .deals = {result_deal_id},
+          };
+          lookup.receipt.return_value = codec::cbor::encode(result).value();
+          return lookup;
+        }));
 
     Address another_provider = Address::makeFromId(2);
 
     api_->ChainGetMessage =
-        [&publish_cid, &another_provider, result_proposal{proposal}](
+        [&, result_proposal{proposal}](
             const CID &cid) -> outcome::result<UnsignedMessage> {
       if (cid == publish_cid) {
         UnsignedMessage result;
@@ -298,8 +262,7 @@ namespace fc::mining {
     };
 
     api_->StateMarketStorageDeal =
-        [&result_deal_id, &key, &market_deal](
-            DealId deal_id,
+        [&](DealId deal_id,
             const TipsetKey &tipset_key) -> outcome::result<StorageDeal> {
       if (deal_id == result_deal_id and tipset_key == key) {
         return market_deal;
@@ -308,8 +271,8 @@ namespace fc::mining {
     };
 
     api_->StateLookupID =
-        [&key](const Address &address,
-               const TipsetKey &tipset_key) -> outcome::result<Address> {
+        [&](const Address &address,
+            const TipsetKey &tipset_key) -> outcome::result<Address> {
       if (tipset_key == key) {
         return address;
       }
@@ -327,18 +290,11 @@ namespace fc::mining {
    * @then DealInfoManagerError::kDealProposalNotMatch occurs
    */
   TEST_F(DealInfoManagerTest, NotMatchProposal) {
-    CID publish_cid = "010001020001"_cid;
-
     DealProposal proposal;
     proposal.piece_cid = "010001020006"_cid;
     proposal.verified = false;
     proposal.client = Address::makeFromId(2);
     proposal.provider = Address::makeFromId(1);
-
-    TipsetKey key{{CbCid::hash("02"_unhex)}};
-    TipsetKey result_key{{CbCid::hash("03"_unhex), CbCid::hash("04"_unhex)}};
-
-    DealId result_deal_id = 1;
 
     StorageDeal market_deal;
 
@@ -348,25 +304,20 @@ namespace fc::mining {
         .publish_msg_tipset = result_key,
     };
 
-    api_->StateSearchMsg =
-        [&publish_cid, &result_deal_id, &result_key](
-            const CID &cid) -> outcome::result<boost::optional<MsgWait>> {
-      if (cid == publish_cid) {
-        MsgWait lookup;
-        lookup.receipt.exit_code = VMExitCode::kOk;
-        lookup.tipset = result_key;
-        PublishStorageDeals::Result result{
-            .deals = {result_deal_id},
-        };
-        OUTCOME_TRYA(lookup.receipt.return_value, codec::cbor::encode(result));
-        return lookup;
-      }
-      return ERROR_TEXT("ERROR");
-    };
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
+        .WillRepeatedly(mockSearch([&] {
+          MsgWait lookup;
+          lookup.receipt.exit_code = VMExitCode::kOk;
+          lookup.tipset = result_key;
+          PublishStorageDeals::Result result{
+              .deals = {result_deal_id},
+          };
+          lookup.receipt.return_value = codec::cbor::encode(result).value();
+          return lookup;
+        }));
 
     api_->ChainGetMessage =
-        [&publish_cid,
-         &proposal](const CID &cid) -> outcome::result<UnsignedMessage> {
+        [&](const CID &cid) -> outcome::result<UnsignedMessage> {
       if (cid == publish_cid) {
         UnsignedMessage result;
         PublishStorageDeals::Params params{
@@ -381,8 +332,7 @@ namespace fc::mining {
     };
 
     api_->StateMarketStorageDeal =
-        [&result_deal_id, &key, &market_deal](
-            DealId deal_id,
+        [&](DealId deal_id,
             const TipsetKey &tipset_key) -> outcome::result<StorageDeal> {
       if (deal_id == result_deal_id and tipset_key == key) {
         return market_deal;
@@ -391,8 +341,8 @@ namespace fc::mining {
     };
 
     api_->StateLookupID =
-        [&key](const Address &address,
-               const TipsetKey &tipset_key) -> outcome::result<Address> {
+        [&](const Address &address,
+            const TipsetKey &tipset_key) -> outcome::result<Address> {
       if (tipset_key == key) {
         return address;
       }
@@ -410,18 +360,11 @@ namespace fc::mining {
    * @then success
    */
   TEST_F(DealInfoManagerTest, Success) {
-    CID publish_cid = "010001020001"_cid;
-
     DealProposal proposal;
     proposal.piece_cid = "010001020006"_cid;
     proposal.verified = false;
     proposal.client = Address::makeFromId(2);
     proposal.provider = Address::makeFromId(1);
-
-    TipsetKey key{{CbCid::hash("02"_unhex)}};
-    TipsetKey result_key{{CbCid::hash("03"_unhex), CbCid::hash("04"_unhex)}};
-
-    DealId result_deal_id = 1;
 
     StorageDeal market_deal;
     market_deal.proposal = proposal;
@@ -432,25 +375,20 @@ namespace fc::mining {
         .publish_msg_tipset = result_key,
     };
 
-    api_->StateSearchMsg =
-        [&publish_cid, &result_deal_id, &result_key](
-            const CID &cid) -> outcome::result<boost::optional<MsgWait>> {
-      if (cid == publish_cid) {
-        MsgWait lookup;
-        lookup.receipt.exit_code = VMExitCode::kOk;
-        lookup.tipset = result_key;
-        PublishStorageDeals::Result result{
-            .deals = {result_deal_id},
-        };
-        OUTCOME_TRYA(lookup.receipt.return_value, codec::cbor::encode(result));
-        return lookup;
-      }
-      return ERROR_TEXT("ERROR");
-    };
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
+        .WillRepeatedly(mockSearch([&] {
+          MsgWait lookup;
+          lookup.receipt.exit_code = VMExitCode::kOk;
+          lookup.tipset = result_key;
+          PublishStorageDeals::Result result{
+              .deals = {result_deal_id},
+          };
+          lookup.receipt.return_value = codec::cbor::encode(result).value();
+          return lookup;
+        }));
 
     api_->ChainGetMessage =
-        [&publish_cid,
-         &proposal](const CID &cid) -> outcome::result<UnsignedMessage> {
+        [&](const CID &cid) -> outcome::result<UnsignedMessage> {
       if (cid == publish_cid) {
         UnsignedMessage result;
         PublishStorageDeals::Params params{.deals = {ClientDealProposal{
@@ -463,8 +401,7 @@ namespace fc::mining {
     };
 
     api_->StateMarketStorageDeal =
-        [&result_deal_id, &key, &market_deal](
-            DealId deal_id,
+        [&](DealId deal_id,
             const TipsetKey &tipset_key) -> outcome::result<StorageDeal> {
       if (deal_id == result_deal_id and tipset_key == key) {
         return market_deal;
@@ -473,8 +410,8 @@ namespace fc::mining {
     };
 
     api_->StateLookupID =
-        [&key](const Address &address,
-               const TipsetKey &tipset_key) -> outcome::result<Address> {
+        [&](const Address &address,
+            const TipsetKey &tipset_key) -> outcome::result<Address> {
       if (tipset_key == key) {
         return address;
       }
