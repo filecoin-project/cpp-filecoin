@@ -81,9 +81,8 @@ namespace fc::primitives::tipset {
           auto from{&msg.from};
           if (lookupId && !from->isId()) {
             if (!state_tree) {
-              ipld = withVersion(ipld, block.height);
               state_tree = std::make_unique<vm::state::StateTreeImpl>(
-                  ipld, block.parent_state_root);
+                  withVersion(ipld, block.height), block.parent_state_root);
             }
             OUTCOME_TRYA(id, state_tree->lookupId(*from));
             from = &id;
