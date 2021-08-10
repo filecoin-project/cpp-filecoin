@@ -51,7 +51,8 @@ namespace fc::common::libp2p {
       if (!encoded) {
         return cb(encoded.error());
       }
-      writeRaw(encoded.value(), std::move(cb));
+      encoded_ = std::move(encoded.value());
+      writeRaw(encoded_, std::move(cb));
     }
 
     void close() {
@@ -62,6 +63,11 @@ namespace fc::common::libp2p {
     void readMore(ReadCallbackFunc cb);
     void consume(gsl::span<uint8_t> input, ReadCallbackFunc cb);
 
+    /**
+     * Persistent buffer of data to be written to the libp2p stream to maintain
+     * data validity until the callback is executed
+     */
+    Buffer encoded_;
     std::shared_ptr<Stream> stream_;
     CborBuffering buffering_;
     std::vector<uint8_t> buffer_;
