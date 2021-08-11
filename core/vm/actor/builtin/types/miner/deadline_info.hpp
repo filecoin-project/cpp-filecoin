@@ -6,6 +6,7 @@
 #pragma once
 
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/types/miner/quantize.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
   using primitives::ChainEpoch;
@@ -51,6 +52,9 @@ namespace fc::vm::actor::builtin::types::miner {
 
     /** Returns the next instance of this deadline that has not yet elapsed. */
     DeadlineInfo nextNotElapsed() const;
+
+    /** Returns QuantSpec for Deadline Info. */
+    QuantSpec quant() const;
 
     /// Deadline parameters
 

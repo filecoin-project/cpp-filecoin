@@ -8,6 +8,7 @@ add_library(miner_types
     deadline_sector_map.cpp
     partition_sector_map.cpp
     deadline.cpp
+    deadlines.cpp
     expiration.cpp
     partition.cpp
     quantize.cpp

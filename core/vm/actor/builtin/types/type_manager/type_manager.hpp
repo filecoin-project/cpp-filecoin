@@ -6,7 +6,7 @@
 #pragma once
 
 #include "storage/ipfs/datastore.hpp"
-#include "vm/actor/builtin/types/miner/deadline.hpp"
+#include "vm/actor/builtin/types/miner/deadlines.hpp"
 #include "vm/actor/builtin/types/miner/expiration.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 #include "vm/actor/builtin/types/type_manager/universal.hpp"

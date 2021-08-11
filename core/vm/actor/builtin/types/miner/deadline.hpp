@@ -6,8 +6,6 @@
 #pragma once
 
 #include "adt/array.hpp"
-#include "adt/cid_t.hpp"
-#include "codec/cbor/streams_annotation.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "vm/actor/builtin/types/miner/dispute_info.hpp"
 #include "vm/actor/builtin/types/miner/expiration.hpp"
@@ -158,32 +156,10 @@ namespace fc::vm::actor::builtin::types::miner {
                                 SectorSize ssize,
                                 const QuantSpec &quant) = 0;
 
-    outcome::result<void> validateState() const;
+    virtual outcome::result<void> validateState() const = 0;
 
     outcome::result<DisputeInfo> loadPartitionsForDispute(
         const RleBitset &partition_set) const;
   };
 
-  /**
-   * Deadlines contains Deadline objects, describing the sectors due at the
-   * given deadline and their state (faulty, terminated, recovering, etc.).
-   */
-  struct Deadlines {
-    std::vector<adt::CbCidT<Universal<Deadline>>> due;
-  };
-  CBOR_TUPLE(Deadlines, due)
-
 }  // namespace fc::vm::actor::builtin::types::miner
-
-namespace fc::cbor_blake {
-  template <>
-  struct CbVisitT<vm::actor::builtin::types::miner::Deadlines> {
-    template <typename Visitor>
-    static void call(vm::actor::builtin::types::miner::Deadlines &d,
-                     const Visitor &visit) {
-      for (auto &deadline : d.due) {
-        visit(deadline);
-      }
-    }
-  };
-}  // namespace fc::cbor_blake

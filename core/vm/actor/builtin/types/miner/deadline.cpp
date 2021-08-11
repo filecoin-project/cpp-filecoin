@@ -320,18 +320,6 @@ namespace fc::vm::actor::builtin::types::miner {
     return outcome::success();
   }
 
-  outcome::result<void> Deadline::validateState() const {
-    if (this->live_sectors > this->total_sectors) {
-      return ERROR_TEXT("Deadline left with more live sectors than total");
-    }
-
-    if (this->faulty_power.raw < 0 || this->faulty_power.qa < 0) {
-      return ERROR_TEXT("Deadline left with negative faulty power");
-    }
-
-    return outcome::success();
-  }
-
   outcome::result<DisputeInfo> Deadline::loadPartitionsForDispute(
       const RleBitset &partition_set) const {
     std::vector<RleBitset> all_sectors;

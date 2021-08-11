@@ -13,8 +13,8 @@
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "primitives/types.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "vm/actor/builtin/types/miner/deadline.hpp"
 #include "vm/actor/builtin/types/miner/deadline_info.hpp"
+#include "vm/actor/builtin/types/miner/deadlines.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/type_manager/universal.hpp"
@@ -25,7 +25,6 @@ namespace fc::vm::actor::builtin::states {
   using primitives::RleBitset;
   using primitives::TokenAmount;
   using types::Universal;
-  using types::miner::Deadline;
   using types::miner::DeadlineInfo;
   using types::miner::Deadlines;
   using types::miner::MinerInfo;

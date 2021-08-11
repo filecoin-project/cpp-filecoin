@@ -48,6 +48,8 @@ namespace fc::vm::actor::builtin::v0::miner {
         const PartitionSectorMap &partition_sectors,
         SectorSize ssize,
         const QuantSpec &quant) override;
+
+    outcome::result<void> validateState() const override;
   };
   CBOR_TUPLE(Deadline,
              partitions,

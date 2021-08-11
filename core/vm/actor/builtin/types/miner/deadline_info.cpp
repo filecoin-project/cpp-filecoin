@@ -103,4 +103,8 @@ namespace fc::vm::actor::builtin::types::miner {
     return DeadlineInfo(start_period, index, current_epoch);
   }
 
+  QuantSpec DeadlineInfo::quant() const {
+    return QuantSpec(kWPoStProvingPeriod, last());
+  }
+
 }  // namespace fc::vm::actor::builtin::types::miner

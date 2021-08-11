@@ -203,4 +203,9 @@ namespace fc::vm::actor::builtin::v0::miner {
     return std::vector<SectorOnChainInfo>{};
   }
 
+  outcome::result<void> Deadline::validateState() const {
+    // Do nothing for v0
+    return outcome::success();
+  }
+
 }  // namespace fc::vm::actor::builtin::v0::miner
