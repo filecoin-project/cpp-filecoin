@@ -14,32 +14,58 @@
 namespace fc::storage::blockchain {
   using vm::runtime::MessageReceipt;
 
+  // TODO(turuslan): "allow_replaced" param to ignore message gas
   class MsgWaiter : public std::enable_shared_from_this<MsgWaiter> {
    public:
-    using Result = std::pair<MessageReceipt, TipsetKey>;
-    using Callback = std::function<void(const Result &)>;
+    using Callback = std::function<void(TipsetCPtr, MessageReceipt)>;
+    struct Wait {
+      std::multimap<uint64_t, Callback> callbacks;
+      TipsetCPtr ts;
+      MessageReceipt receipt;
+    };
+    using Waiting = std::map<CID, Wait>;
+    struct Search {
+      CID cid;
+      Callback cb;
+      ChainEpoch min_height{};
+      TipsetCPtr ts;
+    };
+    using Searching = std::list<Search>;
 
     static std::shared_ptr<MsgWaiter> create(
         TsLoadPtr ts_load,
         IpldPtr ipld,
+        std::shared_ptr<boost::asio::io_context> io,
         std::shared_ptr<ChainStore> chain_store);
 
-    /**
-     * Registers callback for the message by CID.
-     *
-     * @param cid - message CID
-     * @param callback - action to call on message.
-     */
-    void wait(const CID &cid, const Callback &callback);
+    void search(TipsetCPtr ts,
+                const CID &cid,
+                ChainEpoch lookback_limit,
+                Callback cb);
+    void wait(const CID &cid,
+              ChainEpoch lookback_limit,
+              uint64_t confidence,
+              Callback cb);
 
    private:
     /** Head change subscription. */
     outcome::result<void> onHeadChange(const HeadChange &change);
+    outcome::result<bool> isSearch(const CID &cid);
+    void _search(TipsetCPtr ts,
+                 const CID &cid,
+                 ChainEpoch lookback_limit,
+                 Callback cb);
+    void searchLoop(Searching::iterator it);
+    Waiting::iterator checkWait(Waiting::iterator it);
 
     TsLoadPtr ts_load;
     IpldPtr ipld;
+    std::shared_ptr<boost::asio::io_context> io;
     ChainStore::connection_t head_sub;
-    mutable std::mutex mutex_waiting_;
-    std::map<CID, std::vector<Callback>> waiting;
+    mutable std::mutex mutex;
+    TipsetCPtr head;
+    std::shared_ptr<vm::state::StateTreeImpl> state_tree;
+    Waiting waiting;
+    Searching searching;
   };
 }  // namespace fc::storage::blockchain

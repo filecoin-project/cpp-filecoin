@@ -29,6 +29,16 @@ namespace fc::vm::message {
     return bytes.size();
   }
 
+  outcome::result<UnsignedMessage> UnsignedMessage::decode(BytesIn cbor) {
+    codec::cbor::CborToken token;
+    BytesIn input{cbor};
+    if (read(token, input).listCount() == 2) {
+      OUTCOME_TRY(smsg, codec::cbor::decode<SignedMessage>(cbor));
+      return smsg.message;
+    }
+    return codec::cbor::decode<UnsignedMessage>(cbor);
+  }
+
   CID SignedMessage::getCid() const {
     if (signature.isBls()) {
       return message.getCid();

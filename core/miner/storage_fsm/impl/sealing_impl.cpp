@@ -58,6 +58,7 @@ namespace fc::mining {
                            std::shared_ptr<PreCommitPolicy> policy,
                            std::shared_ptr<boost::asio::io_context> context,
                            std::shared_ptr<Scheduler> scheduler,
+                           std::shared_ptr<PreCommitBatcher> precommit_batcher,
                            Config config)
       : scheduler_{std::move(scheduler)},
         api_(std::move(api)),
@@ -67,6 +68,7 @@ namespace fc::mining {
         fsm_kv_{std::move(fsm_kv)},
         miner_address_(miner_address),
         sealer_(std::move(sealer)),
+        precommit_batcher_(std::move(precommit_batcher)),
         config_(config) {
     fsm_ = std::make_shared<StorageFSM>(makeFSMTransitions(), *context, true);
     fsm_->setAnyChangeAction(
@@ -94,6 +96,7 @@ namespace fc::mining {
       std::shared_ptr<PreCommitPolicy> policy,
       std::shared_ptr<boost::asio::io_context> context,
       std::shared_ptr<Scheduler> scheduler,
+      std::shared_ptr<PreCommitBatcher> precommit_batcher,
       Config config) {
     struct make_unique_enabler : public SealingImpl {
       make_unique_enabler(std::shared_ptr<FullNodeApi> api,
@@ -105,6 +108,7 @@ namespace fc::mining {
                           std::shared_ptr<PreCommitPolicy> policy,
                           std::shared_ptr<boost::asio::io_context> context,
                           std::shared_ptr<Scheduler> scheduler,
+                          std::shared_ptr<PreCommitBatcher> precommit_bathcer,
                           Config config)
           : SealingImpl{std::move(api),
                         std::move(events),
@@ -115,9 +119,9 @@ namespace fc::mining {
                         std::move(policy),
                         std::move(context),
                         std::move(scheduler),
+                        std::move(precommit_bathcer),
                         std::move(config)} {};
     };
-
     std::shared_ptr<SealingImpl> sealing =
         std::make_shared<make_unique_enabler>(api,
                                               events,
@@ -128,8 +132,8 @@ namespace fc::mining {
                                               policy,
                                               context,
                                               scheduler,
+                                              precommit_batcher,
                                               config);
-
     OUTCOME_TRY(sealing->fsmLoad());
     if (config.wait_deals_delay != std::chrono::milliseconds::zero()) {
       std::lock_guard lock(sealing->sectors_mutex_);
@@ -998,8 +1002,6 @@ namespace fc::mining {
     logger_->info("PreCommitting sector {}", info->sector_number);
     OUTCOME_TRY(head, api_->ChainHead());
 
-    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, head->key));
-
     auto maybe_error = checks::checkPrecommit(
         miner_address_, info, head->key, head->height(), api_);
 
@@ -1077,40 +1079,33 @@ namespace fc::mining {
     deposit = std::max(deposit, collateral);
 
     logger_->info("submitting precommit for sector: {}", info->sector_number);
-    const auto maybe_signed_msg = api_->MpoolPushMessage(
-        vm::message::UnsignedMessage(
-            miner_address_,
-            minfo.worker,
-            0,
-            deposit,
-            {},
-            {},
-            vm::actor::builtin::v0::miner::PreCommitSector::Number,
-            MethodParams{maybe_params.value()}),
-        api::kPushNoSpec);  // TODO: max fee options
-
-    if (maybe_signed_msg.has_error()) {
-      if (params.replace_capacity) {
-        maybe_error = markForUpgrade(params.replace_sector);
-        if (maybe_error.has_error()) {
-          logger_->error("error re-marking sector {} as for upgrade: {}",
-                         info->sector_number,
-                         maybe_error.error().message());
-        }
-      }
-      logger_->error("pushing message to mpool: {}",
-                     maybe_signed_msg.error().message());
-      FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
-      return outcome::success();
-    }
-
-    std::shared_ptr<SectorPreCommittedContext> context =
-        std::make_shared<SectorPreCommittedContext>();
-    context->precommit_message = maybe_signed_msg.value().getCid();
-    context->precommit_deposit = deposit;
-    context->precommit_info = std::move(params);
-
-    FSM_SEND_CONTEXT(info, SealingEvent::kSectorPreCommitted, context);
+    OUTCOME_TRY(precommit_batcher_->addPreCommit(
+        *info,
+        deposit,
+        params,
+        [=](const outcome::result<CID> &maybe_cid) -> void {
+          if (maybe_cid.has_error()) {
+            if (params.replace_capacity) {
+              const auto maybe_error = markForUpgrade(params.replace_sector);
+              if (maybe_error.has_error()) {
+                logger_->error("error re-marking sector {} as for upgrade: {}",
+                               info->sector_number,
+                               maybe_error.error().message());
+              }
+            }
+            logger_->error("submitting message to precommit batcher: {}",
+                           maybe_cid.error().message());
+            OUTCOME_EXCEPT(fsm_->send(
+                info, SealingEvent::kSectorChainPreCommitFailed, {}));
+          }
+          std::shared_ptr<SectorPreCommittedContext> context =
+              std::make_shared<SectorPreCommittedContext>();
+          context->precommit_message = maybe_cid.value();
+          context->precommit_deposit = deposit;
+          context->precommit_info = params;
+          OUTCOME_EXCEPT(
+              fsm_->send(info, SealingEvent::kSectorPreCommitted, context));
+        }));
     return outcome::success();
   }
 
@@ -1125,7 +1120,9 @@ namespace fc::mining {
     logger_->info("Sector precommitted: {}", info->sector_number);
     OUTCOME_TRY(channel,
                 api_->StateWaitMsg(info->precommit_message.value(),
-                                   api::kNoConfidence));
+                                   kMessageConfidence,
+                                   api::kLookbackNoLimit,
+                                   true));
 
     channel.waitOwn([info, this](auto &&maybe_lookup) {
       if (maybe_lookup.has_error()) {
@@ -1221,7 +1218,10 @@ namespace fc::mining {
           "sector {} entered committing state with a commit message cid",
           info->sector_number);
 
-      OUTCOME_TRY(message, api_->StateSearchMsg(*(info->message)));
+      OUTCOME_TRY(_message,
+                  api_->StateSearchMsg(
+                      {}, *(info->message), api::kLookbackNoLimit, true));
+      OUTCOME_TRY(message, _message.waitSync());
 
       if (message.has_value()) {
         FSM_SEND(info, SealingEvent::kSectorRetryCommitWait);
@@ -1384,7 +1384,10 @@ namespace fc::mining {
     }
 
     OUTCOME_TRY(channel,
-                api_->StateWaitMsg(info->message.get(), api::kNoConfidence));
+                api_->StateWaitMsg(info->message.get(),
+                                   kMessageConfidence,
+                                   api::kLookbackNoLimit,
+                                   true));
 
     channel.waitOwn([=](auto &&maybe_message_lookup) {
       if (maybe_message_lookup.has_error()) {
@@ -1682,8 +1685,16 @@ namespace fc::mining {
     }
 
     if (info->message.has_value()) {
-      const auto maybe_message_wait =
-          api_->StateSearchMsg(info->message.value());
+      auto _maybe_message_wait = api_->StateSearchMsg(
+          {}, info->message.value(), api::kLookbackNoLimit, true);
+
+      outcome::result<boost::optional<api::MsgWait>> maybe_message_wait{
+          outcome::success()};
+      if (_maybe_message_wait) {
+        maybe_message_wait = _maybe_message_wait.value().waitSync();
+      } else {
+        maybe_message_wait = _maybe_message_wait.error();
+      }
 
       if (maybe_message_wait.has_error()) {
         const auto time = getWaitingTime();
@@ -1960,7 +1971,9 @@ namespace fc::mining {
 
     OUTCOME_TRY(channel,
                 api_->StateWaitMsg(info->fault_report_message.get(),
-                                   api::kNoConfidence));
+                                   kMessageConfidence,
+                                   api::kLookbackNoLimit,
+                                   true));
     OUTCOME_TRY(message, channel.waitSync());
 
     if (message.receipt.exit_code != vm::VMExitCode::kOk) {

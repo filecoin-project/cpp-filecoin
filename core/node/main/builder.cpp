@@ -431,7 +431,13 @@ namespace fc::node {
         o.host, o.utc_clock, *config.genesis_cid, o.events);
 
     o.gossip = libp2p::protocol::gossip::create(
-        o.scheduler, o.host, config.gossip_config);
+        o.scheduler,
+        o.host,
+        injector.create<std::shared_ptr<libp2p::peer::IdentityManager>>(),
+        injector.create<std::shared_ptr<libp2p::crypto::CryptoProvider>>(),
+        injector.create<
+            std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller>>(),
+        config.gossip_config);
 
     using libp2p::protocol::gossip::ByteArray;
     o.gossip->setMessageIdFn(
@@ -519,7 +525,7 @@ namespace fc::node {
         o.env_context, o.ts_main, o.chain_store);
 
     auto msg_waiter = storage::blockchain::MsgWaiter::create(
-        o.ts_load, o.ipld, o.chain_store);
+        o.ts_load, o.ipld, o.io_context, o.chain_store);
 
     o.key_store = std::make_shared<storage::keystore::FileSystemKeyStore>(
         (config.repo_path / "keystore").string(), bls_provider, secp_provider);

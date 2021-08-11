@@ -91,6 +91,8 @@ namespace fc::vm::message {
     CID getCid() const;
 
     size_t chainSize() const;
+
+    static outcome::result<UnsignedMessage> decode(BytesIn cbor);
   };
   FC_OPERATOR_NOT_EQUAL(UnsignedMessage)
 

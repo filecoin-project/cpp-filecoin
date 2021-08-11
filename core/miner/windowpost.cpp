@@ -245,7 +245,10 @@ namespace fc::mining {
       msg.from = _from.value();
     }
     OUTCOME_TRY(smsg, api->MpoolPushMessage(msg, kSpec));
-    OUTCOME_TRY(wait, api->StateWaitMsg(smsg.getCid(), kMessageConfidence));
+    OUTCOME_TRY(
+        wait,
+        api->StateWaitMsg(
+            smsg.getCid(), kMessageConfidence, api::kLookbackNoLimit, true));
     wait.waitOwn([method](auto _r) {
       auto name{method == DeclareFaultsRecovered::Number
                     ? "DeclareFaultsRecovered"

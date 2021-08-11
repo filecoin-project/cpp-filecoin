@@ -21,7 +21,6 @@
 #include "node/pubsub_gate.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
-#include "storage/chain/receipt_loader.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/states/account/account_actor_state.hpp"
 #include "vm/actor/builtin/states/init/init_actor_state.hpp"
@@ -35,6 +34,8 @@
 #include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
+#include "vm/actor/builtin/v5/market/validate.hpp"
+#include "vm/actor/builtin/v5/miner/monies.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/message/message.hpp"
@@ -281,13 +282,7 @@ namespace fc::api {
     }};
     api->ChainGetMessage = {[=](auto &cid) -> outcome::result<UnsignedMessage> {
       OUTCOME_TRY(cbor, ipld->get(cid));
-      codec::cbor::CborToken token;
-      BytesIn input{cbor};
-      if (read(token, input).listCount() == 2) {
-        OUTCOME_TRY(smsg, codec::cbor::decode<SignedMessage>(cbor));
-        return smsg.message;
-      }
-      return codec::cbor::decode<UnsignedMessage>(cbor);
+      return UnsignedMessage::decode(cbor);
     }};
     api->ChainGetParentMessages = {
         [=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
@@ -562,8 +557,15 @@ namespace fc::api {
               [=, MOVE(cb), MOVE(context), MOVE(info)](auto _beacons) mutable {
                 OUTCOME_CB(info.beacons, _beacons);
                 TipsetContext lookback{
-                    nullptr, {ipld, std::move(cached.state_root)}, {}};
-                OUTCOME_CB(auto miner_state, lookback.minerState(miner));
+                    nullptr,
+                    {withVersion(ipld, epoch), std::move(cached.state_root)},
+                    {}};
+                OUTCOME_CB(auto actor, lookback.state_tree.tryGet(miner));
+                if (!actor) {
+                  return cb(boost::none);
+                }
+                OUTCOME_CB(auto miner_state,
+                           getCbor<MinerActorStatePtr>(lookback, actor->head));
                 OUTCOME_CB(auto seed, codec::cbor::encode(miner));
                 auto post_rand{crypto::randomness::drawRandomness(
                     info.beacon().data,
@@ -754,22 +756,6 @@ namespace fc::api {
               .state = IpldObject{std::move(cid), std::move(raw)},
           };
         }};
-    api->StateGetReceipt = {
-        [=](auto &cid, auto tipset_key) -> outcome::result<MessageReceipt> {
-          if (tipset_key.cids().empty()) {
-            tipset_key = chain_store->heaviestTipset()->key;
-          }
-          auto receipt_loader =
-              std::make_shared<storage::blockchain::ReceiptLoader>(ts_load,
-                                                                   ipld);
-          OUTCOME_TRY(
-              result,
-              receipt_loader->searchBackForMessageReceipt(cid, tipset_key, 0));
-          if (result.has_value()) {
-            return result->first;
-          }
-          return ERROR_TEXT("StateGetReceipt: no receipt");
-        }};
     api->StateListMiners = {
         [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
@@ -935,10 +921,75 @@ namespace fc::api {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
       return getNetworkVersion(context.tipset->height());
     };
-    // TODO(artyom-yurin): FIL-165 implement method
-    api->StateMinerPreCommitDepositForPower = {};
-    // TODO(artyom-yurin): FIL-165 implement method
-    api->StateMinerInitialPledgeCollateral = {};
+    constexpr auto kInitialPledgeNum{110};
+    constexpr auto kInitialPledgeDen{100};
+    api->StateMinerPreCommitDepositForPower =
+        [=](auto &miner,
+            const SectorPreCommitInfo &precommit,
+            auto &tsk) -> outcome::result<TokenAmount> {
+      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
+      OUTCOME_TRY(market, context.marketState());
+      // TODO(turuslan): older market actor versions
+      OUTCOME_TRY(
+          weights,
+          vm::actor::builtin::v5::market::validate(market,
+                                                   miner,
+                                                   precommit.deal_ids,
+                                                   context.tipset->epoch(),
+                                                   precommit.expiration));
+      const auto weight{vm::actor::builtin::types::miner::qaPowerForWeight(
+          sector_size,
+          precommit.expiration - context.tipset->epoch(),
+          weights.space_time,
+          weights.space_time_verified)};
+      OUTCOME_TRY(power, context.powerState());
+      OUTCOME_TRY(reward, context.rewardState());
+      // TODO(turuslan): older miner actor versions
+      return kInitialPledgeNum
+             * vm::actor::builtin::v5::miner::preCommitDepositForPower(
+                 reward->this_epoch_reward_smoothed,
+                 power->this_epoch_qa_power_smoothed,
+                 weight)
+             / kInitialPledgeDen;
+    };
+    api->StateMinerInitialPledgeCollateral =
+        [=](auto &miner,
+            const SectorPreCommitInfo &precommit,
+            auto &tsk) -> outcome::result<TokenAmount> {
+      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
+      OUTCOME_TRY(market, context.marketState());
+      // TODO(turuslan): older market actor versions
+      OUTCOME_TRY(
+          weights,
+          vm::actor::builtin::v5::market::validate(market,
+                                                   miner,
+                                                   precommit.deal_ids,
+                                                   context.tipset->epoch(),
+                                                   precommit.expiration));
+      const auto weight{vm::actor::builtin::types::miner::qaPowerForWeight(
+          sector_size,
+          precommit.expiration - context.tipset->epoch(),
+          weights.space_time,
+          weights.space_time_verified)};
+      OUTCOME_TRY(power, context.powerState());
+      OUTCOME_TRY(reward, context.rewardState());
+      OUTCOME_TRY(
+          circ,
+          env_context.circulating->circulating(
+              std::make_shared<StateTreeImpl>(std::move(context.state_tree)),
+              context.tipset->epoch()));
+      // TODO(turuslan): older miner actor versions
+      return kInitialPledgeNum
+             * vm::actor::builtin::v5::miner::initialPledgeForPower(
+                 circ,
+                 reward->this_epoch_reward_smoothed,
+                 power->this_epoch_qa_power_smoothed,
+                 weight,
+                 reward->this_epoch_baseline_power)
+             / kInitialPledgeDen;
+    };
 
     api->GetProofType = [=](const Address &miner_address,
                             const TipsetKey &tipset_key)
@@ -972,30 +1023,36 @@ namespace fc::api {
       return state->getVerifiedClientDataCap(id);
     };
 
-    // TODO(artyom-yurin): FIL-165 implement method
-    api->StateSearchMsg = {};
-    api->StateWaitMsg =
-        waitCb<MsgWait>([=](auto &&cid, auto &&confidence, auto &&cb) {
-          // look for message on chain
-          const auto receipt_loader =
-              std::make_shared<storage::blockchain::ReceiptLoader>(ts_load,
-                                                                   ipld);
-          OUTCOME_CB(auto result,
-                     receipt_loader->searchBackForMessageReceipt(
-                         cid, chain_store->heaviestTipset()->getParents(), 0));
-          if (result.has_value()) {
-            OUTCOME_CB(auto ts, ts_load->load(result->second));
-            cb(MsgWait{
-                cid, result->first, result->second, (ChainEpoch)ts->height()});
-            return;
-          }
-
-          // if message was not found, wait for it
-          msg_waiter->wait(cid, [=, MOVE(cb)](auto &result) {
-            OUTCOME_CB(auto ts, ts_load->load(result.second));
-            cb(MsgWait{cid, result.first, ts->key, (ChainEpoch)ts->height()});
-          });
+    api->StateSearchMsg = waitCb<boost::optional<MsgWait>>(
+        [=](auto &&tsk, auto &&cid, auto &&lookback_limit, bool, auto &&cb) {
+          OUTCOME_CB(auto context, tipsetContext(tsk));
+          msg_waiter->search(
+              context.tipset,
+              cid,
+              lookback_limit,
+              [=, MOVE(cb)](auto ts, auto receipt) {
+                if (!ts) {
+                  return cb(boost::none);
+                }
+                cb(MsgWait{cid, std::move(receipt), ts->key, ts->epoch()});
+              });
         });
+    api->StateWaitMsg = waitCb<MsgWait>([=](auto &&cid,
+                                            auto &&confidence,
+                                            auto &&lookback_limit,
+                                            bool,
+                                            auto &&cb) {
+      msg_waiter->wait(
+          cid,
+          lookback_limit,
+          confidence,
+          [=, MOVE(cb)](auto ts, auto receipt) {
+            if (!ts) {
+              return cb(ERROR_TEXT("StateWaitMsg not found"));
+            }
+            cb(MsgWait{cid, std::move(receipt), ts->key, ts->epoch()});
+          });
+    });
     api->SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
       // TODO(turuslan): chain store must validate blocks before adding
       MsgMeta meta;

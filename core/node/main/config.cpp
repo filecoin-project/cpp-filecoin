@@ -145,6 +145,8 @@ namespace fc::node {
     config.log_level = getLogLevel(raw.log_level);
     spdlog::set_level(config.log_level);
 
+    config.gossip_config.sign_messages = true;
+
     return config;
   }
 

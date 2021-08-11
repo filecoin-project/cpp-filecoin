@@ -124,7 +124,9 @@ namespace fc::markets::storage::chain_events {
       }
 
       if (prove_sector_committed) {
-        OUTCOME_TRY(wait, api_->StateWaitMsg(cid, api::kNoConfidence));
+        OUTCOME_TRY(wait,
+                    api_->StateWaitMsg(
+                        cid, kMessageConfidence, api::kLookbackNoLimit, true));
         wait.waitOwn([cb{std::move(watch_it->cb)}](auto _r) {
           if (_r) {
             cb();

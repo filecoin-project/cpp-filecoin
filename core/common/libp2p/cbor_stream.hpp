@@ -41,17 +41,23 @@ namespace fc::common::libp2p {
       });
     }
 
-    /// Write bytes of cbor object
-    void writeRaw(gsl::span<const uint8_t> input, WriteCallbackFunc cb);
+    /**
+     * Write bytes of cbor object
+     *
+     * @param input - shared pointer to buffer that must be alive until libp2p
+     * callback in stream::write() is called
+     */
+    void writeRaw(std::shared_ptr<Buffer> input, WriteCallbackFunc cb);
 
     /// Write cbor object
     template <typename T>
     void write(const T &value, WriteCallbackFunc cb) {
-      auto encoded = codec::cbor::encode(value);
-      if (!encoded) {
-        return cb(encoded.error());
+      auto maybe_encoded = codec::cbor::encode(value);
+      if (!maybe_encoded) {
+        return cb(maybe_encoded.error());
       }
-      writeRaw(encoded.value(), std::move(cb));
+      writeRaw(std::make_shared<Buffer>(std::move(maybe_encoded.value())),
+               std::move(cb));
     }
 
     void close() {
