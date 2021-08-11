@@ -20,9 +20,11 @@ namespace fc::common::libp2p {
     consume(buffer_, std::move(cb));
   }
 
-  void CborStream::writeRaw(gsl::span<const uint8_t> input,
+  void CborStream::writeRaw(std::shared_ptr<Buffer> input,
                             WriteCallbackFunc cb) {
-    stream_->write(input, input.size(), std::move(cb));
+    stream_->write(*input,
+                   input->size(),
+                   [input, cb{std::move(cb)}](auto written) { cb(written); });
   }
 
   void CborStream::readMore(ReadCallbackFunc cb) {
