@@ -42,14 +42,4 @@ namespace fc::vm::actor::builtin {
     EXPECT_TRUE(es.isEmpty());
   }
 
-  template <typename T>
-  inline std::vector<T> slice(const std::vector<T> &source,
-                              int begin,
-                              int end = -1) {
-    typename std::vector<T>::const_iterator begin_it = source.begin() + begin;
-    typename std::vector<T>::const_iterator end_it =
-        end == -1 ? source.end() : source.begin() + end;
-    return std::vector<T>(begin_it, end_it);
-  }
-
 }  // namespace fc::vm::actor::builtin

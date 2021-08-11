@@ -8,17 +8,51 @@
 #include "vm/actor/builtin/types/miner/deadline.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
+  using primitives::ChainEpoch;
+  using primitives::SectorSize;
+  using runtime::Runtime;
+  using types::miner::PartitionSectorMap;
+  using types::miner::PoStPartition;
+  using types::miner::PoStResult;
+  using types::miner::PowerPair;
+  using types::miner::QuantSpec;
+  using types::miner::SectorOnChainInfo;
+  using types::miner::Sectors;
 
   struct Deadline : types::miner::Deadline {
-    Deadline() = default;
-    Deadline(const types::miner::Deadline &other)
-        : types::miner::Deadline(other) {}
-    Deadline(types::miner::Deadline &&other) : types::miner::Deadline(other) {}
+    outcome::result<PowerPair> recordFaults(
+        Runtime &runtime,
+        const Sectors &sectors,
+        SectorSize ssize,
+        const QuantSpec &quant,
+        ChainEpoch fault_expiration_epoch,
+        const PartitionSectorMap &partition_sectors) override;
+
+    outcome::result<std::tuple<PowerPair, PowerPair>> processDeadlineEnd(
+        Runtime &runtime,
+        const QuantSpec &quant,
+        ChainEpoch fault_expiration_epoch) override;
+
+    outcome::result<PoStResult> recordProvenSectors(
+        Runtime &runtime,
+        const Sectors &sectors,
+        SectorSize ssize,
+        const QuantSpec &quant,
+        ChainEpoch fault_expiration,
+        const std::vector<PoStPartition> &post_partitions) override;
+
+    outcome::result<std::vector<SectorOnChainInfo>> rescheduleSectorExpirations(
+        Runtime &runtime,
+        const Sectors &sectors,
+        ChainEpoch expiration,
+        const PartitionSectorMap &partition_sectors,
+        SectorSize ssize,
+        const QuantSpec &quant) override;
   };
   CBOR_TUPLE(Deadline,
              partitions,
              expirations_epochs,
-             post_submissions,
+             partitions_posted,
              early_terminations,
              live_sectors,
              total_sectors,

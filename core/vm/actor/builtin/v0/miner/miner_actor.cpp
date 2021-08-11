@@ -24,9 +24,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     RleBitset allocated_sectors;
     OUTCOME_TRY(state->allocated_sectors.set(allocated_sectors));
 
-    OUTCOME_TRY(
-        deadlines,
-        state->makeEmptyDeadlines(runtime.getIpfsDatastore(), empty_amt_cid));
+    OUTCOME_TRY(deadlines,
+                TypeManager::makeEmptyDeadlines(runtime, empty_amt_cid));
     OUTCOME_TRY(state->deadlines.set(deadlines));
 
     VestingFunds vesting_funds;

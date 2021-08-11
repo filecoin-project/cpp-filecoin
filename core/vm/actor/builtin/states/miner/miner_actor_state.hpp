@@ -124,18 +124,13 @@ namespace fc::vm::actor::builtin::states {
      * Returns deadline calculations for the current (according to state)
      * proving period.
      * @param now - current chain epoch
-     * @returns deadline calculations
+     * @return deadline calculations
      */
     inline DeadlineInfo deadlineInfo(ChainEpoch now) const {
       return DeadlineInfo(proving_period_start, current_deadline, now);
     }
 
     virtual outcome::result<Universal<MinerInfo>> getInfo() const = 0;
-
-    virtual outcome::result<Deadlines> makeEmptyDeadlines(
-        IpldPtr ipld, const CID &empty_amt_cid) = 0;
-    virtual outcome::result<Deadline> getDeadline(IpldPtr ipld,
-                                                  const CID &cid) const = 0;
   };
 
   using MinerActorStatePtr = Universal<MinerActorState>;

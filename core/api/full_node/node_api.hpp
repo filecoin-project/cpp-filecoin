@@ -206,7 +206,7 @@ namespace fc::api {
   };
 
   struct Deadline {
-    RleBitset post_submissions;
+    RleBitset partitions_posted;
   };
 
   struct SectorLocation {
@@ -552,7 +552,7 @@ namespace fc::api {
      * Gets the current seal proof type for the given miner
      * @param Address - miner address
      * @param tipset
-     * @returns preferred registered seal proof type
+     * @return preferred registered seal proof type
      */
     API_METHOD(GetProofType,
                RegisteredSealProof,
@@ -577,7 +577,7 @@ namespace fc::api {
 
     /**
      * Verified registry actor state method
-     * @returns the data cap for the given address
+     * @return the data cap for the given address
      */
     API_METHOD(StateVerifiedClientStatus,
                boost::optional<StoragePower>,

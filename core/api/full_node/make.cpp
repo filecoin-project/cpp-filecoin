@@ -170,9 +170,9 @@ namespace fc::api {
     std::vector<SectorInfo> sectors;
     RleBitset sectors_bitset;
     OUTCOME_TRY(deadlines, state->deadlines.get());
-    for (auto &deadline_cid : deadlines.due) {
-      OUTCOME_TRY(deadline, state->getDeadline(ipld, deadline_cid));
-      OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &part) {
+    for (const auto &deadline_cid : deadlines.due) {
+      OUTCOME_TRY(deadline, deadline_cid.get());
+      OUTCOME_TRY(deadline->partitions.visit([&](auto, auto &part) {
         for (auto sector : part->sectors) {
           if (!part->faults.has(sector)) {
             sectors_bitset.insert(sector);
@@ -838,8 +838,8 @@ namespace fc::api {
           OUTCOME_TRY(deadlines, state->deadlines.get());
           std::vector<Deadline> result;
           for (const auto &deadline_cid : deadlines.due) {
-            OUTCOME_TRY(deadline, state->getDeadline(context, deadline_cid));
-            result.push_back(Deadline{deadline.post_submissions});
+            OUTCOME_TRY(deadline, deadline_cid.get());
+            result.push_back(Deadline{deadline->partitions_posted});
           }
           return result;
         }};
@@ -849,9 +849,9 @@ namespace fc::api {
           OUTCOME_TRY(state, context.minerState(address));
           OUTCOME_TRY(deadlines, state->deadlines.get());
           RleBitset faults;
-          for (auto &deadline_cid : deadlines.due) {
-            OUTCOME_TRY(deadline, state->getDeadline(context, deadline_cid));
-            OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &part) {
+          for (const auto &deadline_cid : deadlines.due) {
+            OUTCOME_TRY(deadline, deadline_cid.get());
+            OUTCOME_TRY(deadline->partitions.visit([&](auto, auto &part) {
               faults += part->faults;
               return outcome::success();
             }));
@@ -882,10 +882,9 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tsk));
           OUTCOME_TRY(state, context.minerState(miner));
           OUTCOME_TRY(deadlines, state->deadlines.get());
-          OUTCOME_TRY(deadline,
-                      state->getDeadline(context, deadlines.due[_deadline]));
+          OUTCOME_TRY(deadline, deadlines.due[_deadline].get());
           std::vector<Partition> parts;
-          OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &v) {
+          OUTCOME_TRY(deadline->partitions.visit([&](auto, auto &v) {
             parts.push_back({
                 v->sectors,
                 v->faults,

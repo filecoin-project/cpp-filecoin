@@ -15,29 +15,125 @@ namespace fc::vm::actor::builtin::types::miner {
   using primitives::ChainEpoch;
   using primitives::RleBitset;
 
+  template <size_t bits>
   struct BitfieldQueue {
-    // TODO(turuslan): must work with different bits
-    //   Deadline.ExpirationsEpochs=5
-    //   Partition.EarlyTerminated=3
-    //   miner State.PreCommittedSectorsExpiry=6
-    adt::Array<RleBitset> queue;
+    adt::Array<RleBitset, bits> queue;
     QuantSpec quant;
 
-    outcome::result<void> addToQueue(ChainEpoch raw_epoch,
-                                     const RleBitset &values);
-    outcome::result<void> cut(const RleBitset &to_cut);
-    outcome::result<void> addManyToQueueValues(
-        const std::map<ChainEpoch, std::vector<uint64_t>> &values);
-    outcome::result<std::tuple<RleBitset, bool>> popUntil(ChainEpoch until);
+    inline outcome::result<void> addToQueue(ChainEpoch raw_epoch,
+                                            const RleBitset &values) {
+      if (values.empty()) {
+        // nothing to do
+        return outcome::success();
+      }
+
+      const auto epoch = quant.quantizeUp(raw_epoch);
+      RleBitset bitfield;
+
+      OUTCOME_TRY(maybe_bitfield, queue.tryGet(epoch));
+      if (maybe_bitfield) {
+        bitfield = maybe_bitfield.value();
+      }
+
+      bitfield += values;
+      OUTCOME_TRY(queue.set(epoch, bitfield));
+      return outcome::success();
+    }
+
+    inline outcome::result<void> cut(const RleBitset &to_cut) {
+      std::vector<ChainEpoch> epochs_to_remove;
+
+      auto visitor{[&](auto epoch, auto &buf) -> outcome::result<void> {
+        const auto buffer = buf.cut(to_cut);
+        if (!buffer.empty()) {
+          OUTCOME_TRY(queue.set(epoch, buffer));
+          return outcome::success();
+        }
+        epochs_to_remove.push_back(epoch);
+        return outcome::success();
+      }};
+
+      OUTCOME_TRY(queue.visit(visitor));
+
+      for (const auto &epoch : epochs_to_remove) {
+        OUTCOME_TRY(queue.remove(epoch));
+      }
+      return outcome::success();
+    }
+
+    inline outcome::result<void> addManyToQueueValues(
+        const std::map<ChainEpoch, RleBitset> &values) {
+      std::map<ChainEpoch, RleBitset> quantized_values;
+      std::vector<ChainEpoch> updated_epochs;
+
+      for (auto const &[raw_epoch, entries] : values) {
+        const auto epoch = quant.quantizeUp(raw_epoch);
+        updated_epochs.push_back(epoch);
+        quantized_values[epoch] += entries;
+      }
+
+      std::sort(updated_epochs.begin(),
+                updated_epochs.end(),
+                std::less<ChainEpoch>());
+
+      for (auto epoch : updated_epochs) {
+        OUTCOME_TRY(addToQueue(epoch, quantized_values[epoch]));
+      }
+
+      return outcome::success();
+    }
+
+    inline outcome::result<std::tuple<RleBitset, bool>> popUntil(
+        ChainEpoch until) {
+      std::vector<RleBitset> popped_values;
+      std::vector<ChainEpoch> popped_keys;
+
+      auto visitor{[&](auto epoch, const auto &buf) -> outcome::result<void> {
+        if (static_cast<ChainEpoch>(epoch) > until) {
+          return outcome::success();
+        }
+        popped_keys.push_back(epoch);
+        popped_values.push_back(buf);
+        return outcome::success();
+      }};
+
+      OUTCOME_TRY(queue.visit(visitor));
+
+      if (popped_keys.empty()) {
+        return std::make_tuple(RleBitset{}, false);
+      }
+
+      for (const auto &key : popped_keys) {
+        OUTCOME_TRY(queue.remove(key));
+      }
+
+      RleBitset merged;
+      for (const auto &value : popped_values) {
+        merged += value;
+      }
+
+      return std::make_tuple(merged, true);
+    }
   };
 
 }  // namespace fc::vm::actor::builtin::types::miner
 
 namespace fc::cbor_blake {
   template <>
-  struct CbVisitT<vm::actor::builtin::types::miner::BitfieldQueue> {
+  struct CbVisitT<vm::actor::builtin::types::miner::BitfieldQueue<3>> {
     template <typename Visitor>
-    static void call(vm::actor::builtin::types::miner::BitfieldQueue &p,
+    static void call(vm::actor::builtin::types::miner::BitfieldQueue<3> &p,
+                     const Visitor &visit) {
+      visit(p.queue);
+    }
+  };
+}  // namespace fc::cbor_blake
+
+namespace fc::cbor_blake {
+  template <>
+  struct CbVisitT<vm::actor::builtin::types::miner::BitfieldQueue<5>> {
+    template <typename Visitor>
+    static void call(vm::actor::builtin::types::miner::BitfieldQueue<5> &p,
                      const Visitor &visit) {
       visit(p.queue);
     }

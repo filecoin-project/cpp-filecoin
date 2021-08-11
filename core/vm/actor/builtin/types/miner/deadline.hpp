@@ -6,42 +6,36 @@
 #pragma once
 
 #include "adt/array.hpp"
+#include "adt/cid_t.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
+#include "vm/actor/builtin/types/miner/dispute_info.hpp"
+#include "vm/actor/builtin/types/miner/expiration.hpp"
 #include "vm/actor/builtin/types/miner/partition.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
+#include "vm/actor/builtin/types/miner/post_partition.hpp"
+#include "vm/actor/builtin/types/miner/post_result.hpp"
+#include "vm/actor/builtin/types/miner/sectors.hpp"
+#include "vm/actor/builtin/types/miner/termination.hpp"
 #include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/type_manager/universal.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
   using primitives::RleBitset;
 
+  constexpr size_t kPartitionsBitWidth = 3;
+  constexpr size_t kExpirationsBitWidth = 5;
+  constexpr size_t kPoStSubmissionBitWidth = 3;
+
   /** Deadline holds the state for all sectors due at a specific deadline */
   struct Deadline {
-    Deadline() = default;
-    Deadline(const Deadline &other) = default;
-    Deadline(Deadline &&other) = default;
-
-    /**
-     * Makes empty deadline with adt::Array already flushed on ipld in order not
-     * to charge extra gas for creation.
-     * @param ipld - ipld with empty adt::Array stored
-     * @param empty_amt_cid
-     */
-    inline static Deadline makeEmpty(IpldPtr ipld, const CID &empty_amt_cid) {
-      // TODO (a.chernyshov) initialize amt with correct bitwidth
-      // construct with empty already cid stored in ipld to avoid gas charge
-      Deadline deadline;
-      deadline.partitions = {empty_amt_cid, ipld};
-      deadline.expirations_epochs = {empty_amt_cid, ipld};
-      return deadline;
-    }
+    virtual ~Deadline() = default;
 
     /**
      * Partitions in this deadline, in order.
      * The keys of this AMT are always sequential integers beginning with zero.
      */
-    adt::Array<Universal<Partition>, 3> partitions;
+    adt::Array<Universal<Partition>, kPartitionsBitWidth> partitions;
 
     /**
      * Maps epochs to partitions that _may_ have sectors that expire in or
@@ -53,19 +47,13 @@ namespace fc::vm::actor::builtin::types::miner {
      * at that epoch. Sectors expiring at this epoch may later be recovered, and
      * this queue will not be updated at that time.
      */
-    adt::Array<RleBitset, 5> expirations_epochs;
-
-    /**
-     * Partitions numbers with PoSt submissions since the proving period
-     * started.
-     */
-    RleBitset post_submissions;
+    adt::Array<RleBitset, kExpirationsBitWidth> expirations_epochs;
 
     /**
      * Partitions that have been proved by window PoSts so far during the
      * current challenge window.
      */
-    RleBitset partitions_posted;
+    RleBitset partitions_posted;  // old post_submissions
 
     /** Partitions with sectors that terminated early. */
     RleBitset early_terminations;
@@ -85,7 +73,8 @@ namespace fc::vm::actor::builtin::types::miner {
      * will be moved to PoStSubmissionsSnapshot. WindowPoSt proofs verified
      * on-chain do not appear in this AMT.
      */
-    adt::Array<WindowedPoSt, 2> optimistic_post_submissions;
+    adt::Array<WindowedPoSt, kPoStSubmissionBitWidth>
+        optimistic_post_submissions;
 
     /**
      * Snapshot of partition state at the end of the previous challenge window
@@ -98,6 +87,81 @@ namespace fc::vm::actor::builtin::types::miner {
      * disputed window PoSts are removed from the snapshot.
      */
     decltype(optimistic_post_submissions) optimistic_post_submissions_snapshot;
+
+    // Methods
+
+    outcome::result<void> addExpirationPartitions(
+        ChainEpoch expiration_epoch,
+        const RleBitset &partition_set,
+        const QuantSpec &quant);
+
+    outcome::result<ExpirationSet> popExpiredSectors(Runtime &runtime,
+                                                     ChainEpoch until,
+                                                     const QuantSpec &quant);
+
+    outcome::result<PowerPair> addSectors(
+        Runtime &runtime,
+        uint64_t partition_size,
+        bool proven,
+        std::vector<SectorOnChainInfo> sectors,
+        SectorSize ssize,
+        const QuantSpec &quant);
+
+    outcome::result<std::tuple<TerminationResult, bool>> popEarlyTerminations(
+        Runtime &runtime, uint64_t max_partitions, uint64_t max_sectors);
+
+    outcome::result<std::tuple<RleBitset, bool>> popExpiredPartitions(
+        ChainEpoch until, const QuantSpec &quant);
+
+    outcome::result<PowerPair> terminateSectors(
+        Runtime &runtime,
+        const Sectors &sectors,
+        ChainEpoch epoch,
+        const PartitionSectorMap &partition_sectors,
+        SectorSize ssize,
+        const QuantSpec &quant);
+
+    outcome::result<std::tuple<RleBitset, RleBitset, PowerPair>>
+    removePartitions(const RleBitset &to_remove, const QuantSpec &quant);
+
+    virtual outcome::result<PowerPair> recordFaults(
+        Runtime &runtime,
+        const Sectors &sectors,
+        SectorSize ssize,
+        const QuantSpec &quant,
+        ChainEpoch fault_expiration_epoch,
+        const PartitionSectorMap &partition_sectors) = 0;
+
+    outcome::result<void> declareFaultsRecovered(
+        const Sectors &sectors,
+        SectorSize ssize,
+        const PartitionSectorMap &partition_sectors);
+
+    virtual outcome::result<std::tuple<PowerPair, PowerPair>>
+    processDeadlineEnd(Runtime &runtime,
+                       const QuantSpec &quant,
+                       ChainEpoch fault_expiration_epoch) = 0;
+
+    virtual outcome::result<PoStResult> recordProvenSectors(
+        Runtime &runtime,
+        const Sectors &sectors,
+        SectorSize ssize,
+        const QuantSpec &quant,
+        ChainEpoch fault_expiration,
+        const std::vector<PoStPartition> &post_partitions) = 0;
+
+    virtual outcome::result<std::vector<SectorOnChainInfo>>
+    rescheduleSectorExpirations(Runtime &runtime,
+                                const Sectors &sectors,
+                                ChainEpoch expiration,
+                                const PartitionSectorMap &partition_sectors,
+                                SectorSize ssize,
+                                const QuantSpec &quant) = 0;
+
+    outcome::result<void> validateState() const;
+
+    outcome::result<DisputeInfo> loadPartitionsForDispute(
+        const RleBitset &partition_set) const;
   };
 
   /**
@@ -105,7 +169,7 @@ namespace fc::vm::actor::builtin::types::miner {
    * given deadline and their state (faulty, terminated, recovering, etc.).
    */
   struct Deadlines {
-    std::vector<CID> due;  // Deadline
+    std::vector<adt::CbCidT<Universal<Deadline>>> due;
   };
   CBOR_TUPLE(Deadlines, due)
 
@@ -113,15 +177,13 @@ namespace fc::vm::actor::builtin::types::miner {
 
 namespace fc::cbor_blake {
   template <>
-  struct CbVisitT<vm::actor::builtin::types::miner::Deadline> {
+  struct CbVisitT<vm::actor::builtin::types::miner::Deadlines> {
     template <typename Visitor>
-    static void call(vm::actor::builtin::types::miner::Deadline &p,
+    static void call(vm::actor::builtin::types::miner::Deadlines &d,
                      const Visitor &visit) {
-      visit(p.partitions);
-      visit(p.expirations_epochs);
-      visit(p.optimistic_post_submissions);
-      visit(p.partitions_snapshot);
-      visit(p.optimistic_post_submissions_snapshot);
+      for (auto &deadline : d.due) {
+        visit(deadline);
+      }
     }
   };
 }  // namespace fc::cbor_blake

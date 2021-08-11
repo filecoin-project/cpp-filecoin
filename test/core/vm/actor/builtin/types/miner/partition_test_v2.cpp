@@ -6,6 +6,7 @@
 #include "vm/actor/builtin/types/miner/v2/partition.hpp"
 
 #include <gtest/gtest.h>
+#include "common/container_utils.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "test_utils.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
@@ -16,6 +17,7 @@
 #include "vm/actor/version.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
+  using common::slice;
   using primitives::sector::getSealProofWindowPoStPartitionSectors;
   using primitives::sector::getSectorSize;
   using primitives::sector::RegisteredSealProof;
@@ -23,6 +25,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   using storage::ipfs::InMemoryDatastore;
   using types::TypeManager;
   using types::miner::BitfieldQueue;
+  using types::miner::kEearlyTerminatedBitWidth;
   using types::miner::kNoQuantization;
   using types::miner::powerForSectors;
   using types::miner::qaPowerForSector;
@@ -187,8 +190,8 @@ namespace fc::vm::actor::builtin::v2::miner {
       }
 
       {
-        const BitfieldQueue early_q{partition.early_terminated,
-                                    kNoQuantization};
+        const BitfieldQueue<kEearlyTerminatedBitWidth> early_q{
+            partition.early_terminated, kNoQuantization};
         RleBitset early_terms;
 
         auto visitor{[&](ChainEpoch epoch,
@@ -717,7 +720,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     groups.push_back({9, {4, 6}});
     assertPartitionExpirationQueue();
 
-    const BitfieldQueue queue{partition.early_terminated, kNoQuantization};
+    const BitfieldQueue<kEearlyTerminatedBitWidth> queue{
+        partition.early_terminated, kNoQuantization};
     EXPECT_OUTCOME_EQ(queue.queue.size(), 1);
     EXPECT_OUTCOME_TRUE(terminated, queue.queue.get(termination_epoch));
     EXPECT_EQ(terminated, terminations);
@@ -825,7 +829,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     groups.push_back({13, {5, 6}});
     assertPartitionExpirationQueue();
 
-    const BitfieldQueue queue{partition.early_terminated, kNoQuantization};
+    const BitfieldQueue<kEearlyTerminatedBitWidth> queue{
+        partition.early_terminated, kNoQuantization};
     EXPECT_OUTCOME_EQ(queue.queue.size(), 1);
     EXPECT_OUTCOME_TRUE(expired, queue.queue.get(expire_epoch));
     EXPECT_EQ(expired, fault_set);
@@ -938,7 +943,8 @@ namespace fc::vm::actor::builtin::v2::miner {
               expected_sectors1);
     EXPECT_TRUE(has_more1);
 
-    const BitfieldQueue queue1{partition.early_terminated, kNoQuantization};
+    const BitfieldQueue<kEearlyTerminatedBitWidth> queue1{
+        partition.early_terminated, kNoQuantization};
     EXPECT_OUTCOME_EQ(queue1.queue.size(), 1);
     EXPECT_OUTCOME_TRUE(terminated1, queue1.queue.get(termination_epoch));
     const RleBitset expected_terminated1{3, 5};
@@ -951,7 +957,8 @@ namespace fc::vm::actor::builtin::v2::miner {
               expected_sectors2);
     EXPECT_FALSE(has_more2);
 
-    const BitfieldQueue queue2{partition.early_terminated, kNoQuantization};
+    const BitfieldQueue<kEearlyTerminatedBitWidth> queue2{
+        partition.early_terminated, kNoQuantization};
     EXPECT_OUTCOME_EQ(queue2.queue.size(), 0);
   }
 
