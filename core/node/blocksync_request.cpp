@@ -292,7 +292,8 @@ namespace fc::sync::blocksync {
             libp2p::peer::PeerInfo{std::move(peer), {}},
             kProtocolId,
             [wptr = weak_from_this(),
-             binary_request = std::move(binary_request.value())](auto rstream) {
+             binary_request = std::make_shared<Buffer>(binary_request.value())](
+                auto rstream) {
               auto self = wptr.lock();
               if (self) {
                 if (rstream) {
@@ -300,7 +301,8 @@ namespace fc::sync::blocksync {
                       std::move(binary_request),
                       std::make_shared<CborStream>(rstream.value()));
                 } else {
-                  self->onConnected(common::Buffer{}, rstream.error());
+                  self->onConnected(std::make_shared<Buffer>(),
+                                    rstream.error());
                 }
               }
             });
@@ -375,7 +377,11 @@ namespace fc::sync::blocksync {
         }
       }
 
-      void onConnected(common::Buffer binary_request,
+      /**
+       * @param binary_request - shared pointer to binary request data that must
+       * be alive until libp2p callback in stream::write() is called
+       */
+      void onConnected(std::shared_ptr<Buffer> binary_request,
                        outcome::result<StreamPtr> rstream) {
         if (!in_progress_) {
           return;
@@ -384,9 +390,10 @@ namespace fc::sync::blocksync {
         if (rstream) {
           stream_ = std::move(rstream.value());
           stream_->stream()->write(
-              binary_request,
-              binary_request.size(),
-              [wptr = weak_from_this(), buf = binary_request](auto res) {
+              *binary_request,
+              binary_request->size(),
+              [wptr = weak_from_this(),
+               binary_request{std::move(binary_request)}](auto res) {
                 auto self = wptr.lock();
                 if (self) {
                   self->onRequestWritten(res);
