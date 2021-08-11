@@ -115,10 +115,4 @@ namespace fc::adt {
     std::mutex mutex;
   };
 
-  template <typename T>
-  void writeMany(std::vector<std::shared_ptr<Channel<T>>> &cs, T v) {
-    cs.erase(std::remove_if(
-                 cs.begin(), cs.end(), [&](auto &c) { return !c->write(v); }),
-             cs.end());
-  }
 }  // namespace fc::adt
