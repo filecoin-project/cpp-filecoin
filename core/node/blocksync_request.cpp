@@ -275,14 +275,15 @@ namespace fc::sync::blocksync {
           depth = kMaxDepth;
         }
 
-        auto binary_request = codec::cbor::encode<Request>(
+        auto maybe_binary_request = codec::cbor::encode<Request>(
             {std::move(blocks_reduced), depth, options});
 
-        if (!binary_request) {
-          result_->error = binary_request.error();
+        if (!maybe_binary_request) {
+          result_->error = maybe_binary_request.error();
           scheduleResult();
           return;
         }
+        binary_request_ = std::move(maybe_binary_request.value());
 
         options_ = options;
         result_->from = peer;
@@ -291,18 +292,14 @@ namespace fc::sync::blocksync {
             // peer must be already connected
             libp2p::peer::PeerInfo{std::move(peer), {}},
             kProtocolId,
-            [wptr = weak_from_this(),
-             binary_request = std::make_shared<Buffer>(binary_request.value())](
-                auto rstream) {
+            [wptr = weak_from_this()](auto rstream) {
               auto self = wptr.lock();
               if (self) {
                 if (rstream) {
                   self->onConnected(
-                      std::move(binary_request),
                       std::make_shared<CborStream>(rstream.value()));
                 } else {
-                  self->onConnected(std::make_shared<Buffer>(),
-                                    rstream.error());
+                  self->onConnected(rstream.error());
                 }
               }
             });
@@ -377,28 +374,21 @@ namespace fc::sync::blocksync {
         }
       }
 
-      /**
-       * @param binary_request - shared pointer to binary request data that must
-       * be alive until libp2p callback in stream::write() is called
-       */
-      void onConnected(std::shared_ptr<Buffer> binary_request,
-                       outcome::result<StreamPtr> rstream) {
+      void onConnected(outcome::result<StreamPtr> rstream) {
         if (!in_progress_) {
           return;
         }
 
         if (rstream) {
           stream_ = std::move(rstream.value());
-          stream_->stream()->write(
-              *binary_request,
-              binary_request->size(),
-              [wptr = weak_from_this(),
-               binary_request{std::move(binary_request)}](auto res) {
-                auto self = wptr.lock();
-                if (self) {
-                  self->onRequestWritten(res);
-                }
-              });
+          stream_->stream()->write(binary_request_,
+                                   binary_request_.size(),
+                                   [wptr = weak_from_this()](auto res) {
+                                     auto self = wptr.lock();
+                                     if (self) {
+                                       self->onRequestWritten(res);
+                                     }
+                                   });
         } else {
           result_->error = rstream.error();
           scheduleResult(false);
@@ -562,6 +552,11 @@ namespace fc::sync::blocksync {
       std::unordered_set<CbCid> waitlist_;
       Scheduler::Handle handle_;
       StreamPtr stream_;
+      /**
+       * It is responsibility of a caller to maintain the binary request data
+       * until libp2p callback in stream::write() is called
+       */
+      Buffer binary_request_;
       bool in_progress_ = true;
     };
 
