@@ -19,7 +19,7 @@ add_library(miner_types
     v2/partition.cpp
     v3/partition.cpp
     bind_types.cpp
-    )
+        v0/monies.cpp v0/monies.hpp v2/monies.cpp v2/monies.hpp v3/monies.cpp v3/monies.hpp monies.h)
 target_link_libraries(miner_types
     actor
     address
