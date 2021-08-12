@@ -4,6 +4,7 @@
 #
 
 add_library(miner_types
+    deadline_assignment_heap.cpp
     deadline_info.cpp
     deadline_sector_map.cpp
     partition_sector_map.cpp
