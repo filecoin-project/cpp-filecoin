@@ -9,9 +9,10 @@
 #include "vm/actor/builtin/types/miner/policy.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
+  using primitives::go::HeapController;
 
-  void DeadlineAssignmentHeap::swap(int i, int j) {
-    std::swap(deadline_infos[i], deadline_infos[j]);
+  int DeadlineAssignmentHeap::length() const {
+    return deadline_infos.size();
   }
 
   bool DeadlineAssignmentHeap::less(int i, int j) const {
@@ -63,6 +64,14 @@ namespace fc::vm::actor::builtin::types::miner {
     return a.index < b.index;
   }
 
+  void DeadlineAssignmentHeap::swap(int i, int j) {
+    std::swap(deadline_infos[i], deadline_infos[j]);
+  }
+
+  void DeadlineAssignmentHeap::push(const DeadlineAssignmentInfo &element) {
+    deadline_infos.push_back(element);
+  }
+
   DeadlineAssignmentInfo DeadlineAssignmentHeap::pop() {
     const auto last = deadline_infos.back();
     deadline_infos.pop_back();
@@ -74,9 +83,9 @@ namespace fc::vm::actor::builtin::types::miner {
       uint64_t partition_size,
       const std::vector<Universal<Deadline>> &deadlines,
       const std::vector<SectorOnChainInfo> &sectors) {
-    DeadlineAssignmentHeap dl_heap{.max_partitions = max_partitions,
-                                   .partition_size = partition_size,
-                                   .deadline_infos = {}};
+    DeadlineAssignmentHeap dl_heap;
+    dl_heap.max_partitions = max_partitions;
+    dl_heap.partition_size = partition_size;
 
     for (size_t dl_id = 0; dl_id < deadlines.size(); dl_id++) {
       dl_heap.deadline_infos.push_back(DeadlineAssignmentInfo{
@@ -85,7 +94,9 @@ namespace fc::vm::actor::builtin::types::miner {
           .total_sectors = deadlines[dl_id]->total_sectors});
     }
 
-    // todo heap.init
+    HeapController heap(dl_heap);
+
+    heap.init();
 
     std::vector<std::vector<SectorOnChainInfo>> changes(
         kWPoStPeriodDeadlines, std::vector<SectorOnChainInfo>{});
@@ -101,7 +112,7 @@ namespace fc::vm::actor::builtin::types::miner {
       info.live_sectors++;
       info.total_sectors++;
 
-      // todo heap.fix
+      heap.fix(0);
     }
 
     return changes;

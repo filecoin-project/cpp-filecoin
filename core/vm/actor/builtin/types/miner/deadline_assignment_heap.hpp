@@ -6,20 +6,24 @@
 #pragma once
 
 #include "common/outcome.hpp"
+#include "primitives/go/heap.hpp"
 #include "vm/actor/builtin/types/miner/deadline.hpp"
 #include "vm/actor/builtin/types/miner/deadline_assignment_info.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
+  using primitives::go::IHeap;
 
-  struct DeadlineAssignmentHeap {
+  struct DeadlineAssignmentHeap : public IHeap<DeadlineAssignmentInfo> {
     uint64_t max_partitions{};
     uint64_t partition_size{};
     std::vector<DeadlineAssignmentInfo> deadline_infos;
 
-    void swap(int i, int j);
-    bool less(int i, int j) const;
-    DeadlineAssignmentInfo pop();
+    int length() const override;
+    bool less(int i, int j) const override;
+    void swap(int i, int j) override;
+    void push(const DeadlineAssignmentInfo &element) override;
+    DeadlineAssignmentInfo pop() override;
   };
 
   /**
