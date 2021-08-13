@@ -21,7 +21,7 @@ namespace fc::vm::actor::builtin::types::miner {
   struct DeadlineInfo {
     DeadlineInfo() = default;
 
-    DeadlineInfo(ChainEpoch start, size_t deadline_index, ChainEpoch now);
+    DeadlineInfo(ChainEpoch start, uint64_t deadline_index, ChainEpoch now);
 
     /** Whether the proving period has begun. */
     bool periodStarted() const;

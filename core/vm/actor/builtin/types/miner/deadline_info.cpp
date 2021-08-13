@@ -10,7 +10,7 @@
 namespace fc::vm::actor::builtin::types::miner {
 
   DeadlineInfo::DeadlineInfo(ChainEpoch start,
-                             size_t deadline_index,
+                             uint64_t deadline_index,
                              ChainEpoch now) {
     if (deadline_index < kWPoStPeriodDeadlines) {
       const auto deadline_open{start
