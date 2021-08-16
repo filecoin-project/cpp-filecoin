@@ -508,6 +508,7 @@ namespace fc::node {
 
     o.sync_job =
         std::make_shared<sync::SyncJob>(o.host,
+                                        o.io_context,
                                         o.chain_store,
                                         o.scheduler,
                                         o.vm_interpreter,
