@@ -37,7 +37,7 @@ namespace fc::sector_storage::stores {
       std::condition_variable cv;
       std::array<size_t, kSectorFileTypeBits> read;
       SectorFileType write;
-      size_t refs;
+      size_t refs{};
     };
 
     bool lock(Lock &lock, bool wait);
