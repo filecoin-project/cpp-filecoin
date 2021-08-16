@@ -514,6 +514,10 @@ namespace fc::api {
     API_METHOD(StateLookupID, Address, const Address &, const TipsetKey &)
     API_METHOD(StateMarketStorageDeal, StorageDeal, DealId, const TipsetKey &)
 
+    API_METHOD(StateMinerActiveSectors,
+               std::vector<SectorOnChainInfo>,
+               const Address &,
+               const TipsetKey &)
     /** Returns PoSt submissions since the proving period started. */
     API_METHOD(StateMinerDeadlines,
                std::vector<Deadline>,
@@ -530,6 +534,11 @@ namespace fc::api {
     API_METHOD(StateMinerProvingDeadline,
                DeadlineInfo,
                const Address &,
+               const TipsetKey &)
+    API_METHOD(StateMinerSectorAllocated,
+               bool,
+               const Address &,
+               SectorNumber,
                const TipsetKey &)
     API_METHOD(StateMinerSectors,
                std::vector<SectorOnChainInfo>,
@@ -663,6 +672,7 @@ namespace fc::api {
     f(a.StateMarketBalance);
     f(a.StateMarketDeals);
     f(a.StateMarketStorageDeal);
+    f(a.StateMinerActiveSectors);
     f(a.StateMinerDeadlines);
     f(a.StateMinerFaults);
     f(a.StateMinerInfo);
@@ -671,6 +681,7 @@ namespace fc::api {
     f(a.StateMinerPower);
     f(a.StateMinerPreCommitDepositForPower);
     f(a.StateMinerProvingDeadline);
+    f(a.StateMinerSectorAllocated);
     f(a.StateMinerSectors);
     f(a.StateNetworkName);
     f(a.StateNetworkVersion);
