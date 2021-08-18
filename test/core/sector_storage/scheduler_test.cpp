@@ -8,12 +8,15 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <thread>
+#include "sector_storage/schedulder_utils.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/mocks/sector_storage/selector_mock.hpp"
 #include "testutil/outcome.hpp"
 
 namespace fc::sector_storage {
   using primitives::WorkerInfo;
   using primitives::WorkerResources;
+  using storage::InMemoryStorage;
   using ::testing::_;
 
   MATCHER_P(workerNameMatcher, worker_name, "compare workers name") {
@@ -27,7 +30,9 @@ namespace fc::sector_storage {
 
       io_ = std::make_shared<boost::asio::io_context>();
 
-      scheduler_ = std::make_unique<SchedulerImpl>(io_);
+      kv_ = std::make_shared<InMemoryStorage>();
+
+      scheduler_ = std::make_unique<SchedulerImpl>(io_, kv_);
 
       std::unique_ptr<WorkerHandle> worker = std::make_unique<WorkerHandle>();
 
@@ -49,6 +54,7 @@ namespace fc::sector_storage {
 
     std::shared_ptr<boost::asio::io_context> io_;
     RegisteredSealProof seal_proof_type_;
+    std::shared_ptr<InMemoryStorage> kv_;
     std::shared_ptr<SelectorMock> selector_;
     std::unique_ptr<Scheduler> scheduler_;
   };
@@ -211,6 +217,71 @@ namespace fc::sector_storage {
     io_->run_one();
     io_->run_one();
     EXPECT_EQ(counter, 6);
+  }
+
+  /**
+   * @given sealing task data, work id
+   * @when when try to schedule twice same task
+   * @then first works, second just changes cb
+   */
+  TEST_F(SchedulerTest, ScheuleDuplicateTask) {
+    auto task = primitives::kTTPreCommit1;
+    SectorId sector_id{
+        .miner = 42,
+        .sector = 1,
+    };
+    SectorRef sector{
+        .id = sector_id,
+        .proof_type = seal_proof_type_,
+    };
+    EXPECT_OUTCOME_TRUE(work_id, getWorkId(task, std::make_tuple(sector)));
+
+    CallId call_id{.sector = sector_id, .id = "someUUID"};
+    WorkerAction work = [&](const std::shared_ptr<Worker> &worker) {
+      return outcome::success(call_id);
+    };
+
+    bool is_first_called = false;
+    ReturnCb cb = [&](const outcome::result<CallResult> &) {
+      is_first_called = true;
+    };
+
+    EXPECT_CALL(
+        *selector_,
+        is_satisfying(task, seal_proof_type_, workerNameMatcher(worker_name_)))
+        .WillOnce(testing::Return(outcome::success(true)));
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(sector,
+                                               task,
+                                               selector_,
+                                               WorkerAction(),
+                                               work,
+                                               cb,
+                                               kDefaultTaskPriority,
+                                               work_id));
+
+    io_->run_one();
+
+    bool is_second_called = false;
+    ReturnCb new_cb = [&](const outcome::result<CallResult> &) {
+      is_second_called = true;
+    };
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(sector,
+                                               task,
+                                               selector_,
+                                               WorkerAction(),
+                                               work,
+                                               new_cb,
+                                               kDefaultTaskPriority,
+                                               work_id));
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id, {}));
+    io_->reset();
+    io_->run_one();
+
+    ASSERT_FALSE(is_first_called);
+    ASSERT_TRUE(is_second_called);
   }
 
   /**

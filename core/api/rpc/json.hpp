@@ -1230,6 +1230,16 @@ namespace fc::api {
       v = std::move(_v);
     }
 
+    // can be generic
+    ENCODE(gsl::span<const PieceInfo>) {
+      Value j{rapidjson::kArrayType};
+      j.Reserve(v.size(), allocator);
+      for (auto &elem : v) {
+        j.PushBack(encode(elem), allocator);
+      }
+      return j;
+    }
+
     ENCODE(PieceInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "Size", v.size);
@@ -2024,7 +2034,7 @@ namespace fc::api {
   };
 
   template <typename T>
-  static Document encode(const T &v) {
+  Document encode(const T &v) {
     Document document;
     static_cast<Value &>(document) = Codec{document.GetAllocator()}.encode(v);
     return document;

@@ -4,8 +4,10 @@
  */
 
 #include "sector_storage/impl/scheduler_impl.hpp"
+
 #include <thread>
 #include <utility>
+#include "codec/cbor/cbor_codec.hpp"
 #include "primitives/resources/active_resources.hpp"
 
 namespace fc::sector_storage {
@@ -13,8 +15,10 @@ namespace fc::sector_storage {
   using primitives::WorkerResources;
 
   SchedulerImpl::SchedulerImpl(
-      std::shared_ptr<boost::asio::io_context> io_context)
+      std::shared_ptr<boost::asio::io_context> io_context,
+      std::shared_ptr<BufferMap> datastore)
       : current_worker_id_(0),
+        call_kv_(std::move(datastore)),
         io_(std::move(io_context)),
         logger_(common::createLogger("scheduler")) {}
 
@@ -25,9 +29,79 @@ namespace fc::sector_storage {
       const WorkerAction &prepare,
       const WorkerAction &work,
       const ReturnCb &cb,
-      uint64_t priority) {
-    std::shared_ptr<TaskRequest> request = std::make_shared<TaskRequest>(
-        sector, task_type, priority, selector, prepare, work, cb);
+      uint64_t priority,
+      const boost::optional<WorkId> &maybe_work_id) {
+    WorkerAction job = work;
+    ReturnCb callback = cb;
+    if (maybe_work_id.has_value()) {
+      auto &work_id{maybe_work_id.value()};
+
+      callback = [logger{logger_},
+                  old_cb = std::move(callback),
+                  kv{call_kv_},
+                  wid{maybe_work_id.value()}](
+                     const outcome::result<CallResult> &result) -> void {
+        old_cb(result);
+        auto maybe_error = kv->remove(wid);
+        if (maybe_error.has_error()) {
+          logger->error(maybe_error.error().message());
+        }
+      };
+
+      if (call_kv_->contains(work_id)) {
+        // already in progress
+
+        OUTCOME_TRY(raw_state, call_kv_->get(work_id));
+        OUTCOME_TRY(state, codec::cbor::decode<WorkState>(raw_state));
+
+        if (state.status == WorkStatus::kInProgress) {
+          std::unique_lock lock(cbs_lock_);
+
+          auto it = results_.find(state.call_id);
+          if (it != results_.end()) {
+            lock.unlock();
+            callback(it->second);
+            lock.lock();
+            it = results_.find(state.call_id);
+            results_.erase(it);
+          } else {
+            callbacks_[state.call_id] = callback;
+          }
+        }
+
+        return outcome::success();
+      }
+      // new task
+      WorkState state;
+      state.id = work_id;
+      state.status = WorkStatus::kStart;
+      OUTCOME_TRY(state_raw, codec::cbor::encode(state));
+
+      OUTCOME_TRY(call_kv_->put(work_id, state_raw));
+
+      job = [old_job = std::move(job),
+             kv{call_kv_},
+             wid{maybe_work_id.value()}](const std::shared_ptr<Worker> &worker)
+          -> outcome::result<CallId> {
+        OUTCOME_TRY(call_id, old_job(worker));
+        WorkState state;
+        state.id = wid;
+        state.status = WorkStatus::kInProgress;
+        state.call_id = call_id;
+        OUTCOME_TRY(state_raw, codec::cbor::encode(state));
+        OUTCOME_TRY(kv->put(wid, state_raw));
+        return std::move(call_id);
+      };
+    }
+
+    std::shared_ptr<TaskRequest> request =
+        std::make_shared<TaskRequest>(sector,
+                                      task_type,
+                                      priority,
+                                      selector,
+                                      prepare,
+                                      std::move(job),
+                                      std::move(callback));
 
     {
       std::lock_guard<std::mutex> lock(request_lock_);
