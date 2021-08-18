@@ -91,7 +91,7 @@ namespace fc::storage::mpool {
     }
 
     void setHead(TipsetCPtr ts) {
-      chain_store->signal({primitives::tipset::HeadChangeType::CURRENT, ts});
+      chain_store->signal({{primitives::tipset::HeadChangeType::CURRENT, ts}});
     }
   };
 

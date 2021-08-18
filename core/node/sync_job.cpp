@@ -42,6 +42,7 @@ namespace fc::sync {
   }
 
   SyncJob::SyncJob(std::shared_ptr<libp2p::Host> host,
+                   std::shared_ptr<boost::asio::io_context> io,
                    std::shared_ptr<ChainStoreImpl> chain_store,
                    std::shared_ptr<Scheduler> scheduler,
                    std::shared_ptr<Interpreter> interpreter,
@@ -53,6 +54,7 @@ namespace fc::sync {
                    std::shared_ptr<PutBlockHeader> put_block_header,
                    IpldPtr ipld)
       : host_(std::move(host)),
+        io_(std::move(io)),
         chain_store_(std::move(chain_store)),
         scheduler_(std::move(scheduler)),
         interpreter_(std::move(interpreter)),
@@ -101,8 +103,10 @@ namespace fc::sync {
       }();
     });
 
-    possible_head_event_ = events_->subscribePossibleHead(
-        [this](const events::PossibleHead &e) { onPossibleHead(e); });
+    possible_head_event_ =
+        events_->subscribePossibleHead([this](const events::PossibleHead &e) {
+          thread.io->post([=] { onPossibleHead(e); });
+        });
 
     log()->debug("started");
   }
@@ -117,7 +121,7 @@ namespace fc::sync {
 
   void SyncJob::onPossibleHead(const events::PossibleHead &e) {
     if (auto ts{getLocal(e.head)}) {
-      thread.io->post([this, peer{e.source}, ts] { onTs(peer, ts); });
+      onTs(e.source, ts);
     } else if (e.source) {
       fetch(*e.source, e.head);
     }
@@ -212,9 +216,7 @@ namespace fc::sync {
             continue;
           }
           if (peer) {
-            thread.io->post([this, peer{*peer}, tsk{*branch->parent_key}] {
-              fetch(peer, tsk);
-            });
+            fetch(*peer, *branch->parent_key);
           }
         }
       }
@@ -336,7 +338,10 @@ namespace fc::sync {
     interpret_thread.io->post([=] {
       auto result{interpreter_->interpret(branch, ts)};
       if (!result) {
-        log()->warn("interpret error {:#}", result.error());
+        log()->warn("interpret error {:#} {} {}",
+                    result.error(),
+                    ts->height(),
+                    ts->key.cidsStr());
       }
       thread.io->post([=] {
         std::unique_lock lock{*ts_branches_mutex_};
@@ -366,7 +371,7 @@ namespace fc::sync {
     std::unique_lock lock{requests_mutex_};
     requests_.emplace(peer, tsk);
     lock.unlock();
-    fetchDequeue();
+    io_->post([=] { fetchDequeue(); });
   }
 
   void SyncJob::fetchDequeue() {
@@ -387,7 +392,7 @@ namespace fc::sync {
     auto [peer, tsk]{std::move(requests_.front())};
     requests_.pop();
     if (auto ts{getLocal(tsk)}) {
-      onTs(peer, ts);
+      thread.io->post([=, peer{std::move(peer)}] { onTs(peer, ts); });
       return;
     }
     uint64_t probable_depth = 5;

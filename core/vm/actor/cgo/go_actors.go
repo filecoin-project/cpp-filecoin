@@ -780,6 +780,9 @@ func cgoActorsConfigParams(raw C.Raw) C.Raw {
 	for _, x := range builtin4.PoStProofPolicies {
 		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
 	}
+	for _, x := range builtin5.PoStProofPolicies {
+		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
+	}
 	nProofs := int(arg.uint())
 	ClearSupportedProofTypes(nProofs)
 	for i := 0; i < nProofs; i++ {
