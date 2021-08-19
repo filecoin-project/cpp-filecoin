@@ -1,0 +1,52 @@
+name: ASAN
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v2
+        name: checkout repo
+      - name: cache
+        uses: actions/cache@v1.2.0
+        env:
+          cache-name: cache-filecoin-ffi-proofs
+          version: v28
+        with:
+          path: /var/tmp/filecoin-proof-parameters
+          key: build-${{ env.cache-name }}-${{ env.version }}
+      - name: checkout submodules
+        shell: bash
+        run: |
+          auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+          git submodule sync --recursive
+          git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+      - name: install
+        run: |
+          brew install ninja llvm pkg-config libb2 hwloc
+          sudo python3 -m pip install --upgrade pip
+          sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml
+      - name: cmake
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
+          GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+          GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+          CFLAGS: "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
+          CXXFLAGS: "-isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
+        run: cmake . -GNinja -Bbuild -D ASAN=ON -D TESTING_PROOFS=ON
+      - name: build
+        run: cmake --build build -- -j2
+      - name: run tests
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1
+          # ASAN container overflow detection is disabled because of false-positives.
+          # (https://github.com/google/sanitizers/wiki/AddressSanitizerContainerOverflow#false-positives)
+          ASAN_OPTIONS: "halt_on_error=0: detect_container_overflow=0"
+        run: cmake --build build --target test
