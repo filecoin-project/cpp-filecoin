@@ -34,7 +34,7 @@ namespace fc::sector_storage {
 
   CBOR_TUPLE(WorkId, task_type, param_hash);
 
-  enum WorkStatus : uint64_t {
+  enum class WorkStatus : uint64_t {
     kUndefined = 0,
     kStart,
     kInProgress,

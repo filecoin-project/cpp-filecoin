@@ -156,7 +156,7 @@ namespace fc::sector_storage {
     CallId call_id{};
     WorkId work_id{};
     for (auto &ws : states_) {
-      if (ws.status == kInProgress) {
+      if (ws.status == WorkStatus::kInProgress) {
         work_id = ws.id;
         call_id = ws.call_id;
         ASSERT_TRUE(kv_->contains(ws.id));

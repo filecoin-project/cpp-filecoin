@@ -52,13 +52,13 @@ namespace fc::sector_storage {
     WorkerAction job = work;
     ReturnCb callback = cb;
     if (maybe_work_id.has_value()) {
-      auto &work_id{maybe_work_id.value()};
+      const auto &work_id{maybe_work_id.value()};
 
-      callback = [logger{logger_},
-                  old_cb = std::move(callback),
-                  kv{call_kv_},
-                  wid{maybe_work_id.value()}](
-                     const outcome::result<CallResult> &result) -> void {
+      callback =
+          [logger{logger_},
+           old_cb = std::move(callback),
+           kv{call_kv_},
+           wid{work_id}](const outcome::result<CallResult> &result) -> void {
         old_cb(result);
         auto maybe_error = kv->remove(wid);
         if (maybe_error.has_error()) {
@@ -97,9 +97,8 @@ namespace fc::sector_storage {
 
       OUTCOME_TRY(call_kv_->put(work_id, state_raw));
 
-      job = [old_job = std::move(job),
-             kv{call_kv_},
-             wid{maybe_work_id.value()}](const std::shared_ptr<Worker> &worker)
+      job = [old_job = std::move(job), kv{call_kv_}, wid{work_id}](
+                const std::shared_ptr<Worker> &worker)
           -> outcome::result<CallId> {
         OUTCOME_TRY(call_id, old_job(worker));
         WorkState state;
@@ -398,7 +397,7 @@ namespace fc::sector_storage {
         OUTCOME_TRY(state, codec::cbor::decode<WorkState>(it->value()));
         switch (state.status) {
           case WorkStatus::kInProgress:
-              break;
+            break;
           default:
             remove_id = state.id;
         }
