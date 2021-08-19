@@ -8,6 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <gsl/span>
 #include <sector_storage/stores/store_error.hpp>
+#include "sector_storage/schedulder_utils.hpp"
 
 #include "testutil/literals.hpp"
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
@@ -32,6 +33,7 @@ namespace fc::sector_storage {
   using stores::SectorIndexMock;
   using stores::SectorPaths;
   using ::testing::_;
+  using ::testing::Eq;
 
   class ManagerTest : public test::BaseFS_Test {
    public:
@@ -148,6 +150,10 @@ namespace fc::sector_storage {
                                                                pieces.size())))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
+    EXPECT_OUTCOME_TRUE(work_id,
+                        getWorkId(primitives::kTTPreCommit1,
+                                  std::make_tuple(sector, randomness, pieces)));
+
     EXPECT_CALL(*scheduler_,
                 schedule(sector,
                          primitives::kTTPreCommit1,
@@ -155,15 +161,17 @@ namespace fc::sector_storage {
                          _,
                          _,
                          _,
-                         kDefaultTaskPriority))
-        .WillOnce(
-            testing::Invoke([&](const SectorRef &sector,
-                                const TaskType &task_type,
-                                const std::shared_ptr<WorkerSelector> &selector,
-                                const WorkerAction &prepare,
-                                const WorkerAction &work,
-                                const ReturnCb &cb,
-                                uint64_t priority) -> outcome::result<void> {
+                         kDefaultTaskPriority,
+                         Eq(work_id)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
               cb(CallResult{result, {}});
               return outcome::success();
@@ -208,6 +216,11 @@ namespace fc::sector_storage {
     EXPECT_CALL(*worker_, sealPreCommit2(sector, pre_commit_1_output))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
+    EXPECT_OUTCOME_TRUE(
+        work_id,
+        getWorkId(primitives::kTTPreCommit2,
+                  std::make_tuple(sector, pre_commit_1_output)));
+
     EXPECT_CALL(*scheduler_,
                 schedule(sector,
                          primitives::kTTPreCommit2,
@@ -215,15 +228,17 @@ namespace fc::sector_storage {
                          _,
                          _,
                          _,
-                         kDefaultTaskPriority))
-        .WillOnce(
-            testing::Invoke([&](const SectorRef &sector,
-                                const TaskType &task_type,
-                                const std::shared_ptr<WorkerSelector> &selector,
-                                const WorkerAction &prepare,
-                                const WorkerAction &work,
-                                const ReturnCb &cb,
-                                uint64_t priority) -> outcome::result<void> {
+                         kDefaultTaskPriority,
+                         Eq(work_id)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
               cb(CallResult{result_cids, {}});
               return outcome::success();
@@ -278,18 +293,29 @@ namespace fc::sector_storage {
             sector, ticket, seed, gsl::span<const PieceInfo>(pieces), cids))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
-    EXPECT_CALL(
-        *scheduler_,
-        schedule(
-            sector, primitives::kTTCommit1, _, _, _, _, kDefaultTaskPriority))
-        .WillOnce(
-            testing::Invoke([&](const SectorRef &sector,
-                                const TaskType &task_type,
-                                const std::shared_ptr<WorkerSelector> &selector,
-                                const WorkerAction &prepare,
-                                const WorkerAction &work,
-                                const ReturnCb &cb,
-                                uint64_t priority) -> outcome::result<void> {
+    EXPECT_OUTCOME_TRUE(
+        work_id,
+        getWorkId(primitives::kTTCommit1,
+                  std::make_tuple(sector, ticket, seed, pieces, cids)));
+
+    EXPECT_CALL(*scheduler_,
+                schedule(sector,
+                         primitives::kTTCommit1,
+                         _,
+                         _,
+                         _,
+                         _,
+                         kDefaultTaskPriority,
+                         Eq(work_id)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
               OUTCOME_TRY(work(worker_));
               cb(CallResult{result, {}});
               return outcome::success();
@@ -322,18 +348,28 @@ namespace fc::sector_storage {
     EXPECT_CALL(*worker_, sealCommit2(sector, commit_1_output))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
-    EXPECT_CALL(
-        *scheduler_,
-        schedule(
-            sector, primitives::kTTCommit2, _, _, _, _, kDefaultTaskPriority))
-        .WillOnce(
-            testing::Invoke([&](const SectorRef &sector,
-                                const TaskType &task_type,
-                                const std::shared_ptr<WorkerSelector> &selector,
-                                const WorkerAction &prepare,
-                                const WorkerAction &work,
-                                const ReturnCb &cb,
-                                uint64_t priority) -> outcome::result<void> {
+    EXPECT_OUTCOME_TRUE(work_id,
+                        getWorkId(primitives::kTTCommit2,
+                                  std::make_tuple(sector, commit_1_output)));
+
+    EXPECT_CALL(*scheduler_,
+                schedule(sector,
+                         primitives::kTTCommit2,
+                         _,
+                         _,
+                         _,
+                         _,
+                         kDefaultTaskPriority,
+                         Eq(work_id)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
               cb(CallResult{result, {}});
               return outcome::success();
@@ -384,18 +420,24 @@ namespace fc::sector_storage {
                 finalizeSector(sector, gsl::span<const Range>(keep_unsealed)))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
-    EXPECT_CALL(
-        *scheduler_,
-        schedule(
-            sector, primitives::kTTFinalize, _, _, _, _, kDefaultTaskPriority))
-        .WillOnce(
-            testing::Invoke([&](const SectorRef &sector,
-                                const TaskType &task_type,
-                                const std::shared_ptr<WorkerSelector> &selector,
-                                const WorkerAction &prepare,
-                                const WorkerAction &work,
-                                const ReturnCb &cb,
-                                uint64_t priority) -> outcome::result<void> {
+    EXPECT_CALL(*scheduler_,
+                schedule(sector,
+                         primitives::kTTFinalize,
+                         _,
+                         _,
+                         _,
+                         _,
+                         kDefaultTaskPriority,
+                         Eq(boost::none)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
               CallResult res;
               cb(res);
@@ -410,18 +452,24 @@ namespace fc::sector_storage {
                                                 | SectorFileType::FTCache)))
         .WillOnce(testing::Return(outcome::success(call_id2)));
 
-    EXPECT_CALL(
-        *scheduler_,
-        schedule(
-            sector, primitives::kTTFetch, _, _, _, _, kDefaultTaskPriority))
-        .WillOnce(
-            testing::Invoke([&](const SectorRef &sector,
-                                const TaskType &task_type,
-                                const std::shared_ptr<WorkerSelector> &selector,
-                                const WorkerAction &prepare,
-                                const WorkerAction &work,
-                                const ReturnCb &cb,
-                                uint64_t priority) -> outcome::result<void> {
+    EXPECT_CALL(*scheduler_,
+                schedule(sector,
+                         primitives::kTTFetch,
+                         _,
+                         _,
+                         _,
+                         _,
+                         kDefaultTaskPriority,
+                         Eq(boost::none)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id2);
               CallResult res;
               cb(res);
@@ -504,18 +552,24 @@ namespace fc::sector_storage {
             sector, gsl::span<const UnpaddedPieceSize>({}), piece_size, _))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
-    EXPECT_CALL(
-        *scheduler_,
-        schedule(
-            sector, primitives::kTTAddPiece, _, _, _, _, kDefaultTaskPriority))
-        .WillOnce(
-            testing::Invoke([&](const SectorRef &sector,
-                                const TaskType &task_type,
-                                const std::shared_ptr<WorkerSelector> &selector,
-                                const WorkerAction &prepare,
-                                const WorkerAction &work,
-                                const ReturnCb &cb,
-                                uint64_t priority) -> outcome::result<void> {
+    EXPECT_CALL(*scheduler_,
+                schedule(sector,
+                         primitives::kTTAddPiece,
+                         _,
+                         _,
+                         _,
+                         _,
+                         kDefaultTaskPriority,
+                         Eq(boost::none)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
               cb(CallResult{result, {}});
               return outcome::success();
@@ -568,18 +622,24 @@ namespace fc::sector_storage {
                 unsealPiece(sector, offset, piece_size, randomness, cid))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
-    EXPECT_CALL(
-        *scheduler_,
-        schedule(
-            sector, primitives::kTTUnseal, _, _, _, _, kDefaultTaskPriority))
-        .WillOnce(
-            testing::Invoke([&](const SectorRef &sector,
-                                const TaskType &task_type,
-                                const std::shared_ptr<WorkerSelector> &selector,
-                                const WorkerAction &prepare,
-                                const WorkerAction &work,
-                                const ReturnCb &cb,
-                                uint64_t priority) -> outcome::result<void> {
+    EXPECT_CALL(*scheduler_,
+                schedule(sector,
+                         primitives::kTTUnseal,
+                         _,
+                         _,
+                         _,
+                         _,
+                         kDefaultTaskPriority,
+                         Eq(boost::none)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
               CallResult res;
               cb(res);
@@ -597,15 +657,17 @@ namespace fc::sector_storage {
                          _,
                          _,
                          _,
-                         kDefaultTaskPriority))
-        .WillOnce(
-            testing::Invoke([&](const SectorRef &sector,
-                                const TaskType &task_type,
-                                const std::shared_ptr<WorkerSelector> &selector,
-                                const WorkerAction &prepare,
-                                const WorkerAction &work,
-                                const ReturnCb &cb,
-                                uint64_t priority) -> outcome::result<void> {
+                         kDefaultTaskPriority,
+                         Eq(boost::none)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id2);
               cb(CallResult{true, {}});
               return outcome::success();
@@ -655,18 +717,24 @@ namespace fc::sector_storage {
                 unsealPiece(sector, offset, piece_size, randomness, cid))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
-    EXPECT_CALL(
-        *scheduler_,
-        schedule(
-            sector, primitives::kTTUnseal, _, _, _, _, kDefaultTaskPriority))
-        .WillOnce(
-            testing::Invoke([&](const SectorRef &sector,
-                                const TaskType &task_type,
-                                const std::shared_ptr<WorkerSelector> &selector,
-                                const WorkerAction &prepare,
-                                const WorkerAction &work,
-                                const ReturnCb &cb,
-                                uint64_t priority) -> outcome::result<void> {
+    EXPECT_CALL(*scheduler_,
+                schedule(sector,
+                         primitives::kTTUnseal,
+                         _,
+                         _,
+                         _,
+                         _,
+                         kDefaultTaskPriority,
+                         Eq(boost::none)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
               CallResult res;
               cb(res);
@@ -684,15 +752,17 @@ namespace fc::sector_storage {
                          _,
                          _,
                          _,
-                         kDefaultTaskPriority))
-        .WillOnce(
-            testing::Invoke([&](const SectorRef &sector,
-                                const TaskType &task_type,
-                                const std::shared_ptr<WorkerSelector> &selector,
-                                const WorkerAction &prepare,
-                                const WorkerAction &work,
-                                const ReturnCb &cb,
-                                uint64_t priority) -> outcome::result<void> {
+                         kDefaultTaskPriority,
+                         Eq(boost::none)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id2);
               cb(CallResult{false, {}});
               return outcome::success();

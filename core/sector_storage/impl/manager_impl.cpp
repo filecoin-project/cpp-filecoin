@@ -14,14 +14,13 @@
 #include <string>
 #include <unordered_set>
 
-#include "api/rpc/json.hpp"
 #include "api/storage_miner/return_api.hpp"
 #include "codec/json/json.hpp"
-#include "common/tarutil.hpp"
 #include "sector_storage/impl/allocate_selector.hpp"
 #include "sector_storage/impl/existing_selector.hpp"
 #include "sector_storage/impl/local_worker.hpp"
 #include "sector_storage/impl/task_selector.hpp"
+#include "sector_storage/schedulder_utils.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage {
@@ -586,6 +585,10 @@ namespace fc::sector_storage {
       gsl::span<const PieceInfo> pieces,
       std::function<void(outcome::result<PreCommit1Output>)> cb,
       uint64_t priority) {
+    OUTCOME_TRY(work_id,
+                getWorkId(primitives::kTTPreCommit1,
+                          std::make_tuple(sector, ticket, pieces)));
+
     OUTCOME_TRY(lock,
                 index_->storageLock(
                     sector.id,
@@ -614,7 +617,8 @@ namespace fc::sector_storage {
           return worker->sealPreCommit1(sector, ticket, pieces);
         },
         callbackWrapper(cb),
-        priority);
+        priority,
+        work_id);
   }
 
   outcome::result<PreCommit1Output> ManagerImpl::sealPreCommit1Sync(
@@ -641,6 +645,10 @@ namespace fc::sector_storage {
       const PreCommit1Output &pre_commit_1_output,
       std::function<void(outcome::result<SectorCids>)> cb,
       uint64_t priority) {
+    OUTCOME_TRY(work_id,
+                getWorkId(primitives::kTTPreCommit2,
+                          std::make_tuple(sector, pre_commit_1_output)));
+
     OUTCOME_TRY(
         lock,
         index_->storageLock(
@@ -667,7 +675,8 @@ namespace fc::sector_storage {
           return worker->sealPreCommit2(sector, pre_commit_1_output);
         },
         callbackWrapper(cb),
-        priority);
+        priority,
+        work_id);
   }
 
   outcome::result<SectorCids> ManagerImpl::sealPreCommit2Sync(
@@ -695,6 +704,10 @@ namespace fc::sector_storage {
       const SectorCids &cids,
       std::function<void(outcome::result<Commit1Output>)> cb,
       uint64_t priority) {
+    OUTCOME_TRY(work_id,
+                getWorkId(primitives::kTTCommit1,
+                          std::make_tuple(sector, ticket, seed, pieces, cids)));
+
     OUTCOME_TRY(
         lock,
         index_->storageLock(
@@ -723,7 +736,8 @@ namespace fc::sector_storage {
           return worker->sealCommit1(sector, ticket, seed, pieces, cids);
         },
         callbackWrapper(cb),
-        priority));
+        priority,
+        work_id));
 
     return outcome::success();
   }
@@ -754,6 +768,10 @@ namespace fc::sector_storage {
       const Commit1Output &commit_1_output,
       std::function<void(outcome::result<Proof>)> cb,
       uint64_t priority) {
+    OUTCOME_TRY(work_id,
+                getWorkId(primitives::kTTCommit2,
+                          std::make_tuple(sector, commit_1_output)));
+
     std::unique_ptr<TaskSelector> selector = std::make_unique<TaskSelector>();
 
     return scheduler_->schedule(
@@ -765,7 +783,8 @@ namespace fc::sector_storage {
           return worker->sealCommit2(sector, commit_1_output);
         },
         callbackWrapper(cb),
-        priority);
+        priority,
+        work_id);
   }
 
   outcome::result<Proof> ManagerImpl::sealCommit2Sync(

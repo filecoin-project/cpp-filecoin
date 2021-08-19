@@ -12,8 +12,10 @@
 #include <mutex>
 #include <unordered_map>
 #include <utility>
+#include "storage/buffer_map.hpp"
 
 namespace fc::sector_storage {
+  using storage::BufferMap;
   using WorkerID = uint64_t;
 
   struct TaskRequest {
@@ -54,7 +56,9 @@ namespace fc::sector_storage {
 
   class SchedulerImpl : public Scheduler {
    public:
-    explicit SchedulerImpl(std::shared_ptr<boost::asio::io_context> io_context);
+    static outcome::result<std::shared_ptr<SchedulerImpl>> newScheduler(
+        std::shared_ptr<boost::asio::io_context> io_context,
+        std::shared_ptr<BufferMap> datastore);
 
     outcome::result<void> schedule(
         const SectorRef &sector,
@@ -63,7 +67,8 @@ namespace fc::sector_storage {
         const WorkerAction &prepare,
         const WorkerAction &work,
         const ReturnCb &cb,
-        uint64_t priority) override;
+        uint64_t priority,
+        const boost::optional<WorkId> &maybe_work_id) override;
 
     void newWorker(std::unique_ptr<WorkerHandle> worker) override;
 
@@ -71,6 +76,11 @@ namespace fc::sector_storage {
                                        CallResult result) override;
 
    private:
+    explicit SchedulerImpl(std::shared_ptr<boost::asio::io_context> io_context,
+                           std::shared_ptr<BufferMap> datastore);
+
+    outcome::result<void> resetWorks();
+
     outcome::result<bool> maybeScheduleRequest(
         const std::shared_ptr<TaskRequest> &request);
 
@@ -87,6 +97,8 @@ namespace fc::sector_storage {
     std::mutex cbs_lock_;
     std::map<CallId, ReturnCb> callbacks_;
     std::map<CallId, CallResult> results_;
+
+    std::shared_ptr<BufferMap> call_kv_;
 
     std::mutex request_lock_;
     std::multiset<std::shared_ptr<TaskRequest>,
