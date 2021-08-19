@@ -79,7 +79,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   DeadlineInfo DeadlineInfo::nextNotElapsed() const {
-    if (hasElapsed()) {
+    if (!hasElapsed()) {
       return *this;
     }
 
@@ -105,6 +105,29 @@ namespace fc::vm::actor::builtin::types::miner {
 
   QuantSpec DeadlineInfo::quant() const {
     return QuantSpec(kWPoStProvingPeriod, last());
+  }
+
+  bool DeadlineInfo::operator==(const DeadlineInfo &other) const {
+    return current_epoch == other.current_epoch
+           && period_start == other.period_start && index == other.index
+           && open == other.open && close == other.close
+           && challenge == other.challenge && fault_cutoff == other.fault_cutoff
+           && wpost_period_deadlines == other.wpost_period_deadlines
+           && wpost_proving_period == other.wpost_proving_period
+           && wpost_challenge_window == other.wpost_challenge_window
+           && wpost_challenge_lookback == other.wpost_challenge_lookback
+           && fault_declaration_cutoff == other.fault_declaration_cutoff;
+  }
+
+  DeadlineInfo newDeadlineInfoFromOffsetAndEpoch(ChainEpoch period_start_seed,
+                                                 ChainEpoch curr_epoch) {
+    const auto quant = QuantSpec(kWPoStProvingPeriod, period_start_seed);
+    const auto current_period_start = quant.quantizeDown(curr_epoch);
+    const uint64_t current_deadline_index =
+        ((curr_epoch - current_period_start) / kWPoStChallengeWindow)
+        % kWPoStPeriodDeadlines;
+    return DeadlineInfo(
+        current_period_start, current_deadline_index, curr_epoch);
   }
 
 }  // namespace fc::vm::actor::builtin::types::miner

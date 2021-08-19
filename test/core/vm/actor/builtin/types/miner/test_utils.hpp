@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <gtest/gtest.h>
 #include "primitives/types.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
@@ -14,6 +15,7 @@
 namespace fc::vm::actor::builtin {
   using primitives::ChainEpoch;
   using primitives::DealWeight;
+  using primitives::RleBitset;
   using primitives::SectorNumber;
   using primitives::TokenAmount;
   using types::miner::ExpirationQueue;
@@ -40,6 +42,22 @@ namespace fc::vm::actor::builtin {
                                               ExpirationQueue &queue) {
     EXPECT_OUTCOME_TRUE(es, queue.popUntil(epoch - 1));
     EXPECT_TRUE(es.isEmpty());
+  }
+
+  inline std::vector<SectorOnChainInfo> selectSectorsTest(
+      const std::vector<SectorOnChainInfo> &sectors, const RleBitset &field) {
+    auto to_include = field;
+    std::vector<SectorOnChainInfo> included;
+
+    for (const auto &sector : sectors) {
+      if (!to_include.has(sector.sector)) {
+        continue;
+      }
+      included.push_back(sector);
+      to_include.erase(sector.sector);
+    }
+    EXPECT_TRUE(to_include.empty());
+    return included;
   }
 
 }  // namespace fc::vm::actor::builtin

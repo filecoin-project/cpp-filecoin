@@ -57,7 +57,7 @@ namespace fc::vm::actor::builtin::types::miner {
       all_faulty_power += part_expiration.faulty_power;
       all_on_time_pledge += part_expiration.on_time_pledge;
 
-      if (part_expiration.early_sectors.empty()) {
+      if (!part_expiration.early_sectors.empty()) {
         partitions_with_early_terminations.push_back(part_id);
       }
 
@@ -108,9 +108,12 @@ namespace fc::vm::actor::builtin::types::miner {
 
       while (!sectors.empty()) {
         OUTCOME_TRY(maybe_partition, this->partitions.tryGet(part_id));
-        Universal<Partition> partition =
-            maybe_partition ? maybe_partition.value()
-                            : Universal<Partition>{runtime.getActorVersion()};
+        Universal<Partition> partition{runtime.getActorVersion()};
+        if (maybe_partition) {
+          partition = maybe_partition.value();
+        } else {
+          cbor_blake::cbLoadT(runtime.getIpfsDatastore(), partition);
+        }
 
         const auto sector_count = partition->sectors.size();
         if (sector_count >= partition_size) {
@@ -239,7 +242,8 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<std::tuple<RleBitset, RleBitset, PowerPair>>
-  Deadline::removePartitions(const RleBitset &to_remove,
+  Deadline::removePartitions(Runtime &runtime,
+                             const RleBitset &to_remove,
                              const QuantSpec &quant) {
     OUTCOME_TRY(partition_count, this->partitions.size());
 
@@ -259,6 +263,7 @@ namespace fc::vm::actor::builtin::types::miner {
     }
 
     decltype(this->partitions) new_partitions;
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), new_partitions);
     std::vector<RleBitset> all_dead_sectors;
     std::vector<RleBitset> all_live_sectors;
     PowerPair removed_power;

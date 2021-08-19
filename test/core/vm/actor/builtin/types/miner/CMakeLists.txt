@@ -6,7 +6,10 @@
 addtest(miner_types_test
     quantize_test.cpp
     bitfield_queue_test.cpp
+    deadline_assignment_test.cpp
+    deadline_info_test.cpp
     deadline_sector_map_test.cpp
+    deadline_v0_test.cpp
     sectors_test.cpp
     partition_sector_map_test.cpp
     partition_test_v0.cpp

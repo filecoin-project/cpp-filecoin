@@ -56,6 +56,12 @@ namespace fc::vm::actor::builtin::types::miner {
     /** Returns QuantSpec for Deadline Info. */
     QuantSpec quant() const;
 
+    bool operator==(const DeadlineInfo &other) const;
+
+    bool operator!=(const DeadlineInfo &other) const {
+      return !(*this == other);
+    }
+
     /// Deadline parameters
 
     /** Epoch at which this info was calculated. */
@@ -94,5 +100,11 @@ namespace fc::vm::actor::builtin::types::miner {
 
     ChainEpoch fault_declaration_cutoff{};
   };
+
+  // Determine current period start and deadline index directly from current
+  // epoch and the offset implied by the proving period. This works correctly
+  // even for the state of a miner actor without an active deadline cron
+  DeadlineInfo newDeadlineInfoFromOffsetAndEpoch(ChainEpoch period_start_seed,
+                                                 ChainEpoch curr_epoch);
 
 }  // namespace fc::vm::actor::builtin::types::miner

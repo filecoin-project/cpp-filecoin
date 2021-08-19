@@ -120,7 +120,9 @@ namespace fc::vm::actor::builtin::types::miner {
         const QuantSpec &quant);
 
     outcome::result<std::tuple<RleBitset, RleBitset, PowerPair>>
-    removePartitions(const RleBitset &to_remove, const QuantSpec &quant);
+    removePartitions(Runtime &runtime,
+                     const RleBitset &to_remove,
+                     const QuantSpec &quant);
 
     virtual outcome::result<PowerPair> recordFaults(
         Runtime &runtime,
