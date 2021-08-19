@@ -33,8 +33,8 @@ namespace fc::sector_storage {
       kv_ = std::make_shared<InMemoryStorage>();
 
       auto sector = SectorId{
-          .sector = 1,
           .miner = 42,
+          .sector = 1,
       };
       WorkState ws;
       EXPECT_OUTCOME_TRUE(
