@@ -62,8 +62,12 @@ namespace fc::vm::actor::builtin::v2::miner {
   };
 
   struct RepayDebt : ActorMethodBase<22> {
+    struct Params{
+      TokenAmount current_balance;
+    };
     ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(RepayDebt::Params, current_balance);
 
   /**
    * Proposes or confirms a change of owner address
