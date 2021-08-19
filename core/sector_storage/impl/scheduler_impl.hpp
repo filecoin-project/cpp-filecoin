@@ -56,7 +56,9 @@ namespace fc::sector_storage {
 
   class SchedulerImpl : public Scheduler {
    public:
-    explicit SchedulerImpl(std::shared_ptr<boost::asio::io_context> io_context, std::shared_ptr<BufferMap> datastore);
+    static outcome::result<std::shared_ptr<SchedulerImpl>> newScheduler(
+        std::shared_ptr<boost::asio::io_context> io_context,
+        std::shared_ptr<BufferMap> datastore);
 
     outcome::result<void> schedule(
         const SectorRef &sector,
@@ -74,6 +76,11 @@ namespace fc::sector_storage {
                                        CallResult result) override;
 
    private:
+    explicit SchedulerImpl(std::shared_ptr<boost::asio::io_context> io_context,
+                           std::shared_ptr<BufferMap> datastore);
+
+    outcome::result<void> resetWorks();
+
     outcome::result<bool> maybeScheduleRequest(
         const std::shared_ptr<TaskRequest> &request);
 

@@ -14,6 +14,24 @@ namespace fc::sector_storage {
   using primitives::Resources;
   using primitives::WorkerResources;
 
+  outcome::result<std::shared_ptr<SchedulerImpl>> SchedulerImpl::newScheduler(
+      std::shared_ptr<boost::asio::io_context> io_context,
+      std::shared_ptr<BufferMap> datastore) {
+    struct make_unique_enabler : public SchedulerImpl {
+      make_unique_enabler(std::shared_ptr<boost::asio::io_context> io_context,
+                          std::shared_ptr<BufferMap> datastore)
+          : SchedulerImpl{std::move(io_context), std::move(datastore)} {};
+    };
+
+    std::shared_ptr<SchedulerImpl> scheduler =
+        std::make_shared<make_unique_enabler>(std::move(io_context),
+                                              std::move(datastore));
+
+    OUTCOME_TRY(scheduler->resetWorks());
+
+    return scheduler;
+  }
+
   SchedulerImpl::SchedulerImpl(
       std::shared_ptr<boost::asio::io_context> io_context,
       std::shared_ptr<BufferMap> datastore)
@@ -366,6 +384,29 @@ namespace fc::sector_storage {
       callbacks_.erase(call_id);
     });
 
+    return outcome::success();
+  }
+
+  outcome::result<void> SchedulerImpl::resetWorks() {
+    if (auto it{call_kv_->cursor()}) {
+      boost::optional<WorkId> remove_id = boost::none;  // to not broke iterator
+      for (it->seekToFirst(); it->isValid(); it->next()) {
+        if (remove_id.has_value()) {
+          OUTCOME_TRY(call_kv_->remove(remove_id.value()));
+          remove_id = boost::none;
+        }
+        OUTCOME_TRY(state, codec::cbor::decode<WorkState>(it->value()));
+        switch (state.status) {
+          case WorkStatus::kInProgress:
+              break;
+          default:
+            remove_id = state.id;
+        }
+      }
+      if (remove_id.has_value()) {
+        OUTCOME_TRY(call_kv_->remove(remove_id.value()));
+      }
+    }
     return outcome::success();
   }
 }  // namespace fc::sector_storage

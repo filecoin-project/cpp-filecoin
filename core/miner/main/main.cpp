@@ -336,8 +336,10 @@ namespace fc {
     auto remote_store{std::make_shared<sector_storage::stores::RemoteStoreImpl>(
         local_store, std::unordered_map<std::string, std::string>{})};
 
-    auto wscheduler{std::make_shared<sector_storage::SchedulerImpl>(
-        io, prefixed("scheduler_works/"))};  // maybe use another io_context
+    OUTCOME_TRY(
+        wscheduler,
+        sector_storage::SchedulerImpl::newScheduler(
+            io, prefixed("scheduler_works/")));  // maybe use another io_context
     OUTCOME_TRY(manager,
                 sector_storage::ManagerImpl::newManager(
                     io, remote_store, wscheduler, {true, true, true, true}));

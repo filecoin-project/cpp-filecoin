@@ -32,7 +32,41 @@ namespace fc::sector_storage {
 
       kv_ = std::make_shared<InMemoryStorage>();
 
-      scheduler_ = std::make_unique<SchedulerImpl>(io_, kv_);
+      auto sector = SectorId{
+          .sector = 1,
+          .miner = 42,
+      };
+      WorkState ws;
+      EXPECT_OUTCOME_TRUE(
+          wid1, getWorkId(primitives::kTTPreCommit1, std::make_tuple(sector)));
+      ws.id = wid1;
+      ws.status = WorkStatus::kStart;
+      EXPECT_OUTCOME_TRUE(raw1, codec::cbor::encode(ws));
+      EXPECT_OUTCOME_TRUE_1(kv_->put(wid1, raw1));
+      states_.push_back(ws);
+      sector.sector++;
+      EXPECT_OUTCOME_TRUE(
+          wid2, getWorkId(primitives::kTTPreCommit1, std::make_tuple(sector)));
+      CallId callid{.sector = sector, .id = "some"};
+      ws.id = wid2;
+      ws.status = WorkStatus::kInProgress;
+      ws.call_id = callid;
+      EXPECT_OUTCOME_TRUE(raw2, codec::cbor::encode(ws));
+      EXPECT_OUTCOME_TRUE_1(kv_->put(wid2, raw2));
+      states_.push_back(ws);
+      sector.sector++;
+      EXPECT_OUTCOME_TRUE(
+          wid3, getWorkId(primitives::kTTPreCommit1, std::make_tuple(sector)));
+      ws.id = wid3;
+      ws.status = WorkStatus::kStart;
+      ws.call_id = CallId();
+      EXPECT_OUTCOME_TRUE(raw3, codec::cbor::encode(ws));
+      EXPECT_OUTCOME_TRUE_1(kv_->put(wid3, raw3));
+      states_.push_back(ws);
+
+      EXPECT_OUTCOME_TRUE(scheduler, SchedulerImpl::newScheduler(io_, kv_));
+
+      scheduler_ = scheduler;
 
       std::unique_ptr<WorkerHandle> worker = std::make_unique<WorkerHandle>();
 
@@ -51,12 +85,13 @@ namespace fc::sector_storage {
     }
 
     std::string worker_name_;
+    std::vector<WorkState> states_;
 
     std::shared_ptr<boost::asio::io_context> io_;
     RegisteredSealProof seal_proof_type_;
     std::shared_ptr<InMemoryStorage> kv_;
     std::shared_ptr<SelectorMock> selector_;
-    std::unique_ptr<Scheduler> scheduler_;
+    std::shared_ptr<Scheduler> scheduler_;
   };
 
   /**
@@ -110,6 +145,45 @@ namespace fc::sector_storage {
     io_->run_one();
 
     EXPECT_EQ(counter, 3);
+  }
+
+  /**
+   * @given data in storage
+   * @when when try to recover and get result
+   * @then immediately return result
+   */
+  TEST_F(SchedulerTest, ResultAfterRestart) {
+    CallId call_id{};
+    WorkId work_id{};
+    for (auto &ws : states_) {
+      if (ws.status == kInProgress) {
+        work_id = ws.id;
+        call_id = ws.call_id;
+        ASSERT_TRUE(kv_->contains(ws.id));
+      } else {
+        ASSERT_FALSE(kv_->contains(ws.id));
+      }
+    }
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id, {}));
+
+    io_->run_one();
+
+    bool is_called = false;
+    ReturnCb cb = [&](const outcome::result<CallResult> &) {
+      is_called = true;
+    };
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(SectorRef{},
+                                               primitives::kTTPreCommit1,
+                                               selector_,
+                                               WorkerAction(),
+                                               WorkerAction(),
+                                               cb,
+                                               kDefaultTaskPriority,
+                                               work_id));
+
+    ASSERT_TRUE(is_called);
   }
 
   /**
