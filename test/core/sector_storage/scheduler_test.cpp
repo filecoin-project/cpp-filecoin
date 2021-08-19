@@ -244,14 +244,11 @@ namespace fc::sector_storage {
         .proof_type = seal_proof_type_,
     };
 
-    std::mutex res;
-    std::condition_variable cv;
-    bool ready = false;
+    std::promise<void> work2_done;
 
     CallId call_id1{.sector = sector_id1, .id = "UUID1"};
     WorkerAction work1 = [&](const std::shared_ptr<Worker> &worker) {
-      std::unique_lock<std::mutex> l(res);
-      cv.wait(l, [&]() { return ready; });
+      work2_done.get_future().get();
       return outcome::success(call_id1);
     };
     bool cb1_call = false;
@@ -261,8 +258,7 @@ namespace fc::sector_storage {
 
     CallId call_id2{.sector = sector_id2, .id = "UUID2"};
     WorkerAction work2 = [&](const std::shared_ptr<Worker> &worker) {
-      ready = true;
-      cv.notify_one();
+      work2_done.set_value();
       return outcome::success(call_id2);
     };
 
