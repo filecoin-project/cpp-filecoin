@@ -823,11 +823,11 @@ namespace fc::api {
       OUTCOME_TRY(state, context.minerState(miner));
       std::vector<SectorOnChainInfo> sectors;
       OUTCOME_TRY(deadlines, state->deadlines.get());
-      for (auto &_deadline : deadlines.due) {
-        OUTCOME_TRY(deadline, state->getDeadline(context, _deadline));
-        OUTCOME_TRY(deadline.partitions.visit(
-            [&](auto, auto &part) -> outcome::result<void> {
-              for (auto &id : part->activeSectors()) {
+      for (const auto &deadline_cid : deadlines.due) {
+        OUTCOME_TRY(deadline, deadline_cid.get());
+        OUTCOME_TRY(deadline->partitions.visit(
+            [&](auto, const auto &part) -> outcome::result<void> {
+              for (const auto &id : part->activeSectors()) {
                 OUTCOME_TRYA(sectors.emplace_back(), state->sectors.get(id));
               }
               return outcome::success();
