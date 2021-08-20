@@ -22,8 +22,8 @@ namespace fc::vm::actor::builtin::types::miner {
     }
 
     const std::vector<size_t> *expect(size_t i) const {
-      for (size_t j{0}; j < deadlines.size(); ++j) {
-        auto &dl{deadlines[j]};
+      for (size_t j = 0; j < deadlines.size(); ++j) {
+        const auto &dl{deadlines[j]};
         if (dl.index == i) {
           return &expected[j];
         }
@@ -85,12 +85,12 @@ namespace fc::vm::actor::builtin::types::miner {
   };
 
   TEST_P(DeadlineAssignmentTestP, TestDeadlineAssignment) {
-    auto &test_case{GetParam()};
+    const auto &test_case{GetParam()};
     EXPECT_OUTCOME_TRUE(
         assignment,
         assignDeadlines(100, 4, test_case.deadlines, test_case.sectors()));
     EXPECT_EQ(assignment.size(), kWPoStPeriodDeadlines);
-    for (size_t i{0}; i < assignment.size(); ++i) {
+    for (size_t i = 0; i < assignment.size(); ++i) {
       if (const auto *expected{test_case.expect(i)}) {
         EXPECT_EQ(assignment[i], *expected);
       } else {

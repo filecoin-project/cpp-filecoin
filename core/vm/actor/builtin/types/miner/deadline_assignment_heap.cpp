@@ -61,14 +61,14 @@ namespace fc::vm::actor::builtin::types::miner {
       uint64_t partition_size,
       std::vector<DeadlineAssignmentInfo> deadlines,
       size_t sectors) {
-    DeadlineAssignmentLess less{max_partitions, partition_size};
-    auto cmp{[less](auto &l, auto &r) { return !less(l, r); }};
+    const DeadlineAssignmentLess less{max_partitions, partition_size};
+    const auto cmp{[less](auto &l, auto &r) { return !less(l, r); }};
     std::make_heap(deadlines.begin(), deadlines.end(), cmp);
 
     std::vector<std::vector<size_t>> changes;
     changes.resize(kWPoStPeriodDeadlines);
 
-    for (size_t i{0}; i < sectors; ++i) {
+    for (size_t i = 0; i < sectors; ++i) {
       std::pop_heap(deadlines.begin(), deadlines.end(), cmp);
       auto &info{deadlines.back()};
 
