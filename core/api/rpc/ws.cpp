@@ -102,8 +102,14 @@ namespace fc::api {
 
     template <typename T>
     void _write(const T &v, OkCb cb) {
-      pending_writes.emplace(*codec::json::format(encode(v)), std::move(cb));
-      _flush();
+      boost::asio::post(socket.get_executor(),
+                        [self{shared_from_this()},
+                         buffer{*codec::json::format(encode(v))},
+                         cb{std::move(cb)}]() mutable {
+                          self->pending_writes.emplace(std::move(buffer),
+                                                       std::move(cb));
+                          self->_flush();
+                        });
     }
 
     void _flush() {

@@ -32,6 +32,7 @@ addtest(scheduler_test
 target_link_libraries(scheduler_test
         scheduler
         base_fs_test
+        in_memory_storage
         )
 
 addtest(manager_test
