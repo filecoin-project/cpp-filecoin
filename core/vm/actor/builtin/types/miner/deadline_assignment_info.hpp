@@ -11,7 +11,7 @@
 namespace fc::vm::actor::builtin::types::miner {
 
   struct DeadlineAssignmentInfo {
-    int index{};
+    size_t index{};
     uint64_t live_sectors{};
     uint64_t total_sectors{};
 

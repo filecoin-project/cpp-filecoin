@@ -78,37 +78,31 @@ namespace fc::vm::actor::builtin::types::miner {
     return last;
   }
 
-  outcome::result<std::vector<std::vector<SectorOnChainInfo>>> assignDeadlines(
+  outcome::result<std::vector<std::vector<size_t>>> assignDeadlines(
       uint64_t max_partitions,
       uint64_t partition_size,
-      const std::vector<Universal<Deadline>> &deadlines,
-      const std::vector<SectorOnChainInfo> &sectors) {
+      const std::vector<DeadlineAssignmentInfo> &deadlines,
+      size_t sectors) {
     DeadlineAssignmentHeap dl_heap;
     dl_heap.max_partitions = max_partitions;
     dl_heap.partition_size = partition_size;
-
-    for (size_t dl_id = 0; dl_id < deadlines.size(); dl_id++) {
-      dl_heap.deadline_infos.push_back(DeadlineAssignmentInfo{
-          .index = static_cast<int>(dl_id),
-          .live_sectors = deadlines[dl_id]->live_sectors,
-          .total_sectors = deadlines[dl_id]->total_sectors});
-    }
+    dl_heap.deadline_infos = deadlines;
 
     HeapController heap(dl_heap);
 
     heap.init();
 
-    std::vector<std::vector<SectorOnChainInfo>> changes(
-        kWPoStPeriodDeadlines, std::vector<SectorOnChainInfo>{});
+    std::vector<std::vector<size_t>> changes;
+    changes.resize(kWPoStPeriodDeadlines);
 
-    for (const auto &sector : sectors) {
+    for (size_t i{0}; i < sectors; ++i) {
       auto &info = dl_heap.deadline_infos[0];
 
       if (info.maxPartitionsReached(partition_size, max_partitions)) {
         return ERROR_TEXT("max partitions limit reached for all deadlines");
       }
 
-      changes[info.index].push_back(sector);
+      changes[info.index].push_back(i);
       info.live_sectors++;
       info.total_sectors++;
 

@@ -30,11 +30,12 @@ namespace fc::vm::actor::builtin::types::miner {
    * Assigns partitions to deadlines, first filling partial partitions, then
    * adding new partitions to deadlines with the fewest live sectors.
    * @param max_partitions - max value of partitions. NOTE: must be 0 for v0
+   * @param deadlines - assignable subset of deadlines
    */
-  outcome::result<std::vector<std::vector<SectorOnChainInfo>>> assignDeadlines(
+  outcome::result<std::vector<std::vector<size_t>>> assignDeadlines(
       uint64_t max_partitions,
       uint64_t partition_size,
-      const std::vector<Universal<Deadline>> &deadlines,
-      const std::vector<SectorOnChainInfo> &sectors);
+      const std::vector<DeadlineAssignmentInfo> &deadlines,
+      size_t sectors);
 
 }  // namespace fc::vm::actor::builtin::types::miner
