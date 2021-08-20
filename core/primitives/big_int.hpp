@@ -31,6 +31,11 @@ namespace fc::primitives {
 namespace fc {
   using primitives::bigdiv;
   using primitives::bigmod;
+  using primitives::BigInt;
+
+  inline auto bitlen(const BigInt &x) {
+    return x ? msb(x < 0 ? -x : x) : 0;
+  }
 }  // namespace fc
 
 namespace boost::multiprecision {

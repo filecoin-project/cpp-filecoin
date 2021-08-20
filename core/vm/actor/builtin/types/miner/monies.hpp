@@ -4,6 +4,7 @@
  */
 
 #pragma once
+
 #include <vm/actor/builtin/states/miner/miner_actor_state.hpp>
 #include "common/outcome.hpp"
 #include "common/smoothing/alpha_beta_filter.hpp"
@@ -13,14 +14,15 @@
 #include "vm/runtime/runtime.hpp"
 #include "vm/version/version.hpp"
 
-namespace fc::vm::actor::builtin::types::miner  {
+namespace fc::vm::actor::builtin::types::miner {
   using fc::common::smoothing::FilterEstimate;
   using fc::primitives::BigInt;
   using fc::primitives::ChainEpoch;
   using fc::primitives::StoragePower;
   using fc::primitives::TokenAmount;
-  using fc::vm::actor::builtin::types::miner::VestSpec;
-  using fc::vm::version::NetworkVersion;
+  using miner::VestSpec;
+  using states::MinerActorState;
+  using version::NetworkVersion;
 
   class Monies {
    public:
@@ -32,107 +34,105 @@ namespace fc::vm::actor::builtin::types::miner  {
         ChainEpoch(initial_pledge_factor) * fc::kEpochsInDay;
     ChainEpoch termination_lifetime_cap = ChainEpoch(70);
     // v0
-    virtual fc::outcome::result<TokenAmount> ExpectedRewardForPower(
+    virtual outcome::result<TokenAmount> expectedRewardForPower(
         const FilterEstimate &reward_estimate,
-        FilterEstimate *network_qa_power_estimate,
-        const StoragePower &qa_sector_power,
+        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const StoragePower &sector_power,
         const ChainEpoch &projection_duration) = 0;
 
-    virtual fc::outcome::result<TokenAmount> PledgePenaltyForDeclaredFault(
+    virtual outcome::result<TokenAmount> pledgePenaltyForDeclaredFault(
         const FilterEstimate &reward_estimate,
-        FilterEstimate *network_qa_power_estimate,
-        const StoragePower &qa_sector_power,
+        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const StoragePower &sector_power,
         const NetworkVersion &network_version) = 0;
 
-    virtual fc::outcome::result<TokenAmount> PledgePenaltyForUndeclaredFault(
+    virtual outcome::result<TokenAmount> pledgePenaltyForUndeclaredFault(
         const FilterEstimate &reward_estimate,
-        FilterEstimate *network_qa_power_estimate,
-        const StoragePower &qa_sector_power,
+        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const StoragePower &sector_power,
         const NetworkVersion &network_version) = 0;
 
-    virtual fc::outcome::result<TokenAmount> PledgePenaltyForTermination(
+    virtual outcome::result<TokenAmount> pledgePenaltyForTermination(
         const TokenAmount &day_reward_at_activation,
         const TokenAmount &twenty_day_reward_activation,
         const ChainEpoch &sector_age,
         const FilterEstimate &reward_estimate,
-        FilterEstimate *network_qa_power_estimate,
-        const StoragePower &qa_sector_power,
+        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const StoragePower &sector_power,
         const NetworkVersion &network_version) = 0;
 
-    virtual fc::outcome::result<TokenAmount> PreCommitDepositForPower(
+    virtual outcome::result<TokenAmount> preCommitDepositForPower(
         const FilterEstimate &reward_estimate,
-        FilterEstimate *network_qa_power_estimate,
-        const StoragePower &qa_sector_power) = 0;
+        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const StoragePower &sector_power) = 0;
 
-    virtual fc::outcome::result<TokenAmount> InitialPledgeForPower(
+    virtual outcome::result<TokenAmount> initialPledgeForPower(
         const StoragePower &qa_power,
         const StoragePower &baseline_power,
         const TokenAmount &network_total_pledge,
         const FilterEstimate &reward_estimate,
-        FilterEstimate *network_qa_power_estimate,
+        const std::shared_ptr<FilterEstimate> &network_power_estimate,
         const TokenAmount &network_circulation_supply_smoothed) = 0;
 
     // v2
-    virtual fc::outcome::result<TokenAmount> ExpectedRewardForPower(
+    virtual outcome::result<TokenAmount> expectedRewardForPower(
         const FilterEstimate &reward_estimate,
-        const FilterEstimate &network_qa_power_estimate,
-        const StoragePower &qa_sector_power,
+        const FilterEstimate &network_power_estimate,
+        const StoragePower &sector_power,
         const ChainEpoch &projection_duration) = 0;
 
-    virtual fc::outcome::result<TokenAmount> PledgePenaltyForContinuedFault(
+    virtual outcome::result<TokenAmount> pledgePenaltyForContinuedFault(
         const FilterEstimate &reward_estimate,
-        const FilterEstimate &network_qa_power_estimate,
-        const StoragePower &qa_sector_power) = 0;
+        const FilterEstimate &network_power_estimate,
+        const StoragePower &sector_power) = 0;
 
-    virtual fc::outcome::result<TokenAmount> PledgePenaltyForTerminationLowerBound(
+    virtual outcome::result<TokenAmount> pledgePenaltyForTerminationLowerBound(
         const FilterEstimate &reward_estimate,
-        const FilterEstimate &network_qa_power_estimate,
-        const StoragePower &qa_sector_power) = 0;
+        const FilterEstimate &network_power_estimate,
+        const StoragePower &sector_power) = 0;
 
-    virtual fc::outcome::result<TokenAmount> PledgePenaltyForTermination(
+    virtual outcome::result<TokenAmount> pledgePenaltyForTermination(
         const TokenAmount &day_reward,
         const ChainEpoch &sector_age,
         const TokenAmount &twenty_day_reward_activation,
-        const FilterEstimate &network_qa_power_estimate,
-        const StoragePower &qa_sector_power,
+        const FilterEstimate &network_power_estimate,
+        const StoragePower &sector_power,
         const FilterEstimate &reward_estimate,
         const TokenAmount &replaced_day_reward,
         const ChainEpoch &replaced_sector_age) = 0;
 
-    virtual outcome::result<TokenAmount> PreCommitDepositForPower(
+    virtual outcome::result<TokenAmount> preCommitDepositForPower(
         const FilterEstimate &reward_estimate,
-        FilterEstimate network_qa_power_estimate,
-        const StoragePower &qa_sector_power) = 0;
+        FilterEstimate network_power_estimate,
+        const StoragePower &sector_power) = 0;
 
-    virtual outcome::result<TokenAmount> InitialPledgeForPower(
+    virtual outcome::result<TokenAmount> initialPledgeForPower(
         const StoragePower &qa_power,
         const StoragePower &baseline_power,
         const TokenAmount &network_total_pledge,
         const FilterEstimate &reward_estimate,
-        const FilterEstimate &network_qa_power_estimate,
+        const FilterEstimate &network_power_estimate,
         const TokenAmount &network_circulation_supply_smoothed) = 0;
 
-    virtual outcome::result<TokenAmount> RepayDebtsOrAbort(
-        const Runtime &rt,
-        fc::vm::actor::builtin::states::MinerActorState *st) = 0;
+    virtual outcome::result<TokenAmount> repayDebtsOrAbort(
+        Runtime &runtime, Universal<MinerActorState> miner_state) = 0;
 
-    virtual outcome::result<TokenAmount> ConsensusFaultPenalty(
+    virtual outcome::result<TokenAmount> consensusFaultPenalty(
         const TokenAmount &this_epoch_reward) = 0;
 
-    virtual outcome::result<std::pair<TokenAmount, VestSpec *>>
-    LockedRewardFromReward(const TokenAmount &reward,
-                           const fc::vm::version::NetworkVersion &nv) = 0;
+    virtual outcome::result<std::pair<TokenAmount, VestSpec>>
+    lockedRewardFromReward(const TokenAmount &reward,
+                           const NetworkVersion &network_version) = 0;
 
     // v3
-    virtual outcome::result<TokenAmount> PledgePenaltyForInvalidWindowPoSt(
+    virtual outcome::result<TokenAmount> pledgePenaltyForInvalidWindowPoSt(
         const FilterEstimate &reward_estimate,
-        const FilterEstimate &network_qa_power_estimate,
-        const StoragePower &qa_sector_power) = 0;
+        const FilterEstimate &network_power_estimate,
+        const StoragePower &sector_power) = 0;
 
-    virtual fc::outcome::result<std::pair<TokenAmount, VestSpec *>>
-    LockedRewardFromReward(const TokenAmount &reward) = 0;
+    virtual outcome::result<std::pair<TokenAmount, VestSpec>>
+    lockedRewardFromReward(const TokenAmount &reward) = 0;
 
     virtual ~Monies() = default;
   };
-  CBOR_NON(Monies);
-}  // namespace fc::vm::actor::builtin::miner
+}  // namespace fc::vm::actor::builtin::types::miner
