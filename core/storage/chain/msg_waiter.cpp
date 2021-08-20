@@ -26,12 +26,15 @@ namespace fc::storage::blockchain {
     waiter->ts_load = std::move(ts_load);
     waiter->ipld = std::move(ipld);
     waiter->io = io;
-    waiter->head_sub = chain_store->subscribeHeadChanges([=](auto &change) {
-      auto res{waiter->onHeadChange(change)};
-      if (!res) {
-        spdlog::error("MsgWaiter.onHeadChange: {:#}", res.error());
-      }
-    });
+    waiter->head_sub =
+        chain_store->subscribeHeadChanges([=](const auto &changes) {
+          for (const auto &change : changes) {
+            auto res{waiter->onHeadChange(change)};
+            if (!res) {
+              spdlog::error("MsgWaiter.onHeadChange: {:#}", res.error());
+            }
+          }
+        });
     return waiter;
   }
 

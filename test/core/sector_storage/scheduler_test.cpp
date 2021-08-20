@@ -8,12 +8,15 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <thread>
+#include "sector_storage/schedulder_utils.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/mocks/sector_storage/selector_mock.hpp"
 #include "testutil/outcome.hpp"
 
 namespace fc::sector_storage {
   using primitives::WorkerInfo;
   using primitives::WorkerResources;
+  using storage::InMemoryStorage;
   using ::testing::_;
 
   MATCHER_P(workerNameMatcher, worker_name, "compare workers name") {
@@ -27,7 +30,43 @@ namespace fc::sector_storage {
 
       io_ = std::make_shared<boost::asio::io_context>();
 
-      scheduler_ = std::make_unique<SchedulerImpl>(io_);
+      kv_ = std::make_shared<InMemoryStorage>();
+
+      auto sector = SectorId{
+          .miner = 42,
+          .sector = 1,
+      };
+      WorkState ws;
+      EXPECT_OUTCOME_TRUE(
+          wid1, getWorkId(primitives::kTTPreCommit1, std::make_tuple(sector)));
+      ws.id = wid1;
+      ws.status = WorkStatus::kStart;
+      EXPECT_OUTCOME_TRUE(raw1, codec::cbor::encode(ws));
+      EXPECT_OUTCOME_TRUE_1(kv_->put(wid1, raw1));
+      states_.push_back(ws);
+      sector.sector++;
+      EXPECT_OUTCOME_TRUE(
+          wid2, getWorkId(primitives::kTTPreCommit1, std::make_tuple(sector)));
+      CallId callid{.sector = sector, .id = "some"};
+      ws.id = wid2;
+      ws.status = WorkStatus::kInProgress;
+      ws.call_id = callid;
+      EXPECT_OUTCOME_TRUE(raw2, codec::cbor::encode(ws));
+      EXPECT_OUTCOME_TRUE_1(kv_->put(wid2, raw2));
+      states_.push_back(ws);
+      sector.sector++;
+      EXPECT_OUTCOME_TRUE(
+          wid3, getWorkId(primitives::kTTPreCommit1, std::make_tuple(sector)));
+      ws.id = wid3;
+      ws.status = WorkStatus::kStart;
+      ws.call_id = CallId();
+      EXPECT_OUTCOME_TRUE(raw3, codec::cbor::encode(ws));
+      EXPECT_OUTCOME_TRUE_1(kv_->put(wid3, raw3));
+      states_.push_back(ws);
+
+      EXPECT_OUTCOME_TRUE(scheduler, SchedulerImpl::newScheduler(io_, kv_));
+
+      scheduler_ = scheduler;
 
       std::unique_ptr<WorkerHandle> worker = std::make_unique<WorkerHandle>();
 
@@ -46,11 +85,13 @@ namespace fc::sector_storage {
     }
 
     std::string worker_name_;
+    std::vector<WorkState> states_;
 
     std::shared_ptr<boost::asio::io_context> io_;
     RegisteredSealProof seal_proof_type_;
+    std::shared_ptr<InMemoryStorage> kv_;
     std::shared_ptr<SelectorMock> selector_;
-    std::unique_ptr<Scheduler> scheduler_;
+    std::shared_ptr<Scheduler> scheduler_;
   };
 
   /**
@@ -104,6 +145,45 @@ namespace fc::sector_storage {
     io_->run_one();
 
     EXPECT_EQ(counter, 3);
+  }
+
+  /**
+   * @given data in storage
+   * @when when try to recover and get result
+   * @then immediately return result
+   */
+  TEST_F(SchedulerTest, ResultAfterRestart) {
+    CallId call_id{};
+    WorkId work_id{};
+    for (auto &ws : states_) {
+      if (ws.status == WorkStatus::kInProgress) {
+        work_id = ws.id;
+        call_id = ws.call_id;
+        ASSERT_TRUE(kv_->contains(ws.id));
+      } else {
+        ASSERT_FALSE(kv_->contains(ws.id));
+      }
+    }
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id, {}));
+
+    io_->run_one();
+
+    bool is_called = false;
+    ReturnCb cb = [&](const outcome::result<CallResult> &) {
+      is_called = true;
+    };
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(SectorRef{},
+                                               primitives::kTTPreCommit1,
+                                               selector_,
+                                               WorkerAction(),
+                                               WorkerAction(),
+                                               cb,
+                                               kDefaultTaskPriority,
+                                               work_id));
+
+    ASSERT_TRUE(is_called);
   }
 
   /**
@@ -214,6 +294,71 @@ namespace fc::sector_storage {
   }
 
   /**
+   * @given sealing task data, work id
+   * @when when try to schedule twice same task
+   * @then first works, second just changes cb
+   */
+  TEST_F(SchedulerTest, ScheuleDuplicateTask) {
+    auto task = primitives::kTTPreCommit1;
+    SectorId sector_id{
+        .miner = 42,
+        .sector = 1,
+    };
+    SectorRef sector{
+        .id = sector_id,
+        .proof_type = seal_proof_type_,
+    };
+    EXPECT_OUTCOME_TRUE(work_id, getWorkId(task, std::make_tuple(sector)));
+
+    CallId call_id{.sector = sector_id, .id = "someUUID"};
+    WorkerAction work = [&](const std::shared_ptr<Worker> &worker) {
+      return outcome::success(call_id);
+    };
+
+    bool is_first_called = false;
+    ReturnCb cb = [&](const outcome::result<CallResult> &) {
+      is_first_called = true;
+    };
+
+    EXPECT_CALL(
+        *selector_,
+        is_satisfying(task, seal_proof_type_, workerNameMatcher(worker_name_)))
+        .WillOnce(testing::Return(outcome::success(true)));
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(sector,
+                                               task,
+                                               selector_,
+                                               WorkerAction(),
+                                               work,
+                                               cb,
+                                               kDefaultTaskPriority,
+                                               work_id));
+
+    io_->run_one();
+
+    bool is_second_called = false;
+    ReturnCb new_cb = [&](const outcome::result<CallResult> &) {
+      is_second_called = true;
+    };
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(sector,
+                                               task,
+                                               selector_,
+                                               WorkerAction(),
+                                               work,
+                                               new_cb,
+                                               kDefaultTaskPriority,
+                                               work_id));
+
+    EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id, {}));
+    io_->reset();
+    io_->run_one();
+
+    ASSERT_FALSE(is_first_called);
+    ASSERT_TRUE(is_second_called);
+  }
+
+  /**
    * @given 2 Task data
    * @when when try to schedule them together
    * @then they do not block each other
@@ -244,14 +389,11 @@ namespace fc::sector_storage {
         .proof_type = seal_proof_type_,
     };
 
-    std::mutex res;
-    std::condition_variable cv;
-    bool ready = false;
+    std::promise<void> work2_done;
 
     CallId call_id1{.sector = sector_id1, .id = "UUID1"};
     WorkerAction work1 = [&](const std::shared_ptr<Worker> &worker) {
-      std::unique_lock<std::mutex> l(res);
-      cv.wait(l, [&]() { return ready; });
+      work2_done.get_future().get();
       return outcome::success(call_id1);
     };
     bool cb1_call = false;
@@ -261,8 +403,7 @@ namespace fc::sector_storage {
 
     CallId call_id2{.sector = sector_id2, .id = "UUID2"};
     WorkerAction work2 = [&](const std::shared_ptr<Worker> &worker) {
-      ready = true;
-      cv.notify_one();
+      work2_done.set_value();
       return outcome::success(call_id2);
     };
 

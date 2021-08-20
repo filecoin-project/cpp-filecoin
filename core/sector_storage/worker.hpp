@@ -51,6 +51,7 @@ namespace fc::sector_storage {
     SectorId sector;
     std::string id;  // uuid
   };
+  CBOR_TUPLE(CallId, sector, id);
 
   inline bool operator<(const CallId &lhs, const CallId &rhs) {
     return less(lhs.sector, rhs.sector, lhs.id, rhs.id);
