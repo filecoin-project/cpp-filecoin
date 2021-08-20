@@ -34,6 +34,27 @@ jobs:
         sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers libhwloc-dev
         sudo python3 -m pip install --upgrade pip
         sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml
+    - name: instrument libc++
+      env:
+        CC: "clang"
+        CXX: "clang++"
+      run: |
+        git clone --depth=1 https://github.com/llvm/llvm-project
+        cd llvm-project
+        mkdir build; cd build
+        cmake -GNinja ../llvm -DCMAKE_BUILD_TYPE=Release -DLLVM_ENABLE_PROJECTS="libcxx;libcxxabi" -DLLVM_USE_SANITIZER=MemoryWithOrigins
+        cmake --build . -- cxx cxxabi
+    - name: instrument google test
+      env:
+        CC: "clang"
+        CXX: "clang++"
+        CFLAGS: "-fsanitize=memory -stdlib=libc++ -L/llvm-project/build/lib -lc++abi -I/llvm-project/build/include -I/llvm-project/build/include/c++/v1"
+        CXXFLAGS: "-fsanitize=memory -stdlib=libc++ -L/llvm-project/build/lib -lc++abi -I/llvm-project/build/include -I/llvm-project/build/include/c++/v1"
+      run: |
+        git clone --depth=1 https://github.com/google/googletest.git
+        mkdir gtest-msan && cd gtest-msan
+        cmake ../googletest -DCMAKE_BUILD_TYPE=Release
+        make -j2
     - name: cmake
       env:
         CC: "clang"
