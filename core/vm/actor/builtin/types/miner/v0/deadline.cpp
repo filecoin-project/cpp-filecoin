@@ -6,6 +6,7 @@
 #include "vm/actor/builtin/types/miner/v0/deadline.hpp"
 
 #include "common/error_text.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using primitives::RleBitset;
@@ -73,7 +74,7 @@ namespace fc::vm::actor::builtin::v0::miner {
                       runtime, fault_expiration_epoch, quant));
       const auto &[part_faulty_power, part_failed_recovery_power] = result;
 
-      if (part_faulty_power.isZero()) {
+      if (!part_faulty_power.isZero()) {
         rescheduled_partitions.insert(part_id);
       }
 

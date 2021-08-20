@@ -10,6 +10,8 @@ addtest(miner_types_test
     deadline_info_test.cpp
     deadline_sector_map_test.cpp
     deadline_v0_test.cpp
+    deadline_v2_test.cpp
+    deadline_v3_test.cpp
     sectors_test.cpp
     partition_sector_map_test.cpp
     partition_test_v0.cpp

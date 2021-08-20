@@ -6,6 +6,7 @@
 #include "vm/actor/builtin/types/miner/v2/deadline.hpp"
 
 #include "common/error_text.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
   using primitives::RleBitset;
@@ -75,7 +76,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                    part_penalized_power,
                    part_new_faulty_power] = result;
 
-      if (part_new_faulty_power.isZero()) {
+      if (!part_new_faulty_power.isZero()) {
         rescheduled_partitions.insert(part_id);
       }
 
@@ -83,7 +84,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
       this->faulty_power += part_new_faulty_power;
       power_delta += part_power_delta;
-      penalized_power += penalized_power;
+      penalized_power += part_penalized_power;
     }
 
     OUTCOME_TRY(addExpirationPartitions(

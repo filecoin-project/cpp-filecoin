@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/types/miner/v0/deadline.hpp"
+#include "vm/actor/builtin/types/miner/v2/deadline.hpp"
 
 #include <gtest/gtest.h>
 
@@ -14,7 +14,7 @@
 #include "vm/actor/builtin/types/miner/bitfield_queue.hpp"
 #include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 
-namespace fc::vm::actor::builtin::v0::miner {
+namespace fc::vm::actor::builtin::v2::miner {
   using primitives::RleBitset;
   using runtime::MockRuntime;
   using storage::ipfs::InMemoryDatastore;
@@ -37,6 +37,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     RleBitset faults;
     RleBitset recovering;
     RleBitset terminations;
+    RleBitset unproven;
     RleBitset posts;
     std::vector<RleBitset> partition_sectors;
 
@@ -45,11 +46,13 @@ namespace fc::vm::actor::builtin::v0::miner {
                   all_faults,
                   all_recoveries,
                   all_terminations,
+                  all_unproven,
                   partitions] = checkDeadlineInvariants(runtime, deadline);
 
       EXPECT_EQ(faults, all_faults);
       EXPECT_EQ(recovering, all_recoveries);
       EXPECT_EQ(terminations, all_terminations);
+      EXPECT_EQ(unproven, all_unproven);
       EXPECT_EQ(posts, deadline.partitions_posted);
       EXPECT_EQ(partition_sectors.size(), partitions.size());
 
@@ -59,6 +62,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     }
 
     std::tuple<RleBitset,
+               RleBitset,
                RleBitset,
                RleBitset,
                RleBitset,
@@ -72,12 +76,13 @@ namespace fc::vm::actor::builtin::v0::miner {
       RleBitset all_faults;
       RleBitset all_recoveries;
       RleBitset all_terminations;
+      RleBitset all_unproven;
       PowerPair all_faulty_power;
       std::vector<RleBitset> partition_sectors;
 
       int64_t expected_part_index = 0;
 
-      auto visitor{
+      auto partitions_visitor{
           [&](int64_t part_id, const auto &partition) -> outcome::result<void> {
             EXPECT_EQ(part_id, expected_part_index);
             expected_part_index++;
@@ -90,6 +95,7 @@ namespace fc::vm::actor::builtin::v0::miner {
             all_faults += partition->faults;
             all_recoveries += partition->recoveries;
             all_terminations += partition->terminated;
+            all_unproven += partition->unproven;
             all_faulty_power += partition->faulty_power;
 
             checkPartitionInvariants(runtime, partition);
@@ -109,7 +115,7 @@ namespace fc::vm::actor::builtin::v0::miner {
             return outcome::success();
           }};
 
-      EXPECT_OUTCOME_TRUE_1(deadline.partitions.visit(visitor));
+      EXPECT_OUTCOME_TRUE_1(deadline.partitions.visit(partitions_visitor));
 
       EXPECT_EQ(deadline.live_sectors,
                 all_sectors.size() - all_terminations.size());
@@ -132,6 +138,7 @@ namespace fc::vm::actor::builtin::v0::miner {
                              all_faults,
                              all_recoveries,
                              all_terminations,
+                             all_unproven,
                              partition_sectors);
     }
 
@@ -140,28 +147,36 @@ namespace fc::vm::actor::builtin::v0::miner {
       const auto live = partition->liveSectors();
       const auto active = partition->activeSectors();
 
+      EXPECT_TRUE(live.contains(active));
+      EXPECT_TRUE(live.contains(partition->faults));
+      EXPECT_TRUE(live.contains(partition->unproven));
+      EXPECT_FALSE(active.containsAny(partition->faults));
+      EXPECT_FALSE(active.containsAny(partition->unproven));
+      EXPECT_TRUE(partition->faults.contains(partition->recoveries));
+      EXPECT_FALSE(live.containsAny(partition->terminated));
+      EXPECT_FALSE(partition->faults.containsAny(partition->unproven));
+      EXPECT_TRUE(partition->sectors.contains(partition->terminated));
+
       const auto live_sectors = selectSectorsTest(sectors, live);
-
-      const auto faulty_power =
-          powerForSectors(ssize, selectSectorsTest(sectors, partition->faults));
-      EXPECT_EQ(faulty_power, partition->faulty_power);
-
-      const auto recovering_power = powerForSectors(
-          ssize, selectSectorsTest(sectors, partition->recoveries));
-      EXPECT_EQ(recovering_power, partition->recovering_power);
-
       const auto live_power = powerForSectors(ssize, live_sectors);
       EXPECT_EQ(live_power, partition->live_power);
 
-      const auto active_power = live_power - faulty_power;
-      EXPECT_EQ(active_power, partition->activePower());
+      const auto unproven_sectors =
+          selectSectorsTest(sectors, partition->unproven);
+      const auto unproven_power = powerForSectors(ssize, unproven_sectors);
+      EXPECT_EQ(unproven_power, partition->unproven_power);
 
-      EXPECT_TRUE(partition->faults.contains(partition->recoveries));
-      EXPECT_TRUE(live.contains(partition->faults));
-      EXPECT_TRUE(partition->sectors.contains(partition->terminated));
-      EXPECT_FALSE(live.containsAny(partition->terminated));
-      EXPECT_TRUE(live.contains(active));
-      EXPECT_FALSE(active.containsAny(partition->faults));
+      const auto faulty_sectors = selectSectorsTest(sectors, partition->faults);
+      const auto faulty_power = powerForSectors(ssize, faulty_sectors);
+      EXPECT_EQ(faulty_power, partition->faulty_power);
+
+      const auto recovering_sectors =
+          selectSectorsTest(sectors, partition->recoveries);
+      const auto recovering_power = powerForSectors(ssize, recovering_sectors);
+      EXPECT_EQ(recovering_power, partition->recovering_power);
+
+      const auto active_power = live_power - faulty_power - unproven_power;
+      EXPECT_EQ(active_power, partition->activePower());
 
       {
         std::set<SectorNumber> seen_sectors;
@@ -243,9 +258,9 @@ namespace fc::vm::actor::builtin::v0::miner {
     }
   };
 
-  struct DeadlineTestV0 : testing::Test {
+  struct DeadlineTestV2 : testing::Test {
     void SetUp() override {
-      actor_version = ActorVersion::kVersion0;
+      actor_version = ActorVersion::kVersion2;
       ipld->actor_version = actor_version;
       cbor_blake::cbLoadT(ipld, deadline);
 
@@ -264,6 +279,12 @@ namespace fc::vm::actor::builtin::v0::miner {
                  testSector(13, 7, 56, 66, 1006),
                  testSector(8, 8, 57, 67, 1007),
                  testSector(8, 9, 58, 68, 1008)};
+
+      extra_sectors = {testSector(8, 10, 58, 68, 1008)};
+
+      all_sectors = sectors;
+      all_sectors.insert(
+          all_sectors.end(), extra_sectors.begin(), extra_sectors.end());
     }
 
     void initExpectedDeadline() {
@@ -271,26 +292,54 @@ namespace fc::vm::actor::builtin::v0::miner {
       expected_deadline.quant = quant;
       expected_deadline.partition_size = partition_size;
       expected_deadline.ssize = ssize;
-      expected_deadline.sectors = sectors;
+      expected_deadline.sectors = all_sectors;
     }
 
-    Sectors sectorsArr() const {
+    Sectors sectorsArr(const std::vector<SectorOnChainInfo> &s) const {
       Sectors sectors_arr;
       cbor_blake::cbLoadT(ipld, sectors_arr);
-      EXPECT_OUTCOME_TRUE_1(sectors_arr.store(sectors));
+      EXPECT_OUTCOME_TRUE_1(sectors_arr.store(s));
       return sectors_arr;
     }
 
     PowerPair sectorPower(const RleBitset &sector_nos) const {
-      return powerForSectors(ssize, selectSectorsTest(sectors, sector_nos));
+      return powerForSectors(ssize, selectSectorsTest(all_sectors, sector_nos));
     }
 
-    void addSectors() {
+    void addSectors(bool prove) {
       EXPECT_OUTCOME_TRUE(
-          power,
+          activated_power,
           deadline.addSectors(
               runtime, partition_size, false, sectors, ssize, quant));
-      EXPECT_EQ(power, powerForSectors(ssize, sectors));
+      EXPECT_TRUE(activated_power.isZero());
+
+      initExpectedDeadline();
+      expected_deadline.unproven = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+      expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
+      expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
+      expected_deadline.partition_sectors.push_back({9});
+      expected_deadline.assertDeadline(runtime, deadline);
+
+      if (!prove) {
+        return;
+      }
+
+      const std::vector<PoStPartition> post_partitions{
+          {.index = 0, .skipped = {}},
+          {.index = 1, .skipped = {}},
+          {.index = 2, .skipped = {}}};
+
+      EXPECT_OUTCOME_TRUE(
+          result,
+          deadline.recordProvenSectors(
+              runtime, sectorsArr(sectors), ssize, quant, 0, post_partitions));
+      EXPECT_EQ(result.power_delta, powerForSectors(ssize, sectors));
+
+      EXPECT_OUTCOME_TRUE(process_result,
+                          deadline.processDeadlineEnd(runtime, quant, 13));
+      const auto &[new_faulty_power, failed_recovery_power] = process_result;
+      EXPECT_TRUE(new_faulty_power.isZero());
+      EXPECT_TRUE(failed_recovery_power.isZero());
 
       initExpectedDeadline();
       expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
@@ -299,8 +348,8 @@ namespace fc::vm::actor::builtin::v0::miner {
       expected_deadline.assertDeadline(runtime, deadline);
     }
 
-    void addThenTerminate() {
-      addSectors();
+    void addThenTerminate(bool prove_first) {
+      addSectors(prove_first);
 
       PartitionSectorMap sector_map;
       sector_map.map[0] = {1, 3};
@@ -309,11 +358,18 @@ namespace fc::vm::actor::builtin::v0::miner {
       EXPECT_OUTCOME_TRUE(
           removed_power,
           deadline.terminateSectors(
-              runtime, sectorsArr(), 15, sector_map, ssize, quant));
-      EXPECT_EQ(removed_power, sectorPower({1, 3, 6}));
+              runtime, sectorsArr(sectors), 15, sector_map, ssize, quant));
+
+      const PowerPair expected_power =
+          prove_first ? sectorPower({1, 3, 6}) : PowerPair();
+      const RleBitset unproven =
+          prove_first ? RleBitset{} : RleBitset{2, 4, 5, 7, 8, 9};
+
+      EXPECT_EQ(removed_power, expected_power);
 
       initExpectedDeadline();
       expected_deadline.terminations = {1, 3, 6};
+      expected_deadline.unproven = unproven;
       expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
       expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
       expected_deadline.partition_sectors.push_back({9});
@@ -321,7 +377,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     }
 
     void addThenTerminateThenPopEarly() {
-      addThenTerminate();
+      addThenTerminate(true);
 
       EXPECT_OUTCOME_TRUE(result,
                           deadline.popEarlyTerminations(runtime, 100, 100));
@@ -365,21 +421,28 @@ namespace fc::vm::actor::builtin::v0::miner {
       expected_deadline.assertDeadline(runtime, deadline);
     }
 
-    void addThenMarkFaulty() {
-      addSectors();
+    void addThenMarkFaulty(bool prove_first) {
+      addSectors(prove_first);
 
       PartitionSectorMap sector_map;
       sector_map.map[0] = {1};
       sector_map.map[1] = {5, 6};
 
       EXPECT_OUTCOME_TRUE(
-          faulty_power,
+          power_delta,
           deadline.recordFaults(
-              runtime, sectorsArr(), ssize, quant, 9, sector_map));
-      EXPECT_EQ(faulty_power, sectorPower({1, 5, 6}));
+              runtime, sectorsArr(sectors), ssize, quant, 9, sector_map));
+
+      const PowerPair expected_power =
+          prove_first ? sectorPower({1, 5, 6}) : PowerPair();
+      const RleBitset unproven =
+          prove_first ? RleBitset{} : RleBitset{2, 3, 4, 7, 8, 9};
+
+      EXPECT_EQ(power_delta, expected_power.negative());
 
       initExpectedDeadline();
       expected_deadline.faults = {1, 5, 6};
+      expected_deadline.unproven = unproven;
       expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
       expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
       expected_deadline.partition_sectors.push_back({9});
@@ -392,6 +455,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     ActorVersion actor_version;
 
     std::vector<SectorOnChainInfo> sectors;
+    std::vector<SectorOnChainInfo> extra_sectors;
+    std::vector<SectorOnChainInfo> all_sectors;
     SectorSize ssize{static_cast<uint64_t>(32) << 30};
     QuantSpec quant{4, 1};
     uint64_t partition_size{4};
@@ -400,36 +465,48 @@ namespace fc::vm::actor::builtin::v0::miner {
     ExpectedDeadline expected_deadline;
   };
 
-  TEST_F(DeadlineTestV0, AddsSectors) {
-    addSectors();
+  TEST_F(DeadlineTestV2, AddsSectors) {
+    addSectors(false);
   }
 
-  TEST_F(DeadlineTestV0, TerminatesSectors) {
-    addThenTerminate();
+  TEST_F(DeadlineTestV2, AddsSectorsAndProves) {
+    addSectors(true);
   }
 
-  TEST_F(DeadlineTestV0, PopsEarlyTerminations) {
+  TEST_F(DeadlineTestV2, TerminatesSectors) {
+    addThenTerminate(true);
+  }
+
+  TEST_F(DeadlineTestV2, TerminatesUnprovenSectors) {
+    addThenTerminate(false);
+  }
+
+  TEST_F(DeadlineTestV2, PopsEarlyTerminations) {
     addThenTerminateThenPopEarly();
   }
 
-  TEST_F(DeadlineTestV0, RemovesPartitions) {
+  TEST_F(DeadlineTestV2, RemovesPartitions) {
     addThenTerminateThenRemovePartition();
   }
 
-  TEST_F(DeadlineTestV0, MarksFaulty) {
-    addThenMarkFaulty();
+  TEST_F(DeadlineTestV2, MarksFaulty) {
+    addThenMarkFaulty(true);
   }
 
-  TEST_F(DeadlineTestV0, CannotRemovePartitionsWithEarlyTerminations) {
-    addThenTerminate();
+  TEST_F(DeadlineTestV2, MarksUnprovenSectorsFaulty) {
+    addThenMarkFaulty(false);
+  }
+
+  TEST_F(DeadlineTestV2, CannotRemovePartitionsWithEarlyTerminations) {
+    addThenTerminate(false);
 
     const auto result = deadline.removePartitions(runtime, {0}, quant);
     EXPECT_EQ(result.error().message(),
               "cannot remove partitions from deadline with early terminations");
   }
 
-  TEST_F(DeadlineTestV0, CanPopEarlyTerminationsInMultipleSteps) {
-    addThenTerminate();
+  TEST_F(DeadlineTestV2, CanPopEarlyTerminationsInMultipleSteps) {
+    addThenTerminate(true);
 
     TerminationResult result;
 
@@ -465,14 +542,14 @@ namespace fc::vm::actor::builtin::v0::miner {
     expected_deadline.assertDeadline(runtime, deadline);
   }
 
-  TEST_F(DeadlineTestV0, CannotRemoveMissingPartition) {
+  TEST_F(DeadlineTestV2, CannotRemoveMissingPartition) {
     addThenTerminateThenRemovePartition();
 
     const auto result = deadline.removePartitions(runtime, {2}, quant);
     EXPECT_EQ(result.error().message(), "partition index is out of range");
   }
 
-  TEST_F(DeadlineTestV0, RemovingNoPartitionsDoesNothing) {
+  TEST_F(DeadlineTestV2, RemovingNoPartitionsDoesNothing) {
     addThenTerminateThenPopEarly();
 
     EXPECT_OUTCOME_TRUE(result, deadline.removePartitions(runtime, {}, quant));
@@ -490,15 +567,15 @@ namespace fc::vm::actor::builtin::v0::miner {
     expected_deadline.assertDeadline(runtime, deadline);
   }
 
-  TEST_F(DeadlineTestV0, FailsToRemovePartitionsWithFaultySectors) {
-    addThenMarkFaulty();
+  TEST_F(DeadlineTestV2, FailsToRemovePartitionsWithFaultySectors) {
+    addThenMarkFaulty(false);
 
     const auto result = deadline.removePartitions(runtime, {1}, quant);
     EXPECT_EQ(result.error().message(), "cannot remove, partition has faults");
   }
 
-  TEST_F(DeadlineTestV0, TerminateFaulty) {
-    addThenMarkFaulty();  // 1, 5, 6 faulty
+  TEST_F(DeadlineTestV2, TerminateProvenAndFaulty) {
+    addThenMarkFaulty(true);  // 1, 5, 6 faulty
 
     PartitionSectorMap sector_map;
     sector_map.map[0] = {1, 3};
@@ -507,7 +584,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_OUTCOME_TRUE(
         removed_power,
         deadline.terminateSectors(
-            runtime, sectorsArr(), 15, sector_map, ssize, quant));
+            runtime, sectorsArr(sectors), 15, sector_map, ssize, quant));
     EXPECT_EQ(removed_power,
               powerForSectors(ssize, selectSectorsTest(sectors, {3})));
 
@@ -520,8 +597,64 @@ namespace fc::vm::actor::builtin::v0::miner {
     expected_deadline.assertDeadline(runtime, deadline);
   }
 
-  TEST_F(DeadlineTestV0, FaultySectorsExpire) {
-    addThenMarkFaulty();
+  TEST_F(DeadlineTestV2, TerminateUnprovenAndFaulty) {
+    addThenMarkFaulty(false);  // 1, 5, 6 faulty
+
+    PartitionSectorMap sector_map;
+    sector_map.map[0] = {1, 3};
+    sector_map.map[1] = {6};
+
+    EXPECT_OUTCOME_TRUE(
+        removed_power,
+        deadline.terminateSectors(
+            runtime, sectorsArr(sectors), 15, sector_map, ssize, quant));
+    EXPECT_TRUE(removed_power.isZero());
+
+    initExpectedDeadline();
+    expected_deadline.terminations = {1, 3, 6};
+    expected_deadline.unproven = {2, 4, 7, 8, 9};
+    expected_deadline.faults = {5};
+    expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
+    expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
+    expected_deadline.partition_sectors.push_back({9});
+    expected_deadline.assertDeadline(runtime, deadline);
+  }
+
+  TEST_F(DeadlineTestV2, FailsToTerminateMissingSector) {
+    addThenMarkFaulty(false);  // 1, 5, 6 faulty
+
+    PartitionSectorMap sector_map;
+    sector_map.map[0] = {6};
+
+    const auto result = deadline.terminateSectors(
+        runtime, sectorsArr(sectors), 15, sector_map, ssize, quant);
+    EXPECT_EQ(result.error().message(), "can only terminate live sectors");
+  }
+
+  TEST_F(DeadlineTestV2, FailsToTerminateMissingPartition) {
+    addThenMarkFaulty(false);  // 1, 5, 6 faulty
+
+    PartitionSectorMap sector_map;
+    sector_map.map[4] = {6};
+
+    const auto result = deadline.terminateSectors(
+        runtime, sectorsArr(sectors), 15, sector_map, ssize, quant);
+    EXPECT_EQ(result.error().message(), "Not found");
+  }
+
+  TEST_F(DeadlineTestV2, FailsToTerminateAlreadyTerminatedSector) {
+    addThenTerminate(false);  // 1, 3, 6 faulty
+
+    PartitionSectorMap sector_map;
+    sector_map.map[0] = {1, 2};
+
+    const auto result = deadline.terminateSectors(
+        runtime, sectorsArr(sectors), 15, sector_map, ssize, quant);
+    EXPECT_EQ(result.error().message(), "can only terminate live sectors");
+  }
+
+  TEST_F(DeadlineTestV2, FaultySectorsExpire) {
+    addThenMarkFaulty(true);
 
     EXPECT_OUTCOME_TRUE(exp, deadline.popExpiredSectors(runtime, 9, quant));
 
@@ -555,16 +688,34 @@ namespace fc::vm::actor::builtin::v0::miner {
     expected_deadline.assertDeadline(runtime, deadline);
   }
 
-  TEST_F(DeadlineTestV0, PostAllTheThings) {
-    addSectors();
+  TEST_F(DeadlineTestV2, CannotPopExpiredSectorsBeforeProving) {
+    addSectors(false);
+
+    const auto result = deadline.popExpiredSectors(runtime, 9, quant);
+    EXPECT_EQ(
+        result.error().message(),
+        "cannot pop expired sectors from a partition with unproven sectors");
+  }
+
+  TEST_F(DeadlineTestV2, PostAllTheThings) {
+    addSectors(true);
+
+    EXPECT_OUTCOME_TRUE(
+        unproven_power_delta,
+        deadline.addSectors(
+            runtime, partition_size, false, extra_sectors, ssize, quant));
+    EXPECT_TRUE(unproven_power_delta.isZero());
 
     const std::vector<PoStPartition> post_partitions1{
         {.index = 0, .skipped = {}}, {.index = 1, .skipped = {}}};
 
-    EXPECT_OUTCOME_TRUE(
-        post_result1,
-        deadline.recordProvenSectors(
-            runtime, sectorsArr(), ssize, quant, 13, post_partitions1));
+    EXPECT_OUTCOME_TRUE(post_result1,
+                        deadline.recordProvenSectors(runtime,
+                                                     sectorsArr(all_sectors),
+                                                     ssize,
+                                                     quant,
+                                                     13,
+                                                     post_partitions1));
     const RleBitset expected_sectors1{1, 2, 3, 4, 5, 6, 7, 8};
     EXPECT_EQ(post_result1.sectors, expected_sectors1);
     EXPECT_TRUE(post_result1.ignored_sectors.empty());
@@ -574,70 +725,86 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     initExpectedDeadline();
     expected_deadline.posts = {0, 1};
+    expected_deadline.unproven = {10};
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
-    expected_deadline.partition_sectors.push_back({9});
+    expected_deadline.partition_sectors.push_back({9, 10});
     expected_deadline.assertDeadline(runtime, deadline);
 
     const std::vector<PoStPartition> post_partitions2{
         {.index = 1, .skipped = {}}, {.index = 2, .skipped = {}}};
 
-    EXPECT_OUTCOME_TRUE(
-        post_result2,
-        deadline.recordProvenSectors(
-            runtime, sectorsArr(), ssize, quant, 13, post_partitions2));
-    const RleBitset expected_sectors2{9};
+    EXPECT_OUTCOME_TRUE(post_result2,
+                        deadline.recordProvenSectors(runtime,
+                                                     sectorsArr(all_sectors),
+                                                     ssize,
+                                                     quant,
+                                                     13,
+                                                     post_partitions2));
+    const RleBitset expected_sectors2{9, 10};
     EXPECT_EQ(post_result2.sectors, expected_sectors2);
     EXPECT_TRUE(post_result2.ignored_sectors.empty());
     EXPECT_TRUE(post_result2.new_faulty_power.isZero());
     EXPECT_TRUE(post_result2.retracted_recovery_power.isZero());
     EXPECT_TRUE(post_result2.recovered_power.isZero());
+    EXPECT_EQ(post_result2.power_delta, sectorPower({10}));
 
     initExpectedDeadline();
     expected_deadline.posts = {0, 1, 2};
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
-    expected_deadline.partition_sectors.push_back({9});
+    expected_deadline.partition_sectors.push_back({9, 10});
     expected_deadline.assertDeadline(runtime, deadline);
 
     EXPECT_OUTCOME_TRUE(process_result,
                         deadline.processDeadlineEnd(runtime, quant, 13));
-    const auto &[new_faulty_power, failed_recovery_power] = process_result;
-    EXPECT_TRUE(new_faulty_power.isZero());
-    EXPECT_TRUE(failed_recovery_power.isZero());
+    const auto &[power_delta, penalized_power] = process_result;
+    EXPECT_TRUE(power_delta.isZero());
+    EXPECT_TRUE(penalized_power.isZero());
 
     initExpectedDeadline();
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
-    expected_deadline.partition_sectors.push_back({9});
+    expected_deadline.partition_sectors.push_back({9, 10});
     expected_deadline.assertDeadline(runtime, deadline);
   }
 
-  TEST_F(DeadlineTestV0, PostWithFaultsRecoveriesAndRetractedRecoveries) {
-    addThenMarkFaulty();
+  TEST_F(DeadlineTestV2,
+         PostWithUnprovenFaultsRecoveriesAndRetractedRecoveries) {
+    addThenMarkFaulty(true);
+
+    EXPECT_OUTCOME_TRUE(
+        unproven_power_delta,
+        deadline.addSectors(
+            runtime, partition_size, false, extra_sectors, ssize, quant));
+    EXPECT_TRUE(unproven_power_delta.isZero());
 
     PartitionSectorMap sector_map;
     sector_map.map[0] = {1};
     sector_map.map[1] = {6};
 
-    EXPECT_OUTCOME_TRUE_1(
-        deadline.declareFaultsRecovered(sectorsArr(), ssize, sector_map));
+    EXPECT_OUTCOME_TRUE_1(deadline.declareFaultsRecovered(
+        sectorsArr(all_sectors), ssize, sector_map));
 
     initExpectedDeadline();
     expected_deadline.recovering = {1, 6};
     expected_deadline.faults = {1, 5, 6};
+    expected_deadline.unproven = {10};
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
-    expected_deadline.partition_sectors.push_back({9});
+    expected_deadline.partition_sectors.push_back({9, 10});
     expected_deadline.assertDeadline(runtime, deadline);
 
     const std::vector<PoStPartition> post_partitions{
         {.index = 0, .skipped = {1}}, {.index = 1, .skipped = {7}}};
 
-    EXPECT_OUTCOME_TRUE(
-        post_result,
-        deadline.recordProvenSectors(
-            runtime, sectorsArr(), ssize, quant, 13, post_partitions));
+    EXPECT_OUTCOME_TRUE(post_result,
+                        deadline.recordProvenSectors(runtime,
+                                                     sectorsArr(all_sectors),
+                                                     ssize,
+                                                     quant,
+                                                     13,
+                                                     post_partitions));
     const RleBitset expected_sectors{1, 2, 3, 4, 5, 6, 7, 8};
     EXPECT_EQ(post_result.sectors, expected_sectors);
     const RleBitset expected_ignored{1, 5, 7};
@@ -645,47 +812,120 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(post_result.new_faulty_power, sectorPower({7}));
     EXPECT_EQ(post_result.retracted_recovery_power, sectorPower({1}));
     EXPECT_EQ(post_result.recovered_power, sectorPower({6}));
+    EXPECT_TRUE(post_result.power_delta.isZero());
 
     initExpectedDeadline();
     expected_deadline.posts = {0, 1};
     expected_deadline.faults = {1, 5, 7};
+    expected_deadline.unproven = {10};
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
-    expected_deadline.partition_sectors.push_back({9});
+    expected_deadline.partition_sectors.push_back({9, 10});
     expected_deadline.assertDeadline(runtime, deadline);
 
     EXPECT_OUTCOME_TRUE(process_result,
                         deadline.processDeadlineEnd(runtime, quant, 13));
-    const auto &[new_faulty_power, failed_recovery_power] = process_result;
-    EXPECT_EQ(new_faulty_power, sectorPower({9}));
-    EXPECT_TRUE(failed_recovery_power.isZero());
+    const auto &[power_delta, penalized_power] = process_result;
+
+    EXPECT_EQ(power_delta, sectorPower({9}).negative());
+    EXPECT_EQ(penalized_power, sectorPower({9, 10}));
 
     initExpectedDeadline();
-    expected_deadline.faults = {1, 5, 7, 9};
+    expected_deadline.faults = {1, 5, 7, 9, 10};
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
-    expected_deadline.partition_sectors.push_back({9});
+    expected_deadline.partition_sectors.push_back({9, 10});
     expected_deadline.assertDeadline(runtime, deadline);
   }
 
-  TEST_F(DeadlineTestV0, RetractRecoveries) {
-    addThenMarkFaulty();
+  TEST_F(DeadlineTestV2, PostWithSkippedUnproven) {
+    addSectors(true);
+
+    EXPECT_OUTCOME_TRUE(
+        unproven_power_delta,
+        deadline.addSectors(
+            runtime, partition_size, false, extra_sectors, ssize, quant));
+    EXPECT_TRUE(unproven_power_delta.isZero());
+
+    const std::vector<PoStPartition> post_partitions{
+        {.index = 0, .skipped = {}},
+        {.index = 1, .skipped = {}},
+        {.index = 2, .skipped = {10}}};
+
+    EXPECT_OUTCOME_TRUE(post_result,
+                        deadline.recordProvenSectors(runtime,
+                                                     sectorsArr(all_sectors),
+                                                     ssize,
+                                                     quant,
+                                                     13,
+                                                     post_partitions));
+    const RleBitset expected_sectors{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    EXPECT_EQ(post_result.sectors, expected_sectors);
+    const RleBitset expected_ignored{10};
+    EXPECT_EQ(post_result.ignored_sectors, expected_ignored);
+    EXPECT_EQ(post_result.new_faulty_power, sectorPower({10}));
+    EXPECT_TRUE(post_result.power_delta.isZero());  // not proven yet
+    EXPECT_TRUE(post_result.retracted_recovery_power.isZero());
+    EXPECT_TRUE(post_result.recovered_power.isZero());
+
+    initExpectedDeadline();
+    expected_deadline.posts = {0, 1, 2};
+    expected_deadline.faults = {10};
+    expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
+    expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
+    expected_deadline.partition_sectors.push_back({9, 10});
+    expected_deadline.assertDeadline(runtime, deadline);
+
+    EXPECT_OUTCOME_TRUE(process_result,
+                        deadline.processDeadlineEnd(runtime, quant, 13));
+    const auto &[power_delta, penalized_power] = process_result;
+
+    EXPECT_TRUE(power_delta.isZero());
+    EXPECT_TRUE(penalized_power.isZero());
+
+    initExpectedDeadline();
+    expected_deadline.faults = {10};
+    expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
+    expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
+    expected_deadline.partition_sectors.push_back({9, 10});
+    expected_deadline.assertDeadline(runtime, deadline);
+  }
+
+  TEST_F(DeadlineTestV2, PostMissingPartition) {
+    addSectors(true);
+
+    EXPECT_OUTCOME_TRUE(
+        unproven_power_delta,
+        deadline.addSectors(
+            runtime, partition_size, false, extra_sectors, ssize, quant));
+    EXPECT_TRUE(unproven_power_delta.isZero());
+
+    const std::vector<PoStPartition> post_partitions{
+        {.index = 0, .skipped = {}}, {.index = 3, .skipped = {}}};
+
+    const auto result = deadline.recordProvenSectors(
+        runtime, sectorsArr(all_sectors), ssize, quant, 13, post_partitions);
+    EXPECT_EQ(result.error().message(), "Not found");
+  }
+
+  TEST_F(DeadlineTestV2, RetractRecoveries) {
+    addThenMarkFaulty(true);
 
     PartitionSectorMap sector_map1;
     sector_map1.map[0] = {1};
     sector_map1.map[1] = {6};
 
-    EXPECT_OUTCOME_TRUE_1(
-        deadline.declareFaultsRecovered(sectorsArr(), ssize, sector_map1));
+    EXPECT_OUTCOME_TRUE_1(deadline.declareFaultsRecovered(
+        sectorsArr(sectors), ssize, sector_map1));
 
     PartitionSectorMap sector_map2;
     sector_map2.map[0] = {1};
 
     EXPECT_OUTCOME_TRUE(
-        faulty_power,
+        power_delta,
         deadline.recordFaults(
-            runtime, sectorsArr(), ssize, quant, 13, sector_map2));
-    EXPECT_TRUE(faulty_power.isZero());
+            runtime, sectorsArr(sectors), ssize, quant, 13, sector_map2));
+    EXPECT_TRUE(power_delta.isZero());
 
     initExpectedDeadline();
     expected_deadline.recovering = {6};
@@ -703,7 +943,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_OUTCOME_TRUE(
         post_result,
         deadline.recordProvenSectors(
-            runtime, sectorsArr(), ssize, quant, 13, post_partitions));
+            runtime, sectorsArr(sectors), ssize, quant, 13, post_partitions));
     const RleBitset expected_sectors{1, 2, 3, 4, 5, 6, 7, 8, 9};
     EXPECT_EQ(post_result.sectors, expected_sectors);
     const RleBitset expected_ignored{1, 5};
@@ -734,16 +974,19 @@ namespace fc::vm::actor::builtin::v0::miner {
     expected_deadline.assertDeadline(runtime, deadline);
   }
 
-  TEST_F(DeadlineTestV0, RescheduleExpirations) {
-    addThenMarkFaulty();
+  TEST_F(DeadlineTestV2, RescheduleExpirations) {
+    addThenMarkFaulty(true);
 
     PartitionSectorMap sector_map;
     sector_map.map[1] = {6, 7, 99};  // 99 should be skipped, it doesn't exist.
     sector_map.map[5] = {100};       // partition 5 doesn't exist.
     sector_map.map[2] = {};          // empty bitfield should be fine.
 
-    EXPECT_OUTCOME_TRUE_1(deadline.rescheduleSectorExpirations(
-        runtime, sectorsArr(), 1, sector_map, ssize, quant));
+    EXPECT_OUTCOME_TRUE(
+        replaced,
+        deadline.rescheduleSectorExpirations(
+            runtime, sectorsArr(sectors), 1, sector_map, ssize, quant));
+    EXPECT_EQ(replaced.size(), 1);
 
     EXPECT_OUTCOME_TRUE(exp, deadline.popExpiredSectors(runtime, 1, quant));
 
@@ -763,4 +1006,28 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(exp.on_time_pledge, sector7.init_pledge);
   }
 
-}  // namespace fc::vm::actor::builtin::v0::miner
+  TEST_F(DeadlineTestV2, CannotDeclareFaultsInMissingPartitions) {
+    addSectors(true);
+
+    PartitionSectorMap sector_map;
+    sector_map.map[0] = {1};
+    sector_map.map[4] = {6};
+
+    const auto result = deadline.recordFaults(
+        runtime, sectorsArr(sectors), ssize, quant, 17, sector_map);
+    EXPECT_EQ(result.error().message(), "Not found");
+  }
+
+  TEST_F(DeadlineTestV2, CannotDeclareFaultsRecoveredInMissingPartitions) {
+    addThenMarkFaulty(true);
+
+    PartitionSectorMap sector_map;
+    sector_map.map[0] = {1};
+    sector_map.map[4] = {6};
+
+    const auto result =
+        deadline.declareFaultsRecovered(sectorsArr(sectors), ssize, sector_map);
+    EXPECT_EQ(result.error().message(), "Not found");
+  }
+
+}  // namespace fc::vm::actor::builtin::v2::miner

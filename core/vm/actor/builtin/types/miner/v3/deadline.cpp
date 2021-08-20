@@ -6,6 +6,7 @@
 #include "vm/actor/builtin/types/miner/v3/deadline.hpp"
 
 #include "common/error_text.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
   using primitives::RleBitset;
@@ -22,6 +23,8 @@ namespace fc::vm::actor::builtin::v3::miner {
     this->optimistic_post_submissions_snapshot =
         this->optimistic_post_submissions;
     this->optimistic_post_submissions = {};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(),
+                        this->optimistic_post_submissions);
 
     return std::move(result);
   }
