@@ -9,16 +9,8 @@
 #include "vm/actor/builtin/types/miner/policy.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
-  using primitives::go::HeapController;
-
-  int DeadlineAssignmentHeap::length() const {
-    return deadline_infos.size();
-  }
-
-  bool DeadlineAssignmentHeap::less(int i, int j) const {
-    const auto &a = deadline_infos[i];
-    const auto &b = deadline_infos[j];
-
+  bool DeadlineAssignmentLess::operator()(
+      const DeadlineAssignmentInfo &a, const DeadlineAssignmentInfo &b) const {
     const bool a_max_partition_reached =
         a.maxPartitionsReached(partition_size, max_partitions);
     const bool b_max_partition_reached =
@@ -64,39 +56,21 @@ namespace fc::vm::actor::builtin::types::miner {
     return a.index < b.index;
   }
 
-  void DeadlineAssignmentHeap::swap(int i, int j) {
-    std::swap(deadline_infos[i], deadline_infos[j]);
-  }
-
-  void DeadlineAssignmentHeap::push(const DeadlineAssignmentInfo &element) {
-    deadline_infos.push_back(element);
-  }
-
-  DeadlineAssignmentInfo DeadlineAssignmentHeap::pop() {
-    const auto last = deadline_infos.back();
-    deadline_infos.pop_back();
-    return last;
-  }
-
   outcome::result<std::vector<std::vector<size_t>>> assignDeadlines(
       uint64_t max_partitions,
       uint64_t partition_size,
-      const std::vector<DeadlineAssignmentInfo> &deadlines,
+      std::vector<DeadlineAssignmentInfo> deadlines,
       size_t sectors) {
-    DeadlineAssignmentHeap dl_heap;
-    dl_heap.max_partitions = max_partitions;
-    dl_heap.partition_size = partition_size;
-    dl_heap.deadline_infos = deadlines;
-
-    HeapController heap(dl_heap);
-
-    heap.init();
+    DeadlineAssignmentLess less{max_partitions, partition_size};
+    auto cmp{[less](auto &l, auto &r) { return !less(l, r); }};
+    std::make_heap(deadlines.begin(), deadlines.end(), cmp);
 
     std::vector<std::vector<size_t>> changes;
     changes.resize(kWPoStPeriodDeadlines);
 
     for (size_t i{0}; i < sectors; ++i) {
-      auto &info = dl_heap.deadline_infos[0];
+      std::pop_heap(deadlines.begin(), deadlines.end(), cmp);
+      auto &info{deadlines.back()};
 
       if (info.maxPartitionsReached(partition_size, max_partitions)) {
         return ERROR_TEXT("max partitions limit reached for all deadlines");
@@ -106,7 +80,7 @@ namespace fc::vm::actor::builtin::types::miner {
       info.live_sectors++;
       info.total_sectors++;
 
-      heap.fix(0);
+      std::push_heap(deadlines.begin(), deadlines.end(), cmp);
     }
 
     return changes;
