@@ -13,14 +13,15 @@ namespace fc::sector_storage {
 
   class SchedulerMock : public Scheduler {
    public:
-    MOCK_METHOD7(schedule,
+    MOCK_METHOD8(schedule,
                  outcome::result<void>(const SectorRef &,
                                        const TaskType &,
                                        const std::shared_ptr<WorkerSelector> &,
                                        const WorkerAction &,
                                        const WorkerAction &,
                                        const ReturnCb &,
-                                       uint64_t));
+                                       uint64_t,
+                                       const boost::optional<WorkId> &));
 
     MOCK_METHOD1(doNewWorker, void(WorkerHandle *));
     void newWorker(std::unique_ptr<WorkerHandle> worker) override {

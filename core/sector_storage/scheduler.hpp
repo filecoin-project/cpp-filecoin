@@ -15,6 +15,40 @@ namespace fc::sector_storage {
   using primitives::TaskType;
   using primitives::sector::SectorId;
 
+  struct WorkId {
+    TaskType task_type;
+    libp2p::common::Hash256 param_hash = {};
+
+    operator Buffer() const {
+      Buffer result;
+      result.put(task_type);
+      result.put("(");
+      result.put(param_hash);
+      result.put(")");
+      return result;
+    }
+  };
+  inline bool operator==(const WorkId &lhs, const WorkId &rhs) {
+    return lhs.task_type == rhs.task_type and lhs.param_hash == rhs.param_hash;
+  }
+
+  CBOR_TUPLE(WorkId, task_type, param_hash);
+
+  enum class WorkStatus : uint64_t {
+    kUndefined = 0,
+    kStart,
+    kInProgress,
+  };
+
+  struct WorkState {
+    WorkId id;
+
+    WorkStatus status = WorkStatus::kUndefined;
+
+    CallId call_id;
+  };
+  CBOR_TUPLE(WorkState, id, status, call_id);
+
   using WorkerAction =
       std::function<outcome::result<CallId>(const std::shared_ptr<Worker> &)>;
 
@@ -31,7 +65,8 @@ namespace fc::sector_storage {
         const WorkerAction &prepare,
         const WorkerAction &work,
         const ReturnCb &cb,
-        uint64_t priority = kDefaultTaskPriority) = 0;
+        uint64_t priority = kDefaultTaskPriority,
+        const boost::optional<WorkId> &maybe_work_id = boost::none) = 0;
 
     virtual void newWorker(std::unique_ptr<WorkerHandle> worker) = 0;
 
