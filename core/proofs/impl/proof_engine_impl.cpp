@@ -498,7 +498,7 @@ namespace fc::proofs {
       }
       std::vector<uint8_t> read(outTwoPow);
 
-      size_t j;
+      size_t j{};
       char ch;
       for (j = 0; j < outTwoPow && input; j++) {
         input.get(ch);

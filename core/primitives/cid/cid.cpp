@@ -113,7 +113,7 @@ namespace fc {
     if (!codec::uvarint::read(hash_type, input)) {
       return Multihash::Error::ZERO_INPUT_LENGTH;
     }
-    size_t hash_size;
+    size_t hash_size{};
     if (!codec::uvarint::read(hash_size, input)) {
       return Multihash::Error::INPUT_TOO_SHORT;
     }
