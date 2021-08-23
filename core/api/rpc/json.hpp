@@ -1044,12 +1044,12 @@ namespace fc::api {
 
     ENCODE(Deadline) {
       Value j{rapidjson::kObjectType};
-      Set(j, "PartitionsPoSted", v.partitions_posted);
+      Set(j, "PostSubmissions", v.partitions_posted);
       return j;
     }
 
     DECODE(Deadline) {
-      Get(j, "PartitionsPoSted", v.partitions_posted);
+      Get(j, "PostSubmissions", v.partitions_posted);
     }
 
     ENCODE(SectorPreCommitInfo) {

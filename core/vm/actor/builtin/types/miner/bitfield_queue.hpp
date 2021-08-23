@@ -119,21 +119,10 @@ namespace fc::vm::actor::builtin::types::miner {
 }  // namespace fc::vm::actor::builtin::types::miner
 
 namespace fc::cbor_blake {
-  template <>
-  struct CbVisitT<vm::actor::builtin::types::miner::BitfieldQueue<3>> {
+  template <size_t bits>
+  struct CbVisitT<vm::actor::builtin::types::miner::BitfieldQueue<bits>> {
     template <typename Visitor>
-    static void call(vm::actor::builtin::types::miner::BitfieldQueue<3> &p,
-                     const Visitor &visit) {
-      visit(p.queue);
-    }
-  };
-}  // namespace fc::cbor_blake
-
-namespace fc::cbor_blake {
-  template <>
-  struct CbVisitT<vm::actor::builtin::types::miner::BitfieldQueue<5>> {
-    template <typename Visitor>
-    static void call(vm::actor::builtin::types::miner::BitfieldQueue<5> &p,
+    static void call(vm::actor::builtin::types::miner::BitfieldQueue<bits> &p,
                      const Visitor &visit) {
       visit(p.queue);
     }
