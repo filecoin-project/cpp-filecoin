@@ -101,9 +101,11 @@ namespace fc::vm::actor::builtin::types::miner {
     ChainEpoch fault_declaration_cutoff{};
   };
 
-  // Determine current period start and deadline index directly from current
-  // epoch and the offset implied by the proving period. This works correctly
-  // even for the state of a miner actor without an active deadline cron
+  /**
+   * Determine current period start and deadline index directly from current
+   * epoch and the offset implied by the proving period. This works correctly
+   * even for the state of a miner actor without an active deadline cron
+   */
   DeadlineInfo newDeadlineInfoFromOffsetAndEpoch(ChainEpoch period_start_seed,
                                                  ChainEpoch curr_epoch);
 
