@@ -22,6 +22,7 @@ namespace fc::storage::amt {
     kNotFound,
     kRootBitsWrong,
     kNodeBitsWrong,
+    kHeightWrong,
   };
 }  // namespace fc::storage::amt
 

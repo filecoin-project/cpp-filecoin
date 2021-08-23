@@ -24,6 +24,9 @@ namespace fc::vm::actor::builtin::types::miner {
     // numbers instead of ints. Precondition: unit >= 0 else behaviour is
     // undefined
     ChainEpoch quantizeUp(ChainEpoch e) const;
+
+    // QuantizeDown == QuantizeUp if e is a fixed point of QuantizeUp
+    ChainEpoch quantizeDown(ChainEpoch e) const;
   };
 
   static const QuantSpec kNoQuantization(1, 0);

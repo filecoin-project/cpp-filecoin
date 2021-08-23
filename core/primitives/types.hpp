@@ -10,6 +10,7 @@
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
+#include "primitives/go/math.hpp"
 #include "primitives/seal_tasks/task.hpp"
 
 namespace fc::primitives {

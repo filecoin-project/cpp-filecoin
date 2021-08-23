@@ -22,8 +22,8 @@ namespace fc::vm::actor::builtin::types::miner {
     std::shared_ptr<InMemoryDatastore> ipld{
         std::make_shared<InMemoryDatastore>()};
 
-    BitfieldQueue expected;
-    BitfieldQueue queue;
+    BitfieldQueue<storage::amt::kDefaultBits> expected;
+    BitfieldQueue<storage::amt::kDefaultBits> queue;
   };
 
   TEST_F(BitfieldQueueTest, AddValuesToEmptyQueue) {

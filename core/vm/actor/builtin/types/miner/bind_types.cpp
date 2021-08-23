@@ -13,10 +13,13 @@
 #include "vm/actor/builtin/types/miner/v2/miner_info.hpp"
 #include "vm/actor/builtin/types/miner/v3/miner_info.hpp"
 
-#include "vm/actor/builtin/types/miner/partition.hpp"
 #include "vm/actor/builtin/types/miner/v0/partition.hpp"
 #include "vm/actor/builtin/types/miner/v2/partition.hpp"
 #include "vm/actor/builtin/types/miner/v3/partition.hpp"
+
+#include "vm/actor/builtin/types/miner/v0/deadline.hpp"
+#include "vm/actor/builtin/types/miner/v2/deadline.hpp"
+#include "vm/actor/builtin/types/miner/v3/deadline.hpp"
 
 UNIVERSAL_IMPL(miner::MinerInfo,
                v0::miner::MinerInfo,
@@ -38,3 +41,10 @@ UNIVERSAL_IMPL(miner::ExpirationQueue,
                v3::miner::ExpirationQueue,
                v3::miner::ExpirationQueue,
                v3::miner::ExpirationQueue)
+
+UNIVERSAL_IMPL(miner::Deadline,
+               v0::miner::Deadline,
+               v2::miner::Deadline,
+               v3::miner::Deadline,
+               v3::miner::Deadline,
+               v3::miner::Deadline)
