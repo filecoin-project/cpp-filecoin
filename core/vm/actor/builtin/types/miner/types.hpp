@@ -69,16 +69,6 @@ namespace fc::vm::actor::builtin::types::miner {
   FC_OPERATOR_NOT_EQUAL(PowerPair)
   CBOR_TUPLE(PowerPair, raw, qa)
 
-  struct VestingFunds {
-    struct Fund {
-      ChainEpoch epoch{};
-      TokenAmount amount{};
-    };
-    std::vector<Fund> funds;
-  };
-  CBOR_TUPLE(VestingFunds::Fund, epoch, amount)
-  CBOR_TUPLE(VestingFunds, funds)
-
   struct WorkerKeyChange {
     /// Must be an ID address
     Address new_worker;

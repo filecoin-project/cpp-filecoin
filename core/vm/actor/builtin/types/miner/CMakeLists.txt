@@ -15,6 +15,7 @@ add_library(miner_types
     quantize.cpp
     sectors.cpp
     termination.cpp
+    vesting.cpp
     v0/expiration.cpp
     v0/partition.cpp
     v0/deadline.cpp
