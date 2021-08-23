@@ -14,7 +14,7 @@ namespace fc::vm::actor::builtin::types::miner {
   using primitives::SectorNumber;
 
   /**
-   * Deadlines contains Deadline objects, describing the sectors due at the
+   * Deadlines contain Deadline objects, describing the sectors due at the
    * given deadline and their state (faulty, terminated, recovering, etc.).
    */
   struct Deadlines {
