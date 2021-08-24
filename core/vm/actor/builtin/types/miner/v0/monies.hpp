@@ -10,12 +10,12 @@
 #include "vm/actor/builtin/types/miner/monies.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
-  using fc::common::math::kPrecision128;
-  using fc::common::smoothing::FilterEstimate;
-  using fc::primitives::BigInt;
-  using fc::primitives::ChainEpoch;
-  using fc::primitives::StoragePower;
-  using fc::primitives::TokenAmount;
+  using common::math::kPrecision128;
+  using common::smoothing::FilterEstimate;
+  using primitives::BigInt;
+  using primitives::ChainEpoch;
+  using primitives::StoragePower;
+  using primitives::TokenAmount;
   using states::MinerActorState;
   using states::Universal;
   using types::miner::VestSpec;
@@ -27,11 +27,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     const BigInt lock_target_factor_denom = BigInt(10);
 
     const BigInt space_race_initial_pledge_max_per_byte =
-        BigInt(1e18) / (BigInt(32) << 30);
+                     bigdiv(BigInt("1000000000000000000"), (BigInt{32} << 30));
 
-    const int declared_fault_factor_num_v0 = 214;
-    const int declared_fault_factor_num_v3 = 351;
-    const int declared_fault_factor_denom = 100;
+    constexpr static int declared_fault_factor_num_v0 = 214;
+    constexpr static int declared_fault_factor_num_v3 = 351;
+    constexpr static int declared_fault_factor_denom = 100;
     const ChainEpoch declared_fault_projection_period_v0 =
         ChainEpoch(kEpochsInDay * declared_fault_factor_num_v0
                    / declared_fault_factor_denom);
@@ -39,9 +39,9 @@ namespace fc::vm::actor::builtin::v0::miner {
         ChainEpoch(kEpochsInDay * declared_fault_factor_num_v3
                    / declared_fault_factor_denom);
 
-    const int undeclared_fault_factor_num_v0 = 50;
-    const int undeclared_fault_factor_num_v1 = 35;
-    const int undeclared_fault_factor_denom = 10;
+    constexpr static int undeclared_fault_factor_num_v0 = 50;
+    constexpr static int undeclared_fault_factor_num_v1 = 35;
+    constexpr static int undeclared_fault_factor_denom = 10;
 
     const ChainEpoch undeclared_fault_projection_period_v0 =
         ChainEpoch(kEpochsInDay * undeclared_fault_factor_num_v0

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "monies.hpp"
+#include "vm/actor/builtin/types/miner/v0/monies.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
 
@@ -185,7 +185,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   outcome::result<std::pair<TokenAmount, VestSpec>>
   Monies::lockedRewardFromReward(const TokenAmount &reward,
                                  const NetworkVersion &network_version) {
-    return std::pair(TokenAmount{}, VestSpec{});
+    return std::make_pair(TokenAmount{}, VestSpec{});
   }
 
   outcome::result<TokenAmount> Monies::pledgePenaltyForInvalidWindowPoSt(
@@ -197,7 +197,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<std::pair<TokenAmount, VestSpec>>
   Monies::lockedRewardFromReward(const TokenAmount &reward) {
-    return {TokenAmount{}, VestSpec{}};
+    return std::make_pair(TokenAmount{}, VestSpec{});
   }
 
 }  // namespace fc::vm::actor::builtin::v0::miner

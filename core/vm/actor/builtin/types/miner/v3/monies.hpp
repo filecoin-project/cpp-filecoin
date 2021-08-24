@@ -8,12 +8,12 @@
 #include "vm/actor/builtin/types/miner/v2/monies.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
-  using fc::common::smoothing::FilterEstimate;
-  using fc::primitives::ChainEpoch;
-  using fc::primitives::StoragePower;
-  using fc::primitives::TokenAmount;
-  using fc::vm::actor::builtin::types::miner::VestSpec;
-  using fc::vm::version::NetworkVersion;
+  using common::smoothing::FilterEstimate;
+  using primitives::ChainEpoch;
+  using primitives::StoragePower;
+  using primitives::TokenAmount;
+  using types::miner::VestSpec;
+  using version::NetworkVersion;
   using types::miner::kRewardVestingSpecV1;
 
   class Monies : public v2::miner::Monies {

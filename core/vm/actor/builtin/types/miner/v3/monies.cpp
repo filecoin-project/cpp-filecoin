@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "monies.hpp"
+#include "vm/actor/builtin/types/miner/v3/monies.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
 
@@ -24,6 +24,6 @@ namespace fc::vm::actor::builtin::v3::miner {
   Monies::lockedRewardFromReward(const TokenAmount &reward) {
     BigInt lock_amount =
         reward * bigdiv(locked_reward_factor_num, locked_reward_factor_denom);
-    return {lock_amount, kRewardVestingSpecV1};
+    return std::make_pair(lock_amount, kRewardVestingSpecV1);
   }
 }  // namespace fc::vm::actor::builtin::v3::miner

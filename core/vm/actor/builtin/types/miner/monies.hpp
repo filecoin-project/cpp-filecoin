@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <vm/actor/builtin/states/miner/miner_actor_state.hpp>
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "common/outcome.hpp"
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "const.hpp"
@@ -15,24 +15,27 @@
 #include "vm/version/version.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
-  using fc::common::smoothing::FilterEstimate;
-  using fc::primitives::BigInt;
-  using fc::primitives::ChainEpoch;
-  using fc::primitives::StoragePower;
-  using fc::primitives::TokenAmount;
+  using common::smoothing::FilterEstimate;
+  using primitives::BigInt;
+  using primitives::ChainEpoch;
+  using primitives::StoragePower;
+  using primitives::TokenAmount;
   using miner::VestSpec;
   using states::MinerActorState;
   using version::NetworkVersion;
 
   class Monies {
    public:
-    int precommit_deposit_factor = 20;
-    int initial_pledge_factor = 20;
-    ChainEpoch precommit_deposit_projection_period =
-        ChainEpoch(precommit_deposit_factor) * fc::kEpochsInDay;
-    ChainEpoch initial_pledge_projection_period =
-        ChainEpoch(initial_pledge_factor) * fc::kEpochsInDay;
-    ChainEpoch termination_lifetime_cap = ChainEpoch(70);
+    const int precommit_deposit_factor = 20;
+    const int initial_pledge_factor = 20;
+    const ChainEpoch precommit_deposit_projection_period =
+        ChainEpoch(precommit_deposit_factor) * kEpochsInDay;
+    const ChainEpoch initial_pledge_projection_period =
+        ChainEpoch(initial_pledge_factor) * kEpochsInDay;
+    const ChainEpoch termination_lifetime_cap = ChainEpoch(70);
+
+    virtual ~Monies() = default;
+
     // v0
     virtual outcome::result<TokenAmount> expectedRewardForPower(
         const FilterEstimate &reward_estimate,
@@ -132,7 +135,5 @@ namespace fc::vm::actor::builtin::types::miner {
 
     virtual outcome::result<std::pair<TokenAmount, VestSpec>>
     lockedRewardFromReward(const TokenAmount &reward) = 0;
-
-    virtual ~Monies() = default;
   };
 }  // namespace fc::vm::actor::builtin::types::miner
