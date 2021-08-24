@@ -31,7 +31,6 @@
 #include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/builtin/v5/market/validate.hpp"

@@ -21,7 +21,6 @@
 #include "vm/actor/builtin/types/miner/deadline_info.hpp"
 #include "vm/actor/builtin/types/miner/deadlines.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 #include "vm/actor/builtin/types/storage_power/claim.hpp"
 #include "vm/runtime/runtime_types.hpp"

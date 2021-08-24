@@ -12,7 +12,6 @@
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
 #include "vm/actor/builtin/types/miner/sectors.hpp"
 #include "vm/actor/builtin/types/miner/termination.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 
 // Forward declaration
 namespace fc::vm::runtime {

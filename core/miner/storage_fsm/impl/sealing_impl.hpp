@@ -18,7 +18,6 @@
 #include "primitives/stored_counter/stored_counter.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 #include "storage/buffer_map.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 
 namespace fc::mining {
   using api::FullNodeApi;

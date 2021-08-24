@@ -9,9 +9,9 @@
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/types/miner/power_pair.hpp"
 #include "vm/actor/builtin/types/miner/quantize.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
   using primitives::ChainEpoch;

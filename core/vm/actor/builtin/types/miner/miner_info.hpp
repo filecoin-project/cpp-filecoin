@@ -10,7 +10,7 @@
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/sector/sector.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/types/miner/worker_key_change.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
   using common::Buffer;

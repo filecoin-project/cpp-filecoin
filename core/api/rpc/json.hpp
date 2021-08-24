@@ -21,7 +21,6 @@
 #include "sector_storage/stores/storage.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 
 #define COMMA ,
 
