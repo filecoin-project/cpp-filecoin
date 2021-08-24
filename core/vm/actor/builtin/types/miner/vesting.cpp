@@ -84,8 +84,8 @@ namespace fc::vm::actor::builtin::types::miner {
       auto &vf = funds[i];
 
       if (vf.epoch >= curr_epoch) {
-        const TokenAmount delta = target - amount_unlocked;
-        const TokenAmount unlock_amount = std::min(delta, vf.amount);
+        const TokenAmount unlock_amount =
+            std::min(TokenAmount(target - amount_unlocked), vf.amount);
         amount_unlocked += unlock_amount;
         const auto new_amount = vf.amount - unlock_amount;
 
@@ -101,7 +101,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
     if (last_index_to_remove != -1) {
       decltype(funds) new_funds = slice(funds, 0, start_index_to_remove);
-      const auto second_part = slice(funds, last_index_to_remove);
+      const auto second_part = slice(funds, last_index_to_remove + 1);
       new_funds.insert(new_funds.end(), second_part.begin(), second_part.end());
       funds = new_funds;
     }

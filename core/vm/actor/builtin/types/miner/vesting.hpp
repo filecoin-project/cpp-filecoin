@@ -17,6 +17,14 @@ namespace fc::vm::actor::builtin::types::miner {
     struct Fund {
       ChainEpoch epoch{};
       TokenAmount amount{};
+
+      bool operator==(const Fund &other) const {
+        return epoch == other.epoch && amount == other.amount;
+      }
+
+      bool operator!=(const Fund &other) const {
+        return !(*this == other);
+      }
     };
     std::vector<Fund> funds;
 
