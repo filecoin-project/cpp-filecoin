@@ -128,7 +128,7 @@ namespace fc::vm::actor::builtin::types::reward {
     const auto &[start, err_bound] = GetParam();
     const auto end = baselineInYears(start, ChainEpoch{1});
     const auto expected = start * 3;
-    const auto err = BigFloat{expected - end} / BigFloat{expected};
+    const BigFloat err = BigFloat{expected - end} / BigFloat{expected};
 
     ASSERT_LT(err, err_bound);
   }

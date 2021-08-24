@@ -40,8 +40,8 @@ namespace fc::testutil::vm::actor::builtin::miner {
 
       RleBitset allocated_sectors;
       EXPECT_OUTCOME_TRUE_1(state.allocated_sectors.set(allocated_sectors));
-      EXPECT_OUTCOME_TRUE(deadlines,
-                          state.makeEmptyDeadlines(ipld, empty_amt_cid));
+      EXPECT_OUTCOME_TRUE(
+          deadlines, TypeManager::makeEmptyDeadlines(runtime, empty_amt_cid));
       EXPECT_OUTCOME_TRUE_1(state.deadlines.set(deadlines));
 
       VestingFunds vesting_funds;

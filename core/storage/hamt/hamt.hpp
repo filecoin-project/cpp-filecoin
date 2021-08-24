@@ -161,6 +161,6 @@ namespace fc::storage::hamt {
     bool v3() const;
 
     mutable Node::Item root_;
-    size_t bit_width_;
+    size_t bit_width_{};
   };
 }  // namespace fc::storage::hamt

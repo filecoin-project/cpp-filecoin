@@ -1044,12 +1044,12 @@ namespace fc::api {
 
     ENCODE(Deadline) {
       Value j{rapidjson::kObjectType};
-      Set(j, "PostSubmissions", v.post_submissions);
+      Set(j, "PostSubmissions", v.partitions_posted);
       return j;
     }
 
     DECODE(Deadline) {
-      Get(j, "PostSubmissions", v.post_submissions);
+      Get(j, "PostSubmissions", v.partitions_posted);
     }
 
     ENCODE(SectorPreCommitInfo) {
@@ -1228,6 +1228,16 @@ namespace fc::api {
     DECODE(libp2p::multi::Multiaddress) {
       OUTCOME_EXCEPT(_v, libp2p::multi::Multiaddress::create(AsString(j)));
       v = std::move(_v);
+    }
+
+    // can be generic
+    ENCODE(gsl::span<const PieceInfo>) {
+      Value j{rapidjson::kArrayType};
+      j.Reserve(v.size(), allocator);
+      for (auto &elem : v) {
+        j.PushBack(encode(elem), allocator);
+      }
+      return j;
     }
 
     ENCODE(PieceInfo) {
@@ -2024,7 +2034,7 @@ namespace fc::api {
   };
 
   template <typename T>
-  static Document encode(const T &v) {
+  Document encode(const T &v) {
     Document document;
     static_cast<Value &>(document) = Codec{document.GetAllocator()}.encode(v);
     return document;

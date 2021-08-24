@@ -118,7 +118,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       EXPECT_OUTCOME_TRUE(deadline, getCbor<Deadline>(ipld, deadline_cid));
       EXPECT_OUTCOME_EQ(deadline.partitions.size(), 0);
       EXPECT_OUTCOME_EQ(deadline.expirations_epochs.size(), 0);
-      EXPECT_TRUE(deadline.post_submissions.empty());
+      EXPECT_TRUE(deadline.partitions_posted.empty());
       EXPECT_TRUE(deadline.early_terminations.empty());
       EXPECT_EQ(deadline.live_sectors, 0);
       EXPECT_EQ(deadline.total_sectors, 0);

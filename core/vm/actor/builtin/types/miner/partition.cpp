@@ -19,11 +19,11 @@ namespace fc::vm::actor::builtin::types::miner {
 
   outcome::result<std::tuple<RleBitset, PowerPair, PowerPair>>
   Partition::recordFaults(Runtime &runtime,
-                           const Sectors &sectors,
-                           const RleBitset &sector_nos,
-                           ChainEpoch fault_expiration_epoch,
-                           SectorSize ssize,
-                           const QuantSpec &quant) {
+                          const Sectors &sectors,
+                          const RleBitset &sector_nos,
+                          ChainEpoch fault_expiration_epoch,
+                          SectorSize ssize,
+                          const QuantSpec &quant) {
     if (!this->sectors.contains(sector_nos)) {
       return ERROR_TEXT("failed fault declaration");
     }
@@ -199,8 +199,8 @@ namespace fc::vm::actor::builtin::types::miner {
 
   outcome::result<void> Partition::recordEarlyTermination(
       Runtime &runtime, ChainEpoch epoch, const RleBitset &sectors) {
-    BitfieldQueue et_queue{.queue = this->early_terminated,
-                           .quant = kNoQuantization};
+    BitfieldQueue<kEearlyTerminatedBitWidth> et_queue{
+        .queue = this->early_terminated, .quant = kNoQuantization};
 
     OUTCOME_TRY(et_queue.addToQueue(epoch, sectors));
     this->early_terminated = et_queue.queue;
@@ -258,8 +258,8 @@ namespace fc::vm::actor::builtin::types::miner {
 
   outcome::result<std::tuple<TerminationResult, bool>>
   Partition::popEarlyTerminations(Runtime &runtime, uint64_t max_sectors) {
-    BitfieldQueue early_terminated_q{.queue = this->early_terminated,
-                                     .quant = kNoQuantization};
+    BitfieldQueue<kEearlyTerminatedBitWidth> early_terminated_q{
+        .queue = this->early_terminated, .quant = kNoQuantization};
 
     std::vector<uint64_t> processed;
     bool has_remaining = false;

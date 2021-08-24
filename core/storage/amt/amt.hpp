@@ -22,6 +22,7 @@ namespace fc::storage::amt {
     kNotFound,
     kRootBitsWrong,
     kNodeBitsWrong,
+    kHeightWrong,
   };
 }  // namespace fc::storage::amt
 
@@ -122,6 +123,6 @@ namespace fc::storage::amt {
     bool v3() const;
 
     mutable boost::variant<std::monostate, CID, Root> root_;
-    size_t bits_;
+    size_t bits_{};
   };
 }  // namespace fc::storage::amt

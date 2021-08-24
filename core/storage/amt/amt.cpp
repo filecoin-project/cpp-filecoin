@@ -22,6 +22,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::amt, AmtError, e) {
       return "AmtError::kRootBitsWrong";
     case AmtError::kNodeBitsWrong:
       return "AmtError::kNodeBitsWrong";
+    case AmtError::kHeightWrong:
+      return "AmtError::kHeightWrong";
   }
   return "Unknown error";
 }
@@ -188,6 +190,11 @@ namespace fc::storage::amt {
     }
     OUTCOME_TRY(remove(root.node, root.height, key));
     --root.count;
+    if (!root.count && root.height && v3()) {
+      root.height = 0;
+      root.node.items = Node::Values{};
+      return outcome::success();
+    }
     while (root.height > 0) {
       auto &links = boost::get<Node::Links>(root.node.items);
       if (links.size() != 1 || links.find(0) == links.end()) {
@@ -292,9 +299,19 @@ namespace fc::storage::amt {
                                    uint64_t height,
                                    uint64_t offset,
                                    const Visitor &visitor) const {
+    auto values{boost::get<Node::Values>(&node.items)};
     if (height == 0) {
-      for (auto &it : boost::get<Node::Values>(node.items)) {
+      if (!values) {
+        return AmtError::kHeightWrong;
+      }
+      for (auto &it : *values) {
         OUTCOME_TRY(visitor(offset + it.first, it.second));
+      }
+      return outcome::success();
+    }
+    if (values) {
+      if (!values->empty() || v3()) {
+        return AmtError::kHeightWrong;
       }
       return outcome::success();
     }

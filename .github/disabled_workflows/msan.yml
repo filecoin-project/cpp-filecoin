@@ -1,5 +1,4 @@
-#TODO: uncomment when codebase will be ready for sanitization
-
+#TODO: uncomment if MSAN is required. Note: all dependencies must be instrumented to pass.
 #name: MSAN
 #
 #on:
@@ -12,10 +11,18 @@
 #
 #jobs:
 #  build:
-#    runs-on: ubuntu-18.04
+#    runs-on: ubuntu-20.04
 #    steps:
 #    - uses: actions/checkout@v2
 #      name: checkout repo
+#    - name: cache
+#      uses: actions/cache@v1.2.0
+#      env:
+#        cache-name: cache-filecoin-ffi-proofs
+#        version: v28
+#      with:
+#        path: /var/tmp/filecoin-proof-parameters
+#        key: build-${{ env.cache-name }}-${{ env.version }}
 #    - name: checkout submodules
 #      shell: bash
 #      run: |
@@ -24,8 +31,8 @@
 #        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
 #    - name: install
 #      run: |
-#        sudo apt-get update || true
-#        sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers
+#        sudo apt-get update
+#        sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers libhwloc-dev
 #        sudo python3 -m pip install --upgrade pip
 #        sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml
 #    - name: cmake
@@ -33,9 +40,9 @@
 #        CC: "clang"
 #        CXX: "clang++"
 #        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
-#        GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
-#        GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
-#      run: cmake . -GNinja -Bbuild -D MSAN=ON
+#        GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+#        GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+#      run: cmake . -GNinja -Bbuild -D MSAN=ON -D TESTING_PROOFS=ON
 #    - name: build
 #      run: cmake --build build -- -j2
 #    - name: run tests

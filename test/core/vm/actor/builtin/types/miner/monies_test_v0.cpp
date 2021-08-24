@@ -45,10 +45,10 @@ namespace fc::vm::actor::builtin::v0::miner {
   };
 
   TEST_F(MoniesTestv0, TestPledgePenaltyForTermination) {
-    TokenAmount initial_pledge = TokenAmount{1 << 10};
-    TokenAmount day_reward = initial_pledge / big_initial_pledge_factor;
-    TokenAmount twenty_day_reward = day_reward * big_initial_pledge_factor;
-    ChainEpoch sector_age = 20 * static_cast<ChainEpoch>(kEpochsInDay);
+    const TokenAmount initial_pledge = TokenAmount{1 << 10};
+    const TokenAmount day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
+    const TokenAmount twenty_day_reward = day_reward * big_initial_pledge_factor;
+    const ChainEpoch sector_age = 20 * static_cast<ChainEpoch>(kEpochsInDay);
 
     EXPECT_OUTCOME_TRUE(fee,
                         moniesv0.pledgePenaltyForTermination(day_reward,

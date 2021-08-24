@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <gtest/gtest.h>
 #include "primitives/types.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
@@ -14,6 +15,7 @@
 namespace fc::vm::actor::builtin {
   using primitives::ChainEpoch;
   using primitives::DealWeight;
+  using primitives::RleBitset;
   using primitives::SectorNumber;
   using primitives::TokenAmount;
   using types::miner::ExpirationQueue;
@@ -42,14 +44,20 @@ namespace fc::vm::actor::builtin {
     EXPECT_TRUE(es.isEmpty());
   }
 
-  template <typename T>
-  inline std::vector<T> slice(const std::vector<T> &source,
-                              int begin,
-                              int end = -1) {
-    typename std::vector<T>::const_iterator begin_it = source.begin() + begin;
-    typename std::vector<T>::const_iterator end_it =
-        end == -1 ? source.end() : source.begin() + end;
-    return std::vector<T>(begin_it, end_it);
+  inline std::vector<SectorOnChainInfo> selectSectorsTest(
+      const std::vector<SectorOnChainInfo> &sectors, const RleBitset &field) {
+    auto to_include = field;
+    std::vector<SectorOnChainInfo> included;
+
+    for (const auto &sector : sectors) {
+      if (!to_include.has(sector.sector)) {
+        continue;
+      }
+      included.push_back(sector);
+      to_include.erase(sector.sector);
+    }
+    EXPECT_TRUE(to_include.empty());
+    return included;
   }
 
 }  // namespace fc::vm::actor::builtin

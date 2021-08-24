@@ -71,6 +71,15 @@ namespace fc::adt {
       return values;
     }
 
+    outcome::result<std::vector<Key>> keys() const {
+      std::vector<Key> keys;
+      OUTCOME_TRY(visit([&](auto key, auto) {
+        keys.push_back(key);
+        return outcome::success();
+      }));
+      return keys;
+    }
+
     storage::amt::Amt amt;
   };
 

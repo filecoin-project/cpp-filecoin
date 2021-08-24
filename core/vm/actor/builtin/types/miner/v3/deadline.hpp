@@ -5,18 +5,33 @@
 
 #pragma once
 
-#include "common/libp2p/multi/cbor_multiaddress.hpp"
-#include "primitives/address/address_codec.hpp"
-#include "vm/actor/builtin/types/miner/deadline.hpp"
-#include "vm/actor/builtin/types/miner/miner_info.hpp"
+#include "vm/actor/builtin/types/miner/v2/deadline.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
+  using primitives::ChainEpoch;
+  using primitives::SectorSize;
+  using runtime::Runtime;
+  using types::miner::PartitionSectorMap;
+  using types::miner::PoStPartition;
+  using types::miner::PoStResult;
+  using types::miner::PowerPair;
+  using types::miner::QuantSpec;
+  using types::miner::SectorOnChainInfo;
+  using types::miner::Sectors;
 
-  struct Deadline : types::miner::Deadline {
-    Deadline() = default;
-    Deadline(const types::miner::Deadline &other)
-        : types::miner::Deadline(other) {}
-    Deadline(types::miner::Deadline &&other) : types::miner::Deadline(other) {}
+  struct Deadline : v2::miner::Deadline {
+    outcome::result<std::tuple<PowerPair, PowerPair>> processDeadlineEnd(
+        Runtime &runtime,
+        const QuantSpec &quant,
+        ChainEpoch fault_expiration_epoch) override;
+
+    outcome::result<PoStResult> recordProvenSectors(
+        Runtime &runtime,
+        const Sectors &sectors,
+        SectorSize ssize,
+        const QuantSpec &quant,
+        ChainEpoch fault_expiration,
+        const std::vector<PoStPartition> &post_partitions) override;
   };
   CBOR_TUPLE(Deadline,
              partitions,
@@ -41,6 +56,8 @@ namespace fc::cbor_blake {
       visit(d.partitions);
       visit(d.expirations_epochs);
       visit(d.optimistic_post_submissions);
+      visit(d.partitions_snapshot);
+      visit(d.optimistic_post_submissions_snapshot);
     }
   };
 }  // namespace fc::cbor_blake

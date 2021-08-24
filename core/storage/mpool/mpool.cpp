@@ -456,14 +456,17 @@ namespace fc::storage::mpool {
     mpool->env_context = env_context;
     mpool->ts_main = std::move(ts_main);
     mpool->ipld = env_context.ipld;
-    mpool->head_sub = chain_store->subscribeHeadChanges([=](auto &change) {
-      auto res{mpool->onHeadChange(change)};
-      if (!res) {
-        spdlog::error("MessagePool.onHeadChange: error {} \"{}\"",
-                      res.error(),
-                      res.error().message());
-      }
-    });
+    mpool->head_sub =
+        chain_store->subscribeHeadChanges([=](const auto &changes) {
+          for (const auto &change : changes) {
+            auto res{mpool->onHeadChange(change)};
+            if (!res) {
+              spdlog::error("MessagePool.onHeadChange: error {} \"{}\"",
+                            res.error(),
+                            res.error().message());
+            }
+          }
+        });
     return mpool;
   }
 

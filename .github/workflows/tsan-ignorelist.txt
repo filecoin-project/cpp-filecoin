@@ -1,0 +1,3 @@
+# False positive `in boost::asio` `conditionally_enabled_mutex`.
+# See https://github.com/boostorg/beast/issues/1142.
+race:conditionally_enabled_mutex

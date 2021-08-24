@@ -25,6 +25,7 @@ namespace fc::sync {
   class SyncJob {
    public:
     SyncJob(std::shared_ptr<libp2p::Host> host,
+            std::shared_ptr<boost::asio::io_context> io,
             std::shared_ptr<ChainStoreImpl> chain_store,
             std::shared_ptr<Scheduler> scheduler,
             std::shared_ptr<Interpreter> interpreter,
@@ -68,6 +69,7 @@ namespace fc::sync {
     void downloaderCallback(BlocksyncRequest::Result r);
 
     std::shared_ptr<libp2p::Host> host_;
+    std::shared_ptr<boost::asio::io_context> io_;
     std::shared_ptr<ChainStoreImpl> chain_store_;
     std::shared_ptr<Scheduler> scheduler_;
     std::shared_ptr<Interpreter> interpreter_;

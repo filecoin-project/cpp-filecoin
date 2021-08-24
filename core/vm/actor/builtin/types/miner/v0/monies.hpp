@@ -8,6 +8,7 @@
 #include <vm/actor/builtin/types/miner/policy.hpp>
 #include <vm/runtime/runtime.hpp>
 #include "vm/actor/builtin/types/miner/monies.hpp"
+#include "primitives/go/math.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using common::math::kPrecision128;

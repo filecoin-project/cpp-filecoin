@@ -26,7 +26,7 @@ namespace fc::api::full_node {
     }
 
     void clientAsksVersion(const std::string &api_target,
-                           const VersionResult expected_version) {
+                           const VersionResult expected_version) const {
       FullNodeApi client_api_v2;
       rpc::Client wsc_v2{*io.io};
       wsc_v2.setup(client_api_v2);
