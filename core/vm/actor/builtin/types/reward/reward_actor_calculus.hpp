@@ -56,7 +56,7 @@ namespace fc::vm::actor::builtin::types::reward {
 
   /**
    * Computes baseline supply based on theta in Q.128 format
-   * @returns baseline supply in Q.128 format
+   * @return baseline supply in Q.128 format
    */
   BigInt computeBaselineSupply(const BigInt &theta,
                                const BigInt &baseline_total);

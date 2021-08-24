@@ -26,8 +26,8 @@ namespace fc::vm::actor::builtin::types::miner {
 
   class Monies {
    public:
-    const int precommit_deposit_factor = 20;
-    const int initial_pledge_factor = 20;
+    constexpr static int precommit_deposit_factor = 20;
+    constexpr static int initial_pledge_factor = 20;
     const ChainEpoch precommit_deposit_projection_period =
         ChainEpoch(precommit_deposit_factor) * kEpochsInDay;
     const ChainEpoch initial_pledge_projection_period =

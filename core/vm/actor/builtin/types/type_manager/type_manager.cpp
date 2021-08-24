@@ -5,8 +5,11 @@
 
 #include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 
+#include "vm/actor/builtin/types/miner/policy.hpp"
+
 namespace fc::vm::actor::builtin::types {
   using primitives::kChainEpochUndefined;
+  using types::miner::kWPoStPeriodDeadlines;
 
   outcome::result<Universal<ExpirationQueue>> TypeManager::loadExpirationQueue(
       const Runtime &runtime,
@@ -50,6 +53,38 @@ namespace fc::vm::actor::builtin::types {
     miner_info->pending_owner_address = boost::none;
 
     return miner_info;
+  }
+
+  outcome::result<Universal<Deadline>> TypeManager::makeEmptyDeadline(
+      const Runtime &runtime, const CID &empty_amt_cid) {
+    const auto version = runtime.getActorVersion();
+    const auto ipld = runtime.getIpfsDatastore();
+
+    Universal<Deadline> deadline{version};
+    cbor_blake::cbLoadT(ipld, deadline);
+
+    if (version < ActorVersion::kVersion3) {
+      deadline->partitions = {empty_amt_cid, ipld};
+      deadline->expirations_epochs = {empty_amt_cid, ipld};
+    } else {
+      OUTCOME_TRY(empty_partitions_cid, deadline->partitions.amt.flush());
+      deadline->partitions_snapshot = {empty_partitions_cid, ipld};
+
+      OUTCOME_TRY(empty_post_submissions_cid,
+                  deadline->optimistic_post_submissions.amt.flush());
+      deadline->optimistic_post_submissions_snapshot = {
+          empty_post_submissions_cid, ipld};
+    }
+
+    return deadline;
+  }
+
+  outcome::result<Deadlines> TypeManager::makeEmptyDeadlines(
+      const Runtime &runtime, const CID &empty_amt_cid) {
+    OUTCOME_TRY(deadline, makeEmptyDeadline(runtime, empty_amt_cid));
+    OUTCOME_TRY(deadline_cid, setCbor(runtime.getIpfsDatastore(), deadline));
+    adt::CbCidT<Universal<Deadline>> deadline_cid_t{deadline_cid};
+    return Deadlines{std::vector(kWPoStPeriodDeadlines, deadline_cid_t)};
   }
 
 }  // namespace fc::vm::actor::builtin::types

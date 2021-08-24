@@ -6,6 +6,7 @@
 #include "vm/actor/builtin/types/miner/v2/partition.hpp"
 
 #include <gtest/gtest.h>
+#include "common/container_utils.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "test_utils.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
@@ -16,6 +17,7 @@
 #include "vm/actor/version.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
+  using common::slice;
   using primitives::sector::getSealProofWindowPoStPartitionSectors;
   using primitives::sector::getSectorSize;
   using primitives::sector::RegisteredSealProof;
@@ -23,6 +25,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   using storage::ipfs::InMemoryDatastore;
   using types::TypeManager;
   using types::miner::BitfieldQueue;
+  using types::miner::kEearlyTerminatedBitWidth;
   using types::miner::kNoQuantization;
   using types::miner::powerForSectors;
   using types::miner::qaPowerForSector;
@@ -108,20 +111,21 @@ namespace fc::vm::actor::builtin::v2::miner {
       EXPECT_FALSE(partition.faults.containsAny(partition.unproven));
       EXPECT_TRUE(partition.sectors.contains(partition.terminated));
 
-      const auto live_sectors = selectSectors(sectors, live);
+      const auto live_sectors = selectSectorsTest(sectors, live);
       const auto live_power = powerForSectors(ssize, live_sectors);
       EXPECT_EQ(live_power, partition.live_power);
 
-      const auto unproven_sectors = selectSectors(sectors, partition.unproven);
+      const auto unproven_sectors =
+          selectSectorsTest(sectors, partition.unproven);
       const auto unproven_power = powerForSectors(ssize, unproven_sectors);
       EXPECT_EQ(unproven_power, partition.unproven_power);
 
-      const auto faulty_sectors = selectSectors(sectors, partition.faults);
+      const auto faulty_sectors = selectSectorsTest(sectors, partition.faults);
       const auto faulty_power = powerForSectors(ssize, faulty_sectors);
       EXPECT_EQ(faulty_power, partition.faulty_power);
 
       const auto recovering_sectors =
-          selectSectors(sectors, partition.recoveries);
+          selectSectorsTest(sectors, partition.recoveries);
       const auto recovering_power = powerForSectors(ssize, recovering_sectors);
       EXPECT_EQ(recovering_power, partition.recovering_power);
 
@@ -143,12 +147,12 @@ namespace fc::vm::actor::builtin::v2::miner {
           const auto active = all - partition.faults;
           const auto faulty = all.intersect(partition.faults);
 
-          const auto active_sectors = selectSectors(live_sectors, active);
-          const auto faulty_sectors = selectSectors(live_sectors, faulty);
+          const auto active_sectors = selectSectorsTest(live_sectors, active);
+          const auto faulty_sectors = selectSectorsTest(live_sectors, faulty);
           const auto on_time_sectors =
-              selectSectors(live_sectors, es.on_time_sectors);
+              selectSectorsTest(live_sectors, es.on_time_sectors);
           const auto early_sectors =
-              selectSectors(live_sectors, es.early_sectors);
+              selectSectorsTest(live_sectors, es.early_sectors);
 
           EXPECT_TRUE(partition.faults.contains(es.early_sectors));
           EXPECT_TRUE(live.contains(es.on_time_sectors));
@@ -187,8 +191,8 @@ namespace fc::vm::actor::builtin::v2::miner {
       }
 
       {
-        const BitfieldQueue early_q{partition.early_terminated,
-                                    kNoQuantization};
+        const BitfieldQueue<kEearlyTerminatedBitWidth> early_q{
+            partition.early_terminated, kNoQuantization};
         RleBitset early_terms;
 
         auto visitor{[&](ChainEpoch epoch,
@@ -227,23 +231,6 @@ namespace fc::vm::actor::builtin::v2::miner {
 
       EXPECT_OUTCOME_TRUE_1(sectors_arr.store(sectors));
       return sectors_arr;
-    }
-
-    std::vector<SectorOnChainInfo> selectSectors(
-        const std::vector<SectorOnChainInfo> &source_sectors,
-        const RleBitset &field) const {
-      auto to_include = field;
-      std::vector<SectorOnChainInfo> included;
-
-      for (const auto &sector : source_sectors) {
-        if (!to_include.has(sector.sector)) {
-          continue;
-        }
-        included.push_back(sector);
-        to_include.erase(sector.sector);
-      }
-      EXPECT_TRUE(to_include.empty());
-      return included;
     }
 
     std::vector<SectorOnChainInfo> rescheduleSectors(
@@ -321,7 +308,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     std::tie(std::ignore, power_delta, new_faulty_power) = result;
 
     EXPECT_EQ(new_faulty_power,
-              powerForSectors(ssize, selectSectors(sectors, fault_set)));
+              powerForSectors(ssize, selectSectorsTest(sectors, fault_set)));
     EXPECT_EQ(power_delta, PowerPair());
 
     assertPartitionState({1, 2, 3, 4, 5, 6}, {4, 5}, {}, {}, {1, 2, 3, 6});
@@ -351,7 +338,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     std::tie(std::ignore, power_delta, new_faulty_power) = result;
 
     const auto expected_faulty_power =
-        powerForSectors(ssize, selectSectors(sectors, fault_set));
+        powerForSectors(ssize, selectSectorsTest(sectors, fault_set));
     EXPECT_EQ(new_faulty_power, expected_faulty_power);
     EXPECT_EQ(power_delta, expected_faulty_power.negative());
 
@@ -381,7 +368,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     std::tie(std::ignore, power_delta1, new_faulty_power1) = result1;
 
     const auto expected_faulty_power1 =
-        powerForSectors(ssize, selectSectors(sectors, fault_set1));
+        powerForSectors(ssize, selectSectorsTest(sectors, fault_set1));
     EXPECT_EQ(new_faulty_power1, expected_faulty_power1);
     EXPECT_EQ(power_delta1, expected_faulty_power1.negative());
 
@@ -394,7 +381,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     const RleBitset expected_new_faults{6};
     EXPECT_EQ(new_faults2, expected_new_faults);
     const auto expected_faulty_power2 =
-        powerForSectors(ssize, selectSectors(sectors, {6}));
+        powerForSectors(ssize, selectSectorsTest(sectors, {6}));
     EXPECT_EQ(new_faulty_power2, expected_faulty_power2);
     EXPECT_EQ(power_delta2, expected_faulty_power2.negative());
 
@@ -497,7 +484,7 @@ namespace fc::vm::actor::builtin::v2::miner {
         recovered_power,
         partition.recoverFaults(runtime, sectors_arr, ssize, quant));
     EXPECT_EQ(recovered_power,
-              powerForSectors(ssize, selectSectors(sectors, recover_set)));
+              powerForSectors(ssize, selectSectorsTest(sectors, recover_set)));
 
     assertPartitionState({1, 2, 3, 4, 5, 6}, {6}, {}, {}, {});
 
@@ -527,7 +514,7 @@ namespace fc::vm::actor::builtin::v2::miner {
         partition.declareFaultsRecovered(sectors_arr, ssize, fault_set));
 
     EXPECT_EQ(partition.recovering_power,
-              powerForSectors(ssize, selectSectors(sectors, fault_set)));
+              powerForSectors(ssize, selectSectorsTest(sectors, fault_set)));
 
     assertPartitionState({1, 2, 3, 4, 5, 6}, {4, 5, 6}, {4, 5, 6}, {}, {});
   }
@@ -707,9 +694,9 @@ namespace fc::vm::actor::builtin::v2::miner {
                                                    quant));
 
     EXPECT_EQ(removed.active_power,
-              powerForSectors(ssize, selectSectors(sectors, {1})));
+              powerForSectors(ssize, selectSectorsTest(sectors, {1})));
     EXPECT_EQ(removed.faulty_power,
-              powerForSectors(ssize, selectSectors(sectors, {3, 5})));
+              powerForSectors(ssize, selectSectorsTest(sectors, {3, 5})));
 
     assertPartitionState({1, 2, 3, 4, 5, 6, 7}, {4, 6}, {4}, terminations, {});
 
@@ -717,7 +704,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     groups.push_back({9, {4, 6}});
     assertPartitionExpirationQueue();
 
-    const BitfieldQueue queue{partition.early_terminated, kNoQuantization};
+    const BitfieldQueue<kEearlyTerminatedBitWidth> queue{
+        partition.early_terminated, kNoQuantization};
     EXPECT_OUTCOME_EQ(queue.queue.size(), 1);
     EXPECT_OUTCOME_TRUE(terminated, queue.queue.get(termination_epoch));
     EXPECT_EQ(terminated, terminations);
@@ -756,7 +744,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                                                    ssize,
                                                    quant));
     EXPECT_EQ(removed.active_power,
-              powerForSectors(ssize, selectSectors(sectors, {1})));
+              powerForSectors(ssize, selectSectorsTest(sectors, {1})));
     EXPECT_EQ(removed.faulty_power, PowerPair());
     EXPECT_EQ(removed.count(), 1);
 
@@ -825,7 +813,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     groups.push_back({13, {5, 6}});
     assertPartitionExpirationQueue();
 
-    const BitfieldQueue queue{partition.early_terminated, kNoQuantization};
+    const BitfieldQueue<kEearlyTerminatedBitWidth> queue{
+        partition.early_terminated, kNoQuantization};
     EXPECT_OUTCOME_EQ(queue.queue.size(), 1);
     EXPECT_OUTCOME_TRUE(expired, queue.queue.get(expire_epoch));
     EXPECT_EQ(expired, fault_set);
@@ -938,7 +927,8 @@ namespace fc::vm::actor::builtin::v2::miner {
               expected_sectors1);
     EXPECT_TRUE(has_more1);
 
-    const BitfieldQueue queue1{partition.early_terminated, kNoQuantization};
+    const BitfieldQueue<kEearlyTerminatedBitWidth> queue1{
+        partition.early_terminated, kNoQuantization};
     EXPECT_OUTCOME_EQ(queue1.queue.size(), 1);
     EXPECT_OUTCOME_TRUE(terminated1, queue1.queue.get(termination_epoch));
     const RleBitset expected_terminated1{3, 5};
@@ -951,7 +941,8 @@ namespace fc::vm::actor::builtin::v2::miner {
               expected_sectors2);
     EXPECT_FALSE(has_more2);
 
-    const BitfieldQueue queue2{partition.early_terminated, kNoQuantization};
+    const BitfieldQueue<kEearlyTerminatedBitWidth> queue2{
+        partition.early_terminated, kNoQuantization};
     EXPECT_OUTCOME_EQ(queue2.queue.size(), 0);
   }
 
@@ -1030,7 +1021,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     EXPECT_EQ(retracted_power, PowerPair());
     EXPECT_EQ(new_fault_power,
-              powerForSectors(ssize, selectSectors(sectors, {3})));
+              powerForSectors(ssize, selectSectorsTest(sectors, {3})));
     EXPECT_EQ(power_delta, new_fault_power.negative());
     EXPECT_TRUE(new_faults);
 
@@ -1065,11 +1056,11 @@ namespace fc::vm::actor::builtin::v2::miner {
         result;
 
     const auto expected_faulty_power =
-        powerForSectors(ssize, selectSectors(sectors, {1}));
+        powerForSectors(ssize, selectSectorsTest(sectors, {1}));
     EXPECT_EQ(new_fault_power, expected_faulty_power);
     EXPECT_EQ(power_delta, expected_faulty_power.negative());
     EXPECT_EQ(recovery_power,
-              powerForSectors(ssize, selectSectors(sectors, {4, 5})));
+              powerForSectors(ssize, selectSectorsTest(sectors, {4, 5})));
     EXPECT_TRUE(new_faults);
 
     assertPartitionState({1, 2, 3, 4, 5, 6}, {1, 4, 5, 6}, {}, {}, {});

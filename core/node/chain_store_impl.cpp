@@ -63,8 +63,8 @@ namespace fc::sync {
   ChainStoreImpl::subscribeHeadChanges(
       const std::function<HeadChangeSignature> &subscriber) {
     assert(head_);
-    subscriber(primitives::tipset::HeadChange{
-        primitives::tipset::HeadChangeType::CURRENT, head_});
+    subscriber({primitives::tipset::HeadChange{
+        primitives::tipset::HeadChangeType::CURRENT, head_}});
     return head_change_signal_.connect(subscriber);
   }
 
@@ -77,10 +77,11 @@ namespace fc::sync {
     using primitives::tipset::HeadChange;
     using primitives::tipset::HeadChangeType;
     HeadChange event;
+    std::vector<HeadChange> events;
     auto notify{[&](auto &it) {
       if (auto _ts{ts_load_->lazyLoad(it->second)}) {
         event.value = _ts.value();
-        head_change_signal_(event);
+        events.emplace_back(event);
       } else {
         log()->error("update ts_load {:#}", _ts.error());
       }
@@ -95,6 +96,7 @@ namespace fc::sync {
     }
     head_ = ts_load_->lazyLoad(std::prev(apply.end())->second).value();
     heaviest_weight_ = weight;
+    head_change_signal_(events);
     events_->signalCurrentHead({.tipset = head_, .weight = heaviest_weight_});
   }
 

@@ -82,10 +82,10 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     const TokenAmount expected_fee =
         initial_pledge
-        + (initial_pledge * sector_age_in_days
+        + bigdiv((initial_pledge * sector_age_in_days
            * moniesv3.termination_reward_factor.numerator)
-              / (big_initial_pledge_factor
-                 * moniesv3.termination_reward_factor.denominator);
+              ,(big_initial_pledge_factor
+                 * moniesv3.termination_reward_factor.denominator));
     EXPECT_EQ(expected_fee, fee);
   }
 

@@ -12,15 +12,10 @@
 
 namespace fc::vm::actor::builtin::v3::miner {
   using types::Universal;
+  using types::miner::MinerInfo;
 
   struct MinerActorState : states::MinerActorState {
-    outcome::result<Universal<types::miner::MinerInfo>> getInfo()
-        const override;
-
-    outcome::result<types::miner::Deadlines> makeEmptyDeadlines(
-        IpldPtr ipld, const CID &empty_amt_cid) override;
-    outcome::result<types::miner::Deadline> getDeadline(
-        IpldPtr ipld, const CID &cid) const override;
+    outcome::result<Universal<MinerInfo>> getInfo() const override;
   };
   CBOR_TUPLE(MinerActorState,
              miner_info,

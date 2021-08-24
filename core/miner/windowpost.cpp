@@ -64,7 +64,7 @@ namespace fc::mining {
       return;
     }
     while (cache.count(deadline.open)) {
-      deadline = deadline.next();
+      deadline = deadline.nextNotElapsed();
     }
     if (apply->epoch() >= deadline.challenge) {
       auto &cached{
@@ -252,9 +252,11 @@ namespace fc::mining {
     wait.waitOwn([method](auto _r) {
       auto name{method == DeclareFaultsRecovered::Number
                     ? "DeclareFaultsRecovered"
-                : method == DeclareFaults::Number      ? "DeclareFaults"
-                : method == SubmitWindowedPoSt::Number ? "SubmitWindowedPoSt"
-                                                       : "(unexpected)"};
+                    : method == DeclareFaults::Number
+                          ? "DeclareFaults"
+                          : method == SubmitWindowedPoSt::Number
+                                ? "SubmitWindowedPoSt"
+                                : "(unexpected)"};
       if (!_r) {
         spdlog::error("WindowPoStScheduler {} error {}", name, _r.error());
       } else {

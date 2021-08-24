@@ -6,9 +6,11 @@
 #pragma once
 
 #include "primitives/big_int.hpp"
+#include "primitives/go/math.hpp"
 
 namespace fc::common::math {
   using primitives::BigInt;
+  using primitives::go::bitlen;
 
   /**
    * lambda = ln(2) / (6 * epochsInYear)

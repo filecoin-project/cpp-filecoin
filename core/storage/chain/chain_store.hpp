@@ -33,7 +33,7 @@ namespace fc::storage::blockchain {
     virtual TipsetCPtr heaviestTipset() const = 0;
 
     using connection_t = boost::signals2::connection;
-    using HeadChangeSignature = void(const HeadChange &);
+    using HeadChangeSignature = void(const std::vector<HeadChange> &);
 
     virtual connection_t subscribeHeadChanges(
         const std::function<HeadChangeSignature> &subscriber) = 0;

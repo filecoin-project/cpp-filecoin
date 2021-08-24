@@ -6,6 +6,7 @@
 #pragma once
 
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/types/miner/quantize.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
   using primitives::ChainEpoch;
@@ -20,30 +21,46 @@ namespace fc::vm::actor::builtin::types::miner {
   struct DeadlineInfo {
     DeadlineInfo() = default;
 
-    DeadlineInfo(ChainEpoch start, size_t deadline_index, ChainEpoch now);
-
-    /** Returns the next instance of this deadline that has not yet elapsed. */
-    DeadlineInfo nextNotElapsed() const;
-
-    /** The first epoch in the next proving period. */
-    ChainEpoch nextPeriodStart() const;
-
-    /** Whether the current deadline has already closed. */
-    bool elapsed() const;
-
-    /** Whether the deadline's fault cutoff has passed. */
-    bool faultCutoffPassed() const;
+    DeadlineInfo(ChainEpoch start, uint64_t deadline_index, ChainEpoch now);
 
     /** Whether the proving period has begun. */
     bool periodStarted() const;
 
+    /** Whether the proving period has elapsed. */
+    bool periodElapsed() const;
+
     /** The last epoch in the proving period. */
     ChainEpoch periodEnd() const;
+
+    /** The first epoch in the next proving period. */
+    ChainEpoch nextPeriodStart() const;
+
+    /** Whether the current deadline is currently open. */
+    bool isOpen() const;
+
+    /** Whether the current deadline has already closed. */
+    bool hasElapsed() const;
 
     /** The last epoch during which a proof may be submitted. */
     ChainEpoch last() const;
 
-    DeadlineInfo next() const;
+    /** Epoch at which the subsequent deadline opens. */
+    ChainEpoch nextOpen() const;
+
+    /** Whether the deadline's fault cutoff has passed. */
+    bool faultCutoffPassed() const;
+
+    /** Returns the next instance of this deadline that has not yet elapsed. */
+    DeadlineInfo nextNotElapsed() const;
+
+    /** Returns QuantSpec for Deadline Info. */
+    QuantSpec quant() const;
+
+    bool operator==(const DeadlineInfo &other) const;
+
+    bool operator!=(const DeadlineInfo &other) const {
+      return !(*this == other);
+    }
 
     /// Deadline parameters
 
@@ -83,5 +100,13 @@ namespace fc::vm::actor::builtin::types::miner {
 
     ChainEpoch fault_declaration_cutoff{};
   };
+
+  /**
+   * Determine current period start and deadline index directly from current
+   * epoch and the offset implied by the proving period. This works correctly
+   * even for the state of a miner actor without an active deadline cron
+   */
+  DeadlineInfo newDeadlineInfoFromOffsetAndEpoch(ChainEpoch period_start_seed,
+                                                 ChainEpoch curr_epoch);
 
 }  // namespace fc::vm::actor::builtin::types::miner

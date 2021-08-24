@@ -7,12 +7,14 @@
 
 #include <gtest/gtest.h>
 
+#include "common/container_utils.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "test_utils.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
+  using common::slice;
   using primitives::ChainEpoch;
   using primitives::DealWeight;
   using primitives::RleBitset;

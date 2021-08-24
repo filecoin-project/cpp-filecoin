@@ -26,4 +26,9 @@ namespace fc::vm::actor::builtin::types::miner {
     return unit * (quotient + 1) + rounded_offset;
   }
 
+  ChainEpoch QuantSpec::quantizeDown(ChainEpoch e) const {
+    const auto next = quantizeUp(e);
+    return e == next ? next : next - unit;
+  }
+
 }  // namespace fc::vm::actor::builtin::types::miner
