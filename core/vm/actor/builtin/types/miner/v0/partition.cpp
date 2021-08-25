@@ -5,11 +5,10 @@
 
 #include "vm/actor/builtin/types/miner/v0/partition.hpp"
 
-#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
-  using types::TypeManager;
+  using types::miner::loadExpirationQueue;
 
   RleBitset Partition::activeSectors() const {
     return liveSectors() - this->faults;
@@ -25,9 +24,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       const std::vector<SectorOnChainInfo> &sectors,
       SectorSize ssize,
       const QuantSpec &quant) {
-    OUTCOME_TRY(expirations,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto expirations = loadExpirationQueue(this->expirations_epochs, quant);
 
     RleBitset snos;
     PowerPair power;
@@ -52,9 +49,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       ChainEpoch fault_expiration,
       SectorSize ssize,
       const QuantSpec &quant) {
-    OUTCOME_TRY(queue,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto queue = loadExpirationQueue(this->expirations_epochs, quant);
 
     OUTCOME_TRY(new_faulty_power,
                 queue->rescheduleAsFaults(fault_expiration, sectors, ssize));
@@ -80,9 +75,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     }
 
     OUTCOME_TRY(sector_infos, sectors.load(sector_nos));
-    OUTCOME_TRY(expirations,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto expirations = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(result,
                 expirations->removeSectors(
                     sector_infos, this->faults, this->recoveries, ssize));
@@ -107,9 +100,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<ExpirationSet> Partition::popExpiredSectors(
       Runtime &runtime, ChainEpoch until, const QuantSpec &quant) {
-    OUTCOME_TRY(expirations,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto expirations = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(popped, expirations->popUntil(until));
     this->expirations_epochs = expirations->queue;
 

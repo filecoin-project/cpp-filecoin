@@ -10,6 +10,11 @@
 #include "adt/cid_t.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 
+// Forward declaration
+namespace fc::vm::runtime {
+  class Runtime;
+}
+
 namespace fc::vm::actor::builtin::types::miner {
   using primitives::SectorNumber;
 
@@ -27,6 +32,9 @@ namespace fc::vm::actor::builtin::types::miner {
         SectorNumber sector_num) const;
   };
   CBOR_TUPLE(Deadlines, due)
+
+  outcome::result<Deadlines> makeEmptyDeadlines(const Runtime &runtime,
+                                                const CID &empty_amt_cid);
 
 }  // namespace fc::vm::actor::builtin::types::miner
 

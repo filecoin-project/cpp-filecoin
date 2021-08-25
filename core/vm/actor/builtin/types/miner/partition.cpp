@@ -8,7 +8,6 @@
 #include "common/error_text.hpp"
 #include "vm/actor/builtin/types/miner/bitfield_queue.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
@@ -65,9 +64,7 @@ namespace fc::vm::actor::builtin::types::miner {
                                                       const QuantSpec &quant) {
     OUTCOME_TRY(recovered_sectors, sectors.load(this->recoveries));
 
-    OUTCOME_TRY(queue,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto queue = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(power, queue->rescheduleRecovered(recovered_sectors, ssize));
 
     this->expirations_epochs = queue->queue;
@@ -133,9 +130,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
     OUTCOME_TRY(sector_infos, sectors.load(active));
 
-    OUTCOME_TRY(expirations,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto expirations = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(expirations->rescheduleExpirations(
         new_expiration, sector_infos, ssize));
     this->expirations_epochs = expirations->queue;
@@ -156,9 +151,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
     OUTCOME_TRY(sector_infos, sectors.load(active));
 
-    OUTCOME_TRY(expirations,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto expirations = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(expirations->rescheduleExpirations(
         new_expiration, sector_infos, ssize));
     this->expirations_epochs = expirations->queue;
@@ -174,9 +167,7 @@ namespace fc::vm::actor::builtin::types::miner {
       const std::vector<SectorOnChainInfo> &new_sectors,
       SectorSize ssize,
       const QuantSpec &quant) {
-    OUTCOME_TRY(expirations,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto expirations = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(result,
                 expirations->replaceSectors(old_sectors, new_sectors, ssize));
     const auto &[old_snos, new_snos, power_delta, pledge_delta] = result;
@@ -212,9 +203,7 @@ namespace fc::vm::actor::builtin::types::miner {
   Partition::recordMissedPostV0(Runtime &runtime,
                                 ChainEpoch fault_expiration,
                                 const QuantSpec &quant) {
-    OUTCOME_TRY(queue,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto queue = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(queue->rescheduleAllAsFaults(fault_expiration));
     this->expirations_epochs = queue->queue;
 
@@ -233,9 +222,7 @@ namespace fc::vm::actor::builtin::types::miner {
   Partition::recordMissedPostV2(Runtime &runtime,
                                 ChainEpoch fault_expiration,
                                 const QuantSpec &quant) {
-    OUTCOME_TRY(queue,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto queue = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(queue->rescheduleAllAsFaults(fault_expiration));
     this->expirations_epochs = queue->queue;
 

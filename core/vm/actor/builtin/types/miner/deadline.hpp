@@ -18,6 +18,11 @@
 #include "vm/actor/builtin/types/miner/windowed_post.hpp"
 #include "vm/actor/builtin/types/universal/universal.hpp"
 
+// Forward declaration
+namespace fc::vm::runtime {
+  class Runtime;
+}
+
 namespace fc::vm::actor::builtin::types::miner {
   using primitives::RleBitset;
 
@@ -163,5 +168,8 @@ namespace fc::vm::actor::builtin::types::miner {
     outcome::result<DisputeInfo> loadPartitionsForDispute(
         const RleBitset &partition_set) const;
   };
+
+  outcome::result<Universal<Deadline>> makeEmptyDeadline(
+      const Runtime &runtime, const CID &empty_amt_cid);
 
 }  // namespace fc::vm::actor::builtin::types::miner

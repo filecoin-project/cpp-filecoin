@@ -11,6 +11,8 @@
 #include "primitives/sector/sector.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/worker_key_change.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
+#include "vm/actor/version.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
   using common::Buffer;
@@ -105,5 +107,15 @@ namespace fc::vm::actor::builtin::types::miner {
              && pending_owner_address == other.pending_owner_address;
     }
   };
+
+  outcome::result<Universal<MinerInfo>> makeMinerInfo(
+      ActorVersion version,
+      const Address &owner,
+      const Address &worker,
+      const std::vector<Address> &control,
+      const Buffer &peer_id,
+      const std::vector<Multiaddress> &multiaddrs,
+      const RegisteredSealProof &seal_proof_type,
+      const RegisteredPoStProof &window_post_proof_type);
 
 }  // namespace fc::vm::actor::builtin::types::miner

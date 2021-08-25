@@ -5,12 +5,11 @@
 
 #include "vm/actor/builtin/types/miner/v3/partition.hpp"
 
-#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
   using primitives::RleBitset;
-  using types::TypeManager;
+  using types::miner::loadExpirationQueue;
 
   outcome::result<PowerPair> Partition::addSectors(
       Runtime &runtime,
@@ -18,9 +17,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       const std::vector<SectorOnChainInfo> &sectors,
       SectorSize ssize,
       const QuantSpec &quant) {
-    OUTCOME_TRY(expirations,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto expirations = loadExpirationQueue(this->expirations_epochs, quant);
 
     RleBitset snos;
     PowerPair power;

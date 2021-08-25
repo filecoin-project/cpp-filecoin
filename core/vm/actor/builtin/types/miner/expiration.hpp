@@ -12,6 +12,7 @@
 #include "vm/actor/builtin/types/miner/power_pair.hpp"
 #include "vm/actor/builtin/types/miner/quantize.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
   using primitives::ChainEpoch;
@@ -128,6 +129,10 @@ namespace fc::vm::actor::builtin::types::miner {
         SectorSize sector_size,
         const std::vector<SectorOnChainInfo> &sectors) const;
   };
+
+  Universal<ExpirationQueue> loadExpirationQueue(
+      const PartitionExpirationsArray &expirations_epochs,
+      const QuantSpec &quant);
 
   struct SectorExpirationSet {
     SectorEpochSet sector_epoch_set;
