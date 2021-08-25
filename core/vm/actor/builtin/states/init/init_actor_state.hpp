@@ -7,7 +7,7 @@
 
 #include "adt/address_key.hpp"
 #include "adt/map.hpp"
-#include "vm/actor/builtin/types/type_manager/universal.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using primitives::address::Address;

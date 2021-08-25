@@ -13,10 +13,10 @@
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
 #include "vm/actor/builtin/states/miner/v2/miner_actor_state.hpp"
-#include "vm/actor/builtin/types/storage_power/claim.hpp"
-#include "vm/actor/builtin/types/type_manager/universal.hpp"
 #include "vm/actor/builtin/states/storage_power/v0/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/states/storage_power/v2/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/types/storage_power/claim.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::codec::cbor::light_reader {
   using primitives::RleBitset;

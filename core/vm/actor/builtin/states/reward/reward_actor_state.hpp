@@ -7,7 +7,7 @@
 
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/types/type_manager/universal.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using common::smoothing::FilterEstimate;

@@ -16,7 +16,7 @@
 #include "vm/actor/builtin/types/miner/sectors.hpp"
 #include "vm/actor/builtin/types/miner/termination.hpp"
 #include "vm/actor/builtin/types/miner/windowed_post.hpp"
-#include "vm/actor/builtin/types/type_manager/universal.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
   using primitives::RleBitset;
