@@ -165,7 +165,7 @@ namespace fc::codec::cbor {
       } else {
         value.extra = (value.extra << 8) | byte;
       }
-      if (!more) {
+      if (more == 0) {
         if (tag) {
           value.type = Type::CID;
           --value.extra;
@@ -198,7 +198,7 @@ namespace fc::codec::cbor {
   };
 
   inline bool read(CborTokenDecoder &decoder, BytesIn &input) {
-    while (decoder.more) {
+    while (decoder.more != 0) {
       if (input.empty()) {
         return false;
       }
@@ -218,7 +218,7 @@ namespace fc::codec::cbor {
       if (input.empty()) {
         return false;
       }
-      if (decoder.more_size) {
+      if (decoder.more_size != 0) {
         auto n{std::min<size_t>(decoder.more_size, input.size())};
         decoder.more_size -= n;
         fc::codec::read(input, n);
@@ -226,7 +226,7 @@ namespace fc::codec::cbor {
         if (read(decoder.token, input)) {
           decoder.more_size = decoder.token.value.anySize();
           decoder.more_count += decoder.token.value.anyCount();
-          if (decoder.more_count) {
+          if (decoder.more_count != 0) {
             --decoder.more_count;
             decoder.token = {};
           }
@@ -235,7 +235,7 @@ namespace fc::codec::cbor {
           return false;
         }
       }
-      if (!decoder.more()) {
+      if (decoder.more() == 0) {
         return true;
       }
     }
@@ -300,7 +300,7 @@ namespace fc::codec::cbor {
     constexpr CborTokenEncoder(CborToken::Type type, uint64_t extra) {
       const auto more{CborToken::_more(extra)};
       length = 1 + more;
-      if (!more) {
+      if (more == 0) {
         _bytes[0] = CborToken::_first(type, extra);
       } else if (more == sizeof(uint8_t)) {
         _bytes[0] = CborToken::_first(type, kExtraUint8);

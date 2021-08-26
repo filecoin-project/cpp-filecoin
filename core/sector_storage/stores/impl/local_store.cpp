@@ -541,7 +541,7 @@ namespace fc::sector_storage::stores {
       }
     }
 
-    handler_.reschedule(heartbeat_interval_);
+    OUTCOME_EXCEPT(handler_.reschedule(heartbeat_interval_));
   }
 
   outcome::result<FsStat> LocalStoreImpl::Path::getStat(

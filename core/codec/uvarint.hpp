@@ -58,7 +58,7 @@ namespace fc::codec::uvarint {
   /** returns true on success */
   inline bool read(std::istream &is, VarintDecoder &varint) {
     while (varint.more) {
-      char byte;
+      char byte = 0;
       if (!is.get(byte).good()) {
         return false;
       }
@@ -109,7 +109,7 @@ namespace fc::codec::uvarint {
 
   inline bool readBytes(BytesIn &out, BytesIn &input) {
     out = {};
-    size_t length;
+    size_t length = 0;
     return read(length, input) && fc::codec::read(out, input, length);
   }
 }  // namespace fc::codec::uvarint

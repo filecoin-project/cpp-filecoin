@@ -32,6 +32,7 @@ namespace fc::primitives::address {
    */
   enum Network : uint8_t { MAINNET = 0x0, TESTNET = 0x1 };
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern Network currentNetwork;
 
   /**

@@ -45,7 +45,7 @@ namespace fc::mining {
           callbacks_.clear();
           cutoff_start_ = std::chrono::system_clock::now();
           closest_cutoff_ = max_delay_;
-          handle_.reschedule(max_delay_);
+          OUTCOME_EXCEPT(handle_.reschedule(max_delay_));
         },
         max_delay_);
   }
@@ -103,7 +103,7 @@ namespace fc::mining {
     callbacks_.clear();
     cutoff_start_ = std::chrono::system_clock::now();
     closest_cutoff_ = max_delay_;
-    handle_.reschedule(max_delay_);
+    OUTCOME_EXCEPT(handle_.reschedule(max_delay_));
   }
 
   void PreCommitBatcherImpl::setPreCommitCutoff(const ChainEpoch &current_epoch,
@@ -131,7 +131,7 @@ namespace fc::mining {
                    std::chrono::system_clock::now() - cutoff_start_)
            > temp_cutoff)) {
         cutoff_start_ = std::chrono::system_clock::now();
-        handle_.reschedule(temp_cutoff);
+        OUTCOME_EXCEPT(handle_.reschedule(temp_cutoff));
         closest_cutoff_ = temp_cutoff;
       }
     }

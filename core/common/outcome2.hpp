@@ -18,7 +18,7 @@ namespace fc {
   enum class OutcomeError { kDefault = 1 };
 
   template <typename T>
-  struct _Outcome {
+  struct _Outcome {  // NOLINT(bugprone-reserved-identifier)
     using O = outcome::result<T>;
     using E = typename O::error_type;
 

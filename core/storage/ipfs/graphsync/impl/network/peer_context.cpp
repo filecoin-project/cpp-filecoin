@@ -424,9 +424,9 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (!streams_.empty() && max_expire_time > now) {
-      timer_.reschedule(max_expire_time - now);
+      OUTCOME_EXCEPT(timer_.reschedule(max_expire_time - now));
     } else {
-      timer_.reschedule(kPeerCloseDelayMsec);
+      OUTCOME_EXCEPT(timer_.reschedule(kPeerCloseDelayMsec));
     }
   }
 

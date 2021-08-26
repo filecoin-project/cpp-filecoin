@@ -12,7 +12,7 @@ namespace fc::primitives {
 
   class TaskType : public std::string {
    public:
-    TaskType() : std::string(){};
+    TaskType() = default;
     explicit TaskType(const std::string &str) : std::string(str){};
   };
 
