@@ -6,8 +6,10 @@
 #include "vm/actor/builtin/types/miner/deadlines.hpp"
 
 #include "common/error_text.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
+  using types::miner::kWPoStPeriodDeadlines;
 
   outcome::result<void> Deadlines::updateDeadline(
       uint64_t deadline_id, const Universal<Deadline> &deadline) {
@@ -55,6 +57,14 @@ namespace fc::vm::actor::builtin::types::miner {
     }
 
     return std::make_tuple(dl_id, part_id);
+  }
+
+  outcome::result<Deadlines> makeEmptyDeadlines(const Runtime &runtime,
+                                                const CID &empty_amt_cid) {
+    OUTCOME_TRY(deadline, makeEmptyDeadline(runtime, empty_amt_cid));
+    OUTCOME_TRY(deadline_cid, setCbor(runtime.getIpfsDatastore(), deadline));
+    adt::CbCidT<Universal<Deadline>> deadline_cid_t{deadline_cid};
+    return Deadlines{std::vector(kWPoStPeriodDeadlines, deadline_cid_t)};
   }
 
 }  // namespace fc::vm::actor::builtin::types::miner

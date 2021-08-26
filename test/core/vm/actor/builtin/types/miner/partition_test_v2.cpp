@@ -13,7 +13,6 @@
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/types/miner/bitfield_queue.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 #include "vm/actor/version.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
@@ -23,7 +22,6 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::sector::RegisteredSealProof;
   using runtime::MockRuntime;
   using storage::ipfs::InMemoryDatastore;
-  using types::TypeManager;
   using types::miner::BitfieldQueue;
   using types::miner::kEearlyTerminatedBitWidth;
   using types::miner::kNoQuantization;
@@ -84,9 +82,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     }
 
     void assertPartitionExpirationQueue() const {
-      EXPECT_OUTCOME_TRUE(queue,
-                          TypeManager::loadExpirationQueue(
-                              runtime, partition.expirations_epochs, quant));
+      auto queue = loadExpirationQueue(partition.expirations_epochs, quant);
 
       for (const auto &group : groups) {
         requireNoExpirationGroupsBefore(group.expiration, *queue);
@@ -135,9 +131,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       {
         std::set<SectorNumber> seen_sectors;
 
-        EXPECT_OUTCOME_TRUE(exp_q,
-                            TypeManager::loadExpirationQueue(
-                                runtime, partition.expirations_epochs, quant));
+        auto exp_q = loadExpirationQueue(partition.expirations_epochs, quant);
 
         auto visitor{[&](ChainEpoch epoch,
                          const ExpirationSet &es) -> outcome::result<void> {

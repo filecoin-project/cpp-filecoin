@@ -7,7 +7,6 @@
 
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 #include "vm/toolchain/toolchain.hpp"
@@ -17,7 +16,6 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::RleBitset;
   using states::MinerActorStatePtr;
   using toolchain::Toolchain;
-  using types::TypeManager;
   using namespace types::miner;
 
   ACTOR_METHOD_IMPL(Construct) {
@@ -38,7 +36,9 @@ namespace fc::vm::actor::builtin::v2::miner {
       control_addresses.push_back(resolved);
     }
 
-    MinerActorStatePtr state{runtime.getActorVersion()};
+    const auto actor_version = runtime.getActorVersion();
+
+    MinerActorStatePtr state{actor_version};
     cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
     OUTCOME_TRY(v0::miner::Construct::makeEmptyState(runtime, state));
 
@@ -56,17 +56,16 @@ namespace fc::vm::actor::builtin::v2::miner {
     VM_ASSERT(deadline_index < kWPoStPeriodDeadlines);
     state->current_deadline = deadline_index;
 
-    REQUIRE_NO_ERROR_A(
-        miner_info,
-        TypeManager::makeMinerInfo(runtime,
-                                   owner,
-                                   worker,
-                                   control_addresses,
-                                   params.peer_id,
-                                   params.multiaddresses,
-                                   params.seal_proof_type,
-                                   RegisteredPoStProof::kUndefined),
-        VMExitCode::kErrIllegalArgument);
+    REQUIRE_NO_ERROR_A(miner_info,
+                       makeMinerInfo(actor_version,
+                                     owner,
+                                     worker,
+                                     control_addresses,
+                                     params.peer_id,
+                                     params.multiaddresses,
+                                     params.seal_proof_type,
+                                     RegisteredPoStProof::kUndefined),
+                       VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(state->miner_info.set(miner_info));
 
     OUTCOME_TRY(runtime.commitState(state));

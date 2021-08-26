@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include <cassert>
+#include <cstdint>
+
 namespace fc::common {
 
   /**
@@ -18,7 +21,10 @@ namespace fc::common {
    * source
    */
   template <typename T>
-  inline T slice(const T &source, int begin, int end = -1) {
+  inline T slice(const T &source, int64_t begin, int64_t end = -1) {
+    assert(begin >= 0);
+    assert(end >= -1);
+
     typename T::const_iterator begin_it = source.begin() + begin;
     typename T::const_iterator end_it =
         end == -1 ? source.end() : source.begin() + end;

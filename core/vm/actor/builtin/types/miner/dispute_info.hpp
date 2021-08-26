@@ -6,7 +6,7 @@
 #pragma once
 
 #include "vm/actor/builtin/types/miner/partition_sector_map.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/types/miner/power_pair.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
 

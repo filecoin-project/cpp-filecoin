@@ -11,8 +11,8 @@
 #include "primitives/address/address.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/types/miner/cron_event_payload.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/version/version.hpp"
 

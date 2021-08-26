@@ -10,8 +10,8 @@
 #include "primitives/cid/comm_cid.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/types/miner/power_pair.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/shared.hpp"
 #include "vm/exit_code/exit_code.hpp"
 

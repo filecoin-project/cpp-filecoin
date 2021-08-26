@@ -8,10 +8,10 @@
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
 
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 
 namespace fc::testutil::vm::actor::builtin::miner {
-  using ::fc::vm::actor::builtin::types::TypeManager;
+  using ::fc::vm::actor::builtin::types::miner::makeEmptyDeadlines;
+  using ::fc::vm::actor::builtin::types::miner::makeMinerInfo;
   using ::fc::vm::actor::builtin::types::miner::MinerInfo;
   using ::fc::vm::actor::builtin::types::miner::SectorOnChainInfo;
   using ::fc::vm::actor::builtin::types::miner::VestingFunds;
@@ -24,6 +24,7 @@ namespace fc::testutil::vm::actor::builtin::miner {
   template <class State>
   class MinerActorTestFixture : public ActorTestFixture<State> {
    public:
+    using ActorTestFixture<State>::actor_version;
     using ActorTestFixture<State>::ipld;
     using ActorTestFixture<State>::runtime;
     using ActorTestFixture<State>::state;
@@ -40,8 +41,8 @@ namespace fc::testutil::vm::actor::builtin::miner {
 
       RleBitset allocated_sectors;
       EXPECT_OUTCOME_TRUE_1(state.allocated_sectors.set(allocated_sectors));
-      EXPECT_OUTCOME_TRUE(
-          deadlines, TypeManager::makeEmptyDeadlines(runtime, empty_amt_cid));
+      EXPECT_OUTCOME_TRUE(deadlines,
+                          makeEmptyDeadlines(runtime, empty_amt_cid));
       EXPECT_OUTCOME_TRUE_1(state.deadlines.set(deadlines));
 
       VestingFunds vesting_funds;
@@ -54,16 +55,15 @@ namespace fc::testutil::vm::actor::builtin::miner {
       std::vector<Address> control_addresses;
       control_addresses.emplace_back(control);
 
-      EXPECT_OUTCOME_TRUE(
-          miner_info,
-          TypeManager::makeMinerInfo(runtime,
-                                     owner,
-                                     worker,
-                                     control_addresses,
-                                     {},
-                                     {},
-                                     RegisteredSealProof::kUndefined,
-                                     RegisteredPoStProof::kUndefined));
+      EXPECT_OUTCOME_TRUE(miner_info,
+                          makeMinerInfo(actor_version,
+                                        owner,
+                                        worker,
+                                        control_addresses,
+                                        {},
+                                        {},
+                                        RegisteredSealProof::kUndefined,
+                                        RegisteredPoStProof::kUndefined));
 
       EXPECT_OUTCOME_TRUE_1(state.miner_info.set(miner_info));
     }

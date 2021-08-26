@@ -13,8 +13,8 @@
 #include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/types/miner/cron_event_payload.hpp"
 #include "vm/actor/builtin/types/miner/post_partition.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using common::Buffer;
