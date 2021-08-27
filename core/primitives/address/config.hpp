@@ -7,6 +7,7 @@
 
 #include <boost/program_options.hpp>
 
+#include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 
 namespace fc::primitives::address {

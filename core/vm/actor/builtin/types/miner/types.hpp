@@ -6,7 +6,7 @@
 #pragma once
 
 #include "adt/array.hpp"
-#include "primitives/address/address_codec.hpp"
+#include "primitives/address/address.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"

@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "address_codec.hpp"
+#include "primitives/address/address_codec.hpp"
+#include "primitives/address/address.hpp"
 
 #include <libp2p/multi/multibase_codec/codecs/base32.hpp>
 #include <libp2p/multi/uvarint.hpp>
