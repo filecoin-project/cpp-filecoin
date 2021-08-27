@@ -59,7 +59,7 @@ namespace fc::codec::cbor::light_reader {
         return kParseError;
       }
     }
-    // initial_pledge_requirement
+    // initial_pledge
     if (!readNested(nested, input)) {
       return kParseError;
     }

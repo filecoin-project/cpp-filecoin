@@ -28,7 +28,6 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::sector::PoStProof;
   using primitives::sector::Proof;
   using primitives::sector::RegisteredSealProof;
-  using states::MinerActorStatePtr;
   using types::miner::CronEventPayload;
   using types::miner::PoStPartition;
   using types::miner::SectorDeclaration;
@@ -44,9 +43,6 @@ namespace fc::vm::actor::builtin::v0::miner {
       std::vector<Multiaddress> multiaddresses;
     };
     ACTOR_METHOD_DECL();
-
-    static outcome::result<void> makeEmptyState(const Runtime &runtime,
-                                                MinerActorStatePtr &state);
   };
   CBOR_TUPLE(Construct::Params,
              owner,

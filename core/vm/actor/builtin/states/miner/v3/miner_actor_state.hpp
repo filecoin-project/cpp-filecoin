@@ -5,17 +5,29 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/v2/miner_actor_state.hpp"
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
+  using primitives::ChainEpoch;
+  using primitives::SectorSize;
+  using runtime::Runtime;
   using types::Universal;
   using types::miner::MinerInfo;
+  using types::miner::PowerPair;
+  using types::miner::SectorOnChainInfo;
 
-  struct MinerActorState : states::MinerActorState {
+  struct MinerActorState : v2::miner::MinerActorState {
     outcome::result<Universal<MinerInfo>> getInfo() const override;
+
+    outcome::result<PowerPair> assignSectorsToDeadlines(
+        Runtime &runtime,
+        ChainEpoch curr_epoch,
+        const std::vector<SectorOnChainInfo> &sectors_to_assign,
+        uint64_t partition_size,
+        SectorSize ssize) override;
   };
   CBOR_TUPLE(MinerActorState,
              miner_info,
@@ -23,7 +35,7 @@ namespace fc::vm::actor::builtin::v3::miner {
              locked_funds,
              vesting_funds,
              fee_debt,
-             initial_pledge_requirement,
+             initial_pledge,
              precommitted_sectors,
              precommitted_setctors_expiry,
              allocated_sectors,

@@ -194,7 +194,7 @@ namespace fc::api {
       std::vector<uint64_t> sector_ids{sectors_bitset.begin(),
                                        sectors_bitset.end()};
       for (auto &i : indices) {
-        OUTCOME_TRY(sector, state->sectors.get(sector_ids[i]));
+        OUTCOME_TRY(sector, state->sectors.sectors.get(sector_ids[i]));
         sectors.push_back(
             {sector.seal_proof, sector.sector, sector.sealed_cid});
       }
@@ -827,7 +827,8 @@ namespace fc::api {
         OUTCOME_TRY(deadline->partitions.visit(
             [&](auto, const auto &part) -> outcome::result<void> {
               for (const auto &id : part->activeSectors()) {
-                OUTCOME_TRYA(sectors.emplace_back(), state->sectors.get(id));
+                OUTCOME_TRYA(sectors.emplace_back(),
+                             state->sectors.sectors.get(id));
               }
               return outcome::success();
             }));
@@ -931,7 +932,7 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           std::vector<SectorOnChainInfo> sectors;
-          OUTCOME_TRY(state->sectors.visit([&](auto id, auto &info) {
+          OUTCOME_TRY(state->sectors.sectors.visit([&](auto id, auto &info) {
             if (!filter || filter->count(id)) {
               sectors.push_back(info);
             }
@@ -1034,7 +1035,7 @@ namespace fc::api {
             -> outcome::result<boost::optional<SectorOnChainInfo>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          return state->sectors.tryGet(sector_number);
+          return state->sectors.sectors.tryGet(sector_number);
         }};
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSectorPartition = {};

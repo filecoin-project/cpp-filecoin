@@ -70,7 +70,7 @@ namespace fc::codec::cbor::light_reader {
     EXPECT_OUTCOME_TRUE(state_root, setCbor(ipld, state));
 
     const CID expected_miner_info = state.miner_info;
-    const CID expected_sectors = state.sectors.amt.cid();
+    const CID expected_sectors = state.sectors.sectors.amt.cid();
     const CID expected_deadlines = state.deadlines.cid;
     EXPECT_OUTCOME_TRUE(
         actual, readMinerActorInfo(light_ipld, *asBlake(state_root), true));
@@ -92,7 +92,7 @@ namespace fc::codec::cbor::light_reader {
     EXPECT_OUTCOME_TRUE(state_root, setCbor(ipld, state));
 
     const CID expected_miner_info = state.miner_info;
-    const CID expected_sectors = state.sectors.amt.cid();
+    const CID expected_sectors = state.sectors.sectors.amt.cid();
     const CID expected_deadlines = state.deadlines.cid;
     EXPECT_OUTCOME_TRUE(
         actual, readMinerActorInfo(light_ipld, *asBlake(state_root), false));

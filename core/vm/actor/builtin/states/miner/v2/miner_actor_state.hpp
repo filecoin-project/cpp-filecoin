@@ -11,11 +11,45 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
+  using primitives::ChainEpoch;
+  using primitives::SectorSize;
+  using primitives::TokenAmount;
+  using runtime::Runtime;
   using types::Universal;
+  using types::miner::DeadlineSectorMap;
   using types::miner::MinerInfo;
+  using types::miner::PowerPair;
+  using types::miner::SectorOnChainInfo;
 
   struct MinerActorState : states::MinerActorState {
     outcome::result<Universal<MinerInfo>> getInfo() const override;
+
+    outcome::result<std::vector<SectorOnChainInfo>> rescheduleSectorExpirations(
+        ChainEpoch curr_epoch,
+        SectorSize ssize,
+        const DeadlineSectorMap &deadline_sectors) override;
+
+    outcome::result<PowerPair> assignSectorsToDeadlines(
+        Runtime &runtime,
+        ChainEpoch curr_epoch,
+        const std::vector<SectorOnChainInfo> &sectors_to_assign,
+        uint64_t partition_size,
+        SectorSize ssize) override;
+
+    outcome::result<TokenAmount> unlockUnvestedFunds(
+        ChainEpoch curr_epoch, const TokenAmount &target) override;
+
+    outcome::result<TokenAmount> unlockVestedFunds(
+        ChainEpoch curr_epoch) override;
+
+    outcome::result<TokenAmount> getUnlockedBalance(
+        const TokenAmount &actor_balance) const override;
+
+    outcome::result<TokenAmount> getAvailableBalance(
+        const TokenAmount &actor_balance) const override;
+
+    outcome::result<void> checkBalanceInvariants(
+        const TokenAmount &balance) const override;
   };
   CBOR_TUPLE(MinerActorState,
              miner_info,
@@ -23,7 +57,7 @@ namespace fc::vm::actor::builtin::v2::miner {
              locked_funds,
              vesting_funds,
              fee_debt,
-             initial_pledge_requirement,
+             initial_pledge,
              precommitted_sectors,
              precommitted_setctors_expiry,
              allocated_sectors,
