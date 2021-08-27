@@ -7,7 +7,10 @@
 
 #include <libp2p/multi/uvarint.hpp>
 
+#include "common/buffer.hpp"
+
 namespace fc {
+  using common::Buffer;
   using libp2p::multi::UVarint;
 
   struct CidPrefix {
