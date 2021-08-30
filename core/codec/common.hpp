@@ -7,6 +7,7 @@
 
 #include <optional>
 
+#include <gsl/span>
 #include "common/bytes.hpp"
 
 namespace fc::codec {
@@ -15,8 +16,8 @@ namespace fc::codec {
       out = {};
       return false;
     }
-    out = input.subspan(0, n);
-    input = input.subspan(n);
+    out = input.subspan(0, static_cast<gsl::span<BytesIn>::index_type>(n));
+    input = input.subspan(static_cast<gsl::span<BytesIn>::index_type>(n));
     return true;
   }
 

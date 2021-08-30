@@ -23,13 +23,12 @@ namespace fc::codec::uvarint {
     inline void update(uint8_t byte) {
       assert(more);
       assert(!overflow);
-      more = byte & 0x80;
+      more = (byte & 0x80) != 0;
       auto bits7{byte & 0x7f};
       auto shift{length * 7};
       auto more_bits{max_bits - shift};
-      overflow = more_bits < 7 && (bits7 & (-1 << more_bits));
+      overflow = more_bits < 7 && ((bits7 & (-1 << more_bits)) != 0);
       value |= bits7 << shift;
-      shift += 7;
       ++length;
     }
   };
@@ -39,7 +38,7 @@ namespace fc::codec::uvarint {
     BytesN<10> _bytes{};
     size_t length{};
 
-    constexpr VarintEncoder(uint64_t _value) : value{_value} {
+    constexpr explicit VarintEncoder(uint64_t _value) : value{_value} {
       do {
         auto byte{static_cast<uint8_t>(_value) & 0x7f};
         _value >>= 7;
@@ -51,7 +50,8 @@ namespace fc::codec::uvarint {
       } while (_value != 0);
     }
     constexpr auto bytes() const {
-      return gsl::make_span(_bytes).subspan(0, length);
+      return gsl::make_span(_bytes).subspan(
+          0, static_cast<gsl::span<BytesN<10>>::index_type>(length));
     }
   };
 
@@ -99,7 +99,8 @@ namespace fc::codec::uvarint {
         return false;
       }
       if (!varint.more) {
-        input = input.subspan(varint.length);
+        input = input.subspan(
+            static_cast<gsl::span<BytesIn>::index_type>(varint.length));
         out = static_cast<T>(varint.value);
         return true;
       }

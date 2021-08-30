@@ -21,7 +21,7 @@ namespace fc::adt {
   }
 
   outcome::result<UvarintKeyer::Key> UvarintKeyer::decode(BytesIn key) {
-    Key result;
+    Key result = 0;
     if (codec::uvarint::read(result, key) && key.empty()) {
       return result;
     }
@@ -35,7 +35,7 @@ namespace fc::adt {
 
   outcome::result<VarintKeyer::Key> VarintKeyer::decode(BytesIn key) {
     OUTCOME_TRY(value2, UvarintKeyer::decode(key));
-    int64_t value = value2 >> 1;
-    return value2 & 1 ? ~value : value;
+    Key value = static_cast<Key>(value2) >> 1;
+    return (value2 & 1) != 0 ? ~value : value;
   }
 }  // namespace fc::adt
