@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
   boost::asio::io_context io;
   fc::drand::ChainInfo info;
   fc::drand::http::getInfo(io, host, [&](auto _info) {
-    if (!_info) {
+    if (!_info.has_value()) {
       return spdlog::error("getInfo: {:#}", _info.error());
     }
     info = std::move(_info.value());

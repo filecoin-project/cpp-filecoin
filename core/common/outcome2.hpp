@@ -26,6 +26,8 @@ namespace fc {
 
     _Outcome() : o{outcome::failure(OutcomeError::kDefault)} {}
     template <typename... Args>
+    // TODO (a.chernyshov) decide should the constructor be implicit?
+    // NOLINTNEXTLINE(google-explicit-constructor)
     _Outcome(Args &&...args) : o{std::forward<Args>(args)...} {}
 
     // try_operation_has_value
@@ -37,13 +39,16 @@ namespace fc {
       return o.error();
     }
 
+    // TODO (a.chernyshov) decide should the conversion be implicit?
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator O &&() && {
       return std::move(o);
     }
 
-    operator bool() const {
+    explicit operator bool() const {
       return o.has_value();
     }
+
     const E &operator~() const {
       return o.error();
     }
@@ -54,6 +59,8 @@ namespace fc {
     using OutcomeT = _Outcome<T>;
     using OutcomeT::OutcomeT;
 
+    // TODO (a.chernyshov) decide should the constructor be implicit?
+    // NOLINTNEXTLINE(google-explicit-constructor)
     Outcome(outcome::result<T> &&o) : OutcomeT{std::move(o)} {}
 
     // try_operation_extract_value

@@ -15,7 +15,7 @@ namespace fc::drand::http {
   void getInfo(io_context &io, std::string host, CbT<ChainInfo> cb);
 
   void getEntry(io_context &io,
-                std::string host,
+                const std::string& host,
                 uint64_t round,
                 CbT<PublicRandResponse> cb);
 }  // namespace fc::drand::http
