@@ -135,7 +135,11 @@ namespace fc::vm::actor {
       return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
     }
 
-    auto maybe_builtin_actor = builtin_.find(actor.code);
+    const auto actor_code = asActorCode(actor.code);
+    if (!actor_code.has_value()) {
+      return VMExitCode::kSysErrIllegalActor;
+    }
+    const auto maybe_builtin_actor = builtin_.find(actor_code.value());
     if (maybe_builtin_actor == builtin_.end()) {
       return VMExitCode::kSysErrIllegalActor;
     }

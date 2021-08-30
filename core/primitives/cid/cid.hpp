@@ -46,7 +46,7 @@ namespace fc {
         libp2p::multi::Multihash content_address);
 
     explicit CID(const CbCid &cid);
-    CID(const ActorCodeCid &cid);
+    explicit CID(const ActorCodeCid &cid);
 
     CID &operator=(const CID &) = default;
 

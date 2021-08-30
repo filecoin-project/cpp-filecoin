@@ -25,7 +25,7 @@ namespace fc::vm::actor {
         const Actor &actor, const std::shared_ptr<Runtime> &runtime) override;
 
    private:
-    std::map<CID, ActorExports> builtin_;
+    std::map<ActorCodeCid, ActorExports> builtin_;
 
     // Temp for miner actor
     std::set<MethodNumber> ready_miner_actor_methods_v0;

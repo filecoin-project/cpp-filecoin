@@ -62,9 +62,9 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
 
       ON_CALL_3(runtime, getCurrentReceiver(), actor_address);
 
-      ON_CALL_3(runtime, getActorCodeID(kInitAddress), kInitCodeId);
-      ON_CALL_3(runtime, getActorCodeID(from_address), kAccountCodeId);
-      ON_CALL_3(runtime, getActorCodeID(to_address), kAccountCodeId);
+      ON_CALL_3(runtime, getActorCodeID(kInitAddress), CodeId{kInitCodeId});
+      ON_CALL_3(runtime, getActorCodeID(from_address), CodeId{kAccountCodeId});
+      ON_CALL_3(runtime, getActorCodeID(to_address), CodeId{kAccountCodeId});
 
       EXPECT_CALL(runtime, hashBlake2b(testing::_))
           .WillRepeatedly(

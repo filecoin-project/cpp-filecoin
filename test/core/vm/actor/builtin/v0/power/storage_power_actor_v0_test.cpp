@@ -76,7 +76,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
      * Ensures that caller has code id
      * @param code_id - expected code id
      */
-    void callerCodeIdIs(const CID &code_id) {
+    void callerCodeIdIs(const CodeId &code_id) {
       EXPECT_CALL(runtime, getActorCodeID(caller)).WillOnce(Return(code_id));
     }
 
@@ -104,19 +104,19 @@ namespace fc::vm::actor::builtin::v0::storage_power {
                               .peer_id = params.peer_id,
                               .multiaddresses = params.multiaddresses}));
       runtime.expectSendM<init::Exec>(kInitAddress,
-                                      {kStorageMinerCodeId, miner_params},
+                                      {CodeId{kStorageMinerCodeId}, miner_params},
                                       0,
                                       {id_address, robust_address});
       EXPECT_CALL(runtime, getValueReceived()).WillOnce(Return(TokenAmount{0}));
 
-      callerCodeIdIs(kAccountCodeId);
+      callerCodeIdIs(CodeId{kAccountCodeId});
       EXPECT_OUTCOME_TRUE(result, CreateMiner::call(runtime, params));
       return result;
     }
 
     void updateClaimedPower(const Address &miner, const TokenAmount &pledge) {
       caller = miner;
-      callerCodeIdIs(kStorageMinerCodeId);
+      callerCodeIdIs(CodeId{kStorageMinerCodeId});
       EXPECT_OUTCOME_TRUE_1(UpdatePledgeTotal::call(runtime, {pledge}));
     }
 
@@ -124,7 +124,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
                             const StoragePower &raw_power,
                             const StoragePower &qa_power) {
       caller = miner;
-      callerCodeIdIs(kStorageMinerCodeId);
+      callerCodeIdIs(CodeId{kStorageMinerCodeId});
       EXPECT_OUTCOME_TRUE_1(
           UpdateClaimedPower::call(runtime, {raw_power, qa_power}));
     }
@@ -226,7 +226,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
    */
   TEST_F(StoragePowerActorV0Test, UpdateClaimedPowerMinerNotFound) {
     constructed();
-    callerCodeIdIs(kStorageMinerCodeId);
+    callerCodeIdIs(CodeId{kStorageMinerCodeId});
 
     UpdateClaimedPower::Params params{};
     EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrNotFound),
@@ -255,7 +255,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     EXPECT_EQ(state.total_qa_power, 0);
 
     caller = miner_address;
-    callerCodeIdIs(kStorageMinerCodeId);
+    callerCodeIdIs(CodeId{kStorageMinerCodeId});
     EXPECT_OUTCOME_TRUE_1(OnConsensusFault::call(runtime, {0}));
 
     EXPECT_EQ(state.num_miners_meeting_min_power, 0);
@@ -290,7 +290,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     updateClaimedPower(miner_address, pledge_delta);
 
     caller = miner_address;
-    callerCodeIdIs(kStorageMinerCodeId);
+    callerCodeIdIs(CodeId{kStorageMinerCodeId});
     const TokenAmount slash{50};
     EXPECT_OUTCOME_TRUE_1(OnConsensusFault::call(runtime, {50}));
 
@@ -316,7 +316,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     createMiner(owner, worker, miner_address, miner_address);
 
     caller = miner_address;
-    callerCodeIdIs(kStorageMinerCodeId);
+    callerCodeIdIs(CodeId{kStorageMinerCodeId});
     const TokenAmount slash{50};
 
     current_epoch = kUpgradeBreezeHeight;
@@ -325,7 +325,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
                          OnConsensusFault::call(runtime, {50}));
 
     current_epoch = kUpgradeKumquatHeight;
-    callerCodeIdIs(kStorageMinerCodeId);
+    callerCodeIdIs(CodeId{kStorageMinerCodeId});
 
     EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrReserved1),
                          OnConsensusFault::call(runtime, {50}));
@@ -354,7 +354,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     constructed();
 
     caller = Address::makeFromId(1001);
-    callerCodeIdIs(kStorageMinerCodeId);
+    callerCodeIdIs(CodeId{kStorageMinerCodeId});
     const TokenAmount slash{50};
     EXPECT_OUTCOME_ERROR(VMExitCode::kErrNotFound,
                          OnConsensusFault::call(runtime, {50}));
@@ -374,7 +374,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     createMiner(owner, worker, miner_address, miner_address);
 
     caller = miner_address;
-    callerCodeIdIs(kStorageMinerCodeId);
+    callerCodeIdIs(CodeId{kStorageMinerCodeId});
     const SectorNumber verified_sector_number = 25;
     SealVerifyInfo seal;
     seal.sector.sector = verified_sector_number;

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 #include "vm/actor/builtin/states/storage_power/v2/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 
 #include <gtest/gtest.h>
 #include <libp2p/peer/peer_id.hpp>
@@ -76,8 +76,9 @@ namespace fc::vm::actor::builtin::v2::storage_power {
      * Ensures that caller has code id
      * @param code_id - expected code id
      */
-    void callerCodeIdIs(const CID &code_id) {
-      EXPECT_CALL(runtime, getActorCodeID(caller)).WillOnce(Return(code_id));
+    void callerCodeIdIs(const CodeId &code_id) {
+      EXPECT_CALL(runtime, getActorCodeID(caller))
+          .WillOnce(Return(code_id));
     }
 
     /**
@@ -103,20 +104,21 @@ namespace fc::vm::actor::builtin::v2::storage_power {
                               .seal_proof_type = params.seal_proof_type,
                               .peer_id = params.peer_id,
                               .multiaddresses = params.multiaddresses}));
-      runtime.expectSendM<init::Exec>(kInitAddress,
-                                      {kStorageMinerCodeId, miner_params},
-                                      0,
-                                      {id_address, robust_address});
+      runtime.expectSendM<init::Exec>(
+          kInitAddress,
+          {CodeId{kStorageMinerCodeId}, miner_params},
+          0,
+          {id_address, robust_address});
       EXPECT_CALL(runtime, getValueReceived()).WillOnce(Return(TokenAmount{0}));
 
-      callerCodeIdIs(kAccountCodeId);
+      callerCodeIdIs(CodeId{kAccountCodeId});
       EXPECT_OUTCOME_TRUE(result, CreateMiner::call(runtime, params));
       return result;
     }
 
     void updateClaimedPower(const Address &miner, const TokenAmount &pledge) {
       caller = miner;
-      callerCodeIdIs(kStorageMinerCodeId);
+      callerCodeIdIs(CodeId{kStorageMinerCodeId});
       EXPECT_OUTCOME_TRUE_1(UpdatePledgeTotal::call(runtime, {pledge}));
     }
 
@@ -124,7 +126,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
                             const StoragePower &raw_power,
                             const StoragePower &qa_power) {
       caller = miner;
-      callerCodeIdIs(kStorageMinerCodeId);
+      callerCodeIdIs(CodeId{kStorageMinerCodeId});
       EXPECT_OUTCOME_TRUE_1(
           UpdateClaimedPower::call(runtime, {raw_power, qa_power}));
     }
@@ -225,7 +227,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
    */
   TEST_F(StoragePowerActorV2Test, UpdateClaimedPowerMinerNotFound) {
     constructed();
-    callerCodeIdIs(kStorageMinerCodeId);
+    callerCodeIdIs(CodeId{kStorageMinerCodeId});
 
     UpdateClaimedPower::Params params{};
     EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrNotFound),
@@ -246,7 +248,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     createMiner(owner, worker, miner_address, miner_address);
 
     caller = miner_address;
-    callerCodeIdIs(kStorageMinerCodeId);
+    callerCodeIdIs(CodeId{kStorageMinerCodeId});
     const SectorNumber verified_sector_number = 25;
     SealVerifyInfo seal;
     seal.sector.sector = verified_sector_number;

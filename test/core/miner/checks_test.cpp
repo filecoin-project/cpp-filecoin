@@ -12,9 +12,9 @@
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
+#include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
-#include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
 #include "vm/actor/codes.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
@@ -37,6 +37,7 @@ namespace fc::mining::checks {
   using types::PieceInfo;
   using vm::VMExitCode;
   using vm::actor::Actor;
+  using vm::actor::CodeId;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::v0::market::ComputeDataCommitment;
   using vm::actor::builtin::v0::miner::MinerActorState;
@@ -618,7 +619,7 @@ namespace fc::mining::checks {
     };
 
     Actor actor;
-    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.code = CodeId{vm::actor::builtin::v0::kStorageMinerCodeId};
     actor.head = actor_key;
     api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
         -> outcome::result<Actor> { return actor; };
@@ -751,7 +752,7 @@ namespace fc::mining::checks {
     };
 
     Actor actor;
-    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.code = CodeId{vm::actor::builtin::v0::kStorageMinerCodeId};
     actor.head = actor_key;
     api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
         -> outcome::result<Actor> { return actor; };
@@ -856,7 +857,7 @@ namespace fc::mining::checks {
     };
 
     Actor actor;
-    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.code = CodeId{vm::actor::builtin::v0::kStorageMinerCodeId};
     actor.head = actor_key;
     api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
         -> outcome::result<Actor> { return actor; };
@@ -916,7 +917,7 @@ namespace fc::mining::checks {
     };
 
     Actor actor;
-    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.code = CodeId{vm::actor::builtin::v0::kStorageMinerCodeId};
     actor.head = actor_key;
     api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
         -> outcome::result<Actor> { return actor; };
@@ -979,7 +980,7 @@ namespace fc::mining::checks {
     };
 
     Actor actor;
-    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.code = CodeId{vm::actor::builtin::v0::kStorageMinerCodeId};
     actor.head = actor_key;
     api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
         -> outcome::result<Actor> { return actor; };
@@ -1042,7 +1043,7 @@ namespace fc::mining::checks {
     };
 
     Actor actor;
-    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.code = CodeId{vm::actor::builtin::v0::kStorageMinerCodeId};
     actor.head = actor_key;
     api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
         -> outcome::result<Actor> { return actor; };
@@ -1123,7 +1124,7 @@ namespace fc::mining::checks {
     };
 
     Actor actor;
-    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.code = CodeId{vm::actor::builtin::v0::kStorageMinerCodeId};
     actor.head = actor_key;
     api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
         -> outcome::result<Actor> { return actor; };
@@ -1202,7 +1203,7 @@ namespace fc::mining::checks {
     };
 
     Actor actor;
-    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.code = CodeId{vm::actor::builtin::v0::kStorageMinerCodeId};
     actor.head = actor_key;
     api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
         -> outcome::result<Actor> { return actor; };

@@ -31,7 +31,7 @@ namespace fc::vm::actor::builtin::v2::init {
     }
 
     const std::string network_name = "test_network_name";
-    CodeId code = kStorageMinerCodeId;
+    CodeId code{kStorageMinerCodeId};
   };
 
   /** Init actor state CBOR encoding and decoding */

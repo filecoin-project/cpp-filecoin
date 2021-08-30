@@ -54,6 +54,7 @@ namespace fc::mining {
   using types::Piece;
   using types::SectorInfo;
   using vm::actor::Actor;
+  using vm::actor::CodeId;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::SectorOnChainInfo;
   using vm::actor::builtin::v0::miner::MinerActorState;
@@ -692,7 +693,7 @@ namespace fc::mining {
     };
 
     Actor actor;
-    actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
+    actor.code = CodeId{vm::actor::builtin::v0::kStorageMinerCodeId};
     actor.head = actor_key;
     api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
         -> outcome::result<Actor> { return actor; };

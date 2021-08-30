@@ -73,47 +73,47 @@ namespace fc::vm::toolchain {
   }
 
   CodeId AddressMatcherV5::getAccountCodeId() const {
-    return v5::kAccountCodeId;
+    return CodeId{v5::kAccountCodeId};
   }
 
   CodeId AddressMatcherV5::getCronCodeId() const {
-    return v5::kCronCodeId;
+    return CodeId{v5::kCronCodeId};
   }
 
   CodeId AddressMatcherV5::getStoragePowerCodeId() const {
-    return v5::kStoragePowerCodeId;
+    return CodeId{v5::kStoragePowerCodeId};
   }
 
   CodeId AddressMatcherV5::getStorageMarketCodeId() const {
-    return v5::kStorageMarketCodeId;
+    return CodeId{v5::kStorageMarketCodeId};
   }
 
   CodeId AddressMatcherV5::getStorageMinerCodeId() const {
-    return v5::kStorageMinerCodeId;
+    return CodeId{v5::kStorageMinerCodeId};
   }
 
   CodeId AddressMatcherV5::getMultisigCodeId() const {
-    return v5::kMultisigCodeId;
+    return CodeId{v5::kMultisigCodeId};
   }
 
   CodeId AddressMatcherV5::getInitCodeId() const {
-    return v5::kInitCodeId;
+    return CodeId{v5::kInitCodeId};
   }
 
   CodeId AddressMatcherV5::getPaymentChannelCodeId() const {
-    return v5::kPaymentChannelCodeId;
+    return CodeId{v5::kPaymentChannelCodeId};
   }
 
   CodeId AddressMatcherV5::getRewardActorCodeId() const {
-    return v5::kRewardActorCodeId;
+    return CodeId{v5::kRewardActorCodeId};
   }
 
   CodeId AddressMatcherV5::getSystemActorCodeId() const {
-    return v5::kSystemActorCodeId;
+    return CodeId{v5::kSystemActorCodeId};
   }
 
   CodeId AddressMatcherV5::getVerifiedRegistryCodeId() const {
-    return v5::kVerifiedRegistryCodeId;
+    return CodeId{v5::kVerifiedRegistryCodeId};
   }
 
 }  // namespace fc::vm::toolchain

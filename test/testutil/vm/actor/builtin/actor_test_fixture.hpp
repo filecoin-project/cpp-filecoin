@@ -114,16 +114,16 @@ namespace fc::testutil::vm::actor::builtin {
           address, {}, 0, {bls_address});
     }
 
-    void addressCodeIdIs(const Address &address, const CodeId &code_id) {
-      code_ids[address] = code_id;
+    void addressCodeIdIs(const Address &address, const ActorCodeCid &code_id) {
+      code_ids[address] = CodeId{code_id};
     }
 
     /**
      * Resolve any address code id as default one
      * @param code_id - default code id for all addresses
      */
-    void anyCodeIdAddressIs(const CodeId &code_id) {
-      code_id_any = code_id;
+    void anyCodeIdAddressIs(const ActorCodeCid &code_id) {
+      code_id_any = CodeId{code_id};
     }
 
     void resolveAddressAs(const Address &address, const Address &resolved) {

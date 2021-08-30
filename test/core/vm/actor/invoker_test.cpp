@@ -48,7 +48,7 @@ namespace fc::vm::actor {
     message.method = MethodNumber{1000};
     EXPECT_CALL(*runtime, getMessage()).WillOnce(testing::Return(message));
     EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrInvalidMethod,
-                         invoker.invoke({kCronCodeId}, runtime));
+                         invoker.invoke({CodeId{kCronCodeId}}, runtime));
   }
 
   /// decodeActorParams returns error or decoded params
