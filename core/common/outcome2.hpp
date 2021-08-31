@@ -41,7 +41,7 @@ namespace fc {
       return std::move(o);
     }
 
-    explicit operator bool() const {
+    operator bool() const {
       return o.has_value();
     }
     const E &operator~() const {

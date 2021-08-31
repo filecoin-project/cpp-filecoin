@@ -38,7 +38,7 @@ namespace fc::common {
     /**
      * @brief lvalue construct buffer from a byte vector
      */
-    explicit Buffer(std::vector<uint8_t> &&v);
+    Buffer(std::vector<uint8_t> &&v);
     explicit Buffer(const std::vector<uint8_t> &v);
     explicit Buffer(gsl::span<const uint8_t> s);
 
@@ -185,7 +185,7 @@ namespace fc::common {
 
     std::vector<uint8_t> &toVector();
 
-    inline explicit operator std::vector<uint8_t> &&() && {
+    inline operator std::vector<uint8_t> &&() && {
       return std::move(data_);
     }
 

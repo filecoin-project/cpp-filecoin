@@ -111,13 +111,13 @@ namespace fc::codec::cbor {
       if (extra < kExtraUint8) {
         return 0;
       }
-      if ((extra & 0xFFFFFFFFFFFFFF00) != 0) {
+      if ((extra & 0xFFFFFFFFFFFFFF00) == 0) {
         return sizeof(uint8_t);
       }
-      if ((extra & 0xFFFFFFFFFFFF0000) != 0) {
+      if ((extra & 0xFFFFFFFFFFFF0000) == 0) {
         return sizeof(uint16_t);
       }
-      if ((extra & 0xFFFFFFFF00000000) != 0) {
+      if ((extra & 0xFFFFFFFF00000000) == 0) {
         return sizeof(uint32_t);
       }
       return sizeof(uint64_t);
@@ -159,7 +159,7 @@ namespace fc::codec::cbor {
                  : byte == kExtraUint32 ? 4
                  : byte == kExtraUint64 ? 8
                                         : 0;
-          if (more != 0) {
+          if (more == 0) {
             error = true;
             return;
           }
