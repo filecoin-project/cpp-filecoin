@@ -7,6 +7,7 @@
 
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 
+// TODO(m.tagirov): refactor
 namespace fc::vm::actor::builtin::v5::miner {
   using states::MinerActorStatePtr;
 

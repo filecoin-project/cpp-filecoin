@@ -68,7 +68,7 @@ namespace fc::markets::retrieval::client {
      */
     Verifier verifier;
 
-    std::mutex pending_mutex;
+    mutable std::mutex pending_mutex;
     std::optional<std::vector<DealResponse>> pending;
   };
 

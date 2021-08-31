@@ -871,7 +871,7 @@ namespace fc::api {
       OUTCOME_TRY(context, tipsetContext(tsk));
       OUTCOME_TRY(actor, context.state_tree.get(miner));
       OUTCOME_TRY(state, getCbor<MinerActorStatePtr>(context, actor.head));
-      // TODO(turuslan): older miner actor versions
+      // TODO(m.tagirov): older miner actor versions
       OUTCOME_TRY(vested,
                   vm::actor::builtin::v5::miner::checkVestedFunds(
                       state, context.tipset->height()));
@@ -1003,7 +1003,7 @@ namespace fc::api {
       OUTCOME_TRY(context, tipsetContext(tsk));
       OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
       OUTCOME_TRY(market, context.marketState());
-      // TODO(turuslan): older market actor versions
+      // TODO(m.tagirov): older market actor versions
       OUTCOME_TRY(
           weights,
           vm::actor::builtin::v5::market::validate(market,
@@ -1018,7 +1018,7 @@ namespace fc::api {
           weights.space_time_verified)};
       OUTCOME_TRY(power, context.powerState());
       OUTCOME_TRY(reward, context.rewardState());
-      // TODO(turuslan): older miner actor versions
+      // TODO(m.tagirov): older miner actor versions
       return kInitialPledgeNum
              * vm::actor::builtin::v5::miner::preCommitDepositForPower(
                  reward->this_epoch_reward_smoothed,
@@ -1033,7 +1033,7 @@ namespace fc::api {
       OUTCOME_TRY(context, tipsetContext(tsk));
       OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
       OUTCOME_TRY(market, context.marketState());
-      // TODO(turuslan): older market actor versions
+      // TODO(m.tagirov): older market actor versions
       OUTCOME_TRY(
           weights,
           vm::actor::builtin::v5::market::validate(market,
@@ -1053,7 +1053,7 @@ namespace fc::api {
           env_context.circulating->circulating(
               std::make_shared<StateTreeImpl>(std::move(context.state_tree)),
               context.tipset->epoch()));
-      // TODO(turuslan): older miner actor versions
+      // TODO(m.tagirov): older miner actor versions
       return kInitialPledgeNum
              * vm::actor::builtin::v5::miner::initialPledgeForPower(
                  circ,
