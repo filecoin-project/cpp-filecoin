@@ -10,7 +10,7 @@
 
 namespace fc::adt {
   Bytes AddressKeyer::encode(const Key &key) {
-    return static_cast<Bytes>(primitives::address::encode(key));
+    return Bytes{primitives::address::encode(key)};
   }
 
   outcome::result<AddressKeyer::Key> AddressKeyer::decode(BytesIn key) {
