@@ -67,6 +67,9 @@ namespace fc::markets::retrieval::client {
      * Received ipld blocks verifier
      */
     Verifier verifier;
+
+    std::mutex pending_mutex;
+    std::optional<std::vector<DealResponse>> pending;
   };
 
   class RetrievalClientImpl
@@ -86,10 +89,9 @@ namespace fc::markets::retrieval::client {
     outcome::result<std::vector<PeerInfo>> findProviders(
         const CID &piece_cid) const override;
 
-    outcome::result<void> query(
-        const RetrievalPeer &provider_peer,
-        const QueryRequest &request,
-        const QueryResponseHandler &response_handler) override;
+    void query(const RetrievalPeer &provider_peer,
+               const QueryRequest &request,
+               const QueryResponseHandler &cb) override;
 
     outcome::result<void> retrieve(
         const CID &payload_cid,
@@ -106,9 +108,6 @@ namespace fc::markets::retrieval::client {
      * @param provider_peer
      */
     outcome::result<PeerInfo> getPeerInfo(const RetrievalPeer &provider_peer);
-
-    void closeQueryStream(const std::shared_ptr<CborStream> &stream,
-                          const QueryResponseHandler &handler);
 
     void processPaymentRequest(const std::shared_ptr<DealState> &deal_state,
                                const TokenAmount &payment_requested);

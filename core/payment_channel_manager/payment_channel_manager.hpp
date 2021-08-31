@@ -27,6 +27,8 @@ namespace fc::payment_channel_manager {
    public:
     virtual ~PaymentChannelManager() = default;
 
+    using AddChannelInfoCb =
+        std::function<void(outcome::result<AddChannelInfo>)>;
     /**
      * Sets up a new payment channel if one does not exist between a client and
      * a miner and ensures the client has the given amount of funds available in
@@ -36,10 +38,10 @@ namespace fc::payment_channel_manager {
      * @return payment channel address and funding or channel creation message
      * CID
      */
-    virtual outcome::result<AddChannelInfo> getOrCreatePaymentChannel(
-        const Address &client,
-        const Address &miner,
-        const TokenAmount &amount_available) = 0;
+    virtual void getOrCreatePaymentChannel(const Address &client,
+                                           const Address &miner,
+                                           const TokenAmount &amount_available,
+                                           AddChannelInfoCb cb) = 0;
 
     /**
      * Allocate late creates a lane within a payment channel so that calls to
