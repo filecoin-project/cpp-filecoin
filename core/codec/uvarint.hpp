@@ -51,7 +51,7 @@ namespace fc::codec::uvarint {
     }
     constexpr auto bytes() const {
       return gsl::make_span(_bytes).subspan(
-          0, static_cast<gsl::span<BytesN<10>>::index_type>(length));
+          0, static_cast<ptrdiff_t>(length));
     }
   };
 
@@ -100,7 +100,7 @@ namespace fc::codec::uvarint {
       }
       if (!varint.more) {
         input = input.subspan(
-            static_cast<gsl::span<BytesIn>::index_type>(varint.length));
+            static_cast<ptrdiff_t>(varint.length));
         out = static_cast<T>(varint.value);
         return true;
       }

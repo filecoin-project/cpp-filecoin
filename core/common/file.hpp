@@ -24,8 +24,7 @@ namespace fc::common {
 
   /** returns true on success */
   inline bool read(std::istream &is, gsl::span<uint8_t> bytes) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    return is.read(reinterpret_cast<char *>(bytes.data()), bytes.size()).good();
+    return is.read(span::string(bytes).data(), bytes.size()).good();
   }
 
   /** returns true on success */
