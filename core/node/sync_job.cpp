@@ -293,15 +293,18 @@ namespace fc::sync {
       if (auto _res{interpreter_cache_->tryGet(ts->getParents())}) {
         if (*_res) {
           auto &res{_res->value()};
-          if (ts->getParentStateRoot() != res.state_root) {
-            log()->warn(
-                "parent state mismatch {} {}", ts->height(), ts->key.cidsStr());
-            return false;
-          }
-          if (ts->getParentMessageReceipts() != res.message_receipts) {
-            log()->warn("parent receipts mismatch {} {}",
+          const auto &a_receipts{res.message_receipts};
+          const auto &e_receipts{ts->getParentMessageReceipts()};
+          const auto &a_state{res.state_root};
+          const auto &e_state{ts->getParentStateRoot()};
+          if (a_state != e_state || a_receipts != e_receipts) {
+            log()->warn("parent state mismatch {} {}, ({} {}) != ({} {})",
                         ts->height(),
-                        ts->key.cidsStr());
+                        ts->key.cidsStr(),
+                        a_state,
+                        a_receipts,
+                        e_state,
+                        e_receipts);
             return false;
           }
         } else {

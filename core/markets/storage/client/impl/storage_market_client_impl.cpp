@@ -263,6 +263,7 @@ namespace fc::markets::storage::client {
       const TokenAmount &price,
       const TokenAmount &collateral,
       const RegisteredSealProof &registered_proof,
+      bool verified_deal,
       bool is_fast_retrieval) {
     OUTCOME_TRY(comm_p_res, calculateCommP(registered_proof, data_ref));
     const auto &[comm_p, piece_size] = comm_p_res;
@@ -270,18 +271,27 @@ namespace fc::markets::storage::client {
       return StorageMarketClientError::kPieceSizeGreaterSectorSize;
     }
 
+    auto provider_collateral{collateral};
+    if (provider_collateral.is_zero()) {
+      OUTCOME_TRY(bounds,
+                  api_->StateDealProviderCollateralBounds(
+                      piece_size.padded(), verified_deal, {}));
+      provider_collateral = bigdiv(bounds.min * 12, 10);
+    }
+
     DealProposal deal_proposal{
         .piece_cid = comm_p,
         .piece_size = piece_size.padded(),
-        .verified = false,
+        .verified = verified_deal,
         .client = client_address,
         .provider = provider_info.address,
         .label = {},
         .start_epoch = start_epoch,
         .end_epoch = end_epoch,
         .storage_price_per_epoch = price,
-        .provider_collateral = static_cast<uint64_t>(piece_size),
-        .client_collateral = 0};
+        .provider_collateral = provider_collateral,
+        .client_collateral = 0,
+    };
     OUTCOME_TRY(signed_proposal, signProposal(client_address, deal_proposal));
     auto proposal_cid{signed_proposal.cid()};
 
@@ -438,13 +448,7 @@ namespace fc::markets::storage::client {
   }
 
   outcome::result<bool> StorageMarketClientImpl::verifyDealPublished(
-      std::shared_ptr<ClientDeal> deal) {
-    OUTCOME_TRY(msg_wait,
-                api_->StateWaitMsg(deal->publish_message,
-                                   kMessageConfidence,
-                                   api::kLookbackNoLimit,
-                                   true));
-    OUTCOME_TRY(msg_state, msg_wait.waitSync());
+      std::shared_ptr<ClientDeal> deal, api::MsgWait msg_state) {
     if (msg_state.receipt.exit_code != VMExitCode::kOk) {
       deal->message =
           "Publish deal exit code "
@@ -703,13 +707,23 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto verified = verifyDealPublished(deal);
-    FSM_HALT_ON_ERROR(verified, "Cannot get publish message", deal);
-    if (!verified.value()) {
-      FSM_SEND(deal, ClientEvent::ClientEventFailed);
-      return;
-    }
-    FSM_SEND(deal, ClientEvent::ClientEventDealPublished);
+    auto cb{[=](outcome::result<bool> verified) {
+      FSM_HALT_ON_ERROR(verified, "Cannot get publish message", deal);
+      if (!verified.value()) {
+        FSM_SEND(deal, ClientEvent::ClientEventFailed);
+        return;
+      }
+      FSM_SEND(deal, ClientEvent::ClientEventDealPublished);
+    }};
+    auto _wait{api_->StateWaitMsg(deal->publish_message,
+                                  kMessageConfidence,
+                                  api::kLookbackNoLimit,
+                                  true)};
+    OUTCOME_CB(auto wait, _wait);
+    wait.waitOwn([=, self{shared_from_this()}, cb{std::move(cb)}](auto _res) {
+      OUTCOME_CB(auto res, _res);
+      cb(verifyDealPublished(deal, res));
+    });
   }
 
   void StorageMarketClientImpl::onClientEventDealPublished(
