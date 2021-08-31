@@ -24,7 +24,8 @@ namespace fc::common {
 
   /** returns true on success */
   inline bool read(std::istream &is, gsl::span<uint8_t> bytes) {
-    return is.read((char *)bytes.data(), bytes.size()).good();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return is.read(reinterpret_cast<char *>(bytes.data()), bytes.size()).good();
   }
 
   /** returns true on success */
@@ -40,7 +41,9 @@ namespace fc::common {
 
   /** returns true on success */
   inline bool write(std::ostream &is, BytesIn bytes) {
-    return is.write((char *)bytes.data(), bytes.size()).good();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return is.write(reinterpret_cast<const char *>(bytes.data()), bytes.size())
+        .good();
   }
 
   /** returns true on success */

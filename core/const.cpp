@@ -7,7 +7,8 @@
 #include "primitives/sector/sector.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 
-#define DEFINE(x) decltype(x) x
+#define DEFINE(x) \
+  decltype(x) x  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 namespace fc {
   using primitives::sector::RegisteredSealProof;

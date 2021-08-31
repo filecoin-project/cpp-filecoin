@@ -25,7 +25,7 @@ namespace fc::adt {
     using Many = std::vector<std::shared_ptr<Channel<T>>>;
 
     Channel() = default;
-    Channel(Channel &&) = default;
+    Channel(Channel &&) noexcept = default;
     ~Channel() {
       closeRead();
     }

@@ -89,7 +89,9 @@ namespace fc::sync {
   }
 
   void PubSubGate::publish(const SignedMessage &msg) {
-    if (!gossip_->publish(msgs_topic_, codec::cbor::encode(msg).value())) {
+    if (!gossip_->publish(msgs_topic_,
+                          static_cast<std::vector<uint8_t>>(
+                              codec::cbor::encode(msg).value()))) {
       log()->warn("cannot publish message");
     }
   }

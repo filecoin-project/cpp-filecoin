@@ -18,7 +18,7 @@ namespace fc {
   enum class OutcomeError { kDefault = 1 };
 
   template <typename T>
-  struct _Outcome {
+  struct _Outcome {  // NOLINT(bugprone-reserved-identifier)
     using O = outcome::result<T>;
     using E = typename O::error_type;
 
@@ -41,7 +41,7 @@ namespace fc {
       return std::move(o);
     }
 
-    operator bool() const {
+    explicit operator bool() const {
       return o.has_value();
     }
     const E &operator~() const {
@@ -51,36 +51,36 @@ namespace fc {
 
   template <typename T>
   struct Outcome : _Outcome<T> {
-    using _O = _Outcome<T>;
-    using _O::_O;
+    using OutcomeT = _Outcome<T>;
+    using OutcomeT::OutcomeT;
 
-    Outcome(outcome::result<T> &&o) : _O{std::move(o)} {}
+    Outcome(outcome::result<T> &&o) : OutcomeT{std::move(o)} {}
 
     // try_operation_extract_value
     const T &value() const & {
-      return _O::o.value();
+      return OutcomeT::o.value();
     }
     T &value() & {
-      return _O::o.value();
+      return OutcomeT::o.value();
     }
     T &&value() && {
-      return std::move(_O::o.value());
+      return std::move(OutcomeT::o.value());
     }
 
     const T &operator*() const & {
-      return _O::o.value();
+      return OutcomeT::o.value();
     }
     T &operator*() & {
-      return _O::o.value();
+      return OutcomeT::o.value();
     }
     T &&operator*() && {
-      return std::move(_O::o.value());
+      return std::move(OutcomeT::o.value());
     }
     const T *operator->() const {
-      return &_O::o.value();
+      return &OutcomeT::o.value();
     }
     T *operator->() {
-      return &_O::o.value();
+      return &OutcomeT::o.value();
     }
     template <typename... A>
     void emplace(A &&...a) {
@@ -90,8 +90,8 @@ namespace fc {
 
   template <>
   struct Outcome<void> : _Outcome<void> {
-    using _O = _Outcome<void>;
-    using _O::_O;
+    using OutcomeT = _Outcome<void>;
+    using OutcomeT::OutcomeT;
 
     void value() const {
       o.value();
