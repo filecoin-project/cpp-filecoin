@@ -7,6 +7,7 @@
 
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
+#include "vm/actor/builtin/types/verified_registry/policy.hpp"
 #include "vm/actor/cgo/c_actors.h"
 #include "vm/actor/cgo/go_actors.h"
 #include "vm/dvm/dvm.hpp"
@@ -42,6 +43,7 @@ namespace fc::vm::actor::cgo {
   void configParams() {
     using vm::actor::builtin::types::miner::kSupportedProofs;
     CborEncodeStream arg;
+    arg << builtin::types::verified_registry::kMinVerifiedDealSize;
     arg << builtin::types::miner::kPreCommitChallengeDelay;
     arg << kConsensusMinerMinPower << kSupportedProofs.size();
     for (const auto &proof : kSupportedProofs) {

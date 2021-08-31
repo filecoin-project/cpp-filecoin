@@ -94,6 +94,7 @@ namespace fc::markets::storage::client {
         const TokenAmount &price,
         const TokenAmount &collateral,
         const RegisteredSealProof &registered_proof,
+        bool verified_deal,
         bool is_fast_retrieval) = 0;
 
     virtual outcome::result<StorageParticipantBalance> getPaymentEscrow(

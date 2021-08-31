@@ -5,7 +5,11 @@
 
 #include "const.hpp"
 #include "primitives/sector/sector.hpp"
+#include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
+#include "vm/actor/builtin/types/payment_channel/policy.hpp"
+#include "vm/actor/builtin/types/storage_power/policy.hpp"
+#include "vm/actor/builtin/types/verified_registry/policy.hpp"
 
 #define DEFINE(x) \
   decltype(x) x  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
@@ -13,6 +17,9 @@
 namespace fc {
   using primitives::sector::RegisteredSealProof;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
+  using vm::actor::builtin::types::miner::kSupportedProofs;
+  using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
+  using vm::actor::builtin::types::verified_registry::kMinVerifiedDealSize;
 
   // Initialize parameters with mainnet values
   DEFINE(kEpochDurationSeconds){30};
@@ -45,34 +52,33 @@ namespace fc {
 }  // namespace fc
 
 namespace fc::vm::actor::builtin::types::market {
-  EpochDuration kDealUpdatesInterval{static_cast<EpochDuration>(kEpochsInDay)};
+  DEFINE(kDealUpdatesInterval) = kEpochsInDay;
 }
 
 namespace fc::vm::actor::builtin::types::miner {
-  ChainEpoch kWPoStProvingPeriod = kEpochsInDay;
-  EpochDuration kWPoStChallengeWindow = 30 * 60 / kEpochDurationSeconds;
+  DEFINE(kWPoStProvingPeriod) = kEpochsInDay;
+  DEFINE(kWPoStChallengeWindow) = 30 * 60 / kEpochDurationSeconds;
   DEFINE(kPreCommitChallengeDelay){150};
-  EpochDuration kFaultMaxAge{kWPoStProvingPeriod * 14};
-  ChainEpoch kMinSectorExpiration = 180 * kEpochsInDay;
-  std::set<RegisteredSealProof> kSupportedProofs{
+  DEFINE(kFaultMaxAge){kWPoStProvingPeriod * 14};
+  DEFINE(kMinSectorExpiration) = 180 * kEpochsInDay;
+  DEFINE(kSupportedProofs){
       RegisteredSealProof::kStackedDrg32GiBV1,
       RegisteredSealProof::kStackedDrg64GiBV1,
   };
-  ChainEpoch kMaxSectorExpirationExtension = 540 * kEpochsInDay;
-  EpochDuration kMaxProveCommitDuration =
-      kEpochsInDay + kPreCommitChallengeDelay;
+  DEFINE(kMaxSectorExpirationExtension) = 540 * kEpochsInDay;
+  DEFINE(kMaxProveCommitDuration) = kEpochsInDay + kPreCommitChallengeDelay;
 }  // namespace fc::vm::actor::builtin::types::miner
 
 namespace fc::vm::actor::builtin::types::payment_channel {
-  EpochDuration kSettleDelay = kEpochsInHour * 12;
+  DEFINE(kSettleDelay) = kEpochsInHour * 12;
 }
 
 namespace fc::vm::actor::builtin::types::storage_power {
-  StoragePower kConsensusMinerMinPower{StoragePower{10} << 40};
+  DEFINE(kConsensusMinerMinPower){StoragePower{10} << 40};
 }
 
 namespace fc::vm::actor::builtin::types::verified_registry {
-  StoragePower kMinVerifiedDealSize{StoragePower{1} << 20};
+  DEFINE(kMinVerifiedDealSize){StoragePower{1} << 20};
 }
 
 namespace fc {
@@ -118,18 +124,14 @@ namespace fc {
         540 * kEpochsInDay;
     vm::actor::builtin::types::miner::kMaxProveCommitDuration =
         kEpochsInDay + kPreCommitChallengeDelay;
-    std::set<RegisteredSealProof> supportedProofs;
-    supportedProofs.insert(RegisteredSealProof::kStackedDrg2KiBV1);
-    vm::actor::builtin::types::miner::kSupportedProofs =
-        std::move(supportedProofs);
+    kSupportedProofs = {RegisteredSealProof::kStackedDrg2KiBV1};
 
     vm::actor::builtin::types::payment_channel::kSettleDelay =
         kEpochsInHour * 12;
 
-    vm::actor::builtin::types::storage_power::kConsensusMinerMinPower = 2048;
+    kConsensusMinerMinPower = 2048;
 
-    fc::vm::actor::builtin::types::verified_registry::kMinVerifiedDealSize =
-        256;
+    kMinVerifiedDealSize = 256;
     kPreCommitChallengeDelay = 10;
   }
 
@@ -174,18 +176,14 @@ namespace fc {
         540 * kEpochsInDay;
     vm::actor::builtin::types::miner::kMaxProveCommitDuration =
         kEpochsInDay + kPreCommitChallengeDelay;
-    std::set<RegisteredSealProof> supportedProofs;
-    supportedProofs.insert(RegisteredSealProof::kStackedDrg2KiBV1);
-    vm::actor::builtin::types::miner::kSupportedProofs =
-        std::move(supportedProofs);
+    kSupportedProofs = {RegisteredSealProof::kStackedDrg2KiBV1};
 
     vm::actor::builtin::types::payment_channel::kSettleDelay =
         kEpochsInHour * 12;
 
-    vm::actor::builtin::types::storage_power::kConsensusMinerMinPower = 2048;
+    kConsensusMinerMinPower = 2048;
 
-    fc::vm::actor::builtin::types::verified_registry::kMinVerifiedDealSize =
-        256;
+    kMinVerifiedDealSize = 256;
   }
 
   void setParamsInteropnet() {
@@ -210,14 +208,13 @@ namespace fc {
     kBreezeGasTampingDuration = 0;
 
     // Update actor constants
-    vm::actor::builtin::types::miner::kSupportedProofs = {
+    kSupportedProofs = {
         RegisteredSealProof::kStackedDrg2KiBV1,
         RegisteredSealProof::kStackedDrg8MiBV1,
         RegisteredSealProof::kStackedDrg512MiBV1,
     };
-    vm::actor::builtin::types::storage_power::kConsensusMinerMinPower = 2048;
-    fc::vm::actor::builtin::types::verified_registry::kMinVerifiedDealSize =
-        256;
+    kConsensusMinerMinPower = 2048;
+    kMinVerifiedDealSize = 256;
     kPreCommitChallengeDelay = 10;
   }
 }  // namespace fc
