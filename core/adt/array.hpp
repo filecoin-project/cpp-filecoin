@@ -16,7 +16,8 @@ namespace fc::adt {
 
     Array(IpldPtr ipld = nullptr) : amt{ipld, bits} {}
 
-    Array(const CID &root, IpldPtr ipld = nullptr) : amt{ipld, root, bits} {}
+    Array(const CID &root, IpldPtr ipld = nullptr)
+        : amt{std::move(ipld), root, bits} {}
 
     outcome::result<boost::optional<Value>> tryGet(Key key) const {
       auto maybe = get(key);

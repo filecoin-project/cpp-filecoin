@@ -7,7 +7,8 @@
 #include "primitives/sector/sector.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 
-#define DEFINE(x) decltype(x) x
+#define DEFINE(x) \
+  decltype(x) x  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 namespace fc {
   using primitives::sector::RegisteredSealProof;
@@ -44,33 +45,44 @@ namespace fc {
 }  // namespace fc
 
 namespace fc::vm::actor::builtin::types::market {
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   EpochDuration kDealUpdatesInterval{static_cast<EpochDuration>(kEpochsInDay)};
-}
+}  // namespace fc::vm::actor::builtin::types::market
 
 namespace fc::vm::actor::builtin::types::miner {
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   ChainEpoch kWPoStProvingPeriod = kEpochsInDay;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   EpochDuration kWPoStChallengeWindow = 30 * 60 / kEpochDurationSeconds;
   DEFINE(kPreCommitChallengeDelay){150};
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   EpochDuration kFaultMaxAge{kWPoStProvingPeriod * 14};
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   ChainEpoch kMinSectorExpiration = 180 * kEpochsInDay;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   std::set<RegisteredSealProof> kSupportedProofs{
       RegisteredSealProof::kStackedDrg32GiBV1,
       RegisteredSealProof::kStackedDrg64GiBV1,
   };
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   ChainEpoch kMaxSectorExpirationExtension = 540 * kEpochsInDay;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   EpochDuration kMaxProveCommitDuration =
       kEpochsInDay + kPreCommitChallengeDelay;
 }  // namespace fc::vm::actor::builtin::types::miner
 
 namespace fc::vm::actor::builtin::types::payment_channel {
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   EpochDuration kSettleDelay = kEpochsInHour * 12;
 }
 
 namespace fc::vm::actor::builtin::types::storage_power {
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   StoragePower kConsensusMinerMinPower{StoragePower{10} << 40};
 }
 
 namespace fc::vm::actor::builtin::types::verified_registry {
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   StoragePower kMinVerifiedDealSize{StoragePower{1} << 20};
 }
 
@@ -107,16 +119,17 @@ namespace fc {
     vm::actor::builtin::types::market::kDealUpdatesInterval =
         static_cast<EpochDuration>(kEpochsInDay);
 
-    vm::actor::builtin::types::miner::kWPoStProvingPeriod = kEpochsInDay;
+    vm::actor::builtin::types::miner::kWPoStProvingPeriod =
+        static_cast<ChainEpoch>(kEpochsInDay);
     vm::actor::builtin::types::miner::kWPoStChallengeWindow =
-        30 * 60 / kEpochDurationSeconds;
+        static_cast<EpochDuration>(30 * 60 / kEpochDurationSeconds);
     vm::actor::builtin::types::miner::kFaultMaxAge =
         vm::actor::builtin::types::miner::kWPoStProvingPeriod * 14;
     vm::actor::builtin::types::miner::kMinSectorExpiration = 180 * kEpochsInDay;
     vm::actor::builtin::types::miner::kMaxSectorExpirationExtension =
         540 * kEpochsInDay;
     vm::actor::builtin::types::miner::kMaxProveCommitDuration =
-        kEpochsInDay + kPreCommitChallengeDelay;
+        static_cast<EpochDuration>(kEpochsInDay + kPreCommitChallengeDelay);
     std::set<RegisteredSealProof> supportedProofs;
     supportedProofs.insert(RegisteredSealProof::kStackedDrg2KiBV1);
     vm::actor::builtin::types::miner::kSupportedProofs =
@@ -163,16 +176,17 @@ namespace fc {
     vm::actor::builtin::types::market::kDealUpdatesInterval =
         static_cast<EpochDuration>(kEpochsInDay);
 
-    vm::actor::builtin::types::miner::kWPoStProvingPeriod = kEpochsInDay;
+    vm::actor::builtin::types::miner::kWPoStProvingPeriod =
+        static_cast<ChainEpoch>(kEpochsInDay);
     vm::actor::builtin::types::miner::kWPoStChallengeWindow =
-        30 * 60 / kEpochDurationSeconds;
+        static_cast<EpochDuration>(30 * 60 / kEpochDurationSeconds);
     vm::actor::builtin::types::miner::kFaultMaxAge =
         vm::actor::builtin::types::miner::kWPoStProvingPeriod * 14;
     vm::actor::builtin::types::miner::kMinSectorExpiration = 180 * kEpochsInDay;
     vm::actor::builtin::types::miner::kMaxSectorExpirationExtension =
         540 * kEpochsInDay;
     vm::actor::builtin::types::miner::kMaxProveCommitDuration =
-        kEpochsInDay + kPreCommitChallengeDelay;
+        static_cast<EpochDuration>(kEpochsInDay + kPreCommitChallengeDelay);
     std::set<RegisteredSealProof> supportedProofs;
     supportedProofs.insert(RegisteredSealProof::kStackedDrg2KiBV1);
     vm::actor::builtin::types::miner::kSupportedProofs =

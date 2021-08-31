@@ -24,8 +24,8 @@ namespace fc::vm::actor::builtin::types::miner {
     StoragePower qa{};
 
     PowerPair() : raw(0), qa(0) {}
-    PowerPair(const StoragePower &raw, const StoragePower &qa)
-        : raw(raw), qa(qa) {}
+    PowerPair(StoragePower raw, StoragePower qa)
+        : raw(std::move(raw)), qa(std::move(qa)) {}
 
     inline PowerPair operator+(const PowerPair &other) const {
       auto result{*this};

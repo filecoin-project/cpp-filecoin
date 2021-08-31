@@ -13,8 +13,8 @@ namespace fc {
   using primitives::EpochDuration;
   using primitives::StoragePower;
 
-  constexpr auto kSecondsInHour{60 * 60};
-  constexpr auto kSecondsInDay{24 * kSecondsInHour};
+  constexpr int64_t kSecondsInHour{60 * 60};
+  constexpr int64_t kSecondsInDay{24 * kSecondsInHour};
 
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern size_t kEpochDurationSeconds;
