@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <spdlog/sinks/basic_file_sink.h>
 #include <iostream>
 
 #include "api/full_node/node_api_v1_wrapper.hpp"
@@ -186,6 +187,7 @@ namespace fc {
           params.epoch_price,
           params.provider_collateral,
           seal_proof_type,
+          params.verified_deal,
           params.fast_retrieval);
     };
     node_objects.api->ClientListImports = [&]() {
@@ -384,14 +386,13 @@ namespace fc {
 }  // namespace fc
 
 int main(int argc, char *argv[]) {
-  fc::libp2pSoralog();
+  auto config{fc::node::Config::read(argc, argv)};
+  fc::libp2pSoralog(config.join("libp2p.log"));
 
-  try {
-    auto config{fc::node::Config::read(argc, argv)};
-    fc::main(config);
-  } catch (const std::exception &e) {
-    std::cerr << "UNEXPECTED EXCEPTION, " << e.what() << "\n";
-  } catch (...) {
-    std::cerr << "UNEXPECTED EXCEPTION\n";
-  }
+  using fc::common::file_sink;
+  file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+      config.join("fuhon.log"));
+  spdlog::default_logger()->sinks().push_back(file_sink);
+
+  fc::main(config);
 }

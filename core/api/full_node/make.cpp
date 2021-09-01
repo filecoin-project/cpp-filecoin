@@ -21,6 +21,7 @@
 #include "node/pubsub_gate.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
+#include "storage/car/car.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/states/account/account_actor_state.hpp"
 #include "vm/actor/builtin/states/init/init_actor_state.hpp"
@@ -35,6 +36,7 @@
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/builtin/v5/market/validate.hpp"
 #include "vm/actor/builtin/v5/miner/monies.hpp"
+#include "vm/actor/builtin/v5/miner/state.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/message/message.hpp"
@@ -163,6 +165,7 @@ namespace fc::api {
   };
 
   outcome::result<std::vector<SectorInfo>> getSectorsForWinningPoSt(
+      NetworkVersion network,
       const Address &miner,
       const MinerActorStatePtr &state,
       const Randomness &post_rand,
@@ -174,6 +177,11 @@ namespace fc::api {
       OUTCOME_TRY(deadline, deadline_cid.get());
       OUTCOME_TRY(deadline->partitions.visit([&](auto, auto &part) {
         for (auto sector : part->sectors) {
+          if (network >= NetworkVersion::kVersion7) {
+            if (part->terminated.has(sector) || part->unproven.has(sector)) {
+              continue;
+            }
+          }
           if (!part->faults.has(sector)) {
             sectors_bitset.insert(sector);
           }
@@ -205,6 +213,7 @@ namespace fc::api {
   std::shared_ptr<FullNodeApi> makeImpl(
       std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<ChainStore> chain_store,
+      IpldPtr markets_ipld,
       const std::string &network_name,
       std::shared_ptr<WeightCalculator> weight_calculator,
       const EnvironmentContext &env_context,
@@ -357,6 +366,43 @@ namespace fc::api {
           return weight_calculator->calculateWeight(*tipset);
         }};
 
+    auto retrievalQuery{[=](const Address &miner,
+                            const CID &root,
+                            const boost::optional<CID> &piece,
+                            auto cb) {
+      OUTCOME_CB(auto minfo, api->StateMinerInfo(miner, {}));
+      RetrievalPeer peer;
+      peer.address = miner;
+      OUTCOME_CB(peer.peer_id, PeerId::fromBytes(minfo.peer_id));
+      retrieval_market_client->query(peer, {root, {piece}}, [=](auto _res) {
+        OUTCOME_CB(auto res, _res);
+        std::string error;
+        switch (res.response_status) {
+          case markets::retrieval::QueryResponseStatus::kQueryResponseAvailable:
+            break;
+          case markets::retrieval::QueryResponseStatus::
+              kQueryResponseUnavailable:
+            error = "retrieval query offer was unavailable: " + res.message;
+            break;
+          case markets::retrieval::QueryResponseStatus::kQueryResponseError:
+            error = "retrieval query offer errored: " + res.message;
+            break;
+        }
+        cb(QueryOffer{
+            error,
+            root,
+            piece,
+            res.item_size,
+            res.unseal_price + res.min_price_per_byte * res.item_size,
+            res.unseal_price,
+            res.payment_interval,
+            res.interval_increase,
+            res.payment_address,
+            peer,
+        });
+      });
+    }};
+
     api->ClientFindData = waitCb<std::vector<QueryOffer>>(
         [=](auto &&root_cid, auto &&piece_cid, auto &&cb) {
           OUTCOME_CB(auto peers, market_discovery->getPeers(root_cid));
@@ -371,7 +417,7 @@ namespace fc::api {
           }
 
           auto waiter = std::make_shared<
-              AsyncWaiter<RetrievalPeer, outcome::result<QueryResponse>>>(
+              AsyncWaiter<RetrievalPeer, outcome::result<QueryOffer>>>(
               peers.size(), [=](auto all_calls) {
                 std::vector<QueryOffer> result;
                 for (const auto &[peer, maybe_response] : all_calls) {
@@ -379,63 +425,32 @@ namespace fc::api {
                     logger->error("Error when query peer {}",
                                   maybe_response.error().message());
                   } else {
-                    auto response{maybe_response.value()};
-                    std::string error_message;
-                    switch (response.response_status) {
-                      case markets::retrieval::QueryResponseStatus::
-                          kQueryResponseAvailable:
-                        break;
-                      case markets::retrieval::QueryResponseStatus::
-                          kQueryResponseUnavailable:
-                        error_message =
-                            "retrieval query offer was unavailable: "
-                            + response.message;
-                        break;
-                      case markets::retrieval::QueryResponseStatus::
-                          kQueryResponseError:
-                        error_message = "retrieval query offer errored: "
-                                        + response.message;
-                        break;
-                    }
-
-                    result.emplace_back(QueryOffer{
-                        error_message,
-                        root_cid,
-                        piece_cid,
-                        response.item_size,
-                        response.unseal_price
-                            + response.min_price_per_byte * response.item_size,
-                        response.unseal_price,
-                        response.payment_interval,
-                        response.interval_increase,
-                        response.payment_address,
-                        peer});
+                    result.emplace_back(maybe_response.value());
                   }
                 }
                 cb(result);
               });
           for (const auto &peer : peers) {
-            OUTCOME_CB1(retrieval_market_client->query(
-                peer, {root_cid, {piece_cid}}, waiter->on(peer)));
+            retrievalQuery(peer.address, root_cid, piece_cid, waiter->on(peer));
           }
         });
 
     // TODO(turuslan): FIL-165 implement method
     api->ClientHasLocal = {};
-    // TODO(turuslan): FIL-165 implement method
-    api->ClientImport = {};
-    // TODO(turuslan): FIL-165 implement method
-    api->ClientListImports = {};
+    api->ClientMinerQueryOffer = waitCb<QueryOffer>(retrievalQuery);
     // TODO(turuslan): FIL-165 implement method
     api->ClientQueryAsk = {};
 
     /**
      * Initiates the retrieval deal of a file in retrieval market.
      */
-    api->ClientRetrieve = waitCb<None>(
-        [retrieval_market_client](auto &&order, auto &&file_ref, auto &&cb) {
+    api->ClientRetrieve =
+        waitCb<None>([=](auto order, auto &&file_ref, auto &&cb) {
+          if (!file_ref.is_car) {
+            return cb(ERROR_TEXT("ClientRetrieve unixfs not implemented"));
+          }
           if (order.size == 0) {
-            cb(ERROR_TEXT("Cannot make retrieval deal for zero bytes"));
+            return cb(ERROR_TEXT("Cannot make retrieval deal for zero bytes"));
           }
           auto price_per_byte = bigdiv(order.total, order.size);
           DealProposalParams params{
@@ -445,22 +460,28 @@ namespace fc::api {
               .payment_interval = order.payment_interval,
               .payment_interval_increase = order.payment_interval_increase,
               .unseal_price = order.unseal_price};
+          if (!order.peer) {
+            OUTCOME_CB(auto info, api->StateMinerInfo(order.miner, {}));
+            OUTCOME_CB(auto id, PeerId::fromBytes(info.peer_id));
+            order.peer = RetrievalPeer{order.miner, std::move(id), {}};
+          }
           OUTCOME_CB1(retrieval_market_client->retrieve(
               order.root,
               params,
               order.total,
-              order.peer,
+              *order.peer,
               order.client,
               order.miner,
-              [cb{std::move(cb)}](outcome::result<void> res) {
+              [=, cb{std::move(cb)}](outcome::result<void> res) {
                 if (res.has_error()) {
                   logger->error("Error in ClientRetrieve {}",
                                 res.error().message());
-                  cb(res.error());
-                } else {
-                  logger->info("retrieval deal proposed");
-                  cb(outcome::success());
+                  return cb(res.error());
                 }
+                logger->info("retrieval deal done");
+                OUTCOME_CB1(storage::car::makeSelectiveCar(
+                    *markets_ipld, {{order.root, {}}}, file_ref.path));
+                cb(outcome::success());
               }));
         });
 
@@ -472,12 +493,18 @@ namespace fc::api {
     api->GasEstimateGasPremium = {[=](auto max_blocks, auto &, auto, auto &) {
       return mpool->estimateGasPremium(max_blocks);
     }};
-    api->GasEstimateMessageGas = {
-        [=](auto msg, auto &spec, auto &) -> outcome::result<UnsignedMessage> {
-          OUTCOME_TRY(mpool->estimate(
-              msg, spec ? spec->max_fee : storage::mpool::kDefaultMaxFee));
-          return msg;
-        }};
+    api->GasEstimateMessageGas = [=](auto msg, auto &spec, auto &tsk)
+        -> outcome::result<UnsignedMessage> {
+      if (msg.from.isId()) {
+        OUTCOME_TRY(context, tipsetContext(tsk));
+        OUTCOME_TRYA(msg.from,
+                     vm::runtime::resolveKey(
+                         context.state_tree, context, msg.from, false));
+      }
+      OUTCOME_TRY(mpool->estimate(
+          msg, spec ? spec->max_fee : storage::mpool::kDefaultMaxFee));
+      return msg;
+    };
 
     api->MarketReserveFunds = {[=](const Address &wallet,
                                    const Address &address,
@@ -573,7 +600,11 @@ namespace fc::api {
                     seed)};
                 OUTCOME_CB(info.sectors,
                            getSectorsForWinningPoSt(
-                               miner, miner_state, post_rand, lookback));
+                               getNetworkVersion(context.tipset->epoch()),
+                               miner,
+                               miner_state,
+                               post_rand,
+                               lookback));
                 if (info.sectors.empty()) {
                   return cb(boost::none);
                 }
@@ -761,14 +792,15 @@ namespace fc::api {
           OUTCOME_TRY(power_state, context.powerState());
           return power_state->claims.keys();
         }};
-    api->StateListActors = {
-        [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          OUTCOME_TRY(root, context.state_tree.flush());
-          adt::Map<Actor, adt::AddressKeyer> actors{root, ipld};
+    api->StateListActors =
+        [=](auto &tsk) -> outcome::result<std::vector<Address>> {
+      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(root, context.state_tree.flush());
+      OUTCOME_TRY(info, getCbor<StateTreeImpl::StateRoot>(context, root));
+      adt::Map<Actor, adt::AddressKeyer> actors{info.actor_tree_root, context};
 
-          return actors.keys();
-        }};
+      return actors.keys();
+    };
     api->StateMarketBalance = {
         [=](auto &address, auto &tipset_key) -> outcome::result<MarketBalance> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
@@ -834,6 +866,22 @@ namespace fc::api {
             }));
       }
       return sectors;
+    };
+    api->StateMinerAvailableBalance =
+        [=](auto &miner, auto &tsk) -> outcome::result<TokenAmount> {
+      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(actor, context.state_tree.get(miner));
+      OUTCOME_TRY(state, getCbor<MinerActorStatePtr>(context, actor.head));
+      // TODO(m.tagirov): older miner actor versions
+      OUTCOME_TRY(vested,
+                  vm::actor::builtin::v5::miner::checkVestedFunds(
+                      state, context.tipset->height()));
+      auto available{vm::actor::builtin::v5::miner::getAvailableBalance(
+          state, actor.balance)};
+      if (!available) {
+        return ERROR_TEXT("negative unlocked balance");
+      }
+      return vested + *available;
     };
     api->StateMinerDeadlines = {
         [=](auto &address,
@@ -956,7 +1004,7 @@ namespace fc::api {
       OUTCOME_TRY(context, tipsetContext(tsk));
       OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
       OUTCOME_TRY(market, context.marketState());
-      // TODO(turuslan): older market actor versions
+      // TODO(m.tagirov): older market actor versions
       OUTCOME_TRY(
           weights,
           vm::actor::builtin::v5::market::validate(market,
@@ -971,7 +1019,7 @@ namespace fc::api {
           weights.space_time_verified)};
       OUTCOME_TRY(power, context.powerState());
       OUTCOME_TRY(reward, context.rewardState());
-      // TODO(turuslan): older miner actor versions
+      // TODO(m.tagirov): older miner actor versions
       return kInitialPledgeNum
              * vm::actor::builtin::v5::miner::preCommitDepositForPower(
                  reward->this_epoch_reward_smoothed,
@@ -986,7 +1034,7 @@ namespace fc::api {
       OUTCOME_TRY(context, tipsetContext(tsk));
       OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
       OUTCOME_TRY(market, context.marketState());
-      // TODO(turuslan): older market actor versions
+      // TODO(m.tagirov): older market actor versions
       OUTCOME_TRY(
           weights,
           vm::actor::builtin::v5::market::validate(market,
@@ -1006,7 +1054,7 @@ namespace fc::api {
           env_context.circulating->circulating(
               std::make_shared<StateTreeImpl>(std::move(context.state_tree)),
               context.tipset->epoch()));
-      // TODO(turuslan): older miner actor versions
+      // TODO(m.tagirov): older miner actor versions
       return kInitialPledgeNum
              * vm::actor::builtin::v5::miner::initialPledgeForPower(
                  circ,
