@@ -18,16 +18,6 @@ def remove_non_whitelist(wl):
     return f
 
 
-def make_backup(src: Path):
-    dest = Path(src.absolute().__str__() + ".backup")
-    if dest.exists():
-        return  # backup is already there
-
-    dest.touch()
-    dest.write_text(src.read_text())  # for text files
-    assert dest.exists()
-
-
 def do(args) -> None:
     builddir = args.p
 
@@ -41,8 +31,6 @@ def do(args) -> None:
     if not p.exists():
         raise Exception("build dir {} does not contain compile_commands.json".format(builddir))
 
-    make_backup(p)
-
     with p.open("r") as f:
         data = f.read()
         j = json.loads(data)
@@ -52,7 +40,9 @@ def do(args) -> None:
         j = list(j)
         s = json.dumps(j, indent=4)
 
-    with p.open("w") as w:
+    p2 = builddir / "filter_compile_commands"
+    p2.mkdir(parents=True, exist_ok=True)
+    with (p2 / "compile_commands.json").open("w") as w:
         w.write(s)
         print("success")
 

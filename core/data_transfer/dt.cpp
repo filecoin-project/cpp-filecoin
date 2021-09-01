@@ -46,7 +46,7 @@ namespace fc::data_transfer {
   }
 
   gsns::Extension DataTransfer::makeExt(const DataTransferMessage &msg) {
-    return {kExtension, codec::cbor::encode(msg).value()};
+    return {kExtension, Bytes{codec::cbor::encode(msg).value()}};
   }
 
   std::shared_ptr<DataTransfer> DataTransfer::make(

@@ -62,8 +62,10 @@ namespace fc::api {
             } else {
               copy(key, common::span::cbytes(part.substr(3)));
             }
-            OUTCOME_TRYA(
-                raw, Hamt{ipld, cid, storage::hamt::kDefaultBitWidth}.get(key));
+            OUTCOME_TRY(
+                bytes,
+                Hamt{ipld, cid, storage::hamt::kDefaultBitWidth}.get(key));
+            raw = Buffer{bytes};
             s = CborDecodeStream{raw};
           }
           parts = parts.subspan(1);
