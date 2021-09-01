@@ -39,6 +39,7 @@ namespace fc::api {
   std::shared_ptr<FullNodeApi> makeImpl(
       std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<ChainStore> chain_store,
+      IpldPtr markets_ipld,
       const std::string &network_name,
       std::shared_ptr<WeightCalculator> weight_calculator,
       const EnvironmentContext &env_context,
