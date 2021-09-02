@@ -7,7 +7,7 @@
 
 #include "common/error_text.hpp"
 #include "vm/actor/builtin/types/miner/bitfield_queue.hpp"
-#include "vm/actor/builtin/types/miner/deadline_assignment_heap.hpp"
+#include "vm/actor/builtin/types/miner/deadline_assignment.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor.hpp"
 
 #include "common/logger.hpp"
 #include "vm/actor/builtin/states/storage_power/storage_power_actor_state.hpp"

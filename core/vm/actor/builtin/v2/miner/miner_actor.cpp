@@ -8,7 +8,7 @@
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {

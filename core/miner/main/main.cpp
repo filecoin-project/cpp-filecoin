@@ -49,7 +49,7 @@
 #include "storage/leveldb/prefix.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
 
 namespace fc {
   using boost::asio::io_context;

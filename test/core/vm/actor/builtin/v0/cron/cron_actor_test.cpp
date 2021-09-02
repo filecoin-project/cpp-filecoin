@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 #include "vm/actor/builtin/states/cron/v0/cron_actor_state.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
 
 #include <gtest/gtest.h>
 

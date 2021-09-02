@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/types/miner/deadline_assignment_heap.hpp"
+#include "vm/actor/builtin/types/miner/deadline_assignment.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/outcome.hpp"
