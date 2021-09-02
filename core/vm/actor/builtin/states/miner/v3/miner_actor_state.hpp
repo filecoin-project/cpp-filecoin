@@ -11,13 +11,8 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
-  using primitives::ChainEpoch;
-  using primitives::SectorSize;
-  using runtime::Runtime;
   using types::Universal;
   using types::miner::MinerInfo;
-  using types::miner::PowerPair;
-  using types::miner::SectorOnChainInfo;
 
   struct MinerActorState : v2::miner::MinerActorState {
     outcome::result<Universal<MinerInfo>> getInfo() const override;

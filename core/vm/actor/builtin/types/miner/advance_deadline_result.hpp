@@ -18,7 +18,7 @@ namespace fc::vm::actor::builtin::types::miner {
     PowerPair detected_faulty_power;
     PowerPair total_faulty_power;
 
-    bool operator==(const AdvanceDeadlineResult &other) const {
+    inline bool operator==(const AdvanceDeadlineResult &other) const {
       return pledge_delta == other.pledge_delta
              && power_delta == other.power_delta
              && previously_faulty_power == other.previously_faulty_power
@@ -26,7 +26,7 @@ namespace fc::vm::actor::builtin::types::miner {
              && total_faulty_power == other.total_faulty_power;
     }
 
-    bool operator!=(const AdvanceDeadlineResult &other) const {
+    inline bool operator!=(const AdvanceDeadlineResult &other) const {
       return !(*this == other);
     }
   };
