@@ -11,7 +11,8 @@
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/actor/builtin/types/verified_registry/policy.hpp"
 
-#define DEFINE(x) decltype(x) x
+#define DEFINE(x) \
+  decltype(x) x  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 namespace fc {
   using primitives::sector::RegisteredSealProof;

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <spdlog/fmt/fmt.h>
+
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
@@ -46,3 +48,13 @@ namespace fc::primitives::address {
    */
   Buffer checksum(const Address &address);
 }  // namespace fc::primitives::address
+
+template <>
+struct fmt::formatter<fc::primitives::address::Address>
+    : formatter<std::string_view> {
+  template <typename C>
+  auto format(const fc::primitives::address::Address &address, C &ctx) {
+    auto str = fc::primitives::address::encodeToString(address);
+    return formatter<std::string_view>::format(str, ctx);
+  }
+};

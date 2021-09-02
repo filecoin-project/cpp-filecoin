@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "message.hpp"
+#include "storage/ipfs/graphsync/impl/network/marshalling/message.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 

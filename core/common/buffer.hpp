@@ -35,8 +35,6 @@ namespace fc::common {
      */
     Buffer(size_t size, uint8_t byte);
 
-    ~Buffer() = default;
-
     /**
      * @brief lvalue construct buffer from a byte vector
      */
@@ -50,6 +48,8 @@ namespace fc::common {
     Buffer(const Buffer &b) = default;
     Buffer(Buffer &&b) noexcept = default;
     Buffer(std::initializer_list<uint8_t> b);
+
+    ~Buffer() = default;
 
     Buffer &reserve(size_t size);
     Buffer &resize(size_t size);
