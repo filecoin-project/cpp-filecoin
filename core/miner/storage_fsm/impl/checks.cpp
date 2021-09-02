@@ -14,7 +14,6 @@
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
-#include "vm/actor/builtin/v4/todo.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::mining::checks {
@@ -47,13 +46,12 @@ namespace fc::mining::checks {
         return maxSealDuration(sector_info->sector_type);
       case vm::actor::ActorVersion::kVersion2:
         return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
-      // TODO (m.tagirov or a.chernyshov) change to v3
       case vm::actor::ActorVersion::kVersion3:
         return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
       case vm::actor::ActorVersion::kVersion4:
-        TODO_ACTORS_V4();
+        return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
       case vm::actor::ActorVersion::kVersion5:
-        TODO_ACTORS_V5();
+        return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
     }
   }
 
