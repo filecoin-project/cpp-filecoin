@@ -56,31 +56,42 @@ namespace fc::vm::actor::builtin::types::miner {
     return a.index < b.index;
   }
 
-  outcome::result<std::vector<std::vector<size_t>>> assignDeadlines(
+  outcome::result<std::vector<std::vector<SectorOnChainInfo>>> assignDeadlines(
       uint64_t max_partitions,
       uint64_t partition_size,
-      std::vector<DeadlineAssignmentInfo> deadlines,
-      size_t sectors) {
+      const std::map<uint64_t, Universal<Deadline>> &deadlines,
+      const std::vector<SectorOnChainInfo> &sectors) {
     const DeadlineAssignmentLess less{max_partitions, partition_size};
-    const auto cmp{[less](auto &l, auto &r) { return !less(l, r); }};
-    std::make_heap(deadlines.begin(), deadlines.end(), cmp);
+    const auto cmp{
+        [less](const auto &l, const auto &r) { return !less(l, r); }};
 
-    std::vector<std::vector<size_t>> changes;
+    std::vector<DeadlineAssignmentInfo> deadline_infos;
+
+    for (const auto &[dl_id, deadline] : deadlines) {
+      deadline_infos.push_back(
+          DeadlineAssignmentInfo{.index = dl_id,
+                                 .live_sectors = deadline->live_sectors,
+                                 .total_sectors = deadline->total_sectors});
+    }
+
+    std::make_heap(deadline_infos.begin(), deadline_infos.end(), cmp);
+
+    std::vector<std::vector<SectorOnChainInfo>> changes;
     changes.resize(kWPoStPeriodDeadlines);
 
-    for (size_t i = 0; i < sectors; ++i) {
-      std::pop_heap(deadlines.begin(), deadlines.end(), cmp);
-      auto &info{deadlines.back()};
+    for (const auto &sector : sectors) {
+      std::pop_heap(deadline_infos.begin(), deadline_infos.end(), cmp);
+      auto &info{deadline_infos.back()};
 
       if (info.maxPartitionsReached(partition_size, max_partitions)) {
         return ERROR_TEXT("max partitions limit reached for all deadlines");
       }
 
-      changes[info.index].push_back(i);
+      changes[info.index].push_back(sector);
       info.live_sectors++;
       info.total_sectors++;
 
-      std::push_heap(deadlines.begin(), deadlines.end(), cmp);
+      std::push_heap(deadline_infos.begin(), deadline_infos.end(), cmp);
     }
 
     return changes;

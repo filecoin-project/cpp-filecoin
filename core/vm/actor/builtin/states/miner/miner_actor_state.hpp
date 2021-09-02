@@ -186,7 +186,8 @@ namespace fc::vm::actor::builtin::states {
      * way, the new sectors can still be proved.
      */
     virtual outcome::result<std::vector<SectorOnChainInfo>>
-    rescheduleSectorExpirations(ChainEpoch curr_epoch,
+    rescheduleSectorExpirations(Runtime &runtime,
+                                ChainEpoch curr_epoch,
                                 SectorSize ssize,
                                 const DeadlineSectorMap &deadline_sectors) = 0;
 
@@ -196,7 +197,7 @@ namespace fc::vm::actor::builtin::states {
     virtual outcome::result<PowerPair> assignSectorsToDeadlines(
         Runtime &runtime,
         ChainEpoch curr_epoch,
-        const std::vector<SectorOnChainInfo> &sectors_to_assign,
+        std::vector<SectorOnChainInfo> sectors_to_assign,
         uint64_t partition_size,
         SectorSize ssize) = 0;
 
@@ -238,7 +239,7 @@ namespace fc::vm::actor::builtin::states {
     outcome::result<std::tuple<TokenAmount, TokenAmount>>
     penalizeFundsInPriorityOrder(ChainEpoch curr_epoch,
                                  const TokenAmount &target,
-                                 const TokenAmount &unlocked_balance) const;
+                                 const TokenAmount &unlocked_balance);
 
     /**
      * ApplyPenalty adds the provided penalty to fee debt.
@@ -319,6 +320,9 @@ namespace fc::vm::actor::builtin::states {
      */
     outcome::result<AdvanceDeadlineResult> advanceDeadline(
         Runtime &runtime, ChainEpoch curr_epoch);
+
+   protected:
+    virtual uint64_t getMaxPartitionsForDeadlineAssignment() const = 0;
   };
 
   using MinerActorStatePtr = Universal<MinerActorState>;

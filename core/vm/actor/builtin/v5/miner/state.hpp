@@ -27,7 +27,7 @@ namespace fc::vm::actor::builtin::v5::miner {
   inline std::optional<TokenAmount> getUnlockedBalance(
       const MinerActorStatePtr &state, const TokenAmount &actor) {
     TokenAmount unlocked{actor - state->locked_funds - state->precommit_deposit
-                         - state->initial_pledge_requirement};
+                         - state->initial_pledge};
     if (unlocked < 0) {
       return {};
     }

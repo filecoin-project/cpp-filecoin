@@ -15,14 +15,4 @@ namespace fc::vm::actor::builtin::v3::miner {
     return miner_info.get();
   }
 
-  outcome::result<PowerPair> MinerActorState::assignSectorsToDeadlines(
-      Runtime &runtime,
-      ChainEpoch curr_epoch,
-      const std::vector<SectorOnChainInfo> &sectors_to_assign,
-      uint64_t partition_size,
-      SectorSize ssize) {
-    // todo
-    return ERROR_TEXT("");
-  }
-
 }  // namespace fc::vm::actor::builtin::v3::miner

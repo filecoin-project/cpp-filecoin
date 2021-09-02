@@ -22,51 +22,100 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   outcome::result<std::vector<SectorOnChainInfo>>
   MinerActorState::rescheduleSectorExpirations(
+      Runtime &runtime,
       ChainEpoch curr_epoch,
       SectorSize ssize,
       const DeadlineSectorMap &deadline_sectors) {
-    // todo
-    return ERROR_TEXT("");
-  }
+    OUTCOME_TRY(dls, this->deadlines.get());
 
-  outcome::result<PowerPair> MinerActorState::assignSectorsToDeadlines(
-      Runtime &runtime,
-      ChainEpoch curr_epoch,
-      const std::vector<SectorOnChainInfo> &sectors_to_assign,
-      uint64_t partition_size,
-      SectorSize ssize) {
-    // todo
-    return ERROR_TEXT("");
+    std::vector<SectorOnChainInfo> all_replaced;
+
+    for (const auto &[dl_id, pm] : deadline_sectors.map) {
+      const auto dl_info =
+          DeadlineInfo(this->proving_period_start, dl_id, curr_epoch)
+              .nextNotElapsed();
+      const auto new_expiration = dl_info.last();
+
+      OUTCOME_TRY(deadline, dls.loadDeadline(dl_id));
+      OUTCOME_TRY(
+          replaced,
+          deadline->rescheduleSectorExpirations(
+              runtime, sectors, new_expiration, pm, ssize, dl_info.quant()));
+      all_replaced.insert(all_replaced.end(), replaced.begin(), replaced.end());
+
+      OUTCOME_TRY(dls.updateDeadline(dl_id, deadline));
+    }
+
+    OUTCOME_TRY(this->deadlines.set(dls));
+
+    return all_replaced;
   }
 
   outcome::result<TokenAmount> MinerActorState::unlockUnvestedFunds(
       ChainEpoch curr_epoch, const TokenAmount &target) {
-    // todo
-    return ERROR_TEXT("");
+    if (target == 0 || this->locked_funds == 0) {
+      return 0;
+    }
+
+    return v0::miner::MinerActorState::unlockUnvestedFunds(curr_epoch, target);
   }
 
   outcome::result<TokenAmount> MinerActorState::unlockVestedFunds(
       ChainEpoch curr_epoch) {
-    // todo
-    return ERROR_TEXT("");
+    if (this->locked_funds == 0) {
+      return 0;
+    }
+
+    return v0::miner::MinerActorState::unlockVestedFunds(curr_epoch);
   }
 
   outcome::result<TokenAmount> MinerActorState::getUnlockedBalance(
       const TokenAmount &actor_balance) const {
-    // todo
-    return ERROR_TEXT("");
+    const TokenAmount unlocked_balance = actor_balance - this->locked_funds
+                                         - this->precommit_deposit
+                                         - this->initial_pledge;
+
+    if (unlocked_balance < 0) {
+      return ERROR_TEXT("negative unlocked balance");
+    }
+
+    return unlocked_balance;
   }
 
   outcome::result<TokenAmount> MinerActorState::getAvailableBalance(
       const TokenAmount &actor_balance) const {
-    // todo
-    return ERROR_TEXT("");
+    OUTCOME_TRY(unlocked_balance, getUnlockedBalance(actor_balance));
+    return unlocked_balance - this->fee_debt;
   }
 
   outcome::result<void> MinerActorState::checkBalanceInvariants(
       const TokenAmount &balance) const {
-    // todo
-    return ERROR_TEXT("");
+    if (this->precommit_deposit < 0) {
+      return ERROR_TEXT("pre-commit deposit is negative");
+    }
+
+    if (this->locked_funds < 0) {
+      return ERROR_TEXT("locked funds is negative");
+    }
+
+    if (this->initial_pledge < 0) {
+      return ERROR_TEXT("initial pledge is negative");
+    }
+
+    if (this->fee_debt < 0) {
+      return ERROR_TEXT("fee debt is negative");
+    }
+
+    if (balance
+        < this->precommit_deposit + this->locked_funds + this->initial_pledge) {
+      return ERROR_TEXT("balance below required");
+    }
+
+    return outcome::success();
+  }
+
+  uint64_t MinerActorState::getMaxPartitionsForDeadlineAssignment() const {
+    return kMaxPartitionsPerDeadline;
   }
 
 }  // namespace fc::vm::actor::builtin::v2::miner
