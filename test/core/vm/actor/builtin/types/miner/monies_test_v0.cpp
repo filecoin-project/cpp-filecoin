@@ -18,8 +18,8 @@ namespace fc::vm::actor::builtin::v0::miner {
 
       reward_estimate = {.position = epoch_target_reward << 128,
                          .velocity = BigInt(0) << 128};
-      power_estimate = std::make_shared<FilterEstimate>(FilterEstimate{
-          .position = network_qa_power << 128, .velocity = BigInt(0) << 128});
+      power_estimate = FilterEstimate{
+          .position = network_qa_power << 128, .velocity = BigInt(0) << 128};
 
       EXPECT_OUTCOME_TRUE(
           maybe_penalty,
@@ -38,7 +38,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     StoragePower network_qa_power;
 
     FilterEstimate reward_estimate;
-    std::shared_ptr<FilterEstimate> power_estimate;
+    FilterEstimate power_estimate;
 
     TokenAmount undeclared_penalty_;
     BigInt big_initial_pledge_factor;

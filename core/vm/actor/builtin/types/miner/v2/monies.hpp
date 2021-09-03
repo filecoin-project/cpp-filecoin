@@ -98,21 +98,15 @@ namespace fc::vm::actor::builtin::v2::miner {
         const TokenAmount &reward,
         const NetworkVersion &network_version) override;
 
-    outcome::result<TokenAmount> expectedRewardForPower(
-        const FilterEstimate &reward_estimate,
-        const std::shared_ptr<FilterEstimate> &network_power_estimate,
-        const StoragePower &sector_power,
-        const ChainEpoch &projection_duration) override;
-
     outcome::result<TokenAmount> pledgePenaltyForDeclaredFault(
         const FilterEstimate &reward_estimate,
-        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power,
         const NetworkVersion &network_version) override;
 
     outcome::result<TokenAmount> pledgePenaltyForUndeclaredFault(
         const FilterEstimate &reward_estimate,
-        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power,
         const NetworkVersion &network_version) override;
 
@@ -121,22 +115,15 @@ namespace fc::vm::actor::builtin::v2::miner {
         const TokenAmount &twenty_day_reward_activation,
         const ChainEpoch &sector_age,
         const FilterEstimate &reward_estimate,
-        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power,
         const NetworkVersion &network_version) override;
 
     outcome::result<TokenAmount> preCommitDepositForPower(
         const FilterEstimate &reward_estimate,
-        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power) override;
 
-    outcome::result<TokenAmount> initialPledgeForPower(
-        const StoragePower &qa_power,
-        const StoragePower &baseline_power,
-        const TokenAmount &network_total_pledge,
-        const FilterEstimate &reward_estimate,
-        const std::shared_ptr<FilterEstimate> &network_power_estimate,
-        const TokenAmount &network_circulation_supply_smoothed) override;
   };
   CBOR_NON(Monies);
 

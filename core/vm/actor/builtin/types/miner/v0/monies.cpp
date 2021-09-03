@@ -9,22 +9,22 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<TokenAmount> Monies::expectedRewardForPower(
       const FilterEstimate &reward_estimate,
-      const std::shared_ptr<FilterEstimate> &network_power_estimate,
+      const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power,
       const ChainEpoch &projection_duration) {
-    const BigInt network_power_smoothed = estimate(*network_power_estimate);
+    const BigInt network_power_smoothed = estimate(network_power_estimate);
     if (network_power_smoothed == 0) {
       return estimate(reward_estimate);
     }
     const BigInt expected_reward_for_proving_period = extrapolatedCumSumOfRatio(
-        projection_duration, 0, reward_estimate, *network_power_estimate);
+        projection_duration, 0, reward_estimate, network_power_estimate);
     const BigInt br = sector_power * expected_reward_for_proving_period;
     return br >> kPrecision128;
   }
 
   outcome::result<TokenAmount> Monies::pledgePenaltyForDeclaredFault(
       const FilterEstimate &reward_estimate,
-      const std::shared_ptr<FilterEstimate> &network_power_estimate,
+      const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power,
       const NetworkVersion &network_version) {
     ChainEpoch projection_period = declared_fault_projection_period_v0;
@@ -39,7 +39,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<TokenAmount> Monies::pledgePenaltyForUndeclaredFault(
       const FilterEstimate &reward_estimate,
-      const std::shared_ptr<FilterEstimate> &network_power_estimate,
+      const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power,
       const NetworkVersion &network_version) {
     ChainEpoch projection_period = undeclared_fault_projection_period_v0;
@@ -57,7 +57,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       const TokenAmount &twenty_day_reward_activation,
       const ChainEpoch &sector_age,
       const FilterEstimate &reward_estimate,
-      const std::shared_ptr<FilterEstimate> &network_power_estimate,
+      const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power,
       const NetworkVersion &network_version) {
     BigInt capped_sector_age = BigInt(std::min(
@@ -81,7 +81,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<TokenAmount> Monies::preCommitDepositForPower(
       const FilterEstimate &reward_estimate,
-      const std::shared_ptr<FilterEstimate> &network_power_estimate,
+      const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power) {
     return expectedRewardForPower(reward_estimate,
                                   network_power_estimate,
@@ -94,9 +94,9 @@ namespace fc::vm::actor::builtin::v0::miner {
       const StoragePower &baseline_power,
       const TokenAmount &network_total_pledge,
       const FilterEstimate &reward_estimate,
-      const std::shared_ptr<FilterEstimate> &network_power_estimate,
+      const FilterEstimate &network_power_estimate,
       const TokenAmount &network_circulation_supply_smoothed) {
-    const StoragePower network_qa_power = estimate(*network_power_estimate);
+    const StoragePower network_qa_power = estimate(network_power_estimate);
     OUTCOME_TRY(ipBase,
                 expectedRewardForPower(reward_estimate,
                                        network_power_estimate,
@@ -118,15 +118,6 @@ namespace fc::vm::actor::builtin::v0::miner {
     const BigInt space_race_pledge_cap =
         space_race_initial_pledge_max_per_byte * power;
     return std::min(nominal_pledge, space_race_pledge_cap);
-  }
-  // override function with default return value
-
-  outcome::result<TokenAmount> Monies::expectedRewardForPower(
-      const FilterEstimate &reward_estimate,
-      const FilterEstimate &network_power_estimate,
-      const StoragePower &sector_power,
-      const ChainEpoch &projection_duration) {
-    return TokenAmount{};
   }
 
   outcome::result<TokenAmount> Monies::pledgePenaltyForContinuedFault(
@@ -159,16 +150,6 @@ namespace fc::vm::actor::builtin::v0::miner {
       const FilterEstimate &reward_estimate,
       FilterEstimate network_power_estimate,
       const StoragePower &sector_power) {
-    return TokenAmount{};
-  }
-
-  outcome::result<TokenAmount> Monies::initialPledgeForPower(
-      const StoragePower &qa_power,
-      const StoragePower &baseline_power,
-      const TokenAmount &network_total_pledge,
-      const FilterEstimate &reward_estimate,
-      const FilterEstimate &network_power_estimate,
-      const TokenAmount &network_circulation_supply_smoothed) {
     return TokenAmount{};
   }
 

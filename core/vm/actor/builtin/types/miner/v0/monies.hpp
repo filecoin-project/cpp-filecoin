@@ -54,19 +54,19 @@ namespace fc::vm::actor::builtin::v0::miner {
    public:
     virtual outcome::result<TokenAmount> expectedRewardForPower(
         const FilterEstimate &reward_estimate,
-        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power,
         const ChainEpoch &projection_duration) override;
 
     virtual outcome::result<TokenAmount> pledgePenaltyForDeclaredFault(
         const FilterEstimate &reward_estimate,
-        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power,
         const NetworkVersion &network_version) override;
 
     virtual outcome::result<TokenAmount> pledgePenaltyForUndeclaredFault(
         const FilterEstimate &reward_estimate,
-        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power,
         const NetworkVersion &network_version) override;
 
@@ -75,13 +75,13 @@ namespace fc::vm::actor::builtin::v0::miner {
         const TokenAmount &twenty_day_reward_activation,
         const ChainEpoch &sector_age,
         const FilterEstimate &reward_estimate,
-        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power,
         const NetworkVersion &network_version) override;
 
     virtual outcome::result<TokenAmount> preCommitDepositForPower(
         const FilterEstimate &reward_estimate,
-        const std::shared_ptr<FilterEstimate> &network_power_estimate,
+        const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power) override;
 
     virtual outcome::result<TokenAmount> initialPledgeForPower(
@@ -89,15 +89,8 @@ namespace fc::vm::actor::builtin::v0::miner {
         const StoragePower &baseline_power,
         const TokenAmount &network_total_pledge,
         const FilterEstimate &reward_estimate,
-        const std::shared_ptr<FilterEstimate> &network_power_estimate,
-        const TokenAmount &network_circulation_supply_smoothed) override;
-
-    // override function with default return value
-    virtual outcome::result<TokenAmount> expectedRewardForPower(
-        const FilterEstimate &reward_estimate,
         const FilterEstimate &network_power_estimate,
-        const StoragePower &sector_power,
-        const ChainEpoch &projection_duration) override;
+        const TokenAmount &network_circulation_supply_smoothed) override;
 
     virtual outcome::result<TokenAmount> pledgePenaltyForContinuedFault(
         const FilterEstimate &reward_estimate,
@@ -123,14 +116,6 @@ namespace fc::vm::actor::builtin::v0::miner {
         const FilterEstimate &reward_estimate,
         FilterEstimate network_power_estimate,
         const StoragePower &sector_power) override;
-
-    virtual outcome::result<TokenAmount> initialPledgeForPower(
-        const StoragePower &qa_power,
-        const StoragePower &baseline_power,
-        const TokenAmount &network_total_pledge,
-        const FilterEstimate &reward_estimate,
-        const FilterEstimate &network_power_estimate,
-        const TokenAmount &network_circulation_supply_smoothed) override;
 
     virtual outcome::result<TokenAmount> repayDebtsOrAbort(
         runtime::Runtime &runtime,
