@@ -25,6 +25,9 @@ namespace fc::vm::actor::builtin::types::miner {
   struct Deadlines {
     std::vector<adt::CbCidT<Universal<Deadline>>> due;
 
+    outcome::result<Universal<Deadline>> loadDeadline(
+        uint64_t deadline_id) const;
+
     outcome::result<void> updateDeadline(uint64_t deadline_id,
                                          const Universal<Deadline> &deadline);
 

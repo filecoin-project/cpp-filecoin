@@ -102,6 +102,38 @@ namespace fc::vm::actor::builtin::types::miner {
   };
 
   /**
+   * @return true if the deadline at the given index is currently mutable. A
+   * "mutable" deadline may have new sectors assigned to it.
+   */
+  bool deadlineIsMutable(ChainEpoch proving_period_start,
+                         uint64_t dl_id,
+                         ChainEpoch curr_epoch);
+
+  /**
+   * @return true if optimistically accepted posts submitted to the given
+   * deadline may be disputed. Specifically, this ensures that:
+   *
+   * 1. Optimistic PoSts may not be disputed while the challenge window is open.
+   * 2. Optimistic PoSts may not be disputed after the miner could have
+   * compacted the deadline.
+   */
+  bool deadlineAvailableForOptimisticPoStDispute(
+      ChainEpoch proving_period_start, uint64_t dl_id, ChainEpoch curr_epoch);
+
+  /**
+   * @return true if the given deadline may compacted in the current epoch.
+   * Deadlines may not be compacted when:
+   *
+   * 1. The deadline is currently being challenged.
+   * 2. The deadline is to be challenged next.
+   * 3. Optimistically accepted posts from the deadline's last challenge window
+   * can currently be disputed.
+   */
+  bool deadlineAvailableForCompaction(ChainEpoch proving_period_start,
+                                      uint64_t dl_id,
+                                      ChainEpoch curr_epoch);
+
+  /**
    * Determine current period start and deadline index directly from current
    * epoch and the offset implied by the proving period. This works correctly
    * even for the state of a miner actor without an active deadline cron

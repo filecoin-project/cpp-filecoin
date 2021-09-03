@@ -6,7 +6,7 @@
 #include "vm/actor/builtin/v2/miner/miner_actor_utils.hpp"
 
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
   using namespace types::miner;

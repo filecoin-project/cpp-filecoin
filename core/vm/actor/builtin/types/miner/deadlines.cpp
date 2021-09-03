@@ -11,10 +11,21 @@
 namespace fc::vm::actor::builtin::types::miner {
   using types::miner::kWPoStPeriodDeadlines;
 
+  static const auto kDeadlineIdError = ERROR_TEXT("invalid deadline id");
+
+  outcome::result<Universal<Deadline>> Deadlines::loadDeadline(
+      uint64_t deadline_id) const {
+    if (deadline_id >= due.size()) {
+      return kDeadlineIdError;
+    }
+
+    return due[deadline_id].get();
+  }
+
   outcome::result<void> Deadlines::updateDeadline(
       uint64_t deadline_id, const Universal<Deadline> &deadline) {
     if (deadline_id >= due.size()) {
-      return ERROR_TEXT("invalid deadline id");
+      return kDeadlineIdError;
     }
 
     OUTCOME_TRY(deadline->validateState());

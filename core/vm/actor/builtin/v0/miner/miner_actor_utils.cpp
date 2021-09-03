@@ -7,7 +7,7 @@
 
 #include <boost/endian/conversion.hpp>
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {

@@ -4,6 +4,7 @@
 #
 
 add_library(miner_actor_state
+    miner_actor_state.cpp
     v0/miner_actor_state.cpp
     v2/miner_actor_state.cpp
     v3/miner_actor_state.cpp

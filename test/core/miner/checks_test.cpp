@@ -601,7 +601,7 @@ namespace fc::mining::checks {
         actor_state.precommitted_sectors.set(sector, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state.precommitted_sectors.hamt.flush());
-    actor_state.sectors = {"010001020008"_cid, ipld};
+    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
@@ -734,7 +734,7 @@ namespace fc::mining::checks {
         actor_state.precommitted_sectors.set(sector, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state.precommitted_sectors.hamt.flush());
-    actor_state.sectors = {"010001020008"_cid, ipld};
+    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
@@ -837,7 +837,7 @@ namespace fc::mining::checks {
         actor_state.precommitted_sectors.set(sector + 1, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state.precommitted_sectors.hamt.flush());
-    actor_state.sectors = {"010001020008"_cid, ipld};
+    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
@@ -899,7 +899,7 @@ namespace fc::mining::checks {
         actor_state.precommitted_sectors.set(sector + 1, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state.precommitted_sectors.hamt.flush());
-    actor_state.sectors = {"010001020008"_cid, ipld};
+    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
@@ -962,7 +962,7 @@ namespace fc::mining::checks {
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state.precommitted_sectors.hamt.flush());
 
-    actor_state.sectors = {"010001020008"_cid, ipld};
+    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
@@ -1025,7 +1025,7 @@ namespace fc::mining::checks {
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state.precommitted_sectors.hamt.flush());
 
-    actor_state.sectors = {"010001020008"_cid, ipld};
+    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
@@ -1106,7 +1106,7 @@ namespace fc::mining::checks {
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state.precommitted_sectors.hamt.flush());
 
-    actor_state.sectors = {"010001020008"_cid, ipld};
+    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
@@ -1185,7 +1185,7 @@ namespace fc::mining::checks {
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state.precommitted_sectors.hamt.flush());
 
-    actor_state.sectors = {"010001020008"_cid, ipld};
+    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {

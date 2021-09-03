@@ -36,7 +36,6 @@
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/builtin/v5/market/validate.hpp"
 #include "vm/actor/builtin/v5/miner/monies.hpp"
-#include "vm/actor/builtin/v5/miner/state.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/message/message.hpp"
@@ -202,7 +201,7 @@ namespace fc::api {
       std::vector<uint64_t> sector_ids{sectors_bitset.begin(),
                                        sectors_bitset.end()};
       for (auto &i : indices) {
-        OUTCOME_TRY(sector, state->sectors.get(sector_ids[i]));
+        OUTCOME_TRY(sector, state->sectors.sectors.get(sector_ids[i]));
         sectors.push_back(
             {sector.seal_proof, sector.sector, sector.sealed_cid});
       }
@@ -859,7 +858,8 @@ namespace fc::api {
         OUTCOME_TRY(deadline->partitions.visit(
             [&](auto, const auto &part) -> outcome::result<void> {
               for (const auto &id : part->activeSectors()) {
-                OUTCOME_TRYA(sectors.emplace_back(), state->sectors.get(id));
+                OUTCOME_TRYA(sectors.emplace_back(),
+                             state->sectors.sectors.get(id));
               }
               return outcome::success();
             }));
@@ -870,17 +870,10 @@ namespace fc::api {
         [=](auto &miner, auto &tsk) -> outcome::result<TokenAmount> {
       OUTCOME_TRY(context, tipsetContext(tsk));
       OUTCOME_TRY(actor, context.state_tree.get(miner));
-      OUTCOME_TRY(state, getCbor<MinerActorStatePtr>(context, actor.head));
-      // TODO(m.tagirov): older miner actor versions
-      OUTCOME_TRY(vested,
-                  vm::actor::builtin::v5::miner::checkVestedFunds(
-                      state, context.tipset->height()));
-      auto available{vm::actor::builtin::v5::miner::getAvailableBalance(
-          state, actor.balance)};
-      if (!available) {
-        return ERROR_TEXT("negative unlocked balance");
-      }
-      return vested + *available;
+      OUTCOME_TRY(miner_state, getCbor<MinerActorStatePtr>(context, actor.head));
+      OUTCOME_TRY(vested, miner_state->checkVestedFunds(context.tipset->height()));
+      OUTCOME_TRY(available, miner_state->getAvailableBalance(actor.balance));
+      return vested + available;
     };
     api->StateMinerDeadlines = {
         [=](auto &address,
@@ -979,7 +972,7 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           std::vector<SectorOnChainInfo> sectors;
-          OUTCOME_TRY(state->sectors.visit([&](auto id, auto &info) {
+          OUTCOME_TRY(state->sectors.sectors.visit([&](auto id, auto &info) {
             if (!filter || filter->count(id)) {
               sectors.push_back(info);
             }
@@ -1082,7 +1075,7 @@ namespace fc::api {
             -> outcome::result<boost::optional<SectorOnChainInfo>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          return state->sectors.tryGet(sector_number);
+          return state->sectors.sectors.tryGet(sector_number);
         }};
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSectorPartition = {};
