@@ -123,7 +123,6 @@ namespace fc::vm::actor::builtin::types::miner {
     EXPECT_EQ(assignment.size(), kWPoStPeriodDeadlines);
     for (size_t i = 0; i < assignment.size(); ++i) {
       if (const auto *expected{test_case.expect(i)}) {
-        assert(assignment[i] == *expected);
         EXPECT_EQ(assignment[i], *expected);
       } else {
         EXPECT_TRUE(assignment[i].empty());
