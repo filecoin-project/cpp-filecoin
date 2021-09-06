@@ -8,6 +8,7 @@
 #include <cstdlib>
 
 namespace fc {
+  /// Returns the number of fds opened by the current process.
   inline size_t fdUsage();
 }  // namespace fc
 
@@ -36,13 +37,8 @@ size_t fc::fdUsage() {
 #include <filesystem>
 
 size_t fc::fdUsage() {
-  size_t n{};
-  std::filesystem::directory_iterator it{"/proc/self/fd"}, end;
-  while (it != end) {
-    ++n;
-    ++it;
-  }
-  return n;
+  return std::distance(std::filesystem::directory_iterator{"/proc/self/fd"},
+                       {});
 }
 
 #endif
