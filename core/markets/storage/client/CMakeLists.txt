@@ -19,6 +19,6 @@ target_link_libraries(storage_market_client
     signature
     message
     tipset
-    ipfs_datastore_in_memory
+    memory_indexed_car
     storage_market_import_manager
     )

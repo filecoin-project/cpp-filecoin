@@ -77,7 +77,6 @@ namespace fc::node {
   using markets::retrieval::client::RetrievalClientImpl;
   using markets::storage::kStorageMarketImportDir;
   using markets::storage::client::StorageMarketClientImpl;
-  using storage::ipfs::InMemoryDatastore;
   using storage::keystore::FileSystemKeyStore;
   using vm::actor::builtin::states::InitActorStatePtr;
 

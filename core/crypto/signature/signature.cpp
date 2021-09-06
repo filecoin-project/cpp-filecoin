@@ -36,7 +36,8 @@ namespace fc::crypto::signature {
   }
 
   outcome::result<Signature> Signature::fromBytes(BytesIn input) {
-    if (input.empty() || (size_t)input.size() > kSignatureMaxLength) {
+    if (input.empty()
+        || static_cast<size_t>(input.size()) > kSignatureMaxLength) {
       return SignatureError::kInvalidSignatureLength;
     }
     switch (input[0]) {

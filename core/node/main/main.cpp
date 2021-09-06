@@ -4,6 +4,7 @@
  */
 
 #include <spdlog/sinks/basic_file_sink.h>
+#include <sys/resource.h>
 #include <iostream>
 
 #include "api/full_node/node_api_v1_wrapper.hpp"
@@ -28,6 +29,18 @@
 #include "node/say_hello.hpp"
 #include "node/sync_job.hpp"
 #include "vm/actor/cgo/actors.hpp"
+
+void setFdLimitMax() {
+  rlimit r;
+  if (getrlimit(RLIMIT_NOFILE, &r) != 0) {
+    return spdlog::error("getrlimit(RLIMIT_NOFILE), errno={}", errno);
+  }
+  r.rlim_cur = r.rlim_max;
+  if (setrlimit(RLIMIT_NOFILE, &r) != 0) {
+    return spdlog::error(
+        "setrlimit(RLIMIT_NOFILE, {}), errno={}", r.rlim_cur, errno);
+  }
+}
 
 namespace fc {
   using api::Import;
@@ -386,6 +399,8 @@ namespace fc {
 }  // namespace fc
 
 int main(int argc, char *argv[]) {
+  setFdLimitMax();
+
   auto config{fc::node::Config::read(argc, argv)};
   fc::libp2pSoralog(config.join("libp2p.log"));
 

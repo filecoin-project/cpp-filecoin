@@ -456,7 +456,7 @@ namespace fc::api {
     }
 
     ENCODE(Signature) {
-      SignatureType type = SignatureType::kUndefined;
+      uint64_t type = SignatureType::kUndefined;
       gsl::span<const uint8_t> data;
       visit_in_place(
           v,
@@ -475,7 +475,7 @@ namespace fc::api {
     }
 
     DECODE(Signature) {
-      SignatureType type = SignatureType::kUndefined;
+      uint64_t type = SignatureType::kUndefined;
       decode(type, Get(j, "Type"));
       const auto &data = Get(j, "Data");
       if (type == SignatureType::kBls) {
