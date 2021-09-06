@@ -543,10 +543,8 @@ namespace fc::node {
         return maybe_default_key.error();
       }
       auto key_info{maybe_default_key.value()};
-      OUTCOME_TRY(
-          address,
-          o.key_store->put(key_info.type == crypto::signature::Type::BLS,
-                           key_info.private_key));
+      OUTCOME_TRY(address,
+                  o.key_store->put(key_info.type, key_info.private_key));
       o.wallet_default_address->setCbor(address);
       log()->info("Set default wallet address {}", address);
     } else {

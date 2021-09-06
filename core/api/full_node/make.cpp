@@ -1162,24 +1162,27 @@ namespace fc::api {
       return key_store->has(address);
     }};
     api->WalletImport = {[=](auto &info) {
-      return key_store->put(info.type == SignatureType::BLS, info.private_key);
+      return key_store->put(info.type, info.private_key);
     }};
     api->WalletNew = {[=](auto &type) -> outcome::result<Address> {
-      auto bls{type == "bls"}, secp{type == "secp256k1"};
-      if (!bls && !secp) {
+      Address address;
+      if (type == "bls") {
+        OUTCOME_TRYA(address,
+                     key_store->put(crypto::signature::Type::kBls,
+                                    crypto::bls::BlsProviderImpl{}
+                                        .generateKeyPair()
+                                        .value()
+                                        .private_key));
+      } else if (type == "secp256k1") {
+        OUTCOME_TRYA(address,
+                     key_store->put(crypto::signature::Type::kSecp256k1,
+                                    crypto::secp256k1::Secp256k1ProviderImpl{}
+                                        .generate()
+                                        .value()
+                                        .private_key));
+      } else {
         return ERROR_TEXT("WalletNew: unknown type");
       }
-      OUTCOME_TRY(
-          address,
-          key_store->put(bls,
-                         bls ? crypto::bls::BlsProviderImpl{}
-                                   .generateKeyPair()
-                                   .value()
-                                   .private_key
-                             : crypto::secp256k1::Secp256k1ProviderImpl{}
-                                   .generate()
-                                   .value()
-                                   .private_key));
       if (!wallet_default_address->has()) {
         wallet_default_address->setCbor(address);
       }
