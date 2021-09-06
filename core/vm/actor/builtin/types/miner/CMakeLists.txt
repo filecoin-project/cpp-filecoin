@@ -4,17 +4,19 @@
 #
 
 add_library(miner_types
-    deadline_assignment_heap.cpp
+    deadline_assignment.cpp
     deadline_info.cpp
     deadline_sector_map.cpp
     partition_sector_map.cpp
     deadline.cpp
     deadlines.cpp
     expiration.cpp
+    miner_info.cpp
     partition.cpp
     quantize.cpp
     sectors.cpp
     termination.cpp
+    vesting.cpp
     v0/expiration.cpp
     v0/partition.cpp
     v0/deadline.cpp
@@ -33,5 +35,4 @@ target_link_libraries(miner_types
     address
     const
     outcome
-    type_manager
     )

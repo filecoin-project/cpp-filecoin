@@ -8,10 +8,8 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::api::rpc, WebSocketClientError, e) {
   using fc::api::rpc::WebSocketClientError;
 
-  switch (e) {
-    case WebSocketClientError::kRpcErrorResponse:
-      return "RPC error: got error response";
-    default:
-      return "unknown error";
+  if (e == WebSocketClientError::kRpcErrorResponse) {
+    return "RPC error: got error response";
   }
+  return "unknown error";
 }

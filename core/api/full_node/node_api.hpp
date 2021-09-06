@@ -21,7 +21,6 @@
 #include "vm/actor/builtin/types/miner/deadline_info.hpp"
 #include "vm/actor/builtin/types/miner/deadlines.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 #include "vm/actor/builtin/types/storage_power/claim.hpp"
 #include "vm/runtime/runtime_types.hpp"
@@ -155,7 +154,7 @@ namespace fc::api {
     uint64_t payment_interval_increase;
     Address client;
     Address miner;
-    RetrievalPeer peer;
+    boost::optional<RetrievalPeer> peer;
   };
 
   struct StartDealParams {
@@ -355,6 +354,11 @@ namespace fc::api {
      * Lists imported files and their root CIDs
      */
     API_METHOD(ClientListImports, std::vector<Import>)
+    API_METHOD(ClientMinerQueryOffer,
+               Wait<QueryOffer>,
+               const Address &,
+               const CID &,
+               const boost::optional<CID> &)
     API_METHOD(ClientQueryAsk,
                Wait<SignedStorageAsk>,
                const std::string &,
@@ -444,7 +448,7 @@ namespace fc::api {
      * @return add payment channel info with actor address and message cid
      */
     API_METHOD(PaychGet,
-               AddChannelInfo,
+               Wait<AddChannelInfo>,
                const Address &,
                const Address &,
                const TokenAmount &)
@@ -516,6 +520,10 @@ namespace fc::api {
 
     API_METHOD(StateMinerActiveSectors,
                std::vector<SectorOnChainInfo>,
+               const Address &,
+               const TipsetKey &)
+    API_METHOD(StateMinerAvailableBalance,
+               TokenAmount,
                const Address &,
                const TipsetKey &)
     /** Returns PoSt submissions since the proving period started. */
@@ -643,6 +651,7 @@ namespace fc::api {
     f(a.ClientImport);
     f(a.ClientListDeals);
     f(a.ClientListImports);
+    f(a.ClientMinerQueryOffer);
     f(a.ClientQueryAsk);
     f(a.ClientRetrieve);
     f(a.ClientStartDeal);
@@ -673,6 +682,7 @@ namespace fc::api {
     f(a.StateMarketDeals);
     f(a.StateMarketStorageDeal);
     f(a.StateMinerActiveSectors);
+    f(a.StateMinerAvailableBalance);
     f(a.StateMinerDeadlines);
     f(a.StateMinerFaults);
     f(a.StateMinerInfo);

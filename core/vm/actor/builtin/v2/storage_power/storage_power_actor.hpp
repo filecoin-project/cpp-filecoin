@@ -6,7 +6,7 @@
 #pragma once
 
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
 
 namespace fc::vm::actor::builtin::v2::storage_power {
 

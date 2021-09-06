@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v3/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v3/storage_power/storage_power_actor.hpp"
 
 namespace fc::vm::actor::builtin::v3::storage_power {
   const ActorExports exports{

@@ -114,30 +114,30 @@ namespace fc::codec::cbor {
     }
     /** Checks if current element is CID */
     bool isCid() const {
-      return (bool)token.cidSize();
+      return token.cidSize().has_value();
     }
     /** Checks if current element is list container */
     bool isList() const {
-      return (bool)token.listCount();
+      return token.listCount().has_value();
     }
     /** Checks if current element is map container */
     bool isMap() const {
-      return (bool)token.mapCount();
+      return token.mapCount().has_value();
     }
     bool isNull() const {
       return token.isNull();
     }
     bool isBool() const {
-      return (bool)token.asBool();
+      return token.asBool().has_value();
     }
     bool isInt() const {
       return token.asInt() || token.asUint();
     }
     bool isStr() const {
-      return (bool)token.strSize();
+      return token.strSize().has_value();
     }
     bool isBytes() const {
-      return (bool)token.bytesSize();
+      return token.bytesSize().has_value();
     }
 
     /** Returns count of items in current element list container */

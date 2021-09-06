@@ -9,7 +9,7 @@
 #include "adt/map.hpp"
 #include "common/error_text.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/types/type_manager/universal.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using primitives::StoragePower;

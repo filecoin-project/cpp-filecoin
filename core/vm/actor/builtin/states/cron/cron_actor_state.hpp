@@ -6,7 +6,7 @@
 #pragma once
 
 #include "vm/actor/builtin/types/cron/cron_table_entry.hpp"
-#include "vm/actor/builtin/types/type_manager/universal.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using types::cron::CronTableEntry;

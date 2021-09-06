@@ -6,13 +6,26 @@
 #include "vm/actor/builtin/types/miner/deadlines.hpp"
 
 #include "common/error_text.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
+  using types::miner::kWPoStPeriodDeadlines;
+
+  static const auto kDeadlineIdError = ERROR_TEXT("invalid deadline id");
+
+  outcome::result<Universal<Deadline>> Deadlines::loadDeadline(
+      uint64_t deadline_id) const {
+    if (deadline_id >= due.size()) {
+      return kDeadlineIdError;
+    }
+
+    return due[deadline_id].get();
+  }
 
   outcome::result<void> Deadlines::updateDeadline(
       uint64_t deadline_id, const Universal<Deadline> &deadline) {
     if (deadline_id >= due.size()) {
-      return ERROR_TEXT("invalid deadline id");
+      return kDeadlineIdError;
     }
 
     OUTCOME_TRY(deadline->validateState());
@@ -55,6 +68,14 @@ namespace fc::vm::actor::builtin::types::miner {
     }
 
     return std::make_tuple(dl_id, part_id);
+  }
+
+  outcome::result<Deadlines> makeEmptyDeadlines(const Runtime &runtime,
+                                                const CID &empty_amt_cid) {
+    OUTCOME_TRY(deadline, makeEmptyDeadline(runtime, empty_amt_cid));
+    OUTCOME_TRY(deadline_cid, setCbor(runtime.getIpfsDatastore(), deadline));
+    adt::CbCidT<Universal<Deadline>> deadline_cid_t{deadline_cid};
+    return Deadlines{std::vector(kWPoStPeriodDeadlines, deadline_cid_t)};
   }
 
 }  // namespace fc::vm::actor::builtin::types::miner
