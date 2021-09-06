@@ -13,5 +13,6 @@ target_link_libraries(retrieval_market_client
     cbor
     cbor_stream
     data_transfer
-    ipld_verifier
+    filecoin_hasher
+    ipld_traverser
     )
