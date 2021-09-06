@@ -196,32 +196,35 @@ namespace fc::payment_channel_manager {
   }
 
   void PaymentChannelManagerImpl::makeApi(FullNodeApi &api) {
-    api.PaychAllocateLane = {
+    api.PaychAllocateLane = api::wrapCb(
         [self{shared_from_this()}](auto &&channel) -> outcome::result<LaneId> {
           return self->allocateLane(channel);
-        }};
-    api.PaychGet = {[self{shared_from_this()}](
+        });
+    api.PaychGet =
+        api::wrapCb([self{shared_from_this()}](
                         auto &&client, auto &&miner, auto &&amount_available)
                         -> outcome::result<AddChannelInfo> {
-      return self->getOrCreatePaymentChannel(client, miner, amount_available);
-    }};
-    api.PaychVoucherAdd = {[self{shared_from_this()}](
-                               auto &&channel,
-                               auto &&voucher,
-                               auto &&proof,
-                               auto &&delta) -> outcome::result<TokenAmount> {
-      return self->savePaymentVoucher(channel, voucher);
-    }};
-    api.PaychVoucherCheckValid = {
+          return self->getOrCreatePaymentChannel(
+              client, miner, amount_available);
+        });
+    api.PaychVoucherAdd =
+        api::wrapCb([self{shared_from_this()}](
+                        auto &&channel,
+                        auto &&voucher,
+                        auto &&proof,
+                        auto &&delta) -> outcome::result<TokenAmount> {
+          return self->savePaymentVoucher(channel, voucher);
+        });
+    api.PaychVoucherCheckValid = api::wrapCb(
         [self{shared_from_this()}](auto &&channel,
                                    auto &&voucher) -> outcome::result<void> {
           return self->validateVoucher(channel, voucher);
-        }};
-    api.PaychVoucherCreate = {
+        });
+    api.PaychVoucherCreate = api::wrapCb(
         [self{shared_from_this()}](auto &&channel, auto &&amount, auto &&lane)
             -> outcome::result<SignedVoucher> {
           return self->createPaymentVoucher(channel, lane, amount);
-        }};
+        });
   }
 
   outcome::result<CID> PaymentChannelManagerImpl::addFunds(
@@ -238,11 +241,11 @@ namespace fc::payment_channel_manager {
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
     auto message_cid{signed_message.getCid()};
+    // TODO: maybe async call, it's long
     OUTCOME_TRY(
-        message_wait,
+        message_state,
         api_->StateWaitMsg(
             message_cid, kMessageConfidence, api::kLookbackNoLimit, true));
-    OUTCOME_TRY(message_state, message_wait.waitSync());
     if (message_state.receipt.exit_code != VMExitCode::kOk) {
       return PaymentChannelManagerError::kSendFundsErrored;
     }
@@ -275,11 +278,11 @@ namespace fc::payment_channel_manager {
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
     auto message_cid{signed_message.getCid()};
+    // TODO: maybe async call, it's long
     OUTCOME_TRY(
-        message_wait,
+        message_state,
         api_->StateWaitMsg(
             message_cid, kMessageConfidence, api::kLookbackNoLimit, true));
-    OUTCOME_TRY(message_state, message_wait.waitSync());
     if (message_state.receipt.exit_code != VMExitCode::kOk) {
       return PaymentChannelManagerError::kCreateChannelActorErrored;
     }

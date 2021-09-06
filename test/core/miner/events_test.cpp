@@ -19,7 +19,7 @@ namespace fc::mining {
 
       api_ = std::make_shared<FullNodeApi>();
 
-      api_->ChainNotify = [&]() { return channel_; };
+      api_->ChainNotify = api::wrapCb([&]() { return channel_; });
 
       tipset_cache_ = std::make_shared<TipsetCacheMock>();
 

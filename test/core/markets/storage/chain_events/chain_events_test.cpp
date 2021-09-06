@@ -46,8 +46,9 @@ namespace fc::markets::storage::chain_events {
   TEST_F(ChainEventsTest, CommitSector) {
     const auto block_cid{CbCid::hash("01"_unhex)};
 
-    api->ChainGetBlockMessages = {[block_cid, this](const CID &cid)
-                                      -> outcome::result<BlockMessages> {
+    api->ChainGetBlockMessages = api::wrapCb([block_cid, this](const CID &cid)
+                                                 -> outcome::result<
+                                                     BlockMessages> {
       // PreCommitSector message call
       SectorPreCommitInfo pre_commit_info;
       pre_commit_info.sealed_cid = "010001020001"_cid;
@@ -72,9 +73,9 @@ namespace fc::markets::storage::chain_events {
 
       if (asBlake(cid) != block_cid) throw "wrong block requested";
       return BlockMessages{.bls = {pre_commit_message, prove_commit_message}};
-    }};
+    });
 
-    api->ChainNotify = {
+    api->ChainNotify = api::wrapCb(
         [block_cid]() -> outcome::result<Chan<std::vector<HeadChange>>> {
           auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
 
@@ -84,13 +85,10 @@ namespace fc::markets::storage::chain_events {
           channel->write({change});
 
           return Chan{std::move(channel)};
-        }};
+        });
 
-    api->StateWaitMsg = [](auto &, auto, auto, auto) {
-      auto wait{api::Wait<api::MsgWait>::make()};
-      wait.channel->write(outcome::success());
-      return wait;
-    };
+    api->StateWaitMsg =
+        api::wrapCb([](auto, auto, auto, auto) { return outcome::success(); });
 
     bool is_called = false;
     events->onDealSectorCommitted(
@@ -107,10 +105,11 @@ namespace fc::markets::storage::chain_events {
    * @then future in wait status
    */
   TEST_F(ChainEventsTest, WaitCommitSector) {
-    api->ChainNotify = {[]() -> outcome::result<Chan<std::vector<HeadChange>>> {
-      auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
-      return Chan{std::move(channel)};
-    }};
+    api->ChainNotify =
+        api::wrapCb([]() -> outcome::result<Chan<std::vector<HeadChange>>> {
+          auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
+          return Chan{std::move(channel)};
+        });
 
     EXPECT_OUTCOME_TRUE_1(events->init());
     bool is_called = false;

@@ -47,12 +47,12 @@ namespace fc::markets::storage::test {
    * @then result with error wrong signature
    */
   TEST_F(StorageMarketTest, WrongSignedAsk) {
-    node_api->WalletVerify = {
-        [](const Address &address,
-           const Buffer &buffer,
-           const Signature &signature) -> outcome::result<bool> {
+    node_api->WalletVerify =
+        api::wrapCb([](const Address &address,
+                       const Buffer &buffer,
+                       const Signature &signature) -> outcome::result<bool> {
           return outcome::success(false);
-        }};
+        });
 
     TokenAmount provider_price = 1334;
     ChainEpoch duration = 2334;

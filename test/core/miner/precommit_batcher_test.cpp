@@ -52,29 +52,36 @@ namespace fc::mining {
       tipset_ = std::make_shared<Tipset>(
           TipsetKey(), std::vector<api::BlockHeader>({block}));
 
-      EXPECT_CALL(mock_ChainHead, Call()).WillRepeatedly(testing::Return(tipset_));
+      EXPECT_CALL(mock_ChainHead, Call(_))
+          .WillRepeatedly(testing::Invoke(api::wrapCb(
+              [&]() -> outcome::result<TipsetCPtr> { return tipset_; })));
 
       MinerInfo minfo;
       minfo.window_post_proof_type =
           primitives::sector::RegisteredPoStProof::kStackedDRG2KiBWindowPoSt;
       minfo.control = {side_address_, wrong_side_address_};
-      EXPECT_CALL(mock_StateMinerInfo, Call(miner_address_, _))
-          .WillRepeatedly(testing::Return(minfo));
-      EXPECT_CALL(mock_WalletBalance, Call(wrong_side_address_))
-          .WillRepeatedly(
-              testing::Return(TokenAmount("100000000000000000000")));
+      EXPECT_CALL(mock_StateMinerInfo, Call(_, miner_address_, _))
+          .WillRepeatedly(testing::Invoke(
+              api::wrapCb([&](auto, auto) -> outcome::result<MinerInfo> {
+                return minfo;
+              })));
+      EXPECT_CALL(mock_WalletBalance, Call(_, wrong_side_address_))
+          .WillRepeatedly(testing::Invoke(
+              api::wrapCb([&](auto) -> outcome::result<TokenAmount> {
+                return TokenAmount("100000000000000000000");
+              })));
 
       api_->MpoolPushMessage =
-          [&](const UnsignedMessage &msg,
-              const boost::optional<api::MessageSendSpec> &)
-          -> outcome::result<SignedMessage> {
-        if (msg.method == PreCommitBatch::Number) {
-          is_called_ = true;
-          return SignedMessage{.message = msg, .signature = BlsSignature()};
-        }
+          api::wrapCb([&](const UnsignedMessage &msg,
+                          const boost::optional<api::MessageSendSpec> &)
+                          -> outcome::result<SignedMessage> {
+            if (msg.method == PreCommitBatch::Number) {
+              is_called_ = true;
+              return SignedMessage{.message = msg, .signature = BlsSignature()};
+            }
 
-        return ERROR_TEXT("ERROR");
-      };
+            return ERROR_TEXT("ERROR");
+          });
 
       callback_mock_ = [](const outcome::result<CID> &cid) -> void {
         EXPECT_TRUE(cid.has_value());
@@ -139,8 +146,11 @@ namespace fc::mining {
   TEST_F(PreCommitBatcherTest, CallbackSend) {
     is_called_ = false;
 
-    EXPECT_CALL(mock_WalletBalance, Call(side_address_))
-        .WillRepeatedly(testing::Return(TokenAmount("0")));
+    EXPECT_CALL(mock_WalletBalance, Call(_, side_address_))
+        .WillRepeatedly(testing::Invoke(
+            api::wrapCb([](auto) -> outcome::result<TokenAmount> {
+              return TokenAmount("0");
+            })));
     SectorInfo si = SectorInfo();
     api::SectorPreCommitInfo precInf;
     TokenAmount deposit = 10;
@@ -184,9 +194,15 @@ namespace fc::mining {
   TEST_F(PreCommitBatcherTest, ShortDistanceSending) {
     is_called_ = false;
 
-    EXPECT_CALL(mock_WalletBalance, Call(side_address_))
-        .WillOnce(testing::Return(TokenAmount("5000000000000000000000")))
-        .WillRepeatedly(testing::Return(TokenAmount("0")));
+    EXPECT_CALL(mock_WalletBalance, Call(_, side_address_))
+        .WillOnce(testing::Invoke(
+            api::wrapCb([](auto) -> outcome::result<TokenAmount> {
+              return TokenAmount("5000000000000000000000");
+            })))
+        .WillOnce(testing::Invoke(
+            api::wrapCb([](auto) -> outcome::result<TokenAmount> {
+              return TokenAmount("0");
+            })));
 
     SectorInfo si = SectorInfo();
     api::SectorPreCommitInfo precInf;

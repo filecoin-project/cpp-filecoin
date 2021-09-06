@@ -58,12 +58,12 @@ namespace fc::markets::storage::test {
    * @then state deal rejected in provider
    */
   TEST_F(StorageMarketTest, WrongSignedDealProposal) {
-    node_api->WalletVerify = {
-        [](const Address &address,
-           const Buffer &buffer,
-           const Signature &signature) -> outcome::result<bool> {
+    node_api->WalletVerify =
+        api::wrapCb([](const Address &address,
+                       const Buffer &buffer,
+                       const Signature &signature) -> outcome::result<bool> {
           return outcome::success(false);
-        }};
+        });
 
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
     ChainEpoch start_epoch{210};
@@ -101,7 +101,7 @@ namespace fc::markets::storage::test {
     // some unique valid CID of funding message
     CID client_funding_cid = "010001020002"_cid;
     CID provider_funding_cid = "010001020003"_cid;
-    node_api->MarketReserveFunds = {
+    node_api->MarketReserveFunds = api::wrapCb(
         [this, client_funding_cid, provider_funding_cid](
             auto wallet, auto address, auto amount) -> boost::optional<CID> {
           boost::optional<CID> result = boost::none;
@@ -111,7 +111,7 @@ namespace fc::markets::storage::test {
             this->logger->debug("Funding message sent "
                                 + result->toString().value());
           return result;
-        }};
+        });
 
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
     ChainEpoch start_epoch{210};

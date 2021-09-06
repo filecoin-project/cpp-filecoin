@@ -206,62 +206,65 @@ namespace fc {
     auto worker{std::make_shared<LocalWorker>(io, wconfig, mapi, remote_store)};
 
     auto wapi{std::make_shared<api::WorkerApi>()};
-    wapi->Version = []() { return VersionResult{"seal-worker", 0, 0}; };
-    wapi->StorageAddLocal = [&](const std::string &path) {
-      return local_store->openPath(path);
-    };
-    wapi->Fetch = [&](const SectorRef &sector,
-                      const SectorFileType &file_type,
-                      PathType path_type,
-                      AcquireMode mode) {
+    wapi->Version = api::wrapCb([]() {
+      return VersionResult{"seal-worker", 0, 0};
+    });
+    wapi->StorageAddLocal = api::wrapCb(
+        [&](const std::string &path) { return local_store->openPath(path); });
+    wapi->Fetch = api::wrapCb([&](const SectorRef &sector,
+                                  const SectorFileType &file_type,
+                                  PathType path_type,
+                                  AcquireMode mode) {
       return worker->fetch(sector, file_type, path_type, mode);
-    };
-    wapi->UnsealPiece = [&](const SectorRef &sector,
-                            UnpaddedByteIndex offset,
-                            const UnpaddedPieceSize &size,
-                            const SealRandomness &randomness,
-                            const CID &unsealed_cid) {
+    });
+    wapi->UnsealPiece = api::wrapCb([&](const SectorRef &sector,
+                                        UnpaddedByteIndex offset,
+                                        const UnpaddedPieceSize &size,
+                                        const SealRandomness &randomness,
+                                        const CID &unsealed_cid) {
       return worker->unsealPiece(
           sector, offset, size, randomness, unsealed_cid);
-    };
-    wapi->MoveStorage = [&](const SectorRef &sector,
-                            const SectorFileType &types) {
-      return worker->moveStorage(sector, types);
-    };
+    });
+    wapi->MoveStorage =
+        api::wrapCb([&](const SectorRef &sector, const SectorFileType &types) {
+          return worker->moveStorage(sector, types);
+        });
 
-    wapi->Info = [&]() { return worker->getInfo(); };
-    wapi->Paths = [&]() { return worker->getAccessiblePaths(); };
-    wapi->TaskTypes = [&]() -> outcome::result<std::set<primitives::TaskType>> {
-      OUTCOME_TRY(tasks, worker->getSupportedTask());
-      // TODO(ortyomka): [FIL-344] Remove its
-      tasks.extract(primitives::kTTAddPiece);
-      return std::move(tasks);
-    };
+    wapi->Info = api::wrapCb([&]() { return worker->getInfo(); });
+    wapi->Paths = api::wrapCb([&]() { return worker->getAccessiblePaths(); });
+    wapi->TaskTypes =
+        api::wrapCb([&]() -> outcome::result<std::set<primitives::TaskType>> {
+          OUTCOME_TRY(tasks, worker->getSupportedTask());
+          // TODO(ortyomka): [FIL-344] Remove its
+          tasks.extract(primitives::kTTAddPiece);
+          return std::move(tasks);
+        });
 
-    wapi->SealPreCommit1 = [&](const SectorRef &sector,
-                               const SealRandomness &ticket,
-                               std::vector<PieceInfo> pieces) {
+    wapi->SealPreCommit1 = api::wrapCb([&](const SectorRef &sector,
+                                           const SealRandomness &ticket,
+                                           std::vector<PieceInfo> pieces) {
       return worker->sealPreCommit1(sector, ticket, pieces);
-    };
-    wapi->SealPreCommit2 = [&](const SectorRef &sector,
-                               const PreCommit1Output &pre_commit_1_output) {
-      return worker->sealPreCommit2(sector, pre_commit_1_output);
-    };
-    wapi->SealCommit1 = [&](const SectorRef &sector,
-                            const SealRandomness &ticket,
-                            const InteractiveRandomness &seed,
-                            std::vector<PieceInfo> pieces,
-                            const SectorCids &cids) {
+    });
+    wapi->SealPreCommit2 =
+        api::wrapCb([&](const SectorRef &sector,
+                        const PreCommit1Output &pre_commit_1_output) {
+          return worker->sealPreCommit2(sector, pre_commit_1_output);
+        });
+    wapi->SealCommit1 = api::wrapCb([&](const SectorRef &sector,
+                                        const SealRandomness &ticket,
+                                        const InteractiveRandomness &seed,
+                                        std::vector<PieceInfo> pieces,
+                                        const SectorCids &cids) {
       return worker->sealCommit1(sector, ticket, seed, pieces, cids);
-    };
-    wapi->SealCommit2 = [&](const SectorRef &sector,
-                            const Commit1Output &commit_1_output) {
-      return worker->sealCommit2(sector, commit_1_output);
-    };
-    wapi->FinalizeSector = [&](const SectorRef &sector,
-                               std::vector<Range> keep_unsealed) {
-      return worker->finalizeSector(sector, keep_unsealed);
-    };
+    });
+    wapi->SealCommit2 = api::wrapCb(
+        [&](const SectorRef &sector, const Commit1Output &commit_1_output) {
+          return worker->sealCommit2(sector, commit_1_output);
+        });
+    wapi->FinalizeSector = api::wrapCb(
+        [&](const SectorRef &sector, std::vector<Range> keep_unsealed) {
+          return worker->finalizeSector(sector, keep_unsealed);
+        });
 
     std::map<std::string, std::shared_ptr<api::Rpc>> wrpc;
     wrpc.emplace("/rpc/v0", api::makeRpc(*wapi));
@@ -276,15 +279,16 @@ namespace fc {
     boost::asio::post(*(thread.io), [&] {
       spdlog::info("fuhon worker are registering");
       auto address{fmt::format("/ip4/127.0.0.1/tcp/{}/http", config.api_port)};
-      auto maybe_error =
-          mapi->WorkerConnect(address);  // TODO: make reconnect if failed
-
-      if (maybe_error.has_error()) {
-        spdlog::error("worker register error: {}",
-                      maybe_error.error().message());
-        return;
-      }
-      spdlog::info("fuhon worker registered");
+      mapi->WorkerConnect(
+          [](const outcome::result<void> &maybe_error) {
+            if (maybe_error.has_error()) {
+              spdlog::error("worker register error: {}",
+                            maybe_error.error().message());
+              return;
+            }
+            spdlog::info("fuhon worker registered");
+          },
+          address);  // TODO: make reconnect if failed
     });
 
     spdlog::info("fuhon worker started");

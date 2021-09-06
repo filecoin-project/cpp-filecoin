@@ -241,14 +241,14 @@ namespace fc::api {
       return context;
     };
 
-    api->AuthNew = {[](auto) { return Buffer{1, 2, 3}; }};
-    api->BeaconGetEntry = waitCb<BeaconEntry>([=](auto epoch, auto &&cb) {
+    api->AuthNew = wrapCb([](auto) { return Buffer{1, 2, 3}; });
+    api->BeaconGetEntry = [=](auto &&cb, auto epoch) {
       return beaconizer->entry(drand_schedule->maxRound(epoch), cb);
-    });
-    api->ChainGetBlock = {
-        [=](auto &block_cid) { return getCbor<BlockHeader>(ipld, block_cid); }};
-    api->ChainGetBlockMessages = {
-        [=](auto &block_cid) -> outcome::result<BlockMessages> {
+    };
+    api->ChainGetBlock = wrapCb(
+        [=](auto &block_cid) { return getCbor<BlockHeader>(ipld, block_cid); });
+    api->ChainGetBlockMessages =
+        wrapCb([=](auto &block_cid) -> outcome::result<BlockMessages> {
           BlockMessages messages;
           OUTCOME_TRY(block, getCbor<BlockHeader>(ipld, block_cid));
           OUTCOME_TRY(meta, getCbor<MsgMeta>(ipld, block.messages));
@@ -267,11 +267,11 @@ namespace fc::api {
                 return outcome::success();
               }));
           return messages;
-        }};
-    api->ChainGetGenesis = {[=]() -> outcome::result<TipsetCPtr> {
+        });
+    api->ChainGetGenesis = wrapCb([=]() -> outcome::result<TipsetCPtr> {
       return ts_load->lazyLoad(ts_main->bottom().second);
-    }};
-    api->ChainGetNode = {[=](auto &path) -> outcome::result<IpldObject> {
+    });
+    api->ChainGetNode = wrapCb([=](auto &path) -> outcome::result<IpldObject> {
       std::vector<std::string> parts;
       boost::split(parts, path, [](auto c) { return c == '/'; });
       if (parts.size() < 3 || !parts[0].empty() || parts[1] != "ipfs") {
@@ -279,12 +279,13 @@ namespace fc::api {
       }
       OUTCOME_TRY(root, CID::fromString(parts[2]));
       return getNode(ipld, root, gsl::make_span(parts).subspan(3));
-    }};
-    api->ChainGetMessage = {[=](auto &cid) -> outcome::result<UnsignedMessage> {
-      OUTCOME_TRY(cbor, ipld->get(cid));
-      return UnsignedMessage::decode(cbor);
-    }};
-    api->ChainGetParentMessages = {
+    });
+    api->ChainGetMessage =
+        wrapCb([=](auto &cid) -> outcome::result<UnsignedMessage> {
+          OUTCOME_TRY(cbor, ipld->get(cid));
+          return UnsignedMessage::decode(cbor);
+        });
+    api->ChainGetParentMessages = wrapCb(
         [=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
           std::vector<CidMessage> messages;
           OUTCOME_TRY(block, getCbor<BlockHeader>(ipld, block_cid));
@@ -305,40 +306,40 @@ namespace fc::api {
                 }));
           }
           return messages;
-        }};
-    api->ChainGetParentReceipts = {
+        });
+    api->ChainGetParentReceipts = wrapCb(
         [=](auto &block_cid) -> outcome::result<std::vector<MessageReceipt>> {
           OUTCOME_TRY(block, getCbor<BlockHeader>(ipld, block_cid));
           return adt::Array<MessageReceipt>{block.parent_message_receipts, ipld}
               .values();
-        }};
-    api->ChainGetRandomnessFromBeacon = {
-        [=](auto &tipset_key, auto tag, auto epoch, auto &entropy)
-            -> outcome::result<Randomness> {
+        });
+    api->ChainGetRandomnessFromBeacon =
+        wrapCb([=](auto &tipset_key, auto tag, auto epoch, auto &entropy)
+                   -> outcome::result<Randomness> {
           std::shared_lock ts_lock{*env_context.ts_branches_mutex};
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
           return env_context.randomness->getRandomnessFromBeacon(
               ts_branch, tag, epoch, entropy);
-        }};
-    api->ChainGetRandomnessFromTickets = {
-        [=](auto &tipset_key, auto tag, auto epoch, auto &entropy)
-            -> outcome::result<Randomness> {
+        });
+    api->ChainGetRandomnessFromTickets =
+        wrapCb([=](auto &tipset_key, auto tag, auto epoch, auto &entropy)
+                   -> outcome::result<Randomness> {
           std::shared_lock ts_lock{*env_context.ts_branches_mutex};
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
           return env_context.randomness->getRandomnessFromTickets(
               ts_branch, tag, epoch, entropy);
-        }};
-    api->ChainGetTipSet = {
-        [=](auto &tipset_key) { return ts_load->load(tipset_key); }};
-    api->ChainGetTipSetByHeight = {
+        });
+    api->ChainGetTipSet =
+        wrapCb([=](auto &tipset_key) { return ts_load->load(tipset_key); });
+    api->ChainGetTipSetByHeight = wrapCb(
         [=](auto height, auto &tipset_key) -> outcome::result<TipsetCPtr> {
           std::shared_lock ts_lock{*env_context.ts_branches_mutex};
           OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
           OUTCOME_TRY(it, find(ts_branch, height));
           return ts_load->lazyLoad(it.second->second);
-        }};
-    api->ChainHead = {[=]() { return chain_store->heaviestTipset(); }};
-    api->ChainNotify = {[=]() {
+        });
+    api->ChainHead = wrapCb([=]() { return chain_store->heaviestTipset(); });
+    api->ChainNotify = wrapCb([=]() {
       auto channel = std::make_shared<Channel<std::vector<HeadChange>>>();
       auto cnn = std::make_shared<connection_t>();
       *cnn = chain_store->subscribeHeadChanges([=](auto &changes) {
@@ -348,78 +349,76 @@ namespace fc::api {
         }
       });
       return Chan{std::move(channel)};
-    }};
-    api->ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }};
+    });
+    api->ChainReadObj = wrapCb([=](const auto &cid) { return ipld->get(cid); });
     // TODO(turuslan): FIL-165 implement method
     api->ChainSetHead = {};
-    api->ChainTipSetWeight = {
-        [=](auto &tipset_key) -> outcome::result<TipsetWeight> {
+    api->ChainTipSetWeight =
+        wrapCb([=](auto &tipset_key) -> outcome::result<TipsetWeight> {
           OUTCOME_TRY(tipset, ts_load->load(tipset_key));
           return weight_calculator->calculateWeight(*tipset);
-        }};
-
-    api->ClientFindData = waitCb<std::vector<QueryOffer>>(
-        [=](auto &&root_cid, auto &&piece_cid, auto &&cb) {
-          OUTCOME_CB(auto peers, market_discovery->getPeers(root_cid));
-          // if piece_cid is specified, remove peers without the piece_cid
-          if (piece_cid.has_value()) {
-            peers.erase(std::remove_if(peers.begin(),
-                                       peers.end(),
-                                       [&piece_cid](auto &peer) {
-                                         return peer.piece != *piece_cid;
-                                       }),
-                        peers.end());
-          }
-
-          auto waiter = std::make_shared<
-              AsyncWaiter<RetrievalPeer, outcome::result<QueryResponse>>>(
-              peers.size(), [=](auto all_calls) {
-                std::vector<QueryOffer> result;
-                for (const auto &[peer, maybe_response] : all_calls) {
-                  if (maybe_response.has_error()) {
-                    logger->error("Error when query peer {}",
-                                  maybe_response.error().message());
-                  } else {
-                    auto response{maybe_response.value()};
-                    std::string error_message;
-                    switch (response.response_status) {
-                      case markets::retrieval::QueryResponseStatus::
-                          kQueryResponseAvailable:
-                        break;
-                      case markets::retrieval::QueryResponseStatus::
-                          kQueryResponseUnavailable:
-                        error_message =
-                            "retrieval query offer was unavailable: "
-                            + response.message;
-                        break;
-                      case markets::retrieval::QueryResponseStatus::
-                          kQueryResponseError:
-                        error_message = "retrieval query offer errored: "
-                                        + response.message;
-                        break;
-                    }
-
-                    result.emplace_back(QueryOffer{
-                        error_message,
-                        root_cid,
-                        piece_cid,
-                        response.item_size,
-                        response.unseal_price
-                            + response.min_price_per_byte * response.item_size,
-                        response.unseal_price,
-                        response.payment_interval,
-                        response.interval_increase,
-                        response.payment_address,
-                        peer});
-                  }
-                }
-                cb(result);
-              });
-          for (const auto &peer : peers) {
-            OUTCOME_CB1(retrieval_market_client->query(
-                peer, {root_cid, {piece_cid}}, waiter->on(peer)));
-          }
         });
+
+    api->ClientFindData = [=](auto &&cb, auto &&root_cid, auto &&piece_cid) {
+      OUTCOME_CB(auto peers, market_discovery->getPeers(root_cid));
+      // if piece_cid is specified, remove peers without the piece_cid
+      if (piece_cid.has_value()) {
+        peers.erase(std::remove_if(peers.begin(),
+                                   peers.end(),
+                                   [&piece_cid](auto &peer) {
+                                     return peer.piece != *piece_cid;
+                                   }),
+                    peers.end());
+      }
+
+      auto waiter = std::make_shared<
+          AsyncWaiter<RetrievalPeer, outcome::result<QueryResponse>>>(
+          peers.size(), [=](auto all_calls) {
+            std::vector<QueryOffer> result;
+            for (const auto &[peer, maybe_response] : all_calls) {
+              if (maybe_response.has_error()) {
+                logger->error("Error when query peer {}",
+                              maybe_response.error().message());
+              } else {
+                auto response{maybe_response.value()};
+                std::string error_message;
+                switch (response.response_status) {
+                  case markets::retrieval::QueryResponseStatus::
+                      kQueryResponseAvailable:
+                    break;
+                  case markets::retrieval::QueryResponseStatus::
+                      kQueryResponseUnavailable:
+                    error_message = "retrieval query offer was unavailable: "
+                                    + response.message;
+                    break;
+                  case markets::retrieval::QueryResponseStatus::
+                      kQueryResponseError:
+                    error_message =
+                        "retrieval query offer errored: " + response.message;
+                    break;
+                }
+
+                result.emplace_back(QueryOffer{
+                    error_message,
+                    root_cid,
+                    piece_cid,
+                    response.item_size,
+                    response.unseal_price
+                        + response.min_price_per_byte * response.item_size,
+                    response.unseal_price,
+                    response.payment_interval,
+                    response.interval_increase,
+                    response.payment_address,
+                    peer});
+              }
+            }
+            cb(result);
+          });
+      for (const auto &peer : peers) {
+        OUTCOME_CB1(retrieval_market_client->query(
+            peer, {root_cid, {piece_cid}}, waiter->on(peer)));
+      }
+    };
 
     // TODO(turuslan): FIL-165 implement method
     api->ClientHasLocal = {};
@@ -433,164 +432,168 @@ namespace fc::api {
     /**
      * Initiates the retrieval deal of a file in retrieval market.
      */
-    api->ClientRetrieve = waitCb<None>(
-        [retrieval_market_client](auto &&order, auto &&file_ref, auto &&cb) {
-          if (order.size == 0) {
-            cb(ERROR_TEXT("Cannot make retrieval deal for zero bytes"));
-          }
-          auto price_per_byte = bigdiv(order.total, order.size);
-          DealProposalParams params{
-              .selector = kAllSelector,
-              .piece = order.piece,
-              .price_per_byte = price_per_byte,
-              .payment_interval = order.payment_interval,
-              .payment_interval_increase = order.payment_interval_increase,
-              .unseal_price = order.unseal_price};
-          OUTCOME_CB1(retrieval_market_client->retrieve(
-              order.root,
-              params,
-              order.total,
-              order.peer,
-              order.client,
-              order.miner,
-              [cb{std::move(cb)}](outcome::result<void> res) {
-                if (res.has_error()) {
-                  logger->error("Error in ClientRetrieve {}",
-                                res.error().message());
-                  cb(res.error());
-                } else {
-                  logger->info("retrieval deal proposed");
-                  cb(outcome::success());
-                }
-              }));
-        });
+    api->ClientRetrieve = [retrieval_market_client](
+                              auto &&cb, auto &&order, auto &&file_ref) {
+      if (order.size == 0) {
+        cb(ERROR_TEXT("Cannot make retrieval deal for zero bytes"));
+      }
+      auto price_per_byte = bigdiv(order.total, order.size);
+      DealProposalParams params{
+          .selector = kAllSelector,
+          .piece = order.piece,
+          .price_per_byte = price_per_byte,
+          .payment_interval = order.payment_interval,
+          .payment_interval_increase = order.payment_interval_increase,
+          .unseal_price = order.unseal_price};
+      OUTCOME_CB1(retrieval_market_client->retrieve(
+          order.root,
+          params,
+          order.total,
+          order.peer,
+          order.client,
+          order.miner,
+          [cb{std::move(cb)}](outcome::result<void> res) {
+            if (res.has_error()) {
+              logger->error("Error in ClientRetrieve {}",
+                            res.error().message());
+              cb(res.error());
+            } else {
+              logger->info("retrieval deal proposed");
+              cb(outcome::success());
+            }
+          }));
+    };
 
     api->ClientStartDeal = {/* impemented in node/main.cpp */};
 
-    api->GasEstimateFeeCap = {[=](auto &msg, auto max_blocks, auto &) {
+    api->GasEstimateFeeCap = wrapCb([=](auto &msg, auto max_blocks, auto &) {
       return mpool->estimateFeeCap(msg.gas_premium, max_blocks);
-    }};
-    api->GasEstimateGasPremium = {[=](auto max_blocks, auto &, auto, auto &) {
-      return mpool->estimateGasPremium(max_blocks);
-    }};
-    api->GasEstimateMessageGas = {
+    });
+    api->GasEstimateGasPremium =
+        wrapCb([=](auto max_blocks, auto &, auto, auto &) {
+          return mpool->estimateGasPremium(max_blocks);
+        });
+    api->GasEstimateMessageGas = wrapCb(
         [=](auto msg, auto &spec, auto &) -> outcome::result<UnsignedMessage> {
           OUTCOME_TRY(mpool->estimate(
               msg, spec ? spec->max_fee : storage::mpool::kDefaultMaxFee));
           return msg;
-        }};
-
-    api->MarketReserveFunds = {[=](const Address &wallet,
-                                   const Address &address,
-                                   const TokenAmount &amount)
-                                   -> outcome::result<boost::optional<CID>> {
-      if (!amount) {
-        return boost::none;
-      }
-      // TODO(a.chernyshov): method should use fund manager batch reserve and
-      // release funds requests for market actor.
-      vm::actor::builtin::v0::market::AddBalance::Params params{address};
-      OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
-      UnsignedMessage unsigned_message{
-          kStorageMarketAddress,
-          wallet,
-          {},
-          amount,
-          0,
-          0,
-          // TODO (a.chernyshov) there is v0 actor method number, but the actor
-          // methods do not depend on version. Should be changed to general
-          // method number when methods number are made general
-          vm::actor::builtin::v0::market::AddBalance::Number,
-          encoded_params};
-      OUTCOME_TRY(signed_message,
-                  api->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
-      return signed_message.getCid();
-    }};
-
-    api->MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockWithCids> {
-      OUTCOME_TRY(context, tipsetContext(t.parents, true));
-      OUTCOME_TRY(miner_state, context.minerState(t.miner));
-      OUTCOME_TRY(block,
-                  blockchain::production::generate(
-                      *interpreter_cache, ts_load, ipld, std::move(t)));
-
-      OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
-      OUTCOME_TRY(miner_info, miner_state->getInfo());
-      OUTCOME_TRY(worker_key, context.accountKey(miner_info->worker));
-      OUTCOME_TRY(block_sig, key_store->sign(worker_key, block_signable));
-      block.header.block_sig = block_sig;
-
-      BlockWithCids block2;
-      block2.header = block.header;
-      for (auto &msg : block.bls_messages) {
-        OUTCOME_TRY(cid, setCbor(ipld, msg));
-        block2.bls_messages.emplace_back(std::move(cid));
-      }
-      for (auto &msg : block.secp_messages) {
-        OUTCOME_TRY(cid, setCbor(ipld, msg));
-        block2.secp_messages.emplace_back(std::move(cid));
-      }
-      return block2;
-    }};
-    api->MinerGetBaseInfo = waitCb<boost::optional<MiningBaseInfo>>(
-        [=](auto &&miner, auto epoch, auto &&tipset_key, auto &&cb) {
-          OUTCOME_CB(auto context, tipsetContext(tipset_key, true));
-          MiningBaseInfo info;
-
-          std::shared_lock ts_lock{*env_context.ts_branches_mutex};
-          OUTCOME_CB(auto ts_branch,
-                     TsBranch::make(ts_load, tipset_key, ts_main));
-          OUTCOME_CB(auto it, find(ts_branch, context.tipset->height()));
-          OUTCOME_CB(info.prev_beacon, latestBeacon(ts_load, it));
-          OUTCOME_CB(auto it2, getLookbackTipSetForRound(it, epoch));
-          OUTCOME_CB(auto cached,
-                     interpreter_cache->get(it2.second->second.key));
-          ts_lock.unlock();
-
-          auto prev{info.prev_beacon.round};
-          beaconEntriesForBlock(
-              *drand_schedule,
-              *beaconizer,
-              epoch,
-              prev,
-              [=, MOVE(cb), MOVE(context), MOVE(info)](auto _beacons) mutable {
-                OUTCOME_CB(info.beacons, _beacons);
-                TipsetContext lookback{
-                    nullptr,
-                    {withVersion(ipld, epoch), std::move(cached.state_root)},
-                    {}};
-                OUTCOME_CB(auto actor, lookback.state_tree.tryGet(miner));
-                if (!actor) {
-                  return cb(boost::none);
-                }
-                OUTCOME_CB(auto miner_state,
-                           getCbor<MinerActorStatePtr>(lookback, actor->head));
-                OUTCOME_CB(auto seed, codec::cbor::encode(miner));
-                auto post_rand{crypto::randomness::drawRandomness(
-                    info.beacon().data,
-                    DomainSeparationTag::WinningPoStChallengeSeed,
-                    epoch,
-                    seed)};
-                OUTCOME_CB(info.sectors,
-                           getSectorsForWinningPoSt(
-                               miner, miner_state, post_rand, lookback));
-                if (info.sectors.empty()) {
-                  return cb(boost::none);
-                }
-                OUTCOME_CB(auto power_state, lookback.powerState());
-                OUTCOME_CB(auto claim, power_state->getClaim(miner));
-                info.miner_power = claim->qa_power;
-                info.network_power = power_state->total_qa_power;
-                OUTCOME_CB(auto miner_info, miner_state->getInfo());
-                OUTCOME_CB(info.worker, context.accountKey(miner_info->worker));
-                info.sector_size = miner_info->sector_size;
-                info.has_min_power = minerHasMinPower(
-                    claim->qa_power, power_state->num_miners_meeting_min_power);
-                cb(std::move(info));
-              });
         });
-    api->MpoolPending = {
+
+    api->MarketReserveFunds =
+        wrapCb([=](const Address &wallet,
+                   const Address &address,
+                   const TokenAmount &amount)
+                   -> outcome::result<boost::optional<CID>> {
+          if (!amount) {
+            return boost::none;
+          }
+          // TODO(a.chernyshov): method should use fund manager batch reserve
+          // and release funds requests for market actor.
+          vm::actor::builtin::v0::market::AddBalance::Params params{address};
+          OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
+          UnsignedMessage unsigned_message{
+              kStorageMarketAddress,
+              wallet,
+              {},
+              amount,
+              0,
+              0,
+              // TODO (a.chernyshov) there is v0 actor method number, but the
+              // actor methods do not depend on version. Should be changed to
+              // general method number when methods number are made general
+              vm::actor::builtin::v0::market::AddBalance::Number,
+              encoded_params};
+          OUTCOME_TRY(
+              signed_message,
+              api->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
+          return signed_message.getCid();
+        });
+
+    api->MinerCreateBlock =
+        wrapCb([=](auto &t) -> outcome::result<BlockWithCids> {
+          OUTCOME_TRY(context, tipsetContext(t.parents, true));
+          OUTCOME_TRY(miner_state, context.minerState(t.miner));
+          OUTCOME_TRY(block,
+                      blockchain::production::generate(
+                          *interpreter_cache, ts_load, ipld, std::move(t)));
+
+          OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
+          OUTCOME_TRY(miner_info, miner_state->getInfo());
+          OUTCOME_TRY(worker_key, context.accountKey(miner_info->worker));
+          OUTCOME_TRY(block_sig, key_store->sign(worker_key, block_signable));
+          block.header.block_sig = block_sig;
+
+          BlockWithCids block2;
+          block2.header = block.header;
+          for (auto &msg : block.bls_messages) {
+            OUTCOME_TRY(cid, setCbor(ipld, msg));
+            block2.bls_messages.emplace_back(std::move(cid));
+          }
+          for (auto &msg : block.secp_messages) {
+            OUTCOME_TRY(cid, setCbor(ipld, msg));
+            block2.secp_messages.emplace_back(std::move(cid));
+          }
+          return block2;
+        });
+    api->MinerGetBaseInfo = [=](auto &&cb,
+                                auto &&miner,
+                                auto epoch,
+                                auto &&tipset_key) {
+      OUTCOME_CB(auto context, tipsetContext(tipset_key, true));
+      MiningBaseInfo info;
+
+      std::shared_lock ts_lock{*env_context.ts_branches_mutex};
+      OUTCOME_CB(auto ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+      OUTCOME_CB(auto it, find(ts_branch, context.tipset->height()));
+      OUTCOME_CB(info.prev_beacon, latestBeacon(ts_load, it));
+      OUTCOME_CB(auto it2, getLookbackTipSetForRound(it, epoch));
+      OUTCOME_CB(auto cached, interpreter_cache->get(it2.second->second.key));
+      ts_lock.unlock();
+
+      auto prev{info.prev_beacon.round};
+      beaconEntriesForBlock(
+          *drand_schedule,
+          *beaconizer,
+          epoch,
+          prev,
+          [=, MOVE(cb), MOVE(context), MOVE(info)](auto _beacons) mutable {
+            OUTCOME_CB(info.beacons, _beacons);
+            TipsetContext lookback{
+                nullptr,
+                {withVersion(ipld, epoch), std::move(cached.state_root)},
+                {}};
+            OUTCOME_CB(auto actor, lookback.state_tree.tryGet(miner));
+            if (!actor) {
+              return cb(boost::none);
+            }
+            OUTCOME_CB(auto miner_state,
+                       getCbor<MinerActorStatePtr>(lookback, actor->head));
+            OUTCOME_CB(auto seed, codec::cbor::encode(miner));
+            auto post_rand{crypto::randomness::drawRandomness(
+                info.beacon().data,
+                DomainSeparationTag::WinningPoStChallengeSeed,
+                epoch,
+                seed)};
+            OUTCOME_CB(info.sectors,
+                       getSectorsForWinningPoSt(
+                           miner, miner_state, post_rand, lookback));
+            if (info.sectors.empty()) {
+              return cb(boost::none);
+            }
+            OUTCOME_CB(auto power_state, lookback.powerState());
+            OUTCOME_CB(auto claim, power_state->getClaim(miner));
+            info.miner_power = claim->qa_power;
+            info.network_power = power_state->total_qa_power;
+            OUTCOME_CB(auto miner_info, miner_state->getInfo());
+            OUTCOME_CB(info.worker, context.accountKey(miner_info->worker));
+            info.sector_size = miner_info->sector_size;
+            info.has_min_power = minerHasMinPower(
+                claim->qa_power, power_state->num_miners_meeting_min_power);
+            cb(std::move(info));
+          });
+    };
+    api->MpoolPending = wrapCb(
         [=](auto &tipset_key) -> outcome::result<std::vector<SignedMessage>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           if (context.tipset->height()
@@ -598,9 +601,9 @@ namespace fc::api {
             return ERROR_TEXT("MpoolPending: tipset from future requested");
           }
           return mpool->pending();
-        }};
-    api->MpoolPushMessage = {
-        [=](auto message, auto &spec) -> outcome::result<SignedMessage> {
+        });
+    api->MpoolPushMessage =
+        wrapCb([=](auto message, auto &spec) -> outcome::result<SignedMessage> {
           OUTCOME_TRY(context, tipsetContext({}));
           if (message.from.isId()) {
             OUTCOME_TRYA(message.from,
@@ -615,13 +618,14 @@ namespace fc::api {
                           message.from, message));
           OUTCOME_TRY(mpool->add(signed_message));
           return std::move(signed_message);
-        }};
-    api->MpoolSelect = {[=](auto &tsk, auto ticket_quality)
-                            -> outcome::result<std::vector<SignedMessage>> {
-      OUTCOME_TRY(ts, ts_load->load(tsk));
-      return mpool->select(ts, ticket_quality);
-    }};
-    api->MpoolSub = {[=]() {
+        });
+    api->MpoolSelect =
+        wrapCb([=](auto &tsk, auto ticket_quality)
+                   -> outcome::result<std::vector<SignedMessage>> {
+          OUTCOME_TRY(ts, ts_load->load(tsk));
+          return mpool->select(ts, ticket_quality);
+        });
+    api->MpoolSub = wrapCb([=]() {
       auto channel{std::make_shared<Channel<MpoolUpdate>>()};
       auto cnn{std::make_shared<connection_t>()};
       *cnn = mpool->subscribe([=](auto &change) {
@@ -631,122 +635,127 @@ namespace fc::api {
         }
       });
       return Chan{std::move(channel)};
-    }};
-    api->StateAccountKey = {
+    });
+    api->StateAccountKey = wrapCb(
         [=](auto &address, auto &tipset_key) -> outcome::result<Address> {
           if (address.isKeyType()) {
             return address;
           }
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           return context.accountKey(address);
-        }};
-    api->StateCall = {[=](auto message,
-                          auto &tipset_key) -> outcome::result<InvocResult> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+        });
+    api->StateCall = wrapCb(
+        [=](auto message, auto &tipset_key) -> outcome::result<InvocResult> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
 
-      std::shared_lock ts_lock{*env_context.ts_branches_mutex};
-      OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
-      ts_lock.unlock();
+          std::shared_lock ts_lock{*env_context.ts_branches_mutex};
+          OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+          ts_lock.unlock();
 
-      if (!message.gas_limit) {
-        message.gas_limit = kBlockGasLimit;
-      }
-      auto env = std::make_shared<Env>(env_context, ts_branch, context.tipset);
-      InvocResult result;
-      result.message = message;
-      OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
-      return result;
-    }};
+          if (!message.gas_limit) {
+            message.gas_limit = kBlockGasLimit;
+          }
+          auto env =
+              std::make_shared<Env>(env_context, ts_branch, context.tipset);
+          InvocResult result;
+          result.message = message;
+          OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
+          return result;
+        });
     api->StateDealProviderCollateralBounds =
-        [=](auto size,
-            auto verified,
-            auto &tsk) -> outcome::result<DealCollateralBounds> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
-      OUTCOME_TRY(power, context.powerState());
-      OUTCOME_TRY(reward, context.rewardState());
-      OUTCOME_TRY(
-          circ,
-          env_context.circulating->circulating(
-              std::make_shared<StateTreeImpl>(std::move(context.state_tree)),
-              context.tipset->epoch()));
-      auto bounds{
-          vm::actor::builtin::types::market::dealProviderCollateralBounds(
-              size,
-              verified,
-              power->total_raw_power,
-              power->total_qa_power,
-              reward->this_epoch_baseline_power,
-              circ,
-              getNetworkVersion(context.tipset->epoch()))};
-      return DealCollateralBounds{bigdiv(bounds.min * 110, 100), bounds.max};
-    };
-    api->StateListMessages = {[=](auto &match, auto &tipset_key, auto to_height)
-                                  -> outcome::result<std::vector<CID>> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+        wrapCb([=](auto size,
+                   auto verified,
+                   auto &tsk) -> outcome::result<DealCollateralBounds> {
+          OUTCOME_TRY(context, tipsetContext(tsk));
+          OUTCOME_TRY(power, context.powerState());
+          OUTCOME_TRY(reward, context.rewardState());
+          OUTCOME_TRY(circ,
+                      env_context.circulating->circulating(
+                          std::make_shared<StateTreeImpl>(
+                              std::move(context.state_tree)),
+                          context.tipset->epoch()));
+          auto bounds{
+              vm::actor::builtin::types::market::dealProviderCollateralBounds(
+                  size,
+                  verified,
+                  power->total_raw_power,
+                  power->total_qa_power,
+                  reward->this_epoch_baseline_power,
+                  circ,
+                  getNetworkVersion(context.tipset->epoch()))};
+          return DealCollateralBounds{bigdiv(bounds.min * 110, 100),
+                                      bounds.max};
+        });
+    api->StateListMessages =
+        wrapCb([=](auto &match,
+                   auto &tipset_key,
+                   auto to_height) -> outcome::result<std::vector<CID>> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
 
-      // TODO(artyom-yurin): Make sure at least one of 'to' or 'from' is
-      // defined
+          // TODO(artyom-yurin): Make sure at least one of 'to' or 'from' is
+          // defined
 
-      auto matchFunc = [&](const UnsignedMessage &message) -> bool {
-        if (match.to != message.to) {
-          return false;
-        }
+          auto matchFunc = [&](const UnsignedMessage &message) -> bool {
+            if (match.to != message.to) {
+              return false;
+            }
 
-        if (match.from != message.from) {
-          return false;
-        }
+            if (match.from != message.from) {
+              return false;
+            }
 
-        return true;
-      };
+            return true;
+          };
 
-      std::vector<CID> result;
+          std::vector<CID> result;
 
-      while (static_cast<int64_t>(context.tipset->height()) >= to_height) {
-        std::set<CID> visited_cid;
+          while (static_cast<int64_t>(context.tipset->height()) >= to_height) {
+            std::set<CID> visited_cid;
 
-        auto isDuplicateMessage = [&](const CID &cid) -> bool {
-          return !visited_cid.insert(cid).second;
-        };
+            auto isDuplicateMessage = [&](const CID &cid) -> bool {
+              return !visited_cid.insert(cid).second;
+            };
 
-        for (const BlockHeader &block : context.tipset->blks) {
-          OUTCOME_TRY(meta, getCbor<MsgMeta>(ipld, block.messages));
-          OUTCOME_TRY(meta.bls_messages.visit(
-              [&](auto, auto &cid) -> outcome::result<void> {
-                OUTCOME_TRY(message, getCbor<UnsignedMessage>(ipld, cid));
+            for (const BlockHeader &block : context.tipset->blks) {
+              OUTCOME_TRY(meta, getCbor<MsgMeta>(ipld, block.messages));
+              OUTCOME_TRY(meta.bls_messages.visit(
+                  [&](auto, auto &cid) -> outcome::result<void> {
+                    OUTCOME_TRY(message, getCbor<UnsignedMessage>(ipld, cid));
 
-                if (!isDuplicateMessage(cid) && matchFunc(message)) {
-                  result.push_back(cid);
-                }
+                    if (!isDuplicateMessage(cid) && matchFunc(message)) {
+                      result.push_back(cid);
+                    }
 
-                return outcome::success();
-              }));
-          OUTCOME_TRY(meta.secp_messages.visit(
-              [&](auto, auto &cid) -> outcome::result<void> {
-                OUTCOME_TRY(message, getCbor<SignedMessage>(ipld, cid));
+                    return outcome::success();
+                  }));
+              OUTCOME_TRY(meta.secp_messages.visit(
+                  [&](auto, auto &cid) -> outcome::result<void> {
+                    OUTCOME_TRY(message, getCbor<SignedMessage>(ipld, cid));
 
-                if (!isDuplicateMessage(cid) && matchFunc(message.message)) {
-                  result.push_back(cid);
-                }
-                return outcome::success();
-              }));
-        }
+                    if (!isDuplicateMessage(cid)
+                        && matchFunc(message.message)) {
+                      result.push_back(cid);
+                    }
+                    return outcome::success();
+                  }));
+            }
 
-        if (context.tipset->height() == 0) break;
+            if (context.tipset->height() == 0) break;
 
-        OUTCOME_TRY(parent_context,
-                    tipsetContext(context.tipset->getParents()));
+            OUTCOME_TRY(parent_context,
+                        tipsetContext(context.tipset->getParents()));
 
-        context = std::move(parent_context);
-      }
+            context = std::move(parent_context);
+          }
 
-      return result;
-    }};
-    api->StateGetActor = {
-        [=](auto &address, auto &tipset_key) -> outcome::result<Actor> {
+          return result;
+        });
+    api->StateGetActor =
+        wrapCb([=](auto &address, auto &tipset_key) -> outcome::result<Actor> {
           OUTCOME_TRY(context, tipsetContext(tipset_key, true));
           return context.state_tree.get(address);
-        }};
-    api->StateReadState = {
+        });
+    api->StateReadState = wrapCb(
         [=](auto &actor, auto &tipset_key) -> outcome::result<ActorState> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           auto cid = actor.head;
@@ -755,22 +764,22 @@ namespace fc::api {
               .balance = actor.balance,
               .state = IpldObject{std::move(cid), std::move(raw)},
           };
-        }};
-    api->StateListMiners = {
-        [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
+        });
+    api->StateListMiners =
+        wrapCb([=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(power_state, context.powerState());
           return power_state->claims.keys();
-        }};
-    api->StateListActors = {
-        [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
+        });
+    api->StateListActors =
+        wrapCb([=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(root, context.state_tree.flush());
           adt::Map<Actor, adt::AddressKeyer> actors{root, ipld};
 
           return actors.keys();
-        }};
-    api->StateMarketBalance = {
+        });
+    api->StateMarketBalance = wrapCb(
         [=](auto &address, auto &tipset_key) -> outcome::result<MarketBalance> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
@@ -784,9 +793,9 @@ namespace fc::api {
             locked = 0;
           }
           return MarketBalance{*escrow, *locked};
-        }};
-    api->StateMarketDeals = {
-        [=](auto &tipset_key) -> outcome::result<MarketDealMap> {
+        });
+    api->StateMarketDeals =
+        wrapCb([=](auto &tipset_key) -> outcome::result<MarketDealMap> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
           MarketDealMap map;
@@ -797,13 +806,13 @@ namespace fc::api {
             return outcome::success();
           }));
           return map;
-        }};
-    api->StateLookupID = {
+        });
+    api->StateLookupID = wrapCb(
         [=](auto &address, auto &tipset_key) -> outcome::result<Address> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           return context.state_tree.lookupId(address);
-        }};
-    api->StateMarketStorageDeal = {
+        });
+    api->StateMarketStorageDeal = wrapCb(
         [=](auto deal_id, auto &tipset_key) -> outcome::result<StorageDeal> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
@@ -815,29 +824,30 @@ namespace fc::api {
                                    kChainEpochUndefined};
           }
           return StorageDeal{deal, *deal_state};
-        }};
-    api->StateMinerActiveSectors =
+        });
+    api->StateMinerActiveSectors = wrapCb(
         [=](auto &miner,
             auto &tsk) -> outcome::result<std::vector<SectorOnChainInfo>> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
-      OUTCOME_TRY(state, context.minerState(miner));
-      std::vector<SectorOnChainInfo> sectors;
-      OUTCOME_TRY(deadlines, state->deadlines.get());
-      for (auto &_deadline : deadlines.due) {
-        OUTCOME_TRY(deadline, state->getDeadline(context, _deadline));
-        OUTCOME_TRY(deadline.partitions.visit(
-            [&](auto, auto &part) -> outcome::result<void> {
-              for (auto &id : part->activeSectors()) {
-                OUTCOME_TRYA(sectors.emplace_back(), state->sectors.get(id));
-              }
-              return outcome::success();
-            }));
-      }
-      return sectors;
-    };
-    api->StateMinerDeadlines = {
-        [=](auto &address,
-            auto &tipset_key) -> outcome::result<std::vector<Deadline>> {
+          OUTCOME_TRY(context, tipsetContext(tsk));
+          OUTCOME_TRY(state, context.minerState(miner));
+          std::vector<SectorOnChainInfo> sectors;
+          OUTCOME_TRY(deadlines, state->deadlines.get());
+          for (auto &_deadline : deadlines.due) {
+            OUTCOME_TRY(deadline, state->getDeadline(context, _deadline));
+            OUTCOME_TRY(deadline.partitions.visit(
+                [&](auto, auto &part) -> outcome::result<void> {
+                  for (auto &id : part->activeSectors()) {
+                    OUTCOME_TRYA(sectors.emplace_back(),
+                                 state->sectors.get(id));
+                  }
+                  return outcome::success();
+                }));
+          }
+          return sectors;
+        });
+    api->StateMinerDeadlines =
+        wrapCb([=](auto &address,
+                   auto &tipset_key) -> outcome::result<std::vector<Deadline>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           OUTCOME_TRY(deadlines, state->deadlines.get());
@@ -847,8 +857,8 @@ namespace fc::api {
             result.push_back(Deadline{deadline.post_submissions});
           }
           return result;
-        }};
-    api->StateMinerFaults = {
+        });
+    api->StateMinerFaults = wrapCb(
         [=](auto address, auto tipset_key) -> outcome::result<RleBitset> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
@@ -862,8 +872,8 @@ namespace fc::api {
             }));
           }
           return faults;
-        }};
-    api->StateMinerInfo = {
+        });
+    api->StateMinerInfo = wrapCb(
         [=](auto &address, auto &tipset_key) -> outcome::result<MinerInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(miner_state, context.minerState(address));
@@ -879,11 +889,11 @@ namespace fc::api {
               .window_post_partition_sectors =
                   miner_info->window_post_partition_sectors,
           };
-        }};
-    api->StateMinerPartitions = {
-        [=](auto &miner,
-            auto _deadline,
-            auto &tsk) -> outcome::result<std::vector<Partition>> {
+        });
+    api->StateMinerPartitions =
+        wrapCb([=](auto &miner,
+                   auto _deadline,
+                   auto &tsk) -> outcome::result<std::vector<Partition>> {
           OUTCOME_TRY(context, tipsetContext(tsk));
           OUTCOME_TRY(state, context.minerState(miner));
           OUTCOME_TRY(deadlines, state->deadlines.get());
@@ -901,8 +911,8 @@ namespace fc::api {
             return outcome::success();
           }));
           return parts;
-        }};
-    api->StateMinerPower = {
+        });
+    api->StateMinerPower = wrapCb(
         [=](auto &address, auto &tipset_key) -> outcome::result<MinerPower> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(power_state, context.powerState());
@@ -911,25 +921,25 @@ namespace fc::api {
                       power_state->total_qa_power);
 
           return MinerPower{*miner_power, total};
-        }};
-    api->StateMinerProvingDeadline = {
+        });
+    api->StateMinerProvingDeadline = wrapCb(
         [=](auto &address, auto &tipset_key) -> outcome::result<DeadlineInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           const auto deadline_info =
               state->deadlineInfo(context.tipset->height());
           return deadline_info.nextNotElapsed();
-        }};
-    api->StateMinerSectorAllocated =
+        });
+    api->StateMinerSectorAllocated = wrapCb(
         [=](auto &miner, auto sector, auto &tsk) -> outcome::result<bool> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
-      OUTCOME_TRY(state, context.minerState(miner));
-      OUTCOME_TRY(sectors, state->allocated_sectors.get());
-      return sectors.has(sector);
-    };
-    api->StateMinerSectors = {
-        [=](auto &address, auto &filter, auto &tipset_key)
-            -> outcome::result<std::vector<SectorOnChainInfo>> {
+          OUTCOME_TRY(context, tipsetContext(tsk));
+          OUTCOME_TRY(state, context.minerState(miner));
+          OUTCOME_TRY(sectors, state->allocated_sectors.get());
+          return sectors.has(sector);
+        });
+    api->StateMinerSectors =
+        wrapCb([=](auto &address, auto &filter, auto &tipset_key)
+                   -> outcome::result<std::vector<SectorOnChainInfo>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           std::vector<SectorOnChainInfo> sectors;
@@ -940,118 +950,119 @@ namespace fc::api {
             return outcome::success();
           }));
           return sectors;
-        }};
-    api->StateNetworkName = {
-        [=]() -> outcome::result<std::string> { return network_name; }};
+        });
+    api->StateNetworkName =
+        wrapCb([=]() -> outcome::result<std::string> { return network_name; });
     api->StateNetworkVersion =
-        [=](auto &tipset_key) -> outcome::result<NetworkVersion> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
-      return getNetworkVersion(context.tipset->height());
-    };
+        wrapCb([=](auto &tipset_key) -> outcome::result<NetworkVersion> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          return getNetworkVersion(context.tipset->height());
+        });
     constexpr auto kInitialPledgeNum{110};
     constexpr auto kInitialPledgeDen{100};
     api->StateMinerPreCommitDepositForPower =
-        [=](auto &miner,
-            const SectorPreCommitInfo &precommit,
-            auto &tsk) -> outcome::result<TokenAmount> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
-      OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
-      OUTCOME_TRY(market, context.marketState());
-      // TODO(turuslan): older market actor versions
-      OUTCOME_TRY(
-          weights,
-          vm::actor::builtin::v5::market::validate(market,
-                                                   miner,
-                                                   precommit.deal_ids,
-                                                   context.tipset->epoch(),
-                                                   precommit.expiration));
-      const auto weight{vm::actor::builtin::types::miner::qaPowerForWeight(
-          sector_size,
-          precommit.expiration - context.tipset->epoch(),
-          weights.space_time,
-          weights.space_time_verified)};
-      OUTCOME_TRY(power, context.powerState());
-      OUTCOME_TRY(reward, context.rewardState());
-      // TODO(turuslan): older miner actor versions
-      return kInitialPledgeNum
-             * vm::actor::builtin::v5::miner::preCommitDepositForPower(
-                 reward->this_epoch_reward_smoothed,
-                 power->this_epoch_qa_power_smoothed,
-                 weight)
-             / kInitialPledgeDen;
-    };
+        wrapCb([=](auto &miner,
+                   const SectorPreCommitInfo &precommit,
+                   auto &tsk) -> outcome::result<TokenAmount> {
+          OUTCOME_TRY(context, tipsetContext(tsk));
+          OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
+          OUTCOME_TRY(market, context.marketState());
+          // TODO(turuslan): older market actor versions
+          OUTCOME_TRY(
+              weights,
+              vm::actor::builtin::v5::market::validate(market,
+                                                       miner,
+                                                       precommit.deal_ids,
+                                                       context.tipset->epoch(),
+                                                       precommit.expiration));
+          const auto weight{vm::actor::builtin::types::miner::qaPowerForWeight(
+              sector_size,
+              precommit.expiration - context.tipset->epoch(),
+              weights.space_time,
+              weights.space_time_verified)};
+          OUTCOME_TRY(power, context.powerState());
+          OUTCOME_TRY(reward, context.rewardState());
+          // TODO(turuslan): older miner actor versions
+          return kInitialPledgeNum
+                 * vm::actor::builtin::v5::miner::preCommitDepositForPower(
+                     reward->this_epoch_reward_smoothed,
+                     power->this_epoch_qa_power_smoothed,
+                     weight)
+                 / kInitialPledgeDen;
+        });
     api->StateMinerInitialPledgeCollateral =
-        [=](auto &miner,
-            const SectorPreCommitInfo &precommit,
-            auto &tsk) -> outcome::result<TokenAmount> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
-      OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
-      OUTCOME_TRY(market, context.marketState());
-      // TODO(turuslan): older market actor versions
-      OUTCOME_TRY(
-          weights,
-          vm::actor::builtin::v5::market::validate(market,
-                                                   miner,
-                                                   precommit.deal_ids,
-                                                   context.tipset->epoch(),
-                                                   precommit.expiration));
-      const auto weight{vm::actor::builtin::types::miner::qaPowerForWeight(
-          sector_size,
-          precommit.expiration - context.tipset->epoch(),
-          weights.space_time,
-          weights.space_time_verified)};
-      OUTCOME_TRY(power, context.powerState());
-      OUTCOME_TRY(reward, context.rewardState());
-      OUTCOME_TRY(
-          circ,
-          env_context.circulating->circulating(
-              std::make_shared<StateTreeImpl>(std::move(context.state_tree)),
-              context.tipset->epoch()));
-      // TODO(turuslan): older miner actor versions
-      return kInitialPledgeNum
-             * vm::actor::builtin::v5::miner::initialPledgeForPower(
-                 circ,
-                 reward->this_epoch_reward_smoothed,
-                 power->this_epoch_qa_power_smoothed,
-                 weight,
-                 reward->this_epoch_baseline_power)
-             / kInitialPledgeDen;
-    };
+        wrapCb([=](auto &miner,
+                   const SectorPreCommitInfo &precommit,
+                   auto &tsk) -> outcome::result<TokenAmount> {
+          OUTCOME_TRY(context, tipsetContext(tsk));
+          OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
+          OUTCOME_TRY(market, context.marketState());
+          // TODO(turuslan): older market actor versions
+          OUTCOME_TRY(
+              weights,
+              vm::actor::builtin::v5::market::validate(market,
+                                                       miner,
+                                                       precommit.deal_ids,
+                                                       context.tipset->epoch(),
+                                                       precommit.expiration));
+          const auto weight{vm::actor::builtin::types::miner::qaPowerForWeight(
+              sector_size,
+              precommit.expiration - context.tipset->epoch(),
+              weights.space_time,
+              weights.space_time_verified)};
+          OUTCOME_TRY(power, context.powerState());
+          OUTCOME_TRY(reward, context.rewardState());
+          OUTCOME_TRY(circ,
+                      env_context.circulating->circulating(
+                          std::make_shared<StateTreeImpl>(
+                              std::move(context.state_tree)),
+                          context.tipset->epoch()));
+          // TODO(turuslan): older miner actor versions
+          return kInitialPledgeNum
+                 * vm::actor::builtin::v5::miner::initialPledgeForPower(
+                     circ,
+                     reward->this_epoch_reward_smoothed,
+                     power->this_epoch_qa_power_smoothed,
+                     weight,
+                     reward->this_epoch_baseline_power)
+                 / kInitialPledgeDen;
+        });
 
-    api->GetProofType = [=](const Address &miner_address,
-                            const TipsetKey &tipset_key)
-        -> outcome::result<RegisteredSealProof> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
-      OUTCOME_TRY(miner_state, context.minerState(miner_address));
-      OUTCOME_TRY(miner_info, miner_state->getInfo());
-      const auto network_version = getNetworkVersion(context.tipset->height());
-      return getPreferredSealProofTypeFromWindowPoStType(
-          network_version, miner_info->window_post_proof_type);
-    };
+    api->GetProofType =
+        wrapCb([=](const Address &miner_address, const TipsetKey &tipset_key)
+                   -> outcome::result<RegisteredSealProof> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(miner_state, context.minerState(miner_address));
+          OUTCOME_TRY(miner_info, miner_state->getInfo());
+          const auto network_version =
+              getNetworkVersion(context.tipset->height());
+          return getPreferredSealProofTypeFromWindowPoStType(
+              network_version, miner_info->window_post_proof_type);
+        });
 
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSectorPreCommitInfo = {};
-    api->StateSectorGetInfo = {
-        [=](auto address, auto sector_number, auto tipset_key)
-            -> outcome::result<boost::optional<SectorOnChainInfo>> {
+    api->StateSectorGetInfo =
+        wrapCb([=](auto address, auto sector_number, auto tipset_key)
+                   -> outcome::result<boost::optional<SectorOnChainInfo>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           return state->sectors.tryGet(sector_number);
-        }};
+        });
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSectorPartition = {};
 
-    api->StateVerifiedClientStatus = [=](const Address &address,
-                                         const TipsetKey &tipset_key)
-        -> outcome::result<boost::optional<StoragePower>> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key, true));
-      OUTCOME_TRY(id, context.state_tree.lookupId(address));
-      OUTCOME_TRY(state, context.verifiedRegistryState());
-      return state->getVerifiedClientDataCap(id);
-    };
+    api->StateVerifiedClientStatus =
+        wrapCb([=](const Address &address, const TipsetKey &tipset_key)
+                   -> outcome::result<boost::optional<StoragePower>> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key, true));
+          OUTCOME_TRY(id, context.state_tree.lookupId(address));
+          OUTCOME_TRY(state, context.verifiedRegistryState());
+          return state->getVerifiedClientDataCap(id);
+        });
 
-    api->StateSearchMsg = waitCb<boost::optional<MsgWait>>(
-        [=](auto &&tsk, auto &&cid, auto &&lookback_limit, bool, auto &&cb) {
+    api->StateSearchMsg =
+        [=](auto &&cb, auto &&tsk, auto &&cid, auto &&lookback_limit, bool) {
           OUTCOME_CB(auto context, tipsetContext(tsk));
           msg_waiter->search(
               context.tipset,
@@ -1063,12 +1074,12 @@ namespace fc::api {
                 }
                 cb(MsgWait{cid, std::move(receipt), ts->key, ts->epoch()});
               });
-        });
-    api->StateWaitMsg = waitCb<MsgWait>([=](auto &&cid,
-                                            auto &&confidence,
-                                            auto &&lookback_limit,
-                                            bool,
-                                            auto &&cb) {
+        };
+    api->StateWaitMsg = [=](auto &&cb,
+                            auto &&cid,
+                            auto &&confidence,
+                            auto &&lookback_limit,
+                            bool) {
       msg_waiter->wait(
           cid,
           lookback_limit,
@@ -1079,8 +1090,8 @@ namespace fc::api {
             }
             cb(MsgWait{cid, std::move(receipt), ts->key, ts->epoch()});
           });
-    });
-    api->SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
+    };
+    api->SyncSubmitBlock = wrapCb([=](auto block) -> outcome::result<void> {
       // TODO(turuslan): chain store must validate blocks before adding
       MsgMeta meta;
       cbor_blake::cbLoadT(ipld, meta);
@@ -1097,35 +1108,36 @@ namespace fc::api {
       OUTCOME_TRY(chain_store->addBlock(block.header));
       OUTCOME_TRY(pubsub->publish(block));
       return outcome::success();
-    }};
-    api->Version = {[]() {
+    });
+    api->Version = wrapCb([]() {
       return VersionResult{
           "fuhon", makeApiVersion(2, 1, 0), kEpochDurationSeconds};
-    }};
-    api->WalletBalance = {[=](auto &address) -> outcome::result<TokenAmount> {
-      OUTCOME_TRY(context, tipsetContext({}));
-      OUTCOME_TRY(actor, context.state_tree.tryGet(address));
-      if (actor) {
-        return actor->balance;
-      }
-      return 0;
-    }};
-    api->WalletDefaultAddress = {[=]() -> outcome::result<Address> {
+    });
+    api->WalletBalance =
+        wrapCb([=](auto &address) -> outcome::result<TokenAmount> {
+          OUTCOME_TRY(context, tipsetContext({}));
+          OUTCOME_TRY(actor, context.state_tree.tryGet(address));
+          if (actor) {
+            return actor->balance;
+          }
+          return 0;
+        });
+    api->WalletDefaultAddress = wrapCb([=]() -> outcome::result<Address> {
       if (!wallet_default_address->has())
         return ERROR_TEXT("WalletDefaultAddress: default wallet is not set");
       return wallet_default_address->getCbor<Address>();
-    }};
-    api->WalletHas = {[=](auto address) -> outcome::result<bool> {
+    });
+    api->WalletHas = wrapCb([=](auto address) -> outcome::result<bool> {
       if (!address.isKeyType()) {
         OUTCOME_TRY(context, tipsetContext({}));
         OUTCOME_TRYA(address, context.accountKey(address));
       }
       return key_store->has(address);
-    }};
-    api->WalletImport = {[=](auto &info) {
+    });
+    api->WalletImport = wrapCb([=](auto &info) {
       return key_store->put(info.type == SignatureType::BLS, info.private_key);
-    }};
-    api->WalletNew = {[=](auto &type) -> outcome::result<Address> {
+    });
+    api->WalletNew = wrapCb([=](auto &type) -> outcome::result<Address> {
       auto bls{type == "bls"}, secp{type == "secp256k1"};
       if (!bls && !secp) {
         return ERROR_TEXT("WalletNew: unknown type");
@@ -1145,27 +1157,27 @@ namespace fc::api {
         wallet_default_address->setCbor(address);
       }
       return std::move(address);
-    }};
-    api->WalletSetDefault = {[=](auto &address) -> outcome::result<void> {
+    });
+    api->WalletSetDefault = wrapCb([=](auto &address) -> outcome::result<void> {
       wallet_default_address->setCbor(address);
       return outcome::success();
-    }};
-    api->WalletSign = {
-        [=](auto address, auto data) -> outcome::result<Signature> {
+    });
+    api->WalletSign =
+        wrapCb([=](auto address, auto data) -> outcome::result<Signature> {
           if (!address.isKeyType()) {
             OUTCOME_TRY(context, tipsetContext({}));
             OUTCOME_TRYA(address, context.accountKey(address));
           }
           return key_store->sign(address, data);
-        }};
-    api->WalletVerify = {
+        });
+    api->WalletVerify = wrapCb(
         [=](auto address, auto data, auto signature) -> outcome::result<bool> {
           if (!address.isKeyType()) {
             OUTCOME_TRY(context, tipsetContext({}));
             OUTCOME_TRYA(address, context.accountKey(address));
           }
           return key_store->verify(address, data, signature);
-        }};
+        });
     /**
      * Payment channel methods are initialized with
      * PaymentChannelManager::makeApi(Api &api)

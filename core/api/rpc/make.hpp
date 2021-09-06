@@ -38,7 +38,7 @@ namespace fc::api {
     if (!method) return;
     using Result = typename M::Result;
     rpc.setup(
-        M::name,
+        method.getName(),
         [&](auto &jparams,
             rpc::Respond respond,
             rpc::MakeChan make_chan,
@@ -48,50 +48,50 @@ namespace fc::api {
             return respond(Response::Error{
                 kInvalidParams, errorToPrettyString(maybe_params.error())});
           }
-          auto maybe_result = std::apply(method, maybe_params.value());
-          if (!maybe_result) {
-            return respond(Response::Error{
-                kInternalError, errorToPrettyString(maybe_result.error())});
-          }
-          if constexpr (!std::is_same_v<Result, void>) {
+
+          if constexpr (is_chan<Result>{}) {
+            auto maybe_result = std::apply(method, maybe_params.value());
+            if (!maybe_result) {
+              return respond(Response::Error{
+                  kInternalError, errorToPrettyString(maybe_result.error())});
+            }
             auto &result = maybe_result.value();
-            if constexpr (is_chan<Result>{}) {
-              result.id = make_chan();
-            }
-            if constexpr (is_wait<Result>{}) {
-              result.waitOwn([respond{std::move(respond)}](auto maybe_result) {
-                if (!maybe_result) {
-                  respond(Response::Error{
-                      kInternalError,
-                      errorToPrettyString(maybe_result.error())});
-                } else {
-                  respond(encode(maybe_result.value()));
-                }
-              });
-              return;
-            } else {
-              respond(api::encode(result));
-            }
-            if constexpr (is_chan<Result>{}) {
-              result.channel->read(
-                  [send{std::move(send)}, chan{result}](auto opt) {
-                    if (opt) {
-                      send(kRpcChVal,
-                           encode(std::make_tuple(chan.id, std::move(*opt))),
-                           [chan](auto ok) {
-                             if (!ok) {
-                               chan.channel->closeRead();
-                             }
-                           });
-                    } else {
-                      send(kRpcChClose, encode(std::make_tuple(chan.id)), {});
-                    }
-                    return true;
-                  });
-            }
-            return;
+            result.id = make_chan();
+            respond(api::encode(result));
+            result.channel->read(
+                [send{std::move(send)}, chan{result}](auto opt) {
+                  if (opt) {
+                    send(kRpcChVal,
+                         encode(std::make_tuple(chan.id, std::move(*opt))),
+                         [chan](auto ok) {
+                           if (!ok) {
+                             chan.channel->closeRead();
+                           }
+                         });
+                  } else {
+                    send(kRpcChClose, encode(std::make_tuple(chan.id)), {});
+                  }
+                  return true;
+                });
+          } else {
+            typename M::Callback cb =
+                [respond{std::move(respond)}](
+                    const outcome::result<Result> &maybe_result) {
+                  if (!maybe_result) {
+                    return respond(Response::Error{
+                        kInternalError,
+                        errorToPrettyString(maybe_result.error())});
+                  }
+                  if constexpr (!std::is_same_v<Result, void>) {
+                    respond(api::encode(maybe_result.value()));
+                  } else {
+                    respond(Document{});
+                  }
+                };
+            auto params =
+                std::tuple_cat(std::make_tuple(cb), maybe_params.value());
+            std::apply(method, params);
           }
-          respond(Document{});
         });
   }
 }  // namespace fc::api

@@ -46,9 +46,9 @@ namespace fc::api::full_node {
    */
   TEST_F(RpcApiTest, Version) {
     FullNodeApi api_v2;
-    api_v2.Version = {[]() {
+    api_v2.Version = wrapCb([]() {
       return VersionResult{"fuhon", makeApiVersion(2, 0, 0), 5};
-    }};
+    });
     auto api_v1 = makeFullNodeApiV1Wrapper();
     auto rpc_v1{makeRpc(api_v2)};
     wrapRpc(rpc_v1, *api_v1);
