@@ -37,6 +37,7 @@ namespace fc::markets::storage::test {
                                                    client_price,
                                                    collateral,
                                                    registered_proof,
+                                                   false,
                                                    false));
     EXPECT_TRUE(waitForProviderDealStatus(
         proposal_cid, StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA));
@@ -79,6 +80,7 @@ namespace fc::markets::storage::test {
                                                    client_price,
                                                    collateral,
                                                    registered_proof,
+                                                   false,
                                                    false));
     EXPECT_TRUE(waitForProviderDealStatus(
         proposal_cid, StorageDealStatus::STORAGE_DEAL_ERROR));
@@ -127,6 +129,7 @@ namespace fc::markets::storage::test {
                                                    client_price,
                                                    collateral,
                                                    registered_proof,
+                                                   false,
                                                    false));
     EXPECT_TRUE(waitForProviderDealStatus(
         proposal_cid, StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA));
@@ -163,6 +166,7 @@ namespace fc::markets::storage::test {
                                                    client_price,
                                                    collateral,
                                                    registered_proof,
+                                                   false,
                                                    false));
 
     EXPECT_TRUE(waitForProviderDealStatus(
@@ -206,6 +210,7 @@ namespace fc::markets::storage::test {
                                                    client_price,
                                                    collateral,
                                                    registered_proof,
+                                                   false,
                                                    false));
     EXPECT_TRUE(waitForProviderDealStatus(
         proposal_cid, StorageDealStatus::STORAGE_DEAL_ACTIVE));

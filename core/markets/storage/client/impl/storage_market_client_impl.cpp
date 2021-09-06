@@ -17,8 +17,7 @@
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
-#include "storage/car/car.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "storage/ipld/memory_indexed_car.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/message/message.hpp"
 
@@ -50,8 +49,6 @@
 
 namespace fc::markets::storage::client {
   using api::MsgWait;
-  using ::fc::storage::car::loadCar;
-  using ::fc::storage::ipfs::InMemoryDatastore;
   using libp2p::peer::PeerId;
   using primitives::BigInt;
   using primitives::sector::RegisteredSealProof;
@@ -263,6 +260,7 @@ namespace fc::markets::storage::client {
       const TokenAmount &price,
       const TokenAmount &collateral,
       const RegisteredSealProof &registered_proof,
+      bool verified_deal,
       bool is_fast_retrieval) {
     OUTCOME_TRY(comm_p_res, calculateCommP(registered_proof, data_ref));
     const auto &[comm_p, piece_size] = comm_p_res;
@@ -270,18 +268,27 @@ namespace fc::markets::storage::client {
       return StorageMarketClientError::kPieceSizeGreaterSectorSize;
     }
 
+    auto provider_collateral{collateral};
+    if (provider_collateral.is_zero()) {
+      OUTCOME_TRY(bounds,
+                  api_->StateDealProviderCollateralBounds(
+                      piece_size.padded(), verified_deal, {}));
+      provider_collateral = bigdiv(bounds.min * 12, 10);
+    }
+
     DealProposal deal_proposal{
         .piece_cid = comm_p,
         .piece_size = piece_size.padded(),
-        .verified = false,
+        .verified = verified_deal,
         .client = client_address,
         .provider = provider_info.address,
         .label = {},
         .start_epoch = start_epoch,
         .end_epoch = end_epoch,
         .storage_price_per_epoch = price,
-        .provider_collateral = static_cast<uint64_t>(piece_size),
-        .client_collateral = 0};
+        .provider_collateral = provider_collateral,
+        .client_collateral = 0,
+    };
     OUTCOME_TRY(signed_proposal, signProposal(client_address, deal_proposal));
     auto proposal_cid{signed_proposal.cid()};
 
@@ -438,13 +445,7 @@ namespace fc::markets::storage::client {
   }
 
   outcome::result<bool> StorageMarketClientImpl::verifyDealPublished(
-      std::shared_ptr<ClientDeal> deal) {
-    // TODO: maybe async call, it's long
-    OUTCOME_TRY(msg_state,
-                api_->StateWaitMsg(deal->publish_message,
-                                   kMessageConfidence,
-                                   api::kLookbackNoLimit,
-                                   true));
+      std::shared_ptr<ClientDeal> deal, api::MsgWait msg_state) {
     if (msg_state.receipt.exit_code != VMExitCode::kOk) {
       deal->message =
           "Publish deal exit code "
@@ -649,15 +650,14 @@ namespace fc::markets::storage::client {
         return;
       }
 
-      auto ipld = std::make_shared<InMemoryDatastore>();
       auto car_file = self->import_manager_->get(deal->data_ref.root);
       SELF_FSM_HALT_ON_ERROR(
           car_file,
           "Storage deal proposal error. Cannot get file from import manager",
           deal);
-      SELF_FSM_HALT_ON_ERROR(loadCar(*ipld, car_file.value().string()),
-                             "Error on imported CAR load",
-                             deal);
+      auto _ipld{MemoryIndexedCar::make(car_file.value().string(), false)};
+      SELF_FSM_HALT_ON_ERROR(_ipld, "MemoryIndexedCar::make", deal);
+      auto &ipld{_ipld.value()};
 
       auto voucher =
           codec::cbor::encode(StorageDataTransferVoucher{deal->proposal_cid});
@@ -702,13 +702,23 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto verified = verifyDealPublished(deal);
-    FSM_HALT_ON_ERROR(verified, "Cannot get publish message", deal);
-    if (!verified.value()) {
-      FSM_SEND(deal, ClientEvent::ClientEventFailed);
-      return;
-    }
-    FSM_SEND(deal, ClientEvent::ClientEventDealPublished);
+    auto cb{[=](outcome::result<bool> verified) {
+      FSM_HALT_ON_ERROR(verified, "Cannot get publish message", deal);
+      if (!verified.value()) {
+        FSM_SEND(deal, ClientEvent::ClientEventFailed);
+        return;
+      }
+      FSM_SEND(deal, ClientEvent::ClientEventDealPublished);
+    }};
+    auto _wait{api_->StateWaitMsg(deal->publish_message,
+                                  kMessageConfidence,
+                                  api::kLookbackNoLimit,
+                                  true)};
+    OUTCOME_CB(auto wait, _wait);
+    wait.waitOwn([=, self{shared_from_this()}, cb{std::move(cb)}](auto _res) {
+      OUTCOME_CB(auto res, _res);
+      cb(verifyDealPublished(deal, res));
+    });
   }
 
   void StorageMarketClientImpl::onClientEventDealPublished(

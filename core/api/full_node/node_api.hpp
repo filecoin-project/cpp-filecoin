@@ -18,10 +18,9 @@
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/mpool/mpool.hpp"
-#include "vm/actor/builtin/types/miner/deadline.hpp"
 #include "vm/actor/builtin/types/miner/deadline_info.hpp"
+#include "vm/actor/builtin/types/miner/deadlines.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 #include "vm/actor/builtin/types/storage_power/claim.hpp"
 #include "vm/runtime/runtime_types.hpp"
@@ -153,7 +152,7 @@ namespace fc::api {
     uint64_t payment_interval_increase;
     Address client;
     Address miner;
-    RetrievalPeer peer;
+    boost::optional<RetrievalPeer> peer;
   };
 
   struct StartDealParams {
@@ -204,7 +203,7 @@ namespace fc::api {
   };
 
   struct Deadline {
-    RleBitset post_submissions;
+    RleBitset partitions_posted;
   };
 
   struct SectorLocation {
@@ -356,6 +355,14 @@ namespace fc::api {
     /**
      * @note long operation
      */
+    API_METHOD(ClientMinerQueryOffer,
+               QueryOffer,
+               const Address &,
+               const CID &,
+               const boost::optional<CID> &)
+      /**
+* @note long operation
+*/
     API_METHOD(ClientQueryAsk,
                SignedStorageAsk,
                const std::string &,
@@ -444,6 +451,7 @@ namespace fc::api {
      * @param to address
      * @param ensure_funds - amount allocated for payment channel
      * @return add payment channel info with actor address and message cid
+     * @note long operation
      */
     API_METHOD(PaychGet,
                AddChannelInfo,
@@ -520,6 +528,10 @@ namespace fc::api {
                std::vector<SectorOnChainInfo>,
                const Address &,
                const TipsetKey &)
+    API_METHOD(StateMinerAvailableBalance,
+               TokenAmount,
+               const Address &,
+               const TipsetKey &)
     /** Returns PoSt submissions since the proving period started. */
     API_METHOD(StateMinerDeadlines,
                std::vector<Deadline>,
@@ -564,7 +576,7 @@ namespace fc::api {
      * Gets the current seal proof type for the given miner
      * @param Address - miner address
      * @param tipset
-     * @returns preferred registered seal proof type
+     * @return preferred registered seal proof type
      */
     API_METHOD(GetProofType,
                RegisteredSealProof,
@@ -589,7 +601,7 @@ namespace fc::api {
 
     /**
      * Verified registry actor state method
-     * @returns the data cap for the given address
+     * @return the data cap for the given address
      */
     API_METHOD(StateVerifiedClientStatus,
                boost::optional<StoragePower>,
@@ -650,6 +662,7 @@ namespace fc::api {
     f(a.ClientImport);
     f(a.ClientListDeals);
     f(a.ClientListImports);
+    f(a.ClientMinerQueryOffer);
     f(a.ClientQueryAsk);
     f(a.ClientRetrieve);
     f(a.ClientStartDeal);
@@ -680,6 +693,7 @@ namespace fc::api {
     f(a.StateMarketDeals);
     f(a.StateMarketStorageDeal);
     f(a.StateMinerActiveSectors);
+    f(a.StateMinerAvailableBalance);
     f(a.StateMinerDeadlines);
     f(a.StateMinerFaults);
     f(a.StateMinerInfo);

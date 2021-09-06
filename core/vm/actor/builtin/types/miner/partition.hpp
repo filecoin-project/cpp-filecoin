@@ -12,7 +12,6 @@
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
 #include "vm/actor/builtin/types/miner/sectors.hpp"
 #include "vm/actor/builtin/types/miner/termination.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 
 // Forward declaration
 namespace fc::vm::runtime {
@@ -23,6 +22,8 @@ namespace fc::vm::actor::builtin::types::miner {
   using primitives::RleBitset;
   using runtime::Runtime;
 
+  constexpr size_t kEearlyTerminatedBitWidth = 3;
+
   struct Partition {
     RleBitset sectors;
     RleBitset unproven;
@@ -30,7 +31,7 @@ namespace fc::vm::actor::builtin::types::miner {
     RleBitset recoveries;
     RleBitset terminated;
     PartitionExpirationsArray expirations_epochs;  // quanted
-    adt::Array<RleBitset, 3> early_terminated;
+    adt::Array<RleBitset, kEearlyTerminatedBitWidth> early_terminated;
     PowerPair live_power;
     PowerPair unproven_power;
     PowerPair faulty_power;

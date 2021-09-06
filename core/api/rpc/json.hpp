@@ -21,7 +21,6 @@
 #include "sector_storage/stores/storage.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 
 #define COMMA ,
 
@@ -1038,12 +1037,12 @@ namespace fc::api {
 
     ENCODE(Deadline) {
       Value j{rapidjson::kObjectType};
-      Set(j, "PostSubmissions", v.post_submissions);
+      Set(j, "PostSubmissions", v.partitions_posted);
       return j;
     }
 
     DECODE(Deadline) {
-      Get(j, "PostSubmissions", v.post_submissions);
+      Get(j, "PostSubmissions", v.partitions_posted);
     }
 
     ENCODE(SectorPreCommitInfo) {
@@ -1568,6 +1567,7 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "PieceCID", v.piece_cid);
       Set(j, "PieceSize", v.piece_size);
+      Set(j, "VerifiedDeal", v.verified);
       Set(j, "Client", v.client);
       Set(j, "Provider", v.provider);
       Set(j, "StartEpoch", v.start_epoch);
@@ -1581,6 +1581,7 @@ namespace fc::api {
     DECODE(DealProposal) {
       decode(v.piece_cid, Get(j, "PieceCID"));
       v.piece_size = decode<uint64_t>(Get(j, "PieceSize"));
+      Get(j, "VerifiedDeal", v.verified);
       decode(v.client, Get(j, "Client"));
       decode(v.provider, Get(j, "Provider"));
       decode(v.start_epoch, Get(j, "StartEpoch"));

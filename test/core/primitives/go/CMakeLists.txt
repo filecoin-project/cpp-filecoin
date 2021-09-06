@@ -3,10 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(type_manager
-    type_manager.cpp
+addtest(go_test
+    math_test.cpp
     )
-target_link_libraries(type_manager
-    array
-    miner_types
+target_link_libraries(go_test
+    Boost::boost
     )

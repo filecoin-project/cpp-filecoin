@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/types/type_manager/universal_impl.hpp"
+#include "vm/actor/builtin/types/universal/universal_impl.hpp"
 
 #include "vm/actor/builtin/states/system/system_actor_state.hpp"
 #include "vm/actor/builtin/states/system/v0/system_actor_state.hpp"

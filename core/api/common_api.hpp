@@ -18,7 +18,7 @@ namespace fc::api {
   struct CommonApi {
     /**
      * Creates auth token to the remote connection
-     * @returns auth token
+     * @return auth token
      */
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 

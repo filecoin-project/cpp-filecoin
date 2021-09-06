@@ -5,38 +5,13 @@
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
-#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
+  using states::makeEmptyMinerState;
+  using states::MinerActorStatePtr;
   using toolchain::Toolchain;
-  using types::TypeManager;
   using namespace types::miner;
-
-  outcome::result<void> Construct::makeEmptyState(const Runtime &runtime,
-                                                  MinerActorStatePtr &state) {
-    // Lotus gas conformance - flush empty hamt
-    OUTCOME_TRY(state->precommitted_sectors.hamt.flush());
-
-    // Lotus gas conformance - flush empty hamt
-    OUTCOME_TRY(empty_amt_cid, state->precommitted_setctors_expiry.amt.flush());
-
-    RleBitset allocated_sectors;
-    OUTCOME_TRY(state->allocated_sectors.set(allocated_sectors));
-
-    OUTCOME_TRY(
-        deadlines,
-        state->makeEmptyDeadlines(runtime.getIpfsDatastore(), empty_amt_cid));
-    OUTCOME_TRY(state->deadlines.set(deadlines));
-
-    VestingFunds vesting_funds;
-    OUTCOME_TRY(state->vesting_funds.set(vesting_funds));
-
-    // construct with empty already cid stored in ipld to avoid gas charge
-    state->sectors = {empty_amt_cid, runtime};
-
-    return outcome::success();
-  }
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
@@ -56,9 +31,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       control_addresses.push_back(resolved);
     }
 
-    MinerActorStatePtr state{runtime.getActorVersion()};
-    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
-    OUTCOME_TRY(makeEmptyState(runtime, state));
+    OUTCOME_TRY(state, makeEmptyMinerState(runtime));
 
     const auto current_epoch = runtime.getCurrentEpoch();
     REQUIRE_NO_ERROR_A(offset,
@@ -69,17 +42,16 @@ namespace fc::vm::actor::builtin::v0::miner {
     VM_ASSERT(period_start > current_epoch);
     state->proving_period_start = period_start;
 
-    REQUIRE_NO_ERROR_A(
-        miner_info,
-        TypeManager::makeMinerInfo(runtime,
-                                   owner,
-                                   worker,
-                                   control_addresses,
-                                   params.peer_id,
-                                   params.multiaddresses,
-                                   params.seal_proof_type,
-                                   RegisteredPoStProof::kUndefined),
-        VMExitCode::kErrIllegalArgument);
+    REQUIRE_NO_ERROR_A(miner_info,
+                       makeMinerInfo(runtime.getActorVersion(),
+                                     owner,
+                                     worker,
+                                     control_addresses,
+                                     params.peer_id,
+                                     params.multiaddresses,
+                                     params.seal_proof_type,
+                                     RegisteredPoStProof::kUndefined),
+                       VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(state->miner_info.set(miner_info));
 
     OUTCOME_TRY(runtime.commitState(state));

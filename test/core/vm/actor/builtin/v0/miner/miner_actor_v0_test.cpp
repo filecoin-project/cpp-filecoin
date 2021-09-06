@@ -15,7 +15,7 @@
 #include "vm/actor/builtin/types/miner/v0/deadline.hpp"
 #include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_utils.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
 #include "vm/actor/codes.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
@@ -150,7 +150,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       EXPECT_OUTCOME_TRUE(deadline, getCbor<Deadline>(ipld, deadline_cid));
       EXPECT_OUTCOME_EQ(deadline.partitions.size(), 0);
       EXPECT_OUTCOME_EQ(deadline.expirations_epochs.size(), 0);
-      EXPECT_TRUE(deadline.post_submissions.empty());
+      EXPECT_TRUE(deadline.partitions_posted.empty());
       EXPECT_TRUE(deadline.early_terminations.empty());
       EXPECT_EQ(deadline.live_sectors, 0);
       EXPECT_EQ(deadline.total_sectors, 0);

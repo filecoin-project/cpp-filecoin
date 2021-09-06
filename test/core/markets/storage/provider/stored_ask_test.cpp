@@ -52,7 +52,7 @@ namespace fc::markets::storage::provider {
           {},
           {fc::primitives::block::BeaconEntry{
               4,
-              "F00D"_unhex,
+              Buffer{"F00D"_unhex},
           }},
           {fc::primitives::sector::PoStProof{
               fc::primitives::sector::RegisteredPoStProof::

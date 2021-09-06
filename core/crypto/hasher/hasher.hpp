@@ -9,6 +9,8 @@
 
 #include <libp2p/multi/multihash.hpp>
 
+#include "common/outcome.hpp"
+
 namespace fc::crypto {
   /**
    * @class Supported methods:
@@ -25,8 +27,8 @@ namespace fc::crypto {
     static std::map<HashType, HashMethod> methods_;
 
    public:
-    static Multihash calculate(HashType hash_type,
-                               gsl::span<const uint8_t> buffer);
+    static outcome::result<Multihash> calculate(
+        HashType hash_type, gsl::span<const uint8_t> buffer);
 
     /**
      * @brief Calculate SHA2-256 hash

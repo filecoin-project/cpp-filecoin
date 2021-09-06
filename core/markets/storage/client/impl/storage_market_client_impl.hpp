@@ -81,6 +81,7 @@ namespace fc::markets::storage::client {
         const TokenAmount &price,
         const TokenAmount &collateral,
         const RegisteredSealProof &registered_proof,
+        bool verified_deal,
         bool is_fast_retrieval) override;
 
     outcome::result<StorageParticipantBalance> getPaymentEscrow(
@@ -121,7 +122,8 @@ namespace fc::markets::storage::client {
      * @param deal state with publish message cid set
      * @return true if published or false otherwise
      */
-    outcome::result<bool> verifyDealPublished(std::shared_ptr<ClientDeal> deal);
+    outcome::result<bool> verifyDealPublished(std::shared_ptr<ClientDeal> deal,
+                                              api::MsgWait msg_state);
 
     /**
      * Look up stream by proposal cid

@@ -77,7 +77,6 @@ namespace fc::node {
   using markets::retrieval::client::RetrievalClientImpl;
   using markets::storage::kStorageMarketImportDir;
   using markets::storage::client::StorageMarketClientImpl;
-  using storage::ipfs::InMemoryDatastore;
   using storage::keystore::FileSystemKeyStore;
   using vm::actor::builtin::states::InitActorStatePtr;
 
@@ -587,7 +586,7 @@ namespace fc::node {
 
     o.api = api::makeImpl(o.api,
                           o.chain_store,
-
+                          o.markets_ipld,
                           *config.network_name,
                           weight_calculator,
                           o.env_context,

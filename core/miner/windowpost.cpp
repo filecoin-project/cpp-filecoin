@@ -64,7 +64,7 @@ namespace fc::mining {
       return;
     }
     while (cache.count(deadline.open)) {
-      deadline = deadline.next();
+      deadline = deadline.nextNotElapsed();
     }
     if (apply->epoch() >= deadline.challenge) {
       auto &cached{

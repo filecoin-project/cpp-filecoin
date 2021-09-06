@@ -9,16 +9,14 @@
 #include "common/file.hpp"
 #include "proofs/proof_engine.hpp"
 #include "storage/car/car.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "storage/ipld/memory_indexed_car.hpp"
 #include "storage/unixfs/unixfs.hpp"
 
 namespace fc::markets::storage::client::import_manager {
   using common::Buffer;
   using common::readFile;
   using common::writeFile;
-  using ::fc::storage::car::loadCar;
   using ::fc::storage::car::makeCar;
-  using ::fc::storage::ipfs::InMemoryDatastore;
   using ::fc::storage::unixfs::wrapFile;
   using proofs::padPiece;
 
@@ -31,28 +29,30 @@ namespace fc::markets::storage::client::import_manager {
 
   outcome::result<CID> ImportManager::import(
       const boost::filesystem::path &path, bool is_car) {
-    InMemoryDatastore ipld;
     CID root;
     if (is_car) {
       // validate CAR
-      OUTCOME_TRY(cids, loadCar(ipld, path));
-      if (cids.size() != 1) {
+      OUTCOME_TRY(ipld, MemoryIndexedCar::make(path.string(), false));
+      if (ipld->roots.size() != 1) {
         return ERROR_TEXT(
             "StorageMarketImportManager: cannot import car with more that one "
             "root");
       }
-      root = cids.front();
+      root = ipld->roots.front();
       OUTCOME_TRY(car_path, makeFilename(root));
       boost::filesystem::copy_file(
           path, car_path, boost::filesystem::copy_option::overwrite_if_exists);
       padPiece(car_path);
     } else {
-      // make CAR
-      OUTCOME_TRY(data, readFile(path));
-      OUTCOME_TRYA(root, wrapFile(ipld, data));
-      OUTCOME_TRY(car_data, makeCar(ipld, {root}));
+      const auto tmp_path{path.string() + ".unixfs-tmp.car"};
+      OUTCOME_TRY(ipld, MemoryIndexedCar::make(tmp_path, true));
+      std::ifstream file{path.string()};
+      OUTCOME_TRYA(root, wrapFile(*ipld, file));
       OUTCOME_TRY(car_path, makeFilename(root));
-      OUTCOME_TRY(writeFile(car_path, car_data));
+      // add header with root and reorder objects
+      OUTCOME_TRY(::fc::storage::car::makeSelectiveCar(
+          *ipld, {{root, {}}}, car_path.string()));
+      boost::filesystem::remove(tmp_path);
       padPiece(car_path);
     }
     OUTCOME_TRY(addImported(root, path));

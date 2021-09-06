@@ -5,22 +5,17 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/v2/miner_actor_state.hpp"
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
   using types::Universal;
+  using types::miner::MinerInfo;
 
-  struct MinerActorState : states::MinerActorState {
-    outcome::result<Universal<types::miner::MinerInfo>> getInfo()
-        const override;
-
-    outcome::result<types::miner::Deadlines> makeEmptyDeadlines(
-        IpldPtr ipld, const CID &empty_amt_cid) override;
-    outcome::result<types::miner::Deadline> getDeadline(
-        IpldPtr ipld, const CID &cid) const override;
+  struct MinerActorState : v2::miner::MinerActorState {
+    outcome::result<Universal<MinerInfo>> getInfo() const override;
   };
   CBOR_TUPLE(MinerActorState,
              miner_info,
@@ -28,7 +23,7 @@ namespace fc::vm::actor::builtin::v3::miner {
              locked_funds,
              vesting_funds,
              fee_debt,
-             initial_pledge_requirement,
+             initial_pledge,
              precommitted_sectors,
              precommitted_setctors_expiry,
              allocated_sectors,

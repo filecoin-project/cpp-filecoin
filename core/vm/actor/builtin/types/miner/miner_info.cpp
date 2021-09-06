@@ -3,24 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
+#include "vm/actor/builtin/types/miner/miner_info.hpp"
 
-namespace fc::vm::actor::builtin::types {
+namespace fc::vm::actor::builtin::types::miner {
   using primitives::kChainEpochUndefined;
+  using primitives::sector::getSealProofWindowPoStPartitionSectors;
+  using primitives::sector::getSectorSize;
 
-  outcome::result<Universal<ExpirationQueue>> TypeManager::loadExpirationQueue(
-      const Runtime &runtime,
-      const PartitionExpirationsArray &expirations_epochs,
-      const QuantSpec &quant) {
-    Universal<ExpirationQueue> eq{runtime.getActorVersion()};
-    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), eq);
-    eq->queue = expirations_epochs;
-    eq->quant = quant;
-    return eq;
-  }
-
-  outcome::result<Universal<MinerInfo>> TypeManager::makeMinerInfo(
-      const Runtime &runtime,
+  outcome::result<Universal<MinerInfo>> makeMinerInfo(
+      ActorVersion version,
       const Address &owner,
       const Address &worker,
       const std::vector<Address> &control,
@@ -28,13 +19,11 @@ namespace fc::vm::actor::builtin::types {
       const std::vector<Multiaddress> &multiaddrs,
       const RegisteredSealProof &seal_proof_type,
       const RegisteredPoStProof &window_post_proof_type) {
-    OUTCOME_TRY(sector_size,
-                primitives::sector::getSectorSize(seal_proof_type));
+    OUTCOME_TRY(sector_size, getSectorSize(seal_proof_type));
     OUTCOME_TRY(partition_sectors,
-                primitives::sector::getSealProofWindowPoStPartitionSectors(
-                    seal_proof_type));
+                getSealProofWindowPoStPartitionSectors(seal_proof_type));
 
-    Universal<MinerInfo> miner_info{runtime.getActorVersion()};
+    Universal<MinerInfo> miner_info{version};
 
     miner_info->owner = owner;
     miner_info->worker = worker;
@@ -52,4 +41,4 @@ namespace fc::vm::actor::builtin::types {
     return miner_info;
   }
 
-}  // namespace fc::vm::actor::builtin::types
+}  // namespace fc::vm::actor::builtin::types::miner

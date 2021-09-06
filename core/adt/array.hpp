@@ -16,7 +16,8 @@ namespace fc::adt {
 
     Array(IpldPtr ipld = nullptr) : amt{ipld, bits} {}
 
-    Array(const CID &root, IpldPtr ipld = nullptr) : amt{ipld, root, bits} {}
+    Array(const CID &root, IpldPtr ipld = nullptr)
+        : amt{std::move(ipld), root, bits} {}
 
     outcome::result<boost::optional<Value>> tryGet(Key key) const {
       auto maybe = get(key);
@@ -69,6 +70,15 @@ namespace fc::adt {
         return outcome::success();
       }));
       return values;
+    }
+
+    outcome::result<std::vector<Key>> keys() const {
+      std::vector<Key> keys;
+      OUTCOME_TRY(visit([&](auto key, auto) {
+        keys.push_back(key);
+        return outcome::success();
+      }));
+      return keys;
     }
 
     storage::amt::Amt amt;

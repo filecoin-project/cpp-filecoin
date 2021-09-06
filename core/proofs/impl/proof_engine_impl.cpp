@@ -498,7 +498,7 @@ namespace fc::proofs {
       }
       std::vector<uint8_t> read(outTwoPow);
 
-      size_t j;
+      size_t j{};
       char ch;
       for (j = 0; j < outTwoPow && input; j++) {
         input.get(ch);
@@ -740,7 +740,7 @@ namespace fc::proofs {
       const PoStRandomness &randomness,
       uint64_t eligible_sectors_len) {
     auto rand31{randomness};
-    rand31[31] = 0;
+    rand31[31] &= 0x3f;
 
     OUTCOME_TRY(c_proof_type, cRegisteredPoStProof(proof_type));
     auto prover_id = toProverID(miner_id);

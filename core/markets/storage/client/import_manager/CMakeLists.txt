@@ -10,7 +10,7 @@ target_link_libraries(storage_market_import_manager
     Boost::boost
     car
     file
+    memory_indexed_car
     outcome
     unixfs
-    ipfs_datastore_in_memory
     )

@@ -6,7 +6,7 @@
 #pragma once
 
 #include "primitives/address/address.hpp"
-#include "vm/actor/builtin/types/type_manager/universal.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using primitives::address::Address;

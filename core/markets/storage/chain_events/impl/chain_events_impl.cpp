@@ -4,7 +4,6 @@
  */
 
 #include "markets/storage/chain_events/impl/chain_events_impl.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::markets::storage::chain_events {

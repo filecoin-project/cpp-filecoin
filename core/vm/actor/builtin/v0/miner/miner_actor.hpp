@@ -13,7 +13,8 @@
 #include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/types/miner/cron_event_payload.hpp"
+#include "vm/actor/builtin/types/miner/post_partition.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using common::Buffer;
@@ -27,8 +28,8 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::sector::PoStProof;
   using primitives::sector::Proof;
   using primitives::sector::RegisteredSealProof;
-  using states::MinerActorStatePtr;
   using types::miner::CronEventPayload;
+  using types::miner::PoStPartition;
   using types::miner::SectorDeclaration;
   using types::miner::SectorPreCommitInfo;
 
@@ -42,9 +43,6 @@ namespace fc::vm::actor::builtin::v0::miner {
       std::vector<Multiaddress> multiaddresses;
     };
     ACTOR_METHOD_DECL();
-
-    static outcome::result<void> makeEmptyState(const Runtime &runtime,
-                                                MinerActorStatePtr &state);
   };
   CBOR_TUPLE(Construct::Params,
              owner,
@@ -95,13 +93,6 @@ namespace fc::vm::actor::builtin::v0::miner {
      * Information submitted by a miner to provide a Window PoSt
      */
     struct Params {
-      struct PoStPartition {
-        /// Partitions are numbered per-deadline, from zero
-        uint64_t index{0};
-        // Sectors skipped while proving that weren't already declared faulty
-        RleBitset skipped;
-      };
-
       /** The deadline index which the submission targets */
       uint64_t deadline{0};
 
@@ -130,7 +121,6 @@ namespace fc::vm::actor::builtin::v0::miner {
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(SubmitWindowedPoSt::Params::PoStPartition, index, skipped)
   CBOR_TUPLE(SubmitWindowedPoSt::Params,
              deadline,
              partitions,

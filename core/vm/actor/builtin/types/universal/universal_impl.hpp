@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/types/type_manager/universal.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 #define UNIVERSAL_IMPL(T, V0, V2, V3, V4, V5)               \
   namespace fc::vm::actor::builtin::types {                 \

@@ -5,27 +5,14 @@
 
 #include "vm/actor/builtin/states/miner/v3/miner_actor_state.hpp"
 
-#include "vm/actor/builtin/types/miner/v3/deadline.hpp" //TODO (m.tagirov) remove
+#include "common/error_text.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
-  using types::miner::kWPoStPeriodDeadlines;
+  using namespace types::miner;
 
-  outcome::result<Universal<types::miner::MinerInfo>> MinerActorState::getInfo()
-      const {
+  outcome::result<Universal<MinerInfo>> MinerActorState::getInfo() const {
     return miner_info.get();
   }
 
-  outcome::result<types::miner::Deadlines> MinerActorState::makeEmptyDeadlines(
-      IpldPtr ipld, const CID &empty_amt_cid) {
-    Deadline deadline{Deadline::makeEmpty(ipld, empty_amt_cid)};
-    OUTCOME_TRY(deadline_cid, setCbor(ipld, deadline));
-    return types::miner::Deadlines{
-        std::vector(kWPoStPeriodDeadlines, deadline_cid)};
-  }
-
-  outcome::result<types::miner::Deadline> MinerActorState::getDeadline(
-      IpldPtr ipld, const CID &cid) const {
-    OUTCOME_TRY(deadline3, getCbor<Deadline>(ipld, cid));
-    return std::move(deadline3);
-  }
 }  // namespace fc::vm::actor::builtin::v3::miner

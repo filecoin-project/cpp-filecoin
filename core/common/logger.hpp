@@ -11,6 +11,8 @@
 namespace fc::common {
   using Logger = std::shared_ptr<spdlog::logger>;
 
+  extern spdlog::sink_ptr file_sink;
+
   /**
    * Provide logger object
    * @param tag - tagging name for identifying logger

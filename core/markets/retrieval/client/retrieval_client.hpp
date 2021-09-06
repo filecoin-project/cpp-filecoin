@@ -44,10 +44,9 @@ namespace fc::markets::retrieval::client {
      * @param request - query params for the provider
      * @param Query response handler
      */
-    virtual outcome::result<void> query(
-        const RetrievalPeer &provider_peer,
-        const QueryRequest &request,
-        const QueryResponseHandler &response_handler) = 0;
+    virtual void query(const RetrievalPeer &provider_peer,
+                       const QueryRequest &request,
+                       const QueryResponseHandler &cb) = 0;
 
     /**
      * @brief Retrieve Piece from selected provider
