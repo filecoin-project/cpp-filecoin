@@ -15,7 +15,7 @@
 #include "markets/retrieval/client/retrieval_client.hpp"
 #include "markets/retrieval/client/retrieval_client_error.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "storage/ipld/verifier.hpp"
+#include "storage/ipld/traverser.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::markets::retrieval::client {
@@ -24,7 +24,7 @@ namespace fc::markets::retrieval::client {
   using data_transfer::DataTransfer;
   using data_transfer::PeerDtId;
   using fc::storage::ipfs::IpfsDatastore;
-  using fc::storage::ipld::verifier::Verifier;
+  using fc::storage::ipld::traverser::Traverser;
   using libp2p::Host;
   using primitives::BigInt;
   using vm::actor::builtin::types::payment_channel::LaneId;
@@ -34,6 +34,7 @@ namespace fc::markets::retrieval::client {
    */
   struct DealState {
     DealState(const DealProposal &proposal,
+              const IpldPtr &ipld,
               const RetrieveResponseHandler &handler,
               const Address &client_wallet,
               const Address &miner_wallet,
@@ -44,7 +45,7 @@ namespace fc::markets::retrieval::client {
           client_wallet{client_wallet},
           miner_wallet{miner_wallet},
           total_funds(total_funds),
-          verifier{proposal.payload_cid, proposal.params.selector} {}
+          traverser{*ipld, proposal.payload_cid, proposal.params.selector} {}
 
     DealProposal proposal;
     State state;
@@ -66,7 +67,7 @@ namespace fc::markets::retrieval::client {
     /**
      * Received ipld blocks verifier
      */
-    Verifier verifier;
+    Traverser traverser;
 
     mutable std::mutex pending_mutex;
     std::optional<std::vector<DealResponse>> pending;

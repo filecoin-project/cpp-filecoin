@@ -14,6 +14,7 @@
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "markets/retrieval/provider/retrieval_provider.hpp"
 #include "miner/miner.hpp"
+#include "storage/ipld/memory_indexed_car.hpp"
 #include "storage/ipld/traverser.hpp"
 #include "storage/leveldb/prefix.hpp"
 #include "storage/piece/piece_storage.hpp"
@@ -37,22 +38,21 @@ namespace fc::markets::retrieval::provider {
   using GsResStatus = ::fc::storage::ipfs::graphsync::ResponseStatusCode;
 
   struct DealState {
-    DealState(std::shared_ptr<Ipld> ipld,
-              const PeerDtId &pdtid,
+    DealState(const PeerDtId &pdtid,
               const PeerGsId &pgsid,
               const DealProposal &proposal)
         : proposal{proposal},
           state{proposal.params},
           pdtid{pdtid},
-          pgsid{pgsid},
-          traverser{*ipld, proposal.payload_cid, proposal.params.selector} {}
+          pgsid{pgsid} {}
 
     DealProposal proposal;
     State state;
     PeerDtId pdtid;
     PeerGsId pgsid;
     bool unsealed{false};
-    Traverser traverser;
+    std::shared_ptr<MemoryIndexedCar> ipld;
+    std::optional<Traverser> traverser;
   };
 
   class RetrievalProviderImpl
@@ -63,7 +63,6 @@ namespace fc::markets::retrieval::provider {
                           std::shared_ptr<DataTransfer> datatransfer,
                           std::shared_ptr<api::FullNodeApi> api,
                           std::shared_ptr<PieceStorage> piece_storage,
-                          IpldPtr ipld,
                           std::shared_ptr<OneKey> config_key,
                           std::shared_ptr<Manager> sealer,
                           std::shared_ptr<Miner> miner);
@@ -126,7 +125,6 @@ namespace fc::markets::retrieval::provider {
     std::shared_ptr<DataTransfer> datatransfer_;
     std::shared_ptr<api::FullNodeApi> api_;
     std::shared_ptr<PieceStorage> piece_storage_;
-    std::shared_ptr<Ipld> ipld_;
     std::shared_ptr<OneKey> config_key_;
     RetrievalAsk config_;
     std::shared_ptr<Manager> sealer_;

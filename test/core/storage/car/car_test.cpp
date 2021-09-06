@@ -12,6 +12,7 @@
 #include "codec/cbor/light_reader/block.hpp"
 #include "primitives/block/block.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "storage/ipld/memory_indexed_car.hpp"
 #include "storage/unixfs/unixfs.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -174,4 +175,16 @@ TEST(SelectiveCar, MakeSelectiveCarToFile) {
                                          << selective_car << std::endl
                                          << "expected" << std::endl
                                          << expected_car << std::endl;
+}
+
+TEST(CarTest, MemoryIndexedCar) {
+  InMemoryDatastore ipld;
+  const auto path{resourcePath("genesis.car")};
+  const auto roots{loadCar(ipld, path).value()};
+  const auto mipld{fc::MemoryIndexedCar::make(path.string(), false).value()};
+  EXPECT_EQ(roots, mipld->roots);
+  for (const auto &p : mipld->index) {
+    const auto &cid{p.first};
+    EXPECT_EQ(mipld->get(cid).value(), ipld.get(cid).value());
+  }
 }

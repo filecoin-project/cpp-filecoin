@@ -17,8 +17,7 @@
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
-#include "storage/car/car.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "storage/ipld/memory_indexed_car.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/message/message.hpp"
 
@@ -50,8 +49,6 @@
 
 namespace fc::markets::storage::client {
   using api::MsgWait;
-  using ::fc::storage::car::loadCar;
-  using ::fc::storage::ipfs::InMemoryDatastore;
   using libp2p::peer::PeerId;
   using primitives::BigInt;
   using primitives::sector::RegisteredSealProof;
@@ -654,15 +651,14 @@ namespace fc::markets::storage::client {
         return;
       }
 
-      auto ipld = std::make_shared<InMemoryDatastore>();
       auto car_file = self->import_manager_->get(deal->data_ref.root);
       SELF_FSM_HALT_ON_ERROR(
           car_file,
           "Storage deal proposal error. Cannot get file from import manager",
           deal);
-      SELF_FSM_HALT_ON_ERROR(loadCar(*ipld, car_file.value().string()),
-                             "Error on imported CAR load",
-                             deal);
+      auto _ipld{MemoryIndexedCar::make(car_file.value().string(), false)};
+      SELF_FSM_HALT_ON_ERROR(_ipld, "MemoryIndexedCar::make", deal);
+      auto &ipld{_ipld.value()};
 
       auto voucher =
           codec::cbor::encode(StorageDataTransferVoucher{deal->proposal_cid});

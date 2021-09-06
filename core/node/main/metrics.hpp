@@ -5,10 +5,12 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <sstream>
 
 #include "clock/chain_epoch_clock.hpp"
 #include "clock/utc_clock.hpp"
+#include "common/fd_usage.hpp"
 #include "common/memory_usage.hpp"
 #include "node/events.hpp"
 #include "node/main/builder.hpp"
@@ -30,6 +32,8 @@ namespace fc::node {
       auto [vm_size, vm_rss]{memoryUsage()};
       metric("vm_size", vm_size);
       metric("vm_rss", vm_rss);
+
+      metric("fd", fdUsage());
 
       std::shared_lock ts_lock{*o.env_context.ts_branches_mutex};
       metric("ts_branches", o.ts_branches->size());
@@ -61,6 +65,15 @@ namespace fc::node {
         car("car_size", "car_count", "car_tmp", o.compacter->old_ipld);
         car("car2_size", "car2_count", "car2_tmp", o.compacter->new_ipld);
       }
+
+      auto &instances{libp2p::metrics::instance::State::get()};
+      std::unique_lock instances_lock{instances.mutex};
+      for (auto &[type, count] : instances.counts) {
+        std::stringstream name;
+        name << "instances{type=\"" << type << "\"}";
+        metric(name.str(), count);
+      }
+      instances_lock.unlock();
 
       return ss.str();
     }

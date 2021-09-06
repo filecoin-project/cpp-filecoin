@@ -415,7 +415,6 @@ namespace fc {
             datatransfer,
             napi,
             piece_storage,
-            markets_ipld,
             one_key("retrieval_provider_ask", leveldb),
             manager,
             miner)};
