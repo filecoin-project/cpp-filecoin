@@ -35,7 +35,7 @@ namespace fc::primitives::piece {
     return s << static_cast<uint64_t>(v);
   }
   CBOR_DECODE(UnpaddedPieceSize, v) {
-    uint64_t num;
+    uint64_t num = 0;
     s >> num;
     v = num;
     return s;
@@ -64,7 +64,7 @@ namespace fc::primitives::piece {
     return s << static_cast<uint64_t>(v);
   }
   CBOR_DECODE(PaddedPieceSize, v) {
-    uint64_t num;
+    uint64_t num = 0;
     s >> num;
     v = num;
     return s;

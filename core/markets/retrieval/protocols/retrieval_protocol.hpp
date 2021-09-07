@@ -100,7 +100,7 @@ namespace fc::markets::retrieval {
   struct DealPayment {
     struct Named;
 
-    DealId deal_id;
+    DealId deal_id = 0;
     Address payment_channel;
     SignedVoucher payment_voucher;
   };

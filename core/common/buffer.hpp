@@ -38,6 +38,9 @@ namespace fc::common {
     /**
      * @brief lvalue construct buffer from a byte vector
      */
+    // TODO (a.chernyshov) make Buffer constructors explicit or remove class
+    // at all (FIL-411)
+    // NOLINTNEXTLINE(google-explicit-constructor)
     Buffer(std::vector<uint8_t> &&v);
     explicit Buffer(const std::vector<uint8_t> &v);
     explicit Buffer(gsl::span<const uint8_t> s);
@@ -185,6 +188,9 @@ namespace fc::common {
 
     std::vector<uint8_t> &toVector();
 
+    // TODO (a.chernyshov) make Buffer constructors explicit or remove class
+    // at all (FIL-411)
+    // NOLINTNEXTLINE(google-explicit-constructor)
     inline operator std::vector<uint8_t> &&() && {
       return std::move(data_);
     }

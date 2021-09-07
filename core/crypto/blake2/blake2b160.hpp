@@ -21,7 +21,7 @@ namespace fc::crypto::blake2b {
   using Blake2b512Hash = common::Blob<BLAKE2B512_HASH_LENGTH>;
 
   struct Ctx {
-    Ctx(size_t outlen, BytesIn key = {});
+    explicit Ctx(size_t outlen, BytesIn key = {});
     void update(BytesIn in);
     void _compress(bool last);
     void final(gsl::span<uint8_t> hash);
