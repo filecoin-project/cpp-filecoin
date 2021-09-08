@@ -32,5 +32,6 @@ namespace fc::primitives::go {
 namespace fc {
   using primitives::go::bigdiv;
   using primitives::go::bigmod;
+  using primitives::go::bitlen;
 
 }  // namespace fc

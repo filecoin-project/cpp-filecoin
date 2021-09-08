@@ -132,8 +132,8 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   outcome::result<TokenAmount> Monies::consensusFaultPenalty(
       const TokenAmount &this_epoch_reward) {
-    return this_epoch_reward * consensus_fault_factor
-           / expected_leader_per_epoch;
+    return TokenAmount{this_epoch_reward * consensus_fault_factor
+           / expected_leader_per_epoch};
   }
 
   outcome::result<std::pair<TokenAmount, VestSpec>>

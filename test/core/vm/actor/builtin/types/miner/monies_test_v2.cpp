@@ -23,7 +23,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       undeclared_penalty = maybe_penalty;
       initial_pledge = undeclared_penalty;
       big_initial_pledge_factor = 20;
-      day_reward = initial_pledge / big_initial_pledge_factor;
+      day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
       twenty_day_reward = day_reward * big_initial_pledge_factor;
       big_lifetime_cap =
           BigInt{static_cast<int64_t>(moniesv2.termination_lifetime_cap)};
@@ -50,7 +50,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   TEST_F(MoniesTestv2, TestPledgePenaltyForTermination) {
     const TokenAmount initial_pledge = TokenAmount{1 << 10};
-    day_reward = initial_pledge / big_initial_pledge_factor;
+    day_reward = initial_pledge, big_initial_pledge_factor;
     twenty_day_reward = day_reward * big_initial_pledge_factor;
     sector_age = 20 * ChainEpoch{static_cast<BigInt>(kEpochsInDay)};
 
@@ -68,7 +68,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   };
 
   TEST_F(MoniesTestv2, ExpectedRewardFault) {
-    day_reward = initial_pledge / big_initial_pledge_factor;
+    day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
     twenty_day_reward = day_reward * big_initial_pledge_factor;
     const int64_t sector_age_in_days{20};
     sector_age = sector_age_in_days * kEpochsInDay;
@@ -85,15 +85,15 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     const TokenAmount expected_fee =
         initial_pledge
-        + (initial_pledge * sector_age_in_days
-           * moniesv2.termination_reward_factor.numerator)
-              / (big_initial_pledge_factor
-                 * moniesv2.termination_reward_factor.denominator);
+        + bigdiv((initial_pledge * sector_age_in_days
+                  * moniesv2.termination_reward_factor.numerator),
+                 (big_initial_pledge_factor
+                  * moniesv2.termination_reward_factor.denominator));
     EXPECT_EQ(expected_fee, fee);
   }
 
   TEST_F(MoniesTestv2, CappedSectorAge) {
-    day_reward = initial_pledge / big_initial_pledge_factor;
+    day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
     twenty_day_reward = day_reward * big_initial_pledge_factor;
     sector_age = 500 * kEpochsInDay;
     EXPECT_OUTCOME_TRUE(fee,
@@ -108,15 +108,15 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     const TokenAmount expected_fee =
         initial_pledge
-        + (initial_pledge * big_lifetime_cap
-           * moniesv2.termination_reward_factor.numerator)
-              / (big_initial_pledge_factor
-                 * moniesv2.termination_reward_factor.denominator);
+        + bigdiv((initial_pledge * big_lifetime_cap
+                  * moniesv2.termination_reward_factor.numerator),
+                 (big_initial_pledge_factor
+                  * moniesv2.termination_reward_factor.denominator));
     EXPECT_EQ(expected_fee, fee);
   }
 
   TEST_F(MoniesTestv2, FeeReplacement) {
-    day_reward = initial_pledge / big_initial_pledge_factor;
+    day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
     twenty_day_reward = day_reward * big_initial_pledge_factor;
     sector_age = 20 * ChainEpoch{static_cast<BigInt>(kEpochsInDay)};
     const ChainEpoch replacement_age = 2 * kEpochsInDay;
@@ -147,7 +147,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   TEST_F(MoniesTestv2, LifetimeCapReplacement) {
-    day_reward = initial_pledge / big_initial_pledge_factor;
+    day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
     twenty_day_reward = day_reward * big_initial_pledge_factor;
     sector_age = 20 * ChainEpoch{static_cast<BigInt>(kEpochsInDay)};
     const ChainEpoch replacement_age =
@@ -178,7 +178,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   TEST_F(MoniesTestv2, DayRateCharger) {
-    day_reward = initial_pledge / big_initial_pledge_factor;
+    day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
     twenty_day_reward = day_reward * big_initial_pledge_factor;
     const TokenAmount old_day_reward = day_reward * 2;
     const int64_t old_sector_age_in_days{20};
@@ -188,13 +188,15 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     const BigInt power = 1;
 
-    const BigInt old_penalty = (old_day_reward * old_sector_age_in_days
-                                * moniesv2.termination_reward_factor.numerator)
-                               / moniesv2.termination_reward_factor.denominator;
+    const BigInt old_penalty =
+        bigdiv((old_day_reward * old_sector_age_in_days
+                * moniesv2.termination_reward_factor.numerator),
+               moniesv2.termination_reward_factor.denominator);
 
-    const BigInt new_penalty = (day_reward * replacement_age_in_days
-                                * moniesv2.termination_reward_factor.numerator)
-                               / moniesv2.termination_reward_factor.denominator;
+    const BigInt new_penalty =
+        bigdiv((day_reward * replacement_age_in_days
+                * moniesv2.termination_reward_factor.numerator),
+               moniesv2.termination_reward_factor.denominator);
 
     const TokenAmount expectedFee =
         twenty_day_reward + old_penalty + new_penalty;

@@ -10,7 +10,6 @@
 
 namespace fc::common::math {
   using primitives::BigInt;
-  using primitives::go::bitlen;
 
   /**
    * lambda = ln(2) / (6 * epochsInYear)

@@ -18,8 +18,8 @@ namespace fc::vm::actor::builtin::v0::miner {
 
       reward_estimate = {.position = epoch_target_reward << 128,
                          .velocity = BigInt(0) << 128};
-      power_estimate = FilterEstimate{
-          .position = network_qa_power << 128, .velocity = BigInt(0) << 128};
+      power_estimate = FilterEstimate{.position = network_qa_power << 128,
+                                      .velocity = BigInt(0) << 128};
 
       EXPECT_OUTCOME_TRUE(
           maybe_penalty,
@@ -46,8 +46,10 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   TEST_F(MoniesTestv0, TestPledgePenaltyForTermination) {
     const TokenAmount initial_pledge = TokenAmount{1 << 10};
-    const TokenAmount day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
-    const TokenAmount twenty_day_reward = day_reward * big_initial_pledge_factor;
+    const TokenAmount day_reward =
+        bigdiv(initial_pledge, big_initial_pledge_factor);
+    const TokenAmount twenty_day_reward =
+        day_reward * big_initial_pledge_factor;
     const ChainEpoch sector_age = 20 * static_cast<ChainEpoch>(kEpochsInDay);
 
     EXPECT_OUTCOME_TRUE(fee,
@@ -64,7 +66,8 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   TEST_F(MoniesTestv0, ExpectedRewardFault) {
     const TokenAmount initial_pledge = undeclared_penalty_;
-    const TokenAmount day_reward = initial_pledge / big_initial_pledge_factor;
+    const TokenAmount day_reward =
+        bigdiv(initial_pledge, big_initial_pledge_factor);
     const TokenAmount twenty_day_reward =
         day_reward * big_initial_pledge_factor;
     const int64_t sector_age_in_days = 20;
@@ -80,15 +83,17 @@ namespace fc::vm::actor::builtin::v0::miner {
                                                              sector_power,
                                                              nv))
 
-    const TokenAmount expectedFee = TokenAmount{
-        initial_pledge
-        + initial_pledge * sector_age_in_days / big_initial_pledge_factor};
+    const TokenAmount expectedFee =
+        TokenAmount{initial_pledge
+                    + bigdiv(initial_pledge * sector_age_in_days,
+                             big_initial_pledge_factor)};
     EXPECT_EQ(expectedFee, fee);
   }
 
   TEST_F(MoniesTestv0, CappedSectorAge) {
     const TokenAmount initial_pledge = undeclared_penalty_;
-    const TokenAmount day_reward = initial_pledge / big_initial_pledge_factor;
+    const TokenAmount day_reward =
+        bigdiv(initial_pledge, big_initial_pledge_factor);
     const TokenAmount twenty_day_reward =
         day_reward * big_initial_pledge_factor;
     const int64_t sector_age_in_days = 500;
@@ -104,10 +109,10 @@ namespace fc::vm::actor::builtin::v0::miner {
                                                              sector_power,
                                                              nv))
 
-    const TokenAmount expected_fee = initial_pledge
-                                     + initial_pledge
-                                           * moniesv0.termination_lifetime_cap
-                                           / big_initial_pledge_factor;
+    const TokenAmount expected_fee =
+        initial_pledge
+        + bigdiv((initial_pledge * moniesv0.termination_lifetime_cap),
+                 big_initial_pledge_factor);
     EXPECT_EQ(expected_fee, fee);
   }
 }  // namespace fc::vm::actor::builtin::v0::miner

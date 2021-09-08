@@ -20,7 +20,6 @@ namespace fc::vm::actor::builtin::types::miner {
   using primitives::ChainEpoch;
   using primitives::StoragePower;
   using primitives::TokenAmount;
-  using miner::VestSpec;
   using states::MinerActorState;
   using version::NetworkVersion;
 

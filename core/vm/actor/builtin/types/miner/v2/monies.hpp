@@ -31,8 +31,8 @@ namespace fc::vm::actor::builtin::v2::miner {
         bigdiv(BigInt{"1000000000000000000"}, BigInt{BigInt{32} << 30});
     const BigFrac initial_pledge_lock_target = {3, 10};
 
-    constexpr static  int continued_fault_factor_num = 351;
-    constexpr static  int continued_fault_factor_denom = 100;
+    constexpr static int continued_fault_factor_num = 351;
+    constexpr static int continued_fault_factor_denom = 100;
     const ChainEpoch continued_fault_projection_period =
         ChainEpoch(kEpochsInDay * continued_fault_factor_num
                    / continued_fault_factor_denom);
@@ -42,12 +42,13 @@ namespace fc::vm::actor::builtin::v2::miner {
     const BigFrac termination_reward_factor = {1, 2};
     const ChainEpoch termination_lifetime_cap = 140;
 
-    constexpr static  int consensus_fault_factor = 5;
+    constexpr static int consensus_fault_factor = 5;
 
     const BigInt locked_reward_factor_num_v6 = BigInt(75);
     const BigInt locked_reward_factor_denom_v6 = BigInt(100);
 
-    constexpr static int64_t expected_leader_per_epoch = 5;  // TODO from network.go
+    constexpr static int64_t expected_leader_per_epoch =
+        5;
 
     outcome::result<TokenAmount> expectedRewardForPower(
         const FilterEstimate &reward_estimate,
@@ -123,7 +124,6 @@ namespace fc::vm::actor::builtin::v2::miner {
         const FilterEstimate &reward_estimate,
         const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power) override;
-
   };
   CBOR_NON(Monies);
 
