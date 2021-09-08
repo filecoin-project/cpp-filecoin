@@ -90,7 +90,11 @@ namespace fc::api {
                 };
             auto params =
                 std::tuple_cat(std::make_tuple(cb), maybe_params.value());
-            std::apply(method, params);
+            auto maybe_error = std::apply(method, params);
+            if (!maybe_error) {
+              return respond(Response::Error{
+                  kInternalError, errorToPrettyString(maybe_error.error())});
+            }
           }
         });
   }

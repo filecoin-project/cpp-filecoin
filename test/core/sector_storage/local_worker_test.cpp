@@ -235,19 +235,19 @@ namespace fc::sector_storage {
                         local_worker_->sealPreCommit1(sector_, ticket, pieces));
 
     CallError error;
-    EXPECT_CALL(mock_ReturnSealPreCommit1, Call(_, call_id, _, Ne(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](CallId call_id,
-                            boost::optional<PreCommit1Output> maybe_value,
-                            boost::optional<CallError> maybe_error)
-                            -> outcome::result<void> {
+    EXPECT_CALL(mock_ReturnSealPreCommit1, Call(call_id, _, Ne(boost::none)))
+        .WillOnce(
+            testing::Invoke([&](CallId call_id,
+                                boost::optional<PreCommit1Output> maybe_value,
+                                boost::optional<CallError> maybe_error)
+                                -> outcome::result<void> {
               if (maybe_error.has_value()) {
                 error = maybe_error.value();
                 return outcome::success();
               }
 
               return ERROR_TEXT("ERROR: no error");
-            })));
+            }));
 
     io_context_->run_one();
 
@@ -307,9 +307,8 @@ namespace fc::sector_storage {
     MOCK_API(return_interface_, ReturnFinalizeSector);
     EXPECT_OUTCOME_TRUE(call_id, local_worker_->finalizeSector(sector_, {}));
 
-    EXPECT_CALL(mock_ReturnFinalizeSector, Call(_, call_id, Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([](auto, auto) { return outcome::success(); })));
+    EXPECT_CALL(mock_ReturnFinalizeSector, Call(call_id, Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
 
@@ -420,9 +419,8 @@ namespace fc::sector_storage {
     EXPECT_OUTCOME_TRUE(call_id,
                         local_worker_->finalizeSector(sector_, ranges));
 
-    EXPECT_CALL(mock_ReturnFinalizeSector, Call(_, call_id, Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([](auto, auto) { return outcome::success(); })));
+    EXPECT_CALL(mock_ReturnFinalizeSector, Call(call_id, Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
 
@@ -532,9 +530,8 @@ namespace fc::sector_storage {
         call_id, local_worker_->sealPreCommit1(sector_, randomness, pieces));
 
     EXPECT_CALL(mock_ReturnSealPreCommit1,
-                Call(_, call_id, Eq(p1o), Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([](auto, auto, auto) { return outcome::success(); })));
+                Call(call_id, Eq(p1o), Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
 
@@ -610,9 +607,8 @@ namespace fc::sector_storage {
         local_worker_->sealPreCommit2(sector_, p1o));  // TODO: переделать
 
     EXPECT_CALL(mock_ReturnSealPreCommit2,
-                Call(_, call_id, Eq(cids), Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([](auto, auto, auto) { return outcome::success(); })));
+                Call(call_id, Eq(cids), Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
     io_context_->run_one();
 
     ASSERT_TRUE(is_clear);
@@ -703,10 +699,8 @@ namespace fc::sector_storage {
         call_id,
         local_worker_->sealCommit1(sector_, randomness, seed, pieces, cids));
 
-    EXPECT_CALL(mock_ReturnSealCommit1,
-                Call(_, call_id, Eq(c1o), Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([](auto, auto, auto) { return outcome::success(); })));
+    EXPECT_CALL(mock_ReturnSealCommit1, Call(call_id, Eq(c1o), Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
 
@@ -734,9 +728,8 @@ namespace fc::sector_storage {
     EXPECT_OUTCOME_TRUE(call_id, local_worker_->sealCommit2(sector_, c1o));
 
     EXPECT_CALL(mock_ReturnSealCommit2,
-                Call(_, call_id, Eq(proof), Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([](auto, auto, auto) { return outcome::success(); })));
+                Call(call_id, Eq(proof), Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
   }
@@ -811,9 +804,8 @@ namespace fc::sector_storage {
         local_worker_->unsealPiece(
             sector_, offset, piece_size, randomness, unsealed_cid));
 
-    EXPECT_CALL(mock_ReturnUnsealPiece, Call(_, call_id, Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([](auto, auto) { return outcome::success(); })));
+    EXPECT_CALL(mock_ReturnUnsealPiece, Call(call_id, Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
     ASSERT_TRUE(is_clear);
@@ -973,9 +965,8 @@ namespace fc::sector_storage {
         local_worker_->unsealPiece(
             sector_, offset, piece_size, randomness, unsealed_cid));
 
-    EXPECT_CALL(mock_ReturnUnsealPiece, Call(_, call_id, Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([](auto, auto) { return outcome::success(); })));
+    EXPECT_CALL(mock_ReturnUnsealPiece, Call(call_id, Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
     ASSERT_TRUE(is_clear);
@@ -1164,9 +1155,8 @@ namespace fc::sector_storage {
         local_worker_->unsealPiece(
             sector_, offset, piece_size, randomness, unsealed_cid));
 
-    EXPECT_CALL(mock_ReturnUnsealPiece, Call(_, call_id, Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([](auto, auto) { return outcome::success(); })));
+    EXPECT_CALL(mock_ReturnUnsealPiece, Call(call_id, Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
     ASSERT_TRUE(is_clear);
@@ -1206,9 +1196,8 @@ namespace fc::sector_storage {
 
     EXPECT_OUTCOME_TRUE(call_id, local_worker_->moveStorage(sector_, types))
 
-    EXPECT_CALL(mock_ReturnMoveStorage, Call(_, call_id, Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([](auto, auto) { return outcome::success(); })));
+    EXPECT_CALL(mock_ReturnMoveStorage, Call(call_id, Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
   }
@@ -1269,9 +1258,8 @@ namespace fc::sector_storage {
     EXPECT_OUTCOME_TRUE(call_id,
                         local_worker_->fetch(sector_, type, path, acquire));
 
-    EXPECT_CALL(mock_ReturnFetch, Call(_, call_id, Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([](auto, auto) { return outcome::success(); })));
+    EXPECT_CALL(mock_ReturnFetch, Call(call_id, Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
 
     io_context_->run_one();
 
@@ -1337,19 +1325,19 @@ namespace fc::sector_storage {
                             PieceData(temp_path), sector_, offset, piece_size));
 
     bool status = true;
-    EXPECT_CALL(mock_ReturnReadPiece, Call(_, call_id, _, Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](CallId call_id,
-                            boost::optional<bool> maybe_status,
-                            const boost::optional<CallError> &maybe_error)
-                            -> outcome::result<void> {
+    EXPECT_CALL(mock_ReturnReadPiece, Call(call_id, _, Eq(boost::none)))
+        .WillOnce(
+            testing::Invoke([&](CallId call_id,
+                                boost::optional<bool> maybe_status,
+                                const boost::optional<CallError> &maybe_error)
+                                -> outcome::result<void> {
               if (maybe_status.has_value()) {
                 status = maybe_status.value();
                 return outcome::success();
               }
 
               return ERROR_TEXT("ERROR: no value");
-            })));
+            }));
 
     io_context_->run_one();
     ASSERT_FALSE(status);
@@ -1423,19 +1411,19 @@ namespace fc::sector_storage {
                             PieceData(temp_path), sector_, offset, piece_size));
 
     bool status = true;
-    EXPECT_CALL(mock_ReturnReadPiece, Call(_, call_id, _, Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const CallId &call_id,
-                            boost::optional<bool> maybe_status,
-                            const boost::optional<CallError> &maybe_error)
-                            -> outcome::result<void> {
+    EXPECT_CALL(mock_ReturnReadPiece, Call(call_id, _, Eq(boost::none)))
+        .WillOnce(
+            testing::Invoke([&](const CallId &call_id,
+                                boost::optional<bool> maybe_status,
+                                const boost::optional<CallError> &maybe_error)
+                                -> outcome::result<void> {
               if (maybe_status.has_value()) {
                 status = maybe_status.value();
                 return outcome::success();
               }
 
               return ERROR_TEXT("ERROR: no value");
-            })));
+            }));
 
     io_context_->run_one();
     ASSERT_FALSE(status);
@@ -1528,19 +1516,19 @@ namespace fc::sector_storage {
         local_worker_->readPiece(PieceData(p[1]), sector_, offset, piece_size));
 
     bool status = false;
-    EXPECT_CALL(mock_ReturnReadPiece, Call(_, call_id, _, Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const CallId &call_id,
-                            boost::optional<bool> maybe_status,
-                            const boost::optional<CallError> &maybe_error)
-                            -> outcome::result<void> {
+    EXPECT_CALL(mock_ReturnReadPiece, Call(call_id, _, Eq(boost::none)))
+        .WillOnce(
+            testing::Invoke([&](const CallId &call_id,
+                                boost::optional<bool> maybe_status,
+                                const boost::optional<CallError> &maybe_error)
+                                -> outcome::result<void> {
               if (maybe_status.has_value()) {
                 status = maybe_status.value();
                 return outcome::success();
               }
 
               return ERROR_TEXT("ERROR: no error");
-            })));
+            }));
 
     io_context_->run_one();
     ASSERT_TRUE(status);
@@ -1568,19 +1556,19 @@ namespace fc::sector_storage {
             sector_, pieces, UnpaddedPieceSize(127), PieceData("/dev/null")));
 
     CallError error;
-    EXPECT_CALL(mock_ReturnAddPiece, Call(_, call_id, _, Ne(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const CallId &call_id,
-                            boost::optional<PieceInfo> maybe_piece_info,
-                            boost::optional<CallError> maybe_error)
-                            -> outcome::result<void> {
+    EXPECT_CALL(mock_ReturnAddPiece, Call(call_id, _, Ne(boost::none)))
+        .WillOnce(
+            testing::Invoke([&](const CallId &call_id,
+                                boost::optional<PieceInfo> maybe_piece_info,
+                                boost::optional<CallError> maybe_error)
+                                -> outcome::result<void> {
               if (maybe_error.has_value()) {
                 error = maybe_error.value();
                 return outcome::success();
               }
 
               return ERROR_TEXT("ERROR: no value");
-            })));
+            }));
 
     io_context_->run_one();
 
@@ -1668,19 +1656,19 @@ namespace fc::sector_storage {
                             sector_, {}, piece_size, PieceData(input_path)));
 
     PieceInfo info;
-    EXPECT_CALL(mock_ReturnAddPiece, Call(_, call_id, _, Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const CallId &call_id,
-                            boost::optional<PieceInfo> maybe_piece_info,
-                            const boost::optional<CallError> &maybe_error)
-                            -> outcome::result<void> {
+    EXPECT_CALL(mock_ReturnAddPiece, Call(call_id, _, Eq(boost::none)))
+        .WillOnce(
+            testing::Invoke([&](const CallId &call_id,
+                                boost::optional<PieceInfo> maybe_piece_info,
+                                const boost::optional<CallError> &maybe_error)
+                                -> outcome::result<void> {
               if (maybe_piece_info.has_value()) {
                 info = maybe_piece_info.value();
                 return outcome::success();
               }
 
               return ERROR_TEXT("ERROR: no value");
-            })));
+            }));
 
     io_context_->run_one();
 
@@ -1784,19 +1772,19 @@ namespace fc::sector_storage {
             sector_, pieces, piece_size, PieceData(input_path)));
 
     PieceInfo info;
-    EXPECT_CALL(mock_ReturnAddPiece, Call(_, call_id, _, Eq(boost::none)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const CallId &call_id,
-                            boost::optional<PieceInfo> maybe_piece_info,
-                            const boost::optional<CallError> &maybe_error)
-                            -> outcome::result<void> {
+    EXPECT_CALL(mock_ReturnAddPiece, Call(call_id, _, Eq(boost::none)))
+        .WillOnce(
+            testing::Invoke([&](const CallId &call_id,
+                                boost::optional<PieceInfo> maybe_piece_info,
+                                const boost::optional<CallError> &maybe_error)
+                                -> outcome::result<void> {
               if (maybe_piece_info.has_value()) {
                 info = maybe_piece_info.value();
                 return outcome::success();
               }
 
               return ERROR_TEXT("ERROR: no value");
-            })));
+            }));
 
     io_context_->run_one();
 

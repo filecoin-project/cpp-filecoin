@@ -5,12 +5,10 @@
 
 #include "miner/storage_fsm/impl/checks.hpp"
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/mocks/api.hpp"
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
@@ -43,10 +41,6 @@ namespace fc::mining::checks {
   using vm::actor::builtin::v0::market::ComputeDataCommitment;
   using vm::actor::builtin::v0::miner::MinerActorState;
 
-  MATCHER_P(messageMethodMatcher, method, "compare methods") {
-    return (arg.method == method);
-  }
-
   class CheckPieces : public testing::Test {
    protected:
     void SetUp() override {
@@ -76,13 +70,9 @@ namespace fc::mining::checks {
         },
     };
 
-    MOCK_API(api_, ChainHead);
-
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(
-            testing::Invoke(api::wrapCb([&]() -> outcome::result<TipsetCPtr> {
-              return outcome::success();
-            })));
+    api_->ChainHead = []() -> outcome::result<TipsetCPtr> {
+      return outcome::success();
+    };
 
     EXPECT_OUTCOME_ERROR(ChecksError::kInvalidDeal,
                          checkPieces(miner_addr_, info, api_));
@@ -106,13 +96,9 @@ namespace fc::mining::checks {
         },
     };
 
-    MOCK_API(api_, ChainHead);
-
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(
-            testing::Invoke(api::wrapCb([&]() -> outcome::result<TipsetCPtr> {
-              return outcome::success();
-            })));
+    api_->ChainHead = []() -> outcome::result<TipsetCPtr> {
+      return outcome::success();
+    };
 
     EXPECT_OUTCOME_TRUE_1(checkPieces(miner_addr_, info, api_));
   }
@@ -145,25 +131,24 @@ namespace fc::mining::checks {
     };
 
     TipsetKey head_key;
-    MOCK_API(api_, ChainHead);
+    api_->ChainHead = [&head_key]() -> outcome::result<TipsetCPtr> {
+      auto tip =
+          std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
+      return tip;
+    };
 
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&head_key]() -> outcome::result<TipsetCPtr> {
-              auto tip = std::make_shared<Tipset>(
-                  head_key, std::vector<api::BlockHeader>());
-              return tip;
-            })));
+    api_->StateMarketStorageDeal =
+        [id{miner_id_}, deal_id, &head_key](
+            api::DealId did,
+            const TipsetKey &key) -> outcome::result<api::StorageDeal> {
+      if (did == deal_id and key == head_key) {
+        api::StorageDeal res;
+        res.proposal.provider = Address::makeFromId(id + 1);
+        return res;
+      }
 
-    MOCK_API(api_, StateMarketStorageDeal);
-
-    EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, deal_id, head_key))
-        .WillOnce(testing::Invoke(api::wrapCb(
-            [id{miner_id_}](auto, auto) -> outcome::result<api::StorageDeal> {
-              api::StorageDeal res;
-              res.proposal.provider = Address::makeFromId(id + 1);
-              return res;
-            })));
+      return ERROR_TEXT("ERROR");
+    };
 
     EXPECT_OUTCOME_ERROR(ChecksError::kInvalidDeal,
                          checkPieces(miner_addr_, info, api_));
@@ -197,26 +182,25 @@ namespace fc::mining::checks {
     };
 
     TipsetKey head_key;
-    MOCK_API(api_, ChainHead);
+    api_->ChainHead = [&head_key]() -> outcome::result<TipsetCPtr> {
+      auto tip =
+          std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
+      return tip;
+    };
 
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&head_key]() -> outcome::result<TipsetCPtr> {
-              auto tip = std::make_shared<Tipset>(
-                  head_key, std::vector<api::BlockHeader>());
-              return tip;
-            })));
+    api_->StateMarketStorageDeal =
+        [id{miner_id_}, deal_id, &head_key](
+            api::DealId did,
+            const TipsetKey &key) -> outcome::result<api::StorageDeal> {
+      if (did == deal_id and key == head_key) {
+        api::StorageDeal res;
+        res.proposal.provider = Address::makeFromId(id);
+        res.proposal.piece_cid = "010001020002"_cid;
+        return res;
+      }
 
-    MOCK_API(api_, StateMarketStorageDeal);
-
-    EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, deal_id, head_key))
-        .WillOnce(testing::Invoke(api::wrapCb(
-            [id{miner_id_}](auto, auto) -> outcome::result<api::StorageDeal> {
-              api::StorageDeal res;
-              res.proposal.provider = Address::makeFromId(id);
-              res.proposal.piece_cid = "010001020002"_cid;
-              return res;
-            })));
+      return ERROR_TEXT("ERROR");
+    };
 
     EXPECT_OUTCOME_ERROR(ChecksError::kInvalidDeal,
                          checkPieces(miner_addr_, info, api_));
@@ -251,28 +235,26 @@ namespace fc::mining::checks {
     };
 
     TipsetKey head_key;
-    MOCK_API(api_, ChainHead);
+    api_->ChainHead = [&head_key]() -> outcome::result<TipsetCPtr> {
+      auto tip =
+          std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
+      return tip;
+    };
 
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&head_key]() -> outcome::result<TipsetCPtr> {
-              auto tip = std::make_shared<Tipset>(
-                  head_key, std::vector<api::BlockHeader>());
-              return tip;
-            })));
+    api_->StateMarketStorageDeal =
+        [&piece, id{miner_id_}, deal_id, &head_key](
+            api::DealId did,
+            const TipsetKey &key) -> outcome::result<api::StorageDeal> {
+      if (did == deal_id and key == head_key) {
+        api::StorageDeal res;
+        res.proposal.provider = Address::makeFromId(id);
+        res.proposal.piece_cid = piece.cid;
+        res.proposal.piece_size = piece.size + 1;
+        return res;
+      }
 
-    MOCK_API(api_, StateMarketStorageDeal);
-
-    EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, deal_id, head_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&piece, id{miner_id_}](
-                            auto, auto) -> outcome::result<api::StorageDeal> {
-              api::StorageDeal res;
-              res.proposal.provider = Address::makeFromId(id);
-              res.proposal.piece_cid = piece.cid;
-              res.proposal.piece_size = piece.size + 1;
-              return res;
-            })));
+      return ERROR_TEXT("ERROR");
+    };
 
     EXPECT_OUTCOME_ERROR(ChecksError::kInvalidDeal,
                          checkPieces(miner_addr_, info, api_));
@@ -307,29 +289,27 @@ namespace fc::mining::checks {
     };
 
     TipsetKey head_key;
-    MOCK_API(api_, ChainHead);
+    api_->ChainHead = [&head_key]() -> outcome::result<TipsetCPtr> {
+      auto tip =
+          std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
+      return tip;
+    };
 
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&head_key]() -> outcome::result<TipsetCPtr> {
-              auto tip = std::make_shared<Tipset>(
-                  head_key, std::vector<api::BlockHeader>());
-              return tip;
-            })));
+    api_->StateMarketStorageDeal =
+        [&piece, id{miner_id_}, deal_id, &head_key](
+            api::DealId did,
+            const TipsetKey &key) -> outcome::result<api::StorageDeal> {
+      if (did == deal_id and key == head_key) {
+        api::StorageDeal res;
+        res.proposal.provider = Address::makeFromId(id);
+        res.proposal.piece_cid = piece.cid;
+        res.proposal.piece_size = piece.size;
+        res.proposal.start_epoch = 0;
+        return res;
+      }
 
-    MOCK_API(api_, StateMarketStorageDeal);
-
-    EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, deal_id, head_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&piece, id{miner_id_}](
-                            auto, auto) -> outcome::result<api::StorageDeal> {
-              api::StorageDeal res;
-              res.proposal.provider = Address::makeFromId(id);
-              res.proposal.piece_cid = piece.cid;
-              res.proposal.piece_size = piece.size;
-              res.proposal.start_epoch = 0;
-              return res;
-            })));
+      return ERROR_TEXT("ERROR");
+    };
 
     EXPECT_OUTCOME_ERROR(ChecksError::kExpiredDeal,
                          checkPieces(miner_addr_, info, api_));
@@ -379,48 +359,45 @@ namespace fc::mining::checks {
     };
 
     TipsetKey head_key;
-    MOCK_API(api_, ChainHead);
+    api_->ChainHead = [&head_key]() -> outcome::result<TipsetCPtr> {
+      auto tip =
+          std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
+      return tip;
+    };
 
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&head_key]() -> outcome::result<TipsetCPtr> {
-              auto tip = std::make_shared<Tipset>(
-                  head_key, std::vector<api::BlockHeader>());
-              return tip;
-            })));
+    api_->StateMarketStorageDeal =
+        [&piece, id{miner_id_}, deal_id, &head_key](
+            api::DealId did,
+            const TipsetKey &key) -> outcome::result<api::StorageDeal> {
+      if (did == deal_id and key == head_key) {
+        api::StorageDeal res;
+        res.proposal.provider = Address::makeFromId(id);
+        res.proposal.piece_cid = piece.cid;
+        res.proposal.piece_size = piece.size;
+        res.proposal.start_epoch = 1;
+        return res;
+      }
 
-    MOCK_API(api_, StateMarketStorageDeal);
-
-    EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, deal_id, head_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&piece, id{miner_id_}](
-                            auto, auto) -> outcome::result<api::StorageDeal> {
-              api::StorageDeal res;
-              res.proposal.provider = Address::makeFromId(id);
-              res.proposal.piece_cid = piece.cid;
-              res.proposal.piece_size = piece.size;
-              res.proposal.start_epoch = 1;
-              return res;
-            })));
+      return ERROR_TEXT("ERROR");
+    };
 
     TipsetKey precommit_key{{CbCid::hash("01"_unhex),
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
+    api_->StateCall =
+        [&precommit_key](const UnsignedMessage &msg,
+                         const TipsetKey &key) -> outcome::result<InvocResult> {
+      if (msg.method == ComputeDataCommitment::Number
+          and key == precommit_key) {
+        InvocResult res;
+        res.receipt.exit_code = VMExitCode::kOk;
+        OUTCOME_TRY(cid_buf, codec::cbor::encode("010001020002"_cid));
+        res.receipt.return_value = cid_buf;
+        return res;
+      }
 
-    MOCK_API(api_, StateCall);
-    EXPECT_CALL(mock_StateCall,
-                Call(_,
-                     messageMethodMatcher(ComputeDataCommitment::Number),
-                     precommit_key))
-        .WillOnce(testing::Invoke(api::wrapCb(
-            [](const UnsignedMessage &msg,
-               const TipsetKey &key) -> outcome::result<InvocResult> {
-              InvocResult res;
-              res.receipt.exit_code = VMExitCode::kOk;
-              OUTCOME_TRY(cid_buf, codec::cbor::encode("010001020002"_cid));
-              res.receipt.return_value = cid_buf;
-              return res;
-            })));
+      return ERROR_TEXT("ERROR");
+    };
 
     EXPECT_OUTCOME_ERROR(
         ChecksError::kBadCommD,
@@ -457,55 +434,56 @@ namespace fc::mining::checks {
     };
 
     TipsetKey head_key;
-    MOCK_API(api_, ChainHead);
+    api_->ChainHead = [&head_key]() -> outcome::result<TipsetCPtr> {
+      auto tip =
+          std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
+      return tip;
+    };
 
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&head_key]() -> outcome::result<TipsetCPtr> {
-              auto tip = std::make_shared<Tipset>(
-                  head_key, std::vector<api::BlockHeader>());
-              return tip;
-            })));
+    api_->StateMarketStorageDeal =
+        [&piece, id{miner_id_}, deal_id, &head_key](
+            api::DealId did,
+            const TipsetKey &key) -> outcome::result<api::StorageDeal> {
+      if (did == deal_id and key == head_key) {
+        api::StorageDeal res;
+        res.proposal.provider = Address::makeFromId(id);
+        res.proposal.piece_cid = piece.cid;
+        res.proposal.piece_size = piece.size;
+        res.proposal.start_epoch = 1;
+        return res;
+      }
 
-    MOCK_API(api_, StateMarketStorageDeal);
-
-    EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, deal_id, head_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&piece, id{miner_id_}](
-                            auto, auto) -> outcome::result<api::StorageDeal> {
-              api::StorageDeal res;
-              res.proposal.provider = Address::makeFromId(id);
-              res.proposal.piece_cid = piece.cid;
-              res.proposal.piece_size = piece.size;
-              res.proposal.start_epoch = 1;
-              return res;
-            })));
+      return ERROR_TEXT("ERROR");
+    };
 
     TipsetKey precommit_key{{CbCid::hash("01"_unhex),
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
+    api_->StateCall =
+        [&precommit_key, &info](
+            const UnsignedMessage &msg,
+            const TipsetKey &key) -> outcome::result<InvocResult> {
+      if (msg.method == ComputeDataCommitment::Number
+          and key == precommit_key) {
+        InvocResult res;
+        res.receipt.exit_code = VMExitCode::kOk;
+        OUTCOME_TRY(cid_buf, codec::cbor::encode(*info->comm_d));
+        res.receipt.return_value = cid_buf;
+        return res;
+      }
 
-    MOCK_API(api_, StateCall);
-    EXPECT_CALL(mock_StateCall,
-                Call(_,
-                     messageMethodMatcher(ComputeDataCommitment::Number),
-                     precommit_key))
-        .WillOnce(testing::Invoke(api::wrapCb(
-            [info](const UnsignedMessage &msg,
-                   const TipsetKey &key) -> outcome::result<InvocResult> {
-              InvocResult res;
-              res.receipt.exit_code = VMExitCode::kOk;
-              OUTCOME_TRY(cid_buf, codec::cbor::encode(*info->comm_d));
-              res.receipt.return_value = cid_buf;
-              return res;
-            })));
+      return ERROR_TEXT("ERROR");
+    };
 
-    MOCK_API(api_, StateNetworkVersion);
-    EXPECT_CALL(mock_StateNetworkVersion, Call(_, precommit_key))
-        .WillOnce(testing::Invoke(api::wrapCb(
-            [](const TipsetKey &key) -> outcome::result<NetworkVersion> {
-              return NetworkVersion::kVersion0;
-            })));
+    api_->StateNetworkVersion =
+        [&precommit_key](
+            const TipsetKey &key) -> outcome::result<NetworkVersion> {
+      if (key == precommit_key) {
+        return NetworkVersion::kVersion0;
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
 
     EXPECT_OUTCOME_TRUE(
         duration,
@@ -550,54 +528,56 @@ namespace fc::mining::checks {
     };
 
     TipsetKey head_key;
-    MOCK_API(api_, ChainHead);
+    api_->ChainHead = [&head_key]() -> outcome::result<TipsetCPtr> {
+      auto tip =
+          std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
+      return tip;
+    };
 
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&head_key]() -> outcome::result<TipsetCPtr> {
-              auto tip = std::make_shared<Tipset>(
-                  head_key, std::vector<api::BlockHeader>());
-              return tip;
-            })));
+    api_->StateMarketStorageDeal =
+        [&piece, id{miner_id_}, deal_id, &head_key](
+            api::DealId did,
+            const TipsetKey &key) -> outcome::result<api::StorageDeal> {
+      if (did == deal_id and key == head_key) {
+        api::StorageDeal res;
+        res.proposal.provider = Address::makeFromId(id);
+        res.proposal.piece_cid = piece.cid;
+        res.proposal.piece_size = piece.size;
+        res.proposal.start_epoch = 1;
+        return res;
+      }
 
-    MOCK_API(api_, StateMarketStorageDeal);
-
-    EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, deal_id, head_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&piece, id{miner_id_}](
-                            auto, auto) -> outcome::result<api::StorageDeal> {
-              api::StorageDeal res;
-              res.proposal.provider = Address::makeFromId(id);
-              res.proposal.piece_cid = piece.cid;
-              res.proposal.piece_size = piece.size;
-              res.proposal.start_epoch = 1;
-              return res;
-            })));
+      return ERROR_TEXT("ERROR");
+    };
 
     TipsetKey precommit_key{{CbCid::hash("01"_unhex),
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
-    MOCK_API(api_, StateCall);
-    EXPECT_CALL(mock_StateCall,
-                Call(_,
-                     messageMethodMatcher(ComputeDataCommitment::Number),
-                     precommit_key))
-        .WillOnce(testing::Invoke(api::wrapCb(
-            [info](const UnsignedMessage &msg,
-                   const TipsetKey &key) -> outcome::result<InvocResult> {
-              InvocResult res;
-              res.receipt.exit_code = VMExitCode::kOk;
-              OUTCOME_TRY(cid_buf, codec::cbor::encode(*info->comm_d));
-              res.receipt.return_value = cid_buf;
-              return res;
-            })));
+    api_->StateCall =
+        [&precommit_key, &info](
+            const UnsignedMessage &msg,
+            const TipsetKey &key) -> outcome::result<InvocResult> {
+      if (msg.method == ComputeDataCommitment::Number
+          and key == precommit_key) {
+        InvocResult res;
+        res.receipt.exit_code = VMExitCode::kOk;
+        OUTCOME_TRY(cid_buf, codec::cbor::encode(*info->comm_d));
+        res.receipt.return_value = cid_buf;
+        return res;
+      }
 
-    MOCK_API(api_, StateNetworkVersion);
-    EXPECT_CALL(mock_StateNetworkVersion, Call(_, precommit_key))
-        .WillRepeatedly(testing::Invoke(api::wrapCb(
-            [](const TipsetKey &key) -> outcome::result<NetworkVersion> {
-              return NetworkVersion::kVersion0;
-            })));
+      return ERROR_TEXT("ERROR");
+    };
+
+    api_->StateNetworkVersion =
+        [&precommit_key](
+            const TipsetKey &key) -> outcome::result<NetworkVersion> {
+      if (key == precommit_key) {
+        return NetworkVersion::kVersion0;
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
 
     EXPECT_OUTCOME_TRUE(
         duration,
@@ -623,27 +603,25 @@ namespace fc::mining::checks {
                         actor_state.precommitted_sectors.hamt.flush());
     actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
-    MOCK_API(api_, ChainReadObj);
-    EXPECT_CALL(mock_ChainReadObj, Call(_, actor_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&actor_state](CID key) -> outcome::result<Buffer> {
-              return codec::cbor::encode(actor_state);
-            })));
-    EXPECT_CALL(mock_ChainReadObj, Call(_, cid_root))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&ipld](CID key) -> outcome::result<Buffer> {
-              OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, key));
-              return codec::cbor::encode(root);
-            })));
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
 
     Actor actor;
     actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
     actor.head = actor_key;
-    MOCK_API(api_, StateGetActor);
-    EXPECT_CALL(mock_StateGetActor, Call(_, _, _))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const Address &addr, const TipsetKey &tipset_key)
-                            -> outcome::result<Actor> { return actor; })));
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
 
     EXPECT_OUTCOME_ERROR(
         ChecksError::kPrecommitOnChain,
@@ -682,54 +660,56 @@ namespace fc::mining::checks {
     };
 
     TipsetKey head_key;
-    MOCK_API(api_, ChainHead);
+    api_->ChainHead = [&head_key]() -> outcome::result<TipsetCPtr> {
+      auto tip =
+          std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
+      return tip;
+    };
 
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&head_key]() -> outcome::result<TipsetCPtr> {
-              auto tip = std::make_shared<Tipset>(
-                  head_key, std::vector<api::BlockHeader>());
-              return tip;
-            })));
+    api_->StateMarketStorageDeal =
+        [&piece, id{miner_id_}, deal_id, &head_key](
+            api::DealId did,
+            const TipsetKey &key) -> outcome::result<api::StorageDeal> {
+      if (did == deal_id and key == head_key) {
+        api::StorageDeal res;
+        res.proposal.provider = Address::makeFromId(id);
+        res.proposal.piece_cid = piece.cid;
+        res.proposal.piece_size = piece.size;
+        res.proposal.start_epoch = 1;
+        return res;
+      }
 
-    MOCK_API(api_, StateMarketStorageDeal);
-
-    EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, deal_id, head_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&piece, id{miner_id_}](
-                            auto, auto) -> outcome::result<api::StorageDeal> {
-              api::StorageDeal res;
-              res.proposal.provider = Address::makeFromId(id);
-              res.proposal.piece_cid = piece.cid;
-              res.proposal.piece_size = piece.size;
-              res.proposal.start_epoch = 1;
-              return res;
-            })));
+      return ERROR_TEXT("ERROR");
+    };
 
     TipsetKey precommit_key{{CbCid::hash("01"_unhex),
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
-    MOCK_API(api_, StateCall);
-    EXPECT_CALL(mock_StateCall,
-                Call(_,
-                     messageMethodMatcher(ComputeDataCommitment::Number),
-                     precommit_key))
-        .WillOnce(testing::Invoke(api::wrapCb(
-            [info](const UnsignedMessage &msg,
-                   const TipsetKey &key) -> outcome::result<InvocResult> {
-              InvocResult res;
-              res.receipt.exit_code = VMExitCode::kOk;
-              OUTCOME_TRY(cid_buf, codec::cbor::encode(*info->comm_d));
-              res.receipt.return_value = cid_buf;
-              return res;
-            })));
+    api_->StateCall =
+        [&precommit_key, &info](
+            const UnsignedMessage &msg,
+            const TipsetKey &key) -> outcome::result<InvocResult> {
+      if (msg.method == ComputeDataCommitment::Number
+          and key == precommit_key) {
+        InvocResult res;
+        res.receipt.exit_code = VMExitCode::kOk;
+        OUTCOME_TRY(cid_buf, codec::cbor::encode(*info->comm_d));
+        res.receipt.return_value = cid_buf;
+        return res;
+      }
 
-    MOCK_API(api_, StateNetworkVersion);
-    EXPECT_CALL(mock_StateNetworkVersion, Call(_, precommit_key))
-        .WillRepeatedly(testing::Invoke(api::wrapCb(
-            [](const TipsetKey &key) -> outcome::result<NetworkVersion> {
-              return NetworkVersion::kVersion0;
-            })));
+      return ERROR_TEXT("ERROR");
+    };
+
+    api_->StateNetworkVersion =
+        [&precommit_key](
+            const TipsetKey &key) -> outcome::result<NetworkVersion> {
+      if (key == precommit_key) {
+        return NetworkVersion::kVersion0;
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
 
     EXPECT_OUTCOME_TRUE(
         duration,
@@ -756,27 +736,25 @@ namespace fc::mining::checks {
                         actor_state.precommitted_sectors.hamt.flush());
     actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
-    MOCK_API(api_, ChainReadObj);
-    EXPECT_CALL(mock_ChainReadObj, Call(_, actor_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&actor_state](CID key) -> outcome::result<Buffer> {
-              return codec::cbor::encode(actor_state);
-            })));
-    EXPECT_CALL(mock_ChainReadObj, Call(_, cid_root))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&ipld](CID key) -> outcome::result<Buffer> {
-              OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, key));
-              return codec::cbor::encode(root);
-            })));
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
 
     Actor actor;
     actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
     actor.head = actor_key;
-    MOCK_API(api_, StateGetActor);
-    EXPECT_CALL(mock_StateGetActor, Call(_, _, _))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const Address &addr, const TipsetKey &tipset_key)
-                            -> outcome::result<Actor> { return actor; })));
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
 
     EXPECT_OUTCOME_ERROR(
         ChecksError::kBadTicketEpoch,
@@ -789,20 +767,20 @@ namespace fc::mining::checks {
       miner_id_ = 42;
       miner_addr_ = Address::makeFromId(miner_id_);
 
-      EXPECT_CALL(mock_StateNetworkVersion, Call(_, _))
-          .WillRepeatedly(testing::Invoke(api::wrapCb(
-              [](const TipsetKey &key) -> outcome::result<NetworkVersion> {
-                return NetworkVersion::kVersion3;
-              })));
+      api_ = std::make_shared<FullNodeApi>();
+
+      api_->StateNetworkVersion = [](const TipsetKey &tipset_key)
+          -> outcome::result<api::NetworkVersion> {
+        return api::NetworkVersion::kVersion3;
+      };
 
       proofs_ = std::make_shared<proofs::ProofEngineMock>();
     }
 
     ActorId miner_id_;
     Address miner_addr_;
-    std::shared_ptr<FullNodeApi> api_ = std::make_shared<FullNodeApi>();
+    std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<proofs::ProofEngineMock> proofs_;
-    MOCK_API(api_, StateNetworkVersion);
   };
 
   /**
@@ -861,35 +839,27 @@ namespace fc::mining::checks {
                         actor_state.precommitted_sectors.hamt.flush());
     actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
-    MOCK_API(api_, ChainReadObj);
-    EXPECT_CALL(mock_ChainReadObj, Call(_, actor_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&actor_state](CID key) -> outcome::result<Buffer> {
-              return codec::cbor::encode(actor_state);
-            })));
-    EXPECT_CALL(mock_ChainReadObj, Call(_, cid_root))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&ipld](CID key) -> outcome::result<Buffer> {
-              OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, key));
-              return codec::cbor::encode(root);
-            })));
-    EXPECT_CALL(mock_ChainReadObj,
-                Call(_, static_cast<CID>(actor_state.allocated_sectors)))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&sector](CID key) -> outcome::result<Buffer> {
-              auto bitset = primitives::RleBitset();
-              bitset.insert(sector);
-              return codec::cbor::encode(bitset);
-            })));
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        auto bitset = primitives::RleBitset();
+        bitset.insert(sector);
+        return codec::cbor::encode(bitset);
+      }
+      return ERROR_TEXT("ERROR");
+    };
 
     Actor actor;
     actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
     actor.head = actor_key;
-    MOCK_API(api_, StateGetActor);
-    EXPECT_CALL(mock_StateGetActor, Call(_, _, _))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const Address &addr, const TipsetKey &tipset_key)
-                            -> outcome::result<Actor> { return actor; })));
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
 
     EXPECT_OUTCOME_ERROR(
         ChecksError::kCommitWaitFail,
@@ -931,33 +901,25 @@ namespace fc::mining::checks {
                         actor_state.precommitted_sectors.hamt.flush());
     actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
-    MOCK_API(api_, ChainReadObj);
-    EXPECT_CALL(mock_ChainReadObj, Call(_, actor_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&actor_state](CID key) -> outcome::result<Buffer> {
-              return codec::cbor::encode(actor_state);
-            })));
-    EXPECT_CALL(mock_ChainReadObj, Call(_, cid_root))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&ipld](CID key) -> outcome::result<Buffer> {
-              OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, key));
-              return codec::cbor::encode(root);
-            })));
-    EXPECT_CALL(mock_ChainReadObj,
-                Call(_, static_cast<CID>(actor_state.allocated_sectors)))
-        .WillOnce(
-            testing::Invoke(api::wrapCb([](CID key) -> outcome::result<Buffer> {
-              return codec::cbor::encode(primitives::RleBitset());
-            })));
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
 
     Actor actor;
     actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
     actor.head = actor_key;
-    MOCK_API(api_, StateGetActor);
-    EXPECT_CALL(mock_StateGetActor, Call(_, _, _))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const Address &addr, const TipsetKey &tipset_key)
-                            -> outcome::result<Actor> { return actor; })));
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
 
     EXPECT_OUTCOME_ERROR(
         ChecksError::kPrecommitNotFound,
@@ -1002,27 +964,25 @@ namespace fc::mining::checks {
 
     actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
-    MOCK_API(api_, ChainReadObj);
-    EXPECT_CALL(mock_ChainReadObj, Call(_, actor_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&actor_state](CID key) -> outcome::result<Buffer> {
-              return codec::cbor::encode(actor_state);
-            })));
-    EXPECT_CALL(mock_ChainReadObj, Call(_, cid_root))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&ipld](CID key) -> outcome::result<Buffer> {
-              OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, key));
-              return codec::cbor::encode(root);
-            })));
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
 
     Actor actor;
     actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
     actor.head = actor_key;
-    MOCK_API(api_, StateGetActor);
-    EXPECT_CALL(mock_StateGetActor, Call(_, _, _))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const Address &addr, const TipsetKey &tipset_key)
-                            -> outcome::result<Actor> { return actor; })));
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
 
     EXPECT_OUTCOME_ERROR(
         ChecksError::kBadSeed,
@@ -1067,44 +1027,41 @@ namespace fc::mining::checks {
 
     actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
-    MOCK_API(api_, ChainReadObj);
-    EXPECT_CALL(mock_ChainReadObj, Call(_, actor_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&actor_state](CID key) -> outcome::result<Buffer> {
-              return codec::cbor::encode(actor_state);
-            })));
-    EXPECT_CALL(mock_ChainReadObj, Call(_, cid_root))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&ipld](CID key) -> outcome::result<Buffer> {
-              OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, key));
-              return codec::cbor::encode(root);
-            })));
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
 
     Actor actor;
     actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
     actor.head = actor_key;
-    MOCK_API(api_, StateGetActor);
-    EXPECT_CALL(mock_StateGetActor, Call(_, _, _))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const Address &addr, const TipsetKey &tipset_key)
-                            -> outcome::result<Actor> { return actor; })));
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
 
-    MOCK_API(api_, ChainGetRandomnessFromBeacon);
-    EXPECT_CALL(mock_ChainGetRandomnessFromBeacon,
-                Call(_,
-                     commit_key,
-                     DomainSeparationTag::InteractiveSealChallengeSeed,
-                     info->seed_epoch,
-                     _))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const TipsetKey &key,
-                            DomainSeparationTag tag,
-                            ChainEpoch epoch,
-                            const Buffer &buf) -> outcome::result<Randomness> {
-              auto new_seed = info->seed;
-              new_seed[0] = 0;
-              return new_seed;
-            })));
+    api_->ChainGetRandomnessFromBeacon =
+        [&](const TipsetKey &key,
+            DomainSeparationTag tag,
+            ChainEpoch epoch,
+            const Buffer &buf) -> outcome::result<Randomness> {
+      if (key == commit_key
+          and tag == DomainSeparationTag::InteractiveSealChallengeSeed
+          and epoch == info->seed_epoch) {
+        auto new_seed = info->seed;
+        new_seed[0] = 0;
+        return new_seed;
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
 
     EXPECT_OUTCOME_ERROR(
         ChecksError::kBadSeed,
@@ -1151,41 +1108,39 @@ namespace fc::mining::checks {
 
     actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
-    MOCK_API(api_, ChainReadObj);
-    EXPECT_CALL(mock_ChainReadObj, Call(_, actor_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&actor_state](CID key) -> outcome::result<Buffer> {
-              return codec::cbor::encode(actor_state);
-            })));
-    EXPECT_CALL(mock_ChainReadObj, Call(_, cid_root))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&ipld](CID key) -> outcome::result<Buffer> {
-              OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, key));
-              return codec::cbor::encode(root);
-            })));
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
 
     Actor actor;
     actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
     actor.head = actor_key;
-    MOCK_API(api_, StateGetActor);
-    EXPECT_CALL(mock_StateGetActor, Call(_, _, _))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const Address &addr, const TipsetKey &tipset_key)
-                            -> outcome::result<Actor> { return actor; })));
-    MOCK_API(api_, ChainGetRandomnessFromBeacon);
-    EXPECT_CALL(mock_ChainGetRandomnessFromBeacon,
-                Call(_,
-                     commit_key,
-                     DomainSeparationTag::InteractiveSealChallengeSeed,
-                     info->seed_epoch,
-                     _))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const TipsetKey &key,
-                            DomainSeparationTag tag,
-                            ChainEpoch epoch,
-                            const Buffer &buf) -> outcome::result<Randomness> {
-              return info->seed;
-            })));
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
+
+    api_->ChainGetRandomnessFromBeacon =
+        [&](const TipsetKey &key,
+            DomainSeparationTag tag,
+            ChainEpoch epoch,
+            const Buffer &buf) -> outcome::result<Randomness> {
+      if (key == commit_key
+          and tag == DomainSeparationTag::InteractiveSealChallengeSeed
+          and epoch == info->seed_epoch) {
+        return info->seed;
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
 
     EXPECT_OUTCOME_ERROR(
         ChecksError::kBadSealedCid,
@@ -1232,42 +1187,39 @@ namespace fc::mining::checks {
 
     actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
-    MOCK_API(api_, ChainReadObj);
-    EXPECT_CALL(mock_ChainReadObj, Call(_, actor_key))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&actor_state](CID key) -> outcome::result<Buffer> {
-              return codec::cbor::encode(actor_state);
-            })));
-    EXPECT_CALL(mock_ChainReadObj, Call(_, cid_root))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&ipld](CID key) -> outcome::result<Buffer> {
-              OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, key));
-              return codec::cbor::encode(root);
-            })));
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+      if (key == actor_key) {
+        return codec::cbor::encode(actor_state);
+      }
+      if (key == cid_root) {
+        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
+        return codec::cbor::encode(root);
+      }
+      if (key == actor_state.allocated_sectors) {
+        return codec::cbor::encode(primitives::RleBitset());
+      }
+      return ERROR_TEXT("ERROR");
+    };
 
     Actor actor;
     actor.code = vm::actor::builtin::v0::kStorageMinerCodeId;
     actor.head = actor_key;
-    MOCK_API(api_, StateGetActor);
-    EXPECT_CALL(mock_StateGetActor, Call(_, _, _))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const Address &addr, const TipsetKey &tipset_key)
-                            -> outcome::result<Actor> { return actor; })));
+    api_->StateGetActor = [&](const Address &addr, const TipsetKey &tipset_key)
+        -> outcome::result<Actor> { return actor; };
 
-    MOCK_API(api_, ChainGetRandomnessFromBeacon);
-    EXPECT_CALL(mock_ChainGetRandomnessFromBeacon,
-                Call(_,
-                     commit_key,
-                     DomainSeparationTag::InteractiveSealChallengeSeed,
-                     info->seed_epoch,
-                     _))
-        .WillOnce(testing::Invoke(
-            api::wrapCb([&](const TipsetKey &key,
-                            DomainSeparationTag tag,
-                            ChainEpoch epoch,
-                            const Buffer &buf) -> outcome::result<Randomness> {
-              return info->seed;
-            })));
+    api_->ChainGetRandomnessFromBeacon =
+        [&](const TipsetKey &key,
+            DomainSeparationTag tag,
+            ChainEpoch epoch,
+            const Buffer &buf) -> outcome::result<Randomness> {
+      if (key == commit_key
+          and tag == DomainSeparationTag::InteractiveSealChallengeSeed
+          and epoch == info->seed_epoch) {
+        return info->seed;
+      }
+
+      return ERROR_TEXT("ERROR");
+    };
 
     EXPECT_CALL(*proofs_, verifySeal(_))
         .WillOnce(testing::Return(outcome::success(false)));

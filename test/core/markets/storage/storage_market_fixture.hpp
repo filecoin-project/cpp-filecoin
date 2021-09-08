@@ -250,28 +250,27 @@ namespace fc::markets::storage::test {
         const std::map<Address, BlsKeyPair> &private_keys) {
       std::shared_ptr<FullNodeApi> api = std::make_shared<FullNodeApi>();
 
-      api->ChainGetMessage = api::wrapCb(
+      api->ChainGetMessage = {
           [this](const CID &message_cid) -> outcome::result<UnsignedMessage> {
             return this->messages[message_cid].message;
-          });
+          }};
 
-      api->StateLookupID =
-          api::wrapCb([account_keys](const Address &address,
-                                     auto &) -> outcome::result<Address> {
-            if (address.isId()) {
-              return address;
-            }
-            for (auto &[k, v] : account_keys) {
-              if (v == address) {
-                return k;
-              }
-            }
-            throw "StateLookupID: address not found";
-          });
+      api->StateLookupID = {[account_keys](const Address &address,
+                                           auto &) -> outcome::result<Address> {
+        if (address.isId()) {
+          return address;
+        }
+        for (auto &[k, v] : account_keys) {
+          if (v == address) {
+            return k;
+          }
+        }
+        throw "StateLookupID: address not found";
+      }};
 
-      api->ChainHead = api::wrapCb([this]() { return chain_head; });
+      api->ChainHead = {[this]() { return chain_head; }};
 
-      api->StateMinerInfo = api::wrapCb(
+      api->StateMinerInfo = {
           [miner_actor_address](
               auto &address, auto &tipset_key) -> outcome::result<MinerInfo> {
             return MinerInfo{.owner = {},
@@ -282,30 +281,30 @@ namespace fc::markets::storage::test {
                              .window_post_proof_type = {},
                              .sector_size = {},
                              .window_post_partition_sectors = {}};
-          });
+          }};
 
-      api->GetProofType = api::wrapCb(
+      api->GetProofType = {
           [this](auto &miner_address,
                  auto &tipset_key) -> outcome::result<RegisteredSealProof> {
             return registered_proof;
-          });
+          }};
 
-      api->StateMarketBalance = api::wrapCb(
+      api->StateMarketBalance = {
           [this](auto &address,
                  auto &tipset_key) -> outcome::result<MarketBalance> {
             if (address == this->client_id_address) {
               return MarketBalance{2000000, 0};
             }
             throw "StateMarketBalance: wrong address";
-          });
+          }};
 
-      api->MarketReserveFunds = api::wrapCb(
+      api->MarketReserveFunds = {
           [](auto, auto, auto) -> outcome::result<boost::optional<CID>> {
             // funds ensured
             return boost::none;
-          });
+          }};
 
-      api->StateAccountKey = api::wrapCb(
+      api->StateAccountKey = {
           [account_keys](auto &address,
                          auto &tipset_key) -> outcome::result<Address> {
             if (address.isKeyType()) return address;
@@ -313,9 +312,9 @@ namespace fc::markets::storage::test {
             if (it == account_keys.end())
               throw "StateAccountKey: address not found";
             return it->second;
-          });
+          }};
 
-      api->MpoolPushMessage = api::wrapCb(
+      api->MpoolPushMessage = {
           [this, bls_provider, miner_worker_keypair, miner_actor_address](
               auto &unsigned_message, auto) -> outcome::result<SignedMessage> {
             if (unsigned_message.from == miner_actor_address) {
@@ -333,47 +332,48 @@ namespace fc::markets::storage::test {
               return signed_message;
             };
             throw "MpoolPushMessage: Wrong from address parameter";
-          });
+          }};
 
-      api->StateWaitMsg = [this](auto cb, auto &message_cid, auto, auto, auto) {
-        logger->debug("StateWaitMsg called for message cid "
-                      + message_cid.toString().value());
-        PublishStorageDeals::Result publish_deal_result{};
-        publish_deal_result.deals.emplace_back(1);
-        auto publish_deal_result_encoded =
-            codec::cbor::encode(publish_deal_result).value();
+      api->StateWaitMsg = {
+          [this](
+              auto &message_cid, auto, auto, auto) -> outcome::result<MsgWait> {
+            logger->debug("StateWaitMsg called for message cid "
+                          + message_cid.toString().value());
+            PublishStorageDeals::Result publish_deal_result{};
+            publish_deal_result.deals.emplace_back(1);
+            auto publish_deal_result_encoded =
+                codec::cbor::encode(publish_deal_result).value();
 
-        MsgWait message_result{
-            .message = message_cid,
-            .receipt =
-                MessageReceipt{.exit_code = VMExitCode::kOk,
-                               .return_value = publish_deal_result_encoded,
-                               .gas_used = GasAmount{0}},
-            .tipset = chain_head->key,
-            .height = (ChainEpoch)chain_head->height(),
-        };
-
-        cb(message_result);
-      };
+            MsgWait message_result{
+                .message = message_cid,
+                .receipt =
+                    MessageReceipt{.exit_code = VMExitCode::kOk,
+                                   .return_value = publish_deal_result_encoded,
+                                   .gas_used = GasAmount{0}},
+                .tipset = chain_head->key,
+                .height = (ChainEpoch)chain_head->height(),
+            };
+            return message_result;
+          }};
 
       std::weak_ptr<FullNodeApi> _api{api};
-      api->WalletSign =
-          api::wrapCb([=](const Address &address,
-                          const Buffer &buffer) -> outcome::result<Signature> {
+      api->WalletSign = {
+          [=](const Address &address,
+              const Buffer &buffer) -> outcome::result<Signature> {
             auto it = private_keys.find(
                 _api.lock()->StateAccountKey(address, {}).value());
             if (it == private_keys.end())
               throw "API WalletSign: address not found";
             return Signature{
                 bls_provider->sign(buffer, it->second.private_key).value()};
-          });
+          }};
 
-      api->WalletVerify =
-          api::wrapCb([](const Address &address,
-                         const Buffer &buffer,
-                         const Signature &signature) -> outcome::result<bool> {
+      api->WalletVerify = {
+          [](const Address &address,
+             const Buffer &buffer,
+             const Signature &signature) -> outcome::result<bool> {
             return true;
-          });
+          }};
 
       return api;
     }

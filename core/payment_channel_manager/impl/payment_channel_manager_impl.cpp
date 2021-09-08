@@ -46,23 +46,25 @@ namespace fc::payment_channel_manager {
     }
     OUTCOME_CB(auto cid,
                createPaymentChannelActor(client, miner, amount_available));
-    OUTCOME_CB(auto wait,
-               api_->StateWaitMsg(
-                   cid, kMessageConfidence, api::kLookbackNoLimit, true));
-    wait.waitOwn([=, self{shared_from_this()}, cb{std::move(cb)}](auto _wait) {
-      OUTCOME_CB(auto wait, _wait);
-      if (wait.receipt.exit_code != VMExitCode::kOk) {
-        return cb(PaymentChannelManagerError::kCreateChannelActorErrored);
-      }
-      OUTCOME_CB(auto ret,
-                 codec::cbor::decode<InitActorExec::Result>(
-                     wait.receipt.return_value));
-      const Address &address{ret.robust_address};
-      std::unique_lock lock{channels_mutex_};
-      saveChannel(address, client, miner);
-      lock.unlock();
-      cb(AddChannelInfo{address, cid});
-    });
+    OUTCOME_CB1(api_->StateWaitMsg(
+        [=, self{shared_from_this()}, cb{cb}](auto _wait) {
+          OUTCOME_CB(auto wait, _wait);
+          if (wait.receipt.exit_code != VMExitCode::kOk) {
+            return cb(PaymentChannelManagerError::kCreateChannelActorErrored);
+          }
+          OUTCOME_CB(auto ret,
+                     codec::cbor::decode<InitActorExec::Result>(
+                         wait.receipt.return_value));
+          const Address &address{ret.robust_address};
+          std::unique_lock lock{channels_mutex_};
+          saveChannel(address, client, miner);
+          lock.unlock();
+          cb(AddChannelInfo{address, cid});
+        },
+        cid,
+        kMessageConfidence,
+        api::kLookbackNoLimit,
+        true));
   }
 
   outcome::result<LaneId> PaymentChannelManagerImpl::allocateLane(
@@ -214,35 +216,33 @@ namespace fc::payment_channel_manager {
   }
 
   void PaymentChannelManagerImpl::makeApi(FullNodeApi &api) {
-    api.PaychAllocateLane = api::wrapCb(
+    api.PaychAllocateLane =
         [self{shared_from_this()}](auto &&channel) -> outcome::result<LaneId> {
-          return self->allocateLane(channel);
-        });
+      return self->allocateLane(channel);
+    };
     api.PaychGet =
         [self{shared_from_this()}](
-                        auto &&cb, auto &&client, auto &&miner, auto &&amount_available)
-                        -> outcome::result<AddChannelInfo> {
-          return self->getOrCreatePaymentChannel(
-                  std::move(cb), client, miner, amount_available);
+            auto &&cb, auto &&client, auto &&miner, auto &&amount_available) {
+          self->getOrCreatePaymentChannel(
+              client, miner, amount_available, std::move(cb));
         };
-    api.PaychVoucherAdd =
-        api::wrapCb([self{shared_from_this()}](
-                        auto &&channel,
-                        auto &&voucher,
-                        auto &&proof,
-                        auto &&delta) -> outcome::result<TokenAmount> {
-          return self->savePaymentVoucher(channel, voucher);
-        });
-    api.PaychVoucherCheckValid = api::wrapCb(
-        [self{shared_from_this()}](auto &&channel,
-                                   auto &&voucher) -> outcome::result<void> {
-          return self->validateVoucher(channel, voucher);
-        });
-    api.PaychVoucherCreate = api::wrapCb(
-        [self{shared_from_this()}](auto &&channel, auto &&amount, auto &&lane)
-            -> outcome::result<SignedVoucher> {
-          return self->createPaymentVoucher(channel, lane, amount);
-        });
+    api.PaychVoucherAdd = [self{shared_from_this()}](
+                              auto &&channel,
+                              auto &&voucher,
+                              auto &&proof,
+                              auto &&delta) -> outcome::result<TokenAmount> {
+      return self->savePaymentVoucher(channel, voucher);
+    };
+    api.PaychVoucherCheckValid = [self{shared_from_this()}](
+                                     auto &&channel,
+                                     auto &&voucher) -> outcome::result<void> {
+      return self->validateVoucher(channel, voucher);
+    };
+    api.PaychVoucherCreate = [self{shared_from_this()}](
+                                 auto &&channel, auto &&amount, auto &&lane)
+        -> outcome::result<SignedVoucher> {
+      return self->createPaymentVoucher(channel, lane, amount);
+    };
   }
 
   outcome::result<CID> PaymentChannelManagerImpl::addFunds(

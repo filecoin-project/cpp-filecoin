@@ -5,11 +5,9 @@
 
 #include "miner/storage_fsm/impl/basic_precommit_policy.hpp"
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "testutil/literals.hpp"
-#include "testutil/mocks/api.hpp"
 
 namespace fc::mining {
   using primitives::block::BlockHeader;
@@ -17,7 +15,6 @@ namespace fc::mining {
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
   using primitives::tipset::TipsetError;
-  using testing::_;
   using types::DealInfo;
   using vm::actor::builtin::types::miner::kWPoStProvingPeriod;
 
@@ -50,13 +47,9 @@ namespace fc::mining {
     auto tipset = std::make_shared<Tipset>(TipsetKey(),
                                            std::vector<BlockHeader>({block}));
 
-    MOCK_API(api_, ChainHead);
-
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(
-            testing::Invoke(api::wrapCb([&]() -> outcome::result<TipsetCPtr> {
-              return outcome::success(tipset);
-            })));
+    api_->ChainHead = [&]() -> outcome::result<TipsetCPtr> {
+      return outcome::success(tipset);
+    };
 
     auto result = block.height + kWPoStProvingPeriod + proving_boundary_ - 1;
 
@@ -74,13 +67,9 @@ namespace fc::mining {
     auto tipset = std::make_shared<Tipset>(TipsetKey(),
                                            std::vector<BlockHeader>({block}));
 
-    MOCK_API(api_, ChainHead);
-
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(
-            testing::Invoke(api::wrapCb([&]() -> outcome::result<TipsetCPtr> {
-              return outcome::success(tipset);
-            })));
+    api_->ChainHead = [&]() -> outcome::result<TipsetCPtr> {
+      return outcome::success(tipset);
+    };
 
     DealInfo deal1;
     deal1.deal_schedule.end_epoch = block.height - 1;
@@ -104,14 +93,9 @@ namespace fc::mining {
    * @then 0 recived
    */
   TEST_F(PreCommitPolicyTest, ExpirationApiError) {
-    MOCK_API(api_, ChainHead);
-
-    EXPECT_CALL(mock_ChainHead, Call(_))
-        .WillOnce(
-            testing::Invoke(api::wrapCb([&]() -> outcome::result<TipsetCPtr> {
-              return outcome::failure(TipsetError::kNoBlocks);
-            })));
-
+    api_->ChainHead = [&]() -> outcome::result<TipsetCPtr> {
+      return outcome::failure(TipsetError::kNoBlocks);
+    };
     ASSERT_EQ(precommit_policy_->expiration({}), 0);
   }
 

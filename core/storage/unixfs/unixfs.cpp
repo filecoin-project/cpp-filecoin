@@ -171,9 +171,9 @@ namespace fc::storage::unixfs {
                                 gsl::span<const uint8_t> data,
                                 size_t chunk_size,
                                 size_t max_links) {
-    auto stream{bytesToIstream(data)};
+    BytesIstream stream{data};
     return wrapFile({ipld,
-                     stream,
+                     stream.s,
                      static_cast<size_t>(data.size()),
                      chunk_size,
                      max_links});

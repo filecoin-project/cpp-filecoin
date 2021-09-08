@@ -24,32 +24,32 @@ namespace fc::api {
       const std::shared_ptr<RetrievalProvider> &retrieval_market_provider) {
     auto api = std::make_shared<StorageMinerApi>();
 
-    api->ActorAddress = wrapCb([=]() { return miner->getAddress(); });
+    api->ActorAddress = [=]() { return miner->getAddress(); };
 
     api->ActorSectorSize =
-        wrapCb([=](auto &addr) -> outcome::result<api::SectorSize> {
+        [=](auto &addr) -> outcome::result<api::SectorSize> {
           OUTCOME_TRY(miner_info, full_node_api->StateMinerInfo(addr, {}));
           return miner_info.sector_size;
-        });
+        };
 
-    api->PledgeSector = wrapCb([&]() -> outcome::result<void> {
+    api->PledgeSector = [&]() -> outcome::result<void> {
       return miner->getSealing()->pledgeSector();
-    });
+    };
 
-    api->DealsImportData = wrapCb([=](auto &proposal, auto &path) {
+    api->DealsImportData = [=](auto &proposal, auto &path) {
       return storage_market_provider->importDataForDeal(proposal, path);
-    });
+    };
 
-    api->MarketGetAsk = wrapCb([=]() -> outcome::result<SignedStorageAsk> {
+    api->MarketGetAsk = [=]() -> outcome::result<SignedStorageAsk> {
       return stored_ask->getAsk(actor);
-    });
+    };
 
-    api->MarketGetRetrievalAsk = wrapCb([=]() -> outcome::result<RetrievalAsk> {
+    api->MarketGetRetrievalAsk = [=]() -> outcome::result<RetrievalAsk> {
       return retrieval_market_provider->getAsk();
-    });
+    };
 
     api->MarketSetAsk =
-        wrapCb([=](auto &price,
+        [=](auto &price,
                    auto &verified_price,
                    auto duration,
                    auto min_piece_size,
@@ -63,60 +63,60 @@ namespace fc::api {
                   .miner = actor,
               },
               duration);
-        });
+        };
 
     api->MarketSetRetrievalAsk =
-        wrapCb([=](auto &ask) -> outcome::result<void> {
+        [=](auto &ask) -> outcome::result<void> {
           retrieval_market_provider->setAsk(ask);
           return outcome::success();
-        });
+        };
 
     api->StorageAttach =
-        wrapCb([=](const StorageInfo_ &storage_info, const FsStat &stat) {
+        [=](const StorageInfo_ &storage_info, const FsStat &stat) {
           return sector_index->storageAttach(storage_info, stat);
-        });
+        };
 
-    api->StorageInfo = wrapCb([=](const StorageID &storage_id) {
+    api->StorageInfo = [=](const StorageID &storage_id) {
       return sector_index->getStorageInfo(storage_id);
-    });
+    };
 
     api->StorageReportHealth =
-        wrapCb([=](const StorageID &storage_id, const HealthReport &report) {
+        [=](const StorageID &storage_id, const HealthReport &report) {
           return sector_index->storageReportHealth(storage_id, report);
-        });
+        };
 
-    api->StorageDeclareSector = wrapCb([=](const StorageID &storage_id,
+    api->StorageDeclareSector = [=](const StorageID &storage_id,
                                            const SectorId &sector,
                                            const SectorFileType &file_type,
                                            bool primary) {
       return sector_index->storageDeclareSector(
           storage_id, sector, file_type, primary);
-    });
+    };
 
-    api->StorageDropSector = wrapCb([=](const StorageID &storage_id,
+    api->StorageDropSector = [=](const StorageID &storage_id,
                                         const SectorId &sector,
                                         const SectorFileType &file_type) {
       return sector_index->storageDropSector(storage_id, sector, file_type);
-    });
+    };
 
     api->StorageFindSector =
-        wrapCb([=](const SectorId &sector,
+        [=](const SectorId &sector,
                    const SectorFileType &file_type,
                    boost::optional<SectorSize> fetch_sector_size) {
           return sector_index->storageFindSector(
               sector, file_type, fetch_sector_size);
-        });
+        };
 
-    api->StorageBestAlloc = wrapCb([=](const SectorFileType &allocate,
+    api->StorageBestAlloc = [=](const SectorFileType &allocate,
                                        SectorSize sector_size,
                                        bool sealing_mode) {
       return sector_index->storageBestAlloc(
           allocate, sector_size, sealing_mode);
-    });
+    };
 
     makeReturnApi(api, sector_scheduler);
 
-    api->WorkerConnect = wrapCb(
+    api->WorkerConnect =
         [=, self{api}](const std::string &address) -> outcome::result<void> {
           OUTCOME_TRY(maddress, libp2p::multi::Multiaddress::create(address));
           OUTCOME_TRY(worker,
@@ -125,11 +125,11 @@ namespace fc::api {
           spdlog::info("Connected to a remote worker at {}", address);
 
           return sector_manager->addWorker(std::move(worker));
-        });
+        };
 
-    api->Version = wrapCb([] {
+    api->Version = [] {
       return api::VersionResult{"fuhon-miner", kMinerApiVersion, 0};
-    });
+    };
 
     return api;
   }

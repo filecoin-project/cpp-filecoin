@@ -86,142 +86,129 @@ namespace fc {
         node_objects.host->getPeerInfo().id,
         nonZeroAddrs(node_objects.host->getAddresses(), &config.localIp())};
     node_objects.api->NetAddrsListen =
-        api::wrapCb([api_peer_info]() -> outcome::result<PeerInfo> {
-          return api_peer_info;
-        });
-    node_objects.api->NetConnect = api::wrapCb([&](auto &peer) {
+        [api_peer_info]() -> outcome::result<PeerInfo> {
+      return api_peer_info;
+    };
+    node_objects.api->NetConnect = [&](auto &peer) {
       node_objects.host->connect(peer);
       return outcome::success();
-    });
+    };
     node_objects.api->NetPeers =
-        api::wrapCb([&]() -> outcome::result<std::vector<PeerInfo>> {
-          const auto &peer_repository = node_objects.host->getPeerRepository();
-          auto connections = node_objects.host->getNetwork()
-                                 .getConnectionManager()
-                                 .getConnections();
-          std::vector<PeerInfo> result;
-          for (const auto &conncection : connections) {
-            auto remote = conncection->remotePeer();
-            if (remote.has_error())
-              log()->error("get remote peer error", remote.error().message());
-            result.push_back(peer_repository.getPeerInfo(remote.value()));
-          }
-          return result;
-        });
+        [&]() -> outcome::result<std::vector<PeerInfo>> {
+      const auto &peer_repository = node_objects.host->getPeerRepository();
+      auto connections = node_objects.host->getNetwork()
+                             .getConnectionManager()
+                             .getConnections();
+      std::vector<PeerInfo> result;
+      for (const auto &conncection : connections) {
+        auto remote = conncection->remotePeer();
+        if (remote.has_error())
+          log()->error("get remote peer error", remote.error().message());
+        result.push_back(peer_repository.getPeerInfo(remote.value()));
+      }
+      return result;
+    };
 
     // Market Client API
     node_objects.api->ClientImport =
-        api::wrapCb([&](auto &file_ref) -> outcome::result<ImportRes> {
-          OUTCOME_TRY(root,
-                      node_objects.storage_market_import_manager->import(
-                          file_ref.path, file_ref.is_car));
-          // storage id set to 0
-          return ImportRes{root, 0};
-        });
+        [&](auto &file_ref) -> outcome::result<ImportRes> {
+      OUTCOME_TRY(root,
+                  node_objects.storage_market_import_manager->import(
+                      file_ref.path, file_ref.is_car));
+      // storage id set to 0
+      return ImportRes{root, 0};
+    };
 
-    node_objects.api->ClientListDeals =
-        api::wrapCb([api_peer_info, &node_objects]()
-                        -> outcome::result<std::vector<StorageMarketDealInfo>> {
-          std::vector<StorageMarketDealInfo> result;
-          OUTCOME_TRY(local_deals,
-                      node_objects.storage_market_client->listLocalDeals());
-          result.reserve(local_deals.size());
-          for (const auto &deal : local_deals) {
-            result.emplace_back(StorageMarketDealInfo{
-                deal.proposal_cid,
-                deal.state,
-                deal.message,
-                deal.client_deal_proposal.proposal.provider,
-                deal.data_ref,
-                deal.client_deal_proposal.proposal.piece_cid,
-                deal.client_deal_proposal.proposal.piece_size.unpadded(),
-                deal.client_deal_proposal.proposal.storage_price_per_epoch,
-                deal.client_deal_proposal.proposal.duration(),
-                deal.deal_id,
-                // TODO (a.chernyshov) creation time - actually not used
-                {},
-                deal.client_deal_proposal.proposal.verified,
-                // TODO (a.chernyshov) actual ChannelId
-                {api_peer_info.id, deal.miner.id, 0},
-                // TODO (a.chernyshov) actual data transfer
-                {0,
-                 0,
-                 deal.proposal_cid,
-                 true,
-                 true,
-                 "",
-                 "",
-                 deal.miner.id,
-                 0}});
-          }
-          return result;
-        });
+    node_objects.api->ClientListDeals = [api_peer_info, &node_objects]()
+        -> outcome::result<std::vector<StorageMarketDealInfo>> {
+      std::vector<StorageMarketDealInfo> result;
+      OUTCOME_TRY(local_deals,
+                  node_objects.storage_market_client->listLocalDeals());
+      result.reserve(local_deals.size());
+      for (const auto &deal : local_deals) {
+        result.emplace_back(StorageMarketDealInfo{
+            deal.proposal_cid,
+            deal.state,
+            deal.message,
+            deal.client_deal_proposal.proposal.provider,
+            deal.data_ref,
+            deal.client_deal_proposal.proposal.piece_cid,
+            deal.client_deal_proposal.proposal.piece_size.unpadded(),
+            deal.client_deal_proposal.proposal.storage_price_per_epoch,
+            deal.client_deal_proposal.proposal.duration(),
+            deal.deal_id,
+            // TODO (a.chernyshov) creation time - actually not used
+            {},
+            deal.client_deal_proposal.proposal.verified,
+            // TODO (a.chernyshov) actual ChannelId
+            {api_peer_info.id, deal.miner.id, 0},
+            // TODO (a.chernyshov) actual data transfer
+            {0, 0, deal.proposal_cid, true, true, "", "", deal.miner.id, 0}});
+      }
+      return result;
+    };
 
     node_objects.api->ClientStartDeal =
-        api::wrapCb([&](auto &params) -> outcome::result<CID> {
-          // resolve wallet address and check if address exists in wallet
-          OUTCOME_TRY(wallet_key,
-                      node_objects.api->StateAccountKey(params.wallet, {}));
-          OUTCOME_TRY(wallet_exists, node_objects.api->WalletHas(wallet_key));
-          if (!wallet_exists) {
-            return ERROR_TEXT(
-                "Node API: provided address doesn't exist in wallet");
-          }
+        [&](auto &params) -> outcome::result<CID> {
+      // resolve wallet address and check if address exists in wallet
+      OUTCOME_TRY(wallet_key,
+                  node_objects.api->StateAccountKey(params.wallet, {}));
+      OUTCOME_TRY(wallet_exists, node_objects.api->WalletHas(wallet_key));
+      if (!wallet_exists) {
+        return ERROR_TEXT("Node API: provided address doesn't exist in wallet");
+      }
 
-          OUTCOME_TRY(miner_info,
-                      node_objects.api->StateMinerInfo(params.miner, {}));
+      OUTCOME_TRY(miner_info,
+                  node_objects.api->StateMinerInfo(params.miner, {}));
 
-          OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
-          const PeerInfo peer_info{.id = peer_id,
-                                   .addresses = miner_info.multiaddrs};
-          StorageProviderInfo provider_info{
-              .address = params.miner,
-              .owner = {},
-              .worker = miner_info.worker,
-              .sector_size = miner_info.sector_size,
-              .peer_info = peer_info};
+      OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
+      const PeerInfo peer_info{.id = peer_id,
+                               .addresses = miner_info.multiaddrs};
+      StorageProviderInfo provider_info{.address = params.miner,
+                                        .owner = {},
+                                        .worker = miner_info.worker,
+                                        .sector_size = miner_info.sector_size,
+                                        .peer_info = peer_info};
 
-          auto start_epoch = params.deal_start_epoch;
-          if (start_epoch <= 0) {
-            static const size_t kDealStartBufferHours = 49;
-            OUTCOME_TRY(chain_head, node_objects.api->ChainHead());
-            start_epoch =
-                chain_head->height() + kDealStartBufferHours * kEpochsInHour;
-          }
+      auto start_epoch = params.deal_start_epoch;
+      if (start_epoch <= 0) {
+        static const size_t kDealStartBufferHours = 49;
+        OUTCOME_TRY(chain_head, node_objects.api->ChainHead());
+        start_epoch =
+            chain_head->height() + kDealStartBufferHours * kEpochsInHour;
+      }
 
-          OUTCOME_TRY(
-              deadline_info,
-              node_objects.api->StateMinerProvingDeadline(params.miner, {}));
-          const auto min_exp = start_epoch + params.min_blocks_duration;
-          const auto end_epoch =
-              min_exp + deadline_info.wpost_proving_period
-              - (min_exp % deadline_info.wpost_proving_period)
-              + (deadline_info.period_start
-                 % deadline_info.wpost_proving_period)
-              - 1;
+      OUTCOME_TRY(
+          deadline_info,
+          node_objects.api->StateMinerProvingDeadline(params.miner, {}));
+      const auto min_exp = start_epoch + params.min_blocks_duration;
+      const auto end_epoch =
+          min_exp + deadline_info.wpost_proving_period
+          - (min_exp % deadline_info.wpost_proving_period)
+          + (deadline_info.period_start % deadline_info.wpost_proving_period)
+          - 1;
 
-          OUTCOME_TRY(network_version,
-                      node_objects.api->StateNetworkVersion({}));
-          OUTCOME_TRY(seal_proof_type,
-                      getPreferredSealProofTypeFromWindowPoStType(
-                          network_version, miner_info.window_post_proof_type));
+      OUTCOME_TRY(network_version, node_objects.api->StateNetworkVersion({}));
+      OUTCOME_TRY(seal_proof_type,
+                  getPreferredSealProofTypeFromWindowPoStType(
+                      network_version, miner_info.window_post_proof_type));
 
-          return node_objects.storage_market_client->proposeStorageDeal(
-              params.wallet,
-              provider_info,
-              params.data,
-              start_epoch,
-              end_epoch,
-              params.epoch_price,
-              params.provider_collateral,
-              seal_proof_type,
-              params.verified_deal,
-              params.fast_retrieval);
-        });
+      return node_objects.storage_market_client->proposeStorageDeal(
+          params.wallet,
+          provider_info,
+          params.data,
+          start_epoch,
+          end_epoch,
+          params.epoch_price,
+          params.provider_collateral,
+          seal_proof_type,
+          params.verified_deal,
+          params.fast_retrieval);
+    };
     node_objects.api->ClientListImports =
-        api::wrapCb([&]() -> outcome::result<std::vector<Import>> {
-          return node_objects.storage_market_import_manager->list();
-        });
+        [&]() -> outcome::result<std::vector<Import>> {
+      return node_objects.storage_market_import_manager->list();
+    };
 
     node_objects.api_v1 = makeFullNodeApiV1Wrapper();
     auto rpc_v1{api::makeRpc(*node_objects.api)};
@@ -278,14 +265,14 @@ namespace fc {
                       res.error());
       }
     })};
-    o.api->MpoolPushMessage = api::wrapCb(
-        [&, impl{std::move(o.api->MpoolPushMessage)}](auto &arg1, auto &arg2) {
-          auto res{impl(arg1, arg2)};
-          if (res) {
-            o.pubsub_gate->publish(res.value());
-          }
-          return res;
-        });
+    o.api->MpoolPushMessage = [&, impl{std::move(o.api->MpoolPushMessage)}](
+                                  auto &arg1, auto &arg2) {
+      auto res{impl(arg1, arg2)};
+      if (res) {
+        o.pubsub_gate->publish(res.value());
+      }
+      return res;
+    };
 
     Metrics metrics{o};
 

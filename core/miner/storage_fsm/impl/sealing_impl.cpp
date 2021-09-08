@@ -1119,7 +1119,7 @@ namespace fc::mining {
 
     logger_->info("Sector precommitted: {}", info->sector_number);
 
-    api_->StateWaitMsg(
+    OUTCOME_TRY(api_->StateWaitMsg(
         [info, this](auto &&maybe_lookup) {
           if (maybe_lookup.has_error()) {
             logger_->error("sector precommit failed: {}",
@@ -1147,7 +1147,7 @@ namespace fc::mining {
         info->precommit_message.value(),
         kMessageConfidence,
         api::kLookbackNoLimit,
-        true);
+        true));
     return outcome::success();
   }
 
@@ -1383,7 +1383,7 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    api_->StateWaitMsg(
+    OUTCOME_TRY(api_->StateWaitMsg(
         [=](auto &&maybe_message_lookup) {
           if (maybe_message_lookup.has_error()) {
             logger_->error("failed to wait for porep inclusion: {}",
@@ -1439,7 +1439,7 @@ namespace fc::mining {
         info->message.get(),
         kMessageConfidence,
         api::kLookbackNoLimit,
-        true);
+        true));
 
     return outcome::success();
   }

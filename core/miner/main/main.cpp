@@ -242,7 +242,7 @@ namespace fc {
       spdlog::info(
           "msg {}: ChangePeerId peer={}", smsg.getCid(), peer_id.toBase58());
 
-      api.StateWaitMsg(
+      OUTCOME_TRY(api.StateWaitMsg(
           [](auto _res) {
             if (_res) {
               auto &receipt{_res.value().receipt};
@@ -258,7 +258,7 @@ namespace fc {
           smsg.getCid(),
           kMessageConfidence,
           api::kLookbackNoLimit,
-          true);
+          true));
     }
 
     OUTCOME_TRY(

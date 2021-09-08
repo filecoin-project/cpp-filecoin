@@ -584,7 +584,7 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    api_->StateWaitMsg(
+    auto maybe_error = api_->StateWaitMsg(
         [self{shared_from_this()}, deal](outcome::result<MsgWait> result) {
           SELF_FSM_HALT_ON_ERROR(result, "Wait for funding error", deal);
           if (result.value().receipt.exit_code != VMExitCode::kOk) {
@@ -600,6 +600,7 @@ namespace fc::markets::storage::client {
         kMessageConfidence,
         api::kLookbackNoLimit,
         true);
+    FSM_HALT_ON_ERROR(maybe_error, "Wait for funding error", deal);
   }
 
   void StorageMarketClientImpl::onClientEventFundsEnsured(
@@ -710,15 +711,16 @@ namespace fc::markets::storage::client {
       }
       FSM_SEND(deal, ClientEvent::ClientEventDealPublished);
     }};
-    auto _wait{api_->StateWaitMsg(deal->publish_message,
-                                  kMessageConfidence,
-                                  api::kLookbackNoLimit,
-                                  true)};
-    OUTCOME_CB(auto wait, _wait);
-    wait.waitOwn([=, self{shared_from_this()}, cb{std::move(cb)}](auto _res) {
-      OUTCOME_CB(auto res, _res);
-      cb(verifyDealPublished(deal, res));
-    });
+    auto maybe_error = api_->StateWaitMsg(
+        [=, self{shared_from_this()}, cb{std::move(cb)}](auto _res) {
+          OUTCOME_CB(auto res, _res);
+          cb(verifyDealPublished(deal, res));
+        },
+        deal->publish_message,
+        kMessageConfidence,
+        api::kLookbackNoLimit,
+        true);
+    FSM_HALT_ON_ERROR(maybe_error, "Wait for funding error", deal);
   }
 
   void StorageMarketClientImpl::onClientEventDealPublished(

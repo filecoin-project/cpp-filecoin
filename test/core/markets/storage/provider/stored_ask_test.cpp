@@ -76,29 +76,29 @@ namespace fc::markets::storage::provider {
     void SetUp() override {
       chain_head = Tipset::create({makeBlock(epoch)}).value();
 
-      api->ChainHead = api::wrapCb([=]() { return chain_head; });
+      api->ChainHead = {[=]() { return chain_head; }};
 
       bls_keypair = bls_provider_->generateKeyPair().value();
       bls_address = Address::makeBls(bls_keypair.public_key);
-      api->WalletSign =
-          api::wrapCb([=](const Address &address,
-                          const Buffer &buffer) -> outcome::result<Signature> {
+      api->WalletSign = {
+          [=](const Address &address,
+              const Buffer &buffer) -> outcome::result<Signature> {
             if (address != bls_address) throw "API WalletSign: Wrong address";
             return Signature{
                 bls_provider_->sign(buffer, bls_keypair.private_key).value()};
-          });
+          }};
 
-      api->StateMinerInfo =
-          api::wrapCb([=](const Address &,
-                          const TipsetKey &) -> outcome::result<MinerInfo> {
+      api->StateMinerInfo = {
+          [=](const Address &,
+              const TipsetKey &) -> outcome::result<MinerInfo> {
             MinerInfo info;
             info.worker = actor_address;
             return info;
-          });
-      api->StateAccountKey = api::wrapCb([=](auto &address, auto &tipset_key) {
+          }};
+      api->StateAccountKey = {[=](auto &address, auto &tipset_key) {
         if (address == actor_address) return bls_address;
         throw "API StateAccountKey: Unexpected address";
-      });
+      }};
     }
   };
 

@@ -150,39 +150,38 @@ namespace fc::markets::retrieval::test {
       addPieceSample(data::green_piece, provider_ipfs).value();
 
       TipsetCPtr chain_head = std::make_shared<Tipset>();
-      api->ChainHead = api::wrapCb([=]() { return chain_head; });
+      api->ChainHead = {[=]() { return chain_head; }};
 
-      api->StateMinerInfo = api::wrapCb([=](auto &address, auto &tipset_key) {
+      api->StateMinerInfo = [=](auto &address, auto &tipset_key) {
         MinerInfo info;
         info.worker = miner_worker_address;
         info.multiaddrs = host->getAddresses();
         return info;
-      });
+      };
 
-      api->PaychGet = api::wrapCb(
-          [=](auto &, auto &, auto &) -> outcome::result<AddChannelInfo> {
-            return AddChannelInfo{.channel = Address::makeFromId(333)};
-          });
+      api->PaychGet = [=](auto cb, auto &, auto &, auto &) {
+        cb(AddChannelInfo{.channel = Address::makeFromId(333)});
+      };
 
-      api->PaychAllocateLane = api::wrapCb(
-          [=](auto &) -> outcome::result<LaneId> { return LaneId{1}; });
+      api->PaychAllocateLane = {
+          [=](auto &) -> outcome::result<LaneId> { return LaneId{1}; }};
 
-      api->PaychVoucherCreate =
-          api::wrapCb([=](const Address &,
-                          const TokenAmount &,
-                          const LaneId &) -> outcome::result<SignedVoucher> {
+      api->PaychVoucherCreate = {
+          [=](const Address &,
+              const TokenAmount &,
+              const LaneId &) -> outcome::result<SignedVoucher> {
             SignedVoucher voucher;
             voucher.amount = 100;
             return voucher;
-          });
+          }};
 
-      api->PaychVoucherAdd =
-          api::wrapCb([=](const Address &,
-                          const SignedVoucher &,
-                          const Buffer &,
-                          const TokenAmount &) -> outcome::result<TokenAmount> {
+      api->PaychVoucherAdd = {
+          [=](const Address &,
+              const SignedVoucher &,
+              const Buffer &,
+              const TokenAmount &) -> outcome::result<TokenAmount> {
             return TokenAmount{0};
-          });
+          }};
 
       thread = std::thread{[this] { context->run(); }};
     }
