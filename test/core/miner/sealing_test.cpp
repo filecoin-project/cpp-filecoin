@@ -675,7 +675,7 @@ namespace fc::mining {
     SectorPreCommitOnChainInfo precommit_info;
     precommit_info.info.seal_epoch = 3;
     precommit_info.info.sealed_cid = "010001020007"_cid;
-    actor_state.sectors = {"010001020008"_cid, ipld};
+    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {

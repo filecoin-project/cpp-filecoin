@@ -69,4 +69,4 @@ namespace fc::common {
       return UnhexError::kUnknown;
     }
   }
-}  // namespace filecoin::common
+}  // namespace fc::common

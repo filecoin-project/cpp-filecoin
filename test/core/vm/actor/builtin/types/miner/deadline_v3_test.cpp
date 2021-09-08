@@ -12,13 +12,11 @@
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/types/miner/bitfield_queue.hpp"
-#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
   using primitives::RleBitset;
   using runtime::MockRuntime;
   using storage::ipfs::InMemoryDatastore;
-  using types::TypeManager;
   using types::Universal;
   using types::miner::BitfieldQueue;
   using types::miner::ExpirationSet;
@@ -208,9 +206,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       {
         std::set<SectorNumber> seen_sectors;
 
-        EXPECT_OUTCOME_TRUE(exp_q,
-                            TypeManager::loadExpirationQueue(
-                                runtime, partition->expirations_epochs, quant));
+        auto exp_q = loadExpirationQueue(partition->expirations_epochs, quant);
 
         auto visitor{[&](ChainEpoch epoch,
                          const ExpirationSet &es) -> outcome::result<void> {

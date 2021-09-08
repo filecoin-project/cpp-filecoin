@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/types/miner/power_pair.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
 

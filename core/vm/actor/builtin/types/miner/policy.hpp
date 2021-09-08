@@ -10,8 +10,8 @@
 #include "primitives/cid/comm_cid.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/types/miner/power_pair.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/types/shared.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
@@ -30,10 +30,12 @@ namespace fc::vm::actor::builtin::types::miner {
 
   // The period over which all a miner's active sectors will be challenged.
   // 24 hours
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kWPoStProvingPeriod;
 
   // The duration of a deadline's challenge window, the period before a deadline
   // when the challenge is available. 30 minutes (48 per day)
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern EpochDuration kWPoStChallengeWindow;
 
   // The number of non-overlapping PoSt deadlines in each proving period.
@@ -61,6 +63,7 @@ namespace fc::vm::actor::builtin::types::miner {
   // Number of epochs between publishing the precommit and when the challenge
   // for interactive PoRep is drawn used to ensure it is not predictable by
   // miner
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern EpochDuration kPreCommitChallengeDelay;
 
   // Lookback from the current epoch for state view for leader elections.
@@ -81,21 +84,25 @@ namespace fc::vm::actor::builtin::types::miner {
   constexpr EpochDuration kFaultDeclarationCutoff{kWPoStChallengeLookback + 50};
 
   // The maximum age of a fault before the sector is terminated.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern EpochDuration kFaultMaxAge;
 
   constexpr auto kWorkerKeyChangeDelay{kChainFinality};
 
   // Minimum number of epochs past the current epoch a sector may be set to
   // expire.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kMinSectorExpiration;
 
   // Maximum number of epochs past the current epoch a sector may be set to
   // expire. The actual maximum extension will be the minimum of CurrEpoch +
   // MaximumSectorExpirationExtension and
   // sector.ActivationEpoch+sealProof.SectorMaximumLifetime()
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kMaxSectorExpirationExtension;
 
   // List of proof types which can be used when creating new miner actors
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern std::set<RegisteredSealProof> kSupportedProofs;
 
   // Ratio of sector size to maximum number of deals per sector.
@@ -242,6 +249,7 @@ namespace fc::vm::actor::builtin::types::miner {
   // 192).
   constexpr size_t kMaxPoStProofSize{1024};
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern EpochDuration kMaxProveCommitDuration;
 
   struct VestSpec {

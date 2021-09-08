@@ -9,7 +9,7 @@
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
-#include "vm/actor/builtin/types/type_manager/universal.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::vm::actor::builtin::states {
   using primitives::ChainEpoch;

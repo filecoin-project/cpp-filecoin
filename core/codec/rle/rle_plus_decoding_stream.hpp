@@ -155,7 +155,7 @@ namespace fc::codec::rle {
     template <typename T>
     void decodeLongBlock(T &current_value, std::set<T> &output) {
       std::vector<uint8_t> bytes{};
-      uint8_t slice;
+      uint8_t slice = 0;
       do {
         slice = getSpan<uint8_t>(BYTE_BITS_COUNT);
         bytes.push_back(slice);

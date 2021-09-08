@@ -587,7 +587,7 @@ namespace fc::node {
 
     o.api = api::makeImpl(o.api,
                           o.chain_store,
-
+                          o.markets_ipld,
                           *config.network_name,
                           weight_calculator,
                           o.env_context,

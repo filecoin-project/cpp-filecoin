@@ -5,11 +5,13 @@
 
 #include "vm/actor/builtin/types/miner/v2/partition.hpp"
 
-#include "vm/actor/builtin/types/type_manager/type_manager.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
-  using types::TypeManager;
+  using types::miner::loadExpirationQueue;
+  using types::miner::powerForSectors;
+  using types::miner::selectSectors;
 
   RleBitset Partition::activeSectors() const {
     return liveSectors() - this->faults - this->unproven;
@@ -25,9 +27,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       const std::vector<SectorOnChainInfo> &sectors,
       SectorSize ssize,
       const QuantSpec &quant) {
-    OUTCOME_TRY(expirations,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto expirations = loadExpirationQueue(this->expirations_epochs, quant);
 
     RleBitset snos;
     PowerPair power;
@@ -61,9 +61,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       ChainEpoch fault_expiration,
       SectorSize ssize,
       const QuantSpec &quant) {
-    OUTCOME_TRY(queue,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto queue = loadExpirationQueue(this->expirations_epochs, quant);
 
     OUTCOME_TRY(new_faulty_power,
                 queue->rescheduleAsFaults(fault_expiration, sectors, ssize));
@@ -77,10 +75,9 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     auto power_delta = new_faulty_power.negative();
 
-    OUTCOME_TRY(unproven_infos, types::miner::selectSectors(sectors, unproven));
+    OUTCOME_TRY(unproven_infos, selectSectors(sectors, unproven));
     if (!unproven_infos.empty()) {
-      const auto lost_unproven_power =
-          types::miner::powerForSectors(ssize, unproven_infos);
+      const auto lost_unproven_power = powerForSectors(ssize, unproven_infos);
       this->unproven_power -= lost_unproven_power;
       power_delta += lost_unproven_power;
     }
@@ -104,9 +101,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     }
 
     OUTCOME_TRY(sector_infos, sectors.load(sector_nos));
-    OUTCOME_TRY(expirations,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto expirations = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(result,
                 expirations->removeSectors(
                     sector_infos, this->faults, this->recoveries, ssize));
@@ -129,10 +124,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     this->faulty_power -= removed.faulty_power;
     this->recovering_power -= removed_recovering;
 
-    OUTCOME_TRY(unproven_infos,
-                types::miner::selectSectors(sector_infos, unproven_nos));
-    const auto removed_unproven_power =
-        types::miner::powerForSectors(ssize, unproven_infos);
+    OUTCOME_TRY(unproven_infos, selectSectors(sector_infos, unproven_nos));
+    const auto removed_unproven_power = powerForSectors(ssize, unproven_infos);
     this->unproven_power -= removed_unproven_power;
     removed.active_power -= removed_unproven_power;
 
@@ -148,9 +141,7 @@ namespace fc::vm::actor::builtin::v2::miner {
           "cannot pop expired sectors from a partition with unproven sectors");
     }
 
-    OUTCOME_TRY(expirations,
-                TypeManager::loadExpirationQueue(
-                    runtime, this->expirations_epochs, quant));
+    auto expirations = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(popped, expirations->popUntil(until));
     this->expirations_epochs = expirations->queue;
 

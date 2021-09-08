@@ -18,7 +18,7 @@ namespace fc {
   using common::Hash256;
 
   struct CbCid : Hash256 {
-    CbCid() : Hash256{} {}
+    CbCid() = default;
     explicit CbCid(const Hash256 &hash) : Hash256{hash} {}
     static CbCid hash(BytesIn cbor) {
       return CbCid{crypto::blake2b::blake2b_256(cbor)};
