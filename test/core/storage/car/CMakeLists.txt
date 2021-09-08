@@ -10,6 +10,7 @@ target_link_libraries(car_test
     block
     car
     ipfs_datastore_in_memory
+    memory_indexed_car
     unixfs
     )
 

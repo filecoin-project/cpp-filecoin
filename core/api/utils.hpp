@@ -31,6 +31,9 @@ namespace fc::api {
   struct Chan {
     using Type = T;
     Chan() = default;
+    // TODO (a.chernyshov) (FIL-414) Rework class to make constructor explicit
+    // or remove comment and close the task
+    // NOLINTNEXTLINE(google-explicit-constructor)
     Chan(std::shared_ptr<Channel<T>> channel) : channel{std::move(channel)} {}
     static Chan make() {
       return std::make_shared<Channel<T>>();
@@ -52,6 +55,9 @@ namespace fc::api {
     using Cb = std::function<void(Result)>;
 
     Wait() = default;
+    // TODO (a.chernyshov) (FIL-414) Rework class to make constructor explicit
+    // or remove comment and close the task
+    // NOLINTNEXTLINE(google-explicit-constructor)
     Wait(std::shared_ptr<Channel<Result>> channel)
         : channel{std::move(channel)} {}
     static Wait make() {

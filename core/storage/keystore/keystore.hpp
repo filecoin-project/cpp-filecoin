@@ -20,6 +20,8 @@ namespace fc::storage::keystore {
 
   using crypto::bls::BlsProvider;
   using crypto::secp256k1::Secp256k1ProviderDefault;
+  using crypto::signature::Signature;
+  using primitives::address::Address;
   using BlsKeyPair = crypto::bls::KeyPair;
   using BlsPrivateKey = crypto::bls::PrivateKey;
   using BlsPublicKey = crypto::bls::PublicKey;
@@ -28,8 +30,7 @@ namespace fc::storage::keystore {
   using Secp256k1PrivateKey = crypto::secp256k1::PrivateKey;
   using Secp256k1PublicKey = crypto::secp256k1::PublicKey;
   using Secp256k1Signature = crypto::secp256k1::Signature;
-  using crypto::signature::Signature;
-  using primitives::address::Address;
+  using SignatureType = crypto::signature::Type;
 
   /**
    * An interface to a facility to store and use cryptographic keys
@@ -90,7 +91,7 @@ namespace fc::storage::keystore {
         gsl::span<const uint8_t> data,
         const Signature &signature) const noexcept;
 
-    outcome::result<Address> put(bool bls, TPrivateKey key);
+    outcome::result<Address> put(SignatureType type, TPrivateKey key);
 
    protected:
     /**

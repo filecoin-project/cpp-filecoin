@@ -70,7 +70,7 @@ namespace fc::markets::retrieval::client {
                                   .deal_id = next_deal_id++,
                                   .params = deal_params}};
     auto deal{std::make_shared<DealState>(
-        proposal, handler, client_wallet, miner_wallet, total_funds)};
+        proposal, ipfs_, handler, client_wallet, miner_wallet, total_funds)};
     OUTCOME_TRY(peer_info, getPeerInfo(provider_peer));
     deal->pdtid = datatransfer_->pull(
         peer_info,
@@ -142,20 +142,24 @@ namespace fc::markets::retrieval::client {
           }
         },
         [this, deal](auto &cid) {
-          if (auto _data{ipfs_->get(cid)}) {
-            if (auto _done{
-                    deal->verifier.verifyNextBlock(cid, _data.value())}) {
-              deal->state.block(_data.value().size());
-              if (_done.value()) {
-                deal->all_blocks = true;
-                deal->state.last();
-              }
-              return;
-            } else {
-              failDeal(deal, _done.error());
-            }
-          } else {
-            failDeal(deal, _data.error());
+          const auto cb{[&](auto e) { failDeal(deal, e); }};
+          OUTCOME_CB(auto data, ipfs_->get(cid));
+          const auto &expected_hash{cid.content_address};
+          OUTCOME_CB(auto hash,
+                     crypto::Hasher::calculate(expected_hash.getType(), data));
+          if (hash != expected_hash) {
+            return cb(ERROR_TEXT(
+                "RetrievalClientImpl::retrieve data hash does not match cid"));
+          }
+          OUTCOME_CB(auto expected_cid, deal->traverser.advance());
+          if (cid != expected_cid) {
+            return cb(ERROR_TEXT(
+                "RetrievalClientImpl::retrieve cid does not match order"));
+          }
+          deal->state.block(data.size());
+          if (deal->traverser.isCompleted()) {
+            deal->all_blocks = true;
+            deal->state.last();
           }
         });
     return outcome::success();

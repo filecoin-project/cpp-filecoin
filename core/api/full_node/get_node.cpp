@@ -32,7 +32,7 @@ namespace fc::api {
     try {
       CborDecodeStream s{raw};
       for (auto i = 0u; i < parts.size(); ++i) {
-        auto &part = parts[i];
+        const auto &part = parts[i];
         auto a = starts_with(part, "@A:");
         auto hi = starts_with(part, "@Hi:");
         auto hu = starts_with(part, "@Hu:");
