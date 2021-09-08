@@ -190,7 +190,7 @@ namespace fc::api {
   };
 
   struct KeyInfo {
-    SignatureType type;
+    SignatureType type = SignatureType::kUndefined;
     common::Blob<32> private_key;
   };
 

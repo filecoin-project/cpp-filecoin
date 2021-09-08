@@ -26,6 +26,9 @@ namespace fc {
 
     _Outcome() : o{outcome::failure(OutcomeError::kDefault)} {}
     template <typename... Args>
+    // TODO (a.chernyshov) (FIL-413) Rework class to make constructor explicit
+    // or remove comment and close FIL-413
+    // NOLINTNEXTLINE(google-explicit-constructor)
     _Outcome(Args &&...args) : o{std::forward<Args>(args)...} {}
 
     // try_operation_has_value
@@ -37,10 +40,16 @@ namespace fc {
       return o.error();
     }
 
+    // TODO (a.chernyshov) (FIL-413) Rework class to make constructor explicit
+    // or remove comment and close FIL-413
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator O &&() && {
       return std::move(o);
     }
 
+    // TODO (a.chernyshov) (FIL-413) Rework class to make constructor explicit
+    // or remove comment and close FIL-413
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator bool() const {
       return o.has_value();
     }
@@ -54,6 +63,9 @@ namespace fc {
     using OutcomeT = _Outcome<T>;
     using OutcomeT::OutcomeT;
 
+    // TODO (a.chernyshov) (FIL-413) Rework class to make constructor explicit
+    // or remove comment and close FIL-413
+    // NOLINTNEXTLINE(google-explicit-constructor)
     Outcome(outcome::result<T> &&o) : OutcomeT{std::move(o)} {}
 
     // try_operation_extract_value

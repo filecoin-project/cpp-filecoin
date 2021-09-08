@@ -34,6 +34,8 @@ namespace fc::codec::cbor {
     Type type{Type::INVALID};
     uint64_t extra{};
 
+    // TODO (a.chernyshov) Make explicit
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr operator bool() const {
       return type != Type::INVALID;
     }
@@ -136,6 +138,8 @@ namespace fc::codec::cbor {
     bool tag{};
     bool cid{};
 
+    // TODO (a.chernyshov) The function is too complex, should be simplified
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     inline void update(uint8_t byte) {
       using Type = CborToken::Type;
       assert(!error);

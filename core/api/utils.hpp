@@ -86,6 +86,9 @@ namespace fc::api {
   struct Chan {
     using Type = T;
     Chan() = default;
+    // TODO (a.chernyshov) (FIL-414) Rework class to make constructor explicit
+    // or remove comment and close the task
+    // NOLINTNEXTLINE(google-explicit-constructor)
     Chan(std::shared_ptr<Channel<T>> channel) : channel{std::move(channel)} {}
     static Chan make() {
       return std::make_shared<Channel<T>>();
