@@ -10,6 +10,7 @@
 #include "vm/actor/builtin/v2/multisig/multisig_actor.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
+  using states::MinerActorState;
 
   outcome::result<TokenAmount> Monies::expectedRewardForPower(
       const FilterEstimate &reward_estimate,
@@ -125,9 +126,8 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   outcome::result<TokenAmount> Monies::repayDebtsOrAbort(
       runtime::Runtime &runtime, Universal<MinerActorState> miner_state) {
-    auto curr_balance = runtime.getCurrentBalance();
-    // TODO(m.tagirov): MinerSate.RepayDebts(curr_balance);
-    return TokenAmount{1};
+    OUTCOME_TRY(curr_balance, runtime.getCurrentBalance());
+    return  miner_state->repayDebts(curr_balance);
   }
 
   outcome::result<TokenAmount> Monies::consensusFaultPenalty(
