@@ -276,15 +276,16 @@ namespace fc {
     boost::asio::post(*(thread.io), [&] {
       spdlog::info("fuhon worker are registering");
       auto address{fmt::format("/ip4/127.0.0.1/tcp/{}/http", config.api_port)};
-      auto maybe_error =
-          mapi->WorkerConnect(address);  // TODO: make reconnect if failed
-
-      if (maybe_error.has_error()) {
-        spdlog::error("worker register error: {}",
-                      maybe_error.error().message());
-        return;
-      }
-      spdlog::info("fuhon worker registered");
+      mapi->WorkerConnect(
+          [](const outcome::result<void> &maybe_error) {
+            if (maybe_error.has_error()) {
+              spdlog::error("worker register error: {}",
+                            maybe_error.error().message());
+              return;
+            }
+            spdlog::info("fuhon worker registered");
+          },
+          address);  // TODO: make reconnect if failed
     });
 
     spdlog::info("fuhon worker started");

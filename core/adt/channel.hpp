@@ -25,7 +25,7 @@ namespace fc::adt {
     using Many = std::vector<std::shared_ptr<Channel<T>>>;
 
     Channel() = default;
-    Channel(Channel &&) noexcept = default;
+    Channel(Channel &&) noexcept;
     ~Channel() {
       closeRead();
     }
@@ -115,4 +115,6 @@ namespace fc::adt {
     std::mutex mutex;
   };
 
+  template <typename T>
+  inline Channel<T>::Channel(Channel &&) noexcept = default;
 }  // namespace fc::adt
