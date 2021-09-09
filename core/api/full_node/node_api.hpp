@@ -244,10 +244,10 @@ namespace fc::api {
     StoragePower network_power;
     std::vector<SectorInfo> sectors;
     Address worker;
-    SectorSize sector_size;
+    SectorSize sector_size{};
     BeaconEntry prev_beacon;
     std::vector<BeaconEntry> beacons;
-    bool has_min_power;
+    bool has_min_power = false;
 
     auto &beacon() const {
       return beacons.empty() ? prev_beacon : beacons.back();

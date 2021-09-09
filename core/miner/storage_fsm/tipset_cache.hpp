@@ -37,14 +37,14 @@ namespace fc::mining {
      * @param height is height of tipset that we want get
      * @return Tipset or error
      */
-    virtual outcome::result<Tipset> getNonNull(uint64_t height) = 0;
+    virtual outcome::result<Tipset> getNonNull(ChainEpoch height) = 0;
 
     /**
      * get Tipset from cache with this height
      * @param height is height of tipset that we want get
      * @return optional Tipset or error
      */
-    virtual outcome::result<boost::optional<Tipset>> get(uint64_t height) = 0;
+    virtual outcome::result<boost::optional<Tipset>> get(ChainEpoch height) = 0;
 
     /**
      * Get Head tipset

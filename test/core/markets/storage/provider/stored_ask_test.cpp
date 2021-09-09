@@ -42,7 +42,7 @@ namespace fc::markets::storage::provider {
     KeyPair bls_keypair;
     StoredAsk stored_ask{datastore, api, actor_address};
 
-    static fc::primitives::block::BlockHeader makeBlock(uint64_t epoch) {
+    static fc::primitives::block::BlockHeader makeBlock(ChainEpoch epoch) {
       auto bls1 =
           "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
 

@@ -15,7 +15,7 @@
 
 namespace fc::primitives::tipset::chain {
   auto decodeHeight(BytesIn key) {
-    assert(key.size() == sizeof(Height));
+    assert(key.size() == sizeof(ChainEpoch));
     return boost::endian::load_big_u64(key.data());
   }
 
@@ -29,7 +29,7 @@ namespace fc::primitives::tipset::chain {
     return cids;
   }
 
-  auto encodeHeight(Height height) {
+  auto encodeHeight(ChainEpoch height) {
     return Buffer{}.putUint64(height);
   }
 
@@ -111,7 +111,7 @@ namespace fc::primitives::tipset::chain {
     return lazy ? lazy->bottom : *chain.begin();
   }
 
-  void TsBranch::lazyLoad(Height height) {
+  void TsBranch::lazyLoad(ChainEpoch height) {
     const auto bottom{chain.begin()->first};
     if (height < bottom && lazy && updater) {
       if (height >= lazy->bottom.first) {
@@ -124,7 +124,8 @@ namespace fc::primitives::tipset::chain {
           if (counts[i]) {
             offset -= counts[i];
             ++batch;
-            if (min_height + i <= height && batch >= lazy->min_load) {
+            if (static_cast<ChainEpoch>(min_height + i) <= height
+                && batch >= lazy->min_load) {
               break;
             }
           }
@@ -137,7 +138,8 @@ namespace fc::primitives::tipset::chain {
         updater->file_hash_read.seekg(sizeof(file::Seed)
                                       + offset * sizeof(CbCid));
         std::vector<CbCid> tsk;
-        while (i != counts.size() && min_height + i < bottom) {
+        while (i != counts.size()
+               && static_cast<ChainEpoch>(min_height + i) < bottom) {
           if (counts[i]) {
             tsk.resize(counts[i]);
             if (!common::read(updater->file_hash_read, gsl::make_span(tsk))) {
@@ -333,7 +335,7 @@ namespace fc::primitives::tipset::chain {
   }
 
   outcome::result<TsBranchIter> find(TsBranchPtr branch,
-                                     Height height,
+                                     ChainEpoch height,
                                      bool allow_less) {
     if (height > branch->chain.rbegin()->first) {
       return ERROR_TEXT("find: too high");
@@ -387,7 +389,7 @@ namespace fc::primitives::tipset::chain {
   outcome::result<TsBranchIter> getLookbackTipSetForRound(TsBranchIter it,
                                                           ChainEpoch epoch) {
     static constexpr ChainEpoch kWinningPoStSectorSetLookback{10};
-    const Height lookback = std::max<ChainEpoch>(
+    const ChainEpoch lookback = std::max<ChainEpoch>(
         0,
         epoch
             - (vm::version::getNetworkVersion(epoch)

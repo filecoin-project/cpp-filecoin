@@ -16,6 +16,7 @@
 namespace fc::payment_channel_manager {
   using api::FullNodeApi;
   using common::Buffer;
+  using primitives::Nonce;
   using vm::actor::builtin::states::PaymentChannelActorStatePtr;
   using vm::actor::builtin::types::payment_channel::SignedVoucher;
 
@@ -98,8 +99,8 @@ namespace fc::payment_channel_manager {
      * @param lane id
      * @return next nonce
      */
-    outcome::result<uint64_t> getNextNonce(const ChannelInfo &channel,
-                                           const LaneId &lane) const;
+    outcome::result<Nonce> getNextNonce(const ChannelInfo &channel,
+                                        const LaneId &lane) const;
 
     std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<Ipld> ipld_;
