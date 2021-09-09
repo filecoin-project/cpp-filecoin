@@ -11,10 +11,13 @@
 #include "common/span.hpp"
 
 namespace fc {
-  auto bytesToIstream(BytesIn bytes) {
-    return boost::iostreams::stream{boost::iostreams::array_source{
-        common::span::bytestr(bytes.data()),
-        static_cast<size_t>(bytes.size()),
-    }};
-  }
+  struct BytesIstream {
+    boost::iostreams::array_source device;
+    boost::iostreams::stream<decltype(device)> s;
+
+    BytesIstream(BytesIn bytes)
+        : device{common::span::bytestr(bytes.data()),
+                 static_cast<size_t>(bytes.size())},
+          s{device} {}
+  };
 }  // namespace fc

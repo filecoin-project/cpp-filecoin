@@ -26,7 +26,7 @@ namespace fc::adt {
 
     Channel() = default;
     Channel(const Channel &) = delete;
-    Channel(Channel &&) noexcept = default;
+    Channel(Channel &&) noexcept;
     ~Channel() {
       closeRead();
     }
@@ -119,4 +119,6 @@ namespace fc::adt {
     std::mutex mutex;
   };
 
+  template <typename T>
+  inline Channel<T>::Channel(Channel &&) noexcept = default;
 }  // namespace fc::adt

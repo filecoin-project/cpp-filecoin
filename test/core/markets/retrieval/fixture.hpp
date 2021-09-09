@@ -159,10 +159,9 @@ namespace fc::markets::retrieval::test {
         return info;
       };
 
-      api->PaychGet =
-          api::waitCb<AddChannelInfo>([=](auto &, auto &, auto &, auto cb) {
-            cb(AddChannelInfo{.channel = Address::makeFromId(333)});
-          });
+      api->PaychGet = [=](auto cb, auto &, auto &, auto &) {
+        cb(AddChannelInfo{.channel = Address::makeFromId(333)});
+      };
 
       api->PaychAllocateLane = {
           [=](auto &) -> outcome::result<LaneId> { return LaneId{1}; }};

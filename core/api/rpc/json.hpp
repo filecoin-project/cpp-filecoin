@@ -276,12 +276,6 @@ namespace fc::api {
       decodeEnum(v, j);
     }
 
-    ENCODE(None) {
-      return {};
-    }
-
-    DECODE(None) {}
-
     ENCODE(int64_t) {
       return Value{v};
     }

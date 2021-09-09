@@ -25,8 +25,7 @@ namespace fc::mining {
 
   template <typename F>
   auto mockSearch(F f) {
-    return testing::Invoke(api::waitCb<boost::optional<MsgWait>>(
-        [f](auto, auto, auto, auto, auto cb) { cb(f()); }));
+    return testing::Invoke([f](auto, auto, auto, auto) { return f(); });
   }
 
   class DealInfoManagerTest : public testing::Test {

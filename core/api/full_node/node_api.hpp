@@ -77,8 +77,6 @@ namespace fc::api {
   using vm::version::NetworkVersion;
   using SignatureType = crypto::signature::Type;
 
-  struct None {};
-
   struct InvocResult {
     UnsignedMessage message;
     MessageReceipt receipt;
@@ -292,7 +290,10 @@ namespace fc::api {
    * Provides the latest node API v2.0.0
    */
   struct FullNodeApi : public CommonApi {
-    API_METHOD(BeaconGetEntry, Wait<BeaconEntry>, ChainEpoch)
+    /**
+     * @note long operation
+     */
+    API_METHOD(BeaconGetEntry, BeaconEntry, ChainEpoch)
 
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
@@ -329,9 +330,10 @@ namespace fc::api {
      * each peer.
      * @param data root cid
      * @param optional piece cid
+     * @note long operation
      */
     API_METHOD(ClientFindData,
-               Wait<std::vector<QueryOffer>>,
+               std::vector<QueryOffer>,
                const CID &,
                const boost::optional<CID> &)
     API_METHOD(ClientHasLocal, bool, const CID &)
@@ -354,23 +356,27 @@ namespace fc::api {
      * Lists imported files and their root CIDs
      */
     API_METHOD(ClientListImports, std::vector<Import>)
+    /**
+     * @note long operation
+     */
     API_METHOD(ClientMinerQueryOffer,
-               Wait<QueryOffer>,
+               QueryOffer,
                const Address &,
                const CID &,
                const boost::optional<CID> &)
+    /**
+     * @note long operation
+     */
     API_METHOD(ClientQueryAsk,
-               Wait<SignedStorageAsk>,
+               SignedStorageAsk,
                const std::string &,
                const Address &)
 
     /**
      * Initiates the retrieval of a file, as specified in the order
+     * @note long operation
      */
-    API_METHOD(ClientRetrieve,
-               Wait<None>,
-               const RetrievalOrder &,
-               const FileRef &)
+    API_METHOD(ClientRetrieve, void, const RetrievalOrder &, const FileRef &)
 
     /**
      * Proposes a storage deal with a miner
@@ -411,8 +417,11 @@ namespace fc::api {
                const TokenAmount &)
 
     API_METHOD(MinerCreateBlock, BlockWithCids, const BlockTemplate &)
+    /**
+     * @note long operation
+     */
     API_METHOD(MinerGetBaseInfo,
-               Wait<boost::optional<MiningBaseInfo>>,
+               boost::optional<MiningBaseInfo>,
                const Address &,
                ChainEpoch,
                const TipsetKey &)
@@ -446,9 +455,10 @@ namespace fc::api {
      * @param to address
      * @param ensure_funds - amount allocated for payment channel
      * @return add payment channel info with actor address and message cid
+     * @note long operation
      */
     API_METHOD(PaychGet,
-               Wait<AddChannelInfo>,
+               AddChannelInfo,
                const Address &,
                const Address &,
                const TokenAmount &)
@@ -602,14 +612,19 @@ namespace fc::api {
                const Address &,
                const TipsetKey &)
 
+    /**
+     * @note long operation
+     */
     API_METHOD(StateSearchMsg,
-               Wait<boost::optional<MsgWait>>,
+               boost::optional<MsgWait>,
                const TipsetKey &,
                const CID &,
                ChainEpoch,
                bool)
-    API_METHOD(
-        StateWaitMsg, Wait<MsgWait>, const CID &, uint64_t, ChainEpoch, bool)
+    /**
+     * @note long operation
+     */
+    API_METHOD(StateWaitMsg, MsgWait, const CID &, uint64_t, ChainEpoch, bool)
 
     API_METHOD(SyncSubmitBlock, void, const BlockWithCids &)
 

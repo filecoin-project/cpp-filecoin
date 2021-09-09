@@ -104,35 +104,35 @@ namespace fc::markets::retrieval::client {
               deal->handler(
                   res.status == DealStatus::kDealStatusRejected
                       ? RetrievalClientError::kResponseDealRejected
-                  : res.status == DealStatus::kDealStatusDealNotFound
-                      ? RetrievalClientError::kResponseNotFound
-                      : RetrievalClientError::kUnknownResponseReceived);
+                      : res.status == DealStatus::kDealStatusDealNotFound
+                            ? RetrievalClientError::kResponseNotFound
+                            : RetrievalClientError::kUnknownResponseReceived);
               datatransfer_->pulling_out.erase(deal->pdtid);
               return;
             }
-            auto _paych{api_->PaychGet(
-                deal->client_wallet, deal->miner_wallet, deal->total_funds)};
-            if (!_paych) {
-              return deal->handler(_paych.error());
-            }
-            return _paych.value().waitOwn([=](auto &&_paych) {
-              if (!_paych) {
-                return deal->handler(_paych.error());
-              }
-              auto &paych{_paych.value().channel};
-              deal->payment_channel_address = paych;
-              auto _lane{api_->PaychAllocateLane(paych)};
-              if (!_lane) {
-                return deal->handler(_lane.error());
-              }
-              deal->lane_id = _lane.value();
-              std::unique_lock lock{deal->pending_mutex};
-              after(res);
-              for (auto &res : *deal->pending) {
-                after(res);
-              }
-              deal->pending.reset();
-            });
+            api_->PaychGet(
+                [=](auto &&_paych) {
+                  if (!_paych) {
+                    return deal->handler(_paych.error());
+                  }
+                  auto &paych{_paych.value().channel};
+                  deal->payment_channel_address = paych;
+                  auto _lane{api_->PaychAllocateLane(paych)};
+                  if (!_lane) {
+                    return deal->handler(_lane.error());
+                  }
+                  deal->lane_id = _lane.value();
+                  std::unique_lock lock{deal->pending_mutex};
+                  after(res);
+                  for (auto &res : *deal->pending) {
+                    after(res);
+                  }
+                  deal->pending.reset();
+                },
+                deal->client_wallet,
+                deal->miner_wallet,
+                deal->total_funds);
+            return;
           }
           std::unique_lock lock{deal->pending_mutex};
           if (deal->pending) {
