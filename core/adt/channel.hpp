@@ -31,7 +31,7 @@ namespace fc::adt {
       closeRead();
     }
 
-    Channel &operator=(const Channel &) = default;
+    Channel &operator=(const Channel &) = delete;
     Channel &operator=(Channel &&) noexcept = default;
 
     bool canWrite() const {
