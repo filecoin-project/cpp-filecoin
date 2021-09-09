@@ -559,7 +559,7 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto maybe_error = api_->StateWaitMsg(
+    api_->StateWaitMsg(
         [self{shared_from_this()}, deal](outcome::result<MsgWait> result) {
           SELF_FSM_HALT_ON_ERROR(result, "Wait for funding error", deal);
           if (result.value().receipt.exit_code != VMExitCode::kOk) {
@@ -575,7 +575,6 @@ namespace fc::markets::storage::provider {
         kMessageConfidence,
         api::kLookbackNoLimit,
         true);
-    FSM_HALT_ON_ERROR(maybe_error, "Wait for funding error", deal);
   }
 
   void StorageProviderImpl::onProviderEventFunded(
@@ -638,7 +637,7 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto maybe_error = api_->StateWaitMsg(
+     api_->StateWaitMsg(
         [self{shared_from_this()}, deal, to](outcome::result<MsgWait> result) {
           SELF_FSM_HALT_ON_ERROR(
               result, "Publish storage deal message error", deal);
@@ -666,7 +665,6 @@ namespace fc::markets::storage::provider {
         kMessageConfidence,
         api::kLookbackNoLimit,
         true);
-    FSM_HALT_ON_ERROR(maybe_error, "Wait for funding error", deal);
   }
 
   void StorageProviderImpl::onProviderEventDealPublished(

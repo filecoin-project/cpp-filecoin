@@ -110,7 +110,7 @@ namespace fc::markets::retrieval::client {
               datatransfer_->pulling_out.erase(deal->pdtid);
               return;
             }
-            auto _paych = api_->PaychGet(
+            api_->PaychGet(
                 [=](auto &&_paych) {
                   if (!_paych) {
                     return deal->handler(_paych.error());
@@ -132,9 +132,6 @@ namespace fc::markets::retrieval::client {
                 deal->client_wallet,
                 deal->miner_wallet,
                 deal->total_funds);
-            if (!_paych) {
-              return deal->handler(_paych.error());
-            }
             return;
           }
           std::unique_lock lock{deal->pending_mutex};

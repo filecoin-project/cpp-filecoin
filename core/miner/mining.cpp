@@ -58,13 +58,13 @@ namespace fc::mining {
   }
 
   outcome::result<void> Mining::waitBeacon() {
-
-    return api->BeaconGetEntry(
-            [self{shared_from_this()}](auto beacon) {
-                OUTCOME_LOG("Mining::waitBeacon error", beacon);
-                OUTCOME_LOG("Mining::waitInfo error", self->waitInfo());
-            },
-            height());
+    api->BeaconGetEntry(
+        [self{shared_from_this()}](auto beacon) {
+          OUTCOME_LOG("Mining::waitBeacon error", beacon);
+          OUTCOME_LOG("Mining::waitInfo error", self->waitInfo());
+        },
+        height());
+    return outcome::success();
   }
 
   outcome::result<void> Mining::waitInfo() {
@@ -72,7 +72,7 @@ namespace fc::mining {
     if (!mined.emplace(ts->key, skip).second) {
       wait(block_delay, false, [this] { waitParent(); });
     } else {
-      OUTCOME_TRY(api->MinerGetBaseInfo(
+      api->MinerGetBaseInfo(
           [self{shared_from_this()}](auto _info) {
             OUTCOME_LOG("Mining::waitInfo error", _info);
             self->info = std::move(_info.value());
@@ -80,7 +80,7 @@ namespace fc::mining {
           },
           miner,
           height(),
-          ts->key));
+          ts->key);
     }
     return outcome::success();
   }

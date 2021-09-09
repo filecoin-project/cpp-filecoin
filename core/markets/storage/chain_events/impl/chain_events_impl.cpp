@@ -123,7 +123,7 @@ namespace fc::markets::storage::chain_events {
       }
 
       if (prove_sector_committed) {
-        OUTCOME_TRY(api_->StateWaitMsg(
+        api_->StateWaitMsg(
             [cb{std::move(watch_it->cb)}](auto _r) {
               if (_r) {
                 cb();
@@ -132,7 +132,7 @@ namespace fc::markets::storage::chain_events {
             cid,
             kMessageConfidence,
             api::kLookbackNoLimit,
-            true));
+            true);
         watched_events_.erase(watch_it);
       }
     }

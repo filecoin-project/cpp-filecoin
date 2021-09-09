@@ -25,10 +25,7 @@ namespace fc::mining {
 
   template <typename F>
   auto mockSearch(F f) {
-    return testing::Invoke([f](auto cb, auto, auto, auto, auto) {
-      cb(f());
-      return outcome::success();
-    });
+    return testing::Invoke([f](auto, auto, auto, auto) { return f(); });
   }
 
   class DealInfoManagerTest : public testing::Test {
@@ -39,7 +36,7 @@ namespace fc::mining {
 
     std::shared_ptr<FullNodeApi> api_{std::make_shared<FullNodeApi>()};
     std::shared_ptr<DealInfoManager> manager_;
-    MOCK_API_CB(api_, StateSearchMsg);
+    MOCK_API(api_, StateSearchMsg);
 
     CID publish_cid{"010001020001"_cid};
     TipsetKey key{{CbCid::hash("02"_unhex)}};
@@ -53,7 +50,7 @@ namespace fc::mining {
    * @then DealInfoManagerError::kNotOkExitCode occurs
    */
   TEST_F(DealInfoManagerTest, NonOkCode) {
-    EXPECT_CALL(mock_StateSearchMsg, Call(_, _, publish_cid, _, _))
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([] {
           MsgWait lookup;
           lookup.receipt.exit_code = VMExitCode::kFatal;
@@ -72,7 +69,7 @@ namespace fc::mining {
    * @then DealInfoManagerError::kMoreThanOneDeal occurs
    */
   TEST_F(DealInfoManagerTest, TwoDealsWithoutProposal) {
-    EXPECT_CALL(mock_StateSearchMsg, Call(_, _, publish_cid, _, _))
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([] {
           MsgWait lookup;
           lookup.receipt.exit_code = VMExitCode::kOk;
@@ -102,7 +99,7 @@ namespace fc::mining {
         .publish_msg_tipset = result_key,
     };
 
-    EXPECT_CALL(mock_StateSearchMsg, Call(_, _, publish_cid, _, _))
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([&] {
           MsgWait lookup;
           lookup.receipt.exit_code = VMExitCode::kOk;
@@ -147,7 +144,7 @@ namespace fc::mining {
         .publish_msg_tipset = result_key,
     };
 
-    EXPECT_CALL(mock_StateSearchMsg, Call(_, _, publish_cid, _, _))
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([&] {
           MsgWait lookup;
           lookup.receipt.exit_code = VMExitCode::kOk;
@@ -224,7 +221,7 @@ namespace fc::mining {
         .publish_msg_tipset = result_key,
     };
 
-    EXPECT_CALL(mock_StateSearchMsg, Call(_, _, publish_cid, _, _))
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([&] {
           MsgWait lookup;
           lookup.receipt.exit_code = VMExitCode::kOk;
@@ -306,7 +303,7 @@ namespace fc::mining {
         .publish_msg_tipset = result_key,
     };
 
-    EXPECT_CALL(mock_StateSearchMsg, Call(_, _, publish_cid, _, _))
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([&] {
           MsgWait lookup;
           lookup.receipt.exit_code = VMExitCode::kOk;
@@ -377,7 +374,7 @@ namespace fc::mining {
         .publish_msg_tipset = result_key,
     };
 
-    EXPECT_CALL(mock_StateSearchMsg, Call(_, _, publish_cid, _, _))
+    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([&] {
           MsgWait lookup;
           lookup.receipt.exit_code = VMExitCode::kOk;

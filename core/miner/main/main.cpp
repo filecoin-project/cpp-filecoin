@@ -201,7 +201,6 @@ namespace fc {
                                          api::kPushNoSpec));
         spdlog::info(
             "msg {}: CreateMiner owner={}", smsg.getCid(), *config.owner);
-        // TODO: maybe async call, it's long
         OUTCOME_TRY(result,
                     api.StateWaitMsg(smsg.getCid(),
                                      kMessageConfidence,
@@ -242,7 +241,7 @@ namespace fc {
       spdlog::info(
           "msg {}: ChangePeerId peer={}", smsg.getCid(), peer_id.toBase58());
 
-      OUTCOME_TRY(api.StateWaitMsg(
+      api.StateWaitMsg(
           [](auto _res) {
             if (_res) {
               auto &receipt{_res.value().receipt};
@@ -258,7 +257,7 @@ namespace fc {
           smsg.getCid(),
           kMessageConfidence,
           api::kLookbackNoLimit,
-          true));
+          true);
     }
 
     OUTCOME_TRY(

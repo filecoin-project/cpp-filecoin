@@ -101,7 +101,7 @@ namespace fc {
                              .getConnections();
       std::vector<PeerInfo> result;
       for (const auto &conncection : connections) {
-        auto remote = conncection->remotePeer();
+        const auto remote = conncection->remotePeer();
         if (remote.has_error())
           log()->error("get remote peer error", remote.error().message());
         result.push_back(peer_repository.getPeerInfo(remote.value()));
@@ -164,11 +164,12 @@ namespace fc {
       OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
       const PeerInfo peer_info{.id = peer_id,
                                .addresses = miner_info.multiaddrs};
-      StorageProviderInfo provider_info{.address = params.miner,
-                                        .owner = {},
-                                        .worker = miner_info.worker,
-                                        .sector_size = miner_info.sector_size,
-                                        .peer_info = peer_info};
+      const StorageProviderInfo provider_info{
+          .address = params.miner,
+          .owner = {},
+          .worker = miner_info.worker,
+          .sector_size = miner_info.sector_size,
+          .peer_info = peer_info};
 
       auto start_epoch = params.deal_start_epoch;
       if (start_epoch <= 0) {

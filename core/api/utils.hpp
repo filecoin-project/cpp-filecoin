@@ -40,21 +40,18 @@ namespace fc::api {
          args...);
       return wait.get_future().get();
     }
-    outcome::result<void> operator()(
-        const std::function<void(OutcomeResult)> &cb, Ts... args) const {
+    void operator()(Callback cb, Ts... args) const {
       if (!f_) {
-        return ERROR_TEXT("API not set up");
+        return cb(ERROR_TEXT("API not set up"));
       }
       f_(cb, args...);
-      return outcome::success();
     }
 
     explicit ApiMethod(std::string name) noexcept : name_(std::move(name)){};
 
     ApiMethod &operator=(std::function<FunctionSimpleSignature> &&f) {
       if (f) {
-        f_ = [wf{std::forward<std::function<FunctionSimpleSignature>>(f)}](
-                 auto &&cb, auto &&... args) -> void {
+        f_ = [wf{std::move(f)}](auto &&cb, auto &&... args) -> void {
           cb(wf(std::forward<decltype(args)>(args)...));
         };
       } else {

@@ -46,8 +46,8 @@ namespace fc::payment_channel_manager {
     }
     OUTCOME_CB(auto cid,
                createPaymentChannelActor(client, miner, amount_available));
-    OUTCOME_CB1(api_->StateWaitMsg(
-        [=, self{shared_from_this()}, cb{cb}](auto _wait) {
+    api_->StateWaitMsg(
+        [=, self{shared_from_this()}, cb{std::move(cb)}](auto _wait) {
           OUTCOME_CB(auto wait, _wait);
           if (wait.receipt.exit_code != VMExitCode::kOk) {
             return cb(PaymentChannelManagerError::kCreateChannelActorErrored);
@@ -64,7 +64,7 @@ namespace fc::payment_channel_manager {
         cid,
         kMessageConfidence,
         api::kLookbackNoLimit,
-        true));
+        true);
   }
 
   outcome::result<LaneId> PaymentChannelManagerImpl::allocateLane(

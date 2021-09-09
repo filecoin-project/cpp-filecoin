@@ -260,7 +260,7 @@ namespace fc::markets::storage::test {
         if (address.isId()) {
           return address;
         }
-        for (auto &[k, v] : account_keys) {
+        for (const auto &[k, v] : account_keys) {
           if (v == address) {
             return k;
           }

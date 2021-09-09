@@ -290,6 +290,9 @@ namespace fc::api {
    * Provides the latest node API v2.0.0
    */
   struct FullNodeApi : public CommonApi {
+    /**
+     * @note long operation
+     */
     API_METHOD(BeaconGetEntry, BeaconEntry, ChainEpoch)
 
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
@@ -327,6 +330,7 @@ namespace fc::api {
      * each peer.
      * @param data root cid
      * @param optional piece cid
+     * @note long operation
      */
     API_METHOD(ClientFindData,
                std::vector<QueryOffer>,
@@ -360,9 +364,9 @@ namespace fc::api {
                const Address &,
                const CID &,
                const boost::optional<CID> &)
-      /**
-* @note long operation
-*/
+    /**
+     * @note long operation
+     */
     API_METHOD(ClientQueryAsk,
                SignedStorageAsk,
                const std::string &,
