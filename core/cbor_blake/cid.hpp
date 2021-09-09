@@ -7,10 +7,7 @@
 
 #include "common/blob.hpp"
 #include "common/bytes.hpp"
-
-namespace fc::crypto::blake2b {
-  common::Hash256 blake2b_256(BytesIn);
-}  // namespace fc::crypto::blake2b
+#include "crypto/blake2/blake2b160.hpp"
 
 namespace fc {
   constexpr BytesN<6> kCborBlakePrefix{0x01, 0x71, 0xA0, 0xE4, 0x02, 0x20};

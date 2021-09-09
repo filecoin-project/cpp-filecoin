@@ -25,10 +25,14 @@ namespace fc::adt {
     using Many = std::vector<std::shared_ptr<Channel<T>>>;
 
     Channel() = default;
+    Channel(const Channel &) = default;
     Channel(Channel &&) noexcept = default;
     ~Channel() {
       closeRead();
     }
+
+    Channel &operator=(const Channel &) = default;
+    Channel &operator=(Channel &&) noexcept = default;
 
     bool canWrite() const {
       std::lock_guard lock{mutex};

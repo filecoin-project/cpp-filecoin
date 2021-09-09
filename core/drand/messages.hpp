@@ -26,7 +26,8 @@ namespace fc::drand {
 
   struct ChainInfo {
     BlsPublicKey key;
-    seconds genesis, period;
+    seconds genesis{};
+    seconds period{};
   };
 
   struct PublicRandResponse {

@@ -53,7 +53,7 @@ namespace fc::vm::runtime {
 
   struct ConsensusFault {
     Address target;
-    ChainEpoch epoch;
-    ConsensusFaultType type;
+    ChainEpoch epoch{};
+    ConsensusFaultType type{};
   };
 }  // namespace fc::vm::runtime

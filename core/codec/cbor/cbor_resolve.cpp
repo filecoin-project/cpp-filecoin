@@ -59,7 +59,7 @@ namespace fc::codec::cbor {
         if (it == map.end()) {
           return CborResolveError::kKeyNotFound;
         }
-        stream = std::move(it->second);
+        stream = it->second;
       } else {
         return CborResolveError::kContainerExpected;
       }

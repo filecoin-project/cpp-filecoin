@@ -108,17 +108,19 @@ namespace fc::storage::hamt {
   }
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bit_width)
-      : ipld{std::move(store)}, root_{nullptr}, bit_width_{bit_width} {}
+      : ipld_{std::move(store)}, root_{nullptr}, bit_width_{bit_width} {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
              Node::Ptr root,
              size_t bit_width)
-      : ipld{std::move(store)}, root_{std::move(root)}, bit_width_{bit_width} {}
+      : ipld_{std::move(store)},
+        root_{std::move(root)},
+        bit_width_{bit_width} {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
              const CID &root,
              size_t bit_width)
-      : ipld{std::move(store)}, root_{root}, bit_width_{bit_width} {}
+      : ipld_{std::move(store)}, root_{root}, bit_width_{bit_width} {}
 
   outcome::result<void> Hamt::set(BytesIn key, BytesIn value) {
     OUTCOME_TRY(loadRoot());
@@ -297,7 +299,7 @@ namespace fc::storage::hamt {
       for (auto &item2 : node.items) {
         OUTCOME_TRY(flush(item2.second));
       }
-      OUTCOME_TRYA(item, fc::setCbor(ipld, node));
+      OUTCOME_TRYA(item, fc::setCbor(ipld_, node));
     }
     return outcome::success();
   }
@@ -309,7 +311,7 @@ namespace fc::storage::hamt {
 
   outcome::result<void> Hamt::loadItem(Node::Item &item) const {
     if (which<CID>(item)) {
-      OUTCOME_TRY(child, fc::getCbor<Node>(ipld, boost::get<CID>(item)));
+      OUTCOME_TRY(child, fc::getCbor<Node>(ipld_, boost::get<CID>(item)));
       if (!child.v3) {
         child.v3 = v3();
       } else if (*child.v3 != v3()) {
@@ -347,6 +349,6 @@ namespace fc::storage::hamt {
   }
 
   bool Hamt::v3() const {
-    return ipld->actor_version >= vm::actor::ActorVersion::kVersion3;
+    return ipld_->actor_version >= vm::actor::ActorVersion::kVersion3;
   }
 }  // namespace fc::storage::hamt

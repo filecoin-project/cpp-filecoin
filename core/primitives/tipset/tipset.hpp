@@ -48,6 +48,9 @@ namespace fc::primitives::tipset {
     MessageVisitor(MessageVisitor &&) = delete;
     ~MessageVisitor();
 
+    MessageVisitor &operator=(const MessageVisitor &) = delete;
+    MessageVisitor &operator=(MessageVisitor &&) = delete;
+
     MessageVisitor(IpldPtr ipld, bool nonce, bool load);
     outcome::result<void> visit(const BlockHeader &block,
                                 const Visitor &visitor);
