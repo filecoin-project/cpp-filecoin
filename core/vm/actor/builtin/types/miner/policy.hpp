@@ -259,12 +259,14 @@ namespace fc::vm::actor::builtin::types::miner {
     ChainEpoch quantization{};
   };
 
+  // NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
   const VestSpec kRewardVestingSpecV0{
       .initial_delay = static_cast<ChainEpoch>(20 * kEpochsInDay),
       .vest_period = static_cast<ChainEpoch>(180 * kEpochsInDay),
       .step_duration = static_cast<ChainEpoch>(kEpochsInDay),
       .quantization = static_cast<ChainEpoch>(12 * kEpochsInHour)};
 
+  // NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
   const VestSpec kRewardVestingSpecV1{
       .initial_delay = 0,
       .vest_period = static_cast<ChainEpoch>(180 * kEpochsInDay),

@@ -32,7 +32,7 @@ namespace fc::api {
   using sync::PubSubGate;
   using vm::runtime::EnvironmentContext;
 
-  outcome::result<IpldObject> getNode(std::shared_ptr<Ipld> ipld,
+  outcome::result<IpldObject> getNode(const std::shared_ptr<Ipld> &ipld,
                                       const CID &root,
                                       gsl::span<const std::string> parts);
 

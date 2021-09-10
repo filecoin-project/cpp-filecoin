@@ -26,11 +26,11 @@ namespace fc::crypto::blake2b {
     void _compress(bool last);
     void final(gsl::span<uint8_t> hash);
 
-    uint8_t b[128]{};
-    uint64_t h[8];
-    uint64_t t[2]{};
+    std::array<uint8_t, 128> b{};
+    std::array<uint64_t, 8> h;
+    std::array<uint64_t, 2> t{};
     size_t c{};
-    size_t outlen;
+    size_t outlen{};
   };
 
   void hashn(gsl::span<uint8_t> hash, BytesIn input, BytesIn key = {});

@@ -17,15 +17,15 @@ namespace fc::adt {
   struct BalanceTable : public Map<TokenAmount, AddressKeyer, 6> {
     using Map::Map;
 
-    outcome::result<void> add(const Key &key, TokenAmount amount);
+    outcome::result<void> add(const Key &key, const TokenAmount &amount);
 
     outcome::result<void> addCreate(const Key &key, TokenAmount amount);
 
     outcome::result<TokenAmount> subtractWithMin(const Key &key,
-                                                 TokenAmount amount,
-                                                 TokenAmount min);
+                                                 const TokenAmount &amount,
+                                                 const TokenAmount &min);
 
-    outcome::result<void> subtract(const Key &key, TokenAmount amount);
+    outcome::result<void> subtract(const Key &key, const TokenAmount &amount);
   };
 }  // namespace fc::adt
 

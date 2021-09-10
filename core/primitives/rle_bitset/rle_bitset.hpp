@@ -15,6 +15,8 @@ namespace fc::primitives {
   struct RleBitset : public std::set<uint64_t> {
     using set::set;
 
+    // TODO (a.chernyshov) make constructors explicit (FIL-415)
+    // NOLINTNEXTLINE(google-explicit-constructor)
     inline RleBitset(set &&s) : set{s} {}
 
     inline bool has(uint64_t v) const {
@@ -85,8 +87,8 @@ namespace fc::primitives {
 
     inline RleBitset slice(uint64_t start, uint64_t count) const {
       assert(start + count <= size());
-      const auto it{std::next(begin(), start)};
-      return {it, std::next(it, count)};
+      const auto it{std::next(begin(), static_cast<ptrdiff_t>(start))};
+      return {it, std::next(it, static_cast<ptrdiff_t>(count))};
     }
 
     /**
