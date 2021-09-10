@@ -5,10 +5,10 @@
 
 #pragma once
 
+#include "primitives/go/math.hpp"
+#include "vm/actor/builtin/types/miner/monies.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/runtime/runtime.hpp"
-#include "vm/actor/builtin/types/miner/monies.hpp"
-#include "primitives/go/math.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using common::math::kPrecision128;
@@ -17,8 +17,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::ChainEpoch;
   using primitives::StoragePower;
   using primitives::TokenAmount;
-  using states::MinerActorState;
-  using states::Universal;
+  using states::MinerActorStatePtr;
   using types::miner::VestSpec;
   using version::NetworkVersion;
 
@@ -28,7 +27,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     const BigInt lock_target_factor_denom = BigInt(10);
 
     const BigInt space_race_initial_pledge_max_per_byte =
-                     bigdiv(BigInt("1000000000000000000"), (BigInt{32} << 30));
+        bigdiv(BigInt("1000000000000000000"), (BigInt{32} << 30));
 
     constexpr static int declared_fault_factor_num_v0 = 214;
     constexpr static int declared_fault_factor_num_v3 = 351;
@@ -52,39 +51,42 @@ namespace fc::vm::actor::builtin::v0::miner {
                    / undeclared_fault_factor_denom);
 
    public:
-     outcome::result<TokenAmount> expectedRewardForPower(
+    outcome::result<TokenAmount> expectedRewardForPower(
         const FilterEstimate &reward_estimate,
         const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power,
         const ChainEpoch &projection_duration) override;
 
-     outcome::result<TokenAmount> pledgePenaltyForDeclaredFault(
+    outcome::result<TokenAmount> pledgePenaltyForDeclaredFault(
         const FilterEstimate &reward_estimate,
         const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power,
         const NetworkVersion &network_version) override;
 
-     outcome::result<TokenAmount> pledgePenaltyForUndeclaredFault(
+    outcome::result<TokenAmount> pledgePenaltyForUndeclaredFault(
         const FilterEstimate &reward_estimate,
         const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power,
         const NetworkVersion &network_version) override;
 
-     outcome::result<TokenAmount> pledgePenaltyForTermination(
+    outcome::result<TokenAmount> pledgePenaltyForTermination(
         const TokenAmount &day_reward_at_activation,
         const TokenAmount &twenty_day_reward_activation,
         const ChainEpoch &sector_age,
         const FilterEstimate &reward_estimate,
         const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power,
-        const NetworkVersion &network_version) override;
+        const NetworkVersion &network_version,
+        const TokenAmount &day_reward = TokenAmount{},
+        const TokenAmount &replaced_day_reward = TokenAmount{},
+        const ChainEpoch &replaced_sector_age = ChainEpoch{}) override;
 
     outcome::result<TokenAmount> preCommitDepositForPower(
         const FilterEstimate &reward_estimate,
         const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power) override;
 
-     outcome::result<TokenAmount> initialPledgeForPower(
+    outcome::result<TokenAmount> initialPledgeForPower(
         const StoragePower &qa_power,
         const StoragePower &baseline_power,
         const TokenAmount &network_total_pledge,
@@ -92,49 +94,30 @@ namespace fc::vm::actor::builtin::v0::miner {
         const FilterEstimate &network_power_estimate,
         const TokenAmount &network_circulation_supply_smoothed) override;
 
-     outcome::result<TokenAmount> pledgePenaltyForContinuedFault(
+    outcome::result<TokenAmount> pledgePenaltyForContinuedFault(
         const FilterEstimate &reward_estimate,
         const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power) override;
 
-     outcome::result<TokenAmount> pledgePenaltyForTerminationLowerBound(
+    outcome::result<TokenAmount> pledgePenaltyForTerminationLowerBound(
         const FilterEstimate &reward_estimate,
         const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power) override;
 
-     outcome::result<TokenAmount> pledgePenaltyForTermination(
-        const TokenAmount &day_reward,
-        const ChainEpoch &sector_age,
-        const TokenAmount &twenty_day_reward_activation,
-        const FilterEstimate &network_power_estimate,
-        const StoragePower &sector_power,
-        const FilterEstimate &reward_estimate,
-        const TokenAmount &replaced_day_reward,
-        const ChainEpoch &replaced_sector_age) override;
-
-     outcome::result<TokenAmount> preCommitDepositForPower(
-        const FilterEstimate &reward_estimate,
-        FilterEstimate network_power_estimate,
-        const StoragePower &sector_power) override;
-
-     outcome::result<TokenAmount> repayDebtsOrAbort(
-        runtime::Runtime &runtime,
-        Universal<MinerActorState> miner_state) override;
+    outcome::result<TokenAmount> repayDebtsOrAbort(
+        runtime::Runtime &runtime, MinerActorStatePtr miner_state) override;
 
     outcome::result<TokenAmount> consensusFaultPenalty(
         const TokenAmount &this_epoch_reward) override;
 
-    outcome::result<std::pair<TokenAmount, VestSpec>>
-    lockedRewardFromReward(const TokenAmount &reward,
-                           const NetworkVersion &network_version) override;
+    outcome::result<std::pair<TokenAmount, VestSpec>> lockedRewardFromReward(
+        const TokenAmount &reward,
+        const NetworkVersion &network_version) override;
 
-     outcome::result<TokenAmount> pledgePenaltyForInvalidWindowPoSt(
+    outcome::result<TokenAmount> pledgePenaltyForInvalidWindowPoSt(
         const FilterEstimate &reward_estimate,
         const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power) override;
-
-     outcome::result<std::pair<TokenAmount, VestSpec>>
-    lockedRewardFromReward(const TokenAmount &reward) override;
   };
   CBOR_NON(Monies);
 }  // namespace fc::vm::actor::builtin::v0::miner

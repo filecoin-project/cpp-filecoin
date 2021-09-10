@@ -55,12 +55,14 @@ namespace fc::vm::actor::builtin::v2::miner {
     sector_age = 20 * ChainEpoch{static_cast<BigInt>(kEpochsInDay)};
 
     EXPECT_OUTCOME_TRUE(fee,
-                        moniesv2.pledgePenaltyForTermination(day_reward,
-                                                             sector_age,
+                        moniesv2.pledgePenaltyForTermination(TokenAmount{},
                                                              twenty_day_reward,
+                                                             sector_age,
                                                              power_estimate,
-                                                             sector_power,
                                                              reward_estimate,
+                                                             sector_power,
+                                                             NetworkVersion{},
+                                                             day_reward,
                                                              0,
                                                              0));
 
@@ -74,12 +76,14 @@ namespace fc::vm::actor::builtin::v2::miner {
     sector_age = sector_age_in_days * kEpochsInDay;
 
     EXPECT_OUTCOME_TRUE(fee,
-                        moniesv2.pledgePenaltyForTermination(day_reward,
-                                                             sector_age,
+                        moniesv2.pledgePenaltyForTermination(TokenAmount{},
                                                              twenty_day_reward,
+                                                             sector_age,
                                                              power_estimate,
-                                                             sector_power,
                                                              reward_estimate,
+                                                             sector_power,
+                                                             NetworkVersion{},
+                                                             day_reward,
                                                              0,
                                                              0));
 
@@ -97,12 +101,14 @@ namespace fc::vm::actor::builtin::v2::miner {
     twenty_day_reward = day_reward * big_initial_pledge_factor;
     sector_age = 500 * kEpochsInDay;
     EXPECT_OUTCOME_TRUE(fee,
-                        moniesv2.pledgePenaltyForTermination(day_reward,
-                                                             sector_age,
+                        moniesv2.pledgePenaltyForTermination(TokenAmount{},
                                                              twenty_day_reward,
+                                                             sector_age,
                                                              power_estimate,
-                                                             sector_power,
                                                              reward_estimate,
+                                                             sector_power,
+                                                             NetworkVersion{},
+                                                             day_reward,
                                                              0,
                                                              0))
 
@@ -124,23 +130,27 @@ namespace fc::vm::actor::builtin::v2::miner {
     const BigInt power = 1;
 
     EXPECT_OUTCOME_TRUE(unreplaced_fee,
-                        moniesv2.pledgePenaltyForTermination(day_reward,
-                                                             sector_age,
+                        moniesv2.pledgePenaltyForTermination(TokenAmount{},
                                                              twenty_day_reward,
+                                                             sector_age,
                                                              power_estimate,
-                                                             sector_power,
                                                              reward_estimate,
+                                                             sector_power,
+                                                             NetworkVersion{},
+                                                             day_reward,
                                                              0,
                                                              0));
 
     EXPECT_OUTCOME_TRUE(
         actual_fee,
-        moniesv2.pledgePenaltyForTermination(day_reward,
-                                             replacement_age,
+        moniesv2.pledgePenaltyForTermination(TokenAmount{},
                                              twenty_day_reward,
+                                             replacement_age,
                                              power_estimate,
-                                             power,
                                              reward_estimate,
+                                             power,
+                                             NetworkVersion{},
+                                             day_reward,
                                              day_reward,
                                              sector_age - replacement_age))
     EXPECT_EQ(unreplaced_fee, actual_fee);
@@ -155,22 +165,26 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     const BigInt power = 1;
     EXPECT_OUTCOME_TRUE(no_replace,
-                        moniesv2.pledgePenaltyForTermination(day_reward,
-                                                             replacement_age,
+                        moniesv2.pledgePenaltyForTermination(TokenAmount{},
                                                              twenty_day_reward,
+                                                             replacement_age,
                                                              power_estimate,
-                                                             power,
                                                              reward_estimate,
+                                                             power,
+                                                             NetworkVersion{},
+                                                             day_reward,
                                                              0,
                                                              0))
 
     EXPECT_OUTCOME_TRUE(with_replace,
-                        moniesv2.pledgePenaltyForTermination(day_reward,
-                                                             replacement_age,
+                        moniesv2.pledgePenaltyForTermination(TokenAmount{},
                                                              twenty_day_reward,
+                                                             replacement_age,
                                                              power_estimate,
-                                                             power,
                                                              reward_estimate,
+                                                             power,
+                                                             NetworkVersion{},
+                                                             day_reward,
                                                              day_reward,
                                                              sector_age))
 
@@ -202,12 +216,14 @@ namespace fc::vm::actor::builtin::v2::miner {
         twenty_day_reward + old_penalty + new_penalty;
 
     EXPECT_OUTCOME_TRUE(fee,
-                        moniesv2.pledgePenaltyForTermination(day_reward,
-                                                             replacement_age,
+                        moniesv2.pledgePenaltyForTermination(TokenAmount{},
                                                              twenty_day_reward,
+                                                             replacement_age,
                                                              power_estimate,
-                                                             power,
                                                              reward_estimate,
+                                                             power,
+                                                             NetworkVersion{},
+                                                             day_reward,
                                                              old_day_reward,
                                                              old_sector_age))
 

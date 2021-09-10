@@ -59,7 +59,10 @@ namespace fc::vm::actor::builtin::v0::miner {
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power,
-      const NetworkVersion &network_version) {
+      const NetworkVersion &network_version,
+      const TokenAmount &day_reward,
+      const TokenAmount &replaced_day_reward,
+      const ChainEpoch &replaced_sector_age) {
     BigInt capped_sector_age = BigInt(std::min(
         BigInt(sector_age), BigInt(termination_lifetime_cap * kEpochsInDay)));
     if (network_version >= NetworkVersion::kVersion1) {
@@ -134,27 +137,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     return TokenAmount{};
   }
 
-  outcome::result<TokenAmount> Monies::pledgePenaltyForTermination(
-      const TokenAmount &day_reward,
-      const ChainEpoch &sector_age,
-      const TokenAmount &twenty_day_reward_activation,
-      const FilterEstimate &network_power_estimate,
-      const StoragePower &sector_power,
-      const FilterEstimate &reward_estimate,
-      const TokenAmount &replaced_day_reward,
-      const ChainEpoch &replaced_sector_age) {
-    return TokenAmount{};
-  }
-
-  outcome::result<TokenAmount> Monies::preCommitDepositForPower(
-      const FilterEstimate &reward_estimate,
-      FilterEstimate network_power_estimate,
-      const StoragePower &sector_power) {
-    return TokenAmount{};
-  }
-
   outcome::result<TokenAmount> Monies::repayDebtsOrAbort(
-      runtime::Runtime &runtime, Universal<MinerActorState> miner_state) {
+      runtime::Runtime &runtime, MinerActorStatePtr miner_state) {
     return TokenAmount{};
   }
 
@@ -174,11 +158,6 @@ namespace fc::vm::actor::builtin::v0::miner {
       const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power) {
     return TokenAmount{};
-  }
-
-  outcome::result<std::pair<TokenAmount, VestSpec>>
-  Monies::lockedRewardFromReward(const TokenAmount &reward) {
-    return std::make_pair(TokenAmount{}, VestSpec{});
   }
 
 }  // namespace fc::vm::actor::builtin::v0::miner

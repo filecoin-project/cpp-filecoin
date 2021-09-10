@@ -6,6 +6,7 @@
 #include "vm/actor/builtin/types/miner/v3/monies.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
+  using types::miner::kRewardVestingSpecV1;
 
   outcome::result<TokenAmount> Monies::pledgePenaltyForInvalidWindowPoSt(
       const FilterEstimate &reward_estimate,
@@ -21,8 +22,9 @@ namespace fc::vm::actor::builtin::v3::miner {
   }
 
   outcome::result<std::pair<TokenAmount, VestSpec>>
-  Monies::lockedRewardFromReward(const TokenAmount &reward) {
-    BigInt lock_amount =
+  Monies::lockedRewardFromReward(const TokenAmount &reward,
+                                 const NetworkVersion &default_version) {
+    const BigInt lock_amount =
         reward * bigdiv(locked_reward_factor_num, locked_reward_factor_denom);
     return std::make_pair(lock_amount, kRewardVestingSpecV1);
   }

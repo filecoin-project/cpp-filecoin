@@ -14,9 +14,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using runtime::Runtime;
-  using states::MinerActorState;
-  using states::Universal;
-  using types::miner::kRewardVestingSpecV1;
+  using states::MinerActorStatePtr;
   using types::miner::VestSpec;
   using version::NetworkVersion;
 
@@ -47,8 +45,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     const BigInt locked_reward_factor_num_v6 = BigInt(75);
     const BigInt locked_reward_factor_denom_v6 = BigInt(100);
 
-    constexpr static int64_t expected_leader_per_epoch =
-        5;
+    constexpr static int64_t expected_leader_per_epoch = 5;
 
     outcome::result<TokenAmount> expectedRewardForPower(
         const FilterEstimate &reward_estimate,
@@ -66,19 +63,9 @@ namespace fc::vm::actor::builtin::v2::miner {
         const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power) override;
 
-    outcome::result<TokenAmount> pledgePenaltyForTermination(
-        const TokenAmount &day_reward,
-        const ChainEpoch &sector_age,
-        const TokenAmount &twenty_day_reward_activation,
-        const FilterEstimate &network_power_estimate,
-        const StoragePower &sector_power,
-        const FilterEstimate &reward_estimate,
-        const TokenAmount &replaced_day_reward,
-        const ChainEpoch &replaced_sector_age) override;
-
     outcome::result<TokenAmount> preCommitDepositForPower(
         const FilterEstimate &reward_estimate,
-        FilterEstimate network_power_estimate,
+        const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power) override;
 
     outcome::result<TokenAmount> initialPledgeForPower(
@@ -90,7 +77,7 @@ namespace fc::vm::actor::builtin::v2::miner {
         const TokenAmount &network_circulation_supply_smoothed) override;
 
     outcome::result<TokenAmount> repayDebtsOrAbort(
-        Runtime &runtime, Universal<MinerActorState> miner_state) override;
+        Runtime &runtime, MinerActorStatePtr miner_state) override;
 
     outcome::result<TokenAmount> consensusFaultPenalty(
         const TokenAmount &this_epoch_reward) override;
@@ -118,12 +105,10 @@ namespace fc::vm::actor::builtin::v2::miner {
         const FilterEstimate &reward_estimate,
         const FilterEstimate &network_power_estimate,
         const StoragePower &sector_power,
-        const NetworkVersion &network_version) override;
-
-    outcome::result<TokenAmount> preCommitDepositForPower(
-        const FilterEstimate &reward_estimate,
-        const FilterEstimate &network_power_estimate,
-        const StoragePower &sector_power) override;
+        const NetworkVersion &network_version,
+        const TokenAmount &day_reward,
+        const TokenAmount &replaced_day_reward,
+        const ChainEpoch &replaced_sector_age) override;
   };
   CBOR_NON(Monies);
 

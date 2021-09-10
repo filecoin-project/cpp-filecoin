@@ -14,7 +14,6 @@ namespace fc::vm::actor::builtin::v3::miner {
   using primitives::TokenAmount;
   using types::miner::VestSpec;
   using version::NetworkVersion;
-  using types::miner::kRewardVestingSpecV1;
 
   class Monies : public v2::miner::Monies {
    private:
@@ -36,7 +35,8 @@ namespace fc::vm::actor::builtin::v3::miner {
         const StoragePower &sector_power) override;
 
     outcome::result<std::pair<TokenAmount, VestSpec>> lockedRewardFromReward(
-        const TokenAmount &reward) override;
+        const TokenAmount &reward,
+        const NetworkVersion &default_version) override;
   };
   CBOR_NON(Monies);
 
