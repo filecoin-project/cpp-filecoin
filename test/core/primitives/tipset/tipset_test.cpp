@@ -46,7 +46,7 @@ namespace fc::primitives::tipset {
           }},
           {fc::primitives::sector::PoStProof{
               fc::primitives::sector::RegisteredPoStProof::
-              kStackedDRG2KiBWinningPoSt,
+                  kStackedDRG2KiBWinningPoSt,
               "F00D"_unhex,
           }},
           {CbCid::hash("01"_unhex)},
@@ -167,7 +167,7 @@ namespace fc::primitives::tipset {
     BytesIn input{cbor};
     BytesIn ticket;
     BlockParentCbCids parents;
-    uint64_t height;
+    ChainEpoch height;
     EXPECT_TRUE(
         codec::cbor::light_reader::readBlock(ticket, parents, height, input));
     EXPECT_EQ(ticket, BytesIn{bh1.ticket->bytes});

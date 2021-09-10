@@ -20,6 +20,7 @@
 #include "testutil/resources/resources.hpp"
 
 using fc::CID;
+using fc::primitives::ChainEpoch;
 using fc::storage::car::CarError;
 using fc::storage::car::loadCar;
 using fc::storage::car::makeCar;
@@ -76,7 +77,7 @@ TEST(CarTest, MainnetGenesisBlockRead) {
   BytesIn input{cbor};
   BytesIn ticket;
   BlockParentCbCids parents;
-  uint64_t height;
+  ChainEpoch height;
   EXPECT_TRUE(
       codec::cbor::light_reader::readBlock(ticket, parents, height, input));
   EXPECT_EQ(height, 0);
