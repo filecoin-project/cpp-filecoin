@@ -48,7 +48,9 @@ namespace fc::node {
              o.chain_epoch_clock->epochAtTime(o.utc_clock->nowUTC()).value());
 
       auto car{[&](auto _size, auto _count, auto _tmp, auto &ipld) {
-        uint64_t size{}, count{}, tmp{};
+        uint64_t size{};
+        uint64_t count{};
+        uint64_t tmp{};
         if (ipld) {
           std::shared_lock index_lock{ipld->index_mutex};
           std::shared_lock written_lock{ipld->written_mutex};
@@ -80,7 +82,7 @@ namespace fc::node {
 
     const NodeObjects &o;
 
-    std::atomic_uint64_t height_known{};
+    std::atomic_int64_t height_known{};
     sync::events::Connection _possible_head;
   };
 }  // namespace fc::node

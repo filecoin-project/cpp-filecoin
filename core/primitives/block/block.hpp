@@ -25,6 +25,7 @@ namespace fc::primitives::block {
   using crypto::signature::Signature;
   using drand::BeaconEntry;
   using primitives::BigInt;
+  using primitives::ChainEpoch;
   using primitives::address::Address;
   using primitives::sector::PoStProof;
   using vm::message::SignedMessage;
@@ -67,7 +68,7 @@ namespace fc::primitives::block {
     std::vector<PoStProof> win_post_proof;
     BlockParentCbCids parents;
     BigInt parent_weight;
-    uint64_t height{};
+    ChainEpoch height{};
     CID parent_state_root;
     CID parent_message_receipts;
     CID messages;

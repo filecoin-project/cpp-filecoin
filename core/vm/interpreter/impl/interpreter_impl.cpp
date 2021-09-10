@@ -84,7 +84,7 @@ namespace fc::vm::interpreter {
                   env->applyImplicitMessage(UnsignedMessage{
                       kCronAddress,
                       kSystemActorAddress,
-                      env->epoch,
+                      static_cast<uint64_t>(env->epoch),
                       0,
                       0,
                       kBlockGasLimit * 10000,
@@ -110,7 +110,7 @@ namespace fc::vm::interpreter {
 
     adt::Array<MessageReceipt> receipts{ipld};
     MessageVisitor message_visitor{ipld, true, true};
-    for (auto &block : tipset->blks) {
+    for (const auto &block : tipset->blks) {
       AwardBlockReward::Params reward{
           block.miner, 0, 0, block.election_proof.win_count};
       OUTCOME_TRY(message_visitor.visit(
@@ -131,7 +131,7 @@ namespace fc::vm::interpreter {
                   env->applyImplicitMessage(UnsignedMessage{
                       kRewardAddress,
                       kSystemActorAddress,
-                      tipset->height(),
+                      static_cast<uint64_t>(tipset->height()),
                       0,
                       0,
                       1 << 30,
@@ -159,7 +159,7 @@ namespace fc::vm::interpreter {
   bool InterpreterImpl::hasDuplicateMiners(
       const std::vector<BlockHeader> &blocks) const {
     std::set<Address> set;
-    for (auto &block : blocks) {
+    for (const auto &block : blocks) {
       if (!set.insert(block.miner).second) {
         return true;
       }
