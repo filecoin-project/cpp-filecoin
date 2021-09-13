@@ -625,12 +625,10 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   TEST_F(MinerActorStateTestV2, CantAllocateOrMaskOutOfRange) {
-    const auto result1 =
-        state.allocateSectorNumber(static_cast<uint64_t>(kMaxSectorNumber + 1));
+    const auto result1 = state.allocateSectorNumber(kMaxSectorNumber + 1);
     EXPECT_EQ(result1.error().message(), "sector number out of range");
 
-    const auto result2 = state.maskSectorNumbers(
-        {99, static_cast<uint64_t>(kMaxSectorNumber + 1)});
+    const auto result2 = state.maskSectorNumbers({99, kMaxSectorNumber + 1});
     EXPECT_EQ(result2.error().message(),
               "masked sector number exceeded max sector number");
   }
