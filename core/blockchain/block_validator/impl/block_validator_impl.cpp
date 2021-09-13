@@ -139,9 +139,7 @@ namespace fc::blockchain::block_validator {
   outcome::result<void> BlockValidatorImpl::stateTree(
       const BlockHeader &block) const {
     OUTCOME_TRY(parent_tipset, getParentTipset(block));
-    OUTCOME_TRY(result,
-                interpreter_cache_->get(
-                    InterpreterCache::Key{parent_tipset.get()->key}));
+    OUTCOME_TRY(result, interpreter_cache_->get(parent_tipset.get()->key));
     if (result.state_root == block.parent_state_root
         && result.message_receipts == block.parent_message_receipts) {
       return outcome::success();

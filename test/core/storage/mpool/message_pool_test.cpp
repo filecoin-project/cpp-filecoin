@@ -51,7 +51,7 @@ namespace fc::storage::mpool {
       std::make_shared<AnyAsCbIpld>(ipld))};
   void cacheParentState(TipsetCPtr ts) {
     interpreter_cache->set(
-        InterpreterCache::Key{ts->getParents()},
+        ts->getParents(),
         {ts->getParentStateRoot(), ts->getParentMessageReceipts(), {}});
   }
 

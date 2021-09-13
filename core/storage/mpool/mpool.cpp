@@ -506,9 +506,7 @@ namespace fc::storage::mpool {
       TipsetCPtr ts, double ticket_quality) const {
     OUTCOME_TRY(base_fee, ts->nextBaseFee(env_context.ipld));
     vm::runtime::Pricelist pricelist{ts->epoch()};
-    OUTCOME_TRY(
-        cached,
-        env_context.interpreter_cache->get(InterpreterCache::Key{ts->key}));
+    OUTCOME_TRY(cached, env_context.interpreter_cache->get(ts->key));
     vm::state::StateTreeImpl state_tree{
         withVersion(env_context.ipld, ts->height()), cached.state_root};
     auto pending{by_from};
@@ -579,9 +577,7 @@ namespace fc::storage::mpool {
 
   outcome::result<Nonce> MessagePool::nonce(const Address &from) const {
     assert(from.isKeyType());
-    OUTCOME_TRY(
-        interpeted,
-        env_context.interpreter_cache->get(InterpreterCache::Key{head->key}));
+    OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head->key));
     OUTCOME_TRY(actor,
                 vm::state::StateTreeImpl{withVersion(ipld, head->height()),
                                          interpeted.state_root}
@@ -602,9 +598,7 @@ namespace fc::storage::mpool {
       msg.gas_limit = kBlockGasLimit;
       msg.gas_fee_cap = kMinimumBaseFee + 1;
       msg.gas_premium = 1;
-      OUTCOME_TRY(
-          interpeted,
-          env_context.interpreter_cache->get(InterpreterCache::Key{head->key}));
+      OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head->key));
       auto env{std::make_shared<vm::runtime::Env>(env_context, ts_main, head)};
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
           env->ipld, interpeted.state_root);

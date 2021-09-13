@@ -22,9 +22,7 @@ namespace fc::blockchain::production {
       std::shared_ptr<Ipld> ipld,
       BlockTemplate t) {
     OUTCOME_TRY(parent_tipset, ts_load->load(t.parents));
-    OUTCOME_TRY(
-        vm_result,
-        interpreter_cache.get(InterpreterCache::Key{parent_tipset->key}));
+    OUTCOME_TRY(vm_result, interpreter_cache.get(parent_tipset->key));
     BlockWithMessages b;
     MsgMeta msg_meta;
     cbor_blake::cbLoadT(ipld, msg_meta);

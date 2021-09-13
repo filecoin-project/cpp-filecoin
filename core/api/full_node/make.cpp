@@ -249,8 +249,7 @@ namespace fc::api {
       auto ipld{withVersion(env_context.ipld, tipset->height())};
       TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
       if (interpret) {
-        OUTCOME_TRY(result,
-                    interpreter_cache->get(InterpreterCache::Key{tipset->key}));
+        OUTCOME_TRY(result, interpreter_cache->get(tipset->key));
         context.state_tree = {ipld, result.state_root};
         context.interpreted = result;
       }
@@ -591,8 +590,7 @@ namespace fc::api {
           OUTCOME_CB(info.prev_beacon, latestBeacon(ts_load, it));
           OUTCOME_CB(auto it2, getLookbackTipSetForRound(it, epoch));
           OUTCOME_CB(auto cached,
-                     interpreter_cache->get(
-                         InterpreterCache::Key{it2.second->second.key}));
+                     interpreter_cache->get(it2.second->second.key));
           ts_lock.unlock();
 
           auto prev{info.prev_beacon.round};

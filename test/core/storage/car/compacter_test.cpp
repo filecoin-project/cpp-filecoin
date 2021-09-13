@@ -86,7 +86,7 @@ namespace fc::storage::compacter {
       }
       auto interpreter_cache{std::make_shared<InterpreterCache>(
           std::make_shared<InMemoryStorage>(), compacter)};
-      interpreter_cache->set(InterpreterCache::Key{head->key},
+      interpreter_cache->set(head->key,
                              {meta.head_state, meta.head_receipts, {}});
 
       compacter->interpreter_cache = interpreter_cache;

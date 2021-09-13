@@ -259,8 +259,7 @@ namespace fc::sync {
     }
     auto it{std::prev(branch->chain.end())};
     while (true) {
-      if (auto _res{interpreter_cache_->tryGet(
-              InterpreterCache::Key{it->second.key})}) {
+      if (auto _res{interpreter_cache_->tryGet(it->second.key)}) {
         if (*_res) {
           if (auto _ts{ts_load_->lazyLoad(it->second)}) {
             interpret_ts_ = _ts.value();
@@ -304,8 +303,7 @@ namespace fc::sync {
 
   bool SyncJob::checkParent(TipsetCPtr ts) {
     if (ts->height() != 0) {
-      if (auto _res{interpreter_cache_->tryGet(
-              InterpreterCache::Key{ts->getParents()})}) {
+      if (auto _res{interpreter_cache_->tryGet(ts->getParents())}) {
         if (*_res) {
           auto &res{_res->value()};
           const auto &a_receipts{res.message_receipts};

@@ -203,7 +203,7 @@ namespace fc::node {
         if (auto _has{o.ipld->contains(ts->getParentStateRoot())};
             _has && _has.value()) {
           o.env_context.interpreter_cache->set(
-              InterpreterCache::Key{ts->getParents()},
+              ts->getParents(),
               {
                   ts->getParentStateRoot(),
                   ts->getParentMessageReceipts(),
@@ -492,15 +492,12 @@ namespace fc::node {
 
     auto head{
         o.ts_load->lazyLoad(std::prev(o.ts_main->chain.end())->second).value()};
-    if (!o.env_context.interpreter_cache->tryGet(
-            InterpreterCache::Key{head->key})) {
+    if (!o.env_context.interpreter_cache->tryGet(head->key)) {
       log()->info("interpret head {}", head->height());
       o.vm_interpreter->interpret(o.ts_main, head).value();
     }
     auto head_weight{
-        o.env_context.interpreter_cache->get(InterpreterCache::Key{head->key})
-            .value()
-            .weight};
+        o.env_context.interpreter_cache->get(head->key).value().weight};
     o.chain_store =
         std::make_shared<sync::ChainStoreImpl>(o.ipld,
                                                o.ts_load,
