@@ -30,13 +30,6 @@ namespace fc::vm::actor::builtin::v0::miner {
         SectorSize ssize,
         const DeadlineSectorMap &deadline_sectors) override;
 
-    outcome::result<PowerPair> assignSectorsToDeadlines(
-        Runtime &runtime,
-        ChainEpoch curr_epoch,
-        std::vector<SectorOnChainInfo> sectors_to_assign,
-        uint64_t partition_size,
-        SectorSize ssize) override;
-
     outcome::result<TokenAmount> unlockUnvestedFunds(
         ChainEpoch curr_epoch, const TokenAmount &target) override;
 
@@ -51,9 +44,6 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     outcome::result<void> checkBalanceInvariants(
         const TokenAmount &balance) const override;
-
-   protected:
-    uint64_t getMaxPartitionsForDeadlineAssignment() const override;
   };
   CBOR_TUPLE(MinerActorState,
              miner_info,
