@@ -19,6 +19,8 @@
   }
 
 namespace fc::storage::mpool {
+  using vm::interpreter::InterpreterCache;
+
   auto tipsetMessages(IpldPtr ipld, TipsetCPtr ts) {
     std::vector<SignedMessage> msgs;
     ts->visitMessages(
@@ -49,7 +51,7 @@ namespace fc::storage::mpool {
       std::make_shared<AnyAsCbIpld>(ipld))};
   void cacheParentState(TipsetCPtr ts) {
     interpreter_cache->set(
-        ts->getParents(),
+        InterpreterCache::Key{ts->getParents()},
         {ts->getParentStateRoot(), ts->getParentMessageReceipts(), {}});
   }
 

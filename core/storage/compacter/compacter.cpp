@@ -237,7 +237,8 @@ namespace fc::storage::compacter {
       }
       ts = ts_load->load(ts->getParents()).value();
     }
-    const auto head_res{interpreter_cache->get(head->key).value()};
+    const auto head_res{
+        interpreter_cache->get(InterpreterCache::Key{head->key}).value()};
     queue->push(*asBlake(head_res.state_root));
     queue->push(*asBlake(head_res.message_receipts));
     for (auto &branch : *ts_branches) {
@@ -252,7 +253,9 @@ namespace fc::storage::compacter {
         }
         // keep interpreted tipsets that can be attached to the main branch
         if (ts->height() >= head->height()) {
-          if (auto res{interpreter_cache->tryGet(ts->key)}; res && *res) {
+          if (auto res{
+                  interpreter_cache->tryGet(InterpreterCache::Key{ts->key})};
+              res && *res) {
             queue->push(*asBlake(res->value().state_root));
             queue->push(*asBlake(res->value().message_receipts));
           }

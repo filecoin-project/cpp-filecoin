@@ -40,7 +40,7 @@ namespace fc::primitives::block {
   CBOR_TUPLE(Ticket, bytes)
 
   struct ElectionProof {
-    int64_t win_count;
+    int64_t win_count = 0;
     Buffer vrf_proof;
   };
   inline bool operator==(const ElectionProof &lhs, const ElectionProof &rhs) {

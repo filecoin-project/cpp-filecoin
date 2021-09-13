@@ -32,7 +32,7 @@ namespace fc::vm::interpreter {
 
   struct InterpreterCache {
     struct Key {
-      Key(const TipsetKey &tsk);
+      explicit Key(const TipsetKey &tsk);
       Buffer key;
     };
     InterpreterCache(std::shared_ptr<PersistentBufferMap> kv,

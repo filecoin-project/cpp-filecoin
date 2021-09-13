@@ -103,12 +103,12 @@ namespace fc::vm::runtime {
   };
 
   struct ChargingIpld : Ipld {
-    explicit ChargingIpld(std::shared_ptr<Execution> execution)
+    explicit ChargingIpld(const std::shared_ptr<Execution> &execution)
         : execution_{execution} {
       actor_version = execution->env->ipld->actor_version;
     }
     outcome::result<bool> contains(const CID &key) const override {
-      throw "not implemented";
+      return ERROR_TEXT("not implemented");
     }
     outcome::result<void> set(const CID &key, Value value) override;
     outcome::result<Value> get(const CID &key) const override;

@@ -253,43 +253,43 @@ namespace fc::vm::runtime {
     template <typename M>
     outcome::result<typename M::Result> sendM(const Address &address,
                                               const typename M::Params &params,
-                                              TokenAmount value) {
+                                              const TokenAmount &value) {
       OUTCOME_TRY(params2, actor::encodeActorParams(params));
       OUTCOME_TRY(result, send(address, M::Number, params2, value));
       return actor::decodeActorReturn<typename M::Result>(result);
     }
 
     /// Send funds
-    inline auto sendFunds(const Address &to, BigInt value) {
+    inline auto sendFunds(const Address &to, const BigInt &value) {
       return send(to, kSendMethodNumber, {}, value);
     }
 
     /// Send with typed result R
     template <typename R>
-    outcome::result<R> sendR(Address to_address,
+    outcome::result<R> sendR(const Address &to_address,
                              MethodNumber method_number,
                              const MethodParams &params,
-                             BigInt value) {
+                             const BigInt &value) {
       OUTCOME_TRY(result, send(to_address, method_number, params, value));
       return codec::cbor::decode<R>(result);
     }
 
     /// Send with typed params P and result R
     template <typename R, typename P>
-    outcome::result<R> sendPR(Address to_address,
+    outcome::result<R> sendPR(const Address &to_address,
                               MethodNumber method_number,
                               const P &params,
-                              BigInt value) {
+                              const BigInt &value) {
       OUTCOME_TRY(params2, actor::encodeActorParams(params));
       return sendR<R>(to_address, method_number, MethodParams{params2}, value);
     }
 
     /// Send with typed params P
     template <typename P>
-    outcome::result<InvocationOutput> sendP(Address to_address,
+    outcome::result<InvocationOutput> sendP(const Address &to_address,
                                             MethodNumber method_number,
                                             const P &params,
-                                            BigInt value) {
+                                            const BigInt &value) {
       OUTCOME_TRY(params2, actor::encodeActorParams(params));
       return send(to_address, method_number, MethodParams{params2}, value);
     }
@@ -313,6 +313,8 @@ namespace fc::vm::runtime {
       return outcome::success();
     }
 
+    // TODO (a.chernyshov) make explicit
+    // NOLINTNEXTLINE(google-explicit-constructor)
     inline operator std::shared_ptr<IpfsDatastore>() const {
       return getIpfsDatastore();
     }
@@ -321,14 +323,14 @@ namespace fc::vm::runtime {
       return getBalance(getCurrentReceiver());
     }
 
-    inline outcome::result<void> validateArgument(bool assertion) const {
+    static inline outcome::result<void> validateArgument(bool assertion) {
       if (!assertion) {
         ABORT(VMExitCode::kErrIllegalArgument);
       }
       return outcome::success();
     }
 
-    inline outcome::result<void> requireState(bool assertion) const {
+    static inline outcome::result<void> requireState(bool assertion) {
       if (!assertion) {
         ABORT(VMExitCode::kErrIllegalState);
       }
@@ -344,7 +346,7 @@ namespace fc::vm::runtime {
     }
 
     inline outcome::result<void> validateImmediateCallerIs(
-        std::vector<Address> addresses) const {
+        const std::vector<Address> &addresses) const {
       for (const auto &address : addresses) {
         if (getImmediateCaller() == address) {
           return outcome::success();
@@ -380,9 +382,8 @@ namespace fc::vm::runtime {
       }
       if (getNetworkVersion() <= NetworkVersion::kVersion3) {
         ABORT(VMExitCode::kOldErrActorFailure);
-      } else {
-        ABORT(VMExitCode::kSysErrReserved1);
       }
+      ABORT(VMExitCode::kSysErrReserved1);
     }
 
     inline outcome::result<Address> resolveOrCreate(const Address &address) {

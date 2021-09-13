@@ -437,8 +437,9 @@ namespace fc::primitives::sector_file {
       return cids[0];
     }
 
-    OUTCOME_TRY(
-        cid, proofs->generateUnsealedCID(maybe_seal_proof_type.value(), cids));
+    OUTCOME_TRY(cid,
+                proofs->generateUnsealedCID(
+                    maybe_seal_proof_type.value(), cids, false));
 
     OUTCOME_TRY(cid::CIDToPieceCommitmentV1(cid));
 

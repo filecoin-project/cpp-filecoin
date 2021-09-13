@@ -27,12 +27,13 @@ namespace fc::vm::interpreter {
                         .message_receipts = "010001020003"_cid,
                         .weight = 1};
     const TipsetKey tipset_key;
-    interpreter_cache->set(tipset_key, result);
+    interpreter_cache->set(InterpreterCache::Key{tipset_key}, result);
 
     EXPECT_CALL(*ipld, get(Eq(asBlake(state_root)), Eq(nullptr)))
         .WillOnce(Return(false));
 
-    const auto res = interpreter_cache->tryGet(tipset_key);
+    const auto res =
+        interpreter_cache->tryGet(InterpreterCache::Key{tipset_key});
     EXPECT_FALSE(res.has_value());
   }
 }  // namespace fc::vm::interpreter

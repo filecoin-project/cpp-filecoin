@@ -108,7 +108,10 @@ namespace fc::adt {
         return false;
       }
       if (which<Handler>(state)) {
-        boost::get<Handler>(state)({});
+        try {
+          boost::get<Handler>(state)({});
+        } catch (...) {
+        }
       }
       state = Closed{};
       return true;

@@ -13,6 +13,7 @@
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/miner/cron_event_payload.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
+#include "vm/actor/builtin/utils/actor_utils.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/version/version.hpp"
 
@@ -26,10 +27,9 @@ namespace fc::vm::actor::builtin::utils {
   using types::miner::CronEventPayload;
   using version::NetworkVersion;
 
-  class MinerUtils {
+  class MinerUtils : public ActorUtils {
    public:
-    explicit MinerUtils(Runtime &r) : runtime(r) {}
-    virtual ~MinerUtils() = default;
+    explicit MinerUtils(Runtime &r) : ActorUtils(r) {}
 
     /**
      * This limits the number of simultaneous fault, recovery, or
@@ -121,8 +121,6 @@ namespace fc::vm::actor::builtin::utils {
         const Address &address) const = 0;
     virtual outcome::result<void> callPowerEnrollCronEvent(
         ChainEpoch event_epoch, const Buffer &params) const = 0;
-
-    Runtime &runtime;
   };
 
   using MinerUtilsPtr = std::shared_ptr<MinerUtils>;
