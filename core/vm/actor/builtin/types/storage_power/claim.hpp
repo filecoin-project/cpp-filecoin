@@ -14,17 +14,15 @@ namespace fc::vm::actor::builtin::types::storage_power {
 
   struct Claim {
     Claim() = default;
-    Claim(const StoragePower &raw, const StoragePower &qa)
-        : seal_proof_type(RegisteredSealProof::kUndefined),
-          raw_power(raw),
-          qa_power(qa) {}
-    Claim(const StoragePower &raw,
-          const StoragePower &qa,
-          RegisteredSealProof seal_proof)
-        : seal_proof_type(seal_proof), raw_power(raw), qa_power(qa) {}
+    Claim(StoragePower raw, StoragePower qa)
+        : raw_power(std::move(raw)), qa_power(std::move(qa)) {}
+    Claim(StoragePower raw, StoragePower qa, RegisteredSealProof seal_proof)
+        : seal_proof_type(seal_proof),
+          raw_power(std::move(raw)),
+          qa_power(std::move(qa)) {}
 
     /** Miner's proof type used to determine minimum miner size */
-    RegisteredSealProof seal_proof_type;
+    RegisteredSealProof seal_proof_type = RegisteredSealProof::kUndefined;
 
     /** Sum of raw byte power for a miner's sectors */
     StoragePower raw_power;

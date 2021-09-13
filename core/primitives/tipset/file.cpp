@@ -83,7 +83,7 @@ namespace fc::primitives::tipset::chain::file {
   }
 
   bool load(std::vector<CbCid> &hashes,
-            uint64_t &min_height,
+            ChainEpoch &min_height,
             Bytes &counts,
             const std::string &path_hash,
             const std::string &path_count) {
@@ -181,7 +181,8 @@ namespace fc::primitives::tipset::chain::file {
     CbIpldPtr ipld;
     Bytes counts;
     BlockParentCbCids parents, _parents;
-    uint64_t min_height{}, max_height{};
+    ChainEpoch min_height{};
+    ChainEpoch max_height{};
     Hash256 max_ticket;
     Buffer _block;
     bool first_ts{true};
@@ -193,7 +194,7 @@ namespace fc::primitives::tipset::chain::file {
         BOOL_TRY(ipld->get(cid, _block));
         BytesIn block{_block};
         BytesIn ticket;
-        uint64_t height{};
+        ChainEpoch height{};
         BOOL_TRY(codec::cbor::light_reader::readBlock(
             ticket, _parents, height, block));
         auto _ticket{crypto::blake2b::blake2b_256(ticket)};
@@ -234,7 +235,7 @@ namespace fc::primitives::tipset::chain::file {
     auto path_hash{path + ".hash"};
     auto path_count{path + ".count"};
     std::vector<CbCid> hashes;
-    uint64_t min_height{};
+    ChainEpoch min_height{};
     Bytes counts;
     if (!load(hashes, min_height, counts, path_hash, path_count)) {
       BOOL_TRY(!head_tsk.empty());
@@ -290,7 +291,8 @@ namespace fc::primitives::tipset::chain::file {
       Walk walk;
       walk.ipld = ipld;
       BOOL_TRY(walk.step(tsk));
-      if (walk.min_height >= branch->chain.rbegin()->first + update_when) {
+      if (walk.min_height >= branch->chain.rbegin()->first
+                                 + static_cast<ChainEpoch>(update_when)) {
         auto it{std::prev(branch->chain.end())};
         while (walk.min_height != it->first || tsk != it->second.key.cids()) {
           if (it->first < walk.min_height) {

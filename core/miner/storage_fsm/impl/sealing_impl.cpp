@@ -1118,36 +1118,36 @@ namespace fc::mining {
     }
 
     logger_->info("Sector precommitted: {}", info->sector_number);
-    OUTCOME_TRY(channel,
-                api_->StateWaitMsg(info->precommit_message.value(),
-                                   kMessageConfidence,
-                                   api::kLookbackNoLimit,
-                                   true));
 
-    channel.waitOwn([info, this](auto &&maybe_lookup) {
-      if (maybe_lookup.has_error()) {
-        logger_->error("sector precommit failed: {}",
-                       maybe_lookup.error().message());
-        OUTCOME_EXCEPT(
-            fsm_->send(info, SealingEvent::kSectorChainPreCommitFailed, {}));
-        return;
-      }
+    api_->StateWaitMsg(
+        [info, this](auto &&maybe_lookup) {
+          if (maybe_lookup.has_error()) {
+            logger_->error("sector precommit failed: {}",
+                           maybe_lookup.error().message());
+            OUTCOME_EXCEPT(fsm_->send(
+                info, SealingEvent::kSectorChainPreCommitFailed, {}));
+            return;
+          }
 
-      if (maybe_lookup.value().receipt.exit_code != vm::VMExitCode::kOk) {
-        logger_->error("sector precommit failed: exit code is {}",
-                       maybe_lookup.value().receipt.exit_code);
-        OUTCOME_EXCEPT(
-            fsm_->send(info, SealingEvent::kSectorChainPreCommitFailed, {}));
-        return;
-      }
+          if (maybe_lookup.value().receipt.exit_code != vm::VMExitCode::kOk) {
+            logger_->error("sector precommit failed: exit code is {}",
+                           maybe_lookup.value().receipt.exit_code);
+            OUTCOME_EXCEPT(fsm_->send(
+                info, SealingEvent::kSectorChainPreCommitFailed, {}));
+            return;
+          }
 
-      std::shared_ptr<SectorPreCommitLandedContext> context =
-          std::make_shared<SectorPreCommitLandedContext>();
-      context->tipset_key = maybe_lookup.value().tipset;
+          std::shared_ptr<SectorPreCommitLandedContext> context =
+              std::make_shared<SectorPreCommitLandedContext>();
+          context->tipset_key = maybe_lookup.value().tipset;
 
-      OUTCOME_EXCEPT(
-          fsm_->send(info, SealingEvent::kSectorPreCommitLanded, context));
-    });
+          OUTCOME_EXCEPT(
+              fsm_->send(info, SealingEvent::kSectorPreCommitLanded, context));
+        },
+        info->precommit_message.value(),
+        kMessageConfidence,
+        api::kLookbackNoLimit,
+        true);
     return outcome::success();
   }
 
@@ -1218,10 +1218,10 @@ namespace fc::mining {
           "sector {} entered committing state with a commit message cid",
           info->sector_number);
 
-      OUTCOME_TRY(_message,
+      // TODO: maybe async call, it's long
+      OUTCOME_TRY(message,
                   api_->StateSearchMsg(
                       {}, *(info->message), api::kLookbackNoLimit, true));
-      OUTCOME_TRY(message, _message.waitSync());
 
       if (message.has_value()) {
         FSM_SEND(info, SealingEvent::kSectorRetryCommitWait);
@@ -1383,61 +1383,63 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    OUTCOME_TRY(channel,
-                api_->StateWaitMsg(info->message.get(),
-                                   kMessageConfidence,
-                                   api::kLookbackNoLimit,
-                                   true));
+    api_->StateWaitMsg(
+        [=](auto &&maybe_message_lookup) {
+          if (maybe_message_lookup.has_error()) {
+            logger_->error("failed to wait for porep inclusion: {}",
+                           maybe_message_lookup.error().message());
+            OUTCOME_EXCEPT(
+                fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
+            return;
+          }
 
-    channel.waitOwn([=](auto &&maybe_message_lookup) {
-      if (maybe_message_lookup.has_error()) {
-        logger_->error("failed to wait for porep inclusion: {}",
-                       maybe_message_lookup.error().message());
-        OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
-        return;
-      }
+          const auto &exit_code{maybe_message_lookup.value().receipt.exit_code};
+          if (exit_code != vm::VMExitCode::kOk) {
+            logger_->error(
+                "submitting sector proof failed with code {}, message cid: {}",
+                maybe_message_lookup.value().receipt.exit_code,
+                info->message.get());
+            if (exit_code == vm::VMExitCode::kSysErrOutOfGas
+                or exit_code == vm::VMExitCode::kErrInsufficientFunds) {
+              OUTCOME_EXCEPT(
+                  fsm_->send(info, SealingEvent::kSectorRetryCommitting, {}));
+            } else {
+              OUTCOME_EXCEPT(
+                  fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
+            }
+            return;
+          }
 
-      const auto &exit_code{maybe_message_lookup.value().receipt.exit_code};
-      if (exit_code != vm::VMExitCode::kOk) {
-        logger_->error(
-            "submitting sector proof failed with code {}, message cid: {}",
-            maybe_message_lookup.value().receipt.exit_code,
-            info->message.get());
-        if (exit_code == vm::VMExitCode::kSysErrOutOfGas
-            or exit_code == vm::VMExitCode::kErrInsufficientFunds) {
-          OUTCOME_EXCEPT(
-              fsm_->send(info, SealingEvent::kSectorRetryCommitting, {}));
-        } else {
-          OUTCOME_EXCEPT(
-              fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
-        }
-        return;
-      }
+          const auto maybe_error =
+              api_->StateSectorGetInfo(miner_address_,
+                                       info->sector_number,
+                                       maybe_message_lookup.value().tipset);
 
-      const auto maybe_error =
-          api_->StateSectorGetInfo(miner_address_,
-                                   info->sector_number,
-                                   maybe_message_lookup.value().tipset);
+          if (maybe_error.has_error()) {
+            logger_->error(
+                "proof validation failed, sector not found in sector set after "
+                "cron: "
+                "{}",
+                maybe_error.error().message());
+            OUTCOME_EXCEPT(
+                fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
+            return;
+          }
+          if (!maybe_error.value()) {
+            logger_->error(
+                "proof validation failed, sector not found in sector set after "
+                "cron");
+            OUTCOME_EXCEPT(
+                fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
+            return;
+          }
 
-      if (maybe_error.has_error()) {
-        logger_->error(
-            "proof validation failed, sector not found in sector set after "
-            "cron: "
-            "{}",
-            maybe_error.error().message());
-        OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
-        return;
-      }
-      if (!maybe_error.value()) {
-        logger_->error(
-            "proof validation failed, sector not found in sector set after "
-            "cron");
-        OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
-        return;
-      }
-
-      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorProving, {}));
-    });
+          OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorProving, {}));
+        },
+        info->message.get(),
+        kMessageConfidence,
+        api::kLookbackNoLimit,
+        true);
 
     return outcome::success();
   }
@@ -1685,16 +1687,9 @@ namespace fc::mining {
     }
 
     if (info->message.has_value()) {
-      auto _maybe_message_wait = api_->StateSearchMsg(
+      // TODO: maybe async call, it's long
+      auto maybe_message_wait = api_->StateSearchMsg(
           {}, info->message.value(), api::kLookbackNoLimit, true);
-
-      outcome::result<boost::optional<api::MsgWait>> maybe_message_wait{
-          outcome::success()};
-      if (_maybe_message_wait) {
-        maybe_message_wait = _maybe_message_wait.value().waitSync();
-      } else {
-        maybe_message_wait = _maybe_message_wait.error();
-      }
 
       if (maybe_message_wait.has_error()) {
         const auto time = getWaitingTime();
@@ -1891,7 +1886,7 @@ namespace fc::mining {
         continue;
       }
 
-      if (head->height() >= uint64_t(proposal.start_epoch)) {
+      if (head->height() >= proposal.start_epoch) {
         // TODO(ortyomka): [FIL-382] try to remove the offending pieces
         logger_->error(
             "can't fix sector deals: piece {} (of {}) of sector {} refers "
@@ -1969,12 +1964,12 @@ namespace fc::mining {
       return SealingError::kNoFaultMessage;
     }
 
-    OUTCOME_TRY(channel,
+    // TODO: maybe async call, it's long
+    OUTCOME_TRY(message,
                 api_->StateWaitMsg(info->fault_report_message.get(),
                                    kMessageConfidence,
                                    api::kLookbackNoLimit,
                                    true));
-    OUTCOME_TRY(message, channel.waitSync());
 
     if (message.receipt.exit_code != vm::VMExitCode::kOk) {
       logger_->error(

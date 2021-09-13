@@ -66,10 +66,10 @@ namespace fc::storage::keystore {
     return KeyStoreError::kWrongAddress;
   }
 
-  fc::outcome::result<bool> KeyStore::verify(const Address &address,
-                                             gsl::span<const uint8_t> data,
-                                             const Signature &signature) const
-      noexcept {
+  fc::outcome::result<bool> KeyStore::verify(
+      const Address &address,
+      gsl::span<const uint8_t> data,
+      const Signature &signature) const noexcept {
     return visit_in_place(
         signature,
         [this, address, data](
@@ -97,17 +97,25 @@ namespace fc::storage::keystore {
         });
   }
 
-  outcome::result<Address> KeyStore::put(bool bls, TPrivateKey key) {
+  outcome::result<Address> KeyStore::put(SignatureType type, TPrivateKey key) {
     Address address;
-    if (bls) {
-      OUTCOME_TRY(
-          pub, bls_provider_->derivePublicKey(boost::get<BlsPrivateKey>(key)));
-      address = Address::makeBls(pub);
-    } else {
-      OUTCOME_TRY(
-          pub,
-          secp256k1_provider_->derive(boost::get<Secp256k1PrivateKey>(key)));
-      address = Address::makeSecp256k1(pub);
+    switch (type) {
+      case SignatureType::kBls: {
+        OUTCOME_TRY(
+            pub,
+            bls_provider_->derivePublicKey(boost::get<BlsPrivateKey>(key)));
+        address = Address::makeBls(pub);
+        break;
+      }
+      case SignatureType::kSecp256k1: {
+        OUTCOME_TRY(
+            pub,
+            secp256k1_provider_->derive(boost::get<Secp256k1PrivateKey>(key)));
+        address = Address::makeSecp256k1(pub);
+        break;
+      }
+      default:
+        return KeyStoreError::kWrongSignature;
     }
     OUTCOME_TRY(put(address, key));
     return address;

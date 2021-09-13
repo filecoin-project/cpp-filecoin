@@ -11,14 +11,8 @@
 #include "common/error_text.hpp"
 #include "common/outcome.hpp"
 
-#define API_METHOD(_name, _result, ...)                                    \
-  struct _##_name : std::function<outcome::result<_result>(__VA_ARGS__)> { \
-    using function::function;                                              \
-    using Result = _result;                                                \
-    using Params = ParamsTuple<__VA_ARGS__>;                               \
-    using FunctionSignature = outcome::result<_result>(__VA_ARGS__);       \
-    static constexpr auto name = "Filecoin." #_name;                       \
-  } _name;
+#define API_METHOD(_name, _result, ...) \
+  ApiMethod<_result, ##__VA_ARGS__> _name{"Filecoin." #_name};
 
 namespace fc::api {
   using adt::Channel;
@@ -27,10 +21,71 @@ namespace fc::api {
   using ParamsTuple =
       std::tuple<std::remove_const_t<std::remove_reference_t<T>>...>;
 
+  template <typename T, typename... Ts>
+  class ApiMethod {
+   public:
+    using Result = T;
+    using OutcomeResult = outcome::result<T>;
+    using Params = ParamsTuple<Ts...>;
+    using Callback = std::function<void(OutcomeResult)>;
+    using FunctionSimpleSignature = OutcomeResult(Ts...);
+    using FunctionSignature = void(Callback, Ts...);
+
+    OutcomeResult operator()(Ts... args) const {
+      if (!f_) {
+        return ERROR_TEXT("API not set up");
+      }
+      std::promise<OutcomeResult> wait;
+      f_([&wait](const OutcomeResult &res) { return wait.set_value(res); },
+         args...);
+      return wait.get_future().get();
+    }
+    void operator()(Callback cb, Ts... args) const {
+      if (!f_) {
+        return cb(ERROR_TEXT("API not set up"));
+      }
+      f_(cb, args...);
+    }
+
+    explicit ApiMethod(std::string name) noexcept : name_(std::move(name)){};
+
+    ApiMethod &operator=(std::function<FunctionSimpleSignature> &&f) {
+      if (f) {
+        f_ = [wf{std::move(f)}](auto &&cb, auto &&... args) -> void {
+          cb(wf(std::forward<decltype(args)>(args)...));
+        };
+      } else {
+        f_ = {};
+      }
+      return *this;
+    }
+
+    ApiMethod &operator=(std::function<FunctionSignature> &&f) {
+      f_ = std::forward<std::function<FunctionSignature>>(f);
+      return *this;
+    }
+
+    explicit operator bool() const {
+      return static_cast<bool>(f_);
+    }
+
+    [[nodiscard]] std::string getName() const {
+      return name_;
+    }
+
+   private:
+    std::string name_;
+
+    std::function<FunctionSignature> f_;
+  };
+
   template <typename T>
   struct Chan {
     using Type = T;
     Chan() = default;
+    // TODO (a.chernyshov) (FIL-414) Rework class to make constructor explicit
+    // or remove comment and close the task
+    // NOLINTNEXTLINE(google-explicit-constructor)
     Chan(std::shared_ptr<Channel<T>> channel) : channel{std::move(channel)} {}
     static Chan make() {
       return std::make_shared<Channel<T>>();
@@ -44,58 +99,4 @@ namespace fc::api {
 
   template <typename T>
   struct is_chan<Chan<T>> : std::true_type {};
-
-  template <typename T>
-  struct Wait {
-    using Type = T;
-    using Result = outcome::result<T>;
-    using Cb = std::function<void(Result)>;
-
-    Wait() = default;
-    Wait(std::shared_ptr<Channel<Result>> channel)
-        : channel{std::move(channel)} {}
-    static Wait make() {
-      return std::make_shared<Channel<Result>>();
-    }
-
-    void waitOwn(Cb cb) {
-      wait([c{channel}, cb{std::move(cb)}](auto &&v) { cb(v); });
-    }
-
-    void wait(Cb cb) {
-      channel->read([cb{std::move(cb)}](auto opt) {
-        if (opt) {
-          cb(std::move(*opt));
-        } else {
-          cb(ERROR_TEXT("Wait::wait: channel closed"));
-        }
-        return false;
-      });
-    }
-
-    auto waitSync() {
-      std::promise<Result> p;
-      wait([&](auto v) { p.set_value(std::move(v)); });
-      return p.get_future().get();
-    }
-
-    std::shared_ptr<Channel<Result>> channel;
-  };
-
-  template <typename T, typename F>
-  auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&...args) {
-      auto channel{std::make_shared<Channel<outcome::result<T>>>()};
-      f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
-        channel->write(std::forward<decltype(_r)>(_r));
-      });
-      return Wait{channel};
-    };
-  }
-
-  template <typename T>
-  struct is_wait : std::false_type {};
-
-  template <typename T>
-  struct is_wait<Wait<T>> : std::true_type {};
 }  // namespace fc::api

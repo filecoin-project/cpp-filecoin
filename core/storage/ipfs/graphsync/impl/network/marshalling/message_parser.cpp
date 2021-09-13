@@ -108,8 +108,9 @@ namespace fc::storage::ipfs::graphsync {
           if (!prefix_reader.empty()) {
             return Error::kMessageParseError;
           }
-          cid.content_address =
-              crypto::Hasher::calculate(cid.content_address.getType(), data);
+          OUTCOME_TRYA(
+              cid.content_address,
+              crypto::Hasher::calculate(cid.content_address.getType(), data));
           msg.data.emplace_back(std::move(cid), data);
         }
       }

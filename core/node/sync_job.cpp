@@ -111,7 +111,7 @@ namespace fc::sync {
     log()->debug("started");
   }
 
-  uint64_t SyncJob::metricAttachedHeight() const {
+  ChainEpoch SyncJob::metricAttachedHeight() const {
     std::shared_lock lock{*ts_branches_mutex_};
     if (auto branch{attached_heaviest_.first}) {
       return branch->chain.rbegin()->first;
@@ -233,7 +233,14 @@ namespace fc::sync {
       attached_.insert(branch);
       if (auto _ts{ts_load_->lazyLoad(branch->chain.rbegin()->second)}) {
         auto &ts{_ts.value()};
-        if (ts->getParentWeight() > attached_heaviest_.second) {
+        const auto &w1{attached_heaviest_.second};
+        const auto &w2{ts->getParentWeight()};
+        if (w2 > w1
+            || (attached_heaviest_.first && w2 == w1
+                && ts->key.cids().size()
+                       > attached_heaviest_.first->chain.rbegin()
+                             ->second.key.cids()
+                             .size())) {
           attached_heaviest_ = {branch, ts->getParentWeight()};
         }
       }
@@ -275,7 +282,13 @@ namespace fc::sync {
   void SyncJob::onInterpret(TipsetCPtr ts, const InterpreterResult &result) {
     auto &weight{result.weight};
     if (weight > chain_store_->getHeaviestWeight()) {
-      if (const auto _update{update(ts_main_, find(*ts_branches_, ts))}) {
+      auto branch{find(*ts_branches_, ts)};
+      if (!branch.first) {
+        log()->warn(
+            "onInterpret no branch {} {}", ts->height(), ts->key.cidsStr());
+        return;
+      }
+      if (const auto _update{update(ts_main_, branch)}) {
         auto &[path, removed]{_update.value()};
         for (auto &branch : removed) {
           ts_branches_->erase(branch);

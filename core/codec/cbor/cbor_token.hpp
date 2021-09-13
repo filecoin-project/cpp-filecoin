@@ -34,6 +34,8 @@ namespace fc::codec::cbor {
     Type type{Type::INVALID};
     uint64_t extra{};
 
+    // TODO (a.chernyshov) Make explicit
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr operator bool() const {
       return type != Type::INVALID;
     }
@@ -136,6 +138,8 @@ namespace fc::codec::cbor {
     bool tag{};
     bool cid{};
 
+    // TODO (a.chernyshov) The function is too complex, should be simplified
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     inline void update(uint8_t byte) {
       using Type = CborToken::Type;
       assert(!error);
@@ -259,7 +263,7 @@ namespace fc::codec::cbor {
    * @return true on success, otherwise false
    */
   inline bool readNested(BytesIn &nested, BytesIn &input) {
-    auto ptr{input.data()};
+    const auto *ptr{input.data()};
     CborNestedDecoder decoder;
     if (read(decoder, input)) {
       nested = gsl::make_span(ptr, input.data());
@@ -329,8 +333,10 @@ namespace fc::codec::cbor {
         _bytes[8] = extra;
       }
     }
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr operator BytesIn() const {
-      return gsl::make_span(_bytes).first(length);
+      return gsl::make_span(_bytes).first(static_cast<ptrdiff_t>(length));
     }
   };
 
@@ -345,7 +351,9 @@ namespace fc::codec::cbor {
   }
   inline void writeInt(Bytes &out, int64_t value) {
     if (value < 0) {
-      append(out, CborTokenEncoder{CborToken::Type::INT, (uint64_t)~value});
+      append(out,
+             CborTokenEncoder{CborToken::Type::INT,
+                              static_cast<uint64_t>(~value)});
     } else {
       writeUint(out, value);
     }

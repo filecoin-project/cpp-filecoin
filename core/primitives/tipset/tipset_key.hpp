@@ -17,6 +17,8 @@ namespace fc::primitives::tipset {
     static boost::optional<TipsetKey> make(gsl::span<const CID> cids);
 
     TipsetKey();
+    // TODO (a.chernyshov) make constructors explicit (FIL-415)
+    // NOLINTNEXTLINE(google-explicit-constructor)
     TipsetKey(std::vector<CbCid> c);
     TipsetKey(TipsetHash h, std::vector<CbCid> c);
 

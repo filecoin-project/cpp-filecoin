@@ -29,10 +29,14 @@ namespace fc::adt {
     using Visitor =
         std::function<outcome::result<void>(const Key &, const Value &)>;
 
-    Map(IpldPtr ipld = nullptr) : hamt{ipld, bit_width} {}
+    // TODO (a.chernyshov) make constructors explicit (FIL-415)
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Map(IpldPtr ipld = nullptr) : hamt{std::move(ipld), bit_width} {}
 
+    // TODO (a.chernyshov) make constructors explicit (FIL-415)
+    // NOLINTNEXTLINE(google-explicit-constructor)
     Map(const CID &root, IpldPtr ipld = nullptr)
-        : hamt{ipld, root, bit_width} {}
+        : hamt{std::move(ipld), root, bit_width} {}
 
     outcome::result<boost::optional<Value>> tryGet(const Key &key) const {
       return hamt.tryGetCbor<Value>(Keyer::encode(key));
@@ -57,7 +61,8 @@ namespace fc::adt {
     outcome::result<void> visit(const Visitor &visitor) const {
       return hamt.visit([&](auto key, auto value) -> outcome::result<void> {
         OUTCOME_TRY(key2, Keyer::decode(key));
-        OUTCOME_TRY(value2, cbor_blake::cbDecodeT<Value>(hamt.ipld, value));
+        OUTCOME_TRY(value2,
+                    cbor_blake::cbDecodeT<Value>(hamt.getIpld(), value));
         return visitor(key2, value2);
       });
     }
@@ -114,7 +119,7 @@ namespace fc::cbor_blake {
   template <typename V, typename Keyer, size_t bit_width>
   struct CbLoadT<adt::Map<V, Keyer, bit_width>> {
     static void call(CbIpldPtrIn ipld, adt::Map<V, Keyer, bit_width> &map) {
-      map.hamt.ipld = ipld;
+      map.hamt.setIpld(ipld);
     }
   };
 

@@ -6,6 +6,7 @@
 #include "crypto/blake2/blake2b160.hpp"
 
 #include <fstream>
+#include "common/span.hpp"
 
 #ifndef ROTR64
 #define ROTR64(x, y) (((x) >> (y)) ^ ((x) << (64 - (y))))
@@ -33,7 +34,7 @@
   }
 
 namespace fc::crypto::blake2b {
-  static const uint64_t iv[8]{
+  static const std::array<uint64_t, 8> iv{
       0x6A09E667F3BCC908,
       0xBB67AE8584CAA73B,
       0x3C6EF372FE94F82B,
@@ -43,7 +44,7 @@ namespace fc::crypto::blake2b {
       0x1F83D9ABFB41BD6B,
       0x5BE0CD19137E2179,
   };
-  static const uint8_t sigma[12][16]{
+  static const std::array<std::array<uint8_t, 16>, 12> sigma{{
       {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
       {14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3},
       {11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4},
@@ -56,12 +57,11 @@ namespace fc::crypto::blake2b {
       {10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0},
       {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15},
       {14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3},
-  };
-  Ctx::Ctx(size_t outlen, BytesIn key) : outlen{outlen} {
+  }};
+  Ctx::Ctx(size_t outlen, BytesIn key) : h{iv}, outlen{outlen} {
     assert(outlen > 0 && outlen <= 64);
     assert(key.size() >= 0 && key.size() <= 64);
-    std::copy(std::begin(iv), std::end(iv), h);
-    h[0] ^= 0x01010000 ^ ((size_t)key.size() << 8) ^ outlen;
+    h[0] ^= 0x01010000 ^ (static_cast<size_t>(key.size()) << 8) ^ outlen;
     if (!key.empty()) {
       update(key);
       c = 128;
@@ -81,8 +81,8 @@ namespace fc::crypto::blake2b {
     }
   }
   void Ctx::_compress(bool last) {
-    uint64_t v[16];
-    uint64_t m[16];
+    std::array<uint64_t, 16> v{};
+    std::array<uint64_t, 16> m{};
     for (auto i{0}; i < 8; ++i) {
       v[i] = h[i];
       v[i + 8] = iv[i];
@@ -150,9 +150,10 @@ namespace fc::crypto::blake2b {
     const int one_kb = 1024;
     std::string bytes(one_kb, ' ');
     file_stream.read(bytes.data(), one_kb);
-    int currently_read = file_stream.gcount();
+    auto currently_read = file_stream.gcount();
     while (currently_read != 0) {
-      ctx.update({(const uint8_t *)bytes.data(), currently_read});
+      ctx.update(gsl::make_span(common::span::cast<const uint8_t>(bytes.data()),
+                                currently_read));
       file_stream.read(bytes.data(), one_kb);
       currently_read = file_stream.gcount();
     }

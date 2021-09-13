@@ -7,6 +7,7 @@
 
 #include "fwd.hpp"
 #include "primitives/block/block.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
 namespace fc::primitives::tipset {
@@ -33,10 +34,9 @@ namespace fc::primitives::tipset {
   using block::BeaconEntry;
   using block::BlockHeader;
   using common::Hash256;
+  using primitives::ChainEpoch;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
-
-  using Height = uint64_t;
 
   struct MessageVisitor {
     using Visitor = std::function<outcome::result<void>(size_t,
@@ -48,6 +48,9 @@ namespace fc::primitives::tipset {
     MessageVisitor(MessageVisitor &&) = delete;
     ~MessageVisitor();
 
+    MessageVisitor &operator=(const MessageVisitor &) = delete;
+    MessageVisitor &operator=(MessageVisitor &&) = delete;
+
     MessageVisitor(IpldPtr ipld, bool nonce, bool load);
     outcome::result<void> visit(const BlockHeader &block,
                                 const Visitor &visitor);
@@ -55,7 +58,7 @@ namespace fc::primitives::tipset {
     bool nonce{};
     bool load{};
     std::set<CID> visited;
-    std::map<Address, uint64_t> nonces;
+    std::map<Address, Nonce> nonces;
     size_t index{};
     std::unique_ptr<vm::state::StateTreeImpl> state_tree;
   };
@@ -111,7 +114,7 @@ namespace fc::primitives::tipset {
      */
     const CID &getParentMessageReceipts() const;
 
-    Height height() const;
+    ChainEpoch height() const;
 
     ChainEpoch epoch() const;
 
@@ -163,7 +166,7 @@ namespace fc::primitives::tipset {
 
     void clear();
 
-    Height height() const;
+    ChainEpoch height() const;
 
     TipsetKey key() const;
 

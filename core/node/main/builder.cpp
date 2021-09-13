@@ -77,7 +77,6 @@ namespace fc::node {
   using markets::retrieval::client::RetrievalClientImpl;
   using markets::storage::kStorageMarketImportDir;
   using markets::storage::client::StorageMarketClientImpl;
-  using storage::ipfs::InMemoryDatastore;
   using storage::keystore::FileSystemKeyStore;
   using vm::actor::builtin::states::InitActorStatePtr;
 
@@ -543,10 +542,8 @@ namespace fc::node {
         return maybe_default_key.error();
       }
       auto key_info{maybe_default_key.value()};
-      OUTCOME_TRY(
-          address,
-          o.key_store->put(key_info.type == crypto::signature::Type::BLS,
-                           key_info.private_key));
+      OUTCOME_TRY(address,
+                  o.key_store->put(key_info.type, key_info.private_key));
       o.wallet_default_address->setCbor(address);
       log()->info("Set default wallet address {}", address);
     } else {
