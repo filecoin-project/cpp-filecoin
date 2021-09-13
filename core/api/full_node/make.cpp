@@ -1088,8 +1088,6 @@ namespace fc::api {
     };
 
     // TODO(artyom-yurin): FIL-165 implement method
-    api->StateSectorPreCommitInfo = std::function<
-        decltype(api->StateSectorPreCommitInfo)::FunctionSignature>{};
     api->StateSectorGetInfo =
         [=](auto address, auto sector_number, auto tipset_key)
         -> outcome::result<boost::optional<SectorOnChainInfo>> {
