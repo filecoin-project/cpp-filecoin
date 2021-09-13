@@ -105,10 +105,10 @@ namespace fc::vm::runtime {
     /** The address of the actor receiving the message. Always an ID-address. */
     virtual Address getCurrentReceiver() const = 0;
 
-    virtual outcome::result<BigInt> getBalance(
+    virtual outcome::result<TokenAmount> getBalance(
         const Address &address) const = 0;
 
-    virtual BigInt getValueReceived() const = 0;
+    virtual TokenAmount getValueReceived() const = 0;
 
     /** Look up the code ID of a given actor address. */
     virtual outcome::result<CodeId> getActorCodeID(
@@ -123,10 +123,11 @@ namespace fc::vm::runtime {
      * @param value - amount transferred
      * @return
      */
-    virtual outcome::result<InvocationOutput> send(Address to_address,
-                                                   MethodNumber method_number,
-                                                   MethodParams params,
-                                                   BigInt value) = 0;
+    virtual outcome::result<InvocationOutput> send(
+        const Address &to_address,
+        MethodNumber method_number,
+        MethodParams params,
+        const TokenAmount &value) = 0;
 
     /** Computes an address for a new actor.
      *
@@ -260,7 +261,7 @@ namespace fc::vm::runtime {
     }
 
     /// Send funds
-    inline auto sendFunds(const Address &to, const BigInt &value) {
+    inline auto sendFunds(const Address &to, const TokenAmount &value) {
       return send(to, kSendMethodNumber, {}, value);
     }
 
@@ -269,7 +270,7 @@ namespace fc::vm::runtime {
     outcome::result<R> sendR(const Address &to_address,
                              MethodNumber method_number,
                              const MethodParams &params,
-                             const BigInt &value) {
+                             const TokenAmount &value) {
       OUTCOME_TRY(result, send(to_address, method_number, params, value));
       return codec::cbor::decode<R>(result);
     }
@@ -279,7 +280,7 @@ namespace fc::vm::runtime {
     outcome::result<R> sendPR(const Address &to_address,
                               MethodNumber method_number,
                               const P &params,
-                              const BigInt &value) {
+                              const TokenAmount &value) {
       OUTCOME_TRY(params2, actor::encodeActorParams(params));
       return sendR<R>(to_address, method_number, MethodParams{params2}, value);
     }
@@ -289,7 +290,7 @@ namespace fc::vm::runtime {
     outcome::result<InvocationOutput> sendP(const Address &to_address,
                                             MethodNumber method_number,
                                             const P &params,
-                                            const BigInt &value) {
+                                            const TokenAmount &value) {
       OUTCOME_TRY(params2, actor::encodeActorParams(params));
       return send(to_address, method_number, MethodParams{params2}, value);
     }
