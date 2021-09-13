@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_STORAGE_KEYSTORE_HPP
-#define FILECOIN_CORE_STORAGE_KEYSTORE_HPP
+#pragma once
 
 #include <gsl/span>
 
@@ -21,6 +20,8 @@ namespace fc::storage::keystore {
 
   using crypto::bls::BlsProvider;
   using crypto::secp256k1::Secp256k1ProviderDefault;
+  using crypto::signature::Signature;
+  using primitives::address::Address;
   using BlsKeyPair = crypto::bls::KeyPair;
   using BlsPrivateKey = crypto::bls::PrivateKey;
   using BlsPublicKey = crypto::bls::PublicKey;
@@ -29,8 +30,7 @@ namespace fc::storage::keystore {
   using Secp256k1PrivateKey = crypto::secp256k1::PrivateKey;
   using Secp256k1PublicKey = crypto::secp256k1::PublicKey;
   using Secp256k1Signature = crypto::secp256k1::Signature;
-  using crypto::signature::Signature;
-  using primitives::address::Address;
+  using SignatureType = crypto::signature::Type;
 
   /**
    * An interface to a facility to store and use cryptographic keys
@@ -48,8 +48,8 @@ namespace fc::storage::keystore {
      * @brief Whether or not key exists in the Keystore
      * @param address key identifier
      */
-    virtual outcome::result<bool> has(const Address &address) const
-        noexcept = 0;
+    virtual outcome::result<bool> has(
+        const Address &address) const noexcept = 0;
 
     /**
      * @brief stores a key in the Keystore
@@ -86,12 +86,12 @@ namespace fc::storage::keystore {
      * @param data
      * @param signature
      */
-    virtual outcome::result<bool> verify(const Address &address,
-                                         gsl::span<const uint8_t> data,
-                                         const Signature &signature) const
-        noexcept;
+    virtual outcome::result<bool> verify(
+        const Address &address,
+        gsl::span<const uint8_t> data,
+        const Signature &signature) const noexcept;
 
-    outcome::result<Address> put(bool bls, TPrivateKey key);
+    outcome::result<Address> put(SignatureType type, TPrivateKey key);
 
    protected:
     /**
@@ -108,8 +108,8 @@ namespace fc::storage::keystore {
      * @param address
      * @return private key
      */
-    virtual outcome::result<TPrivateKey> get(const Address &address) const
-        noexcept = 0;
+    virtual outcome::result<TPrivateKey> get(
+        const Address &address) const noexcept = 0;
 
    private:
     std::shared_ptr<BlsProvider> bls_provider_;
@@ -118,5 +118,3 @@ namespace fc::storage::keystore {
 
   extern const std::shared_ptr<KeyStore> kDefaultKeystore;
 }  // namespace fc::storage::keystore
-
-#endif  // FILECOIN_CORE_STORAGE_KEYSTORE_HPP

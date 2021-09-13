@@ -5,24 +5,17 @@
 
 #include <boost/predef/compiler/gcc.h>
 
-// TODO: some tests fail on gcc
-#if BOOST_COMP_GNUC
-#define GCC_DISABLE(name) DISABLED_##name
-#else
-#define GCC_DISABLE(name) name
-#endif
-
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
-#include "vm/actor/builtin/v0/market/market_actor_state.hpp"
+#include "vm/actor/builtin/states/market/v0/market_actor_state.hpp"
 
 #include "primitives/cid/comm_cid.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/crypto/sample_signatures.hpp"
 #include "testutil/vm/actor/builtin/market/market_actor_test_fixture.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
+#include "vm/actor/codes.hpp"
 #include "vm/version/version.hpp"
 
 #define ON_CALL_3(a, b, c) EXPECT_CALL(a, b).WillRepeatedly(Return(c))
@@ -58,8 +51,9 @@ namespace fc::vm::actor::builtin::v0::market {
   struct MarketActorTest : public MarketActorTestFixture<MarketActorState> {
     void SetUp() override {
       MarketActorTestFixture<MarketActorState>::SetUp();
-      ipld->load(state);
-      actorVersion = ActorVersion::kVersion0;
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
+      cbor_blake::cbLoadT(ipld, state);
 
       addressCodeIdIs(miner_address, kStorageMinerCodeId);
       addressCodeIdIs(owner_address, kAccountCodeId);
@@ -196,7 +190,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          PublishStorageDeals::call(runtime, {{proposal}}));
   }
 
-  TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsNonPositiveDuration)) {
+  TEST_F(MarketActorTest, PublishStorageDealsNonPositiveDuration) {
     auto proposal = setupPublishStorageDeals();
     proposal.proposal.end_epoch = proposal.proposal.start_epoch;
 
@@ -209,8 +203,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          PublishStorageDeals::call(runtime, {{proposal}}));
   }
 
-  TEST_F(MarketActorTest,
-         GCC_DISABLE(PublishStorageDealsWrongClientSignature)) {
+  TEST_F(MarketActorTest, PublishStorageDealsWrongClientSignature) {
     auto proposal = setupPublishStorageDeals();
     proposal.proposal.client = owner_address;
 
@@ -223,7 +216,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          PublishStorageDeals::call(runtime, {{proposal}}));
   }
 
-  TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsStartTimeout)) {
+  TEST_F(MarketActorTest, PublishStorageDealsStartTimeout) {
     auto proposal = setupPublishStorageDeals();
     proposal.proposal.start_epoch = current_epoch - 1;
 
@@ -236,7 +229,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          PublishStorageDeals::call(runtime, {{proposal}}));
   }
 
-  TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsDurationOutOfBounds)) {
+  TEST_F(MarketActorTest, PublishStorageDealsDurationOutOfBounds) {
     auto proposal = setupPublishStorageDeals();
     auto &deal = proposal.proposal;
     deal.end_epoch =
@@ -251,8 +244,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          PublishStorageDeals::call(runtime, {{proposal}}));
   }
 
-  TEST_F(MarketActorTest,
-         GCC_DISABLE(PublishStorageDealsPricePerEpochOutOfBounds)) {
+  TEST_F(MarketActorTest, PublishStorageDealsPricePerEpochOutOfBounds) {
     auto proposal = setupPublishStorageDeals();
     auto &deal = proposal.proposal;
     deal.storage_price_per_epoch =
@@ -267,8 +259,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          PublishStorageDeals::call(runtime, {{proposal}}));
   }
 
-  TEST_F(MarketActorTest,
-         GCC_DISABLE(PublishStorageDealsProviderCollateralOutOfBounds)) {
+  TEST_F(MarketActorTest, PublishStorageDealsProviderCollateralOutOfBounds) {
     auto proposal = setupPublishStorageDeals();
     auto &deal = proposal.proposal;
     deal.provider_collateral =
@@ -292,8 +283,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          PublishStorageDeals::call(runtime, {{proposal}}));
   }
 
-  TEST_F(MarketActorTest,
-         GCC_DISABLE(PublishStorageDealsClientCollateralOutOfBounds)) {
+  TEST_F(MarketActorTest, PublishStorageDealsClientCollateralOutOfBounds) {
     auto proposal = setupPublishStorageDeals();
     auto &deal = proposal.proposal;
     deal.client_collateral =
@@ -310,7 +300,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          PublishStorageDeals::call(runtime, {{proposal}}));
   }
 
-  TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsDifferentProviders)) {
+  TEST_F(MarketActorTest, PublishStorageDealsDifferentProviders) {
     auto proposal = setupPublishStorageDeals();
     auto proposal2 = proposal;
     proposal2.proposal.provider = client_address;
@@ -330,8 +320,7 @@ namespace fc::vm::actor::builtin::v0::market {
         PublishStorageDeals::call(runtime, {{proposal, proposal2}}));
   }
 
-  TEST_F(MarketActorTest,
-         GCC_DISABLE(PublishStorageDealsProviderInsufficientBalance)) {
+  TEST_F(MarketActorTest, PublishStorageDealsProviderInsufficientBalance) {
     auto proposal = setupPublishStorageDeals();
 
     EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(miner_address, 0));
@@ -346,8 +335,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          PublishStorageDeals::call(runtime, {{proposal}}));
   }
 
-  TEST_F(MarketActorTest,
-         GCC_DISABLE(PublishStorageDealsClientInsufficientBalance)) {
+  TEST_F(MarketActorTest, PublishStorageDealsClientInsufficientBalance) {
     auto proposal = setupPublishStorageDeals();
 
     EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(client_address, 0));
@@ -362,7 +350,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          PublishStorageDeals::call(runtime, {{proposal}}));
   }
 
-  TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDeals)) {
+  TEST_F(MarketActorTest, PublishStorageDeals) {
     auto proposal = setupPublishStorageDeals();
     auto &deal = proposal.proposal;
     state.next_deal = deal_1_id;
@@ -395,8 +383,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          VerifyDealsForActivation::call(runtime, {{}, {}, {}}));
   }
 
-  TEST_F(MarketActorTest,
-         GCC_DISABLE(VerifyDealsOnSectorProveCommitNotProvider)) {
+  TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitNotProvider) {
     auto deal = setupVerifyDealsOnSectorProveCommit(
         [&](auto &deal) { deal.provider = client_address; });
 
@@ -405,8 +392,7 @@ namespace fc::vm::actor::builtin::v0::market {
         VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}, {}}));
   }
 
-  TEST_F(MarketActorTest,
-         GCC_DISABLE(VerifyDealsOnSectorProveCommitAlreadyStarted)) {
+  TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitAlreadyStarted) {
     auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
     EXPECT_OUTCOME_TRUE_1(state.states.set(deal_1_id, {1, {}, {}}));
     callerIs(miner_address);
@@ -416,8 +402,7 @@ namespace fc::vm::actor::builtin::v0::market {
         VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}, {}}));
   }
 
-  TEST_F(MarketActorTest,
-         GCC_DISABLE(VerifyDealsOnSectorProveCommitStartTimeout)) {
+  TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitStartTimeout) {
     auto deal = setupVerifyDealsOnSectorProveCommit(
         [&](auto &deal) { deal.start_epoch = current_epoch - 1; });
 
@@ -426,8 +411,7 @@ namespace fc::vm::actor::builtin::v0::market {
         VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}, {}}));
   }
 
-  TEST_F(MarketActorTest,
-         GCC_DISABLE(VerifyDealsOnSectorProveCommitSectorEndsBeforeDeal)) {
+  TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitSectorEndsBeforeDeal) {
     auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
 
     EXPECT_OUTCOME_ERROR(
@@ -436,14 +420,14 @@ namespace fc::vm::actor::builtin::v0::market {
             runtime, {{deal_1_id}, deal.end_epoch - 1, kChainEpochUndefined}));
   }
 
-  TEST_F(MarketActorTest, GCC_DISABLE(VerifyDealsForActivation)) {
+  TEST_F(MarketActorTest, VerifyDealsForActivation) {
     auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
 
     EXPECT_OUTCOME_TRUE_1(VerifyDealsForActivation::call(
         runtime, {{deal_1_id}, deal.end_epoch, kChainEpochUndefined}));
   }
 
-  TEST_F(MarketActorTest, GCC_DISABLE(OnMinerSectorsTerminateNotDealMiner)) {
+  TEST_F(MarketActorTest, OnMinerSectorsTerminateNotDealMiner) {
     DealProposal deal;
     deal.piece_cid = some_cid;
     deal.provider = client_address;
@@ -456,17 +440,18 @@ namespace fc::vm::actor::builtin::v0::market {
         ActivateDeals::call(runtime, {{deal_1_id}, deal.end_epoch + 1}));
   }
 
-  TEST_F(MarketActorTest, GCC_DISABLE(ActivateDeals)) {
+  TEST_F(MarketActorTest, ActivateDeals) {
     DealProposal deal;
     deal.piece_cid = some_cid;
     deal.provider = miner_address;
-    deal.end_epoch = 100;
+    deal.start_epoch = current_epoch + 1;
+    deal.end_epoch = deal.start_epoch + 100;
     EXPECT_OUTCOME_TRUE_1(state.proposals.set(deal_1_id, deal));
-    EXPECT_OUTCOME_TRUE_1(state.pending_proposals.set(deal.cid(), deal));
+    EXPECT_OUTCOME_TRUE_1(state.pending_proposals_0.set(deal.cid(), deal));
 
     callerIs(miner_address);
     EXPECT_OUTCOME_TRUE_1(ActivateDeals::call(
-        runtime, {.deals = {deal_1_id}, .sector_expiry = 110}));
+        runtime, {.deals = {deal_1_id}, .sector_expiry = deal.end_epoch + 1}));
 
     EXPECT_OUTCOME_TRUE(deal_state, state.states.get(deal_1_id));
     EXPECT_EQ(deal_state.slash_epoch, kChainEpochUndefined);
@@ -479,7 +464,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          ComputeDataCommitment::call(runtime, {}));
   }
 
-  TEST_F(MarketActorTest, GCC_DISABLE(ComputeDataCommitment)) {
+  TEST_F(MarketActorTest, ComputeDataCommitment) {
     auto comm_d = "010001020001"_cid;
     auto sector_type = RegisteredSealProof::kStackedDrg32GiBV1;
     std::vector<DealId> deal_ids{deal_1_id, deal_2_id};

@@ -10,15 +10,16 @@ int main(int argc, char **argv) {
   using namespace fc;
   if (argc > 1) {
     std::string car_path{argv[1]};
+    // TODO(turuslan): max memory
     if (auto _ipld{storage::cids_index::loadOrCreateWithProgress(
-            car_path, nullptr, nullptr)}) {
+            car_path, false, boost::none, nullptr, nullptr)}) {
       auto &ipld{_ipld.value()};
       if (argc > 2) {
         for (auto i{2}; i < argc; ++i) {
           std::string str{argv[i]};
           boost::optional<CID> cid;
-          if (auto _key{storage::cids_index::Key::fromHex(str)}) {
-            cid = asCborBlakeCid(_key.value());
+          if (auto _key{CbCid::fromHex(str)}) {
+            cid = CID{CbCid{_key.value()}};
           } else if (auto _cid{CID::fromString(str)}) {
             cid = _cid.value();
           } else {

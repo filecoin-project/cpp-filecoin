@@ -3,27 +3,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_FAULT_TRACKER_HPP
-#define CPP_FILECOIN_CORE_SECTOR_STORAGE_FAULT_TRACKER_HPP
+#pragma once
 
 #include <vector>
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 
-using fc::primitives::sector::RegisteredSealProof;
-using fc::primitives::sector::SectorId;
-
 namespace fc::sector_storage {
+  using primitives::sector::RegisteredPoStProof;
+  using primitives::sector::SectorId;
+  using primitives::sector::SectorRef;
 
   class FaultTracker {
    public:
     virtual ~FaultTracker() = default;
 
     virtual outcome::result<std::vector<SectorId>> checkProvable(
-        RegisteredSealProof seal_proof_type,
-        gsl::span<const SectorId> sectors) = 0;
+        RegisteredPoStProof proof_type,
+        gsl::span<const SectorRef> sectors) const = 0;
   };
 
 }  // namespace fc::sector_storage
-
-#endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_FAULT_TRACKER_HPP

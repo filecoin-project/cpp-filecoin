@@ -41,26 +41,26 @@ namespace fc::sector_storage::stores {
   stores::RemoteSectorIndexImpl::storageFindSector(
       const SectorId &sector,
       const SectorFileType &file_type,
-      boost::optional<RegisteredSealProof> fetch_seal_proof_type) {
-    return api_->StorageFindSector(sector, file_type, fetch_seal_proof_type);
+      boost::optional<SectorSize> fetch_sector_size) {
+    return api_->StorageFindSector(sector, file_type, fetch_sector_size);
   }
 
   outcome::result<std::vector<StorageInfo>>
   stores::RemoteSectorIndexImpl::storageBestAlloc(
       const SectorFileType &allocate,
-      RegisteredSealProof seal_proof_type,
+      SectorSize sector_size,
       bool sealing_mode) {
-    return api_->StorageBestAlloc(allocate, seal_proof_type, sealing_mode);
+    return api_->StorageBestAlloc(allocate, sector_size, sealing_mode);
   }
 
-  outcome::result<std::unique_ptr<WLock>>
+  outcome::result<std::shared_ptr<WLock>>
   stores::RemoteSectorIndexImpl::storageLock(const SectorId &sector,
                                              SectorFileType read,
                                              SectorFileType write) {
     return IndexErrors::kNotSupportedMethod;
   }
 
-  std::unique_ptr<WLock> stores::RemoteSectorIndexImpl::storageTryLock(
+  std::shared_ptr<WLock> stores::RemoteSectorIndexImpl::storageTryLock(
       const SectorId &sector, SectorFileType read, SectorFileType write) {
     return nullptr;  // kNotSupported
   }

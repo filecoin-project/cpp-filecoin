@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP
+#pragma once
 
 #include <boost/assert.hpp>
 #include <boost/optional.hpp>
 
 #include "adt/array.hpp"
+#include "cbor_blake/cid_block.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/signature/signature.hpp"
 #include "drand/messages.hpp"
@@ -25,6 +25,7 @@ namespace fc::primitives::block {
   using crypto::signature::Signature;
   using drand::BeaconEntry;
   using primitives::BigInt;
+  using primitives::ChainEpoch;
   using primitives::address::Address;
   using primitives::sector::PoStProof;
   using vm::message::SignedMessage;
@@ -49,7 +50,7 @@ namespace fc::primitives::block {
 
   struct BlockTemplate {
     Address miner;
-    std::vector<CID> parents;
+    std::vector<CbCid> parents;
     boost::optional<Ticket> ticket;
     ElectionProof election_proof;
     std::vector<BeaconEntry> beacon_entries;
@@ -65,9 +66,9 @@ namespace fc::primitives::block {
     ElectionProof election_proof;
     std::vector<BeaconEntry> beacon_entries;
     std::vector<PoStProof> win_post_proof;
-    std::vector<CID> parents;
+    BlockParentCbCids parents;
     BigInt parent_weight;
-    uint64_t height{};
+    ChainEpoch height{};
     CID parent_state_root;
     CID parent_message_receipts;
     CID messages;
@@ -131,15 +132,13 @@ namespace fc::primitives::block {
              parent_base_fee)
 }  // namespace fc::primitives::block
 
-namespace fc {
+namespace fc::cbor_blake {
   template <>
-  struct Ipld::Visit<primitives::block::MsgMeta> {
+  struct CbVisitT<primitives::block::MsgMeta> {
     template <typename Visitor>
     static void call(primitives::block::MsgMeta &meta, const Visitor &visit) {
       visit(meta.bls_messages);
       visit(meta.secp_messages);
     }
   };
-}  // namespace fc
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP
+}  // namespace fc::cbor_blake

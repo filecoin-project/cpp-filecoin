@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_CLOCK_TIME_HPP
-#define CPP_FILECOIN_CORE_CLOCK_TIME_HPP
+#pragma once
 
 #include <chrono>
 #include <string>
@@ -23,5 +22,3 @@ namespace fc::clock {
 }  // namespace fc::clock
 
 OUTCOME_HPP_DECLARE_ERROR(fc::clock, TimeFromStringError);
-
-#endif  // CPP_FILECOIN_CORE_CLOCK_TIME_HPP

@@ -17,8 +17,6 @@ namespace fc::vm::runtime {
    public:
     MOCK_CONST_METHOD0(execution, std::shared_ptr<Execution>());
 
-    MOCK_CONST_METHOD0(stateManager, std::shared_ptr<StateManager>());
-
     MOCK_CONST_METHOD0(getNetworkVersion, NetworkVersion());
 
     MOCK_CONST_METHOD0(getCurrentEpoch, ChainEpoch());
@@ -76,6 +74,10 @@ namespace fc::vm::runtime {
                        std::reference_wrapper<const UnsignedMessage>());
 
     MOCK_METHOD1(chargeGas, outcome::result<void>(GasAmount amount));
+
+    MOCK_CONST_METHOD0(getActorStateCid, outcome::result<CID>());
+
+    MOCK_METHOD1(commit, outcome::result<void>(const CID &new_state));
 
     MOCK_CONST_METHOD1(
         tryResolveAddress,

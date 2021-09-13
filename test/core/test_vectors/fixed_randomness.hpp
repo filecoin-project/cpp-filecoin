@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_CORE_TEST_VECTORS_FIXED_RANDOMNESS_HPP
-#define CPP_FILECOIN_TEST_CORE_TEST_VECTORS_FIXED_RANDOMNESS_HPP
+#pragma once
 
 #include "vm/runtime/runtime_randomness.hpp"
 
@@ -31,5 +30,3 @@ namespace fc::vm::runtime {
   };
 
 }  // namespace fc::vm::runtime
-
-#endif  // CPP_FILECOIN_TEST_CORE_TEST_VECTORS_FIXED_RANDOMNESS_HPP

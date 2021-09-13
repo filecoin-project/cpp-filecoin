@@ -5,10 +5,10 @@
 
 add_library(market_actor_v0
     market_actor.cpp
-    market_actor_state.cpp
     market_actor_utils.cpp
     )
 target_link_libraries(market_actor_v0
+    market_actor_state
     actor
     array
     balance_table

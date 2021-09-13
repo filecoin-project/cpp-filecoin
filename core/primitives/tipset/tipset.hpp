@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
+#pragma once
 
+#include "fwd.hpp"
 #include "primitives/block/block.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
 namespace fc::primitives::tipset {
@@ -33,10 +34,9 @@ namespace fc::primitives::tipset {
   using block::BeaconEntry;
   using block::BlockHeader;
   using common::Hash256;
+  using primitives::ChainEpoch;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
-
-  using Height = uint64_t;
 
   struct MessageVisitor {
     using Visitor = std::function<outcome::result<void>(size_t,
@@ -44,16 +44,23 @@ namespace fc::primitives::tipset {
                                                         const CID &,
                                                         SignedMessage *smsg,
                                                         UnsignedMessage *msg)>;
-    MessageVisitor(IpldPtr ipld, bool nonce, bool load)
-        : ipld{ipld}, nonce{nonce}, load{load || nonce} {}
+    MessageVisitor(const MessageVisitor &) = delete;
+    MessageVisitor(MessageVisitor &&) = delete;
+    ~MessageVisitor();
+
+    MessageVisitor &operator=(const MessageVisitor &) = delete;
+    MessageVisitor &operator=(MessageVisitor &&) = delete;
+
+    MessageVisitor(IpldPtr ipld, bool nonce, bool load);
     outcome::result<void> visit(const BlockHeader &block,
                                 const Visitor &visitor);
     IpldPtr ipld;
     bool nonce{};
     bool load{};
     std::set<CID> visited;
-    std::map<Address, uint64_t> nonces;
+    std::map<Address, Nonce> nonces;
     size_t index{};
+    std::unique_ptr<vm::state::StateTreeImpl> state_tree;
   };
 
   struct Tipset;
@@ -71,6 +78,10 @@ namespace fc::primitives::tipset {
 
     static outcome::result<TipsetCPtr> create(
         std::vector<block::BlockHeader> blocks);
+
+    Tipset() = default;
+
+    Tipset(const TipsetKey &key, std::vector<block::BlockHeader> blks);
 
     outcome::result<void> visitMessages(
         MessageVisitor message_visitor,
@@ -98,9 +109,12 @@ namespace fc::primitives::tipset {
      */
     const CID &getParentStateRoot() const;
 
+    /**
+     * @return adt::map root CID of message receipts
+     */
     const CID &getParentMessageReceipts() const;
 
-    Height height() const;
+    ChainEpoch height() const;
 
     ChainEpoch epoch() const;
 
@@ -110,18 +124,6 @@ namespace fc::primitives::tipset {
     const BigInt &getParentWeight() const;
 
     const BigInt &getParentBaseFee() const;
-
-    /**
-     * @brief checks whether tipset contains block by cid
-     * @param cid content identifier to look for
-     * @return true if contains, false otherwise
-     */
-    bool contains(const CID &cid) const;
-
-    Tipset() = default;
-
-    Tipset(TipsetKey _key, std::vector<block::BlockHeader> _blks)
-        : key(std::move(_key)), blks(std::move(_blks)) {}
 
     TipsetKey key;
     std::vector<block::BlockHeader> blks;  ///< block headers
@@ -134,14 +136,7 @@ namespace fc::primitives::tipset {
    * @return true if equal, false otherwise
    */
   bool operator==(const Tipset &l, const Tipset &r);
-
-  /**
-   * @brief compares two Tipset instances
-   * @param lhs first tipset
-   * @param rhs second tipset
-   * @return false if equal, true otherwise
-   */
-  bool operator!=(const Tipset &l, const Tipset &r);
+  FC_OPERATOR_NOT_EQUAL(Tipset)
 
   CBOR_ENCODE_TUPLE(Tipset, key.cids(), blks, height())
 
@@ -163,24 +158,22 @@ namespace fc::primitives::tipset {
     /// returns success if the tipset created can be expanded with this block
     outcome::result<void> canExpandTipset(const block::BlockHeader &hdr) const;
 
-    outcome::result<CID> expandTipset(block::BlockHeader hdr);
+    outcome::result<CbCid> expandTipset(block::BlockHeader hdr);
 
-    outcome::result<void> expandTipset(CID cid, block::BlockHeader hdr);
+    outcome::result<void> expandTipset(CbCid cid, block::BlockHeader hdr);
 
     TipsetCPtr getTipset(bool clear);
 
     void clear();
 
-    Height height() const;
+    ChainEpoch height() const;
 
     TipsetKey key() const;
 
    private:
     std::vector<block::BlockHeader> blks_;
-    std::vector<CID> cids_;
+    std::vector<CbCid> cids_;
     std::vector<Hash256> ticket_hashes_;
   };
 
 }  // namespace fc::primitives::tipset
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP

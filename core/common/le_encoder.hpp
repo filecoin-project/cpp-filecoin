@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_LE_ENCODER_HPP
-#define CPP_FILECOIN_CORE_COMMON_LE_ENCODER_HPP
+#pragma once
 
 #include <boost/endian/buffers.hpp>
 #include "common/buffer.hpp"
@@ -32,5 +31,3 @@ namespace fc::common {
     }
   }
 }  // namespace fc::common
-
-#endif  // CPP_FILECOIN_CORE_COMMON_LE_ENCODER_HPP

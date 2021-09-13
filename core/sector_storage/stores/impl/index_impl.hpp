@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_INDEX_IMPL_HPP
-#define CPP_FILECOIN_INDEX_IMPL_HPP
+#pragma once
 
 #include "sector_storage/stores/index.hpp"
 
@@ -58,19 +57,19 @@ namespace fc::sector_storage::stores {
     outcome::result<std::vector<StorageInfo>> storageFindSector(
         const SectorId &sector,
         const SectorFileType &file_type,
-        boost::optional<RegisteredSealProof> fetch_seal_proof_type) override;
+        boost::optional<SectorSize> fetch_sector_size) override;
 
     outcome::result<std::vector<StorageInfo>> storageBestAlloc(
         const SectorFileType &allocate,
-        RegisteredSealProof seal_proof_type,
+        SectorSize sector_size,
         bool sealing_mode) override;
 
-    outcome::result<std::unique_ptr<WLock>> storageLock(
+    outcome::result<std::shared_ptr<WLock>> storageLock(
         const SectorId &sector,
         SectorFileType read,
         SectorFileType write) override;
 
-    std::unique_ptr<WLock> storageTryLock(const SectorId &sector,
+    std::shared_ptr<WLock> storageTryLock(const SectorId &sector,
                                           SectorFileType read,
                                           SectorFileType write) override;
 
@@ -87,5 +86,3 @@ namespace fc::sector_storage::stores {
     common::Logger logger_;
   };
 }  // namespace fc::sector_storage::stores
-
-#endif  // CPP_FILECOIN_INDEX_IMPL_HPP

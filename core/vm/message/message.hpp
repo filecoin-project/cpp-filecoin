@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <codec/cbor/cbor.hpp>
+#include <codec/cbor/cbor_codec.hpp>
 #include <gsl/span>
 
 #include "codec/cbor/streams_annotation.hpp"
@@ -59,9 +59,8 @@ namespace fc::vm::message {
           from{std::move(from)},
           nonce{nonce},
           value{std::move(value)},
-          gas_limit{std::move(gas_limit)},
+          gas_limit{gas_limit},
           gas_fee_cap{std::move(gas_fee_cap)},
-          gas_premium{},
           method{method},
           params{std::move(params)} {}
 
@@ -86,17 +85,15 @@ namespace fc::vm::message {
      */
     bool operator==(const UnsignedMessage &other) const;
 
-    /**
-     * @brief Message not equality operator
-     */
-    bool operator!=(const UnsignedMessage &other) const;
-
     TokenAmount requiredFunds() const;
 
     CID getCid() const;
 
     size_t chainSize() const;
+
+    static outcome::result<UnsignedMessage> decode(BytesIn cbor);
   };
+  FC_OPERATOR_NOT_EQUAL(UnsignedMessage)
 
   CBOR_TUPLE(UnsignedMessage,
              version,

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTORBLOCKS_IMPL_BLOCKS_IMPL_HPP
-#define CPP_FILECOIN_CORE_SECTORBLOCKS_IMPL_BLOCKS_IMPL_HPP
+#pragma once
 
 #include "sectorblocks/blocks.hpp"
 
@@ -40,5 +39,3 @@ namespace fc::sectorblocks {
   };
 
 }  // namespace fc::sectorblocks
-
-#endif  // CPP_FILECOIN_CORE_SECTORBLOCKS_IMPL_BLOCKS_IMPL_HPP

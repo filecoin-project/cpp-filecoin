@@ -4,7 +4,6 @@
 #
 
 add_library(sync
-    peers.cpp
     identify.cpp
     say_hello.cpp
     receive_hello.cpp

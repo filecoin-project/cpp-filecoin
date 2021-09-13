@@ -7,9 +7,9 @@
 
 #include "blockchain/block_validator/impl/consensus_rules.hpp"
 #include "blockchain/block_validator/impl/syntax_rules.hpp"
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
+#include "primitives/cid/cid_of_cbor.hpp"
 #include "storage/amt/amt.hpp"
-#include "storage/ipld/ipld_block.hpp"
 
 namespace fc::blockchain::block_validator {
   using primitives::address::Protocol;
@@ -20,7 +20,6 @@ namespace fc::blockchain::block_validator {
   using BlsCryptoPubKey = crypto::bls::PublicKey;
   using SecpCryptoSignature = crypto::secp256k1::Signature;
   using SecpCryptoPubKey = crypto::secp256k1::PublicKey;
-  using IPLDBlock = storage::ipld::IPLDBlock;
 
   const std::map<scenarios::Stage, BlockValidatorImpl::StageExecutor>
       BlockValidatorImpl::stage_executors_{
@@ -150,14 +149,13 @@ namespace fc::blockchain::block_validator {
 
   outcome::result<std::reference_wrapper<BlockValidatorImpl::TipsetCPtr>>
   BlockValidatorImpl::getParentTipset(const BlockHeader &block) const {
-    IPLDBlock ipld_block = IPLDBlock::create(block);
-    if (parent_tipset_cache_
-        && parent_tipset_cache_.value().first == ipld_block.cid) {
+    auto cid{primitives::cid::getCidOfCbor(block).value()};
+    if (parent_tipset_cache_ && parent_tipset_cache_.value().first == cid) {
       return parent_tipset_cache_.value().second;
     }
     std::vector<BlockHeader> parent_blocks;
-    for (const CID &parent_block_cid : block.parents) {
-      auto block_bytes_response = datastore_->get(parent_block_cid);
+    for (const auto &parent_block_cid : block.parents) {
+      auto block_bytes_response = datastore_->get(CID{parent_block_cid});
       if (block_bytes_response.has_value()) {
         auto block_header_result =
             codec::cbor::decode<BlockHeader>(block_bytes_response.value());
@@ -171,8 +169,7 @@ namespace fc::blockchain::block_validator {
       }
     }
     OUTCOME_TRY(tipset, Tipset::create(parent_blocks));
-    parent_tipset_cache_ =
-        std::make_pair(std::move(ipld_block.cid), std::move(tipset));
+    parent_tipset_cache_ = std::make_pair(std::move(cid), std::move(tipset));
     return parent_tipset_cache_.value().second;
   }
 

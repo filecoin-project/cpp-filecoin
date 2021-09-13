@@ -4,23 +4,31 @@
  */
 
 #include "miner_impl.hpp"
+#include "miner/address_selector.hpp"
 #include "miner/storage_fsm/impl/basic_precommit_policy.hpp"
 #include "miner/storage_fsm/impl/events_impl.hpp"
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
 #include "miner/storage_fsm/impl/tipset_cache_impl.hpp"
+#include "miner/storage_fsm/precommit_batcher.hpp"
 #include "miner/storage_fsm/precommit_policy.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 
 namespace fc::miner {
+  using api::MinerInfo;
   using mining::BasicPreCommitPolicy;
   using mining::Events;
   using mining::EventsImpl;
   using mining::kGlobalChainConfidence;
+  using mining::PreCommitBatcher;
+  using mining::PreCommitBatcherImpl;
   using mining::PreCommitPolicy;
   using mining::SealingImpl;
+  using mining::SelectAddress;
   using mining::TipsetCache;
   using mining::TipsetCacheImpl;
+  using mining::types::FeeConfig;
+  using primitives::TokenAmount;
   using primitives::tipset::TipsetKey;
   using vm::actor::builtin::types::miner::kMaxSectorExpirationExtension;
   using vm::actor::builtin::types::miner::kWPoStProvingPeriod;
@@ -35,12 +43,16 @@ namespace fc::miner {
   }
 
   outcome::result<PieceAttributes> MinerImpl::addPieceToAnySector(
-      UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) {
-    return sealing_->addPieceToAnySector(size, piece_data, deal);
+      UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) {
+    return sealing_->addPieceToAnySector(size, std::move(piece_data), deal);
   }
 
   Address MinerImpl::getAddress() const {
     return sealing_->getAddress();
+  }
+
+  std::shared_ptr<Sealing> MinerImpl::getSealing() const {
+    return sealing_;
   }
 
   outcome::result<std::shared_ptr<MinerImpl>> MinerImpl::newMiner(
@@ -50,9 +62,11 @@ namespace fc::miner {
       std::shared_ptr<Counter> counter,
       std::shared_ptr<BufferMap> sealing_fsm_kv,
       std::shared_ptr<Manager> sector_manager,
-      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      std::shared_ptr<Scheduler> scheduler,
       std::shared_ptr<boost::asio::io_context> context,
-      mining::Config config) {
+      const mining::Config &config,
+      const std::vector<Address>
+          &precommit_control) {  // TODO: Commit Batcher extension
     // Checks miner worker address
     OUTCOME_TRY(key, api->StateAccountKey(worker_address, {}));
     OUTCOME_TRY(has, api->WalletHas(key));
@@ -74,7 +88,25 @@ namespace fc::miner {
             api,
             deadline_info.period_start % kWPoStProvingPeriod,
             kMaxSectorExpirationExtension - 2 * kWPoStProvingPeriod);
-
+    std::shared_ptr<FeeConfig> fee_config = std::make_shared<FeeConfig>();
+    fee_config->max_precommit_batch_gas_fee.base = {
+        0};  // TODO: config loading;
+    fee_config->max_precommit_batch_gas_fee.per_sector =
+        TokenAmount{"2000000000000000"};
+    fee_config->max_precommit_gas_fee = TokenAmount{"25000000000000000"};
+    std::shared_ptr<PreCommitBatcher> precommit_batcher =
+        std::make_shared<PreCommitBatcherImpl>(
+            std::chrono::seconds(60),
+            api,
+            miner_address,
+            scheduler,
+            [=](const MinerInfo &miner_info,
+                const TokenAmount &good_funds,
+                const std::shared_ptr<FullNodeApi> &api)
+                -> outcome::result<Address> {
+              return SelectAddress(miner_info, good_funds, api);
+            },
+            fee_config);
     OUTCOME_TRY(sealing,
                 SealingImpl::newSealing(api,
                                         events,
@@ -85,6 +117,7 @@ namespace fc::miner {
                                         precommit_policy,
                                         context,
                                         scheduler,
+                                        precommit_batcher,
                                         config));
 
     struct make_unique_enabler : public MinerImpl {

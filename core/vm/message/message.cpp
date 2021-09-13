@@ -16,10 +16,6 @@ namespace fc::vm::message {
            && params == other.params;
   }
 
-  bool UnsignedMessage::operator!=(const UnsignedMessage &other) const {
-    return !(*this == other);
-  }
-
   TokenAmount UnsignedMessage::requiredFunds() const {
     return gas_limit * gas_fee_cap;
   }
@@ -31,6 +27,16 @@ namespace fc::vm::message {
   size_t UnsignedMessage::chainSize() const {
     OUTCOME_EXCEPT(bytes, codec::cbor::encode(*this));
     return bytes.size();
+  }
+
+  outcome::result<UnsignedMessage> UnsignedMessage::decode(BytesIn cbor) {
+    codec::cbor::CborToken token;
+    BytesIn input{cbor};
+    if (read(token, input).listCount() == 2) {
+      OUTCOME_TRY(smsg, codec::cbor::decode<SignedMessage>(cbor));
+      return smsg.message;
+    }
+    return codec::cbor::decode<UnsignedMessage>(cbor);
   }
 
   CID SignedMessage::getCid() const {

@@ -25,22 +25,23 @@ namespace fc::crypto::signature {
     visit_in_place(
         *this,
         [&](const BlsSignature &v) {
-          bytes.put({BLS});
+          bytes.put({kBls});
           bytes.put(v);
         },
         [&](const Secp256k1Signature &v) {
-          bytes.put({SECP256K1});
+          bytes.put({kSecp256k1});
           bytes.put(v);
         });
     return bytes;
   }
 
   outcome::result<Signature> Signature::fromBytes(BytesIn input) {
-    if (input.empty() || (size_t)input.size() > kSignatureMaxLength) {
+    if (input.empty()
+        || static_cast<size_t>(input.size()) > kSignatureMaxLength) {
       return SignatureError::kInvalidSignatureLength;
     }
     switch (input[0]) {
-      case SECP256K1: {
+      case kSecp256k1: {
         Secp256k1Signature secp{};
         if (input.size() != secp.size() + 1) {
           outcome::raise(SignatureError::kInvalidSignatureLength);
@@ -50,7 +51,7 @@ namespace fc::crypto::signature {
                     secp.begin());
         return secp;
       }
-      case BLS: {
+      case kBls: {
         BlsSignature bls;
         if (input.size() != bls.size() + 1) {
           return SignatureError::kInvalidSignatureLength;
@@ -69,9 +70,9 @@ namespace fc::crypto::signature {
       return SignatureError::kWrongSignatureType;
     }
     switch (input[0]) {
-      case SECP256K1:
+      case kSecp256k1:
         return false;
-      case BLS:
+      case kBls:
         return true;
     }
     return SignatureError::kWrongSignatureType;

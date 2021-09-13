@@ -54,6 +54,7 @@ using fc::primitives::ChainEpoch;
 using fc::primitives::EpochDuration;
 using fc::primitives::address::Address;
 using fc::primitives::block::BlockHeader;
+using fc::primitives::tipset::put;
 using fc::primitives::tipset::Tipset;
 using fc::vm::actor::Invoker;
 using fc::vm::actor::InvokerImpl;
@@ -278,6 +279,7 @@ auto search() {
 struct TestVectors : testing::TestWithParam<MessageVector> {};
 
 void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
+  using namespace fc;
   for (const auto &precondition : mv.precondition_variants) {
     std::shared_ptr<Invoker> invoker = std::make_shared<InvokerImpl>();
     std::shared_ptr<RuntimeRandomness> randomness =
@@ -292,7 +294,7 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
     parent.height = precondition.epoch;
     parent.messages = parent.parent_message_receipts =
         parent.parent_state_root = mv.state_before;
-    OUTCOME_EXCEPT(ipld->setCbor(parent));
+    put(ipld, nullptr, parent);
     OUTCOME_EXCEPT(parents, Tipset::create({parent}));
     auto i{0}, j{0};
     for (const auto &ts : mv.tipsets) {
@@ -305,16 +307,17 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
         block.miner = blk.miner;
         block.election_proof.win_count = blk.win_count;
         block.height = precondition.epoch + ts.epoch_offset;
-        block.parents = parents->key.cids();
+        (std::vector<fc::CbCid> &)block.parents = parents->key.cids();
         block.parent_base_fee = ts.base_fee;
         fc::primitives::block::MsgMeta meta;
-        ipld->load(meta);
+        cbor_blake::cbLoadT(ipld, meta);
         for (const auto &msg : blk.messages) {
-          OUTCOME_EXCEPT(unsigned_cid, ipld->setCbor(msg));
+          OUTCOME_EXCEPT(unsigned_cid, setCbor(ipld, msg));
           OUTCOME_EXCEPT(
               signed_cid,
-              ipld->setCbor(fc::vm::message::SignedMessage{
-                  msg, fc::crypto::signature::Secp256k1Signature{}}));
+              setCbor(ipld,
+                      fc::vm::message::SignedMessage{
+                          msg, fc::crypto::signature::Secp256k1Signature{}}));
           if (msg.from.isBls()) {
             OUTCOME_EXCEPT(meta.bls_messages.append(unsigned_cid));
           } else if (msg.from.isSecp256k1()) {
@@ -326,9 +329,9 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
             OUTCOME_EXCEPT(meta.secp_messages.append(signed_cid));
           }
         }
-        block.messages = ipld->setCbor(meta).value();
+        block.messages = setCbor(ipld, meta).value();
         block.parent_message_receipts = block.parent_state_root = state;
-        OUTCOME_EXCEPT(ipld->setCbor(block));
+        put(ipld, nullptr, block);
         OUTCOME_EXCEPT(cr.expandTipset(block));
       }
       std::vector<MessageReceipt> receipts;

@@ -45,7 +45,7 @@ namespace fc::markets::storage {
 
   CBOR_TUPLE(DataRef, transfer_type, root, piece_cid, piece_size)
 
-  enum class StorageDealStatus {
+  enum class StorageDealStatus : uint64_t {
     STORAGE_DEAL_UNKNOWN = 0,
     STORAGE_DEAL_PROPOSAL_NOT_FOUND,
     STORAGE_DEAL_PROPOSAL_REJECTED,
@@ -60,7 +60,7 @@ namespace fc::markets::storage {
     STORAGE_DEAL_FAILING,
     // Internal
 
-    /** Deposited funds as neccesary to create a deal, ready to move forward */
+    /** Deposited funds as necessary to create a deal, ready to move forward */
     STORAGE_DEAL_FUNDS_ENSURED,
     STORAGE_DEAL_CHECK_FOR_ACCEPTANCE,
     /** Verifying that deal parameters are good */
@@ -164,6 +164,10 @@ namespace fc::markets::storage {
 
   CBOR_TUPLE(StorageDeal, proposal, state)
 
+  inline bool operator==(const StorageDeal &lhs, const StorageDeal &rhs) {
+    return lhs.proposal == rhs.proposal and lhs.state == rhs.state;
+  }
+
   /**
    * Proposal is the data sent over the network from client to provider when
    * proposing a deal
@@ -171,7 +175,7 @@ namespace fc::markets::storage {
   struct Proposal {
     ClientDealProposal deal_proposal;
     DataRef piece;
-    bool is_fast_retrieval;
+    bool is_fast_retrieval = false;
   };
 
   CBOR_TUPLE(Proposal, deal_proposal, piece, is_fast_retrieval)

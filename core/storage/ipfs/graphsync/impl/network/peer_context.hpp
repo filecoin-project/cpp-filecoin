@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_GRAPHSYNC_PEER_CONTEXT_HPP
-#define CPP_FILECOIN_GRAPHSYNC_PEER_CONTEXT_HPP
+#pragma once
 
 #include <map>
 #include <set>
@@ -96,7 +95,7 @@ namespace fc::storage::ipfs::graphsync {
       /// Stream's expire time in Scheduler ticks (milliseconds in real life).
       /// Stream which is inactive during some cleanup period is closed
       /// (activity depends on remote peer)
-      uint64_t expire_time = 0;
+      std::chrono::milliseconds expire_time = std::chrono::milliseconds::zero();
     };
 
     /// Container for all active streams to/from the peer
@@ -190,5 +189,3 @@ namespace fc::storage::ipfs::graphsync {
   };
 
 }  // namespace fc::storage::ipfs::graphsync
-
-#endif  // CPP_FILECOIN_GRAPHSYNC_PEER_CONTEXT_HPP

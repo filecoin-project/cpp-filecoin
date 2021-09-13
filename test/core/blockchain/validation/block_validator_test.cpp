@@ -26,82 +26,84 @@ namespace config {
       "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
 }  // namespace config
 
-class BlockValidatorTest : public testing::Test {
- protected:
-  using BlockValidator = fc::blockchain::block_validator::BlockValidatorImpl;
-  using DataStore = fc::storage::ipfs::MockIpfsDatastore;
-  using EpochClock = fc::clock::ChainEpochClockImpl;
-  using WeightCalculator = fc::blockchain::weight::WeightCalculatorMock;
-  using PowerTable = fc::power::PowerTableImpl;
-  using BlsProvider = fc::crypto::bls::BlsProviderMock;
-  using Secp256k1Provider = fc::crypto::secp256k1::Secp256k1ProviderMock;
-  using Interpreter = fc::vm::interpreter::InterpreterMock;
-  using BlockHeader = fc::primitives::block::BlockHeader;
-  using Address = fc::primitives::address::Address;
-  using Ticket = fc::primitives::block::Ticket;
-  using Signature = fc::crypto::signature::Signature;
-  using Secp256k1Signature = fc::crypto::signature::Secp256k1Signature;
+namespace fc::blockchain::block_validator {
+  using DataStore = storage::ipfs::MockIpfsDatastore;
+  using EpochClock = clock::ChainEpochClockImpl;
+  using WeightCalculator = weight::WeightCalculatorMock;
+  using PowerTable = power::PowerTableImpl;
+  using BlsProvider = crypto::bls::BlsProviderMock;
+  using Secp256k1Provider = crypto::secp256k1::Secp256k1ProviderMock;
+  using Interpreter = vm::interpreter::InterpreterMock;
+  using crypto::signature::Secp256k1Signature;
+  using crypto::signature::Signature;
+  using primitives::address::Address;
+  using primitives::block::BlockHeader;
+  using primitives::block::Ticket;
 
-  BlockValidatorTest() : validator_{createValidator()} {}
+  class BlockValidatorTest : public testing::Test {
+   protected:
+    BlockValidatorTest() : validator_{createValidator()} {}
 
-  std::shared_ptr<BlockValidator> validator_;
+    std::shared_ptr<BlockValidator> validator_;
 
-  std::shared_ptr<BlockValidator> createValidator() {
-    auto datastore = std::make_shared<DataStore>();
-    auto utc_clock = std::make_shared<fc::clock::UTCClockMock>();
-    auto epoch_clock =
-        std::make_shared<EpochClock>(fc::clock::Time{config::kGenesisTime});
-    auto weight_calculator = std::make_shared<WeightCalculator>();
-    auto power_table = std::make_shared<PowerTable>();
-    auto result = power_table->setMinerPower(
-        Address::makeFromId(config::kMinerId), config::kMinerPower);
-    BOOST_ASSERT(!result.has_error());
-    auto bls_provider = std::make_shared<BlsProvider>();
-    auto secp_provider = std::make_shared<Secp256k1Provider>();
-    return std::make_shared<BlockValidator>(datastore,
-                                            utc_clock,
-                                            epoch_clock,
-                                            weight_calculator,
-                                            power_table,
-                                            bls_provider,
-                                            secp_provider,
-                                            nullptr);
+    std::shared_ptr<BlockValidator> createValidator() {
+      auto datastore = std::make_shared<DataStore>();
+      auto utc_clock = std::make_shared<fc::clock::UTCClockMock>();
+      auto epoch_clock =
+          std::make_shared<EpochClock>(fc::clock::Time{config::kGenesisTime});
+      auto weight_calculator = std::make_shared<WeightCalculator>();
+      auto power_table = std::make_shared<PowerTable>();
+      auto result = power_table->setMinerPower(
+          Address::makeFromId(config::kMinerId), config::kMinerPower);
+      BOOST_ASSERT(!result.has_error());
+      auto bls_provider = std::make_shared<BlsProvider>();
+      auto secp_provider = std::make_shared<Secp256k1Provider>();
+      return std::make_shared<BlockValidatorImpl>(datastore,
+                                                  utc_clock,
+                                                  epoch_clock,
+                                                  weight_calculator,
+                                                  power_table,
+                                                  bls_provider,
+                                                  secp_provider,
+                                                  nullptr);
+    }
+
+    BlockHeader getCorrectBlockHeader() const {
+      return {Address::makeFromId(1),
+              Ticket{fc::Buffer{config::b96}},
+              {},
+              {fc::primitives::block::BeaconEntry{
+                  4,
+                  Buffer{"F00D"_unhex},
+              }},
+              {fc::primitives::sector::PoStProof{
+                  fc::primitives::sector::RegisteredPoStProof::
+                  kStackedDRG2KiBWinningPoSt,
+                  "F00D"_unhex,
+              }},
+              {fc::CbCid::hash("01"_unhex)},
+              3,
+              4,
+              "010001020005"_cid,
+              "010001020006"_cid,
+              "010001020007"_cid,
+              Signature{Secp256k1Signature{}},
+              8,
+              Signature{Secp256k1Signature{}},
+              9,
+              {}};
+    }
+  };
+
+  /**
+   * @given Correct block
+   * @when Validating correct block
+   * @then Valiodation must be successful
+   */
+  TEST_F(BlockValidatorTest, ValidateCorrectBlock) {
+    EXPECT_OUTCOME_TRUE_1(validator_->validateBlock(
+        getCorrectBlockHeader(),
+        {fc::blockchain::block_validator::scenarios::Stage::SYNTAX_BV0}));
   }
 
-  BlockHeader getCorrectBlockHeader() const {
-    return {Address::makeFromId(1),
-            Ticket{fc::Buffer{config::b96}},
-            {},
-            {fc::primitives::block::BeaconEntry{
-                4,
-                "F00D"_unhex,
-            }},
-            {fc::primitives::sector::PoStProof{
-                fc::primitives::sector::RegisteredPoStProof::
-                    kStackedDRG2KiBWinningPoSt,
-                "F00D"_unhex,
-            }},
-            {"010001020002"_cid},
-            3,
-            4,
-            "010001020005"_cid,
-            "010001020006"_cid,
-            "010001020007"_cid,
-            Signature{Secp256k1Signature{}},
-            8,
-            Signature{Secp256k1Signature{}},
-            9,
-            {}};
-  }
-};
-
-/**
- * @given Correct block
- * @when Validating correct block
- * @then Valiodation must be successful
- */
-TEST_F(BlockValidatorTest, ValidateCorrectBlock) {
-  EXPECT_OUTCOME_TRUE_1(validator_->validateBlock(
-      getCorrectBlockHeader(),
-      {fc::blockchain::block_validator::scenarios::Stage::SYNTAX_BV0}));
-}
+}  // namespace fc::blockchain::block_validator

@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_GRAPHSYNC_MESSAGE_PARSER_HPP
-#define CPP_FILECOIN_GRAPHSYNC_MESSAGE_PARSER_HPP
+#pragma once
 
-#include "message.hpp"
+#include "storage/ipfs/graphsync/impl/network/marshalling/message.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 
@@ -16,5 +15,3 @@ namespace fc::storage::ipfs::graphsync {
   outcome::result<Message> parseMessage(gsl::span<const uint8_t> bytes);
 
 }  // namespace fc::storage::ipfs::graphsync
-
-#endif  // CPP_FILECOIN_GRAPHSYNC_MESSAGE_PARSER_HPP

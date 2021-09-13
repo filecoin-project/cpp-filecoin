@@ -8,9 +8,8 @@
 #include <boost/asio.hpp>
 #include "miner/miner.hpp"
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/outcome.hpp"
-#include "miner/storage_fsm/sealing.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/stored_counter/stored_counter.hpp"
 #include "sector_storage/manager.hpp"
@@ -19,9 +18,9 @@
 
 namespace fc::miner {
   using api::FullNodeApi;
+  using libp2p::basic::Scheduler;
   using mining::DealInfo;
   using mining::PieceAttributes;
-  using mining::Sealing;
   using mining::types::SectorInfo;
   using primitives::Counter;
   using primitives::SectorNumber;
@@ -40,23 +39,20 @@ namespace fc::miner {
         std::shared_ptr<Counter> counter,
         std::shared_ptr<BufferMap> sealing_fsm_kv,
         std::shared_ptr<Manager> sector_manager,
-        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+        std::shared_ptr<Scheduler> scheduler,
         std::shared_ptr<boost::asio::io_context> context,
-        mining::Config config);
+        const mining::Config &config,
+        const std::vector<Address> &precommit_control);
 
     outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber sector_id) const override;
 
     outcome::result<PieceAttributes> addPieceToAnySector(
-        UnpaddedPieceSize size,
-        const PieceData &piece_data,
-        DealInfo deal) override;
+        UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) override;
 
     Address getAddress() const override;
 
-    auto getSealing() {
-      return sealing_;
-    }
+    std::shared_ptr<Sealing> getSealing() const override;
 
    private:
     MinerImpl(std::shared_ptr<FullNodeApi> api,

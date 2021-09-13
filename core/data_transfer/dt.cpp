@@ -46,7 +46,7 @@ namespace fc::data_transfer {
   }
 
   gsns::Extension DataTransfer::makeExt(const DataTransferMessage &msg) {
-    return {kExtension, codec::cbor::encode(msg).value()};
+    return {kExtension, Bytes{codec::cbor::encode(msg).value()}};
   }
 
   std::shared_ptr<DataTransfer> DataTransfer::make(
@@ -195,7 +195,7 @@ namespace fc::data_transfer {
                               const CID &root,
                               Selector selector,
                               std::string type,
-                              Buffer vocuher,
+                              Buffer voucher,
                               OnData on_reply,
                               OnCid on_cid) {
     auto dtid{next_dtid++};
@@ -218,7 +218,7 @@ namespace fc::data_transfer {
             false,
             true,
             selector,
-            CborRaw{std::move(vocuher)},
+            CborRaw{std::move(voucher)},
             std::move(type),
             dtid,
         })},
@@ -321,6 +321,9 @@ namespace fc::data_transfer {
       auto &res{*msg.response};
       auto _pull{pulling_out.find(pdtid)};
       if (_pull != pulling_out.end()) {
+        if (!res.voucher) {
+          return;
+        }
         _pull->second(res.voucher_type, res.voucher->b);
       } else {
         auto _push{pushing_out.find(pdtid)};

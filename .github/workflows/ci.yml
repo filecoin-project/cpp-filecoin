@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         # 3 jobs in total
-        os: [ubuntu-18.04, macOS-latest]
+        os: [ubuntu-20.04, macOS-latest]
         compiler: [{
           "cc": "gcc",
           "cxx": "g++"
@@ -28,6 +28,10 @@ jobs:
             compiler:
               cc: gcc
         include:
+          - compiler:
+              cc: gcc
+            env:
+              COVERAGE: "-DCOVERAGE=ON"
           - os: macOS-latest
             env:
               CFLAGS: "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
@@ -63,6 +67,11 @@ jobs:
         sudo pip3 install scikit-build
         sudo pip3 install requests gitpython gcovr pyyaml
         sudo curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+        # Workaround to provide additional free space for testing.
+        #   https://github.com/actions/virtual-environments/issues/2875
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /opt/ghc
     - name: cmake
       env:
         CC: ${{ matrix.compiler.cc }}
@@ -70,9 +79,10 @@ jobs:
         CFLAGS: ${{ matrix.env.CFLAGS }}
         CXXFLAGS: ${{ matrix.env.CXXFLAGS }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
-        GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
-        GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
-      run: cmake . -GNinja -Bbuild -D COVERAGE=ON -D TESTING_PROOFS=ON
+        GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+        GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
+        COVERAGE: ${{ matrix.env.COVERAGE }}
+      run: cmake . -GNinja -Bbuild $COVERAGE -D TESTING_PROOFS=ON
     - name: build
       run: cmake --build build -- -j2
     - name: tests
@@ -80,8 +90,10 @@ jobs:
         CTEST_OUTPUT_ON_FAILURE: 1
       run: cmake --build build --target test
     - name: prepare coverage report
+      if: runner.os == 'Linux' && matrix.compiler.cc == 'gcc'
       run: cmake --build build --target ctest_coverage_norun
     - name: upload report to codecov
+      if: runner.os == 'Linux' && matrix.compiler.cc == 'gcc'
       uses: codecov/codecov-action@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets

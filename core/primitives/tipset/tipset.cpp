@@ -5,12 +5,14 @@
 
 #include "primitives/tipset/tipset.hpp"
 
+#include "cbor_blake/ipld_version.hpp"
 #include "common/logger.hpp"
 #include "const.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "vm/message/message.hpp"
+#include "vm/state/impl/state_tree_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
   using fc::primitives::tipset::TipsetError;
@@ -55,23 +57,39 @@ namespace fc::primitives::tipset {
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
+  MessageVisitor::~MessageVisitor() = default;
+
+  MessageVisitor::MessageVisitor(IpldPtr ipld, bool nonce, bool load)
+      : ipld{ipld}, nonce{nonce}, load{load || nonce} {}
+
   outcome::result<void> MessageVisitor::visit(const BlockHeader &block,
                                               const Visitor &visitor) {
+    const auto lookupId{(ChainEpoch)block.height >= kUpgradeHyperdriveHeight};
     auto onMessage = [&](auto bls, auto &cid) -> outcome::result<void> {
       if (visited.insert(cid).second) {
         SignedMessage smsg;
         auto &msg{smsg.message};
         if (load) {
           if (bls) {
-            OUTCOME_TRYA(msg, ipld->getCbor<UnsignedMessage>(cid));
+            OUTCOME_TRYA(msg, getCbor<UnsignedMessage>(ipld, cid));
           } else {
-            OUTCOME_TRYA(smsg, ipld->getCbor<SignedMessage>(cid));
+            OUTCOME_TRYA(smsg, getCbor<SignedMessage>(ipld, cid));
           }
         }
         if (nonce) {
-          auto it{nonces.find(msg.from)};
+          Address id;
+          auto from{&msg.from};
+          if (lookupId && !from->isId()) {
+            if (!state_tree) {
+              state_tree = std::make_unique<vm::state::StateTreeImpl>(
+                  withVersion(ipld, block.height), block.parent_state_root);
+            }
+            OUTCOME_TRYA(id, state_tree->lookupId(*from));
+            from = &id;
+          }
+          auto it{nonces.find(*from)};
           if (it == nonces.end()) {
-            it = nonces.emplace(msg.from, msg.nonce).first;
+            it = nonces.emplace(*from, msg.nonce).first;
           }
           if (msg.nonce != it->second) {
             return outcome::success();
@@ -87,7 +105,7 @@ namespace fc::primitives::tipset {
       }
       return outcome::success();
     };
-    OUTCOME_TRY(meta, ipld->getCbor<block::MsgMeta>(block.messages));
+    OUTCOME_TRY(meta, getCbor<block::MsgMeta>(ipld, block.messages));
     OUTCOME_TRY(meta.bls_messages.visit(
         [&](auto, auto &cid) { return onMessage(true, cid); }));
     OUTCOME_TRY(meta.secp_messages.visit(
@@ -124,13 +142,14 @@ namespace fc::primitives::tipset {
     return outcome::success();
   }
 
-  outcome::result<CID> TipsetCreator::expandTipset(block::BlockHeader hdr) {
-    OUTCOME_TRY(cid, fc::primitives::cid::getCidOfCbor(hdr));
+  outcome::result<CbCid> TipsetCreator::expandTipset(block::BlockHeader hdr) {
+    OUTCOME_TRY(cbor, codec::cbor::encode(hdr));
+    auto cid{CbCid::hash(cbor)};
     OUTCOME_TRY(expandTipset(cid, std::move(hdr)));
     return std::move(cid);
   }
 
-  outcome::result<void> TipsetCreator::expandTipset(CID cid,
+  outcome::result<void> TipsetCreator::expandTipset(CbCid cid,
                                                     block::BlockHeader hdr) {
     // must be called prior to expand()
     assert(canExpandTipset(hdr));
@@ -157,7 +176,7 @@ namespace fc::primitives::tipset {
         break;
       }
       if (ticket_hash == h) {
-        if (cid.toBytes().value() >= cids_[idx].toBytes().value()) {
+        if (cid >= cids_[idx]) {
           continue;
         } else {
           break;
@@ -197,7 +216,7 @@ namespace fc::primitives::tipset {
     ticket_hashes_.clear();
   }
 
-  Height TipsetCreator::height() const {
+  ChainEpoch TipsetCreator::height() const {
     return blks_.empty() ? 0 : blks_[0].height;
   }
 
@@ -243,6 +262,9 @@ namespace fc::primitives::tipset {
     return creator.getTipset(true);
   }
 
+  Tipset::Tipset(const TipsetKey &key, std::vector<block::BlockHeader> blks)
+      : key(std::move(key)), blks(std::move(blks)) {}
+
   outcome::result<void> Tipset::visitMessages(
       MessageVisitor message_visitor,
       const MessageVisitor::Visitor &visitor) const {
@@ -265,13 +287,14 @@ namespace fc::primitives::tipset {
                         gas_limit += msg->gas_limit;
                         return outcome::success();
                       }));
-    auto delta{std::max<GasAmount>(
-        -kBlockGasTarget,
-        std::min<GasAmount>(
-            kBlockGasTarget,
-            kPackingEfficiencyDenom * gas_limit
-                    / ((int64_t)blks.size() * kPackingEfficiencyNum)
-                - kBlockGasTarget))};
+    auto delta{gas_limit};
+    if (epoch() <= kUpgradeSmokeHeight) {
+      delta *= kPackingEfficiencyDenom;
+      delta /= kPackingEfficiencyNum;
+    }
+    delta /= blks.size();
+    delta -= kBlockGasTarget;
+    delta = std::clamp<GasAmount>(delta, -kBlockGasTarget, kBlockGasTarget);
     auto base{getParentBaseFee()};
     return std::max<BigInt>(kMinimumBaseFee,
                             base
@@ -314,7 +337,7 @@ namespace fc::primitives::tipset {
     return blks[0].parent_message_receipts;
   }
 
-  Height Tipset::height() const {
+  ChainEpoch Tipset::height() const {
     return blks.empty() ? 0 : blks[0].height;
   }
 
@@ -327,16 +350,7 @@ namespace fc::primitives::tipset {
     return blks[0].parent_base_fee;
   }
 
-  bool Tipset::contains(const CID &cid) const {
-    const auto &cids = key.cids();
-    return std::find(cids.begin(), cids.end(), cid) != std::end(cids);
-  }
-
   bool operator==(const Tipset &lhs, const Tipset &rhs) {
     return lhs.blks == rhs.blks;
-  }
-
-  bool operator!=(const Tipset &l, const Tipset &r) {
-    return !(l == r);
   }
 }  // namespace fc::primitives::tipset

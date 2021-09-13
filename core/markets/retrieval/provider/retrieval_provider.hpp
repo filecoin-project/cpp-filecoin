@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_PROVIDER_HPP
-#define CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_PROVIDER_HPP
+#pragma once
 
 #include "primitives/types.hpp"
 
@@ -32,6 +31,10 @@ namespace fc::markets::retrieval::provider {
      */
     virtual void start() = 0;
 
+    virtual RetrievalAsk getAsk() const = 0;
+
+    virtual void setAsk(const RetrievalAsk &ask) = 0;
+
     /**
      * @brief Set price per sent byte
      * @param amount - number of tokens
@@ -48,5 +51,3 @@ namespace fc::markets::retrieval::provider {
   };
 
 }  // namespace fc::markets::retrieval::provider
-
-#endif

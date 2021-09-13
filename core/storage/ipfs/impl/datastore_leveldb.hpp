@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_IPFS_IMPL_DATASTORE_LEVELDB_HPP
-#define CPP_FILECOIN_CORE_STORAGE_IPFS_IMPL_DATASTORE_LEVELDB_HPP
+#pragma once
 
 #include <memory>
 
@@ -18,9 +17,7 @@ namespace fc::storage::ipfs {
    * @class LeveldbDatastore IpfsDatastore implementation based on LevelDB
    * database wrapper
    */
-  class LeveldbDatastore
-      : public IpfsDatastore,
-        public std::enable_shared_from_this<LeveldbDatastore> {
+  class LeveldbDatastore : public Ipld {
    public:
     /**
      * @brief convenience function to encode value
@@ -52,16 +49,8 @@ namespace fc::storage::ipfs {
 
     outcome::result<Value> get(const CID &key) const override;
 
-    outcome::result<void> remove(const CID &key) override;
-
-    IpldPtr shared() override {
-      return shared_from_this();
-    }
-
    private:
     std::shared_ptr<BufferMap> leveldb_;  ///< underlying db wrapper
   };
 
 }  // namespace fc::storage::ipfs
-
-#endif  // CPP_FILECOIN_CORE_STORAGE_IPFS_IMPL_DATASTORE_LEVELDB_HPP

@@ -3,14 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SEALING_EVENTS_HPP
-#define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SEALING_EVENTS_HPP
+#pragma once
 
 #include <utility>
 
 #include "miner/storage_fsm/types.hpp"
 
 namespace fc::mining {
+  using primitives::sector::RegisteredSealProof;
+
   /**
    * SealingEventId is an id event that occurs in a sealing lifecycle
    */
@@ -25,17 +26,19 @@ namespace fc::mining {
     kSectorPreCommitLanded,
     kSectorPreCommitted,
     kSectorSeedReady,
+    kSectorComputeProof,
     kSectorCommitted,
     kSectorProving,
     kSectorFinalized,
 
-    kSectorPackingFailed,
     kSectorSealPreCommit1Failed,
     kSectorSealPreCommit2Failed,
     kSectorChainPreCommitFailed,
     kSectorComputeProofFailed,
     kSectorCommitFailed,
     kSectorFinalizeFailed,
+    kSectorDealsExpired,
+    kSectorInvalidDealIDs,
 
     kSectorRetryFinalize,
     kSectorRetrySealPreCommit1,
@@ -45,6 +48,7 @@ namespace fc::mining {
     kSectorRetryPreCommitWait,
     kSectorRetryComputeProof,
     kSectorRetryInvalidProof,
+    kSectorRetryCommitting,
     kSectorRetryCommitWait,
 
     kSectorFaulty,
@@ -56,6 +60,7 @@ namespace fc::mining {
     kSectorRemoveFailed,
 
     kSectorForce,
+    kUpdateDealIds,
   };
 
   class SealingEventContext {
@@ -170,15 +175,22 @@ namespace fc::mining {
     ChainEpoch epoch;
   };
 
-  struct SectorCommittedContext final : public SealingEventContext {
+  struct SectorComputeProofContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->proof = proof;
+    }
+
+    proofs::Proof proof;
+  };
+
+  struct SectorCommittedContext final : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->message = message;
     }
 
     CID message;
-    proofs::Proof proof;
   };
 
   // FAULTS
@@ -192,14 +204,33 @@ namespace fc::mining {
     CID report_message;
   };
 
+  struct SectorInvalidDealIDContext final : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      info->return_state = return_state;
+    }
+
+    SealingState return_state;
+  };
+
   // EXTERNAL EVENTS
 
-  struct SectorForceContext final : public SealingEventContext {
+  struct SectorForceContext : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
 
     SealingState state;
   };
-}  // namespace fc::mining
 
-#endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SEALING_EVENTS_HPP
+  struct SectorUpdateDealIds final : public SectorForceContext {
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      state = info->return_state;
+      info->return_state = SealingState::kStateUnknown;
+      for (auto &[piece_index, id] : updates) {
+        info->pieces[piece_index].deal_info->deal_id = id;
+      }
+    }
+
+    std::unordered_map<uint64_t, primitives::DealId> updates;
+  };
+}  // namespace fc::mining

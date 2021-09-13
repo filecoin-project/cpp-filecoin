@@ -8,6 +8,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "common/error_text.hpp"
 #include "primitives/types.hpp"
 #include "testutil/mocks/sector_storage/worker_mock.hpp"
 #include "testutil/outcome.hpp"
@@ -30,6 +31,25 @@ namespace fc::sector_storage {
     std::shared_ptr<WorkerMock> worker_;
     std::shared_ptr<TaskSelector> task_selector_;
   };
+
+  /**
+   * @given worker
+   * @when try to check is worker can handle task, but getSupportedTask return
+   * error
+   * @then getting this error
+   */
+  TEST_F(TaskSelectorTest, isSatisfyingOutcomeError) {
+    std::shared_ptr<WorkerHandle> worker_handle =
+        std::make_shared<WorkerHandle>();
+
+    worker_handle->worker = worker_;
+
+    EXPECT_CALL(*worker_, getSupportedTask())
+        .WillOnce(testing::Return(outcome::failure(ERROR_TEXT("ERROR"))));
+
+    EXPECT_OUTCOME_FALSE_1(task_selector_->is_satisfying(
+        primitives::kTTAddPiece, seal_proof_type_, worker_handle));
+  }
 
   /**
    * @given worker

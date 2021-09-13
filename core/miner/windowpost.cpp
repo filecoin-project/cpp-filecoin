@@ -5,11 +5,15 @@
 
 #include "miner/windowpost.hpp"
 
+#include "common/logger.hpp"
 #include "common/outcome_fmt.hpp"
+#include "primitives/sector/sector.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/version/version.hpp"
 
 namespace fc::mining {
+  using primitives::sector::RegisteredSealProof;
+  using sector_storage::SectorRef;
   using vm::actor::builtin::types::miner::kWPoStPeriodDeadlines;
   using vm::actor::builtin::v0::miner::DeclareFaults;
   using vm::actor::builtin::v0::miner::DeclareFaultsRecovered;
@@ -31,7 +35,7 @@ namespace fc::mining {
     OUTCOME_TRY(info, api->StateMinerInfo(miner, {}));
     OUTCOME_TRYA(scheduler->worker, api->StateAccountKey(info.worker, {}));
     scheduler->part_size = info.window_post_partition_sectors;
-    scheduler->proof_type = info.seal_proof_type;
+    scheduler->proof_type = info.window_post_proof_type;
     scheduler->channel->read([scheduler](auto changes) {
       if (changes) {
         TipsetCPtr revert, apply;
@@ -60,7 +64,7 @@ namespace fc::mining {
       return;
     }
     while (cache.count(deadline.open)) {
-      deadline = deadline.next();
+      deadline = deadline.nextNotElapsed();
     }
     if (apply->epoch() >= deadline.challenge) {
       auto &cached{
@@ -194,11 +198,11 @@ namespace fc::mining {
 
   outcome::result<RleBitset> WindowPoStScheduler::checkSectors(
       const RleBitset &sectors, bool ok) {
-    std::vector<SectorId> ids;
-    for (auto id : sectors) {
-      ids.push_back({miner.getId(), id});
+    std::vector<SectorRef> refs;
+    for (const auto &id : sectors) {
+      refs.push_back({{miner.getId(), id}, RegisteredSealProof::kUndefined});
     }
-    OUTCOME_TRY(bad_ids, fault_tracker->checkProvable(proof_type, ids));
+    OUTCOME_TRY(bad_ids, fault_tracker->checkProvable(proof_type, refs));
     RleBitset bad;
     for (auto &id : bad_ids) {
       bad.insert(id.sector);
@@ -241,22 +245,29 @@ namespace fc::mining {
       msg.from = _from.value();
     }
     OUTCOME_TRY(smsg, api->MpoolPushMessage(msg, kSpec));
-    OUTCOME_TRY(wait, api->StateWaitMsg(smsg.getCid(), kMessageConfidence));
-    wait.waitOwn([method](auto _r) {
-      auto name{method == DeclareFaultsRecovered::Number
-                    ? "DeclareFaultsRecovered"
-                : method == DeclareFaults::Number      ? "DeclareFaults"
-                : method == SubmitWindowedPoSt::Number ? "SubmitWindowedPoSt"
-                                                       : "(unexpected)"};
-      if (!_r) {
-        spdlog::error("WindowPoStScheduler {} error {}", name, _r.error());
-      } else {
-        auto &r{_r.value().receipt};
-        if (r.exit_code != vm::VMExitCode::kOk) {
-          spdlog::error("WindowPoStScheduler {} exit {}", name, r.exit_code);
-        }
-      }
-    });
+    api->StateWaitMsg(
+        [method](auto _r) {
+          auto name{method == DeclareFaultsRecovered::Number
+                        ? "DeclareFaultsRecovered"
+                        : method == DeclareFaults::Number
+                              ? "DeclareFaults"
+                              : method == SubmitWindowedPoSt::Number
+                                    ? "SubmitWindowedPoSt"
+                                    : "(unexpected)"};
+          if (!_r) {
+            spdlog::error("WindowPoStScheduler {} error {}", name, _r.error());
+          } else {
+            auto &r{_r.value().receipt};
+            if (r.exit_code != vm::VMExitCode::kOk) {
+              spdlog::error(
+                  "WindowPoStScheduler {} exit {}", name, r.exit_code);
+            }
+          }
+        },
+        smsg.getCid(),
+        kMessageConfidence,
+        api::kLookbackNoLimit,
+        true);
     return outcome::success();
   }
 }  // namespace fc::mining

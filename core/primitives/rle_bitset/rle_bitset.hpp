@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RLE_BITSET_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RLE_BITSET_HPP
+#pragma once
 
 #include <set>
 
@@ -16,6 +15,8 @@ namespace fc::primitives {
   struct RleBitset : public std::set<uint64_t> {
     using set::set;
 
+    // TODO (a.chernyshov) make constructors explicit (FIL-415)
+    // NOLINTNEXTLINE(google-explicit-constructor)
     inline RleBitset(set &&s) : set{s} {}
 
     inline bool has(uint64_t v) const {
@@ -26,17 +27,97 @@ namespace fc::primitives {
       insert(other.begin(), other.end());
     }
 
+    inline void operator+=(const std::vector<RleBitset> &others) {
+      for (const auto &other : others) {
+        insert(other.begin(), other.end());
+      }
+    }
+
     inline RleBitset operator+(const RleBitset &other) const {
       auto result{*this};
       result += other;
       return result;
     }
 
+    inline RleBitset operator+(const std::vector<RleBitset> &others) const {
+      auto result{*this};
+      for (const auto &other : others) {
+        result += other;
+      }
+      return result;
+    }
+
+    inline void operator-=(const RleBitset &other) {
+      for (const auto i : other) {
+        erase(i);
+      }
+    }
+
     inline RleBitset operator-(const RleBitset &other) const {
+      auto result{*this};
+      result -= other;
+      return result;
+    }
+
+    inline RleBitset cut(const RleBitset &to_cut) const {
       RleBitset result;
-      for (auto i : *this) {
-        if (!other.has(i)) {
+      uint64_t shift = 0;
+      auto it = to_cut.begin();
+      for (const auto element : *this) {
+        while ((it != to_cut.end()) && (*it < element)) {
+          ++shift;
+          ++it;
+        }
+        if (it == to_cut.end() || *it > element) {
+          result.insert(element - shift);
+        }
+      }
+      return result;
+    }
+
+    inline RleBitset intersect(const RleBitset &other) const {
+      RleBitset result;
+      for (const auto i : other) {
+        if (this->has(i)) {
           result.insert(i);
+        }
+      }
+      return result;
+    }
+
+    inline RleBitset slice(uint64_t start, uint64_t count) const {
+      assert(start + count <= size());
+      const auto it{std::next(begin(), static_cast<ptrdiff_t>(start))};
+      return {it, std::next(it, static_cast<ptrdiff_t>(count))};
+    }
+
+    /**
+     * Checks that current bitset contains all bits of other bitset
+     * @param other - other bitset to check
+     * @return true if contains all bits
+     */
+    inline bool contains(const RleBitset &other) const {
+      bool result = true;
+      for (const auto i : other) {
+        if (!this->has(i)) {
+          result = false;
+          break;
+        }
+      }
+      return result;
+    }
+
+    /**
+     * Checks that current bitset contains any bit of other bitset
+     * @param other - other bitset to check
+     * @return true if contains any bit
+     */
+    inline bool containsAny(const RleBitset &other) const {
+      bool result = false;
+      for (const auto i : other) {
+        if (this->has(i)) {
+          result = true;
+          break;
         }
       }
       return result;
@@ -55,5 +136,3 @@ namespace fc::primitives {
     return s;
   }
 }  // namespace fc::primitives
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RLE_BITSET_HPP

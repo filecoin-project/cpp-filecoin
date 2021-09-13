@@ -5,7 +5,6 @@
 
 #include "node/main/config.hpp"
 
-#include <spdlog/fmt/fmt.h>
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
@@ -91,6 +90,10 @@ namespace fc::node {
            po::value(&raw.log_level)->default_value('i'),
            "log level, [e,w,i,d,t]");
     option("import-snapshot", po::value(&config.snapshot));
+    option("import-key",
+           po::value(&config.wallet_default_key_path),
+           "on first run, imports a default key from a given file. The key "
+           "must be a BLS private key.");
 
     po::options_description drand_desc("Drand server options");
     auto drand_option{drand_desc.add_options()};
@@ -119,6 +122,7 @@ namespace fc::node {
       exit(EXIT_SUCCESS);
     }
     boost::filesystem::create_directories(config.repo_path);
+    std::ofstream{config.join(".pid")} << getpid();
     auto config_path{config.join("config.cfg")};
     if (raw.copy_config) {
       boost::filesystem::copy_file(
@@ -140,6 +144,8 @@ namespace fc::node {
 
     config.log_level = getLogLevel(raw.log_level);
     spdlog::set_level(config.log_level);
+
+    config.gossip_config.sign_messages = true;
 
     return config;
   }

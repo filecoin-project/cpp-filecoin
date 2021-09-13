@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_DATA_TRANSFER_MESSAGE_HPP
-#define CPP_FILECOIN_DATA_TRANSFER_MESSAGE_HPP
+#pragma once
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "data_transfer/types.hpp"
@@ -60,10 +59,6 @@ namespace fc::data_transfer {
     }
   };
 
-  /**
-   * DataTransferMessage is a message for the data transfer protocol (either
-   * request or response) that can serialize to a protobuf
-   */
   struct DataTransferMessage {
     DataTransferMessage() = default;
     DataTransferMessage(DataTransferRequest request)
@@ -107,5 +102,3 @@ namespace fc::data_transfer {
   CBOR_TUPLE(DataTransferMessage, is_request, request, response)
 
 }  // namespace fc::data_transfer
-
-#endif  // CPP_FILECOIN_DATA_TRANSFER_MESSAGE_HPP

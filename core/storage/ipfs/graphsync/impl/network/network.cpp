@@ -12,7 +12,7 @@
 namespace fc::storage::ipfs::graphsync {
 
   Network::Network(std::shared_ptr<libp2p::Host> host,
-                   std::shared_ptr<libp2p::protocol::Scheduler> scheduler)
+                   std::shared_ptr<Scheduler> scheduler)
       : host_(std::move(host)),
         scheduler_(std::move(scheduler)),
         protocol_id_(kProtocolVersion) {
@@ -90,8 +90,7 @@ namespace fc::storage::ipfs::graphsync {
                 }
                 self->feedback_->onResponse(p, id, s, {});
               }
-            })
-        .detach();
+            });
   }
 
   void Network::cancelRequest(RequestId request_id, SharedData request_body) {
@@ -167,7 +166,7 @@ namespace fc::storage::ipfs::graphsync {
     auto peer_id_res = rstream.value()->remotePeerId();
     if (!peer_id_res) {
       logger()->error("no peer id for accepted stream, msg='{}'",
-                      rstream.error().message());
+                      peer_id_res.error().message());
       return;
     }
 

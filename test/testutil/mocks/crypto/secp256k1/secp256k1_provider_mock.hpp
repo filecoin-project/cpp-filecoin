@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_CRYPTO_SECP_PROVIDER_MOCK_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_CRYPTO_SECP_PROVIDER_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 #include "crypto/secp256k1/secp256k1_provider.hpp"
@@ -32,5 +31,3 @@ namespace fc::crypto::secp256k1 {
   };
 
 }  // namespace fc::crypto::secp256k1
-
-#endif

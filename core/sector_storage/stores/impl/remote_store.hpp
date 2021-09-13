@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_REMOTE_STORE_HPP
-#define CPP_FILECOIN_REMOTE_STORE_HPP
+#pragma once
 
 #include "sector_storage/stores/store.hpp"
 
 #include "sector_storage/stores/impl/local_store.hpp"
+#include <condition_variable>
 
 namespace fc::sector_storage::stores {
 
@@ -21,8 +21,7 @@ namespace fc::sector_storage::stores {
                     std::unordered_map<HeaderName, HeaderValue> auth_headers);
 
     outcome::result<AcquireSectorResponse> acquireSector(
-        SectorId sector,
-        RegisteredSealProof seal_proof_type,
+            SectorRef sector,
         SectorFileType existing,
         SectorFileType allocate,
         PathType path_type,
@@ -33,8 +32,7 @@ namespace fc::sector_storage::stores {
     outcome::result<void> removeCopies(SectorId sector,
                                        SectorFileType type) override;
 
-    outcome::result<void> moveStorage(SectorId sector,
-                                      RegisteredSealProof seal_proof_type,
+    outcome::result<void> moveStorage(SectorRef sector,
                                       SectorFileType types) override;
 
     outcome::result<FsStat> getFsStat(StorageID id) override;
@@ -68,5 +66,3 @@ namespace fc::sector_storage::stores {
   };
 
 }  // namespace fc::sector_storage::stores
-
-#endif  // CPP_FILECOIN_REMOTE_STORE_HPP

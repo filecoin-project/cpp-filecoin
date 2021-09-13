@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_ADT_CHANNEL_HPP
-#define CPP_FILECOIN_ADT_CHANNEL_HPP
+#pragma once
 
 #include <mutex>
 
@@ -26,10 +25,14 @@ namespace fc::adt {
     using Many = std::vector<std::shared_ptr<Channel<T>>>;
 
     Channel() = default;
-    Channel(Channel &&) = default;
+    Channel(const Channel &) = delete;
+    Channel(Channel &&) noexcept;
     ~Channel() {
       closeRead();
     }
+
+    Channel &operator=(const Channel &) = delete;
+    Channel &operator=(Channel &&) noexcept = default;
 
     bool canWrite() const {
       std::lock_guard lock{mutex};
@@ -117,11 +120,5 @@ namespace fc::adt {
   };
 
   template <typename T>
-  void writeMany(std::vector<std::shared_ptr<Channel<T>>> &cs, T v) {
-    cs.erase(std::remove_if(
-                 cs.begin(), cs.end(), [&](auto &c) { return !c->write(v); }),
-             cs.end());
-  }
+  inline Channel<T>::Channel(Channel &&) noexcept = default;
 }  // namespace fc::adt
-
-#endif  // CPP_FILECOIN_ADT_CHANNEL_HPP

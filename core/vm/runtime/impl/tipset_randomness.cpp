@@ -19,8 +19,11 @@ namespace fc::vm::runtime {
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
     std::shared_lock ts_lock{*ts_branches_mutex};
-    OUTCOME_TRY(it, find(ts_branch, std::max<ChainEpoch>(0, epoch)));
-    OUTCOME_TRY(ts, ts_load->loadw(it.second->second));
+    OUTCOME_TRY(it,
+                find(ts_branch,
+                     std::max<ChainEpoch>(0, epoch),
+                     epoch <= kUpgradeHyperdriveHeight));
+    OUTCOME_TRY(ts, ts_load->lazyLoad(it.second->second));
     ts_lock.unlock();
 
     return crypto::randomness::drawRandomness(
@@ -33,7 +36,10 @@ namespace fc::vm::runtime {
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
     std::shared_lock ts_lock{*ts_branches_mutex};
-    OUTCOME_TRY(it, find(ts_branch, std::max<ChainEpoch>(0, epoch)));
+    OUTCOME_TRY(it,
+                find(ts_branch,
+                     std::max<ChainEpoch>(0, epoch),
+                     epoch <= kUpgradeHyperdriveHeight));
     OUTCOME_TRY(beacon, latestBeacon(ts_load, it));
     ts_lock.unlock();
 

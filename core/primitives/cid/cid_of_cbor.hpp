@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_CID_CID_OF_CBOR_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_CID_CID_OF_CBOR_HPP
+#pragma once
 
+#include "codec/cbor/cbor_codec.hpp"
 #include "primitives/cid/cid.hpp"
-#include "codec/cbor/cbor.hpp"
 
 namespace fc::primitives::cid {
 
@@ -23,5 +22,3 @@ namespace fc::primitives::cid {
     return common::getCidOf(bytes);
   }
 }  // namespace fc::primitives::cid
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_CID_CID_OF_CBOR_HPP

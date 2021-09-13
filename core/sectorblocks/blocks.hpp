@@ -3,17 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTORBLOCKS_BLOCKS_HPP
-#define CPP_FILECOIN_CORE_SECTORBLOCKS_BLOCKS_HPP
+#pragma once
 
-#include "api/storage_api.hpp"
+#include "api/storage_miner/storage_api.hpp"
 #include "miner/miner.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::sectorblocks {
-  using api::DealInfo;
   using api::PieceLocation;
   using miner::Miner;
+  using mining::types::DealInfo;
   using mining::types::PieceAttributes;
   using primitives::DealId;
   using primitives::piece::UnpaddedPieceSize;
@@ -40,5 +39,3 @@ namespace fc::sectorblocks {
 }  // namespace fc::sectorblocks
 
 OUTCOME_HPP_DECLARE_ERROR(fc::sectorblocks, SectorBlocksError);
-
-#endif  // CPP_FILECOIN_CORE_SECTORBLOCKS_BLOCKS_HPP

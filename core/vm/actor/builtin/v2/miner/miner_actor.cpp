@@ -5,14 +5,17 @@
 
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
   using primitives::ChainEpoch;
   using primitives::RleBitset;
+  using states::makeEmptyMinerState;
+  using states::MinerActorStatePtr;
   using toolchain::Toolchain;
   using namespace types::miner;
 
@@ -34,10 +37,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       control_addresses.push_back(resolved);
     }
 
-    auto state = runtime.stateManager()->createMinerActorState(
-        runtime.getActorVersion());
-
-    OUTCOME_TRY(v0::miner::Construct::makeEmptyState(runtime, state));
+    OUTCOME_TRY(state, makeEmptyMinerState(runtime));
 
     const auto current_epoch = runtime.getCurrentEpoch();
     REQUIRE_NO_ERROR_A(offset,
@@ -54,15 +54,16 @@ namespace fc::vm::actor::builtin::v2::miner {
     state->current_deadline = deadline_index;
 
     REQUIRE_NO_ERROR_A(miner_info,
-                       MinerInfo::make(owner,
-                                       worker,
-                                       control_addresses,
-                                       params.peer_id,
-                                       params.multiaddresses,
-                                       params.seal_proof_type,
-                                       RegisteredPoStProof::kUndefined),
+                       makeMinerInfo(runtime.getActorVersion(),
+                                     owner,
+                                     worker,
+                                     control_addresses,
+                                     params.peer_id,
+                                     params.multiaddresses,
+                                     params.seal_proof_type,
+                                     RegisteredPoStProof::kUndefined),
                        VMExitCode::kErrIllegalArgument);
-    OUTCOME_TRY(state->setInfo(runtime.getIpfsDatastore(), miner_info));
+    OUTCOME_TRY(state->miner_info.set(miner_info));
 
     OUTCOME_TRY(runtime.commitState(state));
 
@@ -87,20 +88,20 @@ namespace fc::vm::actor::builtin::v2::miner {
       control_addresses.emplace_back(resolved);
     }
 
-    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
-    OUTCOME_TRY(miner_info, state->getInfo(runtime.getIpfsDatastore()));
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
+    OUTCOME_TRY(miner_info, state->getInfo());
 
-    OUTCOME_TRY(runtime.validateImmediateCallerIs(miner_info.owner));
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(miner_info->owner));
 
-    miner_info.control = control_addresses;
+    miner_info->control = control_addresses;
 
-    if ((new_worker != miner_info.worker) && !miner_info.pending_worker_key) {
-      miner_info.pending_worker_key = WorkerKeyChange{
+    if ((new_worker != miner_info->worker) && !miner_info->pending_worker_key) {
+      miner_info->pending_worker_key = WorkerKeyChange{
           .new_worker = new_worker,
           .effective_at = runtime.getCurrentEpoch() + kWorkerKeyChangeDelay};
     }
 
-    REQUIRE_NO_ERROR(state->setInfo(runtime.getIpfsDatastore(), miner_info),
+    REQUIRE_NO_ERROR(state->miner_info.set(miner_info),
                      VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
 

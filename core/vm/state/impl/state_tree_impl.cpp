@@ -5,12 +5,11 @@
 
 #include "vm/state/impl/state_tree_impl.hpp"
 
-#include "vm/actor/builtin/states/impl/state_manager_impl.hpp"
+#include "vm/actor/builtin/states/init/init_actor_state.hpp"
 #include "vm/dvm/dvm.hpp"
 
 namespace fc::vm::state {
-  using actor::builtin::states::StateManagerImpl;
-  using actor::builtin::states::StateProvider;
+  using actor::builtin::states::InitActorStatePtr;
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store)
       : version_{StateTreeVersion::kVersion0}, store_{store}, by_id{store} {
@@ -65,10 +64,10 @@ namespace fc::vm::state {
         return Address::makeFromId(id->second);
       }
     }
-    const StateProvider provider(store_);
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
-    OUTCOME_TRY(init_actor_state, provider.getInitActorState(init_actor));
-    OUTCOME_TRY(id, init_actor_state->tryGet(address));
+    OUTCOME_TRY(initActorState,
+                getCbor<InitActorStatePtr>(store_, init_actor.head));
+    OUTCOME_TRY(id, initActorState->address_map.tryGet(address));
     if (id) {
       tx().lookup.emplace(address, *id);
       return Address::makeFromId(*id);
@@ -78,11 +77,11 @@ namespace fc::vm::state {
 
   outcome::result<Address> StateTreeImpl::registerNewAddress(
       const Address &address) {
-    StateManagerImpl state_manager(
-        store_, shared_from_this(), actor::kInitAddress);
-    OUTCOME_TRY(init_actor_state, state_manager.getInitActorState());
-    OUTCOME_TRY(address_id, init_actor_state->addActor(address));
-    OUTCOME_TRY(state_manager.commitState(init_actor_state));
+    OUTCOME_TRY(init_actor, get(actor::kInitAddress));
+    OUTCOME_TRY(state, getCbor<InitActorStatePtr>(store_, init_actor.head));
+    OUTCOME_TRY(address_id, state->addActor(address));
+    OUTCOME_TRYA(init_actor.head, setCbor(store_, state));
+    OUTCOME_TRY(set(actor::kInitAddress, init_actor));
     return std::move(address_id);
   }
 
@@ -94,14 +93,13 @@ namespace fc::vm::state {
     for (auto &id : tx().removed) {
       OUTCOME_TRY(by_id.remove(Address::makeFromId(id)));
     }
-    OUTCOME_TRY(Ipld::flush(by_id));
+    OUTCOME_TRY(by_id.hamt.flush());
     auto new_root = by_id.hamt.cid();
     if (version_ == StateTreeVersion::kVersion0) {
       return new_root;
     }
-    OUTCOME_TRY(info_cid, store_->setCbor(StateTreeInfo{}));
-    return store_->setCbor(StateRoot{
-        .version = version_, .actor_tree_root = new_root, .info = info_cid});
+    OUTCOME_TRY(info_cid, setCbor(store_, StateTreeInfo{}));
+    return setCbor(store_, StateRoot{version_, new_root, info_cid});
   }
 
   std::shared_ptr<IpfsDatastore> StateTreeImpl::getStore() const {
@@ -159,7 +157,6 @@ namespace fc::vm::state {
               store_,
               state_root.actor_tree_root,
               storage::hamt::kDefaultBitWidth,
-              version_ >= StateTreeVersion::kVersion2,
           };
           return;
         }

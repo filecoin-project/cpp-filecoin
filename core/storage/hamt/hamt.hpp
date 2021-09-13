@@ -3,16 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_STORAGE_HAMT_HAMT_HPP
-#define CPP_FILECOIN_STORAGE_HAMT_HAMT_HPP
-
-#include <string>
-#include <vector>
+#pragma once
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/variant.hpp>
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome.hpp"
 #include "common/span.hpp"
@@ -33,8 +29,6 @@ OUTCOME_HPP_DECLARE_ERROR(fc::storage::hamt, HamtError);
 
 namespace fc::storage::hamt {
   using boost::multiprecision::cpp_int;
-  using common::Buffer;
-  using Value = ipfs::IpfsDatastore::Value;
 
   constexpr size_t kLeafMax = 3;
   constexpr size_t kDefaultBitWidth = 5;
@@ -63,7 +57,7 @@ namespace fc::storage::hamt {
   /** Hamt node representation */
   struct Node {
     using Ptr = std::shared_ptr<Node>;
-    using Leaf = std::map<std::string, Value>;
+    using Leaf = std::map<Bytes, Bytes, BytesLess>;
     using Item = boost::variant<CID, Ptr, Leaf>;
 
     std::map<size_t, Item> items;
@@ -78,35 +72,31 @@ namespace fc::storage::hamt {
    */
   class Hamt {
    public:
-    using Visitor = std::function<outcome::result<void>(const std::string &,
-                                                        const Value &)>;
+    using Visitor = std::function<outcome::result<void>(BytesIn, BytesIn)>;
 
-    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bit_width, bool v3);
+    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bit_width);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
          Node::Ptr root,
-         size_t bit_width,
-         bool v3);
+         size_t bit_width);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
          const CID &root,
-         size_t bit_width,
-         bool v3);
+         size_t bit_width);
     /** Set value by key, does not write to storage */
-    outcome::result<void> set(const std::string &key,
-                              gsl::span<const uint8_t> value);
+    outcome::result<void> set(BytesIn key, BytesIn value);
 
     /** Get value by key */
-    outcome::result<Value> get(const std::string &key) const;
+    outcome::result<Bytes> get(BytesIn key) const;
 
     /**
      * Remove value by key, does not write to storage.
      * Returns kNotFound if element doesn't exist.
      */
-    outcome::result<void> remove(const std::string &key);
+    outcome::result<void> remove(BytesIn key);
 
     /**
      * Checks if key is present
      */
-    outcome::result<bool> contains(const std::string &key) const;
+    outcome::result<bool> contains(BytesIn key) const;
 
     /**
      * Write changes made by set and remove to storage
@@ -121,26 +111,25 @@ namespace fc::storage::hamt {
     outcome::result<void> visit(const Visitor &visitor) const;
 
     /** Loads root item */
-    outcome::result<void> loadRoot();
+    outcome::result<void> loadRoot() const;
 
     /// Store CBOR encoded value by key
     template <typename T>
-    outcome::result<void> setCbor(const std::string &key, const T &value) {
-      OUTCOME_TRY(bytes, Ipld::encode(value));
+    outcome::result<void> setCbor(BytesIn key, const T &value) {
+      OUTCOME_TRY(bytes, cbor_blake::cbEncodeT(value));
       return set(key, bytes);
     }
 
     /// Get CBOR decoded value by key
     template <typename T>
-    outcome::result<T> getCbor(const std::string &key) const {
+    outcome::result<T> getCbor(BytesIn key) const {
       OUTCOME_TRY(bytes, get(key));
-      return ipld->decode<T>(bytes);
+      return cbor_blake::cbDecodeT<T>(ipld_, bytes);
     }
 
     /// Get CBOR decoded value by key
     template <typename T>
-    outcome::result<boost::optional<T>> tryGetCbor(
-        const std::string &key) const {
+    outcome::result<boost::optional<T>> tryGetCbor(BytesIn key) const {
       auto maybe = get(key);
       if (!maybe) {
         if (maybe.error() != HamtError::kNotFound) {
@@ -148,30 +137,37 @@ namespace fc::storage::hamt {
         }
         return boost::none;
       }
-      OUTCOME_TRY(value, ipld->decode<T>(maybe.value()));
+      OUTCOME_TRY(value, cbor_blake::cbDecodeT<T>(ipld_, maybe.value()));
       return std::move(value);
     }
 
-    IpldPtr ipld;
+    inline IpldPtr getIpld() const {
+      return ipld_;
+    }
+
+    inline void setIpld(IpldPtr new_ipld) {
+      ipld_ = std::move(new_ipld);
+    }
 
    private:
-    std::vector<size_t> keyToIndices(const std::string &key, int n = -1) const;
+    std::vector<size_t> keyToIndices(BytesIn key, int n = -1) const;
     outcome::result<void> set(Node &node,
                               gsl::span<const size_t> indices,
-                              const std::string &key,
-                              gsl::span<const uint8_t> value);
+                              BytesIn key,
+                              BytesIn value);
     outcome::result<void> remove(Node &node,
                                  gsl::span<const size_t> indices,
-                                 const std::string &key);
+                                 BytesIn key);
     static outcome::result<void> cleanShard(Node::Item &item);
     outcome::result<void> flush(Node::Item &item);
     outcome::result<void> loadItem(Node::Item &item) const;
     outcome::result<void> visit(Node::Item &item, const Visitor &visitor) const;
 
+    void lazyCreateRoot() const;
+    bool v3() const;
+
+    IpldPtr ipld_;
     mutable Node::Item root_;
-    size_t bit_width_;
-    bool v3_;
+    size_t bit_width_{};
   };
 }  // namespace fc::storage::hamt
-
-#endif  // CPP_FILECOIN_STORAGE_HAMT_HAMT_HPP

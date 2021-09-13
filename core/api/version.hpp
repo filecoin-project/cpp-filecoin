@@ -6,7 +6,20 @@
 #pragma once
 
 namespace fc::api {
+  /** Is a binary encoded semver */
   using ApiVersion = uint64_t;
+
+  struct VersionResult {
+    std::string version;
+    ApiVersion api_version;
+    /** Block delay in seconds */
+    uint64_t block_delay;
+
+    inline bool operator==(const VersionResult &other) const {
+      return version == other.version && api_version == other.api_version
+             && block_delay == other.block_delay;
+    }
+  };
 
   /**
    * Make API semantic version

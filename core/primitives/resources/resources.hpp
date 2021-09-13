@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_RESOURCES_RESOURCES_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_RESOURCES_RESOURCES_HPP
+#pragma once
 
 #include <boost/optional.hpp>
 #include <map>
@@ -374,5 +373,3 @@ namespace fc::primitives {
   };
 
 }  // namespace fc::primitives
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_RESOURCES_RESOURCES_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_TIPSET_CACHE_HPP
-#define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_TIPSET_CACHE_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
@@ -38,14 +37,14 @@ namespace fc::mining {
      * @param height is height of tipset that we want get
      * @return Tipset or error
      */
-    virtual outcome::result<Tipset> getNonNull(uint64_t height) = 0;
+    virtual outcome::result<Tipset> getNonNull(ChainEpoch height) = 0;
 
     /**
      * get Tipset from cache with this height
      * @param height is height of tipset that we want get
      * @return optional Tipset or error
      */
-    virtual outcome::result<boost::optional<Tipset>> get(uint64_t height) = 0;
+    virtual outcome::result<boost::optional<Tipset>> get(ChainEpoch height) = 0;
 
     /**
      * Get Head tipset
@@ -62,5 +61,3 @@ namespace fc::mining {
 }  // namespace fc::mining
 
 OUTCOME_HPP_DECLARE_ERROR(fc::mining, TipsetCacheError);
-
-#endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_TIPSET_CACHE_HPP

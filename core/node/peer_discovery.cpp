@@ -25,7 +25,8 @@ namespace fc::sync {
     // Hardcoded config values at the moment
 
     // random walk periodic timer
-    constexpr size_t kTimerPeriodMsec = 120000;
+    constexpr std::chrono::milliseconds kTimerPeriodMsec =
+        std::chrono::milliseconds(120000);
 
     // Enough # of connections, will not initiate new connections while
     // n_connections_ is above
@@ -37,7 +38,7 @@ namespace fc::sync {
 
   PeerDiscovery::PeerDiscovery(
       std::shared_ptr<libp2p::Host> host,
-      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      std::shared_ptr<Scheduler> scheduler,
       std::shared_ptr<libp2p::protocol::kademlia::Kademlia> kademlia)
       : host_(std::move(host)),
         scheduler_(std::move(scheduler)),
@@ -69,7 +70,7 @@ namespace fc::sync {
           onPossibleConnection(e.from);
         });
 
-    timer_handle_ = scheduler_->schedule([this] { onTimer(); });
+    timer_handle_ = scheduler_->scheduleWithHandle([this] { onTimer(); });
 
     kademlia_->start();
 
@@ -163,7 +164,7 @@ namespace fc::sync {
     makeRequest(peer_id.value());
 
     timer_handle_ =
-        scheduler_->schedule(kTimerPeriodMsec, [this] { onTimer(); });
+        scheduler_->scheduleWithHandle([this] { onTimer(); }, kTimerPeriodMsec);
   }
 
 }  // namespace fc::sync

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_BLOB_HPP
-#define CPP_FILECOIN_CORE_COMMON_BLOB_HPP
+#pragma once
 
 #include <array>
 
@@ -173,5 +172,3 @@ struct std::hash<fc::common::Blob<N>> {
 };
 
 OUTCOME_HPP_DECLARE_ERROR(fc::common, BlobError);
-
-#endif  // CPP_FILECOIN_CORE_COMMON_BLOB_HPP

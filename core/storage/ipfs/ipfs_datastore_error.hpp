@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_ERROR_HPP
-#define CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_ERROR_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 
@@ -20,5 +19,3 @@ namespace fc::storage::ipfs {
 }  // namespace fc::storage::ipfs
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::ipfs, IpfsDatastoreError);
-
-#endif  // CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_ERROR_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_LITERALS_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_LITERALS_HPP
+#pragma once
 
 #include "common/blob.hpp"
 #include "common/hexutil.hpp"
@@ -31,7 +30,7 @@ inline fc::common::Blob<48> operator""_blob48(const char *c, size_t s) {
 }
 
 inline fc::common::Blob<65> operator""_blob65(const char *c, size_t s) {
-    return fc::common::Blob<65>::fromHex(std::string_view(c, s)).value();
+  return fc::common::Blob<65>::fromHex(std::string_view(c, s)).value();
 }
 
 inline fc::common::Blob<96> operator""_blob96(const char *c, size_t s) {
@@ -42,5 +41,3 @@ inline auto operator""_cid(const char *c, size_t s) {
   return fc::CID::fromBytes(fc::common::unhex(std::string_view(c, s)).value())
       .value();
 }
-
-#endif  // CPP_FILECOIN_TEST_TESTUTIL_LITERALS_HPP

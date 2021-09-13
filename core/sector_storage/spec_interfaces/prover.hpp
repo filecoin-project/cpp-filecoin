@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SECTOR_STROAGE_SPEC_INTERFACES_PROVER_HPP
-#define CPP_FILECOIN_SECTOR_STROAGE_SPEC_INTERFACES_PROVER_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
@@ -42,4 +41,3 @@ namespace fc::sector_storage {
     return lhs.proof == rhs.proof && lhs.skipped == rhs.skipped;
   };
 }  // namespace fc::sector_storage
-#endif  // CPP_FILECOIN_SECTOR_STROAGE_SPEC_INTERFACES_PROVER_HPP

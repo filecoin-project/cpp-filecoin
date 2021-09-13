@@ -14,6 +14,7 @@
 
 namespace fc::markets::storage::provider {
 
+  using api::MinerInfo;
   using api::TipsetKey;
   using crypto::signature::Signature;
   using fc::crypto::bls::BlsProvider;
@@ -22,7 +23,6 @@ namespace fc::markets::storage::provider {
   using fc::crypto::secp256k1::Secp256k1ProviderDefault;
   using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
   using fc::storage::InMemoryStorage;
-  using vm::actor::builtin::types::miner::MinerInfo;
   using BlsSignature = fc::crypto::bls::Signature;
 
   class StoredAskTest : public ::testing::Test {
@@ -42,7 +42,7 @@ namespace fc::markets::storage::provider {
     KeyPair bls_keypair;
     StoredAsk stored_ask{datastore, api, actor_address};
 
-    static fc::primitives::block::BlockHeader makeBlock(uint64_t epoch) {
+    static fc::primitives::block::BlockHeader makeBlock(ChainEpoch epoch) {
       auto bls1 =
           "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
 
@@ -52,14 +52,14 @@ namespace fc::markets::storage::provider {
           {},
           {fc::primitives::block::BeaconEntry{
               4,
-              "F00D"_unhex,
+              Buffer{"F00D"_unhex},
           }},
           {fc::primitives::sector::PoStProof{
               fc::primitives::sector::RegisteredPoStProof::
                   kStackedDRG2KiBWinningPoSt,
               "F00D"_unhex,
           }},
-          {"010001020002"_cid},
+          {CbCid::hash("01"_unhex)},
           fc::primitives::BigInt(3),
           epoch,
           "010001020005"_cid,

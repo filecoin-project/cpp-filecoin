@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_GRAPHSYNC_SERIALIZE_HPP
-#define CPP_FILECOIN_GRAPHSYNC_SERIALIZE_HPP
+#pragma once
 
 // TODO(FIL-144) move this stuff to libp2p
 
@@ -32,5 +31,3 @@ namespace fc::storage::ipfs::graphsync {
   serializeProtobufMessage(const google::protobuf::MessageLite &msg);
 
 }  // namespace fc::storage::ipfs::graphsync
-
-#endif  // CPP_FILECOIN_GRAPHSYNC_SERIALIZE_HPP

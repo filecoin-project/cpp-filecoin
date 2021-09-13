@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_GRAPHSYNC_LOCAL_REQUESTS_HPP
-#define CPP_FILECOIN_GRAPHSYNC_LOCAL_REQUESTS_HPP
+#pragma once
 
 #include <map>
 
-#include <libp2p/protocol/common/scheduler.hpp>
+#include <libp2p/basic/scheduler.hpp>
 
 #include "network/marshalling/request_builder.hpp"
 
 namespace fc::storage::ipfs::graphsync {
+  using libp2p::basic::Scheduler;
 
   /// Local requests module for graphsync, manages requests made by this host
   class LocalRequests : public Subscription::Source {
@@ -36,7 +36,7 @@ namespace fc::storage::ipfs::graphsync {
     /// \param scheduler scheduler
     /// \param cancel_fn feedback to the core component
     explicit LocalRequests(
-        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+        std::shared_ptr<Scheduler> scheduler,
         CancelRequestFn cancel_fn);
 
     /// Non-network part of Graphsync's makeRequest implementation.
@@ -86,7 +86,7 @@ namespace fc::storage::ipfs::graphsync {
     RequestId nextRequestId();
 
     /// licp2p scheduler
-    std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
+    std::shared_ptr<Scheduler> scheduler_;
 
     /// Feedback to GraphsyncImpl used to cancel requests
     CancelRequestFn cancel_fn_;
@@ -112,5 +112,3 @@ namespace fc::storage::ipfs::graphsync {
   };
 
 }  // namespace fc::storage::ipfs::graphsync
-
-#endif  // CPP_FILECOIN_GRAPHSYNC_LOCAL_REQUESTS_HPP

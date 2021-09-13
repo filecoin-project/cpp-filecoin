@@ -148,13 +148,14 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (streams_.empty()) {
-      timer_ = scheduler_.schedule(kStreamCloseDelayMsec,
-                                   [wptr{weak_from_this()}]() {
-                                     auto self = wptr.lock();
-                                     if (self) {
-                                       self->onStreamCleanupTimer();
-                                     }
-                                   });
+      timer_ = scheduler_.scheduleWithHandle(
+          [wptr{weak_from_this()}]() {
+            auto self = wptr.lock();
+            if (self) {
+              self->onStreamCleanupTimer();
+            }
+          },
+          kStreamCloseDelayMsec);
     }
 
     auto [it, _] = streams_.emplace(stream, std::move(stream_ctx));
@@ -239,12 +240,15 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (status != RS_REJECTED_LOCALLY) {
-      timer_ = scheduler_.schedule(0, [wptr{weak_from_this()}]() {
-        auto self = wptr.lock();
-        if (self) {
-          self->network_feedback_.peerClosed(self->peer, self->close_status_);
-        }
-      });
+      timer_ = scheduler_.scheduleWithHandle(
+          [wptr{weak_from_this()}]() {
+            auto self = wptr.lock();
+            if (self) {
+              self->network_feedback_.peerClosed(self->peer,
+                                                 self->close_status_);
+            }
+          },
+          std::chrono::milliseconds::zero());
     } else {
       network_feedback_.peerClosed(peer, RS_REJECTED_LOCALLY);
     }
@@ -392,7 +396,8 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   void PeerContext::onStreamCleanupTimer() {
-    uint64_t max_expire_time = 0;
+    std::chrono::milliseconds max_expire_time =
+        std::chrono::milliseconds::zero();
 
     if (streams_.empty()) {
       close(RS_TIMEOUT);

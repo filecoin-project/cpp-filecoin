@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_CRYPTO_ENTROPY_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_CRYPTO_ENTROPY_HPP
+#pragma once
 
 #include <gsl/span>
 
@@ -47,5 +46,3 @@ namespace fc::crypto {
     return log2(volume);
   }
 }  // namespace fc::crypto
-
-#endif  // CPP_FILECOIN_TEST_TESTUTIL_CRYPTO_ENTROPY_HPP

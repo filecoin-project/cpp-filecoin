@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_ADT_SET_HPP
-#define CPP_FILECOIN_ADT_SET_HPP
+#pragma once
 
 #include "adt/map.hpp"
 
@@ -18,21 +17,17 @@ namespace fc::adt {
     return s;
   }
 
-  template <typename Keyer,
-            size_t bit_width = storage::hamt::kDefaultBitWidth,
-            bool v3 = false>
-  struct Set : Map<SetValue, Keyer, bit_width, v3> {};
+  template <typename Keyer, size_t bit_width = storage::hamt::kDefaultBitWidth>
+  struct Set : Map<SetValue, Keyer, bit_width> {};
 }  // namespace fc::adt
 
-namespace fc {
-  template <typename Keyer, size_t bit_width, bool v3>
-  struct Ipld::Visit<adt::Set<Keyer, bit_width, v3>> {
+namespace fc::cbor_blake {
+  template <typename Keyer, size_t bit_width>
+  struct CbVisitT<adt::Set<Keyer, bit_width>> {
     template <typename Visitor>
-    static void call(adt::Map<adt::SetValue, Keyer, bit_width, v3> &map,
+    static void call(adt::Map<adt::SetValue, Keyer, bit_width> &map,
                      const Visitor &visit) {
       visit(map);
     }
   };
-}  // namespace fc
-
-#endif  // CPP_FILECOIN_ADT_SET_HPP
+}  // namespace fc::cbor_blake

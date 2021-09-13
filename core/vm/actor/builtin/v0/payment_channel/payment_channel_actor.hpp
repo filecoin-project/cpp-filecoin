@@ -6,6 +6,7 @@
 #pragma once
 
 #include "vm/actor/actor_method.hpp"
+#include "vm/actor/builtin/states/payment_channel/payment_channel_actor_state.hpp"
 #include "vm/actor/builtin/types/payment_channel/policy.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
@@ -13,6 +14,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   using common::Buffer;
   using primitives::EpochDuration;
   using primitives::address::Address;
+  using states::PaymentChannelActorStatePtr;
   using types::payment_channel::SignedVoucher;
 
   struct Construct : ActorMethodBase<1> {
@@ -34,7 +36,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
 
     static outcome::result<void> checkSignature(
         Runtime &runtime,
-        const states::PaymentChannelActorState &state,
+        const PaymentChannelActorStatePtr &state,
         const SignedVoucher &voucher);
     static outcome::result<void> checkPaychannelAddr(
         const Runtime &runtime, const SignedVoucher &voucher);
@@ -44,10 +46,9 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     static outcome::result<void> voucherExtra(Runtime &runtime,
                                               const Buffer &proof,
                                               const SignedVoucher &voucher);
-    static outcome::result<void> calculate(
-        const Runtime &runtime,
-        states::PaymentChannelActorStatePtr state,
-        const SignedVoucher &voucher);
+    static outcome::result<void> calculate(const Runtime &runtime,
+                                           PaymentChannelActorStatePtr &state,
+                                           const SignedVoucher &voucher);
   };
   CBOR_TUPLE(UpdateChannelState::Params, signed_voucher, secret, proof)
 

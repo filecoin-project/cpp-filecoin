@@ -10,7 +10,7 @@
 namespace fc::storage::ipfs::graphsync {
 
   LocalRequests::LocalRequests(
-      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      std::shared_ptr<Scheduler> scheduler,
       CancelRequestFn cancel_fn)
       : scheduler_(std::move(scheduler)), cancel_fn_(std::move(cancel_fn)) {
     assert(scheduler_);
@@ -100,16 +100,14 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
-    scheduler_
-        ->schedule([wptr = weak_from_this(), this]() {
-          if (!wptr.expired()) {
-            cancelAll(rejected_requests_);
-            if (rejected_requests_.empty()) {
-              current_rejected_request_id_ = 0;
-            }
-          }
-        })
-        .detach();
+    scheduler_->schedule([wptr = weak_from_this(), this]() {
+      if (!wptr.expired()) {
+        cancelAll(rejected_requests_);
+        if (rejected_requests_.empty()) {
+          current_rejected_request_id_ = 0;
+        }
+      }
+    });
   }
 
   void LocalRequests::cancelAll() {

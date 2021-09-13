@@ -19,7 +19,7 @@ void free(void *);
 
 #else
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 
 #define GOC_METHOD(name)                    \
   Buffer goc_##name(BytesIn);               \
@@ -69,7 +69,7 @@ namespace fc {
 
   template <auto f>
   inline auto cgoCall(const CborEncodeStream &arg) {
-    return CborDecodeStream{cgoCall<f>(arg.data())};
+    return cgoCall<f>(arg.data());
   }
 }  // namespace fc
 

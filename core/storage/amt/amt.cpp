@@ -22,6 +22,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::amt, AmtError, e) {
       return "AmtError::kRootBitsWrong";
     case AmtError::kNodeBitsWrong:
       return "AmtError::kNodeBitsWrong";
+    case AmtError::kHeightWrong:
+      return "AmtError::kHeightWrong";
   }
   return "Unknown error";
 }
@@ -113,19 +115,16 @@ namespace fc::storage::amt {
     return s << l;
   }
 
-  Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store, OptBitWidth bits)
-      : ipld(std::move(store)), root_(Root{}), bits_{bits} {
-    assert(this->bits() != 0);
-    auto &root{boost::get<Root>(root_)};
-    root.bits = bits;
-    root.node.bits_bytes = bitsBytes();
+  Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bits)
+      : ipld_(std::move(store)), root_{}, bits_{bits} {
+    assert(bits);
   }
 
   Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store,
            const CID &root,
-           OptBitWidth bits)
-      : ipld(std::move(store)), root_(root), bits_{bits} {
-    assert(this->bits() != 0);
+           size_t bits)
+      : ipld_(std::move(store)), root_(root), bits_{bits} {
+    assert(bits);
   }
 
   outcome::result<uint64_t> Amt::count() const {
@@ -191,6 +190,11 @@ namespace fc::storage::amt {
     }
     OUTCOME_TRY(remove(root.node, root.height, key));
     --root.count;
+    if (!root.count && root.height && v3()) {
+      root.height = 0;
+      root.node.items = Node::Values{};
+      return outcome::success();
+    }
     while (root.height > 0) {
       auto &links = boost::get<Node::Links>(root.node.items);
       if (links.size() != 1 || links.find(0) == links.end()) {
@@ -205,10 +209,11 @@ namespace fc::storage::amt {
   }
 
   outcome::result<CID> Amt::flush() {
+    lazyCreateRoot();
     if (which<Root>(root_)) {
       auto &root = boost::get<Root>(root_);
       OUTCOME_TRY(flush(root.node));
-      OUTCOME_TRY(root_cid, ipld->setCbor(root));
+      OUTCOME_TRY(root_cid, fc::setCbor(ipld_, root));
       root_ = root_cid;
     }
     return cid();
@@ -282,7 +287,7 @@ namespace fc::storage::amt {
         if (which<Node::Ptr>(pair.second)) {
           auto &child = *boost::get<Node::Ptr>(pair.second);
           OUTCOME_TRY(flush(child));
-          OUTCOME_TRY(cid, ipld->setCbor(child));
+          OUTCOME_TRY(cid, fc::setCbor(ipld_, child));
           pair.second = cid;
         }
       }
@@ -294,9 +299,19 @@ namespace fc::storage::amt {
                                    uint64_t height,
                                    uint64_t offset,
                                    const Visitor &visitor) const {
+    auto values{boost::get<Node::Values>(&node.items)};
     if (height == 0) {
-      for (auto &it : boost::get<Node::Values>(node.items)) {
+      if (!values) {
+        return AmtError::kHeightWrong;
+      }
+      for (auto &it : *values) {
         OUTCOME_TRY(visitor(offset + it.first, it.second));
+      }
+      return outcome::success();
+    }
+    if (values) {
+      if (!values->empty() || v3()) {
+        return AmtError::kHeightWrong;
       }
       return outcome::success();
     }
@@ -312,10 +327,14 @@ namespace fc::storage::amt {
   }
 
   outcome::result<void> Amt::loadRoot() const {
+    lazyCreateRoot();
     if (which<CID>(root_)) {
-      OUTCOME_TRY(root, ipld->getCbor<Root>(boost::get<CID>(root_)));
+      OUTCOME_TRY(root, fc::getCbor<Root>(ipld_, boost::get<CID>(root_)));
       root_ = root;
-      if (root.bits != bits_) {
+      if (v3() ? root.bits != bits() : root.bits.has_value()) {
+        return AmtError::kRootBitsWrong;
+      }
+      if (root.node.bits_bytes != bitsBytes()) {
         return AmtError::kRootBitsWrong;
       }
     }
@@ -342,7 +361,7 @@ namespace fc::storage::amt {
     }
     auto &link = it->second;
     if (which<CID>(link)) {
-      OUTCOME_TRY(node, ipld->getCbor<Node>(boost::get<CID>(link)));
+      OUTCOME_TRY(node, fc::getCbor<Node>(ipld_, boost::get<CID>(link)));
       if (node.bits_bytes != bitsBytes()) {
         return AmtError::kRootBitsWrong;
       }
@@ -352,7 +371,7 @@ namespace fc::storage::amt {
   }
 
   uint64_t Amt::bits() const {
-    return bits_.get_value_or(kDefaultBits);
+    return v3() ? bits_ : kDefaultBits;
   }
 
   uint64_t Amt::bitsBytes() const {
@@ -368,5 +387,20 @@ namespace fc::storage::amt {
 
   uint64_t Amt::maxAt(uint64_t height) const {
     return maskAt(height + 1);
+  }
+
+  void Amt::lazyCreateRoot() const {
+    if (which<std::monostate>(root_)) {
+      Root root;
+      if (v3()) {
+        root.bits = bits();
+      }
+      root.node.bits_bytes = bitsBytes();
+      root_ = std::move(root);
+    }
+  }
+
+  bool Amt::v3() const {
+    return ipld_->actor_version >= vm::actor::ActorVersion::kVersion3;
   }
 }  // namespace fc::storage::amt

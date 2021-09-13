@@ -9,12 +9,14 @@
 
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "markets/common.hpp"
-#include "storage/car/car.hpp"
+#include "markets/storage/types.hpp"
 #include "storage/piece/impl/piece_storage_error.hpp"
 
 namespace fc::markets::retrieval::provider {
   using ::fc::storage::piece::PieceStorageError;
   using primitives::piece::UnpaddedByteIndex;
+  using primitives::sector::SectorRef;
+  using storage::kStorageMarketImportDir;
   namespace fs = boost::filesystem;
 
   RetrievalProviderImpl::RetrievalProviderImpl(
@@ -22,7 +24,6 @@ namespace fc::markets::retrieval::provider {
       std::shared_ptr<DataTransfer> datatransfer,
       std::shared_ptr<api::FullNodeApi> api,
       std::shared_ptr<PieceStorage> piece_storage,
-      std::shared_ptr<Ipld> ipld,
       std::shared_ptr<OneKey> config_key,
       std::shared_ptr<Manager> sealer,
       std::shared_ptr<Miner> miner)
@@ -30,7 +31,6 @@ namespace fc::markets::retrieval::provider {
         datatransfer_{std::move(datatransfer)},
         api_{std::move(api)},
         piece_storage_{std::move(piece_storage)},
-        ipld_{std::move(ipld)},
         config_key_{std::move(config_key)},
         config_{
             kDefaultPricePerByte,
@@ -93,7 +93,7 @@ namespace fc::markets::retrieval::provider {
       return reject(DealStatus::kDealStatusFailed, "Payload not found");
     }
 
-    auto deal{std::make_shared<DealState>(ipld_, pdtid, pgsid, proposal)};
+    auto deal{std::make_shared<DealState>(pdtid, pgsid, proposal)};
     auto &unseal{deal->state.owed};
 
     datatransfer_->acceptPull(
@@ -150,7 +150,7 @@ namespace fc::markets::retrieval::provider {
     if (!deal->unsealed) {
       return doUnseal(deal);
     }
-    if (!deal->traverser.isCompleted()) {
+    if (!deal->traverser->isCompleted()) {
       return doBlocks(deal);
     }
     doComplete(deal);
@@ -165,10 +165,11 @@ namespace fc::markets::retrieval::provider {
     if (!_piece) {
       return doFail(deal, _piece.error().message());
     }
-    if (!fs::exists(kFilestoreTempDir)) {
-      fs::create_directories(kFilestoreTempDir);
+    if (!fs::exists(kStorageMarketImportDir)) {
+      fs::create_directories(kStorageMarketImportDir);
     }
-    auto car_path = fs::path(kFilestoreTempDir) / fs::unique_path();
+    // TODO(turuslan): deterministic name
+    const auto car_path = kStorageMarketImportDir / fs::unique_path();
     auto _ = gsl::finally([&car_path]() {
       if (fs::exists(car_path)) {
         fs::remove_all(car_path);
@@ -180,10 +181,16 @@ namespace fc::markets::retrieval::provider {
                                    info.length.unpadded(),
                                    car_path.string())}) {
         assert(info.length.unpadded() == fs::file_size(car_path));
-        auto _load{::fc::storage::car::loadCar(*ipld_, car_path.string())};
+        auto _load{MemoryIndexedCar::make(car_path.string(), false)};
         if (!_load) {
           return doFail(deal, _load.error().message());
         }
+        deal->ipld = _load.value();
+        deal->traverser.emplace(Traverser{
+            *deal->ipld,
+            deal->proposal.payload_cid,
+            deal->proposal.params.selector,
+        });
         deal->unsealed = true;
         doBlocks(deal);
         return;
@@ -197,12 +204,12 @@ namespace fc::markets::retrieval::provider {
       return;
     }
     while (true) {
-      auto _cid{deal->traverser.advance()};
+      auto _cid{deal->traverser->advance()};
       if (!_cid) {
         return doFail(deal, _cid.error().message());
       }
       auto &cid{_cid.value()};
-      auto _data{ipld_->get(cid)};
+      auto _data{deal->ipld->get(cid)};
       if (!_data) {
         return doFail(deal, _data.error().message());
       }
@@ -213,7 +220,7 @@ namespace fc::markets::retrieval::provider {
                                        {},
                                        {{std::move(cid), std::move(data)}}});
 
-      if (deal->traverser.isCompleted()) {
+      if (deal->traverser->isCompleted()) {
         return doComplete(deal);
       }
 
@@ -265,7 +272,7 @@ namespace fc::markets::retrieval::provider {
              CborRaw{codec::cbor::encode(
                          DealResponse::Named{{
                              deal->unsealed
-                                 ? deal->traverser.isCompleted()
+                                 ? deal->traverser->isCompleted()
                                        ? DealStatus::
                                            kDealStatusFundsNeededLastPayment
                                        : DealStatus::kDealStatusFundsNeeded
@@ -397,16 +404,22 @@ namespace fc::markets::retrieval::provider {
         .miner = miner_id,
         .sector = sid,
     };
+    SectorRef sector{
+        .id = sector_id,
+        .proof_type = sector_info->sector_type,
+    };
 
     CID comm_d = sector_info->comm_d.get_value_or(CID());
 
-    return sealer_->readPiece(
+    OUTCOME_TRY(sealer_->readPieceSync(
         PieceData(output_path.c_str(), O_WRONLY | O_CREAT),
-        sector_id,
+        sector,
         UnpaddedByteIndex(offset),
         size,
         sector_info->ticket,
-        comm_d);
+        comm_d));
+
+    return outcome::success();
   }
 
 }  // namespace fc::markets::retrieval::provider

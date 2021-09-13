@@ -20,6 +20,7 @@ target_link_libraries(miner_main
     store
     fetch_handler
     remote_worker
+    storage_miner_api
 
     chain_events
     data_transfer
@@ -29,4 +30,6 @@ target_link_libraries(miner_main
     storage_market_provider
 
     ipfs_datastore_in_memory
+
+    miner_types
     )

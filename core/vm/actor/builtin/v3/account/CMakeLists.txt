@@ -5,9 +5,9 @@
 
 add_library(account_actor_v3
     account_actor.cpp
-    account_actor_state.cpp
     )
 target_link_libraries(account_actor_v3
+    account_actor_state
     actor
     outcome
     )

@@ -27,5 +27,4 @@ namespace fc::sync {
   using primitives::tipset::TipsetHash;
   using primitives::tipset::TipsetKey;
   using vm::message::UnsignedMessage;
-  using Height = uint64_t;
 }  // namespace fc::sync

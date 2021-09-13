@@ -12,8 +12,9 @@
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/states/miner_actor_state.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/types/miner/cron_event_payload.hpp"
+#include "vm/actor/builtin/types/miner/post_partition.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using common::Buffer;
@@ -28,6 +29,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::sector::Proof;
   using primitives::sector::RegisteredSealProof;
   using types::miner::CronEventPayload;
+  using types::miner::PoStPartition;
   using types::miner::SectorDeclaration;
   using types::miner::SectorPreCommitInfo;
 
@@ -41,9 +43,6 @@ namespace fc::vm::actor::builtin::v0::miner {
       std::vector<Multiaddress> multiaddresses;
     };
     ACTOR_METHOD_DECL();
-
-    static outcome::result<void> makeEmptyState(
-        const Runtime &runtime, states::MinerActorStatePtr state);
   };
   CBOR_TUPLE(Construct::Params,
              owner,
@@ -94,18 +93,11 @@ namespace fc::vm::actor::builtin::v0::miner {
      * Information submitted by a miner to provide a Window PoSt
      */
     struct Params {
-      struct Partition {
-        /// Partitions are numbered per-deadline, from zero
-        uint64_t index{0};
-        // Sectors skipped while proving that weren't already declared faulty
-        RleBitset skipped;
-      };
-
       /** The deadline index which the submission targets */
       uint64_t deadline{0};
 
       /** The partitions being proven */
-      std::vector<Partition> partitions;
+      std::vector<PoStPartition> partitions;
 
       /**
        * Array of proofs, one per distinct registered proof type present in
@@ -129,7 +121,6 @@ namespace fc::vm::actor::builtin::v0::miner {
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(SubmitWindowedPoSt::Params::Partition, index, skipped)
   CBOR_TUPLE(SubmitWindowedPoSt::Params,
              deadline,
              partitions,

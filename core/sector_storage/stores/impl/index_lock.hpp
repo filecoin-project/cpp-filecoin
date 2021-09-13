@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_STORES_INDEX_LOCK_HPP
-#define CPP_FILECOIN_CORE_SECTOR_STORAGE_STORES_INDEX_LOCK_HPP
+#pragma once
 
 #include <condition_variable>
 #include <mutex>
@@ -38,7 +37,7 @@ namespace fc::sector_storage::stores {
       std::condition_variable cv;
       std::array<size_t, kSectorFileTypeBits> read;
       SectorFileType write;
-      size_t refs;
+      size_t refs{};
     };
 
     bool lock(Lock &lock, bool wait);
@@ -48,5 +47,3 @@ namespace fc::sector_storage::stores {
     std::map<SectorId, Sector> sectors;
   };
 }  // namespace fc::sector_storage::stores
-
-#endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_STORES_INDEX_LOCK_HPP

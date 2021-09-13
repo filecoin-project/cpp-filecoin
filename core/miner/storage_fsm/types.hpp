@@ -6,26 +6,29 @@
 #pragma once
 
 #include "miner/storage_fsm/sealing_states.hpp"
-#include "miner/storage_fsm/types.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 #include "primitives/types.hpp"
 #include "sector_storage/manager.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
+#include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/miner/sector_info.hpp"
 
 namespace fc::mining::types {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::SectorNumber;
+  using primitives::TokenAmount;
   using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
+  using primitives::sector::RegisteredSealProof;
   using primitives::tipset::TipsetKey;
   using proofs::SealRandomness;
   using sector_storage::InteractiveRandomness;
   using sector_storage::PreCommit1Output;
   using sector_storage::Range;
+  using vm::actor::builtin::types::market::DealProposal;
   using vm::actor::builtin::types::miner::SectorPreCommitInfo;
 
   constexpr uint64_t kDealSectorPriority = 1024;
@@ -49,10 +52,16 @@ namespace fc::mining::types {
   struct DealInfo {
     boost::optional<CID> publish_cid;
     DealId deal_id;
+    boost::optional<DealProposal> deal_proposal;
     DealSchedule deal_schedule;
     bool is_keep_unsealed;
   };
-  CBOR_TUPLE(DealInfo, publish_cid, deal_id, deal_schedule, is_keep_unsealed)
+  CBOR_TUPLE(DealInfo,
+             publish_cid,
+             deal_id,
+             deal_proposal,
+             deal_schedule,
+             is_keep_unsealed)
 
   inline bool operator==(const DealInfo &lhs, const DealInfo &rhs) {
     return lhs.publish_cid == rhs.publish_cid && lhs.deal_id == rhs.deal_id
@@ -85,7 +94,7 @@ namespace fc::mining::types {
     primitives::TokenAmount precommit_deposit;
     boost::optional<SectorPreCommitInfo> precommit_info;
 
-    std::vector<CID> precommit_tipset;
+    std::vector<CbCid> precommit_tipset;
 
     InteractiveRandomness seed;
     ChainEpoch seed_epoch;
@@ -95,6 +104,8 @@ namespace fc::mining::types {
     uint64_t invalid_proofs;
 
     boost::optional<CID> fault_report_message;
+
+    SealingState return_state;
 
     inline std::vector<UnpaddedPieceSize> getExistingPieceSizes() const {
       std::vector<UnpaddedPieceSize> result;
@@ -182,7 +193,8 @@ namespace fc::mining::types {
              proof,
              message,
              invalid_proofs,
-             fault_report_message)
+             fault_report_message,
+             return_state)
 
   struct PieceAttributes {
     SectorNumber sector = 0;
@@ -196,5 +208,24 @@ namespace fc::mining::types {
     return lhs.sector == rhs.sector && lhs.offset == rhs.offset
            && lhs.size == rhs.size;
   }
+
+  struct BatchConfing {
+    TokenAmount base;
+    TokenAmount per_sector;
+
+    inline TokenAmount FeeForSector(const size_t &sector_number) const {
+      return base + sector_number * per_sector;
+    }
+  };
+
+  struct FeeConfig {
+    TokenAmount max_precommit_gas_fee;
+
+    // maxBatchFee = maxBase + maxPerSector * nSectors
+    BatchConfing max_precommit_batch_gas_fee;
+
+    // TODO: TokenAmount max_terminate_gas_fee, max_window_poSt_gas_fee,
+    // max_publish_deals_fee, max_market_balance_ddd_fee
+  };
 
 }  // namespace fc::mining::types

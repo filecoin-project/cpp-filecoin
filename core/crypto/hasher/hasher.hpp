@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_CRYPTO_HASHER_HPP
-#define FILECOIN_CORE_CRYPTO_HASHER_HPP
+#pragma once
 
 #include <map>
 
 #include <libp2p/multi/multihash.hpp>
+
+#include "common/outcome.hpp"
 
 namespace fc::crypto {
   /**
@@ -23,11 +24,11 @@ namespace fc::crypto {
     using HashMethod = Multihash (*)(gsl::span<const uint8_t>);
 
    private:
-    static std::map<HashType, HashMethod> methods_;
+    const static std::map<HashType, HashMethod> methods_;
 
    public:
-    static Multihash calculate(HashType hash_type,
-                               gsl::span<const uint8_t> buffer);
+    static outcome::result<Multihash> calculate(
+        HashType hash_type, gsl::span<const uint8_t> buffer);
 
     /**
      * @brief Calculate SHA2-256 hash
@@ -44,5 +45,3 @@ namespace fc::crypto {
     static Multihash blake2b_256(gsl::span<const uint8_t> buffer);
   };
 }  // namespace fc::crypto
-
-#endif

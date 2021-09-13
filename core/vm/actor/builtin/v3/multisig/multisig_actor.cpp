@@ -5,16 +5,19 @@
 
 #include "vm/actor/builtin/v3/multisig/multisig_actor.hpp"
 
+#include "vm/actor/builtin/states/multisig/multisig_actor_state.hpp"
+
 namespace fc::vm::actor::builtin::v3::multisig {
   using common::Buffer;
   using primitives::BigInt;
   using primitives::ChainEpoch;
+  using states::MultisigActorStatePtr;
 
   ACTOR_METHOD_IMPL(LockBalance) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(runtime.validateArgument(params.unlock_duration > 0));
     OUTCOME_TRY(runtime.validateArgument(params.amount >= 0));
-    OUTCOME_TRY(state, runtime.stateManager()->getMultisigActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
     OUTCOME_TRY(v0::multisig::LockBalance::lockBalance(params, state));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();

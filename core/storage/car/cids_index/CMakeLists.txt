@@ -8,6 +8,8 @@ add_library(cids_index
     )
 target_link_libraries(cids_index
     cid
+    cids_ipld
+    car
     file
     ipfs_datastore_error
     )

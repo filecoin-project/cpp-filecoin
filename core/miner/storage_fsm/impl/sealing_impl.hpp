@@ -7,22 +7,23 @@
 
 #include "miner/storage_fsm/sealing.hpp"
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
 #include "miner/storage_fsm/events.hpp"
+#include "miner/storage_fsm/impl/precommit_batcher_impl.hpp"
 #include "miner/storage_fsm/precommit_policy.hpp"
 #include "miner/storage_fsm/sealing_events.hpp"
 #include "miner/storage_fsm/sector_stat.hpp"
 #include "primitives/stored_counter/stored_counter.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 #include "storage/buffer_map.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 
 namespace fc::mining {
   using api::FullNodeApi;
   using primitives::TokenAmount;
   using primitives::piece::PaddedPieceSize;
+  using primitives::sector::SectorRef;
   using proofs::SealRandomness;
   using sector_storage::Manager;
   using types::PieceInfo;
@@ -31,7 +32,7 @@ namespace fc::mining {
   using StorageFSM =
       fsm::FSM<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
   using api::SectorPreCommitOnChainInfo;
-  using libp2p::protocol::Scheduler;
+  using libp2p::basic::Scheduler;
   using primitives::Counter;
   using primitives::tipset::TipsetKey;
   using storage::BufferMap;
@@ -51,16 +52,15 @@ namespace fc::mining {
         std::shared_ptr<Manager> sealer,
         std::shared_ptr<PreCommitPolicy> policy,
         std::shared_ptr<boost::asio::io_context> context,
-        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+        std::shared_ptr<Scheduler> scheduler,
+        std::shared_ptr<PreCommitBatcher> precommit_batcher_,
         Config config);
 
     outcome::result<void> fsmLoad();
     void fsmSave(const std::shared_ptr<SectorInfo> &info);
 
     outcome::result<PieceAttributes> addPieceToAnySector(
-        UnpaddedPieceSize size,
-        const PieceData &piece_data,
-        DealInfo deal) override;
+        UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) override;
 
     outcome::result<void> remove(SectorNumber sector_id) override;
 
@@ -92,7 +92,8 @@ namespace fc::mining {
                 std::shared_ptr<Manager> sealer,
                 std::shared_ptr<PreCommitPolicy> policy,
                 std::shared_ptr<boost::asio::io_context> context,
-                std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+                std::shared_ptr<Scheduler> scheduler,
+                std::shared_ptr<PreCommitBatcher> precommit_batcher,
                 Config config);
 
     struct SectorPaddingResponse {
@@ -105,7 +106,7 @@ namespace fc::mining {
 
     outcome::result<void> addPiece(SectorNumber sector_id,
                                    UnpaddedPieceSize size,
-                                   const PieceData &piece,
+                                   PieceData piece,
                                    const boost::optional<DealInfo> &deal);
 
     outcome::result<SectorNumber> newDealSector();
@@ -164,6 +165,12 @@ namespace fc::mining {
      * @brief  Handle incoming in kWaitSeed state
      */
     outcome::result<void> handleWaitSeed(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kComputeProof state
+     */
+    outcome::result<void> handleComputeProof(
         const std::shared_ptr<SectorInfo> &info);
 
     /**
@@ -227,6 +234,18 @@ namespace fc::mining {
         const std::shared_ptr<SectorInfo> &info);
 
     /**
+     * @brief Handle incoming in kDealsExpired state
+     */
+    outcome::result<void> handleDealsExpired(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kRecoverDealIDs state
+     */
+    outcome::result<void> handleRecoverDeal(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
      * @brief Handle incoming in kFaultReported state
      */
     outcome::result<void> handleFaultReported(
@@ -238,6 +257,8 @@ namespace fc::mining {
     outcome::result<void> handleRemoving(
         const std::shared_ptr<SectorInfo> &info);
 
+    outcome::result<RegisteredSealProof> getCurrentSealProof() const;
+
     struct TicketInfo {
       SealRandomness ticket;
       ChainEpoch epoch = 0;
@@ -247,14 +268,17 @@ namespace fc::mining {
         const std::shared_ptr<SectorInfo> &info);
 
     outcome::result<std::vector<PieceInfo>> pledgeSector(
-        SectorId sector,
+        SectorId sector_id,
         std::vector<UnpaddedPieceSize> existing_piece_sizes,
         gsl::span<UnpaddedPieceSize> sizes);
 
     outcome::result<void> newSectorWithPieces(
         SectorNumber sector_id, std::vector<types::Piece> &pieces);
 
-    SectorId minerSector(SectorNumber num);
+    SectorRef minerSector(RegisteredSealProof seal_proof_type,
+                          SectorNumber num) const;
+
+    SectorId minerSectorId(SectorNumber num) const;
 
     mutable std::mutex sectors_mutex_;
     std::unordered_map<SectorNumber, std::shared_ptr<SectorInfo>> sectors_;
@@ -290,6 +314,8 @@ namespace fc::mining {
 
     common::Logger logger_;
     std::shared_ptr<Manager> sealer_;
+
+    std::shared_ptr<PreCommitBatcher> precommit_batcher_;
 
     Config config_;
   };

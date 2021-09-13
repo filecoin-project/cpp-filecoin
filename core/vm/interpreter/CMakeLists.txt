@@ -5,6 +5,7 @@
 
 add_library(interpreter
     impl/interpreter_impl.cpp
+    impl/cached_interpreter.cpp
     )
 target_link_libraries(interpreter
     amt

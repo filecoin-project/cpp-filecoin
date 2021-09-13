@@ -21,11 +21,13 @@ namespace fc::sync {
   ChainStoreImpl::ChainStoreImpl(
       std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
       TsLoadPtr ts_load,
+      std::shared_ptr<PutBlockHeader> put_block_header,
       TipsetCPtr head,
       BigInt weight,
       std::shared_ptr<BlockValidator> block_validator)
       : ipld_(std::move(ipld)),
         ts_load_(std::move(ts_load)),
+        put_block_header_(std::move(put_block_header)),
         block_validator_(std::move(block_validator)) {
     assert(ipld_);
     assert(block_validator_);
@@ -46,7 +48,8 @@ namespace fc::sync {
   }
 
   outcome::result<void> ChainStoreImpl::addBlock(const BlockHeader &block) {
-    OUTCOME_TRY(cid, ipld_->setCbor(block));
+    const auto cid{
+        *asBlake(primitives::tipset::put(ipld_, put_block_header_, block))};
     head_constructor_.blockFromApi(cid, block);
     return outcome::success();
   }
@@ -60,8 +63,8 @@ namespace fc::sync {
   ChainStoreImpl::subscribeHeadChanges(
       const std::function<HeadChangeSignature> &subscriber) {
     assert(head_);
-    subscriber(primitives::tipset::HeadChange{
-        primitives::tipset::HeadChangeType::CURRENT, head_});
+    subscriber({primitives::tipset::HeadChange{
+        primitives::tipset::HeadChangeType::CURRENT, head_}});
     return head_change_signal_.connect(subscriber);
   }
 
@@ -69,15 +72,16 @@ namespace fc::sync {
     return heaviest_weight_;
   }
 
-  void ChainStoreImpl::update(Path &path, const BigInt &weight) {
+  void ChainStoreImpl::update(const Path &path, const BigInt &weight) {
     auto &[revert, apply]{path};
     using primitives::tipset::HeadChange;
     using primitives::tipset::HeadChangeType;
     HeadChange event;
+    std::vector<HeadChange> events;
     auto notify{[&](auto &it) {
-      if (auto _ts{ts_load_->loadw(it->second)}) {
+      if (auto _ts{ts_load_->lazyLoad(it->second)}) {
         event.value = _ts.value();
-        head_change_signal_(event);
+        events.emplace_back(event);
       } else {
         log()->error("update ts_load {:#}", _ts.error());
       }
@@ -90,8 +94,9 @@ namespace fc::sync {
     for (auto it{std::next(apply.begin())}; it != apply.end(); ++it) {
       notify(it);
     }
-    head_ = ts_load_->loadw(std::prev(apply.end())->second).value();
+    head_ = ts_load_->lazyLoad(std::prev(apply.end())->second).value();
     heaviest_weight_ = weight;
+    head_change_signal_(events);
     events_->signalCurrentHead({.tipset = head_, .weight = heaviest_weight_});
   }
 

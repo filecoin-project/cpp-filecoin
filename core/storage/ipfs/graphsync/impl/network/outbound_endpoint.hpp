@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_GRAPHSYNC_OUTBOUND_ENDPOINT_HPP
-#define CPP_FILECOIN_GRAPHSYNC_OUTBOUND_ENDPOINT_HPP
+#pragma once
 
 #include "marshalling/response_builder.hpp"
 #include "network_fwd.hpp"
@@ -38,8 +37,8 @@ namespace fc::storage::ipfs::graphsync {
     outcome::result<void> enqueue(SharedData msg);
 
     /// Sends response via message queue
-    outcome::result<void> sendResponse(
-        const FullRequestId &id, const Response &response);
+    outcome::result<void> sendResponse(const FullRequestId &id,
+                                       const Response &response);
 
     /// Clears all pending messages
     void clearPendingMessages();
@@ -73,5 +72,3 @@ namespace fc::storage::ipfs::graphsync {
   };
 
 }  // namespace fc::storage::ipfs::graphsync
-
-#endif  // CPP_FILECOIN_GRAPHSYNC_OUTBOUND_ENDPOINT_HPP

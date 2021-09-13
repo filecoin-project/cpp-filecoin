@@ -14,7 +14,7 @@
 namespace fc::sector_storage::stores {
 
   using fc::common::HttpUri;
-  using fc::primitives::TokenAmount;
+  using primitives::BigInt;
   using primitives::sector_file::sectorName;
   using std::chrono::duration_cast;
   using std::chrono::high_resolution_clock;
@@ -178,7 +178,7 @@ namespace fc::sector_storage::stores {
   outcome::result<std::vector<StorageInfo>> SectorIndexImpl::storageFindSector(
       const SectorId &sector,
       const fc::primitives::sector_file::SectorFileType &file_type,
-      boost::optional<RegisteredSealProof> fetch_seal_proof_type) {
+      boost::optional<SectorSize> fetch_sector_size) {
     std::shared_lock lock(mutex_);
     struct StorageMeta {
       uint64_t storage_count;
@@ -233,10 +233,10 @@ namespace fc::sector_storage::stores {
       result.push_back(store);
     }
 
-    if (fetch_seal_proof_type.has_value()) {
+    if (fetch_sector_size.has_value()) {
       OUTCOME_TRY(required_space,
                   primitives::sector_file::sealSpaceUse(
-                      file_type, fetch_seal_proof_type.get()));
+                      file_type, fetch_sector_size.get()));
       for (const auto &[id, storage_info] : stores_) {
         if (!storage_info.info.can_seal) {
           continue;
@@ -301,13 +301,13 @@ namespace fc::sector_storage::stores {
 
   outcome::result<std::vector<StorageInfo>> SectorIndexImpl::storageBestAlloc(
       const fc::primitives::sector_file::SectorFileType &allocate,
-      RegisteredSealProof seal_proof_type,
+      SectorSize sector_size,
       bool sealing_mode) {
     std::shared_lock lock(mutex_);
 
     OUTCOME_TRY(
         req_space,
-        fc::primitives::sector_file::sealSpaceUse(allocate, seal_proof_type));
+        fc::primitives::sector_file::sealSpaceUse(allocate, sector_size));
 
     std::vector<StorageEntry> candidates;
 
@@ -342,9 +342,8 @@ namespace fc::sector_storage::stores {
     std::sort(candidates.begin(),
               candidates.end(),
               [](const StorageEntry &lhs, const StorageEntry &rhs) {
-                auto lw = TokenAmount(lhs.fs_stat.available) * lhs.info.weight;
-                auto rw = TokenAmount(rhs.fs_stat.available) * rhs.info.weight;
-                return lw < rw;
+                return BigInt{lhs.fs_stat.available} * lhs.info.weight
+                       < BigInt{rhs.fs_stat.available} * rhs.info.weight;
               });
 
     std::vector<StorageInfo> result;
@@ -356,7 +355,7 @@ namespace fc::sector_storage::stores {
     return result;
   }
 
-  outcome::result<std::unique_ptr<WLock>> SectorIndexImpl::storageLock(
+  outcome::result<std::shared_ptr<WLock>> SectorIndexImpl::storageLock(
       const SectorId &sector, SectorFileType read, SectorFileType write) {
     std::unique_ptr<IndexLock::Lock> lock =
         std::make_unique<IndexLock::Lock>(sector, read, write);
@@ -372,7 +371,7 @@ namespace fc::sector_storage::stores {
     return IndexErrors::kCannotLockStorage;
   }
 
-  std::unique_ptr<WLock> SectorIndexImpl::storageTryLock(const SectorId &sector,
+  std::shared_ptr<WLock> SectorIndexImpl::storageTryLock(const SectorId &sector,
                                                          SectorFileType read,
                                                          SectorFileType write) {
     auto lock = std::make_unique<IndexLock::Lock>(sector, read, write);

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_CHAIN_WEIGHTCALCULATOR_HPP
-#define CPP_FILECOIN_CORE_STORAGE_CHAIN_WEIGHTCALCULATOR_HPP
+#pragma once
 
 #include "primitives/big_int.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -24,5 +23,3 @@ namespace fc::blockchain::weight {
     virtual outcome::result<BigInt> calculateWeight(const Tipset &tipset) = 0;
   };
 }  // namespace fc::blockchain::weight
-
-#endif  // CPP_FILECOIN_CORE_STORAGE_CHAIN_WEIGHTCALCULATOR_HPP

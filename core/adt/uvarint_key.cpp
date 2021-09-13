@@ -4,9 +4,8 @@
  */
 
 #include "adt/uvarint_key.hpp"
+#include "codec/uvarint.hpp"
 #include "common/span.hpp"
-
-#include <libp2p/multi/uvarint.hpp>
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::adt, UvarintKeyError, e) {
   using E = fc::adt::UvarintKeyError;
@@ -17,32 +16,26 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::adt, UvarintKeyError, e) {
 }
 
 namespace fc::adt {
-  using libp2p::multi::UVarint;
-
-  std::string UvarintKeyer::encode(Key value) {
-    UVarint uvarint{value};
-    auto encoded = uvarint.toBytes();
-    return std::string(encoded.begin(), encoded.end());
+  Bytes UvarintKeyer::encode(Key value) {
+    return copy(codec::uvarint::VarintEncoder{value}.bytes());
   }
 
-  outcome::result<UvarintKeyer::Key> UvarintKeyer::decode(
-      const std::string &key) {
-    auto maybe = UVarint::create(common::span::cbytes(key));
-    if (!maybe) {
-      return UvarintKeyError::kDecodeError;
+  outcome::result<UvarintKeyer::Key> UvarintKeyer::decode(BytesIn key) {
+    Key result = 0;
+    if (codec::uvarint::read(result, key) && key.empty()) {
+      return result;
     }
-    return maybe->toUInt64();
+    return UvarintKeyError::kDecodeError;
   }
 
-  std::string VarintKeyer::encode(Key value) {
+  Bytes VarintKeyer::encode(Key value) {
     value <<= 1;
     return UvarintKeyer::encode(value < 0 ? ~value : value);
   }
 
-  outcome::result<VarintKeyer::Key> VarintKeyer::decode(
-      const std::string &key) {
+  outcome::result<VarintKeyer::Key> VarintKeyer::decode(BytesIn key) {
     OUTCOME_TRY(value2, UvarintKeyer::decode(key));
-    int64_t value = value2 >> 1;
-    return value2 & 1 ? ~value : value;
+    Key value = static_cast<Key>(value2) >> 1;
+    return (value2 & 1) != 0 ? ~value : value;
   }
 }  // namespace fc::adt

@@ -57,13 +57,13 @@ namespace fc::sync {
         });
   }
 
-  void HeadConstructor::blockFromApi(const CID &block_cid,
+  void HeadConstructor::blockFromApi(const CbCid &block_cid,
                                      const BlockHeader &block) {
     tryAppendBlock(boost::none, block_cid, block);
   }
 
   void HeadConstructor::tryAppendBlock(boost::optional<PeerId> source,
-                                       const CID &block_cid,
+                                       const CbCid &block_cid,
                                        const BlockHeader &header) {
     if (header.height < current_height_) {
       log()->warn("ignoring block from {} with height {}<{}",
@@ -89,7 +89,7 @@ namespace fc::sync {
     auto res = creator.canExpandTipset(header);
     if (!res) {
       log()->warn("cannot expand tipset with new block, {}",
-                   res.error().message());
+                  res.error().message());
       return;
     }
     res = creator.expandTipset(block_cid, header);
@@ -103,9 +103,7 @@ namespace fc::sync {
 
     // TODO check if parents are already synced / downloaded
 
-    events_->signalPossibleHead({.source = boost::none,
-                                 .head = creator.key(),
-                                 .height = creator.height()});
+    events_->signalPossibleHead({source, creator.key(), creator.height()});
   }
 
 }  // namespace fc::sync

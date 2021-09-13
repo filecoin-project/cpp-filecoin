@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_ERROR_HPP
-#define CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_ERROR_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 
@@ -24,5 +23,3 @@ namespace fc::payment_channel_manager {
 
 OUTCOME_HPP_DECLARE_ERROR(fc::payment_channel_manager,
                           PaymentChannelManagerError);
-
-#endif  // CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_ERROR_HPP

@@ -4,7 +4,6 @@
  */
 
 #include "markets/storage/chain_events/impl/chain_events_impl.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::markets::storage::chain_events {
@@ -51,7 +50,7 @@ namespace fc::markets::storage::chain_events {
       for (const auto &change : changes.get()) {
         if (change.type == HeadChangeType::APPLY) {
           for (auto &block_cid : change.value->key.cids()) {
-            auto block_messages = api_->ChainGetBlockMessages(block_cid);
+            auto block_messages = api_->ChainGetBlockMessages(CID{block_cid});
             if (block_messages.has_error()) {
               logger_->error("ChainGetBlockMessages error: "
                              + block_messages.error().message());
@@ -124,12 +123,16 @@ namespace fc::markets::storage::chain_events {
       }
 
       if (prove_sector_committed) {
-        OUTCOME_TRY(wait, api_->StateWaitMsg(cid, api::kNoConfidence));
-        wait.waitOwn([cb{std::move(watch_it->cb)}](auto _r) {
-          if (_r) {
-            cb();
-          }
-        });
+        api_->StateWaitMsg(
+            [cb{std::move(watch_it->cb)}](auto _r) {
+              if (_r) {
+                cb();
+              }
+            },
+            cid,
+            kMessageConfidence,
+            api::kLookbackNoLimit,
+            true);
         watched_events_.erase(watch_it);
       }
     }

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SEALING_HPP
-#define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SEALING_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 #include "miner/storage_fsm/sealing_states.hpp"
@@ -22,7 +21,7 @@ namespace fc::mining {
   using types::SectorInfo;
 
   struct Config {
-    // 0 = no limit
+    // A cap of deals, 0 = no limit
     uint64_t max_wait_deals_sectors = 0;
 
     // includes failed, 0 = no limit
@@ -31,7 +30,7 @@ namespace fc::mining {
     // includes failed, 0 = no limit
     uint64_t max_sealing_sectors_for_deals = 0;
 
-    uint64_t wait_deals_delay;  // in milliseconds
+    std::chrono::milliseconds wait_deals_delay;  // in milliseconds
   };
 
   class Sealing {
@@ -39,7 +38,7 @@ namespace fc::mining {
     virtual ~Sealing() = default;
 
     virtual outcome::result<PieceAttributes> addPieceToAnySector(
-        UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) = 0;
+        UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) = 0;
 
     virtual outcome::result<void> remove(SectorNumber sector_id) = 0;
 
@@ -80,5 +79,3 @@ namespace fc::mining {
 }  // namespace fc::mining
 
 OUTCOME_HPP_DECLARE_ERROR(fc::mining, SealingError);
-
-#endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SEALING_HPP

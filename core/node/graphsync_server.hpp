@@ -28,6 +28,5 @@ namespace fc::sync {
     // 1) request handling in dedicated thread with separate read-only
     // storage access (and RS_TRY_AGAIN replies if queue overloaded)
     // 2) Response caching (hash(request fields)) -> response
-    // 3) MerkleDagService performance
   };
 }  // namespace fc::sync

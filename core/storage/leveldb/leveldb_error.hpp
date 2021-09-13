@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_LEVELDB_ERROR_HPP
-#define CPP_FILECOIN_LEVELDB_ERROR_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 
@@ -28,5 +27,3 @@ namespace fc::storage {
 }  // namespace fc::storage
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage, LevelDBError);
-
-#endif  // CPP_FILECOIN_LEVELDB_ERROR_HPP

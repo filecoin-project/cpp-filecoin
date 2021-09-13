@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_GRAPHSYNC_LENGTH_DELIMITED_MESSAGE_READER_HPP
-#define CPP_FILECOIN_GRAPHSYNC_LENGTH_DELIMITED_MESSAGE_READER_HPP
+#pragma once
 
 #include <functional>
 
@@ -72,5 +71,3 @@ namespace fc::storage::ipfs::graphsync {
   };
 
 }  // namespace fc::storage::ipfs::graphsync
-
-#endif  // CPP_FILECOIN_GRAPHSYNC_LENGH_DELIMITED_MESSAGE_READER_HPP

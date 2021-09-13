@@ -7,16 +7,18 @@
 
 #include "node/events_fwd.hpp"
 #include "primitives/big_int.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::sync {
   using primitives::BigInt;
+  using primitives::ChainEpoch;
 
   inline constexpr auto kHelloProtocol = "/fil/hello/1.0.0";
 
   struct HelloMessage {
-    std::vector<CID> heaviest_tipset;
-    uint64_t heaviest_tipset_height;
+    std::vector<CbCid> heaviest_tipset;
+    ChainEpoch heaviest_tipset_height;
     BigInt heaviest_tipset_weight;
     CID genesis;
   };

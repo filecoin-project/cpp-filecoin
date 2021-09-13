@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_BIG_INT_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_BIG_INT_HPP
+#pragma once
 
 #include <boost/multiprecision/cpp_int.hpp>
 
@@ -12,27 +11,7 @@
 
 namespace fc::primitives {
   using BigInt = boost::multiprecision::cpp_int;
-
-  /// div with round-floor, like `big.Div` from go
-  inline BigInt bigdiv(const BigInt &n, const BigInt &d) {
-    if (!n.is_zero() && n.sign() != d.sign()) {
-      return (n + 1) / d - 1;
-    }
-    return n / d;
-  }
-
-  /// mod with round-floor, like `big.Mod` from go
-  inline BigInt bigmod(const BigInt &n, const BigInt &d) {
-    const auto r = bigdiv(n, d);
-    return n - r * d;
-  }
-
 }  // namespace fc::primitives
-
-namespace fc {
-  using primitives::bigdiv;
-  using primitives::bigmod;
-}  // namespace fc
 
 namespace boost::multiprecision {
   CBOR_ENCODE(cpp_int, big_int) {
@@ -58,5 +37,3 @@ namespace boost::multiprecision {
     return s;
   }
 }  // namespace boost::multiprecision
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_BIG_INT_HPP

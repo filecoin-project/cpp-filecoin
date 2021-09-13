@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "markets/discovery/discovery.hpp"
+#include "markets/discovery/impl/discovery_impl.hpp"
 
 #include <gmock/gmock.h>
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -12,25 +12,23 @@
 #include "testutil/peer_id.hpp"
 
 namespace fc::markets::discovery {
-
   using libp2p::multi::Multiaddress;
   using libp2p::peer::PeerInfo;
+  using primitives::address::Address;
   using storage::InMemoryStorage;
 
   class DiscoveryTest : public ::testing::Test {
    public:
     std::shared_ptr<Datastore> datastore = std::make_shared<InMemoryStorage>();
-    Discovery discovery{datastore};
+    DiscoveryImpl discovery{datastore};
 
     CID proposal_cid_1 = "010001020001"_cid;
     CID proposal_cid_2 = "010001020002"_cid;
     PeerId peer_id_1 = generatePeerId(1);
     PeerId peer_id_2 = generatePeerId(2);
-    Multiaddress address_1 =
-        Multiaddress::create("/ip4/127.0.0.1/tcp/111").value();
-    Multiaddress address_2 =
-        Multiaddress::create("/ip4/127.0.0.1/tcp/222").value();
-    PeerInfo retrieval_peer_1{.id = peer_id_1, .addresses = {address_1}};
+    Address address_1{Address::makeFromId(1)};
+    Address address_2{Address::makeFromId(2)};
+    RetrievalPeer retrieval_peer_1{address_1, peer_id_1, boost::none};
 
     template <typename T>
     bool vectorHas(std::vector<T> vec, const T &element) const {
@@ -88,20 +86,20 @@ namespace fc::markets::discovery {
 
   /**
    * @given discovery with retrieval_peer_1
-   * @when try add different peer with th same proposal cid
+   * @when try add different peer with the same proposal cid
    * @then success returned, state has all peers
    */
   TEST_F(DiscoveryTest, addPeers) {
     EXPECT_OUTCOME_TRUE_1(discovery.addPeer(proposal_cid_1, retrieval_peer_1));
 
-    PeerInfo retrieval_peer_2{.id = peer_id_2, .addresses = {address_1}};
+    RetrievalPeer retrieval_peer_2{address_2, peer_id_2, proposal_cid_2};
     EXPECT_OUTCOME_TRUE_1(discovery.addPeer(proposal_cid_1, retrieval_peer_2));
     EXPECT_OUTCOME_TRUE(peers_2, discovery.getPeers(proposal_cid_1));
     EXPECT_EQ(peers_2.size(), 2);
     EXPECT_TRUE(vectorHas(peers_2, retrieval_peer_1));
     EXPECT_TRUE(vectorHas(peers_2, retrieval_peer_2));
 
-    PeerInfo retrieval_peer_3{.id = peer_id_1, .addresses = {address_2}};
+    RetrievalPeer retrieval_peer_3{address_2, peer_id_1, boost::none};
     EXPECT_OUTCOME_TRUE_1(discovery.addPeer(proposal_cid_1, retrieval_peer_3));
     EXPECT_OUTCOME_TRUE(peers_3, discovery.getPeers(proposal_cid_1));
     EXPECT_EQ(peers_3.size(), 3);

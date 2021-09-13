@@ -5,7 +5,7 @@
 
 #include "response_builder.hpp"
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 
 #include "protobuf/message.pb.h"
 
@@ -43,8 +43,8 @@ namespace fc::storage::ipfs::graphsync {
       meta_.push_back({cid, false});
     } else {
       auto *dst = pb_msg_->add_data();
-      OUTCOME_EXCEPT(prefix, cid.getPrefix());
-      dst->set_prefix(prefix.data(), prefix.size());
+      const auto prefix_data = cid.getPrefix().toBytes();
+      dst->set_prefix(prefix_data.data(), prefix_data.size());
       dst->set_data(data.data(), data.size());
       meta_.push_back({cid, true});
     }

@@ -4,18 +4,20 @@
  */
 
 #include <boost/asio/io_context.hpp>
+#include <boost/di/extension/scopes/shared.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
+#include <libp2p/basic/scheduler.hpp>
+#include <libp2p/injector/host_injector.hpp>
 #include <set>
 
 #include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
-#include "api/storage_api.hpp"
+#include "api/storage_miner/storage_api.hpp"
 #include "api/worker_api.hpp"
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
@@ -31,6 +33,7 @@
 #include "sector_storage/stores/impl/storage_impl.hpp"
 
 namespace fc {
+  using api::kMinerApiVersion;
   using api::VersionResult;
   using boost::asio::io_context;
   using config::configProfile;
@@ -38,6 +41,7 @@ namespace fc {
   using primitives::piece::UnpaddedByteIndex;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::SealRandomness;
+  using primitives::sector::SectorRef;
   using proofs::ProofParamProvider;
   using sector_storage::AcquireMode;
   using sector_storage::Commit1Output;
@@ -51,11 +55,13 @@ namespace fc {
   using sector_storage::stores::LocalStore;
   namespace uuids = boost::uuids;
 
+  /** Required Miner API version */
+  const auto kExpectedMinerApiVersion = kMinerApiVersion;
+
   struct Config {
     boost::filesystem::path repo_path;
     std::pair<Multiaddress, std::string> miner_api{
         codec::cbor::kDefaultT<Multiaddress>(), {}};
-    RegisteredSealProof seal_type;
     int api_port;
 
     std::set<primitives::TaskType> tasks;
@@ -129,24 +135,26 @@ namespace fc {
 
   outcome::result<void> main(Config &config) {
     auto io{std::make_shared<io_context>()};
-    auto scheduler{std::make_shared<libp2p::protocol::AsioScheduler>(
-        *io, libp2p::protocol::SchedulerConfig())};
+    auto injector =
+        libp2p::injector::makeHostInjector<boost::di::extension::shared_config>(
+            boost::di::bind<boost::asio::io_context>.template to(
+                io)[boost::di::override]);
+    auto scheduler{
+        injector.create<std::shared_ptr<libp2p::basic::Scheduler>>()};
 
     auto mapi{std::make_shared<api::StorageMinerApi>()};
     api::rpc::Client wsc{*io};
     wsc.setup(*mapi);
-    OUTCOME_TRY(wsc.connect(config.miner_api.first, config.miner_api.second));
+    OUTCOME_TRY(wsc.connect(
+        config.miner_api.first, "/rpc/v0", config.miner_api.second));
 
     OUTCOME_TRY(version, mapi->Version());
 
-    if (version.api_version != kMinerApiVersion) {
+    if (version.api_version != kExpectedMinerApiVersion) {
       spdlog::error("lotus-miner API version doesn't match: expected: {}",
-                    kMinerApiVersion);
+                    kExpectedMinerApiVersion);
       exit(EXIT_FAILURE);
     }
-
-    // TODO(ortyomka): [FIL-347] remove it
-    OUTCOME_TRYA(config.seal_type, mapi->SealProof());
 
     if (config.need_download) {
       OUTCOME_TRY(address, mapi->ActorAddress());
@@ -190,24 +198,25 @@ namespace fc {
         local_store, std::unordered_map<std::string, std::string>{})};
 
     sector_storage::WorkerConfig wconfig{
-        .seal_proof_type = config.seal_type,
+        .custom_hostname = boost::none,  // TODO: add flag for change it
         .task_types = config.tasks,
+        .is_no_swap = false,  // TODO: add flag for change it
     };
 
-    auto worker{std::make_unique<LocalWorker>(wconfig, remote_store)};
+    auto worker{std::make_shared<LocalWorker>(io, wconfig, mapi, remote_store)};
 
     auto wapi{std::make_shared<api::WorkerApi>()};
     wapi->Version = []() { return VersionResult{"seal-worker", 0, 0}; };
     wapi->StorageAddLocal = [&](const std::string &path) {
       return local_store->openPath(path);
     };
-    wapi->Fetch = [&](const SectorId &sector,
+    wapi->Fetch = [&](const SectorRef &sector,
                       const SectorFileType &file_type,
                       PathType path_type,
                       AcquireMode mode) {
       return worker->fetch(sector, file_type, path_type, mode);
     };
-    wapi->UnsealPiece = [&](const SectorId &sector,
+    wapi->UnsealPiece = [&](const SectorRef &sector,
                             UnpaddedByteIndex offset,
                             const UnpaddedPieceSize &size,
                             const SealRandomness &randomness,
@@ -215,11 +224,9 @@ namespace fc {
       return worker->unsealPiece(
           sector, offset, size, randomness, unsealed_cid);
     };
-    wapi->Remove = [&](const SectorId &sector) {
-      return worker->remove(sector);
-    };
-    wapi->MoveStorage = [&](const SectorId &sector) {
-      return worker->moveStorage(sector);
+    wapi->MoveStorage = [&](const SectorRef &sector,
+                            const SectorFileType &types) {
+      return worker->moveStorage(sector, types);
     };
 
     wapi->Info = [&]() { return worker->getInfo(); };
@@ -231,35 +238,33 @@ namespace fc {
       return std::move(tasks);
     };
 
-    wapi->SealPreCommit1 = [&](const SectorId &sector,
+    wapi->SealPreCommit1 = [&](const SectorRef &sector,
                                const SealRandomness &ticket,
                                std::vector<PieceInfo> pieces) {
       return worker->sealPreCommit1(sector, ticket, pieces);
     };
-    wapi->SealPreCommit2 = [&](const SectorId &sector,
+    wapi->SealPreCommit2 = [&](const SectorRef &sector,
                                const PreCommit1Output &pre_commit_1_output) {
       return worker->sealPreCommit2(sector, pre_commit_1_output);
     };
-    wapi->SealCommit1 = [&](const SectorId &sector,
+    wapi->SealCommit1 = [&](const SectorRef &sector,
                             const SealRandomness &ticket,
                             const InteractiveRandomness &seed,
                             std::vector<PieceInfo> pieces,
                             const SectorCids &cids) {
       return worker->sealCommit1(sector, ticket, seed, pieces, cids);
     };
-    wapi->SealCommit2 = [&](const SectorId &sector,
+    wapi->SealCommit2 = [&](const SectorRef &sector,
                             const Commit1Output &commit_1_output) {
       return worker->sealCommit2(sector, commit_1_output);
     };
-    wapi->FinalizeSector = [&](const SectorId &sector,
+    wapi->FinalizeSector = [&](const SectorRef &sector,
                                std::vector<Range> keep_unsealed) {
       return worker->finalizeSector(sector, keep_unsealed);
     };
-    wapi->Remove = [&](const SectorId &sector) {
-      return worker->remove(sector);
-    };
 
-    auto wrpc{api::makeRpc(*wapi)};
+    std::map<std::string, std::shared_ptr<api::Rpc>> wrpc;
+    wrpc.emplace("/rpc/v0", api::makeRpc(*wapi));
     auto wroutes{std::make_shared<api::Routes>()};
 
     wroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
@@ -271,15 +276,16 @@ namespace fc {
     boost::asio::post(*(thread.io), [&] {
       spdlog::info("fuhon worker are registering");
       auto address{fmt::format("/ip4/127.0.0.1/tcp/{}/http", config.api_port)};
-      auto maybe_error =
-          mapi->WorkerConnect(address);  // TODO: make reconnect if failed
-
-      if (maybe_error.has_error()) {
-        spdlog::error("worker register error: {}",
-                      maybe_error.error().message());
-        return;
-      }
-      spdlog::info("fuhon worker registered");
+      mapi->WorkerConnect(
+          [](const outcome::result<void> &maybe_error) {
+            if (maybe_error.has_error()) {
+              spdlog::error("worker register error: {}",
+                            maybe_error.error().message());
+              return;
+            }
+            spdlog::info("fuhon worker registered");
+          },
+          address);  // TODO: make reconnect if failed
     });
 
     spdlog::info("fuhon worker started");

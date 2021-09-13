@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SECTOR_STAT_HPP
-#define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SECTOR_STAT_HPP
+#pragma once
 
 #include "miner/storage_fsm/sealing_states.hpp"
 #include "primitives/sector/sector.hpp"
@@ -21,5 +20,3 @@ namespace fc::mining {
     virtual uint64_t currentSealing() const = 0;
   };
 }  // namespace fc::mining
-
-#endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SECTOR_STAT_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_CHAIN_IMPL_BLOCK_VALIDATOR_IMPL_HPP
-#define CPP_FILECOIN_CORE_CHAIN_IMPL_BLOCK_VALIDATOR_IMPL_HPP
+#pragma once
 
 #include <functional>
 #include <map>
@@ -149,5 +148,3 @@ namespace fc::blockchain::block_validator {
 }  // namespace fc::blockchain::block_validator
 
 OUTCOME_HPP_DECLARE_ERROR(fc::blockchain::block_validator, ValidatorError);
-
-#endif  // CPP_FILECOIN_CORE_CHAIN_IMPL_BLOCK_VALIDATOR_IMPL_HPP

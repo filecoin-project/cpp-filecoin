@@ -29,12 +29,17 @@ namespace {
 }  // namespace
 
 namespace fc::common {
+  decltype(file_sink) file_sink;
+
   Logger createLogger(const std::string &tag) {
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
     auto logger = spdlog::get(tag);
     if (logger == nullptr) {
       logger = ::createLogger(tag);
+      if (file_sink) {
+        logger->sinks().push_back(file_sink);
+      }
     }
     return logger;
   }

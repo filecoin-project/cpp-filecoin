@@ -20,17 +20,39 @@ namespace fc::common {
 
   Outcome<Buffer> readFile(const boost::filesystem::path &path);
 
-  outcome::result<void> writeFile(const boost::filesystem::path &path,
-                                  BytesIn input);
+  Outcome<void> writeFile(const boost::filesystem::path &path, BytesIn input);
 
   /** returns true on success */
   inline bool read(std::istream &is, gsl::span<uint8_t> bytes) {
-    return is.read((char *)bytes.data(), bytes.size()).good();
+    return is.read(span::string(bytes).data(), bytes.size()).good();
   }
 
   /** returns true on success */
   template <typename T>
   inline bool read(std::istream &is, gsl::span<T> values) {
     return read(is, span::cast<uint8_t>(values));
+  }
+
+  template <typename T>
+  inline bool readStruct(std::istream &is, T &value) {
+    return read(is, gsl::make_span(&value, 1));
+  }
+
+  /** returns true on success */
+  inline bool write(std::ostream &is, BytesIn bytes) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return is.write(reinterpret_cast<const char *>(bytes.data()), bytes.size())
+        .good();
+  }
+
+  /** returns true on success */
+  template <typename T>
+  inline bool write(std::ostream &is, gsl::span<T> values) {
+    return write(is, span::cast<const uint8_t>(values));
+  }
+
+  template <typename T>
+  inline bool writeStruct(std::ostream &is, const T &value) {
+    return write(is, gsl::make_span(&value, 1));
   }
 }  // namespace fc::common

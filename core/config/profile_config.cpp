@@ -28,7 +28,8 @@ namespace fc::config {
     // Extract the first string from 'values'. If there is more than
     // one string, it's an error, and exception will be thrown.
     std::string const &value = validators::get_single_string(values);
-    if (value == "mainnet" || value == "2k") {
+    if (value == "mainnet" || value == "2k" || value == "no-upgrades"
+        || value == "interopnet") {
       v = boost::any(Profile{value});
     } else {
       throw validation_error(validation_error::invalid_option_value);
@@ -47,6 +48,10 @@ namespace fc::config {
                 // nothing because default values are mainnet
               } else if (profile == "2k") {
                 setParams2K();
+              } else if (profile == "no-upgrades") {
+                setParamsNoUpgrades();
+              } else if (profile == "interopnet") {
+                setParamsInteropnet();
               }
             }),
         "Network parameters profile configuration that defines network "

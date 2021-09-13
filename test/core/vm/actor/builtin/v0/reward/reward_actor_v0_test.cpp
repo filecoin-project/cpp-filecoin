@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/types/reward/policy.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
+#include "vm/actor/builtin/states/reward/v0/reward_actor_state.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/vm/actor/builtin/reward/reward_actor_test_fixture.hpp"
+#include "vm/actor/builtin/types/reward/policy.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::vm::actor::builtin::v0::reward {
@@ -24,22 +24,8 @@ namespace fc::vm::actor::builtin::v0::reward {
   struct RewardActorV0Test : public RewardActorTestFixture<RewardActorState> {
     void SetUp() override {
       RewardActorTestFixture<RewardActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion0;
-
-      EXPECT_CALL(*state_manager, createRewardActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<RewardActorState>();
-            return std::static_pointer_cast<states::RewardActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getRewardActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<RewardActorState>(cid));
-            auto s = std::make_shared<RewardActorState>(current_state);
-            return std::static_pointer_cast<states::RewardActorState>(s);
-          }));
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
     }
 
     /**

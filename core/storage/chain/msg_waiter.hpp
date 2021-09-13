@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_CHAIN_MSG_WAITER_HPP
-#define CPP_FILECOIN_CORE_STORAGE_CHAIN_MSG_WAITER_HPP
+#pragma once
+
+#include <mutex>
 
 #include "fwd.hpp"
 #include "storage/chain/chain_store.hpp"
@@ -13,23 +14,58 @@
 namespace fc::storage::blockchain {
   using vm::runtime::MessageReceipt;
 
-  struct MsgWaiter : public std::enable_shared_from_this<MsgWaiter> {
-    using Result = std::pair<MessageReceipt, TipsetKey>;
-    using Callback = std::function<void(const Result &)>;
+  // TODO(turuslan): "allow_replaced" param to ignore message gas
+  class MsgWaiter : public std::enable_shared_from_this<MsgWaiter> {
+   public:
+    using Callback = std::function<void(TipsetCPtr, MessageReceipt)>;
+    struct Wait {
+      std::multimap<ChainEpoch, Callback> callbacks;
+      TipsetCPtr ts;
+      MessageReceipt receipt;
+    };
+    using Waiting = std::map<CID, Wait>;
+    struct Search {
+      CID cid;
+      Callback cb;
+      ChainEpoch min_height{};
+      TipsetCPtr ts;
+    };
+    using Searching = std::list<Search>;
 
     static std::shared_ptr<MsgWaiter> create(
         TsLoadPtr ts_load,
         IpldPtr ipld,
+        std::shared_ptr<boost::asio::io_context> io,
         std::shared_ptr<ChainStore> chain_store);
+
+    void search(TipsetCPtr ts,
+                const CID &cid,
+                ChainEpoch lookback_limit,
+                Callback cb);
+    void wait(const CID &cid,
+              ChainEpoch lookback_limit,
+              EpochDuration confidence,
+              Callback cb);
+
+   private:
+    /** Head change subscription. */
     outcome::result<void> onHeadChange(const HeadChange &change);
-    void wait(const CID &cid, const Callback &callback);
+    outcome::result<bool> isSearch(const CID &cid);
+    void _search(TipsetCPtr ts,
+                 const CID &cid,
+                 ChainEpoch lookback_limit,
+                 Callback cb);
+    void searchLoop(Searching::iterator it);
+    Waiting::iterator checkWait(Waiting::iterator it);
 
     TsLoadPtr ts_load;
     IpldPtr ipld;
+    std::shared_ptr<boost::asio::io_context> io;
     ChainStore::connection_t head_sub;
-    std::map<CID, Result> results;
-    std::map<CID, std::vector<Callback>> waiting;
+    mutable std::mutex mutex;
+    TipsetCPtr head;
+    std::shared_ptr<vm::state::StateTreeImpl> state_tree;
+    Waiting waiting;
+    Searching searching;
   };
 }  // namespace fc::storage::blockchain
-
-#endif  // CPP_FILECOIN_CORE_STORAGE_CHAIN_MSG_WAITER_HPP

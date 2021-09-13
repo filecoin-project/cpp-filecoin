@@ -6,6 +6,7 @@
 #pragma once
 
 #include "primitives/big_int.hpp"
+#include "primitives/go/math.hpp"
 
 namespace fc::common::math {
   using primitives::BigInt;
@@ -85,5 +86,36 @@ namespace fc::common::math {
     // polynomials of the rational function are evaluated using Horner's method
     return bigdiv(polyval(kExpNumCoef, x, precision) << precision,
                   polyval(kExpDenoCoef, x, precision));
+  }
+
+  inline BigInt ln(const BigInt &z) {
+    auto k{(z ? msb(z) : 0) - 1 - kPrecision128};  // Q.0
+    auto x{z};
+    if (k > 0) {
+      x >>= k;  // Q.128
+    } else {
+      x <<= -k;  // Q.128
+    }
+    static const std::vector<BigInt> kNum{
+        BigInt{"261417938209272870992496419296200268025"},
+        BigInt{"7266615505142943436908456158054846846897"},
+        BigInt{"32458783941900493142649393804518050491988"},
+        BigInt{"17078670566130897220338060387082146864806"},
+        BigInt{"-35150353308172866634071793531642638290419"},
+        BigInt{"-20351202052858059355702509232125230498980"},
+        BigInt{"-1563932590352680681114104005183375350999"},
+    };
+    static const std::vector<BigInt> kDen{
+        BigInt{"49928077726659937662124949977867279384"},
+        BigInt{"2508163877009111928787629628566491583994"},
+        BigInt{"21757751789594546643737445330202599887121"},
+        BigInt{"53400635271583923415775576342898617051826"},
+        BigInt{"41248834748603606604000911015235164348839"},
+        BigInt{"9015227820322455780436733526367238305537"},
+        BigInt{"340282366920938463463374607431768211456"},
+    };
+    static const BigInt kLn2{"235865763225513294137944142764154484399"};
+    return k * kLn2
+           + bigdiv(polyval(kNum, x) << kPrecision128, polyval(kDen, x));
   }
 }  // namespace fc::common::math

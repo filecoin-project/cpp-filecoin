@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_FSLOCK_FSLOCK_ERROR_HPP
-#define FILECOIN_CORE_FSLOCK_FSLOCK_ERROR_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 
@@ -22,5 +21,3 @@ namespace fc::fslock {
 }  // namespace fc::fslock
 
 OUTCOME_HPP_DECLARE_ERROR(fc::fslock, FSLockError);
-
-#endif  // FILECOIN_CORE_FSLOCK_FSLOCK_ERROR_HPP

@@ -6,6 +6,7 @@
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 
 #include "primitives/cid/comm_cid.hpp"
+#include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
@@ -14,13 +15,14 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::kChainEpochUndefined;
   using primitives::cid::kCommitmentBytesLen;
   using primitives::piece::PieceInfo;
+  using states::MarketActorStatePtr;
   using toolchain::Toolchain;
   using namespace types::market;
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    auto state = runtime.stateManager()->createMarketActorState(
-        runtime.getActorVersion());
+    MarketActorStatePtr state{runtime.getActorVersion()};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
     state->last_cron = kChainEpochUndefined;
 
     OUTCOME_TRY(runtime.commitState(state));
@@ -40,7 +42,7 @@ namespace fc::vm::actor::builtin::v0::market {
     std::tie(nominal, std::ignore, std::ignore) = addresses;
 
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR(state->escrow_table.addCreate(nominal, message_value),
                      VMExitCode::kErrIllegalState);
@@ -65,7 +67,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(approved_callers));
 
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR_A(
         min, state->locked_table.get(nominal), VMExitCode::kErrIllegalState);
@@ -94,12 +96,13 @@ namespace fc::vm::actor::builtin::v0::market {
         Toolchain::createAddressMatcher(runtime.getActorVersion());
     OUTCOME_TRY(runtime.validateArgument(
         code_id.value() == address_matcher->getStorageMinerCodeId()));
-    OUTCOME_TRY(addresses, requestMinerControlAddress(runtime, provider));
+
+    const auto utils = Toolchain::createMarketUtils(runtime);
+
+    OUTCOME_TRY(addresses, utils->requestMinerControlAddress(provider));
     if (addresses.worker != runtime.getImmediateCaller()) {
       ABORT(VMExitCode::kErrForbidden);
     }
-
-    const auto utils = Toolchain::createMarketUtils(runtime);
 
     // request current baseline power
     OUTCOME_TRY(baseline_power, utils->getBaselinePowerFromRewardActor());
@@ -109,7 +112,7 @@ namespace fc::vm::actor::builtin::v0::market {
     std::vector<DealId> deals;
     std::map<Address, Address> resolved_addresses;
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
 
     // Lotus gas conformance
@@ -119,7 +122,7 @@ namespace fc::vm::actor::builtin::v0::market {
                      VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR(state->escrow_table.hamt.loadRoot(),
                      VMExitCode::kErrIllegalState);
-    REQUIRE_NO_ERROR(state->pending_proposals.hamt.loadRoot(),
+    REQUIRE_NO_ERROR(state->pending_proposals_0.hamt.loadRoot(),
                      VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR(state->deals_by_epoch.hamt.loadRoot(),
                      VMExitCode::kErrIllegalState);
@@ -139,19 +142,17 @@ namespace fc::vm::actor::builtin::v0::market {
       resolved_addresses[deal.client] = client;
       deal.client = client;
 
-      const auto lock = state->lockClientAndProviderBalances(runtime, deal);
-      if (lock.has_error()) {
-        REQUIRE_NO_ERROR(lock, static_cast<VMExitCode>(lock.error().value()));
-      }
+      REQUIRE_NO_ERROR(state->lockClientAndProviderBalances(runtime, deal),
+                       VMExitCode::kErrIllegalState);
 
       const auto deal_id = state->next_deal++;
 
       REQUIRE_NO_ERROR_A(has,
-                         state->pending_proposals.has(deal.cid()),
+                         state->pending_proposals_0.has(deal.cid()),
                          VMExitCode::kErrIllegalState);
       OUTCOME_TRY(runtime.validateArgument(!has));
 
-      REQUIRE_NO_ERROR(state->pending_proposals.set(deal.cid(), deal),
+      REQUIRE_NO_ERROR(state->pending_proposals_0.set(deal.cid(), deal),
                        VMExitCode::kErrIllegalState);
 
       REQUIRE_NO_ERROR(state->proposals.set(deal_id, deal),
@@ -197,7 +198,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
     const auto utils = Toolchain::createMarketUtils(runtime);
     REQUIRE_NO_ERROR_A(result,
@@ -220,7 +221,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
     const auto utils = Toolchain::createMarketUtils(runtime);
     REQUIRE_NO_ERROR(utils->validateDealsForActivation(
@@ -238,7 +239,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          state->proposals.get(deal_id),
                          VMExitCode::kErrIllegalState);
 
-      const auto pending = state->pending_proposals.has(proposal.cid());
+      const auto pending = state->pending_proposals_0.has(proposal.cid());
       if (!pending.value()) {
         ABORT(VMExitCode::kErrIllegalState);
       }
@@ -261,7 +262,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
 
     for (const auto deal_id : params.deals) {
@@ -313,7 +314,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
 
     // Lotus gas conformance
@@ -337,7 +338,7 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kCronAddress));
     const auto now{runtime.getCurrentEpoch()};
     REQUIRE_NO_ERROR_A(state,
-                       runtime.stateManager()->getMarketActorState(),
+                       runtime.getActorState<MarketActorStatePtr>(),
                        VMExitCode::kErrIllegalState);
     TokenAmount slashed_sum;
     std::map<ChainEpoch, std::vector<DealId>> updates_needed;
@@ -354,7 +355,7 @@ namespace fc::vm::actor::builtin::v0::market {
                      VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR(state->proposals.amt.loadRoot(),
                      VMExitCode::kErrIllegalState);
-    REQUIRE_NO_ERROR(state->pending_proposals.hamt.loadRoot(),
+    REQUIRE_NO_ERROR(state->pending_proposals_0.hamt.loadRoot(),
                      VMExitCode::kErrIllegalState);
 
     const auto utils = Toolchain::createMarketUtils(runtime);
@@ -390,7 +391,7 @@ namespace fc::vm::actor::builtin::v0::market {
           // if this is the first cron tick for the deal, it should be in the
           // pending state->
           if (deal_state.last_updated_epoch == kChainEpochUndefined) {
-            REQUIRE_NO_ERROR(state->pending_proposals.remove(deal.cid()),
+            REQUIRE_NO_ERROR(state->pending_proposals_0.remove(deal.cid()),
                              VMExitCode::kErrIllegalState);
           }
 

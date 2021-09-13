@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_MOCKS_SECTOR_STORAGE_STORES_REMOTE_STORE_MOCK_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_MOCKS_SECTOR_STORAGE_STORES_REMOTE_STORE_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -13,9 +12,8 @@
 namespace fc::sector_storage::stores {
   class RemoteStoreMock : public RemoteStore {
    public:
-    MOCK_METHOD6(acquireSector,
-                 outcome::result<AcquireSectorResponse>(SectorId,
-                                                        RegisteredSealProof,
+    MOCK_METHOD5(acquireSector,
+                 outcome::result<AcquireSectorResponse>(SectorRef,
                                                         SectorFileType,
                                                         SectorFileType,
                                                         PathType path_type,
@@ -25,10 +23,7 @@ namespace fc::sector_storage::stores {
 
     MOCK_METHOD2(removeCopies, outcome::result<void>(SectorId, SectorFileType));
 
-    MOCK_METHOD3(moveStorage,
-                 outcome::result<void>(SectorId,
-                                       RegisteredSealProof,
-                                       SectorFileType));
+    MOCK_METHOD2(moveStorage, outcome::result<void>(SectorRef, SectorFileType));
 
     MOCK_METHOD1(getFsStat, outcome::result<FsStat>(StorageID));
 
@@ -37,5 +32,3 @@ namespace fc::sector_storage::stores {
     MOCK_CONST_METHOD0(getLocalStore, std::shared_ptr<LocalStore>());
   };
 }  // namespace fc::sector_storage::stores
-
-#endif  // CPP_FILECOIN_TEST_TESTUTIL_MOCKS_SECTOR_STORAGE_STORES_REMOTE_STORE_MOCK_HPP

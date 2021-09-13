@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
-#include "vm/actor/builtin/v0/init/init_actor_state.hpp"
+#include "vm/actor/builtin/states/init/v0/init_actor_state.hpp"
 
 #include <gmock/gmock.h>
 
@@ -12,7 +12,7 @@
 #include "const.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/codes.hpp"
 
 namespace fc::vm::actor::builtin::v0::init {
   using actor::kConstructorMethodNumber;
@@ -25,24 +25,9 @@ namespace fc::vm::actor::builtin::v0::init {
   struct InitActorTest : public ActorTestFixture<InitActorState> {
     void SetUp() override {
       ActorTestFixture<InitActorState>::SetUp();
-      ipld->load(state);
-      actorVersion = ActorVersion::kVersion0;
-
-      EXPECT_CALL(*state_manager, createInitActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<InitActorState>();
-            ipld->load(*s);
-            return std::static_pointer_cast<states::InitActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getInitActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<InitActorState>(cid));
-            auto s = std::make_shared<InitActorState>(current_state);
-            return std::static_pointer_cast<states::InitActorState>(s);
-          }));
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
+      cbor_blake::cbLoadT(ipld, state);
     }
 
     const std::string network_name = "test_network_name";
@@ -52,7 +37,7 @@ namespace fc::vm::actor::builtin::v0::init {
   /** Init actor state CBOR encoding and decoding */
   TEST_F(InitActorTest, InitActorStateCbor) {
     InitActorState init_actor_state;
-    init_actor_state.address_map_0 = {"010001020000"_cid};
+    init_actor_state.address_map = {"010001020000"_cid};
     init_actor_state.next_id = 3;
     init_actor_state.network_name = "n";
 
@@ -76,7 +61,7 @@ namespace fc::vm::actor::builtin::v0::init {
 
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, {network_name}));
 
-    EXPECT_OUTCOME_TRUE(keys, state.address_map_0.keys());
+    EXPECT_OUTCOME_TRUE(keys, state.address_map.keys());
     EXPECT_TRUE(keys.empty());
     EXPECT_EQ(state.next_id, 0);
     EXPECT_EQ(state.network_name, network_name);
@@ -88,7 +73,7 @@ namespace fc::vm::actor::builtin::v0::init {
    * @then Actor address is mapped to id
    */
   TEST_F(InitActorTest, AddActor) {
-    state.address_map_0 = {ipld};
+    state.address_map = {ipld};
     state.next_id = 3;
     state.network_name = network_name;
 
@@ -98,7 +83,7 @@ namespace fc::vm::actor::builtin::v0::init {
     EXPECT_OUTCOME_EQ(state.addActor(address), expected);
 
     EXPECT_EQ(state.next_id, 4);
-    EXPECT_EQ(*state.tryGet(address).value(), 3);
+    EXPECT_EQ(*state.address_map.tryGet(address).value(), 3);
   }
 
   TEST_F(InitActorTest, CallerIdHasError) {

@@ -4,8 +4,8 @@
  */
 
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
+#include "vm/actor/builtin/states/verified_registry/v0/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/verified_registry/policy.hpp"
-#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_state.hpp"
 
 #include <gtest/gtest.h>
 #include "const.hpp"
@@ -22,32 +22,14 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
       : public ActorTestFixture<VerifiedRegistryActorState> {
     void SetUp() override {
       ActorTestFixture<VerifiedRegistryActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion0;
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
 
       setupState();
-
-      EXPECT_CALL(*state_manager, createVerifiedRegistryActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<VerifiedRegistryActorState>();
-            ipld->load(*s);
-            return std::static_pointer_cast<states::VerifiedRegistryActorState>(
-                s);
-          }));
-
-      EXPECT_CALL(*state_manager, getVerifiedRegistryActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<VerifiedRegistryActorState>(cid));
-            auto s =
-                std::make_shared<VerifiedRegistryActorState>(current_state);
-            return std::static_pointer_cast<states::VerifiedRegistryActorState>(
-                s);
-          }));
     }
 
     void setupState() {
-      ipld->load(state);
+      cbor_blake::cbLoadT(ipld, state);
       state.root_key = root_key;
     }
 

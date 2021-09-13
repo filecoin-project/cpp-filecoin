@@ -5,12 +5,12 @@
 
 #pragma once
 
-#include <spdlog/logger.h>
 #include <boost/filesystem/path.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/protocol/gossip/gossip.hpp>
 #include <libp2p/protocol/kademlia/config.hpp>
 
+#include "common/logger.hpp"
 #include "crypto/bls/bls_types.hpp"
 #include "primitives/cid/cid.hpp"
 
@@ -43,6 +43,9 @@ namespace fc::node {
      * debugging.
      */
     bool use_pubsub_workaround = true;
+
+    /** Node default key path */
+    boost::optional<std::string> wallet_default_key_path;
 
     static Config read(int argc, char *argv[]);
 

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_MARKETS_STORAGE_TYPES_HPP
-#define CPP_FILECOIN_MARKETS_STORAGE_TYPES_HPP
+#pragma once
 
 #include <libp2p/peer/peer_info.hpp>
 #include "primitives/address/address.hpp"
@@ -12,10 +11,13 @@
 #include "primitives/types.hpp"
 
 namespace fc::markets::storage {
-
   using libp2p::peer::PeerInfo;
   using primitives::SectorSize;
   using primitives::address::Address;
+
+  /** Where all imported CAR files are stored */
+  const boost::filesystem::path kStorageMarketImportDir =
+      "/tmp/fuhon/storage-market/";
 
   // Closely follows the MinerInfo struct in the spec
   struct StorageProviderInfo {
@@ -27,5 +29,3 @@ namespace fc::markets::storage {
   };
 
 }  // namespace fc::markets::storage
-
-#endif  // CPP_FILECOIN_MARKETS_STORAGE_TYPES_HPP

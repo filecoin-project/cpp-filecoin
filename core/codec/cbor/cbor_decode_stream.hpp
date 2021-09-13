@@ -3,25 +3,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_DECODE_STREAM_HPP
-#define CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_DECODE_STREAM_HPP
+#pragma once
 
-#include "codec/cbor/cbor_common.hpp"
+#include <boost/optional.hpp>
 
-#include <vector>
-
-#include <cbor.h>
-#include <gsl/span>
-
+#include "cbor_blake/cid_block.hpp"
+#include "codec/cbor/cbor_errors.hpp"
+#include "codec/cbor/cbor_token.hpp"
 #include "codec/cbor/streams_annotation.hpp"
+#include "primitives/cid/cid.hpp"
+#include "vm/actor/version.hpp"
 
 namespace fc::codec::cbor {
   /** Decodes CBOR */
-  class CborDecodeStream {
+  class CborDecodeStream : public vm::actor::WithActorVersion {
    public:
     static constexpr auto is_cbor_decoder_stream = true;
 
-    explicit CborDecodeStream(gsl::span<const uint8_t> data);
+    explicit CborDecodeStream(BytesIn data);
 
     /** Decodes integer or bool */
     template <
@@ -35,29 +34,19 @@ namespace fc::codec::cbor {
         return *this;
       }
       if constexpr (std::is_same_v<T, bool>) {
-        if (!cbor_value_is_boolean(&value_)) {
-          outcome::raise(CborDecodeError::kWrongType);
-        }
-        bool bool_value;
-        cbor_value_get_boolean(&value_, &bool_value);
-        num = bool_value;
+        num = _as(token.asBool());
       } else {
-        if (!cbor_value_is_integer(&value_)) {
-          outcome::raise(CborDecodeError::kWrongType);
-        }
         if constexpr (std::is_unsigned_v<T>) {
-          if (!cbor_value_is_unsigned_integer(&value_)) {
+          if (token.type == CborToken::Type::INT) {
             outcome::raise(CborDecodeError::kIntOverflow);
           }
-          uint64_t num64;
-          cbor_value_get_uint64(&value_, &num64);
+          const auto num64{_as(token.asUint())};
           if (num64 > std::numeric_limits<T>::max()) {
             outcome::raise(CborDecodeError::kIntOverflow);
           }
           num = static_cast<T>(num64);
         } else {
-          int64_t num64;
-          cbor_value_get_int64(&value_, &num64);
+          const auto num64{_as(token.asInt())};
           if (num64 > static_cast<int64_t>(std::numeric_limits<T>::max())
               || num64 < static_cast<int64_t>(std::numeric_limits<T>::min())) {
             outcome::raise(CborDecodeError::kIntOverflow);
@@ -65,7 +54,7 @@ namespace fc::codec::cbor {
           num = static_cast<T>(num64);
         }
       }
-      next();
+      readToken();
       return *this;
     }
 
@@ -74,7 +63,7 @@ namespace fc::codec::cbor {
     CborDecodeStream &operator>>(boost::optional<T> &optional) {
       if (isNull()) {
         optional = boost::none;
-        next();
+        readToken();
       } else {
         T value{kDefaultT<T>()};
         *this >> value;
@@ -108,43 +97,66 @@ namespace fc::codec::cbor {
     }
 
     /// Decodes bytes
-    CborDecodeStream &operator>>(gsl::span<uint8_t> bytes);
+    CborDecodeStream &operator>>(BytesOut bytes);
     /** Decodes bytes */
-    CborDecodeStream &operator>>(std::vector<uint8_t> &bytes);
+    CborDecodeStream &operator>>(Bytes &bytes);
     /** Decodes string */
     CborDecodeStream &operator>>(std::string &str);
     /** Decodes CID */
     CborDecodeStream &operator>>(CID &cid);
+    CborDecodeStream &operator>>(CbCid &cid);
+    CborDecodeStream &operator>>(BlockParentCbCids &parents);
     /** Creates list container decode substream */
     CborDecodeStream list();
     /** Skips current element */
-    void next();
+    void next() {
+      readNested();
+    }
     /** Checks if current element is CID */
-    bool isCid() const;
+    bool isCid() const {
+      return token.cidSize().has_value();
+    }
     /** Checks if current element is list container */
-    bool isList() const;
+    bool isList() const {
+      return token.listCount().has_value();
+    }
     /** Checks if current element is map container */
-    bool isMap() const;
-    bool isNull() const;
-    bool isBool() const;
-    bool isInt() const;
-    bool isStr() const;
-    bool isBytes() const;
-
-    // no more bytes to decode
-    bool isEOF() const;
+    bool isMap() const {
+      return token.mapCount().has_value();
+    }
+    bool isNull() const {
+      return token.isNull();
+    }
+    bool isBool() const {
+      return token.asBool().has_value();
+    }
+    bool isInt() const {
+      return token.asInt() || token.asUint();
+    }
+    bool isStr() const {
+      return token.strSize().has_value();
+    }
+    bool isBytes() const {
+      return token.bytesSize().has_value();
+    }
 
     /** Returns count of items in current element list container */
-    size_t listLength() const;
+    size_t listLength() const {
+      return _as(token.listCount());
+    }
     /** Reads CBOR bytes of current element (and advances to the next element)
      */
-    std::vector<uint8_t> raw();
+    Bytes raw() {
+      return copy(readNested());
+    }
     /** Creates map container decode substream map */
     std::map<std::string, CborDecodeStream> map();
     static CborDecodeStream &named(std::map<std::string, CborDecodeStream> &map,
                                    const std::string &name);
     /// Returns bytestring length
-    size_t bytesLength() const;
+    size_t bytesLength() const {
+      return _as(token.bytesSize());
+    }
 
     template <typename T>
     auto get() {
@@ -154,12 +166,36 @@ namespace fc::codec::cbor {
     }
 
    private:
-    CborDecodeStream container() const;
+    template <typename T>
+    T _as(const std::optional<T> &opt) const {
+      if (!token) {
+        outcome::raise(CborDecodeError::kInvalidCbor);
+      }
+      if (!opt) {
+        outcome::raise(CborDecodeError::kWrongType);
+      }
+      return *opt;
+    }
+    void readToken() {
+      input = partial;
+      if (partial.empty()) {
+        token = {};
+      } else if (!read(token, partial)) {
+        outcome::raise(CborDecodeError::kInvalidCbor);
+      }
+    }
+    BytesIn readNested() {
+      BytesIn raw;
+      if (!cbor::readNested(raw, input)) {
+        outcome::raise(CborDecodeError::kInvalidCbor);
+      }
+      partial = input;
+      readToken();
+      return raw;
+    }
 
-    std::shared_ptr<std::vector<uint8_t>> data_;
-    std::shared_ptr<CborParser> parser_;
-    CborValue value_{};
+    BytesIn partial;
+    BytesIn input;
+    CborToken token;
   };
 }  // namespace fc::codec::cbor
-
-#endif  // CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_DECODE_STREAM_HPP

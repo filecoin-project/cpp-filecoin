@@ -65,6 +65,10 @@ namespace fc::primitives::sector {
     kStackedDRG64GiBWindowPoSt,
   };
 
+  enum class RegisteredAggregationProof : int64_t {
+    SnarkPackV1,
+  };
+
   /**
    * Produces the PoSt-specific RegisteredProof corresponding to the receiving
    * RegisteredSealProof.
@@ -73,12 +77,23 @@ namespace fc::primitives::sector {
       RegisteredSealProof proof);
   outcome::result<RegisteredPoStProof> getRegisteredWinningPoStProof(
       RegisteredSealProof proof);
+  outcome::result<RegisteredPoStProof> getRegisteredWinningPoStProof(
+      RegisteredPoStProof proof);
 
   outcome::result<SectorSize> getSectorSize(RegisteredSealProof proof);
   outcome::result<SectorSize> getSectorSize(RegisteredPoStProof proof);
 
   outcome::result<size_t> getWindowPoStPartitionSectors(
       RegisteredPoStProof proof);
+
+  struct SectorRef {
+    SectorId id{};
+    RegisteredSealProof proof_type{RegisteredSealProof::kUndefined};
+  };
+
+  inline bool operator==(const SectorRef &lhs, const SectorRef &rhs) {
+    return lhs.id == rhs.id and lhs.proof_type == rhs.proof_type;
+  }
 
   /**
    * Returns the partition size, in sectors, associated with a seal proof type.
@@ -189,6 +204,34 @@ namespace fc::primitives::sector {
   outcome::result<RegisteredSealProof>
   getPreferredSealProofTypeFromWindowPoStType(NetworkVersion network_version,
                                               RegisteredPoStProof proof);
+
+  struct AggregateSealVerifyInfo {
+    SectorNumber number;
+    SealRandomness randomness;
+    InteractiveRandomness interactive_randomness;
+    CID sealed_cid;
+    CID unsealed_cid;
+  };
+  CBOR_TUPLE(AggregateSealVerifyInfo,
+             number,
+             randomness,
+             interactive_randomness,
+             sealed_cid,
+             unsealed_cid)
+
+  struct AggregateSealVerifyProofAndInfos {
+    ActorId miner;
+    RegisteredSealProof seal_proof;
+    RegisteredAggregationProof aggregate_proof;
+    Bytes proof;
+    std::vector<AggregateSealVerifyInfo> infos;
+  };
+  CBOR_TUPLE(AggregateSealVerifyProofAndInfos,
+             miner,
+             seal_proof,
+             aggregate_proof,
+             proof,
+             infos)
 }  // namespace fc::primitives::sector
 
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::sector, Errors);

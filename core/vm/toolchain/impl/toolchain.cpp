@@ -5,13 +5,13 @@
 
 #include "vm/toolchain/toolchain.hpp"
 
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
-#include "vm/actor/builtin/v3/codes.hpp"
+#include "vm/actor/codes.hpp"
 
 #include "vm/toolchain/impl/address_matcher_v0.hpp"
 #include "vm/toolchain/impl/address_matcher_v2.hpp"
 #include "vm/toolchain/impl/address_matcher_v3.hpp"
+#include "vm/toolchain/impl/address_matcher_v4.hpp"
+#include "vm/toolchain/impl/address_matcher_v5.hpp"
 
 #include "vm/actor/builtin/v0/init/init_actor_utils.hpp"
 #include "vm/actor/builtin/v2/init/init_actor_utils.hpp"
@@ -40,29 +40,14 @@
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor_utils.hpp"
 #include "vm/actor/builtin/v3/verified_registry/verified_registry_actor_utils.hpp"
 
+#include "vm/actor/builtin/v4/todo.hpp"
+
 namespace fc::vm::toolchain {
   using namespace fc::vm::actor::builtin;
 
   ActorVersion Toolchain::getActorVersionForNetwork(
       const NetworkVersion &network_version) {
-    switch (network_version) {
-      case NetworkVersion::kVersion0:
-      case NetworkVersion::kVersion1:
-      case NetworkVersion::kVersion2:
-      case NetworkVersion::kVersion3:
-        return ActorVersion::kVersion0;
-      case NetworkVersion::kVersion4:
-      case NetworkVersion::kVersion5:
-      case NetworkVersion::kVersion6:
-      case NetworkVersion::kVersion7:
-      case NetworkVersion::kVersion8:
-      case NetworkVersion::kVersion9:
-        return ActorVersion::kVersion2;
-      case NetworkVersion::kVersion10:
-      case NetworkVersion::kVersion11:
-      case NetworkVersion::kVersion12:
-        return ActorVersion::kVersion3;
-    }
+    return actorVersion(network_version);
   }
 
   ActorVersion Toolchain::getActorVersionForCid(const CodeId &actorCid) {
@@ -102,6 +87,30 @@ namespace fc::vm::toolchain {
       return ActorVersion::kVersion3;
     }
 
+    if ((actorCid == v4::kAccountCodeId) || (actorCid == v4::kCronCodeId)
+        || (actorCid == v4::kStoragePowerCodeId)
+        || (actorCid == v4::kStorageMarketCodeId)
+        || (actorCid == v4::kStorageMinerCodeId)
+        || (actorCid == v4::kMultisigCodeId) || (actorCid == v4::kInitCodeId)
+        || (actorCid == v4::kPaymentChannelCodeId)
+        || (actorCid == v4::kRewardActorCodeId)
+        || (actorCid == v4::kSystemActorCodeId)
+        || (actorCid == v4::kVerifiedRegistryCodeId)) {
+      return ActorVersion::kVersion4;
+    }
+
+    if ((actorCid == v5::kAccountCodeId) || (actorCid == v5::kCronCodeId)
+        || (actorCid == v5::kStoragePowerCodeId)
+        || (actorCid == v5::kStorageMarketCodeId)
+        || (actorCid == v5::kStorageMinerCodeId)
+        || (actorCid == v5::kMultisigCodeId) || (actorCid == v5::kInitCodeId)
+        || (actorCid == v5::kPaymentChannelCodeId)
+        || (actorCid == v5::kRewardActorCodeId)
+        || (actorCid == v5::kSystemActorCodeId)
+        || (actorCid == v5::kVerifiedRegistryCodeId)) {
+      return ActorVersion::kVersion5;
+    }
+
     assert(false);
     abort();
   }
@@ -114,6 +123,10 @@ namespace fc::vm::toolchain {
         return std::make_shared<AddressMatcherV2>();
       case ActorVersion::kVersion3:
         return std::make_shared<AddressMatcherV3>();
+      case ActorVersion::kVersion4:
+        return std::make_shared<AddressMatcherV4>();
+      case ActorVersion::kVersion5:
+        return std::make_shared<AddressMatcherV5>();
     }
   }
 
@@ -132,6 +145,10 @@ namespace fc::vm::toolchain {
         return std::make_shared<v2::init::InitUtils>(runtime);
       case ActorVersion::kVersion3:
         return std::make_shared<v3::init::InitUtils>(runtime);
+      case ActorVersion::kVersion4:
+        TODO_ACTORS_V4();
+      case ActorVersion::kVersion5:
+        TODO_ACTORS_V5();
     }
   }
 
@@ -144,6 +161,10 @@ namespace fc::vm::toolchain {
         return std::make_shared<v2::market::MarketUtils>(runtime);
       case ActorVersion::kVersion3:
         return std::make_shared<v2::market::MarketUtils>(runtime);  // TODO v3
+      case ActorVersion::kVersion4:
+        TODO_ACTORS_V4();
+      case ActorVersion::kVersion5:
+        TODO_ACTORS_V5();
     }
   }
 
@@ -156,6 +177,10 @@ namespace fc::vm::toolchain {
         return std::make_shared<v2::miner::MinerUtils>(runtime);
       case ActorVersion::kVersion3:
         return std::make_shared<v3::miner::MinerUtils>(runtime);
+      case ActorVersion::kVersion4:
+        TODO_ACTORS_V4();
+      case ActorVersion::kVersion5:
+        TODO_ACTORS_V5();
     }
   }
 
@@ -168,6 +193,10 @@ namespace fc::vm::toolchain {
         return std::make_shared<v2::multisig::MultisigUtils>(runtime);
       case ActorVersion::kVersion3:
         return std::make_shared<v3::multisig::MultisigUtils>(runtime);
+      case ActorVersion::kVersion4:
+        TODO_ACTORS_V4();
+      case ActorVersion::kVersion5:
+        TODO_ACTORS_V5();
     }
   }
 
@@ -184,6 +213,10 @@ namespace fc::vm::toolchain {
       case ActorVersion::kVersion3:
         return std::make_shared<v3::payment_channel::PaymentChannelUtils>(
             runtime);
+      case ActorVersion::kVersion4:
+        TODO_ACTORS_V4();
+      case ActorVersion::kVersion5:
+        TODO_ACTORS_V5();
     }
   }
 
@@ -196,6 +229,10 @@ namespace fc::vm::toolchain {
         return std::make_shared<v2::storage_power::PowerUtils>(runtime);
       case ActorVersion::kVersion3:
         return std::make_shared<v3::storage_power::PowerUtils>(runtime);
+      case ActorVersion::kVersion4:
+        TODO_ACTORS_V4();
+      case ActorVersion::kVersion5:
+        TODO_ACTORS_V5();
     }
   }
 
@@ -208,6 +245,10 @@ namespace fc::vm::toolchain {
         return std::make_shared<v2::verified_registry::VerifRegUtils>(runtime);
       case ActorVersion::kVersion3:
         return std::make_shared<v3::verified_registry::VerifRegUtils>(runtime);
+      case ActorVersion::kVersion4:
+        TODO_ACTORS_V4();
+      case ActorVersion::kVersion5:
+        TODO_ACTORS_V5();
     }
   }
 }  // namespace fc::vm::toolchain

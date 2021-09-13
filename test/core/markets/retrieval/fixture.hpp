@@ -8,10 +8,12 @@
 
 #include <gtest/gtest.h>
 #include <boost/di/extension/scopes/shared.hpp>
+#include <libp2p/basic/scheduler.hpp>
 #include <libp2p/injector/host_injector.hpp>
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <libp2p/security/plaintext.hpp>
-#include "api/node_api.hpp"
+
+#include "api/full_node/node_api.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "core/markets/retrieval/config.hpp"
 #include "core/markets/retrieval/data.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -95,6 +97,8 @@ namespace fc::markets::retrieval::test {
     common::Logger logger = common::createLogger("RetrievalMarketTest");
 
     void SetUp() override {
+      libp2pSoralog();
+
       std::string address_string = fmt::format(
           "/ip4/127.0.0.1/tcp/{}/ipfs/"
           "12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV",
@@ -127,8 +131,7 @@ namespace fc::markets::retrieval::test {
       auto graphsync{
           std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
               host,
-              std::make_shared<libp2p::protocol::AsioScheduler>(
-                  *context, libp2p::protocol::SchedulerConfig{}))};
+              injector.create<std::shared_ptr<libp2p::basic::Scheduler>>())};
       graphsync->subscribe([this](auto &from, auto &data) {
         OUTCOME_EXCEPT(client_ipfs->set(data.cid, data.content));
       });
@@ -138,22 +141,13 @@ namespace fc::markets::retrieval::test {
       auto config_key{
           std::make_shared<fc::storage::OneKey>("config", storage_backend)};
       config_key->setCbor(config);
-      provider =
-          std::make_shared<provider::RetrievalProviderImpl>(host,
-                                                            datatransfer,
-                                                            api,
-                                                            piece_storage,
-                                                            provider_ipfs,
-                                                            config_key,
-                                                            sealer,
-                                                            miner);
+      provider = std::make_shared<provider::RetrievalProviderImpl>(
+          host, datatransfer, api, piece_storage, config_key, sealer, miner);
       client = std::make_shared<client::RetrievalClientImpl>(
           host, datatransfer, api, client_ipfs);
       provider->start();
 
-      BOOST_ASSERT_MSG(
-          addPieceSample(data::green_piece, provider_ipfs).has_value(),
-          "Failed to add sample green piece");
+      addPieceSample(data::green_piece, provider_ipfs).value();
 
       TipsetCPtr chain_head = std::make_shared<Tipset>();
       api->ChainHead = {[=]() { return chain_head; }};
@@ -161,13 +155,13 @@ namespace fc::markets::retrieval::test {
       api->StateMinerInfo = [=](auto &address, auto &tipset_key) {
         MinerInfo info;
         info.worker = miner_worker_address;
+        info.multiaddrs = host->getAddresses();
         return info;
       };
 
-      api->PaychGet = {
-          [=](auto &, auto &, auto &) -> outcome::result<AddChannelInfo> {
-            return AddChannelInfo{.channel = Address::makeFromId(333)};
-          }};
+      api->PaychGet = [=](auto cb, auto &, auto &, auto &) {
+        cb(AddChannelInfo{.channel = Address::makeFromId(333)});
+      };
 
       api->PaychAllocateLane = {
           [=](auto &) -> outcome::result<LaneId> { return LaneId{1}; }};
@@ -212,7 +206,7 @@ namespace fc::markets::retrieval::test {
       OUTCOME_TRY(piece_storage->addDealForPiece(piece_cid, deal));
       OUTCOME_TRY(piece_storage->addPayloadLocations(
           piece_cid, {{payload_cid, location}}));
-      OUTCOME_TRY(ipfs->setCbor(payload));
+      OUTCOME_TRY(setCbor(ipfs, payload));
       return outcome::success();
     }
   };

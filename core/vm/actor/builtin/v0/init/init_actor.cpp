@@ -4,9 +4,12 @@
  */
 
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
+
+#include "vm/actor/builtin/states/init/init_actor_state.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::init {
+  using states::InitActorStatePtr;
   using toolchain::Toolchain;
 
   // Construct
@@ -14,8 +17,8 @@ namespace fc::vm::actor::builtin::v0::init {
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    auto state =
-        runtime.stateManager()->createInitActorState(runtime.getActorVersion());
+    InitActorStatePtr state{runtime.getActorVersion()};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
     state->network_name = params.network_name;
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
@@ -51,7 +54,7 @@ namespace fc::vm::actor::builtin::v0::init {
 
     OUTCOME_TRY(actor_address, runtime.createNewActorAddress());
 
-    OUTCOME_TRY(state, runtime.stateManager()->getInitActorState());
+    OUTCOME_TRY(state, runtime.getActorState<InitActorStatePtr>());
     OUTCOME_TRY(id_address, state->addActor(actor_address));
     OUTCOME_TRY(runtime.commitState(state));
 

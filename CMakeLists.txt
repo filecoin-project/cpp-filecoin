@@ -18,8 +18,8 @@ set(
 
 include("cmake/Hunter/init.cmake")
 HunterGate(
-    URL "https://github.com/soramitsu/soramitsu-hunter/archive/v0.23.257-soramitsu1.tar.gz"
-    SHA1 "130ab680eefe8d85e30ade39fd273c9dd36717f5"
+    URL "https://github.com/soramitsu/soramitsu-hunter/archive/tags/v0.23.257-soramitsu13.tar.gz"
+    SHA1 "8c88d8bac2dee771926b84a6e28642a267f88ea8"
     LOCAL
 )
 
@@ -114,7 +114,6 @@ include_directories(
     SYSTEM
     # system includes
     deps/indicators/include
-    deps/tinycbor/src
     deps/libsecp256k1/include
 )
 

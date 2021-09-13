@@ -12,8 +12,9 @@
 #include "primitives/address/address.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/types/miner/cron_event_payload.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/transit.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/version/version.hpp"
 
@@ -37,6 +38,21 @@ namespace fc::vm::actor::builtin::utils {
    public:
     explicit MinerUtils(Runtime &r) : runtime(r) {}
     virtual ~MinerUtils() = default;
+
+    /**
+     * This limits the number of simultaneous fault, recovery, or
+     * sector-extension declarations. We set this to same as
+     * MaxPartitionsPerDeadline so we can process that many partitions every
+     * deadline.
+     */
+    virtual uint64_t getAddressedPartitionsMax() const = 0;
+
+    inline uint64_t loadPartitionsSectorsMax(
+        uint64_t partition_sector_count) const {
+      return std::min(
+          types::miner::kAddressedSectorsMax / partition_sector_count,
+          getAddressedPartitionsMax());
+    }
 
     /**
      * Resolves an address to an ID address and verifies that it is address of

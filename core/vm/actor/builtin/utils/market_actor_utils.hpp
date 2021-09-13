@@ -8,8 +8,9 @@
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/states/market_actor_state.hpp"
+#include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
+#include "vm/actor/builtin/types/transit.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
@@ -22,6 +23,7 @@ namespace fc::vm::actor::builtin::utils {
   using primitives::address::Address;
   using runtime::Runtime;
   using states::MarketActorStatePtr;
+  using types::Controls;
   using types::market::BalanceLockingReason;
   using types::market::ClientDealProposal;
   using types::market::DealProposal;
@@ -47,7 +49,7 @@ namespace fc::vm::actor::builtin::utils {
         const DealProposal &deal) const = 0;
 
     virtual outcome::result<void> deleteDealProposalAndState(
-        MarketActorStatePtr state,
+        MarketActorStatePtr &state,
         DealId deal_id,
         bool remove_proposal,
         bool remove_state) const = 0;
@@ -65,7 +67,7 @@ namespace fc::vm::actor::builtin::utils {
         const StoragePower &network_qa_power) const = 0;
 
     virtual outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
-    validateDealsForActivation(MarketActorStatePtr state,
+    validateDealsForActivation(MarketActorStatePtr &state,
                                const std::vector<DealId> &deals,
                                const ChainEpoch &sector_expiry) const = 0;
 
@@ -80,6 +82,9 @@ namespace fc::vm::actor::builtin::utils {
 
     virtual outcome::result<void> callVerifRegRestoreBytes(
         const DealProposal &deal) const = 0;
+
+    virtual outcome::result<Controls> requestMinerControlAddress(
+        const Address &miner) const = 0;
 
    protected:
     Runtime &runtime;

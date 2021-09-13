@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_GRAPHSYNC_IMPL_HPP
-#define CPP_FILECOIN_GRAPHSYNC_IMPL_HPP
+#pragma once
 
 #include <set>
 
-#include <libp2p/protocol/common/scheduler.hpp>
+#include <libp2p/basic/scheduler.hpp>
 
 #include "network/network_fwd.hpp"
 
 namespace fc::storage::ipfs::graphsync {
+  using libp2p::basic::Scheduler;
 
   class LocalRequests;
   class Network;
@@ -27,7 +27,7 @@ namespace fc::storage::ipfs::graphsync {
     /// \param host libp2p host object
     /// \param scheduler libp2p scheduler
     GraphsyncImpl(std::shared_ptr<libp2p::Host> host,
-                  std::shared_ptr<libp2p::protocol::Scheduler> scheduler);
+                  std::shared_ptr<Scheduler> scheduler);
 
     ~GraphsyncImpl() override;
 
@@ -66,7 +66,7 @@ namespace fc::storage::ipfs::graphsync {
     void doStop();
 
     /// Scheduler for libp2p
-    std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
+    std::shared_ptr<Scheduler> scheduler_;
 
     /// Network module
     std::shared_ptr<Network> network_;
@@ -85,5 +85,3 @@ namespace fc::storage::ipfs::graphsync {
   };
 
 }  // namespace fc::storage::ipfs::graphsync
-
-#endif  // CPP_FILECOIN_GRAPHSYNC_IMPL_HPP

@@ -8,7 +8,7 @@
 #include <boost/endian/conversion.hpp>
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
@@ -18,6 +18,10 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::sector::WindowPoStVerifyInfo;
   using toolchain::Toolchain;
   using namespace types::miner;
+
+  uint64_t MinerUtils::getAddressedPartitionsMax() const {
+    return 200;
+  }
 
   outcome::result<Address> MinerUtils::resolveControlAddress(
       const Address &address) const {

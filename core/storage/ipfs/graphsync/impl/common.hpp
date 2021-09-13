@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_GRAPHSYNC_COMMON_HPP
-#define CPP_FILECOIN_GRAPHSYNC_COMMON_HPP
+#pragma once
 
 #include "common/logger.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
@@ -41,5 +40,3 @@ namespace fc::storage::ipfs::graphsync {
 }  // namespace fc::storage::ipfs::graphsync
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::ipfs::graphsync, Error);
-
-#endif  // CPP_FILECOIN_GRAPHSYNC_COMMON_HPP

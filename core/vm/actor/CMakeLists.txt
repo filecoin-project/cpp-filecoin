@@ -7,7 +7,6 @@ add_subdirectory(builtin)
 add_subdirectory(cgo)
 
 add_library(actor
-    actor.cpp
     impl/invoker_impl.cpp
     )
 target_link_libraries(actor
@@ -18,6 +17,7 @@ target_link_libraries(actor
     account_actor_v0
     account_actor_v2
     account_actor_v3
+    filecoin_hasher
     init_actor_v0
     init_actor_v2
     init_actor_v3

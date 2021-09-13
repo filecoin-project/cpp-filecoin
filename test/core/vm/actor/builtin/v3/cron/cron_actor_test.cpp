@@ -4,8 +4,8 @@
  */
 
 #include "vm/actor/builtin/v3/cron/cron_actor.hpp"
-#include "vm/actor/builtin/v3/cron/cron_actor_state.hpp"
-#include "vm/actor/builtin/v3/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/states/cron/v3/cron_actor_state.hpp"
+#include "vm/actor/builtin/v3/storage_power/storage_power_actor.hpp"
 
 #include <gtest/gtest.h>
 
@@ -20,22 +20,8 @@ namespace fc::vm::actor::builtin::v3::cron {
   struct CronActorTest : public ActorTestFixture<CronActorState> {
     void SetUp() override {
       ActorTestFixture<CronActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion0;
-
-      EXPECT_CALL(*state_manager, createCronActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<CronActorState>();
-            return std::static_pointer_cast<states::CronActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getCronActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<CronActorState>(cid));
-            auto s = std::make_shared<CronActorState>(current_state);
-            return std::static_pointer_cast<states::CronActorState>(s);
-          }));
+      actor_version = ActorVersion::kVersion0;
+      ipld->actor_version = actor_version;
     }
   };
 

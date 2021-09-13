@@ -4,6 +4,7 @@
  */
 
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
+
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
@@ -35,8 +36,8 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
         utils->resolveAccount(params.from, address_matcher->getAccountCodeId()),
         VMExitCode::kErrIllegalState);
 
-    auto state = runtime.stateManager()->createPaymentChannelActorState(
-        runtime.getActorVersion());
+    PaymentChannelActorStatePtr state{runtime.getActorVersion()};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
     state->from = from;
     state->to = to;
 
@@ -49,10 +50,10 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
 
   outcome::result<void> UpdateChannelState::checkSignature(
       Runtime &runtime,
-      const states::PaymentChannelActorState &state,
+      const PaymentChannelActorStatePtr &state,
       const SignedVoucher &voucher) {
     const auto &signer =
-        runtime.getImmediateCaller() != state.to ? state.to : state.from;
+        runtime.getImmediateCaller() != state->to ? state->to : state->from;
 
     REQUIRE_NO_ERROR_A(voucher_signable_bytes,
                        voucher.signingBytes(),
@@ -108,7 +109,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
 
   outcome::result<void> UpdateChannelState::calculate(
       const Runtime &runtime,
-      states::PaymentChannelActorStatePtr state,
+      PaymentChannelActorStatePtr &state,
       const SignedVoucher &voucher) {
     OUTCOME_TRY(lanes_size, state->lanes.size());
     OUTCOME_TRY(runtime.validateArgument((lanes_size <= kLaneLimit)
@@ -170,17 +171,18 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   }
 
   ACTOR_METHOD_IMPL(UpdateChannelState) {
-    OUTCOME_TRY(state, runtime.stateManager()->getPaymentChannelActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PaymentChannelActorStatePtr>());
     OUTCOME_TRY(runtime.validateImmediateCallerIs(
         std::vector<Address>{state->from, state->to}));
     const auto &voucher = params.signed_voucher;
-    OUTCOME_TRY(checkSignature(runtime, *state, voucher));
+    OUTCOME_TRY(checkSignature(runtime, state, voucher));
     OUTCOME_TRY(checkPaychannelAddr(runtime, voucher));
     OUTCOME_TRY(checkVoucher(runtime, params.secret, voucher));
     OUTCOME_TRY(voucherExtra(runtime, params.proof, voucher));
-    OUTCOME_TRYA(state,
-                 runtime.stateManager()
-                     ->getPaymentChannelActorState());  // Lotus gas conformance
+
+    // Lotus gas conformance
+    OUTCOME_TRYA(state, runtime.getActorState<PaymentChannelActorStatePtr>());
+
     OUTCOME_TRY(calculate(runtime, state, voucher));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
@@ -190,7 +192,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   //============================================================================
 
   ACTOR_METHOD_IMPL(Settle) {
-    OUTCOME_TRY(state, runtime.stateManager()->getPaymentChannelActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PaymentChannelActorStatePtr>());
     OUTCOME_TRY(runtime.validateImmediateCallerIs(
         std::vector<Address>{state->from, state->to}));
 
@@ -207,7 +209,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   //============================================================================
 
   ACTOR_METHOD_IMPL(Collect) {
-    OUTCOME_TRY(state, runtime.stateManager()->getPaymentChannelActorState());
+    OUTCOME_TRY(state, runtime.getActorState<PaymentChannelActorStatePtr>());
     OUTCOME_TRY(runtime.validateImmediateCallerIs(
         std::vector<Address>{state->from, state->to}));
 

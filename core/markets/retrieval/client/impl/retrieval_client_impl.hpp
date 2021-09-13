@@ -8,14 +8,14 @@
 #include <memory>
 
 #include <libp2p/host/host.hpp>
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
 #include "markets/retrieval/client/retrieval_client.hpp"
 #include "markets/retrieval/client/retrieval_client_error.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "storage/ipld/verifier.hpp"
+#include "storage/ipld/traverser.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::markets::retrieval::client {
@@ -24,7 +24,7 @@ namespace fc::markets::retrieval::client {
   using data_transfer::DataTransfer;
   using data_transfer::PeerDtId;
   using fc::storage::ipfs::IpfsDatastore;
-  using fc::storage::ipld::verifier::Verifier;
+  using fc::storage::ipld::traverser::Traverser;
   using libp2p::Host;
   using primitives::BigInt;
   using vm::actor::builtin::types::payment_channel::LaneId;
@@ -34,6 +34,7 @@ namespace fc::markets::retrieval::client {
    */
   struct DealState {
     DealState(const DealProposal &proposal,
+              const IpldPtr &ipld,
               const RetrieveResponseHandler &handler,
               const Address &client_wallet,
               const Address &miner_wallet,
@@ -44,7 +45,7 @@ namespace fc::markets::retrieval::client {
           client_wallet{client_wallet},
           miner_wallet{miner_wallet},
           total_funds(total_funds),
-          verifier{proposal.payload_cid, proposal.params.selector} {}
+          traverser{*ipld, proposal.payload_cid, proposal.params.selector} {}
 
     DealProposal proposal;
     State state;
@@ -66,7 +67,10 @@ namespace fc::markets::retrieval::client {
     /**
      * Received ipld blocks verifier
      */
-    Verifier verifier;
+    Traverser traverser;
+
+    mutable std::mutex pending_mutex;
+    std::optional<std::vector<DealResponse>> pending;
   };
 
   class RetrievalClientImpl
@@ -86,21 +90,25 @@ namespace fc::markets::retrieval::client {
     outcome::result<std::vector<PeerInfo>> findProviders(
         const CID &piece_cid) const override;
 
-    void query(const PeerInfo &peer,
+    void query(const RetrievalPeer &provider_peer,
                const QueryRequest &request,
-               const QueryResponseHandler &response_handler) override;
+               const QueryResponseHandler &cb) override;
 
-    void retrieve(const CID &payload_cid,
-                  const DealProposalParams &deal_params,
-                  const PeerInfo &provider_peer,
-                  const Address &client_wallet,
-                  const Address &miner_wallet,
-                  const TokenAmount &total_funds,
-                  const RetrieveResponseHandler &handler) override;
+    outcome::result<void> retrieve(
+        const CID &payload_cid,
+        const DealProposalParams &deal_params,
+        const TokenAmount &total_funds,
+        const RetrievalPeer &provider_peer,
+        const Address &client_wallet,
+        const Address &miner_wallet,
+        const RetrieveResponseHandler &handler) override;
 
    private:
-    void closeQueryStream(const std::shared_ptr<CborStream> &stream,
-                          const QueryResponseHandler &handler);
+    /**
+     * Get libp2p PeerInfo with multiaddresses
+     * @param provider_peer
+     */
+    outcome::result<PeerInfo> getPeerInfo(const RetrievalPeer &provider_peer);
 
     void processPaymentRequest(const std::shared_ptr<DealState> &deal_state,
                                const TokenAmount &payment_requested);

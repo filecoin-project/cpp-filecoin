@@ -5,8 +5,9 @@
 
 #include "vm/runtime/env.hpp"
 
-#include "storage/ipld/traverser.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
+#include "cbor_blake/cid.hpp"
+#include "codec/cbor/light_reader/cid.hpp"
+#include "vm/actor/builtin/states/account/account_actor_state.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
@@ -23,7 +24,7 @@ namespace fc::vm::runtime {
   using actor::kRewardAddress;
   using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
-  using actor::builtin::states::StateProvider;
+  using actor::builtin::states::AccountActorStatePtr;
   using toolchain::Toolchain;
   using version::getNetworkVersion;
 
@@ -36,8 +37,7 @@ namespace fc::vm::runtime {
     }
     if (auto _actor{state_tree.get(address)}) {
       auto &actor{_actor.value()};
-      StateProvider provider(ipld);
-      OUTCOME_TRY(state, provider.getAccountActorState(actor));
+      OUTCOME_TRY(state, getCbor<AccountActorStatePtr>(ipld, actor.head));
       if (allow_actor || state->address.isKeyType()) {
         return state->address;
       }
@@ -48,20 +48,31 @@ namespace fc::vm::runtime {
   IpldBuffered::IpldBuffered(IpldPtr ipld) : ipld{ipld} {}
 
   outcome::result<void> IpldBuffered::flush(const CID &root) {
-    flushing = true;
-    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{gsl::finally([&] { flushing = false; })};
-    storage::ipld::traverser::Traverser t{*this, root, {}};
-    while (true) {
-      if (auto _cids{t.traverseAll()}) {
-        for (auto &cid : _cids.value()) {
-          OUTCOME_TRY(ipld->set(cid, write.at(*asBlake(cid))));
+    assert(isCbor(root));
+    auto _root{*asBlake(root)};
+    assert(write.count(_root));
+    std::vector<const CbCid *> queue{&_root};
+    std::set<CbCid> visited{_root};
+    size_t next{};
+    while (next < queue.size()) {
+      auto &key{*queue[next++]};
+      BytesIn value{write.at(key)};
+      BytesIn _cid;
+      while (codec::cbor::findCid(_cid, value)) {
+        const CbCid *cid;
+        if (codec::cbor::light_reader::readCborBlake(cid, _cid)) {
+          if (auto it{write.find(*cid)};
+              it != write.end() && visited.emplace(*cid).second) {
+            queue.push_back(&it->first);
+          }
         }
-        return outcome::success();
-      } else if (_cids.error()
-                 != storage::ipfs::IpfsDatastoreError::kNotFound) {
-        return _cids.error();
       }
     }
+    for (auto it{queue.rbegin()}; it != queue.rend(); ++it) {
+      auto &key{**it};
+      OUTCOME_TRY(ipld->set(CID{key}, write.at(key)));
+    }
+    return outcome::success();
   }
 
   outcome::result<bool> IpldBuffered::contains(const CID &cid) const {
@@ -79,19 +90,9 @@ namespace fc::vm::runtime {
       if (auto it{write.find(*asBlake(cid))}; it != write.end()) {
         return it->second;
       }
-      if (!flushing) {
-        return ipld->get(cid);
-      }
+      return ipld->get(cid);
     }
     return storage::ipfs::IpfsDatastoreError::kNotFound;
-  }
-
-  outcome::result<void> IpldBuffered::remove(const CID &cid) {
-    throw "unused";
-  }
-
-  IpldPtr IpldBuffered::shared() {
-    return shared_from_this();
   }
 
   Env::Env(const EnvironmentContext &env_context,
@@ -104,7 +105,14 @@ namespace fc::vm::runtime {
         epoch{tipset->height()},
         ts_branch{std::move(ts_branch)},
         tipset{std::move(tipset)},
-        pricelist{(ChainEpoch)epoch} {}
+        pricelist{(ChainEpoch)epoch} {
+    setHeight(epoch);
+  }
+
+  void Env::setHeight(ChainEpoch height) {
+    epoch = height;
+    ipld->actor_version = actorVersion(height);
+  }
 
   outcome::result<Env::Apply> Env::applyMessage(const UnsignedMessage &message,
                                                 size_t size) {
@@ -185,7 +193,8 @@ namespace fc::vm::runtime {
       used = 0;
     }
     auto no_fee{false};
-    if (static_cast<ChainEpoch>(epoch) > kUpgradeClausHeight
+    if (getNetworkVersion(epoch) <= NetworkVersion::kVersion12
+        && static_cast<ChainEpoch>(epoch) > kUpgradeClausHeight
         && exit_code == VMExitCode::kOk
         && message.method
                == vm::actor::builtin::v0::miner::SubmitWindowedPoSt::Number) {
@@ -323,6 +332,7 @@ namespace fc::vm::runtime {
     } else {
       to_actor = maybe_to_actor.value();
     }
+    dvm::onSendTo(to_actor.code);
     OUTCOME_TRY(catchAbort(chargeGas(
         env->pricelist.onMethodInvocation(message.value, message.method))));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));

@@ -105,8 +105,12 @@ namespace fc::node {
                 io_context)[boost::di::override]);
     auto host = injector.create<std::shared_ptr<libp2p::Host>>();
     auto gossip = libp2p::protocol::gossip::create(
-        injector.create<std::shared_ptr<libp2p::protocol::Scheduler>>(),
+        injector.create<std::shared_ptr<libp2p::basic::Scheduler>>(),
         host,
+        injector.create<std::shared_ptr<libp2p::peer::IdentityManager>>(),
+        injector.create<std::shared_ptr<libp2p::crypto::CryptoProvider>>(),
+        injector.create<
+            std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller>>(),
         gossip_config);
     for (const auto &b : bootstrap_list) {
       gossip->addBootstrapPeer(b.id, b.addresses[0]);

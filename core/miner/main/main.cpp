@@ -10,16 +10,17 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <libp2p/injector/host_injector.hpp>
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
-#include "api/storage_api.hpp"
+#include "api/storage_miner/storage_api.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
 #include "common/io_thread.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "common/outcome.hpp"
 #include "common/peer_key.hpp"
 #include "config/profile_config.hpp"
@@ -35,7 +36,6 @@
 #include "proofs/proof_param_provider.hpp"
 #include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/manager_impl.hpp"
-#include "sector_storage/impl/remote_worker.hpp"
 #include "sector_storage/impl/scheduler_impl.hpp"
 #include "sector_storage/stores/impl/index_impl.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
@@ -49,24 +49,16 @@
 #include "storage/leveldb/prefix.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
 
 namespace fc {
-  using api::RegisteredSealProof;
-  using api::SignedStorageAsk;
   using boost::asio::io_context;
   using common::span::cbytes;
   using config::configProfile;
+  using libp2p::basic::Scheduler;
   using libp2p::multi::Multiaddress;
-  using markets::retrieval::RetrievalAsk;
-  using primitives::StorageID;
   using primitives::address::Address;
   using primitives::sector::RegisteredSealProof;
-  using primitives::sector_file::SectorFileType;
-  using sector_storage::RemoteWorker;
-  using sector_storage::stores::FsStat;
-  using sector_storage::stores::HealthReport;
-  using sector_storage::stores::StorageInfo;
   using storage::BufferMap;
   namespace uuids = boost::uuids;
 
@@ -78,6 +70,7 @@ namespace fc {
         codec::cbor::kDefaultT<Multiaddress>(), {}};
     boost::optional<Address> actor, owner, worker;
     boost::optional<RegisteredSealProof> seal_type;
+    std::vector<Address> precommit_control;
     int api_port;
 
     /** Path to presealed sectors */
@@ -105,6 +98,7 @@ namespace fc {
     option("owner", po::value(&config.owner));
     option("worker", po::value(&config.worker));
     option("sector-size", po::value(&raw.sector_size));
+    option("precommit-control", po::value(&config.precommit_control));
     option("pre-sealed-sectors",
            po::value(&config.preseal_path),
            "Path to presealed sectors");
@@ -152,7 +146,8 @@ namespace fc {
     api::FullNodeApi api;
     api::rpc::Client wsc{*io_thread.io};
     wsc.setup(api);
-    OUTCOME_TRY(wsc.connect(config.node_api.first, config.node_api.second));
+    OUTCOME_TRY(
+        wsc.connect(config.node_api.first, "/rpc/v0", config.node_api.second));
 
     Buffer _peer_id{peer_id.toVector()};
     if (!kv.contains(kActor)) {
@@ -206,8 +201,11 @@ namespace fc {
                                          api::kPushNoSpec));
         spdlog::info(
             "msg {}: CreateMiner owner={}", smsg.getCid(), *config.owner);
-        OUTCOME_TRY(wait, api.StateWaitMsg(smsg.getCid(), kMessageConfidence));
-        OUTCOME_TRY(result, wait.waitSync());
+        OUTCOME_TRY(result,
+                    api.StateWaitMsg(smsg.getCid(),
+                                     kMessageConfidence,
+                                     api::kLookbackNoLimit,
+                                     true));
         if (result.receipt.exit_code != vm::VMExitCode::kOk) {
           spdlog::error("failed to create miner actor: {}",
                         result.receipt.exit_code);
@@ -242,19 +240,24 @@ namespace fc {
                                        api::kPushNoSpec));
       spdlog::info(
           "msg {}: ChangePeerId peer={}", smsg.getCid(), peer_id.toBase58());
-      OUTCOME_TRY(wait, api.StateWaitMsg(smsg.getCid(), kMessageConfidence));
-      wait.waitOwn([](auto _res) {
-        if (_res) {
-          auto &receipt{_res.value().receipt};
-          if (receipt.exit_code == vm::VMExitCode::kOk) {
-            spdlog::info("ChangePeerId ok");
-          } else {
-            spdlog::info("ChangePeerId {}", receipt.exit_code);
-          }
-        } else {
-          spdlog::warn("ChangePeerId error {}", _res.error());
-        }
-      });
+
+      api.StateWaitMsg(
+          [](auto _res) {
+            if (_res) {
+              auto &receipt{_res.value().receipt};
+              if (receipt.exit_code == vm::VMExitCode::kOk) {
+                spdlog::info("ChangePeerId ok");
+              } else {
+                spdlog::info("ChangePeerId {}", receipt.exit_code);
+              }
+            } else {
+              spdlog::warn("ChangePeerId error {}", _res.error());
+            }
+          },
+          smsg.getCid(),
+          kMessageConfidence,
+          api::kLookbackNoLimit,
+          true);
     }
 
     OUTCOME_TRY(
@@ -283,8 +286,7 @@ namespace fc {
         libp2p::injector::useKeyPair(peer_key))};
     auto io{injector.create<std::shared_ptr<io_context>>()};
     auto host{injector.create<std::shared_ptr<libp2p::Host>>()};
-    auto scheduler{std::make_shared<libp2p::protocol::AsioScheduler>(
-        *io, libp2p::protocol::SchedulerConfig{})};
+    auto scheduler{injector.create<std::shared_ptr<Scheduler>>()};
 
     IoThread sealing_thread;
 
@@ -293,8 +295,8 @@ namespace fc {
     auto napi{std::make_shared<api::FullNodeApi>()};
     api::rpc::Client wsc{*io};
     wsc.setup(*napi);
-    OUTCOME_TRY(wsc.connect(config.node_api.first, config.node_api.second));
-    OUTCOME_TRY(minfo, napi->StateMinerInfo(*config.actor, {}));
+    OUTCOME_TRY(
+        wsc.connect(config.node_api.first, "/rpc/v0", config.node_api.second));
 
     host->start();
     OUTCOME_TRY(node_peer, napi->NetAddrsListen());
@@ -335,18 +337,19 @@ namespace fc {
     auto remote_store{std::make_shared<sector_storage::stores::RemoteStoreImpl>(
         local_store, std::unordered_map<std::string, std::string>{})};
 
-    auto wscheduler{
-        std::make_shared<sector_storage::SchedulerImpl>(minfo.seal_proof_type)};
+    OUTCOME_TRY(
+        wscheduler,
+        sector_storage::SchedulerImpl::newScheduler(
+            io, prefixed("scheduler_works/")));  // maybe use another io_context
     OUTCOME_TRY(manager,
                 sector_storage::ManagerImpl::newManager(
-                    remote_store, wscheduler, {true, true, true, true}));
+                    io, remote_store, wscheduler, {true, true, true, true}));
 
     // TODO(ortyomka): make param
-    mining::Config default_config{
-        .max_wait_deals_sectors = 2,
-        .max_sealing_sectors = 0,
-        .max_sealing_sectors_for_deals = 0,
-        .wait_deals_delay = std::chrono::hours(6).count()};
+    mining::Config default_config{.max_wait_deals_sectors = 2,
+                                  .max_sealing_sectors = 0,
+                                  .max_sealing_sectors_for_deals = 0,
+                                  .wait_deals_delay = std::chrono::hours(6)};
     OUTCOME_TRY(
         miner,
         miner::MinerImpl::newMiner(napi,
@@ -358,7 +361,8 @@ namespace fc {
                                    manager,
                                    scheduler,
                                    sealing_thread.io,
-                                   default_config));
+                                   default_config,
+                                   config.precommit_control));
     auto sealing{miner->getSealing()};
 
     OUTCOME_TRY(
@@ -393,7 +397,6 @@ namespace fc {
     auto filestore{std::make_shared<storage::filestore::FileSystemFileStore>()};
     auto storage_provider{
         std::make_shared<markets::storage::provider::StorageProviderImpl>(
-            minfo.seal_proof_type,
             host,
             markets_ipld,
             datatransfer,
@@ -413,108 +416,24 @@ namespace fc {
             datatransfer,
             napi,
             piece_storage,
-            markets_ipld,
             one_key("retrieval_provider_ask", leveldb),
             manager,
             miner)};
     retrieval_provider->start();
 
-    auto mapi{std::make_shared<api::StorageMinerApi>()};
-    mapi->ActorAddress = [&]() { return miner->getAddress(); };
+    auto mapi = api::makeStorageApi(io,
+                                    napi,
+                                    *config.actor,
+                                    miner,
+                                    sector_index,
+                                    manager,
+                                    wscheduler,
+                                    stored_ask,
+                                    storage_provider,
+                                    retrieval_provider);
 
-    mapi->ActorSectorSize =
-        [&](Address addr) -> outcome::result<api::SectorSize> {
-      OUTCOME_TRY(miner_info, napi->StateMinerInfo(addr, {}));
-      return miner_info.sector_size;
-    };
-
-    mapi->DealsImportData = [&](auto &proposal, auto &path) {
-      return storage_provider->importDataForDeal(proposal, path);
-    };
-    mapi->MarketGetAsk = [&]() -> outcome::result<SignedStorageAsk> {
-      return stored_ask->getAsk(*config.actor);
-    };
-    mapi->MarketGetRetrievalAsk = [&]() -> outcome::result<RetrievalAsk> {
-      return retrieval_provider->getAsk();
-    };
-    mapi->MarketSetAsk = [&](auto &price,
-                             auto &verified_price,
-                             auto duration,
-                             auto min_piece_size,
-                             auto max_piece_size) -> outcome::result<void> {
-      return stored_ask->addAsk(
-          {
-              .price = price,
-              .verified_price = verified_price,
-              .min_piece_size = min_piece_size,
-              .max_piece_size = max_piece_size,
-              .miner = *config.actor,
-          },
-          duration);
-    };
-    mapi->MarketSetRetrievalAsk = [&](auto &ask) -> outcome::result<void> {
-      retrieval_provider->setAsk(ask);
-      return outcome::success();
-    };
-    mapi->PledgeSector = [&]() -> outcome::result<void> {
-      return sealing->pledgeSector();
-    };
-    mapi->Version = [] {
-      return api::VersionResult{"fuhon-miner", kMinerApiVersion, 0};
-    };
-
-    // TODO(ortyomka): [FIL-347] remove it
-    mapi->SealProof = [&] { return wscheduler->getSealProofType(); };
-
-    mapi->StorageBestAlloc = [&](const SectorFileType &allocate,
-                                 RegisteredSealProof seal_proof_type,
-                                 bool sealing_mode) {
-      return sector_index->storageBestAlloc(
-          allocate, seal_proof_type, sealing_mode);
-    };
-    mapi->StorageFindSector =
-        [&](const SectorId &sector,
-            const SectorFileType &file_type,
-            boost::optional<RegisteredSealProof> fetch_seal_proof_type) {
-          return sector_index->storageFindSector(
-              sector, file_type, fetch_seal_proof_type);
-        };
-    mapi->StorageDropSector = [&](const StorageID &storage_id,
-                                  const SectorId &sector,
-                                  const SectorFileType &file_type) {
-      return sector_index->storageDropSector(storage_id, sector, file_type);
-    };
-    mapi->StorageDeclareSector = [&](const StorageID &storage_id,
-                                     const SectorId &sector,
-                                     const SectorFileType &file_type,
-                                     bool primary) {
-      return sector_index->storageDeclareSector(
-          storage_id, sector, file_type, primary);
-    };
-    mapi->StorageReportHealth = [&](const StorageID &storage_id,
-                                    const HealthReport &report) {
-      return sector_index->storageReportHealth(storage_id, report);
-    };
-    mapi->StorageAttach = [&](const StorageInfo &storage_info,
-                              const FsStat &stat) {
-      return sector_index->storageAttach(storage_info, stat);
-    };
-    mapi->StorageInfo = [&](const StorageID &storage_id) {
-      return sector_index->getStorageInfo(storage_id);
-    };
-
-    mapi->WorkerConnect =
-        [&](const std::string &address) -> outcome::result<void> {
-      OUTCOME_TRY(maddress, libp2p::multi::Multiaddress::create(address));
-      OUTCOME_TRY(worker,
-                  RemoteWorker::connectRemoteWorker(*io, mapi, maddress));
-
-      spdlog::info("Connected to a remote worker at {}", address);
-
-      return manager->addWorker(std::move(worker));
-    };
-
-    auto mrpc{api::makeRpc(*mapi)};
+    std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
+    mrpc.emplace("/rpc/v0", api::makeRpc(*mapi));
     auto mroutes{std::make_shared<api::Routes>()};
 
     mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
@@ -531,6 +450,8 @@ namespace fc {
 }  // namespace fc
 
 int main(int argc, char **argv) {
+  fc::libp2pSoralog();
+
   OUTCOME_EXCEPT(config, fc::readConfig(argc, argv));
   if (const auto res{fc::main(config)}; !res) {
     spdlog::error("main: {:#}", res.error());

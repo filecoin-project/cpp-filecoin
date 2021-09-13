@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_BUFFER_HPP
-#define CPP_FILECOIN_BUFFER_HPP
+#pragma once
 
 #include <boost/container_hash/hash.hpp>
 #include <boost/operators.hpp>
@@ -36,11 +35,12 @@ namespace fc::common {
      */
     Buffer(size_t size, uint8_t byte);
 
-    ~Buffer() = default;
-
     /**
      * @brief lvalue construct buffer from a byte vector
      */
+    // TODO (a.chernyshov) make Buffer constructors explicit or remove class
+    // at all (FIL-411)
+    // NOLINTNEXTLINE(google-explicit-constructor)
     Buffer(std::vector<uint8_t> &&v);
     explicit Buffer(const std::vector<uint8_t> &v);
     explicit Buffer(gsl::span<const uint8_t> s);
@@ -51,6 +51,8 @@ namespace fc::common {
     Buffer(const Buffer &b) = default;
     Buffer(Buffer &&b) noexcept = default;
     Buffer(std::initializer_list<uint8_t> b);
+
+    ~Buffer() = default;
 
     Buffer &reserve(size_t size);
     Buffer &resize(size_t size);
@@ -186,6 +188,9 @@ namespace fc::common {
 
     std::vector<uint8_t> &toVector();
 
+    // TODO (a.chernyshov) make Buffer constructors explicit or remove class
+    // at all (FIL-411)
+    // NOLINTNEXTLINE(google-explicit-constructor)
     inline operator std::vector<uint8_t> &&() && {
       return std::move(data_);
     }
@@ -265,5 +270,3 @@ namespace std {
     }
   };
 }  // namespace std
-
-#endif  // CPP_FILECOIN_BUFFER_HPP

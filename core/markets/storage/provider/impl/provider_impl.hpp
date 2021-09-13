@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_MARKETS_STORAGE_PROVIDER_PROVIDER_HPP
-#define CPP_FILECOIN_MARKETS_STORAGE_PROVIDER_PROVIDER_HPP
+#pragma once
 
 #include <libp2p/host/host.hpp>
 #include <mutex>
-#include "api/storage_api.hpp"
+
+#include "api/storage_miner/storage_api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
 #include "fsm/fsm.hpp"
@@ -28,7 +28,6 @@ namespace fc::markets::storage::provider {
   using chain_events::ChainEvents;
   using common::libp2p::CborStream;
   using fc::storage::filestore::FileStore;
-  using fc::storage::filestore::Path;
   using fc::storage::piece::PieceStorage;
   using libp2p::Host;
   using pieceio::PieceIO;
@@ -45,14 +44,11 @@ namespace fc::markets::storage::provider {
 
   const EpochDuration kDefaultDealAcceptanceBuffer{100};
 
-  const Path kFilestoreTempDir = "/tmp/fuhon/storage-market/";
-
   class StorageProviderImpl
       : public StorageProvider,
         public std::enable_shared_from_this<StorageProviderImpl> {
    public:
-    StorageProviderImpl(const RegisteredSealProof &registered_proof,
-                        std::shared_ptr<Host> host,
+    StorageProviderImpl(std::shared_ptr<Host> host,
                         IpldPtr ipld,
                         std::shared_ptr<DataTransfer> datatransfer,
                         std::shared_ptr<StoredAsk> stored_ask,
@@ -76,12 +72,8 @@ namespace fc::markets::storage::provider {
     auto getDeal(const CID &proposal_cid) const
         -> outcome::result<MinerDeal> override;
 
-    auto addStorageCollateral(const TokenAmount &amount)
-        -> outcome::result<void> override;
-
-    auto getStorageCollateral() -> outcome::result<TokenAmount> override;
-
-    auto importDataForDeal(const CID &proposal_cid, const std::string &path)
+    auto importDataForDeal(const CID &proposal_cid,
+                           const boost::filesystem::path &path)
         -> outcome::result<void> override;
 
     outcome::result<Signature> sign(const Buffer &input);
@@ -114,7 +106,7 @@ namespace fc::markets::storage::provider {
      * @param deal to publish
      * @return CID of message sent
      */
-    outcome::result<CID> publishDeal(std::shared_ptr<MinerDeal> deal);
+    outcome::result<CID> publishDeal(const std::shared_ptr<MinerDeal> &deal);
 
     /**
      * Send signed response to storage deal proposal and close connection
@@ -348,8 +340,6 @@ namespace fc::markets::storage::provider {
       return true;
     };
 
-    RegisteredSealProof registered_proof_;
-
     // coonnection manager
     std::mutex connections_mutex_;
     std::map<CID, std::shared_ptr<CborStream>> connections_;
@@ -388,5 +378,3 @@ namespace fc::markets::storage::provider {
 
 OUTCOME_HPP_DECLARE_ERROR(fc::markets::storage::provider,
                           StorageMarketProviderError);
-
-#endif  // CPP_FILECOIN_MARKETS_STORAGE_PROVIDER_PROVIDER_HPP

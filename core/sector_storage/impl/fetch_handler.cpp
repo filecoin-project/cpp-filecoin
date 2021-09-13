@@ -44,7 +44,7 @@ namespace fc::sector_storage {
     auto maybe_stat = local_store->getFsStat(storage_id);
     if (maybe_stat.has_error()) {
       if (maybe_stat
-          == outcome::failure(stores::StoreErrors::kNotFoundStorage)) {
+          == outcome::failure(stores::StoreError::kNotFoundStorage)) {
         return makeErrorResponse(request, http::status::not_found);
       }
       logger->error("Error remote get sector: {}",
@@ -90,10 +90,14 @@ namespace fc::sector_storage {
       return makeErrorResponse(request, http::status::internal_server_error);
     }
 
-    // Proof type is 0 because we don't allocate anything
+    // Proof type is kUndefined because we don't allocate anything
+    const SectorRef sector_ref{
+        .id = maybe_sector.value(),
+        .proof_type = RegisteredSealProof::kUndefined,
+    };
+
     auto maybe_paths = local_store->acquireSector(
-        maybe_sector.value(),
-        static_cast<RegisteredSealProof>(0),
+        sector_ref,
         maybe_type.value(),
         fc::primitives::sector_file::SectorFileType::FTNone,
 

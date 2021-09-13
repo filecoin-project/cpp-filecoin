@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_STORAGE_FILESTORE_FILE_H
-#define FILECOIN_CORE_STORAGE_FILESTORE_FILE_H
+#pragma once
 
 #include <gsl/span>
 
@@ -74,5 +73,3 @@ namespace fc::storage::filestore {
   };
 
 }  // namespace fc::storage::filestore
-
-#endif  // FILECOIN_CORE_STORAGE_FILESTORE_FILE_H

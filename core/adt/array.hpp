@@ -3,32 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_ARRAY_HPP
-#define CPP_FILECOIN_ARRAY_HPP
+#pragma once
 
 #include "storage/amt/amt.hpp"
 
 namespace fc::adt {
-  using storage::amt::Amt;
-
-  constexpr uint64_t kArrayDefaultBits{0};
-
   /// Strongly typed amt wrapper
-  template <typename Value, uint64_t _bits = kArrayDefaultBits>
+  template <typename Value, size_t bits = storage::amt::kDefaultBits>
   struct Array {
     using Key = uint64_t;
     using Visitor = std::function<outcome::result<void>(Key, const Value &)>;
 
-    static inline storage::amt::OptBitWidth bits() {
-      if (_bits == kArrayDefaultBits) {
-        return {};
-      }
-      return _bits;
-    }
+    // TODO (a.chernyshov) make constructors explicit (FIL-415)
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Array(IpldPtr ipld = nullptr) : amt{std::move(ipld), bits} {}
 
-    Array(IpldPtr ipld = nullptr) : amt{ipld, bits()} {}
-
-    Array(const CID &root, IpldPtr ipld = nullptr) : amt{ipld, root, bits()} {}
+    // TODO (a.chernyshov) make constructors explicit (FIL-415)
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Array(const CID &root, IpldPtr ipld = nullptr)
+        : amt{std::move(ipld), root, bits} {}
 
     outcome::result<boost::optional<Value>> tryGet(Key key) const {
       auto maybe = get(key);
@@ -69,7 +62,7 @@ namespace fc::adt {
 
     outcome::result<void> visit(const Visitor &visitor) const {
       return amt.visit([&](auto key, auto &value) -> outcome::result<void> {
-        OUTCOME_TRY(value2, amt.ipld->decode<Value>(value));
+        OUTCOME_TRY(value2, cbor_blake::cbDecodeT<Value>(amt.getIpld(), value));
         return visitor(key, value2);
       });
     }
@@ -83,13 +76,22 @@ namespace fc::adt {
       return values;
     }
 
+    outcome::result<std::vector<Key>> keys() const {
+      std::vector<Key> keys;
+      OUTCOME_TRY(visit([&](auto key, auto) {
+        keys.push_back(key);
+        return outcome::success();
+      }));
+      return keys;
+    }
+
     storage::amt::Amt amt;
   };
 
   /// Cbor encode array
   template <class Stream,
             typename Value,
-            uint64_t bits,
+            size_t bits,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const Array<Value, bits> &array) {
@@ -99,31 +101,29 @@ namespace fc::adt {
   /// Cbor decode array
   template <class Stream,
             typename Value,
-            uint64_t bits,
+            size_t bits,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, Array<Value, bits> &array) {
     CID root;
     s >> root;
-    array.amt = {nullptr, root, array.bits()};
+    array.amt = {nullptr, root, bits};
     return s;
   }
 }  // namespace fc::adt
 
-namespace fc {
-  template <typename V>
-  struct Ipld::Load<adt::Array<V>> {
-    static void call(Ipld &ipld, adt::Array<V> &array) {
-      array.amt.ipld = ipld.shared();
+namespace fc::cbor_blake {
+  template <typename V, size_t bits>
+  struct CbLoadT<adt::Array<V, bits>> {
+    static void call(CbIpldPtrIn ipld, adt::Array<V, bits> &array) {
+      array.amt.setIpld(ipld);
     }
   };
 
-  template <typename V>
-  struct Ipld::Flush<adt::Array<V>> {
-    static auto call(adt::Array<V> &array) {
+  template <typename V, size_t bits>
+  struct CbFlushT<adt::Array<V, bits>> {
+    static auto call(adt::Array<V, bits> &array) {
       return array.amt.flush();
     }
   };
-}  // namespace fc
-
-#endif  // CPP_FILECOIN_ARRAY_HPP
+}  // namespace fc::cbor_blake

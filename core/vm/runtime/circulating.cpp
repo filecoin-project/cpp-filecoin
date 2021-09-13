@@ -5,37 +5,44 @@
 
 #include "vm/runtime/circulating.hpp"
 
+#include "cbor_blake/ipld_version.hpp"
 #include "const.hpp"
 #include "primitives/block/block.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/states/market/market_actor_state.hpp"
+#include "vm/actor/builtin/states/reward/reward_actor_state.hpp"
+#include "vm/actor/builtin/states/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::vm {
-  using actor::builtin::states::StateProvider;
+  using actor::builtin::states::MarketActorStatePtr;
+  using actor::builtin::states::PowerActorStatePtr;
+  using actor::builtin::states::RewardActorStatePtr;
 
   outcome::result<TokenAmount> getLocked(StateTreePtr state_tree) {
     const auto ipld{state_tree->getStore()};
     TokenAmount locked;
-    StateProvider provider(ipld);
 
     OUTCOME_TRY(market_actor, state_tree->get(actor::kStorageMarketAddress));
-    OUTCOME_TRY(market_state, provider.getMarketActorState(market_actor));
+    OUTCOME_TRY(market_state,
+                getCbor<MarketActorStatePtr>(ipld, market_actor.head));
     locked += market_state->total_client_locked_collateral
               + market_state->total_provider_locked_collateral
               + market_state->total_client_storage_fee;
 
     OUTCOME_TRY(power_actor, state_tree->get(actor::kStoragePowerAddress));
-    OUTCOME_TRY(power_state, provider.getPowerActorState(power_actor));
-    locked += power_state->total_pledge;
+    OUTCOME_TRY(power_state,
+                getCbor<PowerActorStatePtr>(ipld, power_actor.head));
+    locked += power_state->total_pledge_collateral;
 
     return locked;
   }
 
   outcome::result<std::shared_ptr<Circulating>> Circulating::make(
       IpldPtr ipld, const CID &genesis) {
+    ipld = withVersion(ipld, 0);
     auto circulating{std::make_shared<Circulating>()};
-    OUTCOME_TRY(block, ipld->getCbor<primitives::block::BlockHeader>(genesis));
+    OUTCOME_TRY(block, getCbor<primitives::block::BlockHeader>(ipld, genesis));
     OUTCOME_TRYA(circulating->genesis,
                  getLocked(std::make_shared<state::StateTreeImpl>(
                      ipld, block.parent_state_root)));
@@ -77,8 +84,8 @@ namespace fc::vm {
     }
 
     OUTCOME_TRY(reward_actor, state_tree->get(actor::kRewardAddress));
-    StateProvider provider(ipld);
-    OUTCOME_TRY(reward_state, provider.getRewardActorState(reward_actor));
+    OUTCOME_TRY(reward_state,
+                getCbor<RewardActorStatePtr>(ipld, reward_actor.head));
     mined = reward_state->total_reward;
 
     TokenAmount disbursed;
@@ -90,6 +97,7 @@ namespace fc::vm {
 
     OUTCOME_TRY(burn, state_tree->get(actor::kBurntFundsActorAddress));
     OUTCOME_TRY(locked, getLocked(state_tree));
-    return vested + mined + disbursed - burn.balance - locked;
+    return std::max<TokenAmount>(
+        0, vested + mined + disbursed - burn.balance - locked);
   }
 }  // namespace fc::vm

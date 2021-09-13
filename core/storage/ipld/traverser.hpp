@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_IPLD_TRAVERSER_HPP
-#define CPP_FILECOIN_CORE_STORAGE_IPLD_TRAVERSER_HPP
+#pragma once
 
 #include <queue>
 #include "storage/ipfs/datastore.hpp"
@@ -67,5 +66,3 @@ namespace fc::storage::ipld::traverser {
 }  // namespace fc::storage::ipld::traverser
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::ipld::traverser, TraverserError);
-
-#endif  // CPP_FILECOIN_CORE_STORAGE_IPLD_TRAVERSER_HPP

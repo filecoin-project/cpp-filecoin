@@ -13,14 +13,19 @@ namespace fc {
   using primitives::EpochDuration;
   using primitives::StoragePower;
 
-  constexpr auto kSecondsInHour{60 * 60};
-  constexpr auto kSecondsInDay{24 * kSecondsInHour};
+  constexpr int64_t kSecondsInHour{60 * 60};
+  constexpr int64_t kSecondsInDay{24 * kSecondsInHour};
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern size_t kEpochDurationSeconds;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern size_t kEpochsInHour;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern size_t kEpochsInDay;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern size_t kEpochsInYear;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern size_t kPropagationDelaySecs;
 
   constexpr auto kBaseFeeMaxChangeDenom{8};
@@ -43,29 +48,58 @@ namespace fc {
   /**
    * Network version heights. The last height before network upgrade.
    */
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeBreezeHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeSmokeHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeIgnitionHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeRefuelHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeActorsV2Height;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeTapeHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeLiftoffHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeKumquatHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeCalicoHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradePersianHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeOrangeHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeClausHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeActorsV3Height;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  extern ChainEpoch kUpgradeNorwegianHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  extern ChainEpoch kUpgradeActorsV4Height;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  extern ChainEpoch kUpgradeHyperdriveHeight;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern EpochDuration kBreezeGasTampingDuration;
 
-  constexpr uint64_t kMinerApiVersion{0};
   constexpr uint64_t kDefaultStorageWeight{10};
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern EpochDuration kInteractivePoRepConfidence;
 
   /**
    * Sets parameters for test network with 2k seal proof type
+   * Identical to Lotus 2k build
    */
   void setParams2K();
+
+  /**
+   * Sets parameters for test network with high upgrade heights
+   * May be useful when want to avoid network upgrades
+   */
+  void setParamsNoUpgrades();
+
+  void setParamsInteropnet();
 }  // namespace fc

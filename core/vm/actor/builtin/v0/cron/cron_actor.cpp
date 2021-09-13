@@ -5,18 +5,23 @@
 
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 
+#include "vm/actor/builtin/states/cron/cron_actor_state.hpp"
+
 namespace fc::vm::actor::builtin::v0::cron {
+  using states::CronActorStatePtr;
+
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    auto state =
-        runtime.stateManager()->createCronActorState(runtime.getActorVersion());
+    CronActorStatePtr state{runtime.getActorVersion()};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
     state->entries = params;
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
+
   ACTOR_METHOD_IMPL(EpochTick) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    OUTCOME_TRY(state, runtime.stateManager()->getCronActorState());
+    OUTCOME_TRY(state, runtime.getActorState<CronActorStatePtr>());
     for (const auto &entry : state->entries) {
       OUTCOME_TRY(asExitCode(
           runtime.send(entry.to_addr, entry.method_num, {}, BigInt(0))));

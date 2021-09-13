@@ -3,15 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_CID_HPP
-#define CPP_FILECOIN_CORE_COMMON_CID_HPP
+#pragma once
 
 #include <spdlog/fmt/fmt.h>
 #include <libp2p/multi/content_identifier.hpp>
 
+#include "cbor_blake/cid.hpp"
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "common/cmp.hpp"
 #include "common/outcome.hpp"
+#include "primitives/cid/cid_prefix.hpp"
+#include "vm/actor/code.hpp"
 
 namespace fc {
   using common::Hash256;
@@ -42,6 +45,12 @@ namespace fc {
         Multicodec content_type,
         libp2p::multi::Multihash content_address);
 
+    explicit CID(const CbCid &cid);
+    // TODO (a.chernyshov) (FIL-412) make constructor explicit or remove it or
+    // remove ActorCodeCid class or just leave no-lint
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    CID(const ActorCodeCid &cid);
+
     ~CID() = default;
 
     CID &operator=(const CID &) = default;
@@ -56,7 +65,7 @@ namespace fc {
      * Get cid prefix
      * @return
      */
-    outcome::result<std::vector<uint8_t>> getPrefix() const;
+    CidPrefix getPrefix() const;
 
     /**
      * @brief string-encodes cid
@@ -81,9 +90,14 @@ namespace fc {
   size_t hash_value(const CID &cid);
 
   bool isCbor(const CID &cid);
-  boost::optional<Hash256> asBlake(const CID &cid);
+  boost::optional<CbCid> asBlake(const CID &cid);
   boost::optional<BytesIn> asIdentity(const CID &cid);
-  CID asCborBlakeCid(const Hash256 &hash);
+  boost::optional<ActorCodeCid> asActorCode(const CID &cid);
+
+  inline bool operator==(const CID &l, const ActorCodeCid &r) {
+    return asActorCode(l) == r;
+  }
+  FC_OPERATOR_NOT_EQUAL_2(CID, ActorCodeCid)
 }  // namespace fc
 
 namespace std {
@@ -109,5 +123,3 @@ namespace fc::common {
   outcome::result<CID> getCidOf(gsl::span<const uint8_t> bytes);
 
 }  // namespace fc::common
-
-#endif  // CPP_FILECOIN_CORE_COMMON_CID_HPP

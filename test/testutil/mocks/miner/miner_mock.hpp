@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_MOCKS_MINER_MINER_MOCK_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_MOCKS_MINER_MINER_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -24,12 +23,18 @@ namespace fc::miner {
         getSectorInfo,
         outcome::result<std::shared_ptr<SectorInfo>>(SectorNumber));
 
-    MOCK_METHOD3(addPieceToAnySector,
+    outcome::result<PieceAttributes> addPieceToAnySector(UnpaddedPieceSize size,
+                                                         PieceData data,
+                                                         DealInfo deal) {
+      return doAddPieceToAnySector(size, data.getFd(), deal);
+    }
+
+    MOCK_METHOD3(doAddPieceToAnySector,
                  outcome::result<PieceAttributes>(UnpaddedPieceSize size,
-                                                  const PieceData &piece_data,
+                                                  int fd,
                                                   DealInfo deal));
+
+    MOCK_CONST_METHOD0(getSealing, std::shared_ptr<Sealing>());
   };
 
 }  // namespace fc::miner
-
-#endif  // CPP_FILECOIN_TEST_TESTUTIL_MOCKS_MINER_MINER_MOCK_HPP

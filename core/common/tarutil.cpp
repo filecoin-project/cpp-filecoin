@@ -21,7 +21,7 @@ namespace fc::common {
   int copy_data(struct archive *ar, struct archive *aw) {
     int return_code;
     const void *buff = nullptr;
-    size_t size;
+    size_t size{};
     la_int64_t offset;
 
     for (;;) {

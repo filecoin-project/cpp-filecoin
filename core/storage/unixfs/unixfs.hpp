@@ -5,13 +5,18 @@
 
 #pragma once
 
+#include <iosfwd>
+
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::unixfs {
-  using Ipld = ipfs::IpfsDatastore;
-
   constexpr size_t kMaxLinks = 1024;
-  constexpr size_t kChunkSize = 1024;
+  constexpr size_t kChunkSize{1 << 20};
+
+  outcome::result<CID> wrapFile(Ipld &ipld,
+                                std::ifstream &file,
+                                size_t chunk_size = kChunkSize,
+                                size_t max_links = kMaxLinks);
 
   /**
    * Stores data as DAG

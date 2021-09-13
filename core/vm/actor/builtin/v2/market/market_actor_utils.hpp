@@ -16,6 +16,7 @@ namespace fc::vm::actor::builtin::v2::market {
   using primitives::address::Address;
   using runtime::Runtime;
   using states::MarketActorStatePtr;
+  using types::Controls;
   using types::market::ClientDealProposal;
   using types::market::DealProposal;
 
@@ -32,7 +33,7 @@ namespace fc::vm::actor::builtin::v2::market {
         const StoragePower &network_qa_power) const override;
 
     outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
-    validateDealsForActivation(MarketActorStatePtr state,
+    validateDealsForActivation(MarketActorStatePtr &state,
                                const std::vector<DealId> &deals,
                                const ChainEpoch &sector_expiry) const override;
 
@@ -47,6 +48,9 @@ namespace fc::vm::actor::builtin::v2::market {
 
     outcome::result<void> callVerifRegRestoreBytes(
         const DealProposal &deal) const override;
+
+    outcome::result<Controls> requestMinerControlAddress(
+        const Address &miner) const override;
   };
 
 }  // namespace fc::vm::actor::builtin::v2::market

@@ -17,6 +17,7 @@ target_link_libraries(node_builder
     chain_events
     cids_index
     clock
+    compacter
     drand_beacon
     drand_http
     graphsync
@@ -24,7 +25,9 @@ target_link_libraries(node_builder
     ipfs_datastore_in_memory
     ipfs_datastore_leveldb
     interpreter
+    keystore
     mpool
+    payment_channel_manager
     p2p::p2p_basic_host
     p2p::p2p_default_network
     p2p::p2p_peer_repository
@@ -34,6 +37,7 @@ target_link_libraries(node_builder
     p2p::asio_scheduler
     p2p::p2p_random_generator
     pieceio
+    retrieval_market_client
     rpc
     runtime
     secp256k1_provider
@@ -41,6 +45,7 @@ target_link_libraries(node_builder
     storage_market_import_manager
     sync
     weight_calculator
+    miner_types
     )
 
 add_executable(node

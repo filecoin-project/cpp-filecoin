@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_CHECKS_CHECKS_HPP
-#define CPP_FILECOIN_CORE_SECTOR_STORAGE_CHECKS_CHECKS_HPP
+#pragma once
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "miner/storage_fsm/types.hpp"
 
 namespace fc::mining::checks {
@@ -25,6 +24,7 @@ namespace fc::mining::checks {
       NetworkVersion network, const std::shared_ptr<SectorInfo> &sector_info);
 
   outcome::result<void> checkPieces(
+      const Address &miner_address,
       const std::shared_ptr<SectorInfo> &sector_info,
       const std::shared_ptr<FullNodeApi> &api);
 
@@ -73,5 +73,3 @@ namespace fc::mining::checks {
 }  // namespace fc::mining::checks
 
 OUTCOME_HPP_DECLARE_ERROR(fc::mining::checks, ChecksError);
-
-#endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_CHECKS_CHECKS_HPP

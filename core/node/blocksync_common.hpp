@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "node/common.hpp"
 
 namespace fc::sync::blocksync {
@@ -19,7 +19,7 @@ namespace fc::sync::blocksync {
   };
 
   struct Request {
-    std::vector<CID> block_cids;
+    std::vector<CbCid> block_cids;
     uint64_t depth = 1;
     RequestOptions options = kBlocksAndMessages;
   };

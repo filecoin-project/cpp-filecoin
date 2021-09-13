@@ -13,7 +13,6 @@
 #include <boost/beast/websocket.hpp>
 
 #include "api/rpc/json.hpp"
-#include "api/rpc/make.hpp"
 #include "codec/json/json.hpp"
 #include "common/logger.hpp"
 
@@ -80,6 +79,7 @@ namespace fc::api {
       };
       auto it = rpc.ms.find(req.method);
       if (it == rpc.ms.end() || !it->second) {
+        spdlog::error("rpc method {} not implemented", req.method);
         return respond(Response::Error{kMethodNotFound, "Method not found"});
       }
       it->second(
@@ -102,8 +102,14 @@ namespace fc::api {
 
     template <typename T>
     void _write(const T &v, OkCb cb) {
-      pending_writes.emplace(*codec::json::format(encode(v)), std::move(cb));
-      _flush();
+      boost::asio::post(socket.get_executor(),
+                        [self{shared_from_this()},
+                         buffer{*codec::json::format(encode(v))},
+                         cb{std::move(cb)}]() mutable {
+                          self->pending_writes.emplace(std::move(buffer),
+                                                       std::move(cb));
+                          self->_flush();
+                        });
     }
 
     void _flush() {
@@ -139,7 +145,7 @@ namespace fc::api {
 
   struct HttpSession : public std::enable_shared_from_this<HttpSession> {
     HttpSession(tcp::socket &&socket,
-                std::shared_ptr<Rpc> rpc,
+                std::map<std::string, std::shared_ptr<Rpc>> rpc,
                 std::shared_ptr<Routes> routes)
         : stream(std::move(socket)),
           routes(std::move(routes)),
@@ -172,8 +178,17 @@ namespace fc::api {
       }
 
       if (websocket::is_upgrade(request)) {
-        std::make_shared<SocketSession>(stream.release_socket(), *rpc)
-            ->doAccept(std::move(request));
+        for (const auto &api : rpc) {
+          // API version is specified in request (e.g. '/rpc/v0')
+          if (request.target().starts_with(api.first)) {
+            std::make_shared<SocketSession>(stream.release_socket(),
+                                            *api.second)
+                ->doAccept(std::move(request));
+            return;
+          }
+        }
+        logger->error("API version for '" + request.target().to_string()
+                      + "' not found.");
         return;
       }
 
@@ -184,7 +199,11 @@ namespace fc::api {
       bool is_handled = false;
       for (auto &route : *routes) {
         if (request.target().starts_with(route.first)) {
-          w_response = route.second(request);
+          boost::asio::post(stream.get_executor(),
+                            [self{shared_from_this()}, fn{route.second}]() {
+                              self->w_response = fn(self->request);
+                              self->doWrite();
+                            });
           is_handled = true;
           break;
         }
@@ -195,8 +214,8 @@ namespace fc::api {
         response.keep_alive(false);
         response.result(http::status::bad_request);
         w_response.response = std::move(response);
+        doWrite();
       }
-      doWrite();
     }
 
     // aka visitor
@@ -240,19 +259,17 @@ namespace fc::api {
       stream.socket().shutdown(tcp::socket::shutdown_send, ec);
     }
 
-    // TODO: maybe add queue for requests
-
     beast::tcp_stream stream;
     beast::flat_buffer buffer;
     http::request<http::dynamic_body> request;
     WrapperResponse w_response;
     std::shared_ptr<Routes> routes;
-    std::shared_ptr<Rpc> rpc;
+    std::map<std::string, std::shared_ptr<Rpc>> rpc;
   };
 
   struct Server : std::enable_shared_from_this<Server> {
     Server(tcp::acceptor &&acceptor,
-           std::shared_ptr<Rpc> rpc,
+           std::map<std::string, std::shared_ptr<Rpc>> rpc,
            std::shared_ptr<Routes> routes)
         : acceptor{std::move(acceptor)},
           rpc{std::move(rpc)},
@@ -264,22 +281,26 @@ namespace fc::api {
 
     void doAccept() {
       acceptor.async_accept([self{shared_from_this()}](auto ec, auto socket) {
-        if (ec) {
-          return;
+        if (!ec) {
+          std::make_shared<HttpSession>(
+              std::move(socket), self->rpc, self->routes)
+              ->run();
         }
-        std::make_shared<HttpSession>(
-            std::move(socket), self->rpc, self->routes)
-            ->run();
         self->doAccept();
       });
     }
 
     tcp::acceptor acceptor;
-    std::shared_ptr<Rpc> rpc;
+    /** API version -> API mapping */
+    std::map<std::string, std::shared_ptr<Rpc>> rpc;
     std::shared_ptr<Routes> routes;
   };
 
-  void serve(std::shared_ptr<Rpc> rpc,
+  /**
+   * Creates and runs Server.
+   * @param rpc - APIs to serve
+   */
+  void serve(std::map<std::string, std::shared_ptr<Rpc>> rpc,
              std::shared_ptr<Routes> routes,
              boost::asio::io_context &ioc,
              std::string_view ip,

@@ -29,7 +29,7 @@ namespace fc::sync {
   }  // namespace
 
   SayHello::SayHello(std::shared_ptr<libp2p::Host> host,
-                     std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+                     std::shared_ptr<Scheduler> scheduler,
                      std::shared_ptr<clock::UTCClock> clock)
       : host_(std::move(host)),
         scheduler_(std::move(scheduler)),
@@ -74,13 +74,14 @@ namespace fc::sync {
           }
         });
 
-    heartbeat_handle_ = scheduler_->schedule(kHeartbeatInterval.count(),
-                                             [wptr = weak_from_this()]() {
-                                               auto self = wptr.lock();
-                                               if (self) {
-                                                 self->onHeartbeat();
-                                               }
-                                             });
+    heartbeat_handle_ = scheduler_->scheduleWithHandle(
+        [wptr = weak_from_this()]() {
+          auto self = wptr.lock();
+          if (self) {
+            self->onHeartbeat();
+          }
+        },
+        kHeartbeatInterval);
 
     log()->debug("started");
   }

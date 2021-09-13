@@ -3,19 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_LOCAL_STORE_HPP
-#define CPP_FILECOIN_LOCAL_STORE_HPP
+#pragma once
 
 #include "sector_storage/stores/store.hpp"
 
 #include <boost/asio/io_context.hpp>
-#include <libp2p/protocol/common/scheduler.hpp>
+#include <libp2p/basic/scheduler.hpp>
 #include <shared_mutex>
 #include "common/logger.hpp"
 #include "sector_storage/stores/index.hpp"
 
 namespace fc::sector_storage::stores {
-  using libp2p::protocol::Scheduler;
+  using libp2p::basic::Scheduler;
 
   class LocalStoreImpl : public LocalStore {
    public:
@@ -28,8 +27,7 @@ namespace fc::sector_storage::stores {
     outcome::result<void> openPath(const std::string &path) override;
 
     outcome::result<AcquireSectorResponse> acquireSector(
-        SectorId sector,
-        RegisteredSealProof seal_proof_type,
+        SectorRef sector,
         SectorFileType existing,
         SectorFileType allocate,
         PathType path_type,
@@ -40,8 +38,7 @@ namespace fc::sector_storage::stores {
     outcome::result<void> removeCopies(SectorId sector,
                                        SectorFileType type) override;
 
-    outcome::result<void> moveStorage(SectorId sector,
-                                      RegisteredSealProof seal_proof_type,
+    outcome::result<void> moveStorage(SectorRef sector,
                                       SectorFileType types) override;
 
     outcome::result<FsStat> getFsStat(StorageID id) override;
@@ -53,11 +50,10 @@ namespace fc::sector_storage::stores {
 
     std::shared_ptr<LocalStorage> getLocalStorage() const override;
 
-    outcome::result<std::function<void()>> reserve(
-        RegisteredSealProof seal_proof_type,
-        SectorFileType file_type,
-        const SectorPaths &storages,
-        PathType path_type) override;
+    outcome::result<std::function<void()>> reserve(SectorRef sector,
+                                                   SectorFileType file_type,
+                                                   const SectorPaths &storages,
+                                                   PathType path_type) override;
 
    private:
     LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
@@ -68,21 +64,17 @@ namespace fc::sector_storage::stores {
                                        SectorFileType type,
                                        const StorageID &storage);
     void reportHealth();
+
     struct Path {
-      static std::shared_ptr<Path> newPath(std::string path);
+      explicit Path(std::string path);
+
+      [[nodiscard]] outcome::result<FsStat> getStat(
+          const std::shared_ptr<LocalStorage> &local_storage,
+          const common::Logger &logger) const;
 
       std::string local_path;
-
       int64_t reserved = 0;
       std::map<SectorId, SectorFileType> reservations = {};
-
-      outcome::result<FsStat> getStat(
-          const std::shared_ptr<LocalStorage> &local_storage) const;
-
-      std::string sectorPath(const SectorId &sid, SectorFileType type) const;
-
-     protected:
-      Path(std::string path);
     };
 
     std::shared_ptr<LocalStorage> storage_;
@@ -91,10 +83,8 @@ namespace fc::sector_storage::stores {
     std::unordered_map<StorageID, std::shared_ptr<Path>> paths_;
     fc::common::Logger logger_;
     Scheduler::Handle handler_;
-    int64_t heartbeat_interval_;
+    std::chrono::milliseconds heartbeat_interval_;
     mutable std::shared_mutex mutex_;
   };
 
 }  // namespace fc::sector_storage::stores
-
-#endif  // CPP_FILECOIN_LOCAL_STORE_HPP

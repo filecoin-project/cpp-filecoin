@@ -6,17 +6,22 @@
 #include "hasher.hpp"
 
 #include <libp2p/crypto/sha/sha256.hpp>
+
+#include "common/error_text.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 
 namespace fc::crypto {
-  std::map<Hasher::HashType, Hasher::HashMethod> Hasher::methods_{
+  const std::map<Hasher::HashType, Hasher::HashMethod> Hasher::methods_{
       {HashType::sha256, Hasher::sha2_256},
       {HashType::blake2b_256, Hasher::blake2b_256}};
 
-  Hasher::Multihash Hasher::calculate(HashType hash_type,
-                                      gsl::span<const uint8_t> buffer) {
-    HashMethod hash_method = methods_.at(hash_type);
-    return std::invoke(hash_method, buffer);
+  outcome::result<Hasher::Multihash> Hasher::calculate(
+      HashType hash_type, gsl::span<const uint8_t> buffer) {
+    const auto it{methods_.find(hash_type)};
+    if (it == methods_.end()) {
+      return ERROR_TEXT("Hasher::calculate not found");
+    }
+    return it->second(buffer);
   }
 
   Hasher::Multihash Hasher::sha2_256(gsl::span<const uint8_t> buffer) {

@@ -20,7 +20,6 @@
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/actor_encoding.hpp"
-#include "vm/actor/builtin/states/state_manager.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/message/message.hpp"
 #include "vm/runtime/runtime_types.hpp"
@@ -36,7 +35,6 @@ namespace fc::vm::runtime {
   using actor::kSendMethodNumber;
   using actor::MethodNumber;
   using actor::MethodParams;
-  using actor::builtin::states::StateManager;
   using common::Buffer;
   using crypto::blake2b::Blake2b256Hash;
   using crypto::randomness::DomainSeparationTag;
@@ -70,8 +68,6 @@ namespace fc::vm::runtime {
     virtual ~Runtime() = default;
 
     virtual std::shared_ptr<Execution> execution() const = 0;
-
-    virtual std::shared_ptr<StateManager> stateManager() const = 0;
 
     virtual NetworkVersion getNetworkVersion() const = 0;
 
@@ -203,6 +199,12 @@ namespace fc::vm::runtime {
     /// Try to charge gas or throw if there is not enoght gas
     virtual outcome::result<void> chargeGas(GasAmount amount) = 0;
 
+    /// Get current actor state root CID
+    virtual outcome::result<CID> getActorStateCid() const = 0;
+
+    /// Update actor state CID
+    virtual outcome::result<void> commit(const CID &new_state) = 0;
+
     /// Resolve address to id-address
     virtual outcome::result<boost::optional<Address>> tryResolveAddress(
         const Address &address) const = 0;
@@ -292,14 +294,23 @@ namespace fc::vm::runtime {
       return send(to_address, method_number, MethodParams{params2}, value);
     }
 
+    /// Get decoded current actor state. T must be Universal<State> type.
+    template <typename T>
+    outcome::result<T> getActorState() const {
+      OUTCOME_TRY(head, getActorStateCid());
+      return getCbor<T>(getIpfsDatastore(), head);
+    }
+
     /**
      * Commit actor state
-     * @param state - actor state structure
+     * @param state - actor state Universal<State>
      * @return error in case of failure
      */
-    outcome::result<void> commitState(
-        const std::shared_ptr<actor::builtin::states::State> &state) {
-      return stateManager()->commitState(state);
+    template <typename T>
+    outcome::result<void> commitState(const T &state) {
+      OUTCOME_TRY(state_cid, setCbor(getIpfsDatastore(), state));
+      OUTCOME_TRY(commit(state_cid));
+      return outcome::success();
     }
 
     inline operator std::shared_ptr<IpfsDatastore>() const {

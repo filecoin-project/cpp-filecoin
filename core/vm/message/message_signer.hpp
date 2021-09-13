@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_MESSAGE_SIGNER_HPP
-#define CPP_FILECOIN_CORE_VM_MESSAGE_SIGNER_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
@@ -41,5 +40,3 @@ namespace fc::vm::message {
   };
 
 }  // namespace fc::vm::message
-
-#endif  // CPP_FILECOIN_CORE_VM_MESSAGE_SIGNER_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_CLIENT_HPP
-#define CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_CLIENT_HPP
+#pragma once
 
 #include <vector>
 
@@ -45,29 +44,28 @@ namespace fc::markets::retrieval::client {
      * @param request - query params for the provider
      * @param Query response handler
      */
-    virtual void query(const PeerInfo &peer,
+    virtual void query(const RetrievalPeer &provider_peer,
                        const QueryRequest &request,
-                       const QueryResponseHandler &response_handler) = 0;
+                       const QueryResponseHandler &cb) = 0;
 
     /**
      * @brief Retrieve Piece from selected provider
      * @param payload_cid - identifier of the data to retrieve
      * @param deal_params - deal properties
+     * @param total_funds - funds for deal
      * @param provider_peer - provider to make a deal
      * @param client_wallet - client wallet to send funds for deal from
      * @param miner_wallet - miner wallet to pay to
-     * @param total_funds - funds for deal
      * @param handler - deal response handler, called on error or completion
      */
-    virtual void retrieve(const CID &payload_cid,
-                          const DealProposalParams &deal_params,
-                          const PeerInfo &provider_peer,
-                          const Address &client_wallet,
-                          const Address &miner_wallet,
-                          const TokenAmount &total_funds,
-                          const RetrieveResponseHandler &handler) = 0;
+    virtual outcome::result<void> retrieve(
+        const CID &payload_cid,
+        const DealProposalParams &deal_params,
+        const TokenAmount &total_funds,
+        const RetrievalPeer &provider_peer,
+        const Address &client_wallet,
+        const Address &miner_wallet,
+        const RetrieveResponseHandler &handler) = 0;
   };
 
 }  // namespace fc::markets::retrieval::client
-
-#endif

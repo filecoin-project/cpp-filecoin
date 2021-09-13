@@ -5,7 +5,7 @@
 
 #include "node/pubsub_gate.hpp"
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "common/logger.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
@@ -82,22 +82,28 @@ namespace fc::sync {
 
   outcome::result<void> PubSubGate::publish(const BlockWithCids &block) {
     OUTCOME_TRY(buffer, codec::cbor::encode(block));
-    if (!gossip_->publish({blocks_topic_}, buffer.toVector())) {
+    if (!gossip_->publish(blocks_topic_, buffer.toVector())) {
       log()->warn("cannot publish block");
     }
     return outcome::success();
   }
 
+  void PubSubGate::publish(const SignedMessage &msg) {
+    if (!gossip_->publish(msgs_topic_,
+                          Bytes{codec::cbor::encode(msg).value()})) {
+      log()->warn("cannot publish message");
+    }
+  }
+
   bool PubSubGate::onBlock(const PeerId &from, const Bytes &raw) {
     try {
       OUTCOME_EXCEPT(bm, codec::cbor::decode<BlockWithCids>(raw));
-      OUTCOME_EXCEPT(cid,
-                     primitives::cid::getCidOfCbor<BlockHeader>(bm.header));
+      auto cbor{codec::cbor::encode(bm.header).value()};
 
       // TODO validate
 
       events_->signalBlockFromPubSub(
-          events::BlockFromPubSub{from, std::move(cid), std::move(bm)});
+          events::BlockFromPubSub{from, CbCid::hash(cbor), std::move(bm)});
 
       return true;
     } catch (std::system_error &e) {

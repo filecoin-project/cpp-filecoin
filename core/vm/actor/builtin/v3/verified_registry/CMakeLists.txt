@@ -5,10 +5,10 @@
 
 add_library(verified_registry_actor_v3
     verified_registry_actor.cpp
-    verified_registry_actor_state.cpp
     verified_registry_actor_utils.cpp
     )
 target_link_libraries(verified_registry_actor_v3
+    verified_registry_actor_state
     actor
     outcome
     )

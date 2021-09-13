@@ -20,6 +20,10 @@ namespace boost {
 namespace libp2p {
   struct Host;
 
+  namespace basic {
+    class Scheduler;
+  }
+
   namespace connection {
     class Stream;
   }  // namespace connection
@@ -30,10 +34,11 @@ namespace libp2p {
   }  // namespace peer
 
   namespace protocol {
+    // A class with the same name is present in fc::sync
+    // NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
     class Identify;
     class IdentifyPush;
     class IdentifyDelta;
-    class Scheduler;
 
     namespace gossip {
       class Gossip;
@@ -123,7 +128,7 @@ namespace fc {
     }  // namespace blockchain
 
     namespace ipfs {
-      class IpfsDatastore;
+      struct IpfsDatastore;
 
       namespace graphsync {
         class Graphsync;
@@ -134,8 +139,9 @@ namespace fc {
   namespace sync {
     class ChainStoreImpl;
     class GraphsyncServer;
+    // A class with the same name is present in libp2p::protocol
+    // NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
     class Identify;
-    class InterpretJob;
     class PeerDiscovery;
     class PubSubGate;
     class ReceiveHello;

@@ -16,7 +16,6 @@ namespace fc::markets::storage::chain_events {
   using api::Chan;
   using api::FullNodeApi;
   using fc::storage::ipfs::InMemoryDatastore;
-  using fc::storage::ipfs::IpfsDatastore;
   using primitives::block::BlockHeader;
   using primitives::block::MsgMeta;
   using primitives::tipset::HeadChange;
@@ -45,7 +44,7 @@ namespace fc::markets::storage::chain_events {
    * @then event is triggered
    */
   TEST_F(ChainEventsTest, CommitSector) {
-    CID block_cid{"010001020002"_cid};
+    const auto block_cid{CbCid::hash("01"_unhex)};
 
     api->ChainGetBlockMessages = {[block_cid, this](const CID &cid)
                                       -> outcome::result<BlockMessages> {
@@ -71,7 +70,7 @@ namespace fc::markets::storage::chain_events {
       prove_commit_message.method = ProveCommitSector::Number;
       prove_commit_message.params = MethodParams{encoded_prove_commit_params};
 
-      if (cid != block_cid) throw "wrong block requested";
+      if (asBlake(cid) != block_cid) throw "wrong block requested";
       return BlockMessages{.bls = {pre_commit_message, prove_commit_message}};
     }};
 
@@ -87,10 +86,9 @@ namespace fc::markets::storage::chain_events {
           return Chan{std::move(channel)};
         }};
 
-    api->StateWaitMsg = [](auto &, auto) {
-      auto wait{api::Wait<api::MsgWait>::make()};
-      wait.channel->write(outcome::success());
-      return wait;
+    api->StateWaitMsg =
+        [](auto &, auto, auto, auto) -> outcome::result<api::MsgWait> {
+      return outcome::success();
     };
 
     bool is_called = false;

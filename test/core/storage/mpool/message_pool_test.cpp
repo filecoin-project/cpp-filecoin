@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 
+#include "cbor_blake/ipld_any.hpp"
 #include "storage/car/car.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
@@ -37,14 +38,15 @@ namespace fc::storage::mpool {
   auto ipld{std::make_shared<ipfs::InMemoryDatastore>()};
   auto ts_load{std::make_shared<primitives::tipset::TsLoadIpld>(ipld)};
   auto car_roots{car::loadCar(*ipld, resourcePath("mpool.car")).value()};
-  auto ts0{ts_load->load(car_roots).value()};
+  auto ts0{ts_load->load(*TipsetKey::make(car_roots)).value()};
   auto msgs0{tipsetMessages(ipld, ts0)};
   auto ts1{ts_load->load(ts0->getParents()).value()};
   auto msgs1{tipsetMessages(ipld, ts1)};
   auto ts2{ts_load->load(ts1->getParents()).value()};
 
   auto interpreter_cache{std::make_shared<vm::interpreter::InterpreterCache>(
-      std::make_shared<InMemoryStorage>())};
+      std::make_shared<InMemoryStorage>(),
+      std::make_shared<AnyAsCbIpld>(ipld))};
   void cacheParentState(TipsetCPtr ts) {
     interpreter_cache->set(
         ts->getParents(),
@@ -89,7 +91,7 @@ namespace fc::storage::mpool {
     }
 
     void setHead(TipsetCPtr ts) {
-      chain_store->signal({primitives::tipset::HeadChangeType::CURRENT, ts});
+      chain_store->signal({{primitives::tipset::HeadChangeType::CURRENT, ts}});
     }
   };
 

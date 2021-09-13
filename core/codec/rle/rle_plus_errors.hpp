@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CORE_CODEC_RLE_PLUS_ERRORS_HPP
-#define CORE_CODEC_RLE_PLUS_ERRORS_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 
@@ -31,5 +30,3 @@ namespace fc::codec::rle {
 }  // namespace fc::codec::rle
 
 OUTCOME_HPP_DECLARE_ERROR(fc::codec::rle, RLEPlusDecodeError);
-
-#endif

@@ -8,17 +8,15 @@
 #include <boost/endian/conversion.hpp>
 
 #include "crypto/randomness/randomness_types.hpp"
-#include "primitives/cid/comm_cid.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::market {
   using crypto::randomness::DomainSeparationTag;
-  using libp2p::multi::HashType;
-  using primitives::cid::kCommitmentBytesLen;
   using toolchain::Toolchain;
   using namespace types::market;
 
@@ -37,8 +35,7 @@ namespace fc::vm::actor::builtin::v0::market {
     const auto address_matcher =
         Toolchain::createAddressMatcher(runtime.getActorVersion());
     if (code.value() == address_matcher->getStorageMinerCodeId()) {
-      OUTCOME_TRY(miner,
-                  v0::requestMinerControlAddress(runtime, nominal.value()));
+      OUTCOME_TRY(miner, requestMinerControlAddress(nominal.value()));
       return std::make_tuple(nominal.value(),
                              miner.owner,
                              std::vector<Address>{miner.owner, miner.worker});
@@ -87,7 +84,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   outcome::result<void> MarketUtils::deleteDealProposalAndState(
-      MarketActorStatePtr state,
+      MarketActorStatePtr &state,
       DealId deal_id,
       bool remove_proposal,
       bool remove_state) const {
@@ -136,14 +133,8 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.validateArgument(proposal.piece_cid != CID()));
 
     // validate CID prefix
-    OUTCOME_TRY(runtime.validateArgument(
-        proposal.piece_cid.version == CID::Version::V1
-        && proposal.piece_cid.content_type
-               == CID::Multicodec::FILECOIN_COMMITMENT_UNSEALED
-        && proposal.piece_cid.content_address.getType()
-               == HashType::sha2_256_trunc254_padded
-        && proposal.piece_cid.content_address.getHash().size()
-               == kCommitmentBytesLen));
+    OUTCOME_TRY(runtime.validateArgument(proposal.piece_cid.getPrefix()
+                                         == kPieceCIDPrefix));
 
     OUTCOME_TRY(runtime.validateArgument(runtime.getCurrentEpoch()
                                          <= proposal.start_epoch));
@@ -178,7 +169,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
   outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
   MarketUtils::validateDealsForActivation(
-      MarketActorStatePtr state,
+      MarketActorStatePtr &state,
       const std::vector<DealId> &deals,
       const ChainEpoch &sector_expiry) const {
     const auto miner = runtime.getImmediateCaller();
@@ -240,6 +231,15 @@ namespace fc::vm::actor::builtin::v0::market {
     OUTCOME_TRY(runtime.sendM<verified_registry::RestoreBytes>(
         kVerifiedRegistryAddress, {deal.client, uint64_t{deal.piece_size}}, 0));
     return outcome::success();
+  }
+
+  outcome::result<Controls> MarketUtils::requestMinerControlAddress(
+      const Address &miner) const {
+    OUTCOME_TRY(addresses,
+                runtime.sendM<miner::ControlAddresses>(miner, {}, 0));
+    return Controls{.owner = addresses.owner,
+                    .worker = addresses.worker,
+                    .control = addresses.control};
   }
 
 }  // namespace fc::vm::actor::builtin::v0::market

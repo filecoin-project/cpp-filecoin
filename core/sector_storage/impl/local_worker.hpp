@@ -3,69 +3,78 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
-#define CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
+#pragma once
 
 #include "sector_storage/worker.hpp"
 
 #include "common/logger.hpp"
-#include "sector_storage/stores/impl/local_store.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
+#include "sector_storage/stores/impl/local_store.hpp"
 
 namespace fc::sector_storage {
 
   struct WorkerConfig {
-    primitives::sector::RegisteredSealProof seal_proof_type;
+    boost::optional<std::string> custom_hostname = boost::none;
     std::set<primitives::TaskType> task_types;
+    bool is_no_swap = false;
   };
 
-  class LocalWorker : public Worker {
+  class LocalWorker : public Worker,
+                      public std::enable_shared_from_this<LocalWorker> {
    public:
-    LocalWorker(WorkerConfig config,
+    LocalWorker(std::shared_ptr<boost::asio::io_context> context,
+                const WorkerConfig &config,
+                std::shared_ptr<WorkerReturn> return_interface,
                 std::shared_ptr<stores::RemoteStore> store,
                 std::shared_ptr<proofs::ProofEngine> proofs =
-                        std::make_shared<proofs::ProofEngineImpl>());
+                    std::make_shared<proofs::ProofEngineImpl>());
 
-    outcome::result<PreCommit1Output> sealPreCommit1(
-        const SectorId &sector,
+    outcome::result<CallId> addPiece(
+        const SectorRef &sector,
+        gsl::span<const UnpaddedPieceSize> piece_sizes,
+        const UnpaddedPieceSize &new_piece_size,
+        PieceData piece_data) override;
+
+    outcome::result<CallId> sealPreCommit1(
+        const SectorRef &sector,
         const SealRandomness &ticket,
         gsl::span<const PieceInfo> pieces) override;
 
-    outcome::result<SectorCids> sealPreCommit2(
-        const SectorId &sector,
+    outcome::result<CallId> sealPreCommit2(
+        const SectorRef &sector,
         const PreCommit1Output &pre_commit_1_output) override;
 
-    outcome::result<Commit1Output> sealCommit1(
-        const SectorId &sector,
-        const SealRandomness &ticket,
-        const InteractiveRandomness &seed,
-        gsl::span<const PieceInfo> pieces,
-        const SectorCids &cids) override;
+    outcome::result<CallId> sealCommit1(const SectorRef &sector,
+                                        const SealRandomness &ticket,
+                                        const InteractiveRandomness &seed,
+                                        gsl::span<const PieceInfo> pieces,
+                                        const SectorCids &cids) override;
 
-    outcome::result<Proof> sealCommit2(
-        const SectorId &sector, const Commit1Output &commit_1_output) override;
+    outcome::result<CallId> sealCommit2(
+        const SectorRef &sector, const Commit1Output &commit_1_output) override;
 
-    outcome::result<void> finalizeSector(
-        const SectorId &sector,
+    outcome::result<CallId> finalizeSector(
+        const SectorRef &sector,
         const gsl::span<const Range> &keep_unsealed) override;
 
-    outcome::result<void> moveStorage(const SectorId &sector) override;
+    outcome::result<CallId> moveStorage(const SectorRef &sector,
+                                        SectorFileType types) override;
 
-    outcome::result<void> fetch(const SectorId &sector,
-                                const SectorFileType &file_type,
-                                PathType path_type,
-                                AcquireMode mode) override;
+    outcome::result<CallId> unsealPiece(const SectorRef &sector,
+                                        UnpaddedByteIndex offset,
+                                        const UnpaddedPieceSize &size,
+                                        const SealRandomness &randomness,
+                                        const CID &unsealed_cid) override;
 
-    outcome::result<void> unsealPiece(const SectorId &sector,
+    outcome::result<CallId> readPiece(PieceData output,
+                                      const SectorRef &sector,
                                       UnpaddedByteIndex offset,
-                                      const UnpaddedPieceSize &size,
-                                      const SealRandomness &randomness,
-                                      const CID &unsealed_cid) override;
+                                      const UnpaddedPieceSize &size) override;
 
-    outcome::result<bool> readPiece(proofs::PieceData output,
-                                    const SectorId &sector,
-                                    UnpaddedByteIndex offset,
-                                    const UnpaddedPieceSize &size) override;
+    outcome::result<CallId> fetch(const SectorRef &sector,
+                                  const SectorFileType &file_type,
+                                  PathType path_type,
+                                  AcquireMode mode) override;
 
     outcome::result<primitives::WorkerInfo> getInfo() override;
 
@@ -74,37 +83,35 @@ namespace fc::sector_storage {
     outcome::result<std::vector<primitives::StoragePath>> getAccessiblePaths()
         override;
 
-    outcome::result<void> remove(const SectorId &sector) override;
-
-    outcome::result<PieceInfo> addPiece(
-        const SectorId &sector,
-        gsl::span<const UnpaddedPieceSize> piece_sizes,
-        const UnpaddedPieceSize &new_piece_size,
-        const proofs::PieceData &piece_data) override;
-
    private:
+    template <typename W, typename R>
+    outcome::result<CallId> asyncCall(const SectorRef &sector,
+                                      R _return,
+                                      W work);
+
     struct Response {
       stores::SectorPaths paths;
       std::function<void()> release_function;
     };
 
     outcome::result<Response> acquireSector(
-        SectorId sector_id,
+        SectorRef id,
         SectorFileType exisitng,
         SectorFileType allocate,
         PathType path,
         AcquireMode mode = AcquireMode::kCopy);
 
+    std::shared_ptr<boost::asio::io_context> context_;
+
     std::shared_ptr<stores::RemoteStore> remote_store_;
     std::shared_ptr<stores::SectorIndex> index_;
 
     std::shared_ptr<proofs::ProofEngine> proofs_;
+    std::shared_ptr<WorkerReturn> return_;
 
-    WorkerConfig config_;
+    std::set<primitives::TaskType> task_types_;
+    bool is_no_swap;
     std::string hostname_;
     common::Logger logger_;
   };
-
 }  // namespace fc::sector_storage
-
-#endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP

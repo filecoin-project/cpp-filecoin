@@ -9,7 +9,6 @@
 #include <libp2p/injector/host_injector.hpp>
 
 #include <leveldb/cache.h>
-#include <libp2p/crypto/ed25519_provider/ed25519_provider_impl.hpp>
 #include <libp2p/protocol/gossip/gossip.hpp>
 #include <libp2p/protocol/identify/identify.hpp>
 #include <libp2p/protocol/identify/identify_delta.hpp>
@@ -22,19 +21,25 @@
 #include <libp2p/protocol/kademlia/impl/storage_impl.hpp>
 #include <libp2p/protocol/kademlia/impl/validator_default.hpp>
 
-#include "api/make.hpp"
+#include "api/full_node/make.hpp"
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
+#include "cbor_blake/ipld_any.hpp"
+#include "cbor_blake/ipld_version.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
+#include "codec/json/json.hpp"
+#include "common/error_text.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "drand/impl/beaconizer.hpp"
-#include "markets/discovery/discovery.hpp"
+#include "markets/discovery/impl/discovery_impl.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
+#include "markets/retrieval/client/impl/retrieval_client_impl.hpp"
 #include "markets/storage/chain_events/impl/chain_events_impl.hpp"
 #include "markets/storage/client/impl/storage_market_client_impl.hpp"
+#include "markets/storage/types.hpp"
 #include "node/blocksync_server.hpp"
 #include "node/chain_store_impl.hpp"
 #include "node/graphsync_server.hpp"
@@ -44,33 +49,36 @@
 #include "node/receive_hello.hpp"
 #include "node/say_hello.hpp"
 #include "node/sync_job.hpp"
+#include "payment_channel_manager/impl/payment_channel_manager_impl.hpp"
 #include "power/impl/power_table_impl.hpp"
 #include "primitives/tipset/chain.hpp"
+#include "primitives/tipset/file.hpp"
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/util.hpp"
 #include "storage/chain/msg_waiter.hpp"
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/compacter/util.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
-#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "storage/keystore/impl/filesystem/filesystem_keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/prefix.hpp"
 #include "storage/mpool/mpool.hpp"
-#include "vm/actor/builtin/states/state_provider.hpp"
+#include "vm/actor/builtin/states/init/init_actor_state.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
+#include "vm/interpreter/impl/cached_interpreter.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
+#include "vm/runtime/circulating.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::node {
-  using markets::discovery::Discovery;
+  using markets::discovery::DiscoveryImpl;
   using markets::pieceio::PieceIOImpl;
-  using markets::storage::chain_events::ChainEventsImpl;
+  using markets::retrieval::client::RetrievalClientImpl;
+  using markets::storage::kStorageMarketImportDir;
   using markets::storage::client::StorageMarketClientImpl;
-  using markets::storage::client::import_manager::kImportsDir;
-  using storage::InMemoryStorage;
-  using storage::ipfs::InMemoryDatastore;
+  using storage::keystore::FileSystemKeyStore;
+  using vm::actor::builtin::states::InitActorStatePtr;
 
   namespace {
     auto log() {
@@ -80,16 +88,15 @@ namespace fc::node {
 
     outcome::result<void> initNetworkName(
         const primitives::tipset::Tipset &genesis_tipset,
-        const std::shared_ptr<storage::ipfs::IpfsDatastore> &ipld,
+        IpldPtr ipld,
         Config &config) {
+      ipld = withVersion(ipld, 0);
       OUTCOME_TRY(init_actor,
                   vm::state::StateTreeImpl(
                       ipld, genesis_tipset.blks[0].parent_state_root)
                       .get(vm::actor::kInitAddress));
-      OUTCOME_TRY(
-          init_state,
-          vm::actor::builtin::states::StateProvider{ipld}.getInitActorState(
-              init_actor));
+      OUTCOME_TRY(init_state,
+                  getCbor<InitActorStatePtr>(ipld, init_actor.head));
       config.network_name = init_state->network_name;
       return outcome::success();
     }
@@ -142,16 +149,6 @@ namespace fc::node {
 
   }  // namespace
 
-  auto ipldLeveldbOptions() {
-    leveldb::Options options;
-    options.create_if_missing = true;
-    options.write_buffer_size = 128 << 20;
-    options.block_cache = leveldb::NewLRUCache(128 << 20);
-    options.block_size = 64 << 10;
-    options.max_file_size = 128 << 20;
-    return options;
-  }
-
   auto loadSnapshot(Config &config, NodeObjects &o) {
     std::vector<CID> snapshot_cids;
     auto snapshot_key{
@@ -169,9 +166,9 @@ namespace fc::node {
         log()->error("another snapshot already imported");
         exit(EXIT_FAILURE);
       }
-      o.ipld_cids = storage::cids_index::loadOrCreateWithProgress(
-                        *config.snapshot, o.ipld, log())
-                        .value();
+      // TODO(turuslan): max memory
+      o.ipld_cids = *storage::cids_index::loadOrCreateWithProgress(
+          *config.snapshot, false, boost::none, o.ipld, log());
       o.ipld = o.ipld_cids;
       if (snapshot_cids.empty()) {
         snapshot_cids = roots;
@@ -185,21 +182,23 @@ namespace fc::node {
   void loadChain(Config &config,
                  NodeObjects &o,
                  std::vector<CID> snapshot_cids) {
-    o.ts_main_kv = std::make_shared<storage::MapPrefix>("ts_main/", o.kv_store);
     log()->info("loading chain");
-    o.ts_main = TsBranch::load(o.ts_main_kv);
-    TipsetKey genesis_tsk{{*config.genesis_cid}};
+    const TipsetKey genesis_tsk{{*asBlake(*config.genesis_cid)}};
+    const auto tsk{snapshot_cids.empty() ? genesis_tsk
+                                         : *TipsetKey::make(snapshot_cids)};
+    bool updated{};
+    // TODO: refactor o.ipld to CbIpld
+    // estimated const
+    o.ts_main = primitives::tipset::chain::file::loadOrCreate(
+        &updated, config.join("ts-chain"), o.compacter, tsk.cids(), 20, 1000);
     if (!o.ts_main) {
-      auto tsk{genesis_tsk};
-      if (!snapshot_cids.empty()) {
-        log()->info("restoring chain from snapshot");
-        tsk = snapshot_cids;
-      }
-      o.ts_main = TsBranch::create(o.ts_main_kv, tsk, o.ts_load_ipld).value();
-
+      log()->error("chain load error");
+      exit(EXIT_FAILURE);
+    }
+    if (updated) {
       auto it{std::prev(o.ts_main->chain.end())};
       while (true) {
-        auto ts{o.ts_load->loadw(it->second).value()};
+        auto ts{o.ts_load->lazyLoad(it->second).value()};
         if (auto _has{o.ipld->contains(ts->getParentStateRoot())};
             _has && _has.value()) {
           o.env_context.interpreter_cache->set(
@@ -217,15 +216,91 @@ namespace fc::node {
         break;
       }
     }
-    auto it{std::prev(o.ts_main->chain.end())};
-    auto ts{o.ts_load->loadw(it->second).value()};
-    if (!o.env_context.interpreter_cache->tryGet(ts->key)) {
-      log()->info("interpret head {}", it->first);
-      o.vm_interpreter->interpret(o.ts_main, ts).value();
-    }
 
     log()->info("chain loaded");
-    assert(o.ts_main->chain.begin()->second.key == genesis_tsk);
+    assert(o.ts_main->bottom().second.key == genesis_tsk);
+  }
+
+  auto writableIpld(Config &config, NodeObjects &o) {
+    auto car_path{config.join("cids_index.car")};
+    // TODO(turuslan): max memory
+    // estimated, 1gb
+    auto ipld = *storage::cids_index::loadOrCreateWithProgress(
+        car_path, true, 1 << 30, o.ipld, log());
+    // estimated
+    ipld->flush_on = 200000;
+    o.ipld_flush_thread = std::make_shared<IoThread>();
+    ipld->io = o.ipld_flush_thread->io;
+    return ipld;
+  }
+
+  outcome::result<KeyInfo> readPrivateKeyFromFile(const std::string &path) {
+    std::ifstream ifs(path);
+    std::string hex_string(std::istreambuf_iterator<char>{ifs}, {});
+    OUTCOME_TRY(blob, common::unhex(hex_string));
+    OUTCOME_TRY(json, codec::json::parse(blob));
+    OUTCOME_TRY(key_info, api::decode<KeyInfo>(json));
+    return key_info;
+  }
+
+  /**
+   * Run timer loop
+   * @param scheduler - timer scheduler
+   * @param tick - timer tick
+   * @param cb - callback to call
+   */
+  void timerLoop(const std::shared_ptr<Scheduler> &scheduler,
+                 const std::chrono::milliseconds &tick,
+                 const std::function<void()> &cb) {
+    scheduler->schedule(
+        [scheduler, tick, cb]() {
+          cb();
+          timerLoop(scheduler, tick, cb);
+        },
+        tick);
+  };
+
+  /**
+   * Creates and intialises Storage Market Client
+   * @param o - Node objecs
+   */
+  outcome::result<void> createStorageMarketClient(NodeObjects &node_objects) {
+    node_objects.storage_market_import_manager =
+        std::make_shared<ImportManager>(
+            std::make_shared<storage::MapPrefix>("storage_market_imports/",
+                                                 node_objects.kv_store),
+            kStorageMarketImportDir);
+    node_objects.chain_events =
+        std::make_shared<ChainEventsImpl>(node_objects.api);
+    node_objects.market_discovery =
+        std::make_shared<DiscoveryImpl>(std::make_shared<storage::MapPrefix>(
+            "discovery/", node_objects.kv_store)),
+    node_objects.storage_market_client =
+        std::make_shared<StorageMarketClientImpl>(
+            node_objects.host,
+            node_objects.io_context,
+            node_objects.storage_market_import_manager,
+            node_objects.datatransfer,
+            node_objects.market_discovery,
+            node_objects.api,
+            node_objects.chain_events,
+            std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
+    // timer is set to 100 ms
+    timerLoop(node_objects.scheduler,
+              std::chrono::milliseconds(100),
+              [client{node_objects.storage_market_client}] {
+                client->pollWaiting();
+              });
+    return node_objects.storage_market_client->init();
+  }
+
+  outcome::result<void> createRetrievalMarketClient(NodeObjects &node_objects) {
+    node_objects.retrieval_market_client =
+        std::make_shared<RetrievalClientImpl>(node_objects.host,
+                                              node_objects.datatransfer,
+                                              node_objects.api,
+                                              node_objects.markets_ipld);
+    return outcome::success();
   }
 
   outcome::result<NodeObjects> createNodeObjects(Config &config) {
@@ -239,24 +314,38 @@ namespace fc::node {
     }
     o.kv_store = std::move(leveldb_res.value());
 
-    o.ipld_leveldb_kv = storage::LevelDB::create(config.join("ipld_leveldb"),
-                                                 ipldLeveldbOptions())
-                            .value();
+    o.ipld_leveldb_kv =
+        storage::LevelDB::create(config.join("ipld_leveldb")).value();
     o.ipld_leveldb =
         std::make_shared<storage::ipfs::LeveldbDatastore>(o.ipld_leveldb_kv);
     o.ipld = o.ipld_leveldb;
+    o.ipld = *storage::cids_index::loadOrCreateWithProgress(
+        config.genesisCar(), false, boost::none, o.ipld, log());
     auto snapshot_cids{loadSnapshot(config, o)};
 
+    auto ts_mutex{std::make_shared<std::shared_mutex>()};
+    o.compacter = storage::compacter::make(config.join("compacter"),
+                                           o.kv_store,
+                                           writableIpld(config, o),
+                                           ts_mutex);
+    o.ipld = std::make_shared<CbAsAnyIpld>(o.compacter);
+
+    // estimated, 80gb
+    o.compacter->compact_on_car = uint64_t{80} << 30;
+    o.compacter->epochs_full_state = 30;
+    o.compacter->epochs_lookback_state = 2000;
+    o.compacter->epochs_messages = 60;
+
     o.ts_load_ipld = std::make_shared<primitives::tipset::TsLoadIpld>(o.ipld);
+    o.compacter->ts_load = o.ts_load_ipld;
     o.ts_load = std::make_shared<primitives::tipset::TsLoadCache>(
         o.ts_load_ipld, 8 << 10);
 
-    auto genesis_cids{
-        storage::car::loadCar(*o.ipld, config.genesisCar()).value()};
+    auto genesis_cids{storage::car::readHeader(config.genesisCar()).value()};
     assert(genesis_cids.size() == 1);
     config.genesis_cid = genesis_cids[0];
 
-    o.env_context.ts_branches_mutex = std::make_shared<std::shared_mutex>();
+    o.env_context.ts_branches_mutex = ts_mutex;
     o.env_context.ipld = o.ipld;
     o.env_context.invoker = std::make_shared<vm::actor::InvokerImpl>();
     o.env_context.randomness = std::make_shared<vm::runtime::TipsetRandomness>(
@@ -264,7 +353,8 @@ namespace fc::node {
     o.env_context.ts_load = o.ts_load;
     o.env_context.interpreter_cache =
         std::make_shared<vm::interpreter::InterpreterCache>(
-            std::make_shared<storage::MapPrefix>("vm/", o.kv_store));
+            std::make_shared<storage::MapPrefix>("vm/", o.kv_store),
+            std::make_shared<AnyAsCbIpld>(o.ipld));
     OUTCOME_TRYA(o.env_context.circulating,
                  vm::Circulating::make(o.ipld, *config.genesis_cid));
 
@@ -275,12 +365,19 @@ namespace fc::node {
         o.env_context, weight_calculator);
     o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
         o.interpreter, o.env_context.interpreter_cache);
+    o.compacter->interpreter->interpreter = o.vm_interpreter;
+    o.vm_interpreter = o.compacter->interpreter;
 
     loadChain(config, o, snapshot_cids);
     o.ts_branches = std::make_shared<TsBranches>();
     o.ts_branches->insert(o.ts_main);
 
-    OUTCOME_EXCEPT(genesis, o.ts_load->load(genesis_cids));
+    o.compacter->interpreter_cache = o.env_context.interpreter_cache;
+    o.compacter->ts_branches = o.ts_branches;
+    o.compacter->ts_main = o.ts_main;
+    o.compacter->open();
+
+    OUTCOME_EXCEPT(genesis, o.ts_load->load(*TipsetKey::make(genesis_cids)));
     OUTCOME_TRY(initNetworkName(*genesis, o.ipld, config));
     log()->info("Network name: {}", *config.network_name);
 
@@ -305,11 +402,9 @@ namespace fc::node {
         boost::di::bind<clock::UTCClock>.template to<clock::UTCClockImpl>());
 
     o.io_context = injector.create<std::shared_ptr<boost::asio::io_context>>();
+    o.scheduler = injector.create<std::shared_ptr<Scheduler>>();
 
-    o.scheduler =
-        injector.create<std::shared_ptr<libp2p::protocol::Scheduler>>();
-
-    o.events = std::make_shared<sync::events::Events>(o.scheduler);
+    o.events = std::make_shared<sync::events::Events>(o.io_context);
 
     o.host = injector.create<std::shared_ptr<libp2p::Host>>();
 
@@ -335,7 +430,13 @@ namespace fc::node {
         o.host, o.utc_clock, *config.genesis_cid, o.events);
 
     o.gossip = libp2p::protocol::gossip::create(
-        o.scheduler, o.host, config.gossip_config);
+        o.scheduler,
+        o.host,
+        injector.create<std::shared_ptr<libp2p::peer::IdentityManager>>(),
+        injector.create<std::shared_ptr<libp2p::crypto::CryptoProvider>>(),
+        injector.create<
+            std::shared_ptr<libp2p::crypto::marshaller::KeyMarshaller>>(),
+        config.gossip_config);
 
     using libp2p::protocol::gossip::ByteArray;
     o.gossip->setMessageIdFn(
@@ -389,35 +490,68 @@ namespace fc::node {
             o.env_context.interpreter_cache);
 
     auto head{
-        o.ts_load->loadw(std::prev(o.ts_main->chain.end())->second).value()};
+        o.ts_load->lazyLoad(std::prev(o.ts_main->chain.end())->second).value()};
+    if (!o.env_context.interpreter_cache->tryGet(head->key)) {
+      log()->info("interpret head {}", head->height());
+      o.vm_interpreter->interpret(o.ts_main, head).value();
+    }
     auto head_weight{
         o.env_context.interpreter_cache->get(head->key).value().weight};
-    o.chain_store = std::make_shared<sync::ChainStoreImpl>(
-        o.ipld, o.ts_load, head, head_weight, std::move(block_validator));
+    o.chain_store =
+        std::make_shared<sync::ChainStoreImpl>(o.ipld,
+                                               o.ts_load,
+                                               o.compacter->put_block_header,
+                                               head,
+                                               head_weight,
+                                               std::move(block_validator));
 
     o.sync_job =
         std::make_shared<sync::SyncJob>(o.host,
+                                        o.io_context,
                                         o.chain_store,
                                         o.scheduler,
                                         o.vm_interpreter,
                                         o.env_context.interpreter_cache,
                                         o.env_context.ts_branches_mutex,
                                         o.ts_branches,
-                                        o.ts_main_kv,
                                         o.ts_main,
                                         o.ts_load,
+                                        o.compacter->put_block_header,
                                         o.ipld);
 
     log()->debug("Creating API...");
 
-    auto mpool = storage::mpool::MessagePool::create(
+    o.mpool = storage::mpool::MessagePool::create(
         o.env_context, o.ts_main, o.chain_store);
 
     auto msg_waiter = storage::blockchain::MsgWaiter::create(
-        o.ts_load, o.ipld, o.chain_store);
+        o.ts_load, o.ipld, o.io_context, o.chain_store);
 
-    auto key_store = std::make_shared<storage::keystore::InMemoryKeyStore>(
-        bls_provider, secp_provider);
+    o.key_store = std::make_shared<storage::keystore::FileSystemKeyStore>(
+        (config.repo_path / "keystore").string(), bls_provider, secp_provider);
+    o.wallet_default_address =
+        std::make_shared<OneKey>("wallet_default_address", o.kv_store);
+    // If default key is set, import to keystore and save default key address.
+    // Default key must be a BLS key.
+    if (config.wallet_default_key_path) {
+      const auto maybe_default_key =
+          readPrivateKeyFromFile(*config.wallet_default_key_path);
+      if (maybe_default_key.has_error()) {
+        log()->error("Cannot read default key from {}",
+                     *config.wallet_default_key_path);
+        return maybe_default_key.error();
+      }
+      auto key_info{maybe_default_key.value()};
+      OUTCOME_TRY(address,
+                  o.key_store->put(key_info.type, key_info.private_key));
+      o.wallet_default_address->setCbor(address);
+      log()->info("Set default wallet address {}", address);
+    } else {
+      if (o.wallet_default_address->has()) {
+        log()->info("Load default wallet address {}",
+                    o.wallet_default_address->getCbor<Address>());
+      }
+    }
 
     drand::ChainInfo drand_chain_info{
         .key = *config.drand_bls_pubkey,
@@ -426,7 +560,7 @@ namespace fc::node {
     };
 
     if (config.drand_servers.empty()) {
-      config.drand_servers.push_back("https://127.0.0.1:8080");
+      config.drand_servers.emplace_back("https://127.0.0.1:8080");
     }
 
     auto beaconizer =
@@ -442,36 +576,35 @@ namespace fc::node {
         genesis_timestamp,
         std::chrono::seconds(kEpochDurationSeconds));
 
+    o.markets_ipld = o.ipld_leveldb;
+    o.api = std::make_shared<api::FullNodeApi>();
     o.datatransfer = DataTransfer::make(o.host, o.graphsync);
+    OUTCOME_TRY(createStorageMarketClient(o));
+    OUTCOME_TRY(createRetrievalMarketClient(o));
 
-    o.storage_market_import_manager = std::make_shared<ImportManager>(
-        std::make_shared<storage::MapPrefix>("storage_market_imports/",
-                                             o.kv_store),
-        kImportsDir);
-    o.chain_events = std::make_shared<ChainEventsImpl>(o.api);
-    o.storage_market_client = std::make_shared<StorageMarketClientImpl>(
-        o.host,
-        o.io_context,
-        o.storage_market_import_manager,
-        o.datatransfer,
-        std::make_shared<Discovery>(
-            std::make_shared<storage::MapPrefix>("discovery/", o.kv_store)),
-        o.api,
-        o.chain_events,
-        std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
-    OUTCOME_TRY(o.storage_market_client->init());
-
-    o.api = api::makeImpl(o.chain_store,
+    o.api = api::makeImpl(o.api,
+                          o.chain_store,
+                          o.markets_ipld,
                           *config.network_name,
                           weight_calculator,
                           o.env_context,
                           o.ts_main,
-                          mpool,
+                          o.mpool,
                           msg_waiter,
                           beaconizer,
                           drand_schedule,
                           o.pubsub_gate,
-                          key_store);
+                          o.key_store,
+                          o.market_discovery,
+                          o.retrieval_market_client,
+                          o.wallet_default_address);
+
+    auto paych{
+        std::make_shared<payment_channel_manager::PaymentChannelManagerImpl>(
+            o.api, o.ipld)};
+    paych->makeApi(*o.api);
+
+    o.chain_events->init().value();
 
     return o;
   }

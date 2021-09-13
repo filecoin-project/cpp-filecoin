@@ -10,8 +10,10 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/security/plaintext.hpp>
-#include "api/node_api.hpp"
+
+#include "api/full_node/node_api.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "data_transfer/dt.hpp"
@@ -39,9 +41,9 @@ namespace fc::markets::storage::test {
   using adt::Channel;
   using api::FullNodeApi;
   using api::MarketBalance;
+  using api::MinerInfo;
   using api::MsgWait;
   using api::PieceLocation;
-  using api::Wait;
   using chain_events::ChainEvents;
   using chain_events::ChainEventsMock;
   using client::StorageMarketClient;
@@ -81,7 +83,6 @@ namespace fc::markets::storage::test {
   using provider::StoredAsk;
   using sectorblocks::SectorBlocksMock;
   using vm::VMExitCode;
-  using vm::actor::builtin::types::miner::MinerInfo;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
@@ -101,6 +102,8 @@ namespace fc::markets::storage::test {
     StorageMarketTest() : ::test::BaseFS_Test("storage_market_test") {}
 
     void SetUp() override {
+      libp2pSoralog();
+
       createDir(kImportsTempDir);
       createDir(kPieceIoTempDir);
 
@@ -184,8 +187,7 @@ namespace fc::markets::storage::test {
       auto graphsync{
           std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
               host,
-              std::make_shared<libp2p::protocol::AsioScheduler>(
-                  *context_, libp2p::protocol::SchedulerConfig{}))};
+              injector.create<std::shared_ptr<libp2p::basic::Scheduler>>())};
       graphsync->subscribe([this](auto &from, auto &data) {
         OUTCOME_EXCEPT(ipld_provider->set(data.cid, data.content));
       });
@@ -193,7 +195,6 @@ namespace fc::markets::storage::test {
       datatransfer = DataTransfer::make(host, graphsync);
 
       provider = makeProvider(*provider_multiaddress,
-                              registered_proof,
                               miner_worker_keypair,
                               bls_provider,
                               secp256k1_provider,
@@ -259,7 +260,7 @@ namespace fc::markets::storage::test {
         if (address.isId()) {
           return address;
         }
-        for (auto &[k, v] : account_keys) {
+        for (const auto &[k, v] : account_keys) {
           if (v == address) {
             return k;
           }
@@ -275,15 +276,17 @@ namespace fc::markets::storage::test {
             return MinerInfo{.owner = {},
                              .worker = miner_actor_address,
                              .control = {},
-                             .pending_worker_key = {},
                              .peer_id = {},
                              .multiaddrs = {},
-                             .seal_proof_type = {},
                              .window_post_proof_type = {},
                              .sector_size = {},
-                             .window_post_partition_sectors = {},
-                             .consensus_fault_elapsed = kChainEpochUndefined,
-                             .pending_owner_address = {}};
+                             .window_post_partition_sectors = {}};
+          }};
+
+      api->GetProofType = {
+          [this](auto &miner_address,
+                 auto &tipset_key) -> outcome::result<RegisteredSealProof> {
+            return registered_proof;
           }};
 
       api->StateMarketBalance = {
@@ -325,14 +328,15 @@ namespace fc::markets::storage::test {
               this->messages[signed_message.getCid()] = signed_message;
               this->logger->debug("MpoolPushMessage: message committed "
                                   + signed_message.getCid().toString().value());
-              this->context_->post([this] { this->client->pollWaiting(); });
+              clientWaitsForProviderResponse();
               return signed_message;
             };
             throw "MpoolPushMessage: Wrong from address parameter";
           }};
 
       api->StateWaitMsg = {
-          [this](auto &message_cid, auto) -> outcome::result<Wait<MsgWait>> {
+          [this](
+              auto &message_cid, auto, auto, auto) -> outcome::result<MsgWait> {
             logger->debug("StateWaitMsg called for message cid "
                           + message_cid.toString().value());
             PublishStorageDeals::Result publish_deal_result{};
@@ -349,11 +353,7 @@ namespace fc::markets::storage::test {
                 .tipset = chain_head->key,
                 .height = (ChainEpoch)chain_head->height(),
             };
-            auto channel = std::make_shared<Channel<Wait<MsgWait>::Result>>();
-            channel->write(message_result);
-            channel->closeWrite();
-            Wait<MsgWait> wait_msg{channel};
-            return wait_msg;
+            return message_result;
           }};
 
       std::weak_ptr<FullNodeApi> _api{api};
@@ -380,7 +380,6 @@ namespace fc::markets::storage::test {
 
     std::shared_ptr<StorageProviderImpl> makeProvider(
         const Multiaddress &provider_multiaddress,
-        const RegisteredSealProof &registered_proof,
         const BlsKeyPair &miner_worker_keypair,
         const std::shared_ptr<BlsProvider> &bls_provider,
         const std::shared_ptr<Secp256k1ProviderDefault> &secp256k1_provider,
@@ -399,7 +398,6 @@ namespace fc::markets::storage::test {
 
       std::shared_ptr<StorageProviderImpl> new_provider =
           std::make_shared<StorageProviderImpl>(
-              registered_proof,
               provider_host,
               ipld_provider,
               datatransfer,
@@ -410,7 +408,7 @@ namespace fc::markets::storage::test {
               sector_blocks,
               chain_events,
               miner_actor_address,
-              std::make_shared<PieceIOImpl>(provider::kFilestoreTempDir),
+              std::make_shared<PieceIOImpl>(kStorageMarketImportDir),
               filestore);
       OUTCOME_EXCEPT(new_provider->init());
       return new_provider;
@@ -442,7 +440,7 @@ namespace fc::markets::storage::test {
           context,
           import_manager,
           datatransfer,
-          std::make_shared<markets::discovery::Discovery>(datastore),
+          std::make_shared<markets::discovery::DiscoveryImpl>(datastore),
           api,
           chain_events_,
           piece_io_);
@@ -466,14 +464,18 @@ namespace fc::markets::storage::test {
      * Waits for deal state in provider
      * @param proposal_cid - proposal deal cid
      * @param state - desired state
+     * @returns true if expected state is met
      */
-    void waitForProviderDealStatus(const CID &proposal_cid,
+    bool waitForProviderDealStatus(const CID &proposal_cid,
                                    const StorageDealStatus &state) {
       for (int i = 0; i < kNumberOfWaitCycles; i++) {
         context_->run_for(kWaitTime);
         auto deal = provider->getDeal(proposal_cid);
-        if (deal.has_value() && deal.value().state == state) break;
+        if (deal.has_value() && deal.value().state == state) {
+          return true;
+        }
       }
+      return false;
     }
 
     /**
@@ -493,15 +495,31 @@ namespace fc::markets::storage::test {
     /**
      * Waits for deal state in client
      * @param proposal_cid - proposal deal cid
-     * @param state - desired state
+     * @param expected - desired state
+     * @returns true if expected state is met
      */
-    void waitForClientDealStatus(const CID &proposal_cid,
-                                 const StorageDealStatus &state) {
+    bool waitForClientDealStatus(const CID &proposal_cid,
+                                 const StorageDealStatus &expected) {
+      StorageDealStatus last_state;
       for (int i = 0; i < kNumberOfWaitCycles; i++) {
         context_->run_for(kWaitTime);
         auto deal = client->getLocalDeal(proposal_cid);
-        if (deal.has_value() && deal.value().state == state) break;
+        if (deal.has_value()) {
+          if (deal.value().state == expected) {
+            return true;
+          }
+          last_state = deal.value().state;
+        }
       }
+      EXPECT_EQ(last_state, expected) << "Deal status doesn't match expected";
+      return false;
+    }
+
+    /**
+     * Awaits terminal statuses for all ongoing deals.
+     */
+    void clientWaitsForProviderResponse() {
+      this->context_->post([this] { this->client->pollWaiting(); });
     }
 
     common::Logger logger = common::createLogger("StorageMarketTest");
@@ -525,9 +543,8 @@ namespace fc::markets::storage::test {
     std::shared_ptr<StorageProviderInfo> storage_provider_info;
     std::shared_ptr<DataTransfer> datatransfer;
     std::shared_ptr<ImportManager> import_manager;
-
     RegisteredSealProof registered_proof{
-        RegisteredSealProof::kStackedDrg32GiBV1};
+        RegisteredSealProof::kStackedDrg2KiBV1};
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<boost::asio::io_context> context_;
 

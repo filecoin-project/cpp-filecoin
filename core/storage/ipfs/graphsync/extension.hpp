@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_GRAPHSYNC_EXTENSION_HPP
-#define CPP_FILECOIN_GRAPHSYNC_EXTENSION_HPP
+#pragma once
 
 #include <set>
 #include <string>
@@ -51,5 +50,3 @@ namespace fc::storage::ipfs::graphsync {
   /// Response metadata indicates whether the responder has certain CIDs
   using ResponseMetadata = std::vector<ResMeta>;
 }  // namespace fc::storage::ipfs::graphsync
-
-#endif  // CPP_FILECOIN_GRAPHSYNC_EXTENSION_HPP

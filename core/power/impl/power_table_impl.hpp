@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_STORAGE_POWER_TABLE_IMPL_HPP
-#define FILECOIN_CORE_STORAGE_POWER_TABLE_IMPL_HPP
+#pragma once
 
 #include <unordered_map>
 #include "power/power_table.hpp"
@@ -35,4 +34,3 @@ namespace fc::power {
   };
 
 }  // namespace fc::power
-#endif  // FILECOIN_CORE_STORAGE_POWER_TABLE_IMPL_HPP

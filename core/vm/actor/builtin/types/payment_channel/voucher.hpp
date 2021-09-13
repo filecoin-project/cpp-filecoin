@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "codec/cbor/fwd.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/types.hpp"

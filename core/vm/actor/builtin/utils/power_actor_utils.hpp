@@ -7,7 +7,7 @@
 
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
-#include "vm/actor/builtin/states/power_actor_state.hpp"
+#include "vm/actor/builtin/states/storage_power/storage_power_actor_state.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::utils {
@@ -21,7 +21,7 @@ namespace fc::vm::actor::builtin::utils {
     virtual ~PowerUtils() = default;
 
     virtual outcome::result<void> validateMinerHasClaim(
-        PowerActorStatePtr state, const Address &miner) const = 0;
+        PowerActorStatePtr &state, const Address &miner) const = 0;
 
    protected:
     Runtime &runtime;

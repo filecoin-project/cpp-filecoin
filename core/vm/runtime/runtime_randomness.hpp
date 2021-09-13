@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_RANDOMNESS_HPP
-#define CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_RANDOMNESS_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 #include "crypto/randomness/randomness_types.hpp"
@@ -40,5 +39,3 @@ namespace fc::vm::runtime {
   };
 
 }  // namespace fc::vm::runtime
-
-#endif  // CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_RANDOMNESS_HPP

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_READ_FILE_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_READ_FILE_HPP
+#pragma once
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
@@ -22,5 +21,3 @@ auto readFile(const boost::filesystem::path &path) {
   file.read(fc::common::span::string(buffer).data(), buffer.size());
   return buffer;
 }
-
-#endif  // CPP_FILECOIN_TEST_TESTUTIL_READ_FILE_HPP

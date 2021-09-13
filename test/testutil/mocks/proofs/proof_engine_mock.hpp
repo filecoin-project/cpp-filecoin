@@ -120,6 +120,14 @@ namespace fc::proofs {
 
     MOCK_METHOD1(verifySeal, outcome::result<bool>(const SealVerifyInfo &));
 
+    MOCK_METHOD2(aggregateSealProofs,
+                 outcome::result<void>(AggregateSealVerifyProofAndInfos &,
+                                       const std::vector<BytesIn> &));
+
+    MOCK_METHOD1(
+        verifyAggregateSeals,
+        outcome::result<bool>(const AggregateSealVerifyProofAndInfos &));
+
     MOCK_METHOD8(unseal,
                  outcome::result<void>(RegisteredSealProof proof_type,
                                        const std::string &,

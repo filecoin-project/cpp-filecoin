@@ -9,16 +9,18 @@
 #include "primitives/tipset/load.hpp"
 #include "storage/buffer_map.hpp"
 
-namespace fc::primitives::tipset::chain {
-  using KvPtr = std::shared_ptr<storage::PersistentBufferMap>;
+namespace fc::primitives::tipset::chain::file {
+  struct Updater;
+}  // namespace fc::primitives::tipset::chain::file
 
-  using TsChain = std::map<Height, TsLazy>;
+namespace fc::primitives::tipset::chain {
+  using TsChain = std::map<ChainEpoch, TsLazy>;
 
   struct TsBranch;
   using TsBranchPtr = std::shared_ptr<TsBranch>;
   using TsBranchWeak = std::weak_ptr<TsBranch>;
   using TsBranchIter = std::pair<TsBranchPtr, TsChain::iterator>;
-  using TsBranchChildren = std::multimap<Height, TsBranchWeak>;
+  using TsBranchChildren = std::multimap<ChainEpoch, TsBranchWeak>;
 
   struct TsBranch {
     /**
@@ -29,15 +31,21 @@ namespace fc::primitives::tipset::chain {
                                              const TipsetKey &key,
                                              TsBranchPtr parent);
 
-    static TsBranchPtr load(KvPtr kv);
-    static outcome::result<TsBranchPtr> create(KvPtr kv,
-                                               const TipsetKey &key,
-                                               TsLoadPtr ts_load);
+    TsChain::value_type &bottom();
+    /// load to height if lazy
+    void lazyLoad(ChainEpoch height);
+
+    struct Lazy {
+      TsChain::value_type bottom;
+      size_t min_load{100};
+    };
 
     TsChain chain;
     TsBranchPtr parent;
     TsBranchChildren children;
     boost::optional<TipsetKey> parent_key;
+    boost::optional<Lazy> lazy;
+    std::shared_ptr<file::Updater> updater;
   };
 
   /**
@@ -46,7 +54,7 @@ namespace fc::primitives::tipset::chain {
   using Path = std::pair<TsChain, TsChain>;
 
   outcome::result<std::pair<Path, std::vector<TsBranchPtr>>> update(
-      TsBranchPtr branch, TsBranchIter to_it, KvPtr kv = nullptr);
+      TsBranchPtr branch, TsBranchIter to_it);
 
   using TsBranches = std::set<TsBranchPtr>;
   using TsBranchesPtr = std::shared_ptr<TsBranches>;
@@ -61,7 +69,7 @@ namespace fc::primitives::tipset::chain {
    * @return valid iterator
    */
   outcome::result<TsBranchIter> find(TsBranchPtr branch,
-                                     Height height,
+                                     ChainEpoch height,
                                      bool allow_less = true);
 
   outcome::result<TsBranchIter> stepParent(TsBranchIter it);

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_MULTIPRECISION_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_MULTIPRECISION_HPP
+#pragma once
 
 #include <type_traits>
 
@@ -34,5 +33,3 @@ struct std::is_unsigned<boost::multiprecision::uint512_t> : public true_type {};
 template <>
 struct std::is_unsigned<boost::multiprecision::uint1024_t> : public true_type {
 };
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_MULTIPRECISION_HPP

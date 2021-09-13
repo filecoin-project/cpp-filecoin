@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_CRYPTO_SECP256K1_IMPL_SECP_256_K_1_SHA_256_PROVIDER_IMPL_HPP
-#define CPP_FILECOIN_CORE_CRYPTO_SECP256K1_IMPL_SECP_256_K_1_SHA_256_PROVIDER_IMPL_HPP
+#pragma once
 
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 
@@ -29,5 +28,3 @@ namespace fc::crypto::secp256k1 {
   };
 
 }  // namespace fc::crypto::secp256k1
-
-#endif  // CPP_FILECOIN_CORE_CRYPTO_SECP256K1_IMPL_SECP_256_K_1_SHA_256_PROVIDER_IMPL_HPP

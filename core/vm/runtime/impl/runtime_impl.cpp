@@ -5,11 +5,12 @@
 
 #include "vm/runtime/impl/runtime_impl.hpp"
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "const.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/keystore/keystore.hpp"
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/interpreter/interpreter.hpp"
@@ -19,7 +20,7 @@
 #include "vm/version/version.hpp"
 
 namespace fc::vm::runtime {
-  using actor::builtin::states::StateProvider;
+  using actor::builtin::states::MinerActorStatePtr;
   using primitives::BigInt;
   using primitives::address::Protocol;
   using toolchain::Toolchain;
@@ -30,16 +31,10 @@ namespace fc::vm::runtime {
       : execution_{std::move(execution)},
         message_{std::move(message)},
         caller_id{caller_id},
-        state_manager(std::make_shared<StateManagerImpl>(
-            execution_->charging_ipld, execution_->state_tree, message_.to)),
         proofs_(std::make_shared<proofs::ProofEngineImpl>()) {}
 
   std::shared_ptr<Execution> RuntimeImpl::execution() const {
     return execution_;
-  }
-
-  std::shared_ptr<StateManager> RuntimeImpl::stateManager() const {
-    return state_manager;
   }
 
   NetworkVersion RuntimeImpl::getNetworkVersion() const {
@@ -202,6 +197,18 @@ namespace fc::vm::runtime {
     return message_;
   }
 
+  outcome::result<CID> RuntimeImpl::getActorStateCid() const {
+    OUTCOME_TRY(actor, execution_->state_tree->get(getCurrentReceiver()));
+    return actor.head;
+  }
+
+  outcome::result<void> RuntimeImpl::commit(const CID &new_state) {
+    OUTCOME_TRY(actor, execution_->state_tree->get(getCurrentReceiver()));
+    actor.head = new_state;
+    OUTCOME_TRY(execution_->state_tree->set(getCurrentReceiver(), actor));
+    return outcome::success();
+  }
+
   outcome::result<boost::optional<Address>> RuntimeImpl::tryResolveAddress(
       const Address &address) const {
     return execution_->state_tree->tryLookupId(address);
@@ -300,9 +307,9 @@ namespace fc::vm::runtime {
 
   // TODO: reuse in slash filter
   inline bool isNearOrange(ChainEpoch epoch) {
-    using actor::builtin::types::miner::kChainFinalityish;
-    return epoch > kUpgradeOrangeHeight - kChainFinalityish
-           && epoch < kUpgradeOrangeHeight + kChainFinalityish;
+    using actor::builtin::types::miner::kChainFinality;
+    return epoch > kUpgradeOrangeHeight - kChainFinality
+           && epoch < kUpgradeOrangeHeight + kChainFinality;
   }
 
   outcome::result<boost::optional<ConsensusFault>>
@@ -341,8 +348,8 @@ namespace fc::vm::runtime {
       if (auto _blockC{codec::cbor::decode<BlockHeader>(extra)}) {
         auto &blockC{_blockC.value()};
         if (blockA.parents == blockC.parents && blockA.height == blockC.height
-            && has(blockB.parents, getCidOf(extra).value())
-            && !has(blockB.parents, getCidOf(block1).value())) {
+            && has(blockB.parents, CbCid::hash(extra))
+            && !has(blockB.parents, CbCid::hash(block1))) {
           type = ConsensusFaultType::ParentGrinding;
         }
       } else {
@@ -354,8 +361,7 @@ namespace fc::vm::runtime {
         if (getNetworkVersion() >= NetworkVersion::kVersion7
             && static_cast<ChainEpoch>(block.height)
                    < getCurrentEpoch()
-                         - vm::actor::builtin::types::miner::
-                             kChainFinalityish) {
+                         - vm::actor::builtin::types::miner::kChainFinality) {
           return false;
         }
         auto &env{execution_->env};
@@ -365,20 +371,20 @@ namespace fc::vm::runtime {
         OUTCOME_TRYA(it, getLookbackTipSetForRound(it, block.height));
         OUTCOME_TRYA(it, find(env->ts_branch, it.second->first + 1, false));
         OUTCOME_TRY(child_ts,
-                    env->env_context.ts_load->loadw(it.second->second));
+                    env->env_context.ts_load->lazyLoad(it.second->second));
         ts_lock.unlock();
 
         const StateTreeImpl state_tree{env->ipld,
                                        child_ts->getParentStateRoot()};
         auto &ipld{execution_->charging_ipld};
-        StateProvider provider(ipld);
 
         OUTCOME_TRY(actor, state_tree.get(block.miner));
-        OUTCOME_TRY(state, provider.getMinerActorState(actor));
-        OUTCOME_TRY(miner_info, state->getInfo(ipld));
+
+        OUTCOME_TRY(state, getCbor<MinerActorStatePtr>(ipld, actor.head));
+        OUTCOME_TRY(miner_info, state->getInfo());
 
         OUTCOME_TRY(
-            key, resolveKey(*execution_->state_tree, ipld, miner_info.worker));
+            key, resolveKey(*execution_->state_tree, ipld, miner_info->worker));
         return checkBlockSignature(block, key);
       }};
       auto verify{[&](const BlockHeader &block) -> outcome::result<bool> {

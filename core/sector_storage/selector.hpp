@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_SELECTOR_HPP
-#define CPP_FILECOIN_CORE_SECTOR_STORAGE_SELECTOR_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 #include "primitives/resources/active_resources.hpp"
@@ -14,8 +13,8 @@
 
 namespace fc::sector_storage {
   using primitives::ActiveResources;
-  using primitives::sector::RegisteredSealProof;
   using primitives::TaskType;
+  using primitives::sector::RegisteredSealProof;
 
   struct WorkerHandle {
     std::shared_ptr<Worker> worker;
@@ -40,5 +39,3 @@ namespace fc::sector_storage {
         const std::shared_ptr<WorkerHandle> &current_best) = 0;
   };
 }  // namespace fc::sector_storage
-
-#endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_SELECTOR_HPP

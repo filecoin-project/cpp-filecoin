@@ -3,15 +3,14 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(actor_state
-    impl/state_provider.cpp
-    impl/state_manager_impl.cpp
-    impl/market_actor_state.cpp
-    impl/multisig_actor_state.cpp
-    impl/power_actor_state.cpp
-    )
-target_link_libraries(actor_state
-    actor
-    outcome
-    miner_types
-    )
+add_subdirectory(account)
+add_subdirectory(cron)
+add_subdirectory(init)
+add_subdirectory(market)
+add_subdirectory(miner)
+add_subdirectory(multisig)
+add_subdirectory(payment_channel)
+add_subdirectory(reward)
+add_subdirectory(storage_power)
+add_subdirectory(system)
+add_subdirectory(verified_registry)

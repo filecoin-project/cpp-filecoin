@@ -19,7 +19,6 @@ namespace fc::vm::actor::builtin::types::storage_power {
    * election.
    */
   extern StoragePower kConsensusMinerMinPower;
-  constexpr size_t kSectorQualityPrecision{20};
 
   /**
    * Maximum number of prove commits a miner can submit in one epoch
@@ -31,8 +30,6 @@ namespace fc::vm::actor::builtin::types::storage_power {
    * empirically determined
    */
   static constexpr GasAmount kGasOnSubmitVerifySeal{34721049};
-
-  StoragePower qaPowerForWeight(const SectorStorageWeightDesc &weight);
 
   inline TokenAmount initialPledgeForWeight(
       const StoragePower &qa,

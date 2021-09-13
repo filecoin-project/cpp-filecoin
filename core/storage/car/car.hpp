@@ -11,7 +11,6 @@
 #include "storage/ipld/selector.hpp"
 
 namespace fc::storage::car {
-  using Ipld = ipfs::IpfsDatastore;
   using Input = gsl::span<const uint8_t>;
   using common::Buffer;
   using ipld::Selector;
@@ -69,6 +68,10 @@ namespace fc::storage::car {
       Ipld &store, const boost::filesystem::path &car_path);
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input);
+
+  void writeHeader(Buffer &output, const std::vector<CID> &roots);
+
+  void writeItem(Buffer &output, const CID &cid, Input bytes);
 
   outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots);
 

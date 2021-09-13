@@ -60,6 +60,33 @@ import (
 	system3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/system"
 	verifreg3 "github.com/filecoin-project/specs-actors/v3/actors/builtin/verifreg"
 	rt3 "github.com/filecoin-project/specs-actors/v3/actors/runtime"
+	builtin4 "github.com/filecoin-project/specs-actors/v4/actors/builtin"
+	account4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/account"
+	cron4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/cron"
+	init4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/init"
+	market4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/market"
+	miner4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/miner"
+	multisig4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/multisig"
+	paych4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/paych"
+	power4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/power"
+	reward4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/reward"
+	system4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/system"
+	verifreg4 "github.com/filecoin-project/specs-actors/v4/actors/builtin/verifreg"
+	rt4 "github.com/filecoin-project/specs-actors/v4/actors/runtime"
+	builtin5 "github.com/filecoin-project/specs-actors/v5/actors/builtin"
+	account5 "github.com/filecoin-project/specs-actors/v5/actors/builtin/account"
+	cron5 "github.com/filecoin-project/specs-actors/v5/actors/builtin/cron"
+	init5 "github.com/filecoin-project/specs-actors/v5/actors/builtin/init"
+	market5 "github.com/filecoin-project/specs-actors/v5/actors/builtin/market"
+	miner5 "github.com/filecoin-project/specs-actors/v5/actors/builtin/miner"
+	multisig5 "github.com/filecoin-project/specs-actors/v5/actors/builtin/multisig"
+	paych5 "github.com/filecoin-project/specs-actors/v5/actors/builtin/paych"
+	power5 "github.com/filecoin-project/specs-actors/v5/actors/builtin/power"
+	reward5 "github.com/filecoin-project/specs-actors/v5/actors/builtin/reward"
+	system5 "github.com/filecoin-project/specs-actors/v5/actors/builtin/system"
+	verifreg5 "github.com/filecoin-project/specs-actors/v5/actors/builtin/verifreg"
+	rt5 "github.com/filecoin-project/specs-actors/v5/actors/runtime"
+	proof5 "github.com/filecoin-project/specs-actors/v5/actors/runtime/proof"
 	"github.com/ipfs/go-cid"
 	"github.com/whyrusleeping/cbor-gen"
 )
@@ -84,6 +111,7 @@ var empty = func() cid.Cid {
 type rt struct {
 	id       uint64
 	version  uint64
+	base_fee abi.TokenAmount
 	from, to address.Address
 	now      int64
 	value    abi.TokenAmount
@@ -95,6 +123,8 @@ type rt struct {
 var _ rt1.Runtime = &rt{}
 var _ rt2.Runtime = &rt{}
 var _ rt3.Runtime = &rt{}
+var _ rt4.Runtime = &rt{}
+var _ rt5.Runtime = &rt{}
 
 func (rt *rt) NetworkVersion() network.Version {
 	return network.Version(rt.version)
@@ -201,7 +231,7 @@ func (rt *rt) NewActorAddress() address.Address {
 }
 
 func (rt *rt) CreateActor(code cid.Cid, addr address.Address) {
-	if !(builtin3.IsBuiltinActor(code) || builtin2.IsBuiltinActor(code) || builtin1.IsBuiltinActor(code)) || IsSingletonActor(code) {
+	if !(builtin5.IsBuiltinActor(code) || builtin4.IsBuiltinActor(code) || builtin3.IsBuiltinActor(code) || builtin2.IsBuiltinActor(code) || builtin1.IsBuiltinActor(code)) || IsSingletonActor(code) {
 		rt.Abort(exitcode.SysErrorIllegalArgument)
 	}
 	rt.gocRet(C.gocRtCreateActor(rt.gocArg().cid(code).addr(addr).arg()))
@@ -233,6 +263,8 @@ func (rt *rt) Log(rtt.LogLevel, string, ...interface{}) {
 var _ rt1.StateHandle = &rt{}
 var _ rt2.StateHandle = &rt{}
 var _ rt3.StateHandle = &rt{}
+var _ rt4.StateHandle = &rt{}
+var _ rt5.StateHandle = &rt{}
 
 func (rt *rt) StateCreate(o cbor.Marshaler) {
 	rt.commit(empty, o)
@@ -256,6 +288,8 @@ func (rt *rt) StateTransaction(o cbor.Er, f func()) {
 var _ rt1.Store = &rt{}
 var _ rt2.Store = &rt{}
 var _ rt3.Store = &rt{}
+var _ rt4.Store = &rt{}
+var _ rt5.Store = &rt{}
 
 func (rt *rt) StoreGet(c cid.Cid, o cbor.Unmarshaler) bool {
 	ret := rt.gocRet(C.gocRtIpldGet(rt.gocArg().cid(c).arg()))
@@ -277,6 +311,8 @@ func (rt *rt) StorePut(o cbor.Marshaler) cid.Cid {
 var _ rt1.Message = &rt{}
 var _ rt2.Message = &rt{}
 var _ rt3.Message = &rt{}
+var _ rt4.Message = &rt{}
+var _ rt5.Message = &rt{}
 
 func (rt *rt) Caller() address.Address {
 	return rt.from
@@ -293,6 +329,8 @@ func (rt *rt) ValueReceived() abi.TokenAmount {
 var _ rt1.Syscalls = &rt{}
 var _ rt2.Syscalls = &rt{}
 var _ rt3.Syscalls = &rt{}
+var _ rt4.Syscalls = &rt{}
+var _ rt5.Syscalls = &rt{}
 
 func (rt *rt) VerifySignature(sig crypto.Signature, addr address.Address, input []byte) error {
 	b, e := sig.MarshalBinary()
@@ -361,11 +399,65 @@ func (rt *rt) BatchVerifySeals(batch map[address.Address][]proof1.SealVerifyInfo
 	return out, nil
 }
 
-var lengthBufWindowPoStVerifyInfo = []byte{132}
+var cborArray4 = []byte{132}
+var cborArray5 = []byte{133}
 
-func MarshalCBOR(out *cborOut, t *proof1.WindowPoStVerifyInfo) error {
+func MarshalCBOR_AggregateSealVerifyProofAndInfos(out *cborOut, t *proof5.AggregateSealVerifyProofAndInfos) error {
 	w := out.w
-	if _, e := w.Write(lengthBufWindowPoStVerifyInfo); e != nil {
+	if _, e := w.Write(cborArray5); e != nil {
+		return e
+	}
+	s := make([]byte, 9)
+	if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajUnsignedInt, uint64(t.Miner)); e != nil {
+		return e
+	}
+	if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajUnsignedInt, uint64(t.SealProof)); e != nil {
+		return e
+	}
+	if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajUnsignedInt, uint64(t.AggregateProof)); e != nil {
+		return e
+	}
+	if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajByteString, uint64(len(t.Proof))); e != nil {
+		return e
+	}
+	if _, e := w.Write(t.Proof[:]); e != nil {
+		return e
+	}
+	if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajArray, uint64(len(t.Infos))); e != nil {
+		return e
+	}
+	for _, v := range t.Infos {
+		if _, e := w.Write(cborArray5); e != nil {
+			return e
+		}
+		if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajUnsignedInt, uint64(v.Number)); e != nil {
+			return e
+		}
+		if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajByteString, uint64(len(v.Randomness))); e != nil {
+			return e
+		}
+		if _, e := w.Write(v.Randomness[:]); e != nil {
+			return e
+		}
+		if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajByteString, uint64(len(v.InteractiveRandomness))); e != nil {
+			return e
+		}
+		if _, e := w.Write(v.InteractiveRandomness[:]); e != nil {
+			return e
+		}
+		if e := typegen.WriteCid(w, v.SealedCID); e != nil {
+			return e
+		}
+		if e := typegen.WriteCid(w, v.UnsealedCID); e != nil {
+			return e
+		}
+	}
+	return nil
+}
+
+func MarshalCBOR_WindowPoStVerifyInfo(out *cborOut, t *proof1.WindowPoStVerifyInfo) error {
+	w := out.w
+	if _, e := w.Write(cborArray4); e != nil {
 		return e
 	}
 	s := make([]byte, 9)
@@ -399,7 +491,7 @@ func MarshalCBOR(out *cborOut, t *proof1.WindowPoStVerifyInfo) error {
 
 func (rt *rt) VerifyPoSt(info proof1.WindowPoStVerifyInfo) error {
 	arg := rt.gocArg()
-	if e := MarshalCBOR(arg, &info); e != nil {
+	if e := MarshalCBOR_WindowPoStVerifyInfo(arg, &info); e != nil {
 		panic(cgoErrors("VerifyPoSt MarshalCBOR"))
 	}
 	ret := rt.gocRet(C.gocRtVerifyPost(arg.arg()))
@@ -407,6 +499,18 @@ func (rt *rt) VerifyPoSt(info proof1.WindowPoStVerifyInfo) error {
 		return nil
 	}
 	return errors.New("VerifyPost")
+}
+
+func (rt *rt) VerifyAggregateSeals(aggregate proof5.AggregateSealVerifyProofAndInfos) error {
+	arg := rt.gocArg()
+	if e := MarshalCBOR_AggregateSealVerifyProofAndInfos(arg, &aggregate); e != nil {
+		panic(cgoErrors("VerifyAggregateSeals MarshalCBOR"))
+	}
+	ret := rt.gocRet(C.gocRtVerifyAggregateSeals(arg.arg()))
+	if ret.bool() {
+		return nil
+	}
+	return exitcode.ErrIllegalArgument
 }
 
 func (rt *rt) VerifyConsensusFault(block1, block2, extra []byte) (*rt1.ConsensusFault, error) {
@@ -420,6 +524,10 @@ func (rt *rt) VerifyConsensusFault(block1, block2, extra []byte) (*rt1.Consensus
 
 func (rt *rt) Abort(exit exitcode.ExitCode) {
 	abort(exit)
+}
+
+func (rt *rt) BaseFee() abi.TokenAmount {
+	return rt.base_fee
 }
 
 func (rt *rt) stateGet(o cbor.Unmarshaler, exit exitcode.ExitCode, cid_ bool) cid.Cid {
@@ -510,6 +618,30 @@ var _actors = map[cid.Cid]rtt.VMActor{
 	builtin3.PaymentChannelActorCodeID:   paych3.Actor{},
 	builtin3.VerifiedRegistryActorCodeID: verifreg3.Actor{},
 	builtin3.AccountActorCodeID:          account3.Actor{},
+
+	builtin4.SystemActorCodeID:           system4.Actor{},
+	builtin4.InitActorCodeID:             init4.Actor{},
+	builtin4.RewardActorCodeID:           reward4.Actor{},
+	builtin4.CronActorCodeID:             cron4.Actor{},
+	builtin4.StoragePowerActorCodeID:     power4.Actor{},
+	builtin4.StorageMarketActorCodeID:    market4.Actor{},
+	builtin4.StorageMinerActorCodeID:     miner4.Actor{},
+	builtin4.MultisigActorCodeID:         multisig4.Actor{},
+	builtin4.PaymentChannelActorCodeID:   paych4.Actor{},
+	builtin4.VerifiedRegistryActorCodeID: verifreg4.Actor{},
+	builtin4.AccountActorCodeID:          account4.Actor{},
+
+	builtin5.SystemActorCodeID:           system5.Actor{},
+	builtin5.InitActorCodeID:             init5.Actor{},
+	builtin5.RewardActorCodeID:           reward5.Actor{},
+	builtin5.CronActorCodeID:             cron5.Actor{},
+	builtin5.StoragePowerActorCodeID:     power5.Actor{},
+	builtin5.StorageMarketActorCodeID:    market5.Actor{},
+	builtin5.StorageMinerActorCodeID:     miner5.Actor{},
+	builtin5.MultisigActorCodeID:         multisig5.Actor{},
+	builtin5.PaymentChannelActorCodeID:   paych5.Actor{},
+	builtin5.VerifiedRegistryActorCodeID: verifreg5.Actor{},
+	builtin5.AccountActorCodeID:          account5.Actor{},
 }
 var actors = map[cid.Cid]methods{}
 
@@ -573,20 +705,95 @@ func invoke(rt *rt, code cid.Cid, method uint64, params []byte) (exit exitcode.E
 //export cgoActorsInvoke
 func cgoActorsInvoke(raw C.Raw) C.Raw {
 	arg := cgoArgCbor(raw)
-	id, version, from, to, now, value, code, method, params := arg.uint(), arg.uint(), arg.addr(), arg.addr(), arg.int(), arg.big(), arg.cid(), arg.uint(), arg.bytes()
-	exit, ret := invoke(&rt{id, version, from, to, now, value, false, false, context.Background()}, code, method, params)
+	id, version, base_fee, from, to, now, value, code, method, params := arg.uint(), arg.uint(), arg.big(), arg.addr(), arg.addr(), arg.int(), arg.big(), arg.cid(), arg.uint(), arg.bytes()
+	exit, ret := invoke(&rt{id, version, base_fee, from, to, now, value, false, false, context.Background()}, code, method, params)
 	return CborOut().int(int64(exit)).bytes(ret).ret()
+}
+
+func ClearSupportedProofTypes(n int) {
+	miner1.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{}, n)
+
+	miner2.PreCommitSealProofTypesV0 = make(map[abi.RegisteredSealProof]struct{}, n)
+	miner2.PreCommitSealProofTypesV7 = make(map[abi.RegisteredSealProof]struct{}, n*2)
+	miner2.PreCommitSealProofTypesV8 = make(map[abi.RegisteredSealProof]struct{}, n)
+
+	miner3.PreCommitSealProofTypesV0 = make(map[abi.RegisteredSealProof]struct{}, n)
+	miner3.PreCommitSealProofTypesV7 = make(map[abi.RegisteredSealProof]struct{}, n*2)
+	miner3.PreCommitSealProofTypesV8 = make(map[abi.RegisteredSealProof]struct{}, n)
+
+	miner4.PreCommitSealProofTypesV0 = make(map[abi.RegisteredSealProof]struct{}, n)
+	miner4.PreCommitSealProofTypesV7 = make(map[abi.RegisteredSealProof]struct{}, n*2)
+	miner4.PreCommitSealProofTypesV8 = make(map[abi.RegisteredSealProof]struct{}, n)
+
+	miner5.PreCommitSealProofTypesV8 = make(map[abi.RegisteredSealProof]struct{}, n)
+}
+
+func AddSupportedProofTypes(t abi.RegisteredSealProof) {
+	if t >= abi.RegisteredSealProof_StackedDrg2KiBV1_1 {
+		panic(cgoErrors("AddSupportedProofTypes: must specify v1 proof types only"))
+	}
+
+	miner1.SupportedProofTypes[t] = struct{}{}
+
+	miner2.PreCommitSealProofTypesV0[t] = struct{}{}
+	miner2.PreCommitSealProofTypesV7[t] = struct{}{}
+	miner2.PreCommitSealProofTypesV7[t+abi.RegisteredSealProof_StackedDrg2KiBV1_1] = struct{}{}
+	miner2.PreCommitSealProofTypesV8[t+abi.RegisteredSealProof_StackedDrg2KiBV1_1] = struct{}{}
+
+	miner3.PreCommitSealProofTypesV0[t] = struct{}{}
+	miner3.PreCommitSealProofTypesV7[t] = struct{}{}
+	miner3.PreCommitSealProofTypesV7[t+abi.RegisteredSealProof_StackedDrg2KiBV1_1] = struct{}{}
+	miner3.PreCommitSealProofTypesV8[t+abi.RegisteredSealProof_StackedDrg2KiBV1_1] = struct{}{}
+
+	miner4.PreCommitSealProofTypesV0[t] = struct{}{}
+	miner4.PreCommitSealProofTypesV7[t] = struct{}{}
+	miner4.PreCommitSealProofTypesV7[t+abi.RegisteredSealProof_StackedDrg2KiBV1_1] = struct{}{}
+	miner4.PreCommitSealProofTypesV8[t+abi.RegisteredSealProof_StackedDrg2KiBV1_1] = struct{}{}
+
+	miner5.PreCommitSealProofTypesV8[t+abi.RegisteredSealProof_StackedDrg2KiBV1_1] = struct{}{}
+	wpp, e := t.RegisteredWindowPoStProof()
+	if e != nil {
+		panic(cgoErrors("AddSupportedProofTypes: RegisteredWindowPoStProof"))
+	}
+
+	miner5.WindowPoStProofTypes[wpp] = struct{}{}
 }
 
 //export cgoActorsConfigParams
 func cgoActorsConfigParams(raw C.Raw) C.Raw {
-    arg := cgoArgCbor(raw)
+	arg := cgoArgCbor(raw)
+
+	MinVerifiedDealSize := arg.big()
+	verifreg1.MinVerifiedDealSize = MinVerifiedDealSize
+	verifreg2.MinVerifiedDealSize = MinVerifiedDealSize
+	verifreg3.MinVerifiedDealSize = MinVerifiedDealSize
+	verifreg4.MinVerifiedDealSize = MinVerifiedDealSize
+	verifreg5.MinVerifiedDealSize = MinVerifiedDealSize
+	
+	PreCommitChallengeDelay := abi.ChainEpoch(arg.int())
+	miner1.PreCommitChallengeDelay = PreCommitChallengeDelay
+	miner2.PreCommitChallengeDelay = PreCommitChallengeDelay
+	miner3.PreCommitChallengeDelay = PreCommitChallengeDelay
+	miner4.PreCommitChallengeDelay = PreCommitChallengeDelay
+	miner5.PreCommitChallengeDelay = PreCommitChallengeDelay
+
 	power1.ConsensusMinerMinPower = arg.big()
 	for _, x := range builtin2.SealProofPolicies {
 		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
 	}
 	for _, x := range builtin3.PoStProofPolicies {
 		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
+	}
+	for _, x := range builtin4.PoStProofPolicies {
+		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
+	}
+	for _, x := range builtin5.PoStProofPolicies {
+		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
+	}
+	nProofs := int(arg.uint())
+	ClearSupportedProofTypes(nProofs)
+	for i := 0; i < nProofs; i++ {
+		AddSupportedProofTypes(abi.RegisteredSealProof(arg.int()))
 	}
 	return cgoRet(nil)
 }

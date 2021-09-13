@@ -9,6 +9,7 @@
 #include "primitives/types.hpp"
 
 namespace fc::sector_storage {
+  using primitives::SectorSize;
 
   outcome::result<bool> ExistingSelector::is_satisfying(
       const TaskType &task,
@@ -26,12 +27,13 @@ namespace fc::sector_storage {
       storages.insert(path.id);
     }
 
-    OUTCOME_TRY(best,
-                index_->storageFindSector(
-                    sector_,
-                    allocate_,
-                    ((allow_fetch_) ? boost::make_optional(seal_proof_type)
-                                    : boost::none)));
+    boost::optional<SectorSize> maybe_sector_size = boost::none;
+    if (allow_fetch_) {
+      OUTCOME_TRYA(maybe_sector_size, getSectorSize(seal_proof_type));
+    }
+
+    OUTCOME_TRY(
+        best, index_->storageFindSector(sector_, allocate_, maybe_sector_size));
     for (const auto &info : best) {
       if (storages.find(info.id) != storages.end()) {
         return true;

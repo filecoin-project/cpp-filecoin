@@ -7,6 +7,8 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <libp2p/basic/scheduler/manual_scheduler_backend.hpp>
+#include <libp2p/basic/scheduler/scheduler_impl.hpp>
 #include <thread>
 
 #include "api/rpc/json.hpp"
@@ -16,17 +18,15 @@
 #include "sector_storage/stores/impl/local_store.hpp"
 #include "sector_storage/stores/index.hpp"
 #include "sector_storage/stores/store_error.hpp"
-#include "testutil/mocks/libp2p/scheduler_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/local_storage_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
 namespace fc::sector_storage::stores {
-  using libp2p::protocol::Scheduler;
-  using libp2p::protocol::SchedulerMock;
-  using libp2p::protocol::scheduler::Ticks;
-  using libp2p::protocol::scheduler::toTicks;
+  using libp2p::basic::ManualSchedulerBackend;
+  using libp2p::basic::Scheduler;
+  using libp2p::basic::SchedulerImpl;
   using primitives::FsStat;
   using primitives::LocalStorageMeta;
   using primitives::StorageID;
@@ -46,11 +46,17 @@ namespace fc::sector_storage::stores {
   class LocalStoreTest : public test::BaseFS_Test {
    public:
     LocalStoreTest() : test::BaseFS_Test("fc_local_store_test") {
-      seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
+      sector_ = SectorRef{.id =
+                              SectorId{
+                                  .miner = 42,
+                                  .sector = 1,
+                              },
+                          .proof_type = RegisteredSealProof::kStackedDrg2KiBV1};
+      sector_size_ = getSectorSize(sector_.proof_type).value();
       index_ = std::make_shared<SectorIndexMock>();
       storage_ = std::make_shared<LocalStorageMock>();
       urls_ = {"http://url1.com", "http://url2.com"};
-      scheduler_ = std::make_shared<SchedulerMock>();
+
       EXPECT_CALL(*storage_, getStorage())
           .WillOnce(testing::Return(outcome::success(
               StorageConfig{.storage_paths = std::vector<LocalPath>({})})));
@@ -58,9 +64,10 @@ namespace fc::sector_storage::stores {
       EXPECT_CALL(*storage_, setStorage(_))
           .WillRepeatedly(testing::Return(outcome::success()));
 
-      current_time_ = toTicks(std::chrono::duration_cast<std::chrono::seconds>(
-          std::chrono::system_clock::now().time_since_epoch()));
-      EXPECT_CALL(*scheduler_, now()).WillOnce(testing::Return(current_time_));
+      scheduler_backend_ = std::make_shared<ManualSchedulerBackend>();
+      scheduler_ = std::make_shared<SchedulerImpl>(scheduler_backend_,
+                                                   Scheduler::Config{});
+
       auto maybe_local =
           LocalStoreImpl::newLocalStore(storage_, index_, urls_, scheduler_);
       local_store_ = std::move(maybe_local.value());
@@ -93,13 +100,14 @@ namespace fc::sector_storage::stores {
     }
 
    protected:
-    RegisteredSealProof seal_proof_type_;
+    SectorRef sector_;
+    SectorSize sector_size_;
     std::shared_ptr<LocalStore> local_store_;
     std::shared_ptr<SectorIndexMock> index_;
     std::shared_ptr<LocalStorageMock> storage_;
     std::vector<std::string> urls_;
-    std::shared_ptr<SchedulerMock> scheduler_;
-    Ticks current_time_;
+    std::shared_ptr<ManualSchedulerBackend> scheduler_backend_;
+    std::shared_ptr<Scheduler> scheduler_;
   };
 
   /**
@@ -109,20 +117,14 @@ namespace fc::sector_storage::stores {
    * @then StoreErrors::FindAndAllocate error occurs
    */
   TEST_F(LocalStoreTest, AcquireSectorFindAndAllocate) {
-    SectorId sector{
-        .miner = 42,
-        .sector = 1,
-    };
-
     auto file_type_allocate = static_cast<SectorFileType>(
         SectorFileType::FTCache | SectorFileType::FTUnsealed);
 
     auto file_type_existing = static_cast<SectorFileType>(
         SectorFileType::FTCache | SectorFileType::FTSealed);
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kFindAndAllocate,
-                         local_store_->acquireSector(sector,
-                                                     seal_proof_type_,
+    EXPECT_OUTCOME_ERROR(StoreError::kFindAndAllocate,
+                         local_store_->acquireSector(sector_,
                                                      file_type_existing,
                                                      file_type_allocate,
                                                      PathType::kStorage,
@@ -135,11 +137,6 @@ namespace fc::sector_storage::stores {
    * @then StoreErrors::NotFoundPath error occurs
    */
   TEST_F(LocalStoreTest, AcquireSectorNotFoundPath) {
-    SectorId sector{
-        .miner = 42,
-        .sector = 1,
-    };
-
     std::vector res = {StorageInfo{
         .id = "not_found_id",
         .urls = {},
@@ -148,14 +145,12 @@ namespace fc::sector_storage::stores {
         .can_store = false,
     }};
 
-    EXPECT_CALL(
-        *index_,
-        storageBestAlloc(SectorFileType::FTCache, seal_proof_type_, false))
+    EXPECT_CALL(*index_,
+                storageBestAlloc(SectorFileType::FTCache, sector_size_, false))
         .WillOnce(testing::Return(outcome::success(res)));
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kNotFoundPath,
-                         local_store_->acquireSector(sector,
-                                                     seal_proof_type_,
+    EXPECT_OUTCOME_ERROR(StoreError::kNotFoundPath,
+                         local_store_->acquireSector(sector_,
                                                      SectorFileType::FTNone,
                                                      SectorFileType::FTCache,
                                                      PathType::kStorage,
@@ -168,11 +163,6 @@ namespace fc::sector_storage::stores {
    * @then get id of the storage and specific path for that storage
    */
   TEST_F(LocalStoreTest, AcquireSectorAllocateSuccess) {
-    SectorId sector{
-        .miner = 42,
-        .sector = 1,
-    };
-
     SectorFileType file_type = SectorFileType::FTCache;
 
     auto storage_path = boost::filesystem::unique_path(
@@ -206,12 +196,11 @@ namespace fc::sector_storage::stores {
 
     std::vector res = {storage_info};
 
-    EXPECT_CALL(*index_, storageBestAlloc(file_type, seal_proof_type_, false))
+    EXPECT_CALL(*index_, storageBestAlloc(file_type, sector_size_, false))
         .WillOnce(testing::Return(outcome::success(res)));
 
     EXPECT_OUTCOME_TRUE(sectors,
-                        local_store_->acquireSector(sector,
-                                                    seal_proof_type_,
+                        local_store_->acquireSector(sector_,
                                                     SectorFileType::FTNone,
                                                     file_type,
                                                     PathType::kStorage,
@@ -219,7 +208,7 @@ namespace fc::sector_storage::stores {
 
     std::string res_path =
         (boost::filesystem::path(storage_path) / toString(file_type)
-         / primitives::sector_file::sectorName(sector))
+         / primitives::sector_file::sectorName(sector_.id))
             .string();
 
     EXPECT_OUTCOME_EQ(sectors.paths.getPathByType(file_type), res_path);
@@ -232,11 +221,6 @@ namespace fc::sector_storage::stores {
    * @then get id of the storage and specific path for that storage
    */
   TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
-    SectorId sector{
-        .miner = 42,
-        .sector = 1,
-    };
-
     SectorFileType file_type = SectorFileType::FTCache;
 
     auto storage_path = boost::filesystem::unique_path(
@@ -270,12 +254,12 @@ namespace fc::sector_storage::stores {
 
     std::vector res = {storage_info};
 
-    EXPECT_CALL(*index_, storageFindSector(sector, file_type, Eq(boost::none)))
+    EXPECT_CALL(*index_,
+                storageFindSector(sector_.id, file_type, Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success(res)));
 
     EXPECT_OUTCOME_TRUE(sectors,
-                        local_store_->acquireSector(sector,
-                                                    seal_proof_type_,
+                        local_store_->acquireSector(sector_,
                                                     file_type,
                                                     SectorFileType::FTNone,
                                                     PathType::kStorage,
@@ -283,7 +267,7 @@ namespace fc::sector_storage::stores {
 
     std::string res_path =
         (boost::filesystem::path(storage_path) / toString(file_type)
-         / primitives::sector_file::sectorName(sector))
+         / primitives::sector_file::sectorName(sector_.id))
             .string();
 
     EXPECT_OUTCOME_EQ(sectors.paths.getPathByType(file_type), res_path);
@@ -296,7 +280,7 @@ namespace fc::sector_storage::stores {
    * @then StoreErrors::NotFoundStorage error occurs
    */
   TEST_F(LocalStoreTest, getFSStatNotFound) {
-    EXPECT_OUTCOME_ERROR(StoreErrors::kNotFoundStorage,
+    EXPECT_OUTCOME_ERROR(StoreError::kNotFoundStorage,
                          local_store_->getFsStat("not_found_id"));
   }
 
@@ -456,7 +440,7 @@ namespace fc::sector_storage::stores {
                     stat))
         .WillOnce(testing::Return(outcome::success()));
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kInvalidSectorName,
+    EXPECT_OUTCOME_ERROR(StoreError::kInvalidSectorName,
                          local_store_->openPath(storage_path.string()));
   }
 
@@ -485,7 +469,7 @@ namespace fc::sector_storage::stores {
 
     createStorage(storage_path, storage_meta, stat);
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kDuplicateStorage,
+    EXPECT_OUTCOME_ERROR(StoreError::kDuplicateStorage,
                          local_store_->openPath(storage_path));
   }
 
@@ -539,10 +523,10 @@ namespace fc::sector_storage::stores {
     auto type = static_cast<SectorFileType>(SectorFileType::FTCache
                                             | SectorFileType::FTUnsealed);
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kRemoveSeveralFileTypes,
+    EXPECT_OUTCOME_ERROR(StoreError::kRemoveSeveralFileTypes,
                          local_store_->remove(sector, type));
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kRemoveSeveralFileTypes,
+    EXPECT_OUTCOME_ERROR(StoreError::kRemoveSeveralFileTypes,
                          local_store_->remove(sector, SectorFileType::FTNone));
   }
 
@@ -753,11 +737,10 @@ namespace fc::sector_storage::stores {
     EXPECT_CALL(*index_, storageFindSector(sector, file_type, Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success(std::vector({info}))));
 
-    EXPECT_CALL(*index_, storageBestAlloc(file_type, seal_proof_type_, false))
+    EXPECT_CALL(*index_, storageBestAlloc(file_type, sector_size_, false))
         .WillOnce(testing::Return(outcome::success(std::vector({info2}))));
 
-    EXPECT_OUTCOME_TRUE_1(
-        local_store_->moveStorage(sector, seal_proof_type_, file_type));
+    EXPECT_OUTCOME_TRUE_1(local_store_->moveStorage(sector_, file_type));
 
     ASSERT_TRUE(boost::filesystem::exists(moved_sector_file));
     ASSERT_FALSE(boost::filesystem::exists(sector_file));
@@ -789,16 +772,11 @@ namespace fc::sector_storage::stores {
     };
 
     createStorage(storage_path, storage_meta, stat);
-    EXPECT_CALL(*scheduler_, now())
-        .WillOnce(
-            testing::Return(current_time_ + toTicks(std::chrono::seconds(12))))
-        .WillOnce(
-            testing::Return(current_time_ + toTicks(std::chrono::seconds(24))));
     EXPECT_CALL(*index_, storageReportHealth(storage_id, _))
         .WillOnce(testing::Return(outcome::success()));
     EXPECT_CALL(*storage_, getStat(storage_path))
         .WillOnce(testing::Return(outcome::success(stat)));
-    scheduler_->next_clock();
+    scheduler_backend_->shiftToTimer();
   }
 
   /**
@@ -815,11 +793,11 @@ namespace fc::sector_storage::stores {
     auto type = static_cast<SectorFileType>(SectorFileType::FTCache
                                             | SectorFileType::FTUnsealed);
 
-    EXPECT_OUTCOME_ERROR(StoreErrors::kRemoveSeveralFileTypes,
+    EXPECT_OUTCOME_ERROR(StoreError::kRemoveSeveralFileTypes,
                          local_store_->removeCopies(sector, type));
 
     EXPECT_OUTCOME_ERROR(
-        StoreErrors::kRemoveSeveralFileTypes,
+        StoreError::kRemoveSeveralFileTypes,
         local_store_->removeCopies(sector, SectorFileType::FTNone));
   }
 
@@ -1168,16 +1146,6 @@ namespace fc::sector_storage::stores {
     FsStat after_reserve;
     FsStat after_release;
 
-    auto first_time = current_time_ + toTicks(std::chrono::seconds(12));
-    auto second_time = current_time_ + toTicks(std::chrono::seconds(24));
-    auto third_time = current_time_ + toTicks(std::chrono::seconds(36));
-
-    EXPECT_CALL(*scheduler_, now())
-        .WillOnce(testing::Return(first_time))
-        .WillOnce(testing::Return(first_time))  // new start point
-        .WillOnce(testing::Return(second_time))
-        .WillOnce(testing::Return(second_time))  // new start point
-        .WillRepeatedly(testing::Return(third_time));
     EXPECT_CALL(*index_, storageReportHealth(storage_id, _))
         .WillOnce(testing::Invoke([&](StorageID id, HealthReport report) {
           EXPECT_EQ(id, storage_id);
@@ -1195,10 +1163,9 @@ namespace fc::sector_storage::stores {
           return outcome::success();
         }));
 
-    scheduler_->next_clock();
+    scheduler_backend_->shiftToTimer();
     EXPECT_OUTCOME_TRUE(
-        release,
-        local_store_->reserve(seal_proof_type_, type, spaths, path_type));
+        release, local_store_->reserve(sector_, type, spaths, path_type));
 
     std::string sector_file = (storage_path / toString(type)
                                / primitives::sector_file::sectorName(sector))
@@ -1210,13 +1177,26 @@ namespace fc::sector_storage::stores {
     EXPECT_CALL(*storage_, getDiskUsage(sector_file))
         .WillRepeatedly(testing::Return(outcome::success(temp_file_size)));
 
-    scheduler_->next_clock();
+    scheduler_backend_->shiftToTimer();
     // some error occurred and file was removed
     release();
-    scheduler_->next_clock();
+    scheduler_backend_->shiftToTimer();
     ASSERT_EQ(before_reserve, after_release);
     ASSERT_EQ(after_reserve.reserved,
               before_reserve.available - after_reserve.available);
+  }
+
+  /**
+   * @given storage, index, urls, scheduler
+   * @when try to create store, but storage doesn't have config
+   * @then error kConfigFileNotExist occurs
+   */
+  TEST_F(LocalStoreTest, noExistConfig) {
+    EXPECT_CALL(*storage_, getStorage())
+        .WillOnce(testing::Return(outcome::success(boost::none)));
+    EXPECT_OUTCOME_ERROR(
+        StoreError::kConfigFileNotExist,
+        LocalStoreImpl::newLocalStore(storage_, index_, urls_, scheduler_));
   }
 
 }  // namespace fc::sector_storage::stores

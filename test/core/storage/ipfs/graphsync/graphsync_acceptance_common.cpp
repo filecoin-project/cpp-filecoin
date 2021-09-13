@@ -11,7 +11,6 @@
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
-#include "storage/ipld/impl/ipld_node_impl.hpp"
 
 namespace fc::storage::ipfs::graphsync::test {
 
@@ -32,7 +31,6 @@ namespace fc::storage::ipfs::graphsync::test {
 
   std::pair<std::shared_ptr<Graphsync>, std::shared_ptr<libp2p::Host>>
   createNodeObjects(std::shared_ptr<boost::asio::io_context> io) {
-
     // [boost::di::override] allows for creating multiple hosts for testing
     // purposes
     auto injector =
@@ -43,14 +41,14 @@ namespace fc::storage::ipfs::graphsync::test {
     std::pair<std::shared_ptr<Graphsync>, std::shared_ptr<libp2p::Host>>
         objects;
     objects.second = injector.template create<std::shared_ptr<libp2p::Host>>();
-    auto scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
-        *io, libp2p::protocol::SchedulerConfig{});
+    auto scheduler =
+        injector.create<std::shared_ptr<libp2p::basic::Scheduler>>();
     objects.first =
         std::make_shared<GraphsyncImpl>(objects.second, std::move(scheduler));
     return objects;
   }
 
-  bool TestDataService::onDataBlock(const Data& data) {
+  bool TestDataService::onDataBlock(const Data &data) {
     bool expected = false;
     auto it = expected_.find(data.cid);
     if (it != expected_.end() && it->second == data.content) {
@@ -62,9 +60,8 @@ namespace fc::storage::ipfs::graphsync::test {
 
   void TestDataService::insertNode(TestDataService::Storage &dst,
                                    const std::string &data_str) {
-    using NodeImpl = fc::storage::ipld::IPLDNodeImpl;
-    auto node = NodeImpl::createFromString(data_str);
-    dst[node->getCID()] = node->getRawBytes();
+    auto bytes{common::span::cbytes(data_str)};
+    dst[common::getCidOf(bytes).value()] = Buffer{bytes};
   }
 
   outcome::result<size_t> TestDataService::select(

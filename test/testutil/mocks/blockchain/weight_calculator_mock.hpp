@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_MOCKS_BLOCKCHAIN_WEIGHT_CALCULATOR
-#define CPP_FILECOIN_MOCKS_BLOCKCHAIN_WEIGHT_CALCULATOR
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -17,5 +16,3 @@ namespace fc::blockchain::weight {
                  outcome::result<BigInt>(const Tipset &tipset));
   };
 }  // namespace fc::blockchain::weight
-
-#endif

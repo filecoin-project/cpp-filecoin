@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
       name: checkout repo
@@ -39,8 +39,8 @@ jobs:
         CC: "clang"
         CXX: "clang++"
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
-        GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
-        GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
+        GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
+        GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
       run: cmake . -GNinja -Bbuild -D LSAN=ON -D TESTING_PROOFS=ON
     - name: build
       run: cmake --build build -- -j2

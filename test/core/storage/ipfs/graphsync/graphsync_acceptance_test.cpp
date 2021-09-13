@@ -6,7 +6,8 @@
 #include <gtest/gtest.h>
 #include <spdlog/fmt/fmt.h>
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "common/logger.hpp"
 #include "graphsync_acceptance_common.hpp"
 
@@ -396,6 +397,8 @@ TEST(GraphsyncAcceptance, ManyNodesMutualExchange) {
 }
 
 int main(int argc, char *argv[]) {
+  fc::libp2pSoralog();
+
   logger = fc::common::createLogger("test");
   if (argc > 1 && std::string("trace") == argv[1]) {
     logger->set_level(spdlog::level::trace);

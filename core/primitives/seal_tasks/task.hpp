@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_SEAL_TASKS_TASK_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_SEAL_TASKS_TASK_HPP
+#pragma once
 
 #include <string>
 #include <unordered_map>
@@ -13,7 +12,7 @@ namespace fc::primitives {
 
   class TaskType : public std::string {
    public:
-    TaskType() : std::string(){};
+    TaskType() = default;
     explicit TaskType(const std::string &str) : std::string(str){};
   };
 
@@ -46,5 +45,3 @@ namespace fc::primitives {
     return order[lhs] < order[rhs];
   }
 }  // namespace fc::primitives
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_SEAL_TASKS_TASK_HPP

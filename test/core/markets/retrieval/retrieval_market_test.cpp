@@ -10,6 +10,8 @@
 namespace fc::markets::retrieval::test {
   using fc::storage::ipld::kAllSelector;
   using primitives::piece::UnpaddedByteIndex;
+  using primitives::sector::RegisteredSealProof;
+  using primitives::sector::SectorRef;
   using proofs::ProofsError;
   using testing::_;
 
@@ -25,14 +27,17 @@ namespace fc::markets::retrieval::test {
         .payload_cid = payload_cid,
         .params = {.piece_cid = data::green_piece.info.piece_cid}};
     std::promise<outcome::result<QueryResponse>> query_result;
-    client->query(host->getPeerInfo(), request, [&](auto response) {
+    RetrievalPeer peer{.address = miner_worker_address,
+                       .peer_id = host->getId(),
+                       .piece = data::green_piece.info.piece_cid};
+    client->query(peer, request, [&](auto response) {
       query_result.set_value(response);
     });
     auto future = query_result.get_future();
     ASSERT_EQ(future.wait_for(std::chrono::seconds(3)),
               std::future_status::ready);
     auto response_res = future.get();
-    EXPECT_TRUE(response_res.has_value());
+    ASSERT_TRUE(response_res.has_value());
     EXPECT_EQ(response_res.value().response_status,
               QueryResponseStatus::kQueryResponseAvailable);
     EXPECT_EQ(response_res.value().item_status,
@@ -54,18 +59,21 @@ namespace fc::markets::retrieval::test {
     const Address result_address = Address::makeFromId(1000);
     EXPECT_CALL(*miner, getAddress()).WillOnce(testing::Return(result_address));
 
-    EXPECT_CALL(*sealer,
-                doReadPiece(_,
-                            SectorId{.miner = result_address.getId(),
+    EXPECT_CALL(
+        *sealer,
+        doReadPieceSync(
+            _,
+            SectorRef{.id = SectorId{.miner = result_address.getId(),
                                      .sector = deal.sector_id},
-                            UnpaddedByteIndex(deal.offset.unpadded()),
-                            deal.length.unpadded(),
-                            common::Hash256(),
-                            CID()))
+                      .proof_type = RegisteredSealProof::kStackedDrg2KiBV1},
+            UnpaddedByteIndex(deal.offset.unpadded()),
+            deal.length.unpadded(),
+            common::Hash256(),
+            CID()))
         .WillOnce(
             testing::Invoke([ipfs{provider_ipfs}, cid{payload_cid}](
                                 auto output_fd, auto, auto, auto, auto, auto)
-                                -> outcome::result<void> {
+                                -> outcome::result<bool> {
               if (output_fd == -1) {
                 return ProofsError::kCannotOpenFile;
               }
@@ -74,7 +82,7 @@ namespace fc::markets::retrieval::test {
               if ((bytes < 0) || (static_cast<size_t>(bytes) != car.size())) {
                 return ProofsError::kNotWriteEnough;
               }
-              return outcome::success();
+              return true;
             }));
 
     DealProposalParams params{.selector = kAllSelector,
@@ -84,14 +92,17 @@ namespace fc::markets::retrieval::test {
                               .payment_interval_increase = 10};
     TokenAmount total_funds{100};
     std::promise<outcome::result<void>> retrieve_result;
-    client->retrieve(
+    RetrievalPeer peer{.address = miner_worker_address,
+                       .peer_id = host->getId(),
+                       .piece = boost::none};
+    EXPECT_OUTCOME_TRUE_1(client->retrieve(
         payload_cid,
         params,
-        host->getPeerInfo(),
+        total_funds,
+        peer,
         client_wallet,
         miner_wallet,
-        total_funds,
-        [&](outcome::result<void> res) { retrieve_result.set_value(res); });
+        [&](outcome::result<void> res) { retrieve_result.set_value(res); }));
     auto future = retrieve_result.get_future();
     ASSERT_EQ(future.wait_for(std::chrono::seconds(5)),
               std::future_status::ready);

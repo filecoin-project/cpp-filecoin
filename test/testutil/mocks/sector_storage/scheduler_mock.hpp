@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_TEST_TESTUTIL_MOCKS_SECTOR_STORAGE_SCHEDULER_MOCK_HPP
-#define CPP_FILECOIN_TEST_TESTUTIL_MOCKS_SECTOR_STORAGE_SCHEDULER_MOCK_HPP
+#pragma once
 
 #include <gmock/gmock.h>
 
@@ -14,22 +13,23 @@ namespace fc::sector_storage {
 
   class SchedulerMock : public Scheduler {
    public:
-    MOCK_METHOD6(schedule,
-                 outcome::result<void>(const SectorId &,
+    MOCK_METHOD8(schedule,
+                 outcome::result<void>(const SectorRef &,
                                        const TaskType &,
                                        const std::shared_ptr<WorkerSelector> &,
                                        const WorkerAction &,
                                        const WorkerAction &,
-                                       uint64_t));
+                                       const ReturnCb &,
+                                       uint64_t,
+                                       const boost::optional<WorkId> &));
 
     MOCK_METHOD1(doNewWorker, void(WorkerHandle *));
-    void newWorker(std::unique_ptr<WorkerHandle> worker) {
+    void newWorker(std::unique_ptr<WorkerHandle> worker) override {
       doNewWorker(worker.get());
     }
 
-    MOCK_CONST_METHOD0(getSealProofType, RegisteredSealProof());
+    MOCK_METHOD2(returnResult,
+                 outcome::result<void>(const CallId &, CallResult));
   };
 
 }  // namespace fc::sector_storage
-
-#endif  // CPP_FILECOIN_TEST_TESTUTIL_MOCKS_SECTOR_STORAGE_SCHEDULER_MOCK_HPP

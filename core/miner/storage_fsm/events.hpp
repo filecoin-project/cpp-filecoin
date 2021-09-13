@@ -14,7 +14,7 @@ namespace fc::mining {
   using primitives::tipset::Tipset;
 
   constexpr ChainEpoch kGlobalChainConfidence =
-      2 * vm::actor::builtin::types::miner::kChainFinalityish;
+      2 * vm::actor::builtin::types::miner::kChainFinality;
 
   class Events {
    public:

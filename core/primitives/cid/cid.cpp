@@ -6,7 +6,6 @@
 #include "primitives/cid/cid.hpp"
 
 #include <libp2p/multi/content_identifier_codec.hpp>
-#include <libp2p/multi/uvarint.hpp>
 #include "codec/uvarint.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 
@@ -14,7 +13,6 @@ using libp2p::multi::HashType;
 using libp2p::multi::Multihash;
 
 namespace fc {
-  using libp2p::multi::UVarint;
 
   CID::CID() : ContentIdentifier({}, {}, Multihash::create({}, {}).value()) {}
 
@@ -26,6 +24,17 @@ namespace fc {
 
   CID::CID(Version version, Multicodec content_type, Multihash content_address)
       : ContentIdentifier(version, content_type, std::move(content_address)) {}
+
+  CID::CID(const CbCid &cid)
+      : CID{CID::Version::V1,
+            CID::Multicodec::DAG_CBOR,
+            Multihash::create(HashType::blake2b_256, cid).value()} {}
+
+  CID::CID(const ActorCodeCid &cid)
+      : CID{CID::Version::V1,
+            CID::Multicodec::RAW,
+            Multihash::create(HashType::identity, common::span::cbytes(cid))
+                .value()} {}
 
   CID &CID::operator=(CID &&cid) noexcept {
     version = cid.version;
@@ -52,19 +61,12 @@ namespace fc {
     return *this;
   }
 
-  outcome::result<std::vector<uint8_t>> CID::getPrefix() const {
-    std::vector<uint8_t> prefix;
-    auto version_encoded = UVarint(static_cast<uint64_t>(version)).toVector();
-    prefix.insert(prefix.end(), version_encoded.begin(), version_encoded.end());
-    auto code_encoded = UVarint(static_cast<uint64_t>(content_type)).toVector();
-    prefix.insert(prefix.end(), code_encoded.begin(), code_encoded.end());
-    auto type_encoded = UVarint(content_address.getType()).toVector();
-    prefix.insert(prefix.end(), type_encoded.begin(), type_encoded.end());
-    auto size_encoded =
-        UVarint(static_cast<uint64_t>(content_address.getHash().size()))
-            .toVector();
-    prefix.insert(prefix.end(), size_encoded.begin(), size_encoded.end());
-    return std::move(prefix);
+  CidPrefix CID::getPrefix() const {
+    return CidPrefix{
+        .version = static_cast<uint64_t>(version),
+        .codec = static_cast<uint64_t>(content_type),
+        .mh_type = content_address.getType(),
+        .mh_length = static_cast<int>(content_address.getHash().size())};
   }
 
   outcome::result<std::string> CID::toString() const {
@@ -96,24 +98,25 @@ namespace fc {
         return Multihash::Error::INCONSISTENT_LENGTH;
       }
     } else {
-      OUTCOME_TRY(version,
-                  codec::uvarint::read<Error::EMPTY_VERSION, Version>(input));
-      if (version != Version::V0 && version != Version::V1) {
+      if (!codec::uvarint::read(cid.version, input)) {
+        return Error::EMPTY_VERSION;
+      }
+      if (cid.version != Version::V0 && cid.version != Version::V1) {
         return Error::RESERVED_VERSION;
       }
-      cid.version = version;
-      OUTCOME_TRY(
-          codec,
-          codec::uvarint::read<Error::EMPTY_MULTICODEC, Multicodec>(input));
-      cid.content_type = codec;
+      if (!codec::uvarint::read(cid.content_type, input)) {
+        return Error::EMPTY_MULTICODEC;
+      }
     }
 
-    OUTCOME_TRY(
-        hash_type,
-        codec::uvarint::read<Multihash::Error::ZERO_INPUT_LENGTH, HashType>(
-            input));
-    OUTCOME_TRY(hash_size,
-                codec::uvarint::read<Multihash::Error::INPUT_TOO_SHORT>(input));
+    HashType hash_type;
+    if (!codec::uvarint::read(hash_type, input)) {
+      return Multihash::Error::ZERO_INPUT_LENGTH;
+    }
+    size_t hash_size{};
+    if (!codec::uvarint::read(hash_size, input)) {
+      return Multihash::Error::INPUT_TOO_SHORT;
+    }
     gsl::span<const uint8_t> hash_span;
     if (prefix) {
       static const uint8_t empty[Multihash::kMaxHashLength]{};
@@ -153,25 +156,29 @@ namespace fc {
     return {};
   }
 
-  boost::optional<Hash256> asBlake(const CID &cid) {
+  boost::optional<ActorCodeCid> asActorCode(const CID &cid) {
+    if (cid.version == CID::Version::V1
+        && cid.content_type == CID::Multicodec::RAW) {
+      if (auto id{asIdentity(cid)}) {
+        return ActorCodeCid{common::span::bytestr(*id)};
+      }
+    }
+    return boost::none;
+  }
+
+  boost::optional<CbCid> asBlake(const CID &cid) {
     auto &mh{cid.content_address};
     if (mh.getType() == HashType::blake2b_256) {
-      if (auto hash{mh.getHash()}; hash.size() == Hash256::size()) {
-        return Hash256::fromSpan(hash).value();
+      if (auto hash{mh.getHash()}; hash.size() == CbCid::size()) {
+        return CbCid{CbCid::fromSpan(hash).value()};
       }
     }
     return {};
-  }
-
-  CID asCborBlakeCid(const Hash256 &hash) {
-    return CID(CID::Version::V1,
-               CID::Multicodec::DAG_CBOR,
-               Multihash::create(HashType::blake2b_256, hash).value());
   }
 }  // namespace fc
 
 namespace fc::common {
   outcome::result<CID> getCidOf(gsl::span<const uint8_t> bytes) {
-    return asCborBlakeCid(crypto::blake2b::blake2b_256(bytes));
+    return CID{CbCid::hash(bytes)};
   }
 }  // namespace fc::common

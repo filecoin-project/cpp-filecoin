@@ -4,9 +4,8 @@
 #
 
 add_library(storage_power_types
-    policy.cpp
+    bind_types.cpp
     )
 target_link_libraries(storage_power_types
-    actor
-    address
+    cbor
     )

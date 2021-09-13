@@ -6,16 +6,23 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 #include <gtest/gtest.h>
+
+#include "cbor_blake/ipld_any.hpp"
+#include "codec/cbor/light_reader/actor.hpp"
+#include "codec/cbor/light_reader/hamt_walk.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "testutil/init_actor.hpp"
+#include "vm/actor/codes.hpp"
+#include "vm/actor/version.hpp"
 
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
 using fc::vm::actor::Actor;
+using fc::vm::actor::ActorVersion;
 using fc::vm::actor::CodeId;
 using fc::vm::state::StateTreeImpl;
 
-auto kAddressId = Address::makeFromId(13);
+const auto kAddressId = Address::makeFromId(13);
 const Actor kActor{
     CodeId{"010001020001"_cid}, "010001020002"_cid, 3, BigInt(5)};
 
@@ -68,8 +75,36 @@ TEST_F(StateTreeTest, SetRevert) {
  * @then Actor state in the tree is same
  */
 TEST_F(StateTreeTest, RegisterNewAddressLookupId) {
-  auto tree = setupInitActor(nullptr, 13);
+  auto tree = setupInitActor(nullptr, ActorVersion::kVersion0, 13);
   Address address{fc::primitives::address::ActorExecHash{}};
   EXPECT_OUTCOME_EQ(tree->registerNewAddress(address), kAddressId);
   EXPECT_OUTCOME_EQ(tree->lookupId(address), kAddressId);
+}
+
+/**
+ * walk visits hamt key-values
+ */
+TEST_F(StateTreeTest, Walk) {
+  using namespace fc;
+  adt::Map<vm::actor::Actor, adt::AddressKeyer> map{store_};
+  auto head1{setCbor(store_, 3).value()};
+  auto code1{vm::actor::code::init0};
+  map.set(Address::makeFromId(1), {code1, head1}).value();
+  codec::cbor::light_reader::HamtWalk walk{
+      std::make_shared<AnyAsCbIpld>(store_),
+      *asBlake(map.hamt.flush().value())};
+  BytesIn key;
+  BytesIn value;
+  EXPECT_FALSE(walk.empty());
+  EXPECT_TRUE(walk.next(key, value));
+  EXPECT_TRUE(walk.empty());
+  uint64_t id2{};
+  ActorCodeCid code2;
+  const CbCid *head2;
+  EXPECT_TRUE(codec::cbor::light_reader::readIdAddress(id2, key));
+  EXPECT_EQ(id2, 1);
+  EXPECT_TRUE(codec::cbor::light_reader::readActor(code2, head2, value));
+  EXPECT_EQ(code2, code1);
+  EXPECT_EQ(*head2, *asBlake(head1));
+  EXPECT_FALSE(walk.next(key, value));
 }

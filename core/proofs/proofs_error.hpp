@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_PROOFS_PROOFS_ERROR_HPP
-#define FILECOIN_CORE_PROOFS_PROOFS_ERROR_HPP
+#pragma once
 
 #include "common/outcome.hpp"
 
@@ -29,11 +28,10 @@ namespace fc::proofs {
     kUnclassifiedError,
     kCallerError,
     kReceiverError,
+    kNoSuchAggregationSealProof,
     kUnknown = 1000
   };
 
 }  // namespace fc::proofs
 
 OUTCOME_HPP_DECLARE_ERROR(fc::proofs, ProofsError);
-
-#endif  // FILECOIN_CORE_PROOFS_PROOFS_ERROR_HPP

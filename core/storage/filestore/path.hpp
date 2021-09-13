@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_STORAGE_FILESTORE_PATH_HPP
-#define FILECOIN_CORE_STORAGE_FILESTORE_PATH_HPP
+#pragma once
 
 #include <string>
 
@@ -16,5 +15,3 @@ namespace fc::storage::filestore {
   using Path = std::string;
 
 }  // namespace fc::storage::filestore
-
-#endif  // FILECOIN_CORE_STORAGE_FILESTORE_PATH_HPP

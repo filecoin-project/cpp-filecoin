@@ -9,34 +9,10 @@
 
 namespace fc::vm::actor::builtin::v0::miner {
   using crypto::randomness::DomainSeparationTag;
+  using states::makeEmptyMinerState;
+  using states::MinerActorStatePtr;
   using toolchain::Toolchain;
   using namespace types::miner;
-
-  outcome::result<void> Construct::makeEmptyState(
-      const Runtime &runtime, states::MinerActorStatePtr state) {
-    // Lotus gas conformance - flush empty hamt
-    OUTCOME_TRY(state->precommitted_sectors.hamt.flush());
-
-    // Lotus gas conformance - flush empty hamt
-    OUTCOME_TRY(empty_amt_cid, state->precommitted_setctors_expiry.amt.flush());
-
-    RleBitset allocated_sectors;
-    OUTCOME_TRY(state->allocated_sectors.set(allocated_sectors));
-
-    OUTCOME_TRY(
-        deadlines,
-        state->makeEmptyDeadlines(runtime.getIpfsDatastore(), empty_amt_cid));
-    OUTCOME_TRY(state->deadlines.set(deadlines));
-
-    VestingFunds vesting_funds;
-    OUTCOME_TRY(state->vesting_funds.set(vesting_funds));
-
-    // construct with empty already cid stored in ipld to avoid gas charge
-    state->sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid,
-                                                   runtime.getIpfsDatastore());
-
-    return outcome::success();
-  }
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
@@ -56,10 +32,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       control_addresses.push_back(resolved);
     }
 
-    auto state = runtime.stateManager()->createMinerActorState(
-        runtime.getActorVersion());
-
-    OUTCOME_TRY(makeEmptyState(runtime, state));
+    OUTCOME_TRY(state, makeEmptyMinerState(runtime));
 
     const auto current_epoch = runtime.getCurrentEpoch();
     REQUIRE_NO_ERROR_A(offset,
@@ -71,15 +44,16 @@ namespace fc::vm::actor::builtin::v0::miner {
     state->proving_period_start = period_start;
 
     REQUIRE_NO_ERROR_A(miner_info,
-                       MinerInfo::make(owner,
-                                       worker,
-                                       control_addresses,
-                                       params.peer_id,
-                                       params.multiaddresses,
-                                       params.seal_proof_type,
-                                       RegisteredPoStProof::kUndefined),
+                       makeMinerInfo(runtime.getActorVersion(),
+                                     owner,
+                                     worker,
+                                     control_addresses,
+                                     params.peer_id,
+                                     params.multiaddresses,
+                                     params.seal_proof_type,
+                                     RegisteredPoStProof::kUndefined),
                        VMExitCode::kErrIllegalArgument);
-    OUTCOME_TRY(state->setInfo(runtime.getIpfsDatastore(), miner_info));
+    OUTCOME_TRY(state->miner_info.set(miner_info));
 
     OUTCOME_TRY(runtime.commitState(state));
 
@@ -90,13 +64,12 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   ACTOR_METHOD_IMPL(ControlAddresses) {
-    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
-    REQUIRE_NO_ERROR_A(miner_info,
-                       state->getInfo(runtime.getIpfsDatastore()),
-                       VMExitCode::kErrIllegalState);
-    return Result{.owner = miner_info.owner,
-                  .worker = miner_info.worker,
-                  .control = miner_info.control};
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
+    REQUIRE_NO_ERROR_A(
+        miner_info, state->getInfo(), VMExitCode::kErrIllegalState);
+    return Result{.owner = miner_info->owner,
+                  .worker = miner_info->worker,
+                  .control = miner_info->control};
   }
 
   ACTOR_METHOD_IMPL(ChangeWorkerAddress) {
@@ -114,22 +87,22 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     bool worker_changed = false;
 
-    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
-    OUTCOME_TRY(miner_info, state->getInfo(runtime.getIpfsDatastore()));
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
+    OUTCOME_TRY(miner_info, state->getInfo());
 
-    OUTCOME_TRY(runtime.validateImmediateCallerIs(miner_info.owner));
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(miner_info->owner));
 
-    miner_info.control = control_addresses;
+    miner_info->control = control_addresses;
 
-    if (new_worker != miner_info.worker) {
+    if (new_worker != miner_info->worker) {
       worker_changed = true;
       effective_epoch = runtime.getCurrentEpoch() + kWorkerKeyChangeDelay;
 
-      miner_info.pending_worker_key = WorkerKeyChange{
+      miner_info->pending_worker_key = WorkerKeyChange{
           .new_worker = new_worker, .effective_at = effective_epoch};
     }
 
-    REQUIRE_NO_ERROR(state->setInfo(runtime.getIpfsDatastore(), miner_info),
+    REQUIRE_NO_ERROR(state->miner_info.set(miner_info),
                      VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
 
@@ -147,17 +120,17 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     OUTCOME_TRY(utils->checkPeerInfo(params.new_id, {}));
 
-    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
 
-    OUTCOME_TRY(miner_info, state->getInfo(runtime.getIpfsDatastore()));
+    OUTCOME_TRY(miner_info, state->getInfo());
 
-    auto callers = miner_info.control;
-    callers.emplace_back(miner_info.owner);
-    callers.emplace_back(miner_info.worker);
+    auto callers = miner_info->control;
+    callers.emplace_back(miner_info->owner);
+    callers.emplace_back(miner_info->worker);
     OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
 
-    miner_info.peer_id = params.new_id;
-    REQUIRE_NO_ERROR(state->setInfo(runtime.getIpfsDatastore(), miner_info),
+    miner_info->peer_id = params.new_id;
+    REQUIRE_NO_ERROR(state->miner_info.set(miner_info),
                      VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(runtime.commitState(state));

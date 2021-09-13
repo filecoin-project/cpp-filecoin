@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
-#include "vm/actor/builtin/v2/account/account_actor_state.hpp"
+#include "vm/actor/builtin/states/account/v2/account_actor_state.hpp"
 
 #include <gtest/gtest.h>
 
@@ -18,22 +18,8 @@ namespace fc::vm::actor::builtin::v2::account {
   struct AccountActorTest : public ActorTestFixture<AccountActorState> {
     void SetUp() override {
       ActorTestFixture<AccountActorState>::SetUp();
-      actorVersion = ActorVersion::kVersion2;
-
-      EXPECT_CALL(*state_manager, createAccountActorState(testing::_))
-          .WillRepeatedly(testing::Invoke([&](auto) {
-            auto s = std::make_shared<AccountActorState>();
-            return std::static_pointer_cast<states::AccountActorState>(s);
-          }));
-
-      EXPECT_CALL(*state_manager, getAccountActorState())
-          .WillRepeatedly(testing::Invoke([&]() {
-            EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-            EXPECT_OUTCOME_TRUE(current_state,
-                                ipld->getCbor<AccountActorState>(cid));
-            auto s = std::make_shared<AccountActorState>(current_state);
-            return std::static_pointer_cast<states::AccountActorState>(s);
-          }));
+      actor_version = ActorVersion::kVersion2;
+      ipld->actor_version = actor_version;
     }
 
     Address address{Address::makeSecp256k1(

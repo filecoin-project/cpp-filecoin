@@ -5,11 +5,13 @@
 
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 
+#include "vm/actor/builtin/states/reward/reward_actor_state.hpp"
 #include "vm/actor/builtin/types/reward/policy.hpp"
 #include "vm/actor/builtin/types/reward/reward_actor_calculus.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::vm::actor::builtin::v0::reward {
+  using states::RewardActorStatePtr;
   using namespace types::reward;
 
   /// The expected number of block producers in each epoch.
@@ -18,8 +20,8 @@ namespace fc::vm::actor::builtin::v0::reward {
   ACTOR_METHOD_IMPL(Constructor) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
 
-    auto state = runtime.stateManager()->createRewardActorState(
-        runtime.getActorVersion());
+    RewardActorStatePtr state{runtime.getActorVersion()};
+    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
     state->initialize(params);
 
     OUTCOME_TRY(runtime.commitState(state));
@@ -59,7 +61,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     OUTCOME_TRY(balance, validateParams(runtime, params));
     CHANGE_ERROR_A(
         miner, runtime.resolveAddress(params.miner), VMExitCode::kErrNotFound);
-    OUTCOME_TRY(state, runtime.stateManager()->getRewardActorState());
+    OUTCOME_TRY(state, runtime.getActorState<RewardActorStatePtr>());
     OUTCOME_TRY(
         reward,
         calculateReward(runtime, params, state->this_epoch_reward, balance));
@@ -91,7 +93,7 @@ namespace fc::vm::actor::builtin::v0::reward {
   }
 
   ACTOR_METHOD_IMPL(ThisEpochReward) {
-    OUTCOME_TRY(state, runtime.stateManager()->getRewardActorState());
+    OUTCOME_TRY(state, runtime.getActorState<RewardActorStatePtr>());
     return Result{
         .this_epoch_reward = state->this_epoch_reward,
         .this_epoch_reward_smoothed = state->this_epoch_reward_smoothed,
@@ -100,16 +102,16 @@ namespace fc::vm::actor::builtin::v0::reward {
 
   outcome::result<void> UpdateNetworkKPI::updateKPI(
       Runtime &runtime, const Params &params, const BigInt &baseline_exponent) {
-    OUTCOME_TRY(state, runtime.stateManager()->getRewardActorState());
+    OUTCOME_TRY(state, runtime.getActorState<RewardActorStatePtr>());
     const ChainEpoch prev_epoch = state->epoch;
     const ChainEpoch now = runtime.getCurrentEpoch();
     while (state->epoch < now) {
-      updateToNextEpoch(*state, params, baseline_exponent);
+      state->updateToNextEpoch(params, baseline_exponent);
     }
 
-    updateToNextEpochWithReward(*state, params, baseline_exponent);
+    state->updateToNextEpochWithReward(params, baseline_exponent);
     // only update smoothed estimates after updating reward and epoch
-    updateSmoothedEstimates(*state, state->epoch - prev_epoch);
+    state->updateSmoothedEstimates(state->epoch - prev_epoch);
 
     // Lotus gas conformance
     OUTCOME_TRY(runtime.commitState(state));

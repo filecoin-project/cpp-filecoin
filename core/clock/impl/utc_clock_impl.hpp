@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_CLOCK_IMPL_UTC_CLOCK_IMPL_HPP
-#define CPP_FILECOIN_CORE_CLOCK_IMPL_UTC_CLOCK_IMPL_HPP
+#pragma once
 
 #include "clock/utc_clock.hpp"
 
@@ -14,5 +13,3 @@ namespace fc::clock {
     microseconds nowMicro() const override;
   };
 }  // namespace fc::clock
-
-#endif  // CPP_FILECOIN_CORE_CLOCK_IMPL_UTC_CLOCK_IMPL_HPP

@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/types/multisig/transaction.hpp"
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::types::multisig {

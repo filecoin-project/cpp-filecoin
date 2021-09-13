@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_TYPES_HPP
-#define CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_TYPES_HPP
+#pragma once
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
@@ -54,9 +53,7 @@ namespace fc::vm::runtime {
 
   struct ConsensusFault {
     Address target;
-    ChainEpoch epoch;
-    ConsensusFaultType type;
+    ChainEpoch epoch{};
+    ConsensusFaultType type{};
   };
 }  // namespace fc::vm::runtime
-
-#endif  // CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_TYPES_HPP

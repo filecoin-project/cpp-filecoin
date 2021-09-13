@@ -3,12 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <spdlog/sinks/basic_file_sink.h>
+#include <sys/resource.h>
 #include <iostream>
 
+#include "api/full_node/node_api_v1_wrapper.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
+#include "common/libp2p/soralog.hpp"
 #include "common/logger.hpp"
 #include "drand/impl/http.hpp"
 #include "markets/storage/types.hpp"
@@ -17,6 +21,7 @@
 #include "node/graphsync_server.hpp"
 #include "node/identify.hpp"
 #include "node/main/builder.hpp"
+#include "node/main/metrics.hpp"
 #include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
 #include "node/pubsub_workaround.hpp"
@@ -25,10 +30,25 @@
 #include "node/sync_job.hpp"
 #include "vm/actor/cgo/actors.hpp"
 
+void setFdLimitMax() {
+  rlimit r;
+  if (getrlimit(RLIMIT_NOFILE, &r) != 0) {
+    return spdlog::error("getrlimit(RLIMIT_NOFILE), errno={}", errno);
+  }
+  r.rlim_cur = r.rlim_max;
+  if (setrlimit(RLIMIT_NOFILE, &r) != 0) {
+    return spdlog::error(
+        "setrlimit(RLIMIT_NOFILE, {}), errno={}", r.rlim_cur, errno);
+  }
+}
+
 namespace fc {
   using api::Import;
   using api::ImportRes;
+  using api::makeFullNodeApiV1Wrapper;
+  using api::StorageMarketDealInfo;
   using markets::storage::StorageProviderInfo;
+  using node::Metrics;
   using node::NodeObjects;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
 
@@ -58,26 +78,30 @@ namespace fc {
 
   }  // namespace
 
-  void startApi(const node::Config &config, NodeObjects &node_objects) {
+  void startApi(const node::Config &config,
+                NodeObjects &node_objects,
+                const Metrics &metrics) {
     // Network API
     PeerInfo api_peer_info{
         node_objects.host->getPeerInfo().id,
         nonZeroAddrs(node_objects.host->getAddresses(), &config.localIp())};
-    node_objects.api->NetAddrsListen = [api_peer_info] {
+    node_objects.api->NetAddrsListen =
+        [api_peer_info]() -> outcome::result<PeerInfo> {
       return api_peer_info;
     };
     node_objects.api->NetConnect = [&](auto &peer) {
       node_objects.host->connect(peer);
       return outcome::success();
     };
-    node_objects.api->NetPeers = [&]() {
+    node_objects.api->NetPeers =
+        [&]() -> outcome::result<std::vector<PeerInfo>> {
       const auto &peer_repository = node_objects.host->getPeerRepository();
       auto connections = node_objects.host->getNetwork()
                              .getConnectionManager()
                              .getConnections();
       std::vector<PeerInfo> result;
       for (const auto &conncection : connections) {
-        auto remote = conncection->remotePeer();
+        const auto remote = conncection->remotePeer();
         if (remote.has_error())
           log()->error("get remote peer error", remote.error().message());
         result.push_back(peer_repository.getPeerInfo(remote.value()));
@@ -94,6 +118,36 @@ namespace fc {
       // storage id set to 0
       return ImportRes{root, 0};
     };
+
+    node_objects.api->ClientListDeals = [api_peer_info, &node_objects]()
+        -> outcome::result<std::vector<StorageMarketDealInfo>> {
+      std::vector<StorageMarketDealInfo> result;
+      OUTCOME_TRY(local_deals,
+                  node_objects.storage_market_client->listLocalDeals());
+      result.reserve(local_deals.size());
+      for (const auto &deal : local_deals) {
+        result.emplace_back(StorageMarketDealInfo{
+            deal.proposal_cid,
+            deal.state,
+            deal.message,
+            deal.client_deal_proposal.proposal.provider,
+            deal.data_ref,
+            deal.client_deal_proposal.proposal.piece_cid,
+            deal.client_deal_proposal.proposal.piece_size.unpadded(),
+            deal.client_deal_proposal.proposal.storage_price_per_epoch,
+            deal.client_deal_proposal.proposal.duration(),
+            deal.deal_id,
+            // TODO (a.chernyshov) creation time - actually not used
+            {},
+            deal.client_deal_proposal.proposal.verified,
+            // TODO (a.chernyshov) actual ChannelId
+            {api_peer_info.id, deal.miner.id, 0},
+            // TODO (a.chernyshov) actual data transfer
+            {0, 0, deal.proposal_cid, true, true, "", "", deal.miner.id, 0}});
+      }
+      return result;
+    };
+
     node_objects.api->ClientStartDeal =
         [&](auto &params) -> outcome::result<CID> {
       // resolve wallet address and check if address exists in wallet
@@ -110,11 +164,12 @@ namespace fc {
       OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
       const PeerInfo peer_info{.id = peer_id,
                                .addresses = miner_info.multiaddrs};
-      StorageProviderInfo provider_info{.address = params.miner,
-                                        .owner = {},
-                                        .worker = miner_info.worker,
-                                        .sector_size = miner_info.sector_size,
-                                        .peer_info = peer_info};
+      const StorageProviderInfo provider_info{
+          .address = params.miner,
+          .owner = {},
+          .worker = miner_info.worker,
+          .sector_size = miner_info.sector_size,
+          .peer_info = peer_info};
 
       auto start_epoch = params.deal_start_epoch;
       if (start_epoch <= 0) {
@@ -148,16 +203,40 @@ namespace fc {
           params.epoch_price,
           params.provider_collateral,
           seal_proof_type,
+          params.verified_deal,
           params.fast_retrieval);
     };
-    node_objects.api->ClientListImports = [&]() {
+    node_objects.api->ClientListImports =
+        [&]() -> outcome::result<std::vector<Import>> {
       return node_objects.storage_market_import_manager->list();
     };
 
+    node_objects.api_v1 = makeFullNodeApiV1Wrapper();
+    auto rpc_v1{api::makeRpc(*node_objects.api)};
+    wrapRpc(rpc_v1, *node_objects.api_v1);
+
     auto rpc{api::makeRpc(*node_objects.api)};
+
+    std::map<std::string, std::shared_ptr<api::Rpc>> rpcs;
+    rpcs.emplace("/rpc/v0", rpc_v1);
+    rpcs.emplace("/rpc/v1", rpc);
+
     auto routes{std::make_shared<api::Routes>()};
+
+    auto text_route{[](auto f) -> api::RouteHandler {
+      return [f{std::move(f)}](auto &) {
+        api::http::response<api::http::string_body> res;
+        res.body() = f();
+        return api::WrapperResponse{std::move(res)};
+      };
+    }};
+    routes->emplace("/health",
+                    text_route([] { return "{\"status\":\"UP\"}"; }));
+    routes->emplace("/metrics",
+                    text_route([&] { return metrics.prometheus(); }));
+
     api::serve(
-        rpc, routes, *node_objects.io_context, "127.0.0.1", config.api_port);
+        rpcs, routes, *node_objects.io_context, "127.0.0.1", config.api_port);
     api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
     log()->info("API started at ws://127.0.0.1:{}", config.api_port);
   }
@@ -175,6 +254,28 @@ namespace fc {
       exit(EXIT_FAILURE);
     }
     auto &o = obj_res.value();
+
+    auto gs_sub{o.graphsync->subscribe([&](auto &, auto &data) {
+      o.markets_ipld->set(data.cid, data.content).value();
+    })};
+
+    auto mpool_gossip{o.events->subscribeMessageFromPubSub([&](auto &e) {
+      auto res{o.mpool->add(e.msg)};
+      if (!res) {
+        spdlog::error("MessagePool.subscribeMessageFromPubSub: {:#}",
+                      res.error());
+      }
+    })};
+    o.api->MpoolPushMessage = [&, impl{std::move(o.api->MpoolPushMessage)}](
+                                  auto &arg1, auto &arg2) {
+      auto res{impl(arg1, arg2)};
+      if (res) {
+        o.pubsub_gate->publish(res.value());
+      }
+      return res;
+    };
+
+    Metrics metrics{o};
 
     o.io_context->post([&] {
       for (auto &host : config.drand_servers) {
@@ -263,7 +364,7 @@ namespace fc {
       }
     }
 
-    startApi(config, o);
+    startApi(config, o, metrics);
 
     o.identify->start(events);
     o.say_hello->start(config.genesis_cid.value(), events);
@@ -302,12 +403,15 @@ namespace fc {
 }  // namespace fc
 
 int main(int argc, char *argv[]) {
-  try {
-    auto config{fc::node::Config::read(argc, argv)};
-    fc::main(config);
-  } catch (const std::exception &e) {
-    std::cerr << "UNEXPECTED EXCEPTION, " << e.what() << "\n";
-  } catch (...) {
-    std::cerr << "UNEXPECTED EXCEPTION\n";
-  }
+  setFdLimitMax();
+
+  auto config{fc::node::Config::read(argc, argv)};
+  fc::libp2pSoralog(config.join("libp2p.log"));
+
+  using fc::common::file_sink;
+  file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+      config.join("fuhon.log"));
+  spdlog::default_logger()->sinks().push_back(file_sink);
+
+  fc::main(config);
 }

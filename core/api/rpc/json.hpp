@@ -8,10 +8,10 @@
 #include <rapidjson/document.h>
 #include <cppcodec/base64_rfc4648.hpp>
 
-#include "api/node_api.hpp"
+#include "api/full_node/node_api.hpp"
 #include "api/rpc/json_errors.hpp"
 #include "api/rpc/rpc.hpp"
-#include "api/storage_api.hpp"
+#include "api/storage_miner/storage_api.hpp"
 #include "api/worker_api.hpp"
 #include "common/enum.hpp"
 #include "common/libp2p/peer/cbor_peer_info.hpp"
@@ -21,7 +21,6 @@
 #include "sector_storage/stores/storage.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 
 #define COMMA ,
 
@@ -30,10 +29,13 @@
 #define DECODE(type) static void decode(type &v, const Value &j)
 
 namespace fc::codec::cbor {
+  using markets::storage::StorageDealStatus;
+
   template <>
-  inline fc::api::QueryOffer kDefaultT<fc::api::QueryOffer>() {
-    return {{}, {}, {}, {}, {}, {}, {}, kDefaultT<PeerId>()};
+  inline StorageDealStatus kDefaultT<StorageDealStatus>() {
+    return StorageDealStatus::STORAGE_DEAL_UNKNOWN;
   }
+
 }  // namespace fc::codec::cbor
 
 namespace fc::api {
@@ -59,10 +61,13 @@ namespace fc::api {
   using primitives::sector::RegisteredPoStProof;
   using primitives::sector::RegisteredSealProof;
   using primitives::sector::SectorId;
+  using primitives::sector::SectorRef;
   using primitives::tipset::HeadChangeType;
   using proofs::SealedAndUnsealedCID;
   using rapidjson::Document;
   using rapidjson::Value;
+  using sector_storage::CallErrorCode;
+  using sector_storage::CallId;
   using sector_storage::Range;
   using sector_storage::SectorFileType;
   using sector_storage::stores::AcquireMode;
@@ -73,7 +78,6 @@ namespace fc::api {
   using vm::actor::builtin::types::market::DealProposal;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::market::StorageParticipantBalance;
-  using vm::actor::builtin::types::miner::MinerInfo;
   using vm::actor::builtin::types::miner::PowerPair;
   using vm::actor::builtin::types::miner::SectorPreCommitInfo;
   using vm::actor::builtin::types::miner::WorkerKeyChange;
@@ -264,11 +268,13 @@ namespace fc::api {
       decodeEnum(v, j);
     }
 
-    ENCODE(None) {
-      return {};
+    ENCODE(StorageDealStatus) {
+      return encode(common::to_int(v));
     }
 
-    DECODE(None) {}
+    DECODE(StorageDealStatus) {
+      decodeEnum(v, j);
+    }
 
     ENCODE(int64_t) {
       return Value{v};
@@ -368,6 +374,18 @@ namespace fc::api {
       v = std::move(cid);
     }
 
+    ENCODE(CbCid) {
+      return encode(CID{v});
+    }
+
+    DECODE(CbCid) {
+      if (auto cid{asBlake(decode<CID>(j))}) {
+        v = std::move(*cid);
+      } else {
+        outcome::raise(JsonError::kWrongType);
+      }
+    }
+
     ENCODE(PeerId) {
       return encode(v.toBase58());
     }
@@ -387,12 +405,38 @@ namespace fc::api {
       decode(v.bytes, Get(j, "VRFProof"));
     }
 
+    ENCODE(BlockParentCbCids) {
+      if (v.mainnet_genesis) {
+        static const std::vector<CID> mainnet{
+            CID::fromBytes(kMainnetGenesisBlockParent).value()};
+        return encode(mainnet);
+      }
+      return encode<std::vector<CbCid>>(v);
+    }
+
+    DECODE(BlockParentCbCids) {
+      const auto cids{decode<std::vector<CID>>(j)};
+      static const std::vector<CID> mainnet{
+          CID::fromBytes(kMainnetGenesisBlockParent).value()};
+      v.resize(0);
+      v.mainnet_genesis = cids == mainnet;
+      if (!v.mainnet_genesis) {
+        for (auto &_cid : cids) {
+          if (auto cid{asBlake(_cid)}) {
+            v.push_back(*cid);
+          } else {
+            outcome::raise(JsonError::kWrongType);
+          }
+        }
+      }
+    }
+
     ENCODE(TipsetKey) {
       return encode(v.cids());
     }
 
     DECODE(TipsetKey) {
-      v = decode<std::vector<CID>>(j);
+      v = decode<std::vector<CbCid>>(j);
     }
 
     ENCODE(Address) {
@@ -406,16 +450,16 @@ namespace fc::api {
     }
 
     ENCODE(Signature) {
-      uint64_t type;
+      uint64_t type = SignatureType::kUndefined;
       gsl::span<const uint8_t> data;
       visit_in_place(
           v,
           [&](const BlsSignature &bls) {
-            type = SignatureType::BLS;
+            type = SignatureType::kBls;
             data = gsl::make_span(bls);
           },
           [&](const Secp256k1Signature &secp) {
-            type = SignatureType::SECP256K1;
+            type = SignatureType::kSecp256k1;
             data = gsl::make_span(secp);
           });
       Value j{rapidjson::kObjectType};
@@ -425,12 +469,12 @@ namespace fc::api {
     }
 
     DECODE(Signature) {
-      uint64_t type;
+      uint64_t type = SignatureType::kUndefined;
       decode(type, Get(j, "Type"));
-      auto &data = Get(j, "Data");
-      if (type == SignatureType::BLS) {
+      const auto &data = Get(j, "Data");
+      if (type == SignatureType::kBls) {
         v = decode<BlsSignature>(data);
-      } else if (type == SignatureType::SECP256K1) {
+      } else if (type == SignatureType::kSecp256k1) {
         v = decode<Secp256k1Signature>(data);
       } else {
         outcome::raise(JsonError::kWrongEnum);
@@ -439,7 +483,13 @@ namespace fc::api {
 
     ENCODE(KeyInfo) {
       Value j{rapidjson::kObjectType};
-      Set(j, "Type", v.type == SignatureType::BLS ? "bls" : "secp256k1");
+      if (v.type == SignatureType::kBls) {
+        Set(j, "Type", "bls");
+      } else if (v.type == SignatureType::kSecp256k1) {
+        Set(j, "Type", "secp256k1");
+      } else {
+        outcome::raise(JsonError::kWrongEnum);
+      }
       Set(j, "PrivateKey", v.private_key);
       return j;
     }
@@ -449,9 +499,9 @@ namespace fc::api {
       decode(type, Get(j, "Type"));
       decode(v.private_key, Get(j, "PrivateKey"));
       if (type == "bls") {
-        v.type = SignatureType::BLS;
+        v.type = SignatureType::kBls;
       } else if (type == "secp256k1") {
-        v.type = SignatureType::SECP256K1;
+        v.type = SignatureType::kSecp256k1;
       } else {
         outcome::raise(JsonError::kWrongEnum);
       }
@@ -469,6 +519,26 @@ namespace fc::api {
       decode(v.proof, Get(j, "ProofBytes"));
     }
 
+    ENCODE(CallErrorCode) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(CallErrorCode) {
+      decodeEnum(v, j);
+    }
+
+    ENCODE(CallError) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Code", v.code);
+      Set(j, "ProofBytes", v.message);
+      return j;
+    }
+
+    DECODE(CallError) {
+      Get(j, "Code", v.code);
+      Get(j, "Message", v.message);
+    }
+
     ENCODE(BigInt) {
       return encode(boost::lexical_cast<std::string>(v));
     }
@@ -481,13 +551,6 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Owner", v.owner);
       Set(j, "Worker", v.worker);
-      if (v.pending_worker_key.has_value()) {
-        Set(j, "NewWorker", v.pending_worker_key.value().new_worker);
-        Set(j, "WorkerChangeEpoch", v.pending_worker_key.value().effective_at);
-      } else {
-        Set(j, "NewWorker", "<empty>");
-        Set(j, "WorkerChangeEpoch", kChainEpochUndefined);
-      }
       Set(j, "ControlAddresses", v.control);
       boost::optional<std::string> peer_id;
       if (!v.peer_id.empty()) {
@@ -496,7 +559,7 @@ namespace fc::api {
       }
       Set(j, "PeerId", peer_id);
       Set(j, "Multiaddrs", v.multiaddrs);
-      Set(j, "SealProofType", v.seal_proof_type);
+      Set(j, "WindowPoStProofType", v.window_post_proof_type);
       Set(j, "SectorSize", v.sector_size);
       Set(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
       return j;
@@ -506,20 +569,6 @@ namespace fc::api {
       Get(j, "Owner", v.owner);
       Get(j, "Worker", v.worker);
       Get(j, "ControlAddresses", v.control);
-      std::string new_worker;
-      Get(j, "NewWorker", new_worker);
-      ChainEpoch worker_change_epoch;
-      Get(j, "WorkerChangeEpoch", worker_change_epoch);
-      if (new_worker == "<empty>"
-          && worker_change_epoch == kChainEpochUndefined) {
-        v.pending_worker_key = boost::none;
-      } else {
-        OUTCOME_EXCEPT(new_worker_address,
-                       primitives::address::decodeFromString(new_worker));
-        v.pending_worker_key =
-            WorkerKeyChange{.new_worker = new_worker_address,
-                            .effective_at = worker_change_epoch};
-      }
       boost::optional<PeerId> peer_id;
       Get(j, "PeerId", peer_id);
       if (peer_id) {
@@ -528,7 +577,7 @@ namespace fc::api {
         v.peer_id.clear();
       }
       Get(j, "Multiaddrs", v.multiaddrs);
-      Get(j, "SealProofType", v.seal_proof_type);
+      Get(j, "WindowPoStProofType", v.window_post_proof_type);
       Get(j, "SectorSize", v.sector_size);
       Get(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
     }
@@ -893,7 +942,7 @@ namespace fc::api {
       Set(j, "Signature", v.signature);
       OUTCOME_EXCEPT(
           cid, v.signature.isBls() ? getCidOfCbor(v.message) : getCidOfCbor(v));
-      Set(j, "_cid", cid);
+      Set(j, "CID", cid);
       return j;
     }
 
@@ -994,12 +1043,12 @@ namespace fc::api {
 
     ENCODE(Deadline) {
       Value j{rapidjson::kObjectType};
-      Set(j, "PostSubmissions", v.post_submissions);
+      Set(j, "PostSubmissions", v.partitions_posted);
       return j;
     }
 
     DECODE(Deadline) {
-      Get(j, "PostSubmissions", v.post_submissions);
+      Get(j, "PostSubmissions", v.partitions_posted);
     }
 
     ENCODE(SectorPreCommitInfo) {
@@ -1108,7 +1157,9 @@ namespace fc::api {
       Set(j, "Amount", v.amount);
       Set(j, "MinSettleHeight", v.min_close_height);
       Set(j, "Merges", v.merges);
-      Set(j, "SignatureBytes", v.signature_bytes);
+      const auto sig{v.signature_bytes.map(
+          [](auto &bytes) { return Signature::fromBytes(bytes).value(); })};
+      Set(j, "Signature", sig);
       return j;
     }
 
@@ -1123,7 +1174,9 @@ namespace fc::api {
       decode(v.amount, Get(j, "Amount"));
       decode(v.min_close_height, Get(j, "MinSettleHeight"));
       decode(v.merges, Get(j, "Merges"));
-      decode(v.signature_bytes, Get(j, "SignatureBytes"));
+      boost::optional<Signature> sig;
+      Get(j, "Signature", sig);
+      v.signature_bytes = sig.map([](auto &sig) { return sig.toBytes(); });
     }
 
     ENCODE(HeadChange) {
@@ -1174,6 +1227,16 @@ namespace fc::api {
     DECODE(libp2p::multi::Multiaddress) {
       OUTCOME_EXCEPT(_v, libp2p::multi::Multiaddress::create(AsString(j)));
       v = std::move(_v);
+    }
+
+    // can be generic
+    ENCODE(gsl::span<const PieceInfo>) {
+      Value j{rapidjson::kArrayType};
+      j.Reserve(v.size(), allocator);
+      for (const auto &elem : v) {
+        j.PushBack(encode(elem), allocator);
+      }
+      return j;
     }
 
     ENCODE(PieceInfo) {
@@ -1286,6 +1349,42 @@ namespace fc::api {
     DECODE(SectorId) {
       decode(v.miner, Get(j, "Miner"));
       decode(v.sector, Get(j, "Number"));
+    }
+
+    ENCODE(DealCollateralBounds) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Min", v.min);
+      Set(j, "Max", v.max);
+      return j;
+    }
+
+    DECODE(DealCollateralBounds) {
+      Get(j, "Min", v.min);
+      Get(j, "Max", v.max);
+    }
+
+    ENCODE(SectorRef) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id);
+      Set(j, "ProofType", v.proof_type);
+      return j;
+    }
+
+    DECODE(SectorRef) {
+      decode(v.id, Get(j, "ID"));
+      decode(v.proof_type, Get(j, "ProofType"));
+    }
+
+    ENCODE(CallId) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Sector", v.sector);
+      Set(j, "ID", v.id);
+      return j;
+    }
+
+    DECODE(CallId) {
+      decode(v.sector, Get(j, "Sector"));
+      decode(v.id, Get(j, "ID"));
     }
 
     ENCODE(StartDealParams) {
@@ -1474,6 +1573,7 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "PieceCID", v.piece_cid);
       Set(j, "PieceSize", v.piece_size);
+      Set(j, "VerifiedDeal", v.verified);
       Set(j, "Client", v.client);
       Set(j, "Provider", v.provider);
       Set(j, "StartEpoch", v.start_epoch);
@@ -1487,6 +1587,7 @@ namespace fc::api {
     DECODE(DealProposal) {
       decode(v.piece_cid, Get(j, "PieceCID"));
       v.piece_size = decode<uint64_t>(Get(j, "PieceSize"));
+      Get(j, "VerifiedDeal", v.verified);
       decode(v.client, Get(j, "Client"));
       decode(v.provider, Get(j, "Provider"));
       decode(v.start_epoch, Get(j, "StartEpoch"));
@@ -1552,24 +1653,28 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Err", v.error);
       Set(j, "Root", v.root);
+      Set(j, "Piece", v.piece);
       Set(j, "Size", v.size);
       Set(j, "MinPrice", v.min_price);
+      Set(j, "UnsealPrice", v.unseal_price);
       Set(j, "PaymentInterval", v.payment_interval);
       Set(j, "PaymentIntervalIncrease", v.payment_interval_increase);
       Set(j, "Miner", v.miner);
-      Set(j, "MinerPeerID", v.peer);
+      Set(j, "MinerPeer", v.peer);
       return j;
     }
 
     DECODE(QueryOffer) {
       Get(j, "Err", v.error);
       Get(j, "Root", v.root);
+      Get(j, "Piece", v.piece);
       Get(j, "Size", v.size);
       Get(j, "MinPrice", v.min_price);
+      Get(j, "UnsealPrice", v.unseal_price);
       Get(j, "PaymentInterval", v.payment_interval);
       Get(j, "PaymentIntervalIncrease", v.payment_interval_increase);
       Get(j, "Miner", v.miner);
-      Get(j, "MinerPeerID", v.peer);
+      Get(j, "MinerPeer", v.peer);
     }
 
     ENCODE(FileRef) {
@@ -1584,6 +1689,84 @@ namespace fc::api {
       decode(v.is_car, Get(j, "IsCAR"));
     }
 
+    ENCODE(ChannelId) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Initiator", v.initiator);
+      Set(j, "Responder", v.responder);
+      Set(j, "ID", v.id);
+      return j;
+    }
+
+    DECODE(ChannelId) {
+      decode(v.initiator, Get(j, "Initiator"));
+      decode(v.responder, Get(j, "Responder"));
+      decode(v.id, Get(j, "ID"));
+    }
+
+    ENCODE(DatatransferChannel) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "TransferID", v.transfer_id);
+      Set(j, "Status", v.status);
+      Set(j, "BaseCID", v.base_cid);
+      Set(j, "IsInitiator", v.is_initiator);
+      Set(j, "IsSender", v.is_sender);
+      Set(j, "Voucher", v.voucher);
+      Set(j, "Message", v.message);
+      Set(j, "OtherPeer", v.other_peer);
+      Set(j, "Transferred", v.transferred);
+      return j;
+    }
+
+    DECODE(DatatransferChannel) {
+      decode(v.transfer_id, Get(j, "TransferID"));
+      decode(v.status, Get(j, "Status"));
+      decode(v.base_cid, Get(j, "BaseCID"));
+      decode(v.is_initiator, Get(j, "IsInitiator"));
+      decode(v.is_sender, Get(j, "IsSender"));
+      decode(v.voucher, Get(j, "Voucher"));
+      decode(v.message, Get(j, "Message"));
+      decode(v.other_peer, Get(j, "OtherPeer"));
+      decode(v.transferred, Get(j, "Transferred"));
+    }
+
+    ENCODE(StorageMarketDealInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ProposalCid", v.proposal_cid);
+      Set(j, "State", v.state);
+      Set(j, "Message", v.message);
+      Set(j, "Provider", v.provider);
+      Set(j, "DataRef", v.data_ref);
+      Set(j, "PieceCID", v.piece_cid);
+      Set(j, "Size", v.size);
+      Set(j, "PricePerEpoch", v.price_per_epoch);
+      Set(j, "Duration", v.duration);
+      Set(j, "DealID", v.deal_id);
+      // TODO (a.chernyshov) encode and decode time type
+      Set(j, "CreationTime", "2006-01-02T15:04:05Z");
+      Set(j, "Verified", v.verified);
+      Set(j, "TransferChannelID", v.transfer_channel_id);
+      Set(j, "DataTransfer", v.data_transfer);
+      return j;
+    }
+
+    DECODE(StorageMarketDealInfo) {
+      decode(v.proposal_cid, Get(j, "ProposalCid"));
+      decode(v.state, Get(j, "State"));
+      decode(v.message, Get(j, "Message"));
+      decode(v.provider, Get(j, "Provider"));
+      decode(v.data_ref, Get(j, "DataRef"));
+      decode(v.piece_cid, Get(j, "PieceCID"));
+      decode(v.size, Get(j, "Size"));
+      decode(v.price_per_epoch, Get(j, "PricePerEpoch"));
+      decode(v.duration, Get(j, "Duration"));
+      decode(v.deal_id, Get(j, "DealID"));
+      // TODO (a.chernyshov) encode and decode time type
+      v.creation_time = 0;
+      decode(v.verified, Get(j, "Verified"));
+      decode(v.transfer_channel_id, Get(j, "TransferChannelID"));
+      decode(v.data_transfer, Get(j, "DataTransfer"));
+    }
+
     ENCODE(ImportRes) {
       Value j{rapidjson::kObjectType};
       Set(j, "Root", v.root);
@@ -1596,28 +1779,48 @@ namespace fc::api {
       decode(v.import_id, Get(j, "ImportID"));
     }
 
+    ENCODE(RetrievalPeer) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Address", v.address);
+      Set(j, "ID", v.peer_id);
+      Set(j, "PieceCID", v.piece);
+      return j;
+    }
+
+    DECODE(RetrievalPeer) {
+      decode(v.address, Get(j, "Address"));
+      decode(v.peer_id, Get(j, "ID"));
+      decode(v.piece, Get(j, "PieceCID"));
+    }
+
     ENCODE(RetrievalOrder) {
       Value j{rapidjson::kObjectType};
       Set(j, "Root", v.root);
+      Set(j, "Piece", v.piece);
       Set(j, "Size", v.size);
+      Set(j, "LocalStore", v.local_store);
       Set(j, "Total", v.total);
-      Set(j, "PaymentInterval", v.interval);
-      Set(j, "PaymentIntervalIncrease", v.interval_inc);
+      Set(j, "UnsealPrice", v.unseal_price);
+      Set(j, "PaymentInterval", v.payment_interval);
+      Set(j, "PaymentIntervalIncrease", v.payment_interval_increase);
       Set(j, "Client", v.client);
       Set(j, "Miner", v.miner);
-      Set(j, "MinerPeerID", v.peer);
+      Set(j, "MinerPeer", v.peer);
       return j;
     }
 
     DECODE(RetrievalOrder) {
       decode(v.root, Get(j, "Root"));
+      decode(v.piece, Get(j, "Piece"));
       decode(v.size, Get(j, "Size"));
+      decode(v.local_store, Get(j, "LocalStore"));
       decode(v.total, Get(j, "Total"));
-      decode(v.interval, Get(j, "PaymentInterval"));
-      decode(v.interval_inc, Get(j, "PaymentIntervalIncrease"));
+      decode(v.unseal_price, Get(j, "UnsealPrice"));
+      decode(v.payment_interval, Get(j, "PaymentInterval"));
+      decode(v.payment_interval_increase, Get(j, "PaymentIntervalIncrease"));
       decode(v.client, Get(j, "Client"));
       decode(v.miner, Get(j, "Miner"));
-      decode(v.peer, Get(j, "MinerPeerID"));
+      decode(v.peer, Get(j, "MinerPeer"));
     }
 
     ENCODE(Import) {
@@ -1809,6 +2012,11 @@ namespace fc::api {
       if (!j.IsArray()) {
         outcome::raise(JsonError::kWrongType);
       }
+      if constexpr (i == 0) {
+        if (j.Size() > sizeof...(T)) {
+          outcome::raise(JsonError::kWrongLength);
+        }
+      }
       if constexpr (i < sizeof...(T)) {
         if (i >= j.Size()) {
           outcome::raise(JsonError::kOutOfRange);
@@ -1827,7 +2035,7 @@ namespace fc::api {
   };
 
   template <typename T>
-  static Document encode(const T &v) {
+  Document encode(const T &v) {
     Document document;
     static_cast<Value &>(document) = Codec{document.GetAllocator()}.encode(v);
     return document;

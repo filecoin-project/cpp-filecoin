@@ -16,6 +16,8 @@
 
 namespace fc::vm::runtime {
   using actor::Actor;
+  using primitives::ChainEpoch;
+  using primitives::Nonce;
   using primitives::tipset::TipsetCPtr;
   using state::StateTree;
   using state::StateTreeImpl;
@@ -34,21 +36,17 @@ namespace fc::vm::runtime {
                                       const Address &address,
                                       bool allow_actor = true);
 
-  struct IpldBuffered : public Ipld,
-                        public std::enable_shared_from_this<IpldBuffered> {
-    IpldBuffered(IpldPtr ipld);
+  struct IpldBuffered : Ipld {
+    explicit IpldBuffered(IpldPtr ipld);
     outcome::result<void> flush(const CID &root);
 
     outcome::result<bool> contains(const CID &key) const override;
     outcome::result<void> set(const CID &key, Value value) override;
     outcome::result<Value> get(const CID &key) const override;
-    outcome::result<void> remove(const CID &key) override;
-    IpldPtr shared() override;
 
     IpldPtr ipld;
-    bool flushing{false};
     // vm only stores "DAG_CBOR blake2b_256" cids
-    std::unordered_map<Hash256, Buffer> write;
+    std::unordered_map<CbCid, Buffer> write;
   };
 
   /// Environment contains objects that are shared by runtime contexts
@@ -59,8 +57,11 @@ namespace fc::vm::runtime {
 
     struct Apply {
       MessageReceipt receipt;
-      TokenAmount penalty, reward;
+      TokenAmount penalty;
+      TokenAmount reward;
     };
+
+    void setHeight(ChainEpoch height);
 
     outcome::result<Apply> applyMessage(const UnsignedMessage &message,
                                         size_t size);
@@ -71,7 +72,7 @@ namespace fc::vm::runtime {
     std::shared_ptr<IpldBuffered> ipld;
     std::shared_ptr<StateTreeImpl> state_tree;
     EnvironmentContext env_context;
-    uint64_t epoch;  // mutable epoch for cron()
+    ChainEpoch epoch;  // mutable epoch for cron()
     TsBranchPtr ts_branch;
     TipsetCPtr tipset;
     Pricelist pricelist;
@@ -97,24 +98,20 @@ namespace fc::vm::runtime {
     GasAmount gas_used;
     GasAmount gas_limit;
     Address origin;
-    uint64_t origin_nonce;
+    Nonce origin_nonce;
     size_t actors_created{};
   };
 
-  struct ChargingIpld : public Ipld,
-                        public std::enable_shared_from_this<ChargingIpld> {
-    ChargingIpld(std::weak_ptr<Execution> execution) : execution_{execution} {}
+  struct ChargingIpld : Ipld {
+    explicit ChargingIpld(std::shared_ptr<Execution> execution)
+        : execution_{execution} {
+      actor_version = execution->env->ipld->actor_version;
+    }
     outcome::result<bool> contains(const CID &key) const override {
       throw "not implemented";
     }
     outcome::result<void> set(const CID &key, Value value) override;
     outcome::result<Value> get(const CID &key) const override;
-    outcome::result<void> remove(const CID &key) override {
-      throw "deprecated";
-    }
-    IpldPtr shared() override {
-      return shared_from_this();
-    }
 
     std::weak_ptr<Execution> execution_;
   };

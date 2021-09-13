@@ -4,6 +4,8 @@
  */
 
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
+
+#include "vm/actor/builtin/states/reward/reward_actor_state.hpp"
 #include "vm/actor/builtin/types/reward/policy.hpp"
 #include "vm/actor/builtin/types/reward/reward_actor_calculus.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
@@ -11,6 +13,7 @@
 namespace fc::vm::actor::builtin::v2::reward {
   using miner::ApplyRewards;
   using primitives::TokenAmount;
+  using states::RewardActorStatePtr;
   using namespace types::reward;
 
   ACTOR_METHOD_IMPL(AwardBlockReward) {
@@ -18,7 +21,7 @@ namespace fc::vm::actor::builtin::v2::reward {
                 v0::reward::AwardBlockReward::validateParams(runtime, params));
     CHANGE_ERROR_A(
         miner, runtime.resolveAddress(params.miner), VMExitCode::kErrNotFound);
-    OUTCOME_TRY(state, runtime.stateManager()->getRewardActorState());
+    OUTCOME_TRY(state, runtime.getActorState<RewardActorStatePtr>());
     OUTCOME_TRY(reward,
                 v0::reward::AwardBlockReward::calculateReward(
                     runtime, params, state->this_epoch_reward, balance));
@@ -41,7 +44,7 @@ namespace fc::vm::actor::builtin::v2::reward {
   }
 
   ACTOR_METHOD_IMPL(ThisEpochReward) {
-    OUTCOME_TRY(state, runtime.stateManager()->getRewardActorState());
+    OUTCOME_TRY(state, runtime.getActorState<RewardActorStatePtr>());
     return Result{
         .this_epoch_reward_smoothed = state->this_epoch_reward_smoothed,
         .this_epoch_baseline_power = state->this_epoch_baseline_power};

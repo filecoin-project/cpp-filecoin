@@ -3,12 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_STORAGE_AMT_AMT_HPP
-#define CPP_FILECOIN_STORAGE_AMT_AMT_HPP
+#pragma once
 
 #include <boost/variant.hpp>
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/cbor_codec.hpp"
 #include "common/outcome.hpp"
 #include "common/visitor.hpp"
 #include "common/which.hpp"
@@ -23,6 +22,7 @@ namespace fc::storage::amt {
     kNotFound,
     kRootBitsWrong,
     kNodeBitsWrong,
+    kHeightWrong,
   };
 }  // namespace fc::storage::amt
 
@@ -62,10 +62,10 @@ namespace fc::storage::amt {
         std::function<outcome::result<void>(uint64_t, const Value &)>;
 
     explicit Amt(std::shared_ptr<ipfs::IpfsDatastore> store,
-                 OptBitWidth bit_width = {});
+                 size_t bit_width = kDefaultBits);
     Amt(std::shared_ptr<ipfs::IpfsDatastore> store,
         const CID &root,
-        OptBitWidth bit_width = {});
+        size_t bit_width = kDefaultBits);
     /// Get values quantity
     outcome::result<uint64_t> count() const;
     /// Set value by key, does not write to storage
@@ -87,7 +87,7 @@ namespace fc::storage::amt {
     /// Store CBOR encoded value by key
     template <typename T>
     outcome::result<void> setCbor(uint64_t key, const T &value) {
-      OUTCOME_TRY(bytes, Ipld::encode(value));
+      OUTCOME_TRY(bytes, cbor_blake::cbEncodeT(value));
       return set(key, bytes);
     }
 
@@ -95,10 +95,16 @@ namespace fc::storage::amt {
     template <typename T>
     outcome::result<T> getCbor(uint64_t key) const {
       OUTCOME_TRY(bytes, get(key));
-      return ipld->decode<T>(bytes);
+      return cbor_blake::cbDecodeT<T>(ipld_, bytes);
     }
 
-    IpldPtr ipld;
+    inline IpldPtr getIpld() const {
+      return ipld_;
+    }
+
+    inline void setIpld(IpldPtr new_ipld) {
+      ipld_ = std::move(new_ipld);
+    }
 
    private:
     outcome::result<bool> set(Node &node,
@@ -119,9 +125,11 @@ namespace fc::storage::amt {
     uint64_t maskAt(uint64_t height) const;
     uint64_t maxAt(uint64_t height) const;
 
-    mutable boost::variant<CID, Root> root_;
-    OptBitWidth bits_;
+    void lazyCreateRoot() const;
+    bool v3() const;
+
+    IpldPtr ipld_;
+    mutable boost::variant<std::monostate, CID, Root> root_;
+    size_t bits_{};
   };
 }  // namespace fc::storage::amt
-
-#endif  // CPP_FILECOIN_STORAGE_AMT_AMT_HPP

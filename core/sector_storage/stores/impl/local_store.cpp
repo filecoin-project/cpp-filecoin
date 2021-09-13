@@ -8,7 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <chrono>
 #include <ctime>
-#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
+#include <libp2p/basic/scheduler.hpp>
 #include <map>
 #include <random>
 #include <regex>
@@ -41,10 +41,10 @@ namespace fc::sector_storage::stores {
             .sector = sector,
         };
       } catch (const boost::bad_lexical_cast &) {
-        return StoreErrors::kInvalidSectorName;
+        return StoreError::kInvalidSectorName;
       }
     }
-    return StoreErrors::kInvalidSectorName;
+    return StoreError::kInvalidSectorName;
   }
 
   LocalStoreImpl::LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
@@ -57,14 +57,13 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<AcquireSectorResponse> LocalStoreImpl::acquireSector(
-      SectorId sector,
-      RegisteredSealProof seal_proof_type,
+      SectorRef sector,
       SectorFileType existing,
       SectorFileType allocate,
       PathType path_type,
       AcquireMode mode) {
     if ((existing & allocate) != 0) {
-      return StoreErrors::kFindAndAllocate;
+      return StoreError::kFindAndAllocate;
     }
 
     std::shared_lock lock(mutex_);
@@ -77,7 +76,7 @@ namespace fc::sector_storage::stores {
       }
 
       auto storages_info_opt =
-          index_->storageFindSector(sector, type, boost::none);
+          index_->storageFindSector(sector.id, type, boost::none);
 
       if (storages_info_opt.has_error()) {
         logger_->warn("Finding existing sector: "
@@ -97,7 +96,7 @@ namespace fc::sector_storage::stores {
 
         boost::filesystem::path spath(store_path_iter->second->local_path);
         spath /= toString(type);
-        spath /= primitives::sector_file::sectorName(sector);
+        spath /= primitives::sector_file::sectorName(sector.id);
 
         result.paths.setPathByType(type, spath.string());
         result.storages.setPathByType(type, info.id);
@@ -107,6 +106,12 @@ namespace fc::sector_storage::stores {
       }
     }
 
+    SectorSize sector_size = 0;
+    if (allocate != SectorFileType::FTNone) {
+      OUTCOME_TRYA(sector_size,
+                   primitives::sector::getSectorSize(sector.proof_type));
+    }
+
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {
       if ((type & allocate) == 0) {
         continue;
@@ -114,7 +119,7 @@ namespace fc::sector_storage::stores {
 
       OUTCOME_TRY(sectors_info,
                   index_->storageBestAlloc(
-                      type, seal_proof_type, path_type == PathType::kSealing));
+                      type, sector_size, path_type == PathType::kSealing));
 
       std::string best_path;
       StorageID best_storage;
@@ -139,7 +144,7 @@ namespace fc::sector_storage::stores {
 
         boost::filesystem::path spath(path_iter->second->local_path);
         spath /= toString(type);
-        spath /= primitives::sector_file::sectorName(sector);
+        spath /= primitives::sector_file::sectorName(sector.id);
 
         best_path = spath.string();
         best_storage = info.id;
@@ -147,7 +152,7 @@ namespace fc::sector_storage::stores {
       }
 
       if (best_path.empty()) {
-        return StoreErrors::kNotFoundPath;
+        return StoreError::kNotFoundPath;
       }
 
       result.paths.setPathByType(type, best_path);
@@ -161,7 +166,7 @@ namespace fc::sector_storage::stores {
   outcome::result<void> LocalStoreImpl::remove(SectorId sector,
                                                SectorFileType type) {
     if (type == SectorFileType::FTNone || ((type & (type - 1)) != 0)) {
-      return StoreErrors::kRemoveSeveralFileTypes;
+      return StoreError::kRemoveSeveralFileTypes;
     }
 
     OUTCOME_TRY(storages_info,
@@ -177,7 +182,7 @@ namespace fc::sector_storage::stores {
   outcome::result<void> LocalStoreImpl::removeCopies(SectorId sector,
                                                      SectorFileType type) {
     if (type == SectorFileType::FTNone || ((type & (type - 1)) != 0)) {
-      return StoreErrors::kRemoveSeveralFileTypes;
+      return StoreError::kRemoveSeveralFileTypes;
     }
 
     OUTCOME_TRY(infos, index_->storageFindSector(sector, type, boost::none));
@@ -238,13 +243,10 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<void> LocalStoreImpl::moveStorage(
-      SectorId sector,
-      RegisteredSealProof seal_proof_type,
-      SectorFileType types) {
+  outcome::result<void> LocalStoreImpl::moveStorage(SectorRef sector,
+                                                    SectorFileType types) {
     OUTCOME_TRY(dest,
                 acquireSector(sector,
-                              seal_proof_type,
                               SectorFileType::FTNone,
                               types,
                               PathType::kStorage,
@@ -252,7 +254,6 @@ namespace fc::sector_storage::stores {
 
     OUTCOME_TRY(src,
                 acquireSector(sector,
-                              seal_proof_type,
                               types,
                               SectorFileType::FTNone,
                               PathType::kStorage,
@@ -276,7 +277,8 @@ namespace fc::sector_storage::stores {
       if (sst.can_store) {
         continue;
       }
-      OUTCOME_TRY(index_->storageDropSector(source_storage_id, sector, type));
+      OUTCOME_TRY(
+          index_->storageDropSector(source_storage_id, sector.id, type));
 
       OUTCOME_TRY(source_path, src.paths.getPathByType(type));
       OUTCOME_TRY(dest_path, dest.paths.getPathByType(type));
@@ -284,11 +286,11 @@ namespace fc::sector_storage::stores {
       boost::system::error_code ec;
       boost::filesystem::rename(source_path, dest_path, ec);
       if (ec.failed()) {
-        return StoreErrors::kCannotMoveSector;
+        return StoreError::kCannotMoveSector;
       }
 
       OUTCOME_TRY(
-          index_->storageDeclareSector(dest_storage_id, sector, type, true));
+          index_->storageDeclareSector(dest_storage_id, sector.id, type, true));
     }
 
     return outcome::success();
@@ -300,7 +302,7 @@ namespace fc::sector_storage::stores {
 
     auto path_iter = paths_.find(id);
     if (path_iter == paths_.end()) {
-      return StoreErrors::kNotFoundStorage;
+      return StoreError::kNotFoundStorage;
     }
 
     return storage_->getStat(path_iter->second->local_path);
@@ -315,12 +317,12 @@ namespace fc::sector_storage::stores {
 
     auto path_iter = paths_.find(meta.id);
     if (path_iter != paths_.end()) {
-      return StoreErrors::kDuplicateStorage;
+      return StoreError::kDuplicateStorage;
     }
 
-    std::shared_ptr<Path> out = Path::newPath(path);
+    std::shared_ptr<Path> out = std::make_shared<Path>(path);
 
-    OUTCOME_TRY(stat, out->getStat(storage_));
+    OUTCOME_TRY(stat, out->getStat(storage_, logger_));
 
     OUTCOME_TRY(index_->storageAttach(
         StorageInfo{
@@ -336,7 +338,7 @@ namespace fc::sector_storage::stores {
       auto dir_path = root / toString(type);
       if (!boost::filesystem::exists(dir_path)) {
         if (!boost::filesystem::create_directories(dir_path)) {
-          return StoreErrors::kCannotCreateDir;
+          return StoreError::kCannotCreateDir;
         }
         continue;
       }
@@ -377,30 +379,25 @@ namespace fc::sector_storage::stores {
     std::shared_ptr<LocalStoreImpl> local =
         std::make_unique<make_unique_enabler>(storage, index, urls);
 
-    if (local->logger_ == nullptr) {
-      return StoreErrors::kCannotInitLogger;
-    }
-
     OUTCOME_TRY(config, local->storage_->getStorage());
     if (!config.has_value()) {
-      return StorageError::kConfigFileNotExist;
+      return StoreError::kConfigFileNotExist;
     }
     std::mt19937 rng(std::time(0));
     std::uniform_int_distribution<> gen(0, 1000);
-    local->heartbeat_interval_ =
-        duration_cast<std::chrono::milliseconds>(kHeartbeatInterval).count()
-        + gen(rng);
+    local->heartbeat_interval_ = std::chrono::milliseconds(kHeartbeatInterval)
+                                 + std::chrono::milliseconds(gen(rng));
     for (const auto &path : config->storage_paths) {
       OUTCOME_TRY(local->openPath(path.path));
     }
-    local->handler_ =
-        scheduler->schedule(local->heartbeat_interval_,
-                            [self = std::weak_ptr<LocalStoreImpl>(local)]() {
-                              auto shared_self = self.lock();
-                              if (shared_self) {
-                                shared_self->reportHealth();
-                              }
-                            });
+    local->handler_ = scheduler->scheduleWithHandle(
+        [self = std::weak_ptr<LocalStoreImpl>(local)]() {
+          auto shared_self = self.lock();
+          if (shared_self) {
+            shared_self->reportHealth();
+          }
+        },
+        local->heartbeat_interval_);
     return std::move(local);
   }
 
@@ -437,12 +434,12 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<std::function<void()>> LocalStoreImpl::reserve(
-      RegisteredSealProof seal_proof_type,
+      SectorRef sector,
       SectorFileType file_type,
       const SectorPaths &storages,
       PathType path_type) {
     OUTCOME_TRY(sector_size,
-                primitives::sector::getSectorSize(seal_proof_type));
+                primitives::sector::getSectorSize(sector.proof_type));
 
     std::unique_lock lock(mutex_);
     std::vector<std::tuple<std::shared_ptr<Path>,
@@ -480,16 +477,16 @@ namespace fc::sector_storage::stores {
 
       auto path_iter = paths_.find(id);
       if (path_iter == paths_.end()) {
-        return StoreErrors::kNotFoundPath;
+        return StoreError::kNotFoundPath;
       }
 
       auto reserved_types{path_iter->second->reservations[storages.id]};
 
       if ((reserved_types & type) != SectorFileType::FTNone) {
-        return StoreErrors::kAlreadyReserved;
+        return StoreError::kAlreadyReserved;
       }
 
-      OUTCOME_TRY(stat, path_iter->second->getStat(storage_));
+      OUTCOME_TRY(stat, path_iter->second->getStat(storage_, logger_));
 
       uint64_t overhead =
           (path_type == PathType::kStorage
@@ -498,7 +495,7 @@ namespace fc::sector_storage::stores {
           * sector_size / primitives::sector_file::kOverheadDenominator;
 
       if (stat.available < overhead) {
-        return StoreErrors::kCannotReserve;
+        return StoreError::kCannotReserve;
       }
 
       path_iter->second->reserved += overhead;
@@ -517,7 +514,7 @@ namespace fc::sector_storage::stores {
     {
       std::shared_lock lock(mutex_);
       for (auto path : paths_) {
-        auto stat = path.second->getStat(storage_);
+        auto stat = path.second->getStat(storage_, logger_);
         std::pair<StorageID, HealthReport> report;
         if (stat.has_error()) {
           report = std::make_pair(path.first,
@@ -547,15 +544,9 @@ namespace fc::sector_storage::stores {
     handler_.reschedule(heartbeat_interval_);
   }
 
-  std::string LocalStoreImpl::Path::sectorPath(const SectorId &sid,
-                                               SectorFileType type) const {
-    return (fs::path(local_path) / toString(type)
-            / primitives::sector_file::sectorName(sid))
-        .string();
-  }
-
   outcome::result<FsStat> LocalStoreImpl::Path::getStat(
-      const std::shared_ptr<LocalStorage> &local_storage) const {
+      const std::shared_ptr<LocalStorage> &local_storage,
+      const common::Logger &logger) const {
     OUTCOME_TRY(stat, local_storage->getStat(local_path));
 
     stat.reserved = reserved;
@@ -566,7 +557,9 @@ namespace fc::sector_storage::stores {
           continue;
         }
 
-        auto sector_path = sectorPath(id, file_type);
+        auto sector_path = (fs::path(local_path) / toString(file_type)
+                            / primitives::sector_file::sectorName(id))
+                               .string();
 
         auto maybe_used = local_storage->getDiskUsage(sector_path);
         if (maybe_used.has_error()) {
@@ -574,7 +567,7 @@ namespace fc::sector_storage::stores {
             return maybe_used.error();
           }
 
-          OUTCOME_TRY(path, tempFetchDest(sector_path, false));
+          OUTCOME_TRY(path, tempFetchDest(sector_path, false, logger));
 
           maybe_used = local_storage->getDiskUsage(path);
           if (maybe_used.has_error()) {
@@ -601,18 +594,6 @@ namespace fc::sector_storage::stores {
     }
 
     return stat;
-  }
-
-  std::shared_ptr<LocalStoreImpl::Path> LocalStoreImpl::Path::newPath(
-      std::string path) {
-    struct make_unique_enabler : public LocalStoreImpl::Path {
-      make_unique_enabler(std::string path) : Path{std::move(path)} {};
-    };
-
-    std::unique_ptr<Path> new_path =
-        std::make_unique<make_unique_enabler>(std::move(path));
-
-    return std::move(new_path);
   }
 
   LocalStoreImpl::Path::Path(std::string path) : local_path(std::move(path)) {}

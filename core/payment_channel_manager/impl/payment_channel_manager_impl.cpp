@@ -4,21 +4,23 @@
  */
 
 #include "payment_channel_manager/impl/payment_channel_manager_impl.hpp"
+
+#include "cbor_blake/ipld_version.hpp"
 #include "payment_channel_manager/impl/payment_channel_manager_error.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
+#include "vm/actor/codes.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::payment_channel_manager {
   using api::AddChannelInfo;
   using crypto::signature::Signature;
+  using primitives::Nonce;
   using vm::VMExitCode;
   using vm::actor::kInitAddress;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::states::StateProvider;
-  using vm::actor::builtin::v0::kPaymentChannelCodeId;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::UnsignedMessage;
@@ -31,20 +33,39 @@ namespace fc::payment_channel_manager {
       std::shared_ptr<FullNodeApi> api, std::shared_ptr<Ipld> ipld)
       : api_{std::move(api)}, ipld_{std::move(ipld)} {}
 
-  outcome::result<AddChannelInfo>
-  PaymentChannelManagerImpl::getOrCreatePaymentChannel(
+  void PaymentChannelManagerImpl::getOrCreatePaymentChannel(
       const Address &client,
       const Address &miner,
-      const TokenAmount &amount_available) {
+      const TokenAmount &amount_available,
+      AddChannelInfoCb cb) {
     auto channel_address = findChannel(client, miner);
     if (channel_address) {
       // TODO track available funds
-      OUTCOME_TRY(message_cid,
-                  addFunds(channel_address.get(), client, amount_available));
-      return AddChannelInfo{channel_address.get(), message_cid};
-    } else {
-      return createPaymentChannelActor(client, miner, amount_available);
+      OUTCOME_CB(auto cid,
+                 addFunds(*channel_address, client, amount_available));
+      return cb(AddChannelInfo{*channel_address, cid});
     }
+    OUTCOME_CB(auto cid,
+               createPaymentChannelActor(client, miner, amount_available));
+    api_->StateWaitMsg(
+        [=, self{shared_from_this()}, cb{std::move(cb)}](auto _wait) {
+          OUTCOME_CB(auto wait, _wait);
+          if (wait.receipt.exit_code != VMExitCode::kOk) {
+            return cb(PaymentChannelManagerError::kCreateChannelActorErrored);
+          }
+          OUTCOME_CB(auto ret,
+                     codec::cbor::decode<InitActorExec::Result>(
+                         wait.receipt.return_value));
+          const Address &address{ret.robust_address};
+          std::unique_lock lock{channels_mutex_};
+          saveChannel(address, client, miner);
+          lock.unlock();
+          cb(AddChannelInfo{address, cid});
+        },
+        cid,
+        kMessageConfidence,
+        api::kLookbackNoLimit,
+        true);
   }
 
   outcome::result<LaneId> PaymentChannelManagerImpl::allocateLane(
@@ -196,32 +217,33 @@ namespace fc::payment_channel_manager {
   }
 
   void PaymentChannelManagerImpl::makeApi(FullNodeApi &api) {
-    api.PaychAllocateLane = {
+    api.PaychAllocateLane =
         [self{shared_from_this()}](auto &&channel) -> outcome::result<LaneId> {
-          return self->allocateLane(channel);
-        }};
-    api.PaychGet = {[self{shared_from_this()}](
-                        auto &&client, auto &&miner, auto &&amount_available)
-                        -> outcome::result<AddChannelInfo> {
-      return self->getOrCreatePaymentChannel(client, miner, amount_available);
-    }};
-    api.PaychVoucherAdd = {[self{shared_from_this()}](
-                               auto &&channel,
-                               auto &&voucher,
-                               auto &&proof,
-                               auto &&delta) -> outcome::result<TokenAmount> {
+      return self->allocateLane(channel);
+    };
+    api.PaychGet =
+        [self{shared_from_this()}](
+            auto &&cb, auto &&client, auto &&miner, auto &&amount_available) {
+          self->getOrCreatePaymentChannel(
+              client, miner, amount_available, std::move(cb));
+        };
+    api.PaychVoucherAdd = [self{shared_from_this()}](
+                              auto &&channel,
+                              auto &&voucher,
+                              auto &&proof,
+                              auto &&delta) -> outcome::result<TokenAmount> {
       return self->savePaymentVoucher(channel, voucher);
-    }};
-    api.PaychVoucherCheckValid = {
-        [self{shared_from_this()}](auto &&channel,
-                                   auto &&voucher) -> outcome::result<void> {
-          return self->validateVoucher(channel, voucher);
-        }};
-    api.PaychVoucherCreate = {
-        [self{shared_from_this()}](auto &&channel, auto &&amount, auto &&lane)
-            -> outcome::result<SignedVoucher> {
-          return self->createPaymentVoucher(channel, lane, amount);
-        }};
+    };
+    api.PaychVoucherCheckValid = [self{shared_from_this()}](
+                                     auto &&channel,
+                                     auto &&voucher) -> outcome::result<void> {
+      return self->validateVoucher(channel, voucher);
+    };
+    api.PaychVoucherCreate = [self{shared_from_this()}](
+                                 auto &&channel, auto &&amount, auto &&lane)
+        -> outcome::result<SignedVoucher> {
+      return self->createPaymentVoucher(channel, lane, amount);
+    };
   }
 
   outcome::result<CID> PaymentChannelManagerImpl::addFunds(
@@ -238,17 +260,18 @@ namespace fc::payment_channel_manager {
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
     auto message_cid{signed_message.getCid()};
-    OUTCOME_TRY(message_wait,
-                api_->StateWaitMsg(message_cid, api::kNoConfidence));
-    OUTCOME_TRY(message_state, message_wait.waitSync());
+    // TODO: maybe async call, it's long
+    OUTCOME_TRY(
+        message_state,
+        api_->StateWaitMsg(
+            message_cid, kMessageConfidence, api::kLookbackNoLimit, true));
     if (message_state.receipt.exit_code != VMExitCode::kOk) {
       return PaymentChannelManagerError::kSendFundsErrored;
     }
     return std::move(message_cid);
   }
 
-  outcome::result<AddChannelInfo>
-  PaymentChannelManagerImpl::createPaymentChannelActor(
+  outcome::result<CID> PaymentChannelManagerImpl::createPaymentChannelActor(
       const Address &client, const Address &miner, const TokenAmount &amount) {
     // payment channel constructor params
     PaymentChannelConstruct::Params construct_params{.from = client,
@@ -256,48 +279,34 @@ namespace fc::payment_channel_manager {
     OUTCOME_TRY(encoded_construct_params,
                 codec::cbor::encode(construct_params));
 
-    // init actor exec call params
+    OUTCOME_TRY(version, api_->StateNetworkVersion({}));
     InitActorExec::Params init_params{
-        .code = kPaymentChannelCodeId,
+        .code = vm::toolchain::Toolchain::createAddressMatcher(version)
+                    ->getPaymentChannelCodeId(),
         .params = MethodParams{encoded_construct_params}};
     OUTCOME_TRY(encoded_init_params, codec::cbor::encode(init_params));
-
     UnsignedMessage unsigned_message{kInitAddress,
                                      client,
                                      {},
                                      amount,
-                                     kDefaultGasPrice,
-                                     kDefaultGasLimit,
+                                     {},
+                                     {},
                                      InitActorExec::Number,
                                      MethodParams{encoded_init_params}};
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
-    auto message_cid{signed_message.getCid()};
-    OUTCOME_TRY(message_wait,
-                api_->StateWaitMsg(message_cid, api::kNoConfidence));
-    OUTCOME_TRY(message_state, message_wait.waitSync());
-    if (message_state.receipt.exit_code != VMExitCode::kOk) {
-      return PaymentChannelManagerError::kCreateChannelActorErrored;
-    }
-    OUTCOME_TRY(ret,
-                codec::cbor::decode<InitActorExec::Result>(
-                    message_state.receipt.return_value));
-    Address channel_actor_address = ret.robust_address;
-    std::unique_lock lock(channels_mutex_);
-    saveChannel(channel_actor_address, client, miner);
-
-    return AddChannelInfo{channel_actor_address, message_cid};
+    return signed_message.getCid();
   }
 
   outcome::result<PaymentChannelActorStatePtr>
   PaymentChannelManagerImpl::loadPaymentChannelActorState(
       const Address &channel_address) const {
     OUTCOME_TRY(tipset, api_->ChainHead());
+    auto ipld{withVersion(ipld_, tipset->epoch())};
     auto state_tree =
-        std::make_shared<StateTreeImpl>(ipld_, tipset->getParentStateRoot());
+        std::make_shared<StateTreeImpl>(ipld, tipset->getParentStateRoot());
     OUTCOME_TRY(actor, state_tree->get(channel_address));
-    const StateProvider provider(ipld_);
-    return provider.getPaymentChannelActorState(actor);
+    return getCbor<PaymentChannelActorStatePtr>(ipld, actor.head);
   }
 
   outcome::result<uint64_t> PaymentChannelManagerImpl::getNextNonce(
@@ -306,7 +315,7 @@ namespace fc::payment_channel_manager {
     if (lookup_lane == channel.lanes.end()) {
       return 1;
     }
-    uint64_t nonce{0};
+    Nonce nonce{0};
     for (auto &voucher : lookup_lane->second) {
       if (nonce < voucher.nonce) nonce = voucher.nonce;
     }

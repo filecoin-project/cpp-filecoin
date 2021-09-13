@@ -6,8 +6,6 @@
 #pragma once
 
 #include "primitives/types.hpp"
-#include "vm/actor/builtin/states/reward_actor_state.hpp"
-#include "vm/version/version.hpp"
 
 namespace fc::vm::actor::builtin::types::reward {
   using primitives::BigInt;
@@ -15,7 +13,6 @@ namespace fc::vm::actor::builtin::types::reward {
   using primitives::SpaceTime;
   using primitives::StoragePower;
   using primitives::TokenAmount;
-  using version::NetworkVersion;
 
   /**
    * expLamSubOne = e^lambda - 1
@@ -59,7 +56,7 @@ namespace fc::vm::actor::builtin::types::reward {
 
   /**
    * Computes baseline supply based on theta in Q.128 format
-   * @returns baseline supply in Q.128 format
+   * @return baseline supply in Q.128 format
    */
   BigInt computeBaselineSupply(const BigInt &theta,
                                const BigInt &baseline_total);
@@ -75,36 +72,5 @@ namespace fc::vm::actor::builtin::types::reward {
                             const BigInt &curr_theta,
                             const BigInt &simple_total,
                             const BigInt &baseline_total);
-
-  /**
-   * Used for update of internal state during null rounds
-   *
-   * @tparam State - Reward Actor State
-   * @param state to update
-   * @param current_realized_power
-   * @param baseline_exponent - depends on actor version
-   */
-  void updateToNextEpoch(states::RewardActorState &state,
-                         const StoragePower &current_realized_power,
-                         const BigInt &baseline_exponent);
-
-  /**
-   * Updates reward state to track reward for the next epoch
-   * @tparam State - Reward Actor State
-   * @param state to update
-   * @param current_realized_power
-   */
-  void updateToNextEpochWithReward(states::RewardActorState &state,
-                                   const StoragePower &current_realized_power,
-                                   const BigInt &baseline_exponent);
-
-  /**
-   * Update smoothed estimate for state
-   * @tparam State - Reward Actor State
-   * @param state to update
-   * @param delta
-   */
-  void updateSmoothedEstimates(states::RewardActorState &state,
-                               const ChainEpoch &delta);
 
 }  // namespace fc::vm::actor::builtin::types::reward

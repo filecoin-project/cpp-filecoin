@@ -26,6 +26,8 @@ namespace fc::vm::actor::builtin::v0::miner {
    public:
     explicit MinerUtils(Runtime &r) : utils::MinerUtils(r) {}
 
+    uint64_t getAddressedPartitionsMax() const override;
+
     outcome::result<Address> resolveControlAddress(
         const Address &address) const override;
 

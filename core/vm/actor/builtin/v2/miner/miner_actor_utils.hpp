@@ -21,6 +21,8 @@ namespace fc::vm::actor::builtin::v2::miner {
    public:
     explicit MinerUtils(Runtime &r) : v0::miner::MinerUtils(r) {}
 
+    uint64_t getAddressedPartitionsMax() const override;
+
     ChainEpoch nextProvingPeriodStart(ChainEpoch current_epoch,
                                       ChainEpoch offset) const override;
 
