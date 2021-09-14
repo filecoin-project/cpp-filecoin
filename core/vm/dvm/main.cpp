@@ -18,7 +18,7 @@
 
 int main(int argc, char **argv) {
   using namespace fc;
-  using primitives::tipset::Height;
+  using primitives::ChainEpoch;
 
   vm::actor::cgo::configParams();
   // mainnet genesis
@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
           *TipsetKey::make(storage::car::readHeader(car_path).value())};
       auto head{envx.ts_load->loadWithCacheInfo(head_tsk).value()};
       primitives::tipset::chain::TsChain _chain;
-      Height state_min_height{head.tipset->height()}, state_max_height{0};
+      ChainEpoch state_min_height{head.tipset->height()}, state_max_height{0};
       auto ts_lookback{4000};
       auto had_states{true};
       auto ts{head};
@@ -90,12 +90,12 @@ int main(int argc, char **argv) {
       }
       if (argc > 2) {
         auto min_height{
-            std::max<Height>(state_min_height, std::stoull(argv[2]))};
+            std::max<ChainEpoch>(state_min_height, std::stoull(argv[2]))};
         auto max_height{min_height};
         if (argc > 3) {
           max_height =
               std::min(state_max_height,
-                       std::max<Height>(min_height, std::stoull(argv[3])));
+                       std::max<ChainEpoch>(min_height, std::stoull(argv[3])));
         }
         if (dvm::logger) {
           dvm::logging = true;

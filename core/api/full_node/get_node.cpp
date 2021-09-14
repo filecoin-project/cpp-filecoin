@@ -20,7 +20,9 @@ namespace fc::api {
   using storage::amt::Amt;
   using storage::hamt::Hamt;
 
-  outcome::result<IpldObject> getNode(std::shared_ptr<Ipld> ipld,
+  // TODO (a.chernyshov) The function is too complex, should be simplified
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+  outcome::result<IpldObject> getNode(const std::shared_ptr<Ipld> &ipld,
                                       const CID &root,
                                       gsl::span<const std::string> parts) {
     static const auto error_dag_cbor{
@@ -50,7 +52,8 @@ namespace fc::api {
             if (hi) {
               auto neg = part.size() >= 4 && part[4] == '-';
               OUTCOME_TRY(value, parseIndex(part.substr(neg ? 5 : 4)));
-              key = adt::VarintKeyer::encode(neg ? -value : value);
+              key = adt::VarintKeyer::encode(neg ? -static_cast<int64_t>(value)
+                                                 : static_cast<int64_t>(value));
             } else if (hu) {
               OUTCOME_TRY(value, parseIndex(part.substr(4)));
               key = adt::UvarintKeyer::encode(value);
@@ -70,9 +73,8 @@ namespace fc::api {
           }
           parts = parts.subspan(1);
           break;
-        } else {
-          OUTCOME_TRY(codec::cbor::resolve(s, part));
         }
+        OUTCOME_TRY(codec::cbor::resolve(s, part));
         if (s.isCid()) {
           auto s2 = s;
           CID cid;

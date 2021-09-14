@@ -86,10 +86,9 @@ namespace fc::markets::storage::chain_events {
           return Chan{std::move(channel)};
         }};
 
-    api->StateWaitMsg = [](auto &, auto, auto, auto) {
-      auto wait{api::Wait<api::MsgWait>::make()};
-      wait.channel->write(outcome::success());
-      return wait;
+    api->StateWaitMsg =
+        [](auto &, auto, auto, auto) -> outcome::result<api::MsgWait> {
+      return outcome::success();
     };
 
     bool is_called = false;

@@ -59,9 +59,8 @@ namespace fc::vm::message {
           from{std::move(from)},
           nonce{nonce},
           value{std::move(value)},
-          gas_limit{std::move(gas_limit)},
+          gas_limit{gas_limit},
           gas_fee_cap{std::move(gas_fee_cap)},
-          gas_premium{},
           method{method},
           params{std::move(params)} {}
 

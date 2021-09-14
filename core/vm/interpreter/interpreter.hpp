@@ -13,7 +13,6 @@
 
 namespace fc::vm::interpreter {
   using primitives::BigInt;
-  using primitives::tipset::Height;
   using storage::PersistentBufferMap;
 
   enum class InterpreterError {

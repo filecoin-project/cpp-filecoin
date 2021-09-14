@@ -24,7 +24,7 @@ namespace fc::crypto {
     using HashMethod = Multihash (*)(gsl::span<const uint8_t>);
 
    private:
-    static std::map<HashType, HashMethod> methods_;
+    const static std::map<HashType, HashMethod> methods_;
 
    public:
     static outcome::result<Multihash> calculate(

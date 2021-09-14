@@ -85,21 +85,23 @@ namespace fc {
     PeerInfo api_peer_info{
         node_objects.host->getPeerInfo().id,
         nonZeroAddrs(node_objects.host->getAddresses(), &config.localIp())};
-    node_objects.api->NetAddrsListen = [api_peer_info] {
+    node_objects.api->NetAddrsListen =
+        [api_peer_info]() -> outcome::result<PeerInfo> {
       return api_peer_info;
     };
     node_objects.api->NetConnect = [&](auto &peer) {
       node_objects.host->connect(peer);
       return outcome::success();
     };
-    node_objects.api->NetPeers = [&]() {
+    node_objects.api->NetPeers =
+        [&]() -> outcome::result<std::vector<PeerInfo>> {
       const auto &peer_repository = node_objects.host->getPeerRepository();
       auto connections = node_objects.host->getNetwork()
                              .getConnectionManager()
                              .getConnections();
       std::vector<PeerInfo> result;
       for (const auto &conncection : connections) {
-        auto remote = conncection->remotePeer();
+        const auto remote = conncection->remotePeer();
         if (remote.has_error())
           log()->error("get remote peer error", remote.error().message());
         result.push_back(peer_repository.getPeerInfo(remote.value()));
@@ -162,11 +164,12 @@ namespace fc {
       OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
       const PeerInfo peer_info{.id = peer_id,
                                .addresses = miner_info.multiaddrs};
-      StorageProviderInfo provider_info{.address = params.miner,
-                                        .owner = {},
-                                        .worker = miner_info.worker,
-                                        .sector_size = miner_info.sector_size,
-                                        .peer_info = peer_info};
+      const StorageProviderInfo provider_info{
+          .address = params.miner,
+          .owner = {},
+          .worker = miner_info.worker,
+          .sector_size = miner_info.sector_size,
+          .peer_info = peer_info};
 
       auto start_epoch = params.deal_start_epoch;
       if (start_epoch <= 0) {
@@ -203,7 +206,8 @@ namespace fc {
           params.verified_deal,
           params.fast_retrieval);
     };
-    node_objects.api->ClientListImports = [&]() {
+    node_objects.api->ClientListImports =
+        [&]() -> outcome::result<std::vector<Import>> {
       return node_objects.storage_market_import_manager->list();
     };
 

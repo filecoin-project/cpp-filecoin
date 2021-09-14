@@ -3,6 +3,7 @@
 #
 
 add_subdirectory(types)
+add_subdirectory(states)
 add_subdirectory(v0)
 add_subdirectory(v2)
 add_subdirectory(v3)

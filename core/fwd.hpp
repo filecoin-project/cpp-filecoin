@@ -34,6 +34,8 @@ namespace libp2p {
   }  // namespace peer
 
   namespace protocol {
+    // A class with the same name is present in fc::sync
+    // NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
     class Identify;
     class IdentifyPush;
     class IdentifyDelta;
@@ -137,8 +139,9 @@ namespace fc {
   namespace sync {
     class ChainStoreImpl;
     class GraphsyncServer;
+    // A class with the same name is present in libp2p::protocol
+    // NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
     class Identify;
-    class InterpretJob;
     class PeerDiscovery;
     class PubSubGate;
     class ReceiveHello;

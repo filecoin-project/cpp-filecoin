@@ -25,10 +25,14 @@ namespace fc::adt {
     using Many = std::vector<std::shared_ptr<Channel<T>>>;
 
     Channel() = default;
-    Channel(Channel &&) noexcept = default;
+    Channel(const Channel &) = delete;
+    Channel(Channel &&) noexcept;
     ~Channel() {
       closeRead();
     }
+
+    Channel &operator=(const Channel &) = delete;
+    Channel &operator=(Channel &&) noexcept = default;
 
     bool canWrite() const {
       std::lock_guard lock{mutex};
@@ -115,4 +119,6 @@ namespace fc::adt {
     std::mutex mutex;
   };
 
+  template <typename T>
+  inline Channel<T>::Channel(Channel &&) noexcept = default;
 }  // namespace fc::adt

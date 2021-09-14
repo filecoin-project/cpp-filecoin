@@ -460,7 +460,7 @@ namespace fc::vm::actor::builtin::types::miner {
   Universal<ExpirationQueue> loadExpirationQueue(
       const PartitionExpirationsArray &expirations_epochs,
       const QuantSpec &quant) {
-    const auto &ipld = expirations_epochs.amt.ipld;
+    const auto &ipld = expirations_epochs.amt.getIpld();
     Universal<ExpirationQueue> eq{ipld->actor_version};
     cbor_blake::cbLoadT(ipld, eq);
     eq->queue = expirations_epochs;

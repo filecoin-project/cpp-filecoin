@@ -111,7 +111,7 @@ namespace fc::markets::retrieval {
   CBOR2_DECODE_ENCODE(DealPayment::Named)
 
   struct State {
-    State(const DealProposalParams &params)
+    explicit State(const DealProposalParams &params)
         : params{params},
           interval{params.payment_interval},
           owed{params.unseal_price} {}

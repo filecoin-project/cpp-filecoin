@@ -14,7 +14,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::adt, BalanceTableError, e) {
 }
 
 namespace fc::adt {
-  outcome::result<void> BalanceTable::add(const Key &key, TokenAmount amount) {
+  outcome::result<void> BalanceTable::add(const Key &key,
+                                          const TokenAmount &amount) {
     OUTCOME_TRY(value, get(key));
     value += amount;
     OUTCOME_TRY(set(key, value));
@@ -30,9 +31,8 @@ namespace fc::adt {
     return set(key, amount);
   }
 
-  outcome::result<TokenAmount> BalanceTable::subtractWithMin(const Key &key,
-                                                             TokenAmount amount,
-                                                             TokenAmount min) {
+  outcome::result<TokenAmount> BalanceTable::subtractWithMin(
+      const Key &key, const TokenAmount &amount, const TokenAmount &min) {
     OUTCOME_TRY(value, get(key));
     TokenAmount subtracted =
         std::min(amount, std::max(TokenAmount{value - min}, TokenAmount{0}));
@@ -41,7 +41,7 @@ namespace fc::adt {
   }
 
   outcome::result<void> BalanceTable::subtract(const Key &key,
-                                               TokenAmount amount) {
+                                               const TokenAmount &amount) {
     OUTCOME_TRY(substracted, subtractWithMin(key, amount, 0));
     if (substracted != amount) {
       return BalanceTableError::kInsufficientFunds;

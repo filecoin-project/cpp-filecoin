@@ -199,7 +199,11 @@ namespace fc::api {
       bool is_handled = false;
       for (auto &route : *routes) {
         if (request.target().starts_with(route.first)) {
-          w_response = route.second(request);
+          boost::asio::post(stream.get_executor(),
+                            [self{shared_from_this()}, fn{route.second}]() {
+                              self->w_response = fn(self->request);
+                              self->doWrite();
+                            });
           is_handled = true;
           break;
         }
@@ -210,8 +214,8 @@ namespace fc::api {
         response.keep_alive(false);
         response.result(http::status::bad_request);
         w_response.response = std::move(response);
+        doWrite();
       }
-      doWrite();
     }
 
     // aka visitor
@@ -254,8 +258,6 @@ namespace fc::api {
       boost::system::error_code ec;
       stream.socket().shutdown(tcp::socket::shutdown_send, ec);
     }
-
-    // TODO: maybe add queue for requests
 
     beast::tcp_stream stream;
     beast::flat_buffer buffer;
