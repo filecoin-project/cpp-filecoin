@@ -7,12 +7,18 @@
 
 #include "miner/storage_fsm/tipset_cache.hpp"
 
+#include "api/full_node/node_api.hpp"
+
 #include "primitives/tipset/tipset_key.hpp"
+
+#include "vm/actor/builtin/types/miner/deadline.hpp"
 
 #include <shared_mutex>
 
 namespace fc::mining {
   using primitives::tipset::TipsetKey;
+  using api::FullNodeApi;
+  using fc::vm::actor::builtin::types::miner::QuantSpec;
 
   // TODO(ortyomka): [FIL-370] update it
   class TipsetCacheImpl : public TipsetCache {
@@ -21,7 +27,7 @@ namespace fc::mining {
         std::function<outcome::result<primitives::tipset::TipsetCPtr>(
             ChainEpoch)>;
 
-    TipsetCacheImpl(uint64_t capability, GetTipsetFunction get_function);
+    TipsetCacheImpl(uint64_t capability, std::shared_ptr<FullNodeApi> api);
 
     outcome::result<void> add(const Tipset &tipset) override;
 
@@ -31,7 +37,7 @@ namespace fc::mining {
 
     outcome::result<boost::optional<Tipset>> get(uint64_t height) override;
 
-    boost::optional<Tipset> best() const override;
+    outcome::result<Tipset> best() const override;
 
    private:
     int64_t mod(int64_t x);
@@ -45,5 +51,7 @@ namespace fc::mining {
     uint64_t len_;
 
     GetTipsetFunction get_function_;
+
+    std::shared_ptr<FullNodeApi> api_;
   };
 }  // namespace fc::mining

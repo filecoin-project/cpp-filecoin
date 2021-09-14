@@ -10,8 +10,7 @@
 namespace fc::mining {
 
   TipsetCacheImpl::TipsetCacheImpl(uint64_t capability,
-                                   GetTipsetFunction get_function)
-      : get_function_(std::move(get_function)) {
+                                   std::shared_ptr<FullNodeApi> api): api_(std::move(api)){
     cache_.resize(capability);
     start_ = 0;
     len_ = 0;
@@ -85,7 +84,7 @@ namespace fc::mining {
     std::shared_lock lock(mutex_);
 
     if (len_ == 0) {
-      OUTCOME_TRY(tipset, get_function_(height));
+      OUTCOME_TRY(tipset, api_->ChainGetTipSetByHeight(height, {}));
       return *tipset;
     }
 
@@ -105,16 +104,20 @@ namespace fc::mining {
     }
 
     if (height < tail->height()) {
-      OUTCOME_TRY(tipset, get_function_(height));
+      OUTCOME_TRY(tipset, api_->ChainGetTipSetByHeight(height, {}));
       return *tipset;
     }
 
     return cache_[mod(start_ - (head_height - height))];
   }
 
-  boost::optional<Tipset> TipsetCacheImpl::best() const {
+  outcome::result<Tipset> TipsetCacheImpl::best() const {
     std::shared_lock lock(mutex_);
-    return cache_[start_];
+    if(cache_.empty()) {
+      OUTCOME_TRY(tipset, api_->ChainHead());
+      return *tipset;
+    }
+    return cache_[start_].value();
   }
 
   int64_t TipsetCacheImpl::mod(int64_t x) {

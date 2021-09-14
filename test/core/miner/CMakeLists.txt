@@ -35,6 +35,7 @@ addtest(tipset_cache_test
     )
 target_link_libraries(tipset_cache_test
     tipset_cache
+    miner_types
     )
 
 addtest(deal_info_manager_test

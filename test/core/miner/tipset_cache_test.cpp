@@ -9,6 +9,8 @@
 
 #include "testutil/outcome.hpp"
 
+#include "testutil/mocks/api.hpp"
+
 namespace fc::mining {
 
   using primitives::block::BlockHeader;
@@ -17,18 +19,14 @@ namespace fc::mining {
    protected:
     virtual void SetUp() {
       capability_ = 4;
-
-      auto getFunc = [&](ChainEpoch epoch)
-          -> outcome::result<primitives::tipset::TipsetCPtr> {
-        return mock_function_(epoch);
-      };
-
-      tipset_cache_ = std::make_shared<TipsetCacheImpl>(capability_, getFunc);
+      tipset_cache_ = std::make_shared<TipsetCacheImpl>(capability_, api_);
     }
 
     uint64_t capability_;
-    TipsetCacheImpl::GetTipsetFunction mock_function_;
     std::shared_ptr<TipsetCache> tipset_cache_;
+    std::shared_ptr<FullNodeApi> api_ = std::make_shared<FullNodeApi>();
+    MOCK_API(api_, ChainHead);
+    MOCK_API(api_, ChainGetTipSetByHeight);
   };
 
   /**
@@ -147,17 +145,8 @@ namespace fc::mining {
     auto tipset2 = std::make_shared<Tipset>(TipsetKey(),
                                             std::vector<BlockHeader>({block2}));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset1));
-    auto is_called = false;
-    mock_function_ = [&](ChainEpoch height)
-        -> outcome::result<primitives::tipset::TipsetCPtr> {
-      if (height != 1) {
-        return TipsetCacheError::kNotInCache;
-      }
-      is_called = true;
-      return tipset2;
-    };
+    EXPECT_CALL(mock_ChainGetTipSetByHeight, Call(3, TipsetKey{})).WillOnce(testing::Return(tipset2));
     EXPECT_OUTCOME_EQ(tipset_cache_->get(1), *tipset2);
-    ASSERT_TRUE(is_called);
   }
 
   /**
@@ -170,17 +159,8 @@ namespace fc::mining {
     block1.height = 1;
     auto tipset1 = std::make_shared<Tipset>(TipsetKey(),
                                             std::vector<BlockHeader>({block1}));
-    auto is_called = false;
-    mock_function_ = [&](ChainEpoch height)
-        -> outcome::result<primitives::tipset::TipsetCPtr> {
-      if (height != 1) {
-        return TipsetCacheError::kNotInCache;
-      }
-      is_called = true;
-      return tipset1;
-    };
+    EXPECT_CALL(mock_ChainGetTipSetByHeight, Call(3, TipsetKey{})).WillOnce(testing::Return(tipset1));
     EXPECT_OUTCOME_EQ(tipset_cache_->get(1), *tipset1);
-    ASSERT_TRUE(is_called);
   }
 
   /**
