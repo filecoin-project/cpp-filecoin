@@ -16,7 +16,7 @@ namespace fc::vm::actor::builtin::v5::miner {
   inline TokenAmount expectedRewardForPower(const FilterEstimate &reward,
                                             const FilterEstimate &network,
                                             const StoragePower &sector,
-                                            ChainEpoch projection) {
+                                            uint64_t projection) {
     if (!estimate(network)) {
       return estimate(reward);
     }

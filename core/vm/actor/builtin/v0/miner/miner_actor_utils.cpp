@@ -20,35 +20,35 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<Address> MinerUtils::resolveControlAddress(
       const Address &address) const {
-    const auto resolved = runtime.resolveAddress(address);
-    OUTCOME_TRY(runtime.validateArgument(!resolved.has_error()));
-    VM_ASSERT(resolved.value().isId());
-    const auto resolved_code = runtime.getActorCodeID(resolved.value());
-    OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
+    const auto resolved = getRuntime().resolveAddress(address);
+    OUTCOME_TRY(getRuntime().validateArgument(!resolved.has_error()));
+    UTILS_VM_ASSERT(resolved.value().isId());
+    const auto resolved_code = getRuntime().getActorCodeID(resolved.value());
+    OUTCOME_TRY(getRuntime().validateArgument(!resolved_code.has_error()));
 
     const auto address_matcher =
-        Toolchain::createAddressMatcher(runtime.getActorVersion());
-    OUTCOME_TRY(runtime.validateArgument(
+        Toolchain::createAddressMatcher(getRuntime().getActorVersion());
+    OUTCOME_TRY(getRuntime().validateArgument(
         address_matcher->isSignableActor(resolved_code.value())));
     return std::move(resolved.value());
   }
 
   outcome::result<Address> MinerUtils::resolveWorkerAddress(
       const Address &address) const {
-    const auto resolved = runtime.resolveAddress(address);
-    OUTCOME_TRY(runtime.validateArgument(!resolved.has_error()));
-    VM_ASSERT(resolved.value().isId());
-    const auto resolved_code = runtime.getActorCodeID(resolved.value());
-    OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
+    const auto resolved = getRuntime().resolveAddress(address);
+    OUTCOME_TRY(getRuntime().validateArgument(!resolved.has_error()));
+    UTILS_VM_ASSERT(resolved.value().isId());
+    const auto resolved_code = getRuntime().getActorCodeID(resolved.value());
+    OUTCOME_TRY(getRuntime().validateArgument(!resolved_code.has_error()));
     const auto address_matcher =
-        Toolchain::createAddressMatcher(runtime.getActorVersion());
-    OUTCOME_TRY(runtime.validateArgument(
+        Toolchain::createAddressMatcher(getRuntime().getActorVersion());
+    OUTCOME_TRY(getRuntime().validateArgument(
         resolved_code.value() == address_matcher->getAccountCodeId()));
 
     if (!address.isBls()) {
       OUTCOME_TRY(pubkey_addres,
                   getPubkeyAddressFromAccountActor(resolved.value()));
-      OUTCOME_TRY(runtime.validateArgument(pubkey_addres.isBls()));
+      OUTCOME_TRY(getRuntime().validateArgument(pubkey_addres.isBls()));
     }
 
     return std::move(resolved.value());
@@ -57,7 +57,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   outcome::result<void> MinerUtils::enrollCronEvent(
       ChainEpoch event_epoch, const CronEventPayload &payload) const {
     const auto encoded_params = codec::cbor::encode(payload);
-    OUTCOME_TRY(runtime.validateArgument(!encoded_params.has_error()));
+    OUTCOME_TRY(getRuntime().validateArgument(!encoded_params.has_error()));
     REQUIRE_SUCCESS(
         callPowerEnrollCronEvent(event_epoch, encoded_params.value()));
     return outcome::success();
@@ -66,9 +66,9 @@ namespace fc::vm::actor::builtin::v0::miner {
   outcome::result<ChainEpoch> MinerUtils::assignProvingPeriodOffset(
       ChainEpoch current_epoch) const {
     OUTCOME_TRY(address_encoded,
-                codec::cbor::encode(runtime.getCurrentReceiver()));
+                codec::cbor::encode(getRuntime().getCurrentReceiver()));
     address_encoded.putUint64(current_epoch);
-    OUTCOME_TRY(digest, runtime.hashBlake2b(address_encoded));
+    OUTCOME_TRY(digest, getRuntime().hashBlake2b(address_encoded));
     const uint64_t offset = boost::endian::load_big_u64(digest.data());
     return offset % kWPoStProvingPeriod;
   }
@@ -119,12 +119,12 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<Address> MinerUtils::getPubkeyAddressFromAccountActor(
       const Address &address) const {
-    return runtime.sendM<account::PubkeyAddress>(address, {}, 0);
+    return getRuntime().sendM<account::PubkeyAddress>(address, {}, 0);
   }
 
   outcome::result<void> MinerUtils::callPowerEnrollCronEvent(
       ChainEpoch event_epoch, const Buffer &params) const {
-    OUTCOME_TRY(runtime.sendM<storage_power::EnrollCronEvent>(
+    OUTCOME_TRY(getRuntime().sendM<storage_power::EnrollCronEvent>(
         kStoragePowerAddress, {event_epoch, params}, 0));
     return outcome::success();
   }

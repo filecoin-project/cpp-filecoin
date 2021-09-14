@@ -7,6 +7,6 @@
 
 namespace fc::vm::actor::builtin::v0::init {
   outcome::result<void> InitUtils::assertCaller(bool condition) const {
-    return runtime.vm_assert(condition);
+    return getRuntime().vm_assert(condition);
   }
 }  // namespace fc::vm::actor::builtin::v0::init

@@ -28,6 +28,7 @@ namespace fc::vm::actor {
 }  // namespace fc::vm::actor
 
 namespace fc {
+  using primitives::ChainEpoch;
   using vm::actor::ActorVersion;
   using vm::version::NetworkVersion;
 
@@ -54,7 +55,7 @@ namespace fc {
         return ActorVersion::kVersion5;
     }
   }
-  inline ActorVersion actorVersion(primitives::ChainEpoch epoch) {
+  inline ActorVersion actorVersion(ChainEpoch epoch) {
     return actorVersion(vm::version::getNetworkVersion(epoch));
   }
 }  // namespace fc

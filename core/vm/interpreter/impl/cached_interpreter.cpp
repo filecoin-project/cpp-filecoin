@@ -8,17 +8,16 @@
 
 namespace fc::vm::interpreter {
 
-  InterpreterCache::Key::Key(const TipsetKey &tsk) : key{tsk.hash()} {}
-
   InterpreterCache::InterpreterCache(std::shared_ptr<PersistentBufferMap> kv,
                                      std::shared_ptr<CbIpld> ipld)
       : kv{std::move(kv)}, ipld_{std::move(ipld)} {}
 
   boost::optional<outcome::result<Result>> InterpreterCache::tryGet(
-      const Key &key) const {
+      const TipsetKey &key) const {
     boost::optional<outcome::result<Result>> result;
-    if (kv->contains(key.key)) {
-      const auto raw{kv->get(key.key).value()};
+    const Buffer hash{key.hash()};
+    if (kv->contains(hash)) {
+      const auto raw{kv->get(hash).value()};
       if (auto cached{
               codec::cbor::decode<boost::optional<Result>>(raw).value()}) {
         // check if interpreted state root is still valid (can be deleted during
@@ -33,24 +32,24 @@ namespace fc::vm::interpreter {
     return result;
   }
 
-  outcome::result<Result> InterpreterCache::get(const Key &key) const {
+  outcome::result<Result> InterpreterCache::get(const TipsetKey &key) const {
     if (auto cached{tryGet(key)}) {
       return *cached;
     }
     return InterpreterError::kNotCached;
   }
 
-  void InterpreterCache::set(const Key &key, const Result &result) {
-    kv->put(key.key, codec::cbor::encode(result).value()).value();
+  void InterpreterCache::set(const TipsetKey &key, const Result &result) {
+    kv->put(Buffer{key.hash()}, codec::cbor::encode(result).value()).value();
   }
 
-  void InterpreterCache::markBad(const Key &key) {
+  void InterpreterCache::markBad(const TipsetKey &key) {
     static const auto kNull{codec::cbor::encode(nullptr).value()};
-    kv->put(key.key, kNull).value();
+    kv->put(Buffer{key.hash()}, kNull).value();
   }
 
-  void InterpreterCache::remove(const Key &key) {
-    kv->remove(key.key).value();
+  void InterpreterCache::remove(const TipsetKey &key) {
+    kv->remove(Buffer{key.hash()}).value();
   }
 
   CachedInterpreter::CachedInterpreter(std::shared_ptr<Interpreter> interpreter,
@@ -59,7 +58,7 @@ namespace fc::vm::interpreter {
 
   outcome::result<Result> CachedInterpreter::interpret(
       TsBranchPtr ts_branch, const TipsetCPtr &tipset) const {
-    InterpreterCache::Key key{tipset->key};
+    const auto key{tipset->key};
     if (auto cached{cache->tryGet(key)}) {
       return *cached;
     }

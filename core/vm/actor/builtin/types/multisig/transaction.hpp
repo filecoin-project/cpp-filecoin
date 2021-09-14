@@ -64,7 +64,7 @@ namespace fc::vm::actor::builtin::types::multisig {
     MethodNumber method{};
     MethodParams params;
 
-    ProposalHashData(const Transaction &transaction)
+    explicit ProposalHashData(const Transaction &transaction)
         : requester(!transaction.approved.empty() ? transaction.approved[0]
                                                   : Address{}),
           to(transaction.to),
