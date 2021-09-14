@@ -18,6 +18,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using runtime::Runtime;
   using types::miner::CronEventPayload;
   using types::miner::EpochReward;
+  using types::miner::PowerPair;
   using types::miner::SectorOnChainInfo;
   using types::miner::TotalPower;
   using version::NetworkVersion;
@@ -36,6 +37,9 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     outcome::result<void> enrollCronEvent(
         ChainEpoch event_epoch, const CronEventPayload &payload) const override;
+
+    outcome::result<void> requestUpdatePower(
+        const PowerPair &delta) const override;
 
     outcome::result<ChainEpoch> assignProvingPeriodOffset(
         ChainEpoch current_epoch) const override;
@@ -79,5 +83,8 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     outcome::result<void> callPowerEnrollCronEvent(
         ChainEpoch event_epoch, const Buffer &params) const override;
+
+    outcome::result<void> callPowerUpdateClaimedPower(
+        const PowerPair &delta) const override;
   };
 }  // namespace fc::vm::actor::builtin::v0::miner

@@ -29,4 +29,11 @@ namespace fc::vm::actor::builtin::v3::miner {
     return outcome::success();
   }
 
+  outcome::result<void> MinerUtils::callPowerUpdateClaimedPower(
+      const PowerPair &delta) const {
+    OUTCOME_TRY(runtime.sendM<storage_power::UpdateClaimedPower>(
+        kStoragePowerAddress, {delta.raw, delta.qa}, 0));
+    return outcome::success();
+  }
+
 }  // namespace fc::vm::actor::builtin::v3::miner

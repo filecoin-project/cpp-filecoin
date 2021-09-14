@@ -68,6 +68,14 @@ namespace fc::vm::actor::builtin::v0::miner {
     return outcome::success();
   }
 
+  outcome::result<void> MinerUtils::requestUpdatePower(const PowerPair &delta) const {
+    if (delta.isZero()) {
+      return outcome::success();
+    }
+    REQUIRE_SUCCESS(callPowerUpdateClaimedPower(delta));
+    return outcome::success();
+  }
+
   outcome::result<ChainEpoch> MinerUtils::assignProvingPeriodOffset(
       ChainEpoch current_epoch) const {
     OUTCOME_TRY(address_encoded,
@@ -194,6 +202,13 @@ namespace fc::vm::actor::builtin::v0::miner {
       ChainEpoch event_epoch, const Buffer &params) const {
     OUTCOME_TRY(runtime.sendM<storage_power::EnrollCronEvent>(
         kStoragePowerAddress, {event_epoch, params}, 0));
+    return outcome::success();
+  }
+
+  outcome::result<void> MinerUtils::callPowerUpdateClaimedPower(
+      const PowerPair &delta) const {
+    OUTCOME_TRY(runtime.sendM<storage_power::UpdateClaimedPower>(
+        kStoragePowerAddress, {delta.raw, delta.qa}, 0));
     return outcome::success();
   }
 

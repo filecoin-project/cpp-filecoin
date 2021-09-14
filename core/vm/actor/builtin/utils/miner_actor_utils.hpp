@@ -14,6 +14,7 @@
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/miner/cron_event_payload.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
+#include "vm/actor/builtin/types/miner/power_pair.hpp"
 #include "vm/actor/builtin/types/miner/transit.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/version/version.hpp"
@@ -30,6 +31,7 @@ namespace fc::vm::actor::builtin::utils {
   using runtime::Runtime;
   using types::miner::CronEventPayload;
   using types::miner::EpochReward;
+  using types::miner::PowerPair;
   using types::miner::SectorOnChainInfo;
   using types::miner::TotalPower;
   using version::NetworkVersion;
@@ -79,6 +81,9 @@ namespace fc::vm::actor::builtin::utils {
      */
     virtual outcome::result<void> enrollCronEvent(
         ChainEpoch event_epoch, const CronEventPayload &payload) const = 0;
+
+    virtual outcome::result<void> requestUpdatePower(
+        const PowerPair &delta) const = 0;
 
     /**
      * Assigns proving period offset randomly in the range [0,
@@ -142,6 +147,8 @@ namespace fc::vm::actor::builtin::utils {
         const Address &address) const = 0;
     virtual outcome::result<void> callPowerEnrollCronEvent(
         ChainEpoch event_epoch, const Buffer &params) const = 0;
+    virtual outcome::result<void> callPowerUpdateClaimedPower(
+        const PowerPair &delta) const = 0;
 
     Runtime &runtime;
   };

@@ -162,10 +162,6 @@ namespace fc::vm::actor::builtin::v0::miner {
     OUTCOME_TRY(reward, utils->requestCurrentEpochBlockReward());
     OUTCOME_TRY(total_power, utils->requestCurrentTotalPower());
 
-    TokenAmount penalty_total{0};
-    TokenAmount pledge_delta{0};
-    // todo post_result
-
     OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
 
     OUTCOME_TRY(miner_info, state->getInfo());
@@ -175,9 +171,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     callers.emplace_back(miner_info->worker);
     OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
 
-    // todo
-    const auto submission_partition_limit =
-        100;  // loadPartitionsSectorsMax(miner_info.window_post_partition_sectors);
+    const auto submission_partition_limit = utils->loadPartitionsSectorsMax(
+        miner_info->window_post_partition_sectors);
     OUTCOME_TRY(runtime.validateArgument(params.partitions.size()
                                          <= submission_partition_limit));
 
@@ -185,10 +180,9 @@ namespace fc::vm::actor::builtin::v0::miner {
     REQUIRE_NO_ERROR_A(
         deadlines, state->deadlines.get(), VMExitCode::kErrIllegalState);
 
-    // todo
-    // if(!deadline_info.isOpen()) {
-    //  ABORT(VMExitCode::kErrIllegalState);
-    //}
+    if (!deadline_info.isOpen()) {
+      ABORT(VMExitCode::kErrIllegalState);
+    }
 
     OUTCOME_TRY(
         runtime.validateArgument(params.deadline == deadline_info.index));
@@ -198,30 +192,62 @@ namespace fc::vm::actor::builtin::v0::miner {
                      VMExitCode::kErrIllegalState);
 
     REQUIRE_NO_ERROR_A(deadline,
-                       deadlines.due[params.deadline].get(),
+                       deadlines.loadDeadline(params.deadline),
                        VMExitCode::kErrIllegalState);
 
-    // todo
-    const auto fault_expiration =
-        EpochDuration{1000000000};  // deadline_info.last() + kFaultMaxAge;
-    // REQUIRE_NO_ERROR_A(post_result, deadline.recordProvenSectors(),
-    // VMExitCode::kErrIllegalState);
+    const auto fault_expiration = deadline_info.last() + kFaultMaxAge;
+    REQUIRE_NO_ERROR_A(post_result,
+                       deadline->recordProvenSectors(runtime,
+                                                     state->sectors,
+                                                     miner_info->sector_size,
+                                                     deadline_info.quant(),
+                                                     fault_expiration,
+                                                     params.partitions),
+                       VMExitCode::kErrIllegalState);
 
-    // todo
-    const std::vector<SectorOnChainInfo> sector_infos;  // remove
-    // REQUIRE_NO_ERROR_A(sector_infos, state->loadSectorInfosForProof(),
-    // VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(sector_infos,
+                       state->sectors.loadForProof(post_result.sectors,
+                                                   post_result.ignored_sectors),
+                       VMExitCode::kErrIllegalState);
 
-    if (sector_infos.size() > 0) {
+    if (!sector_infos.empty()) {
       OUTCOME_TRY(utils->verifyWindowedPost(
           deadline_info.challenge, sector_infos, params.proofs));
     }
 
-    // todo
+    const auto undeclared_penalty_power = post_result.penaltyPower();
+    TokenAmount undeclared_penalty_target{0};
+    TokenAmount declared_penalty_target{0};
 
-    REQUIRE_SUCCESS(
-        runtime.sendFunds(kBurntFundsActorAddress, 0));  // todo penalty_total
-    OUTCOME_TRY(utils->notifyPledgeChanged(0));          // todo pledge_delta
+    if (network_version < NetworkVersion::kVersion3) {
+      // todo wait for monies
+    }
+
+    const TokenAmount total_penalty_target =
+        undeclared_penalty_target + declared_penalty_target;
+    OUTCOME_TRY(actor_balance, runtime.getCurrentBalance());
+    OUTCOME_TRY(unlocked_balance, state->getUnlockedBalance(actor_balance));
+    REQUIRE_NO_ERROR_A(
+        penalty_result,
+        state->penalizeFundsInPriorityOrder(
+            current_epoch, total_penalty_target, unlocked_balance),
+        VMExitCode::kErrIllegalState);
+    const auto &[vesting_penalty_total, balance_penalty_total] = penalty_result;
+    const TokenAmount penalty_total =
+        vesting_penalty_total + balance_penalty_total;
+    const TokenAmount pledge_delta = -vesting_penalty_total;
+
+    REQUIRE_NO_ERROR(deadlines.updateDeadline(params.deadline, deadline),
+                     VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR(state->deadlines.set(deadlines),
+                     VMExitCode::kErrIllegalState);
+
+    OUTCOME_TRY(runtime.commitState(state));
+
+    OUTCOME_TRY(utils->requestUpdatePower(post_result.powerDelta()));
+    REQUIRE_SUCCESS(runtime.sendFunds(kBurntFundsActorAddress, penalty_total));
+    OUTCOME_TRY(utils->notifyPledgeChanged(pledge_delta));
 
     return outcome::success();
   }
