@@ -60,14 +60,14 @@ namespace fc::vm::actor::builtin::v2::multisig {
     VMExitCode code = VMExitCode::kOk;
 
     if (transaction.approved.size() >= state->threshold) {
-      OUTCOME_TRY(balance, runtime.getCurrentBalance());
+      OUTCOME_TRY(balance, getRuntime().getCurrentBalance());
       OUTCOME_TRY(assertAvailable(
-          state, balance, transaction.value, runtime.getCurrentEpoch()));
+          state, balance, transaction.value, getRuntime().getCurrentEpoch()));
 
-      const auto send_result = runtime.send(transaction.to,
-                                            transaction.method,
-                                            transaction.params,
-                                            transaction.value);
+      const auto send_result = getRuntime().send(transaction.to,
+                                                 transaction.method,
+                                                 transaction.params,
+                                                 transaction.value);
       OUTCOME_TRYA(code, asExitCode(send_result));
       if (send_result) {
         out = send_result.value();
@@ -75,7 +75,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
       applied = true;
 
       // Lotus gas conformance
-      OUTCOME_TRYA(state, runtime.getActorState<MultisigActorStatePtr>());
+      OUTCOME_TRYA(state, getRuntime().getActorState<MultisigActorStatePtr>());
 
       // Prior to version 6 we attempt to delete all transactions, even those
       // no longer in the pending txns map because they have been purged.
@@ -84,7 +84,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
       // deleting. This allows 1 out of n multisig swaps and removes initiated
       // by the swapped/removed signer to go through without an illegal state
       // error
-      if (runtime.getNetworkVersion() >= NetworkVersion::kVersion6) {
+      if (getRuntime().getNetworkVersion() >= NetworkVersion::kVersion6) {
         REQUIRE_NO_ERROR_A(tx_exists,
                            state->pending_transactions.has(tx_id),
                            VMExitCode::kErrIllegalState);
@@ -95,7 +95,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
         REQUIRE_NO_ERROR(state->pending_transactions.remove(tx_id),
                          VMExitCode::kErrIllegalState);
       }
-      OUTCOME_TRY(runtime.commitState(state));
+      OUTCOME_TRY(getRuntime().commitState(state));
     }
 
     return std::make_tuple(applied, out, code);

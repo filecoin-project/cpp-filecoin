@@ -21,7 +21,6 @@
 
 namespace fc::vm::runtime {
   using actor::builtin::states::MinerActorStatePtr;
-  using primitives::BigInt;
   using primitives::address::Protocol;
   using toolchain::Toolchain;
 
@@ -73,16 +72,16 @@ namespace fc::vm::runtime {
     return message_.to;
   }
 
-  outcome::result<BigInt> RuntimeImpl::getBalance(
+  outcome::result<TokenAmount> RuntimeImpl::getBalance(
       const Address &address) const {
     OUTCOME_TRY(actor_state, execution_->state_tree->tryGet(address));
     if (!actor_state) {
-      return BigInt(0);
+      return TokenAmount(0);
     }
     return actor_state.value().balance;
   }
 
-  BigInt RuntimeImpl::getValueReceived() const {
+  TokenAmount RuntimeImpl::getValueReceived() const {
     return message_.value;
   }
 
@@ -93,10 +92,10 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<InvocationOutput> RuntimeImpl::send(
-      Address to_address,
+      const Address &to_address,
       MethodNumber method_number,
       MethodParams params,
-      BigInt value) {
+      const TokenAmount &value) {
     return execution_->sendWithRevert(
         {to_address, message_.to, {}, value, {}, {}, method_number, params});
   }

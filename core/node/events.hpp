@@ -73,7 +73,7 @@ namespace fc::sync::events {
 
 #define DEFINE_EVENT(STRUCT)                                                \
   using STRUCT##Callback = void(const STRUCT &);                            \
-  Connection subscribe##STRUCT(std::function<STRUCT##Callback> cb) {        \
+  Connection subscribe##STRUCT(const std::function<STRUCT##Callback> &cb) { \
     return STRUCT##_signal_.connect(cb);                                    \
   }                                                                         \
   void signal##STRUCT(STRUCT event) {                                       \
@@ -84,7 +84,11 @@ namespace fc::sync::events {
       }                                                                     \
     });                                                                     \
   }                                                                         \
-  boost::signals2::signal<STRUCT##Callback> STRUCT##_signal_
+                                                                            \
+ private:                                                                   \
+  boost::signals2::signal<STRUCT##Callback> STRUCT##_signal_;               \
+                                                                            \
+ public:
 
     DEFINE_EVENT(PeerConnected);
     DEFINE_EVENT(PeerDisconnected);

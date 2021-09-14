@@ -32,7 +32,7 @@ namespace fc::vm::runtime {
    * Result of message execution
    */
   struct MessageReceipt {
-    VMExitCode exit_code;
+    VMExitCode exit_code{};
     Buffer return_value;
     GasAmount gas_used{};
   };

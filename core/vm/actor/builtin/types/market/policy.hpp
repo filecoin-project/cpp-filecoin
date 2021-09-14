@@ -26,6 +26,7 @@ namespace fc::vm::actor::builtin::types::market {
                                           * TokenAmount{"1000000000000000000"}};
 
   /// The number of blocks between payouts for deals
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern EpochDuration kDealUpdatesInterval;
 
   /**
