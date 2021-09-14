@@ -20,7 +20,15 @@ namespace fc::sector_storage::stores {
     outcome::result<uint64_t> getDiskUsage(
         const std::string &path) const override;
 
-   private:
-    boost::filesystem::path config_path_;
+      outcome::result<void> setApiToken(const std::string &token) override;
+
+      outcome::result<std::string> getApiToken() const override;
+
+      outcome::result<void> setSecret(const std::string &secret) override;
+
+      outcome::result<std::string> getSecret() const override;
+
+  private:
+    boost::filesystem::path root_path_;
   };
 }  // namespace fc::sector_storage::stores

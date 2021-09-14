@@ -52,5 +52,6 @@ namespace fc::api {
       std::shared_ptr<KeyStore> key_store,
       std::shared_ptr<Discovery> market_discovery,
       const std::shared_ptr<RetrievalClient> &retrieval_market_client,
-      const std::shared_ptr<OneKey> &wallet_default_address);
+      const std::shared_ptr<OneKey> &wallet_default_address,
+      const std::shared_ptr<ApiAlgorithm> &secret_algorithm);
 }  // namespace fc::api

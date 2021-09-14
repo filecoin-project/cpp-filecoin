@@ -5,6 +5,7 @@
 
 #include "api/full_node/make.hpp"
 
+#include <jwt-cpp/jwt.h>
 #include <boost/algorithm/string.hpp>
 #include <condition_variable>
 #include <libp2p/peer/peer_id.hpp>
@@ -225,7 +226,8 @@ namespace fc::api {
       std::shared_ptr<KeyStore> key_store,
       std::shared_ptr<Discovery> market_discovery,
       const std::shared_ptr<RetrievalClient> &retrieval_market_client,
-      const std::shared_ptr<OneKey> &wallet_default_address) {
+      const std::shared_ptr<OneKey> &wallet_default_address,
+      const std::shared_ptr<ApiAlgorithm> &secret_algorithm) {
     auto ts_load{env_context.ts_load};
     auto ipld{env_context.ipld};
     auto interpreter_cache{env_context.interpreter_cache};
@@ -247,8 +249,7 @@ namespace fc::api {
       }
       return context;
     };
-
-    api->AuthNew = [](auto) { return Buffer{1, 2, 3}; };
+    makeCommonApi(api, secret_algorithm, logger);
     api->BeaconGetEntry = [=](auto &&cb, auto epoch) {
       return beaconizer->entry(drand_schedule->maxRound(epoch), cb);
     };

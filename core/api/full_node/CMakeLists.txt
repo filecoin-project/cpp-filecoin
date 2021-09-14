@@ -21,4 +21,5 @@ target_link_libraries(api
     state_tree
     mpool
     sync
+    common_api
     )

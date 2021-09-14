@@ -14,6 +14,8 @@ namespace fc::sector_storage::stores {
   using primitives::FsStat;
 
   const std::string kStorageConfig = "storage.json";
+  const std::string kApiToken = "token";
+  const std::string kApiSecret = "secret";
 
   struct LocalPath {
     std::string path;
@@ -56,5 +58,13 @@ namespace fc::sector_storage::stores {
     // when file doesn't exist should return StorageError::kFileNotExist
     virtual outcome::result<uint64_t> getDiskUsage(
         const std::string &path) const = 0;
+
+    virtual outcome::result<void> setApiToken(const std::string &token) = 0;
+
+    virtual outcome::result<std::string> getApiToken() const = 0;
+
+    virtual outcome::result<void> setSecret(const std::string &secret) = 0;
+
+    virtual outcome::result<std::string> getSecret() const = 0;
   };
 }  // namespace fc::sector_storage::stores

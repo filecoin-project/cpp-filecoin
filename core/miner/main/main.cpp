@@ -34,6 +34,7 @@
 #include "miner/windowpost.hpp"
 #include "primitives/address/config.hpp"
 #include "proofs/proof_param_provider.hpp"
+#include "secret.hpp"
 #include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/manager_impl.hpp"
 #include "sector_storage/impl/scheduler_impl.hpp"
@@ -63,6 +64,11 @@ namespace fc {
   namespace uuids = boost::uuids;
 
   static const Buffer kActor{cbytes("actor")};
+
+  auto log() {
+    static common::Logger logger = common::createLogger("miner");
+    return logger;
+  }
 
   struct Config {
     boost::filesystem::path repo_path;
@@ -421,6 +427,8 @@ namespace fc {
             miner)};
     retrieval_provider->start();
 
+    OUTCOME_TRY(api_secret, getApiSecret(storage, log()));
+
     auto mapi = api::makeStorageApi(io,
                                     napi,
                                     *config.actor,
@@ -430,7 +438,8 @@ namespace fc {
                                     wscheduler,
                                     stored_ask,
                                     storage_provider,
-                                    retrieval_provider);
+                                    retrieval_provider,
+                                    api_secret);
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
     mrpc.emplace("/rpc/v0", api::makeRpc(*mapi));
@@ -439,10 +448,10 @@ namespace fc {
     mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
 
     api::serve(mrpc, mroutes, *io, "127.0.0.1", config.api_port);
-    api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
+    api::rpc::saveInfo(config.repo_path, config.api_port, boost::none);
 
-    spdlog::info("fuhon miner started");
-    spdlog::info("peer id {}", host->getId().toBase58());
+    log()->info("fuhon miner started");
+    log()->info("peer id {}", host->getId().toBase58());
 
     io->run();
     return outcome::success();

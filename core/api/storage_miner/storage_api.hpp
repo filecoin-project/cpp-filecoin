@@ -186,7 +186,8 @@ namespace fc::api {
       const std::shared_ptr<Scheduler> &sector_scheduler,
       const std::shared_ptr<StoredAsk> &stored_ask,
       const std::shared_ptr<StorageProvider> &storage_market_provider,
-      const std::shared_ptr<RetrievalProvider> &retrieval_market_provider);
+      const std::shared_ptr<RetrievalProvider> &retrieval_market_provider,
+      const std::shared_ptr<ApiAlgorithm> &secret_algorithm);
 
   template <typename A, typename F>
   void visit(const StorageMinerApi &, A &&a, const F &f) {

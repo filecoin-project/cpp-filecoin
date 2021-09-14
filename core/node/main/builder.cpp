@@ -53,6 +53,8 @@
 #include "power/impl/power_table_impl.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "primitives/tipset/file.hpp"
+#include "secret.hpp"
+#include "sector_storage/stores/impl/storage_impl.hpp"
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/util.hpp"
 #include "storage/chain/msg_waiter.hpp"
@@ -77,6 +79,7 @@ namespace fc::node {
   using markets::retrieval::client::RetrievalClientImpl;
   using markets::storage::kStorageMarketImportDir;
   using markets::storage::client::StorageMarketClientImpl;
+  using sector_storage::stores::LocalStorageImpl;
   using storage::keystore::FileSystemKeyStore;
   using vm::actor::builtin::states::InitActorStatePtr;
 
@@ -582,6 +585,11 @@ namespace fc::node {
     OUTCOME_TRY(createStorageMarketClient(o));
     OUTCOME_TRY(createRetrievalMarketClient(o));
 
+    OUTCOME_TRY(
+        api_secret,
+        getApiSecret(std::make_shared<LocalStorageImpl>(config.repo_path),
+                     log()));
+
     o.api = api::makeImpl(o.api,
                           o.chain_store,
                           o.markets_ipld,
@@ -597,7 +605,8 @@ namespace fc::node {
                           o.key_store,
                           o.market_discovery,
                           o.retrieval_market_client,
-                          o.wallet_default_address);
+                          o.wallet_default_address,
+                          api_secret);
 
     auto paych{
         std::make_shared<payment_channel_manager::PaymentChannelManagerImpl>(
