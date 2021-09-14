@@ -166,13 +166,13 @@ namespace fc::vm::actor::builtin::v0::miner {
     TokenAmount pledge_delta{0};
     // todo post_result
 
-    OUTCOME_TRY(state, runtime.stateManager()->getMinerActorState());
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
 
-    OUTCOME_TRY(miner_info, state->getInfo(runtime.getIpfsDatastore()));
+    OUTCOME_TRY(miner_info, state->getInfo());
 
-    auto callers = miner_info.control;
-    callers.emplace_back(miner_info.owner);
-    callers.emplace_back(miner_info.worker);
+    auto callers = miner_info->control;
+    callers.emplace_back(miner_info->owner);
+    callers.emplace_back(miner_info->worker);
     OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
 
     // todo
@@ -194,12 +194,11 @@ namespace fc::vm::actor::builtin::v0::miner {
         runtime.validateArgument(params.deadline == deadline_info.index));
 
     // Lotus gas conformance
-    REQUIRE_NO_ERROR(state->sectors.amt.loadRoot(),
+    REQUIRE_NO_ERROR(state->sectors.sectors.amt.loadRoot(),
                      VMExitCode::kErrIllegalState);
 
     REQUIRE_NO_ERROR_A(deadline,
-                       state->getDeadline(runtime.getIpfsDatastore(),
-                                          deadlines.due[params.deadline]),
+                       deadlines.due[params.deadline].get(),
                        VMExitCode::kErrIllegalState);
 
     // todo
