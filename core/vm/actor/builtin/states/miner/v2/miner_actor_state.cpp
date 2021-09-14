@@ -114,8 +114,4 @@ namespace fc::vm::actor::builtin::v2::miner {
     return outcome::success();
   }
 
-  uint64_t MinerActorState::getMaxPartitionsForDeadlineAssignment() const {
-    return kMaxPartitionsPerDeadline;
-  }
-
 }  // namespace fc::vm::actor::builtin::v2::miner

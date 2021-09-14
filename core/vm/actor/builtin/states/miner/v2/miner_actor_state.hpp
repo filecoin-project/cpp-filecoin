@@ -44,9 +44,6 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     outcome::result<void> checkBalanceInvariants(
         const TokenAmount &balance) const override;
-
-   protected:
-    uint64_t getMaxPartitionsForDeadlineAssignment() const override;
   };
   CBOR_TUPLE(MinerActorState,
              miner_info,
