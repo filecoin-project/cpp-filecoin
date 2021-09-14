@@ -27,7 +27,7 @@ Target C++ compilers are:
 
 ### Rust Installation
 
-C++ Filecoin implementation uses Rust libraries as dependencies for BLS provider.
+C++ Filecoin implementation uses Rust libraries as dependencies for BLS providers.
 All you need to build these targets successfully - is Rust lang installed to your `${HOME}/.cargo/bin`.
 
 You can do it manually following the instructions from [rust-lang.org](https://www.rust-lang.org/tools/install) or any other way.
@@ -49,9 +49,9 @@ Tickets: Can be opened in GitHub Issues.
 
 # Cpp-Filecoin install and setup guide
 ## Fuhon node establishing
-There are 2 ways of getting executable version of filecoin node and miner. The First is to get executables by downloading, you can do it here: `https://link-tofiles`.The second is to build executables by yourself, see **Advanced building**. To begin running a node you will need `node` executable.
+There are 2 ways of getting  an executable version of filecoin node or miner. The First is to get executables by [downloading](https://github.com/filecoin-project/cpp-filecoin/releases "cpp-filecoin releases"). The second is to build executables by yourself, see **Advanced building**. To begin running a node you will need `node` executable.
 
-1. To configure node you also need to make:
+1. To configure a node you also need to make:
 * **configuration file**
   example `config.cfg`:
 
@@ -62,9 +62,9 @@ There are 2 ways of getting executable version of filecoin node and miner. The F
      drand-genesis-time=1595431050
      drand-period=30
      ```
-* **genesisfile** - this is a special pre-set file with the initial block, which will configure the initial state of your node, set network parameters like sector size, recall time, e.t.c and define miner-list with first network miner.
+* **genesis file** - this is a special pre-set file with the initial block, which will configure the initial state of your node, sets network parameters like sector size, recalls time, e.t.c and defines miner-list with the first network miner.
 
-you also can download that [snapshots](https://fil-chain-snapshots-fallback.s3.amazonaws.com/mainnet/minimal_finality_stateroots_latest.car "snapshots store") for a less time-assuming connection and synchronisation to the popular filecoin networks.
+you also can download that [snapshots](https://fil-chain-snapshots-fallback.s3.amazonaws.com/mainnet/minimal_finality_stateroots_latest.car "snapshots store") for a less time-assuming connection and synchronization to the popular filecoin networks.
 More about snapshot management [here](https://docs.filecoin.io/get-started/lotus/chain/#restoring-a-custom-snapshot "snapshot documentation").
 2. After all the preparations you can launch a node:
 *  link working directory, which will be a storage for all node-associated files. It can be done with `--repo` flag
@@ -73,13 +73,11 @@ More about snapshot management [here](https://docs.filecoin.io/get-started/lotus
 *  In case you want to specify api port for a node + miner configuration or multi-node configuration,  you can do that with `--api API_PORT`
 *  Example of the command: `node_exec --repo path_to_node_repo --genesis genesis.car --config config.cfg  --port 8080 --api 1235`
 
-3. Once the node has been successfully configured, it will start to connect to network peers and download blockchain history. This process may continue for a while(f.e. the weight of chain of an interopnet network is 3.5 GB). As it takes a while, you can change cids_index.car file to downloaded snapshot(see step 1 for that).
-
 ## Lotus-CLI establishing
 ### User approach:
 1. Download [lotus executable](https://github.com/filecoin-project/lotus/releases/ "lotus releases")
 2. You can use CLI client with your node by linking it with `--repo <path to your node working directory>` flag,
-   more of lotus-CLI flags will be covered in **Work with Lotus-CLI**
+   more about lotus-CLI flags will be covered in **Work with Lotus-CLI**
 
 ### Advanced approach:
 1. clone [lotus repository](https://github.com/filecoin-project/lotus "lotus project")
@@ -87,27 +85,27 @@ More about snapshot management [here](https://docs.filecoin.io/get-started/lotus
 3. In case you want to connect to interopnet, build lotus with `make interopnet`
 ## Work with Lotus-CLI
 
-1. For proper miner work you will need a bls wallet, which can be made with lotus-cli by using the following command: `$lotus --repo REPO wallet new bls`, after the execution of this command you will revive the public address of your new account, and a private key in `<repo of youe working node>/keystore`.
+1. For proper miner work you will need a bls wallet, which can be made with lotus-cli by using the following command: `$lotus --repo REPO wallet new bls`, after the execution of this command you will revive the public address of your new account, and a private key in `<repo of your working node>/keystore`.
 2. Also, you may need to put some Filecoins on your account from other addresses you may have, and you can do it  with `lotus --repo REPO send --from SENDER_ADDRESS DISTANATION_ADDRESS`
 
-3. In case you want to get some Filecoins, you can buy them on stocks with usage of you public address.
+3. In case you want to get some Filecoins, you can buy them on stocks with the usage of your public address.
 
-4. Other advanced commands you may find in [filecoin-docs about lotus CLI](https://docs.filecoin.io/mine/lotus/dagstore/#cli-commands "lotus CLI documentation").
+4. Other advanced commands you may find in [filecoin-docs about lotus CLI](https://docs.filecoin.io/get-started/lotus/installation/#interact-with-the-daemon "lotus CLI documentation").
 ## Fuhon miner establishing
 To start mining at first you need to configure and run Fuhon or Lotus node. Before all make sure that your node had successfully **connected** and updated to the current **block height** (actual network block number). Also, your node's api port should be opened for connection.
 
 To provide wallet functions and oracle information be sure to run lotus-cli at first. You can find how to do it in **Lotus-CLI establishing**.
 
-Once all the needed  modules will be started, you can continue with miner configuration.
+Once all the needed  modules will be started, you can continue with the miner configuration.
 
 1. Create miner work directory (f.e. `$mkdir miner`)
-2. Download miner executable here : `https://link_to_download` and put it in work directory
+2. Download [miner executable](https://github.com/filecoin-project/cpp-filecoin/releases "executables releases") and put it in work directory
    3.Copy proof parameters json file with command: `cp /<path to cpp-filecoin>/core/proofs/parameters.json MINER_REPO/proof-params.json`
-4. Run yor miner with ` --repo REPO --miner-repo MINER_REPO --owner PUBLIC_ADRESS --miner-api API_PORT --sector-size SECTOR_SIZE`
+4. Run your miner with ` --repo REPO --miner-repo MINER_REPO --owner PUBLIC_ADRESS --miner-api MINER_API_PORT --sector-size SECTOR_SIZE`
 
 ## Advanced Building
-This approach allows to build our project with your modifications,
-but be sure that your realisation follows consensus rules.
+This approach allows you to build our project with your modifications,
+but be sure that your realization follows consensus rules.
 
 1. clone [funon-filecoin project](https://github.com/filecoin-project/cpp-filecoin "cpp-filecoin project")
 
@@ -129,31 +127,23 @@ To generate GitHub token follow the [instructions](https://help.github.com/en/gi
 7. build targets: node - for node executable, miner_main- for miner executable.
    example: `cmake --build BUILD_DIR --target node miner_main`
 
-8. First build will likely take long time. However, you can cache binaries to [hunter-binary-cache].
+8. First time build will likely take a long time. However, you can cache binaries to [hunter-binary-cache].
 
-9. It is also suggested to build project with clang-tidy checks, however if you wish to omit clang-tidy step, you can use `cmake ..` instead.
-
-- Tests can be run with:
-  ```
-  cd build
-  ctest
-  ```
-
-10. node executable can be found at: `<build_repository>/core/node/main`.
-11. miner executable can be found at:
+9. Node executable can be found at: `<build_repository>/core/node/main`.
+10. Miner executable can be found at:
    `<build_repository>/core/miner/main`
-12. next steps are similar to common miner and node establishing which can be found at **Fuhon node establishing** and **Fuhon miner establishing**
+11.The next steps are similar to common miner and node establishing which can be found at **Fuhon node establishing** and **Fuhon miner establishing**
 
 ## Configuration Lotus-Fuhon
 ### Lotus-node and Fuhon-miner
-1. To start up a lotus node at first you need to get [lotus executable](https://github.com/filecoin-project/lotus/releases/ "lotus releases")
+1. To start up a lotus node at first you need to get a [lotus executable](https://github.com/filecoin-project/lotus/releases/ "lotus releases")
 2. You can run your lotus node with the next command: `$lotus --repo REPO daemon --genesis genesis.car --profile bootstrapper`, more about running lotus software can be found in [filecoin-docs](https://docs.filecoin.io/get-started/lotus/installation "lotus filecoin documentation").
-
+3. Fuhon-miner establishing is described in **Fuhon miner establishing**
 ### Fuhon-node and Lotus-miner
-1. Establishing of a Fuhon node is described in **Fuhon miner establishing**
-2. Lotus miner can be established by the following way:
-   - to begin with you need you own bls wallet(described in **Working with Lotus-CLI**)
-   - init your miner with command: `lotus-miner --repo REPO --miner-repo MINER_REPO init --nosync --owner BLS_WALLET_ADDR --sector-size SECTOR_SIZE`
+1. Establishing a Fuhon node is described in **Fuhon node establishing**
+2. Lotus miner can be established in the following way:
+   - to begin with you need your own bls wallet(described in **Working with Lotus-CLI**)
+   - init your miner with the command: `lotus-miner --repo REPO --miner-repo MINER_REPO init --nosync --owner BLS_WALLET_ADDR --sector-size SECTOR_SIZE`
    - to know more about lotus software establishing, read [filecoin-docs](https://docs.filecoin.io/get-started/lotus/installation/#minimal-requirements "lotus establishing guide")
 
 ## Docker configuration
@@ -161,16 +151,16 @@ To generate GitHub token follow the [instructions](https://help.github.com/en/gi
 
 ## Your new Filecoin network start
 
-To run a new filecoin network, you should run at least one node, and a miner (miners are representation of the network power, so more miners connected and sealed, more power your network will have). In this guide we will consider network of two nodes and two miners(genesis and common ones)
+To run a new filecoin network, you should run at least one node, and a miner (miners are a representation of the network power, so the more miners connected and sealed, the more power your network will have). In this guide, we will consider a network of two nodes and two miners(genesis and common ones)
 
 1. To run the first node you will need to generate a new genesis file which will be an initial instruction for all new connected nodes.
    This can be done with lotus-seed tools:
    - Clone  [lotus repository](https://github.com/filecoin-project/lotus "lotus project")
 
    - build lotus-seed with `$make lotus-seed` or `make debug` - for debug version initiation,
-     or `make 2k` for version with 2 KiB sector size  or `make interopnet` for interopnet version.
+     or `make 2k` for a version with 2 KiB sector size  or `make interopnet` for interopnet version.
 
-   - Generate genesis and preseal. Ensure lotus-seed was build in previous step and run script node `$genesis.js DIR 1` to generate genesis. `DIR` - directory where genesis and presealed sectors will be generated, 1 - number of sectors for miner. In case your lotus executables lay in custom directory or script can not find them, you can link lotus target with `LOTUS=/<path to your lotus executable>/lotus node genesis.js <directory where results wil be> <sealing sectors upper bound>`
+   - Generate genesis and preseal. Ensure lotus-seed was built in the previous step and run script node `$genesis.js DIR 1` to generate genesis. `DIR` - directory where genesis and presealed sectors will be generated, 1 - number of sectors for a miner. In case your lotus executables lay in a custom directory or script can not find them, you can link lotus target with `LOTUS=/<path to your lotus executable>/lotus node genesis.js <directory where results will be> <sealing sectors upper bound>`
 
 2. Run your node-1 with new genesis file as it was done in chapter **Fuhon node establishing**
 
@@ -180,10 +170,10 @@ To run a new filecoin network, you should run at least one node, and a miner (mi
    `addr=$(lotus --repo REPO1 net listen | grep 127.0.0.1)`
    `lotus --repo REPO2 net connect $addr`t
 
-5. After generating new genesis file, you will also receive genesis.json with declared miners list, these are addresses of the initial miners.
+5. After generating a new genesis file, you will also receive genesis.json with declared miners list, these are addresses of the initial miners.
 
-6. To start miner that is declared in genesisfile (step 5) you can use chapter **Fuhon miner establishing** but with some major changes.
+6. To start miner that is declared in genesis file (step 5) you can use chapter **Fuhon miner establishing** but with some major changes.
    You will also need the following flags to be provided:   `--genesis-miner`, `--actor ACTOR`, `--pre-sealed-sectors PRESEAL_DIR`, `--pre-sealed-metadata PRESEAL_JSON`.
 
-7. To start new miner just follow the steps declared in **Fuhon miner establishing**, or you can run lotus miner using [filecoin-docs](https://docs.filecoin.io/get-started/lotus/installation/#minimal-requirements "lotus establishing guide")
-8. After two nodes will be connected and miner will work, your new filecoin network starting to exist, since that moment you can share your peers to invite new participants. 
+7. To start a new miner just follow the steps declared in **Fuhon miner establishing**, or you can run lotus miner using [filecoin-docs](https://docs.filecoin.io/get-started/lotus/installation/#minimal-requirements "lotus establishing guide")
+8. After two nodes will be connected and your miner will work, a new filecoin network starting to exist, since that moment you can share your peers to invite new participants. 
