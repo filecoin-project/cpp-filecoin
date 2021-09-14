@@ -194,12 +194,12 @@ namespace fc::vm::actor::builtin::states {
     /**
      * Assign new sectors to deadlines.
      */
-    virtual outcome::result<PowerPair> assignSectorsToDeadlines(
+    outcome::result<PowerPair> assignSectorsToDeadlines(
         Runtime &runtime,
         ChainEpoch curr_epoch,
         std::vector<SectorOnChainInfo> sectors_to_assign,
         uint64_t partition_size,
-        SectorSize ssize) = 0;
+        SectorSize ssize);
 
     /**
      * Pops up to max early terminated sectors from all deadlines.
@@ -320,9 +320,6 @@ namespace fc::vm::actor::builtin::states {
      */
     outcome::result<AdvanceDeadlineResult> advanceDeadline(
         Runtime &runtime, ChainEpoch curr_epoch);
-
-   protected:
-    virtual uint64_t getMaxPartitionsForDeadlineAssignment() const = 0;
   };
 
   using MinerActorStatePtr = Universal<MinerActorState>;
