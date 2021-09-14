@@ -31,6 +31,8 @@ namespace fc::sync::blocksync {
               stream->remoteMultiaddr().value().getStringAddress(),
               stream->remotePeerId().value().toBase58());
         } catch (...) {
+          log()->error(
+              "Caught unhandled exception in fc::sync::blocksync::peerStr()");
         }
       }
       return "(dead stream)";
