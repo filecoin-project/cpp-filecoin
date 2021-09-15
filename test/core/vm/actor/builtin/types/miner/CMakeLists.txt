@@ -22,6 +22,13 @@ addtest(miner_types_test
     quantize_test.cpp
     sectors_test.cpp
     termination_test.cpp
+    expiration_set_test.cpp
+    expiration_queue_v0_test.cpp
+    expiration_queue_v2_test.cpp
+    expiration_queue_v3_test.cpp
+    monies_test_v0.cpp
+    monies_test_v2.cpp
+    monies_test_v3.cpp
     vesting_test.cpp
     )
 target_link_libraries(miner_types_test
