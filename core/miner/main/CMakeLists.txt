@@ -31,5 +31,5 @@ target_link_libraries(miner_main
 
     ipfs_datastore_in_memory
 
-    miner_types
+    miner_actor_state
     )

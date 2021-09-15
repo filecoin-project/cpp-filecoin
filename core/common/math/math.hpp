@@ -89,7 +89,7 @@ namespace fc::common::math {
   }
 
   inline BigInt ln(const BigInt &z) {
-    auto k{(z ? msb(z) : 0) - 1 - kPrecision128};  // Q.0
+    auto k{bitlen(z) - 1 - kPrecision128};  // Q.0
     auto x{z};
     if (k > 0) {
       x >>= k;  // Q.128
