@@ -26,7 +26,7 @@ namespace fc::primitives {
                                  const ActiveResources &active);
 
     inline void setMemoryUsedMin(uint64_t memory) {
-      std::shared_lock<std::shared_mutex> lock(mutex_);
+      std::unique_lock lock{mutex_};
       memory_used_min = memory;
     }
 

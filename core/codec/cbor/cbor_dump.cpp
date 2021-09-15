@@ -23,8 +23,8 @@ namespace fc {
       return dumpBytes(hash);
     }
     OUTCOME_EXCEPT(bytes, cid.toBytes());
-    return dumpBytes(gsl::make_span(bytes).subspan(
-               0, static_cast<ptrdiff_t>(bytes.size() - hash.size() - 1)))
+    return dumpBytes(gsl::make_span(bytes).first(
+               static_cast<ptrdiff_t>(bytes.size() - hash.size() - 1)))
            + "_" + dumpBytes(hash);
   }
 

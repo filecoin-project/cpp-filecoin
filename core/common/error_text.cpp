@@ -6,8 +6,8 @@
 #include "common/error_text.hpp"
 
 #include <atomic>
-#include <unordered_map>
 #include <limits>
+#include <unordered_map>
 
 namespace fc::error_text {
   constexpr auto kName{"ErrorText"};
@@ -18,7 +18,7 @@ namespace fc::error_text {
       return kName;
     }
     std::string message(int value) const override {
-      return (const char *)nullptr;
+      return "zero category";
     }
   };
 
@@ -27,6 +27,7 @@ namespace fc::error_text {
       return kName;
     }
     std::string message(int value) const override {
+      // NOLINTNEXTLINE
       return (const char *)((uintptr_t)(unsigned int)value << kUintBits);
     }
   };
@@ -38,6 +39,7 @@ namespace fc::error_text {
       return kName;
     }
     std::string message(int value) const override {
+      // NOLINTNEXTLINE
       return (const char *)(base + (uintptr_t)(unsigned int)value);
     }
   };
@@ -51,20 +53,21 @@ namespace fc::error_text {
     return categories;
   }
 
-  std::atomic_flag lock = ATOMIC_FLAG_INIT;
-
   std::error_code _make_error_code(const char *message) {
+    static std::atomic_flag lock = ATOMIC_FLAG_INIT;
     if (message == nullptr) {
       return {1, category_zero};
     }
-    const auto ptr{(uintptr_t)message};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    const uintptr_t ptr{reinterpret_cast<const uintptr_t>(message)};
     static_assert(sizeof(unsigned int) == sizeof(int));
-    const auto offset{(unsigned int)ptr};
+    const unsigned int offset = ptr;
     if (offset == 0) {
       static_assert(sizeof(uintptr_t) <= 2 * sizeof(unsigned int));
+      // NOLINTNEXTLINE
       return {(int)(unsigned int)(ptr >> kUintBits), category_aligned};
     }
-    const auto value{(int)offset};
+    const int value = static_cast<int>(offset);
     if constexpr (sizeof(int) >= sizeof(uintptr_t)) {
       return {value, category_0};
     } else {
