@@ -16,9 +16,10 @@ namespace fc::blockchain::production {
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<BlockWithMessages> generate(
       InterpreterCache &interpreter_cache,
-      TsLoadPtr ts_load,
+      const TsLoadPtr &ts_load,
       std::shared_ptr<Ipld> ipld,
       BlockTemplate t) {
     OUTCOME_TRY(parent_tipset, ts_load->load(t.parents));
@@ -49,7 +50,8 @@ namespace fc::blockchain::production {
     b.header.election_proof = std::move(t.election_proof);
     b.header.beacon_entries = std::move(t.beacon_entries);
     b.header.win_post_proof = std::move(t.win_post_proof);
-    (std::vector<fc::CbCid> &)b.header.parents = std::move(t.parents);
+    static_cast<std::vector<fc::CbCid> &>(b.header.parents) =
+        std::move(t.parents);
     b.header.parent_weight = vm_result.weight;
     b.header.height = t.height;
     b.header.parent_state_root = std::move(vm_result.state_root);
@@ -59,7 +61,8 @@ namespace fc::blockchain::production {
         b.header.bls_aggregate,
         crypto::bls::BlsProviderImpl{}.aggregateSignatures(bls_signatures));
     b.header.timestamp = t.timestamp;
-    // TODO: the only caller of "generate" is MinerCreateBlock, it signs block
+    // TODO (turuslan): the only caller of "generate" is MinerCreateBlock, it
+    // signs block
     b.header.block_sig = {};
     b.header.fork_signaling = 0;
     OUTCOME_TRYA(b.header.parent_base_fee, parent_tipset->nextBaseFee(ipld));

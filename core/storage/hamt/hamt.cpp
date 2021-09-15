@@ -5,9 +5,8 @@
 
 #include "storage/hamt/hamt.hpp"
 
-#include <libp2p/crypto/sha/sha256.hpp>
-
 #include "common/which.hpp"
+#include "crypto/sha/sha256.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
   using fc::storage::hamt::HamtError;
@@ -178,7 +177,7 @@ namespace fc::storage::hamt {
   std::vector<size_t> Hamt::keyToIndices(BytesIn key, int n) const {
     const auto bits{v3() ? bit_width_ : kDefaultBitWidth};
     std::vector<uint8_t> key_bytes(key.begin(), key.end());
-    auto hash = libp2p::crypto::sha256(key_bytes);
+    auto hash = crypto::sha::sha256(key_bytes);
     std::vector<size_t> indices;
     constexpr auto byte_bits = 8;
     auto max_bits = byte_bits * hash.size();

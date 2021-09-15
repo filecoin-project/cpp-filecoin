@@ -15,7 +15,7 @@ namespace fc {
   }
 
   std::string dumpCid(const CID &cid) {
-    auto &mh{cid.content_address};
+    const auto &mh{cid.content_address};
     auto hash{mh.getHash()};
     if (cid.version == CID::Version::V1
         && cid.content_type == CID::Multicodec::DAG_CBOR
@@ -23,20 +23,21 @@ namespace fc {
       return dumpBytes(hash);
     }
     OUTCOME_EXCEPT(bytes, cid.toBytes());
-    return dumpBytes(
-               gsl::make_span(bytes).subspan(0, bytes.size() - hash.size() - 1))
+    return dumpBytes(gsl::make_span(bytes).subspan(
+               0, static_cast<ptrdiff_t>(bytes.size() - hash.size() - 1)))
            + "_" + dumpBytes(hash);
   }
 
   struct LessCborKey {
     bool operator()(const std::string &l, const std::string &r) const {
-      if (ssize_t d = l.size() - r.size()) {
-        return d < 0;
+      if (l.size() == r.size()) {
+        return memcmp(l.data(), r.data(), l.size()) < 0;
       }
-      return memcmp(l.data(), r.data(), l.size()) < 0;
+      return l.size() < r.size();
     }
   };
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   void dumpCbor(std::string &o, codec::cbor::CborDecodeStream &s) {
     auto dumpString{[&](auto &s) { o += "^" + s; }};
     if (s.isCid()) {
@@ -48,7 +49,7 @@ namespace fc {
       auto n{s.listLength()};
       auto list{s.list()};
       for (auto i{0u}; i < n; ++i) {
-        if (i) {
+        if (i != 0) {
           o += ",";
         }
         dumpCbor(o, list);

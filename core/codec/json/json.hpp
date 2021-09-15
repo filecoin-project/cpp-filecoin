@@ -42,8 +42,8 @@ namespace fc::codec::json {
     if (j && j->IsArray()) {
       list.emplace();
       list->reserve(j->Size());
-      for (auto it{j->Begin()}; it != j->End(); ++it) {
-        list->push_back(f(&*it));
+      for (const auto &it : j->GetArray()) {
+        list->push_back(f(&it));
       }
     }
     return list;

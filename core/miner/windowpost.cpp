@@ -13,6 +13,7 @@
 
 namespace fc::mining {
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector::SectorInfo;
   using sector_storage::SectorRef;
   using vm::actor::builtin::types::miner::kWPoStPeriodDeadlines;
   using vm::actor::builtin::v0::miner::DeclareFaults;
@@ -249,11 +250,10 @@ namespace fc::mining {
         [method](auto _r) {
           auto name{method == DeclareFaultsRecovered::Number
                         ? "DeclareFaultsRecovered"
-                        : method == DeclareFaults::Number
-                              ? "DeclareFaults"
-                              : method == SubmitWindowedPoSt::Number
-                                    ? "SubmitWindowedPoSt"
-                                    : "(unexpected)"};
+                    : method == DeclareFaults::Number ? "DeclareFaults"
+                    : method == SubmitWindowedPoSt::Number
+                        ? "SubmitWindowedPoSt"
+                        : "(unexpected)"};
           if (!_r) {
             spdlog::error("WindowPoStScheduler {} error {}", name, _r.error());
           } else {

@@ -29,14 +29,19 @@ namespace fc::api {
   // This is necessary in order not to lose the response before recording
   class WrapperResponse {
    public:
-    ~WrapperResponse();
     WrapperResponse() = default;
 
-    WrapperResponse(ResponseType &&response);
+    WrapperResponse(const WrapperResponse &) = delete;
+
+    explicit WrapperResponse(ResponseType &&response);
 
     WrapperResponse(ResponseType &&response, std::function<void()> &&clear);
 
     WrapperResponse(WrapperResponse &&other) noexcept;
+
+    ~WrapperResponse();
+
+    WrapperResponse &operator=(const WrapperResponse &other) = delete;
 
     WrapperResponse &operator=(WrapperResponse &&other) noexcept;
 

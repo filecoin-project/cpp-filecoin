@@ -194,7 +194,7 @@ namespace fc::mining {
             primitives::block::ElectionProof{win_count, Buffer{election_vrf}},
             std::move(info->beacons),
             messages,
-            (uint64_t)height(),
+            height(),
             {},
             std::move(post_proof),
         };

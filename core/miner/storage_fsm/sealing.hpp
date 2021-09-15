@@ -30,7 +30,7 @@ namespace fc::mining {
     // includes failed, 0 = no limit
     uint64_t max_sealing_sectors_for_deals = 0;
 
-    std::chrono::milliseconds wait_deals_delay;  // in milliseconds
+    std::chrono::milliseconds wait_deals_delay{};  // in milliseconds
   };
 
   class Sealing {

@@ -10,10 +10,12 @@
 
 namespace fc::api::rpc {
   template <typename M>
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   void Client::_setup(Client &c, M &m) {
     using Result = typename M::Result;
     using Callback = typename M::Callback;
-    m = [&c, name{m.getName()}](Callback cb, auto &&... params) -> void {
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+    m = [&c, name{m.getName()}](Callback cb, auto &&...params) -> void {
       Request req{};
       req.method = name;
       req.params =
@@ -21,7 +23,9 @@ namespace fc::api::rpc {
       if constexpr (is_chan<Result>{}) {
         auto chan{Result::make()};
         c.call(
-            std::move(req), [&c, weak{weaken(chan.channel)}](auto &&_result) {
+            std::move(req),
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+            [&c, weak{weaken(chan.channel)}](auto &&_result) {
               if (auto channel{weak.lock()}) {
                 if (_result) {
                   if (auto _chan{api::decode<Result>(_result.value())}) {
@@ -48,14 +52,15 @@ namespace fc::api::rpc {
         cb(chan);
       } else {
         c.call(std::move(req), [&c, cb{std::move(cb)}](auto &&_result) {
-          boost::asio::post(
-              c.io2, [_result{std::move(_result)}, result_cb{std::move(cb)}] {
-                if (_result) {
-                  result_cb(api::decode<Result>(_result.value()));
-                } else {
-                  result_cb(_result.error());
-                }
-              });
+          boost::asio::post(c.io2,
+                            [_result{std::forward<decltype(_result)>(_result)},
+                             result_cb{std::move(cb)}] {
+                              if (_result) {
+                                result_cb(api::decode<Result>(_result.value()));
+                              } else {
+                                result_cb(_result.error());
+                              }
+                            });
         });
       }
     };
