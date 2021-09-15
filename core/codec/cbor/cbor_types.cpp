@@ -38,7 +38,7 @@ namespace fc::markets::retrieval {
     auto m{CborEncodeStream::map()};
     m["PayloadCID"] << v.payload_cid;
     m["ID"] << v.deal_id;
-    m["Params"] << DealProposalParams::Named{v.params};
+    m["Params"] << static_cast<const DealProposalParams::Named &>(v.params);
     return s << m;
   }
   CBOR2_DECODE(DealProposal::Named) {
@@ -46,8 +46,7 @@ namespace fc::markets::retrieval {
     CborDecodeStream::named(m, "PayloadCID") >> v.payload_cid;
     CborDecodeStream::named(m, "ID") >> v.deal_id;
     CborDecodeStream::named(m, "Params")
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-        >> *(reinterpret_cast<DealProposalParams::Named *>(&v.params));
+        >> *(static_cast<DealProposalParams::Named *>(&v.params));
     return s;
   }
 

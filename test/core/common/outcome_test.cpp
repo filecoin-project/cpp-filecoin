@@ -69,7 +69,7 @@ namespace fc {
    * error_code value is not zero
    */
   TEST(ErrorText, ErrorTextZero) {
-    EXPECT_TRUE(error_text::_make_error_code((const char *)nullptr));
+    EXPECT_DEATH(error_text::_make_error_code((const char *)nullptr), "");
     EXPECT_TRUE(error_text::_make_error_code(
         (const char *)(uintptr_t{1}
                        << std::numeric_limits<unsigned int>::digits)));

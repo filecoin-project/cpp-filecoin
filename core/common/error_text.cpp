@@ -6,21 +6,13 @@
 #include "common/error_text.hpp"
 
 #include <atomic>
+#include <cassert>
 #include <limits>
 #include <unordered_map>
 
 namespace fc::error_text {
   constexpr auto kName{"ErrorText"};
   constexpr auto kUintBits{std::numeric_limits<unsigned int>::digits};
-
-  struct CategoryZero : std::error_category {
-    const char *name() const noexcept override {
-      return kName;
-    }
-    std::string message(int value) const override {
-      return "zero category";
-    }
-  };
 
   struct CategoryAligned : std::error_category {
     const char *name() const noexcept override {
@@ -44,7 +36,6 @@ namespace fc::error_text {
     }
   };
 
-  const CategoryZero category_zero;
   const CategoryAligned category_aligned;
   const Category category_0{0};
 
@@ -55,9 +46,7 @@ namespace fc::error_text {
 
   std::error_code _make_error_code(const char *message) {
     static std::atomic_flag lock = ATOMIC_FLAG_INIT;
-    if (message == nullptr) {
-      return {1, category_zero};
-    }
+    assert(message != nullptr);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const uintptr_t ptr{reinterpret_cast<const uintptr_t>(message)};
     static_assert(sizeof(unsigned int) == sizeof(int));
