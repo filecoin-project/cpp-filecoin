@@ -55,8 +55,8 @@ namespace fc::api::rpc {
           boost::asio::post(c.io2,
                             [_result{std::forward<decltype(_result)>(_result)},
                              cb{std::move(cb)}] {
-                              OUTCOME_CB(auto result, _result);
-                              cb(api::decode<Result>(_result.value()));
+                              OUTCOME_CB(auto &&result, _result);
+                              cb(api::decode<Result>(result));
                             });
         });
       }

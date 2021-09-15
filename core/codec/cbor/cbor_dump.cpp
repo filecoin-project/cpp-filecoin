@@ -30,10 +30,8 @@ namespace fc {
 
   struct LessCborKey {
     bool operator()(const std::string &l, const std::string &r) const {
-      if (l.size() == r.size()) {
-        return memcmp(l.data(), r.data(), l.size()) < 0;
-      }
-      return l.size() < r.size();
+      return less(
+          l.size(), r.size(), common::span::cbytes(l), common::span::cbytes(r));
     }
   };
 
