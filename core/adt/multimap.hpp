@@ -17,7 +17,7 @@ namespace fc::adt {
         const Value &value) {
       OUTCOME_TRY(array, map.tryGet(key));
       if (!array) {
-        array = Array<Value, amt_bits>{map.hamt.ipld};
+        array = Array<Value, amt_bits>{map.hamt.getIpld()};
       }
       OUTCOME_TRY(array->append(value));
       return map.set(key, *array);

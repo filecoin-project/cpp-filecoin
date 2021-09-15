@@ -25,6 +25,7 @@ namespace fc::storage::mpool {
   using primitives::GasAmount;
   using primitives::block::MsgMeta;
   using primitives::tipset::HeadChangeType;
+  using vm::interpreter::InterpreterCache;
   using vm::message::UnsignedMessage;
 
   constexpr GasAmount kMinGas{1298450};

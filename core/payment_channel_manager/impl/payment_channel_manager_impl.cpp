@@ -17,6 +17,7 @@
 namespace fc::payment_channel_manager {
   using api::AddChannelInfo;
   using crypto::signature::Signature;
+  using primitives::Nonce;
   using vm::VMExitCode;
   using vm::actor::kInitAddress;
   using vm::actor::MethodParams;
@@ -314,7 +315,7 @@ namespace fc::payment_channel_manager {
     if (lookup_lane == channel.lanes.end()) {
       return 1;
     }
-    uint64_t nonce{0};
+    Nonce nonce{0};
     for (auto &voucher : lookup_lane->second) {
       if (nonce < voucher.nonce) nonce = voucher.nonce;
     }

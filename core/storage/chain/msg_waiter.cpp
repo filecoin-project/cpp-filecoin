@@ -52,7 +52,7 @@ namespace fc::storage::blockchain {
 
   void MsgWaiter::wait(const CID &cid,
                        ChainEpoch lookback_limit,
-                       uint64_t confidence,
+                       EpochDuration confidence,
                        Callback cb) {
     std::unique_lock lock{mutex};
     const auto is_search{isSearch(cid)};

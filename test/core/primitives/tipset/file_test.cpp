@@ -25,7 +25,7 @@ namespace fc::primitives::tipset::chain::file {
     TsBranchPtr branch;
     bool updated{};
 
-    CbCid makeBlock(uint64_t height,
+    CbCid makeBlock(ChainEpoch height,
                     uint64_t miner,
                     const BlockParentCbCids &parents) {
       BlockHeader block;
@@ -39,7 +39,7 @@ namespace fc::primitives::tipset::chain::file {
       return ipld->put(codec::cbor::encode(block).value());
     }
 
-    BlockParentCbCids makeTs(uint64_t height,
+    BlockParentCbCids makeTs(ChainEpoch height,
                              const std::set<uint64_t> &miners,
                              const BlockParentCbCids &parents) {
       BlockParentCbCids cids;
@@ -83,7 +83,7 @@ namespace fc::primitives::tipset::chain::file {
           EXPECT_TRUE(ipld->get(cid, _block));
           BytesIn block{_block};
           BytesIn ticket;
-          uint64_t height{};
+          ChainEpoch height{};
           EXPECT_TRUE(codec::cbor::light_reader::readBlock(
               ticket, actual_parents, height, block));
           EXPECT_EQ(height, it->first);
@@ -152,7 +152,7 @@ namespace fc::primitives::tipset::chain::file {
   }
 
   TEST_F(FileTest, Lazy) {
-    auto make{[&](uint64_t miner, std::set<uint64_t> heights) {
+    auto make{[&](uint64_t miner, std::set<ChainEpoch> heights) {
       BlockParentCbCids head{{head00}};
       for (auto &height : heights) {
         head = makeTs(height, {miner}, head);

@@ -10,25 +10,32 @@
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
 
+#include "common/logger.hpp"
 #include "common/visitor.hpp"
 #include "common/which.hpp"
 
 namespace fc::adt {
   using common::which;
 
+  const static common::Logger logger = common::createLogger("Channel");
+
   template <typename T>
   class Channel {
    public:
     using Queue = std::pair<std::vector<T>, bool>;
-    using Handler = std::function<bool(boost::optional<T>)>;
+    using Handler = std::function<bool(const boost::optional<T> &)>;
     struct Closed {};
     using Many = std::vector<std::shared_ptr<Channel<T>>>;
 
     Channel() = default;
+    Channel(const Channel &) = delete;
     Channel(Channel &&) noexcept;
     ~Channel() {
       closeRead();
     }
+
+    Channel &operator=(const Channel &) = delete;
+    Channel &operator=(Channel &&) noexcept = default;
 
     bool canWrite() const {
       std::lock_guard lock{mutex};
@@ -104,7 +111,11 @@ namespace fc::adt {
         return false;
       }
       if (which<Handler>(state)) {
-        boost::get<Handler>(state)({});
+        try {
+          boost::get<Handler>(state)({});
+        } catch (...) {
+          logger->error("Caught unhandled exception in fc::adt::closeRead()");
+        }
       }
       state = Closed{};
       return true;

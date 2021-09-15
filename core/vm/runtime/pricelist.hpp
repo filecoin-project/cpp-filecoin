@@ -17,14 +17,15 @@ namespace fc::vm::runtime {
   using primitives::sector::WindowPoStVerifyInfo;
 
   struct Pricelist {
-    // TODO: lotus bug, lotus uses genesis prices for negative upgrades
-    Pricelist(ChainEpoch epoch)
+    // TODO (turuslan): lotus bug, lotus uses genesis prices for negative
+    // upgrades
+    explicit Pricelist(ChainEpoch epoch)
         : calico{kUpgradeCalicoHeight > 0 && epoch >= kUpgradeCalicoHeight} {}
-    inline GasAmount make(GasAmount compute, GasAmount storage) const {
+    static inline GasAmount make(GasAmount compute, GasAmount storage) {
       return compute + storage;
     }
-    inline GasAmount storage(GasAmount gas) const {
-      return (calico ? 1300 : 1000) * gas;
+    inline GasAmount storage(size_t size) const {
+      return (calico ? 1300 : 1000) * static_cast<GasAmount>(size);
     }
     inline GasAmount onChainMessage(size_t size) const {
       return make(38863, storage(36 + size));
@@ -32,8 +33,8 @@ namespace fc::vm::runtime {
     inline GasAmount onChainReturnValue(size_t size) const {
       return make(0, storage(size));
     }
-    inline GasAmount onMethodInvocation(TokenAmount value,
-                                        uint64_t method) const {
+    static inline GasAmount onMethodInvocation(const TokenAmount &value,
+                                               uint64_t method) {
       GasAmount gas{29233};
       if (value != 0) {
         gas += 27500;
@@ -58,20 +59,21 @@ namespace fc::vm::runtime {
     inline GasAmount onDeleteActor() const {
       return make(0, storage(-(36 + 40)));
     }
-    inline GasAmount onVerifySignature(bool bls) const {
+    static inline GasAmount onVerifySignature(bool bls) {
       return make(bls ? 16598605 : 1637292, 0);
     }
-    inline GasAmount onHashing() const {
+    static inline GasAmount onHashing() {
       return make(31355, 0);
     }
-    inline GasAmount onComputeUnsealedSectorCid() const {
+    static inline GasAmount onComputeUnsealedSectorCid() {
       return make(98647, 0);
     }
-    inline GasAmount onVerifySeal() const {
+    static inline GasAmount onVerifySeal() {
       return make(2000, 0);
     }
     inline GasAmount onVerifyPost(const WindowPoStVerifyInfo &info) const {
-      int64_t flat{123861062}, scale{9226981};
+      GasAmount flat{123861062};
+      GasAmount scale{9226981};
       if (calico) {
         flat = 117680921;
         scale = 43780;
@@ -83,14 +85,15 @@ namespace fc::vm::runtime {
           scale = 85639;
         }
       }
-      auto gas{flat + scale * info.challenged_sectors.size()};
+      GasAmount gas =
+          flat + scale * static_cast<GasAmount>(info.challenged_sectors.size());
       if (!calico) {
         gas /= 2;
       }
       return make(gas, 0);
     }
     GasAmount onVerifyAggregateSeals(
-        const AggregateSealVerifyProofAndInfos &aggregate) {
+        const AggregateSealVerifyProofAndInfos &aggregate) const {
       if (!calico) {
         return 0;
       }
@@ -130,9 +133,9 @@ namespace fc::vm::runtime {
                                                    return l.first < r.first;
                                                  }))
                           ->second};
-      return n * (_64gib ? 359272 : 449900) + step;
+      return static_cast<GasAmount>(n) * (_64gib ? 359272 : 449900) + step;
     }
-    inline GasAmount onVerifyConsensusFault() const {
+    static inline GasAmount onVerifyConsensusFault() {
       return make(495422, 0);
     }
 

@@ -26,7 +26,7 @@ namespace fc {
   };
 
   // TODO(turuslan): refactor Ipld to CbIpld
-  inline IpldPtr withVersion(IpldPtr ipld, uint64_t height) {
+  inline IpldPtr withVersion(IpldPtr ipld, ChainEpoch height) {
     const auto version{actorVersion(height)};
     if (ipld->actor_version != version) {
       ipld = std::make_shared<IpldProxy>(ipld);

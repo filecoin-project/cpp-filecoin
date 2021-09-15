@@ -19,7 +19,7 @@ namespace fc::storage::blockchain {
    public:
     using Callback = std::function<void(TipsetCPtr, MessageReceipt)>;
     struct Wait {
-      std::multimap<uint64_t, Callback> callbacks;
+      std::multimap<ChainEpoch, Callback> callbacks;
       TipsetCPtr ts;
       MessageReceipt receipt;
     };
@@ -44,7 +44,7 @@ namespace fc::storage::blockchain {
                 Callback cb);
     void wait(const CID &cid,
               ChainEpoch lookback_limit,
-              uint64_t confidence,
+              EpochDuration confidence,
               Callback cb);
 
    private:

@@ -1886,7 +1886,7 @@ namespace fc::mining {
         continue;
       }
 
-      if (head->height() >= uint64_t(proposal.start_epoch)) {
+      if (head->height() >= proposal.start_epoch) {
         // TODO(ortyomka): [FIL-382] try to remove the offending pieces
         logger_->error(
             "can't fix sector deals: piece {} (of {}) of sector {} refers "

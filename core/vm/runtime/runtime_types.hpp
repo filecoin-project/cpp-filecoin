@@ -32,7 +32,7 @@ namespace fc::vm::runtime {
    * Result of message execution
    */
   struct MessageReceipt {
-    VMExitCode exit_code;
+    VMExitCode exit_code{};
     Buffer return_value;
     GasAmount gas_used{};
   };
@@ -53,7 +53,7 @@ namespace fc::vm::runtime {
 
   struct ConsensusFault {
     Address target;
-    ChainEpoch epoch;
-    ConsensusFaultType type;
+    ChainEpoch epoch{};
+    ConsensusFaultType type{};
   };
 }  // namespace fc::vm::runtime

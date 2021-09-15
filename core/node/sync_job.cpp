@@ -111,7 +111,7 @@ namespace fc::sync {
     log()->debug("started");
   }
 
-  uint64_t SyncJob::metricAttachedHeight() const {
+  ChainEpoch SyncJob::metricAttachedHeight() const {
     std::shared_lock lock{*ts_branches_mutex_};
     if (auto branch{attached_heaviest_.first}) {
       return branch->chain.rbegin()->first;

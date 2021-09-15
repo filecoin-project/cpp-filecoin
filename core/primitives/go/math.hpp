@@ -23,9 +23,14 @@ namespace fc::primitives::go {
     return n - r * d;
   }
 
+  inline auto bitlen(const BigInt &x) {
+    return x ? msb(x < 0 ? -x : x) : 0;
+  }
+
 }  // namespace fc::primitives::go
 
 namespace fc {
   using primitives::go::bigdiv;
   using primitives::go::bigmod;
+  using primitives::go::bitlen;
 }  // namespace fc
