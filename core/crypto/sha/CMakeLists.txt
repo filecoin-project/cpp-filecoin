@@ -3,9 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(filecoin_sha
-    sha256.cpp
-    )
-target_link_libraries(filecoin_sha
+add_library(filecoin_sha INTERFACE)
+target_link_libraries(filecoin_sha INTERFACE
     p2p::p2p_sha
     )

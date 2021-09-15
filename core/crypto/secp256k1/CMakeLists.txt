@@ -7,7 +7,6 @@ add_library(secp256k1_provider
     impl/secp256k1_error.cpp
     )
 target_link_libraries(secp256k1_provider
-    filecoin_sha
     libsecp256k1
     outcome
     )

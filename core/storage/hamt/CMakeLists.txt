@@ -10,6 +10,5 @@ target_link_libraries(hamt
     blob
     cbor
     cid
-    filecoin_sha
     outcome
     )

@@ -19,6 +19,5 @@ add_library(drand_beacon
 target_link_libraries(drand_beacon
     bls_provider
     drand_http
-    filecoin_sha
     p2p::p2p_byteutil
     )
