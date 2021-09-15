@@ -79,6 +79,7 @@ namespace fc::node {
   using markets::storage::client::StorageMarketClientImpl;
   using storage::keystore::FileSystemKeyStore;
   using vm::actor::builtin::states::InitActorStatePtr;
+  using vm::interpreter::InterpreterCache;
 
   namespace {
     auto log() {

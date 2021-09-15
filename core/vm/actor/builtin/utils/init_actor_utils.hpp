@@ -6,20 +6,17 @@
 #pragma once
 
 #include "common/outcome.hpp"
+#include "vm/actor/builtin/utils/actor_utils.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::utils {
   using runtime::Runtime;
 
-  class InitUtils {
+  class InitUtils : public ActorUtils {
    public:
-    explicit InitUtils(Runtime &r) : runtime(r) {}
-    virtual ~InitUtils() = default;
+    explicit InitUtils(Runtime &r) : ActorUtils(r) {}
 
     virtual outcome::result<void> assertCaller(bool condition) const = 0;
-
-   protected:
-    Runtime &runtime;
   };
 
   using InitUtilsPtr = std::shared_ptr<InitUtils>;

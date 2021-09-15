@@ -34,7 +34,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   outcome::result<uint64_t> MinerUtils::currentDeadlineIndex(
       ChainEpoch current_epoch, ChainEpoch period_start) const {
-    VM_ASSERT(current_epoch >= period_start);
+    UTILS_VM_ASSERT(current_epoch >= period_start);
     return (current_epoch - period_start) / kWPoStChallengeWindow;
   }
 
@@ -42,15 +42,15 @@ namespace fc::vm::actor::builtin::v2::miner {
       RegisteredSealProof seal_proof_type,
       NetworkVersion network_version) const {
     if (network_version < NetworkVersion::kVersion7) {
-      OUTCOME_TRY(runtime.validateArgument(
+      OUTCOME_TRY(getRuntime().validateArgument(
           kPreCommitSealProofTypesV0.find(seal_proof_type)
           != kPreCommitSealProofTypesV0.end()));
     } else if (network_version == NetworkVersion::kVersion7) {
-      OUTCOME_TRY(runtime.validateArgument(
+      OUTCOME_TRY(getRuntime().validateArgument(
           kPreCommitSealProofTypesV7.find(seal_proof_type)
           != kPreCommitSealProofTypesV7.end()));
     } else if (network_version >= NetworkVersion::kVersion8) {
-      OUTCOME_TRY(runtime.validateArgument(
+      OUTCOME_TRY(getRuntime().validateArgument(
           kPreCommitSealProofTypesV8.find(seal_proof_type)
           != kPreCommitSealProofTypesV8.end()));
     }
@@ -60,31 +60,31 @@ namespace fc::vm::actor::builtin::v2::miner {
   outcome::result<void> MinerUtils::checkPeerInfo(
       const Buffer &peer_id,
       const std::vector<Multiaddress> &multiaddresses) const {
-    OUTCOME_TRY(runtime.validateArgument(peer_id.size() <= kMaxPeerIDLength));
+    OUTCOME_TRY(getRuntime().validateArgument(peer_id.size() <= kMaxPeerIDLength));
     size_t total_size = 0;
     for (const auto &multiaddress : multiaddresses) {
       OUTCOME_TRY(
-          runtime.validateArgument(!multiaddress.getBytesAddress().empty()));
+          getRuntime().validateArgument(!multiaddress.getBytesAddress().empty()));
       total_size += multiaddress.getBytesAddress().size();
     }
-    OUTCOME_TRY(runtime.validateArgument(total_size <= kMaxMultiaddressData));
+    OUTCOME_TRY(getRuntime().validateArgument(total_size <= kMaxMultiaddressData));
     return outcome::success();
   }
 
   outcome::result<void> MinerUtils::checkControlAddresses(
       const std::vector<Address> &control_addresses) const {
-    return runtime.validateArgument(control_addresses.size()
+    return getRuntime().validateArgument(control_addresses.size()
                                     <= kMaxControlAddresses);
   }
 
   outcome::result<Address> MinerUtils::getPubkeyAddressFromAccountActor(
       const Address &address) const {
-    return runtime.sendM<account::PubkeyAddress>(address, {}, 0);
+    return getRuntime().sendM<account::PubkeyAddress>(address, {}, 0);
   }
 
   outcome::result<void> MinerUtils::callPowerEnrollCronEvent(
       ChainEpoch event_epoch, const Buffer &params) const {
-    OUTCOME_TRY(runtime.sendM<storage_power::EnrollCronEvent>(
+    OUTCOME_TRY(getRuntime().sendM<storage_power::EnrollCronEvent>(
         kStoragePowerAddress, {event_epoch, params}, 0));
     return outcome::success();
   }

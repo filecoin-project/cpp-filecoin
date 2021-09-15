@@ -16,6 +16,7 @@
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/power_pair.hpp"
 #include "vm/actor/builtin/types/miner/transit.hpp"
+#include "vm/actor/builtin/utils/actor_utils.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/version/version.hpp"
 
@@ -36,10 +37,9 @@ namespace fc::vm::actor::builtin::utils {
   using types::miner::TotalPower;
   using version::NetworkVersion;
 
-  class MinerUtils {
+  class MinerUtils : public ActorUtils {
    public:
-    explicit MinerUtils(Runtime &r) : runtime(r) {}
-    virtual ~MinerUtils() = default;
+    explicit MinerUtils(Runtime &r) : ActorUtils(r) {}
 
     /**
      * This limits the number of simultaneous fault, recovery, or
@@ -149,8 +149,6 @@ namespace fc::vm::actor::builtin::utils {
         ChainEpoch event_epoch, const Buffer &params) const = 0;
     virtual outcome::result<void> callPowerUpdateClaimedPower(
         const PowerPair &delta) const = 0;
-
-    Runtime &runtime;
   };
 
   using MinerUtilsPtr = std::shared_ptr<MinerUtils>;

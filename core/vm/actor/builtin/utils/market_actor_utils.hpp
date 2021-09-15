@@ -11,6 +11,7 @@
 #include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/transit.hpp"
+#include "vm/actor/builtin/utils/actor_utils.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
@@ -29,10 +30,9 @@ namespace fc::vm::actor::builtin::utils {
   using types::market::DealProposal;
   using types::market::DealState;
 
-  class MarketUtils {
+  class MarketUtils : public ActorUtils {
    public:
-    explicit MarketUtils(Runtime &r) : runtime(r) {}
-    virtual ~MarketUtils() = default;
+    explicit MarketUtils(Runtime &r) : ActorUtils(r) {}
 
     virtual outcome::result<void> checkWithdrawCaller() const = 0;
 
@@ -85,9 +85,6 @@ namespace fc::vm::actor::builtin::utils {
 
     virtual outcome::result<Controls> requestMinerControlAddress(
         const Address &miner) const = 0;
-
-   protected:
-    Runtime &runtime;
   };
 
   using MarketUtilsPtr = std::shared_ptr<MarketUtils>;
