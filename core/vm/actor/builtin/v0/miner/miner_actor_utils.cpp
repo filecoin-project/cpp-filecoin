@@ -68,7 +68,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     return outcome::success();
   }
 
-  outcome::result<void> MinerUtils::requestUpdatePower(const PowerPair &delta) const {
+  outcome::result<void> MinerUtils::requestUpdatePower(
+      const PowerPair &delta) const {
     if (delta.isZero()) {
       return outcome::success();
     }
@@ -133,7 +134,8 @@ namespace fc::vm::actor::builtin::v0::miner {
   outcome::result<EpochReward> MinerUtils::requestCurrentEpochBlockReward()
       const {
     REQUIRE_SUCCESS_A(
-        reward, runtime.sendM<reward::ThisEpochReward>(kRewardAddress, {}, 0));
+        reward,
+        getRuntime().sendM<reward::ThisEpochReward>(kRewardAddress, {}, 0));
     return EpochReward{
         .this_epoch_reward = reward.this_epoch_reward,
         .this_epoch_reward_smoothed = reward.this_epoch_reward_smoothed,
@@ -142,7 +144,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<TotalPower> MinerUtils::requestCurrentTotalPower() const {
     REQUIRE_SUCCESS_A(power,
-                      runtime.sendM<storage_power::CurrentTotalPower>(
+                      getRuntime().sendM<storage_power::CurrentTotalPower>(
                           kStoragePowerAddress, {}, 0));
     return TotalPower{
         .raw_byte_power = power.raw_byte_power,
@@ -155,11 +157,12 @@ namespace fc::vm::actor::builtin::v0::miner {
       ChainEpoch challenge_epoch,
       const std::vector<SectorOnChainInfo> &sectors,
       const std::vector<PoStProof> &proofs) const {
-    const auto miner_actor_id = runtime.getCurrentReceiver().getId();
+    const auto miner_actor_id = getRuntime().getCurrentReceiver().getId();
 
-    OUTCOME_TRY(addr_buf, codec::cbor::encode(runtime.getCurrentReceiver()));
+    OUTCOME_TRY(addr_buf,
+                codec::cbor::encode(getRuntime().getCurrentReceiver()));
     OUTCOME_TRY(post_randomness,
-                runtime.getRandomnessFromBeacon(
+                getRuntime().getRandomnessFromBeacon(
                     DomainSeparationTag::WindowedPoStChallengeSeed,
                     challenge_epoch,
                     addr_buf));
@@ -177,8 +180,8 @@ namespace fc::vm::actor::builtin::v0::miner {
         .challenged_sectors = sector_proof_info,
         .prover = miner_actor_id};
 
-    OUTCOME_TRY(verified, runtime.verifyPoSt(post_verify_info));
-    OUTCOME_TRY(runtime.validateArgument(verified));
+    OUTCOME_TRY(verified, getRuntime().verifyPoSt(post_verify_info));
+    OUTCOME_TRY(getRuntime().validateArgument(verified));
 
     return outcome::success();
   }
@@ -186,10 +189,9 @@ namespace fc::vm::actor::builtin::v0::miner {
   outcome::result<void> MinerUtils::notifyPledgeChanged(
       const TokenAmount &pledge_delta) const {
     if (pledge_delta != 0) {
-      REQUIRE_SUCCESS(runtime.sendM<storage_power::UpdatePledgeTotal>(
+      REQUIRE_SUCCESS(getRuntime().sendM<storage_power::UpdatePledgeTotal>(
           kStoragePowerAddress, pledge_delta, 0));
     }
-
     return outcome::success();
   }
 
@@ -207,7 +209,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<void> MinerUtils::callPowerUpdateClaimedPower(
       const PowerPair &delta) const {
-    OUTCOME_TRY(runtime.sendM<storage_power::UpdateClaimedPower>(
+    OUTCOME_TRY(getRuntime().sendM<storage_power::UpdateClaimedPower>(
         kStoragePowerAddress, {delta.raw, delta.qa}, 0));
     return outcome::success();
   }

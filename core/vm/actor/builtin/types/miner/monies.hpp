@@ -16,7 +16,6 @@
 
 namespace fc::vm::actor::builtin::types::miner {
   using common::smoothing::FilterEstimate;
-  using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::StoragePower;
   using primitives::TokenAmount;

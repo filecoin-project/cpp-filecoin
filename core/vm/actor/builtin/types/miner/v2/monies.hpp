@@ -8,7 +8,6 @@
 #include "vm/actor/builtin/types/miner/v0/monies.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
-  using common::math::kPrecision128;
   using common::smoothing::FilterEstimate;
   using primitives::ChainEpoch;
   using primitives::StoragePower;

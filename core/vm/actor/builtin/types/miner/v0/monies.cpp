@@ -6,6 +6,7 @@
 #include "vm/actor/builtin/types/miner/v0/monies.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
+  using common::math::kPrecision128;
 
   outcome::result<TokenAmount> Monies::expectedRewardForPower(
       const FilterEstimate &reward_estimate,

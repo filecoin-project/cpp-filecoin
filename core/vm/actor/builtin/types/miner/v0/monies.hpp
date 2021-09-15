@@ -11,9 +11,7 @@
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
-  using common::math::kPrecision128;
   using common::smoothing::FilterEstimate;
-  using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::StoragePower;
   using primitives::TokenAmount;

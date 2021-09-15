@@ -8,6 +8,7 @@
 #include "vm/actor/actor_method.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
+  using common::math::kPrecision128;
   using types::miner::kRewardVestingSpecV1;
 
   outcome::result<TokenAmount> Monies::expectedRewardForPower(
