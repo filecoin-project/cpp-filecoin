@@ -230,7 +230,7 @@ namespace fc::proofs {
     virtual outcome::result<CID> generateUnsealedCID(
         RegisteredSealProof proof_type,
         gsl::span<const PieceInfo> pieces,
-        bool pad = false) = 0;
+        bool pad) = 0;
 
     virtual outcome::result<ChallengeIndexes>
     generateWinningPoStSectorChallenge(RegisteredPoStProof proof_type,

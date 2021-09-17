@@ -32,25 +32,25 @@ namespace fc::api {
   using sync::PubSubGate;
   using vm::runtime::EnvironmentContext;
 
-  outcome::result<IpldObject> getNode(std::shared_ptr<Ipld> ipld,
+  outcome::result<IpldObject> getNode(const std::shared_ptr<Ipld> &ipld,
                                       const CID &root,
                                       gsl::span<const std::string> parts);
 
   std::shared_ptr<FullNodeApi> makeImpl(
       std::shared_ptr<FullNodeApi> api,
-      std::shared_ptr<ChainStore> chain_store,
-      IpldPtr markets_ipld,
+      const std::shared_ptr<ChainStore> &chain_store,
+      const IpldPtr &markets_ipld,
       const std::string &network_name,
-      std::shared_ptr<WeightCalculator> weight_calculator,
+      const std::shared_ptr<WeightCalculator> &weight_calculator,
       const EnvironmentContext &env_context,
       TsBranchPtr ts_main,
-      std::shared_ptr<MessagePool> mpool,
-      std::shared_ptr<MsgWaiter> msg_waiter,
-      std::shared_ptr<Beaconizer> beaconizer,
-      std::shared_ptr<DrandSchedule> drand_schedule,
-      std::shared_ptr<PubSubGate> pubsub,
-      std::shared_ptr<KeyStore> key_store,
-      std::shared_ptr<Discovery> market_discovery,
+      const std::shared_ptr<MessagePool> &mpool,
+      const std::shared_ptr<MsgWaiter> &msg_waiter,
+      const std::shared_ptr<Beaconizer> &beaconizer,
+      const std::shared_ptr<DrandSchedule> &drand_schedule,
+      const std::shared_ptr<PubSubGate> &pubsub,
+      const std::shared_ptr<KeyStore> &key_store,
+      const std::shared_ptr<Discovery> &market_discovery,
       const std::shared_ptr<RetrievalClient> &retrieval_market_client,
       const std::shared_ptr<OneKey> &wallet_default_address);
 }  // namespace fc::api

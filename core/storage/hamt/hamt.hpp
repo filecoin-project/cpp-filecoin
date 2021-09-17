@@ -124,7 +124,7 @@ namespace fc::storage::hamt {
     template <typename T>
     outcome::result<T> getCbor(BytesIn key) const {
       OUTCOME_TRY(bytes, get(key));
-      return cbor_blake::cbDecodeT<T>(ipld, bytes);
+      return cbor_blake::cbDecodeT<T>(ipld_, bytes);
     }
 
     /// Get CBOR decoded value by key
@@ -137,11 +137,17 @@ namespace fc::storage::hamt {
         }
         return boost::none;
       }
-      OUTCOME_TRY(value, cbor_blake::cbDecodeT<T>(ipld, maybe.value()));
+      OUTCOME_TRY(value, cbor_blake::cbDecodeT<T>(ipld_, maybe.value()));
       return std::move(value);
     }
 
-    IpldPtr ipld;
+    inline IpldPtr getIpld() const {
+      return ipld_;
+    }
+
+    inline void setIpld(IpldPtr new_ipld) {
+      ipld_ = std::move(new_ipld);
+    }
 
    private:
     std::vector<size_t> keyToIndices(BytesIn key, int n = -1) const;
@@ -160,6 +166,7 @@ namespace fc::storage::hamt {
     void lazyCreateRoot() const;
     bool v3() const;
 
+    IpldPtr ipld_;
     mutable Node::Item root_;
     size_t bit_width_{};
   };

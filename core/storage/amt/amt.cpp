@@ -116,14 +116,14 @@ namespace fc::storage::amt {
   }
 
   Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bits)
-      : ipld(std::move(store)), root_{}, bits_{bits} {
+      : ipld_(std::move(store)), root_{}, bits_{bits} {
     assert(bits);
   }
 
   Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store,
            const CID &root,
            size_t bits)
-      : ipld(std::move(store)), root_(root), bits_{bits} {
+      : ipld_(std::move(store)), root_(root), bits_{bits} {
     assert(bits);
   }
 
@@ -213,7 +213,7 @@ namespace fc::storage::amt {
     if (which<Root>(root_)) {
       auto &root = boost::get<Root>(root_);
       OUTCOME_TRY(flush(root.node));
-      OUTCOME_TRY(root_cid, fc::setCbor(ipld, root));
+      OUTCOME_TRY(root_cid, fc::setCbor(ipld_, root));
       root_ = root_cid;
     }
     return cid();
@@ -287,7 +287,7 @@ namespace fc::storage::amt {
         if (which<Node::Ptr>(pair.second)) {
           auto &child = *boost::get<Node::Ptr>(pair.second);
           OUTCOME_TRY(flush(child));
-          OUTCOME_TRY(cid, fc::setCbor(ipld, child));
+          OUTCOME_TRY(cid, fc::setCbor(ipld_, child));
           pair.second = cid;
         }
       }
@@ -329,7 +329,7 @@ namespace fc::storage::amt {
   outcome::result<void> Amt::loadRoot() const {
     lazyCreateRoot();
     if (which<CID>(root_)) {
-      OUTCOME_TRY(root, fc::getCbor<Root>(ipld, boost::get<CID>(root_)));
+      OUTCOME_TRY(root, fc::getCbor<Root>(ipld_, boost::get<CID>(root_)));
       root_ = root;
       if (v3() ? root.bits != bits() : root.bits.has_value()) {
         return AmtError::kRootBitsWrong;
@@ -361,7 +361,7 @@ namespace fc::storage::amt {
     }
     auto &link = it->second;
     if (which<CID>(link)) {
-      OUTCOME_TRY(node, fc::getCbor<Node>(ipld, boost::get<CID>(link)));
+      OUTCOME_TRY(node, fc::getCbor<Node>(ipld_, boost::get<CID>(link)));
       if (node.bits_bytes != bitsBytes()) {
         return AmtError::kRootBitsWrong;
       }
@@ -401,6 +401,6 @@ namespace fc::storage::amt {
   }
 
   bool Amt::v3() const {
-    return ipld->actor_version >= vm::actor::ActorVersion::kVersion3;
+    return ipld_->actor_version >= vm::actor::ActorVersion::kVersion3;
   }
 }  // namespace fc::storage::amt

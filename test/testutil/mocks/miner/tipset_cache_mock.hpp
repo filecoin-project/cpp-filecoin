@@ -16,9 +16,9 @@ namespace fc::mining {
 
     MOCK_METHOD1(revert, outcome::result<void>(const Tipset &));
 
-    MOCK_METHOD1(getNonNull, outcome::result<Tipset>(uint64_t));
+    MOCK_METHOD1(getNonNull, outcome::result<Tipset>(ChainEpoch));
 
-    MOCK_METHOD1(get, outcome::result<boost::optional<Tipset>>(uint64_t));
+    MOCK_METHOD1(get, outcome::result<boost::optional<Tipset>>(ChainEpoch));
 
     MOCK_CONST_METHOD0(best, boost::optional<Tipset>());
   };

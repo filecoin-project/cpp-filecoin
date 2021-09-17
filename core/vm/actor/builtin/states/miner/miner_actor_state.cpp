@@ -7,6 +7,7 @@
 
 #include "common/error_text.hpp"
 #include "vm/actor/builtin/types/miner/bitfield_queue.hpp"
+#include "vm/actor/builtin/types/miner/deadline_assignment.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/runtime/runtime.hpp"
 
@@ -84,6 +85,59 @@ namespace fc::vm::actor::builtin::states {
     }
 
     return outcome::success();
+  }
+
+  outcome::result<PowerPair> MinerActorState::assignSectorsToDeadlines(
+      Runtime &runtime,
+      ChainEpoch curr_epoch,
+      std::vector<SectorOnChainInfo> sectors_to_assign,
+      uint64_t partition_size,
+      SectorSize ssize) {
+    OUTCOME_TRY(dls, deadlines.get());
+
+    std::sort(sectors_to_assign.begin(),
+              sectors_to_assign.end(),
+              [](const SectorOnChainInfo &lhs, const SectorOnChainInfo &rhs) {
+                return lhs.sector < rhs.sector;
+              });
+
+    std::map<uint64_t, Universal<Deadline>> deadlines_to_assign;
+    for (uint64_t dl_id = 0; dl_id < dls.due.size(); dl_id++) {
+      OUTCOME_TRY(deadline, dls.loadDeadline(dl_id));
+
+      // Skip deadlines that aren't currently mutable.
+      if (deadlineIsMutable(this->proving_period_start, dl_id, curr_epoch)) {
+        deadlines_to_assign[dl_id] = deadline;
+      }
+    }
+
+    PowerPair activated_power;
+    OUTCOME_TRY(deadline_to_sectors,
+                assignDeadlines(kMaxPartitionsPerDeadline,
+                                partition_size,
+                                deadlines_to_assign,
+                                sectors_to_assign));
+    for (uint64_t dl_id = 0; dl_id < deadline_to_sectors.size(); dl_id++) {
+      const auto &deadline_sectors = deadline_to_sectors[dl_id];
+      if (deadline_sectors.empty()) {
+        continue;
+      }
+
+      const auto quant = quantSpecForDeadline(dl_id);
+      auto &deadline = deadlines_to_assign[dl_id];
+
+      OUTCOME_TRY(
+          deadline_activated_power,
+          deadline->addSectors(
+              runtime, partition_size, false, deadline_sectors, ssize, quant));
+      activated_power += deadline_activated_power;
+
+      OUTCOME_TRY(dls.updateDeadline(dl_id, deadline));
+    }
+
+    OUTCOME_TRY(this->deadlines.set(dls));
+
+    return activated_power;
   }
 
   outcome::result<std::tuple<TerminationResult, bool>>

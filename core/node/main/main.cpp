@@ -31,7 +31,7 @@
 #include "vm/actor/cgo/actors.hpp"
 
 void setFdLimitMax() {
-  rlimit r;
+  rlimit r{};
   if (getrlimit(RLIMIT_NOFILE, &r) != 0) {
     return spdlog::error("getrlimit(RLIMIT_NOFILE), errno={}", errno);
   }

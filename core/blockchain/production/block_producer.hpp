@@ -11,8 +11,6 @@ namespace fc::blockchain::production {
   using primitives::block::BlockWithMessages;
   using vm::interpreter::InterpreterCache;
 
-  constexpr size_t kBlockMaxMessagesCount = 1000;
-
   outcome::result<BlockWithMessages> generate(
       InterpreterCache &interpreter_cache,
       TsLoadPtr ts_load,

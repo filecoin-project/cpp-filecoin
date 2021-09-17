@@ -95,10 +95,16 @@ namespace fc::storage::amt {
     template <typename T>
     outcome::result<T> getCbor(uint64_t key) const {
       OUTCOME_TRY(bytes, get(key));
-      return cbor_blake::cbDecodeT<T>(ipld, bytes);
+      return cbor_blake::cbDecodeT<T>(ipld_, bytes);
     }
 
-    IpldPtr ipld;
+    inline IpldPtr getIpld() const {
+      return ipld_;
+    }
+
+    inline void setIpld(IpldPtr new_ipld) {
+      ipld_ = std::move(new_ipld);
+    }
 
    private:
     outcome::result<bool> set(Node &node,
@@ -122,6 +128,7 @@ namespace fc::storage::amt {
     void lazyCreateRoot() const;
     bool v3() const;
 
+    IpldPtr ipld_;
     mutable boost::variant<std::monostate, CID, Root> root_;
     size_t bits_{};
   };

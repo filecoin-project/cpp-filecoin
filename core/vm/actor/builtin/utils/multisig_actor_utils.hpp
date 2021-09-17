@@ -6,6 +6,7 @@
 #pragma once
 
 #include "vm/actor/builtin/states/multisig/multisig_actor_state.hpp"
+#include "vm/actor/builtin/utils/actor_utils.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::utils {
@@ -22,10 +23,9 @@ namespace fc::vm::actor::builtin::utils {
     using ApproveTransactionResult = std::tuple<bool, Buffer, VMExitCode>;
   }
 
-  class MultisigUtils {
+  class MultisigUtils : public ActorUtils {
    public:
-    explicit MultisigUtils(Runtime &r) : runtime(r) {}
-    virtual ~MultisigUtils() = default;
+    explicit MultisigUtils(Runtime &r) : ActorUtils(r) {}
 
     /**
      * Check that caller is a signer
@@ -99,9 +99,6 @@ namespace fc::vm::actor::builtin::utils {
      */
     virtual outcome::result<void> purgeApprovals(
         MultisigActorStatePtr &state, const Address &address) const = 0;
-
-   protected:
-    Runtime &runtime;
   };
 
   using MultisigUtilsPtr = std::shared_ptr<MultisigUtils>;

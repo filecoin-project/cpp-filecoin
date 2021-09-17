@@ -17,6 +17,11 @@
 #include "vm/actor/builtin/types/miner/v2/partition.hpp"
 #include "vm/actor/builtin/types/miner/v3/partition.hpp"
 
+#include "vm/actor/builtin/types/miner/monies.hpp"
+#include "vm/actor/builtin/types/miner/v0/monies.hpp"
+#include "vm/actor/builtin/types/miner/v2/monies.hpp"
+#include "vm/actor/builtin/types/miner/v3/monies.hpp"
+
 #include "vm/actor/builtin/types/miner/v0/deadline.hpp"
 #include "vm/actor/builtin/types/miner/v2/deadline.hpp"
 #include "vm/actor/builtin/types/miner/v3/deadline.hpp"
@@ -41,6 +46,13 @@ UNIVERSAL_IMPL(miner::ExpirationQueue,
                v3::miner::ExpirationQueue,
                v3::miner::ExpirationQueue,
                v3::miner::ExpirationQueue)
+
+UNIVERSAL_IMPL(miner::Monies,
+              v0::miner::Monies,
+              v2::miner::Monies,
+              v3::miner::Monies,
+              v3::miner::Monies,
+              v3::miner::Monies)
 
 UNIVERSAL_IMPL(miner::Deadline,
                v0::miner::Deadline,

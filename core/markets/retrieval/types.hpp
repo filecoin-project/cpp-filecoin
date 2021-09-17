@@ -36,7 +36,7 @@ namespace fc::markets::retrieval {
    */
   struct PaymentInfo {
     Address payment_channel;
-    LaneId lane;
+    LaneId lane{};
   };
 
   /**

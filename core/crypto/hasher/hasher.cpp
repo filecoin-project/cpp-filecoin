@@ -11,7 +11,7 @@
 #include "crypto/blake2/blake2b160.hpp"
 
 namespace fc::crypto {
-  std::map<Hasher::HashType, Hasher::HashMethod> Hasher::methods_{
+  const std::map<Hasher::HashType, Hasher::HashMethod> Hasher::methods_{
       {HashType::sha256, Hasher::sha2_256},
       {HashType::blake2b_256, Hasher::blake2b_256}};
 

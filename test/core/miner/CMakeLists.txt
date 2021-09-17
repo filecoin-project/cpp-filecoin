@@ -52,6 +52,7 @@ target_link_libraries(sealing_test
     storage_fsm
     ipfs_datastore_in_memory
     in_memory_storage
+    miner_actor_state
     p2p::p2p_basic_scheduler
     p2p::p2p_manual_scheduler_backend
     )

@@ -31,7 +31,7 @@ namespace fc::storage::mpool {
   struct MpoolUpdate {
     enum class Type : int64_t { ADD, REMOVE };
 
-    Type type;
+    Type type{};
     SignedMessage message;
   };
 
@@ -72,5 +72,6 @@ namespace fc::storage::mpool {
     mutable std::normal_distribution<> distribution;
   };
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern TokenAmount kDefaultMaxFee;
 }  // namespace fc::storage::mpool

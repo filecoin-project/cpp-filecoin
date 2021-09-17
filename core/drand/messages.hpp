@@ -16,7 +16,7 @@ namespace fc::drand {
   using Round = uint64_t;
 
   struct BeaconEntry {
-    Round round;
+    Round round = 0;
     Buffer data;  // BlsSignature, inconsistent size in lotus
   };
   CBOR_TUPLE(BeaconEntry, round, data)
@@ -26,7 +26,8 @@ namespace fc::drand {
 
   struct ChainInfo {
     BlsPublicKey key;
-    seconds genesis, period;
+    seconds genesis{};
+    seconds period{};
   };
 
   struct PublicRandResponse {

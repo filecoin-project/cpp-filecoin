@@ -26,6 +26,9 @@ add_library(miner_types
     v3/partition.cpp
     v3/deadline.cpp
     bind_types.cpp
+    v0/monies.cpp
+    v2/monies.cpp
+    v3/monies.cpp
     )
 target_link_libraries(miner_types
     actor

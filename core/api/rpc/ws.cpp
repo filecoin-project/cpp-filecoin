@@ -31,7 +31,7 @@ namespace fc::api {
   const auto kChanCloseDelay{boost::posix_time::milliseconds(100)};
 
   struct SocketSession : std::enable_shared_from_this<SocketSession> {
-    SocketSession(tcp::socket &&socket, const Rpc &api_rpc)
+    SocketSession(tcp::socket &&socket, Rpc api_rpc)
         : socket{std::move(socket)},
           timer{this->socket.get_executor()},
           rpc(std::move(api_rpc)) {}
@@ -220,13 +220,14 @@ namespace fc::api {
 
     // aka visitor
     void doWrite() {
-      if (auto d_response = std::get_if<http::response<http::string_body>>(
+      if (auto *d_response = std::get_if<http::response<http::string_body>>(
               &(w_response.response))) {
         doWrite(*d_response);
-      } else if (auto f_response = std::get_if<http::response<http::file_body>>(
-                     &(w_response.response))) {
+      } else if (auto *f_response =
+                     std::get_if<http::response<http::file_body>>(
+                         &(w_response.response))) {
         doWrite(*f_response);
-      } else if (auto e_response =
+      } else if (auto *e_response =
                      std::get_if<http::response<http::empty_body>>(
                          &(w_response.response))) {
         doWrite(*e_response);
@@ -300,8 +301,8 @@ namespace fc::api {
    * Creates and runs Server.
    * @param rpc - APIs to serve
    */
-  void serve(std::map<std::string, std::shared_ptr<Rpc>> rpc,
-             std::shared_ptr<Routes> routes,
+  void serve(const std::map<std::string, std::shared_ptr<Rpc>> &rpc,
+             const std::shared_ptr<Routes> &routes,
              boost::asio::io_context &ioc,
              std::string_view ip,
              unsigned short port) {

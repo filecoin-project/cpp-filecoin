@@ -85,6 +85,8 @@ namespace fc::primitives {
     return result;
   }
 
+  // TODO (a.chernyshov) The function is too complex, should be simplified
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   std::vector<uint64_t> runsAnd(gsl::span<const uint64_t> lhs,
                                 gsl::span<const uint64_t> rhs,
                                 bool is_subtract) {
@@ -144,7 +146,7 @@ namespace fc::primitives {
     bool should_be = true;
 
     auto new_run = nextRun();
-    while (new_run.first) {
+    while (new_run.first != 0) {
       if (new_run.second == should_be) {
         result.push_back(new_run.first);
         should_be = !should_be;
@@ -157,6 +159,8 @@ namespace fc::primitives {
     return result;
   }
 
+  // TODO (a.chernyshov) The function is too complex, should be simplified
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   std::vector<uint64_t> runsOr(gsl::span<const uint64_t> lhs,
                                gsl::span<const uint64_t> rhs) {
     auto lhs_itr = lhs.begin();
@@ -259,7 +263,7 @@ namespace fc::primitives {
     bool should_be = true;
 
     auto a = nextRun();
-    while (a.first) {
+    while (a.first != 0) {
       if (a.second == should_be) {
         result.push_back(a.first);
         should_be = !should_be;
@@ -277,7 +281,7 @@ namespace fc::primitives {
     uint64_t count = 0;
     bool is_value = false;
 
-    for (auto &run : runs) {
+    for (const auto &run : runs) {
       if (std::numeric_limits<uint64_t>::max() - run < length) {
         return RunsError::kRleOverflow;
       }
@@ -298,7 +302,7 @@ namespace fc::primitives {
     uint64_t length = 0;
     bool is_value = false;
 
-    for (auto &run : runs) {
+    for (const auto &run : runs) {
       index += run;
 
       if (is_value) {

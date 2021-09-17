@@ -47,20 +47,21 @@ namespace fc::vm::runtime {
     Address getCurrentReceiver() const override;
 
     /** \copydoc Runtime::getBalance() */
-    outcome::result<BigInt> getBalance(const Address &address) const override;
+    outcome::result<TokenAmount> getBalance(
+        const Address &address) const override;
 
     /** \copydoc Runtime::getValueReceived() */
-    BigInt getValueReceived() const override;
+    TokenAmount getValueReceived() const override;
 
     /** \copydoc Runtime::getActorCodeID() */
     outcome::result<CodeId> getActorCodeID(
         const Address &address) const override;
 
     /** \copydoc Runtime::send() */
-    outcome::result<InvocationOutput> send(Address to_address,
+    outcome::result<InvocationOutput> send(const Address &to_address,
                                            MethodNumber method_number,
                                            MethodParams params,
-                                           BigInt value) override;
+                                           const TokenAmount &value) override;
 
     /** \copydoc Runtime::createNewActorAddress() */
     outcome::result<Address> createNewActorAddress() override;

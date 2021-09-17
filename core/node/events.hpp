@@ -10,8 +10,11 @@
 #include <string>
 
 #include "node/common.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 
 namespace fc::sync::events {
+  using primitives::ChainEpoch;
+
   struct PeerConnected {
     PeerId peer_id;
     std::set<std::string> protocols;
@@ -29,7 +32,7 @@ namespace fc::sync::events {
   struct TipsetFromHello {
     PeerId peer_id;
     std::vector<CbCid> tipset;
-    uint64_t height;
+    ChainEpoch height;
     BigInt weight;
   };
 
@@ -48,7 +51,7 @@ namespace fc::sync::events {
   struct PossibleHead {
     boost::optional<PeerId> source;
     TipsetKey head;
-    Height height = 0;
+    ChainEpoch height = 0;
   };
 
   struct CurrentHead {
@@ -70,7 +73,7 @@ namespace fc::sync::events {
 
 #define DEFINE_EVENT(STRUCT)                                                \
   using STRUCT##Callback = void(const STRUCT &);                            \
-  Connection subscribe##STRUCT(std::function<STRUCT##Callback> cb) {        \
+  Connection subscribe##STRUCT(const std::function<STRUCT##Callback> &cb) { \
     return STRUCT##_signal_.connect(cb);                                    \
   }                                                                         \
   void signal##STRUCT(STRUCT event) {                                       \
@@ -81,7 +84,11 @@ namespace fc::sync::events {
       }                                                                     \
     });                                                                     \
   }                                                                         \
-  boost::signals2::signal<STRUCT##Callback> STRUCT##_signal_
+                                                                            \
+ private:                                                                   \
+  boost::signals2::signal<STRUCT##Callback> STRUCT##_signal_;               \
+                                                                            \
+ public:
 
     DEFINE_EVENT(PeerConnected);
     DEFINE_EVENT(PeerDisconnected);

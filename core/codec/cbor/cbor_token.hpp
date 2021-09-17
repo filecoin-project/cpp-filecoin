@@ -263,7 +263,7 @@ namespace fc::codec::cbor {
    * @return true on success, otherwise false
    */
   inline bool readNested(BytesIn &nested, BytesIn &input) {
-    auto ptr{input.data()};
+    const auto *ptr{input.data()};
     CborNestedDecoder decoder;
     if (read(decoder, input)) {
       nested = gsl::make_span(ptr, input.data());
@@ -333,8 +333,10 @@ namespace fc::codec::cbor {
         _bytes[8] = extra;
       }
     }
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr operator BytesIn() const {
-      return gsl::make_span(_bytes).first(length);
+      return gsl::make_span(_bytes).first(static_cast<ptrdiff_t>(length));
     }
   };
 
@@ -349,7 +351,9 @@ namespace fc::codec::cbor {
   }
   inline void writeInt(Bytes &out, int64_t value) {
     if (value < 0) {
-      append(out, CborTokenEncoder{CborToken::Type::INT, (uint64_t)~value});
+      append(out,
+             CborTokenEncoder{CborToken::Type::INT,
+                              static_cast<uint64_t>(~value)});
     } else {
       writeUint(out, value);
     }

@@ -9,7 +9,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   outcome::result<void> MultisigUtils::assertCallerIsSigner(
       const MultisigActorStatePtr &state) const {
-    const auto proposer = runtime.getImmediateCaller();
+    const auto proposer = getRuntime().getImmediateCaller();
     if (!state->isSigner(proposer)) {
       ABORT(VMExitCode::kErrForbidden);
     }
@@ -19,7 +19,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   outcome::result<Address> MultisigUtils::getResolvedAddress(
       const Address &address) const {
     REQUIRE_NO_ERROR_A(resolved,
-                       runtime.resolveOrCreate(address),
+                       getRuntime().resolveOrCreate(address),
                        VMExitCode::kErrIllegalState);
     return std::move(resolved);
   }
@@ -61,7 +61,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   outcome::result<ApproveTransactionResult> MultisigUtils::approveTransaction(
       const TransactionId &tx_id, Transaction &transaction) const {
-    const Address caller = runtime.getImmediateCaller();
+    const Address caller = getRuntime().getImmediateCaller();
     if (std::find(
             transaction.approved.begin(), transaction.approved.end(), caller)
         != transaction.approved.end()) {
@@ -69,12 +69,12 @@ namespace fc::vm::actor::builtin::v0::multisig {
     }
     transaction.approved.push_back(caller);
 
-    OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
+    OUTCOME_TRY(state, getRuntime().getActorState<MultisigActorStatePtr>());
 
     REQUIRE_NO_ERROR(state->pending_transactions.set(tx_id, transaction),
                      VMExitCode::kErrIllegalState);
 
-    OUTCOME_TRY(runtime.commitState(state));
+    OUTCOME_TRY(getRuntime().commitState(state));
 
     return executeTransaction(state, tx_id, transaction);
   }
@@ -88,14 +88,14 @@ namespace fc::vm::actor::builtin::v0::multisig {
     VMExitCode code = VMExitCode::kOk;
 
     if (transaction.approved.size() >= state->threshold) {
-      OUTCOME_TRY(balance, runtime.getCurrentBalance());
+      OUTCOME_TRY(balance, getRuntime().getCurrentBalance());
       OUTCOME_TRY(assertAvailable(
-          state, balance, transaction.value, runtime.getCurrentEpoch()));
+          state, balance, transaction.value, getRuntime().getCurrentEpoch()));
 
-      const auto send_result = runtime.send(transaction.to,
-                                            transaction.method,
-                                            transaction.params,
-                                            transaction.value);
+      const auto send_result = getRuntime().send(transaction.to,
+                                                 transaction.method,
+                                                 transaction.params,
+                                                 transaction.value);
       OUTCOME_TRYA(code, asExitCode(send_result));
       if (send_result) {
         out = send_result.value();
@@ -103,11 +103,11 @@ namespace fc::vm::actor::builtin::v0::multisig {
       applied = true;
 
       // Lotus gas conformance
-      OUTCOME_TRYA(state, runtime.getActorState<MultisigActorStatePtr>());
+      OUTCOME_TRYA(state, getRuntime().getActorState<MultisigActorStatePtr>());
 
       REQUIRE_NO_ERROR(state->pending_transactions.remove(tx_id),
                        VMExitCode::kErrIllegalState);
-      OUTCOME_TRY(runtime.commitState(state));
+      OUTCOME_TRY(getRuntime().commitState(state));
     }
 
     return std::make_tuple(applied, out, code);

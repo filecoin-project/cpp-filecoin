@@ -183,7 +183,7 @@ namespace fc::proofs {
 
     EXPECT_OUTCOME_TRUE(
         pregenerated_unsealed_cid,
-        proofs_->generateUnsealedCID(seal_proof_type, public_pieces));
+        proofs_->generateUnsealedCID(seal_proof_type, public_pieces, false));
 
     EXPECT_OUTCOME_TRUE(seal_precommit_phase1_output,
                         proofs_->sealPreCommitPhase1(seal_proof_type,

@@ -82,6 +82,7 @@ namespace fc::node {
   using sector_storage::stores::LocalStorageImpl;
   using storage::keystore::FileSystemKeyStore;
   using vm::actor::builtin::states::InitActorStatePtr;
+  using vm::interpreter::InterpreterCache;
 
   namespace {
     auto log() {
