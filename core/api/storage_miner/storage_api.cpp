@@ -12,7 +12,7 @@ namespace fc::api {
   using sector_storage::RemoteWorker;
 
   std::shared_ptr<StorageMinerApi> makeStorageApi(
-      const std::shared_ptr<io_context> io,
+      const std::shared_ptr<io_context> &io,
       const std::shared_ptr<FullNodeApi> &full_node_api,
       const Address &actor,
       const std::shared_ptr<Miner> &miner,

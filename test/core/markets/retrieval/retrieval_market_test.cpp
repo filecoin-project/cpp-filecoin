@@ -11,6 +11,7 @@ namespace fc::markets::retrieval::test {
   using fc::storage::ipld::kAllSelector;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector::SectorId;
   using primitives::sector::SectorRef;
   using proofs::ProofsError;
   using testing::_;

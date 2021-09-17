@@ -7,7 +7,7 @@
 
 #include <boost/random.hpp>
 #include <libp2p/common/byteutil.hpp>
-#include <libp2p/crypto/sha/sha256.hpp>
+#include "crypto/sha/sha256.hpp"
 
 #include "clock/utc_clock.hpp"
 #include "common/logger.hpp"
@@ -146,7 +146,7 @@ namespace fc::drand {
       buffer.insert(
           buffer.end(), previous_signature.begin(), previous_signature.end());
       libp2p::common::putUint64BE(buffer, round);
-      auto hash = libp2p::crypto::sha256(buffer);
+      auto hash = crypto::sha::sha256(buffer);
       return hash;
     };
     crypto::bls::Signature bls_sig;

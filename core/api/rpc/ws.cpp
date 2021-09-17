@@ -22,7 +22,7 @@ namespace fc::api {
   namespace net = boost::asio;
   using rpc::OkCb;
 
-  common::Logger logger = common::createLogger("sector server");
+  const common::Logger logger = common::createLogger("sector server");
 
   constexpr auto kParseError = INT64_C(-32700);
   constexpr auto kInvalidRequest = INT64_C(-32600);
@@ -307,9 +307,7 @@ namespace fc::api {
              std::string_view ip,
              unsigned short port) {
     std::make_shared<Server>(
-        tcp::acceptor{ioc, {net::ip::make_address(ip), port}},
-        std::move(rpc),
-        std::move(routes))
+        tcp::acceptor{ioc, {net::ip::make_address(ip), port}}, rpc, routes)
         ->run();
   }
 
@@ -322,7 +320,13 @@ namespace fc::api {
 
   WrapperResponse::~WrapperResponse() {
     if (release_resources) {
-      release_resources();
+      try {
+        release_resources();
+      } catch (...) {
+        logger->error(
+            "Unhandled exception in "
+            "fc::api::WrapperResponse::release_resources()");
+      }
     }
   }
 

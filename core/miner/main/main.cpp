@@ -57,6 +57,7 @@ namespace fc {
   using config::configProfile;
   using libp2p::basic::Scheduler;
   using libp2p::multi::Multiaddress;
+  using libp2p::peer::PeerId;
   using primitives::address::Address;
   using primitives::sector::RegisteredSealProof;
   using storage::BufferMap;

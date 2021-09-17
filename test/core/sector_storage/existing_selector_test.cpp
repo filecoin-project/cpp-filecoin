@@ -206,7 +206,7 @@ namespace fc::sector_storage {
         .gpus = {},
     };
 
-    best_handle->active.memory_used_min = 10;
+    best_handle->active.setMemoryUsedMin(10);
 
     std::shared_ptr<WorkerHandle> some_handle =
         std::make_shared<WorkerHandle>();
@@ -219,7 +219,7 @@ namespace fc::sector_storage {
         .gpus = {},
     };
 
-    some_handle->active.memory_used_min = 5;
+    some_handle->active.setMemoryUsedMin(5);
     EXPECT_OUTCOME_EQ(existing_selector_->is_preferred(
                           primitives::kTTAddPiece, some_handle, best_handle),
                       false);

@@ -9,18 +9,15 @@
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::clock, TimeFromStringError, e) {
   using fc::clock::TimeFromStringError;
-  switch (e) {
-    case TimeFromStringError::kInvalidFormat:
-      return "Input has invalid format";
-    default:
-      return "Unknown error";
+  if (e == TimeFromStringError::kInvalidFormat) {
+    return "Input has invalid format";
   }
+  return "Unknown error";
 }
 
 namespace fc::clock {
-  static boost::posix_time::ptime kPtimeUnixZero(boost::gregorian::date(1970,
-                                                                        1,
-                                                                        1));
+  const static boost::posix_time::ptime kPtimeUnixZero(
+      boost::gregorian::date(1970, 1, 1));
 
   std::string unixTimeToString(UnixTime time) {
     return boost::posix_time::to_iso_extended_string(

@@ -21,6 +21,8 @@ namespace libp2p {
   struct Host;
 
   namespace basic {
+    // A class with the same name is present in fc::sector_storage
+    // NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
     class Scheduler;
   }
 

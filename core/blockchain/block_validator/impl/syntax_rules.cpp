@@ -8,7 +8,7 @@
 namespace fc::blockchain::block_validator {
   outcome::result<void> SyntaxRules::parentsCount(const BlockHeader &block) {
     if (block.height > 0) {
-      if ((block.parents.size() > 0) && (block.parents.size() < 5)) {
+      if (!block.parents.empty() && (block.parents.size() < 5)) {
         return outcome::success();
       }
     } else {

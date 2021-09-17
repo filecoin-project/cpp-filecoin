@@ -6,12 +6,11 @@
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 
 #include <libp2p/common/types.hpp>
-#include <libp2p/crypto/sha/sha256.hpp>
+#include "crypto/sha/sha256.hpp"
 
 namespace fc::crypto::secp256k1 {
-
-  using libp2p::common::Hash256;
-  using libp2p::crypto::sha256;
+  using sha::Hash256;
+  using sha::sha256;
 
   outcome::result<SignatureCompact> Secp256k1Sha256ProviderImpl::sign(
       gsl::span<const uint8_t> message, const PrivateKey &key) const {

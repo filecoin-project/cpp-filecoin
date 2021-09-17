@@ -22,7 +22,10 @@ namespace fc::api {
   };
 
   struct Response {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,hicpp-member-init)
     struct Error {
+      // Cannot initialize due to compiler bug
+      // (https://bugs.llvm.org/show_bug.cgi?id=36684)
       int64_t code;
       std::string message;
     };
