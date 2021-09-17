@@ -35,7 +35,7 @@ namespace fc::adt {
     }
 
     Channel &operator=(const Channel &) = delete;
-    Channel &operator=(Channel &&) noexcept = default;
+    Channel &operator=(Channel &&) noexcept;
 
     bool canWrite() const {
       std::lock_guard lock{mutex};
@@ -128,4 +128,6 @@ namespace fc::adt {
 
   template <typename T>
   inline Channel<T>::Channel(Channel &&) noexcept = default;
+  template <typename T>
+  inline Channel<T> &Channel<T>::operator=(Channel &&) noexcept = default;
 }  // namespace fc::adt

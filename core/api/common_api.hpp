@@ -10,8 +10,6 @@
 #include "api/utils.hpp"
 #include "api/version.hpp"
 #include "common/buffer.hpp"
-#include "common/logger.hpp"
-#include "common/span.hpp"
 #include "primitives/jwt/jwt.hpp"
 
 namespace fc::api {

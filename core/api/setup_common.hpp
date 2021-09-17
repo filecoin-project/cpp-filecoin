@@ -5,12 +5,13 @@
 
 #pragma once
 
+#include "api/common_api.hpp"
 #include "api/utils.hpp"
 #include "api/version.hpp"
+#include "common/api_secret.hpp"
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "common/span.hpp"
-#include "primitives/jwt/jwt.hpp"
 
 namespace fc::api {
   using primitives::jwt::ApiAlgorithm;
@@ -23,20 +24,8 @@ namespace fc::api {
     auto verifier = jwt::verify()
                         .with_type(static_cast<std::string>(kTokenType))
                         .allow_algorithm(*secret_algorithm);
-    api->AuthNew = [secret_algorithm,
-                    logger](auto perms) -> outcome::result<Buffer> {
-      std::error_code ec;
-      auto token =
-          jwt::create()
-              .set_type(static_cast<std::string>(kTokenType))
-              .set_payload_claim(static_cast<std::string>(kPermissionKey),
-                                 jwt::claim(perms.begin(), perms.end()))
-              .sign(*secret_algorithm, ec);
-
-      if (ec) {
-        logger->error("AuthNew jwt sign {:#}", ec);
-        return ec;
-      }
+    api->AuthNew = [secret_algorithm](auto perms) -> outcome::result<Buffer> {
+      OUTCOME_TRY(token, generateAuthToken(secret_algorithm, perms));
 
       return Buffer{common::span::cbytes(token)};
     };

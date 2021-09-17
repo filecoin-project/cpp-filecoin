@@ -15,6 +15,7 @@
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
+#include "api/setup_common.hpp"
 #include "api/storage_miner/storage_api.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
 #include "codec/json/json.hpp"
@@ -60,6 +61,7 @@ namespace fc {
   using libp2p::multi::Multiaddress;
   using libp2p::peer::PeerId;
   using primitives::address::Address;
+  using primitives::jwt::kAllPermission;
   using primitives::sector::RegisteredSealProof;
   using storage::BufferMap;
   namespace uuids = boost::uuids;
@@ -428,8 +430,6 @@ namespace fc {
             miner)};
     retrieval_provider->start();
 
-    OUTCOME_TRY(api_secret, loadApiSecret(config.join("secret")));
-
     auto mapi = api::makeStorageApi(io,
                                     napi,
                                     *config.actor,
@@ -441,9 +441,8 @@ namespace fc {
                                     storage_provider,
                                     retrieval_provider);
 
+    OUTCOME_TRY(api_secret, loadApiSecret(config.join("secret")));
     api::fillAuthApi(mapi, api_secret, log());
-
-    OUTCOME_TRY(token, mapi->AuthNew(kAllPermission));
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
     mrpc.emplace("/rpc/v0", api::makeRpc(*mapi));
@@ -452,6 +451,7 @@ namespace fc {
     mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
 
     api::serve(mrpc, mroutes, *io, "127.0.0.1", config.api_port);
+    OUTCOME_TRY(token, generateAuthToken(api_secret, kAllPermission));
     api::rpc::saveInfo(config.repo_path, config.api_port, token);
 
     log()->info("fuhon miner started");

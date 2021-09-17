@@ -6,14 +6,10 @@
 #include "api/storage_miner/storage_api.hpp"
 
 #include "api/storage_miner/return_api.hpp"
-#include "common/logger.hpp"
 #include "sector_storage/impl/remote_worker.hpp"
 
 namespace fc::api {
   using sector_storage::RemoteWorker;
-
-  const static common::Logger logger =
-      common::createLogger("Storage miner API");
 
   std::shared_ptr<StorageMinerApi> makeStorageApi(
       const std::shared_ptr<io_context> &io,

@@ -11,6 +11,7 @@
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
+#include "common/api_secret.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
 #include "common/logger.hpp"
@@ -81,9 +82,9 @@ namespace fc {
 
   }  // namespace
 
-  outcome::result<void> startApi(const node::Config &config,
-                                 NodeObjects &node_objects,
-                                 const Metrics &metrics) {
+  void startApi(const node::Config &config,
+                NodeObjects &node_objects,
+                const Metrics &metrics) {
     // Network API
     PeerInfo api_peer_info{
         node_objects.host->getPeerInfo().id,
@@ -213,7 +214,6 @@ namespace fc {
         [&]() -> outcome::result<std::vector<Import>> {
       return node_objects.storage_market_import_manager->list();
     };
-    OUTCOME_TRY(token, node_objects.api->AuthNew(kAllPermission));
     node_objects.api_v1 = makeFullNodeApiV1Wrapper();
     auto rpc_v1{api::makeRpc(*node_objects.api)};
     wrapRpc(rpc_v1, *node_objects.api_v1);
@@ -240,9 +240,10 @@ namespace fc {
 
     api::serve(
         rpcs, routes, *node_objects.io_context, "127.0.0.1", config.api_port);
+    auto api_secret = loadApiSecret(config.join("secret")).value();
+    auto token = generateAuthToken(api_secret, kAllPermission).value();
     api::rpc::saveInfo(config.repo_path, config.api_port, token);
     log()->info("API started at ws://127.0.0.1:{}", config.api_port);
-    return outcome::success();
   }
 
   void main(node::Config &config) {
@@ -368,11 +369,7 @@ namespace fc {
       }
     }
 
-    auto maybe_error = startApi(config, o, metrics);
-    if (maybe_error.has_error()) {
-      log()->error("Cannot start api: {}", maybe_error.error().message());
-      exit(EXIT_FAILURE);
-    }
+    startApi(config, o, metrics);  // may throw
 
     o.identify->start(events);
     o.say_hello->start(config.genesis_cid.value(), events);

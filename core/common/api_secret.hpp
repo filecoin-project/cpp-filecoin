@@ -5,19 +5,19 @@
 
 #pragma once
 
-#include "api/setup_common.hpp"
 #include "common/file.hpp"
+#include "primitives/jwt/jwt.hpp"
 
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
 
 namespace fc {
   using libp2p::crypto::random::BoostRandomGenerator;
   using primitives::jwt::ApiAlgorithm;
-  using primitives::jwt::kAllPermission;
   using primitives::jwt::kPermissionKey;
   using primitives::jwt::kTokenType;
+  using primitives::jwt::Permission;
 
-  outcome::result<std::shared_ptr<ApiAlgorithm>> loadApiSecret(
+  static outcome::result<std::shared_ptr<ApiAlgorithm>> loadApiSecret(
       const boost::filesystem::path &path) {
     if (boost::filesystem::exists(path)) {
       OUTCOME_TRY(secret, common::readFile(path));
@@ -33,15 +33,15 @@ namespace fc {
     return std::make_shared<jwt::algorithm::hs256>(secret);
   }
 
-  outcome::result<std::string> generateAuthToken(
-      const std::shared_ptr<ApiAlgorithm> &algo) {
+  static outcome::result<std::string> generateAuthToken(
+      const std::shared_ptr<ApiAlgorithm> &algo,
+      const std::vector<Permission> &perms) {
     std::error_code ec;
     auto token =
         jwt::create()
             .set_type(static_cast<std::string>(kTokenType))
-            .set_payload_claim(
-                static_cast<std::string>(kPermissionKey),
-                jwt::claim(kAllPermission.begin(), kAllPermission.end()))
+            .set_payload_claim(static_cast<std::string>(kPermissionKey),
+                               jwt::claim(perms.begin(), perms.end()))
             .sign(*algo, ec);
 
     if (ec) {

@@ -39,9 +39,9 @@ namespace fc::api::rpc {
   // TODO: hostname
   inline void saveInfo(const boost::filesystem::path &repo,
                        int port,
-                       const Buffer &token) {
+                       const std::string &token) {
     auto address{fmt::format("/ip4/127.0.0.1/tcp/{}/http", port)};
     boost::filesystem::save_string_file(repo / "api", address);
-    common::writeFile(repo / "token", token);
+    boost::filesystem::save_string_file(repo / "token", token);
   }
 }  // namespace fc::api::rpc
