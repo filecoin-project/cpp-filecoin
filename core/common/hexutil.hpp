@@ -19,11 +19,6 @@ namespace fc::common {
   enum class UnhexError { kNotEnoughInput = 1, kNonHexInput, kUnknown };
 
   /**
-   * @brief Converts an integer to an uppercase hex representation
-   */
-  std::string int_to_hex(uint64_t n, size_t fixed_width = 2) noexcept;
-
-  /**
    * @brief Converts bytes to uppercase hex representation
    * @param array bytes
    * @param len length of bytes

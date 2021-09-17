@@ -26,6 +26,7 @@ namespace fc::mining::checks {
   using api::SectorNumber;
   using api::SectorOnChainInfo;
   using api::UnsignedMessage;
+  using primitives::ActorId;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
   using storage::ipfs::InMemoryDatastore;

@@ -8,13 +8,12 @@
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 
-using fc::primitives::sector::ActorId;
-using fc::primitives::sector::PoStProof;
-using fc::primitives::sector::PoStRandomness;
-using fc::primitives::sector::SectorId;
-using fc::primitives::sector::SectorInfo;
-
 namespace fc::sector_storage {
+  using primitives::sector::ActorId;
+  using primitives::sector::PoStProof;
+  using primitives::sector::PoStRandomness;
+  using primitives::sector::SectorId;
+  using primitives::sector::SectorInfo;
 
   class Prover {
    public:

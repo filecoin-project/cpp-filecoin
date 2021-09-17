@@ -72,7 +72,6 @@ namespace fc::common {
   }
 
   Buffer::Buffer(std::vector<uint8_t> &&v) : data_{std::move(v)} {}
-  Buffer::Buffer(const std::vector<uint8_t> &v) : data_{v} {}
   Buffer::Buffer(gsl::span<const uint8_t> s) : data_(s.begin(), s.end()) {}
 
   const std::vector<uint8_t> &Buffer::toVector() const {
@@ -158,7 +157,8 @@ namespace fc::common {
   }
 
   Buffer Buffer::subbuffer(size_t offset, size_t length) const {
-    return Buffer(gsl::make_span(*this).subspan(offset, length));
+    return Buffer(gsl::make_span(*this).subspan(
+        static_cast<ptrdiff_t>(offset), static_cast<ptrdiff_t>(length)));
   }
 
   Buffer &Buffer::operator+=(const Buffer &other) noexcept {

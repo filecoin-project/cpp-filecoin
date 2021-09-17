@@ -47,6 +47,8 @@ namespace fc {
   using api::ImportRes;
   using api::makeFullNodeApiV1Wrapper;
   using api::StorageMarketDealInfo;
+  using libp2p::peer::PeerId;
+  using libp2p::peer::PeerInfo;
   using markets::storage::StorageProviderInfo;
   using node::Metrics;
   using node::NodeObjects;

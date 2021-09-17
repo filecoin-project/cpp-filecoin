@@ -10,9 +10,9 @@
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome.hpp"
 
-using libp2p::multi::Multiaddress;
-
 namespace fc::codec::cbor {
+  using libp2p::multi::Multiaddress;
+
   /// Default value of Multiaddress for CBOR stream decoder
   template <>
   inline Multiaddress kDefaultT<Multiaddress>() {

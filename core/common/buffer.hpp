@@ -42,7 +42,6 @@ namespace fc::common {
     // at all (FIL-411)
     // NOLINTNEXTLINE(google-explicit-constructor)
     Buffer(std::vector<uint8_t> &&v);
-    explicit Buffer(const std::vector<uint8_t> &v);
     explicit Buffer(gsl::span<const uint8_t> s);
 
     Buffer(const uint8_t *begin, const uint8_t *end);

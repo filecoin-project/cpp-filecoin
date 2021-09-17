@@ -57,7 +57,7 @@ namespace fc::codec::cbor {
 
   CborDecodeStream &CborDecodeStream::operator>>(CbCid &cid) {
     _as(token.cidSize());
-    const CbCid *_cid;
+    const CbCid *_cid = nullptr;
     if (!readCborBlake(_cid, token, partial)) {
       outcome::raise(CborDecodeError::kInvalidCID);
     }

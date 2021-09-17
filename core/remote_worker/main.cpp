@@ -37,6 +37,7 @@ namespace fc {
   using api::VersionResult;
   using boost::asio::io_context;
   using config::configProfile;
+  using libp2p::multi::Multiaddress;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::piece::UnpaddedPieceSize;

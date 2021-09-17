@@ -55,7 +55,7 @@ namespace fc::primitives::block {
     ElectionProof election_proof;
     std::vector<BeaconEntry> beacon_entries;
     std::vector<SignedMessage> messages;
-    uint64_t height{};
+    ChainEpoch height{};
     uint64_t timestamp{};
     std::vector<PoStProof> win_post_proof;
   };

@@ -15,6 +15,7 @@
 namespace fc::markets::retrieval::provider {
   using ::fc::storage::piece::PieceStorageError;
   using primitives::piece::UnpaddedByteIndex;
+  using primitives::sector::SectorId;
   using primitives::sector::SectorRef;
   using storage::kStorageMarketImportDir;
   namespace fs = boost::filesystem;
