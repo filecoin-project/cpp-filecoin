@@ -8,9 +8,10 @@
 #include "api/setup_common.hpp"
 #include "common/file.hpp"
 
-#include <random>
+#include <libp2p/crypto/random_generator/boost_generator.hpp>
 
 namespace fc {
+  using libp2p::crypto::random::BoostRandomGenerator;
   using primitives::jwt::ApiAlgorithm;
   using primitives::jwt::kAllPermission;
   using primitives::jwt::kPermissionKey;
@@ -27,10 +28,7 @@ namespace fc {
     constexpr uint8_t kSecretSize = 32;
     std::string secret;
     secret.reserve(kSecretSize);
-    std::generate_n(
-        std::back_insert_iterator(secret),
-        kSecretSize,
-        std::independent_bits_engine<std::random_device, 8, uint8_t>{});
+    BoostRandomGenerator{}.fillRandomly(secret, kSecretSize);
     OUTCOME_TRY(common::writeFile(path, common::span::cbytes(secret)));
     return std::make_shared<jwt::algorithm::hs256>(secret);
   }
