@@ -4,7 +4,7 @@
 #
 
 add_library(miner_types
-    deadline_assignment_heap.cpp
+    deadline_assignment.cpp
     deadline_info.cpp
     deadline_sector_map.cpp
     partition_sector_map.cpp
@@ -26,6 +26,9 @@ add_library(miner_types
     v3/partition.cpp
     v3/deadline.cpp
     bind_types.cpp
+    v0/monies.cpp
+    v2/monies.cpp
+    v3/monies.cpp
     )
 target_link_libraries(miner_types
     actor

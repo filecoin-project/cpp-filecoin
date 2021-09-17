@@ -11,6 +11,7 @@ namespace fc::markets::retrieval::test {
   using fc::storage::ipld::kAllSelector;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector::SectorId;
   using primitives::sector::SectorRef;
   using proofs::ProofsError;
   using testing::_;
@@ -30,9 +31,9 @@ namespace fc::markets::retrieval::test {
     RetrievalPeer peer{.address = miner_worker_address,
                        .peer_id = host->getId(),
                        .piece = data::green_piece.info.piece_cid};
-    EXPECT_OUTCOME_TRUE_1(client->query(peer, request, [&](auto response) {
+    client->query(peer, request, [&](auto response) {
       query_result.set_value(response);
-    }));
+    });
     auto future = query_result.get_future();
     ASSERT_EQ(future.wait_for(std::chrono::seconds(3)),
               std::future_status::ready);

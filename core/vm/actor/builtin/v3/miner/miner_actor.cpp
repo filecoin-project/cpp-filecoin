@@ -7,10 +7,11 @@
 
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v3/account/account_actor.hpp"
-#include "vm/actor/builtin/v3/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v3/storage_power/storage_power_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
+  using states::makeEmptyMinerState;
   using states::MinerActorStatePtr;
   using toolchain::Toolchain;
   using namespace types::miner;
@@ -30,11 +31,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       control_addresses.push_back(resolved);
     }
 
-    const auto actor_version = runtime.getActorVersion();
-
-    MinerActorStatePtr state{actor_version};
-    cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
-    OUTCOME_TRY(v0::miner::Construct::makeEmptyState(runtime, state));
+    OUTCOME_TRY(state, makeEmptyMinerState(runtime));
 
     const auto current_epoch = runtime.getCurrentEpoch();
     REQUIRE_NO_ERROR_A(offset,
@@ -51,7 +48,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     state->current_deadline = deadline_index;
 
     REQUIRE_NO_ERROR_A(miner_info,
-                       makeMinerInfo(actor_version,
+                       makeMinerInfo(runtime.getActorVersion(),
                                      owner,
                                      worker,
                                      control_addresses,

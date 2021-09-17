@@ -13,6 +13,7 @@
 
 namespace fc::mining {
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector::SectorInfo;
   using sector_storage::SectorRef;
   using vm::actor::builtin::types::miner::kWPoStPeriodDeadlines;
   using vm::actor::builtin::v0::miner::DeclareFaults;
@@ -245,27 +246,28 @@ namespace fc::mining {
       msg.from = _from.value();
     }
     OUTCOME_TRY(smsg, api->MpoolPushMessage(msg, kSpec));
-    OUTCOME_TRY(
-        wait,
-        api->StateWaitMsg(
-            smsg.getCid(), kMessageConfidence, api::kLookbackNoLimit, true));
-    wait.waitOwn([method](auto _r) {
-      auto name{method == DeclareFaultsRecovered::Number
-                    ? "DeclareFaultsRecovered"
-                    : method == DeclareFaults::Number
-                          ? "DeclareFaults"
-                          : method == SubmitWindowedPoSt::Number
-                                ? "SubmitWindowedPoSt"
-                                : "(unexpected)"};
-      if (!_r) {
-        spdlog::error("WindowPoStScheduler {} error {}", name, _r.error());
-      } else {
-        auto &r{_r.value().receipt};
-        if (r.exit_code != vm::VMExitCode::kOk) {
-          spdlog::error("WindowPoStScheduler {} exit {}", name, r.exit_code);
-        }
-      }
-    });
+    api->StateWaitMsg(
+        [method](auto _r) {
+          auto name{method == DeclareFaultsRecovered::Number
+                        ? "DeclareFaultsRecovered"
+                    : method == DeclareFaults::Number ? "DeclareFaults"
+                    : method == SubmitWindowedPoSt::Number
+                        ? "SubmitWindowedPoSt"
+                        : "(unexpected)"};
+          if (!_r) {
+            spdlog::error("WindowPoStScheduler {} error {}", name, _r.error());
+          } else {
+            auto &r{_r.value().receipt};
+            if (r.exit_code != vm::VMExitCode::kOk) {
+              spdlog::error(
+                  "WindowPoStScheduler {} exit {}", name, r.exit_code);
+            }
+          }
+        },
+        smsg.getCid(),
+        kMessageConfidence,
+        api::kLookbackNoLimit,
+        true);
     return outcome::success();
   }
 }  // namespace fc::mining

@@ -25,6 +25,7 @@ namespace fc::primitives::block {
   using crypto::signature::Signature;
   using drand::BeaconEntry;
   using primitives::BigInt;
+  using primitives::ChainEpoch;
   using primitives::address::Address;
   using primitives::sector::PoStProof;
   using vm::message::SignedMessage;
@@ -39,7 +40,7 @@ namespace fc::primitives::block {
   CBOR_TUPLE(Ticket, bytes)
 
   struct ElectionProof {
-    int64_t win_count;
+    int64_t win_count = 0;
     Buffer vrf_proof;
   };
   inline bool operator==(const ElectionProof &lhs, const ElectionProof &rhs) {
@@ -54,7 +55,7 @@ namespace fc::primitives::block {
     ElectionProof election_proof;
     std::vector<BeaconEntry> beacon_entries;
     std::vector<SignedMessage> messages;
-    uint64_t height{};
+    ChainEpoch height{};
     uint64_t timestamp{};
     std::vector<PoStProof> win_post_proof;
   };
@@ -67,7 +68,7 @@ namespace fc::primitives::block {
     std::vector<PoStProof> win_post_proof;
     BlockParentCbCids parents;
     BigInt parent_weight;
-    uint64_t height{};
+    ChainEpoch height{};
     CID parent_state_root;
     CID parent_message_receipts;
     CID messages;

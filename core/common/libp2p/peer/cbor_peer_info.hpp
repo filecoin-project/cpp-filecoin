@@ -10,10 +10,10 @@
 #include "common/libp2p/multi/cbor_multiaddress.hpp"
 #include "common/libp2p/peer/cbor_peer_id.hpp"
 
-using libp2p::peer::PeerId;
-using libp2p::peer::PeerInfo;
-
 namespace fc::codec::cbor {
+  using libp2p::peer::PeerId;
+  using libp2p::peer::PeerInfo;
+
   template <>
   inline PeerInfo kDefaultT<PeerInfo>() {
     return PeerInfo{.id = kDefaultT<PeerId>(), .addresses = {}};

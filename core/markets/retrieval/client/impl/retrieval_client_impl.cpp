@@ -26,38 +26,28 @@ namespace fc::markets::retrieval::client {
     return outcome::failure(RetrievalClientError::kUnknownResponseReceived);
   }
 
-  outcome::result<void> RetrievalClientImpl::query(
-      const RetrievalPeer &provider_peer,
-      const QueryRequest &request,
-      const QueryResponseHandler &response_handler) {
-    OUTCOME_TRY(peer, getPeerInfo(provider_peer));
+  void RetrievalClientImpl::query(const RetrievalPeer &provider_peer,
+                                  const QueryRequest &request,
+                                  const QueryResponseHandler &cb) {
+    OUTCOME_CB(auto peer, getPeerInfo(provider_peer));
     host_->newStream(
-        peer,
-        kQueryProtocolId,
-        [self{shared_from_this()}, peer, request, response_handler](
-            auto stream_res) {
-          if (stream_res.has_error()) {
-            response_handler(stream_res.error());
-            return;
-          }
+        peer, kQueryProtocolId, [=, self{shared_from_this()}](auto stream_res) {
+          OUTCOME_CB1(stream_res);
           self->logger_->debug("connected to provider ID "
                                + peerInfoToPrettyString(peer));
           auto stream{std::make_shared<CborStream>(stream_res.value())};
-          stream->write(
-              request, [self, stream, response_handler](auto written_res) {
-                if (written_res.has_error()) {
-                  response_handler(written_res.error());
-                  self->closeQueryStream(stream, response_handler);
-                  return;
-                }
-                stream->template read<QueryResponse>(
-                    [self, response_handler, stream](auto response) {
-                      self->closeQueryStream(stream, response_handler);
-                      response_handler(response);
-                    });
-              });
+          stream->write(request, [=](auto written_res) {
+            if (written_res.has_error()) {
+              stream->close();
+              cb(written_res.error());
+              return;
+            }
+            stream->template read<QueryResponse>([=](auto response) {
+              stream->close();
+              cb(std::move(response));
+            });
+          });
         });
-    return outcome::success();
   }
 
   outcome::result<PeerInfo> RetrievalClientImpl::getPeerInfo(
@@ -66,18 +56,6 @@ namespace fc::markets::retrieval::client {
     OUTCOME_TRY(miner_info,
                 api_->StateMinerInfo(provider_peer.address, chain_head->key));
     return PeerInfo{provider_peer.peer_id, miner_info.multiaddrs};
-  }
-
-  void RetrievalClientImpl::closeQueryStream(
-      const std::shared_ptr<CborStream> &stream,
-      const QueryResponseHandler &response_handler) {
-    if (!stream->stream()->isClosed()) {
-      stream->stream()->close([response_handler](auto closed) {
-        if (closed.has_error()) {
-          response_handler(closed.error());
-        }
-      });
-    }
   }
 
   outcome::result<void> RetrievalClientImpl::retrieve(
@@ -92,7 +70,7 @@ namespace fc::markets::retrieval::client {
                                   .deal_id = next_deal_id++,
                                   .params = deal_params}};
     auto deal{std::make_shared<DealState>(
-        proposal, handler, client_wallet, miner_wallet, total_funds)};
+        proposal, ipfs_, handler, client_wallet, miner_wallet, total_funds)};
     OUTCOME_TRY(peer_info, getPeerInfo(provider_peer));
     deal->pdtid = datatransfer_->pull(
         peer_info,
@@ -103,57 +81,85 @@ namespace fc::markets::retrieval::client {
         [this, deal](auto &type, auto _voucher) {
           OUTCOME_EXCEPT(res,
                          codec::cbor::decode<DealResponse::Named>(_voucher));
+          auto after{[=](auto &res) {
+            if (res.status == DealStatus::kDealStatusCompleted) {
+              deal->handler(outcome::success());
+              datatransfer_->pulling_out.erase(deal->pdtid);
+              return;
+            }
+            if (res.payment_owed) {
+              processPaymentRequest(deal, deal->state.owed);
+            }
+          }};
           if (!deal->accepted) {
+            std::unique_lock lock{deal->pending_mutex};
+            deal->pending.emplace();
+            lock.unlock();
             auto unseal{res.status == DealStatus::kDealStatusFundsNeededUnseal};
+            const auto last{res.status
+                            == DealStatus::kDealStatusFundsNeededLastPayment};
             deal->accepted =
-                unseal || res.status == DealStatus::kDealStatusAccepted;
+                unseal || res.status == DealStatus::kDealStatusAccepted || last;
             if (!deal->accepted) {
               deal->handler(
                   res.status == DealStatus::kDealStatusRejected
                       ? RetrievalClientError::kResponseDealRejected
-                  : res.status == DealStatus::kDealStatusDealNotFound
-                      ? RetrievalClientError::kResponseNotFound
-                      : RetrievalClientError::kUnknownResponseReceived);
+                      : res.status == DealStatus::kDealStatusDealNotFound
+                            ? RetrievalClientError::kResponseNotFound
+                            : RetrievalClientError::kUnknownResponseReceived);
               datatransfer_->pulling_out.erase(deal->pdtid);
               return;
             }
-            auto _paych{api_->PaychGet(
-                deal->client_wallet, deal->miner_wallet, deal->total_funds)};
-            if (!_paych) {
-              return deal->handler(_paych.error());
-            }
-            auto &paych{_paych.value().channel};
-            deal->payment_channel_address = paych;
-            auto _lane{api_->PaychAllocateLane(paych)};
-            if (!_lane) {
-              return deal->handler(_lane.error());
-            }
-            deal->lane_id = _lane.value();
-          }
-          if (res.status == DealStatus::kDealStatusCompleted) {
-            deal->handler(outcome::success());
-            datatransfer_->pulling_out.erase(deal->pdtid);
+            api_->PaychGet(
+                [=](auto &&_paych) {
+                  if (!_paych) {
+                    return deal->handler(_paych.error());
+                  }
+                  auto &paych{_paych.value().channel};
+                  deal->payment_channel_address = paych;
+                  auto _lane{api_->PaychAllocateLane(paych)};
+                  if (!_lane) {
+                    return deal->handler(_lane.error());
+                  }
+                  deal->lane_id = _lane.value();
+                  std::unique_lock lock{deal->pending_mutex};
+                  after(res);
+                  for (auto &res : *deal->pending) {
+                    after(res);
+                  }
+                  deal->pending.reset();
+                },
+                deal->client_wallet,
+                deal->miner_wallet,
+                deal->total_funds);
             return;
           }
-          if (res.payment_owed) {
-            processPaymentRequest(deal, deal->state.owed);
+          std::unique_lock lock{deal->pending_mutex};
+          if (deal->pending) {
+            deal->pending->push_back(std::move(res));
+          } else {
+            after(res);
           }
         },
         [this, deal](auto &cid) {
-          if (auto _data{ipfs_->get(cid)}) {
-            if (auto _done{
-                    deal->verifier.verifyNextBlock(cid, _data.value())}) {
-              deal->state.block(_data.value().size());
-              if (_done.value()) {
-                deal->all_blocks = true;
-                deal->state.last();
-              }
-              return;
-            } else {
-              failDeal(deal, _done.error());
-            }
-          } else {
-            failDeal(deal, _data.error());
+          const auto cb{[&](auto e) { failDeal(deal, e); }};
+          OUTCOME_CB(auto data, ipfs_->get(cid));
+          const auto &expected_hash{cid.content_address};
+          OUTCOME_CB(auto hash,
+                     crypto::Hasher::calculate(expected_hash.getType(), data));
+          if (hash != expected_hash) {
+            return cb(ERROR_TEXT(
+                "RetrievalClientImpl::retrieve data hash does not match cid"));
+          }
+          OUTCOME_CB(auto expected_cid, deal->traverser.advance());
+          if (cid != expected_cid) {
+            return cb(ERROR_TEXT(
+                "RetrievalClientImpl::retrieve cid does not match order"));
+          }
+          deal->state.block(data.size());
+          if (deal->traverser.isCompleted()) {
+            deal->all_blocks = true;
+            deal->state.last();
           }
         });
     return outcome::success();

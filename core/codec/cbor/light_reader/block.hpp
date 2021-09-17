@@ -7,8 +7,11 @@
 
 #include "cbor_blake/cid_block.hpp"
 #include "codec/cbor/light_reader/cid.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 
 namespace fc::codec::cbor::light_reader {
+  using primitives::ChainEpoch;
+
   inline bool readBlockParents(BlockParentCbCids &parents,
                                CborToken token,
                                BytesIn &input) {
@@ -19,8 +22,8 @@ namespace fc::codec::cbor::light_reader {
     }
     const auto n{*token.listCount()};
     parents.reserve(n);
-    for (auto i{n}; i; --i) {
-      const CbCid *parent;
+    for (auto i{n}; i != 0; --i) {
+      const CbCid *parent = nullptr;
       if (!read(token, input).cidSize()) {
         return false;
       }
@@ -41,7 +44,7 @@ namespace fc::codec::cbor::light_reader {
 
   inline bool readBlock(BytesIn &ticket,
                         BlockParentCbCids &parents,
-                        uint64_t &height,
+                        ChainEpoch &height,
                         BytesIn &input) {
     CborToken token;
     if (read(token, input).listCount() != 16) {
@@ -69,7 +72,7 @@ namespace fc::codec::cbor::light_reader {
     if (!read(token, input).asUint()) {
       return false;
     }
-    height = *token.asUint();
+    height = *token.asInt();
     return true;
   }
 }  // namespace fc::codec::cbor::light_reader

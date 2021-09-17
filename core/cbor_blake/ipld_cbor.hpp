@@ -94,6 +94,7 @@ namespace fc::cbor_blake {
   template <typename T>
   outcome::result<void> cbFlushT(T &value) {
     using Z = std::remove_const_t<T>;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     OUTCOME_TRY(CbFlushT<Z>::call(const_cast<Z &>(value)));
     return outcome::success();
   }

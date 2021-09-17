@@ -5,10 +5,12 @@
 
 #pragma once
 
+#include <libp2p/common/metrics/instance_count.hpp>
 #include <sstream>
 
 #include "clock/chain_epoch_clock.hpp"
 #include "clock/utc_clock.hpp"
+#include "common/fd_usage.hpp"
 #include "common/memory_usage.hpp"
 #include "node/events.hpp"
 #include "node/main/builder.hpp"
@@ -31,6 +33,8 @@ namespace fc::node {
       metric("vm_size", vm_size);
       metric("vm_rss", vm_rss);
 
+      metric("fd", fdUsage());
+
       std::shared_lock ts_lock{*o.env_context.ts_branches_mutex};
       metric("ts_branches", o.ts_branches->size());
       auto height_head{o.ts_main->chain.rbegin()->first};
@@ -44,7 +48,9 @@ namespace fc::node {
              o.chain_epoch_clock->epochAtTime(o.utc_clock->nowUTC()).value());
 
       auto car{[&](auto _size, auto _count, auto _tmp, auto &ipld) {
-        uint64_t size{}, count{}, tmp{};
+        uint64_t size{};
+        uint64_t count{};
+        uint64_t tmp{};
         if (ipld) {
           std::shared_lock index_lock{ipld->index_mutex};
           std::shared_lock written_lock{ipld->written_mutex};
@@ -62,12 +68,21 @@ namespace fc::node {
         car("car2_size", "car2_count", "car2_tmp", o.compacter->new_ipld);
       }
 
+      auto &instances{libp2p::metrics::instance::State::get()};
+      std::unique_lock instances_lock{instances.mutex};
+      for (auto &[type, count] : instances.counts) {
+        std::stringstream name;
+        name << "instances{type=\"" << type << "\"}";
+        metric(name.str(), count);
+      }
+      instances_lock.unlock();
+
       return ss.str();
     }
 
     const NodeObjects &o;
 
-    std::atomic_uint64_t height_known{};
+    std::atomic_int64_t height_known{};
     sync::events::Connection _possible_head;
   };
 }  // namespace fc::node

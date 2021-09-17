@@ -105,7 +105,7 @@ namespace fc::drand::http {
   }
 
   void getEntry(io_context &io,
-                std::string host,
+                const std::string &host,
                 uint64_t round,
                 std::function<void(outcome::result<PublicRandResponse>)> cb) {
     std::string url{"/public/"};

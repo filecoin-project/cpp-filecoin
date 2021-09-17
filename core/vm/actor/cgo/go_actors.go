@@ -762,6 +762,13 @@ func AddSupportedProofTypes(t abi.RegisteredSealProof) {
 //export cgoActorsConfigParams
 func cgoActorsConfigParams(raw C.Raw) C.Raw {
 	arg := cgoArgCbor(raw)
+
+	MinVerifiedDealSize := arg.big()
+	verifreg1.MinVerifiedDealSize = MinVerifiedDealSize
+	verifreg2.MinVerifiedDealSize = MinVerifiedDealSize
+	verifreg3.MinVerifiedDealSize = MinVerifiedDealSize
+	verifreg4.MinVerifiedDealSize = MinVerifiedDealSize
+	verifreg5.MinVerifiedDealSize = MinVerifiedDealSize
 	
 	PreCommitChallengeDelay := abi.ChainEpoch(arg.int())
 	miner1.PreCommitChallengeDelay = PreCommitChallengeDelay

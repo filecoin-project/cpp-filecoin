@@ -216,7 +216,7 @@ namespace fc::primitives::tipset {
     ticket_hashes_.clear();
   }
 
-  Height TipsetCreator::height() const {
+  ChainEpoch TipsetCreator::height() const {
     return blks_.empty() ? 0 : blks_[0].height;
   }
 
@@ -337,7 +337,7 @@ namespace fc::primitives::tipset {
     return blks[0].parent_message_receipts;
   }
 
-  Height Tipset::height() const {
+  ChainEpoch Tipset::height() const {
     return blks.empty() ? 0 : blks[0].height;
   }
 

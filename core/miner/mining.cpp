@@ -58,11 +58,12 @@ namespace fc::mining {
   }
 
   outcome::result<void> Mining::waitBeacon() {
-    OUTCOME_TRY(_wait, api->BeaconGetEntry(height()));
-    _wait.waitOwn([self{shared_from_this()}](auto _beacon) {
-      OUTCOME_LOG("Mining::waitBeacon error", _beacon);
-      OUTCOME_LOG("Mining::waitInfo error", self->waitInfo());
-    });
+    api->BeaconGetEntry(
+        [self{shared_from_this()}](auto beacon) {
+          OUTCOME_LOG("Mining::waitBeacon error", beacon);
+          OUTCOME_LOG("Mining::waitInfo error", self->waitInfo());
+        },
+        height());
     return outcome::success();
   }
 
@@ -71,12 +72,15 @@ namespace fc::mining {
     if (!mined.emplace(ts->key, skip).second) {
       wait(block_delay, false, [this] { waitParent(); });
     } else {
-      OUTCOME_TRY(_wait, api->MinerGetBaseInfo(miner, height(), ts->key));
-      _wait.waitOwn([self{shared_from_this()}](auto _info) {
-        OUTCOME_LOG("Mining::waitInfo error", _info);
-        self->info = std::move(_info.value());
-        OUTCOME_LOG("Mining::prepare error", self->prepare());
-      });
+      api->MinerGetBaseInfo(
+          [self{shared_from_this()}](auto _info) {
+            OUTCOME_LOG("Mining::waitInfo error", _info);
+            self->info = std::move(_info.value());
+            OUTCOME_LOG("Mining::prepare error", self->prepare());
+          },
+          miner,
+          height(),
+          ts->key);
     }
     return outcome::success();
   }
@@ -190,7 +194,7 @@ namespace fc::mining {
             primitives::block::ElectionProof{win_count, Buffer{election_vrf}},
             std::move(info->beacons),
             messages,
-            (uint64_t)height(),
+            height(),
             {},
             std::move(post_proof),
         };

@@ -18,7 +18,7 @@ namespace fc {
   enum class OutcomeError { kDefault = 1 };
 
   template <typename T>
-  struct _Outcome {
+  struct _Outcome {  // NOLINT(bugprone-reserved-identifier)
     using O = outcome::result<T>;
     using E = typename O::error_type;
 
@@ -26,6 +26,9 @@ namespace fc {
 
     _Outcome() : o{outcome::failure(OutcomeError::kDefault)} {}
     template <typename... Args>
+    // TODO (a.chernyshov) (FIL-413) Rework class to make constructor explicit
+    // or remove comment and close FIL-413
+    // NOLINTNEXTLINE(google-explicit-constructor)
     _Outcome(Args &&...args) : o{std::forward<Args>(args)...} {}
 
     // try_operation_has_value
@@ -37,10 +40,16 @@ namespace fc {
       return o.error();
     }
 
+    // TODO (a.chernyshov) (FIL-413) Rework class to make constructor explicit
+    // or remove comment and close FIL-413
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator O &&() && {
       return std::move(o);
     }
 
+    // TODO (a.chernyshov) (FIL-413) Rework class to make constructor explicit
+    // or remove comment and close FIL-413
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator bool() const {
       return o.has_value();
     }
@@ -51,36 +60,39 @@ namespace fc {
 
   template <typename T>
   struct Outcome : _Outcome<T> {
-    using _O = _Outcome<T>;
-    using _O::_O;
+    using OutcomeT = _Outcome<T>;
+    using OutcomeT::OutcomeT;
 
-    Outcome(outcome::result<T> &&o) : _O{std::move(o)} {}
+    // TODO (a.chernyshov) (FIL-413) Rework class to make constructor explicit
+    // or remove comment and close FIL-413
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Outcome(outcome::result<T> &&o) : OutcomeT{std::move(o)} {}
 
     // try_operation_extract_value
     const T &value() const & {
-      return _O::o.value();
+      return OutcomeT::o.value();
     }
     T &value() & {
-      return _O::o.value();
+      return OutcomeT::o.value();
     }
     T &&value() && {
-      return std::move(_O::o.value());
+      return std::move(OutcomeT::o.value());
     }
 
     const T &operator*() const & {
-      return _O::o.value();
+      return OutcomeT::o.value();
     }
     T &operator*() & {
-      return _O::o.value();
+      return OutcomeT::o.value();
     }
     T &&operator*() && {
-      return std::move(_O::o.value());
+      return std::move(OutcomeT::o.value());
     }
     const T *operator->() const {
-      return &_O::o.value();
+      return &OutcomeT::o.value();
     }
     T *operator->() {
-      return &_O::o.value();
+      return &OutcomeT::o.value();
     }
     template <typename... A>
     void emplace(A &&...a) {
@@ -90,8 +102,8 @@ namespace fc {
 
   template <>
   struct Outcome<void> : _Outcome<void> {
-    using _O = _Outcome<void>;
-    using _O::_O;
+    using OutcomeT = _Outcome<void>;
+    using OutcomeT::OutcomeT;
 
     void value() const {
       o.value();

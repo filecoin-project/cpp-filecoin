@@ -10,33 +10,22 @@
 
 namespace fc::api::rpc {
   template <typename M>
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   void Client::_setup(Client &c, M &m) {
     using Result = typename M::Result;
-    m = [&c](auto &&... params) -> outcome::result<Result> {
+    using Callback = typename M::Callback;
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+    m = [&c, name{m.getName()}](Callback cb, auto &&...params) -> void {
       Request req{};
-      req.method = M::name;
+      req.method = name;
       req.params =
           encode(std::make_tuple(std::forward<decltype(params)>(params)...));
-      if constexpr (is_wait<Result>{}) {
-        auto wait{Result::make()};
-        c.call(std::move(req),
-               [&c, weak{weaken(wait.channel)}](auto &&_result) {
-                 boost::asio::post(c.io2, [weak, _result{std::move(_result)}] {
-                   if (auto channel{weak.lock()}) {
-                     if (_result) {
-                       channel->write(
-                           api::decode<typename Result::Type>(_result.value()));
-                     } else {
-                       channel->write(_result.error());
-                     }
-                   }
-                 });
-               });
-        return wait;
-      } else if constexpr (is_chan<Result>{}) {
+      if constexpr (is_chan<Result>{}) {
         auto chan{Result::make()};
         c.call(
-            std::move(req), [&c, weak{weaken(chan.channel)}](auto &&_result) {
+            std::move(req),
+            // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+            [&c, weak{weaken(chan.channel)}](auto &&_result) {
               if (auto channel{weak.lock()}) {
                 if (_result) {
                   if (auto _chan{api::decode<Result>(_result.value())}) {
@@ -60,18 +49,16 @@ namespace fc::api::rpc {
                 channel->closeWrite();
               }
             });
-        return chan;
+        cb(chan);
       } else {
-        std::promise<outcome::result<Result>> promise;
-        auto future{promise.get_future()};
-        c.call(std::move(req), [&promise](auto &&_result) {
-          if (_result) {
-            promise.set_value(api::decode<Result>(_result.value()));
-          } else {
-            promise.set_value(_result.error());
-          }
+        c.call(std::move(req), [&c, cb{std::move(cb)}](auto &&_result) {
+          boost::asio::post(c.io2,
+                            [_result{std::forward<decltype(_result)>(_result)},
+                             cb{std::move(cb)}] {
+                              OUTCOME_CB(auto &&result, _result);
+                              cb(api::decode<Result>(result));
+                            });
         });
-        return future.get();
       }
     };
   }

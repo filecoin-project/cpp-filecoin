@@ -11,6 +11,9 @@
 namespace fc::common {
   using Logger = std::shared_ptr<spdlog::logger>;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  extern spdlog::sink_ptr file_sink;
+
   /**
    * Provide logger object
    * @param tag - tagging name for identifying logger

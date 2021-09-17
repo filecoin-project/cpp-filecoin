@@ -19,6 +19,8 @@ namespace fc::sector_storage {
     TaskType task_type;
     libp2p::common::Hash256 param_hash = {};
 
+    // TODO (a.chernyshov) make explicit
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator Buffer() const {
       Buffer result;
       result.put(task_type);
@@ -65,8 +67,8 @@ namespace fc::sector_storage {
         const WorkerAction &prepare,
         const WorkerAction &work,
         const ReturnCb &cb,
-        uint64_t priority = kDefaultTaskPriority,
-        const boost::optional<WorkId> &maybe_work_id = boost::none) = 0;
+        uint64_t priority,
+        const boost::optional<WorkId> &maybe_work_id) = 0;
 
     virtual void newWorker(std::unique_ptr<WorkerHandle> worker) = 0;
 

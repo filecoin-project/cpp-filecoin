@@ -34,6 +34,8 @@ namespace fc::codec::cbor {
     Type type{Type::INVALID};
     uint64_t extra{};
 
+    // TODO (a.chernyshov) Make explicit
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr operator bool() const {
       return type != Type::INVALID;
     }
@@ -110,15 +112,17 @@ namespace fc::codec::cbor {
     static constexpr size_t _more(uint64_t extra) {
       if (extra < kExtraUint8) {
         return 0;
-      } else if (!(extra & 0xFFFFFFFFFFFFFF00)) {
-        return sizeof(uint8_t);
-      } else if (!(extra & 0xFFFFFFFFFFFF0000)) {
-        return sizeof(uint16_t);
-      } else if (!(extra & 0xFFFFFFFF00000000)) {
-        return sizeof(uint32_t);
-      } else {
-        return sizeof(uint64_t);
       }
+      if ((extra & 0xFFFFFFFFFFFFFF00) == 0) {
+        return sizeof(uint8_t);
+      }
+      if ((extra & 0xFFFFFFFFFFFF0000) == 0) {
+        return sizeof(uint16_t);
+      }
+      if ((extra & 0xFFFFFFFF00000000) == 0) {
+        return sizeof(uint32_t);
+      }
+      return sizeof(uint64_t);
     }
   };
 
@@ -134,6 +138,8 @@ namespace fc::codec::cbor {
     bool tag{};
     bool cid{};
 
+    // TODO (a.chernyshov) The function is too complex, should be simplified
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     inline void update(uint8_t byte) {
       using Type = CborToken::Type;
       assert(!error);
@@ -157,7 +163,7 @@ namespace fc::codec::cbor {
                  : byte == kExtraUint32 ? 4
                  : byte == kExtraUint64 ? 8
                                         : 0;
-          if (!more) {
+          if (more == 0) {
             error = true;
             return;
           }
@@ -165,7 +171,7 @@ namespace fc::codec::cbor {
       } else {
         value.extra = (value.extra << 8) | byte;
       }
-      if (!more) {
+      if (more == 0) {
         if (tag) {
           value.type = Type::CID;
           --value.extra;
@@ -198,7 +204,7 @@ namespace fc::codec::cbor {
   };
 
   inline bool read(CborTokenDecoder &decoder, BytesIn &input) {
-    while (decoder.more) {
+    while (decoder.more != 0) {
       if (input.empty()) {
         return false;
       }
@@ -218,7 +224,7 @@ namespace fc::codec::cbor {
       if (input.empty()) {
         return false;
       }
-      if (decoder.more_size) {
+      if (decoder.more_size != 0) {
         auto n{std::min<size_t>(decoder.more_size, input.size())};
         decoder.more_size -= n;
         fc::codec::read(input, n);
@@ -226,7 +232,7 @@ namespace fc::codec::cbor {
         if (read(decoder.token, input)) {
           decoder.more_size = decoder.token.value.anySize();
           decoder.more_count += decoder.token.value.anyCount();
-          if (decoder.more_count) {
+          if (decoder.more_count != 0) {
             --decoder.more_count;
             decoder.token = {};
           }
@@ -235,7 +241,7 @@ namespace fc::codec::cbor {
           return false;
         }
       }
-      if (!decoder.more()) {
+      if (decoder.more() == 0) {
         return true;
       }
     }
@@ -257,7 +263,7 @@ namespace fc::codec::cbor {
    * @return true on success, otherwise false
    */
   inline bool readNested(BytesIn &nested, BytesIn &input) {
-    auto ptr{input.data()};
+    const auto *ptr{input.data()};
     CborNestedDecoder decoder;
     if (read(decoder, input)) {
       nested = gsl::make_span(ptr, input.data());
@@ -300,7 +306,7 @@ namespace fc::codec::cbor {
     constexpr CborTokenEncoder(CborToken::Type type, uint64_t extra) {
       const auto more{CborToken::_more(extra)};
       length = 1 + more;
-      if (!more) {
+      if (more == 0) {
         _bytes[0] = CborToken::_first(type, extra);
       } else if (more == sizeof(uint8_t)) {
         _bytes[0] = CborToken::_first(type, kExtraUint8);
@@ -327,8 +333,10 @@ namespace fc::codec::cbor {
         _bytes[8] = extra;
       }
     }
+
+    // NOLINTNEXTLINE(google-explicit-constructor)
     constexpr operator BytesIn() const {
-      return gsl::make_span(_bytes).first(length);
+      return gsl::make_span(_bytes).first(static_cast<ptrdiff_t>(length));
     }
   };
 
@@ -343,7 +351,9 @@ namespace fc::codec::cbor {
   }
   inline void writeInt(Bytes &out, int64_t value) {
     if (value < 0) {
-      append(out, CborTokenEncoder{CborToken::Type::INT, (uint64_t)~value});
+      append(out,
+             CborTokenEncoder{CborToken::Type::INT,
+                              static_cast<uint64_t>(~value)});
     } else {
       writeUint(out, value);
     }

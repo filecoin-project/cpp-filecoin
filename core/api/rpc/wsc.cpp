@@ -35,9 +35,9 @@ namespace fc::api::rpc {
         port,
         address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::TCP));
     boost::system::error_code ec;
-    socket.next_layer().connect(
-        {boost::asio::ip::make_address(ip), (unsigned short)std::stoul(port)},
-        ec);
+    socket.next_layer().connect({boost::asio::ip::make_address(ip),
+                                 boost::lexical_cast<uint16_t>(port)},
+                                ec);
     if (ec) {
       return ec;
     }
@@ -112,6 +112,7 @@ namespace fc::api::rpc {
     });
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   void Client::_onread(const Document &j) {
     if (j.HasMember("method")) {
       if (auto _req{decode<Request>(j)}) {

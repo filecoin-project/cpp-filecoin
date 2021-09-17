@@ -7,10 +7,7 @@
 
 #include "common/blob.hpp"
 #include "common/bytes.hpp"
-
-namespace fc::crypto::blake2b {
-  common::Hash256 blake2b_256(BytesIn);
-}  // namespace fc::crypto::blake2b
+#include "crypto/blake2/blake2b160.hpp"
 
 namespace fc {
   constexpr BytesN<6> kCborBlakePrefix{0x01, 0x71, 0xA0, 0xE4, 0x02, 0x20};
@@ -18,7 +15,7 @@ namespace fc {
   using common::Hash256;
 
   struct CbCid : Hash256 {
-    CbCid() : Hash256{} {}
+    CbCid() = default;
     explicit CbCid(const Hash256 &hash) : Hash256{hash} {}
     static CbCid hash(BytesIn cbor) {
       return CbCid{crypto::blake2b::blake2b_256(cbor)};

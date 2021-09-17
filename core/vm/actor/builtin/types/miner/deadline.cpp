@@ -371,6 +371,9 @@ namespace fc::vm::actor::builtin::types::miner {
       OUTCOME_TRY(empty_partitions_cid, deadline->partitions.amt.flush());
       deadline->partitions_snapshot = {empty_partitions_cid, ipld};
 
+      // Lotus gas conformance - flush empty amt
+      OUTCOME_TRY(deadline->expirations_epochs.amt.flush());
+
       OUTCOME_TRY(empty_post_submissions_cid,
                   deadline->optimistic_post_submissions.amt.flush());
       deadline->optimistic_post_submissions_snapshot = {

@@ -24,7 +24,7 @@ namespace fc::sync {
                         const BlockHeader &header);
 
     BigInt min_weight_;
-    Height current_height_ = 0;
+    ChainEpoch current_height_ = 0;
     std::map<TipsetHash, primitives::tipset::TipsetCreator> candidates_;
 
     std::shared_ptr<events::Events> events_;

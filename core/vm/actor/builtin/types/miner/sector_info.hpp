@@ -21,7 +21,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
   struct SectorOnChainInfo {
     SectorNumber sector{};
-    RegisteredSealProof seal_proof;
+    RegisteredSealProof seal_proof{};
     CID sealed_cid;
     std::vector<DealId> deals;
     ChainEpoch activation_epoch{};
@@ -32,7 +32,7 @@ namespace fc::vm::actor::builtin::types::miner {
     TokenAmount expected_day_reward{};
     TokenAmount expected_storage_pledge{};
 
-    bool operator==(const SectorOnChainInfo &other) const {
+    inline bool operator==(const SectorOnChainInfo &other) const {
       return sector == other.sector && seal_proof == other.seal_proof
              && sealed_cid == other.sealed_cid && deals == other.deals
              && activation_epoch == other.activation_epoch
@@ -43,8 +43,11 @@ namespace fc::vm::actor::builtin::types::miner {
              && expected_day_reward == other.expected_day_reward
              && expected_storage_pledge == other.expected_storage_pledge;
     }
+
+    inline bool operator!=(const SectorOnChainInfo &other) const {
+      return !(*this == other);
+    }
   };
-  FC_OPERATOR_NOT_EQUAL(SectorOnChainInfo)
   CBOR_TUPLE(SectorOnChainInfo,
              sector,
              seal_proof,
@@ -73,6 +76,15 @@ namespace fc::vm::actor::builtin::types::miner {
 
     /** Sectors in the partition being declared faulty. */
     RleBitset sectors;
+
+    inline bool operator==(const SectorDeclaration &other) const {
+      return deadline == other.deadline && partition == other.partition
+             && sectors == other.sectors;
+    }
+
+    inline bool operator!=(const SectorDeclaration &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(SectorDeclaration, deadline, partition, sectors)
 
@@ -89,6 +101,21 @@ namespace fc::vm::actor::builtin::types::miner {
     uint64_t replace_deadline{};
     uint64_t replace_partition{};
     SectorNumber replace_sector{};
+
+    inline bool operator==(const SectorPreCommitInfo &other) const {
+      return registered_proof == other.registered_proof
+             && sector == other.sector && sealed_cid == other.sealed_cid
+             && seal_epoch == other.seal_epoch && deal_ids == other.deal_ids
+             && expiration == other.expiration
+             && replace_capacity == other.replace_capacity
+             && replace_deadline == other.replace_deadline
+             && replace_partition == other.replace_partition
+             && replace_sector == other.replace_sector;
+    }
+
+    inline bool operator!=(const SectorPreCommitInfo &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(SectorPreCommitInfo,
              registered_proof,
@@ -108,6 +135,17 @@ namespace fc::vm::actor::builtin::types::miner {
     ChainEpoch precommit_epoch{};
     DealWeight deal_weight{};
     DealWeight verified_deal_weight{};
+
+    inline bool operator==(const SectorPreCommitOnChainInfo &other) const {
+      return info == other.info && precommit_deposit == other.precommit_deposit
+             && precommit_epoch == other.precommit_epoch
+             && deal_weight == other.deal_weight
+             && verified_deal_weight == other.verified_deal_weight;
+    }
+
+    inline bool operator!=(const SectorPreCommitOnChainInfo &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(SectorPreCommitOnChainInfo,
              info,

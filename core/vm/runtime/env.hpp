@@ -16,6 +16,8 @@
 
 namespace fc::vm::runtime {
   using actor::Actor;
+  using primitives::ChainEpoch;
+  using primitives::Nonce;
   using primitives::tipset::TipsetCPtr;
   using state::StateTree;
   using state::StateTreeImpl;
@@ -59,7 +61,7 @@ namespace fc::vm::runtime {
       TokenAmount reward;
     };
 
-    void setHeight(uint64_t height);
+    void setHeight(ChainEpoch height);
 
     outcome::result<Apply> applyMessage(const UnsignedMessage &message,
                                         size_t size);
@@ -70,7 +72,7 @@ namespace fc::vm::runtime {
     std::shared_ptr<IpldBuffered> ipld;
     std::shared_ptr<StateTreeImpl> state_tree;
     EnvironmentContext env_context;
-    uint64_t epoch;  // mutable epoch for cron()
+    ChainEpoch epoch;  // mutable epoch for cron()
     TsBranchPtr ts_branch;
     TipsetCPtr tipset;
     Pricelist pricelist;
@@ -96,17 +98,17 @@ namespace fc::vm::runtime {
     GasAmount gas_used;
     GasAmount gas_limit;
     Address origin;
-    uint64_t origin_nonce;
+    Nonce origin_nonce;
     size_t actors_created{};
   };
 
   struct ChargingIpld : Ipld {
-    explicit ChargingIpld(std::shared_ptr<Execution> execution)
+    explicit ChargingIpld(const std::shared_ptr<Execution> &execution)
         : execution_{execution} {
       actor_version = execution->env->ipld->actor_version;
     }
     outcome::result<bool> contains(const CID &key) const override {
-      throw "not implemented";
+      return ERROR_TEXT("not implemented");
     }
     outcome::result<void> set(const CID &key, Value value) override;
     outcome::result<Value> get(const CID &key) const override;

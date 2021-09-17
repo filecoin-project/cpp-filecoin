@@ -7,10 +7,8 @@
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::clock, EpochAtTimeError, e) {
   using fc::clock::EpochAtTimeError;
-  switch (e) {
-    case EpochAtTimeError::kBeforeGenesis:
-      return "Input time is before genesis time";
-    default:
-      return "Unknown error";
+  if (e == EpochAtTimeError::kBeforeGenesis) {
+    return "Input time is before genesis time";
   }
+  return "Unknown error";
 }

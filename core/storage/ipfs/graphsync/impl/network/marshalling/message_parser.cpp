@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "message_parser.hpp"
+#include "storage/ipfs/graphsync/impl/network/marshalling/message_parser.hpp"
 
 #include "codec/cbor/cbor_decode_stream.hpp"
 #include "common/span.hpp"
@@ -108,8 +108,9 @@ namespace fc::storage::ipfs::graphsync {
           if (!prefix_reader.empty()) {
             return Error::kMessageParseError;
           }
-          cid.content_address =
-              crypto::Hasher::calculate(cid.content_address.getType(), data);
+          OUTCOME_TRYA(
+              cid.content_address,
+              crypto::Hasher::calculate(cid.content_address.getType(), data));
           msg.data.emplace_back(std::move(cid), data);
         }
       }

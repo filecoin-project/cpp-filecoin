@@ -29,8 +29,14 @@ namespace fc::api::rpc {
     using ResultCb = std::function<void(outcome::result<Document>)>;
     using ChanCb = std::function<bool(boost::optional<Document>)>;
 
-    Client(io_context &io2);
+    explicit Client(io_context &io2);
+    Client(const Client &) = delete;
+    Client(Client &&) = delete;
     ~Client();
+
+    Client &operator=(const Client &) = delete;
+    Client &operator=(Client &&) = delete;
+
     outcome::result<void> connect(const Multiaddress &address,
                                   const std::string &target,
                                   const std::string &token);
@@ -45,6 +51,7 @@ namespace fc::api::rpc {
       visit(api, [&](auto &m) { _setup(*this, m); });
     }
 
+   private:
     std::thread thread;
     io_context io;
     io_context &io2;
@@ -61,7 +68,6 @@ namespace fc::api::rpc {
     template <typename M>
     void _setup(Client &c, M &m);
 
-   private:
     Logger logger_;
   };
 }  // namespace fc::api::rpc

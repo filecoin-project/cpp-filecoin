@@ -119,6 +119,42 @@ namespace fc::vm::actor::builtin::types::miner {
            && fault_declaration_cutoff == other.fault_declaration_cutoff;
   }
 
+  bool deadlineIsMutable(ChainEpoch proving_period_start,
+                         uint64_t dl_id,
+                         ChainEpoch curr_epoch) {
+    // Get the next non-elapsed deadline (i.e., the next time we care about
+    // mutations to the deadline).
+    const DeadlineInfo dl_info =
+        DeadlineInfo(proving_period_start, dl_id, curr_epoch).nextNotElapsed();
+
+    // Ensure that the current epoch is at least one challenge window before
+    // that deadline opens.
+    return curr_epoch < dl_info.open - kWPoStChallengeWindow;
+  }
+
+  bool deadlineAvailableForOptimisticPoStDispute(
+      ChainEpoch proving_period_start, uint64_t dl_id, ChainEpoch curr_epoch) {
+    if (proving_period_start > curr_epoch) {
+      // We haven't started proving yet, there's nothing to dispute.
+      return false;
+    }
+
+    const DeadlineInfo dl_info =
+        DeadlineInfo(proving_period_start, dl_id, curr_epoch).nextNotElapsed();
+
+    return !dl_info.isOpen()
+           && curr_epoch
+                  < (dl_info.close - kWPoStProvingPeriod) + kWPoStDisputeWindow;
+  }
+
+  bool deadlineAvailableForCompaction(ChainEpoch proving_period_start,
+                                      uint64_t dl_id,
+                                      ChainEpoch curr_epoch) {
+    return deadlineIsMutable(proving_period_start, dl_id, curr_epoch)
+           && !deadlineAvailableForOptimisticPoStDispute(
+               proving_period_start, dl_id, curr_epoch);
+  }
+
   DeadlineInfo newDeadlineInfoFromOffsetAndEpoch(ChainEpoch period_start_seed,
                                                  ChainEpoch curr_epoch) {
     const auto quant = QuantSpec(kWPoStProvingPeriod, period_start_seed);

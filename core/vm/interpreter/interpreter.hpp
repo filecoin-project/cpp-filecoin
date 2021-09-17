@@ -13,7 +13,6 @@
 
 namespace fc::vm::interpreter {
   using primitives::BigInt;
-  using primitives::tipset::Height;
   using storage::PersistentBufferMap;
 
   enum class InterpreterError {
@@ -32,10 +31,6 @@ namespace fc::vm::interpreter {
   CBOR_TUPLE(Result, state_root, message_receipts, weight)
 
   struct InterpreterCache {
-    struct Key {
-      Key(const TipsetKey &tsk);
-      Buffer key;
-    };
     InterpreterCache(std::shared_ptr<PersistentBufferMap> kv,
                      std::shared_ptr<CbIpld> ipld);
 
@@ -45,16 +40,16 @@ namespace fc::vm::interpreter {
      * @return tipset invocation result if key is present or boost::none
      * otherwise
      */
-    boost::optional<outcome::result<Result>> tryGet(const Key &key) const;
-    outcome::result<Result> get(const Key &key) const;
-    void set(const Key &key, const Result &result);
+    boost::optional<outcome::result<Result>> tryGet(const TipsetKey &key) const;
+    outcome::result<Result> get(const TipsetKey &key) const;
+    void set(const TipsetKey &key, const Result &result);
 
     /**
      * Marks that vm returned error for the tipset.
      * @param key
      */
-    void markBad(const Key &key);
-    void remove(const Key &key);
+    void markBad(const TipsetKey &key);
+    void remove(const TipsetKey &key);
 
    private:
     std::shared_ptr<PersistentBufferMap> kv;

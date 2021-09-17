@@ -22,7 +22,7 @@ namespace fc::api {
   namespace net = boost::asio;
   using rpc::OkCb;
 
-  common::Logger logger = common::createLogger("sector server");
+  const common::Logger logger = common::createLogger("sector server");
 
   constexpr auto kParseError = INT64_C(-32700);
   constexpr auto kInvalidRequest = INT64_C(-32600);
@@ -31,7 +31,7 @@ namespace fc::api {
   const auto kChanCloseDelay{boost::posix_time::milliseconds(100)};
 
   struct SocketSession : std::enable_shared_from_this<SocketSession> {
-    SocketSession(tcp::socket &&socket, const Rpc &api_rpc)
+    SocketSession(tcp::socket &&socket, Rpc api_rpc)
         : socket{std::move(socket)},
           timer{this->socket.get_executor()},
           rpc(std::move(api_rpc)) {}
@@ -199,7 +199,11 @@ namespace fc::api {
       bool is_handled = false;
       for (auto &route : *routes) {
         if (request.target().starts_with(route.first)) {
-          w_response = route.second(request);
+          boost::asio::post(stream.get_executor(),
+                            [self{shared_from_this()}, fn{route.second}]() {
+                              self->w_response = fn(self->request);
+                              self->doWrite();
+                            });
           is_handled = true;
           break;
         }
@@ -210,19 +214,20 @@ namespace fc::api {
         response.keep_alive(false);
         response.result(http::status::bad_request);
         w_response.response = std::move(response);
+        doWrite();
       }
-      doWrite();
     }
 
     // aka visitor
     void doWrite() {
-      if (auto d_response = std::get_if<http::response<http::string_body>>(
+      if (auto *d_response = std::get_if<http::response<http::string_body>>(
               &(w_response.response))) {
         doWrite(*d_response);
-      } else if (auto f_response = std::get_if<http::response<http::file_body>>(
-                     &(w_response.response))) {
+      } else if (auto *f_response =
+                     std::get_if<http::response<http::file_body>>(
+                         &(w_response.response))) {
         doWrite(*f_response);
-      } else if (auto e_response =
+      } else if (auto *e_response =
                      std::get_if<http::response<http::empty_body>>(
                          &(w_response.response))) {
         doWrite(*e_response);
@@ -254,8 +259,6 @@ namespace fc::api {
       boost::system::error_code ec;
       stream.socket().shutdown(tcp::socket::shutdown_send, ec);
     }
-
-    // TODO: maybe add queue for requests
 
     beast::tcp_stream stream;
     beast::flat_buffer buffer;
@@ -298,15 +301,13 @@ namespace fc::api {
    * Creates and runs Server.
    * @param rpc - APIs to serve
    */
-  void serve(std::map<std::string, std::shared_ptr<Rpc>> rpc,
-             std::shared_ptr<Routes> routes,
+  void serve(const std::map<std::string, std::shared_ptr<Rpc>> &rpc,
+             const std::shared_ptr<Routes> &routes,
              boost::asio::io_context &ioc,
              std::string_view ip,
              unsigned short port) {
     std::make_shared<Server>(
-        tcp::acceptor{ioc, {net::ip::make_address(ip), port}},
-        std::move(rpc),
-        std::move(routes))
+        tcp::acceptor{ioc, {net::ip::make_address(ip), port}}, rpc, routes)
         ->run();
   }
 
@@ -319,7 +320,13 @@ namespace fc::api {
 
   WrapperResponse::~WrapperResponse() {
     if (release_resources) {
-      release_resources();
+      try {
+        release_resources();
+      } catch (...) {
+        logger->error(
+            "Unhandled exception in "
+            "fc::api::WrapperResponse::release_resources()");
+      }
     }
   }
 

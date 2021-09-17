@@ -9,10 +9,10 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   outcome::result<Address> PaymentChannelUtils::resolveAccount(
       const Address &address, const CodeId &accountCodeCid) const {
     CHANGE_ERROR_A(
-        resolved, runtime.resolveAddress(address), VMExitCode::kErrNotFound);
+        resolved, getRuntime().resolveAddress(address), VMExitCode::kErrNotFound);
 
     CHANGE_ERROR_A(
-        code, runtime.getActorCodeID(resolved), VMExitCode::kErrForbidden);
+        code, getRuntime().getActorCodeID(resolved), VMExitCode::kErrForbidden);
     if (code != accountCodeCid) {
       return VMExitCode::kErrForbidden;
     }

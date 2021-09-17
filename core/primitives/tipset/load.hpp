@@ -48,7 +48,7 @@ namespace fc::primitives::tipset {
 
   struct TsLoadIpld : public TsLoad {
    public:
-    TsLoadIpld(IpldPtr ipld);
+    explicit TsLoadIpld(IpldPtr ipld);
     outcome::result<LoadCache> loadWithCacheInfo(const TipsetKey &key) override;
     outcome::result<TipsetCPtr> load(const TipsetKey &key) override;
     outcome::result<TipsetCPtr> lazyLoad(const TsLazy &lazy) override;

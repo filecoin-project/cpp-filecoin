@@ -70,7 +70,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
-  outcome::result<Tipset> TipsetCacheImpl::getNonNull(uint64_t height) {
+  outcome::result<Tipset> TipsetCacheImpl::getNonNull(ChainEpoch height) {
     while (true) {
       OUTCOME_TRY(tipset, get(height++));
 
@@ -81,7 +81,7 @@ namespace fc::mining {
   }
 
   outcome::result<boost::optional<Tipset>> TipsetCacheImpl::get(
-      uint64_t height) {
+      ChainEpoch height) {
     std::shared_lock lock(mutex_);
 
     if (len_ == 0) {

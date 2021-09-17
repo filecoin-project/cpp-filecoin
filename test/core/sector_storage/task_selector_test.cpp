@@ -140,7 +140,7 @@ namespace fc::sector_storage {
         .gpus = {},
     };
 
-    not_best_handle->active.memory_used_min = 2048;
+    not_best_handle->active.setMemoryUsedMin(2048);
 
     EXPECT_CALL(*worker_, getSupportedTask())
         .WillOnce(testing::Return(
@@ -167,7 +167,7 @@ namespace fc::sector_storage {
         .gpus = {},
     };
 
-    some_handle->active.memory_used_min = 1024;
+    some_handle->active.setMemoryUsedMin(1024);
 
     EXPECT_OUTCOME_EQ(
         task_selector_->is_preferred(

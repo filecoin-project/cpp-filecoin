@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include <libp2p/crypto/sha/sha256.hpp>
 #include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
+#include "crypto/sha/sha256.hpp"
 #include "sector_storage/scheduler.hpp"
 
 namespace fc::sector_storage {
@@ -17,7 +17,7 @@ namespace fc::sector_storage {
     OUTCOME_TRY(param, codec::json::format(api::encode(params)));
     return WorkId{
         .task_type = task_type,
-        .param_hash = libp2p::crypto::sha256(param),
+        .param_hash = crypto::sha::sha256(param),
     };
   }
 }  // namespace fc::sector_storage

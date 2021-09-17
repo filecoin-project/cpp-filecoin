@@ -31,11 +31,11 @@ namespace fc::blockchain::block_validator {
 
   outcome::result<void> ConsensusRules::epoch(const BlockHeader &block,
                                               ChainEpoch current_epoch) {
-    if (block.height > static_cast<uint64_t>(current_epoch)) {
+    if (block.height > current_epoch) {
       return ConsensusError::kBlockEpochInFuture;
     }
-    // TODO: block epoch mast be not farther in the past than the soft
-    // finality as defined by SPC
+    // TODO (Kaprovich): block epoch mast be not farther in the past than the
+    // soft finality as defined by SPC
     return outcome::success();
   }
 }  // namespace fc::blockchain::block_validator

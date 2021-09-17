@@ -28,7 +28,8 @@ namespace fc::common {
       Buffer buffer;
       buffer.resize(file.tellg());
       file.seekg(0, std::ios::beg);
-      file.read(common::span::string(buffer).data(), buffer.size());
+      file.read(common::span::string(buffer).data(),
+                static_cast<ptrdiff_t>(buffer.size()));
       return buffer;
     }
     return {};

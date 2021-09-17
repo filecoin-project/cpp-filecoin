@@ -46,7 +46,12 @@ namespace fc {
         libp2p::multi::Multihash content_address);
 
     explicit CID(const CbCid &cid);
+    // TODO (a.chernyshov) (FIL-412) make constructor explicit or remove it or
+    // remove ActorCodeCid class or just leave no-lint
+    // NOLINTNEXTLINE(google-explicit-constructor)
     CID(const ActorCodeCid &cid);
+
+    ~CID() = default;
 
     CID &operator=(const CID &) = default;
 

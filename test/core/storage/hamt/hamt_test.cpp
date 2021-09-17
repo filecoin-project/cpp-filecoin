@@ -43,12 +43,12 @@ namespace fc::storage::hamt {
     n.items[17] = "010000020000"_cid;
     expectEncodeAndReencode(n, "824302000081a16130d82a4700010000020000"_unhex);
 
-    n.items[17] =
-        Node::Leaf{{copy(bytestr("a")), codec::cbor::encode("b").value()}};
+    n.items[17] = Node::Leaf{
+        {copy(bytestr("a")), Bytes{codec::cbor::encode("b").value()}}};
     expectEncodeAndReencode(n, "824302000081a16131818241616162"_unhex);
 
-    n.items[2] =
-        Node::Leaf{{copy(bytestr("b")), codec::cbor::encode("a").value()}};
+    n.items[2] = Node::Leaf{
+        {copy(bytestr("b")), Bytes{codec::cbor::encode("a").value()}}};
     expectEncodeAndReencode(
         n, "824302000482a16131818241626161a16131818241616162"_unhex);
 
