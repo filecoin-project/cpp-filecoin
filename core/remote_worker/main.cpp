@@ -270,7 +270,8 @@ namespace fc {
     wroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
 
     api::serve(wrpc, wroutes, *io, "127.0.0.1", config.api_port);
-    api::rpc::saveInfo(config.repo_path, config.api_port, boost::none);
+    api::rpc::saveInfo(
+        config.repo_path, config.api_port, Buffer{{1, 2, 3, 4}});  // TODO: Auth
 
     IoThread thread;
     boost::asio::post(*(thread.io), [&] {

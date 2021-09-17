@@ -9,6 +9,7 @@
 #include <boost/filesystem/string_file.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 
+#include "common/file.hpp"
 #include "common/outcome2.hpp"
 
 namespace fc::api::rpc {
@@ -38,10 +39,9 @@ namespace fc::api::rpc {
   // TODO: hostname
   inline void saveInfo(const boost::filesystem::path &repo,
                        int port,
-                       const boost::optional<std::string> &maybe_token) {
+                       const Buffer &token) {
     auto address{fmt::format("/ip4/127.0.0.1/tcp/{}/http", port)};
     boost::filesystem::save_string_file(repo / "api", address);
-    if (maybe_token.has_value())
-      boost::filesystem::save_string_file(repo / "token", *maybe_token);
+    common::writeFile(repo / "token", token);
   }
 }  // namespace fc::api::rpc

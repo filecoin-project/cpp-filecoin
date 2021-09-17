@@ -29,6 +29,7 @@
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
 #include "codec/json/json.hpp"
+#include "common/api_secret.hpp"
 #include "common/error_text.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
@@ -53,7 +54,6 @@
 #include "power/impl/power_table_impl.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "primitives/tipset/file.hpp"
-#include "secret.hpp"
 #include "sector_storage/stores/impl/storage_impl.hpp"
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/util.hpp"
@@ -585,10 +585,7 @@ namespace fc::node {
     OUTCOME_TRY(createStorageMarketClient(o));
     OUTCOME_TRY(createRetrievalMarketClient(o));
 
-    OUTCOME_TRY(
-        api_secret,
-        getApiSecret(std::make_shared<LocalStorageImpl>(config.repo_path),
-                     log()));
+    OUTCOME_TRY(api_secret, loadApiSecret(config.join("secret")));
 
     o.api = api::makeImpl(o.api,
                           o.chain_store,
@@ -605,8 +602,9 @@ namespace fc::node {
                           o.key_store,
                           o.market_discovery,
                           o.retrieval_market_client,
-                          o.wallet_default_address,
-                          api_secret);
+                          o.wallet_default_address);
+
+    api::fillAuthApi(o.api, api_secret, log());
 
     auto paych{
         std::make_shared<payment_channel_manager::PaymentChannelManagerImpl>(

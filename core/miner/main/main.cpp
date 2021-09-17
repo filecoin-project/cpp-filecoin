@@ -18,6 +18,7 @@
 #include "api/storage_miner/storage_api.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
 #include "codec/json/json.hpp"
+#include "common/api_secret.hpp"
 #include "common/file.hpp"
 #include "common/io_thread.hpp"
 #include "common/libp2p/soralog.hpp"
@@ -34,7 +35,6 @@
 #include "miner/windowpost.hpp"
 #include "primitives/address/config.hpp"
 #include "proofs/proof_param_provider.hpp"
-#include "secret.hpp"
 #include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/manager_impl.hpp"
 #include "sector_storage/impl/scheduler_impl.hpp"
@@ -427,7 +427,7 @@ namespace fc {
             miner)};
     retrieval_provider->start();
 
-    OUTCOME_TRY(api_secret, getApiSecret(storage, log()));
+    OUTCOME_TRY(api_secret, loadApiSecret(config.join("secret")));
 
     auto mapi = api::makeStorageApi(io,
                                     napi,
@@ -438,8 +438,11 @@ namespace fc {
                                     wscheduler,
                                     stored_ask,
                                     storage_provider,
-                                    retrieval_provider,
-                                    api_secret);
+                                    retrieval_provider);
+
+    api::fillAuthApi(mapi, api_secret, log());
+
+    OUTCOME_TRY(token, mapi->AuthNew(kAllPermission));
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
     mrpc.emplace("/rpc/v0", api::makeRpc(*mapi));
@@ -448,7 +451,7 @@ namespace fc {
     mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
 
     api::serve(mrpc, mroutes, *io, "127.0.0.1", config.api_port);
-    api::rpc::saveInfo(config.repo_path, config.api_port, boost::none);
+    api::rpc::saveInfo(config.repo_path, config.api_port, token);
 
     log()->info("fuhon miner started");
     log()->info("peer id {}", host->getId().toBase58());

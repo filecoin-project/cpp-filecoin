@@ -9,5 +9,5 @@ add_library(storage_miner_api
 target_link_libraries(storage_miner_api
     p2p::p2p
     remote_worker
-    common_api
+    jwt
     )

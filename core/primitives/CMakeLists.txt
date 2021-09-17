@@ -6,6 +6,7 @@
 add_subdirectory(address)
 add_subdirectory(block)
 add_subdirectory(cid)
+add_subdirectory(jwt)
 add_subdirectory(piece)
 add_subdirectory(resources)
 add_subdirectory(rle_bitset)

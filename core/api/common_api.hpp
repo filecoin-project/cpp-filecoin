@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <jwt-cpp/jwt.h>
 #include <libp2p/peer/peer_info.hpp>
 
 #include "api/utils.hpp"
@@ -13,25 +12,12 @@
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "common/span.hpp"
+#include "primitives/jwt/jwt.hpp"
 
 namespace fc::api {
   using common::Buffer;
   using libp2p::peer::PeerInfo;
-  using ApiAlgorithm = jwt::algorithm::hmacsha;
-  const std::string kTokenType = "JWT";
-  const std::string kPermissionKey = "Allow";
-
-  using Permission = std::string;
-
-  const Permission kAdminPermission = "admin";
-  const Permission kReadPermission = "read";
-  const Permission kWritePermission = "write";
-  const Permission kSignPermission = "sign";
-
-  const std::vector<Permission> kAllPermission = {
-      kAdminPermission, kReadPermission, kWritePermission, kSignPermission};
-
-  const std::vector<Permission> kDefaultPermission = {kReadPermission};
+  using primitives::jwt::Permission;
 
   struct CommonApi {
     /**
@@ -71,61 +57,5 @@ namespace fc::api {
     f(a.NetConnect);
     f(a.NetPeers);
     f(a.Version);
-  }
-
-  inline void makeCommonApi(
-      const std::shared_ptr<CommonApi> &api,
-      const std::shared_ptr<ApiAlgorithm> &secret_algorithm,
-      const common::Logger &logger) {
-    api->AuthNew = [=](auto perms) -> outcome::result<Buffer> {
-      std::error_code ec;
-      auto token =
-          jwt::create()
-              .set_type(kTokenType)
-              .set_payload_claim(kPermissionKey,
-                                 jwt::claim(perms.begin(), perms.end()))
-              .sign(*secret_algorithm, ec);
-
-      if (ec) {
-        logger->error("Error when sign token: {}", ec.message());
-        return ERROR_TEXT("API ERROR");
-      }
-
-      return Buffer{common::span::cbytes(token)};
-    };
-    api->AuthVerify =
-        [=](auto token) -> outcome::result<std::vector<Permission>> {
-      static auto decode = [logger](const std::string &token)
-          -> outcome::result<jwt::decoded_jwt<jwt::picojson_traits>> {
-        try {
-          return jwt::decode(token);
-        } catch (const std::exception &e) {
-          logger->error("Error when decode token: {}", e.what());
-          return ERROR_TEXT("API ERROR");
-        }
-      };
-      static auto verifier = jwt::verify()
-                                 .with_type(kTokenType)
-                                 .allow_algorithm(*secret_algorithm);
-
-      OUTCOME_TRY(decoded_jwt, decode(token));
-      std::error_code ec;
-      verifier.verify(decoded_jwt, ec);
-      if (ec) {
-        logger->error("Error when verify token: {}", ec.message());
-        return ERROR_TEXT("API ERROR");
-      }
-      auto perms_json =
-          decoded_jwt.get_payload_claim(kPermissionKey).as_array();
-      std::vector<std::string> perms;
-      std::transform(perms_json.begin(),
-                     perms_json.end(),
-                     std::back_inserter(perms),
-                     [](const picojson::value &elem) -> std::string {
-                       return elem.get<std::string>();
-                     });
-
-      return std::move(perms);
-    };
   }
 }  // namespace fc::api
