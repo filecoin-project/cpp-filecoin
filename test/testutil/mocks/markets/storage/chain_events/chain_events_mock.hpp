@@ -14,7 +14,7 @@ namespace fc::markets::storage::chain_events {
   class ChainEventsMock : public ChainEvents {
    public:
     MOCK_METHOD3(onDealSectorCommitted,
-                 void(const Address &, const DealId &, Cb));
+                 void(const Address &, const DealId &, CommitCb));
   };
 
 }  // namespace fc::markets::storage::chain_events

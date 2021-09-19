@@ -20,8 +20,8 @@ namespace fc::markets::storage::test {
     EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _, _))
         // one for client and one for provider
         .Times(2)
-        .WillRepeatedly(
-            testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
+        .WillRepeatedly(testing::Invoke(
+            [](auto, auto, auto cb) { cb(outcome::success()); }));
 
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
     ChainEpoch start_epoch{210};
@@ -97,8 +97,8 @@ namespace fc::markets::storage::test {
     EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _, _))
         // one for client and one for provider
         .Times(2)
-        .WillRepeatedly(
-            testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
+        .WillRepeatedly(testing::Invoke(
+            [](auto, auto, auto cb) { cb(outcome::success()); }));
 
     // some unique valid CID of funding message
     CID client_funding_cid = "010001020002"_cid;
@@ -192,8 +192,8 @@ namespace fc::markets::storage::test {
     EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _, _))
         // one for client and one for provider
         .Times(2)
-        .WillRepeatedly(
-            testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
+        .WillRepeatedly(testing::Invoke(
+            [](auto, auto, auto cb) { cb(outcome::success()); }));
 
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
     data_ref.transfer_type = kTransferTypeGraphsync;

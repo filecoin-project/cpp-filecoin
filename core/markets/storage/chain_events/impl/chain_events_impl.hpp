@@ -7,7 +7,7 @@
 
 #include "markets/storage/chain_events/chain_events.hpp"
 
-#include <shared_mutex>
+#include <mutex>
 
 #include "api/full_node/node_api.hpp"
 #include "common/logger.hpp"
@@ -17,11 +17,19 @@ namespace fc::markets::storage::chain_events {
   using adt::Channel;
   using api::FullNodeApi;
   using primitives::tipset::HeadChange;
+  using primitives::tipset::TipsetCPtr;
   using vm::message::UnsignedMessage;
 
   class ChainEventsImpl : public ChainEvents,
                           public std::enable_shared_from_this<ChainEventsImpl> {
    public:
+    using PrecommitCb = std::function<void(outcome::result<SectorNumber>)>;
+
+    struct Watch {
+      std::multimap<DealId, PrecommitCb> precommits;
+      std::multimap<SectorNumber, CommitCb> commits;
+    };
+
     ChainEventsImpl(std::shared_ptr<FullNodeApi> api);
 
     /**
@@ -31,7 +39,7 @@ namespace fc::markets::storage::chain_events {
 
     void onDealSectorCommitted(const Address &provider,
                                const DealId &deal_id,
-                               Cb cb) override;
+                               CommitCb cb) override;
 
    private:
     bool onRead(const boost::optional<std::vector<HeadChange>> &changes);
@@ -46,8 +54,10 @@ namespace fc::markets::storage::chain_events {
      */
     std::shared_ptr<Channel<std::vector<HeadChange>>> channel_;
 
-    mutable std::shared_mutex watched_events_mutex_;
-    std::vector<EventWatch> watched_events_;
+    TipsetCPtr head_;
+
+    mutable std::mutex watched_events_mutex_;
+    std::map<Address, Watch> watched_events_;
 
     common::Logger logger_ = common::createLogger("StorageMarketEvents");
   };

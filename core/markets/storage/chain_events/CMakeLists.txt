@@ -8,4 +8,5 @@ add_library(chain_events
     )
 target_link_libraries(chain_events
     api
+    api_ipfs_datastore
     )

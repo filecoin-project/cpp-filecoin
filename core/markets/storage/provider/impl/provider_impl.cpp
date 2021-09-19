@@ -637,7 +637,7 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-     api_->StateWaitMsg(
+    api_->StateWaitMsg(
         [self{shared_from_this()}, deal, to](outcome::result<MsgWait> result) {
           SELF_FSM_HALT_ON_ERROR(
               result, "Publish storage deal message error", deal);
@@ -691,7 +691,10 @@ namespace fc::markets::storage::provider {
       StorageDealStatus from,
       StorageDealStatus to) {
     chain_events_->onDealSectorCommitted(
-        deal->client_deal_proposal.proposal.provider, deal->deal_id, [=] {
+        deal->client_deal_proposal.proposal.provider,
+        deal->deal_id,
+        [=](auto _r) {
+          FSM_HALT_ON_ERROR(_r, "onDealSectorCommitted error", deal);
           FSM_SEND(deal, ProviderEvent::ProviderEventDealActivated);
         });
   }
