@@ -268,8 +268,8 @@ namespace fc {
                       res.error());
       }
     })};
-    o.api->MpoolPushMessage = [&, impl{std::move(o.api->MpoolPushMessage)}](
-                                  auto &arg1, auto &arg2) {
+    o.api->MpoolPushMessage = [&, impl{o.api->MpoolPushMessage}](auto &arg1,
+                                                                 auto &arg2) {
       auto res{impl(arg1, arg2)};
       if (res) {
         o.pubsub_gate->publish(res.value());
