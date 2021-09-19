@@ -15,6 +15,7 @@
 
 namespace fc::storage::ipfs::graphsync {
   using libp2p::basic::Scheduler;
+  using libp2p::peer::PeerInfo;
 
   /// Network part of graphsync component
   class Network : public std::enable_shared_from_this<Network>,
@@ -46,8 +47,7 @@ namespace fc::storage::ipfs::graphsync {
     /// \param address optional network address
     /// \param request_id request ID
     /// \param request_body serialized request data
-    void makeRequest(const PeerId &peer,
-                     boost::optional<libp2p::multi::Multiaddress> address,
+    void makeRequest(const PeerInfo &peer,
                      RequestId request_id,
                      SharedData request_body);
 

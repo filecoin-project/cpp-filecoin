@@ -46,13 +46,11 @@ namespace fc::storage::ipfs::graphsync {
                       const Response &response) override;
     void start() override;
     void stop() override;
-    Subscription makeRequest(
-        const libp2p::peer::PeerId &peer,
-        boost::optional<libp2p::multi::Multiaddress> address,
-        const CID &root_cid,
-        gsl::span<const uint8_t> selector,
-        const std::vector<Extension> &extensions,
-        RequestProgressCallback callback) override;
+    Subscription makeRequest(const libp2p::peer::PeerInfo &peer,
+                             const CID &root_cid,
+                             gsl::span<const uint8_t> selector,
+                             const std::vector<Extension> &extensions,
+                             RequestProgressCallback callback) override;
 
     // PeerToGraphsyncFeedback interface overrides
     void onResponse(const PeerId &peer,

@@ -67,10 +67,8 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   void PeerContext::setOutboundAddress(
-      boost::optional<libp2p::multi::Multiaddress> connect_to) {
-    if (connect_to) {
-      connect_to_ = std::move(connect_to);
-    }
+      std::vector<libp2p::multi::Multiaddress> connect_to) {
+    connect_to_ = std::move(connect_to);
   }
 
   void PeerContext::connectIfNeeded() {
@@ -81,19 +79,11 @@ namespace fc::storage::ipfs::graphsync {
     if (!outbound_endpoint_) {
       outbound_endpoint_ = std::make_unique<OutboundEndpoint>();
 
-      logger()->debug("connecting to {}, {}",
-                      str,
-                      connect_to_ ? connect_to_->getStringAddress()
-                                  : "existing connection");
-
-      libp2p::peer::PeerInfo pi{peer, {}};
-      if (connect_to_) {
-        pi.addresses.push_back(connect_to_.value());
-      }
+      logger()->debug("connecting to {}", str);
 
       // clang-format off
       host_.newStream(
-          std::move(pi),
+          {peer, connect_to_},
           std::string(kProtocolVersion),
           [wptr{weak_from_this()}]
               (outcome::result<StreamPtr> rstream) {
@@ -121,7 +111,6 @@ namespace fc::storage::ipfs::graphsync {
       if (getState() == is_connecting) {
         closeLocalRequests(RS_CANNOT_CONNECT);
       }
-      connect_to_.reset();
     }
   }
 
