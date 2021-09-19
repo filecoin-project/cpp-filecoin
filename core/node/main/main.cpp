@@ -244,6 +244,8 @@ namespace fc {
   }
 
   void main(node::Config &config) {
+    const auto start_time{Metrics::Clock::now()};
+
     vm::actor::cgo::configParams();
 
     if (config.log_level <= spdlog::level::debug) {
@@ -277,7 +279,7 @@ namespace fc {
       return res;
     };
 
-    Metrics metrics{o};
+    Metrics metrics{o, start_time};
 
     o.io_context->post([&] {
       for (auto &host : config.drand_servers) {
