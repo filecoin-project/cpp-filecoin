@@ -98,15 +98,16 @@ namespace fc::markets::retrieval::client {
             auto unseal{res.status == DealStatus::kDealStatusFundsNeededUnseal};
             const auto last{res.status
                             == DealStatus::kDealStatusFundsNeededLastPayment};
-            deal->accepted =
-                unseal || res.status == DealStatus::kDealStatusAccepted || last;
+            const auto done{res.status == DealStatus::kDealStatusCompleted};
+            const auto accepted{res.status == DealStatus::kDealStatusAccepted};
+            deal->accepted = unseal || accepted || last || done;
             if (!deal->accepted) {
               deal->handler(
                   res.status == DealStatus::kDealStatusRejected
                       ? RetrievalClientError::kResponseDealRejected
-                      : res.status == DealStatus::kDealStatusDealNotFound
-                            ? RetrievalClientError::kResponseNotFound
-                            : RetrievalClientError::kUnknownResponseReceived);
+                  : res.status == DealStatus::kDealStatusDealNotFound
+                      ? RetrievalClientError::kResponseNotFound
+                      : RetrievalClientError::kUnknownResponseReceived);
               datatransfer_->pulling_out.erase(deal->pdtid);
               return;
             }
