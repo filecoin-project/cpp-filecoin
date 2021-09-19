@@ -170,6 +170,6 @@ namespace fc::vm::actor::builtin::types::miner {
   };
 
   outcome::result<Universal<Deadline>> makeEmptyDeadline(
-      const Runtime &runtime, const CID &empty_amt_cid);
+      const IpldPtr &ipld, const CID &empty_amt_cid);
 
 }  // namespace fc::vm::actor::builtin::types::miner

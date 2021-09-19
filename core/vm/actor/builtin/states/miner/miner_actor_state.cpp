@@ -454,15 +454,11 @@ namespace fc::vm::actor::builtin::states {
         .total_faulty_power = total_faulty_power};
   }
 
-  outcome::result<MinerActorStatePtr> makeEmptyMinerState(
-      const Runtime &runtime) {
-    const auto version = runtime.getActorVersion();
-    const auto ipld = runtime.getIpfsDatastore();
-
-    MinerActorStatePtr state{version};
+  outcome::result<MinerActorStatePtr> makeEmptyMinerState(const IpldPtr &ipld) {
+    MinerActorStatePtr state{ipld->actor_version};
     cbor_blake::cbLoadT(ipld, state);
 
-    if (version < ActorVersion::kVersion3) {
+    if (ipld->actor_version < ActorVersion::kVersion3) {
       // Lotus gas conformance - flush empty hamt
       OUTCOME_TRY(state->precommitted_sectors.hamt.flush());
 
@@ -476,7 +472,7 @@ namespace fc::vm::actor::builtin::states {
       // construct with empty already cid stored in ipld to avoid gas charge
       state->sectors.sectors = {empty_amt_cid, ipld};
 
-      OUTCOME_TRY(deadlines, makeEmptyDeadlines(runtime, empty_amt_cid));
+      OUTCOME_TRY(deadlines, makeEmptyDeadlines(ipld, empty_amt_cid));
       OUTCOME_TRY(state->deadlines.set(deadlines));
 
       VestingFunds vesting_funds;
@@ -494,7 +490,7 @@ namespace fc::vm::actor::builtin::states {
       // Lotus gas conformance - flush empty amt
       OUTCOME_TRY(state->sectors.sectors.amt.flush());
 
-      OUTCOME_TRY(deadlines, makeEmptyDeadlines(runtime, kEmptyObjectCid));
+      OUTCOME_TRY(deadlines, makeEmptyDeadlines(ipld, kEmptyObjectCid));
       OUTCOME_TRY(state->deadlines.set(deadlines));
     }
 

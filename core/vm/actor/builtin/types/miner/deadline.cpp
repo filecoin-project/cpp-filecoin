@@ -357,14 +357,11 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<Universal<Deadline>> makeEmptyDeadline(
-      const Runtime &runtime, const CID &empty_amt_cid) {
-    const auto version = runtime.getActorVersion();
-    const auto ipld = runtime.getIpfsDatastore();
-
-    Universal<Deadline> deadline{version};
+      const IpldPtr &ipld, const CID &empty_amt_cid) {
+    Universal<Deadline> deadline{ipld->actor_version};
     cbor_blake::cbLoadT(ipld, deadline);
 
-    if (version < ActorVersion::kVersion3) {
+    if (ipld->actor_version < ActorVersion::kVersion3) {
       deadline->partitions = {empty_amt_cid, ipld};
       deadline->expirations_epochs = {empty_amt_cid, ipld};
     } else {

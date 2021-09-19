@@ -36,7 +36,7 @@ namespace fc::vm::actor::builtin::types::miner {
   };
   CBOR_TUPLE(Deadlines, due)
 
-  outcome::result<Deadlines> makeEmptyDeadlines(const Runtime &runtime,
+  outcome::result<Deadlines> makeEmptyDeadlines(const IpldPtr &ipld,
                                                 const CID &empty_amt_cid);
 
 }  // namespace fc::vm::actor::builtin::types::miner

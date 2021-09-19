@@ -325,6 +325,6 @@ namespace fc::vm::actor::builtin::states {
   using MinerActorStatePtr = Universal<MinerActorState>;
 
   outcome::result<MinerActorStatePtr> makeEmptyMinerState(
-      const Runtime &runtime);
+      const IpldPtr &runtime);
 
 }  // namespace fc::vm::actor::builtin::states
