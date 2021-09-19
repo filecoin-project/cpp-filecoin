@@ -14,7 +14,7 @@
 #include "common/span.hpp"
 
 namespace fc::api {
-  using primitives::jwt::ApiAlgorithm;
+  using ::fc::ApiAlgorithm;
   using primitives::jwt::kPermissionKey;
   using primitives::jwt::kTokenType;
 
@@ -32,17 +32,17 @@ namespace fc::api {
     api->AuthVerify =
         [verifier{std::move(verifier)},
          logger](auto token) -> outcome::result<std::vector<Permission>> {
-      static auto decode = [logger](const std::string &token)
-          -> outcome::result<jwt::decoded_jwt<jwt::picojson_traits>> {
+      auto maybe_decoded =
+          [&]() -> outcome::result<jwt::decoded_jwt<jwt::picojson_traits>> {
         try {
           return jwt::decode(token);
         } catch (const std::exception &e) {
           logger->error("AuthVerify jwt decode: {}", e.what());
           return ERROR_TEXT("API ERROR");
         }
-      };
+      }();
 
-      OUTCOME_TRY(decoded_jwt, decode(token));
+      OUTCOME_TRY(decoded_jwt, maybe_decoded);
       std::error_code ec;
       verifier.verify(decoded_jwt, ec);
       if (ec) {
@@ -54,12 +54,9 @@ namespace fc::api {
               .get_payload_claim(static_cast<std::string>(kPermissionKey))
               .as_array();
       std::vector<std::string> perms;
-      std::transform(perms_json.begin(),
-                     perms_json.end(),
-                     std::back_inserter(perms),
-                     [](const picojson::value &elem) -> std::string {
-                       return elem.get<std::string>();
-                     });
+      for (const auto &elem : perms_json) {
+        perms.push_back(elem.template get<std::string>());
+      }
 
       return std::move(perms);
     };

@@ -5,11 +5,8 @@
 
 #pragma once
 
-#include <jwt-cpp/jwt.h>
-
 namespace fc::primitives::jwt {
   using Permission = std::string;
-  using ApiAlgorithm = ::jwt::algorithm::hmacsha;
   constexpr std::string_view kTokenType = "JWT";
   constexpr std::string_view kPermissionKey = "Allow";
 

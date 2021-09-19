@@ -8,11 +8,12 @@
 #include "common/file.hpp"
 #include "primitives/jwt/jwt.hpp"
 
+#include <jwt-cpp/jwt.h>
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
 
 namespace fc {
   using libp2p::crypto::random::BoostRandomGenerator;
-  using primitives::jwt::ApiAlgorithm;
+  using ApiAlgorithm = jwt::algorithm::hmacsha;
   using primitives::jwt::kPermissionKey;
   using primitives::jwt::kTokenType;
   using primitives::jwt::Permission;

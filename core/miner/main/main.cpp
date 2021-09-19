@@ -441,7 +441,7 @@ namespace fc {
                                     storage_provider,
                                     retrieval_provider);
 
-    OUTCOME_TRY(api_secret, loadApiSecret(config.join("secret")));
+    OUTCOME_TRY(api_secret, loadApiSecret(config.join("jwt_secret")));
     api::fillAuthApi(mapi, api_secret, log());
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;

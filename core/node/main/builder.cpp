@@ -55,7 +55,6 @@
 #include "power/impl/power_table_impl.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "primitives/tipset/file.hpp"
-#include "sector_storage/stores/impl/storage_impl.hpp"
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/util.hpp"
 #include "storage/chain/msg_waiter.hpp"
@@ -80,7 +79,6 @@ namespace fc::node {
   using markets::retrieval::client::RetrievalClientImpl;
   using markets::storage::kStorageMarketImportDir;
   using markets::storage::client::StorageMarketClientImpl;
-  using sector_storage::stores::LocalStorageImpl;
   using storage::keystore::FileSystemKeyStore;
   using vm::actor::builtin::states::InitActorStatePtr;
   using vm::interpreter::InterpreterCache;
@@ -587,7 +585,7 @@ namespace fc::node {
     OUTCOME_TRY(createStorageMarketClient(o));
     OUTCOME_TRY(createRetrievalMarketClient(o));
 
-    OUTCOME_TRY(api_secret, loadApiSecret(config.join("secret")));
+    OUTCOME_TRY(api_secret, loadApiSecret(config.join("jwt_secret")));
 
     o.api = api::makeImpl(o.api,
                           o.chain_store,

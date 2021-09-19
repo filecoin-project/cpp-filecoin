@@ -240,7 +240,7 @@ namespace fc {
 
     api::serve(
         rpcs, routes, *node_objects.io_context, "127.0.0.1", config.api_port);
-    auto api_secret = loadApiSecret(config.join("secret")).value();
+    auto api_secret = loadApiSecret(config.join("jwt_secret")).value();
     auto token = generateAuthToken(api_secret, kAllPermission).value();
     api::rpc::saveInfo(config.repo_path, config.api_port, token);
     log()->info("API started at ws://127.0.0.1:{}", config.api_port);
