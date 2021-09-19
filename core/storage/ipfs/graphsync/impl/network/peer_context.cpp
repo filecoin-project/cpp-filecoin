@@ -7,7 +7,9 @@
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
+#include <libp2p/security/noise/crypto/state.hpp>
 
+#include "common/libp2p/stream_read_buffer.hpp"
 #include "message_queue.hpp"
 #include "message_reader.hpp"
 #include "outbound_endpoint.hpp"
@@ -124,6 +126,11 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   void PeerContext::onNewStream(StreamPtr stream, bool is_outbound) {
+    if (stream) {
+      stream = std::make_shared<libp2p::connection::StreamReadBuffer>(
+          stream, libp2p::security::noise::kMaxMsgLen);
+    }
+
     assert(stream);
     assert(streams_.count(stream) == 0);
 
