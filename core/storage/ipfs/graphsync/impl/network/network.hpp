@@ -74,7 +74,7 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Libp2p network server callback
     /// \param rstream Accept result, contains a new inbound stream on success
-    void onStreamAccepted(outcome::result<StreamPtr> rstream);
+    void onStreamAccepted(StreamPtr rstream);
 
     /// Closes all peers gracefully
     void closeAllPeers();
