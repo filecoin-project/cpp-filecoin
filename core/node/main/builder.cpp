@@ -286,7 +286,7 @@ namespace fc::node {
             node_objects.api,
             node_objects.chain_events,
             std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
-    // timer is set to 100 ms
+    // timer is set to 5000 ms
     timerLoop(node_objects.scheduler,
               std::chrono::milliseconds(5000),
               [client{node_objects.storage_market_client}] {
