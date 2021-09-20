@@ -70,10 +70,10 @@ namespace fc::vm::actor::builtin::types::miner {
     return std::make_tuple(dl_id, part_id);
   }
 
-  outcome::result<Deadlines> makeEmptyDeadlines(const IpldPtr &ipld,
+  outcome::result<Deadlines> makeEmptyDeadlines(const Runtime &runtime,
                                                 const CID &empty_amt_cid) {
-    OUTCOME_TRY(deadline, makeEmptyDeadline(ipld, empty_amt_cid));
-    OUTCOME_TRY(deadline_cid, setCbor(ipld, deadline));
+    OUTCOME_TRY(deadline, makeEmptyDeadline(runtime, empty_amt_cid));
+    OUTCOME_TRY(deadline_cid, setCbor(runtime.getIpfsDatastore(), deadline));
     adt::CbCidT<Universal<Deadline>> deadline_cid_t{deadline_cid};
     return Deadlines{std::vector(kWPoStPeriodDeadlines, deadline_cid_t)};
   }
