@@ -64,9 +64,13 @@ namespace fc::vm::actor::builtin::types::miner {
     return sector_infos;
   }
 
-  outcome::result<void> Sectors::loadSectors() const {
+  outcome::result<Sectors> Sectors::loadSectors() const {
+    const auto sectors_copy = *this;
+    
     // Lotus gas conformance
-    return sectors.amt.loadRoot();
+    OUTCOME_TRY(sectors_copy.sectors.amt.loadRoot());
+
+    return sectors_copy;
   }
 
   outcome::result<std::vector<SectorOnChainInfo>> selectSectors(

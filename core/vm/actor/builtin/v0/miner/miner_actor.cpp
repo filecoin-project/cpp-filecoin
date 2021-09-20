@@ -189,10 +189,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     OUTCOME_TRY(
         runtime.validateArgument(params.deadline == deadline_info.index));
 
-    const auto sectors_copy = state->sectors;
-
-    REQUIRE_NO_ERROR(state->sectors.loadSectors(),
-                     VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(
+        sectors, state->sectors.loadSectors(), VMExitCode::kErrIllegalState);
 
     REQUIRE_NO_ERROR_A(deadline,
                        deadlines.loadDeadline(params.deadline),
@@ -201,17 +199,20 @@ namespace fc::vm::actor::builtin::v0::miner {
     const auto fault_expiration = deadline_info.last() + kFaultMaxAge;
     REQUIRE_NO_ERROR_A(post_result,
                        deadline->recordProvenSectors(runtime,
-                                                     state->sectors,
+                                                     sectors,
                                                      miner_info->sector_size,
                                                      deadline_info.quant(),
                                                      fault_expiration,
                                                      params.partitions),
                        VMExitCode::kErrIllegalState);
 
-    REQUIRE_NO_ERROR(sectors_copy.loadSectors(), VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(sectors_for_proof,
+                       state->sectors.loadSectors(),
+                       VMExitCode::kErrIllegalState);
+
     REQUIRE_NO_ERROR_A(sector_infos,
-                       state->sectors.loadForProof(post_result.sectors,
-                                                   post_result.ignored_sectors),
+                       sectors_for_proof.loadForProof(
+                           post_result.sectors, post_result.ignored_sectors),
                        VMExitCode::kErrIllegalState);
 
     if (!sector_infos.empty()) {
@@ -273,7 +274,12 @@ namespace fc::vm::actor::builtin::v0::miner {
     OUTCOME_TRY(runtime.commitState(state));
 
     OUTCOME_TRY(utils->requestUpdatePower(post_result.powerDelta()));
-    REQUIRE_SUCCESS(runtime.sendFunds(kBurntFundsActorAddress, penalty_total));
+
+    if (penalty_total > 0) {
+      REQUIRE_SUCCESS(
+          runtime.sendFunds(kBurntFundsActorAddress, penalty_total));
+    }
+
     OUTCOME_TRY(utils->notifyPledgeChanged(pledge_delta));
 
     return outcome::success();
