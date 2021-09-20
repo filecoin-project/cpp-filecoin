@@ -5,6 +5,8 @@
 
 #include "vm/actor/builtin/types/miner/v0/monies.hpp"
 
+#include "vm/runtime/runtime.hpp"
+
 namespace fc::vm::actor::builtin::v0::miner {
   using common::math::kPrecision128;
 
@@ -12,7 +14,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power,
-      const ChainEpoch &projection_duration) {
+      const ChainEpoch &projection_duration) const {
     const BigInt network_power_smoothed = estimate(network_power_estimate);
     if (network_power_smoothed == 0) {
       return estimate(reward_estimate);
@@ -27,7 +29,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power,
-      const NetworkVersion &network_version) {
+      const NetworkVersion &network_version) const {
     ChainEpoch projection_period = declared_fault_projection_period_v0;
     if (network_version >= NetworkVersion::kVersion3) {
       projection_period = declared_fault_factor_num_v3;
@@ -42,7 +44,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power,
-      const NetworkVersion &network_version) {
+      const NetworkVersion &network_version) const {
     ChainEpoch projection_period = undeclared_fault_projection_period_v0;
     if (network_version >= NetworkVersion::kVersion1) {
       projection_period = undeclared_fault_projection_period_v1;
@@ -63,7 +65,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       const NetworkVersion &network_version,
       const TokenAmount &day_reward,
       const TokenAmount &replaced_day_reward,
-      const ChainEpoch &replaced_sector_age) {
+      const ChainEpoch &replaced_sector_age) const {
     BigInt capped_sector_age = BigInt(std::min(
         BigInt(sector_age), BigInt(termination_lifetime_cap * kEpochsInDay)));
     if (network_version >= NetworkVersion::kVersion1) {
@@ -86,7 +88,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   outcome::result<TokenAmount> Monies::preCommitDepositForPower(
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
-      const StoragePower &sector_power) {
+      const StoragePower &sector_power) const {
     return expectedRewardForPower(reward_estimate,
                                   network_power_estimate,
                                   sector_power,
@@ -99,7 +101,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       const TokenAmount &network_total_pledge,
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
-      const TokenAmount &network_circulation_supply_smoothed) {
+      const TokenAmount &network_circulation_supply_smoothed) const {
     const StoragePower network_qa_power = estimate(network_power_estimate);
     OUTCOME_TRY(ipBase,
                 expectedRewardForPower(reward_estimate,
@@ -127,37 +129,37 @@ namespace fc::vm::actor::builtin::v0::miner {
   outcome::result<TokenAmount> Monies::pledgePenaltyForContinuedFault(
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
-      const StoragePower &sector_power) {
+      const StoragePower &sector_power) const {
     return TokenAmount{};
   }
 
   outcome::result<TokenAmount> Monies::pledgePenaltyForTerminationLowerBound(
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
-      const StoragePower &sector_power) {
+      const StoragePower &sector_power) const {
     return TokenAmount{};
   }
 
   outcome::result<TokenAmount> Monies::repayDebtsOrAbort(
-      runtime::Runtime &runtime, MinerActorStatePtr miner_state) {
+      Runtime &runtime, MinerActorStatePtr miner_state) const {
     return TokenAmount{};
   }
 
   outcome::result<TokenAmount> Monies::consensusFaultPenalty(
-      const TokenAmount &this_epoch_reward) {
+      const TokenAmount &this_epoch_reward) const {
     return TokenAmount{};
   }
 
   outcome::result<std::pair<TokenAmount, VestSpec>>
   Monies::lockedRewardFromReward(const TokenAmount &reward,
-                                 const NetworkVersion &network_version) {
+                                 const NetworkVersion &network_version) const {
     return std::make_pair(TokenAmount{}, VestSpec{});
   }
 
   outcome::result<TokenAmount> Monies::pledgePenaltyForInvalidWindowPoSt(
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
-      const StoragePower &sector_power) {
+      const StoragePower &sector_power) const {
     return TokenAmount{};
   }
 

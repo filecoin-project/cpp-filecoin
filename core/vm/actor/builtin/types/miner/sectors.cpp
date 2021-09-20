@@ -64,6 +64,11 @@ namespace fc::vm::actor::builtin::types::miner {
     return sector_infos;
   }
 
+  outcome::result<void> Sectors::loadSectors() const {
+    // Lotus gas conformance
+    return sectors.amt.loadRoot();
+  }
+
   outcome::result<std::vector<SectorOnChainInfo>> selectSectors(
       const std::vector<SectorOnChainInfo> &sectors, const RleBitset &field) {
     auto to_include = field;

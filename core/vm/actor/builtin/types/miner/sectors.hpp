@@ -33,6 +33,8 @@ namespace fc::vm::actor::builtin::types::miner {
         const RleBitset &sector_nums,
         const RleBitset &faults,
         SectorNumber faults_stand_in) const;
+
+    outcome::result<void> loadSectors() const;
   };
 
   inline CBOR2_DECODE(Sectors) {

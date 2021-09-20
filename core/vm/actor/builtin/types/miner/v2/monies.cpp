@@ -6,6 +6,7 @@
 #include "vm/actor/builtin/types/miner/v2/monies.hpp"
 
 #include "vm/actor/actor_method.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
   using common::math::kPrecision128;
@@ -15,7 +16,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power,
-      const ChainEpoch &projection_duration) {
+      const ChainEpoch &projection_duration) const {
     const BigInt network_qa_power_smoothed = estimate(network_power_estimate);
     if (network_qa_power_smoothed == 0) {
       return estimate(reward_estimate);
@@ -30,7 +31,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   outcome::result<TokenAmount> Monies::pledgePenaltyForContinuedFault(
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
-      const StoragePower &sector_power) {
+      const StoragePower &sector_power) const {
     return expectedRewardForPower(reward_estimate,
                                   network_power_estimate,
                                   sector_power,
@@ -40,7 +41,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   outcome::result<TokenAmount> Monies::pledgePenaltyForTerminationLowerBound(
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
-      const StoragePower &sector_power) {
+      const StoragePower &sector_power) const {
     return expectedRewardForPower(
         reward_estimate,
         network_power_estimate,
@@ -58,7 +59,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       const NetworkVersion &network_version,
       const TokenAmount &day_reward,
       const TokenAmount &replaced_day_reward,
-      const ChainEpoch &replaced_sector_age) {
+      const ChainEpoch &replaced_sector_age) const {
     const ChainEpoch lifetime_cap =
         ChainEpoch(termination_lifetime_cap) * kEpochsInDay;
     const ChainEpoch capped_sector_age = std::min(sector_age, lifetime_cap);
@@ -87,7 +88,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   outcome::result<TokenAmount> Monies::preCommitDepositForPower(
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
-      const StoragePower &sector_power) {
+      const StoragePower &sector_power) const {
     return expectedRewardForPower(reward_estimate,
                                   network_power_estimate,
                                   sector_power,
@@ -100,7 +101,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       const TokenAmount &network_total_pledge,
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
-      const TokenAmount &network_circulation_supply_smoothed) {
+      const TokenAmount &network_circulation_supply_smoothed) const {
     OUTCOME_TRY(ipBase,
                 expectedRewardForPower(reward_estimate,
                                        network_power_estimate,
@@ -125,20 +126,20 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   outcome::result<TokenAmount> Monies::repayDebtsOrAbort(
-      runtime::Runtime &runtime, MinerActorStatePtr miner_state) {
+      Runtime &runtime, MinerActorStatePtr miner_state) const {
     OUTCOME_TRY(curr_balance, runtime.getCurrentBalance());
     return miner_state->repayDebts(curr_balance);
   }
 
   outcome::result<TokenAmount> Monies::consensusFaultPenalty(
-      const TokenAmount &this_epoch_reward) {
+      const TokenAmount &this_epoch_reward) const {
     return TokenAmount{this_epoch_reward * consensus_fault_factor
                        / expected_leader_per_epoch};
   }
 
   outcome::result<std::pair<TokenAmount, VestSpec>>
   Monies::lockedRewardFromReward(const TokenAmount &reward,
-                                 const NetworkVersion &network_version) {
+                                 const NetworkVersion &network_version) const {
     TokenAmount lock_amount = reward;
     if (network_version >= NetworkVersion::kVersion6) {
       lock_amount =
@@ -153,7 +154,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power,
-      const NetworkVersion &network_version) {
+      const NetworkVersion &network_version) const {
     return TokenAmount{};
   }
 
@@ -161,7 +162,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
       const StoragePower &sector_power,
-      const NetworkVersion &network_version) {
+      const NetworkVersion &network_version) const {
     return TokenAmount{};
   }
 }  // namespace fc::vm::actor::builtin::v2::miner

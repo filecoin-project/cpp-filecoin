@@ -59,7 +59,10 @@ namespace fc::vm::actor::builtin::v0::miner {
                                                              reward_estimate,
                                                              power_estimate,
                                                              sector_power,
-                                                             nv))
+                                                             nv,
+                                                             0,
+                                                             0,
+                                                             0));
 
     EXPECT_EQ(fee, undeclared_penalty_);
   }
@@ -81,7 +84,10 @@ namespace fc::vm::actor::builtin::v0::miner {
                                                              reward_estimate,
                                                              power_estimate,
                                                              sector_power,
-                                                             nv))
+                                                             nv,
+                                                             0,
+                                                             0,
+                                                             0));
 
     const TokenAmount expectedFee =
         TokenAmount{initial_pledge
@@ -107,7 +113,10 @@ namespace fc::vm::actor::builtin::v0::miner {
                                                              reward_estimate,
                                                              power_estimate,
                                                              sector_power,
-                                                             nv))
+                                                             nv,
+                                                             0,
+                                                             0,
+                                                             0));
 
     const TokenAmount expected_fee =
         initial_pledge

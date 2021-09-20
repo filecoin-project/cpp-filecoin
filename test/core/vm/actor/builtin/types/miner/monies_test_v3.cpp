@@ -23,7 +23,7 @@ namespace fc::vm::actor::builtin::v3::miner {
 
       EXPECT_OUTCOME_TRUE(maybe_penalty,
                           moniesv3.pledgePenaltyForTerminationLowerBound(
-                              reward_estimate, power_estimate, sector_power))
+                              reward_estimate, power_estimate, sector_power));
       undeclared_penalty = maybe_penalty;
       big_lifetime_cap = moniesv3.termination_lifetime_cap;
     }
@@ -60,7 +60,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                                                              NetworkVersion{},
                                                              day_reward,
                                                              0,
-                                                             0))
+                                                             0));
     EXPECT_EQ(undeclared_penalty, fee);
   }
 
@@ -84,7 +84,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                                                              NetworkVersion{},
                                                              day_reward,
                                                              0,
-                                                             0))
+                                                             0));
 
     const TokenAmount expected_fee =
         initial_pledge
@@ -114,7 +114,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                                                              NetworkVersion{},
                                                              day_reward,
                                                              0,
-                                                             0))
+                                                             0));
 
     const TokenAmount expected_fee =
         initial_pledge
@@ -148,7 +148,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                                                              NetworkVersion{},
                                                              day_reward,
                                                              0,
-                                                             0))
+                                                             0));
 
     EXPECT_OUTCOME_TRUE(
         actual_fee,
@@ -161,7 +161,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                                              NetworkVersion{},
                                              day_reward,
                                              day_reward,
-                                             sector_age - replacement_age))
+                                             sector_age - replacement_age));
 
     EXPECT_EQ(unreplaced_fee, actual_fee);
   }
@@ -189,7 +189,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                                                              NetworkVersion{},
                                                              day_reward,
                                                              0,
-                                                             0))
+                                                             0));
 
     EXPECT_OUTCOME_TRUE(with_replace,
                         moniesv3.pledgePenaltyForTermination(TokenAmount{},
@@ -201,7 +201,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                                                              NetworkVersion{},
                                                              day_reward,
                                                              day_reward,
-                                                             sector_age))
+                                                             sector_age));
 
     EXPECT_EQ(no_replace, with_replace);
   }
@@ -246,7 +246,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                                                              NetworkVersion{},
                                                              day_reward,
                                                              old_day_reward,
-                                                             old_sector_age))
+                                                             old_sector_age));
 
     EXPECT_EQ(expected_fee, fee);
   }
@@ -264,7 +264,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     EXPECT_OUTCOME_TRUE(
         four_br,
         moniesv3.expectedRewardForPower(
-            reward_estimate, power_estimate, sector_power, ChainEpoch(4)))
+            reward_estimate, power_estimate, sector_power, ChainEpoch(4)));
     EXPECT_EQ(0, four_br);
   }
 }  // namespace fc::vm::actor::builtin::v3::miner

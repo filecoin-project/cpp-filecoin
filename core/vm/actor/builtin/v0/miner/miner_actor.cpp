@@ -5,6 +5,7 @@
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
+#include "vm/actor/builtin/types/miner/monies.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
@@ -12,6 +13,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using states::makeEmptyMinerState;
   using states::MinerActorStatePtr;
   using toolchain::Toolchain;
+  using types::Universal;
   using namespace types::miner;
 
   ACTOR_METHOD_IMPL(Construct) {
@@ -187,8 +189,9 @@ namespace fc::vm::actor::builtin::v0::miner {
     OUTCOME_TRY(
         runtime.validateArgument(params.deadline == deadline_info.index));
 
-    // Lotus gas conformance
-    REQUIRE_NO_ERROR(state->sectors.sectors.amt.loadRoot(),
+    const auto sectors_copy = state->sectors;
+
+    REQUIRE_NO_ERROR(state->sectors.loadSectors(),
                      VMExitCode::kErrIllegalState);
 
     REQUIRE_NO_ERROR_A(deadline,
@@ -205,6 +208,7 @@ namespace fc::vm::actor::builtin::v0::miner {
                                                      params.partitions),
                        VMExitCode::kErrIllegalState);
 
+    REQUIRE_NO_ERROR(sectors_copy.loadSectors(), VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR_A(sector_infos,
                        state->sectors.loadForProof(post_result.sectors,
                                                    post_result.ignored_sectors),
@@ -220,7 +224,30 @@ namespace fc::vm::actor::builtin::v0::miner {
     TokenAmount declared_penalty_target{0};
 
     if (network_version < NetworkVersion::kVersion3) {
-      // todo wait for monies
+      const Universal<Monies> monies{runtime.getActorVersion()};
+
+      OUTCOME_TRYA(undeclared_penalty_target,
+                   monies->pledgePenaltyForUndeclaredFault(
+                       reward.this_epoch_reward_smoothed,
+                       total_power.quality_adj_power_smoothed,
+                       undeclared_penalty_power.qa,
+                       network_version));
+
+      OUTCOME_TRY(deducted,
+                  monies->pledgePenaltyForDeclaredFault(
+                      reward.this_epoch_reward_smoothed,
+                      total_power.quality_adj_power_smoothed,
+                      undeclared_penalty_power.qa,
+                      network_version));
+
+      undeclared_penalty_target -= deducted;
+
+      OUTCOME_TRYA(declared_penalty_target,
+                   monies->pledgePenaltyForDeclaredFault(
+                       reward.this_epoch_reward_smoothed,
+                       total_power.quality_adj_power_smoothed,
+                       post_result.recovered_power.qa,
+                       network_version));
     }
 
     const TokenAmount total_penalty_target =

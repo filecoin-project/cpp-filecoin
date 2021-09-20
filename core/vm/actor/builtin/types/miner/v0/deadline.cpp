@@ -148,6 +148,9 @@ namespace fc::vm::actor::builtin::v0::miner {
     this->faulty_power =
         this->faulty_power - recovered_power_total + new_faulty_power_total;
 
+    // Lotus gas conformance
+    OUTCOME_TRY(this->partitions.amt.flush());
+
     RleBitset all_sector_nos;
     all_sector_nos += all_sectors;
 
