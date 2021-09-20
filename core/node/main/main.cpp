@@ -11,6 +11,7 @@
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
+#include "common/api_secret.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
 #include "common/logger.hpp"
@@ -52,6 +53,7 @@ namespace fc {
   using markets::storage::StorageProviderInfo;
   using node::Metrics;
   using node::NodeObjects;
+  using primitives::jwt::kAllPermission;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
 
   namespace {
@@ -212,7 +214,6 @@ namespace fc {
         [&]() -> outcome::result<std::vector<Import>> {
       return node_objects.storage_market_import_manager->list();
     };
-
     node_objects.api_v1 = makeFullNodeApiV1Wrapper();
     auto rpc_v1{api::makeRpc(*node_objects.api)};
     wrapRpc(rpc_v1, *node_objects.api_v1);
@@ -239,7 +240,9 @@ namespace fc {
 
     api::serve(
         rpcs, routes, *node_objects.io_context, "127.0.0.1", config.api_port);
-    api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
+    auto api_secret = loadApiSecret(config.join("jwt_secret")).value();
+    auto token = generateAuthToken(api_secret, kAllPermission).value();
+    api::rpc::saveInfo(config.repo_path, config.api_port, token);
     log()->info("API started at ws://127.0.0.1:{}", config.api_port);
   }
 
@@ -366,7 +369,7 @@ namespace fc {
       }
     }
 
-    startApi(config, o, metrics);
+    startApi(config, o, metrics);  // may throw
 
     o.identify->start(events);
     o.say_hello->start(config.genesis_cid.value(), events);

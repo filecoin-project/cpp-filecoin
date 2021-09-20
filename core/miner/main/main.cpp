@@ -15,9 +15,11 @@
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
+#include "api/setup_common.hpp"
 #include "api/storage_miner/storage_api.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
 #include "codec/json/json.hpp"
+#include "common/api_secret.hpp"
 #include "common/file.hpp"
 #include "common/io_thread.hpp"
 #include "common/libp2p/soralog.hpp"
@@ -60,11 +62,17 @@ namespace fc {
   using libp2p::peer::PeerId;
   using markets::storage::chain_events::ChainEventsImpl;
   using primitives::address::Address;
+  using primitives::jwt::kAllPermission;
   using primitives::sector::RegisteredSealProof;
   using storage::BufferMap;
   namespace uuids = boost::uuids;
 
   static const Buffer kActor{cbytes("actor")};
+
+  auto log() {
+    static common::Logger logger = common::createLogger("miner");
+    return logger;
+  }
 
   struct Config {
     boost::filesystem::path repo_path;
@@ -433,6 +441,9 @@ namespace fc {
                                     storage_provider,
                                     retrieval_provider);
 
+    OUTCOME_TRY(api_secret, loadApiSecret(config.join("jwt_secret")));
+    api::fillAuthApi(mapi, api_secret, log());
+
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
     mrpc.emplace("/rpc/v0", api::makeRpc(*mapi));
     auto mroutes{std::make_shared<api::Routes>()};
@@ -440,10 +451,11 @@ namespace fc {
     mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
 
     api::serve(mrpc, mroutes, *io, "127.0.0.1", config.api_port);
-    api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
+    OUTCOME_TRY(token, generateAuthToken(api_secret, kAllPermission));
+    api::rpc::saveInfo(config.repo_path, config.api_port, token);
 
-    spdlog::info("fuhon miner started");
-    spdlog::info("peer id {}", host->getId().toBase58());
+    log()->info("fuhon miner started");
+    log()->info("peer id {}", host->getId().toBase58());
 
     io->run();
     return outcome::success();
