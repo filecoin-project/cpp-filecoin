@@ -7,6 +7,6 @@ add_library(chain_events
     impl/chain_events_impl.cpp
     )
 target_link_libraries(chain_events
-    api
     api_ipfs_datastore
+    miner_actor_state
     )

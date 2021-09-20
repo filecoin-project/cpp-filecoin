@@ -10,10 +10,12 @@
 namespace fc {
   template <typename T>
   struct std_function_signature {};
+
   template <typename T>
   struct std_function_signature<std::function<T>> {
     using type = T;
   };
+
   template <typename T>
   using std_function_signature_t = typename std_function_signature<T>::type;
 }  // namespace fc
