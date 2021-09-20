@@ -18,6 +18,7 @@ namespace fc::markets::storage::chain_events {
   using api::FullNodeApi;
   using primitives::tipset::HeadChange;
   using primitives::tipset::TipsetCPtr;
+  using primitives::tipset::TipsetKey;
   using vm::message::UnsignedMessage;
 
   class ChainEventsImpl : public ChainEvents,
@@ -30,7 +31,12 @@ namespace fc::markets::storage::chain_events {
       std::multimap<SectorNumber, CommitCb> commits;
     };
 
-    ChainEventsImpl(std::shared_ptr<FullNodeApi> api);
+    using IsDealPrecommited =
+        std::function<outcome::result<boost::optional<SectorNumber>>(
+            const TipsetKey &, const Address &, DealId)>;
+
+    ChainEventsImpl(std::shared_ptr<FullNodeApi> api,
+                    IsDealPrecommited is_deal_precommited);
 
     /**
      * Subscribe to messages
@@ -47,6 +53,7 @@ namespace fc::markets::storage::chain_events {
                                     const CID &cid);
 
     std::shared_ptr<FullNodeApi> api_;
+    IsDealPrecommited is_deal_precommited_;
 
     /**
      * Subscription to chain head changes

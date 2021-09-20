@@ -271,8 +271,8 @@ namespace fc::node {
             std::make_shared<storage::MapPrefix>("storage_market_imports/",
                                                  node_objects.kv_store),
             kStorageMarketImportDir);
-    node_objects.chain_events =
-        std::make_shared<ChainEventsImpl>(node_objects.api);
+    node_objects.chain_events = std::make_shared<ChainEventsImpl>(
+        node_objects.api, ChainEventsImpl::IsDealPrecommited{});
     node_objects.market_discovery =
         std::make_shared<DiscoveryImpl>(std::make_shared<storage::MapPrefix>(
             "discovery/", node_objects.kv_store)),

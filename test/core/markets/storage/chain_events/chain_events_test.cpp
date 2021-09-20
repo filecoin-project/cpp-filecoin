@@ -6,11 +6,10 @@
 #include <gtest/gtest.h>
 
 #include "markets/storage/chain_events/impl/chain_events_impl.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/api.hpp"
+#include "testutil/mocks/std_function.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v5/miner/miner_actor.hpp"
 
 namespace fc::markets::storage::chain_events {
@@ -18,7 +17,6 @@ namespace fc::markets::storage::chain_events {
   using api::BlockMessages;
   using api::Chan;
   using api::FullNodeApi;
-  using fc::storage::ipfs::InMemoryDatastore;
   using primitives::block::BlockHeader;
   using primitives::block::MsgMeta;
   using primitives::tipset::HeadChange;
@@ -26,9 +24,9 @@ namespace fc::markets::storage::chain_events {
   using primitives::tipset::Tipset;
   using testing::_;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::v0::miner::PreCommitSector;
-  using vm::actor::builtin::v0::miner::ProveCommitSector;
-  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::v5::miner::PreCommitSector;
+  using vm::actor::builtin::v5::miner::ProveCommitSector;
+  using vm::actor::builtin::v5::miner::SectorPreCommitInfo;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::version::NetworkVersion;
@@ -38,29 +36,26 @@ namespace fc::markets::storage::chain_events {
 
   class ChainEventsTest : public ::testing::Test {
    public:
-    NetworkVersion network_version{NetworkVersion::kVersion13};
-    std::shared_ptr<InMemoryDatastore> ipld{
-        std::make_shared<InMemoryDatastore>()};
+    using MockCb = MockStdFunction<ChainEventsImpl::CommitCb>;
+
+    std::shared_ptr<FullNodeApi> api{std::make_shared<FullNodeApi>()};
+    MOCK_API(api, ChainGetBlockMessages);
+    MOCK_API(api, ChainNotify);
+    MOCK_API(api, StateMarketStorageDeal);
+    MOCK_API_CB(api, StateWaitMsg);
+
+    MockStdFunction<ChainEventsImpl::IsDealPrecommited> is_deal_precommited;
+
     Address provider = Address::makeFromId(1);
     DealId deal_id{1};
     SectorNumber sector_number{13};
-    std::shared_ptr<FullNodeApi> api{std::make_shared<FullNodeApi>()};
-    std::shared_ptr<ChainEventsImpl> events{
-        std::make_shared<ChainEventsImpl>(api)};
+    std::shared_ptr<ChainEventsImpl> events{std::make_shared<ChainEventsImpl>(
+        api, is_deal_precommited.AsStdFunction())};
     Chan<std::vector<HeadChange>> head_chan{
         std::make_shared<Channel<std::vector<HeadChange>>>()};
     CbCid block0{CbCid::hash("00"_unhex)};
     CbCid block1{CbCid::hash("01"_unhex)};
     CbCid block2{CbCid::hash("02"_unhex)};
-
-    MOCK_API(api, ChainGetBlockMessages);
-    MOCK_API(api, ChainNotify);
-    MOCK_API(api, StateGetActor);
-    MOCK_API(api, StateMarketStorageDeal);
-    MOCK_API(api, StateNetworkVersion);
-    MOCK_API_CB(api, StateWaitMsg);
-
-    using MockCb = testing::MockFunction<void(outcome::result<void>)>;
 
     void chainNotify(HeadChangeType type, CbCid block) {
       const auto ts{std::make_shared<Tipset>()};
@@ -68,28 +63,7 @@ namespace fc::markets::storage::chain_events {
       head_chan.channel->write({{type, ts}});
     }
 
-    template <typename F>
-    void withPrecommits(const CbCid &block, const F &f) {
-      TipsetKey tsk{{block}};
-      ipld->actor_version = actorVersion(network_version);
-      auto state{vm::actor::builtin::states::makeEmptyMinerState(ipld).value()};
-      state->miner_info.cid = cid0;
-      state->vesting_funds.cid = cid0;
-      f([&](SectorNumber sector, std::vector<DealId> deal_ids) {
-        vm::actor::builtin::types::miner::SectorPreCommitOnChainInfo info;
-        info.info.deal_ids = std::move(deal_ids);
-        state->precommitted_sectors.set(sector, info).value();
-      });
-      vm::actor::Actor actor;
-      actor.head = setCbor(ipld, state).value();
-      EXPECT_CALL(mock_StateGetActor, Call(provider, tsk))
-          .WillRepeatedly(testing::Return(actor));
-      EXPECT_CALL(mock_StateNetworkVersion, Call(tsk))
-          .WillRepeatedly(testing::Return(network_version));
-    }
-
     void SetUp() override {
-      api->ChainReadObj = [this](const CID &cid) { return ipld->get(cid); };
       EXPECT_CALL(mock_ChainNotify, Call())
           .WillOnce(testing::Return(head_chan));
       EXPECT_OUTCOME_TRUE_1(events->init());
@@ -115,7 +89,9 @@ namespace fc::markets::storage::chain_events {
 
     EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, _))
         .WillOnce(testing::Return(api::StorageDeal{}));
-    withPrecommits(block0, [](auto) {});
+    EXPECT_CALL(is_deal_precommited,
+                Call(TipsetKey{{block0}}, provider, deal_id))
+        .WillOnce(testing::Return(boost::none));
     MockCb cb;
     events->onDealSectorCommitted(provider, deal_id, cb.AsStdFunction());
 

@@ -8,7 +8,6 @@
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v5/miner/miner_actor.hpp"
-#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::markets::storage::chain_events {
   using primitives::RleBitset;
@@ -21,8 +20,41 @@ namespace fc::markets::storage::chain_events {
   using vm::actor::builtin::v5::miner::ProveCommitSector;
   using vm::message::SignedMessage;
 
-  ChainEventsImpl::ChainEventsImpl(std::shared_ptr<FullNodeApi> api)
-      : api_{std::move(api)} {}
+  ChainEventsImpl::ChainEventsImpl(std::shared_ptr<FullNodeApi> api,
+                                   IsDealPrecommited is_deal_precommited)
+      : api_{std::move(api)},
+        is_deal_precommited_{std::move(is_deal_precommited)} {
+    if (!is_deal_precommited_) {
+      is_deal_precommited_ = [api{api_}](const TipsetKey &tsk,
+                                         const Address &miner,
+                                         DealId deal_id)
+          -> outcome::result<boost::optional<SectorNumber>> {
+        OUTCOME_TRY(actor, api->StateGetActor(miner, tsk));
+        const auto ipld{
+            std::make_shared<fc::storage::ipfs::ApiIpfsDatastore>(api)};
+        OUTCOME_TRY(network, api->StateNetworkVersion(tsk));
+        ipld->actor_version = actorVersion(network);
+        OUTCOME_TRY(state,
+                    getCbor<vm::actor::builtin::states::MinerActorStatePtr>(
+                        ipld, actor.head));
+        boost::optional<SectorNumber> result;
+        constexpr auto kStop{std::errc::interrupted};
+        const auto visit{state->precommitted_sectors.visit(
+            [&](auto sector, auto &precommit) -> outcome::result<void> {
+              const auto &ids{precommit.info.deal_ids};
+              if (std::find(ids.begin(), ids.end(), deal_id) != ids.end()) {
+                result = sector;
+                return outcome::failure(kStop);
+              }
+              return outcome::success();
+            })};
+        if (!visit && visit.error() != kStop) {
+          return visit.error();
+        }
+        return result;
+      };
+    }
+  }
 
   outcome::result<void> ChainEventsImpl::init() {
     OUTCOME_TRY(chan, api_->ChainNotify());
@@ -46,32 +78,18 @@ namespace fc::markets::storage::chain_events {
         cb(outcome::success());
         return outcome::success();
       }
-      OUTCOME_TRY(actor, api_->StateGetActor(provider, head_->key));
-      const auto ipld{
-          std::make_shared<fc::storage::ipfs::ApiIpfsDatastore>(api_)};
-      OUTCOME_TRY(network, api_->StateNetworkVersion(head_->key));
-      ipld->actor_version =
-          vm::toolchain::Toolchain::getActorVersionForNetwork(network);
-      OUTCOME_TRY(state,
-                  getCbor<vm::actor::builtin::states::MinerActorStatePtr>(
-                      ipld, actor.head));
-      OUTCOME_TRY(state->precommitted_sectors.visit(
-          [&](auto sector, auto &precommit) -> outcome::result<void> {
-            const auto &ids{precommit.info.deal_ids};
-            if (std::find(ids.begin(), ids.end(), deal_id) != ids.end()) {
+      OUTCOME_TRY(sector, is_deal_precommited_(head_->key, provider, deal_id));
+      std::unique_lock lock{watched_events_mutex_};
+      if (sector) {
+        watched_events_[provider].commits.emplace(*sector, std::move(cb));
+      } else {
+        watched_events_[provider].precommits.emplace(
+            deal_id, [this, provider, cb{std::move(cb)}](auto _sector) {
+              OUTCOME_CB(auto sector, _sector);
               std::unique_lock lock{watched_events_mutex_};
               watched_events_[provider].commits.emplace(sector, std::move(cb));
-              return outcome::failure(kStop);
-            }
-            return outcome::success();
-          }));
-      std::unique_lock lock{watched_events_mutex_};
-      watched_events_[provider].precommits.emplace(
-          deal_id, [this, provider, cb{std::move(cb)}](auto _sector) {
-            OUTCOME_CB(auto sector, _sector);
-            std::unique_lock lock{watched_events_mutex_};
-            watched_events_[provider].commits.emplace(sector, std::move(cb));
-          });
+            });
+      }
       return outcome::success();
     }()};
     if (!_r && _r.error() != kStop) {

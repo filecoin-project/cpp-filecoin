@@ -8,5 +8,4 @@ addtest(chain_events_test
     )
 target_link_libraries(chain_events_test
     chain_events
-    ipfs_datastore_in_memory
     )
