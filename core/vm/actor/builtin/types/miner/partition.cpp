@@ -5,6 +5,7 @@
 
 #include "vm/actor/builtin/types/miner/partition.hpp"
 
+#include "adt/stop.hpp"
 #include "common/error_text.hpp"
 #include "vm/actor/builtin/types/miner/bitfield_queue.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
@@ -256,13 +257,8 @@ namespace fc::vm::actor::builtin::types::miner {
     TerminationResult result;
     result.partitions_processed = 1;
 
-    bool stop = false;
     auto visitor{[&](ChainEpoch epoch,
                      const RleBitset &sectors) -> outcome::result<void> {
-      if (stop) {
-        return outcome::success();
-      }
-
       auto to_process = sectors;
       const auto count = sectors.size();
 
@@ -285,15 +281,14 @@ namespace fc::vm::actor::builtin::types::miner {
 
       result.sectors[epoch] = to_process;
 
-      if (result.sectors_processed < max_sectors) {
-        return outcome::success();
+      if (result.sectors_processed >= max_sectors) {
+        return outcome::failure(adt::kStopError);
       }
 
-      stop = true;
       return outcome::success();
     }};
 
-    OUTCOME_TRY(early_terminated_q.queue.visit(visitor));
+    CATCH_STOP(early_terminated_q.queue.visit(visitor));
 
     for (const auto i : processed) {
       OUTCOME_TRY(early_terminated_q.queue.remove(i));

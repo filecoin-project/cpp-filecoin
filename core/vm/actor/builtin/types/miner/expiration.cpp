@@ -4,6 +4,8 @@
  */
 
 #include "vm/actor/builtin/types/miner/expiration.hpp"
+
+#include "adt/stop.hpp"
 #include "common/error_text.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 
@@ -309,7 +311,7 @@ namespace fc::vm::actor::builtin::types::miner {
     auto visitor{[&](ChainEpoch epoch,
                      const ExpirationSet &es) -> outcome::result<void> {
       if (epoch > until) {
-        return outcome::success();
+        return outcome::failure(adt::kStopError);
       }
       popped_keys.push_back(epoch);
       on_time_sectors.push_back(es.on_time_sectors);
@@ -320,7 +322,7 @@ namespace fc::vm::actor::builtin::types::miner {
       return outcome::success();
     }};
 
-    OUTCOME_TRY(queue.visit(visitor));
+    CATCH_STOP(queue.visit(visitor));
 
     for (const auto epoch : popped_keys) {
       OUTCOME_TRY(queue.remove(epoch));
@@ -375,14 +377,8 @@ namespace fc::vm::actor::builtin::types::miner {
     ExpirationSet exp_set;
     std::vector<uint64_t> epochs_emptied;
 
-    bool stop = false;
-
     auto visitor{
         [&](ChainEpoch epoch, ExpirationSet es) -> outcome::result<void> {
-          if (stop) {
-            return outcome::success();
-          }
-
           OUTCOME_TRY(result, f(epoch, es));
           const auto &[changed, keep_going] = result;
 
@@ -395,12 +391,12 @@ namespace fc::vm::actor::builtin::types::miner {
           }
 
           if (!keep_going) {
-            stop = true;
+            return outcome::failure(adt::kStopError);
           }
           return outcome::success();
         }};
 
-    OUTCOME_TRY(queue.visit(visitor));
+    CATCH_STOP(queue.visit(visitor));
 
     for (const auto epoch : epochs_emptied) {
       OUTCOME_TRY(queue.remove(epoch));
