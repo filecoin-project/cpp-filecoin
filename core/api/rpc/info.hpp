@@ -9,6 +9,7 @@
 #include <boost/filesystem/string_file.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 
+#include "common/file.hpp"
 #include "common/outcome2.hpp"
 
 namespace fc::api::rpc {

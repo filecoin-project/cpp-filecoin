@@ -255,8 +255,6 @@ namespace fc::api {
       }
       return context;
     };
-
-    api->AuthNew = [](auto) { return Buffer{1, 2, 3}; };
     api->BeaconGetEntry = [=](auto &&cb, auto epoch) {
       return beaconizer->entry(drand_schedule->maxRound(epoch), cb);
     };

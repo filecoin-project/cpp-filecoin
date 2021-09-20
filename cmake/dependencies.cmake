@@ -68,3 +68,7 @@ find_package(cppcodec CONFIG REQUIRED)
 # http://rapidjson.org
 hunter_add_package(RapidJSON)
 find_package(RapidJSON CONFIG REQUIRED)
+
+# https://thalhammer.it/projects/jwt_cpp
+hunter_add_package(jwt-cpp)
+find_package(jwt-cpp CONFIG REQUIRED)

@@ -10,17 +10,24 @@
 #include "api/utils.hpp"
 #include "api/version.hpp"
 #include "common/buffer.hpp"
+#include "primitives/jwt/jwt.hpp"
 
 namespace fc::api {
   using common::Buffer;
   using libp2p::peer::PeerInfo;
+  using primitives::jwt::Permission;
 
   struct CommonApi {
     /**
      * Creates auth token to the remote connection
      * @return auth token
      */
-    API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
+    API_METHOD(AuthNew, Buffer, const std::vector<Permission> &)
+    /**
+     * Verify auth token
+     * @return allow permissions
+     */
+    API_METHOD(AuthVerify, std::vector<Permission>, const std::string &)
 
     /**
      * Returns listen addresses.
@@ -43,6 +50,7 @@ namespace fc::api {
   template <typename A, typename F>
   void visitCommon(A &&a, const F &f) {
     f(a.AuthNew);
+    f(a.AuthVerify);
     f(a.NetAddrsListen);
     f(a.NetConnect);
     f(a.NetPeers);
