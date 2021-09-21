@@ -107,6 +107,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     PowerPair recovered_power_total;
     RleBitset rescheduled_partitions;
 
+    OUTCOME_TRY(this->partitions.amt.loadRoot());
+
     for (const auto &post : post_partitions) {
       if (this->partitions_posted.has(post.index)) {
         continue;

@@ -206,14 +206,11 @@ namespace fc::vm::actor::builtin::v0::miner {
                                                      params.partitions),
                        VMExitCode::kErrIllegalState);
 
-    REQUIRE_NO_ERROR_A(sectors_for_proof,
-                       state->sectors.loadSectors(),
-                       VMExitCode::kErrIllegalState);
-
-    REQUIRE_NO_ERROR_A(sector_infos,
-                       sectors_for_proof.loadForProof(
-                           post_result.sectors, post_result.ignored_sectors),
-                       VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(
+        sector_infos,
+        loadSectorInfosForProof(
+            state->sectors, post_result.sectors, post_result.ignored_sectors),
+        VMExitCode::kErrIllegalState);
 
     if (!sector_infos.empty()) {
       OUTCOME_TRY(utils->verifyWindowedPost(

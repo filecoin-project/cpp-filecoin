@@ -66,7 +66,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
   outcome::result<Sectors> Sectors::loadSectors() const {
     const auto sectors_copy = *this;
-    
+
     // Lotus gas conformance
     OUTCOME_TRY(sectors_copy.sectors.amt.loadRoot());
 
@@ -90,6 +90,31 @@ namespace fc::vm::actor::builtin::types::miner {
     }
 
     return included;
+  }
+
+  outcome::result<std::vector<SectorOnChainInfo>> loadSectorInfosForProof(
+      const Sectors &sectors,
+      const RleBitset &proven_sectors,
+      const RleBitset &expected_faults) {
+    const RleBitset non_faults = proven_sectors - expected_faults;
+
+    if (non_faults.empty()) {
+      return std::vector<SectorOnChainInfo>{};
+    }
+
+    const auto &good_sector = *non_faults.begin();
+
+    return loadSectorInfosWithFaultMask(
+        sectors, proven_sectors, expected_faults, good_sector);
+  }
+
+  outcome::result<std::vector<SectorOnChainInfo>> loadSectorInfosWithFaultMask(
+      const Sectors &sectors,
+      const RleBitset &sector_nums,
+      const RleBitset &faults,
+      SectorNumber faults_stand_in) {
+    OUTCOME_TRY(sectors_arr, sectors.loadSectors());
+    return sectors_arr.loadWithFaultMask(sector_nums, faults, faults_stand_in);
   }
 
 }  // namespace fc::vm::actor::builtin::types::miner

@@ -58,6 +58,8 @@ namespace fc::vm::actor::builtin::v3::miner {
     PowerPair power_delta;
     RleBitset rescheduled_partitions;
 
+    OUTCOME_TRY(this->partitions.amt.loadRoot());
+
     for (const auto &post : post_partitions) {
       OUTCOME_TRY(partition, this->partitions.get(post.index));
       OUTCOME_TRY(

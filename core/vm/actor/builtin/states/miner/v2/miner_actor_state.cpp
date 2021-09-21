@@ -28,6 +28,8 @@ namespace fc::vm::actor::builtin::v2::miner {
       const DeadlineSectorMap &deadline_sectors) {
     OUTCOME_TRY(dls, this->deadlines.get());
 
+    OUTCOME_TRY(sectors, this->sectors.loadSectors());
+
     std::vector<SectorOnChainInfo> all_replaced;
 
     for (const auto &[dl_id, pm] : deadline_sectors.map) {
