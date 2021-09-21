@@ -8,6 +8,5 @@ add_library(api_ipfs_datastore
     api_ipfs_datastore_error.cpp
     )
 target_link_libraries(api_ipfs_datastore
-    api
     outcome
     )

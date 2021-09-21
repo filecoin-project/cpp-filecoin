@@ -10,6 +10,7 @@
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
 
 namespace fc::vm::actor::builtin::v5::miner {
+  using primitives::RleBitset;
   using types::miner::SectorPreCommitInfo;
 
   // TODO implement
@@ -50,6 +51,15 @@ namespace fc::vm::actor::builtin::v5::miner {
     ACTOR_METHOD_DECL();
   };
   CBOR_TUPLE(PreCommitBatch::Params, sectors);
+
+  struct ProveCommitAggregate : ActorMethodBase<26> {
+    struct Params {
+      RleBitset sectors;
+      Bytes proof;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(ProveCommitAggregate::Params, sectors, proof);
 
   // extern const ActorExports exports;
 

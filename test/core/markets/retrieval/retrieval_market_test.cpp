@@ -5,6 +5,8 @@
 
 #include "core/markets/retrieval/fixture.hpp"
 #include "proofs/proofs_error.hpp"
+#include "testutil/context_wait.hpp"
+#include "testutil/mocks/std_function.hpp"
 #include "testutil/outcome.hpp"
 
 namespace fc::markets::retrieval::test {
@@ -27,22 +29,18 @@ namespace fc::markets::retrieval::test {
     QueryRequest request{
         .payload_cid = payload_cid,
         .params = {.piece_cid = data::green_piece.info.piece_cid}};
-    std::promise<outcome::result<QueryResponse>> query_result;
     RetrievalPeer peer{.address = miner_worker_address,
                        .peer_id = host->getId(),
                        .piece = data::green_piece.info.piece_cid};
-    client->query(peer, request, [&](auto response) {
-      query_result.set_value(response);
-    });
-    auto future = query_result.get_future();
-    ASSERT_EQ(future.wait_for(std::chrono::seconds(3)),
-              std::future_status::ready);
-    auto response_res = future.get();
-    ASSERT_TRUE(response_res.has_value());
-    EXPECT_EQ(response_res.value().response_status,
-              QueryResponseStatus::kQueryResponseAvailable);
-    EXPECT_EQ(response_res.value().item_status,
-              QueryItemStatus::kQueryItemAvailable);
+    MockStdFunction<client::QueryResponseHandler> cb;
+    client->query(peer, request, cb.AsStdFunction());
+    EXPECT_CALL(cb, Call(_)).WillOnce(testing::Invoke([](auto _res) {
+      EXPECT_OUTCOME_TRUE(res, _res);
+      EXPECT_EQ(res.response_status,
+                QueryResponseStatus::kQueryResponseAvailable);
+      EXPECT_EQ(res.item_status, QueryItemStatus::kQueryItemAvailable);
+    }));
+    runForSteps(*context, 1000);
   }
 
   /**
@@ -96,19 +94,18 @@ namespace fc::markets::retrieval::test {
     RetrievalPeer peer{.address = miner_worker_address,
                        .peer_id = host->getId(),
                        .piece = boost::none};
-    EXPECT_OUTCOME_TRUE_1(client->retrieve(
-        payload_cid,
-        params,
-        total_funds,
-        peer,
-        client_wallet,
-        miner_wallet,
-        [&](outcome::result<void> res) { retrieve_result.set_value(res); }));
-    auto future = retrieve_result.get_future();
-    ASSERT_EQ(future.wait_for(std::chrono::seconds(5)),
-              std::future_status::ready);
-    EXPECT_OUTCOME_TRUE_1(future.get());
-
+    MockStdFunction<client::RetrieveResponseHandler> cb;
+    EXPECT_OUTCOME_TRUE_1(client->retrieve(payload_cid,
+                                           params,
+                                           total_funds,
+                                           peer,
+                                           client_wallet,
+                                           miner_wallet,
+                                           cb.AsStdFunction()));
+    EXPECT_CALL(cb, Call(_)).WillOnce(testing::Invoke([](auto _res) {
+      EXPECT_OUTCOME_TRUE_1(_res);
+    }));
+    runForSteps(*context, 2000);
     EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), true);
   }
 }  // namespace fc::markets::retrieval::test
