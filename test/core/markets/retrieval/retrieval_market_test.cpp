@@ -105,7 +105,7 @@ namespace fc::markets::retrieval::test {
     EXPECT_CALL(cb, Call(_)).WillOnce(testing::Invoke([](auto _res) {
       EXPECT_OUTCOME_TRUE_1(_res);
     }));
-    runForSteps(*context, 1000);
+    runForSteps(*context, 2000);
     EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), true);
   }
 }  // namespace fc::markets::retrieval::test
