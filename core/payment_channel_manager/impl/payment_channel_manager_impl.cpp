@@ -8,7 +8,6 @@
 #include "cbor_blake/ipld_version.hpp"
 #include "payment_channel_manager/impl/payment_channel_manager_error.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
-#include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
 #include "vm/actor/codes.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -249,14 +248,7 @@ namespace fc::payment_channel_manager {
   outcome::result<CID> PaymentChannelManagerImpl::addFunds(
       const Address &to, const Address &from, const TokenAmount &amount) {
     UnsignedMessage unsigned_message{
-        to,
-        from,
-        {},
-        amount,
-        kDefaultGasPrice,
-        kDefaultGasLimit,
-        vm::actor::builtin::v0::market::AddBalance::Number,
-        {}};
+        to, from, {}, amount, {}, {}, vm::actor::kSendMethodNumber, {}};
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
     auto message_cid{signed_message.getCid()};
