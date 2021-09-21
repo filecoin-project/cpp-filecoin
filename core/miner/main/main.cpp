@@ -60,6 +60,7 @@ namespace fc {
   using libp2p::basic::Scheduler;
   using libp2p::multi::Multiaddress;
   using libp2p::peer::PeerId;
+  using markets::storage::chain_events::ChainEventsImpl;
   using primitives::address::Address;
   using primitives::jwt::kAllPermission;
   using primitives::sector::RegisteredSealProof;
@@ -397,9 +398,8 @@ namespace fc {
     auto piece_storage{std::make_shared<storage::piece::PieceStorageImpl>(
         prefixed("storage_provider/"))};
     auto sector_blocks{std::make_shared<sectorblocks::SectorBlocksImpl>(miner)};
-    auto chain_events{
-        std::make_shared<markets::storage::chain_events::ChainEventsImpl>(
-            napi)};
+    auto chain_events{std::make_shared<ChainEventsImpl>(
+        napi, ChainEventsImpl::IsDealPrecommited{})};
     OUTCOME_TRY(chain_events->init());
     auto piece_io{std::make_shared<markets::pieceio::PieceIOImpl>(
         config.join("piece_io"))};

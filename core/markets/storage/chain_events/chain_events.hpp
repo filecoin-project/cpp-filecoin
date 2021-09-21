@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <future>
 #include "storage/mpool/mpool.hpp"
 
 namespace fc::markets::storage::chain_events {
@@ -19,14 +18,7 @@ namespace fc::markets::storage::chain_events {
    */
   class ChainEvents {
    public:
-    using Cb = std::function<void(void)>;
-
-    struct EventWatch {
-      Address provider;
-      DealId deal_id;
-      boost::optional<SectorNumber> sector_number;
-      Cb cb;
-    };
+    using CommitCb = std::function<void(outcome::result<void>)>;
 
     virtual ~ChainEvents() = default;
 
@@ -39,6 +31,6 @@ namespace fc::markets::storage::chain_events {
      */
     virtual void onDealSectorCommitted(const Address &provider,
                                        const DealId &deal_id,
-                                       Cb cb) = 0;
+                                       CommitCb cb) = 0;
   };
 }  // namespace fc::markets::storage::chain_events

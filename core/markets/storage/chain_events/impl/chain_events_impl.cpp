@@ -4,17 +4,57 @@
  */
 
 #include "markets/storage/chain_events/impl/chain_events_impl.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "common/outcome_fmt.hpp"
+#include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
+#include "vm/actor/builtin/v5/miner/miner_actor.hpp"
 
 namespace fc::markets::storage::chain_events {
+  using primitives::RleBitset;
   using primitives::tipset::HeadChangeType;
+  using vm::VMExitCode;
   using vm::actor::builtin::types::miner::SectorPreCommitInfo;
-  using vm::actor::builtin::v0::miner::PreCommitSector;
-  using vm::actor::builtin::v0::miner::ProveCommitSector;
+  using vm::actor::builtin::v5::miner::PreCommitBatch;
+  using vm::actor::builtin::v5::miner::PreCommitSector;
+  using vm::actor::builtin::v5::miner::ProveCommitAggregate;
+  using vm::actor::builtin::v5::miner::ProveCommitSector;
   using vm::message::SignedMessage;
 
-  ChainEventsImpl::ChainEventsImpl(std::shared_ptr<FullNodeApi> api)
-      : api_{std::move(api)} {}
+  ChainEventsImpl::ChainEventsImpl(std::shared_ptr<FullNodeApi> api,
+                                   IsDealPrecommited is_deal_precommited)
+      : api_{std::move(api)},
+        is_deal_precommited_{std::move(is_deal_precommited)} {
+    if (!is_deal_precommited_) {
+      is_deal_precommited_ = [api{api_}](const TipsetKey &tsk,
+                                         const Address &miner,
+                                         DealId deal_id)
+          -> outcome::result<boost::optional<SectorNumber>> {
+        OUTCOME_TRY(actor, api->StateGetActor(miner, tsk));
+        const auto ipld{
+            std::make_shared<fc::storage::ipfs::ApiIpfsDatastore>(api)};
+        OUTCOME_TRY(network, api->StateNetworkVersion(tsk));
+        ipld->actor_version = actorVersion(network);
+        OUTCOME_TRY(state,
+                    getCbor<vm::actor::builtin::states::MinerActorStatePtr>(
+                        ipld, actor.head));
+        boost::optional<SectorNumber> result;
+        constexpr auto kStop{std::errc::interrupted};
+        const auto visit{state->precommitted_sectors.visit(
+            [&](auto sector, auto &precommit) -> outcome::result<void> {
+              const auto &ids{precommit.info.deal_ids};
+              if (std::find(ids.begin(), ids.end(), deal_id) != ids.end()) {
+                result = sector;
+                return outcome::failure(kStop);
+              }
+              return outcome::success();
+            })};
+        if (!visit && visit.error() != kStop) {
+          return visit.error();
+        }
+        return result;
+      };
+    }
+  }
 
   outcome::result<void> ChainEventsImpl::init() {
     OUTCOME_TRY(chan, api_->ChainNotify());
@@ -30,12 +70,31 @@ namespace fc::markets::storage::chain_events {
 
   void ChainEventsImpl::onDealSectorCommitted(const Address &provider,
                                               const DealId &deal_id,
-                                              Cb cb) {
-    std::unique_lock lock(watched_events_mutex_);
-    watched_events_.emplace_back(EventWatch{.provider = provider,
-                                            .deal_id = deal_id,
-                                            .sector_number = boost::none,
-                                            .cb = std::move(cb)});
+                                              CommitCb cb) {
+    constexpr auto kStop{std::errc::interrupted};
+    const auto _r{[&]() -> outcome::result<void> {
+      OUTCOME_TRY(deal, api_->StateMarketStorageDeal(deal_id, head_->key));
+      if (deal.state.sector_start_epoch > 0) {
+        cb(outcome::success());
+        return outcome::success();
+      }
+      OUTCOME_TRY(sector, is_deal_precommited_(head_->key, provider, deal_id));
+      std::unique_lock lock{watched_events_mutex_};
+      if (sector) {
+        watched_events_[provider].commits.emplace(*sector, std::move(cb));
+      } else {
+        watched_events_[provider].precommits.emplace(
+            deal_id, [this, provider, cb{std::move(cb)}](auto _sector) {
+              OUTCOME_CB(auto sector, _sector);
+              std::unique_lock lock{watched_events_mutex_};
+              watched_events_[provider].commits.emplace(sector, std::move(cb));
+            });
+      }
+      return outcome::success();
+    }()};
+    if (!_r && _r.error() != kStop) {
+      logger_->warn("ChainEventsImpl::onDealSectorCommitted {:#}", _r.error());
+    }
   }
 
   /**
@@ -46,8 +105,12 @@ namespace fc::markets::storage::chain_events {
    */
   bool ChainEventsImpl::onRead(
       const boost::optional<std::vector<HeadChange>> &changes) {
+    std::unique_lock lock{watched_events_mutex_};
     if (changes) {
       for (const auto &change : changes.get()) {
+        if (change.type != HeadChangeType::REVERT) {
+          head_ = change.value;
+        }
         if (change.type == HeadChangeType::APPLY) {
           for (auto &block_cid : change.value->key.cids()) {
             auto block_messages = api_->ChainGetBlockMessages(CID{block_cid});
@@ -75,65 +138,78 @@ namespace fc::markets::storage::chain_events {
         }
       }
     }
+    lock.unlock();
     return true;
   };
 
   outcome::result<void> ChainEventsImpl::onMessage(
       const UnsignedMessage &message, const CID &cid) {
-    std::vector<EventWatch>::iterator watch_it;
-    boost::optional<SectorNumber> update_sector_number;
-    bool prove_sector_committed = false;
-    {
-      std::shared_lock lock(watched_events_mutex_);
-      for (watch_it = watched_events_.begin();
-           watch_it != watched_events_.end();
-           ++watch_it) {
-        if (message.to == watch_it->provider) {
-          if (message.method == PreCommitSector::Number) {
-            OUTCOME_TRY(
-                pre_commit_info,
-                codec::cbor::decode<SectorPreCommitInfo>(message.params));
-            auto deal_ids = pre_commit_info.deal_ids;
-            // save sector number if deal id matches and it is not saved yet
-            if (std::find(deal_ids.begin(), deal_ids.end(), watch_it->deal_id)
-                    != deal_ids.end()
-                && !watch_it->sector_number) {
-              update_sector_number = pre_commit_info.sector;
-              break;
-            }
-          } else if (message.method == ProveCommitSector::Number) {
-            OUTCOME_TRY(
-                prove_commit_params,
-                codec::cbor::decode<ProveCommitSector::Params>(message.params));
-            // notify if sector number matches,
-            if (watch_it->sector_number
-                && prove_commit_params.sector == watch_it->sector_number) {
-              prove_sector_committed = true;
-              break;
-            }
-          }
+    const auto _watch{watched_events_.find(message.to)};
+    if (_watch == watched_events_.end()) {
+      return outcome::success();
+    }
+    auto &watch{_watch->second};
+    const auto on_precommit{[&](const SectorPreCommitInfo &precommit) {
+      for (auto &deal_id : precommit.deal_ids) {
+        const auto [begin, end]{watch.precommits.equal_range(deal_id)};
+        auto it{begin};
+        while (it != end) {
+          api_->StateWaitMsg(
+              [cb{std::move(it->second)}, sector{precommit.sector}](auto _r) {
+                OUTCOME_CB(auto r, _r);
+                if (r.receipt.exit_code != VMExitCode::kOk) {
+                  return cb(r.receipt.exit_code);
+                }
+                return cb(sector);
+              },
+              cid,
+              kMessageConfidence,
+              api::kLookbackNoLimit,
+              true);
+          it = watch.precommits.erase(it);
         }
       }
-    }
-
-    if (watch_it != watched_events_.end()) {
-      std::unique_lock lock(watched_events_mutex_);
-      if (update_sector_number) {
-        watch_it->sector_number = update_sector_number;
-      }
-
-      if (prove_sector_committed) {
+    }};
+    const auto on_commit{[&](SectorNumber sector) {
+      const auto [begin, end]{watch.commits.equal_range(sector)};
+      auto it{begin};
+      while (it != end) {
         api_->StateWaitMsg(
-            [cb{std::move(watch_it->cb)}](auto _r) {
-              if (_r) {
-                cb();
+            [cb{std::move(it->second)}](auto _r) {
+              OUTCOME_CB(auto r, _r);
+              if (r.receipt.exit_code != vm::VMExitCode::kOk) {
+                return cb(r.receipt.exit_code);
               }
+              return cb(outcome::success());
             },
             cid,
             kMessageConfidence,
             api::kLookbackNoLimit,
             true);
-        watched_events_.erase(watch_it);
+        it = watch.commits.erase(it);
+      }
+    }};
+    if (message.method == PreCommitSector::Number) {
+      OUTCOME_TRY(param,
+                  codec::cbor::decode<PreCommitSector::Params>(message.params));
+      on_precommit(param);
+    } else if (message.method == PreCommitBatch::Number) {
+      OUTCOME_TRY(param,
+                  codec::cbor::decode<PreCommitBatch::Params>(message.params));
+      for (const auto &precommit : param.sectors) {
+        on_precommit(precommit);
+      }
+    } else if (message.method == ProveCommitSector::Number) {
+      OUTCOME_TRY(
+          param,
+          codec::cbor::decode<ProveCommitSector::Params>(message.params));
+      on_commit(param.sector);
+    } else if (message.method == ProveCommitAggregate::Number) {
+      OUTCOME_TRY(
+          param,
+          codec::cbor::decode<ProveCommitAggregate::Params>(message.params));
+      for (auto &sector : param.sectors) {
+        on_commit(sector);
       }
     }
     return outcome::success();

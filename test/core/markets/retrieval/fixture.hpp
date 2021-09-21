@@ -58,7 +58,6 @@ namespace fc::markets::retrieval::test {
 
     std::shared_ptr<libp2p::Host> host;
     std::shared_ptr<boost::asio::io_context> context;
-    std::thread thread;
     std::shared_ptr<DataTransfer> datatransfer;
 
     /* Retrieval market client */
@@ -182,13 +181,6 @@ namespace fc::markets::retrieval::test {
               const TokenAmount &) -> outcome::result<TokenAmount> {
             return TokenAmount{0};
           }};
-
-      thread = std::thread{[this] { context->run(); }};
-    }
-
-    void TearDown() override {
-      context->stop();
-      thread.join();
     }
 
     outcome::result<void> addPieceSample(
