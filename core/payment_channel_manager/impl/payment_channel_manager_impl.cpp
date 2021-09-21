@@ -32,6 +32,7 @@ namespace fc::payment_channel_manager {
       std::shared_ptr<FullNodeApi> api, std::shared_ptr<Ipld> ipld)
       : api_{std::move(api)}, ipld_{std::move(ipld)} {}
 
+  // TODO(turuslan): check concurrent creation/duplication/reuse
   void PaymentChannelManagerImpl::getOrCreatePaymentChannel(
       const Address &client,
       const Address &miner,
@@ -42,7 +43,19 @@ namespace fc::payment_channel_manager {
       // TODO track available funds
       OUTCOME_CB(auto cid,
                  addFunds(*channel_address, client, amount_available));
-      return cb(AddChannelInfo{*channel_address, cid});
+      api_->StateWaitMsg(
+          [=, self{shared_from_this()}, cb{std::move(cb)}](auto _wait) {
+            OUTCOME_CB(auto wait, _wait);
+            if (wait.receipt.exit_code != VMExitCode::kOk) {
+              return cb(PaymentChannelManagerError::kSendFundsErrored);
+            }
+            cb(AddChannelInfo{*channel_address, cid});
+          },
+          cid,
+          kMessageConfidence,
+          api::kLookbackNoLimit,
+          true);
+      return;
     }
     OUTCOME_CB(auto cid,
                createPaymentChannelActor(client, miner, amount_available));
@@ -251,16 +264,7 @@ namespace fc::payment_channel_manager {
         to, from, {}, amount, {}, {}, vm::actor::kSendMethodNumber, {}};
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
-    auto message_cid{signed_message.getCid()};
-    // TODO: maybe async call, it's long
-    OUTCOME_TRY(
-        message_state,
-        api_->StateWaitMsg(
-            message_cid, kMessageConfidence, api::kLookbackNoLimit, true));
-    if (message_state.receipt.exit_code != VMExitCode::kOk) {
-      return PaymentChannelManagerError::kSendFundsErrored;
-    }
-    return std::move(message_cid);
+    return signed_message.getCid();
   }
 
   outcome::result<CID> PaymentChannelManagerImpl::createPaymentChannelActor(

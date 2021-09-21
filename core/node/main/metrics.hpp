@@ -18,7 +18,10 @@
 
 namespace fc::node {
   struct Metrics {
-    Metrics(const NodeObjects &o) : o{o} {
+    using Clock = std::chrono::steady_clock;
+
+    Metrics(const NodeObjects &o, Clock::time_point start_time)
+        : o{o}, start_time{start_time} {
       _possible_head = o.events->subscribePossibleHead(
           [this](auto &e) { height_known = e.height; });
     }
@@ -28,6 +31,11 @@ namespace fc::node {
       auto metric{[&](auto &&name, auto &&value) {
         ss << name << ' ' << value << std::endl;
       }};
+
+      metric("uptime",
+             std::chrono::duration_cast<std::chrono::seconds>(Clock::now()
+                                                              - start_time)
+                 .count());
 
       auto [vm_size, vm_rss]{memoryUsage()};
       metric("vm_size", vm_size);
@@ -81,6 +89,7 @@ namespace fc::node {
     }
 
     const NodeObjects &o;
+    Clock::time_point start_time;
 
     std::atomic_int64_t height_known{};
     sync::events::Connection _possible_head;

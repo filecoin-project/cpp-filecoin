@@ -65,18 +65,11 @@ namespace fc::storage::ipfs::graphsync::test {
     }
 
     // calls Graphsync's makeRequest
-    void makeRequest(const libp2p::peer::PeerId &peer,
-                     boost::optional<libp2p::multi::Multiaddress> address,
-                     const CID &root_cid) {
+    void makeRequest(const PeerInfo &peer, const CID &root_cid) {
       start();
 
-      std::vector<Extension> extensions;
-      requests_.push_back(graphsync_->makeRequest(peer,
-                                                  std::move(address),
-                                                  root_cid,
-                                                  {},
-                                                  extensions,
-                                                  requestProgressCallback()));
+      requests_.push_back(graphsync_->makeRequest(
+          peer, root_cid, {}, {}, requestProgressCallback()));
       ++requests_sent;
     }
 
@@ -204,16 +197,11 @@ namespace fc::storage::ipfs::graphsync::test {
       // server listens
       server.listen(listen_to);
       auto peer = server.getId();
-      bool use_address = true;
 
       // client makes 3 requests
 
       for (const auto &[cid, _] : client_data->getExpected()) {
-        boost::optional<libp2p::multi::Multiaddress> address(listen_to);
-
-        // don't need to pass the address more than once
-        client.makeRequest(peer, use_address ? address : boost::none, cid);
-        use_address = false;
+        client.makeRequest({peer, {listen_to}}, cid);
       }
     });
 
@@ -352,7 +340,7 @@ namespace fc::storage::ipfs::graphsync::test {
                 // data block,
                 // and respectively RS_NOT_FOUND will come N-2 times per block
 
-                n.makeRequest(p0.peer.value(), p0.listen_to, cid);
+                n.makeRequest({*p0.peer, {*p0.listen_to}}, cid);
               }
             }
           }

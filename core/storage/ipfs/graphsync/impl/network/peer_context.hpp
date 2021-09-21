@@ -50,7 +50,7 @@ namespace fc::storage::ipfs::graphsync {
     /// Stores network address for outbound connections. May be updated.
     /// \param connect_to address, optional
     void setOutboundAddress(
-        boost::optional<libp2p::multi::Multiaddress> connect_to);
+        std::vector<libp2p::multi::Multiaddress> connect_to);
 
     /// Internal state
     enum State { can_connect, is_connecting, is_connected, is_closed };
@@ -163,7 +163,7 @@ namespace fc::storage::ipfs::graphsync {
     Scheduler &scheduler_;
 
     /// Outbound address
-    boost::optional<libp2p::multi::Multiaddress> connect_to_;
+    std::vector<libp2p::multi::Multiaddress> connect_to_;
 
     /// The only one per peer sending endpoint
     std::unique_ptr<OutboundEndpoint> outbound_endpoint_;

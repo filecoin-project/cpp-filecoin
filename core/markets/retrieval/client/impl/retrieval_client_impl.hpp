@@ -116,7 +116,7 @@ namespace fc::markets::retrieval::client {
     void failDeal(const std::shared_ptr<DealState> &deal_state,
                   const std::error_code &error);
 
-    DealId next_deal_id;
+    DealId next_deal_id{};
     std::shared_ptr<Host> host_;
     std::shared_ptr<DataTransfer> datatransfer_;
     std::shared_ptr<FullNodeApi> api_;
