@@ -49,7 +49,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   };
 
   TEST_F(MoniesTestv2, TestPledgePenaltyForTermination) {
-    const TokenAmount initial_pledge = TokenAmount{1 << 10};
+    initial_pledge = TokenAmount{1 << 10};
     day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
     twenty_day_reward = day_reward * big_initial_pledge_factor;
     sector_age = 20 * ChainEpoch{static_cast<BigInt>(kEpochsInDay)};
@@ -66,12 +66,10 @@ namespace fc::vm::actor::builtin::v2::miner {
                                                              0,
                                                              0));
 
-    EXPECT_EQ(undeclared_penalty, fee);
+    EXPECT_EQ(fee, undeclared_penalty);
   };
 
   TEST_F(MoniesTestv2, ExpectedRewardFault) {
-    day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
-    twenty_day_reward = day_reward * big_initial_pledge_factor;
     const int64_t sector_age_in_days{20};
     sector_age = sector_age_in_days * kEpochsInDay;
 
@@ -93,12 +91,10 @@ namespace fc::vm::actor::builtin::v2::miner {
                   * moniesv2.termination_reward_factor.numerator),
                  (big_initial_pledge_factor
                   * moniesv2.termination_reward_factor.denominator));
-    EXPECT_EQ(expected_fee, fee);
+    EXPECT_EQ(fee, expected_fee);
   }
 
   TEST_F(MoniesTestv2, CappedSectorAge) {
-    day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
-    twenty_day_reward = day_reward * big_initial_pledge_factor;
     sector_age = 500 * kEpochsInDay;
     EXPECT_OUTCOME_TRUE(fee,
                         moniesv2.pledgePenaltyForTermination(TokenAmount{},
@@ -118,12 +114,10 @@ namespace fc::vm::actor::builtin::v2::miner {
                   * moniesv2.termination_reward_factor.numerator),
                  (big_initial_pledge_factor
                   * moniesv2.termination_reward_factor.denominator));
-    EXPECT_EQ(expected_fee, fee);
+    EXPECT_EQ(fee, expected_fee);
   }
 
   TEST_F(MoniesTestv2, FeeReplacement) {
-    day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
-    twenty_day_reward = day_reward * big_initial_pledge_factor;
     sector_age = 20 * ChainEpoch{static_cast<BigInt>(kEpochsInDay)};
     const ChainEpoch replacement_age = 2 * kEpochsInDay;
 
@@ -157,8 +151,6 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   TEST_F(MoniesTestv2, LifetimeCapReplacement) {
-    day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
-    twenty_day_reward = day_reward * big_initial_pledge_factor;
     sector_age = 20 * ChainEpoch{static_cast<BigInt>(kEpochsInDay)};
     const ChainEpoch replacement_age =
         (moniesv2.termination_lifetime_cap + 1) * kEpochsInDay;
@@ -192,8 +184,6 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   TEST_F(MoniesTestv2, DayRateCharger) {
-    day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
-    twenty_day_reward = day_reward * big_initial_pledge_factor;
     const TokenAmount old_day_reward = day_reward * 2;
     const int64_t old_sector_age_in_days{20};
     const ChainEpoch old_sector_age = old_sector_age_in_days * kEpochsInDay;
@@ -212,7 +202,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                 * moniesv2.termination_reward_factor.numerator),
                moniesv2.termination_reward_factor.denominator);
 
-    const TokenAmount expectedFee =
+    const TokenAmount expected_fee =
         twenty_day_reward + old_penalty + new_penalty;
 
     EXPECT_OUTCOME_TRUE(fee,
@@ -227,17 +217,13 @@ namespace fc::vm::actor::builtin::v2::miner {
                                                              old_day_reward,
                                                              old_sector_age));
 
-    EXPECT_EQ(expectedFee, fee);
+    EXPECT_EQ(fee, expected_fee);
   }
 
   TEST_F(MoniesTestv2, ExpectedRewardForPower) {
-    epoch_target_reward = BigInt(1) << 50;
-    sector_power = BigInt(1) << 36;
     network_qa_power = StoragePower{1 << 10};
     const StoragePower power_rate_of_change{-BigInt((1 << 10))};
 
-    reward_estimate = {.position = epoch_target_reward << 128,
-                       .velocity = BigInt(0) << 128};
     power_estimate = {.position = network_qa_power << 128,
                       .velocity = power_rate_of_change << 128};
     EXPECT_OUTCOME_TRUE(

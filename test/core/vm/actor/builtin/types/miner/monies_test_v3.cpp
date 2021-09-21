@@ -92,7 +92,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                   * moniesv3.termination_reward_factor.numerator),
                  (big_initial_pledge_factor
                   * moniesv3.termination_reward_factor.denominator));
-    EXPECT_EQ(expected_fee, fee);
+    EXPECT_EQ(fee, expected_fee);
   }
 
   TEST_F(MoniesTestv3, CappedSectorAge) {
@@ -122,7 +122,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                   * moniesv3.termination_reward_factor.numerator),
                  (big_initial_pledge_factor
                   * moniesv3.termination_reward_factor.denominator));
-    EXPECT_EQ(expected_fee, fee);
+    EXPECT_EQ(fee, expected_fee);
   }
 
   TEST_F(MoniesTestv3, EqualFeeForReplacementAndOriginal) {
@@ -248,7 +248,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                                                              old_day_reward,
                                                              old_sector_age));
 
-    EXPECT_EQ(expected_fee, fee);
+    EXPECT_EQ(fee, expected_fee);
   }
 
   TEST_F(MoniesTestv3, TestNegativeBRClamp) {
@@ -265,6 +265,6 @@ namespace fc::vm::actor::builtin::v3::miner {
         four_br,
         moniesv3.expectedRewardForPower(
             reward_estimate, power_estimate, sector_power, ChainEpoch(4)));
-    EXPECT_EQ(0, four_br);
+    EXPECT_EQ(four_br, 0);
   }
 }  // namespace fc::vm::actor::builtin::v3::miner
