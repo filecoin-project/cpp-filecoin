@@ -37,6 +37,7 @@ namespace fc::api {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
+  using primitives::sector::SectorId;
   using primitives::sector_file::SectorFileType;
   using sector_storage::CallError;
   using sector_storage::CallId;
@@ -177,7 +178,7 @@ namespace fc::api {
    * @return initialized StorageMinerApi
    */
   std::shared_ptr<StorageMinerApi> makeStorageApi(
-      const std::shared_ptr<io_context> io,
+      const std::shared_ptr<io_context> &io,
       const std::shared_ptr<FullNodeApi> &full_node_api,
       const Address &actor,
       const std::shared_ptr<Miner> &miner,

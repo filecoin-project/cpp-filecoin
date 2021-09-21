@@ -116,6 +116,8 @@ namespace fc::markets::storage::client {
           } else {
             spdlog::error(
                 "askDealStatus {} {}", deal->proposal_cid, _res.error());
+            std::lock_guard lock{waiting_mutex};
+            waiting_deals.push_back(deal);
           }
         })};
     DealStatusRequest req;

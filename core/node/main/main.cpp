@@ -11,6 +11,7 @@
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
+#include "common/api_secret.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
 #include "common/logger.hpp"
@@ -47,9 +48,12 @@ namespace fc {
   using api::ImportRes;
   using api::makeFullNodeApiV1Wrapper;
   using api::StorageMarketDealInfo;
+  using libp2p::peer::PeerId;
+  using libp2p::peer::PeerInfo;
   using markets::storage::StorageProviderInfo;
   using node::Metrics;
   using node::NodeObjects;
+  using primitives::jwt::kAllPermission;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
 
   namespace {
@@ -210,7 +214,6 @@ namespace fc {
         [&]() -> outcome::result<std::vector<Import>> {
       return node_objects.storage_market_import_manager->list();
     };
-
     node_objects.api_v1 = makeFullNodeApiV1Wrapper();
     auto rpc_v1{api::makeRpc(*node_objects.api)};
     wrapRpc(rpc_v1, *node_objects.api_v1);
@@ -237,11 +240,15 @@ namespace fc {
 
     api::serve(
         rpcs, routes, *node_objects.io_context, "127.0.0.1", config.api_port);
-    api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
+    auto api_secret = loadApiSecret(config.join("jwt_secret")).value();
+    auto token = generateAuthToken(api_secret, kAllPermission).value();
+    api::rpc::saveInfo(config.repo_path, config.api_port, token);
     log()->info("API started at ws://127.0.0.1:{}", config.api_port);
   }
 
   void main(node::Config &config) {
+    const auto start_time{Metrics::Clock::now()};
+
     vm::actor::cgo::configParams();
 
     if (config.log_level <= spdlog::level::debug) {
@@ -266,8 +273,8 @@ namespace fc {
                       res.error());
       }
     })};
-    o.api->MpoolPushMessage = [&, impl{std::move(o.api->MpoolPushMessage)}](
-                                  auto &arg1, auto &arg2) {
+    o.api->MpoolPushMessage = [&, impl{o.api->MpoolPushMessage}](auto &arg1,
+                                                                 auto &arg2) {
       auto res{impl(arg1, arg2)};
       if (res) {
         o.pubsub_gate->publish(res.value());
@@ -275,7 +282,7 @@ namespace fc {
       return res;
     };
 
-    Metrics metrics{o};
+    Metrics metrics{o, start_time};
 
     o.io_context->post([&] {
       for (auto &host : config.drand_servers) {
@@ -364,7 +371,7 @@ namespace fc {
       }
     }
 
-    startApi(config, o, metrics);
+    startApi(config, o, metrics);  // may throw
 
     o.identify->start(events);
     o.say_hello->start(config.genesis_cid.value(), events);

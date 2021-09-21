@@ -37,6 +37,7 @@ namespace fc {
   using api::VersionResult;
   using boost::asio::io_context;
   using config::configProfile;
+  using libp2p::multi::Multiaddress;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::piece::UnpaddedPieceSize;
@@ -270,7 +271,9 @@ namespace fc {
     wroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
 
     api::serve(wrpc, wroutes, *io, "127.0.0.1", config.api_port);
-    api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
+    api::rpc::saveInfo(config.repo_path,
+                       config.api_port,
+                       "stub");  // TODO (ortyomka): Auth via mapi
 
     IoThread thread;
     boost::asio::post(*(thread.io), [&] {

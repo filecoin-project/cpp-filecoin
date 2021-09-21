@@ -13,11 +13,6 @@
 namespace fc::primitives {
 
   struct ActiveResources {
-    uint64_t memory_used_min = 0;
-    uint64_t memory_used_max = 0;
-    bool gpu_used = false;
-    uint64_t cpu_use = 0;
-
     void add(const WorkerResources &worker_resources,
              const Resources &resources);
 
@@ -30,7 +25,16 @@ namespace fc::primitives {
                                  const WorkerResources &resources,
                                  const ActiveResources &active);
 
+    inline void setMemoryUsedMin(uint64_t memory) {
+      std::unique_lock lock{mutex_};
+      memory_used_min = memory;
+    }
+
    private:
+    uint64_t memory_used_min = 0;
+    uint64_t memory_used_max = 0;
+    bool gpu_used = false;
+    uint64_t cpu_use = 0;
     mutable std::shared_mutex mutex_;
   };
 

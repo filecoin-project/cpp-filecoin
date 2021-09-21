@@ -32,7 +32,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       const NetworkVersion &network_version) const {
     ChainEpoch projection_period = declared_fault_projection_period_v0;
     if (network_version >= NetworkVersion::kVersion3) {
-      projection_period = declared_fault_factor_num_v3;
+      projection_period = declared_fault_projection_period_v3;
     }
     return expectedRewardForPower(reward_estimate,
                                   network_power_estimate,

@@ -8,4 +8,5 @@ add_library(filecoin_hasher
     )
 target_link_libraries(filecoin_hasher
     blake2
+    filecoin_sha
     )

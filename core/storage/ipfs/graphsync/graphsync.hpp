@@ -10,7 +10,7 @@
 #include <boost/optional.hpp>
 #include <boost/signals2.hpp>
 #include <libp2p/multi/multiaddress.hpp>
-#include <libp2p/peer/peer_id.hpp>
+#include <libp2p/peer/peer_info.hpp>
 #include <libp2p/protocol/common/subscription.hpp>
 
 #include "common/buffer.hpp"
@@ -20,6 +20,7 @@
 
 namespace fc::storage::ipfs::graphsync {
   using libp2p::peer::PeerId;
+  using libp2p::peer::PeerInfo;
 
   /// Subscription to any data stream, borrowed from libp2p
   using libp2p::protocol::Subscription;
@@ -138,20 +139,17 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Initiates a new request to graphsync network
     /// \param peer Peer ID
-    /// \param address Optional peer network address
     /// \param root_cid Root CID of the request
     /// \param selector IPLD selector
     /// \param extensions - extension data
     /// \param callback A callback which keeps track of request progress
     /// \return Subscription object. Request is cancelled as soon as
     /// this subscription is cancelled or goes out of scope
-    virtual Subscription makeRequest(
-        const libp2p::peer::PeerId &peer,
-        boost::optional<libp2p::multi::Multiaddress> address,
-        const CID &root_cid,
-        gsl::span<const uint8_t> selector,
-        const std::vector<Extension> &extensions,
-        RequestProgressCallback callback) = 0;
+    virtual Subscription makeRequest(const libp2p::peer::PeerInfo &peer,
+                                     const CID &root_cid,
+                                     gsl::span<const uint8_t> selector,
+                                     const std::vector<Extension> &extensions,
+                                     RequestProgressCallback callback) = 0;
   };
 
 }  // namespace fc::storage::ipfs::graphsync

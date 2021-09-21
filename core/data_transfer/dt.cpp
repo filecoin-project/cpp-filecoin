@@ -154,8 +154,7 @@ namespace fc::data_transfer {
                                 OkCb on_end) {
     auto sub{std::make_shared<Subscription>()};
     *sub = gs->makeRequest(
-        pdtid.peer,
-        {},
+        {pdtid.peer, {}},
         root,
         kAllSelector.b,
         {makeExt(DataTransferResponse{
@@ -202,13 +201,8 @@ namespace fc::data_transfer {
     PeerDtId pdtid{peer.id, dtid};
     pulling_out.emplace(pdtid, std::move(on_reply));
     auto sub{std::make_shared<Subscription>()};
-    boost::optional<libp2p::multi::Multiaddress> addr;
-    if (!peer.addresses.empty()) {
-      addr = peer.addresses[0];
-    }
     *sub = gs->makeRequest(
-        peer.id,
-        addr,
+        peer,
         root,
         selector.b,
         {makeExt(DataTransferRequest{

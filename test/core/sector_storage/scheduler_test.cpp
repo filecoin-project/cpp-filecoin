@@ -132,8 +132,14 @@ namespace fc::sector_storage {
         is_satisfying(task, seal_proof_type_, workerNameMatcher(worker_name_)))
         .WillOnce(testing::Return(outcome::success(true)));
 
-    EXPECT_OUTCOME_TRUE_1(
-        scheduler_->schedule(sector, task, selector_, prepare, work, cb));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(sector,
+                                               task,
+                                               selector_,
+                                               prepare,
+                                               work,
+                                               cb,
+                                               kDefaultTaskPriority,
+                                               boost::none));
 
     io_->run_one();
     io_->reset();
@@ -266,8 +272,14 @@ namespace fc::sector_storage {
         .WillOnce(testing::Return(outcome::success(true)))
         .WillOnce(testing::Return(outcome::success(true)));
 
-    EXPECT_OUTCOME_TRUE_1(
-        scheduler_->schedule(sector, task1, selector_, prepare1, work1, cb1));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(sector,
+                                               task1,
+                                               selector_,
+                                               prepare1,
+                                               work1,
+                                               cb1,
+                                               kDefaultTaskPriority,
+                                               boost::none));
 
     auto task2 = primitives::kTTFinalize;
     EXPECT_CALL(
@@ -275,8 +287,14 @@ namespace fc::sector_storage {
         is_satisfying(task2, seal_proof_type_, workerNameMatcher(worker_name_)))
         .WillOnce(testing::Return(outcome::success(true)));
 
-    EXPECT_OUTCOME_TRUE_1(
-        scheduler_->schedule(sector, task2, selector_, prepare2, work2, cb2));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(sector,
+                                               task2,
+                                               selector_,
+                                               prepare2,
+                                               work2,
+                                               cb2,
+                                               kDefaultTaskPriority,
+                                               boost::none));
 
     io_->run_one();
     EXPECT_OUTCOME_TRUE_1(scheduler_->returnResult(call_id3, {}));
@@ -412,10 +430,22 @@ namespace fc::sector_storage {
       cb2_call = not res.has_error();
     };
 
-    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(
-        sector1, task, selector_, WorkerAction(), work1, cb1));
-    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(
-        sector2, task, selector_, WorkerAction(), work2, cb2));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(sector1,
+                                               task,
+                                               selector_,
+                                               WorkerAction(),
+                                               work1,
+                                               cb1,
+                                               kDefaultTaskPriority,
+                                               boost::none));
+    EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(sector2,
+                                               task,
+                                               selector_,
+                                               WorkerAction(),
+                                               work2,
+                                               cb2,
+                                               kDefaultTaskPriority,
+                                               boost::none));
 
     std::thread t([io = io_]() { io->run_one(); });
 

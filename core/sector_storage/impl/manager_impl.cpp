@@ -519,7 +519,9 @@ namespace fc::sector_storage {
           },
           callbackWrapper([&wait](outcome::result<void> res) -> void {
             wait.set_value(res);
-          })));
+          }),
+          kDefaultTaskPriority,
+          boost::none));
 
       auto maybe_error = wait.get_future().get();
       if (maybe_error.has_error()) {
@@ -543,7 +545,9 @@ namespace fc::sector_storage {
             const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
           return worker->readPiece(std::move(output), sector, offset, size);
         },
-        callbackWrapper(cb)));
+        callbackWrapper(cb),
+        kDefaultTaskPriority,
+        boost::none));
 
     return outcome::success();
   }
@@ -853,7 +857,8 @@ namespace fc::sector_storage {
         callbackWrapper([&waiter](outcome::result<void> maybe_err) -> void {
           waiter.set_value(maybe_err);
         }),
-        priority));
+        priority,
+        boost::none));
 
     auto maybe_error = waiter.get_future().get();
     if (maybe_error.has_error()) return maybe_error.error();
@@ -887,7 +892,8 @@ namespace fc::sector_storage {
                                           | moveUnsealed));
         },
         callbackWrapper(cb),
-        priority);
+        priority,
+        boost::none);
   }
 
   outcome::result<void> ManagerImpl::finalizeSectorSync(
@@ -941,7 +947,8 @@ namespace fc::sector_storage {
               sector, piece_sizes, new_piece_size, std::move(*data));
         },
         callbackWrapper(cb),
-        priority);
+        priority,
+        boost::none);
   }
 
   outcome::result<PieceInfo> ManagerImpl::addPieceSync(

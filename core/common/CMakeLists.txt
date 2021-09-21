@@ -67,3 +67,9 @@ target_link_libraries(file
     buffer
     outcome
     )
+
+add_library(jwt INTERFACE)
+
+target_link_libraries(jwt INTERFACE
+    OpenSSL::Crypto
+    )

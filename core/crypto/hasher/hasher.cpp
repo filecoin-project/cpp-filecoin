@@ -5,10 +5,9 @@
 
 #include "hasher.hpp"
 
-#include <libp2p/crypto/sha/sha256.hpp>
-
 #include "common/error_text.hpp"
 #include "crypto/blake2/blake2b160.hpp"
+#include "crypto/sha/sha256.hpp"
 
 namespace fc::crypto {
   const std::map<Hasher::HashType, Hasher::HashMethod> Hasher::methods_{
@@ -25,7 +24,7 @@ namespace fc::crypto {
   }
 
   Hasher::Multihash Hasher::sha2_256(gsl::span<const uint8_t> buffer) {
-    auto digest = libp2p::crypto::sha256(buffer);
+    auto digest = crypto::sha::sha256(buffer);
     auto multi_hash = Multihash::create(HashType::sha256, digest);
     BOOST_ASSERT_MSG(multi_hash.has_value(),
                      "fc::crypto::Hasher - failed to create sha2-256 hash");

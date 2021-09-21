@@ -125,7 +125,7 @@ namespace fc::vm::actor::builtin::types::miner {
                                         const DealWeight &deal_weight,
                                         const DealWeight &verified_weight) {
     const auto sector_space_time = size * duration;
-    const auto total_deal_space_time = deal_weight * verified_weight;
+    const auto total_deal_space_time = deal_weight + verified_weight;
     assert(sector_space_time >= total_deal_space_time);
 
     const auto weighted_base_space_time =

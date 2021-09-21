@@ -1953,8 +1953,9 @@ namespace fc::api {
         outcome::raise(JsonError::kWrongType);
       }
       v.reserve(j.Size());
-      for (auto it = j.Begin(); it != j.End(); ++it) {
-        v.emplace_back(decode<T>(*it));
+
+      for (const auto &it : j.GetArray()) {
+        v.emplace_back(decode<T>(it));
       }
     }
 
@@ -1993,8 +1994,8 @@ namespace fc::api {
       if (!j.IsArray()) {
         outcome::raise(JsonError::kWrongType);
       }
-      for (auto it = j.Begin(); it != j.End(); ++it) {
-        v.emplace(decode<T>(*it));
+      for (const auto &it : j.GetArray()) {
+        v.emplace(decode<T>(it));
       }
     }
 

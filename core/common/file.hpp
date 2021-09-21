@@ -24,7 +24,9 @@ namespace fc::common {
 
   /** returns true on success */
   inline bool read(std::istream &is, gsl::span<uint8_t> bytes) {
-    return is.read(span::string(bytes).data(), bytes.size()).good();
+    return is
+        .read(span::string(bytes).data(), static_cast<ptrdiff_t>(bytes.size()))
+        .good();
   }
 
   /** returns true on success */

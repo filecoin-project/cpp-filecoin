@@ -60,7 +60,7 @@ namespace fc::sector_storage {
            kv{call_kv_},
            wid{work_id}](const outcome::result<CallResult> &result) -> void {
         old_cb(result);
-        auto maybe_error = kv->remove(wid);
+        auto maybe_error = kv->remove(static_cast<Buffer>(wid));
         if (maybe_error.has_error()) {
           logger->error(maybe_error.error().message());
         }

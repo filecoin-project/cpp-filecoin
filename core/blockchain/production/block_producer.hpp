@@ -13,7 +13,7 @@ namespace fc::blockchain::production {
 
   outcome::result<BlockWithMessages> generate(
       InterpreterCache &interpreter_cache,
-      TsLoadPtr ts_load,
+      const TsLoadPtr &ts_load,
       std::shared_ptr<Ipld> ipld,
       BlockTemplate t);
 }  // namespace fc::blockchain::production

@@ -6,27 +6,20 @@
 #include "common/error_text.hpp"
 
 #include <atomic>
-#include <unordered_map>
+#include <cassert>
 #include <limits>
+#include <unordered_map>
 
 namespace fc::error_text {
   constexpr auto kName{"ErrorText"};
   constexpr auto kUintBits{std::numeric_limits<unsigned int>::digits};
-
-  struct CategoryZero : std::error_category {
-    const char *name() const noexcept override {
-      return kName;
-    }
-    std::string message(int value) const override {
-      return (const char *)nullptr;
-    }
-  };
 
   struct CategoryAligned : std::error_category {
     const char *name() const noexcept override {
       return kName;
     }
     std::string message(int value) const override {
+      // NOLINTNEXTLINE
       return (const char *)((uintptr_t)(unsigned int)value << kUintBits);
     }
   };
@@ -38,11 +31,11 @@ namespace fc::error_text {
       return kName;
     }
     std::string message(int value) const override {
+      // NOLINTNEXTLINE
       return (const char *)(base + (uintptr_t)(unsigned int)value);
     }
   };
 
-  const CategoryZero category_zero;
   const CategoryAligned category_aligned;
   const Category category_0{0};
 
@@ -51,20 +44,19 @@ namespace fc::error_text {
     return categories;
   }
 
-  std::atomic_flag lock = ATOMIC_FLAG_INIT;
-
   std::error_code _make_error_code(const char *message) {
-    if (message == nullptr) {
-      return {1, category_zero};
-    }
-    const auto ptr{(uintptr_t)message};
+    static std::atomic_flag lock = ATOMIC_FLAG_INIT;
+    assert(message != nullptr);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    const uintptr_t ptr{reinterpret_cast<const uintptr_t>(message)};
     static_assert(sizeof(unsigned int) == sizeof(int));
-    const auto offset{(unsigned int)ptr};
+    const unsigned int offset = ptr;
     if (offset == 0) {
       static_assert(sizeof(uintptr_t) <= 2 * sizeof(unsigned int));
+      // NOLINTNEXTLINE
       return {(int)(unsigned int)(ptr >> kUintBits), category_aligned};
     }
-    const auto value{(int)offset};
+    const int value = static_cast<int>(offset);
     if constexpr (sizeof(int) >= sizeof(uintptr_t)) {
       return {value, category_0};
     } else {

@@ -141,7 +141,7 @@ namespace fc::primitives::sector {
   using PoStRandomness = Randomness;
 
   struct PoStProof {
-    RegisteredPoStProof registered_proof;
+    RegisteredPoStProof registered_proof = RegisteredPoStProof::kUndefined;
     Proof proof;
   };
 
