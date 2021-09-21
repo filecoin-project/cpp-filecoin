@@ -247,6 +247,8 @@ namespace fc {
   }
 
   void main(node::Config &config) {
+    const auto start_time{Metrics::Clock::now()};
+
     vm::actor::cgo::configParams();
 
     if (config.log_level <= spdlog::level::debug) {
@@ -271,8 +273,8 @@ namespace fc {
                       res.error());
       }
     })};
-    o.api->MpoolPushMessage = [&, impl{std::move(o.api->MpoolPushMessage)}](
-                                  auto &arg1, auto &arg2) {
+    o.api->MpoolPushMessage = [&, impl{o.api->MpoolPushMessage}](auto &arg1,
+                                                                 auto &arg2) {
       auto res{impl(arg1, arg2)};
       if (res) {
         o.pubsub_gate->publish(res.value());
@@ -280,7 +282,7 @@ namespace fc {
       return res;
     };
 
-    Metrics metrics{o};
+    Metrics metrics{o, start_time};
 
     o.io_context->post([&] {
       for (auto &host : config.drand_servers) {

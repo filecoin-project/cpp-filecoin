@@ -50,7 +50,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   TEST_F(MoniesTestv2, TestPledgePenaltyForTermination) {
     const TokenAmount initial_pledge = TokenAmount{1 << 10};
-    day_reward = initial_pledge, big_initial_pledge_factor;
+    day_reward = bigdiv(initial_pledge, big_initial_pledge_factor);
     twenty_day_reward = day_reward * big_initial_pledge_factor;
     sector_age = 20 * ChainEpoch{static_cast<BigInt>(kEpochsInDay)};
 
