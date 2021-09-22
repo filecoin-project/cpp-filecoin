@@ -67,6 +67,9 @@ namespace fc::vm::actor::builtin::types::miner {
   outcome::result<Sectors> Sectors::loadSectors() const {
     const auto sectors_copy = *this;
 
+    // assert that root is not loaded
+    sectors_copy.sectors.amt.cid();
+
     // Lotus gas conformance
     OUTCOME_TRY(sectors_copy.sectors.amt.loadRoot());
 
