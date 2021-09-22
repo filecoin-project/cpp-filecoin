@@ -102,7 +102,7 @@ namespace fc::markets::retrieval::test {
                                            client_wallet,
                                            miner_wallet,
                                            cb.AsStdFunction()));
-    EXPECT_CALL(cb, Call(_)).WillOnce(testing::Invoke([](auto _res) {
+    EXPECT_CALL(cb, Call(_)).WillRepeatedly(testing::Invoke([](auto _res) {
       EXPECT_OUTCOME_TRUE_1(_res);
     }));
     runForSteps(*context, 2000);
