@@ -21,7 +21,7 @@ namespace fc::api {
   void fillAuthApi(const std::shared_ptr<CommonApi> &api,
                    const std::shared_ptr<ApiAlgorithm> &secret_algorithm,
                    const common::Logger &logger) {
-    auto verifier = jwt::verify()
+    auto verifier = ::jwt::verify()
                         .with_type(static_cast<std::string>(kTokenType))
                         .allow_algorithm(*secret_algorithm);
     api->AuthNew = [secret_algorithm](auto perms) -> outcome::result<Buffer> {
@@ -33,9 +33,9 @@ namespace fc::api {
         [verifier{std::move(verifier)},
          logger](auto token) -> outcome::result<std::vector<Permission>> {
       auto maybe_decoded =
-          [&]() -> outcome::result<jwt::decoded_jwt<jwt::picojson_traits>> {
+          [&]() -> outcome::result<::jwt::decoded_jwt<::jwt::picojson_traits>> {
         try {
-          return jwt::decode(token);
+          return ::jwt::decode(token);
         } catch (const std::exception &e) {
           logger->error("AuthVerify jwt decode: {}", e.what());
           return ERROR_TEXT("API ERROR");

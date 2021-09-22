@@ -445,10 +445,16 @@ namespace fc {
     api::fillAuthApi(mapi, api_secret, log());
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
-    mrpc.emplace("/rpc/v0", api::makeRpc(*mapi));
+    mrpc.emplace(
+        "/rpc/v0",
+        api::makeRpc(*mapi,
+                     std::bind(mapi->AuthVerify, std::placeholders::_1)));
     auto mroutes{std::make_shared<api::Routes>()};
 
-    mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
+    mroutes->insert({"/remote",
+                     api::makeAuthRoute(
+                         sector_storage::serveHttp(local_store),
+                         std::bind(mapi->AuthVerify, std::placeholders::_1))});
 
     api::serve(mrpc, mroutes, *io, "127.0.0.1", config.api_port);
     OUTCOME_TRY(token, generateAuthToken(api_secret, kAllPermission));

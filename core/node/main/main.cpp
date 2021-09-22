@@ -215,10 +215,14 @@ namespace fc {
       return node_objects.storage_market_import_manager->list();
     };
     node_objects.api_v1 = makeFullNodeApiV1Wrapper();
-    auto rpc_v1{api::makeRpc(*node_objects.api)};
+    auto rpc_v1{api::makeRpc(
+        *node_objects.api,
+        std::bind(node_objects.api->AuthVerify, std::placeholders::_1))};
     wrapRpc(rpc_v1, *node_objects.api_v1);
 
-    auto rpc{api::makeRpc(*node_objects.api)};
+    auto rpc{api::makeRpc(
+        *node_objects.api,
+        std::bind(node_objects.api->AuthVerify, std::placeholders::_1))};
 
     std::map<std::string, std::shared_ptr<api::Rpc>> rpcs;
     rpcs.emplace("/rpc/v0", rpc_v1);

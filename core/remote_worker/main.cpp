@@ -268,7 +268,10 @@ namespace fc {
     wrpc.emplace("/rpc/v0", api::makeRpc(*wapi));
     auto wroutes{std::make_shared<api::Routes>()};
 
-    wroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
+    wroutes->insert({"/remote",
+                     api::makeAuthRoute(
+                         sector_storage::serveHttp(local_store),
+                         std::bind(mapi->AuthVerify, std::placeholders::_1))});
 
     api::serve(wrpc, wroutes, *io, "127.0.0.1", config.api_port);
     api::rpc::saveInfo(config.repo_path,

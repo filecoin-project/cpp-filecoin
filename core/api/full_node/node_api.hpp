@@ -293,37 +293,61 @@ namespace fc::api {
     /**
      * @note long operation
      */
-    API_METHOD(BeaconGetEntry, BeaconEntry, ChainEpoch)
+    API_METHOD(BeaconGetEntry, jwt::kReadPermission, BeaconEntry, ChainEpoch)
 
-    API_METHOD(ChainGetBlock, BlockHeader, const CID &)
-    API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
-    API_METHOD(ChainGetGenesis, TipsetCPtr)
-    API_METHOD(ChainGetNode, IpldObject, const std::string &)
-    API_METHOD(ChainGetMessage, UnsignedMessage, const CID &)
-    API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
-    API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
+    API_METHOD(ChainGetBlock, jwt::kReadPermission, BlockHeader, const CID &)
+    API_METHOD(ChainGetBlockMessages,
+               jwt::kReadPermission,
+               BlockMessages,
+               const CID &)
+    API_METHOD(ChainGetGenesis, jwt::kReadPermission, TipsetCPtr)
+    API_METHOD(ChainGetNode,
+               jwt::kReadPermission,
+               IpldObject,
+               const std::string &)
+    API_METHOD(ChainGetMessage,
+               jwt::kReadPermission,
+               UnsignedMessage,
+               const CID &)
+    API_METHOD(ChainGetParentMessages,
+               jwt::kReadPermission,
+               std::vector<CidMessage>,
+               const CID &)
+    API_METHOD(ChainGetParentReceipts,
+               jwt::kReadPermission,
+               std::vector<MessageReceipt>,
+               const CID &)
     API_METHOD(ChainGetRandomnessFromBeacon,
+               jwt::kReadPermission,
                Randomness,
                const TipsetKey &,
                DomainSeparationTag,
                ChainEpoch,
                const Buffer &)
     API_METHOD(ChainGetRandomnessFromTickets,
+               jwt::kReadPermission,
                Randomness,
                const TipsetKey &,
                DomainSeparationTag,
                ChainEpoch,
                const Buffer &)
-    API_METHOD(ChainGetTipSet, TipsetCPtr, const TipsetKey &)
+    API_METHOD(ChainGetTipSet,
+               jwt::kReadPermission,
+               TipsetCPtr,
+               const TipsetKey &)
     API_METHOD(ChainGetTipSetByHeight,
+               jwt::kReadPermission,
                TipsetCPtr,
                ChainEpoch,
                const TipsetKey &)
-    API_METHOD(ChainHead, TipsetCPtr)
-    API_METHOD(ChainNotify, Chan<std::vector<HeadChange>>)
-    API_METHOD(ChainReadObj, Buffer, CID)
-    API_METHOD(ChainSetHead, void, const TipsetKey &)
-    API_METHOD(ChainTipSetWeight, TipsetWeight, const TipsetKey &)
+    API_METHOD(ChainHead, jwt::kReadPermission, TipsetCPtr)
+    API_METHOD(ChainNotify, jwt::kReadPermission, Chan<std::vector<HeadChange>>)
+    API_METHOD(ChainReadObj, jwt::kReadPermission, Buffer, CID)
+    API_METHOD(ChainSetHead, jwt::kAdminPermission, void, const TipsetKey &)
+    API_METHOD(ChainTipSetWeight,
+               jwt::kReadPermission,
+               TipsetWeight,
+               const TipsetKey &)
 
     /**
      * Identifies peers that have a certain file, and returns QueryOffers for
@@ -333,10 +357,11 @@ namespace fc::api {
      * @note long operation
      */
     API_METHOD(ClientFindData,
+               jwt::kReadPermission,
                std::vector<QueryOffer>,
                const CID &,
                const boost::optional<CID> &)
-    API_METHOD(ClientHasLocal, bool, const CID &)
+    API_METHOD(ClientHasLocal, jwt::kWritePermission, bool, const CID &)
 
     /**
      * Imports file under the specified path into Storage Market Client
@@ -345,21 +370,24 @@ namespace fc::api {
      * must be a one single root CAR.
      * @return CID - root CID to the data
      */
-    API_METHOD(ClientImport, ImportRes, const FileRef &)
+    API_METHOD(ClientImport, jwt::kWritePermission, ImportRes, const FileRef &)
 
     /**
      * Returns information about the deals made by the local client
      */
-    API_METHOD(ClientListDeals, std::vector<StorageMarketDealInfo>)
+    API_METHOD(ClientListDeals,
+               jwt::kWritePermission,
+               std::vector<StorageMarketDealInfo>)
 
     /**
      * Lists imported files and their root CIDs
      */
-    API_METHOD(ClientListImports, std::vector<Import>)
+    API_METHOD(ClientListImports, jwt::kWritePermission, std::vector<Import>)
     /**
      * @note long operation
      */
     API_METHOD(ClientMinerQueryOffer,
+               jwt::kReadPermission,
                QueryOffer,
                const Address &,
                const CID &,
@@ -368,6 +396,7 @@ namespace fc::api {
      * @note long operation
      */
     API_METHOD(ClientQueryAsk,
+               jwt::kReadPermission,
                SignedStorageAsk,
                const std::string &,
                const Address &)
@@ -376,25 +405,35 @@ namespace fc::api {
      * Initiates the retrieval of a file, as specified in the order
      * @note long operation
      */
-    API_METHOD(ClientRetrieve, void, const RetrievalOrder &, const FileRef &)
+    API_METHOD(ClientRetrieve,
+               jwt::kAdminPermission,
+               void,
+               const RetrievalOrder &,
+               const FileRef &)
 
     /**
      * Proposes a storage deal with a miner
      */
-    API_METHOD(ClientStartDeal, CID, const StartDealParams &)
+    API_METHOD(ClientStartDeal,
+               jwt::kAdminPermission,
+               CID,
+               const StartDealParams &)
 
     API_METHOD(GasEstimateFeeCap,
+               jwt::kReadPermission,
                TokenAmount,
                const UnsignedMessage &,
                int64_t,
                const TipsetKey &)
     API_METHOD(GasEstimateGasPremium,
+               jwt::kReadPermission,
                TokenAmount,
                uint64_t,
                const Address &,
                GasAmount,
                const TipsetKey &)
     API_METHOD(GasEstimateMessageGas,
+               jwt::kReadPermission,
                UnsignedMessage,
                const UnsignedMessage &,
                const boost::optional<MessageSendSpec> &,
@@ -411,31 +450,41 @@ namespace fc::api {
      * required funds were already available
      */
     API_METHOD(MarketReserveFunds,
+               jwt::kSignPermission,
                boost::optional<CID>,
                const Address &,
                const Address &,
                const TokenAmount &)
 
-    API_METHOD(MinerCreateBlock, BlockWithCids, const BlockTemplate &)
+    API_METHOD(MinerCreateBlock,
+               jwt::kWritePermission,
+               BlockWithCids,
+               const BlockTemplate &)
     /**
      * @note long operation
      */
     API_METHOD(MinerGetBaseInfo,
+               jwt::kReadPermission,
                boost::optional<MiningBaseInfo>,
                const Address &,
                ChainEpoch,
                const TipsetKey &)
 
-    API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
+    API_METHOD(MpoolPending,
+               jwt::kReadPermission,
+               std::vector<SignedMessage>,
+               const TipsetKey &)
     API_METHOD(MpoolPushMessage,
+               jwt::kSignPermission,
                SignedMessage,
                const UnsignedMessage &,
                const boost::optional<MessageSendSpec> &)
     API_METHOD(MpoolSelect,
+               jwt::kReadPermission,
                std::vector<SignedMessage>,
                const TipsetKey &,
                double)
-    API_METHOD(MpoolSub, Chan<MpoolUpdate>)
+    API_METHOD(MpoolSub, jwt::kReadPermission, Chan<MpoolUpdate>)
 
     /** Payment channel manager */
 
@@ -444,7 +493,7 @@ namespace fc::api {
      * @param payment channel actor address
      * @return new lane id
      */
-    API_METHOD(PaychAllocateLane, LaneId, const Address &)
+    API_METHOD(PaychAllocateLane, jwt::kSignPermission, LaneId, const Address &)
 
     /**
      * Get or create payment channel and waits for message is committed
@@ -458,6 +507,7 @@ namespace fc::api {
      * @note long operation
      */
     API_METHOD(PaychGet,
+               jwt::kSignPermission,
                AddChannelInfo,
                const Address &,
                const Address &,
@@ -472,6 +522,7 @@ namespace fc::api {
      * @return delta
      */
     API_METHOD(PaychVoucherAdd,
+               jwt::kWritePermission,
                TokenAmount,
                const Address &,
                const SignedVoucher &,
@@ -484,6 +535,7 @@ namespace fc::api {
      * @param voucher to validate
      */
     API_METHOD(PaychVoucherCheckValid,
+               jwt::kReadPermission,
                void,
                const Address &,
                const SignedVoucher &)
@@ -496,81 +548,139 @@ namespace fc::api {
      * @return signed voucher
      */
     API_METHOD(PaychVoucherCreate,
+               jwt::kSignPermission,
                SignedVoucher,
                const Address &,
                const TokenAmount &,
                const LaneId &)
 
-    API_METHOD(StateAccountKey, Address, const Address &, const TipsetKey &)
+    API_METHOD(StateAccountKey,
+               jwt::kReadPermission,
+               Address,
+               const Address &,
+               const TipsetKey &)
     API_METHOD(StateCall,
+               jwt::kReadPermission,
                InvocResult,
                const UnsignedMessage &,
                const TipsetKey &)
     API_METHOD(StateDealProviderCollateralBounds,
+               jwt::kReadPermission,
                DealCollateralBounds,
                PaddedPieceSize,
                bool,
                const TipsetKey &)
     API_METHOD(StateListMessages,
+               jwt::kReadPermission,
                std::vector<CID>,
                const UnsignedMessage &,
                const TipsetKey &,
                ChainEpoch)
-    API_METHOD(StateGetActor, Actor, const Address &, const TipsetKey &)
-    API_METHOD(StateReadState, ActorState, const Actor &, const TipsetKey &)
-    API_METHOD(StateListMiners, std::vector<Address>, const TipsetKey &)
-    API_METHOD(StateListActors, std::vector<Address>, const TipsetKey &)
+    API_METHOD(StateGetActor,
+               jwt::kReadPermission,
+               Actor,
+               const Address &,
+               const TipsetKey &)
+    API_METHOD(StateReadState,
+               jwt::kReadPermission,
+               ActorState,
+               const Actor &,
+               const TipsetKey &)
+    API_METHOD(StateListMiners,
+               jwt::kReadPermission,
+               std::vector<Address>,
+               const TipsetKey &)
+    API_METHOD(StateListActors,
+               jwt::kReadPermission,
+               std::vector<Address>,
+               const TipsetKey &)
     API_METHOD(StateMarketBalance,
+               jwt::kReadPermission,
                MarketBalance,
                const Address &,
                const TipsetKey &)
-    API_METHOD(StateMarketDeals, MarketDealMap, const TipsetKey &)
-    API_METHOD(StateLookupID, Address, const Address &, const TipsetKey &)
-    API_METHOD(StateMarketStorageDeal, StorageDeal, DealId, const TipsetKey &)
+    API_METHOD(StateMarketDeals,
+               jwt::kReadPermission,
+               MarketDealMap,
+               const TipsetKey &)
+    API_METHOD(StateLookupID,
+               jwt::kReadPermission,
+               Address,
+               const Address &,
+               const TipsetKey &)
+    API_METHOD(StateMarketStorageDeal,
+               jwt::kReadPermission,
+               StorageDeal,
+               DealId,
+               const TipsetKey &)
 
     API_METHOD(StateMinerActiveSectors,
+               jwt::kReadPermission,
                std::vector<SectorOnChainInfo>,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerAvailableBalance,
+               jwt::kReadPermission,
                TokenAmount,
                const Address &,
                const TipsetKey &)
     /** Returns PoSt submissions since the proving period started. */
     API_METHOD(StateMinerDeadlines,
+               jwt::kReadPermission,
                std::vector<Deadline>,
                const Address &,
                const TipsetKey &)
-    API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
-    API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerFaults,
+               jwt::kReadPermission,
+               RleBitset,
+               const Address &,
+               const TipsetKey &)
+    API_METHOD(StateMinerInfo,
+               jwt::kReadPermission,
+               MinerInfo,
+               const Address &,
+               const TipsetKey &)
     API_METHOD(StateMinerPartitions,
+               jwt::kReadPermission,
                std::vector<Partition>,
                const Address &,
                uint64_t,
                const TipsetKey &)
-    API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerPower,
+               jwt::kReadPermission,
+               MinerPower,
+               const Address &,
+               const TipsetKey &)
     API_METHOD(StateMinerProvingDeadline,
+               jwt::kReadPermission,
                DeadlineInfo,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerSectorAllocated,
+               jwt::kReadPermission,
                bool,
                const Address &,
                SectorNumber,
                const TipsetKey &)
     API_METHOD(StateMinerSectors,
+               jwt::kReadPermission,
                std::vector<SectorOnChainInfo>,
                const Address &,
                const boost::optional<RleBitset> &,
                const TipsetKey &)
-    API_METHOD(StateNetworkName, std::string)
-    API_METHOD(StateNetworkVersion, NetworkVersion, const TipsetKey &)
+    API_METHOD(StateNetworkName, jwt::kReadPermission, std::string)
+    API_METHOD(StateNetworkVersion,
+               jwt::kReadPermission,
+               NetworkVersion,
+               const TipsetKey &)
     API_METHOD(StateMinerPreCommitDepositForPower,
+               jwt::kReadPermission,
                TokenAmount,
                const Address &,
                const SectorPreCommitInfo &,
                const TipsetKey &)
     API_METHOD(StateMinerInitialPledgeCollateral,
+               jwt::kReadPermission,
                TokenAmount,
                const Address &,
                const SectorPreCommitInfo &,
@@ -583,21 +693,25 @@ namespace fc::api {
      * @return preferred registered seal proof type
      */
     API_METHOD(GetProofType,
+               jwt::kReadPermission,
                RegisteredSealProof,
                const Address &,
                const TipsetKey &);
 
     API_METHOD(StateSectorPreCommitInfo,
+               jwt::kReadPermission,
                SectorPreCommitOnChainInfo,
                const Address &,
                SectorNumber,
                const TipsetKey &);
     API_METHOD(StateSectorGetInfo,
+               jwt::kReadPermission,
                boost::optional<SectorOnChainInfo>,
                const Address &,
                SectorNumber,
                const TipsetKey &);
     API_METHOD(StateSectorPartition,
+               jwt::kReadPermission,
                SectorLocation,
                const Address &,
                SectorNumber,
@@ -608,6 +722,7 @@ namespace fc::api {
      * @return the data cap for the given address
      */
     API_METHOD(StateVerifiedClientStatus,
+               jwt::kReadPermission,
                boost::optional<StoragePower>,
                const Address &,
                const TipsetKey &)
@@ -616,6 +731,7 @@ namespace fc::api {
      * @note long operation
      */
     API_METHOD(StateSearchMsg,
+               jwt::kReadPermission,
                boost::optional<MsgWait>,
                const TipsetKey &,
                const CID &,
@@ -624,21 +740,41 @@ namespace fc::api {
     /**
      * @note long operation
      */
-    API_METHOD(StateWaitMsg, MsgWait, const CID &, uint64_t, ChainEpoch, bool)
+    API_METHOD(StateWaitMsg,
+               jwt::kReadPermission,
+               MsgWait,
+               const CID &,
+               uint64_t,
+               ChainEpoch,
+               bool)
 
-    API_METHOD(SyncSubmitBlock, void, const BlockWithCids &)
+    API_METHOD(SyncSubmitBlock,
+               jwt::kWritePermission,
+               void,
+               const BlockWithCids &)
 
     /** Wallet */
-    API_METHOD(WalletBalance, TokenAmount, const Address &)
-    API_METHOD(WalletDefaultAddress, Address)
-    API_METHOD(WalletHas, bool, const Address &)
-    API_METHOD(WalletImport, Address, const KeyInfo &)
-    API_METHOD(WalletNew, Address, const std::string &)
-    API_METHOD(WalletSetDefault, void, const Address &)
-    API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
+    API_METHOD(WalletBalance,
+               jwt::kReadPermission,
+               TokenAmount,
+               const Address &)
+    API_METHOD(WalletDefaultAddress, jwt::kWritePermission, Address)
+    API_METHOD(WalletHas, jwt::kWritePermission, bool, const Address &)
+    API_METHOD(WalletImport, jwt::kAdminPermission, Address, const KeyInfo &)
+    API_METHOD(WalletNew, jwt::kWritePermission, Address, const std::string &)
+    API_METHOD(WalletSetDefault, jwt::kWritePermission, void, const Address &)
+    API_METHOD(WalletSign,
+               jwt::kSignPermission,
+               Signature,
+               const Address &,
+               const Buffer &)
     /** Verify signature by address (may be id or key address) */
-    API_METHOD(
-        WalletVerify, bool, const Address &, const Buffer &, const Signature &)
+    API_METHOD(WalletVerify,
+               jwt::kReadPermission,
+               bool,
+               const Address &,
+               const Buffer &,
+               const Signature &)
   };
 
   template <typename A, typename F>

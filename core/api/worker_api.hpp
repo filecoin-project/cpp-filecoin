@@ -8,9 +8,11 @@
 #include "api/utils.hpp"
 #include "api/version.hpp"
 #include "common/outcome.hpp"
+#include "primitives/jwt/jwt.hpp"
 #include "sector_storage/worker.hpp"
 
 namespace fc::api {
+  using primitives::jwt::kAdminPermission;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::piece::UnpaddedPieceSize;
@@ -31,6 +33,7 @@ namespace fc::api {
     // TODO(ortyomka): [FIL-344] add AddPiece function
 
     API_METHOD(Fetch,
+               kAdminPermission,
                CallId,
                const SectorRef &,
                const SectorFileType &,
@@ -38,17 +41,23 @@ namespace fc::api {
                AcquireMode)
 
     API_METHOD(FinalizeSector,
+               kAdminPermission,
                CallId,
                const SectorRef &,
                const std::vector<Range> &)
 
-    API_METHOD(Info, primitives::WorkerInfo)
+    API_METHOD(Info, kAdminPermission, primitives::WorkerInfo)
 
-    API_METHOD(MoveStorage, CallId, const SectorRef &, SectorFileType)
+    API_METHOD(MoveStorage,
+               kAdminPermission,
+               CallId,
+               const SectorRef &,
+               SectorFileType)
 
-    API_METHOD(Paths, std::vector<primitives::StoragePath>)
+    API_METHOD(Paths, kAdminPermission, std::vector<primitives::StoragePath>)
 
     API_METHOD(SealCommit1,
+               kAdminPermission,
                CallId,
                const SectorRef &,
                const SealRandomness &,
@@ -56,24 +65,31 @@ namespace fc::api {
                std::vector<PieceInfo>,
                const SectorCids &)
 
-    API_METHOD(SealCommit2, CallId, const SectorRef &, const Commit1Output &)
+    API_METHOD(SealCommit2,
+               kAdminPermission,
+               CallId,
+               const SectorRef &,
+               const Commit1Output &)
 
     API_METHOD(SealPreCommit1,
+               kAdminPermission,
                CallId,
                const SectorRef &,
                const SealRandomness &,
                std::vector<PieceInfo>)
 
     API_METHOD(SealPreCommit2,
+               kAdminPermission,
                CallId,
                const SectorRef &,
                const PreCommit1Output &)
 
-    API_METHOD(StorageAddLocal, void, const std::string &)
+    API_METHOD(StorageAddLocal, kAdminPermission, void, const std::string &)
 
-    API_METHOD(TaskTypes, std::set<primitives::TaskType>)
+    API_METHOD(TaskTypes, kAdminPermission, std::set<primitives::TaskType>)
 
     API_METHOD(UnsealPiece,
+               kAdminPermission,
                CallId,
                const SectorRef &,
                UnpaddedByteIndex,
@@ -81,7 +97,7 @@ namespace fc::api {
                const SealRandomness &,
                const CID &)
 
-    API_METHOD(Version, VersionResult)
+    API_METHOD(Version, kAdminPermission, VersionResult)
   };
 
   template <typename A, typename F>

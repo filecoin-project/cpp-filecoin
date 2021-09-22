@@ -11,6 +11,7 @@
 #include <variant>
 
 #include "api/rpc/rpc.hpp"
+#include "primitives/jwt/jwt.hpp"
 
 namespace boost::asio {
   class io_context;
@@ -19,6 +20,8 @@ namespace boost::asio {
 namespace fc::api {
   namespace http = boost::beast::http;
   using tcp = boost::asio::ip::tcp;
+  using rpc::AuthFunction;
+  using rpc::Perms;
   using rpc::Rpc;
 
   using ResponseType = std::variant<http::response<http::file_body>,
@@ -48,9 +51,18 @@ namespace fc::api {
     ResponseType response;
     std::function<void()> release_resources;
   };
+
+  api::WrapperResponse makeErrorResponse(
+      const http::request<http::dynamic_body> &request, http::status status);
+
   // RouteHandler should write response
   using RouteHandler = std::function<WrapperResponse(
       const http::request<http::dynamic_body> &request)>;
+  // AuthRouteHandler should write response
+  using AuthRouteHandler = std::function<WrapperResponse(
+      const http::request<http::dynamic_body> &request, const Perms &perms)>;
+  RouteHandler makeAuthRoute(AuthRouteHandler &&handler, AuthFunction &&auth);
+
   using Routes = std::map<std::string, RouteHandler, std::greater<>>;
 
   void serve(const std::map<std::string, std::shared_ptr<Rpc>> &rpc,
