@@ -15,6 +15,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::sector::RegisteredSealProof;
   using runtime::Runtime;
   using types::miner::CronEventPayload;
+  using types::miner::PowerPair;
   using version::NetworkVersion;
 
   class MinerUtils : public v0::miner::MinerUtils {
@@ -49,5 +50,8 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     outcome::result<void> callPowerEnrollCronEvent(
         ChainEpoch event_epoch, const Buffer &params) const override;
+
+    outcome::result<void> callPowerUpdateClaimedPower(
+        const PowerPair &delta) const override;
   };
 }  // namespace fc::vm::actor::builtin::v2::miner

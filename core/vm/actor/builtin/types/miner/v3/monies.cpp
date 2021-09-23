@@ -11,7 +11,7 @@ namespace fc::vm::actor::builtin::v3::miner {
   outcome::result<TokenAmount> Monies::pledgePenaltyForInvalidWindowPoSt(
       const FilterEstimate &reward_estimate,
       const FilterEstimate &network_power_estimate,
-      const StoragePower &sector_power) {
+      const StoragePower &sector_power) const {
     OUTCOME_TRY(expected_reward,
                 expectedRewardForPower(reward_estimate,
                                        network_power_estimate,
@@ -23,7 +23,7 @@ namespace fc::vm::actor::builtin::v3::miner {
 
   outcome::result<std::pair<TokenAmount, VestSpec>>
   Monies::lockedRewardFromReward(const TokenAmount &reward,
-                                 const NetworkVersion &default_version) {
+                                 const NetworkVersion &default_version) const {
     const BigInt lock_amount =
         reward * bigdiv(locked_reward_factor_num, locked_reward_factor_denom);
     return std::make_pair(lock_amount, kRewardVestingSpecV1);

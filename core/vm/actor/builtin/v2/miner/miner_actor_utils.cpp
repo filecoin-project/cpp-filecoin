@@ -60,21 +60,23 @@ namespace fc::vm::actor::builtin::v2::miner {
   outcome::result<void> MinerUtils::checkPeerInfo(
       const Buffer &peer_id,
       const std::vector<Multiaddress> &multiaddresses) const {
-    OUTCOME_TRY(getRuntime().validateArgument(peer_id.size() <= kMaxPeerIDLength));
+    OUTCOME_TRY(
+        getRuntime().validateArgument(peer_id.size() <= kMaxPeerIDLength));
     size_t total_size = 0;
     for (const auto &multiaddress : multiaddresses) {
-      OUTCOME_TRY(
-          getRuntime().validateArgument(!multiaddress.getBytesAddress().empty()));
+      OUTCOME_TRY(getRuntime().validateArgument(
+          !multiaddress.getBytesAddress().empty()));
       total_size += multiaddress.getBytesAddress().size();
     }
-    OUTCOME_TRY(getRuntime().validateArgument(total_size <= kMaxMultiaddressData));
+    OUTCOME_TRY(
+        getRuntime().validateArgument(total_size <= kMaxMultiaddressData));
     return outcome::success();
   }
 
   outcome::result<void> MinerUtils::checkControlAddresses(
       const std::vector<Address> &control_addresses) const {
     return getRuntime().validateArgument(control_addresses.size()
-                                    <= kMaxControlAddresses);
+                                         <= kMaxControlAddresses);
   }
 
   outcome::result<Address> MinerUtils::getPubkeyAddressFromAccountActor(
@@ -86,6 +88,13 @@ namespace fc::vm::actor::builtin::v2::miner {
       ChainEpoch event_epoch, const Buffer &params) const {
     OUTCOME_TRY(getRuntime().sendM<storage_power::EnrollCronEvent>(
         kStoragePowerAddress, {event_epoch, params}, 0));
+    return outcome::success();
+  }
+
+  outcome::result<void> MinerUtils::callPowerUpdateClaimedPower(
+      const PowerPair &delta) const {
+    OUTCOME_TRY(getRuntime().sendM<storage_power::UpdateClaimedPower>(
+        kStoragePowerAddress, {delta.raw, delta.qa}, 0));
     return outcome::success();
   }
 
