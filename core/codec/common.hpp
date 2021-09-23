@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <gsl/span>
 #include <optional>
 
 #include "common/bytes.hpp"
@@ -15,8 +16,8 @@ namespace fc::codec {
       out = {};
       return false;
     }
-    out = input.subspan(0, n);
-    input = input.subspan(n);
+    out = input.subspan(0, static_cast<ptrdiff_t>(n));
+    input = input.subspan(static_cast<ptrdiff_t>(n));
     return true;
   }
 

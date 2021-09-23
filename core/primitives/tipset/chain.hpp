@@ -14,13 +14,13 @@ namespace fc::primitives::tipset::chain::file {
 }  // namespace fc::primitives::tipset::chain::file
 
 namespace fc::primitives::tipset::chain {
-  using TsChain = std::map<Height, TsLazy>;
+  using TsChain = std::map<ChainEpoch, TsLazy>;
 
   struct TsBranch;
   using TsBranchPtr = std::shared_ptr<TsBranch>;
   using TsBranchWeak = std::weak_ptr<TsBranch>;
   using TsBranchIter = std::pair<TsBranchPtr, TsChain::iterator>;
-  using TsBranchChildren = std::multimap<Height, TsBranchWeak>;
+  using TsBranchChildren = std::multimap<ChainEpoch, TsBranchWeak>;
 
   struct TsBranch {
     /**
@@ -33,7 +33,7 @@ namespace fc::primitives::tipset::chain {
 
     TsChain::value_type &bottom();
     /// load to height if lazy
-    void lazyLoad(Height height);
+    void lazyLoad(ChainEpoch height);
 
     struct Lazy {
       TsChain::value_type bottom;
@@ -69,7 +69,7 @@ namespace fc::primitives::tipset::chain {
    * @return valid iterator
    */
   outcome::result<TsBranchIter> find(TsBranchPtr branch,
-                                     Height height,
+                                     ChainEpoch height,
                                      bool allow_less = true);
 
   outcome::result<TsBranchIter> stepParent(TsBranchIter it);

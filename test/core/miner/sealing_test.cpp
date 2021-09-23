@@ -36,7 +36,6 @@ namespace fc::mining {
   using api::StorageDeal;
   using api::TipsetCPtr;
   using api::UnsignedMessage;
-  using api::Wait;
   using crypto::randomness::Randomness;
   using fc::storage::ipfs::InMemoryDatastore;
   using libp2p::basic::ManualSchedulerBackend;
@@ -675,7 +674,7 @@ namespace fc::mining {
     SectorPreCommitOnChainInfo precommit_info;
     precommit_info.info.seal_epoch = 3;
     precommit_info.info.sealed_cid = "010001020007"_cid;
-    actor_state.sectors = {"010001020008"_cid, ipld};
+    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
     actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
@@ -778,10 +777,8 @@ namespace fc::mining {
     TipsetKey commit_tipset_key{
         {CbCid::hash("13"_unhex), CbCid::hash("14"_unhex)}};
     EpochDuration height = 3;
-    api_->StateWaitMsg = [&](const CID &msg_cid,
-                             auto,
-                             auto,
-                             auto) -> outcome::result<Wait<MsgWait>> {
+    api_->StateWaitMsg =
+        [&](const CID &msg_cid, auto, auto, auto) -> outcome::result<MsgWait> {
       if (msg_cid == precommit_msg_cid) {
         // make precommit for actor
         {
@@ -792,20 +789,16 @@ namespace fc::mining {
           OUTCOME_TRYA(cid_root, actor_state.precommitted_sectors.hamt.flush());
         }
 
-        auto chan{std::make_shared<Channel<outcome::result<MsgWait>>>()};
         MsgWait result;
         result.tipset = precommit_tipset_key;
         result.receipt.exit_code = vm::VMExitCode::kOk;
-        chan->write(result);
-        return Wait(chan);
+        return result;
       }
       if (msg_cid == commit_msg_cid) {
-        auto chan{std::make_shared<Channel<outcome::result<MsgWait>>>()};
         MsgWait result;
         result.tipset = commit_tipset_key;
         result.receipt.exit_code = vm::VMExitCode::kOk;
-        chan->write(result);
-        return Wait(chan);
+        return result;
       }
 
       return ERROR_TEXT("ERROR");

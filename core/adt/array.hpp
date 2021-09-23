@@ -14,9 +14,14 @@ namespace fc::adt {
     using Key = uint64_t;
     using Visitor = std::function<outcome::result<void>(Key, const Value &)>;
 
-    Array(IpldPtr ipld = nullptr) : amt{ipld, bits} {}
+    // TODO (a.chernyshov) make constructors explicit (FIL-415)
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Array(IpldPtr ipld = nullptr) : amt{std::move(ipld), bits} {}
 
-    Array(const CID &root, IpldPtr ipld = nullptr) : amt{ipld, root, bits} {}
+    // TODO (a.chernyshov) make constructors explicit (FIL-415)
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    Array(const CID &root, IpldPtr ipld = nullptr)
+        : amt{std::move(ipld), root, bits} {}
 
     outcome::result<boost::optional<Value>> tryGet(Key key) const {
       auto maybe = get(key);
@@ -57,7 +62,7 @@ namespace fc::adt {
 
     outcome::result<void> visit(const Visitor &visitor) const {
       return amt.visit([&](auto key, auto &value) -> outcome::result<void> {
-        OUTCOME_TRY(value2, cbor_blake::cbDecodeT<Value>(amt.ipld, value));
+        OUTCOME_TRY(value2, cbor_blake::cbDecodeT<Value>(amt.getIpld(), value));
         return visitor(key, value2);
       });
     }
@@ -111,7 +116,7 @@ namespace fc::cbor_blake {
   template <typename V, size_t bits>
   struct CbLoadT<adt::Array<V, bits>> {
     static void call(CbIpldPtrIn ipld, adt::Array<V, bits> &array) {
-      array.amt.ipld = ipld;
+      array.amt.setIpld(ipld);
     }
   };
 

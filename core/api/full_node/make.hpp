@@ -32,13 +32,14 @@ namespace fc::api {
   using sync::PubSubGate;
   using vm::runtime::EnvironmentContext;
 
-  outcome::result<IpldObject> getNode(std::shared_ptr<Ipld> ipld,
+  outcome::result<IpldObject> getNode(const std::shared_ptr<Ipld> &ipld,
                                       const CID &root,
                                       gsl::span<const std::string> parts);
 
   std::shared_ptr<FullNodeApi> makeImpl(
       std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<ChainStore> chain_store,
+      IpldPtr markets_ipld,
       const std::string &network_name,
       std::shared_ptr<WeightCalculator> weight_calculator,
       const EnvironmentContext &env_context,

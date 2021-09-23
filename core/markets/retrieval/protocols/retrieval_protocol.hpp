@@ -100,7 +100,7 @@ namespace fc::markets::retrieval {
   struct DealPayment {
     struct Named;
 
-    DealId deal_id;
+    DealId deal_id = 0;
     Address payment_channel;
     SignedVoucher payment_voucher;
   };
@@ -111,7 +111,7 @@ namespace fc::markets::retrieval {
   CBOR2_DECODE_ENCODE(DealPayment::Named)
 
   struct State {
-    State(const DealProposalParams &params)
+    explicit State(const DealProposalParams &params)
         : params{params},
           interval{params.payment_interval},
           owed{params.unseal_price} {}

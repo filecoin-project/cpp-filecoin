@@ -14,7 +14,7 @@
 #include "testutil/vm/actor/builtin/market/market_actor_test_fixture.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor.hpp"
 #include "vm/actor/codes.hpp"
 #include "vm/version/version.hpp"
 

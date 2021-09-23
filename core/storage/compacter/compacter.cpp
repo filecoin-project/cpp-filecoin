@@ -148,7 +148,8 @@ namespace fc::storage::compacter {
       ts_lock.unlock();
       auto done_state{!state_bottom || state_bottom->height() == 0};
       if (!done_state) {
-        auto epochs{head2->height() - state_bottom->height()};
+        size_t epochs{
+            static_cast<size_t>(head2->height() - state_bottom->height())};
         epochs_lookback_state =
             std::max(epochs_lookback_state, epochs_full_state);
         if (epochs <= epochs_lookback_state) {

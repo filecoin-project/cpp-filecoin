@@ -175,7 +175,7 @@ namespace fc::markets::storage {
   struct Proposal {
     ClientDealProposal deal_proposal;
     DataRef piece;
-    bool is_fast_retrieval;
+    bool is_fast_retrieval = false;
   };
 
   CBOR_TUPLE(Proposal, deal_proposal, piece, is_fast_retrieval)

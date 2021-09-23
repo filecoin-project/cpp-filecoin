@@ -13,7 +13,7 @@
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor.hpp"
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 

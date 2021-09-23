@@ -27,7 +27,7 @@ namespace fc::crypto::signature {
   using BlsSignature = bls::Signature;
   using Secp256k1Signature = secp256k1::Signature;
 
-  enum Type : uint8_t { SECP256K1 = 0x1, BLS = 0x2 };
+  enum Type : uint8_t { kUndefined = 0x0, kSecp256k1 = 0x1, kBls = 0x2 };
 
   constexpr uint64_t kSignatureMaxLength = 200;
 

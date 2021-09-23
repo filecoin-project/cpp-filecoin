@@ -180,4 +180,13 @@ namespace fc::mining {
     EXPECT_OUTCOME_EQ(tipset_cache_->getNonNull(2), tipset2);
   }
 
+  TEST_F(TipsetCacheTest, EmptyCache){
+    BlockHeader block1;
+    block1.height = 1;
+    auto tipset1 = std::make_shared<Tipset>(TipsetKey(),
+                                            std::vector<BlockHeader>({block1}));
+    EXPECT_CALL(mock_ChainHead, Call()).WillOnce(testing::Return(tipset1));
+    EXPECT_OUTCOME_EQ(tipset_cache_->best(), tipset1);
+
+  }
 }  // namespace fc::mining

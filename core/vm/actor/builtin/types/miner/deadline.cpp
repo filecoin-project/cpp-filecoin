@@ -356,4 +356,31 @@ namespace fc::vm::actor::builtin::types::miner {
                        .disputed_power = disputed_power};
   }
 
+  outcome::result<Universal<Deadline>> makeEmptyDeadline(
+      const Runtime &runtime, const CID &empty_amt_cid) {
+    const auto version = runtime.getActorVersion();
+    const auto ipld = runtime.getIpfsDatastore();
+
+    Universal<Deadline> deadline{version};
+    cbor_blake::cbLoadT(ipld, deadline);
+
+    if (version < ActorVersion::kVersion3) {
+      deadline->partitions = {empty_amt_cid, ipld};
+      deadline->expirations_epochs = {empty_amt_cid, ipld};
+    } else {
+      OUTCOME_TRY(empty_partitions_cid, deadline->partitions.amt.flush());
+      deadline->partitions_snapshot = {empty_partitions_cid, ipld};
+
+      // Lotus gas conformance - flush empty amt
+      OUTCOME_TRY(deadline->expirations_epochs.amt.flush());
+
+      OUTCOME_TRY(empty_post_submissions_cid,
+                  deadline->optimistic_post_submissions.amt.flush());
+      deadline->optimistic_post_submissions_snapshot = {
+          empty_post_submissions_cid, ipld};
+    }
+
+    return deadline;
+  }
+
 }  // namespace fc::vm::actor::builtin::types::miner

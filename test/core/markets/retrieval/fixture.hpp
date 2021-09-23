@@ -141,15 +141,8 @@ namespace fc::markets::retrieval::test {
       auto config_key{
           std::make_shared<fc::storage::OneKey>("config", storage_backend)};
       config_key->setCbor(config);
-      provider =
-          std::make_shared<provider::RetrievalProviderImpl>(host,
-                                                            datatransfer,
-                                                            api,
-                                                            piece_storage,
-                                                            provider_ipfs,
-                                                            config_key,
-                                                            sealer,
-                                                            miner);
+      provider = std::make_shared<provider::RetrievalProviderImpl>(
+          host, datatransfer, api, piece_storage, config_key, sealer, miner);
       client = std::make_shared<client::RetrievalClientImpl>(
           host, datatransfer, api, client_ipfs);
       provider->start();
@@ -166,10 +159,9 @@ namespace fc::markets::retrieval::test {
         return info;
       };
 
-      api->PaychGet = {
-          [=](auto &, auto &, auto &) -> outcome::result<AddChannelInfo> {
-            return AddChannelInfo{.channel = Address::makeFromId(333)};
-          }};
+      api->PaychGet = [=](auto cb, auto &, auto &, auto &) {
+        cb(AddChannelInfo{.channel = Address::makeFromId(333)});
+      };
 
       api->PaychAllocateLane = {
           [=](auto &) -> outcome::result<LaneId> { return LaneId{1}; }};

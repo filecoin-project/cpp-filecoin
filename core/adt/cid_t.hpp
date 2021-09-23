@@ -16,6 +16,8 @@ namespace fc::adt {
     IpldPtr ipld{};
 
     CbCidT() = default;
+    // TODO (a.chernyshov) (FIL-412) make constructor explicit
+    // NOLINTNEXTLINE(google-explicit-constructor)
     CbCidT(CID cid) : cid{std::move(cid)} {}
 
     auto get() const {
@@ -26,6 +28,8 @@ namespace fc::adt {
       return outcome::success();
     }
 
+    // TODO (a.chernyshov) (FIL-412) make constructor explicit
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator const CID &() const {
       return cid;
     }

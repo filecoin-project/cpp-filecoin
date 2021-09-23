@@ -12,12 +12,7 @@ namespace fc::primitives::bitvec {
 
   class BitvecReader {
    public:
-    BitvecReader(const std::vector<uint8_t> &buf) {
-      buffer = buf;
-      bits = 0;
-      bitsCap = 8;
-      index = 1;
-
+    explicit BitvecReader(const std::vector<uint8_t> &buf) : buffer(buf) {
       if (not buf.empty()) {
         bits = uint16_t(buffer[0]);
       }
@@ -44,7 +39,7 @@ namespace fc::primitives::bitvec {
      * Get 6 bit from buffer without shift
      * @return byte from buffer
      */
-    uint8_t peek6Bit() {
+    uint8_t peek6Bit() const {
       return uint8_t(bits) & 0x3f;
     }
 
@@ -53,7 +48,7 @@ namespace fc::primitives::bitvec {
      * @return bit from buffer
      */
     bool getBit() {
-      bool res = bits & 0x1;
+      bool res = (bits & 0x1) != 0;
       bits >>= 1;
       --bitsCap;
 
@@ -95,20 +90,16 @@ namespace fc::primitives::bitvec {
     }
 
    private:
-    uint64_t index;
+    uint64_t index = 1;
 
     std::vector<uint8_t> buffer;
-    uint16_t bits;
-    uint8_t bitsCap;
+    uint16_t bits = 0;
+    uint8_t bitsCap = 8;
   };
 
   class BitvecWriter {
    public:
-    BitvecWriter() {
-      buffer = {};
-      bits = 0;
-      bitsCap = 0;
-    }
+    BitvecWriter() = default;
 
     /**
      * Flush content to vector
@@ -129,7 +120,7 @@ namespace fc::primitives::bitvec {
       }
 
       uint64_t end = buffer.size();
-      while (end && buffer[end - 1] == 0) {
+      while ((end != 0) && buffer[end - 1] == 0) {
         --end;
       }
       buffer.resize(end);
@@ -154,8 +145,8 @@ namespace fc::primitives::bitvec {
 
    private:
     std::vector<uint8_t> buffer;
-    uint16_t bits;
-    uint8_t bitsCap;
+    uint16_t bits = 0;
+    uint8_t bitsCap = 0;
   };
 
 }  // namespace fc::primitives::bitvec

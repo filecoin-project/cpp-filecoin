@@ -13,10 +13,10 @@
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
 #include "vm/actor/builtin/states/miner/v2/miner_actor_state.hpp"
-#include "vm/actor/builtin/types/storage_power/claim.hpp"
-#include "vm/actor/builtin/types/type_manager/universal.hpp"
 #include "vm/actor/builtin/states/storage_power/v0/storage_power_actor_state.hpp"
 #include "vm/actor/builtin/states/storage_power/v2/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/types/storage_power/claim.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::codec::cbor::light_reader {
   using primitives::RleBitset;
@@ -70,7 +70,7 @@ namespace fc::codec::cbor::light_reader {
     EXPECT_OUTCOME_TRUE(state_root, setCbor(ipld, state));
 
     const CID expected_miner_info = state.miner_info;
-    const CID expected_sectors = state.sectors.amt.cid();
+    const CID expected_sectors = state.sectors.sectors.amt.cid();
     const CID expected_deadlines = state.deadlines.cid;
     EXPECT_OUTCOME_TRUE(
         actual, readMinerActorInfo(light_ipld, *asBlake(state_root), true));
@@ -92,7 +92,7 @@ namespace fc::codec::cbor::light_reader {
     EXPECT_OUTCOME_TRUE(state_root, setCbor(ipld, state));
 
     const CID expected_miner_info = state.miner_info;
-    const CID expected_sectors = state.sectors.amt.cid();
+    const CID expected_sectors = state.sectors.sectors.amt.cid();
     const CID expected_deadlines = state.deadlines.cid;
     EXPECT_OUTCOME_TRUE(
         actual, readMinerActorInfo(light_ipld, *asBlake(state_root), false));

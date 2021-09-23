@@ -49,7 +49,7 @@
 #include "storage/leveldb/prefix.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
 
 namespace fc {
   using boost::asio::io_context;
@@ -201,12 +201,11 @@ namespace fc {
                                          api::kPushNoSpec));
         spdlog::info(
             "msg {}: CreateMiner owner={}", smsg.getCid(), *config.owner);
-        OUTCOME_TRY(wait,
+        OUTCOME_TRY(result,
                     api.StateWaitMsg(smsg.getCid(),
                                      kMessageConfidence,
                                      api::kLookbackNoLimit,
                                      true));
-        OUTCOME_TRY(result, wait.waitSync());
         if (result.receipt.exit_code != vm::VMExitCode::kOk) {
           spdlog::error("failed to create miner actor: {}",
                         result.receipt.exit_code);
@@ -241,22 +240,24 @@ namespace fc {
                                        api::kPushNoSpec));
       spdlog::info(
           "msg {}: ChangePeerId peer={}", smsg.getCid(), peer_id.toBase58());
-      OUTCOME_TRY(
-          wait,
-          api.StateWaitMsg(
-              smsg.getCid(), kMessageConfidence, api::kLookbackNoLimit, true));
-      wait.waitOwn([](auto _res) {
-        if (_res) {
-          auto &receipt{_res.value().receipt};
-          if (receipt.exit_code == vm::VMExitCode::kOk) {
-            spdlog::info("ChangePeerId ok");
-          } else {
-            spdlog::info("ChangePeerId {}", receipt.exit_code);
-          }
-        } else {
-          spdlog::warn("ChangePeerId error {}", _res.error());
-        }
-      });
+
+      api.StateWaitMsg(
+          [](auto _res) {
+            if (_res) {
+              auto &receipt{_res.value().receipt};
+              if (receipt.exit_code == vm::VMExitCode::kOk) {
+                spdlog::info("ChangePeerId ok");
+              } else {
+                spdlog::info("ChangePeerId {}", receipt.exit_code);
+              }
+            } else {
+              spdlog::warn("ChangePeerId error {}", _res.error());
+            }
+          },
+          smsg.getCid(),
+          kMessageConfidence,
+          api::kLookbackNoLimit,
+          true);
     }
 
     OUTCOME_TRY(
@@ -415,7 +416,6 @@ namespace fc {
             datatransfer,
             napi,
             piece_storage,
-            markets_ipld,
             one_key("retrieval_provider_ask", leveldb),
             manager,
             miner)};

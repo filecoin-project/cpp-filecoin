@@ -457,4 +457,15 @@ namespace fc::vm::actor::builtin::types::miner {
     return sector_epoch_sets;
   }
 
+  Universal<ExpirationQueue> loadExpirationQueue(
+      const PartitionExpirationsArray &expirations_epochs,
+      const QuantSpec &quant) {
+    const auto &ipld = expirations_epochs.amt.getIpld();
+    Universal<ExpirationQueue> eq{ipld->actor_version};
+    cbor_blake::cbLoadT(ipld, eq);
+    eq->queue = expirations_epochs;
+    eq->quant = quant;
+    return eq;
+  }
+
 }  // namespace fc::vm::actor::builtin::types::miner

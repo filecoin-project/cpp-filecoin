@@ -11,16 +11,19 @@
   template <class Stream,                                                 \
             typename = std::enable_if_t<                                  \
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>> \
-  Stream &operator<<(Stream &&s, const type &var)
+  Stream &operator<<(Stream &&s,                                          \
+                     const type &var)  // NOLINT(bugprone-macro-parentheses)
 
 #define CBOR_DECODE(type, var)                                            \
   template <class Stream,                                                 \
             typename = std::enable_if_t<                                  \
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>> \
-  Stream &operator>>(Stream &&s, type &var)
+  Stream &operator>>(Stream &&s,                                          \
+                     type &var)  // NOLINT(bugprone-macro-parentheses)
 
-#define CBOR2_DECODE(...)                        \
-  fc::codec::cbor::CborDecodeStream &operator>>( \
+#define CBOR2_DECODE(...)                          \
+  /* NOLINTNEXTLINE(bugprone-macro-parentheses) */ \
+  fc::codec::cbor::CborDecodeStream &operator>>(   \
       fc::codec::cbor::CborDecodeStream &s, __VA_ARGS__ &v)
 #define CBOR2_ENCODE(...)                        \
   fc::codec::cbor::CborEncodeStream &operator<<( \
@@ -29,47 +32,69 @@
   CBOR2_DECODE(__VA_ARGS__);     \
   CBOR2_ENCODE(__VA_ARGS__);
 
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_1(op, m) op t.m
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_2(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_1(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_3(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_2(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_4(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_3(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_5(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_4(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_6(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_5(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_7(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_6(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_8(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_7(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_9(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_8(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_10(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_9(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_11(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_10(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_12(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_11(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_13(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_12(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_14(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_13(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_15(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_14(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_16(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_15(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_17(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_16(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_18(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_17(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_19(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_18(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_20(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_19(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_21(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_20(op, __VA_ARGS__)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE_V(_1,  \
                       _2,  \
                       _3,  \
@@ -94,6 +119,7 @@
                       f,   \
                       ...) \
   f
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CBOR_TUPLE(op, ...)    \
   _CBOR_TUPLE_V(__VA_ARGS__,    \
                 _CBOR_TUPLE_21, \

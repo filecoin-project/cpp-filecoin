@@ -33,9 +33,9 @@ namespace fc::mining {
 
     outcome::result<void> revert(const Tipset &tipset) override;
 
-    outcome::result<Tipset> getNonNull(uint64_t height) override;
+    outcome::result<Tipset> getNonNull(ChainEpoch height) override;
 
-    outcome::result<boost::optional<Tipset>> get(uint64_t height) override;
+    outcome::result<boost::optional<Tipset>> get(ChainEpoch height) override;
 
     outcome::result<Tipset> best() const override;
 

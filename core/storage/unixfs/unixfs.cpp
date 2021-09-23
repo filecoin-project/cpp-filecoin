@@ -7,8 +7,11 @@
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
+#include <fstream>
 
-#include "common/span.hpp"
+#include "common/bytes_stream.hpp"
+#include "common/error_text.hpp"
+#include "common/file.hpp"
 #include "crypto/hasher/hasher.hpp"
 
 namespace fc::storage::unixfs {
@@ -17,9 +20,29 @@ namespace fc::storage::unixfs {
   using google::protobuf::io::CodedOutputStream;
   using google::protobuf::io::StringOutputStream;
 
-  outcome::result<CID> makeLeaf(Ipld &ipld, gsl::span<const uint8_t> data) {
-    CID cid{CID::Version::V1, CID::Multicodec::RAW, Hasher::blake2b_256(data)};
-    OUTCOME_TRY(ipld.set(cid, Ipld::Value{data}));
+  struct Wrap {
+    Ipld &ipld;
+    std::istream &stream;
+    size_t remaining;
+    size_t chunk_size;
+    size_t max_links;
+    Bytes chunk{};
+
+    outcome::result<void> next() {
+      chunk.resize(std::min(remaining, chunk_size));
+      if (!common::read(stream, gsl::make_span(chunk))) {
+        return ERROR_TEXT("FileSplit::next read error");
+      }
+      remaining -= chunk.size();
+      return outcome::success();
+    }
+  };
+
+  outcome::result<CID> makeLeaf(Wrap &w) {
+    OUTCOME_TRY(w.next());
+    CID cid{
+        CID::Version::V1, CID::Multicodec::RAW, Hasher::blake2b_256(w.chunk)};
+    OUTCOME_TRY(w.ipld.set(cid, Buffer{w.chunk}));
     return cid;
   }
 
@@ -93,24 +116,17 @@ namespace fc::storage::unixfs {
     CID cid;
   };
 
-  outcome::result<Tree> makeTree(Ipld &ipld,
-                                 size_t height,
-                                 gsl::span<const uint8_t> &data,
-                                 size_t chunk_size,
-                                 size_t max_links) {
+  outcome::result<Tree> makeTree(Wrap &w, size_t height) {
     Tree root;
     PbFileBuilder pb_file;
     PbNodeBuilder pb_node;
-    for (auto i = 0u; i < max_links && !data.empty(); ++i) {
+    for (auto i = 0u; i < w.max_links && w.remaining != 0; ++i) {
       Tree tree;
       if (height == 1) {
-        tree.size = tree.file_size =
-            std::min(chunk_size, static_cast<size_t>(data.size()));
-        OUTCOME_TRYA(tree.cid, makeLeaf(ipld, data.subspan(0, tree.file_size)));
-        data = data.subspan(tree.file_size);
+        OUTCOME_TRYA(tree.cid, makeLeaf(w));
+        tree.size = tree.file_size = w.chunk.size();
       } else {
-        OUTCOME_TRYA(tree,
-                     makeTree(ipld, height - 1, data, chunk_size, max_links));
+        OUTCOME_TRYA(tree, makeTree(w, height - 1));
       }
       root.size += tree.size;
       root.file_size += tree.file_size;
@@ -122,22 +138,44 @@ namespace fc::storage::unixfs {
     root.size += node.size();
     root.cid =
         CID{CID::Version::V0, CID::Multicodec::DAG_PB, Hasher::sha2_256(node)};
-    OUTCOME_TRY(ipld.set(root.cid, node));
+    OUTCOME_TRY(w.ipld.set(root.cid, node));
     return root;
+  }
+
+  outcome::result<CID> wrapFile(Wrap w) {
+    size_t height = 0;
+    for (auto max{w.chunk_size}; max < w.remaining; max *= w.max_links) {
+      ++height;
+    }
+    if (height == 0) {
+      return makeLeaf(w);
+    }
+    OUTCOME_TRY(tree, makeTree(w, height));
+    return std::move(tree.cid);
+  }
+
+  outcome::result<CID> wrapFile(Ipld &ipld,
+                                std::ifstream &file,
+                                size_t chunk_size,
+                                size_t max_links) {
+    file.seekg(0, std::ios::end);
+    const auto size{static_cast<size_t>(file.tellg())};
+    file.seekg(0);
+    if (!file.good()) {
+      return ERROR_TEXT("wrapFile file error");
+    }
+    return wrapFile({ipld, file, size, chunk_size, max_links});
   }
 
   outcome::result<CID> wrapFile(Ipld &ipld,
                                 gsl::span<const uint8_t> data,
                                 size_t chunk_size,
                                 size_t max_links) {
-    size_t height = 0;
-    for (ssize_t max = chunk_size; max < data.size(); max *= max_links) {
-      ++height;
-    }
-    if (height == 0) {
-      return makeLeaf(ipld, data);
-    }
-    OUTCOME_TRY(tree, makeTree(ipld, height, data, chunk_size, max_links));
-    return std::move(tree.cid);
+    BytesIstream stream{data};
+    return wrapFile({ipld,
+                     stream.s,
+                     static_cast<size_t>(data.size()),
+                     chunk_size,
+                     max_links});
   }
 }  // namespace fc::storage::unixfs

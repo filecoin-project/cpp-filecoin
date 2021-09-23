@@ -109,7 +109,7 @@ namespace fc::vm::runtime {
     setHeight(epoch);
   }
 
-  void Env::setHeight(uint64_t height) {
+  void Env::setHeight(ChainEpoch height) {
     epoch = height;
     ipld->actor_version = actorVersion(height);
   }
@@ -218,11 +218,10 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(add_locked(kRewardAddress, apply.reward));
     auto over{limit - 11 * used / 10};
     auto gas_burned{
-        used == 0
-            ? limit
-            : over < 0 ? 0
-                       : static_cast<GasAmount>(bigdiv(
-                           BigInt{limit - used} * std::min(used, over), used))};
+        used == 0  ? limit
+        : over < 0 ? 0
+                   : static_cast<GasAmount>(bigdiv(
+                       BigInt{limit - used} * std::min(used, over), used))};
     if (gas_burned != 0) {
       OUTCOME_TRY(add_locked(actor::kBurntFundsActorAddress,
                              base_fee_pay * gas_burned));

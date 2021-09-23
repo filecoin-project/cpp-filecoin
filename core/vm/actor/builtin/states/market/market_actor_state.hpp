@@ -13,7 +13,7 @@
 #include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
-#include "vm/actor/builtin/types/type_manager/universal.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 // Forward declaration
 namespace fc::vm::runtime {

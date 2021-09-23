@@ -16,6 +16,7 @@
 namespace fc::payment_channel_manager {
   using api::FullNodeApi;
   using common::Buffer;
+  using primitives::Nonce;
   using vm::actor::builtin::states::PaymentChannelActorStatePtr;
   using vm::actor::builtin::types::payment_channel::SignedVoucher;
 
@@ -34,10 +35,10 @@ namespace fc::payment_channel_manager {
     PaymentChannelManagerImpl(std::shared_ptr<FullNodeApi> api,
                               std::shared_ptr<Ipld> ipld);
 
-    outcome::result<AddChannelInfo> getOrCreatePaymentChannel(
-        const Address &client,
-        const Address &miner,
-        const TokenAmount &amount_available) override;
+    void getOrCreatePaymentChannel(const Address &client,
+                                   const Address &miner,
+                                   const TokenAmount &amount_available,
+                                   AddChannelInfoCb cb) override;
 
     outcome::result<LaneId> allocateLane(const Address &channel) override;
 
@@ -80,15 +81,9 @@ namespace fc::payment_channel_manager {
                                   const Address &from,
                                   const TokenAmount &amount);
 
-    /**
-     * Creates payment channel actor and saves to local storage
-     * @param to target address
-     * @param from control address
-     * @param amount ensure token amount
-     * @return cid of message and actor address
-     */
-    outcome::result<AddChannelInfo> createPaymentChannelActor(
-        const Address &to, const Address &from, const TokenAmount &amount);
+    outcome::result<CID> createPaymentChannelActor(const Address &to,
+                                                   const Address &from,
+                                                   const TokenAmount &amount);
 
     /**
      * Loads payment channel actor state
@@ -104,8 +99,8 @@ namespace fc::payment_channel_manager {
      * @param lane id
      * @return next nonce
      */
-    outcome::result<uint64_t> getNextNonce(const ChannelInfo &channel,
-                                           const LaneId &lane) const;
+    outcome::result<Nonce> getNextNonce(const ChannelInfo &channel,
+                                        const LaneId &lane) const;
 
     std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<Ipld> ipld_;

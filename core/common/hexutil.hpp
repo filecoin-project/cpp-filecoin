@@ -53,6 +53,6 @@ namespace fc::common {
    */
   outcome::result<std::vector<uint8_t>> unhex(std::string_view hex);
 
-}  // namespace filecoin::common
+}  // namespace fc::common
 
 OUTCOME_HPP_DECLARE_ERROR(fc::common, UnhexError);

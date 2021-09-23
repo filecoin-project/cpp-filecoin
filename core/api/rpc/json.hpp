@@ -21,7 +21,6 @@
 #include "sector_storage/stores/storage.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
-#include "vm/actor/builtin/types/miner/types.hpp"
 
 #define COMMA ,
 
@@ -277,12 +276,6 @@ namespace fc::api {
       decodeEnum(v, j);
     }
 
-    ENCODE(None) {
-      return {};
-    }
-
-    DECODE(None) {}
-
     ENCODE(int64_t) {
       return Value{v};
     }
@@ -457,16 +450,16 @@ namespace fc::api {
     }
 
     ENCODE(Signature) {
-      uint64_t type;
+      uint64_t type = SignatureType::kUndefined;
       gsl::span<const uint8_t> data;
       visit_in_place(
           v,
           [&](const BlsSignature &bls) {
-            type = SignatureType::BLS;
+            type = SignatureType::kBls;
             data = gsl::make_span(bls);
           },
           [&](const Secp256k1Signature &secp) {
-            type = SignatureType::SECP256K1;
+            type = SignatureType::kSecp256k1;
             data = gsl::make_span(secp);
           });
       Value j{rapidjson::kObjectType};
@@ -476,12 +469,12 @@ namespace fc::api {
     }
 
     DECODE(Signature) {
-      uint64_t type;
+      uint64_t type = SignatureType::kUndefined;
       decode(type, Get(j, "Type"));
-      auto &data = Get(j, "Data");
-      if (type == SignatureType::BLS) {
+      const auto &data = Get(j, "Data");
+      if (type == SignatureType::kBls) {
         v = decode<BlsSignature>(data);
-      } else if (type == SignatureType::SECP256K1) {
+      } else if (type == SignatureType::kSecp256k1) {
         v = decode<Secp256k1Signature>(data);
       } else {
         outcome::raise(JsonError::kWrongEnum);
@@ -490,7 +483,13 @@ namespace fc::api {
 
     ENCODE(KeyInfo) {
       Value j{rapidjson::kObjectType};
-      Set(j, "Type", v.type == SignatureType::BLS ? "bls" : "secp256k1");
+      if (v.type == SignatureType::kBls) {
+        Set(j, "Type", "bls");
+      } else if (v.type == SignatureType::kSecp256k1) {
+        Set(j, "Type", "secp256k1");
+      } else {
+        outcome::raise(JsonError::kWrongEnum);
+      }
       Set(j, "PrivateKey", v.private_key);
       return j;
     }
@@ -500,9 +499,9 @@ namespace fc::api {
       decode(type, Get(j, "Type"));
       decode(v.private_key, Get(j, "PrivateKey"));
       if (type == "bls") {
-        v.type = SignatureType::BLS;
+        v.type = SignatureType::kBls;
       } else if (type == "secp256k1") {
-        v.type = SignatureType::SECP256K1;
+        v.type = SignatureType::kSecp256k1;
       } else {
         outcome::raise(JsonError::kWrongEnum);
       }
@@ -1234,7 +1233,7 @@ namespace fc::api {
     ENCODE(gsl::span<const PieceInfo>) {
       Value j{rapidjson::kArrayType};
       j.Reserve(v.size(), allocator);
-      for (auto &elem : v) {
+      for (const auto &elem : v) {
         j.PushBack(encode(elem), allocator);
       }
       return j;
@@ -1574,6 +1573,7 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "PieceCID", v.piece_cid);
       Set(j, "PieceSize", v.piece_size);
+      Set(j, "VerifiedDeal", v.verified);
       Set(j, "Client", v.client);
       Set(j, "Provider", v.provider);
       Set(j, "StartEpoch", v.start_epoch);
@@ -1587,6 +1587,7 @@ namespace fc::api {
     DECODE(DealProposal) {
       decode(v.piece_cid, Get(j, "PieceCID"));
       v.piece_size = decode<uint64_t>(Get(j, "PieceSize"));
+      Get(j, "VerifiedDeal", v.verified);
       decode(v.client, Get(j, "Client"));
       decode(v.provider, Get(j, "Provider"));
       decode(v.start_epoch, Get(j, "StartEpoch"));
