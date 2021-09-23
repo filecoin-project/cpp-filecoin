@@ -5,7 +5,6 @@
 
 #include "core/markets/retrieval/fixture.hpp"
 #include "proofs/proofs_error.hpp"
-#include "testutil/context_wait.hpp"
 #include "testutil/mocks/std_function.hpp"
 #include "testutil/outcome.hpp"
 
@@ -34,13 +33,14 @@ namespace fc::markets::retrieval::test {
                        .piece = data::green_piece.info.piece_cid};
     MockStdFunction<client::QueryResponseHandler> cb;
     client->query(peer, request, cb.AsStdFunction());
-    EXPECT_CALL(cb, Call(_)).WillOnce(testing::Invoke([](auto _res) {
+    EXPECT_CALL(cb, Call(_)).WillOnce(testing::Invoke([&](auto _res) {
       EXPECT_OUTCOME_TRUE(res, _res);
       EXPECT_EQ(res.response_status,
                 QueryResponseStatus::kQueryResponseAvailable);
       EXPECT_EQ(res.item_status, QueryItemStatus::kQueryItemAvailable);
+      context->stop();
     }));
-    runForSteps(*context, 1000);
+    context->run_for(std::chrono::minutes{1});
   }
 
   /**
@@ -53,11 +53,10 @@ namespace fc::markets::retrieval::test {
 
     auto sector_info = std::make_shared<mining::types::SectorInfo>();
     EXPECT_CALL(*miner, getSectorInfo(deal.sector_id))
-        .WillRepeatedly(testing::Return(outcome::success(sector_info)));
+        .WillOnce(testing::Return(outcome::success(sector_info)));
 
     const Address result_address = Address::makeFromId(1000);
-    EXPECT_CALL(*miner, getAddress())
-        .WillRepeatedly(testing::Return(result_address));
+    EXPECT_CALL(*miner, getAddress()).WillOnce(testing::Return(result_address));
 
     EXPECT_CALL(
         *sealer,
@@ -70,7 +69,7 @@ namespace fc::markets::retrieval::test {
             deal.length.unpadded(),
             common::Hash256(),
             CID()))
-        .WillRepeatedly(
+        .WillOnce(
             testing::Invoke([ipfs{provider_ipfs}, cid{payload_cid}](
                                 auto output_fd, auto, auto, auto, auto, auto)
                                 -> outcome::result<bool> {
@@ -95,9 +94,6 @@ namespace fc::markets::retrieval::test {
     RetrievalPeer peer{.address = miner_worker_address,
                        .peer_id = host->getId(),
                        .piece = boost::none};
-
-    // TODO(turuslan): fix LSAN
-    /*
     MockStdFunction<client::RetrieveResponseHandler> cb;
     EXPECT_OUTCOME_TRUE_1(client->retrieve(payload_cid,
                                            params,
@@ -106,11 +102,11 @@ namespace fc::markets::retrieval::test {
                                            client_wallet,
                                            miner_wallet,
                                            cb.AsStdFunction()));
-    EXPECT_CALL(cb, Call(_)).WillRepeatedly(testing::Invoke([](auto _res) {
+    EXPECT_CALL(cb, Call(_)).WillOnce(testing::Invoke([&](auto _res) {
       EXPECT_OUTCOME_TRUE_1(_res);
+      context->stop();
     }));
-    runForSteps(*context, 2000);
+    context->run_for(std::chrono::minutes{1});
     EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), true);
-    */
   }
 }  // namespace fc::markets::retrieval::test
