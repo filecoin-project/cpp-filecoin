@@ -110,13 +110,6 @@ namespace fc::vm::actor::builtin::v2::miner {
     return outcome::success();
   }
 
-  struct Params {
-    uint64_t deadline{0};
-    std::vector<PoStPartition> partitions;
-    std::vector<PoStProof> proofs;
-    ChainEpoch chain_commit_epoch;
-    Randomness chain_commit_rand;
-  };
   ACTOR_METHOD_IMPL(SubmitWindowedPoSt) {
     const auto current_epoch = runtime.getCurrentEpoch();
     const auto network_version = runtime.getNetworkVersion();
