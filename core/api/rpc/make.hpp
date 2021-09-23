@@ -49,7 +49,7 @@ namespace fc::api {
             rpc::Respond respond,
             rpc::MakeChan make_chan,
             rpc::Send send,
-            const rpc::Perms &perms) {
+            const rpc::Permissions &perms) {
           if (not primitives::jwt::hasPermission(perms, method.getPerm())) {
             return respond(Response::Error{kInvalidParams,
                                            "Missing permission to invoke"});

@@ -52,12 +52,12 @@ namespace fc::api::rpc {
       std::function<void(boost::variant<Response::Error, Document>)>;
   using Send = std::function<void(std::string, Document, OkCb)>;
   using MakeChan = std::function<uint64_t()>;
-  using Perms = std::vector<Permission>;
+  using Permissions = std::vector<Permission>;
   using AuthFunction =
-      std::function<outcome::result<Perms>(const std::string &token)>;
+      std::function<outcome::result<Permissions>(const std::string &token)>;
 
   using Method = std::function<void(
-      const Value &, Respond, MakeChan, Send, const Perms &)>;
+      const Value &, Respond, MakeChan, Send, const Permissions &)>;
 
   struct Rpc {
     Rpc() = default;
@@ -69,7 +69,7 @@ namespace fc::api::rpc {
       ms[name] = std::move(method);
     }
 
-    outcome::result<Perms> getPerms(const std::string &token) {
+    outcome::result<Permissions> getPermissions(const std::string &token) {
       if (!auth_ || token.empty()) {
         return kDefaultPermission;
       }

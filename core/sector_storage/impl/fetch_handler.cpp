@@ -194,7 +194,7 @@ namespace fc::sector_storage {
       const std::shared_ptr<stores::LocalStore> &local_store) {
     return [local = local_store, logger = server_logger](
                const http::request<http::dynamic_body> &request,
-               const api::Perms &perms) -> api::WrapperResponse {
+               const api::Permissions &perms) -> api::WrapperResponse {
       if (not primitives::jwt::hasPermission(
               perms, primitives::jwt::kAdminPermission)) {
         return api::makeErrorResponse(request, http::status::unauthorized);

@@ -20,8 +20,8 @@ namespace fc::primitives::jwt {
 
   static const std::vector<Permission> kDefaultPermission = {kReadPermission};
 
-  bool hasPermission(const std::vector<Permission> &perms,
-                     const Permission &need_permission) {
+  static bool hasPermission(const std::vector<Permission> &perms,
+                            const Permission &need_permission) {
     return std::find(perms.begin(), perms.end(), need_permission)
            != perms.end();
   }

@@ -33,7 +33,7 @@ namespace fc::api {
   const auto kChanCloseDelay{boost::posix_time::milliseconds(100)};
 
   struct SocketSession : std::enable_shared_from_this<SocketSession> {
-    SocketSession(tcp::socket &&socket, Rpc api_rpc, Perms &&perms)
+    SocketSession(tcp::socket &&socket, Rpc api_rpc, Permissions &&perms)
         : socket{std::move(socket)},
           timer{this->socket.get_executor()},
           perms(std::move(perms)),
@@ -144,7 +144,7 @@ namespace fc::api {
     websocket::stream<tcp::socket> socket;
     net::deadline_timer timer;
     beast::flat_buffer buffer;
-    Perms perms;
+    Permissions perms;
     Rpc rpc;
   };
 
@@ -215,14 +215,14 @@ namespace fc::api {
         for (const auto &api : rpc) {
           // API version is specified in request (e.g. '/rpc/v0')
           if (request.target().starts_with(api.first)) {
-            auto maybe_token = getToken(request);
+            const auto maybe_token = getToken(request);
             if (not maybe_token.has_value()) {
               w_response =
                   makeErrorResponse(request, http::status::unauthorized);
               return doWrite();
             }
 
-            auto maybe_perms = api.second->getPerms(maybe_token.value());
+            auto maybe_perms = api.second->getPermissions(maybe_token.value());
             if (maybe_perms.has_error()) {
               logger->error(maybe_perms.error().message());
               w_response =
@@ -365,9 +365,9 @@ namespace fc::api {
     return [handler{std::move(handler)}, auth{std::move(auth)}](
                const http::request<http::dynamic_body> &request)
                -> WrapperResponse {
-      Perms perms = kDefaultPermission;
+      Permissions perms = kDefaultPermission;
       if (auth) {
-        auto maybe_token = getToken(request);
+        const auto maybe_token = getToken(request);
         if (not maybe_token.has_value()) {
           return makeErrorResponse(request, http::status::unauthorized);
         }
