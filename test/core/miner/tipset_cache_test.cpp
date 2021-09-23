@@ -12,7 +12,6 @@
 #include "testutil/mocks/api.hpp"
 
 namespace fc::mining {
-
   using primitives::block::BlockHeader;
 
   class TipsetCacheTest : public testing::Test {
@@ -41,7 +40,7 @@ namespace fc::mining {
     Tipset tipset2(TipsetKey(), {block});
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset1));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset2));
-    EXPECT_EQ(tipset_cache_->best(), tipset2);
+    EXPECT_OUTCOME_EQ(tipset_cache_->best(), tipset2);
   }
 
   /**
@@ -82,7 +81,7 @@ namespace fc::mining {
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset1));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset2));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->revert(tipset2));
-    EXPECT_EQ(tipset_cache_->best(), tipset1);
+    EXPECT_OUTCOME_EQ(tipset_cache_->best(), tipset1);
   }
 
   /**
@@ -145,7 +144,8 @@ namespace fc::mining {
     auto tipset2 = std::make_shared<Tipset>(TipsetKey(),
                                             std::vector<BlockHeader>({block2}));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset1));
-    EXPECT_CALL(mock_ChainGetTipSetByHeight, Call(3, TipsetKey{})).WillOnce(testing::Return(tipset2));
+    EXPECT_CALL(mock_ChainGetTipSetByHeight, Call(1, TipsetKey{}))
+        .WillRepeatedly(testing::Return(tipset2));
     EXPECT_OUTCOME_EQ(tipset_cache_->get(1), *tipset2);
   }
 
@@ -159,7 +159,8 @@ namespace fc::mining {
     block1.height = 1;
     auto tipset1 = std::make_shared<Tipset>(TipsetKey(),
                                             std::vector<BlockHeader>({block1}));
-    EXPECT_CALL(mock_ChainGetTipSetByHeight, Call(3, TipsetKey{})).WillOnce(testing::Return(tipset1));
+    EXPECT_CALL(mock_ChainGetTipSetByHeight, Call(1, TipsetKey{}))
+        .WillOnce(testing::Return(tipset1));
     EXPECT_OUTCOME_EQ(tipset_cache_->get(1), *tipset1);
   }
 
@@ -180,13 +181,18 @@ namespace fc::mining {
     EXPECT_OUTCOME_EQ(tipset_cache_->getNonNull(2), tipset2);
   }
 
-  TEST_F(TipsetCacheTest, EmptyCache){
+  /**
+   * @given empty tipset_chache
+   * @when try to get tipset from empty tipset_chace
+   * @then success and best have returned Chain Head
+   */
+  TEST_F(TipsetCacheTest, EmptyCache) {
     BlockHeader block1;
     block1.height = 1;
     auto tipset1 = std::make_shared<Tipset>(TipsetKey(),
                                             std::vector<BlockHeader>({block1}));
     EXPECT_CALL(mock_ChainHead, Call()).WillOnce(testing::Return(tipset1));
-    EXPECT_OUTCOME_EQ(tipset_cache_->best(), tipset1);
-
+    EXPECT_OUTCOME_EQ(tipset_cache_->best(), *tipset1);
   }
+
 }  // namespace fc::mining

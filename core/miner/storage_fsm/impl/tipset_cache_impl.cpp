@@ -8,9 +8,9 @@
 #include "primitives/tipset/tipset.hpp"
 
 namespace fc::mining {
-
   TipsetCacheImpl::TipsetCacheImpl(uint64_t capability,
-                                   std::shared_ptr<FullNodeApi> api): api_(std::move(api)){
+                                   std::shared_ptr<FullNodeApi> api)
+      : api_(std::move(api)) {
     cache_.resize(capability);
     start_ = 0;
     len_ = 0;
@@ -113,7 +113,7 @@ namespace fc::mining {
 
   outcome::result<Tipset> TipsetCacheImpl::best() const {
     std::shared_lock lock(mutex_);
-    if(cache_.empty()) {
+    if (len_ == 0) {
       OUTCOME_TRY(tipset, api_->ChainHead());
       return *tipset;
     }

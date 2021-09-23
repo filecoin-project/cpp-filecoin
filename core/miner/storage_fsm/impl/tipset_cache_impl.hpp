@@ -16,11 +16,10 @@
 #include <shared_mutex>
 
 namespace fc::mining {
-  using primitives::tipset::TipsetKey;
   using api::FullNodeApi;
   using fc::vm::actor::builtin::types::miner::QuantSpec;
+  using primitives::tipset::TipsetKey;
 
-  // TODO(ortyomka): [FIL-370] update it
   class TipsetCacheImpl : public TipsetCache {
    public:
     using GetTipsetFunction =
