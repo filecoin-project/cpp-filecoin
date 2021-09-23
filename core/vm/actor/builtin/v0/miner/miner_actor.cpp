@@ -5,12 +5,15 @@
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
+#include "vm/actor/builtin/types/miner/monies.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
+  using crypto::randomness::DomainSeparationTag;
   using states::makeEmptyMinerState;
   using states::MinerActorStatePtr;
   using toolchain::Toolchain;
+  using types::Universal;
   using namespace types::miner;
 
   ACTOR_METHOD_IMPL(Construct) {
@@ -138,8 +141,145 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   ACTOR_METHOD_IMPL(SubmitWindowedPoSt) {
-    // TODO (a.chernyshov) FIL-282 - implement
-    return VMExitCode::kNotImplemented;
+    const auto current_epoch = runtime.getCurrentEpoch();
+    const auto network_version = runtime.getNetworkVersion();
+
+    OUTCOME_TRY(
+        runtime.validateArgument(params.deadline < kWPoStPeriodDeadlines));
+    OUTCOME_TRY(
+        runtime.validateArgument(params.chain_commit_epoch < current_epoch));
+    OUTCOME_TRY(runtime.validateArgument(
+        params.chain_commit_epoch >= current_epoch - kWPoStChallengeWindow));
+
+    OUTCOME_TRY(
+        randomness,
+        runtime.getRandomnessFromTickets(DomainSeparationTag::PoStChainCommit,
+                                         params.chain_commit_epoch,
+                                         {}));
+    OUTCOME_TRY(
+        runtime.validateArgument(randomness == params.chain_commit_rand));
+
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(reward, utils->requestCurrentEpochBlockReward());
+    OUTCOME_TRY(total_power, utils->requestCurrentTotalPower());
+
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
+
+    OUTCOME_TRY(miner_info, state->getInfo());
+
+    auto callers = miner_info->control;
+    callers.emplace_back(miner_info->owner);
+    callers.emplace_back(miner_info->worker);
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
+
+    const auto submission_partition_limit = utils->loadPartitionsSectorsMax(
+        miner_info->window_post_partition_sectors);
+    OUTCOME_TRY(runtime.validateArgument(params.partitions.size()
+                                         <= submission_partition_limit));
+
+    const auto deadline_info = state->deadlineInfo(current_epoch);
+    REQUIRE_NO_ERROR_A(
+        deadlines, state->deadlines.get(), VMExitCode::kErrIllegalState);
+
+    if (!deadline_info.isOpen()) {
+      ABORT(VMExitCode::kErrIllegalState);
+    }
+
+    OUTCOME_TRY(
+        runtime.validateArgument(params.deadline == deadline_info.index));
+
+    REQUIRE_NO_ERROR_A(
+        sectors, state->sectors.loadSectors(), VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR_A(deadline,
+                       deadlines.loadDeadline(params.deadline),
+                       VMExitCode::kErrIllegalState);
+
+    const auto fault_expiration = deadline_info.last() + kFaultMaxAge;
+    REQUIRE_NO_ERROR_A(post_result,
+                       deadline->recordProvenSectors(runtime,
+                                                     sectors,
+                                                     miner_info->sector_size,
+                                                     deadline_info.quant(),
+                                                     fault_expiration,
+                                                     params.partitions),
+                       VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR_A(
+        sector_infos,
+        loadSectorInfosForProof(
+            state->sectors, post_result.sectors, post_result.ignored_sectors),
+        VMExitCode::kErrIllegalState);
+
+    if (!sector_infos.empty()) {
+      OUTCOME_TRY(utils->verifyWindowedPost(
+          deadline_info.challenge, sector_infos, params.proofs));
+    }
+
+    const auto undeclared_penalty_power = post_result.penaltyPower();
+    TokenAmount undeclared_penalty_target{0};
+    TokenAmount declared_penalty_target{0};
+
+    if (network_version < NetworkVersion::kVersion3) {
+      const Universal<Monies> monies{runtime.getActorVersion()};
+
+      OUTCOME_TRYA(undeclared_penalty_target,
+                   monies->pledgePenaltyForUndeclaredFault(
+                       reward.this_epoch_reward_smoothed,
+                       total_power.quality_adj_power_smoothed,
+                       undeclared_penalty_power.qa,
+                       network_version));
+
+      OUTCOME_TRY(deducted,
+                  monies->pledgePenaltyForDeclaredFault(
+                      reward.this_epoch_reward_smoothed,
+                      total_power.quality_adj_power_smoothed,
+                      undeclared_penalty_power.qa,
+                      network_version));
+
+      undeclared_penalty_target -= deducted;
+
+      OUTCOME_TRYA(declared_penalty_target,
+                   monies->pledgePenaltyForDeclaredFault(
+                       reward.this_epoch_reward_smoothed,
+                       total_power.quality_adj_power_smoothed,
+                       post_result.recovered_power.qa,
+                       network_version));
+    }
+
+    const TokenAmount total_penalty_target =
+        undeclared_penalty_target + declared_penalty_target;
+    OUTCOME_TRY(actor_balance, runtime.getCurrentBalance());
+    OUTCOME_TRY(unlocked_balance, state->getUnlockedBalance(actor_balance));
+    REQUIRE_NO_ERROR_A(
+        penalty_result,
+        state->penalizeFundsInPriorityOrder(
+            current_epoch, total_penalty_target, unlocked_balance),
+        VMExitCode::kErrIllegalState);
+    const auto &[vesting_penalty_total, balance_penalty_total] = penalty_result;
+    const TokenAmount penalty_total =
+        vesting_penalty_total + balance_penalty_total;
+    const TokenAmount pledge_delta = -vesting_penalty_total;
+
+    REQUIRE_NO_ERROR(deadlines.updateDeadline(params.deadline, deadline),
+                     VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR(state->deadlines.set(deadlines),
+                     VMExitCode::kErrIllegalState);
+
+    OUTCOME_TRY(runtime.commitState(state));
+
+    OUTCOME_TRY(utils->requestUpdatePower(post_result.powerDelta()));
+
+    if (penalty_total > 0) {
+      REQUIRE_SUCCESS(
+          runtime.sendFunds(kBurntFundsActorAddress, penalty_total));
+    }
+
+    OUTCOME_TRY(utils->notifyPledgeChanged(pledge_delta));
+
+    return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(PreCommitSector) {

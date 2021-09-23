@@ -119,7 +119,8 @@ namespace fc::storage::amt {
                                 const Visitor &visitor) const;
     outcome::result<Node::Ptr> loadLink(Node &node,
                                         uint64_t index,
-                                        bool create) const;
+                                        bool create,
+                                        bool visiting) const;
     uint64_t bits() const;
     uint64_t bitsBytes() const;
     uint64_t maskAt(uint64_t height) const;

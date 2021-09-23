@@ -59,7 +59,10 @@ namespace fc::vm::actor::builtin::v0::miner {
                                                              reward_estimate,
                                                              power_estimate,
                                                              sector_power,
-                                                             nv))
+                                                             nv,
+                                                             0,
+                                                             0,
+                                                             0));
 
     EXPECT_EQ(fee, undeclared_penalty_);
   }
@@ -81,13 +84,16 @@ namespace fc::vm::actor::builtin::v0::miner {
                                                              reward_estimate,
                                                              power_estimate,
                                                              sector_power,
-                                                             nv))
+                                                             nv,
+                                                             0,
+                                                             0,
+                                                             0));
 
-    const TokenAmount expectedFee =
+    const TokenAmount expected_fee =
         TokenAmount{initial_pledge
                     + bigdiv(initial_pledge * sector_age_in_days,
                              big_initial_pledge_factor)};
-    EXPECT_EQ(expectedFee, fee);
+    EXPECT_EQ(fee, expected_fee);
   }
 
   TEST_F(MoniesTestv0, CappedSectorAge) {
@@ -107,12 +113,15 @@ namespace fc::vm::actor::builtin::v0::miner {
                                                              reward_estimate,
                                                              power_estimate,
                                                              sector_power,
-                                                             nv))
+                                                             nv,
+                                                             0,
+                                                             0,
+                                                             0));
 
     const TokenAmount expected_fee =
         initial_pledge
         + bigdiv((initial_pledge * moniesv0.termination_lifetime_cap),
                  big_initial_pledge_factor);
-    EXPECT_EQ(expected_fee, fee);
+    EXPECT_EQ(fee, expected_fee);
   }
 }  // namespace fc::vm::actor::builtin::v0::miner

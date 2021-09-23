@@ -152,7 +152,7 @@ namespace fc::primitives::sector {
 
   struct SectorInfo {
     RegisteredSealProof registered_proof;
-    uint64_t sector;
+    SectorNumber sector;
     /// CommR
     CID sealed_cid;
   };

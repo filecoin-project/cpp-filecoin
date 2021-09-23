@@ -32,11 +32,11 @@ namespace fc::vm::actor::builtin::v3::miner {
     outcome::result<TokenAmount> pledgePenaltyForInvalidWindowPoSt(
         const FilterEstimate &reward_estimate,
         const FilterEstimate &network_power_estimate,
-        const StoragePower &sector_power) override;
+        const StoragePower &sector_power) const override;
 
     outcome::result<std::pair<TokenAmount, VestSpec>> lockedRewardFromReward(
         const TokenAmount &reward,
-        const NetworkVersion &default_version) override;
+        const NetworkVersion &default_version) const override;
   };
   CBOR_NON(Monies);
 

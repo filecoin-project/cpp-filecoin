@@ -17,7 +17,6 @@
 #include "vm/actor/builtin/types/miner/v2/partition.hpp"
 #include "vm/actor/builtin/types/miner/v3/partition.hpp"
 
-#include "vm/actor/builtin/types/miner/monies.hpp"
 #include "vm/actor/builtin/types/miner/v0/monies.hpp"
 #include "vm/actor/builtin/types/miner/v2/monies.hpp"
 #include "vm/actor/builtin/types/miner/v3/monies.hpp"

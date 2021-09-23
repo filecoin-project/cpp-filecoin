@@ -385,6 +385,7 @@ namespace fc::vm::runtime {
     auto execution{execution_.lock()};
     OUTCOME_TRY(execution->chargeGas(execution->env->pricelist.onIpldGet()));
     OUTCOME_TRY(value, execution->env->ipld->get(key));
+    dvm::onIpldGet(key, value);
     return std::move(value);
   }
 }  // namespace fc::vm::runtime

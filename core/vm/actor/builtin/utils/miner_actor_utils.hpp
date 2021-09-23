@@ -8,23 +8,33 @@
 #include <libp2p/multi/multiaddress.hpp>
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
+#include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/miner/cron_event_payload.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
+#include "vm/actor/builtin/types/miner/power_pair.hpp"
+#include "vm/actor/builtin/types/miner/transit.hpp"
 #include "vm/actor/builtin/utils/actor_utils.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/version/version.hpp"
 
 namespace fc::vm::actor::builtin::utils {
   using common::Buffer;
+  using common::smoothing::FilterEstimate;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
+  using primitives::TokenAmount;
   using primitives::address::Address;
+  using primitives::sector::PoStProof;
   using primitives::sector::RegisteredSealProof;
   using runtime::Runtime;
   using types::miner::CronEventPayload;
+  using types::miner::EpochReward;
+  using types::miner::PowerPair;
+  using types::miner::SectorOnChainInfo;
+  using types::miner::TotalPower;
   using version::NetworkVersion;
 
   class MinerUtils : public ActorUtils {
@@ -72,6 +82,9 @@ namespace fc::vm::actor::builtin::utils {
     virtual outcome::result<void> enrollCronEvent(
         ChainEpoch event_epoch, const CronEventPayload &payload) const = 0;
 
+    virtual outcome::result<void> requestUpdatePower(
+        const PowerPair &delta) const = 0;
+
     /**
      * Assigns proving period offset randomly in the range [0,
      * WPoStProvingPeriod) by hashing the actor's address and current epoch
@@ -116,11 +129,26 @@ namespace fc::vm::actor::builtin::utils {
     virtual outcome::result<void> checkControlAddresses(
         const std::vector<Address> &control_addresses) const = 0;
 
+    virtual outcome::result<EpochReward> requestCurrentEpochBlockReward()
+        const = 0;
+
+    virtual outcome::result<TotalPower> requestCurrentTotalPower() const = 0;
+
+    virtual outcome::result<void> verifyWindowedPost(
+        ChainEpoch challenge_epoch,
+        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<PoStProof> &proofs) const = 0;
+
+    virtual outcome::result<void> notifyPledgeChanged(
+        const TokenAmount &pledge_delta) const = 0;
+
    protected:
     virtual outcome::result<Address> getPubkeyAddressFromAccountActor(
         const Address &address) const = 0;
     virtual outcome::result<void> callPowerEnrollCronEvent(
         ChainEpoch event_epoch, const Buffer &params) const = 0;
+    virtual outcome::result<void> callPowerUpdateClaimedPower(
+        const PowerPair &delta) const = 0;
   };
 
   using MinerUtilsPtr = std::shared_ptr<MinerUtils>;
