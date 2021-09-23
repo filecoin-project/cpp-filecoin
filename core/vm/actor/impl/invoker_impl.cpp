@@ -85,6 +85,8 @@ namespace fc::vm::actor {
         builtin::v2::miner::ChangePeerId::Number);
     ready_miner_actor_methods_v2.insert(
         builtin::v2::miner::ChangeWorkerAddress::Number);
+    ready_miner_actor_methods_v2.insert(
+        builtin::v2::miner::SubmitWindowedPoSt::Number);
   }
 
   outcome::result<InvocationOutput> InvokerImpl::invoke(
