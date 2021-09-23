@@ -50,8 +50,7 @@ namespace fc::api {
             rpc::MakeChan make_chan,
             rpc::Send send,
             const rpc::Perms &perms) {
-          if (std::find(perms.begin(), perms.end(), method.getPerm())
-              == perms.end()) {
+          if (not primitives::jwt::hasPermission(perms, method.getPerm())) {
             return respond(Response::Error{kInvalidParams,
                                            "Missing permission to invoke"});
           }

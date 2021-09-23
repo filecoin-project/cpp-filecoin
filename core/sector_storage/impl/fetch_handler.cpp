@@ -195,9 +195,8 @@ namespace fc::sector_storage {
     return [local = local_store, logger = server_logger](
                const http::request<http::dynamic_body> &request,
                const api::Perms &perms) -> api::WrapperResponse {
-      if (std::find(
-              perms.begin(), perms.end(), primitives::jwt::kAdminPermission)
-          == perms.end()) {
+      if (not primitives::jwt::hasPermission(
+              perms, primitives::jwt::kAdminPermission)) {
         return api::makeErrorResponse(request, http::status::unauthorized);
       }
 
