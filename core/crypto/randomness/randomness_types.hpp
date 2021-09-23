@@ -15,6 +15,8 @@ namespace fc::crypto::randomness {
   /// @brief randomness value type
   using Randomness = common::Hash256;
 
+  constexpr size_t kRandomnessLength = 32;
+
   /// @brief domain separation tag enum
   enum class DomainSeparationTag : uint64_t {
     TicketProduction = 1,

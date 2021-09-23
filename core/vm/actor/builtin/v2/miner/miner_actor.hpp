@@ -26,8 +26,13 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   using ChangePeerId = v0::miner::ChangePeerId;
 
+  struct SubmitWindowedPoSt : ActorMethodBase<5> {
+    using Params = v0::miner::SubmitWindowedPoSt::Params;
+
+    ACTOR_METHOD_DECL();
+  };
+
   // TODO implement
-  using SubmitWindowedPoSt = v0::miner::SubmitWindowedPoSt;
   using PreCommitSector = v0::miner::PreCommitSector;
   using ProveCommitSector = v0::miner::ProveCommitSector;
   using ExtendSectorExpiration = v0::miner::ExtendSectorExpiration;
