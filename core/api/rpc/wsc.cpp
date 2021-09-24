@@ -41,10 +41,13 @@ namespace fc::api::rpc {
     if (ec) {
       return ec;
     }
-    socket.set_option(
-        boost::beast::websocket::stream_base::decorator([&](auto &req) {
-          req.set(boost::beast::http::field::authorization, "Bearer " + token);
-        }));
+    if (not token.empty()) {
+      socket.set_option(
+          boost::beast::websocket::stream_base::decorator([&](auto &req) {
+            req.set(boost::beast::http::field::authorization,
+                    "Bearer " + token);
+          }));
+    }
     socket.handshake(ip, target, ec);
     if (ec) {
       return ec;

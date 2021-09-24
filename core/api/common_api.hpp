@@ -16,35 +16,42 @@ namespace fc::api {
   using common::Buffer;
   using libp2p::peer::PeerInfo;
   using primitives::jwt::Permission;
+  namespace jwt = primitives::jwt;
 
   struct CommonApi {
     /**
      * Creates auth token to the remote connection
      * @return auth token
      */
-    API_METHOD(AuthNew, Buffer, const std::vector<Permission> &)
+    API_METHOD(AuthNew,
+               jwt::kAdminPermission,
+               Buffer,
+               const std::vector<Permission> &)
     /**
      * Verify auth token
      * @return allow permissions
      */
-    API_METHOD(AuthVerify, std::vector<Permission>, const std::string &)
+    API_METHOD(AuthVerify,
+               jwt::kReadPermission,
+               std::vector<Permission>,
+               const std::string &)
 
     /**
      * Returns listen addresses.
      */
-    API_METHOD(NetAddrsListen, PeerInfo)
+    API_METHOD(NetAddrsListen, jwt::kReadPermission, PeerInfo)
 
     /**
      * Initiates the connection to the peer.
      */
-    API_METHOD(NetConnect, void, const PeerInfo &)
+    API_METHOD(NetConnect, jwt::kWritePermission, void, const PeerInfo &)
 
     /**
      * Returns all peers connected to the this host.
      */
-    API_METHOD(NetPeers, std::vector<PeerInfo>)
+    API_METHOD(NetPeers, jwt::kReadPermission, std::vector<PeerInfo>)
 
-    API_METHOD(Version, VersionResult)
+    API_METHOD(Version, jwt::kReadPermission, VersionResult)
   };
 
   template <typename A, typename F>

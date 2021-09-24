@@ -13,11 +13,17 @@
 
 namespace fc::api {
   using outcome::errorToPrettyString;
+  using rpc::AuthFunction;
   using rpc::Rpc;
 
   template <typename A>
   std::shared_ptr<Rpc> makeRpc(A &&api) {
-    std::shared_ptr<Rpc> rpc = std::make_shared<Rpc>();
+    return makeRpc(std::move(api), {});
+  }
+
+  template <typename A>
+  std::shared_ptr<Rpc> makeRpc(A &&api, AuthFunction &&auth) {
+    std::shared_ptr<Rpc> rpc = std::make_shared<Rpc>(std::move(auth));
     api::visit(api, [&](auto &m) { setup(*rpc, m); });
     return rpc;
   }
@@ -42,7 +48,13 @@ namespace fc::api {
         [&](auto &jparams,
             rpc::Respond respond,
             rpc::MakeChan make_chan,
-            rpc::Send send) {
+            rpc::Send send,
+            const rpc::Permissions &perms) {
+          if (not primitives::jwt::hasPermission(perms, method.getPerm())) {
+            return respond(Response::Error{kInvalidParams,
+                                           "Missing permission to invoke"});
+          }
+
           auto maybe_params = decode<typename M::Params>(jparams);
           if (!maybe_params) {
             return respond(Response::Error{

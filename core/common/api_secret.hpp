@@ -18,7 +18,7 @@ namespace fc {
   using primitives::jwt::kTokenType;
   using primitives::jwt::Permission;
 
-  static outcome::result<std::shared_ptr<ApiAlgorithm>> loadApiSecret(
+  inline outcome::result<std::shared_ptr<ApiAlgorithm>> loadApiSecret(
       const boost::filesystem::path &path) {
     if (boost::filesystem::exists(path)) {
       OUTCOME_TRY(secret, common::readFile(path));
@@ -34,7 +34,7 @@ namespace fc {
     return std::make_shared<jwt::algorithm::hs256>(secret);
   }
 
-  static outcome::result<std::string> generateAuthToken(
+  inline outcome::result<std::string> generateAuthToken(
       const std::shared_ptr<ApiAlgorithm> &algo,
       const std::vector<Permission> &perms) {
     std::error_code ec;

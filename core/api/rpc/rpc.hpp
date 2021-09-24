@@ -11,6 +11,7 @@
 #include <boost/variant.hpp>
 
 #include "common/outcome.hpp"
+#include "primitives/jwt/jwt.hpp"
 
 namespace fc::api {
   using rapidjson::Document;
@@ -42,6 +43,8 @@ namespace fc::api {
 }  // namespace fc::api
 
 namespace fc::api::rpc {
+  using primitives::jwt::kDefaultPermission;
+  using primitives::jwt::Permission;
   using rapidjson::Value;
 
   using OkCb = std::function<void(bool)>;
@@ -49,14 +52,32 @@ namespace fc::api::rpc {
       std::function<void(boost::variant<Response::Error, Document>)>;
   using Send = std::function<void(std::string, Document, OkCb)>;
   using MakeChan = std::function<uint64_t()>;
+  using Permissions = std::vector<Permission>;
+  using AuthFunction =
+      std::function<outcome::result<Permissions>(const std::string &token)>;
 
-  using Method = std::function<void(const Value &, Respond, MakeChan, Send)>;
+  using Method = std::function<void(
+      const Value &, Respond, MakeChan, Send, const Permissions &)>;
 
   struct Rpc {
+    Rpc() = default;
+    explicit Rpc(AuthFunction &&auth) : auth_{std::move(auth)} {};
+
     std::map<std::string, Method> ms;
 
     inline void setup(const std::string &name, Method &&method) {
       ms[name] = std::move(method);
     }
+
+    outcome::result<Permissions> getPermissions(const std::string &token) {
+      if (!auth_ || token.empty()) {
+        return kDefaultPermission;
+      }
+
+      return auth_(token);
+    }
+
+   private:
+    AuthFunction auth_;
   };
 }  // namespace fc::api::rpc
