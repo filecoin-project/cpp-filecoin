@@ -11,6 +11,8 @@
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
+  using crypto::randomness::DomainSeparationTag;
+  using crypto::randomness::kRandomnessLength;
   using states::makeEmptyMinerState;
   using states::MinerActorStatePtr;
   using toolchain::Toolchain;
@@ -65,6 +67,118 @@ namespace fc::vm::actor::builtin::v3::miner {
         period_start + kWPoStChallengeWindow * (1 + deadline_index);
     OUTCOME_TRY(utils->enrollCronEvent(deadline_close - 1,
                                        {CronEventType::kProvingDeadline}));
+
+    return outcome::success();
+  }
+
+  ACTOR_METHOD_IMPL(SubmitWindowedPoSt) {
+    const auto current_epoch = runtime.getCurrentEpoch();
+
+    OUTCOME_TRY(
+        runtime.validateArgument(params.deadline < kWPoStPeriodDeadlines));
+
+    OUTCOME_TRY(runtime.validateArgument(params.chain_commit_rand.size()
+                                         <= kRandomnessLength));
+
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
+
+    OUTCOME_TRY(miner_info, state->getInfo());
+
+    auto callers = miner_info->control;
+    callers.emplace_back(miner_info->owner);
+    callers.emplace_back(miner_info->worker);
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
+
+    OUTCOME_TRY(runtime.validateArgument(params.proofs.size() == 1));
+    OUTCOME_TRY(
+        runtime.validateArgument(params.proofs[0].registered_proof
+                                 == miner_info->window_post_proof_type));
+    OUTCOME_TRY(runtime.validateArgument(params.proofs[0].proof.size()
+                                         <= kMaxPoStProofSize));
+
+    const auto submission_partition_limit = utils->loadPartitionsSectorsMax(
+        miner_info->window_post_partition_sectors);
+    OUTCOME_TRY(runtime.validateArgument(params.partitions.size()
+                                         <= submission_partition_limit));
+
+    const auto deadline_info = state->deadlineInfo(current_epoch);
+
+    if (!deadline_info.isOpen()) {
+      ABORT(VMExitCode::kErrIllegalState);
+    }
+
+    OUTCOME_TRY(
+        runtime.validateArgument(params.deadline == deadline_info.index));
+
+    OUTCOME_TRY(runtime.validateArgument(params.chain_commit_epoch
+                                         >= deadline_info.challenge));
+
+    OUTCOME_TRY(
+        runtime.validateArgument(params.chain_commit_epoch < current_epoch));
+
+    OUTCOME_TRY(
+        randomness,
+        runtime.getRandomnessFromTickets(DomainSeparationTag::PoStChainCommit,
+                                         params.chain_commit_epoch,
+                                         {}));
+    OUTCOME_TRY(
+        runtime.validateArgument(randomness == params.chain_commit_rand));
+
+    REQUIRE_NO_ERROR_A(
+        sectors, state->sectors.loadSectors(), VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR_A(
+        deadlines, state->deadlines.get(), VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR_A(deadline,
+                       deadlines.loadDeadline(params.deadline),
+                       VMExitCode::kErrIllegalState);
+
+    const auto fault_expiration = deadline_info.last() + kFaultMaxAge;
+    REQUIRE_NO_ERROR_A(post_result,
+                       deadline->recordProvenSectors(runtime,
+                                                     sectors,
+                                                     miner_info->sector_size,
+                                                     deadline_info.quant(),
+                                                     fault_expiration,
+                                                     params.partitions),
+                       VMExitCode::kErrIllegalState);
+
+    const auto proven_sectors =
+        post_result.sectors - post_result.ignored_sectors;
+    OUTCOME_TRY(runtime.validateArgument(!proven_sectors.empty()));
+
+    if (post_result.recovered_power.isZero()) {
+      REQUIRE_NO_ERROR(deadline->optimistic_post_submissions.append(
+                           {post_result.partitions, params.proofs}),
+                       VMExitCode::kErrIllegalState);
+    } else {
+      REQUIRE_NO_ERROR_A(sector_infos,
+                         sectors.loadForProof(post_result.sectors,
+                                              post_result.ignored_sectors),
+                         VMExitCode::kErrIllegalState);
+
+      OUTCOME_TRY(utils->verifyWindowedPost(
+          deadline_info.challenge, sector_infos, params.proofs));
+    }
+
+    REQUIRE_NO_ERROR(deadlines.updateDeadline(params.deadline, deadline),
+                     VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR(state->deadlines.set(deadlines),
+                     VMExitCode::kErrIllegalState);
+
+    OUTCOME_TRY(runtime.commitState(state));
+
+    OUTCOME_TRY(utils->requestUpdatePower(post_result.power_delta));
+
+    OUTCOME_TRYA(state, runtime.getActorState<MinerActorStatePtr>());
+
+    OUTCOME_TRY(balance, runtime.getCurrentBalance());
+    REQUIRE_NO_ERROR(state->checkBalanceInvariants(balance),
+                     VMExitCode::kErrIllegalState);
 
     return outcome::success();
   }
