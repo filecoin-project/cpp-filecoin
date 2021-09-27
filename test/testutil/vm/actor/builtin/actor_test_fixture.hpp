@@ -12,6 +12,7 @@
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
 #include "vm/version/version.hpp"
@@ -19,6 +20,7 @@
 namespace fc::testutil::vm::actor::builtin {
   using ::fc::vm::actor::ActorVersion;
   using ::fc::vm::actor::CodeId;
+  using ::fc::vm::actor::builtin::types::Universal;
   using ::fc::vm::runtime::MockRuntime;
   using primitives::ChainEpoch;
   using primitives::address::Address;
@@ -52,7 +54,8 @@ namespace fc::testutil::vm::actor::builtin {
 
       EXPECT_CALL(runtime, commit(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto &cid) {
-            EXPECT_OUTCOME_TRUE(new_state, getCbor<State>(ipld, cid));
+            EXPECT_OUTCOME_TRUE(new_state,
+                                getCbor<Universal<State>>(ipld, cid));
             state = std::move(new_state);
             return outcome::success();
           }));
@@ -133,7 +136,7 @@ namespace fc::testutil::vm::actor::builtin {
     MockRuntime runtime;
     std::shared_ptr<InMemoryDatastore> ipld{
         std::make_shared<InMemoryDatastore>()};
-    State state;
+    Universal<State> state;
     ChainEpoch current_epoch{};
     std::map<Address, CodeId> code_ids;
     boost::optional<CodeId> code_id_any;

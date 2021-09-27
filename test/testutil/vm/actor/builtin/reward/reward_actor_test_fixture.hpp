@@ -7,8 +7,11 @@
 
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
 
+#include "vm/actor/builtin/states/reward/reward_actor_state.hpp"
+
 namespace fc::testutil::vm::actor::builtin::reward {
-  using ::fc::vm::actor::kSystemActorAddress;
+  using fc::vm::actor::kSystemActorAddress;
+  using fc::vm::actor::builtin::states::RewardActorState;
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::address::Address;
@@ -17,11 +20,10 @@ namespace fc::testutil::vm::actor::builtin::reward {
 
   static const TokenAmount kEpochZeroReward{"36266264293777134739"};
 
-  template <class State>
-  class RewardActorTestFixture : public ActorTestFixture<State> {
+  class RewardActorTestFixture : public ActorTestFixture<RewardActorState> {
    public:
-    using ActorTestFixture<State>::runtime;
-    using ActorTestFixture<State>::callerIs;
+    using ActorTestFixture<RewardActorState>::runtime;
+    using ActorTestFixture<RewardActorState>::callerIs;
 
     void setCurrentBalance(const TokenAmount &balance) {
       const Address receiver = Address::makeFromId(1001);

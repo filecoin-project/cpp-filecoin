@@ -10,45 +10,23 @@
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 
 namespace fc::testutil::vm::actor::builtin::miner {
-  using ::fc::vm::actor::builtin::types::miner::makeEmptyDeadlines;
-  using ::fc::vm::actor::builtin::types::miner::makeMinerInfo;
-  using ::fc::vm::actor::builtin::types::miner::MinerInfo;
-  using ::fc::vm::actor::builtin::types::miner::SectorOnChainInfo;
-  using ::fc::vm::actor::builtin::types::miner::VestingFunds;
-  using primitives::RleBitset;
+  using fc::vm::actor::builtin::states::makeEmptyMinerState;
+  using fc::vm::actor::builtin::states::MinerActorState;
+  using fc::vm::actor::builtin::types::miner::makeMinerInfo;
   using primitives::address::Address;
   using primitives::sector::RegisteredPoStProof;
   using primitives::sector::RegisteredSealProof;
-  using BaseMinerActorState = fc::vm::actor::builtin::states::MinerActorState;
 
-  template <class State>
-  class MinerActorTestFixture : public ActorTestFixture<State> {
+  class MinerActorTestFixture : public ActorTestFixture<MinerActorState> {
    public:
-    using ActorTestFixture<State>::actor_version;
-    using ActorTestFixture<State>::ipld;
-    using ActorTestFixture<State>::runtime;
-    using ActorTestFixture<State>::state;
-
-    void loadState(State &s) {
-      cbor_blake::cbLoadT(ipld, s);
-    }
+    using ActorTestFixture<MinerActorState>::actor_version;
+    using ActorTestFixture<MinerActorState>::ipld;
+    using ActorTestFixture<MinerActorState>::runtime;
+    using ActorTestFixture<MinerActorState>::state;
 
     void initEmptyState() {
-      EXPECT_OUTCOME_TRUE(empty_amt_cid,
-                          state.precommitted_setctors_expiry.amt.flush());
-
-      state.miner_info.cid = empty_amt_cid;
-
-      RleBitset allocated_sectors;
-      EXPECT_OUTCOME_TRUE_1(state.allocated_sectors.set(allocated_sectors));
-      EXPECT_OUTCOME_TRUE(deadlines,
-                          makeEmptyDeadlines(runtime, empty_amt_cid));
-      EXPECT_OUTCOME_TRUE_1(state.deadlines.set(deadlines));
-
-      VestingFunds vesting_funds;
-      EXPECT_OUTCOME_TRUE_1(state.vesting_funds.set(vesting_funds));
-
-      state.sectors.sectors = {empty_amt_cid, ipld};
+      EXPECT_OUTCOME_TRUE(empty_state, makeEmptyMinerState(runtime));
+      state = empty_state;
     }
 
     void initDefaultMinerInfo() {
@@ -65,7 +43,7 @@ namespace fc::testutil::vm::actor::builtin::miner {
                                         RegisteredSealProof::kUndefined,
                                         RegisteredPoStProof::kUndefined));
 
-      EXPECT_OUTCOME_TRUE_1(state.miner_info.set(miner_info));
+      EXPECT_OUTCOME_TRUE_1(state->miner_info.set(miner_info));
     }
 
     Address owner{Address::makeFromId(100)};

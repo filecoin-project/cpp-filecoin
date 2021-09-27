@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 
 #include "primitives/address/address.hpp"
@@ -13,7 +14,6 @@
 #include "testutil/vm/actor/builtin/miner/miner_actor_test_fixture.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/v2/deadline.hpp"
-#include "vm/actor/builtin/states/miner/v2/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor.hpp"
 #include "vm/actor/codes.hpp"
 
@@ -21,16 +21,18 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::kChainEpochUndefined;
   using primitives::address::decodeFromString;
   using primitives::sector::RegisteredSealProof;
+  using states::MinerActorStatePtr;
   using testing::Return;
   using testutil::vm::actor::builtin::miner::MinerActorTestFixture;
   using namespace types::miner;
 
-  class MinerActorTest : public MinerActorTestFixture<MinerActorState> {
+  class MinerActorTest : public MinerActorTestFixture {
    public:
     void SetUp() override {
-      MinerActorTestFixture<MinerActorState>::SetUp();
+      MinerActorTestFixture::SetUp();
       actor_version = ActorVersion::kVersion2;
       ipld->actor_version = actor_version;
+      state = MinerActorStatePtr{actor_version};
       anyCodeIdAddressIs(kAccountCodeId);
       cbor_blake::cbLoadT(ipld, state);
     }
@@ -93,7 +95,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     params.worker = worker;
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, params));
 
-    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo());
+    EXPECT_OUTCOME_TRUE(miner_info, state->getInfo());
     EXPECT_EQ(miner_info->owner, params.owner);
     EXPECT_EQ(miner_info->worker, params.worker);
     EXPECT_EQ(miner_info->control, params.control_addresses);
@@ -106,12 +108,12 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(miner_info->consensus_fault_elapsed, kChainEpochUndefined);
     EXPECT_EQ(miner_info->pending_owner_address, boost::none);
 
-    EXPECT_EQ(state.precommit_deposit, 0);
-    EXPECT_EQ(state.locked_funds, 0);
-    EXPECT_EQ(state.proving_period_start, proving_period_start);
-    EXPECT_EQ(state.current_deadline, deadline_index);
+    EXPECT_EQ(state->precommit_deposit, 0);
+    EXPECT_EQ(state->locked_funds, 0);
+    EXPECT_EQ(state->proving_period_start, proving_period_start);
+    EXPECT_EQ(state->current_deadline, deadline_index);
 
-    EXPECT_OUTCOME_TRUE(deadlines, state.deadlines.get());
+    EXPECT_OUTCOME_TRUE(deadlines, state->deadlines.get());
     EXPECT_EQ(deadlines.due.size(), kWPoStPeriodDeadlines);
 
     for (const auto &deadline_cid : deadlines.due) {
@@ -163,7 +165,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     params.control_addresses = control_addresses;
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, params));
 
-    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo());
+    EXPECT_OUTCOME_TRUE(miner_info, state->getInfo());
     EXPECT_EQ(miner_info->control.size(), 2);
     EXPECT_EQ(miner_info->control[0], controlId1);
     EXPECT_EQ(miner_info->control[1], controlId2);
@@ -418,7 +420,7 @@ namespace fc::vm::actor::builtin::v2::miner {
         runtime,
         ChangeWorkerAddress::Params{new_worker, new_control_addresses}));
 
-    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo());
+    EXPECT_OUTCOME_TRUE(miner_info, state->getInfo());
     EXPECT_EQ(miner_info->pending_worker_key.get().new_worker, new_worker);
     EXPECT_EQ(miner_info->pending_worker_key.get().effective_at,
               effective_epoch);
@@ -461,7 +463,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_OUTCOME_TRUE_1(
         ChangePeerId::call(runtime, ChangePeerId::Params{new_peer_id}));
 
-    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo());
+    EXPECT_OUTCOME_TRUE(miner_info, state->getInfo());
     EXPECT_EQ(miner_info->peer_id, new_peer_id);
   }
 
