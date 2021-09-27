@@ -343,9 +343,14 @@ namespace fc {
                     std::vector<std::string>{"http://127.0.0.1"},
                     scheduler));
 
-    // TODO: auth headers should be here
+    OUTCOME_TRY(api_secret, loadApiSecret(config.join("jwt_secret")));
+    OUTCOME_TRY(admin_token,
+                generateAuthToken(api_secret, {api::kAdminPermission}));
+
+    std::unordered_map<std::string, std::string> auth_headers;
+    auth_headers["Authorization"] = "Bearer " + admin_token;
     auto remote_store{std::make_shared<sector_storage::stores::RemoteStoreImpl>(
-        local_store, std::unordered_map<std::string, std::string>{})};
+        local_store, std::move(auth_headers))};
 
     OUTCOME_TRY(
         wscheduler,
@@ -441,14 +446,19 @@ namespace fc {
                                     storage_provider,
                                     retrieval_provider);
 
-    OUTCOME_TRY(api_secret, loadApiSecret(config.join("jwt_secret")));
     api::fillAuthApi(mapi, api_secret, log());
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
-    mrpc.emplace("/rpc/v0", api::makeRpc(*mapi));
+    mrpc.emplace(
+        "/rpc/v0",
+        api::makeRpc(*mapi,
+                     std::bind(mapi->AuthVerify, std::placeholders::_1)));
     auto mroutes{std::make_shared<api::Routes>()};
 
-    mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
+    mroutes->insert({"/remote",
+                     api::makeAuthRoute(
+                         sector_storage::serveHttp(local_store),
+                         std::bind(mapi->AuthVerify, std::placeholders::_1))});
 
     api::serve(mrpc, mroutes, *io, "127.0.0.1", config.api_port);
     OUTCOME_TRY(token, generateAuthToken(api_secret, kAllPermission));

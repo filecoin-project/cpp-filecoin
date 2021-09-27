@@ -7,8 +7,10 @@
 
 #include "api/utils.hpp"
 #include "api/version.hpp"
+#include "primitives/jwt/jwt.hpp"
 
 namespace fc::api {
+  namespace jwt = primitives::jwt;
 
   /**
    * The difference between FullNodeApi V2.0.0 and the latest FullNodeApi
@@ -18,7 +20,7 @@ namespace fc::api {
    * name so types in new version may be changed.
    */
   struct FullNodeApiV1Wrapper {
-    API_METHOD(Version, VersionResult)
+    API_METHOD(Version, jwt::kReadPermission, VersionResult)
   };
 
   std::shared_ptr<FullNodeApiV1Wrapper> makeFullNodeApiV1Wrapper();

@@ -5,6 +5,7 @@
 
 #include "vm/actor/builtin/types/miner/deadlines.hpp"
 
+#include "adt/stop.hpp"
 #include "common/error_text.hpp"
 #include "vm/runtime/runtime.hpp"
 
@@ -44,19 +45,16 @@ namespace fc::vm::actor::builtin::types::miner {
 
       auto visitor{
           [&](int64_t id, const auto &partition) -> outcome::result<void> {
-            if (found) {
-              return outcome::success();
-            }
-
             found = partition->sectors.has(sector_num);
             if (found) {
               part_id = id;
+              return outcome::failure(adt::kStopError);
             }
 
             return outcome::success();
           }};
 
-      OUTCOME_TRY(deadline->partitions.visit(visitor));
+      CATCH_STOP(deadline->partitions.visit(visitor));
 
       if (found) {
         break;

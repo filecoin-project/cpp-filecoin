@@ -107,6 +107,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     PowerPair recovered_power_total;
     RleBitset rescheduled_partitions;
 
+    OUTCOME_TRY(this->partitions.amt.loadRoot());
+
     for (const auto &post : post_partitions) {
       if (this->partitions_posted.has(post.index)) {
         continue;
@@ -147,6 +149,9 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     this->faulty_power =
         this->faulty_power - recovered_power_total + new_faulty_power_total;
+
+    // Lotus gas conformance
+    OUTCOME_TRY(this->partitions.amt.flush());
 
     RleBitset all_sector_nos;
     all_sector_nos += all_sectors;

@@ -10,18 +10,20 @@
 #include "adt/channel.hpp"
 #include "common/error_text.hpp"
 #include "common/outcome.hpp"
+#include "primitives/jwt/jwt.hpp"
 
-#define API_METHOD(_name, _result, ...) \
-  ApiMethod<_result, ##__VA_ARGS__> _name{"Filecoin." #_name};
+#define API_METHOD(name, perm, result, ...) \
+  ApiMethod<perm, result, ##__VA_ARGS__> name{"Filecoin." #name};
 
 namespace fc::api {
   using adt::Channel;
+  using primitives::jwt::Permission;
 
   template <typename... T>
   using ParamsTuple =
       std::tuple<std::remove_const_t<std::remove_reference_t<T>>...>;
 
-  template <typename T, typename... Ts>
+  template <const Permission &perm, typename T, typename... Ts>
   class ApiMethod {
    public:
     using Result = T;
@@ -71,6 +73,10 @@ namespace fc::api {
 
     [[nodiscard]] std::string getName() const {
       return name_;
+    }
+
+    [[nodiscard]] std::string getPerm() const {
+      return perm;
     }
 
    private:
