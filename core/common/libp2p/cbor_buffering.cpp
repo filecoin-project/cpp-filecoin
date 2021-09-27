@@ -12,7 +12,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::common::libp2p, CborBuffering::Error, e) {
 namespace fc::common::libp2p {
   using Head = CborBuffering::Head;
 
-  outcome::result<Head> Head::first(size_t &more, uint8_t first) {
+  outcome::result<Head> Head::first(ssize_t &more, uint8_t first) {
     // https://tools.ietf.org/html/rfc7049#section-2
     // decode major type
     auto type = Type{(first & 0xe0) >> 5};
@@ -57,7 +57,7 @@ namespace fc::common::libp2p {
     return head;
   }
 
-  void Head::next(size_t &more, uint8_t next, Head &head) {
+  void Head::next(ssize_t &more, uint8_t next, Head &head) {
     assert(more > 0);
     --more;
     head.value = (head.value << 8) | next;
@@ -76,11 +76,11 @@ namespace fc::common::libp2p {
     return more_bytes != 0 ? more_bytes : more_nested.empty() ? 0 : 1;
   }
 
-  outcome::result<size_t> CborBuffering::consume(
+  outcome::result<ssize_t> CborBuffering::consume(
       gsl::span<const uint8_t> input) {
     assert(!done());
-    auto size = static_cast<size_t>(input.size());
-    size_t consumed = 0;
+    ssize_t size = input.size();
+    ssize_t consumed = 0;
     if (!partial_head && more_bytes != 0) {
       auto partial = std::min(more_bytes, size - consumed);
       more_bytes -= partial;
@@ -111,8 +111,7 @@ namespace fc::common::libp2p {
           break;
         case Type::Bytes:
         case Type::Text: {
-          auto partial =
-              std::min(static_cast<size_t>(head.value), size - consumed);
+          auto partial = std::min(head.value, size - consumed);
           consumed += partial;
           more_bytes = head.value - partial;
           break;
