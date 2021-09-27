@@ -37,6 +37,7 @@ namespace fc::api {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
+  using primitives::sector::SectorId;
   using primitives::sector_file::SectorFileType;
   using sector_storage::CallError;
   using sector_storage::CallId;
@@ -69,22 +70,30 @@ namespace fc::api {
    * Storage miner node low-level interface API.
    */
   struct StorageMinerApi : public CommonApi {
-    API_METHOD(ActorAddress, Address)
+    API_METHOD(ActorAddress, jwt::kReadPermission, Address)
 
-    API_METHOD(ActorSectorSize, SectorSize, const Address &)
+    API_METHOD(ActorSectorSize,
+               jwt::kReadPermission,
+               SectorSize,
+               const Address &)
 
-    API_METHOD(PledgeSector, void)
+    API_METHOD(PledgeSector, jwt::kWritePermission, void)
 
     /**
      * Manually import data for a storage deal
      * @param proposal CID
      * @param path to a file with piece data
      */
-    API_METHOD(DealsImportData, void, const CID &, const std::string &)
+    API_METHOD(DealsImportData,
+               jwt::kAdminPermission,
+               void,
+               const CID &,
+               const std::string &)
 
-    API_METHOD(MarketGetAsk, SignedStorageAsk)
-    API_METHOD(MarketGetRetrievalAsk, RetrievalAsk)
+    API_METHOD(MarketGetAsk, jwt::kReadPermission, SignedStorageAsk)
+    API_METHOD(MarketGetRetrievalAsk, jwt::kReadPermission, RetrievalAsk)
     API_METHOD(MarketSetAsk,
+               jwt::kAdminPermission,
                void,
                const TokenAmount &,
                const TokenAmount &,
@@ -92,84 +101,109 @@ namespace fc::api {
                PaddedPieceSize,
                PaddedPieceSize)
 
-    API_METHOD(MarketSetRetrievalAsk, void, const RetrievalAsk &)
+    API_METHOD(MarketSetRetrievalAsk,
+               jwt::kAdminPermission,
+               void,
+               const RetrievalAsk &)
 
-    API_METHOD(StorageAttach, void, const StorageInfo_ &, const FsStat &)
-    API_METHOD(StorageInfo, StorageInfo_, const StorageID &)
+    API_METHOD(StorageAttach,
+               jwt::kAdminPermission,
+               void,
+               const StorageInfo_ &,
+               const FsStat &)
+    API_METHOD(StorageInfo,
+               jwt::kAdminPermission,
+               StorageInfo_,
+               const StorageID &)
     API_METHOD(StorageReportHealth,
+               jwt::kAdminPermission,
                void,
                const StorageID &,
                const HealthReport &)
     API_METHOD(StorageDeclareSector,
+               jwt::kAdminPermission,
                void,
                const StorageID &,
                const SectorId &,
                const SectorFileType &,
                bool)
     API_METHOD(StorageDropSector,
+               jwt::kAdminPermission,
                void,
                const StorageID &,
                const SectorId &,
                const SectorFileType &)
     API_METHOD(StorageFindSector,
+               jwt::kAdminPermission,
                std::vector<StorageInfo_>,
                const SectorId &,
                const SectorFileType &,
                boost::optional<SectorSize>)
     API_METHOD(StorageBestAlloc,
+               jwt::kAdminPermission,
                std::vector<StorageInfo_>,
                const SectorFileType &,
                SectorSize,
                bool)
 
     API_METHOD(ReturnAddPiece,
+               jwt::kAdminPermission,
                void,
                const CallId &,
                const PieceInfo &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnSealPreCommit1,
+               jwt::kAdminPermission,
                void,
                const CallId &,
                const PreCommit1Output &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnSealPreCommit2,
+               jwt::kAdminPermission,
                void,
                const CallId &,
                const SectorCids &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnSealCommit1,
+               jwt::kAdminPermission,
                void,
                const CallId &,
                const Commit1Output &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnSealCommit2,
+               jwt::kAdminPermission,
                void,
                const CallId &,
                const Proof &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnFinalizeSector,
+               jwt::kAdminPermission,
                void,
                const CallId &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnMoveStorage,
+               jwt::kAdminPermission,
                void,
                const CallId &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnUnsealPiece,
+               jwt::kAdminPermission,
                void,
                const CallId &,
                const boost::optional<CallError> &)
     API_METHOD(ReturnReadPiece,
+               jwt::kAdminPermission,
                void,
                const CallId &,
                bool,
                const boost::optional<CallError> &)
     API_METHOD(ReturnFetch,
+               jwt::kAdminPermission,
                void,
                const CallId &,
                const boost::optional<CallError> &)
 
-    API_METHOD(WorkerConnect, void, const std::string &);
+    API_METHOD(WorkerConnect, jwt::kAdminPermission, void, const std::string &);
   };
 
   /**
@@ -177,7 +211,7 @@ namespace fc::api {
    * @return initialized StorageMinerApi
    */
   std::shared_ptr<StorageMinerApi> makeStorageApi(
-      const std::shared_ptr<io_context> io,
+      const std::shared_ptr<io_context> &io,
       const std::shared_ptr<FullNodeApi> &full_node_api,
       const Address &actor,
       const std::shared_ptr<Miner> &miner,

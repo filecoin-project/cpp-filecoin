@@ -18,7 +18,7 @@ namespace fc::mining {
 
   struct CurrentDealInfo {
     DealId deal_id;
-    boost::optional<StorageDeal> market_deal;
+    StorageDeal market_deal;
     TipsetKey publish_msg_tipset;
   };
 

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "adt/array.hpp"
+#include "adt/stop.hpp"
 #include "common/outcome.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "primitives/types.hpp"
@@ -90,14 +91,14 @@ namespace fc::vm::actor::builtin::types::miner {
 
       auto visitor{[&](auto epoch, const auto &buf) -> outcome::result<void> {
         if (static_cast<ChainEpoch>(epoch) > until) {
-          return outcome::success();
+          return outcome::failure(adt::kStopError);
         }
         popped_keys.push_back(epoch);
         popped_values.push_back(buf);
         return outcome::success();
       }};
 
-      OUTCOME_TRY(queue.visit(visitor));
+      CATCH_STOP(queue.visit(visitor));
 
       if (popped_keys.empty()) {
         return std::make_tuple(RleBitset{}, false);

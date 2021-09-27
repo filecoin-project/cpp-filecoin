@@ -10,6 +10,7 @@
 /**
  * only constexpr string literals are allowed
  */
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _ERROR_TEXT_CONST(s)     \
   [] {                           \
     constexpr const char *_s{s}; \

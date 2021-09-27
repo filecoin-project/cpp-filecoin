@@ -21,7 +21,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
   struct SectorOnChainInfo {
     SectorNumber sector{};
-    RegisteredSealProof seal_proof;
+    RegisteredSealProof seal_proof{};
     CID sealed_cid;
     std::vector<DealId> deals;
     ChainEpoch activation_epoch{};

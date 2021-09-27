@@ -22,7 +22,9 @@ namespace fc::codec::cbor::light_reader {
     BytesIn hash;
     if (readPrefix(input, kCborBlakePrefix)
         && codec::read(hash, input, sizeof(CbCid))) {
-      key = (const CbCid *)hash.data();
+      // TODO (a.chernyshov) Think about better way to return CID
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+      key = reinterpret_cast<const CbCid *>(hash.data());
       return true;
     }
     key = nullptr;

@@ -27,7 +27,7 @@ namespace fc::mining {
     events->channel_ = chan.channel;
     events->channel_->read(
         [self_weak{events->weak_from_this()}](
-            boost::optional<std::vector<HeadChange>> changes) -> bool {
+            const boost::optional<std::vector<HeadChange>> &changes) -> bool {
           if (auto self = self_weak.lock()) {
             if (changes) {
               for (const auto &change : changes.value()) {

@@ -33,6 +33,8 @@ namespace fc::vm::actor::builtin::types::miner {
         const RleBitset &sector_nums,
         const RleBitset &faults,
         SectorNumber faults_stand_in) const;
+
+    outcome::result<Sectors> loadSectors() const;
   };
 
   inline CBOR2_DECODE(Sectors) {
@@ -45,6 +47,18 @@ namespace fc::vm::actor::builtin::types::miner {
 
   outcome::result<std::vector<SectorOnChainInfo>> selectSectors(
       const std::vector<SectorOnChainInfo> &sectors, const RleBitset &field);
+
+  // Methods are only for v0
+  outcome::result<std::vector<SectorOnChainInfo>> loadSectorInfosForProof(
+      const Sectors &sectors,
+      const RleBitset &proven_sectors,
+      const RleBitset &expected_faults);
+
+  outcome::result<std::vector<SectorOnChainInfo>> loadSectorInfosWithFaultMask(
+      const Sectors &sectors,
+      const RleBitset &sector_nums,
+      const RleBitset &faults,
+      SectorNumber faults_stand_in);
 
 }  // namespace fc::vm::actor::builtin::types::miner
 

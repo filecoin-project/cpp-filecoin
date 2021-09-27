@@ -22,6 +22,7 @@
 #include <libp2p/protocol/kademlia/impl/validator_default.hpp>
 
 #include "api/full_node/make.hpp"
+#include "api/setup_common.hpp"
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "cbor_blake/ipld_any.hpp"
@@ -29,6 +30,7 @@
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
 #include "codec/json/json.hpp"
+#include "common/api_secret.hpp"
 #include "common/error_text.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
@@ -79,6 +81,7 @@ namespace fc::node {
   using markets::storage::client::StorageMarketClientImpl;
   using storage::keystore::FileSystemKeyStore;
   using vm::actor::builtin::states::InitActorStatePtr;
+  using vm::interpreter::InterpreterCache;
 
   namespace {
     auto log() {
@@ -270,8 +273,8 @@ namespace fc::node {
             std::make_shared<storage::MapPrefix>("storage_market_imports/",
                                                  node_objects.kv_store),
             kStorageMarketImportDir);
-    node_objects.chain_events =
-        std::make_shared<ChainEventsImpl>(node_objects.api);
+    node_objects.chain_events = std::make_shared<ChainEventsImpl>(
+        node_objects.api, ChainEventsImpl::IsDealPrecommited{});
     node_objects.market_discovery =
         std::make_shared<DiscoveryImpl>(std::make_shared<storage::MapPrefix>(
             "discovery/", node_objects.kv_store)),
@@ -285,9 +288,9 @@ namespace fc::node {
             node_objects.api,
             node_objects.chain_events,
             std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
-    // timer is set to 100 ms
+    // timer is set to 5000 ms
     timerLoop(node_objects.scheduler,
-              std::chrono::milliseconds(100),
+              std::chrono::milliseconds(5000),
               [client{node_objects.storage_market_client}] {
                 client->pollWaiting();
               });
@@ -582,6 +585,8 @@ namespace fc::node {
     OUTCOME_TRY(createStorageMarketClient(o));
     OUTCOME_TRY(createRetrievalMarketClient(o));
 
+    OUTCOME_TRY(api_secret, loadApiSecret(config.join("jwt_secret")));
+
     o.api = api::makeImpl(o.api,
                           o.chain_store,
                           o.markets_ipld,
@@ -598,6 +603,8 @@ namespace fc::node {
                           o.market_discovery,
                           o.retrieval_market_client,
                           o.wallet_default_address);
+
+    api::fillAuthApi(o.api, api_secret, log());
 
     auto paych{
         std::make_shared<payment_channel_manager::PaymentChannelManagerImpl>(

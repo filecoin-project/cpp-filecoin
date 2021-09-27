@@ -11,7 +11,7 @@ namespace fc::primitives {
                         const ActiveResources &active) {
     std::shared_lock<std::shared_mutex> lock(active.mutex_);
 
-    // TODO: dedupe need_resources.base_min_memory per task type
+    // TODO (ortyomka): dedupe need_resources.base_min_memory per task type
     // (don't add if that task is already running)
     uint64_t min_need_memory =
         resources.reserved_memory + active.memory_used_min

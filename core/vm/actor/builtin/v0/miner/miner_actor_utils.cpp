@@ -7,10 +7,15 @@
 
 #include <boost/endian/conversion.hpp>
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
+  using common::smoothing::FilterEstimate;
+  using crypto::randomness::DomainSeparationTag;
+  using primitives::sector::SectorInfo;
+  using primitives::sector::WindowPoStVerifyInfo;
   using toolchain::Toolchain;
   using namespace types::miner;
 
@@ -20,35 +25,35 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<Address> MinerUtils::resolveControlAddress(
       const Address &address) const {
-    const auto resolved = runtime.resolveAddress(address);
-    OUTCOME_TRY(runtime.validateArgument(!resolved.has_error()));
-    VM_ASSERT(resolved.value().isId());
-    const auto resolved_code = runtime.getActorCodeID(resolved.value());
-    OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
+    const auto resolved = getRuntime().resolveAddress(address);
+    OUTCOME_TRY(getRuntime().validateArgument(!resolved.has_error()));
+    UTILS_VM_ASSERT(resolved.value().isId());
+    const auto resolved_code = getRuntime().getActorCodeID(resolved.value());
+    OUTCOME_TRY(getRuntime().validateArgument(!resolved_code.has_error()));
 
     const auto address_matcher =
-        Toolchain::createAddressMatcher(runtime.getActorVersion());
-    OUTCOME_TRY(runtime.validateArgument(
+        Toolchain::createAddressMatcher(getRuntime().getActorVersion());
+    OUTCOME_TRY(getRuntime().validateArgument(
         address_matcher->isSignableActor(resolved_code.value())));
     return std::move(resolved.value());
   }
 
   outcome::result<Address> MinerUtils::resolveWorkerAddress(
       const Address &address) const {
-    const auto resolved = runtime.resolveAddress(address);
-    OUTCOME_TRY(runtime.validateArgument(!resolved.has_error()));
-    VM_ASSERT(resolved.value().isId());
-    const auto resolved_code = runtime.getActorCodeID(resolved.value());
-    OUTCOME_TRY(runtime.validateArgument(!resolved_code.has_error()));
+    const auto resolved = getRuntime().resolveAddress(address);
+    OUTCOME_TRY(getRuntime().validateArgument(!resolved.has_error()));
+    UTILS_VM_ASSERT(resolved.value().isId());
+    const auto resolved_code = getRuntime().getActorCodeID(resolved.value());
+    OUTCOME_TRY(getRuntime().validateArgument(!resolved_code.has_error()));
     const auto address_matcher =
-        Toolchain::createAddressMatcher(runtime.getActorVersion());
-    OUTCOME_TRY(runtime.validateArgument(
+        Toolchain::createAddressMatcher(getRuntime().getActorVersion());
+    OUTCOME_TRY(getRuntime().validateArgument(
         resolved_code.value() == address_matcher->getAccountCodeId()));
 
     if (!address.isBls()) {
       OUTCOME_TRY(pubkey_addres,
                   getPubkeyAddressFromAccountActor(resolved.value()));
-      OUTCOME_TRY(runtime.validateArgument(pubkey_addres.isBls()));
+      OUTCOME_TRY(getRuntime().validateArgument(pubkey_addres.isBls()));
     }
 
     return std::move(resolved.value());
@@ -57,18 +62,27 @@ namespace fc::vm::actor::builtin::v0::miner {
   outcome::result<void> MinerUtils::enrollCronEvent(
       ChainEpoch event_epoch, const CronEventPayload &payload) const {
     const auto encoded_params = codec::cbor::encode(payload);
-    OUTCOME_TRY(runtime.validateArgument(!encoded_params.has_error()));
+    OUTCOME_TRY(getRuntime().validateArgument(!encoded_params.has_error()));
     REQUIRE_SUCCESS(
         callPowerEnrollCronEvent(event_epoch, encoded_params.value()));
+    return outcome::success();
+  }
+
+  outcome::result<void> MinerUtils::requestUpdatePower(
+      const PowerPair &delta) const {
+    if (delta.isZero()) {
+      return outcome::success();
+    }
+    REQUIRE_SUCCESS(callPowerUpdateClaimedPower(delta));
     return outcome::success();
   }
 
   outcome::result<ChainEpoch> MinerUtils::assignProvingPeriodOffset(
       ChainEpoch current_epoch) const {
     OUTCOME_TRY(address_encoded,
-                codec::cbor::encode(runtime.getCurrentReceiver()));
+                codec::cbor::encode(getRuntime().getCurrentReceiver()));
     address_encoded.putUint64(current_epoch);
-    OUTCOME_TRY(digest, runtime.hashBlake2b(address_encoded));
+    OUTCOME_TRY(digest, getRuntime().hashBlake2b(address_encoded));
     const uint64_t offset = boost::endian::load_big_u64(digest.data());
     return offset % kWPoStProvingPeriod;
   }
@@ -117,15 +131,86 @@ namespace fc::vm::actor::builtin::v0::miner {
     return outcome::success();
   }
 
+  outcome::result<EpochReward> MinerUtils::requestCurrentEpochBlockReward()
+      const {
+    REQUIRE_SUCCESS_A(
+        reward,
+        getRuntime().sendM<reward::ThisEpochReward>(kRewardAddress, {}, 0));
+    return EpochReward{
+        .this_epoch_reward = reward.this_epoch_reward,
+        .this_epoch_reward_smoothed = reward.this_epoch_reward_smoothed,
+        .this_epoch_baseline_power = reward.this_epoch_baseline_power};
+  }
+
+  outcome::result<TotalPower> MinerUtils::requestCurrentTotalPower() const {
+    REQUIRE_SUCCESS_A(power,
+                      getRuntime().sendM<storage_power::CurrentTotalPower>(
+                          kStoragePowerAddress, {}, 0));
+    return TotalPower{
+        .raw_byte_power = power.raw_byte_power,
+        .quality_adj_power = power.quality_adj_power,
+        .pledge_collateral = power.pledge_collateral,
+        .quality_adj_power_smoothed = power.quality_adj_power_smoothed};
+  }
+
+  outcome::result<void> MinerUtils::verifyWindowedPost(
+      ChainEpoch challenge_epoch,
+      const std::vector<SectorOnChainInfo> &sectors,
+      const std::vector<PoStProof> &proofs) const {
+    const auto miner_actor_id = getRuntime().getCurrentReceiver().getId();
+
+    OUTCOME_TRY(addr_buf,
+                codec::cbor::encode(getRuntime().getCurrentReceiver()));
+    OUTCOME_TRY(post_randomness,
+                getRuntime().getRandomnessFromBeacon(
+                    DomainSeparationTag::WindowedPoStChallengeSeed,
+                    challenge_epoch,
+                    addr_buf));
+
+    std::vector<SectorInfo> sector_proof_info;
+    for (const auto &sector : sectors) {
+      sector_proof_info.push_back({.registered_proof = sector.seal_proof,
+                                   .sector = sector.sector,
+                                   .sealed_cid = sector.sealed_cid});
+    }
+
+    const WindowPoStVerifyInfo post_verify_info{
+        .randomness = post_randomness,
+        .proofs = proofs,
+        .challenged_sectors = sector_proof_info,
+        .prover = miner_actor_id};
+
+    OUTCOME_TRY(verified, getRuntime().verifyPoSt(post_verify_info));
+    OUTCOME_TRY(getRuntime().validateArgument(verified));
+
+    return outcome::success();
+  }
+
+  outcome::result<void> MinerUtils::notifyPledgeChanged(
+      const TokenAmount &pledge_delta) const {
+    if (pledge_delta != 0) {
+      REQUIRE_SUCCESS(getRuntime().sendM<storage_power::UpdatePledgeTotal>(
+          kStoragePowerAddress, pledge_delta, 0));
+    }
+    return outcome::success();
+  }
+
   outcome::result<Address> MinerUtils::getPubkeyAddressFromAccountActor(
       const Address &address) const {
-    return runtime.sendM<account::PubkeyAddress>(address, {}, 0);
+    return getRuntime().sendM<account::PubkeyAddress>(address, {}, 0);
   }
 
   outcome::result<void> MinerUtils::callPowerEnrollCronEvent(
       ChainEpoch event_epoch, const Buffer &params) const {
-    OUTCOME_TRY(runtime.sendM<storage_power::EnrollCronEvent>(
+    OUTCOME_TRY(getRuntime().sendM<storage_power::EnrollCronEvent>(
         kStoragePowerAddress, {event_epoch, params}, 0));
+    return outcome::success();
+  }
+
+  outcome::result<void> MinerUtils::callPowerUpdateClaimedPower(
+      const PowerPair &delta) const {
+    OUTCOME_TRY(getRuntime().sendM<storage_power::UpdateClaimedPower>(
+        kStoragePowerAddress, {delta.raw, delta.qa}, 0));
     return outcome::success();
   }
 

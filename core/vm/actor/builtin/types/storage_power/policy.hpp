@@ -18,6 +18,7 @@ namespace fc::vm::actor::builtin::types::storage_power {
    * Minimum power of an individual miner to meet the threshold for leader
    * election.
    */
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern StoragePower kConsensusMinerMinPower;
 
   /**

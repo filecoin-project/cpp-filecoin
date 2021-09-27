@@ -124,7 +124,10 @@ namespace fc {
         540 * kEpochsInDay;
     vm::actor::builtin::types::miner::kMaxProveCommitDuration =
         kEpochsInDay + kPreCommitChallengeDelay;
-    kSupportedProofs = {RegisteredSealProof::kStackedDrg2KiBV1};
+    kSupportedProofs = {
+        RegisteredSealProof::kStackedDrg2KiBV1,
+        RegisteredSealProof::kStackedDrg8MiBV1,
+    };
 
     vm::actor::builtin::types::payment_channel::kSettleDelay =
         kEpochsInHour * 12;

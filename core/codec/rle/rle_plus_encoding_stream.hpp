@@ -53,6 +53,11 @@ namespace fc::codec::rle {
       std::vector<uint8_t> data_content;
       data_content.reserve(content_.num_blocks());
       boost::to_block_range(content_, std::back_inserter(data_content));
+
+      // filter last 0 byte
+      if (!data_content.empty() && data_content.back() == 0) {
+        data_content.erase(std::prev(data_content.end()));
+      }
       return data_content;
     }
 

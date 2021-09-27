@@ -16,13 +16,13 @@ namespace fs = boost::filesystem;
 
 namespace fc::common {
 
-  static Logger logger = createLogger("tar util");
+  const static Logger logger = createLogger("tar util");
 
   int copy_data(struct archive *ar, struct archive *aw) {
-    int return_code;
+    la_ssize_t return_code = 0;
     const void *buff = nullptr;
     size_t size{};
-    la_int64_t offset;
+    la_int64_t offset{};
 
     for (;;) {
       return_code = archive_read_data_block(ar, &buff, &size, &offset);
@@ -30,15 +30,16 @@ namespace fc::common {
         return (ARCHIVE_OK);
       }
       if (return_code < ARCHIVE_OK) {
-        return (return_code);
+        return static_cast<int>(return_code);
       }
       return_code = archive_write_data_block(aw, buff, size, offset);
       if (return_code < ARCHIVE_OK) {
-        return (return_code);
+        return static_cast<int>(return_code);
       }
     }
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> zipTar(const boost::filesystem::path &input_path,
                                const boost::filesystem::path &output_path) {
     if (!fs::exists(input_path)) {
@@ -62,35 +63,33 @@ namespace fc::common {
       if (return_code < ARCHIVE_WARN) {
         logger->error("Zip tar: {}", archive_error_string(archive.get()));
         return TarErrors::kCannotZipTarArchive;
-      } else {
-        logger->warn("Zip tar: {}", archive_error_string(archive.get()));
       }
+      logger->warn("Zip tar: {}", archive_error_string(archive.get()));
     }
     std::function<outcome::result<void>(const fs::path &, const fs::path &)>
+        // NOLINTNEXTLINE(readability-function-cognitive-complexity)
         zipDir = [&](const fs::path &absolute_path,
                      const fs::path &relative_path) -> outcome::result<void> {
       struct stat entry_stat {};
-      char buff[8192];
-      fs::directory_iterator dir_iter(absolute_path), end;
+      std::array<char, 8192> buff{};
 
-      while (dir_iter != end) {
+      for (const auto &dir_item : fs::directory_iterator(absolute_path)) {
         auto type = AE_IFREG;
-        if (fs::is_directory(dir_iter->path())) {
-          if (fs::directory_iterator(dir_iter->path())
+        if (fs::is_directory(dir_item.path())) {
+          if (fs::directory_iterator(dir_item.path())
               != fs::directory_iterator()) {
-            OUTCOME_TRY(zipDir(dir_iter->path(),
-                               relative_path / dir_iter->path().filename()));
-            ++dir_iter;
+            OUTCOME_TRY(zipDir(dir_item.path(),
+                               relative_path / dir_item.path().filename()));
             continue;
           }
           type = AE_IFDIR;
         }
-        if (stat(dir_iter->path().c_str(), &entry_stat) < 0) {
+        if (stat(dir_item.path().c_str(), &entry_stat) < 0) {
           return TarErrors::kCannotZipTarArchive;
         }
         auto entry = ffi::wrap(archive_entry_new(), archive_entry_free);
         archive_entry_set_pathname(
-            entry.get(), (relative_path / dir_iter->path().filename()).c_str());
+            entry.get(), (relative_path / dir_item.path().filename()).c_str());
         archive_entry_set_size(entry.get(), entry_stat.st_size);
         archive_entry_set_filetype(entry.get(), type);
         archive_entry_set_perm(entry.get(), 0644);
@@ -99,31 +98,29 @@ namespace fc::common {
           if (return_code < ARCHIVE_WARN) {
             logger->error("Zip tar: {}", archive_error_string(archive.get()));
             return TarErrors::kCannotZipTarArchive;
-          } else {
-            logger->warn("Zip tar: {}", archive_error_string(archive.get()));
           }
+          logger->warn("Zip tar: {}", archive_error_string(archive.get()));
         }
         if (type == AE_IFREG) {
-          std::ifstream file(dir_iter->path().c_str());
+          std::ifstream file(dir_item.path().c_str());
           if (not file.is_open()) {
             return TarErrors::kCannotOpenFile;
           }
 
           while (not file.eof()) {
-            file.read(buff, sizeof(buff));
+            file.read(buff.data(), sizeof(buff));
 
             if (not file.good() && not file.eof()) {
               return TarErrors::kCannotReadFile;
             }
 
-            if (archive_write_data(archive.get(), buff, file.gcount()) == -1) {
+            if (archive_write_data(archive.get(), buff.data(), file.gcount())
+                == -1) {
               logger->error("Zip tar: {}", archive_error_string(archive.get()));
               return TarErrors::kCannotZipTarArchive;
             }
           }
         }
-
-        ++dir_iter;
       }
       return outcome::success();
     };
@@ -135,6 +132,7 @@ namespace fc::common {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> extractTar(const boost::filesystem::path &tar_path,
                                    const boost::filesystem::path &output_path) {
     if (!fs::exists(output_path)) {
@@ -148,8 +146,8 @@ namespace fc::common {
     }
 
     struct archive_entry *entry = nullptr;
-    int flags;
-    int return_code;
+    int flags = 0;
+    int return_code = 0;
 
     /* Select which attributes we want to restore. */
     flags = ARCHIVE_EXTRACT_TIME;

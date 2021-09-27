@@ -22,8 +22,8 @@ namespace fc::codec::cbor::light_reader {
     }
     const auto n{*token.listCount()};
     parents.reserve(n);
-    for (auto i{n}; i; --i) {
-      const CbCid *parent;
+    for (auto i{n}; i != 0; --i) {
+      const CbCid *parent = nullptr;
       if (!read(token, input).cidSize()) {
         return false;
       }
@@ -72,7 +72,7 @@ namespace fc::codec::cbor::light_reader {
     if (!read(token, input).asUint()) {
       return false;
     }
-    height = *token.asUint();
+    height = *token.asInt();
     return true;
   }
 }  // namespace fc::codec::cbor::light_reader

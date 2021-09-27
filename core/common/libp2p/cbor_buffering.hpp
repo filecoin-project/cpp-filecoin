@@ -33,13 +33,13 @@ namespace fc::common::libp2p {
 
     struct Head {
       /// Parse first header byte
-      static outcome::result<Head> first(size_t &more, uint8_t first);
+      static outcome::result<Head> first(ssize_t &more, uint8_t first);
 
       /// Parse next header byte
-      static void next(size_t &more, uint8_t next, Head &head);
+      static void next(ssize_t &more, uint8_t next, Head &head);
 
       Type type;
-      uint64_t value;
+      ssize_t value;
     };
 
     /// Was object fully read
@@ -52,10 +52,10 @@ namespace fc::common::libp2p {
     size_t moreBytes() const;
 
     /// Continue reading, return bytes consumed
-    outcome::result<size_t> consume(gsl::span<const uint8_t> input);
+    outcome::result<ssize_t> consume(gsl::span<const uint8_t> input);
 
     std::vector<size_t> more_nested;
-    size_t more_bytes{};
+    ssize_t more_bytes{};
     boost::optional<Head> partial_head;
   };
 }  // namespace fc::common::libp2p

@@ -22,6 +22,7 @@ namespace fc::mining::checks {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::sector::SealVerifyInfo;
+  using primitives::sector::SectorId;
   using sector_storage::zerocomm::getZeroPieceCommitment;
   using storage::ipfs::ApiIpfsDatastore;
   using vm::VMExitCode;

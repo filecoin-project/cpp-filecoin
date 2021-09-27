@@ -88,15 +88,14 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   Subscription GraphsyncImpl::makeRequest(
-      const libp2p::peer::PeerId &peer,
-      boost::optional<libp2p::multi::Multiaddress> address,
+      const libp2p::peer::PeerInfo &peer,
       const CID &root_cid,
       gsl::span<const uint8_t> selector,
       const std::vector<Extension> &extensions,
       RequestProgressCallback callback) {
-    if (!started_ || !network_->canSendRequest(peer)) {
+    if (!started_ || !network_->canSendRequest(peer.id)) {
       logger()->trace("makeRequest: rejecting request to peer {}",
-                      peer.toBase58().substr(46));
+                      peer.id.toBase58().substr(46));
       return local_requests_->newRejectedRequest(std::move(callback));
     }
 
@@ -112,12 +111,10 @@ namespace fc::storage::ipfs::graphsync {
       assert(!newRequest.body->empty());
 
       logger()->trace("makeRequest: sending request to peer {}",
-                      peer.toBase58().substr(46));
+                      peer.id.toBase58().substr(46));
 
-      network_->makeRequest(peer,
-                            std::move(address),
-                            newRequest.request_id,
-                            std::move(newRequest.body));
+      network_->makeRequest(
+          peer, newRequest.request_id, std::move(newRequest.body));
     }
 
     return std::move(newRequest.subscription);

@@ -12,6 +12,7 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 
+#include <optional>
 #include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
 #include "common/logger.hpp"
@@ -20,9 +21,10 @@ namespace fc::api {
   namespace beast = boost::beast;
   namespace websocket = beast::websocket;
   namespace net = boost::asio;
+  using primitives::jwt::kDefaultPermission;
   using rpc::OkCb;
 
-  common::Logger logger = common::createLogger("sector server");
+  const common::Logger logger = common::createLogger("sector server");
 
   constexpr auto kParseError = INT64_C(-32700);
   constexpr auto kInvalidRequest = INT64_C(-32600);
@@ -31,9 +33,10 @@ namespace fc::api {
   const auto kChanCloseDelay{boost::posix_time::milliseconds(100)};
 
   struct SocketSession : std::enable_shared_from_this<SocketSession> {
-    SocketSession(tcp::socket &&socket, const Rpc &api_rpc)
+    SocketSession(tcp::socket &&socket, Rpc api_rpc, Permissions &&perms)
         : socket{std::move(socket)},
           timer{this->socket.get_executor()},
+          perms(std::move(perms)),
           rpc(std::move(api_rpc)) {}
 
     template <class Body, class Allocator>
@@ -97,7 +100,8 @@ namespace fc::api {
               return;
             }
             self->_write(req, std::move(cb));
-          });
+          },
+          perms);
     }
 
     template <typename T>
@@ -140,8 +144,38 @@ namespace fc::api {
     websocket::stream<tcp::socket> socket;
     net::deadline_timer timer;
     beast::flat_buffer buffer;
+    Permissions perms;
     Rpc rpc;
   };
+
+  std::optional<std::string> getToken(
+      const http::request<http::dynamic_body> &request) {
+    auto it = request.find(http::field::authorization);
+    if (it != request.cend()) {
+      auto auth_token = (it->value());
+
+      if (auth_token.empty()) {
+        return std::string();
+      }
+
+      const std::string perfix = "Bearer ";
+      if (not auth_token.starts_with(perfix)) {
+        return std::nullopt;
+      }
+
+      return static_cast<std::string>(auth_token.substr(perfix.size()));
+    }
+    return std::string();
+  }
+
+  WrapperResponse makeErrorResponse(
+      const http::request<http::dynamic_body> &request, http::status status) {
+    http::response<http::empty_body> response;
+    response.version(request.version());
+    response.keep_alive(false);
+    response.result(status);
+    return WrapperResponse(std::move(response));
+  }
 
   struct HttpSession : public std::enable_shared_from_this<HttpSession> {
     HttpSession(tcp::socket &&socket,
@@ -181,8 +215,23 @@ namespace fc::api {
         for (const auto &api : rpc) {
           // API version is specified in request (e.g. '/rpc/v0')
           if (request.target().starts_with(api.first)) {
+            const auto maybe_token = getToken(request);
+            if (not maybe_token.has_value()) {
+              w_response =
+                  makeErrorResponse(request, http::status::unauthorized);
+              return doWrite();
+            }
+
+            auto maybe_perms = api.second->getPermissions(maybe_token.value());
+            if (maybe_perms.has_error()) {
+              logger->error(maybe_perms.error().message());
+              w_response =
+                  makeErrorResponse(request, http::status::unauthorized);
+              return doWrite();
+            }
             std::make_shared<SocketSession>(stream.release_socket(),
-                                            *api.second)
+                                            *api.second,
+                                            std::move(maybe_perms.value()))
                 ->doAccept(std::move(request));
             return;
           }
@@ -220,13 +269,14 @@ namespace fc::api {
 
     // aka visitor
     void doWrite() {
-      if (auto d_response = std::get_if<http::response<http::string_body>>(
+      if (auto *d_response = std::get_if<http::response<http::string_body>>(
               &(w_response.response))) {
         doWrite(*d_response);
-      } else if (auto f_response = std::get_if<http::response<http::file_body>>(
-                     &(w_response.response))) {
+      } else if (auto *f_response =
+                     std::get_if<http::response<http::file_body>>(
+                         &(w_response.response))) {
         doWrite(*f_response);
-      } else if (auto e_response =
+      } else if (auto *e_response =
                      std::get_if<http::response<http::empty_body>>(
                          &(w_response.response))) {
         doWrite(*e_response);
@@ -300,16 +350,40 @@ namespace fc::api {
    * Creates and runs Server.
    * @param rpc - APIs to serve
    */
-  void serve(std::map<std::string, std::shared_ptr<Rpc>> rpc,
-             std::shared_ptr<Routes> routes,
+  void serve(const std::map<std::string, std::shared_ptr<Rpc>> &rpc,
+             const std::shared_ptr<Routes> &routes,
              boost::asio::io_context &ioc,
              std::string_view ip,
              unsigned short port) {
     std::make_shared<Server>(
-        tcp::acceptor{ioc, {net::ip::make_address(ip), port}},
-        std::move(rpc),
-        std::move(routes))
+        tcp::acceptor{ioc, {net::ip::make_address(ip), port}}, rpc, routes)
         ->run();
+  }
+
+  RouteHandler makeAuthRoute(AuthRouteHandler &&handler,
+                             rpc::AuthFunction &&auth) {
+    return [handler{std::move(handler)}, auth{std::move(auth)}](
+               const http::request<http::dynamic_body> &request)
+               -> WrapperResponse {
+      Permissions perms = kDefaultPermission;
+      if (auth) {
+        const auto maybe_token = getToken(request);
+        if (not maybe_token.has_value()) {
+          return makeErrorResponse(request, http::status::unauthorized);
+        }
+
+        if (not maybe_token.value().empty()) {
+          auto maybe_perms =
+              auth(static_cast<std::string>(maybe_token.value()));
+          if (maybe_perms.has_error()) {
+            return makeErrorResponse(request, http::status::unauthorized);
+          }
+          perms = std::move(maybe_perms.value());
+        }
+      }
+
+      return handler(request, perms);
+    };
   }
 
   WrapperResponse &WrapperResponse::operator=(
@@ -321,7 +395,13 @@ namespace fc::api {
 
   WrapperResponse::~WrapperResponse() {
     if (release_resources) {
-      release_resources();
+      try {
+        release_resources();
+      } catch (...) {
+        logger->error(
+            "Unhandled exception in "
+            "fc::api::WrapperResponse::release_resources()");
+      }
     }
   }
 

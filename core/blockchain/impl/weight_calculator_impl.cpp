@@ -45,8 +45,8 @@ namespace fc::blockchain::weight {
       return outcome::failure(WeightCalculatorError::kNoNetworkPower);
     }
     BigInt log{boost::multiprecision::msb(network_power) << 8};
-    auto j{0};
-    for (auto &block : tipset.blks) {
+    int64_t j{0};
+    for (const auto &block : tipset.blks) {
       j += block.election_proof.win_count;
     }
     return tipset.getParentWeight() + log

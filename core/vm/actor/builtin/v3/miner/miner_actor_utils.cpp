@@ -19,13 +19,20 @@ namespace fc::vm::actor::builtin::v3::miner {
 
   outcome::result<Address> MinerUtils::getPubkeyAddressFromAccountActor(
       const Address &address) const {
-    return runtime.sendM<account::PubkeyAddress>(address, {}, 0);
+    return getRuntime().sendM<account::PubkeyAddress>(address, {}, 0);
   }
 
   outcome::result<void> MinerUtils::callPowerEnrollCronEvent(
       ChainEpoch event_epoch, const Buffer &params) const {
-    OUTCOME_TRY(runtime.sendM<storage_power::EnrollCronEvent>(
+    OUTCOME_TRY(getRuntime().sendM<storage_power::EnrollCronEvent>(
         kStoragePowerAddress, {event_epoch, params}, 0));
+    return outcome::success();
+  }
+
+  outcome::result<void> MinerUtils::callPowerUpdateClaimedPower(
+      const PowerPair &delta) const {
+    OUTCOME_TRY(getRuntime().sendM<storage_power::UpdateClaimedPower>(
+        kStoragePowerAddress, {delta.raw, delta.qa}, 0));
     return outcome::success();
   }
 

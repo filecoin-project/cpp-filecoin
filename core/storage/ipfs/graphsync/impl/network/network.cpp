@@ -31,7 +31,7 @@ namespace fc::storage::ipfs::graphsync {
     // clang-format off
     host_->setProtocolHandler(
         protocol_id_,
-        [wptr = weak_from_this()] (outcome::result<StreamPtr> rstream) {
+        [wptr = weak_from_this()] (StreamPtr rstream) {
           auto self = wptr.lock();
           if (self) { self->onStreamAccepted(std::move(rstream)); }
         }
@@ -58,39 +58,36 @@ namespace fc::storage::ipfs::graphsync {
     return ctx->getState() != PeerContext::is_closed;
   }
 
-  void Network::makeRequest(
-      const PeerId &peer,
-      boost::optional<libp2p::multi::Multiaddress> address,
-      RequestId request_id,
-      SharedData request_body) {
-    if (!canSendRequest(peer)) {
+  void Network::makeRequest(const PeerInfo &peer,
+                            RequestId request_id,
+                            SharedData request_body) {
+    if (!canSendRequest(peer.id)) {
       logger()->error("inconsistency in making request to network");
       return;
     }
 
-    auto ctx = findContext(peer, false);
+    auto ctx = findContext(peer.id, false);
     assert(ctx);
 
     logger()->trace("makeRequest: {} has state {}", ctx->str, ctx->getState());
 
-    ctx->setOutboundAddress(std::move(address));
+    ctx->setOutboundAddress(peer.addresses);
     ctx->enqueueRequest(request_id, std::move(request_body));
   }
 
   void Network::asyncFeedback(const PeerId &peer,
                               RequestId request_id,
                               ResponseStatusCode status) {
-    scheduler_
-        ->schedule(
-            [wptr{weak_from_this()}, p = peer, id = request_id, s = status]() {
-              auto self = wptr.lock();
-              if (self && self->started_) {
-                if (isTerminal(s)) {
-                  self->active_requests_per_peer_.erase(id);
-                }
-                self->feedback_->onResponse(p, id, s, {});
-              }
-            });
+    scheduler_->schedule(
+        [wptr{weak_from_this()}, p = peer, id = request_id, s = status]() {
+          auto self = wptr.lock();
+          if (self && self->started_) {
+            if (isTerminal(s)) {
+              self->active_requests_per_peer_.erase(id);
+            }
+            self->feedback_->onResponse(p, id, s, {});
+          }
+        });
   }
 
   void Network::cancelRequest(RequestId request_id, SharedData request_body) {
@@ -153,17 +150,12 @@ namespace fc::storage::ipfs::graphsync {
     return ctx;
   }
 
-  void Network::onStreamAccepted(outcome::result<StreamPtr> rstream) {
+  void Network::onStreamAccepted(StreamPtr rstream) {
     if (!started_) {
       return;
     }
 
-    if (!rstream) {
-      logger()->error("accept error, msg='{}'", rstream.error().message());
-      return;
-    }
-
-    auto peer_id_res = rstream.value()->remotePeerId();
+    auto peer_id_res = rstream->remotePeerId();
     if (!peer_id_res) {
       logger()->error("no peer id for accepted stream, msg='{}'",
                       peer_id_res.error().message());
@@ -174,7 +166,7 @@ namespace fc::storage::ipfs::graphsync {
 
     logger()->trace("accepted stream from peer={}", ctx->str);
 
-    ctx->onStreamAccepted(std::move(rstream.value()));
+    ctx->onStreamAccepted(std::move(rstream));
   }
 
   void Network::closeAllPeers() {

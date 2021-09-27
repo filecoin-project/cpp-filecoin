@@ -28,6 +28,8 @@ namespace fc::vm::actor::builtin::v0::miner {
       const DeadlineSectorMap &deadline_sectors) {
     OUTCOME_TRY(dls, this->deadlines.get());
 
+    OUTCOME_TRY(sectors, this->sectors.loadSectors());
+
     for (const auto &[dl_id, pm] : deadline_sectors.map) {
       const auto dl_info =
           DeadlineInfo(this->proving_period_start, dl_id, curr_epoch)

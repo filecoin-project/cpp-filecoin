@@ -8,6 +8,7 @@
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
 #include "vm/actor/builtin/states/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/utils/actor_utils.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::utils {
@@ -15,16 +16,12 @@ namespace fc::vm::actor::builtin::utils {
   using runtime::Runtime;
   using states::PowerActorStatePtr;
 
-  class PowerUtils {
+  class PowerUtils : public ActorUtils {
    public:
-    explicit PowerUtils(Runtime &r) : runtime(r) {}
-    virtual ~PowerUtils() = default;
+    explicit PowerUtils(Runtime &r) : ActorUtils(r) {}
 
     virtual outcome::result<void> validateMinerHasClaim(
         PowerActorStatePtr &state, const Address &miner) const = 0;
-
-   protected:
-    Runtime &runtime;
   };
 
   using PowerUtilsPtr = std::shared_ptr<PowerUtils>;

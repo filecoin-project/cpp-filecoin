@@ -86,7 +86,9 @@ namespace fc::sector_storage::stores {
         boost::optional<SectorSize> fetch_sector_size) = 0;
 
     virtual outcome::result<std::vector<StorageInfo>> storageBestAlloc(
-        const SectorFileType &allocate, SectorSize sector_size, bool sealing_mode) = 0;
+        const SectorFileType &allocate,
+        SectorSize sector_size,
+        bool sealing_mode) = 0;
 
     virtual outcome::result<std::shared_ptr<WLock>> storageLock(
         const SectorId &sector, SectorFileType read, SectorFileType write) = 0;

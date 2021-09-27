@@ -116,6 +116,8 @@ namespace fc::markets::storage::client {
           } else {
             spdlog::error(
                 "askDealStatus {} {}", deal->proposal_cid, _res.error());
+            std::lock_guard lock{waiting_mutex};
+            waiting_deals.push_back(deal);
           }
         })};
     DealStatusRequest req;
@@ -729,7 +731,8 @@ namespace fc::markets::storage::client {
     chain_events_->onDealSectorCommitted(
         deal->client_deal_proposal.proposal.provider,
         deal->deal_id,
-        [self{shared_from_this()}, deal] {
+        [self{shared_from_this()}, deal](auto _r) {
+          SELF_FSM_HALT_ON_ERROR(_r, "onDealSectorCommitted error", deal);
           OUTCOME_EXCEPT(self->fsm_->send(
               deal, ClientEvent::ClientEventDealActivated, {}));
         });

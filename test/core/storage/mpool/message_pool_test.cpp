@@ -19,6 +19,8 @@
   }
 
 namespace fc::storage::mpool {
+  using vm::interpreter::InterpreterCache;
+
   auto tipsetMessages(IpldPtr ipld, TipsetCPtr ts) {
     std::vector<SignedMessage> msgs;
     ts->visitMessages(

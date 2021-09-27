@@ -40,17 +40,17 @@ namespace fc::vm::runtime {
     MOCK_CONST_METHOD0(getCurrentReceiver, Address());
 
     MOCK_CONST_METHOD1(getBalance,
-                       outcome::result<BigInt>(const Address &address));
-    MOCK_CONST_METHOD0(getValueReceived, BigInt());
+                       outcome::result<TokenAmount>(const Address &address));
+    MOCK_CONST_METHOD0(getValueReceived, TokenAmount());
 
     MOCK_CONST_METHOD1(getActorCodeID,
                        outcome::result<CodeId>(const Address &address));
 
     MOCK_METHOD4(send,
-                 outcome::result<InvocationOutput>(Address to_address,
+                 outcome::result<InvocationOutput>(const Address &to_address,
                                                    MethodNumber method_number,
                                                    MethodParams params,
-                                                   BigInt value));
+                                                   const TokenAmount &value));
 
     MOCK_METHOD0(createNewActorAddress, outcome::result<Address>());
 

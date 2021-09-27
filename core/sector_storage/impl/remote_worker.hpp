@@ -82,7 +82,7 @@ namespace fc::sector_storage {
         override;
 
    private:
-    RemoteWorker(io_context &context);
+    explicit RemoteWorker(io_context &context);
 
     WorkerApi api_;
     Client wsc_;

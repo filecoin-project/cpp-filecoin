@@ -22,7 +22,6 @@
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/car/car.hpp"
-#include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/states/account/account_actor_state.hpp"
 #include "vm/actor/builtin/states/init/init_actor_state.hpp"
 #include "vm/actor/builtin/states/market/market_actor_state.hpp"
@@ -47,6 +46,11 @@
 #define MOVE(x)  \
   x {            \
     std::move(x) \
+  }
+
+#define FWD(x)                   \
+  x {                            \
+    std::forward<decltype(x)>(x) \
   }
 
 namespace fc::api {
@@ -78,6 +82,7 @@ namespace fc::api {
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
+  using vm::interpreter::InterpreterCache;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::runtime::Env;
@@ -87,7 +92,7 @@ namespace fc::api {
 
   const static Logger logger = common::createLogger("Full node API");
 
-  // TODO: reuse for block validation
+  // TODO (turuslan): reuse for block validation
   inline bool minerHasMinPower(const StoragePower &claim_qa,
                                size_t min_power_miners) {
     return min_power_miners < kConsensusMinerMinMiners
@@ -99,14 +104,13 @@ namespace fc::api {
                              Beaconizer &beaconizer,
                              ChainEpoch epoch,
                              drand::Round prev,
-                             CbT<std::vector<BeaconEntry>> cb) {
+                             const CbT<std::vector<BeaconEntry>> &cb) {
     auto max{schedule.maxRound(epoch)};
     if (max == prev) {
       return cb(outcome::success());
     }
     auto round{prev == 0 ? max : prev + 1};
-    auto async{std::make_shared<AsyncAll<BeaconEntry>>(max - round + 1,
-                                                       std::move(cb))};
+    auto async{std::make_shared<AsyncAll<BeaconEntry>>(max - round + 1, cb)};
     for (auto i{0u}; round <= max; ++round, ++i) {
       beaconizer.entry(round, async->on(i));
     }
@@ -158,17 +162,20 @@ namespace fc::api {
       return state->address;
     }
 
+    // TODO (a.chernyshov) make explicit
+    // NOLINTNEXTLINE(google-explicit-constructor)
     operator IpldPtr() const {
       return state_tree.getStore();
     }
   };
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<std::vector<SectorInfo>> getSectorsForWinningPoSt(
       NetworkVersion network,
       const Address &miner,
       const MinerActorStatePtr &state,
       const Randomness &post_rand,
-      IpldPtr ipld) {
+      const IpldPtr &ipld) {
     std::vector<SectorInfo> sectors;
     RleBitset sectors_bitset;
     OUTCOME_TRY(deadlines, state->deadlines.get());
@@ -209,21 +216,22 @@ namespace fc::api {
     return sectors;
   }
 
+  // NOLINTNEXTLINE(hicpp-function-size,readability-function-cognitive-complexity,readability-function-size,google-readability-function-size)
   std::shared_ptr<FullNodeApi> makeImpl(
       std::shared_ptr<FullNodeApi> api,
-      std::shared_ptr<ChainStore> chain_store,
-      IpldPtr markets_ipld,
+      const std::shared_ptr<ChainStore> &chain_store,
+      const IpldPtr &markets_ipld,
       const std::string &network_name,
-      std::shared_ptr<WeightCalculator> weight_calculator,
+      const std::shared_ptr<WeightCalculator> &weight_calculator,
       const EnvironmentContext &env_context,
       TsBranchPtr ts_main,
-      std::shared_ptr<MessagePool> mpool,
-      std::shared_ptr<MsgWaiter> msg_waiter,
-      std::shared_ptr<Beaconizer> beaconizer,
-      std::shared_ptr<DrandSchedule> drand_schedule,
-      std::shared_ptr<PubSubGate> pubsub,
-      std::shared_ptr<KeyStore> key_store,
-      std::shared_ptr<Discovery> market_discovery,
+      const std::shared_ptr<MessagePool> &mpool,
+      const std::shared_ptr<MsgWaiter> &msg_waiter,
+      const std::shared_ptr<Beaconizer> &beaconizer,
+      const std::shared_ptr<DrandSchedule> &drand_schedule,
+      const std::shared_ptr<PubSubGate> &pubsub,
+      const std::shared_ptr<KeyStore> &key_store,
+      const std::shared_ptr<Discovery> &market_discovery,
       const std::shared_ptr<RetrievalClient> &retrieval_market_client,
       const std::shared_ptr<OneKey> &wallet_default_address) {
     auto ts_load{env_context.ts_load};
@@ -247,8 +255,6 @@ namespace fc::api {
       }
       return context;
     };
-
-    api->AuthNew = [](auto) { return Buffer{1, 2, 3}; };
     api->BeaconGetEntry = [=](auto &&cb, auto epoch) {
       return beaconizer->entry(drand_schedule->maxRound(epoch), cb);
     };
@@ -478,7 +484,7 @@ namespace fc::api {
           *order.peer,
           order.client,
           order.miner,
-          [=, cb{std::move(cb)}](outcome::result<void> res) {
+          [=](outcome::result<void> res) {
             if (res.has_error()) {
               logger->error("Error in ClientRetrieve {}",
                             res.error().message());
@@ -523,8 +529,10 @@ namespace fc::api {
       }
       // TODO(a.chernyshov): method should use fund manager batch reserve
       // and release funds requests for market actor.
-      vm::actor::builtin::v0::market::AddBalance::Params params{address};
-      OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
+      OUTCOME_TRY(
+          encoded_params,
+          codec::cbor::encode(
+              vm::actor::builtin::v0::market::AddBalance::Params{address}));
       UnsignedMessage unsigned_message{
           kStorageMarketAddress,
           wallet,
@@ -567,67 +575,68 @@ namespace fc::api {
       }
       return block2;
     };
-    api->MinerGetBaseInfo = [=](auto &&cb,
-                                auto &&miner,
-                                auto epoch,
-                                auto &&tipset_key) {
-      OUTCOME_CB(auto context, tipsetContext(tipset_key, true));
-      MiningBaseInfo info;
+    api->MinerGetBaseInfo =
+        // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+        [=](auto &&cb, auto &&miner, auto epoch, auto &&tipset_key) {
+          OUTCOME_CB(auto context, tipsetContext(tipset_key, true));
+          MiningBaseInfo info;
 
-      std::shared_lock ts_lock{*env_context.ts_branches_mutex};
-      OUTCOME_CB(auto ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
-      OUTCOME_CB(auto it, find(ts_branch, context.tipset->height()));
-      OUTCOME_CB(info.prev_beacon, latestBeacon(ts_load, it));
-      OUTCOME_CB(auto it2, getLookbackTipSetForRound(it, epoch));
-      OUTCOME_CB(auto cached, interpreter_cache->get(it2.second->second.key));
-      ts_lock.unlock();
+          std::shared_lock ts_lock{*env_context.ts_branches_mutex};
+          OUTCOME_CB(auto ts_branch,
+                     TsBranch::make(ts_load, tipset_key, ts_main));
+          OUTCOME_CB(auto it, find(ts_branch, context.tipset->height()));
+          OUTCOME_CB(info.prev_beacon, latestBeacon(ts_load, it));
+          OUTCOME_CB(auto it2, getLookbackTipSetForRound(it, epoch));
+          OUTCOME_CB(auto cached,
+                     interpreter_cache->get(it2.second->second.key));
+          ts_lock.unlock();
 
-      auto prev{info.prev_beacon.round};
-      beaconEntriesForBlock(
-          *drand_schedule,
-          *beaconizer,
-          epoch,
-          prev,
-          [=, MOVE(cb), MOVE(context), MOVE(info)](auto _beacons) mutable {
-            OUTCOME_CB(info.beacons, _beacons);
-            TipsetContext lookback{
-                nullptr,
-                {withVersion(ipld, epoch), std::move(cached.state_root)},
-                {}};
-            OUTCOME_CB(auto actor, lookback.state_tree.tryGet(miner));
-            if (!actor) {
-              return cb(boost::none);
-            }
-            OUTCOME_CB(auto miner_state,
-                       getCbor<MinerActorStatePtr>(lookback, actor->head));
-            OUTCOME_CB(auto seed, codec::cbor::encode(miner));
-            auto post_rand{crypto::randomness::drawRandomness(
-                info.beacon().data,
-                DomainSeparationTag::WinningPoStChallengeSeed,
-                epoch,
-                seed)};
-            OUTCOME_CB(info.sectors,
-                       getSectorsForWinningPoSt(
-                           getNetworkVersion(context.tipset->epoch()),
-                           miner,
-                           miner_state,
-                           post_rand,
-                           lookback));
-            if (info.sectors.empty()) {
-              return cb(boost::none);
-            }
-            OUTCOME_CB(auto power_state, lookback.powerState());
-            OUTCOME_CB(auto claim, power_state->getClaim(miner));
-            info.miner_power = claim->qa_power;
-            info.network_power = power_state->total_qa_power;
-            OUTCOME_CB(auto miner_info, miner_state->getInfo());
-            OUTCOME_CB(info.worker, context.accountKey(miner_info->worker));
-            info.sector_size = miner_info->sector_size;
-            info.has_min_power = minerHasMinPower(
-                claim->qa_power, power_state->num_miners_meeting_min_power);
-            cb(std::move(info));
-          });
-    };
+          auto prev{info.prev_beacon.round};
+          beaconEntriesForBlock(
+              *drand_schedule,
+              *beaconizer,
+              epoch,
+              prev,
+              [=, FWD(cb), MOVE(context), MOVE(info)](auto _beacons) mutable {
+                OUTCOME_CB(info.beacons, _beacons);
+                TipsetContext lookback{
+                    nullptr,
+                    {withVersion(ipld, epoch), std::move(cached.state_root)},
+                    {}};
+                OUTCOME_CB(auto actor, lookback.state_tree.tryGet(miner));
+                if (!actor) {
+                  return cb(boost::none);
+                }
+                OUTCOME_CB(auto miner_state,
+                           getCbor<MinerActorStatePtr>(lookback, actor->head));
+                OUTCOME_CB(auto seed, codec::cbor::encode(miner));
+                auto post_rand{crypto::randomness::drawRandomness(
+                    info.beacon().data,
+                    DomainSeparationTag::WinningPoStChallengeSeed,
+                    epoch,
+                    seed)};
+                OUTCOME_CB(info.sectors,
+                           getSectorsForWinningPoSt(
+                               getNetworkVersion(context.tipset->epoch()),
+                               miner,
+                               miner_state,
+                               post_rand,
+                               lookback));
+                if (info.sectors.empty()) {
+                  return cb(boost::none);
+                }
+                OUTCOME_CB(auto power_state, lookback.powerState());
+                OUTCOME_CB(auto claim, power_state->getClaim(miner));
+                info.miner_power = claim->qa_power;
+                info.network_power = power_state->total_qa_power;
+                OUTCOME_CB(auto miner_info, miner_state->getInfo());
+                OUTCOME_CB(info.worker, context.accountKey(miner_info->worker));
+                info.sector_size = miner_info->sector_size;
+                info.has_min_power = minerHasMinPower(
+                    claim->qa_power, power_state->num_miners_meeting_min_power);
+                cb(std::move(info));
+              });
+        };
     api->MpoolPending =
         [=](auto &tipset_key) -> outcome::result<std::vector<SignedMessage>> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
@@ -717,6 +726,7 @@ namespace fc::api {
               getNetworkVersion(context.tipset->epoch()))};
       return DealCollateralBounds{bigdiv(bounds.min * 110, 100), bounds.max};
     };
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     api->StateListMessages = [=](auto &match, auto &tipset_key, auto to_height)
         -> outcome::result<std::vector<CID>> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
@@ -1074,8 +1084,6 @@ namespace fc::api {
     };
 
     // TODO(artyom-yurin): FIL-165 implement method
-    api->StateSectorPreCommitInfo = std::function<decltype(
-        api->StateSectorPreCommitInfo)::FunctionSignature>{};
     api->StateSectorGetInfo =
         [=](auto address, auto sector_number, auto tipset_key)
         -> outcome::result<boost::optional<SectorOnChainInfo>> {
@@ -1103,7 +1111,7 @@ namespace fc::api {
               context.tipset,
               cid,
               lookback_limit,
-              [=, MOVE(cb)](auto ts, auto receipt) {
+              [=, FWD(cb)](auto ts, auto receipt) {
                 if (!ts) {
                   return cb(boost::none);
                 }
@@ -1116,10 +1124,7 @@ namespace fc::api {
                             auto &&lookback_limit,
                             bool) {
       msg_waiter->wait(
-          cid,
-          lookback_limit,
-          confidence,
-          [=, MOVE(cb)](auto ts, auto receipt) {
+          cid, lookback_limit, confidence, [=, FWD(cb)](auto ts, auto receipt) {
             if (!ts) {
               return cb(ERROR_TEXT("StateWaitMsg not found"));
             }

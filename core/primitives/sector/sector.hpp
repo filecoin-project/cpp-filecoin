@@ -141,7 +141,7 @@ namespace fc::primitives::sector {
   using PoStRandomness = Randomness;
 
   struct PoStProof {
-    RegisteredPoStProof registered_proof;
+    RegisteredPoStProof registered_proof = RegisteredPoStProof::kUndefined;
     Proof proof;
   };
 
@@ -152,7 +152,7 @@ namespace fc::primitives::sector {
 
   struct SectorInfo {
     RegisteredSealProof registered_proof;
-    uint64_t sector;
+    SectorNumber sector;
     /// CommR
     CID sealed_cid;
   };

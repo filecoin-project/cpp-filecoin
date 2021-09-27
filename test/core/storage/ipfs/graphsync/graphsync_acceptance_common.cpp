@@ -16,12 +16,6 @@ namespace fc::storage::ipfs::graphsync::test {
 
   void runEventLoop(const std::shared_ptr<boost::asio::io_context> &io,
                     size_t max_milliseconds) {
-    boost::asio::signal_set signals(*io, SIGINT, SIGTERM);
-
-    // io->run() can exit if we're not waiting for anything
-    signals.async_wait(
-        [&io](const boost::system::error_code &, int) { io->stop(); });
-
     if (max_milliseconds > 0) {
       io->run_for(std::chrono::milliseconds(max_milliseconds));
     } else {

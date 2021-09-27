@@ -25,6 +25,7 @@
 
 #include "common/uri_parser/percent_encoding.hpp"
 
+#include <gsl/gsl_util>
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
@@ -106,7 +107,7 @@ static uint32_t decodePercentEscaped(std::istringstream &iss, bool &isUtf8) {
     return static_cast<uint32_t>(c);
   }
 
-  int bytes;
+  int bytes = 0;
   uint32_t symbol = 0;
   if ((c & 0b11111100) == 0b11111100) {
     bytes = 6;
@@ -141,12 +142,12 @@ static uint32_t decodePercentEscaped(std::istringstream &iss, bool &isUtf8) {
     try {
       c = decodePercentEscapedByte(iss);
     } catch (...) {
-      iss.clear(iss.goodbit);
+      iss.clear(std::istringstream::goodbit);
       iss.seekg(p);
       return static_cast<uint32_t>(fc);
     }
     if ((c & 0b11000000) != 0b10000000) {
-      iss.clear(iss.goodbit);
+      iss.clear(std::istringstream::goodbit);
       iss.seekg(p);
       return static_cast<uint32_t>(fc);
     }
@@ -168,66 +169,66 @@ std::string PercentEncoding::decode(const std::string &input) {
 
       if (symbol <= 0b0111'1111)  // 7bit -> 1byte
       {
-        oss.put(static_cast<uint8_t>(symbol));
+        oss.put(gsl::narrow_cast<uint8_t>(symbol));
       } else if (symbol <= 0b0111'1111'1111)  // 11bit -> 2byte
       {
-        oss.put(
-            static_cast<uint8_t>(0b1100'0000 | (0b0001'1111 & (symbol >> 6))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 0))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1100'0000
+                                          | (0b0001'1111 & (symbol >> 6))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 0))));
       } else if (symbol <= 0b1111'1111'1111'1111)  // 16bit -> 3byte
       {
-        oss.put(
-            static_cast<uint8_t>(0b1110'0000 | (0b0000'1111 & (symbol >> 12))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 6))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 0))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1110'0000
+                                          | (0b0000'1111 & (symbol >> 12))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 6))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 0))));
       } else if (symbol <= 0b0001'1111'1111'1111'1111'1111)  // 21bit -> 4byte
       {
-        oss.put(
-            static_cast<uint8_t>(0b1111'0000 | (0b0000'0111 & (symbol >> 18))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 12))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 6))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 0))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1111'0000
+                                          | (0b0000'0111 & (symbol >> 18))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 12))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 6))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 0))));
       } else if (symbol
                  <= 0b0011'1111'1111'1111'1111'1111'1111)  // 26bit -> 5byte
       {
-        oss.put(
-            static_cast<uint8_t>(0b1111'1000 | (0b0000'0011 & (symbol >> 24))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 18))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 12))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 6))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 0))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1111'1000
+                                          | (0b0000'0011 & (symbol >> 24))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 18))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 12))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 6))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 0))));
       } else if (symbol
                  <= 0b0111'1111'1111'1111'1111'1111'1111'1111)  // 31bit ->
                                                                 // 6byte
       {
-        oss.put(
-            static_cast<uint8_t>(0b1111'1100 | (0b0000'0001 & (symbol >> 30))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 24))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 18))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 12))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 6))));
-        oss.put(
-            static_cast<uint8_t>(0b1000'0000 | (0b0011'1111 & (symbol >> 0))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1111'1100
+                                          | (0b0000'0001 & (symbol >> 30))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 24))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 18))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 12))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 6))));
+        oss.put(gsl::narrow_cast<uint8_t>(0b1000'0000
+                                          | (0b0011'1111 & (symbol >> 0))));
       }
     } else if (c == -1) {
       break;
     } else {
       iss.ignore();
-      oss.put(static_cast<uint8_t>(c));
+      oss.put(gsl::narrow_cast<uint8_t>(c));
     }
   }
 
@@ -243,7 +244,7 @@ std::string PercentEncoding::encode(const std::string &input) {
     if (c == -1) {
       break;
     }
-    if (need_encode(static_cast<uint8_t>(c))) {
+    if (need_encode(gsl::narrow_cast<uint8_t>(c))) {
       oss << '%' << std::uppercase << std::setfill('0') << std::setw(2)
           << std::hex << c;
     } else {

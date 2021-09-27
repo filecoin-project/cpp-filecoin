@@ -37,6 +37,7 @@ namespace fc {
   using api::VersionResult;
   using boost::asio::io_context;
   using config::configProfile;
+  using libp2p::multi::Multiaddress;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::piece::UnpaddedPieceSize;
@@ -186,16 +187,21 @@ namespace fc {
     auto index_adapter =
         std::make_shared<sector_storage::stores::RemoteSectorIndexImpl>(mapi);
 
-    OUTCOME_TRY(local_store,
-                sector_storage::stores::LocalStoreImpl::newLocalStore(
-                    storage,
-                    index_adapter,
-                    std::vector<std::string>{"http://127.0.0.1/remote"},
-                    scheduler));
+    OUTCOME_TRY(
+        local_store,
+        sector_storage::stores::LocalStoreImpl::newLocalStore(
+            storage,
+            index_adapter,
+            std::vector<std::string>{"http://127.0.0.1/remote"},  // TODO: API
+            scheduler));
 
-    // TODO: auth headers should be here
+    OUTCOME_TRY(admin_token, mapi->AuthNew({api::kAdminPermission}));
+
+    std::unordered_map<std::string, std::string> auth_headers;
+    auth_headers["Authorization"] =
+        "Bearer " + std::string(admin_token.begin(), admin_token.end());
     auto remote_store{std::make_shared<sector_storage::stores::RemoteStoreImpl>(
-        local_store, std::unordered_map<std::string, std::string>{})};
+        local_store, std::move(auth_headers))};
 
     sector_storage::WorkerConfig wconfig{
         .custom_hostname = boost::none,  // TODO: add flag for change it
@@ -267,10 +273,16 @@ namespace fc {
     wrpc.emplace("/rpc/v0", api::makeRpc(*wapi));
     auto wroutes{std::make_shared<api::Routes>()};
 
-    wroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
+    wroutes->insert({"/remote",
+                     api::makeAuthRoute(
+                         sector_storage::serveHttp(local_store),
+                         std::bind(mapi->AuthVerify, std::placeholders::_1))});
 
     api::serve(wrpc, wroutes, *io, "127.0.0.1", config.api_port);
-    api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
+    OUTCOME_TRY(token, mapi->AuthNew(primitives::jwt::kAllPermission));
+    api::rpc::saveInfo(config.repo_path,
+                       config.api_port,
+                       std::string(token.begin(), token.end()));
 
     IoThread thread;
     boost::asio::post(*(thread.io), [&] {

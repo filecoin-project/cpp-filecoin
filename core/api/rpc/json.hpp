@@ -26,6 +26,7 @@
 
 #define ENCODE(type) Value encode(const type &v)
 
+// NOLINTNEXTLINE(bugprone-macro-parentheses)
 #define DECODE(type) static void decode(type &v, const Value &j)
 
 namespace fc::codec::cbor {
@@ -205,7 +206,7 @@ namespace fc::api {
     }
 
     ENCODE(PaddedPieceSize) {
-      return encode((uint64_t)v);
+      return encode(static_cast<uint64_t>(v));
     }
 
     DECODE(PaddedPieceSize) {
@@ -213,7 +214,7 @@ namespace fc::api {
     }
 
     ENCODE(UnpaddedPieceSize) {
-      return encode((uint64_t)v);
+      return encode(static_cast<uint64_t>(v));
     }
 
     DECODE(UnpaddedPieceSize) {
@@ -380,7 +381,7 @@ namespace fc::api {
 
     DECODE(CbCid) {
       if (auto cid{asBlake(decode<CID>(j))}) {
-        v = std::move(*cid);
+        v = *cid;
       } else {
         outcome::raise(JsonError::kWrongType);
       }
@@ -421,7 +422,7 @@ namespace fc::api {
       v.resize(0);
       v.mainnet_genesis = cids == mainnet;
       if (!v.mainnet_genesis) {
-        for (auto &_cid : cids) {
+        for (const auto &_cid : cids) {
           if (auto cid{asBlake(_cid)}) {
             v.push_back(*cid);
           } else {
@@ -741,7 +742,7 @@ namespace fc::api {
       std::vector<primitives::block::BlockHeader> blks;
       decode(blks, Get(j, "Blocks"));
 
-      // TODO decode and verify excessive values
+      // TODO (a.gorbachev) decode and verify excessive values
 
       OUTCOME_EXCEPT(tipset,
                      primitives::tipset::Tipset::create(std::move(blks)));
@@ -1477,7 +1478,8 @@ namespace fc::api {
     Value encode(CborDecodeStream &s) {
       if (s.isCid()) {
         return encodeAs<CID>(s);
-      } else if (s.isList()) {
+      }
+      if (s.isList()) {
         auto n = s.listLength();
         Value j{rapidjson::kArrayType};
         j.Reserve(n, allocator);
@@ -1486,7 +1488,8 @@ namespace fc::api {
           j.PushBack(encode(l), allocator);
         }
         return j;
-      } else if (s.isMap()) {
+      }
+      if (s.isMap()) {
         auto m = s.map();
         Value j{rapidjson::kObjectType};
         j.MemberReserve(m.size(), allocator);
@@ -1494,14 +1497,18 @@ namespace fc::api {
           Set(j, p.first, encode(p.second));
         }
         return j;
-      } else if (s.isNull()) {
+      }
+      if (s.isNull()) {
         s.next();
         return {};
-      } else if (s.isInt()) {
+      }
+      if (s.isInt()) {
         return encodeAs<int64_t>(s);
-      } else if (s.isStr()) {
+      }
+      if (s.isStr()) {
         return encodeAs<std::string>(s);
-      } else if (s.isBytes()) {
+      }
+      if (s.isBytes()) {
         return encodeAs<std::vector<uint8_t>>(s);
       }
       outcome::raise(JsonError::kWrongType);
@@ -1946,8 +1953,9 @@ namespace fc::api {
         outcome::raise(JsonError::kWrongType);
       }
       v.reserve(j.Size());
-      for (auto it = j.Begin(); it != j.End(); ++it) {
-        v.emplace_back(decode<T>(*it));
+
+      for (const auto &it : j.GetArray()) {
+        v.emplace_back(decode<T>(it));
       }
     }
 
@@ -1986,8 +1994,8 @@ namespace fc::api {
       if (!j.IsArray()) {
         outcome::raise(JsonError::kWrongType);
       }
-      for (auto it = j.Begin(); it != j.End(); ++it) {
-        v.emplace(decode<T>(*it));
+      for (const auto &it : j.GetArray()) {
+        v.emplace(decode<T>(it));
       }
     }
 
