@@ -191,6 +191,7 @@ namespace fc::markets::retrieval::provider {
             *deal->ipld,
             deal->proposal.payload_cid,
             deal->proposal.params.selector,
+            false,
         });
         deal->unsealed = true;
         doBlocks(deal);

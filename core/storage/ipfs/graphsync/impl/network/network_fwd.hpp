@@ -97,7 +97,7 @@ namespace fc::storage::ipfs::graphsync {
   constexpr std::string_view kProtocolVersion = "/ipfs/graphsync/1.0.0";
 
   /// Max byte size of individual message
-  constexpr size_t kMaxMessageSize = 16 * 1024 * 1024;
+  constexpr size_t kMaxMessageSize = 4 * 1024 * 1024;
 
   /// Max byte size of pending message queue
   constexpr size_t kMaxPendingBytes = 64 * 1024 * 1024;

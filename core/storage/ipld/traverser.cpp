@@ -54,6 +54,14 @@ namespace fc::storage::ipld::traverser {
     }
   };
 
+  Traverser::Traverser(Ipld &store,
+                       const CID &root,
+                       const Selector &selector,
+                       bool unique)
+      : store{store}, unique{unique} {
+    to_visit_.push(root);
+  }
+
   outcome::result<std::vector<CID>> Traverser::traverseAll() {
     // TODO(turuslan): implement selectors
     while (!isCompleted()) {
@@ -68,7 +76,7 @@ namespace fc::storage::ipld::traverser {
     }
     CID cid = to_visit_.front();
     to_visit_.pop();
-    if (visited_.insert(cid).second) {
+    if (!unique || visited_.insert(cid).second) {
       OUTCOME_TRY(bytes, store.get(cid));
       visit_order_.push_back(cid);
 

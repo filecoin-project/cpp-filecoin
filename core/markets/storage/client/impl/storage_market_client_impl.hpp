@@ -84,12 +84,6 @@ namespace fc::markets::storage::client {
         bool verified_deal,
         bool is_fast_retrieval) override;
 
-    outcome::result<StorageParticipantBalance> getPaymentEscrow(
-        const Address &address) const override;
-
-    outcome::result<void> addPaymentEscrow(const Address &address,
-                                           const TokenAmount &amount) override;
-
    private:
     void askDealStatus(std::shared_ptr<ClientDeal> deal);
 

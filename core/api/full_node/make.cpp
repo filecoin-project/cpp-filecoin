@@ -22,6 +22,7 @@
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/car/car.hpp"
+#include "storage/unixfs/unixfs.hpp"
 #include "vm/actor/builtin/states/account/account_actor_state.hpp"
 #include "vm/actor/builtin/states/init/init_actor_state.hpp"
 #include "vm/actor/builtin/states/market/market_actor_state.hpp"
@@ -458,9 +459,6 @@ namespace fc::api {
      * Initiates the retrieval deal of a file in retrieval market.
      */
     api->ClientRetrieve = [=](auto &&cb, auto order, auto &&file_ref) {
-      if (!file_ref.is_car) {
-        return cb(ERROR_TEXT("ClientRetrieve unixfs not implemented"));
-      }
       if (order.size == 0) {
         return cb(ERROR_TEXT("Cannot make retrieval deal for zero bytes"));
       }
@@ -491,8 +489,14 @@ namespace fc::api {
               return cb(res.error());
             }
             logger->info("retrieval deal done");
-            OUTCOME_CB1(storage::car::makeSelectiveCar(
-                *markets_ipld, {{order.root, {}}}, file_ref.path));
+            if (file_ref.is_car) {
+              OUTCOME_CB1(storage::car::makeSelectiveCar(
+                  *markets_ipld, {{order.root, {}}}, file_ref.path));
+            } else {
+              std::ofstream file{file_ref.path};
+              OUTCOME_CB1(
+                  storage::unixfs::unwrapFile(file, *markets_ipld, order.root));
+            }
             cb(outcome::success());
           }));
     };

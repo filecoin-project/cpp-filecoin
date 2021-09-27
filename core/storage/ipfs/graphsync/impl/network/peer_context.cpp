@@ -267,8 +267,8 @@ namespace fc::storage::ipfs::graphsync {
       outbound_endpoint_.reset();
     }
 
-    stream->close(
-        [stream](outcome::result<void>) { logger()->trace("stream closed"); });
+    stream->reset();
+    logger()->trace("stream closed");
   }
 
   void PeerContext::closeLocalRequests(ResponseStatusCode status) {

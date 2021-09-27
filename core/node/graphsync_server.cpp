@@ -27,7 +27,7 @@ namespace fc::sync {
                    common::hex_lower(request.selector));
 
       storage::ipld::traverser::Traverser traverser{
-          ipld, request.root_cid, {request.selector}};
+          ipld, request.root_cid, {request.selector}, true};
       auto ok{true};
       if (auto _cids{traverser.traverseAll()}) {
         for (auto &cid : _cids.value()) {

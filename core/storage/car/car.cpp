@@ -126,7 +126,7 @@ namespace fc::storage::car {
   outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots) {
     std::set<CID> cids;
     for (auto &root : roots) {
-      Traverser traverser{store, root, kAllSelector};
+      Traverser traverser{store, root, kAllSelector, true};
       OUTCOME_TRY(visited, traverser.traverseAll());
       cids.insert(visited.begin(), visited.end());
     }
@@ -139,7 +139,7 @@ namespace fc::storage::car {
     std::vector<CID> cid_order;
     std::set<CID> cids;
     for (auto &dag : dags) {
-      Traverser traverser{store, dag.first, dag.second};
+      Traverser traverser{store, dag.first, dag.second, true};
       OUTCOME_TRY(visited, traverser.traverseAll());
       roots.push_back(dag.first);
       for (auto &cid : visited) {
@@ -201,7 +201,7 @@ namespace fc::storage::car {
     std::vector<CID> cid_order;
     std::set<CID> cids;
     for (auto &dag : dags) {
-      Traverser traverser{store, dag.first, dag.second};
+      Traverser traverser{store, dag.first, dag.second, true};
       OUTCOME_TRY(visited, traverser.traverseAll());
       roots.push_back(dag.first);
       for (auto &cid : visited) {
