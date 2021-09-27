@@ -5,20 +5,12 @@
 
 #pragma once
 
-#include "miner/storage_fsm/tipset_cache.hpp"
-
-#include "api/full_node/node_api.hpp"
-
-#include "primitives/tipset/tipset_key.hpp"
-
-#include "vm/actor/builtin/types/miner/deadline.hpp"
-
 #include <shared_mutex>
+#include "api/full_node/node_api.hpp"
+#include "miner/storage_fsm/tipset_cache.hpp"
 
 namespace fc::mining {
   using api::FullNodeApi;
-  using fc::vm::actor::builtin::types::miner::QuantSpec;
-  using primitives::tipset::TipsetKey;
 
   class TipsetCacheImpl : public TipsetCache {
    public:
