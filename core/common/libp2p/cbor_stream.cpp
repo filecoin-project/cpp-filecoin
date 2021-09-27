@@ -24,7 +24,9 @@ namespace fc::common::libp2p {
                             WriteCallbackFunc cb) {
     stream_->write(*input,
                    input->size(),
-                   [input, cb{std::move(cb)}](auto written) { cb(written); });
+                   [input{std::move(input)}, cb{std::move(cb)}](auto written) {
+                     cb(written);
+                   });
   }
 
   void CborStream::readMore(ReadCallbackFunc cb) {
@@ -40,8 +42,7 @@ namespace fc::common::libp2p {
             return cb(count.error());
           }
           self->buffer_.resize(self->size_ + count.value());
-          self->consume(gsl::make_span(self->buffer_).subspan(self->size_),
-                        std::move(cb));
+          self->consume(gsl::make_span(self->buffer_).subspan(self->size_), cb);
         });
   }
 
