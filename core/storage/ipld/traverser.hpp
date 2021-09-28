@@ -29,11 +29,12 @@ namespace fc::storage::ipld::traverser {
      * @param store - ipld store
      * @param root - root cid
      * @param selector - selector
+     * @param unique - should skip duplicates
      */
-    Traverser(Ipld &store, const CID &root, const Selector &selector)
-        : store{store} {
-      to_visit_.push(root);
-    }
+    Traverser(Ipld &store,
+              const CID &root,
+              const Selector &selector,
+              bool unique);
 
     /**
      * Traverse all from the root
@@ -58,6 +59,7 @@ namespace fc::storage::ipld::traverser {
     outcome::result<void> parseCbor(CborDecodeStream &s);
 
     Ipld &store;
+    bool unique{};
     std::queue<CID> to_visit_;      // set of cids to visit
     std::vector<CID> visit_order_;  // visited cids in visit order
     std::set<CID> visited_;         // set of visited cids

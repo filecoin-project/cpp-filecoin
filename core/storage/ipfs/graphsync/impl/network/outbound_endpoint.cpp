@@ -48,7 +48,9 @@ namespace fc::storage::ipfs::graphsync {
         queue_ ? queue_->getState().pending_bytes : pending_bytes_;
 
     if (pending_bytes + data->size() > max_pending_bytes_) {
-      return Error::kWriteQueueOverflow;
+      logger()->warn("OutboundEndpoint::enqueue overflow {}/{}",
+                     pending_bytes + data->size(),
+                     max_pending_bytes_);
     }
 
     if (queue_) {
@@ -74,8 +76,7 @@ namespace fc::storage::ipfs::graphsync {
       return res.error();
     }
 
-    logger()->debug(
-        "enqueueing response, size=", res.value()->size());
+    logger()->debug("enqueueing response, size={}", res.value()->size());
 
     return enqueue(std::move(res.value()));
   }
@@ -87,7 +88,7 @@ namespace fc::storage::ipfs::graphsync {
     auto serialized_size = response_builder_.getSerializedSize();
 
     if (serialized_size + data.size() > kMaxMessageSize) {
-      static const Response partial{RS_PARTIAL_CONTENT, {}, {}};
+      static const Response partial{RS_PARTIAL_RESPONSE, {}, {}};
       OUTCOME_TRY(sendResponse(request_id, partial));
     }
 

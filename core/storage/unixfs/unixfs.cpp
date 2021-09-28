@@ -13,6 +13,7 @@
 #include "common/error_text.hpp"
 #include "common/file.hpp"
 #include "crypto/hasher/hasher.hpp"
+#include "storage/ipld/traverser.hpp"
 
 namespace fc::storage::unixfs {
   using common::Buffer;
@@ -177,5 +178,23 @@ namespace fc::storage::unixfs {
                      static_cast<size_t>(data.size()),
                      chunk_size,
                      max_links});
+  }
+
+  outcome::result<void> unwrapFile(std::ostream &file,
+                                   Ipld &ipld,
+                                   const CID &root) {
+    ipld::traverser::Traverser traverser{ipld, root, {}, false};
+    while (!traverser.isCompleted()) {
+      OUTCOME_TRY(cid, traverser.advance());
+      if (cid.content_type == CID::Multicodec::RAW) {
+        OUTCOME_TRY(leaf, ipld.get(cid));
+        if (!common::write(file, leaf)) {
+          return ERROR_TEXT("unwrapFile write error");
+        }
+      } else if (cid.content_type != CID::Multicodec::DAG_PB) {
+        return ERROR_TEXT("unwrapFile unexpected cid codec");
+      }
+    }
+    return outcome::success();
   }
 }  // namespace fc::storage::unixfs

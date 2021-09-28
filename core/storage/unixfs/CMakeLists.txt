@@ -7,4 +7,5 @@ add_library(unixfs
 target_link_libraries(unixfs
     cbor
     filecoin_hasher
+    ipld_traverser
     )

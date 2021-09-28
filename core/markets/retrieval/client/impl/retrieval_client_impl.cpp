@@ -9,6 +9,20 @@
 #include "common/libp2p/peer/peer_info_helper.hpp"
 
 namespace fc::markets::retrieval::client {
+  DealState::DealState(const DealProposal &proposal,
+                       const IpldPtr &ipld,
+                       const RetrieveResponseHandler &handler,
+                       const Address &client_wallet,
+                       const Address &miner_wallet,
+                       const TokenAmount &total_funds)
+      : proposal{proposal},
+        state{proposal.params},
+        handler{handler},
+        client_wallet{client_wallet},
+        miner_wallet{miner_wallet},
+        total_funds(total_funds),
+        traverser{
+            *ipld, proposal.payload_cid, proposal.params.selector, false} {}
 
   RetrievalClientImpl::RetrievalClientImpl(
       std::shared_ptr<Host> host,
