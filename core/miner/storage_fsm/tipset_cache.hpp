@@ -50,7 +50,7 @@ namespace fc::mining {
      * Get Head tipset
      * @return head tipset
      */
-    virtual boost::optional<Tipset> best() const = 0;
+    virtual outcome::result<Tipset> best() const = 0;
   };
 
   enum class TipsetCacheError {

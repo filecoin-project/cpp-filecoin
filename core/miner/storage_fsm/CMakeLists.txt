@@ -24,6 +24,7 @@ add_library(tipset_cache
 target_link_libraries(tipset_cache
         tipset
         Boost::boost
+        api
         )
 
 add_library(events

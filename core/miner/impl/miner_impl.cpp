@@ -81,7 +81,7 @@ namespace fc::miner {
     std::shared_ptr<TipsetCache> tipset_cache =
         std::make_shared<TipsetCacheImpl>(
             2 * kGlobalChainConfidence,
-            [=](auto h) { return api->ChainGetTipSetByHeight(h, {}); });
+            api);
     OUTCOME_TRY(events, EventsImpl::createEvents(api, tipset_cache));
     std::shared_ptr<PreCommitPolicy> precommit_policy =
         std::make_shared<BasicPreCommitPolicy>(

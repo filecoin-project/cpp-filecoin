@@ -33,10 +33,4 @@ namespace fc::mining {
                                           ChainEpoch height) = 0;
   };
 
-  enum class EventsError {
-    kNotFoundTipset = 1,
-  };
-
 }  // namespace fc::mining
-
-OUTCOME_HPP_DECLARE_ERROR(fc::mining, EventsError);
