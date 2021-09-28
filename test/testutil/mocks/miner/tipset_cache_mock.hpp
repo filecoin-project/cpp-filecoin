@@ -20,6 +20,6 @@ namespace fc::mining {
 
     MOCK_METHOD1(get, outcome::result<boost::optional<Tipset>>(ChainEpoch));
 
-    MOCK_CONST_METHOD0(best, boost::optional<Tipset>());
+    MOCK_CONST_METHOD0(best, outcome::result<Tipset>());
   };
 }  // namespace fc::mining
