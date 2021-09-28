@@ -59,7 +59,7 @@ namespace fc::mining {
       OUTCOME_TRY(handler(tipset, best_height));
 
       lock.lock();
-      OUTCOME_TRY(best_tipset, tipset_cache_->best());
+      OUTCOME_TRYA(best_tipset, tipset_cache_->best());
 
       best_height = best_tipset.height();
 
@@ -217,13 +217,3 @@ namespace fc::mining {
   }
 
 }  // namespace fc::mining
-
-OUTCOME_CPP_DEFINE_CATEGORY(fc::mining, EventsError, e) {
-  using fc::mining::EventsError;
-  switch (e) {
-    case (EventsError::kNotFoundTipset):
-      return "Events: not found tipset";
-    default:
-      return "Events: unknown error";
-  }
-}
