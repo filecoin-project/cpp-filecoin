@@ -35,6 +35,8 @@ namespace fc::vm::actor::builtin::v2::miner {
       state = MinerActorStatePtr{actor_version};
       anyCodeIdAddressIs(kAccountCodeId);
       cbor_blake::cbLoadT(ipld, state);
+
+      currentEpochIs(kUpgradeCalicoHeight + 1);
     }
 
     /**
@@ -51,7 +53,8 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     void expectEnrollCronEvent(const ChainEpoch &proving_period_start) {
       const auto deadline_index =
-          (-proving_period_start) / kWPoStChallengeWindow;
+          (kUpgradeCalicoHeight + 1 - proving_period_start)
+          / kWPoStChallengeWindow;
       const auto first_deadline_close =
           proving_period_start + (1 + deadline_index) * kWPoStChallengeWindow;
       CronEventPayload payload{CronEventType::kProvingDeadline};
@@ -77,18 +80,17 @@ namespace fc::vm::actor::builtin::v2::miner {
    */
   TEST_F(MinerActorTest, SimpleConstruct) {
     callerIs(kInitAddress);
-    currentEpochIs(0);
 
     expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     EXPECT_CALL(runtime, getCurrentReceiver())
         .WillRepeatedly(Return(Address::makeFromId(1000)));
-    EXPECT_CALL(runtime, getNetworkVersion())
-        .WillRepeatedly(Return(NetworkVersion::kVersion8));
 
     // This is just set from running the code.
-    const ChainEpoch proving_period_start{-2222};
-    const auto deadline_index = (-proving_period_start) / kWPoStChallengeWindow;
+    const ChainEpoch proving_period_start{262675};
+    const auto deadline_index =
+        (kUpgradeCalicoHeight + 1 - proving_period_start)
+        / kWPoStChallengeWindow;
     expectEnrollCronEvent(proving_period_start);
 
     Construct::Params params = makeConstructParams();
@@ -136,7 +138,6 @@ namespace fc::vm::actor::builtin::v2::miner {
    */
   TEST_F(MinerActorTest, ConstructResolvedControl) {
     callerIs(kInitAddress);
-    currentEpochIs(0);
 
     expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
@@ -153,11 +154,9 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     EXPECT_CALL(runtime, getCurrentReceiver())
         .WillRepeatedly(Return(Address::makeFromId(1000)));
-    EXPECT_CALL(runtime, getNetworkVersion())
-        .WillRepeatedly(Return(NetworkVersion::kVersion8));
 
     // This is just set from running the code.
-    const ChainEpoch proving_period_start{-2222};
+    const ChainEpoch proving_period_start{262675};
     expectEnrollCronEvent(proving_period_start);
 
     Construct::Params params = makeConstructParams();
@@ -178,16 +177,12 @@ namespace fc::vm::actor::builtin::v2::miner {
    */
   TEST_F(MinerActorTest, ConstructControlNotId) {
     callerIs(kInitAddress);
-    currentEpochIs(0);
 
     expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     std::vector<Address> control_addresses;
     control_addresses.emplace_back(control);
     addressCodeIdIs(control, kCronCodeId);
-
-    EXPECT_CALL(runtime, getNetworkVersion())
-        .WillRepeatedly(Return(NetworkVersion::kVersion8));
 
     Construct::Params params = makeConstructParams();
     params.worker = worker;
@@ -262,19 +257,16 @@ namespace fc::vm::actor::builtin::v2::miner {
    */
   TEST_P(ConstructSuccesssMinerActorTest, ConstructParametrizedNVSuccess) {
     callerIs(kInitAddress);
-    currentEpochIs(0);
 
     const auto &[netwrok_version, seal_proof_type] = GetParam();
 
     EXPECT_CALL(runtime, getCurrentReceiver())
         .WillRepeatedly(Return(Address::makeFromId(1000)));
-    EXPECT_CALL(runtime, getNetworkVersion())
-        .WillRepeatedly(Return(netwrok_version));
 
     expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     // This is just set from running the code.
-    const ChainEpoch proving_period_start{-2222};
+    const ChainEpoch proving_period_start{262675};
     expectEnrollCronEvent(proving_period_start);
 
     Construct::Params params = makeConstructParams();
@@ -324,7 +316,6 @@ namespace fc::vm::actor::builtin::v2::miner {
    */
   TEST_P(ConstructFailureMinerActorTest, ConstructParametrizedNVFailure) {
     callerIs(kInitAddress);
-    currentEpochIs(0);
 
     const auto &[netwrok_version, seal_proof_type] = GetParam();
 
@@ -397,8 +388,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     initEmptyState();
     initDefaultMinerInfo();
 
-    currentEpochIs(10);
-    const ChainEpoch effective_epoch{10 + kWorkerKeyChangeDelay};
+    const ChainEpoch effective_epoch{kUpgradeCalicoHeight + 1
+                                     + kWorkerKeyChangeDelay};
 
     callerIs(owner);
 

@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v3/miner/miner_actor.hpp"
 
 #include "primitives/address/address.hpp"
 #include "testutil/literals.hpp"
@@ -13,12 +13,11 @@
 #include "testutil/resources/resources.hpp"
 #include "testutil/vm/actor/builtin/miner/miner_actor_test_fixture.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/actor/builtin/types/miner/v0/deadline.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor_utils.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
+#include "vm/actor/builtin/types/miner/v3/deadline.hpp"
+#include "vm/actor/builtin/v3/storage_power/storage_power_actor.hpp"
 #include "vm/actor/codes.hpp"
 
-namespace fc::vm::actor::builtin::v0::miner {
+namespace fc::vm::actor::builtin::v3::miner {
   using primitives::kChainEpochUndefined;
   using primitives::address::decodeFromString;
   using primitives::sector::RegisteredSealProof;
@@ -31,22 +30,39 @@ namespace fc::vm::actor::builtin::v0::miner {
    public:
     void SetUp() override {
       MinerActorTestFixture::SetUp();
-      actor_version = ActorVersion::kVersion0;
+      actor_version = ActorVersion::kVersion3;
       ipld->actor_version = actor_version;
       state = MinerActorStatePtr{actor_version};
       anyCodeIdAddressIs(kAccountCodeId);
       cbor_blake::cbLoadT(ipld, state);
 
-      currentEpochIs(kUpgradeSmokeHeight + 1);
+      currentEpochIs(kUpgradeActorsV3Height + 1);
     }
 
-    void expectEnrollCronEvent(ChainEpoch event_epoch,
-                               CronEventType event_type) {
-      CronEventPayload payload{event_type};
+    /**
+     * Creates simple valid construct parameters
+     */
+    Construct::Params makeConstructParams() {
+      return {
+          .owner = owner,
+          .worker = worker,
+          .control_addresses = {},
+          .post_proof_type = RegisteredPoStProof::kStackedDRG32GiBWindowPoSt,
+          .peer_id = {},
+          .multiaddresses = {}};
+    }
+
+    void expectEnrollCronEvent(const ChainEpoch &proving_period_start) {
+      const auto deadline_index =
+          (kUpgradeActorsV3Height + 1 - proving_period_start)
+          / kWPoStChallengeWindow;
+      const auto first_deadline_close =
+          proving_period_start + (1 + deadline_index) * kWPoStChallengeWindow;
+      CronEventPayload payload{CronEventType::kProvingDeadline};
       EXPECT_OUTCOME_TRUE(encoded_payload, codec::cbor::encode(payload));
       runtime.expectSendM<storage_power::EnrollCronEvent>(
           kStoragePowerAddress,
-          {.event_epoch = event_epoch, .payload = encoded_payload},
+          {.event_epoch = first_deadline_close - 1, .payload = encoded_payload},
           0,
           {});
     }
@@ -58,46 +74,6 @@ namespace fc::vm::actor::builtin::v0::miner {
   };
 
   /**
-   * Test input data and result are from TestAssignProvingPeriodBoundary in
-   * specs-actors 'miner_internal_test.go'
-   */
-  TEST_F(MinerActorTest, assignProvingPeriodOffset) {
-    const Address address1 =
-        decodeFromString("t2ssgkulnwdpcm3nh2652azver6gkqioiu2ez3zma").value();
-    const Address address2 =
-        decodeFromString("t2mzc3knjb7dvps7r5mqcdqwyygxnaxmjviyirqii").value();
-    ChainEpoch epoch{1};
-
-    MinerUtils utils{runtime};
-
-    EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(Return(address1));
-    EXPECT_OUTCOME_EQ(utils.assignProvingPeriodOffset(epoch), ChainEpoch{863});
-
-    EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(Return(address2));
-    EXPECT_OUTCOME_EQ(utils.assignProvingPeriodOffset(epoch), ChainEpoch{1603});
-  }
-
-  /**
-   * Test input data and result are generated from
-   * TestAssignProvingPeriodBoundary in specs-actors 'miner_internal_test.go'
-   */
-  TEST_F(MinerActorTest, assignProvingPeriodOffsetFromFile) {
-    const Address address =
-        decodeFromString("t2ssgkulnwdpcm3nh2652azver6gkqioiu2ez3zma").value();
-    EXPECT_CALL(runtime, getCurrentReceiver()).WillRepeatedly(Return(address));
-    const auto test_data = parseCsvPair(resourcePath(
-        "vm/actor/builtin/v0/miner/test_assign_proving_period_offset.txt"));
-
-    MinerUtils utils{runtime};
-
-    for (const auto &p : test_data) {
-      EXPECT_OUTCOME_EQ(
-          utils.assignProvingPeriodOffset(p.first.convert_to<ChainEpoch>()),
-          ChainEpoch{p.second.convert_to<ChainEpoch>()});
-    }
-  }
-
-  /**
    * Simple construction
    * @given vm
    * @when construct method called
@@ -106,45 +82,40 @@ namespace fc::vm::actor::builtin::v0::miner {
   TEST_F(MinerActorTest, SimpleConstruct) {
     callerIs(kInitAddress);
 
-    expectAccountV0PubkeyAddressSend(worker, bls_pubkey);
-
-    const std::vector<Address> control_addresses;
-    const Buffer peer_id;
-    const std::vector<Multiaddress> multiaddresses;
+    expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     EXPECT_CALL(runtime, getCurrentReceiver())
         .WillRepeatedly(Return(Address::makeFromId(1000)));
 
     // This is just set from running the code.
-    const ChainEpoch proving_period_start{53870};
-    expectEnrollCronEvent(proving_period_start - 1,
-                          CronEventType::kProvingDeadline);
+    const ChainEpoch proving_period_start{548751};
+    const auto deadline_index =
+        (kUpgradeActorsV3Height + 1 - proving_period_start)
+        / kWPoStChallengeWindow;
+    expectEnrollCronEvent(proving_period_start);
 
-    EXPECT_OUTCOME_TRUE_1(Construct::call(
-        runtime,
-        Construct::Params{
-            .owner = owner,
-            .worker = worker,
-            .control_addresses = control_addresses,
-            .seal_proof_type = RegisteredSealProof::kStackedDrg32GiBV1,
-            .peer_id = peer_id,
-            .multiaddresses = multiaddresses}));
+    Construct::Params params = makeConstructParams();
+    params.worker = worker;
+    EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, params));
 
     EXPECT_OUTCOME_TRUE(miner_info, state->getInfo());
-    EXPECT_EQ(miner_info->owner, owner);
-    EXPECT_EQ(miner_info->worker, worker);
-    EXPECT_EQ(miner_info->control, control_addresses);
-    EXPECT_EQ(miner_info->peer_id, peer_id);
-    EXPECT_EQ(miner_info->multiaddrs, multiaddresses);
-    EXPECT_EQ(static_cast<RegisteredSealProof>(miner_info->seal_proof_type),
-              RegisteredSealProof::kStackedDrg32GiBV1);
+    EXPECT_EQ(miner_info->owner, params.owner);
+    EXPECT_EQ(miner_info->worker, params.worker);
+    EXPECT_EQ(miner_info->control, params.control_addresses);
+    EXPECT_EQ(miner_info->peer_id, params.peer_id);
+    EXPECT_EQ(miner_info->multiaddrs, params.multiaddresses);
+    EXPECT_EQ(
+        static_cast<RegisteredSealProof>(miner_info->window_post_proof_type),
+        RegisteredSealProof::kStackedDrg32GiBV1_1);
     EXPECT_EQ(miner_info->sector_size, BigInt{1} << 35);
     EXPECT_EQ(miner_info->window_post_partition_sectors, 2349);
+    EXPECT_EQ(miner_info->consensus_fault_elapsed, kChainEpochUndefined);
+    EXPECT_EQ(miner_info->pending_owner_address, boost::none);
 
     EXPECT_EQ(state->precommit_deposit, 0);
     EXPECT_EQ(state->locked_funds, 0);
     EXPECT_EQ(state->proving_period_start, proving_period_start);
-    EXPECT_EQ(state->current_deadline, 0);
+    EXPECT_EQ(state->current_deadline, deadline_index);
 
     EXPECT_OUTCOME_TRUE(deadlines, state->deadlines.get());
     EXPECT_EQ(deadlines.due.size(), kWPoStPeriodDeadlines);
@@ -170,7 +141,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   TEST_F(MinerActorTest, ConstructResolvedControl) {
     callerIs(kInitAddress);
 
-    expectAccountV0PubkeyAddressSend(worker, bls_pubkey);
+    expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     std::vector<Address> control_addresses;
     const Address control1 = Address::makeFromId(501);
@@ -187,19 +158,13 @@ namespace fc::vm::actor::builtin::v0::miner {
         .WillRepeatedly(Return(Address::makeFromId(1000)));
 
     // This is just set from running the code.
-    const ChainEpoch proving_period_start{53870};
-    expectEnrollCronEvent(proving_period_start - 1,
-                          CronEventType::kProvingDeadline);
+    const ChainEpoch proving_period_start{548751};
+    expectEnrollCronEvent(proving_period_start);
 
-    EXPECT_OUTCOME_TRUE_1(Construct::call(
-        runtime,
-        Construct::Params{
-            .owner = owner,
-            .worker = worker,
-            .control_addresses = control_addresses,
-            .seal_proof_type = RegisteredSealProof::kStackedDrg32GiBV1,
-            .peer_id = {},
-            .multiaddresses = {}}));
+    Construct::Params params = makeConstructParams();
+    params.worker = worker;
+    params.control_addresses = control_addresses;
+    EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, params));
 
     EXPECT_OUTCOME_TRUE(miner_info, state->getInfo());
     EXPECT_EQ(miner_info->control.size(), 2);
@@ -215,25 +180,86 @@ namespace fc::vm::actor::builtin::v0::miner {
   TEST_F(MinerActorTest, ConstructControlNotId) {
     callerIs(kInitAddress);
 
-    const Address owner = Address::makeFromId(100);
-    const Address worker = Address::makeFromId(101);
-    expectAccountV0PubkeyAddressSend(worker, bls_pubkey);
+    expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     std::vector<Address> control_addresses;
     control_addresses.emplace_back(control);
     addressCodeIdIs(control, kCronCodeId);
 
-    EXPECT_OUTCOME_ERROR(
-        asAbort(VMExitCode::kErrIllegalArgument),
-        Construct::call(
-            runtime,
-            Construct::Params{
-                .owner = owner,
-                .worker = worker,
-                .control_addresses = control_addresses,
-                .seal_proof_type = RegisteredSealProof::kStackedDrg32GiBV1,
-                .peer_id = {},
-                .multiaddresses = {}}));
+    Construct::Params params = makeConstructParams();
+    params.worker = worker;
+    params.control_addresses = control_addresses;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         Construct::call(runtime, params));
+  }
+
+  /**
+   * @given PeerId too large
+   * @when miner constructor called
+   * @then error returned
+   */
+  TEST_F(MinerActorTest, ConstructTooLargePeerId) {
+    callerIs(kInitAddress);
+    const Buffer wrong_peer_id(kMaxPeerIDLength + 1, 'x');
+
+    Construct::Params params = makeConstructParams();
+    params.peer_id = wrong_peer_id;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         Construct::call(runtime, params));
+  }
+
+  /**
+   * @given control addresses exceed limit
+   * @when miner constructor called
+   * @then error returned
+   */
+  TEST_F(MinerActorTest, ConstructControlAddressesExceedLimit) {
+    callerIs(kInitAddress);
+    std::vector<Address> control_addresses(kMaxControlAddresses + 1, control);
+
+    Construct::Params params = makeConstructParams();
+    params.control_addresses = control_addresses;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         Construct::call(runtime, params));
+  }
+
+  /**
+   * @given multiaddresses size too large
+   * @when miner constructor called
+   * @then error returned
+   */
+  TEST_F(MinerActorTest, ConstructMultiaddressesTooLarge) {
+    callerIs(kInitAddress);
+    Multiaddress multiaddress =
+        Multiaddress::create("/ip4/127.0.0.1/tcp/111").value();
+
+    Construct::Params params = makeConstructParams();
+    params.multiaddresses = std::vector<Multiaddress>(1000, multiaddress);
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         Construct::call(runtime, params));
+  }
+
+  /**
+   * @given Successful construction
+   * @when miner constructor called
+   * @then success
+   */
+  TEST_F(MinerActorTest, ConstructSuccess) {
+    callerIs(kInitAddress);
+
+    EXPECT_CALL(runtime, getCurrentReceiver())
+        .WillRepeatedly(Return(Address::makeFromId(1000)));
+
+    expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
+
+    // This is just set from running the code.
+    const ChainEpoch proving_period_start{548751};
+    expectEnrollCronEvent(proving_period_start);
+
+    Construct::Params params = makeConstructParams();
+    params.worker = worker;
+    params.post_proof_type = RegisteredPoStProof::kStackedDRG32GiBWindowPoSt;
+    EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, params));
   }
 
   /**
@@ -265,7 +291,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     callerIs(kInitAddress);
 
     const Address new_worker = Address::makeFromId(201);
-    expectAccountV0PubkeyAddressSend(new_worker, bls_pubkey);
+    expectAccountV2PubkeyAddressSend(new_worker, bls_pubkey);
 
     std::vector<Address> new_control_addresses;
     const Address control1 = Address::makeFromId(701);
@@ -294,13 +320,13 @@ namespace fc::vm::actor::builtin::v0::miner {
     initEmptyState();
     initDefaultMinerInfo();
 
-    const ChainEpoch effective_epoch{kUpgradeSmokeHeight + 1
+    const ChainEpoch effective_epoch{kUpgradeActorsV3Height + 1
                                      + kWorkerKeyChangeDelay};
 
     callerIs(owner);
 
     const Address new_worker = Address::makeFromId(201);
-    expectAccountV0PubkeyAddressSend(new_worker, bls_pubkey);
+    expectAccountV2PubkeyAddressSend(new_worker, bls_pubkey);
 
     std::vector<Address> new_control_addresses;
     const Address control1 = Address::makeFromId(701);
@@ -312,8 +338,6 @@ namespace fc::vm::actor::builtin::v0::miner {
     const Address controlId2 = Address::makeFromId(752);
     new_control_addresses.emplace_back(control2);
     resolveAddressAs(control2, controlId2);
-
-    expectEnrollCronEvent(effective_epoch, CronEventType::kWorkerKeyChange);
 
     EXPECT_OUTCOME_TRUE_1(ChangeWorkerAddress::call(
         runtime,
@@ -366,4 +390,4 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_EQ(miner_info->peer_id, new_peer_id);
   }
 
-}  // namespace fc::vm::actor::builtin::v0::miner
+}  // namespace fc::vm::actor::builtin::v3::miner

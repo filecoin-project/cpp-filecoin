@@ -19,9 +19,18 @@ namespace fc::vm::actor::builtin::types::miner {
       const std::vector<Multiaddress> &multiaddrs,
       const RegisteredSealProof &seal_proof_type,
       const RegisteredPoStProof &window_post_proof_type) {
-    OUTCOME_TRY(sector_size, getSectorSize(seal_proof_type));
-    OUTCOME_TRY(partition_sectors,
-                getSealProofWindowPoStPartitionSectors(seal_proof_type));
+    SectorSize sector_size = 0;
+    size_t partition_sectors = 0;
+
+    if (version < ActorVersion::kVersion3) {
+      OUTCOME_TRYA(sector_size, getSectorSize(seal_proof_type));
+      OUTCOME_TRYA(partition_sectors,
+                   getSealProofWindowPoStPartitionSectors(seal_proof_type));
+    } else {
+      OUTCOME_TRYA(sector_size, getSectorSize(window_post_proof_type));
+      OUTCOME_TRYA(partition_sectors,
+                   getWindowPoStPartitionSectors(window_post_proof_type));
+    }
 
     Universal<MinerInfo> miner_info{version};
 
