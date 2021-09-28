@@ -51,13 +51,12 @@ namespace fc::common::libp2p {
 
     /// Write cbor object
     template <typename T>
-    void write(const T &value, WriteCallbackFunc cb) {
+    void write(const T &value, const WriteCallbackFunc &cb) {
       auto maybe_encoded = codec::cbor::encode(value);
       if (!maybe_encoded) {
         return cb(maybe_encoded.error());
       }
-      writeRaw(std::make_shared<Buffer>(std::move(maybe_encoded.value())),
-               std::move(cb));
+      writeRaw(std::make_shared<Buffer>(std::move(maybe_encoded.value())), cb);
     }
 
     void close() {
@@ -71,6 +70,6 @@ namespace fc::common::libp2p {
     std::shared_ptr<Stream> stream_;
     CborBuffering buffering_;
     std::vector<uint8_t> buffer_;
-    size_t size_{};
+    ssize_t size_{};
   };
 }  // namespace fc::common::libp2p

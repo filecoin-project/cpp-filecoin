@@ -33,42 +33,32 @@
 #include <stdexcept>
 
 namespace fc::common {
-  HttpUri::HttpUri()
-      : _scheme(Scheme::UNDEFINED),
-        _port(0),
-        _hasQuery(false),
-        _hasFragment(false) {}
-
-  HttpUri::HttpUri(const std::string &uri)
-      : _scheme(Scheme::UNDEFINED),
-        _port(0),
-        _hasQuery(false),
-        _hasFragment(false) {
+  HttpUri::HttpUri(const std::string &uri) {
     try {
-      parse(uri.data(), uri.length());
+      parse(uri);
     } catch (const std::exception &exception) {
       throw std::runtime_error(std::string("Bad URI ← ") + exception.what());
     }
   }
 
-  void HttpUri::parse(const char *string, size_t length) {
-    auto s = string;
-    auto end = string + length;
+  void HttpUri::parse(const std::string &string) {
+    const char *s = string.c_str();
+    const auto *end = string.c_str() + string.size();
 
     // scheme:
-    if (length >= 2 && strncmp(s, "//", 2) == 0) {
-      _scheme = Scheme::UNDEFINED;
+    if (string.length() >= 2 && strncmp(s, "//", 2) == 0) {
+      scheme_ = Scheme::UNDEFINED;
       s += 2;
     } else if (*s == '/') {
-      _scheme = Scheme::UNDEFINED;
-      goto path;
-    } else if (length >= 7 && strncasecmp(s, "http://", 7) == 0) {
-      _scheme = Scheme::HTTP;
-      _port = 80;
+      scheme_ = Scheme::UNDEFINED;
+      parsePath(s, end);
+    } else if (string.length() >= 7 && strncasecmp(s, "http://", 7) == 0) {
+      scheme_ = Scheme::HTTP;
+      port_ = 80;
       s += 7;
-    } else if (length >= 8 && strncasecmp(s, "https://", 8) == 0) {
-      _scheme = Scheme::HTTPS;
-      _port = 443;
+    } else if (string.length() >= 8 && strncasecmp(s, "https://", 8) == 0) {
+      scheme_ = Scheme::HTTPS;
+      port_ = 443;
       s += 8;
     } else {
       throw std::runtime_error("Wrong scheme");
@@ -80,7 +70,7 @@ namespace fc::common {
       if (isalnum(*s) == 0 && *s != '.' && *s != '-') {
         throw std::runtime_error("Wrong hostname");
       }
-      _host.push_back(static_cast<char>(tolower(*s)));
+      host_.push_back(static_cast<char>(tolower(*s)));
       if (++s > end) {
         throw std::runtime_error("Out of data");
       }
@@ -105,14 +95,17 @@ namespace fc::common {
           throw std::runtime_error("Out of data");
         }
       }
-      _port = static_cast<uint16_t>(port);
+      port_ = static_cast<uint16_t>(port);
     }
 
-  // path:
-  path:
+    // path:
+    parsePath(s, end);
+  }
+
+  void HttpUri::parsePath(const char *s, const char *end) {
     if (*s == '/') {
       while (*s != 0 && *s != '?' && *s != '#' && isspace(*s) == 0) {
-        _path.push_back(*s);
+        path_.push_back(*s);
         if (++s > end) {
           throw std::runtime_error("Out of data");
         }
@@ -124,9 +117,9 @@ namespace fc::common {
       if (++s > end) {
         throw std::runtime_error("Out of data");
       }
-      _hasQuery = true;
+      hasQuery_ = true;
       while (*s != 0 && *s != '#' && isspace(*s) == 0) {
-        _query.push_back(*s);
+        query_.push_back(*s);
         if (++s > end) {
           throw std::runtime_error("Out of data");
         }
@@ -138,9 +131,9 @@ namespace fc::common {
       if (++s > end) {
         throw std::runtime_error("Out of data");
       }
-      _hasFragment = true;
+      hasFragment_ = true;
       while (*s != 0 && isspace(*s) == 0) {
-        _fragment.push_back(*s);
+        fragment_.push_back(*s);
         if (++s > end) {
           throw std::runtime_error("Out of data");
         }
@@ -151,31 +144,31 @@ namespace fc::common {
   const std::string &HttpUri::str() const {
     std::stringstream ss;
 
-    if (_scheme == Scheme::HTTP) ss << "http://";
-    if (_scheme == Scheme::HTTPS) ss << "https://";
-    if (_scheme == Scheme::UNDEFINED && !_host.empty()) ss << "//";
+    if (scheme_ == Scheme::HTTP) ss << "http://";
+    if (scheme_ == Scheme::HTTPS) ss << "https://";
+    if (scheme_ == Scheme::UNDEFINED && !host_.empty()) ss << "//";
 
-    ss << _host;
+    ss << host_;
 
-    if (_port != 0
-        && ((_scheme == Scheme::HTTP && _port != 80)
-            || (_scheme == Scheme::HTTPS && _port != 443))) {
-      ss << ':' << _port;
+    if (port_ != 0
+        && ((scheme_ == Scheme::HTTP && port_ != 80)
+            || (scheme_ == Scheme::HTTPS && port_ != 443))) {
+      ss << ':' << port_;
     }
 
-    ss << _path;
+    ss << path_;
 
-    if (_hasQuery) {
-      ss << '?' << _query;
+    if (hasQuery_) {
+      ss << '?' << query_;
     }
 
-    if (_hasFragment) {
-      ss << '#' << _fragment;
+    if (hasFragment_) {
+      ss << '#' << fragment_;
     }
 
-    _thisAsString = ss.str();
+    thisAsString_ = ss.str();
 
-    return _thisAsString;
+    return thisAsString_;
   }
 
   std::string HttpUri::urldecode(const std::string &input_) {

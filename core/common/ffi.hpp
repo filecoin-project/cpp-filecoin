@@ -16,6 +16,7 @@ namespace fc::common::ffi {
   }
 
   template <size_t size>
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
   auto array(const uint8_t (&rhs)[size]) {
     Blob<size> lhs;
     std::copy(std::begin(rhs), std::end(rhs), std::begin(lhs));
@@ -23,6 +24,7 @@ namespace fc::common::ffi {
   }
 
   template <size_t size>
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
   void array(uint8_t (&lhs)[size], const std::array<uint8_t, size> rhs) {
     std::copy(std::begin(rhs), std::end(rhs), std::begin(lhs));
   }

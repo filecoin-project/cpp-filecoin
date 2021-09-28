@@ -29,6 +29,7 @@ namespace {
 }  // namespace
 
 namespace fc::common {
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   decltype(file_sink) file_sink;
 
   Logger createLogger(const std::string &tag) {

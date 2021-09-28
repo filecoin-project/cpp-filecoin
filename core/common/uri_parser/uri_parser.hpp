@@ -32,103 +32,100 @@ namespace fc::common {
    public:
     enum class Scheme { UNDEFINED, HTTP, HTTPS };
 
-   private:
-    Scheme _scheme;
-    std::string _host;
-    uint16_t _port;
-    std::string _path;
-    bool _hasQuery;
-    std::string _query;
-    bool _hasFragment;
-    std::string _fragment;
-    mutable std::string _thisAsString;
+    HttpUri() = default;
 
-   public:
-    HttpUri();
-
-    HttpUri(const std::string &uri);
+    explicit HttpUri(const std::string &uri);
 
     virtual ~HttpUri() = default;
 
-    void parse(const char *string, size_t length);
-
-    void parse(const std::string &string) {
-      parse(string.c_str(), string.size());
-    };
+    void parse(const std::string &string);
 
     const std::string &str() const;
 
     Scheme scheme() const {
-      return _scheme;
+      return scheme_;
     }
 
     void setScheme(Scheme scheme) {
-      _scheme = scheme;
-      if (_port == 0) {
-        if (_scheme == Scheme::HTTP) {
-          _port = 80;
-        } else if (_scheme == Scheme::HTTPS) {
-          _port = 443;
+      scheme_ = scheme;
+      if (port_ == 0) {
+        if (scheme_ == Scheme::HTTP) {
+          port_ = 80;
+        } else if (scheme_ == Scheme::HTTPS) {
+          port_ = 443;
         }
       }
     }
 
     const std::string &host() const {
-      return _host;
+      return host_;
     }
 
     void setHost(const std::string &host) {
-      _host = host;
+      host_ = host;
     }
 
     uint16_t port() const {
-      return _port;
+      return port_;
     }
 
     void setPort(uint16_t port) {
-      _port = port;
+      port_ = port;
     }
 
     const std::string &path() const {
-      return _path;
+      return path_;
     }
 
     void setPath(const std::string &path) {
-      _path = path;
+      path_ = path;
     }
 
     bool hasQuery() const {
-      return _hasQuery;
+      return hasQuery_;
     }
 
     const std::string &query() const {
-      return _query;
+      return query_;
     }
 
     void setQuery(const std::string &query) {
-      _query = query;
-      if (!_query.empty()) {
-        _hasQuery = true;
+      query_ = query;
+      if (!query_.empty()) {
+        hasQuery_ = true;
       }
     }
 
     bool hasFragment() const {
-      return _hasFragment;
+      return hasFragment_;
     }
 
     const std::string &fragment() const {
-      return _fragment;
+      return fragment_;
     }
 
     void setFragment(const std::string &fragment) {
-      _fragment = fragment;
-      if (!_fragment.empty()) {
-        _hasFragment = true;
+      fragment_ = fragment;
+      if (!fragment_.empty()) {
+        hasFragment_ = true;
       }
     }
 
     static std::string urldecode(const std::string &input);
 
     static std::string urlencode(const std::string &input);
+
+   private:
+    void parsePath(const char *s, const char *end);
+
+    Scheme scheme_ = Scheme::UNDEFINED;
+    std::string host_;
+    uint16_t port_ = 0;
+    std::string path_;
+    bool hasQuery_ = false;
+    std::string query_;
+    bool hasFragment_ = false;
+    std::string fragment_;
+    mutable std::string thisAsString_;
   };
 }  // namespace fc::common

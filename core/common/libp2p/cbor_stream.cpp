@@ -40,8 +40,7 @@ namespace fc::common::libp2p {
             return cb(count.error());
           }
           self->buffer_.resize(self->size_ + count.value());
-          self->consume(gsl::make_span(self->buffer_).subspan(self->size_),
-                        std::move(cb));
+          self->consume(gsl::make_span(self->buffer_).subspan(self->size_), cb);
         });
   }
 
