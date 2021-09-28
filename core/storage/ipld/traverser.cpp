@@ -74,21 +74,28 @@ namespace fc::storage::ipld::traverser {
     if (isCompleted()) {
       return TraverserError::kTraverseCompleted;
     }
-    CID cid = to_visit_.front();
+    CID cid{std::move(to_visit_.front())};
     to_visit_.pop();
-    if (!unique || visited_.insert(cid).second) {
-      OUTCOME_TRY(bytes, store.get(cid));
-      visit_order_.push_back(cid);
-
-      // TODO(turuslan): what about other types?
-      if (cid.content_type == CID::Multicodec::DAG_CBOR) {
-        CborDecodeStream s{bytes};
-        OUTCOME_TRY(parseCbor(s));
-      } else if (cid.content_type == CID::Multicodec::DAG_PB) {
-        OUTCOME_TRY(cids, PbNodeDecoder::links(bytes));
-        for (auto &&c : cids) {
-          to_visit_.push(c);
+    if (unique) {
+      visited_.insert(cid);
+    }
+    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{gsl::finally([&] {
+      if (unique) {
+        while (!to_visit_.empty() && visited_.count(to_visit_.front()) != 0) {
+          to_visit_.pop();
         }
+      }
+    })};
+    OUTCOME_TRY(bytes, store.get(cid));
+    visit_order_.push_back(cid);
+    // TODO(turuslan): what about other types?
+    if (cid.content_type == CID::Multicodec::DAG_CBOR) {
+      CborDecodeStream s{bytes};
+      OUTCOME_TRY(parseCbor(s));
+    } else if (cid.content_type == CID::Multicodec::DAG_PB) {
+      OUTCOME_TRY(cids, PbNodeDecoder::links(bytes));
+      for (auto &&c : cids) {
+        to_visit_.push(c);
       }
     }
     return cid;
