@@ -29,6 +29,7 @@ namespace fc::storage::ipld::traverser {
      * @param store - ipld store
      * @param root - root cid
      * @param selector - selector
+     * @param unique - should skip duplicates
      */
     Traverser(Ipld &store,
               const CID &root,
