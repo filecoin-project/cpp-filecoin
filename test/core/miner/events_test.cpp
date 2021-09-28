@@ -37,7 +37,7 @@ namespace fc::mining {
   /**
    * @given events
    * @when try to add Handler, but tipsetcache cannot get tipset
-   * @then error EventsError::kNotFoundTipset occurs
+   * @then error occurs
    */
   TEST_F(EventsTest, ChainAtNotFoundTipset) {
     Events::HeightHandler height_handler;
@@ -45,17 +45,18 @@ namespace fc::mining {
     EpochDuration confidence = 4;
     ChainEpoch height = 4;
 
-    EXPECT_CALL(*tipset_cache_, best()).WillOnce(testing::Return(boost::none));
+    const auto error = ERROR_TEXT("API_ERROR");
+    EXPECT_CALL(*tipset_cache_, best()).WillOnce(testing::Return(error));
 
     EXPECT_OUTCOME_ERROR(
-        EventsError::kNotFoundTipset,
+        error,
         events_->chainAt(height_handler, revert_handler, confidence, height));
   }
 
   /**
    * @given events, tipset that should be executed immediately
    * @when try to add Handler, but tipsetcache cannot get tipset in second time
-   * @then error EventsError::kNotFoundTipset occurs
+   * @then error occurs
    */
   TEST_F(EventsTest, ChainAtNotFoundTipsetAfterExecution) {
     Events::HeightHandler height_handler =
@@ -66,18 +67,19 @@ namespace fc::mining {
     EpochDuration confidence = 4;
     ChainEpoch height = 4;
 
+    const auto error = ERROR_TEXT("API_ERROR");
     BlockHeader block;
     block.height = 9;
     Tipset tipset(TipsetKey(), {block});
     EXPECT_CALL(*tipset_cache_, best())
         .WillOnce(testing::Return(tipset))
-        .WillOnce(testing::Return(boost::none));
+        .WillOnce(testing::Return(error));
 
     EXPECT_CALL(*tipset_cache_, getNonNull(height))
         .WillOnce(testing::Return(outcome::success(tipset)));
 
     EXPECT_OUTCOME_ERROR(
-        EventsError::kNotFoundTipset,
+        error,
         events_->chainAt(height_handler, revert_handler, confidence, height));
   }
 

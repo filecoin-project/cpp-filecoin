@@ -47,14 +47,9 @@ namespace fc::mining {
                                             EpochDuration confidence,
                                             ChainEpoch height) {
     std::unique_lock<std::mutex> lock(mutex_);
-    auto best_tipset = tipset_cache_->best();
+    OUTCOME_TRY(best_tipset, tipset_cache_->best());
 
-    // TODO(ortyomka): [FIL-370] should be updated after update TipSetCache
-    if (!best_tipset) {
-      return EventsError::kNotFoundTipset;
-    }
-
-    ChainEpoch best_height = best_tipset->height();
+    ChainEpoch best_height = best_tipset.height();
 
     if (best_height >= height + confidence) {
       OUTCOME_TRY(tipset, tipset_cache_->getNonNull(height));
@@ -64,13 +59,9 @@ namespace fc::mining {
       OUTCOME_TRY(handler(tipset, best_height));
 
       lock.lock();
-      best_tipset = tipset_cache_->best();
+      OUTCOME_TRYA(best_tipset, tipset_cache_->best());
 
-      // TODO(ortyomka): [FIL-370] should be updated after update TipSetCache
-      if (!best_tipset) {
-        return EventsError::kNotFoundTipset;
-      }
-      best_height = best_tipset->height();
+      best_height = best_tipset.height();
 
       if (best_height >= height + confidence + kGlobalChainConfidence) {
         return outcome::success();
@@ -226,13 +217,3 @@ namespace fc::mining {
   }
 
 }  // namespace fc::mining
-
-OUTCOME_CPP_DEFINE_CATEGORY(fc::mining, EventsError, e) {
-  using fc::mining::EventsError;
-  switch (e) {
-    case (EventsError::kNotFoundTipset):
-      return "Events: not found tipset";
-    default:
-      return "Events: unknown error";
-  }
-}
