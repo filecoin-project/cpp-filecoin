@@ -15,6 +15,7 @@
 #include "vm/actor/builtin/types/universal/universal.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
+#include "vm/actor/builtin/v3/account/account_actor.hpp"
 #include "vm/version/version.hpp"
 
 namespace fc::testutil::vm::actor::builtin {
@@ -114,6 +115,18 @@ namespace fc::testutil::vm::actor::builtin {
                                           const Blob<48> &bls_pubkey) {
       const Address bls_address = Address::makeBls(bls_pubkey);
       runtime.expectSendM<::fc::vm::actor::builtin::v2::account::PubkeyAddress>(
+          address, {}, 0, {bls_address});
+    }
+
+    /**
+     * Expect V3 Account Actor method PubkeyAddress call
+     * @param address - to get public key
+     * @param bls_pubkey - to return
+     */
+    void expectAccountV3PubkeyAddressSend(const Address &address,
+                                          const Blob<48> &bls_pubkey) {
+      const Address bls_address = Address::makeBls(bls_pubkey);
+      runtime.expectSendM<::fc::vm::actor::builtin::v3::account::PubkeyAddress>(
           address, {}, 0, {bls_address});
     }
 

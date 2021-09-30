@@ -15,7 +15,9 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::sector::RegisteredSealProof;
   using runtime::Runtime;
   using types::miner::CronEventPayload;
+  using types::miner::EpochReward;
   using types::miner::PowerPair;
+  using types::miner::TotalPower;
   using version::NetworkVersion;
 
   class MinerUtils : public v0::miner::MinerUtils {
@@ -43,6 +45,14 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     outcome::result<void> checkControlAddresses(
         const std::vector<Address> &control_addresses) const override;
+
+    outcome::result<EpochReward> requestCurrentEpochBlockReward()
+        const override;
+
+    outcome::result<TotalPower> requestCurrentTotalPower() const override;
+
+    outcome::result<void> notifyPledgeChanged(
+        const TokenAmount &pledge_delta) const override;
 
    protected:
     outcome::result<Address> getPubkeyAddressFromAccountActor(
