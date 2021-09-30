@@ -96,12 +96,6 @@ namespace fc::markets::storage::client {
         const RegisteredSealProof &registered_proof,
         bool verified_deal,
         bool is_fast_retrieval) = 0;
-
-    virtual outcome::result<StorageParticipantBalance> getPaymentEscrow(
-        const Address &address) const = 0;
-
-    virtual outcome::result<void> addPaymentEscrow(
-        const Address &address, const TokenAmount &amount) = 0;
   };
 
 }  // namespace fc::markets::storage::client

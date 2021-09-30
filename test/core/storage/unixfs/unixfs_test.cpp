@@ -22,12 +22,27 @@ TEST_P(UnixfsTest, MatchGo) {
       fc::storage::unixfs::wrapFile(
           ipld, fc::common::span::cbytes(data), chunk_size, max_links),
       cid);
+  std::stringstream unwrapped;
+  EXPECT_OUTCOME_TRUE_1(fc::storage::unixfs::unwrapFile(unwrapped, ipld, cid));
+  EXPECT_EQ(unwrapped.str(), data);
 }
 
 INSTANTIATE_TEST_CASE_P(
     UnixfsTestCases,
     UnixfsTest,
     ::testing::Values(
+        Params{
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            1,
+            2,
+            "QmTz3VDTD6ZaQnoqFMYaCgbEGsLBR8m6fDAtUngCX714mE",
+        },
+        Params{
+            "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKL",
+            1,
+            2,
+            "QmPE5sePWvodYmZjCucWSLPKbEZdF2SfUVhZ7Lqhgbt49m",
+        },
         Params{
             "[0     9)",
             10,

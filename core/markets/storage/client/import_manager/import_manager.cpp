@@ -30,31 +30,30 @@ namespace fc::markets::storage::client::import_manager {
   outcome::result<CID> ImportManager::import(
       const boost::filesystem::path &path, bool is_car) {
     CID root;
+    std::shared_ptr<MemoryIndexedCar> ipld;
+    std::string tmp_path;
     if (is_car) {
-      // validate CAR
-      OUTCOME_TRY(ipld, MemoryIndexedCar::make(path.string(), false));
+      OUTCOME_TRYA(ipld, MemoryIndexedCar::make(path.string(), false));
       if (ipld->roots.size() != 1) {
         return ERROR_TEXT(
             "StorageMarketImportManager: cannot import car with more that one "
             "root");
       }
       root = ipld->roots.front();
-      OUTCOME_TRY(car_path, makeFilename(root));
-      boost::filesystem::copy_file(
-          path, car_path, boost::filesystem::copy_option::overwrite_if_exists);
-      padPiece(car_path);
     } else {
-      const auto tmp_path{path.string() + ".unixfs-tmp.car"};
-      OUTCOME_TRY(ipld, MemoryIndexedCar::make(tmp_path, true));
+      tmp_path = path.string() + ".unixfs-tmp.car";
+      OUTCOME_TRYA(ipld, MemoryIndexedCar::make(tmp_path, true));
       std::ifstream file{path.string()};
       OUTCOME_TRYA(root, wrapFile(*ipld, file));
-      OUTCOME_TRY(car_path, makeFilename(root));
-      // add header with root and reorder objects
-      OUTCOME_TRY(::fc::storage::car::makeSelectiveCar(
-          *ipld, {{root, {}}}, car_path.string()));
-      boost::filesystem::remove(tmp_path);
-      padPiece(car_path);
     }
+    OUTCOME_TRY(car_path, makeFilename(root));
+    // add header with root and reorder objects
+    OUTCOME_TRY(::fc::storage::car::makeSelectiveCar(
+        *ipld, {{root, {}}}, car_path.string()));
+    if (!tmp_path.empty()) {
+      boost::filesystem::remove(tmp_path);
+    }
+    padPiece(car_path);
     OUTCOME_TRY(addImported(root, path));
     return root;
   }

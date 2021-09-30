@@ -30,4 +30,8 @@ namespace fc::storage::unixfs {
                                 gsl::span<const uint8_t> data,
                                 size_t chunk_size = kChunkSize,
                                 size_t max_links = kMaxLinks);
+
+  outcome::result<void> unwrapFile(std::ostream &file,
+                                   Ipld &ipld,
+                                   const CID &root);
 }  // namespace fc::storage::unixfs

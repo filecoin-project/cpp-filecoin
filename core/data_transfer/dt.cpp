@@ -81,7 +81,7 @@ namespace fc::data_transfer {
                 push.on_begin = {};
                 if (res.is_accepted) {
                   storage::ipld::traverser::Traverser t{
-                      *push.ipld, req.root_cid, CborRaw{req.selector}};
+                      *push.ipld, req.root_cid, CborRaw{req.selector}, true};
                   gsns::Response res{
                       gsns::ResponseStatusCode::RS_FULL_CONTENT, {}, {}};
                   if (auto _cids{t.traverseAll()}) {

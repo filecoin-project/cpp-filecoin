@@ -38,14 +38,7 @@ namespace fc::markets::retrieval::client {
               const RetrieveResponseHandler &handler,
               const Address &client_wallet,
               const Address &miner_wallet,
-              const TokenAmount &total_funds)
-        : proposal{proposal},
-          state{proposal.params},
-          handler{handler},
-          client_wallet{client_wallet},
-          miner_wallet{miner_wallet},
-          total_funds(total_funds),
-          traverser{*ipld, proposal.payload_cid, proposal.params.selector} {}
+              const TokenAmount &total_funds);
 
     DealProposal proposal;
     State state;

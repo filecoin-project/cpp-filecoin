@@ -336,39 +336,6 @@ namespace fc::markets::storage::client {
     return client_deal->proposal_cid;
   }
 
-  outcome::result<StorageParticipantBalance>
-  StorageMarketClientImpl::getPaymentEscrow(const Address &address) const {
-    OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(balance, api_->StateMarketBalance(address, chain_head->key));
-    return StorageParticipantBalance{balance.locked,
-                                     balance.escrow - balance.locked};
-  }
-
-  outcome::result<void> StorageMarketClientImpl::addPaymentEscrow(
-      const Address &address, const TokenAmount &amount) {
-    UnsignedMessage unsigned_message{
-        kStorageMarketAddress,
-        address,
-        {},
-        amount,
-        kDefaultGasPrice,
-        kDefaultGasLimit,
-        vm::actor::builtin::v0::market::AddBalance::Number,
-        {}};
-    OUTCOME_TRY(signed_message,
-                api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
-    // TODO: maybe async call, it's long
-    OUTCOME_TRY(msg_state,
-                api_->StateWaitMsg(signed_message.getCid(),
-                                   kMessageConfidence,
-                                   api::kLookbackNoLimit,
-                                   true));
-    if (msg_state.receipt.exit_code != VMExitCode::kOk) {
-      return StorageMarketClientError::kAddFundsCallError;
-    }
-    return outcome::success();
-  }
-
   outcome::result<SignedStorageAsk>
   StorageMarketClientImpl::validateAskResponse(
       const outcome::result<AskResponse> &response,
