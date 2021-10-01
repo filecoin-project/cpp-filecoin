@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <boost/compute/detail/lru_cache.hpp>
 #include <random>
 
 #include "fwd.hpp"
@@ -41,6 +42,7 @@ namespace fc::storage::mpool {
     static std::shared_ptr<MessagePool> create(
         const EnvironmentContext &env_context,
         TsBranchPtr ts_main,
+        size_t bls_cache_size,
         std::shared_ptr<ChainStore> chain_store);
     std::vector<SignedMessage> pending() const;
     // https://github.com/filecoin-project/lotus/blob/8f78066d4f3c4981da73e3328716631202c6e614/chain/messagepool/selection.go#L41
@@ -66,7 +68,7 @@ namespace fc::storage::mpool {
     ChainStore::connection_t head_sub;
     TipsetCPtr head;
     std::map<Address, std::map<Nonce, SignedMessage>> by_from;
-    std::map<CID, Signature> bls_cache;
+    mutable boost::compute::detail::lru_cache<CID, Signature> bls_cache{0};
     boost::signals2::signal<Subscriber> signal;
     mutable std::default_random_engine generator;
     mutable std::normal_distribution<> distribution;

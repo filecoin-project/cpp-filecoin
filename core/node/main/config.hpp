@@ -47,6 +47,8 @@ namespace fc::node {
     /** Node default key path */
     boost::optional<std::string> wallet_default_key_path;
 
+    size_t mpool_bls_cache_size{1000};
+
     static Config read(int argc, char *argv[]);
 
     std::string join(const std::string &path) const;
