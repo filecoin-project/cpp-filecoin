@@ -15,6 +15,7 @@
 
 namespace fc::testutil::vm::actor::builtin::market {
   using fc::vm::actor::kSendMethodNumber;
+  using fc::vm::actor::builtin::states::MarketActorState;
   using fc::vm::actor::builtin::types::market::DealProposal;
   using fc::vm::state::StateTreeImpl;
   using primitives::DealId;
@@ -22,30 +23,24 @@ namespace fc::testutil::vm::actor::builtin::market {
   using primitives::address::Address;
   using testing::_;
   using testing::Return;
-  using BaseMarketActorState = fc::vm::actor::builtin::states::MarketActorState;
 
   const auto some_cid = "01000102ffff"_cid;
   DealId deal_1_id = 13;
   DealId deal_2_id = 24;
 
-  template <class State>
-  class MarketActorTestFixture : public ActorTestFixture<State> {
+  class MarketActorTestFixture : public ActorTestFixture<MarketActorState> {
    public:
-    using ActorTestFixture<State>::runtime;
-    using ActorTestFixture<State>::ipld;
-    using ActorTestFixture<State>::callerIs;
-    using ActorTestFixture<State>::currentEpochIs;
-    using ActorTestFixture<State>::current_epoch;
-    using ActorTestFixture<State>::state;
+    using ActorTestFixture<MarketActorState>::runtime;
+    using ActorTestFixture<MarketActorState>::ipld;
+    using ActorTestFixture<MarketActorState>::callerIs;
+    using ActorTestFixture<MarketActorState>::currentEpochIs;
+    using ActorTestFixture<MarketActorState>::current_epoch;
+    using ActorTestFixture<MarketActorState>::state;
 
     void SetUp() override {
-      ActorTestFixture<State>::SetUp();
+      ActorTestFixture<MarketActorState>::SetUp();
       runtime.resolveAddressWith(state_tree);
       currentEpochIs(50000);
-    }
-
-    void loadState(State &s) {
-      cbor_blake::cbLoadT(ipld, s);
     }
 
     void expectSendFunds(const Address &address, TokenAmount amount) {
@@ -55,9 +50,9 @@ namespace fc::testutil::vm::actor::builtin::market {
 
     void expectHasDeal(DealId deal_id, const DealProposal &deal, bool has) {
       if (has) {
-        EXPECT_OUTCOME_EQ(state.proposals.get(deal_id), deal);
+        EXPECT_OUTCOME_EQ(state->proposals.get(deal_id), deal);
       } else {
-        EXPECT_OUTCOME_EQ(state.proposals.has(deal_id), has);
+        EXPECT_OUTCOME_EQ(state->proposals.has(deal_id), has);
       }
     }
 
@@ -70,7 +65,7 @@ namespace fc::testutil::vm::actor::builtin::market {
       deal.start_epoch = current_epoch;
       deal.end_epoch = deal.start_epoch + 10;
       prepare(deal);
-      EXPECT_OUTCOME_TRUE_1(state.proposals.set(deal_1_id, deal));
+      EXPECT_OUTCOME_TRUE_1(state->proposals.set(deal_1_id, deal));
 
       callerIs(miner_address);
 

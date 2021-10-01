@@ -496,6 +496,9 @@ namespace fc::vm::actor::builtin::states {
 
       OUTCOME_TRY(deadlines, makeEmptyDeadlines(runtime, kEmptyObjectCid));
       OUTCOME_TRY(state->deadlines.set(deadlines));
+
+      VestingFunds vesting_funds;
+      OUTCOME_TRY(state->vesting_funds.set(vesting_funds));
     }
 
     return state;

@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v2/cron/cron_actor.hpp"
-#include "vm/actor/builtin/states/cron/v2/cron_actor_state.hpp"
+#include "vm/actor/builtin/states/cron/cron_actor_state.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor.hpp"
 
 #include <gtest/gtest.h>
@@ -12,9 +12,9 @@
 #include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
 
 namespace fc::vm::actor::builtin::v2::cron {
-  using actor::MethodParams;
-  using actor::builtin::v2::cron::EpochTick;
   using actor::builtin::v2::storage_power::OnEpochTickEnd;
+  using states::CronActorState;
+  using states::CronActorStatePtr;
   using testutil::vm::actor::builtin::ActorTestFixture;
 
   struct CronActorTest : public ActorTestFixture<CronActorState> {
@@ -22,6 +22,7 @@ namespace fc::vm::actor::builtin::v2::cron {
       ActorTestFixture<CronActorState>::SetUp();
       actor_version = ActorVersion::kVersion0;
       ipld->actor_version = actor_version;
+      state = CronActorStatePtr{actor_version};
     }
   };
 
@@ -42,7 +43,7 @@ namespace fc::vm::actor::builtin::v2::cron {
    * @then success
    */
   TEST_F(CronActorTest, Correct) {
-    state.entries = {{kStoragePowerAddress, OnEpochTickEnd::Number}};
+    state->entries = {{kStoragePowerAddress, OnEpochTickEnd::Number}};
     callerIs(kSystemActorAddress);
 
     EXPECT_CALL(runtime,

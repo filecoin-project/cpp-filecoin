@@ -51,6 +51,9 @@ namespace fc::vm::actor::builtin::utils {
 
     inline uint64_t loadPartitionsSectorsMax(
         uint64_t partition_sector_count) const {
+      if (partition_sector_count == 0) {
+        return 0;
+      }
       return std::min(
           types::miner::kAddressedSectorsMax / partition_sector_count,
           getAddressedPartitionsMax());

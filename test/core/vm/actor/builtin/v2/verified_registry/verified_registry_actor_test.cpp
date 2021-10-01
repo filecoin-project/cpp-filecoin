@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v2/verified_registry/verified_registry_actor.hpp"
-#include "vm/actor/builtin/states/verified_registry/v2/verified_registry_actor_state.hpp"
+#include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/verified_registry/policy.hpp"
 
 #include <gtest/gtest.h>
@@ -15,6 +15,8 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
   using primitives::StoragePower;
   using primitives::address::Address;
   using states::DataCap;
+  using states::VerifiedRegistryActorState;
+  using states::VerifiedRegistryActorStatePtr;
   using testutil::vm::actor::builtin::ActorTestFixture;
   using types::verified_registry::kMinVerifiedDealSize;
   using vm::VMExitCode;
@@ -25,12 +27,9 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
       ActorTestFixture<VerifiedRegistryActorState>::SetUp();
       actor_version = ActorVersion::kVersion2;
       ipld->actor_version = actor_version;
-      setupState();
-    }
-
-    void setupState() {
+      state = VerifiedRegistryActorStatePtr{actor_version};
       cbor_blake::cbLoadT(ipld, state);
-      state.root_key = root_key;
+      state->root_key = root_key;
     }
 
     Address root_key{Address::makeFromId(102)};
@@ -92,7 +91,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     callerIs(root_key);
     const DataCap allowance = kMinVerifiedDealSize + 1;
 
-    EXPECT_OUTCOME_TRUE_1(state.verified_clients.set(verifier, 0));
+    EXPECT_OUTCOME_TRUE_1(state->verified_clients.set(verifier, 0));
 
     EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          AddVerifier::call(runtime, {verifier, allowance}));
@@ -105,7 +104,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
 
     EXPECT_OUTCOME_TRUE_1(AddVerifier::call(runtime, {verifier, allowance}));
 
-    EXPECT_OUTCOME_TRUE(result, state.verifiers.get(verifier));
+    EXPECT_OUTCOME_TRUE(result, state->verifiers.get(verifier));
     EXPECT_EQ(result, allowance);
   }
 
@@ -129,11 +128,11 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
   TEST_F(VerifiedRegistryActorTest, RemoveVerifierSuccess) {
     callerIs(root_key);
 
-    EXPECT_OUTCOME_TRUE_1(state.verifiers.set(verifier, 0));
+    EXPECT_OUTCOME_TRUE_1(state->verifiers.set(verifier, 0));
 
     EXPECT_OUTCOME_TRUE_1(RemoveVerifier::call(runtime, verifier));
 
-    EXPECT_OUTCOME_TRUE(result, state.verifiers.tryGet(verifier));
+    EXPECT_OUTCOME_TRUE(result, state->verifiers.tryGet(verifier));
     EXPECT_EQ(result, boost::none);
   }
 
@@ -175,8 +174,8 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     callerIs(verifier);
     const DataCap allowance = kMinVerifiedDealSize + 1;
 
-    EXPECT_OUTCOME_TRUE_1(state.verifiers.set(verifier, 0));
-    EXPECT_OUTCOME_TRUE_1(state.verifiers.set(verified_client, 0));
+    EXPECT_OUTCOME_TRUE_1(state->verifiers.set(verifier, 0));
+    EXPECT_OUTCOME_TRUE_1(state->verifiers.set(verified_client, 0));
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrIllegalArgument),
@@ -189,13 +188,13 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     callerIs(verifier);
     const DataCap allowance = kMinVerifiedDealSize + 10;
 
-    EXPECT_OUTCOME_TRUE_1(state.verifiers.set(verifier, 0));
+    EXPECT_OUTCOME_TRUE_1(state->verifiers.set(verifier, 0));
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrIllegalArgument),
         AddVerifiedClient::call(runtime, {verified_client, allowance}));
 
-    EXPECT_OUTCOME_TRUE_1(state.verifiers.set(verifier, allowance - 1));
+    EXPECT_OUTCOME_TRUE_1(state->verifiers.set(verifier, allowance - 1));
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrIllegalArgument),
@@ -207,8 +206,8 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     callerIs(verifier);
     const DataCap allowance = kMinVerifiedDealSize + 10;
 
-    EXPECT_OUTCOME_TRUE_1(state.verifiers.set(verifier, allowance + 1));
-    EXPECT_OUTCOME_TRUE_1(state.verified_clients.set(verified_client, 0));
+    EXPECT_OUTCOME_TRUE_1(state->verifiers.set(verifier, allowance + 1));
+    EXPECT_OUTCOME_TRUE_1(state->verified_clients.set(verified_client, 0));
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrIllegalArgument),
@@ -221,16 +220,16 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     const DataCap allowance = kMinVerifiedDealSize + 10;
     const DataCap delta = 25;
 
-    EXPECT_OUTCOME_TRUE_1(state.verifiers.set(verifier, allowance + delta));
+    EXPECT_OUTCOME_TRUE_1(state->verifiers.set(verifier, allowance + delta));
 
     EXPECT_OUTCOME_TRUE_1(
         AddVerifiedClient::call(runtime, {verified_client, allowance}));
 
-    EXPECT_OUTCOME_TRUE(verifier_cap, state.verifiers.get(verifier));
+    EXPECT_OUTCOME_TRUE(verifier_cap, state->verifiers.get(verifier));
     EXPECT_EQ(verifier_cap, delta);
 
     EXPECT_OUTCOME_TRUE(client_cap,
-                        state.verified_clients.get(verified_client));
+                        state->verified_clients.get(verified_client));
     EXPECT_EQ(client_cap, allowance);
   }
 
@@ -273,7 +272,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     const DataCap wrong_allowance = -1;
 
     EXPECT_OUTCOME_TRUE_1(
-        state.verified_clients.set(verified_client, wrong_allowance));
+        state->verified_clients.set(verified_client, wrong_allowance));
 
     currentEpochIs(kUpgradeBreezeHeight);
 
@@ -293,7 +292,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     const StoragePower deal_size = allowance + 1;
 
     EXPECT_OUTCOME_TRUE_1(
-        state.verified_clients.set(verified_client, allowance));
+        state->verified_clients.set(verified_client, allowance));
 
     EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
                          UseBytes::call(runtime, {verified_client, deal_size}));
@@ -307,13 +306,13 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     const StoragePower deal_size = kMinVerifiedDealSize + 1;
 
     EXPECT_OUTCOME_TRUE_1(
-        state.verified_clients.set(verified_client, allowance));
+        state->verified_clients.set(verified_client, allowance));
 
     EXPECT_OUTCOME_TRUE_1(
         UseBytes::call(runtime, {verified_client, deal_size}));
 
     EXPECT_OUTCOME_TRUE(client_cap,
-                        state.verified_clients.tryGet(verified_client));
+                        state->verified_clients.tryGet(verified_client));
     EXPECT_EQ(client_cap, boost::none);
   }
 
@@ -324,13 +323,13 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     const StoragePower deal_size = kMinVerifiedDealSize + 1;
 
     EXPECT_OUTCOME_TRUE_1(
-        state.verified_clients.set(verified_client, allowance));
+        state->verified_clients.set(verified_client, allowance));
 
     EXPECT_OUTCOME_TRUE_1(
         UseBytes::call(runtime, {verified_client, deal_size}));
 
     EXPECT_OUTCOME_TRUE(client_cap,
-                        state.verified_clients.get(verified_client));
+                        state->verified_clients.get(verified_client));
     EXPECT_EQ(client_cap, allowance - deal_size);
   }
 
@@ -371,7 +370,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     callerIs(kStorageMarketAddress);
     const StoragePower deal_size = kMinVerifiedDealSize + 1;
 
-    EXPECT_OUTCOME_TRUE_1(state.verifiers.set(verified_client, 0));
+    EXPECT_OUTCOME_TRUE_1(state->verifiers.set(verified_client, 0));
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrIllegalArgument),
@@ -387,7 +386,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
         RestoreBytes::call(runtime, {verified_client, deal_size}));
 
     EXPECT_OUTCOME_TRUE(client_cap,
-                        state.verified_clients.get(verified_client));
+                        state->verified_clients.get(verified_client));
     EXPECT_EQ(client_cap, deal_size);
   }
 
@@ -398,13 +397,13 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     const StoragePower deal_size = kMinVerifiedDealSize + 1;
 
     EXPECT_OUTCOME_TRUE_1(
-        state.verified_clients.set(verified_client, allowance));
+        state->verified_clients.set(verified_client, allowance));
 
     EXPECT_OUTCOME_TRUE_1(
         RestoreBytes::call(runtime, {verified_client, deal_size}));
 
     EXPECT_OUTCOME_TRUE(client_cap,
-                        state.verified_clients.get(verified_client));
+                        state->verified_clients.get(verified_client));
     EXPECT_EQ(client_cap, allowance + deal_size);
   }
 

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 
 #include "primitives/address/address.hpp"
@@ -12,27 +13,34 @@
 #include "testutil/resources/resources.hpp"
 #include "testutil/vm/actor/builtin/miner/miner_actor_test_fixture.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/actor/builtin/types/miner/v2/deadline.hpp"
-#include "vm/actor/builtin/states/miner/v2/miner_actor_state.hpp"
+#include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor.hpp"
 #include "vm/actor/codes.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
+  using common::smoothing::FilterEstimate;
+  using crypto::randomness::Randomness;
   using primitives::kChainEpochUndefined;
   using primitives::address::decodeFromString;
   using primitives::sector::RegisteredSealProof;
+  using states::MinerActorStatePtr;
+  using testing::_;
   using testing::Return;
   using testutil::vm::actor::builtin::miner::MinerActorTestFixture;
+  using types::Universal;
   using namespace types::miner;
 
-  class MinerActorTest : public MinerActorTestFixture<MinerActorState> {
+  class MinerActorTest : public MinerActorTestFixture {
    public:
     void SetUp() override {
-      MinerActorTestFixture<MinerActorState>::SetUp();
+      MinerActorTestFixture::SetUp();
       actor_version = ActorVersion::kVersion2;
       ipld->actor_version = actor_version;
+      state = MinerActorStatePtr{actor_version};
       anyCodeIdAddressIs(kAccountCodeId);
       cbor_blake::cbLoadT(ipld, state);
+
+      currentEpochIs(kUpgradeCalicoHeight + 1);
     }
 
     /**
@@ -49,7 +57,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     void expectEnrollCronEvent(const ChainEpoch &proving_period_start) {
       const auto deadline_index =
-          (-proving_period_start) / kWPoStChallengeWindow;
+          (current_epoch - proving_period_start) / kWPoStChallengeWindow;
       const auto first_deadline_close =
           proving_period_start + (1 + deadline_index) * kWPoStChallengeWindow;
       CronEventPayload payload{CronEventType::kProvingDeadline};
@@ -59,6 +67,23 @@ namespace fc::vm::actor::builtin::v2::miner {
           {.event_epoch = first_deadline_close - 1, .payload = encoded_payload},
           0,
           {});
+    }
+
+    void expectThisEpochReward(const FilterEstimate &reward_smoothed,
+                               const StoragePower &baseline_power) {
+      runtime.expectSendM<reward::ThisEpochReward>(
+          kRewardAddress, {}, 0, {reward_smoothed, baseline_power});
+    }
+
+    void expectCurrentTotalPower(const StoragePower &raw,
+                                 const StoragePower &qa,
+                                 const TokenAmount &pledge_collateral,
+                                 const FilterEstimate &qa_power_smoothed) {
+      runtime.expectSendM<storage_power::CurrentTotalPower>(
+          kStoragePowerAddress,
+          {},
+          0,
+          {raw, qa, pledge_collateral, qa_power_smoothed});
     }
 
     const Blob<48> bls_pubkey =
@@ -75,25 +100,23 @@ namespace fc::vm::actor::builtin::v2::miner {
    */
   TEST_F(MinerActorTest, SimpleConstruct) {
     callerIs(kInitAddress);
-    currentEpochIs(0);
 
     expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     EXPECT_CALL(runtime, getCurrentReceiver())
         .WillRepeatedly(Return(Address::makeFromId(1000)));
-    EXPECT_CALL(runtime, getNetworkVersion())
-        .WillRepeatedly(Return(NetworkVersion::kVersion8));
 
     // This is just set from running the code.
-    const ChainEpoch proving_period_start{-2222};
-    const auto deadline_index = (-proving_period_start) / kWPoStChallengeWindow;
+    const ChainEpoch proving_period_start{262675};
+    const auto deadline_index =
+        (current_epoch - proving_period_start) / kWPoStChallengeWindow;
     expectEnrollCronEvent(proving_period_start);
 
     Construct::Params params = makeConstructParams();
     params.worker = worker;
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, params));
 
-    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo());
+    EXPECT_OUTCOME_TRUE(miner_info, state->getInfo());
     EXPECT_EQ(miner_info->owner, params.owner);
     EXPECT_EQ(miner_info->worker, params.worker);
     EXPECT_EQ(miner_info->control, params.control_addresses);
@@ -106,24 +129,24 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_EQ(miner_info->consensus_fault_elapsed, kChainEpochUndefined);
     EXPECT_EQ(miner_info->pending_owner_address, boost::none);
 
-    EXPECT_EQ(state.precommit_deposit, 0);
-    EXPECT_EQ(state.locked_funds, 0);
-    EXPECT_EQ(state.proving_period_start, proving_period_start);
-    EXPECT_EQ(state.current_deadline, deadline_index);
+    EXPECT_EQ(state->precommit_deposit, 0);
+    EXPECT_EQ(state->locked_funds, 0);
+    EXPECT_EQ(state->proving_period_start, proving_period_start);
+    EXPECT_EQ(state->current_deadline, deadline_index);
 
-    EXPECT_OUTCOME_TRUE(deadlines, state.deadlines.get());
+    EXPECT_OUTCOME_TRUE(deadlines, state->deadlines.get());
     EXPECT_EQ(deadlines.due.size(), kWPoStPeriodDeadlines);
 
     for (const auto &deadline_cid : deadlines.due) {
-      EXPECT_OUTCOME_TRUE(deadline, getCbor<Deadline>(ipld, deadline_cid));
-      EXPECT_OUTCOME_EQ(deadline.partitions.size(), 0);
-      EXPECT_OUTCOME_EQ(deadline.expirations_epochs.size(), 0);
-      EXPECT_TRUE(deadline.partitions_posted.empty());
-      EXPECT_TRUE(deadline.early_terminations.empty());
-      EXPECT_EQ(deadline.live_sectors, 0);
-      EXPECT_EQ(deadline.total_sectors, 0);
-      EXPECT_EQ(deadline.faulty_power.raw, 0);
-      EXPECT_EQ(deadline.faulty_power.qa, 0);
+      EXPECT_OUTCOME_TRUE(deadline, deadline_cid.get());
+      EXPECT_OUTCOME_EQ(deadline->partitions.size(), 0);
+      EXPECT_OUTCOME_EQ(deadline->expirations_epochs.size(), 0);
+      EXPECT_TRUE(deadline->partitions_posted.empty());
+      EXPECT_TRUE(deadline->early_terminations.empty());
+      EXPECT_EQ(deadline->live_sectors, 0);
+      EXPECT_EQ(deadline->total_sectors, 0);
+      EXPECT_EQ(deadline->faulty_power.raw, 0);
+      EXPECT_EQ(deadline->faulty_power.qa, 0);
     }
   }
 
@@ -134,7 +157,6 @@ namespace fc::vm::actor::builtin::v2::miner {
    */
   TEST_F(MinerActorTest, ConstructResolvedControl) {
     callerIs(kInitAddress);
-    currentEpochIs(0);
 
     expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
@@ -151,11 +173,9 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     EXPECT_CALL(runtime, getCurrentReceiver())
         .WillRepeatedly(Return(Address::makeFromId(1000)));
-    EXPECT_CALL(runtime, getNetworkVersion())
-        .WillRepeatedly(Return(NetworkVersion::kVersion8));
 
     // This is just set from running the code.
-    const ChainEpoch proving_period_start{-2222};
+    const ChainEpoch proving_period_start{262675};
     expectEnrollCronEvent(proving_period_start);
 
     Construct::Params params = makeConstructParams();
@@ -163,7 +183,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     params.control_addresses = control_addresses;
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, params));
 
-    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo());
+    EXPECT_OUTCOME_TRUE(miner_info, state->getInfo());
     EXPECT_EQ(miner_info->control.size(), 2);
     EXPECT_EQ(miner_info->control[0], controlId1);
     EXPECT_EQ(miner_info->control[1], controlId2);
@@ -176,16 +196,12 @@ namespace fc::vm::actor::builtin::v2::miner {
    */
   TEST_F(MinerActorTest, ConstructControlNotId) {
     callerIs(kInitAddress);
-    currentEpochIs(0);
 
     expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     std::vector<Address> control_addresses;
     control_addresses.emplace_back(control);
     addressCodeIdIs(control, kCronCodeId);
-
-    EXPECT_CALL(runtime, getNetworkVersion())
-        .WillRepeatedly(Return(NetworkVersion::kVersion8));
 
     Construct::Params params = makeConstructParams();
     params.worker = worker;
@@ -260,19 +276,16 @@ namespace fc::vm::actor::builtin::v2::miner {
    */
   TEST_P(ConstructSuccesssMinerActorTest, ConstructParametrizedNVSuccess) {
     callerIs(kInitAddress);
-    currentEpochIs(0);
 
     const auto &[netwrok_version, seal_proof_type] = GetParam();
 
     EXPECT_CALL(runtime, getCurrentReceiver())
         .WillRepeatedly(Return(Address::makeFromId(1000)));
-    EXPECT_CALL(runtime, getNetworkVersion())
-        .WillRepeatedly(Return(netwrok_version));
 
     expectAccountV2PubkeyAddressSend(worker, bls_pubkey);
 
     // This is just set from running the code.
-    const ChainEpoch proving_period_start{-2222};
+    const ChainEpoch proving_period_start{262675};
     expectEnrollCronEvent(proving_period_start);
 
     Construct::Params params = makeConstructParams();
@@ -322,7 +335,6 @@ namespace fc::vm::actor::builtin::v2::miner {
    */
   TEST_P(ConstructFailureMinerActorTest, ConstructParametrizedNVFailure) {
     callerIs(kInitAddress);
-    currentEpochIs(0);
 
     const auto &[netwrok_version, seal_proof_type] = GetParam();
 
@@ -395,8 +407,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     initEmptyState();
     initDefaultMinerInfo();
 
-    currentEpochIs(10);
-    const ChainEpoch effective_epoch{10 + kWorkerKeyChangeDelay};
+    const ChainEpoch effective_epoch{current_epoch + kWorkerKeyChangeDelay};
 
     callerIs(owner);
 
@@ -418,7 +429,7 @@ namespace fc::vm::actor::builtin::v2::miner {
         runtime,
         ChangeWorkerAddress::Params{new_worker, new_control_addresses}));
 
-    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo());
+    EXPECT_OUTCOME_TRUE(miner_info, state->getInfo());
     EXPECT_EQ(miner_info->pending_worker_key.get().new_worker, new_worker);
     EXPECT_EQ(miner_info->pending_worker_key.get().effective_at,
               effective_epoch);
@@ -461,8 +472,197 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_OUTCOME_TRUE_1(
         ChangePeerId::call(runtime, ChangePeerId::Params{new_peer_id}));
 
-    EXPECT_OUTCOME_TRUE(miner_info, state.getInfo());
+    EXPECT_OUTCOME_TRUE(miner_info, state->getInfo());
     EXPECT_EQ(miner_info->peer_id, new_peer_id);
+  }
+
+  TEST_F(MinerActorTest, SubmitWindowedPoStWrongParams) {
+    initEmptyState();
+    initDefaultMinerInfo();
+
+    callerIs(owner);
+
+    const uint64_t expected_deadline_id = 1;
+    const uint64_t wrong_deadline_id = 3;
+
+    state->current_deadline = expected_deadline_id;
+    state->proving_period_start =
+        current_epoch - 10 - expected_deadline_id * kWPoStChallengeWindow;
+
+    const ChainEpoch chain_commit_epoch = current_epoch - 10;
+
+    const PoStProof post_proof{
+        .registered_proof = RegisteredPoStProof::kStackedDRG32GiBWindowPoSt,
+        .proof = {}};
+
+    const PoStProof wrong_post_proof{
+        .registered_proof = RegisteredPoStProof::kStackedDRG2KiBWindowPoSt,
+        .proof = {}};
+
+    EXPECT_OUTCOME_TRUE(
+        expected_randomness,
+        Randomness::fromString("i_am_random_____i_am_random_____"));
+
+    EXPECT_OUTCOME_TRUE(
+        wrong_randomness,
+        Randomness::fromString("wrong_random____wrong_random____"));
+
+    EXPECT_CALL(runtime, getRandomnessFromTickets(_, _, _))
+        .WillRepeatedly(Return(expected_randomness));
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kErrIllegalArgument),
+        SubmitWindowedPoSt::call(
+            runtime,
+            SubmitWindowedPoSt::Params{.deadline = kWPoStPeriodDeadlines,
+                                       .partitions = {},
+                                       .proofs = {},
+                                       .chain_commit_epoch = {},
+                                       .chain_commit_rand = {}}));
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kErrIllegalArgument),
+        SubmitWindowedPoSt::call(
+            runtime,
+            SubmitWindowedPoSt::Params{.deadline = expected_deadline_id,
+                                       .partitions = {},
+                                       .proofs = {},
+                                       .chain_commit_epoch = {},
+                                       .chain_commit_rand = {}}));
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kErrIllegalArgument),
+        SubmitWindowedPoSt::call(
+            runtime,
+            SubmitWindowedPoSt::Params{.deadline = expected_deadline_id,
+                                       .partitions = {},
+                                       .proofs = {2, PoStProof()},
+                                       .chain_commit_epoch = {},
+                                       .chain_commit_rand = {}}));
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kErrIllegalArgument),
+        SubmitWindowedPoSt::call(
+            runtime,
+            SubmitWindowedPoSt::Params{.deadline = expected_deadline_id,
+                                       .partitions = {},
+                                       .proofs = {wrong_post_proof},
+                                       .chain_commit_epoch = {},
+                                       .chain_commit_rand = {}}));
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kErrIllegalArgument),
+        SubmitWindowedPoSt::call(
+            runtime,
+            SubmitWindowedPoSt::Params{.deadline = expected_deadline_id,
+                                       .partitions = {5, PoStPartition()},
+                                       .proofs = {post_proof},
+                                       .chain_commit_epoch = {},
+                                       .chain_commit_rand = {}}));
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kErrIllegalArgument),
+        SubmitWindowedPoSt::call(
+            runtime,
+            SubmitWindowedPoSt::Params{.deadline = wrong_deadline_id,
+                                       .partitions = {},
+                                       .proofs = {post_proof},
+                                       .chain_commit_epoch = {},
+                                       .chain_commit_rand = {}}));
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kErrIllegalArgument),
+        SubmitWindowedPoSt::call(runtime,
+                                 SubmitWindowedPoSt::Params{
+                                     .deadline = expected_deadline_id,
+                                     .partitions = {},
+                                     .proofs = {post_proof},
+                                     .chain_commit_epoch = current_epoch - 1000,
+                                     .chain_commit_rand = {}}));
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kErrIllegalArgument),
+        SubmitWindowedPoSt::call(
+            runtime,
+            SubmitWindowedPoSt::Params{.deadline = expected_deadline_id,
+                                       .partitions = {},
+                                       .proofs = {post_proof},
+                                       .chain_commit_epoch = current_epoch + 1,
+                                       .chain_commit_rand = {}}));
+
+    EXPECT_OUTCOME_ERROR(
+        asAbort(VMExitCode::kErrIllegalArgument),
+        SubmitWindowedPoSt::call(
+            runtime,
+            SubmitWindowedPoSt::Params{.deadline = expected_deadline_id,
+                                       .partitions = {},
+                                       .proofs = {post_proof},
+                                       .chain_commit_epoch = chain_commit_epoch,
+                                       .chain_commit_rand = wrong_randomness}));
+  }
+
+  TEST_F(MinerActorTest, SubmitWindowedPoStSuccess) {
+    initEmptyState();
+    initDefaultMinerInfo();
+
+    callerIs(owner);
+    balance = 1000;
+
+    const uint64_t deadline_id = 1;
+    const uint64_t partition_id = 0;
+
+    state->current_deadline = deadline_id;
+    state->proving_period_start =
+        current_epoch - 10 - deadline_id * kWPoStChallengeWindow;
+
+    const ChainEpoch chain_commit_epoch = current_epoch - 10;
+
+    std::vector<SectorOnChainInfo> sectors;
+    for (uint64_t i = 0; i < 4; i++) {
+      SectorOnChainInfo sector;
+      sector.sector = i;
+      sector.sealed_cid = kEmptyObjectCid;
+      sectors.push_back(sector);
+    }
+
+    EXPECT_OUTCOME_TRUE_1(state->sectors.store(sectors));
+
+    Universal<Partition> partition{actor_version};
+    cbor_blake::cbLoadT(ipld, partition);
+    partition->sectors = {0, 1, 2, 3};
+    partition->faults = {2, 3};
+
+    Universal<Deadline> deadline{actor_version};
+    cbor_blake::cbLoadT(ipld, deadline);
+    EXPECT_OUTCOME_TRUE_1(deadline->partitions.set(partition_id, partition));
+
+    EXPECT_OUTCOME_TRUE(deadlines, state->deadlines.get());
+    EXPECT_OUTCOME_TRUE_1(deadlines.due[deadline_id].set(deadline));
+    EXPECT_OUTCOME_TRUE_1(state->deadlines.set(deadlines));
+
+    const PoStProof post_proof{
+        .registered_proof = RegisteredPoStProof::kStackedDRG32GiBWindowPoSt,
+        .proof = {}};
+
+    EXPECT_OUTCOME_TRUE(
+        randomness, Randomness::fromString("i_am_random_____i_am_random_____"));
+
+    EXPECT_CALL(runtime, getRandomnessFromTickets(_, _, _))
+        .WillOnce(Return(randomness));
+
+    EXPECT_CALL(runtime, getRandomnessFromBeacon(_, _, _))
+        .WillOnce(Return(randomness));
+
+    EXPECT_CALL(runtime, verifyPoSt(_)).WillOnce(Return(true));
+
+    EXPECT_OUTCOME_TRUE_1(SubmitWindowedPoSt::call(
+        runtime,
+        SubmitWindowedPoSt::Params{
+            .deadline = deadline_id,
+            .partitions = {{.index = partition_id, .skipped = {}}},
+            .proofs = {post_proof},
+            .chain_commit_epoch = chain_commit_epoch,
+            .chain_commit_rand = randomness}));
   }
 
 }  // namespace fc::vm::actor::builtin::v2::miner

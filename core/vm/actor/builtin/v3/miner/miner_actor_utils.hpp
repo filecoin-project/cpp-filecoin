@@ -15,7 +15,9 @@ namespace fc::vm::actor::builtin::v3::miner {
   using primitives::sector::RegisteredSealProof;
   using runtime::Runtime;
   using types::miner::CronEventPayload;
+  using types::miner::EpochReward;
   using types::miner::PowerPair;
+  using types::miner::TotalPower;
   using version::NetworkVersion;
 
   class MinerUtils : public v2::miner::MinerUtils {
@@ -25,6 +27,14 @@ namespace fc::vm::actor::builtin::v3::miner {
     outcome::result<void> canPreCommitSealProof(
         RegisteredSealProof seal_proof_type,
         NetworkVersion network_version) const override;
+
+    outcome::result<EpochReward> requestCurrentEpochBlockReward()
+        const override;
+
+    outcome::result<TotalPower> requestCurrentTotalPower() const override;
+
+    outcome::result<void> notifyPledgeChanged(
+        const TokenAmount &pledge_delta) const override;
 
    protected:
     outcome::result<Address> getPubkeyAddressFromAccountActor(
