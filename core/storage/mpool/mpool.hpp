@@ -67,6 +67,7 @@ namespace fc::storage::mpool {
     IpldPtr ipld;
     ChainStore::connection_t head_sub;
     TipsetCPtr head;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<Address, std::map<Nonce, SignedMessage>> by_from;
     mutable boost::compute::detail::lru_cache<CID, Signature> bls_cache{0};
     boost::signals2::signal<Subscriber> signal;

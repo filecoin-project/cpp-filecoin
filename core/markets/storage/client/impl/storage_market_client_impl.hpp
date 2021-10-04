@@ -289,10 +289,12 @@ namespace fc::markets::storage::client {
 
     std::mutex waiting_mutex;
     std::shared_ptr<void> waiting_sub;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::vector<std::shared_ptr<ClientDeal>> waiting_deals;
 
     // connection manager
     std::mutex connections_mutex_;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<CID, std::shared_ptr<CborStream>> connections_;
 
     /** State machine */
