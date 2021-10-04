@@ -452,6 +452,7 @@ namespace fc::storage::mpool {
   std::shared_ptr<MessagePool> MessagePool::create(
       const EnvironmentContext &env_context,
       TsBranchPtr ts_main,
+      size_t bls_cache_size,
       std::shared_ptr<ChainStore> chain_store) {
     auto mpool{std::make_shared<MessagePool>()};
     mpool->env_context = env_context;
@@ -468,6 +469,7 @@ namespace fc::storage::mpool {
             }
           }
         });
+    mpool->bls_cache = {bls_cache_size};
     return mpool;
   }
 
@@ -518,9 +520,8 @@ namespace fc::storage::mpool {
           [&](auto, auto bls, auto &cid, auto *smsg, auto *msg)
               -> outcome::result<void> {
             if (bls) {
-              auto sig{bls_cache.find(cid)};
-              if (sig != bls_cache.end()) {
-                mpool::add(pending, {*msg, sig->second});
+              if (auto sig{bls_cache.get(cid)}) {
+                mpool::add(pending, {*msg, *sig});
               }
             } else {
               mpool::add(pending, *smsg);
@@ -715,7 +716,7 @@ namespace fc::storage::mpool {
 
   outcome::result<void> MessagePool::add(const SignedMessage &message) {
     if (message.signature.isBls()) {
-      bls_cache.emplace(message.getCid(), message.signature);
+      bls_cache.insert(message.getCid(), message.signature);
     }
     OUTCOME_TRY(setCbor(ipld, message));
     OUTCOME_TRY(setCbor(ipld, message.message));
@@ -743,9 +744,8 @@ namespace fc::storage::mpool {
               remove(msg->from, msg->nonce);
             } else {
               if (bls) {
-                auto sig{bls_cache.find(cid)};
-                if (sig != bls_cache.end()) {
-                  OUTCOME_TRY(add({*msg, sig->second}));
+                if (auto sig{bls_cache.get(cid)}) {
+                  OUTCOME_TRY(add({*msg, *sig}));
                 }
               } else {
                 OUTCOME_TRY(add(*smsg));

@@ -90,8 +90,6 @@ namespace fc::sync {
     std::queue<std::pair<PeerId, TipsetKey>> requests_;
     std::mutex requests_mutex_;
 
-    std::queue<TipsetCPtr> interpret_queue_;
-
     std::shared_ptr<events::Events> events_;
 
     events::Connection message_event_;
