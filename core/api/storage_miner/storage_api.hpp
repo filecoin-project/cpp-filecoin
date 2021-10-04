@@ -58,6 +58,7 @@ namespace fc::api {
     PaddedPieceSize offset;
     PaddedPieceSize length;
   };
+  CBOR_TUPLE(PieceLocation, sector_number, offset, length)
 
   inline bool operator==(const PieceLocation &lhs, const PieceLocation &rhs) {
     return lhs.sector_number == rhs.sector_number && lhs.offset == rhs.offset

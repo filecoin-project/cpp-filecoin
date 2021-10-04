@@ -12,4 +12,5 @@ target_link_libraries(sectorblocks
         miner
         piece
         logger
+        leveldb
         )

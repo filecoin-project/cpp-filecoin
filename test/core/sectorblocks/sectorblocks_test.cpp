@@ -8,24 +8,27 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/mocks/miner/miner_mock.hpp"
 #include "testutil/outcome.hpp"
 
 namespace fc::sectorblocks {
   using api::PieceLocation;
   using miner::MinerMock;
+  using storage::InMemoryStorage;
   using testing::_;
 
   class SectorBlocksTest : public ::testing::Test {
    protected:
     void SetUp() override {
       miner_ = std::make_unique<MinerMock>();
-
-      sector_blocks_ = std::make_unique<SectorBlocksImpl>(miner_);
+      memory_mock_ = std::make_shared<InMemoryStorage>();
+      sector_blocks_ = std::make_unique<SectorBlocksImpl>(miner_, memory_mock_);
     }
 
     std::shared_ptr<MinerMock> miner_;
     std::shared_ptr<SectorBlocks> sector_blocks_;
+    std::shared_ptr<InMemoryStorage> memory_mock_;
   };
 
   /**
