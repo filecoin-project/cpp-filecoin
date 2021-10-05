@@ -54,9 +54,12 @@ namespace fc::mining {
 
     uint64_t global_id_;
 
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::unordered_map<uint64_t, HeightHandle> height_triggers_;
 
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<ChainEpoch, std::set<uint64_t>> height_to_trigger_;  // for apply
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<ChainEpoch, std::set<uint64_t>>
         message_height_to_trigger_;  // for revert
 

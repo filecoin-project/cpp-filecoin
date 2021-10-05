@@ -281,6 +281,7 @@ namespace fc::mining {
     SectorId minerSectorId(SectorNumber num) const;
 
     mutable std::mutex sectors_mutex_;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::unordered_map<SectorNumber, std::shared_ptr<SectorInfo>> sectors_;
 
     struct UnsealedSectorInfo {
@@ -290,6 +291,7 @@ namespace fc::mining {
       std::vector<UnpaddedPieceSize> piece_sizes;
     };
 
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::unordered_map<SectorNumber, UnsealedSectorInfo> unsealed_sectors_;
     std::shared_mutex unsealed_mutex_;
 

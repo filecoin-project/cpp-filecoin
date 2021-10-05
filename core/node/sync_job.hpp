@@ -87,6 +87,7 @@ namespace fc::sync {
     IoThread thread;
     IoThread interpret_thread;
 
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::queue<std::pair<PeerId, TipsetKey>> requests_;
     std::mutex requests_mutex_;
 
