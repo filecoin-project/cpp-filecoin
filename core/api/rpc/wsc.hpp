@@ -23,7 +23,6 @@
 
 namespace fc::api::rpc {
   using boost::asio::io_context;
-  using common::IoThread;
   using libp2p::multi::Multiaddress;
   using Logger = common::Logger;
 
