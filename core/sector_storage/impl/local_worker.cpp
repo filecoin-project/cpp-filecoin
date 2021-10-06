@@ -276,145 +276,147 @@ namespace fc::sector_storage {
     return asyncCall(
         sector,
         return_->ReturnAddPiece,
-        [=](Self self) -> outcome::result<PieceInfo> {
-          OUTCOME_TRY(max_size,
-                      primitives::sector::getSectorSize(sector.proof_type));
+        [=, piece_data{std::make_shared<PieceData>(std::move(piece_data))}](Self self) -> outcome::result<PieceInfo> {
+        OUTCOME_TRY(max_size,
+                    primitives::sector::getSectorSize(sector.proof_type));
 
-          UnpaddedPieceSize offset;
+        UnpaddedPieceSize offset;
 
-          for (const auto &piece_size : piece_sizes) {
-            offset += piece_size;
+        for (const auto &piece_size : piece_sizes) {
+          offset += piece_size;
+        }
+
+        if ((offset.padded() + new_piece_size.padded()) > max_size) {
+          return WorkerErrors::kOutOfBound;
+        }
+
+        std::shared_ptr<SectorFile> staged_file;
+        Response acquire_response{};
+        auto _ = gsl::final_action([&]() {
+          if (acquire_response.release_function) {
+            acquire_response.release_function();
           }
-
-          if ((offset.padded() + new_piece_size.padded()) > max_size) {
-            return WorkerErrors::kOutOfBound;
-          }
-
-          std::shared_ptr<SectorFile> staged_file;
-          Response acquire_response{};
-          auto _ = gsl::final_action([&]() {
-            if (acquire_response.release_function) {
-              acquire_response.release_function();
-            }
-          });
-
-          if (piece_sizes.empty()) {
-            OUTCOME_TRYA(acquire_response,
-                         self->acquireSector(sector,
-                                             SectorFileType::FTNone,
-                                             SectorFileType::FTUnsealed,
-                                             PathType::kSealing));
-
-            OUTCOME_TRYA(staged_file,
-                         SectorFile::createFile(acquire_response.paths.unsealed,
-                                                PaddedPieceSize(max_size)));
-          } else {
-            OUTCOME_TRYA(acquire_response,
-                         self->acquireSector(sector,
-                                             SectorFileType::FTUnsealed,
-                                             SectorFileType::FTNone,
-                                             PathType::kSealing));
-
-            OUTCOME_TRYA(staged_file,
-                         SectorFile::openFile(acquire_response.paths.unsealed,
-                                              PaddedPieceSize(max_size)));
-          }
-
-          OUTCOME_TRY(piece_info,
-                      staged_file->write(*piece_data,
-                                         offset.padded(),
-                                         new_piece_size.padded(),
-                                         sector.proof_type));
-
-          return piece_info.value();
         });
+
+        if (piece_sizes.empty()) {
+          OUTCOME_TRYA(acquire_response,
+                       self->acquireSector(sector,
+                                           SectorFileType::FTNone,
+                                           SectorFileType::FTUnsealed,
+                                           PathType::kSealing));
+
+          OUTCOME_TRYA(staged_file,
+                       SectorFile::createFile(acquire_response.paths.unsealed,
+                                              PaddedPieceSize(max_size)));
+        } else {
+          OUTCOME_TRYA(acquire_response,
+                       self->acquireSector(sector,
+                                           SectorFileType::FTUnsealed,
+                                           SectorFileType::FTNone,
+                                           PathType::kSealing));
+
+          OUTCOME_TRYA(staged_file,
+                       SectorFile::openFile(acquire_response.paths.unsealed,
+                                            PaddedPieceSize(max_size)));
+        }
+
+        OUTCOME_TRY(piece_info,
+                    staged_file->write(*piece_data,
+                                       offset.padded(),
+                                       new_piece_size.padded(),
+                                       sector.proof_type));
+
+        return piece_info.value();
+      });
   }
 
   outcome::result<CallId> LocalWorker::sealPreCommit1(
       const SectorRef &sector,
       const SealRandomness &ticket,
       const std::vector<PieceInfo> &pieces) {
-    return asyncCall(
-        sector,
-        return_->ReturnSealPreCommit1,
-        [=](Self self) -> outcome::result<PreCommit1Output> {
-          OUTCOME_TRY(
-              self->remote_store_->remove(sector.id, SectorFileType::FTSealed));
-          OUTCOME_TRY(
-              self->remote_store_->remove(sector.id, SectorFileType::FTCache));
+      return asyncCall(
+          sector,
+          return_->ReturnSealPreCommit1,
+          [=](Self self) -> outcome::result<PreCommit1Output> {
+            OUTCOME_TRY(self->remote_store_->remove(sector.id,
+                                                    SectorFileType::FTSealed));
+            OUTCOME_TRY(self->remote_store_->remove(sector.id,
+                                                    SectorFileType::FTCache));
 
-          OUTCOME_TRY(response,
-                      self->acquireSector(sector,
-                                          SectorFileType::FTUnsealed,
-                                          static_cast<SectorFileType>(
-                                              SectorFileType::FTSealed
-                                              | SectorFileType::FTCache),
-                                          PathType::kSealing));
+            OUTCOME_TRY(response,
+                        self->acquireSector(sector,
+                                            SectorFileType::FTUnsealed,
+                                            static_cast<SectorFileType>(
+                                                SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                                            PathType::kSealing));
 
-          auto _ = gsl::finally([&]() { response.release_function(); });
+            auto _ = gsl::finally([&]() { response.release_function(); });
 
-          boost::filesystem::ofstream sealed_file(response.paths.sealed);
-          if (!sealed_file.good()) {
-            return WorkerErrors::kCannotCreateSealedFile;
-          }
-          sealed_file.close();
+            boost::filesystem::ofstream sealed_file(response.paths.sealed);
+            if (!sealed_file.good()) {
+              return WorkerErrors::kCannotCreateSealedFile;
+            }
+            sealed_file.close();
 
-          if (!boost::filesystem::create_directory(response.paths.cache)) {
-            if (boost::filesystem::exists(response.paths.cache)) {
-              boost::system::error_code ec;
-              boost::filesystem::remove_all(response.paths.cache, ec);
-              if (ec.failed()) {
-                return WorkerErrors::kCannotRemoveCacheDir;
-              }
-              if (!boost::filesystem::create_directory(response.paths.cache)) {
+            if (!boost::filesystem::create_directory(response.paths.cache)) {
+              if (boost::filesystem::exists(response.paths.cache)) {
+                boost::system::error_code ec;
+                boost::filesystem::remove_all(response.paths.cache, ec);
+                if (ec.failed()) {
+                  return WorkerErrors::kCannotRemoveCacheDir;
+                }
+                if (!boost::filesystem::create_directory(
+                        response.paths.cache)) {
+                  return WorkerErrors::kCannotCreateCacheDir;
+                }
+              } else {
                 return WorkerErrors::kCannotCreateCacheDir;
               }
-            } else {
-              return WorkerErrors::kCannotCreateCacheDir;
             }
-          }
 
-          UnpaddedPieceSize sum;
-          for (const auto &piece : pieces) {
-            sum += piece.size.unpadded();
-          }
+            UnpaddedPieceSize sum;
+            for (const auto &piece : pieces) {
+              sum += piece.size.unpadded();
+            }
 
-          OUTCOME_TRY(size,
-                      primitives::sector::getSectorSize(sector.proof_type));
+            OUTCOME_TRY(size,
+                        primitives::sector::getSectorSize(sector.proof_type));
 
-          if (sum != primitives::piece::PaddedPieceSize(size).unpadded()) {
-            return WorkerErrors::kPiecesDoNotMatchSectorSize;
-          }
+            if (sum != primitives::piece::PaddedPieceSize(size).unpadded()) {
+              return WorkerErrors::kPiecesDoNotMatchSectorSize;
+            }
 
-          return self->proofs_->sealPreCommitPhase1(sector.proof_type,
-                                                    response.paths.cache,
-                                                    response.paths.unsealed,
-                                                    response.paths.sealed,
-                                                    sector.id.sector,
-                                                    sector.id.miner,
-                                                    ticket,
-                                                    pieces);
-        });
+            return self->proofs_->sealPreCommitPhase1(sector.proof_type,
+                                                      response.paths.cache,
+                                                      response.paths.unsealed,
+                                                      response.paths.sealed,
+                                                      sector.id.sector,
+                                                      sector.id.miner,
+                                                      ticket,
+                                                      pieces);
+          });
   }
 
   outcome::result<CallId> LocalWorker::sealPreCommit2(
       const SectorRef &sector, const PreCommit1Output &pre_commit_1_output) {
-    return asyncCall(
-        sector,
-        return_->ReturnSealPreCommit2,
-        [=](Self self) -> outcome::result<SectorCids> {
-          OUTCOME_TRY(response,
-                      self->acquireSector(sector,
-                                          static_cast<SectorFileType>(
-                                              SectorFileType::FTSealed
-                                              | SectorFileType::FTCache),
-                                          SectorFileType::FTNone,
-                                          PathType::kSealing));
-          auto _ = gsl::finally([&]() { response.release_function(); });
+      return asyncCall(
+          sector,
+          return_->ReturnSealPreCommit2,
+          [=](Self self) -> outcome::result<SectorCids> {
+            OUTCOME_TRY(response,
+                        self->acquireSector(sector,
+                                            static_cast<SectorFileType>(
+                                                SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                                            SectorFileType::FTNone,
+                                            PathType::kSealing));
+            auto _ = gsl::finally([&]() { response.release_function(); });
 
-          return self->proofs_->sealPreCommitPhase2(
-              pre_commit_1_output, response.paths.cache, response.paths.sealed);
-        });
+            return self->proofs_->sealPreCommitPhase2(pre_commit_1_output,
+                                                      response.paths.cache,
+                                                      response.paths.sealed);
+          });
   }
 
   outcome::result<CallId> LocalWorker::sealCommit1(
@@ -423,115 +425,117 @@ namespace fc::sector_storage {
       const InteractiveRandomness &seed,
       const std::vector<PieceInfo> &pieces,
       const SectorCids &cids) {
-    return asyncCall(
-        sector,
-        return_->ReturnSealCommit1,
-        [=](Self self) -> outcome::result<Commit1Output> {
-          OUTCOME_TRY(response,
-                      self->acquireSector(sector,
-                                          static_cast<SectorFileType>(
-                                              SectorFileType::FTSealed
-                                              | SectorFileType::FTCache),
-                                          SectorFileType::FTNone,
-                                          PathType::kSealing));
-          auto _ = gsl::finally([&]() { response.release_function(); });
+      return asyncCall(
+          sector,
+          return_->ReturnSealCommit1,
+          [=](Self self) -> outcome::result<Commit1Output> {
+            OUTCOME_TRY(response,
+                        self->acquireSector(sector,
+                                            static_cast<SectorFileType>(
+                                                SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                                            SectorFileType::FTNone,
+                                            PathType::kSealing));
+            auto _ = gsl::finally([&]() { response.release_function(); });
 
-          return self->proofs_->sealCommitPhase1(sector.proof_type,
-                                                 cids.sealed_cid,
-                                                 cids.unsealed_cid,
-                                                 response.paths.cache,
-                                                 response.paths.sealed,
-                                                 sector.id.sector,
-                                                 sector.id.miner,
-                                                 ticket,
-                                                 seed,
-                                                 pieces);
-        });
+            return self->proofs_->sealCommitPhase1(sector.proof_type,
+                                                   cids.sealed_cid,
+                                                   cids.unsealed_cid,
+                                                   response.paths.cache,
+                                                   response.paths.sealed,
+                                                   sector.id.sector,
+                                                   sector.id.miner,
+                                                   ticket,
+                                                   seed,
+                                                   pieces);
+          });
   }
 
   outcome::result<CallId> LocalWorker::sealCommit2(
       const SectorRef &sector, const Commit1Output &commit_1_output) {
-    return asyncCall(sector,
-                     return_->ReturnSealCommit2,
-                     [=](Self self) -> outcome::result<Proof> {
-                       return self->proofs_->sealCommitPhase2(
-                           commit_1_output, sector.id.sector, sector.id.miner);
-                     });
+      return asyncCall(
+          sector,
+          return_->ReturnSealCommit2,
+          [=](Self self) -> outcome::result<Proof> {
+            return self->proofs_->sealCommitPhase2(
+                commit_1_output, sector.id.sector, sector.id.miner);
+          });
   }
 
   outcome::result<CallId> LocalWorker::finalizeSector(
       const SectorRef &sector, const gsl::span<const Range> &keep_unsealed) {
-    return asyncCall(
-        sector,
-        return_->ReturnFinalizeSector,
-        [=](Self self) -> outcome::result<void> {
-          OUTCOME_TRY(size,
-                      primitives::sector::getSectorSize(sector.proof_type));
-          {
-            if (not keep_unsealed.empty()) {
-              std::vector<uint64_t> rle = {0, size};
+      return asyncCall(
+          sector,
+          return_->ReturnFinalizeSector,
+          [=](Self self) -> outcome::result<void> {
+            OUTCOME_TRY(size,
+                        primitives::sector::getSectorSize(sector.proof_type));
+            {
+              if (not keep_unsealed.empty()) {
+                std::vector<uint64_t> rle = {0, size};
 
-              for (const auto &sector_info : keep_unsealed) {
-                std::vector<uint64_t> sector_rle = {sector_info.offset.padded(),
-                                                    sector_info.size.padded()};
+                for (const auto &sector_info : keep_unsealed) {
+                  std::vector<uint64_t> sector_rle = {
+                      sector_info.offset.padded(), sector_info.size.padded()};
 
-                rle = primitives::runsAnd(rle, sector_rle, true);
+                  rle = primitives::runsAnd(rle, sector_rle, true);
+                }
+
+                OUTCOME_TRY(response,
+                            self->acquireSector(sector,
+                                                SectorFileType::FTUnsealed,
+                                                SectorFileType::FTNone,
+                                                PathType::kStorage));
+                auto _ = gsl::finally([&]() { response.release_function(); });
+
+                auto maybe_file = SectorFile::openFile(response.paths.unsealed,
+                                                       PaddedPieceSize(size));
+
+                if (maybe_file.has_error()) {
+                  if (maybe_file
+                      != outcome::failure(SectorFileError::kFileNotExist)) {
+                    return maybe_file.error();
+                  }
+                } else {
+                  auto &file{maybe_file.value()};
+                  PaddedPieceSize offset(0);
+                  bool is_value = false;
+                  for (const auto &elem : rle) {
+                    if (is_value) {
+                      OUTCOME_TRY(file->free(offset, PaddedPieceSize(elem)));
+                    }
+                    offset += elem;
+                    is_value = not is_value;
+                  }
+                }
               }
-
               OUTCOME_TRY(response,
                           self->acquireSector(sector,
-                                              SectorFileType::FTUnsealed,
+                                              SectorFileType::FTCache,
                                               SectorFileType::FTNone,
                                               PathType::kStorage));
               auto _ = gsl::finally([&]() { response.release_function(); });
 
-              auto maybe_file = SectorFile::openFile(response.paths.unsealed,
-                                                     PaddedPieceSize(size));
-
-              if (maybe_file.has_error()) {
-                if (maybe_file
-                    != outcome::failure(SectorFileError::kFileNotExist)) {
-                  return maybe_file.error();
-                }
-              } else {
-                auto &file{maybe_file.value()};
-                PaddedPieceSize offset(0);
-                bool is_value = false;
-                for (const auto &elem : rle) {
-                  if (is_value) {
-                    OUTCOME_TRY(file->free(offset, PaddedPieceSize(elem)));
-                  }
-                  offset += elem;
-                  is_value = not is_value;
-                }
-              }
+              OUTCOME_TRY(
+                  self->proofs_->clearCache(size, response.paths.cache));
             }
-            OUTCOME_TRY(response,
-                        self->acquireSector(sector,
-                                            SectorFileType::FTCache,
-                                            SectorFileType::FTNone,
-                                            PathType::kStorage));
-            auto _ = gsl::finally([&]() { response.release_function(); });
 
-            OUTCOME_TRY(self->proofs_->clearCache(size, response.paths.cache));
-          }
+            if (keep_unsealed.empty()) {
+              OUTCOME_TRY(self->remote_store_->remove(
+                  sector.id, SectorFileType::FTUnsealed));
+            }
 
-          if (keep_unsealed.empty()) {
-            OUTCOME_TRY(self->remote_store_->remove(
-                sector.id, SectorFileType::FTUnsealed));
-          }
-
-          return outcome::success();
-        });
+            return outcome::success();
+          });
   }
 
   outcome::result<CallId> LocalWorker::moveStorage(const SectorRef &sector,
                                                    SectorFileType types) {
-    return asyncCall(sector,
-                     return_->ReturnMoveStorage,
-                     [=](Self self) -> outcome::result<void> {
-                       return self->remote_store_->moveStorage(sector, types);
-                     });
+      return asyncCall(sector,
+                       return_->ReturnMoveStorage,
+                       [=](Self self) -> outcome::result<void> {
+                         return self->remote_store_->moveStorage(sector, types);
+                       });
   }
 
   outcome::result<CallId> LocalWorker::unsealPiece(
@@ -540,152 +544,155 @@ namespace fc::sector_storage {
       const UnpaddedPieceSize &size,
       const SealRandomness &randomness,
       const CID &unsealed_cid) {
-    return asyncCall(
-        sector,
-        return_->ReturnUnsealPiece,
-        [=](Self self) -> outcome::result<void> {
-          {
-            OUTCOME_TRY(sector_size,
-                        primitives::sector::getSectorSize(sector.proof_type));
+      return asyncCall(
+          sector,
+          return_->ReturnUnsealPiece,
+          [=](Self self) -> outcome::result<void> {
+            {
+              OUTCOME_TRY(sector_size,
+                          primitives::sector::getSectorSize(sector.proof_type));
 
-            const PaddedPieceSize max_piece_size(sector_size);
+              const PaddedPieceSize max_piece_size(sector_size);
 
-            Response unseal_response;
-            auto _ = gsl::final_action([&]() {
-              if (unseal_response.release_function) {
-                unseal_response.release_function();
+              Response unseal_response;
+              auto _ = gsl::final_action([&]() {
+                if (unseal_response.release_function) {
+                  unseal_response.release_function();
+                }
+              });
+
+              auto maybe_response =
+                  self->acquireSector(sector,
+                                      SectorFileType::FTUnsealed,
+                                      SectorFileType::FTNone,
+                                      PathType::kStorage);
+              std::shared_ptr<SectorFile> file;
+
+              if (maybe_response.has_error()) {
+                if (maybe_response
+                    != outcome::failure(stores::StoreError::kNotFoundSector)) {
+                  return maybe_response.error();
+                }
+                OUTCOME_TRYA(unseal_response,
+                             self->acquireSector(sector,
+                                                 SectorFileType::FTNone,
+                                                 SectorFileType::FTUnsealed,
+                                                 PathType::kStorage));
+
+                OUTCOME_TRYA(
+                    file,
+                    SectorFile::createFile(unseal_response.paths.unsealed,
+                                           max_piece_size))
+              } else {
+                unseal_response = maybe_response.value();
+                OUTCOME_TRYA(
+                    file,
+                    SectorFile::openFile(unseal_response.paths.unsealed,
+                                         max_piece_size))
               }
-            });
 
-            auto maybe_response =
-                self->acquireSector(sector,
-                                    SectorFileType::FTUnsealed,
-                                    SectorFileType::FTNone,
-                                    PathType::kStorage);
-            std::shared_ptr<SectorFile> file;
+              auto computeUnsealRanges =
+                  [file](PaddedByteIndex offset,
+                         PaddedPieceSize size) -> std::vector<Range> {
+                static uint64_t kMergeGaps =
+                    uint64_t(32) << 20;  // TODO: find optimal number
 
-            if (maybe_response.has_error()) {
-              if (maybe_response
-                  != outcome::failure(stores::StoreError::kNotFoundSector)) {
-                return maybe_response.error();
-              }
-              OUTCOME_TRYA(unseal_response,
-                           self->acquireSector(sector,
-                                               SectorFileType::FTNone,
-                                               SectorFileType::FTUnsealed,
-                                               PathType::kStorage));
+                auto rle = file->allocated();
+                auto to_unsealed = primitives::runsAnd(
+                    std::vector<uint64_t>{offset, size}, rle, true);
 
-              OUTCOME_TRYA(file,
-                           SectorFile::createFile(
-                               unseal_response.paths.unsealed, max_piece_size))
-            } else {
-              unseal_response = maybe_response.value();
-              OUTCOME_TRYA(file,
-                           SectorFile::openFile(unseal_response.paths.unsealed,
-                                                max_piece_size))
-            }
+                if (to_unsealed.size() % 2 != 0) {
+                  to_unsealed.pop_back();
+                }
 
-            auto computeUnsealRanges =
-                [file](PaddedByteIndex offset,
-                       PaddedPieceSize size) -> std::vector<Range> {
-              static uint64_t kMergeGaps = uint64_t(32)
-                                           << 20;  // TODO: find optimal number
+                if (to_unsealed.empty()) {
+                  return {};
+                }
 
-              auto rle = file->allocated();
-              auto to_unsealed = primitives::runsAnd(
-                  std::vector<uint64_t>{offset, size}, rle, true);
+                PaddedPieceSize amount_offset(to_unsealed[0]);
 
-              if (to_unsealed.size() % 2 != 0) {
-                to_unsealed.pop_back();
-              }
+                std::vector<Range> ranges = {Range{
+                    .offset = amount_offset.unpadded(),
+                    .size = PaddedPieceSize(to_unsealed[1]).unpadded(),
+                }};
+
+                amount_offset += to_unsealed[1];
+
+                for (uint64_t i = 2; i < to_unsealed.size(); i += 2) {
+                  amount_offset += to_unsealed[i];
+                  if (to_unsealed[i] < kMergeGaps) {
+                    ranges.back().size += (to_unsealed[i] + to_unsealed[i + 1]);
+                  } else {
+                    ranges.push_back(Range{
+                        .offset = amount_offset.unpadded(),
+                        .size = PaddedPieceSize(to_unsealed[i + 1]).unpadded(),
+                    });
+                  }
+                  amount_offset += to_unsealed[i + 1];
+                }
+
+                return ranges;
+              };
+
+              std::vector<Range> to_unsealed = computeUnsealRanges(
+                  primitives::piece::paddedIndex(offset), size.padded());
 
               if (to_unsealed.empty()) {
-                return {};
-              }
-
-              PaddedPieceSize amount_offset(to_unsealed[0]);
-
-              std::vector<Range> ranges = {Range{
-                  .offset = amount_offset.unpadded(),
-                  .size = PaddedPieceSize(to_unsealed[1]).unpadded(),
-              }};
-
-              amount_offset += to_unsealed[1];
-
-              for (uint64_t i = 2; i < to_unsealed.size(); i += 2) {
-                amount_offset += to_unsealed[i];
-                if (to_unsealed[i] < kMergeGaps) {
-                  ranges.back().size += (to_unsealed[i] + to_unsealed[i + 1]);
-                } else {
-                  ranges.push_back(Range{
-                      .offset = amount_offset.unpadded(),
-                      .size = PaddedPieceSize(to_unsealed[i + 1]).unpadded(),
-                  });
-                }
-                amount_offset += to_unsealed[i + 1];
-              }
-
-              return ranges;
-            };
-
-            std::vector<Range> to_unsealed = computeUnsealRanges(
-                primitives::piece::paddedIndex(offset), size.padded());
-
-            if (to_unsealed.empty()) {
-              return outcome::success();
-            }
-
-            OUTCOME_TRY(response,
-                        self->acquireSector(sector,
-                                            static_cast<SectorFileType>(
-                                                SectorFileType::FTSealed
-                                                | SectorFileType::FTCache),
-                                            SectorFileType::FTNone,
-                                            PathType::kStorage));
-            auto _1 = gsl::final_action([&]() { response.release_function(); });
-
-            PieceData sealed{response.paths.sealed, O_RDONLY};
-
-            if (not sealed.isOpened()) {
-              return WorkerErrors::kCannotOpenFile;
-            }
-
-            for (const auto &range : to_unsealed) {
-              int fds[2];
-              if (pipe(fds) < 0) {
                 return outcome::success();
               }
 
-              PieceData reader(fds[0]);
+              OUTCOME_TRY(response,
+                          self->acquireSector(sector,
+                                              static_cast<SectorFileType>(
+                                                  SectorFileType::FTSealed
+                                                  | SectorFileType::FTCache),
+                                              SectorFileType::FTNone,
+                                              PathType::kStorage));
+              auto _1 =
+                  gsl::final_action([&]() { response.release_function(); });
 
-              // TODO: can be in another thread
-              OUTCOME_TRY(self->proofs_->unsealRange(
-                  sector.proof_type,
-                  response.paths.cache,
-                  sealed,
-                  PieceData(fds[1]),
-                  sector.id.sector,
-                  sector.id.miner,
-                  randomness,
-                  unsealed_cid,
-                  primitives::piece::paddedIndex(range.offset),
-                  range.size.padded()));
+              PieceData sealed{response.paths.sealed, O_RDONLY};
 
-              OUTCOME_TRY(
-                  file->write(reader,
-                              primitives::piece::paddedIndex(range.offset),
-                              range.size.padded()));
+              if (not sealed.isOpened()) {
+                return WorkerErrors::kCannotOpenFile;
+              }
+
+              for (const auto &range : to_unsealed) {
+                int fds[2];
+                if (pipe(fds) < 0) {
+                  return outcome::success();
+                }
+
+                PieceData reader(fds[0]);
+
+                // TODO: can be in another thread
+                OUTCOME_TRY(self->proofs_->unsealRange(
+                    sector.proof_type,
+                    response.paths.cache,
+                    sealed,
+                    PieceData(fds[1]),
+                    sector.id.sector,
+                    sector.id.miner,
+                    randomness,
+                    unsealed_cid,
+                    primitives::piece::paddedIndex(range.offset),
+                    range.size.padded()));
+
+                OUTCOME_TRY(
+                    file->write(reader,
+                                primitives::piece::paddedIndex(range.offset),
+                                range.size.padded()));
+              }
             }
-          }
 
-          OUTCOME_TRY(self->remote_store_->removeCopies(
-              sector.id, SectorFileType::FTSealed));
+            OUTCOME_TRY(self->remote_store_->removeCopies(
+                sector.id, SectorFileType::FTSealed));
 
-          OUTCOME_TRY(self->remote_store_->removeCopies(
-              sector.id, SectorFileType::FTCache));
+            OUTCOME_TRY(self->remote_store_->removeCopies(
+                sector.id, SectorFileType::FTCache));
 
-          return outcome::success();
-        });
+            return outcome::success();
+          });
   }
 
   outcome::result<CallId> LocalWorker::readPiece(
@@ -693,76 +700,79 @@ namespace fc::sector_storage {
       const SectorRef &sector,
       UnpaddedByteIndex offset,
       const UnpaddedPieceSize &size) {
-    return asyncCall(
-        sector,
-        return_->ReturnReadPiece,
-        [=, output{std::make_shared<PieceData>(std::move(output))}](
-            Self self) -> outcome::result<bool> {
-          OUTCOME_TRY(response,
-                      self->acquireSector(sector,
-                                          SectorFileType::FTUnsealed,
-                                          SectorFileType::FTNone,
-                                          PathType::kStorage));
-          auto _ = gsl::final_action([&]() { response.release_function(); });
+      return asyncCall(
+          sector,
+          return_->ReturnReadPiece,
+          [=, output{std::make_shared<PieceData>(std::move(output))}](
+              Self self) -> outcome::result<bool> {
+            OUTCOME_TRY(response,
+                        self->acquireSector(sector,
+                                            SectorFileType::FTUnsealed,
+                                            SectorFileType::FTNone,
+                                            PathType::kStorage));
+            auto _ = gsl::final_action([&]() { response.release_function(); });
 
-          OUTCOME_TRY(sector_size,
-                      primitives::sector::getSectorSize(sector.proof_type));
+            OUTCOME_TRY(sector_size,
+                        primitives::sector::getSectorSize(sector.proof_type));
 
-          const PaddedPieceSize max_piece_size(sector_size);
+            const PaddedPieceSize max_piece_size(sector_size);
 
-          auto maybe_file =
-              SectorFile::openFile(response.paths.unsealed, max_piece_size);
+            auto maybe_file =
+                SectorFile::openFile(response.paths.unsealed, max_piece_size);
 
-          if (maybe_file.has_error()) {
-            if (maybe_file
-                == outcome::failure(SectorFileError::kFileNotExist)) {
-              return false;
+            if (maybe_file.has_error()) {
+              if (maybe_file
+                  == outcome::failure(SectorFileError::kFileNotExist)) {
+                return false;
+              }
+
+              return maybe_file.error();
             }
 
-            return maybe_file.error();
-          }
+            auto &file{maybe_file.value()};
 
-          auto &file{maybe_file.value()};
+            OUTCOME_TRY(is_allocated, file->hasAllocated(offset, size));
 
-          OUTCOME_TRY(is_allocated, file->hasAllocated(offset, size));
-
-          if (not is_allocated) {
-            return false;
-          }
-          return file->read(
-              *output, primitives::piece::paddedIndex(offset), size.padded());
-        });
+            if (not is_allocated) {
+              return false;
+            }
+            return file->read(
+                *output, primitives::piece::paddedIndex(offset), size.padded());
+          });
   }
 
   outcome::result<CallId> LocalWorker::fetch(const SectorRef &sector,
                                              const SectorFileType &file_type,
                                              PathType path_type,
                                              AcquireMode mode) {
-    return asyncCall(
-        sector, return_->ReturnFetch, [=](Self self) -> outcome::result<void> {
-          OUTCOME_TRY(
-              res,
-              self->acquireSector(
-                  sector, file_type, SectorFileType::FTNone, path_type, mode));
-          res.release_function();
-          return outcome::success();
-        });
+      return asyncCall(sector,
+                       return_->ReturnFetch,
+                       [=](Self self) -> outcome::result<void> {
+                         OUTCOME_TRY(res,
+                                     self->acquireSector(sector,
+                                                         file_type,
+                                                         SectorFileType::FTNone,
+                                                         path_type,
+                                                         mode));
+                         res.release_function();
+                         return outcome::success();
+                       });
   }
 
   template <typename W, typename R>
   outcome::result<CallId> LocalWorker::asyncCall(const SectorRef &sector,
                                                  R _return,
                                                  W work) {
-    CallId call_id{.sector = sector.id,
-                   .id = uuids::to_string(uuids::random_generator()())};
+      CallId call_id{.sector = sector.id,
+                     .id = uuids::to_string(uuids::random_generator()())};
 
-    context_->post([self{shared_from_this()},
-                    call_id,
-                    work{std::move(work)},
-                    _return{std::move(_return)}] {
-      returnFunction(call_id, work(self), _return);
-    });
+      context_->post([self{shared_from_this()},
+                      call_id,
+                      work{std::move(work)},
+                      _return{std::move(_return)}] {
+        returnFunction(call_id, work(self), _return);
+      });
 
-    return call_id;
+      return call_id;
   }
-}  // namespace fc::sector_storage
+  }  // namespace fc::sector_storage
