@@ -276,8 +276,7 @@ namespace fc::sector_storage {
     return asyncCall(
         sector,
         return_->ReturnAddPiece,
-        [=, piece_data{std::make_shared<PieceData>(std::move(piece_data))}](
-            Self self) -> outcome::result<PieceInfo> {
+        [=](Self self) -> outcome::result<PieceInfo> {
           OUTCOME_TRY(max_size,
                       primitives::sector::getSectorSize(sector.proof_type));
 
@@ -338,8 +337,7 @@ namespace fc::sector_storage {
     return asyncCall(
         sector,
         return_->ReturnSealPreCommit1,
-        [=, pieces{std::vector(pieces.begin(), pieces.end())}](
-            Self self) -> outcome::result<PreCommit1Output> {
+        [=](Self self) -> outcome::result<PreCommit1Output> {
           OUTCOME_TRY(
               self->remote_store_->remove(sector.id, SectorFileType::FTSealed));
           OUTCOME_TRY(

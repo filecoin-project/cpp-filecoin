@@ -18,14 +18,15 @@ namespace fc::vm::actor::builtin::v5::market {
   };
   CBOR_TUPLE(SectorDataSpec, deals, sector_type)
 
-  struct ComputeDataCommitmentParams {
-    std::vector<SectorDataSpec> inputs;
+  struct ComputeDataCommitment : ActorMethodBase<8> {
+    struct Params {
+      std::vector<SectorDataSpec> inputs;
+    };
+    struct Result {
+      std::vector<CID> commds;
+    };
   };
-  CBOR_TUPLE(ComputeDataCommitmentParams, inputs)
-
-  struct ComputeDataCommitmentReturn {
-    std::vector<CID> commds;
-  };
-  CBOR_TUPLE(ComputeDataCommitmentReturn, commds)
+  CBOR_TUPLE(ComputeDataCommitment::Params, inputs)
+  CBOR_TUPLE(ComputeDataCommitment::Result, commds)
 
 }  // namespace fc::vm::actor::builtin::v5::market

@@ -18,10 +18,12 @@
 #include "api/rpc/json.hpp"
 #include "api/rpc/rpc.hpp"
 #include "api/visit.hpp"
+#include "common/io_thread.hpp"
 #include "common/logger.hpp"
 
 namespace fc::api::rpc {
   using boost::asio::io_context;
+  using common::IoThread;
   using libp2p::multi::Multiaddress;
   using Logger = common::Logger;
 
@@ -53,12 +55,10 @@ namespace fc::api::rpc {
 
    private:
     std::thread thread;
-    std::thread thread_chan;
+    IoThread thread_chan;
     io_context io;
     io_context &io2;
-    io_context io_chan;
     boost::asio::executor_work_guard<io_context::executor_type> work_guard;
-    boost::asio::executor_work_guard<io_context::executor_type> work_guard_chan;
     boost::beast::websocket::stream<boost::asio::ip::tcp::socket> socket;
     boost::beast::flat_buffer buffer;
     std::mutex mutex;

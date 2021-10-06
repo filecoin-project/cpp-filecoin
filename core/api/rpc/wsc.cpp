@@ -15,18 +15,14 @@ namespace fc::api::rpc {
   Client::Client(io_context &io2)
       : io2{io2},
         work_guard{io.get_executor()},
-        work_guard_chan{io_chan.get_executor()},
         socket{io},
         logger_{common::createLogger("WebSocket Client")} {
     thread = std::thread{[=]() { io.run(); }};
-    thread_chan = std::thread{[=]() { io_chan.run(); }};
   }
 
   Client::~Client() {
     io.stop();
-    io_chan.stop();
     thread.join();
-    thread_chan.join();
   }
 
   outcome::result<void> Client::connect(const Multiaddress &address,
@@ -140,7 +136,7 @@ namespace fc::api::rpc {
           }
           if (id) {
             boost::asio::post(
-                io_chan,
+                *thread_chan.io,
                 [this, close, id{*id}, value{std::move(value)}]() mutable {
                   std::unique_lock lock{mutex};
                   auto it{chans.find(id)};

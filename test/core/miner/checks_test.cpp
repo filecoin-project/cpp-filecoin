@@ -9,6 +9,7 @@
 
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/mocks/api.hpp"
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
@@ -316,18 +317,20 @@ namespace fc::mining::checks {
                          checkPieces(miner_addr_, info, api_));
   }
 
+  MATCHER_P(methodMatcher, method, "compare msg method name") {
+    return (arg.method == method);
+  }
+
   class CheckPrecommit : public testing::Test {
    protected:
     void SetUp() override {
       miner_id_ = 42;
       miner_addr_ = Address::makeFromId(miner_id_);
-
-      api_ = std::make_shared<FullNodeApi>();
     }
 
     ActorId miner_id_;
     Address miner_addr_;
-    std::shared_ptr<FullNodeApi> api_;
+    std::shared_ptr<FullNodeApi> api_ = std::make_shared<FullNodeApi>();
   };
 
   /**
@@ -359,46 +362,38 @@ namespace fc::mining::checks {
         },
     };
 
+    MOCK_API(api_, ChainHead);
     TipsetKey head_key;
-    api_->ChainHead = [&head_key]() -> outcome::result<TipsetCPtr> {
-      auto tip =
-          std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
-      return tip;
-    };
+    auto tip =
+        std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
+    EXPECT_CALL(mock_ChainHead, Call())
+        .WillOnce(testing::Return(outcome::success(tip)));
 
-    api_->StateMarketStorageDeal =
-        [&piece, id{miner_id_}, deal_id, &head_key](
-            api::DealId did,
-            const TipsetKey &key) -> outcome::result<api::StorageDeal> {
-      if (did == deal_id and key == head_key) {
-        api::StorageDeal res;
-        res.proposal.provider = Address::makeFromId(id);
-        res.proposal.piece_cid = piece.cid;
-        res.proposal.piece_size = piece.size;
-        res.proposal.start_epoch = 1;
-        return res;
-      }
-
-      return ERROR_TEXT("ERROR");
-    };
+    MOCK_API(api_, StateMarketStorageDeal);
+    api::StorageDeal res;
+    res.proposal.provider = Address::makeFromId(miner_id_);
+    res.proposal.piece_cid = piece.cid;
+    res.proposal.piece_size = piece.size;
+    res.proposal.start_epoch = 1;
+    EXPECT_CALL(mock_StateMarketStorageDeal, Call(deal_id, head_key))
+        .WillOnce(testing::Return(outcome::success(res)));
 
     TipsetKey precommit_key{{CbCid::hash("01"_unhex),
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
-    api_->StateCall =
-        [&precommit_key](const UnsignedMessage &msg,
-                         const TipsetKey &key) -> outcome::result<InvocResult> {
-      if (msg.method == ComputeDataCommitment::Number
-          and key == precommit_key) {
-        InvocResult res;
-        res.receipt.exit_code = VMExitCode::kOk;
-        OUTCOME_TRY(cid_buf, codec::cbor::encode("010001020002"_cid));
-        res.receipt.return_value = cid_buf;
-        return res;
-      }
+    MOCK_API(api_, StateCall);
+    InvocResult res1;
+    res1.receipt.exit_code = VMExitCode::kOk;
+    EXPECT_OUTCOME_TRUE(cid_buf, codec::cbor::encode("010001020002"_cid));
+    res1.receipt.return_value = cid_buf;
+    EXPECT_CALL(
+        mock_StateCall,
+        Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
+        .WillOnce(testing::Return(outcome::success(res1)));
 
-      return ERROR_TEXT("ERROR");
-    };
+    MOCK_API(api_, StateNetworkVersion);
+    EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
+        .WillRepeatedly(testing::Return(NetworkVersion::kVersion0));
 
     EXPECT_OUTCOME_ERROR(
         ChecksError::kBadCommD,

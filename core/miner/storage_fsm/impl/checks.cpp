@@ -35,9 +35,7 @@ namespace fc::mining::checks {
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::maxSealDuration;
   using vm::actor::builtin::types::miner::SectorPreCommitOnChainInfo;
-  using vm::actor::builtin::v0::market::ComputeDataCommitment;
-  using vm::actor::builtin::v5::market::ComputeDataCommitmentParams;
-  using vm::actor::builtin::v5::market::ComputeDataCommitmentReturn;
+  using vm::actor::builtin::v5::market::ComputeDataCommitment;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::UnsignedMessage;
@@ -119,25 +117,16 @@ namespace fc::mining::checks {
 
     OUTCOME_TRY(network, api->StateNetworkVersion(tipset_key));
 
-    MethodParams params;
-    if (network < NetworkVersion::kVersion13) {
-      // TODO: maybe remove branch
-      OUTCOME_TRYA(
-          params,
-          codec::cbor::encode(ComputeDataCommitment::Params{
-              .deals = deal_ids, .sector_type = sector_info->sector_type}));
-    } else {
-      OUTCOME_TRYA(params,
-                   codec::cbor::encode(ComputeDataCommitmentParams{
-                       .inputs =
-                           {
-                               {
-                                   .deals = deal_ids,
-                                   .sector_type = sector_info->sector_type,
-                               },
-                           },
-                   }));
-    }
+    OUTCOME_TRY(params,
+                codec::cbor::encode(ComputeDataCommitment::Params{
+                    .inputs =
+                        {
+                            {
+                                .deals = deal_ids,
+                                .sector_type = sector_info->sector_type,
+                            },
+                        },
+                }));
 
     UnsignedMessage message{kStorageMarketAddress,
                             miner_address,
@@ -152,18 +141,12 @@ namespace fc::mining::checks {
       return ChecksError::kInvocationErrored;
     }
 
-    if (network < NetworkVersion::kVersion13) {
-      // TODO: maybe remove branch
-      return codec::cbor::decode<ComputeDataCommitment::Result>(
-          invocation_result.receipt.return_value);
-    }
-
     OUTCOME_TRY(res,
-                codec::cbor::decode<ComputeDataCommitmentReturn>(
+                codec::cbor::decode<ComputeDataCommitment::Result>(
                     invocation_result.receipt.return_value));
 
     if (res.commds.size() != 1) {
-      return ERROR_TEXT("ERROR");  // ERROR
+      return ERROR_TEXT("CommD output must have 1 entry");
     }
 
     return res.commds[0];
