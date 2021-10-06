@@ -142,7 +142,7 @@ namespace fc::mining {
       const TokenAmount &deposit,
       const api::SectorPreCommitInfo &precommit_info,
       const PrecommitCallback &callback) {
-    std::unique_lock<std::mutex> locker(mutex_, std::defer_lock);
+    std::unique_lock<std::mutex> locker(mutex_);
     OUTCOME_TRY(head, api_->ChainHead());
 
     const auto &sn = sector_info.sector_number;

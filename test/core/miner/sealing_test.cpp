@@ -711,7 +711,7 @@ namespace fc::mining {
     EXPECT_CALL(*manager_,
                 sealPreCommit1Sync(sector_ref,
                                    rand,
-                                   gsl::span<const PieceInfo>(infos),
+                                   infos,
                                    kDealSectorPriority))
         .WillOnce(testing::Return(outcome::success(pc1o)));
 
@@ -743,7 +743,8 @@ namespace fc::mining {
       return api::NetworkVersion::kVersion3;
     };
 
-    EXPECT_CALL(*policy_, expiration(_)).WillOnce(testing::Return(0));
+    EXPECT_CALL(*policy_, expiration(_))
+        .WillOnce(testing::Return(outcome::success(0)));
 
     api_->StateMinerPreCommitDepositForPower =
         [](const Address &,
@@ -831,7 +832,7 @@ namespace fc::mining {
                 sealCommit1Sync(sector_ref,
                                 rand,
                                 seed,
-                                gsl::span<const PieceInfo>(infos),
+                                infos,
                                 cids,
                                 kDealSectorPriority))
         .WillOnce(testing::Return(c1o));

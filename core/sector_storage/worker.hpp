@@ -74,7 +74,7 @@ namespace fc::sector_storage {
     virtual outcome::result<CallId> sealPreCommit1(
         const SectorRef &sector,
         const SealRandomness &ticket,
-        gsl::span<const PieceInfo> pieces) = 0;
+        const std::vector<PieceInfo> &pieces) = 0;
 
     virtual outcome::result<CallId> sealPreCommit2(
         const SectorRef &sector,
@@ -84,7 +84,7 @@ namespace fc::sector_storage {
         const SectorRef &sector,
         const SealRandomness &ticket,
         const InteractiveRandomness &seed,
-        gsl::span<const PieceInfo> pieces,
+        const std::vector<PieceInfo> &pieces,
         const SectorCids &cids) = 0;
 
     virtual outcome::result<CallId> sealCommit2(

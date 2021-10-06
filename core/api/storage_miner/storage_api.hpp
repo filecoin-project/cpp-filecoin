@@ -59,6 +59,11 @@ namespace fc::api {
     PaddedPieceSize length;
   };
 
+  // TODO(ortyomka): [FIL-421] implement it
+  struct _SectorInfo {
+    mining::SealingState state = mining::SealingState::kStateUnknown;
+  };
+
   inline bool operator==(const PieceLocation &lhs, const PieceLocation &rhs) {
     return lhs.sector_number == rhs.sector_number && lhs.offset == rhs.offset
            && lhs.length == rhs.length;
@@ -105,6 +110,11 @@ namespace fc::api {
                jwt::kAdminPermission,
                void,
                const RetrievalAsk &)
+
+    API_METHOD(SectorsList, jwt::kReadPermission, std::vector<SectorNumber>)
+
+    API_METHOD(
+        SectorsStatus, jwt::kReadPermission, _SectorInfo, SectorNumber, bool)
 
     API_METHOD(StorageAttach,
                jwt::kAdminPermission,
@@ -233,6 +243,8 @@ namespace fc::api {
     f(a.MarketGetRetrievalAsk);
     f(a.MarketSetAsk);
     f(a.MarketSetRetrievalAsk);
+    f(a.SectorsList);
+    f(a.SectorsStatus);
     f(a.StorageAttach);
     f(a.StorageInfo);
     f(a.StorageReportHealth);

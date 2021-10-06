@@ -40,6 +40,7 @@ namespace fc::mining {
   using types::kDealSectorPriority;
   using types::Piece;
   using vm::actor::MethodParams;
+  using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::types::miner::kMinSectorExpiration;
   using vm::actor::builtin::v0::miner::ProveCommitSector;
 
@@ -1047,9 +1048,12 @@ namespace fc::mining {
     OUTCOME_TRY(network, api_->StateNetworkVersion(head->key));
     OUTCOME_TRY(seal_duration,
                 checks::getMaxProveCommitDuration(network, info));
-    const auto expiration = std::max<ChainEpoch>(
-        policy_->expiration(info->pieces),
-        head->epoch() + seal_duration + kMinSectorExpiration + 10);
+    OUTCOME_TRY(policy_expiration, policy_->expiration(info->pieces));
+    auto static_expiration = head->epoch() + seal_duration
+                             + kMinSectorExpiration + kChainFinality
+                             + kEpochsInDay;
+    const auto expiration =
+        std::min<ChainEpoch>(policy_expiration, static_expiration);
 
     SectorPreCommitInfo params;
     params.expiration = expiration;
@@ -1097,6 +1101,7 @@ namespace fc::mining {
                            maybe_cid.error().message());
             OUTCOME_EXCEPT(fsm_->send(
                 info, SealingEvent::kSectorChainPreCommitFailed, {}));
+            return;
           }
           std::shared_ptr<SectorPreCommittedContext> context =
               std::make_shared<SectorPreCommittedContext>();

@@ -53,9 +53,12 @@ namespace fc::api::rpc {
 
    private:
     std::thread thread;
+    std::thread thread_chan;
     io_context io;
     io_context &io2;
+    io_context io_chan;
     boost::asio::executor_work_guard<io_context::executor_type> work_guard;
+    boost::asio::executor_work_guard<io_context::executor_type> work_guard_chan;
     boost::beast::websocket::stream<boost::asio::ip::tcp::socket> socket;
     boost::beast::flat_buffer buffer;
     std::mutex mutex;

@@ -21,6 +21,15 @@ namespace fc::mining {
 
   inline const api::MessageSendSpec kSpec{50 * kFilecoinPrecision};
 
+  DeadlineInfo nextDeadline(const DeadlineInfo &di) {
+    auto next_index = di.index + 1;
+    if (next_index == kWPoStPeriodDeadlines) {
+      return DeadlineInfo(
+          di.period_start + kWPoStPeriodDeadlines, 0, di.current_epoch);
+    }
+    return DeadlineInfo(di.period_start, next_index, di.current_epoch);
+  }
+
   outcome::result<std::shared_ptr<WindowPoStScheduler>>
   WindowPoStScheduler::create(std::shared_ptr<FullNodeApi> api,
                               std::shared_ptr<Prover> prover,
@@ -65,7 +74,7 @@ namespace fc::mining {
       return;
     }
     while (cache.count(deadline.open)) {
-      deadline = deadline.nextNotElapsed();
+      deadline = nextDeadline(deadline);
     }
     if (apply->epoch() >= deadline.challenge) {
       auto &cached{
@@ -173,6 +182,7 @@ namespace fc::mining {
       }
     }
 
+    // TODO(ortyomka): [FIL-420] invalidate cache data
     for (auto &[open, cached] : cache) {
       if (revert && revert->epoch() < open) {
         cached.submitted = 0;
@@ -250,10 +260,11 @@ namespace fc::mining {
         [method](auto _r) {
           auto name{method == DeclareFaultsRecovered::Number
                         ? "DeclareFaultsRecovered"
-                    : method == DeclareFaults::Number ? "DeclareFaults"
-                    : method == SubmitWindowedPoSt::Number
-                        ? "SubmitWindowedPoSt"
-                        : "(unexpected)"};
+                        : method == DeclareFaults::Number
+                              ? "DeclareFaults"
+                              : method == SubmitWindowedPoSt::Number
+                                    ? "SubmitWindowedPoSt"
+                                    : "(unexpected)"};
           if (!_r) {
             spdlog::error("WindowPoStScheduler {} error {}", name, _r.error());
           } else {

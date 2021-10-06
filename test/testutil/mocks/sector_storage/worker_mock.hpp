@@ -51,7 +51,7 @@ namespace fc::sector_storage {
     MOCK_METHOD3(sealPreCommit1,
                  outcome::result<CallId>(const SectorRef &,
                                          const SealRandomness &,
-                                         gsl::span<const PieceInfo>));
+                                         const std::vector<PieceInfo> &));
 
     MOCK_METHOD2(sealPreCommit2,
                  outcome::result<CallId>(const SectorRef &,
@@ -61,7 +61,7 @@ namespace fc::sector_storage {
                  outcome::result<CallId>(const SectorRef &,
                                          const SealRandomness &,
                                          const InteractiveRandomness &,
-                                         gsl::span<const PieceInfo>,
+                                         const std::vector<PieceInfo> &,
                                          const SectorCids &));
 
     MOCK_METHOD2(sealCommit2,

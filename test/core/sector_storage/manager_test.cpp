@@ -143,11 +143,7 @@ namespace fc::sector_storage {
 
     std::vector<uint8_t> result = {1, 2, 3, 4, 5};
     CallId call_id{.sector = sector.id, .id = "some UUID"};
-    EXPECT_CALL(*worker_,
-                sealPreCommit1(sector,
-                               randomness,
-                               gsl::make_span<const PieceInfo>(pieces.data(),
-                                                               pieces.size())))
+    EXPECT_CALL(*worker_, sealPreCommit1(sector, randomness, pieces))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
     EXPECT_OUTCOME_TRUE(work_id,
@@ -287,10 +283,7 @@ namespace fc::sector_storage {
     std::vector<uint8_t> result = {1, 2, 3, 4, 5};
 
     CallId call_id{.sector = sector.id, .id = "some UUID"};
-    EXPECT_CALL(
-        *worker_,
-        sealCommit1(
-            sector, ticket, seed, gsl::span<const PieceInfo>(pieces), cids))
+    EXPECT_CALL(*worker_, sealCommit1(sector, ticket, seed, pieces, cids))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
     EXPECT_OUTCOME_TRUE(

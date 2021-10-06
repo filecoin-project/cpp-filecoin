@@ -334,11 +334,12 @@ namespace fc::sector_storage {
   outcome::result<CallId> LocalWorker::sealPreCommit1(
       const SectorRef &sector,
       const SealRandomness &ticket,
-      gsl::span<const PieceInfo> pieces) {
+      const std::vector<PieceInfo> &pieces) {
     return asyncCall(
         sector,
         return_->ReturnSealPreCommit1,
-        [=](Self self) -> outcome::result<PreCommit1Output> {
+        [=, pieces{std::vector(pieces.begin(), pieces.end())}](
+            Self self) -> outcome::result<PreCommit1Output> {
           OUTCOME_TRY(
               self->remote_store_->remove(sector.id, SectorFileType::FTSealed));
           OUTCOME_TRY(
@@ -422,7 +423,7 @@ namespace fc::sector_storage {
       const SectorRef &sector,
       const SealRandomness &ticket,
       const InteractiveRandomness &seed,
-      gsl::span<const PieceInfo> pieces,
+      const std::vector<PieceInfo> &pieces,
       const SectorCids &cids) {
     return asyncCall(
         sector,

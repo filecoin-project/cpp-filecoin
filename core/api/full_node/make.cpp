@@ -351,8 +351,11 @@ namespace fc::api {
       return ts_load->load(tipset_key);
     };
     api->ChainGetTipSetByHeight =
-        [=](auto height, auto &tipset_key) -> outcome::result<TipsetCPtr> {
+        [=](auto height, auto tipset_key) -> outcome::result<TipsetCPtr> {
       std::shared_lock ts_lock{*env_context.ts_branches_mutex};
+      if (tipset_key.cids().empty()) {
+        tipset_key = chain_store->heaviestTipset()->key;
+      }
       OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
       OUTCOME_TRY(it, find(ts_branch, height));
       return ts_load->lazyLoad(it.second->second);
