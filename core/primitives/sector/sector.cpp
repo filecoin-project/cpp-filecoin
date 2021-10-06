@@ -29,7 +29,7 @@ namespace fc::primitives::sector {
       case RegisteredSealProof::kUndefined:
         return RegisteredPoStProof::kUndefined;
       default:
-        return Errors::kInvalidPoStProof;
+        return Errors::kInvalidSealProof;
     }
   }
 
@@ -54,7 +54,7 @@ namespace fc::primitives::sector {
       case RegisteredSealProof::kUndefined:
         return RegisteredPoStProof::kUndefined;
       default:
-        return Errors::kInvalidPoStProof;
+        return Errors::kInvalidSealProof;
     }
   }
 
@@ -103,7 +103,7 @@ namespace fc::primitives::sector {
       case RegisteredSealProof::kUndefined:
         return 0;
       default:
-        return Errors::kInvalidPoStProof;
+        return Errors::kInvalidSealProof;
     }
   }
 
@@ -180,9 +180,7 @@ namespace fc::primitives::sector {
         case RegisteredPoStProof::kStackedDRG64GiBWindowPoSt:
           return RegisteredSealProof::kStackedDrg64GiBV1;
         default:
-          return ERROR_TEXT(
-              "getPreferredSealProofTypeFromWindowPoStType: unrecognized "
-              "window post type");
+          return Errors::kInvalidPoStProof;
       }
     }
 
@@ -198,9 +196,7 @@ namespace fc::primitives::sector {
       case RegisteredPoStProof::kStackedDRG64GiBWindowPoSt:
         return RegisteredSealProof::kStackedDrg64GiBV1_1;
       default:
-        return ERROR_TEXT(
-            "getPreferredSealProofTypeFromWindowPoStType: unrecognized "
-            "window post type");
+        return Errors::kInvalidPoStProof;
     }
   }
 }  // namespace fc::primitives::sector

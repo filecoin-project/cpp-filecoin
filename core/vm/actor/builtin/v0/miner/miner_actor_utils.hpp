@@ -11,16 +11,20 @@ namespace fc::vm::actor::builtin::v0::miner {
   using common::Buffer;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
+  using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredSealProof;
   using runtime::Runtime;
+  using states::MinerActorStatePtr;
+  using types::DealWeights;
+  using types::EpochReward;
+  using types::TotalPower;
   using types::miner::CronEventPayload;
-  using types::miner::EpochReward;
   using types::miner::PowerPair;
   using types::miner::SectorOnChainInfo;
-  using types::miner::TotalPower;
+  using types::miner::SectorPreCommitInfo;
   using version::NetworkVersion;
 
   class MinerUtils : public utils::MinerUtils {
@@ -50,6 +54,15 @@ namespace fc::vm::actor::builtin::v0::miner {
     ChainEpoch currentProvingPeriodStart(ChainEpoch current_epoch,
                                          ChainEpoch offset) const override;
 
+    outcome::result<void> validateExpiration(
+        ChainEpoch activation,
+        ChainEpoch expiration,
+        RegisteredSealProof seal_proof) const override;
+
+    outcome::result<SectorOnChainInfo> validateReplaceSector(
+        MinerActorStatePtr &state,
+        const SectorPreCommitInfo &params) const override;
+
     outcome::result<uint64_t> currentDeadlineIndex(
         ChainEpoch current_epoch, ChainEpoch period_start) const override;
 
@@ -68,6 +81,11 @@ namespace fc::vm::actor::builtin::v0::miner {
         const override;
 
     outcome::result<TotalPower> requestCurrentTotalPower() const override;
+
+    outcome::result<DealWeights> requestDealWeight(
+        const std::vector<DealId> &deals,
+        ChainEpoch sector_expiry,
+        ChainEpoch sector_start) const override;
 
     outcome::result<void> verifyWindowedPost(
         ChainEpoch challenge_epoch,

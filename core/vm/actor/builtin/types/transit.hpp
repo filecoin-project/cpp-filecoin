@@ -16,6 +16,7 @@ namespace fc::vm::actor::builtin::types {
   // Note: should not be CBORed
 
   using common::smoothing::FilterEstimate;
+  using primitives::DealWeight;
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::address::Address;
@@ -40,6 +41,13 @@ namespace fc::vm::actor::builtin::types {
     Address owner;
     Address worker;
     std::vector<Address> control;
+  };
+
+  // MarketActor::VerifyDealsForActivation::Result
+  struct DealWeights {
+    DealWeight deal_weight;
+    DealWeight verified_deal_weight;
+    uint64_t deal_space;
   };
 
 }  // namespace fc::vm::actor::builtin::types

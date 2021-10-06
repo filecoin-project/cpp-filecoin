@@ -283,8 +283,133 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   ACTOR_METHOD_IMPL(PreCommitSector) {
-    // TODO (a.chernyshov) FIL-283 - implement
-    return VMExitCode::kNotImplemented;
+    const auto current_epoch = runtime.getCurrentEpoch();
+
+    const auto search =
+        kPreCommitSealProofTypesV0.find(params.registered_proof);
+    OUTCOME_TRY(
+        runtime.validateArgument(search != kPreCommitSealProofTypesV0.end()));
+
+    OUTCOME_TRY(runtime.validateArgument(params.sector <= kMaxSectorNumber));
+
+    OUTCOME_TRY(runtime.validateArgument(params.sealed_cid != CID()));
+
+    OUTCOME_TRY(runtime.validateArgument(params.sealed_cid.getPrefix()
+                                         == kSealedCIDPrefix));
+
+    OUTCOME_TRY(runtime.validateArgument(params.seal_epoch < current_epoch));
+
+    OUTCOME_TRY(max_seal_duration, maxSealDuration(params.registered_proof));
+    const auto challenge_earliest =
+        current_epoch - kChainFinality - max_seal_duration;
+
+    OUTCOME_TRY(
+        runtime.validateArgument(params.seal_epoch >= challenge_earliest));
+
+    OUTCOME_TRY(runtime.validateArgument(params.expiration > current_epoch));
+
+    OUTCOME_TRY(runtime.validateArgument(
+        !(params.replace_capacity && params.deal_ids.empty())));
+
+    OUTCOME_TRY(runtime.validateArgument(params.replace_deadline
+                                         < kWPoStPeriodDeadlines));
+
+    OUTCOME_TRY(
+        runtime.validateArgument(params.replace_sector <= kMaxSectorNumber));
+
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(reward, utils->requestCurrentEpochBlockReward());
+    OUTCOME_TRY(total_power, utils->requestCurrentTotalPower());
+    OUTCOME_TRY(deal_weight,
+                utils->requestDealWeight(
+                    params.deal_ids, current_epoch, params.expiration));
+
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
+
+    OUTCOME_TRY(miner_info, state->getInfo());
+
+    auto callers = miner_info->control;
+    callers.emplace_back(miner_info->owner);
+    callers.emplace_back(miner_info->worker);
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
+
+    OUTCOME_TRY(runtime.validateArgument(params.registered_proof
+                                         == miner_info->seal_proof_type));
+
+    OUTCOME_TRY(runtime.validateArgument(
+        params.deal_ids.size() <= sectorDealsMax(miner_info->sector_size)));
+
+    REQUIRE_NO_ERROR(state->allocateSectorNumber(params.sector),
+                     VMExitCode::kErrIllegalState);
+
+    REQUIRE_NO_ERROR_A(precommit_found,
+                       state->precommitted_sectors.has(params.sector),
+                       VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(runtime.validateArgument(!precommit_found));
+
+    REQUIRE_NO_ERROR_A(sector_found,
+                       state->sectors.sectors.has(params.sector),
+                       VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(runtime.validateArgument(!sector_found));
+
+    const auto max_activation = current_epoch + max_seal_duration;
+    OUTCOME_TRY(utils->validateExpiration(
+        max_activation, params.expiration, params.registered_proof));
+
+    TokenAmount deposit_minimum = 0;
+    if (params.replace_capacity) {
+      OUTCOME_TRY(replace_sector, utils->validateReplaceSector(state, params));
+      deposit_minimum = replace_sector.init_pledge;
+    }
+
+    REQUIRE_NO_ERROR_A(newly_vested,
+                       state->unlockVestedFunds(current_epoch),
+                       VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(current_balance, runtime.getCurrentBalance());
+    OUTCOME_TRY(available_balance, state->getAvailableBalance(current_balance));
+    const auto duration = params.expiration - current_epoch;
+
+    const auto sector_weight =
+        qaPowerForWeight(miner_info->sector_size,
+                         duration,
+                         deal_weight.deal_weight,
+                         deal_weight.verified_deal_weight);
+    const Universal<Monies> monies{runtime.getActorVersion()};
+    OUTCOME_TRY(
+        pre_commit_deposit,
+        monies->preCommitDepositForPower(reward.this_epoch_reward_smoothed,
+                                         total_power.quality_adj_power_smoothed,
+                                         sector_weight));
+    const auto deposit_req = std::max(pre_commit_deposit, deposit_minimum);
+
+    if (available_balance < deposit_req) {
+      ABORT(VMExitCode::kErrInsufficientFunds);
+    }
+
+    OUTCOME_TRY(state->addPreCommitDeposit(deposit_req));
+    OUTCOME_TRY(state->checkBalanceInvariants(current_balance));
+
+    const SectorPreCommitOnChainInfo sector_precommit_info{
+        .info = params,
+        .precommit_deposit = deposit_req,
+        .precommit_epoch = current_epoch,
+        .deal_weight = deal_weight.deal_weight,
+        .verified_deal_weight = deal_weight.verified_deal_weight};
+    CHANGE_ERROR(
+        state->precommitted_sectors.set(params.sector, sector_precommit_info),
+        VMExitCode::kErrIllegalState);
+
+    const auto expiry_bound = current_epoch + max_seal_duration + 1;
+
+    REQUIRE_NO_ERROR(state->addPreCommitExpiry(expiry_bound, params.sector),
+                     VMExitCode::kErrIllegalState);
+
+    OUTCOME_TRY(runtime.commitState(state));
+
+    OUTCOME_TRY(utils->notifyPledgeChanged(-newly_vested));
+
+    return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(ProveCommitSector) {
