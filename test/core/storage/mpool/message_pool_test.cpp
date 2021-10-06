@@ -79,6 +79,7 @@ namespace fc::storage::mpool {
          MessagePool::create(
              {ipld, nullptr, nullptr, ts_load, interpreter_cache},
              nullptr,
+             1000,
              chain_store));
 
     void addMsgs(std::vector<SignedMessage> msgs, bool remove) {
