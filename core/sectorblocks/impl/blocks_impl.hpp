@@ -5,9 +5,9 @@
 
 #pragma once
 
+#include "codec/cbor/cbor_codec.hpp"
 #include "sectorblocks/blocks.hpp"
 #include "storage/buffer_map.hpp"
-#include "codec/cbor/cbor_codec.hpp"
 
 namespace fc::sectorblocks {
   using primitives::SectorNumber;
@@ -16,7 +16,8 @@ namespace fc::sectorblocks {
 
   class SectorBlocksImpl : public SectorBlocks {
    public:
-    SectorBlocksImpl(std::shared_ptr<Miner> miner, const std::shared_ptr<DataStore> &datastore);
+    SectorBlocksImpl(std::shared_ptr<Miner> miner,
+                     const std::shared_ptr<DataStore> &datastore);
 
     static bool checkStorage();
 
@@ -36,13 +37,12 @@ namespace fc::sectorblocks {
                                    PaddedPieceSize offset,
                                    UnpaddedPieceSize size);
 
+    // TODO(@Elestrias):[FIL-000] Make deletion of expired deal associations;
+
     std::shared_ptr<Miner> miner_;
 
     std::mutex mutex_;
-    std::map<DealId, std::vector<PieceLocation>>
-        storage_;
-    std::shared_ptr<DataStore> store_;
-    // TODO(ortyomka): [FIL-353] change to DataStore
+    std::shared_ptr<DataStore> storage_;
   };
 
 }  // namespace fc::sectorblocks

@@ -17,7 +17,7 @@ namespace fc::sectorblocks {
   SectorBlocksImpl::SectorBlocksImpl(
       std::shared_ptr<Miner> miner, const std::shared_ptr<DataStore> &datastore)
       : miner_{miner} {
-    store_ = std::make_shared<storage::MapPrefix>("sealedblocks/", datastore);
+    storage_ = std::make_shared<storage::MapPrefix>("sealedblocks/", datastore);
   }
 
   outcome::result<PieceAttributes> SectorBlocksImpl::addPiece(
@@ -41,39 +41,36 @@ namespace fc::sectorblocks {
     std::lock_guard lock(mutex_);
 
     Buffer key = Buffer(UvarintKeyer::encode(deal_id));
+    std::vector<PieceLocation> new_data;
     auto new_piece = PieceLocation{
         .sector_number = sector,
         .offset = offset,
         .length = size.padded(),
     };
 
-    OUTCOME_TRY(stored_data, store_->get(key));
+    OUTCOME_TRY(stored_data, storage_->get(key));
+
     if (stored_data.size() != 0) {
       OUTCOME_TRY(decoded_out, decode<std::vector<PieceLocation>>(stored_data));
-      bool flag = false;
-      for (const auto &piece : decoded_out) {
-        if (piece == new_piece) {
-          flag = true;
-        }
-      }
-      if (!flag) {
+      if (find(decoded_out.begin(), decoded_out.end(), new_piece)
+          == decoded_out.end()) {
         decoded_out.push_back(new_piece);
-        OUTCOME_TRY(encoded_in, encode(decoded_out));
-        OUTCOME_TRY(store_->put(key, encoded_in));
+        new_data = decoded_out;
+      } else {
+        return SectorBlocksError::kDealAlreadyExist;
       }
     } else {
-      std::vector<PieceLocation> new_data = {new_piece};
-      OUTCOME_TRY(encoded_in, encode(new_data));
-      OUTCOME_TRY(store_->put(key, encoded_in));
+      new_data = {new_piece};
     }
+    OUTCOME_TRY(encoded_in, encode(new_data));
+    OUTCOME_TRY(storage_->put(key, encoded_in));
     return outcome::success();
   }
 
   outcome::result<std::vector<PieceLocation>> SectorBlocksImpl::getRefs(
       DealId deal_id) const {
-    // auto refs = storage_.find(deal_id);
     Buffer key = Buffer(UvarintKeyer::encode(deal_id));
-    OUTCOME_TRY(stored_data, store_->get(key));
+    OUTCOME_TRY(stored_data, storage_->get(key));
     if (stored_data.size() == 0) {
       return SectorBlocksError::kNotFoundDeal;
     }

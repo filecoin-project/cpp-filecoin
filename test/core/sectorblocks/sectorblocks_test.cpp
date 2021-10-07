@@ -93,4 +93,37 @@ namespace fc::sectorblocks {
     ASSERT_THAT(refs, testing::ElementsAre(result_ref));
   }
 
+  /**
+   * @given  sectorblocks, deal, size, and path
+   * @when try to add two pieces with same deal_id
+   * @then error occurs
+   */
+  TEST_F(SectorBlocksTest, DublicateTry) {
+    DealInfo deal{
+        .publish_cid = boost::none,
+        .deal_id = 1,
+        .deal_schedule =
+            {
+                .start_epoch = 10,
+                .end_epoch = 11,
+            },
+        .is_keep_unsealed = false,
+    };
+    UnpaddedPieceSize size(127);
+    std::string path = "/some/temp/path";
+
+    PieceAttributes piece{
+        .sector = 1,
+        .offset = PaddedPieceSize(0),
+        .size = UnpaddedPieceSize(127),
+    };
+
+    EXPECT_CALL(*miner_, doAddPieceToAnySector(size, _, deal))
+        .WillOnce(testing::Return(outcome::success(piece)))
+        .WillOnce(testing::Return(outcome::success(piece)));
+
+    EXPECT_OUTCOME_EQ(sector_blocks_->addPiece(size, path, deal), piece);
+    EXPECT_TRUE(sector_blocks_->addPiece(size, path, deal).has_error());
+  }
+
 }  // namespace fc::sectorblocks
