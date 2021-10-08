@@ -12,12 +12,13 @@
 #include "testutil/mocks/api.hpp"
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/vm/actor/builtin/actor_test_util.hpp"
 #include "vm/actor/actor.hpp"
-#include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
 #include "vm/actor/builtin/v5/market/market_actor.hpp"
 #include "vm/actor/codes.hpp"
 #include "vm/exit_code/exit_code.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::mining::checks {
   using api::DomainSeparationTag;
@@ -39,9 +40,12 @@ namespace fc::mining::checks {
   using types::PieceInfo;
   using vm::VMExitCode;
   using vm::actor::Actor;
+  using vm::actor::builtin::makeActorState;
+  using vm::actor::builtin::states::MinerActorStatePtr;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
-  using vm::actor::builtin::v0::miner::MinerActorState;
   using vm::actor::builtin::v5::market::ComputeDataCommitment;
+  using vm::runtime::MockRuntime;
+  using vm::toolchain::Toolchain;
 
   class CheckPieces : public testing::Test {
    protected:
@@ -538,7 +542,7 @@ namespace fc::mining::checks {
         Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
         .WillOnce(testing::Return(outcome::success(invoc_result)));
 
-    NetworkVersion version = NetworkVersion::kVersion0;
+    NetworkVersion version = NetworkVersion::kVersion13;
     MOCK_API(api_, StateNetworkVersion);
     EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
         .Times(2)
@@ -551,21 +555,16 @@ namespace fc::mining::checks {
 
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
-    MinerActorState actor_state;
-    actor_state.miner_info = "010001020004"_cid;
-    actor_state.vesting_funds = "010001020004"_cid;
-    actor_state.allocated_sectors = "010001020004"_cid;
-    actor_state.deadlines = "010001020006"_cid;
-    actor_state.precommitted_sectors =
-        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    auto actor_version = Toolchain::getActorVersionForNetwork(version);
+    ipld->actor_version = actor_version;
+    auto actor_state = makeActorState(ipld, actor_version);
     SectorPreCommitOnChainInfo some_info;
     some_info.info.sealed_cid = "010001020006"_cid;
     EXPECT_OUTCOME_TRUE_1(
-        actor_state.precommitted_sectors.set(sector, some_info));
+        actor_state->precommitted_sectors.set(sector, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
-                        actor_state.precommitted_sectors.hamt.flush());
-    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
-    actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
+                        actor_state->precommitted_sectors.hamt.flush());
+
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
@@ -574,7 +573,7 @@ namespace fc::mining::checks {
         OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
-      if (key == actor_state.allocated_sectors) {
+      if (key == actor_state->allocated_sectors) {
         return codec::cbor::encode(primitives::RleBitset());
       }
       return ERROR_TEXT("ERROR");
@@ -659,7 +658,7 @@ namespace fc::mining::checks {
         Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
         .WillOnce(testing::Return(outcome::success(invoc_result)));
 
-    NetworkVersion version = NetworkVersion::kVersion0;
+    NetworkVersion version = NetworkVersion::kVersion13;
     MOCK_API(api_, StateNetworkVersion);
     EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
         .Times(2)
@@ -672,22 +671,18 @@ namespace fc::mining::checks {
 
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
-    MinerActorState actor_state;
-    actor_state.miner_info = "010001020004"_cid;
-    actor_state.vesting_funds = "010001020004"_cid;
-    actor_state.allocated_sectors = "010001020004"_cid;
-    actor_state.deadlines = "010001020006"_cid;
-    actor_state.precommitted_sectors =
-        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    auto actor_version = Toolchain::getActorVersionForNetwork(version);
+    ipld->actor_version = actor_version;
+    auto actor_state = makeActorState(ipld, actor_version);
+
     SectorPreCommitOnChainInfo some_info;
     some_info.info.sealed_cid = "010001020006"_cid;
     some_info.info.seal_epoch = info->ticket_epoch + 1;
     EXPECT_OUTCOME_TRUE_1(
-        actor_state.precommitted_sectors.set(sector, some_info));
+        actor_state->precommitted_sectors.set(sector, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
-                        actor_state.precommitted_sectors.hamt.flush());
-    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
-    actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
+                        actor_state->precommitted_sectors.hamt.flush());
+
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
@@ -696,7 +691,7 @@ namespace fc::mining::checks {
         OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
-      if (key == actor_state.allocated_sectors) {
+      if (key == actor_state->allocated_sectors) {
         return codec::cbor::encode(primitives::RleBitset());
       }
       return ERROR_TEXT("ERROR");
@@ -721,14 +716,14 @@ namespace fc::mining::checks {
 
       api_ = std::make_shared<FullNodeApi>();
 
-      api_->StateNetworkVersion = [](const TipsetKey &tipset_key)
-          -> outcome::result<api::NetworkVersion> {
-        return api::NetworkVersion::kVersion3;
-      };
+      version_ = api::NetworkVersion::kVersion13;
+      api_->StateNetworkVersion = [&](const TipsetKey &tipset_key)
+          -> outcome::result<api::NetworkVersion> { return version_; };
 
       proofs_ = std::make_shared<proofs::ProofEngineMock>();
     }
 
+    api::NetworkVersion version_;
     ActorId miner_id_;
     Address miner_addr_;
     std::shared_ptr<FullNodeApi> api_;
@@ -775,22 +770,17 @@ namespace fc::mining::checks {
 
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
-    MinerActorState actor_state;
-    actor_state.miner_info = "010001020004"_cid;
-    actor_state.vesting_funds = "010001020004"_cid;
-    actor_state.allocated_sectors = "010001020004"_cid;
-    actor_state.deadlines = "010001020006"_cid;
-    actor_state.precommitted_sectors =
-        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    auto actor_version = Toolchain::getActorVersionForNetwork(version_);
+    ipld->actor_version = actor_version;
+    auto actor_state = makeActorState(ipld, actor_version);
     SectorPreCommitOnChainInfo some_info;
     some_info.info.sealed_cid = "010001020006"_cid;
     some_info.info.seal_epoch = info->ticket_epoch + 1;
     EXPECT_OUTCOME_TRUE_1(
-        actor_state.precommitted_sectors.set(sector + 1, some_info));
+        actor_state->precommitted_sectors.set(sector + 1, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
-                        actor_state.precommitted_sectors.hamt.flush());
-    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
-    actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
+                        actor_state->precommitted_sectors.hamt.flush());
+
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
@@ -799,7 +789,7 @@ namespace fc::mining::checks {
         OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
-      if (key == actor_state.allocated_sectors) {
+      if (key == actor_state->allocated_sectors) {
         auto bitset = primitives::RleBitset();
         bitset.insert(sector);
         return codec::cbor::encode(bitset);
@@ -837,22 +827,16 @@ namespace fc::mining::checks {
                           CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
-    MinerActorState actor_state;
-    actor_state.miner_info = "010001020004"_cid;
-    actor_state.vesting_funds = "010001020004"_cid;
-    actor_state.allocated_sectors = "010001020004"_cid;
-    actor_state.deadlines = "010001020006"_cid;
-    actor_state.precommitted_sectors =
-        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    auto actor_version = Toolchain::getActorVersionForNetwork(version_);
+    ipld->actor_version = actor_version;
+    auto actor_state = makeActorState(ipld, actor_version);
     SectorPreCommitOnChainInfo some_info;
     some_info.info.sealed_cid = "010001020006"_cid;
     some_info.info.seal_epoch = info->ticket_epoch + 1;
     EXPECT_OUTCOME_TRUE_1(
-        actor_state.precommitted_sectors.set(sector + 1, some_info));
+        actor_state->precommitted_sectors.set(sector + 1, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
-                        actor_state.precommitted_sectors.hamt.flush());
-    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
-    actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
+                        actor_state->precommitted_sectors.hamt.flush());
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
@@ -861,7 +845,7 @@ namespace fc::mining::checks {
         OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
-      if (key == actor_state.allocated_sectors) {
+      if (key == actor_state->allocated_sectors) {
         return codec::cbor::encode(primitives::RleBitset());
       }
       return ERROR_TEXT("ERROR");
@@ -898,24 +882,18 @@ namespace fc::mining::checks {
                           CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
-    MinerActorState actor_state;
-    actor_state.miner_info = "010001020004"_cid;
-    actor_state.vesting_funds = "010001020004"_cid;
-    actor_state.allocated_sectors = "010001020004"_cid;
-    actor_state.deadlines = "010001020006"_cid;
-    actor_state.precommitted_sectors =
-        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    auto actor_version = Toolchain::getActorVersionForNetwork(version_);
+    ipld->actor_version = actor_version;
+    auto actor_state = makeActorState(ipld, actor_version);
     SectorPreCommitOnChainInfo some_info;
     some_info.info.sealed_cid = "010001020006"_cid;
     some_info.info.seal_epoch = info->ticket_epoch + 1;
     some_info.precommit_epoch = info->seed_epoch - kPreCommitChallengeDelay + 1;
     EXPECT_OUTCOME_TRUE_1(
-        actor_state.precommitted_sectors.set(sector, some_info));
+        actor_state->precommitted_sectors.set(sector, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
-                        actor_state.precommitted_sectors.hamt.flush());
+                        actor_state->precommitted_sectors.hamt.flush());
 
-    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
-    actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
@@ -924,7 +902,7 @@ namespace fc::mining::checks {
         OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
-      if (key == actor_state.allocated_sectors) {
+      if (key == actor_state->allocated_sectors) {
         return codec::cbor::encode(primitives::RleBitset());
       }
       return ERROR_TEXT("ERROR");
@@ -961,24 +939,18 @@ namespace fc::mining::checks {
                           CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
-    MinerActorState actor_state;
-    actor_state.miner_info = "010001020004"_cid;
-    actor_state.vesting_funds = "010001020004"_cid;
-    actor_state.allocated_sectors = "010001020004"_cid;
-    actor_state.deadlines = "010001020006"_cid;
-    actor_state.precommitted_sectors =
-        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    auto actor_version = Toolchain::getActorVersionForNetwork(version_);
+    ipld->actor_version = actor_version;
+    auto actor_state = makeActorState(ipld, actor_version);
     SectorPreCommitOnChainInfo some_info;
     some_info.info.sealed_cid = "010001020006"_cid;
     some_info.info.seal_epoch = info->ticket_epoch + 1;
     some_info.precommit_epoch = info->seed_epoch - kPreCommitChallengeDelay;
     EXPECT_OUTCOME_TRUE_1(
-        actor_state.precommitted_sectors.set(sector, some_info));
+        actor_state->precommitted_sectors.set(sector, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
-                        actor_state.precommitted_sectors.hamt.flush());
+                        actor_state->precommitted_sectors.hamt.flush());
 
-    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
-    actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
@@ -987,7 +959,7 @@ namespace fc::mining::checks {
         OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
-      if (key == actor_state.allocated_sectors) {
+      if (key == actor_state->allocated_sectors) {
         return codec::cbor::encode(primitives::RleBitset());
       }
       return ERROR_TEXT("ERROR");
@@ -1042,24 +1014,18 @@ namespace fc::mining::checks {
                           CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
-    MinerActorState actor_state;
-    actor_state.miner_info = "010001020004"_cid;
-    actor_state.vesting_funds = "010001020004"_cid;
-    actor_state.allocated_sectors = "010001020004"_cid;
-    actor_state.deadlines = "010001020006"_cid;
-    actor_state.precommitted_sectors =
-        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    auto actor_version = Toolchain::getActorVersionForNetwork(version_);
+    ipld->actor_version = actor_version;
+    auto actor_state = makeActorState(ipld, actor_version);
     SectorPreCommitOnChainInfo some_info;
     some_info.info.sealed_cid = "010001020006"_cid;
     some_info.info.seal_epoch = info->ticket_epoch + 1;
     some_info.precommit_epoch = info->seed_epoch - kPreCommitChallengeDelay;
     EXPECT_OUTCOME_TRUE_1(
-        actor_state.precommitted_sectors.set(sector, some_info));
+        actor_state->precommitted_sectors.set(sector, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
-                        actor_state.precommitted_sectors.hamt.flush());
+                        actor_state->precommitted_sectors.hamt.flush());
 
-    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
-    actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
@@ -1068,7 +1034,7 @@ namespace fc::mining::checks {
         OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
-      if (key == actor_state.allocated_sectors) {
+      if (key == actor_state->allocated_sectors) {
         return codec::cbor::encode(primitives::RleBitset());
       }
       return ERROR_TEXT("ERROR");
@@ -1121,24 +1087,18 @@ namespace fc::mining::checks {
                           CbCid::hash("03"_unhex)}};
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
-    MinerActorState actor_state;
-    actor_state.miner_info = "010001020004"_cid;
-    actor_state.vesting_funds = "010001020004"_cid;
-    actor_state.allocated_sectors = "010001020004"_cid;
-    actor_state.deadlines = "010001020006"_cid;
-    actor_state.precommitted_sectors =
-        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    auto actor_version = Toolchain::getActorVersionForNetwork(version_);
+    ipld->actor_version = actor_version;
+    auto actor_state = makeActorState(ipld, actor_version);
     SectorPreCommitOnChainInfo some_info;
     some_info.info.sealed_cid = info->comm_r.value();
     some_info.info.seal_epoch = info->ticket_epoch + 1;
     some_info.precommit_epoch = info->seed_epoch - kPreCommitChallengeDelay;
     EXPECT_OUTCOME_TRUE_1(
-        actor_state.precommitted_sectors.set(sector, some_info));
+        actor_state->precommitted_sectors.set(sector, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
-                        actor_state.precommitted_sectors.hamt.flush());
+                        actor_state->precommitted_sectors.hamt.flush());
 
-    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
-    actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
@@ -1147,7 +1107,7 @@ namespace fc::mining::checks {
         OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
-      if (key == actor_state.allocated_sectors) {
+      if (key == actor_state->allocated_sectors) {
         return codec::cbor::encode(primitives::RleBitset());
       }
       return ERROR_TEXT("ERROR");

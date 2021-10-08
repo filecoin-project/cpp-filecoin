@@ -23,9 +23,10 @@
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
 #include "testutil/mocks/sector_storage/manager_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
+#include "testutil/vm/actor/builtin/actor_test_util.hpp"
 #include "vm/actor/builtin/v5/market/market_actor.hpp"
 #include "vm/actor/codes.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::mining {
 
@@ -54,17 +55,18 @@ namespace fc::mining {
   using types::Piece;
   using types::SectorInfo;
   using vm::actor::Actor;
+  using vm::actor::builtin::makeActorState;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::SectorOnChainInfo;
-  using vm::actor::builtin::v0::miner::MinerActorState;
   using vm::actor::builtin::v5::market::ComputeDataCommitment;
   using vm::message::SignedMessage;
   using vm::runtime::MessageReceipt;
+  using vm::toolchain::Toolchain;
 
   class SealingTest : public testing::Test {
    protected:
     void SetUp() override {
-      seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
+      seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1_1;
       auto sector_size = primitives::sector::getSectorSize(seal_proof_type_);
       ASSERT_FALSE(sector_size.has_error());
       sector_size_ = PaddedPieceSize(sector_size.value());
@@ -133,8 +135,9 @@ namespace fc::mining {
           primitives::sector::RegisteredPoStProof::kStackedDRG2KiBWindowPoSt;
       EXPECT_CALL(mock_StateMinerInfo, Call(miner_addr_, _))
           .WillRepeatedly(testing::Return(minfo));
+      version_ = NetworkVersion::kVersion13;
       EXPECT_CALL(mock_StateNetworkVersion, Call(_))
-          .WillRepeatedly(testing::Return(NetworkVersion::kVersion0));
+          .WillRepeatedly(testing::Return(version_));
     }
 
     void TearDown() override {
@@ -158,6 +161,7 @@ namespace fc::mining {
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<ManualSchedulerBackend> scheduler_backend_;
     std::shared_ptr<Scheduler> scheduler_;
+    NetworkVersion version_;
 
     std::shared_ptr<Sealing> sealing_;
     std::shared_ptr<PreCommitBatcherMock> precommit_batcher_;
@@ -660,24 +664,15 @@ namespace fc::mining {
 
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
-    MinerActorState actor_state;
-    actor_state.miner_info = "010001020004"_cid;
-    actor_state.vesting_funds = "010001020004"_cid;
-    actor_state.allocated_sectors = "010001020004"_cid;
-    actor_state.deadlines = "010001020006"_cid;
-    actor_state.precommitted_sectors =
-        adt::Map<SectorPreCommitOnChainInfo, adt::UvarintKeyer>(ipld);
+    auto actor_version = Toolchain::getActorVersionForNetwork(version_);
+    ipld->actor_version = actor_version;
+    auto actor_state = makeActorState(ipld, actor_version);
     SectorPreCommitOnChainInfo some_info;
     some_info.info.sealed_cid = "010001020006"_cid;
     EXPECT_OUTCOME_TRUE_1(
-        actor_state.precommitted_sectors.set(sector + 1, some_info));
+        actor_state->precommitted_sectors.set(sector + 1, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
-                        actor_state.precommitted_sectors.hamt.flush());
-    SectorPreCommitOnChainInfo precommit_info;
-    precommit_info.info.seal_epoch = 3;
-    precommit_info.info.sealed_cid = "010001020007"_cid;
-    actor_state.sectors.sectors = {"010001020008"_cid, ipld};
-    actor_state.precommitted_setctors_expiry = {"010001020009"_cid, ipld};
+                        actor_state->precommitted_sectors.hamt.flush());
     api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
@@ -686,7 +681,7 @@ namespace fc::mining {
         OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
-      if (key == actor_state.allocated_sectors) {
+      if (key == actor_state->allocated_sectors) {
         return codec::cbor::encode(primitives::RleBitset());
       }
       return ERROR_TEXT("ERROR");
@@ -782,8 +777,9 @@ namespace fc::mining {
           SectorPreCommitOnChainInfo new_info;
           new_info.precommit_epoch = height;
           new_info.info.sealed_cid = cids.sealed_cid;
-          OUTCOME_TRY(actor_state.precommitted_sectors.set(sector, new_info));
-          OUTCOME_TRYA(cid_root, actor_state.precommitted_sectors.hamt.flush());
+          OUTCOME_TRY(actor_state->precommitted_sectors.set(sector, new_info));
+          OUTCOME_TRYA(cid_root,
+                       actor_state->precommitted_sectors.hamt.flush());
         }
 
         MsgWait result;
