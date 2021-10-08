@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "vm/actor/builtin/states/reward/reward_actor_state.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
-#include "vm/actor/builtin/states/reward/v2/reward_actor_state.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/vm/actor/builtin/reward/reward_actor_test_fixture.hpp"
@@ -14,6 +14,7 @@
 namespace fc::vm::actor::builtin::v2::reward {
   using primitives::ChainEpoch;
   using primitives::SpaceTime;
+  using states::RewardActorStatePtr;
   using testing::Eq;
   using testing::Return;
   using testutil::vm::actor::builtin::reward::kEpochZeroReward;
@@ -23,11 +24,12 @@ namespace fc::vm::actor::builtin::v2::reward {
   /**
    * Fixture with state of Reward Actor v2
    */
-  struct RewardActorV2Test : public RewardActorTestFixture<RewardActorState> {
+  struct RewardActorV2Test : public RewardActorTestFixture {
     void SetUp() override {
-      RewardActorTestFixture<RewardActorState>::SetUp();
+      RewardActorTestFixture::SetUp();
       actor_version = ActorVersion::kVersion2;
       ipld->actor_version = actor_version;
+      state = RewardActorStatePtr{actor_version};
     }
 
     /**
@@ -67,22 +69,22 @@ namespace fc::vm::actor::builtin::v2::reward {
     EXPECT_OUTCOME_TRUE_1(Constructor::call(runtime, start_realized_power));
 
     // from Lotus
-    EXPECT_EQ(SpaceTime{0}, state.cumsum_baseline);
-    EXPECT_EQ(SpaceTime{0}, state.cumsum_realized);
-    EXPECT_EQ(ChainEpoch{0}, state.effective_network_time);
-    EXPECT_EQ(kBaselineInitialValueV2, state.effective_baseline_power);
-    EXPECT_EQ(kEpochZeroReward, state.this_epoch_reward);
+    EXPECT_EQ(SpaceTime{0}, state->cumsum_baseline);
+    EXPECT_EQ(SpaceTime{0}, state->cumsum_realized);
+    EXPECT_EQ(ChainEpoch{0}, state->effective_network_time);
+    EXPECT_EQ(kBaselineInitialValueV2, state->effective_baseline_power);
+    EXPECT_EQ(kEpochZeroReward, state->this_epoch_reward);
     EXPECT_EQ(kInitialRewardPositionEstimate,
-              state.this_epoch_reward_smoothed.position);
+              state->this_epoch_reward_smoothed.position);
     EXPECT_EQ(kInitialRewardVelocityEstimate,
-              state.this_epoch_reward_smoothed.velocity);
+              state->this_epoch_reward_smoothed.velocity);
     // account for rounding error of one byte during construction
     const auto epoch_zero_baseline = kBaselineInitialValueV2 - 1;
-    EXPECT_EQ(epoch_zero_baseline, state.this_epoch_baseline_power);
-    EXPECT_EQ(ChainEpoch{0}, state.epoch);
-    EXPECT_EQ(TokenAmount{0}, state.total_reward);
-    EXPECT_EQ(kSimpleTotal, state.simple_total);
-    EXPECT_EQ(kBaselineTotal, state.baseline_total);
+    EXPECT_EQ(epoch_zero_baseline, state->this_epoch_baseline_power);
+    EXPECT_EQ(ChainEpoch{0}, state->epoch);
+    EXPECT_EQ(TokenAmount{0}, state->total_reward);
+    EXPECT_EQ(kSimpleTotal, state->simple_total);
+    EXPECT_EQ(kBaselineTotal, state->baseline_total);
   }
 
   /**
@@ -97,23 +99,23 @@ namespace fc::vm::actor::builtin::v2::reward {
     EXPECT_OUTCOME_TRUE_1(Constructor::call(runtime, start_realized_power));
 
     // from Lotus
-    EXPECT_EQ(SpaceTime{"2888890784895207676"}, state.cumsum_baseline);
-    EXPECT_EQ(start_realized_power, state.cumsum_realized);
-    EXPECT_EQ(ChainEpoch{1}, state.effective_network_time);
+    EXPECT_EQ(SpaceTime{"2888890784895207676"}, state->cumsum_baseline);
+    EXPECT_EQ(start_realized_power, state->cumsum_realized);
+    EXPECT_EQ(ChainEpoch{1}, state->effective_network_time);
     EXPECT_EQ(StoragePower{"2888890784895207676"},
-              state.effective_baseline_power);
-    EXPECT_EQ(TokenAmount{"36266280397203470018"}, state.this_epoch_reward);
+              state->effective_baseline_power);
+    EXPECT_EQ(TokenAmount{"36266280397203470018"}, state->this_epoch_reward);
     EXPECT_EQ(kInitialRewardPositionEstimate,
-              state.this_epoch_reward_smoothed.position);
+              state->this_epoch_reward_smoothed.position);
     EXPECT_EQ(kInitialRewardVelocityEstimate,
-              state.this_epoch_reward_smoothed.velocity);
+              state->this_epoch_reward_smoothed.velocity);
     // account for rounding error of one byte during construction
     const auto epoch_zero_baseline = kBaselineInitialValueV2 - 1;
-    EXPECT_EQ(epoch_zero_baseline, state.this_epoch_baseline_power);
-    EXPECT_EQ(ChainEpoch{0}, state.epoch);
-    EXPECT_EQ(TokenAmount{0}, state.total_reward);
-    EXPECT_EQ(kSimpleTotal, state.simple_total);
-    EXPECT_EQ(kBaselineTotal, state.baseline_total);
+    EXPECT_EQ(epoch_zero_baseline, state->this_epoch_baseline_power);
+    EXPECT_EQ(ChainEpoch{0}, state->epoch);
+    EXPECT_EQ(TokenAmount{0}, state->total_reward);
+    EXPECT_EQ(kSimpleTotal, state->simple_total);
+    EXPECT_EQ(kBaselineTotal, state->baseline_total);
   }
 
   /**
@@ -127,7 +129,7 @@ namespace fc::vm::actor::builtin::v2::reward {
     const TokenAmount start_realized_power_1 = kBaselineInitialValueV2;
     EXPECT_OUTCOME_TRUE_1(Constructor::call(runtime, start_realized_power_1));
 
-    const TokenAmount reward = state.this_epoch_reward;
+    const TokenAmount reward = state->this_epoch_reward;
 
     // start with 2x power
     const TokenAmount start_realized_power_2 = kBaselineInitialValueV2 * 2;
@@ -135,7 +137,7 @@ namespace fc::vm::actor::builtin::v2::reward {
 
     // Reward value is the same; realized power impact on reward is capped at
     // baseline
-    EXPECT_EQ(reward, state.this_epoch_reward);
+    EXPECT_EQ(reward, state->this_epoch_reward);
   }
 
   /**
@@ -245,7 +247,7 @@ namespace fc::vm::actor::builtin::v2::reward {
     TokenAmount balance = total_payout;
     setCurrentBalance(balance);
 
-    state.this_epoch_reward = TokenAmount{5000};
+    state->this_epoch_reward = TokenAmount{5000};
 
     const TokenAmount penalty{0};
     const TokenAmount gas_reward{0};
@@ -266,7 +268,7 @@ namespace fc::vm::actor::builtin::v2::reward {
     expected_reward = 500;
     expectAwardBlockReward(penalty, gas_reward, expected_reward);
 
-    EXPECT_EQ(total_payout, state.total_reward);
+    EXPECT_EQ(total_payout, state->total_reward);
   }
 
   /**
@@ -316,10 +318,10 @@ namespace fc::vm::actor::builtin::v2::reward {
     constructRewardActor<Constructor>(power);
     EXPECT_OUTCOME_TRUE(res, ThisEpochReward::call(runtime, {}));
     EXPECT_EQ(res.this_epoch_reward_smoothed.position,
-              state.this_epoch_reward_smoothed.position);
+              state->this_epoch_reward_smoothed.position);
     EXPECT_EQ(res.this_epoch_reward_smoothed.velocity,
-              state.this_epoch_reward_smoothed.velocity);
-    EXPECT_EQ(res.this_epoch_baseline_power, state.this_epoch_baseline_power);
+              state->this_epoch_reward_smoothed.velocity);
+    EXPECT_EQ(res.this_epoch_baseline_power, state->this_epoch_baseline_power);
   }
 
 }  // namespace fc::vm::actor::builtin::v2::reward

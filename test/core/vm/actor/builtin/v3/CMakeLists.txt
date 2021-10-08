@@ -5,6 +5,7 @@
 add_subdirectory(account)
 add_subdirectory(cron)
 add_subdirectory(init)
+add_subdirectory(miner)
 add_subdirectory(multisig_actor)
 add_subdirectory(payment_channel)
 add_subdirectory(verified_registry)

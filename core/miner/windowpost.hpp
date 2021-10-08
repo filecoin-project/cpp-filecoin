@@ -48,6 +48,7 @@ namespace fc::mining {
     std::shared_ptr<Prover> prover;
     std::shared_ptr<FaultTracker> fault_tracker;
     Address miner, worker;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<ChainEpoch, Cached> cache;
     uint64_t part_size;
     RegisteredPoStProof proof_type;

@@ -94,8 +94,11 @@ namespace fc::data_transfer {
     std::shared_ptr<Graphsync> gs;
     std::map<std::string, OnPush> on_push;
     std::map<std::string, OnPull> on_pull;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::unordered_map<PeerDtId, OnData> pulling_out;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::unordered_map<PeerDtId, OnData> pulling_in;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::unordered_map<PeerDtId, PushingOut> pushing_out;
     DtId next_dtid;
   };

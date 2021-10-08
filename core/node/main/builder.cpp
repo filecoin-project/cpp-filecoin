@@ -525,7 +525,7 @@ namespace fc::node {
     log()->debug("Creating API...");
 
     o.mpool = storage::mpool::MessagePool::create(
-        o.env_context, o.ts_main, o.chain_store);
+        o.env_context, o.ts_main, config.mpool_bls_cache_size, o.chain_store);
 
     auto msg_waiter = storage::blockchain::MsgWaiter::create(
         o.ts_load, o.ipld, o.io_context, o.chain_store);

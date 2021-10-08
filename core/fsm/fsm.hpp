@@ -469,6 +469,7 @@ namespace fc::fsm {
 
     /// a list of entities' current states
     mutable std::shared_mutex states_mutex_;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::unordered_map<EntityPtr, StateEnumType> states_;
 
     /// optional callback called after any transition

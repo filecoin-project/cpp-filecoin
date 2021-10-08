@@ -5,8 +5,8 @@
 
 #include <boost/predef/compiler/gcc.h>
 
+#include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
-#include "vm/actor/builtin/states/market/v0/market_actor_state.hpp"
 
 #include "primitives/cid/comm_cid.hpp"
 #include "testutil/cbor.hpp"
@@ -35,11 +35,12 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceInfo;
   using primitives::sector::RegisteredSealProof;
+  using state::StateTreeImpl;
+  using states::MarketActorStatePtr;
   using testing::_;
   using testing::Return;
   using testutil::vm::actor::builtin::market::MarketActorTestFixture;
-  using vm::state::StateTreeImpl;
-  using vm::version::NetworkVersion;
+  using version::NetworkVersion;
   using namespace types::market;
   using namespace testutil::vm::actor::builtin::market;
 
@@ -48,11 +49,12 @@ namespace fc::vm::actor::builtin::v0::market {
     expectEncodeAndReencode(DealState{1, 2, 3}, "83010203"_unhex);
   }
 
-  struct MarketActorTest : public MarketActorTestFixture<MarketActorState> {
+  struct MarketActorTest : public MarketActorTestFixture {
     void SetUp() override {
-      MarketActorTestFixture<MarketActorState>::SetUp();
+      MarketActorTestFixture::SetUp();
       actor_version = ActorVersion::kVersion0;
       ipld->actor_version = actor_version;
+      state = MarketActorStatePtr{actor_version};
       cbor_blake::cbLoadT(ipld, state);
 
       addressCodeIdIs(miner_address, kStorageMinerCodeId);
@@ -92,12 +94,12 @@ namespace fc::vm::actor::builtin::v0::market {
     deal.provider = miner_address;
     deal.client = client_address;
 
-    EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(
+    EXPECT_OUTCOME_TRUE_1(state->escrow_table.set(
         miner_address, deal.providerBalanceRequirement()));
-    EXPECT_OUTCOME_TRUE_1(state.locked_table.set(miner_address, 0));
-    EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(
+    EXPECT_OUTCOME_TRUE_1(state->locked_table.set(miner_address, 0));
+    EXPECT_OUTCOME_TRUE_1(state->escrow_table.set(
         client_address, deal.clientBalanceRequirement()));
-    EXPECT_OUTCOME_TRUE_1(state.locked_table.set(client_address, 0));
+    EXPECT_OUTCOME_TRUE_1(state->locked_table.set(client_address, 0));
 
     callerIs(worker_address);
     runtime.expectSendM<MinerActor::ControlAddresses>(
@@ -146,7 +148,7 @@ namespace fc::vm::actor::builtin::v0::market {
     EXPECT_CALL(runtime, getValueReceived()).WillOnce(Return(amount));
     EXPECT_OUTCOME_TRUE_1(AddBalance::call(runtime, client_address));
 
-    EXPECT_OUTCOME_EQ(state.escrow_table.get(client_address), amount);
+    EXPECT_OUTCOME_EQ(state->escrow_table.get(client_address), amount);
   }
 
   TEST_F(MarketActorTest, WithdrawBalanceMinerOwner) {
@@ -154,8 +156,8 @@ namespace fc::vm::actor::builtin::v0::market {
     TokenAmount locked{10};
     TokenAmount extracted{escrow - locked};
 
-    EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(miner_address, escrow));
-    EXPECT_OUTCOME_TRUE_1(state.locked_table.set(miner_address, locked));
+    EXPECT_OUTCOME_TRUE_1(state->escrow_table.set(miner_address, escrow));
+    EXPECT_OUTCOME_TRUE_1(state->locked_table.set(miner_address, locked));
 
     callerIs(owner_address);
     runtime.expectSendM<MinerActor::ControlAddresses>(
@@ -165,9 +167,9 @@ namespace fc::vm::actor::builtin::v0::market {
     EXPECT_OUTCOME_TRUE_1(
         WithdrawBalance::call(runtime, {miner_address, escrow}));
 
-    EXPECT_OUTCOME_EQ(state.escrow_table.get(miner_address),
+    EXPECT_OUTCOME_EQ(state->escrow_table.get(miner_address),
                       escrow - extracted);
-    EXPECT_OUTCOME_EQ(state.locked_table.get(miner_address), locked);
+    EXPECT_OUTCOME_EQ(state->locked_table.get(miner_address), locked);
   }
 
   TEST_F(MarketActorTest, PublishStorageDealsNoDeals) {
@@ -323,7 +325,7 @@ namespace fc::vm::actor::builtin::v0::market {
   TEST_F(MarketActorTest, PublishStorageDealsProviderInsufficientBalance) {
     auto proposal = setupPublishStorageDeals();
 
-    EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(miner_address, 0));
+    EXPECT_OUTCOME_TRUE_1(state->escrow_table.set(miner_address, 0));
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
         kRewardAddress, {}, 0, {0, {0, 0}, {}});
@@ -338,7 +340,7 @@ namespace fc::vm::actor::builtin::v0::market {
   TEST_F(MarketActorTest, PublishStorageDealsClientInsufficientBalance) {
     auto proposal = setupPublishStorageDeals();
 
-    EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(client_address, 0));
+    EXPECT_OUTCOME_TRUE_1(state->escrow_table.set(client_address, 0));
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
         kRewardAddress, {}, 0, {0, {0, 0}, {}});
@@ -353,7 +355,7 @@ namespace fc::vm::actor::builtin::v0::market {
   TEST_F(MarketActorTest, PublishStorageDeals) {
     auto proposal = setupPublishStorageDeals();
     auto &deal = proposal.proposal;
-    state.next_deal = deal_1_id;
+    state->next_deal = deal_1_id;
 
     runtime.expectSendM<RewardActor::ThisEpochReward>(
         kRewardAddress, {}, 0, {0, {0, 0}, {}});
@@ -368,11 +370,11 @@ namespace fc::vm::actor::builtin::v0::market {
                         PublishStorageDeals::call(runtime, {{proposal}}));
 
     EXPECT_THAT(result.deals, testing::ElementsAre(deal_1_id));
-    EXPECT_EQ(state.next_deal, deal_1_id + 1);
+    EXPECT_EQ(state->next_deal, deal_1_id + 1);
     expectHasDeal(deal_1_id, deal, true);
-    EXPECT_OUTCOME_EQ(state.locked_table.get(miner_address),
+    EXPECT_OUTCOME_EQ(state->locked_table.get(miner_address),
                       deal.providerBalanceRequirement());
-    EXPECT_OUTCOME_EQ(state.locked_table.get(client_address),
+    EXPECT_OUTCOME_EQ(state->locked_table.get(client_address),
                       deal.clientBalanceRequirement());
   }
 
@@ -394,7 +396,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
   TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitAlreadyStarted) {
     auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
-    EXPECT_OUTCOME_TRUE_1(state.states.set(deal_1_id, {1, {}, {}}));
+    EXPECT_OUTCOME_TRUE_1(state->states.set(deal_1_id, {1, {}, {}}));
     callerIs(miner_address);
 
     EXPECT_OUTCOME_ERROR(
@@ -431,7 +433,7 @@ namespace fc::vm::actor::builtin::v0::market {
     DealProposal deal;
     deal.piece_cid = some_cid;
     deal.provider = client_address;
-    EXPECT_OUTCOME_TRUE_1(state.proposals.set(deal_1_id, deal));
+    EXPECT_OUTCOME_TRUE_1(state->proposals.set(deal_1_id, deal));
 
     callerIs(miner_address);
 
@@ -446,14 +448,14 @@ namespace fc::vm::actor::builtin::v0::market {
     deal.provider = miner_address;
     deal.start_epoch = current_epoch + 1;
     deal.end_epoch = deal.start_epoch + 100;
-    EXPECT_OUTCOME_TRUE_1(state.proposals.set(deal_1_id, deal));
-    EXPECT_OUTCOME_TRUE_1(state.pending_proposals_0.set(deal.cid(), deal));
+    EXPECT_OUTCOME_TRUE_1(state->proposals.set(deal_1_id, deal));
+    EXPECT_OUTCOME_TRUE_1(state->pending_proposals_0.set(deal.cid(), deal));
 
     callerIs(miner_address);
     EXPECT_OUTCOME_TRUE_1(ActivateDeals::call(
         runtime, {.deals = {deal_1_id}, .sector_expiry = deal.end_epoch + 1}));
 
-    EXPECT_OUTCOME_TRUE(deal_state, state.states.get(deal_1_id));
+    EXPECT_OUTCOME_TRUE(deal_state, state->states.get(deal_1_id));
     EXPECT_EQ(deal_state.slash_epoch, kChainEpochUndefined);
   }
 
@@ -477,7 +479,7 @@ namespace fc::vm::actor::builtin::v0::market {
       DealProposal deal;
       deal.piece_cid = pieces[i].cid;
       deal.piece_size = pieces[i].size;
-      EXPECT_OUTCOME_TRUE_1(state.proposals.set(deal_ids[i], deal));
+      EXPECT_OUTCOME_TRUE_1(state->proposals.set(deal_ids[i], deal));
     }
 
     callerIs(miner_address);

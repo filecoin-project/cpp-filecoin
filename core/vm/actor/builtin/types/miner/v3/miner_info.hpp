@@ -22,6 +22,8 @@ namespace fc::vm::actor::builtin::v3::miner {
              multiaddrs,
              window_post_proof_type,
              sector_size,
-             window_post_partition_sectors)
+             window_post_partition_sectors,
+             consensus_fault_elapsed,
+             pending_owner_address)
 
 }  // namespace fc::vm::actor::builtin::v3::miner

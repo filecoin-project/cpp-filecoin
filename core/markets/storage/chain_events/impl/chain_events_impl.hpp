@@ -27,7 +27,9 @@ namespace fc::markets::storage::chain_events {
     using PrecommitCb = std::function<void(outcome::result<SectorNumber>)>;
 
     struct Watch {
+      // TODO(turuslan): FIL-420 check cache memory usage
       std::multimap<DealId, PrecommitCb> precommits;
+      // TODO(turuslan): FIL-420 check cache memory usage
       std::multimap<SectorNumber, CommitCb> commits;
     };
 
@@ -64,6 +66,7 @@ namespace fc::markets::storage::chain_events {
     TipsetCPtr head_;
 
     mutable std::mutex watched_events_mutex_;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<Address, Watch> watched_events_;
 
     common::Logger logger_ = common::createLogger("StorageMarketEvents");

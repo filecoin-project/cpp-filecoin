@@ -24,6 +24,7 @@ namespace fc::payment_channel_manager {
     Address channel_actor;
     Address control;
     Address target;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<LaneId, std::vector<SignedVoucher>> lanes;
     LaneId next_lane;
   };
@@ -108,6 +109,7 @@ namespace fc::payment_channel_manager {
      * Channel state offchain storage is a map (channel_actor_address ->
      * ChannelInfo)
      */
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<Address, ChannelInfo> channels_;
     mutable std::shared_mutex channels_mutex_;
   };

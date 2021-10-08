@@ -101,6 +101,7 @@ namespace fc::sector_storage {
     std::shared_ptr<BufferMap> call_kv_;
 
     std::mutex request_lock_;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::multiset<std::shared_ptr<TaskRequest>,
                   std::owner_less<std::shared_ptr<TaskRequest>>>
         request_queue_;
