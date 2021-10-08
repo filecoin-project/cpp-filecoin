@@ -6,6 +6,7 @@
 #pragma once
 
 #include "primitives/sector/sector.hpp"
+#include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 
 namespace fc::vm::actor::builtin::v5::market {

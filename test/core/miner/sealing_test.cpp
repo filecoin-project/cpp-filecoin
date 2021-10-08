@@ -24,6 +24,7 @@
 #include "testutil/mocks/sector_storage/manager_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
+#include "vm/actor/builtin/v5/market/market_actor.hpp"
 #include "vm/actor/codes.hpp"
 
 namespace fc::mining {
@@ -56,6 +57,7 @@ namespace fc::mining {
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::SectorOnChainInfo;
   using vm::actor::builtin::v0::miner::MinerActorState;
+  using vm::actor::builtin::v5::market::ComputeDataCommitment;
   using vm::message::SignedMessage;
   using vm::runtime::MessageReceipt;
 
@@ -708,11 +710,9 @@ namespace fc::mining {
 
     types::PreCommit1Output pc1o({4, 5, 6});
 
-    EXPECT_CALL(*manager_,
-                sealPreCommit1Sync(sector_ref,
-                                   rand,
-                                   infos,
-                                   kDealSectorPriority))
+    EXPECT_CALL(
+        *manager_,
+        sealPreCommit1Sync(sector_ref, rand, infos, kDealSectorPriority))
         .WillOnce(testing::Return(outcome::success(pc1o)));
 
     // Precommit 2
@@ -730,17 +730,13 @@ namespace fc::mining {
         [&](const UnsignedMessage &message,
             const TipsetKey &tipset_key) -> outcome::result<InvocResult> {
       InvocResult result;
-      OUTCOME_TRY(unsealed_buffer, codec::cbor::encode(cids.unsealed_cid));
+      ComputeDataCommitment::Result call_res{.commds = {cids.unsealed_cid}};
+      OUTCOME_TRY(unsealed_buffer, codec::cbor::encode(call_res));
       result.receipt = MessageReceipt{
           .exit_code = vm::VMExitCode::kOk,
           .return_value = unsealed_buffer,
       };
       return result;
-    };
-
-    api_->StateNetworkVersion = [](const TipsetKey &tipset_key)
-        -> outcome::result<api::NetworkVersion> {
-      return api::NetworkVersion::kVersion3;
     };
 
     EXPECT_CALL(*policy_, expiration(_))
@@ -829,12 +825,8 @@ namespace fc::mining {
 
     Commit1Output c1o({1, 2, 3, 4, 5, 6});
     EXPECT_CALL(*manager_,
-                sealCommit1Sync(sector_ref,
-                                rand,
-                                seed,
-                                infos,
-                                cids,
-                                kDealSectorPriority))
+                sealCommit1Sync(
+                    sector_ref, rand, seed, infos, cids, kDealSectorPriority))
         .WillOnce(testing::Return(c1o));
     Proof proof({7, 6, 5, 4, 3, 2, 1});
     EXPECT_CALL(*manager_,

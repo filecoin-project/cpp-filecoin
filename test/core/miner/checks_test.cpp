@@ -15,7 +15,7 @@
 #include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
-#include "vm/actor/builtin/v0/market/market_actor.hpp"
+#include "vm/actor/builtin/v5/market/market_actor.hpp"
 #include "vm/actor/codes.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
@@ -40,8 +40,8 @@ namespace fc::mining::checks {
   using vm::VMExitCode;
   using vm::actor::Actor;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
-  using vm::actor::builtin::v0::market::ComputeDataCommitment;
   using vm::actor::builtin::v0::miner::MinerActorState;
+  using vm::actor::builtin::v5::market::ComputeDataCommitment;
 
   class CheckPieces : public testing::Test {
    protected:
@@ -364,36 +364,33 @@ namespace fc::mining::checks {
 
     MOCK_API(api_, ChainHead);
     TipsetKey head_key;
-    auto tip =
+    auto head_tipset =
         std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
     EXPECT_CALL(mock_ChainHead, Call())
-        .WillOnce(testing::Return(outcome::success(tip)));
+        .WillOnce(testing::Return(outcome::success(head_tipset)));
 
     MOCK_API(api_, StateMarketStorageDeal);
-    api::StorageDeal res;
-    res.proposal.provider = Address::makeFromId(miner_id_);
-    res.proposal.piece_cid = piece.cid;
-    res.proposal.piece_size = piece.size;
-    res.proposal.start_epoch = 1;
+    api::StorageDeal deal;
+    deal.proposal.provider = Address::makeFromId(miner_id_);
+    deal.proposal.piece_cid = piece.cid;
+    deal.proposal.piece_size = piece.size;
+    deal.proposal.start_epoch = 1;
     EXPECT_CALL(mock_StateMarketStorageDeal, Call(deal_id, head_key))
-        .WillOnce(testing::Return(outcome::success(res)));
+        .WillOnce(testing::Return(outcome::success(deal)));
 
     TipsetKey precommit_key{{CbCid::hash("01"_unhex),
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
     MOCK_API(api_, StateCall);
-    InvocResult res1;
-    res1.receipt.exit_code = VMExitCode::kOk;
-    EXPECT_OUTCOME_TRUE(cid_buf, codec::cbor::encode("010001020002"_cid));
-    res1.receipt.return_value = cid_buf;
+    InvocResult invoc_result;
+    invoc_result.receipt.exit_code = VMExitCode::kOk;
+    ComputeDataCommitment::Result result{.commds = {"010001020002"_cid}};
+    EXPECT_OUTCOME_TRUE(cid_buf, codec::cbor::encode(result));
+    invoc_result.receipt.return_value = cid_buf;
     EXPECT_CALL(
         mock_StateCall,
         Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
-        .WillOnce(testing::Return(outcome::success(res1)));
-
-    MOCK_API(api_, StateNetworkVersion);
-    EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
-        .WillRepeatedly(testing::Return(NetworkVersion::kVersion0));
+        .WillOnce(testing::Return(outcome::success(invoc_result)));
 
     EXPECT_OUTCOME_ERROR(
         ChecksError::kBadCommD,
@@ -429,61 +426,42 @@ namespace fc::mining::checks {
         },
     };
 
+    MOCK_API(api_, ChainHead);
     TipsetKey head_key;
-    api_->ChainHead = [&head_key]() -> outcome::result<TipsetCPtr> {
-      auto tip =
-          std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
-      return tip;
-    };
+    auto head_tipset =
+        std::make_shared<Tipset>(head_key, std::vector<api::BlockHeader>());
+    EXPECT_CALL(mock_ChainHead, Call())
+        .WillOnce(testing::Return(outcome::success(head_tipset)));
 
-    api_->StateMarketStorageDeal =
-        [&piece, id{miner_id_}, deal_id, &head_key](
-            api::DealId did,
-            const TipsetKey &key) -> outcome::result<api::StorageDeal> {
-      if (did == deal_id and key == head_key) {
-        api::StorageDeal res;
-        res.proposal.provider = Address::makeFromId(id);
-        res.proposal.piece_cid = piece.cid;
-        res.proposal.piece_size = piece.size;
-        res.proposal.start_epoch = 1;
-        return res;
-      }
-
-      return ERROR_TEXT("ERROR");
-    };
+    MOCK_API(api_, StateMarketStorageDeal);
+    api::StorageDeal deal;
+    deal.proposal.provider = Address::makeFromId(miner_id_);
+    deal.proposal.piece_cid = piece.cid;
+    deal.proposal.piece_size = piece.size;
+    deal.proposal.start_epoch = 1;
+    EXPECT_CALL(mock_StateMarketStorageDeal, Call(deal_id, head_key))
+        .WillOnce(testing::Return(outcome::success(deal)));
 
     TipsetKey precommit_key{{CbCid::hash("01"_unhex),
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
-    api_->StateCall =
-        [&precommit_key, &info](
-            const UnsignedMessage &msg,
-            const TipsetKey &key) -> outcome::result<InvocResult> {
-      if (msg.method == ComputeDataCommitment::Number
-          and key == precommit_key) {
-        InvocResult res;
-        res.receipt.exit_code = VMExitCode::kOk;
-        OUTCOME_TRY(cid_buf, codec::cbor::encode(*info->comm_d));
-        res.receipt.return_value = cid_buf;
-        return res;
-      }
+    MOCK_API(api_, StateCall);
+    InvocResult invoc_result;
+    invoc_result.receipt.exit_code = VMExitCode::kOk;
+    ComputeDataCommitment::Result result{.commds = {*info->comm_d}};
+    EXPECT_OUTCOME_TRUE(cid_buf, codec::cbor::encode(result));
+    invoc_result.receipt.return_value = cid_buf;
+    EXPECT_CALL(
+        mock_StateCall,
+        Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
+        .WillOnce(testing::Return(outcome::success(invoc_result)));
 
-      return ERROR_TEXT("ERROR");
-    };
-
-    api_->StateNetworkVersion =
-        [&precommit_key](
-            const TipsetKey &key) -> outcome::result<NetworkVersion> {
-      if (key == precommit_key) {
-        return NetworkVersion::kVersion0;
-      }
-
-      return ERROR_TEXT("ERROR");
-    };
-
-    EXPECT_OUTCOME_TRUE(
-        duration,
-        vm::actor::builtin::types::miner::maxSealDuration(info->sector_type));
+    NetworkVersion version = NetworkVersion::kVersion13;
+    MOCK_API(api_, StateNetworkVersion);
+    EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
+        .WillOnce(testing::Return(outcome::success(version)));
+    EXPECT_OUTCOME_TRUE(duration,
+                        checks::getMaxProveCommitDuration(version, info));
     ChainEpoch height = duration
                         + vm::actor::builtin::types::miner::kChainFinality
                         + info->ticket_epoch + 1;
@@ -549,35 +527,24 @@ namespace fc::mining::checks {
     TipsetKey precommit_key{{CbCid::hash("01"_unhex),
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
-    api_->StateCall =
-        [&precommit_key, &info](
-            const UnsignedMessage &msg,
-            const TipsetKey &key) -> outcome::result<InvocResult> {
-      if (msg.method == ComputeDataCommitment::Number
-          and key == precommit_key) {
-        InvocResult res;
-        res.receipt.exit_code = VMExitCode::kOk;
-        OUTCOME_TRY(cid_buf, codec::cbor::encode(*info->comm_d));
-        res.receipt.return_value = cid_buf;
-        return res;
-      }
+    MOCK_API(api_, StateCall);
+    InvocResult invoc_result;
+    invoc_result.receipt.exit_code = VMExitCode::kOk;
+    ComputeDataCommitment::Result result{.commds = {*info->comm_d}};
+    EXPECT_OUTCOME_TRUE(cid_buf, codec::cbor::encode(result));
+    invoc_result.receipt.return_value = cid_buf;
+    EXPECT_CALL(
+        mock_StateCall,
+        Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
+        .WillOnce(testing::Return(outcome::success(invoc_result)));
 
-      return ERROR_TEXT("ERROR");
-    };
-
-    api_->StateNetworkVersion =
-        [&precommit_key](
-            const TipsetKey &key) -> outcome::result<NetworkVersion> {
-      if (key == precommit_key) {
-        return NetworkVersion::kVersion0;
-      }
-
-      return ERROR_TEXT("ERROR");
-    };
-
-    EXPECT_OUTCOME_TRUE(
-        duration,
-        vm::actor::builtin::types::miner::maxSealDuration(info->sector_type));
+    NetworkVersion version = NetworkVersion::kVersion0;
+    MOCK_API(api_, StateNetworkVersion);
+    EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
+        .Times(2)
+        .WillRepeatedly(testing::Return(outcome::success(version)));
+    EXPECT_OUTCOME_TRUE(duration,
+                        checks::getMaxProveCommitDuration(version, info));
     ChainEpoch height = duration
                         + vm::actor::builtin::types::miner::kChainFinality
                         + info->ticket_epoch;
@@ -681,35 +648,24 @@ namespace fc::mining::checks {
     TipsetKey precommit_key{{CbCid::hash("01"_unhex),
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
-    api_->StateCall =
-        [&precommit_key, &info](
-            const UnsignedMessage &msg,
-            const TipsetKey &key) -> outcome::result<InvocResult> {
-      if (msg.method == ComputeDataCommitment::Number
-          and key == precommit_key) {
-        InvocResult res;
-        res.receipt.exit_code = VMExitCode::kOk;
-        OUTCOME_TRY(cid_buf, codec::cbor::encode(*info->comm_d));
-        res.receipt.return_value = cid_buf;
-        return res;
-      }
+    MOCK_API(api_, StateCall);
+    InvocResult invoc_result;
+    invoc_result.receipt.exit_code = VMExitCode::kOk;
+    ComputeDataCommitment::Result result{.commds = {*info->comm_d}};
+    EXPECT_OUTCOME_TRUE(cid_buf, codec::cbor::encode(result));
+    invoc_result.receipt.return_value = cid_buf;
+    EXPECT_CALL(
+        mock_StateCall,
+        Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
+        .WillOnce(testing::Return(outcome::success(invoc_result)));
 
-      return ERROR_TEXT("ERROR");
-    };
-
-    api_->StateNetworkVersion =
-        [&precommit_key](
-            const TipsetKey &key) -> outcome::result<NetworkVersion> {
-      if (key == precommit_key) {
-        return NetworkVersion::kVersion0;
-      }
-
-      return ERROR_TEXT("ERROR");
-    };
-
-    EXPECT_OUTCOME_TRUE(
-        duration,
-        vm::actor::builtin::types::miner::maxSealDuration(info->sector_type));
+    NetworkVersion version = NetworkVersion::kVersion0;
+    MOCK_API(api_, StateNetworkVersion);
+    EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
+        .Times(2)
+        .WillRepeatedly(testing::Return(outcome::success(version)));
+    EXPECT_OUTCOME_TRUE(duration,
+                        checks::getMaxProveCommitDuration(version, info));
     ChainEpoch height = duration
                         + vm::actor::builtin::types::miner::kChainFinality
                         + info->ticket_epoch;

@@ -115,8 +115,6 @@ namespace fc::mining::checks {
       }
     }
 
-    OUTCOME_TRY(network, api->StateNetworkVersion(tipset_key));
-
     OUTCOME_TRY(params,
                 codec::cbor::encode(ComputeDataCommitment::Params{
                     .inputs =
