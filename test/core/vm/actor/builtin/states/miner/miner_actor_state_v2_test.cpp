@@ -609,28 +609,25 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   TEST_F(MinerActorStateTestV2, CantAllocateTheSameSectorNumberTwice) {
     EXPECT_OUTCOME_TRUE_1(state.allocateSectorNumber(sector_num));
-    const auto result = state.allocateSectorNumber(sector_num);
-    EXPECT_EQ(result.error().message(),
-              "sector number has already been allocated");
+    EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
+                         state.allocateSectorNumber(sector_num));
   }
 
   TEST_F(MinerActorStateTestV2, CanMaskSectorNumbers) {
     EXPECT_OUTCOME_TRUE_1(state.allocateSectorNumber(sector_num));
     EXPECT_OUTCOME_TRUE_1(state.maskSectorNumbers({0, 1, 2, 3}));
 
-    const auto result = state.allocateSectorNumber(3);
-    EXPECT_EQ(result.error().message(),
-              "sector number has already been allocated");
+    EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
+                         state.allocateSectorNumber(3));
     EXPECT_OUTCOME_TRUE_1(state.allocateSectorNumber(4));
   }
 
   TEST_F(MinerActorStateTestV2, CantAllocateOrMaskOutOfRange) {
-    const auto result1 = state.allocateSectorNumber(kMaxSectorNumber + 1);
-    EXPECT_EQ(result1.error().message(), "sector number out of range");
+    EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
+                         state.allocateSectorNumber(kMaxSectorNumber + 1));
 
-    const auto result2 = state.maskSectorNumbers({99, kMaxSectorNumber + 1});
-    EXPECT_EQ(result2.error().message(),
-              "masked sector number exceeded max sector number");
+    EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
+                         state.maskSectorNumbers({99, kMaxSectorNumber + 1}));
   }
 
   TEST_F(MinerActorStateTestV2, CanAllocateInRange) {

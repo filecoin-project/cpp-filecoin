@@ -343,13 +343,17 @@ namespace fc::vm::actor::builtin::v0::miner {
     REQUIRE_NO_ERROR(state->allocateSectorNumber(params.sector),
                      VMExitCode::kErrIllegalState);
 
+    // Lotus gas conformance
+    const auto precommitted_sectors_copy = state->precommitted_sectors;
     REQUIRE_NO_ERROR_A(precommit_found,
-                       state->precommitted_sectors.has(params.sector),
+                       precommitted_sectors_copy.has(params.sector),
                        VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.validateArgument(!precommit_found));
 
+    REQUIRE_NO_ERROR_A(
+        sectors, state->sectors.loadSectors(), VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR_A(sector_found,
-                       state->sectors.sectors.has(params.sector),
+                       sectors.sectors.has(params.sector),
                        VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.validateArgument(!sector_found));
 
@@ -399,6 +403,9 @@ namespace fc::vm::actor::builtin::v0::miner {
     CHANGE_ERROR(
         state->precommitted_sectors.set(params.sector, sector_precommit_info),
         VMExitCode::kErrIllegalState);
+
+    // Lotus gas conformance
+    OUTCOME_TRY(state->precommitted_sectors.hamt.flush());
 
     const auto expiry_bound = current_epoch + max_seal_duration + 1;
 

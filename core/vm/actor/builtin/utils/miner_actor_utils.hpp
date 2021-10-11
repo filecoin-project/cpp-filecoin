@@ -152,8 +152,8 @@ namespace fc::vm::actor::builtin::utils {
 
     virtual outcome::result<DealWeights> requestDealWeight(
         const std::vector<DealId> &deals,
-        ChainEpoch sector_expiry,
-        ChainEpoch sector_start) const = 0;
+        ChainEpoch sector_start,
+        ChainEpoch sector_expiry) const = 0;
 
     virtual outcome::result<void> verifyWindowedPost(
         ChainEpoch challenge_epoch,

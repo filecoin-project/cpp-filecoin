@@ -160,8 +160,8 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   outcome::result<DealWeights> MinerUtils::requestDealWeight(
       const std::vector<DealId> &deals,
-      ChainEpoch sector_expiry,
-      ChainEpoch sector_start) const {
+      ChainEpoch sector_start,
+      ChainEpoch sector_expiry) const {
     REQUIRE_SUCCESS_A(deal_weights,
                       getRuntime().sendM<market::VerifyDealsForActivation>(
                           kStorageMarketAddress,

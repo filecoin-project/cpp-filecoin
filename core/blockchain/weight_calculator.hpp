@@ -9,15 +9,15 @@
 #include "primitives/tipset/tipset.hpp"
 
 namespace fc::blockchain::weight {
+  using primitives::BigInt;
+  using primitives::tipset::Tipset;
+
   /**
    * @class WeightCalculator is an interface providing a method for calculating
    * tipset weight
    */
   class WeightCalculator {
    public:
-    using BigInt = primitives::BigInt;
-    using Tipset = primitives::tipset::Tipset;
-
     virtual ~WeightCalculator() = default;
 
     virtual outcome::result<BigInt> calculateWeight(const Tipset &tipset) = 0;

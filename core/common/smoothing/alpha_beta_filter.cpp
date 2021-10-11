@@ -43,8 +43,8 @@ namespace fc::common::smoothing {
                                    uint64_t start,
                                    const FilterEstimate &num,
                                    const FilterEstimate &den) {
-    BigInt delta_t{BigInt{delta} << kPrecision128};  // Q.0 => Q.128
-    BigInt t0{BigInt{start} << kPrecision128};       // Q.0 => Q.128
+    const BigInt delta_t{BigInt{delta} << kPrecision128};  // Q.0 => Q.128
+    const BigInt t0{BigInt{start} << kPrecision128};       // Q.0 => Q.128
     const auto &position1{num.position};
     const auto &position2{den.position};
     const auto &velocity1{num.velocity};
@@ -80,13 +80,13 @@ namespace fc::common::smoothing {
       return bigdiv(m1 + m2, squared_velocity2);  // Q.256 / Q.128 => Q.128
     }
 
-    BigInt half_delta_t{delta_t >> 1};            // Q.128 / Q.0 => Q.128
+    const BigInt half_delta_t{delta_t >> 1};      // Q.128 / Q.0 => Q.128
     BigInt x1m{velocity1 * (t0 + half_delta_t)};  // Q.128 * Q.128 => Q.256
     x1m >>= kPrecision128;                        // Q.256 => Q.128
     x1m += position1;
 
-    BigInt cumsumRatio{x1m * delta_t};  // Q.128 * Q.128 => Q.256
-    cumsumRatio /= position2;           // Q.256 / Q.128 => Q.128
+    BigInt cumsumRatio{x1m * delta_t};             // Q.128 * Q.128 => Q.256
+    cumsumRatio = bigdiv(cumsumRatio, position2);  // Q.256 / Q.128 => Q.128
     return cumsumRatio;
   }
 }  // namespace fc::common::smoothing

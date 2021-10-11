@@ -84,8 +84,8 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     outcome::result<DealWeights> requestDealWeight(
         const std::vector<DealId> &deals,
-        ChainEpoch sector_expiry,
-        ChainEpoch sector_start) const override;
+        ChainEpoch sector_start,
+        ChainEpoch sector_expiry) const override;
 
     outcome::result<void> verifyWindowedPost(
         ChainEpoch challenge_epoch,
