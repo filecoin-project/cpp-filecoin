@@ -6,6 +6,7 @@
 #pragma once
 
 #include "api/common_api.hpp"
+#include "api/network/network_api.hpp"
 #include "api/full_node/node_api.hpp"
 #include "api/version.hpp"
 #include "markets/retrieval/provider/retrieval_provider.hpp"
@@ -75,7 +76,7 @@ namespace fc::api {
   /**
    * Storage miner node low-level interface API.
    */
-  struct StorageMinerApi : public CommonApi {
+  struct StorageMinerApi : public NetworkApi{
     API_METHOD(ActorAddress, jwt::kReadPermission, Address)
 
     API_METHOD(ActorSectorSize,
