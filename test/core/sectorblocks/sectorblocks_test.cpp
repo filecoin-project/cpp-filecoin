@@ -22,13 +22,13 @@ namespace fc::sectorblocks {
    protected:
     void SetUp() override {
       miner_ = std::make_unique<MinerMock>();
-      memory_mock_ = std::make_shared<InMemoryStorage>();
-      sector_blocks_ = std::make_unique<SectorBlocksImpl>(miner_, memory_mock_);
+      datastore_ = std::make_shared<InMemoryStorage>();
+      sector_blocks_ = std::make_unique<SectorBlocksImpl>(miner_, datastore_);
     }
 
     std::shared_ptr<MinerMock> miner_;
     std::shared_ptr<SectorBlocks> sector_blocks_;
-    std::shared_ptr<InMemoryStorage> memory_mock_;
+    std::shared_ptr<InMemoryStorage> datastore_;
   };
 
   /**
@@ -95,11 +95,11 @@ namespace fc::sectorblocks {
 
   /**
    * @given  sectorblocks, deal, size, and path
-   * @when try to add two pieces with same deal_id
-   * @then error occurs
+   * @when try to add two duplicate pieces to the same deal_id
+   * @then EXPECT_OUTCOME_ERROR
    */
   TEST_F(SectorBlocksTest, DublicateTry) {
-    DealInfo deal{
+    const DealInfo deal{
         .publish_cid = boost::none,
         .deal_id = 1,
         .deal_schedule =
@@ -109,10 +109,10 @@ namespace fc::sectorblocks {
             },
         .is_keep_unsealed = false,
     };
-    UnpaddedPieceSize size(127);
-    std::string path = "/some/temp/path";
+    const UnpaddedPieceSize size(127);
+    const std::string path = "/some/temp/path";
 
-    PieceAttributes piece{
+    const PieceAttributes piece{
         .sector = 1,
         .offset = PaddedPieceSize(0),
         .size = UnpaddedPieceSize(127),
@@ -123,7 +123,8 @@ namespace fc::sectorblocks {
         .WillOnce(testing::Return(outcome::success(piece)));
 
     EXPECT_OUTCOME_EQ(sector_blocks_->addPiece(size, path, deal), piece);
-    EXPECT_TRUE(sector_blocks_->addPiece(size, path, deal).has_error());
+    EXPECT_OUTCOME_ERROR(SectorBlocksError::kDealAlreadyExist,
+                         sector_blocks_->addPiece(size, path, deal));
   }
 
 }  // namespace fc::sectorblocks

@@ -15,10 +15,9 @@ namespace fc::sectorblocks {
   using storage::MapPrefix;
 
   SectorBlocksImpl::SectorBlocksImpl(
-      std::shared_ptr<Miner> miner, const std::shared_ptr<DataStore> &datastore)
-      : miner_{miner} {
-    storage_ = std::make_shared<storage::MapPrefix>("sealedblocks/", datastore);
-  }
+      const std::shared_ptr<Miner> &miner,
+      const std::shared_ptr<DataStore> &datastore)
+      : miner_(miner), storage_(datastore) {}
 
   outcome::result<PieceAttributes> SectorBlocksImpl::addPiece(
       UnpaddedPieceSize size,
@@ -40,17 +39,16 @@ namespace fc::sectorblocks {
                                                    UnpaddedPieceSize size) {
     std::lock_guard lock(mutex_);
 
-    Buffer key = Buffer(UvarintKeyer::encode(deal_id));
+    const Buffer key = Buffer(UvarintKeyer::encode(deal_id));
     std::vector<PieceLocation> new_data;
-    auto new_piece = PieceLocation{
+    const auto new_piece = PieceLocation{
         .sector_number = sector,
         .offset = offset,
         .length = size.padded(),
     };
 
-    OUTCOME_TRY(stored_data, storage_->get(key));
-
-    if (stored_data.size() != 0) {
+    if (storage_->contains(key)) {
+      OUTCOME_TRY(stored_data, storage_->get(key));
       OUTCOME_TRY(decoded_out, decode<std::vector<PieceLocation>>(stored_data));
       if (find(decoded_out.begin(), decoded_out.end(), new_piece)
           == decoded_out.end()) {
@@ -62,20 +60,20 @@ namespace fc::sectorblocks {
     } else {
       new_data = {new_piece};
     }
+
     OUTCOME_TRY(encoded_in, encode(new_data));
-    OUTCOME_TRY(storage_->put(key, encoded_in));
-    return outcome::success();
+    return storage_->put(key, encoded_in);
   }
 
   outcome::result<std::vector<PieceLocation>> SectorBlocksImpl::getRefs(
       DealId deal_id) const {
-    Buffer key = Buffer(UvarintKeyer::encode(deal_id));
-    OUTCOME_TRY(stored_data, storage_->get(key));
-    if (stored_data.size() == 0) {
-      return SectorBlocksError::kNotFoundDeal;
+    const Buffer key = Buffer(UvarintKeyer::encode(deal_id));
+    if (storage_->contains(key)) {
+      OUTCOME_TRY(stored_data, storage_->get(key));
+      OUTCOME_TRY(decoded_out, decode<std::vector<PieceLocation>>(stored_data));
+      return std::move(decoded_out);
     }
-    OUTCOME_TRY(decoded_out, decode<std::vector<PieceLocation>>(stored_data));
-    return std::move(decoded_out);
+    return SectorBlocksError::kNotFoundDeal;
   }
 
   std::shared_ptr<Miner> SectorBlocksImpl::getMiner() const {

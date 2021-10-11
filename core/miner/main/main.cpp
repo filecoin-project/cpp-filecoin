@@ -402,8 +402,8 @@ namespace fc {
         prefixed("stored_ask/"), napi, *config.actor)};
     auto piece_storage{std::make_shared<storage::piece::PieceStorageImpl>(
         prefixed("storage_provider/"))};
-    auto sector_blocks{
-        std::make_shared<sectorblocks::SectorBlocksImpl>(miner, leveldb)};
+    auto sector_blocks{std::make_shared<sectorblocks::SectorBlocksImpl>(
+        miner, prefixed("sealedblocks/"))};
     auto chain_events{std::make_shared<ChainEventsImpl>(
         napi, ChainEventsImpl::IsDealPrecommited{})};
     OUTCOME_TRY(chain_events->init());
