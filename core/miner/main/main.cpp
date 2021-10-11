@@ -62,6 +62,7 @@ namespace fc {
   using libp2p::multi::Multiaddress;
   using libp2p::peer::PeerId;
   using markets::storage::chain_events::ChainEventsImpl;
+  using primitives::StoredCounter;
   using primitives::address::Address;
   using primitives::jwt::kAllPermission;
   using primitives::sector::RegisteredSealProof;
@@ -70,6 +71,7 @@ namespace fc {
 
   static const Buffer kActor{cbytes("actor")};
   static const std::string kSectorCounterKey = "sector_counter";
+  static const size_t kApiThreadPoolSize = 4;
 
   auto log() {
     static common::Logger logger = common::createLogger("miner");
@@ -100,15 +102,17 @@ namespace fc {
       const std::shared_ptr<storage::PersistentBufferMap> &ds) {
     OUTCOME_TRY(file, common::readFile(path));
     OUTCOME_TRY(j_file, codec::json::parse(gsl::make_span(file)));
-    OUTCOME_TRY(psm, api::decode<std::map<std::string, types::Miner>>(j_file));
+    OUTCOME_TRY(
+        psm, api::decode<std::map<std::string, miner::types::Miner>>(j_file));
 
-    auto it_psm = psm.find(encodeToString(maddr));
+    const auto it_psm = psm.find(encodeToString(maddr));
     if (it_psm == psm.end()) {
       return ERROR_TEXT("Miner not found");
     }
-    auto &meta{it_psm->second};
+    const auto &meta{it_psm->second};
 
-    api::SectorNumber max_sector = 0;
+    StoredCounter sc(ds, kSectorCounterKey);
+    OUTCOME_TRY(max_sector, sc.getNumber());
     for (const auto &elem : meta.sectors) {
       // TODO(ortyomka): migrate sealing info
 
@@ -116,9 +120,7 @@ namespace fc {
         max_sector = elem.sector_id;
       }
     }
-    libp2p::multi::UVarint new_value(max_sector);
-    OUTCOME_TRY(ds->put(Buffer{common::span::cbytes(kSectorCounterKey)},
-                        Buffer(new_value.toBytes())));
+    OUTCOME_TRY(sc.setNumber(max_sector));
 
     return outcome::success();
   }
@@ -346,7 +348,7 @@ namespace fc {
     auto napi{std::make_shared<api::FullNodeApi>()};
     IoThread io_thread;
     std::vector<std::thread> pool;
-    for (auto i{0}; i < 4; ++i) {
+    for (size_t i{0}; i < kApiThreadPoolSize; ++i) {
       pool.emplace_back(std::thread{[&] { io_thread.io->run(); }});
     }
     api::rpc::Client wsc{*io_thread.io};

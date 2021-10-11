@@ -761,16 +761,16 @@ namespace fc::proofs {
       const SortedPrivateSectorInfo &private_replica_info,
       const PoStRandomness &randomness) {
     static bool fake{[] {
-      const auto s{getenv("FAKE_POST")};
-      return s && std::string_view{s} == "1";
+      const auto fake_proof_env{getenv("FAKE_POST")};
+      return fake_proof_env && std::string_view{fake_proof_env} == "1";
     }()};
     if (fake) {
-      std::vector<primitives::sector::PoStProof> r;
-      auto &p{r.emplace_back()};
-      constexpr std::string_view P{"valid proof"};
-      p.proof.assign(P.begin(), P.end());
-      return r;
-    } 
+      std::vector<primitives::sector::PoStProof> result;
+      auto &post_proof{result.emplace_back()};
+      constexpr std::string_view kFakeValidProof{"valid proof"};
+      post_proof.proof.assign(kFakeValidProof.begin(), kFakeValidProof.end());
+      return result;
+    }
 
     OUTCOME_TRY(
         c_sorted_private_sector_info,

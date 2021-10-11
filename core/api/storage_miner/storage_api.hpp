@@ -60,7 +60,7 @@ namespace fc::api {
   };
 
   // TODO(ortyomka): [FIL-421] implement it
-  struct _SectorInfo {
+  struct ApiSectorInfo {
     mining::SealingState state = mining::SealingState::kStateUnknown;
   };
 
@@ -114,7 +114,7 @@ namespace fc::api {
     API_METHOD(SectorsList, jwt::kReadPermission, std::vector<SectorNumber>)
 
     API_METHOD(
-        SectorsStatus, jwt::kReadPermission, _SectorInfo, SectorNumber, bool)
+        SectorsStatus, jwt::kReadPermission, ApiSectorInfo, SectorNumber, bool)
 
     API_METHOD(StorageAttach,
                jwt::kAdminPermission,

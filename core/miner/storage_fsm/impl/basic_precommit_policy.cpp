@@ -7,14 +7,13 @@
 
 namespace fc::mining {
   using vm::actor::builtin::types::miner::kMaxSectorExpirationExtension;
-  using vm::actor::builtin::types::miner::kMinSectorExpiration;
   using vm::actor::builtin::types::miner::kWPoStProvingPeriod;
 
   outcome::result<ChainEpoch> BasicPreCommitPolicy::expiration(
       gsl::span<const types::Piece> pieces) {
     OUTCOME_TRY(head, api_->ChainHead());
 
-    ChainEpoch epoch = head->height();
+    const ChainEpoch epoch = head->height();
 
     boost::optional<ChainEpoch> end = boost::none;
 

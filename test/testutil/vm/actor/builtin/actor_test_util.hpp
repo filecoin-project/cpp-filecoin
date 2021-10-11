@@ -6,7 +6,7 @@
 #pragma once
 
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
-#include "vm/actor/builtin/states/miner/v3/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 
 namespace fc::vm::actor::builtin {
   using runtime::MockRuntime;
@@ -16,7 +16,7 @@ namespace fc::vm::actor::builtin {
   using types::miner::kPreCommitChallengeDelay;
   using types::miner::makeMinerInfo;
 
-  inline MinerActorStatePtr makeActorState(
+  inline MinerActorStatePtr makeMinerActorState(
       const std::shared_ptr<IpfsDatastore> &ipld, ActorVersion actor_version) {
     MockRuntime runtime;
     EXPECT_CALL(runtime, getActorVersion())

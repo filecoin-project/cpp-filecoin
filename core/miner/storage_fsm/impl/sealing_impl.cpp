@@ -1049,7 +1049,7 @@ namespace fc::mining {
     OUTCOME_TRY(seal_duration,
                 checks::getMaxProveCommitDuration(network, info));
     OUTCOME_TRY(policy_expiration, policy_->expiration(info->pieces));
-    auto static_expiration = head->epoch() + seal_duration
+    const auto static_expiration = head->epoch() + seal_duration
                              + kMinSectorExpiration + kChainFinality
                              + kEpochsInDay;
     const auto expiration =

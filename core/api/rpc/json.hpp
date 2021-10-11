@@ -41,13 +41,14 @@ namespace fc::codec::cbor {
 }  // namespace fc::codec::cbor
 
 namespace fc::api {
-  using api::_SectorInfo;
+  using api::ApiSectorInfo;
   using codec::cbor::CborDecodeStream;
   using common::Blob;
   using crypto::signature::BlsSignature;
   using crypto::signature::Secp256k1Signature;
   using crypto::signature::Signature;
   using markets::storage::StorageAsk;
+  using miner::types::PreSealSector;
   using mining::SealingState;
   using primitives::BigInt;
   using primitives::FsStat;
@@ -79,7 +80,6 @@ namespace fc::api {
   using sector_storage::stores::PathType;
   using sector_storage::stores::StorageConfig;
   using sector_storage::stores::StorageInfo;
-  using types::PreSealSector;
   using vm::actor::builtin::types::market::DealProposal;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::market::StorageParticipantBalance;
@@ -1024,13 +1024,13 @@ namespace fc::api {
       Get(j, "SealedCID", v.sealed_cid);
     }
 
-    ENCODE(_SectorInfo) {
+    ENCODE(ApiSectorInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "State", v.state);
       return j;
     }
 
-    DECODE(_SectorInfo) {
+    DECODE(ApiSectorInfo) {
       Get(j, "State", v.state);
     }
 
@@ -1454,7 +1454,7 @@ namespace fc::api {
       decode(v.proof_type, Get(j, "ProofType"));
     }
 
-    ENCODE(types::Miner) {
+    ENCODE(miner::types::Miner) {
       Value j{rapidjson::kObjectType};
       Set(j, "ID", v.id);
       Set(j, "Owner", v.owner);
@@ -1467,7 +1467,7 @@ namespace fc::api {
       return j;
     }
 
-    DECODE(types::Miner) {
+    DECODE(miner::types::Miner) {
       decode(v.id, Get(j, "ID"));
       decode(v.owner, Get(j, "Owner"));
       decode(v.worker, Get(j, "Worker"));

@@ -22,7 +22,7 @@ namespace fc::mining {
   inline const api::MessageSendSpec kSpec{50 * kFilecoinPrecision};
 
   DeadlineInfo nextDeadline(const DeadlineInfo &di) {
-    auto next_index = di.index + 1;
+    const auto next_index = di.index + 1;
     if (next_index == kWPoStPeriodDeadlines) {
       return DeadlineInfo(
           di.period_start + kWPoStPeriodDeadlines, 0, di.current_epoch);

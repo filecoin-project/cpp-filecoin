@@ -80,10 +80,10 @@ namespace fc::api {
     };
 
     api->SectorsStatus = [=](SectorNumber id,
-                             bool) -> outcome::result<_SectorInfo> {
+                             bool) -> outcome::result<ApiSectorInfo> {
       // TODO(ortyomka): [FIL-421] implement it
       OUTCOME_TRY(sector_info, miner->getSealing()->getSectorInfo(id));
-      return _SectorInfo{.state = sector_info->state};
+      return ApiSectorInfo{.state = sector_info->state};
     };
 
     api->StorageAttach = [=](const StorageInfo_ &storage_info,

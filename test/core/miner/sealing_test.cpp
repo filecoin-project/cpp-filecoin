@@ -55,7 +55,7 @@ namespace fc::mining {
   using types::Piece;
   using types::SectorInfo;
   using vm::actor::Actor;
-  using vm::actor::builtin::makeActorState;
+  using vm::actor::builtin::makeMinerActorState;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::SectorOnChainInfo;
   using vm::actor::builtin::v5::market::ComputeDataCommitment;
@@ -666,7 +666,7 @@ namespace fc::mining {
     auto ipld{std::make_shared<InMemoryDatastore>()};
     auto actor_version = Toolchain::getActorVersionForNetwork(version_);
     ipld->actor_version = actor_version;
-    auto actor_state = makeActorState(ipld, actor_version);
+    auto actor_state = makeMinerActorState(ipld, actor_version);
     SectorPreCommitOnChainInfo some_info;
     some_info.info.sealed_cid = "010001020006"_cid;
     EXPECT_OUTCOME_TRUE_1(

@@ -10,7 +10,7 @@
 
 #include <libp2p/peer/peer_id.hpp>
 
-namespace fc::types {
+namespace fc::miner::types {
   using libp2p::peer::PeerId;
   using primitives::RegisteredSealProof;
   using primitives::SectorNumber;
@@ -36,8 +36,8 @@ namespace fc::types {
     TokenAmount market_balance;
     TokenAmount power_balance;
 
-    SectorSize sector_size;
+    SectorSize sector_size{};
 
     std::vector<PreSealSector> sectors;
   };
-}  // namespace fc::types
+}  // namespace fc::miner::types

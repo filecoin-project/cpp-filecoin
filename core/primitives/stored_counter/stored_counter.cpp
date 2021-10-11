@@ -13,6 +13,20 @@ namespace fc::primitives {
                                std::string key)
       : datastore_(std::move(datastore)), key_(fc::common::span::cbytes(key)) {}
 
+  outcome::result<uint64_t> StoredCounter::getNumber() const {
+    if (datastore_->contains(key_)) {
+      return 0;
+    }
+    OUTCOME_TRY(value, datastore_->get(key_));
+    const libp2p::multi::UVarint cur(value);
+    return cur.toUInt64();
+  }
+
+  outcome::result<void> StoredCounter::setNumber(uint64_t number) {
+    const libp2p::multi::UVarint new_value(number);
+    return datastore_->put(key_, Buffer(new_value.toBytes()));
+  }
+
   outcome::result<uint64_t> StoredCounter::next() {
     std::lock_guard lock(mutex_);
 
@@ -20,12 +34,10 @@ namespace fc::primitives {
 
     uint64_t next = 0;
     if (has) {
-      OUTCOME_TRY(value, datastore_->get(key_));
-      libp2p::multi::UVarint cur(value);
-      next = cur.toUInt64() + 1;
+      OUTCOME_TRY(value, getNumber());
+      next = value + 1;
     }
-    libp2p::multi::UVarint new_value(next);
-    OUTCOME_TRY(datastore_->put(key_, Buffer(new_value.toBytes())));
+    OUTCOME_TRY(setNumber(next));
 
     return next;
   }
