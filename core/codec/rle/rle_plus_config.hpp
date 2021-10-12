@@ -39,6 +39,6 @@ namespace fc::codec::rle {
   /**
    * @var Maximum bytes size to encode or decode
    */
-  constexpr int BYTES_MAX_SIZE = 32 << 10;
+  constexpr long int BYTES_MAX_SIZE = 32 << 10;
 
 }  // namespace fc::codec::rle

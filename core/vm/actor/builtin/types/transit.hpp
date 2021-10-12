@@ -47,7 +47,7 @@ namespace fc::vm::actor::builtin::types {
   struct DealWeights {
     DealWeight deal_weight;
     DealWeight verified_deal_weight;
-    uint64_t deal_space;
+    uint64_t deal_space{};
   };
 
 }  // namespace fc::vm::actor::builtin::types

@@ -247,7 +247,7 @@ auto search() {
         && path.extension() == ".json") {
       // Skip tests that fail in Fuhon
       static std::vector<boost::filesystem::path> fail_in_fuhon{
-          // TODO FIL-422 test-vectors hamt have incorrect order
+          // TODO (m.tagirov) FIL-422 test-vectors hamt have incorrect order
           // Fuhon implementation loads and reorders hamt
           // while Lotus implementation uses lazy approach and keeps initial incorrect order
           kCorpusRoot / "extracted/0004-coverage-boost/fil_1_storagepower/CreateMiner/Ok/ext-0004-fil_1_storagepower-CreateMiner-Ok-6.json",
