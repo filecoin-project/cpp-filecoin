@@ -76,7 +76,7 @@ namespace fc::api {
   /**
    * Storage miner node low-level interface API.
    */
-  struct StorageMinerApi : public NetworkApi{
+  struct StorageMinerApi : public CommonApi, public NetworkApi{
     API_METHOD(ActorAddress, jwt::kReadPermission, Address)
 
     API_METHOD(ActorSectorSize,
@@ -237,6 +237,7 @@ namespace fc::api {
   template <typename A, typename F>
   void visit(const StorageMinerApi &, A &&a, const F &f) {
     visitCommon(a, f);
+    visitNet(a, f);
     f(a.ActorAddress);
     f(a.ActorSectorSize);
     f(a.PledgeSector);

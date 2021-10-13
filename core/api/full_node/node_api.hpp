@@ -6,6 +6,7 @@
 #pragma once
 
 #include "api/common_api.hpp"
+#include "api/network/network_api.hpp"
 #include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "const.hpp"
 #include "data_transfer/types.hpp"
@@ -76,6 +77,7 @@ namespace fc::api {
   using vm::runtime::MessageReceipt;
   using vm::version::NetworkVersion;
   using SignatureType = crypto::signature::Type;
+  using api::NetworkApi;
 
   struct InvocResult {
     UnsignedMessage message;
@@ -294,7 +296,7 @@ namespace fc::api {
    * FullNode API is a low-level interface to the Filecoin network full node.
    * Provides the latest node API v2.0.0
    */
-  struct FullNodeApi : public CommonApi {
+  struct FullNodeApi : public CommonApi, public NetworkApi {
     /**
      * @note long operation
      */
@@ -803,8 +805,9 @@ namespace fc::api {
   };
 
   template <typename A, typename F>
-  void visit(const FullNodeApi &, A &&a, const F &f) {
+  void visit(const FullNodeApi &,  A &&a, const F &f) {
     visitCommon(a, f);
+    visitNet(a, f);
     f(a.BeaconGetEntry);
     f(a.ChainGetBlock);
     f(a.ChainGetBlockMessages);

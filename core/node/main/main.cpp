@@ -11,6 +11,7 @@
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
+#include "api/network/setup_net.hpp"
 #include "common/api_secret.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
@@ -55,6 +56,7 @@ namespace fc {
   using node::NodeObjects;
   using primitives::jwt::kAllPermission;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
+  using fc::api::fillNetApi;
 
   namespace {
     auto log() {
@@ -89,30 +91,7 @@ namespace fc {
     PeerInfo api_peer_info{
         node_objects.host->getPeerInfo().id,
         nonZeroAddrs(node_objects.host->getAddresses(), &config.localIp())};
-    node_objects.api->NetAddrsListen =
-        [api_peer_info]() -> outcome::result<PeerInfo> {
-      return api_peer_info;
-    };
-    node_objects.api->NetConnect = [&](auto &peer) {
-      node_objects.host->connect(peer);
-      return outcome::success();
-    };
-    node_objects.api->NetPeers =
-        [&]() -> outcome::result<std::vector<PeerInfo>> {
-      const auto &peer_repository = node_objects.host->getPeerRepository();
-      auto connections = node_objects.host->getNetwork()
-                             .getConnectionManager()
-                             .getConnections();
-      std::vector<PeerInfo> result;
-      for (const auto &conncection : connections) {
-        const auto remote = conncection->remotePeer();
-        if (remote.has_error())
-          log()->error("get remote peer error", remote.error().message());
-        result.push_back(peer_repository.getPeerInfo(remote.value()));
-      }
-      return result;
-    };
-
+    fillNetApi(node_objects.api, api_peer_info, node_objects.host);
     // Market Client API
     node_objects.api->ClientImport =
         [&](auto &file_ref) -> outcome::result<ImportRes> {
