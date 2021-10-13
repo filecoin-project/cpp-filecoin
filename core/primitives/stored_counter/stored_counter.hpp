@@ -34,6 +34,6 @@ namespace fc::primitives {
     std::shared_ptr<Datastore> datastore_;
     Buffer key_;
 
-    std::mutex mutex_;
+    mutable std::mutex mutex_;
   };
 }  // namespace fc::primitives
