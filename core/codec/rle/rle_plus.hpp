@@ -40,15 +40,18 @@ namespace fc::codec::rle {
     if (input.empty()) {
       return data;
     }
+    if (input.size() > BYTES_MAX_SIZE) {
+      return RLEPlusDecodeError::kMaxSizeExceed;
+    }
+
     RLEPlusDecodingStream decoder(input);
+
     try {
       decoder >> data;
     } catch (errors::VersionMismatch &) {
       return RLEPlusDecodeError::kVersionMismatch;
     } catch (errors::UnpackBytesOverflow &) {
       return RLEPlusDecodeError::kUnpackOverflow;
-    } catch (errors::MaxSizeExceed &) {
-      return RLEPlusDecodeError::kMaxSizeExceed;
     }
     return data;
   }

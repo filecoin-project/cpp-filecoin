@@ -379,11 +379,11 @@ namespace fc::storage::amt {
     if (bits() <= 3) {
       return 1;
     }
-    return 1 << (bits() - 3);
+    return uint64_t(1) << (bits() - 3);
   }
 
   uint64_t Amt::maskAt(uint64_t height) const {
-    return 1 << (bits() * height);
+    return uint64_t(1) << (bits() * height);
   }
 
   uint64_t Amt::maxAt(uint64_t height) const {

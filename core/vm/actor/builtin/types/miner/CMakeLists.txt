@@ -20,15 +20,18 @@ add_library(miner_types
     v0/expiration.cpp
     v0/partition.cpp
     v0/deadline.cpp
+    v0/monies.cpp
+    v0/proof_policy.cpp
     v2/expiration.cpp
     v2/partition.cpp
     v2/deadline.cpp
+    v2/monies.cpp
+    v2/proof_policy.cpp
     v3/partition.cpp
     v3/deadline.cpp
-    bind_types.cpp
-    v0/monies.cpp
-    v2/monies.cpp
     v3/monies.cpp
+    v3/proof_policy.cpp
+    bind_types.cpp
     )
 target_link_libraries(miner_types
     actor

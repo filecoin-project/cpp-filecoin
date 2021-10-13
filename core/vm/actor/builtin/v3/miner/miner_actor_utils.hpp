@@ -11,18 +11,27 @@ namespace fc::vm::actor::builtin::v3::miner {
   using common::Buffer;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
+  using primitives::DealId;
   using primitives::address::Address;
   using primitives::sector::RegisteredSealProof;
   using runtime::Runtime;
+  using states::MinerActorStatePtr;
+  using types::DealWeights;
+  using types::EpochReward;
+  using types::TotalPower;
   using types::miner::CronEventPayload;
-  using types::miner::EpochReward;
   using types::miner::PowerPair;
-  using types::miner::TotalPower;
+  using types::miner::SectorOnChainInfo;
+  using types::miner::SectorPreCommitInfo;
   using version::NetworkVersion;
 
   class MinerUtils : public v2::miner::MinerUtils {
    public:
     explicit MinerUtils(Runtime &r) : v2::miner::MinerUtils(r) {}
+
+    outcome::result<SectorOnChainInfo> validateReplaceSector(
+        MinerActorStatePtr &state,
+        const SectorPreCommitInfo &params) const override;
 
     outcome::result<void> canPreCommitSealProof(
         RegisteredSealProof seal_proof_type,
@@ -35,6 +44,11 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     outcome::result<void> notifyPledgeChanged(
         const TokenAmount &pledge_delta) const override;
+
+    outcome::result<DealWeights> requestDealWeight(
+        const std::vector<DealId> &deals,
+        ChainEpoch sector_start,
+        ChainEpoch sector_expiry) const override;
 
    protected:
     outcome::result<Address> getPubkeyAddressFromAccountActor(
