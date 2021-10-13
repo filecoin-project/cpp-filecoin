@@ -15,14 +15,13 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::blockchain::block_validator {
-  class ConsensusRules {
-   protected:
-    using WeightCalculator = weight::WeightCalculator;
-    using BlockHeader = primitives::block::BlockHeader;
-    using PowerTable = power::PowerTable;
-    using ChainEpoch = primitives::ChainEpoch;
-    using Tipset = primitives::tipset::Tipset;
+  using power::PowerTable;
+  using primitives::ChainEpoch;
+  using primitives::block::BlockHeader;
+  using primitives::tipset::Tipset;
+  using weight::WeightCalculator;
 
+  class ConsensusRules {
    public:
     /**
      * @brief Check miner params

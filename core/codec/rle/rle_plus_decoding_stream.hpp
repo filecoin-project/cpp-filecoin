@@ -55,10 +55,6 @@ namespace fc::codec::rle {
           }
         }
       }
-      constexpr size_t max_size = OBJECT_MAX_SIZE / sizeof(T);
-      if (output.size() > max_size) {
-        throw errors::MaxSizeExceed();
-      }
       return *this;
     }
 

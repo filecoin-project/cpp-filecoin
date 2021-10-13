@@ -13,6 +13,7 @@
 #include "testutil/resources/resources.hpp"
 #include "testutil/vm/actor/builtin/miner/miner_actor_test_fixture.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
+#include "vm/actor/builtin/v3/market/market_actor.hpp"
 #include "vm/actor/builtin/v3/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v3/storage_power/storage_power_actor.hpp"
 #include "vm/actor/codes.hpp"
@@ -86,6 +87,19 @@ namespace fc::vm::actor::builtin::v3::miner {
           {},
           0,
           {raw, qa, pledge_collateral, qa_power_smoothed});
+    }
+
+    void expectDealWeight(const std::vector<DealId> &deals,
+                          ChainEpoch sector_start,
+                          ChainEpoch sector_expiry,
+                          const DealWeight &deal_weight,
+                          const DealWeight &verified_deal_weight,
+                          uint64_t deal_space) {
+      runtime.expectSendM<market::VerifyDealsForActivation>(
+          kStorageMarketAddress,
+          {deals, sector_expiry, sector_start},
+          0,
+          {deal_weight, verified_deal_weight, deal_space});
     }
 
     const Blob<48> bls_pubkey =

@@ -117,10 +117,8 @@ TYPED_TEST(RLEPlusCodecTester, ReferenceComparingSuccess) {
  */
 TEST(RLEPlusDecode, MaxSizeExceedFailure) {
   std::set<uint64_t> data_set;
-  constexpr size_t max_length =
-      fc::codec::rle::OBJECT_MAX_SIZE / sizeof(uint64_t) + 1;
   uint64_t value = 0;
-  for (size_t i = 0; i < max_length; ++i) {
+  for (size_t i = 0; i < 1000000; ++i) {
     data_set.emplace(value);
     value += 2;
   }

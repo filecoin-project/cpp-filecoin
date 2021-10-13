@@ -30,6 +30,7 @@ jobs:
         git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
     - name: install
       run: |
+        echo "LIBRARY_PATH=$LIBRARY_PATH:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib" >> $GITHUB_ENV
         brew install ninja llvm pkg-config libb2 hwloc
         sudo python3 -m pip install --upgrade pip
         sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml

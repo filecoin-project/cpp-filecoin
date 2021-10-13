@@ -7,12 +7,14 @@
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 #include "primitives/address/address.hpp"
+#include "primitives/cid/comm_cid.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/resources/parse.hpp"
 #include "testutil/resources/resources.hpp"
 #include "testutil/vm/actor/builtin/miner/miner_actor_test_fixture.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
+#include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor_utils.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
@@ -23,6 +25,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using crypto::randomness::Randomness;
   using primitives::kChainEpochUndefined;
   using primitives::address::decodeFromString;
+  using primitives::cid::replicaCommitmentV1ToCID;
   using primitives::sector::RegisteredSealProof;
   using states::MinerActorStatePtr;
   using testing::_;
@@ -74,6 +77,18 @@ namespace fc::vm::actor::builtin::v0::miner {
           {},
           0,
           {raw, qa, pledge_collateral, qa_power_smoothed});
+    }
+
+    void expectDealWeight(const std::vector<DealId> &deals,
+                          ChainEpoch sector_start,
+                          ChainEpoch sector_expiry,
+                          const DealWeight &deal_weight,
+                          const DealWeight &verified_deal_weight) {
+      runtime.expectSendM<market::VerifyDealsForActivation>(
+          kStorageMarketAddress,
+          {deals, sector_expiry, sector_start},
+          0,
+          {deal_weight, verified_deal_weight});
     }
 
     const Blob<48> bls_pubkey =
@@ -549,6 +564,132 @@ namespace fc::vm::actor::builtin::v0::miner {
             .proofs = {post_proof},
             .chain_commit_epoch = chain_commit_epoch,
             .chain_commit_rand = randomness}));
+  }
+
+  TEST_F(MinerActorTest, PreCommitSectorWrongParams) {
+    initEmptyState();
+    initDefaultMinerInfo();
+
+    callerIs(owner);
+
+    SectorPreCommitInfo params;
+
+    params.registered_proof = RegisteredSealProof::kStackedDrg2KiBV1;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         PreCommitSector::call(runtime, params));
+
+    params.registered_proof = RegisteredSealProof::kStackedDrg64GiBV1;
+    params.sector = kMaxSectorNumber + 1;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         PreCommitSector::call(runtime, params));
+
+    params.sector = 100;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         PreCommitSector::call(runtime, params));
+
+    params.sealed_cid = kEmptyObjectCid;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         PreCommitSector::call(runtime, params));
+
+    params.sealed_cid =
+        replicaCommitmentV1ToCID(std::vector<uint8_t>(32, 'x')).value();
+    params.seal_epoch = current_epoch + 1;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         PreCommitSector::call(runtime, params));
+
+    params.seal_epoch = current_epoch - kChainFinality - 10000 - 1;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         PreCommitSector::call(runtime, params));
+
+    params.seal_epoch = current_epoch - 10;
+    params.expiration = current_epoch - 1;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         PreCommitSector::call(runtime, params));
+
+    params.expiration = current_epoch + 100;
+    params.replace_capacity = true;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         PreCommitSector::call(runtime, params));
+
+    params.replace_capacity = false;
+    params.replace_deadline = kWPoStPeriodDeadlines + 1;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         PreCommitSector::call(runtime, params));
+
+    params.replace_deadline = 10;
+    params.replace_sector = kMaxSectorNumber + 1;
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         PreCommitSector::call(runtime, params));
+
+    params.replace_sector = 200;
+    expectThisEpochReward(100, {10, 10}, 10);
+    expectCurrentTotalPower(100, 100, 1000, {10, 10});
+    expectDealWeight(
+        params.deal_ids, current_epoch, params.expiration, 1000, 100);
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         PreCommitSector::call(runtime, params));
+
+    params.registered_proof = RegisteredSealProof::kStackedDrg32GiBV1;
+    params.deal_ids = std::vector<DealId>(1000, 0);
+    expectThisEpochReward(100, {10, 10}, 10);
+    expectCurrentTotalPower(100, 100, 1000, {10, 10});
+    expectDealWeight(
+        params.deal_ids, current_epoch, params.expiration, 1000, 100);
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         PreCommitSector::call(runtime, params));
+  }
+
+  TEST_F(MinerActorTest, PreCommitSectorSuccess) {
+    initEmptyState();
+    initDefaultMinerInfo();
+
+    callerIs(owner);
+    balance = 1000;
+
+    const SectorNumber sector_num = 100;
+    const SectorNumber replace_sector = 200;
+    const uint64_t deadline_id = 1;
+    const uint64_t partition_id = 0;
+
+    const SectorPreCommitInfo params{
+        .registered_proof = RegisteredSealProof::kStackedDrg32GiBV1,
+        .sector = sector_num,
+        .sealed_cid =
+            replicaCommitmentV1ToCID(std::vector<uint8_t>(32, 'x')).value(),
+        .seal_epoch = current_epoch - 10,
+        .deal_ids = {0, 1, 2, 3},
+        .expiration = current_epoch + 2 * kMinSectorExpiration,
+        .replace_capacity = true,
+        .replace_deadline = deadline_id,
+        .replace_partition = partition_id,
+        .replace_sector = replace_sector};
+
+    SectorOnChainInfo sector;
+    sector.sector = replace_sector;
+    sector.sealed_cid = kEmptyObjectCid;
+    sector.seal_proof = RegisteredSealProof::kStackedDrg32GiBV1;
+    sector.expiration = current_epoch + kMinSectorExpiration;
+    sector.init_pledge = 100;
+    EXPECT_OUTCOME_TRUE_1(state->sectors.store({sector}));
+
+    Universal<Partition> partition{actor_version};
+    cbor_blake::cbLoadT(ipld, partition);
+    partition->sectors = {sector_num, replace_sector};
+
+    Universal<Deadline> deadline{actor_version};
+    cbor_blake::cbLoadT(ipld, deadline);
+    EXPECT_OUTCOME_TRUE_1(deadline->partitions.set(partition_id, partition));
+
+    EXPECT_OUTCOME_TRUE(deadlines, state->deadlines.get());
+    EXPECT_OUTCOME_TRUE_1(deadlines.due[deadline_id].set(deadline));
+    EXPECT_OUTCOME_TRUE_1(state->deadlines.set(deadlines));
+
+    expectThisEpochReward(100, {10, 10}, 10);
+    expectCurrentTotalPower(100, 100, 1000, {10, 10});
+    expectDealWeight(
+        params.deal_ids, current_epoch, params.expiration, 1000, 100);
+
+    EXPECT_OUTCOME_TRUE_1(PreCommitSector::call(runtime, params));
   }
 
 }  // namespace fc::vm::actor::builtin::v0::miner

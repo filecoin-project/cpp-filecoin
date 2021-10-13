@@ -17,13 +17,13 @@ namespace fc::vm::actor::builtin::states {
   outcome::result<void> MinerActorState::allocateSectorNumber(
       SectorNumber sector_num) {
     if (sector_num > kMaxSectorNumber) {
-      return ERROR_TEXT("sector number out of range");
+      return VMExitCode::kErrIllegalArgument;
     }
 
     OUTCOME_TRY(allocated, this->allocated_sectors.get());
 
     if (allocated.has(sector_num)) {
-      return ERROR_TEXT("sector number has already been allocated");
+      return VMExitCode::kErrIllegalArgument;
     }
 
     allocated.insert(sector_num);
@@ -36,13 +36,13 @@ namespace fc::vm::actor::builtin::states {
   outcome::result<void> MinerActorState::maskSectorNumbers(
       const RleBitset &sector_nos) {
     if (sector_nos.empty()) {
-      return ERROR_TEXT("invalid mask bitfield");
+      return VMExitCode::kErrIllegalArgument;
     }
 
     const auto &last_sector = *std::prev(sector_nos.end());
 
     if (last_sector > kMaxSectorNumber) {
-      return ERROR_TEXT("masked sector number exceeded max sector number");
+      return VMExitCode::kErrIllegalArgument;
     }
 
     OUTCOME_TRY(allocated, this->allocated_sectors.get());
@@ -187,15 +187,15 @@ namespace fc::vm::actor::builtin::states {
     OUTCOME_TRY(partition, deadline->partitions.get(partition_id));
 
     if (!partition->sectors.has(sector)) {
-      return ERROR_TEXT("sector is not a member of partition");
+      return VMExitCode::kErrNotFound;
     }
 
     if (partition->faults.has(sector)) {
-      return ERROR_TEXT("sector of partition is faulty");
+      return VMExitCode::kErrForbidden;
     }
 
     if (partition->terminated.has(sector)) {
-      return ERROR_TEXT("sector of partition is terminated");
+      return VMExitCode::kErrNotFound;
     }
 
     return outcome::success();

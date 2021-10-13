@@ -20,10 +20,8 @@ using fc::primitives::piece::UnpaddedPieceSize;
  * go integration test
  * @when make commitment from root payload cid
  * @then commitment and padded size are equal to generated in go
- * TODO(artyom-yurin): [FIL-240]
- * @note Disabled because .car file contains old CIDs
  */
-TEST(PieceIO, DISABLED_generatePieceCommitment) {
+TEST(PieceIO, generatePieceCommitment) {
   PieceIOImpl piece_io{boost::filesystem::temp_directory_path()};
   EXPECT_OUTCOME_TRUE(
       res,
@@ -37,7 +35,7 @@ TEST(PieceIO, DISABLED_generatePieceCommitment) {
 
   // commitment cid from go-fil-markets integration test
   std::string commitment_cid_expected{
-      "bafk4chza4qfcf6rqteuaudxm3m2liuv2ajcixckjjfcb5vgdbay4pc5jluja"};
+      "baga6ea4seaqgycs5xk6sa4fh6ezioasumkatcdt4uae2swobyjkzmx3zloi3ogq"};
   EXPECT_OUTCOME_TRUE(commitment_cid, res.first.toString());
   EXPECT_EQ(commitment_cid_expected, commitment_cid);
 }
