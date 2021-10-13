@@ -73,14 +73,14 @@ namespace fc::sector_storage {
                  outcome::result<void>(
                      const SectorRef &sector,
                      const SealRandomness &ticket,
-                     gsl::span<const PieceInfo> pieces,
+                     const std::vector<PieceInfo> &pieces,
                      std::function<void(outcome::result<PreCommit1Output>)>,
                      uint64_t priority));
     MOCK_METHOD4(
         sealPreCommit1Sync,
         outcome::result<PreCommit1Output>(const SectorRef &sector,
                                           const SealRandomness &ticket,
-                                          gsl::span<const PieceInfo> pieces,
+                                          const std::vector<PieceInfo> &pieces,
                                           uint64_t priority));
 
     MOCK_METHOD3(
@@ -100,7 +100,7 @@ namespace fc::sector_storage {
         outcome::result<Commit1Output>(const SectorRef &sector,
                                        const SealRandomness &ticket,
                                        const InteractiveRandomness &seed,
-                                       gsl::span<const PieceInfo> pieces,
+                                       const std::vector<PieceInfo> &pieces,
                                        const SectorCids &cids,
                                        uint64_t priority));
 
@@ -109,7 +109,7 @@ namespace fc::sector_storage {
                      const SectorRef &sector,
                      const SealRandomness &ticket,
                      const InteractiveRandomness &seed,
-                     gsl::span<const PieceInfo> pieces,
+                     const std::vector<PieceInfo> &pieces,
                      const SectorCids &cids,
                      std::function<void(outcome::result<Commit1Output>)>,
                      uint64_t priority));

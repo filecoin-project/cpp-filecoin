@@ -26,10 +26,14 @@ namespace fc::primitives {
 
     outcome::result<uint64_t> next() override;
 
+    outcome::result<uint64_t> getNumber() const;
+
+    outcome::result<void> setNumber(uint64_t number);
+
    private:
     std::shared_ptr<Datastore> datastore_;
     Buffer key_;
 
-    std::mutex mutex_;
+    mutable std::mutex mutex_;
   };
 }  // namespace fc::primitives
