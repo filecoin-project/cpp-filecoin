@@ -664,7 +664,7 @@ namespace fc::mining {
 
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
-    auto actor_version = Toolchain::getActorVersionForNetwork(version_);
+    const auto actor_version = Toolchain::getActorVersionForNetwork(version_);
     ipld->actor_version = actor_version;
     auto actor_state = makeMinerActorState(ipld, actor_version);
     SectorPreCommitOnChainInfo some_info;
