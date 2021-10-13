@@ -15,8 +15,8 @@ namespace fc::sectorblocks {
 
   class SectorBlocksImpl : public SectorBlocks {
    public:
-    SectorBlocksImpl(const std::shared_ptr<Miner> &miner,
-                     const std::shared_ptr<DataStore> &datastore);
+    SectorBlocksImpl(std::shared_ptr<Miner> miner,
+                     std::shared_ptr<DataStore> datastore);
 
     outcome::result<PieceAttributes> addPiece(
         UnpaddedPieceSize size,

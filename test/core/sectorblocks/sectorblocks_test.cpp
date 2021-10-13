@@ -98,7 +98,7 @@ namespace fc::sectorblocks {
    * @when try to add two duplicate pieces to the same deal_id
    * @then EXPECT_OUTCOME_ERROR
    */
-  TEST_F(SectorBlocksTest, DublicateTry) {
+  TEST_F(SectorBlocksTest, DuplicatePiece) {
     const DealInfo deal{
         .publish_cid = boost::none,
         .deal_id = 1,

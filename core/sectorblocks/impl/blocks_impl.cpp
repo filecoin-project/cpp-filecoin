@@ -6,18 +6,16 @@
 #include "sectorblocks/impl/blocks_impl.hpp"
 #include "adt/uvarint_key.hpp"
 #include "codec/cbor/cbor_codec.hpp"
-#include "storage/leveldb/prefix.hpp"
 
 namespace fc::sectorblocks {
   using adt::UvarintKeyer;
   using codec::cbor::decode;
   using codec::cbor::encode;
-  using storage::MapPrefix;
 
   SectorBlocksImpl::SectorBlocksImpl(
-      const std::shared_ptr<Miner> &miner,
-      const std::shared_ptr<DataStore> &datastore)
-      : miner_(miner), storage_(datastore) {}
+      std::shared_ptr<Miner> miner,
+      std::shared_ptr<DataStore> datastore)
+      : miner_(std::move(miner)), storage_(std::move(datastore)) {}
 
   outcome::result<PieceAttributes> SectorBlocksImpl::addPiece(
       UnpaddedPieceSize size,
@@ -53,7 +51,7 @@ namespace fc::sectorblocks {
       if (find(decoded_out.begin(), decoded_out.end(), new_piece)
           == decoded_out.end()) {
         decoded_out.push_back(new_piece);
-        new_data = decoded_out;
+        new_data = std::move(decoded_out);
       } else {
         return SectorBlocksError::kDealAlreadyExist;
       }
