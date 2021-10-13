@@ -26,6 +26,20 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
 namespace fc::storage::hamt {
   using common::which;
 
+  inline auto leafFind(Node::Leaf &leaf, BytesIn key) {
+    return std::find_if(
+        leaf.begin(), leaf.end(), [&](auto &p) { return p.first == key; });
+  }
+
+  inline void leafInsert(Node::Leaf &leaf, Node::Leaf::value_type pair) {
+    leaf.emplace(
+        std::lower_bound(leaf.begin(),
+                         leaf.end(),
+                         pair,
+                         [&](auto &l, auto &r) { return l.first < r.first; }),
+        std::move(pair));
+  }
+
   CBOR2_ENCODE(Node) {
     Bits bits;
     auto l_items{s.list()};
@@ -93,7 +107,7 @@ namespace fc::storage::hamt {
         for (size_t j = 0; j < n_leaf; ++j) {
           auto l_pair{l_leaf.list()};
           auto key{l_pair.get<Bytes>()};
-          leaf.emplace(std::move(key), l_pair.raw());
+          leaf.emplace_back(std::move(key), l_pair.raw());
         }
         v.items[j] = std::move(leaf);
       }
@@ -140,7 +154,7 @@ namespace fc::storage::hamt {
         node = boost::get<Node::Ptr>(item);
       } else {
         auto &leaf = boost::get<Node::Leaf>(item);
-        auto it{leaf.find(key)};
+        auto it{leafFind(leaf, key)};
         if (it == leaf.end()) {
           return HamtError::kNotFound;
         }
@@ -219,10 +233,10 @@ namespace fc::storage::hamt {
           *boost::get<Node::Ptr>(item), consumeIndex(indices), key, value);
     }
     auto &leaf = boost::get<Node::Leaf>(item);
-    if (auto it2{leaf.find(key)}; it2 != leaf.end()) {
+    if (auto it2{leafFind(leaf, key)}; it2 != leaf.end()) {
       copy(it2->second, value);
     } else if (leaf.size() < kLeafMax) {
-      leaf.emplace(copy(key), copy(value));
+      leafInsert(leaf, {copy(key), copy(value)});
     } else {
       auto child = std::make_shared<Node>();
       child->v3 = v3();
@@ -255,13 +269,14 @@ namespace fc::storage::hamt {
       OUTCOME_TRY(cleanShard(item));
     } else {
       auto &leaf = boost::get<Node::Leaf>(item);
-      if (leaf.find(key) == leaf.end()) {
+      auto it2{leafFind(leaf, key)};
+      if (it2 == leaf.end()) {
         return HamtError::kNotFound;
       }
       if (leaf.size() == 1) {
         node.items.erase(index);
       } else {
-        leaf.erase(leaf.find(key));
+        leaf.erase(it2);
       }
     }
     return outcome::success();
@@ -281,7 +296,7 @@ namespace fc::storage::hamt {
           return outcome::success();
         }
         for (auto &pair : boost::get<Node::Leaf>(item2.second)) {
-          leaf.emplace(pair);
+          leafInsert(leaf, pair);
           if (leaf.size() > kLeafMax) {
             return outcome::success();
           }
