@@ -419,10 +419,11 @@ namespace fc::storage::ipfs::graphsync {
       closeStream(std::move(stream), RS_TIMEOUT);
     }
 
+    // reschedule during scheduler callback, will not throw
     if (!streams_.empty() && max_expire_time > now) {
-      timer_.reschedule(max_expire_time - now);
+      timer_.reschedule(max_expire_time - now).value();
     } else {
-      timer_.reschedule(kPeerCloseDelayMsec);
+      timer_.reschedule(kPeerCloseDelayMsec).value();
     }
   }
 

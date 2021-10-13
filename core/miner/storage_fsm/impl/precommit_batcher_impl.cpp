@@ -29,13 +29,18 @@ namespace fc::mining {
       : max_delay_(max_time),
         api_(std::move(api)),
         miner_address_(miner_address),
+        scheduler_(scheduler),
         closest_cutoff_(max_time),
         fee_config_(std::move(fee_config)),
         address_selector_(address_selector) {
     cutoff_start_ = std::chrono::system_clock::now();
     logger_ = common::createLogger("batcher");
     logger_->info("Batcher has been started");
-    handle_ = scheduler->scheduleWithHandle(
+    reschedule(max_delay_);
+  }
+
+  void PreCommitBatcherImpl::reschedule(std::chrono::milliseconds time) {
+    handle_ = scheduler_->scheduleWithHandle(
         [&]() {
           std::unique_lock<std::mutex> locker(mutex_);
           const auto maybe_result = sendBatch();
@@ -45,9 +50,11 @@ namespace fc::mining {
           callbacks_.clear();
           cutoff_start_ = std::chrono::system_clock::now();
           closest_cutoff_ = max_delay_;
-          handle_.reschedule(max_delay_);
+
+          // reschedule during scheduler callback, will not throw
+          handle_.reschedule(max_delay_).value();
         },
-        max_delay_);
+        time);
   }
 
   outcome::result<CID> PreCommitBatcherImpl::sendBatch() {
@@ -103,7 +110,7 @@ namespace fc::mining {
     callbacks_.clear();
     cutoff_start_ = std::chrono::system_clock::now();
     closest_cutoff_ = max_delay_;
-    handle_.reschedule(max_delay_);
+    reschedule(max_delay_);
   }
 
   void PreCommitBatcherImpl::setPreCommitCutoff(const ChainEpoch &current_epoch,
@@ -131,7 +138,7 @@ namespace fc::mining {
                    std::chrono::system_clock::now() - cutoff_start_)
            > temp_cutoff)) {
         cutoff_start_ = std::chrono::system_clock::now();
-        handle_.reschedule(temp_cutoff);
+        reschedule(temp_cutoff);
         closest_cutoff_ = temp_cutoff;
       }
     }

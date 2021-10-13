@@ -57,6 +57,7 @@ namespace fc::mining {
     std::chrono::milliseconds max_delay_;
     std::shared_ptr<FullNodeApi> api_;
     Address miner_address_;
+    std::shared_ptr<Scheduler> scheduler_;
     Scheduler::Handle handle_;
     std::chrono::milliseconds closest_cutoff_;
     std::chrono::system_clock::time_point cutoff_start_;
@@ -71,6 +72,8 @@ namespace fc::mining {
                             const SectorInfo &sector_info);
 
     outcome::result<CID> sendBatch();
+
+    void reschedule(std::chrono::milliseconds time);
   };
 
 }  // namespace fc::mining
