@@ -71,7 +71,7 @@ namespace fc {
 
   static const Buffer kActor{cbytes("actor")};
   static const std::string kSectorCounterKey = "sector_counter";
-  static const size_t kApiThreadPoolSize = 4;
+  constexpr size_t kApiThreadPoolSize = 4;
 
   auto log() {
     static common::Logger logger = common::createLogger("miner");

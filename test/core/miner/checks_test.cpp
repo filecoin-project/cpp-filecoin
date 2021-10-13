@@ -333,7 +333,7 @@ namespace fc::mining::checks {
       miner_addr_ = Address::makeFromId(miner_id_);
       ipld_ = std::make_shared<InMemoryDatastore>();
       version_ = api::NetworkVersion::kVersion13;
-      auto actor_version = Toolchain::getActorVersionForNetwork(version_);
+      const auto actor_version = Toolchain::getActorVersionForNetwork(version_);
       ipld_->actor_version = actor_version;
       actor_state_ = makeMinerActorState(ipld_, actor_version);
     }
