@@ -460,6 +460,7 @@ namespace fc::storage::mpool {
     mpool->ipld = env_context.ipld;
     mpool->head_sub =
         chain_store->subscribeHeadChanges([=](const auto &changes) {
+          std::unique_lock lock{mpool->mutex};
           for (const auto &change : changes) {
             auto res{mpool->onHeadChange(change)};
             if (!res) {
@@ -474,6 +475,7 @@ namespace fc::storage::mpool {
   }
 
   std::vector<SignedMessage> MessagePool::pending() const {
+    std::unique_lock lock{mutex};
     std::vector<SignedMessage> messages;
     for (auto &[addr, pending] : by_from) {
       for (auto &[nonce, message] : pending) {
@@ -506,6 +508,7 @@ namespace fc::storage::mpool {
 
   outcome::result<std::vector<SignedMessage>> MessagePool::select(
       TipsetCPtr ts, double ticket_quality) const {
+    std::unique_lock lock{mutex};
     OUTCOME_TRY(base_fee, ts->nextBaseFee(env_context.ipld));
     vm::runtime::Pricelist pricelist{ts->epoch()};
     OUTCOME_TRY(cached, env_context.interpreter_cache->get(ts->key));
@@ -577,6 +580,7 @@ namespace fc::storage::mpool {
   }
 
   outcome::result<Nonce> MessagePool::nonce(const Address &from) const {
+    std::unique_lock lock{mutex};
     assert(from.isKeyType());
     OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head->key));
     OUTCOME_TRY(actor,
@@ -593,6 +597,7 @@ namespace fc::storage::mpool {
 
   outcome::result<void> MessagePool::estimate(
       UnsignedMessage &message, const TokenAmount &max_fee) const {
+    std::unique_lock lock{mutex};
     assert(message.from.isKeyType());
     if (message.gas_limit == 0) {
       auto msg{message};
@@ -715,6 +720,11 @@ namespace fc::storage::mpool {
   }
 
   outcome::result<void> MessagePool::add(const SignedMessage &message) {
+    std::unique_lock lock{mutex};
+    return addLocked(message);
+  }
+
+  outcome::result<void> MessagePool::addLocked(const SignedMessage &message) {
     if (message.signature.isBls()) {
       bls_cache.insert(message.getCid(), message.signature);
     }
@@ -745,10 +755,10 @@ namespace fc::storage::mpool {
             } else {
               if (bls) {
                 if (auto sig{bls_cache.get(cid)}) {
-                  OUTCOME_TRY(add({*msg, *sig}));
+                  OUTCOME_TRY(addLocked({*msg, *sig}));
                 }
               } else {
-                OUTCOME_TRY(add(*smsg));
+                OUTCOME_TRY(addLocked(*smsg));
               }
             }
             return outcome::success();
