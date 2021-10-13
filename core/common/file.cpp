@@ -22,15 +22,15 @@ namespace fc::common {
     return std::make_pair(std::move(file), input);
   }
 
-  Outcome<Buffer> readFile(const boost::filesystem::path &path) {
+  Outcome<Bytes> readFile(const boost::filesystem::path &path) {
     std::ifstream file{path.c_str(), std::ios::binary | std::ios::ate};
     if (file.good()) {
-      Buffer buffer;
-      buffer.resize(file.tellg());
+      Bytes result;
+      result.resize(file.tellg());
       file.seekg(0, std::ios::beg);
-      file.read(common::span::string(buffer).data(),
-                static_cast<ptrdiff_t>(buffer.size()));
-      return buffer;
+      file.read(common::span::string(result).data(),
+                static_cast<ptrdiff_t>(result.size()));
+      return result;
     }
     return {};
   }

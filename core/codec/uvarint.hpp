@@ -10,6 +10,7 @@
 #include <limits>
 
 #include "codec/common.hpp"
+#include "common/buffer.hpp"
 #include "common/file.hpp"
 
 namespace fc::codec::uvarint {
@@ -50,8 +51,7 @@ namespace fc::codec::uvarint {
       } while (_value != 0);
     }
     constexpr auto bytes() const {
-      return gsl::make_span(_bytes).subspan(
-          0, static_cast<ptrdiff_t>(length));
+      return gsl::make_span(_bytes).subspan(0, static_cast<ptrdiff_t>(length));
     }
   };
 
@@ -99,8 +99,7 @@ namespace fc::codec::uvarint {
         return false;
       }
       if (!varint.more) {
-        input = input.subspan(
-            static_cast<ptrdiff_t>(varint.length));
+        input = input.subspan(static_cast<ptrdiff_t>(varint.length));
         out = static_cast<T>(varint.value);
         return true;
       }
