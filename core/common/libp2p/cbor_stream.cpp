@@ -20,7 +20,7 @@ namespace fc::common::libp2p {
     consume(buffer_, std::move(cb));
   }
 
-  void CborStream::writeRaw(std::shared_ptr<Buffer> input,
+  void CborStream::writeRaw(const std::shared_ptr<Bytes> &input,
                             WriteCallbackFunc cb) {
     stream_->write(*input,
                    input->size(),

@@ -8,10 +8,9 @@
 #include "codec/cbor/cbor_decode_stream.hpp"
 #include "codec/cbor/cbor_encode_stream.hpp"
 #include "codec/cbor/cbor_resolve.hpp"
-#include "common/buffer.hpp"
+#include "common/bytes.hpp"
 
 namespace fc::codec::cbor {
-  using common::Buffer;
 
   /**
    * @brief CBOR encoding to byte-vector
@@ -20,11 +19,11 @@ namespace fc::codec::cbor {
    * @return encoded data
    */
   template <typename T>
-  outcome::result<Buffer> encode(const T &arg) {
+  outcome::result<Bytes> encode(const T &arg) {
     try {
       CborEncodeStream encoder;
       encoder << arg;
-      return Buffer{encoder.data()};
+      return encoder.data();
     } catch (std::system_error &e) {
       return outcome::failure(e.code());
     }

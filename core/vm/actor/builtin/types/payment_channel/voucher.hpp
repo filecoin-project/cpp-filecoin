@@ -76,7 +76,7 @@ namespace fc::vm::actor::builtin::types::payment_channel {
              && signature_bytes == rhs.signature_bytes;
     }
 
-    inline outcome::result<Buffer> signingBytes() const {
+    inline outcome::result<Bytes> signingBytes() const {
       auto copy = *this;
       copy.signature_bytes = boost::none;
       return codec::cbor::encode(copy);

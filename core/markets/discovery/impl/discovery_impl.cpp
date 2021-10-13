@@ -29,7 +29,7 @@ namespace fc::markets::discovery {
     }
     peers.push_back(peer);
     OUTCOME_TRY(peers_cbored, codec::cbor::encode(peers));
-    OUTCOME_TRY(datastore_->put(cid_key, peers_cbored));
+    OUTCOME_TRY(datastore_->put(cid_key, Buffer{peers_cbored}));
     return outcome::success();
   }
 

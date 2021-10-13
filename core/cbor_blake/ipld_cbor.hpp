@@ -37,7 +37,7 @@ namespace fc::cbor_blake {
   }
 
   template <typename T>
-  outcome::result<Buffer> cbEncodeT(const T &value) {
+  outcome::result<Bytes> cbEncodeT(const T &value) {
     OUTCOME_TRY(cbFlushT(value));
     return codec::cbor::encode(value);
   }
