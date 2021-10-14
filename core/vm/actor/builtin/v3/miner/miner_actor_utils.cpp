@@ -18,7 +18,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                    state->sectors.sectors.get(params.replace_sector),
                    VMExitCode::kErrNotFound);
 
-    OUTCOME_TRY(getRuntime().validateArgument(!replace_sector.deals.empty()));
+    OUTCOME_TRY(getRuntime().validateArgument(replace_sector.deals.empty()));
 
     REQUIRE_NO_ERROR_A(replace_post_proof,
                        getRegisteredWindowPoStProof(replace_sector.seal_proof),
