@@ -18,6 +18,7 @@
 #include "api/rpc/json.hpp"
 #include "api/rpc/rpc.hpp"
 #include "api/visit.hpp"
+#include "common/io_thread.hpp"
 #include "common/logger.hpp"
 
 namespace fc::api::rpc {
@@ -53,6 +54,7 @@ namespace fc::api::rpc {
 
    private:
     std::thread thread;
+    IoThread thread_chan;
     io_context io;
     io_context &io2;
     boost::asio::executor_work_guard<io_context::executor_type> work_guard;

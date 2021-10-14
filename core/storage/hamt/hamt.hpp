@@ -57,7 +57,7 @@ namespace fc::storage::hamt {
   /** Hamt node representation */
   struct Node {
     using Ptr = std::shared_ptr<Node>;
-    using Leaf = std::map<Bytes, Bytes, BytesLess>;
+    using Leaf = std::vector<std::pair<Bytes, Bytes>>;
     using Item = boost::variant<CID, Ptr, Leaf>;
 
     std::map<size_t, Item> items;

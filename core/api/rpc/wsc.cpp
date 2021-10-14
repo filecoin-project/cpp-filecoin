@@ -136,7 +136,8 @@ namespace fc::api::rpc {
           }
           if (id) {
             boost::asio::post(
-                io2, [this, close, id{*id}, value{std::move(value)}]() mutable {
+                *thread_chan.io,
+                [this, close, id{*id}, value{std::move(value)}]() mutable {
                   std::unique_lock lock{mutex};
                   auto it{chans.find(id)};
                   if (it != chans.end()) {

@@ -12,6 +12,6 @@
 namespace fc::mining {
   class PreCommitPolicyMock : public PreCommitPolicy {
    public:
-    MOCK_METHOD1(expiration, ChainEpoch(gsl::span<const types::Piece>));
+    MOCK_METHOD1(expiration, outcome::result<ChainEpoch>(gsl::span<const types::Piece>));
   };
 }  // namespace fc::mining

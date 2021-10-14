@@ -15,6 +15,7 @@
 #include "api/worker_api.hpp"
 #include "common/enum.hpp"
 #include "common/libp2p/peer/cbor_peer_info.hpp"
+#include "miner/main/type.hpp"
 #include "payment_channel_manager/payment_channel_manager.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
@@ -40,12 +41,15 @@ namespace fc::codec::cbor {
 }  // namespace fc::codec::cbor
 
 namespace fc::api {
+  using api::ApiSectorInfo;
   using codec::cbor::CborDecodeStream;
   using common::Blob;
   using crypto::signature::BlsSignature;
   using crypto::signature::Secp256k1Signature;
   using crypto::signature::Signature;
   using markets::storage::StorageAsk;
+  using miner::types::PreSealSector;
+  using mining::SealingState;
   using primitives::BigInt;
   using primitives::FsStat;
   using primitives::kChainEpochUndefined;
@@ -242,6 +246,14 @@ namespace fc::api {
     }
 
     DECODE(SectorFileType) {
+      decodeEnum(v, j);
+    }
+
+    ENCODE(SealingState) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(SealingState) {
       decodeEnum(v, j);
     }
 
@@ -1012,6 +1024,16 @@ namespace fc::api {
       Get(j, "SealedCID", v.sealed_cid);
     }
 
+    ENCODE(ApiSectorInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "State", v.state);
+      return j;
+    }
+
+    DECODE(ApiSectorInfo) {
+      Get(j, "State", v.state);
+    }
+
     ENCODE(PowerPair) {
       Value j{rapidjson::kObjectType};
       Set(j, "Raw", v.raw);
@@ -1412,6 +1434,48 @@ namespace fc::api {
       decode(v.deal_start_epoch, Get(j, "DealStartEpoch"));
       decode(v.fast_retrieval, Get(j, "FastRetrieval"));
       decode(v.verified_deal, Get(j, "VerifiedDeal"));
+    }
+
+    ENCODE(PreSealSector) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "CommR", v.comm_r);
+      Set(j, "CommD", v.comm_d);
+      Set(j, "SectorID", v.sector_id);
+      Set(j, "Deal", v.deal);
+      Set(j, "ProofType", v.proof_type);
+      return j;
+    }
+
+    DECODE(PreSealSector) {
+      decode(v.comm_r, Get(j, "CommR"));
+      decode(v.comm_d, Get(j, "CommD"));
+      decode(v.sector_id, Get(j, "SectorID"));
+      decode(v.deal, Get(j, "Deal"));
+      decode(v.proof_type, Get(j, "ProofType"));
+    }
+
+    ENCODE(miner::types::Miner) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id);
+      Set(j, "Owner", v.owner);
+      Set(j, "Worker", v.worker);
+      Set(j, "PeerId", v.peer_id);
+      Set(j, "MarketBalance", v.market_balance);
+      Set(j, "PowerBalance", v.power_balance);
+      Set(j, "SectorSize", v.sector_size);
+      Set(j, "Sectors", v.sectors);
+      return j;
+    }
+
+    DECODE(miner::types::Miner) {
+      decode(v.id, Get(j, "ID"));
+      decode(v.owner, Get(j, "Owner"));
+      decode(v.worker, Get(j, "Worker"));
+      decode(v.peer_id, Get(j, "PeerId"));
+      decode(v.market_balance, Get(j, "MarketBalance"));
+      decode(v.power_balance, Get(j, "PowerBalance"));
+      decode(v.sector_size, Get(j, "SectorSize"));
+      decode(v.sectors, Get(j, "Sectors"));
     }
 
     template <typename T>

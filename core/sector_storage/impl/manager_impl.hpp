@@ -56,14 +56,14 @@ namespace fc::sector_storage {
     outcome::result<void> sealPreCommit1(
         const SectorRef &sector,
         const SealRandomness &ticket,
-        gsl::span<const PieceInfo> pieces,
+        const std::vector<PieceInfo> &pieces,
         std::function<void(outcome::result<PreCommit1Output>)> cb,
         uint64_t priority) override;
 
     outcome::result<PreCommit1Output> sealPreCommit1Sync(
         const SectorRef &sector,
         const SealRandomness &ticket,
-        gsl::span<const PieceInfo> pieces,
+        const std::vector<PieceInfo> &pieces,
         uint64_t priority) override;
 
     outcome::result<void> sealPreCommit2(
@@ -81,7 +81,7 @@ namespace fc::sector_storage {
         const SectorRef &sector,
         const SealRandomness &ticket,
         const InteractiveRandomness &seed,
-        gsl::span<const PieceInfo> pieces,
+        const std::vector<PieceInfo> &pieces,
         const SectorCids &cids,
         std::function<void(outcome::result<Commit1Output>)> cb,
         uint64_t priority) override;
@@ -90,7 +90,7 @@ namespace fc::sector_storage {
         const SectorRef &sector,
         const SealRandomness &ticket,
         const InteractiveRandomness &seed,
-        gsl::span<const PieceInfo> pieces,
+        const std::vector<PieceInfo> &pieces,
         const SectorCids &cids,
         uint64_t priority) override;
 

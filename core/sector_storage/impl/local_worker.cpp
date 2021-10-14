@@ -334,7 +334,7 @@ namespace fc::sector_storage {
   outcome::result<CallId> LocalWorker::sealPreCommit1(
       const SectorRef &sector,
       const SealRandomness &ticket,
-      gsl::span<const PieceInfo> pieces) {
+      const std::vector<PieceInfo> &pieces) {
     return asyncCall(
         sector,
         return_->ReturnSealPreCommit1,
@@ -422,7 +422,7 @@ namespace fc::sector_storage {
       const SectorRef &sector,
       const SealRandomness &ticket,
       const InteractiveRandomness &seed,
-      gsl::span<const PieceInfo> pieces,
+      const std::vector<PieceInfo> &pieces,
       const SectorCids &cids) {
     return asyncCall(
         sector,
@@ -589,8 +589,8 @@ namespace fc::sector_storage {
             auto computeUnsealRanges =
                 [file](PaddedByteIndex offset,
                        PaddedPieceSize size) -> std::vector<Range> {
-              static uint64_t kMergeGaps = uint64_t(32)
-                                           << 20;  // TODO: find optimal number
+              constexpr uint64_t kMergeGaps =
+                  uint64_t(32) << 20;  // TODO: find optimal number
 
               auto rle = file->allocated();
               auto to_unsealed = primitives::runsAnd(

@@ -189,7 +189,7 @@ namespace fc::mining {
         if (maybe_tipset_opt.has_error()) {
           logger_->error("Getting tipset from cache failed: {}",
                          maybe_tipset_opt.error().message());
-          break;
+          return false;
         }
 
         if (maybe_tipset_opt.value()) {
