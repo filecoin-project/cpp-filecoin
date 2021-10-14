@@ -141,7 +141,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   outcome::result<TokenAmount> Monies::repayDebtsOrAbort(
-      Runtime &runtime, MinerActorStatePtr miner_state) const {
+      Runtime &runtime, MinerActorStatePtr &miner_state) const {
     return TokenAmount{};
   }
 

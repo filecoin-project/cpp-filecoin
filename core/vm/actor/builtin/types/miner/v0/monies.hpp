@@ -104,7 +104,7 @@ namespace fc::vm::actor::builtin::v0::miner {
         const StoragePower &sector_power) const override;
 
     outcome::result<TokenAmount> repayDebtsOrAbort(
-        Runtime &runtime, MinerActorStatePtr miner_state) const override;
+        Runtime &runtime, MinerActorStatePtr &miner_state) const override;
 
     outcome::result<TokenAmount> consensusFaultPenalty(
         const TokenAmount &this_epoch_reward) const override;

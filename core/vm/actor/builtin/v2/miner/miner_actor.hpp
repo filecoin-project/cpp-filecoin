@@ -32,8 +32,13 @@ namespace fc::vm::actor::builtin::v2::miner {
     ACTOR_METHOD_DECL();
   };
 
+  struct PreCommitSector : ActorMethodBase<6> {
+    using Params = v0::miner::PreCommitSector::Params;
+
+    ACTOR_METHOD_DECL();
+  };
+
   // TODO implement
-  using PreCommitSector = v0::miner::PreCommitSector;
   using ProveCommitSector = v0::miner::ProveCommitSector;
   using ExtendSectorExpiration = v0::miner::ExtendSectorExpiration;
   using TerminateSectors = v0::miner::TerminateSectors;

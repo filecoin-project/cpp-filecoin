@@ -93,7 +93,7 @@ namespace fc::vm::actor::builtin::types::miner {
         const StoragePower &sector_power) const = 0;
 
     virtual outcome::result<TokenAmount> repayDebtsOrAbort(
-        Runtime &runtime, MinerActorStatePtr miner_state) const = 0;
+        Runtime &runtime, MinerActorStatePtr &miner_state) const = 0;
 
     virtual outcome::result<TokenAmount> consensusFaultPenalty(
         const TokenAmount &this_epoch_reward) const = 0;

@@ -52,7 +52,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                    state->sectors.sectors.get(params.replace_sector),
                    VMExitCode::kErrNotFound);
 
-    OUTCOME_TRY(getRuntime().validateArgument(!replace_sector.deals.empty()));
+    OUTCOME_TRY(getRuntime().validateArgument(replace_sector.deals.empty()));
 
     if (nv < NetworkVersion::kVersion7) {
       OUTCOME_TRY(getRuntime().validateArgument(params.registered_proof
