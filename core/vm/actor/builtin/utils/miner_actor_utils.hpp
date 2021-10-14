@@ -12,10 +12,11 @@
 #include "primitives/address/address.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/cron_event_payload.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/power_pair.hpp"
-#include "vm/actor/builtin/types/miner/transit.hpp"
+#include "vm/actor/builtin/types/transit.hpp"
 #include "vm/actor/builtin/utils/actor_utils.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/version/version.hpp"
@@ -25,16 +26,20 @@ namespace fc::vm::actor::builtin::utils {
   using common::smoothing::FilterEstimate;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
+  using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredSealProof;
   using runtime::Runtime;
+  using states::MinerActorStatePtr;
+  using types::DealWeights;
+  using types::EpochReward;
+  using types::TotalPower;
   using types::miner::CronEventPayload;
-  using types::miner::EpochReward;
   using types::miner::PowerPair;
   using types::miner::SectorOnChainInfo;
-  using types::miner::TotalPower;
+  using types::miner::SectorPreCommitInfo;
   using version::NetworkVersion;
 
   class MinerUtils : public ActorUtils {
@@ -51,6 +56,9 @@ namespace fc::vm::actor::builtin::utils {
 
     inline uint64_t loadPartitionsSectorsMax(
         uint64_t partition_sector_count) const {
+      if (partition_sector_count == 0) {
+        return 0;
+      }
       return std::min(
           types::miner::kAddressedSectorsMax / partition_sector_count,
           getAddressedPartitionsMax());
@@ -112,6 +120,14 @@ namespace fc::vm::actor::builtin::utils {
     virtual ChainEpoch currentProvingPeriodStart(ChainEpoch current_epoch,
                                                  ChainEpoch offset) const = 0;
 
+    virtual outcome::result<void> validateExpiration(
+        ChainEpoch activation,
+        ChainEpoch expiration,
+        RegisteredSealProof seal_proof) const = 0;
+
+    virtual outcome::result<SectorOnChainInfo> validateReplaceSector(
+        MinerActorStatePtr &state, const SectorPreCommitInfo &params) const = 0;
+
     /**
      * Computes the deadline index for the current epoch for a given period
      * start. currEpoch must be within the proving period that starts at
@@ -133,6 +149,11 @@ namespace fc::vm::actor::builtin::utils {
         const = 0;
 
     virtual outcome::result<TotalPower> requestCurrentTotalPower() const = 0;
+
+    virtual outcome::result<DealWeights> requestDealWeight(
+        const std::vector<DealId> &deals,
+        ChainEpoch sector_start,
+        ChainEpoch sector_expiry) const = 0;
 
     virtual outcome::result<void> verifyWindowedPost(
         ChainEpoch challenge_epoch,

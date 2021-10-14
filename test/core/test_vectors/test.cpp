@@ -245,21 +245,6 @@ auto search() {
     const auto &path{item.path()};
     if (item.status().type() == boost::filesystem::file_type::regular_file
         && path.extension() == ".json") {
-      // Skip tests that fail in Fuhon
-      static std::vector<boost::filesystem::path> fail_in_fuhon{
-          // TODO (a.chernyshov) test-vectors hamt have incorrect order
-          // Lotus implementation loads and reorders amt while cpp
-          // implementation uses lazy approach and keeps initial incorrect order
-          kCorpusRoot / "extracted/0004-coverage-boost/fil_1_storagepower/CreateMiner/Ok/ext-0004-fil_1_storagepower-CreateMiner-Ok-6.json",
-          kCorpusRoot / "extracted/0004-coverage-boost/fil_1_storagepower/CreateMiner/Ok/ext-0004-fil_1_storagepower-CreateMiner-Ok-10.json",
-          kCorpusRoot / "extracted/0001-initial-extraction/fil_1_storagepower/CreateMiner/Ok/ext-0001-fil_1_storagepower-CreateMiner-Ok-6.json",
-      };
-
-      if (std::find(fail_in_fuhon.cbegin(), fail_in_fuhon.cend(), path)
-          != fail_in_fuhon.cend()) {
-        continue;
-      }
-
       // ignore broken/incorrect vectors that starts with "x--"
       if (boost::algorithm::starts_with(path.filename().string(), "x--")) {
         continue;

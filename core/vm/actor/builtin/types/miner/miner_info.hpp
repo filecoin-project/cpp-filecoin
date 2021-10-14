@@ -106,6 +106,10 @@ namespace fc::vm::actor::builtin::types::miner {
              && consensus_fault_elapsed == other.consensus_fault_elapsed
              && pending_owner_address == other.pending_owner_address;
     }
+
+    inline bool operator!=(const MinerInfo &other) const {
+      return !(*this == other);
+    }
   };
 
   outcome::result<Universal<MinerInfo>> makeMinerInfo(

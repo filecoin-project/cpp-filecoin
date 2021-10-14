@@ -37,8 +37,8 @@ namespace fc::codec::rle {
   const int BYTE_SLICE_VALUE = 0x80;
 
   /**
-   * @var Maximum object size to encode or decode
+   * @var Maximum bytes size to encode or decode
    */
-  const int OBJECT_MAX_SIZE = 0x100000;
+  constexpr ssize_t BYTES_MAX_SIZE = 32 << 10;
 
 }  // namespace fc::codec::rle

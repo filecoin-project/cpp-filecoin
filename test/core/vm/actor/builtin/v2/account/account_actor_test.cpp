@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
-#include "vm/actor/builtin/states/account/v2/account_actor_state.hpp"
+#include "vm/actor/builtin/states/account/account_actor_state.hpp"
 
 #include <gtest/gtest.h>
 
@@ -13,6 +13,8 @@
 
 namespace fc::vm::actor::builtin::v2::account {
   using primitives::address::Address;
+  using states::AccountActorState;
+  using states::AccountActorStatePtr;
   using testutil::vm::actor::builtin::ActorTestFixture;
 
   struct AccountActorTest : public ActorTestFixture<AccountActorState> {
@@ -20,6 +22,7 @@ namespace fc::vm::actor::builtin::v2::account {
       ActorTestFixture<AccountActorState>::SetUp();
       actor_version = ActorVersion::kVersion2;
       ipld->actor_version = actor_version;
+      state = AccountActorStatePtr{actor_version};
     }
 
     Address address{Address::makeSecp256k1(
@@ -29,7 +32,7 @@ namespace fc::vm::actor::builtin::v2::account {
 
   /// Account actor state CBOR encoding and decoding
   TEST_F(AccountActorTest, AccountActorStateCbor) {
-    state.address = Address::makeFromId(3);
+    state->address = Address::makeFromId(3);
     expectEncodeAndReencode(state, "81420003"_unhex);
   }
 
@@ -54,12 +57,12 @@ namespace fc::vm::actor::builtin::v2::account {
 
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, address));
 
-    EXPECT_EQ(state.address, address);
+    EXPECT_EQ(state->address, address);
   }
 
   TEST_F(AccountActorTest, PubkeyAddressSuccess) {
     const auto address = Address::makeFromId(5);
-    state.address = address;
+    state->address = address;
 
     EXPECT_OUTCOME_TRUE(result, PubkeyAddress::call(runtime, {}));
 

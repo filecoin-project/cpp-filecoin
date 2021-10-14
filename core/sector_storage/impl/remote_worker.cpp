@@ -55,9 +55,8 @@ namespace fc::sector_storage {
   outcome::result<CallId> RemoteWorker::sealPreCommit1(
       const SectorRef &sector,
       const SealRandomness &ticket,
-      gsl::span<const PieceInfo> pieces) {
-    return api_.SealPreCommit1(
-        sector, ticket, std::vector<PieceInfo>(pieces.begin(), pieces.end()));
+      const std::vector<PieceInfo> &pieces) {
+    return api_.SealPreCommit1(sector, ticket, pieces);
   }
 
   outcome::result<CallId> RemoteWorker::sealPreCommit2(
@@ -69,14 +68,9 @@ namespace fc::sector_storage {
       const SectorRef &sector,
       const SealRandomness &ticket,
       const InteractiveRandomness &seed,
-      gsl::span<const PieceInfo> pieces,
+      const std::vector<PieceInfo> &pieces,
       const SectorCids &cids) {
-    return api_.SealCommit1(
-        sector,
-        ticket,
-        seed,
-        std::vector<PieceInfo>(pieces.begin(), pieces.end()),
-        cids);
+    return api_.SealCommit1(sector, ticket, seed, pieces, cids);
   }
 
   outcome::result<CallId> RemoteWorker::sealCommit2(

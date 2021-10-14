@@ -57,6 +57,7 @@ jobs:
       run: |
         set -e
         if [ "$RUNNER_OS" = "macOS" ]; then
+          echo "LIBRARY_PATH=$LIBRARY_PATH:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib" >> $GITHUB_ENV
           brew install ninja pkg-config libb2 hwloc
         else
           sudo apt-get update

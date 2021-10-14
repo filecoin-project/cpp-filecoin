@@ -24,7 +24,7 @@ namespace fc::primitives::go {
   }
 
   inline auto bitlen(const BigInt &x) {
-    return x ? msb(x < 0 ? -x : x) : 0;
+    return x ? msb(x < 0 ? -x : x) + 1 : 0;
   }
 
 }  // namespace fc::primitives::go

@@ -81,6 +81,7 @@ namespace fc::sector_storage::stores {
 
     mutable std::shared_mutex mutex_;
     std::unordered_map<StorageID, StorageEntry> stores_;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<Decl, std::vector<DeclMeta>> sectors_;
     std::shared_ptr<IndexLock> index_lock_;
     common::Logger logger_;

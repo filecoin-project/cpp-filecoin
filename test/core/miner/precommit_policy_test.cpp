@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 namespace fc::mining {
   using primitives::block::BlockHeader;
@@ -53,7 +54,7 @@ namespace fc::mining {
 
     auto result = block.height + kWPoStProvingPeriod + proving_boundary_ - 1;
 
-    ASSERT_EQ(precommit_policy_->expiration({}), result);
+    EXPECT_OUTCOME_EQ(precommit_policy_->expiration({}), result);
   }
 
   /**
@@ -82,7 +83,7 @@ namespace fc::mining {
                                         {.piece = {}, .deal_info = deal2}};
 
     auto result = block.height + kWPoStProvingPeriod + proving_boundary_ - 1;
-    ASSERT_EQ(
+    EXPECT_OUTCOME_EQ(
         precommit_policy_->expiration(gsl::span<const types::Piece>(pieces)),
         result);
   }
@@ -90,13 +91,14 @@ namespace fc::mining {
   /**
    * @given broken api
    * @when try to get expiration epoch
-   * @then 0 recived
+   * @then error occurs
    */
   TEST_F(PreCommitPolicyTest, ExpirationApiError) {
     api_->ChainHead = [&]() -> outcome::result<TipsetCPtr> {
       return outcome::failure(TipsetError::kNoBlocks);
     };
-    ASSERT_EQ(precommit_policy_->expiration({}), 0);
+    EXPECT_OUTCOME_ERROR(TipsetError::kNoBlocks,
+                         precommit_policy_->expiration({}));
   }
 
 }  // namespace fc::mining

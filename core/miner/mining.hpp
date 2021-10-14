@@ -61,6 +61,7 @@ namespace fc::mining {
     boost::optional<Tipset> ts;
     BigInt weight;
     size_t skip{};
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::unordered_set<std::pair<TipsetKey, size_t>, pair_hash> mined;
     boost::optional<MiningBaseInfo> info;
   };

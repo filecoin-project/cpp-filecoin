@@ -19,6 +19,7 @@ namespace fc::storage::blockchain {
    public:
     using Callback = std::function<void(TipsetCPtr, MessageReceipt)>;
     struct Wait {
+      // TODO(turuslan): FIL-420 check cache memory usage
       std::multimap<ChainEpoch, Callback> callbacks;
       TipsetCPtr ts;
       MessageReceipt receipt;
@@ -65,7 +66,9 @@ namespace fc::storage::blockchain {
     mutable std::mutex mutex;
     TipsetCPtr head;
     std::shared_ptr<vm::state::StateTreeImpl> state_tree;
+    // TODO(turuslan): FIL-420 check cache memory usage
     Waiting waiting;
+    // TODO(turuslan): FIL-420 check cache memory usage
     Searching searching;
   };
 }  // namespace fc::storage::blockchain

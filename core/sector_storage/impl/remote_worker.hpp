@@ -33,7 +33,7 @@ namespace fc::sector_storage {
     outcome::result<CallId> sealPreCommit1(
         const SectorRef &sector,
         const SealRandomness &ticket,
-        gsl::span<const PieceInfo> pieces) override;
+        const std::vector<PieceInfo> &pieces) override;
 
     outcome::result<CallId> sealPreCommit2(
         const SectorRef &sector,
@@ -42,7 +42,7 @@ namespace fc::sector_storage {
     outcome::result<CallId> sealCommit1(const SectorRef &sector,
                                         const SealRandomness &ticket,
                                         const InteractiveRandomness &seed,
-                                        gsl::span<const PieceInfo> pieces,
+                                        const std::vector<PieceInfo> &pieces,
                                         const SectorCids &cids) override;
 
     outcome::result<CallId> sealCommit2(

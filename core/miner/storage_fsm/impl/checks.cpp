@@ -4,6 +4,7 @@
  */
 
 #include "miner/storage_fsm/impl/checks.hpp"
+#include <primitives/sector/sector.hpp>
 
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/sector/sector.hpp"
@@ -14,6 +15,7 @@
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
+#include "vm/actor/builtin/v5/market/market_actor.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::mining::checks {
@@ -33,7 +35,7 @@ namespace fc::mining::checks {
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::maxSealDuration;
   using vm::actor::builtin::types::miner::SectorPreCommitOnChainInfo;
-  using vm::actor::builtin::v0::market::ComputeDataCommitment;
+  using vm::actor::builtin::v5::market::ComputeDataCommitment;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::UnsignedMessage;
@@ -52,6 +54,11 @@ namespace fc::mining::checks {
       case vm::actor::ActorVersion::kVersion4:
         return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
       case vm::actor::ActorVersion::kVersion5:
+        if (sector_info->sector_type
+            >= api::RegisteredSealProof::kStackedDrg2KiBV1_1) {
+          return 30 * kEpochsInDay + kPreCommitChallengeDelay;
+        }
+
         return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
     }
   }
@@ -107,9 +114,18 @@ namespace fc::mining::checks {
         deal_ids.push_back(piece.deal_info->deal_id);
       }
     }
-    ComputeDataCommitment::Params params{
-        .deals = deal_ids, .sector_type = sector_info->sector_type};
-    OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
+
+    OUTCOME_TRY(params,
+                codec::cbor::encode(ComputeDataCommitment::Params{
+                    .inputs =
+                        {
+                            {
+                                .deals = deal_ids,
+                                .sector_type = sector_info->sector_type,
+                            },
+                        },
+                }));
+
     UnsignedMessage message{kStorageMarketAddress,
                             miner_address,
                             {},
@@ -117,13 +133,21 @@ namespace fc::mining::checks {
                             kDefaultGasPrice,
                             kDefaultGasLimit,
                             ComputeDataCommitment::Number,
-                            MethodParams{encoded_params}};
+                            params};
     OUTCOME_TRY(invocation_result, api->StateCall(message, tipset_key));
     if (invocation_result.receipt.exit_code != VMExitCode::kOk) {
       return ChecksError::kInvocationErrored;
     }
-    return codec::cbor::decode<ComputeDataCommitment::Result>(
-        invocation_result.receipt.return_value);
+
+    OUTCOME_TRY(res,
+                codec::cbor::decode<ComputeDataCommitment::Result>(
+                    invocation_result.receipt.return_value));
+
+    if (res.commds.size() != 1) {
+      return ERROR_TEXT("CommD output must have 1 entry");
+    }
+
+    return res.commds[0];
   }
 
   outcome::result<boost::optional<SectorPreCommitOnChainInfo>>

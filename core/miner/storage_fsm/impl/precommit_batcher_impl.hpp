@@ -52,6 +52,7 @@ namespace fc::mining {
 
     std::mutex mutex_;
     TokenAmount mutual_deposit_;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<SectorNumber, PreCommitEntry> batch_storage_;
     std::chrono::milliseconds max_delay_;
     std::shared_ptr<FullNodeApi> api_;
@@ -60,6 +61,7 @@ namespace fc::mining {
     std::chrono::milliseconds closest_cutoff_;
     std::chrono::system_clock::time_point cutoff_start_;
     common::Logger logger_;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<SectorNumber, PrecommitCallback> callbacks_;
     std::shared_ptr<FeeConfig> fee_config_;
     AddressSelector address_selector_;

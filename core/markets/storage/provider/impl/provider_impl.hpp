@@ -342,6 +342,7 @@ namespace fc::markets::storage::provider {
 
     // coonnection manager
     std::mutex connections_mutex_;
+    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<CID, std::shared_ptr<CborStream>> connections_;
 
     /** State machine */
