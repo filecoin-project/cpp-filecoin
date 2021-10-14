@@ -84,7 +84,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sectorblocks, SectorBlocksError, e) {
   switch (e) {
     case (SectorBlocksError::kNotFoundDeal):
       return "SectorBlocks: not found";
+    case(SectorBlocksError::kDealAlreadyExist):
+      return "SectorBlocks: piece already exist in provided deal";
     default:
       return "SectorBlocks: unknown error";
+
   }
 }
