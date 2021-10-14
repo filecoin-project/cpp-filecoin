@@ -55,6 +55,7 @@ namespace fc::storage::mpool {
                                int64_t max_blocks) const;
     outcome::result<TokenAmount> estimateGasPremium(int64_t max_blocks) const;
     outcome::result<void> add(const SignedMessage &message);
+    outcome::result<void> addLocked(const SignedMessage &message);
     void remove(const Address &from, Nonce nonce);
     outcome::result<void> onHeadChange(const HeadChange &change);
     connection_t subscribe(const std::function<Subscriber> &subscriber) {
@@ -73,6 +74,7 @@ namespace fc::storage::mpool {
     boost::signals2::signal<Subscriber> signal;
     mutable std::default_random_engine generator;
     mutable std::normal_distribution<> distribution;
+    mutable std::mutex mutex;
   };
 
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
