@@ -15,7 +15,6 @@
 #include "testutil/mocks/crypto/bls/bls_provider_mock.hpp"
 #include "testutil/mocks/crypto/secp256k1/secp256k1_provider_mock.hpp"
 #include "testutil/mocks/storage/ipfs/ipfs_datastore_mock.hpp"
-#include "testutil/mocks/vm/interpreter/interpreter_mock.hpp"
 #include "testutil/outcome.hpp"
 
 namespace config {
@@ -28,17 +27,16 @@ namespace config {
 
 namespace fc::blockchain::block_validator {
   using DataStore = storage::ipfs::MockIpfsDatastore;
-  using EpochClock = clock::ChainEpochClockImpl;
-  using WeightCalculator = weight::WeightCalculatorMock;
-  using PowerTable = power::PowerTableImpl;
-  using BlsProvider = crypto::bls::BlsProviderMock;
-  using Secp256k1Provider = crypto::secp256k1::Secp256k1ProviderMock;
-  using Interpreter = vm::interpreter::InterpreterMock;
+  using EpochClockImpl = clock::ChainEpochClockImpl;
+  using crypto::bls::BlsProviderMock;
+  using crypto::secp256k1::Secp256k1ProviderMock;
   using crypto::signature::Secp256k1Signature;
   using crypto::signature::Signature;
+  using power::PowerTableImpl;
   using primitives::address::Address;
   using primitives::block::BlockHeader;
   using primitives::block::Ticket;
+  using weight::WeightCalculatorMock;
 
   class BlockValidatorTest : public testing::Test {
    protected:
@@ -49,15 +47,15 @@ namespace fc::blockchain::block_validator {
     std::shared_ptr<BlockValidator> createValidator() {
       auto datastore = std::make_shared<DataStore>();
       auto utc_clock = std::make_shared<fc::clock::UTCClockMock>();
-      auto epoch_clock =
-          std::make_shared<EpochClock>(fc::clock::Time{config::kGenesisTime});
-      auto weight_calculator = std::make_shared<WeightCalculator>();
-      auto power_table = std::make_shared<PowerTable>();
+      auto epoch_clock = std::make_shared<EpochClockImpl>(
+          fc::clock::Time{config::kGenesisTime});
+      auto weight_calculator = std::make_shared<WeightCalculatorMock>();
+      auto power_table = std::make_shared<PowerTableImpl>();
       auto result = power_table->setMinerPower(
           Address::makeFromId(config::kMinerId), config::kMinerPower);
       BOOST_ASSERT(!result.has_error());
-      auto bls_provider = std::make_shared<BlsProvider>();
-      auto secp_provider = std::make_shared<Secp256k1Provider>();
+      auto bls_provider = std::make_shared<BlsProviderMock>();
+      auto secp_provider = std::make_shared<Secp256k1ProviderMock>();
       return std::make_shared<BlockValidatorImpl>(datastore,
                                                   utc_clock,
                                                   epoch_clock,
@@ -78,7 +76,7 @@ namespace fc::blockchain::block_validator {
               }},
               {fc::primitives::sector::PoStProof{
                   fc::primitives::sector::RegisteredPoStProof::
-                  kStackedDRG2KiBWinningPoSt,
+                      kStackedDRG2KiBWinningPoSt,
                   "F00D"_unhex,
               }},
               {fc::CbCid::hash("01"_unhex)},

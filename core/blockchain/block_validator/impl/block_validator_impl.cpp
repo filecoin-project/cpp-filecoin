@@ -14,8 +14,8 @@
 namespace fc::blockchain::block_validator {
   using primitives::address::Protocol;
   using storage::amt::Amt;
-  using SignedMessage = vm::message::SignedMessage;
-  using UnsignedMessage = vm::message::UnsignedMessage;
+  using vm::message::SignedMessage;
+  using vm::message::UnsignedMessage;
   using BlsCryptoSignature = crypto::bls::Signature;
   using BlsCryptoPubKey = crypto::bls::PublicKey;
   using SecpCryptoSignature = crypto::secp256k1::Signature;
@@ -147,7 +147,7 @@ namespace fc::blockchain::block_validator {
     return ValidatorError::kInvalidParentState;
   }
 
-  outcome::result<std::reference_wrapper<BlockValidatorImpl::TipsetCPtr>>
+  outcome::result<std::reference_wrapper<TipsetCPtr>>
   BlockValidatorImpl::getParentTipset(const BlockHeader &block) const {
     auto cid{primitives::cid::getCidOfCbor(block).value()};
     if (parent_tipset_cache_ && parent_tipset_cache_.value().first == cid) {
