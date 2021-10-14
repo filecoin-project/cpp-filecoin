@@ -285,10 +285,10 @@ namespace fc::vm::actor::builtin::v0::miner {
   ACTOR_METHOD_IMPL(PreCommitSector) {
     const auto current_epoch = runtime.getCurrentEpoch();
 
-    const auto search =
-        kPreCommitSealProofTypesV0.find(params.registered_proof);
-    OUTCOME_TRY(
-        runtime.validateArgument(search != kPreCommitSealProofTypesV0.end()));
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(utils->canPreCommitSealProof(params.registered_proof,
+                                             runtime.getNetworkVersion()));
 
     OUTCOME_TRY(runtime.validateArgument(params.sector <= kMaxSectorNumber));
 
@@ -316,8 +316,6 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     OUTCOME_TRY(
         runtime.validateArgument(params.replace_sector <= kMaxSectorNumber));
-
-    const auto utils = Toolchain::createMinerUtils(runtime);
 
     OUTCOME_TRY(reward, utils->requestCurrentEpochBlockReward());
     OUTCOME_TRY(total_power, utils->requestCurrentTotalPower());
