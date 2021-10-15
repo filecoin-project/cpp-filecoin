@@ -541,7 +541,8 @@ namespace fc::sector_storage::stores {
       }
     }
 
-    handler_.reschedule(heartbeat_interval_);
+    // reschedule during scheduler callback, will not throw
+    handler_.reschedule(heartbeat_interval_).value();
   }
 
   outcome::result<FsStat> LocalStoreImpl::Path::getStat(

@@ -8,24 +8,27 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/mocks/miner/miner_mock.hpp"
 #include "testutil/outcome.hpp"
 
 namespace fc::sectorblocks {
   using api::PieceLocation;
   using miner::MinerMock;
+  using storage::InMemoryStorage;
   using testing::_;
 
   class SectorBlocksTest : public ::testing::Test {
    protected:
     void SetUp() override {
       miner_ = std::make_unique<MinerMock>();
-
-      sector_blocks_ = std::make_unique<SectorBlocksImpl>(miner_);
+      datastore_ = std::make_shared<InMemoryStorage>();
+      sector_blocks_ = std::make_unique<SectorBlocksImpl>(miner_, datastore_);
     }
 
     std::shared_ptr<MinerMock> miner_;
     std::shared_ptr<SectorBlocks> sector_blocks_;
+    std::shared_ptr<InMemoryStorage> datastore_;
   };
 
   /**
@@ -88,6 +91,40 @@ namespace fc::sectorblocks {
     EXPECT_OUTCOME_TRUE(refs, sector_blocks_->getRefs(deal.deal_id))
 
     ASSERT_THAT(refs, testing::ElementsAre(result_ref));
+  }
+
+  /**
+   * @given  sectorblocks, deal, size, and path
+   * @when try to add two duplicate pieces to the same deal_id
+   * @then EXPECT_OUTCOME_ERROR
+   */
+  TEST_F(SectorBlocksTest, DuplicatePiece) {
+    const DealInfo deal{
+        .publish_cid = boost::none,
+        .deal_id = 1,
+        .deal_schedule =
+            {
+                .start_epoch = 10,
+                .end_epoch = 11,
+            },
+        .is_keep_unsealed = false,
+    };
+    const UnpaddedPieceSize size(127);
+    const std::string path = "/some/temp/path";
+
+    const PieceAttributes piece{
+        .sector = 1,
+        .offset = PaddedPieceSize(0),
+        .size = UnpaddedPieceSize(127),
+    };
+
+    EXPECT_CALL(*miner_, doAddPieceToAnySector(size, _, deal))
+        .WillOnce(testing::Return(outcome::success(piece)))
+        .WillOnce(testing::Return(outcome::success(piece)));
+
+    EXPECT_OUTCOME_EQ(sector_blocks_->addPiece(size, path, deal), piece);
+    EXPECT_OUTCOME_ERROR(SectorBlocksError::kDealAlreadyExist,
+                         sector_blocks_->addPiece(size, path, deal));
   }
 
 }  // namespace fc::sectorblocks

@@ -28,9 +28,8 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     OUTCOME_TRY(utils->checkControlAddresses(params.control_addresses));
     OUTCOME_TRY(utils->checkPeerInfo(params.peer_id, params.multiaddresses));
-    CHANGE_ERROR_ABORT(utils->canPreCommitSealProof(
-                           params.seal_proof_type, runtime.getNetworkVersion()),
-                       VMExitCode::kErrIllegalArgument);
+    OUTCOME_TRY(utils->canPreCommitSealProof(params.seal_proof_type,
+                                             runtime.getNetworkVersion()));
     OUTCOME_TRY(owner, utils->resolveControlAddress(params.owner));
     OUTCOME_TRY(worker, utils->resolveWorkerAddress(params.worker));
     std::vector<Address> control_addresses;
@@ -222,6 +221,172 @@ namespace fc::vm::actor::builtin::v2::miner {
     OUTCOME_TRY(balance, runtime.getCurrentBalance());
     REQUIRE_NO_ERROR(state->checkBalanceInvariants(balance),
                      VMExitCode::kErrIllegalState);
+
+    return outcome::success();
+  }
+
+  ACTOR_METHOD_IMPL(PreCommitSector) {
+    const auto current_epoch = runtime.getCurrentEpoch();
+    const auto network_version = runtime.getNetworkVersion();
+
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(
+        utils->canPreCommitSealProof(params.registered_proof, network_version));
+
+    OUTCOME_TRY(runtime.validateArgument(params.sector <= kMaxSectorNumber));
+
+    OUTCOME_TRY(runtime.validateArgument(params.sealed_cid != CID()));
+
+    OUTCOME_TRY(runtime.validateArgument(params.sealed_cid.getPrefix()
+                                         == kSealedCIDPrefix));
+
+    OUTCOME_TRY(runtime.validateArgument(params.seal_epoch < current_epoch));
+
+    const auto challenge_earliest =
+        current_epoch - kMaxPreCommitRandomnessLookback;
+
+    OUTCOME_TRY(
+        runtime.validateArgument(params.seal_epoch >= challenge_earliest));
+
+    OUTCOME_TRY(max_seal_duration, maxSealDuration(params.registered_proof));
+    const auto max_activation = current_epoch + max_seal_duration;
+    OUTCOME_TRY(utils->validateExpiration(
+        max_activation, params.expiration, params.registered_proof));
+
+    OUTCOME_TRY(runtime.validateArgument(
+        !(params.replace_capacity && params.deal_ids.empty())));
+
+    OUTCOME_TRY(runtime.validateArgument(params.replace_deadline
+                                         < kWPoStPeriodDeadlines));
+
+    OUTCOME_TRY(
+        runtime.validateArgument(params.replace_sector <= kMaxSectorNumber));
+
+    OUTCOME_TRY(reward, utils->requestCurrentEpochBlockReward());
+    OUTCOME_TRY(total_power, utils->requestCurrentTotalPower());
+    OUTCOME_TRY(deal_weight,
+                utils->requestDealWeight(
+                    params.deal_ids, current_epoch, params.expiration));
+
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
+
+    TokenAmount newly_vested{0};
+    if (network_version < NetworkVersion::kVersion7) {
+      REQUIRE_NO_ERROR_A(vested,
+                         state->unlockVestedFunds(current_epoch),
+                         VMExitCode::kErrIllegalState);
+      newly_vested = vested;
+    }
+
+    OUTCOME_TRY(current_balance, runtime.getCurrentBalance());
+    REQUIRE_NO_ERROR_A(available_balance,
+                       state->getAvailableBalance(current_balance),
+                       VMExitCode::kErrIllegalState);
+
+    const Universal<Monies> monies{runtime.getActorVersion()};
+    OUTCOME_TRY(fee_to_burn, monies->repayDebtsOrAbort(runtime, state));
+
+    OUTCOME_TRY(miner_info, state->getInfo());
+
+    auto callers = miner_info->control;
+    callers.emplace_back(miner_info->owner);
+    callers.emplace_back(miner_info->worker);
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
+
+    if (current_epoch <= miner_info->consensus_fault_elapsed) {
+      ABORT(VMExitCode::kErrForbidden);
+    }
+
+    if (network_version < NetworkVersion::kVersion7) {
+      OUTCOME_TRY(runtime.validateArgument(params.registered_proof
+                                           == miner_info->seal_proof_type));
+    } else {
+      REQUIRE_NO_ERROR_A(sector_wpost_proof,
+                         getRegisteredWindowPoStProof(params.registered_proof),
+                         VMExitCode::kErrIllegalArgument);
+      OUTCOME_TRY(runtime.validateArgument(
+          sector_wpost_proof == miner_info->window_post_proof_type));
+    }
+
+    OUTCOME_TRY(runtime.validateArgument(
+        params.deal_ids.size() <= sectorDealsMax(miner_info->sector_size)));
+
+    OUTCOME_TRY(runtime.validateArgument(deal_weight.deal_space
+                                         <= miner_info->sector_size));
+
+    REQUIRE_NO_ERROR(state->allocateSectorNumber(params.sector),
+                     VMExitCode::kErrIllegalState);
+
+    // Lotus gas conformance
+    const auto precommitted_sectors_copy = state->precommitted_sectors;
+    REQUIRE_NO_ERROR_A(precommit_found,
+                       precommitted_sectors_copy.has(params.sector),
+                       VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(runtime.validateArgument(!precommit_found));
+
+    REQUIRE_NO_ERROR_A(
+        sectors, state->sectors.loadSectors(), VMExitCode::kErrIllegalState);
+    REQUIRE_NO_ERROR_A(sector_found,
+                       sectors.sectors.has(params.sector),
+                       VMExitCode::kErrIllegalState);
+    OUTCOME_TRY(runtime.validateArgument(!sector_found));
+
+    if (params.replace_capacity) {
+      OUTCOME_TRY(utils->validateReplaceSector(state, params));
+    }
+
+    const auto duration = params.expiration - current_epoch;
+
+    const auto sector_weight =
+        qaPowerForWeight(miner_info->sector_size,
+                         duration,
+                         deal_weight.deal_weight,
+                         deal_weight.verified_deal_weight);
+
+    OUTCOME_TRY(
+        deposit_req,
+        monies->preCommitDepositForPower(reward.this_epoch_reward_smoothed,
+                                         total_power.quality_adj_power_smoothed,
+                                         sector_weight));
+
+    if (available_balance < deposit_req) {
+      ABORT(VMExitCode::kErrInsufficientFunds);
+    }
+
+    OUTCOME_TRY(state->addPreCommitDeposit(deposit_req));
+
+    const SectorPreCommitOnChainInfo sector_precommit_info{
+        .info = params,
+        .precommit_deposit = deposit_req,
+        .precommit_epoch = current_epoch,
+        .deal_weight = deal_weight.deal_weight,
+        .verified_deal_weight = deal_weight.verified_deal_weight};
+    CHANGE_ERROR(
+        state->precommitted_sectors.set(params.sector, sector_precommit_info),
+        VMExitCode::kErrIllegalState);
+
+    // Lotus gas conformance
+    OUTCOME_TRY(state->precommitted_sectors.hamt.flush());
+
+    const auto expiry_bound = current_epoch + kMaxProveCommitDuration + 1;
+
+    REQUIRE_NO_ERROR(state->addPreCommitExpiry(expiry_bound, params.sector),
+                     VMExitCode::kErrIllegalState);
+
+    OUTCOME_TRY(runtime.commitState(state));
+
+    if (fee_to_burn > 0) {
+      REQUIRE_SUCCESS(runtime.sendFunds(kBurntFundsActorAddress, fee_to_burn));
+    }
+
+    // Lotus gas conformance
+    OUTCOME_TRYA(state, runtime.getActorState<MinerActorStatePtr>());
+
+    REQUIRE_NO_ERROR(state->checkBalanceInvariants(current_balance),
+                     VMExitCode::kErrBalanceInvariantBroken);
+
+    OUTCOME_TRY(utils->notifyPledgeChanged(-newly_vested));
 
     return outcome::success();
   }

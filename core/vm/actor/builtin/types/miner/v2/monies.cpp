@@ -126,9 +126,12 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   outcome::result<TokenAmount> Monies::repayDebtsOrAbort(
-      Runtime &runtime, MinerActorStatePtr miner_state) const {
+      Runtime &runtime, MinerActorStatePtr &miner_state) const {
     OUTCOME_TRY(curr_balance, runtime.getCurrentBalance());
-    return miner_state->repayDebts(curr_balance);
+    REQUIRE_NO_ERROR_A(to_burn,
+                       miner_state->repayDebts(curr_balance),
+                       VMExitCode::kErrIllegalState);
+    return std::move(to_burn);
   }
 
   outcome::result<TokenAmount> Monies::consensusFaultPenalty(

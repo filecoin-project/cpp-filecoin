@@ -16,10 +16,7 @@
 
 namespace fc {
   using primitives::sector::RegisteredSealProof;
-  using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
-  using vm::actor::builtin::types::miner::kSupportedProofs;
-  using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
-  using vm::actor::builtin::types::verified_registry::kMinVerifiedDealSize;
+  using namespace vm::actor::builtin::types;
 
   // Initialize parameters with mainnet values
   DEFINE(kEpochDurationSeconds){30};
@@ -58,6 +55,7 @@ namespace fc::vm::actor::builtin::types::market {
 namespace fc::vm::actor::builtin::types::miner {
   DEFINE(kWPoStProvingPeriod) = kEpochsInDay;
   DEFINE(kWPoStChallengeWindow) = 30 * 60 / kEpochDurationSeconds;
+  DEFINE(kMaxPreCommitRandomnessLookback) = kEpochsInDay + kChainFinality;
   DEFINE(kPreCommitChallengeDelay){150};
   DEFINE(kFaultMaxAge){kWPoStProvingPeriod * 14};
   DEFINE(kMinSectorExpiration) = 180 * kEpochsInDay;
@@ -111,31 +109,28 @@ namespace fc {
     kBreezeGasTampingDuration = 0;
 
     // Update actor constants
-    vm::actor::builtin::types::market::kDealUpdatesInterval =
-        static_cast<EpochDuration>(kEpochsInDay);
+    market::kDealUpdatesInterval = static_cast<EpochDuration>(kEpochsInDay);
 
-    vm::actor::builtin::types::miner::kWPoStProvingPeriod = kEpochsInDay;
-    vm::actor::builtin::types::miner::kWPoStChallengeWindow =
-        30 * 60 / kEpochDurationSeconds;
-    vm::actor::builtin::types::miner::kFaultMaxAge =
-        vm::actor::builtin::types::miner::kWPoStProvingPeriod * 14;
-    vm::actor::builtin::types::miner::kMinSectorExpiration = 180 * kEpochsInDay;
-    vm::actor::builtin::types::miner::kMaxSectorExpirationExtension =
-        540 * kEpochsInDay;
-    vm::actor::builtin::types::miner::kMaxProveCommitDuration =
-        kEpochsInDay + kPreCommitChallengeDelay;
-    kSupportedProofs = {
+    miner::kWPoStProvingPeriod = kEpochsInDay;
+    miner::kWPoStChallengeWindow = 30 * 60 / kEpochDurationSeconds;
+    miner::kMaxPreCommitRandomnessLookback =
+        kEpochsInDay + miner::kChainFinality;
+    miner::kFaultMaxAge = miner::kWPoStProvingPeriod * 14;
+    miner::kMinSectorExpiration = 180 * kEpochsInDay;
+    miner::kMaxSectorExpirationExtension = 540 * kEpochsInDay;
+    miner::kMaxProveCommitDuration =
+        kEpochsInDay + miner::kPreCommitChallengeDelay;
+    miner::kSupportedProofs = {
         RegisteredSealProof::kStackedDrg2KiBV1,
         RegisteredSealProof::kStackedDrg8MiBV1,
     };
 
-    vm::actor::builtin::types::payment_channel::kSettleDelay =
-        kEpochsInHour * 12;
+    payment_channel::kSettleDelay = kEpochsInHour * 12;
 
-    kConsensusMinerMinPower = 2048;
+    storage_power::kConsensusMinerMinPower = 2048;
 
-    kMinVerifiedDealSize = 256;
-    kPreCommitChallengeDelay = 10;
+    verified_registry::kMinVerifiedDealSize = 256;
+    miner::kPreCommitChallengeDelay = 10;
   }
 
   void setParamsNoUpgrades() {
@@ -166,27 +161,24 @@ namespace fc {
     kBreezeGasTampingDuration = 0;
 
     // Update actor constants
-    vm::actor::builtin::types::market::kDealUpdatesInterval =
-        static_cast<EpochDuration>(kEpochsInDay);
+    market::kDealUpdatesInterval = static_cast<EpochDuration>(kEpochsInDay);
 
-    vm::actor::builtin::types::miner::kWPoStProvingPeriod = kEpochsInDay;
-    vm::actor::builtin::types::miner::kWPoStChallengeWindow =
-        30 * 60 / kEpochDurationSeconds;
-    vm::actor::builtin::types::miner::kFaultMaxAge =
-        vm::actor::builtin::types::miner::kWPoStProvingPeriod * 14;
-    vm::actor::builtin::types::miner::kMinSectorExpiration = 180 * kEpochsInDay;
-    vm::actor::builtin::types::miner::kMaxSectorExpirationExtension =
-        540 * kEpochsInDay;
-    vm::actor::builtin::types::miner::kMaxProveCommitDuration =
-        kEpochsInDay + kPreCommitChallengeDelay;
-    kSupportedProofs = {RegisteredSealProof::kStackedDrg2KiBV1};
+    miner::kWPoStProvingPeriod = kEpochsInDay;
+    miner::kWPoStChallengeWindow = 30 * 60 / kEpochDurationSeconds;
+    miner::kMaxPreCommitRandomnessLookback =
+        kEpochsInDay + miner::kChainFinality;
+    miner::kFaultMaxAge = miner::kWPoStProvingPeriod * 14;
+    miner::kMinSectorExpiration = 180 * kEpochsInDay;
+    miner::kMaxSectorExpirationExtension = 540 * kEpochsInDay;
+    miner::kMaxProveCommitDuration =
+        kEpochsInDay + miner::kPreCommitChallengeDelay;
+    miner::kSupportedProofs = {RegisteredSealProof::kStackedDrg2KiBV1};
 
-    vm::actor::builtin::types::payment_channel::kSettleDelay =
-        kEpochsInHour * 12;
+    payment_channel::kSettleDelay = kEpochsInHour * 12;
 
-    kConsensusMinerMinPower = 2048;
+    storage_power::kConsensusMinerMinPower = 2048;
 
-    kMinVerifiedDealSize = 256;
+    verified_registry::kMinVerifiedDealSize = 256;
   }
 
   void setParamsInteropnet() {
@@ -211,13 +203,13 @@ namespace fc {
     kBreezeGasTampingDuration = 0;
 
     // Update actor constants
-    kSupportedProofs = {
+    miner::kSupportedProofs = {
         RegisteredSealProof::kStackedDrg2KiBV1,
         RegisteredSealProof::kStackedDrg8MiBV1,
         RegisteredSealProof::kStackedDrg512MiBV1,
     };
-    kConsensusMinerMinPower = 2048;
-    kMinVerifiedDealSize = 256;
-    kPreCommitChallengeDelay = 10;
+    storage_power::kConsensusMinerMinPower = 2048;
+    verified_registry::kMinVerifiedDealSize = 256;
+    miner::kPreCommitChallengeDelay = 10;
   }
 }  // namespace fc
