@@ -34,6 +34,7 @@ namespace fc::sectorblocks {
 
   enum class SectorBlocksError {
     kNotFoundDeal = 1,
+    kDealAlreadyExist = 2,
   };
 
 }  // namespace fc::sectorblocks

@@ -58,6 +58,7 @@ namespace fc::api {
     PaddedPieceSize offset;
     PaddedPieceSize length;
   };
+  CBOR_TUPLE(PieceLocation, sector_number, offset, length)
 
   // TODO(ortyomka): [FIL-421] implement it
   struct ApiSectorInfo {
