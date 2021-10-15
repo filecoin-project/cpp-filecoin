@@ -24,8 +24,8 @@
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage {
-  using fc::primitives::sector_file::SectorFileType;
-  using fc::primitives::sector_file::sectorName;
+  using primitives::sector_file::SectorFileType;
+  using primitives::sector_file::sectorName;
   namespace fs = boost::filesystem;
 
   WorkerAction schedFetch(const SectorRef &sector,

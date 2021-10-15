@@ -12,8 +12,8 @@
 #include "storage/buffer_map.hpp"
 
 namespace fc::storage {
+  using common::Buffer;
 
-  using fc::common::Buffer;
   /**
    * Simple storage that conforms PersistentMap interface
    * Mostly needed to have an in-memory trie in tests to avoid integration with

@@ -9,7 +9,7 @@
 #include "storage/in_memory/in_memory_storage.hpp"
 
 namespace fc::storage {
-  using fc::common::Buffer;
+  using common::Buffer;
 
   class InMemoryBatch : public fc::storage::face::WriteBatch<Buffer, Buffer> {
    public:

@@ -12,8 +12,7 @@
 #include "primitives/sector/sector.hpp"
 
 namespace fc::primitives {
-
-  using fc::primitives::sector::RegisteredSealProof;
+  using sector::RegisteredSealProof;
 
   struct Resources {
     uint64_t min_memory;  // What Must be in RAM for decent perf

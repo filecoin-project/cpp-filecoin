@@ -8,9 +8,8 @@
 #include "storage/in_memory/in_memory_batch.hpp"
 #include "storage/in_memory/in_memory_cursor.hpp"
 
-using fc::common::Buffer;
-
 namespace fc::storage {
+  using common::Buffer;
 
   outcome::result<Buffer> InMemoryStorage::get(const Buffer &key) const {
     if (storage.find(key.toHex()) != storage.end()) {
