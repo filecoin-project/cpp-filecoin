@@ -22,11 +22,10 @@
 #include "sector_storage/stores/storage_error.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
-using fc::primitives::LocalStorageMeta;
-using fc::primitives::sector_file::kSectorFileTypes;
-using std::chrono::duration_cast;
-
 namespace fc::sector_storage::stores {
+  using primitives::LocalStorageMeta;
+  using primitives::sector_file::kSectorFileTypes;
+  using std::chrono::duration_cast;
   namespace fs = boost::filesystem;
 
   outcome::result<SectorId> parseSectorId(const std::string &filename) {

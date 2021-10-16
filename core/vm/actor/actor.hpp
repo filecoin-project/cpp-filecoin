@@ -15,7 +15,7 @@
 #include "vm/version/version.hpp"
 
 namespace fc::vm::actor {
-  using fc::common::Buffer;
+  using common::Buffer;
   using primitives::BigInt;
   using primitives::Nonce;
   using primitives::TokenAmount;

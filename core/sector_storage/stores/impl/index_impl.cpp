@@ -12,8 +12,7 @@
 #include "primitives/types.hpp"
 
 namespace fc::sector_storage::stores {
-
-  using fc::common::HttpUri;
+  using common::HttpUri;
   using primitives::BigInt;
   using primitives::sector_file::sectorName;
   using std::chrono::duration_cast;

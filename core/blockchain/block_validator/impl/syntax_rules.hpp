@@ -9,13 +9,12 @@
 #include "primitives/block/block.hpp"
 
 namespace fc::blockchain::block_validator {
+  using primitives::block::BlockHeader;
+
   /**
    * @class Validating block header syntax
    */
   class SyntaxRules {
-   protected:
-    using BlockHeader = primitives::block::BlockHeader;
-
    public:
     /**
      * @brief Check parents count

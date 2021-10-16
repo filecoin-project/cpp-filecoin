@@ -8,7 +8,7 @@
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::types::multisig {
-  using fc::vm::runtime::Runtime;
+  using runtime::Runtime;
 
   outcome::result<Buffer> Transaction::hash(Runtime &runtime) const {
     ProposalHashData hash_data(*this);
