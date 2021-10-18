@@ -100,6 +100,11 @@ func abort(exit exitcode.ExitCode) {
 	panic(exit)
 }
 
+type abortf struct {
+	exit exitcode.ExitCode
+	text string
+}
+
 var empty = func() cid.Cid {
 	c, e := abi.CidBuilder.Sum([]byte{0x80})
 	if e != nil {
@@ -218,11 +223,10 @@ func (rt *rt) Send(to address.Address, method abi.MethodNum, o cbor.Marshaler, v
 
 func (rt *rt) Abortf(exit exitcode.ExitCode, msg string, args ...interface{}) {
 	s := fmt.Sprintf("Abort: "+msg, args...)
-	if s[len(s)-1] != '\n' {
-		s += "\n"
+	if s[len(s)-1] == '\n' {
+		s = s[:len(s)-1]
 	}
-	fmt.Print(s)
-	rt.Abort(exit)
+	panic(abortf{exit, s})
 }
 
 func (rt *rt) NewActorAddress() address.Address {
@@ -690,6 +694,9 @@ func invoke(rt *rt, code cid.Cid, method uint64, params []byte) (exit exitcode.E
 				fmt.Println("[go_actors] invoke cgoError", c.e)
 				e = c.e
 				exit = ExitFatal
+			} else if abortf, ok := e.(abortf); ok {
+				exit = abortf.exit
+				ret = []byte(abortf.text)
 			} else if exit, ok = e.(exitcode.ExitCode); !ok {
 				exit = exitcode.ExitCode(1)
 			}
@@ -769,7 +776,7 @@ func cgoActorsConfigParams(raw C.Raw) C.Raw {
 	verifreg3.MinVerifiedDealSize = MinVerifiedDealSize
 	verifreg4.MinVerifiedDealSize = MinVerifiedDealSize
 	verifreg5.MinVerifiedDealSize = MinVerifiedDealSize
-	
+
 	PreCommitChallengeDelay := abi.ChainEpoch(arg.int())
 	miner1.PreCommitChallengeDelay = PreCommitChallengeDelay
 	miner2.PreCommitChallengeDelay = PreCommitChallengeDelay
