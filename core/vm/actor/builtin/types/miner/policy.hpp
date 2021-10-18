@@ -60,6 +60,12 @@ namespace fc::vm::actor::builtin::types::miner {
       .mh_type = HashType::poseidon_bls12_381_a1_fc1,
       .mh_length = kCommitmentBytesLen};
 
+  // Maximum delay between challenge and pre-commitment.
+  // This prevents a miner sealing sectors far in advance of committing them to
+  // the chain, thus committing to a particular chain.
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  extern EpochDuration kMaxPreCommitRandomnessLookback;
+
   // Number of epochs between publishing the precommit and when the challenge
   // for interactive PoRep is drawn used to ensure it is not predictable by
   // miner

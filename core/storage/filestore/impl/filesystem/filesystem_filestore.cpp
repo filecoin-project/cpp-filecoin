@@ -8,12 +8,6 @@
 #include "storage/filestore/filestore_error.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 
-using fc::storage::filestore::File;
-using fc::storage::filestore::FileStoreError;
-using fc::storage::filestore::FileSystemFile;
-using fc::storage::filestore::FileSystemFileStore;
-using fc::storage::filestore::Path;
-
 namespace fc::storage::filestore {
 
   outcome::result<bool> FileSystemFileStore::exists(

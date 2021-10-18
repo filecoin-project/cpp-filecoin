@@ -32,6 +32,7 @@
 #include "markets/storage/chain_events/impl/chain_events_impl.hpp"
 #include "markets/storage/provider/impl/provider_impl.hpp"
 #include "miner/impl/miner_impl.hpp"
+#include "miner/main/type.hpp"
 #include "miner/mining.hpp"
 #include "miner/windowpost.hpp"
 #include "primitives/address/config.hpp"
@@ -61,6 +62,7 @@ namespace fc {
   using libp2p::multi::Multiaddress;
   using libp2p::peer::PeerId;
   using markets::storage::chain_events::ChainEventsImpl;
+  using primitives::StoredCounter;
   using primitives::address::Address;
   using primitives::jwt::kAllPermission;
   using primitives::sector::RegisteredSealProof;
@@ -68,6 +70,8 @@ namespace fc {
   namespace uuids = boost::uuids;
 
   static const Buffer kActor{cbytes("actor")};
+  static const std::string kSectorCounterKey = "sector_counter";
+  constexpr size_t kApiThreadPoolSize = 4;
 
   auto log() {
     static common::Logger logger = common::createLogger("miner");
@@ -85,11 +89,41 @@ namespace fc {
 
     /** Path to presealed sectors */
     boost::optional<boost::filesystem::path> preseal_path;
+    boost::optional<boost::filesystem::path> preseal_meta_path;
 
     auto join(const std::string &path) const {
       return (repo_path / path).string();
     }
   };
+
+  outcome::result<void> migratePreSealMeta(
+      const std::string &path,
+      const Address &maddr,
+      const std::shared_ptr<storage::PersistentBufferMap> &ds) {
+    OUTCOME_TRY(file, common::readFile(path));
+    OUTCOME_TRY(j_file, codec::json::parse(gsl::make_span(file)));
+    OUTCOME_TRY(
+        psm, api::decode<std::map<std::string, miner::types::Miner>>(j_file));
+
+    const auto it_psm = psm.find(encodeToString(maddr));
+    if (it_psm == psm.end()) {
+      return ERROR_TEXT("Miner not found");
+    }
+    const auto &meta{it_psm->second};
+
+    StoredCounter sc(ds, kSectorCounterKey);
+    OUTCOME_TRY(max_sector, sc.getNumber());
+    for (const auto &elem : meta.sectors) {
+      // TODO(ortyomka): migrate sealing info
+
+      if (max_sector < elem.sector_id) {
+        max_sector = elem.sector_id;
+      }
+    }
+    OUTCOME_TRY(sc.setNumber(max_sector));
+
+    return outcome::success();
+  }
 
   outcome::result<Config> readConfig(int argc, char **argv) {
     namespace po = boost::program_options;
@@ -112,6 +146,9 @@ namespace fc {
     option("pre-sealed-sectors",
            po::value(&config.preseal_path),
            "Path to presealed sectors");
+    option("pre-sealed-metadata",
+           po::value(&config.preseal_meta_path),
+           "Path to presealed metadata");
     desc.add(configProfile());
     primitives::address::configCurrentNetwork(option);
 
@@ -301,9 +338,20 @@ namespace fc {
     IoThread sealing_thread;
 
     OUTCOME_TRY(setupMiner(config, *leveldb, host->getId()));
+    if (config.preseal_meta_path) {
+      log()->info("Importing pre-sealed sector metadata");
+      OUTCOME_TRY(migratePreSealMeta(config.preseal_meta_path.value().string(),
+                                     *config.actor,
+                                     prefixed("/metadata")));
+    }
 
     auto napi{std::make_shared<api::FullNodeApi>()};
-    api::rpc::Client wsc{*io};
+    IoThread io_thread;
+    std::vector<std::thread> pool;
+    for (size_t i{0}; i < kApiThreadPoolSize; ++i) {
+      pool.emplace_back(std::thread{[&] { io_thread.io->run(); }});
+    }
+    api::rpc::Client wsc{*io_thread.io};
     wsc.setup(*napi);
     OUTCOME_TRY(
         wsc.connect(config.node_api.first, "/rpc/v0", config.node_api.second));
@@ -352,32 +400,34 @@ namespace fc {
     auto remote_store{std::make_shared<sector_storage::stores::RemoteStoreImpl>(
         local_store, std::move(auth_headers))};
 
+    IoThread io_thread2;
+    OUTCOME_TRY(wscheduler,
+                sector_storage::SchedulerImpl::newScheduler(
+                    io_thread2.io, prefixed("scheduler_works/")));
+    IoThread io_thread3;
     OUTCOME_TRY(
-        wscheduler,
-        sector_storage::SchedulerImpl::newScheduler(
-            io, prefixed("scheduler_works/")));  // maybe use another io_context
-    OUTCOME_TRY(manager,
-                sector_storage::ManagerImpl::newManager(
-                    io, remote_store, wscheduler, {true, true, true, true}));
+        manager,
+        sector_storage::ManagerImpl::newManager(
+            io_thread3.io, remote_store, wscheduler, {true, true, true, true}));
 
     // TODO(ortyomka): make param
     mining::Config default_config{.max_wait_deals_sectors = 2,
                                   .max_sealing_sectors = 0,
                                   .max_sealing_sectors_for_deals = 0,
                                   .wait_deals_delay = std::chrono::hours(6)};
-    OUTCOME_TRY(
-        miner,
-        miner::MinerImpl::newMiner(napi,
-                                   *config.actor,
-                                   *config.worker,
-                                   std::make_shared<primitives::StoredCounter>(
-                                       leveldb, "sector_counter"),
-                                   prefixed("sealing_fsm/"),
-                                   manager,
-                                   scheduler,
-                                   sealing_thread.io,
-                                   default_config,
-                                   config.precommit_control));
+    OUTCOME_TRY(miner,
+                miner::MinerImpl::newMiner(
+                    napi,
+                    *config.actor,
+                    *config.worker,
+                    std::make_shared<primitives::StoredCounter>(
+                        prefixed("/metadata"), kSectorCounterKey),
+                    prefixed("sealing_fsm/"),
+                    manager,
+                    scheduler,
+                    sealing_thread.io,
+                    default_config,
+                    config.precommit_control));
     auto sealing{miner->getSealing()};
 
     OUTCOME_TRY(
@@ -402,7 +452,8 @@ namespace fc {
         prefixed("stored_ask/"), napi, *config.actor)};
     auto piece_storage{std::make_shared<storage::piece::PieceStorageImpl>(
         prefixed("storage_provider/"))};
-    auto sector_blocks{std::make_shared<sectorblocks::SectorBlocksImpl>(miner)};
+    auto sector_blocks{std::make_shared<sectorblocks::SectorBlocksImpl>(
+        miner, prefixed("sealedblocks/"))};
     auto chain_events{std::make_shared<ChainEventsImpl>(
         napi, ChainEventsImpl::IsDealPrecommited{})};
     OUTCOME_TRY(chain_events->init());

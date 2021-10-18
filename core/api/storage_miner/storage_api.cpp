@@ -68,6 +68,24 @@ namespace fc::api {
       return outcome::success();
     };
 
+    api->SectorsList = [=]() -> outcome::result<std::vector<SectorNumber>> {
+      std::vector<SectorNumber> result;
+      for (const auto &sector : miner->getSealing()->getListSectors()) {
+        if (sector->state != mining::SealingState::kStateUnknown) {
+          result.push_back(sector->sector_number);
+        }
+      }
+
+      return result;
+    };
+
+    api->SectorsStatus = [=](SectorNumber id,
+                             bool) -> outcome::result<ApiSectorInfo> {
+      // TODO(ortyomka): [FIL-421] implement it
+      OUTCOME_TRY(sector_info, miner->getSealing()->getSectorInfo(id));
+      return ApiSectorInfo{.state = sector_info->state};
+    };
+
     api->StorageAttach = [=](const StorageInfo_ &storage_info,
                              const FsStat &stat) {
       return sector_index->storageAttach(storage_info, stat);

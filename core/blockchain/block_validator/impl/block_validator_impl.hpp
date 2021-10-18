@@ -21,21 +21,19 @@
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::blockchain::block_validator {
+  using scenarios::Stage;
+  using storage::ipfs::IpfsDatastore;
+  using EpochClock = clock::ChainEpochClock;
+  using blockchain::weight::WeightCalculator;
+  using clock::UTCClock;
+  using crypto::bls::BlsProvider;
+  using power::PowerTable;
+  using SecpProvider = crypto::secp256k1::Secp256k1ProviderDefault;
+  using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetCPtr;
+  using vm::interpreter::InterpreterCache;
 
   class BlockValidatorImpl : public BlockValidator {
-   protected:
-    using Stage = scenarios::Stage;
-    using IpfsDatastore = storage::ipfs::IpfsDatastore;
-    using EpochClock = clock::ChainEpochClock;
-    using UTCClock = clock::UTCClock;
-    using WeightCalculator = blockchain::weight::WeightCalculator;
-    using PowerTable = power::PowerTable;
-    using BlsProvider = crypto::bls::BlsProvider;
-    using SecpProvider = crypto::secp256k1::Secp256k1ProviderDefault;
-    using InterpreterCache = vm::interpreter::InterpreterCache;
-    using Tipset = primitives::tipset::Tipset;
-    using TipsetCPtr = primitives::tipset::TipsetCPtr;
-
    public:
     using StageExecutor = outcome::result<void> (BlockValidatorImpl::*)(
         const BlockHeader &) const;

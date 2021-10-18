@@ -22,11 +22,10 @@
 namespace fc::sync {
   using common::libp2p::CborStream;
   using libp2p::basic::Scheduler;
+  using libp2p::peer::PeerId;
 
   class SayHello : public std::enable_shared_from_this<SayHello> {
    public:
-    using PeerId = libp2p::peer::PeerId;
-
     SayHello(std::shared_ptr<libp2p::Host> host,
              std::shared_ptr<Scheduler> scheduler,
              std::shared_ptr<clock::UTCClock> clock);

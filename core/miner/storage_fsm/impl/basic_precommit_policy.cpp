@@ -6,17 +6,14 @@
 #include "miner/storage_fsm/impl/basic_precommit_policy.hpp"
 
 namespace fc::mining {
+  using vm::actor::builtin::types::miner::kMaxSectorExpirationExtension;
   using vm::actor::builtin::types::miner::kWPoStProvingPeriod;
 
-  ChainEpoch BasicPreCommitPolicy::expiration(
+  outcome::result<ChainEpoch> BasicPreCommitPolicy::expiration(
       gsl::span<const types::Piece> pieces) {
-    auto maybe_head = api_->ChainHead();
-    if (maybe_head.has_error()) {
-      logger_->error("Api error: {}", maybe_head.error().message());
-      return 0;
-    }
+    OUTCOME_TRY(head, api_->ChainHead());
 
-    ChainEpoch epoch = maybe_head.value()->height();
+    const ChainEpoch epoch = head->height();
 
     boost::optional<ChainEpoch> end = boost::none;
 

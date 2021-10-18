@@ -15,9 +15,9 @@ namespace fc::vm::actor::builtin::states {
   using adt::Multimap;
   using common::math::kPrecision128;
   using common::smoothing::nextEstimate;
-  using fc::vm::runtime::Runtime;
   using primitives::BigInt;
   using primitives::kChainEpochUndefined;
+  using runtime::Runtime;
 
   /** genesis power in bytes = 750,000 GiB */
   static const BigInt kInitialQAPowerEstimatePosition =

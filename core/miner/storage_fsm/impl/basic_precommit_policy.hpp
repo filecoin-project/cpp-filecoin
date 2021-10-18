@@ -18,7 +18,8 @@ namespace fc::mining {
                          ChainEpoch proving_boundary,
                          ChainEpoch duration);
 
-    ChainEpoch expiration(gsl::span<const types::Piece> pieces) override;
+    outcome::result<ChainEpoch> expiration(
+        gsl::span<const types::Piece> pieces) override;
 
    private:
     std::shared_ptr<FullNodeApi> api_;

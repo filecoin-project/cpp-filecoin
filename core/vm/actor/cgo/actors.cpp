@@ -14,15 +14,18 @@
 #include "vm/runtime/env.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
-#define RUNTIME_METHOD(name)                             \
-  void rt_##name(const std::shared_ptr<Runtime> &,       \
-                 CborDecodeStream &,                     \
-                 CborEncodeStream &);                    \
-  CBOR_METHOD(name) {                                    \
-    rt_##name(runtimes.at(arg.get<size_t>()), arg, ret); \
-  }                                                      \
-  void rt_##name(const std::shared_ptr<Runtime> &rt,     \
-                 CborDecodeStream &arg,                  \
+#define RUNTIME_METHOD(name)                         \
+  void rt_##name(const std::shared_ptr<Runtime> &,   \
+                 CborDecodeStream &,                 \
+                 CborEncodeStream &);                \
+  CBOR_METHOD(name) {                                \
+    std::unique_lock runtimes_lock{runtimes_mutex};  \
+    auto &rt{runtimes.at(arg.get<size_t>())};        \
+    runtimes_lock.unlock();                          \
+    rt_##name(rt, arg, ret);                         \
+  }                                                  \
+  void rt_##name(const std::shared_ptr<Runtime> &rt, \
+                 CborDecodeStream &arg,              \
                  CborEncodeStream &ret)
 
 namespace fc::vm::actor::cgo {
@@ -55,6 +58,7 @@ namespace fc::vm::actor::cgo {
   constexpr auto kFatal{VMExitCode::kFatal};
   constexpr auto kOk{VMExitCode::kOk};
 
+  static std::mutex runtimes_mutex;
   static std::map<size_t, std::shared_ptr<Runtime>> runtimes;
   static size_t next_runtime{0};
 
@@ -64,17 +68,21 @@ namespace fc::vm::actor::cgo {
   outcome::result<Bytes> invoke(const CID &code,
                                 const std::shared_ptr<Runtime> &runtime) {
     CborEncodeStream arg;
+    std::unique_lock runtimes_lock{runtimes_mutex};
     auto id{next_runtime++};  // TODO: mod
+    runtimes.emplace(id, runtime);
+    runtimes_lock.unlock();
     const auto &message{runtime->getMessage().get()};
     auto version{runtime->getNetworkVersion()};
     const auto &base_fee{runtime->execution()->env->tipset->getParentBaseFee()};
     arg << id << version << base_fee << message.from << message.to
         << runtime->getCurrentEpoch() << message.value << code << message.method
         << message.params;
-    runtimes.emplace(id, runtime);
     const auto _ret{cgoCall<cgoActorsInvoke>(arg)};
     CborDecodeStream ret{_ret};
+    runtimes_lock.lock();
     runtimes.erase(id);
+    runtimes_lock.unlock();
     auto exit{ret.get<VMExitCode>()};
     if (exit != kOk) {
       return exit;

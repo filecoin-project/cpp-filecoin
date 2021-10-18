@@ -128,6 +128,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   struct PreCommitSector : ActorMethodBase<6> {
     using Params = SectorPreCommitInfo;
+
     ACTOR_METHOD_DECL();
   };
 

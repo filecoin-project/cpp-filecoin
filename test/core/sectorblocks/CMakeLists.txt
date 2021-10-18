@@ -9,4 +9,5 @@ addtest(sectorblocks_test
 target_link_libraries(sectorblocks_test
         base_fs_test
         sectorblocks
+        in_memory_storage
         )

@@ -8,7 +8,7 @@
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::states {
-  using fc::vm::runtime::Runtime;
+  using runtime::Runtime;
 
   void MultisigActorState::setLocked(const ChainEpoch &start_epoch,
                                      const EpochDuration &unlock_duration,

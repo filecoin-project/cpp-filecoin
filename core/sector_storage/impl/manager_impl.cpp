@@ -24,8 +24,8 @@
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage {
-  using fc::primitives::sector_file::SectorFileType;
-  using fc::primitives::sector_file::sectorName;
+  using primitives::sector_file::SectorFileType;
+  using primitives::sector_file::sectorName;
   namespace fs = boost::filesystem;
 
   WorkerAction schedFetch(const SectorRef &sector,
@@ -586,7 +586,7 @@ namespace fc::sector_storage {
   outcome::result<void> ManagerImpl::sealPreCommit1(
       const SectorRef &sector,
       const SealRandomness &ticket,
-      gsl::span<const PieceInfo> pieces,
+      const std::vector<PieceInfo> &pieces,
       std::function<void(outcome::result<PreCommit1Output>)> cb,
       uint64_t priority) {
     OUTCOME_TRY(work_id,
@@ -628,7 +628,7 @@ namespace fc::sector_storage {
   outcome::result<PreCommit1Output> ManagerImpl::sealPreCommit1Sync(
       const SectorRef &sector,
       const SealRandomness &ticket,
-      gsl::span<const PieceInfo> pieces,
+      const std::vector<PieceInfo> &pieces,
       uint64_t priority) {
     std::promise<outcome::result<PreCommit1Output>> wait;
 
@@ -704,7 +704,7 @@ namespace fc::sector_storage {
       const SectorRef &sector,
       const SealRandomness &ticket,
       const InteractiveRandomness &seed,
-      gsl::span<const PieceInfo> pieces,
+      const std::vector<PieceInfo> &pieces,
       const SectorCids &cids,
       std::function<void(outcome::result<Commit1Output>)> cb,
       uint64_t priority) {
@@ -750,7 +750,7 @@ namespace fc::sector_storage {
       const SectorRef &sector,
       const SealRandomness &ticket,
       const InteractiveRandomness &seed,
-      gsl::span<const PieceInfo> pieces,
+      const std::vector<PieceInfo> &pieces,
       const SectorCids &cids,
       uint64_t priority) {
     std::promise<outcome::result<Commit1Output>> wait;
@@ -964,7 +964,7 @@ namespace fc::sector_storage {
         piece_sizes,
         new_piece_size,
         std::move(piece_data),
-        [&wait_result](outcome::result<PieceInfo> maybe_pi) -> void {
+        [&wait_result](const outcome::result<PieceInfo> &maybe_pi) -> void {
           wait_result.set_value(maybe_pi);
         },
         priority));

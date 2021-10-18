@@ -7,7 +7,6 @@
 
 #include <memory>
 
-#include "common/buffer.hpp"
 #include "common/outcome.hpp"
 #include "storage/buffer_map.hpp"
 

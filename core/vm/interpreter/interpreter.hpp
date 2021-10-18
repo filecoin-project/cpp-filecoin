@@ -13,6 +13,7 @@
 
 namespace fc::vm::interpreter {
   using primitives::BigInt;
+  using primitives::tipset::TipsetCPtr;
   using storage::PersistentBufferMap;
 
   enum class InterpreterError {
@@ -57,9 +58,6 @@ namespace fc::vm::interpreter {
   };
 
   class Interpreter {
-   protected:
-    using TipsetCPtr = primitives::tipset::TipsetCPtr;
-
    public:
     virtual ~Interpreter() = default;
 

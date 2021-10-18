@@ -12,6 +12,7 @@
 
 namespace fc::vm::interpreter {
   using blockchain::weight::WeightCalculator;
+  using primitives::block::BlockHeader;
   using runtime::EnvironmentContext;
   using runtime::MessageReceipt;
 
@@ -26,9 +27,6 @@ namespace fc::vm::interpreter {
         TsBranchPtr ts_branch,
         const TipsetCPtr &tipset,
         std::vector<MessageReceipt> *all_receipts) const;
-
-   protected:
-    using BlockHeader = primitives::block::BlockHeader;
 
    private:
     bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) const;

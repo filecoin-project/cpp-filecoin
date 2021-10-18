@@ -12,19 +12,18 @@
 #include "primitives/types.hpp"
 
 namespace fc::sector_storage::stores {
+  using primitives::FsStat;
+  using primitives::SectorSize;
+  using primitives::StorageID;
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector::SectorId;
+  using primitives::sector_file::SectorFileType;
+  using std::chrono::system_clock;
 
   class WLock {
    public:
     virtual ~WLock() = default;
   };
-
-  using fc::primitives::sector::SectorId;
-  using fc::primitives::sector_file::SectorFileType;
-  using primitives::FsStat;
-  using primitives::SectorSize;
-  using primitives::StorageID;
-  using std::chrono::system_clock;
 
   const std::chrono::seconds kHeartbeatInterval(10);
   const std::chrono::seconds kSkippedHeartbeatThreshold =

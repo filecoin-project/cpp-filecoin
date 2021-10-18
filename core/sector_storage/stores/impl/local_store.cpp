@@ -22,11 +22,10 @@
 #include "sector_storage/stores/storage_error.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
-using fc::primitives::LocalStorageMeta;
-using fc::primitives::sector_file::kSectorFileTypes;
-using std::chrono::duration_cast;
-
 namespace fc::sector_storage::stores {
+  using primitives::LocalStorageMeta;
+  using primitives::sector_file::kSectorFileTypes;
+  using std::chrono::duration_cast;
   namespace fs = boost::filesystem;
 
   outcome::result<SectorId> parseSectorId(const std::string &filename) {
@@ -69,6 +68,8 @@ namespace fc::sector_storage::stores {
     std::shared_lock lock(mutex_);
 
     AcquireSectorResponse result{};
+    result.storages.id = sector.id;
+    result.paths.id = sector.id;
 
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {
       if ((type & existing) == 0) {
@@ -159,7 +160,6 @@ namespace fc::sector_storage::stores {
       result.storages.setPathByType(type, best_storage);
       allocate = static_cast<SectorFileType>(allocate ^ type);
     }
-
     return result;
   }
 
@@ -541,7 +541,8 @@ namespace fc::sector_storage::stores {
       }
     }
 
-    handler_.reschedule(heartbeat_interval_);
+    // reschedule during scheduler callback, will not throw
+    handler_.reschedule(heartbeat_interval_).value();
   }
 
   outcome::result<FsStat> LocalStoreImpl::Path::getStat(
@@ -562,17 +563,19 @@ namespace fc::sector_storage::stores {
                                .string();
 
         auto maybe_used = local_storage->getDiskUsage(sector_path);
-        if (maybe_used.has_error()) {
-          if (maybe_used != outcome::failure(StorageError::kFileNotExist)) {
-            return maybe_used.error();
-          }
-
+        if (maybe_used == outcome::failure(StorageError::kFileNotExist)) {
           OUTCOME_TRY(path, tempFetchDest(sector_path, false, logger));
 
           maybe_used = local_storage->getDiskUsage(path);
-          if (maybe_used.has_error()) {
-            return maybe_used.error();
+        }
+
+        if (maybe_used.has_error()) {
+          if (maybe_used != outcome::failure(StorageError::kFileNotExist)) {
+            logger->warn("getting disk usage of \"{}\": {}",
+                         sector_path,
+                         maybe_used.error().message());
           }
+          continue;
         }
 
         if (stat.reserved < maybe_used.value()) {

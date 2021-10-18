@@ -6,7 +6,6 @@
 #pragma once
 
 #include "common/bytes.hpp"
-#include "common/hexutil.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 
 namespace fc::storage {
