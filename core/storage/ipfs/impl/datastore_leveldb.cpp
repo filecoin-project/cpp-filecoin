@@ -8,10 +8,8 @@
 #include "storage/leveldb/leveldb_error.hpp"
 
 namespace fc::storage::ipfs {
-  outcome::result<common::Buffer> LeveldbDatastore::encodeKey(
-      const CID &value) {
-    OUTCOME_TRY(encoded, value.toBytes());
-    return common::Buffer(std::move(encoded));
+  outcome::result<Bytes> LeveldbDatastore::encodeKey(const CID &value) {
+    return value.toBytes();
   }
 
   LeveldbDatastore::LeveldbDatastore(std::shared_ptr<BufferMap> leveldb)
@@ -34,7 +32,7 @@ namespace fc::storage::ipfs {
   outcome::result<void> LeveldbDatastore::set(const CID &key, Value value) {
     // TODO(turuslan): FIL-117 maybe check value hash matches cid
     OUTCOME_TRY(encoded_key, encodeKey(key));
-    return leveldb_->put(encoded_key, common::Buffer(std::move(value)));
+    return leveldb_->put(encoded_key, std::move(value));
   }
 
   outcome::result<LeveldbDatastore::Value> LeveldbDatastore::get(

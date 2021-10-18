@@ -61,8 +61,8 @@ namespace fc::vm::actor::cgo {
   static std::shared_ptr<proofs::ProofEngine> proofs =
       std::make_shared<proofs::ProofEngineImpl>();
 
-  outcome::result<Buffer> invoke(const CID &code,
-                                 const std::shared_ptr<Runtime> &runtime) {
+  outcome::result<Bytes> invoke(const CID &code,
+                                const std::shared_ptr<Runtime> &runtime) {
     CborEncodeStream arg;
     auto id{next_runtime++};  // TODO: mod
     const auto &message{runtime->getMessage().get()};
@@ -79,7 +79,7 @@ namespace fc::vm::actor::cgo {
     if (exit != kOk) {
       return exit;
     }
-    return ret.get<Buffer>();
+    return ret.get<Bytes>();
   }
 
   template <typename T>
@@ -109,9 +109,9 @@ namespace fc::vm::actor::cgo {
     return !chargeFatal(ret, rt->execution()->chargeGas(gas));
   }
 
-  inline boost::optional<Buffer> ipldGet(CborEncodeStream &ret,
-                                         const std::shared_ptr<Runtime> &rt,
-                                         const CID &cid) {
+  inline boost::optional<Bytes> ipldGet(CborEncodeStream &ret,
+                                        const std::shared_ptr<Runtime> &rt,
+                                        const CID &cid) {
     if (auto r{rt->execution()->charging_ipld->get(cid)}) {
       return std::move(r.value());
     } else {
@@ -124,7 +124,7 @@ namespace fc::vm::actor::cgo {
                                       const std::shared_ptr<Runtime> &rt,
                                       BytesIn value) {
     OUTCOME_EXCEPT(cid, common::getCidOf(value));
-    if (auto r{rt->execution()->charging_ipld->set(cid, Buffer{value})}) {
+    if (auto r{rt->execution()->charging_ipld->set(cid, copy(value))}) {
       return std::move(cid);
     } else {
       chargeFatal(ret, r);
@@ -139,7 +139,7 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtIpldPut) {
-    auto buf = arg.get<Buffer>();
+    auto buf = arg.get<Bytes>();
     if (auto cid{ipldPut(ret, rt, buf)}) {
       ret << kOk << *cid;
     }
@@ -154,7 +154,7 @@ namespace fc::vm::actor::cgo {
   RUNTIME_METHOD(gocRtRandomnessFromTickets) {
     auto tag{arg.get<DomainSeparationTag>()};
     auto round{arg.get<ChainEpoch>()};
-    auto seed{arg.get<Buffer>()};
+    auto seed{arg.get<Bytes>()};
     auto r = rt->getRandomnessFromTickets(tag, round, seed);
     if (!r) {
       ret << kFatal;
@@ -166,7 +166,7 @@ namespace fc::vm::actor::cgo {
   RUNTIME_METHOD(gocRtRandomnessFromBeacon) {
     auto tag{arg.get<DomainSeparationTag>()};
     auto round{arg.get<ChainEpoch>()};
-    auto seed{arg.get<Buffer>()};
+    auto seed{arg.get<Bytes>()};
     auto r = rt->getRandomnessFromBeacon(tag, round, seed);
     if (!r) {
       ret << kFatal;
@@ -176,7 +176,7 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtBlake) {
-    auto data{arg.get<Buffer>()};
+    auto data{arg.get<Bytes>()};
     auto hash{rt->hashBlake2b(data)};
     if (!chargeFatal(ret, hash)) {
       ret << kOk << hash.value();
@@ -228,7 +228,7 @@ namespace fc::vm::actor::cgo {
   RUNTIME_METHOD(gocRtSend) {
     auto to = arg.get<Address>();
     auto method = arg.get<uint64_t>();
-    auto params = arg.get<Buffer>();
+    auto params = arg.get<Bytes>();
     auto value = arg.get<TokenAmount>();
     auto r{rt->send(to, method, params, value)};
     if (!r) {
@@ -246,9 +246,9 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtVerifySig) {
-    auto signature_bytes{arg.get<Buffer>()};
+    auto signature_bytes{arg.get<Bytes>()};
     auto address{arg.get<Address>()};
-    auto data{arg.get<Buffer>()};
+    auto data{arg.get<Bytes>()};
     auto ok{rt->verifySignatureBytes(signature_bytes, address, data)};
     if (!chargeFatal(ret, ok)) {
       ret << kOk << ok.value();
@@ -256,9 +256,9 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtVerifyConsensusFault) {
-    auto block1{arg.get<Buffer>()};
-    auto block2{arg.get<Buffer>()};
-    auto extra{arg.get<Buffer>()};
+    auto block1{arg.get<Bytes>()};
+    auto block2{arg.get<Bytes>()};
+    auto extra{arg.get<Bytes>()};
     auto _fault{rt->verifyConsensusFault(block1, block2, extra)};
     // TODO(turuslan): correct error handling
     if (!charge(ret, _fault)) {
@@ -345,7 +345,7 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtStateCommit) {
-    if (auto cid{ipldPut(ret, rt, arg.get<Buffer>())}) {
+    if (auto cid{ipldPut(ret, rt, arg.get<Bytes>())}) {
       if (auto _actor{
               rt->execution()->state_tree->get(rt->getMessage().get().to)}) {
         auto &actor{_actor.value()};

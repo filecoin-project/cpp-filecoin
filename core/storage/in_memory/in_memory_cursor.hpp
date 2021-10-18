@@ -27,8 +27,8 @@ namespace fc::storage {
       }
     }
 
-    void seek(const Buffer &key) override {
-      current_iterator_ = storage_->storage.lower_bound(key.toHex());
+    void seek(const Bytes &key) override {
+      current_iterator_ = storage_->storage.lower_bound(toHex(key));
     }
 
     void seekToLast() override {
@@ -61,16 +61,16 @@ namespace fc::storage {
       }
     }
 
-    Buffer key() const override {
-      return Buffer::fromHex(current_iterator_->first).value();
+    Bytes key() const override {
+      return fromHex(current_iterator_->first).value();
     }
 
-    Buffer value() const override {
+    Bytes value() const override {
       return current_iterator_->second;
     }
 
    private:
-    std::map<std::string, Buffer>::iterator current_iterator_, invalid_;
+    std::map<std::string, Bytes>::iterator current_iterator_, invalid_;
 
     std::shared_ptr<InMemoryStorage> storage_;
   };

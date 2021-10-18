@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "common/buffer.hpp"
+#include "common/bytes.hpp"
 #include "fwd.hpp"
 
 namespace fc::vm::actor::cgo {
@@ -17,6 +17,6 @@ namespace fc::vm::actor::cgo {
    */
   void configParams();
 
-  outcome::result<Buffer> invoke(const CID &code,
-                                 const std::shared_ptr<Runtime> &runtime);
+  outcome::result<Bytes> invoke(const CID &code,
+                                const std::shared_ptr<Runtime> &runtime);
 }  // namespace fc::vm::actor::cgo

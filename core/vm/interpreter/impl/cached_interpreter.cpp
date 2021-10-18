@@ -15,7 +15,7 @@ namespace fc::vm::interpreter {
   boost::optional<outcome::result<Result>> InterpreterCache::tryGet(
       const TipsetKey &key) const {
     boost::optional<outcome::result<Result>> result;
-    const Buffer hash{key.hash()};
+    const Bytes hash{copy(key.hash())};
     if (kv->contains(hash)) {
       const auto raw{kv->get(hash).value()};
       if (auto cached{
@@ -40,16 +40,16 @@ namespace fc::vm::interpreter {
   }
 
   void InterpreterCache::set(const TipsetKey &key, const Result &result) {
-    kv->put(Buffer{key.hash()}, codec::cbor::encode(result).value()).value();
+    kv->put(copy(key.hash()), codec::cbor::encode(result).value()).value();
   }
 
   void InterpreterCache::markBad(const TipsetKey &key) {
     static const auto kNull{codec::cbor::encode(nullptr).value()};
-    kv->put(Buffer{key.hash()}, kNull).value();
+    kv->put(copy(key.hash()), kNull).value();
   }
 
   void InterpreterCache::remove(const TipsetKey &key) {
-    kv->remove(Buffer{key.hash()}).value();
+    kv->remove(copy(key.hash())).value();
   }
 
   CachedInterpreter::CachedInterpreter(std::shared_ptr<Interpreter> interpreter,

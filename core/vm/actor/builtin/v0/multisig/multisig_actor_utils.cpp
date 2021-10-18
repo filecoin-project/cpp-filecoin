@@ -84,7 +84,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       const TransactionId &tx_id,
       const Transaction &transaction) const {
     bool applied = false;
-    Buffer out{};
+    Bytes out{};
     VMExitCode code = VMExitCode::kOk;
 
     if (transaction.approved.size() >= state->threshold) {
@@ -98,7 +98,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
                                                  transaction.value);
       OUTCOME_TRYA(code, asExitCode(send_result));
       if (send_result) {
-        out = send_result.value();
+        out = std::move(send_result.value());
       }
       applied = true;
 

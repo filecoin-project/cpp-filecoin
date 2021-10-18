@@ -5,6 +5,8 @@
 
 #include "storage/leveldb/prefix.hpp"
 
+#include <utility>
+
 #include "common/span.hpp"
 
 namespace fc::storage {
@@ -16,7 +18,7 @@ namespace fc::storage {
     cursor->seek(map.prefix);
   }
 
-  void MapPrefix::Cursor::seek(const Buffer &key) {
+  void MapPrefix::Cursor::seek(const Bytes &key) {
     cursor->seek(map._key(key));
   }
 
@@ -26,14 +28,13 @@ namespace fc::storage {
       key = map.prefix;
       // increment
       auto carry{1u};
-      auto &_key{key.toVector()};
-      for (auto it{_key.rbegin()}; carry && it != _key.rend(); ++it) {
+      for (auto it{key.rbegin()}; carry && it != key.rend(); ++it) {
         carry += *it;
         *it = carry & 0xFF;
         carry >>= 8;
       }
       if (carry) {
-        key = Buffer(map.prefix.size(), 0xFF);
+        key = Bytes(map.prefix.size(), 0xFF);
       }
     }
     if (!key.empty()) {
@@ -65,28 +66,27 @@ namespace fc::storage {
     cursor->prev();
   }
 
-  Buffer MapPrefix::Cursor::key() const {
-    return cursor->key().subbuffer(map.prefix.size());
+  Bytes MapPrefix::Cursor::key() const {
+    return copy(gsl::span(cursor->key().data(), map.prefix.size()));
   }
 
-  Buffer MapPrefix::Cursor::value() const {
+  Bytes MapPrefix::Cursor::value() const {
     return cursor->value();
   }
 
   MapPrefix::Batch::Batch(MapPrefix &map, std::unique_ptr<BufferBatch> batch)
       : map{map}, batch{std::move(batch)} {}
 
-  outcome::result<void> MapPrefix::Batch::put(const Buffer &key,
-                                              const Buffer &value) {
+  outcome::result<void> MapPrefix::Batch::put(const Bytes &key,
+                                              const Bytes &value) {
     return batch->put(map._key(key), value);
   }
 
-  outcome::result<void> MapPrefix::Batch::put(const Buffer &key,
-                                              Buffer &&value) {
+  outcome::result<void> MapPrefix::Batch::put(const Bytes &key, Bytes &&value) {
     return batch->put(map._key(key), std::move(value));
   }
 
-  outcome::result<void> MapPrefix::Batch::remove(const Buffer &key) {
+  outcome::result<void> MapPrefix::Batch::remove(const Bytes &key) {
     return batch->remove(map._key(key));
   }
 
@@ -98,32 +98,35 @@ namespace fc::storage {
     batch->clear();
   }
 
-  MapPrefix::MapPrefix(BytesIn prefix, MapPtr map) : prefix{prefix}, map{map} {}
+  MapPrefix::MapPrefix(BytesIn prefix, MapPtr map)
+      : prefix{copy(prefix)}, map{std::move(map)} {}
 
   MapPrefix::MapPrefix(std::string_view prefix, MapPtr map)
-      : MapPrefix{common::span::cbytes(prefix), map} {}
+      : MapPrefix{common::span::cbytes(prefix), std::move(map)} {}
 
-  Buffer MapPrefix::_key(BytesIn key) const {
-    return Buffer{prefix}.put(key);
+  Bytes MapPrefix::_key(BytesIn key) const {
+    Bytes res{prefix};
+    append(res, copy(key));
+    return res;
   }
 
-  outcome::result<Buffer> MapPrefix::get(const Buffer &key) const {
+  outcome::result<Bytes> MapPrefix::get(const Bytes &key) const {
     return map->get(_key(key));
   }
 
-  bool MapPrefix::contains(const Buffer &key) const {
+  bool MapPrefix::contains(const Bytes &key) const {
     return map->contains(_key(key));
   }
 
-  outcome::result<void> MapPrefix::put(const Buffer &key, const Buffer &value) {
+  outcome::result<void> MapPrefix::put(const Bytes &key, const Bytes &value) {
     return map->put(_key(key), value);
   }
 
-  outcome::result<void> MapPrefix::put(const Buffer &key, Buffer &&value) {
+  outcome::result<void> MapPrefix::put(const Bytes &key, Bytes &&value) {
     return map->put(_key(key), std::move(value));
   }
 
-  outcome::result<void> MapPrefix::remove(const Buffer &key) {
+  outcome::result<void> MapPrefix::remove(const Bytes &key) {
     return map->remove(_key(key));
   }
 
@@ -135,20 +138,21 @@ namespace fc::storage {
     return std::make_unique<Cursor>(*this, map->cursor());
   }
 
-  OneKey::OneKey(BytesIn key, MapPtr map) : key{key}, map{map} {}
+  OneKey::OneKey(BytesIn key, MapPtr map)
+      : key{copy(key)}, map{std::move(map)} {}
 
   OneKey::OneKey(std::string_view key, MapPtr map)
-      : OneKey{common::span::cbytes(key), map} {}
+      : OneKey{common::span::cbytes(key), std::move(map)} {}
 
   bool OneKey::has() const {
     return map->contains(key);
   }
 
-  Buffer OneKey::get() const {
+  Bytes OneKey::get() const {
     return map->get(key).value();
   }
 
-  void OneKey::set(Buffer value) {
+  void OneKey::set(Bytes value) {
     map->put(key, std::move(value)).value();
   }
 

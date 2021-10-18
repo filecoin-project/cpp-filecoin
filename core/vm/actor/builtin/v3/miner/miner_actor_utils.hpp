@@ -8,7 +8,6 @@
 #include "vm/actor/builtin/v2/miner/miner_actor_utils.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
-  using common::Buffer;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
   using primitives::DealId;
@@ -55,7 +54,7 @@ namespace fc::vm::actor::builtin::v3::miner {
         const Address &address) const override;
 
     outcome::result<void> callPowerEnrollCronEvent(
-        ChainEpoch event_epoch, const Buffer &params) const override;
+        ChainEpoch event_epoch, const Bytes &params) const override;
 
     outcome::result<void> callPowerUpdateClaimedPower(
         const PowerPair &delta) const override;

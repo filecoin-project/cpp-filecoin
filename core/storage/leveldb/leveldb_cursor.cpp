@@ -16,7 +16,7 @@ namespace fc::storage {
     i_->SeekToFirst();
   }
 
-  void LevelDB::Cursor::seek(const Buffer &key) {
+  void LevelDB::Cursor::seek(const Bytes &key) {
     i_->Seek(make_slice(key));
   }
 
@@ -36,11 +36,11 @@ namespace fc::storage {
     i_->Prev();
   }
 
-  Buffer LevelDB::Cursor::key() const {
+  Bytes LevelDB::Cursor::key() const {
     return make_buffer(i_->key());
   }
 
-  Buffer LevelDB::Cursor::value() const {
+  Bytes LevelDB::Cursor::value() const {
     return make_buffer(i_->value());
   }
 

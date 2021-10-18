@@ -59,8 +59,8 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
                        voucher.signingBytes(),
                        VMExitCode::kErrIllegalArgument);
 
-    const Buffer signature_bytes =
-        voucher.signature_bytes ? voucher.signature_bytes.get() : Buffer{};
+    const Bytes signature_bytes =
+        voucher.signature_bytes ? voucher.signature_bytes.get() : Bytes{};
     REQUIRE_NO_ERROR_A(verified,
                        runtime.verifySignatureBytes(
                            signature_bytes, signer, voucher_signable_bytes),
@@ -77,7 +77,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   }
 
   outcome::result<void> UpdateChannelState::checkVoucher(
-      Runtime &runtime, const Buffer &secret, const SignedVoucher &voucher) {
+      Runtime &runtime, const Bytes &secret, const SignedVoucher &voucher) {
     OUTCOME_TRY(runtime.validateArgument(runtime.getCurrentEpoch()
                                          >= voucher.time_lock_min));
     OUTCOME_TRY(runtime.validateArgument(voucher.time_lock_max == 0
@@ -95,7 +95,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   }
 
   outcome::result<void> UpdateChannelState::voucherExtra(
-      Runtime &runtime, const Buffer &proof, const SignedVoucher &voucher) {
+      Runtime &runtime, const Bytes &proof, const SignedVoucher &voucher) {
     if (voucher.extra) {
       OUTCOME_TRY(
           params_extra,

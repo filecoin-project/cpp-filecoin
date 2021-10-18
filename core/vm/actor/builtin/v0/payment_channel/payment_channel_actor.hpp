@@ -11,7 +11,6 @@
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
-  using common::Buffer;
   using primitives::EpochDuration;
   using primitives::address::Address;
   using states::PaymentChannelActorStatePtr;
@@ -29,8 +28,8 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   struct UpdateChannelState : ActorMethodBase<2> {
     struct Params {
       SignedVoucher signed_voucher;
-      Buffer secret;
-      Buffer proof;
+      Bytes secret;
+      Bytes proof;
     };
     ACTOR_METHOD_DECL();
 
@@ -41,10 +40,10 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     static outcome::result<void> checkPaychannelAddr(
         const Runtime &runtime, const SignedVoucher &voucher);
     static outcome::result<void> checkVoucher(Runtime &runtime,
-                                              const Buffer &secret,
+                                              const Bytes &secret,
                                               const SignedVoucher &voucher);
     static outcome::result<void> voucherExtra(Runtime &runtime,
-                                              const Buffer &proof,
+                                              const Bytes &proof,
                                               const SignedVoucher &voucher);
     static outcome::result<void> calculate(const Runtime &runtime,
                                            PaymentChannelActorStatePtr &state,

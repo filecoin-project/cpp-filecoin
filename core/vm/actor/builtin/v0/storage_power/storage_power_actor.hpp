@@ -35,7 +35,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
       Address owner;
       Address worker;
       RegisteredSealProof seal_proof_type;
-      Buffer peer_id;
+      Bytes peer_id;
       std::vector<Multiaddress> multiaddresses;
     };
 
@@ -66,7 +66,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   struct EnrollCronEvent : ActorMethodBase<4> {
     struct Params {
       ChainEpoch event_epoch;
-      Buffer payload;
+      Bytes payload;
     };
     ACTOR_METHOD_DECL();
   };

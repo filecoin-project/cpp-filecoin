@@ -14,7 +14,7 @@
 namespace fc::storage::ipfs {
 
   struct IpfsDatastore : vm::actor::WithActorVersion {
-    using Value = common::Buffer;
+    using Value = Bytes;
 
     virtual ~IpfsDatastore() = default;
 

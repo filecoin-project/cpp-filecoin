@@ -72,7 +72,7 @@ namespace fc::codec::uvarint {
 
   /** returns varint length (always > 0) on success else 0 */
   inline size_t readBytes(std::istream &is,
-                          Buffer &buffer,
+                          Bytes &buffer,
                           size_t max = 1 << 30) {
     VarintDecoder varint;
     if (read(is, varint) && varint.value <= max) {

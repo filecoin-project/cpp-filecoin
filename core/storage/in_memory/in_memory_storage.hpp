@@ -12,8 +12,6 @@
 #include "storage/buffer_map.hpp"
 
 namespace fc::storage {
-
-  using fc::common::Buffer;
   /**
    * Simple storage that conforms PersistentMap interface
    * Mostly needed to have an in-memory trie in tests to avoid integration with
@@ -24,24 +22,24 @@ namespace fc::storage {
    public:
     ~InMemoryStorage() override = default;
 
-    outcome::result<Buffer> get(const Buffer &key) const override;
+    outcome::result<Bytes> get(const Bytes &key) const override;
 
-    outcome::result<void> put(const Buffer &key, const Buffer &value) override;
+    outcome::result<void> put(const Bytes &key, const Bytes &value) override;
 
-    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
+    outcome::result<void> put(const Bytes &key, Bytes &&value) override;
 
-    bool contains(const Buffer &key) const override;
+    bool contains(const Bytes &key) const override;
 
-    outcome::result<void> remove(const Buffer &key) override;
+    outcome::result<void> remove(const Bytes &key) override;
 
-    std::unique_ptr<fc::storage::face::WriteBatch<Buffer, Buffer>> batch()
+    std::unique_ptr<fc::storage::face::WriteBatch<Bytes, Bytes>> batch()
         override;
 
     std::unique_ptr<BufferMapCursor> cursor() override;
 
    private:
     friend class InMemoryCursor;
-    std::map<std::string, Buffer> storage;
+    std::map<std::string, Bytes> storage;
   };
 
 }  // namespace fc::storage

@@ -8,7 +8,6 @@
 #include "vm/actor/builtin/utils/miner_actor_utils.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
-  using common::Buffer;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
   using primitives::DealId;
@@ -71,7 +70,7 @@ namespace fc::vm::actor::builtin::v0::miner {
         NetworkVersion network_version) const override;
 
     outcome::result<void> checkPeerInfo(
-        const Buffer &peer_id,
+        const Bytes &peer_id,
         const std::vector<Multiaddress> &multiaddresses) const override;
 
     outcome::result<void> checkControlAddresses(
@@ -100,7 +99,7 @@ namespace fc::vm::actor::builtin::v0::miner {
         const Address &address) const override;
 
     outcome::result<void> callPowerEnrollCronEvent(
-        ChainEpoch event_epoch, const Buffer &params) const override;
+        ChainEpoch event_epoch, const Bytes &params) const override;
 
     outcome::result<void> callPowerUpdateClaimedPower(
         const PowerPair &delta) const override;

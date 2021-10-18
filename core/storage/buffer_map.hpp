@@ -14,21 +14,19 @@
 
 #include <gsl/span>
 
-#include "common/buffer.hpp"
+#include "common/bytes.hpp"
 #include "storage/face/generic_map.hpp"
 #include "storage/face/persistent_map.hpp"
 #include "storage/face/write_batch.hpp"
 
 namespace fc::storage {
 
-  using Buffer = common::Buffer;
+  using BufferMap = face::GenericMap<Bytes, Bytes>;
 
-  using BufferMap = face::GenericMap<Buffer, Buffer>;
+  using BufferBatch = face::WriteBatch<Bytes, Bytes>;
 
-  using BufferBatch = face::WriteBatch<Buffer, Buffer>;
+  using PersistentBufferMap = face::PersistentMap<Bytes, Bytes>;
 
-  using PersistentBufferMap = face::PersistentMap<Buffer, Buffer>;
-
-  using BufferMapCursor = face::MapCursor<Buffer, Buffer>;
+  using BufferMapCursor = face::MapCursor<Bytes, Bytes>;
 
 }  // namespace fc::storage

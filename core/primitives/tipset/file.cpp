@@ -184,7 +184,7 @@ namespace fc::primitives::tipset::chain::file {
     ChainEpoch min_height{};
     ChainEpoch max_height{};
     Hash256 max_ticket;
-    Buffer _block;
+    Bytes _block;
     bool first_ts{true};
 
     bool step(CbCidsIn tsk) {

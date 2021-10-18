@@ -13,7 +13,6 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/protocol/common/subscription.hpp>
 
-#include "common/buffer.hpp"
 #include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "common/outcome.hpp"
 #include "storage/ipfs/graphsync/extension.hpp"
@@ -85,14 +84,14 @@ namespace fc::storage::ipfs::graphsync {
 
   struct Request {
     CID root_cid;
-    common::Buffer selector;
+    Bytes selector;
     std::vector<Extension> extensions;
     bool cancels_previous_requests;
   };
 
   struct Data {
     CID cid;
-    common::Buffer content;
+    Bytes content;
   };
 
   struct Response {

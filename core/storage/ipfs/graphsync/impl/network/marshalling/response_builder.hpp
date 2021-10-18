@@ -25,7 +25,7 @@ namespace fc::storage::ipfs::graphsync {
     /// Adds data block to protobuf message
     /// \param cid CID of data block
     /// \param data Raw data
-    void addDataBlock(const CID &cid, const common::Buffer &data);
+    void addDataBlock(const CID &cid, const Bytes &data);
 
     /// Clears meta_ and calls base's clear()
     void clear() override;

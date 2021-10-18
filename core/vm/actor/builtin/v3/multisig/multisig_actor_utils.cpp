@@ -12,7 +12,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
       const TransactionId &tx_id,
       const Transaction &transaction) const {
     bool applied = false;
-    Buffer out{};
+    Bytes out{};
     VMExitCode code = VMExitCode::kOk;
 
     if (transaction.approved.size() >= state->threshold) {

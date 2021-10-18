@@ -117,14 +117,14 @@ namespace fc::storage::piece {
     return PieceStorageError::kPieceNotFound;
   }
 
-  outcome::result<Buffer> PieceStorageImpl::makeKey(const std::string &prefix,
-                                                    const CID &cid) {
+  outcome::result<Bytes> PieceStorageImpl::makeKey(const std::string &prefix,
+                                                   const CID &cid) {
     OUTCOME_TRY(cid_key, cid.toString());
     std::vector<uint8_t> key_bytes{std::move_iterator(prefix.begin()),
                                    std::move_iterator(prefix.end())};
     key_bytes.insert(key_bytes.end(),
                      std::move_iterator(cid_key.begin()),
                      std::move_iterator(cid_key.end()));
-    return Buffer{std::move(key_bytes)};
+    return std::move(key_bytes);
   }
 }  // namespace fc::storage::piece

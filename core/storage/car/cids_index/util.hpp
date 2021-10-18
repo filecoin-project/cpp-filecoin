@@ -30,7 +30,7 @@ namespace fc::storage::cids_index {
       log = spdlog::default_logger();
     }
     if (writable && !boost::filesystem::exists(car_path)) {
-      Buffer header;
+      Bytes header;
       car::writeHeader(header, {});
       OUTCOME_TRY(common::writeFile(car_path, header));
     }

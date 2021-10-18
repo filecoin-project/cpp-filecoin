@@ -7,11 +7,10 @@
 
 #include "codec/cbor/cbor_errors.hpp"
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/buffer.hpp"
 
 namespace fc {
   struct CborRaw {
-    Buffer b;
+    Bytes b;
   };
   CBOR_ENCODE(CborRaw, raw) {
     if (raw.b.empty()) {
@@ -20,7 +19,7 @@ namespace fc {
     return s << s.wrap(raw.b, 1);
   }
   CBOR_DECODE(CborRaw, raw) {
-    raw.b = Buffer{s.raw()};
+    raw.b = s.raw();
     return s;
   }
   inline auto operator==(const CborRaw &l, const CborRaw &r) {

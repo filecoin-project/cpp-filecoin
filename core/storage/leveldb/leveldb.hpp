@@ -50,16 +50,16 @@ namespace fc::storage {
 
     std::unique_ptr<BufferBatch> batch() override;
 
-    outcome::result<Buffer> get(const Buffer &key) const override;
+    outcome::result<Bytes> get(const Bytes &key) const override;
 
-    bool contains(const Buffer &key) const override;
+    bool contains(const Bytes &key) const override;
 
-    outcome::result<void> put(const Buffer &key, const Buffer &value) override;
+    outcome::result<void> put(const Bytes &key, const Bytes &value) override;
 
     // value will be copied, not moved, due to internal structure of LevelDB
-    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
+    outcome::result<void> put(const Bytes &key, Bytes &&value) override;
 
-    outcome::result<void> remove(const Buffer &key) override;
+    outcome::result<void> remove(const Bytes &key) override;
 
    private:
     std::unique_ptr<leveldb::DB> db_;

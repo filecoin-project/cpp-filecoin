@@ -7,7 +7,6 @@
 
 #include <libp2p/multi/multiaddress.hpp>
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/buffer.hpp"
 #include "common/libp2p/multi/cbor_multiaddress.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
@@ -17,7 +16,6 @@
 #include "vm/actor/builtin/types/miner/post_partition.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
-  using common::Buffer;
   using crypto::randomness::Randomness;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
@@ -39,7 +37,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       Address worker;
       std::vector<Address> control_addresses;
       RegisteredSealProof seal_proof_type;
-      Buffer peer_id;
+      Bytes peer_id;
       std::vector<Multiaddress> multiaddresses;
     };
     ACTOR_METHOD_DECL();
@@ -79,7 +77,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   struct ChangePeerId : ActorMethodBase<4> {
     struct Params {
-      Buffer new_id;
+      Bytes new_id;
     };
     ACTOR_METHOD_DECL();
   };
@@ -251,9 +249,9 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   struct ReportConsensusFault : ActorMethodBase<15> {
     struct Params {
-      Buffer block_header_1;
-      Buffer block_header_2;
-      Buffer block_header_extra;
+      Bytes block_header_1;
+      Bytes block_header_2;
+      Bytes block_header_extra;
     };
     ACTOR_METHOD_DECL();
   };

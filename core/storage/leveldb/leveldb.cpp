@@ -7,6 +7,7 @@
 
 #include <utility>
 
+#include "common/span.hpp"
 #include "storage/leveldb/leveldb_batch.hpp"
 #include "storage/leveldb/leveldb_cursor.hpp"
 #include "storage/leveldb/leveldb_util.hpp"
@@ -50,25 +51,25 @@ namespace fc::storage {
     wo_ = wo;
   }
 
-  outcome::result<Buffer> LevelDB::get(const Buffer &key) const {
+  outcome::result<Bytes> LevelDB::get(const Bytes &key) const {
     std::string value;
     auto status = db_->Get(ro_, make_slice(key), &value);
     if (status.ok()) {
-      // FIXME: is it possible to avoid copying string -> Buffer?
-      return Buffer{}.put(value);
+      // FIXME: is it possible to avoid copying string -> Bytes?
+      return copy(common::span::cbytes(value));
     }
 
-    return error_as_result<Buffer>(status, logger_);
+    return error_as_result<Bytes>(status, logger_);
   }
 
-  bool LevelDB::contains(const Buffer &key) const {
+  bool LevelDB::contains(const Bytes &key) const {
     // here we interpret all kinds of errors as "not found".
     // is there a better way?
     std::string value;
     return db_->Get(ro_, make_slice(key), &value).ok();
   }
 
-  outcome::result<void> LevelDB::put(const Buffer &key, const Buffer &value) {
+  outcome::result<void> LevelDB::put(const Bytes &key, const Bytes &value) {
     auto status = db_->Put(wo_, make_slice(key), make_slice(value));
     if (status.ok()) {
       return outcome::success();
@@ -77,12 +78,11 @@ namespace fc::storage {
     return error_as_result<void>(status, logger_);
   }
 
-  outcome::result<void> LevelDB::put(const Buffer &key, Buffer &&value) {
-    Buffer copy(std::move(value));
-    return put(key, copy);
+  outcome::result<void> LevelDB::put(const Bytes &key, Bytes &&value) {
+    return put(key, value);
   }
 
-  outcome::result<void> LevelDB::remove(const Buffer &key) {
+  outcome::result<void> LevelDB::remove(const Bytes &key) {
     auto status = db_->Delete(wo_, make_slice(key));
     if (status.ok()) {
       return outcome::success();

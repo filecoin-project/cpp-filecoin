@@ -106,9 +106,9 @@ namespace fc::vm::runtime {
                            execution_->env->ipld,
                            execution()->origin));
     OUTCOME_TRY(encoded_address, codec::cbor::encode(caller_address));
-    auto actor_address{Address::makeActorExec(
-        encoded_address.putUint64(execution()->origin_nonce)
-            .putUint64(execution_->actors_created))};
+    putUint64(encoded_address, execution()->origin_nonce);
+    putUint64(encoded_address, execution_->actors_created);
+    auto actor_address{Address::makeActorExec(encoded_address)};
 
     ++execution_->actors_created;
     return actor_address;
@@ -228,7 +228,7 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<bool> RuntimeImpl::verifySignatureBytes(
-      const Buffer &signature_bytes,
+      const Bytes &signature_bytes,
       const Address &address,
       gsl::span<const uint8_t> data) {
     const auto bls = Signature::isBls(signature_bytes);
@@ -312,9 +312,9 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<boost::optional<ConsensusFault>>
-  RuntimeImpl::verifyConsensusFault(const Buffer &block1,
-                                    const Buffer &block2,
-                                    const Buffer &extra) {
+  RuntimeImpl::verifyConsensusFault(const Bytes &block1,
+                                    const Bytes &block2,
+                                    const Bytes &extra) {
     using common::getCidOf;
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onVerifyConsensusFault()));
     if (block1 == block2) {

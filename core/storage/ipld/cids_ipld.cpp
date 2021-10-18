@@ -40,7 +40,7 @@ namespace fc::storage::ipld {
     return false;
   }
 
-  outcome::result<void> CidsIpld::set(const CID &cid, Buffer value) {
+  outcome::result<void> CidsIpld::set(const CID &cid, Bytes value) {
     if (auto key{asBlake(cid)}) {
       if (writable.is_open()) {
         put(*key, value);
@@ -57,9 +57,9 @@ namespace fc::storage::ipld {
     return ERROR_TEXT("CidsIpld.set: no ipld set");
   }
 
-  outcome::result<Buffer> CidsIpld::get(const CID &cid) const {
+  outcome::result<Bytes> CidsIpld::get(const CID &cid) const {
     if (auto key{asBlake(cid)}) {
-      Buffer value;
+      Bytes value;
       if (get(*key, value)) {
         return std::move(value);
       }
@@ -121,7 +121,7 @@ namespace fc::storage::ipld {
     return outcome::success();
   }
 
-  bool CidsIpld::get(const CbCid &key, Buffer *value) const {
+  bool CidsIpld::get(const CbCid &key, Bytes *value) const {
     if (value) {
       value->resize(0);
     }
@@ -166,14 +166,14 @@ namespace fc::storage::ipld {
       return;
     }
 
-    Buffer item;
+    Bytes item;
     codec::uvarint::VarintEncoder varint{kCborBlakePrefix.size() + key.size()
                                          + value.size()};
     item.reserve(varint.length + varint.value);
-    item.put(varint.bytes());
-    item.put(kCborBlakePrefix);
-    item.put(key);
-    item.put(value);
+    append(item, varint.bytes());
+    append(item, kCborBlakePrefix);
+    append(item, key);
+    append(item, value);
 
     Row row;
     row.key = key;

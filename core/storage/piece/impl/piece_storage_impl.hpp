@@ -9,19 +9,17 @@
 #include <string>
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/buffer.hpp"
 #include "storage/face/persistent_map.hpp"
 #include "storage/piece/impl/piece_storage_error.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::storage::piece {
-  using common::Buffer;
   const std::string kPiecePrefix = "/storagemarket/pieces/";
   const std::string kLocationPrefix = "/storagemarket/cid-infos/";
 
   class PieceStorageImpl : public PieceStorage {
    protected:
-    using PersistentMap = storage::face::PersistentMap<Buffer, Buffer>;
+    using PersistentMap = storage::face::PersistentMap<Bytes, Bytes>;
 
    public:
     PieceStorageImpl(std::shared_ptr<PersistentMap> storage_backend);
@@ -58,7 +56,7 @@ namespace fc::storage::piece {
      * @param cid - data to convert
      * @return byte buffer
      */
-    static outcome::result<Buffer> makeKey(const std::string &prefix,
+    static outcome::result<Bytes> makeKey(const std::string &prefix,
                                            const CID &cid);
   };
 

@@ -178,7 +178,7 @@ namespace fc::storage::cids_index {
     car_file.clear();
     car_file.seekg(offset);
     size_t total{};
-    Buffer item;
+    Bytes item;
     auto flush{[&] {
       auto &range{ranges.emplace_back()};
       range.begin = 1 + total - rows.size();
@@ -208,7 +208,7 @@ namespace fc::storage::cids_index {
         OUTCOME_TRY(cid, CID::read(input));
         if (ipld) {
           if (!asIdentity(cid)) {
-            OUTCOME_TRY(ipld->set(cid, Buffer{input}));
+            OUTCOME_TRY(ipld->set(cid, copy(input)));
           }
         }
       }

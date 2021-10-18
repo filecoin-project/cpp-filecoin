@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <utility>
+
 #include "cbor_blake/ipld.hpp"
 
 namespace fc::codec::cbor::light_reader {
@@ -12,11 +14,11 @@ namespace fc::codec::cbor::light_reader {
     CbIpldPtr ipld;
     std::vector<CbCid> cids;
     size_t next_cid{};
-    Buffer _node;
+    Bytes _node;
     BytesIn node;
     CbIpldPtr visited;
 
-    Walk(CbIpldPtr ipld, CbCid root) : ipld{ipld} {
+    Walk(CbIpldPtr ipld, CbCid root) : ipld{std::move(ipld)} {
       cids.push_back(root);
     }
 

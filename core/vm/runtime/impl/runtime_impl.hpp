@@ -103,7 +103,7 @@ namespace fc::vm::runtime {
         gsl::span<const uint8_t> data) override;
 
     outcome::result<bool> verifySignatureBytes(
-        const Buffer &signature_bytes,
+        const Bytes &signature_bytes,
         const Address &address,
         gsl::span<const uint8_t> data) override;
 
@@ -117,9 +117,9 @@ namespace fc::vm::runtime {
         const std::vector<PieceInfo> &pieces) override;
 
     outcome::result<boost::optional<ConsensusFault>> verifyConsensusFault(
-        const Buffer &block1,
-        const Buffer &block2,
-        const Buffer &extra) override;
+        const Bytes &block1,
+        const Bytes &block2,
+        const Bytes &extra) override;
 
     outcome::result<Blake2b256Hash> hashBlake2b(
         gsl::span<const uint8_t> data) override;

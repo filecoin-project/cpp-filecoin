@@ -15,7 +15,6 @@
 #include "vm/actor/version.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
-  using common::Buffer;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
   using primitives::SectorSize;
@@ -50,7 +49,7 @@ namespace fc::vm::actor::builtin::types::miner {
     boost::optional<WorkerKeyChange> pending_worker_key;
 
     /** Libp2p identity that should be used when connecting to this miner. */
-    Buffer peer_id;
+    Bytes peer_id;
 
     /**
      * Slice of byte arrays representing Libp2p multi-addresses used for
@@ -117,7 +116,7 @@ namespace fc::vm::actor::builtin::types::miner {
       const Address &owner,
       const Address &worker,
       const std::vector<Address> &control,
-      const Buffer &peer_id,
+      const Bytes &peer_id,
       const std::vector<Multiaddress> &multiaddrs,
       const RegisteredSealProof &seal_proof_type,
       const RegisteredPoStProof &window_post_proof_type);

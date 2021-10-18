@@ -8,39 +8,36 @@
 #include "storage/in_memory/in_memory_batch.hpp"
 #include "storage/in_memory/in_memory_cursor.hpp"
 
-using fc::common::Buffer;
-
 namespace fc::storage {
 
-  outcome::result<Buffer> InMemoryStorage::get(const Buffer &key) const {
-    if (storage.find(key.toHex()) != storage.end()) {
-      return storage.at(key.toHex());
+  outcome::result<Bytes> InMemoryStorage::get(const Bytes &key) const {
+    if (storage.find(toHex(key)) != storage.end()) {
+      return storage.at(toHex(key));
     }
-    return Buffer{};
+    return Bytes{};
   }
 
-  outcome::result<void> InMemoryStorage::put(const Buffer &key,
-                                             const Buffer &value) {
-    storage[key.toHex()] = value;
+  outcome::result<void> InMemoryStorage::put(const Bytes &key,
+                                             const Bytes &value) {
+    storage[toHex(key)] = value;
     return outcome::success();
   }
 
-  outcome::result<void> InMemoryStorage::put(const Buffer &key,
-                                             Buffer &&value) {
-    storage[key.toHex()] = std::move(value);
+  outcome::result<void> InMemoryStorage::put(const Bytes &key, Bytes &&value) {
+    storage[toHex(key)] = std::move(value);
     return outcome::success();
   }
 
-  bool InMemoryStorage::contains(const Buffer &key) const {
-    return storage.find(key.toHex()) != storage.end();
+  bool InMemoryStorage::contains(const Bytes &key) const {
+    return storage.find(toHex(key)) != storage.end();
   }
 
-  outcome::result<void> InMemoryStorage::remove(const Buffer &key) {
-    storage.erase(key.toHex());
+  outcome::result<void> InMemoryStorage::remove(const Bytes &key) {
+    storage.erase(toHex(key));
     return outcome::success();
   }
 
-  std::unique_ptr<fc::storage::face::WriteBatch<Buffer, Buffer>>
+  std::unique_ptr<fc::storage::face::WriteBatch<Bytes, Bytes>>
   InMemoryStorage::batch() {
     return std::make_unique<InMemoryBatch>(*this);
   }

@@ -6,7 +6,7 @@
 #pragma once
 
 #include <libp2p/multi/multiaddress.hpp>
-#include "common/buffer.hpp"
+#include "common/bytes.hpp"
 #include "common/outcome.hpp"
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/address/address.hpp"
@@ -22,7 +22,6 @@
 #include "vm/version/version.hpp"
 
 namespace fc::vm::actor::builtin::utils {
-  using common::Buffer;
   using common::smoothing::FilterEstimate;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
@@ -140,7 +139,7 @@ namespace fc::vm::actor::builtin::utils {
         RegisteredSealProof seal_proof_type,
         NetworkVersion network_version) const = 0;
     virtual outcome::result<void> checkPeerInfo(
-        const Buffer &peer_id,
+        const Bytes &peer_id,
         const std::vector<Multiaddress> &multiaddresses) const = 0;
     virtual outcome::result<void> checkControlAddresses(
         const std::vector<Address> &control_addresses) const = 0;
@@ -167,7 +166,7 @@ namespace fc::vm::actor::builtin::utils {
     virtual outcome::result<Address> getPubkeyAddressFromAccountActor(
         const Address &address) const = 0;
     virtual outcome::result<void> callPowerEnrollCronEvent(
-        ChainEpoch event_epoch, const Buffer &params) const = 0;
+        ChainEpoch event_epoch, const Bytes &params) const = 0;
     virtual outcome::result<void> callPowerUpdateClaimedPower(
         const PowerPair &delta) const = 0;
   };

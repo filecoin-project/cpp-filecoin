@@ -235,10 +235,10 @@ namespace fc::storage::amt {
                                  gsl::span<const uint8_t> value) {
     if (height == 0) {
       auto &values = boost::get<Node::Values>(node.items);
-      if (values.insert(std::make_pair(key, value)).second) {
+      if (values.insert(std::make_pair(key, copy(value))).second) {
         return true;
       }
-      values.at(key) = Value(value);
+      values.at(key) = copy(value);
       return false;
     }
     auto mask = maskAt(height);

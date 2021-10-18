@@ -30,7 +30,7 @@ namespace fc {
     }
     outcome::result<Value> get(const CID &key) const override {
       if (auto cid{asBlake(key)}) {
-        Buffer value;
+        Bytes value;
         if (ipld->get(*cid, value)) {
           return std::move(value);
         }
@@ -46,7 +46,7 @@ namespace fc {
 
     explicit AnyAsCbIpld(IpldPtr ipld) : ipld{std::move(ipld)} {}
 
-    static bool get(const IpldPtr &ipld, const CbCid &key, Buffer *value) {
+    static bool get(const IpldPtr &ipld, const CbCid &key, Bytes *value) {
       const CID cid{key};
       if (value) {
         if (auto r{ipld->get(cid)}) {
@@ -59,11 +59,11 @@ namespace fc {
       }
       return ipld->contains(cid).value();
     }
-    bool get(const CbCid &key, Buffer *value) const override {
+    bool get(const CbCid &key, Bytes *value) const override {
       return get(ipld, key, value);
     }
     void put(const CbCid &key, BytesIn value) override {
-      ipld->set(CID{key}, Buffer{value}).value();
+      ipld->set(CID{key}, copy(value)).value();
     }
   };
 }  // namespace fc
