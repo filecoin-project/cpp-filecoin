@@ -44,6 +44,7 @@ namespace fc::storage::ipfs::graphsync {
                            std::string extension_name) override;
     void postResponse(const FullRequestId &id,
                       const Response &response) override;
+    void postBlocks(const FullRequestId &id, Responder responder) override;
     void start() override;
     void stop() override;
     Subscription makeRequest(const libp2p::peer::PeerInfo &peer,

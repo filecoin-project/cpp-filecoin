@@ -59,6 +59,8 @@ namespace fc::storage::ipfs::graphsync {
     /// Sends response to peer.
     void sendResponse(const FullRequestId &id, const Response &response);
 
+    void postBlocks(const FullRequestId &id, Responder responder);
+
    private:
     /// Callback from peer context that it's closed
     /// \param peer peer ID

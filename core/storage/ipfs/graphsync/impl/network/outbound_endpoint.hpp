@@ -43,6 +43,8 @@ namespace fc::storage::ipfs::graphsync {
     /// Clears all pending messages
     void clearPendingMessages();
 
+    bool empty() const;
+
    private:
     /// Adds data block to response. Doesn't send unless sending partial
     /// response is needed

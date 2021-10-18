@@ -9,7 +9,6 @@
 
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/ptr.hpp"
-#include "storage/ipld/traverser.hpp"
 
 #define MOVE(x)  \
   x {            \
@@ -80,26 +79,42 @@ namespace fc::data_transfer {
                 push.on_begin(res.is_accepted);
                 push.on_begin = {};
                 if (res.is_accepted) {
-                  storage::ipld::traverser::Traverser t{
-                      *push.ipld, req.root_cid, CborRaw{req.selector}, true};
-                  gsns::Response res{
-                      gsns::ResponseStatusCode::RS_FULL_CONTENT, {}, {}};
-                  if (auto _cids{t.traverseAll()}) {
-                    auto ok{true};
-                    for (auto &cid : _cids.value()) {
-                      if (auto _data{push.ipld->get(cid)}) {
-                        res.data.push_back(
-                            {std::move(cid), std::move(_data.value())});
-                      } else {
-                        ok = false;
-                        break;
-                      }
-                    }
-                    if (ok) {
-                      return dt->gs->postResponse(pgsid, res);
-                    }
-                  }
-                  push.on_end(false);
+                  push.traverser.emplace(Traverser{
+                      *push.ipld,
+                      req.root_cid,
+                      CborRaw{req.selector},
+                      true,
+                  });
+                  dt->gs->postBlocks(
+                      pgsid,
+                      [=, &push](bool ok) -> boost::optional<gsns::Response> {
+                        gsns::Response res;
+                        if (ok) {
+                          if (push.traverser->isCompleted()) {
+                            res.status =
+                                gsns::ResponseStatusCode::RS_FULL_CONTENT;
+                            return res;
+                          }
+                          if (auto _cid{push.traverser->advance()}) {
+                            auto &cid{_cid.value()};
+                            if (auto _data{push.ipld->get(cid)}) {
+                              res.status =
+                                  gsns::ResponseStatusCode::RS_PARTIAL_RESPONSE;
+                              res.data.emplace_back(gsns::Data{
+                                  std::move(cid), std::move(_data.value())});
+                              return res;
+                            }
+                          }
+                        }
+                        push.on_end(false);
+                        dt->pushing_out.erase(it);
+                        if (ok) {
+                          res.status = gsns::ResponseStatusCode::RS_REJECTED;
+                          return res;
+                        }
+                        return boost::none;
+                      });
+                  return;
                 }
               } else {
                 push.on_end(false);
@@ -134,7 +149,7 @@ namespace fc::data_transfer {
     pushing_out.emplace(
         PeerDtId{peer.id, dtid},
         PushingOut{
-            root, std::move(ipld), std::move(on_begin), std::move(on_end)});
+            root, std::move(ipld), std::move(on_begin), std::move(on_end), {}});
     dtSend(peer,
            DataTransferRequest{
                root,
