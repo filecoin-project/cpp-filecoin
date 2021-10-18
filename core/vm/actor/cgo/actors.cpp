@@ -85,6 +85,11 @@ namespace fc::vm::actor::cgo {
     runtimes_lock.unlock();
     auto exit{ret.get<VMExitCode>()};
     if (exit != kOk) {
+      auto abortf{ret.get<Buffer>()};
+      if (!abortf.empty()) {
+        spdlog::info("cgoActorsInvoke abortf: {}",
+                     common::span::bytestr(abortf));
+      }
       return exit;
     }
     return ret.get<Buffer>();

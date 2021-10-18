@@ -101,6 +101,8 @@ namespace fc::storage::ipfs::graphsync {
     std::vector<Data> data;
   };
 
+  using Responder = std::function<boost::optional<Response>(bool)>;
+
   /// Graphsync protocol interface
   class Graphsync {
    public:
@@ -125,6 +127,8 @@ namespace fc::storage::ipfs::graphsync {
 
     virtual void postResponse(const FullRequestId &id,
                               const Response &response) = 0;
+
+    virtual void postBlocks(const FullRequestId &id, Responder responder) = 0;
 
     /// Starts instance and subscribes to blocks
     virtual void start() = 0;
