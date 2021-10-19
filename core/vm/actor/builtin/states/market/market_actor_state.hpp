@@ -32,13 +32,17 @@ namespace fc::vm::actor::builtin::states {
   using types::market::DealProposal;
   using types::market::DealState;
 
+  constexpr size_t kProposalsAmtBitwidth = 5;
+  constexpr size_t kStatesAmtBitwidth = 6;
+
+  using DealArray = adt::Array<DealProposal, kProposalsAmtBitwidth>;
+  using DealSet = adt::Set<UvarintKeyer>;
+
   struct MarketActorState {
     virtual ~MarketActorState() = default;
 
-    using DealSet = adt::Set<UvarintKeyer>;
-
-    adt::Array<DealProposal, 5> proposals;
-    adt::Array<DealState, 6> states;
+    DealArray proposals;
+    adt::Array<DealState, kStatesAmtBitwidth> states;
     adt::Map<DealProposal, CidKeyer> pending_proposals_0;
     adt::Set<CidKeyer> pending_proposals_3;
     BalanceTable escrow_table;
@@ -51,44 +55,41 @@ namespace fc::vm::actor::builtin::states {
     TokenAmount total_client_storage_fee{};
 
     // Methods
-    outcome::result<void> unlockBalance(const fc::vm::runtime::Runtime &runtime,
+    outcome::result<void> unlockBalance(const runtime::Runtime &runtime,
                                         const Address &address,
                                         const TokenAmount &amount,
                                         BalanceLockingReason lock_reason);
 
-    outcome::result<void> slashBalance(const fc::vm::runtime::Runtime &runtime,
+    outcome::result<void> slashBalance(const runtime::Runtime &runtime,
                                        const Address &address,
                                        const TokenAmount &amount,
                                        BalanceLockingReason reason);
 
-    outcome::result<void> transferBalance(
-        const fc::vm::runtime::Runtime &runtime,
-        const Address &from,
-        const Address &to,
-        const TokenAmount &amount);
+    outcome::result<void> transferBalance(const runtime::Runtime &runtime,
+                                          const Address &from,
+                                          const Address &to,
+                                          const TokenAmount &amount);
 
     outcome::result<TokenAmount> processDealInitTimedOut(
-        const fc::vm::runtime::Runtime &runtime, const DealProposal &deal);
+        const runtime::Runtime &runtime, const DealProposal &deal);
 
-    outcome::result<void> processDealExpired(
-        const fc::vm::runtime::Runtime &runtime,
-        const DealProposal &deal,
-        const DealState &deal_state);
+    virtual outcome::result<void> processDealExpired(const runtime::Runtime &runtime,
+                                             const DealProposal &deal,
+                                             const DealState &deal_state);
 
-    outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
-    updatePendingDealState(fc::vm::runtime::Runtime &runtime,
+    virtual outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
+    updatePendingDealState(runtime::Runtime &runtime,
                            DealId deal_id,
                            const DealProposal &deal,
                            const DealState &deal_state,
                            ChainEpoch epoch);
 
-    outcome::result<void> maybeLockBalance(
-        const fc::vm::runtime::Runtime &runtime,
-        const Address &address,
-        const TokenAmount &amount);
+    outcome::result<void> maybeLockBalance(const runtime::Runtime &runtime,
+                                           const Address &address,
+                                           const TokenAmount &amount);
 
     outcome::result<void> lockClientAndProviderBalances(
-        const fc::vm::runtime::Runtime &runtime, const DealProposal &deal);
+        const runtime::Runtime &runtime, const DealProposal &deal);
   };
 
   using MarketActorStatePtr = types::Universal<MarketActorState>;

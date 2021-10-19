@@ -33,19 +33,6 @@ namespace fc::vm::toolchain {
   class Toolchain {
    public:
     /**
-     * Returns actor version for network version
-     *
-     * Network version [0...3] => Actor version v0
-     * Network version [4...9] => Actor version v2
-     * Network version [10..?] => Actor version v3
-     *
-     * @param network_version - version of network
-     * @return v0, v2 or v3 actor version
-     */
-    static ActorVersion getActorVersionForNetwork(
-        const NetworkVersion &network_version);
-
-    /**
      * Returns actor version for actor code id
      *
      * @param actorCid - actor code id

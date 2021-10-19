@@ -206,6 +206,15 @@ namespace fc::vm::actor::builtin::v0::market {
     return std::make_tuple(weight, verified_weight, 0);
   }
 
+  outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
+  MarketUtils::validateAndComputeDealWeight(
+      DealArray &proposals,
+      const std::vector<DealId> &deals,
+      const ChainEpoch &sector_expiry) const {
+    // Do nothing for v0
+    return std::make_tuple(0, 0, 0);
+  }
+
   outcome::result<StoragePower> MarketUtils::getBaselinePowerFromRewardActor()
       const {
     OUTCOME_TRY(

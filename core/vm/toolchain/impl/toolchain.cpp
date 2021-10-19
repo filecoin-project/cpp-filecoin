@@ -19,6 +19,7 @@
 
 #include "vm/actor/builtin/v0/market/market_actor_utils.hpp"
 #include "vm/actor/builtin/v2/market/market_actor_utils.hpp"
+#include "vm/actor/builtin/v3/market/market_actor_utils.hpp"
 
 #include "vm/actor/builtin/v0/miner/miner_actor_utils.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor_utils.hpp"
@@ -43,12 +44,7 @@
 #include "vm/actor/builtin/v4/todo.hpp"
 
 namespace fc::vm::toolchain {
-  using namespace fc::vm::actor::builtin;
-
-  ActorVersion Toolchain::getActorVersionForNetwork(
-      const NetworkVersion &network_version) {
-    return actorVersion(network_version);
-  }
+  using namespace actor::builtin;
 
   ActorVersion Toolchain::getActorVersionForCid(const CodeId &actorCid) {
     if ((actorCid == v0::kAccountCodeId) || (actorCid == v0::kCronCodeId)
@@ -132,7 +128,7 @@ namespace fc::vm::toolchain {
 
   AddressMatcherPtr Toolchain::createAddressMatcher(
       const NetworkVersion &network_version) {
-    const auto version = getActorVersionForNetwork(network_version);
+    const auto version = actorVersion(network_version);
     return createAddressMatcher(version);
   }
 
@@ -160,7 +156,7 @@ namespace fc::vm::toolchain {
       case ActorVersion::kVersion2:
         return std::make_shared<v2::market::MarketUtils>(runtime);
       case ActorVersion::kVersion3:
-        return std::make_shared<v2::market::MarketUtils>(runtime);  // TODO v3
+        return std::make_shared<v3::market::MarketUtils>(runtime);
       case ActorVersion::kVersion4:
         TODO_ACTORS_V4();
       case ActorVersion::kVersion5:

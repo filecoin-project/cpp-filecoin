@@ -13,9 +13,7 @@ namespace fc::vm::actor::builtin::states {
   using primitives::kChainEpochUndefined;
   using runtime::Runtime;
   using toolchain::Toolchain;
-  using types::market::BalanceLockingReason;
-  using types::market::collateralPenaltyForDealActivationMissed;
-  using types::market::kDealUpdatesInterval;
+  using namespace types::market;
 
   outcome::result<void> MarketActorState::unlockBalance(
       const Runtime &runtime,
@@ -124,7 +122,7 @@ namespace fc::vm::actor::builtin::states {
                                            const DealProposal &deal,
                                            const DealState &deal_state,
                                            ChainEpoch epoch) {
-    TokenAmount slashed_sum;
+    TokenAmount slashed_sum{0};
 
     const auto updated{deal_state.last_updated_epoch != kChainEpochUndefined};
     const auto slashed{deal_state.slash_epoch != kChainEpochUndefined};

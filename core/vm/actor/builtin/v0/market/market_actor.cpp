@@ -15,6 +15,7 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::kChainEpochUndefined;
   using primitives::cid::kCommitmentBytesLen;
   using primitives::piece::PieceInfo;
+  using states::DealSet;
   using states::MarketActorStatePtr;
   using toolchain::Toolchain;
   using namespace types::market;
@@ -166,9 +167,9 @@ namespace fc::vm::actor::builtin::v0::market {
 
       OUTCOME_TRY(set, state->deals_by_epoch.tryGet(process_epoch));
       if (!set) {
-        set = states::MarketActorState::DealSet{IpldPtr{runtime}};
+        set = DealSet{IpldPtr{runtime}};
       }
-      OUTCOME_TRY(set->set(deal_id, {}));
+      OUTCOME_TRY(set->set(deal_id));
       REQUIRE_NO_ERROR(state->deals_by_epoch.set(process_epoch, *set),
                        VMExitCode::kErrIllegalState);
       deals.emplace_back(deal_id);
@@ -424,10 +425,10 @@ namespace fc::vm::actor::builtin::v0::market {
     for (const auto &[next, deals] : updates_needed) {
       OUTCOME_TRY(set, state->deals_by_epoch.tryGet(next));
       if (!set) {
-        set = states::MarketActorState::DealSet{IpldPtr{runtime}};
+        set = DealSet{IpldPtr{runtime}};
       }
       for (const auto deal : deals) {
-        OUTCOME_TRY(set->set(deal, {}));
+        OUTCOME_TRY(set->set(deal));
       }
       OUTCOME_TRY(state->deals_by_epoch.set(next, *set));
     }

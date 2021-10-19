@@ -18,7 +18,13 @@ namespace fc::adt {
   }
 
   template <typename Keyer, size_t bit_width = storage::hamt::kDefaultBitWidth>
-  struct Set : Map<SetValue, Keyer, bit_width> {};
+  struct Set : Map<SetValue, Keyer, bit_width> {
+    using Key = typename Keyer::Key;
+
+    outcome::result<void> set(const Key &key) {
+      return Map<SetValue, Keyer, bit_width>::set(key, {});
+    }
+  };
 }  // namespace fc::adt
 
 namespace fc::cbor_blake {

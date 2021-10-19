@@ -15,6 +15,7 @@ namespace fc::vm::actor::builtin::v2::market {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
+  using states::DealArray;
   using states::MarketActorStatePtr;
   using types::Controls;
   using types::market::ClientDealProposal;
@@ -36,6 +37,12 @@ namespace fc::vm::actor::builtin::v2::market {
     validateDealsForActivation(MarketActorStatePtr &state,
                                const std::vector<DealId> &deals,
                                const ChainEpoch &sector_expiry) const override;
+
+    outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
+    validateAndComputeDealWeight(
+        DealArray &proposals,
+        const std::vector<DealId> &deals,
+        const ChainEpoch &sector_expiry) const override;
 
     outcome::result<StoragePower> getBaselinePowerFromRewardActor()
         const override;

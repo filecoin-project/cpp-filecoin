@@ -23,6 +23,7 @@ target_link_libraries(actor
     init_actor_v3
     market_actor_v0
     market_actor_v2
+    market_actor_v3
     miner_actor_v0
     miner_actor_v2
     miner_actor_v3

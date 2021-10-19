@@ -18,7 +18,6 @@
 #include "vm/actor/builtin/v5/market/market_actor.hpp"
 #include "vm/actor/codes.hpp"
 #include "vm/exit_code/exit_code.hpp"
-#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::mining::checks {
   using api::DomainSeparationTag;
@@ -46,7 +45,6 @@ namespace fc::mining::checks {
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::v5::market::ComputeDataCommitment;
   using vm::runtime::MockRuntime;
-  using vm::toolchain::Toolchain;
 
   class CheckPieces : public testing::Test {
    protected:
@@ -333,7 +331,7 @@ namespace fc::mining::checks {
       miner_addr_ = Address::makeFromId(miner_id_);
       ipld_ = std::make_shared<InMemoryDatastore>();
       version_ = api::NetworkVersion::kVersion13;
-      const auto actor_version = Toolchain::getActorVersionForNetwork(version_);
+      const auto actor_version = actorVersion(version_);
       ipld_->actor_version = actor_version;
       actor_state_ = makeMinerActorState(ipld_, actor_version);
     }
@@ -720,7 +718,7 @@ namespace fc::mining::checks {
 
       proofs_ = std::make_shared<proofs::ProofEngineMock>();
       ipld_ = std::make_shared<InMemoryDatastore>();
-      auto actor_version = Toolchain::getActorVersionForNetwork(version_);
+      const auto actor_version = actorVersion(version_);
       ipld_->actor_version = actor_version;
       actor_state_ = makeMinerActorState(ipld_, actor_version);
     }
