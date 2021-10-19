@@ -11,4 +11,5 @@ add_library(market_actor_state
 target_link_libraries(market_actor_state
     cbor
     toolchain
+    market_types
     )

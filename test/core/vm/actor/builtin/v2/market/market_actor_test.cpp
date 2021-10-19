@@ -40,6 +40,7 @@ namespace fc::vm::actor::builtin::v2::market {
   using testing::_;
   using testing::Return;
   using testutil::vm::actor::builtin::market::MarketActorTestFixture;
+  using types::Universal;
   using version::NetworkVersion;
   using namespace types::market;
   using namespace testutil::vm::actor::builtin::market;
@@ -55,6 +56,7 @@ namespace fc::vm::actor::builtin::v2::market {
       actor_version = ActorVersion::kVersion2;
       ipld->actor_version = actor_version;
       state = MarketActorStatePtr{actor_version};
+      state->pending_proposals = Universal<PendingProposals>{actor_version};
       cbor_blake::cbLoadT(ipld, state);
 
       addressCodeIdIs(miner_address, kStorageMinerCodeId);
@@ -449,7 +451,7 @@ namespace fc::vm::actor::builtin::v2::market {
     deal.start_epoch = current_epoch + 1;
     deal.end_epoch = deal.start_epoch + 100;
     EXPECT_OUTCOME_TRUE_1(state->proposals.set(deal_1_id, deal));
-    EXPECT_OUTCOME_TRUE_1(state->pending_proposals_0.set(deal.cid(), deal));
+    EXPECT_OUTCOME_TRUE_1(state->pending_proposals->set(deal.cid(), deal));
 
     callerIs(miner_address);
     EXPECT_OUTCOME_TRUE_1(ActivateDeals::call(

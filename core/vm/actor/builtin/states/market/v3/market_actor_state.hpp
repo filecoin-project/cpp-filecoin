@@ -29,7 +29,7 @@ namespace fc::vm::actor::builtin::v3::market {
   CBOR_TUPLE(MarketActorState,
              proposals,
              states,
-             pending_proposals_3,
+             pending_proposals,
              escrow_table,
              locked_table,
              next_deal,
@@ -49,7 +49,7 @@ namespace fc::cbor_blake {
                      const Visitor &visit) {
       visit(state.proposals);
       visit(state.states);
-      visit(state.pending_proposals_3);
+      visit(state.pending_proposals);
       visit(state.escrow_table);
       visit(state.locked_table);
       visit(state.deals_by_epoch);
