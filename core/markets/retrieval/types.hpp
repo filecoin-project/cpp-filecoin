@@ -8,7 +8,7 @@
 #include <libp2p/host/basic_host/basic_host.hpp>
 #include <libp2p/peer/peer_id.hpp>
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/buffer.hpp"
+
 #include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "primitives/address/address.hpp"
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"

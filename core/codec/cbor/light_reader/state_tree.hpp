@@ -9,14 +9,14 @@
 #include "cid.hpp"
 #include "codec/cbor/cbor_token.hpp"
 #include "common/blob.hpp"
-#include "common/buffer.hpp"
+
 
 namespace fc::codec::cbor::light_reader {
   inline bool readStateTree(CbCid &hamt,
                             const CbIpldPtr &ipld,
                             const CbCid &root) {
     hamt = root;
-    Buffer value;
+    Bytes value;
     if (!ipld->get(root, value)) {
       return false;
     }

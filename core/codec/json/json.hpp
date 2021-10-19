@@ -7,7 +7,6 @@
 
 #include <rapidjson/document.h>
 
-#include "common/buffer.hpp"
 #include "common/outcome2.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
@@ -22,16 +21,16 @@ namespace fc::codec::json {
 
   Outcome<Document> parse(BytesIn input);
 
-  Outcome<Buffer> format(JIn j);
-  Outcome<Buffer> format(Document &&doc);
+  Outcome<Bytes> format(JIn j);
+  Outcome<Bytes> format(Document &&doc);
 
   Outcome<JIn> jGet(JIn j, std::string_view key);
 
   Outcome<std::string_view> jStr(JIn j);
 
-  Outcome<Buffer> jUnhex(JIn j);
+  Outcome<Bytes> jUnhex(JIn j);
 
-  Outcome<Buffer> jBytes(JIn j);
+  Outcome<Bytes> jBytes(JIn j);
 
   Outcome<CID> jCid(JIn j);
 

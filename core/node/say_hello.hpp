@@ -15,7 +15,7 @@
 #include <unordered_map>
 
 #include "clock/utc_clock.hpp"
-#include "common/buffer.hpp"
+
 #include "common/libp2p/cbor_stream.hpp"
 #include "node/hello.hpp"
 
@@ -39,7 +39,7 @@ namespace fc::sync {
     void onHeartbeat();
 
     using StreamPtr = std::shared_ptr<CborStream>;
-    using SharedBuffer = std::shared_ptr<const common::Buffer>;
+    using SharedBytes = std::shared_ptr<const Bytes>;
 
     /// Outbound stream connected
     void onConnected(const PeerId &peer_id, StreamPtr stream);
@@ -62,7 +62,7 @@ namespace fc::sync {
     events::Connection current_head_event_;
 
     /// Cached request body as per current head
-    SharedBuffer request_body_;
+    SharedBytes request_body_;
 
     /// Info about outgoing hello
     struct RequestCtx {

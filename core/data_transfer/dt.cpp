@@ -126,7 +126,7 @@ namespace fc::data_transfer {
                           const CID &root,
                           IpldPtr ipld,
                           std::string type,
-                          Buffer voucher,
+                          Bytes voucher,
                           OkCb on_begin,
                           OkCb on_end) {
     auto dtid{next_dtid++};
@@ -194,7 +194,7 @@ namespace fc::data_transfer {
                               const CID &root,
                               Selector selector,
                               std::string type,
-                              Buffer voucher,
+                              Bytes voucher,
                               OnData on_reply,
                               OnCid on_cid) {
     auto dtid{next_dtid++};
@@ -236,7 +236,7 @@ namespace fc::data_transfer {
 
   void DataTransfer::pullOut(const PeerDtId &pdtid,
                              std::string type,
-                             Buffer voucher) {
+                             Bytes voucher) {
     dtSend(pdtid.peer,
            DataTransferRequest{
                {},
@@ -254,7 +254,7 @@ namespace fc::data_transfer {
   void DataTransfer::acceptPull(const PeerDtId &pdtid,
                                 const PeerGsId &pgsid,
                                 std::string type,
-                                Buffer voucher) {
+                                Bytes voucher) {
     assert(pdtid.peer == pgsid.peer);
     gs->postResponse(
         pgsid,

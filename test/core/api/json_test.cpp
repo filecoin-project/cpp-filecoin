@@ -74,7 +74,7 @@ namespace fc::api {
   }
 
   TEST(ApiJsonTest, Ticket) {
-    expectJson(Ticket{Buffer{b96}}, "{\"VRFProof\":" J96 "}");
+    expectJson(Ticket{copy(b96)}, "{\"VRFProof\":" J96 "}");
   }
 
   TEST(ApiJsonTest, Address) {

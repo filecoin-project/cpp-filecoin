@@ -292,7 +292,7 @@ namespace fc::sync::blocksync {
             libp2p::peer::PeerInfo{std::move(peer), {}},
             kProtocolId,
             [wptr = weak_from_this(),
-             shared_request = std::make_shared<Buffer>(
+             shared_request = std::make_shared<Bytes>(
                  std::move(maybe_binary_request.value()))](auto rstream) {
               auto self = wptr.lock();
               if (self) {
@@ -380,7 +380,7 @@ namespace fc::sync::blocksync {
        * @param binary_request - shared pointer to binary request data that must
        * be alive until libp2p callback in stream::write() is called
        */
-      void onConnected(std::shared_ptr<Buffer> binary_request,
+      void onConnected(std::shared_ptr<Bytes> binary_request,
                        outcome::result<StreamPtr> rstream) {
         if (!in_progress_) {
           return;

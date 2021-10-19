@@ -55,13 +55,13 @@ namespace fc::storage::ipfs::graphsync::test {
   void TestDataService::insertNode(TestDataService::Storage &dst,
                                    const std::string &data_str) {
     auto bytes{common::span::cbytes(data_str)};
-    dst[common::getCidOf(bytes).value()] = Buffer{bytes};
+    dst[common::getCidOf(bytes).value()] = copy(bytes);
   }
 
   outcome::result<size_t> TestDataService::select(
       const CID &cid,
       gsl::span<const uint8_t> selector,
-      std::function<bool(const CID &cid, const common::Buffer &data)> handler)
+      std::function<bool(const CID &cid, const Bytes &data)> handler)
       const {
     auto it = data_.find(cid);
     if (it != data_.end()) {

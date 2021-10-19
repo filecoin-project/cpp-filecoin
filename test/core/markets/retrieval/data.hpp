@@ -4,7 +4,7 @@
  */
 
 #include <libp2p/common/literals.hpp>
-#include "common/buffer.hpp"
+
 #include "storage/piece/piece_storage.hpp"
 #include "testutil/literals.hpp"
 
@@ -16,7 +16,7 @@ namespace fc::markets::retrieval::test {
    */
   struct SamplePayload {
     CID cid;
-    common::Buffer content;
+    Bytes content;
     ::fc::storage::piece::PayloadLocation location;
   };
 
@@ -41,7 +41,7 @@ namespace fc::markets::retrieval::test {
         .payloads = {
             {.cid =
                  "12209139839e65fabea9efd230898ad8b574509147e48d7c1e87a33d6da70fd2efbf"_cid,
-             .content = common::Buffer{"fafece"_unhex},
+             .content = Bytes{"fafece"_unhex},
              .location = {.relative_offset = 16, .block_size = 4}}}};
 
   }  // namespace data

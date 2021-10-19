@@ -10,7 +10,7 @@
 
 #include "cbor_blake/cid.hpp"
 #include "common/blob.hpp"
-#include "common/buffer.hpp"
+
 #include "common/cmp.hpp"
 #include "common/outcome.hpp"
 #include "primitives/cid/cid_prefix.hpp"

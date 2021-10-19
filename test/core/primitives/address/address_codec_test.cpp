@@ -18,7 +18,6 @@ namespace fc::primitives::address {
   using fc::adt::AddressKeyer;
   using fc::codec::cbor::CborDecodeStream;
   using fc::codec::cbor::CborEncodeStream;
-  using fc::common::Buffer;
   using namespace std::string_literals;
 
   struct AddressCodecTest : public testing::Test {

@@ -7,7 +7,6 @@ add_library(dvm
     dvm.cpp
     )
 target_link_libraries(dvm
-    buffer
     cbor
     exit_code
     logger

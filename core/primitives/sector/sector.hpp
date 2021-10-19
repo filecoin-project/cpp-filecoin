@@ -6,7 +6,7 @@
 #pragma once
 
 #include "common/blob.hpp"
-#include "common/buffer.hpp"
+
 #include "common/cmp.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
@@ -14,7 +14,6 @@
 #include "vm/version/version.hpp"
 
 namespace fc::primitives::sector {
-  using common::Buffer;
   using crypto::randomness::Randomness;
   using primitives::ActorId;
   using primitives::ChainEpoch;

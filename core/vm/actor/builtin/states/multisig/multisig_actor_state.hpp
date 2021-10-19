@@ -7,7 +7,7 @@
 
 #include "adt/map.hpp"
 #include "adt/uvarint_key.hpp"
-#include "common/buffer.hpp"
+
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
@@ -79,7 +79,7 @@ namespace fc::vm::actor::builtin::states {
     outcome::result<Transaction> getTransaction(
         fc::vm::runtime::Runtime &runtime,
         const TransactionId &tx_id,
-        const Buffer &proposal_hash) const;
+        const Bytes &proposal_hash) const;
   };
 
   using MultisigActorStatePtr = types::Universal<MultisigActorState>;

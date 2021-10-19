@@ -5,16 +5,15 @@
 
 #pragma once
 
-#include "common/buffer.hpp"
+
 #include "common/outcome.hpp"
 #include "markets/retrieval/types.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/face/persistent_map.hpp"
 
 namespace fc::markets::discovery {
-  using common::Buffer;
   using markets::retrieval::RetrievalPeer;
-  using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
+  using Datastore = fc::storage::face::PersistentMap<Bytes, Bytes>;
 
   /**
    * Storage/retrieval markets peer resolver.

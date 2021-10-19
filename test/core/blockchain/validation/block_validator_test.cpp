@@ -68,11 +68,11 @@ namespace fc::blockchain::block_validator {
 
     BlockHeader getCorrectBlockHeader() const {
       return {Address::makeFromId(1),
-              Ticket{fc::Buffer{config::b96}},
+              Ticket{copy(config::b96)},
               {},
               {fc::primitives::block::BeaconEntry{
                   4,
-                  Buffer{"F00D"_unhex},
+                  "F00D"_unhex,
               }},
               {fc::primitives::sector::PoStProof{
                   fc::primitives::sector::RegisteredPoStProof::

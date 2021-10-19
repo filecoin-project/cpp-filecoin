@@ -9,7 +9,6 @@
 #include "storage/in_memory/in_memory_cursor.hpp"
 
 namespace fc::storage {
-  using common::Buffer;
 
   outcome::result<Bytes> InMemoryStorage::get(const Bytes &key) const {
     if (storage.find(toHex(key)) != storage.end()) {

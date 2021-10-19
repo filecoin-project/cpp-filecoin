@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "common/buffer.hpp"
+
 #include "common/logger.hpp"
 #include "fwd.hpp"
 #include "primitives/types.hpp"

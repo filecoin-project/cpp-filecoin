@@ -18,7 +18,6 @@
 #include "vm/actor/builtin/types/payment_channel/voucher.hpp"
 
 namespace fc::markets::retrieval {
-  using common::Buffer;
   using fc::storage::ipld::Selector;
   using primitives::DealId;
   using primitives::TokenAmount;

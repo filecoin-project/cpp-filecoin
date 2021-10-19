@@ -69,7 +69,7 @@ namespace fc {
   using storage::BufferMap;
   namespace uuids = boost::uuids;
 
-  static const Buffer kActor{cbytes("actor")};
+  static const Bytes kActor{copy(cbytes("actor"))};
   static const std::string kSectorCounterKey = "sector_counter";
   constexpr size_t kApiThreadPoolSize = 4;
 
@@ -196,7 +196,7 @@ namespace fc {
     OUTCOME_TRY(
         wsc.connect(config.node_api.first, "/rpc/v0", config.node_api.second));
 
-    Buffer _peer_id{peer_id.toVector()};
+    auto &_peer_id{peer_id.toVector()};
     if (!kv.contains(kActor)) {
       if (!config.actor) {
         spdlog::info("creating miner actor");

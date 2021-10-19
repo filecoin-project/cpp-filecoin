@@ -7,13 +7,13 @@
 
 #include <gtest/gtest.h>
 
-using fc::common::Buffer;
 using fc::common::encodeLebInteger;
+using fc::Bytes;
 
 template <typename T>
-class IntegerTest : public ::testing::TestWithParam<std::pair<T, Buffer>> {
+class IntegerTest : public ::testing::TestWithParam<std::pair<T, Bytes>> {
  public:
-  static std::pair<T, Buffer> make_pair(T value, const Buffer &match) {
+  static std::pair<T, Bytes> make_pair(T value, const Bytes &match) {
     return std::make_pair(value, match);
   }
 
@@ -32,7 +32,7 @@ class Int8Test : public IntegerTest<int8_t> {};
  */
 TEST_P(Int8Test, EncodeSuccess) {
   auto [value, match] = GetParam();
-  Buffer s{};
+    Bytes s{};
   encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
@@ -58,7 +58,7 @@ class Uint8Test : public IntegerTest<uint8_t> {};
  */
 TEST_P(Uint8Test, EncodeSuccess) {
   auto [value, match] = GetParam();
-  Buffer s{};
+    Bytes s{};
   encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
@@ -81,7 +81,7 @@ class Int16Test : public IntegerTest<int16_t> {};
  */
 TEST_P(Int16Test, EncodeSuccess) {
   auto [value, match] = GetParam();
-  Buffer s{};
+    Bytes s{};
   encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
@@ -108,7 +108,7 @@ class Uint16Test : public IntegerTest<uint16_t> {};
  */
 TEST_P(Uint16Test, EncodeSuccess) {
   auto [value, match] = GetParam();
-  Buffer s{};
+  Bytes s{};
   encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
@@ -131,7 +131,7 @@ class Int32Test : public IntegerTest<int32_t> {};
  */
 TEST_P(Int32Test, EncodeSuccess) {
   auto [value, match] = GetParam();
-  Buffer s{};
+  Bytes s{};
   encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
@@ -154,7 +154,7 @@ class Uint32Test : public IntegerTest<uint32_t> {};
  */
 TEST_P(Uint32Test, EncodeSuccess) {
   auto [value, match] = GetParam();
-  Buffer s{};
+  Bytes s{};
   encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
@@ -177,7 +177,7 @@ class Int64Test : public IntegerTest<int64_t> {};
  */
 TEST_P(Int64Test, EncodeSuccess) {
   auto [value, match] = GetParam();
-  Buffer s{};
+  Bytes s{};
   encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
@@ -201,7 +201,7 @@ class Uint64Test : public IntegerTest<uint64_t> {};
  */
 TEST_P(Uint64Test, EncodeSuccess) {
   auto [value, match] = GetParam();
-  Buffer s{};
+  Bytes s{};
   encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }

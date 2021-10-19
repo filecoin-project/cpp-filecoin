@@ -15,7 +15,6 @@
 #include "vm/actor/codes.hpp"
 
 namespace fc::vm::actor::builtin::v3::init {
-  using common::Buffer;
   using message::UnsignedMessage;
   using primitives::TokenAmount;
   using primitives::address::Address;

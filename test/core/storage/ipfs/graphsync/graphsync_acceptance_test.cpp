@@ -79,7 +79,7 @@ namespace fc::storage::ipfs::graphsync::test {
         graphsync_->setDefaultRequestHandler(
             [this](FullRequestId id, Request request) {
               Response response;
-              auto handler = [&](const CID &cid, const common::Buffer &data) {
+              auto handler = [&](const CID &cid, const Bytes &data) {
                 response.data.push_back(Data{cid, data});
                 return true;
               };
@@ -110,7 +110,7 @@ namespace fc::storage::ipfs::graphsync::test {
         std::string s;
         for (const auto &item : extensions) {
           s += fmt::format(
-              "({}: 0x{}) ", item.name, common::Buffer(item.data).toHex());
+              "({}: 0x{}) ", item.name, toHex(item.data));
         }
         return s;
       };

@@ -41,7 +41,7 @@ namespace fc::api {
         auto ha = starts_with(part, "@Ha:");
         auto h = starts_with(part, "@H:");
         if (a || hi || hu || ha || h) {
-          raw = Buffer{s.raw()};
+          raw = s.raw();
           OUTCOME_TRY(cid, common::getCidOf(raw));
           if (a) {
             OUTCOME_TRY(index, parseIndex(part.substr(3)));
@@ -68,7 +68,7 @@ namespace fc::api {
             OUTCOME_TRY(
                 bytes,
                 Hamt{ipld, cid, storage::hamt::kDefaultBitWidth}.get(key));
-            raw = Buffer{bytes};
+            raw = bytes;
             s = CborDecodeStream{raw};
           }
           parts = parts.subspan(1);
@@ -89,7 +89,7 @@ namespace fc::api {
           }
         }
       }
-      raw = Buffer{s.raw()};
+      raw = s.raw();
       OUTCOME_TRY(cid, common::getCidOf(raw));
       return IpldObject{std::move(cid), std::move(raw)};
     } catch (std::system_error &e) {

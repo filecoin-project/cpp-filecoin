@@ -88,7 +88,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
                                     const Address &worker,
                                     const Address &id_address,
                                     const Address &robust_address) {
-      Buffer peer_id = Buffer(10, 'x');
+      Bytes peer_id = Bytes(10, 'x');
       CreateMiner::Params params{
           .owner = owner,
           .worker = worker,

@@ -76,7 +76,7 @@ namespace fc::markets::storage::provider {
                            const boost::filesystem::path &path)
         -> outcome::result<void> override;
 
-    outcome::result<Signature> sign(const Buffer &input);
+    outcome::result<Signature> sign(const Bytes &input);
 
    private:
     /**

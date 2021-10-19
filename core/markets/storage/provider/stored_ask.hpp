@@ -21,14 +21,13 @@
 
 namespace fc::markets::storage::provider {
   using api::FullNodeApi;
-  using common::Buffer;
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
   using primitives::tipset::Tipset;
 
-  using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
+  using Datastore = fc::storage::face::PersistentMap<Bytes, Bytes>;
 
   static const TokenAmount kDefaultPrice = 500'000'000;
   static constexpr ChainEpoch kDefaultDuration = 1'000'000;

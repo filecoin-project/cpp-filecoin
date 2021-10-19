@@ -10,8 +10,9 @@
 
 namespace fc::primitives {
   StoredCounter::StoredCounter(std::shared_ptr<Datastore> datastore,
-                               std::string key)
-      : datastore_(std::move(datastore)), key_(fc::common::span::cbytes(key)) {}
+                               const std::string &key)
+      : datastore_(std::move(datastore)),
+        key_(copy(fc::common::span::cbytes(key))) {}
 
   outcome::result<uint64_t> StoredCounter::getNumber() const {
     std::lock_guard lock(mutex_);
@@ -26,7 +27,7 @@ namespace fc::primitives {
   outcome::result<void> StoredCounter::setNumber(uint64_t number) {
     std::lock_guard lock(mutex_);
     const libp2p::multi::UVarint new_value(number);
-    return datastore_->put(key_, Buffer(new_value.toBytes()));
+    return datastore_->put(key_, copy(new_value.toBytes()));
   }
 
   outcome::result<uint64_t> StoredCounter::next() {

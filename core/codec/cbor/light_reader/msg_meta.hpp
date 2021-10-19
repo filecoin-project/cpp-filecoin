@@ -9,14 +9,14 @@
 #include "cid.hpp"
 #include "codec/cbor/cbor_token.hpp"
 #include "common/blob.hpp"
-#include "common/buffer.hpp"
+
 
 namespace fc::codec::cbor::light_reader {
   inline bool readMsgMeta(const CbCid *&bls,
                           const CbCid *&secp,
                           CbIpldPtr ipld,
                           const CbCid &cid) {
-    Buffer value;
+    Bytes value;
     if (!ipld->get(cid, value)) {
       return false;
     }

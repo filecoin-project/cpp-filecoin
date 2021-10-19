@@ -11,8 +11,8 @@ add_library(actor
     )
 target_link_libraries(actor
     address
-    buffer
     cid
+    bytes
     exit_code
     account_actor_v0
     account_actor_v2

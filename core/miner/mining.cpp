@@ -149,9 +149,9 @@ namespace fc::mining {
                    auto &seed) -> outcome::result<BlsSignature> {
         OUTCOME_TRY(
             sig,
-            api->WalletSign(info->worker,
-                            Buffer{drawRandomness(
-                                info->beacon().data, tag, height, seed)}));
+            api->WalletSign(
+                info->worker,
+                copy(drawRandomness(info->beacon().data, tag, height, seed))));
         return boost::get<BlsSignature>(sig);
       }};
       OUTCOME_TRY(miner_seed, codec::cbor::encode(miner));
@@ -170,7 +170,7 @@ namespace fc::mining {
 
         auto ticket_seed{miner_seed};
         if (height() > kUpgradeSmokeHeight) {
-          ticket_seed.put(ts->getMinTicketBlock().ticket->bytes);
+          append(ticket_seed, ts->getMinTicketBlock().ticket->bytes);
         }
         OUTCOME_TRY(ticket_vrf,
                     vrf(DomainSeparationTag::TicketProduction,
@@ -190,8 +190,8 @@ namespace fc::mining {
         return BlockTemplate{
             miner,
             ts->key.cids(),
-            primitives::block::Ticket{Buffer{ticket_vrf}},
-            primitives::block::ElectionProof{win_count, Buffer{election_vrf}},
+            primitives::block::Ticket{copy(ticket_vrf)},
+            primitives::block::ElectionProof{win_count, copy(election_vrf)},
             std::move(info->beacons),
             messages,
             height(),

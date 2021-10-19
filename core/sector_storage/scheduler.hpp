@@ -19,14 +19,12 @@ namespace fc::sector_storage {
     TaskType task_type;
     libp2p::common::Hash256 param_hash = {};
 
-    // TODO (a.chernyshov) make explicit
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    operator Buffer() const {
-      Buffer result;
-      result.put(task_type);
-      result.put("(");
-      result.put(param_hash);
-      result.put(")");
+    explicit operator Bytes() const {
+      Bytes result;
+      append(result, common::span::cbytes(task_type));
+      result.push_back('(');
+      append(result, param_hash);
+      result.push_back(')');
       return result;
     }
   };

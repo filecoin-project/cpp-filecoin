@@ -36,7 +36,7 @@ addtest(le_encoder_test
 target_link_libraries(le_encoder_test
     Boost::boost
     blob
-    buffer
+    bytes
     )
 
 addtest(outcome_test
@@ -52,6 +52,6 @@ addtest(tarutil_test
 target_link_libraries(tarutil_test
     tarutil
     base_fs_test
-    buffer
+    bytes
     file
     )

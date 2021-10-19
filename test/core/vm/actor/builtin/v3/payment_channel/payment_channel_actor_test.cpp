@@ -19,7 +19,6 @@
   EXPECT_CALL(object, call).WillRepeatedly(Return(result))
 
 namespace fc::vm::actor::builtin::v3::payment_channel {
-  using common::Buffer;
   using crypto::blake2b::blake2b_256;
   using crypto::signature::Secp256k1Signature;
   using crypto::signature::Signature;
@@ -225,11 +224,11 @@ namespace fc::vm::actor::builtin::v3::payment_channel {
   /// PaymentChannelActor UpdateChannelState error: invalid secret preimage
   TEST_F(PaymentChannelActorTest, UpdateChannelStateInvalidSecretPreimage) {
     auto voucher = setupUpdateChannelState();
-    voucher.secret_preimage = Buffer{blake2b_256("01"_unhex)};
+    voucher.secret_preimage = copy(blake2b_256("01"_unhex));
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrIllegalArgument),
-        UpdateChannelState::call(runtime, {voucher, Buffer{"02"_unhex}}));
+        UpdateChannelState::call(runtime, {voucher, "02"_unhex}));
   }
 
   /// PaymentChannelActor UpdateChannelState error: extra call failed

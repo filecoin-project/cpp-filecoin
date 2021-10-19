@@ -28,8 +28,8 @@ target_link_libraries(graphsync
     Boost::boost
     p2p::asio_scheduler
     p2p::subscription
+    bytes
     cid
-    buffer
     cbor
     cbor_types
     filecoin_hasher

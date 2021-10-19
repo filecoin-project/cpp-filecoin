@@ -17,8 +17,8 @@
 namespace fc::primitives::tipset::chain::file {
   struct FileTest : ::test::BaseFS_Test {
     CbIpldPtr ipld{std::make_shared<MemoryCbIpld>()};
-    std::vector<Buffer> tickets{
-        Buffer{"02"_unhex}, Buffer{"03"_unhex}, Buffer{"01"_unhex}};
+    std::vector<Bytes> tickets{
+            {"02"_unhex}, {"03"_unhex}, {"01"_unhex}};
     CbCid genesis{makeBlock(0, 0, {})};
     BlockParentCbCids head0, head00, head01, head010, head011, head0110;
     std::string path, path_hash, path_count;
@@ -77,7 +77,7 @@ namespace fc::primitives::tipset::chain::file {
       EXPECT_EQ(branch->chain.rbegin()->second.key.cids(), head);
       const std::vector<CbCid> *expected_parents{};
       BlockParentCbCids actual_parents;
-      Buffer _block;
+      Bytes _block;
       for (auto it{branch->chain.begin()}; it != branch->chain.end(); ++it) {
         for (auto &cid : it->second.key.cids()) {
           EXPECT_TRUE(ipld->get(cid, _block));

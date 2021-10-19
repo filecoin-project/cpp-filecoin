@@ -7,7 +7,7 @@
 
 #include "adt/uvarint_key.hpp"
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/buffer.hpp"
+
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
@@ -47,7 +47,7 @@ namespace fc::vm::actor::builtin::types::multisig {
              && params == other.params && approved == other.approved;
     }
 
-    outcome::result<Buffer> hash(fc::vm::runtime::Runtime &runtime) const;
+    outcome::result<Bytes> hash(fc::vm::runtime::Runtime &runtime) const;
   };
   CBOR_TUPLE(Transaction, to, value, method, params, approved)
 

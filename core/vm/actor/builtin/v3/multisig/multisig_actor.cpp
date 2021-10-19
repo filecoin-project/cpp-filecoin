@@ -8,7 +8,6 @@
 #include "vm/actor/builtin/states/multisig/multisig_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::multisig {
-  using common::Buffer;
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using states::MultisigActorStatePtr;

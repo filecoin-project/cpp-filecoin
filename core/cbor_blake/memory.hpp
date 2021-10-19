@@ -14,9 +14,9 @@ namespace fc {
     using CbIpld::get;
     using CbIpld::put;
 
-    std::map<CbCid, Buffer> map;
+    std::map<CbCid, Bytes> map;
 
-    bool get(const CbCid &key, Buffer *value) const override {
+    bool get(const CbCid &key, Bytes *value) const override {
       if (const auto it{map.find(key)}; it != map.end()) {
         if (value) {
           *value = it->second;
@@ -26,7 +26,7 @@ namespace fc {
       return false;
     }
     void put(const CbCid &key, BytesIn value) override {
-      map.emplace(key, Buffer{value});
+      map.emplace(key, copy(value));
     }
   };
 }  // namespace fc

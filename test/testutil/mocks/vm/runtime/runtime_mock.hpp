@@ -89,7 +89,7 @@ namespace fc::vm::runtime {
                                        gsl::span<const uint8_t> data));
 
     MOCK_METHOD3(verifySignatureBytes,
-                 outcome::result<bool>(const Buffer &signature_bytes,
+                 outcome::result<bool>(const Bytes &signature_bytes,
                                        const Address &address,
                                        gsl::span<const uint8_t> data));
 
@@ -109,9 +109,9 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD3(
         verifyConsensusFault,
-        outcome::result<boost::optional<ConsensusFault>>(const Buffer &block1,
-                                                         const Buffer &block2,
-                                                         const Buffer &extra));
+        outcome::result<boost::optional<ConsensusFault>>(const Bytes &block1,
+                                                         const Bytes &block2,
+                                                         const Bytes &extra));
 
     /// Expect call to send with params returning result
     template <typename M>

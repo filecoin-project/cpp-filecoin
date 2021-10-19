@@ -21,6 +21,7 @@
 
 namespace fc::storage {
 
+  // TODO: BytesIn as key or remove all of them
   using BufferMap = face::GenericMap<Bytes, Bytes>;
 
   using BufferBatch = face::WriteBatch<Bytes, Bytes>;

@@ -10,7 +10,7 @@
 #include <limits>
 
 #include "codec/common.hpp"
-#include "common/buffer.hpp"
+
 #include "common/file.hpp"
 
 namespace fc::codec::uvarint {

@@ -22,7 +22,6 @@ namespace fc::primitives::tipset {
   using block::Signature;
   using block::Ticket;
   using cid::getCidOfCbor;
-  using common::Buffer;
   using tipset::Tipset;
   using tipset::TipsetError;
 
@@ -33,8 +32,8 @@ namespace fc::primitives::tipset {
       auto bls2 =
           "020101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
 
-      ticket1 = Ticket{fc::Buffer{bls1}};
-      ticket2 = Ticket{fc::Buffer{bls2}};
+      ticket1 = Ticket{copy(bls1)};
+      ticket2 = Ticket{copy(bls2)};
 
       BlockHeader block_header{
           fc::primitives::address::Address::makeFromId(1),
@@ -42,7 +41,7 @@ namespace fc::primitives::tipset {
           {},
           {fc::primitives::block::BeaconEntry{
               4,
-              Buffer{"F00D"_unhex},
+              "F00D"_unhex,
           }},
           {fc::primitives::sector::PoStProof{
               fc::primitives::sector::RegisteredPoStProof::

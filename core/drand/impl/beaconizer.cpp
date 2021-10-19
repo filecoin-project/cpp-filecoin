@@ -82,7 +82,7 @@ namespace fc::drand {
                          if (res.round != round) {
                            error = Error::kInvalidBeacon;
                          } else {
-                           BeaconEntry entry{round, Buffer{res.signature}};
+                           BeaconEntry entry{round, copy(res.signature)};
                            auto _valid{self->verifyEntry(
                                entry, {round - 1, std::move(res.prev)})};
                            if (!_valid) {
@@ -125,13 +125,13 @@ namespace fc::drand {
 
   // private stuff goes below
 
-  boost::optional<Buffer> BeaconizerImpl::lookupCache(Round round) {
+  boost::optional<Bytes> BeaconizerImpl::lookupCache(Round round) {
     std::lock_guard<std::mutex> lock(cache_mutex_);
     auto bytes = cache_.get(round);
     return bytes;
   }
 
-  void BeaconizerImpl::cacheEntry(Round round, const Buffer &signature) {
+  void BeaconizerImpl::cacheEntry(Round round, const Bytes &signature) {
     std::lock_guard<std::mutex> lock(cache_mutex_);
     cache_.insert(round, signature);
   }

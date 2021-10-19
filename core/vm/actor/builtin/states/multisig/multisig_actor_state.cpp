@@ -31,7 +31,7 @@ namespace fc::vm::actor::builtin::states {
   outcome::result<Transaction> MultisigActorState::getTransaction(
       Runtime &runtime,
       const TransactionId &tx_id,
-      const Buffer &proposal_hash) const {
+      const Bytes &proposal_hash) const {
     OUTCOME_TRY(transaction, getPendingTransaction(tx_id));
     REQUIRE_NO_ERROR_A(
         hash, transaction.hash(runtime), VMExitCode::kErrIllegalState);

@@ -7,9 +7,9 @@
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
-#include "common/file.hpp"
 #include "common/span.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/read_file.hpp"
 #include "testutil/resources/resources.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
@@ -38,13 +38,9 @@ TEST_F(TarUtilTest, extractTar) {
   ASSERT_TRUE(fs::exists((base_path / "Seal").string()));
   ASSERT_TRUE(fs::exists((base_path / "Unseal").string()));
   ASSERT_TRUE(fs::exists((base_path / "Unseal" / "test.txt").string()));
-  std::ifstream input((base_path / "Unseal" / "test.txt").string());
-  ASSERT_TRUE(input.good());
-  const std::string result = "some test data here";
-  std::string str;
-  std::getline(input, str);
-  ASSERT_EQ(str, result);
-  input.close();
+  auto data = readFile((base_path / "Unseal" / "test.txt").string());
+  const std::string result = "some test data here\n";
+  ASSERT_EQ(data, fc::common::span::cbytes(result));
 }
 
 /**
@@ -91,6 +87,5 @@ TEST_F(TarUtilTest, zipTar) {
                           fs::directory_iterator{}),
             0);
 
-  EXPECT_OUTCOME_EQ(fc::common::readFile(file_path),
-                    fc::common::span::cbytes(result_string));
+  ASSERT_EQ(readFile(file_path), fc::common::span::cbytes(result_string));
 }

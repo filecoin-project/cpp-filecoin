@@ -10,7 +10,7 @@ add_library(tipset
     )
 target_link_libraries(tipset
     block
-    buffer
+    bytes
     cid
     const
     logger

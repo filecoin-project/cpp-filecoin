@@ -26,7 +26,7 @@ namespace fc::codec::cbor::light_reader {
     const static auto kParseError =
         ERROR_TEXT("MinerActor compression: CBOR parsing error");
 
-    Buffer encoded_state;
+    Bytes encoded_state;
     if (!ipld->get(state_root, encoded_state)) {
       return kParseError;
     }

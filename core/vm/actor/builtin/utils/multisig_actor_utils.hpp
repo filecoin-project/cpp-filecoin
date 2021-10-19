@@ -20,7 +20,7 @@ namespace fc::vm::actor::builtin::utils {
   using types::multisig::TransactionId;
 
   namespace multisig {
-    using ApproveTransactionResult = std::tuple<bool, Buffer, VMExitCode>;
+    using ApproveTransactionResult = std::tuple<bool, Bytes, VMExitCode>;
   }
 
   class MultisigUtils : public ActorUtils {

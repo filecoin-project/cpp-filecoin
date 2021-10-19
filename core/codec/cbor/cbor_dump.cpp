@@ -6,7 +6,6 @@
 #include "codec/cbor/cbor_dump.hpp"
 
 #include "codec/cbor/cbor_decode_stream.hpp"
-#include "common/buffer.hpp"
 #include "common/hexutil.hpp"
 
 namespace fc {
@@ -71,7 +70,7 @@ namespace fc {
       }
       o += "}";
     } else if (s.isBytes()) {
-      Buffer bytes;
+      Bytes bytes;
       s >> bytes;
       o += bytes.empty() ? "~" : dumpBytes(bytes);
     } else if (s.isStr()) {

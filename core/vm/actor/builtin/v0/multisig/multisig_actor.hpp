@@ -56,7 +56,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       TransactionId tx_id{};
       bool applied{false};
       VMExitCode code;
-      Buffer return_value;
+      Bytes return_value;
 
       inline bool operator==(const Result &rhs) const {
         return tx_id == rhs.tx_id && applied == rhs.applied && code == rhs.code
@@ -72,12 +72,12 @@ namespace fc::vm::actor::builtin::v0::multisig {
   struct Approve : ActorMethodBase<3> {
     struct Params {
       TransactionId tx_id{};
-      Buffer proposal_hash;
+      Bytes proposal_hash;
     };
     struct Result {
       bool applied{false};
       VMExitCode code;
-      Buffer return_value;
+      Bytes return_value;
 
       inline bool operator==(const Result &rhs) const {
         return applied == rhs.applied && code == rhs.code
@@ -93,7 +93,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   struct Cancel : ActorMethodBase<4> {
     struct Params {
       TransactionId tx_id{};
-      Buffer proposal_hash;
+      Bytes proposal_hash;
     };
 
     ACTOR_METHOD_DECL();

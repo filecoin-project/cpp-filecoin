@@ -9,11 +9,10 @@
 
 #include "api/utils.hpp"
 #include "api/version.hpp"
-#include "common/buffer.hpp"
+#include "common/bytes.hpp"
 #include "primitives/jwt/jwt.hpp"
 
 namespace fc::api {
-  using common::Buffer;
   using libp2p::peer::PeerInfo;
   using primitives::jwt::Permission;
   namespace jwt = primitives::jwt;
@@ -25,7 +24,7 @@ namespace fc::api {
      */
     API_METHOD(AuthNew,
                jwt::kAdminPermission,
-               Buffer,
+               Bytes,
                const std::vector<Permission> &)
     /**
      * Verify auth token

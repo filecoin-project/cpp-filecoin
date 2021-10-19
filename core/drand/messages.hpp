@@ -8,7 +8,7 @@
 #include <chrono>
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/buffer.hpp"
+#include "common/bytes.hpp"
 #include "crypto/bls/bls_types.hpp"
 
 namespace fc::drand {
@@ -17,7 +17,7 @@ namespace fc::drand {
 
   struct BeaconEntry {
     Round round = 0;
-    Buffer data;  // BlsSignature, inconsistent size in lotus
+    Bytes data;  // BlsSignature, inconsistent size in lotus
   };
   CBOR_TUPLE(BeaconEntry, round, data)
   inline bool operator==(const BeaconEntry &lhs, const BeaconEntry &rhs) {
@@ -33,6 +33,6 @@ namespace fc::drand {
   struct PublicRandResponse {
     Round round;
     BlsSignature signature;
-    Buffer prev;  // Hash256 if genesis else BlsSignature
+    Bytes prev;  // Hash256 if genesis else BlsSignature
   };
 }  // namespace fc::drand

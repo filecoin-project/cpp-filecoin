@@ -41,7 +41,7 @@ namespace fc::mining {
         const Address &miner);
     void onChange(TipsetCPtr revert, TipsetCPtr apply);
     outcome::result<RleBitset> checkSectors(const RleBitset &sectors, bool ok);
-    outcome::result<void> pushMessage(MethodNumber method, Buffer params);
+    outcome::result<void> pushMessage(MethodNumber method, Bytes params);
 
     std::shared_ptr<api::Channel<std::vector<api::HeadChange>>> channel;
     std::shared_ptr<FullNodeApi> api;

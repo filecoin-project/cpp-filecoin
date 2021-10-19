@@ -9,7 +9,6 @@
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v2::multisig {
-  using common::Buffer;
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using states::MultisigActorStatePtr;
