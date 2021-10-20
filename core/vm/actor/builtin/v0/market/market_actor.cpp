@@ -103,10 +103,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
     const auto utils = Toolchain::createMarketUtils(runtime);
 
-    OUTCOME_TRY(addresses, utils->requestMinerControlAddress(provider));
-    if (addresses.worker != runtime.getImmediateCaller()) {
-      ABORT(VMExitCode::kErrForbidden);
-    }
+    OUTCOME_TRY(utils->checkCallers(provider));
 
     // request current baseline power
     OUTCOME_TRY(baseline_power, utils->getBaselinePowerFromRewardActor());
@@ -283,7 +280,9 @@ namespace fc::vm::actor::builtin::v0::market {
 
       const auto &deal = maybe_deal.value();
 
-      VM_ASSERT(deal.provider == runtime.getImmediateCaller());
+      const auto utils = Toolchain::createMarketUtils(runtime);
+      OUTCOME_TRY(utils->assertCondition(deal.provider
+                                         == runtime.getImmediateCaller()));
 
       // do not slash expired deals
       if (deal.end_epoch <= params.epoch) {
@@ -378,7 +377,7 @@ namespace fc::vm::actor::builtin::v0::market {
           // deal has been published but not activated yet -> terminate it as it
           // has timed out
           if (!maybe_deal_state.has_value()) {
-            VM_ASSERT(now >= deal.start_epoch);
+            OUTCOME_TRY(utils->assertCondition(now >= deal.start_epoch));
             OUTCOME_TRY(slashed, state->processDealInitTimedOut(runtime, deal));
             slashed_sum += slashed;
             if (deal.verified) {
@@ -404,15 +403,17 @@ namespace fc::vm::actor::builtin::v0::market {
                           runtime, deal_id, deal, deal_state, now));
           const auto &[slash_amount, next_epoch, remove_deal] = slashed_next;
 
-          VM_ASSERT(slash_amount >= 0);
+          OUTCOME_TRY(utils->assertCondition(slash_amount >= 0));
           if (remove_deal) {
-            VM_ASSERT(next_epoch == kChainEpochUndefined);
+            OUTCOME_TRY(
+                utils->assertCondition(next_epoch == kChainEpochUndefined));
             slashed_sum += slash_amount;
             REQUIRE_NO_ERROR(
                 utils->deleteDealProposalAndState(state, deal_id, true, true),
                 VMExitCode::kErrIllegalState);
           } else {
-            VM_ASSERT((next_epoch > now) && (slash_amount == 0));
+            OUTCOME_TRY(utils->assertCondition((next_epoch > now)
+                                               && (slash_amount == 0)));
             deal_state.last_updated_epoch = now;
             REQUIRE_NO_ERROR(state->states.set(deal_id, deal_state),
                              VMExitCode::kErrIllegalState);

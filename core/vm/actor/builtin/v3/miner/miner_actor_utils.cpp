@@ -82,17 +82,16 @@ namespace fc::vm::actor::builtin::v3::miner {
       const std::vector<DealId> &deals,
       ChainEpoch sector_start,
       ChainEpoch sector_expiry) const {
-    REQUIRE_SUCCESS_A(deal_weights,
-                      getRuntime().sendM<market::VerifyDealsForActivation>(
-                          kStorageMarketAddress,
-                          {.deals = deals,
-                           .sector_expiry = sector_expiry,
-                           .sector_start = sector_start},
-                          0));
-    return DealWeights{
-        .deal_weight = deal_weights.deal_weight,
-        .verified_deal_weight = deal_weights.verified_deal_weight,
-        .deal_space = deal_weights.deal_space};
+    REQUIRE_SUCCESS_A(
+        sector_weights,
+        getRuntime().sendM<market::VerifyDealsForActivation>(
+            kStorageMarketAddress,
+            {{{.sector_expiry = sector_expiry, .deal_ids = deals}}},
+            0));
+    return DealWeights{.deal_weight = 0,
+                       .verified_deal_weight = 0,
+                       .deal_space = 0,
+                       .sectors = sector_weights.sectors};
   }
 
   outcome::result<Address> MinerUtils::getPubkeyAddressFromAccountActor(

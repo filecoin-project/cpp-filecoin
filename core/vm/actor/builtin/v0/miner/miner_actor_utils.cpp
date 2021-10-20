@@ -211,7 +211,8 @@ namespace fc::vm::actor::builtin::v0::miner {
     return DealWeights{
         .deal_weight = deal_weights.deal_weight,
         .verified_deal_weight = deal_weights.verified_deal_weight,
-        .deal_space = 0};
+        .deal_space = 0,
+        .sectors = {}};
   }
 
   outcome::result<void> MinerUtils::verifyWindowedPost(

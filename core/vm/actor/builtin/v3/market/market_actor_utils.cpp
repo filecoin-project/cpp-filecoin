@@ -13,6 +13,31 @@
 
 namespace fc::vm::actor::builtin::v3::market {
 
+  outcome::result<void> MarketUtils::assertCondition(bool condition) const {
+    return getRuntime().requireState(condition);
+  }
+
+  outcome::result<void> MarketUtils::checkCallers(
+      const Address &provider) const {
+    const auto caller = getRuntime().getImmediateCaller();
+    OUTCOME_TRY(addresses, requestMinerControlAddress(provider));
+
+    bool caller_ok = caller == addresses.worker;
+
+    for (const auto &controller : addresses.control) {
+      if (caller_ok) {
+        break;
+      }
+      caller_ok = caller == controller;
+    }
+
+    if (!caller_ok) {
+      ABORT(VMExitCode::kErrForbidden);
+    }
+
+    return outcome::success();
+  }
+
   outcome::result<TokenAmount> MarketUtils::dealGetPaymentRemaining(
       const DealProposal &deal, ChainEpoch slash_epoch) const {
     if (slash_epoch > deal.end_epoch) {

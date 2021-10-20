@@ -37,6 +37,10 @@ namespace fc::vm::actor::builtin::utils {
 
     virtual outcome::result<void> checkWithdrawCaller() const = 0;
 
+    virtual outcome::result<void> assertCondition(bool condition) const = 0;
+
+    virtual outcome::result<void> checkCallers(const Address &provider) const = 0;
+
     virtual outcome::result<std::tuple<Address, Address, std::vector<Address>>>
     escrowAddress(const Address &address) const = 0;
 

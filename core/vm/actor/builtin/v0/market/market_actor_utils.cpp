@@ -24,6 +24,19 @@ namespace fc::vm::actor::builtin::v0::market {
     return getRuntime().validateImmediateCallerIsSignable();
   }
 
+  outcome::result<void> MarketUtils::assertCondition(bool condition) const {
+    return getRuntime().vm_assert(condition);
+  }
+
+  outcome::result<void> MarketUtils::checkCallers(
+      const Address &provider) const {
+    OUTCOME_TRY(addresses, requestMinerControlAddress(provider));
+    if (addresses.worker != getRuntime().getImmediateCaller()) {
+      ABORT(VMExitCode::kErrForbidden);
+    }
+    return outcome::success();
+  }
+
   outcome::result<std::tuple<Address, Address, std::vector<Address>>>
   MarketUtils::escrowAddress(const Address &address) const {
     const auto nominal = getRuntime().resolveAddress(address);

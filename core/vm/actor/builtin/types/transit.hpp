@@ -8,6 +8,7 @@
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/types/market/sector_weights.hpp"
 
 namespace fc::vm::actor::builtin::types {
   // Common result types of different actors and methods.
@@ -20,6 +21,7 @@ namespace fc::vm::actor::builtin::types {
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using types::market::SectorWeights;
 
   // RewardActor::ThisEpochReward::Result
   struct EpochReward {
@@ -48,6 +50,7 @@ namespace fc::vm::actor::builtin::types {
     DealWeight deal_weight;
     DealWeight verified_deal_weight;
     uint64_t deal_space{};
+    std::vector<SectorWeights> sectors;
   };
 
 }  // namespace fc::vm::actor::builtin::types

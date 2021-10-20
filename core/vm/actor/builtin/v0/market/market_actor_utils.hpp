@@ -27,6 +27,10 @@ namespace fc::vm::actor::builtin::v0::market {
 
     outcome::result<void> checkWithdrawCaller() const override;
 
+    outcome::result<void> assertCondition(bool condition) const override;
+
+    outcome::result<void> checkCallers(const Address &provider) const override;
+
     outcome::result<std::tuple<Address, Address, std::vector<Address>>>
     escrowAddress(const Address &address) const override;
 
