@@ -678,7 +678,7 @@ namespace fc::mining {
         return codec::cbor::encode(actor_state);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld, cid_root));
+        EXPECT_OUTCOME_TRUE(root, getCbor<storage::hamt::Node>(ipld, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state->allocated_sectors) {
@@ -726,7 +726,7 @@ namespace fc::mining {
             const TipsetKey &tipset_key) -> outcome::result<InvocResult> {
       InvocResult result;
       ComputeDataCommitment::Result call_res{.commds = {cids.unsealed_cid}};
-      OUTCOME_TRY(unsealed_buffer, codec::cbor::encode(call_res));
+      EXPECT_OUTCOME_TRUE(unsealed_buffer, codec::cbor::encode(call_res));
       result.receipt = MessageReceipt{
           .exit_code = vm::VMExitCode::kOk,
           .return_value = unsealed_buffer,
@@ -777,9 +777,11 @@ namespace fc::mining {
           SectorPreCommitOnChainInfo new_info;
           new_info.precommit_epoch = height;
           new_info.info.sealed_cid = cids.sealed_cid;
-          OUTCOME_TRY(actor_state->precommitted_sectors.set(sector, new_info));
-          OUTCOME_TRYA(cid_root,
-                       actor_state->precommitted_sectors.hamt.flush());
+          EXPECT_OUTCOME_TRUE_1(
+              actor_state->precommitted_sectors.set(sector, new_info));
+          EXPECT_OUTCOME_TRUE(cid_root_res,
+                              actor_state->precommitted_sectors.hamt.flush());
+          cid_root = std::move(cid_root_res);
         }
 
         MsgWait result;
@@ -813,7 +815,7 @@ namespace fc::mining {
                         height + kPreCommitChallengeDelay))
         .WillOnce(testing::Invoke(
             [](auto &apply, auto, auto, auto) -> outcome::result<void> {
-              OUTCOME_TRY(apply({}, 0));
+              EXPECT_OUTCOME_TRUE_1(apply({}, 0));
               return outcome::success();
             }));
 
