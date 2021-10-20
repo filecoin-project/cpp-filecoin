@@ -8,6 +8,5 @@ add_library(stored_counter
         )
 target_link_libraries(stored_counter
         outcome
-        bytes
         p2p::p2p_uvarint
         )

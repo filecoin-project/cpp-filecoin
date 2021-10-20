@@ -34,11 +34,11 @@ namespace fc::crypto::randomness {
                                    DomainSeparationTag tag,
                                    primitives::ChainEpoch round,
                                    gsl::span<const uint8_t> entropy) {
-    Bytes bytes;
-    putUint64(bytes, static_cast<uint64_t>(tag));
-    append(bytes, crypto::blake2b::blake2b_256(base));
-    putUint64(bytes, round);
-    append(bytes, entropy);
-    return crypto::blake2b::blake2b_256(bytes);
+    Bytes buffer;
+    putUint64(buffer, static_cast<uint64_t>(tag));
+    append(buffer, crypto::blake2b::blake2b_256(base));
+    putUint64(buffer, round);
+    append(buffer, entropy);
+    return crypto::blake2b::blake2b_256(buffer);
   }
 }  // namespace fc::crypto::randomness

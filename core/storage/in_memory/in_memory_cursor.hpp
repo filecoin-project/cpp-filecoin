@@ -28,7 +28,7 @@ namespace fc::storage {
     }
 
     void seek(const Bytes &key) override {
-      current_iterator_ = storage_->storage.lower_bound(toHex(key));
+      current_iterator_ = storage_->storage.lower_bound(common::hex_upper(key));
     }
 
     void seekToLast() override {
@@ -62,7 +62,7 @@ namespace fc::storage {
     }
 
     Bytes key() const override {
-      return fromHex(current_iterator_->first).value();
+      return common::unhex(current_iterator_->first).value();
     }
 
     Bytes value() const override {

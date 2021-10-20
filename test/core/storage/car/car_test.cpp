@@ -142,9 +142,9 @@ namespace fc::storage::car {
     EXPECT_OUTCOME_TRUE(expected_car, common::readFile(CAR_FROM_PAYLOAD_FILE));
     EXPECT_EQ(selective_car, expected_car) << std::endl
                                            << "actual" << std::endl
-                                           << toHex(selective_car) << std::endl
+                                           << common::hex_upper(selective_car) << std::endl
                                            << "expected" << std::endl
-                                           << toHex(expected_car) << std::endl;
+                                           << common::hex_upper(expected_car) << std::endl;
   }
 
   /**
@@ -169,9 +169,9 @@ namespace fc::storage::car {
     EXPECT_OUTCOME_TRUE(selective_car, common::readFile(car_path));
     EXPECT_EQ(selective_car, expected_car) << std::endl
                                            << "actual" << std::endl
-                                           << toHex(selective_car) << std::endl
+                                           << common::hex_upper(selective_car) << std::endl
                                            << "expected" << std::endl
-                                           << toHex(expected_car) << std::endl;
+                                           << common::hex_upper(expected_car) << std::endl;
   }
 
   TEST(CarTest, MemoryIndexedCar) {

@@ -57,9 +57,9 @@ namespace fc {
   }
 
   inline Bytes cgoRet(Raw &&raw) {
-    Bytes bytes = copy(gsl::span(raw.data, raw.size));
+    Bytes buffer = copy(gsl::span(raw.data, raw.size));
     free(raw.data);
-    return bytes;
+    return buffer;
   }
 
   template <auto f>

@@ -12,7 +12,6 @@ target_link_libraries(message
     Boost::boost
     address
     logger
-    bytes
     keystore
     outcome
     signature

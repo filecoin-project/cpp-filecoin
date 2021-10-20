@@ -9,6 +9,7 @@
 #include <boost/filesystem.hpp>
 #include <exception>
 
+#include "common/hexutil.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/leveldb_error.hpp"
 #include "testutil/outcome.hpp"
@@ -105,7 +106,8 @@ namespace fc::storage {
       auto v = it->value();
       EXPECT_EQ(k, v);
 
-      logger->info("key: {}, value: {}", toHex(k), toHex(v));
+      logger->info(
+          "key: {}, value: {}", common::hex_upper(k), common::hex_upper(v));
 
       EXPECT_GE(k[0], 0);
       EXPECT_LT(k[0], size);
@@ -128,7 +130,8 @@ namespace fc::storage {
       auto v = it->value();
       EXPECT_EQ(k, v);
 
-      logger->info("key: {}, value: {}", toHex(k), toHex(v));
+      logger->info(
+          "key: {}, value: {}", common::hex_upper(k), common::hex_upper(v));
 
       c++;
     }

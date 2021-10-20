@@ -25,12 +25,12 @@ namespace fc::common {
   Outcome<Bytes> readFile(const boost::filesystem::path &path) {
     std::ifstream file{path.c_str(), std::ios::binary | std::ios::ate};
     if (file.good()) {
-      Bytes result;
-      result.resize(file.tellg());
+      Bytes buffer;
+      buffer.resize(file.tellg());
       file.seekg(0, std::ios::beg);
-      file.read(common::span::string(result).data(),
-                static_cast<ptrdiff_t>(result.size()));
-      return result;
+      file.read(common::span::string(buffer).data(),
+                static_cast<ptrdiff_t>(buffer.size()));
+      return buffer;
     }
     return {};
   }

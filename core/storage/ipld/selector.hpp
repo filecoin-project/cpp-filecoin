@@ -17,6 +17,6 @@ namespace fc::storage::ipld {
    * {"R": {"l": {"none": {}}, ":>": {"a": {">": {"@": {}}}}}}
    */
   static const Selector kAllSelector{
-      fromHex("a16152a2616ca1646e6f6e65a0623a3ea16161a1613ea16140a0")
+      common::unhex("a16152a2616ca1646e6f6e65a0623a3ea16161a1613ea16140a0")
           .value()};
 }  // namespace fc::storage::ipld

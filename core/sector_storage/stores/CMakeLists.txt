@@ -35,7 +35,6 @@ add_library(store
 
 target_link_libraries(store
         CURL::libcurl
-        bytes
         file
         logger
         rpc

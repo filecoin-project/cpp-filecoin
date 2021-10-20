@@ -16,7 +16,6 @@ add_executable(dvm_main
     main.cpp
     )
 target_link_libraries(dvm_main
-    bytes
     car
     cids_index
     in_memory_storage

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "common/bytes.hpp"
+#include "common/outcome.hpp"
 
 namespace fc::codec::cbor {
   template <typename T>

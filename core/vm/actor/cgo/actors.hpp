@@ -6,6 +6,7 @@
 #pragma once
 
 #include "common/bytes.hpp"
+#include "common/outcome.hpp"
 #include "fwd.hpp"
 
 namespace fc::vm::actor::cgo {

@@ -14,6 +14,7 @@ addtest(leveldb_integration_test
     )
 target_link_libraries(leveldb_integration_test
     leveldb
+    hexutil
     base_leveldb_test
     Boost::filesystem
     )

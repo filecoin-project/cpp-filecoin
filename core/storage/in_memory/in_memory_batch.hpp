@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "common/bytes.hpp"
+#include "common/hexutil.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 
 namespace fc::storage {
@@ -15,23 +15,23 @@ namespace fc::storage {
     explicit InMemoryBatch(InMemoryStorage &db) : db{db} {}
 
     outcome::result<void> put(const Bytes &key, const Bytes &value) override {
-      entries[toHex(key)] = value;
+      entries[common::hex_upper(key)] = value;
       return outcome::success();
     }
 
     outcome::result<void> put(const Bytes &key, Bytes &&value) override {
-      entries[toHex(key)] = std::move(value);
+      entries[common::hex_upper(key)] = std::move(value);
       return outcome::success();
     }
 
     outcome::result<void> remove(const Bytes &key) override {
-      entries.erase(toHex(key));
+      entries.erase(common::hex_upper(key));
       return outcome::success();
     }
 
     outcome::result<void> commit() override {
       for (auto &entry : entries) {
-        OUTCOME_TRY(db.put(fromHex(entry.first).value(), entry.second));
+        OUTCOME_TRY(db.put(common::unhex(entry.first).value(), entry.second));
       }
       return outcome::success();
     }

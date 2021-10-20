@@ -14,7 +14,6 @@ add_library(ipfs_datastore_in_memory
     impl/in_memory_datastore.cpp
     )
 target_link_libraries(ipfs_datastore_in_memory
-    bytes
     cbor
     cid
     ipfs_datastore_error
@@ -24,7 +23,6 @@ add_library(ipfs_datastore_leveldb
     impl/datastore_leveldb.cpp
     )
 target_link_libraries(ipfs_datastore_leveldb
-    bytes
     cbor
     cid
     ipfs_datastore_error

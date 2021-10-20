@@ -9,6 +9,5 @@ add_library(amt
 target_link_libraries(amt
     cbor
     cid
-    bytes
     outcome
     )

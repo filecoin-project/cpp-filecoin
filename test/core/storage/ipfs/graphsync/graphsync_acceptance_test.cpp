@@ -110,7 +110,7 @@ namespace fc::storage::ipfs::graphsync::test {
         std::string s;
         for (const auto &item : extensions) {
           s += fmt::format(
-              "({}: 0x{}) ", item.name, toHex(item.data));
+              "({}: 0x{}) ", item.name, common::hex_upper(item.data));
         }
         return s;
       };

@@ -10,6 +10,5 @@ add_library(leveldb
     )
 target_link_libraries(leveldb
     leveldb::leveldb
-    bytes
     logger
     )

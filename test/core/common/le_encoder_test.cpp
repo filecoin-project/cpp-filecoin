@@ -7,8 +7,8 @@
 
 #include <gtest/gtest.h>
 
-using fc::common::encodeLebInteger;
 using fc::Bytes;
+using fc::common::encodeLebInteger;
 
 template <typename T>
 class IntegerTest : public ::testing::TestWithParam<std::pair<T, Bytes>> {
@@ -32,7 +32,7 @@ class Int8Test : public IntegerTest<int8_t> {};
  */
 TEST_P(Int8Test, EncodeSuccess) {
   auto [value, match] = GetParam();
-    Bytes s{};
+  Bytes s{};
   encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
@@ -58,7 +58,7 @@ class Uint8Test : public IntegerTest<uint8_t> {};
  */
 TEST_P(Uint8Test, EncodeSuccess) {
   auto [value, match] = GetParam();
-    Bytes s{};
+  Bytes s{};
   encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
@@ -81,7 +81,7 @@ class Int16Test : public IntegerTest<int16_t> {};
  */
 TEST_P(Int16Test, EncodeSuccess) {
   auto [value, match] = GetParam();
-    Bytes s{};
+  Bytes s{};
   encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }

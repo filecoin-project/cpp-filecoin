@@ -28,7 +28,6 @@ target_link_libraries(graphsync
     Boost::boost
     p2p::asio_scheduler
     p2p::subscription
-    bytes
     cid
     cbor
     cbor_types

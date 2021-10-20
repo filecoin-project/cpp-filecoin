@@ -63,7 +63,7 @@ namespace fc::codec::json {
 
   Outcome<Bytes> jUnhex(JIn j) {
     OUTCOME_TRY(str, jStr(j));
-    return fromHex(str);
+    return common::unhex(str);
   }
 
   Outcome<Bytes> jBytes(JIn j) {

@@ -9,7 +9,6 @@ add_library(piece_storage
     )
 target_link_libraries(piece_storage
     cbor
-    bytes
     outcome
     piece
     )

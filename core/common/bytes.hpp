@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <gsl/span>
 #include <vector>
-#include "common/hexutil.hpp"
 
 namespace fc {
   using Bytes = std::vector<uint8_t>;
@@ -24,18 +23,6 @@ namespace fc {
       return l < r;
     }
   };
-
-  inline outcome::result<Bytes> fromHex(std::string_view s) {
-    return common::unhex(s);
-  }
-
-  inline std::string toHex(BytesIn b) {
-    return common::hex_upper(b);
-  }
-
-  inline std::string toHex(const Bytes &b) {
-    return toHex(gsl::make_span(b));
-  }
 
   inline Bytes copy(BytesIn r) {
     return {r.begin(), r.end()};
