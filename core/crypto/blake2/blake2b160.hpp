@@ -9,7 +9,6 @@
 
 #include "common/blob.hpp"
 
-
 namespace fc::crypto::blake2b {
 
   const size_t BLAKE2B160_HASH_LENGTH = 20;  // 160 BIT

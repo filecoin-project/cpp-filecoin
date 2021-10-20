@@ -22,7 +22,6 @@ namespace fc {
       const boost::filesystem::path &path) {
     if (boost::filesystem::exists(path)) {
       OUTCOME_TRY(secret, common::readFile(path));
-
       return std::make_shared<jwt::algorithm::hs256>(
           std::string(secret.begin(), secret.end()));
     }

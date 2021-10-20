@@ -9,7 +9,6 @@
 #include <string>
 
 #include "codec/cbor/streams_annotation.hpp"
-
 #include "primitives/cid/cid.hpp"
 
 namespace fc::storage::ipfs::graphsync {

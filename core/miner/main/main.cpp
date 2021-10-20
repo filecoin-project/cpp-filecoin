@@ -196,7 +196,7 @@ namespace fc {
     OUTCOME_TRY(
         wsc.connect(config.node_api.first, "/rpc/v0", config.node_api.second));
 
-    auto &_peer_id{peer_id.toVector()};
+    const auto &_peer_id{peer_id.toVector()};
     if (!kv.contains(kActor)) {
       if (!config.actor) {
         spdlog::info("creating miner actor");

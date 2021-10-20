@@ -236,7 +236,7 @@ namespace fc::api {
 
   struct IpldObject {
     CID cid;
-      Bytes raw;
+    Bytes raw;
   };
 
   struct MiningBaseInfo {

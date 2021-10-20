@@ -10,7 +10,6 @@
 #include "codec/cbor/cbor_token.hpp"
 #include "common/blob.hpp"
 
-
 namespace fc::codec::cbor::light_reader {
   inline bool readStateTree(CbCid &hamt,
                             const CbIpldPtr &ipld,

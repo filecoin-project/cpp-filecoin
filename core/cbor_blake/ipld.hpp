@@ -9,7 +9,6 @@
 
 #include "cbor_blake/cid.hpp"
 
-
 namespace fc {
   struct CbIpld {
     virtual ~CbIpld() = default;

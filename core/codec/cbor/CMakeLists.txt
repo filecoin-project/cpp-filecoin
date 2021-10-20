@@ -11,6 +11,7 @@ add_library(cbor
     cbor_resolve.cpp
     )
 target_link_libraries(cbor
+    bytes
     cid
     outcome
     )

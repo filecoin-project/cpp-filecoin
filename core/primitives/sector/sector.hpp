@@ -6,7 +6,6 @@
 #pragma once
 
 #include "common/blob.hpp"
-
 #include "common/cmp.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"

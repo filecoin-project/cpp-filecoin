@@ -5,8 +5,6 @@
 
 #include "storage/leveldb/prefix.hpp"
 
-#include <utility>
-
 #include "common/span.hpp"
 
 namespace fc::storage {

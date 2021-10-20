@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include <utility>
-
 #include "cbor_blake/ipld.hpp"
 
 namespace fc::codec::cbor::light_reader {

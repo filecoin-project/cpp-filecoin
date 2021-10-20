@@ -13,8 +13,7 @@ namespace fc::markets::discovery {
 
   outcome::result<void> DiscoveryImpl::addPeer(const CID &cid,
                                                const RetrievalPeer &peer) {
-    OUTCOME_TRY(cid_bytes, cid.toBytes());
-    auto &cid_key{cid_bytes};
+    OUTCOME_TRY(cid_key, cid.toBytes());
     std::vector<RetrievalPeer> peers;
 
     if (datastore_->contains(cid_key)) {
@@ -35,8 +34,7 @@ namespace fc::markets::discovery {
 
   outcome::result<std::vector<RetrievalPeer>> DiscoveryImpl::getPeers(
       const CID &cid) const {
-    OUTCOME_TRY(cid_bytes, cid.toBytes());
-    auto &cid_key{cid_bytes};
+    OUTCOME_TRY(cid_key, cid.toBytes());
     if (!datastore_->contains(cid_key)) {
       return std::vector<RetrievalPeer>{};
     }

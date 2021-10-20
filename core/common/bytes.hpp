@@ -33,7 +33,7 @@ namespace fc {
     return common::hex_upper(b);
   }
 
-  inline std::string toHex(Bytes b) {
+  inline std::string toHex(const Bytes &b) {
     return toHex(gsl::make_span(b));
   }
 
