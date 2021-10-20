@@ -573,7 +573,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state_);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
+        EXPECT_OUTCOME_TRUE(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state_->allocated_sectors) {
@@ -686,7 +686,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state_);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
+        EXPECT_OUTCOME_TRUE(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state_->allocated_sectors) {
@@ -786,7 +786,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state_);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
+        EXPECT_OUTCOME_TRUE(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state_->allocated_sectors) {
@@ -838,7 +838,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state_);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
+        EXPECT_OUTCOME_TRUE(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state_->allocated_sectors) {
@@ -891,7 +891,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state_);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
+        EXPECT_OUTCOME_TRUE(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state_->allocated_sectors) {
@@ -944,7 +944,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state_);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
+        EXPECT_OUTCOME_TRUE(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state_->allocated_sectors) {
@@ -1015,7 +1015,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state_);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
+        EXPECT_OUTCOME_TRUE(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state_->allocated_sectors) {
@@ -1084,7 +1084,7 @@ namespace fc::mining::checks {
         return codec::cbor::encode(actor_state_);
       }
       if (key == cid_root) {
-        OUTCOME_TRY(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
+        EXPECT_OUTCOME_TRUE(root, getCbor<storage::hamt::Node>(ipld_, cid_root));
         return codec::cbor::encode(root);
       }
       if (key == actor_state_->allocated_sectors) {
