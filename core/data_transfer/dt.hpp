@@ -8,6 +8,7 @@
 #include "data_transfer/message.hpp"
 #include "fwd.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
+#include "storage/ipld/traverser.hpp"
 
 namespace fc::data_transfer {
   struct PeerDtId;
@@ -26,6 +27,7 @@ namespace fc::data_transfer {
   using gsns::Graphsync;
   using libp2p::Host;
   using libp2p::peer::PeerId;
+  using storage::ipld::traverser::Traverser;
   using PeerGsId = gsns::FullRequestId;
 
   using DtId = uint64_t;
@@ -53,6 +55,7 @@ namespace fc::data_transfer {
       CID root;
       IpldPtr ipld;
       OkCb on_begin, on_end;
+      boost::optional<Traverser> traverser;
     };
 
     static gsns::Extension makeExt(const DataTransferMessage &msg);

@@ -119,6 +119,13 @@ namespace fc::storage::ipfs::graphsync {
     ctx->sendResponse(id, response);
   }
 
+  void Network::postBlocks(const FullRequestId &id, Responder responder) {
+    if (auto ctx{findContext(id.peer, false)}) {
+      return ctx->postBlocks(id.id, std::move(responder));
+    }
+    responder(false);
+  }
+
   void Network::peerClosed(const PeerId &peer, ResponseStatusCode status) {
     auto it = peers_.find(peer);
     if (it != peers_.end()) {

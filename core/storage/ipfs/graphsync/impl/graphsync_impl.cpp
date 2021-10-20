@@ -60,6 +60,10 @@ namespace fc::storage::ipfs::graphsync {
     network_->sendResponse(id, response);
   }
 
+  void GraphsyncImpl::postBlocks(const FullRequestId &id, Responder responder) {
+    network_->postBlocks(id, std::move(responder));
+  }
+
   void GraphsyncImpl::start() {
     if (started_) {
       return;

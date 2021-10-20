@@ -221,12 +221,25 @@ namespace fc::storage::ipfs::graphsync {
     }
   }
 
+  void PeerContext::postBlocks(RequestId request_id, Responder responder) {
+    connectIfNeeded();
+    responders_.emplace(request_id, responder);
+    if (outbound_endpoint_->empty()) {
+      checkResponders();
+    }
+  }
+
   void PeerContext::close(ResponseStatusCode status) {
     if (closed_) {
       return;
     }
 
     logger()->debug("close peer={} status={}", str, statusCodeToString(status));
+
+    for (auto &p : responders_) {
+      p.second(false);
+    }
+    responders_.clear();
 
     close_status_ = status;
     closed_ = true;
@@ -381,6 +394,8 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
+    checkResponders();
+
     shiftExpireTime(stream);
   }
 
@@ -427,4 +442,20 @@ namespace fc::storage::ipfs::graphsync {
     }
   }
 
+  void PeerContext::checkResponders() {
+    auto it{responders_.begin()};
+    while (it != responders_.end()) {
+      auto &[id, cb]{*it};
+      auto res{cb(true)};
+      if (res) {
+        sendResponse({peer, id}, *res);
+      }
+      if (!res || isTerminal(res->status)) {
+        it = responders_.erase(it);
+      }
+      if (res) {
+        break;
+      }
+    }
+  }
 }  // namespace fc::storage::ipfs::graphsync

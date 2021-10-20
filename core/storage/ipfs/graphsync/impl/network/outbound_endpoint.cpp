@@ -103,4 +103,11 @@ namespace fc::storage::ipfs::graphsync {
     }
   }
 
+  bool OutboundEndpoint::empty() const {
+    if (queue_) {
+      auto state{queue_->getState()};
+      return state.pending_bytes == 0 && state.writing_bytes == 0;
+    }
+    return pending_bytes_ == 0;
+  }
 }  // namespace fc::storage::ipfs::graphsync

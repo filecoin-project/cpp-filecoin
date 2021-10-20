@@ -77,6 +77,8 @@ namespace fc::storage::ipfs::graphsync {
     /// Sends response to peer.
     void sendResponse(const FullRequestId &id, const Response &response);
 
+    void postBlocks(RequestId request_id, Responder responder);
+
     /// Closes all streams to/from this peer
     /// \param status close reason to be forwarded to local request callback,
     /// where RS_REJECTED_LOCALLY indicates that peer was closed by the owning
@@ -150,6 +152,8 @@ namespace fc::storage::ipfs::graphsync {
     /// \param rstream libp2p stream or error
     void onStreamConnected(outcome::result<StreamPtr> rstream);
 
+    void checkResponders();
+
     /// Feedback to GraphsyncImpl module
     PeerToGraphsyncFeedback &graphsync_feedback_;
 
@@ -186,6 +190,8 @@ namespace fc::storage::ipfs::graphsync {
     /// Response status code stored to be forwarded asynchronously
     /// in the next cycle
     ResponseStatusCode close_status_ = RS_INTERNAL_ERROR;
+
+    std::map<RequestId, Responder> responders_;
   };
 
 }  // namespace fc::storage::ipfs::graphsync
