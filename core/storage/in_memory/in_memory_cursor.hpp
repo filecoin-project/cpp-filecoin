@@ -28,7 +28,7 @@ namespace fc::storage {
     }
 
     void seek(const Bytes &key) override {
-      current_iterator_ = storage_->storage.lower_bound(common::hex_upper(key));
+      current_iterator_ = storage_->storage.lower_bound(key);
     }
 
     void seekToLast() override {
@@ -62,7 +62,7 @@ namespace fc::storage {
     }
 
     Bytes key() const override {
-      return common::unhex(current_iterator_->first).value();
+      return current_iterator_->first;
     }
 
     Bytes value() const override {
@@ -70,7 +70,7 @@ namespace fc::storage {
     }
 
    private:
-    std::map<std::string, Bytes>::iterator current_iterator_, invalid_;
+    std::map<Bytes, Bytes>::iterator current_iterator_, invalid_;
 
     std::shared_ptr<InMemoryStorage> storage_;
   };
