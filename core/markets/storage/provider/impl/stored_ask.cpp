@@ -8,7 +8,7 @@
 namespace fc::markets::storage::provider {
 
   // Key to store last ask in datastore
-  const Buffer kBestAskKey{codec::cbor::encode("latest-ask").value()};
+  const Bytes kBestAskKey{codec::cbor::encode("latest-ask").value()};
 
   StoredAsk::StoredAsk(std::shared_ptr<Datastore> datastore,
                        std::shared_ptr<FullNodeApi> api,
@@ -56,8 +56,7 @@ namespace fc::markets::storage::provider {
   outcome::result<SignedStorageAsk> StoredAsk::loadSignedAsk() {
     if (datastore_->contains(kBestAskKey)) {
       OUTCOME_TRY(ask_bytes, datastore_->get(kBestAskKey));
-      OUTCOME_TRY(ask,
-                  codec::cbor::decode<SignedStorageAsk>(ask_bytes.toVector()));
+      OUTCOME_TRY(ask, codec::cbor::decode<SignedStorageAsk>(ask_bytes));
       return std::move(ask);
     }
 

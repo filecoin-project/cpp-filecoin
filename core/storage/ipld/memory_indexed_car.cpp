@@ -20,7 +20,7 @@ namespace fc {
       if (!append) {
         return ERROR_TEXT("MemoryIndexedCar::make open error");
       }
-      Buffer header;
+      Bytes header;
       storage::car::writeHeader(header, {});
       OUTCOME_TRY(common::writeFile(path, header));
       ipld->reader.open(path);
@@ -28,7 +28,7 @@ namespace fc {
     ipld->reader.seekg(0, std::ios::end);
     const auto car_size{static_cast<uint64_t>(ipld->reader.tellg())};
     ipld->reader.seekg(0);
-    Buffer item;
+    Bytes item;
     auto varint{codec::uvarint::readBytes(ipld->reader, item)};
     if (varint == 0) {
       return ERROR_TEXT("MemoryIndexedCar::make read error");
@@ -71,11 +71,11 @@ namespace fc {
     if (index.find(key) == index.end()) {
       OUTCOME_TRY(key_bytes, key.toBytes());
       codec::uvarint::VarintEncoder varint{key_bytes.size() + value.size()};
-      Buffer item;
+      Bytes item;
       item.reserve(varint.length + varint.value);
-      item.put(varint.bytes());
-      item.put(key_bytes);
-      item.put(value);
+      append(item, varint.bytes());
+      append(item, key_bytes);
+      append(item, value);
       if (!common::write(writer, BytesIn{item}) || !writer.flush()) {
         return ERROR_TEXT("MemoryIndexedCar::set write error");
       }
@@ -85,11 +85,11 @@ namespace fc {
     return outcome::success();
   }
 
-  outcome::result<Buffer> MemoryIndexedCar::get(const CID &key) const {
+  outcome::result<Bytes> MemoryIndexedCar::get(const CID &key) const {
     std::unique_lock lock{mutex};
     if (const auto it{index.find(key)}; it != index.end()) {
       const auto &[offset, size]{it->second};
-      Buffer value;
+      Bytes value;
       value.resize(size);
       reader.clear();
       reader.seekg(offset);

@@ -37,8 +37,7 @@ namespace fc::storage::ipfs::graphsync {
     empty_ = false;
   }
 
-  void ResponseBuilder::addDataBlock(const CID &cid,
-                                     const common::Buffer &data) {
+  void ResponseBuilder::addDataBlock(const CID &cid, const Bytes &data) {
     if (data.empty()) {
       meta_.push_back({cid, false});
     } else {

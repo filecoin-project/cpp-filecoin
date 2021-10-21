@@ -22,11 +22,11 @@ void free(void *);
 #include "codec/cbor/cbor_codec.hpp"
 
 #define GOC_METHOD(name)                    \
-  Buffer goc_##name(BytesIn);               \
+  Bytes goc_##name(BytesIn);                \
   extern "C" Raw name(Raw raw) {            \
     return gocRet(goc_##name(gocArg(raw))); \
   }                                         \
-  Buffer goc_##name(BytesIn arg)
+  Bytes goc_##name(BytesIn arg)
 
 #define CBOR_METHOD(name)                                   \
   void cbor_##name(CborDecodeStream &, CborEncodeStream &); \
@@ -34,7 +34,7 @@ void free(void *);
     CborEncodeStream ret;                                   \
     CborDecodeStream _arg{arg};                             \
     cbor_##name(_arg, ret);                                 \
-    return Buffer{ret.data()};                              \
+    return ret.data();                                      \
   }                                                         \
   void cbor_##name(CborDecodeStream &arg, CborEncodeStream &ret)
 
@@ -56,8 +56,8 @@ namespace fc {
     return {(uint8_t *)in.data(), (size_t)in.size()};
   }
 
-  inline Buffer cgoRet(Raw &&raw) {
-    Buffer buffer{raw.data, raw.data + raw.size};
+  inline Bytes cgoRet(Raw &&raw) {
+    const Bytes buffer = copy(gsl::span(raw.data, raw.size));
     free(raw.data);
     return buffer;
   }

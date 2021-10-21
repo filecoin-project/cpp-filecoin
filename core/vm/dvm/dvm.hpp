@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "fwd.hpp"
 #include "primitives/types.hpp"
@@ -22,7 +21,6 @@
   }
 
 namespace fc::dvm {
-  using common::Buffer;
   using primitives::GasAmount;
   using primitives::address::Address;
   using vm::actor::Actor;
@@ -44,8 +42,8 @@ namespace fc::dvm {
     }
   };
 
-  void onIpldGet(const CID &cid, const Buffer &data);
-  void onIpldSet(const CID &cid, const Buffer &data);
+  void onIpldGet(const CID &cid, const Bytes &data);
+  void onIpldSet(const CID &cid, const Bytes &data);
   void onCharge(GasAmount gas);
   void onSend(const UnsignedMessage &msg);
   void onSendTo(const CID &code);

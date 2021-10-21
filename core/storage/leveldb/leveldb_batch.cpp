@@ -11,18 +11,17 @@ namespace fc::storage {
 
   LevelDB::Batch::Batch(LevelDB &db) : db_(db) {}
 
-  outcome::result<void> LevelDB::Batch::put(const Buffer &key,
-                                            const Buffer &value) {
+  outcome::result<void> LevelDB::Batch::put(const Bytes &key,
+                                            const Bytes &value) {
     batch_.Put(make_slice(key), make_slice(value));
     return outcome::success();
   }
 
-  outcome::result<void> LevelDB::Batch::put(const Buffer &key,
-                                            Buffer &&value) {
-    return put(key, static_cast<const Buffer&>(value));
+  outcome::result<void> LevelDB::Batch::put(const Bytes &key, Bytes &&value) {
+    return put(key, value);
   }
 
-  outcome::result<void> LevelDB::Batch::remove(const Buffer &key) {
+  outcome::result<void> LevelDB::Batch::remove(const Bytes &key) {
     batch_.Delete(make_slice(key));
     return outcome::success();
   }

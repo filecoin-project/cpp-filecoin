@@ -82,7 +82,7 @@ namespace fc::sync {
 
   outcome::result<void> PubSubGate::publish(const BlockWithCids &block) {
     OUTCOME_TRY(buffer, codec::cbor::encode(block));
-    if (!gossip_->publish(blocks_topic_, buffer.toVector())) {
+    if (!gossip_->publish(blocks_topic_, buffer)) {
       log()->warn("cannot publish block");
     }
     return outcome::success();

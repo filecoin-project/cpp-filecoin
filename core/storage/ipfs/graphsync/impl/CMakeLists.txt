@@ -29,7 +29,6 @@ target_link_libraries(graphsync
     p2p::asio_scheduler
     p2p::subscription
     cid
-    buffer
     cbor
     cbor_types
     filecoin_hasher

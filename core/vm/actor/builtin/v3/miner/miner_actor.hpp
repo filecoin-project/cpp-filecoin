@@ -20,7 +20,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       Address worker;
       std::vector<Address> control_addresses;
       RegisteredPoStProof post_proof_type;
-      Buffer peer_id;
+      Bytes peer_id;
       std::vector<Multiaddress> multiaddresses;
     };
     ACTOR_METHOD_DECL();

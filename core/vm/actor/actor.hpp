@@ -6,7 +6,6 @@
 #pragma once
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
@@ -15,7 +14,6 @@
 #include "vm/version/version.hpp"
 
 namespace fc::vm::actor {
-  using common::Buffer;
   using primitives::BigInt;
   using primitives::Nonce;
   using primitives::TokenAmount;
@@ -33,7 +31,7 @@ namespace fc::vm::actor {
    */
   using MethodNumber = uint64_t;
 
-  using MethodParams = Buffer;
+  using MethodParams = Bytes;
 
   using CodeId = CID;
 

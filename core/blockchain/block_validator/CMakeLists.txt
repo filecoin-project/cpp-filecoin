@@ -11,7 +11,6 @@ add_library(block_validator
 target_link_libraries(block_validator
     bls_provider
     outcome
-    buffer
     address
     clock
     interpreter

@@ -54,7 +54,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       multiaddresses.push_back(
           Multiaddress::create("/ip4/127.0.0.1/tcp/2").value());
 
-      Buffer peer{"0102"_unhex};
+      Bytes peer{"0102"_unhex};
 
       EXPECT_OUTCOME_TRUE(info,
                           makeMinerInfo(actor_version,

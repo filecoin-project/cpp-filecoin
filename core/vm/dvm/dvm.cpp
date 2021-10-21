@@ -54,11 +54,11 @@ namespace fc::dvm {
     }
   }
 
-  void onIpldGet(const CID &cid, const Buffer &data) {
+  void onIpldGet(const CID &cid, const Bytes &data) {
     DVM_LOG("IPLD GET: {} {}", dumpCid(cid), dumpCbor(data));
   }
 
-  void onIpldSet(const CID &cid, const Buffer &data) {
+  void onIpldSet(const CID &cid, const Bytes &data) {
     DVM_LOG("IPLD PUT: {} {}", dumpCid(cid), dumpCbor(data));
   }
 

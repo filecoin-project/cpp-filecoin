@@ -22,9 +22,9 @@ namespace fc::storage::ipfs {
     /**
      * @brief convenience function to encode value
      * @param value key value to encode
-     * @return encoded value as Buffer
+     * @return encoded value as Bytes
      */
-    static outcome::result<Buffer> encodeKey(const CID &value);
+    static outcome::result<Bytes> encodeKey(const CID &value);
 
     /**
      * @brief constructor

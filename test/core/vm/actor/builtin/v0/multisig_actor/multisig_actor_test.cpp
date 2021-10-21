@@ -21,7 +21,6 @@
   EXPECT_CALL(object, call).WillRepeatedly(Return(result))
 
 namespace fc::vm::actor::builtin::v0::multisig {
-  using common::Buffer;
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::EpochDuration;
@@ -132,7 +131,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
         std::make_shared<InMemoryDatastore>()};
 
     MethodNumber method_number{1};
-    MethodParams method_params{Buffer{"0102"_unhex}};
+    MethodParams method_params{"0102"_unhex};
 
     ChainEpoch epoch;
 
@@ -473,7 +472,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
                                  method_params,
                                  {kInitAddress}};
 
-    const Buffer wrong_hash{"010203"_unhex};
+    const Bytes wrong_hash{"010203"_unhex};
 
     pushSigner(kInitAddress);
     state.threshold = 2;
@@ -602,7 +601,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     state.initial_balance = 100;
     EXPECT_OUTCOME_TRUE_1(state.pending_transactions.set(tx_id, pending_tx));
 
-    const Buffer wrong_hash{"010203"_unhex};
+    const Bytes wrong_hash{"010203"_unhex};
 
     EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalState),
                          Cancel::call(runtime, {tx_id, wrong_hash}));

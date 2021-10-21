@@ -17,7 +17,7 @@ namespace fc::storage::ipfs::graphsync {
 
     // Dummy protobuf helper, string->bytes
     inline auto fromString(const std::string &src) {
-      return common::Buffer{common::span::cbytes(src)};
+      return copy(common::span::cbytes(src));
     }
 
     // Checks status code received from wire

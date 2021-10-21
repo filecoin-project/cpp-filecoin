@@ -566,7 +566,7 @@ namespace fc::mining::checks {
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state_->precommitted_sectors.hamt.flush());
 
-    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Bytes> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state_);
       }
@@ -679,7 +679,7 @@ namespace fc::mining::checks {
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state_->precommitted_sectors.hamt.flush());
 
-    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Bytes> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state_);
       }
@@ -779,7 +779,7 @@ namespace fc::mining::checks {
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state_->precommitted_sectors.hamt.flush());
 
-    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Bytes> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state_);
       }
@@ -831,7 +831,7 @@ namespace fc::mining::checks {
         actor_state_->precommitted_sectors.set(sector + 1, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state_->precommitted_sectors.hamt.flush());
-    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Bytes> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state_);
       }
@@ -884,7 +884,7 @@ namespace fc::mining::checks {
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state_->precommitted_sectors.hamt.flush());
 
-    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Bytes> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state_);
       }
@@ -937,7 +937,7 @@ namespace fc::mining::checks {
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state_->precommitted_sectors.hamt.flush());
 
-    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Bytes> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state_);
       }
@@ -961,7 +961,7 @@ namespace fc::mining::checks {
         [&](const TipsetKey &key,
             DomainSeparationTag tag,
             ChainEpoch epoch,
-            const Buffer &buf) -> outcome::result<Randomness> {
+            const Bytes &buf) -> outcome::result<Randomness> {
       if (key == commit_key
           and tag == DomainSeparationTag::InteractiveSealChallengeSeed
           and epoch == info->seed_epoch) {
@@ -1008,7 +1008,7 @@ namespace fc::mining::checks {
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state_->precommitted_sectors.hamt.flush());
 
-    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Bytes> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state_);
       }
@@ -1032,7 +1032,7 @@ namespace fc::mining::checks {
         [&](const TipsetKey &key,
             DomainSeparationTag tag,
             ChainEpoch epoch,
-            const Buffer &buf) -> outcome::result<Randomness> {
+            const Bytes &buf) -> outcome::result<Randomness> {
       if (key == commit_key
           and tag == DomainSeparationTag::InteractiveSealChallengeSeed
           and epoch == info->seed_epoch) {
@@ -1077,7 +1077,7 @@ namespace fc::mining::checks {
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state_->precommitted_sectors.hamt.flush());
 
-    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Bytes> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state_);
       }
@@ -1101,7 +1101,7 @@ namespace fc::mining::checks {
         [&](const TipsetKey &key,
             DomainSeparationTag tag,
             ChainEpoch epoch,
-            const Buffer &buf) -> outcome::result<Randomness> {
+            const Bytes &buf) -> outcome::result<Randomness> {
       if (key == commit_key
           and tag == DomainSeparationTag::InteractiveSealChallengeSeed
           and epoch == info->seed_epoch) {

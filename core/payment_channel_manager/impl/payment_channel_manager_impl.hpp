@@ -8,14 +8,12 @@
 #include <shared_mutex>
 
 #include "api/full_node/node_api.hpp"
-#include "common/buffer.hpp"
 #include "payment_channel_manager/payment_channel_manager.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/builtin/states/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::payment_channel_manager {
   using api::FullNodeApi;
-  using common::Buffer;
   using primitives::Nonce;
   using vm::actor::builtin::states::PaymentChannelActorStatePtr;
   using vm::actor::builtin::types::payment_channel::SignedVoucher;

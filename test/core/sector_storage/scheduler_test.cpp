@@ -42,7 +42,7 @@ namespace fc::sector_storage {
       ws.id = wid1;
       ws.status = WorkStatus::kStart;
       EXPECT_OUTCOME_TRUE(raw1, codec::cbor::encode(ws));
-      EXPECT_OUTCOME_TRUE_1(kv_->put(wid1, raw1));
+      EXPECT_OUTCOME_TRUE_1(kv_->put(static_cast<Bytes>(wid1), raw1));
       states_.push_back(ws);
       sector.sector++;
       EXPECT_OUTCOME_TRUE(
@@ -52,7 +52,7 @@ namespace fc::sector_storage {
       ws.status = WorkStatus::kInProgress;
       ws.call_id = callid;
       EXPECT_OUTCOME_TRUE(raw2, codec::cbor::encode(ws));
-      EXPECT_OUTCOME_TRUE_1(kv_->put(wid2, raw2));
+      EXPECT_OUTCOME_TRUE_1(kv_->put(static_cast<Bytes>(wid2), raw2));
       states_.push_back(ws);
       sector.sector++;
       EXPECT_OUTCOME_TRUE(
@@ -61,7 +61,7 @@ namespace fc::sector_storage {
       ws.status = WorkStatus::kStart;
       ws.call_id = CallId();
       EXPECT_OUTCOME_TRUE(raw3, codec::cbor::encode(ws));
-      EXPECT_OUTCOME_TRUE_1(kv_->put(wid3, raw3));
+      EXPECT_OUTCOME_TRUE_1(kv_->put(static_cast<Bytes>(wid3), raw3));
       states_.push_back(ws);
 
       EXPECT_OUTCOME_TRUE(scheduler, SchedulerImpl::newScheduler(io_, kv_));
@@ -165,9 +165,9 @@ namespace fc::sector_storage {
       if (ws.status == WorkStatus::kInProgress) {
         work_id = ws.id;
         call_id = ws.call_id;
-        ASSERT_TRUE(kv_->contains(ws.id));
+        ASSERT_TRUE(kv_->contains(static_cast<Bytes>(ws.id)));
       } else {
-        ASSERT_FALSE(kv_->contains(ws.id));
+        ASSERT_FALSE(kv_->contains(static_cast<Bytes>(ws.id)));
       }
     }
 

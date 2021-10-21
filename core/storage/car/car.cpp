@@ -61,7 +61,7 @@ namespace fc::storage::car {
 
   outcome::result<std::vector<CID>> readHeader(const std::string &car_path) {
     std::ifstream car_file{car_path, std::ios::binary};
-    Buffer buffer;
+    Bytes buffer;
     if (codec::uvarint::readBytes(car_file, buffer)) {
       OUTCOME_TRY(header, codec::cbor::decode<CarHeader>(buffer));
       return header.roots;
@@ -73,7 +73,7 @@ namespace fc::storage::car {
     OUTCOME_TRY(reader, CarReader::make(input));
     while (!reader.end()) {
       OUTCOME_TRY(item, reader.next());
-      OUTCOME_TRY(store.set(item.first, common::Buffer{item.second}));
+      OUTCOME_TRY(store.set(item.first, copy(item.second)));
     }
     return std::move(reader.roots);
   }
@@ -89,33 +89,33 @@ namespace fc::storage::car {
     return loadCar(store, car_path.string());
   }
 
-  void writeUvarint(Buffer &output, uint64_t value) {
-    output.put(libp2p::multi::UVarint{value}.toBytes());
+  void writeUvarint(Bytes &output, uint64_t value) {
+    append(output, libp2p::multi::UVarint{value}.toBytes());
   }
 
-  void writeHeader(Buffer &output, const std::vector<CID> &roots) {
+  void writeHeader(Bytes &output, const std::vector<CID> &roots) {
     OUTCOME_EXCEPT(bytes, codec::cbor::encode(CarHeader{roots, CarHeader::V1}));
     writeUvarint(output, bytes.size());
-    output.put(bytes);
+    append(output, bytes);
   }
 
-  void writeItem(Buffer &output, const CID &cid, Input bytes) {
+  void writeItem(Bytes &output, const CID &cid, Input bytes) {
     OUTCOME_EXCEPT(cid_bytes, cid.toBytes());
     writeUvarint(output, cid_bytes.size() + bytes.size());
-    output.put(cid_bytes);
-    output.put(bytes);
+    append(output, cid_bytes);
+    append(output, bytes);
   }
 
-  outcome::result<void> writeItem(Buffer &output, Ipld &store, const CID &cid) {
+  outcome::result<void> writeItem(Bytes &output, Ipld &store, const CID &cid) {
     OUTCOME_TRY(bytes, store.get(cid));
     writeItem(output, cid, bytes);
     return outcome::success();
   }
 
-  outcome::result<Buffer> makeCar(Ipld &store,
-                                  const std::vector<CID> &roots,
-                                  const std::vector<CID> &cids) {
-    Buffer output;
+  outcome::result<Bytes> makeCar(Ipld &store,
+                                 const std::vector<CID> &roots,
+                                 const std::vector<CID> &cids) {
+    Bytes output;
     writeHeader(output, roots);
     for (auto &cid : cids) {
       OUTCOME_TRY(writeItem(output, store, cid));
@@ -123,7 +123,7 @@ namespace fc::storage::car {
     return std::move(output);
   }
 
-  outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots) {
+  outcome::result<Bytes> makeCar(Ipld &store, const std::vector<CID> &roots) {
     std::set<CID> cids;
     for (auto &root : roots) {
       Traverser traverser{store, root, kAllSelector, true};
@@ -133,7 +133,7 @@ namespace fc::storage::car {
     return makeCar(store, roots, {cids.begin(), cids.end()});
   }
 
-  outcome::result<Buffer> makeSelectiveCar(
+  outcome::result<Bytes> makeSelectiveCar(
       Ipld &store, const std::vector<std::pair<CID, Selector>> &dags) {
     std::vector<CID> roots;
     std::vector<CID> cid_order;

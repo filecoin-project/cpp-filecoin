@@ -21,7 +21,6 @@
 #include "vm/message/message.hpp"
 
 namespace fc::primitives::block {
-  using common::Buffer;
   using crypto::signature::Signature;
   using drand::BeaconEntry;
   using primitives::BigInt;
@@ -32,7 +31,7 @@ namespace fc::primitives::block {
   using vm::message::UnsignedMessage;
 
   struct Ticket {
-    Buffer bytes;
+    Bytes bytes;
   };
   inline bool operator==(const Ticket &lhs, const Ticket &rhs) {
     return lhs.bytes == rhs.bytes;
@@ -41,7 +40,7 @@ namespace fc::primitives::block {
 
   struct ElectionProof {
     int64_t win_count = 0;
-    Buffer vrf_proof;
+    Bytes vrf_proof;
   };
   inline bool operator==(const ElectionProof &lhs, const ElectionProof &rhs) {
     return lhs.vrf_proof == rhs.vrf_proof;

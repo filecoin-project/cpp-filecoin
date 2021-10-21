@@ -12,7 +12,6 @@
 
 namespace fc::storage::car {
   using Input = gsl::span<const uint8_t>;
-  using common::Buffer;
   using ipld::Selector;
 
   enum class CarError {
@@ -69,13 +68,13 @@ namespace fc::storage::car {
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input);
 
-  void writeHeader(Buffer &output, const std::vector<CID> &roots);
+  void writeHeader(Bytes &output, const std::vector<CID> &roots);
 
-  void writeItem(Buffer &output, const CID &cid, Input bytes);
+  void writeItem(Bytes &output, const CID &cid, Input bytes);
 
-  outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots);
+  outcome::result<Bytes> makeCar(Ipld &store, const std::vector<CID> &roots);
 
-  outcome::result<Buffer> makeSelectiveCar(
+  outcome::result<Bytes> makeSelectiveCar(
       Ipld &store, const std::vector<std::pair<CID, Selector>> &dags);
 
   outcome::result<void> makeSelectiveCar(

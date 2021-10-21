@@ -19,13 +19,13 @@ namespace fc::primitives::address {
 
   using libp2p::multi::UVarint;
 
-  Buffer encode(const Address &address) noexcept {
-    Buffer res;
-    res.putUint8(address.getProtocol());
+  Bytes encode(const Address &address) noexcept {
+    Bytes res;
+    res.push_back(address.getProtocol());
     visit_in_place(
         address.data,
-        [&](ActorId v) { res.put(UVarint{v}.toVector()); },
-        [&](const auto &v) { res.put(v); });
+        [&](ActorId v) { append(res, (UVarint{v}.toVector())); },
+        [&](const auto &v) { append(res, v); });
     return res;
   }
 
@@ -76,12 +76,13 @@ namespace fc::primitives::address {
       res.append(std::to_string(address.getId()));
       return res;
     }
-    Buffer buffer;
+    Bytes buffer;
     visit_in_place(
-        address.data, [](ActorId v) {}, [&](const auto &v) { buffer.put(v); });
-    buffer.putBuffer(checksum(address));
-    return res.append(
-        libp2p::multi::detail::encodeBase32Lower(buffer.toVector()));
+        address.data,
+        [](ActorId v) {},
+        [&](const auto &v) { append(buffer, v); });
+    append(buffer, checksum(address));
+    return res.append(libp2p::multi::detail::encodeBase32Lower(buffer));
   }
 
   outcome::result<Address> decodeFromString(const std::string &s) {
@@ -115,8 +116,8 @@ namespace fc::primitives::address {
         gsl::make_span(buffer).subspan(0, buffer.size() - kChecksumSize));
   }
 
-  Buffer checksum(const Address &address) {
-    Buffer res;
+  Bytes checksum(const Address &address) {
+    Bytes res;
     if (!address.isId()) {
       res.resize(kChecksumSize);
       crypto::blake2b::hashn(res, encode(address));

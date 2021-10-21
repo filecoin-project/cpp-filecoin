@@ -60,16 +60,16 @@ namespace fc::sector_storage {
            kv{call_kv_},
            wid{work_id}](const outcome::result<CallResult> &result) -> void {
         old_cb(result);
-        auto maybe_error = kv->remove(static_cast<Buffer>(wid));
+        auto maybe_error = kv->remove(static_cast<Bytes>(wid));
         if (maybe_error.has_error()) {
           logger->error(maybe_error.error().message());
         }
       };
 
-      if (call_kv_->contains(work_id)) {
+      if (call_kv_->contains(static_cast<Bytes>(work_id))) {
         // already in progress
 
-        OUTCOME_TRY(raw_state, call_kv_->get(work_id));
+        OUTCOME_TRY(raw_state, call_kv_->get(static_cast<Bytes>(work_id)));
         OUTCOME_TRY(state, codec::cbor::decode<WorkState>(raw_state));
 
         if (state.status == WorkStatus::kInProgress) {
@@ -95,7 +95,7 @@ namespace fc::sector_storage {
       state.status = WorkStatus::kStart;
       OUTCOME_TRY(state_raw, codec::cbor::encode(state));
 
-      OUTCOME_TRY(call_kv_->put(work_id, state_raw));
+      OUTCOME_TRY(call_kv_->put(static_cast<Bytes>(work_id), state_raw));
 
       job = [old_job = std::move(job), kv{call_kv_}, wid{work_id}](
                 const std::shared_ptr<Worker> &worker)
@@ -106,7 +106,7 @@ namespace fc::sector_storage {
         state.status = WorkStatus::kInProgress;
         state.call_id = call_id;
         OUTCOME_TRY(state_raw, codec::cbor::encode(state));
-        OUTCOME_TRY(kv->put(wid, state_raw));
+        OUTCOME_TRY(kv->put(static_cast<Bytes>(wid), state_raw));
         return std::move(call_id);
       };
     }
@@ -391,7 +391,7 @@ namespace fc::sector_storage {
       boost::optional<WorkId> remove_id = boost::none;  // to not broke iterator
       for (it->seekToFirst(); it->isValid(); it->next()) {
         if (remove_id.has_value()) {
-          OUTCOME_TRY(call_kv_->remove(remove_id.value()));
+          OUTCOME_TRY(call_kv_->remove(static_cast<Bytes>(remove_id.value())));
           remove_id = boost::none;
         }
         OUTCOME_TRY(state, codec::cbor::decode<WorkState>(it->value()));
@@ -403,7 +403,7 @@ namespace fc::sector_storage {
         }
       }
       if (remove_id.has_value()) {
-        OUTCOME_TRY(call_kv_->remove(remove_id.value()));
+        OUTCOME_TRY(call_kv_->remove(static_cast<Bytes>(remove_id.value())));
       }
     }
     return outcome::success();

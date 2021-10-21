@@ -193,7 +193,7 @@ namespace fc::markets::storage::provider {
     return outcome::success();
   }
 
-  outcome::result<Signature> StorageProviderImpl::sign(const Buffer &input) {
+  outcome::result<Signature> StorageProviderImpl::sign(const Bytes &input) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(worker_info,
                 api_->StateMinerInfo(miner_actor_address_, chain_head->key));

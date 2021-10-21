@@ -28,7 +28,6 @@
 namespace fc::markets::retrieval::test {
   using api::AddChannelInfo;
   using api::MinerInfo;
-  using common::Buffer;
   using data_transfer::DataTransfer;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
@@ -177,7 +176,7 @@ namespace fc::markets::retrieval::test {
       api->PaychVoucherAdd = {
           [=](const Address &,
               const SignedVoucher &,
-              const Buffer &,
+              const Bytes &,
               const TokenAmount &) -> outcome::result<TokenAmount> {
             return TokenAmount{0};
           }};
@@ -185,10 +184,10 @@ namespace fc::markets::retrieval::test {
 
     outcome::result<void> addPieceSample(
         const SamplePiece &piece, const std::shared_ptr<IpfsDatastore> &ipfs) {
-      Buffer payload{"deadface"_unhex};
+      const Bytes payload{"deadface"_unhex};
       OUTCOME_TRY(bytes, codec::cbor::encode(payload));
       OUTCOME_TRYA(payload_cid, common::getCidOf(bytes));
-      CID piece_cid =
+      const CID piece_cid =
           "12209139839e65fabea9efd230898ad8b574509147e48d7c1e87a33d6da70fd2efae"_cid;
       deal = DealInfo{.deal_id = 18,
                       .sector_id = 4,

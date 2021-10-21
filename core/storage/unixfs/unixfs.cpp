@@ -16,7 +16,6 @@
 #include "storage/ipld/traverser.hpp"
 
 namespace fc::storage::unixfs {
-  using common::Buffer;
   using crypto::Hasher;
   using google::protobuf::io::CodedOutputStream;
   using google::protobuf::io::StringOutputStream;
@@ -43,7 +42,7 @@ namespace fc::storage::unixfs {
     OUTCOME_TRY(w.next());
     CID cid{
         CID::Version::V1, CID::Multicodec::RAW, Hasher::blake2b_256(w.chunk)};
-    OUTCOME_TRY(w.ipld.set(cid, Buffer{w.chunk}));
+    OUTCOME_TRY(w.ipld.set(cid, w.chunk));
     return cid;
   }
 
@@ -58,9 +57,9 @@ namespace fc::storage::unixfs {
       cs.WriteRaw(str.data(), str.size());
     }
 
-    Buffer toBytes() {
+    Bytes toBytes() {
       cs.Trim();
-      return Buffer{common::span::cbytes(s)};
+      return Bytes(s.begin(), s.end());
     }
 
     std::string toString() {

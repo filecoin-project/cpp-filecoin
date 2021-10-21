@@ -9,7 +9,6 @@
 #include "api/utils.hpp"
 #include "api/version.hpp"
 #include "common/api_secret.hpp"
-#include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "common/span.hpp"
 
@@ -24,10 +23,10 @@ namespace fc::api {
     auto verifier = ::jwt::verify()
                         .with_type(static_cast<std::string>(kTokenType))
                         .allow_algorithm(*secret_algorithm);
-    api->AuthNew = [secret_algorithm](auto perms) -> outcome::result<Buffer> {
+    api->AuthNew = [secret_algorithm](auto perms) -> outcome::result<Bytes> {
       OUTCOME_TRY(token, generateAuthToken(secret_algorithm, perms));
 
-      return Buffer{common::span::cbytes(token)};
+      return Bytes(token.begin(), token.end());
     };
     api->AuthVerify =
         [verifier{std::move(verifier)},

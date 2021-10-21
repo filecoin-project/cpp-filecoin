@@ -88,8 +88,8 @@ namespace fc::mining {
           .deal_info = boost::none,
       }};
       EXPECT_OUTCOME_TRUE(buf, codec::cbor::encode(info));
-      Buffer key;
-      key.put("empty_sector");
+      const std::string string_key = "empty_sector";
+      const Bytes key(string_key.begin(), string_key.end());
       EXPECT_OUTCOME_TRUE_1(kv_->put(key, buf));
 
       proofs_ = std::make_shared<proofs::ProofEngineMock>();
@@ -671,7 +671,7 @@ namespace fc::mining {
         actor_state->precommitted_sectors.set(sector + 1, some_info));
     EXPECT_OUTCOME_TRUE(cid_root,
                         actor_state->precommitted_sectors.hamt.flush());
-    api_->ChainReadObj = [&](CID key) -> outcome::result<Buffer> {
+    api_->ChainReadObj = [&](CID key) -> outcome::result<Bytes> {
       if (key == actor_key) {
         return codec::cbor::encode(actor_state);
       }
@@ -697,7 +697,7 @@ namespace fc::mining {
         [&](const TipsetKey &,
             DomainSeparationTag,
             ChainEpoch,
-            const Buffer &) -> outcome::result<Randomness> { return rand; };
+            const Bytes &) -> outcome::result<Randomness> { return rand; };
 
     std::vector<PieceInfo> infos = {info};
 
@@ -804,7 +804,7 @@ namespace fc::mining {
         [&](const TipsetKey &,
             DomainSeparationTag,
             ChainEpoch,
-            const Buffer &) -> outcome::result<Randomness> { return seed; };
+            const Bytes &) -> outcome::result<Randomness> { return seed; };
 
     EXPECT_CALL(*events_,
                 chainAt(_,

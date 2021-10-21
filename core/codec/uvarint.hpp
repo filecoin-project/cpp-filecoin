@@ -50,8 +50,7 @@ namespace fc::codec::uvarint {
       } while (_value != 0);
     }
     constexpr auto bytes() const {
-      return gsl::make_span(_bytes).subspan(
-          0, static_cast<ptrdiff_t>(length));
+      return gsl::make_span(_bytes).subspan(0, static_cast<ptrdiff_t>(length));
     }
   };
 
@@ -72,7 +71,7 @@ namespace fc::codec::uvarint {
 
   /** returns varint length (always > 0) on success else 0 */
   inline size_t readBytes(std::istream &is,
-                          Buffer &buffer,
+                          Bytes &buffer,
                           size_t max = 1 << 30) {
     VarintDecoder varint;
     if (read(is, varint) && varint.value <= max) {
@@ -99,8 +98,7 @@ namespace fc::codec::uvarint {
         return false;
       }
       if (!varint.more) {
-        input = input.subspan(
-            static_cast<ptrdiff_t>(varint.length));
+        input = input.subspan(static_cast<ptrdiff_t>(varint.length));
         out = static_cast<T>(varint.value);
         return true;
       }

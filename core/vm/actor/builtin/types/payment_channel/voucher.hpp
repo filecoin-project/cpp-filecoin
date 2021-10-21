@@ -12,7 +12,6 @@
 #include "vm/actor/actor.hpp"
 
 namespace fc::vm::actor::builtin::types::payment_channel {
-  using common::Buffer;
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
   using primitives::address::Address;
@@ -46,7 +45,7 @@ namespace fc::vm::actor::builtin::types::payment_channel {
   struct ModularVerificationParameter {
     Address actor;
     MethodNumber method;
-    Buffer params;
+    Bytes params;
 
     inline bool operator==(const ModularVerificationParameter &rhs) const {
       return actor == rhs.actor && method == rhs.method && params == rhs.params;
@@ -58,14 +57,14 @@ namespace fc::vm::actor::builtin::types::payment_channel {
     Address channel;
     ChainEpoch time_lock_min{};
     ChainEpoch time_lock_max{};
-    Buffer secret_preimage;
+    Bytes secret_preimage;
     boost::optional<ModularVerificationParameter> extra;
     LaneId lane{};
     uint64_t nonce{};
     TokenAmount amount;
     ChainEpoch min_close_height{};
     std::vector<Merge> merges{};
-    boost::optional<Buffer> signature_bytes;
+    boost::optional<Bytes> signature_bytes;
 
     inline bool operator==(const SignedVoucher &rhs) const {
       return channel == rhs.channel && time_lock_min == rhs.time_lock_min
@@ -76,7 +75,7 @@ namespace fc::vm::actor::builtin::types::payment_channel {
              && signature_bytes == rhs.signature_bytes;
     }
 
-    inline outcome::result<Buffer> signingBytes() const {
+    inline outcome::result<Bytes> signingBytes() const {
       auto copy = *this;
       copy.signature_bytes = boost::none;
       return codec::cbor::encode(copy);
@@ -96,8 +95,8 @@ namespace fc::vm::actor::builtin::types::payment_channel {
              signature_bytes)
 
   struct PaymentVerifyParams {
-    Buffer extra;
-    Buffer proof;
+    Bytes extra;
+    Bytes proof;
   };
   CBOR_TUPLE(PaymentVerifyParams, extra, proof)
 }  // namespace fc::vm::actor::builtin::types::payment_channel

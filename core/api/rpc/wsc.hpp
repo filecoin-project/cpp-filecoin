@@ -64,7 +64,7 @@ namespace fc::api::rpc {
     uint64_t next_req{};
     std::map<uint64_t, ResultCb> result_queue;
     std::map<uint64_t, ChanCb> chans;
-    std::queue<std::pair<uint64_t, Buffer>> write_queue;
+    std::queue<std::pair<uint64_t, Bytes>> write_queue;
     bool writing{false};
 
     template <typename M>

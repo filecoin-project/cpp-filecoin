@@ -27,7 +27,7 @@ namespace fc::storage::ipfs::graphsync::test {
   // MerkleDAG bridge interface for test purposes
   class TestDataService {
    public:
-    using Storage = std::map<CID, common::Buffer>;
+    using Storage = std::map<CID, Bytes>;
 
     TestDataService &addData(const std::string &s) {
       insertNode(data_, s);
@@ -57,8 +57,7 @@ namespace fc::storage::ipfs::graphsync::test {
     outcome::result<size_t> select(
         const CID &cid,
         gsl::span<const uint8_t> selector,
-        std::function<bool(const CID &cid, const common::Buffer &data)> handler)
-        const;
+        std::function<bool(const CID &cid, const Bytes &data)> handler) const;
 
    private:
     static void insertNode(Storage &dst, const std::string &data_str);

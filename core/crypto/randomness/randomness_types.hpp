@@ -6,7 +6,7 @@
 #pragma once
 
 #include "common/blob.hpp"
-#include "common/buffer.hpp"
+#include "common/endian.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 
@@ -34,11 +34,11 @@ namespace fc::crypto::randomness {
                                    DomainSeparationTag tag,
                                    primitives::ChainEpoch round,
                                    gsl::span<const uint8_t> entropy) {
-    common::Buffer buffer;
-    buffer.putUint64(static_cast<uint64_t>(tag));
-    buffer.put(crypto::blake2b::blake2b_256(base));
-    buffer.putUint64(round);
-    buffer.put(entropy);
+    Bytes buffer;
+    common::putUint64BigEndian(buffer, static_cast<uint64_t>(tag));
+    append(buffer, crypto::blake2b::blake2b_256(base));
+    common::putUint64BigEndian(buffer, round);
+    append(buffer, entropy);
     return crypto::blake2b::blake2b_256(buffer);
   }
 }  // namespace fc::crypto::randomness

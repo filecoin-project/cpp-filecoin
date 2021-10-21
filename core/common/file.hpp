@@ -9,7 +9,7 @@
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <iosfwd>
 
-#include "common/buffer.hpp"
+#include "common/bytes.hpp"
 #include "common/outcome2.hpp"
 #include "common/span.hpp"
 
@@ -18,7 +18,7 @@ namespace fc::common {
 
   Outcome<std::pair<MappedFile, BytesIn>> mapFile(const std::string &path);
 
-  Outcome<Buffer> readFile(const boost::filesystem::path &path);
+  Outcome<Bytes> readFile(const boost::filesystem::path &path);
 
   Outcome<void> writeFile(const boost::filesystem::path &path, BytesIn input);
 

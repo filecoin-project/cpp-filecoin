@@ -12,7 +12,6 @@ namespace fc::mining::checks {
   using api::FullNodeApi;
   using api::NetworkVersion;
   using api::SectorPreCommitOnChainInfo;
-  using common::Buffer;
   using primitives::ChainEpoch;
   using primitives::EpochDuration;
   using primitives::address::Address;

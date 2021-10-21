@@ -25,7 +25,7 @@ namespace fc {
         const std::string &path, bool append);
 
     outcome::result<bool> contains(const CID &key) const override;
-    outcome::result<void> set(const CID &key, Buffer value) override;
-    outcome::result<Buffer> get(const CID &key) const override;
+    outcome::result<void> set(const CID &key, Bytes value) override;
+    outcome::result<Bytes> get(const CID &key) const override;
   };
 }  // namespace fc

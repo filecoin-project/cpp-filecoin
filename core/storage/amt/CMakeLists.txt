@@ -7,7 +7,6 @@ add_library(amt
     amt.cpp
     )
 target_link_libraries(amt
-    buffer
     cbor
     cid
     outcome

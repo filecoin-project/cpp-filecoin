@@ -149,7 +149,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     expectAccountV0PubkeyAddressSend(worker, bls_pubkey);
 
     const std::vector<Address> control_addresses;
-    const Buffer peer_id;
+    const Bytes peer_id;
     const std::vector<Multiaddress> multiaddresses;
 
     EXPECT_CALL(runtime, getCurrentReceiver())
@@ -378,7 +378,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     callerIs(kInitAddress);
 
-    const Buffer new_peer_id{"0102"_unhex};
+    const Bytes new_peer_id{"0102"_unhex};
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kSysErrForbidden),
@@ -396,7 +396,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     callerIs(owner);
 
-    const Buffer new_peer_id{"0102"_unhex};
+    const Bytes new_peer_id{"0102"_unhex};
 
     EXPECT_OUTCOME_TRUE_1(
         ChangePeerId::call(runtime, ChangePeerId::Params{new_peer_id}));

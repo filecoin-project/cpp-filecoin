@@ -11,7 +11,6 @@ add_library(actor
     )
 target_link_libraries(actor
     address
-    buffer
     cid
     exit_code
     account_actor_v0

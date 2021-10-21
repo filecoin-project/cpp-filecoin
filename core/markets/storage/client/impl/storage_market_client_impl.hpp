@@ -23,7 +23,6 @@
 namespace fc::markets::storage::client {
   using api::FullNodeApi;
   using chain_events::ChainEvents;
-  using common::Buffer;
   using common::libp2p::CborStream;
   using data_transfer::DataTransfer;
   using discovery::Discovery;
@@ -34,7 +33,7 @@ namespace fc::markets::storage::client {
   using ClientTransition =
       fsm::Transition<ClientEvent, void, StorageDealStatus, ClientDeal>;
   using ClientFSM = fsm::FSM<ClientEvent, void, StorageDealStatus, ClientDeal>;
-  using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
+  using Datastore = fc::storage::face::PersistentMap<Bytes, Bytes>;
   using data_transfer::DataTransfer;
 
   class StorageMarketClientImpl

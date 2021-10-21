@@ -7,7 +7,7 @@
 
 #include <leveldb/status.h>
 #include <gsl/span>
-#include "common/buffer.hpp"
+#include "common/bytes.hpp"
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
 #include "storage/leveldb/leveldb_error.hpp"
@@ -49,7 +49,7 @@ namespace fc::storage {
     return error_as_result<T>(s);
   }
 
-  inline leveldb::Slice make_slice(const common::Buffer &buf) {
+  inline leveldb::Slice make_slice(const Bytes &buf) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const char *>(buf.data());
     size_t n = buf.size();
@@ -62,11 +62,11 @@ namespace fc::storage {
     return gsl::make_span(ptr, s.size());
   }
 
-  inline common::Buffer make_buffer(const leveldb::Slice &s) {
+  inline Bytes make_buffer(const leveldb::Slice &s) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const uint8_t *>(s.data());
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    return common::Buffer(ptr, ptr + s.size());
+    return Bytes(ptr, ptr + s.size());
   }
 
 }  // namespace fc::storage

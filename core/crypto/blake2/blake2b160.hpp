@@ -8,7 +8,6 @@
 #include <iosfwd>
 
 #include "common/blob.hpp"
-#include "common/buffer.hpp"
 
 namespace fc::crypto::blake2b {
 

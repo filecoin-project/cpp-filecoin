@@ -30,17 +30,17 @@ namespace fc::codec::json {
     return parse(common::span::bytestr(input));
   }
 
-  Outcome<Buffer> format(JIn j) {
+  Outcome<Bytes> format(JIn j) {
     StringBuffer buffer;
     rapidjson::Writer<StringBuffer> writer{buffer};
     if (j->Accept(writer)) {
       std::string_view s{buffer.GetString(), buffer.GetSize()};
-      return Buffer{common::span::cbytes(s)};
+      return Bytes(s.begin(), s.end());
     }
     return {};
   }
 
-  Outcome<Buffer> format(Document &&doc) {
+  Outcome<Bytes> format(Document &&doc) {
     return format(&doc);
   }
 
@@ -61,14 +61,14 @@ namespace fc::codec::json {
     return {};
   }
 
-  Outcome<Buffer> jUnhex(JIn j) {
+  Outcome<Bytes> jUnhex(JIn j) {
     OUTCOME_TRY(str, jStr(j));
-    return Buffer::fromHex(str);
+    return common::unhex(str);
   }
 
-  Outcome<Buffer> jBytes(JIn j) {
+  Outcome<Bytes> jBytes(JIn j) {
     OUTCOME_TRY(str, jStr(j));
-    return Buffer{base64::decode(str)};
+    return base64::decode(str);
   }
 
   Outcome<CID> jCid(JIn j) {

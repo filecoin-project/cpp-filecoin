@@ -300,7 +300,7 @@ namespace fc::vm::actor::builtin::v2::reward {
     EXPECT_CALL(runtime,
                 send(Eq(kBurntFundsActorAddress),
                      Eq(kSendMethodNumber),
-                     Eq(Buffer{}),
+                     Bytes{},
                      Eq(expected_reward)))
         .WillOnce(Return(outcome::success()));
 

@@ -179,7 +179,7 @@ namespace fc::mining {
 
   void SealingImpl::fsmSave(const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_EXCEPT(fsm_kv_->put(
-        Buffer{common::span::cbytes(std::to_string(info->sector_number))},
+        copy(common::span::cbytes(std::to_string(info->sector_number))),
         codec::cbor::encode(*info).value()));
   }
 
@@ -1050,8 +1050,8 @@ namespace fc::mining {
                 checks::getMaxProveCommitDuration(network, info));
     OUTCOME_TRY(policy_expiration, policy_->expiration(info->pieces));
     const auto static_expiration = head->epoch() + seal_duration
-                             + kMinSectorExpiration + kChainFinality
-                             + kEpochsInDay;
+                                   + kMinSectorExpiration + kChainFinality
+                                   + kEpochsInDay;
     const auto expiration =
         std::min<ChainEpoch>(policy_expiration, static_expiration);
 

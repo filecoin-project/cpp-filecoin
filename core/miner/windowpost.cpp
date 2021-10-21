@@ -222,7 +222,7 @@ namespace fc::mining {
   }
 
   outcome::result<void> WindowPoStScheduler::pushMessage(MethodNumber method,
-                                                         Buffer params) {
+                                                         Bytes params) {
     api::UnsignedMessage msg;
     msg.method = method;
     msg.params = std::move(params);

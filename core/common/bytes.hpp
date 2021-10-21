@@ -10,6 +10,7 @@
 #include <vector>
 
 namespace fc {
+  // TODO(ortyomka): [FIL-425] separate class if it will growth
   using Bytes = std::vector<uint8_t>;
   using BytesIn = gsl::span<const uint8_t>;
   using BytesOut = gsl::span<uint8_t>;

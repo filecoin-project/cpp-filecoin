@@ -35,7 +35,6 @@ namespace fc::vm::runtime {
   using actor::kSendMethodNumber;
   using actor::MethodNumber;
   using actor::MethodParams;
-  using common::Buffer;
   using crypto::blake2b::Blake2b256Hash;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
@@ -225,7 +224,7 @@ namespace fc::vm::runtime {
         gsl::span<const uint8_t> data) = 0;
 
     virtual outcome::result<bool> verifySignatureBytes(
-        const Buffer &signature_bytes,
+        const Bytes &signature_bytes,
         const Address &address,
         gsl::span<const uint8_t> data) = 0;
 
@@ -242,9 +241,9 @@ namespace fc::vm::runtime {
 
     /// Verify consensus fault
     virtual outcome::result<boost::optional<ConsensusFault>>
-    verifyConsensusFault(const Buffer &block1,
-                         const Buffer &block2,
-                         const Buffer &extra) = 0;
+    verifyConsensusFault(const Bytes &block1,
+                         const Bytes &block2,
+                         const Bytes &extra) = 0;
 
     /// Return a hash of data
     virtual outcome::result<Blake2b256Hash> hashBlake2b(

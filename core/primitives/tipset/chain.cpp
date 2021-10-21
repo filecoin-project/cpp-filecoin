@@ -14,32 +14,6 @@
 #include "vm/version/version.hpp"
 
 namespace fc::primitives::tipset::chain {
-  auto decodeHeight(BytesIn key) {
-    assert(key.size() == sizeof(ChainEpoch));
-    return boost::endian::load_big_u64(key.data());
-  }
-
-  TipsetKey decodeTsk(BytesIn input) {
-    std::vector<CbCid> cids;
-    while (!input.empty()) {
-      cids.push_back(
-          CbCid{CbCid::fromSpan(input.subspan(0, CbCid::size())).value()});
-      input = input.subspan(CbCid::size());
-    }
-    return cids;
-  }
-
-  auto encodeHeight(ChainEpoch height) {
-    return Buffer{}.putUint64(height);
-  }
-
-  auto encodeTsk(const TipsetKey &tsk) {
-    Buffer out;
-    for (auto &cid : tsk.cids()) {
-      out.put(cid);
-    }
-    return out;
-  }
 
   void attach(TsBranchPtr parent, TsBranchPtr child) {
     auto bottom{child->chain.begin()};

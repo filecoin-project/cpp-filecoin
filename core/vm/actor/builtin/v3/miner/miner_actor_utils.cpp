@@ -100,7 +100,7 @@ namespace fc::vm::actor::builtin::v3::miner {
   }
 
   outcome::result<void> MinerUtils::callPowerEnrollCronEvent(
-      ChainEpoch event_epoch, const Buffer &params) const {
+      ChainEpoch event_epoch, const Bytes &params) const {
     OUTCOME_TRY(getRuntime().sendM<storage_power::EnrollCronEvent>(
         kStoragePowerAddress, {event_epoch, params}, 0));
     return outcome::success();

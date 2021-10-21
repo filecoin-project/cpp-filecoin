@@ -236,7 +236,7 @@ namespace fc::api {
 
   struct IpldObject {
     CID cid;
-    Buffer raw;
+    Bytes raw;
   };
 
   struct MiningBaseInfo {
@@ -267,7 +267,7 @@ namespace fc::api {
     Address owner;
     Address worker;
     std::vector<Address> control;
-    Buffer peer_id;
+    Bytes peer_id;
     std::vector<Multiaddress> multiaddrs;
     RegisteredPoStProof window_post_proof_type{RegisteredPoStProof::kUndefined};
     SectorSize sector_size{};
@@ -323,14 +323,14 @@ namespace fc::api {
                const TipsetKey &,
                DomainSeparationTag,
                ChainEpoch,
-               const Buffer &)
+               const Bytes &)
     API_METHOD(ChainGetRandomnessFromTickets,
                jwt::kReadPermission,
                Randomness,
                const TipsetKey &,
                DomainSeparationTag,
                ChainEpoch,
-               const Buffer &)
+               const Bytes &)
     API_METHOD(ChainGetTipSet,
                jwt::kReadPermission,
                TipsetCPtr,
@@ -342,7 +342,7 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(ChainHead, jwt::kReadPermission, TipsetCPtr)
     API_METHOD(ChainNotify, jwt::kReadPermission, Chan<std::vector<HeadChange>>)
-    API_METHOD(ChainReadObj, jwt::kReadPermission, Buffer, CID)
+    API_METHOD(ChainReadObj, jwt::kReadPermission, Bytes, CID)
     API_METHOD(ChainSetHead, jwt::kAdminPermission, void, const TipsetKey &)
     API_METHOD(ChainTipSetWeight,
                jwt::kReadPermission,
@@ -526,7 +526,7 @@ namespace fc::api {
                TokenAmount,
                const Address &,
                const SignedVoucher &,
-               const Buffer &,
+               const Bytes &,
                const TokenAmount &)
 
     /**
@@ -767,13 +767,13 @@ namespace fc::api {
                jwt::kSignPermission,
                Signature,
                const Address &,
-               const Buffer &)
+               const Bytes &)
     /** Verify signature by address (may be id or key address) */
     API_METHOD(WalletVerify,
                jwt::kReadPermission,
                bool,
                const Address &,
-               const Buffer &,
+               const Bytes &,
                const Signature &)
   };
 

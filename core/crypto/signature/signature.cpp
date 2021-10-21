@@ -20,17 +20,17 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::crypto::signature, SignatureError, e) {
 }
 
 namespace fc::crypto::signature {
-  Buffer Signature::toBytes() const {
-    Buffer bytes;
+  Bytes Signature::toBytes() const {
+    Bytes bytes;
     visit_in_place(
         *this,
         [&](const BlsSignature &v) {
-          bytes.put({kBls});
-          bytes.put(v);
+          bytes.push_back(kBls);
+          append(bytes, v);
         },
         [&](const Secp256k1Signature &v) {
-          bytes.put({kSecp256k1});
-          bytes.put(v);
+          bytes.push_back(kSecp256k1);
+          append(bytes, v);
         });
     return bytes;
   }

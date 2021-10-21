@@ -22,7 +22,7 @@ namespace fc::storage {
 
     void seekToFirst() override;
 
-    void seek(const Buffer &key) override;
+    void seek(const Bytes &key) override;
 
     void seekToLast() override;
 
@@ -32,9 +32,9 @@ namespace fc::storage {
 
     void prev() override;
 
-    Buffer key() const override;
+    Bytes key() const override;
 
-    Buffer value() const override;
+    Bytes value() const override;
 
    private:
     std::shared_ptr<leveldb::Iterator> i_;

@@ -12,9 +12,8 @@ namespace fc::sectorblocks {
   using codec::cbor::decode;
   using codec::cbor::encode;
 
-  SectorBlocksImpl::SectorBlocksImpl(
-      std::shared_ptr<Miner> miner,
-      std::shared_ptr<DataStore> datastore)
+  SectorBlocksImpl::SectorBlocksImpl(std::shared_ptr<Miner> miner,
+                                     std::shared_ptr<DataStore> datastore)
       : miner_(std::move(miner)), storage_(std::move(datastore)) {}
 
   outcome::result<PieceAttributes> SectorBlocksImpl::addPiece(
@@ -37,7 +36,7 @@ namespace fc::sectorblocks {
                                                    UnpaddedPieceSize size) {
     std::lock_guard lock(mutex_);
 
-    const Buffer key = Buffer(UvarintKeyer::encode(deal_id));
+    const Bytes key = UvarintKeyer::encode(deal_id);
     std::vector<PieceLocation> new_data;
     const auto new_piece = PieceLocation{
         .sector_number = sector,
@@ -65,7 +64,7 @@ namespace fc::sectorblocks {
 
   outcome::result<std::vector<PieceLocation>> SectorBlocksImpl::getRefs(
       DealId deal_id) const {
-    const Buffer key = Buffer(UvarintKeyer::encode(deal_id));
+    const Bytes key = UvarintKeyer::encode(deal_id);
     if (storage_->contains(key)) {
       OUTCOME_TRY(stored_data, storage_->get(key));
       OUTCOME_TRY(decoded_out, decode<std::vector<PieceLocation>>(stored_data));
@@ -84,10 +83,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sectorblocks, SectorBlocksError, e) {
   switch (e) {
     case (SectorBlocksError::kNotFoundDeal):
       return "SectorBlocks: not found";
-    case(SectorBlocksError::kDealAlreadyExist):
+    case (SectorBlocksError::kDealAlreadyExist):
       return "SectorBlocks: piece already exist in provided deal";
     default:
       return "SectorBlocks: unknown error";
-
   }
 }

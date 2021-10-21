@@ -138,7 +138,7 @@ namespace fc::api {
       }
     }
 
-    std::queue<std::pair<Buffer, OkCb>> pending_writes;
+    std::queue<std::pair<Bytes, OkCb>> pending_writes;
     bool writing{false};
     uint64_t next_channel{}, next_request{};
     websocket::stream<tcp::socket> socket;

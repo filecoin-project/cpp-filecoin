@@ -16,20 +16,20 @@
 
 namespace fc::storage::keystore {
 
-  using fc::crypto::bls::BlsProvider;
-  using fc::crypto::bls::BlsProviderImpl;
-  using fc::crypto::secp256k1::Secp256k1Error;
-  using fc::crypto::secp256k1::Secp256k1ProviderDefault;
-  using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
-  using fc::primitives::address::Address;
-  using fc::primitives::address::Network;
-  using BlsKeyPair = fc::crypto::bls::KeyPair;
-  using Secp256k1KeyPair = fc::crypto::secp256k1::KeyPair;
-  using BlsSignature = fc::crypto::bls::Signature;
-  using Secp256k1Signature = fc::crypto::secp256k1::Signature;
-  using BlsPublicKey = fc::crypto::bls::PublicKey;
-  using Secp256k1PublicKey = fc::crypto::secp256k1::PublicKey;
-  using fc::primitives::address::decode;
+  using crypto::bls::BlsProvider;
+  using crypto::bls::BlsProviderImpl;
+  using crypto::secp256k1::Secp256k1Error;
+  using crypto::secp256k1::Secp256k1ProviderDefault;
+  using crypto::secp256k1::Secp256k1Sha256ProviderImpl;
+  using primitives::address::Address;
+  using primitives::address::Network;
+  using BlsKeyPair = crypto::bls::KeyPair;
+  using Secp256k1KeyPair = crypto::secp256k1::KeyPair;
+  using BlsSignature = crypto::bls::Signature;
+  using Secp256k1Signature = crypto::secp256k1::Signature;
+  using BlsPublicKey = crypto::bls::PublicKey;
+  using Secp256k1PublicKey = crypto::secp256k1::PublicKey;
+  using primitives::address::decode;
 
   class FileSystemKeyStoreTest : public test::BaseFS_Test {
    public:

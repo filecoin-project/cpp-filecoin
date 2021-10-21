@@ -52,7 +52,7 @@ namespace fc::storage::ipfs::graphsync {
     /// \param data Raw data
     outcome::result<void> addBlockToResponse(const FullRequestId &request_id,
                                              const CID &cid,
-                                             const common::Buffer &data);
+                                             const Bytes &data);
 
     /// Temporary queue for not yet connected endpoint
     std::deque<SharedData> pending_buffers_;

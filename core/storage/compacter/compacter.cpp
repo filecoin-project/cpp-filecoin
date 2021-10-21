@@ -25,7 +25,7 @@ namespace fc::storage::compacter {
     }
   }
 
-  bool CompacterIpld::get(const CbCid &key, Buffer *value) const {
+  bool CompacterIpld::get(const CbCid &key, Bytes *value) const {
     std::shared_lock lock{ipld_mutex};
     if (use_new_ipld && new_ipld->get(key, value)) {
       return true;

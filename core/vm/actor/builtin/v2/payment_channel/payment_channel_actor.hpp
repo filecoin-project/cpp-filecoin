@@ -19,7 +19,7 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
   struct UpdateChannelState : ActorMethodBase<2> {
     struct Params {
       SignedVoucher signed_voucher;
-      Buffer secret;
+      Bytes secret;
     };
     ACTOR_METHOD_DECL();
 

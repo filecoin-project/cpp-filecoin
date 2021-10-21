@@ -16,13 +16,13 @@ namespace fc::storage {
       Cursor(MapPrefix &map, std::unique_ptr<BufferMapCursor> cursor);
 
       void seekToFirst() override;
-      void seek(const Buffer &key) override;
+      void seek(const Bytes &key) override;
       void seekToLast() override;
       bool isValid() const override;
       void next() override;
       void prev() override;
-      Buffer key() const override;
-      Buffer value() const override;
+      Bytes key() const override;
+      Bytes value() const override;
 
       MapPrefix &map;
       std::unique_ptr<BufferMapCursor> cursor;
@@ -31,10 +31,9 @@ namespace fc::storage {
     struct Batch : BufferBatch {
       Batch(MapPrefix &map, std::unique_ptr<BufferBatch> batch);
 
-      outcome::result<void> put(const Buffer &key,
-                                const Buffer &value) override;
-      outcome::result<void> put(const Buffer &key, Buffer &&value) override;
-      outcome::result<void> remove(const Buffer &key) override;
+      outcome::result<void> put(const Bytes &key, const Bytes &value) override;
+      outcome::result<void> put(const Bytes &key, Bytes &&value) override;
+      outcome::result<void> remove(const Bytes &key) override;
 
       outcome::result<void> commit() override;
       void clear() override;
@@ -45,17 +44,17 @@ namespace fc::storage {
 
     MapPrefix(BytesIn prefix, MapPtr map);
     MapPrefix(std::string_view prefix, MapPtr map);
-    Buffer _key(BytesIn key) const;
+    Bytes _key(BytesIn key) const;
 
-    outcome::result<Buffer> get(const Buffer &key) const override;
-    bool contains(const Buffer &key) const override;
-    outcome::result<void> put(const Buffer &key, const Buffer &value) override;
-    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
-    outcome::result<void> remove(const Buffer &key) override;
+    outcome::result<Bytes> get(const Bytes &key) const override;
+    bool contains(const Bytes &key) const override;
+    outcome::result<void> put(const Bytes &key, const Bytes &value) override;
+    outcome::result<void> put(const Bytes &key, Bytes &&value) override;
+    outcome::result<void> remove(const Bytes &key) override;
     std::unique_ptr<BufferBatch> batch() override;
     std::unique_ptr<BufferMapCursor> cursor() override;
 
-    Buffer prefix, _next;
+    Bytes prefix, _next;
     MapPtr map;
   };
 
@@ -63,8 +62,8 @@ namespace fc::storage {
     OneKey(BytesIn key, MapPtr map);
     OneKey(std::string_view key, MapPtr map);
     bool has() const;
-    Buffer get() const;
-    void set(Buffer value);
+    Bytes get() const;
+    void set(Bytes value);
     void remove();
     template <typename T>
     auto getCbor() const {
@@ -79,7 +78,7 @@ namespace fc::storage {
       return set(codec::cbor::encode(value).value());
     }
 
-    Buffer key;
+    Bytes key;
     MapPtr map;
   };
 }  // namespace fc::storage

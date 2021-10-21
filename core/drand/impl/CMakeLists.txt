@@ -8,7 +8,6 @@ add_library(drand_http
     )
 target_link_libraries(drand_http
     blob
-    buffer
     outcome
     json
     )

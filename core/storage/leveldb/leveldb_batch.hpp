@@ -18,10 +18,10 @@ namespace fc::storage {
    public:
     explicit Batch(LevelDB &db);
 
-    outcome::result<void> put(const Buffer &key, const Buffer &value) override;
-    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
+    outcome::result<void> put(const Bytes &key, const Bytes &value) override;
+    outcome::result<void> put(const Bytes &key, Bytes &&value) override;
 
-    outcome::result<void> remove(const Buffer &key) override;
+    outcome::result<void> remove(const Bytes &key) override;
 
     outcome::result<void> commit() override;
 

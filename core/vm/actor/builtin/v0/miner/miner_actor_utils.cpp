@@ -84,7 +84,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       ChainEpoch current_epoch) const {
     OUTCOME_TRY(address_encoded,
                 codec::cbor::encode(getRuntime().getCurrentReceiver()));
-    address_encoded.putUint64(current_epoch);
+    common::putUint64BigEndian(address_encoded, current_epoch);
     OUTCOME_TRY(digest, getRuntime().hashBlake2b(address_encoded));
     const uint64_t offset = boost::endian::load_big_u64(digest.data());
     return offset % kWPoStProvingPeriod;
@@ -163,7 +163,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   outcome::result<void> MinerUtils::checkPeerInfo(
-      const Buffer &peer_id,
+      const Bytes &peer_id,
       const std::vector<Multiaddress> &multiaddresses) const {
     // Do nothing for v0
     return outcome::success();
@@ -263,7 +263,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   outcome::result<void> MinerUtils::callPowerEnrollCronEvent(
-      ChainEpoch event_epoch, const Buffer &params) const {
+      ChainEpoch event_epoch, const Bytes &params) const {
     OUTCOME_TRY(getRuntime().sendM<storage_power::EnrollCronEvent>(
         kStoragePowerAddress, {event_epoch, params}, 0));
     return outcome::success();

@@ -371,10 +371,6 @@ namespace fc::api {
       v = decodeBase64(j);
     }
 
-    DECODE(Buffer) {
-      v = Buffer{decodeBase64(j)};
-    }
-
     ENCODE(CID) {
       OUTCOME_EXCEPT(str, v.toString());
       Value j{rapidjson::kObjectType};
@@ -585,7 +581,7 @@ namespace fc::api {
       boost::optional<PeerId> peer_id;
       Get(j, "PeerId", peer_id);
       if (peer_id) {
-        v.peer_id = Buffer{peer_id->toVector()};
+        v.peer_id = peer_id->toVector();
       } else {
         v.peer_id.clear();
       }

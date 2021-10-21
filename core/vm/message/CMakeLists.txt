@@ -11,7 +11,6 @@ add_library(message
 target_link_libraries(message
     Boost::boost
     address
-    buffer
     logger
     keystore
     outcome

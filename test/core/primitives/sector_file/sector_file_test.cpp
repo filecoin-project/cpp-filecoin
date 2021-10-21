@@ -242,8 +242,7 @@ namespace fc::primitives::sector_file {
         fc::primitives::sector::getSectorSize(min_seal_proof_type));
     uint64_t result =
         kOverheadSeal.at(file_type) * sector_size / kOverheadDenominator;
-    EXPECT_OUTCOME_TRUE(seal_size,
-                        sealSpaceUse(file_type, sector_size));
+    EXPECT_OUTCOME_TRUE(seal_size, sealSpaceUse(file_type, sector_size));
     ASSERT_EQ(result, seal_size);
   }
 }  // namespace fc::primitives::sector_file

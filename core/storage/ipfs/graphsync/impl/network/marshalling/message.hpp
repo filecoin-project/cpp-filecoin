@@ -20,7 +20,7 @@ namespace fc::storage::ipfs::graphsync {
       CID root_cid;
 
       /// Selector string
-      common::Buffer selector;
+      Bytes selector;
 
       /// aux information for other protocols extensions
       std::vector<Extension> extensions;
@@ -55,6 +55,6 @@ namespace fc::storage::ipfs::graphsync {
     std::vector<Response> responses;
 
     /// Blocks related to the responses, as cid->data pairs
-    std::vector<std::pair<CID, common::Buffer>> data;
+    std::vector<std::pair<CID, Bytes>> data;
   };
 }  // namespace fc::storage::ipfs::graphsync

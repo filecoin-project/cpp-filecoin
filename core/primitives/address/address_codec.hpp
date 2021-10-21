@@ -8,7 +8,7 @@
 #include <spdlog/fmt/fmt.h>
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/buffer.hpp"
+#include "common/bytes.hpp"
 #include "primitives/address/address.hpp"
 
 namespace fc::primitives::address {
@@ -16,7 +16,7 @@ namespace fc::primitives::address {
   /**
    * @brief Encodes an Address to an array of bytes
    */
-  Buffer encode(const Address &address) noexcept;
+  Bytes encode(const Address &address) noexcept;
 
   /**
    * @brief Decodes an Address from an array of bytes
@@ -38,7 +38,7 @@ namespace fc::primitives::address {
   }
 
   CBOR_DECODE(Address, address) {
-    address = decode(s.template get<Buffer>()).value();
+    address = decode(s.template get<Bytes>()).value();
     return s;
   }
 
@@ -46,7 +46,7 @@ namespace fc::primitives::address {
    * @brief A helper function that calculates a checksum of an Address protocol
    * + payload
    */
-  Buffer checksum(const Address &address);
+  Bytes checksum(const Address &address);
 }  // namespace fc::primitives::address
 
 template <>

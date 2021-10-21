@@ -49,7 +49,7 @@ namespace fc::markets::storage::test {
   TEST_F(StorageMarketTest, WrongSignedAsk) {
     node_api->WalletVerify = {
         [](const Address &address,
-           const Buffer &buffer,
+           const Bytes &buffer,
            const Signature &signature) -> outcome::result<bool> {
           return outcome::success(false);
         }};

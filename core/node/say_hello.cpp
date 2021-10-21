@@ -70,7 +70,7 @@ namespace fc::sync {
             m.genesis = self->genesis_.value();
             OUTCOME_EXCEPT(body, codec::cbor::encode(m));
             self->request_body_ =
-                std::make_shared<const common::Buffer>(std::move(body));
+                std::make_shared<const Bytes>(std::move(body));
           }
         });
 

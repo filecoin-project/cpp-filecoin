@@ -5,11 +5,12 @@
 
 #pragma once
 
-#include "common/buffer.hpp"
+#include "common/bytes.hpp"
+#include "common/outcome.hpp"
 
 namespace fc::codec::cbor {
   template <typename T>
-  outcome::result<Buffer> encode(const T &arg);
+  outcome::result<Bytes> encode(const T &arg);
   template <typename T>
   outcome::result<T> decode(BytesIn input);
 }  // namespace fc::codec::cbor

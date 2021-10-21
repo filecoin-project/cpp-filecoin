@@ -33,15 +33,6 @@ target_link_libraries(outcome
     p2p::p2p
     )
 
-add_library(buffer
-    buffer.hpp
-    buffer.cpp
-    buffer_back_insert_iterator.cpp
-    )
-target_link_libraries(buffer
-    hexutil
-    )
-
 add_library(logger
     logger.cpp
     )
@@ -64,7 +55,6 @@ add_library(file
     )
 target_link_libraries(file
     Boost::iostreams
-    buffer
     outcome
     )
 

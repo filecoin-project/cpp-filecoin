@@ -8,7 +8,7 @@
 #include <boost/variant.hpp>
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/buffer.hpp"
+#include "common/bytes.hpp"
 #include "common/visitor.hpp"
 #include "crypto/bls/bls_types.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
@@ -46,7 +46,7 @@ namespace fc::crypto::signature {
           [](const auto &) { return false; });
     }
 
-    Buffer toBytes() const;
+    Bytes toBytes() const;
     static outcome::result<Signature> fromBytes(BytesIn input);
     static outcome::result<bool> isBls(const BytesIn &input);
   };

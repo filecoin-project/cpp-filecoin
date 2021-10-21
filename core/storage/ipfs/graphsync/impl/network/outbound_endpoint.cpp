@@ -82,9 +82,7 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   outcome::result<void> OutboundEndpoint::addBlockToResponse(
-      const FullRequestId &request_id,
-      const CID &cid,
-      const common::Buffer &data) {
+      const FullRequestId &request_id, const CID &cid, const Bytes &data) {
     auto serialized_size = response_builder_.getSerializedSize();
 
     if (serialized_size + data.size() > kMaxMessageSize) {

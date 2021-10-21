@@ -21,7 +21,6 @@
   outcome::result<M::Result> M::call(Runtime &runtime, const M::Params &params)
 
 namespace fc::vm::actor {
-  using common::Buffer;
   using runtime::InvocationOutput;
   using runtime::Runtime;
 

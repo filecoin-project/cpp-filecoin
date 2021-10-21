@@ -42,7 +42,7 @@ namespace fc::storage::compacter {
   struct CompacterIpld : CbIpld, std::enable_shared_from_this<CompacterIpld> {
     using CbIpld::get, CbIpld::put;
 
-    bool get(const CbCid &key, Buffer *value) const override;
+    bool get(const CbCid &key, Bytes *value) const override;
     void put(const CbCid &key, BytesIn value) override;
 
     void open();
@@ -82,6 +82,6 @@ namespace fc::storage::compacter {
     std::shared_ptr<CidsIpld> new_ipld;
     std::atomic_bool flag;
     bool use_new_ipld{};
-    Buffer reuse_buffer;
+    Bytes reuse_buffer;
   };
 }  // namespace fc::storage::compacter

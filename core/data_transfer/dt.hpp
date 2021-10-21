@@ -67,7 +67,7 @@ namespace fc::data_transfer {
               const CID &root,
               IpldPtr ipld,
               std::string type,
-              Buffer voucher,
+              Bytes voucher,
               OkCb on_begin,
               OkCb on_end);
     void acceptPush(const PeerDtId &pdtid, const CID &root, OkCb on_end);
@@ -76,14 +76,14 @@ namespace fc::data_transfer {
                   const CID &root,
                   Selector selector,
                   std::string type,
-                  Buffer voucher,
+                  Bytes voucher,
                   OnData on_reply,
                   OnCid on_cid);
-    void pullOut(const PeerDtId &pdtid, std::string type, Buffer voucher);
+    void pullOut(const PeerDtId &pdtid, std::string type, Bytes voucher);
     void acceptPull(const PeerDtId &pdtid,
                     const PeerGsId &pgsid,
                     std::string type,
-                    Buffer voucher);
+                    Bytes voucher);
     void rejectPull(const PeerDtId &pdtid,
                     const PeerGsId &pgsid,
                     std::string type,

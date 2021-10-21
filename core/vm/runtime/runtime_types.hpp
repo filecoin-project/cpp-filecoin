@@ -6,22 +6,20 @@
 #pragma once
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/buffer.hpp"
+#include "common/bytes.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/message/message.hpp"
 
 namespace fc::vm::runtime {
-
-  using common::Buffer;
   using message::UnsignedMessage;
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::GasAmount;
   using primitives::address::Address;
 
-  using InvocationOutput = Buffer;
+  using InvocationOutput = Bytes;
 
   /**
    * Id of native function
@@ -33,7 +31,7 @@ namespace fc::vm::runtime {
    */
   struct MessageReceipt {
     VMExitCode exit_code{};
-    Buffer return_value;
+    Bytes return_value;
     GasAmount gas_used{};
   };
 

@@ -8,7 +8,6 @@
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::multisig {
-  using common::Buffer;
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using toolchain::Toolchain;

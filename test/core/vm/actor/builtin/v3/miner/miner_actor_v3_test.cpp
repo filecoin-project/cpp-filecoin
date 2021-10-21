@@ -234,7 +234,7 @@ namespace fc::vm::actor::builtin::v3::miner {
    */
   TEST_F(MinerActorTest, ConstructTooLargePeerId) {
     callerIs(kInitAddress);
-    const Buffer wrong_peer_id(kMaxPeerIDLength + 1, 'x');
+    const Bytes wrong_peer_id(kMaxPeerIDLength + 1, 'x');
 
     Construct::Params params = makeConstructParams();
     params.peer_id = wrong_peer_id;
@@ -396,7 +396,7 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     callerIs(kInitAddress);
 
-    const Buffer new_peer_id{"0102"_unhex};
+    const Bytes new_peer_id{"0102"_unhex};
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kSysErrForbidden),
@@ -414,7 +414,7 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     callerIs(owner);
 
-    const Buffer new_peer_id{"0102"_unhex};
+    const Bytes new_peer_id{"0102"_unhex};
 
     EXPECT_OUTCOME_TRUE_1(
         ChangePeerId::call(runtime, ChangePeerId::Params{new_peer_id}));

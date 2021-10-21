@@ -8,18 +8,17 @@
 #include <memory>
 
 #include "cbor_blake/cid.hpp"
-#include "common/buffer.hpp"
 
 namespace fc {
   struct CbIpld {
     virtual ~CbIpld() = default;
-    virtual bool get(const CbCid &key, Buffer *value) const = 0;
+    virtual bool get(const CbCid &key, Bytes *value) const = 0;
     virtual void put(const CbCid &key, BytesIn value) = 0;
 
     bool has(const CbCid &key) const {
       return get(key, nullptr);
     }
-    bool get(const CbCid &key, Buffer &value) const {
+    bool get(const CbCid &key, Bytes &value) const {
       return get(key, &value);
     }
     CbCid put(BytesIn cbor) {

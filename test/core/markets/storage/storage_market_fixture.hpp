@@ -49,7 +49,6 @@ namespace fc::markets::storage::test {
   using client::StorageMarketClient;
   using client::StorageMarketClientImpl;
   using client::import_manager::ImportManager;
-  using common::Buffer;
   using crypto::bls::BlsProvider;
   using crypto::bls::BlsProviderImpl;
   using crypto::secp256k1::Secp256k1ProviderDefault;
@@ -359,7 +358,7 @@ namespace fc::markets::storage::test {
       std::weak_ptr<FullNodeApi> _api{api};
       api->WalletSign = {
           [=](const Address &address,
-              const Buffer &buffer) -> outcome::result<Signature> {
+              const Bytes &buffer) -> outcome::result<Signature> {
             auto it = private_keys.find(
                 _api.lock()->StateAccountKey(address, {}).value());
             if (it == private_keys.end())
@@ -370,7 +369,7 @@ namespace fc::markets::storage::test {
 
       api->WalletVerify = {
           [](const Address &address,
-             const Buffer &buffer,
+             const Bytes &buffer,
              const Signature &signature) -> outcome::result<bool> {
             return true;
           }};

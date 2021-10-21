@@ -25,10 +25,10 @@ namespace fc::storage::ipld {
     using CbIpld::get, CbIpld::put;
 
     outcome::result<bool> contains(const CID &cid) const override;
-    outcome::result<void> set(const CID &cid, Buffer value) override;
-    outcome::result<Buffer> get(const CID &cid) const override;
+    outcome::result<void> set(const CID &cid, Bytes value) override;
+    outcome::result<Bytes> get(const CID &cid) const override;
 
-    bool get(const CbCid &key, Buffer *value) const override;
+    bool get(const CbCid &key, Bytes *value) const override;
     void put(const CbCid &key, BytesIn value) override;
 
     void asyncFlush();

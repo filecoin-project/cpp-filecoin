@@ -78,9 +78,9 @@ namespace fc::drand {
     // METHODS
     //
 
-    boost::optional<Buffer> lookupCache(Round round);
+    boost::optional<Bytes> lookupCache(Round round);
 
-    void cacheEntry(Round round, const Buffer &signature);
+    void cacheEntry(Round round, const Bytes &signature);
 
     outcome::result<bool> verifyBeaconData(
         uint64_t round,
@@ -103,7 +103,7 @@ namespace fc::drand {
     std::vector<std::string> peers_;
 
     std::mutex cache_mutex_;
-    boost::compute::detail::lru_cache<Round, Buffer> cache_;
+    boost::compute::detail::lru_cache<Round, Bytes> cache_;
 
     std::unique_ptr<crypto::bls::BlsProvider> bls_;
   };

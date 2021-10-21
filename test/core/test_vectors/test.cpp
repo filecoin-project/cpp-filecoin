@@ -43,7 +43,7 @@ inline auto testName(const boost::filesystem::path &path) {
   return s;
 }
 
-using fc::Buffer;
+using fc::Bytes;
 using fc::BytesIn;
 using fc::CID;
 using fc::IpldPtr;
@@ -74,7 +74,7 @@ auto gunzip(BytesIn input) {
   filter.push(bio::gzip_decompressor());
   filter.push(in);
   bio::copy(filter, out);
-  return Buffer{fc::common::span::cbytes(out.str())};
+  return fc::copy(fc::common::span::cbytes(out.str()));
 }
 
 struct MessageVector {
@@ -131,7 +131,7 @@ struct MessageVector {
         // 4th element is entropy
         new_randomness.entropy = *jBytes(++it);
 
-        auto ret = jBytes(*jGet(j, "ret"))->toVector();
+        auto ret = jBytes(*jGet(j, "ret")).value();
         BOOST_ASSERT_MSG(ret.size() == new_randomness.ret.size(),
                          "Wrong randomness size");
         std::move(
@@ -218,7 +218,7 @@ struct MessageVector {
   }
 
   std::string type;
-  Buffer car;
+  Bytes car;
   std::vector<Ts> tipsets;
   std::vector<TestVectorRandomness> randomness;
   std::vector<PreconditionVariant> precondition_variants;

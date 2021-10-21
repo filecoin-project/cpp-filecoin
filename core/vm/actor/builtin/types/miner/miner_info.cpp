@@ -15,7 +15,7 @@ namespace fc::vm::actor::builtin::types::miner {
       const Address &owner,
       const Address &worker,
       const std::vector<Address> &control,
-      const Buffer &peer_id,
+      const Bytes &peer_id,
       const std::vector<Multiaddress> &multiaddrs,
       const RegisteredSealProof &seal_proof_type,
       const RegisteredPoStProof &window_post_proof_type) {
