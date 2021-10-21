@@ -9,6 +9,7 @@
 #include <mutex>
 
 #include "api/full_node/node_api.hpp"
+#include "common/libp2p/stream_open_queue.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
 #include "fsm/fsm.hpp"
@@ -35,6 +36,7 @@ namespace fc::markets::storage::client {
   using ClientFSM = fsm::FSM<ClientEvent, void, StorageDealStatus, ClientDeal>;
   using Datastore = fc::storage::face::PersistentMap<Bytes, Bytes>;
   using data_transfer::DataTransfer;
+  using libp2p::connection::StreamOpenQueue;
 
   class StorageMarketClientImpl
       : public StorageMarketClient,
@@ -119,14 +121,6 @@ namespace fc::markets::storage::client {
                                               api::MsgWait msg_state);
 
     /**
-     * Look up stream by proposal cid
-     * @param proposal_cid - key to find stream
-     * @return stream associated with proposal
-     */
-    outcome::result<std::shared_ptr<CborStream>> getStream(
-        const CID &proposal_cid);
-
-    /**
      * Finalize deal, close connection, clean up
      * @param deal - deal to clean up
      */
@@ -174,18 +168,6 @@ namespace fc::markets::storage::client {
      * @param to    - STORAGE_DEAL_FUNDS_ENSURED
      */
     void onClientEventFundsEnsured(std::shared_ptr<ClientDeal> deal,
-                                   ClientEvent event,
-                                   StorageDealStatus from,
-                                   StorageDealStatus to);
-
-    /**
-     * @brief Handle deal proposal
-     * @param deal  - current storage deal
-     * @param event - ClientEventDealProposed
-     * @param from  - STORAGE_DEAL_FUNDS_ENSURED
-     * @param to    - STORAGE_DEAL_VALIDATING
-     */
-    void onClientEventDealProposed(std::shared_ptr<ClientDeal> deal,
                                    ClientEvent event,
                                    StorageDealStatus from,
                                    StorageDealStatus to);
@@ -275,9 +257,14 @@ namespace fc::markets::storage::client {
       return true;
     };
 
+    using ProposeCb = std::function<void(outcome::result<SignedResponse>)>;
+    void propose(std::shared_ptr<ClientDeal> deal, ProposeCb cb);
+
     /** libp2p host */
     std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
+    std::shared_ptr<StreamOpenQueue> propose_streams_;
+    std::shared_ptr<StreamOpenQueue> status_streams_;
 
     std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<ChainEvents> chain_events_;
@@ -287,14 +274,8 @@ namespace fc::markets::storage::client {
     std::shared_ptr<DataTransfer> datatransfer_;
 
     std::mutex waiting_mutex;
-    std::shared_ptr<void> waiting_sub;
     // TODO(turuslan): FIL-420 check cache memory usage
     std::vector<std::shared_ptr<ClientDeal>> waiting_deals;
-
-    // connection manager
-    std::mutex connections_mutex_;
-    // TODO(turuslan): FIL-420 check cache memory usage
-    std::map<CID, std::shared_ptr<CborStream>> connections_;
 
     /** State machine */
     std::shared_ptr<ClientFSM> fsm_;

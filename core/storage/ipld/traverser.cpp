@@ -37,9 +37,7 @@ namespace fc::storage::ipld::traverser {
   };
 
   struct PbNodeDecoder {
-    static outcome::result<std::vector<CID>> links(
-        gsl::span<const uint8_t> input) {
-      std::vector<CID> cids;
+    static outcome::result<void> links(std::vector<CID> &cids, BytesIn input) {
       PbDecoder s{input};
       while (true) {
         PbDecoder link{s._str(2)};
@@ -50,7 +48,7 @@ namespace fc::storage::ipld::traverser {
         OUTCOME_TRY(cid, CID::fromBytes(cid_bytes));
         cids.push_back(std::move(cid));
       }
-      return std::move(cids);
+      return outcome::success();
     }
   };
 
@@ -59,7 +57,7 @@ namespace fc::storage::ipld::traverser {
                        const Selector &selector,
                        bool unique)
       : store{store}, unique{unique} {
-    to_visit_.push(root);
+    to_visit_.push_back(root);
   }
 
   outcome::result<std::vector<CID>> Traverser::traverseAll() {
@@ -74,30 +72,29 @@ namespace fc::storage::ipld::traverser {
     if (isCompleted()) {
       return TraverserError::kTraverseCompleted;
     }
-    CID cid{std::move(to_visit_.front())};
-    to_visit_.pop();
+    CID cid{std::move(to_visit_.back())};
+    to_visit_.pop_back();
     if (unique) {
       visited_.insert(cid);
     }
     auto BOOST_OUTCOME_TRY_UNIQUE_NAME{gsl::finally([&] {
       if (unique) {
-        while (!to_visit_.empty() && visited_.count(to_visit_.front()) != 0) {
-          to_visit_.pop();
+        while (!to_visit_.empty() && visited_.count(to_visit_.back()) != 0) {
+          to_visit_.pop_back();
         }
       }
     })};
     OUTCOME_TRY(bytes, store.get(cid));
     visit_order_.push_back(cid);
+    const auto last{to_visit_.size()};
     // TODO(turuslan): what about other types?
     if (cid.content_type == CID::Multicodec::DAG_CBOR) {
       CborDecodeStream s{bytes};
       OUTCOME_TRY(parseCbor(s));
     } else if (cid.content_type == CID::Multicodec::DAG_PB) {
-      OUTCOME_TRY(cids, PbNodeDecoder::links(bytes));
-      for (auto &&c : cids) {
-        to_visit_.push(c);
-      }
+      OUTCOME_TRY(PbNodeDecoder::links(to_visit_, bytes));
     }
+    std::reverse(to_visit_.begin() + last, to_visit_.end());
     return cid;
   }
 
@@ -109,7 +106,7 @@ namespace fc::storage::ipld::traverser {
     if (s.isCid()) {
       CID cid;
       s >> cid;
-      to_visit_.push(cid);
+      to_visit_.push_back(cid);
     } else if (s.isList()) {
       auto n = s.listLength();
       for (auto l = s.list(); n != 0; --n) {

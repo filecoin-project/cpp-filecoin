@@ -290,7 +290,7 @@ namespace fc::node {
             std::make_shared<PieceIOImpl>("/tmp/fuhon/piece_io"));
     // timer is set to 5000 ms
     timerLoop(node_objects.scheduler,
-              std::chrono::milliseconds(5000),
+              std::chrono::milliseconds(60000),
               [client{node_objects.storage_market_client}] {
                 client->pollWaiting();
               });

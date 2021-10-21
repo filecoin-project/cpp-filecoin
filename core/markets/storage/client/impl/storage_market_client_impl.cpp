@@ -11,6 +11,7 @@
 
 #include "codec/cbor/cbor_codec.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
+#include "common/libp2p/stream_open_queue_impl.hpp"
 #include "common/outcome_fmt.hpp"
 #include "common/ptr.hpp"
 #include "markets/common.hpp"
@@ -48,6 +49,9 @@
   }
 
 namespace fc::markets::storage::client {
+  constexpr size_t kProposeStreamOpenMax{20};
+  constexpr size_t kStatusStreamOpenMax{20};
+
   using api::MsgWait;
   using libp2p::peer::PeerId;
   using primitives::BigInt;
@@ -71,6 +75,10 @@ namespace fc::markets::storage::client {
       std::shared_ptr<PieceIO> piece_io)
       : host_{std::move(host)},
         context_{std::move(context)},
+        propose_streams_{
+            std::make_shared<StreamOpenQueue>(host_, kProposeStreamOpenMax)},
+        status_streams_{
+            std::make_shared<StreamOpenQueue>(host_, kStatusStreamOpenMax)},
         api_{std::move(api)},
         chain_events_{std::move(chain_events)},
         piece_io_{std::move(piece_io)},
@@ -126,24 +134,22 @@ namespace fc::markets::storage::client {
     OUTCOME_CB(
         req.signature,
         api_->WalletSign(deal->client_deal_proposal.proposal.client, bytes));
-    host_->newStream(deal->miner,
-                     kDealStatusProtocolId,
-                     [MOVE(cb), MOVE(req)](auto &&_stream) {
-                       OUTCOME_CB1(_stream);
-                       auto stream{std::make_shared<common::libp2p::CborStream>(
-                           std::move(_stream.value()))};
-                       stream->write(req, [MOVE(cb), stream](auto &&_n) {
-                         if (!_n) {
-                           stream->close();
-                         }
-                         OUTCOME_CB1(_n);
-                         stream->template read<DealStatusResponse>(
-                             [MOVE(cb), stream](auto &&_res) {
-                               stream->close();
-                               cb(std::move(_res));
-                             });
-                       });
-                     });
+    status_streams_->open({
+        deal->miner,
+        kDealStatusProtocolId,
+        [MOVE(cb), MOVE(req)](Host::StreamResult _stream) {
+          OUTCOME_CB1(_stream);
+          auto stream{std::make_shared<common::libp2p::CborStream>(
+              std::move(_stream.value()))};
+          stream->write(req, [MOVE(cb), stream](outcome::result<size_t> _n) {
+            OUTCOME_CB1(_n);
+            stream->read<DealStatusResponse>(
+                [MOVE(cb), stream](outcome::result<DealStatusResponse> _res) {
+                  cb(std::move(_res));
+                });
+          });
+        },
+    });
   }
 
   outcome::result<void> StorageMarketClientImpl::init() {
@@ -156,10 +162,6 @@ namespace fc::markets::storage::client {
 
   outcome::result<void> StorageMarketClientImpl::stop() {
     fsm_->stop();
-    std::lock_guard<std::mutex> lock(connections_mutex_);
-    for (auto &[_, stream] : connections_) {
-      closeStreamGracefully(stream, logger_);
-    }
     return outcome::success();
   }
 
@@ -309,25 +311,7 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(
         fsm_->begin(client_deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
 
-    host_->newStream(
-        provider_info.peer_info,
-        kDealProtocolId,
-        [self{shared_from_this()}, provider_info, client_deal, proposal_cid](
-            auto &&stream) {
-          SELF_FSM_HALT_ON_ERROR(
-              stream,
-              "Cannot open stream to "
-                  + peerInfoToPrettyString(provider_info.peer_info),
-              client_deal);
-          self->logger_->debug(
-              "DealStream opened to "
-              + peerInfoToPrettyString(provider_info.peer_info));
-
-          std::lock_guard<std::mutex> lock(self->connections_mutex_);
-          self->connections_.emplace(
-              proposal_cid, std::make_shared<CborStream>(stream.value()));
-          SELF_FSM_SEND(client_deal, ClientEvent::ClientEventOpen);
-        });
+    FSM_SEND(client_deal, ClientEvent::ClientEventOpen);
 
     OUTCOME_TRY(discovery_->addPeer(
         data_ref.root,
@@ -466,23 +450,7 @@ namespace fc::markets::storage::client {
     return true;
   }
 
-  outcome::result<std::shared_ptr<CborStream>>
-  StorageMarketClientImpl::getStream(const CID &proposal_cid) {
-    std::lock_guard<std::mutex> lock(connections_mutex_);
-    auto stream_it = connections_.find(proposal_cid);
-    if (stream_it == connections_.end()) {
-      return StorageMarketClientError::kStreamLookupError;
-    }
-    return stream_it->second;
-  }
-
   void StorageMarketClientImpl::finalizeDeal(std::shared_ptr<ClientDeal> deal) {
-    std::lock_guard<std::mutex> lock(connections_mutex_);
-    auto stream_it = connections_.find(deal->proposal_cid);
-    if (stream_it != connections_.end()) {
-      closeStreamGracefully(stream_it->second, logger_);
-      connections_.erase(stream_it);
-    }
   }
 
   std::vector<ClientTransition> StorageMarketClientImpl::makeFSMTransitions() {
@@ -497,12 +465,8 @@ namespace fc::markets::storage::client {
             ClientTransition(ClientEvent::ClientEventFundsEnsured)
                 .fromMany(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS,
                           StorageDealStatus::STORAGE_DEAL_CLIENT_FUNDING)
-                .to(StorageDealStatus::STORAGE_DEAL_FUNDS_ENSURED)
-                .action(CALLBACK_ACTION(onClientEventFundsEnsured)),
-            ClientTransition(ClientEvent::ClientEventDealProposed)
-                .from(StorageDealStatus::STORAGE_DEAL_FUNDS_ENSURED)
                 .to(StorageDealStatus::STORAGE_DEAL_VALIDATING)
-                .action(CALLBACK_ACTION(onClientEventDealProposed)),
+                .action(CALLBACK_ACTION(onClientEventFundsEnsured)),
             ClientTransition(ClientEvent::ClientEventDealRejected)
                 .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
                 .to(StorageDealStatus::STORAGE_DEAL_FAILING)
@@ -553,6 +517,8 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
+    logger_->info("onClientEventFundingInitiated StateWaitMsg {}",
+                  *deal->add_funds_cid);
     api_->StateWaitMsg(
         [self{shared_from_this()}, deal](outcome::result<MsgWait> result) {
           SELF_FSM_HALT_ON_ERROR(result, "Wait for funding error", deal);
@@ -576,31 +542,8 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto stream = getStream(deal->proposal_cid);
-    FSM_HALT_ON_ERROR(stream, "Stream not found.", deal);
-
-    Proposal proposal{.deal_proposal = deal->client_deal_proposal,
-                      .piece = deal->data_ref,
-                      .is_fast_retrieval = deal->is_fast_retrieval};
-    stream.value()->write(
-        proposal,
-        [self{shared_from_this()}, deal, stream](
-            outcome::result<size_t> written) {
-          SELF_FSM_HALT_ON_ERROR(written, "Send proposal error", deal);
-          SELF_FSM_SEND(deal, ClientEvent::ClientEventDealProposed);
-        });
-  }
-
-  void StorageMarketClientImpl::onClientEventDealProposed(
-      std::shared_ptr<ClientDeal> deal,
-      ClientEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {
-    auto stream_res = getStream(deal->proposal_cid);
-    FSM_HALT_ON_ERROR(stream_res, "Stream not found.", deal);
-    auto stream = std::move(stream_res.value());
-    stream->read<SignedResponse>([self{shared_from_this()}, deal, stream](
-                                     outcome::result<SignedResponse> response) {
+    auto cb{[self{shared_from_this()},
+             deal](outcome::result<SignedResponse> response) {
       SELF_FSM_HALT_ON_ERROR(response, "Read response error", deal);
       SELF_FSM_HALT_ON_ERROR(
           self->verifyDealResponseSignature(response.value(), deal),
@@ -654,7 +597,8 @@ namespace fc::markets::storage::client {
             "Wrong transfer type: '" + deal->data_ref.transfer_type + "'";
         SELF_FSM_SEND(deal, ClientEvent::ClientEventFailed);
       }
-    });
+    }};
+    propose(deal, std::move(cb));
   }
 
   void StorageMarketClientImpl::onClientEventDealRejected(
@@ -679,6 +623,8 @@ namespace fc::markets::storage::client {
       }
       FSM_SEND(deal, ClientEvent::ClientEventDealPublished);
     }};
+    logger_->info("onClientEventDealAccepted StateWaitMsg {}",
+                  deal->publish_message);
     api_->StateWaitMsg(
         [=, self{shared_from_this()}, cb{std::move(cb)}](auto _res) {
           OUTCOME_CB(auto res, _res);
@@ -729,6 +675,30 @@ namespace fc::markets::storage::client {
     finalizeDeal(deal);
   }
 
+  void StorageMarketClientImpl::propose(std::shared_ptr<ClientDeal> deal,
+                                        ProposeCb cb) {
+    propose_streams_->open({
+        deal->miner,
+        kDealProtocolId,
+        [=, MOVE(deal), MOVE(cb)](Host::StreamResult _stream) {
+          OUTCOME_CB1(_stream);
+          auto stream{std::make_shared<CborStream>(std::move(_stream.value()))};
+          Proposal proposal{
+              deal->client_deal_proposal,
+              deal->data_ref,
+              deal->is_fast_retrieval,
+          };
+          stream->write(
+              proposal, [=, MOVE(cb)](outcome::result<size_t> _write) {
+                OUTCOME_CB1(_write);
+                stream->read<SignedResponse>(
+                    [MOVE(cb), stream](outcome::result<SignedResponse> _res) {
+                      cb(std::move(_res));
+                    });
+              });
+        },
+    });
+  }
 }  // namespace fc::markets::storage::client
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::client,

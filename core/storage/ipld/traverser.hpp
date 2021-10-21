@@ -60,7 +60,7 @@ namespace fc::storage::ipld::traverser {
 
     Ipld &store;
     bool unique{};
-    std::queue<CID> to_visit_;      // set of cids to visit
+    std::vector<CID> to_visit_;     // set of cids to visit
     std::vector<CID> visit_order_;  // visited cids in visit order
     std::set<CID> visited_;         // set of visited cids
   };

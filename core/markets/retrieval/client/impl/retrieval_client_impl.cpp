@@ -112,9 +112,10 @@ namespace fc::markets::retrieval::client {
             auto unseal{res.status == DealStatus::kDealStatusFundsNeededUnseal};
             const auto last{res.status
                             == DealStatus::kDealStatusFundsNeededLastPayment};
+            const auto pay{res.status == DealStatus::kDealStatusFundsNeeded};
             const auto done{res.status == DealStatus::kDealStatusCompleted};
             const auto accepted{res.status == DealStatus::kDealStatusAccepted};
-            deal->accepted = unseal || accepted || last || done;
+            deal->accepted = unseal || accepted || pay || last || done;
             if (!deal->accepted) {
               deal->handler(
                   res.status == DealStatus::kDealStatusRejected
