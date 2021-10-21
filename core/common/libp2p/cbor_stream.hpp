@@ -47,7 +47,7 @@ namespace fc::common::libp2p {
      * @param input - shared pointer to buffer that must be alive until libp2p
      * callback in stream::write() is called
      */
-    void writeRaw(const std::shared_ptr<Bytes>& input, WriteCallbackFunc cb);
+    void writeRaw(const std::shared_ptr<Bytes> &input, WriteCallbackFunc cb);
 
     /// Write cbor object
     template <typename T>

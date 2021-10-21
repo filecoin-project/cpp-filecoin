@@ -38,7 +38,7 @@ namespace fc::storage {
 
    private:
     friend class InMemoryCursor;
-    std::map<std::string, Bytes> storage;
+    std::map<Bytes, Bytes> storage;
   };
 
 }  // namespace fc::storage

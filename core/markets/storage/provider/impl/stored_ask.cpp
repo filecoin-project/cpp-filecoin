@@ -56,8 +56,7 @@ namespace fc::markets::storage::provider {
   outcome::result<SignedStorageAsk> StoredAsk::loadSignedAsk() {
     if (datastore_->contains(kBestAskKey)) {
       OUTCOME_TRY(ask_bytes, datastore_->get(kBestAskKey));
-      OUTCOME_TRY(ask,
-                  codec::cbor::decode<SignedStorageAsk>(ask_bytes));
+      OUTCOME_TRY(ask, codec::cbor::decode<SignedStorageAsk>(ask_bytes));
       return std::move(ask);
     }
 

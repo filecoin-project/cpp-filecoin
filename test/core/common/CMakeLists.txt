@@ -30,14 +30,6 @@ target_link_libraries(blob_test
     blob
     )
 
-addtest(le_encoder_test
-    le_encoder_test.cpp
-    )
-target_link_libraries(le_encoder_test
-    Boost::boost
-    blob
-    )
-
 addtest(outcome_test
     outcome_test.cpp
     )

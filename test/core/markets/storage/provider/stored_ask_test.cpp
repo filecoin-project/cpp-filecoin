@@ -80,13 +80,12 @@ namespace fc::markets::storage::provider {
 
       bls_keypair = bls_provider_->generateKeyPair().value();
       bls_address = Address::makeBls(bls_keypair.public_key);
-      api->WalletSign = {
-          [=](const Address &address,
-              const Bytes &bytes) -> outcome::result<Signature> {
-            if (address != bls_address) throw "API WalletSign: Wrong address";
-            return Signature{
-                bls_provider_->sign(bytes, bls_keypair.private_key).value()};
-          }};
+      api->WalletSign = {[=](const Address &address,
+                             const Bytes &bytes) -> outcome::result<Signature> {
+        if (address != bls_address) throw "API WalletSign: Wrong address";
+        return Signature{
+            bls_provider_->sign(bytes, bls_keypair.private_key).value()};
+      }};
 
       api->StateMinerInfo = {
           [=](const Address &,

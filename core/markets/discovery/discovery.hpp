@@ -5,7 +5,6 @@
 
 #pragma once
 
-
 #include "common/outcome.hpp"
 #include "markets/retrieval/types.hpp"
 #include "primitives/cid/cid.hpp"

@@ -57,7 +57,7 @@ namespace fc::storage::piece {
      * @return byte buffer
      */
     static outcome::result<Bytes> makeKey(const std::string &prefix,
-                                           const CID &cid);
+                                          const CID &cid);
   };
 
 }  // namespace fc::storage::piece

@@ -32,7 +32,7 @@ namespace fc::sync::blocksync {
     }
 
     template <typename... Args>
-    inline void trace(spdlog::string_view_t fmt, const Args &...args) {
+    inline void trace(spdlog::string_view_t fmt, const Args &... args) {
 #if TRACE_ENABLED
       log()->trace(fmt, args...);
 #endif

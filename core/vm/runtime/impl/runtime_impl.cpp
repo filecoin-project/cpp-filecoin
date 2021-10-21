@@ -108,7 +108,7 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(encoded_address, codec::cbor::encode(caller_address));
     putUint64(encoded_address, execution()->origin_nonce);
     putUint64(encoded_address, execution_->actors_created);
-    auto actor_address{Address::makeActorExec(encoded_address)};
+    const auto actor_address{Address::makeActorExec(encoded_address)};
 
     ++execution_->actors_created;
     return actor_address;

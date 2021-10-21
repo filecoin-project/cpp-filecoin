@@ -117,9 +117,7 @@ namespace fc::vm::runtime {
         const std::vector<PieceInfo> &pieces) override;
 
     outcome::result<boost::optional<ConsensusFault>> verifyConsensusFault(
-        const Bytes &block1,
-        const Bytes &block2,
-        const Bytes &extra) override;
+        const Bytes &block1, const Bytes &block2, const Bytes &extra) override;
 
     outcome::result<Blake2b256Hash> hashBlake2b(
         gsl::span<const uint8_t> data) override;

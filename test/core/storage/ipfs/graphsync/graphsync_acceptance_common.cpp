@@ -61,8 +61,7 @@ namespace fc::storage::ipfs::graphsync::test {
   outcome::result<size_t> TestDataService::select(
       const CID &cid,
       gsl::span<const uint8_t> selector,
-      std::function<bool(const CID &cid, const Bytes &data)> handler)
-      const {
+      std::function<bool(const CID &cid, const Bytes &data)> handler) const {
     auto it = data_.find(cid);
     if (it != data_.end()) {
       handler(it->first, it->second);

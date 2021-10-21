@@ -18,7 +18,7 @@ namespace fc::storage {
   }
 
   outcome::result<void> LevelDB::Batch::put(const Bytes &key, Bytes &&value) {
-    return put(key, static_cast<const Bytes &>(value));
+    return put(key, value);
   }
 
   outcome::result<void> LevelDB::Batch::remove(const Bytes &key) {

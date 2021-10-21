@@ -23,19 +23,19 @@ namespace fc::primitives::address {
   struct AddressCodecTest : public testing::Test {
     std::unordered_map<std::string, std::vector<uint8_t>> knownAddresses{
         {"t17uoq6tp427uzv7fztkbsnn64iwotfrristwpryy",
-                                   "01fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex},
+         "01fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex},
         {"t1xcbgdhkgkwht3hrrnui3jdopeejsoatkzmoltqy",
-                                   "01b882619d46558f3d9e316d11b48dcf211327026a"_unhex},
+         "01b882619d46558f3d9e316d11b48dcf211327026a"_unhex},
         {"t2gfvuyh7v2sx3patm5k23wdzmhyhtmqctasbr23y",
-                                   "02316b4c1ff5d4afb7826ceab5bb0f2c3e0f364053"_unhex},
+         "02316b4c1ff5d4afb7826ceab5bb0f2c3e0f364053"_unhex},
         {"t3vvmn62lofvhjd2ugzca6sof2j2ubwok6cj4xxbfzz4yuxfkgobpihhd2thlanmsh3w2"
          "pt"
          "ld2gqkn2jvlss4a",
-                                   "03ad58df696e2d4e91ea86c881e938ba4ea81b395e12797b84b9cf314b9546705e839c7a99d606b247ddb4f9ac7a3414dd"_unhex},
+         "03ad58df696e2d4e91ea86c881e938ba4ea81b395e12797b84b9cf314b9546705e839c7a99d606b247ddb4f9ac7a3414dd"_unhex},
         {"t3wmuu6crofhqmm3v4enos73okk2l366ck6yc4owxwbdtkmpk42ohkqxfitcpa57pjdcf"
          "tq"
          "l4tojda2poeruwa",
-                                   "03b3294f0a2e29e0c66ebc235d2fedca5697bf784af605c75af608e6a63d5cd38ea85ca8989e0efde9188b382f9372460d"_unhex},
+         "03b3294f0a2e29e0c66ebc235d2fedca5697bf784af605c75af608e6a63d5cd38ea85ca8989e0efde9188b382f9372460d"_unhex},
         {"t00", "0000"_unhex},
         {"t01024", "008008"_unhex},
         {"t032104785", "00d1c2a70f"_unhex},
