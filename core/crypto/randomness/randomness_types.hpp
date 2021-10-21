@@ -6,7 +6,7 @@
 #pragma once
 
 #include "common/blob.hpp"
-#include "common/bytes.hpp"
+#include "common/endian.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 
@@ -35,9 +35,9 @@ namespace fc::crypto::randomness {
                                    primitives::ChainEpoch round,
                                    gsl::span<const uint8_t> entropy) {
     Bytes buffer;
-    putUint64(buffer, static_cast<uint64_t>(tag));
+    common::putUint64BigEndian(buffer, static_cast<uint64_t>(tag));
     append(buffer, crypto::blake2b::blake2b_256(base));
-    putUint64(buffer, round);
+    common::putUint64BigEndian(buffer, round);
     append(buffer, entropy);
     return crypto::blake2b::blake2b_256(buffer);
   }

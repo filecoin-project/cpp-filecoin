@@ -84,7 +84,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       ChainEpoch current_epoch) const {
     OUTCOME_TRY(address_encoded,
                 codec::cbor::encode(getRuntime().getCurrentReceiver()));
-    putUint64(address_encoded, current_epoch);
+    common::putUint64BigEndian(address_encoded, current_epoch);
     OUTCOME_TRY(digest, getRuntime().hashBlake2b(address_encoded));
     const uint64_t offset = boost::endian::load_big_u64(digest.data());
     return offset % kWPoStProvingPeriod;

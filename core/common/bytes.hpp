@@ -37,17 +37,6 @@ namespace fc {
   inline void append(Bytes &l, BytesIn r) {
     l.insert(l.end(), r.begin(), r.end());
   }
-
-  inline void putUint64(Bytes &l, uint64_t n) {
-    l.push_back(static_cast<unsigned char &&>((n >> 56u) & 0xFF));
-    l.push_back(static_cast<unsigned char &&>((n >> 48u) & 0xFF));
-    l.push_back(static_cast<unsigned char &&>((n >> 40u) & 0xFF));
-    l.push_back(static_cast<unsigned char &&>((n >> 32u) & 0xFF));
-    l.push_back(static_cast<unsigned char &&>((n >> 24u) & 0xFF));
-    l.push_back(static_cast<unsigned char &&>((n >> 16u) & 0xFF));
-    l.push_back(static_cast<unsigned char &&>((n >> 8u) & 0xFF));
-    l.push_back(static_cast<unsigned char &&>((n)&0xFF));
-  }
 }  // namespace fc
 
 namespace gsl {

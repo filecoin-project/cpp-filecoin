@@ -6,6 +6,7 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 
 #include "codec/cbor/cbor_codec.hpp"
+#include "common/endian.hpp"
 #include "const.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
@@ -106,8 +107,8 @@ namespace fc::vm::runtime {
                            execution_->env->ipld,
                            execution()->origin));
     OUTCOME_TRY(encoded_address, codec::cbor::encode(caller_address));
-    putUint64(encoded_address, execution()->origin_nonce);
-    putUint64(encoded_address, execution_->actors_created);
+    common::putUint64BigEndian(encoded_address, execution()->origin_nonce);
+    common::putUint64BigEndian(encoded_address, execution_->actors_created);
     const auto actor_address{Address::makeActorExec(encoded_address)};
 
     ++execution_->actors_created;
