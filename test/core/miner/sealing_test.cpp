@@ -26,7 +26,6 @@
 #include "testutil/vm/actor/builtin/actor_test_util.hpp"
 #include "vm/actor/builtin/v5/market/market_actor.hpp"
 #include "vm/actor/codes.hpp"
-#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::mining {
 
@@ -61,7 +60,6 @@ namespace fc::mining {
   using vm::actor::builtin::v5::market::ComputeDataCommitment;
   using vm::message::SignedMessage;
   using vm::runtime::MessageReceipt;
-  using vm::toolchain::Toolchain;
 
   class SealingTest : public testing::Test {
    protected:
@@ -664,7 +662,7 @@ namespace fc::mining {
 
     auto actor_key{"010001020003"_cid};
     auto ipld{std::make_shared<InMemoryDatastore>()};
-    const auto actor_version = Toolchain::getActorVersionForNetwork(version_);
+    const auto actor_version = actorVersion(version_);
     ipld->actor_version = actor_version;
     auto actor_state = makeMinerActorState(ipld, actor_version);
     SectorPreCommitOnChainInfo some_info;

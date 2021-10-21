@@ -172,7 +172,8 @@ namespace fc::vm::actor::builtin::v2::miner {
     return DealWeights{
         .deal_weight = deal_weights.deal_weight,
         .verified_deal_weight = deal_weights.verified_deal_weight,
-        .deal_space = deal_weights.deal_space};
+        .deal_space = deal_weights.deal_space,
+        .sectors = {}};
   }
 
   outcome::result<Address> MinerUtils::getPubkeyAddressFromAccountActor(

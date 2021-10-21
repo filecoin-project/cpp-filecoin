@@ -15,13 +15,17 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::kChainEpochUndefined;
   using primitives::cid::kCommitmentBytesLen;
   using primitives::piece::PieceInfo;
+  using states::DealSet;
   using states::MarketActorStatePtr;
   using toolchain::Toolchain;
+  using types::Universal;
   using namespace types::market;
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    MarketActorStatePtr state{runtime.getActorVersion()};
+    const auto actor_version = runtime.getActorVersion();
+    MarketActorStatePtr state{actor_version};
+    state->pending_proposals = Universal<PendingProposals>{actor_version};
     cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
     state->last_cron = kChainEpochUndefined;
 
@@ -99,10 +103,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
     const auto utils = Toolchain::createMarketUtils(runtime);
 
-    OUTCOME_TRY(addresses, utils->requestMinerControlAddress(provider));
-    if (addresses.worker != runtime.getImmediateCaller()) {
-      ABORT(VMExitCode::kErrForbidden);
-    }
+    OUTCOME_TRY(utils->checkCallers(provider));
 
     // request current baseline power
     OUTCOME_TRY(baseline_power, utils->getBaselinePowerFromRewardActor());
@@ -122,7 +123,7 @@ namespace fc::vm::actor::builtin::v0::market {
                      VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR(state->escrow_table.hamt.loadRoot(),
                      VMExitCode::kErrIllegalState);
-    REQUIRE_NO_ERROR(state->pending_proposals_0.hamt.loadRoot(),
+    REQUIRE_NO_ERROR(state->pending_proposals->loadRoot(),
                      VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR(state->deals_by_epoch.hamt.loadRoot(),
                      VMExitCode::kErrIllegalState);
@@ -148,11 +149,11 @@ namespace fc::vm::actor::builtin::v0::market {
       const auto deal_id = state->next_deal++;
 
       REQUIRE_NO_ERROR_A(has,
-                         state->pending_proposals_0.has(deal.cid()),
+                         state->pending_proposals->has(deal.cid()),
                          VMExitCode::kErrIllegalState);
       OUTCOME_TRY(runtime.validateArgument(!has));
 
-      REQUIRE_NO_ERROR(state->pending_proposals_0.set(deal.cid(), deal),
+      REQUIRE_NO_ERROR(state->pending_proposals->set(deal.cid(), deal),
                        VMExitCode::kErrIllegalState);
 
       REQUIRE_NO_ERROR(state->proposals.set(deal_id, deal),
@@ -166,9 +167,9 @@ namespace fc::vm::actor::builtin::v0::market {
 
       OUTCOME_TRY(set, state->deals_by_epoch.tryGet(process_epoch));
       if (!set) {
-        set = states::MarketActorState::DealSet{IpldPtr{runtime}};
+        set = DealSet{IpldPtr{runtime}};
       }
-      OUTCOME_TRY(set->set(deal_id, {}));
+      OUTCOME_TRY(set->set(deal_id));
       REQUIRE_NO_ERROR(state->deals_by_epoch.set(process_epoch, *set),
                        VMExitCode::kErrIllegalState);
       deals.emplace_back(deal_id);
@@ -239,7 +240,7 @@ namespace fc::vm::actor::builtin::v0::market {
                          state->proposals.get(deal_id),
                          VMExitCode::kErrIllegalState);
 
-      const auto pending = state->pending_proposals_0.has(proposal.cid());
+      const auto pending = state->pending_proposals->has(proposal.cid());
       if (!pending.value()) {
         ABORT(VMExitCode::kErrIllegalState);
       }
@@ -279,7 +280,9 @@ namespace fc::vm::actor::builtin::v0::market {
 
       const auto &deal = maybe_deal.value();
 
-      VM_ASSERT(deal.provider == runtime.getImmediateCaller());
+      const auto utils = Toolchain::createMarketUtils(runtime);
+      OUTCOME_TRY(utils->assertCondition(deal.provider
+                                         == runtime.getImmediateCaller()));
 
       // do not slash expired deals
       if (deal.end_epoch <= params.epoch) {
@@ -355,7 +358,7 @@ namespace fc::vm::actor::builtin::v0::market {
                      VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR(state->proposals.amt.loadRoot(),
                      VMExitCode::kErrIllegalState);
-    REQUIRE_NO_ERROR(state->pending_proposals_0.hamt.loadRoot(),
+    REQUIRE_NO_ERROR(state->pending_proposals->loadRoot(),
                      VMExitCode::kErrIllegalState);
 
     const auto utils = Toolchain::createMarketUtils(runtime);
@@ -374,7 +377,7 @@ namespace fc::vm::actor::builtin::v0::market {
           // deal has been published but not activated yet -> terminate it as it
           // has timed out
           if (!maybe_deal_state.has_value()) {
-            VM_ASSERT(now >= deal.start_epoch);
+            OUTCOME_TRY(utils->assertCondition(now >= deal.start_epoch));
             OUTCOME_TRY(slashed, state->processDealInitTimedOut(runtime, deal));
             slashed_sum += slashed;
             if (deal.verified) {
@@ -391,7 +394,7 @@ namespace fc::vm::actor::builtin::v0::market {
           // if this is the first cron tick for the deal, it should be in the
           // pending state->
           if (deal_state.last_updated_epoch == kChainEpochUndefined) {
-            REQUIRE_NO_ERROR(state->pending_proposals_0.remove(deal.cid()),
+            REQUIRE_NO_ERROR(state->pending_proposals->remove(deal.cid()),
                              VMExitCode::kErrIllegalState);
           }
 
@@ -400,15 +403,17 @@ namespace fc::vm::actor::builtin::v0::market {
                           runtime, deal_id, deal, deal_state, now));
           const auto &[slash_amount, next_epoch, remove_deal] = slashed_next;
 
-          VM_ASSERT(slash_amount >= 0);
+          OUTCOME_TRY(utils->assertCondition(slash_amount >= 0));
           if (remove_deal) {
-            VM_ASSERT(next_epoch == kChainEpochUndefined);
+            OUTCOME_TRY(
+                utils->assertCondition(next_epoch == kChainEpochUndefined));
             slashed_sum += slash_amount;
             REQUIRE_NO_ERROR(
                 utils->deleteDealProposalAndState(state, deal_id, true, true),
                 VMExitCode::kErrIllegalState);
           } else {
-            VM_ASSERT((next_epoch > now) && (slash_amount == 0));
+            OUTCOME_TRY(utils->assertCondition((next_epoch > now)
+                                               && (slash_amount == 0)));
             deal_state.last_updated_epoch = now;
             REQUIRE_NO_ERROR(state->states.set(deal_id, deal_state),
                              VMExitCode::kErrIllegalState);
@@ -424,10 +429,10 @@ namespace fc::vm::actor::builtin::v0::market {
     for (const auto &[next, deals] : updates_needed) {
       OUTCOME_TRY(set, state->deals_by_epoch.tryGet(next));
       if (!set) {
-        set = states::MarketActorState::DealSet{IpldPtr{runtime}};
+        set = DealSet{IpldPtr{runtime}};
       }
       for (const auto deal : deals) {
-        OUTCOME_TRY(set->set(deal, {}));
+        OUTCOME_TRY(set->set(deal));
       }
       OUTCOME_TRY(state->deals_by_epoch.set(next, *set));
     }

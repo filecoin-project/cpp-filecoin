@@ -24,6 +24,19 @@ namespace fc::vm::actor::builtin::v0::market {
     return getRuntime().validateImmediateCallerIsSignable();
   }
 
+  outcome::result<void> MarketUtils::assertCondition(bool condition) const {
+    return getRuntime().vm_assert(condition);
+  }
+
+  outcome::result<void> MarketUtils::checkCallers(
+      const Address &provider) const {
+    OUTCOME_TRY(addresses, requestMinerControlAddress(provider));
+    if (addresses.worker != getRuntime().getImmediateCaller()) {
+      ABORT(VMExitCode::kErrForbidden);
+    }
+    return outcome::success();
+  }
+
   outcome::result<std::tuple<Address, Address, std::vector<Address>>>
   MarketUtils::escrowAddress(const Address &address) const {
     const auto nominal = getRuntime().resolveAddress(address);
@@ -204,6 +217,15 @@ namespace fc::vm::actor::builtin::v0::market {
       (deal->verified ? verified_weight : weight) += space_time;
     }
     return std::make_tuple(weight, verified_weight, 0);
+  }
+
+  outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
+  MarketUtils::validateAndComputeDealWeight(
+      DealArray &proposals,
+      const std::vector<DealId> &deals,
+      const ChainEpoch &sector_expiry) const {
+    // Do nothing for v0
+    return std::make_tuple(0, 0, 0);
   }
 
   outcome::result<StoragePower> MarketUtils::getBaselinePowerFromRewardActor()

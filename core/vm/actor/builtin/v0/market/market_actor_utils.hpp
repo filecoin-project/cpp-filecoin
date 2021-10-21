@@ -15,6 +15,7 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
+  using states::DealArray;
   using states::MarketActorStatePtr;
   using types::Controls;
   using types::market::ClientDealProposal;
@@ -25,6 +26,10 @@ namespace fc::vm::actor::builtin::v0::market {
     explicit MarketUtils(Runtime &r) : utils::MarketUtils(r) {}
 
     outcome::result<void> checkWithdrawCaller() const override;
+
+    outcome::result<void> assertCondition(bool condition) const override;
+
+    outcome::result<void> checkCallers(const Address &provider) const override;
 
     outcome::result<std::tuple<Address, Address, std::vector<Address>>>
     escrowAddress(const Address &address) const override;
@@ -60,6 +65,12 @@ namespace fc::vm::actor::builtin::v0::market {
     validateDealsForActivation(MarketActorStatePtr &state,
                                const std::vector<DealId> &deals,
                                const ChainEpoch &sector_expiry) const override;
+
+    outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
+    validateAndComputeDealWeight(
+        DealArray &proposals,
+        const std::vector<DealId> &deals,
+        const ChainEpoch &sector_expiry) const override;
 
     outcome::result<StoragePower> getBaselinePowerFromRewardActor()
         const override;

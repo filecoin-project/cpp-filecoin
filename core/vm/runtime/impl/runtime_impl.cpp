@@ -46,7 +46,7 @@ namespace fc::vm::runtime {
   }
 
   ActorVersion RuntimeImpl::getActorVersion() const {
-    return Toolchain::getActorVersionForNetwork(getNetworkVersion());
+    return actorVersion(getNetworkVersion());
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomnessFromTickets(

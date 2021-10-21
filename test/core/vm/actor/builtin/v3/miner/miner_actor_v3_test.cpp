@@ -97,9 +97,9 @@ namespace fc::vm::actor::builtin::v3::miner {
                           uint64_t deal_space) {
       runtime.expectSendM<market::VerifyDealsForActivation>(
           kStorageMarketAddress,
-          {deals, sector_expiry, sector_start},
+          {{{sector_expiry, deals}}},
           0,
-          {deal_weight, verified_deal_weight, deal_space});
+          {{{deal_space, deal_weight, verified_deal_weight}}});
     }
 
     const Blob<48> bls_pubkey =

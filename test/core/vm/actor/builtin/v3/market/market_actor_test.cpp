@@ -6,21 +6,21 @@
 #include <boost/predef/compiler/gcc.h>
 
 #include "vm/actor/builtin/states/market/market_actor_state.hpp"
-#include "vm/actor/builtin/v2/market/market_actor.hpp"
+#include "vm/actor/builtin/v3/market/market_actor.hpp"
 
 #include "primitives/cid/comm_cid.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/crypto/sample_signatures.hpp"
 #include "testutil/vm/actor/builtin/market/market_actor_test_fixture.hpp"
-#include "vm/actor/builtin/v2/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v2/reward/reward_actor.hpp"
-#include "vm/actor/builtin/v2/storage_power/storage_power_actor.hpp"
+#include "vm/actor/builtin/v3/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v3/reward/reward_actor.hpp"
+#include "vm/actor/builtin/v3/storage_power/storage_power_actor.hpp"
 #include "vm/actor/codes.hpp"
 #include "vm/version/version.hpp"
 
 #define ON_CALL_3(a, b, c) EXPECT_CALL(a, b).WillRepeatedly(Return(c))
 
-namespace fc::vm::actor::builtin::v2::market {
+namespace fc::vm::actor::builtin::v3::market {
   namespace MinerActor = miner;
   namespace RewardActor = reward;
   namespace PowerActor = storage_power;
@@ -53,7 +53,7 @@ namespace fc::vm::actor::builtin::v2::market {
   struct MarketActorTest : public MarketActorTestFixture {
     void SetUp() override {
       MarketActorTestFixture::SetUp();
-      actor_version = ActorVersion::kVersion2;
+      actor_version = ActorVersion::kVersion3;
       ipld->actor_version = actor_version;
       state = MarketActorStatePtr{actor_version};
       state->pending_proposals = Universal<PendingProposals>{actor_version};
@@ -384,7 +384,7 @@ namespace fc::vm::actor::builtin::v2::market {
     callerIs(client_address);
 
     EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrForbidden),
-                         VerifyDealsForActivation::call(runtime, {{}, {}, {}}));
+                         VerifyDealsForActivation::call(runtime, {}));
   }
 
   TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitNotProvider) {
@@ -393,7 +393,7 @@ namespace fc::vm::actor::builtin::v2::market {
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrForbidden),
-        VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}, {}}));
+        VerifyDealsForActivation::call(runtime, {{{{}, {deal_1_id}}}}));
   }
 
   TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitAlreadyStarted) {
@@ -403,7 +403,7 @@ namespace fc::vm::actor::builtin::v2::market {
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrIllegalArgument),
-        VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}, {}}));
+        VerifyDealsForActivation::call(runtime, {{{{}, {deal_1_id}}}}));
   }
 
   TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitStartTimeout) {
@@ -412,23 +412,22 @@ namespace fc::vm::actor::builtin::v2::market {
 
     EXPECT_OUTCOME_ERROR(
         asAbort(VMExitCode::kErrIllegalArgument),
-        VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}, {}}));
+        VerifyDealsForActivation::call(runtime, {{{{}, {deal_1_id}}}}));
   }
 
   TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitSectorEndsBeforeDeal) {
     auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
 
-    EXPECT_OUTCOME_ERROR(
-        asAbort(VMExitCode::kErrIllegalArgument),
-        VerifyDealsForActivation::call(
-            runtime, {{deal_1_id}, deal.end_epoch - 1, kChainEpochUndefined}));
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kErrIllegalArgument),
+                         VerifyDealsForActivation::call(
+                             runtime, {{{deal.end_epoch - 1, {deal_1_id}}}}));
   }
 
   TEST_F(MarketActorTest, VerifyDealsForActivation) {
     auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
 
     EXPECT_OUTCOME_TRUE_1(VerifyDealsForActivation::call(
-        runtime, {{deal_1_id}, deal.end_epoch, kChainEpochUndefined}));
+        runtime, {{{deal.end_epoch, {deal_1_id}}}}));
   }
 
   TEST_F(MarketActorTest, OnMinerSectorsTerminateNotDealMiner) {
@@ -491,4 +490,4 @@ namespace fc::vm::actor::builtin::v2::market {
     EXPECT_OUTCOME_EQ(
         ComputeDataCommitment::call(runtime, {deal_ids, sector_type}), comm_d);
   }
-}  // namespace fc::vm::actor::builtin::v2::market
+}  // namespace fc::vm::actor::builtin::v3::market

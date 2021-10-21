@@ -5,9 +5,11 @@
 
 add_library(market_actor_state
     market_actor_state.cpp
+    v3/market_actor_state.cpp
     bind_states.cpp
     )
 target_link_libraries(market_actor_state
     cbor
     toolchain
+    market_types
     )
