@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(market)
 add_subdirectory(miner)
 add_subdirectory(multisig)
 add_subdirectory(reward)

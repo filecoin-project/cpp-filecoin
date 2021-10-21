@@ -28,10 +28,12 @@ namespace fc::mining::checks {
   using sector_storage::zerocomm::getZeroPieceCommitment;
   using storage::ipfs::ApiIpfsDatastore;
   using vm::VMExitCode;
+  using vm::actor::ActorVersion;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::MethodParams;
   using vm::actor::builtin::states::MinerActorStatePtr;
   using vm::actor::builtin::types::miner::kChainFinality;
+  using vm::actor::builtin::types::miner::kMaxProveCommitDuration;
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::types::miner::maxSealDuration;
   using vm::actor::builtin::types::miner::SectorPreCommitOnChainInfo;
@@ -43,23 +45,19 @@ namespace fc::mining::checks {
 
   outcome::result<EpochDuration> getMaxProveCommitDuration(
       NetworkVersion network, const std::shared_ptr<SectorInfo> &sector_info) {
-    auto version{Toolchain::getActorVersionForNetwork(network)};
+    const auto version{actorVersion(network)};
     switch (version) {
-      case vm::actor::ActorVersion::kVersion0:
+      case ActorVersion::kVersion0:
         return maxSealDuration(sector_info->sector_type);
-      case vm::actor::ActorVersion::kVersion2:
-        return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
-      case vm::actor::ActorVersion::kVersion3:
-        return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
-      case vm::actor::ActorVersion::kVersion4:
-        return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
-      case vm::actor::ActorVersion::kVersion5:
-        if (sector_info->sector_type
-            >= api::RegisteredSealProof::kStackedDrg2KiBV1_1) {
-          return 30 * kEpochsInDay + kPreCommitChallengeDelay;
-        }
-
-        return vm::actor::builtin::types::miner::kMaxProveCommitDuration;
+      case ActorVersion::kVersion2:
+      case ActorVersion::kVersion3:
+      case ActorVersion::kVersion4:
+        return kMaxProveCommitDuration;
+      case ActorVersion::kVersion5:
+        return sector_info->sector_type
+                       >= api::RegisteredSealProof::kStackedDrg2KiBV1_1
+                   ? 30 * kEpochsInDay + kPreCommitChallengeDelay
+                   : kMaxProveCommitDuration;
     }
   }
 
@@ -160,7 +158,7 @@ namespace fc::mining::checks {
     OUTCOME_TRY(actor, api->StateGetActor(miner_address, tipset_key));
     auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
     OUTCOME_TRY(network, api->StateNetworkVersion(tipset_key));
-    ipfs->actor_version = Toolchain::getActorVersionForNetwork(network);
+    ipfs->actor_version = actorVersion(network);
 
     OUTCOME_TRY(state, getCbor<MinerActorStatePtr>(ipfs, actor.head));
 

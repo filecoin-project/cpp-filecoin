@@ -74,6 +74,19 @@ namespace fc::vm::actor::builtin::types::market {
     TokenAmount storage_price_per_epoch;
     TokenAmount provider_collateral;
     TokenAmount client_collateral;
+
+    inline bool operator==(const DealProposal &other) const {
+      return piece_cid == other.piece_cid && piece_size == other.piece_size
+             && client == other.client && provider == other.provider
+             && start_epoch == other.start_epoch && end_epoch == other.end_epoch
+             && storage_price_per_epoch == other.storage_price_per_epoch
+             && provider_collateral == other.provider_collateral
+             && client_collateral == other.client_collateral;
+    }
+
+    inline bool operator!=(const DealProposal &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(DealProposal,
              piece_cid,
@@ -88,28 +101,22 @@ namespace fc::vm::actor::builtin::types::market {
              provider_collateral,
              client_collateral)
 
-  inline bool operator==(const DealProposal &lhs, const DealProposal &rhs) {
-    return lhs.piece_cid == rhs.piece_cid && lhs.piece_size == rhs.piece_size
-           && lhs.client == rhs.client && lhs.provider == rhs.provider
-           && lhs.start_epoch == rhs.start_epoch
-           && lhs.end_epoch == rhs.end_epoch
-           && lhs.storage_price_per_epoch == rhs.storage_price_per_epoch
-           && lhs.provider_collateral == rhs.provider_collateral
-           && lhs.client_collateral == rhs.client_collateral;
-  }
-
   struct DealState {
     ChainEpoch sector_start_epoch;
     ChainEpoch last_updated_epoch;
     ChainEpoch slash_epoch;
+
+    inline bool operator==(const DealState &other) const {
+      return sector_start_epoch == other.sector_start_epoch
+             && last_updated_epoch == other.last_updated_epoch
+             && slash_epoch == other.slash_epoch;
+    }
+
+    inline bool operator!=(const DealState &other) const {
+      return !(*this == other);
+    }
   };
   CBOR_TUPLE(DealState, sector_start_epoch, last_updated_epoch, slash_epoch)
-
-  inline bool operator==(const DealState &lhs, const DealState &rhs) {
-    return lhs.sector_start_epoch == rhs.sector_start_epoch
-           and lhs.last_updated_epoch == rhs.last_updated_epoch
-           and lhs.slash_epoch == rhs.slash_epoch;
-  }
 
   struct ClientDealProposal {
     DealProposal proposal;
@@ -121,9 +128,13 @@ namespace fc::vm::actor::builtin::types::market {
           CID::Version::V1, CID::Multicodec::DAG_CBOR, Hasher::sha2_256(bytes)};
     }
 
-    inline bool operator==(const ClientDealProposal &rhs) const {
-      return proposal == rhs.proposal
-             && client_signature == rhs.client_signature;
+    inline bool operator==(const ClientDealProposal &other) const {
+      return proposal == other.proposal
+             && client_signature == other.client_signature;
+    }
+
+    inline bool operator!=(const ClientDealProposal &other) const {
+      return !(*this == other);
     }
   };
   CBOR_TUPLE(ClientDealProposal, proposal, client_signature)

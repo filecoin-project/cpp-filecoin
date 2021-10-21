@@ -38,8 +38,8 @@ namespace fc::vm::actor::builtin::v2::market {
                        VMExitCode::kErrIllegalArgument);
 
     const auto &proposal = client_deal.proposal;
-    OUTCOME_TRY(
-        getRuntime().validateArgument(proposal.label.length() <= kDealMaxLabelSize));
+    OUTCOME_TRY(getRuntime().validateArgument(proposal.label.length()
+                                              <= kDealMaxLabelSize));
     CHANGE_ERROR_ABORT(proposal.piece_size.validate(),
                        VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(getRuntime().validateArgument(proposal.piece_cid != CID()));
@@ -55,17 +55,19 @@ namespace fc::vm::actor::builtin::v2::market {
                == kCommitmentBytesLen));
 
     OUTCOME_TRY(getRuntime().validateArgument(getRuntime().getCurrentEpoch()
-                                         <= proposal.start_epoch));
+                                              <= proposal.start_epoch));
 
     const auto duration = dealDurationBounds(proposal.piece_size);
-    OUTCOME_TRY(getRuntime().validateArgument(duration.in(proposal.duration())));
+    OUTCOME_TRY(
+        getRuntime().validateArgument(duration.in(proposal.duration())));
 
     const auto price =
         dealPricePerEpochBounds(proposal.piece_size, proposal.duration());
-    OUTCOME_TRY(
-        getRuntime().validateArgument(price.in(proposal.storage_price_per_epoch)));
+    OUTCOME_TRY(getRuntime().validateArgument(
+        price.in(proposal.storage_price_per_epoch)));
 
-    OUTCOME_TRY(fil_circulating_supply, getRuntime().getTotalFilCirculationSupply());
+    OUTCOME_TRY(fil_circulating_supply,
+                getRuntime().getTotalFilCirculationSupply());
     const auto provider_collateral =
         dealProviderCollateralBounds(proposal.piece_size,
                                      proposal.verified,
@@ -90,10 +92,17 @@ namespace fc::vm::actor::builtin::v2::market {
       MarketActorStatePtr &state,
       const std::vector<DealId> &deals,
       const ChainEpoch &sector_expiry) const {
-    const auto miner = getRuntime().getImmediateCaller();
-
     // Lotus gas conformance
     OUTCOME_TRY(state->proposals.amt.loadRoot());
+    return validateAndComputeDealWeight(state->proposals, deals, sector_expiry);
+  }
+
+  outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
+  MarketUtils::validateAndComputeDealWeight(
+      DealArray &proposals,
+      const std::vector<DealId> &deals,
+      const ChainEpoch &sector_expiry) const {
+    const auto miner = getRuntime().getImmediateCaller();
 
     std::set<DealId> seen_deals;
 
@@ -108,7 +117,7 @@ namespace fc::vm::actor::builtin::v2::market {
         return VMExitCode::kErrIllegalArgument;
       }
 
-      OUTCOME_TRY(deal, state->proposals.tryGet(deal_id));
+      OUTCOME_TRY(deal, proposals.tryGet(deal_id));
       if (!deal.has_value()) {
         return VMExitCode::kErrNotFound;
       }
@@ -120,8 +129,9 @@ namespace fc::vm::actor::builtin::v2::market {
         return VMExitCode::kErrForbidden;
       }
       OUTCOME_TRY(getRuntime().validateArgument(getRuntime().getCurrentEpoch()
-                                           <= deal->start_epoch));
-      OUTCOME_TRY(getRuntime().validateArgument(deal->end_epoch <= sector_expiry));
+                                                <= deal->start_epoch));
+      OUTCOME_TRY(
+          getRuntime().validateArgument(deal->end_epoch <= sector_expiry));
 
       deal_space += deal->piece_size;
       const auto space_time = dealWeight(deal.value());
@@ -133,8 +143,9 @@ namespace fc::vm::actor::builtin::v2::market {
 
   outcome::result<StoragePower> MarketUtils::getBaselinePowerFromRewardActor()
       const {
-    OUTCOME_TRY(epoch_reward,
-                getRuntime().sendM<reward::ThisEpochReward>(kRewardAddress, {}, 0));
+    OUTCOME_TRY(
+        epoch_reward,
+        getRuntime().sendM<reward::ThisEpochReward>(kRewardAddress, {}, 0));
     return epoch_reward.this_epoch_baseline_power;
   }
 

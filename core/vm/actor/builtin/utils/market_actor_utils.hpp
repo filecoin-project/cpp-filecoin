@@ -23,6 +23,7 @@ namespace fc::vm::actor::builtin::utils {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using runtime::Runtime;
+  using states::DealArray;
   using states::MarketActorStatePtr;
   using types::Controls;
   using types::market::BalanceLockingReason;
@@ -35,6 +36,10 @@ namespace fc::vm::actor::builtin::utils {
     explicit MarketUtils(Runtime &r) : ActorUtils(r) {}
 
     virtual outcome::result<void> checkWithdrawCaller() const = 0;
+
+    virtual outcome::result<void> assertCondition(bool condition) const = 0;
+
+    virtual outcome::result<void> checkCallers(const Address &provider) const = 0;
 
     virtual outcome::result<std::tuple<Address, Address, std::vector<Address>>>
     escrowAddress(const Address &address) const = 0;
@@ -70,6 +75,11 @@ namespace fc::vm::actor::builtin::utils {
     validateDealsForActivation(MarketActorStatePtr &state,
                                const std::vector<DealId> &deals,
                                const ChainEpoch &sector_expiry) const = 0;
+
+    virtual outcome::result<std::tuple<DealWeight, DealWeight, uint64_t>>
+    validateAndComputeDealWeight(DealArray &proposals,
+                                 const std::vector<DealId> &deals,
+                                 const ChainEpoch &sector_expiry) const = 0;
 
     virtual outcome::result<StoragePower> getBaselinePowerFromRewardActor()
         const = 0;
