@@ -13,7 +13,13 @@ fc::outcome::result<bool> InMemoryDatastore::contains(const CID &key) const {
 }
 
 fc::outcome::result<void> InMemoryDatastore::set(const CID &key, Value value) {
-  storage_[key] = value;
+  storage_[key] = std::move(value);
+  return fc::outcome::success();
+}
+
+fc::outcome::result<void> InMemoryDatastore::set(const CID &key,
+                                                 SpanValue value) {
+  storage_[key] = copy(value);
   return fc::outcome::success();
 }
 

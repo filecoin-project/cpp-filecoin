@@ -84,6 +84,10 @@ namespace fc::storage {
     return batch->put(map._key(key), std::move(value));
   }
 
+  outcome::result<void> MapPrefix::Batch::put(const Bytes &key, BytesIn value) {
+    return batch->put(map._key(key), copy(value));
+  }
+
   outcome::result<void> MapPrefix::Batch::remove(const Bytes &key) {
     return batch->remove(map._key(key));
   }
@@ -122,6 +126,10 @@ namespace fc::storage {
 
   outcome::result<void> MapPrefix::put(const Bytes &key, Bytes &&value) {
     return map->put(_key(key), std::move(value));
+  }
+
+  outcome::result<void> MapPrefix::put(const Bytes &key, BytesIn value) {
+    return map->put(_key(key), copy(value));
   }
 
   outcome::result<void> MapPrefix::remove(const Bytes &key) {

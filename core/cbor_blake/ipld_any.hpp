@@ -28,6 +28,12 @@ namespace fc {
       ipld->put(*cid, value);
       return outcome::success();
     }
+    outcome::result<void> set(const CID &key, SpanValue value) override {
+      auto cid{asBlake(key)};
+      assert(cid);
+      ipld->put(*cid, value);
+      return outcome::success();
+    }
     outcome::result<Value> get(const CID &key) const override {
       if (auto cid{asBlake(key)}) {
         Bytes value;
@@ -63,7 +69,7 @@ namespace fc {
       return get(ipld, key, value);
     }
     void put(const CbCid &key, BytesIn value) override {
-      ipld->set(CID{key}, copy(value)).value();
+      ipld->set(CID{key}, value).value();
     }
   };
 }  // namespace fc

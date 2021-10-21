@@ -23,6 +23,11 @@ namespace fc::storage {
       return outcome::success();
     }
 
+    outcome::result<void> put(const Bytes &key, BytesIn value) override {
+      entries[key] = copy(value);
+      return outcome::success();
+    }
+
     outcome::result<void> remove(const Bytes &key) override {
       entries.erase(key);
       return outcome::success();

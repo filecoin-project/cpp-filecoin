@@ -13,12 +13,16 @@ namespace fc::storage {
 
   outcome::result<void> LevelDB::Batch::put(const Bytes &key,
                                             const Bytes &value) {
-    batch_.Put(make_slice(key), make_slice(value));
-    return outcome::success();
+    return put(key, gsl::make_span(value));
   }
 
   outcome::result<void> LevelDB::Batch::put(const Bytes &key, Bytes &&value) {
-    return put(key, value);
+    return put(key, gsl::make_span(value));
+  }
+
+  outcome::result<void> LevelDB::Batch::put(const Bytes &key, BytesIn value) {
+    batch_.Put(make_slice(key), make_slice(value));
+    return outcome::success();
   }
 
   outcome::result<void> LevelDB::Batch::remove(const Bytes &key) {

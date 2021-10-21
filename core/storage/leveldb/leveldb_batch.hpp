@@ -20,6 +20,7 @@ namespace fc::storage {
 
     outcome::result<void> put(const Bytes &key, const Bytes &value) override;
     outcome::result<void> put(const Bytes &key, Bytes &&value) override;
+    outcome::result<void> put(const Bytes &key, BytesIn value) override;
 
     outcome::result<void> remove(const Bytes &key) override;
 

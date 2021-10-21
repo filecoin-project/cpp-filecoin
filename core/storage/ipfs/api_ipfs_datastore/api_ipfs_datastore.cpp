@@ -9,13 +9,16 @@
 namespace fc::storage::ipfs {
 
   ApiIpfsDatastore::ApiIpfsDatastore(std::shared_ptr<FullNodeApi> api)
-      : api_{api} {}
+      : api_{std::move(api)} {}
 
   outcome::result<bool> ApiIpfsDatastore::contains(const CID &key) const {
     return api_->ChainReadObj(key).has_value();
   }
 
-  outcome::result<void> ApiIpfsDatastore::set(const CID &key, Value value) {
+  outcome::result<void> ApiIpfsDatastore::set(const CID &key, Value) {
+    return ApiIpfsDatastoreError::kNotSupproted;
+  }
+  outcome::result<void> ApiIpfsDatastore::set(const CID &key, SpanValue) {
     return ApiIpfsDatastoreError::kNotSupproted;
   }
 

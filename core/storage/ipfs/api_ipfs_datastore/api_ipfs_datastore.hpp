@@ -31,6 +31,7 @@ namespace fc::storage::ipfs {
      * @return Error not supported
      */
     outcome::result<void> set(const CID &key, Value value) override;
+    outcome::result<void> set(const CID &key, SpanValue value) override;
 
     outcome::result<Value> get(const CID &key) const override;
 

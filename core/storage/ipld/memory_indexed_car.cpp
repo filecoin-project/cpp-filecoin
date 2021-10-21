@@ -64,6 +64,10 @@ namespace fc {
   }
 
   outcome::result<void> MemoryIndexedCar::set(const CID &key, Value value) {
+    return set(key, gsl::make_span(value));
+  }
+
+  outcome::result<void> MemoryIndexedCar::set(const CID &key, SpanValue value) {
     std::unique_lock lock{mutex};
     if (!writer.is_open()) {
       return ERROR_TEXT("MemoryIndexedCar is readonly");

@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <gsl/span>
+
 #include "common/outcome.hpp"
 
 namespace fc::storage::face {
@@ -25,7 +27,9 @@ namespace fc::storage::face {
      * @return result containing void if put successful, error otherwise
      */
     virtual outcome::result<void> put(const K &key, const V &value) = 0;
-    virtual outcome::result<void> put(const K &key, V&& value) = 0;
+    virtual outcome::result<void> put(const K &key, V &&value) = 0;
+    virtual outcome::result<void> put(
+        const K &key, gsl::span<const typename V::value_type> value) = 0;
 
     /**
      * @brief Remove value by key

@@ -15,6 +15,7 @@ namespace fc::storage::ipfs {
 
   struct IpfsDatastore : vm::actor::WithActorVersion {
     using Value = Bytes;
+    using SpanValue = BytesIn;
 
     virtual ~IpfsDatastore() = default;
 
@@ -32,6 +33,7 @@ namespace fc::storage::ipfs {
      * @return success if operation succeeded, error otherwise
      */
     virtual outcome::result<void> set(const CID &key, Value value) = 0;
+    virtual outcome::result<void> set(const CID &key, SpanValue value) = 0;
 
     /**
      * @brief searches for a key in data store

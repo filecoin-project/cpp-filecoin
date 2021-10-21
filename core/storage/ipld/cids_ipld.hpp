@@ -26,6 +26,7 @@ namespace fc::storage::ipld {
 
     outcome::result<bool> contains(const CID &cid) const override;
     outcome::result<void> set(const CID &cid, Bytes value) override;
+    outcome::result<void> set(const CID &cid, BytesIn value) override;
     outcome::result<Bytes> get(const CID &cid) const override;
 
     bool get(const CbCid &key, Bytes *value) const override;

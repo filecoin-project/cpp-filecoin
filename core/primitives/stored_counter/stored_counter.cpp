@@ -27,7 +27,7 @@ namespace fc::primitives {
   outcome::result<void> StoredCounter::setNumber(uint64_t number) {
     std::lock_guard lock(mutex_);
     const libp2p::multi::UVarint new_value(number);
-    return datastore_->put(key_, copy(new_value.toBytes()));
+    return datastore_->put(key_, new_value.toBytes());
   }
 
   outcome::result<uint64_t> StoredCounter::next() {

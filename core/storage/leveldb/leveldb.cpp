@@ -70,16 +70,20 @@ namespace fc::storage {
   }
 
   outcome::result<void> LevelDB::put(const Bytes &key, const Bytes &value) {
+    return put(key, gsl::make_span(value));
+  }
+
+  outcome::result<void> LevelDB::put(const Bytes &key, Bytes &&value) {
+    return put(key, gsl::make_span(value));
+  }
+
+  outcome::result<void> LevelDB::put(const Bytes &key, BytesIn value) {
     auto status = db_->Put(wo_, make_slice(key), make_slice(value));
     if (status.ok()) {
       return outcome::success();
     }
 
     return error_as_result<void>(status, logger_);
-  }
-
-  outcome::result<void> LevelDB::put(const Bytes &key, Bytes &&value) {
-    return put(key, value);
   }
 
   outcome::result<void> LevelDB::remove(const Bytes &key) {

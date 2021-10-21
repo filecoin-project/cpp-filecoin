@@ -15,6 +15,7 @@ namespace fc::storage::ipfs {
    public:
     MOCK_CONST_METHOD1(contains, outcome::result<bool>(const CID &key));
     MOCK_METHOD2(set, outcome::result<void>(const CID &key, Value value));
+    MOCK_METHOD2(set, outcome::result<void>(const CID &key, SpanValue value));
     MOCK_CONST_METHOD1(get, outcome::result<Value>(const CID &key));
     MOCK_METHOD1(remove, outcome::result<void>(const CID &key));
     MOCK_METHOD0(shared, IpldPtr());

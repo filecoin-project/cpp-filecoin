@@ -73,7 +73,7 @@ namespace fc::storage::car {
     OUTCOME_TRY(reader, CarReader::make(input));
     while (!reader.end()) {
       OUTCOME_TRY(item, reader.next());
-      OUTCOME_TRY(store.set(item.first, copy(item.second)));
+      OUTCOME_TRY(store.set(item.first, item.second));
     }
     return std::move(reader.roots);
   }

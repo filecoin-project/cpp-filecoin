@@ -137,7 +137,7 @@ namespace fc::vm::actor::cgo {
                                       const std::shared_ptr<Runtime> &rt,
                                       BytesIn value) {
     OUTCOME_EXCEPT(cid, common::getCidOf(value));
-    if (auto r{rt->execution()->charging_ipld->set(cid, copy(value))}) {
+    if (auto r{rt->execution()->charging_ipld->set(cid, value)}) {
       return std::move(cid);
     } else {
       chargeFatal(ret, r);

@@ -59,6 +59,8 @@ namespace fc::storage {
     // value will be copied, not moved, due to internal structure of LevelDB
     outcome::result<void> put(const Bytes &key, Bytes &&value) override;
 
+    outcome::result<void> put(const Bytes &key, BytesIn value) override;
+
     outcome::result<void> remove(const Bytes &key) override;
 
    private:

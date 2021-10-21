@@ -132,7 +132,7 @@ namespace fc::storage::amt {
     return boost::get<Root>(root_).count;
   }
 
-  outcome::result<void> Amt::set(uint64_t key, gsl::span<const uint8_t> value) {
+  outcome::result<void> Amt::set(uint64_t key, Bytes value) {
     if (key > kMaxIndex) {
       return AmtError::kIndexTooBig;
     }
@@ -148,7 +148,7 @@ namespace fc::storage::amt {
       }
       ++root.height;
     }
-    OUTCOME_TRY(add, set(root.node, root.height, key, value));
+    OUTCOME_TRY(add, set(root.node, root.height, key, std::move(value)));
     if (add) {
       ++root.count;
     }
@@ -232,18 +232,14 @@ namespace fc::storage::amt {
   outcome::result<bool> Amt::set(Node &node,
                                  uint64_t height,
                                  uint64_t key,
-                                 gsl::span<const uint8_t> value) {
+                                 Bytes value) {
     if (height == 0) {
       auto &values = boost::get<Node::Values>(node.items);
-      if (values.insert(std::make_pair(key, copy(value))).second) {
-        return true;
-      }
-      values.at(key) = copy(value);
-      return false;
+      return values.insert_or_assign(key, std::move(value)).second;
     }
     auto mask = maskAt(height);
     OUTCOME_TRY(child, loadLink(node, key / mask, true, false));
-    return set(*child, height - 1, key % mask, value);
+    return set(*child, height - 1, key % mask, std::move(value));
   }
 
   outcome::result<bool> Amt::remove(Node &node, uint64_t height, uint64_t key) {

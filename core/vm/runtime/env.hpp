@@ -42,6 +42,7 @@ namespace fc::vm::runtime {
 
     outcome::result<bool> contains(const CID &key) const override;
     outcome::result<void> set(const CID &key, Value value) override;
+    outcome::result<void> set(const CID &key, SpanValue value) override;
     outcome::result<Value> get(const CID &key) const override;
 
     IpldPtr ipld;
@@ -111,6 +112,7 @@ namespace fc::vm::runtime {
       return ERROR_TEXT("not implemented");
     }
     outcome::result<void> set(const CID &key, Value value) override;
+    outcome::result<void> set(const CID &key, SpanValue value) override;
     outcome::result<Value> get(const CID &key) const override;
 
     std::weak_ptr<Execution> execution_;

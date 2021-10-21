@@ -56,6 +56,22 @@ namespace fc::storage::ipld {
     }
     return ERROR_TEXT("CidsIpld.set: no ipld set");
   }
+  outcome::result<void> CidsIpld::set(const CID &cid, BytesIn value) {
+    if (auto key{asBlake(cid)}) {
+      if (writable.is_open()) {
+        put(*key, value);
+        return outcome::success();
+      }
+    }
+    if (ipld) {
+      OUTCOME_TRY(has, ipld->contains(cid));
+      if (has) {
+        return outcome::success();
+      }
+      return ipld->set(cid, value);
+    }
+    return ERROR_TEXT("CidsIpld.set: no ipld set");
+  }
 
   outcome::result<Bytes> CidsIpld::get(const CID &cid) const {
     if (auto key{asBlake(cid)}) {

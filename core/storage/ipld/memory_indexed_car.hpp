@@ -26,6 +26,7 @@ namespace fc {
 
     outcome::result<bool> contains(const CID &key) const override;
     outcome::result<void> set(const CID &key, Bytes value) override;
+    outcome::result<void> set(const CID &key, BytesIn value) override;
     outcome::result<Bytes> get(const CID &key) const override;
   };
 }  // namespace fc

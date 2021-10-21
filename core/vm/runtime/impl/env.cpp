@@ -85,6 +85,12 @@ namespace fc::vm::runtime {
     return outcome::success();
   }
 
+  outcome::result<void> IpldBuffered::set(const CID &cid, SpanValue value) {
+    assert(isCbor(cid));
+    write.emplace(*asBlake(cid), copy(value));
+    return outcome::success();
+  }
+
   outcome::result<Ipld::Value> IpldBuffered::get(const CID &cid) const {
     if (isCbor(cid)) {
       if (auto it{write.find(*asBlake(cid))}; it != write.end()) {
@@ -218,10 +224,11 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(add_locked(kRewardAddress, apply.reward));
     auto over{limit - 11 * used / 10};
     auto gas_burned{
-        used == 0  ? limit
-        : over < 0 ? 0
-                   : static_cast<GasAmount>(bigdiv(
-                       BigInt{limit - used} * std::min(used, over), used))};
+        used == 0
+            ? limit
+            : over < 0 ? 0
+                       : static_cast<GasAmount>(bigdiv(
+                           BigInt{limit - used} * std::min(used, over), used))};
     if (gas_burned != 0) {
       OUTCOME_TRY(add_locked(actor::kBurntFundsActorAddress,
                              base_fee_pay * gas_burned));
@@ -374,6 +381,14 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<void> ChargingIpld::set(const CID &key, Value value) {
+    auto execution{execution_.lock()};
+    OUTCOME_TRY(execution->chargeGas(
+        execution->env->pricelist.onIpldPut(value.size())));
+    dvm::onIpldSet(key, value);
+    return execution->env->ipld->set(key, std::move(value));
+  }
+
+  outcome::result<void> ChargingIpld::set(const CID &key, SpanValue value) {
     auto execution{execution_.lock()};
     OUTCOME_TRY(execution->chargeGas(
         execution->env->pricelist.onIpldPut(value.size())));

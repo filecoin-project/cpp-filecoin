@@ -20,6 +20,7 @@ namespace fc::storage::ipfs {
 
     /** @copydoc IpfsDatastore::set() */
     outcome::result<void> set(const CID &key, Value value) override;
+    outcome::result<void> set(const CID &key, SpanValue value) override;
 
     /** @copydoc IpfsDatastore::get() */
     outcome::result<Value> get(const CID &key) const override;

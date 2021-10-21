@@ -28,6 +28,11 @@ namespace fc::storage {
     return outcome::success();
   }
 
+  outcome::result<void> InMemoryStorage::put(const Bytes &key, BytesIn value) {
+    storage[key] = copy(value);
+    return outcome::success();
+  }
+
   bool InMemoryStorage::contains(const Bytes &key) const {
     return storage.find(key) != storage.end();
   }

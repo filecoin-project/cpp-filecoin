@@ -18,6 +18,9 @@ namespace fc {
       return ipld->contains(key);
     }
     outcome::result<void> set(const CID &key, Value value) override {
+      return ipld->set(key, std::move(value));
+    }
+    outcome::result<void> set(const CID &key, SpanValue value) override {
       return ipld->set(key, value);
     }
     outcome::result<Value> get(const CID &key) const override {
