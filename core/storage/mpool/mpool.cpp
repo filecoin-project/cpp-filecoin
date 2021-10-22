@@ -851,43 +851,47 @@ namespace fc::storage::mpool {
     return outcome::success();
   }
 
+  outcome::result<void> MessagePool::publish(
+      const std::vector<SignedMessage> &messages) {
+    for (auto it = messages.begin(); it != messages.end(); ++it) {
+      OUTCOME_TRY(publish(*it));
+      if (it != std::prev(messages.end())) {
+        // this delay is here to encourage the pubsub subsystem to process the
+        // messages serially and avoid creating nonce gaps because of concurrent
+        // validation.
+        std::this_thread::sleep_for(kRepublishBatchDelay);
+      }
+    }
+    return outcome::success();
+  }
+
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> MessagePool::republishPendingMessages() {
     std::shared_lock head_lock(head_mutex_);
     OUTCOME_TRY(base_fee, head_->nextBaseFee(ipld));
     const auto base_fee_lower_bound =
         getBaseFeeLowerBound(base_fee, kBaseFeeLowerBoundFactor);
 
-    // republish only local pending messages
-    std::map<Address, std::map<Nonce, SignedMessage>> pending_messages;
     std::shared_lock pending_lock{pending_mutex_};
     std::shared_lock local_addresses_lock{local_addresses_mutex_};
-    for (const auto &[addr, pending] : pending_) {
-      if (local_addresses_.count(addr) != 0) {
-        for (const auto &[nonce, message] : pending) {
-          pending_messages[addr][nonce] = message;
-        }
-      }
-    }
-
-    if (pending_messages.empty()) {
-      return outcome::success();
-    }
-
-    // create _next_ message chains from pending messages taking into account
-    // base fee lower bound
     const vm::runtime::Pricelist pricelist{head_->epoch()};
     OUTCOME_TRY(cached, env_context.interpreter_cache->get(head_->key));
     vm::state::StateTreeImpl state_tree{
         withVersion(env_context.ipld, head_->height()), cached.state_root};
     std::vector<MsgChain::Ptr> chains;
-    for (const auto &[from, mset] : pending_messages) {
-      OUTCOME_TRY(actor, state_tree.get(from));
-      append(chains,
-             createMessageChains(mset,
-                                 base_fee_lower_bound,
-                                 actor.nonce,
-                                 actor.balance,
-                                 pricelist));
+    for (const auto &[from, mset] : pending_) {
+      // republish only local pending messages
+      if (local_addresses_.count(from) != 0) {
+        // create _next_ message chains from pending messages taking into
+        // account base fee lower bound
+        OUTCOME_TRY(actor, state_tree.get(from));
+        append(chains,
+               createMessageChains(mset,
+                                   base_fee_lower_bound,
+                                   actor.nonce,
+                                   actor.balance,
+                                   pricelist));
+      }
     }
     if (chains.empty()) {
       return outcome::success();
@@ -898,7 +902,7 @@ namespace fc::storage::mpool {
 
     auto gas_limit = kBlockGasLimit;
     std::vector<SignedMessage> messages;
-    for (size_t i{0}; i < chains.size(); ++i) {
+    for (size_t i = 0; i < chains.size(); ++i) {
       const auto &chain{chains[i]};
       if (chain->msgs.size() > kRepubMessageLimit) {
         break;
@@ -916,7 +920,7 @@ namespace fc::storage::mpool {
         // check the baseFee lower bound -- only republish messages that can be
         // included in the chain within the next 20 blocks.
         for (const auto &message : chain->msgs) {
-          if (message.message.gas_fee_cap <= base_fee_lower_bound) {
+          if (message.message.gas_fee_cap < base_fee_lower_bound) {
             invalidate(*chain);
             break;
           }
@@ -934,15 +938,7 @@ namespace fc::storage::mpool {
     }
 
     logger_->debug("Republishing {} messages", messages.size());
-    for (auto it = messages.begin(); it != messages.end(); ++it) {
-      OUTCOME_TRY(publish(*it));
-      if (it != std::prev(messages.end())) {
-        // this delay is here to encourage the pubsub subsystem to process the
-        // messages serially and avoid creating nonce gaps because of concurrent
-        // validation.
-        std::this_thread::sleep_for(kRepublishBatchDelay);
-      }
-    }
+    OUTCOME_TRY(publish(messages));
 
     return outcome::success();
   }

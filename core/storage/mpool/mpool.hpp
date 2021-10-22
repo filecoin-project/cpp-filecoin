@@ -102,6 +102,13 @@ namespace fc::storage::mpool {
      */
     outcome::result<void> publish(const SignedMessage &message);
 
+    /**
+     * Publish batch of messages via gossip.
+     * @param messages to publish
+     * @return error if error happened
+     */
+    outcome::result<void> publish(const std::vector<SignedMessage> &messages);
+
     outcome::result<void> republishPendingMessages();
 
     static TokenAmount getBaseFeeLowerBound(const TokenAmount &base_fee,
