@@ -12,6 +12,7 @@ namespace fc {
   using primitives::ChainEpoch;
   using primitives::EpochDuration;
   using primitives::StoragePower;
+  using primitives::TokenAmount;
 
   constexpr int64_t kSecondsInHour{60 * 60};
   constexpr int64_t kSecondsInDay{24 * kSecondsInHour};
@@ -38,7 +39,7 @@ namespace fc {
   constexpr uint64_t kFilecoinPrecision{1000000000000000000};
   constexpr auto kGasLimitOverestimation{1.25};
   constexpr auto kMessageConfidence{5};
-  constexpr auto kMinimumBaseFee{100};
+  const TokenAmount kMinimumBaseFee{100};
   constexpr auto kPackingEfficiencyDenom{5};
   constexpr auto kPackingEfficiencyNum{4};
 

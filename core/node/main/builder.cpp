@@ -261,7 +261,7 @@ namespace fc::node {
           timerLoop(scheduler, tick, cb);
         },
         tick);
-  };
+  }
 
   /**
    * Creates and intialises Storage Market Client
@@ -525,7 +525,17 @@ namespace fc::node {
     log()->debug("Creating API...");
 
     o.mpool = storage::mpool::MessagePool::create(
-        o.env_context, o.ts_main, config.mpool_bls_cache_size, o.chain_store);
+        o.env_context, o.ts_main, config.mpool_bls_cache_size, o.chain_store, o.pubsub_gate);
+    // From lotus
+    // https://github.com/filecoin-project/lotus/blob/d9100981ada8b3186d906a4f4140b83a819d2299/chain/messagepool/messagepool.go#L58
+    const auto republishTimeout{std::chrono::seconds(10 * kEpochDurationSeconds
+                                                     + kPropagationDelaySecs)};
+    timerLoop(o.scheduler, republishTimeout, [mpool{o.mpool}] {
+      auto res = mpool->republishPendingMessages();
+      if (!res) {
+        log()->error("Mpool republish error: {}", res.error());
+      }
+    });
 
     auto msg_waiter = storage::blockchain::MsgWaiter::create(
         o.ts_load, o.ipld, o.io_context, o.chain_store);
