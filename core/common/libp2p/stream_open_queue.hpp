@@ -19,10 +19,10 @@ namespace libp2p::connection {
       std::weak_ptr<StreamOpenQueue> weak;
       List::iterator it;
 
-      inline Active(std::shared_ptr<Stream> stream,
-                    std::weak_ptr<StreamOpenQueue> weak,
-                    List::iterator it);
-      inline ~Active() override;
+      Active(std::shared_ptr<Stream> stream,
+             std::weak_ptr<StreamOpenQueue> weak,
+             List::iterator it);
+      ~Active() override;
     };
 
     struct Pending {
@@ -36,10 +36,10 @@ namespace libp2p::connection {
     std::queue<Pending> queue;
     Active::List active;
 
-    inline StreamOpenQueue(std::shared_ptr<Host> host, size_t max_active);
+    StreamOpenQueue(std::shared_ptr<Host> host, size_t max_active);
 
-    inline void open(Pending item);
+    void open(Pending item);
 
-    inline void check();
+    void check();
   };
 }  // namespace libp2p::connection

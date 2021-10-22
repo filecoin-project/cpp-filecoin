@@ -11,7 +11,6 @@
 
 #include "codec/cbor/cbor_codec.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
-#include "common/libp2p/stream_open_queue_impl.hpp"
 #include "common/outcome_fmt.hpp"
 #include "common/ptr.hpp"
 #include "markets/common.hpp"

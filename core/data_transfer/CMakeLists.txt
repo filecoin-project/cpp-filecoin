@@ -9,4 +9,5 @@ add_library(data_transfer
 target_link_libraries(data_transfer
     cbor_stream
     graphsync
+    stream_open_queue
     )

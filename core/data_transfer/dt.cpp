@@ -8,7 +8,6 @@
 #include <libp2p/host/host.hpp>
 
 #include "common/libp2p/cbor_stream.hpp"
-#include "common/libp2p/stream_open_queue_impl.hpp"
 #include "common/ptr.hpp"
 
 #define MOVE(x)  \

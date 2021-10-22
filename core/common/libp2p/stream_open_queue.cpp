@@ -3,8 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#pragma once
-
 #include "common/libp2p/stream_open_queue.hpp"
 
 namespace libp2p::connection {

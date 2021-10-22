@@ -10,3 +10,10 @@ add_library(cbor_stream
 target_link_libraries(cbor_stream
     cbor
     )
+
+add_library(stream_open_queue
+    stream_open_queue.cpp
+    )
+target_link_libraries(stream_open_queue
+    p2p::p2p
+    )
