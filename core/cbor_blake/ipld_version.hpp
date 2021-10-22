@@ -17,8 +17,8 @@ namespace fc {
     outcome::result<bool> contains(const CID &key) const override {
       return ipld->contains(key);
     }
-    outcome::result<void> set(const CID &key, Value value) override {
-      return ipld->set(key, value);
+    outcome::result<void> set(const CID &key, BytesCow &&value) override {
+      return ipld->set(key, std::move(value));
     }
     outcome::result<Value> get(const CID &key) const override {
       return ipld->get(key);

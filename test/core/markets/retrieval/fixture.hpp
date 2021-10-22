@@ -131,7 +131,7 @@ namespace fc::markets::retrieval::test {
               host,
               injector.create<std::shared_ptr<libp2p::basic::Scheduler>>())};
       graphsync->subscribe([this](auto &from, auto &data) {
-        OUTCOME_EXCEPT(client_ipfs->set(data.cid, data.content));
+        OUTCOME_EXCEPT(client_ipfs->set(data.cid, BytesIn{data.content}));
       });
       graphsync->start();
       datatransfer = DataTransfer::make(host, graphsync);

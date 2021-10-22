@@ -78,7 +78,7 @@ namespace fc::markets::storage::provider {
 
   outcome::result<void> StoredAsk::saveSignedAsk(const SignedStorageAsk &ask) {
     OUTCOME_TRY(cbored_ask, codec::cbor::encode(ask));
-    OUTCOME_TRY(datastore_->put(kBestAskKey, cbored_ask));
+    OUTCOME_TRY(datastore_->put(kBestAskKey, std::move(cbored_ask)));
     last_signed_storage_ask_ = ask;
     return outcome::success();
   }

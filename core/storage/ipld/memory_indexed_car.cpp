@@ -63,7 +63,8 @@ namespace fc {
     return index.find(key) != index.end();
   }
 
-  outcome::result<void> MemoryIndexedCar::set(const CID &key, Value value) {
+  outcome::result<void> MemoryIndexedCar::set(const CID &key,
+                                              BytesCow &&value) {
     std::unique_lock lock{mutex};
     if (!writer.is_open()) {
       return ERROR_TEXT("MemoryIndexedCar is readonly");

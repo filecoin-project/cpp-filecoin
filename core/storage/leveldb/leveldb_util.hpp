@@ -49,11 +49,10 @@ namespace fc::storage {
     return error_as_result<T>(s);
   }
 
-  inline leveldb::Slice make_slice(const Bytes &buf) {
+  inline leveldb::Slice make_slice(const BytesIn &buf) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const char *>(buf.data());
-    size_t n = buf.size();
-    return leveldb::Slice{ptr, n};
+    return leveldb::Slice{ptr, gsl::narrow<size_t>(buf.size())};
   }
 
   inline gsl::span<const uint8_t> make_span(const leveldb::Slice &s) {

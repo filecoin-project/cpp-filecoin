@@ -44,8 +44,7 @@ namespace fc::vm::interpreter {
   }
 
   void InterpreterCache::markBad(const TipsetKey &key) {
-    static const auto kNull{codec::cbor::encode(nullptr).value()};
-    kv->put(copy(key.hash()), kNull).value();
+    kv->put(copy(key.hash()), BytesIn{codec::cbor::kNull}).value();
   }
 
   void InterpreterCache::remove(const TipsetKey &key) {

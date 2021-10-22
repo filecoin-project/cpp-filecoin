@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "codec/cbor/cbor_codec.hpp"
+#include "common/bytes_cow.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
 #include "vm/actor/version.hpp"
 
@@ -31,7 +32,7 @@ namespace fc::storage::ipfs {
      * @param value value to associate with key
      * @return success if operation succeeded, error otherwise
      */
-    virtual outcome::result<void> set(const CID &key, Value value) = 0;
+    virtual outcome::result<void> set(const CID &key, BytesCow &&value) = 0;
 
     /**
      * @brief searches for a key in data store

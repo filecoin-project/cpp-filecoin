@@ -22,10 +22,10 @@ namespace fc {
       }
       return false;
     }
-    outcome::result<void> set(const CID &key, Value value) override {
+    outcome::result<void> set(const CID &key, BytesCow &&value) override {
       auto cid{asBlake(key)};
       assert(cid);
-      ipld->put(*cid, value);
+      ipld->put(*cid, std::move(value));
       return outcome::success();
     }
     outcome::result<Value> get(const CID &key) const override {
@@ -62,8 +62,8 @@ namespace fc {
     bool get(const CbCid &key, Bytes *value) const override {
       return get(ipld, key, value);
     }
-    void put(const CbCid &key, BytesIn value) override {
-      ipld->set(CID{key}, copy(value)).value();
+    void put(const CbCid &key, BytesCow &&value) override {
+      ipld->set(CID{key}, std::move(value)).value();
     }
   };
 }  // namespace fc

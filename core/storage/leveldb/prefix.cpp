@@ -76,11 +76,7 @@ namespace fc::storage {
       : map{map}, batch{std::move(batch)} {}
 
   outcome::result<void> MapPrefix::Batch::put(const Bytes &key,
-                                              const Bytes &value) {
-    return batch->put(map._key(key), value);
-  }
-
-  outcome::result<void> MapPrefix::Batch::put(const Bytes &key, Bytes &&value) {
+                                              BytesCow &&value) {
     return batch->put(map._key(key), std::move(value));
   }
 
@@ -116,11 +112,7 @@ namespace fc::storage {
     return map->contains(_key(key));
   }
 
-  outcome::result<void> MapPrefix::put(const Bytes &key, const Bytes &value) {
-    return map->put(_key(key), value);
-  }
-
-  outcome::result<void> MapPrefix::put(const Bytes &key, Bytes &&value) {
+  outcome::result<void> MapPrefix::put(const Bytes &key, BytesCow &&value) {
     return map->put(_key(key), std::move(value));
   }
 

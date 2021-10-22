@@ -40,7 +40,7 @@ namespace fc::storage::piece {
     }
     piece_info.deals.push_back(deal_info);
     OUTCOME_TRY(value, codec::cbor::encode(piece_info));
-    OUTCOME_TRY(storage_->put(storage_key, value));
+    OUTCOME_TRY(storage_->put(storage_key, std::move(value)));
     return outcome::success();
   }
 
@@ -81,7 +81,7 @@ namespace fc::storage::piece {
                                           .block_location = location};
       payload_info.piece_block_locations.push_back(payload_block_info);
       OUTCOME_TRY(value, codec::cbor::encode(payload_info));
-      OUTCOME_TRY(storage_->put(storage_key, value));
+      OUTCOME_TRY(storage_->put(storage_key, std::move(value)));
     }
     return outcome::success();
   }

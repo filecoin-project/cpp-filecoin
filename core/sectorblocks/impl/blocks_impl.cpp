@@ -59,7 +59,7 @@ namespace fc::sectorblocks {
     }
 
     OUTCOME_TRY(encoded_in, encode(new_data));
-    return storage_->put(key, encoded_in);
+    return storage_->put(key, std::move(encoded_in));
   }
 
   outcome::result<std::vector<PieceLocation>> SectorBlocksImpl::getRefs(

@@ -14,6 +14,9 @@ namespace fc {
   class CborBlakeIpldMock : public CbIpld {
    public:
     MOCK_CONST_METHOD2(get, bool(const CbCid &key, Bytes *value));
-    MOCK_METHOD2(put, void(const CbCid &key, BytesIn value));
+    MOCK_METHOD2(putMock, void(const CbCid &key, BytesIn value));
+    void put(const CbCid &key, BytesCow &&value) override {
+      putMock(key, value);
+    }
   };
 }  // namespace fc

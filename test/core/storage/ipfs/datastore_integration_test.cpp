@@ -66,7 +66,7 @@ namespace fc::storage::ipfs {
    * @then all operation succeeded, obtained value is equal to original value
    */
   TEST_F(DatastoreIntegrationTest, ContainsExistingTrueSuccess) {
-    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
+    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, BytesIn{value}));
     EXPECT_OUTCOME_EQ(datastore->contains(cid1), true);
   }
 
@@ -77,7 +77,7 @@ namespace fc::storage::ipfs {
    * @then all operations succeed and datastore doesn't contains cid2
    */
   TEST_F(DatastoreIntegrationTest, ContainsNotExistingFalseSuccess) {
-    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
+    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, BytesIn{value}));
     EXPECT_OUTCOME_EQ(datastore->contains(cid2), false);
   }
 
@@ -87,7 +87,7 @@ namespace fc::storage::ipfs {
    * @then all operations succeed
    */
   TEST_F(DatastoreIntegrationTest, GetExistingSuccess) {
-    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
+    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, BytesIn{value}));
     EXPECT_OUTCOME_EQ(datastore->get(cid1), value);
   }
 
@@ -97,14 +97,14 @@ namespace fc::storage::ipfs {
    * @then put operation succeeds, get operation fails
    */
   TEST_F(DatastoreIntegrationTest, GetNotExistingFailure) {
-    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
+    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, BytesIn{value}));
     EXPECT_OUTCOME_ERROR(IpfsDatastoreError::kNotFound, datastore->get(cid2));
   }
 
   /** Setting same key twice succeeds */
   TEST_F(DatastoreIntegrationTest, SetTwice) {
-    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
-    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
+    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, BytesIn{value}));
+    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, BytesIn{value}));
   }
 
   /**
@@ -113,7 +113,7 @@ namespace fc::storage::ipfs {
    * @then values are stored persistently
    */
   TEST_F(DatastoreIntegrationTest, PersistentStorage) {
-    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
+    EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, BytesIn{value}));
     datastore.reset();
 
     EXPECT_OUTCOME_TRUE(

@@ -18,8 +18,7 @@ namespace fc::storage {
    public:
     explicit Batch(LevelDB &db);
 
-    outcome::result<void> put(const Bytes &key, const Bytes &value) override;
-    outcome::result<void> put(const Bytes &key, Bytes &&value) override;
+    outcome::result<void> put(const Bytes &key, BytesCow &&value) override;
 
     outcome::result<void> remove(const Bytes &key) override;
 

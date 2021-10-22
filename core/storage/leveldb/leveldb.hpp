@@ -54,10 +54,8 @@ namespace fc::storage {
 
     bool contains(const Bytes &key) const override;
 
-    outcome::result<void> put(const Bytes &key, const Bytes &value) override;
-
     // value will be copied, not moved, due to internal structure of LevelDB
-    outcome::result<void> put(const Bytes &key, Bytes &&value) override;
+    outcome::result<void> put(const Bytes &key, BytesCow &&value) override;
 
     outcome::result<void> remove(const Bytes &key) override;
 

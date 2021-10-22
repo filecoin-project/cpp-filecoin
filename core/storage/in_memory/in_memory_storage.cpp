@@ -18,13 +18,8 @@ namespace fc::storage {
   }
 
   outcome::result<void> InMemoryStorage::put(const Bytes &key,
-                                             const Bytes &value) {
-    storage[key] = value;
-    return outcome::success();
-  }
-
-  outcome::result<void> InMemoryStorage::put(const Bytes &key, Bytes &&value) {
-    storage[key] = std::move(value);
+                                             BytesCow &&value) {
+    storage[key] = value.into();
     return outcome::success();
   }
 

@@ -82,7 +82,7 @@ namespace fc::storage::hamt {
          const CID &root,
          size_t bit_width);
     /** Set value by key, does not write to storage */
-    outcome::result<void> set(BytesIn key, BytesIn value);
+    outcome::result<void> set(BytesIn key, BytesCow &&value);
 
     /** Get value by key */
     outcome::result<Bytes> get(BytesIn key) const;
@@ -117,7 +117,7 @@ namespace fc::storage::hamt {
     template <typename T>
     outcome::result<void> setCbor(BytesIn key, const T &value) {
       OUTCOME_TRY(bytes, cbor_blake::cbEncodeT(value));
-      return set(key, bytes);
+      return set(key, std::move(bytes));
     }
 
     /// Get CBOR decoded value by key
@@ -154,7 +154,7 @@ namespace fc::storage::hamt {
     outcome::result<void> set(Node &node,
                               gsl::span<const size_t> indices,
                               BytesIn key,
-                              BytesIn value);
+                              BytesCow &&value);
     outcome::result<void> remove(Node &node,
                                  gsl::span<const size_t> indices,
                                  BytesIn key);

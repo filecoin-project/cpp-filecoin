@@ -179,7 +179,7 @@ namespace fc::primitives::tipset {
     auto key{CbCid::hash(value)};
     const CID cid{key};
     if (put) {
-      put->put(key, value);
+      put->put(key, std::move(value));
     } else {
       ipld->set(cid, std::move(value)).value();
     }

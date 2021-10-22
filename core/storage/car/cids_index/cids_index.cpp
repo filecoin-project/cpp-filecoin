@@ -208,7 +208,7 @@ namespace fc::storage::cids_index {
         OUTCOME_TRY(cid, CID::read(input));
         if (ipld) {
           if (!asIdentity(cid)) {
-            OUTCOME_TRY(ipld->set(cid, copy(input)));
+            OUTCOME_TRY(ipld->set(cid, input));
           }
         }
       }

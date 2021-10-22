@@ -69,7 +69,7 @@ namespace fc::storage::amt {
     /// Get values quantity
     outcome::result<uint64_t> count() const;
     /// Set value by key, does not write to storage
-    outcome::result<void> set(uint64_t key, gsl::span<const uint8_t> value);
+    outcome::result<void> set(uint64_t key, BytesCow &&value);
     /// Get value by key
     outcome::result<Value> get(uint64_t key) const;
     /// Remove value by key, does not write to storage
@@ -88,7 +88,7 @@ namespace fc::storage::amt {
     template <typename T>
     outcome::result<void> setCbor(uint64_t key, const T &value) {
       OUTCOME_TRY(bytes, cbor_blake::cbEncodeT(value));
-      return set(key, bytes);
+      return set(key, std::move(bytes));
     }
 
     /// Get CBOR decoded value by key
@@ -110,7 +110,7 @@ namespace fc::storage::amt {
     outcome::result<bool> set(Node &node,
                               uint64_t height,
                               uint64_t key,
-                              gsl::span<const uint8_t> value);
+                              BytesCow &&value);
     outcome::result<bool> remove(Node &node, uint64_t height, uint64_t key);
     outcome::result<void> flush(Node &node);
     outcome::result<void> visit(Node &node,

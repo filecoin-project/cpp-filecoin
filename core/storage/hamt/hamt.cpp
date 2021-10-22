@@ -135,9 +135,12 @@ namespace fc::storage::hamt {
              size_t bit_width)
       : ipld_{std::move(store)}, root_{root}, bit_width_{bit_width} {}
 
-  outcome::result<void> Hamt::set(BytesIn key, BytesIn value) {
+  outcome::result<void> Hamt::set(BytesIn key, BytesCow &&value) {
     OUTCOME_TRY(loadRoot());
-    return set(*boost::get<Node::Ptr>(root_), keyToIndices(key), key, value);
+    return set(*boost::get<Node::Ptr>(root_),
+               keyToIndices(key),
+               key,
+               std::move(value));
   }
 
   outcome::result<Bytes> Hamt::get(BytesIn key) const {
@@ -216,7 +219,7 @@ namespace fc::storage::hamt {
   outcome::result<void> Hamt::set(Node &node,
                                   gsl::span<const size_t> indices,
                                   BytesIn key,
-                                  BytesIn value) {
+                                  BytesCow &&value) {
     if (indices.empty()) {
       return HamtError::kMaxDepth;
     }
@@ -229,21 +232,23 @@ namespace fc::storage::hamt {
     auto &item = it->second;
     OUTCOME_TRY(loadItem(item));
     if (which<Node::Ptr>(item)) {
-      return set(
-          *boost::get<Node::Ptr>(item), consumeIndex(indices), key, value);
+      return set(*boost::get<Node::Ptr>(item),
+                 consumeIndex(indices),
+                 key,
+                 std::move(value));
     }
     auto &leaf = boost::get<Node::Leaf>(item);
     if (auto it2{leafFind(leaf, key)}; it2 != leaf.end()) {
-      copy(it2->second, value);
+      copy(it2->second, std::move(value));
     } else if (leaf.size() < kLeafMax) {
-      leafInsert(leaf, {copy(key), copy(value)});
+      leafInsert(leaf, {copy(key), value.into()});
     } else {
       auto child = std::make_shared<Node>();
       child->v3 = v3();
-      OUTCOME_TRY(set(*child, consumeIndex(indices), key, value));
+      OUTCOME_TRY(set(*child, consumeIndex(indices), key, std::move(value)));
       for (auto &pair : leaf) {
         auto indices2 = keyToIndices(pair.first, indices.size());
-        OUTCOME_TRY(set(*child, indices2, pair.first, pair.second));
+        OUTCOME_TRY(set(*child, indices2, pair.first, std::move(pair.second)));
       }
       item = child;
     }
