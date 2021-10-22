@@ -16,6 +16,7 @@
 #include "vm/actor/builtin/types/miner/cron_event_payload.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/power_pair.hpp"
+#include "vm/actor/builtin/types/miner/seal_verify_stuff.hpp"
 #include "vm/actor/builtin/types/transit.hpp"
 #include "vm/actor/builtin/utils/actor_utils.hpp"
 #include "vm/runtime/runtime.hpp"
@@ -30,6 +31,7 @@ namespace fc::vm::actor::builtin::utils {
   using primitives::address::Address;
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector::SealVerifyInfo;
   using runtime::Runtime;
   using states::MinerActorStatePtr;
   using types::DealWeights;
@@ -37,6 +39,7 @@ namespace fc::vm::actor::builtin::utils {
   using types::TotalPower;
   using types::miner::CronEventPayload;
   using types::miner::PowerPair;
+  using types::miner::SealVerifyStuff;
   using types::miner::SectorOnChainInfo;
   using types::miner::SectorPreCommitInfo;
   using version::NetworkVersion;
@@ -127,6 +130,9 @@ namespace fc::vm::actor::builtin::utils {
     virtual outcome::result<SectorOnChainInfo> validateReplaceSector(
         MinerActorStatePtr &state, const SectorPreCommitInfo &params) const = 0;
 
+    virtual outcome::result<SealVerifyInfo> getVerifyInfo(
+        const SealVerifyStuff &seal_verify_stuff) const = 0;
+
     /**
      * Computes the deadline index for the current epoch for a given period
      * start. currEpoch must be within the proving period that starts at
@@ -162,6 +168,9 @@ namespace fc::vm::actor::builtin::utils {
     virtual outcome::result<void> notifyPledgeChanged(
         const TokenAmount &pledge_delta) const = 0;
 
+    virtual outcome::result<void> callSubmitPoRepForBulkVerify(
+        const SealVerifyInfo &svi) const = 0;
+
    protected:
     virtual outcome::result<Address> getPubkeyAddressFromAccountActor(
         const Address &address) const = 0;
@@ -169,6 +178,9 @@ namespace fc::vm::actor::builtin::utils {
         ChainEpoch event_epoch, const Bytes &params) const = 0;
     virtual outcome::result<void> callPowerUpdateClaimedPower(
         const PowerPair &delta) const = 0;
+    virtual outcome::result<CID> requestUnsealedSectorCid(
+        RegisteredSealProof proof_type,
+        const std::vector<DealId> &deal_ids) const = 0;
   };
 
   using MinerUtilsPtr = std::shared_ptr<MinerUtils>;

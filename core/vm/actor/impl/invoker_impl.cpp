@@ -79,6 +79,8 @@ namespace fc::vm::actor {
         builtin::v0::miner::SubmitWindowedPoSt::Number);
     ready_miner_actor_methods_v0.insert(
         builtin::v0::miner::PreCommitSector::Number);
+    ready_miner_actor_methods_v0.insert(
+        builtin::v0::miner::ProveCommitSector::Number);
 
     ready_miner_actor_methods_v2.insert(builtin::v2::miner::Construct::Number);
     ready_miner_actor_methods_v2.insert(

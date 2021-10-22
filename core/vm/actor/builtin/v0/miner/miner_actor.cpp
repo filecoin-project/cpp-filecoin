@@ -299,7 +299,9 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     OUTCOME_TRY(runtime.validateArgument(params.seal_epoch < current_epoch));
 
-    OUTCOME_TRY(max_seal_duration, maxSealDuration(params.registered_proof));
+    CHANGE_ERROR_ABORT_A(max_seal_duration,
+                         maxSealDuration(params.registered_proof),
+                         VMExitCode::kErrIllegalArgument);
     const auto challenge_earliest =
         current_epoch - kChainFinality - max_seal_duration;
 
@@ -418,8 +420,49 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   ACTOR_METHOD_IMPL(ProveCommitSector) {
-    // TODO (a.chernyshov) FIL-284 - implement
-    return VMExitCode::kNotImplemented;
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
+
+    OUTCOME_TRY(balance, runtime.getCurrentBalance());
+
+    OUTCOME_TRY(pledge_requirement,
+                state->meetsInitialPledgeCondition(balance));
+    if (!pledge_requirement) {
+      ABORT(VMExitCode::kErrInsufficientFunds);
+    }
+
+    REQUIRE_NO_ERROR_A(maybe_precommint,
+                       state->precommitted_sectors.tryGet(params.sector),
+                       VMExitCode::kErrIllegalState);
+    if (!maybe_precommint) {
+      ABORT(VMExitCode::kErrNotFound);
+    }
+
+    const auto &precommit = maybe_precommint.value();
+    CHANGE_ERROR_ABORT_A(msd,
+                         maxSealDuration(precommit.info.registered_proof),
+                         VMExitCode::kErrIllegalState);
+
+    const auto prove_commit_due = precommit.precommit_epoch + msd;
+
+    OUTCOME_TRY(runtime.validateArgument(runtime.getCurrentEpoch()
+                                         <= prove_commit_due));
+
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(svi,
+                utils->getVerifyInfo(SealVerifyStuff{
+                    .sealed_cid = precommit.info.sealed_cid,
+                    .interactive_epoch =
+                        precommit.precommit_epoch + kPreCommitChallengeDelay,
+                    .seal_proof = precommit.info.registered_proof,
+                    .proof = params.proof,
+                    .deal_ids = precommit.info.deal_ids,
+                    .sector = precommit.info.sector,
+                    .seal_rand_epoch = precommit.info.seal_epoch}));
+
+    OUTCOME_TRY(utils->callSubmitPoRepForBulkVerify(svi));
+
+    return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(ExtendSectorExpiration) {

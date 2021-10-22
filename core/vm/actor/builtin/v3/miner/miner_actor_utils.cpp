@@ -11,6 +11,7 @@
 #include "vm/actor/builtin/v3/storage_power/storage_power_actor.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
+  using crypto::randomness::DomainSeparationTag;
 
   outcome::result<SectorOnChainInfo> MinerUtils::validateReplaceSector(
       MinerActorStatePtr &state, const SectorPreCommitInfo &params) const {
@@ -38,6 +39,47 @@ namespace fc::vm::actor::builtin::v3::miner {
                      VMExitCode::kErrIllegalState);
 
     return SectorOnChainInfo{};
+  }
+
+  outcome::result<SealVerifyInfo> MinerUtils::getVerifyInfo(
+      const SealVerifyStuff &seal_verify_stuff) const {
+    const auto current_epoch = getRuntime().getCurrentEpoch();
+    if (current_epoch <= seal_verify_stuff.interactive_epoch) {
+      ABORT(VMExitCode::kErrForbidden);
+    }
+
+    OUTCOME_TRY(unsealed_cid,
+                requestUnsealedSectorCid(seal_verify_stuff.seal_proof,
+                                         seal_verify_stuff.deal_ids));
+    const auto miner_address = getRuntime().getCurrentReceiver();
+    if (!miner_address.isId()) {
+      ABORT(VMExitCode::kErrIllegalState);
+    }
+
+    REQUIRE_NO_ERROR_A(bytes,
+                       codec::cbor::encode(miner_address),
+                       VMExitCode::kErrSerialization);
+
+    OUTCOME_TRY(info_randomness,
+                getRuntime().getRandomnessFromTickets(
+                    DomainSeparationTag::SealRandomness,
+                    seal_verify_stuff.seal_rand_epoch,
+                    bytes));
+    OUTCOME_TRY(info_interactive_randomness,
+                getRuntime().getRandomnessFromBeacon(
+                    DomainSeparationTag::InteractiveSealChallengeSeed,
+                    seal_verify_stuff.interactive_epoch,
+                    bytes));
+
+    return SealVerifyInfo{.seal_proof = seal_verify_stuff.seal_proof,
+                          .sector = {.miner = miner_address.getId(),
+                                     .sector = seal_verify_stuff.sector},
+                          .deals = seal_verify_stuff.deal_ids,
+                          .randomness = info_randomness,
+                          .interactive_randomness = info_interactive_randomness,
+                          .proof = seal_verify_stuff.proof,
+                          .sealed_cid = seal_verify_stuff.sealed_cid,
+                          .unsealed_cid = unsealed_cid};
   }
 
   outcome::result<void> MinerUtils::canPreCommitSealProof(
@@ -94,6 +136,13 @@ namespace fc::vm::actor::builtin::v3::miner {
                        .sectors = sector_weights.sectors};
   }
 
+  outcome::result<void> MinerUtils::callSubmitPoRepForBulkVerify(
+      const SealVerifyInfo &svi) const {
+    REQUIRE_SUCCESS(getRuntime().sendM<storage_power::SubmitPoRepForBulkVerify>(
+        kStoragePowerAddress, svi, 0));
+    return outcome::success();
+  }
+
   outcome::result<Address> MinerUtils::getPubkeyAddressFromAccountActor(
       const Address &address) const {
     return getRuntime().sendM<account::PubkeyAddress>(address, {}, 0);
@@ -111,6 +160,15 @@ namespace fc::vm::actor::builtin::v3::miner {
     OUTCOME_TRY(getRuntime().sendM<storage_power::UpdateClaimedPower>(
         kStoragePowerAddress, {delta.raw, delta.qa}, 0));
     return outcome::success();
+  }
+
+  outcome::result<CID> MinerUtils::requestUnsealedSectorCid(
+      RegisteredSealProof proof_type,
+      const std::vector<DealId> &deal_ids) const {
+    REQUIRE_SUCCESS_A(unsealed_cid,
+                      getRuntime().sendM<market::ComputeDataCommitment>(
+                          kStorageMarketAddress, {deal_ids, proof_type}, 0));
+    return std::move(unsealed_cid);
   }
 
 }  // namespace fc::vm::actor::builtin::v3::miner

@@ -15,6 +15,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::address::Address;
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector::SealVerifyInfo;
   using runtime::Runtime;
   using states::MinerActorStatePtr;
   using types::DealWeights;
@@ -22,6 +23,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using types::TotalPower;
   using types::miner::CronEventPayload;
   using types::miner::PowerPair;
+  using types::miner::SealVerifyStuff;
   using types::miner::SectorOnChainInfo;
   using types::miner::SectorPreCommitInfo;
   using version::NetworkVersion;
@@ -62,6 +64,9 @@ namespace fc::vm::actor::builtin::v0::miner {
         MinerActorStatePtr &state,
         const SectorPreCommitInfo &params) const override;
 
+    outcome::result<SealVerifyInfo> getVerifyInfo(
+        const SealVerifyStuff &seal_verify_stuff) const override;
+
     outcome::result<uint64_t> currentDeadlineIndex(
         ChainEpoch current_epoch, ChainEpoch period_start) const override;
 
@@ -94,6 +99,9 @@ namespace fc::vm::actor::builtin::v0::miner {
     outcome::result<void> notifyPledgeChanged(
         const TokenAmount &pledge_delta) const override;
 
+    outcome::result<void> callSubmitPoRepForBulkVerify(
+        const SealVerifyInfo &svi) const override;
+
    protected:
     outcome::result<Address> getPubkeyAddressFromAccountActor(
         const Address &address) const override;
@@ -103,5 +111,9 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     outcome::result<void> callPowerUpdateClaimedPower(
         const PowerPair &delta) const override;
+
+    outcome::result<CID> requestUnsealedSectorCid(
+        RegisteredSealProof proof_type,
+        const std::vector<DealId> &deal_ids) const override;
   };
 }  // namespace fc::vm::actor::builtin::v0::miner
