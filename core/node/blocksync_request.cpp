@@ -434,11 +434,11 @@ namespace fc::sync::blocksync {
           result_->error = result.error();
         } else {
           auto &response = result.value();
-          log()->debug("got response from {}: status={}, msg=({}), size={}",
+          log()->debug("got response from {}: status={}, msg=({}), size={}, block_height={}",
                        result_->from->toBase58(),
                        statusToString(response.status),
                        response.message,
-                       response.chain.size());
+                       response.chain.size(),  response.chain[0].blocks[0].height);
 
           if (response.status == ResponseStatus::kResponseComplete) {
             result_->delta_rating += 100;

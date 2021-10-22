@@ -25,7 +25,10 @@ namespace fc::api {
      */
     API_METHOD(NetPeers, jwt::kReadPermission, std::vector<PeerInfo>)
 
-
+    /**
+     * Removes provided peer from list of connected.
+     */
+    API_METHOD(NetDisconnect, jwt::kReadPermission, void, const PeerInfo &)
   };
 
   template <typename A, typename F>
@@ -33,6 +36,7 @@ namespace fc::api {
     f(a.NetAddrsListen);
     f(a.NetConnect);
     f(a.NetPeers);
+    f(a.NetDisconnect);
   }
 
 };  // namespace fc::api

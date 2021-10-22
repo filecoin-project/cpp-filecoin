@@ -8,10 +8,10 @@
 #include <iostream>
 
 #include "api/full_node/node_api_v1_wrapper.hpp"
+#include "api/network/setup_net.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
-#include "api/network/setup_net.hpp"
 #include "common/api_secret.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
@@ -49,6 +49,7 @@ namespace fc {
   using api::ImportRes;
   using api::makeFullNodeApiV1Wrapper;
   using api::StorageMarketDealInfo;
+  using fc::api::fillNetApi;
   using libp2p::peer::PeerId;
   using libp2p::peer::PeerInfo;
   using markets::storage::StorageProviderInfo;
@@ -56,7 +57,6 @@ namespace fc {
   using node::NodeObjects;
   using primitives::jwt::kAllPermission;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
-  using fc::api::fillNetApi;
 
   namespace {
     auto log() {
@@ -91,7 +91,9 @@ namespace fc {
     PeerInfo api_peer_info{
         node_objects.host->getPeerInfo().id,
         nonZeroAddrs(node_objects.host->getAddresses(), &config.localIp())};
+
     fillNetApi(node_objects.api, api_peer_info, node_objects.host);
+
     // Market Client API
     node_objects.api->ClientImport =
         [&](auto &file_ref) -> outcome::result<ImportRes> {
