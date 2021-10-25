@@ -481,7 +481,6 @@ namespace fc::storage::mpool {
           }
         });
     mpool->bls_cache = {bls_cache_size};
-    mpool->chain_store_ = std::move(chain_store);
     mpool->pubsub_gate_ = std::move(pubsub_gate);
     mpool->logger_ = common::createLogger("MessagePool");
     return mpool;

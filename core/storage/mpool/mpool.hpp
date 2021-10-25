@@ -118,7 +118,6 @@ namespace fc::storage::mpool {
     EnvironmentContext env_context;
     TsBranchPtr ts_main;
     IpldPtr ipld;
-    std::shared_ptr<ChainStore> chain_store_;
     std::shared_ptr<PubSubGate> pubsub_gate_;
     ChainStore::connection_t head_sub;
 
