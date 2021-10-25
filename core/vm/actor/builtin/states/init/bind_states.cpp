@@ -15,4 +15,5 @@ UNIVERSAL_IMPL(states::InitActorState,
                v2::init::InitActorState,
                v3::init::InitActorState,
                v3::init::InitActorState,
+               v3::init::InitActorState,
                v3::init::InitActorState)

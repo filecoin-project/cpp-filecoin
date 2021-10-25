@@ -34,11 +34,13 @@ UNIVERSAL_IMPL(miner::MinerInfo,
                v2::miner::MinerInfo,
                v3::miner::MinerInfo,
                v3::miner::MinerInfo,
+               v3::miner::MinerInfo,
                v3::miner::MinerInfo)
 
 UNIVERSAL_IMPL(miner::Partition,
                v0::miner::Partition,
                v2::miner::Partition,
+               v3::miner::Partition,
                v3::miner::Partition,
                v3::miner::Partition,
                v3::miner::Partition)
@@ -48,11 +50,13 @@ UNIVERSAL_IMPL(miner::ExpirationQueue,
                v2::miner::ExpirationQueue,
                v3::miner::ExpirationQueue,
                v3::miner::ExpirationQueue,
+               v3::miner::ExpirationQueue,
                v3::miner::ExpirationQueue)
 
 UNIVERSAL_IMPL(miner::Monies,
                v0::miner::Monies,
                v2::miner::Monies,
+               v3::miner::Monies,
                v3::miner::Monies,
                v3::miner::Monies,
                v3::miner::Monies)
@@ -62,11 +66,13 @@ UNIVERSAL_IMPL(miner::Deadline,
                v2::miner::Deadline,
                v3::miner::Deadline,
                v3::miner::Deadline,
+               v3::miner::Deadline,
                v3::miner::Deadline)
 
 UNIVERSAL_IMPL(miner::ProofPolicy,
                v0::miner::ProofPolicy,
                v2::miner::ProofPolicy,
+               v3::miner::ProofPolicy,
                v3::miner::ProofPolicy,
                v3::miner::ProofPolicy,
                v3::miner::ProofPolicy)

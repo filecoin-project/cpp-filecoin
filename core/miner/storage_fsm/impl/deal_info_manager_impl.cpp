@@ -5,7 +5,7 @@
 
 #include "miner/storage_fsm/impl/deal_info_manager_impl.hpp"
 
-#include "vm/actor/builtin/v0/market/market_actor.hpp"
+#include "vm/actor/builtin/types/market/publish_deals_result.hpp"
 
 namespace fc::mining {
   using vm::VMExitCode;
@@ -62,6 +62,7 @@ namespace fc::mining {
       return DealInfoManagerError::kNotOkExitCode;
     }
 
+    // TODO(turuslan): v6
     OUTCOME_TRY(return_value,
                 codec::cbor::decode<PublishStorageDeals::Result>(
                     lookup->receipt.return_value));

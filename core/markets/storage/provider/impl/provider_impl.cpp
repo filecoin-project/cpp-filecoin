@@ -12,7 +12,7 @@
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "markets/storage/types.hpp"
 #include "storage/car/car.hpp"
-#include "vm/actor/builtin/v0/market/market_actor.hpp"
+#include "vm/actor/builtin/types/market/publish_deals_result.hpp"
 
 #define CALLBACK_ACTION(_action)                                    \
   [this](auto deal, auto event, auto context, auto from, auto to) { \
@@ -648,6 +648,7 @@ namespace fc::markets::storage::provider {
             SELF_FSM_SEND(deal, ProviderEvent::ProviderEventFailed);
             return;
           }
+          // TODO(turuslan): v6
           auto maybe_res = codec::cbor::decode<PublishStorageDeals::Result>(
               result.value().receipt.return_value);
           SELF_FSM_HALT_ON_ERROR(

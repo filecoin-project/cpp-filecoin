@@ -14,7 +14,7 @@ namespace fc::api {
     auto api = std::make_shared<FullNodeApiV1Wrapper>();
     api->Version = []() {
       return VersionResult{
-          "fuhon", makeApiVersion(1, 3, 0), kEpochDurationSeconds};
+          "fuhon", makeApiVersion(1, 4, 0), kEpochDurationSeconds};
     };
     return api;
   }

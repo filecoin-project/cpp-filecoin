@@ -15,4 +15,5 @@ UNIVERSAL_IMPL(states::CronActorState,
                v2::cron::CronActorState,
                v3::cron::CronActorState,
                v3::cron::CronActorState,
+               v3::cron::CronActorState,
                v3::cron::CronActorState)

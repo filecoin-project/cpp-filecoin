@@ -54,6 +54,7 @@ namespace fc::mining::checks {
       case ActorVersion::kVersion4:
         return kMaxProveCommitDuration;
       case ActorVersion::kVersion5:
+      case ActorVersion::kVersion6:
         return sector_info->sector_type
                        >= api::RegisteredSealProof::kStackedDrg2KiBV1_1
                    ? 30 * kEpochsInDay + kPreCommitChallengeDelay

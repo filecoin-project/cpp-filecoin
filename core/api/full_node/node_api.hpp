@@ -279,6 +279,11 @@ namespace fc::api {
     TokenAmount max;
   };
 
+  struct SectorExpiration {
+    ChainEpoch on_time{};
+    ChainEpoch early{};
+  };
+
   inline const boost::optional<MessageSendSpec> kPushNoSpec;
 
   constexpr uint64_t kNoConfidence{};
@@ -581,6 +586,20 @@ namespace fc::api {
                Actor,
                const Address &,
                const TipsetKey &)
+    API_METHOD(StateGetRandomnessFromBeacon,
+               jwt::kReadPermission,
+               Randomness,
+               DomainSeparationTag,
+               ChainEpoch,
+               const Bytes &,
+               const TipsetKey &)
+    API_METHOD(StateGetRandomnessFromTickets,
+               jwt::kReadPermission,
+               Randomness,
+               DomainSeparationTag,
+               ChainEpoch,
+               const Bytes &,
+               const TipsetKey &)
     API_METHOD(StateReadState,
                jwt::kReadPermission,
                ActorState,
@@ -710,6 +729,12 @@ namespace fc::api {
                const Address &,
                SectorNumber,
                const TipsetKey &);
+    API_METHOD(StateSectorExpiration,
+               jwt::kReadPermission,
+               SectorExpiration,
+               const Address &,
+               SectorNumber,
+               const TipsetKey &);
     API_METHOD(StateSectorPartition,
                jwt::kReadPermission,
                SectorLocation,
@@ -825,6 +850,8 @@ namespace fc::api {
     f(a.StateCall);
     f(a.StateDealProviderCollateralBounds);
     f(a.StateGetActor);
+    f(a.StateGetRandomnessFromBeacon);
+    f(a.StateGetRandomnessFromTickets);
     f(a.StateListActors);
     f(a.StateListMessages);
     f(a.StateListMiners);
@@ -848,6 +875,7 @@ namespace fc::api {
     f(a.StateNetworkVersion);
     f(a.StateReadState);
     f(a.StateSearchMsg);
+    f(a.StateSectorExpiration);
     f(a.StateSectorGetInfo);
     f(a.StateSectorPartition);
     f(a.StateVerifiedClientStatus);

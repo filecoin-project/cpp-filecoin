@@ -15,4 +15,5 @@ UNIVERSAL_IMPL(states::PowerActorState,
                v2::storage_power::PowerActorState,
                v3::storage_power::PowerActorState,
                v3::storage_power::PowerActorState,
+               v3::storage_power::PowerActorState,
                v3::storage_power::PowerActorState)

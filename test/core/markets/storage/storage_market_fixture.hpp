@@ -30,6 +30,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/mocks/api.hpp"
 #include "testutil/mocks/markets/storage/chain_events/chain_events_mock.hpp"
 #include "testutil/mocks/miner/miner_mock.hpp"
 #include "testutil/mocks/sectorblocks/blocks_mock.hpp"
@@ -247,7 +248,7 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<BlsProvider> &bls_provider,
         const std::map<Address, Address> &account_keys,
         const std::map<Address, BlsKeyPair> &private_keys) {
-      std::shared_ptr<FullNodeApi> api = std::make_shared<FullNodeApi>();
+      auto &api{node_api};
 
       api->ChainGetMessage = {
           [this](const CID &message_cid) -> outcome::result<UnsignedMessage> {
@@ -373,6 +374,10 @@ namespace fc::markets::storage::test {
              const Signature &signature) -> outcome::result<bool> {
             return true;
           }};
+
+      EXPECT_CALL(mock_StateNetworkVersion, Call(_))
+          .WillRepeatedly(
+              testing::Return(vm::version::NetworkVersion::kVersion0));
 
       return api;
     }
@@ -530,7 +535,7 @@ namespace fc::markets::storage::test {
     Address client_id_address = Address::makeFromId(102);
     Address client_bls_address;
     std::shared_ptr<Tipset> chain_head = std::make_shared<Tipset>();
-    std::shared_ptr<FullNodeApi> node_api;
+    std::shared_ptr<FullNodeApi> node_api{std::make_shared<FullNodeApi>()};
     std::shared_ptr<ChainEventsMock> chain_events_ =
         std::make_shared<ChainEventsMock>();
     std::shared_ptr<SectorBlocksMock> sector_blocks;
@@ -546,6 +551,8 @@ namespace fc::markets::storage::test {
         RegisteredSealProof::kStackedDrg2KiBV1};
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<boost::asio::io_context> context_;
+
+    MOCK_API(node_api, StateNetworkVersion);
 
    private:
     // published messages

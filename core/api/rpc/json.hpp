@@ -1358,6 +1358,18 @@ namespace fc::api {
       v.piece_size = decode<uint64_t>(Get(j, "PieceSize"));
     }
 
+    ENCODE(SectorExpiration) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "OnTime", v.on_time);
+      Set(j, "Early", v.early);
+      return j;
+    }
+
+    DECODE(SectorExpiration) {
+      decode(v.on_time, Get(j, "OnTime"));
+      decode(v.early, Get(j, "Early"));
+    }
+
     ENCODE(SectorId) {
       Value j{rapidjson::kObjectType};
       Set(j, "Miner", v.miner);

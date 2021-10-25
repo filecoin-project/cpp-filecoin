@@ -18,7 +18,7 @@
 #include "markets/storage/client/import_manager/import_manager.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "storage/ipld/memory_indexed_car.hpp"
-#include "vm/actor/builtin/v0/market/market_actor.hpp"
+#include "vm/actor/builtin/types/market/publish_deals_result.hpp"
 #include "vm/message/message.hpp"
 
 #define MOVE(x)  \
@@ -438,14 +438,17 @@ namespace fc::markets::storage::client {
       OUTCOME_TRY(proposal_cid_str, deal->proposal_cid.toString());
       deal->message = "deal publish didn't contain our deal (message cid: "
                       + proposal_cid_str + ")";
+      return false;
     }
 
     // get proposal id from publish call return
     int index = std::distance(proposals.begin(), it);
-    OUTCOME_TRY(publish_result,
-                codec::cbor::decode<PublishStorageDeals::Result>(
-                    msg_state.receipt.return_value));
-    deal->deal_id = publish_result.deals[index];
+    OUTCOME_TRY(network, api_->StateNetworkVersion(chain_head->key));
+    OUTCOME_TRY(
+        deal_id,
+        vm::actor::builtin::types::market::publishDealsResult(
+            msg_state.receipt.return_value, actorVersion(network), index));
+    deal->deal_id = deal_id;
     return true;
   }
 

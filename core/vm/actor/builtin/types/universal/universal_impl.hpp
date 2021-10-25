@@ -7,7 +7,7 @@
 
 #include "vm/actor/builtin/types/universal/universal.hpp"
 
-#define UNIVERSAL_IMPL(T, V0, V2, V3, V4, V5)               \
+#define UNIVERSAL_IMPL(T, V0, V2, V3, V4, V5, V6)           \
   namespace fc::vm::actor::builtin::types {                 \
     template <>                                             \
     std::shared_ptr<T> Universal<T>::make(ActorVersion v) { \
@@ -22,6 +22,8 @@
           return std::make_shared<V4>();                    \
         case ActorVersion::kVersion5:                       \
           return std::make_shared<V5>();                    \
+        case ActorVersion::kVersion6:                       \
+          return std::make_shared<V6>();                    \
       }                                                     \
     }                                                       \
     template <>                                             \
@@ -38,6 +40,8 @@
           return s >> (V4 &)*object;                        \
         case ActorVersion::kVersion5:                       \
           return s >> (V5 &)*object;                        \
+        case ActorVersion::kVersion6:                       \
+          return s >> (V6 &)*object;                        \
       }                                                     \
     }                                                       \
     template <>                                             \
@@ -54,6 +58,8 @@
           return s << (V4 &)*object;                        \
         case ActorVersion::kVersion5:                       \
           return s << (V5 &)*object;                        \
+        case ActorVersion::kVersion6:                       \
+          return s << (V6 &)*object;                        \
       }                                                     \
     }                                                       \
     template <>                                             \
@@ -69,6 +75,8 @@
           return cbor_blake::cbLoadT(ipld, (V4 &)*object);  \
         case ActorVersion::kVersion5:                       \
           return cbor_blake::cbLoadT(ipld, (V5 &)*object);  \
+        case ActorVersion::kVersion6:                       \
+          return cbor_blake::cbLoadT(ipld, (V6 &)*object);  \
       }                                                     \
     }                                                       \
     template <>                                             \
@@ -84,6 +92,8 @@
           return cbor_blake::cbFlushT((V4 &)*object);       \
         case ActorVersion::kVersion5:                       \
           return cbor_blake::cbFlushT((V5 &)*object);       \
+        case ActorVersion::kVersion6:                       \
+          return cbor_blake::cbFlushT((V6 &)*object);       \
       }                                                     \
     }                                                       \
     template <>                                             \
@@ -99,6 +109,8 @@
           return std::make_shared<V4>((V4 &)*object);       \
         case ActorVersion::kVersion5:                       \
           return std::make_shared<V5>((V5 &)*object);       \
+        case ActorVersion::kVersion6:                       \
+          return std::make_shared<V6>((V6 &)*object);       \
       }                                                     \
     }                                                       \
   }

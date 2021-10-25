@@ -15,4 +15,5 @@ UNIVERSAL_IMPL(states::MinerActorState,
                v2::miner::MinerActorState,
                v3::miner::MinerActorState,
                v3::miner::MinerActorState,
+               v3::miner::MinerActorState,
                v3::miner::MinerActorState)

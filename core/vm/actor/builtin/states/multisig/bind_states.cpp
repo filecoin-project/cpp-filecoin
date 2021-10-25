@@ -15,4 +15,5 @@ UNIVERSAL_IMPL(states::MultisigActorState,
                v2::multisig::MultisigActorState,
                v3::multisig::MultisigActorState,
                v3::multisig::MultisigActorState,
+               v3::multisig::MultisigActorState,
                v3::multisig::MultisigActorState)

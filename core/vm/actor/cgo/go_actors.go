@@ -87,6 +87,19 @@ import (
 	verifreg5 "github.com/filecoin-project/specs-actors/v5/actors/builtin/verifreg"
 	rt5 "github.com/filecoin-project/specs-actors/v5/actors/runtime"
 	proof5 "github.com/filecoin-project/specs-actors/v5/actors/runtime/proof"
+	builtin6 "github.com/filecoin-project/specs-actors/v6/actors/builtin"
+	account6 "github.com/filecoin-project/specs-actors/v6/actors/builtin/account"
+	cron6 "github.com/filecoin-project/specs-actors/v6/actors/builtin/cron"
+	init6 "github.com/filecoin-project/specs-actors/v6/actors/builtin/init"
+	market6 "github.com/filecoin-project/specs-actors/v6/actors/builtin/market"
+	miner6 "github.com/filecoin-project/specs-actors/v6/actors/builtin/miner"
+	multisig6 "github.com/filecoin-project/specs-actors/v6/actors/builtin/multisig"
+	paych6 "github.com/filecoin-project/specs-actors/v6/actors/builtin/paych"
+	power6 "github.com/filecoin-project/specs-actors/v6/actors/builtin/power"
+	reward6 "github.com/filecoin-project/specs-actors/v6/actors/builtin/reward"
+	system6 "github.com/filecoin-project/specs-actors/v6/actors/builtin/system"
+	verifreg6 "github.com/filecoin-project/specs-actors/v6/actors/builtin/verifreg"
+	rt6 "github.com/filecoin-project/specs-actors/v6/actors/runtime"
 	"github.com/ipfs/go-cid"
 	"github.com/whyrusleeping/cbor-gen"
 )
@@ -130,6 +143,7 @@ var _ rt2.Runtime = &rt{}
 var _ rt3.Runtime = &rt{}
 var _ rt4.Runtime = &rt{}
 var _ rt5.Runtime = &rt{}
+var _ rt6.Runtime = &rt{}
 
 func (rt *rt) NetworkVersion() network.Version {
 	return network.Version(rt.version)
@@ -235,7 +249,7 @@ func (rt *rt) NewActorAddress() address.Address {
 }
 
 func (rt *rt) CreateActor(code cid.Cid, addr address.Address) {
-	if !(builtin5.IsBuiltinActor(code) || builtin4.IsBuiltinActor(code) || builtin3.IsBuiltinActor(code) || builtin2.IsBuiltinActor(code) || builtin1.IsBuiltinActor(code)) || IsSingletonActor(code) {
+	if !(builtin6.IsBuiltinActor(code) || builtin5.IsBuiltinActor(code) || builtin4.IsBuiltinActor(code) || builtin3.IsBuiltinActor(code) || builtin2.IsBuiltinActor(code) || builtin1.IsBuiltinActor(code)) || IsSingletonActor(code) {
 		rt.Abort(exitcode.SysErrorIllegalArgument)
 	}
 	rt.gocRet(C.gocRtCreateActor(rt.gocArg().cid(code).addr(addr).arg()))
@@ -269,6 +283,7 @@ var _ rt2.StateHandle = &rt{}
 var _ rt3.StateHandle = &rt{}
 var _ rt4.StateHandle = &rt{}
 var _ rt5.StateHandle = &rt{}
+var _ rt6.StateHandle = &rt{}
 
 func (rt *rt) StateCreate(o cbor.Marshaler) {
 	rt.commit(empty, o)
@@ -294,6 +309,7 @@ var _ rt2.Store = &rt{}
 var _ rt3.Store = &rt{}
 var _ rt4.Store = &rt{}
 var _ rt5.Store = &rt{}
+var _ rt6.Store = &rt{}
 
 func (rt *rt) StoreGet(c cid.Cid, o cbor.Unmarshaler) bool {
 	ret := rt.gocRet(C.gocRtIpldGet(rt.gocArg().cid(c).arg()))
@@ -317,6 +333,7 @@ var _ rt2.Message = &rt{}
 var _ rt3.Message = &rt{}
 var _ rt4.Message = &rt{}
 var _ rt5.Message = &rt{}
+var _ rt6.Message = &rt{}
 
 func (rt *rt) Caller() address.Address {
 	return rt.from
@@ -335,6 +352,7 @@ var _ rt2.Syscalls = &rt{}
 var _ rt3.Syscalls = &rt{}
 var _ rt4.Syscalls = &rt{}
 var _ rt5.Syscalls = &rt{}
+var _ rt6.Syscalls = &rt{}
 
 func (rt *rt) VerifySignature(sig crypto.Signature, addr address.Address, input []byte) error {
 	b, e := sig.MarshalBinary()
@@ -646,6 +664,18 @@ var _actors = map[cid.Cid]rtt.VMActor{
 	builtin5.PaymentChannelActorCodeID:   paych5.Actor{},
 	builtin5.VerifiedRegistryActorCodeID: verifreg5.Actor{},
 	builtin5.AccountActorCodeID:          account5.Actor{},
+
+	builtin6.SystemActorCodeID:           system6.Actor{},
+	builtin6.InitActorCodeID:             init6.Actor{},
+	builtin6.RewardActorCodeID:           reward6.Actor{},
+	builtin6.CronActorCodeID:             cron6.Actor{},
+	builtin6.StoragePowerActorCodeID:     power6.Actor{},
+	builtin6.StorageMarketActorCodeID:    market6.Actor{},
+	builtin6.StorageMinerActorCodeID:     miner6.Actor{},
+	builtin6.MultisigActorCodeID:         multisig6.Actor{},
+	builtin6.PaymentChannelActorCodeID:   paych6.Actor{},
+	builtin6.VerifiedRegistryActorCodeID: verifreg6.Actor{},
+	builtin6.AccountActorCodeID:          account6.Actor{},
 }
 var actors = map[cid.Cid]methods{}
 
@@ -733,6 +763,8 @@ func ClearSupportedProofTypes(n int) {
 	miner4.PreCommitSealProofTypesV8 = make(map[abi.RegisteredSealProof]struct{}, n)
 
 	miner5.PreCommitSealProofTypesV8 = make(map[abi.RegisteredSealProof]struct{}, n)
+
+	miner6.PreCommitSealProofTypesV8 = make(map[abi.RegisteredSealProof]struct{}, n)
 }
 
 func AddSupportedProofTypes(t abi.RegisteredSealProof) {
@@ -758,12 +790,14 @@ func AddSupportedProofTypes(t abi.RegisteredSealProof) {
 	miner4.PreCommitSealProofTypesV8[t+abi.RegisteredSealProof_StackedDrg2KiBV1_1] = struct{}{}
 
 	miner5.PreCommitSealProofTypesV8[t+abi.RegisteredSealProof_StackedDrg2KiBV1_1] = struct{}{}
+	miner6.PreCommitSealProofTypesV8[t+abi.RegisteredSealProof_StackedDrg2KiBV1_1] = struct{}{}
+
 	wpp, e := t.RegisteredWindowPoStProof()
 	if e != nil {
 		panic(cgoErrors("AddSupportedProofTypes: RegisteredWindowPoStProof"))
 	}
-
 	miner5.WindowPoStProofTypes[wpp] = struct{}{}
+	miner6.WindowPoStProofTypes[wpp] = struct{}{}
 }
 
 //export cgoActorsConfigParams
@@ -776,6 +810,7 @@ func cgoActorsConfigParams(raw C.Raw) C.Raw {
 	verifreg3.MinVerifiedDealSize = MinVerifiedDealSize
 	verifreg4.MinVerifiedDealSize = MinVerifiedDealSize
 	verifreg5.MinVerifiedDealSize = MinVerifiedDealSize
+	verifreg6.MinVerifiedDealSize = MinVerifiedDealSize
 
 	PreCommitChallengeDelay := abi.ChainEpoch(arg.int())
 	miner1.PreCommitChallengeDelay = PreCommitChallengeDelay
@@ -783,6 +818,7 @@ func cgoActorsConfigParams(raw C.Raw) C.Raw {
 	miner3.PreCommitChallengeDelay = PreCommitChallengeDelay
 	miner4.PreCommitChallengeDelay = PreCommitChallengeDelay
 	miner5.PreCommitChallengeDelay = PreCommitChallengeDelay
+	miner6.PreCommitChallengeDelay = PreCommitChallengeDelay
 
 	power1.ConsensusMinerMinPower = arg.big()
 	for _, x := range builtin2.SealProofPolicies {
@@ -795,6 +831,9 @@ func cgoActorsConfigParams(raw C.Raw) C.Raw {
 		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
 	}
 	for _, x := range builtin5.PoStProofPolicies {
+		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
+	}
+	for _, x := range builtin6.PoStProofPolicies {
 		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
 	}
 	nProofs := int(arg.uint())

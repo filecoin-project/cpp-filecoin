@@ -15,4 +15,5 @@ UNIVERSAL_IMPL(states::PaymentChannelActorState,
                v2::payment_channel::PaymentChannelActorState,
                v3::payment_channel::PaymentChannelActorState,
                v3::payment_channel::PaymentChannelActorState,
+               v3::payment_channel::PaymentChannelActorState,
                v3::payment_channel::PaymentChannelActorState)
