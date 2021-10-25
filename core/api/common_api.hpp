@@ -42,9 +42,6 @@ namespace fc::api {
   void visitCommon(A &&a, const F &f) {
     f(a.AuthNew);
     f(a.AuthVerify);
-    f(a.NetAddrsListen);
-    f(a.NetConnect);
-    f(a.NetPeers);
     f(a.Version);
   }
 }  // namespace fc::api

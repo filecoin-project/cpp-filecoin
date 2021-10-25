@@ -92,7 +92,7 @@ namespace fc {
         node_objects.host->getPeerInfo().id,
         nonZeroAddrs(node_objects.host->getAddresses(), &config.localIp())};
 
-    fillNetApi(node_objects.api, api_peer_info, node_objects.host);
+    fillNetApi(node_objects.api, api_peer_info, node_objects.host, log());
 
     // Market Client API
     node_objects.api->ClientImport =
