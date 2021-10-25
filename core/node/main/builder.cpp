@@ -531,7 +531,7 @@ namespace fc::node {
     const auto republishTimeout{std::chrono::seconds(10 * kEpochDurationSeconds
                                                      + kPropagationDelaySecs)};
     timerLoop(o.scheduler, republishTimeout, [mpool{o.mpool}] {
-      auto res = mpool->republishPendingMessages();
+      const auto res = mpool->republishPendingMessages();
       if (!res) {
         log()->error("Mpool republish error: {}", res.error());
       }

@@ -261,7 +261,7 @@ namespace fc::storage::mpool {
     for (auto &msg : msgs) {
       auto reward{getGasReward(msg.message, base_fee)};
       TokenAmount gas_reward{cur_chain->gas_reward + reward};
-      auto chain_gas_limit{cur_chain->gas_limit + msg.message.gas_limit};
+      const auto chain_gas_limit{cur_chain->gas_limit + msg.message.gas_limit};
       auto gas_perf{getGasPerf(gas_reward, gas_limit)};
       if (!cur_chain->msgs.empty() && gas_perf < cur_chain->gas_perf) {
         cur_chain = new_chain();
