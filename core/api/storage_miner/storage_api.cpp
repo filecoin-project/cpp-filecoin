@@ -22,7 +22,7 @@ namespace fc::api {
       const std::shared_ptr<StoredAsk> &stored_ask,
       const std::shared_ptr<StorageProvider> &storage_market_provider,
       const std::shared_ptr<RetrievalProvider> &retrieval_market_provider) {
-    x§ auto api = std::make_shared<StorageMinerApi>();
+    auto api = std::make_shared<StorageMinerApi>();
 
     api->ActorAddress = [=]() { return miner->getAddress(); };
 

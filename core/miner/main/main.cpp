@@ -497,7 +497,7 @@ namespace fc {
                                     storage_provider,
                                     retrieval_provider);
 
-    api::fillAuthApi(mapi, api_secret, log());
+    api::fillAuthApi(mapi, api_secret, api::kStorageApiLogger);
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
     mrpc.emplace(

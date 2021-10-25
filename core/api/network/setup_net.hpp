@@ -6,21 +6,21 @@
 #pragma once
 
 #include <libp2p/host/host.hpp>
-#include <spdlog/spdlog.h>
 #include "api/network/network_api.hpp"
+#include "common/logger.hpp"
 
 namespace fc::api {
   using libp2p::Host;
 
-  void fillNetApi(const std::shared_ptr<NetworkApi> &api,
+  inline void fillNetApi(const std::shared_ptr<NetworkApi> &api,
                   const PeerInfo &api_peer_info,
                   const std::shared_ptr<libp2p::Host> &host,
-                  spdlog::logger * const &logger) {
+                  common::Logger logger) {
     api->NetAddrsListen = [api_peer_info]() -> outcome::result<PeerInfo> {
       return api_peer_info;
     };
 
-    api->NetConnect = [&](auto &peer) {
+    api->NetConnect = [host](auto &peer) {
       host->connect(peer);
       return outcome::success();
     };
@@ -33,7 +33,7 @@ namespace fc::api {
       for (const auto &conncection : connections) {
         const auto remote = conncection->remotePeer();
         if (remote.has_error())
-         logger->error("get remote peer error", remote.error().message());
+          logger->error("get remote peer error", remote.error().message());
         result.push_back(peer_repository.getPeerInfo(remote.value()));
       }
       return result;

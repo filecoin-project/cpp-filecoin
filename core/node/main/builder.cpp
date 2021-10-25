@@ -72,6 +72,8 @@
 #include "vm/runtime/circulating.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "common/libp2p/peer/peer_info_helper.hpp"
+#include "api/network/setup_net.hpp"
 
 namespace fc::node {
   using markets::discovery::DiscoveryImpl;
@@ -82,6 +84,7 @@ namespace fc::node {
   using storage::keystore::FileSystemKeyStore;
   using vm::actor::builtin::states::InitActorStatePtr;
   using vm::interpreter::InterpreterCache;
+  using api::PeerInfo;
 
   namespace {
     auto log() {
@@ -632,7 +635,13 @@ namespace fc::node {
                           o.retrieval_market_client,
                           o.wallet_default_address);
 
-    api::fillAuthApi(o.api, api_secret, log());
+    api::fillAuthApi(o.api, api_secret, api::kNodeApiLogger);
+
+    PeerInfo api_peer_info{
+        o.host->getPeerInfo().id,
+        nonZeroAddrs(o.host->getAddresses(), &config.localIp())};
+
+    api::fillNetApi(o.api, api_peer_info, o.host, api::kNodeApiLogger);
 
     auto paych{
         std::make_shared<payment_channel_manager::PaymentChannelManagerImpl>(

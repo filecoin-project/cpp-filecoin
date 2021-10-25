@@ -13,7 +13,6 @@
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
 #include "common/api_secret.hpp"
-#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
 #include "common/logger.hpp"
 #include "drand/impl/http.hpp"
@@ -31,6 +30,7 @@
 #include "node/say_hello.hpp"
 #include "node/sync_job.hpp"
 #include "vm/actor/cgo/actors.hpp"
+#include "common/libp2p/peer/peer_info_helper.hpp"
 
 void setFdLimitMax() {
   rlimit r{};
@@ -87,12 +87,6 @@ namespace fc {
   void startApi(const node::Config &config,
                 NodeObjects &node_objects,
                 const Metrics &metrics) {
-    // Network API
-    PeerInfo api_peer_info{
-        node_objects.host->getPeerInfo().id,
-        nonZeroAddrs(node_objects.host->getAddresses(), &config.localIp())};
-
-    fillNetApi(node_objects.api, api_peer_info, node_objects.host, log());
 
     // Market Client API
     node_objects.api->ClientImport =
@@ -104,7 +98,7 @@ namespace fc {
       return ImportRes{root, 0};
     };
 
-    node_objects.api->ClientListDeals = [api_peer_info, &node_objects]()
+    node_objects.api->ClientListDeals = [&node_objects]()
         -> outcome::result<std::vector<StorageMarketDealInfo>> {
       std::vector<StorageMarketDealInfo> result;
       OUTCOME_TRY(local_deals,
@@ -126,7 +120,7 @@ namespace fc {
             {},
             deal.client_deal_proposal.proposal.verified,
             // TODO (a.chernyshov) actual ChannelId
-            {api_peer_info.id, deal.miner.id, 0},
+            {node_objects.host->getPeerInfo().id, deal.miner.id, 0},
             // TODO (a.chernyshov) actual data transfer
             {0, 0, deal.proposal_cid, true, true, "", "", deal.miner.id, 0}});
       }
