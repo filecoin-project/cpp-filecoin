@@ -391,6 +391,53 @@ namespace fc::vm::actor::builtin::v2::miner {
     return outcome::success();
   }
 
+  ACTOR_METHOD_IMPL(ProveCommitSector) {
+    OUTCOME_TRY(runtime.validateArgument(params.sector <= kMaxSectorNumber));
+
+    const auto max_proof_size =
+        runtime.getNetworkVersion() >= NetworkVersion::kVersion5
+            ? kMaxProveCommitSizeV5
+            : kMaxProveCommitSizeV4;
+    OUTCOME_TRY(
+        runtime.validateArgument(params.proof.size() <= max_proof_size));
+
+    OUTCOME_TRY(state, runtime.getActorState<MinerActorStatePtr>());
+
+    REQUIRE_NO_ERROR_A(maybe_precommint,
+                       state->precommitted_sectors.tryGet(params.sector),
+                       VMExitCode::kErrIllegalState);
+    if (!maybe_precommint) {
+      ABORT(VMExitCode::kErrNotFound);
+    }
+
+    const auto &precommit = maybe_precommint.value();
+
+    OUTCOME_TRY(runtime.commitState(state));
+
+    const auto prove_commit_due =
+        precommit.precommit_epoch + kMaxProveCommitDuration;
+
+    OUTCOME_TRY(runtime.validateArgument(runtime.getCurrentEpoch()
+                                         <= prove_commit_due));
+
+    const auto utils = Toolchain::createMinerUtils(runtime);
+
+    OUTCOME_TRY(svi,
+                utils->getVerifyInfo(SealVerifyStuff{
+                    .sealed_cid = precommit.info.sealed_cid,
+                    .interactive_epoch =
+                        precommit.precommit_epoch + kPreCommitChallengeDelay,
+                    .seal_proof = precommit.info.registered_proof,
+                    .proof = params.proof,
+                    .deal_ids = precommit.info.deal_ids,
+                    .sector = precommit.info.sector,
+                    .seal_rand_epoch = precommit.info.seal_epoch}));
+
+    OUTCOME_TRY(utils->callSubmitPoRepForBulkVerify(svi));
+
+    return outcome::success();
+  }
+
   ACTOR_METHOD_IMPL(ApplyRewards) {
     // TODO (a.chernyshov) FIL-310 - implement
     return VMExitCode::kNotImplemented;
