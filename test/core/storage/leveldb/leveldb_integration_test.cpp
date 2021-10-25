@@ -32,7 +32,7 @@ namespace fc::storage {
    * @then {value} is correct
    */
   TEST_F(LevelDB_Integration_Test, Put_Get) {
-    EXPECT_OUTCOME_TRUE_1(db_->put(key_, value_));
+    EXPECT_OUTCOME_TRUE_1(db_->put(key_, BytesIn{value_}));
     EXPECT_TRUE(db_->contains(key_));
     EXPECT_OUTCOME_TRUE_2(val, db_->get(key_));
     EXPECT_EQ(val, value_);
@@ -65,7 +65,7 @@ namespace fc::storage {
     ASSERT_TRUE(batch);
 
     for (const auto &item : keys) {
-      EXPECT_OUTCOME_TRUE_1(batch->put(item, item));
+      EXPECT_OUTCOME_TRUE_1(batch->put(item, BytesIn{item}));
       EXPECT_FALSE(db_->contains(item));
     }
     EXPECT_OUTCOME_TRUE_1(batch->remove(toBeRemoved));
@@ -94,7 +94,7 @@ namespace fc::storage {
     }
 
     for (const auto &item : keys) {
-      EXPECT_OUTCOME_TRUE_1(db_->put(item, item));
+      EXPECT_OUTCOME_TRUE_1(db_->put(item, BytesIn{item}));
     }
 
     std::array<size_t, size> counter{};

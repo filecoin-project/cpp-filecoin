@@ -95,7 +95,8 @@ namespace fc::sector_storage {
       state.status = WorkStatus::kStart;
       OUTCOME_TRY(state_raw, codec::cbor::encode(state));
 
-      OUTCOME_TRY(call_kv_->put(static_cast<Bytes>(work_id), state_raw));
+      OUTCOME_TRY(
+          call_kv_->put(static_cast<Bytes>(work_id), std::move(state_raw)));
 
       job = [old_job = std::move(job), kv{call_kv_}, wid{work_id}](
                 const std::shared_ptr<Worker> &worker)
@@ -106,7 +107,7 @@ namespace fc::sector_storage {
         state.status = WorkStatus::kInProgress;
         state.call_id = call_id;
         OUTCOME_TRY(state_raw, codec::cbor::encode(state));
-        OUTCOME_TRY(kv->put(static_cast<Bytes>(wid), state_raw));
+        OUTCOME_TRY(kv->put(static_cast<Bytes>(wid), std::move(state_raw)));
         return std::move(call_id);
       };
     }

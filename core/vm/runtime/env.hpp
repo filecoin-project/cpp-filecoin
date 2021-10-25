@@ -41,12 +41,13 @@ namespace fc::vm::runtime {
     outcome::result<void> flush(const CID &root);
 
     outcome::result<bool> contains(const CID &key) const override;
-    outcome::result<void> set(const CID &key, Value value) override;
+    outcome::result<void> set(const CID &key, BytesCow &&value) override;
     outcome::result<Value> get(const CID &key) const override;
 
     IpldPtr ipld;
     // vm only stores "DAG_CBOR blake2b_256" cids
     std::unordered_map<CbCid, Bytes> write;
+    bool flushed{false};
   };
 
   /// Environment contains objects that are shared by runtime contexts
@@ -110,7 +111,7 @@ namespace fc::vm::runtime {
     outcome::result<bool> contains(const CID &key) const override {
       return ERROR_TEXT("not implemented");
     }
-    outcome::result<void> set(const CID &key, Value value) override;
+    outcome::result<void> set(const CID &key, BytesCow &&value) override;
     outcome::result<Value> get(const CID &key) const override;
 
     std::weak_ptr<Execution> execution_;

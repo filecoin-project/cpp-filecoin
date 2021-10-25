@@ -135,9 +135,9 @@ namespace fc::vm::actor::cgo {
 
   inline boost::optional<CID> ipldPut(CborEncodeStream &ret,
                                       const std::shared_ptr<Runtime> &rt,
-                                      BytesIn value) {
+                                      BytesCow &&value) {
     OUTCOME_EXCEPT(cid, common::getCidOf(value));
-    if (auto r{rt->execution()->charging_ipld->set(cid, copy(value))}) {
+    if (auto r{rt->execution()->charging_ipld->set(cid, std::move(value))}) {
       return std::move(cid);
     } else {
       chargeFatal(ret, r);
@@ -153,7 +153,7 @@ namespace fc::vm::actor::cgo {
 
   RUNTIME_METHOD(gocRtIpldPut) {
     auto buf = arg.get<Bytes>();
-    if (auto cid{ipldPut(ret, rt, buf)}) {
+    if (auto cid{ipldPut(ret, rt, std::move(buf))}) {
       ret << kOk << *cid;
     }
   }

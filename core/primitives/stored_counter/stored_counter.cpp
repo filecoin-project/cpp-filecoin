@@ -6,6 +6,8 @@
 #include "primitives/stored_counter/stored_counter.hpp"
 
 #include <libp2p/multi/uvarint.hpp>
+
+#include "codec/uvarint.hpp"
 #include "common/span.hpp"
 
 namespace fc::primitives {
@@ -26,8 +28,7 @@ namespace fc::primitives {
 
   outcome::result<void> StoredCounter::setNumber(uint64_t number) {
     std::lock_guard lock(mutex_);
-    const libp2p::multi::UVarint new_value(number);
-    return datastore_->put(key_, copy(new_value.toBytes()));
+    return datastore_->put(key_, codec::uvarint::VarintEncoder{number}.bytes());
   }
 
   outcome::result<uint64_t> StoredCounter::next() {

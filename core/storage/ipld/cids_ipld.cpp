@@ -40,10 +40,10 @@ namespace fc::storage::ipld {
     return false;
   }
 
-  outcome::result<void> CidsIpld::set(const CID &cid, Bytes value) {
+  outcome::result<void> CidsIpld::set(const CID &cid, BytesCow &&value) {
     if (auto key{asBlake(cid)}) {
       if (writable.is_open()) {
-        put(*key, value);
+        put(*key, std::move(value));
         return outcome::success();
       }
     }
@@ -154,7 +154,7 @@ namespace fc::storage::ipld {
     return true;
   }
 
-  void CidsIpld::put(const CbCid &key, BytesIn value) {
+  void CidsIpld::put(const CbCid &key, BytesCow &&value) {
     if (!writable.is_open()) {
       outcome::raise(ERROR_TEXT("CidsIpld.put: not writable"));
     }

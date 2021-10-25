@@ -42,7 +42,7 @@ namespace fc::storage::unixfs {
     OUTCOME_TRY(w.next());
     CID cid{
         CID::Version::V1, CID::Multicodec::RAW, Hasher::blake2b_256(w.chunk)};
-    OUTCOME_TRY(w.ipld.set(cid, w.chunk));
+    OUTCOME_TRY(w.ipld.set(cid, BytesIn{w.chunk}));
     return cid;
   }
 
@@ -138,7 +138,7 @@ namespace fc::storage::unixfs {
     root.size += node.size();
     root.cid =
         CID{CID::Version::V0, CID::Multicodec::DAG_PB, Hasher::sha2_256(node)};
-    OUTCOME_TRY(w.ipld.set(root.cid, node));
+    OUTCOME_TRY(w.ipld.set(root.cid, std::move(node)));
     return root;
   }
 

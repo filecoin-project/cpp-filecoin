@@ -86,7 +86,7 @@ namespace fc::primitives::tipset {
 
   struct PutBlockHeader {
     virtual ~PutBlockHeader() = default;
-    virtual void put(const CbCid &key, BytesIn value) = 0;
+    virtual void put(const CbCid &key, BytesCow &&value) = 0;
   };
   CID put(const IpldPtr &ipld,
           const std::shared_ptr<PutBlockHeader> &put,

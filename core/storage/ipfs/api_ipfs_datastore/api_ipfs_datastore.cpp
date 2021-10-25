@@ -15,7 +15,8 @@ namespace fc::storage::ipfs {
     return api_->ChainReadObj(key).has_value();
   }
 
-  outcome::result<void> ApiIpfsDatastore::set(const CID &key, Value value) {
+  outcome::result<void> ApiIpfsDatastore::set(const CID &key,
+                                              BytesCow &&value) {
     return ApiIpfsDatastoreError::kNotSupproted;
   }
 

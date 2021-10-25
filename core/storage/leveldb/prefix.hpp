@@ -31,8 +31,7 @@ namespace fc::storage {
     struct Batch : BufferBatch {
       Batch(MapPrefix &map, std::unique_ptr<BufferBatch> batch);
 
-      outcome::result<void> put(const Bytes &key, const Bytes &value) override;
-      outcome::result<void> put(const Bytes &key, Bytes &&value) override;
+      outcome::result<void> put(const Bytes &key, BytesCow &&value) override;
       outcome::result<void> remove(const Bytes &key) override;
 
       outcome::result<void> commit() override;
@@ -48,8 +47,7 @@ namespace fc::storage {
 
     outcome::result<Bytes> get(const Bytes &key) const override;
     bool contains(const Bytes &key) const override;
-    outcome::result<void> put(const Bytes &key, const Bytes &value) override;
-    outcome::result<void> put(const Bytes &key, Bytes &&value) override;
+    outcome::result<void> put(const Bytes &key, BytesCow &&value) override;
     outcome::result<void> remove(const Bytes &key) override;
     std::unique_ptr<BufferBatch> batch() override;
     std::unique_ptr<BufferMapCursor> cursor() override;

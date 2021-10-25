@@ -19,7 +19,7 @@ namespace fc::storage::ipfs {
     outcome::result<bool> contains(const CID &key) const override;
 
     /** @copydoc IpfsDatastore::set() */
-    outcome::result<void> set(const CID &key, Value value) override;
+    outcome::result<void> set(const CID &key, BytesCow &&value) override;
 
     /** @copydoc IpfsDatastore::get() */
     outcome::result<Value> get(const CID &key) const override;

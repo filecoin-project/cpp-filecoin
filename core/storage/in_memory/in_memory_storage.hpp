@@ -23,9 +23,7 @@ namespace fc::storage {
 
     outcome::result<Bytes> get(const Bytes &key) const override;
 
-    outcome::result<void> put(const Bytes &key, const Bytes &value) override;
-
-    outcome::result<void> put(const Bytes &key, Bytes &&value) override;
+    outcome::result<void> put(const Bytes &key, BytesCow &&value) override;
 
     bool contains(const Bytes &key) const override;
 

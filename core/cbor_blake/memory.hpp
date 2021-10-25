@@ -25,8 +25,8 @@ namespace fc {
       }
       return false;
     }
-    void put(const CbCid &key, BytesIn value) override {
-      map.emplace(key, copy(value));
+    void put(const CbCid &key, BytesCow &&value) override {
+      map.emplace(key, value.into());
     }
   };
 }  // namespace fc

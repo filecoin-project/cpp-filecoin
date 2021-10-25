@@ -36,14 +36,14 @@ namespace fc::storage::compacter {
   struct CompacterPutBlockHeader : primitives::tipset::PutBlockHeader {
     std::weak_ptr<CompacterIpld> _compacter;
 
-    void put(const CbCid &key, BytesIn value) override;
+    void put(const CbCid &key, BytesCow &&value) override;
   };
 
   struct CompacterIpld : CbIpld, std::enable_shared_from_this<CompacterIpld> {
     using CbIpld::get, CbIpld::put;
 
     bool get(const CbCid &key, Bytes *value) const override;
-    void put(const CbCid &key, BytesIn value) override;
+    void put(const CbCid &key, BytesCow &&value) override;
 
     void open();
     bool asyncStart();

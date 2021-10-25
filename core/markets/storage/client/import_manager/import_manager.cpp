@@ -88,7 +88,7 @@ namespace fc::markets::storage::client::import_manager {
   outcome::result<void> ImportManager::addImported(
       const CID &root, const boost::filesystem::path &path) {
     OUTCOME_TRY(key, root.toBytes());
-    return imported_->put(key, copy(common::span::cbytes(path.string())));
+    return imported_->put(key, common::span::cbytes(path.string()));
   }
 
 }  // namespace fc::markets::storage::client::import_manager

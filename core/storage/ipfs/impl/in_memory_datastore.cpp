@@ -12,8 +12,9 @@ fc::outcome::result<bool> InMemoryDatastore::contains(const CID &key) const {
   return storage_.find(key) != storage_.end();
 }
 
-fc::outcome::result<void> InMemoryDatastore::set(const CID &key, Value value) {
-  storage_[key] = value;
+fc::outcome::result<void> InMemoryDatastore::set(const CID &key,
+                                                 BytesCow &&value) {
+  storage_[key] = value.into();
   return fc::outcome::success();
 }
 

@@ -13,13 +13,8 @@ namespace fc::storage {
    public:
     explicit InMemoryBatch(InMemoryStorage &db) : db{db} {}
 
-    outcome::result<void> put(const Bytes &key, const Bytes &value) override {
-      entries[key] = value;
-      return outcome::success();
-    }
-
-    outcome::result<void> put(const Bytes &key, Bytes &&value) override {
-      entries[key] = std::move(value);
+    outcome::result<void> put(const Bytes &key, BytesCow &&value) override {
+      entries[key] = value.into();
       return outcome::success();
     }
 
@@ -30,7 +25,7 @@ namespace fc::storage {
 
     outcome::result<void> commit() override {
       for (auto &entry : entries) {
-        OUTCOME_TRY(db.put(entry.first, entry.second));
+        OUTCOME_TRY(db.put(entry.first, std::move(entry.second)));
       }
       return outcome::success();
     }

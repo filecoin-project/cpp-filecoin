@@ -48,6 +48,8 @@ namespace fc::vm::runtime {
   IpldBuffered::IpldBuffered(IpldPtr ipld) : ipld{ipld} {}
 
   outcome::result<void> IpldBuffered::flush(const CID &root) {
+    assert(!flushed);
+    flushed = true;
     assert(isCbor(root));
     auto _root{*asBlake(root)};
     assert(write.count(_root));
@@ -70,8 +72,9 @@ namespace fc::vm::runtime {
     }
     for (auto it{queue.rbegin()}; it != queue.rend(); ++it) {
       auto &key{**it};
-      OUTCOME_TRY(ipld->set(CID{key}, write.at(key)));
+      OUTCOME_TRY(ipld->set(CID{key}, std::move(write.at(key))));
     }
+    write.clear();
     return outcome::success();
   }
 
@@ -79,9 +82,9 @@ namespace fc::vm::runtime {
     throw "unused";
   }
 
-  outcome::result<void> IpldBuffered::set(const CID &cid, Value value) {
+  outcome::result<void> IpldBuffered::set(const CID &cid, BytesCow &&value) {
     assert(isCbor(cid));
-    write.emplace(*asBlake(cid), std::move(value));
+    write.emplace(*asBlake(cid), value.into());
     return outcome::success();
   }
 
@@ -373,7 +376,7 @@ namespace fc::vm::runtime {
     return outcome::success();
   }
 
-  outcome::result<void> ChargingIpld::set(const CID &key, Value value) {
+  outcome::result<void> ChargingIpld::set(const CID &key, BytesCow &&value) {
     auto execution{execution_.lock()};
     OUTCOME_TRY(execution->chargeGas(
         execution->env->pricelist.onIpldPut(value.size())));

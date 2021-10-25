@@ -90,7 +90,7 @@ namespace fc::mining {
       EXPECT_OUTCOME_TRUE(buf, codec::cbor::encode(info));
       const std::string string_key = "empty_sector";
       const Bytes key(string_key.begin(), string_key.end());
-      EXPECT_OUTCOME_TRUE_1(kv_->put(key, buf));
+      EXPECT_OUTCOME_TRUE_1(kv_->put(key, std::move(buf)));
 
       proofs_ = std::make_shared<proofs::ProofEngineMock>();
 

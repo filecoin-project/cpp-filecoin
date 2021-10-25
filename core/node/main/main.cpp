@@ -267,7 +267,7 @@ namespace fc {
     auto &o = obj_res.value();
 
     auto gs_sub{o.graphsync->subscribe([&](auto &, auto &data) {
-      o.markets_ipld->set(data.cid, data.content).value();
+      o.markets_ipld->set(data.cid, BytesIn{data.content}).value();
     })};
 
     auto mpool_gossip{o.events->subscribeMessageFromPubSub([&](auto &e) {

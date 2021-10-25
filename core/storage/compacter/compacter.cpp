@@ -17,11 +17,11 @@ namespace fc::vm::interpreter {
 }  // namespace fc::vm::interpreter
 
 namespace fc::storage::compacter {
-  void CompacterPutBlockHeader::put(const CbCid &key, BytesIn value) {
+  void CompacterPutBlockHeader::put(const CbCid &key, BytesCow &&value) {
     if (auto compacter{_compacter.lock()}) {
       std::shared_lock lock{compacter->ipld_mutex};
       (compacter->use_new_ipld ? compacter->new_ipld : compacter->old_ipld)
-          ->put(key, value);
+          ->put(key, std::move(value));
     }
   }
 
@@ -33,7 +33,7 @@ namespace fc::storage::compacter {
     return old_ipld->get(key, value);
   }
 
-  void CompacterIpld::put(const CbCid &key, BytesIn value) {
+  void CompacterIpld::put(const CbCid &key, BytesCow &&value) {
     std::shared_lock lock{ipld_mutex};
     if (compact_on_car && !flag.load()) {
       std::shared_lock written_lock{old_ipld->written_mutex};
@@ -43,9 +43,9 @@ namespace fc::storage::compacter {
     }
     if (use_new_ipld) {
       queue->pushChildren(value);
-      new_ipld->put(key, value);
+      new_ipld->put(key, std::move(value));
     } else {
-      old_ipld->put(key, value);
+      old_ipld->put(key, std::move(value));
     }
   }
 
@@ -214,7 +214,7 @@ namespace fc::storage::compacter {
         continue;
       }
       queue->pushChildren(value);
-      new_ipld->put(*key, value);
+      new_ipld->put(*key, BytesIn{value});
     }
   }
 
@@ -297,7 +297,7 @@ namespace fc::storage::compacter {
   void CompacterIpld::copy(const CbCid &key) {
     auto &value{reuse_buffer};
     if (old_ipld->get(key, value)) {
-      new_ipld->put(key, value);
+      new_ipld->put(key, BytesIn{value});
     } else if (!new_ipld->has(key)) {
       spdlog::warn("CompacterIpld.copy not found {}", common::hex_lower(key));
     }

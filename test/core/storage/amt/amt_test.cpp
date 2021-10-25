@@ -12,6 +12,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
 
+using fc::BytesIn;
 using fc::codec::cbor::encode;
 using fc::common::which;
 using fc::storage::amt::Amt;
@@ -62,7 +63,7 @@ TEST_F(AmtTest, SetRemoveRootLeaf) {
   EXPECT_OUTCOME_ERROR(AmtError::kNotFound, amt.remove(key));
   EXPECT_OUTCOME_EQ(amt.count(), 0);
 
-  EXPECT_OUTCOME_TRUE_1(amt.set(key, value));
+  EXPECT_OUTCOME_TRUE_1(amt.set(key, BytesIn{value}));
   EXPECT_OUTCOME_EQ(amt.get(key), value);
   EXPECT_OUTCOME_EQ(amt.count(), 1);
 
@@ -88,9 +89,9 @@ TEST_F(AmtTest, SetOverwrite) {
   auto key = 3;
   auto value1 = Value{"01"_unhex};
   auto value2 = Value{"02"_unhex};
-  EXPECT_OUTCOME_TRUE_1(amt.set(key, value1));
+  EXPECT_OUTCOME_TRUE_1(amt.set(key, BytesIn{value1}));
   EXPECT_OUTCOME_EQ(amt.get(key), value1);
-  EXPECT_OUTCOME_TRUE_1(amt.set(key, value2));
+  EXPECT_OUTCOME_TRUE_1(amt.set(key, BytesIn{value2}));
   EXPECT_OUTCOME_EQ(amt.get(key), value2);
 }
 
@@ -98,7 +99,7 @@ TEST_F(AmtTest, Flush) {
   auto key = 9llu;
   auto value = Value{"07"_unhex};
 
-  EXPECT_OUTCOME_TRUE_1(amt.set(key, value));
+  EXPECT_OUTCOME_TRUE_1(amt.set(key, BytesIn{value}));
   EXPECT_OUTCOME_TRUE(cid, amt.flush());
 
   amt = {store, cid};
@@ -109,7 +110,7 @@ class AmtVisitTest : public AmtTest {
  public:
   AmtVisitTest() : AmtTest{} {
     for (auto &[key, value] : items) {
-      EXPECT_OUTCOME_TRUE_1(amt.set(key, value));
+      EXPECT_OUTCOME_TRUE_1(amt.set(key, BytesIn{value}));
     }
   }
 

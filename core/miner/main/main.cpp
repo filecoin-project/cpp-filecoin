@@ -446,7 +446,7 @@ namespace fc {
     auto markets_ipld{std::make_shared<storage::ipfs::LeveldbDatastore>(
         prefixed("markets_ipld/"))};
     auto gs_sub{graphsync->subscribe([&](auto &, auto &data) {
-      OUTCOME_EXCEPT(markets_ipld->set(data.cid, data.content));
+      OUTCOME_EXCEPT(markets_ipld->set(data.cid, BytesIn{data.content}));
     })};
     auto stored_ask{std::make_shared<markets::storage::provider::StoredAsk>(
         prefixed("stored_ask/"), napi, *config.actor)};
