@@ -48,6 +48,8 @@ namespace fc::vm::runtime {
   IpldBuffered::IpldBuffered(IpldPtr ipld) : ipld{ipld} {}
 
   outcome::result<void> IpldBuffered::flush(const CID &root) {
+    assert(!flushed);
+    flushed = true;
     assert(isCbor(root));
     auto _root{*asBlake(root)};
     assert(write.count(_root));
@@ -70,9 +72,9 @@ namespace fc::vm::runtime {
     }
     for (auto it{queue.rbegin()}; it != queue.rend(); ++it) {
       auto &key{**it};
-      // node: `flush` is usually called once, so may rewrite to `move` here
-      OUTCOME_TRY(ipld->set(CID{key}, BytesIn{write.at(key)}));
+      OUTCOME_TRY(ipld->set(CID{key}, std::move(write.at(key))));
     }
+    write.clear();
     return outcome::success();
   }
 

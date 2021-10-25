@@ -47,6 +47,7 @@ namespace fc::vm::runtime {
     IpldPtr ipld;
     // vm only stores "DAG_CBOR blake2b_256" cids
     std::unordered_map<CbCid, Bytes> write;
+    bool flushed{false};
   };
 
   /// Environment contains objects that are shared by runtime contexts

@@ -42,8 +42,8 @@ namespace fc::dvm {
     }
   };
 
-  void onIpldGet(const CID &cid, BytesIn data);
-  void onIpldSet(const CID &cid, BytesIn data);
+  void onIpldGet(const CID &cid, const BytesIn &data);
+  void onIpldSet(const CID &cid, const BytesIn &data);
   void onCharge(GasAmount gas);
   void onSend(const UnsignedMessage &msg);
   void onSendTo(const CID &code);
