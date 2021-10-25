@@ -24,6 +24,8 @@ size_t std::hash<fc::data_transfer::PeerDtId>::operator()(
 }
 
 namespace fc::data_transfer {
+  constexpr size_t kStreamOpenMax{20};
+
   using common::libp2p::CborStream;
   using libp2p::protocol::Subscription;
   using storage::ipld::kAllSelector;
@@ -52,6 +54,7 @@ namespace fc::data_transfer {
       std::shared_ptr<Host> host, std::shared_ptr<Graphsync> gs) {
     auto dt{std::make_shared<DataTransfer>()};
     dt->host = host;
+    dt->streams = std::make_shared<StreamOpenQueue>(host, kStreamOpenMax);
     dt->gs = gs;
     gs->setRequestHandler(
         [_dt{weaken(dt)}](auto pgsid, auto req) {
@@ -356,11 +359,15 @@ namespace fc::data_transfer {
 
   void DataTransfer::dtSend(const PeerInfo &peer,
                             const DataTransferMessage &msg) {
-    host->newStream(peer, kProtocol, [msg](auto _s) {
-      if (_s) {
-        auto s{std::make_shared<CborStream>(_s.value())};
-        s->write(msg, [s](auto) { s->close(); });
-      }
+    streams->open({
+        peer,
+        kProtocol,
+        [msg](Host::StreamResult _stream) {
+          if (_stream) {
+            auto stream{std::make_shared<CborStream>(_stream.value())};
+            stream->write(msg, [stream](outcome::result<size_t>) {});
+          }
+        },
     });
   }
 }  // namespace fc::data_transfer

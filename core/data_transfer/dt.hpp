@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "common/libp2p/stream_open_queue.hpp"
 #include "data_transfer/message.hpp"
 #include "fwd.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
@@ -26,6 +27,7 @@ namespace fc::data_transfer {
 
   using gsns::Graphsync;
   using libp2p::Host;
+  using libp2p::connection::StreamOpenQueue;
   using libp2p::peer::PeerId;
   using storage::ipld::traverser::Traverser;
   using PeerGsId = gsns::FullRequestId;
@@ -94,6 +96,7 @@ namespace fc::data_transfer {
     void dtSend(const PeerInfo &peer, const DataTransferMessage &msg);
 
     std::shared_ptr<Host> host;
+    std::shared_ptr<StreamOpenQueue> streams;
     std::shared_ptr<Graphsync> gs;
     std::map<std::string, OnPush> on_push;
     std::map<std::string, OnPull> on_pull;

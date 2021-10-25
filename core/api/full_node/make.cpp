@@ -667,6 +667,7 @@ namespace fc::api {
                   vm::message::MessageSignerImpl{key_store}.sign(message.from,
                                                                  message));
       OUTCOME_TRY(mpool->add(signed_message));
+      spdlog::info("MpoolPushMessage {}", signed_message.getCid());
       return std::move(signed_message);
     };
     api->MpoolSelect = [=](auto &tsk, auto ticket_quality)

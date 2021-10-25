@@ -21,4 +21,5 @@ target_link_libraries(storage_market_client
     tipset
     memory_indexed_car
     storage_market_import_manager
+    stream_open_queue
     )
