@@ -6,6 +6,7 @@
 #pragma once
 
 #include <boost/compute/detail/lru_cache.hpp>
+#include <deque>
 #include <random>
 
 #include "common/logger.hpp"
@@ -33,9 +34,11 @@ namespace fc::storage::mpool {
   using vm::runtime::EnvironmentContext;
   using connection_t = boost::signals2::connection;
 
-  const TokenAmount kDefaultMaxFee = kFilecoinPrecision * 7 / 1000;
-  const BigInt kBaseFeeLowerBoundFactor = 10;
-  const size_t kResolvedCacheSize = 1000;
+  const TokenAmount kDefaultMaxFee{kFilecoinPrecision * 7 / 1000};
+  const BigInt kBaseFeeLowerBoundFactor{10};
+  const size_t kResolvedCacheSize{1000};
+  const size_t kLocalAddressesCacheSize{1000};
+  constexpr std::chrono::milliseconds kRepublishBatchDelay{100};
 
   struct MpoolUpdate {
     enum class Type : int64_t { ADD, REMOVE };
@@ -51,13 +54,20 @@ namespace fc::storage::mpool {
         const EnvironmentContext &env_context,
         TsBranchPtr ts_main,
         size_t bls_cache_size,
-        std::shared_ptr<ChainStore> chain_store,
+        const std::shared_ptr<ChainStore> &chain_store,
         std::shared_ptr<sync::PubSubGate> pubsub_gate);
+
     std::vector<SignedMessage> pending() const;
+
     // https://github.com/filecoin-project/lotus/blob/8f78066d4f3c4981da73e3328716631202c6e614/chain/messagepool/selection.go#L41
     outcome::result<std::vector<SignedMessage>> select(
         const TipsetCPtr &tipset_ptr, double ticket_quality) const;
+
+    /**
+     * Returns next nonce for the actor with address
+     */
     outcome::result<Nonce> nonce(const Address &from) const;
+
     outcome::result<void> estimate(UnsignedMessage &message,
                                    const TokenAmount &max_fee) const;
     TokenAmount estimateFeeCap(const TokenAmount &premium,
@@ -88,8 +98,11 @@ namespace fc::storage::mpool {
     }
 
     /**
-     * Resolves addresses at height (current - kChainFinality), so reorg at the
-     * height is impossible.
+     * Tries to resolves addresses at height (current - kChainFinality), so
+     * reorg at the height is impossible. If resolving at height (current -
+     * kChainFinality) failed, resolves at current height. In the last case,
+     * resolved value is not cached.
+     *
      * @param address to resolve
      * @return resolved address
      */
@@ -104,17 +117,43 @@ namespace fc::storage::mpool {
 
     /**
      * Publish batch of messages via gossip.
+     * Actually methods enqueue messages, so they are sent in the
+     * publishFromQueue() which is called on timer kRepublishBatchDelay. This
+     * delay is here to encourage the pubsub subsystem to process the  messages
+     * serially and avoid creating nonce gaps because of concurrent validation.
+     *
      * @param messages to publish
      * @return error if error happened
      */
     void publish(const std::vector<SignedMessage> &messages);
 
+    /**
+     * Republish all pending messages. Method must be called in timer loop.
+     * @return
+     */
     outcome::result<void> republishPendingMessages();
+
+    /**
+     * Publishes messages from queue that were added with batch publish. It must
+     * be called in timer loop with kRepublishBatchDelay.
+     */
+    void publishFromQueue();
 
     static TokenAmount getBaseFeeLowerBound(const TokenAmount &base_fee,
                                             const BigInt &factor);
 
    private:
+    // For empty value in lru cache
+    struct Empty {};
+
+    /**
+     * Resolves address at height
+     */
+    outcome::result<Address> resolveKeyAtHeight(
+        const Address &address,
+        const ChainEpoch &height,
+        const TsBranchPtr &ts_branch) const;
+
     EnvironmentContext env_context;
     TsBranchPtr ts_main;
     IpldPtr ipld;
@@ -129,6 +168,9 @@ namespace fc::storage::mpool {
     std::map<Address, std::map<Nonce, SignedMessage>> pending_;
     mutable std::shared_mutex pending_mutex_;
 
+    std::deque<SignedMessage> publishing_;
+    std::mutex publishing_mutex_;
+
     mutable lru_cache<CID, Signature> bls_cache{0};
     boost::signals2::signal<Subscriber> signal;
     mutable std::default_random_engine generator;
@@ -137,7 +179,8 @@ namespace fc::storage::mpool {
     mutable lru_cache<Address, Address> resolved_cache_{kResolvedCacheSize};
 
     mutable std::shared_mutex local_addresses_mutex_;
-    std::set<Address> local_addresses_;
+
+    lru_cache<Address, Empty> local_addresses_{kLocalAddressesCacheSize};
 
     common::Logger logger_;
   };

@@ -30,12 +30,12 @@ namespace fc::storage::mpool {
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::interpreter::InterpreterCache;
   using vm::message::UnsignedMessage;
+  using vm::runtime::resolveKey;
 
   constexpr GasAmount kMinGas{1298450};
   constexpr size_t kMaxBlocks{15};
   constexpr size_t kMaxBlockMessages{16000};
   constexpr size_t kRepubMessageLimit{30};
-  constexpr std::chrono::milliseconds kRepublishBatchDelay{100};
 
   // https://github.com/filecoin-project/lotus/blob/8f78066d4f3c4981da73e3328716631202c6e614/chain/messagepool/selection.go#L677
   TokenAmount getGasReward(const UnsignedMessage &msg,
@@ -462,7 +462,7 @@ namespace fc::storage::mpool {
       const EnvironmentContext &env_context,
       TsBranchPtr ts_main,
       size_t bls_cache_size,
-      std::shared_ptr<ChainStore> chain_store,
+      const std::shared_ptr<ChainStore> &chain_store,
       std::shared_ptr<sync::PubSubGate> pubsub_gate) {
     auto mpool{std::make_shared<MessagePool>()};
     mpool->env_context = env_context;
@@ -470,7 +470,6 @@ namespace fc::storage::mpool {
     mpool->ipld = env_context.ipld;
     mpool->head_sub =
         chain_store->subscribeHeadChanges([=](const auto &changes) {
-          std::unique_lock lock{mpool->mutex};
           for (const auto &change : changes) {
             auto res{mpool->onHeadChange(change)};
             if (!res) {
@@ -487,7 +486,6 @@ namespace fc::storage::mpool {
   }
 
   std::vector<SignedMessage> MessagePool::pending() const {
-    std::unique_lock lock{mutex};
     std::vector<SignedMessage> messages;
     std::shared_lock pending_lock{pending_mutex_};
     for (const auto &[addr, pending] : pending_) {
@@ -525,7 +523,6 @@ namespace fc::storage::mpool {
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<std::vector<SignedMessage>> MessagePool::select(
       const TipsetCPtr &tipset_ptr, double ticket_quality) const {
-    std::unique_lock lock{mutex};
     OUTCOME_TRY(base_fee, tipset_ptr->nextBaseFee(env_context.ipld));
     vm::runtime::Pricelist pricelist{tipset_ptr->epoch()};
     OUTCOME_TRY(cached, env_context.interpreter_cache->get(tipset_ptr->key));
@@ -600,7 +597,6 @@ namespace fc::storage::mpool {
   }
 
   outcome::result<Nonce> MessagePool::nonce(const Address &from) const {
-    std::unique_lock lock{mutex};
     assert(from.isKeyType());
     std::shared_lock head_lock(head_mutex_);
     OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head_->key));
@@ -620,7 +616,6 @@ namespace fc::storage::mpool {
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> MessagePool::estimate(
       UnsignedMessage &message, const TokenAmount &max_fee) const {
-    std::unique_lock lock{mutex};
     assert(message.from.isKeyType());
     if (message.gas_limit == 0) {
       auto msg{message};
@@ -753,7 +748,7 @@ namespace fc::storage::mpool {
     OUTCOME_TRY(add(message));
     OUTCOME_TRY(resolved_address, resolveKeyAtFinality(message.message.from));
     std::unique_lock local_addresses_lock{local_addresses_mutex_};
-    local_addresses_.insert(resolved_address);
+    local_addresses_.insert(resolved_address, {});
     return outcome::success();
   }
 
@@ -792,10 +787,10 @@ namespace fc::storage::mpool {
             } else {
               if (bls) {
                 if (auto sig{bls_cache.get(cid)}) {
-                  OUTCOME_TRY(addLocked({*msg, *sig}));
+                  OUTCOME_TRY(add({*msg, *sig}));
                 }
               } else {
-                OUTCOME_TRY(addLocked(*smsg));
+                OUTCOME_TRY(add(*smsg));
               }
             }
             return outcome::success();
@@ -811,10 +806,26 @@ namespace fc::storage::mpool {
     return outcome::success();
   }
 
+  outcome::result<Address> MessagePool::resolveKeyAtHeight(
+      const Address &address,
+      const ChainEpoch &height,
+      const TsBranchPtr &ts_branch) const {
+    OUTCOME_TRY(it, find(ts_branch, height));
+    OUTCOME_TRY(tipset_ptr, env_context.ts_load->lazyLoad(it.second->second));
+
+    OUTCOME_TRY(tipset, env_context.interpreter_cache->get(tipset_ptr->key));
+    vm::state::StateTreeImpl state_tree{
+        withVersion(env_context.ipld, tipset_ptr->height()), tipset.state_root};
+    return resolveKey(state_tree, ipld, address);
+  }
+
   outcome::result<Address> MessagePool::resolveKeyAtFinality(
       const Address &address) const {
-    if (address.isId()) {
+    if (address.isKeyType()) {
       return address;
+    }
+    if (!address.isId()) {
+      return ERROR_TEXT("Cannot resolve actor address to key address.");
     }
     if (auto resolved{resolved_cache_.get(address)}) {
       return *resolved;
@@ -822,23 +833,21 @@ namespace fc::storage::mpool {
 
     std::shared_lock head_lock(head_mutex_);
     ChainEpoch height = head_->height();
-    if (height > kChainFinality) {
-      height -= kChainFinality;
-    }
-
     std::unique_lock ts_lock{*env_context.ts_branches_mutex};
     OUTCOME_TRY(ts_branch,
                 TsBranch::make(env_context.ts_load, head_->key, ts_main));
-    OUTCOME_TRY(it, find(ts_branch, height));
-    OUTCOME_TRY(tipset_ptr, env_context.ts_load->lazyLoad(it.second->second));
+    if (height > kChainFinality) {
+      const auto maybe_resolved =
+          resolveKeyAtHeight(address, height - kChainFinality, ts_branch);
+      if (maybe_resolved) {
+        resolved_cache_.insert(address, maybe_resolved.value());
+        return maybe_resolved.value();
+      }
+    }
 
-    OUTCOME_TRY(tipset, env_context.interpreter_cache->get(tipset_ptr->key));
-    vm::state::StateTreeImpl state_tree{
-        withVersion(env_context.ipld, tipset_ptr->height()), tipset.state_root};
-
-    OUTCOME_TRY(resolved, state_tree.lookupId(address));
-    resolved_cache_.insert(address, resolved);
-
+    // if failed to resolve at height - finality, or there is no enough height
+    // for finality, try to resolve on current height
+    OUTCOME_TRY(resolved, resolveKeyAtHeight(address, height, ts_branch));
     return std::move(resolved);
   }
 
@@ -847,14 +856,9 @@ namespace fc::storage::mpool {
   }
 
   void MessagePool::publish(const std::vector<SignedMessage> &messages) {
-    for (auto it = messages.begin(); it != messages.end(); ++it) {
-      publish(*it);
-      if (it != std::prev(messages.end())) {
-        // this delay is here to encourage the pubsub subsystem to process the
-        // messages serially and avoid creating nonce gaps because of concurrent
-        // validation.
-        std::this_thread::sleep_for(kRepublishBatchDelay);
-      }
+    const std::lock_guard lock(publishing_mutex_);
+    for (const auto &message : messages) {
+      publishing_.push_back(message);
     }
   }
 
@@ -874,7 +878,7 @@ namespace fc::storage::mpool {
     std::vector<MsgChain::Ptr> chains;
     for (const auto &[from, mset] : pending_) {
       // republish only local pending messages
-      if (local_addresses_.count(from) != 0) {
+      if (local_addresses_.contains(from)) {
         // create _next_ message chains from pending messages taking into
         // account base fee lower bound
         OUTCOME_TRY(actor, state_tree.get(from));
@@ -934,6 +938,14 @@ namespace fc::storage::mpool {
     publish(messages);
 
     return outcome::success();
+  }
+
+  void MessagePool::publishFromQueue() {
+    const std::lock_guard lock(publishing_mutex_);
+    if (!publishing_.empty()) {
+      publish(publishing_.front());
+      publishing_.pop_front();
+    }
   }
 
   TokenAmount MessagePool::getBaseFeeLowerBound(const TokenAmount &base_fee,

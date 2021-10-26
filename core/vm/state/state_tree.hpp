@@ -71,7 +71,7 @@ namespace fc::vm::state {
         const Address &address) const = 0;
 
     /**
-     * Resolves any address to the public key type address (`BLS`/`SECP256K1`).
+     * Resolves any address to the id address.
      * @param address to resolve
      * @return public key type address
      */

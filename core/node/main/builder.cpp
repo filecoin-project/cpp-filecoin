@@ -264,6 +264,34 @@ namespace fc::node {
   }
 
   /**
+   * Creates and initializes message pool and sets timer for republishing.
+   * @param node_objects
+   * @return
+   */
+  void createMessagePool(const Config &config, NodeObjects &o) {
+    o.mpool = storage::mpool::MessagePool::create(o.env_context,
+                                                  o.ts_main,
+                                                  config.mpool_bls_cache_size,
+                                                  o.chain_store,
+                                                  o.pubsub_gate);
+    // Republish pending messages
+    // Delay from lotus
+    // https://github.com/filecoin-project/lotus/blob/d9100981ada8b3186d906a4f4140b83a819d2299/chain/messagepool/messagepool.go#L58
+    const auto republishTimeout{std::chrono::seconds(10 * kEpochDurationSeconds
+                                                     + kPropagationDelaySecs)};
+    timerLoop(o.scheduler, republishTimeout, [mpool{o.mpool}] {
+      const auto res = mpool->republishPendingMessages();
+      if (!res) {
+        log()->error("Mpool republish error: {:#}", res.error());
+      }
+    });
+    // batch message publishing with delay kRepublishBatchDelay
+    timerLoop(o.scheduler,
+              storage::mpool::kRepublishBatchDelay,
+              [mpool{o.mpool}] { mpool->publishFromQueue(); });
+  }
+
+  /**
    * Creates and intialises Storage Market Client
    * @param o - Node objecs
    */
@@ -306,6 +334,7 @@ namespace fc::node {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<NodeObjects> createNodeObjects(Config &config) {
     NodeObjects o;
 
@@ -524,18 +553,7 @@ namespace fc::node {
 
     log()->debug("Creating API...");
 
-    o.mpool = storage::mpool::MessagePool::create(
-        o.env_context, o.ts_main, config.mpool_bls_cache_size, o.chain_store, o.pubsub_gate);
-    // From lotus
-    // https://github.com/filecoin-project/lotus/blob/d9100981ada8b3186d906a4f4140b83a819d2299/chain/messagepool/messagepool.go#L58
-    const auto republishTimeout{std::chrono::seconds(10 * kEpochDurationSeconds
-                                                     + kPropagationDelaySecs)};
-    timerLoop(o.scheduler, republishTimeout, [mpool{o.mpool}] {
-      const auto res = mpool->republishPendingMessages();
-      if (!res) {
-        log()->error("Mpool republish error: {:#}", res.error());
-      }
-    });
+    createMessagePool(config, o);
 
     auto msg_waiter = storage::blockchain::MsgWaiter::create(
         o.ts_load, o.ipld, o.io_context, o.chain_store);
