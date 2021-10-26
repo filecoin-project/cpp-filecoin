@@ -10,13 +10,13 @@
 
 #include "common/logger.hpp"
 #include "fwd.hpp"
-#include "node/pubsub_gate.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "vm/message/message.hpp"
 #include "vm/runtime/env_context.hpp"
 
 namespace fc::storage::mpool {
+  using boost::compute::detail::lru_cache;
   using crypto::signature::Signature;
   using primitives::BigInt;
   using primitives::Nonce;
@@ -35,6 +35,7 @@ namespace fc::storage::mpool {
 
   const TokenAmount kDefaultMaxFee = kFilecoinPrecision * 7 / 1000;
   const BigInt kBaseFeeLowerBoundFactor = 10;
+  const size_t kResolvedCacheSize = 1000;
 
   struct MpoolUpdate {
     enum class Type : int64_t { ADD, REMOVE };
@@ -79,7 +80,6 @@ namespace fc::storage::mpool {
      * @return error if error happened
      */
     outcome::result<void> add(const SignedMessage &message);
-    outcome::result<void> addLocked(const SignedMessage &message);
 
     void remove(const Address &from, Nonce nonce);
     outcome::result<void> onHeadChange(const HeadChange &change);
@@ -100,14 +100,14 @@ namespace fc::storage::mpool {
      * @param message to publish
      * @return error if error happened
      */
-    outcome::result<void> publish(const SignedMessage &message);
+    void publish(const SignedMessage &message);
 
     /**
      * Publish batch of messages via gossip.
      * @param messages to publish
      * @return error if error happened
      */
-    outcome::result<void> publish(const std::vector<SignedMessage> &messages);
+    void publish(const std::vector<SignedMessage> &messages);
 
     outcome::result<void> republishPendingMessages();
 
@@ -129,12 +129,12 @@ namespace fc::storage::mpool {
     std::map<Address, std::map<Nonce, SignedMessage>> pending_;
     mutable std::shared_mutex pending_mutex_;
 
-    mutable boost::compute::detail::lru_cache<CID, Signature> bls_cache{0};
+    mutable lru_cache<CID, Signature> bls_cache{0};
     boost::signals2::signal<Subscriber> signal;
     mutable std::default_random_engine generator;
     mutable std::normal_distribution<> distribution;
     // cache of resolved addresses
-    mutable std::map<Address, Address> resolved_cache_;
+    mutable lru_cache<Address, Address> resolved_cache_{kResolvedCacheSize};
 
     mutable std::shared_mutex local_addresses_mutex_;
     std::set<Address> local_addresses_;

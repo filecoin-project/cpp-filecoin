@@ -533,7 +533,7 @@ namespace fc::node {
     timerLoop(o.scheduler, republishTimeout, [mpool{o.mpool}] {
       const auto res = mpool->republishPendingMessages();
       if (!res) {
-        log()->error("Mpool republish error: {}", res.error());
+        log()->error("Mpool republish error: {:#}", res.error());
       }
     });
 

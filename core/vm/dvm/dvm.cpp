@@ -47,7 +47,7 @@ namespace fc::dvm {
   }()};
 
   DEFINE(logging){false};
-  size_t Indent::indent_ = 0;
+  DEFINE(Indent::indent_){0};
 
   void onCharge(GasAmount gas) {
     if (gas != 0) {

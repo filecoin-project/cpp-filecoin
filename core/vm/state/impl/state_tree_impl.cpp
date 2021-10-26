@@ -17,6 +17,7 @@ namespace fc::vm::state {
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store)
       : version_{StateTreeVersion::kVersion0}, store_{store}, by_id_{store} {
+    // txBegin() is virtual and should not be used in the constructor
     tx_.emplace_back();
   }
 
@@ -24,6 +25,7 @@ namespace fc::vm::state {
                                const CID &root)
       : version_{StateTreeVersion::kVersion0}, store_{std::move(store)} {
     setRoot(root);
+    // txBegin() is virtual and should not be used in the constructor
     tx_.emplace_back();
   }
 

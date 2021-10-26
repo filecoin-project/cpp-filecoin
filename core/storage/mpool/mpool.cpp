@@ -8,7 +8,6 @@
 #include <boost/math/distributions/binomial.hpp>
 #include <chrono>
 #include <cmath>
-#include <gsl/gsl_util>
 #include <thread>
 
 #include "cbor_blake/ipld_version.hpp"
@@ -17,6 +16,7 @@
 #include "common/outcome_fmt.hpp"
 #include "common/ptr.hpp"
 #include "const.hpp"
+#include "node/pubsub_gate.hpp"
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/env.hpp"
@@ -416,7 +416,7 @@ namespace fc::storage::mpool {
                next = mustLock(next->next)) {
             setEffPerf(*next);
           }
-          std::stable_sort(chains.begin() + gsl::narrow_cast<ssize_t>(i),
+          std::stable_sort(chains.begin() + gsl::narrow<ssize_t>(i),
                            chains.end(),
                            deref(beforeEffective));
         }
@@ -533,6 +533,7 @@ namespace fc::storage::mpool {
         withVersion(env_context.ipld, tipset_ptr->height()), cached.state_root};
     std::shared_lock pending_lock{pending_mutex_};
     auto pending{pending_};
+    pending_lock.unlock();
     constexpr auto kDepth{20};
     std::shared_lock head_lock(head_mutex_);
     OUTCOME_TRY(path, findPath(env_context.ts_load, head_, tipset_ptr, kDepth));
@@ -757,11 +758,6 @@ namespace fc::storage::mpool {
   }
 
   outcome::result<void> MessagePool::add(const SignedMessage &message) {
-    std::unique_lock lock{mutex};
-    return addLocked(message);
-  }
-
-  outcome::result<void> MessagePool::addLocked(const SignedMessage &message) {
     if (message.signature.isBls()) {
       bls_cache.insert(message.getCid(), message.signature);
     }
@@ -817,9 +813,11 @@ namespace fc::storage::mpool {
 
   outcome::result<Address> MessagePool::resolveKeyAtFinality(
       const Address &address) const {
-    const auto &found = resolved_cache_.find(address);
-    if (found != resolved_cache_.end()) {
-      return found->second;
+    if (address.isId()) {
+      return address;
+    }
+    if (auto resolved{resolved_cache_.get(address)}) {
+      return *resolved;
     }
 
     std::shared_lock head_lock(head_mutex_);
@@ -828,7 +826,7 @@ namespace fc::storage::mpool {
       height -= kChainFinality;
     }
 
-    std::shared_lock ts_lock{*env_context.ts_branches_mutex};
+    std::unique_lock ts_lock{*env_context.ts_branches_mutex};
     OUTCOME_TRY(ts_branch,
                 TsBranch::make(env_context.ts_load, head_->key, ts_main));
     OUTCOME_TRY(it, find(ts_branch, height));
@@ -839,21 +837,18 @@ namespace fc::storage::mpool {
         withVersion(env_context.ipld, tipset_ptr->height()), tipset.state_root};
 
     OUTCOME_TRY(resolved, state_tree.lookupId(address));
-    resolved_cache_[address] = resolved;
-    resolved_cache_[resolved] = resolved;
+    resolved_cache_.insert(address, resolved);
 
     return std::move(resolved);
   }
 
-  outcome::result<void> MessagePool::publish(const SignedMessage &message) {
+  void MessagePool::publish(const SignedMessage &message) {
     pubsub_gate_->publish(message);
-    return outcome::success();
   }
 
-  outcome::result<void> MessagePool::publish(
-      const std::vector<SignedMessage> &messages) {
+  void MessagePool::publish(const std::vector<SignedMessage> &messages) {
     for (auto it = messages.begin(); it != messages.end(); ++it) {
-      OUTCOME_TRY(publish(*it));
+      publish(*it);
       if (it != std::prev(messages.end())) {
         // this delay is here to encourage the pubsub subsystem to process the
         // messages serially and avoid creating nonce gaps because of concurrent
@@ -861,7 +856,6 @@ namespace fc::storage::mpool {
         std::this_thread::sleep_for(kRepublishBatchDelay);
       }
     }
-    return outcome::success();
   }
 
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
@@ -937,7 +931,7 @@ namespace fc::storage::mpool {
     }
 
     logger_->debug("Republishing {} messages", messages.size());
-    OUTCOME_TRY(publish(messages));
+    publish(messages);
 
     return outcome::success();
   }
