@@ -15,4 +15,5 @@ UNIVERSAL_IMPL(states::AccountActorState,
                v2::account::AccountActorState,
                v3::account::AccountActorState,
                v3::account::AccountActorState,
+               v3::account::AccountActorState,
                v3::account::AccountActorState)

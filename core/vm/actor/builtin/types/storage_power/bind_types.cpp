@@ -15,4 +15,5 @@ UNIVERSAL_IMPL(storage_power::Claim,
                v2::storage_power::Claim,
                v3::storage_power::Claim,
                v3::storage_power::Claim,
+               v3::storage_power::Claim,
                v3::storage_power::Claim)

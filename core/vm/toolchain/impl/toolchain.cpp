@@ -7,11 +7,7 @@
 
 #include "vm/actor/codes.hpp"
 
-#include "vm/toolchain/impl/address_matcher_v0.hpp"
-#include "vm/toolchain/impl/address_matcher_v2.hpp"
-#include "vm/toolchain/impl/address_matcher_v3.hpp"
-#include "vm/toolchain/impl/address_matcher_v4.hpp"
-#include "vm/toolchain/impl/address_matcher_v5.hpp"
+#include "vm/toolchain/impl/address_matcher.hpp"
 
 #include "vm/actor/builtin/v0/init/init_actor_utils.hpp"
 #include "vm/actor/builtin/v2/init/init_actor_utils.hpp"
@@ -107,6 +103,18 @@ namespace fc::vm::toolchain {
       return ActorVersion::kVersion5;
     }
 
+    if ((actorCid == v6::kAccountCodeId) || (actorCid == v6::kCronCodeId)
+        || (actorCid == v6::kStoragePowerCodeId)
+        || (actorCid == v6::kStorageMarketCodeId)
+        || (actorCid == v6::kStorageMinerCodeId)
+        || (actorCid == v6::kMultisigCodeId) || (actorCid == v6::kInitCodeId)
+        || (actorCid == v6::kPaymentChannelCodeId)
+        || (actorCid == v6::kRewardActorCodeId)
+        || (actorCid == v6::kSystemActorCodeId)
+        || (actorCid == v6::kVerifiedRegistryCodeId)) {
+      return ActorVersion::kVersion6;
+    }
+
     assert(false);
     abort();
   }
@@ -123,6 +131,8 @@ namespace fc::vm::toolchain {
         return std::make_shared<AddressMatcherV4>();
       case ActorVersion::kVersion5:
         return std::make_shared<AddressMatcherV5>();
+      case ActorVersion::kVersion6:
+        return std::make_shared<AddressMatcherV6>();
     }
   }
 
@@ -145,6 +155,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V4();
       case ActorVersion::kVersion5:
         TODO_ACTORS_V5();
+      case ActorVersion::kVersion6:
+        TODO_ACTORS_V6();
     }
   }
 
@@ -161,6 +173,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V4();
       case ActorVersion::kVersion5:
         TODO_ACTORS_V5();
+      case ActorVersion::kVersion6:
+        TODO_ACTORS_V6();
     }
   }
 
@@ -177,6 +191,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V4();
       case ActorVersion::kVersion5:
         TODO_ACTORS_V5();
+      case ActorVersion::kVersion6:
+        TODO_ACTORS_V6();
     }
   }
 
@@ -193,6 +209,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V4();
       case ActorVersion::kVersion5:
         TODO_ACTORS_V5();
+      case ActorVersion::kVersion6:
+        TODO_ACTORS_V6();
     }
   }
 
@@ -213,6 +231,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V4();
       case ActorVersion::kVersion5:
         TODO_ACTORS_V5();
+      case ActorVersion::kVersion6:
+        TODO_ACTORS_V6();
     }
   }
 
@@ -229,6 +249,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V4();
       case ActorVersion::kVersion5:
         TODO_ACTORS_V5();
+      case ActorVersion::kVersion6:
+        TODO_ACTORS_V6();
     }
   }
 
@@ -245,6 +267,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V4();
       case ActorVersion::kVersion5:
         TODO_ACTORS_V5();
+      case ActorVersion::kVersion6:
+        TODO_ACTORS_V6();
     }
   }
 }  // namespace fc::vm::toolchain

@@ -28,9 +28,10 @@ namespace fc::vm::version {
     kVersion11,
     kVersion12,
     kVersion13,
+    kVersion14,
   };
 
-  constexpr auto kLatestVersion{NetworkVersion::kVersion13};
+  constexpr auto kLatestVersion{NetworkVersion::kVersion14};
 
   /**
    * Returns network version for blockchain height

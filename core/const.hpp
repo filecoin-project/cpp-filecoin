@@ -80,6 +80,8 @@ namespace fc {
   extern ChainEpoch kUpgradeActorsV4Height;
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeHyperdriveHeight;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  extern ChainEpoch kUpgradeChocolateHeight;
 
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern EpochDuration kBreezeGasTampingDuration;

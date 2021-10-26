@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <libp2p/peer/peer_id.hpp>
 
+#include "adt/stop.hpp"
 #include "api/version.hpp"
 #include "blockchain/production/block_producer.hpp"
 #include "cbor_blake/ipld_version.hpp"
@@ -801,6 +802,16 @@ namespace fc::api {
       OUTCOME_TRY(context, tipsetContext(tipset_key, true));
       return context.state_tree.get(address);
     };
+    api->StateGetRandomnessFromBeacon =
+        [api](auto cb, auto tag, auto epoch, auto &entropy, auto &tsk) {
+          return api->ChainGetRandomnessFromBeacon(
+              std::move(cb), tsk, tag, epoch, entropy);
+        };
+    api->StateGetRandomnessFromTickets =
+        [api](auto cb, auto tag, auto epoch, auto &entropy, auto &tsk) {
+          return api->ChainGetRandomnessFromTickets(
+              std::move(cb), tsk, tag, epoch, entropy);
+        };
     api->StateReadState = [=](auto &actor,
                               auto &tipset_key) -> outcome::result<ActorState> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
@@ -1098,6 +1109,38 @@ namespace fc::api {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
       OUTCOME_TRY(state, context.minerState(address));
       return state->sectors.sectors.tryGet(sector_number);
+    };
+    api->StateSectorExpiration = [=](auto &address, auto sector, auto &tsk)
+        -> outcome::result<SectorExpiration> {
+      SectorExpiration result;
+      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(state, context.minerState(address));
+      OUTCOME_TRY(deadlines, state->deadlines.get());
+      for (const auto &_deadline : deadlines.due) {
+        OUTCOME_TRY(deadline, _deadline.get());
+        const auto visit{[&](auto, auto &part) -> outcome::result<void> {
+          if (!part->sectors.has(sector)) {
+            return outcome::success();
+          }
+          if (part->terminated.has(sector)) {
+            return outcome::failure(adt::kStopError);
+          }
+          return part->expirations_epochs.visit(
+              [&](auto epoch, auto &expiration) -> outcome::result<void> {
+                if (expiration.early_sectors.has(sector)) {
+                  result.early = epoch;
+                  return outcome::success();
+                }
+                if (expiration.on_time_sectors.has(sector)) {
+                  result.on_time = epoch;
+                  return outcome::failure(adt::kStopError);
+                }
+                return outcome::success();
+              });
+        }};
+        CATCH_STOP(deadline->partitions.visit(visit));
+      }
+      return result;
     };
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSectorPartition =

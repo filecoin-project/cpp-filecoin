@@ -15,4 +15,5 @@ UNIVERSAL_IMPL(states::SystemActorState,
                v2::system::SystemActorState,
                v3::system::SystemActorState,
                v3::system::SystemActorState,
+               v3::system::SystemActorState,
                v3::system::SystemActorState)

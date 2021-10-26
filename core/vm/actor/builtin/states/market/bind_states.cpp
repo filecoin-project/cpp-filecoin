@@ -15,4 +15,5 @@ UNIVERSAL_IMPL(states::MarketActorState,
                v2::market::MarketActorState,
                v3::market::MarketActorState,
                v3::market::MarketActorState,
+               v3::market::MarketActorState,
                v3::market::MarketActorState)
