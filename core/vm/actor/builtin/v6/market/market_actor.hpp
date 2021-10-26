@@ -8,6 +8,7 @@
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "vm/actor/builtin/v3/market/market_actor.hpp"
 
+// TODO(m.tagirov): implement market actor v6
 namespace fc::vm::actor::builtin::v6::market {
   using primitives::DealId;
   using primitives::RleBitset;
