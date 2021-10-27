@@ -20,12 +20,12 @@ namespace fc::api {
       return api_peer_info;
     };
 
-    api->NetConnect = [host](auto &peer) {
+    api->NetConnect = [=](auto &peer) {
       host->connect(peer);
       return outcome::success();
     };
 
-    api->NetPeers = [&]() -> outcome::result<std::vector<PeerInfo>> {
+    api->NetPeers = [=]() -> outcome::result<std::vector<PeerInfo>> {
       const auto &peer_repository = host->getPeerRepository();
       auto connections =
           host->getNetwork().getConnectionManager().getConnections();
@@ -39,7 +39,7 @@ namespace fc::api {
       return result;
     };
 
-    api->NetDisconnect = [&](const auto &peer) {
+    api->NetDisconnect = [=](const auto &peer) {
       host->disconnect(peer.id);
       return outcome::success();
     };
