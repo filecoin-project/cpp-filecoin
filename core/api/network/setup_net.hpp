@@ -7,15 +7,14 @@
 
 #include <libp2p/host/host.hpp>
 #include "api/network/network_api.hpp"
-#include "common/logger.hpp"
 
 namespace fc::api {
   using libp2p::Host;
 
   inline void fillNetApi(const std::shared_ptr<NetworkApi> &api,
-                  const PeerInfo &api_peer_info,
-                  const std::shared_ptr<libp2p::Host> &host,
-                  common::Logger logger) {
+                         const PeerInfo &api_peer_info,
+                         const std::shared_ptr<libp2p::Host> &host,
+                         const common::Logger &logger) {
     api->NetAddrsListen = [api_peer_info]() -> outcome::result<PeerInfo> {
       return api_peer_info;
     };
@@ -27,13 +26,15 @@ namespace fc::api {
 
     api->NetPeers = [=]() -> outcome::result<std::vector<PeerInfo>> {
       const auto &peer_repository = host->getPeerRepository();
-      auto connections =
+      const auto connections =
           host->getNetwork().getConnectionManager().getConnections();
       std::vector<PeerInfo> result;
       for (const auto &conncection : connections) {
         const auto remote = conncection->remotePeer();
-        if (remote.has_error())
+        if (remote.has_error()) {
           logger->error("get remote peer error", remote.error().message());
+          continue;
+        }
         result.push_back(peer_repository.getPeerInfo(remote.value()));
       }
       return result;

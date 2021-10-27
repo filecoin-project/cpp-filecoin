@@ -77,7 +77,6 @@ namespace fc::api {
   using vm::runtime::MessageReceipt;
   using vm::version::NetworkVersion;
   using SignatureType = crypto::signature::Type;
-  using api::NetworkApi;
 
   struct InvocResult {
     UnsignedMessage message;
@@ -805,7 +804,7 @@ namespace fc::api {
   };
 
   template <typename A, typename F>
-  void visit(const FullNodeApi &,  A &&a, const F &f) {
+  void visit(const FullNodeApi &, A &&a, const F &f) {
     visitCommon(a, f);
     visitNet(a, f);
     f(a.BeaconGetEntry);

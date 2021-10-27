@@ -8,11 +8,11 @@
 #include <iostream>
 
 #include "api/full_node/node_api_v1_wrapper.hpp"
-#include "api/network/setup_net.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
 #include "common/api_secret.hpp"
+#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
 #include "common/logger.hpp"
 #include "drand/impl/http.hpp"
@@ -30,7 +30,6 @@
 #include "node/say_hello.hpp"
 #include "node/sync_job.hpp"
 #include "vm/actor/cgo/actors.hpp"
-#include "common/libp2p/peer/peer_info_helper.hpp"
 
 void setFdLimitMax() {
   rlimit r{};
@@ -49,7 +48,6 @@ namespace fc {
   using api::ImportRes;
   using api::makeFullNodeApiV1Wrapper;
   using api::StorageMarketDealInfo;
-  using fc::api::fillNetApi;
   using libp2p::peer::PeerId;
   using libp2p::peer::PeerInfo;
   using markets::storage::StorageProviderInfo;
@@ -87,7 +85,6 @@ namespace fc {
   void startApi(const node::Config &config,
                 NodeObjects &node_objects,
                 const Metrics &metrics) {
-
     // Market Client API
     node_objects.api->ClientImport =
         [&](auto &file_ref) -> outcome::result<ImportRes> {
@@ -120,7 +117,7 @@ namespace fc {
             {},
             deal.client_deal_proposal.proposal.verified,
             // TODO (a.chernyshov) actual ChannelId
-            {node_objects.host->getPeerInfo().id, deal.miner.id, 0},
+            {node_objects.host->getId(), deal.miner.id, 0},
             // TODO (a.chernyshov) actual data transfer
             {0, 0, deal.proposal_cid, true, true, "", "", deal.miner.id, 0}});
       }

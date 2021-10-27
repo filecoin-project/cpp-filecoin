@@ -33,7 +33,7 @@ namespace fc::api {
   using sync::PubSubGate;
   using vm::runtime::EnvironmentContext;
 
-  const static common::Logger kNodeApiLogger = common::createLogger("K-node API");
+  const static common::Logger kNodeApiLogger = common::createLogger("Full Node API");
 
   outcome::result<IpldObject> getNode(const std::shared_ptr<Ipld> &ipld,
                                       const CID &root,

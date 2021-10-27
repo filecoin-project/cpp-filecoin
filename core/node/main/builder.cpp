@@ -22,6 +22,7 @@
 #include <libp2p/protocol/kademlia/impl/validator_default.hpp>
 
 #include "api/full_node/make.hpp"
+#include "api/network/setup_net.hpp"
 #include "api/setup_common.hpp"
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
@@ -32,6 +33,7 @@
 #include "codec/json/json.hpp"
 #include "common/api_secret.hpp"
 #include "common/error_text.hpp"
+#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
@@ -72,10 +74,9 @@
 #include "vm/runtime/circulating.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
-#include "common/libp2p/peer/peer_info_helper.hpp"
-#include "api/network/setup_net.hpp"
 
 namespace fc::node {
+  using api::PeerInfo;
   using markets::discovery::DiscoveryImpl;
   using markets::pieceio::PieceIOImpl;
   using markets::retrieval::client::RetrievalClientImpl;
@@ -84,7 +85,6 @@ namespace fc::node {
   using storage::keystore::FileSystemKeyStore;
   using vm::actor::builtin::states::InitActorStatePtr;
   using vm::interpreter::InterpreterCache;
-  using api::PeerInfo;
 
   namespace {
     auto log() {
@@ -637,7 +637,7 @@ namespace fc::node {
 
     api::fillAuthApi(o.api, api_secret, api::kNodeApiLogger);
 
-    PeerInfo api_peer_info{
+    const PeerInfo api_peer_info{
         o.host->getPeerInfo().id,
         nonZeroAddrs(o.host->getAddresses(), &config.localIp())};
 

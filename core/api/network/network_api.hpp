@@ -28,7 +28,7 @@ namespace fc::api {
     /**
      * Removes provided peer from list of connected.
      */
-    API_METHOD(NetDisconnect, jwt::kReadPermission, void, const PeerInfo &)
+    API_METHOD(NetDisconnect, jwt::kWritePermission, void, const PeerInfo &)
   };
 
   template <typename A, typename F>
