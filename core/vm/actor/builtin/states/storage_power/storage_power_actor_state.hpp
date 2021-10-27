@@ -111,6 +111,8 @@ namespace fc::vm::actor::builtin::states {
    protected:
     virtual std::tuple<bool, bool> claimsAreBelow(
         const Claim &old_claim, const Claim &new_claim) const = 0;
+
+    virtual outcome::result<void> check(bool condition) const = 0;
   };
 
   using PowerActorStatePtr = Universal<PowerActorState>;

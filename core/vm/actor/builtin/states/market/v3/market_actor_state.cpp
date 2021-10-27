@@ -15,22 +15,6 @@ namespace fc::vm::actor::builtin::v3::market {
   using toolchain::Toolchain;
   using namespace types::market;
 
-  outcome::result<void> MarketActorState::processDealExpired(
-      const DealProposal &deal, const DealState &deal_state) {
-    REQUIRE_STATE(deal_state.sector_start_epoch != kChainEpochUndefined);
-
-    REQUIRE_NO_ERROR(unlockBalance(deal.provider,
-                                   deal.provider_collateral,
-                                   BalanceLockingReason::kProviderCollateral),
-                     VMExitCode::kErrIllegalState);
-    REQUIRE_NO_ERROR(unlockBalance(deal.client,
-                                   deal.client_collateral,
-                                   BalanceLockingReason::kClientCollateral),
-                     VMExitCode::kErrIllegalState);
-
-    return outcome::success();
-  }
-
   outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
   MarketActorState::updatePendingDealState(Runtime &runtime,
                                            DealId deal_id,
@@ -42,7 +26,7 @@ namespace fc::vm::actor::builtin::v3::market {
     const auto updated{deal_state.last_updated_epoch != kChainEpochUndefined};
     const auto slashed{deal_state.slash_epoch != kChainEpochUndefined};
 
-    REQUIRE_STATE(!updated || (deal_state.last_updated_epoch <= epoch));
+    OUTCOME_TRY(check(!updated || (deal_state.last_updated_epoch <= epoch)));
 
     if (deal.start_epoch > epoch) {
       return std::make_tuple(slashed_sum, kChainEpochUndefined, false);
@@ -50,8 +34,8 @@ namespace fc::vm::actor::builtin::v3::market {
 
     auto payment_end_epoch = deal.end_epoch;
     if (slashed) {
-      REQUIRE_STATE(epoch >= deal_state.slash_epoch);
-      REQUIRE_STATE(deal_state.slash_epoch <= deal.end_epoch);
+      OUTCOME_TRY(check(epoch >= deal_state.slash_epoch));
+      OUTCOME_TRY(check(deal_state.slash_epoch <= deal.end_epoch));
       payment_end_epoch = deal_state.slash_epoch;
     } else if (epoch < payment_end_epoch) {
       payment_end_epoch = epoch;
@@ -108,6 +92,10 @@ namespace fc::vm::actor::builtin::v3::market {
     const auto next_epoch = epoch + kDealUpdatesInterval;
 
     return std::make_tuple(slashed_sum, next_epoch, false);
+  }
+
+  outcome::result<void> MarketActorState::check(bool condition) const {
+    return requireState(condition);
   }
 
 }  // namespace fc::vm::actor::builtin::v3::market

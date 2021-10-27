@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "common/outcome.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::utils {
@@ -14,6 +15,12 @@ namespace fc::vm::actor::builtin::utils {
    public:
     explicit ActorUtils(Runtime &r) : runtime_(r) {}
     virtual ~ActorUtils() = default;
+
+    inline outcome::result<void> check(bool condition) const {
+      return runtime_.getActorVersion() < ActorVersion::kVersion3
+                 ? vm_assert(condition)
+                 : requireState(condition);
+    }
 
    protected:
     inline Runtime &getRuntime() const {

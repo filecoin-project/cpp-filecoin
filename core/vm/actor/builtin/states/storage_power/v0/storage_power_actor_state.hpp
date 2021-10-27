@@ -21,6 +21,8 @@ namespace fc::vm::actor::builtin::v0::storage_power {
    protected:
     std::tuple<bool, bool> claimsAreBelow(
         const Claim &old_claim, const Claim &new_claim) const override;
+
+    outcome::result<void> check(bool condition) const override;
   };
 
   CBOR_TUPLE(PowerActorState,

@@ -79,7 +79,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   outcome::result<uint64_t> MinerUtils::currentDeadlineIndex(
       ChainEpoch current_epoch, ChainEpoch period_start) const {
-    VM_ASSERT(current_epoch >= period_start);
+    OUTCOME_TRY(check(current_epoch >= period_start));
     return (current_epoch - period_start) / kWPoStChallengeWindow;
   }
 

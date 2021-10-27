@@ -19,7 +19,7 @@ namespace fc::vm::actor::builtin::states {
       const Address &address,
       const TokenAmount &amount,
       BalanceLockingReason lock_reason) {
-    VM_ASSERT(amount >= 0);
+    OUTCOME_TRY(check(amount >= 0));
 
     OUTCOME_TRY(locked_table.subtract(address, amount));
 
@@ -41,14 +41,14 @@ namespace fc::vm::actor::builtin::states {
       const Address &address,
       const TokenAmount &amount,
       BalanceLockingReason reason) {
-    VM_ASSERT(amount >= 0);
+    OUTCOME_TRY(check(amount >= 0));
     OUTCOME_TRY(escrow_table.subtract(address, amount));
     return unlockBalance(address, amount, reason);
   }
 
   outcome::result<void> MarketActorState::transferBalance(
       const Address &from, const Address &to, const TokenAmount &amount) {
-    VM_ASSERT(amount >= 0);
+    OUTCOME_TRY(check(amount >= 0));
     CHANGE_ERROR_ABORT(escrow_table.subtract(from, amount),
                        VMExitCode::kErrIllegalState);
     CHANGE_ERROR_ABORT(
@@ -88,7 +88,7 @@ namespace fc::vm::actor::builtin::states {
 
   outcome::result<void> MarketActorState::processDealExpired(
       const DealProposal &deal, const DealState &deal_state) {
-    VM_ASSERT(deal_state.sector_start_epoch != kChainEpochUndefined);
+    OUTCOME_TRY(check(deal_state.sector_start_epoch != kChainEpochUndefined));
 
     CHANGE_ERROR_ABORT(unlockBalance(deal.provider,
                                      deal.provider_collateral,
@@ -113,7 +113,7 @@ namespace fc::vm::actor::builtin::states {
     const auto updated{deal_state.last_updated_epoch != kChainEpochUndefined};
     const auto slashed{deal_state.slash_epoch != kChainEpochUndefined};
 
-    VM_ASSERT(!updated || (deal_state.last_updated_epoch <= epoch));
+    OUTCOME_TRY(check(!updated || (deal_state.last_updated_epoch <= epoch)));
 
     if (deal.start_epoch > epoch) {
       return std::make_tuple(slashed_sum, kChainEpochUndefined, false);
@@ -121,8 +121,8 @@ namespace fc::vm::actor::builtin::states {
 
     auto payment_end_epoch = deal.end_epoch;
     if (slashed) {
-      VM_ASSERT(epoch >= deal_state.slash_epoch);
-      VM_ASSERT(deal_state.slash_epoch <= deal.end_epoch);
+      OUTCOME_TRY(check(epoch >= deal_state.slash_epoch));
+      OUTCOME_TRY(check(deal_state.slash_epoch <= deal.end_epoch));
       payment_end_epoch = deal_state.slash_epoch;
     } else if (epoch < payment_end_epoch) {
       payment_end_epoch = epoch;
@@ -180,7 +180,7 @@ namespace fc::vm::actor::builtin::states {
 
   outcome::result<void> MarketActorState::maybeLockBalance(
       const Address &address, const TokenAmount &amount) {
-    VM_ASSERT(amount >= 0);
+    OUTCOME_TRY(check(amount >= 0));
 
     CHANGE_ERROR_A(
         locked, locked_table.get(address), VMExitCode::kErrIllegalState);

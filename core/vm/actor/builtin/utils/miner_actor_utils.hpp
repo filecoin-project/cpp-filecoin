@@ -5,9 +5,10 @@
 
 #pragma once
 
+#include "vm/actor/builtin/utils/actor_utils.hpp"
+
 #include <libp2p/multi/multiaddress.hpp>
 #include "common/bytes.hpp"
-#include "common/outcome.hpp"
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/sector/sector.hpp"
@@ -17,8 +18,6 @@
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/types/miner/power_pair.hpp"
 #include "vm/actor/builtin/types/transit.hpp"
-#include "vm/actor/builtin/utils/actor_utils.hpp"
-#include "vm/runtime/runtime.hpp"
 #include "vm/version/version.hpp"
 
 namespace fc::vm::actor::builtin::utils {
@@ -30,7 +29,6 @@ namespace fc::vm::actor::builtin::utils {
   using primitives::address::Address;
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredSealProof;
-  using runtime::Runtime;
   using states::MinerActorStatePtr;
   using types::DealWeights;
   using types::EpochReward;

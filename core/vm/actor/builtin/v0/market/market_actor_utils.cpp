@@ -24,10 +24,6 @@ namespace fc::vm::actor::builtin::v0::market {
     return getRuntime().validateImmediateCallerIsSignable();
   }
 
-  outcome::result<void> MarketUtils::assertCondition(bool condition) const {
-    return vm_assert(condition);
-  }
-
   outcome::result<void> MarketUtils::checkCallers(
       const Address &provider) const {
     OUTCOME_TRY(addresses, requestMinerControlAddress(provider));
@@ -72,14 +68,14 @@ namespace fc::vm::actor::builtin::v0::market {
 
   outcome::result<TokenAmount> MarketUtils::dealGetPaymentRemaining(
       const DealProposal &deal, ChainEpoch slash_epoch) const {
-    VM_ASSERT(slash_epoch <= deal.end_epoch);
+    OUTCOME_TRY(check(slash_epoch <= deal.end_epoch));
 
     if (slash_epoch < deal.start_epoch) {
       slash_epoch = deal.start_epoch;
     }
 
     const auto duration_remaining = deal.end_epoch - slash_epoch;
-    VM_ASSERT(duration_remaining >= 0);
+    OUTCOME_TRY(check(duration_remaining >= 0));
 
     return duration_remaining * deal.storage_price_per_epoch;
   }

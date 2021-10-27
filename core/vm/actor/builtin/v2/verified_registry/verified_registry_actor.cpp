@@ -93,11 +93,8 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     OUTCOME_TRY(utils->checkDealSize(params.deal_size));
     OUTCOME_TRY(state, runtime.getActorState<VerifiedRegistryActorStatePtr>());
 
-    auto clientCapAssert = [](bool condition) -> outcome::result<void> {
-      return vm_assert(condition);
-    };
     OUTCOME_TRY(v0::verified_registry::UseBytes::useBytes(
-        runtime, state, client, params.deal_size, clientCapAssert));
+        runtime, state, client, params.deal_size));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }

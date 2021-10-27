@@ -85,6 +85,9 @@ namespace fc::vm::actor::builtin::states {
 
     outcome::result<void> lockClientAndProviderBalances(
         const DealProposal &deal);
+
+   protected:
+    virtual outcome::result<void> check(bool condition) const = 0;
   };
 
   using MarketActorStatePtr = Universal<MarketActorState>;

@@ -30,7 +30,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       const Address &address) const {
     const auto resolved = getRuntime().resolveAddress(address);
     VALIDATE_ARG(!resolved.has_error());
-    VM_ASSERT(resolved.value().isId());
+    OUTCOME_TRY(check(resolved.value().isId()));
     const auto resolved_code = getRuntime().getActorCodeID(resolved.value());
     VALIDATE_ARG(!resolved_code.has_error());
 
@@ -44,7 +44,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       const Address &address) const {
     const auto resolved = getRuntime().resolveAddress(address);
     VALIDATE_ARG(!resolved.has_error());
-    VM_ASSERT(resolved.value().isId());
+    OUTCOME_TRY(check(resolved.value().isId()));
     const auto resolved_code = getRuntime().getActorCodeID(resolved.value());
     VALIDATE_ARG(!resolved_code.has_error());
     const auto address_matcher =

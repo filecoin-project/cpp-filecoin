@@ -278,8 +278,7 @@ namespace fc::vm::actor::builtin::v0::market {
       const auto &deal = maybe_deal.value();
 
       const auto utils = Toolchain::createMarketUtils(runtime);
-      OUTCOME_TRY(utils->assertCondition(deal.provider
-                                         == runtime.getImmediateCaller()));
+      OUTCOME_TRY(utils->check(deal.provider == runtime.getImmediateCaller()));
 
       // do not slash expired deals
       if (deal.end_epoch <= params.epoch) {
@@ -374,7 +373,7 @@ namespace fc::vm::actor::builtin::v0::market {
           // deal has been published but not activated yet -> terminate it as it
           // has timed out
           if (!maybe_deal_state.has_value()) {
-            OUTCOME_TRY(utils->assertCondition(now >= deal.start_epoch));
+            OUTCOME_TRY(utils->check(now >= deal.start_epoch));
             OUTCOME_TRY(slashed, state->processDealInitTimedOut(runtime, deal));
             slashed_sum += slashed;
             if (deal.verified) {
@@ -400,17 +399,16 @@ namespace fc::vm::actor::builtin::v0::market {
                           runtime, deal_id, deal, deal_state, now));
           const auto &[slash_amount, next_epoch, remove_deal] = slashed_next;
 
-          OUTCOME_TRY(utils->assertCondition(slash_amount >= 0));
+          OUTCOME_TRY(utils->check(slash_amount >= 0));
           if (remove_deal) {
-            OUTCOME_TRY(
-                utils->assertCondition(next_epoch == kChainEpochUndefined));
+            OUTCOME_TRY(utils->check(next_epoch == kChainEpochUndefined));
             slashed_sum += slash_amount;
             REQUIRE_NO_ERROR(
                 utils->deleteDealProposalAndState(state, deal_id, true, true),
                 VMExitCode::kErrIllegalState);
           } else {
-            OUTCOME_TRY(utils->assertCondition((next_epoch > now)
-                                               && (slash_amount == 0)));
+            OUTCOME_TRY(
+                utils->check((next_epoch > now) && (slash_amount == 0)));
             deal_state.last_updated_epoch = now;
             REQUIRE_NO_ERROR(state->states.set(deal_id, deal_state),
                              VMExitCode::kErrIllegalState);

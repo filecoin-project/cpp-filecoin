@@ -69,9 +69,9 @@ namespace fc::vm::actor::builtin::states {
       total_raw_power += raw;
       total_qa_power += qa;
     }
-    VM_ASSERT(claim.raw_power >= 0);
-    VM_ASSERT(claim.qa_power >= 0);
-    VM_ASSERT(num_miners_meeting_min_power >= 0);
+    OUTCOME_TRY(check(claim.raw_power >= 0));
+    OUTCOME_TRY(check(claim.qa_power >= 0));
+    OUTCOME_TRY(check(num_miners_meeting_min_power >= 0));
 
     return setClaim(runtime,
                     address,
@@ -86,8 +86,8 @@ namespace fc::vm::actor::builtin::states {
       const StoragePower &raw,
       const StoragePower &qa,
       RegisteredSealProof seal_proof) {
-    VM_ASSERT(raw >= 0);
-    VM_ASSERT(qa >= 0);
+    OUTCOME_TRY(check(raw >= 0));
+    OUTCOME_TRY(check(qa >= 0));
 
     Universal<Claim> claim{runtime.getActorVersion()};
     claim->seal_proof_type = seal_proof;
@@ -121,7 +121,7 @@ namespace fc::vm::actor::builtin::states {
   outcome::result<void> PowerActorState::addPledgeTotal(
       const TokenAmount &amount) {
     total_pledge_collateral += amount;
-    VM_ASSERT(total_pledge_collateral >= 0);
+    OUTCOME_TRY(check(total_pledge_collateral >= 0));
     return outcome::success();
   }
 

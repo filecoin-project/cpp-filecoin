@@ -138,11 +138,10 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   // UseBytes
   //============================================================================
 
-  outcome::result<void> UseBytes::useBytes(const Runtime &runtime,
+  outcome::result<void> UseBytes::useBytes(Runtime &runtime,
                                            VerifiedRegistryActorStatePtr &state,
                                            const Address &client,
-                                           const StoragePower &deal_size,
-                                           CapAssert cap_assert) {
+                                           const StoragePower &deal_size) {
     REQUIRE_NO_ERROR_A(maybe_client_cap,
                        state->verified_clients.tryGet(client),
                        VMExitCode::kErrIllegalState);
@@ -152,7 +151,8 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     const auto &client_cap = maybe_client_cap.value();
 
-    OUTCOME_TRY(cap_assert(client_cap >= 0));
+    const auto utils = Toolchain::createVerifRegUtils(runtime);
+    OUTCOME_TRY(utils->check(client_cap >= 0));
 
     VALIDATE_ARG(deal_size <= client_cap);
 
@@ -174,11 +174,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     OUTCOME_TRY(utils->checkDealSize(params.deal_size));
     OUTCOME_TRY(state, runtime.getActorState<VerifiedRegistryActorStatePtr>());
 
-    auto clientCapAssert = [](bool condition) -> outcome::result<void> {
-      return vm_assert(condition);
-    };
-    OUTCOME_TRY(useBytes(
-        runtime, state, params.address, params.deal_size, clientCapAssert));
+    OUTCOME_TRY(useBytes(runtime, state, params.address, params.deal_size));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
