@@ -25,8 +25,6 @@
 #include "vm/runtime/runtime_types.hpp"
 #include "vm/version/version.hpp"
 
-#define VM_ASSERT(condition) OUTCOME_TRY(runtime.vm_assert(condition))
-
 namespace fc::vm::runtime {
 
   using actor::Actor;
@@ -323,20 +321,6 @@ namespace fc::vm::runtime {
       return getBalance(getCurrentReceiver());
     }
 
-    static inline outcome::result<void> validateArgument(bool assertion) {
-      if (!assertion) {
-        ABORT(VMExitCode::kErrIllegalArgument);
-      }
-      return outcome::success();
-    }
-
-    static inline outcome::result<void> requireState(bool assertion) {
-      if (!assertion) {
-        ABORT(VMExitCode::kErrIllegalState);
-      }
-      return outcome::success();
-    }
-
     inline outcome::result<void> validateImmediateCallerIs(
         const Address &address) const {
       if (getImmediateCaller() == address) {
@@ -374,16 +358,6 @@ namespace fc::vm::runtime {
         return outcome::success();
       }
       ABORT(VMExitCode::kSysErrForbidden);
-    }
-
-    inline outcome::result<void> vm_assert(bool condition) const {
-      if (condition) {
-        return outcome::success();
-      }
-      if (getNetworkVersion() <= NetworkVersion::kVersion3) {
-        ABORT(VMExitCode::kOldErrActorFailure);
-      }
-      ABORT(VMExitCode::kSysErrReserved1);
     }
 
     inline outcome::result<Address> resolveOrCreate(const Address &address) {

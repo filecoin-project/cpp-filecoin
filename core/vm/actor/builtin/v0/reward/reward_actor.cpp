@@ -31,13 +31,13 @@ namespace fc::vm::actor::builtin::v0::reward {
   outcome::result<TokenAmount> AwardBlockReward::validateParams(
       Runtime &runtime, const Params &params) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    OUTCOME_TRY(runtime.validateArgument(params.penalty >= 0));
-    OUTCOME_TRY(runtime.validateArgument(params.gas_reward >= 0));
+    VALIDATE_ARG(params.penalty >= 0);
+    VALIDATE_ARG(params.gas_reward >= 0);
     OUTCOME_TRY(balance, runtime.getCurrentBalance());
     if (balance < params.gas_reward) {
       ABORT(VMExitCode::kErrIllegalState);
     }
-    OUTCOME_TRY(runtime.validateArgument(params.win_count > 0));
+    VALIDATE_ARG(params.win_count > 0);
     return std::move(balance);
   }
 

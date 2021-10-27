@@ -41,12 +41,12 @@ namespace fc::vm::actor::builtin::v3::miner {
                        VMExitCode::kErrSerialization);
     const auto period_start =
         utils->currentProvingPeriodStart(current_epoch, offset);
-    OUTCOME_TRY(runtime.requireState(period_start <= current_epoch));
+    REQUIRE_STATE(period_start <= current_epoch);
     state->proving_period_start = period_start;
 
     OUTCOME_TRY(deadline_index,
                 utils->currentDeadlineIndex(current_epoch, period_start));
-    OUTCOME_TRY(runtime.requireState(deadline_index < kWPoStPeriodDeadlines));
+    REQUIRE_STATE(deadline_index < kWPoStPeriodDeadlines);
     state->current_deadline = deadline_index;
 
     REQUIRE_NO_ERROR_A(miner_info,
@@ -74,11 +74,9 @@ namespace fc::vm::actor::builtin::v3::miner {
   ACTOR_METHOD_IMPL(SubmitWindowedPoSt) {
     const auto current_epoch = runtime.getCurrentEpoch();
 
-    OUTCOME_TRY(
-        runtime.validateArgument(params.deadline < kWPoStPeriodDeadlines));
+    VALIDATE_ARG(params.deadline < kWPoStPeriodDeadlines);
 
-    OUTCOME_TRY(runtime.validateArgument(params.chain_commit_rand.size()
-                                         <= kRandomnessLength));
+    VALIDATE_ARG(params.chain_commit_rand.size() <= kRandomnessLength);
 
     const auto utils = Toolchain::createMinerUtils(runtime);
 
@@ -91,17 +89,14 @@ namespace fc::vm::actor::builtin::v3::miner {
     callers.emplace_back(miner_info->worker);
     OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
 
-    OUTCOME_TRY(runtime.validateArgument(params.proofs.size() == 1));
-    OUTCOME_TRY(
-        runtime.validateArgument(params.proofs[0].registered_proof
-                                 == miner_info->window_post_proof_type));
-    OUTCOME_TRY(runtime.validateArgument(params.proofs[0].proof.size()
-                                         <= kMaxPoStProofSize));
+    VALIDATE_ARG(params.proofs.size() == 1);
+    VALIDATE_ARG(params.proofs[0].registered_proof
+                 == miner_info->window_post_proof_type);
+    VALIDATE_ARG(params.proofs[0].proof.size() <= kMaxPoStProofSize);
 
     const auto submission_partition_limit = utils->loadPartitionsSectorsMax(
         miner_info->window_post_partition_sectors);
-    OUTCOME_TRY(runtime.validateArgument(params.partitions.size()
-                                         <= submission_partition_limit));
+    VALIDATE_ARG(params.partitions.size() <= submission_partition_limit);
 
     const auto deadline_info = state->deadlineInfo(current_epoch);
 
@@ -109,22 +104,18 @@ namespace fc::vm::actor::builtin::v3::miner {
       ABORT(VMExitCode::kErrIllegalState);
     }
 
-    OUTCOME_TRY(
-        runtime.validateArgument(params.deadline == deadline_info.index));
+    VALIDATE_ARG(params.deadline == deadline_info.index);
 
-    OUTCOME_TRY(runtime.validateArgument(params.chain_commit_epoch
-                                         >= deadline_info.challenge));
+    VALIDATE_ARG(params.chain_commit_epoch >= deadline_info.challenge);
 
-    OUTCOME_TRY(
-        runtime.validateArgument(params.chain_commit_epoch < current_epoch));
+    VALIDATE_ARG(params.chain_commit_epoch < current_epoch);
 
     OUTCOME_TRY(
         randomness,
         runtime.getRandomnessFromTickets(DomainSeparationTag::PoStChainCommit,
                                          params.chain_commit_epoch,
                                          {}));
-    OUTCOME_TRY(
-        runtime.validateArgument(randomness == params.chain_commit_rand));
+    VALIDATE_ARG(randomness == params.chain_commit_rand);
 
     REQUIRE_NO_ERROR_A(
         sectors, state->sectors.loadSectors(), VMExitCode::kErrIllegalState);
@@ -148,7 +139,7 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     const auto proven_sectors =
         post_result.sectors - post_result.ignored_sectors;
-    OUTCOME_TRY(runtime.validateArgument(!proven_sectors.empty()));
+    VALIDATE_ARG(!proven_sectors.empty());
 
     if (post_result.recovered_power.isZero()) {
       REQUIRE_NO_ERROR(deadline->optimistic_post_submissions.append(

@@ -7,9 +7,6 @@
 
 #include "vm/runtime/runtime.hpp"
 
-#define UTILS_VM_ASSERT(condition) \
-  OUTCOME_TRY(getRuntime().vm_assert(condition))
-
 namespace fc::vm::actor::builtin::utils {
   using runtime::Runtime;
 

@@ -37,11 +37,10 @@ namespace fc::vm::actor::builtin::states {
                                                  << kPrecision128},
         last_processed_cron_epoch(kChainEpochUndefined) {}
 
-  outcome::result<void> PowerActorState::addToClaim(
-      const fc::vm::runtime::Runtime &runtime,
-      const Address &address,
-      const StoragePower &raw,
-      const StoragePower &qa) {
+  outcome::result<void> PowerActorState::addToClaim(const Runtime &runtime,
+                                                    const Address &address,
+                                                    const StoragePower &raw,
+                                                    const StoragePower &qa) {
     OUTCOME_TRY(claim_found, tryGetClaim(address));
     if (!claim_found.has_value()) {
       return VMExitCode::kErrNotFound;
@@ -120,7 +119,7 @@ namespace fc::vm::actor::builtin::states {
   }
 
   outcome::result<void> PowerActorState::addPledgeTotal(
-      const Runtime &runtime, const TokenAmount &amount) {
+      const TokenAmount &amount) {
     total_pledge_collateral += amount;
     VM_ASSERT(total_pledge_collateral >= 0);
     return outcome::success();

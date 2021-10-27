@@ -17,7 +17,7 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
       const Runtime &runtime, const SignedVoucher &voucher) {
     const auto paych_addr = runtime.getCurrentReceiver();
     OUTCOME_TRY(voucher_addr, runtime.resolveAddress(voucher.channel));
-    OUTCOME_TRY(runtime.validateArgument(paych_addr == voucher_addr));
+    VALIDATE_ARG(paych_addr == voucher_addr);
     return outcome::success();
   }
 

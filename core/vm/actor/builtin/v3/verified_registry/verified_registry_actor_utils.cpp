@@ -18,7 +18,7 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
   }
 
   outcome::result<void> VerifRegUtils::assertCap(bool condition) const {
-    return getRuntime().requireState(condition);
+    return requireState(condition);
   }
 
 }  // namespace fc::vm::actor::builtin::v3::verified_registry

@@ -14,7 +14,7 @@
 namespace fc::vm::actor::builtin::v3::market {
 
   outcome::result<void> MarketUtils::assertCondition(bool condition) const {
-    return getRuntime().requireState(condition);
+    return requireState(condition);
   }
 
   outcome::result<void> MarketUtils::checkCallers(

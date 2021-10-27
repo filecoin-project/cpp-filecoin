@@ -7,6 +7,7 @@
 
 #include <boost/optional.hpp>
 #include "common/outcome.hpp"
+#include "vm/version/version.hpp"
 
 /**
  * Aborts execution if res has error and aborts with default_error if res has
@@ -63,11 +64,18 @@
  */
 #define ABORT(err_code) return outcome::failure(asAbort(err_code))
 
+#define VM_ASSERT(condition) OUTCOME_TRY(vm_assert(condition))
+
+#define VALIDATE_ARG(condition) OUTCOME_TRY(validateArgument(condition))
+
+#define REQUIRE_STATE(condition) OUTCOME_TRY(requireState(condition))
+
 namespace fc::vm {
   /**
    * specs-actors and custom exit code enum for outcome errors.
    */
   enum class VMExitCode : int64_t {
+    kAssert = -2,
     kFatal = -1,
 
     // Old general actor error that is used for backward compatibility with old
@@ -129,7 +137,8 @@ namespace fc::vm {
   bool isAbortExitCode(const std::error_code &error);
 
   outcome::result<VMExitCode> asExitCode(const std::error_code &error);
-  std::error_code catchAbort(const std::error_code &error);
+  std::error_code catchAbort(const std::error_code &error,
+                             version::NetworkVersion version);
 }  // namespace fc::vm
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMExitCode);
@@ -140,17 +149,18 @@ OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMAbortExitCode);
 
 namespace fc::vm {
   template <typename T>
-  outcome::result<T> catchAbort(outcome::result<T> &&result) {
+  outcome::result<T> catchAbort(outcome::result<T> &&result,
+                                version::NetworkVersion version) {
     if (!result) {
-      return catchAbort(result.error());
+      return catchAbort(result.error(), version);
     }
     return result;
   }
 
   template <typename T>
-  void catchAbort(outcome::result<T> &result) {
+  void catchAbort(outcome::result<T> &result, version::NetworkVersion version) {
     if (!result) {
-      result = catchAbort(result.error());
+      result = catchAbort(result.error(), version);
     }
   }
 
@@ -315,4 +325,26 @@ namespace fc::vm {
     CHANGE_ERROR_ABORT(res, error);
     return std::move(res);
   }
+
+  inline outcome::result<void> vm_assert(bool condition) {
+    if (!condition) {
+      ABORT(VMExitCode::kAssert);
+    }
+    return outcome::success();
+  }
+
+  inline outcome::result<void> validateArgument(bool condition) {
+    if (!condition) {
+      ABORT(VMExitCode::kErrIllegalArgument);
+    }
+    return outcome::success();
+  }
+
+  inline outcome::result<void> requireState(bool condition) {
+    if (!condition) {
+      ABORT(VMExitCode::kErrIllegalState);
+    }
+    return outcome::success();
+  }
+
 }  // namespace fc::vm

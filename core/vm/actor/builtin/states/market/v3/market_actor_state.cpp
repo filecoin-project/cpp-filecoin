@@ -16,19 +16,14 @@ namespace fc::vm::actor::builtin::v3::market {
   using namespace types::market;
 
   outcome::result<void> MarketActorState::processDealExpired(
-      const Runtime &runtime,
-      const DealProposal &deal,
-      const DealState &deal_state) {
-    OUTCOME_TRY(runtime.requireState(deal_state.sector_start_epoch
-                                     != kChainEpochUndefined));
+      const DealProposal &deal, const DealState &deal_state) {
+    REQUIRE_STATE(deal_state.sector_start_epoch != kChainEpochUndefined);
 
-    REQUIRE_NO_ERROR(unlockBalance(runtime,
-                                   deal.provider,
+    REQUIRE_NO_ERROR(unlockBalance(deal.provider,
                                    deal.provider_collateral,
                                    BalanceLockingReason::kProviderCollateral),
                      VMExitCode::kErrIllegalState);
-    REQUIRE_NO_ERROR(unlockBalance(runtime,
-                                   deal.client,
+    REQUIRE_NO_ERROR(unlockBalance(deal.client,
                                    deal.client_collateral,
                                    BalanceLockingReason::kClientCollateral),
                      VMExitCode::kErrIllegalState);
@@ -47,8 +42,7 @@ namespace fc::vm::actor::builtin::v3::market {
     const auto updated{deal_state.last_updated_epoch != kChainEpochUndefined};
     const auto slashed{deal_state.slash_epoch != kChainEpochUndefined};
 
-    OUTCOME_TRY(runtime.requireState(
-        !updated || (deal_state.last_updated_epoch <= epoch)));
+    REQUIRE_STATE(!updated || (deal_state.last_updated_epoch <= epoch));
 
     if (deal.start_epoch > epoch) {
       return std::make_tuple(slashed_sum, kChainEpochUndefined, false);
@@ -56,9 +50,8 @@ namespace fc::vm::actor::builtin::v3::market {
 
     auto payment_end_epoch = deal.end_epoch;
     if (slashed) {
-      OUTCOME_TRY(runtime.requireState(epoch >= deal_state.slash_epoch));
-      OUTCOME_TRY(
-          runtime.requireState(deal_state.slash_epoch <= deal.end_epoch));
+      REQUIRE_STATE(epoch >= deal_state.slash_epoch);
+      REQUIRE_STATE(deal_state.slash_epoch <= deal.end_epoch);
       payment_end_epoch = deal_state.slash_epoch;
     } else if (epoch < payment_end_epoch) {
       payment_end_epoch = epoch;
@@ -75,7 +68,7 @@ namespace fc::vm::actor::builtin::v3::market {
 
     if (total_payment > 0) {
       REQUIRE_NO_ERROR(
-          transferBalance(runtime, deal.client, deal.provider, total_payment),
+          transferBalance(deal.client, deal.provider, total_payment),
           VMExitCode::kErrIllegalState);
     }
 
@@ -87,22 +80,19 @@ namespace fc::vm::actor::builtin::v3::market {
           utils->dealGetPaymentRemaining(deal, deal_state.slash_epoch),
           VMExitCode::kErrIllegalState);
 
-      REQUIRE_NO_ERROR(unlockBalance(runtime,
-                                     deal.client,
-                                     remaining,
-                                     BalanceLockingReason::kClientStorageFee),
-                       VMExitCode::kErrIllegalState);
+      REQUIRE_NO_ERROR(
+          unlockBalance(
+              deal.client, remaining, BalanceLockingReason::kClientStorageFee),
+          VMExitCode::kErrIllegalState);
 
-      REQUIRE_NO_ERROR(unlockBalance(runtime,
-                                     deal.client,
+      REQUIRE_NO_ERROR(unlockBalance(deal.client,
                                      deal.client_collateral,
                                      BalanceLockingReason::kClientCollateral),
                        VMExitCode::kErrIllegalState);
 
       slashed_sum = deal.provider_collateral;
 
-      REQUIRE_NO_ERROR(slashBalance(runtime,
-                                    deal.provider,
+      REQUIRE_NO_ERROR(slashBalance(deal.provider,
                                     slashed_sum,
                                     BalanceLockingReason::kProviderCollateral),
                        VMExitCode::kErrIllegalState);
@@ -111,7 +101,7 @@ namespace fc::vm::actor::builtin::v3::market {
     }
 
     if (epoch >= deal.end_epoch) {
-      OUTCOME_TRY(processDealExpired(runtime, deal, deal_state));
+      OUTCOME_TRY(processDealExpired(deal, deal_state));
       return std::make_tuple(slashed_sum, kChainEpochUndefined, true);
     }
 

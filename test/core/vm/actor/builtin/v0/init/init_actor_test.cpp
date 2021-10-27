@@ -89,11 +89,7 @@ namespace fc::vm::actor::builtin::v0::init {
     callerIs(kSystemActorAddress);
 
     currentEpochIs(kUpgradeBreezeHeight);
-    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kOldErrActorFailure),
-                         Exec::call(runtime, {code, {}}));
-
-    currentEpochIs(kUpgradeKumquatHeight);
-    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrReserved1),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kAssert),
                          Exec::call(runtime, {code, {}}));
   }
 

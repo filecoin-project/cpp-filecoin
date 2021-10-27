@@ -152,7 +152,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
         Toolchain::createAddressMatcher(runtime.getActorVersion());
     OUTCOME_TRY(runtime.validateImmediateCallerType(
         address_matcher->getStorageMinerCodeId()));
-    OUTCOME_TRY(runtime.validateArgument(params.event_epoch >= 0));
+    VALIDATE_ARG(params.event_epoch >= 0);
     OUTCOME_TRY(state, runtime.getActorState<PowerActorStatePtr>());
     REQUIRE_NO_ERROR(
         state->appendCronEvent(params.event_epoch,
@@ -197,7 +197,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(
         utils->validateMinerHasClaim(state, runtime.getImmediateCaller()));
 
-    OUTCOME_TRY(state->addPledgeTotal(runtime, params));
+    OUTCOME_TRY(state->addPledgeTotal(params));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -220,7 +220,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     REQUIRE_NO_ERROR(
         state->addToClaim(runtime, miner, -claim->raw_power, -claim->qa_power),
         VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(state->addPledgeTotal(runtime, -params));
+    OUTCOME_TRY(state->addPledgeTotal(-params));
     REQUIRE_NO_ERROR(state->deleteClaim(runtime, miner),
                      VMExitCode::kErrIllegalState);
     --state->miner_count;

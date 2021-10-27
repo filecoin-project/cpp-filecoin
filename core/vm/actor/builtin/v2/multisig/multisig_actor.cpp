@@ -19,8 +19,8 @@ namespace fc::vm::actor::builtin::v2::multisig {
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
-    OUTCOME_TRY(runtime.validateArgument(!params.signers.empty()));
-    OUTCOME_TRY(runtime.validateArgument(params.signers.size() <= kSignersMax));
+    VALIDATE_ARG(!params.signers.empty());
+    VALIDATE_ARG(params.signers.size() <= kSignersMax);
     OUTCOME_TRY(
         resolved_signers,
         v0::multisig::Construct::getResolvedSigners(runtime, params.signers));
@@ -114,10 +114,9 @@ namespace fc::vm::actor::builtin::v2::multisig {
 
   ACTOR_METHOD_IMPL(LockBalance) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
-    OUTCOME_TRY(runtime.validateArgument(params.unlock_duration > 0));
-    OUTCOME_TRY(runtime.validateArgument(
-        !((runtime.getNetworkVersion() >= NetworkVersion::kVersion7)
-          && (params.amount < 0))));
+    VALIDATE_ARG(params.unlock_duration > 0);
+    VALIDATE_ARG(!((runtime.getNetworkVersion() >= NetworkVersion::kVersion7)
+                   && (params.amount < 0)));
     OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
     OUTCOME_TRY(v0::multisig::LockBalance::lockBalance(params, state));
     OUTCOME_TRY(runtime.commitState(state));

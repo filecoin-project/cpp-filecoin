@@ -29,34 +29,32 @@ namespace fc::vm::actor::builtin::v0::miner {
   outcome::result<Address> MinerUtils::resolveControlAddress(
       const Address &address) const {
     const auto resolved = getRuntime().resolveAddress(address);
-    OUTCOME_TRY(getRuntime().validateArgument(!resolved.has_error()));
-    UTILS_VM_ASSERT(resolved.value().isId());
+    VALIDATE_ARG(!resolved.has_error());
+    VM_ASSERT(resolved.value().isId());
     const auto resolved_code = getRuntime().getActorCodeID(resolved.value());
-    OUTCOME_TRY(getRuntime().validateArgument(!resolved_code.has_error()));
+    VALIDATE_ARG(!resolved_code.has_error());
 
     const auto address_matcher =
         Toolchain::createAddressMatcher(getRuntime().getActorVersion());
-    OUTCOME_TRY(getRuntime().validateArgument(
-        address_matcher->isSignableActor(resolved_code.value())));
+    VALIDATE_ARG(address_matcher->isSignableActor(resolved_code.value()));
     return std::move(resolved.value());
   }
 
   outcome::result<Address> MinerUtils::resolveWorkerAddress(
       const Address &address) const {
     const auto resolved = getRuntime().resolveAddress(address);
-    OUTCOME_TRY(getRuntime().validateArgument(!resolved.has_error()));
-    UTILS_VM_ASSERT(resolved.value().isId());
+    VALIDATE_ARG(!resolved.has_error());
+    VM_ASSERT(resolved.value().isId());
     const auto resolved_code = getRuntime().getActorCodeID(resolved.value());
-    OUTCOME_TRY(getRuntime().validateArgument(!resolved_code.has_error()));
+    VALIDATE_ARG(!resolved_code.has_error());
     const auto address_matcher =
         Toolchain::createAddressMatcher(getRuntime().getActorVersion());
-    OUTCOME_TRY(getRuntime().validateArgument(
-        resolved_code.value() == address_matcher->getAccountCodeId()));
+    VALIDATE_ARG(resolved_code.value() == address_matcher->getAccountCodeId());
 
     if (!address.isBls()) {
       OUTCOME_TRY(pubkey_addres,
                   getPubkeyAddressFromAccountActor(resolved.value()));
-      OUTCOME_TRY(getRuntime().validateArgument(pubkey_addres.isBls()));
+      VALIDATE_ARG(pubkey_addres.isBls());
     }
 
     return std::move(resolved.value());
@@ -65,7 +63,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   outcome::result<void> MinerUtils::enrollCronEvent(
       ChainEpoch event_epoch, const CronEventPayload &payload) const {
     const auto encoded_params = codec::cbor::encode(payload);
-    OUTCOME_TRY(getRuntime().validateArgument(!encoded_params.has_error()));
+    VALIDATE_ARG(!encoded_params.has_error());
     REQUIRE_SUCCESS(
         callPowerEnrollCronEvent(event_epoch, encoded_params.value()));
     return outcome::success();
@@ -112,19 +110,16 @@ namespace fc::vm::actor::builtin::v0::miner {
       ChainEpoch activation,
       ChainEpoch expiration,
       RegisteredSealProof seal_proof) const {
-    OUTCOME_TRY(getRuntime().validateArgument(expiration - activation
-                                              >= kMinSectorExpiration));
-    OUTCOME_TRY(getRuntime().validateArgument(
-        expiration
-        <= getRuntime().getCurrentEpoch() + kMaxSectorExpirationExtension));
+    VALIDATE_ARG(expiration - activation >= kMinSectorExpiration);
+    VALIDATE_ARG(expiration <= getRuntime().getCurrentEpoch()
+                                   + kMaxSectorExpirationExtension);
 
     const Universal<ProofPolicy> proof_policy{getRuntime().getActorVersion()};
     REQUIRE_NO_ERROR_A(max_lifetime,
                        proof_policy->getSealProofSectorMaximumLifetime(
                            seal_proof, getRuntime().getNetworkVersion()),
                        VMExitCode::kErrIllegalArgument);
-    OUTCOME_TRY(
-        getRuntime().validateArgument(expiration - activation <= max_lifetime));
+    VALIDATE_ARG(expiration - activation <= max_lifetime);
     return outcome::success();
   }
 
@@ -134,12 +129,10 @@ namespace fc::vm::actor::builtin::v0::miner {
                    state->sectors.sectors.get(params.replace_sector),
                    VMExitCode::kErrNotFound);
 
-    OUTCOME_TRY(getRuntime().validateArgument(replace_sector.deals.empty()));
+    VALIDATE_ARG(replace_sector.deals.empty());
 
-    OUTCOME_TRY(getRuntime().validateArgument(params.registered_proof
-                                              == replace_sector.seal_proof));
-    OUTCOME_TRY(getRuntime().validateArgument(params.expiration
-                                              >= replace_sector.expiration));
+    VALIDATE_ARG(params.registered_proof == replace_sector.seal_proof);
+    VALIDATE_ARG(params.expiration >= replace_sector.expiration);
 
     REQUIRE_NO_ERROR(state->checkSectorHealth(params.replace_deadline,
                                               params.replace_partition,
@@ -243,7 +236,7 @@ namespace fc::vm::actor::builtin::v0::miner {
         .prover = miner_actor_id};
 
     OUTCOME_TRY(verified, getRuntime().verifyPoSt(post_verify_info));
-    OUTCOME_TRY(getRuntime().validateArgument(verified));
+    VALIDATE_ARG(verified);
 
     return outcome::success();
   }

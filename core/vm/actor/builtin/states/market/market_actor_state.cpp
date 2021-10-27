@@ -16,7 +16,6 @@ namespace fc::vm::actor::builtin::states {
   using namespace types::market;
 
   outcome::result<void> MarketActorState::unlockBalance(
-      const Runtime &runtime,
       const Address &address,
       const TokenAmount &amount,
       BalanceLockingReason lock_reason) {
@@ -39,26 +38,21 @@ namespace fc::vm::actor::builtin::states {
   }
 
   outcome::result<void> MarketActorState::slashBalance(
-      const Runtime &runtime,
       const Address &address,
       const TokenAmount &amount,
       BalanceLockingReason reason) {
     VM_ASSERT(amount >= 0);
     OUTCOME_TRY(escrow_table.subtract(address, amount));
-    return unlockBalance(runtime, address, amount, reason);
+    return unlockBalance(address, amount, reason);
   }
 
   outcome::result<void> MarketActorState::transferBalance(
-      const Runtime &runtime,
-      const Address &from,
-      const Address &to,
-      const TokenAmount &amount) {
+      const Address &from, const Address &to, const TokenAmount &amount) {
     VM_ASSERT(amount >= 0);
     CHANGE_ERROR_ABORT(escrow_table.subtract(from, amount),
                        VMExitCode::kErrIllegalState);
     CHANGE_ERROR_ABORT(
-        unlockBalance(
-            runtime, from, amount, BalanceLockingReason::kClientStorageFee),
+        unlockBalance(from, amount, BalanceLockingReason::kClientStorageFee),
         VMExitCode::kErrIllegalState);
     CHANGE_ERROR_ABORT(escrow_table.add(to, amount),
                        VMExitCode::kErrIllegalState);
@@ -67,13 +61,11 @@ namespace fc::vm::actor::builtin::states {
 
   outcome::result<TokenAmount> MarketActorState::processDealInitTimedOut(
       const Runtime &runtime, const DealProposal &deal) {
-    CHANGE_ERROR_ABORT(unlockBalance(runtime,
-                                     deal.client,
+    CHANGE_ERROR_ABORT(unlockBalance(deal.client,
                                      deal.getTotalStorageFee(),
                                      BalanceLockingReason::kClientStorageFee),
                        VMExitCode::kErrIllegalState);
-    CHANGE_ERROR_ABORT(unlockBalance(runtime,
-                                     deal.client,
+    CHANGE_ERROR_ABORT(unlockBalance(deal.client,
                                      deal.client_collateral,
                                      BalanceLockingReason::kClientCollateral),
                        VMExitCode::kErrIllegalState);
@@ -82,13 +74,11 @@ namespace fc::vm::actor::builtin::states {
         collateralPenaltyForDealActivationMissed(deal.provider_collateral);
     const auto amount_remaining = deal.providerBalanceRequirement() - slashed;
 
-    CHANGE_ERROR_ABORT(slashBalance(runtime,
-                                    deal.provider,
-                                    slashed,
-                                    BalanceLockingReason::kProviderCollateral),
-                       VMExitCode::kErrIllegalState);
-    CHANGE_ERROR_ABORT(unlockBalance(runtime,
-                                     deal.provider,
+    CHANGE_ERROR_ABORT(
+        slashBalance(
+            deal.provider, slashed, BalanceLockingReason::kProviderCollateral),
+        VMExitCode::kErrIllegalState);
+    CHANGE_ERROR_ABORT(unlockBalance(deal.provider,
                                      amount_remaining,
                                      BalanceLockingReason::kProviderCollateral),
                        VMExitCode::kErrIllegalState);
@@ -97,18 +87,14 @@ namespace fc::vm::actor::builtin::states {
   }
 
   outcome::result<void> MarketActorState::processDealExpired(
-      const Runtime &runtime,
-      const DealProposal &deal,
-      const DealState &deal_state) {
+      const DealProposal &deal, const DealState &deal_state) {
     VM_ASSERT(deal_state.sector_start_epoch != kChainEpochUndefined);
 
-    CHANGE_ERROR_ABORT(unlockBalance(runtime,
-                                     deal.provider,
+    CHANGE_ERROR_ABORT(unlockBalance(deal.provider,
                                      deal.provider_collateral,
                                      BalanceLockingReason::kProviderCollateral),
                        VMExitCode::kErrIllegalState);
-    CHANGE_ERROR_ABORT(unlockBalance(runtime,
-                                     deal.client,
+    CHANGE_ERROR_ABORT(unlockBalance(deal.client,
                                      deal.client_collateral,
                                      BalanceLockingReason::kClientCollateral),
                        VMExitCode::kErrIllegalState);
@@ -152,8 +138,7 @@ namespace fc::vm::actor::builtin::states {
         epochs_elapsed * deal.storage_price_per_epoch;
 
     if (total_payment > 0) {
-      OUTCOME_TRY(
-          transferBalance(runtime, deal.client, deal.provider, total_payment));
+      OUTCOME_TRY(transferBalance(deal.client, deal.provider, total_payment));
     }
 
     const auto utils = Toolchain::createMarketUtils(runtime);
@@ -162,14 +147,12 @@ namespace fc::vm::actor::builtin::states {
       OUTCOME_TRY(remaining,
                   utils->dealGetPaymentRemaining(deal, deal_state.slash_epoch));
 
-      CHANGE_ERROR_ABORT(unlockBalance(runtime,
-                                       deal.client,
-                                       remaining,
-                                       BalanceLockingReason::kClientStorageFee),
-                         VMExitCode::kErrIllegalState);
+      CHANGE_ERROR_ABORT(
+          unlockBalance(
+              deal.client, remaining, BalanceLockingReason::kClientStorageFee),
+          VMExitCode::kErrIllegalState);
 
-      CHANGE_ERROR_ABORT(unlockBalance(runtime,
-                                       deal.client,
+      CHANGE_ERROR_ABORT(unlockBalance(deal.client,
                                        deal.client_collateral,
                                        BalanceLockingReason::kClientCollateral),
                          VMExitCode::kErrIllegalState);
@@ -177,8 +160,7 @@ namespace fc::vm::actor::builtin::states {
       slashed_sum = deal.provider_collateral;
 
       CHANGE_ERROR_ABORT(
-          slashBalance(runtime,
-                       deal.provider,
+          slashBalance(deal.provider,
                        slashed_sum,
                        BalanceLockingReason::kProviderCollateral),
           VMExitCode::kErrIllegalState);
@@ -187,7 +169,7 @@ namespace fc::vm::actor::builtin::states {
     }
 
     if (epoch >= deal.end_epoch) {
-      OUTCOME_TRY(processDealExpired(runtime, deal, deal_state));
+      OUTCOME_TRY(processDealExpired(deal, deal_state));
       return std::make_tuple(slashed_sum, kChainEpochUndefined, true);
     }
 
@@ -197,9 +179,7 @@ namespace fc::vm::actor::builtin::states {
   }
 
   outcome::result<void> MarketActorState::maybeLockBalance(
-      const Runtime &runtime,
-      const Address &address,
-      const TokenAmount &amount) {
+      const Address &address, const TokenAmount &amount) {
     VM_ASSERT(amount >= 0);
 
     CHANGE_ERROR_A(
@@ -218,11 +198,10 @@ namespace fc::vm::actor::builtin::states {
   }
 
   outcome::result<void> MarketActorState::lockClientAndProviderBalances(
-      const Runtime &runtime, const DealProposal &deal) {
-    OUTCOME_TRY(maybeLockBalance(
-        runtime, deal.client, deal.clientBalanceRequirement()));
-    OUTCOME_TRY(maybeLockBalance(
-        runtime, deal.provider, deal.providerBalanceRequirement()));
+      const DealProposal &deal) {
+    OUTCOME_TRY(maybeLockBalance(deal.client, deal.clientBalanceRequirement()));
+    OUTCOME_TRY(
+        maybeLockBalance(deal.provider, deal.providerBalanceRequirement()));
     total_client_locked_collateral += deal.client_collateral;
     total_client_storage_fee += deal.getTotalStorageFee();
     total_provider_locked_collateral += deal.provider_collateral;

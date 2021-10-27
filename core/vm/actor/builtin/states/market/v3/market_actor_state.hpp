@@ -15,8 +15,7 @@ namespace fc::vm::actor::builtin::v3::market {
   using types::market::DealState;
 
   struct MarketActorState : v2::market::MarketActorState {
-    outcome::result<void> processDealExpired(const runtime::Runtime &runtime,
-                                             const DealProposal &deal,
+    outcome::result<void> processDealExpired(const DealProposal &deal,
                                              const DealState &deal_state);
 
     outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>

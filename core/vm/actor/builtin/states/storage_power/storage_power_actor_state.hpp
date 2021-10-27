@@ -99,8 +99,7 @@ namespace fc::vm::actor::builtin::states {
 
     outcome::result<Universal<Claim>> getClaim(const Address &address) const;
 
-    outcome::result<void> addPledgeTotal(const Runtime &runtime,
-                                         const TokenAmount &amount);
+    outcome::result<void> addPledgeTotal(const TokenAmount &amount);
 
     outcome::result<void> appendCronEvent(const ChainEpoch &epoch,
                                           const CronEvent &event);

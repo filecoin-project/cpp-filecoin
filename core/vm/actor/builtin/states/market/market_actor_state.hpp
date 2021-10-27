@@ -27,11 +27,11 @@ namespace fc::vm::actor::builtin::states {
   using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using types::Universal;
   using types::market::BalanceLockingReason;
   using types::market::DealProposal;
   using types::market::DealState;
   using types::market::PendingProposals;
-  using types::Universal;
 
   constexpr size_t kProposalsAmtBitwidth = 5;
   constexpr size_t kStatesAmtBitwidth = 6;
@@ -55,27 +55,23 @@ namespace fc::vm::actor::builtin::states {
     TokenAmount total_client_storage_fee{};
 
     // Methods
-    outcome::result<void> unlockBalance(const runtime::Runtime &runtime,
-                                        const Address &address,
+    outcome::result<void> unlockBalance(const Address &address,
                                         const TokenAmount &amount,
                                         BalanceLockingReason lock_reason);
 
-    outcome::result<void> slashBalance(const runtime::Runtime &runtime,
-                                       const Address &address,
+    outcome::result<void> slashBalance(const Address &address,
                                        const TokenAmount &amount,
                                        BalanceLockingReason reason);
 
-    outcome::result<void> transferBalance(const runtime::Runtime &runtime,
-                                          const Address &from,
+    outcome::result<void> transferBalance(const Address &from,
                                           const Address &to,
                                           const TokenAmount &amount);
 
     outcome::result<TokenAmount> processDealInitTimedOut(
         const runtime::Runtime &runtime, const DealProposal &deal);
 
-    virtual outcome::result<void> processDealExpired(const runtime::Runtime &runtime,
-                                             const DealProposal &deal,
-                                             const DealState &deal_state);
+    virtual outcome::result<void> processDealExpired(
+        const DealProposal &deal, const DealState &deal_state);
 
     virtual outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
     updatePendingDealState(runtime::Runtime &runtime,
@@ -84,12 +80,11 @@ namespace fc::vm::actor::builtin::states {
                            const DealState &deal_state,
                            ChainEpoch epoch);
 
-    outcome::result<void> maybeLockBalance(const runtime::Runtime &runtime,
-                                           const Address &address,
+    outcome::result<void> maybeLockBalance(const Address &address,
                                            const TokenAmount &amount);
 
     outcome::result<void> lockClientAndProviderBalances(
-        const runtime::Runtime &runtime, const DealProposal &deal);
+        const DealProposal &deal);
   };
 
   using MarketActorStatePtr = Universal<MarketActorState>;
