@@ -10,7 +10,10 @@
 
 namespace fc::codec::cbor {
   template <typename T>
+  // NOLINTNEXTLINE(readability-redundant-declaration)
   outcome::result<Bytes> encode(const T &arg);
+
   template <typename T>
+  // NOLINTNEXTLINE(readability-redundant-declaration)
   outcome::result<T> decode(BytesIn input);
 }  // namespace fc::codec::cbor

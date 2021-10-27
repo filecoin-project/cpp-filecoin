@@ -80,14 +80,15 @@ namespace fc::storage::mpool {
              {ipld, nullptr, nullptr, ts_load, interpreter_cache},
              nullptr,
              1000,
-             chain_store));
+             chain_store,
+             nullptr));
 
-    void addMsgs(std::vector<SignedMessage> msgs, bool remove) {
-      for (auto &msg : msgs) {
+    void addMsgs(const std::vector<SignedMessage> &msgs, bool remove) {
+      for (const auto &msg : msgs) {
         mpool->add(msg).value();
       }
       if (remove) {
-        for (auto &msg : msgs) {
+        for (const auto &msg : msgs) {
           mpool->remove(msg.message.from, msg.message.nonce);
         }
       }

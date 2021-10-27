@@ -6,4 +6,5 @@ add_library(mpool
     )
 target_link_libraries(mpool
     message
+    sync
     )

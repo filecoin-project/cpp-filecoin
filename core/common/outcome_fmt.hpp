@@ -19,7 +19,7 @@ struct fmt::formatter<std::error_code, char, void> {
 
   template <typename ParseContext>
   constexpr auto parse(ParseContext &ctx) {
-    auto it{ctx.begin()};
+    const auto *it{ctx.begin()};
     if (it != ctx.end() && *it == '#') {
       alt = true;
       ++it;
