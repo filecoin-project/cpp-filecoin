@@ -10,8 +10,11 @@
 #include "primitives/types.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CAT1(a, b) _CAT2(a, b)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CAT2(a, b) _CAT3(~, a##b)
+// NOLINTNEXTLINE(bugprone-reserved-identifier)
 #define _CAT3(a, b) b
 
 #define DVM_INDENT fc::dvm::Indent _CAT1(dvmd, __COUNTER__)
@@ -29,17 +32,32 @@ namespace fc::dvm {
   using vm::runtime::MessageReceipt;
   using vm::state::StateTree;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern common::Logger logger;
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern bool logging;
-  extern size_t indent;
 
   struct Indent {
     inline Indent() {
-      ++indent;
+      ++indent_;
     }
+    Indent(const Indent &) = delete;
+    Indent(Indent &&) = delete;
+
     inline ~Indent() {
-      --indent;
+      --indent_;
     }
+
+    Indent &operator=(const Indent &) = delete;
+    Indent &operator=(Indent &&) = delete;
+
+    inline static size_t indent() {
+      return indent_;
+    }
+
+   private:
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+    static size_t indent_;
   };
 
   void onIpldGet(const CID &cid, const BytesIn &data);

@@ -333,7 +333,7 @@ namespace fc::api {
             auto tag,
             auto epoch,
             auto &entropy) -> outcome::result<Randomness> {
-      std::shared_lock ts_lock{*env_context.ts_branches_mutex};
+      std::unique_lock ts_lock{*env_context.ts_branches_mutex};
       OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
       return env_context.randomness->getRandomnessFromBeacon(
           ts_branch, tag, epoch, entropy);
@@ -343,7 +343,7 @@ namespace fc::api {
             auto tag,
             auto epoch,
             auto &entropy) -> outcome::result<Randomness> {
-      std::shared_lock ts_lock{*env_context.ts_branches_mutex};
+      std::unique_lock ts_lock{*env_context.ts_branches_mutex};
       OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
       return env_context.randomness->getRandomnessFromTickets(
           ts_branch, tag, epoch, entropy);
@@ -353,7 +353,7 @@ namespace fc::api {
     };
     api->ChainGetTipSetByHeight =
         [=](auto height, auto tipset_key) -> outcome::result<TipsetCPtr> {
-      std::shared_lock ts_lock{*env_context.ts_branches_mutex};
+      std::unique_lock ts_lock{*env_context.ts_branches_mutex};
       if (tipset_key.cids().empty()) {
         tipset_key = chain_store->heaviestTipset()->key;
       }
@@ -589,7 +589,7 @@ namespace fc::api {
           OUTCOME_CB(auto context, tipsetContext(tipset_key, true));
           MiningBaseInfo info;
 
-          std::shared_lock ts_lock{*env_context.ts_branches_mutex};
+          std::unique_lock ts_lock{*env_context.ts_branches_mutex};
           OUTCOME_CB(auto ts_branch,
                      TsBranch::make(ts_load, tipset_key, ts_main));
           OUTCOME_CB(auto it, find(ts_branch, context.tipset->height()));
@@ -667,7 +667,8 @@ namespace fc::api {
       OUTCOME_TRY(signed_message,
                   vm::message::MessageSignerImpl{key_store}.sign(message.from,
                                                                  message));
-      OUTCOME_TRY(mpool->add(signed_message));
+      OUTCOME_TRY(mpool->addLocal(signed_message));
+      mpool->publish(signed_message);
       spdlog::info("MpoolPushMessage {}", signed_message.getCid());
       return std::move(signed_message);
     };
@@ -699,7 +700,7 @@ namespace fc::api {
                          auto &tipset_key) -> outcome::result<InvocResult> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
 
-      std::shared_lock ts_lock{*env_context.ts_branches_mutex};
+      std::unique_lock ts_lock{*env_context.ts_branches_mutex};
       OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
       ts_lock.unlock();
 

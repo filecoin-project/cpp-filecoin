@@ -23,11 +23,11 @@ namespace fc::dvm {
   struct Formatter : public spdlog::formatter {
     void format(const spdlog::details::log_msg &m,
                 spdlog::memory_buf_t &o) override {
-      auto s{2 * indent};
+      auto s{2 * Indent::indent()};
       o.reserve(s + m.payload.size() + 1);
       o.resize(o.size() + s);
       memset(o.end() - s, ' ', s);
-      if (auto v{m.payload.data()}) {
+      if (const auto *v{m.payload.data()}) {
         o.append(v, v + m.payload.size());
       }
       o.push_back('\n');
@@ -39,17 +39,18 @@ namespace fc::dvm {
 
   DEFINE(logger){[] {
     common::Logger logger;
-    if (auto path{getenv("DVM_LOG")}) {
+    if (const auto *path{getenv("DVM_LOG")}) {
       logger = spdlog::basic_logger_mt("dvm", path, true);
       logger->set_formatter(std::make_unique<Formatter>());
     }
     return logger;
   }()};
+
   DEFINE(logging){false};
-  DEFINE(indent){};
+  DEFINE(Indent::indent_){0};
 
   void onCharge(GasAmount gas) {
-    if (gas) {
+    if (gas != 0) {
       DVM_LOG("CHARGE {}", gas);
     }
   }
@@ -99,8 +100,9 @@ namespace fc::dvm {
     if (logger && logging) {
       if (auto _old{tree.get(address)}) {
         auto &old{_old.value()};
-        auto _b{old.balance != actor.balance}, _n{old.nonce != actor.nonce},
-            _h{old.head != actor.head};
+        auto _b{old.balance != actor.balance};
+        auto _n{old.nonce != actor.nonce};
+        auto _h{old.head != actor.head};
         if (_b || _n || _h) {
           auto code_multihash{old.code.content_address.getHash()};
           DVM_LOG(

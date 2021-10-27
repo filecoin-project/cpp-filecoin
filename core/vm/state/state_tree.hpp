@@ -70,6 +70,11 @@ namespace fc::vm::state {
     virtual outcome::result<boost::optional<Address>> tryLookupId(
         const Address &address) const = 0;
 
+    /**
+     * Resolves any address to the id address.
+     * @param address to resolve
+     * @return public key type address
+     */
     outcome::result<Address> lookupId(const Address &address) const {
       OUTCOME_TRY(id, tryLookupId(address));
       if (id) {

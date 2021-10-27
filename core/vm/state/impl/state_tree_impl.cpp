@@ -5,29 +5,35 @@
 
 #include "vm/state/impl/state_tree_impl.hpp"
 
+#include <utility>
+
 #include "vm/actor/builtin/states/init/init_actor_state.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/dvm/dvm.hpp"
 
 namespace fc::vm::state {
   using actor::builtin::states::InitActorStatePtr;
+  using actor::builtin::types::miner::kChainFinality;
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store)
-      : version_{StateTreeVersion::kVersion0}, store_{store}, by_id{store} {
-    txBegin();
+      : version_{StateTreeVersion::kVersion0}, store_{store}, by_id_{store} {
+    // txBegin() is virtual and should not be used in the constructor
+    tx_.emplace_back();
   }
 
-  StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store,
+  StateTreeImpl::StateTreeImpl(std::shared_ptr<IpfsDatastore> store,
                                const CID &root)
-      : version_{StateTreeVersion::kVersion0}, store_{store} {
+      : version_{StateTreeVersion::kVersion0}, store_{std::move(store)} {
     setRoot(root);
-    txBegin();
+    // txBegin() is virtual and should not be used in the constructor
+    tx_.emplace_back();
   }
 
   outcome::result<void> StateTreeImpl::set(const Address &address,
                                            const Actor &actor) {
     OUTCOME_TRY(address_id, lookupId(address));
     dvm::onActor(*this, address, actor);
-    _set(address_id.getId(), actor);
+    setActor(address_id.getId(), actor);
     return outcome::success();
   }
 
@@ -38,7 +44,7 @@ namespace fc::vm::state {
       return boost::none;
     }
     for (auto it{tx_.rbegin()}; it != tx_.rend(); ++it) {
-      if (it->removed.count(id->getId())) {
+      if (it->removed.count(id->getId()) != 0) {
         return boost::none;
       }
       const auto actor{it->actors.find(id->getId())};
@@ -46,9 +52,9 @@ namespace fc::vm::state {
         return actor->second;
       }
     }
-    OUTCOME_TRY(actor, by_id.tryGet(*id));
+    OUTCOME_TRY(actor, by_id_.tryGet(*id));
     if (actor) {
-      _set(id->getId(), *actor);
+      setActor(id->getId(), *actor);
     }
     return std::move(actor);
   }
@@ -69,7 +75,7 @@ namespace fc::vm::state {
                 getCbor<InitActorStatePtr>(store_, init_actor.head));
     OUTCOME_TRY(id, initActorState->address_map.tryGet(address));
     if (id) {
-      tx().lookup.emplace(address, *id);
+      tx_.back().lookup.emplace(address, *id);
       return Address::makeFromId(*id);
     }
     return boost::none;
@@ -87,14 +93,14 @@ namespace fc::vm::state {
 
   outcome::result<CID> StateTreeImpl::flush() {
     assert(tx_.size() == 1);
-    for (auto &[id, actor] : tx().actors) {
-      OUTCOME_TRY(by_id.set(Address::makeFromId(id), actor));
+    for (auto &[id, actor] : tx_.back().actors) {
+      OUTCOME_TRY(by_id_.set(Address::makeFromId(id), actor));
     }
-    for (auto &id : tx().removed) {
-      OUTCOME_TRY(by_id.remove(Address::makeFromId(id)));
+    for (const auto &id : tx_.back().removed) {
+      OUTCOME_TRY(by_id_.remove(Address::makeFromId(id)));
     }
-    OUTCOME_TRY(by_id.hamt.flush());
-    auto new_root = by_id.hamt.cid();
+    OUTCOME_TRY(by_id_.hamt.flush());
+    auto new_root = by_id_.hamt.cid();
     if (version_ == StateTreeVersion::kVersion0) {
       return new_root;
     }
@@ -108,7 +114,7 @@ namespace fc::vm::state {
 
   outcome::result<void> StateTreeImpl::remove(const Address &address) {
     OUTCOME_TRY(address_id, lookupId(address));
-    tx().removed.insert(address_id.getId());
+    tx_.back().removed.insert(address_id.getId());
     return outcome::success();
   }
 
@@ -122,27 +128,23 @@ namespace fc::vm::state {
 
   void StateTreeImpl::txEnd() {
     assert(tx_.size() > 1);
-    auto top{std::move(tx())};
+    auto top{std::move(tx_.back())};
     tx_.pop_back();
     for (auto &[id, actor] : top.actors) {
-      tx().actors[id] = std::move(actor);
-      tx().removed.erase(id);
+      tx_.back().actors[id] = std::move(actor);
+      tx_.back().removed.erase(id);
     }
     for (auto &[address, id] : top.lookup) {
-      tx().lookup[address] = id;
+      tx_.back().lookup[address] = id;
     }
     for (auto id : top.removed) {
-      tx().removed.insert(id);
+      tx_.back().removed.insert(id);
     }
   }
 
-  StateTreeImpl::Tx &StateTreeImpl::tx() const {
-    return tx_.back();
-  }
-
-  void StateTreeImpl::_set(ActorId id, const Actor &actor) const {
-    tx().actors[id] = actor;
-    tx().removed.erase(id);
+  void StateTreeImpl::setActor(ActorId id, const Actor &actor) const {
+    tx_.back().actors[id] = actor;
+    tx_.back().removed.erase(id);
   }
 
   void StateTreeImpl::setRoot(const CID &root) {
@@ -153,7 +155,7 @@ namespace fc::vm::state {
         if (auto _state_root{codec::cbor::decode<StateRoot>(_raw.value())}) {
           auto &state_root{_state_root.value()};
           version_ = state_root.version;
-          by_id.hamt = {
+          by_id_.hamt = {
               store_,
               state_root.actor_tree_root,
               storage::hamt::kDefaultBitWidth,
@@ -164,6 +166,6 @@ namespace fc::vm::state {
     }
     // if failed to load as version >= 1, must be version 0
     version_ = StateTreeVersion::kVersion0;
-    by_id = {root, store_};
+    by_id_ = {root, store_};
   }
 }  // namespace fc::vm::state

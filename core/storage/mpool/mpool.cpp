@@ -6,7 +6,9 @@
 #include "storage/mpool/mpool.hpp"
 
 #include <boost/math/distributions/binomial.hpp>
+#include <chrono>
 #include <cmath>
+#include <thread>
 
 #include "cbor_blake/ipld_version.hpp"
 #include "common/append.hpp"
@@ -14,7 +16,7 @@
 #include "common/outcome_fmt.hpp"
 #include "common/ptr.hpp"
 #include "const.hpp"
-#include "primitives/tipset/chain.hpp"
+#include "node/pubsub_gate.hpp"
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/env.hpp"
@@ -25,12 +27,15 @@ namespace fc::storage::mpool {
   using primitives::GasAmount;
   using primitives::block::MsgMeta;
   using primitives::tipset::HeadChangeType;
+  using vm::actor::builtin::types::miner::kChainFinality;
   using vm::interpreter::InterpreterCache;
   using vm::message::UnsignedMessage;
+  using vm::runtime::resolveKey;
 
   constexpr GasAmount kMinGas{1298450};
   constexpr size_t kMaxBlocks{15};
   constexpr size_t kMaxBlockMessages{16000};
+  constexpr size_t kRepubMessageLimit{30};
 
   // https://github.com/filecoin-project/lotus/blob/8f78066d4f3c4981da73e3328716631202c6e614/chain/messagepool/selection.go#L677
   TokenAmount getGasReward(const UnsignedMessage &msg,
@@ -47,8 +52,8 @@ namespace fc::storage::mpool {
 
   // https://github.com/filecoin-project/lotus/blob/8f78066d4f3c4981da73e3328716631202c6e614/chain/messagepool/selection.go#L677
   double getGasPerf(const TokenAmount &reward, GasAmount limit) {
-    return (double)boost::multiprecision::cpp_rational{reward * kBlockGasLimit,
-                                                       limit};
+    return boost::multiprecision::cpp_rational{reward * kBlockGasLimit, limit}
+        .convert_to<double>();
   }
 
   // https://github.com/filecoin-project/lotus/blob/8f78066d4f3c4981da73e3328716631202c6e614/chain/messagepool/block_proba.go#L64
@@ -121,7 +126,7 @@ namespace fc::storage::mpool {
     std::weak_ptr<MsgChain> next;
   };
 
-  auto mustLock(const std::weak_ptr<MsgChain> weak) {
+  auto mustLock(const std::weak_ptr<MsgChain> &weak) {
     auto ptr{weak.lock()};
     assert(weakEmpty(weak) || ptr);
     return ptr;
@@ -157,8 +162,9 @@ namespace fc::storage::mpool {
     auto eff_perf{mc.gas_perf * mc.bp};
     auto prev{mustLock(mc.prev)};
     if (eff_perf > 0 && prev) {
-      auto parent{(eff_perf * mc.gas_limit + prev->eff_perf * prev->gas_limit)
-                  / (mc.gas_limit + prev->gas_limit)};
+      auto parent{(eff_perf * static_cast<double>(mc.gas_limit)
+                   + prev->eff_perf * static_cast<double>(prev->gas_limit))
+                  / static_cast<double>(mc.gas_limit + prev->gas_limit)};
       mc.parent_offset = eff_perf - parent;
       eff_perf = parent;
     }
@@ -210,6 +216,7 @@ namespace fc::storage::mpool {
     mc.eff_perf = std::min<double>(mc.gas_perf, 0);
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   std::vector<MsgChain::Ptr> createMessageChains(
       const std::map<Nonce, SignedMessage> &pending,
       const TokenAmount &base_fee,
@@ -218,7 +225,7 @@ namespace fc::storage::mpool {
       const vm::runtime::Pricelist &pricelist) {
     auto gas_limit{kBlockGasLimit};
     std::vector<SignedMessage> msgs;
-    for (auto &[nonce, msg] : pending) {
+    for (const auto &[nonce, msg] : pending) {
       if (nonce < actor_nonce) {
         continue;
       }
@@ -254,7 +261,7 @@ namespace fc::storage::mpool {
     for (auto &msg : msgs) {
       auto reward{getGasReward(msg.message, base_fee)};
       TokenAmount gas_reward{cur_chain->gas_reward + reward};
-      auto gas_limit{cur_chain->gas_limit + msg.message.gas_limit};
+      const auto chain_gas_limit{cur_chain->gas_limit + msg.message.gas_limit};
       auto gas_perf{getGasPerf(gas_reward, gas_limit)};
       if (!cur_chain->msgs.empty() && gas_perf < cur_chain->gas_perf) {
         cur_chain = new_chain();
@@ -264,7 +271,7 @@ namespace fc::storage::mpool {
             getGasPerf(cur_chain->gas_reward, cur_chain->gas_limit);
       } else {
         cur_chain->gas_reward = gas_reward;
-        cur_chain->gas_limit = gas_limit;
+        cur_chain->gas_limit = chain_gas_limit;
         cur_chain->gas_perf = gas_perf;
       }
       cur_chain->msgs.push_back(std::move(msg));
@@ -361,6 +368,7 @@ namespace fc::storage::mpool {
     std::sort(chains.begin(), chains.end(), deref(beforeEffective));
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   auto optimal(std::vector<MsgChain::Ptr> &chains,
                GasAmount &gas_limit,
                const TokenAmount &base_fee,
@@ -408,8 +416,9 @@ namespace fc::storage::mpool {
                next = mustLock(next->next)) {
             setEffPerf(*next);
           }
-          std::stable_sort(
-              chains.begin() + i, chains.end(), deref(beforeEffective));
+          std::stable_sort(chains.begin() + gsl::narrow<ssize_t>(i),
+                           chains.end(),
+                           deref(beforeEffective));
         }
       }
     }
@@ -453,14 +462,14 @@ namespace fc::storage::mpool {
       const EnvironmentContext &env_context,
       TsBranchPtr ts_main,
       size_t bls_cache_size,
-      std::shared_ptr<ChainStore> chain_store) {
+      const std::shared_ptr<ChainStore> &chain_store,
+      std::shared_ptr<sync::PubSubGate> pubsub_gate) {
     auto mpool{std::make_shared<MessagePool>()};
     mpool->env_context = env_context;
     mpool->ts_main = std::move(ts_main);
     mpool->ipld = env_context.ipld;
     mpool->head_sub =
         chain_store->subscribeHeadChanges([=](const auto &changes) {
-          std::unique_lock lock{mpool->mutex};
           for (const auto &change : changes) {
             auto res{mpool->onHeadChange(change)};
             if (!res) {
@@ -471,14 +480,16 @@ namespace fc::storage::mpool {
           }
         });
     mpool->bls_cache = {bls_cache_size};
+    mpool->pubsub_gate_ = std::move(pubsub_gate);
+    mpool->logger_ = common::createLogger("MessagePool");
     return mpool;
   }
 
   std::vector<SignedMessage> MessagePool::pending() const {
-    std::unique_lock lock{mutex};
     std::vector<SignedMessage> messages;
-    for (auto &[addr, pending] : by_from) {
-      for (auto &[nonce, message] : pending) {
+    std::shared_lock pending_lock{pending_mutex_};
+    for (const auto &[addr, pending] : pending_) {
+      for (const auto &[nonce, message] : pending) {
         messages.push_back(message);
       }
     }
@@ -486,7 +497,10 @@ namespace fc::storage::mpool {
   }
 
   outcome::result<std::pair<std::vector<TipsetCPtr>, std::vector<TipsetCPtr>>>
-  findPath(TsLoadPtr ts_load, TipsetCPtr from, TipsetCPtr to, size_t depth) {
+  findPath(const TsLoadPtr &ts_load,
+           TipsetCPtr from,
+           TipsetCPtr to,
+           size_t depth) {
     std::vector<TipsetCPtr> revert;
     std::vector<TipsetCPtr> apply;
     while (true) {
@@ -506,17 +520,20 @@ namespace fc::storage::mpool {
     }
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<std::vector<SignedMessage>> MessagePool::select(
-      TipsetCPtr ts, double ticket_quality) const {
-    std::unique_lock lock{mutex};
-    OUTCOME_TRY(base_fee, ts->nextBaseFee(env_context.ipld));
-    vm::runtime::Pricelist pricelist{ts->epoch()};
-    OUTCOME_TRY(cached, env_context.interpreter_cache->get(ts->key));
+      const TipsetCPtr &tipset_ptr, double ticket_quality) const {
+    OUTCOME_TRY(base_fee, tipset_ptr->nextBaseFee(env_context.ipld));
+    vm::runtime::Pricelist pricelist{tipset_ptr->epoch()};
+    OUTCOME_TRY(cached, env_context.interpreter_cache->get(tipset_ptr->key));
     vm::state::StateTreeImpl state_tree{
-        withVersion(env_context.ipld, ts->height()), cached.state_root};
-    auto pending{by_from};
+        withVersion(env_context.ipld, tipset_ptr->height()), cached.state_root};
+    std::shared_lock pending_lock{pending_mutex_};
+    auto pending{pending_};
+    pending_lock.unlock();
     constexpr auto kDepth{20};
-    OUTCOME_TRY(path, findPath(env_context.ts_load, head, ts, kDepth));
+    std::shared_lock head_lock(head_mutex_);
+    OUTCOME_TRY(path, findPath(env_context.ts_load, head_, tipset_ptr, kDepth));
     for (auto &ts : path.first) {
       OUTCOME_TRY(ts->visitMessages(
           {ipld, false, true},
@@ -580,40 +597,42 @@ namespace fc::storage::mpool {
   }
 
   outcome::result<Nonce> MessagePool::nonce(const Address &from) const {
-    std::unique_lock lock{mutex};
     assert(from.isKeyType());
-    OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head->key));
+    std::shared_lock head_lock(head_mutex_);
+    OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head_->key));
     OUTCOME_TRY(actor,
-                vm::state::StateTreeImpl{withVersion(ipld, head->height()),
+                vm::state::StateTreeImpl{withVersion(ipld, head_->height()),
                                          interpeted.state_root}
                     .get(from));
-    auto by_from_it{by_from.find(from)};
-    if (by_from_it != by_from.end()) {
-      auto next{by_from_it->second.rbegin()->first + 1};
+    std::shared_lock pending_lock{pending_mutex_};
+    auto pending_it{pending_.find(from)};
+    if (pending_it != pending_.end()) {
+      auto next{pending_it->second.rbegin()->first + 1};
       return std::max(actor.nonce, next);
     }
     return actor.nonce;
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> MessagePool::estimate(
       UnsignedMessage &message, const TokenAmount &max_fee) const {
-    std::unique_lock lock{mutex};
     assert(message.from.isKeyType());
     if (message.gas_limit == 0) {
       auto msg{message};
       msg.gas_limit = kBlockGasLimit;
       msg.gas_fee_cap = kMinimumBaseFee + 1;
       msg.gas_premium = 1;
-      OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head->key));
-      auto env{std::make_shared<vm::runtime::Env>(env_context, ts_main, head)};
+      std::shared_lock head_lock(head_mutex_);
+      OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head_->key));
+      auto env{std::make_shared<vm::runtime::Env>(env_context, ts_main, head_)};
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
           env->ipld, interpeted.state_root);
       ++env->epoch;
-      auto _pending{by_from.find(msg.from)};
-      if (_pending != by_from.end()) {
-        for (auto &_msg : _pending->second) {
-          auto &msg{_msg.second};
-          OUTCOME_TRY(env->applyMessage(msg.message, msg.chainSize()));
+      std::shared_lock pending_lock{pending_mutex_};
+      auto pending_it{pending_.find(msg.from)};
+      if (pending_it != pending_.end()) {
+        for (const auto &_msg : pending_it->second) {
+          OUTCOME_TRY(env->applyMessage(_msg.second.message, msg.chainSize()));
         }
       }
       OUTCOME_TRY(actor, env->state_tree->get(msg.from));
@@ -632,14 +651,16 @@ namespace fc::storage::mpool {
       if (msg.method
           == vm::actor::builtin::v0::payment_channel::Collect::Number) {
         auto matcher{vm::toolchain::Toolchain::createAddressMatcher(
-            vm::version::getNetworkVersion(head->height()))};
+            vm::version::getNetworkVersion(head_->height()))};
         if (matcher->isPaymentChannelActor(actor.code)) {
           // https://github.com/filecoin-project/lotus/blob/191a05da4872bf9849f178e6db5c0d6e87d05baa/node/impl/full/gas.go#L281
           constexpr GasAmount kGas{76000};
           apply.receipt.gas_used += kGas;
         }
       }
-      message.gas_limit = apply.receipt.gas_used * kGasLimitOverestimation;
+      message.gas_limit = gsl::narrow_cast<GasAmount>(
+          gsl::narrow_cast<double>(apply.receipt.gas_used)
+          * kGasLimitOverestimation);
     }
     if (message.gas_premium == 0) {
       OUTCOME_TRYA(message.gas_premium, estimateGasPremium(10));
@@ -653,9 +674,10 @@ namespace fc::storage::mpool {
 
   TokenAmount MessagePool::estimateFeeCap(const TokenAmount &premium,
                                           int64_t max_blocks) const {
+    std::shared_lock head_lock(head_mutex_);
     return bigdiv(
-               head->getParentBaseFee()
-                   * static_cast<uint64_t>(
+               head_->getParentBaseFee()
+                   * gsl::narrow_cast<uint64_t>(
                        pow(1 + 1.0 / kBaseFeeMaxChangeDenom, max_blocks) * 256),
                256)
            + premium;
@@ -666,8 +688,9 @@ namespace fc::storage::mpool {
     if (max_blocks == 0) {
       max_blocks = 1;
     }
-    auto blocks{0};
-    auto ts{head};
+    size_t blocks{0};
+    std::shared_lock head_lock(head_mutex_);
+    auto ts{head_};
     std::vector<std::pair<TokenAmount, GasAmount>> prices;
     for (auto i{0}; i < 2 * max_blocks; ++i) {
       if (ts->height() == 0) {
@@ -685,7 +708,7 @@ namespace fc::storage::mpool {
     std::sort(prices.begin(), prices.end(), [](auto &l, auto &r) {
       return less(r.first, l.first, l.second, r.second);
     });
-    auto at{kBlockGasTarget * blocks / 2};
+    auto at = static_cast<int64_t>(kBlockGasTarget * blocks / 2);
     TokenAmount premium;
     TokenAmount prev;
     for (auto &[price, limit] : prices) {
@@ -713,37 +736,46 @@ namespace fc::storage::mpool {
 
     auto kPrecision{uint64_t{1} << 32};
     auto noise{1 + distribution(generator) * 0.005};
-    premium = bigdiv(premium * static_cast<uint64_t>(noise * kPrecision + 1),
+    premium = bigdiv(premium
+                         * gsl::narrow_cast<uint64_t>(
+                             noise * static_cast<double>(kPrecision) + 1),
                      kPrecision);
 
     return premium;
   }
 
-  outcome::result<void> MessagePool::add(const SignedMessage &message) {
-    std::unique_lock lock{mutex};
-    return addLocked(message);
+  outcome::result<void> MessagePool::addLocal(const SignedMessage &message) {
+    OUTCOME_TRY(add(message));
+    OUTCOME_TRY(resolved_address, resolveKeyAtFinality(message.message.from));
+    std::unique_lock local_addresses_lock{local_addresses_mutex_};
+    local_addresses_.insert(resolved_address, {});
+    return outcome::success();
   }
 
-  outcome::result<void> MessagePool::addLocked(const SignedMessage &message) {
+  outcome::result<void> MessagePool::add(const SignedMessage &message) {
     if (message.signature.isBls()) {
       bls_cache.insert(message.getCid(), message.signature);
     }
     OUTCOME_TRY(setCbor(ipld, message));
     OUTCOME_TRY(setCbor(ipld, message.message));
-    mpool::add(by_from, message);
+    std::unique_lock pending_lock{pending_mutex_};
+    mpool::add(pending_, message);
     signal({MpoolUpdate::Type::ADD, message});
     return outcome::success();
   }
 
   void MessagePool::remove(const Address &from, Nonce nonce) {
-    if (auto smsg{mpool::remove(by_from, from, nonce)}) {
+    std::unique_lock pending_lock{pending_mutex_};
+    if (auto smsg{mpool::remove(pending_, from, nonce)}) {
       signal({MpoolUpdate::Type::REMOVE, *smsg});
     }
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> MessagePool::onHeadChange(const HeadChange &change) {
     if (change.type == HeadChangeType::CURRENT) {
-      head = change.value;
+      std::unique_lock lock(head_mutex_);
+      head_ = change.value;
     } else {
       auto apply{change.type == HeadChangeType::APPLY};
       OUTCOME_TRY(change.value->visitMessages(
@@ -755,23 +787,169 @@ namespace fc::storage::mpool {
             } else {
               if (bls) {
                 if (auto sig{bls_cache.get(cid)}) {
-                  OUTCOME_TRY(addLocked({*msg, *sig}));
+                  OUTCOME_TRY(add({*msg, *sig}));
                 }
               } else {
-                OUTCOME_TRY(addLocked(*smsg));
+                OUTCOME_TRY(add(*smsg));
               }
             }
             return outcome::success();
           }));
+      std::unique_lock lock(head_mutex_);
       if (apply) {
-        head = change.value;
+        head_ = change.value;
       } else {
-        OUTCOME_TRYA(head,
+        OUTCOME_TRYA(head_,
                      env_context.ts_load->load(change.value->getParents()));
       }
     }
     return outcome::success();
   }
 
-  TokenAmount kDefaultMaxFee{kFilecoinPrecision * 7 / 1000};
+  outcome::result<Address> MessagePool::resolveKeyAtHeight(
+      const Address &address,
+      const ChainEpoch &height,
+      const TsBranchPtr &ts_branch) const {
+    OUTCOME_TRY(it, find(ts_branch, height));
+    OUTCOME_TRY(tipset_ptr, env_context.ts_load->lazyLoad(it.second->second));
+
+    OUTCOME_TRY(tipset, env_context.interpreter_cache->get(tipset_ptr->key));
+    vm::state::StateTreeImpl state_tree{
+        withVersion(env_context.ipld, tipset_ptr->height()), tipset.state_root};
+    return resolveKey(state_tree, ipld, address);
+  }
+
+  outcome::result<Address> MessagePool::resolveKeyAtFinality(
+      const Address &address) const {
+    if (address.isKeyType()) {
+      return address;
+    }
+    if (!address.isId()) {
+      return ERROR_TEXT("Cannot resolve actor address to key address.");
+    }
+    if (auto resolved{resolved_cache_.get(address)}) {
+      return *resolved;
+    }
+
+    std::shared_lock head_lock(head_mutex_);
+    ChainEpoch height = head_->height();
+    std::unique_lock ts_lock{*env_context.ts_branches_mutex};
+    OUTCOME_TRY(ts_branch,
+                TsBranch::make(env_context.ts_load, head_->key, ts_main));
+    if (height > kChainFinality) {
+      const auto maybe_resolved =
+          resolveKeyAtHeight(address, height - kChainFinality, ts_branch);
+      if (maybe_resolved) {
+        resolved_cache_.insert(address, maybe_resolved.value());
+        return maybe_resolved.value();
+      }
+    }
+
+    // if failed to resolve at height - finality, or there is no enough height
+    // for finality, try to resolve on current height
+    OUTCOME_TRY(resolved, resolveKeyAtHeight(address, height, ts_branch));
+    return std::move(resolved);
+  }
+
+  void MessagePool::publish(const SignedMessage &message) {
+    pubsub_gate_->publish(message);
+  }
+
+  void MessagePool::publish(const std::vector<SignedMessage> &messages) {
+    const std::lock_guard lock(publishing_mutex_);
+    for (const auto &message : messages) {
+      publishing_.push_back(message);
+    }
+  }
+
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+  outcome::result<void> MessagePool::republishPendingMessages() {
+    std::shared_lock head_lock(head_mutex_);
+    OUTCOME_TRY(base_fee, head_->nextBaseFee(ipld));
+    const auto base_fee_lower_bound =
+        getBaseFeeLowerBound(base_fee, kBaseFeeLowerBoundFactor);
+
+    std::shared_lock pending_lock{pending_mutex_};
+    std::shared_lock local_addresses_lock{local_addresses_mutex_};
+    const vm::runtime::Pricelist pricelist{head_->epoch()};
+    OUTCOME_TRY(cached, env_context.interpreter_cache->get(head_->key));
+    vm::state::StateTreeImpl state_tree{
+        withVersion(env_context.ipld, head_->height()), cached.state_root};
+    std::vector<MsgChain::Ptr> chains;
+    for (const auto &[from, mset] : pending_) {
+      // republish only local pending messages
+      if (local_addresses_.contains(from)) {
+        // create _next_ message chains from pending messages taking into
+        // account base fee lower bound
+        OUTCOME_TRY(actor, state_tree.get(from));
+        append(chains,
+               createMessageChains(mset,
+                                   base_fee_lower_bound,
+                                   actor.nonce,
+                                   actor.balance,
+                                   pricelist));
+      }
+    }
+    if (chains.empty()) {
+      return outcome::success();
+    }
+
+    // sort chains
+    std::sort(chains.begin(), chains.end(), deref(before));
+
+    auto gas_limit = kBlockGasLimit;
+    std::vector<SignedMessage> messages;
+    for (size_t i = 0; i < chains.size(); ++i) {
+      const auto &chain{chains[i]};
+      if (chain->msgs.size() > kRepubMessageLimit) {
+        break;
+      }
+      // there is not enough gas for any message
+      if (gas_limit <= kMinGas) {
+        break;
+      }
+      if (!chain->valid) {
+        continue;
+      }
+
+      // does it fit in a block?
+      if (chain->gas_limit <= gas_limit) {
+        // check the baseFee lower bound -- only republish messages that can be
+        // included in the chain within the next 20 blocks.
+        for (const auto &message : chain->msgs) {
+          if (message.message.gas_fee_cap < base_fee_lower_bound) {
+            invalidate(*chain);
+            break;
+          }
+          gas_limit -= message.message.gas_limit;
+          messages.push_back(message);
+        }
+        continue;
+      }
+
+      // we can't fit the current chain but there is gas to spare trim it and
+      // push it down
+      trim(*chain, gas_limit, base_fee);
+      // reorder the rest chain
+      bubble(chains, i, deref(before));
+    }
+
+    logger_->debug("Republishing {} messages", messages.size());
+    publish(messages);
+
+    return outcome::success();
+  }
+
+  void MessagePool::publishFromQueue() {
+    const std::lock_guard lock(publishing_mutex_);
+    if (!publishing_.empty()) {
+      publish(publishing_.front());
+      publishing_.pop_front();
+    }
+  }
+
+  TokenAmount MessagePool::getBaseFeeLowerBound(const TokenAmount &base_fee,
+                                                const BigInt &factor) {
+    return std::max(bigdiv(base_fee, factor), kMinimumBaseFee);
+  }
 }  // namespace fc::storage::mpool
