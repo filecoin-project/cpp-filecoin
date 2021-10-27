@@ -21,7 +21,7 @@
 
 namespace fc::storage {
 
-  // TODO(ortyomka): BytesIn as key or remove all of them
+  // TODO(ortyomka): change `K` to `cow_t<K>` in interfaces
   using BufferMap = face::GenericMap<Bytes, Bytes>;
 
   using BufferBatch = face::WriteBatch<Bytes, Bytes>;

@@ -36,8 +36,8 @@ namespace fc::storage::mpool {
 
   const TokenAmount kDefaultMaxFee{kFilecoinPrecision * 7 / 1000};
   const BigInt kBaseFeeLowerBoundFactor{10};
-  const size_t kResolvedCacheSize{1000};
-  const size_t kLocalAddressesCacheSize{1000};
+  constexpr size_t kResolvedCacheSize{1000};
+  constexpr size_t kLocalAddressesCacheSize{1000};
   constexpr std::chrono::milliseconds kRepublishBatchDelay{100};
 
   struct MpoolUpdate {
@@ -164,7 +164,6 @@ namespace fc::storage::mpool {
     mutable std::shared_mutex head_mutex_;
 
     // pending messages, key is a from address
-    // TODO(turuslan): FIL-420 check cache memory usage
     std::map<Address, std::map<Nonce, SignedMessage>> pending_;
     mutable std::shared_mutex pending_mutex_;
 
