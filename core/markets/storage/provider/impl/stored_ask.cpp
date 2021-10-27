@@ -12,10 +12,10 @@ namespace fc::markets::storage::provider {
 
   StoredAsk::StoredAsk(std::shared_ptr<Datastore> datastore,
                        std::shared_ptr<FullNodeApi> api,
-                       const Address &actor_address)
+                       Address actor_address)
       : datastore_{std::move(datastore)},
         api_{std::move(api)},
-        actor_{actor_address} {}
+        actor_{std::move(actor_address)} {}
 
   outcome::result<void> StoredAsk::addAsk(StorageAsk ask, ChainEpoch duration) {
     assert(ask.miner == actor_);
@@ -97,10 +97,8 @@ namespace fc::markets::storage::provider {
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::provider, StoredAskError, e) {
   using E = fc::markets::storage::provider::StoredAskError;
-  switch (e) {
-    case E::kWrongAddress:
-      return "StoredAskError: wrong address";
-    default:
-      return "StoredAskError: unknown error";
+  if (e == E::kWrongAddress) {
+    return "StoredAskError: wrong address";
   }
+  return "StoredAskError: unknown error";
 }

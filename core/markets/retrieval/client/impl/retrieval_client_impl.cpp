@@ -11,16 +11,16 @@
 namespace fc::markets::retrieval::client {
   DealState::DealState(const DealProposal &proposal,
                        const IpldPtr &ipld,
-                       const RetrieveResponseHandler &handler,
-                       const Address &client_wallet,
-                       const Address &miner_wallet,
-                       const TokenAmount &total_funds)
+                       RetrieveResponseHandler handler,
+                       Address client_wallet,
+                       Address miner_wallet,
+                       TokenAmount total_funds)
       : proposal{proposal},
         state{proposal.params},
-        handler{handler},
-        client_wallet{client_wallet},
-        miner_wallet{miner_wallet},
-        total_funds(total_funds),
+        handler{std::move(handler)},
+        client_wallet{std::move(client_wallet)},
+        miner_wallet{std::move(miner_wallet)},
+        total_funds(std::move(total_funds)),
         traverser{
             *ipld, proposal.payload_cid, proposal.params.selector, false} {}
 
@@ -92,93 +92,101 @@ namespace fc::markets::retrieval::client {
         deal_params.selector,
         DealProposal::Named::type,
         codec::cbor::encode(proposal).value(),
-        [this, deal](auto &type, auto _voucher) {
-          OUTCOME_EXCEPT(res,
-                         codec::cbor::decode<DealResponse::Named>(_voucher));
-          auto after{[=](auto &res) {
-            if (res.status == DealStatus::kDealStatusCompleted) {
-              deal->handler(outcome::success());
-              datatransfer_->pulling_out.erase(deal->pdtid);
-              return;
-            }
-            if (res.payment_owed) {
-              processPaymentRequest(deal, deal->state.owed);
-            }
-          }};
-          if (!deal->accepted) {
-            std::unique_lock lock{deal->pending_mutex};
-            deal->pending.emplace();
-            lock.unlock();
-            auto unseal{res.status == DealStatus::kDealStatusFundsNeededUnseal};
-            const auto last{res.status
-                            == DealStatus::kDealStatusFundsNeededLastPayment};
-            const auto pay{res.status == DealStatus::kDealStatusFundsNeeded};
-            const auto done{res.status == DealStatus::kDealStatusCompleted};
-            const auto accepted{res.status == DealStatus::kDealStatusAccepted};
-            deal->accepted = unseal || accepted || pay || last || done;
-            if (!deal->accepted) {
-              deal->handler(
-                  res.status == DealStatus::kDealStatusRejected
-                      ? RetrievalClientError::kResponseDealRejected
-                  : res.status == DealStatus::kDealStatusDealNotFound
-                      ? RetrievalClientError::kResponseNotFound
-                      : RetrievalClientError::kUnknownResponseReceived);
-              datatransfer_->pulling_out.erase(deal->pdtid);
-              return;
-            }
-            api_->PaychGet(
-                [=](auto &&_paych) {
-                  if (!_paych) {
-                    return deal->handler(_paych.error());
-                  }
-                  auto &paych{_paych.value().channel};
-                  deal->payment_channel_address = paych;
-                  auto _lane{api_->PaychAllocateLane(paych)};
-                  if (!_lane) {
-                    return deal->handler(_lane.error());
-                  }
-                  deal->lane_id = _lane.value();
-                  std::unique_lock lock{deal->pending_mutex};
-                  after(res);
-                  for (auto &res : *deal->pending) {
-                    after(res);
-                  }
-                  deal->pending.reset();
-                },
-                deal->client_wallet,
-                deal->miner_wallet,
-                deal->total_funds);
-            return;
-          }
-          std::unique_lock lock{deal->pending_mutex};
-          if (deal->pending) {
-            deal->pending->push_back(std::move(res));
-          } else {
-            after(res);
-          }
+        [this, deal](auto &type, auto voucher) {
+          onPullData(deal, type, voucher);
         },
-        [this, deal](auto &cid) {
-          const auto cb{[&](auto e) { failDeal(deal, e); }};
-          OUTCOME_CB(auto data, ipfs_->get(cid));
-          const auto &expected_hash{cid.content_address};
-          OUTCOME_CB(auto hash,
-                     crypto::Hasher::calculate(expected_hash.getType(), data));
-          if (hash != expected_hash) {
-            return cb(ERROR_TEXT(
-                "RetrievalClientImpl::retrieve data hash does not match cid"));
-          }
-          OUTCOME_CB(auto expected_cid, deal->traverser.advance());
-          if (cid != expected_cid) {
-            return cb(ERROR_TEXT(
-                "RetrievalClientImpl::retrieve cid does not match order"));
-          }
-          deal->state.block(data.size());
-          if (deal->traverser.isCompleted()) {
-            deal->all_blocks = true;
-            deal->state.last();
-          }
-        });
+        [this, deal](auto &cid) { onPullCid(deal, cid); });
     return outcome::success();
+  }
+
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+  void RetrievalClientImpl::onPullData(const std::shared_ptr<DealState> &deal,
+                                       const std::string &type,
+                                       BytesIn voucher) {
+    OUTCOME_EXCEPT(res, codec::cbor::decode<DealResponse::Named>(voucher));
+    auto after{[=](auto &res) {
+      if (res.status == DealStatus::kDealStatusCompleted) {
+        deal->handler(outcome::success());
+        datatransfer_->pulling_out.erase(deal->pdtid);
+        return;
+      }
+      if (res.payment_owed) {
+        processPaymentRequest(deal, deal->state.owed);
+      }
+    }};
+    if (!deal->accepted) {
+      std::unique_lock lock{deal->pending_mutex};
+      deal->pending.emplace();
+      lock.unlock();
+      auto unseal{res.status == DealStatus::kDealStatusFundsNeededUnseal};
+      const auto last{res.status
+                      == DealStatus::kDealStatusFundsNeededLastPayment};
+      const auto pay{res.status == DealStatus::kDealStatusFundsNeeded};
+      const auto done{res.status == DealStatus::kDealStatusCompleted};
+      const auto accepted{res.status == DealStatus::kDealStatusAccepted};
+      deal->accepted = unseal || accepted || pay || last || done;
+      if (!deal->accepted) {
+        deal->handler(res.status == DealStatus::kDealStatusRejected
+                          ? RetrievalClientError::kResponseDealRejected
+                      : res.status == DealStatus::kDealStatusDealNotFound
+                          ? RetrievalClientError::kResponseNotFound
+                          : RetrievalClientError::kUnknownResponseReceived);
+        datatransfer_->pulling_out.erase(deal->pdtid);
+        return;
+      }
+      api_->PaychGet(
+          [=](auto &&_paych) {
+            if (!_paych) {
+              return deal->handler(_paych.error());
+            }
+            auto &paych{_paych.value().channel};
+            deal->payment_channel_address = paych;
+            auto _lane{api_->PaychAllocateLane(paych)};
+            if (!_lane) {
+              return deal->handler(_lane.error());
+            }
+            deal->lane_id = _lane.value();
+            std::unique_lock lock{deal->pending_mutex};
+            after(res);
+            for (const auto &pending : *deal->pending) {
+              after(pending);
+            }
+            deal->pending.reset();
+          },
+          deal->client_wallet,
+          deal->miner_wallet,
+          deal->total_funds);
+      return;
+    }
+    std::unique_lock lock{deal->pending_mutex};
+    if (deal->pending) {
+      deal->pending->push_back(std::move(res));
+    } else {
+      after(res);
+    }
+  }
+
+  void RetrievalClientImpl::onPullCid(const std::shared_ptr<DealState> &deal,
+                                      const CID &cid) {
+    const auto cb{[&](auto e) { failDeal(deal, e); }};
+    OUTCOME_CB(auto data, ipfs_->get(cid));
+    const auto &expected_hash{cid.content_address};
+    OUTCOME_CB(auto hash,
+               crypto::Hasher::calculate(expected_hash.getType(), data));
+    if (hash != expected_hash) {
+      return cb(ERROR_TEXT(
+          "RetrievalClientImpl::retrieve data hash does not match cid"));
+    }
+    OUTCOME_CB(auto expected_cid, deal->traverser.advance());
+    if (cid != expected_cid) {
+      return cb(
+          ERROR_TEXT("RetrievalClientImpl::retrieve cid does not match order"));
+    }
+    deal->state.block(data.size());
+    if (deal->traverser.isCompleted()) {
+      deal->all_blocks = true;
+      deal->state.last();
+    }
   }
 
   void RetrievalClientImpl::processPaymentRequest(

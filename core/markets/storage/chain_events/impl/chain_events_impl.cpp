@@ -84,7 +84,7 @@ namespace fc::markets::storage::chain_events {
         watched_events_[provider].commits.emplace(*sector, std::move(cb));
       } else {
         watched_events_[provider].precommits.emplace(
-            deal_id, [this, provider, cb{std::move(cb)}](auto _sector) {
+            deal_id, [this, provider, cb{std::move(cb)}](auto _sector) mutable {
               OUTCOME_CB(auto sector, _sector);
               std::unique_lock lock{watched_events_mutex_};
               watched_events_[provider].commits.emplace(sector, std::move(cb));
@@ -103,6 +103,7 @@ namespace fc::markets::storage::chain_events {
    * contain sector number used in the next call
    *  2) ProveCommitSector with desired provider address and sector number
    */
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   bool ChainEventsImpl::onRead(
       const boost::optional<std::vector<HeadChange>> &changes) {
     std::unique_lock lock{watched_events_mutex_};
@@ -112,7 +113,7 @@ namespace fc::markets::storage::chain_events {
           head_ = change.value;
         }
         if (change.type == HeadChangeType::APPLY) {
-          for (auto &block_cid : change.value->key.cids()) {
+          for (const auto &block_cid : change.value->key.cids()) {
             auto block_messages = api_->ChainGetBlockMessages(CID{block_cid});
             if (block_messages.has_error()) {
               logger_->error("ChainGetBlockMessages error: "
@@ -142,6 +143,7 @@ namespace fc::markets::storage::chain_events {
     return true;
   };
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> ChainEventsImpl::onMessage(
       const UnsignedMessage &message, const CID &cid) {
     const auto _watch{watched_events_.find(message.to)};
@@ -150,7 +152,7 @@ namespace fc::markets::storage::chain_events {
     }
     auto &watch{_watch->second};
     const auto on_precommit{[&](const SectorPreCommitInfo &precommit) {
-      for (auto &deal_id : precommit.deal_ids) {
+      for (const auto &deal_id : precommit.deal_ids) {
         const auto [begin, end]{watch.precommits.equal_range(deal_id)};
         auto it{begin};
         while (it != end) {
@@ -208,7 +210,7 @@ namespace fc::markets::storage::chain_events {
       OUTCOME_TRY(
           param,
           codec::cbor::decode<ProveCommitAggregate::Params>(message.params));
-      for (auto &sector : param.sectors) {
+      for (const auto &sector : param.sectors) {
         on_commit(sector);
       }
     }

@@ -41,7 +41,7 @@ namespace fc::markets::storage::provider {
    public:
     StoredAsk(std::shared_ptr<Datastore> datastore,
               std::shared_ptr<FullNodeApi> api,
-              const Address &actor_address);
+              Address actor_address);
 
     auto addAsk(StorageAsk ask, ChainEpoch duration) -> outcome::result<void>;
 

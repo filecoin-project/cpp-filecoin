@@ -79,11 +79,14 @@ namespace fc::fsm {
 
     /// Constructs transition map container for the \param event
     explicit Transition(EventEnumType event = {})  // good to avoid {} here
-        : event_{event}, from_any_{false} {}
+        : event_{event} {}
 
-    Transition(Transition &&) = default;
+    Transition(Transition &&) noexcept = default;
     Transition(const Transition &) = default;
-    Transition &operator=(Transition &&) = default;
+
+    ~Transition() = default;
+
+    Transition &operator=(Transition &&) noexcept = default;
     Transition &operator=(const Transition &) = default;
 
     /// Set source state for a transition
@@ -229,7 +232,7 @@ namespace fc::fsm {
 
    private:
     EventEnumType event_;
-    bool from_any_;
+    bool from_any_{false};
     std::unordered_map<StateEnumType, StateEnumType, EnumClassHash>
         transitions_;
     std::set<StateEnumType> intermediary_;
@@ -283,9 +286,15 @@ namespace fc::fsm {
       initTransitions(std::move(transition_rules));
     }
 
+    FSM(const FSM &) = delete;
+    FSM(FSM &&) = delete;
+
     ~FSM() {
       stop();
     }
+
+    FSM &operator=(const FSM &) = delete;
+    FSM &operator=(FSM &&) = delete;
 
     /**
      * Initiates tracking of entity with a certain initial state

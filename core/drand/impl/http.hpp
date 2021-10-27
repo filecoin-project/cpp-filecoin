@@ -12,7 +12,7 @@
 namespace fc::drand::http {
   using boost::asio::io_context;
 
-  void getInfo(io_context &io, std::string host, CbT<ChainInfo> cb);
+  void getInfo(io_context &io, const std::string& host, CbT<ChainInfo> cb);
 
   void getEntry(io_context &io,
                 const std::string &host,

@@ -43,7 +43,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     ACTOR_METHOD_DECL();
   };
 
-  // TODO implement
+  // TODO(m.tagirov): implement
   using PreCommitSector = v2::miner::PreCommitSector;
   using ProveCommitSector = v2::miner::ProveCommitSector;
   using ExtendSectorExpiration = v2::miner::ExtendSectorExpiration;

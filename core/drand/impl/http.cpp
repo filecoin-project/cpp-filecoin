@@ -22,6 +22,10 @@
   }
 
 namespace fc::drand::http {
+  using codec::json::jGet;
+  using codec::json::jInt;
+  using codec::json::jUint;
+  using codec::json::jUnhex;
   namespace beast = boost::beast;
   namespace http = beast::http;
   namespace net = boost::asio;
@@ -31,7 +35,8 @@ namespace fc::drand::http {
 
   template <typename Parse, typename Next>
   inline auto withJson(Parse &&parse, Next &&cb) {
-    return [MOVE(parse), MOVE(cb)](auto &&_str) {
+    return [parse{std::forward<Parse>(parse)},
+            cb{std::forward<Next>(cb)}](auto &&_str) {
       OUTCOME_CB(auto str, _str);
       OUTCOME_CB(auto jdoc, Json::parse(str));
       cb(outcomeCatch([&] { return parse(&jdoc); }));
@@ -39,12 +44,16 @@ namespace fc::drand::http {
   }
 
   struct ClientSession {
-    ClientSession(io_context &io)
+    explicit ClientSession(io_context &io)
         : resolver{io}, stream{net::make_strand(io)} {}
+    ClientSession(const ClientSession &) = delete;
+    ClientSession(ClientSession &&) = delete;
     ~ClientSession() {
       boost::system::error_code ec;
       stream.socket().shutdown(tcp::socket::shutdown_both, ec);
     }
+    ClientSession &operator=(const ClientSession &) = delete;
+    ClientSession &operator=(ClientSession &&) = delete;
 
     // config: port, timeout
     static void get(io_context &io,
@@ -85,7 +94,7 @@ namespace fc::drand::http {
   };
 
   void getInfo(io_context &io,
-               std::string host,
+               const std::string &host,
                std::function<void(outcome::result<ChainInfo>)> cb) {
     ClientSession::get(
         io,
@@ -93,7 +102,6 @@ namespace fc::drand::http {
         "/info",
         withJson(
             [](auto &&j) {
-              using namespace Json;
               return ChainInfo{
                   BlsPublicKey::fromSpan(*jUnhex(*jGet(j, "public_key")))
                       .value(),
@@ -120,7 +128,6 @@ namespace fc::drand::http {
         url,
         withJson(
             [](auto &&j) {
-              using namespace Json;
               PublicRandResponse r{
                   *jUint(*jGet(j, "round")),
                   BlsSignature::fromSpan(*jUnhex(*jGet(j, "signature")))

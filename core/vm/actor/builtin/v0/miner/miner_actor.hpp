@@ -158,7 +158,7 @@ namespace fc::vm::actor::builtin::v0::miner {
         uint64_t deadline{0};
         uint64_t partition{0};
         RleBitset sectors;
-        ChainEpoch new_expiration;
+        ChainEpoch new_expiration{};
       };
 
       std::vector<ExpirationExtension> extensions;

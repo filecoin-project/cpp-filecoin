@@ -13,6 +13,8 @@
 #include "storage/piece/impl/piece_storage_error.hpp"
 
 namespace fc::markets::retrieval::provider {
+  using data_transfer::DataTransferMessage;
+  using data_transfer::DataTransferResponse;
   using ::fc::storage::piece::PieceStorageError;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::sector::SectorId;
@@ -125,7 +127,7 @@ namespace fc::markets::retrieval::provider {
     }
   }
 
-  void RetrievalProviderImpl::onPayment(std::shared_ptr<DealState> deal,
+  void RetrievalProviderImpl::onPayment(const std::shared_ptr<DealState> &deal,
                                         const DealPayment &payment) {
     auto _received{api_->PaychVoucherAdd(payment.payment_channel,
                                          payment.payment_voucher,
@@ -157,7 +159,7 @@ namespace fc::markets::retrieval::provider {
     doComplete(deal);
   }
 
-  void RetrievalProviderImpl::doUnseal(std::shared_ptr<DealState> deal) {
+  void RetrievalProviderImpl::doUnseal(const std::shared_ptr<DealState> &deal) {
     if (hasOwed(deal)) {
       return;
     }
@@ -201,7 +203,7 @@ namespace fc::markets::retrieval::provider {
     doFail(deal, "unsealing all failed");
   }
 
-  void RetrievalProviderImpl::doBlocks(std::shared_ptr<DealState> deal) {
+  void RetrievalProviderImpl::doBlocks(const std::shared_ptr<DealState> &deal) {
     if (hasOwed(deal)) {
       return;
     }
@@ -232,7 +234,8 @@ namespace fc::markets::retrieval::provider {
     }
   }
 
-  void RetrievalProviderImpl::doComplete(std::shared_ptr<DealState> deal) {
+  void RetrievalProviderImpl::doComplete(
+      const std::shared_ptr<DealState> &deal) {
     deal->state.last();
 
     if (hasOwed(deal)) {
@@ -248,25 +251,25 @@ namespace fc::markets::retrieval::provider {
     datatransfer_->gs->postResponse(
         deal->pgsid,
         {GsResStatus::RS_FULL_CONTENT,
-         {DataTransfer::makeExt(data_transfer::DataTransferResponse{
+         {DataTransfer::makeExt(DataTransferMessage{DataTransferResponse{
              data_transfer::MessageType::kCompleteMessage,
              true,
              false,
              deal->pdtid.id,
              CborRaw{codec::cbor::encode(res).value()},
              DealResponse::Named::type,
-         })},
+         }})},
          {}});
   }
 
-  bool RetrievalProviderImpl::hasOwed(std::shared_ptr<DealState> deal) {
+  bool RetrievalProviderImpl::hasOwed(const std::shared_ptr<DealState> &deal) {
     if (!deal->state.owed) {
       return false;
     }
     datatransfer_->gs->postResponse(
         deal->pgsid,
         {GsResStatus::RS_PARTIAL_RESPONSE,
-         {DataTransfer::makeExt(data_transfer::DataTransferResponse{
+         {DataTransfer::makeExt(DataTransferMessage{DataTransferResponse{
              data_transfer::MessageType::kVoucherResultMessage,
              true,
              false,
@@ -285,12 +288,12 @@ namespace fc::markets::retrieval::provider {
                          }})
                          .value()},
              DealResponse::Named::type,
-         })},
+         }})},
          {}});
     return true;
   }
 
-  void RetrievalProviderImpl::doFail(std::shared_ptr<DealState> deal,
+  void RetrievalProviderImpl::doFail(const std::shared_ptr<DealState> &deal,
                                      std::string error) {
     datatransfer_->pulling_in.erase(deal->pdtid);
     datatransfer_->rejectPull(
@@ -413,13 +416,13 @@ namespace fc::markets::retrieval::provider {
 
     CID comm_d = sector_info->comm_d.get_value_or(CID());
 
-    OUTCOME_TRY(sealer_->readPieceSync(
-        PieceData(output_path.c_str(), O_WRONLY | O_CREAT),
-        sector,
-        UnpaddedByteIndex(offset),
-        size,
-        sector_info->ticket,
-        comm_d));
+    OUTCOME_TRY(
+        sealer_->readPieceSync(PieceData(output_path, O_WRONLY | O_CREAT),
+                               sector,
+                               UnpaddedByteIndex(offset),
+                               size,
+                               sector_info->ticket,
+                               comm_d));
 
     return outcome::success();
   }
