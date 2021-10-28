@@ -11,7 +11,6 @@
 
 namespace fc::vm::actor::builtin::states {
   using primitives::kChainEpochUndefined;
-  using runtime::Runtime;
   using toolchain::Toolchain;
   using namespace types::market;
 
@@ -60,7 +59,7 @@ namespace fc::vm::actor::builtin::states {
   }
 
   outcome::result<TokenAmount> MarketActorState::processDealInitTimedOut(
-      const Runtime &runtime, const DealProposal &deal) {
+      const DealProposal &deal) {
     CHANGE_ERROR_ABORT(unlockBalance(deal.client,
                                      deal.getTotalStorageFee(),
                                      BalanceLockingReason::kClientStorageFee),

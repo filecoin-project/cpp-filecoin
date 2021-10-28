@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/types/miner/v0/partition.hpp"
 
-#include "vm/runtime/runtime.hpp"
+#include "common/error_text.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using types::miner::loadExpirationQueue;
@@ -19,7 +19,6 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   outcome::result<PowerPair> Partition::addSectors(
-      Runtime &runtime,
       bool proven,
       const std::vector<SectorOnChainInfo> &sectors,
       SectorSize ssize,
@@ -43,7 +42,6 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   outcome::result<std::tuple<PowerPair, PowerPair>> Partition::addFaults(
-      Runtime &runtime,
       const RleBitset &sector_nos,
       const std::vector<SectorOnChainInfo> &sectors,
       ChainEpoch fault_expiration,
@@ -62,7 +60,6 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   outcome::result<ExpirationSet> Partition::terminateSectors(
-      Runtime &runtime,
       const Sectors &sectors,
       ChainEpoch epoch,
       const RleBitset &sector_nos,
@@ -84,7 +81,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     const auto removed_sectors =
         removed.on_time_sectors + removed.early_sectors;
-    OUTCOME_TRY(recordEarlyTermination(runtime, epoch, removed_sectors));
+    OUTCOME_TRY(recordEarlyTermination(epoch, removed_sectors));
 
     this->faults -= removed_sectors;
     this->recoveries -= removed_sectors;
@@ -99,7 +96,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   outcome::result<ExpirationSet> Partition::popExpiredSectors(
-      Runtime &runtime, ChainEpoch until, const QuantSpec &quant) {
+      ChainEpoch until, const QuantSpec &quant) {
     auto expirations = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(popped, expirations->popUntil(until));
     this->expirations_epochs = expirations->queue;
@@ -124,7 +121,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     this->live_power -= popped.active_power + popped.faulty_power;
     this->faulty_power -= popped.faulty_power;
 
-    OUTCOME_TRY(recordEarlyTermination(runtime, until, popped.early_sectors));
+    OUTCOME_TRY(recordEarlyTermination(until, popped.early_sectors));
 
     return std::move(popped);
   }

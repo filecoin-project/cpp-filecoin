@@ -27,6 +27,7 @@ namespace fc::vm::actor::builtin::states {
   using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using runtime::Runtime;
   using types::Universal;
   using types::market::BalanceLockingReason;
   using types::market::DealProposal;
@@ -68,13 +69,13 @@ namespace fc::vm::actor::builtin::states {
                                           const TokenAmount &amount);
 
     outcome::result<TokenAmount> processDealInitTimedOut(
-        const runtime::Runtime &runtime, const DealProposal &deal);
+        const DealProposal &deal);
 
     virtual outcome::result<void> processDealExpired(
         const DealProposal &deal, const DealState &deal_state);
 
     virtual outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
-    updatePendingDealState(runtime::Runtime &runtime,
+    updatePendingDealState(Runtime &runtime,
                            DealId deal_id,
                            const DealProposal &deal,
                            const DealState &deal_state,

@@ -11,7 +11,6 @@
 
 namespace fc::vm::actor::builtin::v3::market {
   using primitives::kChainEpochUndefined;
-  using runtime::Runtime;
   using toolchain::Toolchain;
   using namespace types::market;
 

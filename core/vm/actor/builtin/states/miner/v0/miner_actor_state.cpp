@@ -7,7 +7,6 @@
 
 #include "common/error_text.hpp"
 #include "vm/actor/builtin/types/miner/bitfield_queue.hpp"
-#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using primitives::sector::getRegisteredWindowPoStProof;
@@ -22,7 +21,6 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<std::vector<SectorOnChainInfo>>
   MinerActorState::rescheduleSectorExpirations(
-      Runtime &runtime,
       ChainEpoch curr_epoch,
       SectorSize ssize,
       const DeadlineSectorMap &deadline_sectors) {
@@ -38,7 +36,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
       OUTCOME_TRY(deadline, dls.loadDeadline(dl_id));
       OUTCOME_TRY(deadline->rescheduleSectorExpirations(
-          runtime, sectors, new_expiration, pm, ssize, dl_info.quant()));
+          sectors, new_expiration, pm, ssize, dl_info.quant()));
       OUTCOME_TRY(dls.updateDeadline(dl_id, deadline));
     }
 

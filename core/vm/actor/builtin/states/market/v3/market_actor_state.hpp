@@ -11,12 +11,13 @@ namespace fc::vm::actor::builtin::v3::market {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::TokenAmount;
+  using runtime::Runtime;
   using types::market::DealProposal;
   using types::market::DealState;
 
   struct MarketActorState : v2::market::MarketActorState {
     outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
-    updatePendingDealState(runtime::Runtime &runtime,
+    updatePendingDealState(Runtime &runtime,
                            DealId deal_id,
                            const DealProposal &deal,
                            const DealState &deal_state,

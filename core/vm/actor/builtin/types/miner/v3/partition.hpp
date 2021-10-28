@@ -9,14 +9,12 @@
 
 namespace fc::vm::actor::builtin::v3::miner {
   using primitives::SectorSize;
-  using runtime::Runtime;
   using types::miner::PowerPair;
   using types::miner::QuantSpec;
   using types::miner::SectorOnChainInfo;
 
   struct Partition : v2::miner::Partition {
     outcome::result<PowerPair> addSectors(
-        Runtime &runtime,
         bool proven,
         const std::vector<SectorOnChainInfo> &sectors,
         SectorSize ssize,

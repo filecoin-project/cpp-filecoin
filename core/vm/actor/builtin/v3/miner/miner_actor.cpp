@@ -129,8 +129,7 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     const auto fault_expiration = deadline_info.last() + kFaultMaxAge;
     REQUIRE_NO_ERROR_A(post_result,
-                       deadline->recordProvenSectors(runtime,
-                                                     sectors,
+                       deadline->recordProvenSectors(sectors,
                                                      miner_info->sector_size,
                                                      deadline_info.quant(),
                                                      fault_expiration,

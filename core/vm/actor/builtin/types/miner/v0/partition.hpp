@@ -11,7 +11,6 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::ChainEpoch;
   using primitives::RleBitset;
   using primitives::SectorSize;
-  using runtime::Runtime;
   using types::miner::ExpirationSet;
   using types::miner::PowerPair;
   using types::miner::QuantSpec;
@@ -24,14 +23,12 @@ namespace fc::vm::actor::builtin::v0::miner {
     PowerPair activePower() const override;
 
     outcome::result<PowerPair> addSectors(
-        Runtime &runtime,
         bool proven,
         const std::vector<SectorOnChainInfo> &sectors,
         SectorSize ssize,
         const QuantSpec &quant) override;
 
     outcome::result<std::tuple<PowerPair, PowerPair>> addFaults(
-        Runtime &runtime,
         const RleBitset &sector_nos,
         const std::vector<SectorOnChainInfo> &sectors,
         ChainEpoch fault_expiration,
@@ -39,7 +36,6 @@ namespace fc::vm::actor::builtin::v0::miner {
         const QuantSpec &quant) override;
 
     outcome::result<ExpirationSet> terminateSectors(
-        Runtime &runtime,
         const Sectors &sectors,
         ChainEpoch epoch,
         const RleBitset &sector_nos,
@@ -47,7 +43,7 @@ namespace fc::vm::actor::builtin::v0::miner {
         const QuantSpec &quant) override;
 
     outcome::result<ExpirationSet> popExpiredSectors(
-        Runtime &runtime, ChainEpoch until, const QuantSpec &quant) override;
+        ChainEpoch until, const QuantSpec &quant) override;
 
     outcome::result<void> validateState() const override;
   };

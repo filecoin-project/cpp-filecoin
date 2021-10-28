@@ -32,7 +32,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<ExpirationSet> Deadline::popExpiredSectors(
-      Runtime &runtime, ChainEpoch until, const QuantSpec &quant) {
+      ChainEpoch until, const QuantSpec &quant) {
     OUTCOME_TRY(result, popExpiredPartitions(until, quant));
     const auto &[expired_partitions, modified] = result;
     if (!modified) {
@@ -48,8 +48,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
     for (const auto &part_id : expired_partitions) {
       OUTCOME_TRY(partition, this->partitions.get(part_id));
-      OUTCOME_TRY(part_expiration,
-                  partition->popExpiredSectors(runtime, until, quant));
+      OUTCOME_TRY(part_expiration, partition->popExpiredSectors(until, quant));
 
       on_time_sectors.push_back(part_expiration.on_time_sectors);
       early_sectors.push_back(part_expiration.early_sectors);
@@ -125,9 +124,9 @@ namespace fc::vm::actor::builtin::types::miner {
         const auto partition_new_sectors = slice(sectors, 0, size);
         sectors = slice(sectors, size);
 
-        OUTCOME_TRY(partition_activated_power,
-                    partition->addSectors(
-                        runtime, proven, partition_new_sectors, ssize, quant));
+        OUTCOME_TRY(
+            partition_activated_power,
+            partition->addSectors(proven, partition_new_sectors, ssize, quant));
         activated_power += partition_activated_power;
 
         OUTCOME_TRY(this->partitions.set(part_id, partition));
@@ -156,8 +155,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<std::tuple<TerminationResult, bool>>
-  Deadline::popEarlyTerminations(Runtime &runtime,
-                                 uint64_t max_partitions,
+  Deadline::popEarlyTerminations(uint64_t max_partitions,
                                  uint64_t max_sectors) {
     TerminationResult termination_result;
     std::vector<uint64_t> partitions_finished;
@@ -171,10 +169,9 @@ namespace fc::vm::actor::builtin::types::miner {
 
       auto &partition = maybe_partition.value();
 
-      OUTCOME_TRY(
-          result,
-          partition->popEarlyTerminations(
-              runtime, max_sectors - termination_result.sectors_processed));
+      OUTCOME_TRY(result,
+                  partition->popEarlyTerminations(
+                      max_sectors - termination_result.sectors_processed));
       const auto &[partition_result, more] = result;
 
       termination_result.add(partition_result);
@@ -213,7 +210,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<PowerPair> Deadline::terminateSectors(
-      Runtime &runtime,
+
       const Sectors &sectors,
       ChainEpoch epoch,
       const PartitionSectorMap &partition_sectors,
@@ -225,7 +222,7 @@ namespace fc::vm::actor::builtin::types::miner {
       OUTCOME_TRY(partition, this->partitions.get(part_id));
       OUTCOME_TRY(removed,
                   partition->terminateSectors(
-                      runtime, sectors, epoch, sector_nos, ssize, quant));
+                      sectors, epoch, sector_nos, ssize, quant));
       OUTCOME_TRY(this->partitions.set(part_id, partition));
 
       const auto count = removed.count();

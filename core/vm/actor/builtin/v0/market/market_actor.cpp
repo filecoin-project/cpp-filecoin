@@ -374,7 +374,7 @@ namespace fc::vm::actor::builtin::v0::market {
           // has timed out
           if (!maybe_deal_state.has_value()) {
             OUTCOME_TRY(utils->check(now >= deal.start_epoch));
-            OUTCOME_TRY(slashed, state->processDealInitTimedOut(runtime, deal));
+            OUTCOME_TRY(slashed, state->processDealInitTimedOut(deal));
             slashed_sum += slashed;
             if (deal.verified) {
               timed_out_verified.push_back(deal);

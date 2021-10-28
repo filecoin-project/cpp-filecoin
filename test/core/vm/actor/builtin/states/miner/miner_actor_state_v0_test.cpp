@@ -560,7 +560,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
       // deadlines 0 & 1 are closed for assignment right now
       if (dl_id < 2) {
-        dl_state.assertDeadline(runtime, deadline);
+        dl_state.assertDeadline(deadline);
         continue;
       }
 
@@ -576,7 +576,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       }
 
       dl_state.partition_sectors = partitions;
-      dl_state.assertDeadline(runtime, deadline);
+      dl_state.assertDeadline(deadline);
     }
   }
 

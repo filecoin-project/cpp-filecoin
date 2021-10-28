@@ -91,7 +91,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
       expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
       expected_deadline.partition_sectors.push_back({9});
-      expected_deadline.assertDeadline(runtime, deadline);
+      expected_deadline.assertDeadline(deadline);
 
       if (!prove) {
         return;
@@ -105,11 +105,11 @@ namespace fc::vm::actor::builtin::v3::miner {
       EXPECT_OUTCOME_TRUE(
           result,
           deadline->recordProvenSectors(
-              runtime, sectorsArr(sectors), ssize, quant, 0, post_partitions));
+              sectorsArr(sectors), ssize, quant, 0, post_partitions));
       EXPECT_EQ(result.power_delta, powerForSectors(ssize, sectors));
 
       EXPECT_OUTCOME_TRUE(process_result,
-                          deadline->processDeadlineEnd(runtime, quant, 13));
+                          deadline->processDeadlineEnd(quant, 13));
       const auto &[new_faulty_power, failed_recovery_power] = process_result;
       EXPECT_TRUE(new_faulty_power.isZero());
       EXPECT_TRUE(failed_recovery_power.isZero());
@@ -118,7 +118,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
       expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
       expected_deadline.partition_sectors.push_back({9});
-      expected_deadline.assertDeadline(runtime, deadline);
+      expected_deadline.assertDeadline(deadline);
     }
 
     void addThenTerminate(bool prove_first) {
@@ -131,7 +131,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       EXPECT_OUTCOME_TRUE(
           removed_power,
           deadline->terminateSectors(
-              runtime, sectorsArr(sectors), 15, sector_map, ssize, quant));
+              sectorsArr(sectors), 15, sector_map, ssize, quant));
 
       const PowerPair expected_power =
           prove_first ? sectorPower({1, 3, 6}) : PowerPair();
@@ -146,14 +146,13 @@ namespace fc::vm::actor::builtin::v3::miner {
       expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
       expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
       expected_deadline.partition_sectors.push_back({9});
-      expected_deadline.assertDeadline(runtime, deadline);
+      expected_deadline.assertDeadline(deadline);
     }
 
     void addThenTerminateThenPopEarly() {
       addThenTerminate(true);
 
-      EXPECT_OUTCOME_TRUE(result,
-                          deadline->popEarlyTerminations(runtime, 100, 100));
+      EXPECT_OUTCOME_TRUE(result, deadline->popEarlyTerminations(100, 100));
       auto &[early_terminations, more] = result;
       EXPECT_FALSE(more);
       EXPECT_EQ(early_terminations.partitions_processed, 2);
@@ -167,7 +166,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
       expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
       expected_deadline.partition_sectors.push_back({9});
-      expected_deadline.assertDeadline(runtime, deadline);
+      expected_deadline.assertDeadline(deadline);
     }
 
     void addThenTerminateThenRemovePartition() {
@@ -191,7 +190,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       expected_deadline.terminations = {6};
       expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
       expected_deadline.partition_sectors.push_back({9});
-      expected_deadline.assertDeadline(runtime, deadline);
+      expected_deadline.assertDeadline(deadline);
     }
 
     void addThenMarkFaulty(bool prove_first) {
@@ -204,7 +203,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       EXPECT_OUTCOME_TRUE(
           power_delta,
           deadline->recordFaults(
-              runtime, sectorsArr(sectors), ssize, quant, 9, sector_map));
+              sectorsArr(sectors), ssize, quant, 9, sector_map));
 
       const PowerPair expected_power =
           prove_first ? sectorPower({1, 5, 6}) : PowerPair();
@@ -219,7 +218,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
       expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
       expected_deadline.partition_sectors.push_back({9});
-      expected_deadline.assertDeadline(runtime, deadline);
+      expected_deadline.assertDeadline(deadline);
     }
 
     MockRuntime runtime;
@@ -283,20 +282,17 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     TerminationResult result;
 
-    EXPECT_OUTCOME_TRUE(pop_result1,
-                        deadline->popEarlyTerminations(runtime, 2, 1));
+    EXPECT_OUTCOME_TRUE(pop_result1, deadline->popEarlyTerminations(2, 1));
     const auto &[result1, has_more1] = pop_result1;
     EXPECT_TRUE(has_more1);
     result.add(result1);
 
-    EXPECT_OUTCOME_TRUE(pop_result2,
-                        deadline->popEarlyTerminations(runtime, 2, 1));
+    EXPECT_OUTCOME_TRUE(pop_result2, deadline->popEarlyTerminations(2, 1));
     const auto &[result2, has_more2] = pop_result2;
     EXPECT_TRUE(has_more2);
     result.add(result2);
 
-    EXPECT_OUTCOME_TRUE(pop_result3,
-                        deadline->popEarlyTerminations(runtime, 1, 1));
+    EXPECT_OUTCOME_TRUE(pop_result3, deadline->popEarlyTerminations(1, 1));
     const auto &[result3, has_more3] = pop_result3;
     EXPECT_FALSE(has_more3);
     result.add(result3);
@@ -312,7 +308,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
   }
 
   TEST_F(DeadlineTestV3, CannotRemoveMissingPartition) {
@@ -337,7 +333,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
   }
 
   TEST_F(DeadlineTestV3, FailsToRemovePartitionsWithFaultySectors) {
@@ -354,10 +350,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     sector_map.map[0] = {1, 3};
     sector_map.map[1] = {6};
 
-    EXPECT_OUTCOME_TRUE(
-        removed_power,
-        deadline->terminateSectors(
-            runtime, sectorsArr(sectors), 15, sector_map, ssize, quant));
+    EXPECT_OUTCOME_TRUE(removed_power,
+                        deadline->terminateSectors(
+                            sectorsArr(sectors), 15, sector_map, ssize, quant));
     EXPECT_EQ(removed_power,
               powerForSectors(ssize, selectSectorsTest(sectors, {3})));
 
@@ -367,7 +362,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
   }
 
   TEST_F(DeadlineTestV3, TerminateUnprovenAndFaulty) {
@@ -377,10 +372,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     sector_map.map[0] = {1, 3};
     sector_map.map[1] = {6};
 
-    EXPECT_OUTCOME_TRUE(
-        removed_power,
-        deadline->terminateSectors(
-            runtime, sectorsArr(sectors), 15, sector_map, ssize, quant));
+    EXPECT_OUTCOME_TRUE(removed_power,
+                        deadline->terminateSectors(
+                            sectorsArr(sectors), 15, sector_map, ssize, quant));
     EXPECT_TRUE(removed_power.isZero());
 
     initExpectedDeadline();
@@ -390,7 +384,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
   }
 
   TEST_F(DeadlineTestV3, FailsToTerminateMissingSector) {
@@ -400,7 +394,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     sector_map.map[0] = {6};
 
     const auto result = deadline->terminateSectors(
-        runtime, sectorsArr(sectors), 15, sector_map, ssize, quant);
+        sectorsArr(sectors), 15, sector_map, ssize, quant);
     EXPECT_EQ(result.error().message(), "can only terminate live sectors");
   }
 
@@ -411,7 +405,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     sector_map.map[4] = {6};
 
     const auto result = deadline->terminateSectors(
-        runtime, sectorsArr(sectors), 15, sector_map, ssize, quant);
+        sectorsArr(sectors), 15, sector_map, ssize, quant);
     EXPECT_EQ(result.error().message(), "Not found");
   }
 
@@ -422,14 +416,14 @@ namespace fc::vm::actor::builtin::v3::miner {
     sector_map.map[0] = {1, 2};
 
     const auto result = deadline->terminateSectors(
-        runtime, sectorsArr(sectors), 15, sector_map, ssize, quant);
+        sectorsArr(sectors), 15, sector_map, ssize, quant);
     EXPECT_EQ(result.error().message(), "can only terminate live sectors");
   }
 
   TEST_F(DeadlineTestV3, FaultySectorsExpire) {
     addThenMarkFaulty(true);
 
-    EXPECT_OUTCOME_TRUE(exp, deadline->popExpiredSectors(runtime, 9, quant));
+    EXPECT_OUTCOME_TRUE(exp, deadline->popExpiredSectors(9, quant));
 
     const RleBitset expected_on_time{1, 2, 3, 4, 5, 8, 9};
     EXPECT_EQ(exp.on_time_sectors, expected_on_time);
@@ -441,10 +435,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
 
-    EXPECT_OUTCOME_TRUE(result,
-                        deadline->popEarlyTerminations(runtime, 100, 100));
+    EXPECT_OUTCOME_TRUE(result, deadline->popEarlyTerminations(100, 100));
     auto &[early_terminations, more] = result;
     EXPECT_FALSE(more);
     EXPECT_EQ(early_terminations.partitions_processed, 1);
@@ -458,13 +451,13 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
   }
 
   TEST_F(DeadlineTestV3, CannotPopExpiredSectorsBeforeProving) {
     addSectors(false);
 
-    const auto result = deadline->popExpiredSectors(runtime, 9, quant);
+    const auto result = deadline->popExpiredSectors(9, quant);
     EXPECT_EQ(
         result.error().message(),
         "cannot pop expired sectors from a partition with unproven sectors");
@@ -482,13 +475,10 @@ namespace fc::vm::actor::builtin::v3::miner {
     const std::vector<PoStPartition> post_partitions1{
         {.index = 0, .skipped = {}}, {.index = 1, .skipped = {}}};
 
-    EXPECT_OUTCOME_TRUE(post_result1,
-                        deadline->recordProvenSectors(runtime,
-                                                      sectorsArr(all_sectors),
-                                                      ssize,
-                                                      quant,
-                                                      13,
-                                                      post_partitions1));
+    EXPECT_OUTCOME_TRUE(
+        post_result1,
+        deadline->recordProvenSectors(
+            sectorsArr(all_sectors), ssize, quant, 13, post_partitions1));
     const RleBitset expected_sectors1{1, 2, 3, 4, 5, 6, 7, 8};
     EXPECT_EQ(post_result1.sectors, expected_sectors1);
     EXPECT_TRUE(post_result1.ignored_sectors.empty());
@@ -502,18 +492,15 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9, 10});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
 
     const std::vector<PoStPartition> post_partitions2{
         {.index = 2, .skipped = {}}};
 
-    EXPECT_OUTCOME_TRUE(post_result2,
-                        deadline->recordProvenSectors(runtime,
-                                                      sectorsArr(all_sectors),
-                                                      ssize,
-                                                      quant,
-                                                      13,
-                                                      post_partitions2));
+    EXPECT_OUTCOME_TRUE(
+        post_result2,
+        deadline->recordProvenSectors(
+            sectorsArr(all_sectors), ssize, quant, 13, post_partitions2));
     const RleBitset expected_sectors2{9, 10};
     EXPECT_EQ(post_result2.sectors, expected_sectors2);
     EXPECT_TRUE(post_result2.ignored_sectors.empty());
@@ -527,10 +514,10 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9, 10});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
 
     EXPECT_OUTCOME_TRUE(process_result,
-                        deadline->processDeadlineEnd(runtime, quant, 13));
+                        deadline->processDeadlineEnd(quant, 13));
     const auto &[power_delta, penalized_power] = process_result;
     EXPECT_TRUE(power_delta.isZero());
     EXPECT_TRUE(penalized_power.isZero());
@@ -539,7 +526,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9, 10});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
   }
 
   TEST_F(DeadlineTestV3,
@@ -566,18 +553,15 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9, 10});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
 
     const std::vector<PoStPartition> post_partitions{
         {.index = 0, .skipped = {1}}, {.index = 1, .skipped = {7}}};
 
-    EXPECT_OUTCOME_TRUE(post_result,
-                        deadline->recordProvenSectors(runtime,
-                                                      sectorsArr(all_sectors),
-                                                      ssize,
-                                                      quant,
-                                                      13,
-                                                      post_partitions));
+    EXPECT_OUTCOME_TRUE(
+        post_result,
+        deadline->recordProvenSectors(
+            sectorsArr(all_sectors), ssize, quant, 13, post_partitions));
     const RleBitset expected_sectors{1, 2, 3, 4, 5, 6, 7, 8};
     EXPECT_EQ(post_result.sectors, expected_sectors);
     const RleBitset expected_ignored{1, 5, 7};
@@ -594,10 +578,10 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9, 10});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
 
     EXPECT_OUTCOME_TRUE(process_result,
-                        deadline->processDeadlineEnd(runtime, quant, 13));
+                        deadline->processDeadlineEnd(quant, 13));
     const auto &[power_delta, penalized_power] = process_result;
 
     EXPECT_EQ(power_delta, sectorPower({9}).negative());
@@ -608,7 +592,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9, 10});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
   }
 
   TEST_F(DeadlineTestV3, PostWithSkippedUnproven) {
@@ -625,13 +609,10 @@ namespace fc::vm::actor::builtin::v3::miner {
         {.index = 1, .skipped = {}},
         {.index = 2, .skipped = {10}}};
 
-    EXPECT_OUTCOME_TRUE(post_result,
-                        deadline->recordProvenSectors(runtime,
-                                                      sectorsArr(all_sectors),
-                                                      ssize,
-                                                      quant,
-                                                      13,
-                                                      post_partitions));
+    EXPECT_OUTCOME_TRUE(
+        post_result,
+        deadline->recordProvenSectors(
+            sectorsArr(all_sectors), ssize, quant, 13, post_partitions));
     const RleBitset expected_sectors{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     EXPECT_EQ(post_result.sectors, expected_sectors);
     const RleBitset expected_ignored{10};
@@ -647,10 +628,10 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9, 10});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
 
     EXPECT_OUTCOME_TRUE(process_result,
-                        deadline->processDeadlineEnd(runtime, quant, 13));
+                        deadline->processDeadlineEnd(quant, 13));
     const auto &[power_delta, penalized_power] = process_result;
 
     EXPECT_TRUE(power_delta.isZero());
@@ -661,7 +642,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9, 10});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
   }
 
   TEST_F(DeadlineTestV3, PostMissingPartition) {
@@ -677,7 +658,7 @@ namespace fc::vm::actor::builtin::v3::miner {
         {.index = 0, .skipped = {}}, {.index = 3, .skipped = {}}};
 
     const auto result = deadline->recordProvenSectors(
-        runtime, sectorsArr(all_sectors), ssize, quant, 13, post_partitions);
+        sectorsArr(all_sectors), ssize, quant, 13, post_partitions);
     EXPECT_EQ(result.error().message(), "Not found");
   }
 
@@ -694,7 +675,7 @@ namespace fc::vm::actor::builtin::v3::miner {
         {.index = 0, .skipped = {}}, {.index = 0, .skipped = {}}};
 
     const auto result = deadline->recordProvenSectors(
-        runtime, sectorsArr(all_sectors), ssize, quant, 13, post_partitions);
+        sectorsArr(all_sectors), ssize, quant, 13, post_partitions);
     EXPECT_EQ(result.error().message(), "duplicate partitions proven");
   }
 
@@ -714,7 +695,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     EXPECT_OUTCOME_TRUE(
         power_delta,
         deadline->recordFaults(
-            runtime, sectorsArr(sectors), ssize, quant, 13, sector_map2));
+            sectorsArr(sectors), ssize, quant, 13, sector_map2));
     EXPECT_TRUE(power_delta.isZero());
 
     initExpectedDeadline();
@@ -723,7 +704,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
 
     const std::vector<PoStPartition> post_partitions{
         {.index = 0, .skipped = {}},
@@ -733,7 +714,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     EXPECT_OUTCOME_TRUE(
         post_result,
         deadline->recordProvenSectors(
-            runtime, sectorsArr(sectors), ssize, quant, 13, post_partitions));
+            sectorsArr(sectors), ssize, quant, 13, post_partitions));
     const RleBitset expected_sectors{1, 2, 3, 4, 5, 6, 7, 8, 9};
     EXPECT_EQ(post_result.sectors, expected_sectors);
     const RleBitset expected_ignored{1, 5};
@@ -748,10 +729,10 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
 
     EXPECT_OUTCOME_TRUE(process_result,
-                        deadline->processDeadlineEnd(runtime, quant, 13));
+                        deadline->processDeadlineEnd(quant, 13));
     const auto &[new_faulty_power, failed_recovery_power] = process_result;
     EXPECT_TRUE(new_faulty_power.isZero());
     EXPECT_TRUE(failed_recovery_power.isZero());
@@ -761,7 +742,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
   }
 
   TEST_F(DeadlineTestV3, RescheduleExpirations) {
@@ -772,13 +753,12 @@ namespace fc::vm::actor::builtin::v3::miner {
     sector_map.map[5] = {100};       // partition 5 doesn't exist.
     sector_map.map[2] = {};          // empty bitfield should be fine.
 
-    EXPECT_OUTCOME_TRUE(
-        replaced,
-        deadline->rescheduleSectorExpirations(
-            runtime, sectorsArr(sectors), 1, sector_map, ssize, quant));
+    EXPECT_OUTCOME_TRUE(replaced,
+                        deadline->rescheduleSectorExpirations(
+                            sectorsArr(sectors), 1, sector_map, ssize, quant));
     EXPECT_EQ(replaced.size(), 1);
 
-    EXPECT_OUTCOME_TRUE(exp, deadline->popExpiredSectors(runtime, 1, quant));
+    EXPECT_OUTCOME_TRUE(exp, deadline->popExpiredSectors(1, quant));
 
     const auto sector7 = selectSectorsTest(sectors, {7})[0];
 
@@ -788,7 +768,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.partition_sectors.push_back({1, 2, 3, 4});
     expected_deadline.partition_sectors.push_back({5, 6, 7, 8});
     expected_deadline.partition_sectors.push_back({9});
-    expected_deadline.assertDeadline(runtime, deadline);
+    expected_deadline.assertDeadline(deadline);
 
     EXPECT_EQ(exp.active_power,
               PowerPair(ssize, qaPowerForSector(ssize, sector7)));
@@ -804,7 +784,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     sector_map.map[4] = {6};
 
     const auto result = deadline->recordFaults(
-        runtime, sectorsArr(sectors), ssize, quant, 17, sector_map);
+        sectorsArr(sectors), ssize, quant, 17, sector_map);
     EXPECT_EQ(result.error().message(), "Not found");
   }
 
