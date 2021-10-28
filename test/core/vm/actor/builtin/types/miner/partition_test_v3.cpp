@@ -62,8 +62,8 @@ namespace fc::vm::actor::builtin::v3::miner {
                  testSector(11, 5, 54, 64, 1004),
                  testSector(13, 6, 55, 65, 1005)};
 
-      EXPECT_OUTCOME_TRUE(
-          power, partition.addSectors(runtime, false, sectors, ssize, quant));
+      EXPECT_OUTCOME_TRUE(power,
+                          partition.addSectors(false, sectors, ssize, quant));
 
       EXPECT_EQ(power, powerForSectors(ssize, sectors));
     }
@@ -83,8 +83,8 @@ namespace fc::vm::actor::builtin::v3::miner {
                  testSector(11, 5, 54, 64, 1004),
                  testSector(13, 6, 55, 65, 1005)};
 
-      EXPECT_OUTCOME_TRUE(
-          power, partition.addSectors(runtime, true, sectors, ssize, quant));
+      EXPECT_OUTCOME_TRUE(power,
+                          partition.addSectors(true, sectors, ssize, quant));
       EXPECT_EQ(power, powerForSectors(ssize, sectors));
     }
 
@@ -286,8 +286,8 @@ namespace fc::vm::actor::builtin::v3::miner {
   TEST_F(PartitionTestV3, DoesntAddSectorsTwice) {
     setup();
 
-    const auto result = partition.addSectors(
-        runtime, false, slice(sectors, 0, 1), ssize, quant);
+    const auto result =
+        partition.addSectors(false, slice(sectors, 0, 1), ssize, quant);
     EXPECT_EQ(result.error().message(), "not all added sectors are new");
   }
 
@@ -303,9 +303,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     const RleBitset fault_set{4, 5};
     PowerPair power_delta;
     PowerPair new_faulty_power;
-    EXPECT_OUTCOME_TRUE(result,
-                        partition.recordFaults(
-                            runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE(
+        result,
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
     std::tie(std::ignore, power_delta, new_faulty_power) = result;
 
     EXPECT_EQ(new_faulty_power,
@@ -333,9 +333,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     const RleBitset fault_set{4, 5};
     PowerPair power_delta;
     PowerPair new_faulty_power;
-    EXPECT_OUTCOME_TRUE(result,
-                        partition.recordFaults(
-                            runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE(
+        result,
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
     std::tie(std::ignore, power_delta, new_faulty_power) = result;
 
     const auto expected_faulty_power =
@@ -363,9 +363,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     const RleBitset fault_set1{4, 5};
     PowerPair power_delta1;
     PowerPair new_faulty_power1;
-    EXPECT_OUTCOME_TRUE(result1,
-                        partition.recordFaults(
-                            runtime, sectors_arr, fault_set1, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE(
+        result1,
+        partition.recordFaults(sectors_arr, fault_set1, 7, ssize, quant));
     std::tie(std::ignore, power_delta1, new_faulty_power1) = result1;
 
     const auto expected_faulty_power1 =
@@ -374,9 +374,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     EXPECT_EQ(power_delta1, expected_faulty_power1.negative());
 
     const RleBitset fault_set2{5, 6};
-    EXPECT_OUTCOME_TRUE(result2,
-                        partition.recordFaults(
-                            runtime, sectors_arr, fault_set2, 3, ssize, quant));
+    EXPECT_OUTCOME_TRUE(
+        result2,
+        partition.recordFaults(sectors_arr, fault_set2, 3, ssize, quant));
     const auto &[new_faults2, power_delta2, new_faulty_power2] = result2;
 
     const RleBitset expected_new_faults{6};
@@ -403,8 +403,8 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     const RleBitset fault_set{99};
-    const auto result = partition.recordFaults(
-        runtime, sectors_arr, fault_set, 7, ssize, quant);
+    const auto result =
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant);
     EXPECT_EQ(result.error().message(), "failed fault declaration");
   }
 
@@ -418,8 +418,8 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     const RleBitset fault_set{4, 5, 6};
-    EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
-        runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
 
     const RleBitset recover_set{4, 5};
     EXPECT_OUTCOME_TRUE_1(
@@ -438,8 +438,8 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     const RleBitset fault_set{4, 5, 6};
-    EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
-        runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
 
     const RleBitset recover_set{4, 5};
     EXPECT_OUTCOME_TRUE_1(
@@ -447,8 +447,7 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     RleBitset new_faults1;
     EXPECT_OUTCOME_TRUE(
-        result1,
-        partition.recordFaults(runtime, sectors_arr, {}, 7, ssize, quant));
+        result1, partition.recordFaults(sectors_arr, {}, 7, ssize, quant));
     std::tie(new_faults1, std::ignore, std::ignore) = result1;
     EXPECT_TRUE(new_faults1.empty());
 
@@ -456,8 +455,7 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     RleBitset new_faults2;
     EXPECT_OUTCOME_TRUE(
-        result2,
-        partition.recordFaults(runtime, sectors_arr, {5}, 10, ssize, quant));
+        result2, partition.recordFaults(sectors_arr, {5}, 10, ssize, quant));
     std::tie(new_faults2, std::ignore, std::ignore) = result2;
     EXPECT_TRUE(new_faults2.empty());
 
@@ -474,16 +472,15 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     const RleBitset fault_set{4, 5, 6};
-    EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
-        runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
 
     const RleBitset recover_set{4, 5};
     EXPECT_OUTCOME_TRUE_1(
         partition.declareFaultsRecovered(sectors_arr, ssize, recover_set));
 
-    EXPECT_OUTCOME_TRUE(
-        recovered_power,
-        partition.recoverFaults(runtime, sectors_arr, ssize, quant));
+    EXPECT_OUTCOME_TRUE(recovered_power,
+                        partition.recoverFaults(sectors_arr, ssize, quant));
     EXPECT_EQ(recovered_power,
               powerForSectors(ssize, selectSectorsTest(sectors, recover_set)));
 
@@ -505,8 +502,8 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     const RleBitset fault_set{4, 5, 6};
-    EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
-        runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
 
     const RleBitset recover_set{3, 4, 5};
     EXPECT_OUTCOME_TRUE_1(
@@ -547,18 +544,17 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     const RleBitset fault_set{2};
-    EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
-        runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
 
     EXPECT_OUTCOME_TRUE(
         power_delta,
-        partition.addSectors(runtime, false, {unproven_sector}, ssize, quant));
+        partition.addSectors(false, {unproven_sector}, ssize, quant));
     EXPECT_EQ(power_delta, powerForSectors(ssize, {unproven_sector}));
 
-    EXPECT_OUTCOME_TRUE(
-        moved,
-        partition.rescheduleExpirationsV2(
-            runtime, sectors_arr, 18, {2, 4, 6, 7}, ssize, quant));
+    EXPECT_OUTCOME_TRUE(moved,
+                        partition.rescheduleExpirationsV2(
+                            sectors_arr, 18, {2, 4, 6, 7}, ssize, quant));
 
     EXPECT_EQ(moved.size(), 3);
     std::sort(moved.begin(), moved.end(), [](auto lhs, auto rhs) {
@@ -598,9 +594,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto new_sector_power = powerForSectors(ssize, new_sectors);
     const TokenAmount new_sector_pledge = 3000 + 3001 + 3002;
 
-    EXPECT_OUTCOME_TRUE(result,
-                        partition.replaceSectors(
-                            runtime, old_sectors, new_sectors, ssize, quant));
+    EXPECT_OUTCOME_TRUE(
+        result,
+        partition.replaceSectors(old_sectors, new_sectors, ssize, quant));
     const auto &[power_delta, pledge_delta] = result;
 
     EXPECT_EQ(power_delta, new_sector_power - old_sector_power);
@@ -631,15 +627,15 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     const RleBitset fault_set{2};
-    EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
-        runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
 
     const auto old_sectors = slice(sectors, 1, 4);
     const std::vector<SectorOnChainInfo> new_sectors = {
         testSector(10, 2, 150, 260, 3000)};
 
-    const auto result = partition.replaceSectors(
-        runtime, old_sectors, new_sectors, ssize, quant);
+    const auto result =
+        partition.replaceSectors(old_sectors, new_sectors, ssize, quant);
     EXPECT_EQ(result.error().message(), "refusing to replace inactive sectors");
   }
 
@@ -655,8 +651,8 @@ namespace fc::vm::actor::builtin::v3::miner {
     std::vector<SectorOnChainInfo> new_sectors = {
         testSector(10, 2, 150, 260, 3000)};
 
-    const auto result = partition.replaceSectors(
-        runtime, old_sectors, new_sectors, ssize, quant);
+    const auto result =
+        partition.replaceSectors(old_sectors, new_sectors, ssize, quant);
     EXPECT_EQ(result.error().message(), "refusing to replace inactive sectors");
   }
 
@@ -673,12 +669,12 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     EXPECT_OUTCOME_TRUE(
         power_delta,
-        partition.addSectors(runtime, false, {unproven_sector}, ssize, quant));
+        partition.addSectors(false, {unproven_sector}, ssize, quant));
     EXPECT_EQ(power_delta, powerForSectors(ssize, {unproven_sector}));
 
     const RleBitset fault_set{3, 4, 5, 6};
-    EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
-        runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
 
     const RleBitset recover_set{4, 5};
     EXPECT_OUTCOME_TRUE_1(
@@ -686,13 +682,10 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     const RleBitset terminations{1, 3, 5, 7};
     const ChainEpoch termination_epoch{3};
-    EXPECT_OUTCOME_TRUE(removed,
-                        partition.terminateSectors(runtime,
-                                                   sectors_arr,
-                                                   termination_epoch,
-                                                   terminations,
-                                                   ssize,
-                                                   quant));
+    EXPECT_OUTCOME_TRUE(
+        removed,
+        partition.terminateSectors(
+            sectors_arr, termination_epoch, terminations, ssize, quant));
 
     EXPECT_EQ(removed.active_power,
               powerForSectors(ssize, selectSectorsTest(sectors, {1})));
@@ -722,7 +715,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     const auto result =
-        partition.terminateSectors(runtime, sectors_arr, 3, {99}, ssize, quant);
+        partition.terminateSectors(sectors_arr, 3, {99}, ssize, quant);
     EXPECT_EQ(result.error().message(), "can only terminate live sectors");
   }
 
@@ -737,20 +730,17 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     const RleBitset terminations{1};
     const ChainEpoch termination_epoch{3};
-    EXPECT_OUTCOME_TRUE(removed,
-                        partition.terminateSectors(runtime,
-                                                   sectors_arr,
-                                                   termination_epoch,
-                                                   terminations,
-                                                   ssize,
-                                                   quant));
+    EXPECT_OUTCOME_TRUE(
+        removed,
+        partition.terminateSectors(
+            sectors_arr, termination_epoch, terminations, ssize, quant));
     EXPECT_EQ(removed.active_power,
               powerForSectors(ssize, selectSectorsTest(sectors, {1})));
     EXPECT_EQ(removed.faulty_power, PowerPair());
     EXPECT_EQ(removed.count(), 1);
 
     const auto result = partition.terminateSectors(
-        runtime, sectors_arr, termination_epoch, terminations, ssize, quant);
+        sectors_arr, termination_epoch, terminations, ssize, quant);
     EXPECT_EQ(result.error().message(), "can only terminate live sectors");
   }
 
@@ -766,13 +756,12 @@ namespace fc::vm::actor::builtin::v3::miner {
     const RleBitset terminations{1};
     const ChainEpoch termination_epoch{3};
     EXPECT_OUTCOME_TRUE_1(partition.terminateSectors(
-        runtime, sectors_arr, termination_epoch, terminations, ssize, quant));
+        sectors_arr, termination_epoch, terminations, ssize, quant));
 
     RleBitset new_faults;
     EXPECT_OUTCOME_TRUE(
         result,
-        partition.recordFaults(
-            runtime, sectors_arr, terminations, 5, ssize, quant));
+        partition.recordFaults(sectors_arr, terminations, 5, ssize, quant));
     std::tie(new_faults, std::ignore, std::ignore) = result;
     EXPECT_TRUE(new_faults.empty());
   }
@@ -787,12 +776,12 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     const RleBitset fault_set{4};
-    EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
-        runtime, sectors_arr, fault_set, 2, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.recordFaults(sectors_arr, fault_set, 2, ssize, quant));
 
     const ChainEpoch expire_epoch{5};
-    EXPECT_OUTCOME_TRUE(
-        exp_set, partition.popExpiredSectors(runtime, expire_epoch, quant));
+    EXPECT_OUTCOME_TRUE(exp_set,
+                        partition.popExpiredSectors(expire_epoch, quant));
 
     const RleBitset expected_on_time_sectors{1, 2};
     EXPECT_EQ(exp_set.on_time_sectors, expected_on_time_sectors);
@@ -831,11 +820,11 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     EXPECT_OUTCOME_TRUE_1(
-        partition.recordFaults(runtime, sectors_arr, {5}, 2, ssize, quant));
+        partition.recordFaults(sectors_arr, {5}, 2, ssize, quant));
     EXPECT_OUTCOME_TRUE_1(
         partition.declareFaultsRecovered(sectors_arr, ssize, {5}));
 
-    const auto result = partition.popExpiredSectors(runtime, 5, quant);
+    const auto result = partition.popExpiredSectors(5, quant);
     EXPECT_EQ(result.error().message(),
               "unexpected recoveries while processing expirations");
   }
@@ -848,7 +837,7 @@ namespace fc::vm::actor::builtin::v3::miner {
   TEST_F(PartitionTestV3, PopExpiringSectorsErrorsIfUnprovenSectorsExist) {
     setupUnproven();
 
-    const auto result = partition.popExpiredSectors(runtime, 5, quant);
+    const auto result = partition.popExpiredSectors(5, quant);
     EXPECT_EQ(
         result.error().message(),
         "cannot pop expired sectors from a partition with unproven sectors");
@@ -866,20 +855,18 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     EXPECT_OUTCOME_TRUE(
-        power,
-        partition.addSectors(runtime, false, {unproven_sector}, ssize, quant));
+        power, partition.addSectors(false, {unproven_sector}, ssize, quant));
     EXPECT_EQ(power, powerForSectors(ssize, {unproven_sector}));
 
     const RleBitset fault_set{4, 5, 6};
-    EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
-        runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
 
     const RleBitset recover_set{4, 5};
     EXPECT_OUTCOME_TRUE_1(
         partition.declareFaultsRecovered(sectors_arr, ssize, recover_set));
 
-    EXPECT_OUTCOME_TRUE(result,
-                        partition.recordMissedPostV2(runtime, 6, quant));
+    EXPECT_OUTCOME_TRUE(result, partition.recordMissedPostV2(6, quant));
     const auto &[power_delta, penalized_power, new_faulty_power] = result;
 
     auto faulty_sectors = slice(sectors, 0, 3);
@@ -909,8 +896,8 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     const RleBitset fault_set{3, 4, 5, 6};
-    EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
-        runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
 
     const RleBitset recover_set{4, 5};
     EXPECT_OUTCOME_TRUE_1(
@@ -919,9 +906,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     const RleBitset terminations{1, 3, 5};
     const ChainEpoch termination_epoch{3};
     EXPECT_OUTCOME_TRUE_1(partition.terminateSectors(
-        runtime, sectors_arr, termination_epoch, terminations, ssize, quant));
+        sectors_arr, termination_epoch, terminations, ssize, quant));
 
-    EXPECT_OUTCOME_TRUE(result1, partition.popEarlyTerminations(runtime, 1));
+    EXPECT_OUTCOME_TRUE(result1, partition.popEarlyTerminations(1));
     const auto &[termination_res1, has_more1] = result1;
     const RleBitset expected_sectors1{1};
     EXPECT_EQ(termination_res1.sectors.at(termination_epoch),
@@ -935,7 +922,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     const RleBitset expected_terminated1{3, 5};
     EXPECT_EQ(terminated1, expected_terminated1);
 
-    EXPECT_OUTCOME_TRUE(result2, partition.popEarlyTerminations(runtime, 5));
+    EXPECT_OUTCOME_TRUE(result2, partition.popEarlyTerminations(5));
     const auto &[termination_res2, has_more2] = result2;
     const RleBitset expected_sectors2{3, 5};
     EXPECT_EQ(termination_res2.sectors.at(termination_epoch),
@@ -967,10 +954,9 @@ namespace fc::vm::actor::builtin::v3::miner {
       many_sectors.push_back(testSector(i + 1, id, 50, 60, 1000));
     }
 
-    EXPECT_OUTCOME_TRUE(
-        power,
-        partition.addSectors(
-            runtime, false, many_sectors, sector_size, kNoQuantization));
+    EXPECT_OUTCOME_TRUE(power,
+                        partition.addSectors(
+                            false, many_sectors, sector_size, kNoQuantization));
     EXPECT_EQ(power, powerForSectors(ssize, many_sectors));
 
     sectors = many_sectors;
@@ -989,9 +975,9 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     const RleBitset skipped{1, 100};
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
-                         partition.recordSkippedFaults(
-                             runtime, sectors_arr, ssize, quant, exp, skipped));
+    EXPECT_OUTCOME_ERROR(
+        VMExitCode::kErrIllegalArgument,
+        partition.recordSkippedFaults(sectors_arr, ssize, quant, exp, skipped));
   }
 
   /**
@@ -1004,19 +990,19 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     const RleBitset terminations{1, 2};
-    EXPECT_OUTCOME_TRUE_1(partition.terminateSectors(
-        runtime, sectors_arr, 3, terminations, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.terminateSectors(sectors_arr, 3, terminations, ssize, quant));
     assertPartitionState({1, 2, 3, 4, 5, 6}, {}, {}, terminations, {});
 
     const RleBitset fault_set{4, 5};
-    EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
-        runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
     assertPartitionState({1, 2, 3, 4, 5, 6}, fault_set, {}, terminations, {});
 
     const RleBitset skipped{1, 2, 3, 4, 5};
-    EXPECT_OUTCOME_TRUE(result,
-                        partition.recordSkippedFaults(
-                            runtime, sectors_arr, ssize, quant, exp, skipped));
+    EXPECT_OUTCOME_TRUE(
+        result,
+        partition.recordSkippedFaults(sectors_arr, ssize, quant, exp, skipped));
     const auto &[power_delta, new_fault_power, retracted_power, new_faults] =
         result;
 
@@ -1040,8 +1026,8 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto sectors_arr = getSectorsArray();
 
     const RleBitset fault_set{4, 5, 6};
-    EXPECT_OUTCOME_TRUE_1(partition.recordFaults(
-        runtime, sectors_arr, fault_set, 7, ssize, quant));
+    EXPECT_OUTCOME_TRUE_1(
+        partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
 
     const RleBitset recover_set{4, 5};
     EXPECT_OUTCOME_TRUE_1(
@@ -1050,9 +1036,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     assertPartitionState({1, 2, 3, 4, 5, 6}, {4, 5, 6}, {4, 5}, {}, {});
 
     const RleBitset skipped{1, 4, 5};
-    EXPECT_OUTCOME_TRUE(result,
-                        partition.recordSkippedFaults(
-                            runtime, sectors_arr, ssize, quant, exp, skipped));
+    EXPECT_OUTCOME_TRUE(
+        result,
+        partition.recordSkippedFaults(sectors_arr, ssize, quant, exp, skipped));
     const auto &[power_delta, new_fault_power, recovery_power, new_faults] =
         result;
 
@@ -1076,9 +1062,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     setupProven();
     const auto sectors_arr = getSectorsArray();
 
-    EXPECT_OUTCOME_TRUE(result,
-                        partition.recordSkippedFaults(
-                            runtime, sectors_arr, ssize, quant, exp, {}));
+    EXPECT_OUTCOME_TRUE(
+        result,
+        partition.recordSkippedFaults(sectors_arr, ssize, quant, exp, {}));
     const auto &[power_delta, new_fault_power, recovery_power, new_faults] =
         result;
 

@@ -24,8 +24,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
                          VMExitCode::kErrIllegalState);
       const auto duplicate =
           std::find(resolved_signers.begin(), resolved_signers.end(), resolved);
-      OUTCOME_TRY(
-          runtime.validateArgument(duplicate == resolved_signers.end()));
+      VALIDATE_ARG(duplicate == resolved_signers.end());
       resolved_signers.push_back(resolved);
     }
     return std::move(resolved_signers);
@@ -69,7 +68,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
-    OUTCOME_TRY(runtime.validateArgument(!params.signers.empty()));
+    VALIDATE_ARG(!params.signers.empty());
     OUTCOME_TRY(resolved_signers, getResolvedSigners(runtime, params.signers));
     OUTCOME_TRY(
         checkParams(params.signers, params.threshold, params.unlock_duration));
@@ -312,7 +311,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     }
 
     OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
-    OUTCOME_TRY(runtime.validateArgument(params.unlock_duration > 0));
+    VALIDATE_ARG(params.unlock_duration > 0);
     OUTCOME_TRY(state, runtime.getActorState<MultisigActorStatePtr>());
     OUTCOME_TRY(lockBalance(params, state));
     OUTCOME_TRY(runtime.commitState(state));

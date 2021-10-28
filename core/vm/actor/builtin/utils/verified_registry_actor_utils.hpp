@@ -5,17 +5,15 @@
 
 #pragma once
 
-#include "common/outcome.hpp"
+#include "vm/actor/builtin/utils/actor_utils.hpp"
+
 #include "primitives/address/address.hpp"
 #include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
-#include "vm/actor/builtin/utils/actor_utils.hpp"
 #include "vm/exit_code/exit_code.hpp"
-#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::utils {
   using primitives::StoragePower;
   using primitives::address::Address;
-  using runtime::Runtime;
   using states::VerifiedRegistryActorStatePtr;
 
   class VerifRegUtils : public ActorUtils {
@@ -32,8 +30,6 @@ namespace fc::vm::actor::builtin::utils {
       }
       return outcome::success();
     }
-
-    virtual outcome::result<void> assertCap(bool condition) const = 0;
   };
 
   using VerifRegUtilsPtr = std::shared_ptr<VerifRegUtils>;

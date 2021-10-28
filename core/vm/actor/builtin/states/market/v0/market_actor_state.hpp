@@ -8,10 +8,16 @@
 #include "vm/actor/builtin/states/market/market_actor_state.hpp"
 
 #include "codec/cbor/streams_annotation.hpp"
+#include "vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::v0::market {
 
-  struct MarketActorState : states::MarketActorState {};
+  struct MarketActorState : states::MarketActorState {
+   protected:
+    outcome::result<void> check(bool condition) const override {
+      return vm_assert(condition);
+    }
+  };
   CBOR_TUPLE(MarketActorState,
              proposals,
              states,

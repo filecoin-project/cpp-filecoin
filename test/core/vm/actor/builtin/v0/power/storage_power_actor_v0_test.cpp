@@ -321,13 +321,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
     current_epoch = kUpgradeBreezeHeight;
 
-    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kOldErrActorFailure),
-                         OnConsensusFault::call(runtime, {50}));
-
-    current_epoch = kUpgradeKumquatHeight;
-    callerCodeIdIs(kStorageMinerCodeId);
-
-    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrReserved1),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kAssert),
                          OnConsensusFault::call(runtime, {50}));
   }
 

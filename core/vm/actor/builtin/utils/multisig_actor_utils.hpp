@@ -5,16 +5,15 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/multisig/multisig_actor_state.hpp"
 #include "vm/actor/builtin/utils/actor_utils.hpp"
-#include "vm/runtime/runtime.hpp"
+
+#include "vm/actor/builtin/states/multisig/multisig_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::utils {
   using primitives::ChainEpoch;
   using primitives::EpochDuration;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using runtime::Runtime;
   using states::MultisigActorStatePtr;
   using types::multisig::Transaction;
   using types::multisig::TransactionId;

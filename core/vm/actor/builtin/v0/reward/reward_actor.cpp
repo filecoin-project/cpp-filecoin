@@ -9,9 +9,11 @@
 #include "vm/actor/builtin/types/reward/policy.hpp"
 #include "vm/actor/builtin/types/reward/reward_actor_calculus.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v0::reward {
   using states::RewardActorStatePtr;
+  using toolchain::Toolchain;
   using namespace types::reward;
 
   /// The expected number of block producers in each epoch.
@@ -31,13 +33,13 @@ namespace fc::vm::actor::builtin::v0::reward {
   outcome::result<TokenAmount> AwardBlockReward::validateParams(
       Runtime &runtime, const Params &params) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    OUTCOME_TRY(runtime.validateArgument(params.penalty >= 0));
-    OUTCOME_TRY(runtime.validateArgument(params.gas_reward >= 0));
+    VALIDATE_ARG(params.penalty >= 0);
+    VALIDATE_ARG(params.gas_reward >= 0);
     OUTCOME_TRY(balance, runtime.getCurrentBalance());
     if (balance < params.gas_reward) {
       ABORT(VMExitCode::kErrIllegalState);
     }
-    OUTCOME_TRY(runtime.validateArgument(params.win_count > 0));
+    VALIDATE_ARG(params.win_count > 0);
     return std::move(balance);
   }
 
@@ -52,7 +54,8 @@ namespace fc::vm::actor::builtin::v0::reward {
     if (total_reward > balance) {
       total_reward = balance;
       block_reward = total_reward - params.gas_reward;
-      VM_ASSERT(block_reward >= 0);
+      const auto utils = Toolchain::createRewardUtils(runtime);
+      OUTCOME_TRY(utils->check(block_reward >= 0));
     }
     return std::make_tuple(block_reward, total_reward);
   }

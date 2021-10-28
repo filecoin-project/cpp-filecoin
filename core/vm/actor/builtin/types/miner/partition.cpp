@@ -9,7 +9,6 @@
 #include "common/error_text.hpp"
 #include "vm/actor/builtin/types/miner/bitfield_queue.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
 
@@ -18,8 +17,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<std::tuple<RleBitset, PowerPair, PowerPair>>
-  Partition::recordFaults(Runtime &runtime,
-                          const Sectors &sectors,
+  Partition::recordFaults(const Sectors &sectors,
                           const RleBitset &sector_nos,
                           ChainEpoch fault_expiration_epoch,
                           SectorSize ssize,
@@ -37,8 +35,7 @@ namespace fc::vm::actor::builtin::types::miner {
     OUTCOME_TRY(new_fault_sectors, sectors.load(new_faults));
     if (!new_fault_sectors.empty()) {
       OUTCOME_TRY(result,
-                  addFaults(runtime,
-                            new_faults,
+                  addFaults(new_faults,
                             new_fault_sectors,
                             fault_expiration_epoch,
                             ssize,
@@ -59,8 +56,7 @@ namespace fc::vm::actor::builtin::types::miner {
     return std::make_tuple(new_faults, power_delta, new_faulty_power);
   }
 
-  outcome::result<PowerPair> Partition::recoverFaults(Runtime &runtime,
-                                                      const Sectors &sectors,
+  outcome::result<PowerPair> Partition::recoverFaults(const Sectors &sectors,
                                                       SectorSize ssize,
                                                       const QuantSpec &quant) {
     OUTCOME_TRY(recovered_sectors, sectors.load(this->recoveries));
@@ -119,7 +115,6 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<RleBitset> Partition::rescheduleExpirationsV0(
-      Runtime &runtime,
       const Sectors &sectors,
       ChainEpoch new_expiration,
       const RleBitset &sector_nos,
@@ -140,8 +135,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<std::vector<SectorOnChainInfo>>
-  Partition::rescheduleExpirationsV2(Runtime &runtime,
-                                     const Sectors &sectors,
+  Partition::rescheduleExpirationsV2(const Sectors &sectors,
                                      ChainEpoch new_expiration,
                                      const RleBitset &sector_nos,
                                      SectorSize ssize,
@@ -163,7 +157,6 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<std::tuple<PowerPair, TokenAmount>> Partition::replaceSectors(
-      Runtime &runtime,
       const std::vector<SectorOnChainInfo> &old_sectors,
       const std::vector<SectorOnChainInfo> &new_sectors,
       SectorSize ssize,
@@ -190,7 +183,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<void> Partition::recordEarlyTermination(
-      Runtime &runtime, ChainEpoch epoch, const RleBitset &sectors) {
+      ChainEpoch epoch, const RleBitset &sectors) {
     BitfieldQueue<kEearlyTerminatedBitWidth> et_queue{
         .queue = this->early_terminated, .quant = kNoQuantization};
 
@@ -201,8 +194,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<std::tuple<PowerPair, PowerPair>>
-  Partition::recordMissedPostV0(Runtime &runtime,
-                                ChainEpoch fault_expiration,
+  Partition::recordMissedPostV0(ChainEpoch fault_expiration,
                                 const QuantSpec &quant) {
     auto queue = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(queue->rescheduleAllAsFaults(fault_expiration));
@@ -220,8 +212,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<std::tuple<PowerPair, PowerPair, PowerPair>>
-  Partition::recordMissedPostV2(Runtime &runtime,
-                                ChainEpoch fault_expiration,
+  Partition::recordMissedPostV2(ChainEpoch fault_expiration,
                                 const QuantSpec &quant) {
     auto queue = loadExpirationQueue(this->expirations_epochs, quant);
     OUTCOME_TRY(queue->rescheduleAllAsFaults(fault_expiration));
@@ -245,7 +236,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<std::tuple<TerminationResult, bool>>
-  Partition::popEarlyTerminations(Runtime &runtime, uint64_t max_sectors) {
+  Partition::popEarlyTerminations(uint64_t max_sectors) {
     BitfieldQueue<kEearlyTerminatedBitWidth> early_terminated_q{
         .queue = this->early_terminated, .quant = kNoQuantization};
 
@@ -308,8 +299,7 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<std::tuple<PowerPair, PowerPair, PowerPair, bool>>
-  Partition::recordSkippedFaults(Runtime &runtime,
-                                 const Sectors &sectors,
+  Partition::recordSkippedFaults(const Sectors &sectors,
                                  SectorSize ssize,
                                  const QuantSpec &quant,
                                  ChainEpoch fault_expiration,
@@ -330,13 +320,10 @@ namespace fc::vm::actor::builtin::types::miner {
     const auto new_faults = skipped - this->terminated - this->faults;
     OUTCOME_TRY(new_fault_sectors, sectors.load(new_faults));
 
-    OUTCOME_TRY(result,
-                addFaults(runtime,
-                          new_faults,
-                          new_fault_sectors,
-                          fault_expiration,
-                          ssize,
-                          quant));
+    OUTCOME_TRY(
+        result,
+        addFaults(
+            new_faults, new_fault_sectors, fault_expiration, ssize, quant));
     const auto &[power_delta, new_fault_power] = result;
 
     OUTCOME_TRY(

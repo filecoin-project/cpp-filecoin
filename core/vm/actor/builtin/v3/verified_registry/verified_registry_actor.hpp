@@ -15,11 +15,7 @@ namespace fc::vm::actor::builtin::v3::verified_registry {
   using RemoveVerifier = v2::verified_registry::RemoveVerifier;
   using AddVerifiedClient = v2::verified_registry::AddVerifiedClient;
   using RestoreBytes = v2::verified_registry::RestoreBytes;
-
-  struct UseBytes : ActorMethodBase<5> {
-    using Params = v2::verified_registry::UseBytes::Params;
-    ACTOR_METHOD_DECL();
-  };
+  using UseBytes = v2::verified_registry::UseBytes;
 
   extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::v3::verified_registry

@@ -20,7 +20,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     const auto id_addr = runtime.resolveAddress(params);
 
-    OUTCOME_TRY(runtime.validateArgument(!id_addr.has_error()));
+    VALIDATE_ARG(!id_addr.has_error());
 
     VerifiedRegistryActorStatePtr state{runtime.getActorVersion()};
     cbor_blake::cbLoadT(runtime.getIpfsDatastore(), state);
@@ -41,7 +41,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     REQUIRE_NO_ERROR_A(found,
                        state->verified_clients.tryGet(verifier),
                        VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.validateArgument(!found.has_value()));
+    VALIDATE_ARG(!found.has_value());
 
     REQUIRE_NO_ERROR(state->verifiers.set(verifier, allowance),
                      VMExitCode::kErrIllegalState);
@@ -102,10 +102,10 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     REQUIRE_NO_ERROR_A(maybe_address_cap,
                        state->verifiers.tryGet(client),
                        VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.validateArgument(!maybe_address_cap.has_value()));
+    VALIDATE_ARG(!maybe_address_cap.has_value());
 
     // Compute new verifier cap and update.
-    OUTCOME_TRY(runtime.validateArgument(verifier_cap >= allowance));
+    VALIDATE_ARG(verifier_cap >= allowance);
 
     const DataCap new_verifier_cap = verifier_cap - allowance;
     REQUIRE_NO_ERROR(state->verifiers.set(verifier, new_verifier_cap),
@@ -114,7 +114,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     REQUIRE_NO_ERROR_A(maybe_client_cap,
                        state->verified_clients.tryGet(client),
                        VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.validateArgument(!maybe_client_cap.has_value()));
+    VALIDATE_ARG(!maybe_client_cap.has_value());
 
     REQUIRE_NO_ERROR(state->verified_clients.set(client, allowance),
                      VMExitCode::kErrIllegalState);
@@ -138,11 +138,10 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   // UseBytes
   //============================================================================
 
-  outcome::result<void> UseBytes::useBytes(const Runtime &runtime,
+  outcome::result<void> UseBytes::useBytes(Runtime &runtime,
                                            VerifiedRegistryActorStatePtr &state,
                                            const Address &client,
-                                           const StoragePower &deal_size,
-                                           CapAssert cap_assert) {
+                                           const StoragePower &deal_size) {
     REQUIRE_NO_ERROR_A(maybe_client_cap,
                        state->verified_clients.tryGet(client),
                        VMExitCode::kErrIllegalState);
@@ -152,9 +151,10 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     const auto &client_cap = maybe_client_cap.value();
 
-    OUTCOME_TRY(cap_assert(client_cap >= 0));
+    const auto utils = Toolchain::createVerifRegUtils(runtime);
+    OUTCOME_TRY(utils->check(client_cap >= 0));
 
-    OUTCOME_TRY(runtime.validateArgument(deal_size <= client_cap));
+    VALIDATE_ARG(deal_size <= client_cap);
 
     const DataCap new_client_cap = client_cap - deal_size;
 
@@ -174,11 +174,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     OUTCOME_TRY(utils->checkDealSize(params.deal_size));
     OUTCOME_TRY(state, runtime.getActorState<VerifiedRegistryActorStatePtr>());
 
-    auto clientCapAssert = [&runtime](bool condition) -> outcome::result<void> {
-      return runtime.vm_assert(condition);
-    };
-    OUTCOME_TRY(useBytes(
-        runtime, state, params.address, params.deal_size, clientCapAssert));
+    OUTCOME_TRY(useBytes(runtime, state, params.address, params.deal_size));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -194,7 +190,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     REQUIRE_NO_ERROR_A(maybe_verifier_cap,
                        state->verifiers.tryGet(client),
                        VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.validateArgument(!maybe_verifier_cap.has_value()));
+    VALIDATE_ARG(!maybe_verifier_cap.has_value());
 
     REQUIRE_NO_ERROR_A(maybe_client_cap,
                        state->verified_clients.tryGet(client),

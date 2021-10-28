@@ -186,8 +186,7 @@ namespace fc::vm::actor::builtin::states {
      * way, the new sectors can still be proved.
      */
     virtual outcome::result<std::vector<SectorOnChainInfo>>
-    rescheduleSectorExpirations(Runtime &runtime,
-                                ChainEpoch curr_epoch,
+    rescheduleSectorExpirations(ChainEpoch curr_epoch,
                                 SectorSize ssize,
                                 const DeadlineSectorMap &deadline_sectors) = 0;
 
@@ -206,7 +205,7 @@ namespace fc::vm::actor::builtin::states {
      * @return hasMore if we still have more early terminations to process.
      */
     outcome::result<std::tuple<TerminationResult, bool>> popEarlyTerminations(
-        Runtime &runtime, uint64_t max_partitions, uint64_t max_sectors);
+        uint64_t max_partitions, uint64_t max_sectors);
 
     /**
      * Returns an error if the target sector cannot be found and/or is
@@ -319,7 +318,7 @@ namespace fc::vm::actor::builtin::states {
      * and undeclared).
      */
     outcome::result<AdvanceDeadlineResult> advanceDeadline(
-        Runtime &runtime, ChainEpoch curr_epoch);
+        ChainEpoch curr_epoch);
   };
 
   using MinerActorStatePtr = Universal<MinerActorState>;

@@ -10,7 +10,6 @@
 namespace fc::vm::actor::builtin::v3::miner {
   using primitives::ChainEpoch;
   using primitives::SectorSize;
-  using runtime::Runtime;
   using types::miner::PartitionSectorMap;
   using types::miner::PoStPartition;
   using types::miner::PoStResult;
@@ -21,12 +20,9 @@ namespace fc::vm::actor::builtin::v3::miner {
 
   struct Deadline : v2::miner::Deadline {
     outcome::result<std::tuple<PowerPair, PowerPair>> processDeadlineEnd(
-        Runtime &runtime,
-        const QuantSpec &quant,
-        ChainEpoch fault_expiration_epoch) override;
+        const QuantSpec &quant, ChainEpoch fault_expiration_epoch) override;
 
     outcome::result<PoStResult> recordProvenSectors(
-        Runtime &runtime,
         const Sectors &sectors,
         SectorSize ssize,
         const QuantSpec &quant,

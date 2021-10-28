@@ -148,8 +148,9 @@ namespace fc::vm::runtime {
       return apply;
     }
     auto &from = maybe_from.value();
-    const auto address_matcher = Toolchain::createAddressMatcher(
-        getNetworkVersion(static_cast<ChainEpoch>(epoch)));
+    const auto network_version = getNetworkVersion(epoch);
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(network_version);
     if (!address_matcher->isAccountActor(from.code)) {
       apply.receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
       return apply;
@@ -181,7 +182,7 @@ namespace fc::vm::runtime {
       if (!ret.empty()) {
         auto charge =
             execution->chargeGas(pricelist.onChainReturnValue(ret.size()));
-        catchAbort(charge);
+        catchAbort(charge, network_version);
         OUTCOME_TRYA(exit_code, asExitCode(charge));
         if (charge) {
           apply.receipt.return_value = std::move(ret);
@@ -196,9 +197,8 @@ namespace fc::vm::runtime {
       used = 0;
     }
     auto no_fee{false};
-    if (getNetworkVersion(epoch) <= NetworkVersion::kVersion12
-        && static_cast<ChainEpoch>(epoch) > kUpgradeClausHeight
-        && exit_code == VMExitCode::kOk
+    if (network_version <= NetworkVersion::kVersion12
+        && epoch > kUpgradeClausHeight && exit_code == VMExitCode::kOk
         && message.method
                == vm::actor::builtin::v0::miner::SubmitWindowedPoSt::Number) {
       OUTCOME_TRY(to, state_tree->tryGet(message.to));
@@ -221,10 +221,11 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(add_locked(kRewardAddress, apply.reward));
     auto over{limit - 11 * used / 10};
     auto gas_burned{
-        used == 0  ? limit
-        : over < 0 ? 0
-                   : static_cast<GasAmount>(bigdiv(
-                       BigInt{limit - used} * std::min(used, over), used))};
+        used == 0
+            ? limit
+            : over < 0 ? 0
+                       : static_cast<GasAmount>(bigdiv(
+                           BigInt{limit - used} * std::min(used, over), used))};
     if (gas_burned != 0) {
       OUTCOME_TRY(add_locked(actor::kBurntFundsActorAddress,
                              base_fee_pay * gas_burned));
@@ -281,15 +282,17 @@ namespace fc::vm::runtime {
 
   outcome::result<Actor> Execution::tryCreateAccountActor(
       const Address &address) {
-    OUTCOME_TRY(catchAbort(chargeGas(env->pricelist.onCreateActor())));
+    const auto network_version = getNetworkVersion(env->epoch);
+    OUTCOME_TRY(
+        catchAbort(chargeGas(env->pricelist.onCreateActor()), network_version));
     OUTCOME_TRY(id, state_tree->registerNewAddress(address));
     if (!address.isKeyType()) {
       return VMExitCode::kSysErrInvalidReceiver;
     }
 
     // Get correct version of actor to create
-    const auto address_matcher = Toolchain::createAddressMatcher(
-        getNetworkVersion(static_cast<ChainEpoch>(env->epoch)));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(network_version);
     CID account_code_cid_to_create = address_matcher->getAccountCodeId();
     MethodNumber account_actor_create_method_number = kConstructorMethodNumber;
 
@@ -326,7 +329,8 @@ namespace fc::vm::runtime {
     dvm::onSend(message);
     DVM_INDENT;
 
-    OUTCOME_TRY(catchAbort(chargeGas(charge)));
+    const auto network_version = getNetworkVersion(env->epoch);
+    OUTCOME_TRY(catchAbort(chargeGas(charge), network_version));
     Actor to_actor;
     OUTCOME_TRY(maybe_to_actor, state_tree->tryGet(message.to));
     if (!maybe_to_actor) {
@@ -336,15 +340,15 @@ namespace fc::vm::runtime {
       to_actor = maybe_to_actor.value();
     }
     dvm::onSendTo(to_actor.code);
-    OUTCOME_TRY(catchAbort(chargeGas(
-        env->pricelist.onMethodInvocation(message.value, message.method))));
+    OUTCOME_TRY(catchAbort(chargeGas(env->pricelist.onMethodInvocation(
+                               message.value, message.method)),
+                           network_version));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
     auto _message{message};
     _message.from = caller_id;
 
     OUTCOME_TRY(to_id, state_tree->lookupId(message.to));
-    if (getNetworkVersion(static_cast<ChainEpoch>(env->epoch))
-        >= NetworkVersion::kVersion4) {
+    if (network_version >= NetworkVersion::kVersion4) {
       _message.to = to_id;
     }
 
@@ -369,7 +373,7 @@ namespace fc::vm::runtime {
       auto runtime = std::make_shared<RuntimeImpl>(
           shared_from_this(), _message, caller_id);
       auto result = env->env_context.invoker->invoke(to_actor, runtime);
-      catchAbort(result);
+      catchAbort(result, network_version);
       return result;
     }
 

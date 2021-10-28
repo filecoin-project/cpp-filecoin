@@ -39,7 +39,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       ChainEpoch activation,
       ChainEpoch expiration,
       RegisteredSealProof seal_proof) const {
-    OUTCOME_TRY(getRuntime().validateArgument(expiration > activation));
+    VALIDATE_ARG(expiration > activation);
     return v0::miner::MinerUtils::validateExpiration(
         activation, expiration, seal_proof);
   }
@@ -52,11 +52,10 @@ namespace fc::vm::actor::builtin::v2::miner {
                    state->sectors.sectors.get(params.replace_sector),
                    VMExitCode::kErrNotFound);
 
-    OUTCOME_TRY(getRuntime().validateArgument(replace_sector.deals.empty()));
+    VALIDATE_ARG(replace_sector.deals.empty());
 
     if (nv < NetworkVersion::kVersion7) {
-      OUTCOME_TRY(getRuntime().validateArgument(params.registered_proof
-                                                == replace_sector.seal_proof));
+      VALIDATE_ARG(params.registered_proof == replace_sector.seal_proof);
     } else {
       REQUIRE_NO_ERROR_A(
           replace_post_proof,
@@ -65,12 +64,10 @@ namespace fc::vm::actor::builtin::v2::miner {
       REQUIRE_NO_ERROR_A(new_post_proof,
                          getRegisteredWindowPoStProof(params.registered_proof),
                          VMExitCode::kErrIllegalArgument);
-      OUTCOME_TRY(
-          getRuntime().validateArgument(new_post_proof == replace_post_proof));
+      VALIDATE_ARG(new_post_proof == replace_post_proof);
     }
 
-    OUTCOME_TRY(getRuntime().validateArgument(params.expiration
-                                              >= replace_sector.expiration));
+    VALIDATE_ARG(params.expiration >= replace_sector.expiration);
 
     REQUIRE_NO_ERROR(state->checkSectorHealth(params.replace_deadline,
                                               params.replace_partition,
@@ -82,7 +79,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   outcome::result<uint64_t> MinerUtils::currentDeadlineIndex(
       ChainEpoch current_epoch, ChainEpoch period_start) const {
-    UTILS_VM_ASSERT(current_epoch >= period_start);
+    OUTCOME_TRY(check(current_epoch >= period_start));
     return (current_epoch - period_start) / kWPoStChallengeWindow;
   }
 
@@ -90,17 +87,14 @@ namespace fc::vm::actor::builtin::v2::miner {
       RegisteredSealProof seal_proof_type,
       NetworkVersion network_version) const {
     if (network_version < NetworkVersion::kVersion7) {
-      OUTCOME_TRY(getRuntime().validateArgument(
-          kPreCommitSealProofTypesV0.find(seal_proof_type)
-          != kPreCommitSealProofTypesV0.end()));
+      VALIDATE_ARG(kPreCommitSealProofTypesV0.find(seal_proof_type)
+                   != kPreCommitSealProofTypesV0.end());
     } else if (network_version == NetworkVersion::kVersion7) {
-      OUTCOME_TRY(getRuntime().validateArgument(
-          kPreCommitSealProofTypesV7.find(seal_proof_type)
-          != kPreCommitSealProofTypesV7.end()));
+      VALIDATE_ARG(kPreCommitSealProofTypesV7.find(seal_proof_type)
+                   != kPreCommitSealProofTypesV7.end());
     } else if (network_version >= NetworkVersion::kVersion8) {
-      OUTCOME_TRY(getRuntime().validateArgument(
-          kPreCommitSealProofTypesV8.find(seal_proof_type)
-          != kPreCommitSealProofTypesV8.end()));
+      VALIDATE_ARG(kPreCommitSealProofTypesV8.find(seal_proof_type)
+                   != kPreCommitSealProofTypesV8.end());
     }
     return outcome::success();
   }
@@ -108,23 +102,19 @@ namespace fc::vm::actor::builtin::v2::miner {
   outcome::result<void> MinerUtils::checkPeerInfo(
       const Bytes &peer_id,
       const std::vector<Multiaddress> &multiaddresses) const {
-    OUTCOME_TRY(
-        getRuntime().validateArgument(peer_id.size() <= kMaxPeerIDLength));
+    VALIDATE_ARG(peer_id.size() <= kMaxPeerIDLength);
     size_t total_size = 0;
     for (const auto &multiaddress : multiaddresses) {
-      OUTCOME_TRY(getRuntime().validateArgument(
-          !multiaddress.getBytesAddress().empty()));
+      VALIDATE_ARG(!multiaddress.getBytesAddress().empty());
       total_size += multiaddress.getBytesAddress().size();
     }
-    OUTCOME_TRY(
-        getRuntime().validateArgument(total_size <= kMaxMultiaddressData));
+    VALIDATE_ARG(total_size <= kMaxMultiaddressData);
     return outcome::success();
   }
 
   outcome::result<void> MinerUtils::checkControlAddresses(
       const std::vector<Address> &control_addresses) const {
-    return getRuntime().validateArgument(control_addresses.size()
-                                         <= kMaxControlAddresses);
+    return validateArgument(control_addresses.size() <= kMaxControlAddresses);
   }
 
   outcome::result<EpochReward> MinerUtils::requestCurrentEpochBlockReward()

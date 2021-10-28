@@ -12,6 +12,7 @@
 #include "vm/actor/builtin/utils/multisig_actor_utils.hpp"
 #include "vm/actor/builtin/utils/payment_channel_actor_utils.hpp"
 #include "vm/actor/builtin/utils/power_actor_utils.hpp"
+#include "vm/actor/builtin/utils/reward_actor_utils.hpp"
 #include "vm/actor/builtin/utils/verified_registry_actor_utils.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/toolchain/address_matcher.hpp"
@@ -26,6 +27,7 @@ namespace fc::vm::toolchain {
   using actor::builtin::utils::MultisigUtilsPtr;
   using actor::builtin::utils::PaymentChannelUtilsPtr;
   using actor::builtin::utils::PowerUtilsPtr;
+  using actor::builtin::utils::RewardUtilsPtr;
   using actor::builtin::utils::VerifRegUtilsPtr;
   using runtime::Runtime;
   using version::NetworkVersion;
@@ -50,6 +52,7 @@ namespace fc::vm::toolchain {
     static MultisigUtilsPtr createMultisigActorUtils(Runtime &runtime);
     static PaymentChannelUtilsPtr createPaymentChannelUtils(Runtime &runtime);
     static PowerUtilsPtr createPowerUtils(Runtime &runtime);
+    static RewardUtilsPtr createRewardUtils(Runtime &runtime);
     static VerifRegUtilsPtr createVerifRegUtils(Runtime &runtime);
   };
 }  // namespace fc::vm::toolchain

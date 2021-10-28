@@ -6,31 +6,29 @@
 #include "vm/actor/builtin/types/miner/v3/deadline.hpp"
 
 #include "common/error_text.hpp"
-#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
   using primitives::RleBitset;
 
   outcome::result<std::tuple<PowerPair, PowerPair>>
-  Deadline::processDeadlineEnd(Runtime &runtime,
-                               const QuantSpec &quant,
+  Deadline::processDeadlineEnd(const QuantSpec &quant,
                                ChainEpoch fault_expiration_epoch) {
-    OUTCOME_TRY(result,
-                v2::miner::Deadline::processDeadlineEnd(
-                    runtime, quant, fault_expiration_epoch));
+    OUTCOME_TRY(
+        result,
+        v2::miner::Deadline::processDeadlineEnd(quant, fault_expiration_epoch));
 
     this->partitions_snapshot = this->partitions;
     this->optimistic_post_submissions_snapshot =
         this->optimistic_post_submissions;
     this->optimistic_post_submissions = {};
-    cbor_blake::cbLoadT(runtime.getIpfsDatastore(),
-                        this->optimistic_post_submissions);
+    cbor_blake::cbLoadT(
+        this->optimistic_post_submissions_snapshot.amt.getIpld(),
+        this->optimistic_post_submissions);
 
     return std::move(result);
   }
 
   outcome::result<PoStResult> Deadline::recordProvenSectors(
-      Runtime &runtime,
       const Sectors &sectors,
       SectorSize ssize,
       const QuantSpec &quant,
@@ -62,10 +60,9 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     for (const auto &post : post_partitions) {
       OUTCOME_TRY(partition, this->partitions.get(post.index));
-      OUTCOME_TRY(
-          result,
-          partition->recordSkippedFaults(
-              runtime, sectors, ssize, quant, fault_expiration, post.skipped));
+      OUTCOME_TRY(result,
+                  partition->recordSkippedFaults(
+                      sectors, ssize, quant, fault_expiration, post.skipped));
       auto &[new_power_delta,
              new_fault_power,
              retracted_recovery_power,
@@ -76,7 +73,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       }
 
       OUTCOME_TRY(recovered_power,
-                  partition->recoverFaults(runtime, sectors, ssize, quant));
+                  partition->recoverFaults(sectors, ssize, quant));
 
       new_power_delta += partition->activateUnproven();
 

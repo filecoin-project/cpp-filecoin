@@ -10,7 +10,6 @@
 namespace fc::vm::actor::builtin::v2::miner {
   using primitives::ChainEpoch;
   using primitives::SectorSize;
-  using runtime::Runtime;
   using types::miner::PartitionSectorMap;
   using types::miner::PoStPartition;
   using types::miner::PoStResult;
@@ -21,7 +20,6 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   struct Deadline : types::miner::Deadline {
     outcome::result<PowerPair> recordFaults(
-        Runtime &runtime,
         const Sectors &sectors,
         SectorSize ssize,
         const QuantSpec &quant,
@@ -29,12 +27,9 @@ namespace fc::vm::actor::builtin::v2::miner {
         const PartitionSectorMap &partition_sectors) override;
 
     outcome::result<std::tuple<PowerPair, PowerPair>> processDeadlineEnd(
-        Runtime &runtime,
-        const QuantSpec &quant,
-        ChainEpoch fault_expiration_epoch) override;
+        const QuantSpec &quant, ChainEpoch fault_expiration_epoch) override;
 
     outcome::result<PoStResult> recordProvenSectors(
-        Runtime &runtime,
         const Sectors &sectors,
         SectorSize ssize,
         const QuantSpec &quant,
@@ -42,7 +37,6 @@ namespace fc::vm::actor::builtin::v2::miner {
         const std::vector<PoStPartition> &post_partitions) override;
 
     outcome::result<std::vector<SectorOnChainInfo>> rescheduleSectorExpirations(
-        Runtime &runtime,
         const Sectors &sectors,
         ChainEpoch expiration,
         const PartitionSectorMap &partition_sectors,
