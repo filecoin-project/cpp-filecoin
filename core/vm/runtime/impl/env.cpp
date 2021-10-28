@@ -29,7 +29,7 @@ namespace fc::vm::runtime {
   using version::getNetworkVersion;
 
   outcome::result<Address> resolveKey(StateTree &state_tree,
-                                      IpldPtr ipld,
+                                      const IpldPtr &ipld,
                                       const Address &address,
                                       bool allow_actor) {
     if (address.isKeyType()) {
@@ -45,7 +45,7 @@ namespace fc::vm::runtime {
     return VMExitCode::kSysErrIllegalArgument;
   }
 
-  IpldBuffered::IpldBuffered(IpldPtr ipld) : ipld{ipld} {}
+  IpldBuffered::IpldBuffered(IpldPtr ipld) : ipld{std::move(ipld)} {}
 
   outcome::result<void> IpldBuffered::flush(const CID &root) {
     assert(!flushed);
@@ -57,11 +57,11 @@ namespace fc::vm::runtime {
     std::set<CbCid> visited{_root};
     size_t next{};
     while (next < queue.size()) {
-      auto &key{*queue[next++]};
+      const auto &key{*queue[next++]};
       BytesIn value{write.at(key)};
       BytesIn _cid;
       while (codec::cbor::findCid(_cid, value)) {
-        const CbCid *cid;
+        const CbCid *cid = nullptr;
         if (codec::cbor::light_reader::readCborBlake(cid, _cid)) {
           if (auto it{write.find(*cid)};
               it != write.end() && visited.emplace(*cid).second) {
@@ -71,7 +71,7 @@ namespace fc::vm::runtime {
       }
     }
     for (auto it{queue.rbegin()}; it != queue.rend(); ++it) {
-      auto &key{**it};
+      const auto &key{**it};
       OUTCOME_TRY(ipld->set(CID{key}, std::move(write.at(key))));
     }
     write.clear();
@@ -79,7 +79,7 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<bool> IpldBuffered::contains(const CID &cid) const {
-    throw "unused";
+    return ERROR_TEXT("not implemented");
   }
 
   outcome::result<void> IpldBuffered::set(const CID &cid, BytesCow &&value) {
@@ -108,7 +108,7 @@ namespace fc::vm::runtime {
         epoch{tipset->height()},
         ts_branch{std::move(ts_branch)},
         tipset{std::move(tipset)},
-        pricelist{(ChainEpoch)epoch} {
+        pricelist{epoch} {
     setHeight(epoch);
   }
 
@@ -117,6 +117,7 @@ namespace fc::vm::runtime {
     ipld->actor_version = actorVersion(height);
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<Env::Apply> Env::applyMessage(const UnsignedMessage &message,
                                                 size_t size) {
     TokenAmount locked;
@@ -192,7 +193,8 @@ namespace fc::vm::runtime {
     if (exit_code != VMExitCode::kOk) {
       state_tree->txRevert();
     }
-    auto limit{message.gas_limit}, &used{execution->gas_used};
+    auto limit{message.gas_limit};
+    auto &used{execution->gas_used};
     if (used < 0) {
       used = 0;
     }
@@ -207,8 +209,9 @@ namespace fc::vm::runtime {
       }
     }
     BOOST_ASSERT_MSG(used <= limit, "runtime charged gas over limit");
-    auto base_fee{tipset->getParentBaseFee()}, fee_cap{message.gas_fee_cap},
-        base_fee_pay{std::min(base_fee, fee_cap)};
+    auto base_fee{tipset->getParentBaseFee()};
+    auto fee_cap{message.gas_fee_cap};
+    auto base_fee_pay{std::min(base_fee, fee_cap)};
     apply.penalty = base_fee > fee_cap ? TokenAmount{base_fee - fee_cap} * used
                                        : TokenAmount{0};
     if (!no_fee) {
@@ -242,7 +245,7 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<MessageReceipt> Env::applyImplicitMessage(
-      UnsignedMessage message) {
+      const UnsignedMessage &message) {
     auto execution = Execution::make(shared_from_this(), message);
     auto result = execution->send(message);
     MessageReceipt receipt;
@@ -324,6 +327,7 @@ namespace fc::vm::runtime {
     return result;
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<InvocationOutput> Execution::send(
       const UnsignedMessage &message, GasAmount charge) {
     dvm::onSend(message);

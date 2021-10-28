@@ -14,7 +14,7 @@ namespace fc::vm::actor::builtin::types::cron {
 
   struct CronTableEntry {
     Address to_addr;
-    MethodNumber method_num;
+    MethodNumber method_num{};
   };
   CBOR_TUPLE(CronTableEntry, to_addr, method_num)
 }  // namespace fc::vm::actor::builtin::types::cron

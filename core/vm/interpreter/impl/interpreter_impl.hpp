@@ -18,7 +18,7 @@ namespace fc::vm::interpreter {
 
   class InterpreterImpl : public Interpreter {
    public:
-    InterpreterImpl(const EnvironmentContext &env_context,
+    InterpreterImpl(EnvironmentContext env_context,
                     std::shared_ptr<WeightCalculator> weight_calculator);
 
     outcome::result<Result> interpret(TsBranchPtr ts_branch,
@@ -29,7 +29,7 @@ namespace fc::vm::interpreter {
         std::vector<MessageReceipt> *all_receipts) const;
 
    private:
-    bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) const;
+    static bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) ;
     outcome::result<BigInt> getWeight(const TipsetCPtr &tipset) const;
 
     EnvironmentContext env_context_;
