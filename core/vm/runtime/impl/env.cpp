@@ -81,7 +81,7 @@ namespace fc::vm::runtime {
   outcome::result<bool> IpldBuffered::contains(const CID &cid) const {
     // must not be called
     assert(false);
-    return outcome::success();
+    return false;
   }
 
   outcome::result<void> IpldBuffered::set(const CID &cid, BytesCow &&value) {
