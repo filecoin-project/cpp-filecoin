@@ -79,7 +79,9 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<bool> IpldBuffered::contains(const CID &cid) const {
-    return ERROR_TEXT("not implemented");
+    // must not be called
+    assert(false);
+    return outcome::success();
   }
 
   outcome::result<void> IpldBuffered::set(const CID &cid, BytesCow &&value) {
