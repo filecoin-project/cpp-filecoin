@@ -5,14 +5,13 @@
 
 #include "vm/actor/builtin/types/miner/v3/partition.hpp"
 
-#include "vm/runtime/runtime.hpp"
+#include "common/error_text.hpp"
 
 namespace fc::vm::actor::builtin::v3::miner {
   using primitives::RleBitset;
   using types::miner::loadExpirationQueue;
 
   outcome::result<PowerPair> Partition::addSectors(
-      Runtime &runtime,
       bool proven,
       const std::vector<SectorOnChainInfo> &sectors,
       SectorSize ssize,

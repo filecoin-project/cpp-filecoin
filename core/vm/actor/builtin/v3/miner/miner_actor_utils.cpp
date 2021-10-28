@@ -18,7 +18,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                    state->sectors.sectors.get(params.replace_sector),
                    VMExitCode::kErrNotFound);
 
-    OUTCOME_TRY(getRuntime().validateArgument(replace_sector.deals.empty()));
+    VALIDATE_ARG(replace_sector.deals.empty());
 
     REQUIRE_NO_ERROR_A(replace_post_proof,
                        getRegisteredWindowPoStProof(replace_sector.seal_proof),
@@ -26,11 +26,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     REQUIRE_NO_ERROR_A(new_post_proof,
                        getRegisteredWindowPoStProof(params.registered_proof),
                        VMExitCode::kErrIllegalArgument);
-    OUTCOME_TRY(
-        getRuntime().validateArgument(new_post_proof == replace_post_proof));
+    VALIDATE_ARG(new_post_proof == replace_post_proof);
 
-    OUTCOME_TRY(getRuntime().validateArgument(params.expiration
-                                              >= replace_sector.expiration));
+    VALIDATE_ARG(params.expiration >= replace_sector.expiration);
 
     REQUIRE_NO_ERROR(state->checkSectorHealth(params.replace_deadline,
                                               params.replace_partition,

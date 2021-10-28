@@ -4,7 +4,6 @@
  */
 
 #include "test_utils.hpp"
-#include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/types/miner/bitfield_queue.hpp"
 #include "vm/actor/builtin/types/miner/deadline.hpp"
@@ -16,7 +15,6 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::ChainEpoch;
   using primitives::RleBitset;
   using primitives::SectorSize;
-  using runtime::MockRuntime;
   using types::Universal;
   using types::miner::BitfieldQueue;
   using types::miner::Deadline;
@@ -41,14 +39,13 @@ namespace fc::vm::actor::builtin::v2::miner {
     RleBitset posts;
     std::vector<RleBitset> partition_sectors;
 
-    void assertDeadline(MockRuntime &runtime,
-                        const Universal<Deadline> &deadline) const {
+    void assertDeadline(const Universal<Deadline> &deadline) const {
       const auto [all_sectors,
                   all_faults,
                   all_recoveries,
                   all_terminations,
                   all_unproven,
-                  partitions] = checkDeadlineInvariants(runtime, deadline);
+                  partitions] = checkDeadlineInvariants(deadline);
 
       EXPECT_EQ(faults, all_faults);
       EXPECT_EQ(recovering, all_recoveries);
@@ -68,8 +65,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                RleBitset,
                RleBitset,
                std::vector<RleBitset>>
-    checkDeadlineInvariants(MockRuntime &runtime,
-                            const Universal<Deadline> &deadline) const {
+    checkDeadlineInvariants(const Universal<Deadline> &deadline) const {
       std::map<ChainEpoch, std::vector<uint64_t>> expected_deadline_exp_queue;
       RleBitset partitions_with_early_terminations;
 
@@ -99,7 +95,7 @@ namespace fc::vm::actor::builtin::v2::miner {
             all_unproven += partition->unproven;
             all_faulty_power += partition->faulty_power;
 
-            checkPartitionInvariants(runtime, partition);
+            checkPartitionInvariants(partition);
 
             EXPECT_OUTCOME_TRUE(early_terminated_size,
                                 partition->early_terminated.size());
@@ -143,8 +139,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                              partition_sectors);
     }
 
-    void checkPartitionInvariants(MockRuntime &runtime,
-                                  const Universal<Partition> &partition) const {
+    void checkPartitionInvariants(const Universal<Partition> &partition) const {
       const auto live = partition->liveSectors();
       const auto active = partition->activeSectors();
 

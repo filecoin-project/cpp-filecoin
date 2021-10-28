@@ -13,10 +13,6 @@
 
 namespace fc::vm::actor::builtin::v3::market {
 
-  outcome::result<void> MarketUtils::assertCondition(bool condition) const {
-    return getRuntime().requireState(condition);
-  }
-
   outcome::result<void> MarketUtils::checkCallers(
       const Address &provider) const {
     const auto caller = getRuntime().getImmediateCaller();
@@ -36,24 +32,6 @@ namespace fc::vm::actor::builtin::v3::market {
     }
 
     return outcome::success();
-  }
-
-  outcome::result<TokenAmount> MarketUtils::dealGetPaymentRemaining(
-      const DealProposal &deal, ChainEpoch slash_epoch) const {
-    if (slash_epoch > deal.end_epoch) {
-      return ERROR_TEXT("deal slash epoch goes after end epoch");
-    }
-
-    if (slash_epoch < deal.start_epoch) {
-      slash_epoch = deal.start_epoch;
-    }
-
-    const auto duration_remaining = deal.end_epoch - slash_epoch;
-    if (duration_remaining < 0) {
-      return ERROR_TEXT("deal remaining duration negative");
-    }
-
-    return duration_remaining * deal.storage_price_per_epoch;
   }
 
   outcome::result<StoragePower> MarketUtils::getBaselinePowerFromRewardActor()

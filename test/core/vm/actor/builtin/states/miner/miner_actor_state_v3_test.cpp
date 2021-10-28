@@ -564,7 +564,7 @@ namespace fc::vm::actor::builtin::v3::miner {
 
       // deadlines 0 & 1 are closed for assignment right now
       if (dl_id < 2) {
-        dl_state.assertDeadline(runtime, deadline);
+        dl_state.assertDeadline(deadline);
         continue;
       }
 
@@ -586,12 +586,11 @@ namespace fc::vm::actor::builtin::v3::miner {
 
       dl_state.partition_sectors = partitions;
       dl_state.unproven = all_sectors;
-      dl_state.assertDeadline(runtime, deadline);
+      dl_state.assertDeadline(deadline);
 
-      EXPECT_OUTCOME_TRUE(
-          result,
-          deadline->recordProvenSectors(
-              runtime, sectors, ssize, quant, 0, post_partitions));
+      EXPECT_OUTCOME_TRUE(result,
+                          deadline->recordProvenSectors(
+                              sectors, ssize, quant, 0, post_partitions));
 
       EXPECT_EQ(result.sectors, all_sectors);
       EXPECT_TRUE(result.ignored_sectors.empty());

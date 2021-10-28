@@ -9,11 +9,13 @@
 #include "vm/actor/builtin/types/reward/policy.hpp"
 #include "vm/actor/builtin/types/reward/reward_actor_calculus.hpp"
 #include "vm/actor/builtin/v2/miner/miner_actor.hpp"
+#include "vm/toolchain/toolchain.hpp"
 
 namespace fc::vm::actor::builtin::v2::reward {
   using miner::ApplyRewards;
   using primitives::TokenAmount;
   using states::RewardActorStatePtr;
+  using toolchain::Toolchain;
   using namespace types::reward;
 
   ACTOR_METHOD_IMPL(AwardBlockReward) {
@@ -29,7 +31,8 @@ namespace fc::vm::actor::builtin::v2::reward {
     state->total_reward += block_reward;
     OUTCOME_TRY(runtime.commitState(state));
 
-    VM_ASSERT(total_reward <= balance);
+    const auto utils = Toolchain::createRewardUtils(runtime);
+    OUTCOME_TRY(utils->check(total_reward <= balance));
 
     const TokenAmount penalty = kPenaltyMultiplier * params.penalty;
     const ApplyRewards::Params reward_params{.reward = total_reward,

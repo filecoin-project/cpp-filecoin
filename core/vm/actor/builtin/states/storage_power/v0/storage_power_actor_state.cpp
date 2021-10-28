@@ -25,4 +25,8 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     return std::make_tuple(prev_below, still_below);
   }
 
+  outcome::result<void> PowerActorState::check(bool condition) const {
+    return vm_assert(condition);
+  }
+
 }  // namespace fc::vm::actor::builtin::v0::storage_power

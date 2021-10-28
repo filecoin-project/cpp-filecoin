@@ -14,7 +14,6 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::ChainEpoch;
   using primitives::SectorSize;
   using primitives::TokenAmount;
-  using runtime::Runtime;
   using types::Universal;
   using types::miner::DeadlineSectorMap;
   using types::miner::MinerInfo;
@@ -25,7 +24,6 @@ namespace fc::vm::actor::builtin::v2::miner {
     outcome::result<Universal<MinerInfo>> getInfo() const override;
 
     outcome::result<std::vector<SectorOnChainInfo>> rescheduleSectorExpirations(
-        Runtime &runtime,
         ChainEpoch curr_epoch,
         SectorSize ssize,
         const DeadlineSectorMap &deadline_sectors) override;

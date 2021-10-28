@@ -5,15 +5,14 @@
 
 #pragma once
 
-#include "common/outcome.hpp"
+#include "vm/actor/builtin/utils/actor_utils.hpp"
+
 #include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/transit.hpp"
-#include "vm/actor/builtin/utils/actor_utils.hpp"
 #include "vm/exit_code/exit_code.hpp"
-#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::utils {
   using primitives::ChainEpoch;
@@ -22,7 +21,6 @@ namespace fc::vm::actor::builtin::utils {
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using runtime::Runtime;
   using states::DealArray;
   using states::MarketActorStatePtr;
   using types::Controls;
@@ -37,9 +35,8 @@ namespace fc::vm::actor::builtin::utils {
 
     virtual outcome::result<void> checkWithdrawCaller() const = 0;
 
-    virtual outcome::result<void> assertCondition(bool condition) const = 0;
-
-    virtual outcome::result<void> checkCallers(const Address &provider) const = 0;
+    virtual outcome::result<void> checkCallers(
+        const Address &provider) const = 0;
 
     virtual outcome::result<std::tuple<Address, Address, std::vector<Address>>>
     escrowAddress(const Address &address) const = 0;

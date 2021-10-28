@@ -6,13 +6,11 @@
 #include "vm/actor/builtin/types/miner/v0/deadline.hpp"
 
 #include "common/error_text.hpp"
-#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using primitives::RleBitset;
 
   outcome::result<PowerPair> Deadline::recordFaults(
-      Runtime &runtime,
       const Sectors &sectors,
       SectorSize ssize,
       const QuantSpec &quant,
@@ -23,13 +21,10 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     for (const auto &[part_id, sector_nos] : partition_sectors.map) {
       OUTCOME_TRY(partition, this->partitions.get(part_id));
-      OUTCOME_TRY(result,
-                  partition->recordFaults(runtime,
-                                          sectors,
-                                          sector_nos,
-                                          fault_expiration_epoch,
-                                          ssize,
-                                          quant));
+      OUTCOME_TRY(
+          result,
+          partition->recordFaults(
+              sectors, sector_nos, fault_expiration_epoch, ssize, quant));
       const auto &[new_faults,
                    partition_power_delta,
                    partition_new_faulty_power] = result;
@@ -50,8 +45,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   outcome::result<std::tuple<PowerPair, PowerPair>>
-  Deadline::processDeadlineEnd(Runtime &runtime,
-                               const QuantSpec &quant,
+  Deadline::processDeadlineEnd(const QuantSpec &quant,
                                ChainEpoch fault_expiration_epoch) {
     PowerPair new_faulty_power;
     PowerPair failed_recovery_power;
@@ -70,8 +64,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       }
 
       OUTCOME_TRY(result,
-                  partition->recordMissedPostV0(
-                      runtime, fault_expiration_epoch, quant));
+                  partition->recordMissedPostV0(fault_expiration_epoch, quant));
       const auto &[part_faulty_power, part_failed_recovery_power] = result;
 
       if (!part_faulty_power.isZero()) {
@@ -94,7 +87,6 @@ namespace fc::vm::actor::builtin::v0::miner {
   }
 
   outcome::result<PoStResult> Deadline::recordProvenSectors(
-      Runtime &runtime,
       const Sectors &sectors,
       SectorSize ssize,
       const QuantSpec &quant,
@@ -115,10 +107,9 @@ namespace fc::vm::actor::builtin::v0::miner {
       }
 
       OUTCOME_TRY(partition, this->partitions.get(post.index));
-      OUTCOME_TRY(
-          result,
-          partition->recordSkippedFaults(
-              runtime, sectors, ssize, quant, fault_expiration, post.skipped));
+      OUTCOME_TRY(result,
+                  partition->recordSkippedFaults(
+                      sectors, ssize, quant, fault_expiration, post.skipped));
       PowerPair new_fault_power;
       PowerPair retracted_recovery_power;
       std::tie(
@@ -130,7 +121,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       }
 
       OUTCOME_TRY(recovered_power,
-                  partition->recoverFaults(runtime, sectors, ssize, quant));
+                  partition->recoverFaults(sectors, ssize, quant));
       OUTCOME_TRY(this->partitions.set(post.index, partition));
 
       new_faulty_power_total += new_fault_power;
@@ -171,7 +162,6 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<std::vector<SectorOnChainInfo>>
   Deadline::rescheduleSectorExpirations(
-      Runtime &runtime,
       const Sectors &sectors,
       ChainEpoch expiration,
       const PartitionSectorMap &partition_sectors,
@@ -191,7 +181,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       auto &partition = maybe_partition.value();
       OUTCOME_TRY(moved,
                   partition->rescheduleExpirationsV0(
-                      runtime, sectors, expiration, sector_nos, ssize, quant));
+                      sectors, expiration, sector_nos, ssize, quant));
       if (moved.empty()) {
         // nothing moved
         continue;

@@ -60,13 +60,10 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     };
     ACTOR_METHOD_DECL();
 
-    using CapAssert = std::function<outcome::result<void>(bool)>;
-
-    static outcome::result<void> useBytes(const Runtime &runtime,
+    static outcome::result<void> useBytes(Runtime &runtime,
                                           VerifiedRegistryActorStatePtr &state,
                                           const Address &client,
-                                          const StoragePower &deal_size,
-                                          CapAssert cap_assert);
+                                          const StoragePower &deal_size);
   };
   CBOR_TUPLE(UseBytes::Params, address, deal_size)
 

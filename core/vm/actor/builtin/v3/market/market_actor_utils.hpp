@@ -19,12 +19,7 @@ namespace fc::vm::actor::builtin::v3::market {
    public:
     explicit MarketUtils(Runtime &r) : v2::market::MarketUtils(r) {}
 
-    outcome::result<void> assertCondition(bool condition) const override;
-
     outcome::result<void> checkCallers(const Address &provider) const override;
-
-    outcome::result<TokenAmount> dealGetPaymentRemaining(
-        const DealProposal &deal, ChainEpoch slash_epoch) const override;
 
     outcome::result<StoragePower> getBaselinePowerFromRewardActor()
         const override;

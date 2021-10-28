@@ -276,12 +276,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
 
     currentEpochIs(kUpgradeBreezeHeight);
 
-    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kOldErrActorFailure),
-                         UseBytes::call(runtime, {verified_client, deal_size}));
-
-    currentEpochIs(kUpgradeKumquatHeight);
-
-    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kSysErrReserved1),
+    EXPECT_OUTCOME_ERROR(asAbort(VMExitCode::kAssert),
                          UseBytes::call(runtime, {verified_client, deal_size}));
   }
 

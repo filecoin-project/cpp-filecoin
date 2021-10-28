@@ -22,6 +22,7 @@ namespace fc::vm::runtime {
 namespace fc::vm::actor::builtin::types::multisig {
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using runtime::Runtime;
 
   using TransactionId = int64_t;
   using TransactionKeyer = adt::VarintKeyer;
@@ -47,7 +48,7 @@ namespace fc::vm::actor::builtin::types::multisig {
              && params == other.params && approved == other.approved;
     }
 
-    outcome::result<Bytes> hash(fc::vm::runtime::Runtime &runtime) const;
+    outcome::result<Bytes> hash(Runtime &runtime) const;
   };
   CBOR_TUPLE(Transaction, to, value, method, params, approved)
 

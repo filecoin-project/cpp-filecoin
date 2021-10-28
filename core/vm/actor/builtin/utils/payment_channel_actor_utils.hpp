@@ -5,14 +5,12 @@
 
 #pragma once
 
-#include "common/outcome.hpp"
-#include "primitives/address/address.hpp"
 #include "vm/actor/builtin/utils/actor_utils.hpp"
-#include "vm/runtime/runtime.hpp"
+
+#include "primitives/address/address.hpp"
 
 namespace fc::vm::actor::builtin::utils {
   using primitives::address::Address;
-  using runtime::Runtime;
 
   class PaymentChannelUtils : public ActorUtils {
    public:

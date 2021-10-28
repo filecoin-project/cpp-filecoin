@@ -17,7 +17,6 @@ namespace fc::vm::actor::builtin::states {
   using common::smoothing::nextEstimate;
   using primitives::BigInt;
   using primitives::kChainEpochUndefined;
-  using runtime::Runtime;
 
   /** genesis power in bytes = 750,000 GiB */
   static const BigInt kInitialQAPowerEstimatePosition =
@@ -37,11 +36,10 @@ namespace fc::vm::actor::builtin::states {
                                                  << kPrecision128},
         last_processed_cron_epoch(kChainEpochUndefined) {}
 
-  outcome::result<void> PowerActorState::addToClaim(
-      const fc::vm::runtime::Runtime &runtime,
-      const Address &address,
-      const StoragePower &raw,
-      const StoragePower &qa) {
+  outcome::result<void> PowerActorState::addToClaim(const Runtime &runtime,
+                                                    const Address &address,
+                                                    const StoragePower &raw,
+                                                    const StoragePower &qa) {
     OUTCOME_TRY(claim_found, tryGetClaim(address));
     if (!claim_found.has_value()) {
       return VMExitCode::kErrNotFound;
@@ -70,9 +68,9 @@ namespace fc::vm::actor::builtin::states {
       total_raw_power += raw;
       total_qa_power += qa;
     }
-    VM_ASSERT(claim.raw_power >= 0);
-    VM_ASSERT(claim.qa_power >= 0);
-    VM_ASSERT(num_miners_meeting_min_power >= 0);
+    OUTCOME_TRY(check(claim.raw_power >= 0));
+    OUTCOME_TRY(check(claim.qa_power >= 0));
+    OUTCOME_TRY(check(num_miners_meeting_min_power >= 0));
 
     return setClaim(runtime,
                     address,
@@ -87,8 +85,8 @@ namespace fc::vm::actor::builtin::states {
       const StoragePower &raw,
       const StoragePower &qa,
       RegisteredSealProof seal_proof) {
-    VM_ASSERT(raw >= 0);
-    VM_ASSERT(qa >= 0);
+    OUTCOME_TRY(check(raw >= 0));
+    OUTCOME_TRY(check(qa >= 0));
 
     Universal<Claim> claim{runtime.getActorVersion()};
     claim->seal_proof_type = seal_proof;
@@ -120,9 +118,9 @@ namespace fc::vm::actor::builtin::states {
   }
 
   outcome::result<void> PowerActorState::addPledgeTotal(
-      const Runtime &runtime, const TokenAmount &amount) {
+      const TokenAmount &amount) {
     total_pledge_collateral += amount;
-    VM_ASSERT(total_pledge_collateral >= 0);
+    OUTCOME_TRY(check(total_pledge_collateral >= 0));
     return outcome::success();
   }
 

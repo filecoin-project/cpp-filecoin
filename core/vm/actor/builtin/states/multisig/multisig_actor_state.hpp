@@ -24,6 +24,7 @@ namespace fc::vm::actor::builtin::states {
   using primitives::EpochDuration;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using runtime::Runtime;
   using types::multisig::Transaction;
   using types::multisig::TransactionId;
   using types::multisig::TransactionKeyer;
@@ -76,7 +77,7 @@ namespace fc::vm::actor::builtin::states {
      * @return transaction
      */
     outcome::result<Transaction> getTransaction(
-        fc::vm::runtime::Runtime &runtime,
+        Runtime &runtime,
         const TransactionId &tx_id,
         const Bytes &proposal_hash) const;
   };
