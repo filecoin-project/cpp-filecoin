@@ -41,8 +41,8 @@ namespace fc::crypto::secp256k1 {
    private:
     std::unique_ptr<secp256k1_context, void (*)(secp256k1_context *)> context_;
 
-    outcome::result<void> checkSignature(
-        const SignatureCompact &signature) const;
+    static outcome::result<void> checkSignature(
+        const SignatureCompact &signature);
   };
 
 }  // namespace fc::crypto::secp256k1

@@ -14,8 +14,8 @@ namespace fc::markets::pieceio {
   namespace fs = boost::filesystem;
   using primitives::piece::PieceData;
 
-  PieceIOImpl::PieceIOImpl(const boost::filesystem::path &temp_dir)
-      : temp_dir_{temp_dir} {
+  PieceIOImpl::PieceIOImpl(boost::filesystem::path temp_dir)
+      : temp_dir_{std::move(temp_dir)} {
     if (!fs::exists(temp_dir_)) {
       fs::create_directories(temp_dir_);
     }
@@ -29,13 +29,13 @@ namespace fc::markets::pieceio {
       return PieceIOError::kFileNotExist;
     }
 
-    auto copy_path = temp_dir_ / fs::unique_path();
+    const auto copy_path = temp_dir_ / fs::unique_path();
 
     fs::copy_file(path, copy_path);
 
     auto _ = gsl::finally([&copy_path]() { fs::remove_all(copy_path); });
 
-    auto padded_size{proofs::padPiece(copy_path)};
+    const auto padded_size{proofs::padPiece(copy_path)};
 
     static auto proofs{std::make_shared<proofs::ProofEngineImpl>()};
 

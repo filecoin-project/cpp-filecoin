@@ -46,10 +46,10 @@ namespace fc::mining {
     outcome::result<void> waitBeacon();
     outcome::result<void> waitInfo();
     outcome::result<void> prepare();
-    outcome::result<void> submit(BlockTemplate block1);
+    outcome::result<void> submit(const BlockTemplate& block1);
     outcome::result<void> bestParent();
     ChainEpoch height() const;
-    void wait(int64_t sec, bool abs, Scheduler::Callback cb);
+    void wait(uint64_t sec, bool abs, Scheduler::Callback cb);
     outcome::result<boost::optional<BlockTemplate>> prepareBlock();
 
     std::shared_ptr<Scheduler> scheduler;
@@ -57,7 +57,8 @@ namespace fc::mining {
     std::shared_ptr<FullNodeApi> api;
     std::shared_ptr<Prover> prover;
     Address miner;
-    uint64_t block_delay, propagation;
+    uint64_t block_delay{0};
+    uint64_t propagation{0};
     boost::optional<Tipset> ts;
     BigInt weight;
     size_t skip{};

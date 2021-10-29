@@ -95,7 +95,7 @@ namespace fc::storage::ipfs::graphsync {
   };
 
   struct Response {
-    ResponseStatusCode status;
+    ResponseStatusCode status{};
     std::vector<Extension> extensions;
     std::vector<Data> data;
   };

@@ -21,6 +21,7 @@ namespace fc::fslock {
         const std::string &file_lock_path);
 
    private:
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
     static boost::interprocess::named_mutex mutex;
   };
 

@@ -34,8 +34,8 @@ namespace fc::fslock {
     }
   }
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   boost::interprocess::named_mutex Locker::mutex =
-      boost::interprocess::named_mutex(
-          boost::interprocess::open_or_create,
-          "fslock");
+      boost::interprocess::named_mutex(boost::interprocess::open_or_create,
+                                       "fslock");
 }  // namespace fc::fslock

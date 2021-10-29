@@ -41,7 +41,12 @@ namespace fc::mining {
   class SealingImpl : public Sealing,
                       public std::enable_shared_from_this<SealingImpl> {
    public:
+    SealingImpl(const SealingImpl &) = delete;
+    SealingImpl(SealingImpl &&) = delete;
     ~SealingImpl() override;
+
+    SealingImpl &operator=(const SealingImpl &) = delete;
+    SealingImpl &operator=(SealingImpl &&) = delete;
 
     static outcome::result<std::shared_ptr<SealingImpl>> newSealing(
         std::shared_ptr<FullNodeApi> api,

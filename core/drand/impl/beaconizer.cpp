@@ -57,10 +57,10 @@ namespace fc::drand {
         MOVE(clock),
         MOVE(scheduler),
         info{info},
-        peers_{drand_servers},
+        peers_{std::move(drand_servers)},
         cache_{max_cache_size},
         bls_{std::make_unique<crypto::bls::BlsProviderImpl>()} {
-    assert(!drand_servers.empty());
+    assert(!peers_.empty());
     assert(max_cache_size != 0);
     rotatePeersIndex();
   }
@@ -96,7 +96,7 @@ namespace fc::drand {
                                      self->peers_[self->peer_index_],
                                      error);
                        self->rotatePeersIndex();
-                       // TODO: retry
+                       // TODO(turuslan): retry
                        return cb(error);
                      });
     }};
@@ -160,7 +160,8 @@ namespace fc::drand {
 
   void BeaconizerImpl::rotatePeersIndex() {
     boost::random::mt19937 rng;
-    boost::random::uniform_int_distribution<> generator(0, peers_.size() - 1);
+    boost::random::uniform_int_distribution<> generator(
+        0, gsl::narrow<int>(peers_.size()) - 1);
     auto new_index = generator(rng);
     peer_index_.store(new_index);
   }

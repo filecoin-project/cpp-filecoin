@@ -21,18 +21,18 @@
     deal->state = to;                                               \
   }
 
-#define FSM_HALT_ON_ERROR(result, msg, deal)                            \
-  if (result.has_error()) {                                             \
-    deal->message = msg + std::string(". ") + result.error().message(); \
-    FSM_SEND(deal, ProviderEvent::ProviderEventFailed);                 \
-    return;                                                             \
+#define FSM_HALT_ON_ERROR(result, msg, deal)                                  \
+  if ((result).has_error()) {                                                 \
+    (deal)->message = (msg) + std::string(". ") + (result).error().message(); \
+    FSM_SEND((deal), ProviderEvent::ProviderEventFailed);                     \
+    return;                                                                   \
   }
 
-#define SELF_FSM_HALT_ON_ERROR(result, msg, deal)                       \
-  if (result.has_error()) {                                             \
-    deal->message = msg + std::string(". ") + result.error().message(); \
-    SELF_FSM_SEND(deal, ProviderEvent::ProviderEventFailed);            \
-    return;                                                             \
+#define SELF_FSM_HALT_ON_ERROR(result, msg, deal)                             \
+  if ((result).has_error()) {                                                 \
+    (deal)->message = (msg) + std::string(". ") + (result).error().message(); \
+    SELF_FSM_SEND((deal), ProviderEvent::ProviderEventFailed);                \
+    return;                                                                   \
   }
 
 namespace fc::markets::storage::provider {
@@ -59,7 +59,7 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<FullNodeApi> api,
       std::shared_ptr<SectorBlocks> sector_blocks,
       std::shared_ptr<ChainEvents> chain_events,
-      const Address &miner_actor_address,
+      Address miner_actor_address,
       std::shared_ptr<PieceIO> piece_io,
       std::shared_ptr<FileStore> filestore)
       : host_{std::move(host)},
@@ -68,12 +68,12 @@ namespace fc::markets::storage::provider {
         api_{std::move(api)},
         sector_blocks_{std::move(sector_blocks)},
         chain_events_{std::move(chain_events)},
-        miner_actor_address_{miner_actor_address},
+        miner_actor_address_{std::move(miner_actor_address)},
         piece_io_{std::move(piece_io)},
         piece_storage_{std::move(piece_storage)},
-        filestore_{filestore},
-        ipld_{ipld},
-        datatransfer_{datatransfer} {}
+        filestore_{std::move(filestore)},
+        ipld_{std::move(ipld)},
+        datatransfer_{std::move(datatransfer)} {}
 
   std::shared_ptr<MinerDeal> StorageProviderImpl::getDealPtr(
       const CID &proposal_cid) {
@@ -243,7 +243,7 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<bool> StorageProviderImpl::verifyDealProposal(
-      std::shared_ptr<MinerDeal> deal) const {
+      const std::shared_ptr<MinerDeal> &deal) const {
     auto proposal = deal->client_deal_proposal.proposal;
     OUTCOME_TRY(proposal_bytes, codec::cbor::encode(proposal));
     OUTCOME_TRY(
@@ -318,7 +318,8 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<boost::optional<CID>>
-  StorageProviderImpl::ensureProviderFunds(std::shared_ptr<MinerDeal> deal) {
+  StorageProviderImpl::ensureProviderFunds(
+      const std::shared_ptr<MinerDeal> &deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     auto proposal = deal->client_deal_proposal.proposal;
     OUTCOME_TRY(worker_info,
@@ -356,7 +357,7 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<void> StorageProviderImpl::sendSignedResponse(
-      std::shared_ptr<MinerDeal> deal) {
+      const std::shared_ptr<MinerDeal> &deal) {
     Response response{.state = deal->state,
                       .message = deal->message,
                       .proposal = deal->proposal_cid};
@@ -381,7 +382,7 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<PieceLocation> StorageProviderImpl::locatePiece(
-      std::shared_ptr<MinerDeal> deal) {
+      const std::shared_ptr<MinerDeal> &deal) {
     OUTCOME_TRY(piece_refs, sector_blocks_->getRefs(deal->deal_id));
 
     boost::optional<PieceLocation> piece_location;
@@ -400,11 +401,12 @@ namespace fc::markets::storage::provider {
       return StorageProviderError::kNotFoundSector;
     }
 
-    return std::move(piece_location.get());
+    return piece_location.get();
   }
 
   outcome::result<void> StorageProviderImpl::recordPieceInfo(
-      std::shared_ptr<MinerDeal> deal, const PieceLocation &piece_location) {
+      const std::shared_ptr<MinerDeal> &deal,
+      const PieceLocation &piece_location) {
     std::map<CID, PayloadLocation> locations;
     if (!deal->metadata_path.empty()) {
       // TODO (a.chernyshov) load block locations from metadata file
@@ -434,7 +436,7 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<void> StorageProviderImpl::finalizeDeal(
-      std::shared_ptr<MinerDeal> deal) {
+      const std::shared_ptr<MinerDeal> &deal) {
     std::lock_guard<std::mutex> lock(connections_mutex_);
     auto stream_it = connections_.find(deal->proposal_cid);
     if (stream_it != connections_.end()) {
@@ -513,10 +515,11 @@ namespace fc::markets::storage::provider {
             .action(CALLBACK_ACTION(onProviderEventFailed))};
   }
 
-  void StorageProviderImpl::onProviderEventOpen(std::shared_ptr<MinerDeal> deal,
-                                                ProviderEvent event,
-                                                StorageDealStatus from,
-                                                StorageDealStatus to) {
+  void StorageProviderImpl::onProviderEventOpen(
+      const std::shared_ptr<MinerDeal> &deal,
+      ProviderEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {
     auto verified = verifyDealProposal(deal);
     FSM_HALT_ON_ERROR(verified, "Deal proposal verify error", deal);
     if (!verified.value()) {
@@ -527,7 +530,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealAccepted(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -547,7 +550,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventWaitingForManualData(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -555,7 +558,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventFundingInitiated(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -578,7 +581,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventFunded(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -589,7 +592,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDataTransferInitiated(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -597,7 +600,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDataTransferCompleted(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -615,7 +618,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventVerifiedData(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -633,7 +636,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealPublishInitiated(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -669,11 +672,11 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealPublished(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO hand off
+    // TODO(a.chernyshov): hand off
     auto &p{deal->client_deal_proposal.proposal};
     OUTCOME_EXCEPT(sector_blocks_->addPiece(
         p.piece_size.unpadded(),
@@ -687,7 +690,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealHandedOff(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -701,7 +704,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealActivated(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -710,11 +713,11 @@ namespace fc::markets::storage::provider {
     FSM_HALT_ON_ERROR(recordPieceInfo(deal, maybe_piece_location.value()),
                       "Record piece failed",
                       deal);
-    // TODO: wait expiration
+    // TODO(a.chernyshov): wait expiration
   }
 
   void StorageProviderImpl::onProviderEventDealCompleted(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal>& deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -726,7 +729,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventFailed(
-      std::shared_ptr<MinerDeal> deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -773,7 +776,7 @@ namespace fc::markets::storage::provider {
             [_provider, stream](auto _request) {
               if (_request) {
                 auto &request{_request.value()};
-                // TODO: check client signature
+                // TODO(a.chernyshov): check client signature
                 if (auto provider{_provider.lock()}) {
                   if (auto _deal{provider->getDeal(request.proposal)}) {
                     auto &deal{_deal.value()};

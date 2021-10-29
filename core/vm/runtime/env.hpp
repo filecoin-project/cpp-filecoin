@@ -32,7 +32,7 @@ namespace fc::vm::runtime {
    * @return key address
    */
   outcome::result<Address> resolveKey(StateTree &state_tree,
-                                      IpldPtr ipld,
+                                      const IpldPtr &ipld,
                                       const Address &address,
                                       bool allow_actor = true);
 
@@ -68,7 +68,7 @@ namespace fc::vm::runtime {
                                         size_t size);
 
     outcome::result<MessageReceipt> applyImplicitMessage(
-        UnsignedMessage message);
+        const UnsignedMessage& message);
 
     std::shared_ptr<IpldBuffered> ipld;
     std::shared_ptr<StateTreeImpl> state_tree;
@@ -96,11 +96,11 @@ namespace fc::vm::runtime {
     std::shared_ptr<Env> env;
     std::shared_ptr<StateTreeImpl> state_tree;
     IpldPtr charging_ipld;
-    GasAmount gas_used;
-    GasAmount gas_limit;
+    GasAmount gas_used{0};
+    GasAmount gas_limit{0};
     Address origin;
-    Nonce origin_nonce;
-    size_t actors_created{};
+    Nonce origin_nonce{0};
+    size_t actors_created{0};
   };
 
   struct ChargingIpld : Ipld {

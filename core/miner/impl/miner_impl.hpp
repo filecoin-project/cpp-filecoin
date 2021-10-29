@@ -34,12 +34,12 @@ namespace fc::miner {
    public:
     static outcome::result<std::shared_ptr<MinerImpl>> newMiner(
         std::shared_ptr<FullNodeApi> api,
-        Address miner_address,
-        Address worker_address,
+        const Address &miner_address,
+        const Address &worker_address,
         std::shared_ptr<Counter> counter,
         std::shared_ptr<BufferMap> sealing_fsm_kv,
         std::shared_ptr<Manager> sector_manager,
-        std::shared_ptr<Scheduler> scheduler,
+        const std::shared_ptr<Scheduler>& scheduler,
         std::shared_ptr<boost::asio::io_context> context,
         const mining::Config &config,
         const std::vector<Address> &precommit_control);

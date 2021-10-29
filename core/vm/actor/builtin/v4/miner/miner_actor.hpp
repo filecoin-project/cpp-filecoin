@@ -9,7 +9,7 @@
 
 namespace fc::vm::actor::builtin::v4::miner {
 
-  // TODO implement
+  // TODO(m.tagirov): implement
   using Construct = v3::miner::Construct;
   using ControlAddresses = v3::miner::ControlAddresses;
   using ChangeWorkerAddress = v3::miner::ChangeWorkerAddress;

@@ -15,12 +15,16 @@ namespace fc {
         : io{std::make_shared<boost::asio::io_context>()},
           work{io->get_executor()},
           thread{[this] { io->run(); }} {}
+    IoThread(const IoThread &) = delete;
+    IoThread(IoThread &&) = delete;
     inline ~IoThread() {
       io->stop();
       if (thread.joinable()) {
         thread.join();
       }
     }
+    IoThread &operator=(const IoThread &) = delete;
+    IoThread &operator=(IoThread &&) = delete;
 
     std::shared_ptr<boost::asio::io_context> io;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type>

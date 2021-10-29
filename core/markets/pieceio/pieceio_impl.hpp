@@ -16,7 +16,7 @@ namespace fc::markets::pieceio {
 
   class PieceIOImpl : public PieceIO {
    public:
-    explicit PieceIOImpl(const boost::filesystem::path &temp_dir);
+    explicit PieceIOImpl(boost::filesystem::path temp_dir);
 
     outcome::result<std::pair<CID, UnpaddedPieceSize>> generatePieceCommitment(
         const RegisteredSealProof &registered_proof,

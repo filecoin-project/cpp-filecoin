@@ -54,7 +54,7 @@ namespace fc {
                                                    const std::string *ip = {}) {
     if (auto port{nonZeroPort(addr)}) {
       if (isZeroIp(addr)) {
-        if (ip) {
+        if (ip != nullptr) {
           return Multiaddress::create(fmt::format("/ip4/{}/tcp/{}", *ip, *port))
               .value();
         }
