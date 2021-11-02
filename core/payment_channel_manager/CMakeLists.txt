@@ -4,6 +4,7 @@
 #
 
 add_library(payment_channel_manager
+    impl/maker.cpp
     impl/payment_channel_manager_impl.cpp
     impl/payment_channel_manager_error.cpp
     )

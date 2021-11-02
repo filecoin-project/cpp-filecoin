@@ -185,7 +185,7 @@ namespace fc::storage::blockchain {
       const auto confidence{head->height() - wait.ts->height()};
       for (auto it2{wait.callbacks.begin()}; it2 != wait.callbacks.end();) {
         if (confidence >= it2->first) {
-          it2->second(wait.ts, wait.receipt);
+          io->post(std::bind(std::move(it2->second), wait.ts, wait.receipt));
           it2 = wait.callbacks.erase(it2);
         } else {
           ++it2;
