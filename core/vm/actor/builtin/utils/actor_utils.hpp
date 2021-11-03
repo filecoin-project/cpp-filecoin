@@ -5,10 +5,8 @@
 
 #pragma once
 
+#include "common/outcome.hpp"
 #include "vm/runtime/runtime.hpp"
-
-#define UTILS_VM_ASSERT(condition) \
-  OUTCOME_TRY(getRuntime().vm_assert(condition))
 
 namespace fc::vm::actor::builtin::utils {
   using runtime::Runtime;
@@ -17,6 +15,12 @@ namespace fc::vm::actor::builtin::utils {
    public:
     explicit ActorUtils(Runtime &r) : runtime_(r) {}
     virtual ~ActorUtils() = default;
+
+    inline outcome::result<void> check(bool condition) const {
+      return runtime_.getActorVersion() < ActorVersion::kVersion3
+                 ? vm_assert(condition)
+                 : requireState(condition);
+    }
 
    protected:
     inline Runtime &getRuntime() const {

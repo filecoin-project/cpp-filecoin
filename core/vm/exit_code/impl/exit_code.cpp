@@ -43,8 +43,15 @@ namespace fc::vm {
     return outcome::failure(error);
   }
 
-  std::error_code catchAbort(const std::error_code &error) {
+  std::error_code catchAbort(const std::error_code &error,
+                             version::NetworkVersion version) {
     if (isAbortExitCode(error)) {
+      // VM Assert error is virtual error and must be replaced with some real
+      if (static_cast<VMExitCode>(error.value()) == VMExitCode::kAssert) {
+        return version <= version::NetworkVersion::kVersion3
+                   ? VMExitCode::kOldErrActorFailure
+                   : VMExitCode::kSysErrReserved1;
+      }
       return VMExitCode{error.value()};
     }
     return error;

@@ -20,8 +20,8 @@ namespace fc::storage::piece {
    * Information about a single deal for a given piece
    */
   struct DealInfo {
-    DealId deal_id;
-    SectorNumber sector_id;
+    DealId deal_id{};
+    SectorNumber sector_id{};
     PaddedPieceSize offset;
     PaddedPieceSize length;
 

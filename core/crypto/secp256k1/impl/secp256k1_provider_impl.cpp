@@ -46,17 +46,18 @@ namespace fc::crypto::secp256k1 {
       const PrivateKey &key) const {
     secp256k1_pubkey pubkey;
 
-    if (!secp256k1_ec_pubkey_create(context_.get(), &pubkey, key.data())) {
+    if (secp256k1_ec_pubkey_create(context_.get(), &pubkey, key.data()) == 0) {
       return Secp256k1Error::kKeyGenerationFailed;
     }
 
     PublicKeyUncompressed public_key{};
     size_t outputlen = kPublicKeyUncompressedLength;
-    if (!secp256k1_ec_pubkey_serialize(context_.get(),
-                                       public_key.data(),
-                                       &outputlen,
-                                       &pubkey,
-                                       SECP256K1_EC_UNCOMPRESSED)) {
+    if (secp256k1_ec_pubkey_serialize(context_.get(),
+                                      public_key.data(),
+                                      &outputlen,
+                                      &pubkey,
+                                      SECP256K1_EC_UNCOMPRESSED)
+        == 0) {
       return Secp256k1Error::kPubkeySerializationError;
     }
 
@@ -66,21 +67,23 @@ namespace fc::crypto::secp256k1 {
   outcome::result<PublicKeyUncompressed> Secp256k1ProviderImpl::sign(
       gsl::span<const uint8_t> message, const PrivateKey &key) const {
     secp256k1_ecdsa_recoverable_signature sig_struct;
-    if (!secp256k1_ecdsa_sign_recoverable(context_.get(),
-                                          &sig_struct,
-                                          message.data(),
-                                          key.cbegin(),
-                                          secp256k1_nonce_function_rfc6979,
-                                          nullptr)) {
+    if (secp256k1_ecdsa_sign_recoverable(context_.get(),
+                                         &sig_struct,
+                                         message.data(),
+                                         key.cbegin(),
+                                         secp256k1_nonce_function_rfc6979,
+                                         nullptr)
+        == 0) {
       return Secp256k1Error::kCannotSignError;
     }
     SignatureCompact signature{};
     int recid = 0;
-    if (!secp256k1_ecdsa_recoverable_signature_serialize_compact(
-            context_.get(), signature.data(), &recid, &sig_struct)) {
+    if (secp256k1_ecdsa_recoverable_signature_serialize_compact(
+            context_.get(), signature.data(), &recid, &sig_struct)
+        == 0) {
       return Secp256k1Error::kSignatureSerializationError;
     }
-    signature[64] = (uint8_t)recid;
+    signature[64] = static_cast<uint8_t>(recid);
     return signature;
   }
 
@@ -93,16 +96,19 @@ namespace fc::crypto::secp256k1 {
     secp256k1_ecdsa_signature sig;
     secp256k1_pubkey pubkey;
 
-    if (!secp256k1_ecdsa_signature_parse_compact(
-            context_.get(), &sig, signature.data())) {
+    if (secp256k1_ecdsa_signature_parse_compact(
+            context_.get(), &sig, signature.data())
+        == 0) {
       return Secp256k1Error::kSignatureParseError;
     }
-    if (!secp256k1_ec_pubkey_parse(
-            context_.get(), &pubkey, key.data(), key.size())) {
+    if (secp256k1_ec_pubkey_parse(
+            context_.get(), &pubkey, key.data(), key.size())
+        == 0) {
       return Secp256k1Error::kPubkeyParseError;
     }
-    return (secp256k1_ecdsa_verify(
-        context_.get(), &sig, message.data(), &pubkey) == 1);
+    return (
+        secp256k1_ecdsa_verify(context_.get(), &sig, message.data(), &pubkey)
+        == 1);
   }
 
   outcome::result<PublicKeyUncompressed>
@@ -114,21 +120,27 @@ namespace fc::crypto::secp256k1 {
     secp256k1_ecdsa_recoverable_signature sig_rec;
     secp256k1_pubkey pubkey;
 
-    if (!secp256k1_ecdsa_recoverable_signature_parse_compact(
-            context_.get(), &sig_rec, signature.data(), (int)signature[64])) {
+    if (secp256k1_ecdsa_recoverable_signature_parse_compact(
+            context_.get(),
+            &sig_rec,
+            signature.data(),
+            static_cast<int>(signature[64]))
+        == 0) {
       return Secp256k1Error::kSignatureParseError;
     }
-    if (!secp256k1_ecdsa_recover(
-            context_.get(), &pubkey, &sig_rec, message.data())) {
+    if (secp256k1_ecdsa_recover(
+            context_.get(), &pubkey, &sig_rec, message.data())
+        == 0) {
       return Secp256k1Error::kRecoverError;
     }
     PublicKeyUncompressed pubkey_out;
     size_t outputlen = kPublicKeyUncompressedLength;
-    if (!secp256k1_ec_pubkey_serialize(context_.get(),
-                                       pubkey_out.data(),
-                                       &outputlen,
-                                       &pubkey,
-                                       SECP256K1_EC_UNCOMPRESSED)) {
+    if (secp256k1_ec_pubkey_serialize(context_.get(),
+                                      pubkey_out.data(),
+                                      &outputlen,
+                                      &pubkey,
+                                      SECP256K1_EC_UNCOMPRESSED)
+        == 0) {
       return Secp256k1Error::kPubkeySerializationError;
     }
 
@@ -136,7 +148,7 @@ namespace fc::crypto::secp256k1 {
   }
 
   outcome::result<void> Secp256k1ProviderImpl::checkSignature(
-      const SignatureCompact &signature) const {
+      const SignatureCompact &signature) {
     if (signature[64] > 3) {
       return Secp256k1Error::kSignatureParseError;
     }

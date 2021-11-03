@@ -18,7 +18,7 @@ namespace fc::vm::runtime {
    public:
     RuntimeImpl(std::shared_ptr<Execution> execution,
                 UnsignedMessage message,
-                const Address &caller_id);
+                Address caller_id);
 
     std::shared_ptr<Execution> execution() const override;
 

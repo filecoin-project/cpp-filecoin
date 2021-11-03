@@ -23,6 +23,7 @@
 
 #include "api/full_node/make.hpp"
 #include "api/network/setup_net.hpp"
+#include "api/impl/paych_get.hpp"
 #include "api/setup_common.hpp"
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
@@ -380,11 +381,29 @@ namespace fc::node {
     assert(genesis_cids.size() == 1);
     config.genesis_cid = genesis_cids[0];
 
+    const auto genesis{o.ts_load->load(*TipsetKey::make(genesis_cids)).value()};
+    const clock::UnixTime genesis_timestamp{genesis->blks[0].timestamp};
+
+    log()->info("Genesis: {}, timestamp {}",
+                config.genesis_cid.value().toString().value(),
+                clock::unixTimeToString(genesis_timestamp));
+
+    const drand::ChainInfo drand_chain_info{
+        .key = *config.drand_bls_pubkey,
+        .genesis = std::chrono::seconds(*config.drand_genesis),
+        .period = std::chrono::seconds(*config.drand_period),
+    };
+
+    const auto drand_schedule{std::make_shared<drand::DrandScheduleImpl>(
+        drand_chain_info,
+        genesis_timestamp,
+        std::chrono::seconds(kEpochDurationSeconds))};
+
     o.env_context.ts_branches_mutex = ts_mutex;
     o.env_context.ipld = o.ipld;
     o.env_context.invoker = std::make_shared<vm::actor::InvokerImpl>();
     o.env_context.randomness = std::make_shared<vm::runtime::TipsetRandomness>(
-        o.ts_load, o.env_context.ts_branches_mutex);
+        o.ts_load, o.env_context.ts_branches_mutex, drand_schedule);
     o.env_context.ts_load = o.ts_load;
     o.env_context.interpreter_cache =
         std::make_shared<vm::interpreter::InterpreterCache>(
@@ -412,15 +431,8 @@ namespace fc::node {
     o.compacter->ts_main = o.ts_main;
     o.compacter->open();
 
-    OUTCOME_EXCEPT(genesis, o.ts_load->load(*TipsetKey::make(genesis_cids)));
     OUTCOME_TRY(initNetworkName(*genesis, o.ipld, config));
     log()->info("Network name: {}", *config.network_name);
-
-    auto genesis_timestamp = clock::UnixTime(genesis->blks[0].timestamp);
-
-    log()->info("Genesis: {}, timestamp {}",
-                config.genesis_cid.value().toString().value(),
-                clock::unixTimeToString(genesis_timestamp));
 
     o.utc_clock = std::make_shared<clock::UTCClockImpl>();
 
@@ -587,12 +599,6 @@ namespace fc::node {
       }
     }
 
-    drand::ChainInfo drand_chain_info{
-        .key = *config.drand_bls_pubkey,
-        .genesis = std::chrono::seconds(*config.drand_genesis),
-        .period = std::chrono::seconds(*config.drand_period),
-    };
-
     if (config.drand_servers.empty()) {
       config.drand_servers.emplace_back("https://127.0.0.1:8080");
     }
@@ -604,11 +610,6 @@ namespace fc::node {
                                                 drand_chain_info,
                                                 config.drand_servers,
                                                 config.beaconizer_cache_size);
-
-    auto drand_schedule = std::make_shared<drand::DrandScheduleImpl>(
-        drand_chain_info,
-        genesis_timestamp,
-        std::chrono::seconds(kEpochDurationSeconds));
 
     o.markets_ipld = o.ipld_leveldb;
     o.api = std::make_shared<api::FullNodeApi>();
@@ -634,6 +635,11 @@ namespace fc::node {
                           o.market_discovery,
                           o.retrieval_market_client,
                           o.wallet_default_address);
+    api::implPaychGet(
+        o.api,
+        std::make_shared<paych_maker::PaychMaker>(
+            o.api,
+            std::make_shared<storage::MapPrefix>("paych_maker/", o.kv_store)));
 
     api::fillAuthApi(o.api, api_secret, api::kNodeApiLogger);
 

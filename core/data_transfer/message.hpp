@@ -61,12 +61,12 @@ namespace fc::data_transfer {
 
   struct DataTransferMessage {
     DataTransferMessage() = default;
-    DataTransferMessage(DataTransferRequest request)
+    explicit DataTransferMessage(DataTransferRequest request)
         : is_request{true}, request{std::move(request)} {}
-    DataTransferMessage(DataTransferResponse response)
-        : is_request{false}, response{std::move(response)} {}
+    explicit DataTransferMessage(DataTransferResponse response)
+        : response{std::move(response)} {}
 
-    bool is_request{};
+    bool is_request{false};
     boost::optional<DataTransferRequest> request;
     boost::optional<DataTransferResponse> response;
 

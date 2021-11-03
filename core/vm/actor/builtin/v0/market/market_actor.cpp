@@ -35,7 +35,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
   ACTOR_METHOD_IMPL(AddBalance) {
     const BigInt message_value = runtime.getValueReceived();
-    OUTCOME_TRY(runtime.validateArgument(message_value > 0));
+    VALIDATE_ARG(message_value > 0);
     OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
 
     const auto utils = Toolchain::createMarketUtils(runtime);
@@ -63,7 +63,7 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 
   ACTOR_METHOD_IMPL(WithdrawBalance) {
-    OUTCOME_TRY(runtime.validateArgument(params.amount >= 0));
+    VALIDATE_ARG(params.amount >= 0);
     const auto utils = Toolchain::createMarketUtils(runtime);
     OUTCOME_TRY(utils->checkWithdrawCaller());
     OUTCOME_TRY(addresses, utils->escrowAddress(params.address));
@@ -86,7 +86,7 @@ namespace fc::vm::actor::builtin::v0::market {
 
   ACTOR_METHOD_IMPL(PublishStorageDeals) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
-    OUTCOME_TRY(runtime.validateArgument(!params.deals.empty()));
+    VALIDATE_ARG(!params.deals.empty());
 
     const auto provider_raw{params.deals[0].proposal.provider};
     CHANGE_ERROR_ABORT_A(provider,
@@ -94,12 +94,11 @@ namespace fc::vm::actor::builtin::v0::market {
                          VMExitCode::kErrNotFound);
 
     const auto code_id = runtime.getActorCodeID(provider);
-    OUTCOME_TRY(runtime.validateArgument(!code_id.has_error()));
+    VALIDATE_ARG(!code_id.has_error());
 
     const auto address_matcher =
         Toolchain::createAddressMatcher(runtime.getActorVersion());
-    OUTCOME_TRY(runtime.validateArgument(
-        code_id.value() == address_matcher->getStorageMinerCodeId()));
+    VALIDATE_ARG(code_id.value() == address_matcher->getStorageMinerCodeId());
 
     const auto utils = Toolchain::createMarketUtils(runtime);
 
@@ -133,8 +132,7 @@ namespace fc::vm::actor::builtin::v0::market {
           client_deals, baseline_power, network_raw_power, network_qa_power));
 
       auto deal{client_deals.proposal};
-      OUTCOME_TRY(runtime.validateArgument(deal.provider == provider
-                                           || deal.provider == provider_raw));
+      VALIDATE_ARG(deal.provider == provider || deal.provider == provider_raw);
 
       CHANGE_ERROR_ABORT_A(client,
                            runtime.resolveAddress(deal.client),
@@ -143,7 +141,7 @@ namespace fc::vm::actor::builtin::v0::market {
       resolved_addresses[deal.client] = client;
       deal.client = client;
 
-      REQUIRE_NO_ERROR(state->lockClientAndProviderBalances(runtime, deal),
+      REQUIRE_NO_ERROR(state->lockClientAndProviderBalances(deal),
                        VMExitCode::kErrIllegalState);
 
       const auto deal_id = state->next_deal++;
@@ -151,7 +149,7 @@ namespace fc::vm::actor::builtin::v0::market {
       REQUIRE_NO_ERROR_A(has,
                          state->pending_proposals->has(deal.cid()),
                          VMExitCode::kErrIllegalState);
-      OUTCOME_TRY(runtime.validateArgument(!has));
+      VALIDATE_ARG(!has);
 
       REQUIRE_NO_ERROR(state->pending_proposals->set(deal.cid(), deal),
                        VMExitCode::kErrIllegalState);
@@ -181,8 +179,7 @@ namespace fc::vm::actor::builtin::v0::market {
       const auto &deal = client_deal.proposal;
       if (deal.verified) {
         const auto resolved_client = resolved_addresses.find(deal.client);
-        OUTCOME_TRY(runtime.validateArgument(resolved_client
-                                             != resolved_addresses.end()));
+        VALIDATE_ARG(resolved_client != resolved_addresses.end());
 
         REQUIRE_SUCCESS(utils->callVerifRegUseBytes(deal));
       }
@@ -234,7 +231,7 @@ namespace fc::vm::actor::builtin::v0::market {
       REQUIRE_NO_ERROR_A(has_deal_state,
                          state->states.has(deal_id),
                          VMExitCode::kErrIllegalState);
-      OUTCOME_TRY(runtime.validateArgument(!has_deal_state));
+      VALIDATE_ARG(!has_deal_state);
 
       REQUIRE_NO_ERROR_A(proposal,
                          state->proposals.get(deal_id),
@@ -281,8 +278,7 @@ namespace fc::vm::actor::builtin::v0::market {
       const auto &deal = maybe_deal.value();
 
       const auto utils = Toolchain::createMarketUtils(runtime);
-      OUTCOME_TRY(utils->assertCondition(deal.provider
-                                         == runtime.getImmediateCaller()));
+      OUTCOME_TRY(utils->check(deal.provider == runtime.getImmediateCaller()));
 
       // do not slash expired deals
       if (deal.end_epoch <= params.epoch) {
@@ -292,7 +288,7 @@ namespace fc::vm::actor::builtin::v0::market {
       REQUIRE_NO_ERROR_A(maybe_deal_state,
                          state->states.tryGet(deal_id),
                          VMExitCode::kErrIllegalState);
-      OUTCOME_TRY(runtime.validateArgument(maybe_deal_state.has_value()));
+      VALIDATE_ARG(maybe_deal_state.has_value());
       auto &deal_state = maybe_deal_state.value();
 
       // if a deal is already slashed, we don't need to do anything here
@@ -333,7 +329,7 @@ namespace fc::vm::actor::builtin::v0::market {
     }
     const auto result =
         runtime.computeUnsealedSectorCid(params.sector_type, pieces);
-    OUTCOME_TRY(runtime.validateArgument(!result.has_error()));
+    VALIDATE_ARG(!result.has_error());
     return result;
   }
 
@@ -377,8 +373,8 @@ namespace fc::vm::actor::builtin::v0::market {
           // deal has been published but not activated yet -> terminate it as it
           // has timed out
           if (!maybe_deal_state.has_value()) {
-            OUTCOME_TRY(utils->assertCondition(now >= deal.start_epoch));
-            OUTCOME_TRY(slashed, state->processDealInitTimedOut(runtime, deal));
+            OUTCOME_TRY(utils->check(now >= deal.start_epoch));
+            OUTCOME_TRY(slashed, state->processDealInitTimedOut(deal));
             slashed_sum += slashed;
             if (deal.verified) {
               timed_out_verified.push_back(deal);
@@ -403,17 +399,16 @@ namespace fc::vm::actor::builtin::v0::market {
                           runtime, deal_id, deal, deal_state, now));
           const auto &[slash_amount, next_epoch, remove_deal] = slashed_next;
 
-          OUTCOME_TRY(utils->assertCondition(slash_amount >= 0));
+          OUTCOME_TRY(utils->check(slash_amount >= 0));
           if (remove_deal) {
-            OUTCOME_TRY(
-                utils->assertCondition(next_epoch == kChainEpochUndefined));
+            OUTCOME_TRY(utils->check(next_epoch == kChainEpochUndefined));
             slashed_sum += slash_amount;
             REQUIRE_NO_ERROR(
                 utils->deleteDealProposalAndState(state, deal_id, true, true),
                 VMExitCode::kErrIllegalState);
           } else {
-            OUTCOME_TRY(utils->assertCondition((next_epoch > now)
-                                               && (slash_amount == 0)));
+            OUTCOME_TRY(
+                utils->check((next_epoch > now) && (slash_amount == 0)));
             deal_state.last_updated_epoch = now;
             REQUIRE_NO_ERROR(state->states.set(deal_id, deal_state),
                              VMExitCode::kErrIllegalState);

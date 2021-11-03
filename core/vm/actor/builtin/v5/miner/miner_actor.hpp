@@ -13,7 +13,7 @@ namespace fc::vm::actor::builtin::v5::miner {
   using primitives::RleBitset;
   using types::miner::SectorPreCommitInfo;
 
-  // TODO implement
+  // TODO(m.tagirov): implement
   using Construct = v4::miner::Construct;
   using ControlAddresses = v4::miner::ControlAddresses;
   using ChangeWorkerAddress = v4::miner::ChangeWorkerAddress;

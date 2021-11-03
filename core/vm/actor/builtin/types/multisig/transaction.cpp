@@ -8,7 +8,6 @@
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::types::multisig {
-  using runtime::Runtime;
 
   outcome::result<Bytes> Transaction::hash(Runtime &runtime) const {
     ProposalHashData hash_data(*this);
@@ -16,4 +15,5 @@ namespace fc::vm::actor::builtin::types::multisig {
     OUTCOME_TRY(hash, runtime.hashBlake2b(to_hash));
     return copy(gsl::make_span(hash));
   }
+
 }  // namespace fc::vm::actor::builtin::types::multisig

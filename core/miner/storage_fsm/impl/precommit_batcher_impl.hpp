@@ -41,10 +41,16 @@ namespace fc::mining {
     struct PreCommitEntry {
       PreCommitEntry() = default;
 
+      PreCommitEntry(const PreCommitEntry &) = delete;
+      PreCommitEntry(PreCommitEntry &&) = delete;
+
       PreCommitEntry(const TokenAmount &number,
                      const SectorPreCommitInfo &info);
 
-      PreCommitEntry &operator=(const PreCommitEntry &other) = default;
+      ~PreCommitEntry() = default;
+
+      PreCommitEntry &operator=(const PreCommitEntry &other) noexcept = default;
+      PreCommitEntry &operator=(PreCommitEntry &&) noexcept = default;
 
       TokenAmount deposit{};
       SectorPreCommitInfo precommit_info;

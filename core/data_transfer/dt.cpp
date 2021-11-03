@@ -30,7 +30,8 @@ namespace fc::data_transfer {
   using libp2p::protocol::Subscription;
   using storage::ipld::kAllSelector;
 
-  void _read(std::weak_ptr<DataTransfer> _dt, std::shared_ptr<CborStream> s) {
+  void _read(const std::weak_ptr<DataTransfer> &_dt,
+             const std::shared_ptr<CborStream> &s) {
     if (_dt.expired()) {
       return s->close();
     }
@@ -50,13 +51,15 @@ namespace fc::data_transfer {
     return {kExtension, Bytes{codec::cbor::encode(msg).value()}};
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   std::shared_ptr<DataTransfer> DataTransfer::make(
-      std::shared_ptr<Host> host, std::shared_ptr<Graphsync> gs) {
+      std::shared_ptr<Host> host, const std::shared_ptr<Graphsync> &gs) {
     auto dt{std::make_shared<DataTransfer>()};
     dt->host = host;
     dt->streams = std::make_shared<StreamOpenQueue>(host, kStreamOpenMax);
     dt->gs = gs;
     gs->setRequestHandler(
+        // NOLINTNEXTLINE(readability-function-cognitive-complexity)
         [_dt{weaken(dt)}](auto pgsid, auto req) {
           auto dt{_dt.lock()};
           if (!dt) {
@@ -66,8 +69,8 @@ namespace fc::data_transfer {
           OUTCOME_EXCEPT(msg, codec::cbor::decode<DataTransferMessage>(ext));
           PeerDtId pdtid{pgsid.peer, msg.dtid()};
           if (msg.is_request) {
-            auto &req{*msg.request};
-            auto it{dt->on_pull.find(req.voucher_type)};
+            const auto &req{*msg.request};
+            const auto it{dt->on_pull.find(req.voucher_type)};
             if (!req.is_pull || it == dt->on_pull.end()
                 || dt->pulling_in.count(pdtid)) {
               return dt->rejectPull(pdtid, pgsid, {}, {});
@@ -154,7 +157,7 @@ namespace fc::data_transfer {
         PushingOut{
             root, std::move(ipld), std::move(on_begin), std::move(on_end), {}});
     dtSend(peer,
-           DataTransferRequest{
+           DataTransferMessage{DataTransferRequest{
                root,
                MessageType::kNewMessage,
                false,
@@ -164,7 +167,7 @@ namespace fc::data_transfer {
                CborRaw{std::move(voucher)},
                std::move(type),
                dtid,
-           });
+           }});
   }
 
   void DataTransfer::acceptPush(const PeerDtId &pdtid,
@@ -175,37 +178,37 @@ namespace fc::data_transfer {
         {pdtid.peer, {}},
         root,
         kAllSelector.b,
-        {makeExt(DataTransferResponse{
+        {makeExt(DataTransferMessage{DataTransferResponse{
             MessageType::kNewMessage,
             true,
             false,
             pdtid.id,
             {},
             {},
-        })},
+        }})},
         [this, pdtid, MOVE(on_end), sub](auto code, auto) {
           if (gsns::isTerminal(code)) {
             auto ok{code == gsns::ResponseStatusCode::RS_FULL_CONTENT};
             if (ok) {
               dtSend(pdtid.peer,
-                     DataTransferResponse{
+                     DataTransferMessage{DataTransferResponse{
                          MessageType::kCompleteMessage,
                          true,
                          false,
                          pdtid.id,
                          {},
                          {},
-                     });
+                     }});
             }
             on_end(ok);
           }
         });
   }
 
-  void DataTransfer::rejectPush(const PeerDtId &pdtid) {
+  void DataTransfer::rejectPush(const PeerDtId &pdtid) const {
     dtSend(pdtid.peer,
-           DataTransferResponse{
-               MessageType::kCompleteMessage, false, false, pdtid.id, {}, {}});
+           DataTransferMessage{DataTransferResponse{
+               MessageType::kCompleteMessage, false, false, pdtid.id, {}, {}}});
   }
 
   PeerDtId DataTransfer::pull(const PeerInfo &peer,
@@ -223,7 +226,7 @@ namespace fc::data_transfer {
         peer,
         root,
         selector.b,
-        {makeExt(DataTransferRequest{
+        {makeExt(DataTransferMessage{DataTransferRequest{
             root,
             MessageType::kNewMessage,
             false,
@@ -233,7 +236,7 @@ namespace fc::data_transfer {
             CborRaw{std::move(voucher)},
             std::move(type),
             dtid,
-        })},
+        }})},
         [this, peer, MOVE(on_cid), sub](auto, auto ext) {
           if (auto _ext{gsns::Extension::find(gsns::kResponseMetadataProtocol,
                                               ext)}) {
@@ -254,9 +257,9 @@ namespace fc::data_transfer {
 
   void DataTransfer::pullOut(const PeerDtId &pdtid,
                              std::string type,
-                             Bytes voucher) {
+                             Bytes voucher) const {
     dtSend(pdtid.peer,
-           DataTransferRequest{
+           DataTransferMessage{DataTransferRequest{
                {},
                MessageType::kVoucherMessage,
                false,
@@ -266,26 +269,26 @@ namespace fc::data_transfer {
                CborRaw{std::move(voucher)},
                std::move(type),
                pdtid.id,
-           });
+           }});
   }
 
   void DataTransfer::acceptPull(const PeerDtId &pdtid,
                                 const PeerGsId &pgsid,
                                 std::string type,
-                                Bytes voucher) {
+                                Bytes voucher) const {
     assert(pdtid.peer == pgsid.peer);
     gs->postResponse(
         pgsid,
         {
             gsns::ResponseStatusCode::RS_PARTIAL_RESPONSE,
-            {DataTransfer::makeExt(data_transfer::DataTransferResponse{
+            {DataTransfer::makeExt(DataTransferMessage{DataTransferResponse{
                 data_transfer::MessageType::kNewMessage,
                 true,
                 false,
                 pdtid.id,
                 CborRaw{std::move(voucher)},
                 std::move(type),
-            })},
+            }})},
             {},
         });
   }
@@ -293,27 +296,28 @@ namespace fc::data_transfer {
   void DataTransfer::rejectPull(const PeerDtId &pdtid,
                                 const PeerGsId &pgsid,
                                 std::string type,
-                                boost::optional<CborRaw> voucher) {
+                                boost::optional<CborRaw> voucher) const {
     assert(pdtid.peer == pgsid.peer);
     gs->postResponse(pgsid,
                      {
                          gsns::ResponseStatusCode::RS_REJECTED,
-                         {makeExt(DataTransferResponse{
+                         {makeExt(DataTransferMessage{DataTransferResponse{
                              MessageType::kCompleteMessage,
                              false,
                              false,
                              pdtid.id,
                              std::move(voucher),
                              std::move(type),
-                         })},
+                         }})},
                          {},
                      });
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   void DataTransfer::onMsg(const PeerId &peer, const DataTransferMessage &msg) {
     PeerDtId pdtid{peer, msg.dtid()};
     if (msg.is_request) {
-      auto &req{*msg.request};
+      const auto &req{*msg.request};
       if (req.voucher) {
         if (req.base_cid) {
           auto it{on_push.find(req.voucher_type)};
@@ -330,7 +334,7 @@ namespace fc::data_transfer {
       }
       rejectPush(pdtid);
     } else {
-      auto &res{*msg.response};
+      const auto &res{*msg.response};
       auto _pull{pulling_out.find(pdtid)};
       if (_pull != pulling_out.end()) {
         if (!res.voucher) {
@@ -353,12 +357,12 @@ namespace fc::data_transfer {
   }
 
   void DataTransfer::dtSend(const PeerId &peer,
-                            const DataTransferMessage &msg) {
+                            const DataTransferMessage &msg) const {
     dtSend({peer, {}}, msg);
   }
 
   void DataTransfer::dtSend(const PeerInfo &peer,
-                            const DataTransferMessage &msg) {
+                            const DataTransferMessage &msg) const {
     streams->open({
         peer,
         kProtocol,

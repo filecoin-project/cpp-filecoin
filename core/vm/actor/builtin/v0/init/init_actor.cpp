@@ -47,7 +47,7 @@ namespace fc::vm::actor::builtin::v0::init {
     const auto caller_code_id =
         runtime.getActorCodeID(runtime.getImmediateCaller());
     const auto utils = Toolchain::createInitActorUtils(runtime);
-    OUTCOME_TRY(utils->assertCaller(!caller_code_id.has_error()));
+    OUTCOME_TRY(utils->check(!caller_code_id.has_error()));
     if (!canExec(runtime, caller_code_id.value(), params.code)) {
       ABORT(VMExitCode::kErrForbidden);
     }

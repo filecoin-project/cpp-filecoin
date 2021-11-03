@@ -11,20 +11,20 @@ namespace fc::vm::actor::builtin::v3::market {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::TokenAmount;
+  using runtime::Runtime;
   using types::market::DealProposal;
   using types::market::DealState;
 
   struct MarketActorState : v2::market::MarketActorState {
-    outcome::result<void> processDealExpired(const runtime::Runtime &runtime,
-                                             const DealProposal &deal,
-                                             const DealState &deal_state);
-
     outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
-    updatePendingDealState(runtime::Runtime &runtime,
+    updatePendingDealState(Runtime &runtime,
                            DealId deal_id,
                            const DealProposal &deal,
                            const DealState &deal_state,
-                           ChainEpoch epoch);
+                           ChainEpoch epoch) override;
+
+   protected:
+    outcome::result<void> check(bool condition) const override;
   };
   CBOR_TUPLE(MarketActorState,
              proposals,

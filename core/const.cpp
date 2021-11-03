@@ -202,7 +202,7 @@ namespace fc {
     kUpgradeNorwegianHeight = -13;
     kUpgradeActorsV4Height = -14;
     kUpgradeHyperdriveHeight = -15;
-    kUpgradeChocolateHeight = -17;
+    kUpgradeChocolateHeight = INT64_MAX;
 
     kBreezeGasTampingDuration = 0;
 

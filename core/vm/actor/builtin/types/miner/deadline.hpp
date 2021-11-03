@@ -25,6 +25,7 @@ namespace fc::vm::runtime {
 
 namespace fc::vm::actor::builtin::types::miner {
   using primitives::RleBitset;
+  using runtime::Runtime;
 
   constexpr size_t kPartitionsBitWidth = 3;
   constexpr size_t kExpirationsBitWidth = 5;
@@ -98,8 +99,7 @@ namespace fc::vm::actor::builtin::types::miner {
         const RleBitset &partition_set,
         const QuantSpec &quant);
 
-    outcome::result<ExpirationSet> popExpiredSectors(Runtime &runtime,
-                                                     ChainEpoch until,
+    outcome::result<ExpirationSet> popExpiredSectors(ChainEpoch until,
                                                      const QuantSpec &quant);
 
     outcome::result<PowerPair> addSectors(
@@ -111,13 +111,12 @@ namespace fc::vm::actor::builtin::types::miner {
         const QuantSpec &quant);
 
     outcome::result<std::tuple<TerminationResult, bool>> popEarlyTerminations(
-        Runtime &runtime, uint64_t max_partitions, uint64_t max_sectors);
+        uint64_t max_partitions, uint64_t max_sectors);
 
     outcome::result<std::tuple<RleBitset, bool>> popExpiredPartitions(
         ChainEpoch until, const QuantSpec &quant);
 
     outcome::result<PowerPair> terminateSectors(
-        Runtime &runtime,
         const Sectors &sectors,
         ChainEpoch epoch,
         const PartitionSectorMap &partition_sectors,
@@ -130,7 +129,6 @@ namespace fc::vm::actor::builtin::types::miner {
                      const QuantSpec &quant);
 
     virtual outcome::result<PowerPair> recordFaults(
-        Runtime &runtime,
         const Sectors &sectors,
         SectorSize ssize,
         const QuantSpec &quant,
@@ -143,12 +141,10 @@ namespace fc::vm::actor::builtin::types::miner {
         const PartitionSectorMap &partition_sectors);
 
     virtual outcome::result<std::tuple<PowerPair, PowerPair>>
-    processDeadlineEnd(Runtime &runtime,
-                       const QuantSpec &quant,
+    processDeadlineEnd(const QuantSpec &quant,
                        ChainEpoch fault_expiration_epoch) = 0;
 
     virtual outcome::result<PoStResult> recordProvenSectors(
-        Runtime &runtime,
         const Sectors &sectors,
         SectorSize ssize,
         const QuantSpec &quant,
@@ -156,8 +152,7 @@ namespace fc::vm::actor::builtin::types::miner {
         const std::vector<PoStPartition> &post_partitions) = 0;
 
     virtual outcome::result<std::vector<SectorOnChainInfo>>
-    rescheduleSectorExpirations(Runtime &runtime,
-                                const Sectors &sectors,
+    rescheduleSectorExpirations(const Sectors &sectors,
                                 ChainEpoch expiration,
                                 const PartitionSectorMap &partition_sectors,
                                 SectorSize ssize,

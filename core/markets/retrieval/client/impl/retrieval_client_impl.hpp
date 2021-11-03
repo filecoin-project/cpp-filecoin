@@ -35,10 +35,10 @@ namespace fc::markets::retrieval::client {
   struct DealState {
     DealState(const DealProposal &proposal,
               const IpldPtr &ipld,
-              const RetrieveResponseHandler &handler,
-              const Address &client_wallet,
-              const Address &miner_wallet,
-              const TokenAmount &total_funds);
+              RetrieveResponseHandler handler,
+              Address client_wallet,
+              Address miner_wallet,
+              TokenAmount total_funds);
 
     DealProposal proposal;
     State state;
@@ -55,7 +55,7 @@ namespace fc::markets::retrieval::client {
     Address payment_channel_address;
 
     /** Payment channel lane */
-    LaneId lane_id;
+    LaneId lane_id{};
 
     /**
      * Received ipld blocks verifier
@@ -97,6 +97,18 @@ namespace fc::markets::retrieval::client {
         const RetrieveResponseHandler &handler) override;
 
    private:
+    /**
+     * Callback for datatransfer pull on data
+     */
+    void onPullData(const std::shared_ptr<DealState> &deal,
+                    const std::string &type,
+                    BytesIn voucher);
+
+    /**
+     * Callback for datatransfer pull on cid
+     */
+    void onPullCid(const std::shared_ptr<DealState> &deal, const CID &);
+
     /**
      * Get libp2p PeerInfo with multiaddresses
      * @param provider_peer

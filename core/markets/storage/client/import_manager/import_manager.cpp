@@ -21,8 +21,9 @@ namespace fc::markets::storage::client::import_manager {
 
   ImportManager::ImportManager(
       std::shared_ptr<PersistentBufferMap> imports_storage,
-      const boost::filesystem::path &imports_dir)
-      : imported_{std::move(imports_storage)}, imports_dir_{imports_dir} {
+      boost::filesystem::path imports_dir)
+      : imported_{std::move(imports_storage)},
+        imports_dir_{std::move(imports_dir)} {
     boost::filesystem::create_directories(imports_dir_);
   }
 

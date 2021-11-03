@@ -57,16 +57,16 @@ namespace fc::miner {
 
   outcome::result<std::shared_ptr<MinerImpl>> MinerImpl::newMiner(
       std::shared_ptr<FullNodeApi> api,
-      Address miner_address,
-      Address worker_address,
+      const Address &miner_address,
+      const Address &worker_address,
       std::shared_ptr<Counter> counter,
       std::shared_ptr<BufferMap> sealing_fsm_kv,
       std::shared_ptr<Manager> sector_manager,
-      std::shared_ptr<Scheduler> scheduler,
+      const std::shared_ptr<Scheduler> &scheduler,
       std::shared_ptr<boost::asio::io_context> context,
       const mining::Config &config,
       const std::vector<Address>
-          &precommit_control) {  // TODO: Commit Batcher extension
+          &precommit_control) {  // TODO(ortyomka): Commit Batcher extension
     // Checks miner worker address
     OUTCOME_TRY(key, api->StateAccountKey(worker_address, {}));
     OUTCOME_TRY(has, api->WalletHas(key));
@@ -79,9 +79,7 @@ namespace fc::miner {
                 api->StateMinerProvingDeadline(miner_address, TipsetKey{}));
 
     std::shared_ptr<TipsetCache> tipset_cache =
-        std::make_shared<TipsetCacheImpl>(
-            2 * kGlobalChainConfidence,
-            api);
+        std::make_shared<TipsetCacheImpl>(2 * kGlobalChainConfidence, api);
     OUTCOME_TRY(events, EventsImpl::createEvents(api, tipset_cache));
     std::shared_ptr<PreCommitPolicy> precommit_policy =
         std::make_shared<BasicPreCommitPolicy>(
@@ -90,7 +88,7 @@ namespace fc::miner {
             kMaxSectorExpirationExtension - 2 * kWPoStProvingPeriod);
     std::shared_ptr<FeeConfig> fee_config = std::make_shared<FeeConfig>();
     fee_config->max_precommit_batch_gas_fee.base = {
-        0};  // TODO: config loading;
+        0};  // TODO(ortyomka): config loading;
     fee_config->max_precommit_batch_gas_fee.per_sector =
         TokenAmount{"2000000000000000"};
     fee_config->max_precommit_gas_fee = TokenAmount{"25000000000000000"};
@@ -111,11 +109,11 @@ namespace fc::miner {
                 SealingImpl::newSealing(api,
                                         events,
                                         miner_address,
-                                        counter,
-                                        sealing_fsm_kv,
-                                        sector_manager,
+                                        std::move(counter),
+                                        std::move(sealing_fsm_kv),
+                                        std::move(sector_manager),
                                         precommit_policy,
-                                        context,
+                                        std::move(context),
                                         scheduler,
                                         precommit_batcher,
                                         config));
@@ -137,10 +135,8 @@ namespace fc::miner {
 OUTCOME_CPP_DEFINE_CATEGORY(fc::miner, MinerError, e) {
   using E = fc::miner::MinerError;
 
-  switch (e) {
-    case E::kWorkerNotFound:
-      return "MinerError: key for worker not found in local wallet";
-    default:
-      return "MinerError: unknown error";
+  if (e == E::kWorkerNotFound) {
+    return "MinerError: key for worker not found in local wallet";
   }
+  return "MinerError: unknown error";
 }

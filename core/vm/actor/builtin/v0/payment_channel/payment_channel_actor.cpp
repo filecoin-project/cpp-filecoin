@@ -65,31 +65,29 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
                        runtime.verifySignatureBytes(
                            signature_bytes, signer, voucher_signable_bytes),
                        VMExitCode::kErrIllegalArgument);
-    OUTCOME_TRY(runtime.validateArgument(verified));
+    VALIDATE_ARG(verified);
     return outcome::success();
   }
 
   outcome::result<void> UpdateChannelState::checkPaychannelAddr(
       const Runtime &runtime, const SignedVoucher &voucher) {
     const auto paych_addr = runtime.getCurrentReceiver();
-    OUTCOME_TRY(runtime.validateArgument(paych_addr == voucher.channel));
+    VALIDATE_ARG(paych_addr == voucher.channel);
     return outcome::success();
   }
 
   outcome::result<void> UpdateChannelState::checkVoucher(
       Runtime &runtime, const Bytes &secret, const SignedVoucher &voucher) {
-    OUTCOME_TRY(runtime.validateArgument(runtime.getCurrentEpoch()
-                                         >= voucher.time_lock_min));
-    OUTCOME_TRY(runtime.validateArgument(voucher.time_lock_max == 0
-                                         || runtime.getCurrentEpoch()
-                                                <= voucher.time_lock_max));
-    OUTCOME_TRY(runtime.validateArgument(voucher.amount.sign() >= 0));
+    VALIDATE_ARG(runtime.getCurrentEpoch() >= voucher.time_lock_min);
+    VALIDATE_ARG(voucher.time_lock_max == 0
+                 || runtime.getCurrentEpoch() <= voucher.time_lock_max);
+    VALIDATE_ARG(voucher.amount.sign() >= 0);
 
     if (!voucher.secret_preimage.empty()) {
       OUTCOME_TRY(hash, runtime.hashBlake2b(secret));
       auto secret_preimage_copy = voucher.secret_preimage;
-      OUTCOME_TRY(runtime.validateArgument(
-          gsl::make_span(hash) == gsl::make_span(secret_preimage_copy)));
+      VALIDATE_ARG(gsl::make_span(hash)
+                   == gsl::make_span(secret_preimage_copy));
     }
     return outcome::success();
   }
@@ -112,8 +110,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       PaymentChannelActorStatePtr &state,
       const SignedVoucher &voucher) {
     OUTCOME_TRY(lanes_size, state->lanes.size());
-    OUTCOME_TRY(runtime.validateArgument((lanes_size <= kLaneLimit)
-                                         && (voucher.lane <= kLaneLimit)));
+    VALIDATE_ARG((lanes_size <= kLaneLimit) && (voucher.lane <= kLaneLimit));
 
     REQUIRE_NO_ERROR_A(maybe_state_lane,
                        state->lanes.tryGet(voucher.lane),
@@ -124,22 +121,22 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
                                : LaneState{{}, {}};
 
     if (maybe_state_lane.has_value()) {
-      OUTCOME_TRY(runtime.validateArgument(state_lane.nonce < voucher.nonce));
+      VALIDATE_ARG(state_lane.nonce < voucher.nonce);
     }
 
     BigInt redeem = 0;
     for (const auto &merge : voucher.merges) {
-      OUTCOME_TRY(runtime.validateArgument(merge.lane != voucher.lane));
-      OUTCOME_TRY(runtime.validateArgument(merge.lane <= kLaneLimit));
+      VALIDATE_ARG(merge.lane != voucher.lane);
+      VALIDATE_ARG(merge.lane <= kLaneLimit);
 
       REQUIRE_NO_ERROR_A(maybe_lane,
                          state->lanes.tryGet(merge.lane),
                          VMExitCode::kErrIllegalState);
-      OUTCOME_TRY(runtime.validateArgument(maybe_lane.has_value()));
+      VALIDATE_ARG(maybe_lane.has_value());
 
       auto &lane = maybe_lane.value();
 
-      OUTCOME_TRY(runtime.validateArgument(lane.nonce < merge.nonce));
+      VALIDATE_ARG(lane.nonce < merge.nonce);
 
       redeem += lane.redeem;
       lane.nonce = merge.nonce;
@@ -152,8 +149,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     TokenAmount send_balance = state->to_send + balance_delta;
 
     OUTCOME_TRY(balance, runtime.getCurrentBalance());
-    OUTCOME_TRY(runtime.validateArgument((send_balance >= 0)
-                                         && (send_balance <= balance)));
+    VALIDATE_ARG((send_balance >= 0) && (send_balance <= balance));
     state->to_send = send_balance;
 
     if (voucher.min_close_height != 0) {

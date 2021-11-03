@@ -35,7 +35,7 @@ namespace fc::data_transfer {
   using DtId = uint64_t;
   struct PeerDtId {
     PeerId peer{codec::cbor::kDefaultT<PeerId>()};
-    DtId id;
+    DtId id{};
   };
   inline auto operator==(const PeerDtId &l, const PeerDtId &r) {
     return l.peer == r.peer && l.id == r.id;
@@ -56,14 +56,15 @@ namespace fc::data_transfer {
     struct PushingOut {
       CID root;
       IpldPtr ipld;
-      OkCb on_begin, on_end;
+      OkCb on_begin;
+      OkCb on_end;
       boost::optional<Traverser> traverser;
     };
 
     static gsns::Extension makeExt(const DataTransferMessage &msg);
 
-    static std::shared_ptr<DataTransfer> make(std::shared_ptr<Host> host,
-                                              std::shared_ptr<Graphsync> gs);
+    static std::shared_ptr<DataTransfer> make(
+        std::shared_ptr<Host> host, const std::shared_ptr<Graphsync> &gs);
 
     void push(const PeerInfo &peer,
               const CID &root,
@@ -73,7 +74,7 @@ namespace fc::data_transfer {
               OkCb on_begin,
               OkCb on_end);
     void acceptPush(const PeerDtId &pdtid, const CID &root, OkCb on_end);
-    void rejectPush(const PeerDtId &pdtid);
+    void rejectPush(const PeerDtId &pdtid) const;
     PeerDtId pull(const PeerInfo &peer,
                   const CID &root,
                   Selector selector,
@@ -81,19 +82,19 @@ namespace fc::data_transfer {
                   Bytes voucher,
                   OnData on_reply,
                   OnCid on_cid);
-    void pullOut(const PeerDtId &pdtid, std::string type, Bytes voucher);
+    void pullOut(const PeerDtId &pdtid, std::string type, Bytes voucher) const;
     void acceptPull(const PeerDtId &pdtid,
                     const PeerGsId &pgsid,
                     std::string type,
-                    Bytes voucher);
+                    Bytes voucher) const;
     void rejectPull(const PeerDtId &pdtid,
                     const PeerGsId &pgsid,
                     std::string type,
-                    boost::optional<CborRaw> voucher);
+                    boost::optional<CborRaw> voucher) const;
 
     void onMsg(const PeerId &peer, const DataTransferMessage &msg);
-    void dtSend(const PeerId &peer, const DataTransferMessage &msg);
-    void dtSend(const PeerInfo &peer, const DataTransferMessage &msg);
+    void dtSend(const PeerId &peer, const DataTransferMessage &msg) const;
+    void dtSend(const PeerInfo &peer, const DataTransferMessage &msg) const;
 
     std::shared_ptr<Host> host;
     std::shared_ptr<StreamOpenQueue> streams;
@@ -106,6 +107,6 @@ namespace fc::data_transfer {
     std::unordered_map<PeerDtId, OnData> pulling_in;
     // TODO(turuslan): FIL-420 check cache memory usage
     std::unordered_map<PeerDtId, PushingOut> pushing_out;
-    DtId next_dtid;
+    DtId next_dtid = 0;
   };
 }  // namespace fc::data_transfer

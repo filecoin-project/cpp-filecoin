@@ -5,6 +5,8 @@
 
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
+#include <utility>
+
 #include "const.hpp"
 #include "primitives/tipset/load.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
@@ -43,9 +45,9 @@ namespace fc::vm::interpreter {
   using runtime::MessageReceipt;
 
   InterpreterImpl::InterpreterImpl(
-      const EnvironmentContext &env_context,
+      EnvironmentContext env_context,
       std::shared_ptr<WeightCalculator> weight_calculator)
-      : env_context_{env_context},
+      : env_context_{std::move(env_context)},
         weight_calculator_{std::move(weight_calculator)} {}
 
   outcome::result<Result> InterpreterImpl::interpret(
@@ -61,11 +63,12 @@ namespace fc::vm::interpreter {
     return applyBlocks(ts_branch, tipset, {});
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<Result> InterpreterImpl::applyBlocks(
       TsBranchPtr ts_branch,
       const TipsetCPtr &tipset,
       std::vector<MessageReceipt> *all_receipts) const {
-    auto &ipld{env_context_.ipld};
+    const auto &ipld{env_context_.ipld};
 
     auto on_receipt{[&](auto &receipt) {
       if (all_receipts) {
@@ -157,7 +160,7 @@ namespace fc::vm::interpreter {
   }
 
   bool InterpreterImpl::hasDuplicateMiners(
-      const std::vector<BlockHeader> &blocks) const {
+      const std::vector<BlockHeader> &blocks) {
     std::set<Address> set;
     for (const auto &block : blocks) {
       if (!set.insert(block.miner).second) {

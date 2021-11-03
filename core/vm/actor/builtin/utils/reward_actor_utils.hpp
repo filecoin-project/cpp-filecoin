@@ -9,7 +9,7 @@
 
 namespace fc::vm::actor::builtin::utils {
 
-  using InitUtils = ActorUtils;
-  using InitUtilsPtr = std::shared_ptr<InitUtils>;
+  using RewardUtils = ActorUtils;
+  using RewardUtilsPtr = std::shared_ptr<RewardUtils>;
 
 }  // namespace fc::vm::actor::builtin::utils

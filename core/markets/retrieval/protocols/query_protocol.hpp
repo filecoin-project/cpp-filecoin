@@ -79,13 +79,13 @@ namespace fc::markets::retrieval {
    */
   struct QueryResponse {
     /* Current response status */
-    QueryResponseStatus response_status;
+    QueryResponseStatus response_status{};
 
     /* Current item status */
-    QueryItemStatus item_status;
+    QueryItemStatus item_status{};
 
     /* Size of the requested piece in bytes */
-    size_t item_size;
+    size_t item_size{};
 
     /* Address to send tokens, may be different than miner address */
     Address payment_address;
@@ -95,10 +95,10 @@ namespace fc::markets::retrieval {
 
     /* Max number of bytes a provider will send before requesting next payment
      */
-    uint64_t payment_interval;
+    uint64_t payment_interval{};
 
     /* Max rate at which previous value increases */
-    uint64_t interval_increase;
+    uint64_t interval_increase{};
 
     /* Optional text message */
     std::string message;

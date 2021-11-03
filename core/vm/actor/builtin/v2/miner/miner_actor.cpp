@@ -113,11 +113,9 @@ namespace fc::vm::actor::builtin::v2::miner {
     const auto current_epoch = runtime.getCurrentEpoch();
     const auto network_version = runtime.getNetworkVersion();
 
-    OUTCOME_TRY(
-        runtime.validateArgument(params.deadline < kWPoStPeriodDeadlines));
+    VALIDATE_ARG(params.deadline < kWPoStPeriodDeadlines);
 
-    OUTCOME_TRY(runtime.validateArgument(params.chain_commit_rand.size()
-                                         <= kRandomnessLength));
+    VALIDATE_ARG(params.chain_commit_rand.size() <= kRandomnessLength);
 
     RleBitset partition_indexes;
     if (network_version >= NetworkVersion::kVersion7) {
@@ -137,15 +135,13 @@ namespace fc::vm::actor::builtin::v2::miner {
     callers.emplace_back(miner_info->worker);
     OUTCOME_TRY(runtime.validateImmediateCallerIs(callers));
 
-    OUTCOME_TRY(runtime.validateArgument(params.proofs.size() == 1));
-    OUTCOME_TRY(
-        runtime.validateArgument(params.proofs[0].registered_proof
-                                 == miner_info->window_post_proof_type));
+    VALIDATE_ARG(params.proofs.size() == 1);
+    VALIDATE_ARG(params.proofs[0].registered_proof
+                 == miner_info->window_post_proof_type);
 
     const auto submission_partition_limit = utils->loadPartitionsSectorsMax(
         miner_info->window_post_partition_sectors);
-    OUTCOME_TRY(runtime.validateArgument(params.partitions.size()
-                                         <= submission_partition_limit));
+    VALIDATE_ARG(params.partitions.size() <= submission_partition_limit);
 
     const auto deadline_info = state->deadlineInfo(current_epoch);
 
@@ -153,22 +149,18 @@ namespace fc::vm::actor::builtin::v2::miner {
       ABORT(VMExitCode::kErrIllegalState);
     }
 
-    OUTCOME_TRY(
-        runtime.validateArgument(params.deadline == deadline_info.index));
+    VALIDATE_ARG(params.deadline == deadline_info.index);
 
-    OUTCOME_TRY(runtime.validateArgument(params.chain_commit_epoch
-                                         >= deadline_info.challenge));
+    VALIDATE_ARG(params.chain_commit_epoch >= deadline_info.challenge);
 
-    OUTCOME_TRY(
-        runtime.validateArgument(params.chain_commit_epoch < current_epoch));
+    VALIDATE_ARG(params.chain_commit_epoch < current_epoch);
 
     OUTCOME_TRY(
         randomness,
         runtime.getRandomnessFromTickets(DomainSeparationTag::PoStChainCommit,
                                          params.chain_commit_epoch,
                                          {}));
-    OUTCOME_TRY(
-        runtime.validateArgument(randomness == params.chain_commit_rand));
+    VALIDATE_ARG(randomness == params.chain_commit_rand);
 
     REQUIRE_NO_ERROR_A(
         sectors, state->sectors.loadSectors(), VMExitCode::kErrIllegalState);
@@ -183,13 +175,12 @@ namespace fc::vm::actor::builtin::v2::miner {
     if (network_version >= NetworkVersion::kVersion7) {
       const auto already_proven =
           deadline->partitions_posted.intersect(partition_indexes);
-      OUTCOME_TRY(runtime.validateArgument(already_proven.empty()));
+      VALIDATE_ARG(already_proven.empty());
     }
 
     const auto fault_expiration = deadline_info.last() + kFaultMaxAge;
     REQUIRE_NO_ERROR_A(post_result,
-                       deadline->recordProvenSectors(runtime,
-                                                     sectors,
+                       deadline->recordProvenSectors(sectors,
                                                      miner_info->sector_size,
                                                      deadline_info.quant(),
                                                      fault_expiration,
@@ -201,7 +192,7 @@ namespace fc::vm::actor::builtin::v2::miner {
         sectors.loadForProof(post_result.sectors, post_result.ignored_sectors),
         VMExitCode::kErrIllegalState);
 
-    OUTCOME_TRY(runtime.validateArgument(!sector_infos.empty()));
+    VALIDATE_ARG(!sector_infos.empty());
 
     OUTCOME_TRY(utils->verifyWindowedPost(
         deadline_info.challenge, sector_infos, params.proofs));
@@ -234,34 +225,29 @@ namespace fc::vm::actor::builtin::v2::miner {
     OUTCOME_TRY(
         utils->canPreCommitSealProof(params.registered_proof, network_version));
 
-    OUTCOME_TRY(runtime.validateArgument(params.sector <= kMaxSectorNumber));
+    VALIDATE_ARG(params.sector <= kMaxSectorNumber);
 
-    OUTCOME_TRY(runtime.validateArgument(params.sealed_cid != CID()));
+    VALIDATE_ARG(params.sealed_cid != CID());
 
-    OUTCOME_TRY(runtime.validateArgument(params.sealed_cid.getPrefix()
-                                         == kSealedCIDPrefix));
+    VALIDATE_ARG(params.sealed_cid.getPrefix() == kSealedCIDPrefix);
 
-    OUTCOME_TRY(runtime.validateArgument(params.seal_epoch < current_epoch));
+    VALIDATE_ARG(params.seal_epoch < current_epoch);
 
     const auto challenge_earliest =
         current_epoch - kMaxPreCommitRandomnessLookback;
 
-    OUTCOME_TRY(
-        runtime.validateArgument(params.seal_epoch >= challenge_earliest));
+    VALIDATE_ARG(params.seal_epoch >= challenge_earliest);
 
     OUTCOME_TRY(max_seal_duration, maxSealDuration(params.registered_proof));
     const auto max_activation = current_epoch + max_seal_duration;
     OUTCOME_TRY(utils->validateExpiration(
         max_activation, params.expiration, params.registered_proof));
 
-    OUTCOME_TRY(runtime.validateArgument(
-        !(params.replace_capacity && params.deal_ids.empty())));
+    VALIDATE_ARG(!(params.replace_capacity && params.deal_ids.empty()));
 
-    OUTCOME_TRY(runtime.validateArgument(params.replace_deadline
-                                         < kWPoStPeriodDeadlines));
+    VALIDATE_ARG(params.replace_deadline < kWPoStPeriodDeadlines);
 
-    OUTCOME_TRY(
-        runtime.validateArgument(params.replace_sector <= kMaxSectorNumber));
+    VALIDATE_ARG(params.replace_sector <= kMaxSectorNumber);
 
     OUTCOME_TRY(reward, utils->requestCurrentEpochBlockReward());
     OUTCOME_TRY(total_power, utils->requestCurrentTotalPower());
@@ -299,21 +285,18 @@ namespace fc::vm::actor::builtin::v2::miner {
     }
 
     if (network_version < NetworkVersion::kVersion7) {
-      OUTCOME_TRY(runtime.validateArgument(params.registered_proof
-                                           == miner_info->seal_proof_type));
+      VALIDATE_ARG(params.registered_proof == miner_info->seal_proof_type);
     } else {
       REQUIRE_NO_ERROR_A(sector_wpost_proof,
                          getRegisteredWindowPoStProof(params.registered_proof),
                          VMExitCode::kErrIllegalArgument);
-      OUTCOME_TRY(runtime.validateArgument(
-          sector_wpost_proof == miner_info->window_post_proof_type));
+      VALIDATE_ARG(sector_wpost_proof == miner_info->window_post_proof_type);
     }
 
-    OUTCOME_TRY(runtime.validateArgument(
-        params.deal_ids.size() <= sectorDealsMax(miner_info->sector_size)));
+    VALIDATE_ARG(params.deal_ids.size()
+                 <= sectorDealsMax(miner_info->sector_size));
 
-    OUTCOME_TRY(runtime.validateArgument(deal_weight.deal_space
-                                         <= miner_info->sector_size));
+    VALIDATE_ARG(deal_weight.deal_space <= miner_info->sector_size);
 
     REQUIRE_NO_ERROR(state->allocateSectorNumber(params.sector),
                      VMExitCode::kErrIllegalState);
@@ -323,14 +306,14 @@ namespace fc::vm::actor::builtin::v2::miner {
     REQUIRE_NO_ERROR_A(precommit_found,
                        precommitted_sectors_copy.has(params.sector),
                        VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.validateArgument(!precommit_found));
+    VALIDATE_ARG(!precommit_found);
 
     REQUIRE_NO_ERROR_A(
         sectors, state->sectors.loadSectors(), VMExitCode::kErrIllegalState);
     REQUIRE_NO_ERROR_A(sector_found,
                        sectors.sectors.has(params.sector),
                        VMExitCode::kErrIllegalState);
-    OUTCOME_TRY(runtime.validateArgument(!sector_found));
+    VALIDATE_ARG(!sector_found);
 
     if (params.replace_capacity) {
       OUTCOME_TRY(utils->validateReplaceSector(state, params));

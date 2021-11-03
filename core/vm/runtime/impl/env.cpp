@@ -29,7 +29,7 @@ namespace fc::vm::runtime {
   using version::getNetworkVersion;
 
   outcome::result<Address> resolveKey(StateTree &state_tree,
-                                      IpldPtr ipld,
+                                      const IpldPtr &ipld,
                                       const Address &address,
                                       bool allow_actor) {
     if (address.isKeyType()) {
@@ -45,7 +45,7 @@ namespace fc::vm::runtime {
     return VMExitCode::kSysErrIllegalArgument;
   }
 
-  IpldBuffered::IpldBuffered(IpldPtr ipld) : ipld{ipld} {}
+  IpldBuffered::IpldBuffered(IpldPtr ipld) : ipld{std::move(ipld)} {}
 
   outcome::result<void> IpldBuffered::flush(const CID &root) {
     assert(!flushed);
@@ -57,11 +57,11 @@ namespace fc::vm::runtime {
     std::set<CbCid> visited{_root};
     size_t next{};
     while (next < queue.size()) {
-      auto &key{*queue[next++]};
+      const auto &key{*queue[next++]};
       BytesIn value{write.at(key)};
       BytesIn _cid;
       while (codec::cbor::findCid(_cid, value)) {
-        const CbCid *cid;
+        const CbCid *cid = nullptr;
         if (codec::cbor::light_reader::readCborBlake(cid, _cid)) {
           if (auto it{write.find(*cid)};
               it != write.end() && visited.emplace(*cid).second) {
@@ -71,7 +71,7 @@ namespace fc::vm::runtime {
       }
     }
     for (auto it{queue.rbegin()}; it != queue.rend(); ++it) {
-      auto &key{**it};
+      const auto &key{**it};
       OUTCOME_TRY(ipld->set(CID{key}, std::move(write.at(key))));
     }
     write.clear();
@@ -79,7 +79,9 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<bool> IpldBuffered::contains(const CID &cid) const {
-    throw "unused";
+    // must not be called
+    assert(false);
+    return false;
   }
 
   outcome::result<void> IpldBuffered::set(const CID &cid, BytesCow &&value) {
@@ -108,7 +110,7 @@ namespace fc::vm::runtime {
         epoch{tipset->height()},
         ts_branch{std::move(ts_branch)},
         tipset{std::move(tipset)},
-        pricelist{(ChainEpoch)epoch} {
+        pricelist{epoch} {
     setHeight(epoch);
   }
 
@@ -117,6 +119,7 @@ namespace fc::vm::runtime {
     ipld->actor_version = actorVersion(height);
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<Env::Apply> Env::applyMessage(const UnsignedMessage &message,
                                                 size_t size) {
     TokenAmount locked;
@@ -148,8 +151,9 @@ namespace fc::vm::runtime {
       return apply;
     }
     auto &from = maybe_from.value();
-    const auto address_matcher = Toolchain::createAddressMatcher(
-        getNetworkVersion(static_cast<ChainEpoch>(epoch)));
+    const auto network_version = getNetworkVersion(epoch);
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(network_version);
     if (!address_matcher->isAccountActor(from.code)) {
       apply.receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
       return apply;
@@ -181,7 +185,7 @@ namespace fc::vm::runtime {
       if (!ret.empty()) {
         auto charge =
             execution->chargeGas(pricelist.onChainReturnValue(ret.size()));
-        catchAbort(charge);
+        catchAbort(charge, network_version);
         OUTCOME_TRYA(exit_code, asExitCode(charge));
         if (charge) {
           apply.receipt.return_value = std::move(ret);
@@ -191,14 +195,14 @@ namespace fc::vm::runtime {
     if (exit_code != VMExitCode::kOk) {
       state_tree->txRevert();
     }
-    auto limit{message.gas_limit}, &used{execution->gas_used};
+    auto limit{message.gas_limit};
+    auto &used{execution->gas_used};
     if (used < 0) {
       used = 0;
     }
     auto no_fee{false};
-    if (getNetworkVersion(epoch) <= NetworkVersion::kVersion12
-        && static_cast<ChainEpoch>(epoch) > kUpgradeClausHeight
-        && exit_code == VMExitCode::kOk
+    if (network_version <= NetworkVersion::kVersion12
+        && epoch > kUpgradeClausHeight && exit_code == VMExitCode::kOk
         && message.method
                == vm::actor::builtin::v0::miner::SubmitWindowedPoSt::Number) {
       OUTCOME_TRY(to, state_tree->tryGet(message.to));
@@ -207,8 +211,9 @@ namespace fc::vm::runtime {
       }
     }
     BOOST_ASSERT_MSG(used <= limit, "runtime charged gas over limit");
-    auto base_fee{tipset->getParentBaseFee()}, fee_cap{message.gas_fee_cap},
-        base_fee_pay{std::min(base_fee, fee_cap)};
+    auto base_fee{tipset->getParentBaseFee()};
+    auto fee_cap{message.gas_fee_cap};
+    auto base_fee_pay{std::min(base_fee, fee_cap)};
     apply.penalty = base_fee > fee_cap ? TokenAmount{base_fee - fee_cap} * used
                                        : TokenAmount{0};
     if (!no_fee) {
@@ -221,10 +226,11 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(add_locked(kRewardAddress, apply.reward));
     auto over{limit - 11 * used / 10};
     auto gas_burned{
-        used == 0  ? limit
-        : over < 0 ? 0
-                   : static_cast<GasAmount>(bigdiv(
-                       BigInt{limit - used} * std::min(used, over), used))};
+        used == 0
+            ? limit
+            : over < 0 ? 0
+                       : static_cast<GasAmount>(bigdiv(
+                           BigInt{limit - used} * std::min(used, over), used))};
     if (gas_burned != 0) {
       OUTCOME_TRY(add_locked(actor::kBurntFundsActorAddress,
                              base_fee_pay * gas_burned));
@@ -241,7 +247,7 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<MessageReceipt> Env::applyImplicitMessage(
-      UnsignedMessage message) {
+      const UnsignedMessage &message) {
     auto execution = Execution::make(shared_from_this(), message);
     auto result = execution->send(message);
     MessageReceipt receipt;
@@ -281,15 +287,17 @@ namespace fc::vm::runtime {
 
   outcome::result<Actor> Execution::tryCreateAccountActor(
       const Address &address) {
-    OUTCOME_TRY(catchAbort(chargeGas(env->pricelist.onCreateActor())));
+    const auto network_version = getNetworkVersion(env->epoch);
+    OUTCOME_TRY(
+        catchAbort(chargeGas(env->pricelist.onCreateActor()), network_version));
     OUTCOME_TRY(id, state_tree->registerNewAddress(address));
     if (!address.isKeyType()) {
       return VMExitCode::kSysErrInvalidReceiver;
     }
 
     // Get correct version of actor to create
-    const auto address_matcher = Toolchain::createAddressMatcher(
-        getNetworkVersion(static_cast<ChainEpoch>(env->epoch)));
+    const auto address_matcher =
+        Toolchain::createAddressMatcher(network_version);
     CID account_code_cid_to_create = address_matcher->getAccountCodeId();
     MethodNumber account_actor_create_method_number = kConstructorMethodNumber;
 
@@ -321,12 +329,14 @@ namespace fc::vm::runtime {
     return result;
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<InvocationOutput> Execution::send(
       const UnsignedMessage &message, GasAmount charge) {
     dvm::onSend(message);
     DVM_INDENT;
 
-    OUTCOME_TRY(catchAbort(chargeGas(charge)));
+    const auto network_version = getNetworkVersion(env->epoch);
+    OUTCOME_TRY(catchAbort(chargeGas(charge), network_version));
     Actor to_actor;
     OUTCOME_TRY(maybe_to_actor, state_tree->tryGet(message.to));
     if (!maybe_to_actor) {
@@ -336,15 +346,15 @@ namespace fc::vm::runtime {
       to_actor = maybe_to_actor.value();
     }
     dvm::onSendTo(to_actor.code);
-    OUTCOME_TRY(catchAbort(chargeGas(
-        env->pricelist.onMethodInvocation(message.value, message.method))));
+    OUTCOME_TRY(catchAbort(chargeGas(env->pricelist.onMethodInvocation(
+                               message.value, message.method)),
+                           network_version));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
     auto _message{message};
     _message.from = caller_id;
 
     OUTCOME_TRY(to_id, state_tree->lookupId(message.to));
-    if (getNetworkVersion(static_cast<ChainEpoch>(env->epoch))
-        >= NetworkVersion::kVersion4) {
+    if (network_version >= NetworkVersion::kVersion4) {
       _message.to = to_id;
     }
 
@@ -369,7 +379,7 @@ namespace fc::vm::runtime {
       auto runtime = std::make_shared<RuntimeImpl>(
           shared_from_this(), _message, caller_id);
       auto result = env->env_context.invoker->invoke(to_actor, runtime);
-      catchAbort(result);
+      catchAbort(result, network_version);
       return result;
     }
 

@@ -19,10 +19,14 @@ namespace libp2p::connection {
       std::weak_ptr<StreamOpenQueue> weak;
       List::iterator it;
 
+      Active(const Active &) = delete;
+      Active(Active &&) = delete;
       Active(std::shared_ptr<Stream> stream,
              std::weak_ptr<StreamOpenQueue> weak,
              List::iterator it);
       ~Active() override;
+      Active &operator=(const Active &) = delete;
+      Active &operator=(Active &&) = delete;
     };
 
     struct Pending {

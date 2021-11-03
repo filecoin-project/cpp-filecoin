@@ -20,14 +20,16 @@ namespace fc::config {
                 std::vector<std::string> const &values,
                 Profile *,
                 int) {
-    using namespace boost::program_options;
+    using boost::program_options::validation_error;
+    using boost::program_options::validators::check_first_occurrence;
+    using boost::program_options::validators::get_single_string;
 
     // Make sure no previous assignment to 'v' was made.
-    validators::check_first_occurrence(v);
+    check_first_occurrence(v);
 
     // Extract the first string from 'values'. If there is more than
     // one string, it's an error, and exception will be thrown.
-    std::string const &value = validators::get_single_string(values);
+    std::string const &value = get_single_string(values);
     if (value == "mainnet" || value == "2k" || value == "no-upgrades"
         || value == "interopnet") {
       v = boost::any(Profile{value});
@@ -36,9 +38,8 @@ namespace fc::config {
     }
   }
 
-  boost::program_options::options_description configProfile() {
-    boost::program_options::options_description optionsDescription(
-        "Profile options");
+  options_description configProfile() {
+    options_description optionsDescription("Profile options");
     optionsDescription.add_options()(
         "profile",
         boost::program_options::value<Profile>()

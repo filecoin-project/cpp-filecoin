@@ -5,16 +5,14 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/storage_power/storage_power_actor_state.hpp"
-
-#include "codec/cbor/streams_annotation.hpp"
+#include "vm/actor/builtin/states/storage_power/v0/storage_power_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::storage_power {
   using primitives::address::Address;
   using runtime::Runtime;
   using types::storage_power::Claim;
 
-  struct PowerActorState : states::PowerActorState {
+  struct PowerActorState : v0::storage_power::PowerActorState {
     outcome::result<void> deleteClaim(const Runtime &runtime,
                                       const Address &address) override;
 

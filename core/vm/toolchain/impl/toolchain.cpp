@@ -9,10 +9,6 @@
 
 #include "vm/toolchain/impl/address_matcher.hpp"
 
-#include "vm/actor/builtin/v0/init/init_actor_utils.hpp"
-#include "vm/actor/builtin/v2/init/init_actor_utils.hpp"
-#include "vm/actor/builtin/v3/init/init_actor_utils.hpp"
-
 #include "vm/actor/builtin/v0/market/market_actor_utils.hpp"
 #include "vm/actor/builtin/v2/market/market_actor_utils.hpp"
 #include "vm/actor/builtin/v3/market/market_actor_utils.hpp"
@@ -143,21 +139,7 @@ namespace fc::vm::toolchain {
   }
 
   InitUtilsPtr Toolchain::createInitActorUtils(Runtime &runtime) {
-    const auto version = runtime.getActorVersion();
-    switch (version) {
-      case ActorVersion::kVersion0:
-        return std::make_shared<v0::init::InitUtils>(runtime);
-      case ActorVersion::kVersion2:
-        return std::make_shared<v2::init::InitUtils>(runtime);
-      case ActorVersion::kVersion3:
-        return std::make_shared<v3::init::InitUtils>(runtime);
-      case ActorVersion::kVersion4:
-        TODO_ACTORS_V4();
-      case ActorVersion::kVersion5:
-        TODO_ACTORS_V5();
-      case ActorVersion::kVersion6:
-        TODO_ACTORS_V6();
-    }
+    return std::make_shared<utils::InitUtils>(runtime);
   }
 
   MarketUtilsPtr Toolchain::createMarketUtils(Runtime &runtime) {
@@ -252,6 +234,10 @@ namespace fc::vm::toolchain {
       case ActorVersion::kVersion6:
         TODO_ACTORS_V6();
     }
+  }
+
+  RewardUtilsPtr Toolchain::createRewardUtils(Runtime &runtime) {
+    return std::make_shared<utils::RewardUtils>(runtime);
   }
 
   VerifRegUtilsPtr Toolchain::createVerifRegUtils(Runtime &runtime) {

@@ -99,7 +99,7 @@ namespace fc::drand {
 
     ChainInfo info;
 
-    std::atomic_size_t peer_index_;
+    std::atomic_size_t peer_index_{};
     std::vector<std::string> peers_;
 
     std::mutex cache_mutex_;

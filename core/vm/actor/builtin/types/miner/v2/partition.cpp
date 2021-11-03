@@ -5,8 +5,8 @@
 
 #include "vm/actor/builtin/types/miner/v2/partition.hpp"
 
+#include "common/error_text.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
-#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
   using types::miner::loadExpirationQueue;
@@ -22,7 +22,6 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   outcome::result<PowerPair> Partition::addSectors(
-      Runtime &runtime,
       bool proven,
       const std::vector<SectorOnChainInfo> &sectors,
       SectorSize ssize,
@@ -55,7 +54,6 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   outcome::result<std::tuple<PowerPair, PowerPair>> Partition::addFaults(
-      Runtime &runtime,
       const RleBitset &sector_nos,
       const std::vector<SectorOnChainInfo> &sectors,
       ChainEpoch fault_expiration,
@@ -88,7 +86,6 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   outcome::result<ExpirationSet> Partition::terminateSectors(
-      Runtime &runtime,
       const Sectors &sectors,
       ChainEpoch epoch,
       const RleBitset &sector_nos,
@@ -110,7 +107,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     const auto removed_sectors =
         removed.on_time_sectors + removed.early_sectors;
-    OUTCOME_TRY(recordEarlyTermination(runtime, epoch, removed_sectors));
+    OUTCOME_TRY(recordEarlyTermination(epoch, removed_sectors));
 
     const auto unproven_nos = removed_sectors.intersect(this->unproven);
 
@@ -135,7 +132,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   }
 
   outcome::result<ExpirationSet> Partition::popExpiredSectors(
-      Runtime &runtime, ChainEpoch until, const QuantSpec &quant) {
+      ChainEpoch until, const QuantSpec &quant) {
     if (!this->unproven.empty()) {
       return ERROR_TEXT(
           "cannot pop expired sectors from a partition with unproven sectors");
@@ -165,7 +162,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     this->live_power -= popped.active_power + popped.faulty_power;
     this->faulty_power -= popped.faulty_power;
 
-    OUTCOME_TRY(recordEarlyTermination(runtime, until, popped.early_sectors));
+    OUTCOME_TRY(recordEarlyTermination(until, popped.early_sectors));
 
     OUTCOME_TRY(validateState());
 

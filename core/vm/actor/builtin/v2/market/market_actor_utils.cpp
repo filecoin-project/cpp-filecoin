@@ -38,33 +38,28 @@ namespace fc::vm::actor::builtin::v2::market {
                        VMExitCode::kErrIllegalArgument);
 
     const auto &proposal = client_deal.proposal;
-    OUTCOME_TRY(getRuntime().validateArgument(proposal.label.length()
-                                              <= kDealMaxLabelSize));
+    VALIDATE_ARG(proposal.label.length() <= kDealMaxLabelSize);
     CHANGE_ERROR_ABORT(proposal.piece_size.validate(),
                        VMExitCode::kErrIllegalArgument);
-    OUTCOME_TRY(getRuntime().validateArgument(proposal.piece_cid != CID()));
+    VALIDATE_ARG(proposal.piece_cid != CID());
 
     // validate CID prefix
-    OUTCOME_TRY(getRuntime().validateArgument(
-        proposal.piece_cid.version == CID::Version::V1
-        && proposal.piece_cid.content_type
-               == CID::Multicodec::FILECOIN_COMMITMENT_UNSEALED
-        && proposal.piece_cid.content_address.getType()
-               == HashType::sha2_256_trunc254_padded
-        && proposal.piece_cid.content_address.getHash().size()
-               == kCommitmentBytesLen));
+    VALIDATE_ARG(proposal.piece_cid.version == CID::Version::V1
+                 && proposal.piece_cid.content_type
+                        == CID::Multicodec::FILECOIN_COMMITMENT_UNSEALED
+                 && proposal.piece_cid.content_address.getType()
+                        == HashType::sha2_256_trunc254_padded
+                 && proposal.piece_cid.content_address.getHash().size()
+                        == kCommitmentBytesLen);
 
-    OUTCOME_TRY(getRuntime().validateArgument(getRuntime().getCurrentEpoch()
-                                              <= proposal.start_epoch));
+    VALIDATE_ARG(getRuntime().getCurrentEpoch() <= proposal.start_epoch);
 
     const auto duration = dealDurationBounds(proposal.piece_size);
-    OUTCOME_TRY(
-        getRuntime().validateArgument(duration.in(proposal.duration())));
+    VALIDATE_ARG(duration.in(proposal.duration()));
 
     const auto price =
         dealPricePerEpochBounds(proposal.piece_size, proposal.duration());
-    OUTCOME_TRY(getRuntime().validateArgument(
-        price.in(proposal.storage_price_per_epoch)));
+    VALIDATE_ARG(price.in(proposal.storage_price_per_epoch));
 
     OUTCOME_TRY(fil_circulating_supply,
                 getRuntime().getTotalFilCirculationSupply());
@@ -76,13 +71,11 @@ namespace fc::vm::actor::builtin::v2::market {
                                      baseline_power,
                                      fil_circulating_supply,
                                      getRuntime().getNetworkVersion());
-    OUTCOME_TRY(getRuntime().validateArgument(
-        provider_collateral.in(proposal.provider_collateral)));
+    VALIDATE_ARG(provider_collateral.in(proposal.provider_collateral));
 
     const auto client_collateral =
         dealClientCollateralBounds(proposal.piece_size, proposal.duration());
-    OUTCOME_TRY(getRuntime().validateArgument(
-        client_collateral.in(proposal.client_collateral)));
+    VALIDATE_ARG(client_collateral.in(proposal.client_collateral));
 
     return outcome::success();
   }
@@ -128,10 +121,8 @@ namespace fc::vm::actor::builtin::v2::market {
       if (deal->provider != miner) {
         return VMExitCode::kErrForbidden;
       }
-      OUTCOME_TRY(getRuntime().validateArgument(getRuntime().getCurrentEpoch()
-                                                <= deal->start_epoch));
-      OUTCOME_TRY(
-          getRuntime().validateArgument(deal->end_epoch <= sector_expiry));
+      VALIDATE_ARG(getRuntime().getCurrentEpoch() <= deal->start_epoch);
+      VALIDATE_ARG(deal->end_epoch <= sector_expiry);
 
       deal_space += deal->piece_size;
       const auto space_time = dealWeight(deal.value());

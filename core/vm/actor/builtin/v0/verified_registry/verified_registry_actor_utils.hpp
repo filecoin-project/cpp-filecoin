@@ -17,7 +17,5 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     outcome::result<void> checkDealSize(
         const StoragePower &deal_size) const override;
-
-    outcome::result<void> assertCap(bool condition) const override;
   };
 }  // namespace fc::vm::actor::builtin::v0::verified_registry

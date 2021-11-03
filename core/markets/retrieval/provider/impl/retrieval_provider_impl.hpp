@@ -38,13 +38,11 @@ namespace fc::markets::retrieval::provider {
   using GsResStatus = ::fc::storage::ipfs::graphsync::ResponseStatusCode;
 
   struct DealState {
-    DealState(const PeerDtId &pdtid,
-              const PeerGsId &pgsid,
-              const DealProposal &proposal)
+    DealState(PeerDtId pdtid, PeerGsId pgsid, const DealProposal &proposal)
         : proposal{proposal},
           state{proposal.params},
-          pdtid{pdtid},
-          pgsid{pgsid} {}
+          pdtid{std::move(pdtid)},
+          pgsid{std::move(pgsid)} {}
 
     DealProposal proposal;
     State state;
@@ -73,12 +71,12 @@ namespace fc::markets::retrieval::provider {
     void onProposal(const PeerDtId &pdtid,
                     const PeerGsId &pgsid,
                     const DealProposal &proposal);
-    void onPayment(std::shared_ptr<DealState> deal, const DealPayment &payment);
-    void doUnseal(std::shared_ptr<DealState> deal);
-    void doBlocks(std::shared_ptr<DealState> deal);
-    void doComplete(std::shared_ptr<DealState> deal);
-    bool hasOwed(std::shared_ptr<DealState> deal);
-    void doFail(std::shared_ptr<DealState> deal, std::string error);
+    void onPayment(const std::shared_ptr<DealState>& deal, const DealPayment &payment);
+    void doUnseal(const std::shared_ptr<DealState>& deal);
+    void doBlocks(const std::shared_ptr<DealState>& deal);
+    void doComplete(const std::shared_ptr<DealState>& deal);
+    bool hasOwed(const std::shared_ptr<DealState>& deal);
+    void doFail(const std::shared_ptr<DealState> &deal, std::string error);
 
     void start() override;
 

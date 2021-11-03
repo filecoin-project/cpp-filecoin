@@ -99,8 +99,7 @@ namespace fc::vm::actor::builtin::states {
 
     outcome::result<Universal<Claim>> getClaim(const Address &address) const;
 
-    outcome::result<void> addPledgeTotal(const Runtime &runtime,
-                                         const TokenAmount &amount);
+    outcome::result<void> addPledgeTotal(const TokenAmount &amount);
 
     outcome::result<void> appendCronEvent(const ChainEpoch &epoch,
                                           const CronEvent &event);
@@ -112,6 +111,8 @@ namespace fc::vm::actor::builtin::states {
    protected:
     virtual std::tuple<bool, bool> claimsAreBelow(
         const Claim &old_claim, const Claim &new_claim) const = 0;
+
+    virtual outcome::result<void> check(bool condition) const = 0;
   };
 
   using PowerActorStatePtr = Universal<PowerActorState>;

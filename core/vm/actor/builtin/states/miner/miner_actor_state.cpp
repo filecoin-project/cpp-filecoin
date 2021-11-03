@@ -141,8 +141,7 @@ namespace fc::vm::actor::builtin::states {
   }
 
   outcome::result<std::tuple<TerminationResult, bool>>
-  MinerActorState::popEarlyTerminations(Runtime &runtime,
-                                        uint64_t max_partitions,
+  MinerActorState::popEarlyTerminations(uint64_t max_partitions,
                                         uint64_t max_sectors) {
     if (this->early_terminations.empty()) {
       return std::make_tuple(TerminationResult{}, false);
@@ -156,7 +155,6 @@ namespace fc::vm::actor::builtin::states {
       OUTCOME_TRY(deadline, dls.loadDeadline(deadline_id));
       OUTCOME_TRY(result,
                   deadline->popEarlyTerminations(
-                      runtime,
                       max_partitions - termination_result.partitions_processed,
                       max_sectors - termination_result.sectors_processed));
       const auto &[deadline_result, more] = result;
@@ -391,7 +389,7 @@ namespace fc::vm::actor::builtin::states {
   }
 
   outcome::result<AdvanceDeadlineResult> MinerActorState::advanceDeadline(
-      Runtime &runtime, ChainEpoch curr_epoch) {
+      ChainEpoch curr_epoch) {
     TokenAmount pledge_delta{0};
     PowerPair power_delta;
     PowerPair total_faulty_power;
@@ -425,15 +423,13 @@ namespace fc::vm::actor::builtin::states {
     const auto quant = quantSpecEveryDeadline();
     {
       const auto fault_expiration = dl_info.last() + kFaultMaxAge;
-      OUTCOME_TRY(
-          result,
-          deadline->processDeadlineEnd(runtime, quant, fault_expiration));
+      OUTCOME_TRY(result,
+                  deadline->processDeadlineEnd(quant, fault_expiration));
       std::tie(power_delta, detected_faulty_power) = result;
       total_faulty_power = deadline->faulty_power;
     }
     {
-      OUTCOME_TRY(expired,
-                  deadline->popExpiredSectors(runtime, dl_info.last(), quant));
+      OUTCOME_TRY(expired, deadline->popExpiredSectors(dl_info.last(), quant));
       pledge_delta -= expired.on_time_pledge;
       OUTCOME_TRY(addInitialPledge(-expired.on_time_pledge));
       power_delta -= expired.active_power;

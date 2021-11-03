@@ -6,12 +6,12 @@
 #include "vm/toolchain/common_address_matcher.hpp"
 #include "vm/actor/codes.hpp"
 
-#define ACTOR_CODE_IS(name)                                                    \
-  code == v0::name || code == v2::name || code == v3::name || code == v4::name \
-      || code == v5::name || code == v6::name
+#define ACTOR_CODE_IS(name)                                                   \
+  code == actor::builtin::v0::name || code == actor::builtin::v2::name        \
+      || code == actor::builtin::v3::name || code == actor::builtin::v4::name \
+      || code == actor::builtin::v5::name || code == actor::builtin::v6::name
 
 namespace fc::vm::toolchain {
-  using namespace actor::builtin;
 
   bool CommonAddressMatcher::isAccountActor(const CodeId &code) {
     return ACTOR_CODE_IS(kAccountCodeId);

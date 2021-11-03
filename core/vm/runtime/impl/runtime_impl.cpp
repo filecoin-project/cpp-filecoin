@@ -27,10 +27,10 @@ namespace fc::vm::runtime {
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
                            UnsignedMessage message,
-                           const Address &caller_id)
+                           Address caller_id)
       : execution_{std::move(execution)},
         message_{std::move(message)},
-        caller_id{caller_id},
+        caller_id{std::move(caller_id)},
         proofs_(std::make_shared<proofs::ProofEngineImpl>()) {}
 
   std::shared_ptr<Execution> RuntimeImpl::execution() const {
@@ -263,11 +263,11 @@ namespace fc::vm::runtime {
   outcome::result<BatchSealsOut> RuntimeImpl::batchVerifySeals(
       const BatchSealsIn &batch) {
     BatchSealsOut res;
-    for (auto &[miner, seals] : batch) {
+    for (const auto &[miner, seals] : batch) {
       std::vector<SectorNumber> successful;
       successful.reserve(seals.size());
       std::set<SectorNumber> seen;
-      for (auto &seal : seals) {
+      for (const auto &seal : seals) {
         auto verified{proofs_->verifySeal(seal)};
         if (verified && verified.value()
             && seen.insert(seal.sector.sector).second) {
@@ -286,7 +286,7 @@ namespace fc::vm::runtime {
     return proofs_->generateUnsealedCID(type, pieces, true);
   }
 
-  // TODO: reuse in block validation
+  // TODO(turuslan): reuse in block validation
   outcome::result<bool> checkBlockSignature(const BlockHeader &block,
                                             const Address &worker) {
     if (!block.block_sig) {
@@ -299,13 +299,13 @@ namespace fc::vm::runtime {
         worker, data, *block.block_sig);
   }
 
-  // TODO: reuse
+  // TODO(turuslan): reuse
   template <typename T>
   inline bool has(const std::vector<T> &xs, const T &x) {
     return std::find(xs.begin(), xs.end(), x) != xs.end();
   }
 
-  // TODO: reuse in slash filter
+  // TODO(turuslan): reuse in slash filter
   inline bool isNearOrange(ChainEpoch epoch) {
     using actor::builtin::types::miner::kChainFinality;
     return epoch > kUpgradeOrangeHeight - kChainFinality
@@ -313,6 +313,7 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<boost::optional<ConsensusFault>>
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   RuntimeImpl::verifyConsensusFault(const Bytes &block1,
                                     const Bytes &block2,
                                     const Bytes &extra) {
@@ -388,13 +389,11 @@ namespace fc::vm::runtime {
         return checkBlockSignature(block, key);
       }};
       auto verify{[&](const BlockHeader &block) -> outcome::result<bool> {
-        if (auto _ok{verify2(block)}) {
+        const auto _ok{verify2(block)};
+        if (_ok or isAbortExitCode(_ok.error())) {
           return _ok;
-        } else if (isAbortExitCode(_ok.error())) {
-          return _ok;
-        } else {
-          return false;
         }
+        return false;
       }};
       OUTCOME_TRY(okA, verify(blockA));
       if (!okA) {

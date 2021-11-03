@@ -8,10 +8,8 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::state, StateTreeError, e) {
   using fc::vm::state::StateTreeError;
 
-  switch (e) {
-    case StateTreeError::kStateNotFound:
-      return "StateTreeError: state not found";
-    default:
-      return "unknown error";
+  if (e == StateTreeError::kStateNotFound) {
+    return "StateTreeError: state not found";
   }
+  return "unknown error";
 }

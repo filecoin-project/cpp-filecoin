@@ -21,8 +21,8 @@ namespace fc::markets::retrieval {
   struct RetrievalAsk {
     TokenAmount price_per_byte;
     TokenAmount unseal_price;
-    uint64_t payment_interval;
-    uint64_t interval_increase;
+    uint64_t payment_interval{};
+    uint64_t interval_increase{};
   };
   CBOR_TUPLE(RetrievalAsk,
              price_per_byte,

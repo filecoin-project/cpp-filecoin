@@ -31,7 +31,7 @@ namespace fc::markets::storage::client::import_manager {
   class ImportManager {
    public:
     ImportManager(std::shared_ptr<PersistentBufferMap> imports_storage,
-                  const boost::filesystem::path &imports_dir);
+                  boost::filesystem::path imports_dir);
 
     /**
      * Imports data for deal

@@ -35,14 +35,14 @@ namespace fc::mining {
       const Address &miner) {
     OUTCOME_TRY(version, api->Version());
     auto mining{std::make_shared<Mining>()};
-    mining->scheduler = scheduler;
-    mining->clock = clock;
-    mining->api = api;
-    mining->prover = prover;
+    mining->scheduler = std::move(scheduler);
+    mining->clock = std::move(clock);
+    mining->api = std::move(api);
+    mining->prover = std::move(prover);
     mining->miner = miner;
     mining->block_delay = version.block_delay;
     mining->propagation =
-        std::min<uint64_t>(kPropagationDelaySecs, mining->block_delay * 0.3f);
+        std::min<uint64_t>(kPropagationDelaySecs, mining->block_delay * 3 / 10);
     return mining;
   }
 
@@ -91,7 +91,7 @@ namespace fc::mining {
     if (block1) {
       block1->timestamp = time;
       wait(time, true, [this, block1{std::move(*block1)}]() {
-        OUTCOME_LOG("Mining::submit error", submit(std::move(block1)));
+        OUTCOME_LOG("Mining::submit error", submit(block1));
       });
     } else {
       ++skip;
@@ -100,8 +100,8 @@ namespace fc::mining {
     return outcome::success();
   }
 
-  outcome::result<void> Mining::submit(BlockTemplate block1) {
-    // TODO: slash filter
+  outcome::result<void> Mining::submit(const BlockTemplate &block1) {
+    // TODO(turuslan): slash filter
     OUTCOME_TRY(block2, api->MinerCreateBlock(block1));
     auto result{api->SyncSubmitBlock(block2)};
     waitParent();
@@ -118,7 +118,7 @@ namespace fc::mining {
     }
     OUTCOME_TRY(weight2, api->ChainTipSetWeight(ts2->key));
     if (!ts || weight2 > weight) {
-      ts = std::move(*ts2);
+      ts = *ts2;
       weight = weight2;
       skip = 0;
     }
@@ -126,10 +126,10 @@ namespace fc::mining {
   }
 
   ChainEpoch Mining::height() const {
-    return ts->height() + skip + 1;
+    return gsl::narrow<ChainEpoch>(ts->height() + skip + 1);
   }
 
-  void Mining::wait(int64_t sec, bool abs, Scheduler::Callback cb) {
+  void Mining::wait(uint64_t sec, bool abs, Scheduler::Callback cb) {
     if (abs) {
       sec -= clock->nowUTC().count();
     }
@@ -138,10 +138,11 @@ namespace fc::mining {
       cb();
     };
     scheduler->schedule(std::move(cb),
-                        std::chrono::seconds{std::max<int64_t>(0, sec)});
+                        std::chrono::seconds{std::max<uint64_t>(0, sec)});
   }
 
   constexpr auto kTicketRandomnessLookback{1};
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<boost::optional<BlockTemplate>> Mining::prepareBlock() {
     if (info && info->has_min_power) {
       auto vrf{[&](auto tag,
@@ -230,7 +231,8 @@ namespace fc::mining {
 
   double ticketQuality(BytesIn ticket) {
     return 1
-           - (double)boost::multiprecision::cpp_rational{bigblake(ticket),
-                                                         BigInt{1} << 256};
+           - boost::multiprecision::cpp_rational{bigblake(ticket),
+                                                 BigInt{1} << 256}
+                 .convert_to<double>();
   }
 }  // namespace fc::mining
