@@ -63,7 +63,57 @@ namespace fc::api {
   // TODO(ortyomka): [FIL-421] implement it
   struct ApiSectorInfo {
     mining::SealingState state = mining::SealingState::kStateUnknown;
+    SectorNumber sector_number;
+    RegisteredSealProof sector_type;
+
+    std::vector<Piece> pieces;
+
+    proofs::SealRandomness ticket;
+    ChainEpoch ticket_epoch;
+    PreCommit1Output precommit1_output;
+    uint64_t precommit2_fails;
+
+    boost::optional<CID> comm_d;
+    boost::optional<CID> comm_r;
+
+    boost::optional<CID> precommit_message;
+    primitives::TokenAmount precommit_deposit;
+    boost::optional<SectorPreCommitInfo> precommit_info;
+
+    std::vector<CbCid> precommit_tipset;
+
+    sector_storage::InteractiveRandomness seed;
+    ChainEpoch seed_epoch;
+
+    proofs::Proof proof;
+    boost::optional<CID> message;
+    uint64_t invalid_proofs;
+
+    boost::optional<CID> fault_report_message;
+
+    mining::SealingState return_state;
   };
+  CBOR_TUPLE(ApiSectorInfo,
+             sector_number,
+             sector_type,
+             pieces,
+             ticket,
+             ticket_epoch,
+             precommit1_output,
+             precommit2_fails,
+             comm_d,
+             comm_r,
+             precommit_message,
+             precommit_deposit,
+             precommit_info,
+             precommit_tipset,
+             seed,
+             seed_epoch,
+             proof,
+             message,
+             invalid_proofs,
+             fault_report_message,
+             return_state)
 
   inline bool operator==(const PieceLocation &lhs, const PieceLocation &rhs) {
     return lhs.sector_number == rhs.sector_number && lhs.offset == rhs.offset
