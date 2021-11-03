@@ -57,7 +57,7 @@ namespace fc::storage {
   };
 
   struct OneKey {
-    OneKey(BytesIn key, MapPtr map);
+    OneKey(BytesCow &&key, MapPtr map);
     OneKey(std::string_view key, MapPtr map);
     bool has() const;
     Bytes get() const;

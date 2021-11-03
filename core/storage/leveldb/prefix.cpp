@@ -128,8 +128,8 @@ namespace fc::storage {
     return std::make_unique<Cursor>(*this, map->cursor());
   }
 
-  OneKey::OneKey(BytesIn key, MapPtr map)
-      : key{copy(key)}, map{std::move(map)} {}
+  OneKey::OneKey(BytesCow &&key, MapPtr map)
+      : key{key.into()}, map{std::move(map)} {}
 
   OneKey::OneKey(std::string_view key, MapPtr map)
       : OneKey{common::span::cbytes(key), std::move(map)} {}

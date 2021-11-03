@@ -22,6 +22,7 @@
 #include <libp2p/protocol/kademlia/impl/validator_default.hpp>
 
 #include "api/full_node/make.hpp"
+#include "api/impl/paych_get.hpp"
 #include "api/setup_common.hpp"
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
@@ -631,6 +632,11 @@ namespace fc::node {
                           o.market_discovery,
                           o.retrieval_market_client,
                           o.wallet_default_address);
+    api::implPaychGet(
+        o.api,
+        std::make_shared<paych_maker::PaychMaker>(
+            o.api,
+            std::make_shared<storage::MapPrefix>("paych_maker/", o.kv_store)));
 
     api::fillAuthApi(o.api, api_secret, log());
 
