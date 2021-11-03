@@ -335,6 +335,7 @@ namespace fc::api {
             auto &entropy) -> outcome::result<Randomness> {
       std::unique_lock ts_lock{*env_context.ts_branches_mutex};
       OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+      ts_lock.unlock();
       return env_context.randomness->getRandomnessFromBeacon(
           ts_branch, tag, epoch, entropy);
     };
@@ -345,6 +346,7 @@ namespace fc::api {
             auto &entropy) -> outcome::result<Randomness> {
       std::unique_lock ts_lock{*env_context.ts_branches_mutex};
       OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+      ts_lock.unlock();
       return env_context.randomness->getRandomnessFromTickets(
           ts_branch, tag, epoch, entropy);
     };

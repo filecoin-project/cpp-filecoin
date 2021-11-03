@@ -18,6 +18,7 @@ add_executable(dvm_main
 target_link_libraries(dvm_main
     car
     cids_index
+    drand_beacon
     in_memory_storage
     interpreter
     ipfs_datastore_in_memory
