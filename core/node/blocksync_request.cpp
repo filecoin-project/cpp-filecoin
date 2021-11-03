@@ -32,7 +32,7 @@ namespace fc::sync::blocksync {
     }
 
     template <typename... Args>
-    inline void trace(spdlog::string_view_t fmt, const Args &...args) {
+    inline void trace(spdlog::string_view_t fmt, const Args &... args) {
 #if TRACE_ENABLED
       log()->trace(fmt, args...);
 #endif
@@ -434,14 +434,11 @@ namespace fc::sync::blocksync {
           result_->error = result.error();
         } else {
           auto &response = result.value();
-          log()->debug(
-              "got response from {}: status={}, msg=({}), size={}, "
-              "block_height={}",
-              result_->from->toBase58(),
-              statusToString(response.status),
-              response.message,
-              response.chain.size(),
-              response.chain[0].blocks[0].height);
+          log()->debug("got response from {}: status={}, msg=({}), size={}",
+                       result_->from->toBase58(),
+                       statusToString(response.status),
+                       response.message,
+                       response.chain.size());
 
           if (response.status == ResponseStatus::kResponseComplete) {
             result_->delta_rating += 100;
