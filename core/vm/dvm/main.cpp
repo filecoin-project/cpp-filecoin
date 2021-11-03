@@ -4,6 +4,7 @@
  */
 
 #include "cbor_blake/ipld_any.hpp"
+#include "drand/impl/beaconizer.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/car/car.hpp"
 #include "storage/car/cids_index/util.hpp"
@@ -41,8 +42,21 @@ int main(int argc, char **argv) {
           std::make_shared<fc::primitives::tipset::TsLoadIpld>(envx.ipld)};
       envx.ts_load =
           std::make_shared<primitives::tipset::TsLoadCache>(ts_load_ipld, 1000);
+
+      const auto genesis_block{
+          getCbor<primitives::block::BlockHeader>(envx.ipld, genesis_cid)
+              .value()};
       envx.randomness = std::make_shared<vm::runtime::TipsetRandomness>(
-          envx.ts_load, envx.ts_branches_mutex);
+          envx.ts_load,
+          envx.ts_branches_mutex,
+          std::make_shared<drand::DrandScheduleImpl>(
+              drand::ChainInfo{
+                  {},
+                  std::chrono::seconds{1595431050},
+                  std::chrono::seconds{30},
+              },
+              std::chrono::seconds{genesis_block.timestamp},
+              std::chrono::seconds{kEpochDurationSeconds}));
       envx.interpreter_cache =
           std::make_shared<vm::interpreter::InterpreterCache>(
               std::make_shared<storage::InMemoryStorage>(),
