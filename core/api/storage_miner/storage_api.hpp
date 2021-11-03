@@ -55,7 +55,7 @@ namespace fc::api {
   using sector_storage::stores::SectorIndex;
   using StorageInfo_ = sector_storage::stores::StorageInfo;
 
-  const static common::Logger kStorageApiLogger = common::createLogger("storage API");
+  const static common::Logger kStorageApiLogger = common::createLogger("Storage API");
 
   struct PieceLocation {
     SectorNumber sector_number;

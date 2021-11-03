@@ -13,7 +13,7 @@ namespace fc::api {
 
   inline void fillNetApi(const std::shared_ptr<NetworkApi> &api,
                          const PeerInfo &api_peer_info,
-                         const std::shared_ptr<libp2p::Host> &host,
+                         const std::shared_ptr<Host> &host,
                          const common::Logger &logger) {
     api->NetAddrsListen = [api_peer_info]() -> outcome::result<PeerInfo> {
       return api_peer_info;
