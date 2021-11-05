@@ -36,7 +36,6 @@
   }
 
 namespace fc::markets::storage::provider {
-  using api::MsgWait;
   using data_transfer::Selector;
   using fc::storage::piece::DealInfo;
   using fc::storage::piece::PayloadLocation;
@@ -356,6 +355,34 @@ namespace fc::markets::storage::provider {
     return std::move(cid);
   }
 
+  outcome::result<DealId> StorageProviderImpl::getPublishedDealId(
+      const ClientDealProposal &client_deal_proposal,
+      const MsgWait &msg_state) {
+    OUTCOME_TRY(network_version, api_->StateNetworkVersion(msg_state.tipset));
+
+    // Scan through the deal proposals in the message parameters to find the
+    // index of the target deal proposal
+    OUTCOME_TRY(publish_message, api_->ChainGetMessage(msg_state.message));
+    OUTCOME_TRY(publish_deal_params,
+                codec::cbor::decode<PublishStorageDeals::Params>(
+                    publish_message.params));
+    const auto found = std::find(publish_deal_params.deals.begin(),
+                                 publish_deal_params.deals.end(),
+                                 client_deal_proposal);
+    if (found == publish_deal_params.deals.end()) {
+      return ERROR_TEXT("StorageMarketProvider: deal proposal not found");
+    }
+    const auto index{gsl::narrow<size_t>(
+        std::distance(publish_deal_params.deals.begin(), found))};
+    // get deal id from retval deal ids, deal proposal index == retval index
+    OUTCOME_TRY(deal_id,
+                vm::actor::builtin::types::market::publishDealsResult(
+                    msg_state.receipt.return_value,
+                    actorVersion(network_version),
+                    index));
+    return deal_id;
+  }
+
   outcome::result<void> StorageProviderImpl::sendSignedResponse(
       const std::shared_ptr<MinerDeal> &deal) {
     Response response{.state = deal->state,
@@ -640,33 +667,31 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
+    assert(deal->publish_cid.has_value());
+
     api_->StateWaitMsg(
-        [self{shared_from_this()}, deal, to](outcome::result<MsgWait> result) {
+        [self{shared_from_this()}, deal, to](
+            outcome::result<MsgWait> msg_state) {
           SELF_FSM_HALT_ON_ERROR(
-              result, "Publish storage deal message error", deal);
-          if (result.value().receipt.exit_code != VMExitCode::kOk) {
+              msg_state, "Publish storage deal message error", deal);
+          if (msg_state.value().receipt.exit_code != VMExitCode::kOk) {
             deal->message = "Publish storage deal exit code "
-                            + std::to_string(static_cast<uint64_t>(
-                                result.value().receipt.exit_code));
+                            + std::to_string(static_cast<int64_t>(
+                                msg_state.value().receipt.exit_code));
             SELF_FSM_SEND(deal, ProviderEvent::ProviderEventFailed);
             return;
           }
-          // TODO(turuslan): v6
-          auto maybe_res = codec::cbor::decode<PublishStorageDeals::Result>(
-              result.value().receipt.return_value);
+          const auto maybe_deal_id = self->getPublishedDealId(
+              deal->client_deal_proposal, msg_state.value());
           SELF_FSM_HALT_ON_ERROR(
-              maybe_res, "Publish storage deal decode result error", deal);
-          if (maybe_res.value().deals.size() != 1) {
-            deal->message = "Publish storage deal result size error";
-            SELF_FSM_SEND(deal, ProviderEvent::ProviderEventFailed);
-            return;
-          }
-          deal->deal_id = maybe_res.value().deals.front();
+              maybe_deal_id, "Looking for publish deal message", deal);
+          deal->deal_id = maybe_deal_id.value();
           deal->state = to;
           SELF_FSM_SEND(deal, ProviderEvent::ProviderEventDealPublished);
         },
         deal->publish_cid.get(),
-        kMessageConfidence,
+        // Wait for deal to be published (plus additional time for confidence)
+        kMessageConfidence * 2,
         api::kLookbackNoLimit,
         true);
   }
@@ -717,7 +742,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealCompleted(
-      const std::shared_ptr<MinerDeal>& deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
