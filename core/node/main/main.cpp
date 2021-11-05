@@ -85,34 +85,6 @@ namespace fc {
   void startApi(const node::Config &config,
                 NodeObjects &node_objects,
                 const Metrics &metrics) {
-    // Network API
-    PeerInfo api_peer_info{
-        node_objects.host->getPeerInfo().id,
-        nonZeroAddrs(node_objects.host->getAddresses(), &config.localIp())};
-    node_objects.api->NetAddrsListen =
-        [api_peer_info]() -> outcome::result<PeerInfo> {
-      return api_peer_info;
-    };
-    node_objects.api->NetConnect = [&](auto &peer) {
-      node_objects.host->connect(peer);
-      return outcome::success();
-    };
-    node_objects.api->NetPeers =
-        [&]() -> outcome::result<std::vector<PeerInfo>> {
-      const auto &peer_repository = node_objects.host->getPeerRepository();
-      auto connections = node_objects.host->getNetwork()
-                             .getConnectionManager()
-                             .getConnections();
-      std::vector<PeerInfo> result;
-      for (const auto &conncection : connections) {
-        const auto remote = conncection->remotePeer();
-        if (remote.has_error())
-          log()->error("get remote peer error", remote.error().message());
-        result.push_back(peer_repository.getPeerInfo(remote.value()));
-      }
-      return result;
-    };
-
     // Market Client API
     node_objects.api->ClientImport =
         [&](auto &file_ref) -> outcome::result<ImportRes> {
@@ -123,7 +95,7 @@ namespace fc {
       return ImportRes{root, 0};
     };
 
-    node_objects.api->ClientListDeals = [api_peer_info, &node_objects]()
+    node_objects.api->ClientListDeals = [&node_objects]()
         -> outcome::result<std::vector<StorageMarketDealInfo>> {
       std::vector<StorageMarketDealInfo> result;
       OUTCOME_TRY(local_deals,
@@ -145,7 +117,7 @@ namespace fc {
             {},
             deal.client_deal_proposal.proposal.verified,
             // TODO (a.chernyshov) actual ChannelId
-            {api_peer_info.id, deal.miner.id, 0},
+            {node_objects.host->getId(), deal.miner.id, 0},
             // TODO (a.chernyshov) actual data transfer
             {0, 0, deal.proposal_cid, true, true, "", "", deal.miner.id, 0}});
       }

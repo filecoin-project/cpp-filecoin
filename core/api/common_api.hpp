@@ -35,21 +35,6 @@ namespace fc::api {
                std::vector<Permission>,
                const std::string &)
 
-    /**
-     * Returns listen addresses.
-     */
-    API_METHOD(NetAddrsListen, jwt::kReadPermission, PeerInfo)
-
-    /**
-     * Initiates the connection to the peer.
-     */
-    API_METHOD(NetConnect, jwt::kWritePermission, void, const PeerInfo &)
-
-    /**
-     * Returns all peers connected to the this host.
-     */
-    API_METHOD(NetPeers, jwt::kReadPermission, std::vector<PeerInfo>)
-
     API_METHOD(Version, jwt::kReadPermission, VersionResult)
   };
 
@@ -57,9 +42,6 @@ namespace fc::api {
   void visitCommon(A &&a, const F &f) {
     f(a.AuthNew);
     f(a.AuthVerify);
-    f(a.NetAddrsListen);
-    f(a.NetConnect);
-    f(a.NetPeers);
     f(a.Version);
   }
 }  // namespace fc::api

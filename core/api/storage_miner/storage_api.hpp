@@ -7,7 +7,9 @@
 
 #include "api/common_api.hpp"
 #include "api/full_node/node_api.hpp"
+#include "api/network/network_api.hpp"
 #include "api/version.hpp"
+#include "common/logger.hpp"
 #include "markets/retrieval/provider/retrieval_provider.hpp"
 #include "markets/retrieval/types.hpp"
 #include "markets/storage/ask_protocol.hpp"
@@ -53,6 +55,8 @@ namespace fc::api {
   using sector_storage::stores::SectorIndex;
   using StorageInfo_ = sector_storage::stores::StorageInfo;
 
+  const static common::Logger kStorageApiLogger = common::createLogger("Storage API");
+
   struct PieceLocation {
     SectorNumber sector_number;
     PaddedPieceSize offset;
@@ -75,7 +79,7 @@ namespace fc::api {
   /**
    * Storage miner node low-level interface API.
    */
-  struct StorageMinerApi : public CommonApi {
+  struct StorageMinerApi : public CommonApi, public NetworkApi {
     API_METHOD(ActorAddress, jwt::kReadPermission, Address)
 
     API_METHOD(ActorSectorSize,
@@ -236,6 +240,7 @@ namespace fc::api {
   template <typename A, typename F>
   void visit(const StorageMinerApi &, A &&a, const F &f) {
     visitCommon(a, f);
+    visitNet(a, f);
     f(a.ActorAddress);
     f(a.ActorSectorSize);
     f(a.PledgeSector);

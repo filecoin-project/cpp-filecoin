@@ -92,8 +92,6 @@ namespace fc::api {
   using vm::toolchain::Toolchain;
   using vm::version::getNetworkVersion;
 
-  const static Logger logger = common::createLogger("Full node API");
-
   // TODO (turuslan): reuse for block validation
   inline bool minerHasMinPower(const StoragePower &claim_qa,
                                size_t min_power_miners) {
@@ -440,7 +438,7 @@ namespace fc::api {
             std::vector<QueryOffer> result;
             for (const auto &[peer, maybe_response] : all_calls) {
               if (maybe_response.has_error()) {
-                logger->error("Error when query peer {}",
+                kNodeApiLogger->error("Error when query peer {}",
                               maybe_response.error().message());
               } else {
                 result.emplace_back(maybe_response.value());
@@ -490,11 +488,11 @@ namespace fc::api {
           order.miner,
           [=](outcome::result<void> res) {
             if (res.has_error()) {
-              logger->error("Error in ClientRetrieve {}",
+              kNodeApiLogger->error("Error in ClientRetrieve {}",
                             res.error().message());
               return cb(res.error());
             }
-            logger->info("retrieval deal done");
+            kNodeApiLogger->info("retrieval deal done");
             if (file_ref.is_car) {
               OUTCOME_CB1(storage::car::makeSelectiveCar(
                   *markets_ipld, {{order.root, {}}}, file_ref.path));

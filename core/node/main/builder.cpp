@@ -22,6 +22,7 @@
 #include <libp2p/protocol/kademlia/impl/validator_default.hpp>
 
 #include "api/full_node/make.hpp"
+#include "api/network/setup_net.hpp"
 #include "api/impl/paych_get.hpp"
 #include "api/setup_common.hpp"
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
@@ -33,6 +34,7 @@
 #include "codec/json/json.hpp"
 #include "common/api_secret.hpp"
 #include "common/error_text.hpp"
+#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
@@ -75,6 +77,7 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::node {
+  using api::PeerInfo;
   using markets::discovery::DiscoveryImpl;
   using markets::pieceio::PieceIOImpl;
   using markets::retrieval::client::RetrievalClientImpl;
@@ -638,7 +641,13 @@ namespace fc::node {
             o.api,
             std::make_shared<storage::MapPrefix>("paych_maker/", o.kv_store)));
 
-    api::fillAuthApi(o.api, api_secret, log());
+    api::fillAuthApi(o.api, api_secret, api::kNodeApiLogger);
+
+    const PeerInfo api_peer_info{
+        o.host->getPeerInfo().id,
+        nonZeroAddrs(o.host->getAddresses(), &config.localIp())};
+
+    api::fillNetApi(o.api, api_peer_info, o.host, api::kNodeApiLogger);
 
     auto paych{
         std::make_shared<payment_channel_manager::PaymentChannelManagerImpl>(

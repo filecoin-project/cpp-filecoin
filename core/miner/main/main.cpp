@@ -497,7 +497,8 @@ namespace fc {
                                     storage_provider,
                                     retrieval_provider);
 
-    api::fillAuthApi(mapi, api_secret, log());
+    api::fillAuthApi(mapi, api_secret, api::kStorageApiLogger);
+    //TODO(@elestrias): [FIL-427] make net api configuration
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
     mrpc.emplace(
