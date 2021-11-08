@@ -12,4 +12,4 @@ IncludeBlocks: Preserve
 # Comment pragma for Filecoin System Test Matrix (https://github.com/filecoin-project/system-test-matrix)
 # Comment format is '//stm:tags=...;ignore=...' with no whitespace. This is a go convention for comments that are not
 # meant to be read by humans and must not be changed by clang-format
-CommentPragmas: 'stm'
+CommentPragmas: '^stm'
