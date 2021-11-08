@@ -79,14 +79,47 @@ namespace fc::api {
       return result;
     };
 
-    api->SectorsStatus = [=](SectorNumber id,
-                             bool show_onchain_info) -> outcome::result<ApiSectorInfo> {
-      // TODO(ortyomka): [FIL-421] implement it
+    api->SectorsStatus =
+        [=](SectorNumber id,
+            bool show_onchain_info) -> outcome::result<ApiSectorInfo> {
       OUTCOME_TRY(sector_info, miner->getSealing()->getSectorInfo(id));
-      if(!show_onchain_info){
-        return
+      std::vector<DealId> deals;
+      for (auto &piece : sector_info->pieces) {
+        if (piece.deal_info) {
+          deals.push_back(piece.deal_info->deal_id);
+        }
       }
-      return ApiSectorInfo{.state = sector_info->state, .sector_number=id};
+      ApiSectorInfo api_sector_info = {
+          sector_info->state,
+          id,
+          sector_info->sector_type,
+          sector_info->comm_d,
+          sector_info->comm_r,
+          sector_info->proof,
+          deals,
+          sector_info->ticket,
+          sector_info->seed,
+          sector_info->precommit_message,
+          sector_info->message,
+          sector_info->invalid_proofs,
+          miner->getSealing()->isMarkedForUpgrade(id)};
+      if (show_onchain_info) {
+        OUTCOME_TRY(chain_info,
+                    full_node_api->StateSectorGetInfo(
+                        miner->getAddress(), id, TipsetKey{}));
+        OUTCOME_TRY(expiration_info,
+                    full_node_api->StateSectorExpiration(
+                        miner->getAddress(), id, TipsetKey{}));
+        api_sector_info.seal_proof = chain_info->seal_proof;
+        api_sector_info.activation = chain_info->activation_epoch;
+        api_sector_info.expiration = chain_info->expiration;
+        api_sector_info.deal_weight = chain_info->deal_weight;
+        api_sector_info.verified_deal_weight = chain_info->verified_deal_weight;
+        api_sector_info.initial_pledge = chain_info->init_pledge;
+        api_sector_info.on_time = expiration_info.on_time;
+        api_sector_info.early = expiration_info.early;
+      }
+      return api_sector_info;
     };
 
     api->StorageAttach = [=](const StorageInfo_ &storage_info,
