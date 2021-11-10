@@ -22,6 +22,7 @@
 #include "storage/filestore/filestore.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "storage/piece/piece_storage.hpp"
+#include "vm/actor/builtin/types/market/deal_info_manager/deal_info_manager.hpp"
 
 namespace fc::markets::storage::provider {
   using api::MsgWait;
@@ -31,6 +32,7 @@ namespace fc::markets::storage::provider {
   using fc::storage::filestore::FileStore;
   using fc::storage::piece::PieceStorage;
   using libp2p::Host;
+  using vm::actor::builtin::types::market::deal_info_manager::DealInfoManager;
   using pieceio::PieceIO;
   using primitives::BigInt;
   using primitives::EpochDuration;
@@ -108,17 +110,6 @@ namespace fc::markets::storage::provider {
      * @return CID of message sent
      */
     outcome::result<CID> publishDeal(const std::shared_ptr<MinerDeal> &deal);
-
-    /**
-     * Returns published deal id.
-     * Deal id is in PublishStorageDeals result call, it depends on client
-     * proposal id.
-     * @param client_deal_proposal - deal proposal in message
-     * @param msg_state - state of the message with PublishStorageDeals
-     */
-    outcome::result<DealId> getPublishedDealId(
-        const ClientDealProposal &client_deal_proposal,
-        const MsgWait &msg_state);
 
     /**
      * Send signed response to storage deal proposal and close connection
@@ -379,6 +370,7 @@ namespace fc::markets::storage::provider {
     std::shared_ptr<FileStore> filestore_;
     IpldPtr ipld_;
     std::shared_ptr<DataTransfer> datatransfer_;
+    std::shared_ptr<DealInfoManager> deal_info_manager_;
 
     common::Logger logger_ = common::createLogger("StorageMarketProvider");
   };

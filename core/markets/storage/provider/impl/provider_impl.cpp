@@ -12,6 +12,7 @@
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "markets/storage/types.hpp"
 #include "storage/car/car.hpp"
+#include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 #include "vm/actor/builtin/types/market/publish_deals_result.hpp"
 
 #define CALLBACK_ACTION(_action)                                    \
@@ -42,6 +43,8 @@ namespace fc::markets::storage::provider {
   using mining::SealingState;
   using vm::VMExitCode;
   using vm::actor::MethodParams;
+  using vm::actor::builtin::types::market::deal_info_manager::
+      DealInfoManagerImpl;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
@@ -72,7 +75,8 @@ namespace fc::markets::storage::provider {
         piece_storage_{std::move(piece_storage)},
         filestore_{std::move(filestore)},
         ipld_{std::move(ipld)},
-        datatransfer_{std::move(datatransfer)} {}
+        datatransfer_{std::move(datatransfer)},
+        deal_info_manager_{std::make_shared<DealInfoManagerImpl>(api_)} {}
 
   std::shared_ptr<MinerDeal> StorageProviderImpl::getDealPtr(
       const CID &proposal_cid) {
@@ -353,34 +357,6 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(str_cid, cid.toString());
     logger_->debug("Deal published with CID = " + str_cid);
     return std::move(cid);
-  }
-
-  outcome::result<DealId> StorageProviderImpl::getPublishedDealId(
-      const ClientDealProposal &client_deal_proposal,
-      const MsgWait &msg_state) {
-    OUTCOME_TRY(network_version, api_->StateNetworkVersion(msg_state.tipset));
-
-    // Scan through the deal proposals in the message parameters to find the
-    // index of the target deal proposal
-    OUTCOME_TRY(publish_message, api_->ChainGetMessage(msg_state.message));
-    OUTCOME_TRY(publish_deal_params,
-                codec::cbor::decode<PublishStorageDeals::Params>(
-                    publish_message.params));
-    const auto found = std::find(publish_deal_params.deals.begin(),
-                                 publish_deal_params.deals.end(),
-                                 client_deal_proposal);
-    if (found == publish_deal_params.deals.end()) {
-      return ERROR_TEXT("StorageMarketProvider: deal proposal not found");
-    }
-    const auto index{gsl::narrow<size_t>(
-        std::distance(publish_deal_params.deals.begin(), found))};
-    // get deal id from retval deal ids, deal proposal index == retval index
-    OUTCOME_TRY(deal_id,
-                vm::actor::builtin::types::market::publishDealsResult(
-                    msg_state.receipt.return_value,
-                    actorVersion(network_version),
-                    index));
-    return deal_id;
   }
 
   outcome::result<void> StorageProviderImpl::sendSignedResponse(
@@ -672,17 +648,9 @@ namespace fc::markets::storage::provider {
     api_->StateWaitMsg(
         [self{shared_from_this()}, deal, to](
             outcome::result<MsgWait> msg_state) {
-          SELF_FSM_HALT_ON_ERROR(
-              msg_state, "Publish storage deal message error", deal);
-          if (msg_state.value().receipt.exit_code != VMExitCode::kOk) {
-            deal->message = "Publish storage deal exit code "
-                            + std::to_string(static_cast<int64_t>(
-                                msg_state.value().receipt.exit_code));
-            SELF_FSM_SEND(deal, ProviderEvent::ProviderEventFailed);
-            return;
-          }
-          const auto maybe_deal_id = self->getPublishedDealId(
-              deal->client_deal_proposal, msg_state.value());
+          const auto maybe_deal_id =
+              self->deal_info_manager_->dealIdFromPublishDealsMsg(
+                  msg_state.value(), deal->client_deal_proposal.proposal);
           SELF_FSM_HALT_ON_ERROR(
               maybe_deal_id, "Looking for publish deal message", deal);
           deal->deal_id = maybe_deal_id.value();

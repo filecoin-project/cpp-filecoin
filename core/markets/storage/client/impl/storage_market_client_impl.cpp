@@ -10,6 +10,7 @@
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 
 #include "codec/cbor/cbor_codec.hpp"
+#include "common/enum.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/outcome_fmt.hpp"
 #include "common/ptr.hpp"
@@ -402,7 +403,7 @@ namespace fc::markets::storage::client {
     if (msg_state.receipt.exit_code != VMExitCode::kOk) {
       deal->message =
           "Publish deal exit code "
-          + std::to_string(static_cast<int64_t>(msg_state.receipt.exit_code));
+          + std::to_string(common::to_int(msg_state.receipt.exit_code));
       return false;
     }
 
@@ -526,7 +527,7 @@ namespace fc::markets::storage::client {
           SELF_FSM_HALT_ON_ERROR(result, "Wait for funding error", deal);
           if (result.value().receipt.exit_code != VMExitCode::kOk) {
             deal->message = "Funding exit code "
-                            + std::to_string(static_cast<uint64_t>(
+                            + std::to_string(common::to_int(
                                 result.value().receipt.exit_code));
             SELF_FSM_SEND(deal, ClientEvent::ClientEventFailed);
             return;
