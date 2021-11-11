@@ -62,7 +62,8 @@ namespace fc::markets::storage::provider {
                         std::shared_ptr<ChainEvents> events,
                         Address miner_actor_address,
                         std::shared_ptr<PieceIO> piece_io,
-                        std::shared_ptr<FileStore> filestore);
+                        std::shared_ptr<FileStore> filestore,
+                        std::shared_ptr<DealInfoManager> deal_info_manager);
 
     std::shared_ptr<MinerDeal> getDealPtr(const CID &proposal_cid);
 

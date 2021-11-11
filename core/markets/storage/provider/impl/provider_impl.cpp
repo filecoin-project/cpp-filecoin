@@ -12,7 +12,6 @@
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "markets/storage/types.hpp"
 #include "storage/car/car.hpp"
-#include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 #include "vm/actor/builtin/types/market/publish_deals_result.hpp"
 
 #define CALLBACK_ACTION(_action)                                    \
@@ -43,8 +42,6 @@ namespace fc::markets::storage::provider {
   using mining::SealingState;
   using vm::VMExitCode;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::types::market::deal_info_manager::
-      DealInfoManagerImpl;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
@@ -63,7 +60,8 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<ChainEvents> chain_events,
       Address miner_actor_address,
       std::shared_ptr<PieceIO> piece_io,
-      std::shared_ptr<FileStore> filestore)
+      std::shared_ptr<FileStore> filestore,
+      std::shared_ptr<DealInfoManager> deal_info_manager)
       : host_{std::move(host)},
         context_{std::move(context)},
         stored_ask_{std::move(stored_ask)},
@@ -76,7 +74,7 @@ namespace fc::markets::storage::provider {
         filestore_{std::move(filestore)},
         ipld_{std::move(ipld)},
         datatransfer_{std::move(datatransfer)},
-        deal_info_manager_{std::make_shared<DealInfoManagerImpl>(api_)} {}
+        deal_info_manager_{std::move(deal_info_manager)} {}
 
   std::shared_ptr<MinerDeal> StorageProviderImpl::getDealPtr(
       const CID &proposal_cid) {
