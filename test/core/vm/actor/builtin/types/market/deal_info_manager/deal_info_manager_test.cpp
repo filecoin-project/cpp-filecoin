@@ -218,9 +218,9 @@ namespace fc::vm::actor::builtin::types::market::deal_info_manager {
       return ERROR_TEXT("ERROR");
     };
 
-    EXPECT_OUTCOME_ERROR(
-        ERROR_TEXT("publishDealsResult: deald index out of bound"),
-        manager_->getCurrentDealInfo(proposal, publish_cid));
+    const auto res = manager_->getCurrentDealInfo(proposal, publish_cid);
+    EXPECT_TRUE(res.has_error());
+    EXPECT_EQ(res.error().message(),"publishDealsResult: deal index out of bound");
   }
 
   /**

@@ -27,7 +27,7 @@ namespace fc::vm::actor::builtin::types::market {
       if (index < res.deals.size()) {
         return res.deals[index];
       }
-      return ERROR_TEXT("publishDealsResult: deald index out of bound");
+      return ERROR_TEXT("publishDealsResult: deal index out of bound");
     }
 
     // actor version 6
@@ -40,7 +40,7 @@ namespace fc::vm::actor::builtin::types::market {
       if (i < res.deals.size()) {
         return res.deals[i];
       }
-      return ERROR_TEXT("publishDealsResult: deald index out of bound");
+      return ERROR_TEXT("publishDealsResult: deal index out of bound");
     }
     return ERROR_TEXT("publishDealsResult invalid deal");
   }
