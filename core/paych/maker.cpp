@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "payment_channel_manager/impl/maker.hpp"
+#include "paych/maker.hpp"
 
 #include "api/full_node/node_api.hpp"
 #include "common/outcome_fmt.hpp"
@@ -91,12 +91,22 @@ namespace fc::paych_maker {
     key.setCbor(new_cid);
   }
 
+  inline outcome::result<void> checkKey(Address &address, const ApiPtr &api) {
+    if (!address.isKeyType()) {
+      if (!address.isId()) {
+        return ERROR_TEXT("paych from-to must be key address");
+      }
+      OUTCOME_TRYA(address, api->StateAccountKey(address, {}));
+    }
+    return outcome::success();
+  }
+
   PaychMaker::PaychMaker(const ApiPtr &api, const MapPtr &kv)
       : api{api}, kv{kv}, unused_cid{{"unused_cid", kv}} {}
 
-  void PaychMaker::make(const FromTo &from_to,
-                        const TokenAmount &amount,
-                        Cb cb) {
+  void PaychMaker::make(FromTo from_to, const TokenAmount &amount, Cb cb) {
+    OUTCOME_CB1(checkKey(from_to.first, api));
+    OUTCOME_CB1(checkKey(from_to.second, api));
     std::unique_lock lock{mutex};
     auto it{map.find(from_to)};
     const auto empty{it == map.end()};
@@ -224,6 +234,7 @@ namespace fc::paych_maker {
     next(it);
   }
 
+  // TODO(turuslan): check actor exists and not settled
   void PaychMaker::next(It it) {
     std::unique_lock lock{mutex};
     auto &queue{it->second};

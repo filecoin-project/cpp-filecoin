@@ -21,6 +21,7 @@
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/state/resolve_key.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::storage::mpool {
@@ -30,7 +31,6 @@ namespace fc::storage::mpool {
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::interpreter::InterpreterCache;
   using vm::message::UnsignedMessage;
-  using vm::runtime::resolveKey;
 
   constexpr GasAmount kMinGas{1298450};
   constexpr size_t kMaxBlocks{15};

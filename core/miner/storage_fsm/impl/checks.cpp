@@ -38,8 +38,6 @@ namespace fc::mining::checks {
   using vm::actor::builtin::types::miner::maxSealDuration;
   using vm::actor::builtin::types::miner::SectorPreCommitOnChainInfo;
   using vm::actor::builtin::v5::market::ComputeDataCommitment;
-  using vm::message::kDefaultGasLimit;
-  using vm::message::kDefaultGasPrice;
   using vm::message::UnsignedMessage;
   using vm::toolchain::Toolchain;
 
@@ -128,9 +126,9 @@ namespace fc::mining::checks {
     UnsignedMessage message{kStorageMarketAddress,
                             miner_address,
                             {},
-                            BigInt{0},
-                            kDefaultGasPrice,
-                            kDefaultGasLimit,
+                            {},
+                            {},
+                            {},
                             ComputeDataCommitment::Number,
                             params};
     OUTCOME_TRY(invocation_result, api->StateCall(message, tipset_key));

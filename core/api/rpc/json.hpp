@@ -16,7 +16,6 @@
 #include "common/enum.hpp"
 #include "common/libp2p/peer/cbor_peer_info.hpp"
 #include "miner/main/type.hpp"
-#include "payment_channel_manager/payment_channel_manager.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "sector_storage/stores/storage.hpp"

@@ -6,7 +6,7 @@
 #pragma once
 
 #include "api/full_node/node_api.hpp"
-#include "payment_channel_manager/impl/maker.hpp"
+#include "paych/maker.hpp"
 
 namespace fc::api {
   inline void implPaychGet(

@@ -17,6 +17,7 @@
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime_error.hpp"
+#include "vm/state/resolve_key.hpp"
 #include "vm/toolchain/toolchain.hpp"
 #include "vm/version/version.hpp"
 
@@ -103,9 +104,7 @@ namespace fc::vm::runtime {
 
   outcome::result<Address> RuntimeImpl::createNewActorAddress() {
     OUTCOME_TRY(caller_address,
-                resolveKey(*execution_->state_tree,
-                           execution_->env->ipld,
-                           execution()->origin));
+                resolveKey(*execution_->state_tree, execution()->origin));
     OUTCOME_TRY(encoded_address, codec::cbor::encode(caller_address));
     common::putUint64BigEndian(encoded_address, execution()->origin_nonce);
     common::putUint64BigEndian(encoded_address, execution_->actors_created);

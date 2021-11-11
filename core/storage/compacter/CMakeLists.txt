@@ -8,6 +8,6 @@ add_library(compacter
 target_link_libraries(compacter
     cids_index
     interpreter
-    leveldb
+    map_prefix
     tipset
     )

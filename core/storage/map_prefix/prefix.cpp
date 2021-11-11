@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/leveldb/prefix.hpp"
+#include "storage/map_prefix/prefix.hpp"
 
 #include "common/span.hpp"
 
@@ -65,7 +65,7 @@ namespace fc::storage {
   }
 
   Bytes MapPrefix::Cursor::key() const {
-    return copy(gsl::span(cursor->key().data(), map.prefix.size()));
+    return copy(BytesIn{cursor->key()}.subspan(map.prefix.size()));
   }
 
   Bytes MapPrefix::Cursor::value() const {
@@ -100,7 +100,7 @@ namespace fc::storage {
 
   Bytes MapPrefix::_key(BytesIn key) const {
     Bytes res{prefix};
-    append(res, copy(key));
+    append(res, key);
     return res;
   }
 

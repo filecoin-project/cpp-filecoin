@@ -44,8 +44,6 @@ namespace fc::markets::storage::provider {
   using vm::VMExitCode;
   using vm::actor::MethodParams;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
-  using vm::message::kDefaultGasLimit;
-  using vm::message::kDefaultGasPrice;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
@@ -717,7 +715,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealCompleted(
-      const std::shared_ptr<MinerDeal>& deal,
+      const std::shared_ptr<MinerDeal> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
