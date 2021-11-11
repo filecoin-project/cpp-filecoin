@@ -89,7 +89,7 @@ namespace fc::api {
           deals.push_back(piece.deal_info->deal_id);
         }
       }
-      ApiSectorInfo api_sector_info = {
+      ApiSectorInfo api_sector_info{
           sector_info->state,
           id,
           sector_info->sector_type,

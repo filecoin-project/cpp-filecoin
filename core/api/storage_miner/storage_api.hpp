@@ -29,14 +29,14 @@ namespace fc::api {
   using miner::Miner;
   using mining::types::DealInfo;
   using mining::types::DealSchedule;
+  using mining::types::Piece;
   using primitives::ChainEpoch;
   using primitives::DealId;
-  using mining::types::Piece;
+  using primitives::DealWeight;
   using primitives::SectorNumber;
   using primitives::SectorSize;
   using primitives::StorageID;
   using primitives::TokenAmount;
-  using primitives::DealWeight;
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
   using primitives::sector::SectorId;
@@ -75,17 +75,17 @@ namespace fc::api {
     sector_storage::InteractiveRandomness seed;
     boost::optional<CID> precommit_message;
     boost::optional<CID> commit_message;
-    int64_t retries;
+    uint64_t retries;
     bool to_upgrade;
 
     // On chain info
 
-    RegisteredSealProof seal_proof = {};
-    ChainEpoch activation = {};
-    ChainEpoch expiration = {};
-    DealWeight deal_weight = {};
-    DealWeight verified_deal_weight = {};
-    TokenAmount initial_pledge = {};
+    RegisteredSealProof seal_proof{};
+    ChainEpoch activation{};
+    ChainEpoch expiration{};
+    DealWeight deal_weight{};
+    DealWeight verified_deal_weight{};
+    TokenAmount initial_pledge{};
 
     ChainEpoch on_time = {};
     ChainEpoch early = {};
@@ -94,7 +94,6 @@ namespace fc::api {
              state,
              sector_id,
              sector_type,
-             ticket,
              comm_d,
              comm_r,
              proof,
@@ -111,8 +110,7 @@ namespace fc::api {
              deal_weight,
              verified_deal_weight,
              initial_pledge,
-             on_time
-             )
+             on_time)
 
   inline bool operator==(const PieceLocation &lhs, const PieceLocation &rhs) {
     return lhs.sector_number == rhs.sector_number && lhs.offset == rhs.offset
