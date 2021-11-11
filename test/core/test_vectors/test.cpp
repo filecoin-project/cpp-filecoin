@@ -14,6 +14,7 @@
 #include "codec/json/json.hpp"
 #include "core/test_vectors/replaying_randomness.hpp"
 #include "primitives/tipset/load.hpp"
+#include "proofs/proof_param_provider.hpp"
 #include "storage/car/car.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/read_file.hpp"
@@ -261,7 +262,20 @@ auto search() {
   return vectors;
 }
 
-struct TestVectors : testing::TestWithParam<MessageVector> {};
+struct TestVectors : testing::TestWithParam<MessageVector> {
+  static void SetUpTestCase() {
+    // Download proofs needed for tests
+    OUTCOME_EXCEPT(params,
+                   fc::proofs::ProofParamProvider::readJson(
+                       "/var/tmp/filecoin-proof-parameters/parameters.json"));
+    fc::primitives::sector::RegisteredSealProof seal_proof_type =
+        fc::primitives::sector::RegisteredSealProof::kStackedDrg2KiBV1;
+    OUTCOME_EXCEPT(sector_size,
+                   fc::primitives::sector::getSectorSize(seal_proof_type));
+    OUTCOME_EXCEPT(
+        fc::proofs::ProofParamProvider::getParams(params, sector_size));
+  }
+};
 
 void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
   using namespace fc;
@@ -281,7 +295,8 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
         parent.parent_state_root = mv.state_before;
     put(ipld, nullptr, parent);
     OUTCOME_EXCEPT(parents, Tipset::create({parent}));
-    auto i{0}, j{0};
+    auto i{0};
+    auto j{0};
     for (const auto &ts : mv.tipsets) {
       fc::primitives::tipset::TipsetCreator cr;
       fc::primitives::block::Ticket ticket{{0}};
