@@ -866,13 +866,13 @@ namespace fc::api {
         [=](auto deal_id, auto &tipset_key) -> outcome::result<StorageDeal> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
       OUTCOME_TRY(state, context.marketState());
-      OUTCOME_TRY(deal, state->proposals.get(deal_id));
+      OUTCOME_TRY(proposal, state->proposals.get(deal_id));
       OUTCOME_TRY(deal_state, state->states.tryGet(deal_id));
       if (!deal_state) {
         deal_state = DealState{
             kChainEpochUndefined, kChainEpochUndefined, kChainEpochUndefined};
       }
-      return StorageDeal{deal, *deal_state};
+      return StorageDeal{proposal, *deal_state};
     };
     api->StateMinerActiveSectors =
         [=](auto &miner,

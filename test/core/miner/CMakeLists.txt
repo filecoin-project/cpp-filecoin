@@ -37,13 +37,6 @@ target_link_libraries(tipset_cache_test
     tipset_cache
     )
 
-addtest(deal_info_manager_test
-    deal_info_manager_test.cpp
-    )
-target_link_libraries(deal_info_manager_test
-    deal_info_manager
-    )
-
 addtest(sealing_test
     sealing_test.cpp
     checks_test.cpp

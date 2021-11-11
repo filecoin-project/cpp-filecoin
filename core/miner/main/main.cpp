@@ -52,6 +52,7 @@
 #include "storage/piece/impl/piece_storage_impl.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
+#include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 
 namespace fc {
   using boost::asio::io_context;
@@ -66,6 +67,8 @@ namespace fc {
   using primitives::jwt::kAllPermission;
   using primitives::sector::RegisteredSealProof;
   using storage::BufferMap;
+  using vm::actor::builtin::types::market::deal_info_manager::
+      DealInfoManagerImpl;
   namespace uuids = boost::uuids;
 
   static const Bytes kActor{copy(cbytes("actor"))};
@@ -472,7 +475,8 @@ namespace fc {
             chain_events,
             *config.actor,
             piece_io,
-            filestore)};
+            filestore,
+            std::make_shared<DealInfoManagerImpl>(napi))};
     OUTCOME_TRY(storage_provider->init());
     auto retrieval_provider{
         std::make_shared<markets::retrieval::provider::RetrievalProviderImpl>(

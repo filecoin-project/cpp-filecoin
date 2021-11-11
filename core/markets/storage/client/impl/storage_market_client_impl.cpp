@@ -10,6 +10,7 @@
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 
 #include "codec/cbor/cbor_codec.hpp"
+#include "common/enum.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/outcome_fmt.hpp"
 #include "common/ptr.hpp"
@@ -400,19 +401,18 @@ namespace fc::markets::storage::client {
     if (msg_state.receipt.exit_code != VMExitCode::kOk) {
       deal->message =
           "Publish deal exit code "
-          + std::to_string(static_cast<uint64_t>(msg_state.receipt.exit_code));
+          + std::to_string(common::to_int(msg_state.receipt.exit_code));
       return false;
     }
 
     // check if published
     OUTCOME_TRY(publish_message, api_->ChainGetMessage(deal->publish_message));
-    OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(
         miner_info,
         api_->StateMinerInfo(deal->client_deal_proposal.proposal.provider,
-                             chain_head->key));
+                             msg_state.tipset));
     OUTCOME_TRY(from_id_address,
-                api_->StateLookupID(publish_message.from, chain_head->key));
+                api_->StateLookupID(publish_message.from, msg_state.tipset));
     if (from_id_address != miner_info.worker) {
       deal->message = "Publisher is not storage provider";
       return false;
@@ -430,8 +430,8 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(params,
                 codec::cbor::decode<PublishStorageDeals::Params>(
                     publish_message.params));
-    auto &proposals{params.deals};
-    auto it = std::find(
+    const auto &proposals{params.deals};
+    const auto it = std::find(
         proposals.begin(), proposals.end(), deal->client_deal_proposal);
     if (it == proposals.end()) {
       OUTCOME_TRY(proposal_cid_str, deal->proposal_cid.toString());
@@ -442,7 +442,7 @@ namespace fc::markets::storage::client {
 
     // get proposal id from publish call return
     size_t index = std::distance(proposals.begin(), it);
-    OUTCOME_TRY(network, api_->StateNetworkVersion(chain_head->key));
+    OUTCOME_TRY(network, api_->StateNetworkVersion(msg_state.tipset));
     OUTCOME_TRY(
         deal_id,
         vm::actor::builtin::types::market::publishDealsResult(
@@ -525,7 +525,7 @@ namespace fc::markets::storage::client {
           SELF_FSM_HALT_ON_ERROR(result, "Wait for funding error", deal);
           if (result.value().receipt.exit_code != VMExitCode::kOk) {
             deal->message = "Funding exit code "
-                            + std::to_string(static_cast<uint64_t>(
+                            + std::to_string(common::to_int(
                                 result.value().receipt.exit_code));
             SELF_FSM_SEND(deal, ClientEvent::ClientEventFailed);
             return;
