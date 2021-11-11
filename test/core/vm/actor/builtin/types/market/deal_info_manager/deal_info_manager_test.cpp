@@ -3,25 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "miner/storage_fsm/impl/deal_info_manager_impl.hpp"
+#include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 
 #include <gtest/gtest.h>
-#include <vm/message/message.hpp>
 
 #include "testutil/literals.hpp"
 #include "testutil/mocks/api.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/exit_code/exit_code.hpp"
+#include "vm/message/message.hpp"
 
-namespace fc::mining {
+namespace fc::vm::actor::builtin::types::market::deal_info_manager {
   using api::Address;
   using api::MsgWait;
+  using message::UnsignedMessage;
   using testing::_;
-  using vm::VMExitCode;
-  using vm::actor::builtin::types::market::ClientDealProposal;
-  using vm::actor::builtin::v0::market::PublishStorageDeals;
-  using vm::message::UnsignedMessage;
+  using v0::market::PublishStorageDeals;
 
   template <typename F>
   auto mockSearch(F f) {
@@ -32,6 +30,9 @@ namespace fc::mining {
    protected:
     virtual void SetUp() {
       manager_ = std::make_shared<DealInfoManagerImpl>(api_);
+      api_->StateNetworkVersion = [](auto &tipset_key) {
+        return vm::version::NetworkVersion::kVersion0;
+      };
     }
 
     std::shared_ptr<FullNodeApi> api_{std::make_shared<FullNodeApi>()};
@@ -39,7 +40,6 @@ namespace fc::mining {
     MOCK_API(api_, StateSearchMsg);
 
     CID publish_cid{"010001020001"_cid};
-    TipsetKey key{{CbCid::hash("02"_unhex)}};
     TipsetKey result_key{{CbCid::hash("03"_unhex), CbCid::hash("04"_unhex)}};
     DealId result_deal_id{1};
   };
@@ -50,79 +50,18 @@ namespace fc::mining {
    * @then DealInfoManagerError::kNotOkExitCode occurs
    */
   TEST_F(DealInfoManagerTest, NonOkCode) {
-    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
-        .WillRepeatedly(mockSearch([] {
-          MsgWait lookup;
-          lookup.receipt.exit_code = VMExitCode::kFatal;
-          return lookup;
-        }));
-
-    EXPECT_OUTCOME_ERROR(
-        DealInfoManagerError::kNotOkExitCode,
-        manager_->getCurrentDealInfo(TipsetKey(), boost::none, publish_cid));
-  }
-
-  /**
-   * @given publish cid
-   * @when try to get current deal info, but not proposal and more than one
-   * deals
-   * @then DealInfoManagerError::kMoreThanOneDeal occurs
-   */
-  TEST_F(DealInfoManagerTest, TwoDealsWithoutProposal) {
-    EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
-        .WillRepeatedly(mockSearch([] {
-          MsgWait lookup;
-          lookup.receipt.exit_code = VMExitCode::kOk;
-          PublishStorageDeals::Result result{
-              .deals = {1, 2},
-          };
-          lookup.receipt.return_value = codec::cbor::encode(result).value();
-          return lookup;
-        }));
-
-    EXPECT_OUTCOME_ERROR(
-        DealInfoManagerError::kMoreThanOneDeal,
-        manager_->getCurrentDealInfo(TipsetKey(), boost::none, publish_cid));
-  }
-
-  /**
-   * @given publish cid, tipset key
-   * @when try to get current deal info, but not proposal
-   * @then success
-   */
-  TEST_F(DealInfoManagerTest, SuccessWithoutProposal) {
-    StorageDeal market_deal;
-
-    CurrentDealInfo result_deal{
-        .deal_id = result_deal_id,
-        .market_deal = market_deal,
-        .publish_msg_tipset = result_key,
-    };
+    DealProposal proposal;
 
     EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([&] {
           MsgWait lookup;
-          lookup.receipt.exit_code = VMExitCode::kOk;
-          lookup.tipset = result_key;
-          PublishStorageDeals::Result result{
-              .deals = {result_deal_id},
-          };
-          lookup.receipt.return_value = codec::cbor::encode(result).value();
+          lookup.message = publish_cid;
+          lookup.receipt.exit_code = VMExitCode::kFatal;
           return lookup;
         }));
 
-    api_->StateMarketStorageDeal =
-        [&](DealId deal_id,
-            const TipsetKey &tipset_key) -> outcome::result<StorageDeal> {
-      if (deal_id == result_deal_id and tipset_key == key) {
-        return market_deal;
-      }
-      return ERROR_TEXT("ERROR");
-    };
-
-    EXPECT_OUTCOME_EQ(
-        manager_->getCurrentDealInfo(key, boost::none, publish_cid),
-        result_deal);
+    EXPECT_OUTCOME_ERROR(DealInfoManagerError::kNotOkExitCode,
+                         manager_->getCurrentDealInfo(proposal, publish_cid));
   }
 
   /**
@@ -147,6 +86,7 @@ namespace fc::mining {
     EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([&] {
           MsgWait lookup;
+          lookup.message = publish_cid;
           lookup.receipt.exit_code = VMExitCode::kOk;
           lookup.tipset = result_key;
           PublishStorageDeals::Result result{
@@ -181,7 +121,7 @@ namespace fc::mining {
     api_->StateMarketStorageDeal =
         [&](DealId deal_id,
             const TipsetKey &tipset_key) -> outcome::result<StorageDeal> {
-      if (deal_id == result_deal_id and tipset_key == key) {
+      if (deal_id == result_deal_id and tipset_key == result_key) {
         return market_deal;
       }
       return ERROR_TEXT("ERROR");
@@ -190,15 +130,14 @@ namespace fc::mining {
     api_->StateLookupID =
         [&](const Address &address,
             const TipsetKey &tipset_key) -> outcome::result<Address> {
-      if (tipset_key == key) {
+      if (tipset_key == result_key) {
         return address;
       }
       return ERROR_TEXT("ERROR");
     };
 
-    EXPECT_OUTCOME_ERROR(
-        DealInfoManagerError::kNotFound,
-        manager_->getCurrentDealInfo(key, proposal, publish_cid));
+    EXPECT_OUTCOME_ERROR(DealInfoManagerError::kNotFound,
+                         manager_->getCurrentDealInfo(proposal, publish_cid));
   }
 
   /**
@@ -224,6 +163,7 @@ namespace fc::mining {
     EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([&] {
           MsgWait lookup;
+          lookup.message = publish_cid;
           lookup.receipt.exit_code = VMExitCode::kOk;
           lookup.tipset = result_key;
           PublishStorageDeals::Result result{
@@ -263,7 +203,7 @@ namespace fc::mining {
     api_->StateMarketStorageDeal =
         [&](DealId deal_id,
             const TipsetKey &tipset_key) -> outcome::result<StorageDeal> {
-      if (deal_id == result_deal_id and tipset_key == key) {
+      if (deal_id == result_deal_id and tipset_key == result_key) {
         return market_deal;
       }
       return ERROR_TEXT("ERROR");
@@ -272,15 +212,15 @@ namespace fc::mining {
     api_->StateLookupID =
         [&](const Address &address,
             const TipsetKey &tipset_key) -> outcome::result<Address> {
-      if (tipset_key == key) {
+      if (tipset_key == result_key) {
         return address;
       }
       return ERROR_TEXT("ERROR");
     };
 
-    EXPECT_OUTCOME_ERROR(
-        DealInfoManagerError::kOutOfRange,
-        manager_->getCurrentDealInfo(key, proposal, publish_cid));
+    const auto res = manager_->getCurrentDealInfo(proposal, publish_cid);
+    EXPECT_TRUE(res.has_error());
+    EXPECT_EQ(res.error().message(),"publishDealsResult: deal index out of bound");
   }
 
   /**
@@ -306,6 +246,7 @@ namespace fc::mining {
     EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([&] {
           MsgWait lookup;
+          lookup.message = publish_cid;
           lookup.receipt.exit_code = VMExitCode::kOk;
           lookup.tipset = result_key;
           PublishStorageDeals::Result result{
@@ -333,7 +274,7 @@ namespace fc::mining {
     api_->StateMarketStorageDeal =
         [&](DealId deal_id,
             const TipsetKey &tipset_key) -> outcome::result<StorageDeal> {
-      if (deal_id == result_deal_id and tipset_key == key) {
+      if (deal_id == result_deal_id and tipset_key == result_key) {
         return market_deal;
       }
       return ERROR_TEXT("ERROR");
@@ -342,15 +283,14 @@ namespace fc::mining {
     api_->StateLookupID =
         [&](const Address &address,
             const TipsetKey &tipset_key) -> outcome::result<Address> {
-      if (tipset_key == key) {
+      if (tipset_key == result_key) {
         return address;
       }
       return ERROR_TEXT("ERROR");
     };
 
-    EXPECT_OUTCOME_ERROR(
-        DealInfoManagerError::kDealProposalNotMatch,
-        manager_->getCurrentDealInfo(key, proposal, publish_cid));
+    EXPECT_OUTCOME_ERROR(DealInfoManagerError::kDealProposalNotMatch,
+                         manager_->getCurrentDealInfo(proposal, publish_cid));
   }
 
   /**
@@ -377,6 +317,7 @@ namespace fc::mining {
     EXPECT_CALL(mock_StateSearchMsg, Call(_, publish_cid, _, _))
         .WillRepeatedly(mockSearch([&] {
           MsgWait lookup;
+          lookup.message = publish_cid;
           lookup.receipt.exit_code = VMExitCode::kOk;
           lookup.tipset = result_key;
           PublishStorageDeals::Result result{
@@ -402,7 +343,7 @@ namespace fc::mining {
     api_->StateMarketStorageDeal =
         [&](DealId deal_id,
             const TipsetKey &tipset_key) -> outcome::result<StorageDeal> {
-      if (deal_id == result_deal_id and tipset_key == key) {
+      if (deal_id == result_deal_id and tipset_key == result_key) {
         return market_deal;
       }
       return ERROR_TEXT("ERROR");
@@ -411,14 +352,14 @@ namespace fc::mining {
     api_->StateLookupID =
         [&](const Address &address,
             const TipsetKey &tipset_key) -> outcome::result<Address> {
-      if (tipset_key == key) {
+      if (tipset_key == result_key) {
         return address;
       }
       return ERROR_TEXT("ERROR");
     };
 
-    EXPECT_OUTCOME_EQ(manager_->getCurrentDealInfo(key, proposal, publish_cid),
+    EXPECT_OUTCOME_EQ(manager_->getCurrentDealInfo(proposal, publish_cid),
                       result_deal);
   }
 
-}  // namespace fc::mining
+}  // namespace fc::vm::actor::builtin::types::market::deal_info_manager
