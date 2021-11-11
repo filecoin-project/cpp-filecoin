@@ -18,4 +18,6 @@ add_library(paych_vouchers
 target_link_libraries(paych_vouchers
     map_prefix
     payment_channel_actor_state
+    signature
+    tipset
     )

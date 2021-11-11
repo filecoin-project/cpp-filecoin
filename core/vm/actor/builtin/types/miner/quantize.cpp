@@ -6,9 +6,6 @@
 #include "vm/actor/builtin/types/miner/quantize.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
-  QuantSpec::QuantSpec(ChainEpoch unit, ChainEpoch offset)
-      : unit(unit), offset(offset) {}
-
   ChainEpoch QuantSpec::quantizeUp(ChainEpoch e) const {
     const auto rounded_offset = offset % unit;
 

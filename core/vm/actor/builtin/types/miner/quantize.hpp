@@ -15,7 +15,8 @@ namespace fc::vm::actor::builtin::types::miner {
     ChainEpoch offset{};
 
     QuantSpec() = default;
-    QuantSpec(ChainEpoch unit, ChainEpoch offset);
+    constexpr QuantSpec(ChainEpoch unit, ChainEpoch offset)
+        : unit{unit}, offset{offset} {}
 
     // Rounds e to the nearest exact multiple of the quantization unit offset by
     // offsetSeed % unit, rounding up.
@@ -29,6 +30,5 @@ namespace fc::vm::actor::builtin::types::miner {
     ChainEpoch quantizeDown(ChainEpoch e) const;
   };
 
-  static const QuantSpec kNoQuantization(1, 0);
-
+  constexpr QuantSpec kNoQuantization{1, 0};
 }  // namespace fc::vm::actor::builtin::types::miner
