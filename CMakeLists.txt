@@ -50,6 +50,7 @@ print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 
 option(TESTING "Build tests" ON)
 option(TESTING_PROOFS "Build proofs tests" OFF)
+option(TESTING_ACTORS "Build actors tests" OFF)
 option(CLANG_FORMAT "Enable clang-format target" ON)
 option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
 option(COVERAGE "Enable generation of coverage info" OFF)

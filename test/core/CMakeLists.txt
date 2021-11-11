@@ -27,7 +27,7 @@ add_subdirectory(sectorblocks)
 add_subdirectory(serialization)
 add_subdirectory(storage)
 
-if (TESTING_PROOFS)
+if (TESTING_ACTORS)
     add_subdirectory(test_vectors)
 endif()
 

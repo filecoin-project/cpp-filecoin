@@ -55,6 +55,8 @@ using fc::primitives::ChainEpoch;
 using fc::primitives::EpochDuration;
 using fc::primitives::address::Address;
 using fc::primitives::block::BlockHeader;
+using fc::primitives::sector::getSectorSize;
+using fc::primitives::sector::RegisteredSealProof;
 using fc::primitives::tipset::put;
 using fc::primitives::tipset::Tipset;
 using fc::vm::actor::Invoker;
@@ -266,14 +268,12 @@ struct TestVectors : testing::TestWithParam<MessageVector> {
   static void SetUpTestCase() {
     // Download proofs needed for tests
     OUTCOME_EXCEPT(params,
-                   fc::proofs::ProofParamProvider::readJson(
+                   ProofParamProvider::readJson(
                        "/var/tmp/filecoin-proof-parameters/parameters.json"));
-    fc::primitives::sector::RegisteredSealProof seal_proof_type =
-        fc::primitives::sector::RegisteredSealProof::kStackedDrg2KiBV1;
-    OUTCOME_EXCEPT(sector_size,
-                   fc::primitives::sector::getSectorSize(seal_proof_type));
-    OUTCOME_EXCEPT(
-        fc::proofs::ProofParamProvider::getParams(params, sector_size));
+    RegisteredSealProof seal_proof_type =
+        RegisteredSealProof::kStackedDrg2KiBV1;
+    OUTCOME_EXCEPT(sector_size, getSectorSize(seal_proof_type));
+    OUTCOME_EXCEPT(ProofParamProvider::getParams(params, sector_size));
   }
 };
 
