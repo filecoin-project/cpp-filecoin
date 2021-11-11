@@ -47,7 +47,6 @@ target_link_libraries(node_builder
     sync
     weight_calculator
     miner_types
-    store
     )
 
 add_executable(node

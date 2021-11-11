@@ -60,6 +60,9 @@ namespace fc::paych_vouchers {
       EXPECT_CALL(mock_WalletVerify, Call(state->from, testing::_, sig))
           .WillRepeatedly(testing::Return(true));
     }
+    void TearDown() override {
+      *api = {};
+    }
 
     LaneId nextLaneIs(LaneId expected) {
       EXPECT_OUTCOME_EQ(api->PaychAllocateLane(paych), expected);

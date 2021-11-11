@@ -32,6 +32,9 @@ namespace fc::paych_maker {
     void SetUp() override {
       api::implPaychGet(api, maker);
     }
+    void TearDown() override {
+      *api = {};
+    }
   };
 
   TEST_F(Test, Create) {
