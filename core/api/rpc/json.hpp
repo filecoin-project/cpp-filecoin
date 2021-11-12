@@ -1022,12 +1022,50 @@ namespace fc::api {
 
     ENCODE(ApiSectorInfo) {
       Value j{rapidjson::kObjectType};
+      Set(j, "SectorId", v.sector_id);
       Set(j, "State", v.state);
+      Set(j, "CommD", v.comm_d);
+      Set(j, "CommR", v.comm_r);
+      Set(j, "Proof", v.proof);
+      Set(j, "Deals", v.deals);
+      Set(j, "Ticket", v.ticket);
+      Set(j, "Seed", v.seed);
+      Set(j, "PreCommitMsg", v.precommit_message);
+      Set(j, "CommitMsg", v.commit_message);
+      Set(j, "Retries", v.retries);
+      Set(j, "ToUpgrade", v.to_upgrade);
+      Set(j, "SealProof", v.seal_proof);
+      Set(j, "Activation", v.activation);
+      Set(j, "Expiration", v.expiration);
+      Set(j, "DealWeight", v.deal_weight);
+      Set(j, "VerifiedDealWeight", v.verified_deal_weight);
+      Set(j, "InitialPledge", v.initial_pledge);
+      Set(j, "OnTime", v.on_time);
+      Set(j, "Early", v.early);
       return j;
     }
 
     DECODE(ApiSectorInfo) {
+      Get(j, "SectorId", v.sector_id);
       Get(j, "State", v.state);
+      Get(j, "CommD", v.comm_d);
+      Get(j, "CommR", v.comm_r);
+      Get(j, "Proof", v.proof);
+      Get(j, "Deals", v.deals);
+      Get(j, "Ticket", v.ticket);
+      Get(j, "Seed", v.seed);
+      Get(j, "PreCommitMsg", v.precommit_message);
+      Get(j, "CommitMsg", v.commit_message);
+      Get(j, "Retries", v.retries);
+      Get(j, "ToUpgrade", v.to_upgrade);
+      Get(j, "SealProof", v.seal_proof);
+      Get(j, "Activation", v.activation);
+      Get(j, "Expiration", v.expiration);
+      Get(j, "DealWeight", v.deal_weight);
+      Get(j, "VerifiedDealWeight", v.verified_deal_weight);
+      Get(j, "InitialPledge", v.initial_pledge);
+      Get(j, "OnTime", v.on_time);
+      Get(j, "Early", v.early);
     }
 
     ENCODE(PowerPair) {

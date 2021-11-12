@@ -107,17 +107,24 @@ namespace fc::api {
         OUTCOME_TRY(chain_info,
                     full_node_api->StateSectorGetInfo(
                         miner->getAddress(), id, TipsetKey{}));
-        OUTCOME_TRY(expiration_info,
-                    full_node_api->StateSectorExpiration(
-                        miner->getAddress(), id, TipsetKey{}));
+        if(!chain_info.has_value()){
+          return api_sector_info;
+        }
+
         api_sector_info.seal_proof = chain_info->seal_proof;
         api_sector_info.activation = chain_info->activation_epoch;
         api_sector_info.expiration = chain_info->expiration;
         api_sector_info.deal_weight = chain_info->deal_weight;
         api_sector_info.verified_deal_weight = chain_info->verified_deal_weight;
         api_sector_info.initial_pledge = chain_info->init_pledge;
-        api_sector_info.on_time = expiration_info.on_time;
-        api_sector_info.early = expiration_info.early;
+
+        auto maybe_expiration_info =
+                    full_node_api->StateSectorExpiration(
+                        miner->getAddress(), id, TipsetKey{});
+        if(maybe_expiration_info.has_value()) {
+          api_sector_info.on_time = maybe_expiration_info.value().on_time;
+          api_sector_info.early = maybe_expiration_info.value().early;
+        }
       }
       return api_sector_info;
     };

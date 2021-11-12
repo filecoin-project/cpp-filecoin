@@ -62,7 +62,6 @@ namespace fc::api {
   };
   CBOR_TUPLE(PieceLocation, sector_number, offset, length)
 
-  // TODO(ortyomka): [FIL-421] implement it
   struct ApiSectorInfo {
     mining::SealingState state = mining::SealingState::kStateUnknown;
     SectorNumber sector_id;

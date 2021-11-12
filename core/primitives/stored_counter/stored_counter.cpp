@@ -18,6 +18,10 @@ namespace fc::primitives {
 
   outcome::result<uint64_t> StoredCounter::getNumber() const {
     std::lock_guard lock(mutex_);
+    return getNumberWithoutLock();
+  }
+
+  outcome::result<uint64_t> StoredCounter::getNumberWithoutLock() const {
     if (not datastore_->contains(key_)) {
       return 0;
     }
@@ -28,15 +32,19 @@ namespace fc::primitives {
 
   outcome::result<void> StoredCounter::setNumber(uint64_t number) {
     std::lock_guard lock(mutex_);
+    return setNumberWithoutLock(number);
+  }
+
+  outcome::result<void> StoredCounter::setNumberWithoutLock(uint64_t number) {
     return datastore_->put(key_, codec::uvarint::VarintEncoder{number}.bytes());
   }
 
   outcome::result<uint64_t> StoredCounter::next() {
     std::lock_guard lock(mutex_);
 
-    OUTCOME_TRY(value, getNumber());
-    OUTCOME_TRY(setNumber(value + 1));
+    OUTCOME_TRY(value, getNumberWithoutLock());
+    OUTCOME_TRY(setNumberWithoutLock(value + 1));
 
-    return value;
+    return value + 1;
   }
 }  // namespace fc::primitives
