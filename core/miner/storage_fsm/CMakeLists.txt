@@ -36,15 +36,6 @@ target_link_libraries(events
         api
         )
 
-add_library(deal_info_manager
-        impl/deal_info_manager_impl.cpp
-        )
-target_link_libraries(deal_info_manager
-        logger
-        tipset
-        api
-        )
-
 add_library(batcher
         impl/precommit_batcher_impl.cpp
         )

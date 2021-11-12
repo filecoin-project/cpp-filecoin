@@ -5,12 +5,14 @@
 
 #pragma once
 
+#include "api/full_node/node_api.hpp"
 #include "common/outcome.hpp"
 #include "markets/storage/deal_protocol.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 #include "primitives/types.hpp"
 
-namespace fc::mining {
+namespace fc::vm::actor::builtin::types::market::deal_info_manager {
+  using api::MsgWait;
   using markets::storage::DealProposal;
   using markets::storage::StorageDeal;
   using primitives::DealId;
@@ -33,9 +35,18 @@ namespace fc::mining {
     virtual ~DealInfoManager() = default;
 
     virtual outcome::result<CurrentDealInfo> getCurrentDealInfo(
-        const TipsetKey &tipset_key,
-        const boost::optional<DealProposal> &proposal,
-        const CID &publish_cid) = 0;
+        const DealProposal &proposal, const CID &publish_cid) = 0;
+
+    /**
+     * Returns published deal id.
+     * Deal id is in PublishStorageDeals result call, it depends on client
+     * proposal id.
+     * @param publish_message_wait - state of the message with
+     * PublishStorageDeals
+     * @param client_deal_proposal - deal proposal in message
+     */
+    virtual outcome::result<DealId> dealIdFromPublishDealsMsg(
+        const MsgWait &publish_message_wait, const DealProposal &proposal) = 0;
   };
 
   enum class DealInfoManagerError {
@@ -45,6 +56,8 @@ namespace fc::mining {
     kMoreThanOneDeal,
     kNotOkExitCode,
   };
-}  // namespace fc::mining
+}  // namespace fc::vm::actor::builtin::types::market::deal_info_manager
 
-OUTCOME_HPP_DECLARE_ERROR(fc::mining, DealInfoManagerError);
+OUTCOME_HPP_DECLARE_ERROR(
+    fc::vm::actor::builtin::types::market::deal_info_manager,
+    DealInfoManagerError);
