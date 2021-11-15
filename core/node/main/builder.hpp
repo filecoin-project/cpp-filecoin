@@ -29,7 +29,7 @@
 #include "storage/ipld/cids_ipld.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
-#include "storage/leveldb/prefix.hpp"
+#include "storage/map_prefix/prefix.hpp"
 #include "vm/runtime/env_context.hpp"
 
 namespace fc::node {

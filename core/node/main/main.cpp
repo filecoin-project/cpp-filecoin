@@ -7,7 +7,9 @@
 #include <sys/resource.h>
 #include <iostream>
 
+#include "api/full_node/make.hpp"
 #include "api/full_node/node_api_v1_wrapper.hpp"
+#include "api/network/setup_net.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
@@ -85,6 +87,14 @@ namespace fc {
   void startApi(const node::Config &config,
                 NodeObjects &node_objects,
                 const Metrics &metrics) {
+    auto &o{node_objects};
+
+    const PeerInfo api_peer_info{
+        o.host->getId(),
+        nonZeroAddrs(o.host->getAddresses(), &config.localIp()),
+    };
+    api::fillNetApi(o.api, api_peer_info, o.host, api::kNodeApiLogger);
+
     // Market Client API
     node_objects.api->ClientImport =
         [&](auto &file_ref) -> outcome::result<ImportRes> {

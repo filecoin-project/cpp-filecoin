@@ -7,7 +7,6 @@
 
 #include "cbor_blake/cid.hpp"
 #include "codec/cbor/light_reader/cid.hpp"
-#include "vm/actor/builtin/states/account/account_actor_state.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
@@ -24,26 +23,8 @@ namespace fc::vm::runtime {
   using actor::kRewardAddress;
   using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
-  using actor::builtin::states::AccountActorStatePtr;
   using toolchain::Toolchain;
   using version::getNetworkVersion;
-
-  outcome::result<Address> resolveKey(StateTree &state_tree,
-                                      const IpldPtr &ipld,
-                                      const Address &address,
-                                      bool allow_actor) {
-    if (address.isKeyType()) {
-      return address;
-    }
-    if (auto _actor{state_tree.get(address)}) {
-      auto &actor{_actor.value()};
-      OUTCOME_TRY(state, getCbor<AccountActorStatePtr>(ipld, actor.head));
-      if (allow_actor || state->address.isKeyType()) {
-        return state->address;
-      }
-    }
-    return VMExitCode::kSysErrIllegalArgument;
-  }
 
   IpldBuffered::IpldBuffered(IpldPtr ipld) : ipld{std::move(ipld)} {}
 

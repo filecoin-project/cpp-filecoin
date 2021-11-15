@@ -8,7 +8,7 @@
 #include "fwd.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/cid/cid.hpp"
-#include "storage/leveldb/prefix.hpp"
+#include "storage/map_prefix/prefix.hpp"
 #include "vm/version/version.hpp"
 
 #include <mutex>
@@ -70,7 +70,7 @@ namespace fc::paych_maker {
 
     PaychMaker(const ApiPtr &api, const MapPtr &kv);
 
-    void make(const FromTo &from_to, const TokenAmount &amount, Cb cb);
+    void make(FromTo from_to, const TokenAmount &amount, Cb cb);
 
     void onNetwork(It it, outcome::result<NetworkVersion> _network);
     void onPush(It it, outcome::result<SignedMessage> _smsg);

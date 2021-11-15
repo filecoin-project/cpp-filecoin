@@ -49,7 +49,6 @@
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/leveldb/leveldb.hpp"
-#include "storage/leveldb/prefix.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
@@ -502,7 +501,7 @@ namespace fc {
                                     retrieval_provider);
 
     api::fillAuthApi(mapi, api_secret, api::kStorageApiLogger);
-    //TODO(@elestrias): [FIL-427] make net api configuration
+    // TODO(@elestrias): [FIL-427] make net api configuration
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
     mrpc.emplace(

@@ -7,5 +7,7 @@ add_library(payment_channel_actor_state
     bind_states.cpp
     )
 target_link_libraries(payment_channel_actor_state
+    address
+    array
     cbor
     )

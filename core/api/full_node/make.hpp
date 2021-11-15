@@ -14,7 +14,7 @@
 #include "storage/chain/chain_store.hpp"
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/keystore/keystore.hpp"
-#include "storage/leveldb/prefix.hpp"
+#include "storage/map_prefix/prefix.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/runtime/env_context.hpp"
 
@@ -33,7 +33,8 @@ namespace fc::api {
   using sync::PubSubGate;
   using vm::runtime::EnvironmentContext;
 
-  const static common::Logger kNodeApiLogger = common::createLogger("Full Node API");
+  const static common::Logger kNodeApiLogger =
+      common::createLogger("Full Node API");
 
   outcome::result<IpldObject> getNode(const std::shared_ptr<Ipld> &ipld,
                                       const CID &root,

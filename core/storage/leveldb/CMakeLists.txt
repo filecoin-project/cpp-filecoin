@@ -6,7 +6,6 @@ add_library(leveldb
     leveldb_batch.cpp
     leveldb_error.cpp
     leveldb_cursor.cpp
-    prefix.cpp
     )
 target_link_libraries(leveldb
     leveldb::leveldb
