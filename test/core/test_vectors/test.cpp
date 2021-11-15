@@ -59,6 +59,7 @@ using fc::primitives::sector::getSectorSize;
 using fc::primitives::sector::RegisteredSealProof;
 using fc::primitives::tipset::put;
 using fc::primitives::tipset::Tipset;
+using fc::proofs::ProofParamProvider;
 using fc::vm::actor::Invoker;
 using fc::vm::actor::InvokerImpl;
 using fc::vm::message::UnsignedMessage;
