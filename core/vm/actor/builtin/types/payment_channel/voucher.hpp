@@ -81,6 +81,7 @@ namespace fc::vm::actor::builtin::types::payment_channel {
       return codec::cbor::encode(copy);
     }
   };
+  FC_OPERATOR_NOT_EQUAL(SignedVoucher)
   CBOR_TUPLE(SignedVoucher,
              channel,
              time_lock_min,

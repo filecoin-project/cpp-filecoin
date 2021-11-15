@@ -9,7 +9,7 @@
 #include "primitives/tipset/chain.hpp"
 #include "storage/compacter/queue.hpp"
 #include "storage/ipld/cids_ipld.hpp"
-#include "storage/leveldb/prefix.hpp"
+#include "storage/map_prefix/prefix.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::vm::interpreter {

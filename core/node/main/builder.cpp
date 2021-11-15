@@ -22,8 +22,8 @@
 #include <libp2p/protocol/kademlia/impl/validator_default.hpp>
 
 #include "api/full_node/make.hpp"
-#include "api/network/setup_net.hpp"
 #include "api/impl/paych_get.hpp"
+#include "api/impl/paych_voucher.hpp"
 #include "api/setup_common.hpp"
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
@@ -34,7 +34,6 @@
 #include "codec/json/json.hpp"
 #include "common/api_secret.hpp"
 #include "common/error_text.hpp"
-#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/peer_key.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
@@ -54,7 +53,6 @@
 #include "node/receive_hello.hpp"
 #include "node/say_hello.hpp"
 #include "node/sync_job.hpp"
-#include "payment_channel_manager/impl/payment_channel_manager_impl.hpp"
 #include "power/impl/power_table_impl.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "primitives/tipset/file.hpp"
@@ -66,7 +64,6 @@
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/keystore/impl/filesystem/filesystem_keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
-#include "storage/leveldb/prefix.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/actor/builtin/states/init/init_actor_state.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
@@ -77,7 +74,6 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::node {
-  using api::PeerInfo;
   using markets::discovery::DiscoveryImpl;
   using markets::pieceio::PieceIOImpl;
   using markets::retrieval::client::RetrievalClientImpl;
@@ -635,24 +631,20 @@ namespace fc::node {
                           o.market_discovery,
                           o.retrieval_market_client,
                           o.wallet_default_address);
-    api::implPaychGet(
+    api::fillPaychGet(
         o.api,
         std::make_shared<paych_maker::PaychMaker>(
             o.api,
             std::make_shared<storage::MapPrefix>("paych_maker/", o.kv_store)));
 
+    api::fillPaychVoucher(o.api,
+                          std::make_shared<paych_vouchers::PaychVouchers>(
+                              o.ipld,
+                              o.api,
+                              std::make_shared<storage::MapPrefix>(
+                                  "paych_vouchers/", o.kv_store)));
+
     api::fillAuthApi(o.api, api_secret, api::kNodeApiLogger);
-
-    const PeerInfo api_peer_info{
-        o.host->getPeerInfo().id,
-        nonZeroAddrs(o.host->getAddresses(), &config.localIp())};
-
-    api::fillNetApi(o.api, api_peer_info, o.host, api::kNodeApiLogger);
-
-    auto paych{
-        std::make_shared<payment_channel_manager::PaymentChannelManagerImpl>(
-            o.api, o.ipld)};
-    paych->makeApi(*o.api);
 
     o.chain_events->init().value();
 

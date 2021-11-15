@@ -59,8 +59,6 @@ namespace fc::markets::storage::client {
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
-  using vm::message::kDefaultGasLimit;
-  using vm::message::kDefaultGasPrice;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
