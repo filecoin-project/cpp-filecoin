@@ -9,7 +9,7 @@
 #include "paych/vouchers.hpp"
 
 namespace fc::api {
-  inline void implPaychVoucher(
+  inline void fillPaychVoucher(
       const std::shared_ptr<FullNodeApi> &api,
       const std::shared_ptr<paych_vouchers::PaychVouchers> &vouchers) {
     using paych_vouchers::actorHash;

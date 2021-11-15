@@ -9,7 +9,7 @@
 #include "paych/maker.hpp"
 
 namespace fc::api {
-  inline void implPaychGet(
+  inline void fillPaychGet(
       const std::shared_ptr<FullNodeApi> &api,
       const std::shared_ptr<paych_maker::PaychMaker> &maker) {
     api->PaychGet = [=](auto &&cb,

@@ -631,13 +631,13 @@ namespace fc::node {
                           o.market_discovery,
                           o.retrieval_market_client,
                           o.wallet_default_address);
-    api::implPaychGet(
+    api::fillPaychGet(
         o.api,
         std::make_shared<paych_maker::PaychMaker>(
             o.api,
             std::make_shared<storage::MapPrefix>("paych_maker/", o.kv_store)));
 
-    api::implPaychVoucher(o.api,
+    api::fillPaychVoucher(o.api,
                           std::make_shared<paych_vouchers::PaychVouchers>(
                               o.ipld,
                               o.api,

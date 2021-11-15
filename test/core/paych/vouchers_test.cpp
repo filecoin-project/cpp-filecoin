@@ -32,7 +32,7 @@ namespace fc::paych_vouchers {
     MOCK_API(api, WalletVerify);
 
     void SetUp() override {
-      api::implPaychVoucher(api, vouchers);
+      api::fillPaychVoucher(api, vouchers);
 
       ipld->actor_version = state.actor_version;
       state.load(ipld);

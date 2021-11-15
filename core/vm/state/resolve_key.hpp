@@ -9,6 +9,11 @@
 #include "vm/state/state_tree.hpp"
 
 namespace fc::vm::state {
+  /**
+   * Given id address of account actor returns associated key address.
+   * Given key address returns it unchanged.
+   * Actor hash addresses have no key associated.
+   */
   inline outcome::result<Address> resolveKey(StateTree &state_tree,
                                              const IpldPtr &charging_ipld,
                                              const Address &address) {

@@ -30,13 +30,14 @@ namespace fc::paych_maker {
     MOCK_API(api, StateWaitMsg);
 
     void SetUp() override {
-      api::implPaychGet(api, maker);
+      api::fillPaychGet(api, maker);
     }
     void TearDown() override {
       *api = {};
     }
   };
 
+  /// Create one payment channel
   TEST_F(Test, Create) {
     const TokenAmount amount{10};
     EXPECT_CALL(mock_StateNetworkVersion, Call(api::TipsetKey{}))
