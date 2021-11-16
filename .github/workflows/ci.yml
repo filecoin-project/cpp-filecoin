@@ -83,7 +83,7 @@ jobs:
         GITHUB_HUNTER_USERNAME: ${{ secrets.HUNTER_USERNAME }}
         GITHUB_HUNTER_TOKEN: ${{ secrets.HUNTER_TOKEN }}
         COVERAGE: ${{ matrix.env.COVERAGE }}
-      run: cmake . -GNinja -Bbuild $COVERAGE -D TESTING_PROOFS=ON
+      run: cmake . -GNinja -Bbuild $COVERAGE -D TESTING_PROOFS=ON -D TESTING_ACTORS=ON
     - name: build
       run: cmake --build build -- -j2
     - name: tests

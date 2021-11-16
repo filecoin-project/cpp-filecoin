@@ -3,7 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(actor)
+if (TESTING_ACTORS)
+    add_subdirectory(actor)
+endif()
+
 add_subdirectory(exit_code)
 add_subdirectory(interpreter)
 add_subdirectory(message)

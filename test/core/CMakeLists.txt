@@ -27,5 +27,9 @@ add_subdirectory(sector_storage)
 add_subdirectory(sectorblocks)
 add_subdirectory(serialization)
 add_subdirectory(storage)
-add_subdirectory(test_vectors)
+
+if (TESTING_ACTORS)
+    add_subdirectory(test_vectors)
+endif()
+
 add_subdirectory(vm)

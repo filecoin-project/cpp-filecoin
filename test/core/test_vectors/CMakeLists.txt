@@ -14,6 +14,7 @@ target_link_libraries(test_vectors_test
     interpreter
     ipfs_datastore_in_memory
     json
+    proof_param_provider
     state_tree
     runtime
     )

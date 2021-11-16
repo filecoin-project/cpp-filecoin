@@ -27,7 +27,7 @@ namespace fc::primitives::tipset::chain {
      * @return parent if chain size is 1 else valid branch attached to parent
      */
     static TsBranchPtr make(TsChain chain, TsBranchPtr parent = nullptr);
-    static outcome::result<TsBranchPtr> make(TsLoadPtr ts_load,
+    static outcome::result<TsBranchPtr> make(const TsLoadPtr &ts_load,
                                              const TipsetKey &key,
                                              TsBranchPtr parent);
 
@@ -54,13 +54,13 @@ namespace fc::primitives::tipset::chain {
   using Path = std::pair<TsChain, TsChain>;
 
   outcome::result<std::pair<Path, std::vector<TsBranchPtr>>> update(
-      TsBranchPtr branch, TsBranchIter to_it);
+      const TsBranchPtr &branch, const TsBranchIter &to_it);
 
   using TsBranches = std::set<TsBranchPtr>;
   using TsBranchesPtr = std::shared_ptr<TsBranches>;
-  TsBranchIter find(const TsBranches &branches, TipsetCPtr ts);
+  TsBranchIter find(const TsBranches &branches, const TipsetCPtr &ts);
   TsBranchIter insert(TsBranches &branches,
-                      TipsetCPtr ts,
+                      const TipsetCPtr &ts,
                       std::vector<TsBranchPtr> *children = {});
 
   std::vector<TsBranchIter> children(TsBranchIter ts_it);
@@ -74,7 +74,8 @@ namespace fc::primitives::tipset::chain {
 
   outcome::result<TsBranchIter> stepParent(TsBranchIter it);
 
-  outcome::result<BeaconEntry> latestBeacon(TsLoadPtr ts_load, TsBranchIter it);
+  outcome::result<BeaconEntry> latestBeacon(const TsLoadPtr &ts_load,
+                                            TsBranchIter it);
 
   outcome::result<TsBranchIter> getLookbackTipSetForRound(TsBranchIter it,
                                                           ChainEpoch epoch);
