@@ -88,16 +88,19 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(
         filestore_->createDirectories(kStorageMarketImportDir.string()));
 
-    serveAsk(*host_, stored_ask_);
+    setAskHandlers();
+    setDealStatusHandlers();
 
-    serveDealStatus(*host_, weak_from_this());
-
-    host_->setProtocolHandler(
-        kDealProtocolId, [self_wptr{weak_from_this()}](auto stream) {
-          if (auto self = self_wptr.lock()) {
-            self->handleDealStream(std::make_shared<CborStream>(stream));
-          }
-        });
+    auto handle = [&](auto &&protocol) {
+      host_->setProtocolHandler(
+          protocol, [self_wptr{weak_from_this()}](auto stream) {
+            if (auto self = self_wptr.lock()) {
+              self->handleDealStream(std::make_shared<CborStream>(stream));
+            }
+          });
+    };
+    handle(kDealProtocolId_v1_0_1);
+    handle(kDealProtocolId_v1_1_1);
 
     // init fsm transitions
     fsm_ =
@@ -192,7 +195,8 @@ namespace fc::markets::storage::provider {
     return outcome::success();
   }
 
-  outcome::result<Signature> StorageProviderImpl::sign(const Bytes &input) {
+  outcome::result<Signature> StorageProviderImpl::sign(
+      const Bytes &input) const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(worker_info,
                 api_->StateMinerInfo(miner_actor_address_, chain_head->key));
@@ -265,8 +269,8 @@ namespace fc::markets::storage::provider {
     if (chain_head->epoch()
         > proposal.start_epoch - kDefaultDealAcceptanceBuffer) {
       deal->message =
-          "Deal proposal verification failed, deal start epoch is too soon or "
-          "deal already expired";
+          "Deal proposal verification failed, deal start epoch is too soon "
+          "or deal already expired";
       return false;
     }
 
@@ -299,8 +303,8 @@ namespace fc::markets::storage::provider {
       return false;
     }
 
-    // This doesn't guarantee that the client won't withdraw / lock those funds
-    // but it's a decent first filter
+    // This doesn't guarantee that the client won't withdraw / lock those
+    // funds but it's a decent first filter
     OUTCOME_TRY(client_balance,
                 api_->StateMarketBalance(proposal.client, chain_head->key));
     TokenAmount available = client_balance.escrow - client_balance.locked;
@@ -665,7 +669,6 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO(a.chernyshov): hand off
     auto &p{deal->client_deal_proposal.proposal};
     OUTCOME_EXCEPT(sector_blocks_->addPiece(
         p.piece_size.unpadded(),
@@ -675,6 +678,7 @@ namespace fc::markets::storage::provider {
                                 p,
                                 {p.start_epoch, p.end_epoch},
                                 deal->is_fast_retrieval}));
+    // TODO(a.chernyshov): add piece retry
     FSM_SEND(deal, ProviderEvent::ProviderEventDealHandedOff);
   }
 
@@ -735,66 +739,93 @@ namespace fc::markets::storage::provider {
     }
   }
 
-  void serveAsk(libp2p::Host &host, std::weak_ptr<StoredAsk> _asker) {
+  void StorageProviderImpl::setAskHandlers() {
     auto handle{[&](auto &&protocol) {
-      host.setProtocolHandler(protocol, [_asker](auto _stream) {
-        auto stream{std::make_shared<common::libp2p::CborStream>(_stream)};
-        stream->template read<AskRequest>([_asker, stream](auto _request) {
-          if (_request) {
-            if (auto asker{_asker.lock()}) {
-              if (auto _ask{asker->getAsk(_request.value().miner)}) {
-                return stream->write(AskResponse{_ask.value()},
-                                     [stream](auto) { stream->close(); });
-              }
-            }
-          }
-          stream->stream()->reset();
-        });
-      });
-    }};
-    handle(kAskProtocolId0);
-    handle(kAskProtocolId);
-  }
-
-  void serveDealStatus(libp2p::Host &host,
-                       std::weak_ptr<StorageProviderImpl> _provider) {
-    auto handle{[&](auto &&protocol) {
-      host.setProtocolHandler(protocol, [_provider](auto _stream) {
-        auto stream{std::make_shared<common::libp2p::CborStream>(_stream)};
-        stream->template read<DealStatusRequest>(
-            [_provider, stream](auto _request) {
+      host_->setProtocolHandler(
+          protocol, [stored_ask{weaken(stored_ask_)}](auto _stream) {
+            auto stream{std::make_shared<common::libp2p::CborStream>(_stream)};
+            stream->template read<AskRequest>([stored_ask,
+                                               stream](auto _request) {
               if (_request) {
-                auto &request{_request.value()};
-                // TODO(a.chernyshov): check client signature
-                if (auto provider{_provider.lock()}) {
-                  if (auto _deal{provider->getDeal(request.proposal)}) {
-                    auto &deal{_deal.value()};
-                    DealStatusResponse response{
-                        {
-                            deal.state,
-                            deal.message,
-                            deal.client_deal_proposal.proposal,
-                            deal.proposal_cid,
-                            deal.add_funds_cid,
-                            deal.publish_cid,
-                            deal.deal_id,
-                            deal.is_fast_retrieval,
-                        },
-                        {}};
-                    OUTCOME_EXCEPT(input, codec::cbor::encode(response.state));
-                    if (auto _sig{provider->sign(input)}) {
-                      response.signature = std::move(_sig.value());
-                      return stream->write(response,
-                                           [stream](auto) { stream->close(); });
-                    }
+                if (auto asker{stored_ask.lock()}) {
+                  if (auto _ask{asker->getAsk(_request.value().miner)}) {
+                    return stream->write(AskResponse{_ask.value()},
+                                         [stream](auto) { stream->close(); });
                   }
                 }
               }
               stream->stream()->reset();
             });
-      });
+          });
     }};
-    handle(kDealStatusProtocolId);
+    handle(kAskProtocolId_v1_0_1);
+    handle(kAskProtocolId_v1_1_1);
+  }
+
+  outcome::result<ProviderDealState>
+  StorageProviderImpl::prepareDealStateResponse(
+      const DealStatusRequest &request) const {
+    OUTCOME_TRY(deal, getDeal(request.proposal));
+
+    // verify client's signature
+    OUTCOME_TRY(bytes, codec::cbor::encode(request.proposal));
+    const auto &address = deal.client_deal_proposal.proposal.client;
+    OUTCOME_TRY(verified,
+                api_->WalletVerify(address, bytes, request.signature));
+    if (!verified) {
+      return ERROR_TEXT("Wrong request signature");
+    }
+
+    return ProviderDealState{
+        deal.state,
+        deal.message,
+        deal.client_deal_proposal.proposal,
+        deal.proposal_cid,
+        deal.add_funds_cid,
+        deal.publish_cid,
+        deal.deal_id,
+        deal.is_fast_retrieval,
+    };
+  }
+
+  outcome::result<DealStatusResponse> StorageProviderImpl::handleDealStatus(
+      const DealStatusRequest &request) const {
+    ProviderDealState state;
+    auto maybe_state = prepareDealStateResponse(request);
+    if (maybe_state.has_error()) {
+      state.status = StorageDealStatus::STORAGE_DEAL_ERROR;
+      state.message = maybe_state.error().message();
+    } else {
+      state = std::move(maybe_state.value());
+    }
+    OUTCOME_TRY(input, codec::cbor::encode(state));
+    OUTCOME_TRY(siganture, sign(input));
+    return DealStatusResponse{state, siganture};
+  }
+
+  void StorageProviderImpl::setDealStatusHandlers() {
+    auto handle{[&](auto &&protocol) {
+      host_->setProtocolHandler(
+          protocol, [provider_ptr{weak_from_this()}](auto _stream) {
+            auto stream{std::make_shared<common::libp2p::CborStream>(_stream)};
+            stream->template read<DealStatusRequest>(
+                [provider_ptr, stream](auto _request) {
+                  if (_request) {
+                    auto &request{_request.value()};
+                    if (auto provider{provider_ptr.lock()}) {
+                      if (auto maybe_response{
+                              provider->handleDealStatus(request)}) {
+                        stream->write(maybe_response.value(),
+                                      [stream](auto) { stream->close(); });
+                      }
+                    }
+                  }
+                  stream->stream()->reset();
+                });
+          });
+    }};
+    handle(kDealStatusProtocolId_v1_0_1);
+    handle(kDealStatusProtocolId_v1_1_1);
   }
 }  // namespace fc::markets::storage::provider
 

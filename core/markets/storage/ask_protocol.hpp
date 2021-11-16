@@ -22,8 +22,8 @@ namespace fc::markets::storage {
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
 
-  const libp2p::peer::Protocol kAskProtocolId0 = "/fil/storage/ask/1.0.1";
-  const libp2p::peer::Protocol kAskProtocolId = "/fil/storage/ask/1.1.1";
+  const libp2p::peer::Protocol kAskProtocolId_v1_0_1 = "/fil/storage/ask/1.0.1";
+  const libp2p::peer::Protocol kAskProtocolId_v1_1_1 = "/fil/storage/ask/1.1.1";
 
   struct StorageAsk {
     // Price per GiB / Epoch

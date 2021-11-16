@@ -80,9 +80,19 @@ namespace fc::markets::storage::provider {
                            const boost::filesystem::path &path)
         -> outcome::result<void> override;
 
-    outcome::result<Signature> sign(const Bytes &input);
+    outcome::result<Signature> sign(const Bytes &input) const;
 
    private:
+    void setAskHandlers();
+
+    outcome::result<ProviderDealState> prepareDealStateResponse(
+        const DealStatusRequest &request) const;
+
+    outcome::result<DealStatusResponse> handleDealStatus(
+        const DealStatusRequest &request) const;
+
+    void setDealStatusHandlers();
+
     /**
      * Handle incoming deal proposal stream
      * @param stream

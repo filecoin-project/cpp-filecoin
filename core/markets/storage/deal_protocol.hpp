@@ -30,7 +30,8 @@ namespace fc::markets::storage {
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::market::StorageParticipantBalance;
 
-  const libp2p::peer::Protocol kDealProtocolId = "/fil/storage/mk/1.0.1";
+  const libp2p::peer::Protocol kDealProtocolId_v1_0_1 = "/fil/storage/mk/1.0.1";
+  const libp2p::peer::Protocol kDealProtocolId_v1_1_1 = "/fil/storage/mk/1.1.1";
 
   const std::string kTransferTypeGraphsync = "graphsync";
   const std::string kTransferTypeManual = "manual";
@@ -206,8 +207,10 @@ namespace fc::markets::storage {
 
   CBOR_TUPLE(SignedResponse, response, signature)
 
-  const libp2p::peer::Protocol kDealStatusProtocolId{
+  const libp2p::peer::Protocol kDealStatusProtocolId_v1_0_1{
       "/fil/storage/status/1.0.1"};
+  const libp2p::peer::Protocol kDealStatusProtocolId_v1_1_1{
+      "/fil/storage/status/1.1.1"};
 
   struct ProviderDealState {
     StorageDealStatus status{};

@@ -134,7 +134,7 @@ namespace fc::markets::storage::client {
         api_->WalletSign(deal->client_deal_proposal.proposal.client, bytes));
     status_streams_->open({
         deal->miner,
-        kDealStatusProtocolId,
+        kDealStatusProtocolId_v1_1_1,
         [MOVE(cb), MOVE(req)](Host::StreamResult _stream) {
           OUTCOME_CB1(_stream);
           auto stream{std::make_shared<common::libp2p::CborStream>(
@@ -220,7 +220,7 @@ namespace fc::markets::storage::client {
       const SignedAskHandler &signed_ask_handler) {
     host_->newStream(
         info.peer_info,
-        kAskProtocolId,
+        kAskProtocolId_v1_1_1,
         [self{shared_from_this()}, info, signed_ask_handler](
             auto &&stream_res) {
           if (stream_res.has_error()) {
@@ -680,7 +680,7 @@ namespace fc::markets::storage::client {
                                         ProposeCb cb) {
     propose_streams_->open({
         deal->miner,
-        kDealProtocolId,
+        kDealProtocolId_v1_1_1,
         [=, MOVE(deal), MOVE(cb)](Host::StreamResult _stream) {
           OUTCOME_CB1(_stream);
           auto stream{std::make_shared<CborStream>(std::move(_stream.value()))};
