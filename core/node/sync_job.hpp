@@ -54,11 +54,11 @@ namespace fc::sync {
 
     void attach(TsBranchPtr branch);
 
-    void updateTarget(TsBranchPtr last);
+    void updateTarget(const TsBranchPtr &last);
 
-    void onInterpret(TipsetCPtr ts, const InterpreterResult &result);
+    void onInterpret(const TipsetCPtr &ts, const InterpreterResult &result);
 
-    bool checkParent(TipsetCPtr ts);
+    bool checkParent(const TipsetCPtr &ts);
 
     void interpretDequeue();
 
@@ -82,6 +82,7 @@ namespace fc::sync {
     IpldPtr ipld_;
     TsBranches attached_;
     std::pair<TsBranchPtr, BigInt> attached_heaviest_;
+    /** Tipset being interpreted at the moment. */
     TipsetCPtr interpret_ts_;
     bool interpreting_{false};
     IoThread thread;

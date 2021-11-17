@@ -28,11 +28,11 @@ namespace fc::sync {
       : ipld_(std::move(ipld)),
         ts_load_(std::move(ts_load)),
         put_block_header_(std::move(put_block_header)),
-        block_validator_(std::move(block_validator)) {
+        block_validator_(std::move(block_validator)),
+        head_{std::move(head)},
+        heaviest_weight_{std::move(weight)} {
     assert(ipld_);
     assert(block_validator_);
-    head_ = head;
-    heaviest_weight_ = weight;
   }
 
   outcome::result<void> ChainStoreImpl::start(
@@ -73,7 +73,7 @@ namespace fc::sync {
   }
 
   void ChainStoreImpl::update(const Path &path, const BigInt &weight) {
-    auto &[revert, apply]{path};
+    const auto &[revert, apply]{path};
     using primitives::tipset::HeadChange;
     using primitives::tipset::HeadChangeType;
     HeadChange event;
