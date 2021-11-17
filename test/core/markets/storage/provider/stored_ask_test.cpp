@@ -40,7 +40,7 @@ namespace fc::markets::storage::provider {
     Address actor_address = Address::makeFromId(1);
     Address bls_address;
     KeyPair bls_keypair;
-    StoredAsk stored_ask{datastore, api, actor_address};
+    std::shared_ptr<StoredAsk> stored_ask;
 
     static fc::primitives::block::BlockHeader makeBlock(ChainEpoch epoch) {
       auto bls1 =
@@ -98,6 +98,10 @@ namespace fc::markets::storage::provider {
         if (address == actor_address) return bls_address;
         throw "API StateAccountKey: Unexpected address";
       }};
+
+      OUTCOME_EXCEPT(new_stored_ask,
+                     StoredAsk::newStoredAsk(datastore, api, actor_address));
+      stored_ask = new_stored_ask;
     }
   };
 
@@ -107,7 +111,7 @@ namespace fc::markets::storage::provider {
    * @then default stored ask returned
    */
   TEST_F(StoredAskTest, DefaultAsk) {
-    EXPECT_OUTCOME_TRUE(ask, stored_ask.getAsk(actor_address));
+    EXPECT_OUTCOME_TRUE(ask, stored_ask->getAsk(actor_address));
 
     EXPECT_EQ(ask.ask.price, kDefaultPrice);
     EXPECT_EQ(ask.ask.min_piece_size, kDefaultMinPieceSize);
@@ -132,9 +136,9 @@ namespace fc::markets::storage::provider {
   TEST_F(StoredAskTest, AddAsk) {
     TokenAmount price = 1334;
     ChainEpoch duration = 2445;
-    EXPECT_OUTCOME_TRUE_1(stored_ask.addAsk(price, duration));
+    EXPECT_OUTCOME_TRUE_1(stored_ask->addAsk(price, duration));
 
-    EXPECT_OUTCOME_TRUE(ask, stored_ask.getAsk(actor_address));
+    EXPECT_OUTCOME_TRUE(ask, stored_ask->getAsk(actor_address));
 
     EXPECT_EQ(ask.ask.price, price);
     EXPECT_EQ(ask.ask.min_piece_size, kDefaultMinPieceSize);
@@ -159,10 +163,10 @@ namespace fc::markets::storage::provider {
   TEST_F(StoredAskTest, AddAskTwoTimes) {
     TokenAmount price = 1334;
     ChainEpoch duration = 2445;
-    EXPECT_OUTCOME_TRUE_1(stored_ask.addAsk(price, duration));
-    EXPECT_OUTCOME_TRUE_1(stored_ask.addAsk(price, duration));
+    EXPECT_OUTCOME_TRUE_1(stored_ask->addAsk(price, duration));
+    EXPECT_OUTCOME_TRUE_1(stored_ask->addAsk(price, duration));
 
-    EXPECT_OUTCOME_TRUE(ask, stored_ask.getAsk(actor_address));
+    EXPECT_OUTCOME_TRUE(ask, stored_ask->getAsk(actor_address));
 
     EXPECT_EQ(ask.ask.price, price);
     EXPECT_EQ(ask.ask.min_piece_size, kDefaultMinPieceSize);
@@ -187,7 +191,7 @@ namespace fc::markets::storage::provider {
   TEST_F(StoredAskTest, WrongAddress) {
     Address wrong_address = Address::makeFromId(2);
     EXPECT_OUTCOME_ERROR(StoredAskError::kWrongAddress,
-                         stored_ask.getAsk(wrong_address));
+                         stored_ask->getAsk(wrong_address));
   }
 
   /**
@@ -198,11 +202,12 @@ namespace fc::markets::storage::provider {
   TEST_F(StoredAskTest, LoadStoredAsk) {
     TokenAmount price = 1334;
     ChainEpoch duration = 2445;
-    EXPECT_OUTCOME_TRUE_1(stored_ask.addAsk(price, duration));
+    EXPECT_OUTCOME_TRUE_1(stored_ask->addAsk(price, duration));
 
-    StoredAsk fresh_stored_ask{datastore, api, actor_address};
+    EXPECT_OUTCOME_TRUE(fresh_stored_ask,
+                        StoredAsk::newStoredAsk(datastore, api, actor_address));
 
-    EXPECT_OUTCOME_TRUE(ask, fresh_stored_ask.getAsk(actor_address));
+    EXPECT_OUTCOME_TRUE(ask, fresh_stored_ask->getAsk(actor_address));
 
     EXPECT_EQ(ask.ask.price, price);
     EXPECT_EQ(ask.ask.min_piece_size, kDefaultMinPieceSize);
@@ -210,7 +215,7 @@ namespace fc::markets::storage::provider {
     EXPECT_EQ(ask.ask.miner, actor_address);
     EXPECT_EQ(ask.ask.timestamp, epoch);
     EXPECT_EQ(ask.ask.expiry, epoch + duration);
-    EXPECT_EQ(ask.ask.seq_no, 0);
+    EXPECT_EQ(ask.ask.seq_no, 1);
     EXPECT_OUTCOME_TRUE(verify_data, codec::cbor::encode(ask.ask));
     EXPECT_OUTCOME_EQ(
         bls_provider_->verifySignature(verify_data,

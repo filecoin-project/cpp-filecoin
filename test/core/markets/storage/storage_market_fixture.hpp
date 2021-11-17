@@ -35,9 +35,9 @@
 #include "testutil/mocks/miner/miner_mock.hpp"
 #include "testutil/mocks/sectorblocks/blocks_mock.hpp"
 #include "testutil/storage/base_fs_test.hpp"
+#include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
-#include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 
 namespace fc::markets::storage::test {
   using adt::Channel;
@@ -84,11 +84,11 @@ namespace fc::markets::storage::test {
   using provider::StoredAsk;
   using sectorblocks::SectorBlocksMock;
   using vm::VMExitCode;
+  using vm::actor::builtin::types::market::deal_info_manager::
+      DealInfoManagerImpl;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
-  using vm::actor::builtin::types::market::deal_info_manager::
-    DealInfoManagerImpl;
   using vm::runtime::MessageReceipt;
   using BlsKeyPair = fc::crypto::bls::KeyPair;
   using testing::_;
@@ -400,8 +400,11 @@ namespace fc::markets::storage::test {
       std::shared_ptr<FileStore> filestore =
           std::make_shared<FileSystemFileStore>();
 
-      stored_ask = std::make_shared<markets::storage::provider::StoredAsk>(
-          std::make_shared<InMemoryStorage>(), api, miner_actor_address);
+      OUTCOME_EXCEPT(
+          new_stored_ask,
+          markets::storage::provider::StoredAsk::newStoredAsk(
+              std::make_shared<InMemoryStorage>(), api, miner_actor_address));
+      stored_ask = std::move(new_stored_ask);
 
       std::shared_ptr<StorageProviderImpl> new_provider =
           std::make_shared<StorageProviderImpl>(
