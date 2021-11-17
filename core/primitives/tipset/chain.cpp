@@ -15,7 +15,7 @@
 
 namespace fc::primitives::tipset::chain {
 
-  void attach(TsBranchPtr parent, TsBranchPtr child) {
+  void attach(const TsBranchPtr &parent, const TsBranchPtr &child) {
     auto bottom{child->chain.begin()};
     parent->lazyLoad(bottom->first);
     assert(*parent->chain.find(bottom->first) == *bottom);
@@ -28,7 +28,7 @@ namespace fc::primitives::tipset::chain {
     child->parent_key = boost::none;
   }
 
-  void detach(TsBranchPtr parent, TsBranchPtr child) {
+  void detach(TsBranchPtr parent, const TsBranchPtr &child) {
     assert(child->parent == parent);
     child->parent = nullptr;
     parent->children.erase(std::find_if(
@@ -49,7 +49,7 @@ namespace fc::primitives::tipset::chain {
     return branch;
   }
 
-  outcome::result<TsBranchPtr> TsBranch::make(TsLoadPtr ts_load,
+  outcome::result<TsBranchPtr> TsBranch::make(const TsLoadPtr &ts_load,
                                               const TipsetKey &key,
                                               TsBranchPtr parent) {
     if (parent->chain.rbegin()->second.key == key) {
@@ -85,6 +85,7 @@ namespace fc::primitives::tipset::chain {
     return lazy ? lazy->bottom : *chain.begin();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   void TsBranch::lazyLoad(ChainEpoch height) {
     const auto bottom{chain.begin()->first};
     if (height < bottom && lazy && updater) {
@@ -95,7 +96,7 @@ namespace fc::primitives::tipset::chain {
         auto i{updater->counts.size() - 1};
         auto offset{updater->count_sum};
         while (true) {
-          if (counts[i]) {
+          if (counts[i] != 0) {
             offset -= counts[i];
             ++batch;
             if (static_cast<ChainEpoch>(min_height + i) <= height
@@ -103,18 +104,18 @@ namespace fc::primitives::tipset::chain {
               break;
             }
           }
-          if (!i) {
+          if (i == 0) {
             break;
           }
           --i;
         }
         std::unique_lock lock{updater->read_mutex};
-        updater->file_hash_read.seekg(sizeof(file::Seed)
-                                      + offset * sizeof(CbCid));
+        updater->file_hash_read.seekg(gsl::narrow<std::streamoff>(
+            sizeof(file::Seed) + offset * sizeof(CbCid)));
         std::vector<CbCid> tsk;
         while (i != counts.size()
                && static_cast<ChainEpoch>(min_height + i) < bottom) {
-          if (counts[i]) {
+          if (counts[i] != 0) {
             tsk.resize(counts[i]);
             if (!common::read(updater->file_hash_read, gsl::make_span(tsk))) {
               outcome::raise(ERROR_TEXT("TsBranch::lazyLoad read error"));
@@ -127,7 +128,7 @@ namespace fc::primitives::tipset::chain {
     }
   }
 
-  outcome::result<Path> findPath(TsBranchPtr from, TsBranchIter to_it) {
+  outcome::result<Path> findPath(const TsBranchPtr &from, TsBranchIter to_it) {
     Path path;
     auto &[revert, apply]{path};
     auto &[to, _to]{to_it};
@@ -157,25 +158,26 @@ namespace fc::primitives::tipset::chain {
       _child = branch->children.erase(_child);
     }
     while (!queue.empty()) {
-      auto [_branch, parent]{queue.back()};
+      auto [current_branch, parent]{queue.back()};
       queue.pop_back();
       auto _parent{parent->chain.begin()};
       auto _child{parent->children.begin()};
-      while (_parent != parent->chain.end() && _branch != branch->chain.end()
-             && *_parent == *_branch) {
+      while (_parent != parent->chain.end()
+             && current_branch != branch->chain.end()
+             && *_parent == *current_branch) {
         while (_child != parent->children.end()
-               && _child->first == _branch->first) {
+               && _child->first == current_branch->first) {
           if (auto child{_child->second.lock()}) {
-            queue.emplace_back(_branch, child);
+            queue.emplace_back(current_branch, child);
             child->parent = branch;
           }
           _child = parent->children.erase(_child);
         }
         ++_parent;
-        ++_branch;
+        ++current_branch;
       }
       --_parent;
-      --_branch;
+      --current_branch;
       parent->chain.erase(parent->chain.begin(), _parent);
       branch->children.emplace(_parent->first, parent);
       if (parent->chain.size() <= 1) {
@@ -185,10 +187,11 @@ namespace fc::primitives::tipset::chain {
     return removed;
   }
 
-  outcome::result<std::vector<TsBranchPtr>> update(TsBranchPtr branch,
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+  outcome::result<std::vector<TsBranchPtr>> update(const TsBranchPtr &branch,
                                                    const Path &path) {
     auto &from{branch->chain};
-    auto &[revert, apply]{path};
+    const auto &[revert, apply]{path};
     auto revert_to{from.find(revert.begin()->first)};
 
     assert(*revert.begin() == *revert_to);
@@ -235,13 +238,13 @@ namespace fc::primitives::tipset::chain {
   }
 
   outcome::result<std::pair<Path, std::vector<TsBranchPtr>>> update(
-      TsBranchPtr branch, TsBranchIter to_it) {
+      const TsBranchPtr &branch, const TsBranchIter &to_it) {
     OUTCOME_TRY(path, findPath(branch, to_it));
     OUTCOME_TRY(removed, update(branch, path));
     return std::make_pair(std::move(path), std::move(removed));
   }
 
-  TsBranchIter find(const TsBranches &branches, TipsetCPtr ts) {
+  TsBranchIter find(const TsBranches &branches, const TipsetCPtr &ts) {
     for (auto branch : branches) {
       branch->lazyLoad(ts->height());
       auto it{branch->chain.find(ts->height())};
@@ -258,14 +261,14 @@ namespace fc::primitives::tipset::chain {
   }
 
   TsBranchIter insert(TsBranches &branches,
-                      TipsetCPtr ts,
+                      const TipsetCPtr &ts,
                       std::vector<TsBranchPtr> *children) {
     TsChain::value_type p{ts->height(),
                           TsLazy{ts->key, 0}};  // we don't know index
     auto [branch, it]{find(branches, ts)};
-    for (auto &child : branches) {
+    for (const auto &child : branches) {
       if (child->parent_key && child->parent_key == ts->key) {
-        if (children) {
+        if (children != nullptr) {
           children->push_back(child);
         }
         child->chain.emplace(p);
@@ -343,12 +346,12 @@ namespace fc::primitives::tipset::chain {
     return it;
   }
 
-  outcome::result<BeaconEntry> latestBeacon(TsLoadPtr ts_load,
+  outcome::result<BeaconEntry> latestBeacon(const TsLoadPtr &ts_load,
                                             TsBranchIter it) {
     // magic number from lotus
     for (auto i{0}; i < 20; ++i) {
       OUTCOME_TRY(ts, ts_load->lazyLoad(it.second->second));
-      auto &beacons{ts->blks[0].beacon_entries};
+      const auto &beacons{ts->blks[0].beacon_entries};
       if (!beacons.empty()) {
         return *beacons.rbegin();
       }

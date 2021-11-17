@@ -27,7 +27,7 @@ namespace fc::sync::blocksync {
   using MsgIncudes = std::vector<std::vector<uint64_t>>;
 
   struct TipsetBundle {
-    // TODO use not so heap consuming containers, like small_vector
+    // TODO(turuslan): use not so heap consuming containers, like small_vector
 
     std::vector<BlockHeader> blocks;
 
