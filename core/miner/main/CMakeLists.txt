@@ -33,3 +33,6 @@ target_link_libraries(fuhon-miner
 
     miner_actor_state
     )
+set_target_properties(fuhon-miner PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    )
