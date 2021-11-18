@@ -38,7 +38,7 @@ namespace fc::vm::runtime {
   }
 
   inline outcome::result<BeaconEntry> extractBeaconEntryForEpoch(
-      TsLoadPtr ts_load,
+      const TsLoadPtr &ts_load,
       primitives::tipset::chain::TsBranchIter it,
       drand::Round round) {
     // magic number from lotus

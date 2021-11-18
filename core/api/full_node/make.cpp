@@ -43,6 +43,7 @@
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/state/resolve_key.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 #define MOVE(x)  \
@@ -85,8 +86,6 @@ namespace fc::api {
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
   using vm::interpreter::InterpreterCache;
-  using vm::message::kDefaultGasLimit;
-  using vm::message::kDefaultGasPrice;
   using vm::runtime::Env;
   using vm::state::StateTreeImpl;
   using vm::toolchain::Toolchain;
@@ -155,11 +154,7 @@ namespace fc::api {
     }
 
     outcome::result<Address> accountKey(const Address &id) {
-      OUTCOME_TRY(actor, state_tree.get(id));
-      OUTCOME_TRY(
-          state,
-          getCbor<AccountActorStatePtr>(state_tree.getStore(), actor.head));
-      return state->address;
+      return resolveKey(state_tree, id);
     }
 
     // TODO (a.chernyshov) make explicit
@@ -439,7 +434,7 @@ namespace fc::api {
             for (const auto &[peer, maybe_response] : all_calls) {
               if (maybe_response.has_error()) {
                 kNodeApiLogger->error("Error when query peer {}",
-                              maybe_response.error().message());
+                                      maybe_response.error().message());
               } else {
                 result.emplace_back(maybe_response.value());
               }
@@ -489,7 +484,7 @@ namespace fc::api {
           [=](outcome::result<void> res) {
             if (res.has_error()) {
               kNodeApiLogger->error("Error in ClientRetrieve {}",
-                            res.error().message());
+                                    res.error().message());
               return cb(res.error());
             }
             kNodeApiLogger->info("retrieval deal done");
@@ -519,9 +514,7 @@ namespace fc::api {
         -> outcome::result<UnsignedMessage> {
       if (msg.from.isId()) {
         OUTCOME_TRY(context, tipsetContext(tsk));
-        OUTCOME_TRYA(msg.from,
-                     vm::runtime::resolveKey(
-                         context.state_tree, context, msg.from, false));
+        OUTCOME_TRYA(msg.from, context.accountKey(msg.from));
       }
       OUTCOME_TRY(mpool->estimate(
           msg, spec ? spec->max_fee : storage::mpool::kDefaultMaxFee));
@@ -657,9 +650,7 @@ namespace fc::api {
                                 auto &spec) -> outcome::result<SignedMessage> {
       OUTCOME_TRY(context, tipsetContext({}));
       if (message.from.isId()) {
-        OUTCOME_TRYA(message.from,
-                     vm::runtime::resolveKey(
-                         context.state_tree, ipld, message.from, false));
+        OUTCOME_TRYA(message.from, context.accountKey(message.from));
       }
       OUTCOME_TRY(mpool->estimate(
           message, spec ? spec->max_fee : storage::mpool::kDefaultMaxFee));
@@ -1272,10 +1263,6 @@ namespace fc::api {
       }
       return key_store->verify(address, data, signature);
     };
-    /**
-     * Payment channel methods are initialized with
-     * PaymentChannelManager::makeApi(Api &api)
-     */
     return api;
-  }  // namespace fc::api
+  }
 }  // namespace fc::api

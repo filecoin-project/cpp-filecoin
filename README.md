@@ -111,7 +111,7 @@ but be sure that your realization follows consensus rules.
 
 2. go to `./cpp-filecoin` directory
 
-3. run `$git submodule --recursive --update`
+3. run `$git submodule update --init --recursive`
 
 4. To finish your building you may also want to add your GitHub token, In such case you need to set up two environment variables:
 ```

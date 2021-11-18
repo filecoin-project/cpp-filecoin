@@ -21,6 +21,7 @@
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/state/resolve_key.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 namespace fc::storage::mpool {
@@ -30,7 +31,6 @@ namespace fc::storage::mpool {
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::interpreter::InterpreterCache;
   using vm::message::UnsignedMessage;
-  using vm::runtime::resolveKey;
 
   constexpr GasAmount kMinGas{1298450};
   constexpr size_t kMaxBlocks{15};
@@ -534,6 +534,7 @@ namespace fc::storage::mpool {
     constexpr auto kDepth{20};
     std::shared_lock head_lock(head_mutex_);
     OUTCOME_TRY(path, findPath(env_context.ts_load, head_, tipset_ptr, kDepth));
+    head_lock.unlock();
     for (auto &ts : path.first) {
       OUTCOME_TRY(ts->visitMessages(
           {ipld, false, true},
@@ -604,6 +605,7 @@ namespace fc::storage::mpool {
                 vm::state::StateTreeImpl{withVersion(ipld, head_->height()),
                                          interpeted.state_root}
                     .get(from));
+    head_lock.unlock();
     std::shared_lock pending_lock{pending_mutex_};
     auto pending_it{pending_.find(from)};
     if (pending_it != pending_.end()) {
@@ -623,8 +625,10 @@ namespace fc::storage::mpool {
       msg.gas_fee_cap = kMinimumBaseFee + 1;
       msg.gas_premium = 1;
       std::shared_lock head_lock(head_mutex_);
+      const auto height = head_->height();
       OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head_->key));
       auto env{std::make_shared<vm::runtime::Env>(env_context, ts_main, head_)};
+      head_lock.unlock();
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
           env->ipld, interpeted.state_root);
       ++env->epoch;
@@ -635,6 +639,7 @@ namespace fc::storage::mpool {
           OUTCOME_TRY(env->applyMessage(_msg.second.message, msg.chainSize()));
         }
       }
+      pending_lock.unlock();
       OUTCOME_TRY(actor, env->state_tree->get(msg.from));
       msg.nonce = actor.nonce;
       OUTCOME_TRY(
@@ -651,7 +656,7 @@ namespace fc::storage::mpool {
       if (msg.method
           == vm::actor::builtin::v0::payment_channel::Collect::Number) {
         auto matcher{vm::toolchain::Toolchain::createAddressMatcher(
-            vm::version::getNetworkVersion(head_->height()))};
+            vm::version::getNetworkVersion(height))};
         if (matcher->isPaymentChannelActor(actor.code)) {
           // https://github.com/filecoin-project/lotus/blob/191a05da4872bf9849f178e6db5c0d6e87d05baa/node/impl/full/gas.go#L281
           constexpr GasAmount kGas{76000};
@@ -691,6 +696,7 @@ namespace fc::storage::mpool {
     size_t blocks{0};
     std::shared_lock head_lock(head_mutex_);
     auto ts{head_};
+    head_lock.unlock();
     std::vector<std::pair<TokenAmount, GasAmount>> prices;
     for (auto i{0}; i < 2 * max_blocks; ++i) {
       if (ts->height() == 0) {
@@ -875,6 +881,7 @@ namespace fc::storage::mpool {
     OUTCOME_TRY(cached, env_context.interpreter_cache->get(head_->key));
     vm::state::StateTreeImpl state_tree{
         withVersion(env_context.ipld, head_->height()), cached.state_root};
+    head_lock.unlock();
     std::vector<MsgChain::Ptr> chains;
     for (const auto &[from, mset] : pending_) {
       // republish only local pending messages

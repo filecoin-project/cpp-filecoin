@@ -15,6 +15,7 @@ add_subdirectory(fsm)
 add_subdirectory(markets)
 add_subdirectory(miner)
 add_subdirectory(node)
+add_subdirectory(paych)
 add_subdirectory(power)
 add_subdirectory(primitives)
 
@@ -26,5 +27,9 @@ add_subdirectory(sector_storage)
 add_subdirectory(sectorblocks)
 add_subdirectory(serialization)
 add_subdirectory(storage)
-add_subdirectory(test_vectors)
+
+if (TESTING_ACTORS)
+    add_subdirectory(test_vectors)
+endif()
+
 add_subdirectory(vm)

@@ -26,12 +26,15 @@ namespace fc {
   };
 
   // TODO(turuslan): refactor Ipld to CbIpld
-  inline IpldPtr withVersion(IpldPtr ipld, ChainEpoch height) {
-    const auto version{actorVersion(height)};
+  inline IpldPtr withVersion(IpldPtr ipld, ActorVersion version) {
     if (ipld->actor_version != version) {
       ipld = std::make_shared<IpldProxy>(ipld);
       ipld->actor_version = version;
     }
     return ipld;
+  }
+
+  inline IpldPtr withVersion(const IpldPtr &ipld, ChainEpoch height) {
+    return withVersion(ipld, actorVersion(height));
   }
 }  // namespace fc

@@ -27,7 +27,8 @@ target_link_libraries(node_builder
     interpreter
     keystore
     mpool
-    payment_channel_manager
+    paych_maker
+    paych_vouchers
     p2p::p2p_basic_host
     p2p::p2p_default_network
     p2p::p2p_peer_repository
@@ -46,7 +47,6 @@ target_link_libraries(node_builder
     sync
     weight_calculator
     miner_types
-    store
     )
 
 add_executable(node
