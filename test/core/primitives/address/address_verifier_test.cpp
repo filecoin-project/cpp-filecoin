@@ -116,16 +116,12 @@ TEST_F(AddressVerifierTest, NotVerifyBlsAddress) {
   ASSERT_FALSE(address.verifySyntax(wrong_keypair.public_key));
 }
 
-class AddressVerifierParametrizedTest
-    : public AddressVerifierTest,
-      public testing::WithParamInterface<Network> {};
-
 /**
  * @given an BLS public key
  * @when generate address called with network
  * @then correct address returned
  */
-TEST_P(AddressVerifierParametrizedTest, GenerateBlsAddress) {
+TEST_F(AddressVerifierTest, GenerateBlsAddress) {
   EXPECT_OUTCOME_TRUE(keypair, bls_provider->generateKeyPair());
   auto address = Address::makeBls(keypair.public_key);
   ASSERT_TRUE(address.isKeyType());
@@ -138,7 +134,7 @@ TEST_P(AddressVerifierParametrizedTest, GenerateBlsAddress) {
  * @when generate address called with network
  * @then correct address returned
  */
-TEST_P(AddressVerifierParametrizedTest, GenerateSecp256k1Address) {
+TEST_F(AddressVerifierTest, GenerateSecp256k1Address) {
   EXPECT_OUTCOME_TRUE(keypair, secp256k1_provider->generate());
   auto address = Address::makeSecp256k1(keypair.public_key);
   ASSERT_TRUE(address.isKeyType());

@@ -15,6 +15,7 @@
 #include "common/error_text.hpp"
 #include "proofs/proofs_error.hpp"
 #include "sector_storage/stores/store_error.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/api.hpp"
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"

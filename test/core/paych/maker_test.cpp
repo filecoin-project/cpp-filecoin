@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/mocks/api.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"

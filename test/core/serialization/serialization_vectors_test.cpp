@@ -11,6 +11,7 @@
 #include "common/span.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"

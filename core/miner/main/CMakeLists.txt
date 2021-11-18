@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_executable(miner_main
+add_executable(fuhon-miner
     main.cpp
     )
-target_link_libraries(miner_main
+target_link_libraries(fuhon-miner
     Boost::program_options
     filecoin_config
     clock

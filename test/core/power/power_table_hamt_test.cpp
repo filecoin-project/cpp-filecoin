@@ -134,7 +134,7 @@ TEST_F(PowerTableHamtTest, GetMaxPowerSuccess) {
  * @when get miners
  * @then empty set returned
  */
-TEST_F(PowerTableHamtTest, ) {
+TEST_F(PowerTableHamtTest, Empty) {
   std::vector<Address> empty;
   EXPECT_OUTCOME_EQ(power_table.getMiners(), empty);
 }
