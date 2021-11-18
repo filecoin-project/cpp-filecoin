@@ -14,6 +14,7 @@
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/context_wait.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/api.hpp"
 #include "testutil/mocks/miner/events_mock.hpp"
@@ -812,7 +813,7 @@ namespace fc::mining {
                         kInteractivePoRepConfidence,
                         height + kPreCommitChallengeDelay))
         .WillOnce(testing::Invoke(
-            [](auto &apply, auto, auto, auto) -> outcome::result<void> {
+            [](auto apply, auto, auto, auto) -> outcome::result<void> {
               EXPECT_OUTCOME_TRUE_1(apply({}, 0));
               return outcome::success();
             }));

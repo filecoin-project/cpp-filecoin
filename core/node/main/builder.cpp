@@ -160,13 +160,13 @@ namespace fc::node {
       snapshot_key->getCbor(snapshot_cids);
       if (!config.snapshot) {
         log()->warn(
-            "snapshot was imported before, but snapshot argument is missing");
+            "snapshot was used before, but snapshot argument is missing");
       }
     }
     if (config.snapshot) {
       auto roots{storage::car::readHeader(*config.snapshot).value()};
       if (!snapshot_cids.empty() && snapshot_cids != roots) {
-        log()->error("another snapshot already imported");
+        log()->error("another snapshot already used");
         exit(EXIT_FAILURE);
       }
       // TODO(turuslan): max memory
@@ -175,7 +175,7 @@ namespace fc::node {
       o.ipld = o.ipld_cids;
       if (snapshot_cids.empty()) {
         snapshot_cids = roots;
-        log()->info("snapshot imported");
+        log()->info("snapshot is ready to use");
         snapshot_key->setCbor(snapshot_cids);
       }
     }

@@ -38,6 +38,9 @@ void setFdLimitMax() {
   if (getrlimit(RLIMIT_NOFILE, &r) != 0) {
     return spdlog::error("getrlimit(RLIMIT_NOFILE), errno={}", errno);
   }
+  if (r.rlim_max == RLIM_INFINITY) {
+    return;
+  }
   r.rlim_cur = r.rlim_max;
   if (setrlimit(RLIMIT_NOFILE, &r) != 0) {
     return spdlog::error(
@@ -225,7 +228,7 @@ namespace fc {
                     text_route([&] { return metrics.prometheus(); }));
 
     api::serve(
-        rpcs, routes, *node_objects.io_context, "127.0.0.1", config.api_port);
+        rpcs, routes, *node_objects.io_context, config.api_ip, config.api_port);
     auto api_secret = loadApiSecret(config.join("jwt_secret")).value();
     auto token = generateAuthToken(api_secret, kAllPermission).value();
     api::rpc::saveInfo(config.repo_path, config.api_port, token);

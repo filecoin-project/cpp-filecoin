@@ -11,6 +11,7 @@
 #include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 

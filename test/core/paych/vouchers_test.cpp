@@ -9,6 +9,7 @@
 
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/mocks/api.hpp"
 #include "testutil/outcome.hpp"
 

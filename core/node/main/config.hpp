@@ -22,6 +22,7 @@ namespace fc::node {
     spdlog::level::level_enum log_level;
     int port = 2000;
     int api_port;
+    std::string api_ip;
     boost::optional<std::string> snapshot;
     boost::optional<CID> genesis_cid;
     boost::optional<std::string> network_name;

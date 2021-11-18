@@ -66,8 +66,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       ON_CALL_3(runtime, getActorCodeID(to_address), kAccountCodeId);
 
       EXPECT_CALL(runtime, hashBlake2b(testing::_))
-          .WillRepeatedly(
-              testing::Invoke([&](auto &data) { return blake2b_256(data); }));
+          .WillRepeatedly(crypto::blake2b::blake2b_256);
 
       EXPECT_CALL(runtime, commit(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto &cid) {
@@ -86,7 +85,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
 
     void expectSendFunds(const Address &address, TokenAmount amount) {
       EXPECT_CALL(runtime, send(address, kSendMethodNumber, testing::_, amount))
-          .WillOnce(testing::Invoke([&](auto &m, auto, auto &, auto amount) {
+          .WillOnce(testing::Invoke([&](auto &m, auto, auto, auto amount) {
             balance -= amount;
             return fc::outcome::success();
           }));
