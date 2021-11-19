@@ -134,7 +134,7 @@ namespace fc::storage::mpool {
     EXPECT_FALSE(testMpoolSelectRevert(fix, ticket_quality).empty());
   }
 
-  INSTANTIATE_TEST_CASE_P(MpoolSelectQualityTest,
-                          MpoolSelectQualityTest,
-                          ::testing::Values(0.8, 0.9));
+  INSTANTIATE_TEST_SUITE_P(MpoolSelectQualityTest,
+                           MpoolSelectQualityTest,
+                           ::testing::Values(0.8, 0.9));
 }  // namespace fc::storage::mpool

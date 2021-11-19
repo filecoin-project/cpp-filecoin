@@ -130,7 +130,7 @@ namespace fc::vm::actor::builtin::types::miner {
     }
   }
 
-  INSTANTIATE_TEST_CASE_P(
+  INSTANTIATE_TEST_SUITE_P(
       P,
       DeadlineAssignmentTestP,
       ::testing::ValuesIn(DeadlineAssignmentTestP::initTestCases()));
