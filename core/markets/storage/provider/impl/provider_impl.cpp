@@ -88,7 +88,9 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(
         filestore_->createDirectories(kStorageMarketImportDir.string()));
 
-    setAskHandlers();
+    setAskHandler<AskRequest, AskResponse>(kAskProtocolId_v1_0_1);
+    setAskHandler<AskRequest::Named, AskResponse::Named>(kAskProtocolId_v1_1_1);
+
     setDealStatusHandlers();
 
     auto handle = [&](auto &&protocol) {
@@ -737,29 +739,6 @@ namespace fc::markets::storage::provider {
     if (res.has_error()) {
       logger_->error("Deal finalization error. " + res.error().message());
     }
-  }
-
-  void StorageProviderImpl::setAskHandlers() {
-    auto handle{[&](auto &&protocol) {
-      host_->setProtocolHandler(
-          protocol, [stored_ask{weaken(stored_ask_)}](auto _stream) {
-            auto stream{std::make_shared<common::libp2p::CborStream>(_stream)};
-            stream->template read<AskRequest>([stored_ask,
-                                               stream](auto _request) {
-              if (_request) {
-                if (auto asker{stored_ask.lock()}) {
-                  if (auto _ask{asker->getAsk(_request.value().miner)}) {
-                    return stream->write(AskResponse{_ask.value()},
-                                         [stream](auto) { stream->close(); });
-                  }
-                }
-              }
-              stream->stream()->reset();
-            });
-          });
-    }};
-    handle(kAskProtocolId_v1_0_1);
-    handle(kAskProtocolId_v1_1_1);
   }
 
   outcome::result<ProviderDealState>

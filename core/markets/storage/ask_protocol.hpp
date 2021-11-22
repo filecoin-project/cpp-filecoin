@@ -15,7 +15,6 @@
 #include "primitives/types.hpp"
 
 namespace fc::markets::storage {
-
   using crypto::signature::Signature;
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
@@ -23,9 +22,13 @@ namespace fc::markets::storage {
   using primitives::piece::PaddedPieceSize;
 
   const libp2p::peer::Protocol kAskProtocolId_v1_0_1 = "/fil/storage/ask/1.0.1";
+
+  /** Protocol 1.1.1 uses named cbor */
   const libp2p::peer::Protocol kAskProtocolId_v1_1_1 = "/fil/storage/ask/1.1.1";
 
   struct StorageAsk {
+    struct Named;
+
     // Price per GiB / Epoch
     TokenAmount price;
     TokenAmount verified_price;
@@ -36,6 +39,8 @@ namespace fc::markets::storage {
     ChainEpoch expiry;
     uint64_t seq_no;
   };
+
+  struct StorageAsk::Named : StorageAsk {};
 
   CBOR_TUPLE(StorageAsk,
              price,
@@ -48,9 +53,13 @@ namespace fc::markets::storage {
              seq_no)
 
   struct SignedStorageAsk {
+    struct Named;
+
     StorageAsk ask;
     Signature signature;
   };
+
+  struct SignedStorageAsk::Named : SignedStorageAsk {};
 
   CBOR_TUPLE(SignedStorageAsk, ask, signature)
 
@@ -58,8 +67,13 @@ namespace fc::markets::storage {
    * AskRequest is a request for current ask parameters for a given miner
    */
   struct AskRequest {
+    struct Named;
+
     Address miner;
   };
+
+  /** Named ask request for named cbor */
+  struct AskRequest::Named : AskRequest {};
 
   CBOR_TUPLE(AskRequest, miner)
 
@@ -68,8 +82,13 @@ namespace fc::markets::storage {
    * request
    */
   struct AskResponse {
+    struct Named;
+
     SignedStorageAsk ask;
   };
+
+  /** Named ask response for named cbor */
+  struct AskResponse::Named : AskResponse {};
 
   CBOR_TUPLE(AskResponse, ask)
 

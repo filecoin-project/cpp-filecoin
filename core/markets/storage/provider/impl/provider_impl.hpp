@@ -32,13 +32,13 @@ namespace fc::markets::storage::provider {
   using fc::storage::filestore::FileStore;
   using fc::storage::piece::PieceStorage;
   using libp2p::Host;
-  using vm::actor::builtin::types::market::deal_info_manager::DealInfoManager;
   using pieceio::PieceIO;
   using primitives::BigInt;
   using primitives::EpochDuration;
   using primitives::GasAmount;
   using primitives::sector::RegisteredSealProof;
   using sectorblocks::SectorBlocks;
+  using vm::actor::builtin::types::market::deal_info_manager::DealInfoManager;
   using ProviderTransition =
       fsm::Transition<ProviderEvent, void, StorageDealStatus, MinerDeal>;
   using ProviderFSM =
@@ -83,7 +83,25 @@ namespace fc::markets::storage::provider {
     outcome::result<Signature> sign(const Bytes &input) const;
 
    private:
-    void setAskHandlers();
+    template <typename AskRequestType, typename AskResponseType>
+    inline void setAskHandler(const std::string &protocol) {
+      host_->setProtocolHandler(
+          protocol, [stored_ask{weaken(stored_ask_)}](auto _stream) {
+            auto stream{std::make_shared<common::libp2p::CborStream>(_stream)};
+            stream->template read<AskRequestType>([stored_ask,
+                                                   stream](auto request) {
+              if (request) {
+                if (auto asker{stored_ask.lock()}) {
+                  if (auto ask{asker->getAsk(request.value().miner)}) {
+                    return stream->write(AskResponseType{ask.value()},
+                                         [stream](auto) { stream->close(); });
+                  }
+                }
+              }
+              stream->stream()->reset();
+            });
+          });
+    }
 
     outcome::result<ProviderDealState> prepareDealStateResponse(
         const DealStatusRequest &request) const;
