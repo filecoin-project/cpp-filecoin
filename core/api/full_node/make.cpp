@@ -297,7 +297,8 @@ namespace fc::api {
     };
     api->ChainGetPath = [=](const TipsetKey &from_key, const TipsetKey &to_key)
         -> outcome::result<std::vector<HeadChange>> {
-      std::vector<HeadChange> revert, apply;
+      std::vector<HeadChange> revert;
+      std::vector<HeadChange> apply;
       OUTCOME_TRY(from, ts_load->load(from_key));
       OUTCOME_TRY(to, ts_load->load(to_key));
       while (from->key != to->key) {
