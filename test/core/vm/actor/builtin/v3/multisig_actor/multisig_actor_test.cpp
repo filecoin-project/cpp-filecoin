@@ -74,8 +74,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
       ON_CALL_3(runtime, getActorCodeID(wrong_caller), kCronCodeId);
 
       EXPECT_CALL(runtime, hashBlake2b(testing::_))
-          .WillRepeatedly(testing::Invoke(
-              [&](auto &data) { return crypto::blake2b::blake2b_256(data); }));
+          .WillRepeatedly(crypto::blake2b::blake2b_256);
 
       EXPECT_CALL(runtime, commit(testing::_))
           .WillRepeatedly(testing::Invoke([&](auto &cid) {

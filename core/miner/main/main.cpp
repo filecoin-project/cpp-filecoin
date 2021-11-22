@@ -50,9 +50,9 @@
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
+#include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
-#include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 
 namespace fc {
   using boost::asio::io_context;
@@ -137,6 +137,7 @@ namespace fc {
 
     po::options_description desc("Fuhon miner options");
     auto option{desc.add_options()};
+    option("help,h", "print usage message");
     option("miner-repo", po::value(&config.repo_path)->required());
     option("repo", po::value(&raw.node_repo));
     option("miner-api", po::value(&config.api_port)->default_value(2345));
@@ -156,6 +157,10 @@ namespace fc {
 
     po::variables_map vm;
     po::store(parse_command_line(argc, argv, desc), vm);
+    if (vm.count("help") != 0) {
+      std::cerr << desc << std::endl;
+      exit(EXIT_SUCCESS);
+    }
     po::notify(vm);
     boost::filesystem::create_directories(config.repo_path);
     std::ifstream config_file{config.join("config.cfg")};

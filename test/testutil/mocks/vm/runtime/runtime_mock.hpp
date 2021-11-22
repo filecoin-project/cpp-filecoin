@@ -7,6 +7,7 @@
 
 #include <gmock/gmock.h>
 
+#include "testutil/default_print.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/state/state_tree.hpp"

@@ -9,13 +9,14 @@
 #include <gtest/gtest.h>
 
 #include "primitives/types.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
 #include "testutil/mocks/sector_storage/worker_mock.hpp"
 #include "testutil/outcome.hpp"
 
 namespace fc::sector_storage {
-  using primitives::StoragePath;
   using primitives::SectorSize;
+  using primitives::StoragePath;
   using primitives::WorkerResources;
   using stores::StorageInfo;
   using testing::_;
@@ -39,7 +40,6 @@ namespace fc::sector_storage {
       allocate_selector_ =
           std::make_unique<AllocateSelector>(index_, file_type_, path_type_);
     }
-
 
     std::shared_ptr<stores::SectorIndexMock> index_;
     SectorFileType file_type_;

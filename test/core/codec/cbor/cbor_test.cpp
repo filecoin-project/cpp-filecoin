@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 #include "primitives/cid/cid.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 

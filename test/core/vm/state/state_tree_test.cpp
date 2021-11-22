@@ -11,6 +11,7 @@
 #include "codec/cbor/light_reader/actor.hpp"
 #include "codec/cbor/light_reader/hamt_walk.hpp"
 #include "primitives/address/address_codec.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/init_actor.hpp"
 #include "vm/actor/codes.hpp"
 #include "vm/actor/version.hpp"
