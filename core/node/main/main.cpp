@@ -17,6 +17,7 @@
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
 #include "common/logger.hpp"
+#include "common/prometheus/rpc.hpp"
 #include "drand/impl/http.hpp"
 #include "markets/storage/types.hpp"
 #include "node/blocksync_server.hpp"
@@ -208,6 +209,9 @@ namespace fc {
     auto rpc{api::makeRpc(
         *node_objects.api,
         std::bind(node_objects.api->AuthVerify, std::placeholders::_1))};
+
+    metricApiTime(*rpc_v1);
+    metricApiTime(*rpc);
 
     std::map<std::string, std::shared_ptr<api::Rpc>> rpcs;
     rpcs.emplace("/rpc/v0", rpc_v1);
