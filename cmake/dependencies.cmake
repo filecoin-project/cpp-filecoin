@@ -71,3 +71,6 @@ find_package(RapidJSON CONFIG REQUIRED)
 # https://thalhammer.it/projects/jwt_cpp
 hunter_add_package(jwt-cpp)
 find_package(jwt-cpp CONFIG REQUIRED)
+
+hunter_add_package(prometheus-cpp)
+find_package(prometheus-cpp CONFIG REQUIRED)
