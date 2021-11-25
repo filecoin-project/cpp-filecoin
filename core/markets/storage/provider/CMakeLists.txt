@@ -10,6 +10,7 @@ add_library(storage_market_provider
 target_link_libraries(storage_market_provider
     Boost::boost
     api
+    ask_protocol_cbor
     fuhon_stored_ask
     outcome
     piece

@@ -1341,7 +1341,7 @@ namespace fc::api {
       Get(j, "Signature", v.signature);
     }
 
-    ENCODE(DataRef) {
+    ENCODE(DataRef0) {
       Value j{rapidjson::kObjectType};
       Set(j, "TransferType", v.transfer_type);
       Set(j, "Root", v.root);
@@ -1350,7 +1350,7 @@ namespace fc::api {
       return j;
     }
 
-    DECODE(DataRef) {
+    DECODE(DataRef0) {
       decode(v.transfer_type, Get(j, "TransferType"));
       decode(v.root, Get(j, "Root"));
       decode(v.piece_cid, Get(j, "PieceCid"));

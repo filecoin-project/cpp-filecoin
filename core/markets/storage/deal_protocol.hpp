@@ -31,12 +31,15 @@ namespace fc::markets::storage {
   using vm::actor::builtin::types::market::StorageParticipantBalance;
 
   const libp2p::peer::Protocol kDealProtocolId_v1_0_1 = "/fil/storage/mk/1.0.1";
-  const libp2p::peer::Protocol kDealProtocolId_v1_1_1 = "/fil/storage/mk/1.1.1";
+
+  /** Protocol 1.1.0 uses named cbor */
+  const libp2p::peer::Protocol kDealProtocolId_v1_1_1 = "/fil/storage/mk/1.1.0";
 
   const std::string kTransferTypeGraphsync = "graphsync";
   const std::string kTransferTypeManual = "manual";
 
-  struct DataRef {
+  /** For protocol v1.0.1. */
+  struct DataRef0 {
     std::string transfer_type;
     CID root;
     // Optional, will be recomputed from the data if not given
@@ -44,7 +47,7 @@ namespace fc::markets::storage {
     UnpaddedPieceSize piece_size;
   };
 
-  CBOR_TUPLE(DataRef, transfer_type, root, piece_cid, piece_size)
+  CBOR_TUPLE(DataRef0, transfer_type, root, piece_cid, piece_size)
 
   enum class StorageDealStatus : uint64_t {
     STORAGE_DEAL_UNKNOWN = 0,
@@ -99,7 +102,8 @@ namespace fc::markets::storage {
     STORAGE_DEAL_ERROR,
   };
 
-  struct MinerDeal {
+  /** For protocol v1.0.1 */
+  struct MinerDeal0 {
     ClientDealProposal client_deal_proposal;
     CID proposal_cid;
     boost::optional<CID> add_funds_cid;
@@ -110,11 +114,11 @@ namespace fc::markets::storage {
     Path metadata_path;
     bool is_fast_retrieval;
     std::string message;
-    DataRef ref;
+    DataRef0 ref;
     DealId deal_id;
   };
 
-  CBOR_TUPLE(MinerDeal,
+  CBOR_TUPLE(MinerDeal0,
              client_deal_proposal,
              proposal_cid,
              add_funds_cid,
@@ -128,7 +132,8 @@ namespace fc::markets::storage {
              ref,
              deal_id)
 
-  struct ClientDeal {
+  /** For protocol v1.0.1 */
+  struct ClientDeal0 {
     ClientDealProposal client_deal_proposal;
     CID proposal_cid;
     boost::optional<CID> add_funds_cid;
@@ -136,13 +141,13 @@ namespace fc::markets::storage {
     PeerInfo miner;
     Address miner_worker;
     DealId deal_id;
-    DataRef data_ref;
+    DataRef0 data_ref;
     bool is_fast_retrieval;
     std::string message;
     CID publish_message;
   };
 
-  CBOR_TUPLE(ClientDeal,
+  CBOR_TUPLE(ClientDeal0,
              client_deal_proposal,
              proposal_cid,
              add_funds_cid,
@@ -173,18 +178,22 @@ namespace fc::markets::storage {
    * Proposal is the data sent over the network from client to provider when
    * proposing a deal
    */
-  struct Proposal {
+  struct Proposal0 {
+    struct Named;
+
     ClientDealProposal deal_proposal;
-    DataRef piece;
+    DataRef0 piece;
     bool is_fast_retrieval = false;
   };
 
-  CBOR_TUPLE(Proposal, deal_proposal, piece, is_fast_retrieval)
+  CBOR_TUPLE(Proposal0, deal_proposal, piece, is_fast_retrieval)
 
   /**
    * Response is a response to a proposal sent over the network
    */
   struct Response {
+    struct Named;
+
     StorageDealStatus state;
 
     // DealProposalRejected
@@ -195,52 +204,21 @@ namespace fc::markets::storage {
     boost::optional<CID> _unused;
   };
 
+  struct Response::Named : Response {};
+
   CBOR_TUPLE(Response, state, message, proposal, _unused)
 
   /**
    * SignedResponse is a response that is signed
    */
   struct SignedResponse {
+    struct Named;
+
     Response response;
     Signature signature;
   };
 
+  struct SignedResponse::Named : SignedResponse {};
+
   CBOR_TUPLE(SignedResponse, response, signature)
-
-  const libp2p::peer::Protocol kDealStatusProtocolId_v1_0_1{
-      "/fil/storage/status/1.0.1"};
-  const libp2p::peer::Protocol kDealStatusProtocolId_v1_1_1{
-      "/fil/storage/status/1.1.1"};
-
-  struct ProviderDealState {
-    StorageDealStatus status{};
-    std::string message;
-    DealProposal proposal;
-    CID proposal_cid;
-    boost::optional<CID> add_funds_cid;
-    boost::optional<CID> publish_cid;
-    DealId id{};
-    bool fast_retrieval{};
-  };
-  CBOR_TUPLE(ProviderDealState,
-             status,
-             message,
-             proposal,
-             proposal_cid,
-             add_funds_cid,
-             publish_cid,
-             id,
-             fast_retrieval)
-
-  struct DealStatusRequest {
-    CID proposal;
-    Signature signature;
-  };
-  CBOR_TUPLE(DealStatusRequest, proposal, signature)
-
-  struct DealStatusResponse {
-    ProviderDealState state;
-    Signature signature;
-  };
-  CBOR_TUPLE(DealStatusResponse, state, signature)
 }  // namespace fc::markets::storage

@@ -456,13 +456,13 @@ namespace fc::markets::storage::test {
       return new_client;
     }
 
-    outcome::result<DataRef> makeDataRef(
+    outcome::result<DataRef0> makeDataRef(
         const boost::filesystem::path &file_path) {
       OUTCOME_TRY(root, import_manager->import(file_path, true));
       OUTCOME_TRY(piece_commitment,
                   piece_io_->generatePieceCommitment(registered_proof,
                                                      file_path.string()));
-      return DataRef{.transfer_type = kTransferTypeManual,
+      return DataRef0{.transfer_type = kTransferTypeManual,
                      .root = root,
                      .piece_cid = piece_commitment.first,
                      .piece_size = piece_commitment.second};

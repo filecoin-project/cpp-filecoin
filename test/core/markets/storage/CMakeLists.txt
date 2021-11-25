@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(chain_events)
+add_subdirectory(protocol)
 add_subdirectory(provider)
 
 addtest(storage_market_test

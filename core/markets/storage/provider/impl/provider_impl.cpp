@@ -74,7 +74,7 @@ namespace fc::markets::storage::provider {
         datatransfer_{std::move(datatransfer)},
         deal_info_manager_{std::move(deal_info_manager)} {}
 
-  std::shared_ptr<MinerDeal> StorageProviderImpl::getDealPtr(
+  std::shared_ptr<MinerDeal0> StorageProviderImpl::getDealPtr(
       const CID &proposal_cid) {
     for (auto &it : fsm_->list()) {
       if (it.first->proposal_cid == proposal_cid) {
@@ -89,9 +89,16 @@ namespace fc::markets::storage::provider {
         filestore_->createDirectories(kStorageMarketImportDir.string()));
 
     setAskHandler<AskRequest, AskResponse>(kAskProtocolId_v1_0_1);
-    setAskHandler<AskRequest::Named, AskResponse::Named>(kAskProtocolId_v1_1_1);
+    setAskHandler<AskRequest::Named, AskResponse::Named>(kAskProtocolId_v1_1_0);
 
-    setDealStatusHandlers();
+    setDealStatusHandler<DealStatusRequestV1_0_1,
+                         ProviderDealStateV1_0_1,
+                         DealStatusResponseV1_0_1>(
+        kDealStatusProtocolId_v1_0_1);
+    setDealStatusHandler<DealStatusRequestV1_1_0,
+                         ProviderDealStateV1_1_0,
+                         DealStatusResponseV1_1_0>(
+        kDealStatusProtocolId_v1_1_0);
 
     auto handle = [&](auto &&protocol) {
       host_->setProtocolHandler(
@@ -148,7 +155,7 @@ namespace fc::markets::storage::provider {
     return outcome::success();
   }
 
-  outcome::result<MinerDeal> StorageProviderImpl::getDeal(
+  outcome::result<MinerDeal0> StorageProviderImpl::getDeal(
       const CID &proposal_cid) const {
     for (const auto &it : fsm_->list()) {
       if (it.first->proposal_cid == proposal_cid) {
@@ -211,44 +218,43 @@ namespace fc::markets::storage::provider {
       const std::shared_ptr<CborStream> &stream) {
     logger_->debug("New deal stream");
 
-    stream->read<Proposal>(
-        [self{shared_from_this()}, stream](outcome::result<Proposal> proposal) {
-          if (!self->hasValue(proposal, "Read proposal error: ", stream))
-            return;
-          auto proposal_cid{proposal.value().deal_proposal.cid()};
-          auto remote_peer_id = stream->stream()->remotePeerId();
-          if (!self->hasValue(
-                  remote_peer_id, "Cannot get remote peer info: ", stream))
-            return;
-          auto remote_multiaddress = stream->stream()->remoteMultiaddr();
-          if (!self->hasValue(
-                  remote_multiaddress, "Cannot get remote peer info: ", stream))
-            return;
-          PeerInfo remote_peer_info{.id = remote_peer_id.value(),
-                                    .addresses = {remote_multiaddress.value()}};
-          std::shared_ptr<MinerDeal> deal = std::make_shared<MinerDeal>(
-              MinerDeal{.client_deal_proposal = proposal.value().deal_proposal,
-                        .proposal_cid = proposal_cid,
-                        .add_funds_cid = boost::none,
-                        .publish_cid = boost::none,
-                        .client = remote_peer_info,
-                        .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
-                        .piece_path = {},
-                        .metadata_path = {},
-                        .is_fast_retrieval = proposal.value().is_fast_retrieval,
-                        .message = {},
-                        .ref = proposal.value().piece,
-                        .deal_id = {}});
-          std::lock_guard<std::mutex> lock(self->connections_mutex_);
-          self->connections_.emplace(proposal_cid, stream);
-          OUTCOME_EXCEPT(
-              self->fsm_->begin(deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
-          SELF_FSM_SEND(deal, ProviderEvent::ProviderEventOpen);
-        });
+    stream->read<Proposal0>([self{shared_from_this()},
+                             stream](outcome::result<Proposal0> proposal) {
+      if (!self->hasValue(proposal, "Read proposal error: ", stream)) return;
+      auto proposal_cid{proposal.value().deal_proposal.cid()};
+      auto remote_peer_id = stream->stream()->remotePeerId();
+      if (!self->hasValue(
+              remote_peer_id, "Cannot get remote peer info: ", stream))
+        return;
+      auto remote_multiaddress = stream->stream()->remoteMultiaddr();
+      if (!self->hasValue(
+              remote_multiaddress, "Cannot get remote peer info: ", stream))
+        return;
+      PeerInfo remote_peer_info{.id = remote_peer_id.value(),
+                                .addresses = {remote_multiaddress.value()}};
+      std::shared_ptr<MinerDeal0> deal = std::make_shared<MinerDeal0>(
+          MinerDeal0{.client_deal_proposal = proposal.value().deal_proposal,
+                     .proposal_cid = proposal_cid,
+                     .add_funds_cid = boost::none,
+                     .publish_cid = boost::none,
+                     .client = remote_peer_info,
+                     .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
+                     .piece_path = {},
+                     .metadata_path = {},
+                     .is_fast_retrieval = proposal.value().is_fast_retrieval,
+                     .message = {},
+                     .ref = proposal.value().piece,
+                     .deal_id = {}});
+      std::lock_guard<std::mutex> lock(self->connections_mutex_);
+      self->connections_.emplace(proposal_cid, stream);
+      OUTCOME_EXCEPT(
+          self->fsm_->begin(deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
+      SELF_FSM_SEND(deal, ProviderEvent::ProviderEventOpen);
+    });
   }
 
   outcome::result<bool> StorageProviderImpl::verifyDealProposal(
-      const std::shared_ptr<MinerDeal> &deal) const {
+      const std::shared_ptr<MinerDeal0> &deal) const {
     auto proposal = deal->client_deal_proposal.proposal;
     OUTCOME_TRY(proposal_bytes, codec::cbor::encode(proposal));
     OUTCOME_TRY(
@@ -324,7 +330,7 @@ namespace fc::markets::storage::provider {
 
   outcome::result<boost::optional<CID>>
   StorageProviderImpl::ensureProviderFunds(
-      const std::shared_ptr<MinerDeal> &deal) {
+      const std::shared_ptr<MinerDeal0> &deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     auto proposal = deal->client_deal_proposal.proposal;
     OUTCOME_TRY(worker_info,
@@ -337,7 +343,7 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<CID> StorageProviderImpl::publishDeal(
-      const std::shared_ptr<MinerDeal> &deal) {
+      const std::shared_ptr<MinerDeal0> &deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(
         worker_info,
@@ -362,7 +368,7 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<void> StorageProviderImpl::sendSignedResponse(
-      const std::shared_ptr<MinerDeal> &deal) {
+      const std::shared_ptr<MinerDeal0> &deal) {
     Response response{.state = deal->state,
                       .message = deal->message,
                       .proposal = deal->proposal_cid};
@@ -387,7 +393,7 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<PieceLocation> StorageProviderImpl::locatePiece(
-      const std::shared_ptr<MinerDeal> &deal) {
+      const std::shared_ptr<MinerDeal0> &deal) {
     OUTCOME_TRY(piece_refs, sector_blocks_->getRefs(deal->deal_id));
 
     boost::optional<PieceLocation> piece_location;
@@ -410,7 +416,7 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<void> StorageProviderImpl::recordPieceInfo(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       const PieceLocation &piece_location) {
     std::map<CID, PayloadLocation> locations;
     if (!deal->metadata_path.empty()) {
@@ -441,7 +447,7 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<void> StorageProviderImpl::finalizeDeal(
-      const std::shared_ptr<MinerDeal> &deal) {
+      const std::shared_ptr<MinerDeal0> &deal) {
     std::lock_guard<std::mutex> lock(connections_mutex_);
     auto stream_it = connections_.find(deal->proposal_cid);
     if (stream_it != connections_.end()) {
@@ -521,7 +527,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventOpen(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -535,7 +541,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealAccepted(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -555,7 +561,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventWaitingForManualData(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -563,7 +569,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventFundingInitiated(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -586,7 +592,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventFunded(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -597,7 +603,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDataTransferInitiated(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -605,7 +611,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDataTransferCompleted(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -623,7 +629,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventVerifiedData(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -641,7 +647,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealPublishInitiated(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -667,7 +673,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealPublished(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -685,7 +691,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealHandedOff(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -699,7 +705,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealActivated(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -712,7 +718,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventDealCompleted(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -724,7 +730,7 @@ namespace fc::markets::storage::provider {
   }
 
   void StorageProviderImpl::onProviderEventFailed(
-      const std::shared_ptr<MinerDeal> &deal,
+      const std::shared_ptr<MinerDeal0> &deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -741,70 +747,20 @@ namespace fc::markets::storage::provider {
     }
   }
 
-  outcome::result<ProviderDealState>
-  StorageProviderImpl::prepareDealStateResponse(
+  outcome::result<MinerDeal0> StorageProviderImpl::handleDealStatus(
       const DealStatusRequest &request) const {
     OUTCOME_TRY(deal, getDeal(request.proposal));
 
     // verify client's signature
-    OUTCOME_TRY(bytes, codec::cbor::encode(request.proposal));
-    const auto &address = deal.client_deal_proposal.proposal.client;
+    OUTCOME_TRY(bytes, request.getDigest());
+    const auto &client_address = deal.client_deal_proposal.proposal.client;
     OUTCOME_TRY(verified,
-                api_->WalletVerify(address, bytes, request.signature));
+                api_->WalletVerify(client_address, bytes, request.signature));
     if (!verified) {
       return ERROR_TEXT("Wrong request signature");
     }
 
-    return ProviderDealState{
-        deal.state,
-        deal.message,
-        deal.client_deal_proposal.proposal,
-        deal.proposal_cid,
-        deal.add_funds_cid,
-        deal.publish_cid,
-        deal.deal_id,
-        deal.is_fast_retrieval,
-    };
-  }
-
-  outcome::result<DealStatusResponse> StorageProviderImpl::handleDealStatus(
-      const DealStatusRequest &request) const {
-    ProviderDealState state;
-    auto maybe_state = prepareDealStateResponse(request);
-    if (maybe_state.has_error()) {
-      state.status = StorageDealStatus::STORAGE_DEAL_ERROR;
-      state.message = maybe_state.error().message();
-    } else {
-      state = std::move(maybe_state.value());
-    }
-    OUTCOME_TRY(input, codec::cbor::encode(state));
-    OUTCOME_TRY(siganture, sign(input));
-    return DealStatusResponse{state, siganture};
-  }
-
-  void StorageProviderImpl::setDealStatusHandlers() {
-    auto handle{[&](auto &&protocol) {
-      host_->setProtocolHandler(
-          protocol, [provider_ptr{weak_from_this()}](auto _stream) {
-            auto stream{std::make_shared<common::libp2p::CborStream>(_stream)};
-            stream->template read<DealStatusRequest>(
-                [provider_ptr, stream](auto _request) {
-                  if (_request) {
-                    auto &request{_request.value()};
-                    if (auto provider{provider_ptr.lock()}) {
-                      if (auto maybe_response{
-                              provider->handleDealStatus(request)}) {
-                        stream->write(maybe_response.value(),
-                                      [stream](auto) { stream->close(); });
-                      }
-                    }
-                  }
-                  stream->stream()->reset();
-                });
-          });
-    }};
-    handle(kDealStatusProtocolId_v1_0_1);
-    handle(kDealStatusProtocolId_v1_1_1);
+    return std::move(deal);
   }
 }  // namespace fc::markets::storage::provider
 

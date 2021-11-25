@@ -24,8 +24,12 @@ namespace fc::markets::storage {
   const libp2p::peer::Protocol kAskProtocolId_v1_0_1 = "/fil/storage/ask/1.0.1";
 
   /** Protocol 1.1.1 uses named cbor */
-  const libp2p::peer::Protocol kAskProtocolId_v1_1_1 = "/fil/storage/ask/1.1.1";
+  const libp2p::peer::Protocol kAskProtocolId_v1_1_0 = "/fil/storage/ask/1.1.0";
 
+  /**
+   * StorageAsk defines the parameters by which a miner will choose to accept or
+   * reject a deal.
+   */
   struct StorageAsk {
     struct Named;
 
@@ -40,8 +44,6 @@ namespace fc::markets::storage {
     uint64_t seq_no;
   };
 
-  struct StorageAsk::Named : StorageAsk {};
-
   CBOR_TUPLE(StorageAsk,
              price,
              verified_price,
@@ -52,6 +54,9 @@ namespace fc::markets::storage {
              expiry,
              seq_no)
 
+  struct StorageAsk::Named : StorageAsk {};
+  CBOR2_DECODE_ENCODE(StorageAsk::Named)
+
   struct SignedStorageAsk {
     struct Named;
 
@@ -59,9 +64,10 @@ namespace fc::markets::storage {
     Signature signature;
   };
 
-  struct SignedStorageAsk::Named : SignedStorageAsk {};
-
   CBOR_TUPLE(SignedStorageAsk, ask, signature)
+
+  struct SignedStorageAsk::Named : SignedStorageAsk {};
+  CBOR2_DECODE_ENCODE(SignedStorageAsk::Named)
 
   /**
    * AskRequest is a request for current ask parameters for a given miner
@@ -72,10 +78,11 @@ namespace fc::markets::storage {
     Address miner;
   };
 
+  CBOR_TUPLE(AskRequest, miner)
+
   /** Named ask request for named cbor */
   struct AskRequest::Named : AskRequest {};
-
-  CBOR_TUPLE(AskRequest, miner)
+  CBOR2_DECODE_ENCODE(AskRequest::Named)
 
   /**
    * AskResponse is the response sent over the network in response to an ask
@@ -87,9 +94,10 @@ namespace fc::markets::storage {
     SignedStorageAsk ask;
   };
 
+  CBOR_TUPLE(AskResponse, ask)
+
   /** Named ask response for named cbor */
   struct AskResponse::Named : AskResponse {};
-
-  CBOR_TUPLE(AskResponse, ask)
+  CBOR2_DECODE_ENCODE(AskResponse::Named)
 
 }  // namespace fc::markets::storage
