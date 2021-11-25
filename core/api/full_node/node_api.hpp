@@ -35,7 +35,7 @@ namespace fc::api {
   using libp2p::multi::Multiaddress;
   using libp2p::peer::PeerId;
   using markets::retrieval::RetrievalPeer;
-  using markets::storage::DataRef0;
+  using markets::storage::DataRef;
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
   using markets::storage::StorageDealStatus;
@@ -115,7 +115,7 @@ namespace fc::api {
     StorageDealStatus state;
     std::string message;
     Address provider;
-    DataRef0 data_ref;
+    DataRef data_ref;
     CID piece_cid;
     uint64_t size;
     TokenAmount price_per_epoch;
@@ -157,7 +157,7 @@ namespace fc::api {
   };
 
   struct StartDealParams {
-    DataRef0 data;
+    DataRef data;
     Address wallet;
     Address miner;
     TokenAmount epoch_price;

@@ -67,9 +67,9 @@ namespace fc::markets::storage::client {
     virtual outcome::result<std::vector<StorageDeal>> listDeals(
         const Address &address) const = 0;
 
-    virtual outcome::result<std::vector<ClientDeal0>> listLocalDeals() const = 0;
+    virtual outcome::result<std::vector<ClientDeal>> listLocalDeals() const = 0;
 
-    virtual outcome::result<ClientDeal0> getLocalDeal(const CID &cid) const = 0;
+    virtual outcome::result<ClientDeal> getLocalDeal(const CID &cid) const = 0;
 
     virtual void getAsk(const StorageProviderInfo &info,
                         const SignedAskHandler &signed_ask_handler) = 0;
@@ -89,7 +89,7 @@ namespace fc::markets::storage::client {
     virtual outcome::result<CID> proposeStorageDeal(
         const Address &client_address,
         const StorageProviderInfo &provider_info,
-        const DataRef0 &data_ref,
+        const DataRef &data_ref,
         const ChainEpoch &start_epoch,
         const ChainEpoch &end_epoch,
         const TokenAmount &price,

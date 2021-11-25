@@ -46,15 +46,15 @@ namespace fc::markets::storage {
   struct ProviderDealStateV1_0_1 : public ProviderDealState {
     ProviderDealStateV1_0_1() = default;
 
-    ProviderDealStateV1_0_1 &operator=(MinerDeal0 &&other) {
-      status = other.state;
-      message = std::move(other.message);
-      proposal = std::move(other.client_deal_proposal.proposal);
-      proposal_cid = std::move(other.proposal_cid);
-      add_funds_cid = std::move(other.add_funds_cid);
-      publish_cid = std::move(other.publish_cid);
-      id = other.deal_id;
-      fast_retrieval = other.is_fast_retrieval;
+    ProviderDealStateV1_0_1 &operator=(MinerDeal &&deal) {
+      status = deal.state;
+      message = std::move(deal.message);
+      proposal = std::move(deal.client_deal_proposal.proposal);
+      proposal_cid = std::move(deal.proposal_cid);
+      add_funds_cid = std::move(deal.add_funds_cid);
+      publish_cid = std::move(deal.publish_cid);
+      id = deal.deal_id;
+      fast_retrieval = deal.is_fast_retrieval;
       return *this;
     }
 
@@ -95,15 +95,15 @@ namespace fc::markets::storage {
       this->fast_retrieval = fast_retrieval;
     }
 
-    ProviderDealStateV1_1_0 &operator=(MinerDeal0 &&other) {
-      status = other.state;
-      message = std::move(other.message);
-      proposal = std::move(other.client_deal_proposal.proposal);
-      proposal_cid = std::move(other.proposal_cid);
-      add_funds_cid = std::move(other.add_funds_cid);
-      publish_cid = std::move(other.publish_cid);
-      id = other.deal_id;
-      fast_retrieval = other.is_fast_retrieval;
+    ProviderDealStateV1_1_0 &operator=(MinerDeal &&deal) {
+      status = deal.state;
+      message = std::move(deal.message);
+      proposal = std::move(deal.client_deal_proposal.proposal);
+      proposal_cid = std::move(deal.proposal_cid);
+      add_funds_cid = std::move(deal.add_funds_cid);
+      publish_cid = std::move(deal.publish_cid);
+      id = deal.deal_id;
+      fast_retrieval = deal.is_fast_retrieval;
       return *this;
     }
 
@@ -192,17 +192,14 @@ namespace fc::markets::storage {
 
   /** Response used in V1.0.1 */
   struct DealStatusResponseV1_0_1 : public DealStatusResponse {
-    DealStatusResponseV1_0_1()
-        : state_{std::make_shared<ProviderDealStateV1_0_1>()} {}
-
-    DealStatusResponseV1_0_1(const ProviderDealStateV1_0_1 &state,
-                             Signature signature)
-        : state_{std::make_shared<ProviderDealStateV1_0_1>(state)} {
+    DealStatusResponseV1_0_1() = default;
+    DealStatusResponseV1_0_1(ProviderDealStateV1_0_1 state, Signature signature)
+        : state_{std::move(state)} {
       this->signature = std::move(signature);
     }
 
     const ProviderDealState &state() const override {
-      return *state_;
+      return state_;
     }
 
    private:
@@ -211,38 +208,29 @@ namespace fc::markets::storage {
     friend CborDecodeStream &operator>>(CborDecodeStream &,
                                         DealStatusResponseV1_0_1 &);
 
-    std::shared_ptr<ProviderDealStateV1_0_1> state_;
+    ProviderDealStateV1_0_1 state_;
   };
 
   inline CBOR2_ENCODE(DealStatusResponseV1_0_1) {
-    return s << *v.state_ << v.signature;
+    return s << v.state_ << v.signature;
   }
   inline CBOR2_DECODE(DealStatusResponseV1_0_1) {
-    ProviderDealStateV1_0_1 state;
-    s >> state;
-    v.state_ = std::make_shared<ProviderDealStateV1_0_1>(std::move(state));
+    s >> v.state_;
     s >> v.signature;
     return s;
   }
 
   /** Response used in V1.1.0 with named fields. */
   struct DealStatusResponseV1_1_0 : public DealStatusResponse {
-    DealStatusResponseV1_1_0()
-        : state_{std::make_shared<ProviderDealStateV1_1_0>()} {}
+    DealStatusResponseV1_1_0() = default;
 
-    DealStatusResponseV1_1_0(const ProviderDealStateV1_1_0 &state,
-                             Signature signature)
-        : state_{std::make_shared<ProviderDealStateV1_1_0>(state)} {
+    DealStatusResponseV1_1_0(ProviderDealStateV1_1_0 state, Signature signature)
+        : state_{std::move(state)} {
       this->signature = std::move(signature);
     }
 
-    DealStatusResponseV1_1_0(std::shared_ptr<ProviderDealStateV1_1_0> state,
-                             Signature signature)
-        : state_(std::move(state)) {
-      this->signature = std::move(signature);
-    }
     const ProviderDealState &state() const override {
-      return *state_;
+      return state_;
     }
 
    private:
@@ -250,21 +238,19 @@ namespace fc::markets::storage {
                                         const DealStatusResponseV1_1_0 &);
     friend CborDecodeStream &operator>>(CborDecodeStream &,
                                         DealStatusResponseV1_1_0 &);
-    std::shared_ptr<ProviderDealStateV1_1_0> state_;
+    ProviderDealStateV1_1_0 state_;
   };
 
   inline CBOR2_ENCODE(DealStatusResponseV1_1_0) {
     auto m{CborEncodeStream::map()};
-    m["DealState"] << *v.state_;
+    m["DealState"] << v.state_;
     m["Signature"] << v.signature;
     return s << m;
   }
 
   inline CBOR2_DECODE(DealStatusResponseV1_1_0) {
     auto m{s.map()};
-    ProviderDealStateV1_1_0 state;
-    CborDecodeStream::named(m, "DealState") >> state;
-    v.state_ = std::make_shared<ProviderDealStateV1_1_0>(std::move(state));
+    CborDecodeStream::named(m, "DealState") >> v.state_;
     CborDecodeStream::named(m, "Signature") >> v.signature;
     return s;
   }

@@ -97,7 +97,7 @@ namespace fc::markets::storage::client {
   }
 
   void StorageMarketClientImpl::askDealStatus(
-      const std::shared_ptr<ClientDeal0> &deal) {
+      const std::shared_ptr<ClientDeal> &deal) {
     auto cb{weakCb0(
         weak_from_this(),
         [=](outcome::result<DealStatusResponseV1_1_0> &&_res) {
@@ -197,16 +197,16 @@ namespace fc::markets::storage::client {
     return client_deals;
   }
 
-  outcome::result<std::vector<ClientDeal0>>
+  outcome::result<std::vector<ClientDeal>>
   StorageMarketClientImpl::listLocalDeals() const {
-    std::vector<ClientDeal0> res;
+    std::vector<ClientDeal> res;
     for (const auto &it : fsm_->list()) {
       res.push_back(*it.first);
     }
     return res;
   }
 
-  outcome::result<ClientDeal0> StorageMarketClientImpl::getLocalDeal(
+  outcome::result<ClientDeal> StorageMarketClientImpl::getLocalDeal(
       const CID &proposal_cid) const {
     for (const auto &it : fsm_->list()) {
       if (it.first->proposal_cid == proposal_cid) {
@@ -258,7 +258,7 @@ namespace fc::markets::storage::client {
   outcome::result<CID> StorageMarketClientImpl::proposeStorageDeal(
       const Address &client_address,
       const StorageProviderInfo &provider_info,
-      const DataRef0 &data_ref,
+      const DataRef &data_ref,
       const ChainEpoch &start_epoch,
       const ChainEpoch &end_epoch,
       const TokenAmount &price,
@@ -296,8 +296,8 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(signed_proposal, signProposal(client_address, deal_proposal));
     auto proposal_cid{signed_proposal.cid()};
 
-    auto client_deal = std::make_shared<ClientDeal0>(
-        ClientDeal0{.client_deal_proposal = signed_proposal,
+    auto client_deal = std::make_shared<ClientDeal>(
+        ClientDeal{.client_deal_proposal = signed_proposal,
                     .proposal_cid = proposal_cid,
                     .add_funds_cid = boost::none,
                     .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
@@ -348,7 +348,7 @@ namespace fc::markets::storage::client {
   outcome::result<std::pair<CID, UnpaddedPieceSize>>
   StorageMarketClientImpl::calculateCommP(
       const RegisteredSealProof &registered_proof,
-      const DataRef0 &data_ref) const {
+      const DataRef &data_ref) const {
     if (data_ref.piece_cid.has_value()) {
       return std::pair(data_ref.piece_cid.value(), data_ref.piece_size);
     }
@@ -375,7 +375,7 @@ namespace fc::markets::storage::client {
   }
 
   outcome::result<boost::optional<CID>> StorageMarketClientImpl::ensureFunds(
-      const std::shared_ptr<ClientDeal0> &deal) {
+      const std::shared_ptr<ClientDeal> &deal) {
     OUTCOME_TRY(
         maybe_cid,
         api_->MarketReserveFunds(
@@ -387,7 +387,7 @@ namespace fc::markets::storage::client {
 
   outcome::result<void> StorageMarketClientImpl::verifyDealResponseSignature(
       const SignedResponse &response,
-      const std::shared_ptr<ClientDeal0> &deal) {
+      const std::shared_ptr<ClientDeal> &deal) {
     OUTCOME_TRY(response_bytes, codec::cbor::encode(response.response));
     OUTCOME_TRY(signature_valid,
                 api_->WalletVerify(
@@ -399,7 +399,7 @@ namespace fc::markets::storage::client {
   }
 
   outcome::result<bool> StorageMarketClientImpl::verifyDealPublished(
-      const std::shared_ptr<ClientDeal0> &deal, api::MsgWait msg_state) {
+      const std::shared_ptr<ClientDeal> &deal, api::MsgWait msg_state) {
     if (msg_state.receipt.exit_code != VMExitCode::kOk) {
       deal->message =
           "Publish deal exit code "
@@ -454,7 +454,7 @@ namespace fc::markets::storage::client {
   }
 
   void StorageMarketClientImpl::finalizeDeal(
-      const std::shared_ptr<ClientDeal0> &deal) {}
+      const std::shared_ptr<ClientDeal> &deal) {}
 
   std::vector<ClientTransition> StorageMarketClientImpl::makeFSMTransitions() {
     return {ClientTransition(ClientEvent::ClientEventOpen)
@@ -493,7 +493,7 @@ namespace fc::markets::storage::client {
   }
 
   void StorageMarketClientImpl::onClientEventOpen(
-      const std::shared_ptr<ClientDeal0> &deal,
+      const std::shared_ptr<ClientDeal> &deal,
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -516,7 +516,7 @@ namespace fc::markets::storage::client {
   }
 
   void StorageMarketClientImpl::onClientEventFundingInitiated(
-      const std::shared_ptr<ClientDeal0> &deal,
+      const std::shared_ptr<ClientDeal> &deal,
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -541,7 +541,7 @@ namespace fc::markets::storage::client {
   }
 
   void StorageMarketClientImpl::onClientEventFundsEnsured(
-      const std::shared_ptr<ClientDeal0> &deal,
+      const std::shared_ptr<ClientDeal> &deal,
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -605,7 +605,7 @@ namespace fc::markets::storage::client {
   }
 
   void StorageMarketClientImpl::onClientEventDealRejected(
-      const std::shared_ptr<ClientDeal0> &deal,
+      const std::shared_ptr<ClientDeal> &deal,
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -614,7 +614,7 @@ namespace fc::markets::storage::client {
   }
 
   void StorageMarketClientImpl::onClientEventDealAccepted(
-      const std::shared_ptr<ClientDeal0> &deal,
+      const std::shared_ptr<ClientDeal> &deal,
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -640,7 +640,7 @@ namespace fc::markets::storage::client {
   }
 
   void StorageMarketClientImpl::onClientEventDealPublished(
-      const std::shared_ptr<ClientDeal0> &deal,
+      const std::shared_ptr<ClientDeal> &deal,
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -655,7 +655,7 @@ namespace fc::markets::storage::client {
   }
 
   void StorageMarketClientImpl::onClientEventDealActivated(
-      const std::shared_ptr<ClientDeal0> &deal,
+      const std::shared_ptr<ClientDeal> &deal,
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -664,7 +664,7 @@ namespace fc::markets::storage::client {
   }
 
   void StorageMarketClientImpl::onClientEventFailed(
-      const std::shared_ptr<ClientDeal0> &deal,
+      const std::shared_ptr<ClientDeal> &deal,
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
@@ -678,7 +678,7 @@ namespace fc::markets::storage::client {
     finalizeDeal(deal);
   }
 
-  void StorageMarketClientImpl::propose(std::shared_ptr<ClientDeal0> deal,
+  void StorageMarketClientImpl::propose(std::shared_ptr<ClientDeal> deal,
                                         ProposeCb cb) {
     propose_streams_->open({
         deal->miner,

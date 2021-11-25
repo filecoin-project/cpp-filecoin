@@ -8,6 +8,7 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/peer/protocol.hpp>
 #include "codec/cbor/streams_annotation.hpp"
+#include "common/libp2p/peer/cbor_peer_info.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/cid/cid.hpp"
@@ -17,7 +18,8 @@
 #include "vm/actor/builtin/types/market/deal.hpp"
 
 namespace fc::markets::storage {
-
+  using codec::cbor::CborDecodeStream;
+  using codec::cbor::CborEncodeStream;
   using crypto::signature::Signature;
   using ::fc::storage::filestore::Path;
   using libp2p::peer::PeerInfo;
@@ -38,16 +40,46 @@ namespace fc::markets::storage {
   const std::string kTransferTypeGraphsync = "graphsync";
   const std::string kTransferTypeManual = "manual";
 
-  /** For protocol v1.0.1. */
-  struct DataRef0 {
+  struct DataRef {
     std::string transfer_type;
     CID root;
-    // Optional, will be recomputed from the data if not given
+    // Optional for non-manual transfer, will be recomputed from the data if not
+    // given
     boost::optional<CID> piece_cid;
+    // Optional for non-manual transfer, will be recomputed from the data if not
+    // given
     UnpaddedPieceSize piece_size;
+    // Optional: used as the denominator when calculating transfer
+    uint64_t raw_block_size{};
   };
 
-  CBOR_TUPLE(DataRef0, transfer_type, root, piece_cid, piece_size)
+  /** For protocol v1.0.1. */
+  struct DataRefV1_0_1 : public DataRef {};
+
+  CBOR_TUPLE(DataRef, transfer_type, root, piece_cid, piece_size)
+
+  /** Protocol V1.1.0 with named encoding and extended DataRef */
+  struct DataRefV1_1_0 : public DataRef {};
+
+  inline CBOR2_ENCODE(DataRefV1_1_0) {
+    auto m{CborEncodeStream::map()};
+    m["TransferType"] << v.transfer_type;
+    m["Root"] << v.root;
+    m["PieceCid"] << v.piece_cid;
+    m["PieceSize"] << v.piece_size;
+    m["RawBlockSize"] << v.raw_block_size;
+    return s << m;
+  }
+
+  inline CBOR2_DECODE(DataRefV1_1_0) {
+    auto m{s.map()};
+    CborDecodeStream::named(m, "TransferType") >> v.transfer_type;
+    CborDecodeStream::named(m, "Root") >> v.root;
+    CborDecodeStream::named(m, "PieceCid") >> v.piece_cid;
+    CborDecodeStream::named(m, "PieceSize") >> v.piece_size;
+    CborDecodeStream::named(m, "RawBlockSize") >> v.raw_block_size;
+    return s;
+  }
 
   enum class StorageDealStatus : uint64_t {
     STORAGE_DEAL_UNKNOWN = 0,
@@ -102,8 +134,8 @@ namespace fc::markets::storage {
     STORAGE_DEAL_ERROR,
   };
 
-  /** For protocol v1.0.1 */
-  struct MinerDeal0 {
+  /** Base MinerDeal */
+  struct MinerDeal {
     ClientDealProposal client_deal_proposal;
     CID proposal_cid;
     boost::optional<CID> add_funds_cid;
@@ -114,26 +146,84 @@ namespace fc::markets::storage {
     Path metadata_path;
     bool is_fast_retrieval;
     std::string message;
-    DataRef0 ref;
+    /** Returns base DataRef */
+    virtual const DataRef &ref() const = 0;
     DealId deal_id;
   };
 
-  CBOR_TUPLE(MinerDeal0,
-             client_deal_proposal,
-             proposal_cid,
-             add_funds_cid,
-             publish_cid,
-             client,
-             state,
-             piece_path,
-             metadata_path,
-             is_fast_retrieval,
-             message,
-             ref,
-             deal_id)
+  struct MinerDealV1_0_1 : public MinerDeal {
+    const DataRef &ref() const override {
+      return data_ref_;
+    }
 
-  /** For protocol v1.0.1 */
-  struct ClientDeal0 {
+   private:
+    friend CborEncodeStream &operator<<(CborEncodeStream &,
+                                        const MinerDealV1_0_1 &);
+    friend CborDecodeStream &operator>>(CborDecodeStream &, MinerDealV1_0_1 &);
+
+    DataRefV1_0_1 data_ref_;
+  };
+
+  inline CBOR2_ENCODE(MinerDealV1_0_1) {
+    return s << v.client_deal_proposal << v.proposal_cid << v.add_funds_cid
+             << v.publish_cid << v.client << v.state << v.piece_path
+             << v.metadata_path << v.is_fast_retrieval << v.message << v.message
+             << v.data_ref_ << v.deal_id;
+  }
+
+  inline CBOR2_DECODE(MinerDealV1_0_1) {
+    s >> v.client_deal_proposal;
+    s >> v.proposal_cid;
+    s >> v.add_funds_cid;
+    s >> v.publish_cid;
+    s >> v.client;
+    s >> v.state;
+    s >> v.piece_path;
+    s >> v.metadata_path;
+    s >> v.is_fast_retrieval;
+    s >> v.message;
+    s >> v.data_ref_;
+    s >> v.deal_id;
+    return s;
+  }
+
+  struct MinerDealV1_1_0 : public MinerDeal {
+    const DataRef &ref() const override {
+      return data_ref_;
+    }
+
+   private:
+    friend CborEncodeStream &operator<<(CborEncodeStream &,
+                                        const MinerDealV1_1_0 &);
+    friend CborDecodeStream &operator>>(CborDecodeStream &, MinerDealV1_1_0 &);
+
+    DataRefV1_1_0 data_ref_;
+  };
+
+  inline CBOR2_ENCODE(MinerDealV1_1_0) {
+    return s << v.client_deal_proposal << v.proposal_cid << v.add_funds_cid
+             << v.publish_cid << v.client << v.state << v.piece_path
+             << v.metadata_path << v.is_fast_retrieval << v.message << v.message
+             << v.data_ref_ << v.deal_id;
+  }
+  inline CBOR2_DECODE(MinerDealV1_1_0) {
+    s >> v.client_deal_proposal;
+    s >> v.proposal_cid;
+    s >> v.add_funds_cid;
+    s >> v.publish_cid;
+    s >> v.client;
+    s >> v.state;
+    s >> v.piece_path;
+    s >> v.metadata_path;
+    s >> v.is_fast_retrieval;
+    s >> v.message;
+    s >> v.data_ref_;
+    s >> v.deal_id;
+    return s;
+  }
+
+  /** Base class */
+  struct ClientDeal {
     ClientDealProposal client_deal_proposal;
     CID proposal_cid;
     boost::optional<CID> add_funds_cid;
@@ -141,13 +231,13 @@ namespace fc::markets::storage {
     PeerInfo miner;
     Address miner_worker;
     DealId deal_id;
-    DataRef0 data_ref;
+    DataRef data_ref;
     bool is_fast_retrieval;
     std::string message;
     CID publish_message;
   };
 
-  CBOR_TUPLE(ClientDeal0,
+  CBOR_TUPLE(ClientDeal,
              client_deal_proposal,
              proposal_cid,
              add_funds_cid,
@@ -182,7 +272,7 @@ namespace fc::markets::storage {
     struct Named;
 
     ClientDealProposal deal_proposal;
-    DataRef0 piece;
+    DataRef piece;
     bool is_fast_retrieval = false;
   };
 

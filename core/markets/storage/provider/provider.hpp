@@ -32,7 +32,7 @@ namespace fc::markets::storage::provider {
      * @return deal data
      */
     virtual auto getDeal(const CID &proposal_cid) const
-        -> outcome::result<MinerDeal0> = 0;
+        -> outcome::result<MinerDeal> = 0;
 
     /**
      * Imports data to proceed deal with 'manual' transfer type

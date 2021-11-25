@@ -113,7 +113,7 @@ namespace fc::markets::storage {
 
   /**
    * Encode and decode, must be equal
-   */cla
+   */
   TEST_F(AskProtocolTest, AskRequestEncodeAndDecode) {
     AskRequest expected_request{
         .miner = address,
