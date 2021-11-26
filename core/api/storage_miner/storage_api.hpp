@@ -25,7 +25,7 @@ namespace fc::api {
   using boost::asio::io_context;
   using markets::retrieval::RetrievalAsk;
   using markets::retrieval::provider::RetrievalProvider;
-  using markets::storage::SignedStorageAsk;
+  using markets::storage::SignedStorageAskV1_1_0;
   using markets::storage::provider::StorageProvider;
   using markets::storage::provider::StoredAsk;
   using miner::Miner;
@@ -55,7 +55,8 @@ namespace fc::api {
   using sector_storage::stores::SectorIndex;
   using StorageInfo_ = sector_storage::stores::StorageInfo;
 
-  const static common::Logger kStorageApiLogger = common::createLogger("Storage API");
+  const static common::Logger kStorageApiLogger =
+      common::createLogger("Storage API");
 
   struct PieceLocation {
     SectorNumber sector_number;
@@ -100,7 +101,7 @@ namespace fc::api {
                const CID &,
                const std::string &)
 
-    API_METHOD(MarketGetAsk, jwt::kReadPermission, SignedStorageAsk)
+    API_METHOD(MarketGetAsk, jwt::kReadPermission, SignedStorageAskV1_1_0)
     API_METHOD(MarketGetRetrievalAsk, jwt::kReadPermission, RetrievalAsk)
     API_METHOD(MarketSetAsk,
                jwt::kAdminPermission,

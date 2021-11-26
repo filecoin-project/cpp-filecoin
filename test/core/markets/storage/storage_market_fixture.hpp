@@ -35,9 +35,9 @@
 #include "testutil/mocks/miner/miner_mock.hpp"
 #include "testutil/mocks/sectorblocks/blocks_mock.hpp"
 #include "testutil/storage/base_fs_test.hpp"
+#include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
-#include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 
 namespace fc::markets::storage::test {
   using adt::Channel;
@@ -84,11 +84,11 @@ namespace fc::markets::storage::test {
   using provider::StoredAsk;
   using sectorblocks::SectorBlocksMock;
   using vm::VMExitCode;
+  using vm::actor::builtin::types::market::deal_info_manager::
+      DealInfoManagerImpl;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
-  using vm::actor::builtin::types::market::deal_info_manager::
-    DealInfoManagerImpl;
   using vm::runtime::MessageReceipt;
   using BlsKeyPair = fc::crypto::bls::KeyPair;
   using testing::_;
@@ -490,8 +490,7 @@ namespace fc::markets::storage::test {
      * Wait for future result or timeout
      * @param future
      */
-    void waitForAskResponse(
-        std::future<outcome::result<SignedStorageAsk>> &future) {
+    void waitForAskResponse(std::future<outcome::result<StorageAsk>> &future) {
       for (int i = 0; i < kNumberOfWaitCycles; i++) {
         context_->run_for(kWaitTime);
         if (future.wait_for(std::chrono::seconds(0))

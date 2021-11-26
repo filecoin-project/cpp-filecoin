@@ -36,7 +36,7 @@ namespace fc::api {
   using libp2p::peer::PeerId;
   using markets::retrieval::RetrievalPeer;
   using markets::storage::DataRef;
-  using markets::storage::SignedStorageAsk;
+  using markets::storage::SignedStorageAskV1_1_0;
   using markets::storage::StorageDeal;
   using markets::storage::StorageDealStatus;
   using markets::storage::client::import_manager::Import;
@@ -403,7 +403,7 @@ namespace fc::api {
      */
     API_METHOD(ClientQueryAsk,
                jwt::kReadPermission,
-               SignedStorageAsk,
+               SignedStorageAskV1_1_0,
                const std::string &,
                const Address &)
 

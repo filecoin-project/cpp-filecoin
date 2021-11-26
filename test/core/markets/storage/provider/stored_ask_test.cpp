@@ -116,7 +116,7 @@ namespace fc::markets::storage::provider {
     EXPECT_EQ(ask.ask.timestamp, epoch);
     EXPECT_EQ(ask.ask.expiry, epoch + kDefaultDuration);
     EXPECT_EQ(ask.ask.seq_no, 0);
-    EXPECT_OUTCOME_TRUE(verify_data, codec::cbor::encode(ask.ask));
+    EXPECT_OUTCOME_TRUE(verify_data, ask.getDigest());
     EXPECT_OUTCOME_EQ(
         bls_provider_->verifySignature(verify_data,
                                        boost::get<BlsSignature>(ask.signature),
@@ -143,7 +143,7 @@ namespace fc::markets::storage::provider {
     EXPECT_EQ(ask.ask.timestamp, epoch);
     EXPECT_EQ(ask.ask.expiry, epoch + duration);
     EXPECT_EQ(ask.ask.seq_no, 0);
-    EXPECT_OUTCOME_TRUE(verify_data, codec::cbor::encode(ask.ask));
+    EXPECT_OUTCOME_TRUE(verify_data, ask.getDigest());
     EXPECT_OUTCOME_EQ(
         bls_provider_->verifySignature(verify_data,
                                        boost::get<BlsSignature>(ask.signature),
@@ -171,7 +171,7 @@ namespace fc::markets::storage::provider {
     EXPECT_EQ(ask.ask.timestamp, epoch);
     EXPECT_EQ(ask.ask.expiry, epoch + duration);
     EXPECT_EQ(ask.ask.seq_no, 1);
-    EXPECT_OUTCOME_TRUE(verify_data, codec::cbor::encode(ask.ask));
+    EXPECT_OUTCOME_TRUE(verify_data, ask.getDigest());
     EXPECT_OUTCOME_EQ(
         bls_provider_->verifySignature(verify_data,
                                        boost::get<BlsSignature>(ask.signature),
@@ -211,7 +211,7 @@ namespace fc::markets::storage::provider {
     EXPECT_EQ(ask.ask.timestamp, epoch);
     EXPECT_EQ(ask.ask.expiry, epoch + duration);
     EXPECT_EQ(ask.ask.seq_no, 0);
-    EXPECT_OUTCOME_TRUE(verify_data, codec::cbor::encode(ask.ask));
+    EXPECT_OUTCOME_TRUE(verify_data, ask.getDigest());
     EXPECT_OUTCOME_EQ(
         bls_provider_->verifySignature(verify_data,
                                        boost::get<BlsSignature>(ask.signature),

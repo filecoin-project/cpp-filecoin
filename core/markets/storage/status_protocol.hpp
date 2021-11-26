@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "codec/cbor/streams_annotation.hpp"
+#include "common/error_text.hpp"
 #include "markets/storage/deal_protocol.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
@@ -28,10 +29,6 @@ namespace fc::markets::storage {
    * Base class for ProviderDealState
    */
   struct ProviderDealState {
-    virtual ~ProviderDealState() = default;
-
-    virtual outcome::result<Bytes> getDigest() const = 0;
-
     StorageDealStatus status{};
     std::string message;
     DealProposal proposal;
@@ -40,13 +37,8 @@ namespace fc::markets::storage {
     boost::optional<CID> publish_cid;
     DealId id{};
     bool fast_retrieval{};
-  };
 
-  /** State used in V1.0.1 */
-  struct ProviderDealStateV1_0_1 : public ProviderDealState {
-    ProviderDealStateV1_0_1() = default;
-
-    ProviderDealStateV1_0_1 &operator=(MinerDeal &&deal) {
+    ProviderDealState &operator=(MinerDeal &&deal) {
       status = deal.state;
       message = std::move(deal.message);
       proposal = std::move(deal.client_deal_proposal.proposal);
@@ -57,11 +49,10 @@ namespace fc::markets::storage {
       fast_retrieval = deal.is_fast_retrieval;
       return *this;
     }
-
-    outcome::result<Bytes> getDigest() const override {
-      return codec::cbor::encode(*this);
-    }
   };
+
+  /** State used in V1.0.1 */
+  struct ProviderDealStateV1_0_1 : public ProviderDealState {};
 
   CBOR_TUPLE(ProviderDealStateV1_0_1,
              status,
@@ -74,43 +65,7 @@ namespace fc::markets::storage {
              fast_retrieval)
 
   /** State used in V1.1.0. Cbores with field names. */
-  struct ProviderDealStateV1_1_0 : public ProviderDealState {
-    ProviderDealStateV1_1_0() = default;
-
-    ProviderDealStateV1_1_0(StorageDealStatus status,
-                            std::string message,
-                            DealProposal proposal,
-                            CID proposal_cid,
-                            boost::optional<CID> add_funds_cid,
-                            boost::optional<CID> publish_cid,
-                            DealId id,
-                            bool fast_retrieval) {
-      this->status = status;
-      this->message = std::move(message);
-      this->proposal = std::move(proposal);
-      this->proposal_cid = std::move(proposal_cid);
-      this->add_funds_cid = std::move(add_funds_cid);
-      this->publish_cid = std::move(publish_cid);
-      this->id = id;
-      this->fast_retrieval = fast_retrieval;
-    }
-
-    ProviderDealStateV1_1_0 &operator=(MinerDeal &&deal) {
-      status = deal.state;
-      message = std::move(deal.message);
-      proposal = std::move(deal.client_deal_proposal.proposal);
-      proposal_cid = std::move(deal.proposal_cid);
-      add_funds_cid = std::move(deal.add_funds_cid);
-      publish_cid = std::move(deal.publish_cid);
-      id = deal.deal_id;
-      fast_retrieval = deal.is_fast_retrieval;
-      return *this;
-    }
-
-    outcome::result<Bytes> getDigest() const override {
-      return codec::cbor::encode(*this);
-    }
-  };
+  struct ProviderDealStateV1_1_0 : public ProviderDealState {};
 
   inline CBOR2_ENCODE(ProviderDealStateV1_1_0) {
     auto m{CborEncodeStream::map()};
@@ -157,14 +112,7 @@ namespace fc::markets::storage {
   CBOR_TUPLE(DealStatusRequestV1_0_1, proposal, signature)
 
   /** Request used in V1.1.0. Cbores with field names. */
-  struct DealStatusRequestV1_1_0 : public DealStatusRequest {
-    DealStatusRequestV1_1_0() = default;
-
-    DealStatusRequestV1_1_0(CID proposal, Signature signature) {
-      this->proposal = std::move(proposal);
-      this->signature = std::move(signature);
-    }
-  };
+  struct DealStatusRequestV1_1_0 : public DealStatusRequest {};
 
   inline CBOR2_ENCODE(DealStatusRequestV1_1_0) {
     auto m{CborEncodeStream::map()};
@@ -186,36 +134,43 @@ namespace fc::markets::storage {
    */
   struct DealStatusResponse {
     virtual ~DealStatusResponse() = default;
-    virtual const ProviderDealState &state() const = 0;
+
+    ProviderDealState state;
     Signature signature;
+
+    /** Returns response digset, it is a cbor of ProviderDealState */
+    virtual outcome::result<Bytes> getDigest() const = 0;
   };
 
   /** Response used in V1.0.1 */
   struct DealStatusResponseV1_0_1 : public DealStatusResponse {
     DealStatusResponseV1_0_1() = default;
-    DealStatusResponseV1_0_1(ProviderDealStateV1_0_1 state, Signature signature)
-        : state_{std::move(state)} {
+    explicit DealStatusResponseV1_0_1(ProviderDealState state) {
+      this->state = std::move(state);
+    }
+    DealStatusResponseV1_0_1(ProviderDealState state, Signature signature) {
+      this->state = std::move(state);
       this->signature = std::move(signature);
     }
 
-    const ProviderDealState &state() const override {
-      return state_;
-    }
+    outcome::result<Bytes> getDigest() const override {
+      return codec::cbor::encode(*this);
+    };
 
    private:
     friend CborEncodeStream &operator<<(CborEncodeStream &,
                                         const DealStatusResponseV1_0_1 &);
     friend CborDecodeStream &operator>>(CborDecodeStream &,
                                         DealStatusResponseV1_0_1 &);
-
-    ProviderDealStateV1_0_1 state_;
   };
 
   inline CBOR2_ENCODE(DealStatusResponseV1_0_1) {
-    return s << v.state_ << v.signature;
+    return s << ProviderDealStateV1_0_1{v.state} << v.signature;
   }
   inline CBOR2_DECODE(DealStatusResponseV1_0_1) {
-    s >> v.state_;
+    ProviderDealStateV1_0_1 state;
+    s >> state;
+    v.state = state;
     s >> v.signature;
     return s;
   }
@@ -223,34 +178,37 @@ namespace fc::markets::storage {
   /** Response used in V1.1.0 with named fields. */
   struct DealStatusResponseV1_1_0 : public DealStatusResponse {
     DealStatusResponseV1_1_0() = default;
-
-    DealStatusResponseV1_1_0(ProviderDealStateV1_1_0 state, Signature signature)
-        : state_{std::move(state)} {
+    explicit DealStatusResponseV1_1_0(ProviderDealState state) {
+      this->state = std::move(state);
+    }
+    DealStatusResponseV1_1_0(ProviderDealState state, Signature signature) {
+      this->state = std::move(state);
       this->signature = std::move(signature);
     }
 
-    const ProviderDealState &state() const override {
-      return state_;
-    }
+    outcome::result<Bytes> getDigest() const override {
+      return codec::cbor::encode(*this);
+    };
 
    private:
     friend CborEncodeStream &operator<<(CborEncodeStream &,
                                         const DealStatusResponseV1_1_0 &);
     friend CborDecodeStream &operator>>(CborDecodeStream &,
                                         DealStatusResponseV1_1_0 &);
-    ProviderDealStateV1_1_0 state_;
   };
 
   inline CBOR2_ENCODE(DealStatusResponseV1_1_0) {
     auto m{CborEncodeStream::map()};
-    m["DealState"] << v.state_;
+    m["DealState"] << ProviderDealStateV1_1_0{v.state};
     m["Signature"] << v.signature;
     return s << m;
   }
 
   inline CBOR2_DECODE(DealStatusResponseV1_1_0) {
     auto m{s.map()};
-    CborDecodeStream::named(m, "DealState") >> v.state_;
+    ProviderDealStateV1_1_0 state;
+    CborDecodeStream::named(m, "DealState") >> state;
+    v.state = state;
     CborDecodeStream::named(m, "Signature") >> v.signature;
     return s;
   }

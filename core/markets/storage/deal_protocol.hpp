@@ -32,10 +32,12 @@ namespace fc::markets::storage {
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::market::StorageParticipantBalance;
 
-  const libp2p::peer::Protocol kDealProtocolId_v1_0_1 = "/fil/storage/mk/1.0.1";
+  const libp2p::peer::Protocol kDealMkProtocolId_v1_0_1 =
+      "/fil/storage/mk/1.0.1";
 
   /** Protocol 1.1.0 uses named cbor */
-  const libp2p::peer::Protocol kDealProtocolId_v1_1_1 = "/fil/storage/mk/1.1.0";
+  const libp2p::peer::Protocol kDealMkProtocolId_v1_1_0 =
+      "/fil/storage/mk/1.1.0";
 
   const std::string kTransferTypeGraphsync = "graphsync";
   const std::string kTransferTypeManual = "manual";
@@ -146,29 +148,23 @@ namespace fc::markets::storage {
     Path metadata_path;
     bool is_fast_retrieval;
     std::string message;
-    /** Returns base DataRef */
-    virtual const DataRef &ref() const = 0;
+    DataRef ref;
     DealId deal_id;
   };
 
   struct MinerDealV1_0_1 : public MinerDeal {
-    const DataRef &ref() const override {
-      return data_ref_;
-    }
-
    private:
     friend CborEncodeStream &operator<<(CborEncodeStream &,
                                         const MinerDealV1_0_1 &);
     friend CborDecodeStream &operator>>(CborDecodeStream &, MinerDealV1_0_1 &);
-
-    DataRefV1_0_1 data_ref_;
   };
 
   inline CBOR2_ENCODE(MinerDealV1_0_1) {
-    return s << v.client_deal_proposal << v.proposal_cid << v.add_funds_cid
-             << v.publish_cid << v.client << v.state << v.piece_path
-             << v.metadata_path << v.is_fast_retrieval << v.message << v.message
-             << v.data_ref_ << v.deal_id;
+    s << v.client_deal_proposal << v.proposal_cid << v.add_funds_cid
+      << v.publish_cid << v.client << v.state << v.piece_path << v.metadata_path
+      << v.is_fast_retrieval << v.message << v.message << DataRefV1_0_1{v.ref}
+      << v.deal_id;
+    return s;
   }
 
   inline CBOR2_DECODE(MinerDealV1_0_1) {
@@ -182,29 +178,25 @@ namespace fc::markets::storage {
     s >> v.metadata_path;
     s >> v.is_fast_retrieval;
     s >> v.message;
-    s >> v.data_ref_;
+    DataRefV1_0_1 ref;
+    s >> ref;
+    v.ref = ref;
     s >> v.deal_id;
     return s;
   }
 
   struct MinerDealV1_1_0 : public MinerDeal {
-    const DataRef &ref() const override {
-      return data_ref_;
-    }
-
    private:
     friend CborEncodeStream &operator<<(CborEncodeStream &,
                                         const MinerDealV1_1_0 &);
     friend CborDecodeStream &operator>>(CborDecodeStream &, MinerDealV1_1_0 &);
-
-    DataRefV1_1_0 data_ref_;
   };
 
   inline CBOR2_ENCODE(MinerDealV1_1_0) {
     return s << v.client_deal_proposal << v.proposal_cid << v.add_funds_cid
              << v.publish_cid << v.client << v.state << v.piece_path
              << v.metadata_path << v.is_fast_retrieval << v.message << v.message
-             << v.data_ref_ << v.deal_id;
+             << DataRefV1_1_0{v.ref} << v.deal_id;
   }
   inline CBOR2_DECODE(MinerDealV1_1_0) {
     s >> v.client_deal_proposal;
@@ -217,7 +209,9 @@ namespace fc::markets::storage {
     s >> v.metadata_path;
     s >> v.is_fast_retrieval;
     s >> v.message;
-    s >> v.data_ref_;
+    DataRefV1_1_0 ref;
+    s >> ref;
+    v.ref = ref;
     s >> v.deal_id;
     return s;
   }
@@ -266,49 +260,189 @@ namespace fc::markets::storage {
 
   /**
    * Proposal is the data sent over the network from client to provider when
-   * proposing a deal
+   * proposing a deal.
    */
-  struct Proposal0 {
-    struct Named;
-
+  struct Proposal {
     ClientDealProposal deal_proposal;
     DataRef piece;
     bool is_fast_retrieval = false;
   };
 
-  CBOR_TUPLE(Proposal0, deal_proposal, piece, is_fast_retrieval)
+  struct ProposalV1_0_1 : public Proposal {
+   private:
+    friend CborEncodeStream &operator<<(CborEncodeStream &,
+                                        const ProposalV1_0_1 &);
+    friend CborDecodeStream &operator>>(CborDecodeStream &, ProposalV1_0_1 &);
+  };
+
+  inline CBOR2_ENCODE(ProposalV1_0_1) {
+    return s << v.deal_proposal << DataRefV1_0_1{v.piece}
+             << v.is_fast_retrieval;
+  }
+  inline CBOR2_DECODE(ProposalV1_0_1) {
+    s >> v.deal_proposal;
+    DataRefV1_0_1 piece;
+    v.piece = piece;
+    s >> piece;
+    s >> v.is_fast_retrieval;
+    return s;
+  }
+
+  struct ProposalV1_1_0 : public Proposal {
+   private:
+    friend CborEncodeStream &operator<<(CborEncodeStream &,
+                                        const ProposalV1_1_0 &);
+    friend CborDecodeStream &operator>>(CborDecodeStream &, ProposalV1_1_0 &);
+  };
+
+  inline CBOR2_ENCODE(ProposalV1_1_0) {
+    auto m{CborEncodeStream::map()};
+    m["DealProposal"] << v.deal_proposal;
+    m["Piece"] << DataRefV1_1_0{v.piece};
+    m["FastRetrieval"] << v.is_fast_retrieval;
+    return s << m;
+  }
+
+  inline CBOR2_DECODE(ProposalV1_1_0) {
+    auto m{s.map()};
+    CborDecodeStream::named(m, "DealProposal") >> v.deal_proposal;
+    DataRefV1_1_0 piece;
+    CborDecodeStream::named(m, "Piece") >> piece;
+    v.piece = piece;
+    CborDecodeStream::named(m, "FastRetrieval") >> v.is_fast_retrieval;
+    return s;
+  }
 
   /**
    * Response is a response to a proposal sent over the network
    */
   struct Response {
-    struct Named;
-
-    StorageDealStatus state;
+    StorageDealStatus state{};
 
     // DealProposalRejected
     std::string message;
     CID proposal;
 
-    // StorageDealProposalAccepted
-    boost::optional<CID> _unused;
+    // StorageDealProposalAccepted - not used since V1.1.0
+    boost::optional<CID> publish_message;
   };
 
-  struct Response::Named : Response {};
+  struct ResponseV1_0_1 : public Response {
+   private:
+    friend CborEncodeStream &operator<<(CborEncodeStream &,
+                                        const ResponseV1_0_1 &);
+    friend CborDecodeStream &operator>>(CborDecodeStream &, ResponseV1_0_1 &);
+  };
 
-  CBOR_TUPLE(Response, state, message, proposal, _unused)
+  inline CBOR2_ENCODE(ResponseV1_0_1) {
+    return s << v.state << v.message << v.proposal << v.publish_message;
+  }
+  inline CBOR2_DECODE(ResponseV1_0_1) {
+    s >> v.state;
+    s >> v.message;
+    s >> v.proposal;
+    s >> v.publish_message;
+    return s;
+  }
+
+  struct ResponseV1_1_0 : public Response {
+   private:
+    friend CborEncodeStream &operator<<(CborEncodeStream &,
+                                        const ResponseV1_1_0 &);
+    friend CborDecodeStream &operator>>(CborDecodeStream &, ResponseV1_1_0 &);
+  };
+
+  inline CBOR2_ENCODE(ResponseV1_1_0) {
+    auto m{CborEncodeStream::map()};
+    m["State"] << v.state;
+    m["Message"] << v.message;
+    m["Proposal"] << v.proposal;
+    m["PublishMessage"] << v.publish_message;
+    return s << m;
+  }
+
+  inline CBOR2_DECODE(ResponseV1_1_0) {
+    auto m{s.map()};
+    CborDecodeStream::named(m, "State") >> v.state;
+    CborDecodeStream::named(m, "Message") >> v.message;
+    CborDecodeStream::named(m, "Proposal") >> v.proposal;
+    CborDecodeStream::named(m, "PublishMessage") >> v.publish_message;
+    return s;
+  }
 
   /**
    * SignedResponse is a response that is signed
    */
   struct SignedResponse {
-    struct Named;
+    virtual ~SignedResponse() = default;
 
     Response response;
     Signature signature;
+
+    /** Returns response digset */
+    virtual outcome::result<Bytes> getDigest() const = 0;
   };
 
-  struct SignedResponse::Named : SignedResponse {};
+  struct SignedResponseV1_0_1 : public SignedResponse {
+    SignedResponseV1_0_1() = default;
+    explicit SignedResponseV1_0_1(Response response) {
+      this->response = std::move(response);
+    }
 
-  CBOR_TUPLE(SignedResponse, response, signature)
+    outcome::result<Bytes> getDigest() const override {
+      return codec::cbor::encode(*this);
+    };
+
+   private:
+    friend CborEncodeStream &operator<<(CborEncodeStream &,
+                                        const SignedResponseV1_0_1 &);
+    friend CborDecodeStream &operator>>(CborDecodeStream &, SignedResponseV1_0_1 &);
+  };
+
+  inline CBOR2_ENCODE(SignedResponseV1_0_1) {
+    return s << ResponseV1_0_1{v.response} << v.signature;
+  }
+  inline CBOR2_DECODE(SignedResponseV1_0_1) {
+    ResponseV1_0_1 response;
+    s >> response;
+    v.response = response;
+    s >> v.signature;
+    return s;
+  }
+
+  struct SignedResponseV1_1_0 : public SignedResponse {
+    SignedResponseV1_1_0() = default;
+    explicit SignedResponseV1_1_0(Response response) {
+      this->response = std::move(response);
+    }
+    explicit SignedResponseV1_1_0(Response response, Signature signature) {
+      this->response = std::move(response);
+      this->signature = std::move(signature);
+    }
+
+    outcome::result<Bytes> getDigest() const override {
+      return codec::cbor::encode(*this);
+    };
+
+   private:
+    friend CborEncodeStream &operator<<(CborEncodeStream &,
+                                        const SignedResponseV1_1_0 &);
+    friend CborDecodeStream &operator>>(CborDecodeStream &, SignedResponseV1_1_0 &);
+  };
+
+  inline CBOR2_ENCODE(SignedResponseV1_1_0) {
+    auto m{CborEncodeStream::map()};
+    m["Response"] << ResponseV1_1_0{v.response};
+    m["Signature"] << v.signature;
+    return s << m;
+  }
+  inline CBOR2_DECODE(SignedResponseV1_1_0) {
+    auto m{s.map()};
+    ResponseV1_1_0 response;
+    CborDecodeStream::named(m, "Response") >> response;
+    v.response = response;
+    CborDecodeStream::named(m, "Signature") >> v.signature;
+    return s;
+  }
+
 }  // namespace fc::markets::storage
