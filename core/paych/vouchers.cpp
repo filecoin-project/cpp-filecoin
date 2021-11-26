@@ -174,10 +174,11 @@ namespace fc::paych_vouchers {
     std::unique_lock lock{mutex};
     OUTCOME_TRY(ctx, loadCtx(paych));
     OUTCOME_TRY(laneStates(ctx));
-    if (amount <= laneRedeem(ctx, lane)) {
+    const TokenAmount delta{amount - laneRedeem(ctx, lane)};
+    if (delta <= 0) {
       return ERROR_TEXT("PaychVouchers::make voucher adds no value");
     }
-    if (*ctx.total + amount > ctx.balance) {
+    if (*ctx.total + delta > ctx.balance) {
       return ERROR_TEXT("PaychVouchers::make insufficient balance");
     }
     SignedVoucher voucher;

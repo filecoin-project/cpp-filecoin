@@ -124,5 +124,7 @@ namespace fc::paych_vouchers {
     checkFails(voucher);
     EXPECT_EQ(addOk(voucher, voucher.amount), 0);
     makeFails(1, balance - voucher.amount + 1);
+    makeFails(0, voucher.amount);
+    makeOk(0, voucher.amount + 1);
   }
 }  // namespace fc::paych_vouchers
