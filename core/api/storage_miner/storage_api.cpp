@@ -83,12 +83,19 @@ namespace fc::api {
         [=](SectorNumber id,
             bool show_onchain_info) -> outcome::result<ApiSectorInfo> {
       OUTCOME_TRY(sector_info, miner->getSealing()->getSectorInfo(id));
-      std::vector<DealId> deals;
-      for (auto &piece : sector_info->pieces) {
-        if (piece.deal_info) {
-          deals.push_back(piece.deal_info->deal_id);
+
+      std::vector<Piece> pieces{sector_info->pieces.size()};
+      std::vector<DealId> deals{sector_info->pieces.size()};
+
+      for (int i = 0; i < static_cast<int>(sector_info->pieces.size()); i++) {
+        pieces[i] = sector_info->pieces[i];
+        if (not(sector_info->pieces[i].deal_info)) {
+          continue;
         }
+
+        deals[i] = sector_info->pieces[i].deal_info->deal_id;
       }
+
       ApiSectorInfo api_sector_info{
           sector_info->state,
           id,
@@ -97,34 +104,33 @@ namespace fc::api {
           sector_info->comm_r,
           sector_info->proof,
           deals,
+          pieces,
           sector_info->ticket,
           sector_info->seed,
           sector_info->precommit_message,
           sector_info->message,
           sector_info->invalid_proofs,
           miner->getSealing()->isMarkedForUpgrade(id)};
-      if (show_onchain_info) {
-        OUTCOME_TRY(chain_info,
-                    full_node_api->StateSectorGetInfo(
-                        miner->getAddress(), id, TipsetKey{}));
-        if(!chain_info.has_value()){
-          return api_sector_info;
-        }
-
-        api_sector_info.seal_proof = chain_info->seal_proof;
-        api_sector_info.activation = chain_info->activation_epoch;
-        api_sector_info.expiration = chain_info->expiration;
-        api_sector_info.deal_weight = chain_info->deal_weight;
-        api_sector_info.verified_deal_weight = chain_info->verified_deal_weight;
-        api_sector_info.initial_pledge = chain_info->init_pledge;
-
-        auto maybe_expiration_info =
-                    full_node_api->StateSectorExpiration(
-                        miner->getAddress(), id, TipsetKey{});
-        if(maybe_expiration_info.has_value()) {
-          api_sector_info.on_time = maybe_expiration_info.value().on_time;
-          api_sector_info.early = maybe_expiration_info.value().early;
-        }
+      if (not show_onchain_info) {
+        return api_sector_info;
+      }
+      OUTCOME_TRY(chain_info,
+                  full_node_api->StateSectorGetInfo(
+                      miner->getAddress(), id, TipsetKey{}));
+      if (!chain_info.has_value()) {
+        return api_sector_info;
+      }
+      api_sector_info.seal_proof = chain_info->seal_proof;
+      api_sector_info.activation = chain_info->activation_epoch;
+      api_sector_info.expiration = chain_info->expiration;
+      api_sector_info.deal_weight = chain_info->deal_weight;
+      api_sector_info.verified_deal_weight = chain_info->verified_deal_weight;
+      api_sector_info.initial_pledge = chain_info->init_pledge;
+      auto maybe_expiration_info = full_node_api->StateSectorExpiration(
+          miner->getAddress(), id, TipsetKey{});
+      if (maybe_expiration_info.has_value()) {
+        api_sector_info.on_time = maybe_expiration_info.value().on_time;
+        api_sector_info.early = maybe_expiration_info.value().early;
       }
       return api_sector_info;
     };

@@ -70,6 +70,7 @@ namespace fc::api {
     boost::optional<CID> comm_r;
     proofs::Proof proof;
     std::vector<DealId> deals;
+    std::vector<Piece> pieces;
     proofs::SealRandomness ticket;
     sector_storage::InteractiveRandomness seed;
     boost::optional<CID> precommit_message;
@@ -97,6 +98,7 @@ namespace fc::api {
              comm_r,
              proof,
              deals,
+             pieces,
              ticket,
              seed,
              precommit_message,
