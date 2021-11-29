@@ -7,6 +7,8 @@
 
 #include "cbor_blake/cid.hpp"
 #include "codec/cbor/light_reader/cid.hpp"
+#include "common/prometheus/metrics.hpp"
+#include "common/prometheus/since.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
@@ -26,11 +28,34 @@ namespace fc::vm::runtime {
   using toolchain::Toolchain;
   using version::getNetworkVersion;
 
+  auto &metricVmApplyCount() {
+    static auto &x{prometheus::BuildCounter()
+                       .Name("lotus_vm_applied")
+                       .Help("Counter for messages (including internal "
+                             "messages) processed by the VM")
+                       .Register(prometheusRegistry())
+                       .Add({})};
+    return x;
+  }
+
   IpldBuffered::IpldBuffered(IpldPtr ipld) : ipld{std::move(ipld)} {}
 
   outcome::result<void> IpldBuffered::flush(const CID &root) {
     assert(!flushed);
     flushed = true;
+
+    static auto &metricTime{prometheus::BuildCounter()
+                                .Name("lotus_vm_flush_copy_ms")
+                                .Help("Time spent in VM Flush Copy")
+                                .Register(prometheusRegistry())
+                                .Add({})};
+    static auto &metricCount{prometheus::BuildCounter()
+                                 .Name("lotus_vm_flush_copy_count")
+                                 .Help("Number of copied objects")
+                                 .Register(prometheusRegistry())
+                                 .Add({})};
+    const Since since;
+
     assert(isCbor(root));
     auto _root{*asBlake(root)};
     assert(write.count(_root));
@@ -56,6 +81,10 @@ namespace fc::vm::runtime {
       OUTCOME_TRY(ipld->set(CID{key}, std::move(write.at(key))));
     }
     write.clear();
+
+    metricTime.Increment(since.ms());
+    metricCount.Increment(queue.size());
+
     return outcome::success();
   }
 
@@ -103,6 +132,9 @@ namespace fc::vm::runtime {
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<Env::Apply> Env::applyMessage(const UnsignedMessage &message,
                                                 size_t size) {
+    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{
+        gsl::finally([] { metricVmApplyCount().Increment(); })};
+
     TokenAmount locked;
     auto add_locked{
         [&](auto &address, const TokenAmount &add) -> outcome::result<void> {
@@ -229,6 +261,9 @@ namespace fc::vm::runtime {
 
   outcome::result<MessageReceipt> Env::applyImplicitMessage(
       const UnsignedMessage &message) {
+    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{
+        gsl::finally([] { metricVmApplyCount().Increment(); })};
+
     auto execution = Execution::make(shared_from_this(), message);
     auto result = execution->send(message);
     MessageReceipt receipt;
@@ -315,6 +350,14 @@ namespace fc::vm::runtime {
       const UnsignedMessage &message, GasAmount charge) {
     dvm::onSend(message);
     DVM_INDENT;
+
+    static auto &metric{prometheus::BuildCounter()
+                            .Name("lotus_vm_sends")
+                            .Help("Counter for sends processed by the VM")
+                            .Register(prometheusRegistry())
+                            .Add({})};
+    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{
+        gsl::finally([] { metric.Increment(); })};
 
     const auto network_version = getNetworkVersion(env->epoch);
     OUTCOME_TRY(catchAbort(chargeGas(charge), network_version));

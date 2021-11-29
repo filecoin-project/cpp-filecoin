@@ -68,6 +68,7 @@ namespace fc::api {
   using primitives::kChainEpochUndefined;
   using primitives::block::MsgMeta;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
+  using primitives::tipset::HeadChangeType;
   using primitives::tipset::Tipset;
   using storage::ipld::kAllSelector;
   using vm::isVMExitCode;
@@ -84,6 +85,7 @@ namespace fc::api {
   using vm::actor::builtin::states::RewardActorStatePtr;
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
   using vm::actor::builtin::types::market::DealState;
+  using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
   using vm::interpreter::InterpreterCache;
   using vm::runtime::Env;
@@ -292,6 +294,27 @@ namespace fc::api {
     api->ChainGetMessage = [=](auto &cid) -> outcome::result<UnsignedMessage> {
       OUTCOME_TRY(cbor, ipld->get(cid));
       return UnsignedMessage::decode(cbor);
+    };
+    api->ChainGetPath = [=](const TipsetKey &from_key, const TipsetKey &to_key)
+        -> outcome::result<std::vector<HeadChange>> {
+      std::vector<HeadChange> revert;
+      std::vector<HeadChange> apply;
+      OUTCOME_TRY(from, ts_load->load(from_key));
+      OUTCOME_TRY(to, ts_load->load(to_key));
+      while (from->key != to->key) {
+        if (revert.size() > kChainFinality || apply.size() > kChainFinality) {
+          return ERROR_TEXT("ChainGetPath finality limit");
+        }
+        if (from->height() > to->height()) {
+          revert.emplace_back(HeadChange{HeadChangeType::REVERT, from});
+          OUTCOME_TRYA(from, ts_load->load(from->getParents()));
+        } else {
+          apply.emplace_back(HeadChange{HeadChangeType::APPLY, to});
+          OUTCOME_TRYA(to, ts_load->load(to->getParents()));
+        }
+      }
+      revert.insert(revert.end(), apply.rbegin(), apply.rend());
+      return std::move(revert);
     };
     api->ChainGetParentMessages =
         [=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {

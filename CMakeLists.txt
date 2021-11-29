@@ -18,8 +18,8 @@ set(
 
 include("cmake/Hunter/init.cmake")
 HunterGate(
-    URL "https://github.com/soramitsu/soramitsu-hunter/archive/tags/v0.23.257-soramitsu13.tar.gz"
-    SHA1 "8c88d8bac2dee771926b84a6e28642a267f88ea8"
+    URL  "https://github.com/soramitsu/soramitsu-hunter/archive/tags/v0.23.257-soramitsu16.tar.gz"
+    SHA1 "64a1180e8cbeb98d2cfd786bfb725dcdc81d8fa9"
     LOCAL
 )
 
@@ -125,3 +125,5 @@ if (TESTING)
   enable_testing()
   add_subdirectory(test)
 endif ()
+
+install(TARGETS fuhon-node fuhon-miner)

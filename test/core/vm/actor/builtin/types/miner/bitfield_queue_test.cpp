@@ -6,7 +6,9 @@
 #include "vm/actor/builtin/types/miner/bitfield_queue.hpp"
 
 #include <gtest/gtest.h>
+
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/outcome.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {

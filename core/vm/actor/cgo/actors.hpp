@@ -18,6 +18,14 @@ namespace fc::vm::actor::cgo {
    */
   void configParams();
 
+  enum class LogLevel {
+    kDebug = -1,
+    kInfo,
+    kWarn,
+    kError,
+  };
+  void logLevel(LogLevel level);
+
   outcome::result<Bytes> invoke(const CID &code,
                                 const std::shared_ptr<Runtime> &runtime);
 }  // namespace fc::vm::actor::cgo

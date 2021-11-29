@@ -9,6 +9,7 @@
 
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/mocks/api.hpp"
 #include "testutil/outcome.hpp"
 
@@ -123,5 +124,7 @@ namespace fc::paych_vouchers {
     checkFails(voucher);
     EXPECT_EQ(addOk(voucher, voucher.amount), 0);
     makeFails(1, balance - voucher.amount + 1);
+    makeFails(0, voucher.amount);
+    makeOk(0, voucher.amount + 1);
   }
 }  // namespace fc::paych_vouchers

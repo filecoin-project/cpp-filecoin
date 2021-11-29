@@ -7,6 +7,7 @@
 
 #include "codec/cbor/cbor_codec.hpp"
 #include "common/logger.hpp"
+#include "common/prometheus/metrics.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 
@@ -85,6 +86,14 @@ namespace fc::sync {
     if (!gossip_->publish(blocks_topic_, buffer)) {
       log()->warn("cannot publish block");
     }
+
+    static auto &metric{prometheus::BuildCounter()
+                            .Name("lotus_block_published")
+                            .Help("Counter for total locally published blocks")
+                            .Register(prometheusRegistry())
+                            .Add({})};
+    metric.Increment();
+
     return outcome::success();
   }
 
@@ -93,6 +102,14 @@ namespace fc::sync {
                           Bytes{codec::cbor::encode(msg).value()})) {
       log()->warn("cannot publish message");
     }
+
+    static auto &metric{
+        prometheus::BuildCounter()
+            .Name("lotus_message_published")
+            .Help("Counter for total locally published messages")
+            .Register(prometheusRegistry())
+            .Add({})};
+    metric.Increment();
   }
 
   bool PubSubGate::onBlock(const PeerId &from, const Bytes &raw) {
@@ -101,6 +118,13 @@ namespace fc::sync {
       auto cbor{codec::cbor::encode(bm.header).value()};
 
       // TODO validate
+
+      static auto &metric{prometheus::BuildCounter()
+                              .Name("lotus_block_received")
+                              .Help("Counter for total received blocks")
+                              .Register(prometheusRegistry())
+                              .Add({})};
+      metric.Increment();
 
       events_->signalBlockFromPubSub(
           events::BlockFromPubSub{from, CbCid::hash(cbor), std::move(bm)});
@@ -129,6 +153,13 @@ namespace fc::sync {
     } else {
       auto res = codec::cbor::decode<primitives::block::SignedMessage>(raw);
       if (res) {
+        static auto &metric{prometheus::BuildCounter()
+                                .Name("lotus_message_received")
+                                .Help("Counter for total received messages")
+                                .Register(prometheusRegistry())
+                                .Add({})};
+        metric.Increment();
+
         events_->signalMessageFromPubSub(events::MessageFromPubSub{
             from,
             std::move(cid_res.value()),

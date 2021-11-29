@@ -14,33 +14,34 @@
 #include "storage/compacter/queue.hpp"
 #include "vm/actor/codes.hpp"
 
+#define ACTOR_CODE_IS(name)                                                    \
+  code == vm::actor::builtin::v0::name || code == vm::actor::builtin::v2::name \
+      || code == vm::actor::builtin::v3::name                                  \
+      || code == vm::actor::builtin::v4::name                                  \
+      || code == vm::actor::builtin::v5::name                                  \
+      || code == vm::actor::builtin::v6::name
+
 // TODO: keep own miner sectors
 namespace fc::storage::compacter {
   using vm::actor::code::Code;
-
-  constexpr bool anyOf(
-      Code code, Code code0, Code code2, Code code3, Code code4, Code code5) {
-    return code == code0 || code == code2 || code == code3 || code == code4
-           || code == code5;
-  }
 
   inline void lookbackActor(std::vector<CbCid> &copy,
                             std::vector<CbCid> &recurse,
                             const CbIpldPtr &ipld,
                             const Code &code,
                             const CbCid &head) {
-    using namespace vm::actor::code;
-    if (anyOf(code, account0, account2, account3, account4, account5)) {
+    if (ACTOR_CODE_IS(kAccountCodeId)) {
       copy.push_back(head);
       return;
     }
-    if (anyOf(code, init0, init2, init3, init4, init5)) {
+    if (ACTOR_CODE_IS(kInitCodeId)) {
       recurse.push_back(head);
       return;
     }
-    if (anyOf(code, miner0, miner2, miner3, miner4, miner5)) {
-      auto _r{codec::cbor::light_reader::readMinerActorInfo(
-          ipld, head, code == miner0)};
+    if (ACTOR_CODE_IS(kStorageMinerCodeId)) {
+      const auto v0{code == vm::actor::builtin::v0::kStorageMinerCodeId};
+      const auto _r{
+          codec::cbor::light_reader::readMinerActorInfo(ipld, head, v0)};
       if (!_r) {
         return;
       }
@@ -49,9 +50,10 @@ namespace fc::storage::compacter {
       copy.push_back(info);
       return;
     }
-    if (anyOf(code, power0, power2, power3, power4, power5)) {
-      auto _r{codec::cbor::light_reader::readStoragePowerActorClaims(
-          ipld, head, code == power0)};
+    if (ACTOR_CODE_IS(kStoragePowerCodeId)) {
+      const auto v0{code == vm::actor::builtin::v0::kStoragePowerCodeId};
+      const auto _r{codec::cbor::light_reader::readStoragePowerActorClaims(
+          ipld, head, v0)};
       if (!_r) {
         return;
       }
@@ -94,3 +96,5 @@ namespace fc::storage::compacter {
     return;
   }
 }  // namespace fc::storage::compacter
+
+#undef ACTOR_CODE_IS

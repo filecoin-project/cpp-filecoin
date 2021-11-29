@@ -33,6 +33,11 @@ target_link_libraries(outcome
     p2p::p2p
     )
 
+add_library(prometheus INTERFACE)
+target_link_libraries(prometheus INTERFACE
+    prometheus-cpp::core
+    )
+
 add_library(logger
     logger.cpp
     )

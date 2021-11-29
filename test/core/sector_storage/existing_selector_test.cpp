@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 
 #include "primitives/types.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
 #include "testutil/mocks/sector_storage/worker_mock.hpp"
 #include "testutil/outcome.hpp"

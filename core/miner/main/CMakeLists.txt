@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_executable(miner_main
+add_executable(fuhon-miner
     main.cpp
     )
-target_link_libraries(miner_main
+target_link_libraries(fuhon-miner
     Boost::program_options
     filecoin_config
     clock
@@ -32,4 +32,7 @@ target_link_libraries(miner_main
     ipfs_datastore_in_memory
 
     miner_actor_state
+    )
+set_target_properties(fuhon-miner PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )

@@ -4,7 +4,6 @@
 # https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
 hunter_add_package(GTest)
 find_package(GTest CONFIG REQUIRED)
-find_package(GMock CONFIG REQUIRED)
 
 hunter_add_package(libarchive)
 find_package(libarchive CONFIG REQUIRED)
@@ -72,3 +71,6 @@ find_package(RapidJSON CONFIG REQUIRED)
 # https://thalhammer.it/projects/jwt_cpp
 hunter_add_package(jwt-cpp)
 find_package(jwt-cpp CONFIG REQUIRED)
+
+hunter_add_package(prometheus-cpp)
+find_package(prometheus-cpp CONFIG REQUIRED)

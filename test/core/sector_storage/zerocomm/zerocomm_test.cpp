@@ -29,7 +29,7 @@ namespace fc::sector_storage::zerocomm {
                       params.expected)
   }
 
-  INSTANTIATE_TEST_CASE_P(
+  INSTANTIATE_TEST_SUITE_P(
       ZerocommTestCases,
       ZerocommTest,
       ::testing::Values(Params{1016,

@@ -310,7 +310,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, params));
   }
 
-  INSTANTIATE_TEST_CASE_P(
+  INSTANTIATE_TEST_SUITE_P(
       ConstructSuccesssMinerActorTestCases,
       ConstructSuccesssMinerActorTest,
       ::testing::Values(
@@ -333,7 +333,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       : public MinerActorTest,
         public ::testing::WithParamInterface<ConstructParams> {};
 
-  INSTANTIATE_TEST_CASE_P(
+  INSTANTIATE_TEST_SUITE_P(
       ConstructFailureMinerActorTestCases,
       ConstructFailureMinerActorTest,
       ::testing::Values(

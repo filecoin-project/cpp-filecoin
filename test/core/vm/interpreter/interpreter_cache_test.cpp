@@ -8,6 +8,7 @@
 #include "vm/interpreter/interpreter.hpp"
 
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/cbor_blake/cbor_blake_ipld_mock.hpp"
 #include "testutil/outcome.hpp"

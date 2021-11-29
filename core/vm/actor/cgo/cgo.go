@@ -157,6 +157,14 @@ func (out *cborOut) bytes(b []byte) *cborOut {
 	return out
 }
 
+func (out *cborOut) str(s string) *cborOut {
+	e := typegen.CborWriteHeader(out.w, typegen.MajTextString, uint64(len(s)))
+	cgoAsserte(e)
+	_, e = out.w.Write([]byte(s))
+	cgoAsserte(e)
+	return out
+}
+
 func (out *cborOut) int(i int64) *cborOut {
 	t := typegen.MajUnsignedInt
 	if i < 0 {

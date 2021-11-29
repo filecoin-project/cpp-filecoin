@@ -49,10 +49,12 @@ target_link_libraries(node_builder
     miner_types
     )
 
-add_executable(node
+add_executable(fuhon-node
     main.cpp
     )
-
-target_link_libraries(node
+target_link_libraries(fuhon-node
     node_builder
+    )
+set_target_properties(fuhon-node PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )
