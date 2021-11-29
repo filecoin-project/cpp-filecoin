@@ -1,0 +1,13 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "common/git_commit_version/git_commit_version.hpp"
+
+namespace fc::common::git_commit_version {
+  const std::string &getGitPrettyVersion() {
+    static const std::string version{GIT_REPO_PRETTY_VERSION};
+    return version;
+  }
+}
