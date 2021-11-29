@@ -7,6 +7,8 @@
 
 #include <utility>
 
+#include "common/prometheus/metrics.hpp"
+#include "common/prometheus/since.hpp"
 #include "const.hpp"
 #include "primitives/tipset/load.hpp"
 #include "vm/actor/builtin/v0/cron/cron_actor.hpp"
@@ -70,6 +72,61 @@ namespace fc::vm::interpreter {
       std::vector<MessageReceipt> *all_receipts) const {
     const auto &ipld{env_context_.ipld};
 
+    static auto &metricFailure{
+        prometheus::BuildCounter()
+            .Name("lotus_block_failure")
+            .Help("Counter for block validation failures")
+            .Register(prometheusRegistry())
+            .Add({})};
+    static auto &metricSuccess{
+        prometheus::BuildCounter()
+            .Name("lotus_block_success")
+            .Help("Counter for block validation successes")
+            .Register(prometheusRegistry())
+            .Add({})};
+    static auto &metricTotal{prometheus::BuildHistogram()
+                                 .Name("lotus_vm_applyblocks_total_ms")
+                                 .Help("Time spent applying block state")
+                                 .Register(prometheusRegistry())
+                                 .Add({}, kDefaultPrometheusMsBuckets)};
+    static auto &metricMessages{prometheus::BuildHistogram()
+                                    .Name("lotus_vm_applyblocks_messages")
+                                    .Help("Time spent applying block messages")
+                                    .Register(prometheusRegistry())
+                                    .Add({}, kDefaultPrometheusMsBuckets)};
+    static auto &metricEarly{
+        prometheus::BuildHistogram()
+            .Name("lotus_vm_applyblocks_early")
+            .Help("Time spent in early apply-blocks (null cron, upgrades)")
+            .Register(prometheusRegistry())
+            .Add({}, kDefaultPrometheusMsBuckets)};
+    static auto &metricCron{prometheus::BuildHistogram()
+                                .Name("lotus_vm_applyblocks_cron")
+                                .Help("Time spent in cron")
+                                .Register(prometheusRegistry())
+                                .Add({}, kDefaultPrometheusMsBuckets)};
+    static auto &metricFlush{prometheus::BuildHistogram()
+                                 .Name("lotus_vm_applyblocks_flush")
+                                 .Help("Time spent flushing vm state")
+                                 .Register(prometheusRegistry())
+                                 .Add({}, kDefaultPrometheusMsBuckets)};
+
+    bool success{false};
+    const Since since;
+    std::pair<::prometheus::Histogram *, Since> last_step;
+    auto nextStep{[&](auto metric) {
+      if (last_step.first) {
+        last_step.first->Observe(last_step.second.ms());
+      }
+      last_step = std::make_pair(metric, Since{});
+    }};
+    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{gsl::finally([&] {
+      metricTotal.Observe(since.ms());
+      nextStep(nullptr);
+      (success ? metricSuccess : metricFailure).Increment();
+    })};
+    nextStep(&metricEarly);
+
     auto on_receipt{[&](auto &receipt) {
       if (all_receipts) {
         all_receipts->push_back(receipt);
@@ -111,6 +168,8 @@ namespace fc::vm::interpreter {
       env->setHeight(tipset->height());
     }
 
+    nextStep(&metricMessages);
+
     adt::Array<MessageReceipt> receipts{ipld};
     MessageVisitor message_visitor{ipld, true, true};
     for (const auto &block : tipset->blks) {
@@ -147,7 +206,11 @@ namespace fc::vm::interpreter {
       on_receipt(receipt);
     }
 
+    nextStep(&metricCron);
+
     OUTCOME_TRY(cron());
+
+    nextStep(&metricFlush);
 
     OUTCOME_TRY(new_state_root, env->state_tree->flush());
     OUTCOME_TRY(env->ipld->flush(new_state_root));
@@ -155,6 +218,8 @@ namespace fc::vm::interpreter {
     OUTCOME_TRY(receipts.amt.flush());
 
     OUTCOME_TRY(weight, getWeight(tipset));
+
+    success = true;
 
     return Result{new_state_root, receipts.amt.cid(), std::move(weight)};
   }

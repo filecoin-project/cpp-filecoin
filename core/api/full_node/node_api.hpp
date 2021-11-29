@@ -315,6 +315,11 @@ namespace fc::api {
                jwt::kReadPermission,
                UnsignedMessage,
                const CID &)
+    API_METHOD(ChainGetPath,
+               jwt::kReadPermission,
+               std::vector<HeadChange>,
+               const TipsetKey &,
+               const TipsetKey &)
     API_METHOD(ChainGetParentMessages,
                jwt::kReadPermission,
                std::vector<CidMessage>,
@@ -813,6 +818,7 @@ namespace fc::api {
     f(a.ChainGetGenesis);
     f(a.ChainGetMessage);
     f(a.ChainGetNode);
+    f(a.ChainGetPath);
     f(a.ChainGetParentMessages);
     f(a.ChainGetParentReceipts);
     f(a.ChainGetRandomnessFromBeacon);

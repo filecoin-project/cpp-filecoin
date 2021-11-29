@@ -271,10 +271,7 @@ struct TestVectors : testing::TestWithParam<MessageVector> {
     OUTCOME_EXCEPT(params,
                    ProofParamProvider::readJson(
                        "/var/tmp/filecoin-proof-parameters/parameters.json"));
-    RegisteredSealProof seal_proof_type =
-        RegisteredSealProof::kStackedDrg2KiBV1;
-    OUTCOME_EXCEPT(sector_size, getSectorSize(seal_proof_type));
-    OUTCOME_EXCEPT(ProofParamProvider::getParams(params, sector_size));
+    OUTCOME_EXCEPT(ProofParamProvider::getParams(params, 0));
   }
 };
 
@@ -404,7 +401,7 @@ TEST_P(TestVectors, Vector) {
   }
 }
 
-INSTANTIATE_TEST_CASE_P(Vectors,
-                        TestVectors,
-                        testing::ValuesIn(search()),
-                        [](auto &&p) { return testName(p.param.path); });
+INSTANTIATE_TEST_SUITE_P(Vectors,
+                         TestVectors,
+                         testing::ValuesIn(search()),
+                         [](auto &&p) { return testName(p.param.path); });

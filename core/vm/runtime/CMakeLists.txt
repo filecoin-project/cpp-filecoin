@@ -20,6 +20,7 @@ target_link_libraries(runtime
     ipfs_datastore_error
     keystore
     message
+    prometheus
     proofs
     tipset
     signature

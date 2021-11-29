@@ -55,6 +55,12 @@ namespace fc::vm::actor::cgo {
     cgoCall<cgoActorsConfigParams>(arg);
   }
 
+  void logLevel(LogLevel level) {
+    CborEncodeStream arg;
+    arg << level;
+    cgoCall<cgoActorsSetLogLevel>(arg);
+  }
+
   constexpr auto kFatal{VMExitCode::kFatal};
   constexpr auto kOk{VMExitCode::kOk};
 
@@ -393,5 +399,10 @@ namespace fc::vm::actor::cgo {
     } else {
       ret << VMExitCode::kErrIllegalState;
     }
+  }
+
+  RUNTIME_METHOD(gocRtLog) {
+    spdlog::info("cgoActorsInvoke log: {}", arg.get<std::string>());
+    ret << kOk;
   }
 }  // namespace fc::vm::actor::cgo

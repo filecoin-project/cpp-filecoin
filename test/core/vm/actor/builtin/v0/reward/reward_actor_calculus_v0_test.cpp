@@ -133,23 +133,23 @@ namespace fc::vm::actor::builtin::types::reward {
     ASSERT_LT(err, err_bound);
   }
 
-  INSTANTIATE_TEST_CASE_P(RewardActorCalculusV0Cases,
-                          RewardActorCalculusV0,
-                          ::testing::Values(
-                              // 1 byte
-                              Params{StoragePower{1}, BigFloat{1}},
-                              // GiB
-                              Params{StoragePower{1} << 30, BigFloat{1e-3}},
-                              // TiB
-                              Params{StoragePower{1} << 40, BigFloat{1e-6}},
-                              // PiB
-                              Params{StoragePower{1} << 50, BigFloat{1e-8}},
-                              // EiB
-                              Params{kBaselineInitialValueV0, BigFloat{1e-8}},
-                              // ZiB
-                              Params{StoragePower{1} << 70, BigFloat{1e-8}},
-                              // non power of 2 ~ 1 EiB
-                              Params{StoragePower{"513633559722596517"},
-                                     BigFloat{1e-8}}));
+  INSTANTIATE_TEST_SUITE_P(RewardActorCalculusV0Cases,
+                           RewardActorCalculusV0,
+                           ::testing::Values(
+                               // 1 byte
+                               Params{StoragePower{1}, BigFloat{1}},
+                               // GiB
+                               Params{StoragePower{1} << 30, BigFloat{1e-3}},
+                               // TiB
+                               Params{StoragePower{1} << 40, BigFloat{1e-6}},
+                               // PiB
+                               Params{StoragePower{1} << 50, BigFloat{1e-8}},
+                               // EiB
+                               Params{kBaselineInitialValueV0, BigFloat{1e-8}},
+                               // ZiB
+                               Params{StoragePower{1} << 70, BigFloat{1e-8}},
+                               // non power of 2 ~ 1 EiB
+                               Params{StoragePower{"513633559722596517"},
+                                      BigFloat{1e-8}}));
 
 }  // namespace fc::vm::actor::builtin::types::reward
