@@ -14,7 +14,7 @@
 #include "markets/retrieval/types.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
-#include "markets/storage/deal_protocol.hpp"
+#include "markets/storage/mk_protocol.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/tipset/tipset.hpp"

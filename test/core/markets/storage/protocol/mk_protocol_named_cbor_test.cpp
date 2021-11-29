@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include "markets/storage/deal_protocol.hpp"
+#include "markets/storage/mk_protocol.hpp"
 #include "testutil/cbor.hpp"
 
 namespace fc::markets::storage {
@@ -50,7 +50,8 @@ namespace fc::markets::storage {
 
     DataRef piece{"manual", cid, cid, UnpaddedPieceSize(256), 42};
 
-    Response response{StorageDealStatus::STORAGE_DEAL_UNKNOWN, "message", cid, cid};
+    Response response{
+        StorageDealStatus::STORAGE_DEAL_UNKNOWN, "message", cid, cid};
   };
 
   /**

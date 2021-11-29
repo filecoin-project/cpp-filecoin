@@ -5,5 +5,4 @@
 
 add_subdirectory(chain_events)
 add_subdirectory(client)
-add_subdirectory(protocol)
 add_subdirectory(provider)

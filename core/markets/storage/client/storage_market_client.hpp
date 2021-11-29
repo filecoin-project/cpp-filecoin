@@ -7,7 +7,7 @@
 
 #include "common/outcome.hpp"
 #include "markets/storage/ask_protocol.hpp"
-#include "markets/storage/deal_protocol.hpp"
+#include "markets/storage/mk_protocol.hpp"
 #include "markets/storage/status_protocol.hpp"
 #include "markets/storage/types.hpp"
 #include "primitives/address/address.hpp"

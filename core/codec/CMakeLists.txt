@@ -13,5 +13,4 @@ add_library(cbor_types
 target_link_libraries(cbor_types
     address
     signature
-    piece
     )

@@ -152,12 +152,7 @@ namespace fc::markets::storage {
     DealId deal_id;
   };
 
-  struct MinerDealV1_0_1 : public MinerDeal {
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const MinerDealV1_0_1 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &, MinerDealV1_0_1 &);
-  };
+  struct MinerDealV1_0_1 : public MinerDeal {};
 
   inline CBOR2_ENCODE(MinerDealV1_0_1) {
     s << v.client_deal_proposal << v.proposal_cid << v.add_funds_cid
@@ -185,12 +180,7 @@ namespace fc::markets::storage {
     return s;
   }
 
-  struct MinerDealV1_1_0 : public MinerDeal {
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const MinerDealV1_1_0 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &, MinerDealV1_1_0 &);
-  };
+  struct MinerDealV1_1_0 : public MinerDeal {};
 
   inline CBOR2_ENCODE(MinerDealV1_1_0) {
     return s << v.client_deal_proposal << v.proposal_cid << v.add_funds_cid
@@ -268,12 +258,7 @@ namespace fc::markets::storage {
     bool is_fast_retrieval = false;
   };
 
-  struct ProposalV1_0_1 : public Proposal {
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const ProposalV1_0_1 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &, ProposalV1_0_1 &);
-  };
+  struct ProposalV1_0_1 : public Proposal {};
 
   inline CBOR2_ENCODE(ProposalV1_0_1) {
     return s << v.deal_proposal << DataRefV1_0_1{v.piece}
@@ -288,12 +273,7 @@ namespace fc::markets::storage {
     return s;
   }
 
-  struct ProposalV1_1_0 : public Proposal {
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const ProposalV1_1_0 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &, ProposalV1_1_0 &);
-  };
+  struct ProposalV1_1_0 : public Proposal {};
 
   inline CBOR2_ENCODE(ProposalV1_1_0) {
     auto m{CborEncodeStream::map()};
@@ -327,30 +307,11 @@ namespace fc::markets::storage {
     boost::optional<CID> publish_message;
   };
 
-  struct ResponseV1_0_1 : public Response {
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const ResponseV1_0_1 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &, ResponseV1_0_1 &);
-  };
+  struct ResponseV1_0_1 : public Response {};
 
-  inline CBOR2_ENCODE(ResponseV1_0_1) {
-    return s << v.state << v.message << v.proposal << v.publish_message;
-  }
-  inline CBOR2_DECODE(ResponseV1_0_1) {
-    s >> v.state;
-    s >> v.message;
-    s >> v.proposal;
-    s >> v.publish_message;
-    return s;
-  }
+  CBOR_TUPLE(ResponseV1_0_1, state, message, proposal, publish_message)
 
-  struct ResponseV1_1_0 : public Response {
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const ResponseV1_1_0 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &, ResponseV1_1_0 &);
-  };
+  struct ResponseV1_1_0 : public Response {};
 
   inline CBOR2_ENCODE(ResponseV1_1_0) {
     auto m{CborEncodeStream::map()};
@@ -390,13 +351,8 @@ namespace fc::markets::storage {
     }
 
     outcome::result<Bytes> getDigest() const override {
-      return codec::cbor::encode(*this);
+      return codec::cbor::encode(ResponseV1_0_1{this->response});
     };
-
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const SignedResponseV1_0_1 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &, SignedResponseV1_0_1 &);
   };
 
   inline CBOR2_ENCODE(SignedResponseV1_0_1) {
@@ -421,13 +377,8 @@ namespace fc::markets::storage {
     }
 
     outcome::result<Bytes> getDigest() const override {
-      return codec::cbor::encode(*this);
+      return codec::cbor::encode(ResponseV1_1_0{this->response});
     };
-
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const SignedResponseV1_1_0 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &, SignedResponseV1_1_0 &);
   };
 
   inline CBOR2_ENCODE(SignedResponseV1_1_0) {

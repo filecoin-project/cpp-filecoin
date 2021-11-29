@@ -59,12 +59,7 @@ namespace fc::markets::storage {
              seq_no)
 
   /** StorageAsk used in V1.1.0. Cbores with field names. */
-  struct StorageAskV1_1_0 : public StorageAsk {
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const StorageAskV1_1_0 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &, StorageAskV1_1_0 &);
-  };
+  struct StorageAskV1_1_0 : public StorageAsk {};
 
   inline CBOR2_ENCODE(StorageAskV1_1_0) {
     auto m{CborEncodeStream::map()};
@@ -109,23 +104,10 @@ namespace fc::markets::storage {
   /** SignedStorageAsk used in V1.0.1 */
   struct SignedStorageAskV1_0_1 : public SignedStorageAsk {
     SignedStorageAskV1_0_1() = default;
-    explicit SignedStorageAskV1_0_1(StorageAsk ask) {
-      this->ask = std::move(ask);
-    }
-    SignedStorageAskV1_0_1(StorageAsk ask, Signature signature) {
-      this->ask = std::move(ask);
-      this->signature = std::move(signature);
-    }
 
     outcome::result<Bytes> getDigest() const override {
-      return codec::cbor::encode(*this);
+      return codec::cbor::encode(StorageAskV1_0_1{this->ask});
     };
-
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const SignedStorageAskV1_0_1 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &,
-                                        SignedStorageAskV1_0_1 &);
   };
 
   inline CBOR2_ENCODE(SignedStorageAskV1_0_1) {
@@ -151,14 +133,8 @@ namespace fc::markets::storage {
     }
 
     outcome::result<Bytes> getDigest() const override {
-      return codec::cbor::encode(*this);
+      return codec::cbor::encode(StorageAskV1_1_0{this->ask});
     };
-
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const SignedStorageAskV1_1_0 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &,
-                                        SignedStorageAskV1_1_0 &);
   };
 
   inline CBOR2_ENCODE(SignedStorageAskV1_1_0) {

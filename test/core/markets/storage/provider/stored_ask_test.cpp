@@ -7,7 +7,6 @@
 
 #include <gtest/gtest.h>
 #include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -20,8 +19,6 @@ namespace fc::markets::storage::provider {
   using fc::crypto::bls::BlsProvider;
   using fc::crypto::bls::BlsProviderImpl;
   using fc::crypto::bls::KeyPair;
-  using fc::crypto::secp256k1::Secp256k1ProviderDefault;
-  using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
   using fc::storage::InMemoryStorage;
   using BlsSignature = fc::crypto::bls::Signature;
 
@@ -29,8 +26,6 @@ namespace fc::markets::storage::provider {
    public:
     std::shared_ptr<BlsProvider> bls_provider_ =
         std::make_shared<BlsProviderImpl>();
-    std::shared_ptr<Secp256k1ProviderDefault> secp256k1_provider_ =
-        std::make_shared<Secp256k1Sha256ProviderImpl>();
 
     std::shared_ptr<Datastore> datastore = std::make_shared<InMemoryStorage>();
 
@@ -110,6 +105,7 @@ namespace fc::markets::storage::provider {
     EXPECT_OUTCOME_TRUE(ask, stored_ask.getAsk(actor_address));
 
     EXPECT_EQ(ask.ask.price, kDefaultPrice);
+    EXPECT_EQ(ask.ask.verified_price, kDefaultPrice);
     EXPECT_EQ(ask.ask.min_piece_size, kDefaultMinPieceSize);
     EXPECT_EQ(ask.ask.max_piece_size, kDefaultMaxPieceSize);
     EXPECT_EQ(ask.ask.miner, actor_address);

@@ -9,7 +9,7 @@
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/error_text.hpp"
-#include "markets/storage/deal_protocol.hpp"
+#include "markets/storage/mk_protocol.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
@@ -154,14 +154,8 @@ namespace fc::markets::storage {
     }
 
     outcome::result<Bytes> getDigest() const override {
-      return codec::cbor::encode(*this);
+      return codec::cbor::encode(ProviderDealStateV1_1_0{this->state});
     };
-
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const DealStatusResponseV1_0_1 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &,
-                                        DealStatusResponseV1_0_1 &);
   };
 
   inline CBOR2_ENCODE(DealStatusResponseV1_0_1) {
@@ -187,14 +181,8 @@ namespace fc::markets::storage {
     }
 
     outcome::result<Bytes> getDigest() const override {
-      return codec::cbor::encode(*this);
+      return codec::cbor::encode(ProviderDealStateV1_1_0{this->state});
     };
-
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const DealStatusResponseV1_1_0 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &,
-                                        DealStatusResponseV1_1_0 &);
   };
 
   inline CBOR2_ENCODE(DealStatusResponseV1_1_0) {
