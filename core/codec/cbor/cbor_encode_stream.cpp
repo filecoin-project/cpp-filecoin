@@ -27,11 +27,6 @@ namespace fc::codec::cbor {
   }
 
   CborEncodeStream &CborOrderedMap::operator[](const std::string &key) {
-    if (map_.find(key) != map_.end()) {
-      // overwrite key, so remove old key in order and push back again
-      key_order_.erase(std::remove(key_order_.begin(), key_order_.end(), key),
-                       key_order_.end());
-    }
     key_order_.push_back(key);
     return map_[key];
   }

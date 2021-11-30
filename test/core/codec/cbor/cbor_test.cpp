@@ -228,6 +228,19 @@ TEST(CborEncoder, MapRespectsOrder) {
 }
 
 /**
+ * @given Map container with key duplicate
+ * @when Encode
+ * @then Exception thrown
+ */
+TEST(CborEncoder, MapRespectsOrderDuplicateKey) {
+  CborEncodeStream s;
+  auto map = CborEncodeStream::orderedMap();
+  map["c"] << 1;
+  map["c"] << 3;
+  ASSERT_THROW(s << map, std::exception);
+}
+
+/**
  * @given Empty CID
  * @when Encode
  * @then Error
