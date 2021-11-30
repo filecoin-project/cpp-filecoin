@@ -14,7 +14,7 @@ namespace fc::sectorblocks {
   class SectorBlocksMock : public SectorBlocks {
    public:
     MOCK_METHOD3(addPiece,
-                 outcome::result<PieceAttributes>(UnpaddedPieceSize,
+                 outcome::result<PieceLocation>(UnpaddedPieceSize,
                                                   const std::string &,
                                                   DealInfo));
     MOCK_CONST_METHOD1(getRefs, outcome::result<std::vector<PieceLocation>>(DealId));
