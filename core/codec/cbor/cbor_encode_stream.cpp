@@ -9,26 +9,13 @@
 #include "common/cmp.hpp"
 
 namespace fc::codec::cbor {
-  size_t CborOrderedMap::size() const {
-    return map_.size();
-  }
-
-  std::vector<std::pair<BytesIn, const CborEncodeStream *>>
-  CborOrderedMap::list() const {
-    std::vector<std::pair<BytesIn, const CborEncodeStream *>> sorted;
-    sorted.reserve(map_.size());
-    for (const auto &key : key_order_) {
-      if (map_.at(key).count() != 1) {
-        outcome::raise(CborEncodeError::kExpectedMapValueSingle);
-      }
-      sorted.emplace_back(common::span::cbytes(key), &map_.at(key));
-    }
-    return sorted;
-  }
-
   CborEncodeStream &CborOrderedMap::operator[](const std::string &key) {
-    key_order_.push_back(key);
-    return map_[key];
+    // remove old value if present and push new one
+    erase(std::remove_if(
+              begin(), end(), [&key](const auto &p) { return p.first == key; }),
+          end());
+    emplace_back(key, CborEncodeStream{});
+    return back().second;
   }
 
   CborEncodeStream &CborEncodeStream::operator<<(const Bytes &bytes) {
@@ -126,9 +113,12 @@ namespace fc::codec::cbor {
     addCount(1);
     writeMap(data_, map.size());
     const auto count{count_};
-    for (const auto &[key, value] : map.list()) {
-      *this << common::span::bytestr(key);
-      *this << *value;
+    for (const auto &pair : map) {
+      if (pair.second.count() != 1) {
+        outcome::raise(CborEncodeError::kExpectedMapValueSingle);
+      }
+      *this << common::span::bytestr(common::span::cbytes(pair.first));
+      *this << pair.second;
     }
     count_ = count;
     return *this;

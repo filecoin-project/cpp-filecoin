@@ -18,20 +18,9 @@ namespace fc::codec::cbor {
   class CborEncodeStream;
 
   /** Cbor map with respect for key order */
-  class CborOrderedMap {
-   public:
-    /** Returns number of elements */
-    size_t size() const;
-
-    /** Returns elements in the order they were added to the CboMap */
-    std::vector<std::pair<BytesIn, const CborEncodeStream *>> list() const;
-
-    /** Access the CborEncodeStream by key. */
+  struct CborOrderedMap
+      : public std::vector<std::pair<std::string, CborEncodeStream>> {
     CborEncodeStream &operator[](const std::string &key);
-
-   private:
-    std::vector<std::string> key_order_;
-    std::map<std::string, CborEncodeStream> map_;
   };
 
   /** Encodes CBOR */
