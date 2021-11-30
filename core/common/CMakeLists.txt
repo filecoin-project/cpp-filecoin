@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(git_commit_version)
 add_subdirectory(libp2p)
 add_subdirectory(smoothing)
 add_subdirectory(uri_parser)

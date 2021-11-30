@@ -27,3 +27,9 @@ target_link_libraries(mining
     tipset
     miner_types
     )
+
+add_library(miner_version INTERFACE
+    )
+target_link_libraries(miner_version INTERFACE
+    git_commit_version
+    )

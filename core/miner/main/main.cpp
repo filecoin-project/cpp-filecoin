@@ -33,6 +33,7 @@
 #include "markets/storage/provider/impl/provider_impl.hpp"
 #include "miner/impl/miner_impl.hpp"
 #include "miner/main/type.hpp"
+#include "miner/miner_version.hpp"
 #include "miner/mining.hpp"
 #include "miner/windowpost.hpp"
 #include "primitives/address/config.hpp"
@@ -62,6 +63,7 @@ namespace fc {
   using libp2p::multi::Multiaddress;
   using libp2p::peer::PeerId;
   using markets::storage::chain_events::ChainEventsImpl;
+  using miner::kMinerVersion;
   using primitives::StoredCounter;
   using primitives::address::Address;
   using primitives::jwt::kAllPermission;
@@ -138,6 +140,7 @@ namespace fc {
     po::options_description desc("Fuhon miner options");
     auto option{desc.add_options()};
     option("help,h", "print usage message");
+    option("version,v", "show miner version information");
     option("miner-repo", po::value(&config.repo_path)->required());
     option("repo", po::value(&raw.node_repo));
     option("miner-api", po::value(&config.api_port)->default_value(2345));
@@ -159,6 +162,10 @@ namespace fc {
     po::store(parse_command_line(argc, argv, desc), vm);
     if (vm.count("help") != 0) {
       std::cerr << desc << std::endl;
+      exit(EXIT_SUCCESS);
+    }
+    if (vm.count("version") != 0) {
+      std::cerr << kMinerVersion << std::endl;
       exit(EXIT_SUCCESS);
     }
     po::notify(vm);
@@ -324,6 +331,8 @@ namespace fc {
   }
 
   outcome::result<void> main(Config &config) {
+    log()->debug("Starting ", miner::kMinerVersion);
+
     auto clock{std::make_shared<clock::UTCClockImpl>()};
 
     OUTCOME_TRY(leveldb, storage::LevelDB::create(config.join("leveldb")));

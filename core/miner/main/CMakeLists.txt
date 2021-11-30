@@ -14,6 +14,7 @@ target_link_libraries(fuhon-miner
     manager
     miner
     mining
+    miner_version
     proof_param_provider
     p2p::p2p
     rpc
