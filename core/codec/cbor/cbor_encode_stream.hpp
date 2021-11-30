@@ -15,6 +15,25 @@
 #include "primitives/cid/cid.hpp"
 
 namespace fc::codec::cbor {
+  class CborEncodeStream;
+
+  /** Cbor map with respect for key order */
+  class CborMap {
+   public:
+    /** Returns number of elements */
+    size_t size() const;
+
+    /** Returns elements in the order they were added to the CboMap */
+    std::vector<std::pair<BytesIn, const CborEncodeStream *>> list() const;
+
+    /** Access the CborEncodeStream by key. */
+    CborEncodeStream &operator[](const std::string &key);
+
+   private:
+    std::vector<std::string> key_order_;
+    std::map<std::string, CborEncodeStream> map_;
+  };
+
   /** Encodes CBOR */
   class CborEncodeStream {
    public:
@@ -99,16 +118,17 @@ namespace fc::codec::cbor {
     /** Encodes list container encode substream */
     CborEncodeStream &operator<<(const CborEncodeStream &other);
     /** Encodes map container encode substream map */
-    CborEncodeStream &operator<<(
-        const std::map<std::string, CborEncodeStream> &map);
+    CborEncodeStream &operator<<(const CborMap &map);
     /** Encodes null */
     CborEncodeStream &operator<<(std::nullptr_t);
     /** Returns CBOR bytes of encoded elements */
     Bytes data() const;
+    /** Returns the number of elements */
+    size_t count() const;
     /** Creates list container encode substream */
     static CborEncodeStream list();
     /** Creates map container encode substream map */
-    static std::map<std::string, CborEncodeStream> map();
+    static CborMap map();
     /** Wraps CBOR bytes */
     static CborEncodeStream wrap(BytesIn data, size_t count);
 

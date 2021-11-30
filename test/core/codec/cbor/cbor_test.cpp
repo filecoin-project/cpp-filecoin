@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 #include "primitives/cid/cid.hpp"
+#include "testutil/cbor.hpp"
 #include "testutil/default_print.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -20,6 +21,7 @@ using fc::codec::cbor::CborEncodeStream;
 using fc::codec::cbor::CborResolveError;
 using fc::codec::cbor::decode;
 using fc::codec::cbor::encode;
+using fc::common::hex_upper;
 
 auto kCidRaw =
     "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_cid;
@@ -93,10 +95,7 @@ TEST(Cbor, Map) {
   m["three"] = 3;
   m["one"] = 1;
   m["two"] = 2;
-  EXPECT_OUTCOME_EQ(encode(m), "A3636F6E65016374776F0265746872656503"_unhex);
-  EXPECT_OUTCOME_EQ((decode<std::map<std::string, int>>(
-                        "A3636F6E65016374776F0265746872656503"_unhex)),
-                    m);
+  expectEncodeAndReencode(m, "A3636F6E65016374776F0265746872656503"_unhex);
 }
 
 /**
@@ -208,7 +207,8 @@ TEST(CborEncoder, Map) {
   map["b"] << 2;
   map["c"] << 3;
   s << map;
-  EXPECT_EQ(s.data(), "A361620261630362616101"_unhex);
+  EXPECT_EQ(s.data(), "A362616101616202616303"_unhex)
+      << "Got " << hex_upper(s.data());
 }
 
 /**

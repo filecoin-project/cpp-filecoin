@@ -9,6 +9,32 @@
 #include "common/cmp.hpp"
 
 namespace fc::codec::cbor {
+  size_t CborMap::size() const {
+    return map_.size();
+  }
+
+  std::vector<std::pair<BytesIn, const CborEncodeStream *>> CborMap::list() const {
+    std::vector<std::pair<BytesIn, const CborEncodeStream *>> sorted;
+    sorted.reserve(map_.size());
+    for (const auto &key : key_order_) {
+      if (map_.at(key).count() != 1) {
+        outcome::raise(CborEncodeError::kExpectedMapValueSingle);
+      }
+      sorted.emplace_back(common::span::cbytes(key), &map_.at(key));
+    }
+    return sorted;
+  }
+
+  CborEncodeStream &CborMap::operator[](const std::string &key) {
+    if (map_.find(key) != map_.end()) {
+      // overwrite key, so remove old key in order and push back again
+      key_order_.erase(std::remove(key_order_.begin(), key_order_.end(), key),
+                       key_order_.end());
+    }
+    key_order_.push_back(key);
+    return map_[key];
+  }
+
   CborEncodeStream &CborEncodeStream::operator<<(const Bytes &bytes) {
     return *this << gsl::make_span(bytes);
   }
@@ -76,23 +102,11 @@ namespace fc::codec::cbor {
     }
   };
 
-  CborEncodeStream &CborEncodeStream::operator<<(
-      const std::map<std::string, CborEncodeStream> &map) {
+  CborEncodeStream &CborEncodeStream::operator<<(const CborMap &map) {
     addCount(1);
     writeMap(data_, map.size());
-    std::vector<std::pair<BytesIn, const CborEncodeStream *>> sorted;
-    sorted.reserve(map.size());
-    for (const auto &pair : map) {
-      if (pair.second.count_ != 1) {
-        outcome::raise(CborEncodeError::kExpectedMapValueSingle);
-      }
-      sorted.emplace_back(common::span::cbytes(pair.first), &pair.second);
-    }
-    std::sort(sorted.begin(), sorted.end(), [](auto &l, auto &r) {
-      return LessCborKey{}(l.first, r.first);
-    });
     const auto count{count_};
-    for (const auto &[key, value] : sorted) {
+    for (const auto &[key, value] : map.list()) {
       *this << common::span::bytestr(key);
       *this << *value;
     }
@@ -115,13 +129,17 @@ namespace fc::codec::cbor {
     return result;
   }
 
+  size_t CborEncodeStream::count() const {
+    return count_;
+  }
+
   CborEncodeStream CborEncodeStream::list() {
     CborEncodeStream stream;
     stream.is_list_ = true;
     return stream;
   }
 
-  std::map<std::string, CborEncodeStream> CborEncodeStream::map() {
+  CborMap CborEncodeStream::map() {
     return {};
   }
 
