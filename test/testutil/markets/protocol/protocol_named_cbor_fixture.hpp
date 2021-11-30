@@ -18,7 +18,6 @@ namespace fc::markets::storage {
   using primitives::address::decodeFromString;
   using primitives::piece::PaddedPieceSize;
   using primitives::piece::UnpaddedPieceSize;
-  using testutil::codec::cbor::normalizeMap;
   using vm::actor::builtin::types::market::DealProposal;
 
   class ProtocolNamedCborTestFixture : public ::testing::Test {
