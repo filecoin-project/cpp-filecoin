@@ -10,6 +10,7 @@ addtest(storage_market_protocol_named_cbor_test
     )
 target_link_libraries(storage_market_protocol_named_cbor_test
     address
+    bls_provider
     cbor
     signature
     piece

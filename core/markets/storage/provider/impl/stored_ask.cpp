@@ -65,14 +65,16 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     ChainEpoch timestamp = chain_head->height();
     ChainEpoch expiry = chain_head->height() + kDefaultDuration;
-    StorageAskV1_1_0 default_ask{{.price = kDefaultPrice,
-                                  .verified_price = kDefaultPrice,
-                                  .min_piece_size = kDefaultMinPieceSize,
-                                  .max_piece_size = kDefaultMaxPieceSize,
-                                  .miner = actor_,
-                                  .timestamp = timestamp,
-                                  .expiry = expiry,
-                                  .seq_no = 0}};
+    StorageAskV1_1_0 default_ask{{
+        .price = kDefaultPrice,
+        .verified_price = kDefaultPrice,
+        .min_piece_size = kDefaultMinPieceSize,
+        .max_piece_size = kDefaultMaxPieceSize,
+        .miner = actor_,
+        .timestamp = timestamp,
+        .expiry = expiry,
+        .seq_no = 0,
+    }};
     OUTCOME_TRY(signed_ask, signAsk(default_ask, *chain_head));
     return std::move(signed_ask);
   }

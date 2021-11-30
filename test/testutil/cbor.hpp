@@ -28,42 +28,46 @@ void expectEncodeAndReencode(const T &value,
   EXPECT_OUTCOME_EQ(fc::codec::cbor::encode(decoded), expected_bytes);
 }
 
-inline void normalizeMap(fc::codec::cbor::CborEncodeStream &es,
-                         fc::codec::cbor::CborDecodeStream &ds) {
-  using fc::codec::cbor::CborDecodeStream;
-  using fc::codec::cbor::CborEncodeStream;
+namespace fc::testutil::codec::cbor {
 
-  if (ds.isList()) {
-    const auto n{ds.listLength()};
-    auto dl{ds.list()};
-    auto el{CborEncodeStream::list()};
-    for (size_t i{}; i != n; ++i) {
-      normalizeMap(el, dl);
+  inline void normalizeMap(fc::codec::cbor::CborEncodeStream &es,
+                           fc::codec::cbor::CborDecodeStream &ds) {
+    using fc::codec::cbor::CborDecodeStream;
+    using fc::codec::cbor::CborEncodeStream;
+
+    if (ds.isList()) {
+      const auto n{ds.listLength()};
+      auto dl{ds.list()};
+      auto el{CborEncodeStream::list()};
+      for (size_t i{}; i != n; ++i) {
+        normalizeMap(el, dl);
+      }
+      es << el;
+    } else if (ds.isMap()) {
+      auto dm{ds.map()};
+      std::map<std::string, CborEncodeStream> em;
+      for (auto &[k, v] : dm) {
+        normalizeMap(em[k], v);
+      }
+      es << em;
+    } else {
+      es << CborEncodeStream::wrap(ds.raw(), 1);
     }
-    es << el;
-  } else if (ds.isMap()) {
-    auto dm{ds.map()};
-    std::map<std::string, CborEncodeStream> em;
-    for (auto &[k, v] : dm) {
-      normalizeMap(em[k], v);
-    }
-    es << em;
-  } else {
-    es << CborEncodeStream::wrap(ds.raw(), 1);
   }
-}
 
-/**
- * Reorders cbor map alphabetically.
- * Cbor maps doesn't preserve order and Filecoin implementation orders key
- * alphabetically while Lotus implementation preserves initial order. This
- * method should be called prior the comparison of cbored bytes from Lotus.
- * @param bytes - input cbored map
- * @return - cbor with all maps in alphabetic order
- */
-inline fc::Bytes normalizeMap(fc::BytesIn bytes) {
-  fc::codec::cbor::CborDecodeStream ds{bytes};
-  fc::codec::cbor::CborEncodeStream es;
-  normalizeMap(es, ds);
-  return es.data();
-}
+  /**
+   * Reorders cbor map canonically.
+   * Fuhon implementation orders map keys canonically while Lotus implementation
+   * does not respect it. This method may be called for exact comparison of
+   * cbored bytes from Lotus.
+   * @param bytes - input cbored map
+   * @return - cbor with all map keys in canonical order
+   */
+  inline fc::Bytes normalizeMap(fc::BytesIn bytes) {
+    fc::codec::cbor::CborDecodeStream ds{bytes};
+    fc::codec::cbor::CborEncodeStream es;
+    normalizeMap(es, ds);
+    return es.data();
+  }
+
+}  // namespace fc::testutil::codec::cbor

@@ -10,6 +10,7 @@
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/error_text.hpp"
 #include "markets/storage/mk_protocol.hpp"
+#include "markets/storage/provider/miner_deal.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
@@ -18,6 +19,7 @@ namespace fc::markets::storage {
   using codec::cbor::CborDecodeStream;
   using codec::cbor::CborEncodeStream;
   using primitives::DealId;
+  using provider::MinerDeal;
   using vm::actor::builtin::types::market::DealProposal;
 
   const libp2p::peer::Protocol kDealStatusProtocolId_v1_0_1{

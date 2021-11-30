@@ -7,6 +7,7 @@
 
 #include "common/outcome.hpp"
 #include "markets/storage/ask_protocol.hpp"
+#include "markets/storage/client/client_deal.hpp"
 #include "markets/storage/mk_protocol.hpp"
 #include "markets/storage/status_protocol.hpp"
 #include "markets/storage/types.hpp"
@@ -26,8 +27,7 @@ namespace fc::markets::storage::client {
 
   class StorageMarketClient {
    public:
-    using StorageAskHandler =
-        std::function<void(outcome::result<StorageAsk>)>;
+    using StorageAskHandler = std::function<void(outcome::result<StorageAsk>)>;
 
     virtual ~StorageMarketClient() = default;
 

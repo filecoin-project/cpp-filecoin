@@ -90,8 +90,6 @@ namespace fc::markets::storage {
   struct SignedStorageAsk {
     virtual ~SignedStorageAsk() = default;
 
-    struct Named;
-
     StorageAsk ask;
     Signature signature;
 
@@ -160,20 +158,13 @@ namespace fc::markets::storage {
     Address miner;
   };
 
-  CBOR_TUPLE(AskRequest, miner)
-
   /** AskRequest used in V1.0.1 */
   struct AskRequestV1_0_1 : public AskRequest {};
 
   CBOR_TUPLE(AskRequestV1_0_1, miner)
 
   /** AskRequest used in V1.1.0. Cbores with field names. */
-  struct AskRequestV1_1_0 : public AskRequest {
-   private:
-    friend CborEncodeStream &operator<<(CborEncodeStream &,
-                                        const AskRequestV1_1_0 &);
-    friend CborDecodeStream &operator>>(CborDecodeStream &, AskRequestV1_1_0 &);
-  };
+  struct AskRequestV1_1_0 : public AskRequest {};
 
   inline CBOR2_ENCODE(AskRequestV1_1_0) {
     auto m{CborEncodeStream::map()};
