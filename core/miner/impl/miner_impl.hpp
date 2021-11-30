@@ -20,7 +20,7 @@ namespace fc::miner {
   using api::FullNodeApi;
   using libp2p::basic::Scheduler;
   using mining::DealInfo;
-  using mining::PieceAttributes;
+  using mining::PieceLocation;
   using mining::types::SectorInfo;
   using primitives::Counter;
   using primitives::SectorNumber;
@@ -39,7 +39,7 @@ namespace fc::miner {
         std::shared_ptr<Counter> counter,
         std::shared_ptr<BufferMap> sealing_fsm_kv,
         std::shared_ptr<Manager> sector_manager,
-        const std::shared_ptr<Scheduler>& scheduler,
+        const std::shared_ptr<Scheduler> &scheduler,
         std::shared_ptr<boost::asio::io_context> context,
         const mining::Config &config,
         const std::vector<Address> &precommit_control);
@@ -47,8 +47,9 @@ namespace fc::miner {
     outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber sector_id) const override;
 
-    outcome::result<PieceAttributes> addPieceToAnySector(
-        UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) override;
+    outcome::result<PieceLocation> addPieceToAnySector(UnpaddedPieceSize size,
+                                                       PieceData piece_data,
+                                                       DealInfo deal) override;
 
     Address getAddress() const override;
 

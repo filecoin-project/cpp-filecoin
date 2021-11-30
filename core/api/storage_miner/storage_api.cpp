@@ -68,6 +68,11 @@ namespace fc::api {
       return outcome::success();
     };
 
+    api->MarketListIncompleteDeals =
+        [=]() -> outcome::result<std::vector<MinerDeal>> {
+      return storage_market_provider->getLocalDeals();
+    };
+
     api->SectorsList = [=]() -> outcome::result<std::vector<SectorNumber>> {
       std::vector<SectorNumber> result;
       for (const auto &sector : miner->getSealing()->getListSectors()) {

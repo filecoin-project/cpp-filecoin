@@ -186,7 +186,7 @@ namespace fc::mining {
         codec::cbor::encode(*info).value()));
   }
 
-  outcome::result<PieceAttributes> SealingImpl::addPieceToAnySector(
+  outcome::result<PieceLocation> SealingImpl::addPieceToAnySector(
       UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) {
     if (not deal.publish_cid.has_value()) {
       return SealingError::kNotPublishedDeal;
@@ -211,8 +211,8 @@ namespace fc::mining {
     }
 
     bool is_start_packing = false;
-    PieceAttributes piece;
-    piece.size = size;
+    PieceLocation piece;
+    piece.size = size.padded();
 
     {
       std::unique_lock lock(unsealed_mutex_);
@@ -235,8 +235,7 @@ namespace fc::mining {
       is_start_packing =
           unsealed_sectors_[sector_and_padding.sector].deals_number
               >= getDealPerSectorLimit(sector_size)
-          || (SectorSize)piece.offset + (SectorSize)piece.size.padded()
-                 == sector_size;
+          || (SectorSize)piece.offset + (SectorSize)piece.size == sector_size;
     }
 
     if (is_start_packing) {
@@ -1598,8 +1597,8 @@ namespace fc::mining {
             info->sector_number,
             maybe_info_opt.value()->info.sealed_cid,
             info->comm_r.get());
-        return outcome::success();  // TODO(ortyomka): remove when the actor allows
-                                    // re-precommit
+        return outcome::success();  // TODO(ortyomka): remove when the actor
+                                    // allows re-precommit
       }
 
       WAIT([=] {

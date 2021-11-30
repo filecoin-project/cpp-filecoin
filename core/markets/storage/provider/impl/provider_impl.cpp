@@ -153,6 +153,18 @@ namespace fc::markets::storage::provider {
     return StorageMarketProviderError::kLocalDealNotFound;
   }
 
+  outcome::result<std::vector<MinerDeal>> StorageProviderImpl::getLocalDeals()
+      const {
+    std::vector<MinerDeal> deals;
+    const auto fsm_deals = fsm_->list();
+    deals.reserve(fsm_deals.size());
+    for (const auto &it : fsm_deals) {
+      deals.push_back(*it.first);
+    }
+
+    return deals;
+  }
+
   outcome::result<void> StorageProviderImpl::importDataForDeal(
       const CID &proposal_cid, const boost::filesystem::path &path) {
     auto fsm_state_table = fsm_->list();
@@ -388,7 +400,7 @@ namespace fc::markets::storage::provider {
 
     for (const auto &ref : piece_refs) {
       OUTCOME_TRY(sector_info,
-                  sector_blocks_->getMiner()->getSectorInfo(ref.sector_number));
+                  sector_blocks_->getMiner()->getSectorInfo(ref.sector));
 
       if (sector_info->state == SealingState::kProving) {
         piece_location = ref;
@@ -396,11 +408,11 @@ namespace fc::markets::storage::provider {
       }
     }
 
-    if (!piece_location.has_value()) {
-      return StorageProviderError::kNotFoundSector;
+    if (piece_location.has_value()) {
+      return piece_location.get();
     }
 
-    return piece_location.get();
+    return StorageProviderError::kNotFoundSector;
   }
 
   outcome::result<void> StorageProviderImpl::recordPieceInfo(
@@ -418,9 +430,9 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(piece_storage_->addDealForPiece(
         deal->client_deal_proposal.proposal.piece_cid,
         DealInfo{.deal_id = deal->deal_id,
-                 .sector_id = piece_location.sector_number,
+                 .sector_id = piece_location.sector,
                  .offset = piece_location.offset,
-                 .length = piece_location.length}));
+                 .length = piece_location.size}));
     return outcome::success();
   }
 
@@ -667,14 +679,18 @@ namespace fc::markets::storage::provider {
       StorageDealStatus to) {
     // TODO(a.chernyshov): hand off
     auto &p{deal->client_deal_proposal.proposal};
-    OUTCOME_EXCEPT(sector_blocks_->addPiece(
+    auto maybe_piece_location = sector_blocks_->addPiece(
         p.piece_size.unpadded(),
         deal->piece_path,
         mining::types::DealInfo{deal->publish_cid,
                                 deal->deal_id,
                                 p,
                                 {p.start_epoch, p.end_epoch},
-                                deal->is_fast_retrieval}));
+                                deal->is_fast_retrieval});
+    FSM_HALT_ON_ERROR(maybe_piece_location, "Unable to locate piece", deal);
+    FSM_HALT_ON_ERROR(recordPieceInfo(deal, maybe_piece_location.value()),
+                      "Record piece failed",
+                      deal);
     FSM_SEND(deal, ProviderEvent::ProviderEventDealHandedOff);
   }
 
@@ -697,11 +713,6 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto maybe_piece_location = locatePiece(deal);
-    FSM_HALT_ON_ERROR(maybe_piece_location, "Unable to locate piece", deal);
-    FSM_HALT_ON_ERROR(recordPieceInfo(deal, maybe_piece_location.value()),
-                      "Record piece failed",
-                      deal);
     // TODO(a.chernyshov): wait expiration
   }
 
