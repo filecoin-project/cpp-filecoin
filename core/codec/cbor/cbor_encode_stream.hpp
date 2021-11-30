@@ -18,7 +18,7 @@ namespace fc::codec::cbor {
   class CborEncodeStream;
 
   /** Cbor map with respect for key order */
-  class CborMap {
+  class CborOrderedMap {
    public:
     /** Returns number of elements */
     size_t size() const;
@@ -117,8 +117,11 @@ namespace fc::codec::cbor {
     CborEncodeStream &operator<<(const BlockParentCbCids &parents);
     /** Encodes list container encode substream */
     CborEncodeStream &operator<<(const CborEncodeStream &other);
-    /** Encodes map container encode substream map */
-    CborEncodeStream &operator<<(const CborMap &map);
+    /** Encodes map container encode substream map with canonical order */
+    CborEncodeStream &operator<<(
+        const std::map<std::string, CborEncodeStream> &map);
+    /** Encodes map container encode substream map with order respect */
+    CborEncodeStream &operator<<(const CborOrderedMap &map);
     /** Encodes null */
     CborEncodeStream &operator<<(std::nullptr_t);
     /** Returns CBOR bytes of encoded elements */
@@ -128,7 +131,9 @@ namespace fc::codec::cbor {
     /** Creates list container encode substream */
     static CborEncodeStream list();
     /** Creates map container encode substream map */
-    static CborMap map();
+    static std::map<std::string, CborEncodeStream> map();
+    /** Creates map container encode substream map */
+    static CborOrderedMap orderedMap();
     /** Wraps CBOR bytes */
     static CborEncodeStream wrap(BytesIn data, size_t count);
 

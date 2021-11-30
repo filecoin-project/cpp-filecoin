@@ -9,11 +9,12 @@
 #include "common/cmp.hpp"
 
 namespace fc::codec::cbor {
-  size_t CborMap::size() const {
+  size_t CborOrderedMap::size() const {
     return map_.size();
   }
 
-  std::vector<std::pair<BytesIn, const CborEncodeStream *>> CborMap::list() const {
+  std::vector<std::pair<BytesIn, const CborEncodeStream *>>
+  CborOrderedMap::list() const {
     std::vector<std::pair<BytesIn, const CborEncodeStream *>> sorted;
     sorted.reserve(map_.size());
     for (const auto &key : key_order_) {
@@ -25,7 +26,7 @@ namespace fc::codec::cbor {
     return sorted;
   }
 
-  CborEncodeStream &CborMap::operator[](const std::string &key) {
+  CborEncodeStream &CborOrderedMap::operator[](const std::string &key) {
     if (map_.find(key) != map_.end()) {
       // overwrite key, so remove old key in order and push back again
       key_order_.erase(std::remove(key_order_.begin(), key_order_.end(), key),
@@ -102,7 +103,31 @@ namespace fc::codec::cbor {
     }
   };
 
-  CborEncodeStream &CborEncodeStream::operator<<(const CborMap &map) {
+  CborEncodeStream &CborEncodeStream::operator<<(
+      const std::map<std::string, CborEncodeStream> &map) {
+    addCount(1);
+    writeMap(data_, map.size());
+    std::vector<std::pair<BytesIn, const CborEncodeStream *>> sorted;
+    sorted.reserve(map.size());
+    for (const auto &pair : map) {
+      if (pair.second.count_ != 1) {
+        outcome::raise(CborEncodeError::kExpectedMapValueSingle);
+      }
+      sorted.emplace_back(common::span::cbytes(pair.first), &pair.second);
+    }
+    std::sort(sorted.begin(), sorted.end(), [](auto &l, auto &r) {
+      return LessCborKey{}(l.first, r.first);
+    });
+    const auto count{count_};
+    for (const auto &[key, value] : sorted) {
+      *this << common::span::bytestr(key);
+      *this << *value;
+    }
+    count_ = count;
+    return *this;
+  }
+
+  CborEncodeStream &CborEncodeStream::operator<<(const CborOrderedMap &map) {
     addCount(1);
     writeMap(data_, map.size());
     const auto count{count_};
@@ -139,7 +164,11 @@ namespace fc::codec::cbor {
     return stream;
   }
 
-  CborMap CborEncodeStream::map() {
+  std::map<std::string, CborEncodeStream> CborEncodeStream::map() {
+    return {};
+  }
+
+  CborOrderedMap CborEncodeStream::orderedMap() {
     return {};
   }
 

@@ -207,6 +207,22 @@ TEST(CborEncoder, Map) {
   map["b"] << 2;
   map["c"] << 3;
   s << map;
+  EXPECT_EQ(s.data(), "A361620261630362616101"_unhex)
+      << "Got " << hex_upper(s.data());
+}
+
+/**
+ * @given Map container
+ * @when Encode
+ * @then Encoded as expected
+ */
+TEST(CborEncoder, MapRespectsOrder) {
+  CborEncodeStream s;
+  auto map = s.orderedMap();
+  map["aa"] << 1;
+  map["b"] << 2;
+  map["c"] << 3;
+  s << map;
   EXPECT_EQ(s.data(), "A362616101616202616303"_unhex)
       << "Got " << hex_upper(s.data());
 }
