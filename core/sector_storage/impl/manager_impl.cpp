@@ -541,9 +541,13 @@ namespace fc::sector_storage {
                    SectorFileType::FTUnsealed,
                    PathType::kSealing,
                    AcquireMode::kMove),
-        [&, lock = std::move(lock)](
+        [sector,
+         offset,
+         size,
+         output = std::make_shared<PieceData>(std::move(output)),
+         lock = std::move(lock)](
             const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
-          return worker->readPiece(std::move(output), sector, offset, size);
+          return worker->readPiece(std::move(*output), sector, offset, size);
         },
         callbackWrapper(cb),
         kDefaultTaskPriority,

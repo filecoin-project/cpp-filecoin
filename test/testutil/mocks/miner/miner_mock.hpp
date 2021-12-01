@@ -23,14 +23,14 @@ namespace fc::miner {
         getSectorInfo,
         outcome::result<std::shared_ptr<SectorInfo>>(SectorNumber));
 
-    outcome::result<PieceAttributes> addPieceToAnySector(UnpaddedPieceSize size,
+    outcome::result<PieceLocation> addPieceToAnySector(UnpaddedPieceSize size,
                                                          PieceData data,
                                                          DealInfo deal) {
       return doAddPieceToAnySector(size, data.getFd(), deal);
     }
 
     MOCK_METHOD3(doAddPieceToAnySector,
-                 outcome::result<PieceAttributes>(UnpaddedPieceSize size,
+                 outcome::result<PieceLocation>(UnpaddedPieceSize size,
                                                   int fd,
                                                   DealInfo deal));
 

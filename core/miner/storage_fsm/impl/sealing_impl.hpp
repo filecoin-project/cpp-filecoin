@@ -64,8 +64,9 @@ namespace fc::mining {
     outcome::result<void> fsmLoad();
     void fsmSave(const std::shared_ptr<SectorInfo> &info);
 
-    outcome::result<PieceAttributes> addPieceToAnySector(
-        UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) override;
+    outcome::result<PieceLocation> addPieceToAnySector(UnpaddedPieceSize size,
+                                                       PieceData piece_data,
+                                                       DealInfo deal) override;
 
     outcome::result<void> remove(SectorNumber sector_id) override;
 

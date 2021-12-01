@@ -8,6 +8,7 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/peer/protocol.hpp>
 #include "codec/cbor/streams_annotation.hpp"
+#include "common/libp2p/peer/cbor_peer_info.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/cid/cid.hpp"
@@ -103,7 +104,7 @@ namespace fc::markets::storage {
     CID proposal_cid;
     boost::optional<CID> add_funds_cid;
     boost::optional<CID> publish_cid;
-    PeerInfo client;
+    PeerInfo client = codec::cbor::kDefaultT<PeerInfo>();
     StorageDealStatus state;
     Path piece_path;
     Path metadata_path;

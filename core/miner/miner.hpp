@@ -13,7 +13,7 @@
 namespace fc::miner {
   using mining::Sealing;
   using mining::types::DealInfo;
-  using mining::types::PieceAttributes;
+  using mining::types::PieceLocation;
   using mining::types::SectorInfo;
   using primitives::SectorNumber;
   using primitives::address::Address;
@@ -27,7 +27,7 @@ namespace fc::miner {
     virtual outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber sector_id) const = 0;
 
-    virtual outcome::result<PieceAttributes> addPieceToAnySector(
+    virtual outcome::result<PieceLocation> addPieceToAnySector(
         UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) = 0;
 
     virtual Address getAddress() const = 0;

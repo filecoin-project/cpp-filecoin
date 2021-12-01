@@ -651,15 +651,26 @@ namespace fc::sector_storage {
               return WorkerErrors::kCannotOpenFile;
             }
 
+            std::vector<std::thread> threads;
             for (const auto &range : to_unsealed) {
               int fds[2];
               if (pipe(fds) < 0) {
-                return outcome::success();
+                return ERROR_TEXT("Unseal: cannot open pipe");
               }
 
-              PieceData reader(fds[0]);
+              threads.emplace_back([reader = PieceData(fds[0]),
+                                    file,
+                                    range,
+                                    logger{self->logger_}]() {
+                auto maybe_error{
+                    file->write(reader,
+                                primitives::piece::paddedIndex(range.offset),
+                                range.size.padded())};
+                if (maybe_error.has_error()) {
+                  logger->error("ERROR: {}", maybe_error.error().message());
+                }
+              });
 
-              // TODO: can be in another thread
               OUTCOME_TRY(self->proofs_->unsealRange(
                   sector.proof_type,
                   response.paths.cache,
@@ -670,12 +681,13 @@ namespace fc::sector_storage {
                   randomness,
                   unsealed_cid,
                   primitives::piece::paddedIndex(range.offset),
-                  range.size.padded()));
+                  range.size));
+            }
 
-              OUTCOME_TRY(
-                  file->write(reader,
-                              primitives::piece::paddedIndex(range.offset),
-                              range.size.padded()));
+            for (auto &t : threads) {
+              if (t.joinable()) {
+                t.join();
+              }
             }
           }
 
@@ -697,7 +709,7 @@ namespace fc::sector_storage {
     return asyncCall(
         sector,
         return_->ReturnReadPiece,
-        [=, output{std::make_shared<PieceData>(std::move(output))}](
+        [=, output = std::make_shared<PieceData>(std::move(output))](
             Self self) -> outcome::result<bool> {
           OUTCOME_TRY(response,
                       self->acquireSector(sector,
@@ -730,8 +742,9 @@ namespace fc::sector_storage {
           if (not is_allocated) {
             return false;
           }
-          return file->read(
-              *output, primitives::piece::paddedIndex(offset), size.padded());
+          return file->read(std::move(*output),
+                            primitives::piece::paddedIndex(offset),
+                            size.padded());
         });
   }
 

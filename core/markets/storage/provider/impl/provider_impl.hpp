@@ -32,13 +32,13 @@ namespace fc::markets::storage::provider {
   using fc::storage::filestore::FileStore;
   using fc::storage::piece::PieceStorage;
   using libp2p::Host;
-  using vm::actor::builtin::types::market::deal_info_manager::DealInfoManager;
   using pieceio::PieceIO;
   using primitives::BigInt;
   using primitives::EpochDuration;
   using primitives::GasAmount;
   using primitives::sector::RegisteredSealProof;
   using sectorblocks::SectorBlocks;
+  using vm::actor::builtin::types::market::deal_info_manager::DealInfoManager;
   using ProviderTransition =
       fsm::Transition<ProviderEvent, void, StorageDealStatus, MinerDeal>;
   using ProviderFSM =
@@ -75,6 +75,9 @@ namespace fc::markets::storage::provider {
 
     auto getDeal(const CID &proposal_cid) const
         -> outcome::result<MinerDeal> override;
+
+    auto getLocalDeals() const
+        -> outcome::result<std::vector<MinerDeal>> override;
 
     auto importDataForDeal(const CID &proposal_cid,
                            const boost::filesystem::path &path)

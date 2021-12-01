@@ -42,7 +42,7 @@ namespace fc::miner {
     return sealing_->getSectorInfo(sector_id);
   }
 
-  outcome::result<PieceAttributes> MinerImpl::addPieceToAnySector(
+  outcome::result<PieceLocation> MinerImpl::addPieceToAnySector(
       UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) {
     return sealing_->addPieceToAnySector(size, std::move(piece_data), deal);
   }
