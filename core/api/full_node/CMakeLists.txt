@@ -18,6 +18,7 @@ target_link_libraries(api
     message
     miner_types
     msg_waiter
+    node_version
     state_tree
     mpool
     sync

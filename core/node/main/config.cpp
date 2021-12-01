@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "config/profile_config.hpp"
+#include "node/node_version.hpp"
 #include "primitives/address/config.hpp"
 
 namespace fc::common {
@@ -77,6 +78,7 @@ namespace fc::node {
     po::options_description desc("Fuhon node options");
     auto option{desc.add_options()};
     option("help,h", "print usage message");
+    option("version,v", "show node version information");
     option("repo", po::value(&config.repo_path)->required());
     option("config", po::value(&raw.copy_config), "copy config from file");
     option("genesis", po::value(&raw.copy_genesis), "copy genesis from file");
@@ -121,6 +123,10 @@ namespace fc::node {
     po::store(parse_command_line(argc, argv, desc), vm);
     if (vm.count("help") != 0) {
       std::cerr << desc << std::endl;
+      exit(EXIT_SUCCESS);
+    }
+    if (vm.count("version") != 0) {
+      std::cerr << kNodeVersion << std::endl;
       exit(EXIT_SUCCESS);
     }
     po::notify(vm);
