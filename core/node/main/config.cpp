@@ -5,7 +5,6 @@
 
 #include "node/main/config.hpp"
 
-#include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
@@ -198,23 +197,5 @@ namespace fc::node {
     return libp2p::multi::Multiaddress::create(
                fmt::format("/ip4/0.0.0.0/tcp/{}", port))
         .value();
-  }
-
-  const std::string &Config::localIp() const {
-    static const std::string ip{[] {
-      using namespace boost::asio::ip;
-      boost::asio::io_context io;
-      tcp::resolver resolver{io};
-      boost::system::error_code ec;
-      tcp::resolver::iterator end;
-      for (auto it{resolver.resolve(host_name(), "", ec)}; it != end; ++it) {
-        auto addr{it->endpoint().address()};
-        if (addr.is_v4()) {
-          return addr.to_string();
-        }
-      }
-      return std::string{"127.0.0.1"};
-    }()};
-    return ip;
   }
 }  // namespace fc::node

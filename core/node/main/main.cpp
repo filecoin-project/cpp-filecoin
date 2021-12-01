@@ -14,6 +14,7 @@
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
 #include "common/api_secret.hpp"
+#include "common/local_ip.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
 #include "common/logger.hpp"
@@ -95,7 +96,7 @@ namespace fc {
 
     const PeerInfo api_peer_info{
         o.host->getId(),
-        nonZeroAddrs(o.host->getAddresses(), &config.localIp()),
+        nonZeroAddrs(o.host->getAddresses(), &common::localIp()),
     };
     api::fillNetApi(o.api, api_peer_info, o.host, api::kNodeApiLogger);
 
@@ -335,7 +336,7 @@ namespace fc {
 
     log()->info(
         "Node started at {}, host PeerId {}",
-        nonZeroAddr(listen_addresses, &config.localIp())->getStringAddress(),
+        nonZeroAddr(listen_addresses, &common::localIp())->getStringAddress(),
         o.host->getId().toBase58());
 
     for (const auto &pi : config.bootstrap_list) {

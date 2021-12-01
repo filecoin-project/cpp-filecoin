@@ -26,6 +26,7 @@
 #include "common/io_thread.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
+#include "common/local_ip.hpp"
 #include "common/outcome.hpp"
 #include "common/peer_key.hpp"
 #include "config/profile_config.hpp"
@@ -99,24 +100,6 @@ namespace fc {
 
     auto join(const std::string &path) const {
       return (repo_path / path).string();
-    }
-
-    const std::string &localIp() const {
-      static const std::string ip{[] {
-        using namespace boost::asio::ip;
-        boost::asio::io_context io;
-        tcp::resolver resolver{io};
-        boost::system::error_code ec;
-        tcp::resolver::iterator end;
-        for (auto it{resolver.resolve(host_name(), "", ec)}; it != end; ++it) {
-          auto addr{it->endpoint().address()};
-          if (addr.is_v4()) {
-            return addr.to_string();
-          }
-        }
-        return std::string{"127.0.0.1"};
-      }()};
-      return ip;
     }
   };
 
@@ -531,7 +514,7 @@ namespace fc {
     api::fillAuthApi(mapi, api_secret, api::kStorageApiLogger);
     const PeerInfo api_peer_info{
         host->getPeerInfo().id,
-        nonZeroAddrs(host->getAddresses(), &config.localIp())};
+        nonZeroAddrs(host->getAddresses(), &common::localIp())};
     api::fillNetApi(mapi, api_peer_info, host, api::kStorageApiLogger);
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
