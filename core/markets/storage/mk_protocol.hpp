@@ -64,7 +64,7 @@ namespace fc::markets::storage {
   struct DataRefV1_1_0 : public DataRef {};
 
   inline CBOR2_ENCODE(DataRefV1_1_0) {
-    auto m{CborEncodeStream::map()};
+    auto m{CborEncodeStream::orderedMap()};
     m["TransferType"] << v.transfer_type;
     m["Root"] << v.root;
     m["PieceCid"] << v.piece_cid;
@@ -178,7 +178,7 @@ namespace fc::markets::storage {
   struct ProposalV1_1_0 : public Proposal {};
 
   inline CBOR2_ENCODE(ProposalV1_1_0) {
-    auto m{CborEncodeStream::map()};
+    auto m{CborEncodeStream::orderedMap()};
     m["DealProposal"] << v.deal_proposal;
     m["Piece"] << DataRefV1_1_0{v.piece};
     m["FastRetrieval"] << v.is_fast_retrieval;
@@ -216,7 +216,7 @@ namespace fc::markets::storage {
   struct ResponseV1_1_0 : public Response {};
 
   inline CBOR2_ENCODE(ResponseV1_1_0) {
-    auto m{CborEncodeStream::map()};
+    auto m{CborEncodeStream::orderedMap()};
     m["State"] << v.state;
     m["Message"] << v.message;
     m["Proposal"] << v.proposal;
@@ -284,7 +284,7 @@ namespace fc::markets::storage {
   };
 
   inline CBOR2_ENCODE(SignedResponseV1_1_0) {
-    auto m{CborEncodeStream::map()};
+    auto m{CborEncodeStream::orderedMap()};
     m["Response"] << ResponseV1_1_0{v.response};
     m["Signature"] << v.signature;
     return s << m;

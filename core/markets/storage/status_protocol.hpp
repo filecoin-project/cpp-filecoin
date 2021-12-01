@@ -70,7 +70,7 @@ namespace fc::markets::storage {
   struct ProviderDealStateV1_1_0 : public ProviderDealState {};
 
   inline CBOR2_ENCODE(ProviderDealStateV1_1_0) {
-    auto m{CborEncodeStream::map()};
+    auto m{CborEncodeStream::orderedMap()};
     m["State"] << v.status;
     m["Message"] << v.message;
     m["Proposal"] << v.proposal;
@@ -117,7 +117,7 @@ namespace fc::markets::storage {
   struct DealStatusRequestV1_1_0 : public DealStatusRequest {};
 
   inline CBOR2_ENCODE(DealStatusRequestV1_1_0) {
-    auto m{CborEncodeStream::map()};
+    auto m{CborEncodeStream::orderedMap()};
     m["Proposal"] << v.proposal;
     m["Signature"] << v.signature;
     return s << m;
@@ -188,7 +188,7 @@ namespace fc::markets::storage {
   };
 
   inline CBOR2_ENCODE(DealStatusResponseV1_1_0) {
-    auto m{CborEncodeStream::map()};
+    auto m{CborEncodeStream::orderedMap()};
     m["DealState"] << ProviderDealStateV1_1_0{v.state};
     m["Signature"] << v.signature;
     return s << m;

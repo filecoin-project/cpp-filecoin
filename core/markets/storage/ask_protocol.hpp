@@ -62,7 +62,7 @@ namespace fc::markets::storage {
   struct StorageAskV1_1_0 : public StorageAsk {};
 
   inline CBOR2_ENCODE(StorageAskV1_1_0) {
-    auto m{CborEncodeStream::map()};
+    auto m{CborEncodeStream::orderedMap()};
     m["Price"] << v.price;
     m["VerifiedPrice"] << v.verified_price;
     m["MinPieceSize"] << v.min_piece_size;
@@ -136,7 +136,7 @@ namespace fc::markets::storage {
   };
 
   inline CBOR2_ENCODE(SignedStorageAskV1_1_0) {
-    auto m{CborEncodeStream::map()};
+    auto m{CborEncodeStream::orderedMap()};
     m["Ask"] << StorageAskV1_1_0{v.ask};
     m["Signature"] << v.signature;
     return s << m;
@@ -167,7 +167,7 @@ namespace fc::markets::storage {
   struct AskRequestV1_1_0 : public AskRequest {};
 
   inline CBOR2_ENCODE(AskRequestV1_1_0) {
-    auto m{CborEncodeStream::map()};
+    auto m{CborEncodeStream::orderedMap()};
     m["Miner"] << v.miner;
     return s << m;
   }
@@ -235,7 +235,7 @@ namespace fc::markets::storage {
   };
 
   inline CBOR2_ENCODE(AskResponseV1_1_0) {
-    auto m{CborEncodeStream::map()};
+    auto m{CborEncodeStream::orderedMap()};
     m["Ask"] << v.ask_;
     return s << m;
   }
