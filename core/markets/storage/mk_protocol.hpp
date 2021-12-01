@@ -163,15 +163,14 @@ namespace fc::markets::storage {
   struct ProposalV1_0_1 : public Proposal {};
 
   inline CBOR2_ENCODE(ProposalV1_0_1) {
-    return s << (CborEncodeStream::list() << v.deal_proposal << DataRefV1_0_1{v.piece}
-             << v.is_fast_retrieval);
+    return s << (CborEncodeStream::list()
+                 << v.deal_proposal << DataRefV1_0_1{v.piece}
+                 << v.is_fast_retrieval);
   }
   inline CBOR2_DECODE(ProposalV1_0_1) {
     auto cbor_list{s.list()};
     cbor_list >> v.deal_proposal;
-    DataRefV1_0_1 piece;
-    cbor_list >> piece;
-    v.piece = piece;
+    v.piece = cbor_list.get<DataRefV1_0_1>();
     cbor_list >> v.is_fast_retrieval;
     return s;
   }
@@ -189,9 +188,7 @@ namespace fc::markets::storage {
   inline CBOR2_DECODE(ProposalV1_1_0) {
     auto m{s.map()};
     CborDecodeStream::named(m, "DealProposal") >> v.deal_proposal;
-    DataRefV1_1_0 piece;
-    CborDecodeStream::named(m, "Piece") >> piece;
-    v.piece = piece;
+    v.piece = CborDecodeStream::named(m, "Piece").get<DataRefV1_1_0>();
     CborDecodeStream::named(m, "FastRetrieval") >> v.is_fast_retrieval;
     return s;
   }
@@ -264,9 +261,7 @@ namespace fc::markets::storage {
   }
   inline CBOR2_DECODE(SignedResponseV1_0_1) {
     auto cbor_list{s.list()};
-    ResponseV1_0_1 response;
-    cbor_list >> response;
-    v.response = response;
+    v.response = cbor_list.get<ResponseV1_0_1>();
     cbor_list >> v.signature;
     return s;
   }
@@ -294,9 +289,7 @@ namespace fc::markets::storage {
   }
   inline CBOR2_DECODE(SignedResponseV1_1_0) {
     auto m{s.map()};
-    ResponseV1_1_0 response;
-    CborDecodeStream::named(m, "Response") >> response;
-    v.response = response;
+    v.response = CborDecodeStream::named(m, "Response").get<ResponseV1_1_0>();
     CborDecodeStream::named(m, "Signature") >> v.signature;
     return s;
   }

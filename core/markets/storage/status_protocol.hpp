@@ -166,9 +166,7 @@ namespace fc::markets::storage {
   }
   inline CBOR2_DECODE(DealStatusResponseV1_0_1) {
     auto cbor_list{s.list()};
-    ProviderDealStateV1_0_1 state;
-    cbor_list >> state;
-    v.state = state;
+    v.state = cbor_list.get<ProviderDealStateV1_0_1>();
     cbor_list >> v.signature;
     return s;
   }
@@ -198,9 +196,7 @@ namespace fc::markets::storage {
 
   inline CBOR2_DECODE(DealStatusResponseV1_1_0) {
     auto m{s.map()};
-    ProviderDealStateV1_1_0 state;
-    CborDecodeStream::named(m, "DealState") >> state;
-    v.state = state;
+    v.state = CborDecodeStream::named(m, "DealState").get<ProviderDealStateV1_1_0>();
     CborDecodeStream::named(m, "Signature") >> v.signature;
     return s;
   }

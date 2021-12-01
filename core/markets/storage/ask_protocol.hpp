@@ -119,9 +119,7 @@ namespace fc::markets::storage {
   }
   inline CBOR2_DECODE(SignedStorageAskV1_0_1) {
     auto cbor_list{s.list()};
-    StorageAskV1_0_1 ask;
-    cbor_list >> ask;
-    v.ask = ask;
+    v.ask = cbor_list.get<StorageAskV1_0_1>();
     cbor_list >> v.signature;
     return s;
   }
@@ -151,9 +149,7 @@ namespace fc::markets::storage {
 
   inline CBOR2_DECODE(SignedStorageAskV1_1_0) {
     auto m{s.map()};
-    StorageAskV1_1_0 ask;
-    CborDecodeStream::named(m, "Ask") >> ask;
-    v.ask = ask;
+    v.ask = CborDecodeStream::named(m, "Ask").get<StorageAskV1_1_0>();
     CborDecodeStream::named(m, "Signature") >> v.signature;
     return s;
   }
