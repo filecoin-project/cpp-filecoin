@@ -12,17 +12,6 @@
 
 namespace fc::common::math {
 
-  char foo() {
-    char *x = (char*)malloc(100);
-    free(x);
-    return x[5];
-  }
-
-  // TEST if ASAN detects it
-  TEST(Math, ASAN) {
-    char x = foo();
-  }
-
   /**
    * Test expneg with Q.128 format against
    * 'specs-actors/actor/builtin/reward/testdata/TestExpFunction.golden'
