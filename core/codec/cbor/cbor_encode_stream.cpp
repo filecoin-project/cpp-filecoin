@@ -9,6 +9,15 @@
 #include "common/cmp.hpp"
 
 namespace fc::codec::cbor {
+  CborEncodeStream &CborOrderedMap::operator[](const std::string &key) {
+    // remove old value if present and push new one
+    erase(std::remove_if(
+              begin(), end(), [&key](const auto &p) { return p.first == key; }),
+          end());
+    emplace_back(key, CborEncodeStream{});
+    return back().second;
+  }
+
   CborEncodeStream &CborEncodeStream::operator<<(const Bytes &bytes) {
     return *this << gsl::make_span(bytes);
   }
@@ -100,6 +109,21 @@ namespace fc::codec::cbor {
     return *this;
   }
 
+  CborEncodeStream &CborEncodeStream::operator<<(const CborOrderedMap &map) {
+    addCount(1);
+    writeMap(data_, map.size());
+    const auto count{count_};
+    for (const auto &pair : map) {
+      if (pair.second.count() != 1) {
+        outcome::raise(CborEncodeError::kExpectedMapValueSingle);
+      }
+      *this << common::span::bytestr(common::span::cbytes(pair.first));
+      *this << pair.second;
+    }
+    count_ = count;
+    return *this;
+  }
+
   CborEncodeStream &CborEncodeStream::operator<<(std::nullptr_t) {
     addCount(1);
     writeNull(data_);
@@ -115,6 +139,10 @@ namespace fc::codec::cbor {
     return result;
   }
 
+  size_t CborEncodeStream::count() const {
+    return count_;
+  }
+
   CborEncodeStream CborEncodeStream::list() {
     CborEncodeStream stream;
     stream.is_list_ = true;
@@ -122,6 +150,10 @@ namespace fc::codec::cbor {
   }
 
   std::map<std::string, CborEncodeStream> CborEncodeStream::map() {
+    return {};
+  }
+
+  CborOrderedMap CborEncodeStream::orderedMap() {
     return {};
   }
 
