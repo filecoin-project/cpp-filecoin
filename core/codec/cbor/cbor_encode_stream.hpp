@@ -15,6 +15,14 @@
 #include "primitives/cid/cid.hpp"
 
 namespace fc::codec::cbor {
+  class CborEncodeStream;
+
+  /** Cbor map with respect for key order */
+  struct CborOrderedMap
+      : public std::vector<std::pair<std::string, CborEncodeStream>> {
+    CborEncodeStream &operator[](const std::string &key);
+  };
+
   /** Encodes CBOR */
   class CborEncodeStream {
    public:
@@ -98,17 +106,23 @@ namespace fc::codec::cbor {
     CborEncodeStream &operator<<(const BlockParentCbCids &parents);
     /** Encodes list container encode substream */
     CborEncodeStream &operator<<(const CborEncodeStream &other);
-    /** Encodes map container encode substream map */
+    /** Encodes map container encode substream map with canonical order */
     CborEncodeStream &operator<<(
         const std::map<std::string, CborEncodeStream> &map);
+    /** Encodes map container encode substream map with order respect */
+    CborEncodeStream &operator<<(const CborOrderedMap &map);
     /** Encodes null */
     CborEncodeStream &operator<<(std::nullptr_t);
     /** Returns CBOR bytes of encoded elements */
     Bytes data() const;
+    /** Returns the number of elements */
+    size_t count() const;
     /** Creates list container encode substream */
     static CborEncodeStream list();
     /** Creates map container encode substream map */
     static std::map<std::string, CborEncodeStream> map();
+    /** Creates map container encode substream map */
+    static CborOrderedMap orderedMap();
     /** Wraps CBOR bytes */
     static CborEncodeStream wrap(BytesIn data, size_t count);
 

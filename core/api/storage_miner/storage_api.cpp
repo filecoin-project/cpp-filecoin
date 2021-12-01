@@ -6,9 +6,11 @@
 #include "api/storage_miner/storage_api.hpp"
 
 #include "api/storage_miner/return_api.hpp"
+#include "miner/miner_version.hpp"
 #include "sector_storage/impl/remote_worker.hpp"
 
 namespace fc::api {
+  using miner::kMinerVersion;
   using sector_storage::RemoteWorker;
 
   std::shared_ptr<StorageMinerApi> makeStorageApi(
@@ -143,7 +145,7 @@ namespace fc::api {
     };
 
     api->Version = [] {
-      return api::VersionResult{"fuhon-miner", kMinerApiVersion, 0};
+      return api::VersionResult{kMinerVersion, kMinerApiVersion, 0};
     };
 
     return api;

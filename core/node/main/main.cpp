@@ -26,6 +26,7 @@
 #include "node/identify.hpp"
 #include "node/main/builder.hpp"
 #include "node/main/metrics.hpp"
+#include "node/node_version.hpp"
 #include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
 #include "node/pubsub_workaround.hpp"
@@ -240,6 +241,8 @@ namespace fc {
   }
 
   void main(node::Config &config) {
+    log()->debug("Starting ", node::kNodeVersion);
+
     const auto start_time{Metrics::Clock::now()};
 
     vm::actor::cgo::configParams();

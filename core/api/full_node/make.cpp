@@ -19,6 +19,7 @@
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "drand/beaconizer.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
+#include "node/node_version.hpp"
 #include "node/pubsub_gate.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
@@ -65,6 +66,7 @@ namespace fc::api {
   using libp2p::peer::PeerId;
   using markets::retrieval::DealProposalParams;
   using markets::retrieval::QueryResponse;
+  using node::kNodeVersion;
   using primitives::kChainEpochUndefined;
   using primitives::block::MsgMeta;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
@@ -1217,7 +1219,7 @@ namespace fc::api {
     };
     api->Version = []() {
       return VersionResult{
-          "fuhon", makeApiVersion(2, 1, 0), kEpochDurationSeconds};
+          kNodeVersion, makeApiVersion(2, 1, 0), kEpochDurationSeconds};
     };
     api->WalletBalance = [=](auto &address) -> outcome::result<TokenAmount> {
       OUTCOME_TRY(context, tipsetContext({}));

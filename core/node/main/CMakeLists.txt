@@ -27,6 +27,7 @@ target_link_libraries(node_builder
     interpreter
     keystore
     mpool
+    node_version
     paych_maker
     paych_vouchers
     p2p::p2p_basic_host
