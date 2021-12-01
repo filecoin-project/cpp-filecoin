@@ -8,7 +8,7 @@
 #include <boost/asio.hpp>
 
 namespace fc::common {
-  inline const std::string & ::localIp() const {
+  inline const std::string &localIp() {
     static const std::string ip{[] {
       using namespace boost::asio::ip;
       boost::asio::io_context io;
