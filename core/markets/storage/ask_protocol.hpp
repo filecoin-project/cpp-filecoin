@@ -97,11 +97,16 @@ namespace fc::markets::storage {
     virtual outcome::result<Bytes> getDigest() const = 0;
   };
 
-  CBOR_TUPLE(SignedStorageAsk, ask, signature)
-
   /** SignedStorageAsk used in V1.0.1 */
   struct SignedStorageAskV1_0_1 : public SignedStorageAsk {
     SignedStorageAskV1_0_1() = default;
+    explicit SignedStorageAskV1_0_1(StorageAsk ask) {
+      this->ask = std::move(ask);
+    }
+    SignedStorageAskV1_0_1(StorageAsk ask, Signature signature) {
+      this->ask = std::move(ask);
+      this->signature = std::move(signature);
+    }
 
     outcome::result<Bytes> getDigest() const override {
       return codec::cbor::encode(StorageAskV1_0_1{this->ask});
@@ -109,13 +114,15 @@ namespace fc::markets::storage {
   };
 
   inline CBOR2_ENCODE(SignedStorageAskV1_0_1) {
-    return s << StorageAskV1_0_1{v.ask} << v.signature;
+    return s << (CborEncodeStream::list()
+                 << StorageAskV1_0_1{v.ask} << v.signature);
   }
   inline CBOR2_DECODE(SignedStorageAskV1_0_1) {
+    auto cbor_list{s.list()};
     StorageAskV1_0_1 ask;
-    s >> ask;
+    cbor_list >> ask;
     v.ask = ask;
-    s >> v.signature;
+    cbor_list >> v.signature;
     return s;
   }
 
@@ -208,10 +215,13 @@ namespace fc::markets::storage {
   };
 
   inline CBOR2_ENCODE(AskResponseV1_0_1) {
-    return s << v.ask_;
+    auto cbor_list = CborEncodeStream::list();
+    cbor_list << v.ask_;
+    return s << cbor_list;
   }
   inline CBOR2_DECODE(AskResponseV1_0_1) {
-    s >> v.ask_;
+    auto cbor_list{s.list()};
+    cbor_list >> v.ask_;
     return s;
   }
 

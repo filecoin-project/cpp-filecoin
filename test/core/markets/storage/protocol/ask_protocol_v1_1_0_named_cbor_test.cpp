@@ -8,11 +8,9 @@
 
 namespace fc::markets::storage {
   /**
-   * Tests storage market ask protocol.
+   * Tests storage market ask protocol v1.1.0.
    * Expected encoded bytes are from go-fil-markets implementation (commit:
    * b1a66cfd12686a8af6030fccace49916849b1954).
-   * Note: The order of named fields is not determined, so we cannot just
-   * compare raw bytes.
    */
   class AskProtocolTest : public ProtocolNamedCborTestFixture {
    public:

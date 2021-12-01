@@ -156,18 +156,20 @@ namespace fc::markets::storage {
     }
 
     outcome::result<Bytes> getDigest() const override {
-      return codec::cbor::encode(ProviderDealStateV1_1_0{this->state});
+      return codec::cbor::encode(ProviderDealStateV1_0_1{this->state});
     };
   };
 
   inline CBOR2_ENCODE(DealStatusResponseV1_0_1) {
-    return s << ProviderDealStateV1_0_1{v.state} << v.signature;
+    return s << (CborEncodeStream::list()
+                 << ProviderDealStateV1_0_1{v.state} << v.signature);
   }
   inline CBOR2_DECODE(DealStatusResponseV1_0_1) {
+    auto cbor_list{s.list()};
     ProviderDealStateV1_0_1 state;
-    s >> state;
+    cbor_list >> state;
     v.state = state;
-    s >> v.signature;
+    cbor_list >> v.signature;
     return s;
   }
 
