@@ -940,7 +940,7 @@ namespace fc::sector_storage {
                               randomness,
                               unsealed_cid,
                               primitives::piece::paddedIndex(offset),
-                              uint64_t(piece_size.padded())))
+                              uint64_t(piece_size)))
         .WillOnce(
             testing::Invoke([&](RegisteredSealProof proof_type,
                                 const std::string &cache_dir_path,
@@ -1130,7 +1130,7 @@ namespace fc::sector_storage {
                               randomness,
                               unsealed_cid,
                               primitives::piece::paddedIndex(offset),
-                              uint64_t(piece_size.padded())))
+                              uint64_t(piece_size)))
         .WillOnce(
             testing::Invoke([&](RegisteredSealProof proof_type,
                                 const std::string &cache_dir_path,

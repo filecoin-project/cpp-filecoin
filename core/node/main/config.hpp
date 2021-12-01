@@ -55,6 +55,5 @@ namespace fc::node {
     std::string join(const std::string &path) const;
     std::string genesisCar() const;
     Multiaddress p2pListenAddress() const;
-    const std::string &localIp() const;
   };
 }  // namespace fc::node
