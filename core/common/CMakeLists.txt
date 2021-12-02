@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(git_commit_version)
 add_subdirectory(libp2p)
 add_subdirectory(smoothing)
 add_subdirectory(uri_parser)
@@ -31,6 +32,11 @@ add_library(outcome
 target_link_libraries(outcome
     Boost::boost
     p2p::p2p
+    )
+
+add_library(prometheus INTERFACE)
+target_link_libraries(prometheus INTERFACE
+    prometheus-cpp::core
     )
 
 add_library(logger

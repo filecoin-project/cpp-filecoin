@@ -16,7 +16,7 @@ namespace fc::sectorblocks {
                                      std::shared_ptr<DataStore> datastore)
       : miner_(std::move(miner)), storage_(std::move(datastore)) {}
 
-  outcome::result<PieceAttributes> SectorBlocksImpl::addPiece(
+  outcome::result<PieceLocation> SectorBlocksImpl::addPiece(
       UnpaddedPieceSize size,
       const std::string &piece_data_path,
       DealInfo deal) {
@@ -33,15 +33,15 @@ namespace fc::sectorblocks {
   outcome::result<void> SectorBlocksImpl::writeRef(DealId deal_id,
                                                    SectorNumber sector,
                                                    PaddedPieceSize offset,
-                                                   UnpaddedPieceSize size) {
+                                                   PaddedPieceSize size) {
     std::lock_guard lock(mutex_);
 
     const Bytes key = UvarintKeyer::encode(deal_id);
     std::vector<PieceLocation> new_data;
     const auto new_piece = PieceLocation{
-        .sector_number = sector,
+        .sector = sector,
         .offset = offset,
-        .length = size.padded(),
+        .size = size,
     };
 
     if (storage_->contains(key)) {

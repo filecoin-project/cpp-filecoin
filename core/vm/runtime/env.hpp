@@ -19,22 +19,7 @@ namespace fc::vm::runtime {
   using primitives::ChainEpoch;
   using primitives::Nonce;
   using primitives::tipset::TipsetCPtr;
-  using state::StateTree;
   using state::StateTreeImpl;
-
-  /**
-   * Returns the public key type of address (`BLS`/`SECP256K1`) of an account
-   * actor identified by `address`.
-   * @param state_tree - state tree
-   * @param ipld - regular or charging ipld
-   * @param address - account actor address
-   * @param allow_actor - is actor type address allowed
-   * @return key address
-   */
-  outcome::result<Address> resolveKey(StateTree &state_tree,
-                                      const IpldPtr &ipld,
-                                      const Address &address,
-                                      bool allow_actor = true);
 
   struct IpldBuffered : Ipld {
     explicit IpldBuffered(IpldPtr ipld);
@@ -68,7 +53,7 @@ namespace fc::vm::runtime {
                                         size_t size);
 
     outcome::result<MessageReceipt> applyImplicitMessage(
-        const UnsignedMessage& message);
+        const UnsignedMessage &message);
 
     std::shared_ptr<IpldBuffered> ipld;
     std::shared_ptr<StateTreeImpl> state_tree;

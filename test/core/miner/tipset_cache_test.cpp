@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 
+#include "testutil/default_print.hpp"
 #include "testutil/outcome.hpp"
 
 #include "testutil/mocks/api.hpp"

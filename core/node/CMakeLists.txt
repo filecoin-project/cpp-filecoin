@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(main)
+
 add_library(sync
     identify.cpp
     say_hello.cpp
@@ -26,4 +28,8 @@ target_link_libraries(sync
     p2p::p2p_kademlia
     )
 
-add_subdirectory(main)
+add_library(node_version INTERFACE
+    )
+target_link_libraries(node_version INTERFACE
+    git_commit_version
+    )

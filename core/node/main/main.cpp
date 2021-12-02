@@ -7,14 +7,18 @@
 #include <sys/resource.h>
 #include <iostream>
 
+#include "api/full_node/make.hpp"
 #include "api/full_node/node_api_v1_wrapper.hpp"
+#include "api/network/setup_net.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
 #include "api/rpc/ws.hpp"
 #include "common/api_secret.hpp"
+#include "common/local_ip.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
 #include "common/logger.hpp"
+#include "common/prometheus/rpc.hpp"
 #include "drand/impl/http.hpp"
 #include "markets/storage/types.hpp"
 #include "node/blocksync_server.hpp"
@@ -23,6 +27,7 @@
 #include "node/identify.hpp"
 #include "node/main/builder.hpp"
 #include "node/main/metrics.hpp"
+#include "node/node_version.hpp"
 #include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
 #include "node/pubsub_workaround.hpp"
@@ -35,6 +40,9 @@ void setFdLimitMax() {
   rlimit r{};
   if (getrlimit(RLIMIT_NOFILE, &r) != 0) {
     return spdlog::error("getrlimit(RLIMIT_NOFILE), errno={}", errno);
+  }
+  if (r.rlim_max == RLIM_INFINITY) {
+    return;
   }
   r.rlim_cur = r.rlim_max;
   if (setrlimit(RLIMIT_NOFILE, &r) != 0) {
@@ -85,33 +93,13 @@ namespace fc {
   void startApi(const node::Config &config,
                 NodeObjects &node_objects,
                 const Metrics &metrics) {
-    // Network API
-    PeerInfo api_peer_info{
-        node_objects.host->getPeerInfo().id,
-        nonZeroAddrs(node_objects.host->getAddresses(), &config.localIp())};
-    node_objects.api->NetAddrsListen =
-        [api_peer_info]() -> outcome::result<PeerInfo> {
-      return api_peer_info;
+    auto &o{node_objects};
+
+    const PeerInfo api_peer_info{
+        o.host->getId(),
+        nonZeroAddrs(o.host->getAddresses(), &common::localIp()),
     };
-    node_objects.api->NetConnect = [&](auto &peer) {
-      node_objects.host->connect(peer);
-      return outcome::success();
-    };
-    node_objects.api->NetPeers =
-        [&]() -> outcome::result<std::vector<PeerInfo>> {
-      const auto &peer_repository = node_objects.host->getPeerRepository();
-      auto connections = node_objects.host->getNetwork()
-                             .getConnectionManager()
-                             .getConnections();
-      std::vector<PeerInfo> result;
-      for (const auto &conncection : connections) {
-        const auto remote = conncection->remotePeer();
-        if (remote.has_error())
-          log()->error("get remote peer error", remote.error().message());
-        result.push_back(peer_repository.getPeerInfo(remote.value()));
-      }
-      return result;
-    };
+    api::fillNetApi(o.api, api_peer_info, o.host, api::kNodeApiLogger);
 
     // Market Client API
     node_objects.api->ClientImport =
@@ -123,7 +111,7 @@ namespace fc {
       return ImportRes{root, 0};
     };
 
-    node_objects.api->ClientListDeals = [api_peer_info, &node_objects]()
+    node_objects.api->ClientListDeals = [&node_objects]()
         -> outcome::result<std::vector<StorageMarketDealInfo>> {
       std::vector<StorageMarketDealInfo> result;
       OUTCOME_TRY(local_deals,
@@ -145,7 +133,7 @@ namespace fc {
             {},
             deal.client_deal_proposal.proposal.verified,
             // TODO (a.chernyshov) actual ChannelId
-            {api_peer_info.id, deal.miner.id, 0},
+            {node_objects.host->getId(), deal.miner.id, 0},
             // TODO (a.chernyshov) actual data transfer
             {0, 0, deal.proposal_cid, true, true, "", "", deal.miner.id, 0}});
       }
@@ -224,6 +212,9 @@ namespace fc {
         *node_objects.api,
         std::bind(node_objects.api->AuthVerify, std::placeholders::_1))};
 
+    metricApiTime(*rpc_v1);
+    metricApiTime(*rpc);
+
     std::map<std::string, std::shared_ptr<api::Rpc>> rpcs;
     rpcs.emplace("/rpc/v0", rpc_v1);
     rpcs.emplace("/rpc/v1", rpc);
@@ -243,7 +234,7 @@ namespace fc {
                     text_route([&] { return metrics.prometheus(); }));
 
     api::serve(
-        rpcs, routes, *node_objects.io_context, "127.0.0.1", config.api_port);
+        rpcs, routes, *node_objects.io_context, config.api_ip, config.api_port);
     auto api_secret = loadApiSecret(config.join("jwt_secret")).value();
     auto token = generateAuthToken(api_secret, kAllPermission).value();
     api::rpc::saveInfo(config.repo_path, config.api_port, token);
@@ -251,6 +242,8 @@ namespace fc {
   }
 
   void main(node::Config &config) {
+    log()->debug("Starting ", node::kNodeVersion);
+
     const auto start_time{Metrics::Clock::now()};
 
     vm::actor::cgo::configParams();
@@ -346,7 +339,7 @@ namespace fc {
 
     log()->info(
         "Node started at {}, host PeerId {}",
-        nonZeroAddr(listen_addresses, &config.localIp())->getStringAddress(),
+        nonZeroAddr(listen_addresses, &common::localIp())->getStringAddress(),
         o.host->getId().toBase58());
 
     for (const auto &pi : config.bootstrap_list) {

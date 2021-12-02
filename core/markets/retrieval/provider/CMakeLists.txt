@@ -13,6 +13,7 @@ target_link_libraries(retrieval_market_provider
     cbor_stream
     tipset
     ipld_traverser
+    map_prefix
     memory_indexed_car
     piece
     piece_data

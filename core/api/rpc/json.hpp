@@ -16,7 +16,6 @@
 #include "common/enum.hpp"
 #include "common/libp2p/peer/cbor_peer_info.hpp"
 #include "miner/main/type.hpp"
-#include "payment_channel_manager/payment_channel_manager.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "sector_storage/stores/storage.hpp"
@@ -554,6 +553,40 @@ namespace fc::api {
 
     DECODE(BigInt) {
       v = BigInt{AsString(j)};
+    }
+
+    ENCODE(MinerDeal) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Proposal", v.client_deal_proposal.proposal);
+      Set(j, "ClientSignature", v.client_deal_proposal.client_signature);
+      Set(j, "ProposalCid", v.proposal_cid);
+      Set(j, "AddFundsCid", v.add_funds_cid);
+      Set(j, "PublishCid", v.publish_cid);
+      Set(j, "Client", v.client);
+      Set(j, "State", v.state);
+      Set(j, "PiecePath", v.piece_path);
+      Set(j, "MetadataPath", v.metadata_path);
+      Set(j, "FastRetrieval", v.is_fast_retrieval);
+      Set(j, "Message", v.message);
+      Set(j, "Ref", v.ref);
+      Set(j, "DealId", v.deal_id);
+      return j;
+    }
+
+    DECODE(MinerDeal) {
+      Get(j, "Proposal", v.client_deal_proposal.proposal);
+      Get(j, "ClientSignature", v.client_deal_proposal.client_signature);
+      Get(j, "ProposalCid", v.proposal_cid);
+      Get(j, "AddFundsCid", v.add_funds_cid);
+      Get(j, "PublishCid", v.publish_cid);
+      Get(j, "Client", v.client);
+      Get(j, "State", v.state);
+      Get(j, "PiecePath", v.piece_path);
+      Get(j, "MetadataPath", v.metadata_path);
+      Get(j, "FastRetrieval", v.is_fast_retrieval);
+      Get(j, "Message", v.message);
+      Get(j, "Ref", v.ref);
+      Get(j, "DealId", v.deal_id);
     }
 
     ENCODE(MinerInfo) {

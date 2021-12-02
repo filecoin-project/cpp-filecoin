@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <prometheus/text_serializer.h>
 #include <libp2p/common/metrics/instance_count.hpp>
 #include <sstream>
 
@@ -12,6 +13,7 @@
 #include "clock/utc_clock.hpp"
 #include "common/fd_usage.hpp"
 #include "common/memory_usage.hpp"
+#include "common/prometheus/metrics.hpp"
 #include "node/events.hpp"
 #include "node/main/builder.hpp"
 #include "node/sync_job.hpp"
@@ -27,9 +29,19 @@ namespace fc::node {
     }
 
     std::string prometheus() const {
-      std::stringstream ss;
-      auto metric{[&](auto &&name, auto &&value) {
-        ss << name << ' ' << value << std::endl;
+      auto families{prometheusRegistry().Collect()};
+      using ::prometheus::MetricType;
+      auto manual{[&](MetricType type,
+                      std::string name,
+                      std::string help) -> ::prometheus::ClientMetric & {
+        auto &family{families.emplace_back()};
+        family.name = std::move(name);
+        family.help = std::move(help);
+        family.type = type;
+        return family.metric.emplace_back();
+      }};
+      auto metric{[&](std::string name, double value) {
+        manual(MetricType::Untyped, std::move(name), "").untyped.value = value;
       }};
 
       metric("uptime",
@@ -52,8 +64,9 @@ namespace fc::node {
       metric("height_attached",
              std::max(height_head, o.sync_job->metricAttachedHeight()));
       metric("height_known", std::max(height_head, height_known.load()));
-      metric("height_expected",
-             o.chain_epoch_clock->epochAtTime(o.utc_clock->nowUTC()).value());
+      const auto height_expected{
+          o.chain_epoch_clock->epochAtTime(o.utc_clock->nowUTC()).value()};
+      metric("height_expected", height_expected);
 
       auto car{[&](auto _size, auto _count, auto _tmp, auto &ipld) {
         uint64_t size{};
@@ -85,7 +98,20 @@ namespace fc::node {
       }
       instances_lock.unlock();
 
-      return ss.str();
+      manual(MetricType::Gauge,
+             "lotus_chain_node_height",
+             "Current Height of the node")
+          .gauge.value = height_head;
+      manual(MetricType::Gauge,
+             "lotus_chain_node_height_expected",
+             "Expected Height of the node")
+          .gauge.value = height_expected;
+      manual(MetricType::Gauge,
+             "lotus_chain_node_worker_height",
+             "Height of workers on the node")
+          .gauge.value = height_head;
+
+      return ::prometheus::TextSerializer{}.Serialize(families);
     }
 
     const NodeObjects &o;

@@ -13,10 +13,10 @@
 #include "common/bitsutil.hpp"
 #include "const.hpp"
 #include "miner/storage_fsm/impl/checks.hpp"
-#include "miner/storage_fsm/impl/deal_info_manager_impl.hpp"
 #include "miner/storage_fsm/impl/sector_stat_impl.hpp"
 #include "sector_storage/zerocomm/zerocomm.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
+#include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 #include "vm/actor/builtin/types/miner/policy.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
@@ -40,12 +40,15 @@ namespace fc::mining {
   using types::kDealSectorPriority;
   using types::Piece;
   using vm::actor::MethodParams;
+  using vm::actor::builtin::types::market::deal_info_manager::DealInfoManager;
+  using vm::actor::builtin::types::market::deal_info_manager::
+      DealInfoManagerImpl;
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::types::miner::kMinSectorExpiration;
   using vm::actor::builtin::v0::miner::ProveCommitSector;
 
   std::chrono::milliseconds getWaitingTime(uint64_t errors_count = 0) {
-    // TODO: Exponential backoff when we see consecutive failures
+    // TODO(ortyomka): Exponential backoff when we see consecutive failures
 
     return std::chrono::milliseconds(60000);  // 1 minute
   }
@@ -154,7 +157,7 @@ namespace fc::mining {
         }
       }
 
-      // TODO: Grab on-chain sector set and diff with sectors_
+      // TODO(ortyomka): Grab on-chain sector set and diff with sectors_
     }
     return sealing;
   }
@@ -183,7 +186,7 @@ namespace fc::mining {
         codec::cbor::encode(*info).value()));
   }
 
-  outcome::result<PieceAttributes> SealingImpl::addPieceToAnySector(
+  outcome::result<PieceLocation> SealingImpl::addPieceToAnySector(
       UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) {
     if (not deal.publish_cid.has_value()) {
       return SealingError::kNotPublishedDeal;
@@ -208,8 +211,8 @@ namespace fc::mining {
     }
 
     bool is_start_packing = false;
-    PieceAttributes piece;
-    piece.size = size;
+    PieceLocation piece;
+    piece.size = size.padded();
 
     {
       std::unique_lock lock(unsealed_mutex_);
@@ -232,8 +235,7 @@ namespace fc::mining {
       is_start_packing =
           unsealed_sectors_[sector_and_padding.sector].deals_number
               >= getDealPerSectorLimit(sector_size)
-          || (SectorSize)piece.offset + (SectorSize)piece.size.padded()
-                 == sector_size;
+          || (SectorSize)piece.offset + (SectorSize)piece.size == sector_size;
     }
 
     if (is_start_packing) {
@@ -308,7 +310,7 @@ namespace fc::mining {
       return SealingError::kUpgradeWithDeal;
     }
 
-    // TODO: more checks to match actor constraints
+    // TODO(ortyomka): more checks to match actor constraints
     to_upgrade_.insert(id);
 
     return outcome::success();
@@ -469,9 +471,9 @@ namespace fc::mining {
 
     if (config_.max_wait_deals_sectors > 0
         && unsealed_sectors_.size() >= config_.max_wait_deals_sectors) {
-      // TODO: check get one before max or several every time
+      // TODO(ortyomka): check get one before max or several every time
       for (size_t i = 0; i < 10; i++) {
-        if (i) {
+        if (i != 0) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         uint64_t best_id = 0;
@@ -529,7 +531,7 @@ namespace fc::mining {
             }
           },
           config_.wait_deals_delay);
-      // TODO: maybe we should save it and decline if it starts early
+      // TODO(ortyomka): maybe we should save it and decline if it starts early
     }
 
     return sector_id;
@@ -1202,7 +1204,7 @@ namespace fc::mining {
         },
         [=](const Tipset &token) -> outcome::result<void> {
           logger_->warn("revert in interactive commit sector step");
-          // TODO: cancel running and restart
+          // TODO(ortyomka): cancel running and restart
           return outcome::success();
         },
         kInteractivePoRepConfidence,
@@ -1223,7 +1225,7 @@ namespace fc::mining {
           "sector {} entered committing state with a commit message cid",
           info->sector_number);
 
-      // TODO: maybe async call, it's long
+      // TODO(ortyomka): maybe async call, it's long
       OUTCOME_TRY(message,
                   api_->StateSearchMsg(
                       {}, *(info->message), api::kLookbackNoLimit, true));
@@ -1351,7 +1353,7 @@ namespace fc::mining {
       collateral = 0;
     }
 
-    // TODO: check seed / ticket are up to date
+    // TODO(ortyomka): check seed / ticket are up to date
     const auto maybe_signed_msg = api_->MpoolPushMessage(
         vm::message::UnsignedMessage(
             miner_address_,
@@ -1451,7 +1453,7 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handleFinalizeSector(
       const std::shared_ptr<SectorInfo> &info) {
-    // TODO: Maybe wait for some finality
+    // TODO(ortyomka): Maybe wait for some finality
 
     const auto maybe_error = sealer_->finalizeSectorSync(
         minerSector(info->sector_type, info->sector_number),
@@ -1469,14 +1471,14 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handleProvingSector(
       const std::shared_ptr<SectorInfo> &info) {
-    // TODO: track sector health / expiration
+    // TODO(ortyomka): track sector health / expiration
 
     logger_->info("Proving sector {}", info->sector_number);
 
-    // TODO: release unsealed
+    // TODO(ortyomka): release unsealed
 
-    // TODO: Watch termination
-    // TODO: Auto-extend if set
+    // TODO(ortyomka): Watch termination
+    // TODO(ortyomka): Auto-extend if set
 
     return outcome::success();
   }
@@ -1595,8 +1597,8 @@ namespace fc::mining {
             info->sector_number,
             maybe_info_opt.value()->info.sealed_cid,
             info->comm_r.get());
-        return outcome::success();  // TODO: remove when the actor allows
-                                    // re-precommit
+        return outcome::success();  // TODO(ortyomka): remove when the actor
+                                    // allows re-precommit
       }
 
       WAIT([=] {
@@ -1619,7 +1621,7 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handleComputeProofFail(
       const std::shared_ptr<SectorInfo> &info) {
-    // TODO: Check sector files
+    // TODO(ortyomka): Check sector files
 
     const auto time = getWaitingTime(info->invalid_proofs);
 
@@ -1692,7 +1694,7 @@ namespace fc::mining {
     }
 
     if (info->message.has_value()) {
-      // TODO: maybe async call, it's long
+      // TODO(ortyomka): maybe async call, it's long
       auto maybe_message_wait = api_->StateSearchMsg(
           {}, info->message.value(), api::kLookbackNoLimit, true);
 
@@ -1774,7 +1776,7 @@ namespace fc::mining {
       return maybe_error;
     }
 
-    // TODO: Check sector files
+    // TODO(ortyomka): Check sector files
 
     const auto time = getWaitingTime(info->invalid_proofs);
     scheduler_->schedule(
@@ -1788,7 +1790,7 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handleFinalizeFail(
       const std::shared_ptr<SectorInfo> &info) {
-    // TODO: Check sector files
+    // TODO(ortyomka): Check sector files
 
     WAIT([=] {
       OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorRetryFinalize, {}));
@@ -1927,9 +1929,10 @@ namespace fc::mining {
 
       static std::shared_ptr<DealInfoManager> deal_info =
           std::make_shared<DealInfoManagerImpl>(api_);
+      // deal proposal must present if deal is on chain
+      assert(piece.deal_info->deal_proposal.has_value());
       const auto maybe_result =
-          deal_info->getCurrentDealInfo(head->key,
-                                        piece.deal_info->deal_proposal,
+          deal_info->getCurrentDealInfo(piece.deal_info->deal_proposal.value(),
                                         piece.deal_info->publish_cid.value());
 
       if (maybe_result.has_error()) {
@@ -1969,7 +1972,7 @@ namespace fc::mining {
       return SealingError::kNoFaultMessage;
     }
 
-    // TODO: maybe async call, it's long
+    // TODO(ortyomka): maybe async call, it's long
     OUTCOME_TRY(message,
                 api_->StateWaitMsg(info->fault_report_message.get(),
                                    kMessageConfidence,
@@ -2083,7 +2086,7 @@ namespace fc::mining {
       return boost::none;
     }
 
-    // TODO: checks to match actor constraints
+    // TODO(ortyomka): checks to match actor constraints
     // Note: maybe here should be loop
 
     const auto result = *(to_upgrade_.begin());

@@ -27,7 +27,9 @@ target_link_libraries(node_builder
     interpreter
     keystore
     mpool
-    payment_channel_manager
+    node_version
+    paych_maker
+    paych_vouchers
     p2p::p2p_basic_host
     p2p::p2p_default_network
     p2p::p2p_peer_repository
@@ -46,13 +48,14 @@ target_link_libraries(node_builder
     sync
     weight_calculator
     miner_types
-    store
     )
 
-add_executable(node
+add_executable(fuhon-node
     main.cpp
     )
-
-target_link_libraries(node
+target_link_libraries(fuhon-node
     node_builder
+    )
+set_target_properties(fuhon-node PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )

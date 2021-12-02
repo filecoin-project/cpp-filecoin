@@ -14,6 +14,7 @@
 #include "codec/json/json.hpp"
 #include "core/test_vectors/replaying_randomness.hpp"
 #include "primitives/tipset/load.hpp"
+#include "proofs/proof_param_provider.hpp"
 #include "storage/car/car.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/read_file.hpp"
@@ -54,8 +55,11 @@ using fc::primitives::ChainEpoch;
 using fc::primitives::EpochDuration;
 using fc::primitives::address::Address;
 using fc::primitives::block::BlockHeader;
+using fc::primitives::sector::getSectorSize;
+using fc::primitives::sector::RegisteredSealProof;
 using fc::primitives::tipset::put;
 using fc::primitives::tipset::Tipset;
+using fc::proofs::ProofParamProvider;
 using fc::vm::actor::Invoker;
 using fc::vm::actor::InvokerImpl;
 using fc::vm::message::UnsignedMessage;
@@ -261,7 +265,15 @@ auto search() {
   return vectors;
 }
 
-struct TestVectors : testing::TestWithParam<MessageVector> {};
+struct TestVectors : testing::TestWithParam<MessageVector> {
+  static void SetUpTestCase() {
+    // Download proofs needed for tests
+    OUTCOME_EXCEPT(params,
+                   ProofParamProvider::readJson(
+                       "/var/tmp/filecoin-proof-parameters/parameters.json"));
+    OUTCOME_EXCEPT(ProofParamProvider::getParams(params, 0));
+  }
+};
 
 void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
   using namespace fc;
@@ -281,7 +293,8 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
         parent.parent_state_root = mv.state_before;
     put(ipld, nullptr, parent);
     OUTCOME_EXCEPT(parents, Tipset::create({parent}));
-    auto i{0}, j{0};
+    auto i{0};
+    auto j{0};
     for (const auto &ts : mv.tipsets) {
       fc::primitives::tipset::TipsetCreator cr;
       fc::primitives::block::Ticket ticket{{0}};
@@ -388,7 +401,7 @@ TEST_P(TestVectors, Vector) {
   }
 }
 
-INSTANTIATE_TEST_CASE_P(Vectors,
-                        TestVectors,
-                        testing::ValuesIn(search()),
-                        [](auto &&p) { return testName(p.param.path); });
+INSTANTIATE_TEST_SUITE_P(Vectors,
+                         TestVectors,
+                         testing::ValuesIn(search()),
+                         [](auto &&p) { return testName(p.param.path); });

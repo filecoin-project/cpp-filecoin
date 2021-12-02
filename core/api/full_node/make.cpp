@@ -19,6 +19,7 @@
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "drand/beaconizer.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
+#include "node/node_version.hpp"
 #include "node/pubsub_gate.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
@@ -43,6 +44,7 @@
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/state/resolve_key.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 #define MOVE(x)  \
@@ -64,9 +66,11 @@ namespace fc::api {
   using libp2p::peer::PeerId;
   using markets::retrieval::DealProposalParams;
   using markets::retrieval::QueryResponse;
+  using node::kNodeVersion;
   using primitives::kChainEpochUndefined;
   using primitives::block::MsgMeta;
   using primitives::sector::getPreferredSealProofTypeFromWindowPoStType;
+  using primitives::tipset::HeadChangeType;
   using primitives::tipset::Tipset;
   using storage::ipld::kAllSelector;
   using vm::isVMExitCode;
@@ -83,16 +87,13 @@ namespace fc::api {
   using vm::actor::builtin::states::RewardActorStatePtr;
   using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
   using vm::actor::builtin::types::market::DealState;
+  using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
   using vm::interpreter::InterpreterCache;
-  using vm::message::kDefaultGasLimit;
-  using vm::message::kDefaultGasPrice;
   using vm::runtime::Env;
   using vm::state::StateTreeImpl;
   using vm::toolchain::Toolchain;
   using vm::version::getNetworkVersion;
-
-  const static Logger logger = common::createLogger("Full node API");
 
   // TODO (turuslan): reuse for block validation
   inline bool minerHasMinPower(const StoragePower &claim_qa,
@@ -157,11 +158,7 @@ namespace fc::api {
     }
 
     outcome::result<Address> accountKey(const Address &id) {
-      OUTCOME_TRY(actor, state_tree.get(id));
-      OUTCOME_TRY(
-          state,
-          getCbor<AccountActorStatePtr>(state_tree.getStore(), actor.head));
-      return state->address;
+      return resolveKey(state_tree, id);
     }
 
     // TODO (a.chernyshov) make explicit
@@ -300,6 +297,27 @@ namespace fc::api {
       OUTCOME_TRY(cbor, ipld->get(cid));
       return UnsignedMessage::decode(cbor);
     };
+    api->ChainGetPath = [=](const TipsetKey &from_key, const TipsetKey &to_key)
+        -> outcome::result<std::vector<HeadChange>> {
+      std::vector<HeadChange> revert;
+      std::vector<HeadChange> apply;
+      OUTCOME_TRY(from, ts_load->load(from_key));
+      OUTCOME_TRY(to, ts_load->load(to_key));
+      while (from->key != to->key) {
+        if (revert.size() > kChainFinality || apply.size() > kChainFinality) {
+          return ERROR_TEXT("ChainGetPath finality limit");
+        }
+        if (from->height() > to->height()) {
+          revert.emplace_back(HeadChange{HeadChangeType::REVERT, from});
+          OUTCOME_TRYA(from, ts_load->load(from->getParents()));
+        } else {
+          apply.emplace_back(HeadChange{HeadChangeType::APPLY, to});
+          OUTCOME_TRYA(to, ts_load->load(to->getParents()));
+        }
+      }
+      revert.insert(revert.end(), apply.rbegin(), apply.rend());
+      return std::move(revert);
+    };
     api->ChainGetParentMessages =
         [=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
       std::vector<CidMessage> messages;
@@ -335,6 +353,7 @@ namespace fc::api {
             auto &entropy) -> outcome::result<Randomness> {
       std::unique_lock ts_lock{*env_context.ts_branches_mutex};
       OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+      ts_lock.unlock();
       return env_context.randomness->getRandomnessFromBeacon(
           ts_branch, tag, epoch, entropy);
     };
@@ -345,6 +364,7 @@ namespace fc::api {
             auto &entropy) -> outcome::result<Randomness> {
       std::unique_lock ts_lock{*env_context.ts_branches_mutex};
       OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
+      ts_lock.unlock();
       return env_context.randomness->getRandomnessFromTickets(
           ts_branch, tag, epoch, entropy);
     };
@@ -438,8 +458,8 @@ namespace fc::api {
             std::vector<QueryOffer> result;
             for (const auto &[peer, maybe_response] : all_calls) {
               if (maybe_response.has_error()) {
-                logger->error("Error when query peer {}",
-                              maybe_response.error().message());
+                kNodeApiLogger->error("Error when query peer {}",
+                                      maybe_response.error().message());
               } else {
                 result.emplace_back(maybe_response.value());
               }
@@ -488,11 +508,11 @@ namespace fc::api {
           order.miner,
           [=](outcome::result<void> res) {
             if (res.has_error()) {
-              logger->error("Error in ClientRetrieve {}",
-                            res.error().message());
+              kNodeApiLogger->error("Error in ClientRetrieve {}",
+                                    res.error().message());
               return cb(res.error());
             }
-            logger->info("retrieval deal done");
+            kNodeApiLogger->info("retrieval deal done");
             if (file_ref.is_car) {
               OUTCOME_CB1(storage::car::makeSelectiveCar(
                   *markets_ipld, {{order.root, {}}}, file_ref.path));
@@ -519,9 +539,7 @@ namespace fc::api {
         -> outcome::result<UnsignedMessage> {
       if (msg.from.isId()) {
         OUTCOME_TRY(context, tipsetContext(tsk));
-        OUTCOME_TRYA(msg.from,
-                     vm::runtime::resolveKey(
-                         context.state_tree, context, msg.from, false));
+        OUTCOME_TRYA(msg.from, context.accountKey(msg.from));
       }
       OUTCOME_TRY(mpool->estimate(
           msg, spec ? spec->max_fee : storage::mpool::kDefaultMaxFee));
@@ -657,9 +675,7 @@ namespace fc::api {
                                 auto &spec) -> outcome::result<SignedMessage> {
       OUTCOME_TRY(context, tipsetContext({}));
       if (message.from.isId()) {
-        OUTCOME_TRYA(message.from,
-                     vm::runtime::resolveKey(
-                         context.state_tree, ipld, message.from, false));
+        OUTCOME_TRYA(message.from, context.accountKey(message.from));
       }
       OUTCOME_TRY(mpool->estimate(
           message, spec ? spec->max_fee : storage::mpool::kDefaultMaxFee));
@@ -875,13 +891,13 @@ namespace fc::api {
         [=](auto deal_id, auto &tipset_key) -> outcome::result<StorageDeal> {
       OUTCOME_TRY(context, tipsetContext(tipset_key));
       OUTCOME_TRY(state, context.marketState());
-      OUTCOME_TRY(deal, state->proposals.get(deal_id));
+      OUTCOME_TRY(proposal, state->proposals.get(deal_id));
       OUTCOME_TRY(deal_state, state->states.tryGet(deal_id));
       if (!deal_state) {
         deal_state = DealState{
             kChainEpochUndefined, kChainEpochUndefined, kChainEpochUndefined};
       }
-      return StorageDeal{deal, *deal_state};
+      return StorageDeal{proposal, *deal_state};
     };
     api->StateMinerActiveSectors =
         [=](auto &miner,
@@ -1203,7 +1219,7 @@ namespace fc::api {
     };
     api->Version = []() {
       return VersionResult{
-          "fuhon", makeApiVersion(2, 1, 0), kEpochDurationSeconds};
+          kNodeVersion, makeApiVersion(2, 1, 0), kEpochDurationSeconds};
     };
     api->WalletBalance = [=](auto &address) -> outcome::result<TokenAmount> {
       OUTCOME_TRY(context, tipsetContext({}));
@@ -1272,10 +1288,6 @@ namespace fc::api {
       }
       return key_store->verify(address, data, signature);
     };
-    /**
-     * Payment channel methods are initialized with
-     * PaymentChannelManager::makeApi(Api &api)
-     */
     return api;
-  }  // namespace fc::api
+  }
 }  // namespace fc::api

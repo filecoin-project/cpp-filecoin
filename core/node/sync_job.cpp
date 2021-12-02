@@ -25,9 +25,9 @@ namespace fc::sync {
     }
   }  // namespace
 
-  outcome::result<TipsetCPtr> stepUp(TsLoadPtr ts_load,
-                                     TsBranchPtr branch,
-                                     TipsetCPtr ts) {
+  outcome::result<TipsetCPtr> stepUp(const TsLoadPtr &ts_load,
+                                     const TsBranchPtr &branch,
+                                     const TipsetCPtr &ts) {
     if (branch->chain.rbegin()->second.key != ts->key) {
       OUTCOME_TRY(it, find(branch, ts->height() + 1, false));
       if (!it.first) {
@@ -68,6 +68,7 @@ namespace fc::sync {
     attached_.insert(ts_main_);
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   void SyncJob::start(std::shared_ptr<events::Events> events) {
     if (events_) {
       log()->error("already started");
@@ -128,7 +129,7 @@ namespace fc::sync {
   }
 
   TipsetCPtr SyncJob::getLocal(const TipsetCPtr &ts) {
-    for (auto &block : ts->blks) {
+    for (const auto &block : ts->blks) {
       if (!ipld_->contains(block.messages).value()) {
         return nullptr;
       }
@@ -145,8 +146,8 @@ namespace fc::sync {
 
   void SyncJob::compactBranches() {
     std::pair<TsBranchPtr, size_t> longest{};
-    for (auto &head : *ts_branches_) {
-      if (!attached_.count(head)) {
+    for (const auto &head : *ts_branches_) {
+      if (attached_.count(head) == 0) {
         size_t length{};
         for (auto branch{head}; branch; branch = branch->parent) {
           length += branch->chain.size();
@@ -200,7 +201,7 @@ namespace fc::sync {
     while (true) {
       std::vector<TsBranchPtr> children;
       auto branch{insert(*ts_branches_, ts, &children).first};
-      if (attached_.count(branch)) {
+      if (attached_.count(branch) != 0) {
         auto last{attached_heaviest_.first};
         for (auto &child : children) {
           attach(child);
@@ -252,7 +253,7 @@ namespace fc::sync {
     }
   }
 
-  void SyncJob::updateTarget(TsBranchPtr last) {
+  void SyncJob::updateTarget(const TsBranchPtr &last) {
     auto branch{attached_heaviest_.first};
     if (branch == last) {
       return;
@@ -279,8 +280,9 @@ namespace fc::sync {
     }
   }
 
-  void SyncJob::onInterpret(TipsetCPtr ts, const InterpreterResult &result) {
-    auto &weight{result.weight};
+  void SyncJob::onInterpret(const TipsetCPtr &ts,
+                            const InterpreterResult &result) {
+    const auto &weight{result.weight};
     if (weight > chain_store_->getHeaviestWeight()) {
       auto branch{find(*ts_branches_, ts)};
       if (!branch.first) {
@@ -289,10 +291,10 @@ namespace fc::sync {
         return;
       }
       if (const auto _update{update(ts_main_, branch)}) {
-        auto &[path, removed]{_update.value()};
-        for (auto &branch : removed) {
-          ts_branches_->erase(branch);
-          attached_.erase(branch);
+        const auto &[path, removed]{_update.value()};
+        for (const auto &removed_branch : removed) {
+          ts_branches_->erase(removed_branch);
+          attached_.erase(removed_branch);
         }
         chain_store_->update(path, weight);
       } else {
@@ -301,7 +303,7 @@ namespace fc::sync {
     }
   }
 
-  bool SyncJob::checkParent(TipsetCPtr ts) {
+  bool SyncJob::checkParent(const TipsetCPtr &ts) {
     if (ts->height() != 0) {
       if (auto _res{interpreter_cache_->tryGet(ts->getParents())}) {
         if (*_res) {
@@ -346,7 +348,7 @@ namespace fc::sync {
     auto ts{interpret_ts_};
     auto branch{find(*ts_branches_, ts).first};
     if (!checkParent(ts)) {
-      // TODO: detach and ban branches
+      // TODO(turuslan): detach and ban branches
       interpret_ts_ = nullptr;
       return;
     }
@@ -374,7 +376,7 @@ namespace fc::sync {
               interpret_ts_ = nullptr;
             }
           } else {
-            // TODO: detach and ban branches
+            // TODO(turuslan): detach and ban branches
             interpret_ts_ = nullptr;
           }
         }

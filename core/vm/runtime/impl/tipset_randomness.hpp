@@ -9,9 +9,13 @@
 #include "vm/runtime/runtime_randomness.hpp"
 
 namespace fc::vm::runtime {
+  using drand::DrandSchedule;
+
   class TipsetRandomness : public RuntimeRandomness {
    public:
-    TipsetRandomness(TsLoadPtr ts_load, SharedMutexPtr ts_branches_mutex);
+    TipsetRandomness(TsLoadPtr ts_load,
+                     SharedMutexPtr ts_branches_mutex,
+                     std::shared_ptr<DrandSchedule> drand_schedule);
 
     outcome::result<Randomness> getRandomnessFromTickets(
         const TsBranchPtr &ts_branch,
@@ -28,6 +32,7 @@ namespace fc::vm::runtime {
    private:
     TsLoadPtr ts_load;
     SharedMutexPtr ts_branches_mutex;
+    std::shared_ptr<DrandSchedule> drand_schedule;
   };
 
 }  // namespace fc::vm::runtime

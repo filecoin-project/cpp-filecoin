@@ -15,6 +15,7 @@
 #include "common/error_text.hpp"
 #include "proofs/proofs_error.hpp"
 #include "sector_storage/stores/store_error.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/api.hpp"
 #include "testutil/mocks/proofs/proof_engine_mock.hpp"
@@ -939,7 +940,7 @@ namespace fc::sector_storage {
                               randomness,
                               unsealed_cid,
                               primitives::piece::paddedIndex(offset),
-                              uint64_t(piece_size.padded())))
+                              uint64_t(piece_size)))
         .WillOnce(
             testing::Invoke([&](RegisteredSealProof proof_type,
                                 const std::string &cache_dir_path,
@@ -1129,7 +1130,7 @@ namespace fc::sector_storage {
                               randomness,
                               unsealed_cid,
                               primitives::piece::paddedIndex(offset),
-                              uint64_t(piece_size.padded())))
+                              uint64_t(piece_size)))
         .WillOnce(
             testing::Invoke([&](RegisteredSealProof proof_type,
                                 const std::string &cache_dir_path,

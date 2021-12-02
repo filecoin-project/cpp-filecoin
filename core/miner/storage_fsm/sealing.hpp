@@ -17,7 +17,7 @@ namespace fc::mining {
   using primitives::piece::UnpaddedPieceSize;
   using proofs::PieceData;
   using types::DealInfo;
-  using types::PieceAttributes;
+  using types::PieceLocation;
   using types::SectorInfo;
 
   struct Config {
@@ -37,7 +37,7 @@ namespace fc::mining {
    public:
     virtual ~Sealing() = default;
 
-    virtual outcome::result<PieceAttributes> addPieceToAnySector(
+    virtual outcome::result<PieceLocation> addPieceToAnySector(
         UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) = 0;
 
     virtual outcome::result<void> remove(SectorNumber sector_id) = 0;

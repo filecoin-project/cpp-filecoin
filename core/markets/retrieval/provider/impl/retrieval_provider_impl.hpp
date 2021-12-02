@@ -16,7 +16,7 @@
 #include "miner/miner.hpp"
 #include "storage/ipld/memory_indexed_car.hpp"
 #include "storage/ipld/traverser.hpp"
-#include "storage/leveldb/prefix.hpp"
+#include "storage/map_prefix/prefix.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::retrieval::provider {
@@ -71,11 +71,12 @@ namespace fc::markets::retrieval::provider {
     void onProposal(const PeerDtId &pdtid,
                     const PeerGsId &pgsid,
                     const DealProposal &proposal);
-    void onPayment(const std::shared_ptr<DealState>& deal, const DealPayment &payment);
-    void doUnseal(const std::shared_ptr<DealState>& deal);
-    void doBlocks(const std::shared_ptr<DealState>& deal);
-    void doComplete(const std::shared_ptr<DealState>& deal);
-    bool hasOwed(const std::shared_ptr<DealState>& deal);
+    void onPayment(const std::shared_ptr<DealState> &deal,
+                   const DealPayment &payment);
+    void doUnseal(const std::shared_ptr<DealState> &deal);
+    void doBlocks(const std::shared_ptr<DealState> &deal);
+    void doComplete(const std::shared_ptr<DealState> &deal);
+    bool hasOwed(const std::shared_ptr<DealState> &deal);
     void doFail(const std::shared_ptr<DealState> &deal, std::string error);
 
     void start() override;

@@ -39,9 +39,10 @@ namespace fc::markets::storage::provider {
    */
   class StoredAsk {
    public:
-    StoredAsk(std::shared_ptr<Datastore> datastore,
-              std::shared_ptr<FullNodeApi> api,
-              Address actor_address);
+    static outcome::result<std::shared_ptr<StoredAsk>> newStoredAsk(
+        std::shared_ptr<Datastore> datastore,
+        std::shared_ptr<FullNodeApi> api,
+        Address actor_address);
 
     auto addAsk(StorageAsk ask, ChainEpoch duration) -> outcome::result<void>;
 
@@ -51,10 +52,17 @@ namespace fc::markets::storage::provider {
     auto getAsk(const Address &address) -> outcome::result<SignedStorageAsk>;
 
    private:
+    StoredAsk(std::shared_ptr<Datastore> datastore,
+              std::shared_ptr<FullNodeApi> api,
+              Address actor_address);
+
     /**
      * Loads last storage ask or creates default one
      */
     auto loadSignedAsk() -> outcome::result<SignedStorageAsk>;
+
+    auto tryLoadSignedAsk()
+        -> outcome::result<boost::optional<SignedStorageAsk>>;
 
     /**
      * Saves last storage ask to datastore

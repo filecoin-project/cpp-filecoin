@@ -18,6 +18,7 @@
 #include "sector_storage/stores/impl/local_store.hpp"
 #include "sector_storage/stores/index.hpp"
 #include "sector_storage/stores/store_error.hpp"
+#include "testutil/default_print.hpp"
 #include "testutil/mocks/sector_storage/stores/local_storage_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
 #include "testutil/outcome.hpp"

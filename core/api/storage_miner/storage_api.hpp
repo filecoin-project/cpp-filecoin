@@ -7,7 +7,9 @@
 
 #include "api/common_api.hpp"
 #include "api/full_node/node_api.hpp"
+#include "api/network/network_api.hpp"
 #include "api/version.hpp"
+#include "common/logger.hpp"
 #include "markets/retrieval/provider/retrieval_provider.hpp"
 #include "markets/retrieval/types.hpp"
 #include "markets/storage/ask_protocol.hpp"
@@ -23,6 +25,7 @@ namespace fc::api {
   using boost::asio::io_context;
   using markets::retrieval::RetrievalAsk;
   using markets::retrieval::provider::RetrievalProvider;
+  using markets::storage::MinerDeal;
   using markets::storage::SignedStorageAsk;
   using markets::storage::provider::StorageProvider;
   using markets::storage::provider::StoredAsk;
@@ -30,6 +33,7 @@ namespace fc::api {
   using mining::types::DealInfo;
   using mining::types::DealSchedule;
   using mining::types::Piece;
+  using mining::types::PieceLocation;
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::DealWeight;
@@ -55,12 +59,8 @@ namespace fc::api {
   using sector_storage::stores::SectorIndex;
   using StorageInfo_ = sector_storage::stores::StorageInfo;
 
-  struct PieceLocation {
-    SectorNumber sector_number;
-    PaddedPieceSize offset;
-    PaddedPieceSize length;
-  };
-  CBOR_TUPLE(PieceLocation, sector_number, offset, length)
+  const static common::Logger kStorageApiLogger =
+      common::createLogger("Storage API");
 
   struct ApiSectorInfo {
     mining::SealingState state = mining::SealingState::kStateUnknown;
@@ -113,17 +113,12 @@ namespace fc::api {
              initial_pledge,
              on_time)
 
-  inline bool operator==(const PieceLocation &lhs, const PieceLocation &rhs) {
-    return lhs.sector_number == rhs.sector_number && lhs.offset == rhs.offset
-           && lhs.length == rhs.length;
-  }
-
   constexpr ApiVersion kMinerApiVersion = makeApiVersion(1, 0, 0);
 
   /**
    * Storage miner node low-level interface API.
    */
-  struct StorageMinerApi : public CommonApi {
+  struct StorageMinerApi : public CommonApi, public NetworkApi {
     API_METHOD(ActorAddress, jwt::kReadPermission, Address)
 
     API_METHOD(ActorSectorSize,
@@ -159,6 +154,10 @@ namespace fc::api {
                jwt::kAdminPermission,
                void,
                const RetrievalAsk &)
+
+    API_METHOD(MarketListIncompleteDeals,
+               jwt::kReadPermission,
+               std::vector<MinerDeal>);
 
     API_METHOD(SectorsList, jwt::kReadPermission, std::vector<SectorNumber>)
 
@@ -284,6 +283,7 @@ namespace fc::api {
   template <typename A, typename F>
   void visit(const StorageMinerApi &, A &&a, const F &f) {
     visitCommon(a, f);
+    visitNet(a, f);
     f(a.ActorAddress);
     f(a.ActorSectorSize);
     f(a.PledgeSector);
@@ -292,6 +292,7 @@ namespace fc::api {
     f(a.MarketGetRetrievalAsk);
     f(a.MarketSetAsk);
     f(a.MarketSetRetrievalAsk);
+    f(a.MarketListIncompleteDeals);
     f(a.SectorsList);
     f(a.SectorsStatus);
     f(a.StorageAttach);

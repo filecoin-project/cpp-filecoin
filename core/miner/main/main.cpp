@@ -9,8 +9,10 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <libp2p/injector/host_injector.hpp>
+#include <libp2p/peer/peer_info.hpp>
 
 #include "api/full_node/node_api.hpp"
+#include "api/network/setup_net.hpp"
 #include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
@@ -22,7 +24,9 @@
 #include "common/api_secret.hpp"
 #include "common/file.hpp"
 #include "common/io_thread.hpp"
+#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
+#include "common/local_ip.hpp"
 #include "common/outcome.hpp"
 #include "common/peer_key.hpp"
 #include "config/profile_config.hpp"
@@ -33,6 +37,7 @@
 #include "markets/storage/provider/impl/provider_impl.hpp"
 #include "miner/impl/miner_impl.hpp"
 #include "miner/main/type.hpp"
+#include "miner/miner_version.hpp"
 #include "miner/mining.hpp"
 #include "miner/windowpost.hpp"
 #include "primitives/address/config.hpp"
@@ -49,8 +54,8 @@
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/leveldb/leveldb.hpp"
-#include "storage/leveldb/prefix.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
+#include "vm/actor/builtin/types/market/deal_info_manager/impl/deal_info_manager_impl.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor.hpp"
 
@@ -61,12 +66,16 @@ namespace fc {
   using libp2p::basic::Scheduler;
   using libp2p::multi::Multiaddress;
   using libp2p::peer::PeerId;
+  using libp2p::peer::PeerInfo;
   using markets::storage::chain_events::ChainEventsImpl;
+  using miner::kMinerVersion;
   using primitives::StoredCounter;
   using primitives::address::Address;
   using primitives::jwt::kAllPermission;
   using primitives::sector::RegisteredSealProof;
   using storage::BufferMap;
+  using vm::actor::builtin::types::market::deal_info_manager::
+      DealInfoManagerImpl;
   namespace uuids = boost::uuids;
 
   static const Bytes kActor{copy(cbytes("actor"))};
@@ -135,6 +144,8 @@ namespace fc {
 
     po::options_description desc("Fuhon miner options");
     auto option{desc.add_options()};
+    option("help,h", "print usage message");
+    option("version,v", "show miner version information");
     option("miner-repo", po::value(&config.repo_path)->required());
     option("repo", po::value(&raw.node_repo));
     option("miner-api", po::value(&config.api_port)->default_value(2345));
@@ -154,6 +165,14 @@ namespace fc {
 
     po::variables_map vm;
     po::store(parse_command_line(argc, argv, desc), vm);
+    if (vm.count("help") != 0) {
+      std::cerr << desc << std::endl;
+      exit(EXIT_SUCCESS);
+    }
+    if (vm.count("version") != 0) {
+      std::cerr << kMinerVersion << std::endl;
+      exit(EXIT_SUCCESS);
+    }
     po::notify(vm);
     boost::filesystem::create_directories(config.repo_path);
     std::ifstream config_file{config.join("config.cfg")};
@@ -317,6 +336,8 @@ namespace fc {
   }
 
   outcome::result<void> main(Config &config) {
+    log()->debug("Starting ", miner::kMinerVersion);
+
     auto clock{std::make_shared<clock::UTCClockImpl>()};
 
     OUTCOME_TRY(leveldb, storage::LevelDB::create(config.join("leveldb")));
@@ -448,8 +469,9 @@ namespace fc {
     auto gs_sub{graphsync->subscribe([&](auto &, auto &data) {
       OUTCOME_EXCEPT(markets_ipld->set(data.cid, BytesIn{data.content}));
     })};
-    auto stored_ask{std::make_shared<markets::storage::provider::StoredAsk>(
-        prefixed("stored_ask/"), napi, *config.actor)};
+    OUTCOME_EXCEPT(stored_ask,
+                   markets::storage::provider::StoredAsk::newStoredAsk(
+                       prefixed("stored_ask/"), napi, *config.actor));
     auto piece_storage{std::make_shared<storage::piece::PieceStorageImpl>(
         prefixed("storage_provider/"))};
     auto sector_blocks{std::make_shared<sectorblocks::SectorBlocksImpl>(
@@ -473,7 +495,8 @@ namespace fc {
             chain_events,
             *config.actor,
             piece_io,
-            filestore)};
+            filestore,
+            std::make_shared<DealInfoManagerImpl>(napi))};
     OUTCOME_TRY(storage_provider->init());
     auto retrieval_provider{
         std::make_shared<markets::retrieval::provider::RetrievalProviderImpl>(
@@ -497,7 +520,11 @@ namespace fc {
                                     storage_provider,
                                     retrieval_provider);
 
-    api::fillAuthApi(mapi, api_secret, log());
+    api::fillAuthApi(mapi, api_secret, api::kStorageApiLogger);
+    const PeerInfo api_peer_info{
+        host->getPeerInfo().id,
+        nonZeroAddrs(host->getAddresses(), &common::localIp())};
+    api::fillNetApi(mapi, api_peer_info, host, api::kStorageApiLogger);
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
     mrpc.emplace(

@@ -18,8 +18,8 @@ set(
 
 include("cmake/Hunter/init.cmake")
 HunterGate(
-    URL "https://github.com/soramitsu/soramitsu-hunter/archive/tags/v0.23.257-soramitsu13.tar.gz"
-    SHA1 "8c88d8bac2dee771926b84a6e28642a267f88ea8"
+    URL  "https://github.com/soramitsu/soramitsu-hunter/archive/tags/v0.23.257-soramitsu16.tar.gz"
+    SHA1 "64a1180e8cbeb98d2cfd786bfb725dcdc81d8fa9"
     LOCAL
 )
 
@@ -50,6 +50,7 @@ print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 
 option(TESTING "Build tests" ON)
 option(TESTING_PROOFS "Build proofs tests" OFF)
+option(TESTING_ACTORS "Build actors tests" OFF)
 option(CLANG_FORMAT "Enable clang-format target" ON)
 option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
 option(COVERAGE "Enable generation of coverage info" OFF)
@@ -124,3 +125,5 @@ if (TESTING)
   enable_testing()
   add_subdirectory(test)
 endif ()
+
+install(TARGETS fuhon-node fuhon-miner)

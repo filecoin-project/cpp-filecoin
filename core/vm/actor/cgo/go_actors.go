@@ -275,7 +275,21 @@ func (rt *rt) ChargeGas(_ string, gas int64, _ int64) {
 	rt.gocRet(C.gocRtCharge(rt.gocArg().int(gas).arg()))
 }
 
-func (rt *rt) Log(rtt.LogLevel, string, ...interface{}) {
+var log_level rtt.LogLevel = rtt.WARN
+var log_levels = []string{"DEBUG", "INFO", "WARN", "ERROR"}
+
+func (rt *rt) Log(level rtt.LogLevel, format string, args ...interface{}) {
+	if level < rtt.DEBUG {
+		return
+	}
+	if level > rtt.ERROR {
+		level = rtt.ERROR
+	}
+	if level < log_level {
+		return
+	}
+	msg := fmt.Sprintf("%s %s", log_levels[level+1], fmt.Sprintf(format, args...))
+	rt.gocRet(C.gocRtLog(rt.gocArg().str(msg).arg()))
 }
 
 var _ rt1.StateHandle = &rt{}
@@ -841,6 +855,13 @@ func cgoActorsConfigParams(raw C.Raw) C.Raw {
 	for i := 0; i < nProofs; i++ {
 		AddSupportedProofTypes(abi.RegisteredSealProof(arg.int()))
 	}
+	return cgoRet(nil)
+}
+
+//export cgoActorsSetLogLevel
+func cgoActorsSetLogLevel(raw C.Raw) C.Raw {
+	arg := cgoArgCbor(raw)
+	log_level = rtt.LogLevel(arg.int())
 	return cgoRet(nil)
 }
 

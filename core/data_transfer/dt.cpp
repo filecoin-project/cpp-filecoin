@@ -9,6 +9,7 @@
 
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/ptr.hpp"
+#include "storage/ipfs/graphsync/extension_dedup.hpp"
 
 #define MOVE(x)  \
   x {            \
@@ -226,17 +227,21 @@ namespace fc::data_transfer {
         peer,
         root,
         selector.b,
-        {makeExt(DataTransferMessage{DataTransferRequest{
-            root,
-            MessageType::kNewMessage,
-            false,
-            false,
-            true,
-            selector,
-            CborRaw{std::move(voucher)},
-            std::move(type),
-            dtid,
-        }})},
+        {
+            makeExt(DataTransferMessage{DataTransferRequest{
+                root,
+                MessageType::kNewMessage,
+                false,
+                false,
+                true,
+                selector,
+                CborRaw{std::move(voucher)},
+                std::move(type),
+                dtid,
+            }}),
+            storage::ipfs::graphsync::extension::dedup::make(
+                std::to_string(dtid)),
+        },
         [this, peer, MOVE(on_cid), sub](auto, auto ext) {
           if (auto _ext{gsns::Extension::find(gsns::kResponseMetadataProtocol,
                                               ext)}) {

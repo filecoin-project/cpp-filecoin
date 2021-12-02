@@ -37,8 +37,6 @@ namespace fc::vm::message {
   using primitives::address::Address;
 
   static constexpr int64_t kMessageVersion = 0;
-  static const TokenAmount kDefaultGasPrice = 0;
-  static constexpr GasAmount kDefaultGasLimit = 1000000;
 
   /**
    * @brief UnsignedMessage struct

@@ -149,7 +149,7 @@ namespace fc::primitives::tipset {
    * @struct HeadChange represents atomic chain change
    */
   struct HeadChange {
-    HeadChangeType type;
+    HeadChangeType type{};
     TipsetCPtr value;
   };
 

@@ -13,7 +13,6 @@ namespace fc::sectorblocks {
   using api::PieceLocation;
   using miner::Miner;
   using mining::types::DealInfo;
-  using mining::types::PieceAttributes;
   using primitives::DealId;
   using primitives::piece::UnpaddedPieceSize;
 
@@ -21,7 +20,7 @@ namespace fc::sectorblocks {
    public:
     virtual ~SectorBlocks() = default;
 
-    virtual outcome::result<PieceAttributes> addPiece(
+    virtual outcome::result<PieceLocation> addPiece(
         UnpaddedPieceSize size,
         const std::string &piece_data_path,
         DealInfo deal) = 0;
