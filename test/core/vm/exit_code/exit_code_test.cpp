@@ -7,7 +7,9 @@
 
 #include <gtest/gtest.h>
 
-enum SampleError {};
+enum SampleError {
+  kSample = 1,
+};
 OUTCOME_HPP_DECLARE_ERROR(SampleError);
 OUTCOME_CPP_DEFINE_CATEGORY(SampleError, e) {
   return "sample error";
@@ -18,14 +20,15 @@ namespace fc::vm {
 
   /// Distinguish VMExitCode errors from other errors
   TEST(VMExitCode, IsVMExitCode) {
-    EXPECT_TRUE(isVMExitCode(failure(VMExitCode(1)).error()));
-    EXPECT_FALSE(isVMExitCode(failure(SampleError(1)).error()));
+    EXPECT_TRUE(
+        isVMExitCode(failure(VMExitCode(SampleError::kSample)).error()));
+    EXPECT_FALSE(isVMExitCode(failure(SampleError::kSample).error()));
   }
 
   /// Distinguish VMFatal errors from other errors
   TEST(VMExitCode, IsFatal) {
     EXPECT_TRUE(isFatal(failure(VMFatal(VMFatal::kFatal)).error()));
-    EXPECT_FALSE(isFatal(failure(SampleError(1)).error()));
+    EXPECT_FALSE(isFatal(failure(SampleError::kSample).error()));
   }
 
   /**
@@ -66,7 +69,7 @@ namespace fc::vm {
   TEST(VMExitCode, RequireNoErrorDefault) {
     VMExitCode default_exit_code{VMExitCode::kOk};
 
-    outcome::result<void> req{SampleError(1)};
+    outcome::result<void> req{SampleError::kSample};
     auto res = requireNoError(req, default_exit_code);
     EXPECT_TRUE(isAbortExitCode(res.error()));
     EXPECT_FALSE(isVMExitCode(res.error()));
