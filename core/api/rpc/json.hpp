@@ -897,6 +897,48 @@ namespace fc::api {
       decode(v.size, Get(j, "Size"));
     }
 
+    ENCODE(DealSchedule) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "StartEpoch", v.start_epoch);
+      Set(j, "EndEpoch", v.end_epoch);
+      return j;
+    }
+
+    DECODE(DealSchedule) {
+      Get(j, "StartEpoch", v.end_epoch);
+      Get(j, "EndEpoch", v.end_epoch);
+    }
+
+    ENCODE(DealInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PublishCID", v.publish_cid);
+      Set(j, "DealId", v.deal_id);
+      Set(j, "DealProposal", v.deal_proposal);
+      Set(j, "DealSchedule", v.deal_schedule);
+      Set(j, "KeepUnsealed", v.is_keep_unsealed);
+      return j;
+    }
+
+    DECODE(DealInfo) {
+      Get(j, "PublishCID", v.publish_cid);
+      Get(j, "DealId", v.deal_id);
+      Get(j, "DealProposal", v.deal_proposal);
+      Get(j, "DealSchedule", v.deal_schedule);
+      Get(j, "KeepUnsealed", v.is_keep_unsealed);
+    }
+
+    ENCODE(Piece) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Piece", v.piece);
+      Set(j, "DealInfo", v.deal_info);
+      return j;
+    }
+
+    DECODE(Piece) {
+      Get(j, "Piece", v.piece);
+      Get(j, "DealInfo", v.deal_info);
+    }
+
     ENCODE(SealedAndUnsealedCID) {
       Value j{rapidjson::kObjectType};
       Set(j, "Sealed", v.sealed_cid);
@@ -1028,6 +1070,7 @@ namespace fc::api {
       Set(j, "CommR", v.comm_r);
       Set(j, "Proof", v.proof);
       Set(j, "Deals", v.deals);
+      Set(j, "Pieces", v.pieces);
       Set(j, "Ticket", v.ticket);
       Set(j, "Seed", v.seed);
       Set(j, "PreCommitMsg", v.precommit_message);
@@ -1053,6 +1096,7 @@ namespace fc::api {
       Get(j, "Proof", v.proof);
       Get(j, "Deals", v.deals);
       Get(j, "Ticket", v.ticket);
+      Get(j, "Pieces", v.pieces);
       Get(j, "Seed", v.seed);
       Get(j, "PreCommitMsg", v.precommit_message);
       Get(j, "CommitMsg", v.commit_message);
