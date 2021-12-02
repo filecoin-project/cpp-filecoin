@@ -111,7 +111,7 @@ namespace fc::api {
           sector_info->comm_r,
           sector_info->proof,
           std::move(deals),
-          pieces,
+          std::move(pieces),
           sector_info->ticket,
           sector_info->seed,
           sector_info->precommit_message,
