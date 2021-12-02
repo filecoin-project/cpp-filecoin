@@ -12,16 +12,6 @@
 
 namespace fc::common::math {
 
-  int foo() {
-    int k = 0x7fffffff;
-    k += 111;
-    return k;
-  }
-
-  TEST(Math, UBSAN0) {
-    foo();
-  }
-
   /**
    * Test expneg with Q.128 format against
    * 'specs-actors/actor/builtin/reward/testdata/TestExpFunction.golden'
