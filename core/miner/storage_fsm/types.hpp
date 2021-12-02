@@ -196,17 +196,16 @@ namespace fc::mining::types {
              fault_report_message,
              return_state)
 
-  struct PieceAttributes {
-    SectorNumber sector = 0;
-
+  struct PieceLocation {
+    SectorNumber sector;
     PaddedPieceSize offset;
-    UnpaddedPieceSize size;
+    PaddedPieceSize size;
   };
+  CBOR_TUPLE(PieceLocation, sector, offset, size)
 
-  inline bool operator==(const PieceAttributes &lhs,
-                         const PieceAttributes &rhs) {
-    return lhs.sector == rhs.sector && lhs.offset == rhs.offset
-           && lhs.size == rhs.size;
+  inline bool operator==(const PieceLocation &lhs, const PieceLocation &rhs) {
+    return std::tie(lhs.sector, lhs.offset, lhs.size)
+           == std::tie(rhs.sector, rhs.offset, rhs.size);
   }
 
   struct BatchConfing {

@@ -77,6 +77,9 @@ namespace fc::markets::storage::provider {
     auto getDeal(const CID &proposal_cid) const
         -> outcome::result<MinerDeal> override;
 
+    auto getLocalDeals() const
+        -> outcome::result<std::vector<MinerDeal>> override;
+
     auto importDataForDeal(const CID &proposal_cid,
                            const boost::filesystem::path &path)
         -> outcome::result<void> override;

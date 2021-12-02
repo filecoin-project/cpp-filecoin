@@ -10,6 +10,31 @@ namespace fc::markets::storage::provider {
   // Key to store last ask in datastore
   const Bytes kBestAskKey{codec::cbor::encode("latest-ask").value()};
 
+  outcome::result<std::shared_ptr<StoredAsk>> StoredAsk::newStoredAsk(
+      std::shared_ptr<Datastore> datastore,
+      std::shared_ptr<FullNodeApi> api,
+      Address actor_address) {
+    struct make_unique_enabler : StoredAsk {
+      make_unique_enabler(std::shared_ptr<Datastore> datastore,
+                          std::shared_ptr<FullNodeApi> api,
+                          Address actor_address)
+          : StoredAsk(
+              std::move(datastore), std::move(api), std::move(actor_address)){};
+    };
+
+    std::unique_ptr<StoredAsk> stored_ask =
+        std::make_unique<make_unique_enabler>(
+            std::move(datastore), std::move(api), std::move(actor_address));
+
+    OUTCOME_TRY(maybe_ask, stored_ask->tryLoadSignedAsk());
+
+    if (not maybe_ask.has_value()) {
+      OUTCOME_TRY(stored_ask->addAsk(kDefaultPrice, kDefaultDuration));
+    }
+
+    return std::move(stored_ask);
+  }
+
   StoredAsk::StoredAsk(std::shared_ptr<Datastore> datastore,
                        std::shared_ptr<FullNodeApi> api,
                        Address actor_address)
@@ -31,12 +56,21 @@ namespace fc::markets::storage::provider {
 
   outcome::result<void> StoredAsk::addAsk(const TokenAmount &price,
                                           ChainEpoch duration) {
+    auto min_size = kDefaultMinPieceSize;
+    auto max_size = kDefaultMaxPieceSize;
+
+    if (last_signed_storage_ask_.has_value()) {
+      auto &ask{(*last_signed_storage_ask_).ask};
+      min_size = ask.min_piece_size;
+      max_size = ask.max_piece_size;
+    }
+
     return addAsk(
         {
             .price = price,
             .verified_price = price,
-            .min_piece_size = kDefaultMinPieceSize,
-            .max_piece_size = kDefaultMaxPieceSize,
+            .min_piece_size = min_size,
+            .max_piece_size = max_size,
             .miner = actor_,
         },
         duration);
@@ -55,28 +89,18 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<SignedStorageAskV1_1_0> StoredAsk::loadSignedAsk() {
-    if (datastore_->contains(kBestAskKey)) {
-      OUTCOME_TRY(ask_bytes, datastore_->get(kBestAskKey));
-      OUTCOME_TRY(ask, codec::cbor::decode<SignedStorageAskV1_1_0>(ask_bytes));
-      return std::move(ask);
-    }
+    OUTCOME_TRY(ask_bytes, datastore_->get(kBestAskKey));
+    OUTCOME_TRY(ask, codec::cbor::decode<SignedStorageAskV1_1_0>(ask_bytes));
+    return std::move(ask);
+  }
 
-    // otherwise return default which 'not actively accepting deals'
-    OUTCOME_TRY(chain_head, api_->ChainHead());
-    ChainEpoch timestamp = chain_head->height();
-    ChainEpoch expiry = chain_head->height() + kDefaultDuration;
-    StorageAskV1_1_0 default_ask{{
-        .price = kDefaultPrice,
-        .verified_price = kDefaultPrice,
-        .min_piece_size = kDefaultMinPieceSize,
-        .max_piece_size = kDefaultMaxPieceSize,
-        .miner = actor_,
-        .timestamp = timestamp,
-        .expiry = expiry,
-        .seq_no = 0,
-    }};
-    OUTCOME_TRY(signed_ask, signAsk(default_ask, *chain_head));
-    return std::move(signed_ask);
+  outcome::result<boost::optional<SignedStorageAskV1_1_0>>
+  StoredAsk::tryLoadSignedAsk() {
+    if (not datastore_->contains(kBestAskKey)) {
+      return boost::none;
+    }
+    OUTCOME_TRY(ask, loadSignedAsk());
+    return std::move(ask);
   }
 
   outcome::result<void> StoredAsk::saveSignedAsk(

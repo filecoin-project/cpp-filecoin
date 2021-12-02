@@ -38,7 +38,7 @@ namespace fc::markets::storage::test {
     EXPECT_EQ(ask_res.value().miner, storage_provider_info->address);
     EXPECT_EQ(ask_res.value().timestamp, chain_head->height());
     EXPECT_EQ(ask_res.value().expiry, chain_head->height() + duration);
-    EXPECT_EQ(ask_res.value().seq_no, 0);
+    EXPECT_EQ(ask_res.value().seq_no, 1);
   }
 
   /**

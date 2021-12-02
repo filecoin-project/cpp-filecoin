@@ -31,6 +31,10 @@ namespace fc::primitives {
     outcome::result<void> setNumber(uint64_t number);
 
    private:
+    outcome::result<uint64_t> getNumberWithoutLock() const;
+
+    outcome::result<void> setNumberWithoutLock(uint64_t number);
+
     std::shared_ptr<Datastore> datastore_;
     Bytes key_;
 

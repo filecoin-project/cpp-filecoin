@@ -9,8 +9,10 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <libp2p/injector/host_injector.hpp>
+#include <libp2p/peer/peer_info.hpp>
 
 #include "api/full_node/node_api.hpp"
+#include "api/network/setup_net.hpp"
 #include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
 #include "api/rpc/make.hpp"
@@ -22,7 +24,9 @@
 #include "common/api_secret.hpp"
 #include "common/file.hpp"
 #include "common/io_thread.hpp"
+#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/libp2p/soralog.hpp"
+#include "common/local_ip.hpp"
 #include "common/outcome.hpp"
 #include "common/peer_key.hpp"
 #include "config/profile_config.hpp"
@@ -62,6 +66,7 @@ namespace fc {
   using libp2p::basic::Scheduler;
   using libp2p::multi::Multiaddress;
   using libp2p::peer::PeerId;
+  using libp2p::peer::PeerInfo;
   using markets::storage::chain_events::ChainEventsImpl;
   using miner::kMinerVersion;
   using primitives::StoredCounter;
@@ -464,8 +469,9 @@ namespace fc {
     auto gs_sub{graphsync->subscribe([&](auto &, auto &data) {
       OUTCOME_EXCEPT(markets_ipld->set(data.cid, BytesIn{data.content}));
     })};
-    auto stored_ask{std::make_shared<markets::storage::provider::StoredAsk>(
-        prefixed("stored_ask/"), napi, *config.actor)};
+    OUTCOME_EXCEPT(stored_ask,
+                   markets::storage::provider::StoredAsk::newStoredAsk(
+                       prefixed("stored_ask/"), napi, *config.actor));
     auto piece_storage{std::make_shared<storage::piece::PieceStorageImpl>(
         prefixed("storage_provider/"))};
     auto sector_blocks{std::make_shared<sectorblocks::SectorBlocksImpl>(
@@ -515,7 +521,10 @@ namespace fc {
                                     retrieval_provider);
 
     api::fillAuthApi(mapi, api_secret, api::kStorageApiLogger);
-    // TODO(@elestrias): [FIL-427] make net api configuration
+    const PeerInfo api_peer_info{
+        host->getPeerInfo().id,
+        nonZeroAddrs(host->getAddresses(), &common::localIp())};
+    api::fillNetApi(mapi, api_peer_info, host, api::kStorageApiLogger);
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
     mrpc.emplace(

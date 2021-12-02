@@ -35,6 +35,9 @@ namespace fc::markets::storage::provider {
     virtual auto getDeal(const CID &proposal_cid) const
         -> outcome::result<MinerDeal> = 0;
 
+    virtual auto getLocalDeals() const
+        -> outcome::result<std::vector<MinerDeal>> = 0;
+
     /**
      * Imports data to proceed deal with 'manual' transfer type
      * @param proposal_cid - deal proposal CID

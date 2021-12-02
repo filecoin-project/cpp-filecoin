@@ -58,7 +58,7 @@ namespace fc::markets::storage {
   /** For protocol v1.0.1. */
   struct DataRefV1_0_1 : public DataRef {};
 
-  CBOR_TUPLE(DataRef, transfer_type, root, piece_cid, piece_size)
+  CBOR_TUPLE(DataRefV1_0_1, transfer_type, root, piece_cid, piece_size)
 
   /** Protocol V1.1.0 with named encoding and extended DataRef */
   struct DataRefV1_1_0 : public DataRef {};

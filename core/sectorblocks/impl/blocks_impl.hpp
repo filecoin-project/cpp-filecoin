@@ -18,10 +18,9 @@ namespace fc::sectorblocks {
     SectorBlocksImpl(std::shared_ptr<Miner> miner,
                      std::shared_ptr<DataStore> datastore);
 
-    outcome::result<PieceAttributes> addPiece(
-        UnpaddedPieceSize size,
-        const std::string &piece_data_path,
-        DealInfo deal) override;
+    outcome::result<PieceLocation> addPiece(UnpaddedPieceSize size,
+                                            const std::string &piece_data_path,
+                                            DealInfo deal) override;
 
     outcome::result<std::vector<PieceLocation>> getRefs(
         DealId deal_id) const override;
@@ -32,7 +31,7 @@ namespace fc::sectorblocks {
     outcome::result<void> writeRef(DealId deal_id,
                                    SectorNumber sector,
                                    PaddedPieceSize offset,
-                                   UnpaddedPieceSize size);
+                                   PaddedPieceSize size);
 
     // TODO(@Elestrias):[FIL-423] Make deletion of expired deal associations;
 

@@ -71,10 +71,10 @@ namespace fc::sectorblocks {
     UnpaddedPieceSize size(127);
     std::string path = "/some/temp/path";
 
-    PieceAttributes piece{
+    PieceLocation piece{
         .sector = 1,
         .offset = PaddedPieceSize(0),
-        .size = UnpaddedPieceSize(127),
+        .size = PaddedPieceSize(128),
     };
 
     EXPECT_CALL(*miner_, doAddPieceToAnySector(size, _, deal))
@@ -82,15 +82,9 @@ namespace fc::sectorblocks {
 
     EXPECT_OUTCOME_EQ(sector_blocks_->addPiece(size, path, deal), piece);
 
-    PieceLocation result_ref{
-        .sector_number = piece.sector,
-        .offset = piece.offset,
-        .length = piece.size.padded(),
-    };
-
     EXPECT_OUTCOME_TRUE(refs, sector_blocks_->getRefs(deal.deal_id))
 
-    ASSERT_THAT(refs, testing::ElementsAre(result_ref));
+    ASSERT_THAT(refs, testing::ElementsAre(piece));
   }
 
   /**
@@ -112,10 +106,10 @@ namespace fc::sectorblocks {
     const UnpaddedPieceSize size(127);
     const std::string path = "/some/temp/path";
 
-    const PieceAttributes piece{
+    const PieceLocation piece{
         .sector = 1,
         .offset = PaddedPieceSize(0),
-        .size = UnpaddedPieceSize(127),
+        .size = PaddedPieceSize(128),
     };
 
     EXPECT_CALL(*miner_, doAddPieceToAnySector(size, _, deal))

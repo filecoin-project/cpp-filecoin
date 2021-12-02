@@ -5,10 +5,12 @@
 
 #pragma once
 
+#include "common/libp2p/peer/cbor_peer_info.hpp"
 #include "markets/storage/mk_protocol.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 
 namespace fc::markets::storage::provider {
+  using codec::cbor::kDefaultT;
   using vm::actor::builtin::types::market::ClientDealProposal;
 
   /** MinerDeal is an internal local state of a deal in a storage provider  */
@@ -17,7 +19,7 @@ namespace fc::markets::storage::provider {
     CID proposal_cid;
     boost::optional<CID> add_funds_cid;
     boost::optional<CID> publish_cid;
-    PeerInfo client;
+    PeerInfo client = kDefaultT<PeerInfo>();
     StorageDealStatus state;
     Path piece_path;
     Path metadata_path;

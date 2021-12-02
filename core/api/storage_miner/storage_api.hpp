@@ -26,11 +26,13 @@ namespace fc::api {
   using markets::retrieval::RetrievalAsk;
   using markets::retrieval::provider::RetrievalProvider;
   using markets::storage::SignedStorageAskV1_1_0;
+  using markets::storage::provider::MinerDeal;
   using markets::storage::provider::StorageProvider;
   using markets::storage::provider::StoredAsk;
   using miner::Miner;
   using mining::types::DealInfo;
   using mining::types::DealSchedule;
+  using mining::types::PieceLocation;
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::SectorNumber;
@@ -58,22 +60,10 @@ namespace fc::api {
   const static common::Logger kStorageApiLogger =
       common::createLogger("Storage API");
 
-  struct PieceLocation {
-    SectorNumber sector_number;
-    PaddedPieceSize offset;
-    PaddedPieceSize length;
-  };
-  CBOR_TUPLE(PieceLocation, sector_number, offset, length)
-
   // TODO(ortyomka): [FIL-421] implement it
   struct ApiSectorInfo {
     mining::SealingState state = mining::SealingState::kStateUnknown;
   };
-
-  inline bool operator==(const PieceLocation &lhs, const PieceLocation &rhs) {
-    return lhs.sector_number == rhs.sector_number && lhs.offset == rhs.offset
-           && lhs.length == rhs.length;
-  }
 
   constexpr ApiVersion kMinerApiVersion = makeApiVersion(1, 0, 0);
 
@@ -116,6 +106,10 @@ namespace fc::api {
                jwt::kAdminPermission,
                void,
                const RetrievalAsk &)
+
+    API_METHOD(MarketListIncompleteDeals,
+               jwt::kReadPermission,
+               std::vector<MinerDeal>);
 
     API_METHOD(SectorsList, jwt::kReadPermission, std::vector<SectorNumber>)
 
@@ -250,6 +244,7 @@ namespace fc::api {
     f(a.MarketGetRetrievalAsk);
     f(a.MarketSetAsk);
     f(a.MarketSetRetrievalAsk);
+    f(a.MarketListIncompleteDeals);
     f(a.SectorsList);
     f(a.SectorsStatus);
     f(a.StorageAttach);

@@ -70,7 +70,7 @@ namespace fc::markets::storage::test {
   using libp2p::crypto::PublicKey;
   using libp2p::multi::Multiaddress;
   using miner::MinerMock;
-  using miner::PieceAttributes;
+  using miner::PieceLocation;
   using pieceio::PieceIO;
   using pieceio::PieceIOImpl;
   using primitives::GasAmount;
@@ -171,7 +171,7 @@ namespace fc::markets::storage::test {
       sector_blocks = std::make_shared<SectorBlocksMock>();
 
       EXPECT_CALL(*sector_blocks, addPiece(_, _, _))
-          .WillRepeatedly(testing::Return(outcome::success(PieceAttributes{})));
+          .WillRepeatedly(testing::Return(outcome::success(PieceLocation{})));
 
       EXPECT_CALL(*sector_blocks, getRefs(_))
           .WillRepeatedly(testing::Return(
@@ -400,8 +400,11 @@ namespace fc::markets::storage::test {
       std::shared_ptr<FileStore> filestore =
           std::make_shared<FileSystemFileStore>();
 
-      stored_ask = std::make_shared<markets::storage::provider::StoredAsk>(
-          std::make_shared<InMemoryStorage>(), api, miner_actor_address);
+      OUTCOME_EXCEPT(
+          new_stored_ask,
+          markets::storage::provider::StoredAsk::newStoredAsk(
+              std::make_shared<InMemoryStorage>(), api, miner_actor_address));
+      stored_ask = std::move(new_stored_ask);
 
       std::shared_ptr<StorageProviderImpl> new_provider =
           std::make_shared<StorageProviderImpl>(

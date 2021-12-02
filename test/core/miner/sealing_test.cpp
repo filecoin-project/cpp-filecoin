@@ -365,7 +365,7 @@ namespace fc::mining {
         sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
     EXPECT_EQ(piece_attribute.sector, sector);
     EXPECT_EQ(piece_attribute.offset, 0);
-    EXPECT_EQ(piece_attribute.size, piece_size);
+    EXPECT_EQ(piece_attribute.size.unpadded(), piece_size);
 
     runForSteps(*context_, 100);
 
