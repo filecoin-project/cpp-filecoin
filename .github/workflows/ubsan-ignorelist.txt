@@ -1,0 +1,4 @@
+# Known issue in RapidJSON library
+# (https://github.com/Tencent/rapidjson/issues/1724). Waiting for the next
+# release (https://github.com/Tencent/rapidjson/issues/1006).
+src:*rapidjson/internal/stack.h
