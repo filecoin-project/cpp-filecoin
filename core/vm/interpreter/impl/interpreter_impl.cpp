@@ -7,6 +7,7 @@
 
 #include <utility>
 
+#include "blockchain/block_validator/validator.hpp"
 #include "common/prometheus/metrics.hpp"
 #include "common/prometheus/since.hpp"
 #include "const.hpp"
@@ -48,8 +49,10 @@ namespace fc::vm::interpreter {
 
   InterpreterImpl::InterpreterImpl(
       EnvironmentContext env_context,
+      std::shared_ptr<BlockValidator> validator,
       std::shared_ptr<WeightCalculator> weight_calculator)
       : env_context_{std::move(env_context)},
+        validator_{std::move(validator)},
         weight_calculator_{std::move(weight_calculator)} {}
 
   outcome::result<Result> InterpreterImpl::interpret(
@@ -71,6 +74,12 @@ namespace fc::vm::interpreter {
       const TipsetCPtr &tipset,
       std::vector<MessageReceipt> *all_receipts) const {
     const auto &ipld{env_context_.ipld};
+
+    if (validator_) {
+      for (const auto &block : tipset->blks) {
+        OUTCOME_TRY(validator_->validate(ts_branch, block));
+      }
+    }
 
     static auto &metricFailure{
         prometheus::BuildCounter()

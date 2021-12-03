@@ -23,16 +23,13 @@ namespace fc::sync {
       TsLoadPtr ts_load,
       std::shared_ptr<PutBlockHeader> put_block_header,
       TipsetCPtr head,
-      BigInt weight,
-      std::shared_ptr<BlockValidator> block_validator)
+      BigInt weight)
       : ipld_(std::move(ipld)),
         ts_load_(std::move(ts_load)),
         put_block_header_(std::move(put_block_header)),
-        block_validator_(std::move(block_validator)),
         head_{std::move(head)},
         heaviest_weight_{std::move(weight)} {
     assert(ipld_);
-    assert(block_validator_);
   }
 
   outcome::result<void> ChainStoreImpl::start(

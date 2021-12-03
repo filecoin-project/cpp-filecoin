@@ -24,7 +24,7 @@ namespace libp2p {
     // A class with the same name is present in fc::sector_storage
     // NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
     class Scheduler;
-  }
+  }  // namespace basic
 
   namespace connection {
     class Stream;
@@ -61,7 +61,7 @@ namespace fc {
 
   namespace blockchain {
     namespace block_validator {
-      class BlockValidator;
+      struct BlockValidator;
     }  // namespace block_validator
 
     namespace weight {
@@ -103,6 +103,7 @@ namespace fc {
     }  // namespace address
 
     namespace block {
+      struct BlockHeader;
       struct BlockWithCids;
     }  // namespace block
 

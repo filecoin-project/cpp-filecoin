@@ -4,9 +4,7 @@
 #
 
 add_library(block_validator
-    impl/block_validator_impl.cpp
-    impl/syntax_rules.cpp
-    impl/consensus_rules.cpp
+    validator.cpp
     )
 target_link_libraries(block_validator
     bls_provider
@@ -14,6 +12,6 @@ target_link_libraries(block_validator
     address
     clock
     interpreter
+    map_prefix
     tipset
-    power_table
     )

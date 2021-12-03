@@ -5,14 +5,12 @@
 
 #pragma once
 
-#include "blockchain/block_validator/block_validator.hpp"
 #include "node/common.hpp"
 #include "node/head_constructor.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/chain/chain_store.hpp"
 
 namespace fc::sync {
-  using blockchain::block_validator::BlockValidator;
   using primitives::tipset::PutBlockHeader;
   using primitives::tipset::chain::Path;
 
@@ -23,8 +21,7 @@ namespace fc::sync {
                    TsLoadPtr ts_load,
                    std::shared_ptr<PutBlockHeader> put_block_header,
                    TipsetCPtr head,
-                   BigInt weight,
-                   std::shared_ptr<BlockValidator> block_validator);
+                   BigInt weight);
 
     outcome::result<void> start(std::shared_ptr<events::Events> events);
 
@@ -44,7 +41,6 @@ namespace fc::sync {
     std::shared_ptr<storage::ipfs::IpfsDatastore> ipld_;
     TsLoadPtr ts_load_;
     std::shared_ptr<PutBlockHeader> put_block_header_;
-    std::shared_ptr<BlockValidator> block_validator_;
 
     std::shared_ptr<events::Events> events_;
 

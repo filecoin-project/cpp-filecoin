@@ -29,4 +29,11 @@ namespace fc {
       map.emplace(key, value.into());
     }
   };
+
+  struct NullCbIpld : CbIpld {
+    bool get(const CbCid &key, Bytes *value) const override {
+      return false;
+    }
+    void put(const CbCid &key, BytesCow &&value) override {}
+  };
 }  // namespace fc

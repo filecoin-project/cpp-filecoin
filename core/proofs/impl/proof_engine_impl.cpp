@@ -760,18 +760,6 @@ namespace fc::proofs {
       ActorId miner_id,
       const SortedPrivateSectorInfo &private_replica_info,
       const PoStRandomness &randomness) {
-    static bool fake{[] {
-      const auto fake_proof_env{getenv("FAKE_POST")};
-      return fake_proof_env && std::string_view{fake_proof_env} == "1";
-    }()};
-    if (fake) {
-      std::vector<primitives::sector::PoStProof> result;
-      auto &post_proof{result.emplace_back()};
-      constexpr std::string_view kFakeValidProof{"valid proof"};
-      post_proof.proof.assign(kFakeValidProof.begin(), kFakeValidProof.end());
-      return result;
-    }
-
     OUTCOME_TRY(
         c_sorted_private_sector_info,
         cPrivateReplicasInfo(private_replica_info.values, PoStType::Winning));

@@ -8,6 +8,7 @@
 #include "codec/cbor/cbor_codec.hpp"
 #include "common/endian.hpp"
 #include "const.hpp"
+#include "primitives/block/rand.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/keystore/keystore.hpp"
@@ -283,19 +284,6 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(
         chargeGas(execution_->env->pricelist.onComputeUnsealedSectorCid()));
     return proofs_->generateUnsealedCID(type, pieces, true);
-  }
-
-  // TODO(turuslan): reuse in block validation
-  outcome::result<bool> checkBlockSignature(const BlockHeader &block,
-                                            const Address &worker) {
-    if (!block.block_sig) {
-      return false;
-    }
-    auto block2{block};
-    block2.block_sig.reset();
-    OUTCOME_TRY(data, codec::cbor::encode(block2));
-    return storage::keystore::kDefaultKeystore->verify(
-        worker, data, *block.block_sig);
   }
 
   // TODO(turuslan): reuse

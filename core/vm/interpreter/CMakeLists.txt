@@ -9,6 +9,7 @@ add_library(interpreter
     )
 target_link_libraries(interpreter
     amt
+    block_validator
     message
     runtime
     weight_calculator
