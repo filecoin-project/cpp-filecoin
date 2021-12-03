@@ -66,9 +66,10 @@ namespace fc::sector_storage::stores {
     }
     sector.write = static_cast<SectorFileType>(sector.write & ~lock.write);
     --sector.refs;
+    sector.cv.notify_all();
+    sector_lock.unlock();
     if (!sector.refs) {
       sectors.erase(lock.sector);
     }
-    sector.cv.notify_all();
   }
 }  // namespace fc::sector_storage::stores
