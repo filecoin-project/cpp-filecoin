@@ -7,7 +7,9 @@
 
 #include "common/outcome.hpp"
 #include "markets/storage/ask_protocol.hpp"
-#include "markets/storage/deal_protocol.hpp"
+#include "markets/storage/client/client_deal.hpp"
+#include "markets/storage/mk_protocol.hpp"
+#include "markets/storage/status_protocol.hpp"
 #include "markets/storage/types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
@@ -17,7 +19,6 @@
 #include "storage/filestore/filestore.hpp"
 
 namespace fc::markets::storage::client {
-
   using fc::storage::filestore::FileStore;
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
@@ -26,8 +27,7 @@ namespace fc::markets::storage::client {
 
   class StorageMarketClient {
    public:
-    using SignedAskHandler =
-        std::function<void(outcome::result<SignedStorageAsk>)>;
+    using StorageAskHandler = std::function<void(outcome::result<StorageAsk>)>;
 
     virtual ~StorageMarketClient() = default;
 
@@ -71,7 +71,7 @@ namespace fc::markets::storage::client {
     virtual outcome::result<ClientDeal> getLocalDeal(const CID &cid) const = 0;
 
     virtual void getAsk(const StorageProviderInfo &info,
-                        const SignedAskHandler &signed_ask_handler) = 0;
+                        const StorageAskHandler &storage_ask_handler) = 0;
 
     /**
      * Initiate deal by proposing storage deal

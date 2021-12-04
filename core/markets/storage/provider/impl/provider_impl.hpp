@@ -18,17 +18,25 @@
 #include "markets/storage/provider/provider.hpp"
 #include "markets/storage/provider/provider_events.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
+#include "markets/storage/status_protocol.hpp"
 #include "sectorblocks/blocks.hpp"
 #include "storage/filestore/filestore.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "storage/piece/piece_storage.hpp"
 #include "vm/actor/builtin/types/market/deal_info_manager/deal_info_manager.hpp"
 
+#define FSM_HANDLE_DEFINITION(name)                           \
+  void name(const std::shared_ptr<DealContext> &deal_context, \
+            ProviderEvent event,                              \
+            StorageDealStatus from,                           \
+            StorageDealStatus to)
+
 namespace fc::markets::storage::provider {
   using api::MsgWait;
   using api::PieceLocation;
   using chain_events::ChainEvents;
   using common::libp2p::CborStream;
+  using data_transfer::DataTransfer;
   using fc::storage::filestore::FileStore;
   using fc::storage::piece::PieceStorage;
   using libp2p::Host;
@@ -39,11 +47,6 @@ namespace fc::markets::storage::provider {
   using primitives::sector::RegisteredSealProof;
   using sectorblocks::SectorBlocks;
   using vm::actor::builtin::types::market::deal_info_manager::DealInfoManager;
-  using ProviderTransition =
-      fsm::Transition<ProviderEvent, void, StorageDealStatus, MinerDeal>;
-  using ProviderFSM =
-      fsm::FSM<ProviderEvent, void, StorageDealStatus, MinerDeal>;
-  using data_transfer::DataTransfer;
 
   const EpochDuration kDefaultDealAcceptanceBuffer{100};
 
@@ -65,8 +68,6 @@ namespace fc::markets::storage::provider {
                         std::shared_ptr<FileStore> filestore,
                         std::shared_ptr<DealInfoManager> deal_info_manager);
 
-    std::shared_ptr<MinerDeal> getDealPtr(const CID &proposal_cid);
-
     auto init() -> outcome::result<void> override;
 
     auto start() -> outcome::result<void> override;
@@ -83,14 +84,151 @@ namespace fc::markets::storage::provider {
                            const boost::filesystem::path &path)
         -> outcome::result<void> override;
 
-    outcome::result<Signature> sign(const Bytes &input);
+    outcome::result<Signature> sign(const Bytes &input) const;
 
    private:
+    struct DealContext {
+      std::shared_ptr<MinerDeal> deal;
+      std::string protocol;
+    };
+
+    using ProviderTransition =
+        fsm::Transition<ProviderEvent, void, StorageDealStatus, DealContext>;
+    using ProviderFSM =
+        fsm::FSM<ProviderEvent, void, StorageDealStatus, DealContext>;
+
+    std::shared_ptr<DealContext> getDealContextPtr(
+        const CID &proposal_cid) const;
+
+    /**
+     * Sets deal ask protocol handlers for different protocol versions.
+     * @tparam AskRequestType - ask request type for the protocol version
+     * @tparam AskResponseType - ask response type for the protocol
+     * @param protocol - protocol string
+     */
+    template <typename AskRequestType, typename AskResponseType>
+    inline void setAskHandler(const std::string &protocol) {
+      host_->setProtocolHandler(
+          protocol, [stored_ask{weaken(stored_ask_)}](auto _stream) {
+            auto stream{std::make_shared<common::libp2p::CborStream>(_stream)};
+            stream->template read<AskRequestType>([stored_ask,
+                                                   stream](auto request) {
+              if (request) {
+                if (auto asker{stored_ask.lock()}) {
+                  if (auto ask{asker->getAsk(request.value().miner)}) {
+
+                    return stream->write(AskResponseType{{ask.value()}},
+                                         [stream](auto) { stream->close(); });
+                  }
+                }
+              }
+              stream->stream()->reset();
+            });
+          });
+    }
+
+    /**
+     * Sets deal status protocol handler for different protocol versions.
+     * @tparam DealStatusRequestType - request for the protocol
+     * @tparam DealStatusResponseType - reponse type for protocol
+     * @param protocol - protocol string
+     */
+    template <typename DealStatusRequestType, typename DealStatusResponseType>
+    inline void setDealStatusHandler(const std::string &protocol) {
+      host_->setProtocolHandler(
+          protocol, [provider_ptr{weak_from_this()}](auto _stream) {
+            auto stream{std::make_shared<common::libp2p::CborStream>(_stream)};
+            stream->template read<DealStatusRequestType>([provider_ptr, stream](
+                                                             auto _request) {
+              if (_request) {
+                auto &request{_request.value()};
+                if (auto provider{provider_ptr.lock()}) {
+                  const auto maybe_response{
+                      provider
+                          ->prepareDealStateResponse<DealStatusResponseType>(
+                              request)};
+                  if (maybe_response) {
+                    stream->write(maybe_response.value(),
+                                  [stream](auto) { stream->close(); });
+                  } else {
+                    provider->logger_->error(
+                        "Cannot create deal status response: "
+                        + maybe_response.error().message());
+                  }
+                }
+              }
+              stream->stream()->reset();
+            });
+          });
+    }
+
+    /**
+     * Creates deal status response for particular protocol.
+     * @tparam DealStatusResponseType - response for protocol
+     * @param request
+     * @return response for protocol
+     */
+    template <typename DealStatusResponseType>
+    outcome::result<DealStatusResponseType> prepareDealStateResponse(
+        const DealStatusRequest &request) const {
+      auto maybe_state = handleDealStatus(request);
+      ProviderDealState state;
+      if (maybe_state.has_error()) {
+        state.status = StorageDealStatus::STORAGE_DEAL_ERROR;
+        state.message = maybe_state.error().message();
+      } else {
+        state = std::move(maybe_state.value());
+      }
+      DealStatusResponseType response{state};
+      OUTCOME_TRY(digest, response.getDigest());
+      OUTCOME_TRYA(response.signature, sign(digest));
+      return response;
+    }
+
+    /**
+     * Handles deal status request.
+     * Checks request signature and looks for deal state.
+     * @param request - contains proposal CID
+     * @return deal state for requested deal
+     */
+    outcome::result<MinerDeal> handleDealStatus(
+        const DealStatusRequest &request) const;
+
+    /**
+     * Sets deal Mk protocol handler for different protocol versions.
+     */
+    template <typename ProposalType>
+    inline void setDealMkHandler(const std::string &protocol) {
+      host_->setProtocolHandler(
+          protocol, [self_wptr{weak_from_this()}, protocol](auto stream) {
+            auto cbor_stream{
+                std::make_shared<common::libp2p::CborStream>(stream)};
+            if (auto self = self_wptr.lock()) {
+              self->logger_->debug("New deal stream");
+              cbor_stream->template read<ProposalType>(
+                  [self, cbor_stream, protocol](
+                      const outcome::result<ProposalType> &proposal) {
+                    if (proposal.has_error()) {
+                      self->logger_->error("Read proposal error:"
+                                           + proposal.error().message());
+                      closeStreamGracefully(cbor_stream, self->logger_);
+                    }
+                    self->handleMKDealStream(
+                        protocol, cbor_stream, proposal.value());
+                  });
+            }
+          });
+    }
+
     /**
      * Handle incoming deal proposal stream
-     * @param stream
+     * @param protocol - what protocol is used to communicate to client
+     * @param stream - stream to client
+     * @param proposal - client deal proposal
      */
-    auto handleDealStream(const std::shared_ptr<CborStream> &stream) -> void;
+    void handleMKDealStream(const std::string &protocol,
+                            const std::shared_ptr<CborStream> &stream,
+                            const Proposal &proposal);
 
     /**
      * Verify client signature for deal proposal
@@ -117,10 +255,10 @@ namespace fc::markets::storage::provider {
 
     /**
      * Send signed response to storage deal proposal and close connection
-     * @param deal - state of deal
+     * @param deal_context
      */
     outcome::result<void> sendSignedResponse(
-        const std::shared_ptr<MinerDeal> &deal);
+        const std::shared_ptr<DealContext> &deal_context);
 
     /**
      * Locate piece for deal
@@ -169,10 +307,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_UNKNOWN
      * @param to    - STORAGE_DEAL_VALIDATING
      */
-    void onProviderEventOpen(const std::shared_ptr<MinerDeal> &deal,
-                             ProviderEvent event,
-                             StorageDealStatus from,
-                             StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventOpen);
 
     /**
      * @brief Handle event deal accepted
@@ -181,10 +316,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_VALIDATING
      * @param to    - STORAGE_DEAL_PROPOSAL_ACCEPTED
      */
-    void onProviderEventDealAccepted(const std::shared_ptr<MinerDeal> &deal,
-                                     ProviderEvent event,
-                                     StorageDealStatus from,
-                                     StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventDealAccepted);
 
     /**
      * @brief Handle event waiting for manual data
@@ -193,11 +325,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_PROPOSAL_ACCEPTED
      * @param to    - STORAGE_DEAL_WAITING_FOR_DATA
      */
-    void onProviderEventWaitingForManualData(
-        const std::shared_ptr<MinerDeal> &deal,
-        ProviderEvent event,
-        StorageDealStatus from,
-        StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventWaitingForManualData);
 
     /**
      * @brief Handle event funding initiated
@@ -206,10 +334,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_PROPOSAL_ACCEPTED
      * @param to    - STORAGE_DEAL_WAITING_FOR_DATA
      */
-    void onProviderEventFundingInitiated(const std::shared_ptr<MinerDeal> &deal,
-                                         ProviderEvent event,
-                                         StorageDealStatus from,
-                                         StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventFundingInitiated);
 
     /**
      * @brief Handle event funded
@@ -218,10 +343,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_PROPOSAL_ACCEPTED
      * @param to    - STORAGE_DEAL_WAITING_FOR_DATA
      */
-    void onProviderEventFunded(const std::shared_ptr<MinerDeal> &deal,
-                               ProviderEvent event,
-                               StorageDealStatus from,
-                               StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventFunded);
 
     /**
      * @brief Handle event data transfer initiated
@@ -230,11 +352,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_PROPOSAL_ACCEPTED
      * @param to    - STORAGE_DEAL_TRANSFERRING
      */
-    void onProviderEventDataTransferInitiated(
-        const std::shared_ptr<MinerDeal> &deal,
-        ProviderEvent event,
-        StorageDealStatus from,
-        StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventDataTransferInitiated);
 
     /**
      * @brief Handle event data transfer completed
@@ -243,11 +361,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_TRANSFERRING
      * @param to    - STORAGE_DEAL_VERIFY_DATA
      */
-    void onProviderEventDataTransferCompleted(
-        const std::shared_ptr<MinerDeal> &deal,
-        ProviderEvent event,
-        StorageDealStatus from,
-        StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventDataTransferCompleted);
 
     /**
      * @brief Handle event data verified
@@ -256,10 +370,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_VERIFY_DATA
      * @param to    - STORAGE_DEAL_FAILING
      */
-    void onProviderEventVerifiedData(const std::shared_ptr<MinerDeal> &deal,
-                                     ProviderEvent event,
-                                     StorageDealStatus from,
-                                     StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventVerifiedData);
 
     /**
      * @brief Handle event deal publish initiated
@@ -268,11 +379,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_VERIFY_DATA
      * @param to    - STORAGE_DEAL_FAILING
      */
-    void onProviderEventDealPublishInitiated(
-        const std::shared_ptr<MinerDeal> &deal,
-        ProviderEvent event,
-        StorageDealStatus from,
-        StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventDealPublishInitiated);
 
     /**
      * @brief Handle event deal published
@@ -281,10 +388,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_VERIFY_DATA or STORAGE_DEAL_WAITING_FOR_DATA
      * @param to    - STORAGE_DEAL_ENSURE_PROVIDER_FUNDS
      */
-    void onProviderEventDealPublished(const std::shared_ptr<MinerDeal> &deal,
-                                      ProviderEvent event,
-                                      StorageDealStatus from,
-                                      StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventDealPublished);
 
     /**
      * @brief Handle event handoff
@@ -293,10 +397,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_STAGED
      * @param to    - STORAGE_DEAL_SEALING
      */
-    void onProviderEventDealHandedOff(const std::shared_ptr<MinerDeal> &deal,
-                                      ProviderEvent event,
-                                      StorageDealStatus from,
-                                      StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventDealHandedOff);
 
     /**
      * @brief Handle event deal activation
@@ -305,10 +406,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_SEALING
      * @param to    - STORAGE_DEAL_ACTIVE
      */
-    void onProviderEventDealActivated(const std::shared_ptr<MinerDeal> &deal,
-                                      ProviderEvent event,
-                                      StorageDealStatus from,
-                                      StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventDealActivated);
 
     /**
      * @brief Handle event deal completed
@@ -317,10 +415,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_ACTIVE
      * @param to    - STORAGE_DEAL_FAILING
      */
-    void onProviderEventDealCompleted(const std::shared_ptr<MinerDeal> &deal,
-                                      ProviderEvent event,
-                                      StorageDealStatus from,
-                                      StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventDealCompleted);
 
     /**
      * @brief Handle event failed
@@ -329,10 +424,7 @@ namespace fc::markets::storage::provider {
      * @param from  - STORAGE_DEAL_FAILING
      * @param to    - STORAGE_DEAL_ERROR
      */
-    void onProviderEventFailed(const std::shared_ptr<MinerDeal> &deal,
-                               ProviderEvent event,
-                               StorageDealStatus from,
-                               StorageDealStatus to);
+    FSM_HANDLE_DEFINITION(onProviderEventFailed);
 
     /**
      * If error is present, closes connection and prints message

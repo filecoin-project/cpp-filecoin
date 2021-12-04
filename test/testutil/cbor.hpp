@@ -10,8 +10,6 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
-using fc::common::hex_upper;
-
 /** Check that:
  * - CBOR encoding value yields expected bytes;
  * - CBOR encoding value decoded from bytes yields same bytes;
@@ -19,6 +17,8 @@ using fc::common::hex_upper;
 template <typename T>
 void expectEncodeAndReencode(const T &value,
                              const std::vector<uint8_t> &expected_bytes) {
+  using fc::common::hex_upper;
+
   EXPECT_OUTCOME_TRUE(actual_bytes, fc::codec::cbor::encode(value));
   EXPECT_EQ(actual_bytes, expected_bytes)
       << "actual bytes: " << hex_upper(actual_bytes) << std::endl
