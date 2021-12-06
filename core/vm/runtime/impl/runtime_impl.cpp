@@ -256,7 +256,6 @@ namespace fc::vm::runtime {
       const WindowPoStVerifyInfo &info) {
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onVerifyPost(info)));
     WindowPoStVerifyInfo preprocess_info = info;
-    preprocess_info.randomness[31] &= 0x3f;
     return proofs_->verifyWindowPoSt(preprocess_info);
   }
 

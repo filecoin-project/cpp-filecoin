@@ -1053,9 +1053,6 @@ namespace fc::sector_storage {
     EXPECT_OUTCOME_TRUE(randomness,
                         PoStRandomness::fromString(std::string(32, '\xff')));
 
-    auto new_randomness = randomness;
-    new_randomness[31] &= 0x3f;
-
     std::vector<proofs::PoStProof> result = {{
         .registered_proof = post_proof,
         .proof = {1, 2, 3, 4, 5},
@@ -1122,8 +1119,7 @@ namespace fc::sector_storage {
 
     auto s = proofs::newSortedPrivateSectorInfo(private_sector);
 
-    EXPECT_CALL(*proof_engine_,
-                generateWinningPoSt(miner_id, s, new_randomness))
+    EXPECT_CALL(*proof_engine_, generateWinningPoSt(miner_id, s, randomness))
         .WillOnce(testing::Return(outcome::success(result)));
 
     EXPECT_OUTCOME_EQ(
@@ -1143,9 +1139,6 @@ namespace fc::sector_storage {
 
     EXPECT_OUTCOME_TRUE(randomness,
                         PoStRandomness::fromString(std::string(32, '\xff')));
-
-    auto new_randomness = randomness;
-    new_randomness[31] &= 0x3f;
 
     std::vector<proofs::PoStProof> result = {{
         .registered_proof = post_proof,
@@ -1236,9 +1229,6 @@ namespace fc::sector_storage {
 
     EXPECT_OUTCOME_TRUE(randomness,
                         PoStRandomness::fromString(std::string(32, '\xff')));
-
-    auto new_randomness = randomness;
-    new_randomness[31] &= 0x3f;
 
     std::vector<proofs::PoStProof> proof = {{
         .registered_proof = post_proof,
@@ -1332,7 +1322,7 @@ namespace fc::sector_storage {
 
     auto s = proofs::newSortedPrivateSectorInfo(private_sector);
 
-    EXPECT_CALL(*proof_engine_, generateWindowPoSt(miner_id, s, new_randomness))
+    EXPECT_CALL(*proof_engine_, generateWindowPoSt(miner_id, s, randomness))
         .WillOnce(testing::Return(outcome::success(proof)));
 
     EXPECT_OUTCOME_EQ(
