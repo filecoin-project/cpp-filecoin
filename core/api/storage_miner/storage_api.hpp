@@ -90,28 +90,6 @@ namespace fc::api {
     ChainEpoch on_time = {};
     ChainEpoch early = {};
   };
-  CBOR_TUPLE(ApiSectorInfo,
-             state,
-             sector_id,
-             sector_type,
-             comm_d,
-             comm_r,
-             proof,
-             deals,
-             pieces,
-             ticket,
-             seed,
-             precommit_message,
-             commit_message,
-             retries,
-             to_upgrade,
-             seal_proof,
-             activation,
-             expiration,
-             deal_weight,
-             verified_deal_weight,
-             initial_pledge,
-             on_time)
 
   constexpr ApiVersion kMinerApiVersion = makeApiVersion(1, 0, 0);
 

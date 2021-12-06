@@ -91,18 +91,12 @@ namespace fc::api {
             bool show_onchain_info) -> outcome::result<ApiSectorInfo> {
       OUTCOME_TRY(sector_info, miner->getSealing()->getSectorInfo(id));
 
-      std::vector<Piece> pieces{sector_info->pieces.size()};
-      std::vector<DealId> deals{sector_info->pieces.size()};
+      const auto &pieces{sector_info->pieces};
+      std::vector<DealId> deals;
+      deals.reserve(sector_info->pieces.size());
 
-      for (int i = 0; i < static_cast<int>(sector_info->pieces.size()); i++) {
-        pieces[i] = sector_info->pieces[i];
-        if (not(sector_info->pieces[i].deal_info)) {
-          continue;
-        }
-
-        deals[i] = sector_info->pieces[i].deal_info->deal_id;
-      }
-
+      for (const auto &piece : pieces) {
+        deals.push_back(piece.deal_info ? piece.deal_info->deal_id : 0);      }
       ApiSectorInfo api_sector_info{
           sector_info->state,
           id,
@@ -117,7 +111,8 @@ namespace fc::api {
           sector_info->precommit_message,
           sector_info->message,
           sector_info->invalid_proofs,
-          miner->getSealing()->isMarkedForUpgrade(id)};
+          miner->getSealing()->isMarkedForUpgrade(id),
+      };
       if (not show_onchain_info) {
         return api_sector_info;
       }
