@@ -76,7 +76,8 @@ namespace fc::markets::storage::provider {
         duration);
   }
 
-  outcome::result<SignedStorageAsk> StoredAsk::getAsk(const Address &address) {
+  outcome::result<SignedStorageAskV1_1_0> StoredAsk::getAsk(
+      const Address &address) {
     if (address != actor_) {
       return StoredAskError::kWrongAddress;
     }
@@ -87,13 +88,13 @@ namespace fc::markets::storage::provider {
     return last_signed_storage_ask_.value();
   }
 
-  outcome::result<SignedStorageAsk> StoredAsk::loadSignedAsk() {
+  outcome::result<SignedStorageAskV1_1_0> StoredAsk::loadSignedAsk() {
     OUTCOME_TRY(ask_bytes, datastore_->get(kBestAskKey));
-    OUTCOME_TRY(ask, codec::cbor::decode<SignedStorageAsk>(ask_bytes));
+    OUTCOME_TRY(ask, codec::cbor::decode<SignedStorageAskV1_1_0>(ask_bytes));
     return std::move(ask);
   }
 
-  outcome::result<boost::optional<SignedStorageAsk>>
+  outcome::result<boost::optional<SignedStorageAskV1_1_0>>
   StoredAsk::tryLoadSignedAsk() {
     if (not datastore_->contains(kBestAskKey)) {
       return boost::none;
@@ -102,21 +103,23 @@ namespace fc::markets::storage::provider {
     return std::move(ask);
   }
 
-  outcome::result<void> StoredAsk::saveSignedAsk(const SignedStorageAsk &ask) {
+  outcome::result<void> StoredAsk::saveSignedAsk(
+      const SignedStorageAskV1_1_0 &ask) {
     OUTCOME_TRY(cbored_ask, codec::cbor::encode(ask));
     OUTCOME_TRY(datastore_->put(kBestAskKey, std::move(cbored_ask)));
     last_signed_storage_ask_ = ask;
     return outcome::success();
   }
 
-  outcome::result<SignedStorageAsk> StoredAsk::signAsk(
+  outcome::result<SignedStorageAskV1_1_0> StoredAsk::signAsk(
       const StorageAsk &ask, const Tipset &chain_head) {
     OUTCOME_TRY(minfo, api_->StateMinerInfo(actor_, {}));
     OUTCOME_TRY(key_address,
                 api_->StateAccountKey(minfo.worker, chain_head.key));
-    OUTCOME_TRY(ask_bytes, codec::cbor::encode(ask));
-    OUTCOME_TRY(signature, api_->WalletSign(key_address, ask_bytes));
-    return SignedStorageAsk{.ask = ask, .signature = signature};
+    SignedStorageAskV1_1_0 signed_ask(ask);
+    OUTCOME_TRY(digest, signed_ask.getDigest());
+    OUTCOME_TRYA(signed_ask.signature, api_->WalletSign(key_address, digest));
+    return std::move(signed_ask);
   }
 
 }  // namespace fc::markets::storage::provider

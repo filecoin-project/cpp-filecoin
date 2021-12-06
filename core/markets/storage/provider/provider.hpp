@@ -10,7 +10,8 @@
 #include <string>
 
 #include "common/outcome.hpp"
-#include "markets/storage/deal_protocol.hpp"
+#include "markets/storage/mk_protocol.hpp"
+#include "markets/storage/provider/miner_deal.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
 #include "primitives/cid/cid.hpp"
 

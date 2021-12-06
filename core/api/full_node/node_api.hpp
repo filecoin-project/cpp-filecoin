@@ -14,7 +14,7 @@
 #include "markets/retrieval/types.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/client/import_manager/import_manager.hpp"
-#include "markets/storage/deal_protocol.hpp"
+#include "markets/storage/mk_protocol.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -36,7 +36,7 @@ namespace fc::api {
   using libp2p::peer::PeerId;
   using markets::retrieval::RetrievalPeer;
   using markets::storage::DataRef;
-  using markets::storage::SignedStorageAsk;
+  using markets::storage::SignedStorageAskV1_1_0;
   using markets::storage::StorageDeal;
   using markets::storage::StorageDealStatus;
   using markets::storage::client::import_manager::Import;
@@ -408,7 +408,7 @@ namespace fc::api {
      */
     API_METHOD(ClientQueryAsk,
                jwt::kReadPermission,
-               SignedStorageAsk,
+               SignedStorageAskV1_1_0,
                const std::string &,
                const Address &)
 

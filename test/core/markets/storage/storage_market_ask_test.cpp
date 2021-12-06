@@ -23,22 +23,22 @@ namespace fc::markets::storage::test {
     ChainEpoch duration = 2334;
     EXPECT_OUTCOME_TRUE_1(stored_ask->addAsk(provider_price, duration));
 
-    std::promise<outcome::result<SignedStorageAsk>> promise_ask_res;
+    std::promise<outcome::result<StorageAsk>> promise_ask_res;
     client->getAsk(*storage_provider_info,
-                   [&](outcome::result<SignedStorageAsk> ask_res) {
+                   [&](const outcome::result<StorageAsk> &ask_res) {
                      promise_ask_res.set_value(ask_res);
                    });
     auto future = promise_ask_res.get_future();
     waitForAskResponse(future);
     auto ask_res = future.get();
     EXPECT_TRUE(ask_res.has_value());
-    EXPECT_EQ(ask_res.value().ask.price, provider_price);
-    EXPECT_EQ(ask_res.value().ask.min_piece_size, kDefaultMinPieceSize);
-    EXPECT_EQ(ask_res.value().ask.max_piece_size, kDefaultMaxPieceSize);
-    EXPECT_EQ(ask_res.value().ask.miner, storage_provider_info->address);
-    EXPECT_EQ(ask_res.value().ask.timestamp, chain_head->height());
-    EXPECT_EQ(ask_res.value().ask.expiry, chain_head->height() + duration);
-    EXPECT_EQ(ask_res.value().ask.seq_no, 1);
+    EXPECT_EQ(ask_res.value().price, provider_price);
+    EXPECT_EQ(ask_res.value().min_piece_size, kDefaultMinPieceSize);
+    EXPECT_EQ(ask_res.value().max_piece_size, kDefaultMaxPieceSize);
+    EXPECT_EQ(ask_res.value().miner, storage_provider_info->address);
+    EXPECT_EQ(ask_res.value().timestamp, chain_head->height());
+    EXPECT_EQ(ask_res.value().expiry, chain_head->height() + duration);
+    EXPECT_EQ(ask_res.value().seq_no, 1);
   }
 
   /**
@@ -58,9 +58,9 @@ namespace fc::markets::storage::test {
     ChainEpoch duration = 2334;
     EXPECT_OUTCOME_TRUE_1(stored_ask->addAsk(provider_price, duration));
 
-    std::promise<outcome::result<SignedStorageAsk>> promise_ask_res;
+    std::promise<outcome::result<StorageAsk>> promise_ask_res;
     client->getAsk(*storage_provider_info,
-                   [&](outcome::result<SignedStorageAsk> ask_res) {
+                   [&](const outcome::result<StorageAsk> &ask_res) {
                      promise_ask_res.set_value(ask_res);
                    });
     auto future = promise_ask_res.get_future();

@@ -49,7 +49,7 @@ namespace fc::markets::storage::provider {
     auto addAsk(const TokenAmount &price, ChainEpoch duration)
         -> outcome::result<void>;
 
-    auto getAsk(const Address &address) -> outcome::result<SignedStorageAsk>;
+    auto getAsk(const Address &address) -> outcome::result<SignedStorageAskV1_1_0>;
 
    private:
     StoredAsk(std::shared_ptr<Datastore> datastore,
@@ -59,21 +59,21 @@ namespace fc::markets::storage::provider {
     /**
      * Loads last storage ask or creates default one
      */
-    auto loadSignedAsk() -> outcome::result<SignedStorageAsk>;
+    auto loadSignedAsk() -> outcome::result<SignedStorageAskV1_1_0>;
 
     auto tryLoadSignedAsk()
-        -> outcome::result<boost::optional<SignedStorageAsk>>;
+        -> outcome::result<boost::optional<SignedStorageAskV1_1_0>>;
 
     /**
      * Saves last storage ask to datastore
      * @param ask to save
      */
-    auto saveSignedAsk(const SignedStorageAsk &ask) -> outcome::result<void>;
+    auto saveSignedAsk(const SignedStorageAskV1_1_0 &ask) -> outcome::result<void>;
 
     auto signAsk(const StorageAsk &ask, const Tipset &chain_head)
-        -> outcome::result<SignedStorageAsk>;
+        -> outcome::result<SignedStorageAskV1_1_0>;
 
-    boost::optional<SignedStorageAsk> last_signed_storage_ask_;
+    boost::optional<SignedStorageAskV1_1_0> last_signed_storage_ask_;
     std::shared_ptr<Datastore> datastore_;
     std::shared_ptr<FullNodeApi> api_;
     Address actor_;
