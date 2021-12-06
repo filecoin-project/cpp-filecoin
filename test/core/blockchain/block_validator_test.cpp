@@ -11,6 +11,7 @@
 #include "cbor_blake/memory.hpp"
 #include "const.hpp"
 #include "primitives/tipset/chain.hpp"
+#include "proofs/proof_param_provider.hpp"
 #include "storage/car/car.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/resources/resources.hpp"
@@ -18,9 +19,15 @@
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::blockchain::block_validator {
+  using proofs::ProofParamProvider;
   using storage::InMemoryStorage;
 
   TEST(BlockValidator, Interopnet) {
+    const auto params{ProofParamProvider::readJson(
+                          "/var/tmp/filecoin-proof-parameters/parameters.json")
+                          .value()};
+    ProofParamProvider::getParams(params, 0).value();
+
     setParamsInteropnet();
     vm::actor::cgo::configParams();
 

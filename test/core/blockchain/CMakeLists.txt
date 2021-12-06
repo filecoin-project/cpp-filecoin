@@ -10,4 +10,5 @@ target_link_libraries(block_validator_test
     block_validator
     car
     in_memory_storage
+    proof_param_provider
     )
