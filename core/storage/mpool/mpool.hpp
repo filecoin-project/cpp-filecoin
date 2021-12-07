@@ -171,15 +171,18 @@ namespace fc::storage::mpool {
     std::mutex publishing_mutex_;
 
     mutable lru_cache<CID, Signature> bls_cache{0};
+    mutable std::mutex bls_cache_mutex_;
+
     boost::signals2::signal<Subscriber> signal;
     mutable std::default_random_engine generator;
     mutable std::normal_distribution<> distribution;
+
     // cache of resolved addresses
     mutable lru_cache<Address, Address> resolved_cache_{kResolvedCacheSize};
-
-    mutable std::shared_mutex local_addresses_mutex_;
+    mutable std::mutex resolved_cache_mutex_;
 
     lru_cache<Address, Empty> local_addresses_{kLocalAddressesCacheSize};
+    mutable std::shared_mutex local_addresses_mutex_;
 
     common::Logger logger_;
   };
