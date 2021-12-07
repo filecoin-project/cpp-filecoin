@@ -541,6 +541,7 @@ namespace fc::storage::mpool {
           [&](auto, auto bls, auto &cid, auto *smsg, auto *msg)
               -> outcome::result<void> {
             if (bls) {
+              std::lock_guard bls_cache_lock{bls_cache_mutex_};
               if (auto sig{bls_cache.get(cid)}) {
                 mpool::add(pending, {*msg, *sig});
               }
@@ -760,6 +761,7 @@ namespace fc::storage::mpool {
 
   outcome::result<void> MessagePool::add(const SignedMessage &message) {
     if (message.signature.isBls()) {
+      std::lock_guard bls_cache_lock{bls_cache_mutex_};
       bls_cache.insert(message.getCid(), message.signature);
     }
     OUTCOME_TRY(setCbor(ipld, message));
@@ -792,6 +794,7 @@ namespace fc::storage::mpool {
               remove(msg->from, msg->nonce);
             } else {
               if (bls) {
+                std::lock_guard bls_cache_lock{bls_cache_mutex_};
                 if (auto sig{bls_cache.get(cid)}) {
                   OUTCOME_TRY(add({*msg, *sig}));
                 }
@@ -833,9 +836,11 @@ namespace fc::storage::mpool {
     if (!address.isId()) {
       return ERROR_TEXT("Cannot resolve actor address to key address.");
     }
+    std::unique_lock resloved_cache_lock{resolved_cache_mutex_};
     if (auto resolved{resolved_cache_.get(address)}) {
       return *resolved;
     }
+    resloved_cache_lock.unlock();
 
     std::shared_lock head_lock(head_mutex_);
     ChainEpoch height = head_->height();
@@ -846,6 +851,7 @@ namespace fc::storage::mpool {
       const auto maybe_resolved =
           resolveKeyAtHeight(address, height - kChainFinality, ts_branch);
       if (maybe_resolved) {
+        std::lock_guard resloved_cache_lock_guard{resolved_cache_mutex_};
         resolved_cache_.insert(address, maybe_resolved.value());
         return maybe_resolved.value();
       }
