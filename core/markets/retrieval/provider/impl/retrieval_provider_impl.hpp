@@ -10,6 +10,7 @@
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
+#include "markets/common.hpp"
 #include "markets/retrieval/protocols/query_protocol.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "markets/retrieval/provider/retrieval_provider.hpp"
@@ -91,7 +92,31 @@ namespace fc::markets::retrieval::provider {
      * Handle query stream
      * @param stream - cbor stream
      */
-    void handleQuery(const std::shared_ptr<CborStream> &stream);
+    template <typename QueryType, typename ResponseType>
+    void handleQuery(const std::shared_ptr<CborStream> &stream) {
+      stream->read<QueryType>(
+          [self{shared_from_this()}, stream](auto request_res) {
+            if (request_res.has_error()) {
+              self->respondErrorQueryResponse<ResponseType>(
+                  stream, request_res.error().message());
+              return;
+            }
+            auto response_res = self->makeQueryResponse(request_res.value());
+            if (response_res.has_error()) {
+              self->respondErrorQueryResponse<ResponseType>(
+                  stream, response_res.error().message());
+              return;
+            }
+            stream->write(ResponseType{response_res.value()},
+                          [self, stream](auto written) {
+                            if (written.has_error()) {
+                              self->logger_->error("Error while error response "
+                                                   + written.error().message());
+                            }
+                            closeStreamGracefully(stream, self->logger_);
+                          });
+          });
+    }
 
     /**
      * Look for piece by cid and make response
@@ -105,8 +130,21 @@ namespace fc::markets::retrieval::provider {
      * @param stream to send and close
      * @param message error to send
      */
+    template <typename ResponseType>
     void respondErrorQueryResponse(const std::shared_ptr<CborStream> &stream,
-                                   const std::string &message);
+                                   const std::string &message) {
+      ResponseType response;
+      response.response_status = QueryResponseStatus::kQueryResponseError;
+      response.item_status = QueryItemStatus::kQueryItemUnknown;
+      response.message = message;
+      stream->write(response, [self{shared_from_this()}, stream](auto written) {
+        if (written.has_error()) {
+          self->logger_->error("Error while error response "
+                               + written.error().message());
+        }
+        closeStreamGracefully(stream, self->logger_);
+      });
+    }
 
     /**
      * Unseal sector

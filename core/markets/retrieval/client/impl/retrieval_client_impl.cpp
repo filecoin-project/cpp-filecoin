@@ -45,18 +45,20 @@ namespace fc::markets::retrieval::client {
                                   const QueryResponseHandler &cb) {
     OUTCOME_CB(auto peer, getPeerInfo(provider_peer));
     host_->newStream(
-        peer, kQueryProtocolId, [=, self{shared_from_this()}](auto stream_res) {
+        peer,
+        kQueryProtocolIdV1_0_0,
+        [=, self{shared_from_this()}](auto stream_res) {
           OUTCOME_CB1(stream_res);
           self->logger_->debug("connected to provider ID "
                                + peerInfoToPrettyString(peer));
           auto stream{std::make_shared<CborStream>(stream_res.value())};
-          stream->write(request, [=](auto written_res) {
+          stream->write(QueryRequestV1_0_0{request}, [=](auto written_res) {
             if (written_res.has_error()) {
               stream->close();
               cb(written_res.error());
               return;
             }
-            stream->template read<QueryResponse>([=](auto response) {
+            stream->template read<QueryResponseV1_0_0>([=](auto response) {
               stream->close();
               cb(std::move(response));
             });

@@ -8,7 +8,6 @@
 #include <boost/filesystem.hpp>
 
 #include "common/libp2p/peer/peer_info_helper.hpp"
-#include "markets/common.hpp"
 #include "markets/storage/types.hpp"
 #include "storage/piece/impl/piece_storage_error.hpp"
 
@@ -310,12 +309,22 @@ namespace fc::markets::retrieval::provider {
 
   void RetrievalProviderImpl::start() {
     host_->setProtocolHandler(
-        kQueryProtocolId, [_self{weak_from_this()}](auto stream) {
+        kQueryProtocolIdV0_0_1, [_self{weak_from_this()}](auto stream) {
           auto self{_self.lock()};
           if (!self) {
             return;
           }
-          self->handleQuery(std::make_shared<CborStream>(stream));
+          self->handleQuery<QueryRequestV0_0_1, QueryResponseV0_0_1>(
+              std::make_shared<CborStream>(stream));
+        });
+    host_->setProtocolHandler(
+        kQueryProtocolIdV1_0_0, [_self{weak_from_this()}](auto stream) {
+          auto self{_self.lock()};
+          if (!self) {
+            return;
+          }
+          self->handleQuery<QueryRequestV1_0_0, QueryResponseV1_0_0>(
+              std::make_shared<CborStream>(stream));
         });
     logger_->info("has been launched with ID "
                   + peerInfoToPrettyString(host_->getPeerInfo()));
@@ -329,29 +338,6 @@ namespace fc::markets::retrieval::provider {
       uint64_t payment_interval, uint64_t payment_interval_increase) {
     config_.payment_interval = payment_interval;
     config_.interval_increase = payment_interval_increase;
-  }
-
-  void RetrievalProviderImpl::handleQuery(
-      const std::shared_ptr<CborStream> &stream) {
-    stream->read<QueryRequest>([self{shared_from_this()},
-                                stream](auto request_res) {
-      if (request_res.has_error()) {
-        self->respondErrorQueryResponse(stream, request_res.error().message());
-        return;
-      }
-      auto response_res = self->makeQueryResponse(request_res.value());
-      if (response_res.has_error()) {
-        self->respondErrorQueryResponse(stream, response_res.error().message());
-        return;
-      }
-      stream->write(response_res.value(), [self, stream](auto written) {
-        if (written.has_error()) {
-          self->logger_->error("Error while error response "
-                               + written.error().message());
-        }
-        closeStreamGracefully(stream, self->logger_);
-      });
-    });
   }
 
   outcome::result<QueryResponse> RetrievalProviderImpl::makeQueryResponse(
@@ -379,21 +365,6 @@ namespace fc::markets::retrieval::provider {
         .min_price_per_byte = config_.price_per_byte,
         .payment_interval = config_.payment_interval,
         .interval_increase = config_.interval_increase};
-  }
-
-  void RetrievalProviderImpl::respondErrorQueryResponse(
-      const std::shared_ptr<CborStream> &stream, const std::string &message) {
-    QueryResponse response;
-    response.response_status = QueryResponseStatus::kQueryResponseError;
-    response.item_status = QueryItemStatus::kQueryItemUnknown;
-    response.message = message;
-    stream->write(response, [self{shared_from_this()}, stream](auto written) {
-      if (written.has_error()) {
-        self->logger_->error("Error while error response "
-                             + written.error().message());
-      }
-      closeStreamGracefully(stream, self->logger_);
-    });
   }
 
   outcome::result<void> RetrievalProviderImpl::unsealSector(

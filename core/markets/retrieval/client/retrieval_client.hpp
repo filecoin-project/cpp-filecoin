@@ -17,7 +17,7 @@
 namespace fc::markets::retrieval::client {
   using libp2p::peer::PeerInfo;
   using QueryResponseHandler =
-      std::function<void(outcome::result<QueryResponse>)>;
+      std::function<void(outcome::result<QueryResponseV1_0_0>)>;
   using RetrieveResponseHandler = std::function<void(outcome::result<void>)>;
 
   /*
