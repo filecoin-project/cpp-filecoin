@@ -33,14 +33,14 @@ namespace fc::markets::retrieval::client {
    * State of ongoing retrieval deal.
    */
   struct DealState {
-    DealState(const DealProposal &proposal,
+    DealState(const DealProposalV1_0_0 &proposal,
               const IpldPtr &ipld,
               RetrieveResponseHandler handler,
               Address client_wallet,
               Address miner_wallet,
               TokenAmount total_funds);
 
-    DealProposal proposal;
+    DealProposalV1_0_0 proposal;
     State state;
     PeerDtId pdtid;
     bool accepted{}, all_blocks{};

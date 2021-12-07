@@ -9,7 +9,7 @@
 #include "common/libp2p/peer/peer_info_helper.hpp"
 
 namespace fc::markets::retrieval::client {
-  DealState::DealState(const DealProposal &proposal,
+  DealState::DealState(const DealProposalV1_0_0 &proposal,
                        const IpldPtr &ipld,
                        RetrieveResponseHandler handler,
                        Address client_wallet,
@@ -82,9 +82,7 @@ namespace fc::markets::retrieval::client {
       const Address &client_wallet,
       const Address &miner_wallet,
       const RetrieveResponseHandler &handler) {
-    DealProposal::Named proposal{{.payload_cid = payload_cid,
-                                  .deal_id = next_deal_id++,
-                                  .params = deal_params}};
+    DealProposalV1_0_0 proposal{payload_cid, next_deal_id++, deal_params};
     auto deal{std::make_shared<DealState>(
         proposal, ipfs_, handler, client_wallet, miner_wallet, total_funds)};
     OUTCOME_TRY(peer_info, getPeerInfo(provider_peer));
@@ -92,7 +90,7 @@ namespace fc::markets::retrieval::client {
         peer_info,
         payload_cid,
         deal_params.selector,
-        DealProposal::Named::type,
+        DealProposalV1_0_0::type,
         codec::cbor::encode(proposal).value(),
         [this, deal](auto &type, auto voucher) {
           onPullData(deal, type, voucher);
@@ -105,7 +103,7 @@ namespace fc::markets::retrieval::client {
   void RetrievalClientImpl::onPullData(const std::shared_ptr<DealState> &deal,
                                        const std::string &type,
                                        BytesIn voucher) {
-    OUTCOME_EXCEPT(res, codec::cbor::decode<DealResponse::Named>(voucher));
+    OUTCOME_EXCEPT(res, codec::cbor::decode<DealResponseV1_0_0>(voucher));
     auto after{[=](auto &res) {
       if (res.status == DealStatus::kDealStatusCompleted) {
         deal->handler(outcome::success());

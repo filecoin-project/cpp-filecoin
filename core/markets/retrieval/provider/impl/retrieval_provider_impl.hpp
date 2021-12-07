@@ -23,6 +23,8 @@
 namespace fc::markets::retrieval::provider {
   using common::libp2p::CborStream;
   using data_transfer::DataTransfer;
+  using data_transfer::DataTransferMessage;
+  using data_transfer::DataTransferResponse;
   using data_transfer::PeerDtId;
   using data_transfer::PeerGsId;
   using ::fc::miner::Miner;
@@ -33,19 +35,22 @@ namespace fc::markets::retrieval::provider {
   using ::fc::storage::piece::PieceStorage;
   using libp2p::Host;
   using primitives::BigInt;
+  using primitives::DealId;
   using primitives::SectorNumber;
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedPieceSize;
   using GsResStatus = ::fc::storage::ipfs::graphsync::ResponseStatusCode;
 
   struct DealState {
-    DealState(PeerDtId pdtid, PeerGsId pgsid, const DealProposal &proposal)
-        : proposal{proposal},
-          state{proposal.params},
+    DealState(PeerDtId pdtid,
+              PeerGsId pgsid,
+              std::shared_ptr<DealProposal> proposal)
+        : proposal{std::move(proposal)},
+          state{this->proposal->params},
           pdtid{std::move(pdtid)},
           pgsid{std::move(pgsid)} {}
 
-    DealProposal proposal;
+    std::shared_ptr<DealProposal> proposal;
     State state;
     PeerDtId pdtid;
     PeerGsId pgsid;
@@ -68,22 +73,8 @@ namespace fc::markets::retrieval::provider {
 
     RetrievalAsk getAsk() const override;
     void setAsk(const RetrievalAsk &ask) override;
-
-    void onProposal(const PeerDtId &pdtid,
-                    const PeerGsId &pgsid,
-                    const DealProposal &proposal);
-    void onPayment(const std::shared_ptr<DealState> &deal,
-                   const DealPayment &payment);
-    void doUnseal(const std::shared_ptr<DealState> &deal);
-    void doBlocks(const std::shared_ptr<DealState> &deal);
-    void doComplete(const std::shared_ptr<DealState> &deal);
-    bool hasOwed(const std::shared_ptr<DealState> &deal);
-    void doFail(const std::shared_ptr<DealState> &deal, std::string error);
-
     void start() override;
-
     void setPricePerByte(TokenAmount amount) override;
-
     void setPaymentInterval(uint64_t payment_interval,
                             uint64_t payment_interval_increase) override;
 
@@ -145,6 +136,84 @@ namespace fc::markets::retrieval::provider {
         closeStreamGracefully(stream, self->logger_);
       });
     }
+
+    void onProposal(const PeerDtId &pdtid,
+                    const PeerGsId &pgsid,
+                    const std::shared_ptr<DealProposal> &proposal);
+    void onPayment(const std::shared_ptr<DealState> &deal,
+                   const DealPayment &payment);
+
+    template <typename DealResponseType>
+    void acceptDataTransferPoolWithResponse(const PeerDtId &pdtid,
+                                            const PeerGsId &pgsid,
+                                            DealResponse deal_response) {
+      datatransfer_->acceptPull(
+          pdtid,
+          pgsid,
+          DealResponseType::type,
+          codec::cbor::encode(DealResponseType{deal_response}).value());
+    }
+
+    void acceptDatatransferPull(const std::string &protocol,
+                                const PeerDtId &pdtid,
+                                const PeerGsId &pgsid,
+                                const DealResponse &deal_response);
+
+    template <typename DealResponseType>
+    void respondDataTransferWithResponse(const PeerDtId &pdtid,
+                                         const PeerGsId &pgsid,
+                                         bool full_content,
+                                         const DealResponse &deal_response) {
+      datatransfer_->gs->postResponse(
+          pgsid,
+          {full_content ? GsResStatus::RS_FULL_CONTENT
+                        : GsResStatus::RS_PARTIAL_RESPONSE,
+           {DataTransfer::makeExt(DataTransferMessage{DataTransferResponse{
+               full_content ? data_transfer::MessageType::kCompleteMessage
+                            : data_transfer::MessageType::kVoucherResultMessage,
+               true,
+               false,
+               pdtid.id,
+               CborRaw{codec::cbor::encode<DealResponseType>({deal_response})
+                           .value()},
+               DealResponseType::type,
+           }})},
+           {}});
+    }
+
+    void respondDataTransfer(const std::string &protocol,
+                             const PeerDtId &pdtid,
+                             const PeerGsId &pgsid,
+                             bool full_content,
+                             const DealResponse &deal_response);
+
+    template <typename DealResponseType>
+    void rejectDataTransferWithResponse(const PeerDtId &pdtid,
+                                        const PeerGsId &pgsid,
+                                        DealId deal_id,
+                                        DealStatus status,
+                                        const std::string &message) {
+      datatransfer_->rejectPull(
+          pdtid,
+          pgsid,
+          DealResponseType::type,
+          CborRaw{codec::cbor::encode(
+                      DealResponseType{{status, deal_id, {}, message}})
+                      .value()});
+    }
+
+    void rejectDatatransferPull(const std::string &protocol,
+                                const PeerDtId &pdtid,
+                                const PeerGsId &pgsid,
+                                primitives::DealId deal_id,
+                                DealStatus status,
+                                const std::string &message);
+    void doUnseal(const std::shared_ptr<DealState> &deal);
+    void doBlocks(const std::shared_ptr<DealState> &deal);
+    void doComplete(const std::shared_ptr<DealState> &deal);
+    bool hasOwed(const std::shared_ptr<DealState> &deal);
+    void doFail(const std::shared_ptr<DealState> &deal,
+                const std::string &error);
 
     /**
      * Unseal sector
