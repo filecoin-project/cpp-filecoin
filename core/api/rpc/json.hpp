@@ -944,8 +944,8 @@ namespace fc::api {
 
     ENCODE(DealInfo) {
       Value j{rapidjson::kObjectType};
-      Set(j, "PublishCID", v.publish_cid);
-      Set(j, "DealId", v.deal_id);
+      Set(j, "PublishCid", v.publish_cid);
+      Set(j, "DealID", v.deal_id);
       Set(j, "DealProposal", v.deal_proposal);
       Set(j, "DealSchedule", v.deal_schedule);
       Set(j, "KeepUnsealed", v.is_keep_unsealed);
@@ -1097,7 +1097,7 @@ namespace fc::api {
 
     ENCODE(ApiSectorInfo) {
       Value j{rapidjson::kObjectType};
-      Set(j, "SectorId", v.sector_id);
+      Set(j, "SectorID", v.sector_id);
       Set(j, "State", v.state);
       Set(j, "CommD", v.comm_d);
       Set(j, "CommR", v.comm_r);
