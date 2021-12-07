@@ -953,8 +953,8 @@ namespace fc::api {
     }
 
     DECODE(DealInfo) {
-      Get(j, "PublishCID", v.publish_cid);
-      Get(j, "DealId", v.deal_id);
+      Get(j, "PublishCid", v.publish_cid);
+      Get(j, "DealID", v.deal_id);
       Get(j, "DealProposal", v.deal_proposal);
       Get(j, "DealSchedule", v.deal_schedule);
       Get(j, "KeepUnsealed", v.is_keep_unsealed);
@@ -1122,7 +1122,7 @@ namespace fc::api {
     }
 
     DECODE(ApiSectorInfo) {
-      Get(j, "SectorId", v.sector_id);
+      Get(j, "SectorID", v.sector_id);
       Get(j, "State", v.state);
       Get(j, "CommD", v.comm_d);
       Get(j, "CommR", v.comm_r);

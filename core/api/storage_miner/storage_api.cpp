@@ -96,7 +96,8 @@ namespace fc::api {
       deals.reserve(sector_info->pieces.size());
 
       for (const auto &piece : pieces) {
-        deals.push_back(piece.deal_info ? piece.deal_info->deal_id : 0);      }
+        deals.push_back(piece.deal_info ? piece.deal_info->deal_id : 0);
+      }
       ApiSectorInfo api_sector_info{
           sector_info->state,
           id,
