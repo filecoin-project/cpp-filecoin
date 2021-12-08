@@ -9,6 +9,8 @@
 #include <gsl/span>
 #include <vector>
 
+#include "common/cmp.hpp"
+
 namespace fc {
   // TODO(ortyomka): [FIL-425] separate class if it will growth
   using Bytes = std::vector<uint8_t>;
@@ -46,6 +48,8 @@ namespace gsl {
   inline bool operator==(const fc::BytesIn &l, const fc::Bytes &r) {
     return l == fc::BytesIn{r};
   }
+  FC_OPERATOR_NOT_EQUAL_2(fc::Bytes, fc::BytesIn)
+  FC_OPERATOR_NOT_EQUAL_2(fc::BytesIn, fc::Bytes)
 
   inline bool operator<(const fc::Bytes &l, const fc::BytesIn &r) {
     return fc::BytesIn{l} < r;

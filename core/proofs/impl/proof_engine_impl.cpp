@@ -38,6 +38,11 @@ namespace fc::proofs {
   using primitives::sector::RegisteredAggregationProof;
   using sector_storage::zerocomm::getZeroPieceCommitment;
 
+  inline auto rand31(PoStRandomness rand) {
+    rand[31] &= 0x3f;
+    return rand;
+  }
+
   outcome::result<WriteWithoutAlignmentResult> cppWriteWithoutAlignmentResult(
       const fil_WriteWithoutAlignmentResponse &response) {
     WriteWithoutAlignmentResult result;
@@ -739,18 +744,16 @@ namespace fc::proofs {
       ActorId miner_id,
       const PoStRandomness &randomness,
       uint64_t eligible_sectors_len) {
-    auto rand31{randomness};
-    rand31[31] &= 0x3f;
-
     OUTCOME_TRY(c_proof_type, cRegisteredPoStProof(proof_type));
     auto prover_id = toProverID(miner_id);
 
-    auto res_ptr = ffi::wrap(
-        fil_generate_winning_post_sector_challenge(c_proof_type,
-                                                   c32ByteArray(rand31),
-                                                   eligible_sectors_len,
-                                                   prover_id),
-        fil_destroy_generate_winning_post_sector_challenge);
+    auto res_ptr =
+        ffi::wrap(fil_generate_winning_post_sector_challenge(
+                      c_proof_type,
+                      c32ByteArray(rand31(randomness)),
+                      eligible_sectors_len,
+                      prover_id),
+                  fil_destroy_generate_winning_post_sector_challenge);
     PROOFS_TRY("generateWinningPoStSectorChallenge");
     return ChallengeIndexes(res_ptr->ids_ptr,
                             res_ptr->ids_ptr + res_ptr->ids_len);  // NOLINT
@@ -760,25 +763,13 @@ namespace fc::proofs {
       ActorId miner_id,
       const SortedPrivateSectorInfo &private_replica_info,
       const PoStRandomness &randomness) {
-    static bool fake{[] {
-      const auto fake_proof_env{getenv("FAKE_POST")};
-      return fake_proof_env && std::string_view{fake_proof_env} == "1";
-    }()};
-    if (fake) {
-      std::vector<primitives::sector::PoStProof> result;
-      auto &post_proof{result.emplace_back()};
-      constexpr std::string_view kFakeValidProof{"valid proof"};
-      post_proof.proof.assign(kFakeValidProof.begin(), kFakeValidProof.end());
-      return result;
-    }
-
     OUTCOME_TRY(
         c_sorted_private_sector_info,
         cPrivateReplicasInfo(private_replica_info.values, PoStType::Winning));
 
     auto prover_id = toProverID(miner_id);
     auto res_ptr =
-        ffi::wrap(fil_generate_winning_post(c32ByteArray(randomness),
+        ffi::wrap(fil_generate_winning_post(c32ByteArray(rand31(randomness)),
                                             c_sorted_private_sector_info.data(),
                                             c_sorted_private_sector_info.size(),
                                             prover_id),
@@ -798,7 +789,7 @@ namespace fc::proofs {
 
     auto prover_id = toProverID(miner_id);
     auto res_ptr =
-        ffi::wrap(fil_generate_window_post(c32ByteArray(randomness),
+        ffi::wrap(fil_generate_window_post(c32ByteArray(rand31(randomness)),
                                            c_sorted_private_sector_info.data(),
                                            c_sorted_private_sector_info.size(),
                                            prover_id),
@@ -817,7 +808,7 @@ namespace fc::proofs {
     auto prover_id = toProverID(info.prover);
 
     auto res_ptr =
-        ffi::wrap(fil_verify_winning_post(c32ByteArray(info.randomness),
+        ffi::wrap(fil_verify_winning_post(c32ByteArray(rand31(info.randomness)),
                                           c_public_replica_infos.data(),
                                           c_public_replica_infos.size(),
                                           c_post_proofs.data(),
@@ -836,7 +827,7 @@ namespace fc::proofs {
     auto prover_id = toProverID(info.prover);
 
     auto res_ptr =
-        ffi::wrap(fil_verify_window_post(c32ByteArray(info.randomness),
+        ffi::wrap(fil_verify_window_post(c32ByteArray(rand31(info.randomness)),
                                          c_public_replica_infos.data(),
                                          c_public_replica_infos.size(),
                                          c_post_proofs.data(),

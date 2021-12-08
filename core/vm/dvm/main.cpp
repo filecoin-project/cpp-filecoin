@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
               std::make_shared<storage::InMemoryStorage>(),
               std::make_shared<AnyAsCbIpld>(envx.ipld));
       envx.circulating = vm::Circulating::make(envx.ipld, genesis_cid).value();
-      vm::interpreter::InterpreterImpl vmi{envx, nullptr};
+      vm::interpreter::InterpreterImpl vmi{envx, nullptr, nullptr};
 
       const auto head_tsk{
           *TipsetKey::make(storage::car::readHeader(car_path).value())};

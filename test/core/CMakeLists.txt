@@ -16,7 +16,6 @@ add_subdirectory(markets)
 add_subdirectory(miner)
 add_subdirectory(node)
 add_subdirectory(paych)
-add_subdirectory(power)
 add_subdirectory(primitives)
 
 if (TESTING_PROOFS)

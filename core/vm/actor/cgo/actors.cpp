@@ -205,7 +205,6 @@ namespace fc::vm::actor::cgo {
   RUNTIME_METHOD(gocRtVerifyPost) {
     auto info{arg.get<WindowPoStVerifyInfo>()};
     if (charge(ret, rt, rt->execution()->env->pricelist.onVerifyPost(info))) {
-      info.randomness[31] &= 0x3f;
       auto r{proofs->verifyWindowPoSt(info)};
       ret << kOk << (r && r.value());
     }

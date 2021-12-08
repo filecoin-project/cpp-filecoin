@@ -18,6 +18,8 @@ namespace fc {
   using primitives::sector::RegisteredSealProof;
   using namespace vm::actor::builtin::types;
 
+  DEFINE(kFakeWinningPost){};
+
   // Initialize parameters with mainnet values
   DEFINE(kEpochDurationSeconds){30};
   DEFINE(kEpochsInHour){kSecondsInHour / kEpochDurationSeconds};

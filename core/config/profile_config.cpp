@@ -59,6 +59,10 @@ namespace fc::config {
         "update heights, network delays and etc. Supported profiles: \n"
         " * 'mainnet'\n"
         " * '2k'\n");
+    optionsDescription.add_options()(
+        "fake-winning-post",
+        boost::program_options::bool_switch()->notifier(
+            [](bool fake) { kFakeWinningPost = fake; }));
 
     return optionsDescription;
   }

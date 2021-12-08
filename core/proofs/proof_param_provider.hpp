@@ -8,8 +8,8 @@
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
 #include "gsl/span"
-#include "proofs/proof_param_provider_error.hpp"
 #include "proof_param_provider_error.hpp"
+#include "proofs/proof_param_provider_error.hpp"
 
 namespace fc::proofs {
 
@@ -23,7 +23,7 @@ namespace fc::proofs {
   class ProofParamProvider {
    public:
     static outcome::result<void> getParams(
-        const gsl::span<ParamFile> &param_files, uint64_t storage_size);
+        const gsl::span<const ParamFile> &param_files, uint64_t storage_size);
 
     static outcome::result<std::vector<ParamFile>> readJson(
         const std::string &path);
