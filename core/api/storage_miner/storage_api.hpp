@@ -32,9 +32,11 @@ namespace fc::api {
   using miner::Miner;
   using mining::types::DealInfo;
   using mining::types::DealSchedule;
+  using mining::types::Piece;
   using mining::types::PieceLocation;
   using primitives::ChainEpoch;
   using primitives::DealId;
+  using primitives::DealWeight;
   using primitives::SectorNumber;
   using primitives::SectorSize;
   using primitives::StorageID;
@@ -60,9 +62,33 @@ namespace fc::api {
   const static common::Logger kStorageApiLogger =
       common::createLogger("Storage API");
 
-  // TODO(ortyomka): [FIL-421] implement it
   struct ApiSectorInfo {
     mining::SealingState state = mining::SealingState::kStateUnknown;
+    SectorNumber sector_id;
+    RegisteredSealProof sector_type;
+    boost::optional<CID> comm_d;
+    boost::optional<CID> comm_r;
+    proofs::Proof proof;
+    std::vector<DealId> deals;
+    std::vector<Piece> pieces;
+    proofs::SealRandomness ticket;
+    sector_storage::InteractiveRandomness seed;
+    boost::optional<CID> precommit_message;
+    boost::optional<CID> commit_message;
+    uint64_t retries;
+    bool to_upgrade;
+
+    // On chain info
+
+    RegisteredSealProof seal_proof{};
+    ChainEpoch activation{};
+    ChainEpoch expiration{};
+    DealWeight deal_weight{};
+    DealWeight verified_deal_weight{};
+    TokenAmount initial_pledge{};
+
+    ChainEpoch on_time = {};
+    ChainEpoch early = {};
   };
 
   constexpr ApiVersion kMinerApiVersion = makeApiVersion(1, 0, 0);
