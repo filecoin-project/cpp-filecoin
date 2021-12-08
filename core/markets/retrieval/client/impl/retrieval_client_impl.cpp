@@ -214,11 +214,11 @@ namespace fc::markets::retrieval::client {
     }
     datatransfer_->pullOut(
         deal_state->pdtid,
-        DealPayment::Named::type,
+        DealPaymentV1_0_0::type,
         codec::cbor::encode(
-            DealPayment::Named{{deal_state->proposal.deal_id,
-                                deal_state->payment_channel_address,
-                                maybe_voucher.value()}})
+            DealPaymentV1_0_0{{deal_state->proposal.deal_id,
+                               deal_state->payment_channel_address,
+                               maybe_voucher.value()}})
             .value());
     deal_state->state.pay(payment_requested);
   }

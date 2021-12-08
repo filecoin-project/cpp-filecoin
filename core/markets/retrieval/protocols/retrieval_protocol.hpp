@@ -39,10 +39,10 @@ namespace fc::markets::retrieval {
     TokenAmount price_per_byte;
 
     /* Number of bytes before the next payment */
-    uint64_t payment_interval;
+    uint64_t payment_interval{};
 
     /* Rate at which payment interval value increases */
-    uint64_t payment_interval_increase;
+    uint64_t payment_interval_increase{};
 
     TokenAmount unseal_price;
   };
@@ -91,7 +91,7 @@ namespace fc::markets::retrieval {
     CID payload_cid;
 
     /* Identifier of the deal, can be the same for the different clients */
-    DealId deal_id;
+    DealId deal_id{};
 
     /* Deal params */
     DealProposalParams params;
@@ -181,7 +181,7 @@ namespace fc::markets::retrieval {
     DealStatus status;
 
     /* Deal ID */
-    DealId deal_id;
+    DealId deal_id{};
 
     /* Required tokens amount */
     TokenAmount payment_owed;
@@ -221,17 +221,36 @@ namespace fc::markets::retrieval {
    * Payment for an in progress retrieval deal
    */
   struct DealPayment {
-    struct Named;
-
-    DealId deal_id = 0;
+    DealId deal_id{};
     Address payment_channel;
     SignedVoucher payment_voucher;
   };
 
-  struct DealPayment::Named : DealPayment {
+  struct DealPaymentV0_0_1 : public DealPayment {
+    inline static const std::string type{"RetrievalDealPayment"};
+  };
+
+  CBOR_TUPLE(DealPaymentV0_0_1, deal_id, payment_channel, payment_voucher)
+
+  struct DealPaymentV1_0_0 : public DealPayment {
     inline static const std::string type{"RetrievalDealPayment/1"};
   };
-  CBOR2_DECODE_ENCODE(DealPayment::Named)
+
+
+  inline CBOR2_ENCODE(DealPaymentV1_0_0) {
+    auto m{CborEncodeStream::orderedMap()};
+    m["ID"] << v.deal_id;
+    m["PaymentChannel"] << v.payment_channel;
+    m["PaymentVoucher"] << v.payment_voucher;
+    return s << m;
+  }
+  inline CBOR2_DECODE(DealPaymentV1_0_0) {
+    auto m{s.map()};
+    CborDecodeStream::named(m, "ID") >> v.deal_id;
+    CborDecodeStream::named(m, "PaymentChannel") >> v.payment_channel;
+    CborDecodeStream::named(m, "PaymentVoucher") >> v.payment_voucher;
+    return s;
+  }
 
   struct State {
     explicit State(const DealProposalParams &params)

@@ -137,16 +137,15 @@ namespace fc::markets::retrieval::provider {
       });
     }
 
-    void onProposal(const PeerDtId &pdtid,
-                    const PeerGsId &pgsid,
-                    const std::shared_ptr<DealProposal> &proposal);
-    void onPayment(const std::shared_ptr<DealState> &deal,
-                   const DealPayment &payment);
-
+    /**
+     * Sets datatransfer pull response for DealResponse for particular protocol
+     * @tparam DealResponseType - protocol dependent response type
+     * @param deal_response - response
+     */
     template <typename DealResponseType>
-    void acceptDataTransferPoolWithResponse(const PeerDtId &pdtid,
+    void acceptDataTransferPullResponseType(const PeerDtId &pdtid,
                                             const PeerGsId &pgsid,
-                                            DealResponse deal_response) {
+                                            const DealResponse &deal_response) {
       datatransfer_->acceptPull(
           pdtid,
           pgsid,
@@ -154,16 +153,25 @@ namespace fc::markets::retrieval::provider {
           codec::cbor::encode(DealResponseType{deal_response}).value());
     }
 
-    void acceptDatatransferPull(const std::string &protocol,
-                                const PeerDtId &pdtid,
-                                const PeerGsId &pgsid,
-                                const DealResponse &deal_response);
+    /**
+     * Accepts datatransfer pull for DealResponse for all protocol versions.
+     * @param deal - served deal
+     * @param deal_response - response to send
+     */
+    void acceptDataTransferPullResponse(const std::shared_ptr<DealState> &deal,
+                                        const DealResponse &deal_response);
 
+    /**
+     * Post particular protocol-dependent DealResponse.
+     * @tparam DealResponseType - protocol-dependent DealResponse type
+     * @param full_content - is it full or partial response
+     * @param deal_response - response to send
+     */
     template <typename DealResponseType>
-    void respondDataTransferWithResponse(const PeerDtId &pdtid,
-                                         const PeerGsId &pgsid,
-                                         bool full_content,
-                                         const DealResponse &deal_response) {
+    void postDataTransferResponseType(const PeerDtId &pdtid,
+                                      const PeerGsId &pgsid,
+                                      bool full_content,
+                                      const DealResponse &deal_response) {
       datatransfer_->gs->postResponse(
           pgsid,
           {full_content ? GsResStatus::RS_FULL_CONTENT
@@ -181,18 +189,29 @@ namespace fc::markets::retrieval::provider {
            {}});
     }
 
-    void respondDataTransfer(const std::string &protocol,
-                             const PeerDtId &pdtid,
-                             const PeerGsId &pgsid,
-                             bool full_content,
-                             const DealResponse &deal_response);
+    /**
+     * Post DealResponse for all protocol versions.
+     * @param deal - current deal
+     * @param full_content - is it full or partial response
+     * @param deal_response - response to post
+     */
+    void postDataTransferResponse(const std::shared_ptr<DealState> &deal,
+                                  bool full_content,
+                                  const DealResponse &deal_response);
 
+    /**
+     * Rejects pull with particular protocol version.
+     * @tparam DealResponseType - protocol dependent response type
+     * @param deal_id - current deal id
+     * @param status - deal status
+     * @param message - response message
+     */
     template <typename DealResponseType>
-    void rejectDataTransferWithResponse(const PeerDtId &pdtid,
-                                        const PeerGsId &pgsid,
-                                        DealId deal_id,
-                                        DealStatus status,
-                                        const std::string &message) {
+    void rejectDataTransferPullResponseType(const PeerDtId &pdtid,
+                                            const PeerGsId &pgsid,
+                                            DealId deal_id,
+                                            DealStatus status,
+                                            const std::string &message) {
       datatransfer_->rejectPull(
           pdtid,
           pgsid,
@@ -202,12 +221,49 @@ namespace fc::markets::retrieval::provider {
                       .value()});
     }
 
-    void rejectDatatransferPull(const std::string &protocol,
-                                const PeerDtId &pdtid,
-                                const PeerGsId &pgsid,
-                                primitives::DealId deal_id,
-                                DealStatus status,
-                                const std::string &message);
+    /**
+     * Rejects datatransport pull with reason for all protocol version.
+     * @param protocol - proposal protocol version
+     * @param deal_id - current deal id
+     * @param status - deal status
+     * @param message - reject reason
+     */
+    void rejectDataTransferPullResponse(const std::string &protocol,
+                                        const PeerDtId &pdtid,
+                                        const PeerGsId &pgsid,
+                                        primitives::DealId deal_id,
+                                        DealStatus status,
+                                        const std::string &message);
+
+    /**
+     * Sets particular pull-in handler for payments.
+     * @tparam DealPaymentType - protocol dependent type
+     * @param deal - served deal
+     */
+    template <typename DealPaymentType>
+    void acceptDataTransferPaymentType(const std::shared_ptr<DealState> &deal) {
+      datatransfer_->pulling_in.emplace(
+          deal->pdtid, [this, deal](auto &type, auto _voucher) {
+            if (auto _payment{codec::cbor::decode<DealPaymentType>(_voucher)}) {
+              io_.io->post([=] { onPayment(deal, _payment.value()); });
+            } else {
+              doFail(deal, _payment.error().message());
+            }
+          });
+    }
+
+    /**
+     * Sets handler for datatransfer pull-in for payment for all supported
+     * protocol versions.
+     * @param deal - to wait payment for
+     */
+    void acceptDataTransferPayment(const std::shared_ptr<DealState> &deal);
+
+    void onProposal(const PeerDtId &pdtid,
+                    const PeerGsId &pgsid,
+                    const std::shared_ptr<DealProposal> &proposal);
+    void onPayment(const std::shared_ptr<DealState> &deal,
+                   const DealPayment &payment);
     void doUnseal(const std::shared_ptr<DealState> &deal);
     void doBlocks(const std::shared_ptr<DealState> &deal);
     void doComplete(const std::shared_ptr<DealState> &deal);

@@ -79,6 +79,56 @@ namespace fc::markets::retrieval::provider {
     config_ = ask;
   }
 
+  void RetrievalProviderImpl::acceptDataTransferPullResponse(
+      const std::shared_ptr<DealState> &deal,
+      const DealResponse &deal_response) {
+    if (deal->proposal->getType() == DealProposalV0_0_1::type) {
+      acceptDataTransferPullResponseType<DealResponseV0_0_1>(
+          deal->pdtid, deal->pgsid, deal_response);
+    } else if (deal->proposal->getType() == DealProposalV1_0_0::type) {
+      acceptDataTransferPullResponseType<DealResponseV1_0_0>(
+          deal->pdtid, deal->pgsid, deal_response);
+    }
+  }
+
+  void RetrievalProviderImpl::postDataTransferResponse(
+      const std::shared_ptr<DealState> &deal,
+      bool full_content,
+      const DealResponse &deal_response) {
+    if (deal->proposal->getType() == DealProposalV0_0_1::type) {
+      postDataTransferResponseType<DealResponseV0_0_1>(
+          deal->pdtid, deal->pgsid, full_content, deal_response);
+    } else if (deal->proposal->getType() == DealProposalV1_0_0::type) {
+      postDataTransferResponseType<DealResponseV1_0_0>(
+          deal->pdtid, deal->pgsid, full_content, deal_response);
+    }
+  }
+
+  void RetrievalProviderImpl::rejectDataTransferPullResponse(
+      const std::string &protocol,
+      const PeerDtId &pdtid,
+      const PeerGsId &pgsid,
+      primitives::DealId deal_id,
+      DealStatus status,
+      const std::string &message) {
+    if (protocol == DealProposalV0_0_1::type) {
+      rejectDataTransferPullResponseType<DealResponseV0_0_1>(
+          pdtid, pgsid, deal_id, status, message);
+    } else if (protocol == DealProposalV1_0_0::type) {
+      rejectDataTransferPullResponseType<DealResponseV1_0_0>(
+          pdtid, pgsid, deal_id, status, message);
+    }
+  }
+
+  void RetrievalProviderImpl::acceptDataTransferPayment(
+      const std::shared_ptr<DealState> &deal) {
+    if (deal->proposal->getType() == DealProposalV0_0_1::type) {
+      acceptDataTransferPaymentType<DealPaymentV0_0_1>(deal);
+    } else if (deal->proposal->getType() == DealProposalV1_0_0::type) {
+      acceptDataTransferPaymentType<DealPaymentV1_0_0>(deal);
+    }
+  }
+
   void RetrievalProviderImpl::onProposal(
       const PeerDtId &pdtid,
       const PeerGsId &pgsid,
@@ -88,24 +138,24 @@ namespace fc::markets::retrieval::provider {
         || proposal->params.payment_interval_increase
                > config_.interval_increase
         || proposal->params.unseal_price < config_.unseal_price) {
-      rejectDatatransferPull(proposal->getType(),
-                             pdtid,
-                             pgsid,
-                             proposal->deal_id,
-                             DealStatus::kDealStatusRejected,
-                             "Deal parameters not accepted");
+      rejectDataTransferPullResponse(proposal->getType(),
+                                     pdtid,
+                                     pgsid,
+                                     proposal->deal_id,
+                                     DealStatus::kDealStatusRejected,
+                                     "Deal parameters not accepted");
       return;
     }
 
     auto _found{piece_storage_->hasPieceInfo(proposal->payload_cid,
                                              proposal->params.piece)};
     if (!_found || !_found.value()) {
-      rejectDatatransferPull(proposal->getType(),
-                             pdtid,
-                             pgsid,
-                             proposal->deal_id,
-                             DealStatus::kDealStatusFailed,
-                             "Payload not found");
+      rejectDataTransferPullResponse(proposal->getType(),
+                                     pdtid,
+                                     pgsid,
+                                     proposal->deal_id,
+                                     DealStatus::kDealStatusFailed,
+                                     "Payload not found");
       return;
     }
 
@@ -119,17 +169,8 @@ namespace fc::markets::retrieval::provider {
         .payment_owed = unseal,
         .message = {},
     };
-    acceptDatatransferPull(proposal->getType(), pdtid, pgsid, deal_response);
-
-    datatransfer_->pulling_in.emplace(
-        pdtid, [this, deal](auto &type, auto _voucher) {
-          if (auto _payment{
-                  codec::cbor::decode<DealPayment::Named>(_voucher)}) {
-            io_.io->post([=] { onPayment(deal, _payment.value()); });
-          } else {
-            doFail(deal, _payment.error().message());
-          }
-        });
+    acceptDataTransferPullResponse(deal, deal_response);
+    acceptDataTransferPayment(deal);
 
     if (!unseal) {
       doUnseal(deal);
@@ -166,51 +207,6 @@ namespace fc::markets::retrieval::provider {
       return doBlocks(deal);
     }
     doComplete(deal);
-  }
-
-  void RetrievalProviderImpl::acceptDatatransferPull(
-      const std::string &protocol,
-      const PeerDtId &pdtid,
-      const PeerGsId &pgsid,
-      const DealResponse &deal_response) {
-    if (protocol == DealProposalV0_0_1::type) {
-      acceptDataTransferPoolWithResponse<DealResponseV0_0_1>(
-          pdtid, pgsid, deal_response);
-    } else if (protocol == DealProposalV1_0_0::type) {
-      acceptDataTransferPoolWithResponse<DealResponseV1_0_0>(
-          pdtid, pgsid, deal_response);
-    }
-  }
-
-  void RetrievalProviderImpl::respondDataTransfer(
-      const std::string &protocol,
-      const PeerDtId &pdtid,
-      const PeerGsId &pgsid,
-      bool full_content,
-      const DealResponse &deal_response) {
-    if (protocol == DealProposalV0_0_1::type) {
-      respondDataTransferWithResponse<DealResponseV0_0_1>(
-          pdtid, pgsid, full_content, deal_response);
-    } else if (protocol == DealProposalV1_0_0::type) {
-      respondDataTransferWithResponse<DealResponseV1_0_0>(
-          pdtid, pgsid, full_content, deal_response);
-    }
-  }
-
-  void RetrievalProviderImpl::rejectDatatransferPull(
-      const std::string &protocol,
-      const PeerDtId &pdtid,
-      const PeerGsId &pgsid,
-      primitives::DealId deal_id,
-      DealStatus status,
-      const std::string &message) {
-    if (protocol == DealProposalV0_0_1::type) {
-      rejectDataTransferWithResponse<DealResponseV0_0_1>(
-          pdtid, pgsid, deal_id, status, message);
-    } else if (protocol == DealProposalV1_0_0::type) {
-      rejectDataTransferWithResponse<DealResponseV1_0_0>(
-          pdtid, pgsid, deal_id, status, message);
-    }
   }
 
   void RetrievalProviderImpl::doUnseal(const std::shared_ptr<DealState> &deal) {
@@ -302,11 +298,7 @@ namespace fc::markets::retrieval::provider {
         {},
         {},
     };
-    respondDataTransfer(deal->proposal->getType(),
-                        deal->pdtid,
-                        deal->pgsid,
-                        true,
-                        deal_response);
+    postDataTransferResponse(deal, true, deal_response);
   }
 
   bool RetrievalProviderImpl::hasOwed(const std::shared_ptr<DealState> &deal) {
@@ -323,23 +315,19 @@ namespace fc::markets::retrieval::provider {
         .payment_owed = deal->state.owed,
         .message = {},
     };
-    respondDataTransfer(deal->proposal->getType(),
-                        deal->pdtid,
-                        deal->pgsid,
-                        false,
-                        deal_response);
+    postDataTransferResponse(deal, false, deal_response);
     return true;
   }
 
   void RetrievalProviderImpl::doFail(const std::shared_ptr<DealState> &deal,
                                      const std::string &error) {
     datatransfer_->pulling_in.erase(deal->pdtid);
-    rejectDatatransferPull(deal->proposal->getType(),
-                           deal->pdtid,
-                           deal->pgsid,
-                           deal->proposal->deal_id,
-                           DealStatus::kDealStatusErrored,
-                           error);
+    rejectDataTransferPullResponse(deal->proposal->getType(),
+                                   deal->pdtid,
+                                   deal->pgsid,
+                                   deal->proposal->deal_id,
+                                   DealStatus::kDealStatusErrored,
+                                   error);
   }
 
   void RetrievalProviderImpl::start() {
