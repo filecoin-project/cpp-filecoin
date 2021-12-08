@@ -6,8 +6,7 @@
 #include "miner/mining.hpp"
 
 #include "common/logger.hpp"
-#include "common/math/math.hpp"
-#include "const.hpp"
+#include "primitives/block/rand.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/runtime/pricelist.hpp"
 
@@ -21,10 +20,6 @@
   }
 
 namespace fc::mining {
-  using api::DomainSeparationTag;
-  using common::math::expneg;
-  using common::math::kPrecision256;
-  using crypto::randomness::drawRandomness;
   using BlsSignature = crypto::bls::Signature;
 
   outcome::result<std::shared_ptr<Mining>> Mining::create(
@@ -141,25 +136,21 @@ namespace fc::mining {
                         std::chrono::seconds{std::max<uint64_t>(0, sec)});
   }
 
-  constexpr auto kTicketRandomnessLookback{1};
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<boost::optional<BlockTemplate>> Mining::prepareBlock() {
     if (info && info->has_min_power) {
-      auto vrf{[&](auto tag,
-                   auto height,
-                   auto &seed) -> outcome::result<BlsSignature> {
-        OUTCOME_TRY(
-            sig,
-            api->WalletSign(
-                info->worker,
-                copy(drawRandomness(info->beacon().data, tag, height, seed))));
+      auto vrf{[&](auto &rand) -> outcome::result<BlsSignature> {
+        OUTCOME_TRY(sig, api->WalletSign(info->worker, copy(rand)));
         return boost::get<BlsSignature>(sig);
       }};
-      OUTCOME_TRY(miner_seed, codec::cbor::encode(miner));
-      OUTCOME_TRY(election_vrf,
-                  vrf(DomainSeparationTag::ElectionProofProduction,
-                      height(),
-                      miner_seed));
+      const BlockRand rand{
+          miner,
+          height(),
+          info->beacons,
+          info->prev_beacon,
+          *ts,
+      };
+      OUTCOME_TRY(election_vrf, vrf(rand.election));
       auto win_count{computeWinCount(
           election_vrf, info->miner_power, info->network_power)};
       if (win_count > 0) {
@@ -169,23 +160,17 @@ namespace fc::mining {
                      bigdiv(100 * info->miner_power, info->network_power),
                      common::hex_lower(election_vrf));
 
-        auto ticket_seed{miner_seed};
-        if (height() > kUpgradeSmokeHeight) {
-          append(ticket_seed, ts->getMinTicketBlock().ticket->bytes);
+        OUTCOME_TRY(ticket_vrf, vrf(rand.ticket));
+
+        std::vector<primitives::sector::PoStProof> post_proof;
+        if (kFakeWinningPost) {
+          copy(post_proof.emplace_back().proof,
+               common::span::cbytes(kFakeWinningPostStr));
+        } else {
+          OUTCOME_TRYA(post_proof,
+                       prover->generateWinningPoSt(
+                           miner.getId(), info->sectors, rand.win));
         }
-        OUTCOME_TRY(ticket_vrf,
-                    vrf(DomainSeparationTag::TicketProduction,
-                        height() - kTicketRandomnessLookback,
-                        ticket_seed));
-        OUTCOME_TRY(
-            post_proof,
-            prover->generateWinningPoSt(
-                miner.getId(),
-                info->sectors,
-                drawRandomness(info->beacon().data,
-                               DomainSeparationTag::WinningPoStChallengeSeed,
-                               height(),
-                               miner_seed)));
         OUTCOME_TRY(messages,
                     api->MpoolSelect(ts->key, ticketQuality(ticket_vrf)));
         return BlockTemplate{
@@ -204,34 +189,9 @@ namespace fc::mining {
     return boost::none;
   }
 
-  auto bigblake(BytesIn vrf) {
-    auto _hash{crypto::blake2b::blake2b_256(vrf)};
-    BigInt hash;
-    boost::multiprecision::import_bits(hash, _hash.begin(), _hash.end());
-    return hash;
-  }
-
-  constexpr auto kMaxWinCount{3 * kBlocksPerEpoch};
-  int64_t computeWinCount(BytesIn ticket,
-                          const BigInt &power,
-                          const BigInt &total_power) {
-    auto hash{bigblake(ticket)};
-    auto lambda{
-        bigdiv((power * kBlocksPerEpoch) << kPrecision256, total_power)};
-    auto pmf{expneg(lambda, kPrecision256)};
-    BigInt icdf{(BigInt{1} << kPrecision256) - pmf};
-    auto k{0};
-    while (hash < icdf && k < kMaxWinCount) {
-      ++k;
-      pmf = (bigdiv(pmf, k) * lambda) >> kPrecision256;
-      icdf -= pmf;
-    }
-    return k;
-  }
-
   double ticketQuality(BytesIn ticket) {
     return 1
-           - boost::multiprecision::cpp_rational{bigblake(ticket),
+           - boost::multiprecision::cpp_rational{blakeBigInt(ticket),
                                                  BigInt{1} << 256}
                  .convert_to<double>();
   }

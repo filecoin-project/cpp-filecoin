@@ -14,6 +14,9 @@ namespace fc {
   using primitives::StoragePower;
   using primitives::TokenAmount;
 
+  extern bool kFakeWinningPost;
+  constexpr std::string_view kFakeWinningPostStr{"valid proof"};
+
   constexpr int64_t kSecondsInHour{60 * 60};
   constexpr int64_t kSecondsInDay{24 * kSecondsInHour};
 

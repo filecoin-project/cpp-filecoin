@@ -25,7 +25,7 @@
 #include "api/impl/paych_get.hpp"
 #include "api/impl/paych_voucher.hpp"
 #include "api/setup_common.hpp"
-#include "blockchain/block_validator/impl/block_validator_impl.hpp"
+#include "blockchain/block_validator/validator.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "cbor_blake/ipld_any.hpp"
 #include "cbor_blake/ipld_version.hpp"
@@ -53,7 +53,6 @@
 #include "node/receive_hello.hpp"
 #include "node/say_hello.hpp"
 #include "node/sync_job.hpp"
-#include "power/impl/power_table_impl.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "primitives/tipset/file.hpp"
 #include "storage/car/car.hpp"
@@ -408,11 +407,17 @@ namespace fc::node {
     OUTCOME_TRYA(o.env_context.circulating,
                  vm::Circulating::make(o.ipld, *config.genesis_cid));
 
+    auto block_validator{
+        std::make_shared<blockchain::block_validator::BlockValidator>(
+            std::make_shared<storage::MapPrefix>("block_validator/",
+                                                 o.kv_store),
+            o.env_context)};
+
     auto weight_calculator =
         std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
 
     o.interpreter = std::make_shared<vm::interpreter::InterpreterImpl>(
-        o.env_context, weight_calculator);
+        o.env_context, block_validator, weight_calculator);
     o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
         o.interpreter, o.env_context.interpreter_cache);
     o.compacter->interpreter->interpreter = o.vm_interpreter;
@@ -514,23 +519,10 @@ namespace fc::node {
 
     log()->debug("Creating chain store...");
 
-    auto power_table = std::make_shared<power::PowerTableImpl>();
-
     auto bls_provider = std::make_shared<crypto::bls::BlsProviderImpl>();
 
     auto secp_provider =
         std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>();
-
-    auto block_validator =
-        std::make_shared<blockchain::block_validator::BlockValidatorImpl>(
-            o.ipld,
-            o.utc_clock,
-            o.chain_epoch_clock,
-            weight_calculator,
-            power_table,
-            bls_provider,
-            secp_provider,
-            o.env_context.interpreter_cache);
 
     auto head{
         o.ts_load->lazyLoad(std::prev(o.ts_main->chain.end())->second).value()};
@@ -540,13 +532,8 @@ namespace fc::node {
     }
     auto head_weight{
         o.env_context.interpreter_cache->get(head->key).value().weight};
-    o.chain_store =
-        std::make_shared<sync::ChainStoreImpl>(o.ipld,
-                                               o.ts_load,
-                                               o.compacter->put_block_header,
-                                               head,
-                                               head_weight,
-                                               std::move(block_validator));
+    o.chain_store = std::make_shared<sync::ChainStoreImpl>(
+        o.ipld, o.ts_load, o.compacter->put_block_header, head, head_weight);
 
     o.sync_job =
         std::make_shared<sync::SyncJob>(o.host,

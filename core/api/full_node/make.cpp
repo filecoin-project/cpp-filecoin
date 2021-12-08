@@ -11,6 +11,8 @@
 
 #include "adt/stop.hpp"
 #include "api/version.hpp"
+#include "blockchain/block_validator/eligible.hpp"
+#include "blockchain/block_validator/win_sectors.hpp"
 #include "blockchain/production/block_producer.hpp"
 #include "cbor_blake/ipld_version.hpp"
 #include "common/logger.hpp"
@@ -21,6 +23,7 @@
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "node/node_version.hpp"
 #include "node/pubsub_gate.hpp"
+#include "primitives/block/rand.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/car/car.hpp"
@@ -60,10 +63,6 @@
 namespace fc::api {
   using connection_t = boost::signals2::connection;
   using InterpreterResult = vm::interpreter::Result;
-  using common::Logger;
-  using crypto::randomness::DomainSeparationTag;
-  using crypto::signature::BlsSignature;
-  using libp2p::peer::PeerId;
   using markets::retrieval::DealProposalParams;
   using markets::retrieval::QueryResponse;
   using node::kNodeVersion;
@@ -94,14 +93,6 @@ namespace fc::api {
   using vm::state::StateTreeImpl;
   using vm::toolchain::Toolchain;
   using vm::version::getNetworkVersion;
-
-  // TODO (turuslan): reuse for block validation
-  inline bool minerHasMinPower(const StoragePower &claim_qa,
-                               size_t min_power_miners) {
-    return min_power_miners < kConsensusMinerMinMiners
-               ? !claim_qa.is_zero()
-               : claim_qa > kConsensusMinerMinPower;
-  }
 
   void beaconEntriesForBlock(const DrandSchedule &schedule,
                              Beaconizer &beaconizer,
@@ -167,53 +158,6 @@ namespace fc::api {
       return state_tree.getStore();
     }
   };
-
-  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-  outcome::result<std::vector<SectorInfo>> getSectorsForWinningPoSt(
-      NetworkVersion network,
-      const Address &miner,
-      const MinerActorStatePtr &state,
-      const Randomness &post_rand,
-      const IpldPtr &ipld) {
-    std::vector<SectorInfo> sectors;
-    RleBitset sectors_bitset;
-    OUTCOME_TRY(deadlines, state->deadlines.get());
-    for (const auto &deadline_cid : deadlines.due) {
-      OUTCOME_TRY(deadline, deadline_cid.get());
-      OUTCOME_TRY(deadline->partitions.visit([&](auto, auto &part) {
-        for (auto sector : part->sectors) {
-          if (network >= NetworkVersion::kVersion7) {
-            if (part->terminated.has(sector) || part->unproven.has(sector)) {
-              continue;
-            }
-          }
-          if (!part->faults.has(sector)) {
-            sectors_bitset.insert(sector);
-          }
-        }
-        return outcome::success();
-      }));
-    }
-    if (!sectors_bitset.empty()) {
-      OUTCOME_TRY(miner_info, state->getInfo());
-      OUTCOME_TRY(
-          win_type,
-          getRegisteredWinningPoStProof(miner_info->window_post_proof_type));
-      static auto proofs{std::make_shared<proofs::ProofEngineImpl>()};
-      OUTCOME_TRY(
-          indices,
-          proofs->generateWinningPoStSectorChallenge(
-              win_type, miner.getId(), post_rand, sectors_bitset.size()));
-      std::vector<uint64_t> sector_ids{sectors_bitset.begin(),
-                                       sectors_bitset.end()};
-      for (auto &i : indices) {
-        OUTCOME_TRY(sector, state->sectors.sectors.get(sector_ids[i]));
-        sectors.push_back(
-            {sector.seal_proof, sector.sector, sector.sealed_cid});
-      }
-    }
-    return sectors;
-  }
 
   // NOLINTNEXTLINE(hicpp-function-size,readability-function-cognitive-complexity,readability-function-size,google-readability-function-size)
   std::shared_ptr<FullNodeApi> makeImpl(
@@ -635,19 +579,19 @@ namespace fc::api {
                 }
                 OUTCOME_CB(auto miner_state,
                            getCbor<MinerActorStatePtr>(lookback, actor->head));
-                OUTCOME_CB(auto seed, codec::cbor::encode(miner));
-                auto post_rand{crypto::randomness::drawRandomness(
-                    info.beacon().data,
-                    DomainSeparationTag::WinningPoStChallengeSeed,
+                const BlockRand rand{
+                    miner,
                     epoch,
-                    seed)};
+                    info.beacons,
+                    info.prev_beacon,
+                    *context.tipset,
+                };
                 OUTCOME_CB(info.sectors,
                            getSectorsForWinningPoSt(
                                getNetworkVersion(context.tipset->epoch()),
                                miner,
                                miner_state,
-                               post_rand,
-                               lookback));
+                               rand.win));
                 if (info.sectors.empty()) {
                   return cb(boost::none);
                 }
@@ -658,8 +602,11 @@ namespace fc::api {
                 OUTCOME_CB(auto miner_info, miner_state->getInfo());
                 OUTCOME_CB(info.worker, context.accountKey(miner_info->worker));
                 info.sector_size = miner_info->sector_size;
-                info.has_min_power = minerHasMinPower(
-                    claim->qa_power, power_state->num_miners_meeting_min_power);
+                OUTCOME_CB(info.has_min_power,
+                           minerEligibleToMine(miner,
+                                               lookback.tipset,
+                                               context.tipset,
+                                               context.state_tree));
                 cb(std::move(info));
               });
         };

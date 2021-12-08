@@ -184,8 +184,6 @@ namespace fc::sector_storage {
       ActorId miner_id,
       gsl::span<const SectorInfo> sector_info,
       PoStRandomness randomness) {
-    randomness[31] &= 0x3f;
-
     OUTCOME_TRY(res, publicSectorToPrivate(miner_id, sector_info, true));
 
     if (!res.skipped.empty()) {
@@ -204,8 +202,6 @@ namespace fc::sector_storage {
       ActorId miner_id,
       gsl::span<const SectorInfo> sector_info,
       PoStRandomness randomness) {
-    randomness[31] &= 0x3f;
-
     Prover::WindowPoStResponse response{};
 
     OUTCOME_TRY(res, publicSectorToPrivate(miner_id, sector_info, false));
