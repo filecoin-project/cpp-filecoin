@@ -12,7 +12,7 @@
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
-namespace fc::miner_eligible_to_miner {
+namespace fc::blockchain::block_validator {
   using primitives::address::Address;
   using primitives::tipset::TipsetCPtr;
   using vm::actor::kStoragePowerAddress;
@@ -72,8 +72,8 @@ namespace fc::miner_eligible_to_miner {
     }
     return true;
   }
-}  // namespace fc::miner_eligible_to_miner
+}  // namespace fc::blockchain::block_validator
 
 namespace fc {
-  using miner_eligible_to_miner::minerEligibleToMine;
+  using blockchain::block_validator::minerEligibleToMine;
 }  // namespace fc

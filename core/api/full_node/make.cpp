@@ -11,6 +11,8 @@
 
 #include "adt/stop.hpp"
 #include "api/version.hpp"
+#include "blockchain/block_validator/eligible.hpp"
+#include "blockchain/block_validator/win_sectors.hpp"
 #include "blockchain/production/block_producer.hpp"
 #include "cbor_blake/ipld_version.hpp"
 #include "common/logger.hpp"
@@ -21,9 +23,7 @@
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "node/node_version.hpp"
 #include "node/pubsub_gate.hpp"
-#include "primitives/block/eligible.hpp"
 #include "primitives/block/rand.hpp"
-#include "primitives/block/win_sectors.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/car/car.hpp"

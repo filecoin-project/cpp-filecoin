@@ -5,15 +5,15 @@
 
 #include "blockchain/block_validator/validator.hpp"
 
+#include "blockchain/block_validator/eligible.hpp"
+#include "blockchain/block_validator/win_sectors.hpp"
 #include "cbor_blake/ipld_any.hpp"
 #include "cbor_blake/ipld_version.hpp"
 #include "cbor_blake/memory.hpp"
 #include "common/error_text.hpp"
 #include "common/from_span.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "primitives/block/eligible.hpp"
 #include "primitives/block/rand.hpp"
-#include "primitives/block/win_sectors.hpp"
 #include "primitives/tipset/chain.hpp"
 #include "storage/map_prefix/prefix.hpp"
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"

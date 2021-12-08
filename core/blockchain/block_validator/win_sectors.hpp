@@ -8,7 +8,7 @@
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
 
-namespace fc::get_sectors_for_winning_post {
+namespace fc::blockchain::block_validator {
   using crypto::randomness::Randomness;
   using primitives::RleBitset;
   using primitives::address::Address;
@@ -63,8 +63,8 @@ namespace fc::get_sectors_for_winning_post {
     }
     return sectors;
   }
-}  // namespace fc::get_sectors_for_winning_post
+}  // namespace fc::blockchain::block_validator
 
 namespace fc {
-  using get_sectors_for_winning_post::getSectorsForWinningPoSt;
+  using blockchain::block_validator::getSectorsForWinningPoSt;
 }  // namespace fc
