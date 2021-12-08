@@ -8,13 +8,10 @@
 #include <boost/filesystem.hpp>
 
 #include "common/libp2p/peer/peer_info_helper.hpp"
-#include "markets/common.hpp"
 #include "markets/storage/types.hpp"
 #include "storage/piece/impl/piece_storage_error.hpp"
 
 namespace fc::markets::retrieval::provider {
-  using data_transfer::DataTransferMessage;
-  using data_transfer::DataTransferResponse;
   using ::fc::storage::piece::PieceStorageError;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::sector::SectorId;
@@ -48,11 +45,25 @@ namespace fc::markets::retrieval::provider {
     }
     config_key_->getCbor(config_);
     datatransfer_->on_pull.emplace(
-        DealProposal::Named::type,
+        DealProposalV0_0_1::type,
         [this](auto &pdtid, auto &pgsid, auto &, auto _voucher) {
-          if (auto _proposal{
-                  codec::cbor::decode<DealProposal::Named>(_voucher)}) {
-            io_.io->post([=] { onProposal(pdtid, pgsid, _proposal.value()); });
+          if (auto proposal{
+                  codec::cbor::decode<DealProposalV0_0_1>(_voucher)}) {
+            auto proposal_ptr =
+                std::make_shared<DealProposalV0_0_1>(proposal.value());
+            io_.io->post([=] { onProposal(pdtid, pgsid, proposal_ptr); });
+            return;
+          }
+          datatransfer_->rejectPull(pdtid, pgsid, {}, {});
+        });
+    datatransfer_->on_pull.emplace(
+        DealProposalV1_0_0::type,
+        [this](auto &pdtid, auto &pgsid, auto &, auto _voucher) {
+          if (auto proposal{
+                  codec::cbor::decode<DealProposalV1_0_0>(_voucher)}) {
+            auto proposal_ptr =
+                std::make_shared<DealProposalV1_0_0>(proposal.value());
+            io_.io->post([=] { onProposal(pdtid, pgsid, proposal_ptr); });
             return;
           }
           datatransfer_->rejectPull(pdtid, pgsid, {}, {});
@@ -68,59 +79,98 @@ namespace fc::markets::retrieval::provider {
     config_ = ask;
   }
 
-  void RetrievalProviderImpl::onProposal(const PeerDtId &pdtid,
-                                         const PeerGsId &pgsid,
-                                         const DealProposal &proposal) {
-    auto reject{[&](auto status, auto message) {
-      datatransfer_->rejectPull(
-          pdtid,
-          pgsid,
-          DealResponse::Named::type,
-          CborRaw{
-              codec::cbor::encode(
-                  DealResponse::Named{{status, proposal.deal_id, {}, message}})
-                  .value()});
-    }};
+  void RetrievalProviderImpl::acceptDataTransferPullResponse(
+      const std::shared_ptr<DealState> &deal,
+      const DealResponse &deal_response) {
+    if (deal->proposal->getType() == DealProposalV0_0_1::type) {
+      acceptDataTransferPullResponseType<DealResponseV0_0_1>(
+          deal->pdtid, deal->pgsid, deal_response);
+    } else if (deal->proposal->getType() == DealProposalV1_0_0::type) {
+      acceptDataTransferPullResponseType<DealResponseV1_0_0>(
+          deal->pdtid, deal->pgsid, deal_response);
+    }
+  }
 
-    if (proposal.params.price_per_byte < config_.price_per_byte
-        || proposal.params.payment_interval > config_.payment_interval
-        || proposal.params.payment_interval_increase > config_.interval_increase
-        || proposal.params.unseal_price < config_.unseal_price) {
-      return reject(DealStatus::kDealStatusRejected,
-                    "Deal parameters not accepted");
+  void RetrievalProviderImpl::postDataTransferResponse(
+      const std::shared_ptr<DealState> &deal,
+      bool full_content,
+      const DealResponse &deal_response) {
+    if (deal->proposal->getType() == DealProposalV0_0_1::type) {
+      postDataTransferResponseType<DealResponseV0_0_1>(
+          deal->pdtid, deal->pgsid, full_content, deal_response);
+    } else if (deal->proposal->getType() == DealProposalV1_0_0::type) {
+      postDataTransferResponseType<DealResponseV1_0_0>(
+          deal->pdtid, deal->pgsid, full_content, deal_response);
+    }
+  }
+
+  void RetrievalProviderImpl::rejectDataTransferPullResponse(
+      const std::string &protocol,
+      const PeerDtId &pdtid,
+      const PeerGsId &pgsid,
+      primitives::DealId deal_id,
+      DealStatus status,
+      const std::string &message) {
+    if (protocol == DealProposalV0_0_1::type) {
+      rejectDataTransferPullResponseType<DealResponseV0_0_1>(
+          pdtid, pgsid, deal_id, status, message);
+    } else if (protocol == DealProposalV1_0_0::type) {
+      rejectDataTransferPullResponseType<DealResponseV1_0_0>(
+          pdtid, pgsid, deal_id, status, message);
+    }
+  }
+
+  void RetrievalProviderImpl::acceptDataTransferPayment(
+      const std::shared_ptr<DealState> &deal) {
+    if (deal->proposal->getType() == DealProposalV0_0_1::type) {
+      acceptDataTransferPaymentType<DealPaymentV0_0_1>(deal);
+    } else if (deal->proposal->getType() == DealProposalV1_0_0::type) {
+      acceptDataTransferPaymentType<DealPaymentV1_0_0>(deal);
+    }
+  }
+
+  void RetrievalProviderImpl::onProposal(
+      const PeerDtId &pdtid,
+      const PeerGsId &pgsid,
+      const std::shared_ptr<DealProposal> &proposal) {
+    if (proposal->params.price_per_byte < config_.price_per_byte
+        || proposal->params.payment_interval > config_.payment_interval
+        || proposal->params.payment_interval_increase
+               > config_.interval_increase
+        || proposal->params.unseal_price < config_.unseal_price) {
+      rejectDataTransferPullResponse(proposal->getType(),
+                                     pdtid,
+                                     pgsid,
+                                     proposal->deal_id,
+                                     DealStatus::kDealStatusRejected,
+                                     "Deal parameters not accepted");
+      return;
     }
 
-    auto _found{piece_storage_->hasPieceInfo(proposal.payload_cid,
-                                             proposal.params.piece)};
+    auto _found{piece_storage_->hasPieceInfo(proposal->payload_cid,
+                                             proposal->params.piece)};
     if (!_found || !_found.value()) {
-      return reject(DealStatus::kDealStatusFailed, "Payload not found");
+      rejectDataTransferPullResponse(proposal->getType(),
+                                     pdtid,
+                                     pgsid,
+                                     proposal->deal_id,
+                                     DealStatus::kDealStatusFailed,
+                                     "Payload not found");
+      return;
     }
 
     auto deal{std::make_shared<DealState>(pdtid, pgsid, proposal)};
     auto &unseal{deal->state.owed};
 
-    datatransfer_->acceptPull(
-        pdtid,
-        pgsid,
-        DealResponse::Named::type,
-        codec::cbor::encode(
-            DealResponse::Named{{unseal
-                                     ? DealStatus::kDealStatusFundsNeededUnseal
-                                     : DealStatus::kDealStatusAccepted,
-                                 proposal.deal_id,
-                                 unseal,
-                                 {}}})
-            .value());
-
-    datatransfer_->pulling_in.emplace(
-        pdtid, [this, deal](auto &type, auto _voucher) {
-          if (auto _payment{
-                  codec::cbor::decode<DealPayment::Named>(_voucher)}) {
-            io_.io->post([=] { onPayment(deal, _payment.value()); });
-          } else {
-            doFail(deal, _payment.error().message());
-          }
-        });
+    DealResponse deal_response{
+        .status = unseal ? DealStatus::kDealStatusFundsNeededUnseal
+                         : DealStatus::kDealStatusAccepted,
+        .deal_id = proposal->deal_id,
+        .payment_owed = unseal,
+        .message = {},
+    };
+    acceptDataTransferPullResponse(deal, deal_response);
+    acceptDataTransferPayment(deal);
 
     if (!unseal) {
       doUnseal(deal);
@@ -164,7 +214,7 @@ namespace fc::markets::retrieval::provider {
       return;
     }
     auto _piece{piece_storage_->getPieceInfoFromCid(
-        deal->proposal.payload_cid, deal->proposal.params.piece)};
+        deal->proposal->payload_cid, deal->proposal->params.piece)};
     if (!_piece) {
       return doFail(deal, _piece.error().message());
     }
@@ -191,8 +241,8 @@ namespace fc::markets::retrieval::provider {
         deal->ipld = _load.value();
         deal->traverser.emplace(Traverser{
             *deal->ipld,
-            deal->proposal.payload_cid,
-            deal->proposal.params.selector,
+            deal->proposal->payload_cid,
+            deal->proposal->params.selector,
             false,
         });
         deal->unsealed = true;
@@ -242,80 +292,62 @@ namespace fc::markets::retrieval::provider {
       return;
     }
 
-    DealResponse::Named res{{
+    DealResponse deal_response{
         DealStatus::kDealStatusCompleted,
-        deal->proposal.deal_id,
+        deal->proposal->deal_id,
         {},
         {},
-    }};
-    datatransfer_->gs->postResponse(
-        deal->pgsid,
-        {GsResStatus::RS_FULL_CONTENT,
-         {DataTransfer::makeExt(DataTransferMessage{DataTransferResponse{
-             data_transfer::MessageType::kCompleteMessage,
-             true,
-             false,
-             deal->pdtid.id,
-             CborRaw{codec::cbor::encode(res).value()},
-             DealResponse::Named::type,
-         }})},
-         {}});
+    };
+    postDataTransferResponse(deal, true, deal_response);
   }
 
   bool RetrievalProviderImpl::hasOwed(const std::shared_ptr<DealState> &deal) {
     if (!deal->state.owed) {
       return false;
     }
-    datatransfer_->gs->postResponse(
-        deal->pgsid,
-        {GsResStatus::RS_PARTIAL_RESPONSE,
-         {DataTransfer::makeExt(DataTransferMessage{DataTransferResponse{
-             data_transfer::MessageType::kVoucherResultMessage,
-             true,
-             false,
-             deal->pdtid.id,
-             CborRaw{codec::cbor::encode(
-                         DealResponse::Named{{
-                             deal->unsealed
-                                 ? deal->traverser->isCompleted()
-                                       ? DealStatus::
-                                           kDealStatusFundsNeededLastPayment
-                                       : DealStatus::kDealStatusFundsNeeded
-                                 : DealStatus::kDealStatusFundsNeededUnseal,
-                             deal->proposal.deal_id,
-                             deal->state.owed,
-                             {},
-                         }})
-                         .value()},
-             DealResponse::Named::type,
-         }})},
-         {}});
+    DealResponse deal_response{
+        .status = deal->unsealed
+                      ? deal->traverser->isCompleted()
+                            ? DealStatus::kDealStatusFundsNeededLastPayment
+                            : DealStatus::kDealStatusFundsNeeded
+                      : DealStatus::kDealStatusFundsNeededUnseal,
+        .deal_id = deal->proposal->deal_id,
+        .payment_owed = deal->state.owed,
+        .message = {},
+    };
+    postDataTransferResponse(deal, false, deal_response);
     return true;
   }
 
   void RetrievalProviderImpl::doFail(const std::shared_ptr<DealState> &deal,
-                                     std::string error) {
+                                     const std::string &error) {
     datatransfer_->pulling_in.erase(deal->pdtid);
-    datatransfer_->rejectPull(
-        deal->pdtid,
-        deal->pgsid,
-        DealResponse::Named::type,
-        CborRaw{codec::cbor::encode(
-                    DealResponse::Named{{DealStatus::kDealStatusErrored,
-                                         deal->proposal.deal_id,
-                                         {},
-                                         std::move(error)}})
-                    .value()});
+    rejectDataTransferPullResponse(deal->proposal->getType(),
+                                   deal->pdtid,
+                                   deal->pgsid,
+                                   deal->proposal->deal_id,
+                                   DealStatus::kDealStatusErrored,
+                                   error);
   }
 
   void RetrievalProviderImpl::start() {
     host_->setProtocolHandler(
-        kQueryProtocolId, [_self{weak_from_this()}](auto stream) {
+        kQueryProtocolIdV0_0_1, [_self{weak_from_this()}](auto stream) {
           auto self{_self.lock()};
           if (!self) {
             return;
           }
-          self->handleQuery(std::make_shared<CborStream>(stream));
+          self->handleQuery<QueryRequestV0_0_1, QueryResponseV0_0_1>(
+              std::make_shared<CborStream>(stream));
+        });
+    host_->setProtocolHandler(
+        kQueryProtocolIdV1_0_0, [_self{weak_from_this()}](auto stream) {
+          auto self{_self.lock()};
+          if (!self) {
+            return;
+          }
+          self->handleQuery<QueryRequestV1_0_0, QueryResponseV1_0_0>(
+              std::make_shared<CborStream>(stream));
         });
     logger_->info("has been launched with ID "
                   + peerInfoToPrettyString(host_->getPeerInfo()));
@@ -329,29 +361,6 @@ namespace fc::markets::retrieval::provider {
       uint64_t payment_interval, uint64_t payment_interval_increase) {
     config_.payment_interval = payment_interval;
     config_.interval_increase = payment_interval_increase;
-  }
-
-  void RetrievalProviderImpl::handleQuery(
-      const std::shared_ptr<CborStream> &stream) {
-    stream->read<QueryRequest>([self{shared_from_this()},
-                                stream](auto request_res) {
-      if (request_res.has_error()) {
-        self->respondErrorQueryResponse(stream, request_res.error().message());
-        return;
-      }
-      auto response_res = self->makeQueryResponse(request_res.value());
-      if (response_res.has_error()) {
-        self->respondErrorQueryResponse(stream, response_res.error().message());
-        return;
-      }
-      stream->write(response_res.value(), [self, stream](auto written) {
-        if (written.has_error()) {
-          self->logger_->error("Error while error response "
-                               + written.error().message());
-        }
-        closeStreamGracefully(stream, self->logger_);
-      });
-    });
   }
 
   outcome::result<QueryResponse> RetrievalProviderImpl::makeQueryResponse(
@@ -379,21 +388,6 @@ namespace fc::markets::retrieval::provider {
         .min_price_per_byte = config_.price_per_byte,
         .payment_interval = config_.payment_interval,
         .interval_increase = config_.interval_increase};
-  }
-
-  void RetrievalProviderImpl::respondErrorQueryResponse(
-      const std::shared_ptr<CborStream> &stream, const std::string &message) {
-    QueryResponse response;
-    response.response_status = QueryResponseStatus::kQueryResponseError;
-    response.item_status = QueryItemStatus::kQueryItemUnknown;
-    response.message = message;
-    stream->write(response, [self{shared_from_this()}, stream](auto written) {
-      if (written.has_error()) {
-        self->logger_->error("Error while error response "
-                             + written.error().message());
-      }
-      closeStreamGracefully(stream, self->logger_);
-    });
   }
 
   outcome::result<void> RetrievalProviderImpl::unsealSector(

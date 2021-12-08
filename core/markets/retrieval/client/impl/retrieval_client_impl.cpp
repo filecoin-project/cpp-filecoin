@@ -9,7 +9,7 @@
 #include "common/libp2p/peer/peer_info_helper.hpp"
 
 namespace fc::markets::retrieval::client {
-  DealState::DealState(const DealProposal &proposal,
+  DealState::DealState(const DealProposalV1_0_0 &proposal,
                        const IpldPtr &ipld,
                        RetrieveResponseHandler handler,
                        Address client_wallet,
@@ -45,18 +45,20 @@ namespace fc::markets::retrieval::client {
                                   const QueryResponseHandler &cb) {
     OUTCOME_CB(auto peer, getPeerInfo(provider_peer));
     host_->newStream(
-        peer, kQueryProtocolId, [=, self{shared_from_this()}](auto stream_res) {
+        peer,
+        kQueryProtocolIdV1_0_0,
+        [=, self{shared_from_this()}](auto stream_res) {
           OUTCOME_CB1(stream_res);
           self->logger_->debug("connected to provider ID "
                                + peerInfoToPrettyString(peer));
           auto stream{std::make_shared<CborStream>(stream_res.value())};
-          stream->write(request, [=](auto written_res) {
+          stream->write(QueryRequestV1_0_0{request}, [=](auto written_res) {
             if (written_res.has_error()) {
               stream->close();
               cb(written_res.error());
               return;
             }
-            stream->template read<QueryResponse>([=](auto response) {
+            stream->template read<QueryResponseV1_0_0>([=](auto response) {
               stream->close();
               cb(std::move(response));
             });
@@ -80,9 +82,7 @@ namespace fc::markets::retrieval::client {
       const Address &client_wallet,
       const Address &miner_wallet,
       const RetrieveResponseHandler &handler) {
-    DealProposal::Named proposal{{.payload_cid = payload_cid,
-                                  .deal_id = next_deal_id++,
-                                  .params = deal_params}};
+    DealProposalV1_0_0 proposal{payload_cid, next_deal_id++, deal_params};
     auto deal{std::make_shared<DealState>(
         proposal, ipfs_, handler, client_wallet, miner_wallet, total_funds)};
     OUTCOME_TRY(peer_info, getPeerInfo(provider_peer));
@@ -90,7 +90,7 @@ namespace fc::markets::retrieval::client {
         peer_info,
         payload_cid,
         deal_params.selector,
-        DealProposal::Named::type,
+        DealProposalV1_0_0::type,
         codec::cbor::encode(proposal).value(),
         [this, deal](auto &type, auto voucher) {
           onPullData(deal, type, voucher);
@@ -103,7 +103,7 @@ namespace fc::markets::retrieval::client {
   void RetrievalClientImpl::onPullData(const std::shared_ptr<DealState> &deal,
                                        const std::string &type,
                                        BytesIn voucher) {
-    OUTCOME_EXCEPT(res, codec::cbor::decode<DealResponse::Named>(voucher));
+    OUTCOME_EXCEPT(res, codec::cbor::decode<DealResponseV1_0_0>(voucher));
     auto after{[=](auto &res) {
       if (res.status == DealStatus::kDealStatusCompleted) {
         deal->handler(outcome::success());
@@ -214,11 +214,11 @@ namespace fc::markets::retrieval::client {
     }
     datatransfer_->pullOut(
         deal_state->pdtid,
-        DealPayment::Named::type,
+        DealPaymentV1_0_0::type,
         codec::cbor::encode(
-            DealPayment::Named{{deal_state->proposal.deal_id,
-                                deal_state->payment_channel_address,
-                                maybe_voucher.value()}})
+            DealPaymentV1_0_0{{deal_state->proposal.deal_id,
+                               deal_state->payment_channel_address,
+                               maybe_voucher.value()}})
             .value());
     deal_state->state.pay(payment_requested);
   }
