@@ -71,7 +71,7 @@ namespace fc::markets::storage::client {
         const CID &proposal_cid) const override;
 
     void getAsk(const StorageProviderInfo &info,
-                const SignedAskHandler &signed_ask_handler) override;
+                const StorageAskHandler &signed_ask_handler) override;
 
     outcome::result<CID> proposeStorageDeal(
         const Address &client_address,
@@ -86,10 +86,10 @@ namespace fc::markets::storage::client {
         bool is_fast_retrieval) override;
 
    private:
-    void askDealStatus(const std::shared_ptr<ClientDeal>& deal);
+    void askDealStatus(const std::shared_ptr<ClientDeal> &deal);
 
-    outcome::result<SignedStorageAsk> validateAskResponse(
-        const outcome::result<AskResponse> &response,
+    outcome::result<StorageAsk> validateAskResponse(
+        const outcome::result<AskResponseV1_1_0> &response,
         const StorageProviderInfo &info) const;
 
     outcome::result<std::pair<CID, UnpaddedPieceSize>> calculateCommP(
@@ -106,7 +106,7 @@ namespace fc::markets::storage::client {
      * @return CID of add funds message if it was sent
      */
     outcome::result<boost::optional<CID>> ensureFunds(
-        const std::shared_ptr<ClientDeal>& deal);
+        const std::shared_ptr<ClientDeal> &deal);
 
     outcome::result<void> verifyDealResponseSignature(
         const SignedResponse &response,
@@ -117,14 +117,14 @@ namespace fc::markets::storage::client {
      * @param deal state with publish message cid set
      * @return true if published or false otherwise
      */
-    outcome::result<bool> verifyDealPublished(const std::shared_ptr<ClientDeal>& deal,
-                                              api::MsgWait msg_state);
+    outcome::result<bool> verifyDealPublished(
+        const std::shared_ptr<ClientDeal> &deal, api::MsgWait msg_state);
 
     /**
      * Finalize deal, close connection, clean up
      * @param deal - deal to clean up
      */
-    void finalizeDeal(const std::shared_ptr<ClientDeal>& deal);
+    void finalizeDeal(const std::shared_ptr<ClientDeal> &deal);
 
     /**
      * Creates all FSM transitions
@@ -141,7 +141,7 @@ namespace fc::markets::storage::client {
      * @param from  - STORAGE_DEAL_UNKNOWN
      * @param to    - STORAGE_DEAL_ENSURE_CLIENT_FUNDS
      */
-    void onClientEventOpen(const std::shared_ptr<ClientDeal>& deal,
+    void onClientEventOpen(const std::shared_ptr<ClientDeal> &deal,
                            ClientEvent event,
                            StorageDealStatus from,
                            StorageDealStatus to);
@@ -153,7 +153,7 @@ namespace fc::markets::storage::client {
      * @param from  - STORAGE_DEAL_ENSURE_CLIENT_FUNDS
      * @param to    - STORAGE_DEAL_CLIENT_FUNDING
      */
-    void onClientEventFundingInitiated(const std::shared_ptr<ClientDeal>& deal,
+    void onClientEventFundingInitiated(const std::shared_ptr<ClientDeal> &deal,
                                        ClientEvent event,
                                        StorageDealStatus from,
                                        StorageDealStatus to);
@@ -167,7 +167,7 @@ namespace fc::markets::storage::client {
      * STORAGE_DEAL_CLIENT_FUNDING
      * @param to    - STORAGE_DEAL_FUNDS_ENSURED
      */
-    void onClientEventFundsEnsured(const std::shared_ptr<ClientDeal>& deal,
+    void onClientEventFundsEnsured(const std::shared_ptr<ClientDeal> &deal,
                                    ClientEvent event,
                                    StorageDealStatus from,
                                    StorageDealStatus to);
@@ -179,7 +179,7 @@ namespace fc::markets::storage::client {
      * @param from  - STORAGE_DEAL_VALIDATING
      * @param to    - STORAGE_DEAL_FAILING
      */
-    void onClientEventDealRejected(const std::shared_ptr<ClientDeal>& deal,
+    void onClientEventDealRejected(const std::shared_ptr<ClientDeal> &deal,
                                    ClientEvent event,
                                    StorageDealStatus from,
                                    StorageDealStatus to);
@@ -193,7 +193,7 @@ namespace fc::markets::storage::client {
      * @param from  - STORAGE_DEAL_VALIDATING
      * @param to    - STORAGE_DEAL_PROPOSAL_ACCEPTED
      */
-    void onClientEventDealAccepted(const std::shared_ptr<ClientDeal>& deal,
+    void onClientEventDealAccepted(const std::shared_ptr<ClientDeal> &deal,
                                    ClientEvent event,
                                    StorageDealStatus from,
                                    StorageDealStatus to);
@@ -205,7 +205,7 @@ namespace fc::markets::storage::client {
      * @param from  - STORAGE_DEAL_PROPOSAL_ACCEPTED
      * @param to    - STORAGE_DEAL_SEALING
      */
-    void onClientEventDealPublished(const std::shared_ptr<ClientDeal>& deal,
+    void onClientEventDealPublished(const std::shared_ptr<ClientDeal> &deal,
                                     ClientEvent event,
                                     StorageDealStatus from,
                                     StorageDealStatus to);
@@ -217,7 +217,7 @@ namespace fc::markets::storage::client {
      * @param from  - STORAGE_DEAL_SEALING
      * @param to    - STORAGE_DEAL_ACTIVE
      */
-    void onClientEventDealActivated(const std::shared_ptr<ClientDeal>& deal,
+    void onClientEventDealActivated(const std::shared_ptr<ClientDeal> &deal,
                                     ClientEvent event,
                                     StorageDealStatus from,
                                     StorageDealStatus to);
@@ -229,7 +229,7 @@ namespace fc::markets::storage::client {
      * @param from  - STORAGE_DEAL_FAILING
      * @param to    - STORAGE_DEAL_ERROR
      */
-    void onClientEventFailed(const std::shared_ptr<ClientDeal>& deal,
+    void onClientEventFailed(const std::shared_ptr<ClientDeal> &deal,
                              ClientEvent event,
                              StorageDealStatus from,
                              StorageDealStatus to);
@@ -257,7 +257,8 @@ namespace fc::markets::storage::client {
       return true;
     };
 
-    using ProposeCb = std::function<void(outcome::result<SignedResponse>)>;
+    using ProposeCb =
+        std::function<void(outcome::result<SignedResponseV1_1_0>)>;
     void propose(std::shared_ptr<ClientDeal> deal, ProposeCb cb);
 
     /** libp2p host */

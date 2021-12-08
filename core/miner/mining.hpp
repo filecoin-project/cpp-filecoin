@@ -46,7 +46,7 @@ namespace fc::mining {
     outcome::result<void> waitBeacon();
     outcome::result<void> waitInfo();
     outcome::result<void> prepare();
-    outcome::result<void> submit(const BlockTemplate& block1);
+    outcome::result<void> submit(const BlockTemplate &block1);
     outcome::result<void> bestParent();
     ChainEpoch height() const;
     void wait(uint64_t sec, bool abs, Scheduler::Callback cb);
@@ -66,10 +66,6 @@ namespace fc::mining {
     std::unordered_set<std::pair<TipsetKey, size_t>, pair_hash> mined;
     boost::optional<MiningBaseInfo> info;
   };
-
-  int64_t computeWinCount(BytesIn ticket,
-                          const BigInt &power,
-                          const BigInt &total_power);
 
   double ticketQuality(BytesIn ticket);
 }  // namespace fc::mining

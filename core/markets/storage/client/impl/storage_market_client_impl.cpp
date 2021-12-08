@@ -99,7 +99,8 @@ namespace fc::markets::storage::client {
   void StorageMarketClientImpl::askDealStatus(
       const std::shared_ptr<ClientDeal> &deal) {
     auto cb{weakCb0(
-        weak_from_this(), [=](outcome::result<DealStatusResponse> &&_res) {
+        weak_from_this(),
+        [=](outcome::result<DealStatusResponseV1_1_0> &&_res) {
           if (_res) {
             auto &res{_res.value()};
             auto state{res.state.status};
@@ -126,23 +127,23 @@ namespace fc::markets::storage::client {
             waiting_deals.push_back(deal);
           }
         })};
-    DealStatusRequest req;
-    req.proposal = deal->proposal_cid;
-    OUTCOME_EXCEPT(bytes, codec::cbor::encode(req.proposal));
+    OUTCOME_EXCEPT(bytes, codec::cbor::encode(deal->proposal_cid));
     OUTCOME_CB(
-        req.signature,
+        auto signature,
         api_->WalletSign(deal->client_deal_proposal.proposal.client, bytes));
+    DealStatusRequestV1_1_0 req{{deal->proposal_cid, signature}};
     status_streams_->open({
         deal->miner,
-        kDealStatusProtocolId,
+        kDealStatusProtocolId_v1_1_0,
         [MOVE(cb), MOVE(req)](Host::StreamResult _stream) {
           OUTCOME_CB1(_stream);
           auto stream{std::make_shared<common::libp2p::CborStream>(
               std::move(_stream.value()))};
           stream->write(req, [MOVE(cb), stream](outcome::result<size_t> _n) {
             OUTCOME_CB1(_n);
-            stream->read<DealStatusResponse>(
-                [MOVE(cb), stream](outcome::result<DealStatusResponse> _res) {
+            stream->read<DealStatusResponseV1_1_0>(
+                [MOVE(cb),
+                 stream](outcome::result<DealStatusResponseV1_1_0> _res) {
                   cb(std::move(_res));
                 });
           });
@@ -217,37 +218,37 @@ namespace fc::markets::storage::client {
 
   void StorageMarketClientImpl::getAsk(
       const StorageProviderInfo &info,
-      const SignedAskHandler &signed_ask_handler) {
+      const StorageAskHandler &storage_ask_handler) {
     host_->newStream(
         info.peer_info,
-        kAskProtocolId,
-        [self{shared_from_this()}, info, signed_ask_handler](
+        kAskProtocolId_v1_1_0,
+        [self{shared_from_this()}, info, storage_ask_handler](
             auto &&stream_res) {
           if (stream_res.has_error()) {
             self->logger_->error("Cannot open stream to "
                                  + peerInfoToPrettyString(info.peer_info)
                                  + stream_res.error().message());
-            signed_ask_handler(outcome::failure(stream_res.error()));
+            storage_ask_handler(outcome::failure(stream_res.error()));
             return;
           }
           auto stream{std::make_shared<CborStream>(stream_res.value())};
-          AskRequest request{.miner = info.address};
+          AskRequestV1_1_0 request{{info.address}};
           stream->write(
               request,
-              [self, info, stream, signed_ask_handler](
+              [self, info, stream, storage_ask_handler](
                   outcome::result<size_t> written) {
                 if (!self->hasValue(written,
                                     "Cannot send request",
                                     stream,
-                                    signed_ask_handler)) {
+                                    storage_ask_handler)) {
                   return;
                 }
-                stream->template read<AskResponse>(
-                    [self, info, stream, signed_ask_handler](
-                        const outcome::result<AskResponse> &response) {
+                stream->template read<AskResponseV1_1_0>(
+                    [self, info, stream, storage_ask_handler](
+                        const outcome::result<AskResponseV1_1_0> &response) {
                       auto validated_ask_response =
                           self->validateAskResponse(response, info);
-                      signed_ask_handler(validated_ask_response);
+                      storage_ask_handler(validated_ask_response);
                       closeStreamGracefully(stream, self->logger_);
                     });
               });
@@ -319,29 +320,28 @@ namespace fc::markets::storage::client {
     return client_deal->proposal_cid;
   }
 
-  outcome::result<SignedStorageAsk>
-  StorageMarketClientImpl::validateAskResponse(
-      const outcome::result<AskResponse> &response,
+  outcome::result<StorageAsk> StorageMarketClientImpl::validateAskResponse(
+      const outcome::result<AskResponseV1_1_0> &response,
       const StorageProviderInfo &info) const {
     if (response.has_error()) {
       return response.error();
     }
-    if (response.value().ask.ask.miner != info.address) {
+    if (response.value().ask().ask.miner != info.address) {
       return StorageMarketClientError::kWrongMiner;
     }
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(miner_info,
                 api_->StateMinerInfo(info.address, chain_head->key));
-    OUTCOME_TRY(ask_bytes, codec::cbor::encode(response.value().ask.ask));
+    OUTCOME_TRY(digest, response.value().ask().getDigest());
     OUTCOME_TRY(
         signature_valid,
         api_->WalletVerify(
-            miner_info.worker, ask_bytes, response.value().ask.signature));
+            miner_info.worker, digest, response.value().ask().signature));
     if (!signature_valid) {
       logger_->debug("Ask response signature invalid");
       return StorageMarketClientError::kSignatureInvalid;
     }
-    return response.value().ask;
+    return response.value().ask().ask;
   }
 
   outcome::result<std::pair<CID, UnpaddedPieceSize>>
@@ -386,10 +386,10 @@ namespace fc::markets::storage::client {
 
   outcome::result<void> StorageMarketClientImpl::verifyDealResponseSignature(
       const SignedResponse &response, const std::shared_ptr<ClientDeal> &deal) {
-    OUTCOME_TRY(response_bytes, codec::cbor::encode(response.response));
-    OUTCOME_TRY(signature_valid,
-                api_->WalletVerify(
-                    deal->miner_worker, response_bytes, response.signature));
+    OUTCOME_TRY(digest, response.getDigest());
+    OUTCOME_TRY(
+        signature_valid,
+        api_->WalletVerify(deal->miner_worker, digest, response.signature));
     if (!signature_valid) {
       return StorageMarketClientError::kSignatureInvalid;
     }
@@ -544,7 +544,7 @@ namespace fc::markets::storage::client {
       StorageDealStatus from,
       StorageDealStatus to) {
     auto cb{[self{shared_from_this()},
-             deal](outcome::result<SignedResponse> response) {
+             deal](outcome::result<SignedResponseV1_1_0> response) {
       SELF_FSM_HALT_ON_ERROR(response, "Read response error", deal);
       SELF_FSM_HALT_ON_ERROR(
           self->verifyDealResponseSignature(response.value(), deal),
@@ -680,20 +680,21 @@ namespace fc::markets::storage::client {
                                         ProposeCb cb) {
     propose_streams_->open({
         deal->miner,
-        kDealProtocolId,
+        kDealMkProtocolId_v1_1_0,
         [=, MOVE(deal), MOVE(cb)](Host::StreamResult _stream) {
           OUTCOME_CB1(_stream);
           auto stream{std::make_shared<CborStream>(std::move(_stream.value()))};
-          Proposal proposal{
+          ProposalV1_1_0 proposal{{
               deal->client_deal_proposal,
               deal->data_ref,
               deal->is_fast_retrieval,
-          };
+          }};
           stream->write(
               proposal, [=, MOVE(cb)](outcome::result<size_t> _write) {
                 OUTCOME_CB1(_write);
-                stream->read<SignedResponse>(
-                    [MOVE(cb), stream](outcome::result<SignedResponse> _res) {
+                stream->read<SignedResponseV1_1_0>(
+                    [MOVE(cb),
+                     stream](outcome::result<SignedResponseV1_1_0> _res) {
                       cb(std::move(_res));
                     });
               });

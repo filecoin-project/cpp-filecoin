@@ -110,7 +110,7 @@ namespace fc::proofs {
   }
 
   outcome::result<void> ProofParamProvider::getParams(
-      const gsl::span<ParamFile> &param_files, uint64_t storage_size) {
+      const gsl::span<const ParamFile> &param_files, uint64_t storage_size) {
     try {
       boost::filesystem::create_directories(getParamDir());
     } catch (const std::exception &e) {

@@ -7,7 +7,7 @@
 
 #include "api/full_node/node_api.hpp"
 #include "common/outcome.hpp"
-#include "markets/storage/deal_protocol.hpp"
+#include "markets/storage/mk_protocol.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 #include "primitives/types.hpp"
 

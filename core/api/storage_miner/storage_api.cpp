@@ -41,7 +41,7 @@ namespace fc::api {
       return storage_market_provider->importDataForDeal(proposal, path);
     };
 
-    api->MarketGetAsk = [=]() -> outcome::result<SignedStorageAsk> {
+    api->MarketGetAsk = [=]() -> outcome::result<SignedStorageAskV1_1_0> {
       return stored_ask->getAsk(actor);
     };
 

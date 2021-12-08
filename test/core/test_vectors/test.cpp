@@ -284,7 +284,7 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
     auto ts_load{std::make_shared<fc::primitives::tipset::TsLoadIpld>(ipld)};
     fc::vm::runtime::EnvironmentContext env_context{
         ipld, invoker, randomness, ts_load};
-    fc::vm::interpreter::InterpreterImpl vmi{env_context, nullptr};
+    fc::vm::interpreter::InterpreterImpl vmi{env_context, nullptr, nullptr};
     CID state{mv.state_before};
     BlockHeader parent;
     parent.ticket.emplace();

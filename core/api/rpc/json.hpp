@@ -1445,14 +1445,14 @@ namespace fc::api {
       decode(v.channel_message, Get(j, "ChannelMessage"));
     }
 
-    ENCODE(SignedStorageAsk) {
+    ENCODE(SignedStorageAskV1_1_0) {
       Value j{rapidjson::kObjectType};
       Set(j, "Ask", v.ask);
       Set(j, "Signature", v.signature);
       return j;
     }
 
-    DECODE(SignedStorageAsk) {
+    DECODE(SignedStorageAskV1_1_0) {
       Get(j, "Ask", v.ask);
       Get(j, "Signature", v.signature);
     }

@@ -63,9 +63,9 @@ namespace fc::storage::cids_index {
     return memcmp(&l.key, &r, sizeof(CbCid)) < 0;
   }
 
-  static inline const Row kHeaderV0{
+  inline const Row kHeaderV0{
       {}, decltype(Row::offset){common::to_int(Meta::kHeaderV0)}, {}};
-  static inline const Row kTrailerV0{
+  inline const Row kTrailerV0{
       {}, decltype(Row::offset){common::to_int(Meta::kTrailerV0)}, {}};
 
   struct Progress;

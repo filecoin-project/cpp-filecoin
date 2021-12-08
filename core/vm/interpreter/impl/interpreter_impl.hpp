@@ -11,6 +11,7 @@
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::interpreter {
+  using blockchain::block_validator::BlockValidator;
   using blockchain::weight::WeightCalculator;
   using primitives::block::BlockHeader;
   using runtime::EnvironmentContext;
@@ -19,6 +20,7 @@ namespace fc::vm::interpreter {
   class InterpreterImpl : public Interpreter {
    public:
     InterpreterImpl(EnvironmentContext env_context,
+                    std::shared_ptr<BlockValidator> validator,
                     std::shared_ptr<WeightCalculator> weight_calculator);
 
     outcome::result<Result> interpret(TsBranchPtr ts_branch,
@@ -29,10 +31,11 @@ namespace fc::vm::interpreter {
         std::vector<MessageReceipt> *all_receipts) const;
 
    private:
-    static bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) ;
+    static bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks);
     outcome::result<BigInt> getWeight(const TipsetCPtr &tipset) const;
 
     EnvironmentContext env_context_;
+    std::shared_ptr<BlockValidator> validator_;
     std::shared_ptr<WeightCalculator> weight_calculator_;
   };
 
