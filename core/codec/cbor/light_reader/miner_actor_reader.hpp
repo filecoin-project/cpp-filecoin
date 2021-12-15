@@ -36,7 +36,7 @@ namespace fc::codec::cbor::light_reader {
       return kParseError;
     }
     // read miner info CID
-    const CbCid *miner_info;
+    const CbCid *miner_info = nullptr;
     if (!cbor::readCborBlake(miner_info, input)) {
       return kParseError;
     }
@@ -76,7 +76,7 @@ namespace fc::codec::cbor::light_reader {
       return kParseError;
     }
     // sectors
-    const CbCid *sectors;
+    const CbCid *sectors = nullptr;
     if (!cbor::readCborBlake(sectors, input)) {
       return kParseError;
     }
@@ -89,7 +89,7 @@ namespace fc::codec::cbor::light_reader {
       return kParseError;
     }
     // deadlines
-    const CbCid *deadlines;
+    const CbCid *deadlines = nullptr;
     if (!cbor::readCborBlake(deadlines, input)) {
       return kParseError;
     }

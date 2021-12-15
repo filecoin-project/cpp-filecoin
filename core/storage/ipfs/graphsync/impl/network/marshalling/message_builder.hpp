@@ -18,7 +18,12 @@ namespace fc::storage::ipfs::graphsync {
   class MessageBuilder {
    public:
     MessageBuilder();
+    MessageBuilder(const MessageBuilder &) = delete;
+    MessageBuilder(MessageBuilder &&) = delete;
     virtual ~MessageBuilder();
+
+    const MessageBuilder &operator=(const MessageBuilder &) = delete;
+    const MessageBuilder &operator=(MessageBuilder &&) = delete;
 
     /// Returns if there is nothing to send
     bool empty() const;

@@ -41,12 +41,6 @@ namespace fc::storage::ipfs::graphsync {
     /// Dtor.
     ~PeerContext() override;
 
-    /// Remote peer
-    const PeerId peer;
-
-    /// String representation for loggers and debug purposes
-    const std::string str;
-
     /// Stores network address for outbound connections. May be updated.
     /// \param connect_to address, optional
     void setOutboundAddress(
@@ -57,6 +51,9 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Returns internal state
     State getState() const;
+
+    /// Returns string representation
+    const std::string &asString() const;
 
     /// Called on new accepted stream from the peer
     /// \param stream libp2p stream
@@ -77,7 +74,7 @@ namespace fc::storage::ipfs::graphsync {
     /// Sends response to peer.
     void sendResponse(const FullRequestId &id, const Response &response);
 
-    void postBlocks(RequestId request_id, Responder responder);
+    void postBlocks(RequestId request_id, const Responder &responder);
 
     /// Closes all streams to/from this peer
     /// \param status close reason to be forwarded to local request callback,
@@ -123,7 +120,7 @@ namespace fc::storage::ipfs::graphsync {
     /// Closes a stream
     /// \param stream libp2p stream
     /// \param status close reason
-    void closeStream(StreamPtr stream, ResponseStatusCode status);
+    void closeStream(const StreamPtr &stream, ResponseStatusCode status);
 
     /// Response callback, forwarded to GraphsyncImpl
     /// \param response response wire protocol object
@@ -153,6 +150,12 @@ namespace fc::storage::ipfs::graphsync {
     void onStreamConnected(outcome::result<StreamPtr> rstream);
 
     void checkResponders();
+
+    /// Remote peer
+    const PeerId peer_;
+
+    /// String representation for loggers and debug purposes
+    const std::string str_;
 
     /// Feedback to GraphsyncImpl module
     PeerToGraphsyncFeedback &graphsync_feedback_;

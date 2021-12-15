@@ -44,7 +44,7 @@ namespace fc::codec::cbor::light_reader {
       }
     }
     // claims
-    const CbCid *claims;
+    const CbCid *claims = nullptr;
     if (!cbor::readCborBlake(claims, input)) {
       return kParseError;
     }

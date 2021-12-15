@@ -24,6 +24,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
 }
 
 namespace fc::storage::hamt {
+  using codec::cbor::CborEncodeStream;
   using common::which;
 
   inline auto leafFind(Node::Leaf &leaf, BytesIn key) {
@@ -42,32 +43,33 @@ namespace fc::storage::hamt {
 
   CBOR2_ENCODE(Node) {
     Bits bits;
-    auto l_items{s.list()};
-    for (auto &[index, value] : v.items) {
+    auto l_items{CborEncodeStream::list()};
+    for (const auto &[index, value] : v.items) {
       bit_set(bits, index);
-      if (boost::get<Node::Ptr>(&value)) {
+      if (boost::get<Node::Ptr>(&value) != nullptr) {
         outcome::raise(HamtError::kExpectedCID);
       }
       codec::cbor::CborEncodeStream _item;
-      auto _cid{boost::get<CID>(&value)};
-      if (_cid) {
+      const auto *_cid{boost::get<CID>(&value)};
+      if (_cid != nullptr) {
         _item << *_cid;
       } else {
-        auto &leaf{boost::get<Node::Leaf>(value)};
-        _item = s.list();
-        for (auto &[key, value] : leaf) {
-          _item << (s.list() << key << s.wrap(value, 1));
+        const auto &leaf{boost::get<Node::Leaf>(value)};
+        _item = CborEncodeStream::list();
+        for (const auto &[key, value] : leaf) {
+          _item << (CborEncodeStream::list()
+                    << key << CborEncodeStream::wrap(value, 1));
         }
       }
       if (*v.v3) {
         l_items << _item;
       } else {
-        auto m_item{s.map()};
-        m_item[_cid ? "0" : "1"] << _item;
+        auto m_item{CborEncodeStream::map()};
+        m_item[_cid != nullptr ? "0" : "1"] << _item;
         l_items << m_item;
       }
     }
-    return s << (s.list() << bits << l_items);
+    return s << (CborEncodeStream::list() << bits << l_items);
   }
 
   CBOR2_DECODE(Node) {
@@ -199,16 +201,16 @@ namespace fc::storage::hamt {
     constexpr auto byte_bits = 8;
     auto max_bits = byte_bits * hash.size();
     max_bits -= max_bits % bits;
-    auto offset = 0;
+    int64_t offset = 0;
     if (n != -1) {
-      offset = max_bits - (n - 1) * bits;
+      offset = gsl::narrow<int64_t>(max_bits - (n - 1) * bits);
     }
     while (offset + bits <= max_bits) {
       size_t index = 0;
       for (auto i = 0u; i < bits; ++i, ++offset) {
         index <<= 1;
         index |= 1
-                 & (hash[offset / byte_bits]
+                 & (gsl::at(hash, offset / byte_bits)
                     >> (byte_bits - 1 - offset % byte_bits));
       }
       indices.push_back(index);
@@ -247,7 +249,8 @@ namespace fc::storage::hamt {
       child->v3 = v3();
       OUTCOME_TRY(set(*child, consumeIndex(indices), key, std::move(value)));
       for (auto &pair : leaf) {
-        auto indices2 = keyToIndices(pair.first, indices.size());
+        auto indices2 =
+            keyToIndices(pair.first, gsl::narrow<int>(indices.size()));
         OUTCOME_TRY(set(*child, indices2, pair.first, std::move(pair.second)));
       }
       item = child;
@@ -362,7 +365,8 @@ namespace fc::storage::hamt {
   }
 
   void Hamt::lazyCreateRoot() const {
-    if (auto root{boost::get<Node::Ptr>(&root_)}; root && !*root) {
+    if (auto *root{boost::get<Node::Ptr>(&root_)};
+        (root != nullptr) && !*root) {
       *root = std::make_shared<Node>(Node{{}, v3()});
     }
   }

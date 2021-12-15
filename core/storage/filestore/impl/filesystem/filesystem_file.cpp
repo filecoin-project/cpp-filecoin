@@ -57,7 +57,7 @@ fc::outcome::result<size_t> FileSystemFile::read(
   if (!fstream_.is_open()) return FileStoreError::kFileClosed;
   if (fstream_.fail()) return FileStoreError::kUnknown;
 
-  fstream_.seekg(offset, std::ios_base::beg);
+  fstream_.seekg(gsl::narrow<int64_t>(offset), std::ios_base::beg);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   fstream_.read(reinterpret_cast<char *>(buffer.data()), buffer.size());
   auto res = fstream_.gcount();
@@ -72,7 +72,7 @@ fc::outcome::result<size_t> FileSystemFile::write(
   if (!fstream_.is_open()) return FileStoreError::kFileClosed;
   if (fstream_.fail()) return FileStoreError::kUnknown;
 
-  fstream_.seekp(offset, std::ios_base::beg);
+  fstream_.seekp(gsl::narrow<int64_t>(offset), std::ios_base::beg);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
   fstream_.write(reinterpret_cast<const char *>(buffer.data()), buffer.size());
   fstream_.flush();

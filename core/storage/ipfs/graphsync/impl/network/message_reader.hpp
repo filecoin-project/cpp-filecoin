@@ -17,12 +17,17 @@ namespace fc::storage::ipfs::graphsync {
     /// Ctor.
     /// \param feedback Owner's feedback interface
     explicit MessageReader(EndpointToPeerFeedback &feedback);
+    MessageReader(const MessageReader &) = delete;
+    MessageReader(MessageReader &&) = delete;
 
     /// begins reading
     /// \param stream libp2p stream
     bool read(StreamPtr stream);
 
     ~MessageReader();
+
+    MessageReader &operator=(const MessageReader &) = delete;
+    MessageReader &operator=(MessageReader &&) = delete;
 
    private:
     /// Callback for async length delimited read operations

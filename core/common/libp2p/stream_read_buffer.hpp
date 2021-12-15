@@ -31,7 +31,7 @@ namespace libp2p::connection {
       readSome(out,
                out.size(),
                [weak{weak_from_this()}, out, n, cb{std::move(cb)}](
-                   outcome::result<size_t> _r) {
+                   outcome::result<size_t> _r) mutable {
                  OUTCOME_CB(auto r, _r);
                  if (auto self{weak.lock()}) {
                    const auto _r{static_cast<ptrdiff_t>(r)};
@@ -39,14 +39,15 @@ namespace libp2p::connection {
                    if (_r == out.size()) {
                      return cb(n);
                    }
-                   self->readFull(out.subspan(r), n, std::move(cb));
+                   self->readFull(
+                       out.subspan(gsl::narrow<int64_t>(r)), n, std::move(cb));
                  }
                });
     }
 
     void read(BytesOut out, size_t n, ReadCallbackFunc cb) override {
       assert(out.size() >= static_cast<ptrdiff_t>(n));
-      readFull(out.first(n), n, std::move(cb));
+      readFull(out.first(gsl::narrow<int64_t>(n)), n, std::move(cb));
     }
 
     void readSome(BytesOut out, size_t n, ReadCallbackFunc cb) override {
@@ -56,7 +57,8 @@ namespace libp2p::connection {
       }
       if (size() != 0) {
         n = std::min(n, size());
-        std::copy_n(buffer->begin() + begin, n, out.begin());
+        std::copy_n(
+            buffer->begin() + gsl::narrow<int64_t>(begin), n, out.begin());
         begin += n;
         return cb(n);
       }
@@ -64,7 +66,7 @@ namespace libp2p::connection {
           *buffer,
           buffer->size(),
           [weak{weak_from_this()}, out, n, cb{std::move(cb)}, buffer{buffer}](
-              outcome::result<size_t> _r) {
+              outcome::result<size_t> _r) mutable {
             OUTCOME_CB(auto r, _r);
             if (auto self{weak.lock()}) {
               self->begin = 0;

@@ -45,7 +45,7 @@ namespace fc::storage::ipld {
     mutable std::shared_mutex written_mutex;
     std::set<Row> written;
     uint64_t car_offset{};
-    std::atomic_flag flushing;
+    std::atomic_flag flushing{};
     std::mutex flush_mutex;
     size_t flush_on{};
     std::shared_ptr<boost::asio::io_context> io;

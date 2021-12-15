@@ -15,7 +15,7 @@ namespace fc {
     boost::iostreams::array_source device;
     boost::iostreams::stream<decltype(device)> s;
 
-    BytesIstream(BytesIn bytes)
+    explicit BytesIstream(BytesIn bytes)
         : device{common::span::bytestr(bytes.data()),
                  static_cast<size_t>(bytes.size())},
           s{device} {}

@@ -54,12 +54,12 @@ namespace fc::storage::unixfs {
 
     void _str(uint64_t id, gsl::span<const char> str) {
       _tag(id, str.size(), true);
-      cs.WriteRaw(str.data(), str.size());
+      cs.WriteRaw(str.data(), gsl::narrow<int>(str.size()));
     }
 
     Bytes toBytes() {
       cs.Trim();
-      return Bytes(s.begin(), s.end());
+      return {s.begin(), s.end()};
     }
 
     std::string toString() {
@@ -79,7 +79,7 @@ namespace fc::storage::unixfs {
   };
 
   struct PbNodeBuilder : PbBuilder {
-    void link(CID cid, size_t size) {
+    void link(const CID &cid, size_t size) {
       PbBuilder link;
       OUTCOME_EXCEPT(cid_bytes, cid.toBytes());
       link._str(1, common::span::cstring(cid_bytes));
@@ -131,7 +131,7 @@ namespace fc::storage::unixfs {
       root.size += tree.size;
       root.file_size += tree.file_size;
       pb_file.block(tree.file_size);
-      pb_node.link(std::move(tree.cid), tree.size);
+      pb_node.link(tree.cid, tree.size);
     }
     pb_node.content(pb_file.toString());
     auto node = pb_node.toBytes();

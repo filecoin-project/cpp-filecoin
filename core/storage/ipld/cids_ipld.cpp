@@ -122,7 +122,7 @@ namespace fc::storage::ipld {
   }
 
   bool CidsIpld::get(const CbCid &key, Bytes *value) const {
-    if (value) {
+    if (value != nullptr) {
       value->resize(0);
     }
     std::shared_lock index_lock{index_mutex};
@@ -138,7 +138,7 @@ namespace fc::storage::ipld {
       }
       return false;
     }
-    if (value) {
+    if (value != nullptr) {
       std::unique_lock car_lock{car_mutex};
       auto [good, size]{readCarItem(car_file, *row, nullptr)};
       if (!good) {
@@ -167,7 +167,7 @@ namespace fc::storage::ipld {
     }
 
     Bytes item;
-    codec::uvarint::VarintEncoder varint{kCborBlakePrefix.size() + key.size()
+    codec::uvarint::VarintEncoder varint{kCborBlakePrefix.size() + CbCid::size()
                                          + value.size()};
     item.reserve(varint.length + varint.value);
     append(item, varint.bytes());
@@ -189,7 +189,7 @@ namespace fc::storage::ipld {
     }
     car_offset += item.size();
     written.insert(row);
-    if (flush_on && written.size() >= flush_on) {
+    if (flush_on != 0 && written.size() >= flush_on) {
       written_lock.unlock();
       asyncFlush();
     }

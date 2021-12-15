@@ -6,6 +6,7 @@
 #include "storage/chain/msg_waiter.hpp"
 
 #include <boost/asio/io_context.hpp>
+#include <utility>
 
 #include "adt/array.hpp"
 #include "cbor_blake/ipld_version.hpp"
@@ -21,11 +22,11 @@ namespace fc::storage::blockchain {
       TsLoadPtr ts_load,
       IpldPtr ipld,
       std::shared_ptr<boost::asio::io_context> io,
-      std::shared_ptr<ChainStore> chain_store) {
+      const std::shared_ptr<ChainStore> &chain_store) {
     auto waiter{std::make_shared<MsgWaiter>()};
     waiter->ts_load = std::move(ts_load);
     waiter->ipld = std::move(ipld);
-    waiter->io = io;
+    waiter->io = std::move(io);
     waiter->head_sub =
         chain_store->subscribeHeadChanges([=](const auto &changes) {
           for (const auto &change : changes) {
@@ -63,7 +64,7 @@ namespace fc::storage::blockchain {
       _search(head,
               cid,
               lookback_limit,
-              [=, cb{std::move(cb)}](auto ts, auto receipt) {
+              [=, cb{std::move(cb)}](auto ts, auto receipt) mutable {
                 if (!ts) {
                   return cb({}, {});
                 }
@@ -88,6 +89,7 @@ namespace fc::storage::blockchain {
     waiting[cid].callbacks.emplace(confidence, std::move(cb));
   }
 
+  // NOLIINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> MsgWaiter::onHeadChange(const HeadChange &change) {
     std::unique_lock lock{mutex};
     const auto &ts{change.value};
@@ -138,10 +140,10 @@ namespace fc::storage::blockchain {
                           Callback cb) {
     Search search;
     search.cid = cid;
-    search.cb = cb;
+    search.cb = std::move(cb);
     search.min_height =
         lookback_limit == -1 ? 0 : head->epoch() - lookback_limit;
-    search.ts = ts;
+    search.ts = std::move(ts);
     searchLoop(searching.emplace(searching.end(), std::move(search)));
   }
 

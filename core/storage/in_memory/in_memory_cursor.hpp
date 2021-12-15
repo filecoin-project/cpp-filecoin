@@ -15,7 +15,7 @@ namespace fc::storage {
    */
   class InMemoryCursor : public BufferMapCursor {
    public:
-    InMemoryCursor(std::shared_ptr<InMemoryStorage> storage)
+    explicit InMemoryCursor(std::shared_ptr<InMemoryStorage> storage)
         : storage_(std::move(storage)) {
       current_iterator_ = invalid_;
     };

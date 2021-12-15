@@ -21,8 +21,14 @@ namespace fc::storage::ipfs::graphsync {
       : public std::enable_shared_from_this<LengthDelimitedMessageReader> {
    public:
     LengthDelimitedMessageReader(const LengthDelimitedMessageReader &) = delete;
+    LengthDelimitedMessageReader(LengthDelimitedMessageReader &&) = delete;
+
+    virtual ~LengthDelimitedMessageReader() = default;
+
     LengthDelimitedMessageReader &operator=(
         const LengthDelimitedMessageReader &) = delete;
+    LengthDelimitedMessageReader &operator=(LengthDelimitedMessageReader &&) =
+        delete;
 
     /// Feedback interface from reader to its owning object
     using Feedback = std::function<void(const StreamPtr &stream,

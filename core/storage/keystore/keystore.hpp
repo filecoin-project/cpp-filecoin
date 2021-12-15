@@ -86,10 +86,9 @@ namespace fc::storage::keystore {
      * @param data
      * @param signature
      */
-    virtual outcome::result<bool> verify(
-        const Address &address,
-        gsl::span<const uint8_t> data,
-        const Signature &signature) const noexcept;
+    virtual outcome::result<bool> verify(const Address &address,
+                                         gsl::span<const uint8_t> data,
+                                         const Signature &signature) const;
 
     outcome::result<Address> put(SignatureType type, TPrivateKey key);
 

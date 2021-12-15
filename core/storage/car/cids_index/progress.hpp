@@ -17,7 +17,7 @@ namespace fc::storage::cids_index {
 
     /** returns true if value changed by step */
     inline bool update() {
-      if (step && value >= next) {
+      if (step != 0 && value >= next) {
         next = step == 1 ? value + 1 : value - value % step + step;
         return true;
       }
@@ -64,7 +64,7 @@ namespace fc::storage::cids_index {
       bar.print_progress();
     }
     inline void update(bool force = false) {
-      if (force + car_offset.update() + items.update()) {
+      if (force || car_offset.update() || items.update()) {
         bar.set_option(indicators::option::PostfixText{
             fmt::format("{}/{}, {} items",
                         bytesUnits(car_offset.value),

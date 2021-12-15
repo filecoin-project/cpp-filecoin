@@ -26,12 +26,12 @@ namespace fc::storage {
       key = map.prefix;
       // increment
       auto carry{1u};
-      for (auto it{key.rbegin()}; carry && it != key.rend(); ++it) {
+      for (auto it{key.rbegin()}; (carry != 0) && it != key.rend(); ++it) {
         carry += *it;
         *it = carry & 0xFF;
         carry >>= 8;
       }
-      if (carry) {
+      if (carry != 0) {
         key = Bytes(map.prefix.size(), 0xFF);
       }
     }
@@ -65,7 +65,8 @@ namespace fc::storage {
   }
 
   Bytes MapPrefix::Cursor::key() const {
-    return copy(BytesIn{cursor->key()}.subspan(map.prefix.size()));
+    return copy(BytesIn{cursor->key()}.subspan(
+        gsl::narrow<int64_t>(map.prefix.size())));
   }
 
   Bytes MapPrefix::Cursor::value() const {
