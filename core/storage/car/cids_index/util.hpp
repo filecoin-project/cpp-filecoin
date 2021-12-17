@@ -20,6 +20,7 @@
 namespace fc::storage::cids_index {
   using ipld::CidsIpld;
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   inline Outcome<std::shared_ptr<CidsIpld>> loadOrCreateWithProgress(
       const std::string &car_path,
       bool writable,
@@ -39,7 +40,7 @@ namespace fc::storage::cids_index {
       log->error("open car failed: {}", car_path);
       return ERROR_TEXT("loadOrCreateWithProgress: open car failed");
     }
-    auto car_size{(uint64_t)car_file.tellg()};
+    uint64_t car_size = car_file.tellg();
     car_file.seekg(0);
     codec::uvarint::VarintDecoder header;
     if (!read(car_file, header)) {
@@ -60,7 +61,7 @@ namespace fc::storage::cids_index {
     }
     std::vector<MergeRange> ranges;
     std::ifstream index_file;
-    if (index && index->size()) {
+    if (index && (index->size() != 0)) {
       if (!readCarItem(car_file, index->info.max_offset, &indexed_end).first
           || indexed_end > car_size) {
         log->warn("index invalidated: {}", cids_path);
@@ -69,13 +70,13 @@ namespace fc::storage::cids_index {
       }
     }
     if (index && indexed_end < car_size) {
-      car_file.seekg(indexed_end);
+      car_file.seekg(gsl::narrow<int64_t>(indexed_end));
       codec::uvarint::VarintDecoder varint;
-      if (!codec::uvarint::read(car_file, varint) || !varint.value
+      if (!codec::uvarint::read(car_file, varint) || (varint.value == 0)
           || indexed_end + varint.length + varint.value > car_size) {
         car_size = indexed_end;
         boost::filesystem::resize_file(car_path, car_size);
-      } else if (index->size()) {
+      } else if (index->size() != 0) {
         auto &range{ranges.emplace_back()};
         range.begin = 1;
         range.end = 1 + index->size();
@@ -136,16 +137,16 @@ namespace fc::storage::cids_index {
         log->error("index generation error: {:#}", _index.error());
         return _index.error();
       }
-      if (index->size()) {
+      if (index->size() != 0) {
         if (!readCarItem(car_file, index->info.max_offset, &indexed_end).first
             || indexed_end > car_size) {
           return ERROR_TEXT("loadOrCreateWithProgress: invalid index");
         }
       }
       if (indexed_end < car_size) {
-        car_file.seekg(indexed_end);
+        car_file.seekg(gsl::narrow<int64_t>(indexed_end));
         codec::uvarint::VarintDecoder varint;
-        if (!codec::uvarint::read(car_file, varint) || !varint.value
+        if (!codec::uvarint::read(car_file, varint) || (varint.value == 0)
             || indexed_end + varint.length + varint.value > car_size) {
           car_size = indexed_end;
           boost::filesystem::resize_file(car_path, car_size);

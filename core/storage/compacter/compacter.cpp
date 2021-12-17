@@ -35,7 +35,7 @@ namespace fc::storage::compacter {
 
   void CompacterIpld::put(const CbCid &key, BytesCow &&value) {
     std::shared_lock lock{ipld_mutex};
-    if (compact_on_car && !flag.load()) {
+    if ((compact_on_car != 0) && !flag.load()) {
       std::shared_lock written_lock{old_ipld->written_mutex};
       if (old_ipld->car_offset > compact_on_car) {
         asyncStart();
@@ -194,7 +194,7 @@ namespace fc::storage::compacter {
       if (batch_used >= kTsBatch) {
         break;
       }
-      for (auto &cid : it->second.key.cids()) {
+      for (const auto &cid : it->second.key.cids()) {
         copy(cid);
       }
       ++batch_used;
@@ -225,7 +225,7 @@ namespace fc::storage::compacter {
     auto head{ts_load->lazyLoad(ts_main->chain.rbegin()->second).value()};
     auto ts{head};
     for (size_t i{}; i < epochs_messages; ++i) {
-      for (auto &block : ts->blks) {
+      for (const auto &block : ts->blks) {
         queue->push(*asBlake(block.messages));
       }
       auto receipt{*asBlake(ts->getParentMessageReceipts())};
@@ -240,13 +240,13 @@ namespace fc::storage::compacter {
     const auto head_res{interpreter_cache->get(head->key).value()};
     queue->push(*asBlake(head_res.state_root));
     queue->push(*asBlake(head_res.message_receipts));
-    for (auto &branch : *ts_branches) {
+    for (const auto &branch : *ts_branches) {
       if (branch == ts_main) {
         continue;
       }
-      for (auto it : branch->chain) {
+      for (const auto &it : branch->chain) {
         auto ts{ts_load->lazyLoad(it.second).value()};
-        for (auto &block : ts->blks) {
+        for (const auto &block : ts->blks) {
           primitives::tipset::put(nullptr, put_block_header, block);
           queue->push(*asBlake(block.messages));
         }
@@ -286,7 +286,8 @@ namespace fc::storage::compacter {
   }
 
   void CompacterIpld::lookbackState(const CbCid &state) {
-    std::vector<CbCid> copy, recurse;
+    std::vector<CbCid> copy;
+    std::vector<CbCid> recurse;
     lookbackActors(copy, recurse, old_ipld, new_ipld, state);
     queue->push(recurse);
     for (auto it{copy.rbegin()}; it != copy.rend(); ++it) {

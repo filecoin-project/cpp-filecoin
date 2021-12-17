@@ -61,7 +61,7 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   void GraphsyncImpl::postBlocks(const FullRequestId &id, Responder responder) {
-    network_->postBlocks(id, std::move(responder));
+    network_->postBlocks(id, responder);
   }
 
   void GraphsyncImpl::start() {
@@ -140,7 +140,7 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
-    data_signal_(from, std::move(data));
+    data_signal_(from, data);
   }
 
   void GraphsyncImpl::onRemoteRequest(const PeerId &from,

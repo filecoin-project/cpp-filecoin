@@ -14,6 +14,7 @@ namespace fc {
   using primitives::StoragePower;
   using primitives::TokenAmount;
 
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern bool kFakeWinningPost;
   constexpr std::string_view kFakeWinningPostStr{"valid proof"};
 

@@ -35,7 +35,12 @@ namespace fc::storage::ipfs::graphsync {
     };
 
     MessageQueue(const MessageQueue &) = delete;
+    MessageQueue(MessageQueue &&) = delete;
+
+    virtual ~MessageQueue() = default;
+
     MessageQueue &operator=(const MessageQueue &) = delete;
+    MessageQueue &operator=(MessageQueue &&) = delete;
 
     /// Ctor.
     /// \param stream libp2p stream
@@ -59,7 +64,7 @@ namespace fc::storage::ipfs::graphsync {
     void dequeue();
 
     /// Initiates write operation
-    void beginWrite(SharedData buffer);
+    void beginWrite(const SharedData &buffer);
 
     /// Async write result callback
     void onMessageWritten(outcome::result<size_t> res);

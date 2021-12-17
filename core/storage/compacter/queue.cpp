@@ -71,7 +71,7 @@ namespace fc::storage::compacter {
   void CompacterQueue::push(const std::vector<CbCid> &keys) {
     std::unique_lock lock{mutex};
     auto any{false};
-    for (auto &key : keys) {
+    for (const auto &key : keys) {
       if (_push(key)) {
         any = true;
       }
@@ -86,7 +86,7 @@ namespace fc::storage::compacter {
     BytesIn cid;
     auto any{false};
     while (codec::cbor::findCid(cid, input)) {
-      const CbCid *key;
+      const CbCid *key = nullptr;
       if (codec::cbor::light_reader::readCborBlake(key, cid)) {
         if (_push(*key)) {
           any = true;

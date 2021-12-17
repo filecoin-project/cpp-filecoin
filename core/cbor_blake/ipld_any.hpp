@@ -48,7 +48,7 @@ namespace fc {
 
     static bool get(const IpldPtr &ipld, const CbCid &key, Bytes *value) {
       const CID cid{key};
-      if (value) {
+      if (value != nullptr) {
         if (auto r{ipld->get(cid)}) {
           *value = std::move(r.value());
           return true;

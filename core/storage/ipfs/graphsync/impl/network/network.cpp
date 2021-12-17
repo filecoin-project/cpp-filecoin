@@ -69,7 +69,8 @@ namespace fc::storage::ipfs::graphsync {
     auto ctx = findContext(peer.id, false);
     assert(ctx);
 
-    logger()->trace("makeRequest: {} has state {}", ctx->str, ctx->getState());
+    logger()->trace(
+        "makeRequest: {} has state {}", ctx->asString(), ctx->getState());
 
     ctx->setOutboundAddress(peer.addresses);
     ctx->enqueueRequest(request_id, std::move(request_body));
@@ -119,9 +120,10 @@ namespace fc::storage::ipfs::graphsync {
     ctx->sendResponse(id, response);
   }
 
-  void Network::postBlocks(const FullRequestId &id, Responder responder) {
+  void Network::postBlocks(const FullRequestId &id,
+                           const Responder &responder) {
     if (auto ctx{findContext(id.peer, false)}) {
-      return ctx->postBlocks(id.id, std::move(responder));
+      return ctx->postBlocks(id.id, responder);
     }
     responder(false);
   }
@@ -171,7 +173,7 @@ namespace fc::storage::ipfs::graphsync {
 
     auto ctx = findContext(peer_id_res.value(), true);
 
-    logger()->trace("accepted stream from peer={}", ctx->str);
+    logger()->trace("accepted stream from peer={}", ctx->asString());
 
     ctx->onStreamAccepted(std::move(rstream));
   }

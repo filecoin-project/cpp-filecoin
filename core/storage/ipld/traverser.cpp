@@ -13,11 +13,12 @@ namespace fc::storage::ipld::traverser {
   using Input = gsl::span<const uint8_t>;
 
   struct PbDecoder {
-    PbDecoder(Input input) : input{input}, cs(input.data(), input.size()) {}
+    explicit PbDecoder(Input input)
+        : input{input}, cs(input.data(), gsl::narrow<int>(input.size())) {}
 
     Input _str(uint64_t id) {
       if (cs.ExpectTag((id << 3) | 2)) {
-        int size;
+        int size = 0;
         if (cs.ReadVarintSizeAsInt(&size)) {
           auto offset = cs.CurrentPosition();
           if (cs.Skip(size)) {
@@ -28,7 +29,7 @@ namespace fc::storage::ipld::traverser {
       return {};
     }
 
-    bool empty() {
+    bool empty() const {
       return cs.CurrentPosition() >= input.size();
     }
 
@@ -94,7 +95,8 @@ namespace fc::storage::ipld::traverser {
     } else if (cid.content_type == CID::Multicodec::DAG_PB) {
       OUTCOME_TRY(PbNodeDecoder::links(to_visit_, bytes));
     }
-    std::reverse(to_visit_.begin() + last, to_visit_.end());
+    std::reverse(to_visit_.begin() + gsl::narrow<int64_t>(last),
+                 to_visit_.end());
     return cid;
   }
 
@@ -127,10 +129,8 @@ namespace fc::storage::ipld::traverser {
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipld::traverser, TraverserError, e) {
   using fc::storage::ipld::traverser::TraverserError;
 
-  switch (e) {
-    case TraverserError::kTraverseCompleted:
-      return "Traverser: blocks already completed";
-    default:
-      return "Traverser: unknown error";
+  if (e == TraverserError::kTraverseCompleted) {
+    return "Traverser: blocks already completed";
   }
+  return "Traverser: unknown error";
 }

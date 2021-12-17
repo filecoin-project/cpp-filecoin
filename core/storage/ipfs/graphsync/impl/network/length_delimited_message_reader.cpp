@@ -79,7 +79,7 @@ namespace fc::storage::ipfs::graphsync {
 
     // clang-format off
     stream_->read(
-        gsl::span(buffer_->data(), length),
+        gsl::span(buffer_->data(), gsl::narrow<int64_t>(length)),
         length,
         [wptr{weak_from_this()}, buffer{buffer_}](outcome::result<size_t> res) {
           auto self = wptr.lock();

@@ -37,7 +37,7 @@ namespace fc::storage::blockchain {
         TsLoadPtr ts_load,
         IpldPtr ipld,
         std::shared_ptr<boost::asio::io_context> io,
-        std::shared_ptr<ChainStore> chain_store);
+        const std::shared_ptr<ChainStore>& chain_store);
 
     void search(TipsetCPtr ts,
                 const CID &cid,

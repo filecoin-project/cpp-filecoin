@@ -42,10 +42,10 @@ namespace fc::storage::cids_index {
     /** fixed-size key */
     CbCid key;
     /** 40bit offset, up to 1TB */
-    boost::endian::big_uint40_buf_t offset;
+    boost::endian::big_uint40_buf_t offset{};
     /** 24bit(+6bit) size, up to 1GB */
     /** size64=0 means this row is meta */
-    boost::endian::big_uint24_buf_t max_size64;
+    boost::endian::big_uint24_buf_t max_size64{};
 
     inline bool isMeta() const {
       return max_size64.value() == 0;
@@ -89,7 +89,9 @@ namespace fc::storage::cids_index {
   struct MergeRange {
     std::istream *file{};
     std::vector<Row> rows;
-    size_t current{(size_t)-1}, begin{}, end{};
+    size_t current = -1;
+    size_t begin{};
+    size_t end{};
 
     inline auto &front() const {
       assert(current < rows.size());

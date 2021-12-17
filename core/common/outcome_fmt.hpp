@@ -22,7 +22,7 @@ struct fmt::formatter<std::error_code, char, void> {
     const auto *it{ctx.begin()};
     if (it != ctx.end() && *it == '#') {
       alt = true;
-      ++it;
+      std::advance(it, 1);
     }
     return it;
   }

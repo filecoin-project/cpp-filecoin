@@ -21,7 +21,7 @@
       || code == vm::actor::builtin::v5::name                                  \
       || code == vm::actor::builtin::v6::name
 
-// TODO: keep own miner sectors
+// TODO(turuslan): keep own miner sectors
 namespace fc::storage::compacter {
   using vm::actor::code::Code;
 
@@ -45,7 +45,7 @@ namespace fc::storage::compacter {
       if (!_r) {
         return;
       }
-      auto &[info, sectors, deadlines]{_r.value()};
+      const auto &[info, sectors, deadlines]{_r.value()};
       copy.push_back(head);
       copy.push_back(info);
       return;
@@ -57,7 +57,7 @@ namespace fc::storage::compacter {
       if (!_r) {
         return;
       }
-      auto &claims{_r.value()};
+      const auto &claims{_r.value()};
       copy.push_back(head);
       recurse.push_back(claims);
       return;
@@ -77,11 +77,12 @@ namespace fc::storage::compacter {
     copy.push_back(_hamt);
     codec::cbor::light_reader::HamtWalk hamt{ipld, _hamt};
     hamt.visited = visited;
-    BytesIn _addr, _actor;
+    BytesIn _addr;
+    BytesIn _actor;
     while (hamt.next(_addr, _actor)) {
-      uint64_t id;
+      uint64_t id = 0;
       ActorCodeCid code;
-      const CbCid *head;
+      const CbCid *head = nullptr;
       if (!codec::cbor::light_reader::readIdAddress(id, _addr)) {
         throw std::logic_error{"lookbackActors readId"};
       }
@@ -93,7 +94,6 @@ namespace fc::storage::compacter {
       }
     }
     copy.insert(copy.begin(), hamt.cids.begin(), hamt.cids.end());
-    return;
   }
 }  // namespace fc::storage::compacter
 
