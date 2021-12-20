@@ -34,7 +34,6 @@ deps/our-filecoin-ffi/include
 deps/our-filecoin-ffi/lib
 deps/our-filecoin-ffi/filecoin_ffi_commit_installed
 core/markets/storage/example/resources.hpp
-core/common/git_commit_version/git_commit_version.cpp
 
 cmake-build*
 .gtm
