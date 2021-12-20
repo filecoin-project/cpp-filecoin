@@ -337,17 +337,19 @@ namespace fc::sector_storage {
     }
 
     std::lock_guard<std::mutex> lock(request_lock_);
-    for (auto it = request_queue_.begin(); it != request_queue_.cend(); ++it) {
+    for (auto it = request_queue_.begin(); it != request_queue_.end();) {
       auto req = *it;
       auto maybe_satisfying = req->sel->is_satisfying(
           req->task_type, req->sector.proof_type, worker);
       if (maybe_satisfying.has_error()) {
         logger_->error("free worker satisfactory check: "
                        + maybe_satisfying.error().message());
+        ++it;
         continue;
       }
 
       if (!maybe_satisfying.value()) {
+        ++it;
         continue;
       }
 
@@ -356,14 +358,11 @@ namespace fc::sector_storage {
       if (maybe_result.has_error()) {
         req->cb(maybe_result.error());
       } else if (!maybe_result.value()) {
+        ++it;
         continue;
       }
 
       it = request_queue_.erase(it);
-      if (it == request_queue_.cend()) {
-        break;
-      }
-      --it;
     }
   }
 

@@ -33,6 +33,7 @@ namespace fc::api {
     using FunctionSimpleSignature = OutcomeResult(Ts...);
     using FunctionSignature = void(Callback, Ts...);
 
+    // TODO (ortyomka): [Issue 550] split sync blocking calls
     OutcomeResult operator()(Ts... args) const {
       if (!f_) {
         return ERROR_TEXT("API not set up");
@@ -53,7 +54,7 @@ namespace fc::api {
 
     ApiMethod &operator=(std::function<FunctionSimpleSignature> &&f) {
       if (f) {
-        f_ = [wf{std::move(f)}](auto &&cb, auto &&... args) -> void {
+        f_ = [wf{std::move(f)}](auto &&cb, auto &&...args) -> void {
           cb(wf(std::forward<decltype(args)>(args)...));
         };
       } else {

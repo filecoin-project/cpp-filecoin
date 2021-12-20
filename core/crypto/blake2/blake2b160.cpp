@@ -147,14 +147,14 @@ namespace fc::crypto::blake2b {
 
     Ctx ctx{BLAKE2B512_HASH_LENGTH};
 
-    const int one_kb = 1024;
-    std::string bytes(one_kb, ' ');
-    file_stream.read(bytes.data(), one_kb);
+    const int buffer_size = 32 * 1024;
+    std::string bytes(buffer_size, ' ');
+    file_stream.read(bytes.data(), buffer_size);
     auto currently_read = file_stream.gcount();
     while (currently_read != 0) {
       ctx.update(gsl::make_span(common::span::cast<const uint8_t>(bytes.data()),
                                 currently_read));
-      file_stream.read(bytes.data(), one_kb);
+      file_stream.read(bytes.data(), buffer_size);
       currently_read = file_stream.gcount();
     }
 

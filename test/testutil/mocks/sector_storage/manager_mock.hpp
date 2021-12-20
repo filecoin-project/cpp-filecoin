@@ -18,27 +18,25 @@ namespace fc::sector_storage {
                        outcome::result<std::vector<SectorId>>(
                            RegisteredPoStProof, gsl::span<const SectorRef>));
 
-    outcome::result<void> readPiece(
-        PieceData output,
-        const SectorRef &sector,
-        UnpaddedByteIndex offset,
-        const UnpaddedPieceSize &size,
-        const SealRandomness &randomness,
-        const CID &cid,
-        std::function<void(outcome::result<bool>)> cb) override {
+    void readPiece(PieceData output,
+                   const SectorRef &sector,
+                   UnpaddedByteIndex offset,
+                   const UnpaddedPieceSize &size,
+                   const SealRandomness &randomness,
+                   const CID &cid,
+                   std::function<void(outcome::result<bool>)> cb) override {
       return doReadPiece(
           output.getFd(), sector, offset, size, randomness, cid, cb);
     }
 
-    MOCK_METHOD7(
-        doReadPiece,
-        outcome::result<void>(int fd,
-                              const SectorRef &,
-                              UnpaddedByteIndex,
-                              const UnpaddedPieceSize &,
-                              const SealRandomness &,
-                              const CID &,
-                              std::function<void(outcome::result<bool>)>));
+    MOCK_METHOD7(doReadPiece,
+                 void(int fd,
+                      const SectorRef &,
+                      UnpaddedByteIndex,
+                      const UnpaddedPieceSize &,
+                      const SealRandomness &,
+                      const CID &,
+                      std::function<void(outcome::result<bool>)>));
 
     outcome::result<bool> readPieceSync(PieceData output,
                                         const SectorRef &sector,
@@ -70,12 +68,11 @@ namespace fc::sector_storage {
     MOCK_METHOD1(getFsStat, outcome::result<FsStat>(StorageID storage_id));
 
     MOCK_METHOD5(sealPreCommit1,
-                 outcome::result<void>(
-                     const SectorRef &sector,
-                     const SealRandomness &ticket,
-                     const std::vector<PieceInfo> &pieces,
-                     std::function<void(outcome::result<PreCommit1Output>)>,
-                     uint64_t priority));
+                 void(const SectorRef &sector,
+                      const SealRandomness &ticket,
+                      const std::vector<PieceInfo> &pieces,
+                      std::function<void(outcome::result<PreCommit1Output>)>,
+                      uint64_t priority));
     MOCK_METHOD4(
         sealPreCommit1Sync,
         outcome::result<PreCommit1Output>(const SectorRef &sector,
@@ -89,11 +86,10 @@ namespace fc::sector_storage {
                                     const PreCommit1Output &pre_commit_1_output,
                                     uint64_t priority));
     MOCK_METHOD4(sealPreCommit2,
-                 outcome::result<void>(
-                     const SectorRef &sector,
-                     const PreCommit1Output &pre_commit_1_output,
-                     std::function<void(outcome::result<SectorCids>)> cb,
-                     uint64_t priority));
+                 void(const SectorRef &sector,
+                      const PreCommit1Output &pre_commit_1_output,
+                      std::function<void(outcome::result<SectorCids>)> cb,
+                      uint64_t priority));
 
     MOCK_METHOD6(
         sealCommit1Sync,
@@ -105,25 +101,23 @@ namespace fc::sector_storage {
                                        uint64_t priority));
 
     MOCK_METHOD7(sealCommit1,
-                 outcome::result<void>(
-                     const SectorRef &sector,
-                     const SealRandomness &ticket,
-                     const InteractiveRandomness &seed,
-                     const std::vector<PieceInfo> &pieces,
-                     const SectorCids &cids,
-                     std::function<void(outcome::result<Commit1Output>)>,
-                     uint64_t priority));
+                 void(const SectorRef &sector,
+                      const SealRandomness &ticket,
+                      const InteractiveRandomness &seed,
+                      const std::vector<PieceInfo> &pieces,
+                      const SectorCids &cids,
+                      std::function<void(outcome::result<Commit1Output>)>,
+                      uint64_t priority));
 
     MOCK_METHOD3(sealCommit2Sync,
                  outcome::result<Proof>(const SectorRef &sector,
                                         const Commit1Output &commit_1_output,
                                         uint64_t priority));
-    MOCK_METHOD4(
-        sealCommit2,
-        outcome::result<void>(const SectorRef &sector,
-                              const Commit1Output &commit_1_output,
-                              std::function<void(outcome::result<Proof>)>,
-                              uint64_t priority));
+    MOCK_METHOD4(sealCommit2,
+                 void(const SectorRef &sector,
+                      const Commit1Output &commit_1_output,
+                      std::function<void(outcome::result<Proof>)>,
+                      uint64_t priority));
 
     MOCK_METHOD3(
         finalizeSectorSync,
@@ -131,31 +125,28 @@ namespace fc::sector_storage {
                               const gsl::span<const Range> &keep_unsealed,
                               uint64_t priority));
 
-    MOCK_METHOD4(
-        finalizeSector,
-        outcome::result<void>(const SectorRef &sector,
-                              const gsl::span<const Range> &keep_unsealed,
-                              std::function<void(outcome::result<void>)>,
-                              uint64_t priority));
+    MOCK_METHOD4(finalizeSector,
+                 void(const SectorRef &sector,
+                      const gsl::span<const Range> &keep_unsealed,
+                      std::function<void(outcome::result<void>)>,
+                      uint64_t priority));
 
     MOCK_METHOD1(remove, outcome::result<void>(const SectorRef &sector));
 
-    MOCK_METHOD6(
-        doAddPiece,
-        outcome::result<void>(const SectorRef &sector,
-                              gsl::span<const UnpaddedPieceSize> piece_sizes,
-                              const UnpaddedPieceSize &new_piece_size,
-                              int,
-                              std::function<void(outcome::result<PieceInfo>)>,
-                              uint64_t priority));
+    MOCK_METHOD6(doAddPiece,
+                 void(const SectorRef &sector,
+                      gsl::span<const UnpaddedPieceSize> piece_sizes,
+                      const UnpaddedPieceSize &new_piece_size,
+                      int,
+                      std::function<void(outcome::result<PieceInfo>)>,
+                      uint64_t priority));
 
-    outcome::result<void> addPiece(
-        const SectorRef &sector,
-        gsl::span<const UnpaddedPieceSize> piece_sizes,
-        const UnpaddedPieceSize &new_piece_size,
-        proofs::PieceData piece_data,
-        std::function<void(outcome::result<PieceInfo>)> cb,
-        uint64_t priority) override {
+    void addPiece(const SectorRef &sector,
+                  gsl::span<const UnpaddedPieceSize> piece_sizes,
+                  const UnpaddedPieceSize &new_piece_size,
+                  proofs::PieceData piece_data,
+                  std::function<void(outcome::result<PieceInfo>)> cb,
+                  uint64_t priority) override {
       return doAddPiece(sector,
                         piece_sizes,
                         new_piece_size,

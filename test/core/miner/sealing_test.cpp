@@ -10,6 +10,7 @@
 #include <libp2p/basic/scheduler/manual_scheduler_backend.hpp>
 #include <libp2p/basic/scheduler/scheduler_impl.hpp>
 
+#include "miner/address_selector.hpp"
 #include "primitives/sector/sector.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
@@ -44,6 +45,7 @@ namespace fc::mining {
   using libp2p::basic::Scheduler;
   using libp2p::basic::SchedulerImpl;
   using markets::storage::DealProposal;
+  using mining::SelectAddress;
   using primitives::CounterMock;
   using primitives::block::BlockHeader;
   using primitives::sector::Proof;
@@ -108,7 +110,13 @@ namespace fc::mining {
           .max_sealing_sectors = 0,
           .max_sealing_sectors_for_deals = 0,
           .wait_deals_delay = std::chrono::hours(6),
+          .batch_pre_commits = true,
       };
+
+      fee_config_ = std::make_shared<FeeConfig>();
+      fee_config_->max_precommit_batch_gas_fee.per_sector =
+          TokenAmount{"2000000000000000"};
+      fee_config_->max_precommit_gas_fee = TokenAmount{"25000000000000000"};
 
       scheduler_backend_ = std::make_shared<ManualSchedulerBackend>();
       scheduler_ = std::make_shared<SchedulerImpl>(scheduler_backend_,
@@ -116,17 +124,26 @@ namespace fc::mining {
       precommit_batcher_ = std::make_shared<PreCommitBatcherMock>();
 
       EXPECT_OUTCOME_TRUE(sealing,
-                          SealingImpl::newSealing(api_,
-                                                  events_,
-                                                  miner_addr_,
-                                                  counter_,
-                                                  kv_,
-                                                  manager_,
-                                                  policy_,
-                                                  context_,
-                                                  scheduler_,
-                                                  precommit_batcher_,
-                                                  config_));
+                          SealingImpl::newSealing(
+                              api_,
+                              events_,
+                              miner_addr_,
+                              counter_,
+                              kv_,
+                              manager_,
+                              policy_,
+                              context_,
+                              scheduler_,
+                              precommit_batcher_,
+                              [=](const MinerInfo &miner_info,
+                                  const TokenAmount &good_funds,
+                                  const std::shared_ptr<FullNodeApi> &api)
+                                  -> outcome::result<Address> {
+                                return SelectAddress(
+                                    miner_info, good_funds, api);
+                              },
+                              fee_config_,
+                              config_));
       sealing_ = sealing;
 
       MinerInfo minfo;
@@ -148,6 +165,7 @@ namespace fc::mining {
 
     PaddedPieceSize sector_size_;
     Config config_;
+    std::shared_ptr<FeeConfig> fee_config_;
     std::shared_ptr<FullNodeApi> api_ = std::make_shared<FullNodeApi>();
     std::shared_ptr<EventsMock> events_;
     uint64_t miner_id_;
@@ -704,10 +722,10 @@ namespace fc::mining {
 
     types::PreCommit1Output pc1o({4, 5, 6});
 
-    EXPECT_CALL(
-        *manager_,
-        sealPreCommit1Sync(sector_ref, rand, infos, kDealSectorPriority))
-        .WillOnce(testing::Return(outcome::success(pc1o)));
+    EXPECT_CALL(*manager_,
+                sealPreCommit1(sector_ref, rand, infos, _, kDealSectorPriority))
+        .WillOnce(testing::Invoke(
+            [=](auto, auto, auto, auto cb, auto) { cb(pc1o); }));
 
     // Precommit 2
 
@@ -715,8 +733,9 @@ namespace fc::mining {
                                     .unsealed_cid = "010001020011"_cid};
 
     EXPECT_CALL(*manager_,
-                sealPreCommit2Sync(sector_ref, pc1o, kDealSectorPriority))
-        .WillOnce(testing::Return(outcome::success(cids)));
+                sealPreCommit2(sector_ref, pc1o, _, kDealSectorPriority))
+        .WillOnce(
+            testing::Invoke([=](auto, auto, auto cb, auto) { cb(cids); }));
 
     // Precommitting
 
@@ -821,14 +840,16 @@ namespace fc::mining {
     // Compute Proofs
 
     Commit1Output c1o({1, 2, 3, 4, 5, 6});
-    EXPECT_CALL(*manager_,
-                sealCommit1Sync(
-                    sector_ref, rand, seed, infos, cids, kDealSectorPriority))
-        .WillOnce(testing::Return(c1o));
+    EXPECT_CALL(
+        *manager_,
+        sealCommit1(
+            sector_ref, rand, seed, infos, cids, _, kDealSectorPriority))
+        .WillOnce(testing::Invoke(
+            [=](auto, auto, auto, auto, auto, auto cb, auto) { cb(c1o); }));
     Proof proof({7, 6, 5, 4, 3, 2, 1});
-    EXPECT_CALL(*manager_,
-                sealCommit2Sync(sector_ref, c1o, kDealSectorPriority))
-        .WillOnce(testing::Return(proof));
+    EXPECT_CALL(*manager_, sealCommit2(sector_ref, c1o, _, kDealSectorPriority))
+        .WillOnce(
+            testing::Invoke([=](auto, auto, auto cb, auto) { cb(proof); }));
 
     // Commiting
     EXPECT_CALL(*proofs_, verifySeal(_))
@@ -854,8 +875,9 @@ namespace fc::mining {
 
     // Finalize
     EXPECT_CALL(*manager_,
-                finalizeSectorSync(sector_ref, _, kDealSectorPriority))
-        .WillOnce(testing::Return(outcome::success()));
+                finalizeSector(sector_ref, _, _, kDealSectorPriority))
+        .WillOnce(testing::Invoke(
+            [=](auto, auto, auto cb, auto) { cb(outcome::success()); }));
 
     auto state{SealingState::kStateUnknown};
     while (state != SealingState::kProving) {

@@ -42,6 +42,7 @@ namespace fc {
   const TokenAmount kMinimumBaseFee{100};
   constexpr auto kPackingEfficiencyDenom{5};
   constexpr auto kPackingEfficiencyNum{4};
+  const TokenAmount kOneNanoFil{1000000000};
 
   // ******************
   // Network versions
