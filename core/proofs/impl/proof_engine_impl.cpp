@@ -124,9 +124,9 @@ namespace fc::proofs {
   outcome::result<PoStProof> cppPoStProof(const fil_PoStProof &c_post_proof) {
     OUTCOME_TRY(cpp_registered_proof,
                 cppRegisteredPoStProof(c_post_proof.registered_proof));
-    return PoStProof{cpp_registered_proof,
-                     {c_post_proof.proof_ptr,
-                      c_post_proof.proof_ptr + c_post_proof.proof_len}};
+    const auto proof = gsl::span(c_post_proof.proof_ptr,
+                                 gsl::narrow<int64_t>(c_post_proof.proof_len));
+    return PoStProof{cpp_registered_proof, {proof.begin(), proof.end()}};
   }
 
   outcome::result<std::vector<PoStProof>> cppPoStProofs(
@@ -188,7 +188,7 @@ namespace fc::proofs {
 
   outcome::result<fil_RegisteredPoStProof> cRegisteredPoStProof(
       RegisteredSealProof proof_type, PoStType post_type) {
-    RegisteredPoStProof proof;
+    RegisteredPoStProof proof{};
     switch (post_type) {
       case PoStType::Window: {
         OUTCOME_TRYA(proof, getRegisteredWindowPoStProof(proof_type));
@@ -262,6 +262,24 @@ namespace fc::proofs {
     }
   }
 
+  outcome::result<fil_RegisteredUpdateProof> cRegisteredUpdateProof(
+      RegisteredUpdateProof type) {
+    switch (type) {
+      case RegisteredUpdateProof::kStackedDrg2KiBV1:
+        return fil_RegisteredUpdateProof_StackedDrg2KiBV1;
+      case RegisteredUpdateProof::kStackedDrg8MiBV1:
+        return fil_RegisteredUpdateProof_StackedDrg8MiBV1;
+      case RegisteredUpdateProof::kStackedDrg512MiBV1:
+        return fil_RegisteredUpdateProof_StackedDrg512MiBV1;
+      case RegisteredUpdateProof::kStackedDrg32GiBV1:
+        return fil_RegisteredUpdateProof_StackedDrg32GiBV1;
+      case RegisteredUpdateProof::kStackedDrg64GiBV1:
+        return fil_RegisteredUpdateProof_StackedDrg64GiBV1;
+      default:
+        return ProofsError::kNoSuchUpdateProof;
+    }
+  }
+
   fil_32ByteArray toProverID(ActorId miner_id) {
     fil_32ByteArray prover = {};
     const codec::uvarint::VarintEncoder _maddr{miner_id};
@@ -271,7 +289,8 @@ namespace fc::proofs {
   }
 
   inline auto &c32ByteArray(const Hash256 &arr) {
-    return (const fil_32ByteArray &)arr;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return reinterpret_cast<const fil_32ByteArray &>(arr);
   }
 
   outcome::result<fil_PublicReplicaInfo> cPublicReplicaInfo(
@@ -391,10 +410,10 @@ namespace fc::proofs {
     if (!piece_data.isOpened()) {
       return ProofsError::kCannotOpenFile;
     }
-    int staged_sector_fd;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
+    int staged_sector_fd = 0;
     if ((staged_sector_fd =
-             open(staged_sector_file_path.c_str(), O_RDWR | O_CREAT, 0644))
+             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
+         open(staged_sector_file_path.c_str(), O_RDWR | O_CREAT, 0644))
         == -1) {
       return ProofsError::kCannotOpenFile;
     }
@@ -424,7 +443,7 @@ namespace fc::proofs {
       return ProofsError::kCannotOpenFile;
     }
 
-    int staged_sector_fd;
+    int staged_sector_fd = 0;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR, 0644))
         == -1) {
@@ -437,7 +456,8 @@ namespace fc::proofs {
       offset += piece_size;
     }
 
-    if (lseek(staged_sector_fd, offset.padded(), SEEK_SET) == -1) {
+    if (lseek(staged_sector_fd, gsl::narrow<int64_t>(offset.padded()), SEEK_SET)
+        == -1) {
       // NOLINTNEXTLINE(readability-implicit-bool-conversion)
       if (close(staged_sector_fd))
         logger_->warn("writeWithAlignment: error in closing file "
@@ -486,7 +506,7 @@ namespace fc::proofs {
     if (!input.good()) {
       return ProofsError::kCannotOpenFile;
     }
-    if (!input.seekg(offset, std::ios_base::beg)) {
+    if (!input.seekg(gsl::narrow<int64_t>(offset), std::ios_base::beg)) {
       return ProofsError::kUnableMoveCursor;
     }
 
@@ -503,8 +523,8 @@ namespace fc::proofs {
       }
       std::vector<uint8_t> read(outTwoPow);
 
-      size_t j{};
-      char ch;
+      size_t j = 0;
+      char ch = 0;
       for (j = 0; j < outTwoPow && input; j++) {
         input.get(ch);
         read[j] = ch;
@@ -515,8 +535,9 @@ namespace fc::proofs {
       }
 
       primitives::piece::unpad(
-          gsl::make_span(read.data(), outTwoPow),
-          gsl::make_span(buffer.data(), outTwoPow.unpadded()));
+          gsl::make_span(read.data(), gsl::narrow<int64_t>(outTwoPow)),
+          gsl::make_span(buffer.data(),
+                         gsl::narrow<int64_t>(outTwoPow.unpadded())));
 
       uint64_t write_size =
           write(output.getFd(), buffer.data(), outTwoPow.unpadded());
@@ -637,7 +658,9 @@ namespace fc::proofs {
             phase1_output.data(), phase1_output.size(), sector_id, prover_id),
         fil_destroy_seal_commit_phase2_response);
     PROOFS_TRY("sealCommitPhase2");
-    return Proof(res_ptr->proof_ptr, res_ptr->proof_ptr + res_ptr->proof_len);
+    const auto proof =
+        gsl::span(res_ptr->proof_ptr, gsl::narrow<int64_t>(res_ptr->proof_len));
+    return Proof(proof.begin(), proof.end());
   }
 
   outcome::result<CID> ProofEngineImpl::generatePieceCIDFromFile(
@@ -651,14 +674,16 @@ namespace fc::proofs {
       RegisteredSealProof proof_type, gsl::span<const uint8_t> data) {
     assert(UnpaddedPieceSize(data.size()).validate());
 
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
     int fds[2];
     if (pipe(fds) < 0) {
       return ProofsError::kCannotCreatePipe;
     }
 
-    std::error_code ec;
+    std::error_code ec{};
     std::thread t([output = PieceData(fds[1]), &data, &ec]() {
-      if (write(output.getFd(), (char *)data.data(), data.size()) == -1) {
+      if (write(output.getFd(), common::span::bytestr(data.data()), data.size())
+          == -1) {
         ec = ProofsError::kCannotWriteData;
       }
     });
@@ -693,6 +718,7 @@ namespace fc::proofs {
         gsl::make_span(res_ptr->comm_p, kCommitmentBytesLen));
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<CID> ProofEngineImpl::generateUnsealedCID(
       RegisteredSealProof proof_type,
       gsl::span<const PieceInfo> pieces,
@@ -715,7 +741,7 @@ namespace fc::proofs {
           sum += padding.size;
           return outcome::success();
         }};
-        for (auto &piece : pieces) {
+        for (const auto &piece : pieces) {
           OUTCOME_TRY(pad(piece.size));
           padded.push_back(piece);
           sum += piece.size;
@@ -775,8 +801,8 @@ namespace fc::proofs {
                                             prover_id),
                   fil_destroy_generate_winning_post_response);
     PROOFS_TRY("generateWinningPoSt");
-    return cppPoStProofs(
-        gsl::make_span(res_ptr->proofs_ptr, res_ptr->proofs_len));
+    return cppPoStProofs(gsl::make_span(
+        res_ptr->proofs_ptr, gsl::narrow<int64_t>(res_ptr->proofs_len)));
   }
 
   outcome::result<std::vector<PoStProof>> ProofEngineImpl::generateWindowPoSt(
@@ -795,8 +821,8 @@ namespace fc::proofs {
                                            prover_id),
                   fil_destroy_generate_window_post_response);
     PROOFS_TRY("generateWindowPoSt");
-    return cppPoStProofs(
-        gsl::make_span(res_ptr->proofs_ptr, res_ptr->proofs_len));
+    return cppPoStProofs(gsl::make_span(
+        res_ptr->proofs_ptr, gsl::narrow<int64_t>(res_ptr->proofs_len)));
   }
 
   outcome::result<bool> ProofEngineImpl::verifyWinningPoSt(
@@ -869,7 +895,8 @@ namespace fc::proofs {
     OUTCOME_TRY(c_seal_proof, cRegisteredSealProof(aggregate.seal_proof));
     OUTCOME_TRY(c_aggregate_proof,
                 cRegisteredAggregationProof(aggregate.aggregate_proof));
-    std::vector<fil_32ByteArray> c_commrs, c_seeds;
+    std::vector<fil_32ByteArray> c_commrs;
+    std::vector<fil_32ByteArray> c_seeds;
     c_commrs.reserve(aggregate.infos.size());
     c_seeds.reserve(aggregate.infos.size());
     for (const auto &info : aggregate.infos) {
@@ -894,7 +921,8 @@ namespace fc::proofs {
                                                            c_proofs.size()),
                                  fil_destroy_aggregate_proof)};
     PROOFS_TRY("aggregateSealProofs");
-    copy(aggregate.proof, BytesIn(res_ptr->proof_ptr, res_ptr->proof_len));
+    copy(aggregate.proof,
+         BytesIn(res_ptr->proof_ptr, gsl::narrow<int64_t>(res_ptr->proof_len)));
     return outcome::success();
   }
 
@@ -927,6 +955,58 @@ namespace fc::proofs {
                                                   c_infos.size()),
                   fil_destroy_verify_aggregate_seal_response)};
     PROOFS_TRY("verifyAggregateSeals");
+    return res_ptr->is_valid;
+  }
+
+  outcome::result<Bytes> ProofEngineImpl::generateUpdateProof(
+      RegisteredUpdateProof proof_type,
+      const CID &old_sealed_cid,
+      const CID &new_sealed_cid,
+      const CID &unsealed_cid,
+      const std::string &new_replica_path,
+      const std::string &new_replica_cache_path,
+      const std::string &sector_key_path,
+      const std::string &sector_key_cache_path) {
+    OUTCOME_TRY(ffi_update_proof_type, cRegisteredUpdateProof(proof_type));
+    OUTCOME_TRY(comm_r_old, CIDToReplicaCommitmentV1(old_sealed_cid));
+    OUTCOME_TRY(comm_r_new, CIDToReplicaCommitmentV1(new_sealed_cid));
+    OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
+    const auto res_ptr{ffi::wrap(
+        fil_generate_empty_sector_update_proof(ffi_update_proof_type,
+                                               c32ByteArray(comm_r_old),
+                                               c32ByteArray(comm_r_new),
+                                               c32ByteArray(comm_d),
+                                               sector_key_path.c_str(),
+                                               sector_key_cache_path.c_str(),
+                                               new_replica_path.c_str(),
+                                               new_replica_cache_path.c_str()),
+        fil_destroy_empty_sector_update_generate_proof_response)};
+    PROOFS_TRY("generateUpdateProof");
+
+    const auto proof =
+        gsl::span(res_ptr->proof_ptr, gsl::narrow<int64_t>(res_ptr->proof_len));
+    return Bytes(proof.begin(), proof.end());
+  }
+
+  outcome::result<bool> ProofEngineImpl::verifyUpdateProof(
+      const ReplicaUpdateInfo &info) {
+    OUTCOME_TRY(ffi_update_proof_type,
+                cRegisteredUpdateProof(info.update_proof_type));
+    OUTCOME_TRY(comm_r_old,
+                CIDToReplicaCommitmentV1(info.old_sealed_sector_cid));
+    OUTCOME_TRY(comm_r_new,
+                CIDToReplicaCommitmentV1(info.new_sealed_sector_cid));
+    OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(info.new_unsealed_sector_cid));
+    const auto res_ptr{
+        ffi::wrap(fil_verify_empty_sector_update_proof(ffi_update_proof_type,
+                                                       info.proof.data(),
+                                                       info.proof.size(),
+                                                       c32ByteArray(comm_r_old),
+                                                       c32ByteArray(comm_r_new),
+                                                       c32ByteArray(comm_d)),
+                  fil_destroy_empty_sector_update_verify_proof_response)};
+    PROOFS_TRY("verifyUpdateProof");
+
     return res_ptr->is_valid;
   }
 
