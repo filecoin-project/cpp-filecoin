@@ -75,8 +75,7 @@ namespace fc::mining {
           fee_config_->max_precommit_batch_gas_fee.FeeForSector(
               params.sectors.size());
 
-      OUTCOME_TRY(tipset, api_->ChainGetTipSet(head->key));
-      auto base_fee = tipset->blks[0].parent_base_fee;
+      auto base_fee = head->blks[0].parent_base_fee;
       TokenAmount agg_fee_raw =
           aggregatePreCommitNetworkFee(params.sectors.size(), base_fee);
 
