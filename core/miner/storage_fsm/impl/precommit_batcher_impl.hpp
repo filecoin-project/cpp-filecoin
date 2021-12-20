@@ -57,7 +57,6 @@ namespace fc::mining {
     };
 
     std::mutex mutex_;
-    TokenAmount mutual_deposit_;
     // TODO(turuslan): FIL-420 check cache memory usage
     std::map<SectorNumber, PreCommitEntry> batch_storage_;
     std::chrono::milliseconds max_delay_;

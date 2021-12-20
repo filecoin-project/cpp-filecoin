@@ -31,6 +31,8 @@ namespace fc::mining {
     uint64_t max_sealing_sectors_for_deals = 0;
 
     std::chrono::milliseconds wait_deals_delay{};  // in milliseconds
+
+    bool batch_pre_commits = false;
   };
 
   class Sealing {

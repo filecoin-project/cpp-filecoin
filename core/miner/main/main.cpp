@@ -125,8 +125,8 @@ namespace fc {
     for (const auto &elem : meta.sectors) {
       // TODO(ortyomka): migrate sealing info
 
-      if (max_sector < elem.sector_id) {
-        max_sector = elem.sector_id;
+      if (max_sector <= elem.sector_id) {
+        max_sector = elem.sector_id + 1;
       }
     }
     OUTCOME_TRY(sc.setNumber(max_sector));
@@ -435,7 +435,8 @@ namespace fc {
     mining::Config default_config{.max_wait_deals_sectors = 2,
                                   .max_sealing_sectors = 0,
                                   .max_sealing_sectors_for_deals = 0,
-                                  .wait_deals_delay = std::chrono::hours(6)};
+                                  .wait_deals_delay = std::chrono::hours(6),
+                                  .batch_pre_commits = true};
     OUTCOME_TRY(miner,
                 miner::MinerImpl::newMiner(
                     napi,

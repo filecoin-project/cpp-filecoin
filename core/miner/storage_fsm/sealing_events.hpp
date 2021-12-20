@@ -25,6 +25,8 @@ namespace fc::mining {
     kSectorPreCommit2,
     kSectorPreCommitLanded,
     kSectorPreCommitted,
+    kSectorBatchSend,
+    kSectorPreCommittedBatch,
     kSectorSeedReady,
     kSectorComputeProof,
     kSectorCommitted,
@@ -162,6 +164,15 @@ namespace fc::mining {
     CID precommit_message;
     primitives::TokenAmount precommit_deposit;
     types::SectorPreCommitInfo precommit_info;
+  };
+
+  struct SectorPreCommittedBatchContext final : public SealingEventContext {
+   public:
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
+      info->precommit_message = precommit_message;
+    }
+
+    CID precommit_message;
   };
 
   struct SectorSeedReadyContext final : public SealingEventContext {

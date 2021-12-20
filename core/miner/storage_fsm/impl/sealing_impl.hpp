@@ -59,6 +59,8 @@ namespace fc::mining {
         std::shared_ptr<boost::asio::io_context> context,
         std::shared_ptr<Scheduler> scheduler,
         std::shared_ptr<PreCommitBatcher> precommit_batcher_,
+        const AddressSelector &address_selector,
+        std::shared_ptr<FeeConfig> fee_config,
         Config config);
 
     outcome::result<void> fsmLoad();
@@ -100,6 +102,8 @@ namespace fc::mining {
                 std::shared_ptr<boost::asio::io_context> context,
                 std::shared_ptr<Scheduler> scheduler,
                 std::shared_ptr<PreCommitBatcher> precommit_batcher,
+                AddressSelector address_selector,
+                std::shared_ptr<FeeConfig> fee_config,
                 Config config);
 
     struct SectorPaddingResponse {
@@ -155,10 +159,25 @@ namespace fc::mining {
     outcome::result<void> handlePreCommit2(
         const std::shared_ptr<SectorInfo> &info);
 
+    struct PreCommitParams {
+      SectorPreCommitInfo info;
+      TokenAmount deposit;
+      TipsetKey key;
+    };
+
+    outcome::result<boost::optional<PreCommitParams>> getPreCommitParams(
+        const std::shared_ptr<SectorInfo> &info);
+
     /**
      * @brief Handle incoming in kPreCommitting state
      */
     outcome::result<void> handlePreCommitting(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kSubmitPreCommitBatch state
+     */
+    outcome::result<void> handleSubmitPreCommitBatch(
         const std::shared_ptr<SectorInfo> &info);
 
     /**
@@ -319,11 +338,14 @@ namespace fc::mining {
     std::shared_ptr<SectorStat> stat_;
 
     Address miner_address_;
+    std::shared_ptr<FeeConfig> fee_config_;
 
     common::Logger logger_;
     std::shared_ptr<Manager> sealer_;
 
     std::shared_ptr<PreCommitBatcher> precommit_batcher_;
+
+    AddressSelector address_selector_;
 
     Config config_;
   };

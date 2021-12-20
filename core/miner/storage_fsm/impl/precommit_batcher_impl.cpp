@@ -6,6 +6,7 @@
 #include "miner/storage_fsm/impl/precommit_batcher_impl.hpp"
 
 #include "vm/actor/actor.hpp"
+#include "vm/actor/builtin/types/miner/v6/monies.hpp"
 #include "vm/actor/builtin/v5/miner/miner_actor.hpp"
 
 namespace fc::mining {
@@ -14,6 +15,7 @@ namespace fc::mining {
   using vm::actor::MethodParams;
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::v5::miner::PreCommitBatch;
+  using vm::actor::builtin::v6::miner::aggregatePreCommitNetworkFee;
 
   PreCommitBatcherImpl::PreCommitEntry::PreCommitEntry(
       const TokenAmount &number, const SectorPreCommitInfo &info)
@@ -64,15 +66,29 @@ namespace fc::mining {
       OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, head->key));
 
       PreCommitBatch::Params params;
-
+      TokenAmount mutual_deposit;
       for (const auto &data : batch_storage_) {
-        mutual_deposit_ += data.second.deposit;
+        mutual_deposit += data.second.deposit;
         params.sectors.push_back(data.second.precommit_info);
       }
       TokenAmount max_fee =
           fee_config_->max_precommit_batch_gas_fee.FeeForSector(
               params.sectors.size());
-      TokenAmount good_funds = mutual_deposit_ + max_fee;
+
+      OUTCOME_TRY(tipset, api_->ChainGetTipSet(head->key));
+      auto base_fee = tipset->blks[0].parent_base_fee;
+      TokenAmount agg_fee_raw =
+          aggregatePreCommitNetworkFee(params.sectors.size(), base_fee);
+
+      static TokenAmount kAggFeeNum{110};
+      static TokenAmount kAggFeeDen{100};
+      TokenAmount agg_fee = bigdiv(agg_fee_raw * kAggFeeNum, kAggFeeDen);
+
+      auto need_funds = mutual_deposit + agg_fee;
+
+      // TODO: Collateral Send Amount
+
+      TokenAmount good_funds = max_fee + need_funds;
       OUTCOME_TRY(encodedParams, codec::cbor::encode(params));
       OUTCOME_TRY(address, address_selector_(minfo, good_funds, api_));
       OUTCOME_TRY(signed_message,
@@ -80,14 +96,13 @@ namespace fc::mining {
                       vm::message::UnsignedMessage(miner_address_,
                                                    address,
                                                    0,
-                                                   mutual_deposit_,
+                                                   need_funds,
                                                    max_fee,
                                                    {},
                                                    PreCommitBatch::Number,
                                                    MethodParams{encodedParams}),
                       kPushNoSpec));
 
-      mutual_deposit_ = 0;
       batch_storage_.clear();
       logger_->info("Sending procedure completed");
       cutoff_start_ = std::chrono::system_clock::now();
