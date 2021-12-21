@@ -113,6 +113,19 @@ namespace fc::proofs {
     outcome::result<bool> verifyAggregateSeals(
         const AggregateSealVerifyProofAndInfos &aggregate) override;
 
+    outcome::result<Bytes> generateUpdateProof(
+        RegisteredUpdateProof proof_type,
+        const CID &old_sealed_cid,
+        const CID &new_sealed_cid,
+        const CID &unsealed_cid,
+        const std::string &new_replica_path,
+        const std::string &new_replica_cache_path,
+        const std::string &sector_key_path,
+        const std::string &sector_key_cache_path) override;
+
+    outcome::result<bool> verifyUpdateProof(
+        const ReplicaUpdateInfo &info) override;
+
     outcome::result<void> unseal(RegisteredSealProof proof_type,
                                  const std::string &cache_dir_path,
                                  const std::string &sealed_sector_path,
