@@ -33,9 +33,8 @@ namespace fc::miner {
   using vm::actor::builtin::types::miner::kMaxSectorExpirationExtension;
   using vm::actor::builtin::types::miner::kWPoStProvingPeriod;
 
-  MinerImpl::MinerImpl(std::shared_ptr<FullNodeApi> api,
-                       std::shared_ptr<Sealing> sealing)
-      : api_{std::move(api)}, sealing_{std::move(sealing)} {}
+  MinerImpl::MinerImpl(std::shared_ptr<Sealing> sealing)
+      : sealing_{std::move(sealing)} {}
 
   outcome::result<std::shared_ptr<SectorInfo>> MinerImpl::getSectorInfo(
       SectorNumber sector_id) const {
@@ -43,7 +42,9 @@ namespace fc::miner {
   }
 
   outcome::result<PieceLocation> MinerImpl::addPieceToAnySector(
-      UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) {
+      const UnpaddedPieceSize &size,
+      PieceData piece_data,
+      const DealInfo &deal) {
     return sealing_->addPieceToAnySector(size, std::move(piece_data), deal);
   }
 
@@ -56,7 +57,7 @@ namespace fc::miner {
   }
 
   outcome::result<std::shared_ptr<MinerImpl>> MinerImpl::newMiner(
-      std::shared_ptr<FullNodeApi> api,
+      const std::shared_ptr<FullNodeApi> &api,
       const Address &miner_address,
       const Address &worker_address,
       std::shared_ptr<Counter> counter,
@@ -122,13 +123,12 @@ namespace fc::miner {
                                         config));
 
     struct make_unique_enabler : public MinerImpl {
-      make_unique_enabler(std::shared_ptr<FullNodeApi> api,
-                          std::shared_ptr<Sealing> sealing)
-          : MinerImpl{std::move(api), std::move(sealing)} {};
+      explicit make_unique_enabler(std::shared_ptr<Sealing> sealing)
+          : MinerImpl{std::move(sealing)} {};
     };
 
     std::shared_ptr<MinerImpl> miner =
-        std::make_shared<make_unique_enabler>(api, sealing);
+        std::make_shared<make_unique_enabler>(sealing);
 
     return std::move(miner);
   }

@@ -30,7 +30,7 @@ namespace fc::sector_storage {
                       public std::enable_shared_from_this<ManagerImpl> {
    public:
     static outcome::result<std::shared_ptr<Manager>> newManager(
-        std::shared_ptr<boost::asio::io_context> io_context,
+        const std::shared_ptr<boost::asio::io_context> &io_context,
         const std::shared_ptr<stores::RemoteStore> &remote,
         const std::shared_ptr<Scheduler> &scheduler,
         const SealerConfig &config,
@@ -179,7 +179,7 @@ namespace fc::sector_storage {
           return cb(CallError);
         }
 
-        if (auto value = std::get_if<T>(&(call_res.value))) {
+        if (auto *value = std::get_if<T>(&(call_res.value))) {
           return cb(*value);
         }
 
@@ -187,7 +187,8 @@ namespace fc::sector_storage {
       };
     }
 
-    ReturnCb callbackWrapper(std::function<void(outcome::result<void>)> cb) {
+    ReturnCb callbackWrapper(
+        const std::function<void(outcome::result<void>)> &cb) {
       return [self{shared_from_this()},
               cb](outcome::result<CallResult> res) -> void {
         auto CallError = ERROR_TEXT("Call returns error");

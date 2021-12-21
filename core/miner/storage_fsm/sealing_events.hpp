@@ -79,8 +79,8 @@ namespace fc::mining {
       info->sector_type = seal_proof_type;
     }
 
-    SectorNumber sector_id;
-    RegisteredSealProof seal_proof_type;
+    SectorNumber sector_id{};
+    RegisteredSealProof seal_proof_type{RegisteredSealProof::kUndefined};
   };
 
   struct SectorStartWithPiecesContext final : public SealingEventContext {
@@ -91,8 +91,8 @@ namespace fc::mining {
       info->pieces = pieces;
     }
 
-    SectorNumber sector_id;
-    RegisteredSealProof seal_proof_type;
+    SectorNumber sector_id{};
+    RegisteredSealProof seal_proof_type{RegisteredSealProof::kUndefined};
     std::vector<types::Piece> pieces;
   };
 
@@ -130,7 +130,7 @@ namespace fc::mining {
 
     types::PreCommit1Output precommit1_output;
     types::SealRandomness ticket;
-    types::ChainEpoch epoch;
+    types::ChainEpoch epoch{};
   };
 
   struct SectorPreCommit2Context final : public SealingEventContext {
@@ -183,7 +183,7 @@ namespace fc::mining {
     }
 
     types::InteractiveRandomness seed;
-    ChainEpoch epoch;
+    ChainEpoch epoch{};
   };
 
   struct SectorComputeProofContext final : public SealingEventContext {
@@ -221,7 +221,7 @@ namespace fc::mining {
       info->return_state = return_state;
     }
 
-    SealingState return_state;
+    SealingState return_state{SealingState::kStateUnknown};
   };
 
   // EXTERNAL EVENTS
@@ -230,7 +230,7 @@ namespace fc::mining {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
 
-    SealingState state;
+    SealingState state{SealingState::kStateUnknown};
   };
 
   struct SectorUpdateDealIds final : public SectorForceContext {

@@ -82,7 +82,7 @@ namespace fc::sector_storage {
     const char *home = getenv("HOME");
     if (home == nullptr) {
       struct passwd *pwd = getpwuid(getuid());
-      if (pwd) {
+      if (pwd != nullptr) {
         home_dir = pwd->pw_dir;
       } else {
         return fc::sector_storage::ManagerErrors::kCannotGetHomeDir;
@@ -94,6 +94,7 @@ namespace fc::sector_storage {
     return (fs::path(home_dir) / path.substr(1, path.size() - 1)).string();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<std::vector<SectorId>> ManagerImpl::checkProvable(
       RegisteredPoStProof proof_type,
       gsl::span<const SectorRef> sectors) const {
@@ -343,7 +344,7 @@ namespace fc::sector_storage {
   }
 
   outcome::result<std::shared_ptr<Manager>> ManagerImpl::newManager(
-      std::shared_ptr<boost::asio::io_context> io_context,
+      const std::shared_ptr<boost::asio::io_context> &io_context,
       const std::shared_ptr<stores::RemoteStore> &remote,
       const std::shared_ptr<Scheduler> &scheduler,
       const SealerConfig &config,
@@ -486,8 +487,8 @@ namespace fc::sector_storage {
             index_, sector.id, SectorFileType::FTUnsealed, false);
       }
 
-      // TODO: Optimization: don't send unseal to a worker if the requested
-      // range is already unsealed
+      // TODO(ortyomka): Optimization: don't send unseal to a worker if the
+      // requested range is already unsealed
 
       WorkerAction unseal_fetch = [&](const std::shared_ptr<Worker> &worker)
           -> outcome::result<CallId> {
@@ -560,14 +561,13 @@ namespace fc::sector_storage {
       const CID &cid) {
     std::promise<outcome::result<bool>> wait;
 
-    readPiece(
-        std::move(output),
-        sector,
-        offset,
-        size,
-        randomness,
-        cid,
-        [&wait](outcome::result<bool> res) { wait.set_value(std::move(res)); });
+    readPiece(std::move(output),
+              sector,
+              offset,
+              size,
+              randomness,
+              cid,
+              [&wait](outcome::result<bool> res) { wait.set_value(res); });
 
     auto res = wait.get_future().get();
 
@@ -601,7 +601,7 @@ namespace fc::sector_storage {
                    static_cast<SectorFileType>(SectorFileType::FTSealed
                                                | SectorFileType::FTCache)));
 
-    // TODO: also consider where the unsealed data sits
+    // TODO(ortyomka): also consider where the unsealed data sits
 
     auto selector = std::make_unique<AllocateSelector>(
         index_,
@@ -760,7 +760,7 @@ namespace fc::sector_storage {
         seed,
         pieces,
         cids,
-        [&wait](outcome::result<Commit1Output> res) -> void {
+        [&wait](const outcome::result<Commit1Output> &res) -> void {
           wait.set_value(res);
         },
         priority);
@@ -801,7 +801,9 @@ namespace fc::sector_storage {
     sealCommit2(
         sector,
         commit_1_output,
-        [&wait](outcome::result<Proof> res) -> void { wait.set_value(res); },
+        [&wait](const outcome::result<Proof> &res) -> void {
+          wait.set_value(res);
+        },
         priority);
 
     return wait.get_future().get();
@@ -833,50 +835,51 @@ namespace fc::sector_storage {
       }
     }
 
-    auto next_cb = [cb,
-                    index{index_},
-                    unsealed,
-                    keep_unsealed,
-                    scheduler{scheduler_},
+    auto next_cb =
+        [cb,
+         index{index_},
+         unsealed,
+         keep_unsealed,
+         scheduler{scheduler_},
+         sector,
+         lock{std::move(lock)},
+         self{shared_from_this()},
+         priority](const outcome::result<void> &maybe_error) mutable {
+          if (maybe_error.has_error()) return cb(maybe_error.error());
+
+          auto fetch_selector = std::make_shared<AllocateSelector>(
+              index,
+              static_cast<SectorFileType>(SectorFileType::FTSealed
+                                          | SectorFileType::FTCache),
+              PathType::kStorage);
+
+          auto moveUnsealed = unsealed;
+          if (keep_unsealed.empty()) {
+            moveUnsealed = SectorFileType::FTNone;
+          }
+
+          OUTCOME_CB1(scheduler->schedule(
+              sector,
+              primitives::kTTFetch,
+              fetch_selector,
+              schedFetch(sector,
+                         static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                     | SectorFileType::FTCache),
+                         PathType::kStorage,
+                         AcquireMode::kMove),
+              [sector, moveUnsealed, lock{std::move(lock)}](
+                  const std::shared_ptr<Worker> &worker)
+                  -> outcome::result<CallId> {
+                return worker->moveStorage(
                     sector,
-                    lock = std::move(lock),
-                    self{shared_from_this()},
-                    priority](const outcome::result<void> &maybe_error) {
-      if (maybe_error.has_error()) return cb(maybe_error.error());
-
-      auto fetch_selector = std::make_shared<AllocateSelector>(
-          index,
-          static_cast<SectorFileType>(SectorFileType::FTSealed
-                                      | SectorFileType::FTCache),
-          PathType::kStorage);
-
-      auto moveUnsealed = unsealed;
-      if (keep_unsealed.empty()) {
-        moveUnsealed = SectorFileType::FTNone;
-      }
-
-      OUTCOME_CB1(scheduler->schedule(
-          sector,
-          primitives::kTTFetch,
-          fetch_selector,
-          schedFetch(sector,
-                     static_cast<SectorFileType>(SectorFileType::FTSealed
-                                                 | SectorFileType::FTCache),
-                     PathType::kStorage,
-                     AcquireMode::kMove),
-          [sector, moveUnsealed, lock = std::move(lock)](
-              const std::shared_ptr<Worker> &worker)
-              -> outcome::result<CallId> {
-            return worker->moveStorage(
-                sector,
-                static_cast<SectorFileType>(SectorFileType::FTSealed
-                                            | SectorFileType::FTCache
-                                            | moveUnsealed));
-          },
-          self->callbackWrapper(cb),
-          priority,
-          boost::none));
-    };
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache
+                                                | moveUnsealed));
+              },
+              self->callbackWrapper(cb),
+              priority,
+              boost::none));
+        };
 
     std::shared_ptr<WorkerSelector> selector;
 
