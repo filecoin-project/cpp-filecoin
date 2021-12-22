@@ -105,6 +105,7 @@ if (CLANG_FORMAT)
 endif ()
 
 add_subdirectory(deps)
+add_subdirectory(libs)
 
 include_directories(
     # project includes
