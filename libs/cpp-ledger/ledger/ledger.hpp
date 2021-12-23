@@ -7,8 +7,7 @@
 
 #include <memory>
 #include <tuple>
-
-#include "common.hpp"
+#include "cpp-ledger/common/types.hpp"
 
 namespace ledger {
 

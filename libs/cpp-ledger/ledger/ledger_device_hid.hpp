@@ -5,11 +5,8 @@
 
 #pragma once
 
-#include <hidapi/hidapi.h>
-
-#include "ledger.hpp"
-
-#include "device_hid.hpp"
+#include "cpp-ledger/ledger/device_hid.hpp"
+#include "cpp-ledger/ledger/ledger.hpp"
 
 namespace ledger {
 

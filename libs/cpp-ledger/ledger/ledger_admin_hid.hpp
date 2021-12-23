@@ -5,9 +5,7 @@
 
 #pragma once
 
-#include <hidapi/hidapi.h>
-
-#include "ledger.hpp"
+#include "cpp-ledger/ledger/ledger.hpp"
 
 namespace ledger {
 

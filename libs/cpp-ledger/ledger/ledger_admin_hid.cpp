@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "ledger_admin_hid.hpp"
+#include "cpp-ledger/ledger/ledger_admin_hid.hpp"
 
 #include <iostream>
-#include "ledger_device_hid.hpp"
-#include "utils.hpp"
+#include "cpp-ledger/ledger/const.hpp"
+#include "cpp-ledger/ledger/ledger_device_hid.hpp"
+#include "cpp-ledger/ledger/utils.hpp"
 
 namespace ledger {
 

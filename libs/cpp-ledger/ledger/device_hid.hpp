@@ -6,10 +6,8 @@
 #pragma once
 
 #include <hidapi/hidapi.h>
-
 #include <mutex>
-
-#include "common.hpp"
+#include "cpp-ledger/common/types.hpp"
 
 namespace ledger {
 
