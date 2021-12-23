@@ -16,7 +16,7 @@ namespace ledger {
     int CountDevices() const override;
     std::tuple<std::string, Error> ListDevices() const override;
     std::tuple<std::shared_ptr<LedgerDevice>, Error> Connect(
-        int device_index) const override;
+        int deviceIndex) const override;
   };
 
 }  // namespace ledger

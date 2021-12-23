@@ -27,7 +27,7 @@ namespace ledger {
     virtual int CountDevices() const = 0;
     virtual std::tuple<std::string, Error> ListDevices() const = 0;
     virtual std::tuple<std::shared_ptr<LedgerDevice>, Error> Connect(
-        int device_index) const = 0;
+        int deviceIndex) const = 0;
   };
 
 }  // namespace ledger

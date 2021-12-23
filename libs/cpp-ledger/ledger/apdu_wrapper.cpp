@@ -5,6 +5,8 @@
 
 #include "apdu_wrapper.hpp"
 
+#include "utils.hpp"
+
 namespace ledger::apdu {
 
   Error ErrorMessage(uint16_t errCode) {

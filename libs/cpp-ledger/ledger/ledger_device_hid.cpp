@@ -6,6 +6,7 @@
 #include "ledger_device_hid.hpp"
 
 #include "apdu_wrapper.hpp"
+#include "utils.hpp"
 
 namespace ledger {
 

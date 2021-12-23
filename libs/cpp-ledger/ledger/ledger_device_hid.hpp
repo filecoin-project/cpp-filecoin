@@ -15,6 +15,14 @@ namespace ledger {
 
   class LedgerDeviceHid : public LedgerDevice {
    public:
+    LedgerDeviceHid(DeviceHid &&deviceHid) : device(std::move(deviceHid)) {}
+
+    LedgerDeviceHid(LedgerDeviceHid &&other) = default;
+    LedgerDeviceHid &operator=(LedgerDeviceHid &&other) = default;
+
+    LedgerDeviceHid(const LedgerDeviceHid &) = delete;
+    LedgerDeviceHid &operator=(const LedgerDeviceHid &) = delete;
+
     std::tuple<Bytes, Error> Exchange(const Bytes &command) const override;
     void Close() override;
 

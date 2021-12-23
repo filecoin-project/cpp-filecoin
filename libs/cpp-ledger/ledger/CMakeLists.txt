@@ -8,6 +8,7 @@ add_library(ledger_device
     device_hid.cpp
     ledger_device_hid.cpp
     ledger_admin_hid.cpp
+    utils.cpp
     )
 target_link_libraries(ledger_device
     usb-1.0

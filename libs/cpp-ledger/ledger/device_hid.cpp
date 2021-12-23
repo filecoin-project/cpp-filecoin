@@ -5,6 +5,8 @@
 
 #include "device_hid.hpp"
 
+#include "utils.hpp"
+
 namespace ledger {
 
   DeviceHid::DeviceHid() {
@@ -134,12 +136,24 @@ namespace ledger {
     return std::make_tuple(read, Error{});
   }
 
-  std::vector<DeviceHid> Enumerate(unsigned short vendor_id,
-                                   unsigned short product_id) {
+  bool DeviceHid::IsLedgerDevice() const {
+    const bool deviceFound = info.usage_page == kUsagePageLedgerNanoS;
+
+    bool supported = false;
+    if (kSupportedLedgerProductId.find(info.product_id)
+        != kSupportedLedgerProductId.end()) {
+      supported = kSupportedLedgerProductId.at(info.product_id)
+                  == info.interface_number;
+    }
+
+    return deviceFound || supported;
+  }
+
+  std::vector<DeviceHid> Enumerate(uint16_t vendorId, uint16_t productId) {
     static std::mutex mutex;
     std::lock_guard lock(mutex);
 
-    auto *head = hid_enumerate(vendor_id, product_id);
+    auto *head = hid_enumerate(vendorId, productId);
     if (head == nullptr) {
       return {};
     }

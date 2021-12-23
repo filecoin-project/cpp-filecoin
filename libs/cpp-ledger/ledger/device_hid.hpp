@@ -30,6 +30,8 @@ namespace ledger {
     std::tuple<int, Error> Write(const Bytes &bytes) const;
     std::tuple<int, Error> Read(Bytes &bytes) const;
 
+    bool IsLedgerDevice() const;
+
     hid_device_info info;
     hid_device *device;
 
@@ -37,7 +39,6 @@ namespace ledger {
     mutable std::mutex mutex;
   };
 
-  std::vector<DeviceHid> Enumerate(unsigned short vendor_id,
-                                   unsigned short product_id);
+  std::vector<DeviceHid> Enumerate(uint16_t vendorId, uint16_t productId);
 
 }  // namespace ledger
