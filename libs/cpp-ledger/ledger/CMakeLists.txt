@@ -11,6 +11,5 @@ add_library(ledger_device
     utils.cpp
     )
 target_link_libraries(ledger_device
-    usb-1.0
     hidapi
     )
