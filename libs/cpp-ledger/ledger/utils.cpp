@@ -7,6 +7,7 @@
 
 #include <wchar.h>
 #include <codecvt>
+#include <cstring>
 #include <locale>
 
 namespace ledger {
