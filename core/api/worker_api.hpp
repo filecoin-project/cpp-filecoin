@@ -13,6 +13,7 @@
 
 namespace fc::api {
   using primitives::jwt::kAdminPermission;
+  using primitives::piece::MetaPieceData;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::piece::UnpaddedPieceSize;
@@ -30,7 +31,13 @@ namespace fc::api {
   using sector_storage::SectorFileType;
 
   struct WorkerApi {
-    // TODO(ortyomka): [FIL-344] add AddPiece function
+    API_METHOD(AddPiece,
+               kAdminPermission,
+               CallId,
+               SectorRef,
+               gsl::span<const UnpaddedPieceSize>,
+               UnpaddedPieceSize,
+               MetaPieceData)
 
     API_METHOD(Fetch,
                kAdminPermission,

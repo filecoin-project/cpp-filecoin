@@ -86,5 +86,8 @@ namespace fc::sector_storage {
 
     WorkerApi api_;
     Client wsc_;
+    io_context &io_;
+    std::string host_;
+    std::string port_;
   };
 }  // namespace fc::sector_storage

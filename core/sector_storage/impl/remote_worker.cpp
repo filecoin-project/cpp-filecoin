@@ -3,26 +3,53 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <boost/beast/http.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include "primitives/jwt/jwt.hpp"
+
+#include "drand/impl/http.cpp"
+#include "primitives/piece/piece_data.hpp"
 #include "sector_storage/impl/remote_worker.hpp"
 
 namespace fc::sector_storage {
+  using drand::http::ClientSession;
+  using primitives::piece::MetaPieceData;
+  using primitives::piece::ReaderType;
+  namespace beast = boost::beast;
+  namespace net = boost::asio;
+  using tcp = net::ip::tcp;
+  namespace uuids = boost::uuids;
+  namespace http = boost::beast::http;
+  using primitives::jwt::kAdminPermission;
 
   outcome::result<std::shared_ptr<RemoteWorker>>
   RemoteWorker::connectRemoteWorker(io_context &context,
                                     const std::shared_ptr<CommonApi> &api,
                                     const Multiaddress &address) {
-    auto token = "stub";  // get token from common api
+    OUTCOME_TRY(token, api->AuthNew({kAdminPermission}));
 
     struct make_unique_enabler : public RemoteWorker {
-      make_unique_enabler(io_context &context) : RemoteWorker{context} {};
+      explicit make_unique_enabler(io_context &context)
+          : RemoteWorker{context} {};
     };
 
     std::unique_ptr<RemoteWorker> r_worker =
         std::make_unique<make_unique_enabler>(context);
 
+    OUTCOME_TRY(
+        ip,
+        address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4));
+    OUTCOME_TRY(
+        port,
+        address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::TCP));
+
+    r_worker->port_ = port;
+    r_worker->host_ = ip;
     r_worker->wsc_.setup(r_worker->api_);
 
-    OUTCOME_TRY(r_worker->wsc_.connect(address, "/rpc/v0", token));
+    OUTCOME_TRY(r_worker->wsc_.connect(
+        address, "/rpc/v0", std::string{token.begin(), token.end()}));
 
     return std::move(r_worker);
   }
@@ -41,15 +68,84 @@ namespace fc::sector_storage {
     return api_.Paths();
   }
 
-  RemoteWorker::RemoteWorker(io_context &context) : wsc_(context) {}
+  RemoteWorker::RemoteWorker(io_context &context)
+      : wsc_(context), io_(context) {}
+
+  struct PieceDataSender {
+    explicit PieceDataSender(io_context &io)
+        : resolver{io}, stream{net::make_strand(io)} {}
+    PieceDataSender(const PieceDataSender &) = delete;
+    PieceDataSender(PieceDataSender &&) = delete;
+    ~PieceDataSender() {
+      boost::system::error_code ec;
+      stream.socket().shutdown(tcp::socket::shutdown_both, ec);
+    }
+    PieceDataSender &operator=(const PieceDataSender &) = delete;
+    PieceDataSender &operator=(PieceDataSender &&) = delete;
+
+    static void send(
+        int fd,
+        io_context &io,
+        const std::string &host,
+        const std::string &port,
+        const std::string &target,
+        const std::function<void(outcome::result<std::string>)> &cb) {
+      auto s{std::make_shared<PieceDataSender>(io)};
+      boost::system::error_code error;
+      boost::beast::file_posix fp;
+      fp.native_handle(fd);
+
+      s->file_req.body().reset(std::move(fp), error);
+      s->file_req.method(http::verb::post);
+      s->file_req.target(target);
+      s->file_req.set(http::field::host, host);
+      s->resolver.async_resolve(
+          host, port, [s, MOVE(cb)](auto &&ec, auto &&iterator) {
+            EC_CB();
+            s->stream.async_connect(
+                iterator, [s, MOVE(cb)](auto &&ec, auto &&) {
+                  EC_CB();
+                  http::async_write(s->stream,
+                                    s->file_req,
+                                    [s, MOVE(cb)](auto &&ec, auto &&) {
+                                      EC_CB();
+                                      http::async_read(
+                                          s->stream,
+                                          s->buffer,
+                                          s->res,
+                                          [s, MOVE(cb)](auto &&ec, auto &&) {
+                                            EC_CB();
+                                            cb(std::move(s->res.body()));
+                                          });
+                                    });
+                });
+          });
+    }
+
+   private:
+    http::request<http::file_body> file_req;
+    tcp::resolver resolver;
+    beast::tcp_stream stream;
+    beast::flat_buffer buffer;
+    http::response<http::string_body> res;
+  };
 
   outcome::result<CallId> RemoteWorker::addPiece(
       const SectorRef &sector,
       gsl::span<const UnpaddedPieceSize> piece_sizes,
       const UnpaddedPieceSize &new_piece_size,
       PieceData piece_data) {
-    return WorkerErrors::kUnsupportedCall;  // TODO(ortyomka): [FIL-344] add
-                                            // functionality
+    MetaPieceData meta_data(uuids::to_string(uuids::random_generator()()),
+                            ReaderType::Type::pushStreamReader);
+    PieceDataSender::send(piece_data.release(),
+                          io_,
+                          host_,
+                          port_,
+                          "/rpc/streams/v0/push" + meta_data.uuid,
+                          [](const outcome::result<std::string> &res) {
+                            std::cerr << res.value();
+                          });
+    return api_.AddPiece(sector, piece_sizes, new_piece_size, meta_data);
   }
 
   outcome::result<CallId> RemoteWorker::sealPreCommit1(

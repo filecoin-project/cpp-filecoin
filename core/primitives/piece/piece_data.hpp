@@ -6,6 +6,7 @@
 #pragma once
 
 #include <fcntl.h>
+#include <array>
 #include <string>
 
 namespace fc::primitives::piece {
@@ -28,8 +29,41 @@ namespace fc::primitives::piece {
 
     bool isOpened() const;
 
+    [[nodiscard]] int release();
+
    private:
     int fd_;
+  };
+
+  class ReaderType {
+   public:
+    enum Type : uint64_t {
+      pushStreamReader = 0,
+      nullReader = 1,
+    } reader_type;
+
+    ReaderType(Type type) : reader_type(std::move(type)){};
+
+    ReaderType(std::string string_type) {
+      if (string_type == "push") {
+        reader_type = pushStreamReader;
+      } else {
+        reader_type = nullReader;
+      }
+    }
+
+    static const std::array<std::string, 2> types;
+
+    const std::string toString() const;
+  };
+
+  class MetaPieceData {
+   public:
+    MetaPieceData(std::string uuid, ReaderType::Type type)
+        : uuid(std::move(uuid)), type(ReaderType(type)){};
+
+    std::string uuid;
+    ReaderType type;
   };
 
 }  // namespace fc::primitives::piece

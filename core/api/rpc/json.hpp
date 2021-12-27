@@ -60,6 +60,7 @@ namespace fc::api {
   using primitives::block::ElectionProof;
   using primitives::block::Ticket;
   using primitives::cid::getCidOfCbor;
+  using primitives::piece::PieceData;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredPoStProof;
@@ -2011,6 +2012,18 @@ namespace fc::api {
       Get(j, "MemReserved", v.reserved_memory);
       Get(j, "CPUs", v.cpus);
       Get(j, "GPUs", v.gpus);
+    }
+
+    ENCODE(MetaPieceData) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Type", v.type.toString());
+      Set(j, "Info", v.uuid);
+      return j;
+    }
+
+    DECODE(MetaPieceData) {
+      // Get(j, "Type", v.type)
+      Get(j, "Info", v.uuid);
     }
 
     template <typename T>

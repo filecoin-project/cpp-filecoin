@@ -65,7 +65,7 @@ namespace fc::api {
     mining::SealingState state = mining::SealingState::kStateUnknown;
   };
 
-  constexpr ApiVersion kMinerApiVersion = makeApiVersion(1, 0, 0);
+  constexpr ApiVersion kMinerApiVersion = makeApiVersion(1, 2, 0);
 
   /**
    * Storage miner node low-level interface API.
