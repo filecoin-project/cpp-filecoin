@@ -9,13 +9,14 @@
 #include <functional>
 #include <mutex>
 #include "cpp-ledger/common/types.hpp"
+#include "cpp-ledger/ledger/device_hid_info.hpp"
 
 namespace ledger {
 
   class DeviceHid {
    public:
-    DeviceHid();
-    ~DeviceHid();
+    DeviceHid() = default;
+    ~DeviceHid() = default;
 
     DeviceHid(DeviceHid &&other) noexcept;
     DeviceHid &operator=(DeviceHid &&other) noexcept;
@@ -23,7 +24,7 @@ namespace ledger {
     DeviceHid(const DeviceHid &) = delete;
     DeviceHid &operator=(const DeviceHid &) = delete;
 
-    void SetInfo(const hid_device_info *device_info);
+    void SetInfo(const hid_device_info *deviceInfo);
 
     Error Open();
     void Close();
@@ -36,7 +37,7 @@ namespace ledger {
    private:
     using DeviceDeleter = std::function<void(hid_device *)>;
 
-    hid_device_info info;
+    DeviceHidInfo info;
     std::unique_ptr<hid_device, DeviceDeleter> device;
     mutable std::mutex mutex;
   };

@@ -5,6 +5,7 @@
 
 add_library(ledger_device
     apdu_wrapper.cpp
+    device_hid_info.cpp
     device_hid.cpp
     ledger_device_hid.cpp
     ledger_admin_hid.cpp

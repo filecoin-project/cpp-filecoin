@@ -5,61 +5,34 @@
 
 #include "cpp-ledger/ledger/device_hid.hpp"
 
-#include <sstream>
 #include "cpp-ledger/ledger/const.hpp"
 #include "cpp-ledger/ledger/utils.hpp"
 
 namespace ledger {
 
-  DeviceHid::DeviceHid() {
-    info.path = nullptr;
-    info.serial_number = nullptr;
-    info.manufacturer_string = nullptr;
-    info.product_string = nullptr;
-    info.next = nullptr;
-  }
-
-  DeviceHid::~DeviceHid() {
-    delete[] info.path;
-    delete[] info.serial_number;
-    delete[] info.manufacturer_string;
-    delete[] info.product_string;
-  }
-
   DeviceHid::DeviceHid(DeviceHid &&other) noexcept {
     if (this != &other) {
-      info = std::move(other.info);
+      info = other.info;
       device = std::move(other.device);
     }
   }
 
   DeviceHid &DeviceHid::operator=(DeviceHid &&other) noexcept {
     if (this != &other) {
-      info = std::move(other.info);
+      info = other.info;
       device = std::move(other.device);
     }
     return *this;
   }
 
-  void DeviceHid::SetInfo(const hid_device_info *device_info) {
-    if (device_info != nullptr) {
-      copyStr(info.path, device_info->path);
-      info.vendor_id = device_info->vendor_id;
-      info.product_id = device_info->product_id;
-      copyStr(info.serial_number, device_info->serial_number);
-      info.release_number = device_info->release_number;
-      copyStr(info.manufacturer_string, device_info->manufacturer_string);
-      copyStr(info.product_string, device_info->product_string);
-      info.usage_page = device_info->usage_page;
-      info.usage = device_info->usage;
-      info.interface_number = device_info->interface_number;
-    }
+  void DeviceHid::SetInfo(const hid_device_info *deviceInfo) {
+    info = DeviceHidInfo(deviceInfo);
   }
 
   Error DeviceHid::Open() {
     std::lock_guard lock(mutex);
     if (!device) {
-      auto *device_ptr = hid_open_path(info.path);
+      auto *device_ptr = hid_open_path(info.path.c_str());
       if (device_ptr == nullptr) {
         return Error{"hidapi: failed to open device"};
       }
@@ -128,39 +101,20 @@ namespace ledger {
   }
 
   bool DeviceHid::IsLedgerDevice() const {
-    const bool deviceFound = info.usage_page == kUsagePageLedgerNanoS;
+    const bool deviceFound = info.usagePage == kUsagePageLedgerNanoS;
 
     bool supported = false;
-    if (kSupportedLedgerProductId.find(info.product_id)
+    if (kSupportedLedgerProductId.find(info.productId)
         != kSupportedLedgerProductId.end()) {
-      supported = kSupportedLedgerProductId.at(info.product_id)
-                  == info.interface_number;
+      supported =
+          kSupportedLedgerProductId.at(info.productId) == info.interfaceNumber;
     }
 
     return deviceFound || supported;
   }
 
   std::string DeviceHid::ToString() const {
-    std::stringstream ss;
-    ss << "============ " << info.path << std::endl;
-    ss << "VendorID      : " << std::hex << info.vendor_id << std::endl;
-    ss << "ProductID     : " << std::hex << info.product_id << std::endl;
-    ss << "Release       : " << std::hex << info.release_number << std::endl;
-
-    ss << "Serial        : ";
-    std::wstring serial(info.serial_number);
-    for (wchar_t symbol : serial) {
-      ss << std::hex << symbol;
-    }
-    ss << std::endl;
-
-    ss << "Manufacturer  : " << convertToString(info.manufacturer_string)
-       << std::endl;
-    ss << "Product       : " << convertToString(info.product_string)
-       << std::endl;
-    ss << "UsagePage     : " << std::hex << info.usage_page << std::endl;
-    ss << "Usage         : " << std::hex << info.usage << std::endl;
-    return ss.str();
+    return info.ToString();
   }
 
   std::vector<DeviceHid> Enumerate(uint16_t vendorId, uint16_t productId) {
