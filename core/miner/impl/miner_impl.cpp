@@ -60,11 +60,11 @@ namespace fc::miner {
       const std::shared_ptr<FullNodeApi> &api,
       const Address &miner_address,
       const Address &worker_address,
-      std::shared_ptr<Counter> counter,
-      std::shared_ptr<BufferMap> sealing_fsm_kv,
-      std::shared_ptr<Manager> sector_manager,
+      const std::shared_ptr<Counter> &counter,
+      const std::shared_ptr<BufferMap> &sealing_fsm_kv,
+      const std::shared_ptr<Manager> &sector_manager,
       const std::shared_ptr<Scheduler> &scheduler,
-      std::shared_ptr<boost::asio::io_context> context,
+      const std::shared_ptr<boost::asio::io_context> &context,
       const mining::Config &config,
       const std::vector<Address>
           &precommit_control) {  // TODO(ortyomka): Commit Batcher extension
@@ -111,11 +111,11 @@ namespace fc::miner {
                 SealingImpl::newSealing(api,
                                         events,
                                         miner_address,
-                                        std::move(counter),
-                                        std::move(sealing_fsm_kv),
-                                        std::move(sector_manager),
+                                        counter,
+                                        sealing_fsm_kv,
+                                        sector_manager,
                                         precommit_policy,
-                                        std::move(context),
+                                        context,
                                         scheduler,
                                         precommit_batcher,
                                         addr_sel,
@@ -128,7 +128,7 @@ namespace fc::miner {
     };
 
     std::shared_ptr<MinerImpl> miner =
-        std::make_shared<make_unique_enabler>(sealing);
+        std::make_shared<make_unique_enabler>(std::move(sealing));
 
     return std::move(miner);
   }

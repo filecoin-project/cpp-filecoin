@@ -36,11 +36,11 @@ namespace fc::miner {
         const std::shared_ptr<FullNodeApi> &api,
         const Address &miner_address,
         const Address &worker_address,
-        std::shared_ptr<Counter> counter,
-        std::shared_ptr<BufferMap> sealing_fsm_kv,
-        std::shared_ptr<Manager> sector_manager,
+        const std::shared_ptr<Counter> &counter,
+        const std::shared_ptr<BufferMap> &sealing_fsm_kv,
+        const std::shared_ptr<Manager> &sector_manager,
         const std::shared_ptr<Scheduler> &scheduler,
-        std::shared_ptr<boost::asio::io_context> context,
+        const std::shared_ptr<boost::asio::io_context> &context,
         const mining::Config &config,
         const std::vector<Address> &precommit_control);
 
