@@ -5,10 +5,16 @@
 
 #include "cpp-ledger/ledger/apdu_wrapper.hpp"
 
+#include <algorithm>
 #include "cpp-ledger/ledger/const.hpp"
 #include "cpp-ledger/ledger/utils.hpp"
 
 namespace ledger::apdu {
+
+  constexpr Byte kTag = 0x05;
+  constexpr int kMinPacketSize = 3;
+  constexpr size_t kMinFirstHeaderSize = 7;
+  constexpr size_t kMinHeaderSize = 5;
 
   Error ErrorMessage(uint16_t errCode) {
     switch (errCode) {
@@ -62,12 +68,14 @@ namespace ledger::apdu {
                                                 const Bytes &command,
                                                 int packetSize,
                                                 uint16_t sequenceId) {
-    if (packetSize < 3) {
-      return std::make_tuple(
-          Bytes{}, 0, Error{"Packet size must be at least 3"});
+    if (packetSize < kMinPacketSize) {
+      return std::make_tuple(Bytes{},
+                             0,
+                             Error{"Packet size must be at least "
+                                   + std::to_string(kMinPacketSize)});
     }
 
-    Byte headerOffset = 0;
+    size_t headerOffset = 0;
 
     Bytes result;
     result.reserve(packetSize);
@@ -77,7 +85,7 @@ namespace ledger::apdu {
     headerOffset += 2;
 
     // Insert tag (1 byte)
-    result.push_back(0x05);
+    result.push_back(kTag);
     headerOffset++;
 
     // Insert sequenceId (2 bytes)
@@ -91,16 +99,11 @@ namespace ledger::apdu {
       headerOffset += 2;
     }
 
-    size_t offset = packetSize - headerOffset;
-    if (command.size() <= offset) {
-      result.insert(result.end(), command.begin(), command.end());
-      offset = command.size();
-    } else {
-      result.insert(result.end(), command.begin(), command.begin() + offset);
-      for (auto size = packetSize - result.size(); size > 0; size--) {
-        result.push_back(0);
-      }
-    }
+    const size_t offset = (command.size() <= packetSize - headerOffset)
+                              ? packetSize - headerOffset
+                              : command.size();
+    std::copy_n(command.begin(), offset, std::back_inserter(result));
+    result.resize(packetSize, 0);
 
     return std::make_tuple(result, offset, Error{});
   }
@@ -108,8 +111,8 @@ namespace ledger::apdu {
   std::tuple<Bytes, uint16_t, Error> DeserializePacket(uint16_t channel,
                                                        const Bytes &buffer,
                                                        uint16_t sequenceId) {
-    if ((sequenceId == 0 && buffer.size() < 7)
-        || (sequenceId > 0 && buffer.size() < 5)) {
+    if ((sequenceId == 0 && buffer.size() < kMinFirstHeaderSize)
+        || (sequenceId > 0 && buffer.size() < kMinHeaderSize)) {
       return std::make_tuple(
           Bytes{},
           0,
@@ -117,14 +120,14 @@ namespace ledger::apdu {
               "Cannot deserialize the packet. Header information is missing."});
     }
 
-    Byte headerOffset = 0;
+    size_t headerOffset = 0;
 
     if (getFromBytes(buffer[0], buffer[1]) != channel) {
       return std::make_tuple(Bytes{}, 0, Error{"Invalid channel"});
     }
     headerOffset += 2;
 
-    if (buffer[headerOffset] != 0x05) {
+    if (buffer[headerOffset] != kTag) {
       return std::make_tuple(Bytes{}, 0, Error{"Invalid tag"});
     }
     headerOffset++;
@@ -191,6 +194,7 @@ namespace ledger::apdu {
       sequenceId++;
     }
 
+    // Remove trailing zeros
     totalResult = Bytes(totalResult.begin(), totalResult.begin() + totalSize);
     return std::make_tuple(totalResult, Error{});
   }

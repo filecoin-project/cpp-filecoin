@@ -17,18 +17,18 @@ namespace ledger {
       return;
     }
 
-    if (dest != nullptr) {
-      delete[] dest;
-    }
+    delete[] dest;
 
     dest = new char[std::strlen(src) + 1];
     std::strcpy(dest, src);
   }
 
   void copyStr(wchar_t *dest, const wchar_t *src) {
-    if (dest != nullptr) {
-      delete[] dest;
+    if (src == nullptr) {
+      return;
     }
+
+    delete[] dest;
 
     dest = new wchar_t[std::wcslen(src) + 1];
     std::wcscpy(dest, src);

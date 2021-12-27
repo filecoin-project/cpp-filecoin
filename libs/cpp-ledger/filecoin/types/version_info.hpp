@@ -25,7 +25,7 @@ namespace ledger::filecoin {
       return !(*this == other);
     }
 
-    inline std::string ToString() {
+    inline std::string ToString() const {
       return std::to_string(major) + "." + std::to_string(minor) + "."
              + std::to_string(patch);
     }

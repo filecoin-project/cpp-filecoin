@@ -11,14 +11,18 @@
 
 namespace ledger {
 
+  constexpr size_t kMinCommandSize = 5;
+  constexpr size_t kMinResponseSize = 2;
+
   std::tuple<Bytes, Error> LedgerDeviceHid::Exchange(
       const Bytes &command) const {
-    if (command.size() < 5) {
-      return std::make_tuple(
-          Bytes{}, Error{"APDU commands should not be smaller than 5"});
+    if (command.size() < kMinCommandSize) {
+      return std::make_tuple(Bytes{},
+                             Error{"APDU commands should not be smaller than "
+                                   + std::to_string(kMinCommandSize)});
     }
 
-    if (command.size() - 5 != command[4]) {
+    if (command.size() - kMinCommandSize != command[4]) {
       return std::make_tuple(Bytes{}, Error{"APDU[data length] mismatch"});
     }
 
@@ -42,11 +46,13 @@ namespace ledger {
       return std::make_tuple(Bytes{}, err1);
     }
 
-    if (response.size() < 2) {
-      return std::make_tuple(Bytes{}, Error{"response length < 2"});
+    if (response.size() < kMinResponseSize) {
+      return std::make_tuple(
+          Bytes{},
+          Error{"response length < " + std::to_string(kMinResponseSize)});
     }
 
-    const auto swOffset = response.size() - 2;
+    const auto swOffset = response.size() - kMinResponseSize;
     const auto sw = getFromBytes(response[swOffset], response[swOffset + 1]);
 
     const Bytes result(response.begin(), response.begin() + swOffset);

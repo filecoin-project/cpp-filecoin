@@ -34,31 +34,7 @@ namespace ledger {
     }
 
     for (const auto &device : devices) {
-      std::cout << "============ " << device.info.path << std::endl;
-      std::cout << "VendorID      : " << std::hex << device.info.vendor_id
-                << std::endl;
-      std::cout << "ProductID     : " << std::hex << device.info.product_id
-                << std::endl;
-      std::cout << "Release       : " << std::hex << device.info.release_number
-                << std::endl;
-
-      std::cout << "Serial        : ";
-      std::wstring serial(device.info.serial_number);
-      for (wchar_t symbol : serial) {
-        std::cout << std::hex << symbol;
-      }
-      std::cout << std::endl;
-
-      std::cout << "Manufacturer  : "
-                << convertToString(device.info.manufacturer_string)
-                << std::endl;
-      std::cout << "Product       : "
-                << convertToString(device.info.product_string) << std::endl;
-      std::cout << "UsagePage     : " << std::hex << device.info.usage_page
-                << std::endl;
-      std::cout << "Usage         : " << std::hex << device.info.usage
-                << std::endl;
-      std::cout << std::endl;
+      std::cout << device.ToString() << std::endl;
     }
 
     return std::make_tuple("", Error{});

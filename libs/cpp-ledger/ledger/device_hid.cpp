@@ -5,6 +5,7 @@
 
 #include "cpp-ledger/ledger/device_hid.hpp"
 
+#include <sstream>
 #include "cpp-ledger/ledger/const.hpp"
 #include "cpp-ledger/ledger/utils.hpp"
 
@@ -19,33 +20,20 @@ namespace ledger {
   }
 
   DeviceHid::~DeviceHid() {
-    hid_close(device);
-
-    if (info.path != nullptr) {
-      delete[] info.path;
-    }
-
-    if (info.serial_number != nullptr) {
-      delete[] info.serial_number;
-    }
-
-    if (info.manufacturer_string != nullptr) {
-      delete[] info.manufacturer_string;
-    }
-
-    if (info.product_string != nullptr) {
-      delete[] info.product_string;
-    }
+    delete[] info.path;
+    delete[] info.serial_number;
+    delete[] info.manufacturer_string;
+    delete[] info.product_string;
   }
 
-  DeviceHid::DeviceHid(DeviceHid &&other) {
+  DeviceHid::DeviceHid(DeviceHid &&other) noexcept {
     if (this != &other) {
       info = std::move(other.info);
       device = std::move(other.device);
     }
   }
 
-  DeviceHid &DeviceHid::operator=(DeviceHid &&other) {
+  DeviceHid &DeviceHid::operator=(DeviceHid &&other) noexcept {
     if (this != &other) {
       info = std::move(other.info);
       device = std::move(other.device);
@@ -70,20 +58,22 @@ namespace ledger {
 
   Error DeviceHid::Open() {
     std::lock_guard lock(mutex);
-    if (device == nullptr) {
-      device = hid_open_path(info.path);
-      if (device == nullptr) {
+    if (!device) {
+      auto *device_ptr = hid_open_path(info.path);
+      if (device_ptr == nullptr) {
         return Error{"hidapi: failed to open device"};
       }
+      device = std::unique_ptr<hid_device, DeviceDeleter>(
+          device_ptr, [](hid_device *ptr) { hid_close(ptr); });
     }
     return Error{};
   }
 
   void DeviceHid::Close() {
     std::lock_guard lock(mutex);
-    if (device != nullptr) {
-      hid_close(device);
-      device = nullptr;
+    if (device) {
+      auto *device_ptr = device.release();
+      hid_close(device_ptr);
     }
   }
 
@@ -94,13 +84,13 @@ namespace ledger {
 
     std::lock_guard lock(mutex);
 
-    if (device == nullptr) {
+    if (!device) {
       return std::make_tuple(0, Error{"hid : device closed"});
     }
 
-    const auto written = hid_write(device, bytes.data(), bytes.size());
+    const auto written = hid_write(device.get(), bytes.data(), bytes.size());
     if (written == -1) {
-      const auto *message = hid_error(device);
+      const auto *message = hid_error(device.get());
       if (message == nullptr) {
         return std::make_tuple(0, Error{"hidapi: unknown failure"});
       }
@@ -119,19 +109,19 @@ namespace ledger {
 
     std::lock_guard lock(mutex);
 
-    if (device == nullptr) {
+    if (!device) {
       return std::make_tuple(0, Error{"hid : device closed"});
     }
 
-    const auto read = hid_read(device, bytes.data(), bytes.size());
+    const auto read = hid_read(device.get(), bytes.data(), bytes.size());
     if (read == -1) {
-      const auto *message = hid_error(device);
+      const auto *message = hid_error(device.get());
       if (message == nullptr) {
         return std::make_tuple(0, Error{"hidapi: unknown failure"});
       }
 
       const std::string failure = convertToString(std::wstring(message));
-      return std::make_tuple(0, "hidapi: " + failure);
+      return std::make_tuple(0, Error{"hidapi: " + failure});
     }
 
     return std::make_tuple(read, Error{});
@@ -148,6 +138,29 @@ namespace ledger {
     }
 
     return deviceFound || supported;
+  }
+
+  std::string DeviceHid::ToString() const {
+    std::stringstream ss;
+    ss << "============ " << info.path << std::endl;
+    ss << "VendorID      : " << std::hex << info.vendor_id << std::endl;
+    ss << "ProductID     : " << std::hex << info.product_id << std::endl;
+    ss << "Release       : " << std::hex << info.release_number << std::endl;
+
+    ss << "Serial        : ";
+    std::wstring serial(info.serial_number);
+    for (wchar_t symbol : serial) {
+      ss << std::hex << symbol;
+    }
+    ss << std::endl;
+
+    ss << "Manufacturer  : " << convertToString(info.manufacturer_string)
+       << std::endl;
+    ss << "Product       : " << convertToString(info.product_string)
+       << std::endl;
+    ss << "UsagePage     : " << std::hex << info.usage_page << std::endl;
+    ss << "Usage         : " << std::hex << info.usage << std::endl;
+    return ss.str();
   }
 
   std::vector<DeviceHid> Enumerate(uint16_t vendorId, uint16_t productId) {

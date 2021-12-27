@@ -6,17 +6,19 @@
 #pragma once
 
 #include <hidapi/hidapi.h>
+#include <functional>
 #include <mutex>
 #include "cpp-ledger/common/types.hpp"
 
 namespace ledger {
 
-  struct DeviceHid {
+  class DeviceHid {
+   public:
     DeviceHid();
     ~DeviceHid();
 
-    DeviceHid(DeviceHid &&other);
-    DeviceHid &operator=(DeviceHid &&other);
+    DeviceHid(DeviceHid &&other) noexcept;
+    DeviceHid &operator=(DeviceHid &&other) noexcept;
 
     DeviceHid(const DeviceHid &) = delete;
     DeviceHid &operator=(const DeviceHid &) = delete;
@@ -29,11 +31,13 @@ namespace ledger {
     std::tuple<int, Error> Read(Bytes &bytes) const;
 
     bool IsLedgerDevice() const;
-
-    hid_device_info info;
-    hid_device *device;
+    std::string ToString() const;
 
    private:
+    using DeviceDeleter = std::function<void(hid_device *)>;
+
+    hid_device_info info;
+    std::unique_ptr<hid_device, DeviceDeleter> device;
     mutable std::mutex mutex;
   };
 

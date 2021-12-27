@@ -26,6 +26,7 @@ namespace ledger::filecoin {
 
     inline Bytes SignatureBytes() const {
       Bytes out;
+      out.reserve(r.size() + s.size() + 1);
       out.insert(out.end(), r.begin(), r.end());
       out.insert(out.end(), s.begin(), s.end());
       out.push_back(v);
