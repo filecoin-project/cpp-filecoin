@@ -122,6 +122,12 @@ namespace fc::primitives::sector_file {
     outcome::result<void> markAllocated(PaddedByteIndex offset,
                                         PaddedPieceSize size);
 
+    outcome::result<boost::optional<PieceInfo>> writeNull(
+        PaddedByteIndex offset,
+        PaddedPieceSize size,
+        const boost::optional<RegisteredSealProof> &maybe_seal_proof_type =
+            boost::none);
+
     struct PadWriter {
      public:
       explicit PadWriter(std::fstream &output);

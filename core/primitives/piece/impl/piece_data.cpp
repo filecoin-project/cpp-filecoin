@@ -8,11 +8,12 @@
 #include <boost/filesystem.hpp>
 
 namespace fc::primitives::piece {
-  PieceData::PieceData(const std::string &path_to_file, int flags) {
+  PieceData::PieceData(const std::string &path_to_file, int flags) : isNullData(false) {
     fd_ = open(path_to_file.c_str(), flags, 0644);
   }
 
   int PieceData::getFd() const {
+    assert(not isNullData);
     return fd_;
   }
 
@@ -26,14 +27,22 @@ namespace fc::primitives::piece {
     return fd_ != kUnopenedFileDescriptor;
   }
 
+  bool PieceData::getIsNullData() const {
+    return isNullData;
+  }
+
   PieceData::PieceData(PieceData &&other) noexcept
-      : fd_(kUnopenedFileDescriptor) {
+      : fd_(kUnopenedFileDescriptor), isNullData(other.isNullData) {
     fd_ = other.fd_;
     other.fd_ = kUnopenedFileDescriptor;
   }
 
-  PieceData::PieceData(int &pipe_fd) : fd_(pipe_fd) {
+  PieceData::PieceData(int &pipe_fd) : fd_(pipe_fd), isNullData(false) {
     pipe_fd = kUnopenedFileDescriptor;
+  }
+
+  PieceData::PieceData() : isNullData(true) {
+
   }
 
   PieceData &PieceData::operator=(PieceData &&other) noexcept {
