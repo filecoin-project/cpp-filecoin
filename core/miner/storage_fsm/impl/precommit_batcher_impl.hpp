@@ -24,9 +24,9 @@ namespace fc::mining {
    public:
     PreCommitBatcherImpl(const std::chrono::milliseconds &max_time,
                          std::shared_ptr<FullNodeApi> api,
-                         const Address &miner_address,
-                         const std::shared_ptr<Scheduler> &scheduler,
-                         const AddressSelector &address_selector,
+                         Address miner_address,
+                         std::shared_ptr<Scheduler> scheduler,
+                         AddressSelector address_selector,
                          std::shared_ptr<FeeConfig> fee_config);
 
     outcome::result<void> addPreCommit(
@@ -44,8 +44,7 @@ namespace fc::mining {
       PreCommitEntry(const PreCommitEntry &) = delete;
       PreCommitEntry(PreCommitEntry &&) = delete;
 
-      PreCommitEntry(const TokenAmount &number,
-                     const SectorPreCommitInfo &info);
+      PreCommitEntry(TokenAmount number, SectorPreCommitInfo info);
 
       ~PreCommitEntry() = default;
 

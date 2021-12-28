@@ -94,7 +94,7 @@ namespace fc {
     boost::optional<Address> actor, owner, worker;
     boost::optional<RegisteredSealProof> seal_type;
     std::vector<Address> precommit_control;
-    int api_port;
+    int api_port{};
 
     /** Path to presealed sectors */
     boost::optional<boost::filesystem::path> preseal_path;
@@ -204,6 +204,7 @@ namespace fc {
     return config;
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> setupMiner(Config &config,
                                    BufferMap &kv,
                                    const PeerId &peer_id) {
@@ -335,6 +336,7 @@ namespace fc {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> main(Config &config) {
     log()->debug("Starting ", miner::kMinerVersion);
 

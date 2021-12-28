@@ -55,26 +55,27 @@ namespace fc::mining {
     return std::chrono::milliseconds(60000);  // 1 minute
   }
 
-  SealingImpl::SealingImpl(std::shared_ptr<FullNodeApi> api,
-                           std::shared_ptr<Events> events,
-                           Address miner_address,
-                           std::shared_ptr<Counter> counter,
-                           std::shared_ptr<BufferMap> fsm_kv,
-                           std::shared_ptr<Manager> sealer,
-                           std::shared_ptr<PreCommitPolicy> policy,
-                           std::shared_ptr<boost::asio::io_context> context,
-                           std::shared_ptr<Scheduler> scheduler,
-                           std::shared_ptr<PreCommitBatcher> precommit_batcher,
-                           AddressSelector address_selector,
-                           std::shared_ptr<FeeConfig> fee_config,
-                           Config config)
+  SealingImpl::SealingImpl(
+      std::shared_ptr<FullNodeApi> api,
+      std::shared_ptr<Events> events,
+      Address miner_address,
+      std::shared_ptr<Counter> counter,
+      std::shared_ptr<BufferMap> fsm_kv,
+      std::shared_ptr<Manager> sealer,
+      std::shared_ptr<PreCommitPolicy> policy,
+      const std::shared_ptr<boost::asio::io_context> &context,
+      std::shared_ptr<Scheduler> scheduler,
+      std::shared_ptr<PreCommitBatcher> precommit_batcher,
+      AddressSelector address_selector,
+      std::shared_ptr<FeeConfig> fee_config,
+      Config config)
       : scheduler_{std::move(scheduler)},
         api_(std::move(api)),
         events_(std::move(events)),
         policy_(std::move(policy)),
         counter_(std::move(counter)),
         fsm_kv_{std::move(fsm_kv)},
-        miner_address_(miner_address),
+        miner_address_(std::move(miner_address)),
         fee_config_(std::move(fee_config)),
         sealer_(std::move(sealer)),
         precommit_batcher_(std::move(precommit_batcher)),
@@ -97,46 +98,47 @@ namespace fc::mining {
   }
 
   outcome::result<std::shared_ptr<SealingImpl>> SealingImpl::newSealing(
-      std::shared_ptr<FullNodeApi> api,
-      std::shared_ptr<Events> events,
+      const std::shared_ptr<FullNodeApi> &api,
+      const std::shared_ptr<Events> &events,
       const Address &miner_address,
-      std::shared_ptr<Counter> counter,
-      std::shared_ptr<BufferMap> fsm_kv,
-      std::shared_ptr<Manager> sealer,
-      std::shared_ptr<PreCommitPolicy> policy,
-      std::shared_ptr<boost::asio::io_context> context,
-      std::shared_ptr<Scheduler> scheduler,
-      std::shared_ptr<PreCommitBatcher> precommit_batcher,
+      const std::shared_ptr<Counter> &counter,
+      const std::shared_ptr<BufferMap> &fsm_kv,
+      const std::shared_ptr<Manager> &sealer,
+      const std::shared_ptr<PreCommitPolicy> &policy,
+      const std::shared_ptr<boost::asio::io_context> &context,
+      const std::shared_ptr<Scheduler> &scheduler,
+      const std::shared_ptr<PreCommitBatcher> &precommit_batcher,
       const AddressSelector &address_selector,
-      std::shared_ptr<FeeConfig> fee_config,
+      const std::shared_ptr<FeeConfig> &fee_config,
       Config config) {
     struct make_unique_enabler : public SealingImpl {
-      make_unique_enabler(std::shared_ptr<FullNodeApi> api,
-                          std::shared_ptr<Events> events,
-                          Address miner_address,
-                          std::shared_ptr<Counter> counter,
-                          std::shared_ptr<BufferMap> fsm_kv,
-                          std::shared_ptr<Manager> sealer,
-                          std::shared_ptr<PreCommitPolicy> policy,
-                          std::shared_ptr<boost::asio::io_context> context,
-                          std::shared_ptr<Scheduler> scheduler,
-                          std::shared_ptr<PreCommitBatcher> precommit_bathcer,
-                          AddressSelector address_selector,
-                          std::shared_ptr<FeeConfig> fee_config,
-                          Config config)
+      make_unique_enabler(
+          std::shared_ptr<FullNodeApi> api,
+          std::shared_ptr<Events> events,
+          Address miner_address,
+          std::shared_ptr<Counter> counter,
+          std::shared_ptr<BufferMap> fsm_kv,
+          std::shared_ptr<Manager> sealer,
+          std::shared_ptr<PreCommitPolicy> policy,
+          const std::shared_ptr<boost::asio::io_context> &context,
+          std::shared_ptr<Scheduler> scheduler,
+          std::shared_ptr<PreCommitBatcher> precommit_bathcer,
+          AddressSelector address_selector,
+          std::shared_ptr<FeeConfig> fee_config,
+          Config config)
           : SealingImpl{std::move(api),
                         std::move(events),
-                        miner_address,
+                        std::move(miner_address),
                         std::move(counter),
                         std::move(fsm_kv),
                         std::move(sealer),
                         std::move(policy),
-                        std::move(context),
+                        context,
                         std::move(scheduler),
                         std::move(precommit_bathcer),
                         std::move(address_selector),
                         std::move(fee_config),
-                        std::move(config)} {};
+                        config} {};
     };
     std::shared_ptr<SealingImpl> sealing =
         std::make_shared<make_unique_enabler>(api,
@@ -201,7 +203,9 @@ namespace fc::mining {
   }
 
   outcome::result<PieceLocation> SealingImpl::addPieceToAnySector(
-      UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) {
+      const UnpaddedPieceSize &size,
+      PieceData piece_data,
+      const DealInfo &deal) {
     if (not deal.publish_cid.has_value()) {
       return SealingError::kNotPublishedDeal;
     }
@@ -249,7 +253,7 @@ namespace fc::mining {
       is_start_packing =
           unsealed_sectors_[sector_and_padding.sector].deals_number
               >= getDealPerSectorLimit(sector_size)
-          || (SectorSize)piece.offset + (SectorSize)piece.size == sector_size;
+          || SectorSize(piece.offset) + SectorSize(piece.size) == sector_size;
     }
 
     if (is_start_packing) {
@@ -352,7 +356,7 @@ namespace fc::mining {
         self->logger_->error(maybe_sid.error().message());
         return;
       }
-      auto &sid{maybe_sid.value()};
+      const auto &sid{maybe_sid.value()};
 
       std::vector<UnpaddedPieceSize> sizes = {size};
       const auto maybe_pieces =
@@ -365,7 +369,7 @@ namespace fc::mining {
       std::vector<Piece> pieces;
       for (const auto &piece : maybe_pieces.value()) {
         pieces.push_back(Piece{
-            .piece = std::move(piece),
+            .piece = piece,
             .deal_info = boost::none,
         });
       }
@@ -417,7 +421,7 @@ namespace fc::mining {
     OUTCOME_TRY(sector_size, getSectorSize(seal_proof_type));
 
     for (const auto &[key, value] : unsealed_sectors_) {
-      const auto pads = proofs::getRequiredPadding(value.stored, size.padded());
+      auto pads = proofs::getRequiredPadding(value.stored, size.padded());
       if (value.stored + size.padded() + pads.size <= sector_size) {
         return SectorPaddingResponse{
             .sector = key,
@@ -476,6 +480,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<SectorNumber> SealingImpl::newDealSector() {
     if (config_.max_sealing_sectors_for_deals > 0) {
       if (stat_->currentSealing() > config_.max_sealing_sectors_for_deals) {
@@ -988,7 +993,7 @@ namespace fc::mining {
         info->getPieceInfos(),
         [ticket{maybe_ticket.value()}, info{info}, logger{logger_}, fsm{fsm_}](
             const outcome::result<sector_storage::PreCommit1Output>
-                maybe_result) {
+                &maybe_result) {
           if (maybe_result.has_error()) {
             logger->error("Seal pre commit 1 error: {}",
                           maybe_result.error().message());
@@ -1000,7 +1005,7 @@ namespace fc::mining {
 
           std::shared_ptr<SectorPreCommit1Context> context =
               std::make_shared<SectorPreCommit1Context>();
-          context->precommit1_output = std::move(maybe_result.value());
+          context->precommit1_output = maybe_result.value();
           context->ticket = ticket.ticket;
           context->epoch = ticket.epoch;
           OUTCOME_EXCEPT(
@@ -1030,8 +1035,8 @@ namespace fc::mining {
 
           std::shared_ptr<SectorPreCommit2Context> context =
               std::make_shared<SectorPreCommit2Context>();
-          context->unsealed = std::move(maybe_cids.value().unsealed_cid);
-          context->sealed = std::move(maybe_cids.value().sealed_cid);
+          context->unsealed = maybe_cids.value().unsealed_cid;
+          context->sealed = maybe_cids.value().sealed_cid;
 
           OUTCOME_EXCEPT(
               fsm->send(info, SealingEvent::kSectorPreCommit2, context));
@@ -1042,6 +1047,7 @@ namespace fc::mining {
   }
 
   outcome::result<boost::optional<SealingImpl::PreCommitParams>>
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   SealingImpl::getPreCommitParams(const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
 
@@ -1091,9 +1097,9 @@ namespace fc::mining {
     OUTCOME_TRY(seal_duration,
                 checks::getMaxProveCommitDuration(network, info));
     OUTCOME_TRY(policy_expiration, policy_->expiration(info->pieces));
-    const auto static_expiration = head->epoch() + seal_duration
-                                   + kMinSectorExpiration + kChainFinality
-                                   + kEpochsInDay;
+    const ChainEpoch static_expiration =
+        head->epoch() + seal_duration + kMinSectorExpiration + kChainFinality
+        + gsl::narrow<ChainEpoch>(kEpochsInDay);
     const auto expiration =
         std::min<ChainEpoch>(policy_expiration, static_expiration);
 
@@ -1113,10 +1119,10 @@ namespace fc::mining {
 
     deposit = std::max(deposit, collateral);
 
-    return SealingImpl::PreCommitParams{
-        std::move(params), deposit, std::move(head->key)};
+    return SealingImpl::PreCommitParams{std::move(params), deposit, head->key};
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> SealingImpl::handlePreCommitting(
       const std::shared_ptr<SectorInfo> &info) {
     logger_->info("PreCommitting sector {}", info->sector_number);
@@ -1364,6 +1370,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> SealingImpl::handleComputeProof(
       const std::shared_ptr<SectorInfo> &info) {
     if (info->message.has_value()) {
@@ -1411,7 +1418,7 @@ namespace fc::mining {
                     miner_address{miner_address_},
                     sector_ref](
                        const outcome::result<sector_storage::Commit1Output>
-                           &maybe_commit_1_output) {
+                           &maybe_commit_1_output) mutable {
       if (maybe_commit_1_output.has_error()) {
         logger->error("computing seal proof failed(1): {}",
                       maybe_commit_1_output.error().message());
@@ -1423,7 +1430,7 @@ namespace fc::mining {
 
       sealer->sealCommit2(
           sector_ref,
-          std::move(maybe_commit_1_output.value()),
+          maybe_commit_1_output.value(),
           [logger,
            info,
            api,
@@ -1714,6 +1721,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> SealingImpl::handlePreCommitFail(
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
@@ -1844,6 +1852,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> SealingImpl::handleCommitFail(
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
@@ -2010,6 +2019,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> SealingImpl::handleRecoverDeal(
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());

@@ -49,26 +49,27 @@ namespace fc::mining {
     SealingImpl &operator=(SealingImpl &&) = delete;
 
     static outcome::result<std::shared_ptr<SealingImpl>> newSealing(
-        std::shared_ptr<FullNodeApi> api,
-        std::shared_ptr<Events> events,
+        const std::shared_ptr<FullNodeApi> &api,
+        const std::shared_ptr<Events> &events,
         const Address &miner_address,
-        std::shared_ptr<Counter> counter,
-        std::shared_ptr<BufferMap> fsm_kv,
-        std::shared_ptr<Manager> sealer,
-        std::shared_ptr<PreCommitPolicy> policy,
-        std::shared_ptr<boost::asio::io_context> context,
-        std::shared_ptr<Scheduler> scheduler,
-        std::shared_ptr<PreCommitBatcher> precommit_batcher_,
+        const std::shared_ptr<Counter> &counter,
+        const std::shared_ptr<BufferMap> &fsm_kv,
+        const std::shared_ptr<Manager> &sealer,
+        const std::shared_ptr<PreCommitPolicy> &policy,
+        const std::shared_ptr<boost::asio::io_context> &context,
+        const std::shared_ptr<Scheduler> &scheduler,
+        const std::shared_ptr<PreCommitBatcher> &precommit_batcher_,
         const AddressSelector &address_selector,
-        std::shared_ptr<FeeConfig> fee_config,
+        const std::shared_ptr<FeeConfig> &fee_config,
         Config config);
 
     outcome::result<void> fsmLoad();
     void fsmSave(const std::shared_ptr<SectorInfo> &info);
 
-    outcome::result<PieceLocation> addPieceToAnySector(UnpaddedPieceSize size,
-                                                       PieceData piece_data,
-                                                       DealInfo deal) override;
+    outcome::result<PieceLocation> addPieceToAnySector(
+        const UnpaddedPieceSize &size,
+        PieceData piece_data,
+        const DealInfo &deal) override;
 
     outcome::result<void> remove(SectorNumber sector_id) override;
 
@@ -99,7 +100,7 @@ namespace fc::mining {
                 std::shared_ptr<BufferMap> fsm_kv,
                 std::shared_ptr<Manager> sealer,
                 std::shared_ptr<PreCommitPolicy> policy,
-                std::shared_ptr<boost::asio::io_context> context,
+                const std::shared_ptr<boost::asio::io_context>& context,
                 std::shared_ptr<Scheduler> scheduler,
                 std::shared_ptr<PreCommitBatcher> precommit_batcher,
                 AddressSelector address_selector,
@@ -310,7 +311,7 @@ namespace fc::mining {
     std::unordered_map<SectorNumber, std::shared_ptr<SectorInfo>> sectors_;
 
     struct UnsealedSectorInfo {
-      uint64_t deals_number;
+      uint64_t deals_number{};
       // stored should always equal sum of piece_sizes.padded()
       PaddedPieceSize stored;
       std::vector<UnpaddedPieceSize> piece_sizes;

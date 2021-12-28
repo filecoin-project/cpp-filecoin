@@ -14,8 +14,8 @@ namespace fc::vm::actor::builtin::v6::miner {
   const BigInt kBatchDiscountDenominator = 20;
   const BigInt kBatchBalancer = 5 * kOneNanoFil;
 
-  TokenAmount aggregatePreCommitNetworkFee(int aggregate_size,
-                                           TokenAmount base_fee) {
+  TokenAmount aggregatePreCommitNetworkFee(uint64_t aggregate_size,
+                                           const TokenAmount &base_fee) {
     TokenAmount effectiveGasFee = std::max(base_fee, kBatchBalancer);
     TokenAmount networkFeeNum = effectiveGasFee
                                 * kEstimatedSinglePreCommitGasUsage

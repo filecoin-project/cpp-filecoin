@@ -89,7 +89,7 @@ namespace fc::vm::actor::builtin::types::miner {
   CBOR_TUPLE(SectorDeclaration, deadline, partition, sectors)
 
   struct SectorPreCommitInfo {
-    RegisteredSealProof registered_proof;
+    RegisteredSealProof registered_proof{RegisteredSealProof::kUndefined};
     SectorNumber sector{};
     /// CommR
     CID sealed_cid;

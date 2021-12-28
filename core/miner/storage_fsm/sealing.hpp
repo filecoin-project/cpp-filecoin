@@ -40,7 +40,9 @@ namespace fc::mining {
     virtual ~Sealing() = default;
 
     virtual outcome::result<PieceLocation> addPieceToAnySector(
-        UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) = 0;
+        const UnpaddedPieceSize &size,
+        PieceData piece_data,
+        const DealInfo &deal) = 0;
 
     virtual outcome::result<void> remove(SectorNumber sector_id) = 0;
 

@@ -33,9 +33,8 @@ namespace fc::miner {
   using vm::actor::builtin::types::miner::kMaxSectorExpirationExtension;
   using vm::actor::builtin::types::miner::kWPoStProvingPeriod;
 
-  MinerImpl::MinerImpl(std::shared_ptr<FullNodeApi> api,
-                       std::shared_ptr<Sealing> sealing)
-      : api_{std::move(api)}, sealing_{std::move(sealing)} {}
+  MinerImpl::MinerImpl(std::shared_ptr<Sealing> sealing)
+      : sealing_{std::move(sealing)} {}
 
   outcome::result<std::shared_ptr<SectorInfo>> MinerImpl::getSectorInfo(
       SectorNumber sector_id) const {
@@ -43,7 +42,9 @@ namespace fc::miner {
   }
 
   outcome::result<PieceLocation> MinerImpl::addPieceToAnySector(
-      UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) {
+      const UnpaddedPieceSize &size,
+      PieceData piece_data,
+      const DealInfo &deal) {
     return sealing_->addPieceToAnySector(size, std::move(piece_data), deal);
   }
 
@@ -56,14 +57,14 @@ namespace fc::miner {
   }
 
   outcome::result<std::shared_ptr<MinerImpl>> MinerImpl::newMiner(
-      std::shared_ptr<FullNodeApi> api,
+      const std::shared_ptr<FullNodeApi> &api,
       const Address &miner_address,
       const Address &worker_address,
-      std::shared_ptr<Counter> counter,
-      std::shared_ptr<BufferMap> sealing_fsm_kv,
-      std::shared_ptr<Manager> sector_manager,
+      const std::shared_ptr<Counter> &counter,
+      const std::shared_ptr<BufferMap> &sealing_fsm_kv,
+      const std::shared_ptr<Manager> &sector_manager,
       const std::shared_ptr<Scheduler> &scheduler,
-      std::shared_ptr<boost::asio::io_context> context,
+      const std::shared_ptr<boost::asio::io_context> &context,
       const mining::Config &config,
       const std::vector<Address>
           &precommit_control) {  // TODO(ortyomka): Commit Batcher extension
@@ -110,11 +111,11 @@ namespace fc::miner {
                 SealingImpl::newSealing(api,
                                         events,
                                         miner_address,
-                                        std::move(counter),
-                                        std::move(sealing_fsm_kv),
-                                        std::move(sector_manager),
+                                        counter,
+                                        sealing_fsm_kv,
+                                        sector_manager,
                                         precommit_policy,
-                                        std::move(context),
+                                        context,
                                         scheduler,
                                         precommit_batcher,
                                         addr_sel,
@@ -122,13 +123,12 @@ namespace fc::miner {
                                         config));
 
     struct make_unique_enabler : public MinerImpl {
-      make_unique_enabler(std::shared_ptr<FullNodeApi> api,
-                          std::shared_ptr<Sealing> sealing)
-          : MinerImpl{std::move(api), std::move(sealing)} {};
+      explicit make_unique_enabler(std::shared_ptr<Sealing> sealing)
+          : MinerImpl{std::move(sealing)} {};
     };
 
     std::shared_ptr<MinerImpl> miner =
-        std::make_shared<make_unique_enabler>(api, sealing);
+        std::make_shared<make_unique_enabler>(std::move(sealing));
 
     return std::move(miner);
   }
