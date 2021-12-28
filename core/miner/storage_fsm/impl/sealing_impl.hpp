@@ -100,7 +100,7 @@ namespace fc::mining {
                 std::shared_ptr<BufferMap> fsm_kv,
                 std::shared_ptr<Manager> sealer,
                 std::shared_ptr<PreCommitPolicy> policy,
-                const std::shared_ptr<boost::asio::io_context>& context,
+                const std::shared_ptr<boost::asio::io_context> &context,
                 std::shared_ptr<Scheduler> scheduler,
                 std::shared_ptr<PreCommitBatcher> precommit_batcher,
                 AddressSelector address_selector,

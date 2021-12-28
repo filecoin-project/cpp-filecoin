@@ -147,7 +147,7 @@ namespace fc::crypto::blake2b {
 
     Ctx ctx{BLAKE2B512_HASH_LENGTH};
 
-    const int buffer_size = 32 * 1024;
+    constexpr size_t buffer_size = 32 * 1024;
     std::string bytes(buffer_size, ' ');
     file_stream.read(bytes.data(), buffer_size);
     auto currently_read = file_stream.gcount();

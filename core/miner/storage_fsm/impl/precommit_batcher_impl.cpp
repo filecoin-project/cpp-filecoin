@@ -77,19 +77,19 @@ namespace fc::mining {
           fee_config_->max_precommit_batch_gas_fee.FeeForSector(
               params.sectors.size());
 
-      auto base_fee = head->blks[0].parent_base_fee;
-      TokenAmount agg_fee_raw =
+      const auto base_fee = head->blks[0].parent_base_fee;
+      const TokenAmount agg_fee_raw =
           aggregatePreCommitNetworkFee(params.sectors.size(), base_fee);
 
       static TokenAmount kAggFeeNum{110};
       static TokenAmount kAggFeeDen{100};
-      TokenAmount agg_fee = bigdiv(agg_fee_raw * kAggFeeNum, kAggFeeDen);
+      const TokenAmount agg_fee = bigdiv(agg_fee_raw * kAggFeeNum, kAggFeeDen);
 
-      auto need_funds = mutual_deposit + agg_fee;
+      const auto need_funds = mutual_deposit + agg_fee;
 
       // TODO(ortyomka): Collateral Send Amount
 
-      TokenAmount good_funds = max_fee + need_funds;
+      const TokenAmount good_funds = max_fee + need_funds;
       OUTCOME_TRY(encodedParams, codec::cbor::encode(params));
       OUTCOME_TRY(address, address_selector_(minfo, good_funds, api_));
       OUTCOME_TRY(signed_message,

@@ -350,18 +350,19 @@ namespace fc::sector_storage {
       const SealerConfig &config,
       const std::shared_ptr<proofs::ProofEngine> &proofs) {
     struct make_unique_enabler : public ManagerImpl {
-      make_unique_enabler(std::shared_ptr<stores::SectorIndex> sector_index,
-                          std::shared_ptr<stores::LocalStorage> local_storage,
-                          std::shared_ptr<stores::LocalStore> local_store,
-                          std::shared_ptr<stores::RemoteStore> store,
-                          std::shared_ptr<Scheduler> scheduler,
-                          std::shared_ptr<proofs::ProofEngine> proofs)
-          : ManagerImpl{std::move(sector_index),
-                        std::move(local_storage),
-                        std::move(local_store),
-                        std::move(store),
-                        std::move(scheduler),
-                        std::move(proofs)} {};
+      make_unique_enabler(
+          const std::shared_ptr<stores::SectorIndex> &sector_index,
+          const std::shared_ptr<stores::LocalStorage> &local_storage,
+          const std::shared_ptr<stores::LocalStore> &local_store,
+          const std::shared_ptr<stores::RemoteStore> &store,
+          const std::shared_ptr<Scheduler> &scheduler,
+          const std::shared_ptr<proofs::ProofEngine> &proofs)
+          : ManagerImpl{sector_index,
+                        local_storage,
+                        local_store,
+                        store,
+                        scheduler,
+                        proofs} {};
     };
 
     auto local_store = remote->getLocalStore();
@@ -457,15 +458,15 @@ namespace fc::sector_storage {
     return proofs_;
   }
 
-  void ManagerImpl::readPiece(PieceData output,
-                              const SectorRef &sector,
-                              UnpaddedByteIndex offset,
-                              const UnpaddedPieceSize &size,
-                              const SealRandomness &randomness,
-                              const CID &cid,
-                              std::function<void(outcome::result<bool>)> cb) {
-    std::shared_ptr<stores::WLock> lock;
-    OUTCOME_CB(lock,
+  void ManagerImpl::readPiece(
+      PieceData output,
+      const SectorRef &sector,
+      UnpaddedByteIndex offset,
+      const UnpaddedPieceSize &size,
+      const SealRandomness &randomness,
+      const CID &cid,
+      const std::function<void(outcome::result<bool>)> &cb) {
+    OUTCOME_CB(auto lock,
                index_->storageLock(
                    sector.id,
                    static_cast<SectorFileType>(SectorFileType::FTSealed
@@ -473,8 +474,7 @@ namespace fc::sector_storage {
                    SectorFileType::FTUnsealed));
 
     {
-      std::vector<stores::StorageInfo> best;
-      OUTCOME_CB(best,
+      OUTCOME_CB(auto best,
                  index_->storageFindSector(
                      sector.id, SectorFileType::FTUnsealed, boost::none));
 
@@ -521,10 +521,7 @@ namespace fc::sector_storage {
           kDefaultTaskPriority,
           boost::none));
 
-      auto maybe_error = wait.get_future().get();
-      if (maybe_error.has_error()) {
-        return cb(maybe_error.error());
-      }
+      OUTCOME_CB1(wait.get_future().get());
     }
 
     std::shared_ptr<WorkerSelector> selector;
@@ -586,15 +583,13 @@ namespace fc::sector_storage {
       const SectorRef &sector,
       const SealRandomness &ticket,
       const std::vector<PieceInfo> &pieces,
-      std::function<void(outcome::result<PreCommit1Output>)> cb,
+      const std::function<void(outcome::result<PreCommit1Output>)> &cb,
       uint64_t priority) {
-    WorkId work_id;
-    OUTCOME_CB(work_id,
+    OUTCOME_CB(WorkId work_id,
                getWorkId(primitives::kTTPreCommit1,
                          std::make_tuple(sector, ticket, pieces)));
 
-    std::shared_ptr<stores::WLock> lock;
-    OUTCOME_CB(lock,
+    OUTCOME_CB(auto lock,
                index_->storageLock(
                    sector.id,
                    SectorFileType::FTUnsealed,
@@ -648,15 +643,14 @@ namespace fc::sector_storage {
   void ManagerImpl::sealPreCommit2(
       const SectorRef &sector,
       const PreCommit1Output &pre_commit_1_output,
-      std::function<void(outcome::result<SectorCids>)> cb,
+      const std::function<void(outcome::result<SectorCids>)> &cb,
       uint64_t priority) {
-    WorkId work_id;
-    OUTCOME_CB(work_id,
+    OUTCOME_CB(WorkId work_id,
                getWorkId(primitives::kTTPreCommit2,
                          std::make_tuple(sector, pre_commit_1_output)));
-    std::shared_ptr<stores::WLock> lock;
+
     OUTCOME_CB(
-        lock,
+        auto lock,
         index_->storageLock(
             sector.id, SectorFileType::FTSealed, SectorFileType::FTCache));
 
@@ -708,16 +702,14 @@ namespace fc::sector_storage {
       const InteractiveRandomness &seed,
       const std::vector<PieceInfo> &pieces,
       const SectorCids &cids,
-      std::function<void(outcome::result<Commit1Output>)> cb,
+      const std::function<void(outcome::result<Commit1Output>)> &cb,
       uint64_t priority) {
-    WorkId work_id;
-    OUTCOME_CB(work_id,
+    OUTCOME_CB(WorkId work_id,
                getWorkId(primitives::kTTCommit1,
                          std::make_tuple(sector, ticket, seed, pieces, cids)));
 
-    std::shared_ptr<stores::WLock> lock;
     OUTCOME_CB(
-        lock,
+        auto lock,
         index_->storageLock(
             sector.id, SectorFileType::FTSealed, SectorFileType::FTCache));
 
@@ -767,12 +759,12 @@ namespace fc::sector_storage {
     return wait.get_future().get();
   }
 
-  void ManagerImpl::sealCommit2(const SectorRef &sector,
-                                const Commit1Output &commit_1_output,
-                                std::function<void(outcome::result<Proof>)> cb,
-                                uint64_t priority) {
-    WorkId work_id;
-    OUTCOME_CB(work_id,
+  void ManagerImpl::sealCommit2(
+      const SectorRef &sector,
+      const Commit1Output &commit_1_output,
+      const std::function<void(outcome::result<Proof>)> &cb,
+      uint64_t priority) {
+    OUTCOME_CB(WorkId work_id,
                getWorkId(primitives::kTTCommit2,
                          std::make_tuple(sector, commit_1_output)));
 
@@ -812,10 +804,9 @@ namespace fc::sector_storage {
   void ManagerImpl::finalizeSector(
       const SectorRef &sector,
       const gsl::span<const Range> &keep_unsealed,
-      std::function<void(outcome::result<void>)> cb,
+      const std::function<void(outcome::result<void>)> &cb,
       uint64_t priority) {
-    std::shared_ptr<stores::WLock> lock;
-    OUTCOME_CB(lock,
+    OUTCOME_CB(auto lock,
                index_->storageLock(
                    sector.id,
                    SectorFileType::FTNone,
@@ -825,8 +816,7 @@ namespace fc::sector_storage {
 
     auto unsealed = SectorFileType::FTUnsealed;
     {
-      std::vector<stores::StorageInfo> unsealed_stores;
-      OUTCOME_CB(unsealed_stores,
+      OUTCOME_CB(auto unsealed_stores,
                  index_->storageFindSector(
                      sector.id, SectorFileType::FTUnsealed, boost::none));
 
@@ -845,7 +835,7 @@ namespace fc::sector_storage {
          lock{std::move(lock)},
          self{shared_from_this()},
          priority](const outcome::result<void> &maybe_error) mutable {
-          if (maybe_error.has_error()) return cb(maybe_error.error());
+          OUTCOME_CB1(maybe_error);
 
           auto fetch_selector = std::make_shared<AllocateSelector>(
               index,
@@ -924,15 +914,15 @@ namespace fc::sector_storage {
     return waiter.get_future().get();
   }
 
-  void ManagerImpl::addPiece(const SectorRef &sector,
-                             gsl::span<const UnpaddedPieceSize> piece_sizes,
-                             const UnpaddedPieceSize &new_piece_size,
-                             proofs::PieceData piece_data,
-                             std::function<void(outcome::result<PieceInfo>)> cb,
-                             uint64_t priority) {
-    std::shared_ptr<stores::WLock> lock;
+  void ManagerImpl::addPiece(
+      const SectorRef &sector,
+      gsl::span<const UnpaddedPieceSize> piece_sizes,
+      const UnpaddedPieceSize &new_piece_size,
+      proofs::PieceData piece_data,
+      const std::function<void(outcome::result<PieceInfo>)> &cb,
+      uint64_t priority) {
     OUTCOME_CB(
-        lock,
+        auto lock,
         index_->storageLock(
             sector.id, SectorFileType::FTNone, SectorFileType::FTUnsealed));
 

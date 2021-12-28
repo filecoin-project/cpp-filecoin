@@ -1051,7 +1051,7 @@ namespace fc::mining {
   SealingImpl::getPreCommitParams(const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
 
-    auto maybe_error = checks::checkPrecommit(
+    const auto maybe_error = checks::checkPrecommit(
         miner_address_, info, head->key, head->height(), api_);
 
     if (maybe_error.has_error()) {
@@ -1132,7 +1132,7 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    auto maybe_precommit_params = getPreCommitParams(info);
+    const auto maybe_precommit_params = getPreCommitParams(info);
     if (maybe_precommit_params.has_error()) {
       logger_->error("PreCommitting sector {} params: {:#}",
                      info->sector_number,
@@ -1140,7 +1140,7 @@ namespace fc::mining {
       FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
       return outcome::success();
     }
-    auto &precommit_params{maybe_precommit_params.value()};
+    const auto &precommit_params{maybe_precommit_params.value()};
     if (not precommit_params.has_value()) {
       return outcome::success();
     }
@@ -1153,7 +1153,7 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    auto maybe_minfo =
+    const auto maybe_minfo =
         api_->StateMinerInfo(miner_address_, precommit_params->key);
     if (maybe_params.has_error()) {
       logger_->error("API StateMinerInfo error: {:#}",
@@ -1162,9 +1162,9 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    TokenAmount good_funds =
+    const TokenAmount good_funds =
         precommit_params->deposit + fee_config_->max_precommit_gas_fee;
-    auto maybe_address =
+    const auto maybe_address =
         address_selector_(maybe_minfo.value(), good_funds, api_);
     if (maybe_address.has_error()) {
       logger_->error("no good address to send precommit message from: {:#}",
@@ -1224,7 +1224,7 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    auto maybe_precommit_params = getPreCommitParams(info);
+    const auto maybe_precommit_params = getPreCommitParams(info);
     if (maybe_precommit_params.has_error()) {
       logger_->error("PreCommitting sector {} params: {:#}",
                      info->sector_number,
@@ -1232,13 +1232,13 @@ namespace fc::mining {
       FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
       return outcome::success();
     }
-    auto &precommit_params{maybe_precommit_params.value()};
+    const auto &precommit_params{maybe_precommit_params.value()};
     if (not precommit_params.has_value()) {
       return outcome::success();
     }
 
     logger_->info("submitting precommit for sector: {}", info->sector_number);
-    auto maybe_error = precommit_batcher_->addPreCommit(
+    const auto maybe_error = precommit_batcher_->addPreCommit(
         *info,
         precommit_params->deposit,
         precommit_params->info,
@@ -1409,76 +1409,76 @@ namespace fc::mining {
         .unsealed_cid = info->comm_d.get(),
     };
 
-    auto sector_ref = minerSector(info->sector_type, info->sector_number);
-    auto next_cb = [info,
-                    fsm{fsm_},
-                    logger{logger_},
-                    sealer{sealer_},
-                    api{api_},
-                    miner_address{miner_address_},
-                    sector_ref](
-                       const outcome::result<sector_storage::Commit1Output>
-                           &maybe_commit_1_output) mutable {
-      if (maybe_commit_1_output.has_error()) {
-        logger->error("computing seal proof failed(1): {}",
-                      maybe_commit_1_output.error().message());
-        OUTCOME_EXCEPT(
-            fsm->send(info, SealingEvent::kSectorComputeProofFailed, {}));
-        return;
-      }
-      logger->info("Commit 2 sector {}", info->sector_number);
-
-      sealer->sealCommit2(
-          sector_ref,
-          maybe_commit_1_output.value(),
-          [logger,
-           info,
-           api,
-           fsm,
-           miner_address,
-           proof_engine{sealer->getProofEngine()}](
-              const outcome::result<sector_storage::Proof> &maybe_proof) {
-            if (maybe_proof.has_error()) {
-              logger->error("computing seal proof failed(2): {}",
-                            maybe_proof.error().message());
-              OUTCOME_EXCEPT(
-                  fsm->send(info, SealingEvent::kSectorComputeProofFailed, {}));
-              return;
-            }
-            logger->info("Seal commit done: {}", info->sector_number);
-
-            auto maybe_head = api->ChainHead();
-            if (maybe_head.has_error()) {
-              logger->error("computing seal proof api error: {}",
-                            maybe_head.error().message());
-              OUTCOME_EXCEPT(
-                  fsm->send(info, SealingEvent::kSectorComputeProofFailed, {}));
-              return;
-            }
-
-            const auto maybe_error =
-                checks::checkCommit(miner_address,
-                                    info,
-                                    maybe_proof.value(),
-                                    maybe_head.value()->key,
-                                    api,
-                                    proof_engine);
-            if (maybe_error.has_error()) {
-              logger->error("commit check error: {}",
-                            maybe_error.error().message());
-              OUTCOME_EXCEPT(
-                  fsm->send(info, SealingEvent::kSectorComputeProofFailed, {}));
-              return;
-            }
-
-            std::shared_ptr<SectorComputeProofContext> context =
-                std::make_shared<SectorComputeProofContext>();
-            context->proof = maybe_proof.value();
+    const auto sector_ref = minerSector(info->sector_type, info->sector_number);
+    const auto next_cb =
+        [info,
+         fsm{fsm_},
+         logger{logger_},
+         sealer{sealer_},
+         api{api_},
+         miner_address{miner_address_},
+         sector_ref](const outcome::result<sector_storage::Commit1Output>
+                         &maybe_commit_1_output) mutable {
+          if (maybe_commit_1_output.has_error()) {
+            logger->error("computing seal proof failed(1): {}",
+                          maybe_commit_1_output.error().message());
             OUTCOME_EXCEPT(
-                fsm->send(info, SealingEvent::kSectorComputeProof, context));
-          },
-          info->sealingPriority());
-    };
+                fsm->send(info, SealingEvent::kSectorComputeProofFailed, {}));
+            return;
+          }
+          logger->info("Commit 2 sector {}", info->sector_number);
+
+          sealer->sealCommit2(
+              sector_ref,
+              maybe_commit_1_output.value(),
+              [logger,
+               info,
+               api,
+               fsm,
+               miner_address,
+               proof_engine{sealer->getProofEngine()}](
+                  const outcome::result<sector_storage::Proof> &maybe_proof) {
+                if (maybe_proof.has_error()) {
+                  logger->error("computing seal proof failed(2): {}",
+                                maybe_proof.error().message());
+                  OUTCOME_EXCEPT(fsm->send(
+                      info, SealingEvent::kSectorComputeProofFailed, {}));
+                  return;
+                }
+                logger->info("Seal commit done: {}", info->sector_number);
+
+                const auto maybe_head = api->ChainHead();
+                if (maybe_head.has_error()) {
+                  logger->error("computing seal proof api error: {}",
+                                maybe_head.error().message());
+                  OUTCOME_EXCEPT(fsm->send(
+                      info, SealingEvent::kSectorComputeProofFailed, {}));
+                  return;
+                }
+
+                const auto maybe_error =
+                    checks::checkCommit(miner_address,
+                                        info,
+                                        maybe_proof.value(),
+                                        maybe_head.value()->key,
+                                        api,
+                                        proof_engine);
+                if (maybe_error.has_error()) {
+                  logger->error("commit check error: {}",
+                                maybe_error.error().message());
+                  OUTCOME_EXCEPT(fsm->send(
+                      info, SealingEvent::kSectorComputeProofFailed, {}));
+                  return;
+                }
+
+                std::shared_ptr<SectorComputeProofContext> context =
+                    std::make_shared<SectorComputeProofContext>();
+                context->proof = maybe_proof.value();
+                OUTCOME_EXCEPT(fsm->send(
+                    info, SealingEvent::kSectorComputeProof, context));
+              },
+              info->sealingPriority());
+        };
 
     sealer_->sealCommit1(sector_ref,
                          info->ticket,

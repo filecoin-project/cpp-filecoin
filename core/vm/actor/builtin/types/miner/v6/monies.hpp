@@ -16,11 +16,12 @@ namespace fc::vm::actor::builtin::v6::miner {
 
   TokenAmount aggregatePreCommitNetworkFee(uint64_t aggregate_size,
                                            const TokenAmount &base_fee) {
-    TokenAmount effectiveGasFee = std::max(base_fee, kBatchBalancer);
-    TokenAmount networkFeeNum = effectiveGasFee
-                                * kEstimatedSinglePreCommitGasUsage
-                                * aggregate_size * kBatchDiscountNumerator;
-    TokenAmount networkFee = bigdiv(networkFeeNum, kBatchDiscountDenominator);
+    const TokenAmount effectiveGasFee = std::max(base_fee, kBatchBalancer);
+    const TokenAmount networkFeeNum =
+        effectiveGasFee * kEstimatedSinglePreCommitGasUsage * aggregate_size
+        * kBatchDiscountNumerator;
+    const TokenAmount networkFee =
+        bigdiv(networkFeeNum, kBatchDiscountDenominator);
     return networkFee;
   }
 
