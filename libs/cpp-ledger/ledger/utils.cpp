@@ -18,12 +18,12 @@ namespace ledger {
   }
 
   void put2bytes(Bytes &bytes, uint16_t value) {
-    bytes.push_back(static_cast<Byte>(value));
     bytes.push_back(static_cast<Byte>(value >> 8));
+    bytes.push_back(static_cast<Byte>(value));
   }
 
   uint16_t getFromBytes(Byte byte1, Byte byte2) {
-    return uint16_t(byte1) | uint16_t(byte2) << 8;
+    return uint16_t(byte1) << 8 | uint16_t(byte2);
   }
 
 }  // namespace ledger
