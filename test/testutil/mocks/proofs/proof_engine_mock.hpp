@@ -128,6 +128,19 @@ namespace fc::proofs {
         verifyAggregateSeals,
         outcome::result<bool>(const AggregateSealVerifyProofAndInfos &));
 
+    MOCK_METHOD8(generateUpdateProof,
+                 outcome::result<Bytes>(RegisteredUpdateProof,
+                                        const CID &,
+                                        const CID &,
+                                        const CID &,
+                                        const std::string &,
+                                        const std::string &,
+                                        const std::string &,
+                                        const std::string &));
+
+    MOCK_METHOD1(verifyUpdateProof,
+                 outcome::result<bool>(const ReplicaUpdateInfo &));
+
     MOCK_METHOD8(unseal,
                  outcome::result<void>(RegisteredSealProof proof_type,
                                        const std::string &,

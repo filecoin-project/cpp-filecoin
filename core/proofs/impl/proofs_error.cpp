@@ -41,6 +41,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::proofs, ProofsError, e) {
       return "Proofs: ffi error from receiver side";
     case (ProofsError::kNoSuchAggregationSealProof):
       return "Proofs: No mapping to FFIAggregationSealProof";
+    case (ProofsError::kNoSuchUpdateProof):
+      return "Proofs: No mapping to FFIUpdateProof";
     default:
       return "Proofs: unknown error";
   }

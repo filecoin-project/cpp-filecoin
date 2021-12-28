@@ -29,6 +29,7 @@ namespace fc::proofs {
     kCallerError,
     kReceiverError,
     kNoSuchAggregationSealProof,
+    kNoSuchUpdateProof,
     kUnknown = 1000
   };
 
