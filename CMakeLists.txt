@@ -109,6 +109,7 @@ add_subdirectory(deps)
 include_directories(
     # project includes
     ${PROJECT_SOURCE_DIR}/core
+    ${PROJECT_SOURCE_DIR}/libs
 )
 
 include_directories(
@@ -119,6 +120,7 @@ include_directories(
 )
 
 add_subdirectory(core)
+add_subdirectory(libs)
 
 
 if (TESTING)
