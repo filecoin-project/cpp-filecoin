@@ -12,7 +12,7 @@ namespace ledger::filecoin {
   struct SignatureAnswer {
     Bytes r;
     Bytes s;
-    uint8_t v{};
+    Byte v{};
     Bytes derSignature;
 
     inline bool operator==(const SignatureAnswer &other) const {
