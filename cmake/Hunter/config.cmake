@@ -25,6 +25,6 @@ hunter_config(libp2p
 
 hunter_config(jwt-cpp
     URL https://github.com/soramitsu/fuhon-jwt-cpp/archive/ac0424b115721e4066d2fb99f72ba0cd58759882.tar.gz
-    SHA1 92667cf319f7009234f98f27884db571c2eb1171
+    SHA1 87ad78edb0412e1dcb7ef3de28c0a818b3ab0915
     CMAKE_ARGS JWT_BUILD_EXAMPLES=OFF
     )

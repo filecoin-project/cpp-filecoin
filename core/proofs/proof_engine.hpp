@@ -30,6 +30,8 @@ namespace fc::proofs {
   using primitives::sector::Proof;
   using primitives::sector::RegisteredPoStProof;
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector::RegisteredUpdateProof;
+  using primitives::sector::ReplicaUpdateInfo;
   using primitives::sector::SealRandomness;
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::SectorInfo;
@@ -39,7 +41,6 @@ namespace fc::proofs {
   using Devices = std::vector<std::string>;
   using Phase1Output = std::vector<uint8_t>;
   using ChallengeIndexes = std::vector<uint64_t>;
-  using SealedCID = CID;
   using UnsealedCID = CID;
   using Seed = primitives::sector::InteractiveRandomness;
 
@@ -266,6 +267,25 @@ namespace fc::proofs {
 
     virtual outcome::result<bool> verifyAggregateSeals(
         const AggregateSealVerifyProofAndInfos &aggregate) = 0;
+
+    /**
+     * Generates update proof for empty sector
+     */
+    virtual outcome::result<Bytes> generateUpdateProof(
+        RegisteredUpdateProof proof_type,
+        const CID &old_sealed_cid,
+        const CID &new_sealed_cid,
+        const CID &unsealed_cid,
+        const std::string &new_replica_path,
+        const std::string &new_replica_cache_path,
+        const std::string &sector_key_path,
+        const std::string &sector_key_cache_path) = 0;
+
+    /**
+     * Verifies update proof for empty sector.
+     */
+    virtual outcome::result<bool> verifyUpdateProof(
+        const ReplicaUpdateInfo &info) = 0;
 
     /**
      * Unseals sector

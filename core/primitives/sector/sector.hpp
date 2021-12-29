@@ -68,6 +68,19 @@ namespace fc::primitives::sector {
   };
 
   /**
+   * Empty sector update.
+   */
+  enum class RegisteredUpdateProof : int64_t {
+    kUndefined = -1,
+
+    kStackedDrg2KiBV1,
+    kStackedDrg8MiBV1,
+    kStackedDrg512MiBV1,
+    kStackedDrg32GiBV1,
+    kStackedDrg64GiBV1,
+  };
+
+  /**
    * Produces the PoSt-specific RegisteredProof corresponding to the receiving
    * RegisteredSealProof.
    */
@@ -230,6 +243,20 @@ namespace fc::primitives::sector {
              aggregate_proof,
              proof,
              infos)
+
+  struct ReplicaUpdateInfo {
+    RegisteredUpdateProof update_proof_type{};
+    CID old_sealed_sector_cid;
+    CID new_sealed_sector_cid;
+    CID new_unsealed_sector_cid;
+    Bytes proof;
+  };
+  CBOR_TUPLE(ReplicaUpdateInfo,
+             update_proof_type,
+             old_sealed_sector_cid,
+             new_sealed_sector_cid,
+             new_unsealed_sector_cid,
+             proof);
 }  // namespace fc::primitives::sector
 
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::sector, Errors);
