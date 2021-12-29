@@ -13,6 +13,7 @@
 #include "common/logger.hpp"
 #include "primitives/tipset/load.hpp"
 #include "storage/ipfs/datastore.hpp"
+#include "vm/actor/builtin/types/miner/policy.hpp"
 
 #define TRACE_ENABLED 0
 
@@ -22,7 +23,8 @@ namespace fc::sync::blocksync {
   using libp2p::basic::Scheduler;
 
   namespace {
-    constexpr size_t kMaxDepth = 100;
+    constexpr size_t kMaxDepth =
+        vm::actor::builtin::types::miner::kChainFinality;
 
     using primitives::block::MsgMeta;
 
@@ -32,7 +34,7 @@ namespace fc::sync::blocksync {
     }
 
     template <typename... Args>
-    inline void trace(spdlog::string_view_t fmt, const Args &... args) {
+    inline void trace(spdlog::string_view_t fmt, const Args &...args) {
 #if TRACE_ENABLED
       log()->trace(fmt, args...);
 #endif
@@ -214,8 +216,8 @@ namespace fc::sync::blocksync {
           if (meta_cid != header.messages) {
             return BlocksyncRequest::Error::kStoreCidsMismatch;
           }
-          block_stored(std::move(*asBlake(block_cid)), std::move(header));
         }
+        block_stored(std::move(*asBlake(block_cid)), std::move(header));
       }
 
       return outcome::success();
@@ -246,8 +248,10 @@ namespace fc::sync::blocksync {
                        std::function<void(Result)> callback) {
         callback_ = std::move(callback);
         result_.emplace();
+        result_->from = peer;
         result_->blocks_requested = std::move(blocks);
         result_->messages_stored = (options & kMessagesOnly);
+        result_->messages_only = options == kMessagesOnly;
 
         std::vector<CbCid> blocks_reduced =
             tryReduceRequest(result_->blocks_requested,
@@ -260,11 +264,16 @@ namespace fc::sync::blocksync {
           return;
         }
 
-        if (options == kMessagesOnly) {
-          // not supported yet
-          result_->error = BlocksyncRequest::Error::kNotImplemented;
-          scheduleResult();
-          return;
+        if (result_->messages_only) {
+          auto cb{[&](std::error_code ec) {
+            result_->error = ec;
+            scheduleResult();
+          }};
+          result_->blocks_available.clear();
+          for (const auto &cid : blocks_reduced) {
+            OUTCOME_CB(result_->blocks_available.emplace_back(),
+                       getCbor<BlockHeader>(ipld_, CID{cid}));
+          }
         }
 
         waitlist_.insert(blocks_reduced.begin(), blocks_reduced.end());
@@ -285,7 +294,6 @@ namespace fc::sync::blocksync {
         }
 
         options_ = options;
-        result_->from = peer;
 
         host_.newStream(
             // peer must be already connected
@@ -462,6 +470,9 @@ namespace fc::sync::blocksync {
 
         boost::optional<TipsetHash> expected_parent;
 
+        if (result_->messages_only) {
+          chain[0].blocks = std::move(result_->blocks_available);
+        }
         auto res = storeTipsetBundle(
             ipld_,
             put_block_header_,

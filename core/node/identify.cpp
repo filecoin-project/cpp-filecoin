@@ -57,6 +57,13 @@ namespace fc::sync {
           }
         });
 
+    on_disconnect_ =
+        host_->getBus()
+            .getChannel<libp2p::event::network::OnPeerDisconnectedChannel>()
+            .subscribe([this](const PeerId &peer) {
+              events_->signalPeerDisconnected({peer});
+            });
+
     handleProtocol(*host_, *identify_protocol_);
     handleProtocol(*host_, *identify_push_protocol_);
     handleProtocol(*host_, *identify_delta_protocol_);

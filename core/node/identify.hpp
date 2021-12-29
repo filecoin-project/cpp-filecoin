@@ -7,6 +7,7 @@
 
 #include "node/events_fwd.hpp"
 
+#include <libp2p/event/bus.hpp>
 #include <libp2p/peer/peer_info.hpp>
 
 namespace fc::sync {
@@ -34,6 +35,7 @@ namespace fc::sync {
 
     std::shared_ptr<events::Events> events_;
     events::Connection on_identify_;
+    libp2p::event::Handle on_disconnect_;
   };
 
 }  // namespace fc::sync
