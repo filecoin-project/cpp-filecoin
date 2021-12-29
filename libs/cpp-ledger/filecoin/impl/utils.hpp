@@ -12,7 +12,7 @@
 namespace ledger::filecoin {
   using Chunks = std::vector<Bytes>;
 
-  void put4bytes(Bytes &bytes, uint32_t value);
+  void put4bytesReverse(Bytes &bytes, uint32_t value);
 
   std::tuple<Bytes, Error> getBip44bytes(const std::vector<uint32_t> &bip44path,
                                          size_t hardenCount);

@@ -12,7 +12,7 @@ namespace ledger::filecoin {
   constexpr size_t kBip44PathLength = 5;
   constexpr size_t kUserMessageChunkSize = 250;
 
-  void put4bytes(Bytes &bytes, uint32_t value) {
+  void put4bytesReverse(Bytes &bytes, uint32_t value) {
     bytes.push_back(static_cast<Byte>(value));
     bytes.push_back(static_cast<Byte>(value >> 8));
     bytes.push_back(static_cast<Byte>(value >> 16));
@@ -34,7 +34,7 @@ namespace ledger::filecoin {
     for (size_t i = 0; i < bip44path.size(); i++) {
       const uint32_t value =
           (i < hardenCount) ? 0x80000000 | bip44path[i] : bip44path[i];
-      put4bytes(message, value);
+      put4bytesReverse(message, value);
     }
 
     return std::make_tuple(message, Error{});
