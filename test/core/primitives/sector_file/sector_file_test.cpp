@@ -6,6 +6,7 @@
 #include "primitives/sector_file/sector_file.hpp"
 
 #include <gtest/gtest.h>
+#include "sector_storage/zerocomm/zerocomm.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"
 #include "testutil/resources/resources.hpp"
@@ -245,4 +246,74 @@ namespace fc::primitives::sector_file {
     EXPECT_OUTCOME_TRUE(seal_size, sealSpaceUse(file_type, sector_size));
     ASSERT_EQ(result, seal_size);
   }
+
+  TEST_F(SectorFileTest, checkFlag) {
+    PieceData tempPieceData = PieceData();
+    bool isNull = tempPieceData.getIsNullData();
+    EXPECT_EQ(isNull, true);
+  }
+
+  TEST_F(SectorFileTest, checkAssert) {
+    PieceData tempPieceData = PieceData();
+    EXPECT_DEATH(tempPieceData.getFd(), "");
+  }
+
+  TEST_F(SectorFileTest, CannotMoveCursor) {
+    EXPECT_OUTCOME_TRUE(
+        sector_size,
+        fc::primitives::sector::getSectorSize(min_seal_proof_type));
+    SectorId sector{
+        .miner = 1,
+        .sector = 1,
+    };
+
+    PaddedPieceSize piece_size(128);
+    PieceData tempPieceData = PieceData();
+    EXPECT_OUTCOME_TRUE(
+        file,
+        SectorFile::createFile(
+            (base_path / fc::primitives::sector_file::sectorName(sector))
+                .string(),
+            PaddedPieceSize(sector_size)));
+    EXPECT_OUTCOME_FALSE(
+        piece_info,
+        file->write(PieceData(), -1, piece_size, min_seal_proof_type));
+  }
+
+  TEST_F(SectorFileTest, WriteNullPiece) {
+    EXPECT_OUTCOME_TRUE(
+        sector_size,
+        fc::primitives::sector::getSectorSize(min_seal_proof_type));
+    SectorId sector{
+        .miner = 1,
+        .sector = 1,
+    };
+
+    PaddedPieceSize piece_size(128);
+
+    EXPECT_OUTCOME_TRUE(result_cid,
+                        fc::sector_storage::zerocomm::getZeroPieceCommitment(
+                            piece_size.unpadded()));
+    EXPECT_OUTCOME_TRUE(
+        file,
+        SectorFile::createFile(
+            (base_path / fc::primitives::sector_file::sectorName(sector))
+                .string(),
+            PaddedPieceSize(sector_size)));
+
+    EXPECT_OUTCOME_TRUE(
+        piece_info,
+        file->write(PieceData(), 0, piece_size, min_seal_proof_type));
+
+    ASSERT_EQ(piece_info->size, piece_size);
+    EXPECT_EQ(piece_info->cid, result_cid);
+    EXPECT_OUTCOME_EQ(file->hasAllocated(0, piece_size.unpadded()), true);
+
+    EXPECT_OUTCOME_TRUE(cid,
+                        fc::sector_storage::zerocomm::getZeroPieceCommitment(
+                            piece_size.unpadded()));
+
+    EXPECT_EQ(piece_info->cid, cid);
+  }
+
 }  // namespace fc::primitives::sector_file
