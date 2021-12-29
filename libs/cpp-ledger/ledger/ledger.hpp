@@ -29,4 +29,6 @@ namespace ledger {
         int deviceIndex) const = 0;
   };
 
+  std::shared_ptr<LedgerAdmin> CreateLedgerAdmin();
+
 }  // namespace ledger
