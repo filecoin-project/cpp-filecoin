@@ -9,6 +9,7 @@
 #include <boost/filesystem/operations.hpp>
 
 #include "cbor_blake/ipld_any.hpp"
+#include "codec/cbor/light_reader/cid.hpp"
 #include "codec/uvarint.hpp"
 #include "common/error_text.hpp"
 #include "common/logger.hpp"
@@ -139,6 +140,9 @@ namespace fc::storage::ipld {
       return false;
     }
     if (value != nullptr) {
+      if (carGet(*row, *value)) {
+        return true;
+      }
       std::unique_lock car_lock{car_mutex};
       auto [good, size]{readCarItem(car_file, *row, nullptr)};
       if (!good) {
@@ -179,20 +183,57 @@ namespace fc::storage::ipld {
     row.key = key;
     row.offset = car_offset;
     row.max_size64 = maxSize64(item.size());
-    if (!common::write(writable, item)) {
-      spdlog::error("CidsIpld.put write error");
-      outcome::raise(ERROR_TEXT("CidsIpld.put: write error"));
-    }
-    if (!writable.flush().good()) {
-      spdlog::error("CidsIpld.put flush error");
-      outcome::raise(ERROR_TEXT("CidsIpld.put: flush error"));
-    }
     car_offset += item.size();
+    carPut(row, std::move(item));
     written.insert(row);
     if (flush_on != 0 && written.size() >= flush_on) {
       written_lock.unlock();
       asyncFlush();
     }
+  }
+
+  void CidsIpld::carPut(const Row &row, Bytes &&item) {
+    std::unique_lock lock{car_flush_mutex};
+    car_queue.emplace(row.offset.value(), std::move(item));
+    if (car_queue.size() >= car_flush_on) {
+      carFlush(std::adopt_lock);
+    }
+  }
+
+  bool CidsIpld::carGet(const Row &row, Bytes &value) const {
+    std::shared_lock lock{car_flush_mutex};
+    const auto it{car_queue.find(row.offset.value())};
+    if (it == car_queue.end()) {
+      return false;
+    }
+    BytesIn item{it->second};
+    BytesIn input;
+    const CbCid *hash;
+    if (codec::uvarint::readBytes(input, item)
+        && codec::cbor::light_reader::readCborBlake(hash, input)) {
+      copy(value, input);
+      return true;
+    }
+    outcome::raise(ERROR_TEXT("CidsIpld.carGet decode error"));
+  }
+
+  void CidsIpld::carFlush(std::adopt_lock_t) {
+    for (const auto &p : car_queue) {
+      if (!common::write(writable, p.second)) {
+        spdlog::error("CidsIpld.carFlush write error");
+        outcome::raise(ERROR_TEXT("CidsIpld.carFlush: write error"));
+      }
+    }
+    if (!writable.flush().good()) {
+      spdlog::error("CidsIpld.carFlush flush error");
+      outcome::raise(ERROR_TEXT("CidsIpld.carFlush: flush error"));
+    }
+    car_queue.clear();
+  }
+
+  void CidsIpld::carFlush() {
+    std::unique_lock lock{car_flush_mutex};
+    carFlush(std::adopt_lock);
   }
 
   void CidsIpld::asyncFlush() {

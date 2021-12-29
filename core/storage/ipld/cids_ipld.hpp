@@ -31,6 +31,11 @@ namespace fc::storage::ipld {
     bool get(const CbCid &key, Bytes *value) const override;
     void put(const CbCid &key, BytesCow &&value) override;
 
+    void carPut(const Row &row, Bytes &&item);
+    bool carGet(const Row &row, Bytes &value) const;
+    void carFlush(std::adopt_lock_t);
+    void carFlush();
+
     void asyncFlush();
 
     inline boost::optional<Row> findWritten(const CbCid &key) const;
@@ -52,5 +57,8 @@ namespace fc::storage::ipld {
     std::string index_path;
     std::string car_path;
     boost::optional<size_t> max_memory;
+    mutable std::shared_mutex car_flush_mutex;
+    std::map<uint64_t, Bytes> car_queue;
+    size_t car_flush_on{};
   };
 }  // namespace fc::storage::ipld
