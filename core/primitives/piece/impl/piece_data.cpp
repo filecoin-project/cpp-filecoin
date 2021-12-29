@@ -13,6 +13,19 @@ namespace fc::primitives::piece {
     fd_ = open(path_to_file.c_str(), flags, 0644);
   }
 
+  PieceData::PieceData(PieceData &&other) noexcept
+      : fd_(kUnopenedFileDescriptor), isNullData(other.isNullData) {
+    fd_ = other.fd_;
+    other.fd_ = kUnopenedFileDescriptor;
+    other.isNullData = true;
+  }
+
+  PieceData::PieceData(int &pipe_fd) : fd_(pipe_fd), isNullData(false) {
+    pipe_fd = kUnopenedFileDescriptor;
+  }
+
+  PieceData::PieceData() : fd_(kUnopenedFileDescriptor), isNullData(true) {}
+
   int PieceData::getFd() const {
     assert(not isNullData);
     return fd_;
@@ -28,21 +41,9 @@ namespace fc::primitives::piece {
     return fd_ != kUnopenedFileDescriptor;
   }
 
-  bool PieceData::getIsNullData() const {
+  bool PieceData::IsNullData() const {
     return isNullData;
   }
-
-  PieceData::PieceData(PieceData &&other) noexcept
-      : fd_(kUnopenedFileDescriptor), isNullData(other.isNullData) {
-    fd_ = other.fd_;
-    other.fd_ = kUnopenedFileDescriptor;
-  }
-
-  PieceData::PieceData(int &pipe_fd) : fd_(pipe_fd), isNullData(false) {
-    pipe_fd = kUnopenedFileDescriptor;
-  }
-
-  PieceData::PieceData() : isNullData(true) {}
 
   PieceData &PieceData::operator=(PieceData &&other) noexcept {
     fd_ = other.fd_;

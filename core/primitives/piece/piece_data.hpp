@@ -16,7 +16,7 @@ namespace fc::primitives::piece {
    public:
     explicit PieceData(const std::string &path_to_file, int flags = O_RDWR);
     explicit PieceData(int &pipe_fd);
-    explicit PieceData();
+    PieceData();
 
     PieceData(const PieceData &) = delete;
     PieceData &operator=(const PieceData &) = delete;
@@ -29,12 +29,11 @@ namespace fc::primitives::piece {
 
     bool isOpened() const;
 
-    bool getIsNullData() const;
+    bool IsNullData() const;
 
    private:
     int fd_;
-    const bool isNullData;
-    // TODO if it can be modified then remove modifier const,
+    bool isNullData;
   };
 
 }  // namespace fc::primitives::piece

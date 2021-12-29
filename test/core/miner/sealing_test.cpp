@@ -891,7 +891,7 @@ namespace fc::mining {
                 doAddPieceSync(sector_ref,
                                gsl::span<const UnpaddedPieceSize>(exist_pieces),
                                PaddedPieceSize(sector_size_).unpadded(),
-                               _,
+                               -2,
                                0))
         .WillOnce(testing::Return(outcome::success(info)));
 

@@ -178,8 +178,8 @@ namespace fc::sector_storage {
         const UnpaddedPieceSize &new_piece_size,
         proofs::PieceData piece_data,
         uint64_t priority) override {
-      return doAddPieceSync(
-          sector, piece_sizes, new_piece_size, piece_data.getFd(), priority);
+      int fd = (piece_data.IsNullData()) ? -2 : piece_data.getFd();
+      return doAddPieceSync(sector, piece_sizes, new_piece_size, fd, priority);
     }
 
     MOCK_METHOD3(generateWinningPoSt,

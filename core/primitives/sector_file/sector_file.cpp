@@ -351,7 +351,7 @@ namespace fc::primitives::sector_file {
       PaddedByteIndex offset,
       PaddedPieceSize size,
       const boost::optional<RegisteredSealProof> &maybe_seal_proof_type) {
-    if (data.getIsNullData()) {
+    if (data.IsNullData()) {
       return writeNull(offset, size, maybe_seal_proof_type);
     }
 
@@ -467,7 +467,7 @@ namespace fc::primitives::sector_file {
       return SectorFileError::kInvalidFile;
     }
 
-    auto piece = runsAnd(runs_, std::vector<uint64_t>({offset, size}));
+    const auto piece = runsAnd(runs_, std::vector<uint64_t>({offset, size}));
     OUTCOME_TRY(allocated_size, runsCount(piece));
 
     if (allocated_size > 0) {

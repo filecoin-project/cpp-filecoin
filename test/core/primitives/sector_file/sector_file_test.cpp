@@ -241,20 +241,20 @@ namespace fc::primitives::sector_file {
     EXPECT_OUTCOME_TRUE(
         sector_size,
         fc::primitives::sector::getSectorSize(min_seal_proof_type));
-    uint64_t result =
+    const uint64_t result =
         kOverheadSeal.at(file_type) * sector_size / kOverheadDenominator;
     EXPECT_OUTCOME_TRUE(seal_size, sealSpaceUse(file_type, sector_size));
     ASSERT_EQ(result, seal_size);
   }
 
   TEST_F(SectorFileTest, checkFlag) {
-    PieceData tempPieceData = PieceData();
-    bool isNull = tempPieceData.getIsNullData();
+    const PieceData tempPieceData = PieceData();
+    const bool isNull = tempPieceData.IsNullData();
     EXPECT_EQ(isNull, true);
   }
 
   TEST_F(SectorFileTest, checkAssert) {
-    PieceData tempPieceData = PieceData();
+    const PieceData tempPieceData = PieceData();
     EXPECT_DEATH(tempPieceData.getFd(), "");
   }
 
@@ -262,13 +262,12 @@ namespace fc::primitives::sector_file {
     EXPECT_OUTCOME_TRUE(
         sector_size,
         fc::primitives::sector::getSectorSize(min_seal_proof_type));
-    SectorId sector{
+    const SectorId sector{
         .miner = 1,
         .sector = 1,
     };
 
-    PaddedPieceSize piece_size(128);
-    PieceData tempPieceData = PieceData();
+    const PaddedPieceSize piece_size(128);
     EXPECT_OUTCOME_TRUE(
         file,
         SectorFile::createFile(
@@ -284,12 +283,12 @@ namespace fc::primitives::sector_file {
     EXPECT_OUTCOME_TRUE(
         sector_size,
         fc::primitives::sector::getSectorSize(min_seal_proof_type));
-    SectorId sector{
+    const SectorId sector{
         .miner = 1,
         .sector = 1,
     };
 
-    PaddedPieceSize piece_size(128);
+    const PaddedPieceSize piece_size(128);
 
     EXPECT_OUTCOME_TRUE(result_cid,
                         fc::sector_storage::zerocomm::getZeroPieceCommitment(
