@@ -21,10 +21,9 @@ namespace ledger::filecoin {
     // Close closes a connection with the Filecoin user app
     virtual void Close() const = 0;
 
-    // CheckVersion returns true if the App version is supported by this
-    // library
-    virtual std::tuple<bool, Error> CheckVersion(
-        const VersionInfo &version) const = 0;
+    // CheckVersion returns error if the App version is not supported by this
+    // library and nothing if supported
+    virtual Error CheckVersion(const VersionInfo &version) const = 0;
 
     // GetVersion returns the current version of the Filecoin user app
     virtual std::tuple<VersionInfo, Error> GetVersion() const = 0;

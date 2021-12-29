@@ -18,8 +18,7 @@ namespace ledger::filecoin {
 
     void Close() const override;
 
-    std::tuple<bool, Error> CheckVersion(
-        const VersionInfo &version) const override;
+    Error CheckVersion(const VersionInfo &version) const override;
 
     std::tuple<VersionInfo, Error> GetVersion() const override;
 

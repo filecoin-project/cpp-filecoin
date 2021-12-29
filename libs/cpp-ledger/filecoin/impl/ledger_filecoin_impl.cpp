@@ -37,13 +37,11 @@ namespace ledger::filecoin {
     device->Close();
   }
 
-  std::tuple<bool, Error> LedgerFilecoinImpl::CheckVersion(
-      const VersionInfo &version) const {
-    return (version < requiredVersion) ? std::make_tuple(
-               false,
-               Error{"App Version required " + requiredVersion.ToString()
-                     + " - Version found: " + version.ToString()})
-                                       : std::make_tuple(true, Error{});
+  Error LedgerFilecoinImpl::CheckVersion(const VersionInfo &version) const {
+    return (version < requiredVersion)
+               ? Error{"App Version required " + requiredVersion.ToString()
+                       + " - Version found: " + version.ToString()}
+               : Error{};
   }
 
   std::tuple<VersionInfo, Error> LedgerFilecoinImpl::GetVersion() const {
