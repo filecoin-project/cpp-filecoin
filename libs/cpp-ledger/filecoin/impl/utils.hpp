@@ -12,10 +12,11 @@
 namespace ledger::filecoin {
   using Chunks = std::vector<Bytes>;
 
-  std::tuple<Bytes, Error> getBip44bytes(const std::vector<uint32_t> &bip44path,
-                                         int hardenCount);
+  void put4bytes(Bytes &bytes, uint32_t value);
 
-  std::tuple<Chunks, Error> prepareChunks(
-      const std::vector<uint32_t> &bip44path, const Bytes &transaction);
+  std::tuple<Bytes, Error> getBip44bytes(const std::vector<uint32_t> &bip44path,
+                                         size_t hardenCount);
+
+  Chunks prepareChunks(const Bytes &bip44path, const Bytes &transaction);
 
 }  // namespace ledger::filecoin

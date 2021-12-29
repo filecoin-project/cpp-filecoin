@@ -22,7 +22,7 @@ namespace ledger::filecoin {
   constexpr Byte kPayloadChunkAdd = 1;
   constexpr Byte kPayloadChunkLast = 2;
 
-  constexpr int kHardenCount = 2;
+  constexpr size_t kHardenCount = 2;
 
   constexpr size_t kMinResponseLength = 4;
   constexpr size_t kMinSignLength = 66;
@@ -113,8 +113,39 @@ namespace ledger::filecoin {
 
   std::tuple<Bytes, Error> LedgerFilecoinImpl::Sign(
       const std::vector<uint32_t> &bip44path, const Bytes &transaction) const {
-    // todo
-    return std::make_tuple(Bytes{}, Error{});
+    auto [pathBytes, err] = getBip44bytes(bip44path, kHardenCount);
+
+    if (err != std::nullopt) {
+      return std::make_tuple(Bytes{}, err);
+    }
+
+    const auto chunks = prepareChunks(pathBytes, transaction);
+
+    Bytes response;
+
+    for (size_t chunkId = 0; chunkId < chunks.size(); chunkId++) {
+      const auto &chunk = chunks[chunkId];
+
+      const Byte payloadDesc = (chunkId == 0) ? kPayloadChunkInit
+                                              : (chunkId == chunks.size() - 1)
+                                                    ? kPayloadChunkLast
+                                                    : kPayloadChunkAdd;
+
+      Bytes message{kCLA,
+                    kINSSignSECP256K1,
+                    payloadDesc,
+                    0,
+                    static_cast<Byte>(chunk.size())};
+      message.insert(message.end(), chunk.begin(), chunk.end());
+
+      std::tie(response, err) = device->Exchange(message);
+
+      if (err != std::nullopt) {
+        return std::make_tuple(Bytes{}, err);
+      }
+    }
+
+    return std::make_tuple(response, Error{});
   }
 
   std::tuple<Bytes, Bytes, std::string, Error>
