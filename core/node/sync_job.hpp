@@ -14,9 +14,19 @@
 #include "storage/buffer_map.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
+namespace fc::sync::peer_height {
+  struct PeerHeight;
+}  // namespace fc::sync::peer_height
+
+namespace fc::sync::fetch_msg {
+  struct FetchMsg;
+}  // namespace fc::sync::fetch_msg
+
 namespace fc::sync {
   using blocksync::BlocksyncRequest;
+  using fetch_msg::FetchMsg;
   using libp2p::basic::Scheduler;
+  using peer_height::PeerHeight;
   using primitives::tipset::PutBlockHeader;
   using vm::interpreter::Interpreter;
   using vm::interpreter::InterpreterCache;
@@ -45,7 +55,6 @@ namespace fc::sync {
    private:
     void onPossibleHead(const events::PossibleHead &e);
 
-    TipsetCPtr getLocal(const TipsetCPtr &ts);
     TipsetCPtr getLocal(const TipsetKey &tsk);
 
     void compactBranches();
@@ -102,6 +111,9 @@ namespace fc::sync {
 
     using Clock = std::chrono::steady_clock;
     Clock::time_point request_expiry_;
+
+    std::shared_ptr<PeerHeight> peers_;
+    std::shared_ptr<FetchMsg> fetch_msg_;
   };
 
 }  // namespace fc::sync

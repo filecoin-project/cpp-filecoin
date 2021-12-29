@@ -11,6 +11,8 @@
 #include "node/blocksync_common.hpp"
 #include "node/chain_store_impl.hpp"
 #include "node/events.hpp"
+#include "node/fetch_msg.hpp"
+#include "node/peer_height.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::sync {
@@ -104,6 +106,16 @@ namespace fc::sync {
       }();
     });
 
+    peers_ = std::make_shared<PeerHeight>(events_);
+
+    fetch_msg_ = std::make_shared<FetchMsg>(host_, scheduler_, peers_, ipld_);
+    fetch_msg_->on_fetch = [this](TipsetKey tsk) {
+      std::unique_lock lock{*ts_branches_mutex_};
+      if (interpret_ts_ && interpret_ts_->key == tsk) {
+        interpretDequeue();
+      }
+    };
+
     possible_head_event_ =
         events_->subscribePossibleHead([this](const events::PossibleHead &e) {
           thread.io->post([=] { onPossibleHead(e); });
@@ -128,18 +140,9 @@ namespace fc::sync {
     }
   }
 
-  TipsetCPtr SyncJob::getLocal(const TipsetCPtr &ts) {
-    for (const auto &block : ts->blks) {
-      if (!ipld_->contains(block.messages).value()) {
-        return nullptr;
-      }
-    }
-    return ts;
-  }
-
   TipsetCPtr SyncJob::getLocal(const TipsetKey &tsk) {
     if (auto _ts{ts_load_->load(tsk)}) {
-      return getLocal(_ts.value());
+      return _ts.value();
     }
     return nullptr;
   }
@@ -191,14 +194,13 @@ namespace fc::sync {
 
   void SyncJob::onTs(const boost::optional<PeerId> &peer, TipsetCPtr ts) {
     std::unique_lock lock{*ts_branches_mutex_};
-    if (!getLocal(ts)) {
-      return;
-    }
     if (ts_branches_->size() > kBranchCompactTreshold) {
       log()->info("compacting branches");
       compactBranches();
     }
+    auto batch{1000};
     while (true) {
+      fetch_msg_->has(ts, false);
       std::vector<TsBranchPtr> children;
       auto branch{insert(*ts_branches_, ts, &children).first};
       if (attached_.count(branch) != 0) {
@@ -214,6 +216,11 @@ namespace fc::sync {
         if (branch->parent_key) {
           if (auto _ts{getLocal(*branch->parent_key)}) {
             ts = _ts;
+            --batch;
+            if (batch <= 0) {
+              thread.io->post([=] { onTs(peer, ts); });
+              break;
+            }
             continue;
           }
           if (peer) {
@@ -346,6 +353,9 @@ namespace fc::sync {
       return;
     }
     auto ts{interpret_ts_};
+    if (!fetch_msg_->has(ts, true)) {
+      return;
+    }
     auto branch{find(*ts_branches_, ts).first};
     if (!checkParent(ts)) {
       // TODO(turuslan): detach and ban branches
@@ -413,7 +423,7 @@ namespace fc::sync {
       thread.io->post([=, peer{std::move(peer)}] { onTs(peer, ts); });
       return;
     }
-    uint64_t probable_depth = 5;
+    uint64_t probable_depth = 100;
     request_expiry_ = Clock::now() + std::chrono::seconds{20};
     request_ = BlocksyncRequest::newRequest(
         *host_,
@@ -423,7 +433,7 @@ namespace fc::sync {
         peer,
         tsk.cids(),
         probable_depth,
-        blocksync::kBlocksAndMessages,
+        blocksync::kBlocksOnly,
         15000,
         [this](auto r) { downloaderCallback(std::move(r)); });
   }
@@ -440,6 +450,7 @@ namespace fc::sync {
     if (auto _ts{ts_load_->load(r.blocks_available)}) {
       ts = _ts.value();
     } else {
+      peers_->onError(*r.from);
       r.delta_rating -= 500;
     }
 
