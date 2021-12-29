@@ -897,10 +897,9 @@ namespace fc::mining {
     };
 
     for (const auto &size : sizes) {
-      OUTCOME_TRY(
-          piece_info,
-          sealer_->addPieceSync(
-              sector, existing_piece_sizes, size, PieceData(), 0));
+      OUTCOME_TRY(piece_info,
+                  sealer_->addPieceSync(
+                      sector, existing_piece_sizes, size, PieceData(), 0));
 
       existing_piece_sizes.push_back(size);
 
