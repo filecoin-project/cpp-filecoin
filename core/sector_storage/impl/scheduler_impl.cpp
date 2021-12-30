@@ -40,6 +40,7 @@ namespace fc::sector_storage {
         io_(std::move(io_context)),
         logger_(common::createLogger("scheduler")) {}
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> SchedulerImpl::schedule(
       const primitives::sector::SectorRef &sector,
       const primitives::TaskType &task_type,
@@ -137,7 +138,7 @@ namespace fc::sector_storage {
   void SchedulerImpl::newWorker(std::unique_ptr<WorkerHandle> worker) {
     std::unique_lock<std::mutex> lock(workers_lock_);
     if (current_worker_id_ == std::numeric_limits<uint64_t>::max()) {
-      current_worker_id_ = 0;  // TODO: maybe better mechanism
+      current_worker_id_ = 0;  // TODO(ortyomka): maybe better mechanism
     }
     WorkerID wid = current_worker_id_++;
     workers_.insert({wid, std::move(worker)});
@@ -173,7 +174,7 @@ namespace fc::sector_storage {
 
       if (!primitives::canHandleRequest(
               need_resources, worker->info.resources, worker->preparing)) {
-        if (workers_.size() > 1 || active_jobs) {
+        if ((workers_.size() > 1) || (active_jobs != 0)) {
           continue;
         }
       }
@@ -234,10 +235,10 @@ namespace fc::sector_storage {
     io_->post([this, wid, worker, request, need_resources]() {
       auto cb = [this, wid, worker, request, need_resources](
                     const outcome::result<CallResult> &res) -> void {
-        bool force;
+        bool force = false;
         {
           std::unique_lock<std::mutex> lock(workers_lock_);
-          force = {workers_.size() == 1 && !active_jobs};
+          force = {(workers_.size() == 1) && (active_jobs == 0)};
           ++active_jobs;
         }
 
@@ -274,27 +275,23 @@ namespace fc::sector_storage {
           logger_->error("worker's execution: "
                          + maybe_call_id.error().message());
           return clear();
+        }
+        ReturnCb new_cb = [request, clear = std::move(clear)](
+                              outcome::result<CallResult> result) -> void {
+          request->cb(std::move(result));
+
+          return clear();
+        };
+        auto &call_id{maybe_call_id.value()};
+        std::unique_lock lock(cbs_lock_);
+
+        auto it = results_.find(call_id);
+        if (it == results_.end()) {
+          callbacks_[call_id] = new_cb;
         } else {
-          ReturnCb new_cb = [request, clear = std::move(clear)](
-                                outcome::result<CallResult> result) -> void {
-            request->cb(std::move(result));
-
-            return clear();
-          };
-          {
-            auto &call_id{maybe_call_id.value()};
-            std::unique_lock lock(cbs_lock_);
-
-            auto it = results_.find(call_id);
-            if (it == results_.end()) {
-              callbacks_[call_id] = new_cb;
-            } else {
-              io_->post([cb = std::move(new_cb), value = it->second]() {
-                cb(value);
-              });
-              results_.erase(it);
-            }
-          }
+          io_->post(
+              [cb = std::move(new_cb), value = it->second]() { cb(value); });
+          results_.erase(it);
         }
       };
 
