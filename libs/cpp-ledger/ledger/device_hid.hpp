@@ -7,6 +7,7 @@
 
 #include <hidapi/hidapi.h>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include "cpp-ledger/common/types.hpp"
 #include "cpp-ledger/ledger/device_hid_info.hpp"
