@@ -55,16 +55,16 @@ namespace ledger::filecoin {
   class LedgerFilecoinManager {
    public:
     // Displays existing Ledger Filecoin apps by address
-    void ListFilecoinDevices(const std::vector<uint32_t> &path) const;
+    static void ListFilecoinDevices(const std::vector<uint32_t> &path);
 
     // ConnectLedgerFilecoinApp connects to Filecoin app based on address
-    std::tuple<std::shared_ptr<LedgerFilecoin>, Error> ConnectLedgerFilecoinApp(
-        const std::string &seekingAddress,
-        const std::vector<uint32_t> &path) const;
+    static std::tuple<std::shared_ptr<LedgerFilecoin>, Error>
+    ConnectLedgerFilecoinApp(const std::string &seekingAddress,
+                             const std::vector<uint32_t> &path);
 
     // FindLedgerFilecoinApp finds the Filecoin app running in a Ledger device
-    std::tuple<std::shared_ptr<LedgerFilecoin>, Error> FindLedgerFilecoinApp()
-        const;
+    static std::tuple<std::shared_ptr<LedgerFilecoin>, Error>
+    FindLedgerFilecoinApp();
   };
 
 }  // namespace ledger::filecoin

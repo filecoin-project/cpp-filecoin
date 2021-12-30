@@ -12,7 +12,7 @@
 namespace ledger::filecoin {
 
   void LedgerFilecoinManager::ListFilecoinDevices(
-      const std::vector<uint32_t> &path) const {
+      const std::vector<uint32_t> &path) {
     const auto hid = CreateLedgerAdmin();
 
     for (int i = 0; i < hid->CountDevices(); i++) {
@@ -45,8 +45,7 @@ namespace ledger::filecoin {
 
   std::tuple<std::shared_ptr<LedgerFilecoin>, Error>
   LedgerFilecoinManager::ConnectLedgerFilecoinApp(
-      const std::string &seekingAddress,
-      const std::vector<uint32_t> &path) const {
+      const std::string &seekingAddress, const std::vector<uint32_t> &path) {
     const auto hid = CreateLedgerAdmin();
 
     for (int i = 0; i < hid->CountDevices(); i++) {
@@ -68,9 +67,8 @@ namespace ledger::filecoin {
 
       if (seekingAddress.empty() || address == seekingAddress) {
         return std::make_tuple(app, Error{});
-      } else {
-        app->Close();
       }
+      app->Close();
     }
 
     return std::make_tuple(
@@ -78,7 +76,7 @@ namespace ledger::filecoin {
   }
 
   std::tuple<std::shared_ptr<LedgerFilecoin>, Error>
-  LedgerFilecoinManager::FindLedgerFilecoinApp() const {
+  LedgerFilecoinManager::FindLedgerFilecoinApp() {
     const auto hid = CreateLedgerAdmin();
     auto [device, err] = hid->Connect(0);
 
