@@ -26,19 +26,10 @@ namespace ledger::filecoin {
     }
 
     inline bool operator<(const VersionInfo &other) const {
-      if (major < other.major) {
-        return true;
-      }
-
-      if (minor < other.minor) {
-        return true;
-      }
-
-      if (patch < other.patch) {
-        return true;
-      }
-
-      return false;
+      return (major < other.major)
+             || (major == other.major && minor < other.minor)
+             || (major == other.major && minor == other.minor
+                 && patch < other.patch);
     }
 
     inline bool operator>(const VersionInfo &other) const {
