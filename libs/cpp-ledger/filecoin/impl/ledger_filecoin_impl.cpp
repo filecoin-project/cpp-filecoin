@@ -30,8 +30,8 @@ namespace ledger::filecoin {
   constexpr size_t kPublicKeyLength = 65;
 
   LedgerFilecoinImpl::LedgerFilecoinImpl(
-      const std::shared_ptr<LedgerDevice> &ledgerDevice)
-      : device(ledgerDevice) {}
+      std::shared_ptr<LedgerDevice> ledgerDevice)
+      : device(std::move(ledgerDevice)) {}
 
   void LedgerFilecoinImpl::Close() const {
     device->Close();

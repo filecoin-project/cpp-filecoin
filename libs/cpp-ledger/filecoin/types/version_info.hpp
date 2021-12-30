@@ -26,10 +26,8 @@ namespace ledger::filecoin {
     }
 
     inline bool operator<(const VersionInfo &other) const {
-      return (major < other.major)
-             || (major == other.major && minor < other.minor)
-             || (major == other.major && minor == other.minor
-                 && patch < other.patch);
+      return std::tie(major, minor, patch)
+             < std::tie(other.major, other.minor, other.patch);
     }
 
     inline bool operator>(const VersionInfo &other) const {

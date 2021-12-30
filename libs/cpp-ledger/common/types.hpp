@@ -28,7 +28,9 @@ namespace ledger {
     Defer &operator=(Defer &&) = delete;
 
     ~Defer() {
-      cb();
+      if (cb) {
+        cb();
+      }
     }
 
    private:
