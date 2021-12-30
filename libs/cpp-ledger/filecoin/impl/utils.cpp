@@ -42,8 +42,9 @@ namespace ledger::filecoin {
 
   Chunks prepareChunks(const Bytes &bip44path, const Bytes &transaction) {
     const size_t packetCount =
-        1
-        + std::ceil(double(transaction.size()) / double(kUserMessageChunkSize));
+        transaction.empty()
+            ? 1
+            : 2 + ((transaction.size() - 1) / kUserMessageChunkSize);
 
     Chunks chunks;
     chunks.reserve(packetCount);
