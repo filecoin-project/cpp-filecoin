@@ -19,11 +19,11 @@ namespace ledger::filecoin {
     virtual ~LedgerFilecoin() = default;
 
     // Close closes a connection with the Filecoin user app
-    virtual void Close() = 0;
+    virtual void Close() const = 0;
 
-    // CheckVersion returns true if the App version is supported by this
-    // library
-    virtual std::tuple<bool, Error> CheckVersion(const VersionInfo &version) const = 0;
+    // CheckVersion returns error if the App version is not supported by this
+    // library and nothing if supported
+    virtual Error CheckVersion(const VersionInfo &version) const = 0;
 
     // GetVersion returns the current version of the Filecoin user app
     virtual std::tuple<VersionInfo, Error> GetVersion() const = 0;
@@ -55,16 +55,16 @@ namespace ledger::filecoin {
   class LedgerFilecoinManager {
    public:
     // Displays existing Ledger Filecoin apps by address
-    void ListFilecoinDevices(const std::vector<uint32_t> &path) const;
+    static void ListFilecoinDevices(const std::vector<uint32_t> &path);
 
     // ConnectLedgerFilecoinApp connects to Filecoin app based on address
-    std::tuple<std::shared_ptr<LedgerFilecoin>, Error> ConnectLedgerFilecoinApp(
-        const std::string &seekingAddress,
-        const std::vector<uint32_t> &path) const;
+    static std::tuple<std::shared_ptr<LedgerFilecoin>, Error>
+    ConnectLedgerFilecoinApp(const std::string &seekingAddress,
+                             const std::vector<uint32_t> &path);
 
     // FindLedgerFilecoinApp finds the Filecoin app running in a Ledger device
-    std::tuple<std::shared_ptr<LedgerFilecoin>, Error> FindLedgerFilecoinApp()
-        const;
+    static std::tuple<std::shared_ptr<LedgerFilecoin>, Error>
+    FindLedgerFilecoinApp();
   };
 
 }  // namespace ledger::filecoin

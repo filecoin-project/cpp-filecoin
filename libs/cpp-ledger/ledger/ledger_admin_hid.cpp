@@ -70,4 +70,8 @@ namespace ledger {
               + ") not found"});
   }
 
+  std::shared_ptr<LedgerAdmin> CreateLedgerAdmin() {
+    return std::make_shared<LedgerAdminHid>();
+  }
+
 }  // namespace ledger

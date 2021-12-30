@@ -25,6 +25,23 @@ namespace ledger::filecoin {
       return !(*this == other);
     }
 
+    inline bool operator<(const VersionInfo &other) const {
+      return std::tie(major, minor, patch)
+             < std::tie(other.major, other.minor, other.patch);
+    }
+
+    inline bool operator>(const VersionInfo &other) const {
+      return other < *this;
+    }
+
+    inline bool operator<=(const VersionInfo &other) const {
+      return !(*this > other);
+    }
+
+    inline bool operator>=(const VersionInfo &other) const {
+      return !(*this < other);
+    }
+
     inline std::string ToString() const {
       return std::to_string(major) + "." + std::to_string(minor) + "."
              + std::to_string(patch);
