@@ -198,7 +198,7 @@ namespace ledger::filecoin {
                         response.begin() + cursor + addrByteLength);
     cursor += addrByteLength;
 
-    // Read addr strin format length
+    // Read addr string format length
     const size_t addrStringLength = response.at(cursor);
     cursor++;
 
