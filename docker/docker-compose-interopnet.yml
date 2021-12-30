@@ -1,0 +1,12 @@
+version: "3.0"
+
+services:
+  fuhon-node:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fuhon-node:develop-build
+    ports:
+      - 1234:1234
+    volumes:
+      - ./interopnet:/opt/fuhon

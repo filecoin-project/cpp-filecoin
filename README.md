@@ -68,7 +68,7 @@ bootstrap=/dns4/bootstrap-1.interop.fildev.network/tcp/1347/p2p/12D3KooWFYS1f31z
 
 Start node
 ```sh
-fuhon-node --repo fuhon-interopnet --genesis cpp-filecoin/core/node/main/interopnet.car
+fuhon-node --repo fuhon-interopnet --genesis docker/mainnet/genesis.car
 # you can omit --genesis flag after first run
 fuhon-node --repo fuhon-interopnet
 ```
@@ -97,7 +97,7 @@ bootstrap=/dns4/node.glif.io/tcp/1235/p2p/12D3KooWBF8cpp65hp2u9LK5mh19x67ftAam84
 
 Start node (first run may take some time)
 ```sh
-fuhon-node --repo fuhon-mainnet --genesis cpp-filecoin/core/node/main/mainnet.car
+fuhon-node --repo fuhon-mainnet --genesis cpp-filecoin/core/docker/mainnet/genesis.car
 ```
 
 ### Docker-compose example
