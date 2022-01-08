@@ -351,7 +351,7 @@ namespace fc::primitives::sector_file {
       PaddedByteIndex offset,
       PaddedPieceSize size,
       const boost::optional<RegisteredSealProof> &maybe_seal_proof_type) {
-    if (data.IsNullData()) {
+    if (data.isNullData()) {
       return writeNull(offset, size, maybe_seal_proof_type);
     }
 
@@ -476,13 +476,25 @@ namespace fc::primitives::sector_file {
           allocated_size);
     }
 
-    file_.seekp(offset, std::ios_base::beg);
+    file_.seekp(gsl::narrow<int64_t>(offset), std::ios_base::beg);
 
     if (not file_.good()) {
       return SectorFileError::kCannotMoveCursor;
     }
 
-    file_.write(std::string(size, '0').data(), size);
+    if (size <= (int)1e5)  // 1e5 == 10^5
+    {
+      file_.write(std::string(size, '0').data(), gsl::narrow<int64_t>(size));
+
+    } else {
+      while (size != 0) {
+        PaddedPieceSize current_size = std::min(size, PaddedPieceSize(1e5));
+        file_.write(std::string(current_size, '0').data(),
+                    gsl::narrow<int64_t>(current_size));
+        size = size - current_size;
+        assert(size < 0);
+      }
+    }
 
     OUTCOME_TRY(markAllocated(offset, size));
 

@@ -249,34 +249,8 @@ namespace fc::primitives::sector_file {
 
   TEST_F(SectorFileTest, checkFlag) {
     const PieceData tempPieceData = PieceData();
-    const bool isNull = tempPieceData.IsNullData();
+    const bool isNull = tempPieceData.isNullData();
     EXPECT_EQ(isNull, true);
-  }
-
-  TEST_F(SectorFileTest, checkAssert) {
-    const PieceData tempPieceData = PieceData();
-    EXPECT_DEATH(tempPieceData.getFd(), "");
-  }
-
-  TEST_F(SectorFileTest, CannotMoveCursor) {
-    EXPECT_OUTCOME_TRUE(
-        sector_size,
-        fc::primitives::sector::getSectorSize(min_seal_proof_type));
-    const SectorId sector{
-        .miner = 1,
-        .sector = 1,
-    };
-
-    const PaddedPieceSize piece_size(128);
-    EXPECT_OUTCOME_TRUE(
-        file,
-        SectorFile::createFile(
-            (base_path / fc::primitives::sector_file::sectorName(sector))
-                .string(),
-            PaddedPieceSize(sector_size)));
-    EXPECT_OUTCOME_FALSE(
-        piece_info,
-        file->write(PieceData(), -1, piece_size, min_seal_proof_type));
   }
 
   TEST_F(SectorFileTest, WriteNullPiece) {

@@ -29,11 +29,11 @@ namespace fc::primitives::piece {
 
     bool isOpened() const;
 
-    bool IsNullData() const;
+    bool isNullData() const;
 
    private:
     int fd_;
-    bool isNullData;
+    bool is_null_data_;
   };
 
 }  // namespace fc::primitives::piece
