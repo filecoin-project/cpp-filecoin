@@ -40,8 +40,7 @@ namespace ledger {
 
     const auto readData = Read();
 
-    const auto [response, err1] =
-        apdu::UnwrapResponseApdu(kChannel, readData, kPacketSize);
+    const auto [response, err1] = apdu::UnwrapResponseApdu(kChannel, readData);
     if (err1 != std::nullopt) {
       return std::make_tuple(Bytes{}, err1);
     }
