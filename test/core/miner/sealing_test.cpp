@@ -888,11 +888,12 @@ namespace fc::mining {
 
     SectorRef sector_ref{.id = sector_id, .proof_type = seal_proof_type_};
     std::vector<UnpaddedPieceSize> exist_pieces = {};
-    EXPECT_CALL(*manager_,
-                doNullAddPieceSync(sector_ref,
-                               gsl::span<const UnpaddedPieceSize>(exist_pieces),
-                               PaddedPieceSize(sector_size_).unpadded(),
-                               0))
+    EXPECT_CALL(
+        *manager_,
+        doNullAddPieceSync(sector_ref,
+                           gsl::span<const UnpaddedPieceSize>(exist_pieces),
+                           PaddedPieceSize(sector_size_).unpadded(),
+                           0))
         .WillOnce(testing::Return(outcome::success(info)));
 
     ASSERT_EQ(sealing_->getListSectors().size(), 1);

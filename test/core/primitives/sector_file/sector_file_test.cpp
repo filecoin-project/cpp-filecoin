@@ -253,6 +253,11 @@ namespace fc::primitives::sector_file {
     EXPECT_EQ(isNull, true);
   }
 
+  /*
+   * TODO (@Markuu-s) add tests: CannotMoveCursor and checkAssertGetFd
+   * Problem: ASAN-build doesn't pass these tests
+   */
+
   TEST_F(SectorFileTest, WriteNullPiece) {
     EXPECT_OUTCOME_TRUE(
         sector_size,

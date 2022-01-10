@@ -470,30 +470,12 @@ namespace fc::primitives::sector_file {
     const auto piece = runsAnd(runs_, std::vector<uint64_t>({offset, size}));
     OUTCOME_TRY(allocated_size, runsCount(piece));
 
-    if (allocated_size > 0) {
-      logger_->warn(
-          "getting partial file writer overwriting {} allocated bytes",
-          allocated_size);
-    }
+    assert(allocated_size == 0 && "Overwriting with zeros is not available");
 
     file_.seekp(gsl::narrow<int64_t>(offset), std::ios_base::beg);
 
     if (not file_.good()) {
       return SectorFileError::kCannotMoveCursor;
-    }
-
-    if (size <= (int)1e5)  // 1e5 == 10^5
-    {
-      file_.write(std::string(size, '0').data(), gsl::narrow<int64_t>(size));
-
-    } else {
-      while (size != 0) {
-        PaddedPieceSize current_size = std::min(size, PaddedPieceSize(1e5));
-        file_.write(std::string(current_size, '0').data(),
-                    gsl::narrow<int64_t>(current_size));
-        size = size - current_size;
-        assert(size < 0);
-      }
     }
 
     OUTCOME_TRY(markAllocated(offset, size));
