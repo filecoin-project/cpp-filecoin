@@ -426,6 +426,7 @@ namespace fc::mining {
   TEST_F(SealingTest, MarkForUpgradeSeveralPieces) {
     UnpaddedPieceSize piece_size(127);
     PieceData piece("/dev/random");
+    PieceData piece2("/dev/random");
     DealInfo deal{
         .publish_cid = "010001020001"_cid,
         .deal_id = 0,
@@ -471,7 +472,7 @@ namespace fc::mining {
     EXPECT_OUTCOME_TRUE_1(
         sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
     EXPECT_OUTCOME_TRUE_1(
-        sealing_->addPieceToAnySector(piece_size, std::move(piece), deal));
+        sealing_->addPieceToAnySector(piece_size, std::move(piece2), deal));
 
     EXPECT_OUTCOME_TRUE_1(
         sealing_->forceSectorState(sector, SealingState::kProving));
@@ -888,10 +889,9 @@ namespace fc::mining {
     SectorRef sector_ref{.id = sector_id, .proof_type = seal_proof_type_};
     std::vector<UnpaddedPieceSize> exist_pieces = {};
     EXPECT_CALL(*manager_,
-                doAddPieceSync(sector_ref,
+                doNullAddPieceSync(sector_ref,
                                gsl::span<const UnpaddedPieceSize>(exist_pieces),
                                PaddedPieceSize(sector_size_).unpadded(),
-                               -2,
                                0))
         .WillOnce(testing::Return(outcome::success(info)));
 
