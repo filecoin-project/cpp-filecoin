@@ -5,6 +5,7 @@
 
 addtest(cpp_ledger_test
     apdu_wrapper_test.cpp
+    ledger_utils_test.cpp
     )
 target_link_libraries(cpp_ledger_test
     ledger_device

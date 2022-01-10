@@ -6,6 +6,7 @@
 #include "cpp-ledger/ledger/device_hid_info.hpp"
 
 #include <hidapi/hidapi.h>
+#include <iomanip>
 #include <sstream>
 #include "cpp-ledger/ledger/utils.hpp"
 
@@ -29,21 +30,26 @@ namespace ledger {
   std::string DeviceHidInfo::ToString() const {
     std::stringstream ss;
     ss << "============ " << path << std::endl;
-    ss << "VendorID      : " << std::hex << vendorId << std::endl;
-    ss << "ProductID     : " << std::hex << productId << std::endl;
-    ss << "Release       : " << std::hex << releaseNumber << std::endl;
+    ss << "VendorID      : " << std::setfill('0') << std::setw(2) << std::hex
+       << int(vendorId) << std::endl;
+    ss << "ProductID     : " << std::setfill('0') << std::setw(2) << std::hex
+       << int(productId) << std::endl;
+    ss << "Release       : " << std::setfill('0') << std::setw(2) << std::hex
+       << int(releaseNumber) << std::endl;
 
     ss << "Serial        : ";
     for (wchar_t symbol : serialNumber) {
-      ss << std::hex << symbol;
+      ss << std::setfill('0') << std::setw(2) << std::hex << int(symbol);
     }
     ss << std::endl;
 
     ss << "Manufacturer  : " << convertToString(manufacturerString)
        << std::endl;
     ss << "Product       : " << convertToString(productString) << std::endl;
-    ss << "UsagePage     : " << std::hex << usagePage << std::endl;
-    ss << "Usage         : " << std::hex << usage << std::endl;
+    ss << "UsagePage     : " << std::setfill('0') << std::setw(2) << std::hex
+       << int(usagePage) << std::endl;
+    ss << "Usage         : " << std::setfill('0') << std::setw(2) << std::hex
+       << int(usage) << std::endl;
     return ss.str();
   }
 
