@@ -4,6 +4,7 @@
  */
 
 #include "cpp-ledger/filecoin/impl/utils.hpp"
+#include "cpp-ledger/filecoin/types/version_info.hpp"
 
 #include <gtest/gtest.h>
 #include <iomanip>
@@ -19,6 +20,25 @@ namespace ledger::filecoin {
     }
 
     return ss.str();
+  }
+
+  TEST(UtilsTest, PrintVersion) {
+    const VersionInfo version{.appMode = 0, .major = 1, .minor = 2, .patch = 3};
+    EXPECT_EQ(version.ToString(), "1.2.3");
+  }
+
+  TEST(UtilsTest, WrongPath1) {
+    const std::vector<uint32_t> bip44path{44, 100, 0, 0};
+
+    const auto [path, err] = getBip44bytes(bip44path, 0);
+    EXPECT_EQ(err, "path should contain 5 elements");
+  }
+
+  TEST(UtilsTest, WrongPath2) {
+    const std::vector<uint32_t> bip44path{44, 100, 0, 0, 0, 3};
+
+    const auto [path, err] = getBip44bytes(bip44path, 0);
+    EXPECT_EQ(err, "path should contain 5 elements");
   }
 
   TEST(UtilsTest, PathGeneration1) {
