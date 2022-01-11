@@ -124,9 +124,7 @@ namespace fc::primitives::sector_file {
                                         PaddedPieceSize size);
 
     outcome::result<boost::optional<PieceInfo>> writeNull(
-        PaddedByteIndex offset,
-        PaddedPieceSize size,
-        const boost::optional<RegisteredSealProof> &maybe_seal_proof_type);
+        PaddedByteIndex offset, PaddedPieceSize size, bool need_piece_info);
 
     struct PadWriter {
      public:

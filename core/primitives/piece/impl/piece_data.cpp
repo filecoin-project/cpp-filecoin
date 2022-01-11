@@ -14,17 +14,16 @@ namespace fc::primitives::piece {
   }
 
   PieceData::PieceData(PieceData &&other) noexcept
-      : fd_(kUnopenedFileDescriptor), is_null_data_(other.is_null_data_) {
-    fd_ = other.fd_;
+      : fd_(other.fd_), is_null_data_(other.is_null_data_) {
     other.fd_ = kUnopenedFileDescriptor;
-    other.is_null_data_ = true;
+    other.is_null_data_ = false;
   }
 
   PieceData::PieceData(int &pipe_fd) : fd_(pipe_fd), is_null_data_(false) {
     pipe_fd = kUnopenedFileDescriptor;
   }
 
-  PieceData::PieceData() : fd_(kUnopenedFileDescriptor), is_null_data_(true) {}
+  PieceData::PieceData() : is_null_data_(true) {}
 
   int PieceData::getFd() const {
     assert(not is_null_data_);

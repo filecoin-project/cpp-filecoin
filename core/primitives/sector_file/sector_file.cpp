@@ -352,7 +352,7 @@ namespace fc::primitives::sector_file {
       PaddedPieceSize size,
       const boost::optional<RegisteredSealProof> &maybe_seal_proof_type) {
     if (data.isNullData()) {
-      return writeNull(offset, size, maybe_seal_proof_type);
+      return writeNull(offset, size, maybe_seal_proof_type.has_value());
     }
 
     if (not data.isOpened()) {
@@ -460,9 +460,7 @@ namespace fc::primitives::sector_file {
   }
 
   outcome::result<boost::optional<PieceInfo>> SectorFile::writeNull(
-      PaddedByteIndex offset,
-      PaddedPieceSize size,
-      const boost::optional<RegisteredSealProof> &maybe_seal_proof_type) {
+      PaddedByteIndex offset, PaddedPieceSize size, bool need_piece_info) {
     if (not file_.good()) {
       return SectorFileError::kInvalidFile;
     }
@@ -471,16 +469,12 @@ namespace fc::primitives::sector_file {
     OUTCOME_TRY(allocated_size, runsCount(piece));
 
     assert(allocated_size == 0 && "Overwriting with zeros is not available");
-
-    file_.seekp(gsl::narrow<int64_t>(offset), std::ios_base::beg);
-
-    if (not file_.good()) {
-      return SectorFileError::kCannotMoveCursor;
-    }
+    // TODO (@Markuu-s) Overwriting with zeros
+    // here we write zeros. but file already zero-filled, so do nothing
 
     OUTCOME_TRY(markAllocated(offset, size));
 
-    if (not maybe_seal_proof_type.has_value()) {
+    if (not need_piece_info) {
       return boost::none;
     }
 

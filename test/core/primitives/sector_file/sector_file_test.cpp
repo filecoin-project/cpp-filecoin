@@ -248,9 +248,7 @@ namespace fc::primitives::sector_file {
   }
 
   TEST_F(SectorFileTest, checkFlag) {
-    const PieceData tempPieceData = PieceData();
-    const bool isNull = tempPieceData.isNullData();
-    EXPECT_EQ(isNull, true);
+    EXPECT_TRUE(PieceData().isNullData());
   }
 
   /*
@@ -292,6 +290,18 @@ namespace fc::primitives::sector_file {
                             piece_size.unpadded()));
 
     EXPECT_EQ(piece_info->cid, cid);
+
+    const boost::filesystem::path read_file_path =
+        base_path / fs::unique_path();
+    EXPECT_OUTCOME_TRUE_1(file->read(
+        PieceData(read_file_path.string(), O_WRONLY | O_CREAT), 0, piece_size));
+    const std::vector<unsigned char> read_data = readFile(read_file_path);
+
+    ASSERT_EQ(read_data.size(), piece_size.unpadded());
+    const std::string result_data = std::string(piece_size.unpadded(), '\0');
+    ASSERT_EQ(
+        read_data,
+        std::vector<unsigned char>(result_data.begin(), result_data.end()));
   }
 
 }  // namespace fc::primitives::sector_file

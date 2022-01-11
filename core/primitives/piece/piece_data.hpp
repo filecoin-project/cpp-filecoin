@@ -15,8 +15,9 @@ namespace fc::primitives::piece {
   class PieceData {
    public:
     explicit PieceData(const std::string &path_to_file, int flags = O_RDWR);
-    explicit PieceData(int &pipe_fd);
-    PieceData();
+    explicit PieceData(int &pipe_fd);  // pipe_fd is out parameter and is
+                                       // expected to be set -1 after call.
+    PieceData();                       // Make PieceData is NullData.
 
     PieceData(const PieceData &) = delete;
     PieceData &operator=(const PieceData &) = delete;
@@ -32,8 +33,8 @@ namespace fc::primitives::piece {
     bool isNullData() const;
 
    private:
-    int fd_;
-    bool is_null_data_;
+    int fd_{kUnopenedFileDescriptor};
+    bool is_null_data_{false};
   };
 
 }  // namespace fc::primitives::piece

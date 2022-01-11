@@ -424,7 +424,7 @@ namespace fc::mining {
    * @then SealingError::kUpgradeSeveralPieces occurs
    */
   TEST_F(SealingTest, MarkForUpgradeSeveralPieces) {
-    UnpaddedPieceSize piece_size(127);
+    const UnpaddedPieceSize piece_size(127);
     PieceData piece("/dev/random");
     PieceData piece2("/dev/random");
     DealInfo deal{
