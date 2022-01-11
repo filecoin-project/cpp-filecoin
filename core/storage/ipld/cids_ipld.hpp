@@ -46,7 +46,7 @@ namespace fc::storage::ipld {
     mutable std::shared_mutex index_mutex;
     std::shared_ptr<Index> index;
     IpldPtr ipld;
-    std::ofstream writable;
+    std::shared_ptr<FILE> writable;
     mutable std::shared_mutex written_mutex;
     std::set<Row> written;
     uint64_t car_offset{};
@@ -58,7 +58,8 @@ namespace fc::storage::ipld {
     std::string car_path;
     boost::optional<size_t> max_memory;
     mutable std::shared_mutex car_flush_mutex;
-    std::map<uint64_t, Bytes> car_queue;
+    std::map<uint64_t, size_t> car_queue;
+    Bytes car_queue_buffer;
     size_t car_flush_on{};
   };
 }  // namespace fc::storage::ipld

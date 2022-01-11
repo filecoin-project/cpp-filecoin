@@ -444,10 +444,6 @@ namespace fc::node {
     o.compacter->ts_main = o.ts_main;
     o.compacter->open();
 
-    timerLoop(o.scheduler, std::chrono::minutes{1}, [ipld{o.compacter}] {
-      ipld->carFlush();
-    });
-
     OUTCOME_TRY(initNetworkName(*genesis, o.ipld, config));
     log()->info("Network name: {}", *config.network_name);
 
@@ -467,6 +463,10 @@ namespace fc::node {
 
     o.io_context = injector.create<std::shared_ptr<boost::asio::io_context>>();
     o.scheduler = injector.create<std::shared_ptr<Scheduler>>();
+
+    timerLoop(o.scheduler, std::chrono::minutes{1}, [ipld{o.compacter}] {
+      ipld->carFlush();
+    });
 
     o.events = std::make_shared<sync::events::Events>(o.io_context);
 

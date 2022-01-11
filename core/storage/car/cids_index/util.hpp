@@ -158,7 +158,7 @@ namespace fc::storage::cids_index {
     _ipld->index = index;
     _ipld->ipld = ipld;
     if (writable) {
-      _ipld->writable.open(car_path, std::ios::app | std::ios::binary);
+      _ipld->writable = {fopen(car_path.c_str(), "ab"), fclose};
     }
     _ipld->car_offset = car_size;
     _ipld->car_path = car_path;

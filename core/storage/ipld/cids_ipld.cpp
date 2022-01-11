@@ -21,7 +21,7 @@ namespace fc::storage::ipld {
   using cids_index::MergeRange;
 
   boost::optional<Row> CidsIpld::findWritten(const CbCid &key) const {
-    assert(writable.is_open());
+    assert(writable != nullptr);
     auto it{written.lower_bound(Row{key, {}, {}})};
     if (it != written.end() && it->key == key) {
       return *it;
@@ -43,7 +43,7 @@ namespace fc::storage::ipld {
 
   outcome::result<void> CidsIpld::set(const CID &cid, BytesCow &&value) {
     if (auto key{asBlake(cid)}) {
-      if (writable.is_open()) {
+      if (writable != nullptr) {
         put(*key, std::move(value));
         return outcome::success();
       }
@@ -129,7 +129,7 @@ namespace fc::storage::ipld {
     std::shared_lock index_lock{index_mutex};
     auto row{index->find(key).value()};
     index_lock.unlock();
-    if (!row && writable.is_open()) {
+    if (!row && writable != nullptr) {
       std::shared_lock written_lock{written_mutex};
       row = findWritten(key);
     }
@@ -159,7 +159,7 @@ namespace fc::storage::ipld {
   }
 
   void CidsIpld::put(const CbCid &key, BytesCow &&value) {
-    if (!writable.is_open()) {
+    if (writable == nullptr) {
       outcome::raise(ERROR_TEXT("CidsIpld.put: not writable"));
     }
     if (has(key)) {
@@ -194,7 +194,8 @@ namespace fc::storage::ipld {
 
   void CidsIpld::carPut(const Row &row, Bytes &&item) {
     std::unique_lock lock{car_flush_mutex};
-    car_queue.emplace(row.offset.value(), std::move(item));
+    car_queue.emplace(row.offset.value(), car_queue_buffer.size());
+    append(car_queue_buffer, item);
     if (car_queue.size() >= car_flush_on) {
       carFlush(std::adopt_lock);
     }
@@ -206,7 +207,7 @@ namespace fc::storage::ipld {
     if (it == car_queue.end()) {
       return false;
     }
-    BytesIn item{it->second};
+    auto item{BytesIn{car_queue_buffer}.subspan(it->second)};
     BytesIn input;
     const CbCid *hash;
     if (codec::uvarint::readBytes(input, item)
@@ -218,17 +219,21 @@ namespace fc::storage::ipld {
   }
 
   void CidsIpld::carFlush(std::adopt_lock_t) {
-    for (const auto &p : car_queue) {
-      if (!common::write(writable, p.second)) {
-        spdlog::error("CidsIpld.carFlush write error");
-        outcome::raise(ERROR_TEXT("CidsIpld.carFlush: write error"));
-      }
+    if (car_queue.empty()) {
+      return;
     }
-    if (!writable.flush().good()) {
+    if (fwrite(
+            car_queue_buffer.data(), car_queue_buffer.size(), 1, writable.get())
+        != 1) {
+      spdlog::error("CidsIpld.carFlush write error");
+      outcome::raise(ERROR_TEXT("CidsIpld.carFlush: write error"));
+    }
+    if (fflush(writable.get()) != 0) {
       spdlog::error("CidsIpld.carFlush flush error");
       outcome::raise(ERROR_TEXT("CidsIpld.carFlush: flush error"));
     }
     car_queue.clear();
+    car_queue_buffer.resize(0);
   }
 
   void CidsIpld::carFlush() {

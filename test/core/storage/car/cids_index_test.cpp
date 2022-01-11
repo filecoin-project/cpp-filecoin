@@ -67,7 +67,7 @@ namespace fc::storage::cids_index {
     // inserted only once
     auto car_value1{*common::readFile(car_path)};
     EXPECT_OUTCOME_TRUE_1(setCbor(ipld, value1));
-    ipld->writable.flush();
+    fflush(ipld->writable.get());
     EXPECT_EQ(fs::file_size(car_path), car_value1.size());
 
     // truncated car drops index
