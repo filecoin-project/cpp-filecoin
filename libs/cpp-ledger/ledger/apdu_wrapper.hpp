@@ -9,6 +9,8 @@
 
 namespace ledger::apdu {
 
+  constexpr Byte kTag = 0x05;
+
   Error ErrorMessage(uint16_t errCode);
 
   std::tuple<Bytes, int, Error> SerializePacket(uint16_t channel,
@@ -26,8 +28,7 @@ namespace ledger::apdu {
                                            int packetSize);
 
   // UnwrapResponseAPDU parses a response of 64 byte packets into the real data
-  std::tuple<Bytes, Error> UnwrapResponseApdu(uint16_t channel,
-                                              const std::vector<Bytes> &packets,
-                                              int packetSize);
+  std::tuple<Bytes, Error> UnwrapResponseApdu(
+      uint16_t channel, const std::vector<Bytes> &packets);
 
 }  // namespace ledger::apdu
