@@ -12,22 +12,12 @@ namespace ledger::filecoin {
   const VersionInfo requiredVersion{
       .appMode = 0, .major = 0, .minor = 3, .patch = 0};
 
-  constexpr Byte kCLA = 0x06;
-
-  constexpr Byte kINSGetVersion = 0;
-  constexpr Byte kINSGetAddrSECP256K1 = 1;
-  constexpr Byte kINSSignSECP256K1 = 2;
-
   constexpr Byte kPayloadChunkInit = 0;
   constexpr Byte kPayloadChunkAdd = 1;
   constexpr Byte kPayloadChunkLast = 2;
 
-  constexpr size_t kHardenCount = 2;
-
   constexpr size_t kMinResponseLength = 4;
   constexpr size_t kMinSignLength = 66;
-
-  constexpr size_t kPublicKeyLength = 65;
 
   LedgerFilecoinImpl::LedgerFilecoinImpl(
       std::shared_ptr<LedgerDevice> ledgerDevice)
@@ -209,7 +199,7 @@ namespace ledger::filecoin {
 
     // Read addr string format
     const std::string addressStr(response.begin() + cursor,
-                                 response.begin() + cursor + addrByteLength);
+                                 response.begin() + cursor + addrStringLength);
 
     return std::make_tuple(pubkey, address, addressStr, Error{});
   }

@@ -11,7 +11,6 @@
 
 namespace ledger::apdu {
 
-  constexpr Byte kTag = 0x05;
   constexpr int kMinPacketSize = 3;
   constexpr size_t kMinFirstHeaderSize = 7;
   constexpr size_t kMinHeaderSize = 5;
@@ -100,8 +99,8 @@ namespace ledger::apdu {
     }
 
     const size_t offset = (command.size() <= packetSize - headerOffset)
-                              ? packetSize - headerOffset
-                              : command.size();
+                              ? command.size()
+                              : packetSize - headerOffset;
     std::copy_n(command.begin(), offset, std::back_inserter(result));
     result.resize(packetSize, 0);
 
@@ -133,7 +132,7 @@ namespace ledger::apdu {
     headerOffset++;
 
     if (getFromBytes(buffer[headerOffset], buffer[headerOffset + 1])
-        != channel) {
+        != sequenceId) {
       return std::make_tuple(Bytes{}, 0, Error{"Wrong sequenceId"});
     }
     headerOffset += 2;
@@ -170,16 +169,15 @@ namespace ledger::apdu {
     return std::make_tuple(totalResult, Error{});
   }
 
-  std::tuple<Bytes, Error> UnwrapResponseApdu(uint16_t channel,
-                                              const std::vector<Bytes> &packets,
-                                              int packetSize) {
+  std::tuple<Bytes, Error> UnwrapResponseApdu(
+      uint16_t channel, const std::vector<Bytes> &packets) {
     Bytes totalResult;
     uint16_t totalSize = 0;
     uint16_t sequenceId = 0;
 
     for (const auto &packet : packets) {
       const auto [result, responseSize, err] =
-          DeserializePacket(kChannel, packet, sequenceId);
+          DeserializePacket(channel, packet, sequenceId);
 
       if (err != std::nullopt) {
         return std::make_tuple(Bytes{}, err);

@@ -29,7 +29,7 @@ namespace ledger::filecoin {
     }
 
     Bytes message;
-    message.resize(sizeof(uint32_t) * kBip44PathLength);
+    message.reserve(sizeof(uint32_t) * kBip44PathLength);
 
     for (size_t i = 0; i < bip44path.size(); i++) {
       const uint32_t value =
@@ -53,7 +53,7 @@ namespace ledger::filecoin {
 
     for (size_t packetId = 1; packetId < packetCount; packetId++) {
       const size_t start = (packetId - 1) * kUserMessageChunkSize;
-      const size_t end = (packetId * kUserMessageChunkSize) - 1;
+      const size_t end = packetId * kUserMessageChunkSize;
 
       chunks.push_back(
           end >= transaction.size()

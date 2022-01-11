@@ -11,6 +11,16 @@
 
 namespace ledger::filecoin {
 
+  constexpr Byte kCLA = 0x06;
+
+  constexpr Byte kINSGetVersion = 0;
+  constexpr Byte kINSGetAddrSECP256K1 = 1;
+  constexpr Byte kINSSignSECP256K1 = 2;
+
+  constexpr size_t kHardenCount = 2;
+
+  constexpr size_t kPublicKeyLength = 65;
+
   class LedgerFilecoinImpl : public LedgerFilecoin {
    public:
     explicit LedgerFilecoinImpl(std::shared_ptr<LedgerDevice> ledgerDevice);
