@@ -10,6 +10,7 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "adt/stop.hpp"
+#include "api/types/tipset_context.hpp"
 #include "api/version.hpp"
 #include "blockchain/block_validator/eligible.hpp"
 #include "blockchain/block_validator/win_sectors.hpp"
@@ -28,26 +29,18 @@
 #include "proofs/impl/proof_engine_impl.hpp"
 #include "storage/car/car.hpp"
 #include "storage/unixfs/unixfs.hpp"
-#include "vm/actor/builtin/states/account/account_actor_state.hpp"
-#include "vm/actor/builtin/states/init/init_actor_state.hpp"
-#include "vm/actor/builtin/states/market/market_actor_state.hpp"
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/states/reward/reward_actor_state.hpp"
-#include "vm/actor/builtin/states/storage_power/storage_power_actor_state.hpp"
-#include "vm/actor/builtin/states/verified_registry/verified_registry_actor_state.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/actor/builtin/types/storage_power/policy.hpp"
 #include "vm/actor/builtin/v0/market/market_actor.hpp"
 #include "vm/actor/builtin/v5/market/validate.hpp"
 #include "vm/actor/builtin/v5/miner/monies.hpp"
-#include "vm/interpreter/interpreter.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/message/message.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
-#include "vm/state/resolve_key.hpp"
 #include "vm/toolchain/toolchain.hpp"
 
 #define MOVE(x)  \
@@ -62,7 +55,6 @@
 
 namespace fc::api {
   using connection_t = boost::signals2::connection;
-  using InterpreterResult = vm::interpreter::Result;
   using markets::retrieval::DealProposalParams;
   using markets::retrieval::QueryResponse;
   using node::kNodeVersion;
@@ -74,17 +66,8 @@ namespace fc::api {
   using storage::ipld::kAllSelector;
   using vm::isVMExitCode;
   using vm::VMExitCode;
-  using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
-  using vm::actor::kStoragePowerAddress;
-  using vm::actor::kVerifiedRegistryAddress;
-  using vm::actor::builtin::states::AccountActorStatePtr;
-  using vm::actor::builtin::states::InitActorStatePtr;
-  using vm::actor::builtin::states::MarketActorStatePtr;
   using vm::actor::builtin::states::MinerActorStatePtr;
-  using vm::actor::builtin::states::PowerActorStatePtr;
-  using vm::actor::builtin::states::RewardActorStatePtr;
-  using vm::actor::builtin::states::VerifiedRegistryActorStatePtr;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::types::storage_power::kConsensusMinerMinPower;
@@ -109,55 +92,6 @@ namespace fc::api {
       beaconizer.entry(round, async->on(i));
     }
   }
-
-  struct TipsetContext {
-    TipsetCPtr tipset;
-    StateTreeImpl state_tree;
-    boost::optional<InterpreterResult> interpreted;
-
-    auto marketState() -> outcome::result<MarketActorStatePtr> {
-      OUTCOME_TRY(actor, state_tree.get(kStorageMarketAddress));
-      return getCbor<MarketActorStatePtr>(state_tree.getStore(), actor.head);
-    }
-
-    auto minerState(const Address &address)
-        -> outcome::result<MinerActorStatePtr> {
-      OUTCOME_TRY(actor, state_tree.get(address));
-      return getCbor<MinerActorStatePtr>(state_tree.getStore(), actor.head);
-    }
-
-    auto powerState() -> outcome::result<PowerActorStatePtr> {
-      OUTCOME_TRY(actor, state_tree.get(kStoragePowerAddress));
-      return getCbor<PowerActorStatePtr>(state_tree.getStore(), actor.head);
-    }
-
-    auto rewardState() -> outcome::result<RewardActorStatePtr> {
-      OUTCOME_TRY(actor, state_tree.get(vm::actor::kRewardAddress));
-      return getCbor<RewardActorStatePtr>(state_tree.getStore(), actor.head);
-    }
-
-    auto initState() -> outcome::result<InitActorStatePtr> {
-      OUTCOME_TRY(actor, state_tree.get(kInitAddress));
-      return getCbor<InitActorStatePtr>(state_tree.getStore(), actor.head);
-    }
-
-    auto verifiedRegistryState()
-        -> outcome::result<VerifiedRegistryActorStatePtr> {
-      OUTCOME_TRY(actor, state_tree.get(kVerifiedRegistryAddress));
-      return getCbor<VerifiedRegistryActorStatePtr>(state_tree.getStore(),
-                                                    actor.head);
-    }
-
-    outcome::result<Address> accountKey(const Address &id) {
-      return resolveKey(state_tree, id);
-    }
-
-    // TODO (a.chernyshov) make explicit
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    operator IpldPtr() const {
-      return state_tree.getStore();
-    }
-  };
 
   // NOLINTNEXTLINE(hicpp-function-size,readability-function-cognitive-complexity,readability-function-size,google-readability-function-size)
   std::shared_ptr<FullNodeApi> makeImpl(

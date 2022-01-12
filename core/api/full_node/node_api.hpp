@@ -7,6 +7,7 @@
 
 #include "api/common_api.hpp"
 #include "api/network/network_api.hpp"
+#include "api/types/key_info.hpp"
 #include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "const.hpp"
 #include "data_transfer/types.hpp"
@@ -76,7 +77,6 @@ namespace fc::api {
   using vm::message::UnsignedMessage;
   using vm::runtime::MessageReceipt;
   using vm::version::NetworkVersion;
-  using SignatureType = crypto::signature::Type;
 
   struct InvocResult {
     UnsignedMessage message;
@@ -188,11 +188,6 @@ namespace fc::api {
   struct AddChannelInfo {
     Address channel;      // payment channel actor address
     CID channel_message;  // message cid
-  };
-
-  struct KeyInfo {
-    SignatureType type = SignatureType::kUndefined;
-    common::Blob<32> private_key;
   };
 
   struct Partition {

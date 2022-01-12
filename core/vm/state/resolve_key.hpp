@@ -14,7 +14,7 @@ namespace fc::vm::state {
    * Given key address returns it unchanged.
    * Actor hash addresses have no key associated.
    */
-  inline outcome::result<Address> resolveKey(StateTree &state_tree,
+  inline outcome::result<Address> resolveKey(const StateTree &state_tree,
                                              const IpldPtr &charging_ipld,
                                              const Address &address) {
     if (address.isKeyType()) {
@@ -36,7 +36,7 @@ namespace fc::vm::state {
     return vm::VMExitCode::kSysErrIllegalArgument;
   }
 
-  inline outcome::result<Address> resolveKey(StateTree &state_tree,
+  inline outcome::result<Address> resolveKey(const StateTree &state_tree,
                                              const Address &address) {
     return resolveKey(state_tree, state_tree.getStore(), address);
   }

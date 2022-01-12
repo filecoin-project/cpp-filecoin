@@ -23,4 +23,5 @@ target_link_libraries(api
     mpool
     sync
     jwt
+    wallet
     )
