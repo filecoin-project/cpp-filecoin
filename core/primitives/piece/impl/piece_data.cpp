@@ -23,7 +23,7 @@ namespace fc::primitives::piece {
     pipe_fd = kUnopenedFileDescriptor;
   }
 
-  PieceData::PieceData() : is_null_data_(true) {}
+  PieceData::PieceData() : fd_(kUnopenedFileDescriptor), is_null_data_(false) {}
 
   int PieceData::getFd() const {
     assert(not is_null_data_);
@@ -44,9 +44,21 @@ namespace fc::primitives::piece {
     return is_null_data_;
   }
 
+  PieceData PieceData::makeNull() {
+    PieceData temp = PieceData();
+    temp.is_null_data_ = true;
+    return temp;
+  }
+
   PieceData &PieceData::operator=(PieceData &&other) noexcept {
+    if (fd_ != kUnopenedFileDescriptor) {
+      close(fd_);
+    }
     fd_ = other.fd_;
+    is_null_data_ = other.is_null_data_;
+
     other.fd_ = kUnopenedFileDescriptor;
+    other.is_null_data_ = false;
     return *this;
   }
 }  // namespace fc::primitives::piece

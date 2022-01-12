@@ -248,7 +248,8 @@ namespace fc::primitives::sector_file {
   }
 
   TEST_F(SectorFileTest, checkFlag) {
-    EXPECT_TRUE(PieceData().isNullData());
+    EXPECT_TRUE(not PieceData().isNullData());
+    EXPECT_TRUE(PieceData::makeNull().isNullData());
   }
 
   /*
@@ -279,7 +280,7 @@ namespace fc::primitives::sector_file {
 
     EXPECT_OUTCOME_TRUE(
         piece_info,
-        file->write(PieceData(), 0, piece_size, min_seal_proof_type));
+        file->write(PieceData::makeNull(), 0, piece_size, min_seal_proof_type));
 
     ASSERT_EQ(piece_info->size, piece_size);
     EXPECT_EQ(piece_info->cid, result_cid);
