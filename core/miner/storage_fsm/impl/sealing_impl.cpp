@@ -223,7 +223,7 @@ namespace fc::mining {
       for (const auto &pad : sector_and_padding.pads) {
         OUTCOME_TRY(addPiece(sector_and_padding.sector,
                              pad.unpadded(),
-                             PieceData(),
+                             PieceData::makeNull(),
                              boost::none));
       }
 

@@ -248,7 +248,6 @@ namespace fc::primitives::sector_file {
   }
 
   TEST_F(SectorFileTest, checkFlag) {
-    EXPECT_TRUE(not PieceData().isNullData());
     EXPECT_TRUE(PieceData::makeNull().isNullData());
   }
 
