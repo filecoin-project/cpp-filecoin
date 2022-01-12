@@ -20,9 +20,7 @@ namespace fc::vm::actor::builtin::v6::miner {
     const TokenAmount networkFeeNum =
         effectiveGasFee * kEstimatedSinglePreCommitGasUsage * aggregate_size
         * kBatchDiscountNumerator;
-    const TokenAmount networkFee =
-        bigdiv(networkFeeNum, kBatchDiscountDenominator);
-    return networkFee;
+    return bigdiv(networkFeeNum, kBatchDiscountDenominator);
   }
 
 }  // namespace fc::vm::actor::builtin::v6::miner
