@@ -110,7 +110,7 @@ namespace fc::api {
       const std::shared_ptr<KeyStore> &key_store,
       const std::shared_ptr<Discovery> &market_discovery,
       const std::shared_ptr<RetrievalClient> &retrieval_market_client,
-      const std::shared_ptr<OneKey> &wallet_default_address) {
+      const std::shared_ptr<WalletApi> &wallet) {
     auto ts_load{env_context.ts_load};
     auto ipld{env_context.ipld};
     auto interpreter_cache{env_context.interpreter_cache};
@@ -1105,70 +1105,33 @@ namespace fc::api {
     };
     api->WalletBalance = [=](auto &address) -> outcome::result<TokenAmount> {
       OUTCOME_TRY(context, tipsetContext({}));
-      OUTCOME_TRY(actor, context.state_tree.tryGet(address));
-      if (actor) {
-        return actor->balance;
-      }
-      return 0;
+      return wallet->WalletBalance(context, address);
     };
     api->WalletDefaultAddress = [=]() -> outcome::result<Address> {
-      if (!wallet_default_address->has())
-        return ERROR_TEXT("WalletDefaultAddress: default wallet is not set");
-      return wallet_default_address->getCbor<Address>();
+      return wallet->WalletDefaultAddress();
     };
-    api->WalletHas = [=](auto address) -> outcome::result<bool> {
-      if (!address.isKeyType()) {
-        OUTCOME_TRY(context, tipsetContext({}));
-        OUTCOME_TRYA(address, context.accountKey(address));
-      }
-      return key_store->has(address);
+    api->WalletHas = [=](auto &address) -> outcome::result<bool> {
+      OUTCOME_TRY(context, tipsetContext({}));
+      return wallet->WalletHas(context, address);
     };
-    api->WalletImport = {[=](auto &info) {
-      return key_store->put(info.type, info.private_key);
-    }};
+    api->WalletImport = {
+        [=](auto &info) { return wallet->WalletImport(info); }};
     api->WalletNew = {[=](auto &type) -> outcome::result<Address> {
-      Address address;
-      if (type == "bls") {
-        OUTCOME_TRYA(address,
-                     key_store->put(crypto::signature::Type::kBls,
-                                    crypto::bls::BlsProviderImpl{}
-                                        .generateKeyPair()
-                                        .value()
-                                        .private_key));
-      } else if (type == "secp256k1") {
-        OUTCOME_TRYA(address,
-                     key_store->put(crypto::signature::Type::kSecp256k1,
-                                    crypto::secp256k1::Secp256k1ProviderImpl{}
-                                        .generate()
-                                        .value()
-                                        .private_key));
-      } else {
-        return ERROR_TEXT("WalletNew: unknown type");
-      }
-      if (!wallet_default_address->has()) {
-        wallet_default_address->setCbor(address);
-      }
-      return std::move(address);
+      return wallet->WalletNew(type);
     }};
     api->WalletSetDefault = [=](auto &address) -> outcome::result<void> {
-      wallet_default_address->setCbor(address);
-      return outcome::success();
+      return wallet->WalletSetDefault(address);
     };
-    api->WalletSign = [=](auto address,
-                          auto data) -> outcome::result<Signature> {
-      if (!address.isKeyType()) {
-        OUTCOME_TRY(context, tipsetContext({}));
-        OUTCOME_TRYA(address, context.accountKey(address));
-      }
-      return key_store->sign(address, data);
+    api->WalletSign = [=](auto &address,
+                          auto &data) -> outcome::result<Signature> {
+      OUTCOME_TRY(context, tipsetContext({}));
+      return wallet->WalletSign(context, address, data);
     };
-    api->WalletVerify =
-        [=](auto address, auto data, auto signature) -> outcome::result<bool> {
-      if (!address.isKeyType()) {
-        OUTCOME_TRY(context, tipsetContext({}));
-        OUTCOME_TRYA(address, context.accountKey(address));
-      }
-      return key_store->verify(address, data, signature);
+    api->WalletVerify = [=](auto &address,
+                            auto &data,
+                            auto &signature) -> outcome::result<bool> {
+      OUTCOME_TRY(context, tipsetContext({}));
+      return wallet->WalletVerify(context, address, data, signature);
     };
     return api;
   }
