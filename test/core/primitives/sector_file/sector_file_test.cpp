@@ -6,6 +6,7 @@
 #include "primitives/sector_file/sector_file.hpp"
 
 #include <gtest/gtest.h>
+#include "sector_storage/zerocomm/zerocomm.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"
 #include "testutil/resources/resources.hpp"
@@ -240,9 +241,67 @@ namespace fc::primitives::sector_file {
     EXPECT_OUTCOME_TRUE(
         sector_size,
         fc::primitives::sector::getSectorSize(min_seal_proof_type));
-    uint64_t result =
+    const uint64_t result =
         kOverheadSeal.at(file_type) * sector_size / kOverheadDenominator;
     EXPECT_OUTCOME_TRUE(seal_size, sealSpaceUse(file_type, sector_size));
     ASSERT_EQ(result, seal_size);
   }
+
+  TEST_F(SectorFileTest, checkFlag) {
+    EXPECT_TRUE(PieceData::makeNull().isNullData());
+  }
+
+  /*
+   * TODO (@Markuu-s) add tests: CannotMoveCursor and checkAssertGetFd
+   * Problem: ASAN-build doesn't pass these tests
+   */
+
+  TEST_F(SectorFileTest, WriteNullPiece) {
+    EXPECT_OUTCOME_TRUE(
+        sector_size,
+        fc::primitives::sector::getSectorSize(min_seal_proof_type));
+    const SectorId sector{
+        .miner = 1,
+        .sector = 1,
+    };
+
+    const PaddedPieceSize piece_size(128);
+
+    EXPECT_OUTCOME_TRUE(result_cid,
+                        fc::sector_storage::zerocomm::getZeroPieceCommitment(
+                            piece_size.unpadded()));
+    EXPECT_OUTCOME_TRUE(
+        file,
+        SectorFile::createFile(
+            (base_path / fc::primitives::sector_file::sectorName(sector))
+                .string(),
+            PaddedPieceSize(sector_size)));
+
+    EXPECT_OUTCOME_TRUE(
+        piece_info,
+        file->write(PieceData::makeNull(), 0, piece_size, min_seal_proof_type));
+
+    ASSERT_EQ(piece_info->size, piece_size);
+    EXPECT_EQ(piece_info->cid, result_cid);
+    EXPECT_OUTCOME_EQ(file->hasAllocated(0, piece_size.unpadded()), true);
+
+    EXPECT_OUTCOME_TRUE(cid,
+                        fc::sector_storage::zerocomm::getZeroPieceCommitment(
+                            piece_size.unpadded()));
+
+    EXPECT_EQ(piece_info->cid, cid);
+
+    const boost::filesystem::path read_file_path =
+        base_path / fs::unique_path();
+    EXPECT_OUTCOME_TRUE_1(file->read(
+        PieceData(read_file_path.string(), O_WRONLY | O_CREAT), 0, piece_size));
+    const std::vector<unsigned char> read_data = readFile(read_file_path);
+
+    ASSERT_EQ(read_data.size(), piece_size.unpadded());
+    const std::string result_data = std::string(piece_size.unpadded(), '\0');
+    ASSERT_EQ(
+        read_data,
+        std::vector<unsigned char>(result_data.begin(), result_data.end()));
+  }
+
 }  // namespace fc::primitives::sector_file

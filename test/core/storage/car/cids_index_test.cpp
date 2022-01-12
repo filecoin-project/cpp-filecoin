@@ -67,7 +67,7 @@ namespace fc::storage::cids_index {
     // inserted only once
     auto car_value1{*common::readFile(car_path)};
     EXPECT_OUTCOME_TRUE_1(setCbor(ipld, value1));
-    ipld->writable.flush();
+    fflush(ipld->writable.get());
     EXPECT_EQ(fs::file_size(car_path), car_value1.size());
 
     // truncated car drops index
@@ -132,5 +132,20 @@ namespace fc::storage::cids_index {
   TEST_F(CidsIndexTest, FlushAsync) {
     IoThread thread;
     testFlush(thread.io);
+  }
+
+  TEST_F(CidsIndexTest, CarFlush) {
+    ipld = *load(true);
+    const auto header{*common::readFile(car_path)};
+    ipld->car_flush_on = 2;
+
+    const auto c1{setCbor(ipld, 1).value()};
+    EXPECT_EQ(fs::file_size(car_path), header.size());
+    EXPECT_OUTCOME_EQ(getCbor<int>(ipld, c1), 1);
+
+    const auto c2{setCbor(ipld, 2).value()};
+    EXPECT_EQ(fs::file_size(car_path), header.size() + 2 * 40);
+    EXPECT_OUTCOME_EQ(getCbor<int>(ipld, c1), 1);
+    EXPECT_OUTCOME_EQ(getCbor<int>(ipld, c2), 2);
   }
 }  // namespace fc::storage::cids_index

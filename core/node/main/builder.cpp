@@ -219,6 +219,17 @@ namespace fc::node {
       }
     }
 
+    while (true) {
+      const auto it{std::prev(o.ts_main->chain.end())};
+      if (it == o.ts_main->chain.begin()
+          || o.env_context.interpreter_cache->tryGet(it->second.key)) {
+        break;
+      }
+      log()->warn("missing state at {}, reverting", it->first);
+      o.ts_main->updater->revert();
+      o.ts_main->chain.erase(it);
+    }
+
     log()->info("chain loaded");
     assert(o.ts_main->bottom().second.key == genesis_tsk);
   }
@@ -231,6 +242,7 @@ namespace fc::node {
         car_path, true, 1 << 30, o.ipld, log());
     // estimated
     ipld->flush_on = 200000;
+    ipld->car_flush_on = 100;
     o.ipld_flush_thread = std::make_shared<IoThread>();
     ipld->io = o.ipld_flush_thread->io;
     return ipld;
@@ -451,6 +463,10 @@ namespace fc::node {
 
     o.io_context = injector.create<std::shared_ptr<boost::asio::io_context>>();
     o.scheduler = injector.create<std::shared_ptr<Scheduler>>();
+
+    timerLoop(o.scheduler, std::chrono::minutes{1}, [ipld{o.compacter}] {
+      ipld->carFlush();
+    });
 
     o.events = std::make_shared<sync::events::Events>(o.io_context);
 

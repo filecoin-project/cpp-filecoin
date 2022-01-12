@@ -172,12 +172,23 @@ namespace fc::sector_storage {
                      int,
                      uint64_t priority));
 
+    MOCK_METHOD4(doNullAddPieceSync,
+                 outcome::result<PieceInfo>(
+                     const SectorRef &sector,
+                     gsl::span<const UnpaddedPieceSize> piece_sizes,
+                     const UnpaddedPieceSize &new_piece_size,
+                     uint64_t priority));
+
     outcome::result<PieceInfo> addPieceSync(
         const SectorRef &sector,
         gsl::span<const UnpaddedPieceSize> piece_sizes,
         const UnpaddedPieceSize &new_piece_size,
         proofs::PieceData piece_data,
         uint64_t priority) override {
+      if (piece_data.isNullData()) {
+        return doNullAddPieceSync(
+            sector, piece_sizes, new_piece_size, priority);
+      }
       return doAddPieceSync(
           sector, piece_sizes, new_piece_size, piece_data.getFd(), priority);
     }

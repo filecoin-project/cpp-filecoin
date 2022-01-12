@@ -557,6 +557,7 @@ namespace fc::api {
           OUTCOME_CB(auto it, find(ts_branch, context.tipset->height()));
           OUTCOME_CB(info.prev_beacon, latestBeacon(ts_load, it));
           OUTCOME_CB(auto it2, getLookbackTipSetForRound(it, epoch));
+          OUTCOME_CB(auto lookback_ts, ts_load->lazyLoad(it2.second->second));
           OUTCOME_CB(auto cached,
                      interpreter_cache->get(it2.second->second.key));
           ts_lock.unlock();
@@ -570,7 +571,7 @@ namespace fc::api {
               [=, FWD(cb), MOVE(context), MOVE(info)](auto _beacons) mutable {
                 OUTCOME_CB(info.beacons, _beacons);
                 TipsetContext lookback{
-                    nullptr,
+                    lookback_ts,
                     {withVersion(ipld, epoch), std::move(cached.state_root)},
                     {}};
                 OUTCOME_CB(auto actor, lookback.state_tree.tryGet(miner));

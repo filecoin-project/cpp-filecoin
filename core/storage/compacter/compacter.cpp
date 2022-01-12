@@ -49,6 +49,11 @@ namespace fc::storage::compacter {
     }
   }
 
+  void CompacterIpld::carFlush() {
+    std::shared_lock lock{ipld_mutex};
+    (use_new_ipld ? new_ipld : old_ipld)->carFlush();
+  }
+
   void CompacterIpld::open() {
     if (start_head_key.has()) {
       resume();
@@ -82,6 +87,7 @@ namespace fc::storage::compacter {
     new_ipld = *car;
     new_ipld->io = old_ipld->io;
     new_ipld->flush_on = old_ipld->flush_on;
+    new_ipld->car_flush_on = old_ipld->car_flush_on;
     queue->visited = new_ipld;
     queue->open(true);
     std::unique_lock vm_lock{*interpreter->mutex};
@@ -98,6 +104,7 @@ namespace fc::storage::compacter {
     start_head_key.setCbor(start_head->key.cids());
     {
       std::unique_lock ipld_lock{ipld_mutex};
+      old_ipld->carFlush();
       use_new_ipld = true;
     }
     vm_lock.unlock();
@@ -118,6 +125,7 @@ namespace fc::storage::compacter {
     new_ipld = *car;
     new_ipld->io = old_ipld->io;
     new_ipld->flush_on = old_ipld->flush_on;
+    new_ipld->car_flush_on = old_ipld->car_flush_on;
     queue->visited = new_ipld;
     queue->open(false);
     start_head =
@@ -265,6 +273,7 @@ namespace fc::storage::compacter {
       std::unique_lock old_flush_lock{old_ipld->flush_mutex};
       std::unique_lock new_flush_lock{new_ipld->flush_mutex};
       std::unique_lock ipld_lock{ipld_mutex};
+      new_ipld->carFlush();
       // keep last car copy for debug
       boost::filesystem::rename(old_ipld->car_path,
                                 old_ipld->car_path + ".old_ipld");
