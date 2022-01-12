@@ -45,6 +45,8 @@ namespace fc::storage::compacter {
     bool get(const CbCid &key, Bytes *value) const override;
     void put(const CbCid &key, BytesCow &&value) override;
 
+    void carFlush();
+
     void open();
     bool asyncStart();
     void doStart();
