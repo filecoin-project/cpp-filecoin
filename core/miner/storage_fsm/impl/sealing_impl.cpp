@@ -223,7 +223,7 @@ namespace fc::mining {
       for (const auto &pad : sector_and_padding.pads) {
         OUTCOME_TRY(addPiece(sector_and_padding.sector,
                              pad.unpadded(),
-                             PieceData("/dev/zero"),
+                             PieceData::makeNull(),
                              boost::none));
       }
 
@@ -900,7 +900,7 @@ namespace fc::mining {
       OUTCOME_TRY(
           piece_info,
           sealer_->addPieceSync(
-              sector, existing_piece_sizes, size, PieceData("/dev/zero"), 0));
+              sector, existing_piece_sizes, size, PieceData::makeNull(), 0));
 
       existing_piece_sizes.push_back(size);
 

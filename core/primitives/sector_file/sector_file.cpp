@@ -15,6 +15,7 @@
 #include "primitives/rle_bitset/runs_utils.hpp"
 #include "primitives/sector/sector.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
+#include "sector_storage/zerocomm/zerocomm.hpp"
 
 namespace fc::primitives::sector_file {
 
@@ -350,6 +351,10 @@ namespace fc::primitives::sector_file {
       PaddedByteIndex offset,
       PaddedPieceSize size,
       const boost::optional<RegisteredSealProof> &maybe_seal_proof_type) {
+    if (data.isNullData()) {
+      return writeNull(offset, size, maybe_seal_proof_type.has_value());
+    }
+
     if (not data.isOpened()) {
       return SectorFileError::kPipeNotOpen;
     }
@@ -452,6 +457,32 @@ namespace fc::primitives::sector_file {
         .size = size,
         .cid = cid,
     };
+  }
+
+  outcome::result<boost::optional<PieceInfo>> SectorFile::writeNull(
+      PaddedByteIndex offset, PaddedPieceSize size, bool need_piece_info) {
+    if (not file_.good()) {
+      return SectorFileError::kInvalidFile;
+    }
+
+    const auto piece = runsAnd(runs_, std::vector<uint64_t>({offset, size}));
+    OUTCOME_TRY(allocated_size, runsCount(piece));
+
+    assert(allocated_size == 0 && "Overwriting with zeros is not available");
+    // TODO (@Markuu-s) Overwriting with zeros
+    // here we write zeros. but file already zero-filled, so do nothing
+
+    OUTCOME_TRY(markAllocated(offset, size));
+
+    if (not need_piece_info) {
+      return boost::none;
+    }
+
+    OUTCOME_TRY(
+        cid,
+        fc::sector_storage::zerocomm::getZeroPieceCommitment(size.unpadded()));
+
+    return PieceInfo{.size = size, .cid = cid};
   }
 
   outcome::result<bool> SectorFile::read(const PieceData &output,
