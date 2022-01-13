@@ -25,8 +25,6 @@
 #include "api/impl/paych_get.hpp"
 #include "api/impl/paych_voucher.hpp"
 #include "api/setup_common.hpp"
-#include "api/wallet/local_wallet.hpp"
-#include "api/wallet/multi_wallet.hpp"
 #include "blockchain/block_validator/validator.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "cbor_blake/ipld_any.hpp"
@@ -618,9 +616,6 @@ namespace fc::node {
     OUTCOME_TRY(createStorageMarketClient(o));
     OUTCOME_TRY(createRetrievalMarketClient(o));
 
-    auto local_wallet = std::make_shared<api::LocalWallet>(o.key_store, o.wallet_default_address);
-    auto multi_wallet = std::make_shared<api::MultiWallet>(local_wallet);
-
     OUTCOME_TRY(api_secret, loadApiSecret(config.join("jwt_secret")));
 
     o.api = api::makeImpl(o.api,
@@ -638,7 +633,7 @@ namespace fc::node {
                           o.key_store,
                           o.market_discovery,
                           o.retrieval_market_client,
-                          multi_wallet);
+                          o.wallet_default_address);
     api::fillPaychGet(
         o.api,
         std::make_shared<paych_maker::PaychMaker>(

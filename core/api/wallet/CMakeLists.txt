@@ -5,7 +5,6 @@
 
 add_library(wallet
     local_wallet.cpp
-    multi_wallet.cpp
     )
 target_link_libraries(wallet
     address

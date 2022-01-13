@@ -6,7 +6,6 @@
 #pragma once
 
 #include "api/full_node/node_api.hpp"
-#include "api/wallet/wallet_api.hpp"
 #include "blockchain/weight_calculator.hpp"
 #include "common/logger.hpp"
 #include "fwd.hpp"
@@ -57,5 +56,5 @@ namespace fc::api {
       const std::shared_ptr<KeyStore> &key_store,
       const std::shared_ptr<Discovery> &market_discovery,
       const std::shared_ptr<RetrievalClient> &retrieval_market_client,
-      const std::shared_ptr<WalletApi> &wallet);
+      const std::shared_ptr<OneKey> &wallet_default_address);
 }  // namespace fc::api
