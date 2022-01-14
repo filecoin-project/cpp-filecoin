@@ -79,7 +79,7 @@ namespace fc::api {
   using sector_storage::stores::LocalPath;
   using sector_storage::stores::PathType;
   using sector_storage::stores::StorageConfig;
-  using sector_storage::stores::StorageInfo;
+  using sector_storage::stores::StorageConfig;
   using vm::actor::builtin::types::market::DealProposal;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::market::StorageParticipantBalance;
@@ -89,6 +89,8 @@ namespace fc::api {
   using vm::actor::builtin::types::payment_channel::Merge;
   using vm::actor::builtin::types::payment_channel::
       ModularVerificationParameter;
+  using fc::sector_storage::stores::StorageInfo;
+  using fc::sector_storage::stores::SectorStorageInfo;
   using vm::runtime::ExecutionResult;
   using base64 = cppcodec::base64_rfc4648;
 
@@ -869,7 +871,7 @@ namespace fc::api {
       Get(j, "Locked", v.locked);
     }
 
-    ENCODE(StorageInfo) {
+    ENCODE(SectorStorageInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "ID", v.id);
       Set(j, "URLs", v.urls);
@@ -880,13 +882,31 @@ namespace fc::api {
       return j;
     }
 
-    DECODE(StorageInfo) {
+    DECODE(SectorStorageInfo) {
       Get(j, "ID", v.id);
       Get(j, "URLs", v.urls);
       Get(j, "Weight", v.weight);
       Get(j, "CanSeal", v.can_seal);
       Get(j, "CanStore", v.can_store);
       Get(j, "Primary", v.is_primary);
+    }
+
+    ENCODE(StorageInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id);
+      Set(j, "URLs", v.urls);
+      Set(j, "Weight", v.weight);
+      Set(j, "CanSeal", v.can_seal);
+      Set(j, "CanStore", v.can_store);
+      return j;
+    }
+
+    DECODE(StorageInfo) {
+      Get(j, "ID", v.id);
+      Get(j, "URLs", v.urls);
+      Get(j, "Weight", v.weight);
+      Get(j, "CanSeal", v.can_seal);
+      Get(j, "CanStore", v.can_store);
     }
 
     ENCODE(StorageParticipantBalance) {
@@ -1264,13 +1284,13 @@ namespace fc::api {
     ENCODE(HealthReport) {
       Value j{rapidjson::kObjectType};
       Set(j, "Stat", v.stat);
-      Set(j, "Error", v.error);
+      //Set(j, "Error", v.error);
       return j;
     }
 
     DECODE(HealthReport) {
       decode(v.stat, Get(j, "Stat"));
-      decode(v.error, Get(j, "Error"));
+      //decode(v.error, Get(j, "Error"));
     }
 
     ENCODE(libp2p::multi::Multiaddress) {
@@ -1282,8 +1302,8 @@ namespace fc::api {
       v = std::move(_v);
     }
 
-    // can be generic
-    ENCODE(gsl::span<const PieceInfo>) {
+    template<typename T>
+    ENCODE(gsl::span<T>) {
       Value j{rapidjson::kArrayType};
       j.Reserve(v.size(), allocator);
       for (const auto &elem : v) {
@@ -1974,6 +1994,7 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Capacity", v.capacity);
       Set(j, "Available", v.available);
+      Set(j, "FSAvailable", v.fs_available);
       Set(j, "Reserved", v.reserved);
       return j;
     }
@@ -1981,6 +2002,7 @@ namespace fc::api {
     DECODE(FsStat) {
       decode(v.capacity, Get(j, "Capacity"));
       decode(v.available, Get(j, "Available"));
+      decode(v.fs_available, Get(j, "FSAvailable"));
       decode(v.reserved, Get(j, "Reserved"));
     }
 
@@ -2000,7 +2022,7 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "MemPhysical", v.physical_memory);
       Set(j, "MemSwap", v.swap_memory);
-      Set(j, "MemReserved", v.reserved_memory);
+      Set(j, "MemUsed", v.reserved_memory);
       Set(j, "CPUs", v.cpus);
       Set(j, "GPUs", v.gpus);
       return j;
@@ -2009,7 +2031,7 @@ namespace fc::api {
     DECODE(WorkerResources) {
       Get(j, "MemPhysical", v.physical_memory);
       Get(j, "MemSwap", v.swap_memory);
-      Get(j, "MemReserved", v.reserved_memory);
+      Get(j, "MemUsed", v.reserved_memory);
       Get(j, "CPUs", v.cpus);
       Get(j, "GPUs", v.gpus);
     }
@@ -2102,6 +2124,21 @@ namespace fc::api {
         j.PushBack(encode(elem), allocator);
       }
       return j;
+    }
+    ENCODE(std::set<TaskType>){
+      Value j{rapidjson::kObjectType};
+      j.MemberReserve(v.size(), allocator);
+      for (auto &pair : v) {
+        std::map<std::string, std::string> value;
+        Set(j, pair, value);
+      }
+      return j;
+    }
+
+    DECODE(std::set<TaskType>){
+      for (auto it = j.MemberBegin(); it != j.MemberEnd(); ++it) {
+        v.emplace(TaskType(AsString(it->name)));
+      }
     }
 
     template <typename T>

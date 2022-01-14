@@ -9,6 +9,7 @@
 #include "primitives/jwt/jwt.hpp"
 
 #include "drand/impl/http.cpp"
+#include "common/uri_parser/uri_parser.hpp"
 #include "primitives/piece/piece_data.hpp"
 #include "sector_storage/impl/remote_worker.hpp"
 
@@ -22,11 +23,20 @@ namespace fc::sector_storage {
   namespace uuids = boost::uuids;
   namespace http = boost::beast::http;
   using primitives::jwt::kAdminPermission;
+  using common::HttpUri;
+
 
   outcome::result<std::shared_ptr<RemoteWorker>>
   RemoteWorker::connectRemoteWorker(io_context &context,
                                     const std::shared_ptr<CommonApi> &api,
-                                    const Multiaddress &address) {
+                                    const std::string &address) {
+    HttpUri uri;
+    try {
+      uri.parse(address);
+    } catch (const std::runtime_error &err) {
+      return sector_storage::stores::IndexErrors::kInvalidUrl;
+    }
+
     OUTCOME_TRY(token, api->AuthNew({kAdminPermission}));
 
     struct make_unique_enabler : public RemoteWorker {
@@ -37,19 +47,12 @@ namespace fc::sector_storage {
     std::unique_ptr<RemoteWorker> r_worker =
         std::make_unique<make_unique_enabler>(context);
 
-    OUTCOME_TRY(
-        ip,
-        address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::IP4));
-    OUTCOME_TRY(
-        port,
-        address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::TCP));
-
-    r_worker->port_ = port;
-    r_worker->host_ = ip;
+    r_worker->port_ = std::to_string(uri.port());
+    r_worker->host_ = uri.host();
     r_worker->wsc_.setup(r_worker->api_);
 
-    OUTCOME_TRY(r_worker->wsc_.connect(
-        address, "/rpc/v0", std::string{token.begin(), token.end()}));
+    OUTCOME_TRY(r_worker->wsc_.connect2(
+        uri.host(), std::to_string(uri.port()), "/rpc/v0", std::string{token.begin(), token.end()}));
 
     return std::move(r_worker);
   }
@@ -69,7 +72,7 @@ namespace fc::sector_storage {
   }
 
   RemoteWorker::RemoteWorker(io_context &context)
-      : wsc_(context), io_(context) {}
+      : wsc_(*(worker_thread_.io)), io_(context) {} //TODO normaly
 
   struct PieceDataSender {
     explicit PieceDataSender(io_context &io)
@@ -89,6 +92,7 @@ namespace fc::sector_storage {
         const std::string &host,
         const std::string &port,
         const std::string &target,
+        const std::uint64_t piece_size,
         const std::function<void(outcome::result<std::string>)> &cb) {
       auto s{std::make_shared<PieceDataSender>(io)};
       boost::system::error_code error;
@@ -99,22 +103,27 @@ namespace fc::sector_storage {
       s->file_req.method(http::verb::post);
       s->file_req.target(target);
       s->file_req.set(http::field::host, host);
+      s->file_req.set(http::field::content_length, piece_size);
       s->resolver.async_resolve(
           host, port, [s, MOVE(cb)](auto &&ec, auto &&iterator) {
             EC_CB();
+            spdlog::info("ASYNC resolve successful");
             s->stream.async_connect(
                 iterator, [s, MOVE(cb)](auto &&ec, auto &&) {
                   EC_CB();
+                  spdlog::info("ASYNC connect successful");
                   http::async_write(s->stream,
                                     s->file_req,
                                     [s, MOVE(cb)](auto &&ec, auto &&) {
                                       EC_CB();
+                                      spdlog::info("ASYNC Write successful");
                                       http::async_read(
                                           s->stream,
                                           s->buffer,
                                           s->res,
                                           [s, MOVE(cb)](auto &&ec, auto &&) {
                                             EC_CB();
+                                            spdlog::info("HTTP SEND successful");
                                             cb(std::move(s->res.body()));
                                           });
                                     });
@@ -137,15 +146,21 @@ namespace fc::sector_storage {
       PieceData piece_data) {
     MetaPieceData meta_data(uuids::to_string(uuids::random_generator()()),
                             ReaderType::Type::pushStreamReader);
+    /* MetaPieceData meta_data("2032",
+                            ReaderType::Type::nullReader); */
+    //TODO(@Markuuusss) [FIL-560] Add Null PieceData to AddPiece.
+    spdlog::info("Starting transfer piece data to remote worker");
     PieceDataSender::send(piece_data.release(),
-                          io_,
+                          *(httpSender.io),
                           host_,
                           port_,
-                          "/rpc/streams/v0/push" + meta_data.uuid,
+                          "/rpc/streams/v0/push/" + meta_data.uuid,
+                          new_piece_size,
                           [](const outcome::result<std::string> &res) {
                             std::cerr << res.value();
                           });
-    return api_.AddPiece(sector, piece_sizes, new_piece_size, meta_data);
+    spdlog::info("Transfer piece data to remote worker was successful");
+  return api_.AddPiece(sector, piece_sizes, new_piece_size, meta_data);
   }
 
   outcome::result<CallId> RemoteWorker::sealPreCommit1(

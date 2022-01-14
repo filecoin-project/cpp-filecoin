@@ -109,6 +109,7 @@ namespace fc::api {
 
   template <typename A, typename F>
   void visit(const WorkerApi &, A &&a, const F &f) {
+    f(a.AddPiece);
     f(a.Fetch);
     f(a.FinalizeSector);
     f(a.Info);

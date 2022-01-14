@@ -41,4 +41,17 @@ namespace fc::primitives::piece {
     other.fd_ = kUnopenedFileDescriptor;
     return *this;
   }
+
+  int PieceData::release(){
+    int temp = fd_;
+    fd_ = kUnopenedFileDescriptor;
+    return temp;
+  }
+
+  const std::array<std::string, 2> ReaderType::types{"push", "null"};
+
+   const std::string ReaderType::toString() const {
+    return types.at(reader_type);
+  }
+
 }  // namespace fc::primitives::piece
