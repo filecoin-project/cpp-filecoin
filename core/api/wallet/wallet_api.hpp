@@ -8,6 +8,7 @@
 #include <string>
 #include "api/types/key_info.hpp"
 #include "api/types/tipset_context.hpp"
+#include "api/utils.hpp"
 #include "common/bytes.hpp"
 #include "common/outcome.hpp"
 #include "crypto/signature/signature.hpp"
@@ -18,37 +19,52 @@ namespace fc::api {
   using crypto::signature::Signature;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  namespace jwt = primitives::jwt;
 
   class WalletApi {
    public:
     virtual ~WalletApi() = default;
 
-    virtual outcome::result<TokenAmount> WalletBalance(
-        const TipsetContext &context, const Address &address) const = 0;
+    API_METHOD(WalletBalance,
+               jwt::kReadPermission,
+               TokenAmount,
+               const Address &)
 
-    virtual outcome::result<Address> WalletDefaultAddress() const = 0;
+    API_METHOD(WalletDefaultAddress, jwt::kWritePermission, Address)
 
-    virtual outcome::result<bool> WalletHas(const TipsetContext &context,
-                                            const Address &address) const = 0;
+    API_METHOD(WalletHas, jwt::kWritePermission, bool, const Address &)
 
-    virtual outcome::result<Address> WalletImport(
-        const KeyInfo &info) const = 0;
+    API_METHOD(WalletImport, jwt::kAdminPermission, Address, const KeyInfo &)
 
-    virtual outcome::result<Address> WalletNew(
-        const std::string &type) const = 0;
+    API_METHOD(WalletNew, jwt::kWritePermission, Address, const std::string &)
 
-    virtual outcome::result<void> WalletSetDefault(
-        const Address &address) const = 0;
+    API_METHOD(WalletSetDefault, jwt::kWritePermission, void, const Address &)
 
-    virtual outcome::result<Signature> WalletSign(const TipsetContext &context,
-                                                  const Address &address,
-                                                  const Bytes &data) const = 0;
+    API_METHOD(WalletSign,
+               jwt::kSignPermission,
+               Signature,
+               const Address &,
+               const Bytes &)
 
-    virtual outcome::result<bool> WalletVerify(
-        const TipsetContext &context,
-        const Address &address,
-        const Bytes &data,
-        const Signature &signature) const = 0;
+    /** Verify signature by address (may be id or key address) */
+    API_METHOD(WalletVerify,
+               jwt::kReadPermission,
+               bool,
+               const Address &,
+               const Bytes &,
+               const Signature &)
   };
+
+  template <typename A, typename F>
+  void visitWallet(A &&a, const F &f) {
+    f(a.WalletBalance);
+    f(a.WalletDefaultAddress);
+    f(a.WalletHas);
+    f(a.WalletImport);
+    f(a.WalletNew);
+    f(a.WalletSetDefault);
+    f(a.WalletSign);
+    f(a.WalletVerify);
+  }
 
 }  // namespace fc::api

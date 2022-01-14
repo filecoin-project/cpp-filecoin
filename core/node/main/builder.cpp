@@ -25,6 +25,7 @@
 #include "api/impl/paych_get.hpp"
 #include "api/impl/paych_voucher.hpp"
 #include "api/setup_common.hpp"
+#include "api/wallet/local_wallet.hpp"
 #include "blockchain/block_validator/validator.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "cbor_blake/ipld_any.hpp"
@@ -632,8 +633,7 @@ namespace fc::node {
                           o.pubsub_gate,
                           o.key_store,
                           o.market_discovery,
-                          o.retrieval_market_client,
-                          o.wallet_default_address);
+                          o.retrieval_market_client);
     api::fillPaychGet(
         o.api,
         std::make_shared<paych_maker::PaychMaker>(
@@ -648,6 +648,9 @@ namespace fc::node {
                                   "paych_vouchers/", o.kv_store)));
 
     api::fillAuthApi(o.api, api_secret, api::kNodeApiLogger);
+
+    api::LocalWallet::fillLocalWalletApi(
+        o.api, o.key_store, o.env_context.ipld, o.wallet_default_address);
 
     o.chain_events->init().value();
 

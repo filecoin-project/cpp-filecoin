@@ -55,6 +55,5 @@ namespace fc::api {
       const std::shared_ptr<PubSubGate> &pubsub,
       const std::shared_ptr<KeyStore> &key_store,
       const std::shared_ptr<Discovery> &market_discovery,
-      const std::shared_ptr<RetrievalClient> &retrieval_market_client,
-      const std::shared_ptr<OneKey> &wallet_default_address);
+      const std::shared_ptr<RetrievalClient> &retrieval_market_client);
 }  // namespace fc::api

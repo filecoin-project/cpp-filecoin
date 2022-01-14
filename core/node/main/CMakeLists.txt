@@ -48,6 +48,7 @@ target_link_libraries(node_builder
     sync
     weight_calculator
     miner_types
+    wallet
     )
 
 add_executable(fuhon-node
