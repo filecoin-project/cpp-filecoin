@@ -7,6 +7,8 @@
 
 #include "api/common_api.hpp"
 #include "api/network/network_api.hpp"
+#include "api/types/key_info.hpp"
+#include "api/wallet/wallet_api.hpp"
 #include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "const.hpp"
 #include "data_transfer/types.hpp"
@@ -76,7 +78,6 @@ namespace fc::api {
   using vm::message::UnsignedMessage;
   using vm::runtime::MessageReceipt;
   using vm::version::NetworkVersion;
-  using SignatureType = crypto::signature::Type;
 
   struct InvocResult {
     UnsignedMessage message;
@@ -190,11 +191,6 @@ namespace fc::api {
     CID channel_message;  // message cid
   };
 
-  struct KeyInfo {
-    SignatureType type = SignatureType::kUndefined;
-    common::Blob<32> private_key;
-  };
-
   struct Partition {
     RleBitset all;
     RleBitset faulty;
@@ -295,7 +291,7 @@ namespace fc::api {
    * FullNode API is a low-level interface to the Filecoin network full node.
    * Provides the latest node API v2.0.0
    */
-  struct FullNodeApi : public CommonApi, public NetworkApi {
+  struct FullNodeApi : public CommonApi, public NetworkApi, public WalletApi {
     /**
      * @note long operation
      */
@@ -783,35 +779,13 @@ namespace fc::api {
                jwt::kWritePermission,
                void,
                const BlockWithCids &)
-
-    /** Wallet */
-    API_METHOD(WalletBalance,
-               jwt::kReadPermission,
-               TokenAmount,
-               const Address &)
-    API_METHOD(WalletDefaultAddress, jwt::kWritePermission, Address)
-    API_METHOD(WalletHas, jwt::kWritePermission, bool, const Address &)
-    API_METHOD(WalletImport, jwt::kAdminPermission, Address, const KeyInfo &)
-    API_METHOD(WalletNew, jwt::kWritePermission, Address, const std::string &)
-    API_METHOD(WalletSetDefault, jwt::kWritePermission, void, const Address &)
-    API_METHOD(WalletSign,
-               jwt::kSignPermission,
-               Signature,
-               const Address &,
-               const Bytes &)
-    /** Verify signature by address (may be id or key address) */
-    API_METHOD(WalletVerify,
-               jwt::kReadPermission,
-               bool,
-               const Address &,
-               const Bytes &,
-               const Signature &)
   };
 
   template <typename A, typename F>
   void visit(const FullNodeApi &, A &&a, const F &f) {
     visitCommon(a, f);
     visitNet(a, f);
+    visitWallet(a, f);
     f(a.BeaconGetEntry);
     f(a.ChainGetBlock);
     f(a.ChainGetBlockMessages);
@@ -891,13 +865,5 @@ namespace fc::api {
     f(a.StateSectorPreCommitInfo);
     f(a.StateWaitMsg);
     f(a.SyncSubmitBlock);
-    f(a.WalletBalance);
-    f(a.WalletDefaultAddress);
-    f(a.WalletHas);
-    f(a.WalletImport);
-    f(a.WalletNew);
-    f(a.WalletSetDefault);
-    f(a.WalletSign);
-    f(a.WalletVerify);
   }
 }  // namespace fc::api

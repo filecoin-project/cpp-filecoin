@@ -25,6 +25,7 @@
 #include "api/impl/paych_get.hpp"
 #include "api/impl/paych_voucher.hpp"
 #include "api/setup_common.hpp"
+#include "api/wallet/local_wallet.hpp"
 #include "blockchain/block_validator/validator.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "cbor_blake/ipld_any.hpp"
@@ -78,6 +79,7 @@ namespace fc::node {
   using markets::retrieval::client::RetrievalClientImpl;
   using markets::storage::kStorageMarketImportDir;
   using markets::storage::client::StorageMarketClientImpl;
+  using primitives::tipset::TipsetCPtr;
   using storage::keystore::FileSystemKeyStore;
   using vm::actor::builtin::states::InitActorStatePtr;
   using vm::interpreter::InterpreterCache;
@@ -618,6 +620,25 @@ namespace fc::node {
 
     OUTCOME_TRY(api_secret, loadApiSecret(config.join("jwt_secret")));
 
+    auto tipsetContext =
+        [=](const TipsetKey &tipset_key,
+            bool interpret) -> outcome::result<api::TipsetContext> {
+      TipsetCPtr tipset;
+      if (tipset_key.cids().empty()) {
+        tipset = o.chain_store->heaviestTipset();
+      } else {
+        OUTCOME_TRYA(tipset, o.env_context.ts_load->load(tipset_key));
+      }
+      auto ipld{withVersion(o.env_context.ipld, tipset->height())};
+      api::TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
+      if (interpret) {
+        OUTCOME_TRY(result, o.env_context.interpreter_cache->get(tipset->key));
+        context.state_tree = {ipld, result.state_root};
+        context.interpreted = result;
+      }
+      return context;
+    };
+
     o.api = api::makeImpl(o.api,
                           o.chain_store,
                           o.markets_ipld,
@@ -633,7 +654,7 @@ namespace fc::node {
                           o.key_store,
                           o.market_discovery,
                           o.retrieval_market_client,
-                          o.wallet_default_address);
+                          tipsetContext);
     api::fillPaychGet(
         o.api,
         std::make_shared<paych_maker::PaychMaker>(
@@ -648,6 +669,9 @@ namespace fc::node {
                                   "paych_vouchers/", o.kv_store)));
 
     api::fillAuthApi(o.api, api_secret, api::kNodeApiLogger);
+
+    api::LocalWallet::fillLocalWalletApi(
+        o.api, o.key_store, tipsetContext, o.wallet_default_address);
 
     o.chain_events->init().value();
 
