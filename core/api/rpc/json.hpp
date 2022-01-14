@@ -12,6 +12,7 @@
 #include "api/rpc/json_errors.hpp"
 #include "api/rpc/rpc.hpp"
 #include "api/storage_miner/storage_api.hpp"
+#include "api/types/key_info.hpp"
 #include "api/worker_api.hpp"
 #include "common/enum.hpp"
 #include "common/libp2p/peer/cbor_peer_info.hpp"
@@ -40,7 +41,6 @@ namespace fc::codec::cbor {
 }  // namespace fc::codec::cbor
 
 namespace fc::api {
-  using api::ApiSectorInfo;
   using codec::cbor::CborDecodeStream;
   using common::Blob;
   using crypto::signature::BlsSignature;
