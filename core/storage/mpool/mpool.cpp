@@ -794,8 +794,9 @@ namespace fc::storage::mpool {
               remove(msg->from, msg->nonce);
             } else {
               if (bls) {
-                std::lock_guard bls_cache_lock{bls_cache_mutex_};
+                std::unique_lock bls_cache_lock{bls_cache_mutex_};
                 if (auto sig{bls_cache.get(cid)}) {
+                  bls_cache_lock.unlock();
                   OUTCOME_TRY(add({*msg, *sig}));
                 }
               } else {
