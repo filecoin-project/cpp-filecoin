@@ -68,7 +68,7 @@ bootstrap=/dns4/bootstrap-1.interop.fildev.network/tcp/1347/p2p/12D3KooWFYS1f31z
 
 Start node
 ```sh
-fuhon-node --repo fuhon-interopnet --genesis docker/mainnet/genesis.car
+fuhon-node --repo fuhon-interopnet --genesis docker/interopnet/genesis.car
 # you can omit --genesis flag after first run
 fuhon-node --repo fuhon-interopnet
 ```
