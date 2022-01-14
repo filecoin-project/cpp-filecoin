@@ -8,21 +8,18 @@
 #include "common/error_text.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
-#include "vm/state/impl/state_tree_impl.hpp"
-#include "vm/state/resolve_key.hpp"
 
 namespace fc::api {
-  using vm::state::StateTreeImpl;
 
   void LocalWallet::fillLocalWalletApi(
       const std::shared_ptr<WalletApi> &api,
       const std::shared_ptr<KeyStore> &key_store,
-      const IpldPtr &ipld,
+      const std::function<outcome::result<TipsetContext>(
+          const TipsetKey &tipset_key, bool interpret)> &ts_ctx,
       const std::shared_ptr<OneKey> &wallet_default_address) {
-    const StateTreeImpl state_tree{ipld};
-
     api->WalletBalance = [=](auto &address) -> outcome::result<TokenAmount> {
-      OUTCOME_TRY(actor, state_tree.tryGet(address));
+      OUTCOME_TRY(context, ts_ctx({}, false));
+      OUTCOME_TRY(actor, context.state_tree.tryGet(address));
       if (actor) {
         return actor->balance;
       }
@@ -35,7 +32,8 @@ namespace fc::api {
     };
     api->WalletHas = [=](auto address) -> outcome::result<bool> {
       if (!address.isKeyType()) {
-        OUTCOME_TRYA(address, resolveKey(state_tree, address));
+        OUTCOME_TRY(context, ts_ctx({}, false));
+        OUTCOME_TRYA(address, context.accountKey(address));
       }
       return key_store->has(address);
     };
@@ -73,14 +71,16 @@ namespace fc::api {
     api->WalletSign = [=](auto address,
                           auto data) -> outcome::result<Signature> {
       if (!address.isKeyType()) {
-        OUTCOME_TRYA(address, resolveKey(state_tree, address));
+        OUTCOME_TRY(context, ts_ctx({}, false));
+        OUTCOME_TRYA(address, context.accountKey(address));
       }
       return key_store->sign(address, data);
     };
     api->WalletVerify =
         [=](auto address, auto data, auto signature) -> outcome::result<bool> {
       if (!address.isKeyType()) {
-        OUTCOME_TRYA(address, resolveKey(state_tree, address));
+        OUTCOME_TRY(context, ts_ctx({}, false));
+        OUTCOME_TRYA(address, context.accountKey(address));
       }
       return key_store->verify(address, data, signature);
     };

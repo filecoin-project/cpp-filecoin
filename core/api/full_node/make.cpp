@@ -10,7 +10,6 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "adt/stop.hpp"
-#include "api/types/tipset_context.hpp"
 #include "api/version.hpp"
 #include "blockchain/block_validator/eligible.hpp"
 #include "blockchain/block_validator/win_sectors.hpp"
@@ -109,28 +108,13 @@ namespace fc::api {
       const std::shared_ptr<PubSubGate> &pubsub,
       const std::shared_ptr<KeyStore> &key_store,
       const std::shared_ptr<Discovery> &market_discovery,
-      const std::shared_ptr<RetrievalClient> &retrieval_market_client) {
+      const std::shared_ptr<RetrievalClient> &retrieval_market_client,
+      const std::function<outcome::result<TipsetContext>(
+          const TipsetKey &tipset_key, bool interpret)> &tipsetContext) {
     auto ts_load{env_context.ts_load};
     auto ipld{env_context.ipld};
     auto interpreter_cache{env_context.interpreter_cache};
-    auto tipsetContext = [=](const TipsetKey &tipset_key,
-                             bool interpret =
-                                 false) -> outcome::result<TipsetContext> {
-      TipsetCPtr tipset;
-      if (tipset_key.cids().empty()) {
-        tipset = chain_store->heaviestTipset();
-      } else {
-        OUTCOME_TRYA(tipset, ts_load->load(tipset_key));
-      }
-      auto ipld{withVersion(env_context.ipld, tipset->height())};
-      TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
-      if (interpret) {
-        OUTCOME_TRY(result, interpreter_cache->get(tipset->key));
-        context.state_tree = {ipld, result.state_root};
-        context.interpreted = result;
-      }
-      return context;
-    };
+
     api->BeaconGetEntry = [=](auto &&cb, auto epoch) {
       return beaconizer->entry(drand_schedule->maxRound(epoch), cb);
     };
@@ -415,7 +399,7 @@ namespace fc::api {
     api->GasEstimateMessageGas = [=](auto msg, auto &spec, auto &tsk)
         -> outcome::result<UnsignedMessage> {
       if (msg.from.isId()) {
-        OUTCOME_TRY(context, tipsetContext(tsk));
+        OUTCOME_TRY(context, tipsetContext(tsk, false));
         OUTCOME_TRYA(msg.from, context.accountKey(msg.from));
       }
       OUTCOME_TRY(mpool->estimate(
@@ -546,7 +530,7 @@ namespace fc::api {
         };
     api->MpoolPending =
         [=](auto &tipset_key) -> outcome::result<std::vector<SignedMessage>> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       if (context.tipset->height() > chain_store->heaviestTipset()->height()) {
         return ERROR_TEXT("MpoolPending: tipset from future requested");
       }
@@ -554,7 +538,7 @@ namespace fc::api {
     };
     api->MpoolPushMessage = [=](auto message,
                                 auto &spec) -> outcome::result<SignedMessage> {
-      OUTCOME_TRY(context, tipsetContext({}));
+      OUTCOME_TRY(context, tipsetContext({}, false));
       if (message.from.isId()) {
         OUTCOME_TRYA(message.from, context.accountKey(message.from));
       }
@@ -590,12 +574,12 @@ namespace fc::api {
       if (address.isKeyType()) {
         return address;
       }
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       return context.accountKey(address);
     };
     api->StateCall = [=](auto message,
                          auto &tipset_key) -> outcome::result<InvocResult> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
 
       std::unique_lock ts_lock{*env_context.ts_branches_mutex};
       OUTCOME_TRY(ts_branch, TsBranch::make(ts_load, tipset_key, ts_main));
@@ -614,7 +598,7 @@ namespace fc::api {
         [=](auto size,
             auto verified,
             auto &tsk) -> outcome::result<DealCollateralBounds> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(context, tipsetContext(tsk, false));
       OUTCOME_TRY(power, context.powerState());
       OUTCOME_TRY(reward, context.rewardState());
       OUTCOME_TRY(
@@ -636,7 +620,7 @@ namespace fc::api {
     // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     api->StateListMessages = [=](auto &match, auto &tipset_key, auto to_height)
         -> outcome::result<std::vector<CID>> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
 
       // TODO(artyom-yurin): Make sure at least one of 'to' or 'from' is
       // defined
@@ -688,7 +672,7 @@ namespace fc::api {
         if (context.tipset->height() == 0) break;
 
         OUTCOME_TRY(parent_context,
-                    tipsetContext(context.tipset->getParents()));
+                    tipsetContext(context.tipset->getParents(), false));
 
         context = std::move(parent_context);
       }
@@ -712,7 +696,7 @@ namespace fc::api {
         };
     api->StateReadState = [=](auto &actor,
                               auto &tipset_key) -> outcome::result<ActorState> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       auto cid = actor.head;
       OUTCOME_TRY(raw, context.state_tree.getStore()->get(cid));
       return ActorState{
@@ -722,13 +706,13 @@ namespace fc::api {
     };
     api->StateListMiners =
         [=](auto &tipset_key) -> outcome::result<std::vector<Address>> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(power_state, context.powerState());
       return power_state->claims.keys();
     };
     api->StateListActors =
         [=](auto &tsk) -> outcome::result<std::vector<Address>> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(context, tipsetContext(tsk, false));
       OUTCOME_TRY(root, context.state_tree.flush());
       OUTCOME_TRY(info, getCbor<StateTreeImpl::StateRoot>(context, root));
       adt::Map<Actor, adt::AddressKeyer> actors{info.actor_tree_root, context};
@@ -737,7 +721,7 @@ namespace fc::api {
     };
     api->StateMarketBalance =
         [=](auto &address, auto &tipset_key) -> outcome::result<MarketBalance> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(state, context.marketState());
       OUTCOME_TRY(id_address, context.state_tree.lookupId(address));
       OUTCOME_TRY(escrow, state->escrow_table.tryGet(id_address));
@@ -752,7 +736,7 @@ namespace fc::api {
     };
     api->StateMarketDeals =
         [=](auto &tipset_key) -> outcome::result<MarketDealMap> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(state, context.marketState());
       MarketDealMap map;
       OUTCOME_TRY(state->proposals.visit(
@@ -765,12 +749,12 @@ namespace fc::api {
     };
     api->StateLookupID = [=](auto &address,
                              auto &tipset_key) -> outcome::result<Address> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       return context.state_tree.lookupId(address);
     };
     api->StateMarketStorageDeal =
         [=](auto deal_id, auto &tipset_key) -> outcome::result<StorageDeal> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(state, context.marketState());
       OUTCOME_TRY(proposal, state->proposals.get(deal_id));
       OUTCOME_TRY(deal_state, state->states.tryGet(deal_id));
@@ -783,7 +767,7 @@ namespace fc::api {
     api->StateMinerActiveSectors =
         [=](auto &miner,
             auto &tsk) -> outcome::result<std::vector<SectorOnChainInfo>> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(context, tipsetContext(tsk, false));
       OUTCOME_TRY(state, context.minerState(miner));
       std::vector<SectorOnChainInfo> sectors;
       OUTCOME_TRY(deadlines, state->deadlines.get());
@@ -802,7 +786,7 @@ namespace fc::api {
     };
     api->StateMinerAvailableBalance =
         [=](auto &miner, auto &tsk) -> outcome::result<TokenAmount> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(context, tipsetContext(tsk, false));
       OUTCOME_TRY(actor, context.state_tree.get(miner));
       OUTCOME_TRY(miner_state,
                   getCbor<MinerActorStatePtr>(context, actor.head));
@@ -814,7 +798,7 @@ namespace fc::api {
     api->StateMinerDeadlines =
         [=](auto &address,
             auto &tipset_key) -> outcome::result<std::vector<Deadline>> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(state, context.minerState(address));
       OUTCOME_TRY(deadlines, state->deadlines.get());
       std::vector<Deadline> result;
@@ -826,7 +810,7 @@ namespace fc::api {
     };
     api->StateMinerFaults = [=](auto address,
                                 auto tipset_key) -> outcome::result<RleBitset> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(state, context.minerState(address));
       OUTCOME_TRY(deadlines, state->deadlines.get());
       RleBitset faults;
@@ -841,7 +825,7 @@ namespace fc::api {
     };
     api->StateMinerInfo = [=](auto &address,
                               auto &tipset_key) -> outcome::result<MinerInfo> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(miner_state, context.minerState(address));
       OUTCOME_TRY(miner_info, miner_state->getInfo());
       return MinerInfo{
@@ -858,7 +842,7 @@ namespace fc::api {
     };
     api->StateMinerPartitions = [=](auto &miner, auto _deadline, auto &tsk)
         -> outcome::result<std::vector<Partition>> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(context, tipsetContext(tsk, false));
       OUTCOME_TRY(state, context.minerState(miner));
       OUTCOME_TRY(deadlines, state->deadlines.get());
       OUTCOME_TRY(deadline, deadlines.due[_deadline].get());
@@ -877,7 +861,7 @@ namespace fc::api {
     };
     api->StateMinerPower =
         [=](auto &address, auto &tipset_key) -> outcome::result<MinerPower> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(power_state, context.powerState());
       OUTCOME_TRY(miner_power, power_state->getClaim(address));
       Claim total(power_state->total_raw_power, power_state->total_qa_power);
@@ -886,21 +870,21 @@ namespace fc::api {
     };
     api->StateMinerProvingDeadline =
         [=](auto &address, auto &tipset_key) -> outcome::result<DeadlineInfo> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(state, context.minerState(address));
       const auto deadline_info = state->deadlineInfo(context.tipset->height());
       return deadline_info.nextNotElapsed();
     };
     api->StateMinerSectorAllocated =
         [=](auto &miner, auto sector, auto &tsk) -> outcome::result<bool> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(context, tipsetContext(tsk, false));
       OUTCOME_TRY(state, context.minerState(miner));
       OUTCOME_TRY(sectors, state->allocated_sectors.get());
       return sectors.has(sector);
     };
     api->StateMinerSectors = [=](auto &address, auto &filter, auto &tipset_key)
         -> outcome::result<std::vector<SectorOnChainInfo>> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(state, context.minerState(address));
       std::vector<SectorOnChainInfo> sectors;
       OUTCOME_TRY(state->sectors.sectors.visit([&](auto id, auto &info) {
@@ -916,7 +900,7 @@ namespace fc::api {
     };
     api->StateNetworkVersion =
         [=](auto &tipset_key) -> outcome::result<NetworkVersion> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       return getNetworkVersion(context.tipset->height());
     };
     constexpr auto kInitialPledgeNum{110};
@@ -925,7 +909,7 @@ namespace fc::api {
         [=](auto &miner,
             const SectorPreCommitInfo &precommit,
             auto &tsk) -> outcome::result<TokenAmount> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(context, tipsetContext(tsk, false));
       OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
       OUTCOME_TRY(market, context.marketState());
       // TODO(m.tagirov): older market actor versions
@@ -955,7 +939,7 @@ namespace fc::api {
         [=](auto &miner,
             const SectorPreCommitInfo &precommit,
             auto &tsk) -> outcome::result<TokenAmount> {
-      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(context, tipsetContext(tsk, false));
       OUTCOME_TRY(sector_size, getSectorSize(precommit.registered_proof));
       OUTCOME_TRY(market, context.marketState());
       // TODO(m.tagirov): older market actor versions
@@ -992,7 +976,7 @@ namespace fc::api {
     api->GetProofType = [=](const Address &miner_address,
                             const TipsetKey &tipset_key)
         -> outcome::result<RegisteredSealProof> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(miner_state, context.minerState(miner_address));
       OUTCOME_TRY(miner_info, miner_state->getInfo());
       const auto network_version = getNetworkVersion(context.tipset->height());
@@ -1004,14 +988,14 @@ namespace fc::api {
     api->StateSectorGetInfo =
         [=](auto address, auto sector_number, auto tipset_key)
         -> outcome::result<boost::optional<SectorOnChainInfo>> {
-      OUTCOME_TRY(context, tipsetContext(tipset_key));
+      OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(state, context.minerState(address));
       return state->sectors.sectors.tryGet(sector_number);
     };
     api->StateSectorExpiration = [=](auto &address, auto sector, auto &tsk)
         -> outcome::result<SectorExpiration> {
       SectorExpiration result;
-      OUTCOME_TRY(context, tipsetContext(tsk));
+      OUTCOME_TRY(context, tipsetContext(tsk, false));
       OUTCOME_TRY(state, context.minerState(address));
       OUTCOME_TRY(deadlines, state->deadlines.get());
       for (const auto &_deadline : deadlines.due) {
@@ -1055,7 +1039,7 @@ namespace fc::api {
 
     api->StateSearchMsg =
         [=](auto &&cb, auto &&tsk, auto &&cid, auto &&lookback_limit, bool) {
-          OUTCOME_CB(auto context, tipsetContext(tsk));
+          OUTCOME_CB(auto context, tipsetContext(tsk, false));
           msg_waiter->search(
               context.tipset,
               cid,

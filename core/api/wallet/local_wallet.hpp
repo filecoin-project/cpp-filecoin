@@ -7,7 +7,7 @@
 
 #include "api/wallet/wallet_api.hpp"
 
-#include "storage/ipfs/datastore.hpp"
+#include "api/types/tipset_context.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "storage/map_prefix/prefix.hpp"
 
@@ -20,7 +20,8 @@ namespace fc::api {
     static void fillLocalWalletApi(
         const std::shared_ptr<WalletApi> &api,
         const std::shared_ptr<KeyStore> &key_store,
-        const IpldPtr &ipld,
+        const std::function<outcome::result<TipsetContext>(
+            const TipsetKey &tipset_key, bool interpret)> &ts_ctx,
         const std::shared_ptr<OneKey> &wallet_default_address);
   };
 
