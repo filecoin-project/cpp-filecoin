@@ -142,18 +142,20 @@ namespace fc::sector_storage {
       gsl::span<const UnpaddedPieceSize> piece_sizes,
       const UnpaddedPieceSize &new_piece_size,
       PieceData piece_data) {
-    MetaPieceData meta_data(uuids::to_string(uuids::random_generator()()),
-                            ReaderType::Type::pushStreamReader);
-    PieceDataSender::send(piece_data.release(),      // TODO(@Elestrias) [FIL-560] Add Null PieceData to AddPiece.
-
-                          *(httpSender.io),
-                          host_,
-                          port_,
-                          "/rpc/streams/v0/push/" + meta_data.uuid,
-                          new_piece_size,
-                          [](const outcome::result<std::string> &res) {
-                            std::cerr << res.value();
-                          });
+    MetaPieceData meta_data = piece_data.isNullData() ? MetaPieceData(std::to_string(new_piece_size), ReaderType::Type::nullReader)
+        : MetaPieceData(uuids::to_string(uuids::random_generator()()), ReaderType::Type::pushStreamReader);
+    if(!piece_data.isNullData()) {
+      PieceDataSender::send(
+          piece_data.release(),  // TODO(@Elestrias) [FIL-560] Add Null PieceData to AddPiece.
+          *(httpSender_.io),
+          host_,
+          port_,
+          "/rpc/streams/v0/push/" + meta_data.uuid,
+          new_piece_size,
+          [](const outcome::result<std::string> &res) {
+            std::cerr << res.value();
+          });
+    }
     return api_.AddPiece(sector, piece_sizes, new_piece_size, meta_data);
   }
 
