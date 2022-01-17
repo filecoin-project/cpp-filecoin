@@ -1,7 +1,7 @@
 FROM ubuntu:20.04 AS base
 RUN rm -f /etc/apt/apt.conf.d/docker-clean
 ARG DEBIAN_FRONTEND=noninteractive
-RUN --mount=type=cache,target=/var/cache/apt,sharing=shared apt-get update && apt-get install -y --no-install-recommends hwloc ocl-icd-* \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=shared apt-get update && apt-get install -y --no-install-recommends hwloc ocl-icd-* curl \
     && rm -rf /var/lib/apt/lists/*
 
 FROM base AS build
@@ -25,6 +25,7 @@ COPY docker/miner_entrypoint.sh /
 RUN chmod +x /miner_entrypoint.sh
 ENTRYPOINT ["/miner_entrypoint.sh"]
 CMD ["fuhon-miner", "--repo", "fuhon-node-repo", "--miner-repo", "fuhon-miner-repo"]
+HEALTHCHECK --interval=5s --timeout=10s CMD curl http://127.0.0.1:1234/health || exit 1
 
 FROM base AS fuhon-node
 WORKDIR /opt/fuhon
@@ -34,3 +35,4 @@ COPY docker/node_entrypoint.sh /
 RUN chmod +x /node_entrypoint.sh
 ENTRYPOINT ["/node_entrypoint.sh"]
 CMD ["fuhon-node", "--config", "fuhon-node.cfg", "--genesis" ,"genesis.car", "--repo", "fuhon-node-repo"]
+HEALTHCHECK --interval=5s --timeout=10s CMD curl http://127.0.0.1:1234/health || exit 1
