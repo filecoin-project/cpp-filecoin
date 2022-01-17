@@ -532,6 +532,11 @@ namespace fc {
         api::makeRpc(*mapi,
                      std::bind(mapi->AuthVerify, std::placeholders::_1)));
     auto mroutes{std::make_shared<api::Routes>()};
+    mroutes->emplace("/health", [](auto &) {
+      api::http::response<api::http::string_body> res;
+      res.body() = "{\"status\":\"UP\"}";
+      return api::WrapperResponse{std::move(res)};
+    });
 
     mroutes->insert({"/remote",
                      api::makeAuthRoute(
