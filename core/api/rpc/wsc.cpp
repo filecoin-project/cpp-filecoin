@@ -114,7 +114,6 @@ namespace fc::api::rpc {
       }
       std::string_view s{static_cast<const char *>(buffer.cdata().data()),
                          buffer.cdata().size()};
-      spdlog::info("WSC READ {}", s);
       if (auto _req{codec::json::parse(s)}) {
         _onread(_req.value());
       }

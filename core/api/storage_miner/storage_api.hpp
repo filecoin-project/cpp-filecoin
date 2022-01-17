@@ -58,6 +58,7 @@ namespace fc::api {
   using sector_storage::stores::HealthReport;
   using sector_storage::stores::SectorIndex;
   using StorageInfo_ = sector_storage::stores::StorageInfo;
+  using sector_storage::stores::SectorStorageInfo;
 
   const static common::Logger kStorageApiLogger =
       common::createLogger("Storage API");
@@ -171,7 +172,7 @@ namespace fc::api {
                const SectorFileType &)
     API_METHOD(StorageFindSector,
                jwt::kAdminPermission,
-               std::vector<StorageInfo_>,
+               std::vector<SectorStorageInfo>,
                const SectorId &,
                const SectorFileType &,
                boost::optional<SectorSize>)
@@ -180,7 +181,7 @@ namespace fc::api {
                std::vector<StorageInfo_>,
                const SectorFileType &,
                SectorSize,
-               bool)
+               std::string)
 
     API_METHOD(ReturnAddPiece,
                jwt::kAdminPermission,
