@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 #include "api/common_api.hpp"
 #include "api/utils.hpp"
 #include "api/version.hpp"
@@ -16,6 +19,7 @@ namespace fc::api {
   using ::fc::ApiAlgorithm;
   using primitives::jwt::kPermissionKey;
   using primitives::jwt::kTokenType;
+  namespace uuids = boost::uuids;
 
   void fillAuthApi(const std::shared_ptr<CommonApi> &api,
                    const std::shared_ptr<ApiAlgorithm> &secret_algorithm,
@@ -28,6 +32,7 @@ namespace fc::api {
 
       return Bytes(token.begin(), token.end());
     };
+
     api->AuthVerify =
         [verifier{std::move(verifier)},
          logger](auto token) -> outcome::result<std::vector<Permission>> {
@@ -58,6 +63,11 @@ namespace fc::api {
       }
 
       return std::move(perms);
+    };
+
+    api->Session = []() {
+      static std::string uuid = uuids::to_string(uuids::random_generator()());
+      return uuid;
     };
   }
 }  // namespace fc::api

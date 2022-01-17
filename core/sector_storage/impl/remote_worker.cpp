@@ -8,8 +8,8 @@
 #include <boost/uuid/uuid_io.hpp>
 #include "primitives/jwt/jwt.hpp"
 
-#include "drand/impl/http.cpp"
 #include "common/uri_parser/uri_parser.hpp"
+#include "drand/impl/http.cpp"
 #include "primitives/piece/piece_data.hpp"
 #include "sector_storage/impl/remote_worker.hpp"
 
@@ -22,9 +22,8 @@ namespace fc::sector_storage {
   using tcp = net::ip::tcp;
   namespace uuids = boost::uuids;
   namespace http = boost::beast::http;
-  using primitives::jwt::kAdminPermission;
   using common::HttpUri;
-
+  using primitives::jwt::kAdminPermission;
 
   outcome::result<std::shared_ptr<RemoteWorker>>
   RemoteWorker::connectRemoteWorker(io_context &context,
@@ -51,8 +50,11 @@ namespace fc::sector_storage {
     r_worker->host_ = uri.host();
     r_worker->wsc_.setup(r_worker->api_);
 
-    OUTCOME_TRY(r_worker->wsc_.connect2(
-        uri.host(), std::to_string(uri.port()), "/rpc/v0", std::string{token.begin(), token.end()}));
+    OUTCOME_TRY(
+        r_worker->wsc_.connect(uri.host(),
+                               std::to_string(uri.port()),
+                               "/rpc/v0",
+                               std::string{token.begin(), token.end()}));
 
     return std::move(r_worker);
   }
@@ -72,7 +74,7 @@ namespace fc::sector_storage {
   }
 
   RemoteWorker::RemoteWorker(io_context &context)
-      : wsc_(*(worker_thread_.io)), io_(context) {} //TODO normaly
+      : wsc_(*(worker_thread_.io)), io_(context) {}
 
   struct PieceDataSender {
     explicit PieceDataSender(io_context &io)
@@ -107,23 +109,19 @@ namespace fc::sector_storage {
       s->resolver.async_resolve(
           host, port, [s, MOVE(cb)](auto &&ec, auto &&iterator) {
             EC_CB();
-            spdlog::info("ASYNC resolve successful");
             s->stream.async_connect(
                 iterator, [s, MOVE(cb)](auto &&ec, auto &&) {
                   EC_CB();
-                  spdlog::info("ASYNC connect successful");
                   http::async_write(s->stream,
                                     s->file_req,
                                     [s, MOVE(cb)](auto &&ec, auto &&) {
                                       EC_CB();
-                                      spdlog::info("ASYNC Write successful");
                                       http::async_read(
                                           s->stream,
                                           s->buffer,
                                           s->res,
                                           [s, MOVE(cb)](auto &&ec, auto &&) {
                                             EC_CB();
-                                            spdlog::info("HTTP SEND successful");
                                             cb(std::move(s->res.body()));
                                           });
                                     });
@@ -146,11 +144,8 @@ namespace fc::sector_storage {
       PieceData piece_data) {
     MetaPieceData meta_data(uuids::to_string(uuids::random_generator()()),
                             ReaderType::Type::pushStreamReader);
-    /* MetaPieceData meta_data("2032",
-                            ReaderType::Type::nullReader); */
-    //TODO(@Markuuusss) [FIL-560] Add Null PieceData to AddPiece.
-    spdlog::info("Starting transfer piece data to remote worker");
-    PieceDataSender::send(piece_data.release(),
+    PieceDataSender::send(piece_data.release(),      // TODO(@Elestrias) [FIL-560] Add Null PieceData to AddPiece.
+
                           *(httpSender.io),
                           host_,
                           port_,
@@ -159,8 +154,7 @@ namespace fc::sector_storage {
                           [](const outcome::result<std::string> &res) {
                             std::cerr << res.value();
                           });
-    spdlog::info("Transfer piece data to remote worker was successful");
-  return api_.AddPiece(sector, piece_sizes, new_piece_size, meta_data);
+    return api_.AddPiece(sector, piece_sizes, new_piece_size, meta_data);
   }
 
   outcome::result<CallId> RemoteWorker::sealPreCommit1(

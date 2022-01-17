@@ -85,7 +85,7 @@ namespace fc::sector_storage {
     explicit RemoteWorker(io_context &context);
 
     IoThread worker_thread_;
-    IoThread httpSender;
+    IoThread httpSender_;
     WorkerApi api_;
     Client wsc_;
     io_context &io_;
