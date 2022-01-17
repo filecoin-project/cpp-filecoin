@@ -58,14 +58,14 @@ namespace fc::storage {
   inline gsl::span<const uint8_t> make_span(const leveldb::Slice &s) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const uint8_t *>(s.data());
-    return gsl::make_span(ptr, s.size());
+    return gsl::make_span(ptr, gsl::narrow<int64_t>(s.size()));
   }
 
   inline Bytes make_buffer(const leveldb::Slice &s) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const auto *ptr = reinterpret_cast<const uint8_t *>(s.data());
     // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-    return Bytes(ptr, ptr + s.size());
+    return {ptr, ptr + s.size()};
   }
 
 }  // namespace fc::storage

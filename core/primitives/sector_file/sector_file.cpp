@@ -15,6 +15,7 @@
 #include "primitives/rle_bitset/runs_utils.hpp"
 #include "primitives/sector/sector.hpp"
 #include "proofs/impl/proof_engine_impl.hpp"
+#include "sector_storage/zerocomm/zerocomm.hpp"
 
 namespace fc::primitives::sector_file {
 
@@ -99,11 +100,12 @@ namespace fc::primitives::sector_file {
   }
 
   outcome::result<SectorId> parseSectorName(const std::string &sector_str) {
-    SectorNumber sector_id;
-    ActorId miner_id;
+    SectorNumber sector_id{};
+    ActorId miner_id{};
 
     auto count =
-        std::sscanf(sector_str.c_str(), "s-t0%lld-%lld", &miner_id, &sector_id);
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
+        std::sscanf(sector_str.c_str(), "s-t0%ld-%ld", &miner_id, &sector_id);
 
     if (count != 2) {
       return SectorFileTypeErrors::kInvalidSectorName;
@@ -137,11 +139,11 @@ namespace fc::primitives::sector_file {
           trailer.put(0, 1);
         }
         is_first = false;
-      } else if (not(i % 2) == is_previous_value) {
+      } else if (((i % 2) == 0) == is_previous_value) {
         return SectorFileError::kInvalidRuns;
       }
 
-      is_previous_value = not(i % 2);
+      is_previous_value = ((i % 2) == 0);
 
       if (runs[i] == 1) {
         trailer.put(1, 1);
@@ -182,7 +184,8 @@ namespace fc::primitives::sector_file {
       return SectorFileError::kCannotMoveCursor;
     }
 
-    file.write((char *)trailer.data(), trailer.size());
+    file.write(common::span::bytestr(trailer.data()),
+               gsl::narrow<int64_t>(trailer.size()));
 
     if (!file.good()) {
       return SectorFileError::kCannotWrite;
@@ -190,7 +193,7 @@ namespace fc::primitives::sector_file {
 
     boost::endian::little_uint32_buf_t trailer_size(trailer.size());
 
-    file.write((char *)trailer_size.data(), sizeof(uint32_t));
+    file.write(common::span::bytestr(trailer_size.data()), sizeof(uint32_t));
 
     if (!file.good()) {
       return SectorFileError::kCannotWrite;
@@ -198,7 +201,7 @@ namespace fc::primitives::sector_file {
 
     file.close();
 
-    boost::system::error_code ec;
+    boost::system::error_code ec{};
     fs::resize_file(
         path, max_piece_size + sizeof(uint32_t) + trailer.size(), ec);
     if (ec.failed()) {
@@ -211,13 +214,14 @@ namespace fc::primitives::sector_file {
   outcome::result<std::shared_ptr<SectorFile>> SectorFile::createFile(
       const std::string &path, PaddedPieceSize max_piece_size) {
     {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
       int fd = open(path.c_str(), O_RDWR | O_CREAT, 0644);
       if (fd == -1) {
         return SectorFileError::kCannotCreateFile;
       }
       close(fd);
     }
-    boost::system::error_code ec;
+    boost::system::error_code ec{};
     fs::resize_file(path, max_piece_size, ec);
     if (ec.failed()) {
       return SectorFileError::kCannotResizeFile;
@@ -233,7 +237,7 @@ namespace fc::primitives::sector_file {
     if (!fs::exists(path)) {
       return SectorFileError::kFileNotExist;
     }
-
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
     int fd = open(path.c_str(), O_RDWR, 0644);
     if (fd == -1) {
       return SectorFileError::kCannotOpenFile;
@@ -250,7 +254,7 @@ namespace fc::primitives::sector_file {
     pread(fd,
           trailer_size_buf.data(),
           trailer_size_bytes,
-          file_size - trailer_size_bytes);
+          gsl::narrow<int64_t>(file_size - trailer_size_bytes));
 
     uint64_t trailer_size = trailer_size_buf.value();
 
@@ -261,7 +265,8 @@ namespace fc::primitives::sector_file {
     uint64_t trailer_offset = file_size - trailer_size_bytes - trailer_size;
 
     std::vector<uint8_t> trailer(trailer_size);
-    pread(fd, trailer.data(), trailer_size, trailer_offset);
+    pread(
+        fd, trailer.data(), trailer_size, gsl::narrow<int64_t>(trailer_offset));
 
     OUTCOME_TRY(runs, runsFromBuffer(trailer));
 
@@ -304,7 +309,7 @@ namespace fc::primitives::sector_file {
 
   outcome::result<void> SectorFile::free(PaddedByteIndex offset,
                                          PaddedPieceSize size) {
-    // TODO: deallocate
+    // TODO(ortyomka): deallocate
 
     auto new_runs =
         primitives::runsAnd(runs_, std::vector<uint64_t>{offset, size}, true);
@@ -340,11 +345,16 @@ namespace fc::primitives::sector_file {
     logger_ = common::createLogger("sector file");
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<boost::optional<PieceInfo>> SectorFile::write(
       const PieceData &data,
       PaddedByteIndex offset,
       PaddedPieceSize size,
       const boost::optional<RegisteredSealProof> &maybe_seal_proof_type) {
+    if (data.isNullData()) {
+      return writeNull(offset, size, maybe_seal_proof_type.has_value());
+    }
+
     if (not data.isOpened()) {
       return SectorFileError::kPipeNotOpen;
     }
@@ -365,7 +375,7 @@ namespace fc::primitives::sector_file {
       }
     }
 
-    file_.seekp(offset, std::ios_base::beg);
+    file_.seekp(gsl::narrow<int64_t>(offset), std::ios_base::beg);
 
     if (not file_.good()) {
       return SectorFileError::kCannotMoveCursor;
@@ -398,7 +408,7 @@ namespace fc::primitives::sector_file {
                                    (char *)(buffer.data() + read),
                                    chunk_size.unpadded() - read);
         if (current_read == -1) {
-          // TODO: check errno
+          // TODO(ortyomka): check errno
           return SectorFileError::kCannotRead;
         }
 
@@ -449,6 +459,32 @@ namespace fc::primitives::sector_file {
     };
   }
 
+  outcome::result<boost::optional<PieceInfo>> SectorFile::writeNull(
+      PaddedByteIndex offset, PaddedPieceSize size, bool need_piece_info) {
+    if (not file_.good()) {
+      return SectorFileError::kInvalidFile;
+    }
+
+    const auto piece = runsAnd(runs_, std::vector<uint64_t>({offset, size}));
+    OUTCOME_TRY(allocated_size, runsCount(piece));
+
+    assert(allocated_size == 0 && "Overwriting with zeros is not available");
+    // TODO (@Markuu-s) Overwriting with zeros
+    // here we write zeros. but file already zero-filled, so do nothing
+
+    OUTCOME_TRY(markAllocated(offset, size));
+
+    if (not need_piece_info) {
+      return boost::none;
+    }
+
+    OUTCOME_TRY(
+        cid,
+        fc::sector_storage::zerocomm::getZeroPieceCommitment(size.unpadded()));
+
+    return PieceInfo{.size = size, .cid = cid};
+  }
+
   outcome::result<bool> SectorFile::read(const PieceData &output,
                                          PaddedByteIndex offset,
                                          PaddedPieceSize size) {
@@ -472,7 +508,7 @@ namespace fc::primitives::sector_file {
       }
     }
 
-    file_.seekg(offset, std::ios_base::beg);
+    file_.seekg(gsl::narrow<int64_t>(offset), std::ios_base::beg);
 
     if (!file_.good()) {
       return SectorFileError::kCannotMoveCursor;
@@ -482,7 +518,7 @@ namespace fc::primitives::sector_file {
     constexpr auto kDefaultBufferSize = uint64_t(32 * 1024);
     PaddedPieceSize output_size =
         primitives::piece::paddedSize(kDefaultBufferSize).padded();
-    std::vector<uint8_t> read(output_size);
+    std::vector<char> read(output_size);
     std::vector<uint8_t> buffer(output_size.unpadded());
 
     while (left > 0) {
@@ -490,7 +526,7 @@ namespace fc::primitives::sector_file {
         output_size = primitives::piece::paddedSize(left).padded();
       }
 
-      file_.read((char *)read.data(), output_size);
+      file_.read(read.data(), gsl::narrow<int64_t>(output_size));
 
       if (!file_.good()) {
         return SectorFileError::kCannotRead;
@@ -500,17 +536,18 @@ namespace fc::primitives::sector_file {
         return SectorFileError::kNotReadEnough;
       }
 
+      // TODO(ortyomka): maybe boost map file
       primitives::piece::unpad(
-          gsl::make_span(read.data(), output_size),
-          gsl::make_span(
-              buffer.data(),
-              output_size.unpadded()));  // TODO: maybe boost map file
+          common::span::cbytes(
+              gsl::make_span(read.data(), gsl::narrow<int64_t>(output_size))),
+          gsl::make_span(buffer.data(),
+                         gsl::narrow<int64_t>(output_size.unpadded())));
 
       auto write_size =
           ::write(output.getFd(), buffer.data(), output_size.unpadded());
 
       if (write_size == -1) {
-        // TODO: check errno
+        // TODO(ortyomka): check errno
         return SectorFileError::kCannotWrite;
       }
 
@@ -568,16 +605,19 @@ namespace fc::primitives::sector_file {
       }
 
       primitives::piece::pad(
-          gsl::make_span<const uint8_t>(input.data(), biggest),
-          gsl::make_span<uint8_t>(work_.data(), biggest.padded()));
+          gsl::make_span<const uint8_t>(input.data(),
+                                        gsl::narrow<int64_t>(biggest)),
+          gsl::make_span<uint8_t>(work_.data(),
+                                  gsl::narrow<int64_t>(biggest.padded())));
 
-      output_.write((char *)work_.data(), biggest.padded());
+      output_.write(common::span::bytestr(work_.data()),
+                    gsl::narrow<int64_t>(biggest.padded()));
 
       if (not output_.good()) {
         return SectorFileError::kCannotWrite;
       }
 
-      input.erase(input.begin(), input.begin() + biggest);
+      input.erase(input.begin(), input.begin() + gsl::narrow<int64_t>(biggest));
 
       if (input.size() < 127) {
         stash_ = std::move(input);

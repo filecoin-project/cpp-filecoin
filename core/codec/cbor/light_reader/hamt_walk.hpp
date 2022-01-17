@@ -18,10 +18,11 @@ namespace fc::codec::cbor::light_reader {
      * @param[out] value
      * @return
      */
+    // NOLINTNEXTLINE(readability-function-cognitive-complexity)
     inline bool next(BytesIn &key, BytesIn &value) {
       cbor::CborToken token;
       while (!empty()) {
-        if (_bucket) {
+        if (_bucket != 0) {
           --_bucket;
           if (read(token, node).listCount() != 2) {
             return false;
@@ -69,7 +70,7 @@ namespace fc::codec::cbor::light_reader {
             }
           }
           if (token.cidSize()) {
-            const CbCid *cid;
+            const CbCid *cid = nullptr;
             if (!readCborBlake(cid, token, node)) {
               return false;
             }

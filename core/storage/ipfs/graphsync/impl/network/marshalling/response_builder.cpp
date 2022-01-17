@@ -22,9 +22,9 @@ namespace fc::storage::ipfs::graphsync {
     dst->set_id(request_id);
     dst->set_status(status);
 
-    auto insertExtension = [&](std::string name, BytesIn data) {
+    auto insertExtension = [&](const std::string &name, BytesIn data) {
       dst->mutable_extensions()->insert(
-          {std::move(name), std::string(data.begin(), data.end())});
+          {name, std::string(data.begin(), data.end())});
     };
 
     insertExtension(std::string{kResponseMetadataProtocol},

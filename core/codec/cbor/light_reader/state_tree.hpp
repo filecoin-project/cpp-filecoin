@@ -28,7 +28,7 @@ namespace fc::codec::cbor::light_reader {
       if (!read(token, input).asUint()) {
         return false;
       }
-      const CbCid *cid;
+      const CbCid *cid = nullptr;
       if (!cbor::readCborBlake(cid, input)) {
         return false;
       }

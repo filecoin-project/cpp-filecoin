@@ -17,17 +17,9 @@
 namespace fc::storage::ipfs::graphsync {
 
   namespace {
-
     std::string makeStringRepr(const PeerId &peer_id) {
       return peer_id.toBase58().substr(46);
     }
-
-    /// Needed for sets and maps
-    inline bool less(const PeerId &a, const PeerId &b) {
-      // N.B. toVector returns const std::vector&, i.e. it is fast
-      return a.toVector() < b.toVector();
-    }
-
   }  // namespace
 
   PeerContext::PeerContext(PeerId peer_id,
@@ -35,8 +27,8 @@ namespace fc::storage::ipfs::graphsync {
                            PeerToNetworkFeedback &network_feedback,
                            Host &host,
                            Scheduler &scheduler)
-      : peer(std::move(peer_id)),
-        str(makeStringRepr(peer)),
+      : peer_(std::move(peer_id)),
+        str_(makeStringRepr(peer_)),
         graphsync_feedback_(graphsync_feedback),
         network_feedback_(network_feedback),
         host_(host),
@@ -44,26 +36,11 @@ namespace fc::storage::ipfs::graphsync {
 
   // Need to define it here due to unique_ptrs to incomplete types in the header
   PeerContext::~PeerContext() {
-    logger()->trace("~PeerContext, {}", str);
+    logger()->trace("~PeerContext, {}", str_);
     // must be closed
     if (!closed_) {
       close(RS_INTERNAL_ERROR);
     }
-  }
-
-  bool operator<(const PeerContextPtr &ctx, const PeerId &peer) {
-    if (!ctx) return false;
-    return less(ctx->peer, peer);
-  }
-
-  bool operator<(const PeerId &peer, const PeerContextPtr &ctx) {
-    if (!ctx) return false;
-    return less(peer, ctx->peer);
-  }
-
-  bool operator<(const PeerContextPtr &a, const PeerContextPtr &b) {
-    if (!a || !b) return false;
-    return less(a->peer, b->peer);
   }
 
   void PeerContext::setOutboundAddress(
@@ -79,11 +56,11 @@ namespace fc::storage::ipfs::graphsync {
     if (!outbound_endpoint_) {
       outbound_endpoint_ = std::make_unique<OutboundEndpoint>();
 
-      logger()->debug("connecting to {}", str);
+      logger()->debug("connecting to {}", str_);
 
       // clang-format off
       host_.newStream(
-          {peer, connect_to_},
+          {peer_, connect_to_},
           std::string(kProtocolVersion),
           [wptr{weak_from_this()}]
               (outcome::result<StreamPtr> rstream) {
@@ -103,11 +80,11 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
     if (rstream) {
-      logger()->debug("connected to peer={}", str);
+      logger()->debug("connected to peer={}", str_);
       onNewStream(std::move(rstream.value()), true);
     } else {
       logger()->info(
-          "cannot connect, peer={}, msg='{}'", str, rstream.error().message());
+          "cannot connect, peer={}, msg='{}'", str_, rstream.error().message());
       if (getState() == is_connecting) {
         closeLocalRequests(RS_CANNOT_CONNECT);
       }
@@ -123,8 +100,8 @@ namespace fc::storage::ipfs::graphsync {
     assert(stream);
     assert(streams_.count(stream) == 0);
 
-    if (!stream || streams_.count(stream)) {
-      logger()->error("onNewStream: inconsistency, peer={}", str);
+    if (!stream || (streams_.count(stream) != 0)) {
+      logger()->error("onNewStream: inconsistency, peer={}", str_);
       return;
     }
 
@@ -166,21 +143,24 @@ namespace fc::storage::ipfs::graphsync {
     if (outbound_endpoint_) {
       if (outbound_endpoint_->isConnecting()) {
         return is_connecting;
-      } else {
-        return is_connected;
       }
+      return is_connected;
     }
     return can_connect;
+  }
+
+  const std::string &PeerContext::asString() const {
+    return str_;
   }
 
   void PeerContext::onStreamAccepted(StreamPtr stream) {
     if (closed_) {
       logger()->debug(
-          "inbound stream from peer {}, but ctx is closed, ignoring", str);
+          "inbound stream from peer {}, but ctx is closed, ignoring", str_);
       stream->reset();
       return;
     }
-    logger()->debug("inbound stream from peer {}", str);
+    logger()->debug("inbound stream from peer {}", str_);
     onNewStream(std::move(stream), false);
   }
 
@@ -188,13 +168,13 @@ namespace fc::storage::ipfs::graphsync {
                                    SharedData request_body) {
     connectIfNeeded();
     logger()->debug(
-        "enqueueing request to peer {}, size=", str, request_body->size());
+        "enqueueing request to peer {}, size=", str_, request_body->size());
     auto res = outbound_endpoint_->enqueue(std::move(request_body));
     if (res) {
       local_request_ids_.insert(request_id);
     } else {
       logger()->info("enqueueRequest: outbound buffers overflow for peer {}",
-                     str);
+                     str_);
       close(RS_SLOW_STREAM);
     }
   }
@@ -207,7 +187,7 @@ namespace fc::storage::ipfs::graphsync {
         return;
       }
       logger()->info("cancelRequest: outbound buffers overflow for peer {}",
-                     str);
+                     str_);
     }
   }
 
@@ -216,12 +196,13 @@ namespace fc::storage::ipfs::graphsync {
     connectIfNeeded();
     auto res = outbound_endpoint_->sendResponse(id, response);
     if (!res) {
-      logger()->error("sendResponse: {}, peer={}", res.error().message(), str);
+      logger()->error("sendResponse: {}, peer={}", res.error().message(), str_);
       close(RS_SLOW_STREAM);
     }
   }
 
-  void PeerContext::postBlocks(RequestId request_id, Responder responder) {
+  void PeerContext::postBlocks(RequestId request_id,
+                               const Responder &responder) {
     connectIfNeeded();
     responders_.emplace(request_id, responder);
     if (outbound_endpoint_->empty()) {
@@ -234,7 +215,8 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
-    logger()->debug("close peer={} status={}", str, statusCodeToString(status));
+    logger()->debug(
+        "close peer={} status={}", str_, statusCodeToString(status));
 
     for (auto &p : responders_) {
       p.second(false);
@@ -253,25 +235,26 @@ namespace fc::storage::ipfs::graphsync {
           [wptr{weak_from_this()}]() {
             auto self = wptr.lock();
             if (self) {
-              self->network_feedback_.peerClosed(self->peer,
+              self->network_feedback_.peerClosed(self->peer_,
                                                  self->close_status_);
             }
           },
           std::chrono::milliseconds::zero());
     } else {
-      network_feedback_.peerClosed(peer, RS_REJECTED_LOCALLY);
+      network_feedback_.peerClosed(peer_, RS_REJECTED_LOCALLY);
     }
   }
 
-  void PeerContext::closeStream(StreamPtr stream, ResponseStatusCode status) {
+  void PeerContext::closeStream(const StreamPtr &stream,
+                                ResponseStatusCode status) {
     auto it = streams_.find(stream);
     if (it == streams_.end()) {
-      logger()->error("closeStream: stream not found, peer={}", str);
+      logger()->error("closeStream: stream not found, peer={}", str_);
       return;
     }
 
     logger()->debug(
-        "closeStream: peer={}, {}", str, statusCodeToString(status));
+        "closeStream: peer={}, {}", str_, statusCodeToString(status));
 
     streams_.erase(it);
 
@@ -288,7 +271,7 @@ namespace fc::storage::ipfs::graphsync {
     if (!local_request_ids_.empty()) {
       std::set<RequestId> ids = std::move(local_request_ids_);
       for (auto id : ids) {
-        graphsync_feedback_.onResponse(peer, id, close_status_, {});
+        graphsync_feedback_.onResponse(peer_, id, close_status_, {});
       }
     }
   }
@@ -299,41 +282,41 @@ namespace fc::storage::ipfs::graphsync {
       logger()->info(
           "ignoring response for unexpected request id={} from peer {}",
           response.id,
-          str);
+          str_);
     }
 
     logger()->debug(
-        "response from peer={}, {}", str, statusCodeToString(response.status));
+        "response from peer={}, {}", str_, statusCodeToString(response.status));
 
     if (isTerminal(response.status)) {
       local_request_ids_.erase(it);
     }
 
     graphsync_feedback_.onResponse(
-        peer, response.id, response.status, std::move(response.extensions));
+        peer_, response.id, response.status, std::move(response.extensions));
   }
 
   void PeerContext::onRequest(const StreamPtr &stream,
                               Message::Request &request) {
     auto it = streams_.find(stream);
     if (it == streams_.end()) {
-      logger()->error("onRequest: stream not found, peer={}", str);
+      logger()->error("onRequest: stream not found, peer={}", str_);
       return;
     }
 
     if (request.cancel) {
       remote_request_ids_.erase(request.id);
       logger()->debug(
-          "onRequest: peer {} cancelled request {}", str, request.id);
+          "onRequest: peer {} cancelled request {}", str_, request.id);
     } else {
-      if (remote_request_ids_.count(request.id)) {
-        sendResponse(FullRequestId{peer, request.id},
+      if (remote_request_ids_.count(request.id) != 0) {
+        sendResponse(FullRequestId{peer_, request.id},
                      Response{RS_REJECTED, {}, {}});
       } else {
         remote_request_ids_.emplace(request.id);
         logger()->debug(
-            "onRequest: peer {} created request {}", str, request.id);
-        graphsync_feedback_.onRemoteRequest(peer, std::move(request));
+            "onRequest: peer {} created request {}", str_, request.id);
+        graphsync_feedback_.onRemoteRequest(peer_, std::move(request));
       }
     }
   }
@@ -345,8 +328,9 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (!msg_res) {
-      logger()->info(
-          "stream read error, peer={}, msg={}", str, msg_res.error().message());
+      logger()->info("stream read error, peer={}, msg={}",
+                     str_,
+                     msg_res.error().message());
       closeStream(stream, RS_CONNECTION_ERROR);
       return;
     }
@@ -355,7 +339,7 @@ namespace fc::storage::ipfs::graphsync {
 
     logger()->trace(
         "message from peer={}, {} blocks, {} requests, {} responses",
-        str,
+        str_,
         msg.data.size(),
         msg.requests.size(),
         msg.responses.size());
@@ -371,7 +355,7 @@ namespace fc::storage::ipfs::graphsync {
 
     for (auto &item : msg.data) {
       graphsync_feedback_.onDataBlock(
-          peer, {std::move(item.first), std::move(item.second)});
+          peer_, {std::move(item.first), std::move(item.second)});
     }
 
     for (auto &item : msg.responses) {
@@ -388,8 +372,9 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (!result) {
-      logger()->info(
-          "stream write error, peer={}, msg={}", str, result.error().message());
+      logger()->info("stream write error, peer={}, msg={}",
+                     str_,
+                     result.error().message());
       close(RS_CONNECTION_ERROR);
       return;
     }
@@ -431,7 +416,7 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     for (auto &stream : timed_out) {
-      closeStream(std::move(stream), RS_TIMEOUT);
+      closeStream(stream, RS_TIMEOUT);
     }
 
     // reschedule during scheduler callback, will not throw
@@ -448,7 +433,7 @@ namespace fc::storage::ipfs::graphsync {
       auto &[id, cb]{*it};
       auto res{cb(true)};
       if (res) {
-        sendResponse({peer, id}, *res);
+        sendResponse({peer_, id}, *res);
       }
       if (!res || isTerminal(res->status)) {
         it = responders_.erase(it);

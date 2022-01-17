@@ -6,6 +6,7 @@
 #pragma once
 
 #include <fstream>
+#include <map>
 #include <string>
 #include <unordered_map>
 
@@ -121,6 +122,9 @@ namespace fc::primitives::sector_file {
    private:
     outcome::result<void> markAllocated(PaddedByteIndex offset,
                                         PaddedPieceSize size);
+
+    outcome::result<boost::optional<PieceInfo>> writeNull(
+        PaddedByteIndex offset, PaddedPieceSize size, bool need_piece_info);
 
     struct PadWriter {
      public:

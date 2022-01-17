@@ -53,7 +53,7 @@ namespace fc::storage::ipfs::graphsync {
       auto sz = pb_msg.requests_size();
       if (sz > 0) {
         msg.requests.reserve(sz);
-        for (auto &src : pb_msg.requests()) {
+        for (const auto &src : pb_msg.requests()) {
           auto &dst = msg.requests.emplace_back(Message::Request());
           dst.id = src.id();
           if (src.cancel()) {
@@ -80,7 +80,7 @@ namespace fc::storage::ipfs::graphsync {
       if (sz > 0) {
         msg.responses.reserve(sz);
 
-        for (auto &src : pb_msg.responses()) {
+        for (const auto &src : pb_msg.responses()) {
           auto &dst = msg.responses.emplace_back(Message::Response());
           dst.id = src.id();
           OUTCOME_TRY(status, extractStatusCode(src.status()));
@@ -101,7 +101,7 @@ namespace fc::storage::ipfs::graphsync {
       if (sz > 0) {
         msg.data.reserve(sz);
 
-        for (auto &src : pb_msg.data()) {
+        for (const auto &src : pb_msg.data()) {
           auto data = fromString(src.data());
           auto prefix_reader = common::span::cbytes(src.prefix());
           OUTCOME_TRY(cid, CID::read(prefix_reader, true));
@@ -120,9 +120,10 @@ namespace fc::storage::ipfs::graphsync {
   }  // namespace
 
   outcome::result<Message> parseMessage(gsl::span<const uint8_t> bytes) {
-    pb::Message pb_msg;
+    pb::Message pb_msg{};
 
-    if (!pb_msg.ParseFromArray(bytes.data(), bytes.size())) {
+    if (!pb_msg.ParseFromArray(bytes.data(),
+                               gsl::narrow<int>(bytes.size()))) {
       logger()->warn("{}: cannot parse protobuf message, size={}",
                      __FUNCTION__,
                      bytes.size());

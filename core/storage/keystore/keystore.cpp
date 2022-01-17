@@ -60,16 +60,15 @@ namespace fc::storage::keystore {
       OUTCOME_TRY(signature,
                   secp256k1_provider_->sign(
                       hash, boost::get<Secp256k1PrivateKey>(private_key)));
-      return std::move(signature);
+      return signature;
     }
 
     return KeyStoreError::kWrongAddress;
   }
 
-  fc::outcome::result<bool> KeyStore::verify(
-      const Address &address,
-      gsl::span<const uint8_t> data,
-      const Signature &signature) const noexcept {
+  fc::outcome::result<bool> KeyStore::verify(const Address &address,
+                                             gsl::span<const uint8_t> data,
+                                             const Signature &signature) const {
     return visit_in_place(
         signature,
         [this, address, data](

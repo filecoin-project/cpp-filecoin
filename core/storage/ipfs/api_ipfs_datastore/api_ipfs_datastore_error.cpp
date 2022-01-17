@@ -7,10 +7,8 @@
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipfs, ApiIpfsDatastoreError, e) {
   using E = fc::storage::ipfs::ApiIpfsDatastoreError;
-  switch (e) {
-    case E::kNotSupproted:
-      return "ApiIpfsDatastoreError: operation is not supported";
-    default:
-      return "ApiIpfsDatastoreError: unknown error";
+  if (e == E::kNotSupproted) {
+    return "ApiIpfsDatastoreError: operation is not supported";
   }
+  return "ApiIpfsDatastoreError: unknown error";
 }

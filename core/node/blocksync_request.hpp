@@ -48,6 +48,8 @@ namespace fc::sync::blocksync {
 
       /// All their meta/messages is also available
       bool messages_stored = false;
+
+      bool messages_only{false};
     };
 
     /// Cancels existing request if still active and makes the new one

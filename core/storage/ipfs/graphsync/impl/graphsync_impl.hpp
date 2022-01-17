@@ -23,6 +23,9 @@ namespace fc::storage::ipfs::graphsync {
         public std::enable_shared_from_this<GraphsyncImpl>,
         public PeerToGraphsyncFeedback {
    public:
+    GraphsyncImpl(const GraphsyncImpl &) = delete;
+    GraphsyncImpl(GraphsyncImpl &&) = delete;
+
     /// Ctor.
     /// \param host libp2p host object
     /// \param scheduler libp2p scheduler
@@ -30,6 +33,9 @@ namespace fc::storage::ipfs::graphsync {
                   std::shared_ptr<Scheduler> scheduler);
 
     ~GraphsyncImpl() override;
+
+    GraphsyncImpl &operator=(const GraphsyncImpl &) = delete;
+    GraphsyncImpl &operator=(GraphsyncImpl &&) = delete;
 
     /// Callback from LocalRequests module. Cancels a request made by this host
     /// \param request_id request ID

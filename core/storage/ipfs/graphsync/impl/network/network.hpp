@@ -27,7 +27,13 @@ namespace fc::storage::ipfs::graphsync {
     Network(std::shared_ptr<libp2p::Host> host,
             std::shared_ptr<Scheduler> scheduler);
 
+    Network(const Network&) = delete;
+    Network(Network &&) = delete;
+
     ~Network() override;
+
+    Network &operator=(const Network &) = delete;
+    Network &operator=(Network &&) = delete;
 
     /// Starts accepting streams
     /// \param feedback Feedback interface of core component
@@ -59,7 +65,7 @@ namespace fc::storage::ipfs::graphsync {
     /// Sends response to peer.
     void sendResponse(const FullRequestId &id, const Response &response);
 
-    void postBlocks(const FullRequestId &id, Responder responder);
+    void postBlocks(const FullRequestId &id, const Responder& responder);
 
    private:
     /// Callback from peer context that it's closed

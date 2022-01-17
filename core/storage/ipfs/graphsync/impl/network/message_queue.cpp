@@ -37,7 +37,7 @@ namespace fc::storage::ipfs::graphsync {
       pending_buffers_.emplace_back(std::move(data));
     } else {
       // begin async write
-      beginWrite(std::move(data));
+      beginWrite(data);
     }
   }
 
@@ -60,11 +60,11 @@ namespace fc::storage::ipfs::graphsync {
       auto buffer = std::move(pending_buffers_.front());
       pending_buffers_.pop_front();
       state_.pending_bytes -= buffer->size();
-      beginWrite(std::move(buffer));
+      beginWrite(buffer);
     }
   }
 
-  void MessageQueue::beginWrite(SharedData buffer) {
+  void MessageQueue::beginWrite(const SharedData &buffer) {
     assert(buffer);
     assert(state_.stream);
 

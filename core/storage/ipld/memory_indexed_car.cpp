@@ -39,7 +39,7 @@ namespace fc {
     while (offset < car_size) {
       varint = codec::uvarint::readBytes(ipld->reader, item);
       // incomplete item or zero padding
-      if (varint == 0 || item.size() == 0) {
+      if (varint == 0 || item.empty()) {
         break;
       }
       offset += varint + item.size();
@@ -93,7 +93,7 @@ namespace fc {
       Bytes value;
       value.resize(size);
       reader.clear();
-      reader.seekg(offset);
+      reader.seekg(gsl::narrow<int64_t>(offset));
       if (!common::read(reader, gsl::make_span(value))) {
         return ERROR_TEXT("MemoryIndexedCar::get read error");
       }

@@ -12,6 +12,7 @@
 #include "api/rpc/json_errors.hpp"
 #include "api/rpc/rpc.hpp"
 #include "api/storage_miner/storage_api.hpp"
+#include "api/types/key_info.hpp"
 #include "api/worker_api.hpp"
 #include "common/enum.hpp"
 #include "common/libp2p/peer/cbor_peer_info.hpp"
@@ -40,7 +41,6 @@ namespace fc::codec::cbor {
 }  // namespace fc::codec::cbor
 
 namespace fc::api {
-  using api::ApiSectorInfo;
   using codec::cbor::CborDecodeStream;
   using common::Blob;
   using crypto::signature::BlsSignature;
@@ -951,6 +951,48 @@ namespace fc::api {
       decode(v.size, Get(j, "Size"));
     }
 
+    ENCODE(DealSchedule) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "StartEpoch", v.start_epoch);
+      Set(j, "EndEpoch", v.end_epoch);
+      return j;
+    }
+
+    DECODE(DealSchedule) {
+      Get(j, "StartEpoch", v.end_epoch);
+      Get(j, "EndEpoch", v.end_epoch);
+    }
+
+    ENCODE(DealInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PublishCid", v.publish_cid);
+      Set(j, "DealID", v.deal_id);
+      Set(j, "DealProposal", v.deal_proposal);
+      Set(j, "DealSchedule", v.deal_schedule);
+      Set(j, "KeepUnsealed", v.is_keep_unsealed);
+      return j;
+    }
+
+    DECODE(DealInfo) {
+      Get(j, "PublishCid", v.publish_cid);
+      Get(j, "DealID", v.deal_id);
+      Get(j, "DealProposal", v.deal_proposal);
+      Get(j, "DealSchedule", v.deal_schedule);
+      Get(j, "KeepUnsealed", v.is_keep_unsealed);
+    }
+
+    ENCODE(Piece) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Piece", v.piece);
+      Set(j, "DealInfo", v.deal_info);
+      return j;
+    }
+
+    DECODE(Piece) {
+      Get(j, "Piece", v.piece);
+      Get(j, "DealInfo", v.deal_info);
+    }
+
     ENCODE(SealedAndUnsealedCID) {
       Value j{rapidjson::kObjectType};
       Set(j, "Sealed", v.sealed_cid);
@@ -1076,12 +1118,52 @@ namespace fc::api {
 
     ENCODE(ApiSectorInfo) {
       Value j{rapidjson::kObjectType};
+      Set(j, "SectorID", v.sector_id);
       Set(j, "State", v.state);
+      Set(j, "CommD", v.comm_d);
+      Set(j, "CommR", v.comm_r);
+      Set(j, "Proof", v.proof);
+      Set(j, "Deals", v.deals);
+      Set(j, "Pieces", v.pieces);
+      Set(j, "Ticket", v.ticket);
+      Set(j, "Seed", v.seed);
+      Set(j, "PreCommitMsg", v.precommit_message);
+      Set(j, "CommitMsg", v.commit_message);
+      Set(j, "Retries", v.retries);
+      Set(j, "ToUpgrade", v.to_upgrade);
+      Set(j, "SealProof", v.seal_proof);
+      Set(j, "Activation", v.activation);
+      Set(j, "Expiration", v.expiration);
+      Set(j, "DealWeight", v.deal_weight);
+      Set(j, "VerifiedDealWeight", v.verified_deal_weight);
+      Set(j, "InitialPledge", v.initial_pledge);
+      Set(j, "OnTime", v.on_time);
+      Set(j, "Early", v.early);
       return j;
     }
 
     DECODE(ApiSectorInfo) {
+      Get(j, "SectorID", v.sector_id);
       Get(j, "State", v.state);
+      Get(j, "CommD", v.comm_d);
+      Get(j, "CommR", v.comm_r);
+      Get(j, "Proof", v.proof);
+      Get(j, "Deals", v.deals);
+      Get(j, "Ticket", v.ticket);
+      Get(j, "Pieces", v.pieces);
+      Get(j, "Seed", v.seed);
+      Get(j, "PreCommitMsg", v.precommit_message);
+      Get(j, "CommitMsg", v.commit_message);
+      Get(j, "Retries", v.retries);
+      Get(j, "ToUpgrade", v.to_upgrade);
+      Get(j, "SealProof", v.seal_proof);
+      Get(j, "Activation", v.activation);
+      Get(j, "Expiration", v.expiration);
+      Get(j, "DealWeight", v.deal_weight);
+      Get(j, "VerifiedDealWeight", v.verified_deal_weight);
+      Get(j, "InitialPledge", v.initial_pledge);
+      Get(j, "OnTime", v.on_time);
+      Get(j, "Early", v.early);
     }
 
     ENCODE(PowerPair) {

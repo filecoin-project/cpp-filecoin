@@ -16,7 +16,8 @@ namespace fc::primitives::piece {
   class PieceData {
    public:
     explicit PieceData(const std::string &path_to_file, int flags = O_RDWR);
-    explicit PieceData(int &pipe_fd);
+    explicit PieceData(int &pipe_fd);  // pipe_fd is out parameter and is
+                                       // expected to be set -1 after call.
 
     PieceData(const PieceData &) = delete;
     PieceData &operator=(const PieceData &) = delete;
@@ -31,8 +32,15 @@ namespace fc::primitives::piece {
 
     [[nodiscard]] int release();
 
+    bool isNullData() const;
+
+    static PieceData makeNull();
+
    private:
+    PieceData();
+
     int fd_;
+    bool is_null_data_;
   };
 
   class ReaderType {

@@ -89,11 +89,56 @@ namespace fc::api {
       return result;
     };
 
-    api->SectorsStatus = [=](SectorNumber id,
-                             bool) -> outcome::result<ApiSectorInfo> {
-      // TODO(ortyomka): [FIL-421] implement it
+    api->SectorsStatus =
+        [=](SectorNumber id,
+            bool show_onchain_info) -> outcome::result<ApiSectorInfo> {
       OUTCOME_TRY(sector_info, miner->getSealing()->getSectorInfo(id));
-      return ApiSectorInfo{.state = sector_info->state};
+
+      const auto &pieces{sector_info->pieces};
+      std::vector<DealId> deals;
+      deals.reserve(sector_info->pieces.size());
+
+      for (const auto &piece : pieces) {
+        deals.push_back(piece.deal_info ? piece.deal_info->deal_id : 0);
+      }
+      ApiSectorInfo api_sector_info{
+          sector_info->state,
+          id,
+          sector_info->sector_type,
+          sector_info->comm_d,
+          sector_info->comm_r,
+          sector_info->proof,
+          std::move(deals),
+          pieces,
+          sector_info->ticket,
+          sector_info->seed,
+          sector_info->precommit_message,
+          sector_info->message,
+          sector_info->invalid_proofs,
+          miner->getSealing()->isMarkedForUpgrade(id),
+      };
+      if (not show_onchain_info) {
+        return api_sector_info;
+      }
+      OUTCOME_TRY(chain_info,
+                  full_node_api->StateSectorGetInfo(
+                      miner->getAddress(), id, TipsetKey{}));
+      if (!chain_info.has_value()) {
+        return api_sector_info;
+      }
+      api_sector_info.seal_proof = chain_info->seal_proof;
+      api_sector_info.activation = chain_info->activation_epoch;
+      api_sector_info.expiration = chain_info->expiration;
+      api_sector_info.deal_weight = chain_info->deal_weight;
+      api_sector_info.verified_deal_weight = chain_info->verified_deal_weight;
+      api_sector_info.initial_pledge = chain_info->init_pledge;
+      auto maybe_expiration_info = full_node_api->StateSectorExpiration(
+          miner->getAddress(), id, TipsetKey{});
+      if (maybe_expiration_info.has_value()) {
+        api_sector_info.on_time = maybe_expiration_info.value().on_time;
+        api_sector_info.early = maybe_expiration_info.value().early;
+      }
+      return api_sector_info;
     };
 
     api->StorageAttach = [=](const StorageInfo_ &storage_info,

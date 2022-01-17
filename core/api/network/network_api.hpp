@@ -5,10 +5,12 @@
 
 #pragma once
 
-#include "api/common_api.hpp"
+#include "api/utils.hpp"
 
 namespace fc::api {
-  class NetworkApi{
+  namespace jwt = primitives::jwt;
+
+  class NetworkApi {
    public:
     /**
      * Returns listen addresses.

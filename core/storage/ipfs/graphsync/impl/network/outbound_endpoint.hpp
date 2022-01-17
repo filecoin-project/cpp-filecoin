@@ -15,11 +15,15 @@ namespace fc::storage::ipfs::graphsync {
   /// Endpoint used to send graphsync msgs to libp2p streams
   class OutboundEndpoint {
    public:
-    OutboundEndpoint(const OutboundEndpoint &) = delete;
-    OutboundEndpoint &operator=(const OutboundEndpoint &) = delete;
-
     /// Ctor.
     OutboundEndpoint();
+    OutboundEndpoint(const OutboundEndpoint &) = delete;
+    OutboundEndpoint(OutboundEndpoint &&) = delete;
+
+    virtual ~OutboundEndpoint() = default;
+
+    OutboundEndpoint &operator=(const OutboundEndpoint &) = delete;
+    OutboundEndpoint &operator=(OutboundEndpoint &&) = delete;
 
     /// Called by owner (PeerContext) when stream connected
     /// \param queue Message queue, a dependency

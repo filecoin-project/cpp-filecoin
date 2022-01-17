@@ -22,7 +22,7 @@ namespace fc::storage::piece {
     using PersistentMap = storage::face::PersistentMap<Bytes, Bytes>;
 
    public:
-    PieceStorageImpl(std::shared_ptr<PersistentMap> storage_backend);
+    explicit PieceStorageImpl(std::shared_ptr<PersistentMap> storage_backend);
 
     outcome::result<void> addDealForPiece(const CID &piece_cid,
                                           const DealInfo &deal_info) override;

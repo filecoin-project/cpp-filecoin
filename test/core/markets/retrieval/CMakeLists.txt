@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(protocol)
+
 addtest(retrieval_market_test
     retrieval_market_test.cpp
     )
