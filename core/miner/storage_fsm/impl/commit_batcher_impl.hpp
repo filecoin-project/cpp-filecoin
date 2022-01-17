@@ -42,7 +42,7 @@ namespace fc::mining {
                 const CommitCallback &commit_callback,
                 const AggregateInput &aggregate_input);
       void push(const SectorNumber &sector_number,
-                const PairStorage &pair_storage);
+                const PairStorage &pair_storage); // TODO make one push
 
       size_t size() const;
 

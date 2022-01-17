@@ -8,6 +8,8 @@
 #include <iterator>
 
 namespace fc::mining {
+  using vm::actor::builtin::types::miner::kChainFinality;
+
   CommitBatcherImpl::CommitBatcherImpl(
       const std::chrono::milliseconds &max_time,
       const size_t &max_size_callback,
@@ -25,11 +27,11 @@ namespace fc::mining {
     const SectorNumber &sector_number = sector_info.sector_number;
 
     /*
-     * TODO batch_storage_ and callbacks_ may union Done
+     * TODO batch_storage_ and callbacks_ may union DONE
      */
     union_storage_.push(sector_number, aggregate_input, callback);
 
-    // setPreCommitCutoff(head->epoch(), sector_info); TODO same precommit
+    // setPreCommitCutoff(head->epoch(), sector_info); TODO same precommit DONE
 
     if (union_storage_.size() >= max_size_callback_) {
       sendCallbacks();
@@ -44,7 +46,7 @@ namespace fc::mining {
     const auto maybe_result = sendBatch();
     for (const auto &[key, pair_storage] : temp_union_storage) {
       pair_storage.commit_callback(maybe_result);
-    }
+    } // TODO does it work? because I didn`t iterator++
 
     cutoff_start_ = std::chrono::system_clock::now();
     closest_cutoff_ = max_delay_;
@@ -53,6 +55,37 @@ namespace fc::mining {
   }
 
   outcome::result<CID> CommitBatcherImpl::sendBatch() {}
+
+  void CommitBatcherImpl::setCommitCutoff(const ChainEpoch &current_epoch,
+                                          const SectorInfo &sector_info) {
+    ChainEpoch cutoff_epoch =
+        sector_info.ticket_epoch
+        + static_cast<int64_t>(kEpochsInDay + kChainFinality);
+    ChainEpoch start_epoch{};
+    for (const auto &piece : sector_info.pieces) {
+      if (!piece.deal_info) {
+        continue;
+      }
+      start_epoch = piece.deal_info->deal_schedule.start_epoch;
+      if (start_epoch < cutoff_epoch) {
+        cutoff_epoch = start_epoch;
+      }
+    }
+    if (cutoff_epoch <= current_epoch) {
+      forceSend();
+    } else {
+      const auto temp_cutoff = std::chrono::milliseconds(
+          (cutoff_epoch - current_epoch) * kEpochDurationSeconds);
+      if ((closest_cutoff_
+               - std::chrono::duration_cast<std::chrono::milliseconds>(
+                   std::chrono::system_clock::now() - cutoff_start_)
+           > temp_cutoff)) {
+        cutoff_start_ = std::chrono::system_clock::now();
+        handle_.reschedule(max_delay_).value();
+        closest_cutoff_ = temp_cutoff;
+      }
+    }
+  }
 
   void CommitBatcherImpl::UnionStorage::push(
       const SectorNumber &sector_number,
