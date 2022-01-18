@@ -11,6 +11,7 @@
 #include "api/full_node/node_api.hpp"
 #include "api/full_node/node_api_v1_wrapper.hpp"
 #include "api/rpc/json.hpp"
+#include "api/types/key_info.hpp"
 #include "common/outcome.hpp"
 #include "data_transfer/dt.hpp"
 #include "fwd.hpp"
