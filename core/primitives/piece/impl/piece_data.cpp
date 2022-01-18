@@ -64,7 +64,7 @@ namespace fc::primitives::piece {
 
   int PieceData::release(){
     assert(!is_null_data_);
-    int temp = fd_;
+    const int temp = fd_;
     fd_ = kUnopenedFileDescriptor;
     return temp;
   }

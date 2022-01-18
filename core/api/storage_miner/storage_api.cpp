@@ -7,6 +7,7 @@
 
 #include "api/storage_miner/return_api.hpp"
 #include "common/uri_parser/uri_parser.hpp"
+#include "common/outcome.hpp"
 #include "miner/miner_version.hpp"
 #include "sector_storage/impl/remote_worker.hpp"
 
@@ -187,12 +188,11 @@ namespace fc::api {
 
     api->WorkerConnect =
         [=, self{api}](const std::string &address) -> outcome::result<void> {
-      std::thread([=]() {
-        OUTCOME_EXCEPT(
-            worker,
+      std::thread([=]{
+        OUTCOME_CB(
+            auto worker,
             RemoteWorker::connectRemoteWorker(
-                *io, self, address));  // TODO()[FIL-] Distribute API workload
-                                       // to avoid overloading
+                *io, api, address));  // TODO()[FIL-] Distribute API workload
 
         spdlog::info("Connected to a remote worker at {}", address);
 

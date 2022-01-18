@@ -46,6 +46,8 @@ namespace fc::api {
   using crypto::signature::BlsSignature;
   using crypto::signature::Secp256k1Signature;
   using crypto::signature::Signature;
+  using fc::sector_storage::stores::SectorStorageInfo;
+  using fc::sector_storage::stores::StorageInfo;
   using markets::storage::StorageAsk;
   using miner::types::PreSealSector;
   using mining::SealingState;
@@ -61,6 +63,7 @@ namespace fc::api {
   using primitives::block::Ticket;
   using primitives::cid::getCidOfCbor;
   using primitives::piece::PieceData;
+  using primitives::piece::ReaderType;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredPoStProof;
@@ -79,7 +82,6 @@ namespace fc::api {
   using sector_storage::stores::LocalPath;
   using sector_storage::stores::PathType;
   using sector_storage::stores::StorageConfig;
-  using sector_storage::stores::StorageConfig;
   using vm::actor::builtin::types::market::DealProposal;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::market::StorageParticipantBalance;
@@ -89,8 +91,6 @@ namespace fc::api {
   using vm::actor::builtin::types::payment_channel::Merge;
   using vm::actor::builtin::types::payment_channel::
       ModularVerificationParameter;
-  using fc::sector_storage::stores::StorageInfo;
-  using fc::sector_storage::stores::SectorStorageInfo;
   using vm::runtime::ExecutionResult;
   using base64 = cppcodec::base64_rfc4648;
 
@@ -1366,13 +1366,13 @@ namespace fc::api {
     ENCODE(HealthReport) {
       Value j{rapidjson::kObjectType};
       Set(j, "Stat", v.stat);
-      //Set(j, "Error", v.error);
+      // Set(j, "Error", v.error);
       return j;
     }
 
     DECODE(HealthReport) {
       decode(v.stat, Get(j, "Stat"));
-      //decode(v.error, Get(j, "Error"));
+      // decode(v.error, Get(j, "Error"));
     }
 
     ENCODE(libp2p::multi::Multiaddress) {
@@ -1384,7 +1384,7 @@ namespace fc::api {
       v = std::move(_v);
     }
 
-    template<typename T>
+    template <typename T>
     ENCODE(gsl::span<T>) {
       Value j{rapidjson::kArrayType};
       j.Reserve(v.size(), allocator);
@@ -2126,7 +2126,9 @@ namespace fc::api {
     }
 
     DECODE(MetaPieceData) {
-      // Get(j, "Type", v.type)
+      std::string type;
+      Get(j, "Type", type);
+      v.type = ReaderType(type);
       Get(j, "Info", v.uuid);
     }
 
@@ -2207,7 +2209,7 @@ namespace fc::api {
       }
       return j;
     }
-    ENCODE(std::set<TaskType>){
+    ENCODE(std::set<TaskType>) {
       Value j{rapidjson::kObjectType};
       j.MemberReserve(v.size(), allocator);
       for (auto &pair : v) {
@@ -2217,7 +2219,7 @@ namespace fc::api {
       return j;
     }
 
-    DECODE(std::set<TaskType>){
+    DECODE(std::set<TaskType>) {
       for (auto it = j.MemberBegin(); it != j.MemberEnd(); ++it) {
         v.emplace(TaskType(AsString(it->name)));
       }
