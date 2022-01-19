@@ -58,7 +58,6 @@ namespace fc::api {
   using sector_storage::stores::HealthReport;
   using sector_storage::stores::SectorIndex;
   using StorageInfo_ = sector_storage::stores::StorageInfo;
-  using sector_storage::stores::SectorStorageInfo;
 
   const static common::Logger kStorageApiLogger =
       common::createLogger("Storage API");
@@ -92,7 +91,7 @@ namespace fc::api {
     ChainEpoch early = {};
   };
 
-  constexpr ApiVersion kMinerApiVersion = makeApiVersion(1, 2, 0);
+  constexpr ApiVersion kMinerApiVersion = makeApiVersion(1, 0, 0);
 
   /**
    * Storage miner node low-level interface API.
@@ -172,7 +171,7 @@ namespace fc::api {
                const SectorFileType &)
     API_METHOD(StorageFindSector,
                jwt::kAdminPermission,
-               std::vector<SectorStorageInfo>,
+               std::vector<StorageInfo_>,
                const SectorId &,
                const SectorFileType &,
                boost::optional<SectorSize>)
@@ -181,7 +180,7 @@ namespace fc::api {
                std::vector<StorageInfo_>,
                const SectorFileType &,
                SectorSize,
-               std::string)
+               bool)
 
     API_METHOD(ReturnAddPiece,
                jwt::kAdminPermission,
