@@ -36,8 +36,6 @@ namespace fc::api {
                const std::string &)
 
     API_METHOD(Version, jwt::kReadPermission, VersionResult)
-
-    API_METHOD(Session, jwt::kReadPermission, std::string)
   };
 
   template <typename A, typename F>

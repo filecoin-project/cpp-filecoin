@@ -89,6 +89,8 @@ namespace fc::api {
   using vm::actor::builtin::types::payment_channel::
   ModularVerificationParameter;
   using vm::runtime::ExecutionResult;
+  using primitives::piece::PieceData;
+  using primitives::piece::ReaderType;
   using base64 = cppcodec::base64_rfc4648;
 
   struct Codec {
@@ -2118,6 +2120,20 @@ namespace fc::api {
       if (!j.IsNull()) {
         v = decode<T>(j);
       }
+    }
+
+    ENCODE(MetaPieceData) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Type", v.type.toString());
+      Set(j, "Info", v.uuid);
+      return j;
+    }
+
+    DECODE(MetaPieceData) {
+      std::string type;
+      Get(j, "Type", type);
+      v.type = ReaderType(type);
+      Get(j, "Info", v.uuid);
     }
 
     template <typename T,

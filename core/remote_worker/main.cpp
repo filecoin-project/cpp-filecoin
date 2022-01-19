@@ -273,7 +273,6 @@ namespace fc {
     wrpc.emplace("/rpc/v0", api::makeRpc(*wapi));
     auto wroutes{std::make_shared<api::Routes>()};
 
-    // TODO[@Elestrias] - Fuhon remote worker AddPiece
 
     wroutes->insert({"/remote",
                      api::makeAuthRoute(
