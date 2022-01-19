@@ -88,7 +88,6 @@ namespace fc::sector_storage {
     IoThread httpSender_;
     WorkerApi api_;
     Client wsc_;
-    io_context &io_;
     std::string host_;
     std::string port_;
   };

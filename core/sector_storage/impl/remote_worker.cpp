@@ -61,7 +61,7 @@ namespace fc::sector_storage {
   }
 
   RemoteWorker::RemoteWorker(io_context &context)
-      : wsc_(*(worker_thread_.io)), io_(context) {}
+      : wsc_(*(worker_thread_.io)){}
 
   struct PieceDataSender {
     explicit PieceDataSender(io_context &io)
