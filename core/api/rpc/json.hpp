@@ -1366,7 +1366,8 @@ namespace fc::api {
     }
 
     // can be generic
-    ENCODE(gsl::span<const PieceInfo>) {
+    template<typename T>
+    ENCODE(gsl::span<T>) {
       Value j{rapidjson::kArrayType};
       j.Reserve(v.size(), allocator);
       for (const auto &elem : v) {

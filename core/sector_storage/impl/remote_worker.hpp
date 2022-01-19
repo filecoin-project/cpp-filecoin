@@ -22,7 +22,7 @@ namespace fc::sector_storage {
     static outcome::result<std::shared_ptr<RemoteWorker>> connectRemoteWorker(
         io_context &context,
         const std::shared_ptr<CommonApi> &api,
-        const std::string &address);
+        const Multiaddress &address);
 
     outcome::result<CallId> addPiece(
         const SectorRef &sector,

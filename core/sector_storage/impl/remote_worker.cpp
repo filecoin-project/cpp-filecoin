@@ -28,16 +28,8 @@ namespace fc::sector_storage {
   outcome::result<std::shared_ptr<RemoteWorker>>
   RemoteWorker::connectRemoteWorker(io_context &context,
                                     const std::shared_ptr<CommonApi> &api,
-                                    const std::string &address) {
-    HttpUri uri;
-    try {
-      uri.parse(address);
-    } catch (const std::runtime_error &err) {
-      return sector_storage::stores::IndexErrors::kInvalidUrl;
-    }
-
-    OUTCOME_TRY(token, api->AuthNew({kAdminPermission}));
-
+                                    const Multiaddress &address) {
+    auto token = "stub";
     struct make_unique_enabler : public RemoteWorker {
       explicit make_unique_enabler(io_context &context)
           : RemoteWorker{context} {};
@@ -46,15 +38,10 @@ namespace fc::sector_storage {
     std::unique_ptr<RemoteWorker> r_worker =
         std::make_unique<make_unique_enabler>(context);
 
-    r_worker->port_ = std::to_string(uri.port());
-    r_worker->host_ = uri.host();
     r_worker->wsc_.setup(r_worker->api_);
 
-    OUTCOME_TRY(
-        r_worker->wsc_.connect(uri.host(),
-                               std::to_string(uri.port()),
-                               "/rpc/v0",
-                               std::string{token.begin(), token.end()}));
+
+    OUTCOME_TRY(r_worker->wsc_.connect(address, "/rpc/v0", token));
 
     return std::move(r_worker);
   }
