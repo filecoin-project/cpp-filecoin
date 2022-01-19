@@ -463,6 +463,13 @@ namespace fc::api {
                const Address &,
                const TokenAmount &)
 
+    API_METHOD(ChainBaseFee,
+               jwt::kWritePermission,
+               TokenAmount,
+               Address,
+               SectorNumber,
+               TipsetKey)
+
     API_METHOD(MinerCreateBlock,
                jwt::kWritePermission,
                BlockWithCids,
@@ -787,6 +794,7 @@ namespace fc::api {
     visitNet(a, f);
     visitWallet(a, f);
     f(a.BeaconGetEntry);
+    f(a.ChainBaseFee);
     f(a.ChainGetBlock);
     f(a.ChainGetBlockMessages);
     f(a.ChainGetGenesis);

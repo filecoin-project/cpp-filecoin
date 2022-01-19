@@ -11,10 +11,14 @@ namespace fc::mining {
 
   using libp2p::basic::Scheduler;
   using primitives::SectorNumber;
+  using primitives::address::Address;
+  using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetKey;
+  using types::FeeConfig;
+  using proofs::ProofEngine;
 
   class CommitBatcherImpl : public CommitBatcher {
    public:
-
     class UnionStorage {
      public:
       UnionStorage() = default;
@@ -30,21 +34,14 @@ namespace fc::mining {
 
         PairStorage(const AggregateInput &aggregate_input,
                     const CommitCallback &commit_callback);
-
-        PairStorage(const CommitCallback &commit_callback,
-                    const AggregateInput &aggregate_input);
       };
 
       void push(const SectorNumber &sector_number,
-                const AggregateInput &aggregate_input,
-                const CommitCallback &commit_callback);
-      void push(const SectorNumber &sector_number,
-                const CommitCallback &commit_callback,
-                const AggregateInput &aggregate_input);
-      void push(const SectorNumber &sector_number,
-                const PairStorage &pair_storage); // TODO make one push
+                const PairStorage &pair_storage);
 
-      size_t size() const;
+      size_t size();
+
+      PairStorage get(const int index);
 
       std::map<SectorNumber, PairStorage>::iterator begin();
       std::map<SectorNumber, PairStorage>::iterator end();
@@ -53,22 +50,15 @@ namespace fc::mining {
       std::mutex mutex_;
 
       std::map<SectorNumber, PairStorage> storage_;
-    };
+    }; // TODO вынести PairStorage и удалить UnionStorage. storage_;
 
     CommitBatcherImpl(const std::chrono::milliseconds &max_time,
                       const size_t &max_size_callback,
                       const std::shared_ptr<Scheduler> &scheduler);
 
-    /*
-     * 1) Должен уметь отправлять информацию за время, которую ему задали
-     * NEW 2) Должен уметь отправлять информацию за размер, которую ему задали
-     * (например 10 коммитов макс вместимость мы должны его отправлять)
-     * 3) После любой отправки время отправки батчера заводится снова (
-     * скедлинг, хэндлер)
-     */
     outcome::result<void> addCommit(const SectorInfo &sector_info,
                                     const AggregateInput &aggregate_input,
-                                    const CommitCallback &callBack);
+                                    const CommitCallback &callBack) override;
 
     void forceSend() override;
 
@@ -84,11 +74,17 @@ namespace fc::mining {
     size_t max_size_callback_;
     UnionStorage union_storage_;
     std::shared_ptr<FullNodeApi> api_;
+    Address miner_address_;
+    std::shared_ptr<FeeConfig> fee_config_;
+    std::shared_ptr<ProofEngine> proof_;
 
     void sendCallbacks();
 
-    outcome::result<CID> sendBatch();
+    outcome::result<CID> sendBatch(UnionStorage &union_storage_for_send);
 
+    TokenAmount getSectorCollateral(std::shared_ptr<const Tipset> &head,
+                                    const SectorNumber &sector_number,
+                                    const TipsetKey &tip_set_key);
   };
 
 }  // namespace fc::mining

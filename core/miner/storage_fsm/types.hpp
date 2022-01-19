@@ -222,6 +222,7 @@ namespace fc::mining::types {
 
     // maxBatchFee = maxBase + maxPerSector * nSectors
     BatchConfing max_precommit_batch_gas_fee;
+    BatchConfing max_commit_batch_gas_fee;
 
     // TODO (Ruslan Gilvanov): TokenAmount max_terminate_gas_fee,
     // max_window_poSt_gas_fee, max_publish_deals_fee,
