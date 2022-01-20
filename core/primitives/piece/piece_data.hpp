@@ -46,19 +46,13 @@ namespace fc::primitives::piece {
   class ReaderType {
    public:
     enum Type : uint64_t {
-      pushStreamReader = 0,
-      nullReader = 1,
+      kPushStreamReader = 0,
+      kNullReader = 1,
     } reader_type;
 
-    ReaderType(Type type) : reader_type(std::move(type)){};
+    explicit ReaderType(Type type) : reader_type(std::move(type)){};
 
-    ReaderType(std::string string_type) {
-      if (string_type == "push") {
-        reader_type = pushStreamReader;
-      } else {
-        reader_type = nullReader;
-      }
-    }
+    explicit ReaderType(const std::string &string_type): reader_type(string_type == "push" ? kPushStreamReader: kNullReader){};
 
     static const std::array<std::string, 2> types;
 

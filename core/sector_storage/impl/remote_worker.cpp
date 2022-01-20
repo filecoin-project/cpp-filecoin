@@ -29,7 +29,7 @@ namespace fc::sector_storage {
   RemoteWorker::connectRemoteWorker(io_context &context,
                                     const std::shared_ptr<CommonApi> &api,
                                     const Multiaddress &address) {
-    auto token = "stub";
+    OUTCOME_TRY(token, api->AuthNew({kAdminPermission}));
     struct make_unique_enabler : public RemoteWorker {
       explicit make_unique_enabler(io_context &context)
           : RemoteWorker{context} {};
@@ -40,8 +40,7 @@ namespace fc::sector_storage {
 
     r_worker->wsc_.setup(r_worker->api_);
 
-
-    OUTCOME_TRY(r_worker->wsc_.connect(address, "/rpc/v0", token));
+    OUTCOME_TRY(r_worker->wsc_.connect(address, "/rpc/v0", std::string(token.begin(), token.end())));
 
     return std::move(r_worker);
   }
@@ -61,16 +60,16 @@ namespace fc::sector_storage {
   }
 
   RemoteWorker::RemoteWorker(io_context &context)
-      : wsc_(*(worker_thread_.io)){}
+      : wsc_(*(worker_thread_.io)) {}
 
   struct PieceDataSender {
     explicit PieceDataSender(io_context &io)
-        : resolver{io}, stream{net::make_strand(io)} {}
+        : resolver_{io}, stream_{net::make_strand(io)} {}
     PieceDataSender(const PieceDataSender &) = delete;
     PieceDataSender(PieceDataSender &&) = delete;
     ~PieceDataSender() {
       boost::system::error_code ec;
-      stream.socket().shutdown(tcp::socket::shutdown_both, ec);
+      stream_.socket().shutdown(tcp::socket::shutdown_both, ec);
     }
     PieceDataSender &operator=(const PieceDataSender &) = delete;
     PieceDataSender &operator=(PieceDataSender &&) = delete;
@@ -88,40 +87,41 @@ namespace fc::sector_storage {
       boost::beast::file_posix fp;
       fp.native_handle(fd);
 
-      sender->file_req.body().reset(std::move(fp), error);
-      sender->file_req.method(http::verb::post);
-      sender->file_req.target(target);
-      sender->file_req.set(http::field::host, host);
-      sender->file_req.set(http::field::content_length, piece_size);
-      sender->resolver.async_resolve(
+      sender->file_req_.body().reset(std::move(fp), error);
+      sender->file_req_.method(http::verb::post);
+      sender->file_req_.target(target);
+      sender->file_req_.set(http::field::host, host);
+      sender->file_req_.set(http::field::content_length, piece_size);
+      sender->resolver_.async_resolve(
           host, port, [sender, MOVE(cb)](auto &&ec, auto &&iterator) {
             EC_CB();
-            sender->stream.async_connect(
+            sender->stream_.async_connect(
                 iterator, [sender, MOVE(cb)](auto &&ec, auto &&) {
                   EC_CB();
-                  http::async_write(sender->stream,
-                                    sender->file_req,
-                                    [sender, MOVE(cb)](auto &&ec, auto &&) {
-                                      EC_CB();
-                                      http::async_read(
-                                          sender->stream,
-                                          sender->buffer,
-                                          sender->res,
-                                          [sender, MOVE(cb)](auto &&ec, auto &&) {
-                                            EC_CB();
-                                            cb(std::move(sender->res.body()));
-                                          });
-                                    });
+                  http::async_write(
+                      sender->stream_,
+                      sender->file_req_,
+                      [sender, MOVE(cb)](auto &&ec, auto &&) {
+                        EC_CB();
+                        http::async_read(
+                            sender->stream_,
+                            sender->buffer_,
+                            sender->res_,
+                            [sender, MOVE(cb)](auto &&ec, auto &&) {
+                              EC_CB();
+                              cb(std::move(sender->res_.body()));
+                            });
+                      });
                 });
           });
     }
 
    private:
-    http::request<http::file_body> file_req;
-    tcp::resolver resolver;
-    beast::tcp_stream stream;
-    beast::flat_buffer buffer;
-    http::response<http::string_body> res;
+    http::request<http::file_body> file_req_;
+    tcp::resolver resolver_;
+    beast::tcp_stream stream_;
+    beast::flat_buffer buffer_;
+    http::response<http::string_body> res_;
   };
 
   outcome::result<CallId> RemoteWorker::addPiece(
@@ -132,9 +132,9 @@ namespace fc::sector_storage {
     MetaPieceData meta_data =
         piece_data.isNullData()
             ? MetaPieceData(std::to_string(new_piece_size),
-                            ReaderType::Type::nullReader)
+                            ReaderType::Type::kNullReader)
             : MetaPieceData(uuids::to_string(uuids::random_generator()()),
-                            ReaderType::Type::pushStreamReader);
+                            ReaderType::Type::kPushStreamReader);
     if (!piece_data.isNullData()) {
       PieceDataSender::send(
           piece_data.release(),

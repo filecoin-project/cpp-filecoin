@@ -60,6 +60,7 @@ namespace fc::api {
   using primitives::block::ElectionProof;
   using primitives::block::Ticket;
   using primitives::cid::getCidOfCbor;
+  using primitives::piece::ReaderType;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredPoStProof;
@@ -87,10 +88,8 @@ namespace fc::api {
   using vm::actor::builtin::types::miner::WorkerKeyChange;
   using vm::actor::builtin::types::payment_channel::Merge;
   using vm::actor::builtin::types::payment_channel::
-  ModularVerificationParameter;
+      ModularVerificationParameter;
   using vm::runtime::ExecutionResult;
-  using primitives::piece::PieceData;
-  using primitives::piece::ReaderType;
   using base64 = cppcodec::base64_rfc4648;
 
   struct Codec {
@@ -1366,7 +1365,7 @@ namespace fc::api {
     }
 
     // can be generic
-    template<typename T>
+    template <typename T>
     ENCODE(gsl::span<T>) {
       Value j{rapidjson::kArrayType};
       j.Reserve(v.size(), allocator);
@@ -1376,7 +1375,7 @@ namespace fc::api {
       return j;
     }
 
-    template<>
+    template <>
     ENCODE(gsl::span<const UnpaddedPieceSize>) {
       Value j{rapidjson::kArrayType};
       j.Reserve(v.size(), allocator);
@@ -2148,7 +2147,7 @@ namespace fc::api {
     }
 
     template <typename T,
-        typename = std::enable_if_t<!std::is_same_v<T, uint8_t>>>
+              typename = std::enable_if_t<!std::is_same_v<T, uint8_t>>>
     ENCODE(std::vector<T>) {
       Value j{rapidjson::kArrayType};
       j.Reserve(v.size(), allocator);
