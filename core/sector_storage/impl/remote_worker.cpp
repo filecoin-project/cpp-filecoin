@@ -83,33 +83,33 @@ namespace fc::sector_storage {
         const std::string &target,
         const std::uint64_t piece_size,
         const std::function<void(outcome::result<std::string>)> &cb) {
-      auto s{std::make_shared<PieceDataSender>(io)};
+      auto sender{std::make_shared<PieceDataSender>(io)};
       boost::system::error_code error;
       boost::beast::file_posix fp;
       fp.native_handle(fd);
 
-      s->file_req.body().reset(std::move(fp), error);
-      s->file_req.method(http::verb::post);
-      s->file_req.target(target);
-      s->file_req.set(http::field::host, host);
-      s->file_req.set(http::field::content_length, piece_size);
-      s->resolver.async_resolve(
-          host, port, [s, MOVE(cb)](auto &&ec, auto &&iterator) {
+      sender->file_req.body().reset(std::move(fp), error);
+      sender->file_req.method(http::verb::post);
+      sender->file_req.target(target);
+      sender->file_req.set(http::field::host, host);
+      sender->file_req.set(http::field::content_length, piece_size);
+      sender->resolver.async_resolve(
+          host, port, [sender, MOVE(cb)](auto &&ec, auto &&iterator) {
             EC_CB();
-            s->stream.async_connect(
-                iterator, [s, MOVE(cb)](auto &&ec, auto &&) {
+            sender->stream.async_connect(
+                iterator, [sender, MOVE(cb)](auto &&ec, auto &&) {
                   EC_CB();
-                  http::async_write(s->stream,
-                                    s->file_req,
-                                    [s, MOVE(cb)](auto &&ec, auto &&) {
+                  http::async_write(sender->stream,
+                                    sender->file_req,
+                                    [sender, MOVE(cb)](auto &&ec, auto &&) {
                                       EC_CB();
                                       http::async_read(
-                                          s->stream,
-                                          s->buffer,
-                                          s->res,
-                                          [s, MOVE(cb)](auto &&ec, auto &&) {
+                                          sender->stream,
+                                          sender->buffer,
+                                          sender->res,
+                                          [sender, MOVE(cb)](auto &&ec, auto &&) {
                                             EC_CB();
-                                            cb(std::move(s->res.body()));
+                                            cb(std::move(sender->res.body()));
                                           });
                                     });
                 });

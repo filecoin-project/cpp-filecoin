@@ -1376,6 +1376,16 @@ namespace fc::api {
       return j;
     }
 
+    template<>
+    ENCODE(gsl::span<const UnpaddedPieceSize>) {
+      Value j{rapidjson::kArrayType};
+      j.Reserve(v.size(), allocator);
+      for (const auto &elem : v) {
+        j.PushBack(encode(elem), allocator);
+      }
+      return j;
+    }
+
     ENCODE(PieceInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "Size", v.size);

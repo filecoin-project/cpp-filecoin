@@ -69,7 +69,7 @@ namespace fc::primitives::piece {
    public:
     MetaPieceData(std::string uuid, ReaderType::Type type)
         : uuid(std::move(uuid)), type(ReaderType(type)){};
-
+    explicit MetaPieceData(): uuid("0"), type(ReaderType("null")){};
     std::string uuid;
     ReaderType type;
   };
