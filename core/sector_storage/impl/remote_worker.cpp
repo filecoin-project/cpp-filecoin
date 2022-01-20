@@ -152,7 +152,7 @@ namespace fc::sector_storage {
             }
           });
     }
-    return api_.AddPiece(sector, piece_sizes, new_piece_size, meta_data);
+    return api_.AddPiece(sector, piece_sizes, std::vector{new_piece_size}, meta_data);
   }
 
   outcome::result<CallId> RemoteWorker::sealPreCommit1(

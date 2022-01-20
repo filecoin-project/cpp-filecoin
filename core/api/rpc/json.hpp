@@ -353,7 +353,7 @@ namespace fc::api {
     DECODE(TaskType) {
       v = TaskType(AsString(j));
     }
-    template<>
+
     ENCODE(gsl::span<const uint8_t>) {
       return encode(base64::encode(v.data(), v.size()));
     }

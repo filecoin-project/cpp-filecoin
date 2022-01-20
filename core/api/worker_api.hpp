@@ -35,7 +35,7 @@ namespace fc::api {
                kAdminPermission,
                CallId,
                SectorRef,
-               gsl::span<const UnpaddedPieceSize>,
+               std::vector<UnpaddedPieceSize>,
                UnpaddedPieceSize,
                MetaPieceData)
 
