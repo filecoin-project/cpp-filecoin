@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <array>
 #include <string>
+#include <boost/optional.hpp>
 
 namespace fc::primitives::piece {
 
@@ -46,24 +47,25 @@ namespace fc::primitives::piece {
   class ReaderType {
    public:
     enum Type : uint64_t {
-      kPushStreamReader = 0,
+      kUndefined = 0,
       kNullReader = 1,
+      kPushStreamReader = 2
     } reader_type;
 
-    explicit ReaderType(Type type) : reader_type(std::move(type)){};
+    explicit ReaderType(Type type) : reader_type(type){};
 
-    explicit ReaderType(const std::string &string_type): reader_type(string_type == "push" ? kPushStreamReader: kNullReader){};
-
-    static const std::array<std::string, 2> types;
+    static const std::array<std::string, 3> types;
 
     const std::string toString() const;
+
+    static ReaderType fromString(const std::string &type);
   };
 
   class MetaPieceData {
    public:
     MetaPieceData(std::string uuid, ReaderType::Type type)
         : uuid(std::move(uuid)), type(ReaderType(type)){};
-    explicit MetaPieceData(): uuid("0"), type(ReaderType("null")){};
+    MetaPieceData():type(ReaderType::fromString("undefined")){};
     std::string uuid;
     ReaderType type;
   };

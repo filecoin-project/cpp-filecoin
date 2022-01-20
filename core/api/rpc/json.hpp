@@ -2142,7 +2142,7 @@ namespace fc::api {
     DECODE(MetaPieceData) {
       std::string type;
       Get(j, "Type", type);
-      v.type = ReaderType(type);
+      v.type = ReaderType::fromString(type);
       Get(j, "Info", v.uuid);
     }
 
