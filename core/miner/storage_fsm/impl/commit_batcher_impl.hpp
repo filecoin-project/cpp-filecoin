@@ -14,43 +14,16 @@ namespace fc::mining {
   using primitives::address::Address;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
-  using types::FeeConfig;
   using proofs::ProofEngine;
+  using types::FeeConfig;
 
   class CommitBatcherImpl : public CommitBatcher {
    public:
-    class UnionStorage {
-     public:
-      UnionStorage() = default;
-      UnionStorage(UnionStorage &&);
-
-      UnionStorage(const UnionStorage &) = delete;
-
-      ~UnionStorage() = default;
-
-      struct PairStorage {
-        AggregateInput aggregate_input;
-        CommitCallback commit_callback;
-
-        PairStorage(const AggregateInput &aggregate_input,
-                    const CommitCallback &commit_callback);
-      };
-
-      void push(const SectorNumber &sector_number,
-                const PairStorage &pair_storage);
-
-      size_t size();
-
-      PairStorage get(const int index);
-
-      std::map<SectorNumber, PairStorage>::iterator begin();
-      std::map<SectorNumber, PairStorage>::iterator end();
-
-     private:
-      std::mutex mutex_;
-
-      std::map<SectorNumber, PairStorage> storage_;
-    }; // TODO вынести PairStorage и удалить UnionStorage. storage_;
+    struct PairStorage {
+      AggregateInput aggregate_input;
+      CommitCallback commit_callback;
+    };
+    typedef std::map<SectorNumber, PairStorage> MapPairStorage;
 
     CommitBatcherImpl(const std::chrono::milliseconds &max_time,
                       const size_t &max_size_callback,
@@ -72,19 +45,19 @@ namespace fc::mining {
     std::chrono::milliseconds closest_cutoff_;
     std::chrono::system_clock::time_point cutoff_start_;
     size_t max_size_callback_;
-    UnionStorage union_storage_;
+    MapPairStorage union_storage_;
     std::shared_ptr<FullNodeApi> api_;
     Address miner_address_;
     std::shared_ptr<FeeConfig> fee_config_;
     std::shared_ptr<ProofEngine> proof_;
+    std::mutex mutex_storage_;
 
     void sendCallbacks();
 
-    outcome::result<CID> sendBatch(UnionStorage &union_storage_for_send);
+    outcome::result<CID> sendBatch(MapPairStorage &union_storage_for_send);
 
-    TokenAmount getSectorCollateral(std::shared_ptr<const Tipset> &head,
-                                    const SectorNumber &sector_number,
-                                    const TipsetKey &tip_set_key);
+    outcome::result<TokenAmount> getSectorCollateral(
+        const SectorNumber &sector_number, const TipsetKey &tip_set_key);
   };
 
 }  // namespace fc::mining

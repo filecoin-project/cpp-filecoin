@@ -21,7 +21,6 @@ namespace fc::mining {
     RegisteredSealProof spt;
   };
 
-
   class CommitBatcher {
    public:
     virtual ~CommitBatcher() = default;
