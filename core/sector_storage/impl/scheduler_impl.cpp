@@ -172,8 +172,8 @@ namespace fc::sector_storage {
       }
       tried++;
 
-      if (!primitives::canHandleRequest(
-              need_resources, worker->info.resources, worker->preparing)) {
+      if (!worker->preparing.canHandleRequest(need_resources,
+                                              worker->info.resources)) {
         if ((workers_.size() > 1) || (active_jobs != 0)) {
           continue;
         }
@@ -222,51 +222,22 @@ namespace fc::sector_storage {
       WorkerID wid,
       const std::shared_ptr<WorkerHandle> &worker,
       const std::shared_ptr<TaskRequest> &request) {
-    auto resource_iter = primitives::kResourceTable.find(
-        {request->task_type, request->sector.proof_type});
+    worker->preparing.add(worker->info.resources, request->need_resources);
 
-    Resources need_resources{};
-    if (resource_iter != primitives::kResourceTable.end()) {
-      need_resources = resource_iter->second;
-    }
-
-    worker->preparing.add(worker->info.resources, need_resources);
-
-    io_->post([this, wid, worker, request, need_resources]() {
-      auto cb = [this, wid, worker, request, need_resources](
+    io_->post([this, wid, worker, request]() {
+      auto cb = [this, wid, worker, request](
                     const outcome::result<CallResult> &res) -> void {
-        bool force = false;
-        {
-          std::unique_lock<std::mutex> lock(workers_lock_);
-          force = {(workers_.size() == 1) && (active_jobs == 0)};
-          ++active_jobs;
-        }
+        ++active_jobs;
 
-        worker->preparing.free(worker->info.resources, need_resources);
+        worker->preparing.free(worker->info.resources, request->need_resources);
 
-        auto usual_clear = [this, wid]() {
+        worker->active.add(worker->info.resources, request->need_resources);
+
+        auto clear = [this, wid, worker, request]() {
+          worker->active.free(worker->info.resources, request->need_resources);
           --active_jobs;
           freeWorker(wid);
         };
-        if (!force
-            && !primitives::canHandleRequest(
-                need_resources, worker->info.resources, worker->active)) {
-          {
-            std::unique_lock lock(request_lock_);
-            request_queue_.insert(request);  // if resource is not enough,
-                                             // then request would added
-                                             // to request queue
-          }
-          return usual_clear();
-        }
-
-        worker->active.add(worker->info.resources, need_resources);
-
-        auto clear =
-            [clear = std::move(usual_clear), worker, need_resources]() {
-              worker->active.free(worker->info.resources, need_resources);
-              clear();
-            };
 
         auto maybe_call_id = request->work(worker->worker);
 
@@ -302,7 +273,7 @@ namespace fc::sector_storage {
       auto maybe_call_id = request->prepare(worker->worker);
 
       if (maybe_call_id.has_error()) {
-        worker->preparing.free(worker->info.resources, need_resources);
+        worker->preparing.free(worker->info.resources, request->need_resources);
         request->cb(maybe_call_id.error());
         freeWorker(wid);
         return;
@@ -325,12 +296,7 @@ namespace fc::sector_storage {
     std::shared_ptr<WorkerHandle> worker;
     {
       std::lock_guard<std::mutex> lock(workers_lock_);
-      auto iter = workers_.find(wid);
-      if (iter == workers_.cend()) {
-        logger_->warn("free worker: wid {} is invalid", wid);
-        return;
-      }
-      worker = iter->second;
+      worker = workers_[wid];
     }
 
     std::lock_guard<std::mutex> lock(request_lock_);
@@ -350,14 +316,13 @@ namespace fc::sector_storage {
         continue;
       }
 
-      auto maybe_result = maybeScheduleRequest(req);
-
-      if (maybe_result.has_error()) {
-        req->cb(maybe_result.error());
-      } else if (!maybe_result.value()) {
+      if (!worker->preparing.canHandleRequest(req->need_resources,
+                                              worker->info.resources)) {
         ++it;
         continue;
       }
+
+      assignWorker(wid, worker, req);
 
       it = request_queue_.erase(it);
     }

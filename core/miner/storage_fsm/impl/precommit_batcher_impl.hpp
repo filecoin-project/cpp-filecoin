@@ -48,7 +48,7 @@ namespace fc::mining {
 
       ~PreCommitEntry() = default;
 
-      PreCommitEntry &operator=(const PreCommitEntry &other) noexcept = default;
+      PreCommitEntry &operator=(const PreCommitEntry &other)  = default;
       PreCommitEntry &operator=(PreCommitEntry &&) noexcept = default;
 
       TokenAmount deposit{};

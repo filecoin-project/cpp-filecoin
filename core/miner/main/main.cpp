@@ -428,6 +428,18 @@ namespace fc {
                 sector_storage::SchedulerImpl::newScheduler(
                     io_thread2.io, prefixed("scheduler_works/")));
     IoThread io_thread3;
+
+    {
+      uint64_t cpus = std::thread::hardware_concurrency();
+      if (cpus == 0) {
+        cpus = sysconf(_SC_NPROCESSORS_ONLN);
+      }
+
+      for (size_t i{0}; i < cpus; ++i) {
+        pool.emplace_back(std::thread{[&] { io_thread3.io->run(); }});
+      }
+    }
+
     OUTCOME_TRY(
         manager,
         sector_storage::ManagerImpl::newManager(

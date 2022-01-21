@@ -358,33 +358,40 @@ namespace fc::mining {
       }
       const auto &sid{maybe_sid.value()};
 
-      std::vector<UnpaddedPieceSize> sizes = {size};
-      const auto maybe_pieces =
-          self->pledgeSector(self->minerSectorId(sid), {}, sizes);
-      if (maybe_pieces.has_error()) {
-        self->logger_->error(maybe_pieces.error().message());
-        return;
-      }
+      const std::vector<UnpaddedPieceSize> sizes = {size};
 
-      std::vector<Piece> pieces;
-      for (const auto &piece : maybe_pieces.value()) {
-        pieces.push_back(Piece{
-            .piece = piece,
-            .deal_info = boost::none,
-        });
-      }
+      self->pledgeSector(
+          self->minerSectorId(sid),
+          {},
+          sizes,
+          [self,
+           sid](const outcome::result<std::vector<PieceInfo>> &maybe_pieces) {
+            if (maybe_pieces.has_error()) {
+              self->logger_->error(maybe_pieces.error().message());
+              return;
+            }
 
-      const auto maybe_error = self->newSectorWithPieces(sid, pieces);
-      if (maybe_error.has_error()) {
-        self->logger_->error(maybe_error.error().message());
-      }
+            std::vector<Piece> pieces;
+            for (auto &piece : maybe_pieces.value()) {
+              pieces.push_back(Piece{
+                  .piece = std::move(piece),
+                  .deal_info = boost::none,
+              });
+            }
+
+            const auto maybe_error =
+                self->newSectorWithPieces(sid, std::move(pieces));
+            if (maybe_error.has_error()) {
+              self->logger_->error(maybe_error.error().message());
+            }
+          });
     });
 
     return outcome::success();
   }
 
   outcome::result<void> SealingImpl::newSectorWithPieces(
-      SectorNumber sector_id, std::vector<Piece> &pieces) {
+      SectorNumber sector_id, std::vector<Piece> pieces) {
     logger_->info("Creating sector with pieces {}", sector_id);
     const auto sector = std::make_shared<SectorInfo>();
     OUTCOME_TRY(fsm_->begin(sector, SealingState::kStateUnknown));
@@ -886,28 +893,37 @@ namespace fc::mining {
                     info->sector_number);
     }
 
-    OUTCOME_TRY(result,
-                pledgeSector(minerSectorId(info->sector_number),
-                             info->getExistingPieceSizes(),
-                             filler_sizes));
+    pledgeSector(
+        minerSectorId(info->sector_number),
+        info->getExistingPieceSizes(),
+        filler_sizes,
+        [fsm{fsm_}, info, logger{logger_}](
+            const outcome::result<std::vector<PieceInfo>> &result) {
+          if (result.has_error()) {
+            logger->error("handlePacking: {}", result.error().message());
+            return;
+          }
 
-    std::shared_ptr<SectorPackedContext> context =
-        std::make_shared<SectorPackedContext>();
-    context->filler_pieces = std::move(result);
+          std::shared_ptr<SectorPackedContext> context =
+              std::make_shared<SectorPackedContext>();
+          context->filler_pieces = std::move(result.value());
 
-    FSM_SEND_CONTEXT(info, SealingEvent::kSectorPacked, context);
+          OUTCOME_EXCEPT(fsm->send(info, SealingEvent::kSectorPacked, context));
+        });
     return outcome::success();
   }
 
-  outcome::result<std::vector<PieceInfo>> SealingImpl::pledgeSector(
+  void SealingImpl::pledgeSector(
       SectorId sector_id,
       std::vector<UnpaddedPieceSize> existing_piece_sizes,
-      gsl::span<UnpaddedPieceSize> sizes) {
+      const std::vector<UnpaddedPieceSize> &sizes,
+      const std::function<void(outcome::result<std::vector<PieceInfo>>)> &cb) {
     if (sizes.empty()) {
-      return outcome::success();
+      return cb(std::vector<PieceInfo>());
     }
 
-    OUTCOME_TRY(seal_proof_type, getCurrentSealProof());
+    OUTCOME_CB(const RegisteredSealProof seal_proof_type,
+               getCurrentSealProof());
 
     std::string existing_piece_str = "empty";
     if (!existing_piece_sizes.empty()) {
@@ -922,24 +938,38 @@ namespace fc::mining {
                   + ", contains " + existing_piece_str);
 
     std::vector<PieceInfo> result;
+    result.reserve(sizes.size());
 
     const SectorRef sector{
         .id = sector_id,
         .proof_type = seal_proof_type,
     };
 
+    UnpaddedPieceSize filler(0);
+
     for (const auto &size : sizes) {
-      OUTCOME_TRY(
-          piece_info,
-          sealer_->addPieceSync(
-              sector, existing_piece_sizes, size, PieceData::makeNull(), 0));
+      filler += size;
 
-      existing_piece_sizes.push_back(size);
+      OUTCOME_CB(CID piece_cid,
+                 sector_storage::zerocomm::getZeroPieceCommitment(size))
 
-      result.push_back(piece_info);
+      result.push_back(
+          PieceInfo{.size = size.padded(), .cid = std::move(piece_cid)});
     }
 
-    return std::move(result);
+    sealer_->addPiece(
+        sector,
+        existing_piece_sizes,
+        filler,
+        PieceData::makeNull(),
+        [fill = std::move(result), cb](const auto &maybe_error) -> void {
+          if (maybe_error.has_error()) {
+            return cb(maybe_error.error());
+          }
+
+          return cb(fill);
+        },
+        0);
   }
 
   SectorRef SealingImpl::minerSector(RegisteredSealProof seal_proof_type,

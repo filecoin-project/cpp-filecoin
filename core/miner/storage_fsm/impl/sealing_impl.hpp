@@ -58,7 +58,7 @@ namespace fc::mining {
         const std::shared_ptr<PreCommitPolicy> &policy,
         const std::shared_ptr<boost::asio::io_context> &context,
         const std::shared_ptr<Scheduler> &scheduler,
-        const std::shared_ptr<PreCommitBatcher> &precommit_batcher_,
+        const std::shared_ptr<PreCommitBatcher> &precommit_batcher,
         const AddressSelector &address_selector,
         const std::shared_ptr<FeeConfig> &fee_config,
         Config config);
@@ -293,13 +293,14 @@ namespace fc::mining {
     outcome::result<TicketInfo> getTicket(
         const std::shared_ptr<SectorInfo> &info);
 
-    outcome::result<std::vector<PieceInfo>> pledgeSector(
+    void pledgeSector(
         SectorId sector_id,
         std::vector<UnpaddedPieceSize> existing_piece_sizes,
-        gsl::span<UnpaddedPieceSize> sizes);
+        const std::vector<UnpaddedPieceSize> &sizes,
+        const std::function<void(outcome::result<std::vector<PieceInfo>>)> &cb);
 
-    outcome::result<void> newSectorWithPieces(
-        SectorNumber sector_id, std::vector<types::Piece> &pieces);
+    outcome::result<void> newSectorWithPieces(SectorNumber sector_id,
+                                              std::vector<types::Piece> pieces);
 
     SectorRef minerSector(RegisteredSealProof seal_proof_type,
                           SectorNumber num) const;

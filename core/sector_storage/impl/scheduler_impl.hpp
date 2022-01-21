@@ -12,11 +12,13 @@
 #include <mutex>
 #include <unordered_map>
 #include <utility>
+#include "primitives/resources/resources.hpp"
 #include "storage/buffer_map.hpp"
 
 namespace fc::sector_storage {
   using storage::BufferMap;
   using WorkerID = uint64_t;
+  using primitives::Resources;
 
   struct TaskRequest {
     inline TaskRequest(const SectorRef &sector,
@@ -32,12 +34,20 @@ namespace fc::sector_storage {
           sel(std::move(sel)),
           prepare(std::move(prepare)),
           work(std::move(work)),
-          cb(std::move(cb)){};
+          cb(std::move(cb)) {
+      const auto resource_iter =
+          primitives::kResourceTable.find({task_type, sector.proof_type});
+      if (resource_iter != primitives::kResourceTable.end()) {
+        need_resources = resource_iter->second;
+      }
+    };
 
     SectorRef sector;
     TaskType task_type;
     uint64_t priority;
     std::shared_ptr<WorkerSelector> sel;
+
+    Resources need_resources;
 
     WorkerAction prepare;
     WorkerAction work;
