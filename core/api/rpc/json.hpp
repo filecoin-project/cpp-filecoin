@@ -1364,18 +1364,8 @@ namespace fc::api {
       v = std::move(_v);
     }
 
-    // can be generic
     template <typename T>
     ENCODE(gsl::span<T>) {
-      Value j{rapidjson::kArrayType};
-      j.Reserve(v.size(), allocator);
-      for (const auto &elem : v) {
-        j.PushBack(encode(elem), allocator);
-      }
-      return j;
-    }
-
-    ENCODE(gsl::span<const UnpaddedPieceSize>) {
       Value j{rapidjson::kArrayType};
       j.Reserve(v.size(), allocator);
       for (const auto &elem : v) {
@@ -2134,7 +2124,7 @@ namespace fc::api {
     ENCODE(MetaPieceData) {
       Value j{rapidjson::kObjectType};
       Set(j, "Type", v.type.toString());
-      Set(j, "Info", v.uuid);
+      Set(j, "Info", v.info);
       return j;
     }
 
@@ -2142,7 +2132,7 @@ namespace fc::api {
       std::string type;
       Get(j, "Type", type);
       v.type = ReaderType::fromString(type);
-      Get(j, "Info", v.uuid);
+      Get(j, "Info", v.info);
     }
 
     template <typename T,

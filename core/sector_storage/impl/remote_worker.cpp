@@ -60,7 +60,7 @@ namespace fc::sector_storage {
   }
 
   RemoteWorker::RemoteWorker(io_context &context)
-      : wsc_(*(worker_thread_.io)) {}
+      : wsc_(context), io_(context) {}
 
   struct PieceDataSender {
     explicit PieceDataSender(io_context &io)
@@ -138,14 +138,14 @@ namespace fc::sector_storage {
     if (!piece_data.isNullData()) {
       PieceDataSender::send(
           piece_data.release(),
-          *(httpSender_.io),
+          io_,
           host_,
           port_,
-          "/rpc/streams/v0/push/" + meta_data.uuid,
+          "/rpc/streams/v0/push/" + meta_data.info,
           new_piece_size,
           [](const outcome::result<std::string> &res) {
             if (res.has_error()) {
-              std::cerr << res.error();
+              spdlog::error("Transfer of pieces was finished with error: {}", res.value());
             } else {
               spdlog::info("Transfer of pieces was finished with response {}",
                            res.value());
