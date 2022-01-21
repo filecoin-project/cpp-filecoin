@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <tuple>
+#include "cpp-ledger/common/const.hpp"
 #include "cpp-ledger/common/types.hpp"
 #include "cpp-ledger/filecoin/types/signature_answer.hpp"
 #include "cpp-ledger/filecoin/types/version_info.hpp"

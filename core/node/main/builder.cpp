@@ -25,6 +25,7 @@
 #include "api/impl/paych_get.hpp"
 #include "api/impl/paych_voucher.hpp"
 #include "api/setup_common.hpp"
+#include "api/wallet/ledger_wallet.hpp"
 #include "api/wallet/local_wallet.hpp"
 #include "blockchain/block_validator/validator.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
@@ -256,7 +257,7 @@ namespace fc::node {
     OUTCOME_TRY(blob, common::unhex(hex_string));
     OUTCOME_TRY(json, codec::json::parse(blob));
     OUTCOME_TRY(key_info, api::decode<KeyInfo>(json));
-    return key_info;
+    return std::move(key_info);
   }
 
   /**
@@ -589,8 +590,8 @@ namespace fc::node {
         return maybe_default_key.error();
       }
       auto key_info{maybe_default_key.value()};
-      OUTCOME_TRY(address,
-                  o.key_store->put(key_info.type, key_info.private_key));
+      OUTCOME_TRY(private_key, key_info.getPrivateKey());
+      OUTCOME_TRY(address, o.key_store->put(key_info.type, private_key));
       o.wallet_default_address->setCbor(address);
       log()->info("Set default wallet address {}", address);
     } else {
@@ -630,7 +631,8 @@ namespace fc::node {
         OUTCOME_TRYA(tipset, o.env_context.ts_load->load(tipset_key));
       }
       auto ipld{withVersion(o.env_context.ipld, tipset->height())};
-      api::TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
+      api::TipsetContext context{
+          tipset, {ipld, tipset->getParentStateRoot()}, {}};
       if (interpret) {
         OUTCOME_TRY(result, o.env_context.interpreter_cache->get(tipset->key));
         context.state_tree = {ipld, result.state_root};
@@ -672,6 +674,8 @@ namespace fc::node {
 
     api::LocalWallet::fillLocalWalletApi(
         o.api, o.key_store, tipsetContext, o.wallet_default_address);
+    api::LedgerWallet::fillLedgerWalletApi(
+        o.api, std::make_shared<storage::MapPrefix>("ledger/", o.kv_store));
 
     o.chain_events->init().value();
 
