@@ -28,6 +28,7 @@ namespace fc::api {
 
       return Bytes(token.begin(), token.end());
     };
+
     api->AuthVerify =
         [verifier{std::move(verifier)},
          logger](auto token) -> outcome::result<std::vector<Permission>> {

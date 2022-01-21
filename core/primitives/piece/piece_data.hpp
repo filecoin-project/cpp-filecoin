@@ -6,7 +6,9 @@
 #pragma once
 
 #include <fcntl.h>
+#include <array>
 #include <string>
+#include <boost/optional.hpp>
 
 namespace fc::primitives::piece {
 
@@ -29,6 +31,8 @@ namespace fc::primitives::piece {
 
     bool isOpened() const;
 
+    [[nodiscard]] int release();
+
     bool isNullData() const;
 
     static PieceData makeNull();
@@ -38,6 +42,32 @@ namespace fc::primitives::piece {
 
     int fd_;
     bool is_null_data_;
+  };
+
+  class ReaderType {
+   public:
+    enum Type : uint64_t {
+      kUndefined = 0,
+      kNullReader = 1,
+      kPushStreamReader = 2
+    } reader_type;
+
+    explicit ReaderType(Type type) : reader_type(type){};
+
+    static const std::array<std::string, 3> types;
+
+    const std::string toString() const;
+
+    static ReaderType fromString(const std::string &type);
+  };
+
+  class MetaPieceData {
+   public:
+    MetaPieceData(std::string uuid, ReaderType::Type type)
+        : info(std::move(uuid)), type(ReaderType(type)){};
+    MetaPieceData():type(ReaderType::fromString("undefined")){};
+    std::string info;
+    ReaderType type;
   };
 
 }  // namespace fc::primitives::piece
