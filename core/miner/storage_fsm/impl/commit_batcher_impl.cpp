@@ -7,14 +7,22 @@
 #include "commit_batcher_impl.hpp"
 #include <iterator>
 #include "vm/actor/builtin/v5/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v6/monies.hpp"
 
 namespace fc::mining {
-  using fc::primitives::ActorId;
-  using primitives::BigInt;
+  using api::kPushNoSpec;
+  using fc::BytesIn;
+  using fc::proofs::ProofEngine;
+  using primitives::ActorId;
+  using primitives::go::bigdiv;
   using primitives::sector::AggregateSealVerifyInfo;
+  using primitives::sector::AggregateSealVerifyProofAndInfos;
+  using primitives::tipset::TipsetCPtr;
+  using vm::actor::MethodParams;
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::types::miner::SectorPreCommitOnChainInfo;
   using vm::actor::builtin::v5::miner::ProveCommitAggregate;
+  using vm::actor::builtin::v6::miner::AggregateProveCommitNetworkFee;
 
   CommitBatcherImpl::CommitBatcherImpl(
       const std::chrono::milliseconds &max_time,
@@ -74,13 +82,15 @@ namespace fc::mining {
     }
     OUTCOME_TRY(head, api_->ChainHead());
 
-    // TODO ?
     const size_t total = union_storage_for_send.size();
 
     ProveCommitAggregate::Params params;
 
-    std::vector<std::vector<uint8_t>> proofs;
+    std::vector<BytesIn> proofs;
     proofs.reserve(total);
+
+    std::vector<AggregateSealVerifyInfo> infos;
+    infos.reserve(total);
 
     BigInt collateral = 0;
 
@@ -89,6 +99,7 @@ namespace fc::mining {
       collateral = collateral + sc;
 
       params.sectors.insert(sector_number);
+      infos.push_back(pair_storage.aggregate_input.info);
     }
 
     for (const auto &[sector_number, pair_storage] : union_storage_for_send) {
@@ -98,28 +109,56 @@ namespace fc::mining {
     const ActorId mid = miner_address_.getId();
     // TODO maybe long (AggregateSealProofs)
 
-    // TODO params.proof = proof_->AggregateSealProofs(); // OUTCOME_TRY
-    OUTCOME_TRY(a, proof_->AggregateSealProofs());
+    AggregateSealVerifyProofAndInfos aggregate_seal =
+        AggregateSealVerifyProofAndInfos{
+            .miner = mid,
+            .seal_proof =
+                union_storage_for_send[infos[0].number].aggregate_input.spt,
+            .aggregate_proof = arp_,
+            .proof = proofs[infos[0].number],  // TODO is it correct?
+            .infos = infos};
 
-    auto enc = codec::cbor::encode(params);
+    OUTCOME_TRY(proof_->aggregateSealProofs(aggregate_seal, proofs));
+    // need:    std::vector<gsl::span<const uint8_t>>
+    // proofs:  std::vector<std::vector<uint8_t>>
+    // proof:   std::vector<uint8_t>
+    // BytesIn: gsl::span<const uint8_t>;
+
+    // proofs: std::vector<std::vector<uint8_t>>
+    auto b = gsl::make_span(proofs);
+    params.proof = aggregate_seal.proof;
+    OUTCOME_TRY(enc, codec::cbor::encode(params));
     OUTCOME_TRY(mi, api_->StateMinerInfo(miner_address_, head->key));
-
-    // BigDiv usage вместо /(обычное деление)
 
     const TokenAmount max_fee =
         fee_config_->max_commit_batch_gas_fee.FeeForSector(proofs.size());
 
-    /*
-     * API_METHOD(StateMinerInfo,
-     * jwt::kReadPermission,
-     * MinerInfo,
-     * const Address &,
-     * const TipsetKey &)
-     */
-    // OTCOME_TRY(mi, api_->StateMinerInfo());
+    OUTCOME_TRY(ts, api_->ChainGetTipSet(head->key));
+    const BigInt bf = ts->blks[0].parent_base_fee;
 
-    // TODO OUTCOME_TRY(bf, api_->ChainBaseFee(head));
     OUTCOME_TRY(nv, api_->StateNetworkVersion(head->key));
+
+    TokenAmount agg_fee_raw = AggregateProveCommitNetworkFee(infos.size(), bf);
+
+    TokenAmount agg_fee = bigdiv(agg_fee_raw * agg_fee_num_, agg_fee_den_);
+    TokenAmount need_funds = collateral + agg_fee;
+    TokenAmount good_funds = max_fee + need_funds;
+
+    OUTCOME_TRY(address, address_selector_(mi, good_funds, need_funds, api_));
+    OUTCOME_TRY(mcid,
+                api_->MpoolPushMessage(
+                    vm::message::UnsignedMessage(miner_address_,
+                                                 address,
+                                                 0,
+                                                 need_funds,
+                                                 max_fee,
+                                                 {},
+                                                 ProveCommitAggregate::Number,
+                                                 MethodParams{enc}),
+                    kPushNoSpec));
+
+    cutoff_start_ = std::chrono::system_clock::now();
+    return mcid.getCid();
   }
 
   void CommitBatcherImpl::setCommitCutoff(const ChainEpoch &current_epoch,

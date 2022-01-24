@@ -8,14 +8,22 @@
 #include "miner/storage_fsm/commit_batcher.hpp"
 
 namespace fc::mining {
-
+  using api::MinerInfo;
   using libp2p::basic::Scheduler;
+  using primitives::BigInt;
   using primitives::SectorNumber;
   using primitives::address::Address;
+  using primitives::sector::RegisteredAggregationProof;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
   using proofs::ProofEngine;
   using types::FeeConfig;
+
+  using AddressSelector = std::function<outcome::result<Address>(
+      const MinerInfo &miner_info,
+      const TokenAmount &good_funds,
+      const TokenAmount &need_funds,
+      const std::shared_ptr<FullNodeApi> &api)>;
 
   class CommitBatcherImpl : public CommitBatcher {
    public:
@@ -51,6 +59,11 @@ namespace fc::mining {
     std::shared_ptr<FeeConfig> fee_config_;
     std::shared_ptr<ProofEngine> proof_;
     std::mutex mutex_storage_;
+    AddressSelector address_selector_;
+
+    const BigInt agg_fee_num_ = BigInt(110);
+    const BigInt agg_fee_den_ = BigInt(100);
+    const RegisteredAggregationProof arp_ = RegisteredAggregationProof(0);
 
     void sendCallbacks();
 

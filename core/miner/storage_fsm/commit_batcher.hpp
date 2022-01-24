@@ -11,13 +11,14 @@
 namespace fc::mining {
   using CommitCallback = std::function<void(const outcome::result<CID> &)>;
   using api::FullNodeApi;
+  using primitives::sector::AggregateSealVerifyInfo;
   using primitives::sector::RegisteredSealProof;
   using sector_storage::Proof;
   using types::SectorInfo;
 
   struct AggregateInput {
     Proof proof;
-    // Info info;
+    AggregateSealVerifyInfo info;
     RegisteredSealProof spt;
   };
 
