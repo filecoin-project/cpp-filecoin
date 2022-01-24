@@ -48,7 +48,7 @@ namespace fc::mining {
     if (union_storage_.size() >= max_size_callback_) {
       sendCallbacks();
     }
-    // Вынести мьютексы
+
     setCommitCutoff(head->epoch(), sector_info);
 
     return outcome::success();
@@ -86,7 +86,7 @@ namespace fc::mining {
 
     ProveCommitAggregate::Params params;
 
-    std::vector<BytesIn> proofs;
+    std::vector<Proof> proofs;
     proofs.reserve(total);
 
     std::vector<AggregateSealVerifyInfo> infos;
@@ -95,8 +95,9 @@ namespace fc::mining {
     BigInt collateral = 0;
 
     for (const auto &[sector_number, pair_storage] : union_storage_for_send) {
-      OUTCOME_TRY(sc, getSectorCollateral(sector_number, head->key));
-      collateral = collateral + sc;
+      OUTCOME_TRY(sector_collateral,
+                  getSectorCollateral(sector_number, head->key));
+      collateral = collateral + sector_collateral;
 
       params.sectors.insert(sector_number);
       infos.push_back(pair_storage.aggregate_input.info);
@@ -118,34 +119,34 @@ namespace fc::mining {
             .proof = proofs[infos[0].number],  // TODO is it correct?
             .infos = infos};
 
-    OUTCOME_TRY(proof_->aggregateSealProofs(aggregate_seal, proofs));
-    // need:    std::vector<gsl::span<const uint8_t>>
-    // proofs:  std::vector<std::vector<uint8_t>>
-    // proof:   std::vector<uint8_t>
-    // BytesIn: gsl::span<const uint8_t>;
+    std::vector<BytesIn> proofsSpan;
+    for (const Proof &proof : proofs) {
+      proofsSpan.push_back(gsl::make_span(proof));
+    }
+    OUTCOME_TRY(proof_->aggregateSealProofs(aggregate_seal, proofsSpan));
 
-    // proofs: std::vector<std::vector<uint8_t>>
-    auto b = gsl::make_span(proofs);
     params.proof = aggregate_seal.proof;
-    OUTCOME_TRY(enc, codec::cbor::encode(params));
-    OUTCOME_TRY(mi, api_->StateMinerInfo(miner_address_, head->key));
+    OUTCOME_TRY(encode, codec::cbor::encode(params));
+    OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address_, head->key));
 
     const TokenAmount max_fee =
         fee_config_->max_commit_batch_gas_fee.FeeForSector(proofs.size());
 
-    OUTCOME_TRY(ts, api_->ChainGetTipSet(head->key));
-    const BigInt bf = ts->blks[0].parent_base_fee;
+    OUTCOME_TRY(tipset, api_->ChainGetTipSet(head->key));
+    const BigInt base_fee = tipset->blks[0].parent_base_fee;
 
-    OUTCOME_TRY(nv, api_->StateNetworkVersion(head->key));
+    // OUTCOME_TRY(nv, api_->StateNetworkVersion(head->key));
 
-    TokenAmount agg_fee_raw = AggregateProveCommitNetworkFee(infos.size(), bf);
+    TokenAmount agg_fee_raw =
+        AggregateProveCommitNetworkFee(infos.size(), base_fee);
 
     TokenAmount agg_fee = bigdiv(agg_fee_raw * agg_fee_num_, agg_fee_den_);
     TokenAmount need_funds = collateral + agg_fee;
     TokenAmount good_funds = max_fee + need_funds;
 
-    OUTCOME_TRY(address, address_selector_(mi, good_funds, need_funds, api_));
-    OUTCOME_TRY(mcid,
+    OUTCOME_TRY(address,
+                address_selector_(miner_info, good_funds, need_funds, api_));
+    OUTCOME_TRY(signed_messege,
                 api_->MpoolPushMessage(
                     vm::message::UnsignedMessage(miner_address_,
                                                  address,
@@ -154,11 +155,11 @@ namespace fc::mining {
                                                  max_fee,
                                                  {},
                                                  ProveCommitAggregate::Number,
-                                                 MethodParams{enc}),
+                                                 MethodParams{encode}),
                     kPushNoSpec));
 
     cutoff_start_ = std::chrono::system_clock::now();
-    return mcid.getCid();
+    return signed_messege.getCid();
   }
 
   void CommitBatcherImpl::setCommitCutoff(const ChainEpoch &current_epoch,
@@ -166,7 +167,7 @@ namespace fc::mining {
     ChainEpoch cutoff_epoch =
         sector_info.ticket_epoch
         + static_cast<int64_t>(kEpochsInDay + kChainFinality);
-    ChainEpoch start_epoch;
+    ChainEpoch start_epoch{};
     for (const auto &piece : sector_info.pieces) {
       if (!piece.deal_info) {
         continue;
