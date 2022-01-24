@@ -229,38 +229,81 @@ namespace fc::mining {
     }
 
     bool is_start_packing = false;
-    PieceLocation piece;
-    piece.size = size.padded();
+    PieceLocation piece_location;
 
     {
       std::unique_lock lock(unsealed_mutex_);
       OUTCOME_TRY(sector_and_padding, getSectorAndPadding(size));
 
-      piece.sector = sector_and_padding.sector;
+      auto &unsealed_sector{unsealed_sectors_[sector_and_padding.sector]};
 
+      piece_location.sector = sector_and_padding.sector;
+      piece_location.size = size.padded();
+
+      std::shared_ptr<SectorAddPiecesContext> context =
+          std::make_shared<SectorAddPiecesContext>();
+      context->pieces.reserve(sector_and_padding.pads.size());
+
+      PaddedPieceSize pads_size(0);
       for (const auto &pad : sector_and_padding.pads) {
-        OUTCOME_TRY(addPiece(sector_and_padding.sector,
-                             pad.unpadded(),
-                             PieceData::makeNull(),
-                             boost::none));
+        OUTCOME_TRY(
+            zerocomm,
+            sector_storage::zerocomm::getZeroPieceCommitment(pad.unpadded()));
+
+        context->pieces.push_back(Piece{
+            .piece =
+                PieceInfo{
+                    .size = pad,
+                    .cid = std::move(zerocomm),
+                },
+            .deal_info = boost::none,
+        });
+
+        pads_size += pad;
       }
 
-      piece.offset = unsealed_sectors_[sector_and_padding.sector].stored;
+      auto sector_ref = minerSector(seal_proof_type, piece_location.sector);
 
-      OUTCOME_TRY(addPiece(
-          sector_and_padding.sector, size, std::move(piece_data), deal));
+      OUTCOME_TRY(sealer_->addPieceSync(sector_ref,
+                                        unsealed_sector.piece_sizes,
+                                        pads_size.unpadded(),
+                                        PieceData::makeNull(),
+                                        kDealSectorPriority));
+
+      unsealed_sector.stored += pads_size;
+
+      piece_location.offset = unsealed_sector.stored;
+
+      logger_->info("Add piece to sector {}", piece_location.sector);
+      OUTCOME_TRY(piece_info,
+                  sealer_->addPieceSync(sector_ref,
+                                        unsealed_sector.piece_sizes,
+                                        size,
+                                        std::move(piece_data),
+                                        kDealSectorPriority));
+
+      context->piece.push_back(Piece{
+          .piece = piece_info,
+          .deal_info = deal,
+      });
+
+      unsealed_sector.deals_number++;
+      unsealed_sector.stored += piece_info.size;
+      unsealed_sector.piece_sizes.push_back(piece_info.size.unpadded());
+
+      FSM_SEND_CONTEXT(info, SealingEvent::kSectorAddPieces, context);
 
       is_start_packing =
-          unsealed_sectors_[sector_and_padding.sector].deals_number
-              >= getDealPerSectorLimit(sector_size)
-          || SectorSize(piece.offset) + SectorSize(piece.size) == sector_size;
+          unsealed_sector.deals_number >= getDealPerSectorLimit(sector_size)
+          || SectorSize(piece_location.offset) + SectorSize(piece_location.size)
+                 == sector_size;
     }
 
     if (is_start_packing) {
-      OUTCOME_TRY(startPacking(piece.sector));
+      OUTCOME_TRY(startPacking(piece_location.sector));
     }
 
-    return piece;
+    return piece_location;
   }
 
   outcome::result<void> SealingImpl::remove(SectorNumber sector_id) {
@@ -449,42 +492,6 @@ namespace fc::mining {
         .sector = new_sector,
         .pads = {},
     };
-  }
-
-  outcome::result<void> SealingImpl::addPiece(
-      SectorNumber sector_id,
-      UnpaddedPieceSize size,
-      PieceData piece,
-      const boost::optional<DealInfo> &deal) {
-    logger_->info("Add piece to sector {}", sector_id);
-    OUTCOME_TRY(seal_proof_type, getCurrentSealProof());
-    OUTCOME_TRY(piece_info,
-                sealer_->addPieceSync(minerSector(seal_proof_type, sector_id),
-                                      unsealed_sectors_[sector_id].piece_sizes,
-                                      size,
-                                      std::move(piece),
-                                      kDealSectorPriority));
-
-    Piece new_piece{
-        .piece = piece_info,
-        .deal_info = deal,
-    };
-
-    OUTCOME_TRY(info, getSectorInfo(sector_id));
-    std::shared_ptr<SectorAddPieceContext> context =
-        std::make_shared<SectorAddPieceContext>();
-    context->piece = new_piece;
-    FSM_SEND_CONTEXT(info, SealingEvent::kSectorAddPiece, context);
-
-    auto unsealed_info = unsealed_sectors_.find(sector_id);
-    if (deal) {
-      unsealed_info->second.deals_number++;
-    }
-    unsealed_info->second.stored += new_piece.piece.size;
-    unsealed_info->second.piece_sizes.push_back(
-        new_piece.piece.size.unpadded());
-
-    return outcome::success();
   }
 
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)

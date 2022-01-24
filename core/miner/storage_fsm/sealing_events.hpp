@@ -18,7 +18,7 @@ namespace fc::mining {
   enum class SealingEvent {
     kSectorStart = 1,
     kSectorStartWithPieces,
-    kSectorAddPiece,
+    kSectorAddPieces,
     kSectorStartPacking,
     kSectorPacked,
     kSectorPreCommit1,
@@ -96,13 +96,13 @@ namespace fc::mining {
     std::vector<types::Piece> pieces;
   };
 
-  struct SectorAddPieceContext final : public SealingEventContext {
+  struct SectorAddPiecesContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
-      info->pieces.push_back(piece);
+      info->pieces.insert(info->pieces.end(), pieces.begin(), pieces.end());
     }
 
-    types::Piece piece;
+    std::vector<types::Piece> pieces;
   };
 
   struct SectorPackedContext final : public SealingEventContext {

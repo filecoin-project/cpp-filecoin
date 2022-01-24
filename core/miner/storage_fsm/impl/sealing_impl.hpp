@@ -115,11 +115,6 @@ namespace fc::mining {
     outcome::result<SectorPaddingResponse> getSectorAndPadding(
         UnpaddedPieceSize size);
 
-    outcome::result<void> addPiece(SectorNumber sector_id,
-                                   UnpaddedPieceSize size,
-                                   PieceData piece,
-                                   const boost::optional<DealInfo> &deal);
-
     outcome::result<SectorNumber> newDealSector();
 
     TokenAmount tryUpgradeSector(SectorPreCommitInfo &params);
