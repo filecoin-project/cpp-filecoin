@@ -24,6 +24,7 @@ namespace fc::mining {
   using primitives::TokenAmount;
   using primitives::piece::PaddedPieceSize;
   using primitives::sector::SectorRef;
+  using proofs::RequiredPadding;
   using proofs::SealRandomness;
   using sector_storage::Manager;
   using types::PieceInfo;
@@ -109,7 +110,7 @@ namespace fc::mining {
 
     struct SectorPaddingResponse {
       SectorNumber sector;
-      std::vector<PaddedPieceSize> pads;
+      RequiredPadding padding;
     };
 
     outcome::result<SectorPaddingResponse> getSectorAndPadding(

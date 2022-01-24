@@ -242,35 +242,37 @@ namespace fc::mining {
 
       std::shared_ptr<SectorAddPiecesContext> context =
           std::make_shared<SectorAddPiecesContext>();
-      context->pieces.reserve(sector_and_padding.pads.size());
-
-      PaddedPieceSize pads_size(0);
-      for (const auto &pad : sector_and_padding.pads) {
-        OUTCOME_TRY(
-            zerocomm,
-            sector_storage::zerocomm::getZeroPieceCommitment(pad.unpadded()));
-
-        context->pieces.push_back(Piece{
-            .piece =
-                PieceInfo{
-                    .size = pad,
-                    .cid = std::move(zerocomm),
-                },
-            .deal_info = boost::none,
-        });
-
-        pads_size += pad;
-      }
+      context->pieces.reserve(sector_and_padding.padding.pads.size());
 
       auto sector_ref = minerSector(seal_proof_type, piece_location.sector);
 
-      OUTCOME_TRY(sealer_->addPieceSync(sector_ref,
-                                        unsealed_sector.piece_sizes,
-                                        pads_size.unpadded(),
-                                        PieceData::makeNull(),
-                                        kDealSectorPriority));
+      if (sector_and_padding.padding.size != 0) {
+        OUTCOME_TRY(
+            sealer_->addPieceSync(sector_ref,
+                                  unsealed_sector.piece_sizes,
+                                  sector_and_padding.padding.size.unpadded(),
+                                  PieceData::makeNull(),
+                                  kDealSectorPriority));
 
-      unsealed_sector.stored += pads_size;
+        unsealed_sector.stored += sector_and_padding.padding.size;
+
+        for (const auto &pad : sector_and_padding.padding.pads) {
+          OUTCOME_TRY(
+              zerocomm,
+              sector_storage::zerocomm::getZeroPieceCommitment(pad.unpadded()));
+
+          context->pieces.push_back(Piece{
+              .piece =
+                  PieceInfo{
+                      .size = pad,
+                      .cid = std::move(zerocomm),
+                  },
+              .deal_info = boost::none,
+          });
+
+          unsealed_sector.piece_sizes.push_back(pad.unpadded());
+        }
+      }
 
       piece_location.offset = unsealed_sector.stored;
 
@@ -282,7 +284,7 @@ namespace fc::mining {
                                         std::move(piece_data),
                                         kDealSectorPriority));
 
-      context->piece.push_back(Piece{
+      context->pieces.push_back(Piece{
           .piece = piece_info,
           .deal_info = deal,
       });
@@ -291,6 +293,7 @@ namespace fc::mining {
       unsealed_sector.stored += piece_info.size;
       unsealed_sector.piece_sizes.push_back(piece_info.size.unpadded());
 
+      OUTCOME_TRY(info, getSectorInfo(piece_location.sector));
       FSM_SEND_CONTEXT(info, SealingEvent::kSectorAddPieces, context);
 
       is_start_packing =
@@ -475,7 +478,7 @@ namespace fc::mining {
       if (value.stored + size.padded() + pads.size <= sector_size) {
         return SectorPaddingResponse{
             .sector = key,
-            .pads = std::move(pads.pads),
+            .padding = std::move(pads),
         };
       }
     }
@@ -490,7 +493,7 @@ namespace fc::mining {
 
     return SectorPaddingResponse{
         .sector = new_sector,
-        .pads = {},
+        .padding = RequiredPadding{.size = PaddedPieceSize(0)},
     };
   }
 
@@ -598,7 +601,7 @@ namespace fc::mining {
             .from(SealingState::kStateUnknown)
             .to(SealingState::kPacking)
             .action(CALLBACK_ACTION),
-        SealingTransition(SealingEvent::kSectorAddPiece)
+        SealingTransition(SealingEvent::kSectorAddPieces)
             .from(SealingState::kWaitDeals)
             .toSameState()
             .action(CALLBACK_ACTION),

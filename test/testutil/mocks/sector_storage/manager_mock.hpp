@@ -145,12 +145,24 @@ namespace fc::sector_storage {
                       const std::function<void(outcome::result<PieceInfo>)> &,
                       uint64_t priority));
 
+    MOCK_METHOD5(doAddNullPiece,
+                 void(const SectorRef &sector,
+                      gsl::span<const UnpaddedPieceSize> piece_sizes,
+                      const UnpaddedPieceSize &new_piece_size,
+                      const std::function<void(outcome::result<PieceInfo>)> &,
+                      uint64_t priority));
+
     void addPiece(const SectorRef &sector,
                   gsl::span<const UnpaddedPieceSize> piece_sizes,
                   const UnpaddedPieceSize &new_piece_size,
                   proofs::PieceData piece_data,
                   const std::function<void(outcome::result<PieceInfo>)> &cb,
                   uint64_t priority) override {
+      if (piece_data.isNullData()) {
+        return doAddNullPiece(
+            sector, piece_sizes, new_piece_size, cb, priority);
+      }
+
       return doAddPiece(sector,
                         piece_sizes,
                         new_piece_size,
@@ -167,7 +179,7 @@ namespace fc::sector_storage {
                      int,
                      uint64_t priority));
 
-    MOCK_METHOD4(doNullAddPieceSync,
+    MOCK_METHOD4(doAddNullPieceSync,
                  outcome::result<PieceInfo>(
                      const SectorRef &sector,
                      gsl::span<const UnpaddedPieceSize> piece_sizes,
@@ -181,7 +193,7 @@ namespace fc::sector_storage {
         proofs::PieceData piece_data,
         uint64_t priority) override {
       if (piece_data.isNullData()) {
-        return doNullAddPieceSync(
+        return doAddNullPieceSync(
             sector, piece_sizes, new_piece_size, priority);
       }
       return doAddPieceSync(
