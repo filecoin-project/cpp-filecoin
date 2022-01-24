@@ -24,6 +24,8 @@
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage {
+  using primitives::sector::SectorInfo;
+  using primitives::sector::toSectorInfo;
   using primitives::sector_file::SectorFileType;
   using primitives::sector_file::sectorName;
   namespace fs = boost::filesystem;
@@ -182,7 +184,7 @@ namespace fc::sector_storage {
 
   outcome::result<std::vector<PoStProof>> ManagerImpl::generateWinningPoSt(
       ActorId miner_id,
-      gsl::span<const SectorInfo> sector_info,
+      gsl::span<const ExtendedSectorInfo> sector_info,
       PoStRandomness randomness) {
     OUTCOME_TRY(res, publicSectorToPrivate(miner_id, sector_info, true));
 
@@ -200,7 +202,7 @@ namespace fc::sector_storage {
 
   outcome::result<Prover::WindowPoStResponse> ManagerImpl::generateWindowPoSt(
       ActorId miner_id,
-      gsl::span<const SectorInfo> sector_info,
+      gsl::span<const ExtendedSectorInfo> sector_info,
       PoStRandomness randomness) {
     Prover::WindowPoStResponse response{};
 
@@ -294,9 +296,10 @@ namespace fc::sector_storage {
   }
 
   outcome::result<ManagerImpl::PubToPrivateResponse>
-  ManagerImpl::publicSectorToPrivate(ActorId miner,
-                                     gsl::span<const SectorInfo> sector_info,
-                                     bool winning) {
+  ManagerImpl::publicSectorToPrivate(
+      ActorId miner,
+      gsl::span<const ExtendedSectorInfo> sector_info,
+      bool winning) {
     PubToPrivateResponse result;
 
     std::vector<proofs::PrivateSectorInfo> out{};
@@ -310,12 +313,22 @@ namespace fc::sector_storage {
           .proof_type = sector.registered_proof,
       };
 
-      auto res =
-          acquireSector(sector_ref,
-                        static_cast<SectorFileType>(SectorFileType::FTCache
-                                                    | SectorFileType::FTSealed),
-                        SectorFileType::FTNone,
-                        PathType::kStorage);
+      SectorFileType sector_file_type = SectorFileType::FTNone;
+      if (sector.sector_key.has_value()) {
+        logger_->debug("Posting over updated sector for sector id: {}",
+                       sector.sector);
+        sector_file_type = static_cast<SectorFileType>(
+            SectorFileType::FTCache | SectorFileType::FTUpdate);
+      } else {
+        logger_->debug("Posting over sector key sector for sector id: {}",
+                       sector.sector);
+        sector_file_type = static_cast<SectorFileType>(
+            SectorFileType::FTCache | SectorFileType::FTSealed);
+      }
+      const auto res = acquireSector(sector_ref,
+                                     sector_file_type,
+                                     SectorFileType::FTNone,
+                                     PathType::kStorage);
       if (res.has_error()) {
         logger_->warn("failed to acquire sector {}", sectorName(sector_ref.id));
         result.skipped.push_back(sector_ref.id);
@@ -330,7 +343,7 @@ namespace fc::sector_storage {
       result.locks.push_back(std::move(res.value().lock));
 
       out.push_back(proofs::PrivateSectorInfo{
-          .info = sector,
+          .info = toSectorInfo(sector),
           .cache_dir_path = res.value().paths.cache,
           .post_proof_type = post_proof_type,
           .sealed_sector_path = res.value().paths.sealed,

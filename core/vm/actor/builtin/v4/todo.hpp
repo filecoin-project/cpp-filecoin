@@ -19,3 +19,7 @@
 #define TODO_ACTORS_V6()                            \
   throw std::logic_error("TODO_ACTORS_V6 " __FILE__ \
                          ":" BOOST_PP_STRINGIZE(__LINE__))
+
+#define TODO_ACTORS_V7()                            \
+  throw std::logic_error("TODO_ACTORS_V7 " __FILE__ \
+                         ":" BOOST_PP_STRINGIZE(__LINE__))

@@ -31,6 +31,7 @@ namespace fc::vm::actor::builtin::types::miner {
     TokenAmount init_pledge{};
     TokenAmount expected_day_reward{};
     TokenAmount expected_storage_pledge{};
+    boost::optional<CID> sector_key_cid;
 
     inline bool operator==(const SectorOnChainInfo &other) const {
       return sector == other.sector && seal_proof == other.seal_proof
@@ -41,7 +42,8 @@ namespace fc::vm::actor::builtin::types::miner {
              && verified_deal_weight == other.verified_deal_weight
              && init_pledge == other.init_pledge
              && expected_day_reward == other.expected_day_reward
-             && expected_storage_pledge == other.expected_storage_pledge;
+             && expected_storage_pledge == other.expected_storage_pledge
+             && sector_key_cid == other.sector_key_cid;
     }
 
     inline bool operator!=(const SectorOnChainInfo &other) const {
@@ -59,7 +61,8 @@ namespace fc::vm::actor::builtin::types::miner {
              verified_deal_weight,
              init_pledge,
              expected_day_reward,
-             expected_storage_pledge)
+             expected_storage_pledge,
+             sector_key_cid)
 
   /**
    * Type used in actor method parameters

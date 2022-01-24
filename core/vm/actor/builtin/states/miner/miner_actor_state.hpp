@@ -140,6 +140,9 @@ namespace fc::vm::actor::builtin::states {
     /** Deadlines with outstanding fees for early sector termination. */
     RleBitset early_terminations;
 
+    /** True when miner cron is active, false otherwise */
+    bool deadline_cron_active{};
+
     // Methods
 
     /**
@@ -150,8 +153,7 @@ namespace fc::vm::actor::builtin::states {
     virtual outcome::result<Universal<MinerInfo>> getInfo() const = 0;
 
     inline DeadlineInfo deadlineInfo(ChainEpoch now) const {
-      return DeadlineInfo(
-          this->proving_period_start, this->current_deadline, now);
+      return {this->proving_period_start, this->current_deadline, now};
     }
 
     inline QuantSpec quantSpecForDeadline(uint64_t deadline_id) const {

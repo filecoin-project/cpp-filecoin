@@ -1084,7 +1084,7 @@ namespace fc::api {
     };
     api->Version = []() {
       return VersionResult{
-          kNodeVersion, makeApiVersion(2, 1, 0), kEpochDurationSeconds};
+          kNodeVersion, makeApiVersion(2, 2, 0), kEpochDurationSeconds};
     };
     return api;
   }

@@ -138,12 +138,12 @@ namespace fc::sector_storage {
 
     outcome::result<std::vector<PoStProof>> generateWinningPoSt(
         ActorId miner_id,
-        gsl::span<const SectorInfo> sector_info,
+        gsl::span<const ExtendedSectorInfo> sector_info,
         PoStRandomness randomness) override;
 
     outcome::result<WindowPoStResponse> generateWindowPoSt(
         ActorId miner_id,
-        gsl::span<const SectorInfo> sector_info,
+        gsl::span<const ExtendedSectorInfo> sector_info,
         PoStRandomness randomness) override;
 
     outcome::result<void> remove(const SectorRef &sector) override;
@@ -232,7 +232,7 @@ namespace fc::sector_storage {
     };
 
     outcome::result<PubToPrivateResponse> publicSectorToPrivate(
-        ActorId miner, gsl::span<const SectorInfo> sector_info, bool winning);
+        ActorId miner, gsl::span<const ExtendedSectorInfo> sector_info, bool winning);
 
     std::shared_ptr<stores::SectorIndex> index_;
 

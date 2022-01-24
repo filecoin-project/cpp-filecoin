@@ -9,7 +9,8 @@
 #define ACTOR_CODE_IS(name)                                                   \
   code == actor::builtin::v0::name || code == actor::builtin::v2::name        \
       || code == actor::builtin::v3::name || code == actor::builtin::v4::name \
-      || code == actor::builtin::v5::name || code == actor::builtin::v6::name
+      || code == actor::builtin::v5::name || code == actor::builtin::v6::name \
+      || code == actor::builtin::v7::name
 
 namespace fc::vm::toolchain {
 

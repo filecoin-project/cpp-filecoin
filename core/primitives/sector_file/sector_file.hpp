@@ -30,6 +30,8 @@ namespace fc::primitives::sector_file {
     FTUnsealed = 1,
     FTSealed = 2,
     FTCache = 4,
+    FTUpdate = 8,
+    FTUpdateCache = 16,
   };
   inline SectorFileType operator|(SectorFileType lhs, SectorFileType rhs) {
     return static_cast<SectorFileType>(int64_t(lhs) | rhs);

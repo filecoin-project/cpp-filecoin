@@ -18,6 +18,7 @@ namespace fc::vm::actor::builtin::types::miner {
   constexpr size_t kSectorsBitwidth = 5;
 
   struct Sectors {
+    // TODO Universal type?
     adt::Array<SectorOnChainInfo, kSectorsBitwidth> sectors;
 
     outcome::result<std::vector<SectorOnChainInfo>> load(

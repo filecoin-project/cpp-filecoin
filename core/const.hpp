@@ -61,8 +61,9 @@ namespace fc {
   extern ChainEpoch kUpgradeIgnitionHeight;
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeRefuelHeight;
+  /** Actors V2 update */
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  extern ChainEpoch kUpgradeActorsV2Height;
+  extern ChainEpoch kUpgradeAssemblyHeight;
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeTapeHeight;
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
@@ -77,16 +78,21 @@ namespace fc {
   extern ChainEpoch kUpgradeOrangeHeight;
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeClausHeight;
+  /** Actors V3 upgrade */
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  extern ChainEpoch kUpgradeActorsV3Height;
+  extern ChainEpoch kUpgradeTrustHeight;
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeNorwegianHeight;
+  /** Actors V4 upgrade */
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-  extern ChainEpoch kUpgradeActorsV4Height;
+  extern ChainEpoch kUpgradeTurboHeight;
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeHyperdriveHeight;
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeChocolateHeight;
+  /** Update introduces Snap deals */
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+  extern ChainEpoch kUpgradeOhSnapHeight;
 
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern EpochDuration kBreezeGasTampingDuration;
@@ -108,5 +114,9 @@ namespace fc {
    */
   void setParamsNoUpgrades();
 
+  /**
+   * Sets upgrades heights and parameters for Interopnet.
+   * Identical to Lotus `build interopnet`
+   */
   void setParamsInteropnet();
 }  // namespace fc

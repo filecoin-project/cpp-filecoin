@@ -29,6 +29,9 @@ namespace fc::blockchain::block_validator {
     ProofParamProvider::getParams(params, 0).value();
 
     setParamsInteropnet();
+    // Set network version 14
+    kUpgradeOhSnapHeight = INT64_MAX;
+
     vm::actor::cgo::configParams();
 
     const auto cbipld{std::make_shared<MemoryCbIpld>()};

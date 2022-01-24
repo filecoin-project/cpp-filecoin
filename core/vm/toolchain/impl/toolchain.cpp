@@ -111,8 +111,19 @@ namespace fc::vm::toolchain {
       return ActorVersion::kVersion6;
     }
 
+    if ((actorCid == v7::kAccountCodeId) || (actorCid == v7::kCronCodeId)
+        || (actorCid == v7::kStoragePowerCodeId)
+        || (actorCid == v7::kStorageMarketCodeId)
+        || (actorCid == v7::kStorageMinerCodeId)
+        || (actorCid == v7::kMultisigCodeId) || (actorCid == v7::kInitCodeId)
+        || (actorCid == v7::kPaymentChannelCodeId)
+        || (actorCid == v7::kRewardActorCodeId)
+        || (actorCid == v7::kSystemActorCodeId)
+        || (actorCid == v7::kVerifiedRegistryCodeId)) {
+      return ActorVersion::kVersion6;
+    }
+
     assert(false);
-    abort();
   }
 
   AddressMatcherPtr Toolchain::createAddressMatcher(ActorVersion version) {
@@ -129,6 +140,8 @@ namespace fc::vm::toolchain {
         return std::make_shared<AddressMatcherV5>();
       case ActorVersion::kVersion6:
         return std::make_shared<AddressMatcherV6>();
+      case ActorVersion::kVersion7:
+        return std::make_shared<AddressMatcherV7>();
     }
   }
 
@@ -157,6 +170,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V5();
       case ActorVersion::kVersion6:
         TODO_ACTORS_V6();
+      case ActorVersion::kVersion7:
+        TODO_ACTORS_V7();
     }
   }
 
@@ -175,6 +190,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V5();
       case ActorVersion::kVersion6:
         TODO_ACTORS_V6();
+      case ActorVersion::kVersion7:
+        TODO_ACTORS_V7();
     }
   }
 
@@ -193,6 +210,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V5();
       case ActorVersion::kVersion6:
         TODO_ACTORS_V6();
+      case ActorVersion::kVersion7:
+        TODO_ACTORS_V7();
     }
   }
 
@@ -215,6 +234,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V5();
       case ActorVersion::kVersion6:
         TODO_ACTORS_V6();
+      case ActorVersion::kVersion7:
+        TODO_ACTORS_V7();
     }
   }
 
@@ -233,6 +254,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V5();
       case ActorVersion::kVersion6:
         TODO_ACTORS_V6();
+      case ActorVersion::kVersion7:
+        TODO_ACTORS_V7();
     }
   }
 
@@ -255,6 +278,8 @@ namespace fc::vm::toolchain {
         TODO_ACTORS_V5();
       case ActorVersion::kVersion6:
         TODO_ACTORS_V6();
+      case ActorVersion::kVersion7:
+        TODO_ACTORS_V7();
     }
   }
 }  // namespace fc::vm::toolchain
