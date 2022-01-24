@@ -128,16 +128,6 @@ namespace fc::proofs {
         verifyAggregateSeals,
         outcome::result<bool>(const AggregateSealVerifyProofAndInfos &));
 
-    MOCK_METHOD8(generateUpdateProof,
-                 outcome::result<Bytes>(RegisteredUpdateProof,
-                                        const CID &,
-                                        const CID &,
-                                        const CID &,
-                                        const std::string &,
-                                        const std::string &,
-                                        const std::string &,
-                                        const std::string &));
-
     MOCK_METHOD1(verifyUpdateProof,
                  outcome::result<bool>(const ReplicaUpdateInfo &));
 
@@ -207,5 +197,41 @@ namespace fc::proofs {
                  outcome::result<std::string>(RegisteredSealProof));
 
     MOCK_METHOD0(getGPUDevices, outcome::result<Devices>());
+
+    MOCK_METHOD7(updateSeal,
+                 outcome::result<SealedAndUnsealedCID>(
+                     RegisteredUpdateProof type,
+                     const std::string &path_update,
+                     const std::string &path_update_cache,
+                     const std::string &path_sealed,
+                     const std::string &path_cache,
+                     const std::string &path_unsealed,
+                     gsl::span<const PieceInfo> pieces));
+
+    MOCK_METHOD6(updateUnseal,
+                 outcome::result<void>(RegisteredUpdateProof type,
+                                       const std::string &path_unsealed,
+                                       const std::string &path_update,
+                                       const std::string &path_sealed,
+                                       const std::string &path_cache,
+                                       const CID &cid_unsealed));
+
+    MOCK_METHOD8(
+        updateProve1,
+        outcome::result<UpdateProofs1>(RegisteredUpdateProof type,
+                                       const CID &cid_sealed_old,
+                                       const CID &cid_sealed,
+                                       const CID &cid_unsealed,
+                                       const std::string &path_update,
+                                       const std::string &path_update_cache,
+                                       const std::string &path_sealed,
+                                       const std::string &path_cache));
+
+    MOCK_METHOD5(updateProve2,
+                 outcome::result<Bytes>(RegisteredUpdateProof type,
+                                        const CID &cid_sealed_old,
+                                        const CID &cid_sealed,
+                                        const CID &cid_unsealed,
+                                        UpdateProofs1 proofs1));
   };
 }  // namespace fc::proofs
