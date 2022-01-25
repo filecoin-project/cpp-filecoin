@@ -31,7 +31,8 @@ add_library(miner_types
     v3/deadline.cpp
     v3/monies.cpp
     v3/proof_policy.cpp
-    bind_types.cpp)
+    bind_types.cpp
+    )
 target_link_libraries(miner_types
     actor
     address

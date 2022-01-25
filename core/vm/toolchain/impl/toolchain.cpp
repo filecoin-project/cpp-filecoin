@@ -120,10 +120,11 @@ namespace fc::vm::toolchain {
         || (actorCid == v7::kRewardActorCodeId)
         || (actorCid == v7::kSystemActorCodeId)
         || (actorCid == v7::kVerifiedRegistryCodeId)) {
-      return ActorVersion::kVersion6;
+      return ActorVersion::kVersion7;
     }
 
     assert(false);
+    abort();
   }
 
   AddressMatcherPtr Toolchain::createAddressMatcher(ActorVersion version) {

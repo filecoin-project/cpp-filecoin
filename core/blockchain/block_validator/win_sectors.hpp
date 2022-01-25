@@ -53,7 +53,6 @@ namespace fc::blockchain::block_validator {
       std::vector<uint64_t> sector_ids{sectors_bitset.begin(),
                                        sectors_bitset.end()};
       for (const auto &i : indices) {
-        // TODO state prior to v7
         OUTCOME_TRY(sector, state->sectors.sectors.get(sector_ids[i]));
         sectors.push_back({
             sector->seal_proof,

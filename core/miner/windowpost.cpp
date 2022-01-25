@@ -125,7 +125,6 @@ namespace fc::mining {
           auto prove{[&](auto _part, auto parts) -> outcome::result<void> {
             SubmitWindowedPoSt::Params params;
             params.deadline = deadline.index;
-            // TODO (a.chernyshov) ExtendedSectorInfo - fill sector_key
             std::vector<ExtendedSectorInfo> sectors;
             RleBitset post_skip;
             for (auto &part : parts) {
@@ -142,6 +141,7 @@ namespace fc::mining {
                               ExtendedSectorInfo{
                                   .registered_proof = sector.seal_proof,
                                   .sector = sector.sector,
+                                  .sector_key = sector.sector_key_cid,
                                   .sealed_cid = sector.sealed_cid,
                               });
                 }

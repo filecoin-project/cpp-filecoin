@@ -32,6 +32,10 @@ namespace fc::primitives::sector_file {
         return "sealed";
       case FTCache:
         return "cache";
+      case FTUpdate:
+        return "update";
+      case FTUpdateCache:
+        return "update-cache";
       default:
         return "<unknown " + std::to_string(file_type) + ">";
     }
@@ -46,6 +50,12 @@ namespace fc::primitives::sector_file {
     }
     if (file_type_str == "cache") {
       return SectorFileType::FTCache;
+    }
+    if (file_type_str == "update") {
+      return SectorFileType::FTUpdate;
+    }
+    if (file_type_str == "update-cache") {
+      return SectorFileType::FTUpdateCache;
     }
     return SectorFileTypeErrors::kInvalidSectorFileType;
   }
@@ -80,6 +90,12 @@ namespace fc::primitives::sector_file {
       case FTSealed:
         sealed = path;
         return;
+      case FTUpdate:
+        update = path;
+        return;
+      case FTUpdateCache:
+        update_cache = path;
+        return;
       default:
         return;
     }
@@ -94,6 +110,10 @@ namespace fc::primitives::sector_file {
         return unsealed;
       case FTSealed:
         return sealed;
+      case FTUpdate:
+        return update;
+      case FTUpdateCache:
+        return update_cache;
       default:
         return SectorFileTypeErrors::kInvalidSectorFileType;
     }
