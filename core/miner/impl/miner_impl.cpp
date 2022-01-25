@@ -93,19 +93,13 @@ namespace fc::miner {
     fee_config->max_precommit_batch_gas_fee.per_sector =
         TokenAmount{"2000000000000000"};
     fee_config->max_precommit_gas_fee = TokenAmount{"25000000000000000"};
-    auto addr_sel = [=](const MinerInfo &miner_info,
-                        const TokenAmount &good_funds,
-                        const std::shared_ptr<FullNodeApi> &api)
-        -> outcome::result<Address> {
-      return SelectAddress(miner_info, good_funds, api);
-    };
 
     std::shared_ptr<PreCommitBatcher> precommit_batcher =
         std::make_shared<PreCommitBatcherImpl>(std::chrono::seconds(60),
                                                api,
                                                miner_address,
                                                scheduler,
-                                               addr_sel,
+                                               SelectAddress,
                                                fee_config);
     OUTCOME_TRY(sealing,
                 SealingImpl::newSealing(api,
@@ -118,7 +112,7 @@ namespace fc::miner {
                                         context,
                                         scheduler,
                                         precommit_batcher,
-                                        addr_sel,
+                                        SelectAddress,
                                         fee_config,
                                         config));
 
