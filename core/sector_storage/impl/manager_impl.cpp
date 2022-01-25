@@ -319,7 +319,7 @@ namespace fc::sector_storage {
         logger_->debug("Posting over updated sector for sector id: {}",
                        sector.sector);
         sector_file_type = static_cast<SectorFileType>(
-            SectorFileType::FTCache | SectorFileType::FTUpdate);
+            SectorFileType::FTUpdateCache | SectorFileType::FTUpdate);
       } else {
         logger_->debug("Posting over sector key sector for sector id: {}",
                        sector.sector);
