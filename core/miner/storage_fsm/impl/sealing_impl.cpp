@@ -1151,13 +1151,11 @@ namespace fc::mining {
     params.seal_epoch = info->ticket_epoch;
     params.deal_ids = info->getDealIDs();
 
-    auto deposit = tryUpgradeSector(params);
-
     OUTCOME_TRY(collateral,
                 api_->StateMinerPreCommitDepositForPower(
                     miner_address_, params, head->key));
 
-    deposit = std::max(deposit, collateral);
+    const auto deposit = std::max(tryUpgradeSector(params), collateral);
 
     return SealingImpl::PreCommitParams{std::move(params), deposit, head->key};
   }
@@ -1216,7 +1214,7 @@ namespace fc::mining {
         [fsm{fsm_},
          logger{logger_},
          info,
-         precommit_params{std::move(precommit_params)},
+         precommit_params,
          self{shared_from_this()}](
             const outcome::result<api::SignedMessage> &maybe_signed_message) {
           if (maybe_signed_message.has_error()) {
