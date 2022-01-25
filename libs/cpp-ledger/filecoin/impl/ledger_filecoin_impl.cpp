@@ -23,6 +23,10 @@ namespace ledger::filecoin {
       std::shared_ptr<LedgerDevice> ledgerDevice)
       : device(std::move(ledgerDevice)) {}
 
+  LedgerFilecoinImpl::~LedgerFilecoinImpl() {
+    Close();
+  }
+
   void LedgerFilecoinImpl::Close() const {
     device->Close();
   }

@@ -24,6 +24,7 @@ namespace ledger::filecoin {
   class LedgerFilecoinImpl : public LedgerFilecoin {
    public:
     explicit LedgerFilecoinImpl(std::shared_ptr<LedgerDevice> ledgerDevice);
+    ~LedgerFilecoinImpl() override;
 
     void Close() const override;
 

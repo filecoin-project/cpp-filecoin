@@ -22,7 +22,7 @@ namespace fc::api {
    public:
     Ledger(const MapPtr &store);
 
-    bool Has(const Address &address) const;
+    outcome::result<bool> Has(const Address &address) const;
 
     outcome::result<Signature> Sign(const Address &address,
                                     const Bytes &data) const;
@@ -32,7 +32,7 @@ namespace fc::api {
     outcome::result<Address> New() const;
 
    private:
-    const MapPtr &store;
+    MapPtr store;
   };
 
 }  // namespace fc::api

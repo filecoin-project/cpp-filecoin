@@ -22,8 +22,34 @@ namespace fc::api {
 
   Ledger::Ledger(const MapPtr &store) : store(store) {}
 
-  bool Ledger::Has(const Address &address) const {
-    return store->contains(encode(address));
+  outcome::result<bool> Ledger::Has(const Address &address) const {
+    if (store->contains(encode(address))) {
+      OUTCOME_TRY(value, store->get(encode(address)));
+      OUTCOME_TRY(j_file, codec::json::parse(value));
+      OUTCOME_TRY(ledger_key_info, decode<LedgerKeyInfo>(j_file));
+
+      auto [app, err] = LedgerFilecoinManager::FindLedgerFilecoinApp();
+      if (err != std::nullopt) {
+        return app_error;
+      }
+
+      std::string addr;
+      std::tie(std::ignore, std::ignore, addr, err) =
+          app->GetAddressPubKeySECP256K1(ledger_key_info.path);
+      if (err != std::nullopt) {
+        OUTCOME_TRY(store->remove(encode(address)));
+        return false;
+      }
+
+      OUTCOME_TRY(address_ledger, decodeFromString(addr));
+      if (address_ledger != address) {
+        OUTCOME_TRY(store->remove(encode(address)));
+        return false;
+      }
+
+      return true;
+    }
+    return false;
   }
 
   outcome::result<Signature> Ledger::Sign(const Address &address,
@@ -38,7 +64,6 @@ namespace fc::api {
     }
 
     const auto [sign, err2] = app->SignSECP256K1(ledger_key_info.path, data);
-    app->Close();
     if (err2 != std::nullopt) {
       return ERROR_TEXT("sign error");
     }
@@ -52,12 +77,25 @@ namespace fc::api {
 
   outcome::result<Address> Ledger::ImportKey(
       const LedgerKeyInfo &key_info) const {
-    if (key_info.address == Address{}) {
-      return ERROR_TEXT("no address given in imported key info");
-    }
-
     if (key_info.path.size() != kPathLength) {
       return ERROR_TEXT("bad hd path len");
+    }
+
+    auto [app, err] = LedgerFilecoinManager::FindLedgerFilecoinApp();
+    if (err != std::nullopt) {
+      return app_error;
+    }
+
+    std::string addr;
+    std::tie(std::ignore, std::ignore, addr, err) =
+        app->GetAddressPubKeySECP256K1(key_info.path);
+    if (err != std::nullopt) {
+      return ERROR_TEXT("Ledger does not contain path");
+    }
+
+    OUTCOME_TRY(address, decodeFromString(addr));
+    if (address != key_info.address) {
+      return ERROR_TEXT("wrong address");
     }
 
     OUTCOME_TRY(bytes, codec::json::format(encode(key_info)));
@@ -99,13 +137,11 @@ namespace fc::api {
     std::tie(std::ignore, std::ignore, addr, err) =
         app->GetAddressPubKeySECP256K1(path);
     if (err != std::nullopt) {
-      app->Close();
       return ERROR_TEXT("getting public key from ledger error");
     }
 
     std::tie(std::ignore, std::ignore, addr, err) =
         app->ShowAddressPubKeySECP256K1(path);
-    app->Close();
     if (err != std::nullopt) {
       return ERROR_TEXT("verifying public key with ledger error");
     }

@@ -19,7 +19,8 @@ namespace fc::api {
         [=, prev = api->WalletHas](auto address) -> outcome::result<bool> {
       if (address.isSecp256k1()) {
         const Ledger ledger(store);
-        if (ledger.Has(address)) {
+        OUTCOME_TRY(has, ledger.Has(address));
+        if (has) {
           return true;
         }
       }
@@ -52,7 +53,8 @@ namespace fc::api {
                           auto data) -> outcome::result<Signature> {
       if (address.isSecp256k1()) {
         const Ledger ledger(store);
-        if (ledger.Has(address)) {
+        OUTCOME_TRY(has, ledger.Has(address));
+        if (has) {
           return ledger.Sign(address, data);
         }
       }
