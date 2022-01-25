@@ -79,6 +79,7 @@ namespace fc::codec::cbor {
     listLength();
     CborDecodeStream stream{readNested()};
     stream.readToken();
+    stream.actor_version = actor_version;
     return stream;
   }
 
@@ -89,7 +90,9 @@ namespace fc::codec::cbor {
     std::string key;
     for (size_t i{}; i < n; ++i) {
       *this >> key;
-      map.emplace(key, CborDecodeStream{readNested()});
+      CborDecodeStream stream{readNested()};
+      stream.actor_version = actor_version;
+      map.emplace(key, stream);
     }
     return map;
   }
