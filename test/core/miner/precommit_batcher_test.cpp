@@ -52,7 +52,8 @@ namespace fc::mining {
       tipset_ = std::make_shared<Tipset>(
           TipsetKey(), std::vector<api::BlockHeader>({block}));
 
-      EXPECT_CALL(mock_ChainHead, Call()).WillRepeatedly(testing::Return(tipset_));
+      EXPECT_CALL(mock_ChainHead, Call())
+          .WillRepeatedly(testing::Return(tipset_));
 
       MinerInfo minfo;
       minfo.window_post_proof_type =

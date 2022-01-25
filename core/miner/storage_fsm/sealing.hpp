@@ -31,6 +31,8 @@ namespace fc::mining {
     uint64_t max_sealing_sectors_for_deals = 0;
 
     std::chrono::milliseconds wait_deals_delay{};  // in milliseconds
+
+    bool batch_pre_commits = false;
   };
 
   class Sealing {
@@ -38,7 +40,9 @@ namespace fc::mining {
     virtual ~Sealing() = default;
 
     virtual outcome::result<PieceLocation> addPieceToAnySector(
-        UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) = 0;
+        const UnpaddedPieceSize &size,
+        PieceData piece_data,
+        const DealInfo &deal) = 0;
 
     virtual outcome::result<void> remove(SectorNumber sector_id) = 0;
 

@@ -35,6 +35,7 @@
   }
 
 namespace fc::mining {
+  using api::kPushNoSpec;
   using api::SectorSize;
   using checks::ChecksError;
   using types::kDealSectorPriority;
@@ -45,6 +46,7 @@ namespace fc::mining {
       DealInfoManagerImpl;
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::types::miner::kMinSectorExpiration;
+  using vm::actor::builtin::v0::miner::PreCommitSector;
   using vm::actor::builtin::v0::miner::ProveCommitSector;
 
   std::chrono::milliseconds getWaitingTime(uint64_t errors_count = 0) {
@@ -53,26 +55,31 @@ namespace fc::mining {
     return std::chrono::milliseconds(60000);  // 1 minute
   }
 
-  SealingImpl::SealingImpl(std::shared_ptr<FullNodeApi> api,
-                           std::shared_ptr<Events> events,
-                           Address miner_address,
-                           std::shared_ptr<Counter> counter,
-                           std::shared_ptr<BufferMap> fsm_kv,
-                           std::shared_ptr<Manager> sealer,
-                           std::shared_ptr<PreCommitPolicy> policy,
-                           std::shared_ptr<boost::asio::io_context> context,
-                           std::shared_ptr<Scheduler> scheduler,
-                           std::shared_ptr<PreCommitBatcher> precommit_batcher,
-                           Config config)
+  SealingImpl::SealingImpl(
+      std::shared_ptr<FullNodeApi> api,
+      std::shared_ptr<Events> events,
+      Address miner_address,
+      std::shared_ptr<Counter> counter,
+      std::shared_ptr<BufferMap> fsm_kv,
+      std::shared_ptr<Manager> sealer,
+      std::shared_ptr<PreCommitPolicy> policy,
+      const std::shared_ptr<boost::asio::io_context> &context,
+      std::shared_ptr<Scheduler> scheduler,
+      std::shared_ptr<PreCommitBatcher> precommit_batcher,
+      AddressSelector address_selector,
+      std::shared_ptr<FeeConfig> fee_config,
+      Config config)
       : scheduler_{std::move(scheduler)},
         api_(std::move(api)),
         events_(std::move(events)),
         policy_(std::move(policy)),
         counter_(std::move(counter)),
         fsm_kv_{std::move(fsm_kv)},
-        miner_address_(miner_address),
+        miner_address_(std::move(miner_address)),
+        fee_config_(std::move(fee_config)),
         sealer_(std::move(sealer)),
         precommit_batcher_(std::move(precommit_batcher)),
+        address_selector_(std::move(address_selector)),
         config_(config) {
     fsm_ = std::make_shared<StorageFSM>(makeFSMTransitions(), *context, true);
     fsm_->setAnyChangeAction(
@@ -91,40 +98,47 @@ namespace fc::mining {
   }
 
   outcome::result<std::shared_ptr<SealingImpl>> SealingImpl::newSealing(
-      std::shared_ptr<FullNodeApi> api,
-      std::shared_ptr<Events> events,
+      const std::shared_ptr<FullNodeApi> &api,
+      const std::shared_ptr<Events> &events,
       const Address &miner_address,
-      std::shared_ptr<Counter> counter,
-      std::shared_ptr<BufferMap> fsm_kv,
-      std::shared_ptr<Manager> sealer,
-      std::shared_ptr<PreCommitPolicy> policy,
-      std::shared_ptr<boost::asio::io_context> context,
-      std::shared_ptr<Scheduler> scheduler,
-      std::shared_ptr<PreCommitBatcher> precommit_batcher,
+      const std::shared_ptr<Counter> &counter,
+      const std::shared_ptr<BufferMap> &fsm_kv,
+      const std::shared_ptr<Manager> &sealer,
+      const std::shared_ptr<PreCommitPolicy> &policy,
+      const std::shared_ptr<boost::asio::io_context> &context,
+      const std::shared_ptr<Scheduler> &scheduler,
+      const std::shared_ptr<PreCommitBatcher> &precommit_batcher,
+      const AddressSelector &address_selector,
+      const std::shared_ptr<FeeConfig> &fee_config,
       Config config) {
     struct make_unique_enabler : public SealingImpl {
-      make_unique_enabler(std::shared_ptr<FullNodeApi> api,
-                          std::shared_ptr<Events> events,
-                          Address miner_address,
-                          std::shared_ptr<Counter> counter,
-                          std::shared_ptr<BufferMap> fsm_kv,
-                          std::shared_ptr<Manager> sealer,
-                          std::shared_ptr<PreCommitPolicy> policy,
-                          std::shared_ptr<boost::asio::io_context> context,
-                          std::shared_ptr<Scheduler> scheduler,
-                          std::shared_ptr<PreCommitBatcher> precommit_bathcer,
-                          Config config)
+      make_unique_enabler(
+          std::shared_ptr<FullNodeApi> api,
+          std::shared_ptr<Events> events,
+          Address miner_address,
+          std::shared_ptr<Counter> counter,
+          std::shared_ptr<BufferMap> fsm_kv,
+          std::shared_ptr<Manager> sealer,
+          std::shared_ptr<PreCommitPolicy> policy,
+          const std::shared_ptr<boost::asio::io_context> &context,
+          std::shared_ptr<Scheduler> scheduler,
+          std::shared_ptr<PreCommitBatcher> precommit_bathcer,
+          AddressSelector address_selector,
+          std::shared_ptr<FeeConfig> fee_config,
+          Config config)
           : SealingImpl{std::move(api),
                         std::move(events),
-                        miner_address,
+                        std::move(miner_address),
                         std::move(counter),
                         std::move(fsm_kv),
                         std::move(sealer),
                         std::move(policy),
-                        std::move(context),
+                        context,
                         std::move(scheduler),
                         std::move(precommit_bathcer),
-                        std::move(config)} {};
+                        std::move(address_selector),
+                        std::move(fee_config),
+                        config} {};
     };
     std::shared_ptr<SealingImpl> sealing =
         std::make_shared<make_unique_enabler>(api,
@@ -137,6 +151,8 @@ namespace fc::mining {
                                               context,
                                               scheduler,
                                               precommit_batcher,
+                                              address_selector,
+                                              fee_config,
                                               config);
     OUTCOME_TRY(sealing->fsmLoad());
     if (config.wait_deals_delay != std::chrono::milliseconds::zero()) {
@@ -187,7 +203,9 @@ namespace fc::mining {
   }
 
   outcome::result<PieceLocation> SealingImpl::addPieceToAnySector(
-      UnpaddedPieceSize size, PieceData piece_data, DealInfo deal) {
+      const UnpaddedPieceSize &size,
+      PieceData piece_data,
+      const DealInfo &deal) {
     if (not deal.publish_cid.has_value()) {
       return SealingError::kNotPublishedDeal;
     }
@@ -211,38 +229,84 @@ namespace fc::mining {
     }
 
     bool is_start_packing = false;
-    PieceLocation piece;
-    piece.size = size.padded();
+    PieceLocation piece_location;
 
     {
       std::unique_lock lock(unsealed_mutex_);
       OUTCOME_TRY(sector_and_padding, getSectorAndPadding(size));
 
-      piece.sector = sector_and_padding.sector;
+      auto &unsealed_sector{unsealed_sectors_[sector_and_padding.sector]};
 
-      for (const auto &pad : sector_and_padding.pads) {
-        OUTCOME_TRY(addPiece(sector_and_padding.sector,
-                             pad.unpadded(),
-                             PieceData::makeNull(),
-                             boost::none));
+      piece_location.sector = sector_and_padding.sector;
+      piece_location.size = size.padded();
+
+      std::shared_ptr<SectorAddPiecesContext> context =
+          std::make_shared<SectorAddPiecesContext>();
+      context->pieces.reserve(sector_and_padding.padding.pads.size());
+
+      auto sector_ref = minerSector(seal_proof_type, piece_location.sector);
+
+      if (sector_and_padding.padding.size != 0) {
+        OUTCOME_TRY(
+            sealer_->addPieceSync(sector_ref,
+                                  unsealed_sector.piece_sizes,
+                                  sector_and_padding.padding.size.unpadded(),
+                                  PieceData::makeNull(),
+                                  kDealSectorPriority));
+
+        unsealed_sector.stored += sector_and_padding.padding.size;
+
+        for (const auto &pad : sector_and_padding.padding.pads) {
+          OUTCOME_TRY(
+              zerocomm,
+              sector_storage::zerocomm::getZeroPieceCommitment(pad.unpadded()));
+
+          context->pieces.push_back(Piece{
+              .piece =
+                  PieceInfo{
+                      .size = pad,
+                      .cid = std::move(zerocomm),
+                  },
+              .deal_info = boost::none,
+          });
+
+          unsealed_sector.piece_sizes.push_back(pad.unpadded());
+        }
       }
 
-      piece.offset = unsealed_sectors_[sector_and_padding.sector].stored;
+      piece_location.offset = unsealed_sector.stored;
 
-      OUTCOME_TRY(addPiece(
-          sector_and_padding.sector, size, std::move(piece_data), deal));
+      logger_->info("Add piece to sector {}", piece_location.sector);
+      OUTCOME_TRY(piece_info,
+                  sealer_->addPieceSync(sector_ref,
+                                        unsealed_sector.piece_sizes,
+                                        size,
+                                        std::move(piece_data),
+                                        kDealSectorPriority));
+
+      context->pieces.push_back(Piece{
+          .piece = piece_info,
+          .deal_info = deal,
+      });
+
+      unsealed_sector.deals_number++;
+      unsealed_sector.stored += piece_info.size;
+      unsealed_sector.piece_sizes.push_back(piece_info.size.unpadded());
+
+      OUTCOME_TRY(info, getSectorInfo(piece_location.sector));
+      FSM_SEND_CONTEXT(info, SealingEvent::kSectorAddPieces, context);
 
       is_start_packing =
-          unsealed_sectors_[sector_and_padding.sector].deals_number
-              >= getDealPerSectorLimit(sector_size)
-          || (SectorSize)piece.offset + (SectorSize)piece.size == sector_size;
+          unsealed_sector.deals_number >= getDealPerSectorLimit(sector_size)
+          || SectorSize(piece_location.offset) + SectorSize(piece_location.size)
+                 == sector_size;
     }
 
     if (is_start_packing) {
-      OUTCOME_TRY(startPacking(piece.sector));
+      OUTCOME_TRY(startPacking(piece_location.sector));
     }
 
-    return piece;
+    return piece_location;
   }
 
   outcome::result<void> SealingImpl::remove(SectorNumber sector_id) {
@@ -338,35 +402,42 @@ namespace fc::mining {
         self->logger_->error(maybe_sid.error().message());
         return;
       }
-      auto &sid{maybe_sid.value()};
+      const auto &sid{maybe_sid.value()};
 
-      std::vector<UnpaddedPieceSize> sizes = {size};
-      const auto maybe_pieces =
-          self->pledgeSector(self->minerSectorId(sid), {}, sizes);
-      if (maybe_pieces.has_error()) {
-        self->logger_->error(maybe_pieces.error().message());
-        return;
-      }
+      const std::vector<UnpaddedPieceSize> sizes = {size};
 
-      std::vector<Piece> pieces;
-      for (const auto &piece : maybe_pieces.value()) {
-        pieces.push_back(Piece{
-            .piece = std::move(piece),
-            .deal_info = boost::none,
-        });
-      }
+      self->pledgeSector(
+          self->minerSectorId(sid),
+          {},
+          sizes,
+          [self,
+           sid](const outcome::result<std::vector<PieceInfo>> &maybe_pieces) {
+            if (maybe_pieces.has_error()) {
+              self->logger_->error(maybe_pieces.error().message());
+              return;
+            }
 
-      const auto maybe_error = self->newSectorWithPieces(sid, pieces);
-      if (maybe_error.has_error()) {
-        self->logger_->error(maybe_error.error().message());
-      }
+            std::vector<Piece> pieces;
+            for (auto &piece : maybe_pieces.value()) {
+              pieces.push_back(Piece{
+                  .piece = std::move(piece),
+                  .deal_info = boost::none,
+              });
+            }
+
+            const auto maybe_error =
+                self->newSectorWithPieces(sid, std::move(pieces));
+            if (maybe_error.has_error()) {
+              self->logger_->error(maybe_error.error().message());
+            }
+          });
     });
 
     return outcome::success();
   }
 
   outcome::result<void> SealingImpl::newSectorWithPieces(
-      SectorNumber sector_id, std::vector<Piece> &pieces) {
+      SectorNumber sector_id, std::vector<Piece> pieces) {
     logger_->info("Creating sector with pieces {}", sector_id);
     const auto sector = std::make_shared<SectorInfo>();
     OUTCOME_TRY(fsm_->begin(sector, SealingState::kStateUnknown));
@@ -403,11 +474,11 @@ namespace fc::mining {
     OUTCOME_TRY(sector_size, getSectorSize(seal_proof_type));
 
     for (const auto &[key, value] : unsealed_sectors_) {
-      const auto pads = proofs::getRequiredPadding(value.stored, size.padded());
+      auto pads = proofs::getRequiredPadding(value.stored, size.padded());
       if (value.stored + size.padded() + pads.size <= sector_size) {
         return SectorPaddingResponse{
             .sector = key,
-            .pads = std::move(pads.pads),
+            .padding = std::move(pads),
         };
       }
     }
@@ -422,46 +493,11 @@ namespace fc::mining {
 
     return SectorPaddingResponse{
         .sector = new_sector,
-        .pads = {},
+        .padding = RequiredPadding{.size = PaddedPieceSize(0)},
     };
   }
 
-  outcome::result<void> SealingImpl::addPiece(
-      SectorNumber sector_id,
-      UnpaddedPieceSize size,
-      PieceData piece,
-      const boost::optional<DealInfo> &deal) {
-    logger_->info("Add piece to sector {}", sector_id);
-    OUTCOME_TRY(seal_proof_type, getCurrentSealProof());
-    OUTCOME_TRY(piece_info,
-                sealer_->addPieceSync(minerSector(seal_proof_type, sector_id),
-                                      unsealed_sectors_[sector_id].piece_sizes,
-                                      size,
-                                      std::move(piece),
-                                      kDealSectorPriority));
-
-    Piece new_piece{
-        .piece = piece_info,
-        .deal_info = deal,
-    };
-
-    OUTCOME_TRY(info, getSectorInfo(sector_id));
-    std::shared_ptr<SectorAddPieceContext> context =
-        std::make_shared<SectorAddPieceContext>();
-    context->piece = new_piece;
-    FSM_SEND_CONTEXT(info, SealingEvent::kSectorAddPiece, context);
-
-    auto unsealed_info = unsealed_sectors_.find(sector_id);
-    if (deal) {
-      unsealed_info->second.deals_number++;
-    }
-    unsealed_info->second.stored += new_piece.piece.size;
-    unsealed_info->second.piece_sizes.push_back(
-        new_piece.piece.size.unpadded());
-
-    return outcome::success();
-  }
-
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<SectorNumber> SealingImpl::newDealSector() {
     if (config_.max_sealing_sectors_for_deals > 0) {
       if (stat_->currentSealing() > config_.max_sealing_sectors_for_deals) {
@@ -565,7 +601,7 @@ namespace fc::mining {
             .from(SealingState::kStateUnknown)
             .to(SealingState::kPacking)
             .action(CALLBACK_ACTION),
-        SealingTransition(SealingEvent::kSectorAddPiece)
+        SealingTransition(SealingEvent::kSectorAddPieces)
             .from(SealingState::kWaitDeals)
             .toSameState()
             .action(CALLBACK_ACTION),
@@ -604,18 +640,27 @@ namespace fc::mining {
                   info->invalid_proofs = 0;
                   info->precommit2_fails++;
                 }),
+        SealingTransition(SealingEvent::kSectorBatchSend)
+            .from(SealingState::kPreCommitting)
+            .to(SealingState::kSubmitPreCommitBatch),
         SealingTransition(SealingEvent::kSectorPreCommitted)
             .from(SealingState::kPreCommitting)
             .to(SealingState::kPreCommittingWait)
             .action(CALLBACK_ACTION),
+        SealingTransition(SealingEvent::kSectorPreCommittedBatch)
+            .from(SealingState::kSubmitPreCommitBatch)
+            .to(SealingState::kPreCommittingWait)
+            .action(CALLBACK_ACTION),
         SealingTransition(SealingEvent::kSectorChainPreCommitFailed)
             .fromMany(SealingState::kPreCommitting,
+                      SealingState::kSubmitPreCommitBatch,
                       SealingState::kPreCommittingWait,
                       SealingState::kWaitSeed,
                       SealingState::kCommitFail)
             .to(SealingState::kPreCommitFail),
         SealingTransition(SealingEvent::kSectorPreCommitLanded)
             .fromMany(SealingState::kPreCommitting,
+                      SealingState::kSubmitPreCommitBatch,
                       SealingState::kPreCommittingWait,
                       SealingState::kPreCommitFail)
             .to(SealingState::kWaitSeed)
@@ -657,6 +702,7 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kSectorDealsExpired)
             .fromMany(SealingState::kPreCommit1,
                       SealingState::kPreCommitting,
+                      SealingState::kSubmitPreCommitBatch,
                       SealingState::kPreCommitFail,
                       SealingState::kCommitFail)
             .to(SealingState::kDealsExpired),
@@ -704,6 +750,7 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kSectorInvalidDealIDs)
             .fromMany(SealingState::kPreCommit1,
                       SealingState::kPreCommitting,
+                      SealingState::kSubmitPreCommitBatch,
                       SealingState::kPreCommitFail,
                       SealingState::kCommitFail)
             .to(SealingState::kRecoverDealIDs)
@@ -760,6 +807,8 @@ namespace fc::mining {
           return handlePreCommit2(info);
         case SealingState::kPreCommitting:
           return handlePreCommitting(info);
+        case SealingState::kSubmitPreCommitBatch:
+          return handleSubmitPreCommitBatch(info);
         case SealingState::kPreCommittingWait:
           return handlePreCommitWaiting(info);
         case SealingState::kWaitSeed:
@@ -854,28 +903,37 @@ namespace fc::mining {
                     info->sector_number);
     }
 
-    OUTCOME_TRY(result,
-                pledgeSector(minerSectorId(info->sector_number),
-                             info->getExistingPieceSizes(),
-                             filler_sizes));
+    pledgeSector(
+        minerSectorId(info->sector_number),
+        info->getExistingPieceSizes(),
+        filler_sizes,
+        [fsm{fsm_}, info, logger{logger_}](
+            const outcome::result<std::vector<PieceInfo>> &result) {
+          if (result.has_error()) {
+            logger->error("handlePacking: {}", result.error().message());
+            return;
+          }
 
-    std::shared_ptr<SectorPackedContext> context =
-        std::make_shared<SectorPackedContext>();
-    context->filler_pieces = std::move(result);
+          std::shared_ptr<SectorPackedContext> context =
+              std::make_shared<SectorPackedContext>();
+          context->filler_pieces = std::move(result.value());
 
-    FSM_SEND_CONTEXT(info, SealingEvent::kSectorPacked, context);
+          OUTCOME_EXCEPT(fsm->send(info, SealingEvent::kSectorPacked, context));
+        });
     return outcome::success();
   }
 
-  outcome::result<std::vector<PieceInfo>> SealingImpl::pledgeSector(
+  void SealingImpl::pledgeSector(
       SectorId sector_id,
       std::vector<UnpaddedPieceSize> existing_piece_sizes,
-      gsl::span<UnpaddedPieceSize> sizes) {
+      const std::vector<UnpaddedPieceSize> &sizes,
+      const std::function<void(outcome::result<std::vector<PieceInfo>>)> &cb) {
     if (sizes.empty()) {
-      return outcome::success();
+      return cb(std::vector<PieceInfo>());
     }
 
-    OUTCOME_TRY(seal_proof_type, getCurrentSealProof());
+    OUTCOME_CB(const RegisteredSealProof seal_proof_type,
+               getCurrentSealProof());
 
     std::string existing_piece_str = "empty";
     if (!existing_piece_sizes.empty()) {
@@ -890,24 +948,38 @@ namespace fc::mining {
                   + ", contains " + existing_piece_str);
 
     std::vector<PieceInfo> result;
+    result.reserve(sizes.size());
 
     const SectorRef sector{
         .id = sector_id,
         .proof_type = seal_proof_type,
     };
 
+    UnpaddedPieceSize filler(0);
+
     for (const auto &size : sizes) {
-      OUTCOME_TRY(
-          piece_info,
-          sealer_->addPieceSync(
-              sector, existing_piece_sizes, size, PieceData::makeNull(), 0));
+      filler += size;
 
-      existing_piece_sizes.push_back(size);
+      OUTCOME_CB(CID piece_cid,
+                 sector_storage::zerocomm::getZeroPieceCommitment(size))
 
-      result.push_back(piece_info);
+      result.push_back(
+          PieceInfo{.size = size.padded(), .cid = std::move(piece_cid)});
     }
 
-    return std::move(result);
+    sealer_->addPiece(
+        sector,
+        existing_piece_sizes,
+        filler,
+        PieceData::makeNull(),
+        [fill = std::move(result), cb](const auto &maybe_error) -> void {
+          if (maybe_error.has_error()) {
+            return cb(maybe_error.error());
+          }
+
+          return cb(fill);
+        },
+        0);
   }
 
   SectorRef SealingImpl::minerSector(RegisteredSealProof seal_proof_type,
@@ -955,57 +1027,71 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    const auto maybe_result = sealer_->sealPreCommit1Sync(
+    sealer_->sealPreCommit1(
         minerSector(info->sector_type, info->sector_number),
         maybe_ticket.value().ticket,
         info->getPieceInfos(),
+        [ticket{maybe_ticket.value()}, info{info}, logger{logger_}, fsm{fsm_}](
+            const outcome::result<sector_storage::PreCommit1Output>
+                &maybe_result) {
+          if (maybe_result.has_error()) {
+            logger->error("Seal pre commit 1 error: {}",
+                          maybe_result.error().message());
+            OUTCOME_EXCEPT(
+                fsm->send(info, SealingEvent::kSectorSealPreCommit1Failed, {}));
+            return;
+          }
+          logger->info("Seal pre commit 1 done: {}", info->sector_number);
+
+          std::shared_ptr<SectorPreCommit1Context> context =
+              std::make_shared<SectorPreCommit1Context>();
+          context->precommit1_output = maybe_result.value();
+          context->ticket = ticket.ticket;
+          context->epoch = ticket.epoch;
+          OUTCOME_EXCEPT(
+              fsm->send(info, SealingEvent::kSectorPreCommit1, context));
+        },
         info->sealingPriority());
 
-    if (maybe_result.has_error()) {
-      logger_->error("Seal pre commit 1 error: {}",
-                     maybe_result.error().message());
-      FSM_SEND(info, SealingEvent::kSectorSealPreCommit1Failed);
-      return outcome::success();
-    }
-
-    std::shared_ptr<SectorPreCommit1Context> context =
-        std::make_shared<SectorPreCommit1Context>();
-    context->precommit1_output = std::move(maybe_result.value());
-    context->ticket = maybe_ticket.value().ticket;
-    context->epoch = maybe_ticket.value().epoch;
-    FSM_SEND_CONTEXT(info, SealingEvent::kSectorPreCommit1, context);
     return outcome::success();
   }
 
   outcome::result<void> SealingImpl::handlePreCommit2(
       const std::shared_ptr<SectorInfo> &info) {
     logger_->info("PreCommit 2 sector {}", info->sector_number);
-    const auto maybe_cid = sealer_->sealPreCommit2Sync(
+    sealer_->sealPreCommit2(
         minerSector(info->sector_type, info->sector_number),
         info->precommit1_output,
+        [logger{logger_}, info, fsm{fsm_}](
+            const outcome::result<sector_storage::SectorCids> &maybe_cids) {
+          if (maybe_cids.has_error()) {
+            logger->error("Seal pre commit 2 error: {}",
+                          maybe_cids.error().message());
+            OUTCOME_EXCEPT(
+                fsm->send(info, SealingEvent::kSectorSealPreCommit2Failed, {}));
+            return;
+          }
+          logger->info("Seal pre commit 2 done: {}", info->sector_number);
+
+          std::shared_ptr<SectorPreCommit2Context> context =
+              std::make_shared<SectorPreCommit2Context>();
+          context->unsealed = maybe_cids.value().unsealed_cid;
+          context->sealed = maybe_cids.value().sealed_cid;
+
+          OUTCOME_EXCEPT(
+              fsm->send(info, SealingEvent::kSectorPreCommit2, context));
+        },
         info->sealingPriority());
-    if (maybe_cid.has_error()) {
-      logger_->error("Seal pre commit 2 error: {}",
-                     maybe_cid.error().message());
-      FSM_SEND(info, SealingEvent::kSectorSealPreCommit2Failed);
-      return outcome::success();
-    }
 
-    std::shared_ptr<SectorPreCommit2Context> context =
-        std::make_shared<SectorPreCommit2Context>();
-    context->unsealed = std::move(maybe_cid.value().unsealed_cid);
-    context->sealed = std::move(maybe_cid.value().sealed_cid);
-
-    FSM_SEND_CONTEXT(info, SealingEvent::kSectorPreCommit2, context);
     return outcome::success();
   }
 
-  outcome::result<void> SealingImpl::handlePreCommitting(
-      const std::shared_ptr<SectorInfo> &info) {
-    logger_->info("PreCommitting sector {}", info->sector_number);
+  outcome::result<boost::optional<SealingImpl::PreCommitParams>>
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+  SealingImpl::getPreCommitParams(const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
 
-    auto maybe_error = checks::checkPrecommit(
+    const auto maybe_error = checks::checkPrecommit(
         miner_address_, info, head->key, head->height(), api_);
 
     if (maybe_error.has_error()) {
@@ -1051,9 +1137,9 @@ namespace fc::mining {
     OUTCOME_TRY(seal_duration,
                 checks::getMaxProveCommitDuration(network, info));
     OUTCOME_TRY(policy_expiration, policy_->expiration(info->pieces));
-    const auto static_expiration = head->epoch() + seal_duration
-                                   + kMinSectorExpiration + kChainFinality
-                                   + kEpochsInDay;
+    const ChainEpoch static_expiration =
+        head->epoch() + seal_duration + kMinSectorExpiration + kChainFinality
+        + gsl::narrow<ChainEpoch>(kEpochsInDay);
     const auto expiration =
         std::min<ChainEpoch>(policy_expiration, static_expiration);
 
@@ -1064,55 +1150,157 @@ namespace fc::mining {
     params.sealed_cid = info->comm_r.get();
     params.seal_epoch = info->ticket_epoch;
     params.deal_ids = info->getDealIDs();
-    params.replace_deadline = {};
-    params.replace_partition = {};
-    params.replace_sector = {};
-
-    auto deposit = tryUpgradeSector(params);
-
-    const auto maybe_params = codec::cbor::encode(params);
-    if (maybe_params.has_error()) {
-      logger_->error("could not serialize pre-commit sector parameters: {}",
-                     maybe_params.error().message());
-      FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
-      return outcome::success();
-    }
 
     OUTCOME_TRY(collateral,
                 api_->StateMinerPreCommitDepositForPower(
                     miner_address_, params, head->key));
 
-    deposit = std::max(deposit, collateral);
+    const auto deposit = std::max(tryUpgradeSector(params), collateral);
 
-    logger_->info("submitting precommit for sector: {}", info->sector_number);
-    OUTCOME_TRY(precommit_batcher_->addPreCommit(
-        *info,
-        deposit,
-        params,
-        [=](const outcome::result<CID> &maybe_cid) -> void {
-          if (maybe_cid.has_error()) {
-            if (params.replace_capacity) {
-              const auto maybe_error = markForUpgrade(params.replace_sector);
+    return SealingImpl::PreCommitParams{std::move(params), deposit, head->key};
+  }
+
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
+  outcome::result<void> SealingImpl::handlePreCommitting(
+      const std::shared_ptr<SectorInfo> &info) {
+    logger_->info("PreCommitting sector {}", info->sector_number);
+
+    if (config_.batch_pre_commits) {
+      FSM_SEND(info, SealingEvent::kSectorBatchSend);
+      return outcome::success();
+    }
+
+    const auto maybe_precommit_params = getPreCommitParams(info);
+    if (maybe_precommit_params.has_error()) {
+      logger_->error("PreCommitting sector {} params: {:#}",
+                     info->sector_number,
+                     maybe_precommit_params.error().message());
+      FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
+      return outcome::success();
+    }
+    const auto &precommit_params{maybe_precommit_params.value()};
+    if (not precommit_params.has_value()) {
+      return outcome::success();
+    }
+
+    const auto maybe_params = codec::cbor::encode(precommit_params->info);
+    if (maybe_params.has_error()) {
+      logger_->error("could not serialize pre-commit sector parameters: {:#}",
+                     maybe_params.error().message());
+      FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
+      return outcome::success();
+    }
+
+    const auto maybe_minfo =
+        api_->StateMinerInfo(miner_address_, precommit_params->key);
+    if (maybe_params.has_error()) {
+      logger_->error("API StateMinerInfo error: {:#}",
+                     maybe_minfo.error().message());
+      FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
+      return outcome::success();
+    }
+
+    const TokenAmount good_funds =
+        precommit_params->deposit + fee_config_->max_precommit_gas_fee;
+    const auto maybe_address =
+        address_selector_(maybe_minfo.value(), good_funds, api_);
+    if (maybe_address.has_error()) {
+      logger_->error("no good address to send precommit message from: {:#}",
+                     maybe_minfo.error().message());
+      FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
+      return outcome::success();
+    }
+    api_->MpoolPushMessage(
+        [fsm{fsm_},
+         logger{logger_},
+         info,
+         precommit_params,
+         self{shared_from_this()}](
+            const outcome::result<api::SignedMessage> &maybe_signed_message) {
+          if (maybe_signed_message.has_error()) {
+            if (precommit_params->info.replace_capacity) {
+              const auto maybe_error =
+                  self->markForUpgrade(precommit_params->info.replace_sector);
               if (maybe_error.has_error()) {
-                logger_->error("error re-marking sector {} as for upgrade: {}",
-                               info->sector_number,
-                               maybe_error.error().message());
+                logger->error("error re-marking sector {} as for upgrade: {}",
+                              info->sector_number,
+                              maybe_error.error().message());
               }
             }
+            logger->error("pushing message to mpool: {}",
+                          maybe_signed_message.error().message());
+            OUTCOME_EXCEPT(
+                fsm->send(info, SealingEvent::kSectorChainPreCommitFailed, {}));
+            return;
+          }
+          std::shared_ptr<SectorPreCommittedContext> context =
+              std::make_shared<SectorPreCommittedContext>();
+          context->precommit_message = maybe_signed_message.value().getCid();
+          context->precommit_deposit = precommit_params->deposit;
+          context->precommit_info = precommit_params->info;
+          OUTCOME_EXCEPT(
+              fsm->send(info, SealingEvent::kSectorPreCommitted, context));
+        },
+        vm::message::UnsignedMessage(miner_address_,
+                                     maybe_address.value(),
+                                     0,
+                                     precommit_params->deposit,
+                                     fee_config_->max_precommit_gas_fee,
+                                     {},
+                                     PreCommitSector::Number,
+                                     MethodParams{maybe_params.value()}),
+        kPushNoSpec);
+
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::handleSubmitPreCommitBatch(
+      const std::shared_ptr<SectorInfo> &info) {
+    if (not(info->comm_d.has_value() and info->comm_r.has_value())) {
+      logger_->error("sector {} had nil commR or commD", info->sector_number);
+      FSM_SEND(info, SealingEvent::kSectorSealPreCommit1Failed);
+      return outcome::success();
+    }
+
+    const auto maybe_precommit_params = getPreCommitParams(info);
+    if (maybe_precommit_params.has_error()) {
+      logger_->error("PreCommitting sector {} params: {:#}",
+                     info->sector_number,
+                     maybe_precommit_params.error().message());
+      FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
+      return outcome::success();
+    }
+    const auto &precommit_params{maybe_precommit_params.value()};
+    if (not precommit_params.has_value()) {
+      return outcome::success();
+    }
+
+    logger_->info("submitting precommit for sector: {}", info->sector_number);
+    const auto maybe_error = precommit_batcher_->addPreCommit(
+        *info,
+        precommit_params->deposit,
+        precommit_params->info,
+        [=](const outcome::result<CID> &maybe_cid) -> void {
+          logger_->info("SUBMIT");
+          if (maybe_cid.has_error()) {
             logger_->error("submitting message to precommit batcher: {}",
                            maybe_cid.error().message());
             OUTCOME_EXCEPT(fsm_->send(
                 info, SealingEvent::kSectorChainPreCommitFailed, {}));
             return;
           }
-          std::shared_ptr<SectorPreCommittedContext> context =
-              std::make_shared<SectorPreCommittedContext>();
+          std::shared_ptr<SectorPreCommittedBatchContext> context =
+              std::make_shared<SectorPreCommittedBatchContext>();
           context->precommit_message = maybe_cid.value();
-          context->precommit_deposit = deposit;
-          context->precommit_info = params;
-          OUTCOME_EXCEPT(
-              fsm_->send(info, SealingEvent::kSectorPreCommitted, context));
-        }));
+          OUTCOME_EXCEPT(fsm_->send(
+              info, SealingEvent::kSectorPreCommittedBatch, context));
+        });
+
+    if (maybe_error.has_error()) {
+      logger_->error("queuing precommit batch failed: {:#}",
+                     maybe_error.error().message());
+      FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
+    }
     return outcome::success();
   }
 
@@ -1144,6 +1332,7 @@ namespace fc::mining {
             return;
           }
 
+          logger_->info("Seal pre commit done: {}", info->sector_number);
           std::shared_ptr<SectorPreCommitLandedContext> context =
               std::make_shared<SectorPreCommitLandedContext>();
           context->tipset_key = maybe_lookup.value().tipset;
@@ -1160,6 +1349,7 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handleWaitSeed(
       const std::shared_ptr<SectorInfo> &info) {
+    logger_->info("Wait Seed sector {}", info->sector_number);
     OUTCOME_TRY(head, api_->ChainHead());
     OUTCOME_TRY(precommit_info,
                 checks::getStateSectorPreCommitInfo(
@@ -1218,6 +1408,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> SealingImpl::handleComputeProof(
       const std::shared_ptr<SectorInfo> &info) {
     if (info->message.has_value()) {
@@ -1235,8 +1426,6 @@ namespace fc::mining {
         return outcome::success();
       }
     }
-
-    logger_->info("scheduling seal proof computation...");
 
     logger_->info(
         "commit {} sector; ticket(epoch): {}({});"
@@ -1258,54 +1447,91 @@ namespace fc::mining {
         .unsealed_cid = info->comm_d.get(),
     };
 
-    const auto maybe_commit_1_output = sealer_->sealCommit1Sync(
-        minerSector(info->sector_type, info->sector_number),
-        info->ticket,
-        info->seed,
-        info->getPieceInfos(),
-        cids,
-        info->sealingPriority());
-    if (maybe_commit_1_output.has_error()) {
-      logger_->error("computing seal proof failed(1): {}",
-                     maybe_commit_1_output.error().message());
-      FSM_SEND(info, SealingEvent::kSectorComputeProofFailed);
-      return outcome::success();
-    }
+    const auto sector_ref = minerSector(info->sector_type, info->sector_number);
+    const auto next_cb =
+        [info,
+         fsm{fsm_},
+         logger{logger_},
+         sealer{sealer_},
+         api{api_},
+         miner_address{miner_address_},
+         sector_ref](const outcome::result<sector_storage::Commit1Output>
+                         &maybe_commit_1_output) mutable {
+          if (maybe_commit_1_output.has_error()) {
+            logger->error("computing seal proof failed(1): {}",
+                          maybe_commit_1_output.error().message());
+            OUTCOME_EXCEPT(
+                fsm->send(info, SealingEvent::kSectorComputeProofFailed, {}));
+            return;
+          }
+          logger->info("Commit 2 sector {}", info->sector_number);
 
-    const auto maybe_proof = sealer_->sealCommit2Sync(
-        minerSector(info->sector_type, info->sector_number),
-        std::move(maybe_commit_1_output.value()),
-        info->sealingPriority());
-    if (maybe_proof.has_error()) {
-      logger_->error("computing seal proof failed(2): {}",
-                     maybe_proof.error().message());
-      FSM_SEND(info, SealingEvent::kSectorComputeProofFailed);
-      return outcome::success();
-    }
+          sealer->sealCommit2(
+              sector_ref,
+              maybe_commit_1_output.value(),
+              [logger,
+               info,
+               api,
+               fsm,
+               miner_address,
+               proof_engine{sealer->getProofEngine()}](
+                  const outcome::result<sector_storage::Proof> &maybe_proof) {
+                if (maybe_proof.has_error()) {
+                  logger->error("computing seal proof failed(2): {}",
+                                maybe_proof.error().message());
+                  OUTCOME_EXCEPT(fsm->send(
+                      info, SealingEvent::kSectorComputeProofFailed, {}));
+                  return;
+                }
+                logger->info("Seal commit done: {}", info->sector_number);
 
-    OUTCOME_TRY(head, api_->ChainHead());
+                const auto maybe_head = api->ChainHead();
+                if (maybe_head.has_error()) {
+                  logger->error("computing seal proof api error: {}",
+                                maybe_head.error().message());
+                  OUTCOME_EXCEPT(fsm->send(
+                      info, SealingEvent::kSectorComputeProofFailed, {}));
+                  return;
+                }
 
-    const auto maybe_error = checks::checkCommit(miner_address_,
-                                                 info,
-                                                 maybe_proof.value(),
-                                                 head->key,
-                                                 api_,
-                                                 sealer_->getProofEngine());
-    if (maybe_error.has_error()) {
-      logger_->error("commit check error: {}", maybe_error.error().message());
-      FSM_SEND(info, SealingEvent::kSectorComputeProofFailed);
-      return outcome::success();
-    }
+                const auto maybe_error =
+                    checks::checkCommit(miner_address,
+                                        info,
+                                        maybe_proof.value(),
+                                        maybe_head.value()->key,
+                                        api,
+                                        proof_engine);
+                if (maybe_error.has_error()) {
+                  logger->error("commit check error: {}",
+                                maybe_error.error().message());
+                  OUTCOME_EXCEPT(fsm->send(
+                      info, SealingEvent::kSectorComputeProofFailed, {}));
+                  return;
+                }
 
-    std::shared_ptr<SectorComputeProofContext> context =
-        std::make_shared<SectorComputeProofContext>();
-    context->proof = std::move(maybe_proof.value());
-    FSM_SEND_CONTEXT(info, SealingEvent::kSectorComputeProof, context);
+                std::shared_ptr<SectorComputeProofContext> context =
+                    std::make_shared<SectorComputeProofContext>();
+                context->proof = maybe_proof.value();
+                OUTCOME_EXCEPT(fsm->send(
+                    info, SealingEvent::kSectorComputeProof, context));
+              },
+              info->sealingPriority());
+        };
+
+    sealer_->sealCommit1(sector_ref,
+                         info->ticket,
+                         info->seed,
+                         info->getPieceInfos(),
+                         cids,
+                         next_cb,
+                         info->sealingPriority());
+
     return outcome::success();
   }
 
   outcome::result<void> SealingImpl::handleCommitting(
       const std::shared_ptr<SectorInfo> &info) {
+    logger_->info("Commiting sector {}", info->sector_number);
     OUTCOME_TRY(head, api_->ChainHead());
 
     const auto maybe_error = checks::checkCommit(miner_address_,
@@ -1354,7 +1580,23 @@ namespace fc::mining {
     }
 
     // TODO(ortyomka): check seed / ticket are up to date
-    const auto maybe_signed_msg = api_->MpoolPushMessage(
+    api_->MpoolPushMessage(
+        [fsm{fsm_}, logger{logger_}, info](
+            const outcome::result<api::SignedMessage> &maybe_signed_msg) {
+          if (maybe_signed_msg.has_error()) {
+            logger->error("pushing message to mpool: {}",
+                          maybe_signed_msg.error().message());
+            OUTCOME_EXCEPT(
+                fsm->send(info, SealingEvent::kSectorCommitFailed, {}));
+            return;
+          }
+
+          std::shared_ptr<SectorCommittedContext> context =
+              std::make_shared<SectorCommittedContext>();
+          context->message = maybe_signed_msg.value().getCid();
+          OUTCOME_EXCEPT(
+              fsm->send(info, SealingEvent::kSectorCommitted, context));
+        },
         vm::message::UnsignedMessage(
             miner_address_,
             minfo.worker,
@@ -1366,17 +1608,6 @@ namespace fc::mining {
             MethodParams{maybe_params_encoded.value()}),
         api::kPushNoSpec);
 
-    if (maybe_signed_msg.has_error()) {
-      logger_->error("pushing message to mpool: {}",
-                     maybe_signed_msg.error().message());
-      FSM_SEND(info, SealingEvent::kSectorCommitFailed);
-      return outcome::success();
-    }
-
-    std::shared_ptr<SectorCommittedContext> context =
-        std::make_shared<SectorCommittedContext>();
-    context->message = maybe_signed_msg.value().getCid();
-    FSM_SEND_CONTEXT(info, SealingEvent::kSectorCommitted, context);
     return outcome::success();
   }
 
@@ -1389,6 +1620,7 @@ namespace fc::mining {
       FSM_SEND(info, SealingEvent::kSectorCommitFailed);
       return outcome::success();
     }
+    logger_->info("Committed sector {}", info->sector_number);
 
     api_->StateWaitMsg(
         [=](auto &&maybe_message_lookup) {
@@ -1417,31 +1649,36 @@ namespace fc::mining {
             return;
           }
 
-          const auto maybe_error =
-              api_->StateSectorGetInfo(miner_address_,
-                                       info->sector_number,
-                                       maybe_message_lookup.value().tipset);
+          api_->StateSectorGetInfo(
+              [=](auto &&maybe_error) {
+                if (maybe_error.has_error()) {
+                  logger_->error(
+                      "proof validation failed, sector not found in sector set "
+                      "after "
+                      "cron: "
+                      "{}",
+                      maybe_error.error().message());
+                  OUTCOME_EXCEPT(
+                      fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
+                  return;
+                }
 
-          if (maybe_error.has_error()) {
-            logger_->error(
-                "proof validation failed, sector not found in sector set after "
-                "cron: "
-                "{}",
-                maybe_error.error().message());
-            OUTCOME_EXCEPT(
-                fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
-            return;
-          }
-          if (!maybe_error.value()) {
-            logger_->error(
-                "proof validation failed, sector not found in sector set after "
-                "cron");
-            OUTCOME_EXCEPT(
-                fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
-            return;
-          }
+                if (!maybe_error.value()) {
+                  logger_->error(
+                      "proof validation failed, sector not found in sector set "
+                      "after "
+                      "cron");
+                  OUTCOME_EXCEPT(
+                      fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
+                  return;
+                }
 
-          OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorProving, {}));
+                OUTCOME_EXCEPT(
+                    fsm_->send(info, SealingEvent::kSectorProving, {}));
+              },
+              miner_address_,
+              info->sector_number,
+              maybe_message_lookup.value().tipset);
         },
         info->message.get(),
         kMessageConfidence,
@@ -1454,18 +1691,25 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handleFinalizeSector(
       const std::shared_ptr<SectorInfo> &info) {
     // TODO(ortyomka): Maybe wait for some finality
+    logger_->info("Finalize sector {}", info->sector_number);
 
-    const auto maybe_error = sealer_->finalizeSectorSync(
+    sealer_->finalizeSector(
         minerSector(info->sector_type, info->sector_number),
         info->keepUnsealedRanges(),
-        info->sealingPriority());
-    if (maybe_error.has_error()) {
-      logger_->error("finalize sector: {}", maybe_error.error().message());
-      FSM_SEND(info, SealingEvent::kSectorFinalizeFailed);
-      return outcome::success();
-    }
+        [fsm{fsm_}, info, logger{logger_}](
+            const outcome::result<void> &maybe_error) {
+          if (maybe_error.has_error()) {
+            logger->error("finalize sector: {}", maybe_error.error().message());
+            OUTCOME_EXCEPT(
+                fsm->send(info, SealingEvent::kSectorFinalizeFailed, {}));
+            return;
+          }
+          logger->info("Finalize done: {}", info->sector_number);
 
-    FSM_SEND(info, SealingEvent::kSectorFinalized);
+          OUTCOME_EXCEPT(fsm->send(info, SealingEvent::kSectorFinalized, {}));
+        },
+        info->sealingPriority());
+
     return outcome::success();
   }
 
@@ -1515,6 +1759,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> SealingImpl::handlePreCommitFail(
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
@@ -1645,6 +1890,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> SealingImpl::handleCommitFail(
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
@@ -1811,6 +2057,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> SealingImpl::handleRecoverDeal(
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());

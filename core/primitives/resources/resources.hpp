@@ -15,14 +15,14 @@ namespace fc::primitives {
   using sector::RegisteredSealProof;
 
   struct Resources {
-    uint64_t min_memory;  // What Must be in RAM for decent perf
-    uint64_t max_memory;  // Memory required (swap + ram)
+    uint64_t min_memory{};  // What Must be in RAM for decent perf
+    uint64_t max_memory{};  // Memory required (swap + ram)
 
-    boost::optional<uint64_t> threads;  // multithread = boost::none
+    boost::optional<uint64_t> threads = 0;  // multithread = boost::none
 
-    bool can_gpu;
+    bool can_gpu = false;
 
-    uint64_t base_min_memory;  // What Must be in RAM for decent perf (shared
+    uint64_t base_min_memory{};  // What Must be in RAM for decent perf (shared
                                // between threads)
   };
 

@@ -48,7 +48,7 @@ namespace fc::sector_storage {
   }
 
   struct CallId {
-    SectorId sector;
+    SectorId sector{};
     std::string id;  // uuid
   };
   CBOR_TUPLE(CallId, sector, id);

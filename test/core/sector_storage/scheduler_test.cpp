@@ -272,7 +272,6 @@ namespace fc::sector_storage {
         *selector_,
         is_satisfying(task1, seal_proof_type_, workerNameMatcher(worker_name_)))
         .WillOnce(testing::Return(outcome::success(false)))
-        .WillOnce(testing::Return(outcome::success(true)))
         .WillOnce(testing::Return(outcome::success(true)));
 
     EXPECT_OUTCOME_TRUE_1(scheduler_->schedule(sector,

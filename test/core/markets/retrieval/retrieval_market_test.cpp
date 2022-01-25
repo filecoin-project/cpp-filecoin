@@ -52,6 +52,7 @@ namespace fc::markets::retrieval::test {
     EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), false);
 
     auto sector_info = std::make_shared<mining::types::SectorInfo>();
+    sector_info->sector_type = RegisteredSealProof::kStackedDrg2KiBV1;
     EXPECT_CALL(*miner, getSectorInfo(deal.sector_id))
         .WillOnce(testing::Return(outcome::success(sector_info)));
 
