@@ -113,16 +113,6 @@ namespace fc::proofs {
     outcome::result<bool> verifyAggregateSeals(
         const AggregateSealVerifyProofAndInfos &aggregate) override;
 
-    outcome::result<Bytes> generateUpdateProof(
-        RegisteredUpdateProof proof_type,
-        const CID &old_sealed_cid,
-        const CID &new_sealed_cid,
-        const CID &unsealed_cid,
-        const std::string &new_replica_path,
-        const std::string &new_replica_cache_path,
-        const std::string &sector_key_path,
-        const std::string &sector_key_cache_path) override;
-
     outcome::result<bool> verifyUpdateProof(
         const ReplicaUpdateInfo &info) override;
 
@@ -167,6 +157,38 @@ namespace fc::proofs {
         RegisteredSealProof proof_type) override;
 
     outcome::result<Devices> getGPUDevices() override;
+
+    outcome::result<SealedAndUnsealedCID> updateSeal(
+        RegisteredUpdateProof type,
+        const std::string &path_update,
+        const std::string &path_update_cache,
+        const std::string &path_sealed,
+        const std::string &path_cache,
+        const std::string &path_unsealed,
+        gsl::span<const PieceInfo> pieces) override;
+
+    outcome::result<void> updateUnseal(RegisteredUpdateProof type,
+                                       const std::string &path_unsealed,
+                                       const std::string &path_update,
+                                       const std::string &path_sealed,
+                                       const std::string &path_cache,
+                                       const CID &cid_unsealed) override;
+
+    outcome::result<UpdateProofs1> updateProve1(
+        RegisteredUpdateProof type,
+        const CID &cid_sealed_old,
+        const CID &cid_sealed,
+        const CID &cid_unsealed,
+        const std::string &path_update,
+        const std::string &path_update_cache,
+        const std::string &path_sealed,
+        const std::string &path_cache) override;
+
+    outcome::result<Bytes> updateProve2(RegisteredUpdateProof type,
+                                        const CID &cid_sealed_old,
+                                        const CID &cid_sealed,
+                                        const CID &cid_unsealed,
+                                        UpdateProofs1 proofs1) override;
 
    private:
     common::Logger logger_;
