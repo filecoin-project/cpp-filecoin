@@ -7,41 +7,32 @@
 
 #include "vm/actor/code.hpp"
 
-namespace fc::vm::actor::builtin::v0 {
-  constexpr ActorCodeCid kAccountCodeId{"fil/1/account"};
-  constexpr ActorCodeCid kCronCodeId{"fil/1/cron"};
-  constexpr ActorCodeCid kStoragePowerCodeId{"fil/1/storagepower"};
-  constexpr ActorCodeCid kStorageMarketCodeId{"fil/1/storagemarket"};
-  constexpr ActorCodeCid kStorageMinerCodeId{"fil/1/storageminer"};
-  constexpr ActorCodeCid kMultisigCodeId{"fil/1/multisig"};
-  constexpr ActorCodeCid kInitCodeId{"fil/1/init"};
-  constexpr ActorCodeCid kPaymentChannelCodeId{"fil/1/paymentchannel"};
-  constexpr ActorCodeCid kRewardActorCodeId{"fil/1/reward"};
-  constexpr ActorCodeCid kSystemActorCodeId{"fil/1/system"};
-  constexpr ActorCodeCid kVerifiedRegistryCodeId{"fil/1/verifiedregistry"};
-};  // namespace fc::vm::actor::builtin::v0
-
-#define VM_ACTOR_BUILTIN_V_CODE(V)                                             \
-  namespace fc::vm::actor::builtin::v##V {                                     \
-    constexpr ActorCodeCid kAccountCodeId{"fil/" #V "/account"};               \
-    constexpr ActorCodeCid kCronCodeId{"fil/" #V "/cron"};                     \
-    constexpr ActorCodeCid kStoragePowerCodeId{"fil/" #V "/storagepower"};     \
-    constexpr ActorCodeCid kStorageMarketCodeId{"fil/" #V "/storagemarket"};   \
-    constexpr ActorCodeCid kStorageMinerCodeId{"fil/" #V "/storageminer"};     \
-    constexpr ActorCodeCid kMultisigCodeId{"fil/" #V "/multisig"};             \
-    constexpr ActorCodeCid kInitCodeId{"fil/" #V "/init"};                     \
-    constexpr ActorCodeCid kPaymentChannelCodeId{"fil/" #V "/paymentchannel"}; \
-    constexpr ActorCodeCid kRewardActorCodeId{"fil/" #V "/reward"};            \
-    constexpr ActorCodeCid kSystemActorCodeId{"fil/" #V "/system"};            \
-    constexpr ActorCodeCid kVerifiedRegistryCodeId{"fil/" #V                   \
-                                                   "/verifiedregistry"};       \
+/**
+ * Defines Actor Codes, V is an actor version and S is a string representation.
+ * Note: V0 actor has "fil/1/..." string representation
+ */
+#define VM_ACTOR_BUILTIN_V_CODE(V, S)                                         \
+  namespace fc::vm::actor::builtin::v##V {                                    \
+    constexpr ActorCodeCid kAccountCodeId{"fil/" S "/account"};               \
+    constexpr ActorCodeCid kCronCodeId{"fil/" S "/cron"};                     \
+    constexpr ActorCodeCid kStoragePowerCodeId{"fil/" S "/storagepower"};     \
+    constexpr ActorCodeCid kStorageMarketCodeId{"fil/" S "/storagemarket"};   \
+    constexpr ActorCodeCid kStorageMinerCodeId{"fil/" S "/storageminer"};     \
+    constexpr ActorCodeCid kMultisigCodeId{"fil/" S "/multisig"};             \
+    constexpr ActorCodeCid kInitCodeId{"fil/" S "/init"};                     \
+    constexpr ActorCodeCid kPaymentChannelCodeId{"fil/" S "/paymentchannel"}; \
+    constexpr ActorCodeCid kRewardActorCodeId{"fil/" S "/reward"};            \
+    constexpr ActorCodeCid kSystemActorCodeId{"fil/" S "/system"};            \
+    constexpr ActorCodeCid kVerifiedRegistryCodeId{"fil/" S                   \
+                                                   "/verifiedregistry"};      \
   }
 
-VM_ACTOR_BUILTIN_V_CODE(2)
-VM_ACTOR_BUILTIN_V_CODE(3)
-VM_ACTOR_BUILTIN_V_CODE(4)
-VM_ACTOR_BUILTIN_V_CODE(5)
-VM_ACTOR_BUILTIN_V_CODE(6)
-VM_ACTOR_BUILTIN_V_CODE(7)
+VM_ACTOR_BUILTIN_V_CODE(0, "1")
+VM_ACTOR_BUILTIN_V_CODE(2, "2")
+VM_ACTOR_BUILTIN_V_CODE(3, "3")
+VM_ACTOR_BUILTIN_V_CODE(4, "4")
+VM_ACTOR_BUILTIN_V_CODE(5, "5")
+VM_ACTOR_BUILTIN_V_CODE(6, "6")
+VM_ACTOR_BUILTIN_V_CODE(7, "7")
 
 #undef VM_ACTOR_BUILTIN_V_CODE
