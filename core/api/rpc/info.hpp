@@ -17,7 +17,8 @@ namespace fc::api::rpc {
 
   inline Outcome<std::pair<Multiaddress, std::string>> loadInfo(
       const boost::filesystem::path &repo, std::string_view env) {
-    std::string address, token;
+    std::string address;
+    std::string token;
     if (auto _info{getenv(env.data())}) {
       std::string_view info{_info};
       auto i{info.find(":")};

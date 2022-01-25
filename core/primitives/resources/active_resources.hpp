@@ -21,14 +21,13 @@ namespace fc::primitives {
 
     double utilization(const WorkerResources &worker_resources);
 
-    friend bool canHandleRequest(const Resources &need_resources,
-                                 const WorkerResources &resources,
-                                 const ActiveResources &active);
-
     inline void setMemoryUsedMin(uint64_t memory) {
       std::unique_lock lock{mutex_};
       memory_used_min = memory;
     }
+
+    bool canHandleRequest(const Resources &need_resources,
+                          const WorkerResources &resources);
 
    private:
     uint64_t memory_used_min = 0;
@@ -37,9 +36,5 @@ namespace fc::primitives {
     uint64_t cpu_use = 0;
     mutable std::shared_mutex mutex_;
   };
-
-  bool canHandleRequest(const Resources &need_resources,
-                        const WorkerResources &resources,
-                        const ActiveResources &active);
 
 }  // namespace fc::primitives

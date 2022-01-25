@@ -33,7 +33,7 @@ namespace fc::api {
       return miner_info.sector_size;
     };
 
-    api->PledgeSector = [&]() -> outcome::result<void> {
+    api->PledgeSector = [=]() -> outcome::result<void> {
       return miner->getSealing()->pledgeSector();
     };
 

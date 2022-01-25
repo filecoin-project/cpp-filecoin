@@ -114,7 +114,7 @@ namespace fc::proofs {
                                             PaddedPieceSize new_piece_length) {
     std::vector<PaddedPieceSize> pad_pieces;
 
-    auto to_fill = uint64_t(-old_length % new_piece_length);
+    uint64_t to_fill(-old_length % new_piece_length);
 
     PaddedPieceSize sum;
     auto n = common::countSetBits(to_fill);
