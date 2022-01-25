@@ -156,23 +156,23 @@ namespace fc {
     kPropagationDelaySecs = 1;
 
     // Network versions
-    kUpgradeBreezeHeight = 100000000;
-    kUpgradeSmokeHeight = 100000000;
-    kUpgradeIgnitionHeight = 100000000;
-    kUpgradeRefuelHeight = 100000000;
-    kUpgradeTapeHeight = 100000000;
-    kUpgradeAssemblyHeight = 100000000;
-    kUpgradeLiftoffHeight = 100000000;
-    kUpgradeKumquatHeight = 100000000;
-    kUpgradeCalicoHeight = 100000000;
-    kUpgradePersianHeight = 100000000;
-    kUpgradeOrangeHeight = 100000000;
-    kUpgradeClausHeight = 100000000;
-    kUpgradeTrustHeight = 100000000;
-    kUpgradeNorwegianHeight = 100000000;
-    kUpgradeTurboHeight = 100000000;
-    kUpgradeChocolateHeight = 100000000;
-    kUpgradeOhSnapHeight = 100000000;
+    kUpgradeBreezeHeight = INT64_MAX;
+    kUpgradeSmokeHeight = INT64_MAX;
+    kUpgradeIgnitionHeight = INT64_MAX;
+    kUpgradeRefuelHeight = INT64_MAX;
+    kUpgradeTapeHeight = INT64_MAX;
+    kUpgradeAssemblyHeight = INT64_MAX;
+    kUpgradeLiftoffHeight = INT64_MAX;
+    kUpgradeKumquatHeight = INT64_MAX;
+    kUpgradeCalicoHeight = INT64_MAX;
+    kUpgradePersianHeight = INT64_MAX;
+    kUpgradeOrangeHeight = INT64_MAX;
+    kUpgradeClausHeight = INT64_MAX;
+    kUpgradeTrustHeight = INT64_MAX;
+    kUpgradeNorwegianHeight = INT64_MAX;
+    kUpgradeTurboHeight = INT64_MAX;
+    kUpgradeChocolateHeight = INT64_MAX;
+    kUpgradeOhSnapHeight = INT64_MAX;
 
     kBreezeGasTampingDuration = 0;
 
@@ -216,8 +216,8 @@ namespace fc {
     kUpgradeNorwegianHeight = -14;
     kUpgradeTurboHeight = -15;
     kUpgradeHyperdriveHeight = -16;
-    kUpgradeChocolateHeight = -17;
-    kUpgradeOhSnapHeight = -18;
+    kUpgradeChocolateHeight = INT64_MAX; // -17 in lotus
+    kUpgradeOhSnapHeight = INT64_MAX; // -18 in lotus
 
     kBreezeGasTampingDuration = 0;
 

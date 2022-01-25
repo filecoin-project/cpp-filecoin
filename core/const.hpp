@@ -90,7 +90,7 @@ namespace fc {
   extern ChainEpoch kUpgradeHyperdriveHeight;
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeChocolateHeight;
-  /** Update introduces Snap deals */
+  /** Actors V7 and Snap deals */
   // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   extern ChainEpoch kUpgradeOhSnapHeight;
 
