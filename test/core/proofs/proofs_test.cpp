@@ -13,6 +13,7 @@
 #include "primitives/piece/piece_data.hpp"
 #include "primitives/sector/sector.hpp"
 #include "proofs/proof_param_provider.hpp"
+#include "sector_storage/zerocomm/zerocomm.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"
@@ -34,6 +35,11 @@ namespace fc::proofs {
   using storage::filestore::File;
   using storage::filestore::FileSystemFile;
   using storage::filestore::Path;
+
+  inline void touch(const std::string &path, uint64_t size) {
+    std::ofstream{path};
+    fs::resize_file(path, size);
+  }
 
   class ProofsTest : public test::BaseFS_Test {
    public:
@@ -538,5 +544,112 @@ namespace fc::proofs {
       }
       offset = offset + exist_pieces[i].padded();
     }
+  }
+
+  /// update empty sector
+  TEST_F(ProofsTest, Update) {
+    const auto seal_type{RegisteredSealProof::kStackedDrg2KiBV1};
+    const auto update_type{RegisteredUpdateProof::kStackedDrg2KiBV1};
+    const PaddedPieceSize padded{2 << 10};
+
+    const auto join{[&](auto s) { return (base_path / s).string(); }};
+    const auto path_unsealed{join("unsealed")};
+    const auto path_sealed{join("sealed")};
+    const auto path_cache{join("cache")};
+    const auto path_update{join("update")};
+    const auto path_update_cache{join("update-cache")};
+
+    touch(path_unsealed, 0);
+    const std::vector<PieceInfo> pieces_old{{
+        padded,
+        sector_storage::zerocomm::getZeroPieceCommitment(padded.unpadded())
+            .value(),
+    }};
+    touch(path_sealed, 0);
+    fs::create_directory(path_cache);
+    const auto precommit1{proofs_
+                              ->sealPreCommitPhase1(seal_type,
+                                                    path_cache,
+                                                    path_unsealed,
+                                                    path_sealed,
+                                                    SectorNumber{},
+                                                    ActorId{},
+                                                    Ticket{},
+                                                    pieces_old)
+                              .value()};
+    const auto cids_old{
+        proofs_->sealPreCommitPhase2(precommit1, path_cache, path_sealed)
+            .value()};
+
+    const auto path_piece{join("piece")};
+    std::string piece_str;
+    piece_str.resize(padded.unpadded());
+    std::generate(
+        piece_str.begin(),
+        piece_str.end(),
+        std::independent_bits_engine<std::random_device, 8, uint8_t>{});
+    fs::save_string_file(path_piece, piece_str);
+
+    fs::remove(path_unsealed);
+    const auto piece{proofs_
+                         ->writeWithoutAlignment(seal_type,
+                                                 PieceData{path_piece},
+                                                 padded.unpadded(),
+                                                 path_unsealed)
+                         .value()};
+    const std::vector<PieceInfo> pieces{{padded, piece.piece_cid}};
+
+    touch(path_update, padded);
+    fs::create_directory(path_update_cache);
+    const auto cids{proofs_
+                        ->updateSeal(update_type,
+                                     path_update,
+                                     path_update_cache,
+                                     path_sealed,
+                                     path_cache,
+                                     path_unsealed,
+                                     pieces)
+                        .value()};
+    const auto proofs1{proofs_
+                           ->updateProve1(update_type,
+                                          cids_old.sealed_cid,
+                                          cids.sealed_cid,
+                                          cids.unsealed_cid,
+                                          path_update,
+                                          path_update_cache,
+                                          path_sealed,
+                                          path_cache)
+                           .value()};
+    const auto proof{proofs_
+                         ->updateProve2(update_type,
+                                        cids_old.sealed_cid,
+                                        cids.sealed_cid,
+                                        cids.unsealed_cid,
+                                        proofs1)
+                         .value()};
+    EXPECT_OUTCOME_EQ(proofs_->verifyUpdateProof({
+                          update_type,
+                          cids_old.sealed_cid,
+                          cids.sealed_cid,
+                          cids.unsealed_cid,
+                          proof,
+                      }),
+                      true);
+
+    std::string unsealed_file;
+    fs::load_string_file(path_unsealed, unsealed_file);
+    fs::remove(path_unsealed);
+    touch(path_unsealed, padded);
+    proofs_
+        ->updateUnseal(update_type,
+                       path_unsealed,
+                       path_update,
+                       path_sealed,
+                       path_cache,
+                       cids.unsealed_cid)
+        .value();
+    std::string unsealed_file2;
+    fs::load_string_file(path_unsealed, unsealed_file2);
+    EXPECT_EQ(unsealed_file2, unsealed_file);
   }
 }  // namespace fc::proofs

@@ -43,6 +43,7 @@ namespace fc::proofs {
   using ChallengeIndexes = std::vector<uint64_t>;
   using UnsealedCID = CID;
   using Seed = primitives::sector::InteractiveRandomness;
+  using UpdateProofs1 = std::vector<Bytes>;
 
   struct PrivateSectorInfo {
     SectorInfo info;
@@ -269,19 +270,6 @@ namespace fc::proofs {
         const AggregateSealVerifyProofAndInfos &aggregate) = 0;
 
     /**
-     * Generates update proof for empty sector
-     */
-    virtual outcome::result<Bytes> generateUpdateProof(
-        RegisteredUpdateProof proof_type,
-        const CID &old_sealed_cid,
-        const CID &new_sealed_cid,
-        const CID &unsealed_cid,
-        const std::string &new_replica_path,
-        const std::string &new_replica_cache_path,
-        const std::string &sector_key_path,
-        const std::string &sector_key_cache_path) = 0;
-
-    /**
      * Verifies update proof for empty sector.
      */
     virtual outcome::result<bool> verifyUpdateProof(
@@ -347,5 +335,37 @@ namespace fc::proofs {
      * be used
      */
     virtual outcome::result<Devices> getGPUDevices() = 0;
+
+    virtual outcome::result<SealedAndUnsealedCID> updateSeal(
+        RegisteredUpdateProof type,
+        const std::string &path_update,
+        const std::string &path_update_cache,
+        const std::string &path_sealed,
+        const std::string &path_cache,
+        const std::string &path_unsealed,
+        gsl::span<const PieceInfo> pieces) = 0;
+
+    virtual outcome::result<void> updateUnseal(RegisteredUpdateProof type,
+                                               const std::string &path_unsealed,
+                                               const std::string &path_update,
+                                               const std::string &path_sealed,
+                                               const std::string &path_cache,
+                                               const CID &cid_unsealed) = 0;
+
+    virtual outcome::result<UpdateProofs1> updateProve1(
+        RegisteredUpdateProof type,
+        const CID &cid_sealed_old,
+        const CID &cid_sealed,
+        const CID &cid_unsealed,
+        const std::string &path_update,
+        const std::string &path_update_cache,
+        const std::string &path_sealed,
+        const std::string &path_cache) = 0;
+
+    virtual outcome::result<Bytes> updateProve2(RegisteredUpdateProof type,
+                                                const CID &cid_sealed_old,
+                                                const CID &cid_sealed,
+                                                const CID &cid_unsealed,
+                                                UpdateProofs1 proofs1) = 0;
   };
 }  // namespace fc::proofs
