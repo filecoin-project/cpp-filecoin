@@ -20,7 +20,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<PowerPair> Partition::addSectors(
       bool proven,
-      const std::vector<SectorOnChainInfo> &sectors,
+      const std::vector<UniveralSectorOnChainInfo> &sectors,
       SectorSize ssize,
       const QuantSpec &quant) {
     auto expirations = loadExpirationQueue(this->expirations_epochs, quant);
@@ -43,7 +43,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<std::tuple<PowerPair, PowerPair>> Partition::addFaults(
       const RleBitset &sector_nos,
-      const std::vector<SectorOnChainInfo> &sectors,
+      const std::vector<UniveralSectorOnChainInfo> &sectors,
       ChainEpoch fault_expiration,
       SectorSize ssize,
       const QuantSpec &quant) {

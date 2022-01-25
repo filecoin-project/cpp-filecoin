@@ -10,7 +10,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<PowerPair> ExpirationQueue::rescheduleAsFaults(
       ChainEpoch new_expiration,
-      const std::vector<SectorOnChainInfo> &sectors,
+      const std::vector<UniveralSectorOnChainInfo> &sectors,
       SectorSize ssize) {
     RleBitset early_sectors;
     PowerPair expiring_power;
@@ -88,7 +88,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<std::tuple<RleBitset, PowerPair, TokenAmount>>
   ExpirationQueue::removeActiveSectors(
-      const std::vector<SectorOnChainInfo> &sectors, SectorSize ssize) {
+      const std::vector<UniveralSectorOnChainInfo> &sectors, SectorSize ssize) {
     RleBitset removed_snos;
     PowerPair removed_power;
     TokenAmount removed_pledge{0};

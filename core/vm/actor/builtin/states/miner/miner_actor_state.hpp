@@ -187,7 +187,7 @@ namespace fc::vm::actor::builtin::states {
      * missing/faulty/terminated "upgraded" sectors instead of failing. That
      * way, the new sectors can still be proved.
      */
-    virtual outcome::result<std::vector<SectorOnChainInfo>>
+    virtual outcome::result<std::vector<Universal<SectorOnChainInfo>>>
     rescheduleSectorExpirations(ChainEpoch curr_epoch,
                                 SectorSize ssize,
                                 const DeadlineSectorMap &deadline_sectors) = 0;
@@ -198,7 +198,7 @@ namespace fc::vm::actor::builtin::states {
     outcome::result<PowerPair> assignSectorsToDeadlines(
         Runtime &runtime,
         ChainEpoch curr_epoch,
-        std::vector<SectorOnChainInfo> sectors_to_assign,
+        std::vector<Universal<SectorOnChainInfo>> sectors_to_assign,
         uint64_t partition_size,
         SectorSize ssize);
 

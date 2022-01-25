@@ -14,8 +14,9 @@ namespace fc::vm::actor::builtin::v0::miner {
   using types::miner::ExpirationSet;
   using types::miner::PowerPair;
   using types::miner::QuantSpec;
-  using types::miner::SectorOnChainInfo;
   using types::miner::Sectors;
+  using UniveralSectorOnChainInfo =
+      types::Universal<types::miner::SectorOnChainInfo>;
 
   struct Partition : types::miner::Partition {
     RleBitset activeSectors() const override;
@@ -24,13 +25,13 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     outcome::result<PowerPair> addSectors(
         bool proven,
-        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<UniveralSectorOnChainInfo> &sectors,
         SectorSize ssize,
         const QuantSpec &quant) override;
 
     outcome::result<std::tuple<PowerPair, PowerPair>> addFaults(
         const RleBitset &sector_nos,
-        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<UniveralSectorOnChainInfo> &sectors,
         ChainEpoch fault_expiration,
         SectorSize ssize,
         const QuantSpec &quant) override;

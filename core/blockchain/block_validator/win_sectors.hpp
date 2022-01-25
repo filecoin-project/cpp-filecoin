@@ -56,10 +56,10 @@ namespace fc::blockchain::block_validator {
         // TODO state prior to v7
         OUTCOME_TRY(sector, state->sectors.sectors.get(sector_ids[i]));
         sectors.push_back({
-            sector.seal_proof,
-            sector.sector,
-            sector.sector_key_cid,
-            sector.sealed_cid,
+            sector->seal_proof,
+            sector->sector,
+            sector->sector_key_cid,
+            sector->sealed_cid,
         });
       }
     }

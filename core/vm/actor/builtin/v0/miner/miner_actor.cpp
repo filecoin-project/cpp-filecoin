@@ -349,7 +349,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     TokenAmount deposit_minimum = 0;
     if (params.replace_capacity) {
       OUTCOME_TRY(replace_sector, utils->validateReplaceSector(state, params));
-      deposit_minimum = replace_sector.init_pledge;
+      deposit_minimum = replace_sector->init_pledge;
     }
 
     REQUIRE_NO_ERROR_A(newly_vested,

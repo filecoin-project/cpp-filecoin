@@ -9,6 +9,7 @@
 
 namespace fc::vm::actor::builtin::v3::miner {
   using primitives::SectorSize;
+  using types::Universal;
   using types::miner::PowerPair;
   using types::miner::QuantSpec;
   using types::miner::SectorOnChainInfo;
@@ -16,7 +17,7 @@ namespace fc::vm::actor::builtin::v3::miner {
   struct Partition : v2::miner::Partition {
     outcome::result<PowerPair> addSectors(
         bool proven,
-        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
         SectorSize ssize,
         const QuantSpec &quant) override;
   };

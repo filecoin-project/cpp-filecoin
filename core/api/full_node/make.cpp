@@ -776,8 +776,9 @@ namespace fc::api {
         OUTCOME_TRY(deadline->partitions.visit(
             [&](auto, const auto &part) -> outcome::result<void> {
               for (const auto &id : part->activeSectors()) {
-                OUTCOME_TRYA(sectors.emplace_back(),
-                             state->sectors.sectors.get(id));
+                OUTCOME_TRY(universal_sector_info,
+                            state->sectors.sectors.get(id));
+                sectors.emplace_back(*universal_sector_info);
               }
               return outcome::success();
             }));
@@ -889,7 +890,7 @@ namespace fc::api {
       std::vector<SectorOnChainInfo> sectors;
       OUTCOME_TRY(state->sectors.sectors.visit([&](auto id, auto &info) {
         if (!filter || filter->count(id)) {
-          sectors.push_back(info);
+          sectors.push_back(*info);
         }
         return outcome::success();
       }));
@@ -990,7 +991,12 @@ namespace fc::api {
         -> outcome::result<boost::optional<SectorOnChainInfo>> {
       OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(state, context.minerState(address));
-      return state->sectors.sectors.tryGet(sector_number);
+      OUTCOME_TRY(maybe_universal_sector_info,
+                  state->sectors.sectors.tryGet(sector_number));
+      if (maybe_universal_sector_info) {
+        return *maybe_universal_sector_info.get();
+      }
+      return boost::none;
     };
     api->StateSectorExpiration = [=](auto &address, auto sector, auto &tsk)
         -> outcome::result<SectorExpiration> {

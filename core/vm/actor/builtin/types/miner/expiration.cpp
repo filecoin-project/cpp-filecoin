@@ -91,7 +91,8 @@ namespace fc::vm::actor::builtin::types::miner {
 
   outcome::result<std::tuple<RleBitset, PowerPair, TokenAmount>>
   ExpirationQueue::addActiveSectors(
-      const std::vector<SectorOnChainInfo> &sectors, SectorSize ssize) {
+      const std::vector<Universal<SectorOnChainInfo>> &sectors,
+      SectorSize ssize) {
     PowerPair total_power;
     TokenAmount total_pledge{0};
     std::vector<RleBitset> total_sectors;
@@ -113,7 +114,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
   outcome::result<void> ExpirationQueue::rescheduleExpirations(
       ChainEpoch new_expiration,
-      const std::vector<SectorOnChainInfo> &sectors,
+      const std::vector<Universal<SectorOnChainInfo>> &sectors,
       SectorSize ssize) {
     if (sectors.empty()) {
       return outcome::success();
@@ -128,13 +129,14 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<PowerPair> ExpirationQueue::rescheduleRecovered(
-      const std::vector<SectorOnChainInfo> &sectors, SectorSize ssize) {
+      const std::vector<Universal<SectorOnChainInfo>> &sectors,
+      SectorSize ssize) {
     std::vector<SectorNumber> remaining;
     for (const auto &sector : sectors) {
-      remaining.push_back(sector.sector);
+      remaining.push_back(sector->sector);
     }
 
-    std::vector<SectorOnChainInfo> sectors_rescheduled;
+    std::vector<Universal<SectorOnChainInfo>> sectors_rescheduled;
     PowerPair recovered_power;
 
     MutateFunction f{
@@ -143,21 +145,21 @@ namespace fc::vm::actor::builtin::types::miner {
           bool changed = false;
 
           for (const auto &sector : sectors) {
-            const PowerPair power(ssize, qaPowerForSector(ssize, sector));
+            const PowerPair power(ssize, qaPowerForSector(ssize, *sector));
             bool found = false;
 
-            if (es.on_time_sectors.has(sector.sector)) {
+            if (es.on_time_sectors.has(sector->sector)) {
               found = true;
               // If the sector expires on-time at this epoch, leave it here but
               // change faulty power to active. The pledge is already part of
               // the on-time pledge at this entry.
               es.faulty_power -= power;
               es.active_power += power;
-            } else if (es.early_sectors.has(sector.sector)) {
+            } else if (es.early_sectors.has(sector->sector)) {
               found = true;
               // If the sector expires early at this epoch, remove it for
               // re-scheduling. It's not part of the on-time pledge number here.
-              es.early_sectors.erase(sector.sector);
+              es.early_sectors.erase(sector->sector);
               es.faulty_power -= power;
               sectors_rescheduled.push_back(sector);
             }
@@ -166,7 +168,7 @@ namespace fc::vm::actor::builtin::types::miner {
               recovered_power += power;
 
               const auto remove_it =
-                  std::find(remaining.begin(), remaining.end(), sector.sector);
+                  std::find(remaining.begin(), remaining.end(), sector->sector);
               if (remove_it != remaining.end()) {
                 remaining.erase(remove_it);
               }
@@ -192,8 +194,8 @@ namespace fc::vm::actor::builtin::types::miner {
 
   outcome::result<std::tuple<RleBitset, RleBitset, PowerPair, TokenAmount>>
   ExpirationQueue::replaceSectors(
-      const std::vector<SectorOnChainInfo> &old_sectors,
-      const std::vector<SectorOnChainInfo> &new_sectors,
+      const std::vector<Universal<SectorOnChainInfo>> &old_sectors,
+      const std::vector<Universal<SectorOnChainInfo>> &new_sectors,
       SectorSize ssize) {
     OUTCOME_TRY(remove_result, removeActiveSectors(old_sectors, ssize));
     const auto &[old_snos, old_power, old_pledge] = remove_result;
@@ -207,30 +209,31 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<std::tuple<ExpirationSet, PowerPair>>
-  ExpirationQueue::removeSectors(const std::vector<SectorOnChainInfo> &sectors,
-                                 const RleBitset &faults,
-                                 const RleBitset &recovering,
-                                 SectorSize ssize) {
+  ExpirationQueue::removeSectors(
+      const std::vector<Universal<SectorOnChainInfo>> &sectors,
+      const RleBitset &faults,
+      const RleBitset &recovering,
+      SectorSize ssize) {
     std::vector<SectorNumber> remaining;
     for (const auto &sector : sectors) {
-      remaining.push_back(sector.sector);
+      remaining.push_back(sector->sector);
     }
 
     ExpirationSet removed;
     PowerPair recovering_power;
 
-    std::vector<SectorOnChainInfo> non_faulty_sectors;
-    std::vector<SectorOnChainInfo> faulty_sectors;
+    std::vector<Universal<SectorOnChainInfo>> non_faulty_sectors;
+    std::vector<Universal<SectorOnChainInfo>> faulty_sectors;
 
     for (const auto &sector : sectors) {
-      if (faults.has(sector.sector)) {
+      if (faults.has(sector->sector)) {
         faulty_sectors.push_back(sector);
         continue;
       }
       non_faulty_sectors.push_back(sector);
 
       const auto remove_it =
-          std::find(remaining.begin(), remaining.end(), sector.sector);
+          std::find(remaining.begin(), remaining.end(), sector->sector);
       if (remove_it != remaining.end()) {
         remaining.erase(remove_it);
       }
@@ -249,22 +252,22 @@ namespace fc::vm::actor::builtin::types::miner {
           for (const auto &sector : faulty_sectors) {
             bool found = false;
 
-            if (es.on_time_sectors.has(sector.sector)) {
+            if (es.on_time_sectors.has(sector->sector)) {
               found = true;
-              es.on_time_sectors.erase(sector.sector);
-              removed.on_time_sectors.insert(sector.sector);
-              es.on_time_pledge -= sector.init_pledge;
-              removed.on_time_pledge += sector.init_pledge;
-            } else if (es.early_sectors.has(sector.sector)) {
+              es.on_time_sectors.erase(sector->sector);
+              removed.on_time_sectors.insert(sector->sector);
+              es.on_time_pledge -= sector->init_pledge;
+              removed.on_time_pledge += sector->init_pledge;
+            } else if (es.early_sectors.has(sector->sector)) {
               found = true;
-              es.early_sectors.erase(sector.sector);
-              removed.early_sectors.insert(sector.sector);
+              es.early_sectors.erase(sector->sector);
+              removed.early_sectors.insert(sector->sector);
             }
 
             if (found) {
-              const PowerPair power(ssize, qaPowerForSector(ssize, sector));
+              const PowerPair power(ssize, qaPowerForSector(ssize, *sector));
 
-              if (faults.has(sector.sector)) {
+              if (faults.has(sector->sector)) {
                 es.faulty_power -= power;
                 removed.faulty_power += power;
               } else {
@@ -272,12 +275,12 @@ namespace fc::vm::actor::builtin::types::miner {
                 removed.active_power += power;
               }
 
-              if (recovering.has(sector.sector)) {
+              if (recovering.has(sector->sector)) {
                 recovering_power += power;
               }
 
               const auto remove_it =
-                  std::find(remaining.begin(), remaining.end(), sector.sector);
+                  std::find(remaining.begin(), remaining.end(), sector->sector);
               if (remove_it != remaining.end()) {
                 remaining.erase(remove_it);
               }
@@ -418,11 +421,12 @@ namespace fc::vm::actor::builtin::types::miner {
   std::vector<SectorEpochSet>
   ExpirationQueue::groupNewSectorsByDeclaredExpiration(
       SectorSize sector_size,
-      const std::vector<SectorOnChainInfo> &sectors) const {
-    std::map<ChainEpoch, std::vector<SectorOnChainInfo>> sectors_by_expiration;
+      const std::vector<Universal<SectorOnChainInfo>> &sectors) const {
+    std::map<ChainEpoch, std::vector<Universal<SectorOnChainInfo>>>
+        sectors_by_expiration;
 
     for (const auto &sector : sectors) {
-      const auto q_expiration = quant.quantizeUp(sector.expiration);
+      const auto q_expiration = quant.quantizeUp(sector->expiration);
       sectors_by_expiration[q_expiration].push_back(sector);
     }
 
@@ -433,10 +437,10 @@ namespace fc::vm::actor::builtin::types::miner {
       PowerPair total_power;
       TokenAmount total_pledge{0};
       for (size_t i = 0; i < epoch_sectors.size(); i++) {
-        sector_numbers.insert(epoch_sectors[i].sector);
+        sector_numbers.insert(epoch_sectors[i]->sector);
         total_power += PowerPair(
-            sector_size, qaPowerForSector(sector_size, epoch_sectors[i]));
-        total_pledge += epoch_sectors[i].init_pledge;
+            sector_size, qaPowerForSector(sector_size, *epoch_sectors[i]));
+        total_pledge += epoch_sectors[i]->init_pledge;
       }
 
       sector_epoch_sets.push_back(SectorEpochSet{.epoch = expiration,

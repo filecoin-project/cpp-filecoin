@@ -9,9 +9,9 @@
 #include "vm/actor/builtin/types/miner/policy.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
-  outcome::result<std::vector<SectorOnChainInfo>> Sectors::load(
+  outcome::result<std::vector<Universal<SectorOnChainInfo>>> Sectors::load(
       const RleBitset &sector_nos) const {
-    std::vector<SectorOnChainInfo> sector_infos;
+    std::vector<Universal<SectorOnChainInfo>> sector_infos;
 
     for (const auto i : sector_nos) {
       OUTCOME_TRY(sector, sectors.get(i));
@@ -22,22 +22,23 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<void> Sectors::store(
-      const std::vector<SectorOnChainInfo> &infos) {
+      const std::vector<Universal<SectorOnChainInfo>> &infos) {
     for (const auto &info : infos) {
-      if (info.sector > kMaxSectorNumber) {
+      if (info->sector > kMaxSectorNumber) {
         return ERROR_TEXT("sector number is out of range");
       }
-      OUTCOME_TRY(sectors.set(info.sector, info));
+      OUTCOME_TRY(sectors.set(info->sector, info));
     }
     return outcome::success();
   }
 
-  outcome::result<std::vector<SectorOnChainInfo>> Sectors::loadForProof(
-      const RleBitset &proven_sectors, const RleBitset &expected_faults) const {
+  outcome::result<std::vector<Universal<SectorOnChainInfo>>>
+  Sectors::loadForProof(const RleBitset &proven_sectors,
+                        const RleBitset &expected_faults) const {
     const RleBitset non_faults = proven_sectors - expected_faults;
 
     if (non_faults.empty()) {
-      return std::vector<SectorOnChainInfo>{};
+      return std::vector<Universal<SectorOnChainInfo>>{};
     }
 
     const auto &good_sector = *non_faults.begin();
@@ -45,13 +46,13 @@ namespace fc::vm::actor::builtin::types::miner {
     return loadWithFaultMask(proven_sectors, expected_faults, good_sector);
   }
 
-  outcome::result<std::vector<SectorOnChainInfo>> Sectors::loadWithFaultMask(
-      const RleBitset &sector_nums,
-      const RleBitset &faults,
-      SectorNumber faults_stand_in) const {
+  outcome::result<std::vector<Universal<SectorOnChainInfo>>>
+  Sectors::loadWithFaultMask(const RleBitset &sector_nums,
+                             const RleBitset &faults,
+                             SectorNumber faults_stand_in) const {
     OUTCOME_TRY(stand_in_info, sectors.get(faults_stand_in));
 
-    std::vector<SectorOnChainInfo> sector_infos;
+    std::vector<Universal<SectorOnChainInfo>> sector_infos;
     for (const auto i : sector_nums) {
       auto sector = stand_in_info;
       if (!faults.has(i)) {
@@ -76,17 +77,18 @@ namespace fc::vm::actor::builtin::types::miner {
     return sectors_copy;
   }
 
-  outcome::result<std::vector<SectorOnChainInfo>> selectSectors(
-      const std::vector<SectorOnChainInfo> &sectors, const RleBitset &field) {
+  outcome::result<std::vector<Universal<SectorOnChainInfo>>> selectSectors(
+      const std::vector<Universal<SectorOnChainInfo>> &sectors,
+      const RleBitset &field) {
     auto to_include = field;
 
-    std::vector<SectorOnChainInfo> included;
+    std::vector<Universal<SectorOnChainInfo>> included;
     for (const auto &sector : sectors) {
-      if (!to_include.has(sector.sector)) {
+      if (!to_include.has(sector->sector)) {
         continue;
       }
       included.push_back(sector);
-      to_include.erase(sector.sector);
+      to_include.erase(sector->sector);
     }
     if (!to_include.empty()) {
       return ERROR_TEXT("failed to find expected sectors");
@@ -95,14 +97,14 @@ namespace fc::vm::actor::builtin::types::miner {
     return included;
   }
 
-  outcome::result<std::vector<SectorOnChainInfo>> loadSectorInfosForProof(
-      const Sectors &sectors,
-      const RleBitset &proven_sectors,
-      const RleBitset &expected_faults) {
+  outcome::result<std::vector<Universal<SectorOnChainInfo>>>
+  loadSectorInfosForProof(const Sectors &sectors,
+                          const RleBitset &proven_sectors,
+                          const RleBitset &expected_faults) {
     const RleBitset non_faults = proven_sectors - expected_faults;
 
     if (non_faults.empty()) {
-      return std::vector<SectorOnChainInfo>{};
+      return std::vector<Universal<SectorOnChainInfo>>{};
     }
 
     const auto &good_sector = *non_faults.begin();
@@ -111,11 +113,11 @@ namespace fc::vm::actor::builtin::types::miner {
         sectors, proven_sectors, expected_faults, good_sector);
   }
 
-  outcome::result<std::vector<SectorOnChainInfo>> loadSectorInfosWithFaultMask(
-      const Sectors &sectors,
-      const RleBitset &sector_nums,
-      const RleBitset &faults,
-      SectorNumber faults_stand_in) {
+  outcome::result<std::vector<Universal<SectorOnChainInfo>>>
+  loadSectorInfosWithFaultMask(const Sectors &sectors,
+                               const RleBitset &sector_nums,
+                               const RleBitset &faults,
+                               SectorNumber faults_stand_in) {
     OUTCOME_TRY(sectors_arr, sectors.loadSectors());
     return sectors_arr.loadWithFaultMask(sector_nums, faults, faults_stand_in);
   }

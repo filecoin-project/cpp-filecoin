@@ -29,7 +29,8 @@ namespace fc::blockchain::block_validator {
     ProofParamProvider::getParams(params, 0).value();
 
     setParamsInteropnet();
-    // Set network version 14
+    // Set network version 13
+    kUpgradeChocolateHeight = INT64_MAX;
     kUpgradeOhSnapHeight = INT64_MAX;
 
     vm::actor::cgo::configParams();

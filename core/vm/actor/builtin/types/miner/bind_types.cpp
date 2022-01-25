@@ -29,6 +29,9 @@
 #include "vm/actor/builtin/types/miner/v2/proof_policy.hpp"
 #include "vm/actor/builtin/types/miner/v3/proof_policy.hpp"
 
+#include "vm/actor/builtin/types/miner/v0/sector_info.hpp"
+#include "vm/actor/builtin/types/miner/v7/sector_info.hpp"
+
 UNIVERSAL_IMPL(miner::MinerInfo,
                v0::miner::MinerInfo,
                v2::miner::MinerInfo,
@@ -82,3 +85,12 @@ UNIVERSAL_IMPL(miner::ProofPolicy,
                v3::miner::ProofPolicy,
                v3::miner::ProofPolicy,
                v3::miner::ProofPolicy)
+
+UNIVERSAL_IMPL(miner::SectorOnChainInfo,
+               v0::miner::SectorOnChainInfo,
+               v0::miner::SectorOnChainInfo,
+               v0::miner::SectorOnChainInfo,
+               v0::miner::SectorOnChainInfo,
+               v0::miner::SectorOnChainInfo,
+               v0::miner::SectorOnChainInfo,
+               v7::miner::SectorOnChainInfo)

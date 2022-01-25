@@ -50,19 +50,6 @@ namespace fc::vm::actor::builtin::types::miner {
       return !(*this == other);
     }
   };
-  CBOR_TUPLE(SectorOnChainInfo,
-             sector,
-             seal_proof,
-             sealed_cid,
-             deals,
-             activation_epoch,
-             expiration,
-             deal_weight,
-             verified_deal_weight,
-             init_pledge,
-             expected_day_reward,
-             expected_storage_pledge,
-             sector_key_cid)
 
   /**
    * Type used in actor method parameters
