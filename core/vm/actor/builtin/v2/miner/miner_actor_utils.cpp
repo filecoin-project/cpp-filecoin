@@ -75,7 +75,7 @@ namespace fc::vm::actor::builtin::v2::miner {
                                               params.replace_sector),
                      VMExitCode::kErrIllegalState);
 
-    return Universal<SectorOnChainInfo>{};
+    return Universal<SectorOnChainInfo>{ActorVersion::kVersion2};
   }
 
   outcome::result<uint64_t> MinerUtils::currentDeadlineIndex(

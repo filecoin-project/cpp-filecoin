@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v2/payment_channel/payment_channel_actor.hpp"
-#include "vm/actor/builtin/states/payment_channel/v2/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/states/payment_channel/v0/payment_channel_actor_state.hpp"
 
 #include <gtest/gtest.h>
 
@@ -36,6 +36,7 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
   using types::payment_channel::ModularVerificationParameter;
   using types::payment_channel::PaymentVerifyParams;
   using types::payment_channel::SignedVoucher;
+  using v0::payment_channel::PaymentChannelActorState;
 
   struct PaymentChannelActorTest : testing::Test {
     void SetUp() override {

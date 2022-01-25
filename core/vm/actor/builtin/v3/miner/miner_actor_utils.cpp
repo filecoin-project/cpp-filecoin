@@ -36,7 +36,7 @@ namespace fc::vm::actor::builtin::v3::miner {
                                               params.replace_sector),
                      VMExitCode::kErrIllegalState);
 
-    return Universal<SectorOnChainInfo>{};
+    return Universal<SectorOnChainInfo>{ActorVersion::kVersion3};
   }
 
   outcome::result<void> MinerUtils::canPreCommitSealProof(
