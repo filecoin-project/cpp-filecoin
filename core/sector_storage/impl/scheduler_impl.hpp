@@ -35,10 +35,10 @@ namespace fc::sector_storage {
           prepare(std::move(prepare)),
           work(std::move(work)),
           cb(std::move(cb)) {
-      const auto resource_iter =
-          primitives::kResourceTable.find({task_type, sector.proof_type});
-      if (resource_iter != primitives::kResourceTable.end()) {
-        need_resources = resource_iter->second;
+      const auto &resource_table{primitives::getResourceTable()};
+      const auto resource_iter = resource_table.find(task_type);
+      if (resource_iter != resource_table.end()) {
+        need_resources = resource_iter->second.at(sector.proof_type);
       }
     };
 
