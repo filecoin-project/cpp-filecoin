@@ -122,7 +122,7 @@
         case ActorVersion::kVersion6:                       \
           return std::make_shared<V6>((V6 &)*object);       \
         case ActorVersion::kVersion7:                       \
-          return std::make_shared<V6>((V7 &)*object);       \
+          return std::make_shared<V7>((V7 &)*object);       \
       }                                                     \
     }                                                       \
   }

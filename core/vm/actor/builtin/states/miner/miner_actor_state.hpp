@@ -141,7 +141,7 @@ namespace fc::vm::actor::builtin::states {
     RleBitset early_terminations;
 
     /** True when miner cron is active, false otherwise */
-    bool deadline_cron_active{};
+    bool deadline_cron_active{false};
 
     // Methods
 
