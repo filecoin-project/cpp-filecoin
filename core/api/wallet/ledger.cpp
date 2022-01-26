@@ -37,13 +37,11 @@ namespace fc::api {
       std::tie(std::ignore, std::ignore, addr, err) =
           app->GetAddressPubKeySECP256K1(ledger_key_info.path);
       if (err != std::nullopt) {
-        OUTCOME_TRY(store->remove(encode(address)));
         return false;
       }
 
       OUTCOME_TRY(address_ledger, decodeFromString(addr));
       if (address_ledger != address) {
-        OUTCOME_TRY(store->remove(encode(address)));
         return false;
       }
 
