@@ -25,10 +25,10 @@ namespace fc::vm::actor::builtin::types::miner {
    * @param max_partitions - max value of partitions
    * @param deadlines - assignable subset of deadlines
    */
-  outcome::result<std::vector<std::vector<SectorOnChainInfo>>> assignDeadlines(
-      uint64_t max_partitions,
-      uint64_t partition_size,
-      const std::map<uint64_t, Universal<Deadline>> &deadlines,
-      const std::vector<SectorOnChainInfo> &sectors);
+  outcome::result<std::vector<std::vector<Universal<SectorOnChainInfo>>>>
+  assignDeadlines(uint64_t max_partitions,
+                  uint64_t partition_size,
+                  const std::map<uint64_t, Universal<Deadline>> &deadlines,
+                  const std::vector<Universal<SectorOnChainInfo>> &sectors);
 
 }  // namespace fc::vm::actor::builtin::types::miner

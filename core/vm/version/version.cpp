@@ -18,18 +18,19 @@ namespace fc::vm::version {
     if (height <= kUpgradeSmokeHeight) return NetworkVersion::kVersion1;
     if (height <= kUpgradeIgnitionHeight) return NetworkVersion::kVersion2;
     if (height <= kUpgradeRefuelHeight) return NetworkVersion::kVersion3;
-    if (height <= kUpgradeActorsV2Height) return NetworkVersion::kVersion3;
+    if (height <= kUpgradeAssemblyHeight) return NetworkVersion::kVersion3;
     if (height <= kUpgradeTapeHeight) return NetworkVersion::kVersion4;
     if (height <= kUpgradeLiftoffHeight) return NetworkVersion::kVersion5;
     if (height <= kUpgradeKumquatHeight) return NetworkVersion::kVersion5;
     if (height <= kUpgradeCalicoHeight) return NetworkVersion::kVersion6;
     if (height <= kUpgradePersianHeight) return NetworkVersion::kVersion7;
     if (height <= kUpgradeOrangeHeight) return NetworkVersion::kVersion8;
-    if (height <= kUpgradeActorsV3Height) return NetworkVersion::kVersion9;
+    if (height <= kUpgradeTrustHeight) return NetworkVersion::kVersion9;
     if (height <= kUpgradeNorwegianHeight) return NetworkVersion::kVersion10;
-    if (height <= kUpgradeActorsV4Height) return NetworkVersion::kVersion11;
+    if (height <= kUpgradeTurboHeight) return NetworkVersion::kVersion11;
     if (height <= kUpgradeHyperdriveHeight) return NetworkVersion::kVersion12;
     if (height <= kUpgradeChocolateHeight) return NetworkVersion::kVersion13;
+    if (height <= kUpgradeOhSnapHeight) return NetworkVersion::kVersion14;
     return kLatestVersion;
   }
 }  // namespace fc::vm::version

@@ -1082,16 +1082,18 @@ namespace fc::api {
       decode(v.message, Get(j, "Message"));
     }
 
-    ENCODE(SectorInfo) {
+    ENCODE(ExtendedSectorInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "SealProof", v.registered_proof);
+      Set(j, "SectorKey", v.sector_key);
       Set(j, "SectorNumber", v.sector);
       Set(j, "SealedCID", v.sealed_cid);
       return j;
     }
 
-    DECODE(SectorInfo) {
+    DECODE(ExtendedSectorInfo) {
       Get(j, "SealProof", v.registered_proof);
+      Get(j, "SectorKey", v.sector_key);
       Get(j, "SectorNumber", v.sector);
       Get(j, "SealedCID", v.sealed_cid);
     }

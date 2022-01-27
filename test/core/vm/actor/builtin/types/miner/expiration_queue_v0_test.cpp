@@ -31,18 +31,18 @@ namespace fc::vm::actor::builtin::v0::miner {
       ipld->actor_version = ActorVersion::kVersion0;
       cbor_blake::cbLoadT(ipld, eq);
 
-      sectors = {testSector(2, 1, 50, 60, 1000),
-                 testSector(3, 2, 51, 61, 1001),
-                 testSector(7, 3, 52, 62, 1002),
-                 testSector(8, 4, 53, 63, 1003),
-                 testSector(11, 5, 54, 64, 1004),
-                 testSector(13, 6, 55, 65, 1005)};
+      sectors = {testSector(ActorVersion::kVersion0, 2, 1, 50, 60, 1000),
+                 testSector(ActorVersion::kVersion0, 3, 2, 51, 61, 1001),
+                 testSector(ActorVersion::kVersion0, 7, 3, 52, 62, 1002),
+                 testSector(ActorVersion::kVersion0, 8, 4, 53, 63, 1003),
+                 testSector(ActorVersion::kVersion0, 11, 5, 54, 64, 1004),
+                 testSector(ActorVersion::kVersion0, 13, 6, 55, 65, 1005)};
     }
 
     std::shared_ptr<InMemoryDatastore> ipld{
         std::make_shared<InMemoryDatastore>()};
 
-    std::vector<SectorOnChainInfo> sectors;
+    std::vector<Universal<types::miner::SectorOnChainInfo>> sectors;
     SectorSize ssize{static_cast<uint64_t>(32) << 30};
 
     ExpirationQueue eq;
@@ -262,9 +262,10 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_OUTCOME_TRUE_1(eq.addActiveSectors(
         {sectors[0], sectors[1], sectors[3], sectors[5]}, ssize));
 
-    const std::vector<SectorOnChainInfo> to_remove{
+    const std::vector<Universal<types::miner::SectorOnChainInfo>> to_remove{
         sectors[0], sectors[1], sectors[3]};
-    const std::vector<SectorOnChainInfo> to_add{sectors[2], sectors[4]};
+    const std::vector<Universal<types::miner::SectorOnChainInfo>> to_add{
+        sectors[2], sectors[4]};
 
     EXPECT_OUTCOME_TRUE(result, eq.replaceSectors(to_remove, to_add, ssize));
     const auto &[removed, added, power_delta, pledge_delta] = result;
@@ -304,7 +305,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     EXPECT_OUTCOME_TRUE_1(
         eq.rescheduleAsFaults(6, slice(sectors, 1, 6), ssize));
 
-    const std::vector<SectorOnChainInfo> to_remove{
+    const std::vector<Universal<types::miner::SectorOnChainInfo>> to_remove{
         sectors[0], sectors[3], sectors[4], sectors[5]};
     const RleBitset faults{4, 5, 6};
     const RleBitset recovering{6};

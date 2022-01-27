@@ -123,16 +123,17 @@ namespace fc::vm::actor::builtin::v0::miner {
     return outcome::success();
   }
 
-  outcome::result<SectorOnChainInfo> MinerUtils::validateReplaceSector(
-      MinerActorStatePtr &state, const SectorPreCommitInfo &params) const {
+  outcome::result<Universal<SectorOnChainInfo>>
+  MinerUtils::validateReplaceSector(MinerActorStatePtr &state,
+                                    const SectorPreCommitInfo &params) const {
     CHANGE_ERROR_A(replace_sector,
                    state->sectors.sectors.get(params.replace_sector),
                    VMExitCode::kErrNotFound);
 
-    VALIDATE_ARG(replace_sector.deals.empty());
+    VALIDATE_ARG(replace_sector->deals.empty());
 
-    VALIDATE_ARG(params.registered_proof == replace_sector.seal_proof);
-    VALIDATE_ARG(params.expiration >= replace_sector.expiration);
+    VALIDATE_ARG(params.registered_proof == replace_sector->seal_proof);
+    VALIDATE_ARG(params.expiration >= replace_sector->expiration);
 
     REQUIRE_NO_ERROR(state->checkSectorHealth(params.replace_deadline,
                                               params.replace_partition,
@@ -210,7 +211,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   outcome::result<void> MinerUtils::verifyWindowedPost(
       ChainEpoch challenge_epoch,
-      const std::vector<SectorOnChainInfo> &sectors,
+      const std::vector<Universal<SectorOnChainInfo>> &sectors,
       const std::vector<PoStProof> &proofs) const {
     const auto miner_actor_id = getRuntime().getCurrentReceiver().getId();
 
@@ -224,9 +225,9 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     std::vector<SectorInfo> sector_proof_info;
     for (const auto &sector : sectors) {
-      sector_proof_info.push_back({.registered_proof = sector.seal_proof,
-                                   .sector = sector.sector,
-                                   .sealed_cid = sector.sealed_cid});
+      sector_proof_info.push_back({.registered_proof = sector->seal_proof,
+                                   .sector = sector->sector,
+                                   .sealed_cid = sector->sealed_cid});
     }
 
     const WindowPoStVerifyInfo post_verify_info{

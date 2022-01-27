@@ -43,17 +43,17 @@ namespace fc::vm::actor::builtin::v3::miner {
       EXPECT_CALL(runtime, getActorVersion())
           .WillRepeatedly(testing::Invoke([&]() { return actor_version; }));
 
-      sectors = {testSector(2, 1, 50, 60, 1000),
-                 testSector(3, 2, 51, 61, 1001),
-                 testSector(7, 3, 52, 62, 1002),
-                 testSector(8, 4, 53, 63, 1003),
-                 testSector(8, 5, 54, 64, 1004),
-                 testSector(11, 6, 55, 65, 1005),
-                 testSector(13, 7, 56, 66, 1006),
-                 testSector(8, 8, 57, 67, 1007),
-                 testSector(8, 9, 58, 68, 1008)};
+      sectors = {testSector(actor_version, 2, 1, 50, 60, 1000),
+                 testSector(actor_version, 3, 2, 51, 61, 1001),
+                 testSector(actor_version, 7, 3, 52, 62, 1002),
+                 testSector(actor_version, 8, 4, 53, 63, 1003),
+                 testSector(actor_version, 8, 5, 54, 64, 1004),
+                 testSector(actor_version, 11, 6, 55, 65, 1005),
+                 testSector(actor_version, 13, 7, 56, 66, 1006),
+                 testSector(actor_version, 8, 8, 57, 67, 1007),
+                 testSector(actor_version, 8, 9, 58, 68, 1008)};
 
-      extra_sectors = {testSector(8, 10, 58, 68, 1008)};
+      extra_sectors = {testSector(actor_version, 8, 10, 58, 68, 1008)};
 
       all_sectors = sectors;
       all_sectors.insert(
@@ -68,7 +68,8 @@ namespace fc::vm::actor::builtin::v3::miner {
       expected_deadline.sectors = all_sectors;
     }
 
-    Sectors sectorsArr(const std::vector<SectorOnChainInfo> &s) const {
+    Sectors sectorsArr(
+        const std::vector<Universal<SectorOnChainInfo>> &s) const {
       Sectors sectors_arr;
       cbor_blake::cbLoadT(ipld, sectors_arr);
       EXPECT_OUTCOME_TRUE_1(sectors_arr.store(s));
@@ -226,9 +227,9 @@ namespace fc::vm::actor::builtin::v3::miner {
         std::make_shared<InMemoryDatastore>()};
     ActorVersion actor_version;
 
-    std::vector<SectorOnChainInfo> sectors;
-    std::vector<SectorOnChainInfo> extra_sectors;
-    std::vector<SectorOnChainInfo> all_sectors;
+    std::vector<Universal<SectorOnChainInfo>> sectors;
+    std::vector<Universal<SectorOnChainInfo>> extra_sectors;
+    std::vector<Universal<SectorOnChainInfo>> all_sectors;
     SectorSize ssize{static_cast<uint64_t>(32) << 30};
     QuantSpec quant{4, 1};
     uint64_t partition_size{4};
@@ -771,9 +772,9 @@ namespace fc::vm::actor::builtin::v3::miner {
     expected_deadline.assertDeadline(deadline);
 
     EXPECT_EQ(exp.active_power,
-              PowerPair(ssize, qaPowerForSector(ssize, sector7)));
+              PowerPair(ssize, qaPowerForSector(ssize, *sector7)));
     EXPECT_TRUE(exp.faulty_power.isZero());
-    EXPECT_EQ(exp.on_time_pledge, sector7.init_pledge);
+    EXPECT_EQ(exp.on_time_pledge, sector7->init_pledge);
   }
 
   TEST_F(DeadlineTestV3, CannotDeclareFaultsInMissingPartitions) {

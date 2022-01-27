@@ -9,11 +9,13 @@
 #include "vm/actor/builtin/states/miner/v0/miner_actor_state.hpp"
 #include "vm/actor/builtin/states/miner/v2/miner_actor_state.hpp"
 #include "vm/actor/builtin/states/miner/v3/miner_actor_state.hpp"
+#include "vm/actor/builtin/states/miner/v4/miner_actor_state.hpp"
 
 UNIVERSAL_IMPL(states::MinerActorState,
                v0::miner::MinerActorState,
                v2::miner::MinerActorState,
                v3::miner::MinerActorState,
-               v3::miner::MinerActorState,
-               v3::miner::MinerActorState,
-               v3::miner::MinerActorState)
+               v4::miner::MinerActorState,
+               v4::miner::MinerActorState,
+               v4::miner::MinerActorState,
+               v4::miner::MinerActorState)

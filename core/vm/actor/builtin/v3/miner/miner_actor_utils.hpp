@@ -18,6 +18,7 @@ namespace fc::vm::actor::builtin::v3::miner {
   using types::DealWeights;
   using types::EpochReward;
   using types::TotalPower;
+  using types::Universal;
   using types::miner::CronEventPayload;
   using types::miner::PowerPair;
   using types::miner::SectorOnChainInfo;
@@ -28,7 +29,7 @@ namespace fc::vm::actor::builtin::v3::miner {
    public:
     explicit MinerUtils(Runtime &r) : v2::miner::MinerUtils(r) {}
 
-    outcome::result<SectorOnChainInfo> validateReplaceSector(
+    outcome::result<Universal<SectorOnChainInfo>> validateReplaceSector(
         MinerActorStatePtr &state,
         const SectorPreCommitInfo &params) const override;
 
