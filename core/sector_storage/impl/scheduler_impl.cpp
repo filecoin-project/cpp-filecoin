@@ -154,14 +154,6 @@ namespace fc::sector_storage {
     std::vector<WorkerID> acceptable;
     uint64_t tried = 0;
 
-    auto resource_iter = primitives::kResourceTable.find(
-        {request->task_type, request->sector.proof_type});
-
-    Resources need_resources{};
-    if (resource_iter != primitives::kResourceTable.end()) {
-      need_resources = resource_iter->second;
-    }
-
     for (const auto &[wid, worker] : workers_) {
       OUTCOME_TRY(satisfies,
                   request->sel->is_satisfying(
@@ -172,7 +164,7 @@ namespace fc::sector_storage {
       }
       tried++;
 
-      if (!worker->preparing.canHandleRequest(need_resources,
+      if (!worker->preparing.canHandleRequest(request->need_resources,
                                               worker->info.resources)) {
         if ((workers_.size() > 1) || (active_jobs != 0)) {
           continue;
