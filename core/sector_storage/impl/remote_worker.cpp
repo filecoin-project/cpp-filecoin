@@ -203,7 +203,8 @@ namespace fc::sector_storage {
       const CID &sector_key,
       const CID &new_sealed,
       const CID &new_unsealed) {
-    return api_.ReplicaUpdate(sector, sector_key, new_sealed, new_unsealed);
+    return api_.ProveReplicaUpdate1(
+        sector, sector_key, new_sealed, new_unsealed);
   }
 
   outcome::result<CallId> RemoteWorker::proveReplicaUpdate2(
@@ -212,7 +213,7 @@ namespace fc::sector_storage {
       const CID &new_sealed,
       const CID &new_unsealed,
       const Update1Output &update_1_output) {
-    return api_.ReplicaUpdate(
+    return api_.ProveReplicaUpdate2(
         sector, sector_key, new_sealed, new_unsealed, update_1_output);
   }
 
