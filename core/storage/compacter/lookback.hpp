@@ -23,12 +23,10 @@
 
 // TODO(turuslan): keep own miner sectors
 namespace fc::storage::compacter {
-  using vm::actor::code::Code;
-
   inline void lookbackActor(std::vector<CbCid> &copy,
                             std::vector<CbCid> &recurse,
                             const CbIpldPtr &ipld,
-                            const Code &code,
+                            const ActorCodeCid &code,
                             const CbCid &head) {
     if (ACTOR_CODE_IS(kAccountCodeId)) {
       copy.push_back(head);

@@ -106,4 +106,5 @@ namespace fc::vm::toolchain {
   ADDRESS_MATCHER_IMPL(AddressMatcherV4, actor::builtin::v4)
   ADDRESS_MATCHER_IMPL(AddressMatcherV5, actor::builtin::v5)
   ADDRESS_MATCHER_IMPL(AddressMatcherV6, actor::builtin::v6)
+  ADDRESS_MATCHER_IMPL(AddressMatcherV7, actor::builtin::v7)
 }  // namespace fc::vm::toolchain

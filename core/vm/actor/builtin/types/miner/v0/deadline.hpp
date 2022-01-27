@@ -15,8 +15,9 @@ namespace fc::vm::actor::builtin::v0::miner {
   using types::miner::PoStResult;
   using types::miner::PowerPair;
   using types::miner::QuantSpec;
-  using types::miner::SectorOnChainInfo;
   using types::miner::Sectors;
+  using UniversalSectorOnChainInfo =
+      types::Universal<types::miner::SectorOnChainInfo>;
 
   struct Deadline : types::miner::Deadline {
     outcome::result<PowerPair> recordFaults(
@@ -36,12 +37,12 @@ namespace fc::vm::actor::builtin::v0::miner {
         ChainEpoch fault_expiration,
         const std::vector<PoStPartition> &post_partitions) override;
 
-    outcome::result<std::vector<SectorOnChainInfo>> rescheduleSectorExpirations(
-        const Sectors &sectors,
-        ChainEpoch expiration,
-        const PartitionSectorMap &partition_sectors,
-        SectorSize ssize,
-        const QuantSpec &quant) override;
+    outcome::result<std::vector<UniversalSectorOnChainInfo>>
+    rescheduleSectorExpirations(const Sectors &sectors,
+                                ChainEpoch expiration,
+                                const PartitionSectorMap &partition_sectors,
+                                SectorSize ssize,
+                                const QuantSpec &quant) override;
 
     outcome::result<void> validateState() const override;
   };

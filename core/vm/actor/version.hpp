@@ -15,6 +15,7 @@ namespace fc::vm::actor {
     kVersion4 = 4,
     kVersion5 = 5,
     kVersion6 = 6,
+    kVersion7 = 7,
   };
 
   struct WithActorVersion {
@@ -56,6 +57,8 @@ namespace fc {
         return ActorVersion::kVersion5;
       case NetworkVersion::kVersion14:
         return ActorVersion::kVersion6;
+      case NetworkVersion::kVersion15:
+        return ActorVersion::kVersion7;
     }
   }
   inline ActorVersion actorVersion(ChainEpoch epoch) {

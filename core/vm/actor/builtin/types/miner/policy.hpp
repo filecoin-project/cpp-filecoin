@@ -13,6 +13,7 @@
 #include "vm/actor/builtin/types/miner/power_pair.hpp"
 #include "vm/actor/builtin/types/miner/sector_info.hpp"
 #include "vm/actor/builtin/types/shared.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::types::miner {
@@ -203,11 +204,12 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   inline PowerPair powerForSectors(
-      SectorSize ssize, const std::vector<SectorOnChainInfo> &sectors) {
+      SectorSize ssize,
+      const std::vector<Universal<SectorOnChainInfo>> &sectors) {
     StoragePower qa{0};
 
     for (const auto &sector : sectors) {
-      qa += qaPowerForSector(ssize, sector);
+      qa += qaPowerForSector(ssize, *sector);
     }
 
     return PowerPair(ssize * sectors.size(), qa);

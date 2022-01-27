@@ -28,7 +28,9 @@ namespace fc::blockchain::block_validator {
                           .value()};
     ProofParamProvider::getParams(params, 0).value();
 
+    // Works on network version 13
     setParamsInteropnet();
+
     vm::actor::cgo::configParams();
 
     const auto cbipld{std::make_shared<MemoryCbIpld>()};

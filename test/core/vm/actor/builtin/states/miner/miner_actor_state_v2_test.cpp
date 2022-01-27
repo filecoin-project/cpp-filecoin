@@ -83,22 +83,24 @@ namespace fc::vm::actor::builtin::v2::miner {
       EXPECT_OUTCOME_TRUE_1(state.deadlines.set(deadlines));
     }
 
-    SectorOnChainInfo createSectorOnChainInfo(SectorNumber sector_n,
-                                              const CID &sealed,
-                                              const DealWeight &weight,
-                                              ChainEpoch activation) const {
-      return SectorOnChainInfo{
-          .sector = sector_n,
-          .seal_proof = RegisteredSealProof::kStackedDrg32GiBV1_1,
-          .sealed_cid = sealed,
-          .deals = {},
-          .activation_epoch = activation,
-          .expiration = sector_expiration,
-          .deal_weight = weight,
-          .verified_deal_weight = weight,
-          .init_pledge = 0,
-          .expected_day_reward = 0,
-          .expected_storage_pledge = 0};
+    Universal<SectorOnChainInfo> createSectorOnChainInfo(
+        SectorNumber sector_n,
+        const CID &sealed,
+        const DealWeight &weight,
+        ChainEpoch activation) const {
+      Universal<SectorOnChainInfo> sector{actor_version};
+      sector->sector = sector_n;
+      sector->seal_proof = RegisteredSealProof::kStackedDrg32GiBV1_1;
+      sector->sealed_cid = sealed;
+      sector->deals = {};
+      sector->activation_epoch = activation;
+      sector->expiration = sector_expiration;
+      sector->deal_weight = weight;
+      sector->verified_deal_weight = weight;
+      sector->init_pledge = 0;
+      sector->expected_day_reward = 0;
+      sector->expected_storage_pledge = 0;
+      return sector;
     }
 
     SectorPreCommitInfo createSectorPreCommitInfo(SectorNumber sector_n,
@@ -536,7 +538,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     const auto no_sectors =
         partition_sectors * open_deadlines * partitions_per_deadline;
 
-    std::vector<SectorOnChainInfo> sector_infos;
+    std::vector<Universal<SectorOnChainInfo>> sector_infos;
     for (size_t i = 0; i < no_sectors; i++) {
       sector_infos.push_back(
           createSectorOnChainInfo(i, "010001020001"_cid, 1, 0));

@@ -160,7 +160,7 @@ namespace fc::vm::actor::builtin::v0::miner {
         .partitions = {}};
   }
 
-  outcome::result<std::vector<SectorOnChainInfo>>
+  outcome::result<std::vector<UniversalSectorOnChainInfo>>
   Deadline::rescheduleSectorExpirations(
       const Sectors &sectors,
       ChainEpoch expiration,
@@ -196,7 +196,7 @@ namespace fc::vm::actor::builtin::v0::miner {
           addExpirationPartitions(expiration, rescheduled_partitions, quant));
     }
 
-    return std::vector<SectorOnChainInfo>{};
+    return std::vector<UniversalSectorOnChainInfo>{};
   }
 
   outcome::result<void> Deadline::validateState() const {

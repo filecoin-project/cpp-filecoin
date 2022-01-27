@@ -33,6 +33,7 @@ namespace fc::vm::actor::builtin::utils {
   using types::DealWeights;
   using types::EpochReward;
   using types::TotalPower;
+  using types::Universal;
   using types::miner::CronEventPayload;
   using types::miner::PowerPair;
   using types::miner::SectorOnChainInfo;
@@ -122,7 +123,7 @@ namespace fc::vm::actor::builtin::utils {
         ChainEpoch expiration,
         RegisteredSealProof seal_proof) const = 0;
 
-    virtual outcome::result<SectorOnChainInfo> validateReplaceSector(
+    virtual outcome::result<Universal<SectorOnChainInfo>> validateReplaceSector(
         MinerActorStatePtr &state, const SectorPreCommitInfo &params) const = 0;
 
     /**
@@ -154,7 +155,7 @@ namespace fc::vm::actor::builtin::utils {
 
     virtual outcome::result<void> verifyWindowedPost(
         ChainEpoch challenge_epoch,
-        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
         const std::vector<PoStProof> &proofs) const = 0;
 
     virtual outcome::result<void> notifyPledgeChanged(

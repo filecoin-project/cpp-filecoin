@@ -13,7 +13,7 @@ namespace fc::sector_storage {
   using primitives::sector::PoStProof;
   using primitives::sector::PoStRandomness;
   using primitives::sector::SectorId;
-  using primitives::sector::SectorInfo;
+  using primitives::sector::ExtendedSectorInfo;
 
   class Prover {
    public:
@@ -26,12 +26,12 @@ namespace fc::sector_storage {
 
     virtual outcome::result<std::vector<PoStProof>> generateWinningPoSt(
         ActorId miner_id,
-        gsl::span<const SectorInfo> sector_info,
+        gsl::span<const ExtendedSectorInfo> sector_info,
         PoStRandomness randomness) = 0;
 
     virtual outcome::result<WindowPoStResponse> generateWindowPoSt(
         ActorId miner_id,
-        gsl::span<const SectorInfo> sector_info,
+        gsl::span<const ExtendedSectorInfo> sector_info,
         PoStRandomness randomness) = 0;
   };
 

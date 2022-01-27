@@ -106,7 +106,7 @@ namespace fc::vm::actor::builtin::types::miner {
         Runtime &runtime,
         uint64_t partition_size,
         bool proven,
-        std::vector<SectorOnChainInfo> sectors,
+        std::vector<Universal<SectorOnChainInfo>> sectors,
         SectorSize ssize,
         const QuantSpec &quant);
 
@@ -151,7 +151,7 @@ namespace fc::vm::actor::builtin::types::miner {
         ChainEpoch fault_expiration,
         const std::vector<PoStPartition> &post_partitions) = 0;
 
-    virtual outcome::result<std::vector<SectorOnChainInfo>>
+    virtual outcome::result<std::vector<Universal<SectorOnChainInfo>>>
     rescheduleSectorExpirations(const Sectors &sectors,
                                 ChainEpoch expiration,
                                 const PartitionSectorMap &partition_sectors,
