@@ -6,10 +6,10 @@
 #include "cpp-ledger/filecoin/impl/utils.hpp"
 
 #include <cmath>
+#include "cpp-ledger/common/const.hpp"
 
 namespace ledger::filecoin {
 
-  constexpr size_t kBip44PathLength = 5;
   constexpr size_t kUserMessageChunkSize = 250;
 
   void put4bytesReverse(Bytes &bytes, uint32_t value) {
@@ -21,15 +21,15 @@ namespace ledger::filecoin {
 
   std::tuple<Bytes, Error> getBip44bytes(const std::vector<uint32_t> &bip44path,
                                          size_t hardenCount) {
-    if (bip44path.size() != kBip44PathLength) {
+    if (bip44path.size() != kPathLength) {
       return std::make_tuple(
           Bytes{},
-          Error{"path should contain " + std::to_string(kBip44PathLength)
+          Error{"path should contain " + std::to_string(kPathLength)
                 + " elements"});
     }
 
     Bytes message;
-    message.reserve(sizeof(uint32_t) * kBip44PathLength);
+    message.reserve(sizeof(uint32_t) * kPathLength);
 
     for (size_t i = 0; i < bip44path.size(); i++) {
       const uint32_t value =
