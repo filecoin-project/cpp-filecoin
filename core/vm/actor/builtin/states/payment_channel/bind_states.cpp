@@ -7,13 +7,12 @@
 
 #include "vm/actor/builtin/states/payment_channel/payment_channel_actor_state.hpp"
 #include "vm/actor/builtin/states/payment_channel/v0/payment_channel_actor_state.hpp"
-#include "vm/actor/builtin/states/payment_channel/v2/payment_channel_actor_state.hpp"
-#include "vm/actor/builtin/states/payment_channel/v3/payment_channel_actor_state.hpp"
 
 UNIVERSAL_IMPL(states::PaymentChannelActorState,
                v0::payment_channel::PaymentChannelActorState,
-               v2::payment_channel::PaymentChannelActorState,
-               v3::payment_channel::PaymentChannelActorState,
-               v3::payment_channel::PaymentChannelActorState,
-               v3::payment_channel::PaymentChannelActorState,
-               v3::payment_channel::PaymentChannelActorState)
+               v0::payment_channel::PaymentChannelActorState,
+               v0::payment_channel::PaymentChannelActorState,
+               v0::payment_channel::PaymentChannelActorState,
+               v0::payment_channel::PaymentChannelActorState,
+               v0::payment_channel::PaymentChannelActorState,
+               v0::payment_channel::PaymentChannelActorState)

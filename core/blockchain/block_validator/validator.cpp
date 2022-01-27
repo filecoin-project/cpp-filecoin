@@ -29,6 +29,8 @@
 namespace fc::blockchain::block_validator {
   using primitives::Nonce;
   using primitives::block::MsgMeta;
+  using primitives::sector::SectorInfo;
+  using primitives::sector::toSectorInfo;
   using vm::actor::kStoragePowerAddress;
   using vm::actor::builtin::states::MinerActorStatePtr;
   using vm::actor::builtin::states::PowerActorStatePtr;
@@ -177,11 +179,18 @@ namespace fc::blockchain::block_validator {
         return ERROR_TEXT("validate: wrong fake win_post_proof");
       }
     } else {
-      OUTCOME_TRY(sectors,
+      OUTCOME_TRY(extended_sectors,
                   getSectorsForWinningPoSt(getNetworkVersion(parent->height()),
                                            block.miner,
                                            lookback_miner,
                                            rand.win));
+
+      std::vector<SectorInfo> sectors;
+      sectors.reserve(extended_sectors.size());
+      for (const auto &sector : extended_sectors) {
+        sectors.emplace_back(primitives::sector::toSectorInfo(sector));
+      }
+
       static proofs::ProofEngineImpl proofs;
       OUTCOME_TRY(win_verified,
                   proofs.verifyWinningPoSt({

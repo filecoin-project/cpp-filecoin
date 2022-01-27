@@ -42,9 +42,7 @@ namespace fc::primitives::sector_file {
   const std::vector<SectorFileType> kSectorFileTypes = {
       SectorFileType::FTUnsealed,
       SectorFileType::FTSealed,
-      SectorFileType::FTCache,
-      SectorFileType::FTUpdate,
-      SectorFileType::FTUpdateCache};
+      SectorFileType::FTCache};
 
   constexpr uint64_t kOverheadDenominator = 10;
 
@@ -52,15 +50,11 @@ namespace fc::primitives::sector_file {
   const std::unordered_map<SectorFileType, uint64_t> kOverheadSeal{
       {SectorFileType::FTUnsealed, kOverheadDenominator},
       {SectorFileType::FTSealed, kOverheadDenominator},
-      {SectorFileType::FTUpdate, kOverheadDenominator},
-      {SectorFileType::FTUpdateCache, 2 * kOverheadDenominator},
       {SectorFileType::FTCache, 141}};
 
   const std::unordered_map<SectorFileType, uint64_t> kOverheadFinalized{
       {SectorFileType::FTUnsealed, kOverheadDenominator},
       {SectorFileType::FTSealed, kOverheadDenominator},
-      {SectorFileType::FTUpdate, 2 * kOverheadDenominator},
-      {SectorFileType::FTUpdateCache, kOverheadDenominator},
       {SectorFileType::FTCache, 2}};
 
   std::string toString(const SectorFileType &file_type);

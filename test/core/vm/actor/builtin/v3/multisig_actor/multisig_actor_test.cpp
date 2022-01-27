@@ -4,7 +4,7 @@
  */
 
 #include "vm/actor/builtin/v3/multisig/multisig_actor.hpp"
-#include "vm/actor/builtin/states/multisig/v3/multisig_actor_state.hpp"
+#include "vm/actor/builtin/states/multisig/v0/multisig_actor_state.hpp"
 
 #include <gtest/gtest.h>
 #include "primitives/address/address.hpp"
@@ -29,12 +29,12 @@ namespace fc::vm::actor::builtin::v3::multisig {
   using runtime::InvocationOutput;
   using runtime::MockRuntime;
   using state::StateTreeImpl;
-
   using storage::ipfs::InMemoryDatastore;
   using testing::Eq;
   using testing::Return;
   using types::multisig::Transaction;
   using types::multisig::TransactionId;
+  using v0::multisig::MultisigActorState;
   using version::NetworkVersion;
 
   class MultisigActorTest : public ::testing::Test {

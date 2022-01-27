@@ -176,6 +176,28 @@ namespace fc::primitives::sector {
            && lhs.sector == rhs.sector && lhs.sealed_cid == rhs.sealed_cid;
   }
 
+  struct ExtendedSectorInfo {
+    RegisteredSealProof registered_proof;
+    SectorNumber sector;
+    boost::optional<CID> sector_key;
+    /// CommR
+    CID sealed_cid;
+  };
+
+  /**
+   * Converts to SectorInfo truncating sector_key
+   * @param extended_sector_info of ExtendedSectorInfo type
+   * @return sector_info
+   */
+  inline SectorInfo toSectorInfo(
+      const ExtendedSectorInfo &extended_sector_info) {
+    return SectorInfo{
+        .registered_proof = extended_sector_info.registered_proof,
+        .sector = extended_sector_info.sector,
+        .sealed_cid = extended_sector_info.sealed_cid,
+    };
+  }
+
   // Information needed to verify a Winning PoSt attached to a block header.
   // Note: this is not used within the state machine, but by the
   // consensus/election mechanisms.

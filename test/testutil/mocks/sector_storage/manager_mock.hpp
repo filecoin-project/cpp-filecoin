@@ -203,13 +203,13 @@ namespace fc::sector_storage {
     MOCK_METHOD3(generateWinningPoSt,
                  outcome::result<std::vector<PoStProof>>(
                      ActorId miner_id,
-                     gsl::span<const SectorInfo> sector_info,
+                     gsl::span<const ExtendedSectorInfo> sector_info,
                      PoStRandomness randomness));
 
     MOCK_METHOD3(generateWindowPoSt,
                  outcome::result<WindowPoStResponse>(
                      ActorId miner_id,
-                     gsl::span<const SectorInfo> sector_info,
+                     gsl::span<const ExtendedSectorInfo> sector_info,
                      PoStRandomness randomness));
   };
 }  // namespace fc::sector_storage

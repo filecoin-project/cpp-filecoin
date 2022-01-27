@@ -48,6 +48,11 @@ namespace fc::vm::actor::builtin::types {
       return Universal<T>{actor_version, copy_object()};
     }
 
+    inline bool operator==(const Universal<T> &other) const {
+      return actor_version == other.actor_version
+             && (object == other.object || *object == *other.object);
+    }
+
     std::shared_ptr<T> object;
   };
 

@@ -13,7 +13,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   outcome::result<PowerPair> ExpirationQueue::rescheduleAsFaults(
       ChainEpoch new_expiration,
-      const std::vector<SectorOnChainInfo> &sectors,
+      const std::vector<Universal<SectorOnChainInfo>> &sectors,
       SectorSize ssize) {
     RleBitset early_sectors;
     PowerPair expiring_power;
@@ -100,7 +100,8 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   outcome::result<std::tuple<RleBitset, PowerPair, TokenAmount>>
   ExpirationQueue::removeActiveSectors(
-      const std::vector<SectorOnChainInfo> &sectors, SectorSize ssize) {
+      const std::vector<Universal<SectorOnChainInfo>> &sectors,
+      SectorSize ssize) {
     RleBitset removed_snos;
     PowerPair removed_power;
     TokenAmount removed_pledge{0};
@@ -125,17 +126,18 @@ namespace fc::vm::actor::builtin::v2::miner {
 
   outcome::result<std::vector<SectorExpirationSet>>
   ExpirationQueue::findSectorsByExpiration(
-      SectorSize ssize, const std::vector<SectorOnChainInfo> &sectors) {
+      SectorSize ssize,
+      const std::vector<Universal<SectorOnChainInfo>> &sectors) {
     std::set<ChainEpoch> declared_expirations;
-    std::map<SectorNumber, SectorOnChainInfo> sectors_by_number;
+    std::map<SectorNumber, Universal<SectorOnChainInfo>> sectors_by_number;
     RleBitset all_remaining;
     std::vector<SectorExpirationSet> expiration_groups;
 
     for (const auto &sector : sectors) {
-      const auto q_expiration = quant.quantizeUp(sector.expiration);
+      const auto q_expiration = quant.quantizeUp(sector->expiration);
       declared_expirations.insert(q_expiration);
-      all_remaining.insert(sector.sector);
-      sectors_by_number[sector.sector] = sector;
+      all_remaining.insert(sector->sector);
+      sectors_by_number[sector->sector] = sector;
     }
 
     for (const auto &expiration : declared_expirations) {
@@ -195,7 +197,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   std::tuple<SectorExpirationSet, RleBitset>
   ExpirationQueue::groupExpirationSet(
       SectorSize ssize,
-      const std::map<SectorNumber, SectorOnChainInfo> &sectors,
+      const std::map<SectorNumber, Universal<SectorOnChainInfo>> &sectors,
       RleBitset &include_set,
       const ExpirationSet &es,
       ChainEpoch expiration) {
@@ -208,8 +210,8 @@ namespace fc::vm::actor::builtin::v2::miner {
         const auto &sector = sectors.at(u);
         sector_numbers.insert(u);
         total_power +=
-            PowerPair(ssize, types::miner::qaPowerForSector(ssize, sector));
-        total_pledge += sector.init_pledge;
+            PowerPair(ssize, types::miner::qaPowerForSector(ssize, *sector));
+        total_pledge += sector->init_pledge;
         include_set.erase(u);
       }
     }
