@@ -89,11 +89,5 @@ namespace fc::api {
             const boost::optional<CallError> &call_error) {
           return scheduler->returnResult(call_id, {proof, call_error});
         };
-
-    api->ReturnGenerateSectorKeyFromData =
-        [=](const CallId &call_id,
-            const boost::optional<CallError> &call_error) {
-          return scheduler->returnResult(call_id, {{}, call_error});
-        };
   }
 }  // namespace fc::api
