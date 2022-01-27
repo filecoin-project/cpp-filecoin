@@ -33,6 +33,6 @@ namespace fc::node {
     EXPECT_EQ(key_info.type, crypto::signature::Type::kBls);
     EXPECT_EQ(
         key_info.private_key,
-        "8AD9F1D189F7602C8D776B3184642AA74B38CBA4B58B1232A397E2EB51A3B941"_blob32);
+        "8AD9F1D189F7602C8D776B3184642AA74B38CBA4B58B1232A397E2EB51A3B941"_unhex);
   }
 }  // namespace fc::node

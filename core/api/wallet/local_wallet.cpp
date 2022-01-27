@@ -37,8 +37,9 @@ namespace fc::api {
       }
       return key_store->has(address);
     };
-    api->WalletImport = {[=](auto &info) {
-      return key_store->put(info.type, info.private_key);
+    api->WalletImport = {[=](auto &info) -> outcome::result<Address> {
+      OUTCOME_TRY(private_key, info.getPrivateKey());
+      return key_store->put(info.type, private_key);
     }};
     api->WalletNew = {[=](auto &type) -> outcome::result<Address> {
       Address address;

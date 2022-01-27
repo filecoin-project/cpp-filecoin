@@ -119,6 +119,11 @@ include_directories(
     deps/libsecp256k1/include
 )
 
+if (APPLE)
+  include_directories(/usr/local/include)
+  link_directories(/usr/local/lib)
+endif ()
+
 add_subdirectory(core)
 add_subdirectory(libs)
 

@@ -11,6 +11,15 @@ add_library(ledger_device
     ledger_admin_hid.cpp
     utils.cpp
     )
-target_link_libraries(ledger_device
-    hidapi
-    )
+
+if (APPLE)
+    target_link_libraries(ledger_device
+        hidapi
+        )
+endif ()
+
+if (UNIX AND NOT APPLE)
+    target_link_libraries(ledger_device
+        hidapi-libusb
+        )
+endif ()
