@@ -45,6 +45,7 @@ namespace fc::api {
   using primitives::piece::PaddedPieceSize;
   using primitives::sector::SectorId;
   using primitives::sector_file::SectorFileType;
+  using sector_storage::SectorCids;
   using sector_storage::CallError;
   using sector_storage::CallId;
   using sector_storage::Commit1Output;
@@ -54,6 +55,7 @@ namespace fc::api {
   using sector_storage::Proof;
   using sector_storage::Scheduler;
   using sector_storage::SectorCids;
+  using sector_storage::Update1Output;
   using sector_storage::stores::FsStat;
   using sector_storage::stores::HealthReport;
   using sector_storage::stores::SectorIndex;
@@ -237,6 +239,24 @@ namespace fc::api {
                jwt::kAdminPermission,
                void,
                const CallId &,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnReplicaUpdate,
+               jwt::kAdminPermission,
+               void,
+               const CallId &,
+               SectorCids,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnProveReplicaUpdate1,
+               jwt::kAdminPermission,
+               void,
+               const CallId &,
+               Update1Output,
+               const boost::optional<CallError> &)
+    API_METHOD(ReturnProveReplicaUpdate2,
+               jwt::kAdminPermission,
+               void,
+               const CallId &,
+               Proof,
                const boost::optional<CallError> &)
 
     API_METHOD(WorkerConnect, jwt::kAdminPermission, void, const std::string &);

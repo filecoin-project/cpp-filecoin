@@ -53,6 +53,27 @@ namespace fc::api {
                const SectorRef &,
                const std::vector<Range> &)
 
+    API_METHOD(ReplicaUpdate,
+               kAdminPermission,
+               CallId,
+               const SectorRef &,
+               const std::vector<PieceInfo> &)
+    API_METHOD(ProveReplicaUpdate1,
+               kAdminPermission,
+               CallId,
+               const SectorRef &,
+               const CID &,
+               const CID &,
+               const CID &)
+    API_METHOD(ProveReplicaUpdate2,
+               kAdminPermission,
+               CallId,
+               const SectorRef &,
+               const CID &,
+               const CID &,
+               const CID &,
+               const Update1Output &)
+
     API_METHOD(Info, kAdminPermission, primitives::WorkerInfo)
 
     API_METHOD(MoveStorage,

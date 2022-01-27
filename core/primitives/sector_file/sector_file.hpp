@@ -30,6 +30,8 @@ namespace fc::primitives::sector_file {
     FTUnsealed = 1,
     FTSealed = 2,
     FTCache = 4,
+    FTUpdate = 8,
+    FTUpdateCache = 16,
   };
   inline SectorFileType operator|(SectorFileType lhs, SectorFileType rhs) {
     return static_cast<SectorFileType>(int64_t(lhs) | rhs);
@@ -40,7 +42,9 @@ namespace fc::primitives::sector_file {
   const std::vector<SectorFileType> kSectorFileTypes = {
       SectorFileType::FTUnsealed,
       SectorFileType::FTSealed,
-      SectorFileType::FTCache};
+      SectorFileType::FTCache,
+      SectorFileType::FTUpdate,
+      SectorFileType::FTUpdateCache};
 
   constexpr uint64_t kOverheadDenominator = 10;
 
@@ -48,11 +52,15 @@ namespace fc::primitives::sector_file {
   const std::unordered_map<SectorFileType, uint64_t> kOverheadSeal{
       {SectorFileType::FTUnsealed, kOverheadDenominator},
       {SectorFileType::FTSealed, kOverheadDenominator},
+      {SectorFileType::FTUpdate, kOverheadDenominator},
+      {SectorFileType::FTUpdateCache, 2 * kOverheadDenominator},
       {SectorFileType::FTCache, 141}};
 
   const std::unordered_map<SectorFileType, uint64_t> kOverheadFinalized{
       {SectorFileType::FTUnsealed, kOverheadDenominator},
       {SectorFileType::FTSealed, kOverheadDenominator},
+      {SectorFileType::FTUpdate, 2 * kOverheadDenominator},
+      {SectorFileType::FTUpdateCache, kOverheadDenominator},
       {SectorFileType::FTCache, 2}};
 
   std::string toString(const SectorFileType &file_type);
@@ -75,6 +83,8 @@ namespace fc::primitives::sector_file {
     std::string unsealed;
     std::string sealed;
     std::string cache;
+    std::string update;
+    std::string update_cache;
 
     void setPathByType(const SectorFileType &file_type,
                        const std::string &path);

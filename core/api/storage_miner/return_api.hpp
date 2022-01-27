@@ -68,5 +68,32 @@ namespace fc::api {
                            const boost::optional<CallError> &call_error) {
       return scheduler->returnResult(call_id, {{}, call_error});
     };
+
+    api->ReturnReplicaUpdate =
+        [=](const CallId &call_id,
+            SectorCids cids,
+            const boost::optional<CallError> &call_error) {
+          return scheduler->returnResult(call_id, {cids, call_error});
+        };
+
+    api->ReturnProveReplicaUpdate1 = [=](const CallId &call_id,
+                                         Update1Output update_1_output,
+                                         const boost::optional<CallError>
+                                             &call_error) {
+      return scheduler->returnResult(call_id, {update_1_output, call_error});
+    };
+
+    api->ReturnProveReplicaUpdate2 =
+        [=](const CallId &call_id,
+            Proof proof,
+            const boost::optional<CallError> &call_error) {
+          return scheduler->returnResult(call_id, {proof, call_error});
+        };
+
+    api->ReturnGenerateSectorKeyFromData =
+        [=](const CallId &call_id,
+            const boost::optional<CallError> &call_error) {
+          return scheduler->returnResult(call_id, {{}, call_error});
+        };
   }
 }  // namespace fc::api
