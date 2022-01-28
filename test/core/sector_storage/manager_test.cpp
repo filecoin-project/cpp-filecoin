@@ -496,9 +496,9 @@ namespace fc::sector_storage {
         *sector_index_,
         storageLock(sector.id,
                     SectorFileType::FTNone,
-                    static_cast<SectorFileType>(SectorFileType::FTSealed
-                                                | SectorFileType::FTCache
-                                                | SectorFileType::FTUnsealed)))
+                    SectorFileType::FTCache | SectorFileType::FTSealed
+                        | SectorFileType::FTUnsealed | SectorFileType::FTUpdate
+                        | SectorFileType::FTUpdateCache))
         .WillOnce(testing::Return(testing::ByMove(
             outcome::success(std::make_unique<stores::WLock>()))));
 
@@ -507,6 +507,11 @@ namespace fc::sector_storage {
     EXPECT_CALL(*remote_store_, remove(sector.id, SectorFileType::FTSealed))
         .WillOnce(testing::Return(outcome::success()));
     EXPECT_CALL(*remote_store_, remove(sector.id, SectorFileType::FTUnsealed))
+        .WillOnce(testing::Return(outcome::success()));
+    EXPECT_CALL(*remote_store_, remove(sector.id, SectorFileType::FTUpdate))
+        .WillOnce(testing::Return(outcome::success()));
+    EXPECT_CALL(*remote_store_,
+                remove(sector.id, SectorFileType::FTUpdateCache))
         .WillOnce(testing::Return(outcome::success()));
 
     EXPECT_OUTCOME_TRUE_1(manager_->remove(sector));
@@ -1064,8 +1069,8 @@ namespace fc::sector_storage {
 
     std::vector<ExtendedSectorInfo> public_sectors = {
         ExtendedSectorInfo{.registered_proof = seal_proof_type_,
-                   .sector = 1,
-                   .sealed_cid = "010001020001"_cid},
+                           .sector = 1,
+                           .sealed_cid = "010001020001"_cid},
     };
 
     SectorId success_sector_id{
@@ -1151,11 +1156,11 @@ namespace fc::sector_storage {
 
     std::vector<ExtendedSectorInfo> public_sectors = {
         ExtendedSectorInfo{.registered_proof = seal_proof_type_,
-                   .sector = 1,
-                   .sealed_cid = "010001020001"_cid},
+                           .sector = 1,
+                           .sealed_cid = "010001020001"_cid},
         ExtendedSectorInfo{.registered_proof = seal_proof_type_,
-                   .sector = 2,
-                   .sealed_cid = "010001020002"_cid},
+                           .sector = 2,
+                           .sealed_cid = "010001020002"_cid},
     };
 
     EXPECT_CALL(*sector_index_,
@@ -1241,11 +1246,11 @@ namespace fc::sector_storage {
 
     std::vector<ExtendedSectorInfo> public_sectors = {
         ExtendedSectorInfo{.registered_proof = seal_proof_type_,
-                   .sector = 1,
-                   .sealed_cid = "010001020001"_cid},
+                           .sector = 1,
+                           .sealed_cid = "010001020001"_cid},
         ExtendedSectorInfo{.registered_proof = seal_proof_type_,
-                   .sector = 2,
-                   .sealed_cid = "010001020002"_cid},
+                           .sector = 2,
+                           .sealed_cid = "010001020002"_cid},
     };
 
     std::vector<SectorId> skipped({
