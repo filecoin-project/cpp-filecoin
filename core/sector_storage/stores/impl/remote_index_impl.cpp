@@ -37,7 +37,7 @@ namespace fc::sector_storage::stores {
     return api_->StorageDropSector(storage_id, sector, file_type);
   }
 
-  outcome::result<std::vector<StorageInfo>>
+  outcome::result<std::vector<SectorStorageInfo>>
   stores::RemoteSectorIndexImpl::storageFindSector(
       const SectorId &sector,
       const SectorFileType &file_type,

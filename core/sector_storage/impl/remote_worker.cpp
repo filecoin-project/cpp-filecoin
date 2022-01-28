@@ -151,7 +151,7 @@ namespace fc::sector_storage {
     if (!piece_data.isNullData()) {
       PieceDataSender::send(
           piece_data.release(),
-          *(httpSender_.io),
+          *(worker_thread_.io),
           host_,
           port_,
           "/rpc/streams/v0/push/" + meta_data.uuid,

@@ -54,7 +54,7 @@ namespace fc::sector_storage::stores {
         const SectorId &sector,
         const SectorFileType &file_type) override;
 
-    outcome::result<std::vector<StorageInfo>> storageFindSector(
+    outcome::result<std::vector<SectorStorageInfo>> storageFindSector(
         const SectorId &sector,
         const SectorFileType &file_type,
         boost::optional<SectorSize> fetch_sector_size) override;

@@ -361,7 +361,6 @@ namespace fc::mining {
         self->logger_->error(maybe_error.error().message());
       }
     });
-
     return outcome::success();
   }
 

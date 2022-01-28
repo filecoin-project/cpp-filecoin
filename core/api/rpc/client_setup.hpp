@@ -51,14 +51,17 @@ namespace fc::api::rpc {
             });
         cb(chan);
       } else {
-        c.call(std::move(req), [&c, cb{std::move(cb)}](auto &&_result) {
-          boost::asio::post(c.io2,
-                            [_result{std::forward<decltype(_result)>(_result)},
-                             cb{std::move(cb)}] {
-                              OUTCOME_CB(auto &&result, _result);
-                              cb(api::decode<Result>(result));
-                            });
-        });
+        c.call(std::move(req),
+               [&c, cb{std::move(cb)}, method{req.method}](auto &&_result) {
+                 boost::asio::post(
+                     c.io2,
+                     [_result{std::forward<decltype(_result)>(_result)},
+                      cb{std::move(cb)},
+                      method] {
+                       OUTCOME_CB(auto &&result, _result);
+                       cb(api::decode<Result>(result));
+                     });
+               });
       }
     };
   }

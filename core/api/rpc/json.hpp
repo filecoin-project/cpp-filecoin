@@ -22,6 +22,7 @@
 #include "sector_storage/stores/storage.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
+#include "common/enum.hpp"
 
 #define COMMA ,
 
@@ -93,6 +94,10 @@ namespace fc::api {
       ModularVerificationParameter;
   using vm::runtime::ExecutionResult;
   using base64 = cppcodec::base64_rfc4648;
+  using fc::common::to_string;
+  using fc::common::from_string;
+
+
 
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
@@ -260,19 +265,23 @@ namespace fc::api {
     }
 
     ENCODE(PathType) {
-      return encode(common::to_int(v));
+      return encode(to_string(v).value());
     }
 
     DECODE(PathType) {
-      decodeEnum(v, j);
+      std::string temp;
+      decode(temp, j);
+      v = from_string<PathType>(temp).value();
     }
 
     ENCODE(AcquireMode) {
-      return encode(common::to_int(v));
+      return encode(to_string(v));
     }
 
     DECODE(AcquireMode) {
-      decodeEnum(v, j);
+      std::string temp;
+      decode(temp, j);
+      v = from_string<AcquireMode>(temp).value();
     }
 
     ENCODE(NetworkVersion) {

@@ -175,7 +175,8 @@ namespace fc::api {
                std::vector<SectorStorageInfo>,
                const SectorId &,
                const SectorFileType &,
-               boost::optional<SectorSize>)
+               const SectorSize &,
+               bool)
     API_METHOD(StorageBestAlloc,
                jwt::kAdminPermission,
                std::vector<StorageInfo_>,

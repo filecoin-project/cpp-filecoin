@@ -407,7 +407,7 @@ namespace fc::sector_storage {
     EXPECT_CALL(*sector_index_,
                 storageFindSector(sector.id, SectorFileType::FTUnsealed, _))
         .WillOnce(testing::Return(
-            outcome::success(std::vector<stores::StorageInfo>())));
+            outcome::success(std::vector<stores::SectorStorageInfo>())));
 
     CallId call_id{.sector = sector.id, .id = "some UUID"};
     EXPECT_CALL(*worker_,
@@ -609,7 +609,7 @@ namespace fc::sector_storage {
     EXPECT_CALL(*sector_index_,
                 storageFindSector(sector.id, SectorFileType::FTUnsealed, _))
         .WillOnce(testing::Return(
-            outcome::success(std::vector<stores::StorageInfo>())));
+            outcome::success(std::vector<stores::SectorStorageInfo>())));
 
     CallId call_id{.sector = sector.id, .id = "some UUID"};
     EXPECT_CALL(*worker_,
@@ -704,7 +704,7 @@ namespace fc::sector_storage {
     EXPECT_CALL(*sector_index_,
                 storageFindSector(sector.id, SectorFileType::FTUnsealed, _))
         .WillOnce(testing::Return(
-            outcome::success(std::vector<stores::StorageInfo>())));
+            outcome::success(std::vector<stores::SectorStorageInfo>())));
 
     CallId call_id{.sector = sector.id, .id = "some UUID"};
     EXPECT_CALL(*worker_,

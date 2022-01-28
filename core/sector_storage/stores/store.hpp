@@ -13,9 +13,10 @@
 #include "primitives/types.hpp"
 #include "sector_storage/stores/index.hpp"
 #include "sector_storage/stores/storage.hpp"
+#include "common/enum.hpp"
+
 
 namespace fc::sector_storage::stores {
-
   using primitives::FsStat;
   using primitives::StorageID;
   using primitives::sector::SectorRef;
@@ -34,10 +35,21 @@ namespace fc::sector_storage::stores {
     kSealing,
   };
 
+ inline  auto &class_conversion_table(PathType && enumerator){
+    static fc::common::ConversionTable<PathType, 2> table{{{PathType::kSealing, "sealing"}, {PathType::kStorage, "storage"}}};
+    return table;
+  }
+
+
   enum class AcquireMode : int64_t {
     kMove = 0,
     kCopy,
   };
+
+  inline auto &class_conversion_table(AcquireMode && enumerator){
+    static fc::common::ConversionTable<AcquireMode, 2> table{{{AcquireMode::kMove, "move"}, {AcquireMode::kCopy, "copy"}}};
+    return table;
+  }
 
   class Store {
    public:
