@@ -105,6 +105,13 @@ namespace fc::mining::types {
 
     boost::optional<CID> fault_report_message;
 
+    bool update{false};
+    std::vector<Piece> update_pieces;
+    boost::optional<CID> update_comm_d;
+    boost::optional<CID> update_comm_r;
+    boost::optional<Bytes> update_proof;
+    boost::optional<CID> update_message;
+
     SealingState return_state{};
 
     inline std::vector<UnpaddedPieceSize> getExistingPieceSizes() const {

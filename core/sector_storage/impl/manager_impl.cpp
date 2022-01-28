@@ -16,6 +16,7 @@
 
 #include "api/storage_miner/return_api.hpp"
 #include "codec/json/json.hpp"
+#include "common/outcome_fmt.hpp"
 #include "sector_storage/impl/allocate_selector.hpp"
 #include "sector_storage/impl/existing_selector.hpp"
 #include "sector_storage/impl/local_worker.hpp"
@@ -222,36 +223,22 @@ namespace fc::sector_storage {
     OUTCOME_TRY(index_->storageLock(
         sector.id,
         SectorFileType::FTNone,
-        static_cast<SectorFileType>(SectorFileType::FTSealed
-                                    | SectorFileType::FTUnsealed
-                                    | SectorFileType::FTCache)));
+        SectorFileType::FTCache | SectorFileType::FTSealed
+            | SectorFileType::FTUnsealed | SectorFileType::FTUpdate
+            | SectorFileType::FTUpdateCache));
 
     bool isError = false;
 
-    auto cache_err = remote_store_->remove(sector.id, SectorFileType::FTCache);
-    if (cache_err.has_error()) {
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
+      const auto r{remote_store_->remove(sector.id, type)};
+      if (r) {
+        continue;
+      }
       isError = true;
-      logger_->error("removing cached sector {} : {}",
+      logger_->error("removing sector {}/{}: {:#}",
+                     toString(type),
                      primitives::sector_file::sectorName(sector.id),
-                     cache_err.error().message());
-    }
-
-    auto sealed_err =
-        remote_store_->remove(sector.id, SectorFileType::FTSealed);
-    if (sealed_err.has_error()) {
-      isError = true;
-      logger_->error("removing sealed sector {} : {}",
-                     primitives::sector_file::sectorName(sector.id),
-                     sealed_err.error().message());
-    }
-
-    auto unsealed_err =
-        remote_store_->remove(sector.id, SectorFileType::FTUnsealed);
-    if (unsealed_err.has_error()) {
-      isError = true;
-      logger_->error("removing unsealed sector {} : {}",
-                     primitives::sector_file::sectorName(sector.id),
-                     unsealed_err.error().message());
+                     r.error());
     }
 
     if (isError) {
