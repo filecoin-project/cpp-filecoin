@@ -1064,8 +1064,8 @@ namespace fc::sector_storage {
 
     std::vector<ExtendedSectorInfo> public_sectors = {
         ExtendedSectorInfo{.registered_proof = seal_proof_type_,
-                   .sector = 1,
-                   .sealed_cid = "010001020001"_cid},
+                           .sector = 1,
+                           .sealed_cid = "010001020001"_cid},
     };
 
     SectorId success_sector_id{
@@ -1151,11 +1151,11 @@ namespace fc::sector_storage {
 
     std::vector<ExtendedSectorInfo> public_sectors = {
         ExtendedSectorInfo{.registered_proof = seal_proof_type_,
-                   .sector = 1,
-                   .sealed_cid = "010001020001"_cid},
+                           .sector = 1,
+                           .sealed_cid = "010001020001"_cid},
         ExtendedSectorInfo{.registered_proof = seal_proof_type_,
-                   .sector = 2,
-                   .sealed_cid = "010001020002"_cid},
+                           .sector = 2,
+                           .sealed_cid = "010001020002"_cid},
     };
 
     EXPECT_CALL(*sector_index_,
@@ -1241,11 +1241,11 @@ namespace fc::sector_storage {
 
     std::vector<ExtendedSectorInfo> public_sectors = {
         ExtendedSectorInfo{.registered_proof = seal_proof_type_,
-                   .sector = 1,
-                   .sealed_cid = "010001020001"_cid},
+                           .sector = 1,
+                           .sealed_cid = "010001020001"_cid},
         ExtendedSectorInfo{.registered_proof = seal_proof_type_,
-                   .sector = 2,
-                   .sealed_cid = "010001020002"_cid},
+                           .sector = 2,
+                           .sealed_cid = "010001020002"_cid},
     };
 
     std::vector<SectorId> skipped({

@@ -58,9 +58,9 @@ namespace fc::api {
   using primitives::block::BlockTemplate;
   using primitives::block::BlockWithCids;
   using primitives::piece::PaddedPieceSize;
+  using primitives::sector::ExtendedSectorInfo;
   using primitives::sector::RegisteredPoStProof;
   using primitives::sector::RegisteredSealProof;
-  using primitives::sector::ExtendedSectorInfo;
   using primitives::tipset::HeadChange;
   using primitives::tipset::TipsetCPtr;
   using primitives::tipset::TipsetKey;

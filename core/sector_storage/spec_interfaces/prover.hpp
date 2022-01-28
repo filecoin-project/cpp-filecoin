@@ -10,10 +10,10 @@
 
 namespace fc::sector_storage {
   using primitives::sector::ActorId;
+  using primitives::sector::ExtendedSectorInfo;
   using primitives::sector::PoStProof;
   using primitives::sector::PoStRandomness;
   using primitives::sector::SectorId;
-  using primitives::sector::ExtendedSectorInfo;
 
   class Prover {
    public:

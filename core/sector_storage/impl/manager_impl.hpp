@@ -231,7 +231,9 @@ namespace fc::sector_storage {
     };
 
     outcome::result<PubToPrivateResponse> publicSectorToPrivate(
-        ActorId miner, gsl::span<const ExtendedSectorInfo> sector_info, bool winning);
+        ActorId miner,
+        gsl::span<const ExtendedSectorInfo> sector_info,
+        bool winning);
 
     std::shared_ptr<stores::SectorIndex> index_;
 

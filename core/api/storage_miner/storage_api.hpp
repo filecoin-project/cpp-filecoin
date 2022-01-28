@@ -45,7 +45,6 @@ namespace fc::api {
   using primitives::piece::PaddedPieceSize;
   using primitives::sector::SectorId;
   using primitives::sector_file::SectorFileType;
-  using sector_storage::SectorCids;
   using sector_storage::CallError;
   using sector_storage::CallId;
   using sector_storage::Commit1Output;
