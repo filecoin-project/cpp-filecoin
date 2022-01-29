@@ -216,8 +216,8 @@ namespace fc {
     kUpgradeNorwegianHeight = -14;
     kUpgradeTurboHeight = -15;
     kUpgradeHyperdriveHeight = -16;
-    kUpgradeChocolateHeight = INT64_MAX; // -17 in lotus
-    kUpgradeOhSnapHeight = INT64_MAX; // -18 in lotus
+    kUpgradeChocolateHeight = INT64_MAX;  // -17 in lotus
+    kUpgradeOhSnapHeight = INT64_MAX;     // -18 in lotus
 
     kBreezeGasTampingDuration = 0;
 

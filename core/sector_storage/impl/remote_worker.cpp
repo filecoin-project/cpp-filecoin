@@ -40,7 +40,8 @@ namespace fc::sector_storage {
 
     r_worker->wsc_.setup(r_worker->api_);
 
-    OUTCOME_TRY(r_worker->wsc_.connect(address, "/rpc/v0", std::string(token.begin(), token.end())));
+    OUTCOME_TRY(r_worker->wsc_.connect(
+        address, "/rpc/v0", std::string(token.begin(), token.end())));
 
     return std::move(r_worker);
   }
@@ -145,14 +146,19 @@ namespace fc::sector_storage {
           new_piece_size,
           [](const outcome::result<std::string> &res) {
             if (res.has_error()) {
-              spdlog::error("Transfer of pieces was finished with error: {}", res.value());
+              spdlog::error("Transfer of pieces was finished with error: {}",
+                            res.value());
             } else {
               spdlog::info("Transfer of pieces was finished with response {}",
                            res.value());
             }
           });
     }
-    return api_.AddPiece(sector, std::vector<UnpaddedPieceSize>(piece_sizes.begin(), piece_sizes.end()), new_piece_size, meta_data);
+    return api_.AddPiece(
+        sector,
+        std::vector<UnpaddedPieceSize>(piece_sizes.begin(), piece_sizes.end()),
+        new_piece_size,
+        meta_data);
   }
 
   outcome::result<CallId> RemoteWorker::sealPreCommit1(
@@ -185,6 +191,30 @@ namespace fc::sector_storage {
       const SectorRef &sector, const gsl::span<const Range> &keep_unsealed) {
     return api_.FinalizeSector(
         sector, std::vector<Range>(keep_unsealed.begin(), keep_unsealed.end()));
+  }
+
+  outcome::result<CallId> RemoteWorker::replicaUpdate(
+      const SectorRef &sector, const std::vector<PieceInfo> &pieces) {
+    return api_.ReplicaUpdate(sector, pieces);
+  }
+
+  outcome::result<CallId> RemoteWorker::proveReplicaUpdate1(
+      const SectorRef &sector,
+      const CID &sector_key,
+      const CID &new_sealed,
+      const CID &new_unsealed) {
+    return api_.ProveReplicaUpdate1(
+        sector, sector_key, new_sealed, new_unsealed);
+  }
+
+  outcome::result<CallId> RemoteWorker::proveReplicaUpdate2(
+      const SectorRef &sector,
+      const CID &sector_key,
+      const CID &new_sealed,
+      const CID &new_unsealed,
+      const Update1Output &update_1_output) {
+    return api_.ProveReplicaUpdate2(
+        sector, sector_key, new_sealed, new_unsealed, update_1_output);
   }
 
   outcome::result<CallId> RemoteWorker::moveStorage(const SectorRef &sector,

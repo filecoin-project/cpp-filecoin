@@ -12,4 +12,4 @@ namespace fc::vm::actor::builtin::v4::miner {
     return miner_info.get();
   }
 
-}  // namespace fc::vm::actor::builtin::v3::miner
+}  // namespace fc::vm::actor::builtin::v4::miner

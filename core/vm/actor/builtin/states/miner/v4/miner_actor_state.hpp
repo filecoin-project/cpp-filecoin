@@ -34,7 +34,7 @@ namespace fc::vm::actor::builtin::v4::miner {
              early_terminations,
              deadline_cron_active)
 
-}  // namespace fc::vm::actor::builtin::v3::miner
+}  // namespace fc::vm::actor::builtin::v4::miner
 
 namespace fc::cbor_blake {
   template <>

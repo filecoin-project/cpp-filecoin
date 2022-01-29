@@ -37,7 +37,7 @@ namespace fc::primitives::sector_file {
     return static_cast<SectorFileType>(int64_t(lhs) | rhs);
   }
 
-  constexpr size_t kSectorFileTypeBits{3};
+  constexpr size_t kSectorFileTypeBits{5};
 
   const std::vector<SectorFileType> kSectorFileTypes = {
       SectorFileType::FTUnsealed,
@@ -56,7 +56,6 @@ namespace fc::primitives::sector_file {
       {SectorFileType::FTCache, 141},
       {SectorFileType::FTUpdate, kOverheadDenominator},
       {SectorFileType::FTUpdateCache, kOverheadDenominator * 2},
-
   };
 
   const std::unordered_map<SectorFileType, uint64_t> kOverheadFinalized{
