@@ -32,19 +32,27 @@ namespace fc {
   DEFINE(kUpgradeSmokeHeight){51000};
   DEFINE(kUpgradeIgnitionHeight){94000};
   DEFINE(kUpgradeRefuelHeight){130800};
-  DEFINE(kUpgradeActorsV2Height){138720};
+  DEFINE(kUpgradeAssemblyHeight){138720};
   DEFINE(kUpgradeTapeHeight){140760};
   DEFINE(kUpgradeLiftoffHeight){148888};
   DEFINE(kUpgradeKumquatHeight){170000};
   DEFINE(kUpgradeCalicoHeight){265200};
   DEFINE(kUpgradePersianHeight){272400};
   DEFINE(kUpgradeOrangeHeight){336458};
+  // 2020-12-22T02:00:00Z
   DEFINE(kUpgradeClausHeight){343200};
-  DEFINE(kUpgradeActorsV3Height){550321};
+  // 2021-03-04T00:00:30Z
+  DEFINE(kUpgradeTrustHeight){550321};
+  // 2021-04-12T22:00:00Z
   DEFINE(kUpgradeNorwegianHeight){665280};
-  DEFINE(kUpgradeActorsV4Height){712320};
+  // 2021-04-29T06:00:00Z
+  DEFINE(kUpgradeTurboHeight){712320};
+  // 2021-06-30T22:00:00Z
   DEFINE(kUpgradeHyperdriveHeight){892800};
+  // 2021-10-26T13:30:00Z
   DEFINE(kUpgradeChocolateHeight){1231620};
+  // Not applied yet
+  DEFINE(kUpgradeOhSnapHeight){INT64_MAX};
 
   DEFINE(kBreezeGasTampingDuration){120};
 
@@ -52,7 +60,7 @@ namespace fc {
 }  // namespace fc
 
 namespace fc::vm::actor::builtin::types::market {
-  DEFINE(kDealUpdatesInterval) = kEpochsInDay;
+  DEFINE(kDealUpdatesInterval) = static_cast<EpochDuration>(kEpochsInDay);
 }
 
 namespace fc::vm::actor::builtin::types::miner {
@@ -97,18 +105,20 @@ namespace fc {
     kUpgradeIgnitionHeight = -2;
     kUpgradeRefuelHeight = -3;
     kUpgradeTapeHeight = -4;
-    kUpgradeActorsV2Height = -5;
+    kUpgradeAssemblyHeight = -5;
     kUpgradeLiftoffHeight = -6;
     kUpgradeKumquatHeight = -7;
-    kUpgradeCalicoHeight = -8;
-    kUpgradePersianHeight = -9;
-    kUpgradeOrangeHeight = -10;
-    kUpgradeClausHeight = -11;
-    kUpgradeActorsV3Height = -12;
-    kUpgradeNorwegianHeight = -13;
-    kUpgradeActorsV4Height = -14;
-    kUpgradeHyperdriveHeight = -15;
+    // order according to lotus build/params_2k.go
+    kUpgradeCalicoHeight = -9;
+    kUpgradePersianHeight = -10;
+    kUpgradeOrangeHeight = -11;
+    kUpgradeClausHeight = -12;
+    kUpgradeTrustHeight = -13;
+    kUpgradeNorwegianHeight = -14;
+    kUpgradeTurboHeight = -15;
+    kUpgradeHyperdriveHeight = -16;
     kUpgradeChocolateHeight = -17;
+    kUpgradeOhSnapHeight = -18;
 
     kBreezeGasTampingDuration = 0;
 
@@ -146,22 +156,23 @@ namespace fc {
     kPropagationDelaySecs = 1;
 
     // Network versions
-    kUpgradeBreezeHeight = 100000000;
-    kUpgradeSmokeHeight = 100000000;
-    kUpgradeIgnitionHeight = 100000000;
-    kUpgradeRefuelHeight = 100000000;
-    kUpgradeTapeHeight = 100000000;
-    kUpgradeActorsV2Height = 100000000;
-    kUpgradeLiftoffHeight = 100000000;
-    kUpgradeKumquatHeight = 100000000;
-    kUpgradeCalicoHeight = 100000000;
-    kUpgradePersianHeight = 100000000;
-    kUpgradeOrangeHeight = 100000000;
-    kUpgradeClausHeight = 100000000;
-    kUpgradeActorsV3Height = 100000000;
-    kUpgradeNorwegianHeight = 100000000;
-    kUpgradeActorsV4Height = 100000000;
-    kUpgradeChocolateHeight = 100000000;
+    kUpgradeBreezeHeight = INT64_MAX;
+    kUpgradeSmokeHeight = INT64_MAX;
+    kUpgradeIgnitionHeight = INT64_MAX;
+    kUpgradeRefuelHeight = INT64_MAX;
+    kUpgradeTapeHeight = INT64_MAX;
+    kUpgradeAssemblyHeight = INT64_MAX;
+    kUpgradeLiftoffHeight = INT64_MAX;
+    kUpgradeKumquatHeight = INT64_MAX;
+    kUpgradeCalicoHeight = INT64_MAX;
+    kUpgradePersianHeight = INT64_MAX;
+    kUpgradeOrangeHeight = INT64_MAX;
+    kUpgradeClausHeight = INT64_MAX;
+    kUpgradeTrustHeight = INT64_MAX;
+    kUpgradeNorwegianHeight = INT64_MAX;
+    kUpgradeTurboHeight = INT64_MAX;
+    kUpgradeChocolateHeight = INT64_MAX;
+    kUpgradeOhSnapHeight = INT64_MAX;
 
     kBreezeGasTampingDuration = 0;
 
@@ -193,18 +204,20 @@ namespace fc {
     kUpgradeIgnitionHeight = -2;
     kUpgradeRefuelHeight = -3;
     kUpgradeTapeHeight = -4;
-    kUpgradeActorsV2Height = -5;
+    kUpgradeAssemblyHeight = -5;
     kUpgradeLiftoffHeight = -6;
     kUpgradeKumquatHeight = -7;
-    kUpgradeCalicoHeight = -8;
-    kUpgradePersianHeight = -9;
-    kUpgradeOrangeHeight = -10;
-    kUpgradeClausHeight = -11;
-    kUpgradeActorsV3Height = -12;
-    kUpgradeNorwegianHeight = -13;
-    kUpgradeActorsV4Height = -14;
-    kUpgradeHyperdriveHeight = -15;
-    kUpgradeChocolateHeight = INT64_MAX;
+    // order according to lotus build/params_interop.go
+    kUpgradeCalicoHeight = -9;
+    kUpgradePersianHeight = -10;
+    kUpgradeOrangeHeight = -11;
+    kUpgradeClausHeight = -12;
+    kUpgradeTrustHeight = -13;
+    kUpgradeNorwegianHeight = -14;
+    kUpgradeTurboHeight = -15;
+    kUpgradeHyperdriveHeight = -16;
+    kUpgradeChocolateHeight = INT64_MAX;  // -17 in lotus
+    kUpgradeOhSnapHeight = INT64_MAX;     // -18 in lotus
 
     kBreezeGasTampingDuration = 0;
 

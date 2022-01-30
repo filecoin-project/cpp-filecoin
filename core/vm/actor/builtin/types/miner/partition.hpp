@@ -41,13 +41,13 @@ namespace fc::vm::actor::builtin::types::miner {
 
     virtual outcome::result<PowerPair> addSectors(
         bool proven,
-        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
         SectorSize ssize,
         const QuantSpec &quant) = 0;
 
     virtual outcome::result<std::tuple<PowerPair, PowerPair>> addFaults(
         const RleBitset &sector_nos,
-        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
         ChainEpoch fault_expiration,
         SectorSize ssize,
         const QuantSpec &quant) = 0;
@@ -79,16 +79,16 @@ namespace fc::vm::actor::builtin::types::miner {
         SectorSize ssize,
         const QuantSpec &quant);
 
-    outcome::result<std::vector<SectorOnChainInfo>> rescheduleExpirationsV2(
-        const Sectors &sectors,
-        ChainEpoch new_expiration,
-        const RleBitset &sector_nos,
-        SectorSize ssize,
-        const QuantSpec &quant);
+    outcome::result<std::vector<Universal<SectorOnChainInfo>>>
+    rescheduleExpirationsV2(const Sectors &sectors,
+                            ChainEpoch new_expiration,
+                            const RleBitset &sector_nos,
+                            SectorSize ssize,
+                            const QuantSpec &quant);
 
     outcome::result<std::tuple<PowerPair, TokenAmount>> replaceSectors(
-        const std::vector<SectorOnChainInfo> &old_sectors,
-        const std::vector<SectorOnChainInfo> &new_sectors,
+        const std::vector<Universal<SectorOnChainInfo>> &old_sectors,
+        const std::vector<Universal<SectorOnChainInfo>> &new_sectors,
         SectorSize ssize,
         const QuantSpec &quant);
 

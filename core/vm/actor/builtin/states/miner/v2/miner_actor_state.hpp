@@ -23,7 +23,8 @@ namespace fc::vm::actor::builtin::v2::miner {
   struct MinerActorState : v0::miner::MinerActorState {
     outcome::result<Universal<MinerInfo>> getInfo() const override;
 
-    outcome::result<std::vector<SectorOnChainInfo>> rescheduleSectorExpirations(
+    outcome::result<std::vector<Universal<SectorOnChainInfo>>>
+    rescheduleSectorExpirations(
         ChainEpoch curr_epoch,
         SectorSize ssize,
         const DeadlineSectorMap &deadline_sectors) override;

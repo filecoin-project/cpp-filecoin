@@ -24,11 +24,9 @@ namespace fc::markets::storage::chain_events {
   class ChainEventsImpl : public ChainEvents,
                           public std::enable_shared_from_this<ChainEventsImpl> {
    public:
-    using PrecommitCb = std::function<void(outcome::result<SectorNumber>)>;
-
     struct Watch {
       // TODO(turuslan): FIL-420 check cache memory usage
-      std::multimap<DealId, PrecommitCb> precommits;
+      std::multimap<DealId, CommitCb> precommits;
       // TODO(turuslan): FIL-420 check cache memory usage
       std::multimap<SectorNumber, CommitCb> commits;
     };

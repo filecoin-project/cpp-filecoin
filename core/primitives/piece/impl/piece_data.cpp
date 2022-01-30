@@ -61,4 +61,27 @@ namespace fc::primitives::piece {
     other.is_null_data_ = false;
     return *this;
   }
+
+  int PieceData::release(){
+    assert(!is_null_data_);
+    const int temp = fd_;
+    fd_ = kUnopenedFileDescriptor;
+    return temp;
+  }
+
+  const std::array<std::string, 3> ReaderType::types{"undefined", "null", "push"};
+
+   const std::string ReaderType::toString() const {
+    return types.at(reader_type);
+  }
+
+    ReaderType ReaderType::fromString(const std::string &type){
+    for(size_t i = 0; i < types.size(); i++){
+      if(type == types.at(i)){
+        return ReaderType(Type{i});
+      }
+    }
+    return ReaderType(Type::kUndefined);
+  }
+
 }  // namespace fc::primitives::piece

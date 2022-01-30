@@ -12,8 +12,8 @@
 #include "vm/version/version.hpp"
 
 namespace fc::mining {
+  using primitives::sector::ExtendedSectorInfo;
   using primitives::sector::RegisteredSealProof;
-  using primitives::sector::SectorInfo;
   using sector_storage::SectorRef;
   using vm::actor::builtin::types::miner::kWPoStPeriodDeadlines;
   using vm::actor::builtin::v0::miner::DeclareFaults;
@@ -73,7 +73,7 @@ namespace fc::mining {
     if (!deadline.periodStarted()) {
       return;
     }
-    while (cache.count(deadline.open)) {
+    while (cache.count(deadline.open) != 0) {
       deadline = nextDeadline(deadline);
     }
     if (apply->epoch() >= deadline.challenge) {
@@ -125,7 +125,7 @@ namespace fc::mining {
           auto prove{[&](auto _part, auto parts) -> outcome::result<void> {
             SubmitWindowedPoSt::Params params;
             params.deadline = deadline.index;
-            std::vector<SectorInfo> sectors;
+            std::vector<ExtendedSectorInfo> sectors;
             RleBitset post_skip;
             for (auto &part : parts) {
               auto to_prove{part.live - part.faulty + part.recovering};
@@ -135,13 +135,14 @@ namespace fc::mining {
               OUTCOME_TRY(_sectors,
                           api->StateMinerSectors(miner, good, apply->key));
               if (!_sectors.empty()) {
-                std::map<api::SectorNumber, SectorInfo> map;
+                std::map<api::SectorNumber, ExtendedSectorInfo> map;
                 for (auto &sector : _sectors) {
                   map.emplace(sector.sector,
-                              SectorInfo{
-                                  sector.seal_proof,
-                                  sector.sector,
-                                  sector.sealed_cid,
+                              ExtendedSectorInfo{
+                                  .registered_proof = sector.seal_proof,
+                                  .sector = sector.sector,
+                                  .sector_key = sector.sector_key_cid,
+                                  .sealed_cid = sector.sealed_cid,
                               });
                 }
                 auto sub{map.at(_sectors[0].sector)};
@@ -260,11 +261,10 @@ namespace fc::mining {
         [method](auto _r) {
           auto name{method == DeclareFaultsRecovered::Number
                         ? "DeclareFaultsRecovered"
-                        : method == DeclareFaults::Number
-                              ? "DeclareFaults"
-                              : method == SubmitWindowedPoSt::Number
-                                    ? "SubmitWindowedPoSt"
-                                    : "(unexpected)"};
+                    : method == DeclareFaults::Number ? "DeclareFaults"
+                    : method == SubmitWindowedPoSt::Number
+                        ? "SubmitWindowedPoSt"
+                        : "(unexpected)"};
           if (!_r) {
             spdlog::error("WindowPoStScheduler {} error {}", name, _r.error());
           } else {

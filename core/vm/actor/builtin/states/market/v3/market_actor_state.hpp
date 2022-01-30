@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "vm/actor/builtin/states/market/v2/market_actor_state.hpp"
+#include "vm/actor/builtin/states/market/v0/market_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v3::market {
   using primitives::ChainEpoch;
@@ -15,7 +15,7 @@ namespace fc::vm::actor::builtin::v3::market {
   using types::market::DealProposal;
   using types::market::DealState;
 
-  struct MarketActorState : v2::market::MarketActorState {
+  struct MarketActorState : v0::market::MarketActorState {
     outcome::result<std::tuple<TokenAmount, ChainEpoch, bool>>
     updatePendingDealState(Runtime &runtime,
                            DealId deal_id,

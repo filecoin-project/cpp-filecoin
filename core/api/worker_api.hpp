@@ -13,6 +13,7 @@
 
 namespace fc::api {
   using primitives::jwt::kAdminPermission;
+  using primitives::piece::MetaPieceData;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::piece::UnpaddedPieceSize;
@@ -30,7 +31,13 @@ namespace fc::api {
   using sector_storage::SectorFileType;
 
   struct WorkerApi {
-    // TODO(ortyomka): [FIL-344] add AddPiece function
+    API_METHOD(AddPiece,
+               kAdminPermission,
+               CallId,
+               SectorRef,
+               std::vector<UnpaddedPieceSize>,
+               UnpaddedPieceSize,
+               MetaPieceData)
 
     API_METHOD(Fetch,
                kAdminPermission,
@@ -45,6 +52,27 @@ namespace fc::api {
                CallId,
                const SectorRef &,
                const std::vector<Range> &)
+
+    API_METHOD(ReplicaUpdate,
+               kAdminPermission,
+               CallId,
+               const SectorRef &,
+               const std::vector<PieceInfo> &)
+    API_METHOD(ProveReplicaUpdate1,
+               kAdminPermission,
+               CallId,
+               const SectorRef &,
+               const CID &,
+               const CID &,
+               const CID &)
+    API_METHOD(ProveReplicaUpdate2,
+               kAdminPermission,
+               CallId,
+               const SectorRef &,
+               const CID &,
+               const CID &,
+               const CID &,
+               const Update1Output &)
 
     API_METHOD(Info, kAdminPermission, primitives::WorkerInfo)
 
@@ -102,6 +130,7 @@ namespace fc::api {
 
   template <typename A, typename F>
   void visit(const WorkerApi &, A &&a, const F &f) {
+    f(a.AddPiece);
     f(a.Fetch);
     f(a.FinalizeSector);
     f(a.Info);

@@ -526,6 +526,131 @@ namespace fc::sector_storage {
         });
   }
 
+  outcome::result<CallId> LocalWorker::replicaUpdate(
+      const SectorRef &sector, const std::vector<PieceInfo> &pieces) {
+    return asyncCall(
+        sector,
+        return_->ReturnReplicaUpdate,
+        [=](Self self) -> outcome::result<SectorCids> {
+          OUTCOME_TRY(
+              response,
+              self->acquireSector(
+                  sector,
+                  SectorFileType::FTUnsealed | SectorFileType::FTSealed
+                      | SectorFileType::FTCache,
+                  SectorFileType::FTUpdate | SectorFileType::FTUpdateCache,
+                  PathType::kSealing));
+          auto _ = gsl::finally([&]() { response.release_function(); });
+
+          const auto &paths{response.paths};
+
+          OUTCOME_TRY(update_proof_type,
+                      getRegisteredUpdateProof(sector.proof_type));
+
+          boost::system::error_code ec;
+          auto size = boost::filesystem::file_size(paths.sealed, ec);
+          if (ec.failed()) {
+            logger_->error("Cannot get file size: {}", ec.message());
+            return ERROR_TEXT("Cannot get file size");
+          }
+
+          int fd = open(paths.update.c_str(), O_RDWR | O_CREAT, 0644);
+          if (fd == -1) {
+            return ERROR_TEXT("Cannot create update file");
+          }
+          close(fd);
+
+          boost::filesystem::resize_file(paths.update, size, ec);
+          if (ec.failed()) {
+            logger_->error("Cannot resize update file: {}", ec.message());
+            return ERROR_TEXT("Cannot resize update file");
+          }
+
+          if (!boost::filesystem::create_directory(paths.update_cache)) {
+            if (boost::filesystem::exists(paths.update_cache)) {
+              boost::filesystem::remove_all(paths.update_cache, ec);
+              if (ec.failed()) {
+                logger_->error("Cannot create cache update dir: {}",
+                               ec.message());
+                return ERROR_TEXT("Cannot create cache update dir");
+              }
+              if (!boost::filesystem::create_directory(response.paths.cache)) {
+                logger_->error("Cannot create cache update dir: {}",
+                               ec.message());
+                return ERROR_TEXT("Cannot create cache update dir");
+              }
+            } else {
+              logger_->error("Cannot create cache update dir: {}",
+                             ec.message());
+              return ERROR_TEXT("Cannot create cache update dir");
+            }
+          }
+
+          return self->proofs_->updateSeal(update_proof_type,
+                                           paths.update,
+                                           paths.update_cache,
+                                           paths.sealed,
+                                           paths.cache,
+                                           paths.unsealed,
+                                           gsl::span<const PieceInfo>(pieces));
+        });
+  }
+
+  outcome::result<CallId> LocalWorker::proveReplicaUpdate1(
+      const SectorRef &sector,
+      const CID &sector_key,
+      const CID &new_sealed,
+      const CID &new_unsealed) {
+    return asyncCall(
+        sector,
+        return_->ReturnProveReplicaUpdate1,
+        [=](Self self) -> outcome::result<Update1Output> {
+          OUTCOME_TRY(response,
+                      self->acquireSector(sector,
+                                          SectorFileType::FTSealed
+                                              | SectorFileType::FTCache
+                                              | SectorFileType::FTUpdate
+                                              | SectorFileType::FTUpdateCache,
+                                          SectorFileType::FTNone,
+                                          PathType::kSealing));
+          auto _ = gsl::finally([&]() { response.release_function(); });
+
+          const auto &paths{response.paths};
+
+          OUTCOME_TRY(update_proof_type,
+                      getRegisteredUpdateProof(sector.proof_type));
+
+          return self->proofs_->updateProve1(update_proof_type,
+                                             sector_key,
+                                             new_sealed,
+                                             new_unsealed,
+                                             paths.update,
+                                             paths.update_cache,
+                                             paths.sealed,
+                                             paths.cache);
+        });
+  }
+
+  outcome::result<CallId> LocalWorker::proveReplicaUpdate2(
+      const SectorRef &sector,
+      const CID &sector_key,
+      const CID &new_sealed,
+      const CID &new_unsealed,
+      const Update1Output &update_1_output) {
+    return asyncCall(sector,
+                     return_->ReturnProveReplicaUpdate2,
+                     [=](Self self) -> outcome::result<Proof> {
+                       OUTCOME_TRY(update_proof_type,
+                                   getRegisteredUpdateProof(sector.proof_type));
+
+                       return self->proofs_->updateProve2(update_proof_type,
+                                                          sector_key,
+                                                          new_sealed,
+                                                          new_unsealed,
+                                                          update_1_output);
+                     });
+  }
+
   outcome::result<CallId> LocalWorker::moveStorage(const SectorRef &sector,
                                                    SectorFileType types) {
     return asyncCall(sector,

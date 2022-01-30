@@ -87,7 +87,7 @@ namespace fc::vm::actor::builtin::types::miner {
       Runtime &runtime,
       uint64_t partition_size,
       bool proven,
-      std::vector<SectorOnChainInfo> sectors,
+      std::vector<Universal<SectorOnChainInfo>> sectors,
       SectorSize ssize,
       const QuantSpec &quant) {
     if (sectors.empty()) {
@@ -132,7 +132,8 @@ namespace fc::vm::actor::builtin::types::miner {
         OUTCOME_TRY(this->partitions.set(part_id, partition));
 
         for (const auto &sector : partition_new_sectors) {
-          auto &partition_update = partition_deadline_update[sector.expiration];
+          auto &partition_update =
+              partition_deadline_update[sector->expiration];
           if (!partition_update.empty() && partition_update.has(part_id)) {
             continue;
           }

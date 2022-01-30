@@ -19,7 +19,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     return std::move(info);
   }
 
-  outcome::result<std::vector<SectorOnChainInfo>>
+  outcome::result<std::vector<Universal<SectorOnChainInfo>>>
   MinerActorState::rescheduleSectorExpirations(
       ChainEpoch curr_epoch,
       SectorSize ssize,
@@ -42,7 +42,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
     OUTCOME_TRY(this->deadlines.set(dls));
 
-    return std::vector<SectorOnChainInfo>{};
+    return std::vector<Universal<SectorOnChainInfo>>{};
   }
 
   outcome::result<TokenAmount> MinerActorState::unlockUnvestedFunds(

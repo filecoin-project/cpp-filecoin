@@ -7,7 +7,7 @@
 #include "common/outcome_fmt.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "vm/actor/builtin/states/miner/miner_actor_state.hpp"
-#include "vm/actor/builtin/v5/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v7/miner/miner_actor.hpp"
 
 namespace fc::markets::storage::chain_events {
   using primitives::RleBitset;
@@ -18,6 +18,8 @@ namespace fc::markets::storage::chain_events {
   using vm::actor::builtin::v5::miner::PreCommitSector;
   using vm::actor::builtin::v5::miner::ProveCommitAggregate;
   using vm::actor::builtin::v5::miner::ProveCommitSector;
+  using vm::actor::builtin::v7::miner::ProveReplicaUpdates;
+  using vm::actor::builtin::v7::miner::ReplicaUpdate;
   using vm::message::SignedMessage;
 
   ChainEventsImpl::ChainEventsImpl(std::shared_ptr<FullNodeApi> api,
@@ -83,12 +85,7 @@ namespace fc::markets::storage::chain_events {
       if (sector) {
         watched_events_[provider].commits.emplace(*sector, std::move(cb));
       } else {
-        watched_events_[provider].precommits.emplace(
-            deal_id, [this, provider, cb{std::move(cb)}](auto _sector) mutable {
-              OUTCOME_CB(auto sector, _sector);
-              std::unique_lock lock{watched_events_mutex_};
-              watched_events_[provider].commits.emplace(sector, std::move(cb));
-            });
+        watched_events_[provider].precommits.emplace(deal_id, std::move(cb));
       }
       return outcome::success();
     }()};
@@ -151,18 +148,31 @@ namespace fc::markets::storage::chain_events {
       return outcome::success();
     }
     auto &watch{_watch->second};
-    const auto on_precommit{[&](const SectorPreCommitInfo &precommit) {
-      for (const auto &deal_id : precommit.deal_ids) {
+    const auto on_deals{[&](const std::vector<DealId> &deals,
+                            SectorNumber sector,
+                            bool update) {
+      for (const auto &deal_id : deals) {
         const auto [begin, end]{watch.precommits.equal_range(deal_id)};
         auto it{begin};
         while (it != end) {
           api_->StateWaitMsg(
-              [cb{std::move(it->second)}, sector{precommit.sector}](auto _r) {
+              [=, cb{std::move(it->second)}, provider{_watch->first}](auto _r) {
                 OUTCOME_CB(auto r, _r);
                 if (r.receipt.exit_code != VMExitCode::kOk) {
                   return cb(r.receipt.exit_code);
                 }
-                return cb(sector);
+                if (update) {
+                  OUTCOME_CB(auto result,
+                             codec::cbor::decode<ProveReplicaUpdates::Result>(
+                                 r.receipt.return_value));
+                  if (!result.has(sector)) {
+                    return cb(ERROR_TEXT("ProveReplicaUpdates failed"));
+                  }
+                  return cb(outcome::success());
+                }
+                std::unique_lock lock{watched_events_mutex_};
+                watched_events_[provider].commits.emplace(sector,
+                                                          std::move(cb));
               },
               cid,
               kMessageConfidence,
@@ -171,6 +181,9 @@ namespace fc::markets::storage::chain_events {
           it = watch.precommits.erase(it);
         }
       }
+    }};
+    const auto on_precommit{[&](const SectorPreCommitInfo &precommit) {
+      on_deals(precommit.deal_ids, precommit.sector, false);
     }};
     const auto on_commit{[&](SectorNumber sector) {
       const auto [begin, end]{watch.commits.equal_range(sector)};
@@ -190,6 +203,9 @@ namespace fc::markets::storage::chain_events {
             true);
         it = watch.commits.erase(it);
       }
+    }};
+    const auto on_update{[&](const ReplicaUpdate &update) {
+      on_deals(update.deals, update.sector, true);
     }};
     if (message.method == PreCommitSector::Number) {
       OUTCOME_TRY(param,
@@ -212,6 +228,13 @@ namespace fc::markets::storage::chain_events {
           codec::cbor::decode<ProveCommitAggregate::Params>(message.params));
       for (const auto &sector : param.sectors) {
         on_commit(sector);
+      }
+    } else if (message.method == ProveReplicaUpdates::Number) {
+      OUTCOME_TRY(
+          param,
+          codec::cbor::decode<ProveReplicaUpdates::Params>(message.params));
+      for (const auto &update : param.updates) {
+        on_update(update);
       }
     }
     return outcome::success();

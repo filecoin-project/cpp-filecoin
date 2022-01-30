@@ -70,32 +70,33 @@ namespace fc::vm::actor::builtin::types::miner {
     virtual ~ExpirationQueue() = default;
 
     outcome::result<std::tuple<RleBitset, PowerPair, TokenAmount>>
-    addActiveSectors(const std::vector<SectorOnChainInfo> &sectors,
+    addActiveSectors(const std::vector<Universal<SectorOnChainInfo>> &sectors,
                      SectorSize ssize);
 
     outcome::result<void> rescheduleExpirations(
         ChainEpoch new_expiration,
-        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
         SectorSize ssize);
 
     virtual outcome::result<PowerPair> rescheduleAsFaults(
         ChainEpoch new_expiration,
-        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
         SectorSize ssize) = 0;
 
     virtual outcome::result<void> rescheduleAllAsFaults(
         ChainEpoch fault_expiration) = 0;
 
     outcome::result<PowerPair> rescheduleRecovered(
-        const std::vector<SectorOnChainInfo> &sectors, SectorSize ssize);
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
+        SectorSize ssize);
 
     outcome::result<std::tuple<RleBitset, RleBitset, PowerPair, TokenAmount>>
-    replaceSectors(const std::vector<SectorOnChainInfo> &old_sectors,
-                   const std::vector<SectorOnChainInfo> &new_sectors,
+    replaceSectors(const std::vector<Universal<SectorOnChainInfo>> &old_sectors,
+                   const std::vector<Universal<SectorOnChainInfo>> &new_sectors,
                    SectorSize ssize);
 
     outcome::result<std::tuple<ExpirationSet, PowerPair>> removeSectors(
-        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
         const RleBitset &faults,
         const RleBitset &recovering,
         SectorSize ssize);
@@ -117,8 +118,9 @@ namespace fc::vm::actor::builtin::types::miner {
                                  const TokenAmount &pledge);
 
     virtual outcome::result<std::tuple<RleBitset, PowerPair, TokenAmount>>
-    removeActiveSectors(const std::vector<SectorOnChainInfo> &sectors,
-                        SectorSize ssize) = 0;
+    removeActiveSectors(
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
+        SectorSize ssize) = 0;
 
     outcome::result<void> traverseMutate(MutateFunction f);
 
@@ -127,7 +129,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
     std::vector<SectorEpochSet> groupNewSectorsByDeclaredExpiration(
         SectorSize sector_size,
-        const std::vector<SectorOnChainInfo> &sectors) const;
+        const std::vector<Universal<SectorOnChainInfo>> &sectors) const;
   };
 
   Universal<ExpirationQueue> loadExpirationQueue(

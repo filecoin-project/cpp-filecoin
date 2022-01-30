@@ -134,7 +134,7 @@ namespace fc::vm::actor::builtin::types::miner {
     return active;
   }
 
-  outcome::result<std::vector<SectorOnChainInfo>>
+  outcome::result<std::vector<Universal<SectorOnChainInfo>>>
   Partition::rescheduleExpirationsV2(const Sectors &sectors,
                                      ChainEpoch new_expiration,
                                      const RleBitset &sector_nos,
@@ -157,8 +157,8 @@ namespace fc::vm::actor::builtin::types::miner {
   }
 
   outcome::result<std::tuple<PowerPair, TokenAmount>> Partition::replaceSectors(
-      const std::vector<SectorOnChainInfo> &old_sectors,
-      const std::vector<SectorOnChainInfo> &new_sectors,
+      const std::vector<Universal<SectorOnChainInfo>> &old_sectors,
+      const std::vector<Universal<SectorOnChainInfo>> &new_sectors,
       SectorSize ssize,
       const QuantSpec &quant) {
     auto expirations = loadExpirationQueue(this->expirations_epochs, quant);

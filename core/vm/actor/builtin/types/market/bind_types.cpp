@@ -15,4 +15,5 @@ UNIVERSAL_IMPL(market::PendingProposals,
                v3::market::PendingProposals,
                v3::market::PendingProposals,
                v3::market::PendingProposals,
+               v3::market::PendingProposals,
                v3::market::PendingProposals)
