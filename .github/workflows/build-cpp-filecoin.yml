@@ -1,4 +1,4 @@
-name: Fuhon
+name: Fuhon (cpp-Filecoin)
 on:
   push:
     branches: [ master ]
