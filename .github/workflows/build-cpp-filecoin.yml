@@ -44,6 +44,35 @@ jobs:
         run: |
           set -x
           [[ $(./.github/make-workflows.sh -x --worktree) = *"everything is up to date" ]]
+  pr_comment_reaction_rocket:
+    ## Just to react to valid comment with rocket
+    runs-on: ubuntu-20.04 #ubuntu-latest
+    if: ${{ github.event.comment &&
+          github.event.issue.pull_request &&
+          startsWith(github.event.comment.body, '/build') }}
+    steps:
+      - &step_show_context
+        name: Show context
+        run: |
+          echo "::group::GitHub context"
+          cat <<'END'
+          ${{ toJson(github) }}
+          END
+          echo "::endgroup::"
+          echo "::group::GitHub needs"
+          cat <<'END'
+          ${{ toJson(needs) }}
+          END
+          echo "::endgroup::"
+      -
+        name: Reaction
+        run: |
+          # send reaction to comment to show build was triggered
+          curl ${{github.event.comment.url}}/reactions \
+            -X POST \
+            -d '{"content":"rocket"}' \
+            -H "Accept: application/vnd.github.squirrel-girl-preview+json" \
+            -H "Authorization: token ${{github.token}}"
   Docker-fuhon-builder:
     needs: check_workflow_yaml_coressponds_to_src_yaml
     runs-on: ubuntu-20.04 #ubuntu-latest #[ self-hosted, Linux ]
