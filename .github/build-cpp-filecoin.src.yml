@@ -7,7 +7,6 @@ on:
   pull_request:
     branches: [ master ]  ## target branches
   workflow_dispatch:
-    ## NOTE: Able to run via cmdline: gh workflow run Iroha1
     # inputs:
     #   build_spec:
     #     description: 'See chatops-gen-matrix.sh, example "/build ubuntu macos gcc-9 burrow"'
@@ -49,11 +48,11 @@ jobs:
           set -x
           [[ $(./.github/make-workflows.sh -x --worktree) = *"everything is up to date" ]]
 
-  Docker-iroha-builder:
+  Docker-fuhon-builder:
     needs: check_workflow_yaml_coressponds_to_src_yaml
     runs-on: ubuntu-20.04 #ubuntu-latest #[ self-hosted, Linux ]
     env: &env_dockerhub
-      DOCKERHUB_ORG:      hyperledger   ## Must be hyperledger, also can use iroha1, cannot use ${{ secrets.DOCKERHUB_ORG }}
+      DOCKERHUB_ORG:      filecoin   ## Cannot use ${{ secrets.DOCKERHUB_ORG }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
     steps:
@@ -84,7 +83,7 @@ jobs:
         name: Determine dockertag
         id: dockertag
         env:
-          dockertag: ${{ hashFiles('docker/iroha-builder/**') }}
+          dockertag: ${{ hashFiles('docker/fuhon-builder/**') }}
         run: |
           echo "::set-output name=dockertag::$dockertag"
           echo >>$GITHUB_ENV  dockertag=$dockertag
@@ -116,7 +115,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with: &step_docker_meta_with
-          images: ${{ env.DOCKERHUB_ORG }}/iroha-builder
+          images: ${{ env.DOCKERHUB_ORG }}/fuhon-builder
           tags: |
             type=raw,value=${{env.dockertag}}
             type=ref,event=branch
@@ -158,7 +157,7 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v2
         with: &step_docker_build_and_push_with
-          context: docker/iroha-builder/
+          context: docker/fuhon-builder/
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: ${{ steps.docker_login.outcome == 'success' }}
@@ -186,7 +185,7 @@ jobs:
         id: dockertag_already
         run: |
           ## FIXME page size is 100 and cannot be more, this needs to be extended in loop asking tags till the end
-          exists=$( curl -fL https://hub.docker.com/v2/repositories/$DOCKERHUB_ORG/iroha-builder/tags |
+          exists=$( curl -fL https://hub.docker.com/v2/repositories/$DOCKERHUB_ORG/fuhon-builder/tags |
             jq 'any( .results[]|.name == "${{env.dockertag}}" ; .)' )
           echo "::set-output name=exists::$exists"
           if test $exists = true ;then
@@ -194,7 +193,7 @@ jobs:
           else
             tag=edge
           fi
-          container="$DOCKERHUB_ORG/iroha-builder:$tag"
+          container="$DOCKERHUB_ORG/fuhon-builder:$tag"
           echo "::set-output name=container::$container"
           echo "::set-output name=container_tag::$tag"
       -
