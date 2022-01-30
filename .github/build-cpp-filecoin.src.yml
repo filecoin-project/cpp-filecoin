@@ -1,10 +1,10 @@
 name: Fuhon
 on:
   push:
-    branches: [ master ]
+    branches: [ master, feature/github-action-tag-and-publish-docker-image ]
     tags: '**'
   pull_request:
-    branches: [ master ]  ## target branches
+    branches: [ master, feature/github-action-tag-and-publish-docker-image ]  ## target branches
   workflow_dispatch:
     # inputs:
     #   build_spec:
