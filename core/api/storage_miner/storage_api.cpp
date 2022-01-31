@@ -6,10 +6,13 @@
 #include "api/storage_miner/storage_api.hpp"
 
 #include "api/storage_miner/return_api.hpp"
+#include "common/outcome.hpp"
+#include "common/uri_parser/uri_parser.hpp"
 #include "miner/miner_version.hpp"
 #include "sector_storage/impl/remote_worker.hpp"
 
 namespace fc::api {
+  using common::HttpUri;
   using miner::kMinerVersion;
   using sector_storage::RemoteWorker;
 
@@ -169,29 +172,34 @@ namespace fc::api {
     api->StorageFindSector =
         [=](const SectorId &sector,
             const SectorFileType &file_type,
-            boost::optional<SectorSize> fetch_sector_size) {
+            const SectorSize &fetch_sector_size,
+            bool allow_fetch) {
+          boost::optional<SectorSize> sector_size;
+          if(allow_fetch){
+            sector_size = fetch_sector_size;
+          }
           return sector_index->storageFindSector(
-              sector, file_type, fetch_sector_size);
+              sector, file_type, sector_size);
         };
 
     api->StorageBestAlloc = [=](const SectorFileType &allocate,
                                 SectorSize sector_size,
-                                bool sealing_mode) {
+                                std::string sealing_mode) {
       return sector_index->storageBestAlloc(
-          allocate, sector_size, sealing_mode);
+          allocate, sector_size, (sealing_mode == "sealing"));
     };
 
     makeReturnApi(api, sector_scheduler);
 
-    api->WorkerConnect =
-        [=, self{api}](const std::string &address) -> outcome::result<void> {
-      OUTCOME_TRY(maddress, libp2p::multi::Multiaddress::create(address));
-      OUTCOME_TRY(worker,
-                  RemoteWorker::connectRemoteWorker(*io, self, maddress));
+    api->WorkerConnect = [=, self{api}](auto &&cb,
+                                        const std::string &address) -> void {
+      io->post([=] {
+        OUTCOME_CB(auto worker,
+                   RemoteWorker::connectRemoteWorker(*io, api, address));
+        spdlog::info("Connected to a remote worker at {}", address);
 
-      spdlog::info("Connected to a remote worker at {}", address);
-
-      return sector_manager->addWorker(std::move(worker));
+        OUTCOME_CB1(sector_manager->addWorker(std::move(worker)));
+      });
     };
 
     api->Version = [] {

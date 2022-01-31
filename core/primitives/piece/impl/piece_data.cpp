@@ -68,7 +68,6 @@ namespace fc::primitives::piece {
     fd_ = kUnopenedFileDescriptor;
     return temp;
   }
-
   const std::array<std::string, 3> ReaderType::types{"undefined", "null", "push"};
 
    const std::string ReaderType::toString() const {
@@ -83,5 +82,4 @@ namespace fc::primitives::piece {
     }
     return ReaderType(Type::kUndefined);
   }
-
 }  // namespace fc::primitives::piece

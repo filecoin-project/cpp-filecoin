@@ -166,7 +166,7 @@ namespace fc::node {
                                                std::end(drand_flags),
                                                [](bool x) { return x; })};
     if (drand_flags_count == 0) {
-      config.drand_servers.push_back("api.drand.sh");
+      config.drand_servers.push_back("api2.drand.sh");
       config.drand_bls_pubkey =
           BlsPublicKey::fromHex(
               "868f005eb8e6e4ca0a47c8a77ceaa5309a47978a7c71bc5cce96366b5d7a5699"
