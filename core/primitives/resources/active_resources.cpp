@@ -6,39 +6,38 @@
 #include "primitives/resources/active_resources.hpp"
 
 namespace fc::primitives {
-  bool canHandleRequest(const Resources &need_resources,
-                        const WorkerResources &resources,
-                        const ActiveResources &active) {
-    std::shared_lock<std::shared_mutex> lock(active.mutex_);
+  bool ActiveResources::canHandleRequest(const Resources &need_resources,
+                                         const WorkerResources &resources) {
+    std::shared_lock lock(mutex_);
 
     // TODO (ortyomka): dedupe need_resources.base_min_memory per task type
     // (don't add if that task is already running)
-    uint64_t min_need_memory =
-        resources.reserved_memory + active.memory_used_min
-        + need_resources.min_memory + need_resources.base_min_memory;
+    uint64_t min_need_memory = resources.reserved_memory + memory_used_min
+                               + need_resources.min_memory
+                               + need_resources.base_min_memory;
     if (min_need_memory > resources.physical_memory) {
       return false;
     }
 
-    uint64_t max_need_memory =
-        resources.reserved_memory + active.memory_used_min
-        + need_resources.max_memory + need_resources.base_min_memory;
+    uint64_t max_need_memory = resources.reserved_memory + memory_used_min
+                               + need_resources.max_memory
+                               + need_resources.base_min_memory;
     if (max_need_memory > (resources.swap_memory + resources.physical_memory)) {
       return false;
     }
 
     if (need_resources.threads) {
-      if ((active.cpu_use + *need_resources.threads) > resources.cpus) {
+      if ((cpu_use + *need_resources.threads) > resources.cpus) {
         return false;
       }
     } else {
-      if (active.cpu_use > 0) {
+      if (cpu_use > 0) {
         return false;
       }
     }
 
     if (!resources.gpus.empty() && need_resources.can_gpu) {
-      if (active.gpu_used) {
+      if (gpu_used) {
         return false;
       }
     }

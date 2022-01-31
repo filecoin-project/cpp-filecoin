@@ -30,6 +30,7 @@ namespace fc::sector_storage {
   using primitives::sector_file::SectorFileType;
   using PreCommit1Output = proofs::Phase1Output;
   using Commit1Output = proofs::Phase1Output;
+  using Update1Output = proofs::UpdateProofs1;
   using SectorCids = proofs::SealedAndUnsealedCID;
   using primitives::sector::InteractiveRandomness;
   using primitives::sector::Proof;
@@ -48,7 +49,7 @@ namespace fc::sector_storage {
   }
 
   struct CallId {
-    SectorId sector;
+    SectorId sector{};
     std::string id;  // uuid
   };
   CBOR_TUPLE(CallId, sector, id);
@@ -93,6 +94,22 @@ namespace fc::sector_storage {
     virtual outcome::result<CallId> finalizeSector(
         const SectorRef &sector,
         const gsl::span<const Range> &keep_unsealed) = 0;
+
+    virtual outcome::result<CallId> replicaUpdate(
+        const SectorRef &sector, const std::vector<PieceInfo> &pieces) = 0;
+
+    virtual outcome::result<CallId> proveReplicaUpdate1(
+        const SectorRef &sector,
+        const CID &sector_key,
+        const CID &new_sealed,
+        const CID &new_unsealed) = 0;
+
+    virtual outcome::result<CallId> proveReplicaUpdate2(
+        const SectorRef &sector,
+        const CID &sector_key,
+        const CID &new_sealed,
+        const CID &new_unsealed,
+        const Update1Output &update_1_output) = 0;
 
     virtual outcome::result<CallId> moveStorage(const SectorRef &sector,
                                                 SectorFileType types) = 0;
@@ -140,7 +157,13 @@ namespace fc::sector_storage {
 
   struct CallResult {
     // `Bytes` = (`Proof` | `PreCommit1Output` | `Commit1Output`)
-    std::variant<std::monostate, PieceInfo, SectorCids, Bytes, bool> value;
+    std::variant<std::monostate,
+                 PieceInfo,
+                 SectorCids,
+                 Bytes,
+                 bool,
+                 Update1Output>
+        value;
     boost::optional<CallError> maybe_error;
   };
   using ReturnCb = std::function<void(outcome::result<CallResult>)>;

@@ -89,7 +89,7 @@ TEST_F(StateTreeTest, Walk) {
   using namespace fc;
   adt::Map<vm::actor::Actor, adt::AddressKeyer> map{store_};
   auto head1{setCbor(store_, 3).value()};
-  auto code1{vm::actor::code::init0};
+  auto code1{vm::actor::builtin::v0::kInitCodeId};
   map.set(Address::makeFromId(1), {code1, head1}).value();
   codec::cbor::light_reader::HamtWalk walk{
       std::make_shared<AnyAsCbIpld>(store_),

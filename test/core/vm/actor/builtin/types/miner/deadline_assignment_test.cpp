@@ -12,24 +12,24 @@
 namespace fc::vm::actor::builtin::types::miner {
 
   auto sectors(const std::vector<SectorNumber> &numbers) {
-    std::vector<SectorOnChainInfo> sectors;
+    std::vector<Universal<SectorOnChainInfo>> sectors;
     for (const auto &number : numbers) {
-      SectorOnChainInfo sector;
-      sector.sector = number;
-      sector.seal_proof = RegisteredSealProof::kUndefined;
-      sector.sealed_cid = kEmptyObjectCid;
+      Universal<SectorOnChainInfo> sector{ActorVersion::kVersion0};
+      sector->sector = number;
+      sector->seal_proof = RegisteredSealProof::kUndefined;
+      sector->sealed_cid = kEmptyObjectCid;
       sectors.push_back(sector);
     }
     return sectors;
   }
 
   auto sectors(size_t count) {
-    std::vector<SectorOnChainInfo> sectors;
+    std::vector<Universal<SectorOnChainInfo>> sectors;
     for (SectorNumber i = 0; i < count; i++) {
-      SectorOnChainInfo sector;
-      sector.sector = i;
-      sector.seal_proof = RegisteredSealProof::kUndefined;
-      sector.sealed_cid = kEmptyObjectCid;
+      Universal<SectorOnChainInfo> sector{ActorVersion::kVersion0};
+      sector->sector = i;
+      sector->seal_proof = RegisteredSealProof::kUndefined;
+      sector->sealed_cid = kEmptyObjectCid;
       sectors.push_back(sector);
     }
     return sectors;
@@ -37,7 +37,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
   struct TestCase {
     std::map<uint64_t, Universal<Deadline>> deadlines;
-    std::vector<std::vector<SectorOnChainInfo>> expected;
+    std::vector<std::vector<Universal<SectorOnChainInfo>>> expected;
 
     auto sectorsCount() const {
       size_t sum{0};
@@ -47,7 +47,7 @@ namespace fc::vm::actor::builtin::types::miner {
       return sum;
     }
 
-    const std::vector<SectorOnChainInfo> *expect(size_t i) const {
+    const std::vector<Universal<SectorOnChainInfo>> *expect(size_t i) const {
       size_t j = 0;
       for (const auto &[dl_id, dl] : deadlines) {
         if (dl_id == i) {

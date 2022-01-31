@@ -57,6 +57,22 @@ namespace fc::sector_storage {
         const SectorRef &sector,
         const gsl::span<const Range> &keep_unsealed) override;
 
+    outcome::result<CallId> replicaUpdate(
+        const SectorRef &sector, const std::vector<PieceInfo> &pieces) override;
+
+    outcome::result<CallId> proveReplicaUpdate1(
+        const SectorRef &sector,
+        const CID &sector_key,
+        const CID &new_sealed,
+        const CID &new_unsealed) override;
+
+    outcome::result<CallId> proveReplicaUpdate2(
+        const SectorRef &sector,
+        const CID &sector_key,
+        const CID &new_sealed,
+        const CID &new_unsealed,
+        const Update1Output &update_1_output) override;
+
     outcome::result<CallId> moveStorage(const SectorRef &sector,
                                         SectorFileType types) override;
 

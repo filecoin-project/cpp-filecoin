@@ -78,12 +78,13 @@ namespace fc::sector_storage {
 
   struct PieceDataSender {
     explicit PieceDataSender(io_context &io)
-        : resolver{io}, stream{net::make_strand(io)} {}
+        : resolver_{io}, stream_{net::make_strand(io)} {}
+
     PieceDataSender(const PieceDataSender &) = delete;
     PieceDataSender(PieceDataSender &&) = delete;
     ~PieceDataSender() {
       boost::system::error_code ec;
-      stream.socket().shutdown(tcp::socket::shutdown_both, ec);
+      stream_.socket().shutdown(tcp::socket::shutdown_both, ec);
     }
     PieceDataSender &operator=(const PieceDataSender &) = delete;
     PieceDataSender &operator=(PieceDataSender &&) = delete;
@@ -96,45 +97,46 @@ namespace fc::sector_storage {
         const std::string &target,
         const std::uint64_t piece_size,
         const std::function<void(outcome::result<std::string>)> &cb) {
-      auto s{std::make_shared<PieceDataSender>(io)};
+      auto sender{std::make_shared<PieceDataSender>(io)};
       boost::system::error_code error;
       boost::beast::file_posix fp;
       fp.native_handle(fd);
 
-      s->file_req.body().reset(std::move(fp), error);
-      s->file_req.method(http::verb::post);
-      s->file_req.target(target);
-      s->file_req.set(http::field::host, host);
-      s->file_req.set(http::field::content_length, piece_size);
-      s->resolver.async_resolve(
-          host, port, [s, MOVE(cb)](auto &&ec, auto &&iterator) {
+      sender->file_req_.body().reset(std::move(fp), error);
+      sender->file_req_.method(http::verb::post);
+      sender->file_req_.target(target);
+      sender->file_req_.set(http::field::host, host);
+      sender->file_req_.set(http::field::content_length, piece_size);
+      sender->resolver_.async_resolve(
+          host, port, [sender, MOVE(cb)](auto &&ec, auto &&iterator) {
             EC_CB();
-            s->stream.async_connect(
-                iterator, [s, MOVE(cb)](auto &&ec, auto &&) {
+            sender->stream_.async_connect(
+                iterator, [sender, MOVE(cb)](auto &&ec, auto &&) {
                   EC_CB();
-                  http::async_write(s->stream,
-                                    s->file_req,
-                                    [s, MOVE(cb)](auto &&ec, auto &&) {
-                                      EC_CB();
-                                      http::async_read(
-                                          s->stream,
-                                          s->buffer,
-                                          s->res,
-                                          [s, MOVE(cb)](auto &&ec, auto &&) {
-                                            EC_CB();
-                                            cb(std::move(s->res.body()));
-                                          });
-                                    });
+                  http::async_write(
+                      sender->stream_,
+                      sender->file_req_,
+                      [sender, MOVE(cb)](auto &&ec, auto &&) {
+                        EC_CB();
+                        http::async_read(
+                            sender->stream_,
+                            sender->buffer_,
+                            sender->res_,
+                            [sender, MOVE(cb)](auto &&ec, auto &&) {
+                              EC_CB();
+                              cb(std::move(sender->res_.body()));
+                            });
+                      });
                 });
           });
     }
 
    private:
-    http::request<http::file_body> file_req;
-    tcp::resolver resolver;
-    beast::tcp_stream stream;
-    beast::flat_buffer buffer;
-    http::response<http::string_body> res;
+    http::request<http::file_body> file_req_;
+    tcp::resolver resolver_;
+    beast::tcp_stream stream_;
+    beast::flat_buffer buffer_;
+    http::response<http::string_body> res_;
   };
 
   outcome::result<CallId> RemoteWorker::addPiece(
@@ -145,27 +147,32 @@ namespace fc::sector_storage {
     MetaPieceData meta_data =
         piece_data.isNullData()
             ? MetaPieceData(std::to_string(new_piece_size),
-                            ReaderType::Type::nullReader)
+                            ReaderType::Type::kNullReader)
             : MetaPieceData(uuids::to_string(uuids::random_generator()()),
-                            ReaderType::Type::pushStreamReader);
+                            ReaderType::Type::kPushStreamReader);
     if (!piece_data.isNullData()) {
       PieceDataSender::send(
           piece_data.release(),
-          *(worker_thread_.io),
+          io_,
           host_,
           port_,
-          "/rpc/streams/v0/push/" + meta_data.uuid,
+          "/rpc/streams/v0/push/" + meta_data.info,
           new_piece_size,
           [](const outcome::result<std::string> &res) {
             if (res.has_error()) {
-              std::cerr << res.error();
+              spdlog::error("Transfer of pieces was finished with error: {}",
+                            res.value());
             } else {
               spdlog::info("Transfer of pieces was finished with response {}",
                            res.value());
             }
           });
     }
-    return api_.AddPiece(sector, piece_sizes, new_piece_size, meta_data);
+    return api_.AddPiece(
+        sector,
+        std::vector<UnpaddedPieceSize>(piece_sizes.begin(), piece_sizes.end()),
+        new_piece_size,
+        meta_data);
   }
 
   outcome::result<CallId> RemoteWorker::sealPreCommit1(
@@ -198,6 +205,30 @@ namespace fc::sector_storage {
       const SectorRef &sector, const gsl::span<const Range> &keep_unsealed) {
     return api_.FinalizeSector(
         sector, std::vector<Range>(keep_unsealed.begin(), keep_unsealed.end()));
+  }
+
+  outcome::result<CallId> RemoteWorker::replicaUpdate(
+      const SectorRef &sector, const std::vector<PieceInfo> &pieces) {
+    return api_.ReplicaUpdate(sector, pieces);
+  }
+
+  outcome::result<CallId> RemoteWorker::proveReplicaUpdate1(
+      const SectorRef &sector,
+      const CID &sector_key,
+      const CID &new_sealed,
+      const CID &new_unsealed) {
+    return api_.ProveReplicaUpdate1(
+        sector, sector_key, new_sealed, new_unsealed);
+  }
+
+  outcome::result<CallId> RemoteWorker::proveReplicaUpdate2(
+      const SectorRef &sector,
+      const CID &sector_key,
+      const CID &new_sealed,
+      const CID &new_unsealed,
+      const Update1Output &update_1_output) {
+    return api_.ProveReplicaUpdate2(
+        sector, sector_key, new_sealed, new_unsealed, update_1_output);
   }
 
   outcome::result<CallId> RemoteWorker::moveStorage(const SectorRef &sector,

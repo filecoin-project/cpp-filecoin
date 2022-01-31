@@ -8,6 +8,7 @@ add_library(miner_actor_state
     v0/miner_actor_state.cpp
     v2/miner_actor_state.cpp
     v3/miner_actor_state.cpp
+    v4/miner_actor_state.cpp
     bind_states.cpp
     )
 target_link_libraries(miner_actor_state

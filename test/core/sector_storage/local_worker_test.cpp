@@ -1810,4 +1810,251 @@ namespace fc::sector_storage {
     ASSERT_EQ(gsl::make_span<char>(read_data.data(), read_data.size()),
               gsl::make_span<char>(data.data(), data.size()));
   }
+
+  TEST_F(LocalWorkerTest, ReplicaUpdate) {
+    EXPECT_OUTCOME_TRUE(update_proof,
+                        getRegisteredUpdateProof(sector_.proof_type));
+    auto input_path = (base_path / "temp");
+
+    auto sector_file = primitives::sector_file::sectorName(sector_.id);
+    auto update_path =
+        (input_path / toString(SectorFileType::FTUpdate) / sector_file)
+            .string();
+    auto update_cache_path =
+        (input_path / toString(SectorFileType::FTUpdateCache) / sector_file)
+            .string();
+    auto unsealed_path =
+        (input_path / toString(SectorFileType::FTUnsealed) / sector_file)
+            .string();
+    auto sealed_path =
+        (input_path / toString(SectorFileType::FTSealed) / sector_file)
+            .string();
+    auto cache_path =
+        (input_path / toString(SectorFileType::FTCache) / sector_file).string();
+
+    SectorPaths paths{
+        .id = sector_.id,
+        .unsealed = unsealed_path,
+        .sealed = sealed_path,
+        .cache = cache_path,
+        .update = update_path,
+        .update_cache = update_cache_path,
+    };
+
+    boost::system::error_code ec;
+    boost::filesystem::create_directories(
+        input_path / toString(SectorFileType::FTSealed), ec);
+    ASSERT_FALSE(ec.failed()) << ec.message();
+    boost::filesystem::create_directories(
+        input_path / toString(SectorFileType::FTUpdate), ec);
+    ASSERT_FALSE(ec.failed()) << ec.message();
+    boost::filesystem::create_directories(
+        input_path / toString(SectorFileType::FTUpdateCache), ec);
+    ASSERT_FALSE(ec.failed()) << ec.message();
+    std::ofstream seal_file(sealed_path);
+    ASSERT_TRUE(seal_file.good());
+    seal_file.close();
+    boost::filesystem::resize_file(sealed_path, sector_size_);
+
+    auto storage = "some-uuid";
+
+    SectorPaths storages{
+        .id = sector_.id,
+        .unsealed = storage,
+        .sealed = storage,
+        .cache = storage,
+        .update = storage,
+        .update_cache = storage,
+    };
+
+    AcquireSectorResponse response{
+        .paths = paths,
+        .storages = storages,
+    };
+
+    EXPECT_CALL(*sector_index_,
+                storageDeclareSector(
+                    storage, sector_.id, SectorFileType::FTUpdate, false))
+        .WillOnce(testing::Return(outcome::success()));
+    EXPECT_CALL(*sector_index_,
+                storageDeclareSector(
+                    storage, sector_.id, SectorFileType::FTUpdateCache, false))
+        .WillOnce(testing::Return(outcome::success()));
+
+    EXPECT_CALL(
+        *store_,
+        acquireSector(sector_,
+                      SectorFileType::FTUnsealed | SectorFileType::FTSealed
+                          | SectorFileType::FTCache,
+                      SectorFileType::FTUpdate | SectorFileType::FTUpdateCache,
+                      PathType::kSealing,
+                      AcquireMode::kCopy))
+        .WillOnce(testing::Return(response));
+
+    bool is_clear_called = false;
+    EXPECT_CALL(
+        *local_store_,
+        reserve(sector_,
+                SectorFileType::FTUpdate | SectorFileType::FTUpdateCache,
+                storages,
+                PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear_called = true; }));
+
+    CID new_sealed_cid = "010001020001"_cid;
+    CID new_unsealed_cid = "010001020002"_cid;
+
+    SectorCids cids{.sealed_cid = new_sealed_cid,
+                    .unsealed_cid = new_unsealed_cid};
+
+    EXPECT_CALL(*proof_engine_,
+                updateSeal(update_proof,
+                           update_path,
+                           update_cache_path,
+                           sealed_path,
+                           cache_path,
+                           unsealed_path,
+                           gsl::span<const PieceInfo>()))
+        .WillOnce(testing::Return(outcome::success(cids)));
+
+    MOCK_API(return_interface_, ReturnReplicaUpdate);
+
+    EXPECT_OUTCOME_TRUE(call_id, local_worker_->replicaUpdate(sector_, {}));
+
+    EXPECT_CALL(mock_ReturnReplicaUpdate, Call(call_id, cids, Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
+
+    io_context_->run_one();
+
+    ASSERT_TRUE(is_clear_called);
+    ASSERT_TRUE(boost::filesystem::exists(update_path));
+    ASSERT_TRUE(boost::filesystem::exists(update_cache_path)
+                and boost::filesystem::is_directory(update_cache_path));
+  }
+
+  TEST_F(LocalWorkerTest, proveReplicaUpdate1) {
+    EXPECT_OUTCOME_TRUE(update_proof,
+                        getRegisteredUpdateProof(sector_.proof_type));
+    auto input_path = (base_path / "temp");
+
+    auto sector_file = primitives::sector_file::sectorName(sector_.id);
+    auto update_path =
+        (input_path / toString(SectorFileType::FTUpdate) / sector_file)
+            .string();
+    auto update_cache_path =
+        (input_path / toString(SectorFileType::FTUpdateCache) / sector_file)
+            .string();
+    auto sealed_path =
+        (input_path / toString(SectorFileType::FTSealed) / sector_file)
+            .string();
+    auto cache_path =
+        (input_path / toString(SectorFileType::FTCache) / sector_file).string();
+
+    SectorPaths paths{
+        .id = sector_.id,
+        .unsealed = "",
+        .sealed = sealed_path,
+        .cache = cache_path,
+        .update = update_path,
+        .update_cache = update_cache_path,
+    };
+
+    auto storage = "some-uuid";
+
+    SectorPaths storages{
+        .id = sector_.id,
+        .unsealed = "",
+        .sealed = storage,
+        .cache = storage,
+        .update = storage,
+        .update_cache = storage,
+    };
+
+    AcquireSectorResponse response{
+        .paths = paths,
+        .storages = storages,
+    };
+
+    EXPECT_CALL(*store_,
+                acquireSector(sector_,
+                              SectorFileType::FTSealed | SectorFileType::FTCache
+                                  | SectorFileType::FTUpdate
+                                  | SectorFileType::FTUpdateCache,
+                              SectorFileType::FTNone,
+                              PathType::kSealing,
+                              AcquireMode::kCopy))
+        .WillOnce(testing::Return(response));
+
+    bool is_clear_called = false;
+    EXPECT_CALL(
+        *local_store_,
+        reserve(sector_, SectorFileType::FTNone, storages, PathType::kSealing))
+        .WillOnce(testing::Return([&]() { is_clear_called = true; }));
+
+    CID new_sealed_cid = "010001020001"_cid;
+    CID new_unsealed_cid = "010001020002"_cid;
+    CID old_sealed_cid = "010001020003"_cid;
+
+    Update1Output proofs = {{1, 2, 3}, {4, 5, 6}};
+
+    EXPECT_CALL(*proof_engine_,
+                updateProve1(update_proof,
+                             old_sealed_cid,
+                             new_sealed_cid,
+                             new_unsealed_cid,
+                             update_path,
+                             update_cache_path,
+                             sealed_path,
+                             cache_path))
+        .WillOnce(testing::Return(outcome::success(proofs)));
+
+    MOCK_API(return_interface_, ReturnProveReplicaUpdate1);
+
+    EXPECT_OUTCOME_TRUE(
+        call_id,
+        local_worker_->proveReplicaUpdate1(
+            sector_, old_sealed_cid, new_sealed_cid, new_unsealed_cid));
+
+    EXPECT_CALL(mock_ReturnProveReplicaUpdate1,
+                Call(call_id, proofs, Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
+
+    io_context_->run_one();
+
+    ASSERT_TRUE(is_clear_called);
+  }
+
+  TEST_F(LocalWorkerTest, proveReplicaUpdate2) {
+    EXPECT_OUTCOME_TRUE(update_proof,
+                        getRegisteredUpdateProof(sector_.proof_type));
+
+    CID new_sealed_cid = "010001020001"_cid;
+    CID new_unsealed_cid = "010001020002"_cid;
+    CID old_sealed_cid = "010001020003"_cid;
+
+    Update1Output proofs = {{1, 2, 3}, {4, 5, 6}};
+
+    Proof proof{1, 2, 3, 4, 5, 6};
+
+    EXPECT_CALL(*proof_engine_,
+                updateProve2(update_proof,
+                             old_sealed_cid,
+                             new_sealed_cid,
+                             new_unsealed_cid,
+                             proofs))
+        .WillOnce(testing::Return(outcome::success(proof)));
+
+    MOCK_API(return_interface_, ReturnProveReplicaUpdate2);
+
+    EXPECT_OUTCOME_TRUE(
+        call_id,
+        local_worker_->proveReplicaUpdate2(
+            sector_, old_sealed_cid, new_sealed_cid, new_unsealed_cid, proofs));
+
+    EXPECT_CALL(mock_ReturnProveReplicaUpdate2,
+                Call(call_id, proof, Eq(boost::none)))
+        .WillOnce(testing::Return(outcome::success()));
+
+    io_context_->run_one();
+  }
+
 }  // namespace fc::sector_storage

@@ -33,33 +33,32 @@ namespace fc::miner {
   class MinerImpl : public Miner {
    public:
     static outcome::result<std::shared_ptr<MinerImpl>> newMiner(
-        std::shared_ptr<FullNodeApi> api,
+        const std::shared_ptr<FullNodeApi> &api,
         const Address &miner_address,
         const Address &worker_address,
-        std::shared_ptr<Counter> counter,
-        std::shared_ptr<BufferMap> sealing_fsm_kv,
-        std::shared_ptr<Manager> sector_manager,
+        const std::shared_ptr<Counter> &counter,
+        const std::shared_ptr<BufferMap> &sealing_fsm_kv,
+        const std::shared_ptr<Manager> &sector_manager,
         const std::shared_ptr<Scheduler> &scheduler,
-        std::shared_ptr<boost::asio::io_context> context,
+        const std::shared_ptr<boost::asio::io_context> &context,
         const mining::Config &config,
         const std::vector<Address> &precommit_control);
 
     outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber sector_id) const override;
 
-    outcome::result<PieceLocation> addPieceToAnySector(UnpaddedPieceSize size,
-                                                       PieceData piece_data,
-                                                       DealInfo deal) override;
+    outcome::result<PieceLocation> addPieceToAnySector(
+        const UnpaddedPieceSize &size,
+        PieceData piece_data,
+        const DealInfo &deal) override;
 
     Address getAddress() const override;
 
     std::shared_ptr<Sealing> getSealing() const override;
 
    private:
-    MinerImpl(std::shared_ptr<FullNodeApi> api,
-              std::shared_ptr<Sealing> sealing);
+    explicit MinerImpl(std::shared_ptr<Sealing> sealing);
 
-    std::shared_ptr<FullNodeApi> api_;
     std::shared_ptr<Sealing> sealing_;
   };
 

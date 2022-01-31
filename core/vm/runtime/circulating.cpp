@@ -78,7 +78,7 @@ namespace fc::vm {
     if (calico) {
       vest(0, 10632000);
     }
-    if (epoch <= kUpgradeActorsV2Height) {
+    if (epoch <= kUpgradeAssemblyHeight) {
       vested += genesis;
     }
 
@@ -88,7 +88,7 @@ namespace fc::vm {
     mined = reward_state->total_reward;
 
     TokenAmount disbursed;
-    if (epoch > kUpgradeActorsV2Height) {
+    if (epoch > kUpgradeAssemblyHeight) {
       OUTCOME_TRY(reserve, state_tree->get(actor::kReserveActorAddress));
       disbursed =
           TokenAmount{kFilReserve} * kFilecoinPrecision - reserve.balance;

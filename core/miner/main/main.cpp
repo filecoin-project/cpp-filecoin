@@ -94,7 +94,7 @@ namespace fc {
     boost::optional<Address> actor, owner, worker;
     boost::optional<RegisteredSealProof> seal_type;
     std::vector<Address> precommit_control;
-    int api_port;
+    int api_port{};
 
     /** Path to presealed sectors */
     boost::optional<boost::filesystem::path> preseal_path;
@@ -125,8 +125,8 @@ namespace fc {
     for (const auto &elem : meta.sectors) {
       // TODO(ortyomka): migrate sealing info
 
-      if (max_sector < elem.sector_id) {
-        max_sector = elem.sector_id;
+      if (max_sector <= elem.sector_id) {
+        max_sector = elem.sector_id + 1;
       }
     }
     OUTCOME_TRY(sc.setNumber(max_sector));
@@ -204,6 +204,7 @@ namespace fc {
     return config;
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> setupMiner(Config &config,
                                    BufferMap &kv,
                                    const PeerId &peer_id) {
@@ -335,6 +336,7 @@ namespace fc {
     return outcome::success();
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   outcome::result<void> main(Config &config) {
     log()->debug("Starting ", miner::kMinerVersion);
 
@@ -426,6 +428,18 @@ namespace fc {
                 sector_storage::SchedulerImpl::newScheduler(
                     io_thread2.io, prefixed("scheduler_works/")));
     IoThread io_thread3;
+
+    {
+      uint64_t cpus = std::thread::hardware_concurrency();
+      if (cpus == 0) {
+        cpus = sysconf(_SC_NPROCESSORS_ONLN);
+      }
+
+      for (size_t i{0}; i < cpus; ++i) {
+        pool.emplace_back(std::thread{[&] { io_thread3.io->run(); }});
+      }
+    }
+
     OUTCOME_TRY(
         manager,
         sector_storage::ManagerImpl::newManager(
@@ -435,7 +449,8 @@ namespace fc {
     mining::Config default_config{.max_wait_deals_sectors = 2,
                                   .max_sealing_sectors = 0,
                                   .max_sealing_sectors_for_deals = 0,
-                                  .wait_deals_delay = std::chrono::hours(6)};
+                                  .wait_deals_delay = std::chrono::hours(6),
+                                  .batch_pre_commits = true};
     OUTCOME_TRY(miner,
                 miner::MinerImpl::newMiner(
                     napi,
@@ -532,6 +547,11 @@ namespace fc {
         api::makeRpc(*mapi,
                      std::bind(mapi->AuthVerify, std::placeholders::_1)));
     auto mroutes{std::make_shared<api::Routes>()};
+    mroutes->emplace("/health", [](auto &) {
+      api::http::response<api::http::string_body> res;
+      res.body() = "{\"status\":\"UP\"}";
+      return api::WrapperResponse{std::move(res)};
+    });
 
     mroutes->insert({"/remote",
                      api::makeAuthRoute(

@@ -56,17 +56,17 @@ namespace fc::vm::actor::builtin::types::miner {
     return a.index < b.index;
   }
 
-  outcome::result<std::vector<std::vector<SectorOnChainInfo>>> assignDeadlines(
-      uint64_t max_partitions,
-      uint64_t partition_size,
-      const std::map<uint64_t, Universal<Deadline>> &deadlines,
-      const std::vector<SectorOnChainInfo> &sectors) {
+  outcome::result<std::vector<std::vector<Universal<SectorOnChainInfo>>>>
+  assignDeadlines(uint64_t max_partitions,
+                  uint64_t partition_size,
+                  const std::map<uint64_t, Universal<Deadline>> &deadlines,
+                  const std::vector<Universal<SectorOnChainInfo>> &sectors) {
     const DeadlineAssignmentLess less{max_partitions, partition_size};
     const auto cmp{
         [less](const auto &l, const auto &r) { return !less(l, r); }};
 
     std::vector<DeadlineAssignmentInfo> deadline_infos;
-
+    deadline_infos.reserve(deadlines.size());
     for (const auto &[dl_id, deadline] : deadlines) {
       deadline_infos.push_back(
           DeadlineAssignmentInfo{.index = dl_id,
@@ -76,7 +76,7 @@ namespace fc::vm::actor::builtin::types::miner {
 
     std::make_heap(deadline_infos.begin(), deadline_infos.end(), cmp);
 
-    std::vector<std::vector<SectorOnChainInfo>> changes;
+    std::vector<std::vector<Universal<SectorOnChainInfo>>> changes;
     changes.resize(kWPoStPeriodDeadlines);
 
     for (const auto &sector : sectors) {

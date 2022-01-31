@@ -83,6 +83,31 @@ namespace fc::primitives::sector {
     }
   }
 
+  outcome::result<RegisteredUpdateProof> getRegisteredUpdateProof(
+      RegisteredSealProof proof) {
+    switch (proof) {
+      case RegisteredSealProof::kStackedDrg64GiBV1:
+      case RegisteredSealProof::kStackedDrg64GiBV1_1:
+        return RegisteredUpdateProof::kStackedDrg64GiBV1;
+      case RegisteredSealProof::kStackedDrg32GiBV1:
+      case RegisteredSealProof::kStackedDrg32GiBV1_1:
+        return RegisteredUpdateProof::kStackedDrg32GiBV1;
+      case RegisteredSealProof::kStackedDrg512MiBV1:
+      case RegisteredSealProof::kStackedDrg512MiBV1_1:
+        return RegisteredUpdateProof::kStackedDrg512MiBV1;
+      case RegisteredSealProof::kStackedDrg8MiBV1:
+      case RegisteredSealProof::kStackedDrg8MiBV1_1:
+        return RegisteredUpdateProof::kStackedDrg8MiBV1;
+      case RegisteredSealProof::kStackedDrg2KiBV1:
+      case RegisteredSealProof::kStackedDrg2KiBV1_1:
+        return RegisteredUpdateProof::kStackedDrg2KiBV1;
+      case RegisteredSealProof::kUndefined:
+        return RegisteredUpdateProof::kUndefined;
+      default:
+        return Errors::kInvalidSealProof;
+    }
+  }
+
   outcome::result<SectorSize> getSectorSize(RegisteredSealProof proof) {
     switch (proof) {
       case RegisteredSealProof::kStackedDrg64GiBV1:

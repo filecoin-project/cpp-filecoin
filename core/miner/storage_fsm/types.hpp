@@ -76,16 +76,16 @@ namespace fc::mining::types {
   CBOR_TUPLE(Piece, piece, deal_info)
 
   struct SectorInfo {
-    SealingState state;
+    SealingState state{SealingState::kStateUnknown};
 
-    SectorNumber sector_number;
-    RegisteredSealProof sector_type;
+    SectorNumber sector_number{};
+    RegisteredSealProof sector_type{RegisteredSealProof::kUndefined};
     std::vector<Piece> pieces;
 
     SealRandomness ticket;
-    ChainEpoch ticket_epoch;
+    ChainEpoch ticket_epoch{};
     PreCommit1Output precommit1_output;
-    uint64_t precommit2_fails;
+    uint64_t precommit2_fails{};
 
     boost::optional<CID> comm_d;
     boost::optional<CID> comm_r;
@@ -97,15 +97,22 @@ namespace fc::mining::types {
     std::vector<CbCid> precommit_tipset;
 
     InteractiveRandomness seed;
-    ChainEpoch seed_epoch;
+    ChainEpoch seed_epoch{};
 
     proofs::Proof proof;
     boost::optional<CID> message;
-    uint64_t invalid_proofs;
+    uint64_t invalid_proofs{};
 
     boost::optional<CID> fault_report_message;
 
-    SealingState return_state;
+    bool update{false};
+    std::vector<Piece> update_pieces;
+    boost::optional<CID> update_comm_d;
+    boost::optional<CID> update_comm_r;
+    boost::optional<Bytes> update_proof;
+    boost::optional<CID> update_message;
+
+    SealingState return_state{};
 
     inline std::vector<UnpaddedPieceSize> getExistingPieceSizes() const {
       std::vector<UnpaddedPieceSize> result;
@@ -197,7 +204,7 @@ namespace fc::mining::types {
              return_state)
 
   struct PieceLocation {
-    SectorNumber sector;
+    SectorNumber sector{};
     PaddedPieceSize offset;
     PaddedPieceSize size;
   };

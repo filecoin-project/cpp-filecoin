@@ -53,6 +53,7 @@ namespace fc::mining::checks {
         return kMaxProveCommitDuration;
       case ActorVersion::kVersion5:
       case ActorVersion::kVersion6:
+      case ActorVersion::kVersion7:
         return sector_info->sector_type
                        >= api::RegisteredSealProof::kStackedDrg2KiBV1_1
                    ? 30 * kEpochsInDay + kPreCommitChallengeDelay
@@ -60,10 +61,11 @@ namespace fc::mining::checks {
     }
   }
 
-  outcome::result<void> checkPieces(
+  outcome::result<size_t> checkPieces(
       const Address &miner_address,
       const std::shared_ptr<SectorInfo> &sector_info,
       const std::shared_ptr<FullNodeApi> &api) {
+    size_t deal_count{0};
     OUTCOME_TRY(chain_head, api->ChainHead());
 
     for (const auto &piece : sector_info->pieces) {
@@ -95,9 +97,10 @@ namespace fc::mining::checks {
       if (chain_head->epoch() >= proposal.proposal.start_epoch) {
         return ChecksError::kExpiredDeal;
       }
+      ++deal_count;
     }
 
-    return outcome::success();
+    return deal_count;
   }
 
   outcome::result<CID> getDataCommitment(
@@ -275,6 +278,48 @@ namespace fc::mining::checks {
     return outcome::success();
   }
 
+  outcome::result<void> checkUpdate(
+      const Address &miner_address,
+      const std::shared_ptr<SectorInfo> &sector_info,
+      const TipsetKey &tipset_key,
+      const std::shared_ptr<FullNodeApi> &api,
+      const std::shared_ptr<proofs::ProofEngine> &proofs) {
+    if (!sector_info->comm_r) {
+      return ERROR_TEXT("checkUpdate: no comm_r");
+    }
+    if (!sector_info->update) {
+      return ERROR_TEXT("checkUpdate: not marked for update");
+    }
+    OUTCOME_TRY(deal_count, checkPieces(miner_address, sector_info, api));
+    if (deal_count == 0) {
+      return ERROR_TEXT("checkUpdate: no deals");
+    }
+    OUTCOME_TRY(comm_d,
+                getDataCommitment(miner_address, sector_info, tipset_key, api));
+    if (sector_info->update_comm_d != comm_d) {
+      return ERROR_TEXT("checkUpdate: wrong update_comm_d");
+    }
+    if (!sector_info->update_comm_r) {
+      return ERROR_TEXT("checkUpdate: no update_comm_r");
+    }
+    if (!sector_info->update_proof) {
+      return ERROR_TEXT("checkUpdate: no update_proof");
+    }
+    OUTCOME_TRY(update_type,
+                getRegisteredUpdateProof(sector_info->sector_type));
+    OUTCOME_TRY(verified,
+                proofs->verifyUpdateProof({
+                    update_type,
+                    *sector_info->comm_r,
+                    *sector_info->update_comm_r,
+                    *sector_info->update_comm_d,
+                    *sector_info->update_proof,
+                }));
+    if (!verified) {
+      return ERROR_TEXT("checkUpdate: wrong proof");
+    }
+    return outcome::success();
+  }
 }  // namespace fc::mining::checks
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::mining::checks, ChecksError, e) {

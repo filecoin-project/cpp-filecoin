@@ -1,0 +1,23 @@
+version: "3.0"
+
+services:
+  fuhon-node:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: fuhon-node
+    image: fuhon-node:develop-build
+    ports:
+      - "1234:1234"
+    volumes:
+      - ./mainnet:/tmp/fuhon
+  fuhon-miner:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: fuhon-miner
+    image: fuhon-miner:develop-build
+    volumes:
+      - ./mainnet:/tmp/fuhon
+    depends_on:
+      - fuhon-node

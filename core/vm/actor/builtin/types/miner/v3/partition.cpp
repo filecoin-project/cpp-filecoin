@@ -13,7 +13,7 @@ namespace fc::vm::actor::builtin::v3::miner {
 
   outcome::result<PowerPair> Partition::addSectors(
       bool proven,
-      const std::vector<SectorOnChainInfo> &sectors,
+      const std::vector<Universal<SectorOnChainInfo>> &sectors,
       SectorSize ssize,
       const QuantSpec &quant) {
     auto expirations = loadExpirationQueue(this->expirations_epochs, quant);

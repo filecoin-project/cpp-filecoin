@@ -68,6 +68,21 @@ namespace fc::sector_storage {
                  outcome::result<CallId>(const SectorRef &,
                                          const Commit1Output &));
 
+    MOCK_METHOD2(replicaUpdate,
+                 outcome::result<CallId>(const SectorRef &,
+                                         const std::vector<PieceInfo> &));
+
+    MOCK_METHOD4(proveReplicaUpdate1,
+                 outcome::result<CallId>(
+                     const SectorRef &, const CID &, const CID &, const CID &));
+
+    MOCK_METHOD5(proveReplicaUpdate2,
+                 outcome::result<CallId>(const SectorRef &,
+                                         const CID &,
+                                         const CID &,
+                                         const CID &,
+                                         const Update1Output &));
+
     MOCK_METHOD2(finalizeSector,
                  outcome::result<CallId>(const SectorRef &,
                                          const gsl::span<const Range> &));

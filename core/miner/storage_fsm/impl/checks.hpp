@@ -22,7 +22,7 @@ namespace fc::mining::checks {
   outcome::result<EpochDuration> getMaxProveCommitDuration(
       NetworkVersion network, const std::shared_ptr<SectorInfo> &sector_info);
 
-  outcome::result<void> checkPieces(
+  outcome::result<size_t> checkPieces(
       const Address &miner_address,
       const std::shared_ptr<SectorInfo> &sector_info,
       const std::shared_ptr<FullNodeApi> &api);
@@ -48,6 +48,13 @@ namespace fc::mining::checks {
       const Address &miner_address,
       const std::shared_ptr<SectorInfo> &sector_info,
       const Proof &proof,
+      const TipsetKey &tipset_key,
+      const std::shared_ptr<FullNodeApi> &api,
+      const std::shared_ptr<proofs::ProofEngine> &proofs);
+
+  outcome::result<void> checkUpdate(
+      const Address &miner_address,
+      const std::shared_ptr<SectorInfo> &sector_info,
       const TipsetKey &tipset_key,
       const std::shared_ptr<FullNodeApi> &api,
       const std::shared_ptr<proofs::ProofEngine> &proofs);

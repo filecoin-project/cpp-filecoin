@@ -958,36 +958,6 @@ namespace fc::proofs {
     return res_ptr->is_valid;
   }
 
-  outcome::result<Bytes> ProofEngineImpl::generateUpdateProof(
-      RegisteredUpdateProof proof_type,
-      const CID &old_sealed_cid,
-      const CID &new_sealed_cid,
-      const CID &unsealed_cid,
-      const std::string &new_replica_path,
-      const std::string &new_replica_cache_path,
-      const std::string &sector_key_path,
-      const std::string &sector_key_cache_path) {
-    OUTCOME_TRY(ffi_update_proof_type, cRegisteredUpdateProof(proof_type));
-    OUTCOME_TRY(comm_r_old, CIDToReplicaCommitmentV1(old_sealed_cid));
-    OUTCOME_TRY(comm_r_new, CIDToReplicaCommitmentV1(new_sealed_cid));
-    OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
-    const auto res_ptr{ffi::wrap(
-        fil_generate_empty_sector_update_proof(ffi_update_proof_type,
-                                               c32ByteArray(comm_r_old),
-                                               c32ByteArray(comm_r_new),
-                                               c32ByteArray(comm_d),
-                                               sector_key_path.c_str(),
-                                               sector_key_cache_path.c_str(),
-                                               new_replica_path.c_str(),
-                                               new_replica_cache_path.c_str()),
-        fil_destroy_empty_sector_update_generate_proof_response)};
-    PROOFS_TRY("generateUpdateProof");
-
-    const auto proof =
-        gsl::span(res_ptr->proof_ptr, gsl::narrow<int64_t>(res_ptr->proof_len));
-    return Bytes(proof.begin(), proof.end());
-  }
-
   outcome::result<bool> ProofEngineImpl::verifyUpdateProof(
       const ReplicaUpdateInfo &info) {
     OUTCOME_TRY(ffi_update_proof_type,
@@ -1133,4 +1103,117 @@ namespace fc::proofs {
 
   ProofEngineImpl::ProofEngineImpl()
       : logger_{common::createLogger("proofs")} {}
+
+  outcome::result<SealedAndUnsealedCID> ProofEngineImpl::updateSeal(
+      RegisteredUpdateProof type,
+      const std::string &path_update,
+      const std::string &path_update_cache,
+      const std::string &path_sealed,
+      const std::string &path_cache,
+      const std::string &path_unsealed,
+      gsl::span<const PieceInfo> pieces) {
+    OUTCOME_TRY(c_type, cRegisteredUpdateProof(type));
+    OUTCOME_TRY(c_pieces, cPublicPieceInfos(pieces));
+    const auto res_ptr{
+        ffi::wrap(fil_empty_sector_update_encode_into(c_type,
+                                                      path_update.c_str(),
+                                                      path_update_cache.c_str(),
+                                                      path_sealed.c_str(),
+                                                      path_cache.c_str(),
+                                                      path_unsealed.c_str(),
+                                                      c_pieces.data(),
+                                                      c_pieces.size()),
+                  fil_destroy_empty_sector_update_encode_into_response)};
+    PROOFS_TRY("updateSeal");
+    SealedAndUnsealedCID result;
+    OUTCOME_TRYA(result.sealed_cid,
+                 replicaCommitmentV1ToCID(res_ptr->comm_r_new));
+    OUTCOME_TRYA(result.unsealed_cid,
+                 dataCommitmentV1ToCID(res_ptr->comm_d_new));
+    return result;
+  }
+
+  outcome::result<void> ProofEngineImpl::updateUnseal(
+      RegisteredUpdateProof type,
+      const std::string &path_unsealed,
+      const std::string &path_update,
+      const std::string &path_sealed,
+      const std::string &path_cache,
+      const CID &cid_unsealed) {
+    OUTCOME_TRY(c_type, cRegisteredUpdateProof(type));
+    OUTCOME_TRY(c_unsealed, CIDToDataCommitmentV1(cid_unsealed));
+    const auto res_ptr{
+        ffi::wrap(fil_empty_sector_update_decode_from(c_type,
+                                                      path_unsealed.c_str(),
+                                                      path_update.c_str(),
+                                                      path_sealed.c_str(),
+                                                      path_cache.c_str(),
+                                                      c32ByteArray(c_unsealed)),
+                  fil_destroy_empty_sector_update_decode_from_response)};
+    PROOFS_TRY("updateUnseal");
+    return outcome::success();
+  }
+
+  outcome::result<UpdateProofs1> ProofEngineImpl::updateProve1(
+      RegisteredUpdateProof type,
+      const CID &cid_sealed_old,
+      const CID &cid_sealed,
+      const CID &cid_unsealed,
+      const std::string &path_update,
+      const std::string &path_update_cache,
+      const std::string &path_sealed,
+      const std::string &path_cache) {
+    OUTCOME_TRY(c_type, cRegisteredUpdateProof(type));
+    OUTCOME_TRY(c_sealed_old, CIDToReplicaCommitmentV1(cid_sealed_old));
+    OUTCOME_TRY(c_sealed, CIDToReplicaCommitmentV1(cid_sealed));
+    OUTCOME_TRY(c_unsealed, CIDToDataCommitmentV1(cid_unsealed));
+    const auto res_ptr{ffi::wrap(
+        fil_generate_empty_sector_update_partition_proofs(
+            c_type,
+            c32ByteArray(c_sealed_old),
+            c32ByteArray(c_sealed),
+            c32ByteArray(c_unsealed),
+            path_sealed.c_str(),
+            path_cache.c_str(),
+            path_update.c_str(),
+            path_update_cache.c_str()),
+        fil_destroy_generate_empty_sector_update_partition_proof_response)};
+    PROOFS_TRY("updateProve1");
+    const auto c_proofs{
+        gsl::make_span(res_ptr->proofs_ptr, res_ptr->proofs_len)};
+    UpdateProofs1 result;
+    result.reserve(c_proofs.size());
+    for (const auto &c_proof : c_proofs) {
+      result.push_back(copy(BytesIn(c_proof.proof_ptr, c_proof.proof_len)));
+    }
+    return result;
+  }
+
+  outcome::result<Bytes> ProofEngineImpl::updateProve2(
+      RegisteredUpdateProof type,
+      const CID &cid_sealed_old,
+      const CID &cid_sealed,
+      const CID &cid_unsealed,
+      UpdateProofs1 proofs1) {
+    OUTCOME_TRY(c_type, cRegisteredUpdateProof(type));
+    OUTCOME_TRY(c_sealed_old, CIDToReplicaCommitmentV1(cid_sealed_old));
+    OUTCOME_TRY(c_sealed, CIDToReplicaCommitmentV1(cid_sealed));
+    OUTCOME_TRY(c_unsealed, CIDToDataCommitmentV1(cid_unsealed));
+    std::vector<fil_PartitionProof> c_proofs;
+    c_proofs.reserve(proofs1.size());
+    for (const auto &proof : proofs1) {
+      c_proofs.push_back({proof.size(), proof.data()});
+    }
+    const auto res_ptr{
+        ffi::wrap(fil_generate_empty_sector_update_proof_with_vanilla(
+                      c_type,
+                      c_proofs.data(),
+                      c_proofs.size(),
+                      c32ByteArray(c_sealed_old),
+                      c32ByteArray(c_sealed),
+                      c32ByteArray(c_unsealed)),
+                  fil_destroy_empty_sector_update_generate_proof_response)};
+    PROOFS_TRY("updateProve2");
+    return copy(BytesIn(res_ptr->proof_ptr, res_ptr->proof_len));
+  }
 }  // namespace fc::proofs

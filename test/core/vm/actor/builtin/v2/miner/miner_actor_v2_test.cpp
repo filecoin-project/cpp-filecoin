@@ -633,11 +633,11 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     const ChainEpoch chain_commit_epoch = current_epoch - 10;
 
-    std::vector<SectorOnChainInfo> sectors;
+    std::vector<Universal<SectorOnChainInfo>> sectors;
     for (uint64_t i = 0; i < 4; i++) {
-      SectorOnChainInfo sector;
-      sector.sector = i;
-      sector.sealed_cid = kEmptyObjectCid;
+      Universal<SectorOnChainInfo> sector{actor_version};
+      sector->sector = i;
+      sector->sealed_cid = kEmptyObjectCid;
       sectors.push_back(sector);
     }
 
@@ -779,12 +779,12 @@ namespace fc::vm::actor::builtin::v2::miner {
         .replace_partition = partition_id,
         .replace_sector = replace_sector};
 
-    SectorOnChainInfo sector;
-    sector.sector = replace_sector;
-    sector.sealed_cid = kEmptyObjectCid;
-    sector.seal_proof = RegisteredSealProof::kStackedDrg32GiBV1;
-    sector.expiration = current_epoch + kMinSectorExpiration;
-    sector.init_pledge = 100;
+    Universal<SectorOnChainInfo> sector{actor_version};
+    sector->sector = replace_sector;
+    sector->sealed_cid = kEmptyObjectCid;
+    sector->seal_proof = RegisteredSealProof::kStackedDrg32GiBV1;
+    sector->expiration = current_epoch + kMinSectorExpiration;
+    sector->init_pledge = 100;
     EXPECT_OUTCOME_TRUE_1(state->sectors.store({sector}));
 
     Universal<Partition> partition{actor_version};

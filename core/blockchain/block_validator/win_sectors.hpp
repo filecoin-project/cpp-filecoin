@@ -12,17 +12,17 @@ namespace fc::blockchain::block_validator {
   using crypto::randomness::Randomness;
   using primitives::RleBitset;
   using primitives::address::Address;
-  using primitives::sector::SectorInfo;
+  using primitives::sector::ExtendedSectorInfo;
   using vm::actor::builtin::states::MinerActorStatePtr;
   using vm::version::NetworkVersion;
 
+  inline outcome::result<std::vector<ExtendedSectorInfo>>
   // NOLINTNEXTLINE(readability-function-cognitive-complexity)
-  inline outcome::result<std::vector<SectorInfo>> getSectorsForWinningPoSt(
-      NetworkVersion network,
-      const Address &miner,
-      const MinerActorStatePtr &state,
-      const Randomness &rand) {
-    std::vector<SectorInfo> sectors;
+  getSectorsForWinningPoSt(NetworkVersion network,
+                           const Address &miner,
+                           const MinerActorStatePtr &state,
+                           const Randomness &rand) {
+    std::vector<ExtendedSectorInfo> sectors;
     RleBitset sectors_bitset;
     OUTCOME_TRY(deadlines, state->deadlines.get());
     for (const auto &deadline_cid : deadlines.due) {
@@ -55,9 +55,10 @@ namespace fc::blockchain::block_validator {
       for (const auto &i : indices) {
         OUTCOME_TRY(sector, state->sectors.sectors.get(sector_ids[i]));
         sectors.push_back({
-            sector.seal_proof,
-            sector.sector,
-            sector.sealed_cid,
+            sector->seal_proof,
+            sector->sector,
+            sector->sector_key_cid,
+            sector->sealed_cid,
         });
       }
     }

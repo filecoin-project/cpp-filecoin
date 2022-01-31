@@ -166,7 +166,7 @@ namespace fc::vm::actor::builtin::v2::miner {
         .partitions = {}};
   }
 
-  outcome::result<std::vector<SectorOnChainInfo>>
+  outcome::result<std::vector<Universal<SectorOnChainInfo>>>
   Deadline::rescheduleSectorExpirations(
       const Sectors &sectors,
       ChainEpoch expiration,
@@ -174,7 +174,7 @@ namespace fc::vm::actor::builtin::v2::miner {
       SectorSize ssize,
       const QuantSpec &quant) {
     RleBitset rescheduled_partitions;
-    std::vector<SectorOnChainInfo> all_replaced;
+    std::vector<Universal<SectorOnChainInfo>> all_replaced;
 
     for (const auto &[part_id, sector_nos] : partition_sectors.map) {
       OUTCOME_TRY(maybe_partition, this->partitions.tryGet(part_id));

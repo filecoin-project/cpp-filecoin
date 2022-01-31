@@ -5,7 +5,10 @@
 
 #include "miner/storage_fsm/impl/precommit_batcher_impl.hpp"
 
+#include <utility>
+
 #include "vm/actor/actor.hpp"
+#include "vm/actor/builtin/types/miner/v6/monies.hpp"
 #include "vm/actor/builtin/v5/miner/miner_actor.hpp"
 
 namespace fc::mining {
@@ -14,25 +17,26 @@ namespace fc::mining {
   using vm::actor::MethodParams;
   using vm::actor::builtin::types::miner::kChainFinality;
   using vm::actor::builtin::v5::miner::PreCommitBatch;
+  using vm::actor::builtin::v6::miner::aggregatePreCommitNetworkFee;
 
-  PreCommitBatcherImpl::PreCommitEntry::PreCommitEntry(
-      const TokenAmount &number, const SectorPreCommitInfo &info)
-      : deposit(number), precommit_info(info){};
+  PreCommitBatcherImpl::PreCommitEntry::PreCommitEntry(TokenAmount number,
+                                                       SectorPreCommitInfo info)
+      : deposit(std::move(number)), precommit_info(std::move(info)){};
 
   PreCommitBatcherImpl::PreCommitBatcherImpl(
       const std::chrono::milliseconds &max_time,
       std::shared_ptr<FullNodeApi> api,
-      const Address &miner_address,
-      const std::shared_ptr<Scheduler> &scheduler,
-      const AddressSelector &address_selector,
+      Address miner_address,
+      std::shared_ptr<Scheduler> scheduler,
+      AddressSelector address_selector,
       std::shared_ptr<FeeConfig> fee_config)
       : max_delay_(max_time),
         api_(std::move(api)),
-        miner_address_(miner_address),
-        scheduler_(scheduler),
+        miner_address_(std::move(miner_address)),
+        scheduler_(std::move(scheduler)),
         closest_cutoff_(max_time),
         fee_config_(std::move(fee_config)),
-        address_selector_(address_selector) {
+        address_selector_(std::move(address_selector)) {
     cutoff_start_ = std::chrono::system_clock::now();
     logger_ = common::createLogger("batcher");
     logger_->info("Batcher has been started");
@@ -58,21 +62,34 @@ namespace fc::mining {
   }
 
   outcome::result<CID> PreCommitBatcherImpl::sendBatch() {
-    if (batch_storage_.size() != 0) {
+    if (!batch_storage_.empty()) {
       logger_->info("Sending procedure started");
       OUTCOME_TRY(head, api_->ChainHead());
       OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, head->key));
 
       PreCommitBatch::Params params;
-
+      TokenAmount mutual_deposit;
       for (const auto &data : batch_storage_) {
-        mutual_deposit_ += data.second.deposit;
+        mutual_deposit += data.second.deposit;
         params.sectors.push_back(data.second.precommit_info);
       }
       TokenAmount max_fee =
           fee_config_->max_precommit_batch_gas_fee.FeeForSector(
               params.sectors.size());
-      TokenAmount good_funds = mutual_deposit_ + max_fee;
+
+      const auto base_fee = head->blks[0].parent_base_fee;
+      const TokenAmount agg_fee_raw =
+          aggregatePreCommitNetworkFee(params.sectors.size(), base_fee);
+
+      static TokenAmount kAggFeeNum{110};
+      static TokenAmount kAggFeeDen{100};
+      const TokenAmount agg_fee = bigdiv(agg_fee_raw * kAggFeeNum, kAggFeeDen);
+
+      const auto need_funds = mutual_deposit + agg_fee;
+
+      // TODO(ortyomka): Collateral Send Amount
+
+      const TokenAmount good_funds = max_fee + need_funds;
       OUTCOME_TRY(encodedParams, codec::cbor::encode(params));
       OUTCOME_TRY(address, address_selector_(minfo, good_funds, api_));
       OUTCOME_TRY(signed_message,
@@ -80,14 +97,13 @@ namespace fc::mining {
                       vm::message::UnsignedMessage(miner_address_,
                                                    address,
                                                    0,
-                                                   mutual_deposit_,
+                                                   need_funds,
                                                    max_fee,
                                                    {},
                                                    PreCommitBatch::Number,
                                                    MethodParams{encodedParams}),
                       kPushNoSpec));
 
-      mutual_deposit_ = 0;
       batch_storage_.clear();
       logger_->info("Sending procedure completed");
       cutoff_start_ = std::chrono::system_clock::now();
@@ -154,7 +170,7 @@ namespace fc::mining {
 
     const auto &sn = sector_info.sector_number;
     batch_storage_[sn] = PreCommitEntry(deposit, precommit_info);
-    callbacks_[sn] = callback;  // TODO: batcher upper limit
+    callbacks_[sn] = callback;  // TODO(Elestrias): batcher upper limit
     setPreCommitCutoff(head->epoch(), sector_info);
     return outcome::success();
   }
