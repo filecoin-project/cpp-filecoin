@@ -64,7 +64,7 @@ namespace fc::common {
    *
    * @tparam Enumeration - enum type
    * @param value - to convert
-   * @return string value of enum
+   * @return option of string value of enum or none
    */
   template <typename Enumeration>
   boost::optional<std::string_view> to_string(
@@ -90,13 +90,13 @@ namespace fc::common {
    *   @nocode
    *   Can be converted as:
    *   @code
-   *   Enumeration result = to_string(value);
+   *   std::string_view result = from_string(Enumerator);
    *   @nocode
    *
    * @tparam Enumeration - enum type
    * @param value - to convert
-   * @return string value of enum
-   */
+   * @return option of Enum class object or none
+   * */
   template <typename Enumeration>
   boost::optional<Enumeration> from_string(
       const std::string_view value) {

@@ -1376,13 +1376,11 @@ namespace fc::api {
     ENCODE(HealthReport) {
       Value j{rapidjson::kObjectType};
       Set(j, "Stat", v.stat);
-      // Set(j, "Error", v.error);
       return j;
     }
 
     DECODE(HealthReport) {
       decode(v.stat, Get(j, "Stat"));
-      // decode(v.error, Get(j, "Error"));
     }
 
     ENCODE(libp2p::multi::Multiaddress) {
