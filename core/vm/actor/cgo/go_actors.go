@@ -112,7 +112,8 @@ import (
 	reward7 "github.com/filecoin-project/specs-actors/v7/actors/builtin/reward"
 	system7 "github.com/filecoin-project/specs-actors/v7/actors/builtin/system"
 	verifreg7 "github.com/filecoin-project/specs-actors/v7/actors/builtin/verifreg"
-	rt7 "github.com/filecoin-project/specs-actors/v6/actors/runtime"
+	rt7 "github.com/filecoin-project/specs-actors/v7/actors/runtime"
+	proof7 "github.com/filecoin-project/specs-actors/v7/actors/runtime/proof"
 	"github.com/ipfs/go-cid"
 	"github.com/whyrusleeping/cbor-gen"
 )
@@ -543,6 +544,33 @@ func MarshalCBOR_WindowPoStVerifyInfo(out *cborOut, t *proof1.WindowPoStVerifyIn
 	return nil
 }
 
+func MarshalCBOR_ReplicaUpdateInfo(out *cborOut, t *proof7.ReplicaUpdateInfo) error {
+	w := out.w
+	if _, e := w.Write(cborArray5); e != nil {
+		return e
+	}
+	s := make([]byte, 9)
+	if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajUnsignedInt, uint64(t.UpdateProofType)); e != nil {
+		return e
+	}
+	if e := typegen.WriteCid(w, t.OldSealedSectorCID); e != nil {
+		return e
+	}
+	if e := typegen.WriteCid(w, t.NewSealedSectorCID); e != nil {
+		return e
+	}
+	if e := typegen.WriteCid(w, t.NewUnsealedSectorCID); e != nil {
+		return e
+	}
+	if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajByteString, uint64(len(t.Proof))); e != nil {
+		return e
+	}
+	if _, e := w.Write(t.Proof[:]); e != nil {
+		return e
+	}
+	return nil
+}
+
 func (rt *rt) VerifyPoSt(info proof1.WindowPoStVerifyInfo) error {
 	arg := rt.gocArg()
 	if e := MarshalCBOR_WindowPoStVerifyInfo(arg, &info); e != nil {
@@ -561,6 +589,18 @@ func (rt *rt) VerifyAggregateSeals(aggregate proof5.AggregateSealVerifyProofAndI
 		panic(cgoErrors("VerifyAggregateSeals MarshalCBOR"))
 	}
 	ret := rt.gocRet(C.gocRtVerifyAggregateSeals(arg.arg()))
+	if ret.bool() {
+		return nil
+	}
+	return exitcode.ErrIllegalArgument
+}
+
+func (rt *rt) VerifyReplicaUpdate(info proof7.ReplicaUpdateInfo) error {
+	arg := rt.gocArg()
+	if e := MarshalCBOR_ReplicaUpdateInfo(arg, &info); e != nil {
+		panic(cgoErrors("VerifyReplicaUpdate MarshalCBOR"))
+	}
+	ret := rt.gocRet(C.gocRtVerifyReplicaUpdate(arg.arg()))
 	if ret.bool() {
 		return nil
 	}

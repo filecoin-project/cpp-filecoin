@@ -135,6 +135,9 @@ namespace fc::vm::runtime {
                           ->second};
       return static_cast<GasAmount>(n) * (_64gib ? 359272 : 449900) + step;
     }
+    GasAmount onVerifyReplicaUpdate() {
+      return make(calico ? 36316136 : 0, 0);
+    }
     static inline GasAmount onVerifyConsensusFault() {
       return make(495422, 0);
     }

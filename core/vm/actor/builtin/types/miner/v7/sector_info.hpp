@@ -22,6 +22,8 @@ namespace fc::vm::actor::builtin::v7::miner {
              init_pledge,
              expected_day_reward,
              expected_storage_pledge,
+             replaced_sector_age,
+             replaced_day_reward,
              sector_key_cid)
 
 }  // namespace fc::vm::actor::builtin::v7::miner

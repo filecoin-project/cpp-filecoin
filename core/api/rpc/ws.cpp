@@ -163,7 +163,14 @@ namespace fc::api {
         return std::nullopt;
       }
 
-      return static_cast<std::string>(auth_token.substr(perfix.size()));
+      return std::string{auth_token.substr(perfix.size())};
+    }
+    const std::string_view url{request.target().data(),
+                               request.target().size()};
+    constexpr std::string_view kParam{"?token="};
+    const auto pos{url.find(kParam)};
+    if (pos != url.npos) {
+      return std::string{url.substr(pos + kParam.size())};
     }
     return std::string();
   }
