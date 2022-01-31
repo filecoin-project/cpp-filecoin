@@ -1,3 +1,6 @@
+## DO NOT EDIT
+## Generated from build-cpp-filecoin.src.yml with make-workflows.sh
+
 name: Fuhon (cpp-Filecoin)
 
 on:
@@ -7,16 +10,22 @@ on:
   pull_request:
     branches: [ master, feature/github-action-tag-and-publish-docker-image ]  ## target branches
   workflow_dispatch:
-    # inputs:
-    #   build_spec:
-    #     description: 'See chatops-gen-matrix.sh, example "/build ubuntu macos gcc-9 burrow"'
-    #     required: false
-    #     default: '/build'
+    inputs:
+      build_spec:
+        description: 'See chatops-gen-matrix.sh, example "/build ubuntu macos gcc-9 burrow"'
+        required: false
+        default: '/build'
+  # issue_comment:
+  #   types: [created, edited]
   schedule:
     # Triggers the workflow every day at 5:30 and 17:30 UTC
     - cron:  '30 5,17 * * *'
 
 jobs:
+  ## GitHub Actions Workflow does not support yaml anchors
+  ## and that is why there is a workaround with make-workflows.sh
+  ## You should `pre-commit install` or use `pre-commit-hook.sh`,
+  ## anyway please read .github/README.md
   check_workflow_yaml_coressponds_to_src_yaml:
     runs-on: ubuntu-20.04 #ubuntu-latest
     #container: ubuntu:latest  ## This is required as barrier between AWS-hosted runners and GitHub-hosted runners - they have different set of software, so run in container
@@ -25,9 +34,8 @@ jobs:
       - name: REF and SHA of commented PR to ENV
         if: github.event.comment
         run: >
-            curl -fsSL ${{github.event.issue.pull_request.url}}
-            -H "Authorization: token ${{github.token}}" |
-            jq -r '
+            curl -fsSL ${{github.event.issue.pull_request.url}} -H "Authorization: token ${{github.token}}" | jq -r '
+
               "PR_REF="+.head.ref,
               "PR_SHA="+.head.sha,
               "PR_NUM="+(.number|tostring),
@@ -42,7 +50,7 @@ jobs:
         run: |
           set -x
           [[ $(./.github/make-workflows.sh -x --worktree) = *"everything is up to date" ]]
-
+  ## Just to react to valid comment with rocket
   pr_comment_reaction_rocket:
     ## Just to react to valid comment with rocket
     runs-on: ubuntu-20.04 #ubuntu-latest
@@ -68,7 +76,11 @@ jobs:
             -d '{"content":"rocket"}' \
             -H "Accept: application/vnd.github.squirrel-girl-preview+json" \
             -H "Authorization: token ${{github.token}}"
-            
+
+  ## Build docker image named 'hyperledger/iroha-builder' with all stuff to compile iroha and its dependancies
+  ## The result docker image is pushed with tags :pr-NUMBER, :commit-HASH, :branch-name, :tag-name,
+  ## and conditional tags :edge for development branch, and :latest for git-tags.
+  ## Note: image is push only when DockerHub login-token pair available - not to PRs from forks.
   Docker-fuhon-builder:
     needs: check_workflow_yaml_coressponds_to_src_yaml
     runs-on: ubuntu-20.04 #ubuntu-latest #[ self-hosted, Linux ]
@@ -107,6 +119,19 @@ jobs:
           event.action:${{github.event.action}}
           event.issue.number:${{ github.event.issue.number }}
           END
+      - name: REF and SHA of commented PR to ENV
+        if: github.event.comment
+        run: >
+          curl -fsSL ${{github.event.issue.pull_request.url}} -H "Authorization: token ${{github.token}}" | jq -r '
+            "PR_REF="+.head.ref,
+            "PR_SHA="+.head.sha,
+            "PR_NUM="+(.number|tostring),
+            "PR_REPO="+.head.repo.full_name' >>$GITHUB_ENV
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: ${{env.PR_REF}} ## not empty on issue_comment, else default value GITHUB_REF
+          repository: ${{env.PR_REPO}} ## not empty on issue_comment, else default value github.repository, required by forks
       - name: Determine dockertag
         id: dockertag
         env:
