@@ -43,7 +43,7 @@ jobs:
         name: Checkout
         uses: actions/checkout@v2
         with: &step_checkout_with
-          ref:        ${{env.PR_REF}}  ## not empty on issue_comment, else default value GITHUB_REF
+          ref: ${{env.PR_REF}}  ## not empty on issue_comment, else default value GITHUB_REF
           repository: ${{env.PR_REPO}} ## not empty on issue_comment, else default value github.repository, required by forks
       -
         run: sudo snap install yq
@@ -53,37 +53,6 @@ jobs:
           set -x
           [[ $(./.github/make-workflows.sh -x --worktree) = *"everything is up to date" ]]
 
-  ## Just to react to valid comment with rocket
-  pr_comment_reaction_rocket:
-    ## Just to react to valid comment with rocket
-    runs-on: ubuntu-20.04 #ubuntu-latest
-    if: ${{ github.event.comment &&
-          github.event.issue.pull_request &&
-          startsWith(github.event.comment.body, '/build') }}
-    steps:
-      - &step_show_context
-        name: Show context
-        run: |
-          echo "::group::GitHub context"
-          cat <<'END'
-          ${{ toJson(github) }}
-          END
-          echo "::endgroup::"
-          echo "::group::GitHub needs"
-          cat <<'END'
-          ${{ toJson(needs) }}
-          END
-          echo "::endgroup::"
-      -
-        name: Reaction
-        run: |
-          # send reaction to comment to show build was triggered
-          curl ${{github.event.comment.url}}/reactions \
-            -X POST \
-            -d '{"content":"rocket"}' \
-            -H "Accept: application/vnd.github.squirrel-girl-preview+json" \
-            -H "Authorization: token ${{github.token}}"
-
   ## Build docker image named 'filecoin/fuhon-builder' with all stuff to compile fuhon and its dependancies
   ## The result docker image is pushed with tags :pr-NUMBER, :commit-HASH, :branch-name, :tag-name,
   ## and conditional tags :edge for development branch, and :latest for git-tags.
@@ -92,9 +61,9 @@ jobs:
     needs: check_workflow_yaml_coressponds_to_src_yaml
     runs-on: ubuntu-20.04 #ubuntu-latest #[ self-hosted, Linux ]
     env: &env_dockerhub
-      DOCKERHUB_ORG:      filecoin   ## Cannot use ${{ secrets.DOCKERHUB_ORG }}
+      DOCKERHUB_ORG: filecoin   ## Cannot use ${{ secrets.DOCKERHUB_ORG }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN:    ${{ secrets.DOCKERHUB_TOKEN }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     steps:
       - *step_show_context
       - &step_system_info
@@ -186,8 +155,8 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key:           ${{ runner.os }}-buildx-${{env.dockertag}}
-          restore-keys:  ${{ runner.os }}-buildx-
+          key: ${{ runner.os }}-buildx-${{env.dockertag}}
+          restore-keys: ${{ runner.os }}-buildx-
       - &step_docker_build_and_push
         id: build_and_push
         name: Build and push
@@ -197,7 +166,7 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: ${{ steps.docker_login.outcome == 'success' }}
-          tags:   ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
       - &step_docker_build_and_push_ghcr
         <<: *step_docker_build_and_push
@@ -220,7 +189,7 @@ jobs:
         name: Check if dockertaghash exists in remote registry
         id: dockertag_already
         run: |
-          echo "::set-output name=container::$DOCKERHUB_ORG/iroha-builder:$dockertag"
+          echo "::set-output name=container::$DOCKERHUB_ORG/fuhon-builder:$dockertag"
       -
         name: Possible ERROR, Dockerfile edited but image cannot be pushed
         if: ${{ steps.docker_login.outcome != 'success' || steps.build_and_push.outcome != 'success' }}
@@ -244,7 +213,7 @@ jobs:
               - head repo is '${{github.event.pull_request.head.repo.full_name}}'
               - base repo is '${{github.event.pull_request.base.repo.full_name}}'
               - See more information in previous step 'Show context'
-              
+
             Please ask @kuvaldini on GitHub or in Telegram if you need help.
           END
           false
