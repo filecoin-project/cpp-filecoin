@@ -17,7 +17,7 @@ namespace fc::sector_storage::stores {
                                        const FsStat &stat));
     MOCK_CONST_METHOD1(
         getStorageInfo,
-        outcome::result<SectorStorageInfo>(const StorageID &storage_id));
+        outcome::result<StorageInfo>(const StorageID &storage_id));
     MOCK_METHOD2(storageReportHealth,
                  outcome::result<void>(const StorageID &storage_id,
                                        const HealthReport &report));
@@ -39,7 +39,7 @@ namespace fc::sector_storage::stores {
                                                   boost::optional<SectorSize>));
 
     MOCK_METHOD3(storageBestAlloc,
-                 outcome::result<std::vector<SectorStorageInfo>>(
+                 outcome::result<std::vector<StorageInfo>>(
                      const SectorFileType &, SectorSize, bool));
 
     MOCK_METHOD3(storageLock,
