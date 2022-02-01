@@ -1,0 +1,90 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "remote_worker/remote_worker_api.hpp"
+
+namespace fc::remote_worker {
+  using api::VersionResult;
+  using primitives::piece::PieceInfo;
+  using primitives::piece::UnpaddedByteIndex;
+  using primitives::piece::UnpaddedPieceSize;
+  using primitives::sector::SealRandomness;
+  using primitives::sector::SectorRef;
+  using sector_storage::AcquireMode;
+  using sector_storage::Commit1Output;
+  using sector_storage::InteractiveRandomness;
+  using sector_storage::PathType;
+  using sector_storage::PreCommit1Output;
+  using sector_storage::Range;
+  using sector_storage::SectorCids;
+  using sector_storage::SectorFileType;
+
+  std::shared_ptr<WorkerApi> makeWorkerApi(
+      const std::shared_ptr<LocalStore> &local_store,
+      const std::shared_ptr<LocalWorker> &worker) {
+    auto worker_api{std::make_shared<api::WorkerApi>()};
+    worker_api->Version = []() { return VersionResult{"seal-worker", 0, 0}; };
+    worker_api->StorageAddLocal = [&](const std::string &path) {
+      return local_store->openPath(path);
+    };
+    worker_api->Fetch = [&](const SectorRef &sector,
+                            const SectorFileType &file_type,
+                            PathType path_type,
+                            AcquireMode mode) {
+      return worker->fetch(sector, file_type, path_type, mode);
+    };
+    worker_api->UnsealPiece = [&](const SectorRef &sector,
+                                  UnpaddedByteIndex offset,
+                                  const UnpaddedPieceSize &size,
+                                  const SealRandomness &randomness,
+                                  const CID &unsealed_cid) {
+      return worker->unsealPiece(
+          sector, offset, size, randomness, unsealed_cid);
+    };
+    worker_api->MoveStorage = [&](const SectorRef &sector,
+                                  const SectorFileType &types) {
+      return worker->moveStorage(sector, types);
+    };
+
+    worker_api->Info = [&]() { return worker->getInfo(); };
+    worker_api->Paths = [&]() { return worker->getAccessiblePaths(); };
+    worker_api->TaskTypes =
+        [&]() -> outcome::result<std::set<primitives::TaskType>> {
+      OUTCOME_TRY(tasks, worker->getSupportedTask());
+      // TODO(ortyomka): [FIL-344] Remove its
+      tasks.extract(primitives::kTTAddPiece);
+      return std::move(tasks);
+    };
+
+    worker_api->SealPreCommit1 = [&](const SectorRef &sector,
+                                     const SealRandomness &ticket,
+                                     const std::vector<PieceInfo> &pieces) {
+      return worker->sealPreCommit1(sector, ticket, pieces);
+    };
+    worker_api->SealPreCommit2 =
+        [&](const SectorRef &sector,
+            const PreCommit1Output &pre_commit_1_output) {
+          return worker->sealPreCommit2(sector, pre_commit_1_output);
+        };
+    worker_api->SealCommit1 = [&](const SectorRef &sector,
+                                  const SealRandomness &ticket,
+                                  const InteractiveRandomness &seed,
+                                  const std::vector<PieceInfo> &pieces,
+                                  const SectorCids &cids) {
+      return worker->sealCommit1(sector, ticket, seed, pieces, cids);
+    };
+    worker_api->SealCommit2 = [&](const SectorRef &sector,
+                                  const Commit1Output &commit_1_output) {
+      return worker->sealCommit2(sector, commit_1_output);
+    };
+    worker_api->FinalizeSector = [&](const SectorRef &sector,
+                                     std::vector<Range> keep_unsealed) {
+      return worker->finalizeSector(sector, keep_unsealed);
+    };
+
+    return worker_api;
+  };
+
+}  // namespace fc::remote_worker

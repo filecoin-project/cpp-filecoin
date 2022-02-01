@@ -29,18 +29,30 @@ namespace fc::primitives {
 
   const TaskType kTTFetch("seal/v0/fetch");
   const TaskType kTTUnseal("seal/v0/unseal");
+  // TODO (a.chernyshov) ReadUnsealed was removed in Lotus
+  // (https://github.com/filecoin-project/cpp-filecoin/issues/574)
   const TaskType kTTReadUnsealed("seal/v0/unsealread");
 
+  const TaskType kTTReplicaUpdate("seal/v0/replicaupdate");
+  const TaskType kTTProveReplicaUpdate1("seal/v0/provereplicaupdate/1");
+  const TaskType kTTProveReplicaUpdate2("seal/v0/provereplicaupdate/2");
+  const TaskType kTTRegenSectorKey("seal/v0/regensectorkey");
+
   inline bool operator<(const TaskType &lhs, const TaskType &rhs) {
-    static std::unordered_map<std::string, int> order = {{kTTReadUnsealed, 0},
-                                                         {kTTUnseal, 0},
-                                                         {kTTFinalize, 1},
-                                                         {kTTFetch, 2},
-                                                         {kTTCommit1, 3},
-                                                         {kTTCommit2, 4},
-                                                         {kTTPreCommit2, 5},
-                                                         {kTTPreCommit1, 6},
-                                                         {kTTAddPiece, 7}};
+    static std::unordered_map<std::string, int> order = {
+        {kTTFinalize, -2},
+        {kTTReadUnsealed, 0},
+        {kTTFetch, -1},
+        {kTTUnseal, 1},
+        {kTTCommit1, 2},
+        {kTTCommit2, 3},
+        {kTTPreCommit2, 4},
+        {kTTPreCommit1, 5},
+        {kTTProveReplicaUpdate1, 6},
+        {kTTProveReplicaUpdate2, 7},
+        {kTTReplicaUpdate, 8},
+        {kTTAddPiece, 9},
+        {kTTRegenSectorKey, 10}};
 
     return order[lhs] < order[rhs];
   }

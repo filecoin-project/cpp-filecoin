@@ -124,7 +124,6 @@ namespace fc::primitives {
                     .base_min_memory = uint64_t(2) << 10,
                 }},
            }},
-          // TTPreCommit2
           {kTTPreCommit2,
            {
                {RegisteredSealProof::kStackedDrg64GiBV1,
@@ -297,10 +296,140 @@ namespace fc::primitives {
                     .base_min_memory = 0,
                 }},
            }},
+          {kTTReplicaUpdate,
+           {
+               {RegisteredSealProof::kStackedDrg64GiBV1,
+                Resources{
+                    .min_memory = uint64_t(8) << 30,
+                    .max_memory = uint64_t(8) << 30,
+                    .threads = 1,
+                    .can_gpu = false,
+                    .base_min_memory = uint64_t(1) << 30,
+                }},
+               {RegisteredSealProof::kStackedDrg32GiBV1,
+                Resources{
+                    .min_memory = uint64_t(4) << 30,
+                    .max_memory = uint64_t(4) << 30,
+                    .threads = 1,
+                    .can_gpu = false,
+                    .base_min_memory = uint64_t(1) << 30,
+                }},
+               {RegisteredSealProof::kStackedDrg512MiBV1,
+                Resources{
+                    .min_memory = uint64_t(1) << 30,
+                    .max_memory = uint64_t(1) << 30,
+                    .threads = 1,
+                    .can_gpu = false,
+                    .base_min_memory = uint64_t(1) << 30,
+                }},
+               {RegisteredSealProof::kStackedDrg8MiBV1,
+                Resources{
+                    .min_memory = uint64_t(8) << 20,
+                    .max_memory = uint64_t(8) << 20,
+                    .threads = 1,
+                    .can_gpu = false,
+                    .base_min_memory = uint64_t(8) << 20,
+                }},
+               {RegisteredSealProof::kStackedDrg2KiBV1,
+                Resources{
+                    .min_memory = uint64_t(2) << 10,
+                    .max_memory = uint64_t(2) << 10,
+                    .threads = 1,
+                    .can_gpu = false,
+                    .base_min_memory = uint64_t(2) << 10,
+                }},
+           }},
+          {kTTProveReplicaUpdate1,
+           {
+               {RegisteredSealProof::kStackedDrg64GiBV1,
+                Resources{
+                    .min_memory = uint64_t(1) << 30,
+                    .max_memory = uint64_t(1) << 30,
+                    .threads = 0,
+                    .can_gpu = false,
+                    .base_min_memory = uint64_t(1) << 30,
+                }},
+               {RegisteredSealProof::kStackedDrg32GiBV1,
+                Resources{
+                    .min_memory = uint64_t(1) << 30,
+                    .max_memory = uint64_t(1) << 30,
+                    .threads = 0,
+                    .can_gpu = false,
+                    .base_min_memory = uint64_t(1) << 30,
+                }},
+               {RegisteredSealProof::kStackedDrg512MiBV1,
+                Resources{
+                    .min_memory = uint64_t(1) << 30,
+                    .max_memory = uint64_t(1) << 30,
+                    .threads = 0,
+                    .can_gpu = false,
+                    .base_min_memory = uint64_t(1) << 30,
+                }},
+               {RegisteredSealProof::kStackedDrg8MiBV1,
+                Resources{
+                    .min_memory = uint64_t(8) << 20,
+                    .max_memory = uint64_t(8) << 20,
+                    .threads = 0,
+                    .can_gpu = false,
+                    .base_min_memory = uint64_t(8) << 20,
+                }},
+               {RegisteredSealProof::kStackedDrg2KiBV1,
+                Resources{
+                    .min_memory = uint64_t(2) << 10,
+                    .max_memory = uint64_t(2) << 10,
+                    .threads = 0,
+                    .can_gpu = false,
+                    .base_min_memory = uint64_t(2) << 10,
+                }},
+           }},
+          {kTTProveReplicaUpdate2,
+           {
+               {RegisteredSealProof::kStackedDrg64GiBV1,
+                Resources{
+                    .min_memory = uint64_t(190) << 30,
+                    .max_memory = uint64_t(60) << 30,
+                    .threads = boost::none,
+                    .can_gpu = true,
+                    .base_min_memory = uint64_t(64) << 30,
+                }},
+               {RegisteredSealProof::kStackedDrg32GiBV1,
+                Resources{
+                    .min_memory = uint64_t(150) << 30,
+                    .max_memory = uint64_t(30) << 30,
+                    .threads = boost::none,
+                    .can_gpu = true,
+                    .base_min_memory = uint64_t(32) << 30,
+                }},
+               {RegisteredSealProof::kStackedDrg512MiBV1,
+                Resources{
+                    .min_memory = uint64_t(3) << 29,  // 1,5 G
+                    .max_memory = uint64_t(1) << 30,
+                    .threads = 1,
+                    .can_gpu = true,
+                    .base_min_memory = uint64_t(10) << 30,
+                }},
+               {RegisteredSealProof::kStackedDrg8MiBV1,
+                Resources{
+                    .min_memory = uint64_t(8) << 20,
+                    .max_memory = uint64_t(8) << 20,
+                    .threads = 1,
+                    .can_gpu = true,
+                    .base_min_memory = uint64_t(8) << 20,
+                }},
+               {RegisteredSealProof::kStackedDrg2KiBV1,
+                Resources{
+                    .min_memory = uint64_t(2) << 10,
+                    .max_memory = uint64_t(2) << 10,
+                    .threads = 1,
+                    .can_gpu = true,
+                    .base_min_memory = uint64_t(2) << 10,
+                }},
+           }},
       };
 
       res[kTTUnseal] = res[kTTPreCommit1];
       res[kTTReadUnsealed] = res[kTTFetch];
+      res[kTTRegenSectorKey] = res[kTTReplicaUpdate];
 
       for (auto &[key, value] : res) {
         value[RegisteredSealProof::kStackedDrg2KiBV1_1] =
