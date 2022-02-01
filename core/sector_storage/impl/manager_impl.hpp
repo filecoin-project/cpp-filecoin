@@ -113,6 +113,29 @@ namespace fc::sector_storage {
         const gsl::span<const Range> &keep_unsealed,
         uint64_t priority) override;
 
+    void replicaUpdate(
+        const SectorRef &sector,
+        const std::vector<PieceInfo> &pieces,
+        const std::function<void(outcome::result<ReplicaUpdateOut>)> &cb,
+        uint64_t priority) override;
+
+    void proveReplicaUpdate1(
+        const SectorRef &sector,
+        const CID &sector_key,
+        const CID &new_sealed,
+        const CID &new_unsealed,
+        const std::function<void(outcome::result<ReplicaVanillaProofs>)> &cb,
+        uint64_t priority) override;
+
+    void proveReplicaUpdate2(
+        const SectorRef &sector,
+        const CID &sector_key,
+        const CID &new_sealed,
+        const CID &new_unsealed,
+        const Update1Output &update_1_output,
+        const std::function<void(outcome::result<ReplicaUpdateProof>)> &cb,
+        uint64_t priority) override;
+
     void addPiece(const SectorRef &sector,
                   gsl::span<const UnpaddedPieceSize> piece_sizes,
                   const UnpaddedPieceSize &new_piece_size,

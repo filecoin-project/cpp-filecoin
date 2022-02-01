@@ -61,6 +61,17 @@ namespace fc::sector_storage {
     return lhs.sector == rhs.sector && lhs.id == rhs.id;
   }
 
+  struct ReplicaUpdateOut {
+    CID new_sealed;
+    CID new_unsealed;
+  };
+
+  inline bool operator==(const ReplicaUpdateOut &lhs,
+                         const ReplicaUpdateOut &rhs) {
+    return lhs.new_sealed == rhs.new_sealed
+           && lhs.new_unsealed == rhs.new_unsealed;
+  }
+
   class WorkerCalls {
    public:
     virtual ~WorkerCalls() = default;
@@ -161,7 +172,8 @@ namespace fc::sector_storage {
                  SectorCids,
                  Bytes,
                  bool,
-                 Update1Output>
+                 Update1Output,
+                 ReplicaUpdateOut>
         value;
     boost::optional<CallError> maybe_error;
   };

@@ -137,6 +137,33 @@ namespace fc::sector_storage {
 
     MOCK_METHOD1(remove, outcome::result<void>(const SectorRef &sector));
 
+    MOCK_METHOD4(
+        replicaUpdate,
+        void(const SectorRef &sector,
+             const std::vector<PieceInfo> &pieces,
+             const std::function<void(outcome::result<ReplicaUpdateOut>)> &cb,
+             uint64_t priority));
+
+    MOCK_METHOD6(
+        proveReplicaUpdate1,
+        void(const SectorRef &sector,
+             const CID &sector_key,
+             const CID &new_sealed,
+             const CID &new_unsealed,
+             const std::function<void(outcome::result<ReplicaVanillaProofs>)>
+                 &cb,
+             uint64_t priority));
+
+    MOCK_METHOD7(
+        proveReplicaUpdate2,
+        void(const SectorRef &sector,
+             const CID &sector_key,
+             const CID &new_sealed,
+             const CID &new_unsealed,
+             const Update1Output &update_1_output,
+             const std::function<void(outcome::result<ReplicaUpdateProof>)> &cb,
+             uint64_t priority));
+
     MOCK_METHOD6(doAddPiece,
                  void(const SectorRef &sector,
                       gsl::span<const UnpaddedPieceSize> piece_sizes,

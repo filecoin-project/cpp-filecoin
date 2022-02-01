@@ -16,6 +16,8 @@ namespace fc::sector_storage {
   using primitives::StorageID;
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedByteIndex;
+  using ReplicaUpdateProof = Bytes;
+  using ReplicaVanillaProofs = std::vector<Bytes>;
 
   class Manager : public Prover, public FaultTracker {
    public:
@@ -112,6 +114,31 @@ namespace fc::sector_storage {
         uint64_t priority) = 0;
 
     virtual outcome::result<void> remove(const SectorRef &sector) = 0;
+
+    /** Generate Snap Deals replica update */
+    virtual void replicaUpdate(
+        const SectorRef &sector,
+        const std::vector<PieceInfo> &pieces,
+        const std::function<void(outcome::result<ReplicaUpdateOut>)> &cb,
+        uint64_t priority) = 0;
+
+    /** Prove Snap Deals replica update */
+    virtual void proveReplicaUpdate1(
+        const SectorRef &sector,
+        const CID &sector_key,
+        const CID &new_sealed,
+        const CID &new_unsealed,
+        const std::function<void(outcome::result<ReplicaVanillaProofs>)> &cb,
+        uint64_t priority) = 0;
+
+    virtual void proveReplicaUpdate2(
+        const SectorRef &sector,
+        const CID &sector_key,
+        const CID &new_sealed,
+        const CID &new_unsealed,
+        const Update1Output &update_1_output,
+        const std::function<void(outcome::result<ReplicaUpdateProof>)> &cb,
+        uint64_t priority) = 0;
 
     // Storage
     virtual void addPiece(

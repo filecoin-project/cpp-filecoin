@@ -42,7 +42,7 @@ namespace fc::sector_storage {
   }
 
   WorkerAction schedNothing() {
-    return WorkerAction();
+    return {};
   }
 
   void addCachePathsForSectorSize(
@@ -768,7 +768,7 @@ namespace fc::sector_storage {
                getWorkId(primitives::kTTCommit2,
                          std::make_tuple(sector, commit_1_output)));
 
-    std::unique_ptr<TaskSelector> selector = std::make_unique<TaskSelector>();
+    auto selector = std::make_unique<TaskSelector>();
 
     OUTCOME_CB1(scheduler_->schedule(
         sector,
@@ -912,6 +912,130 @@ namespace fc::sector_storage {
         priority);
 
     return waiter.get_future().get();
+  }
+
+  void ManagerImpl::replicaUpdate(
+      const SectorRef &sector,
+      const std::vector<PieceInfo> &pieces,
+      const std::function<void(outcome::result<ReplicaUpdateOut>)> &cb,
+      uint64_t priority) {
+    logger_->debug("sector_storage::Manager is doing replica update");
+    OUTCOME_CB(WorkId work_id,
+               getWorkId(primitives::kTTReplicaUpdate,
+                         std::make_tuple(sector, pieces)));
+
+    OUTCOME_CB(auto lock,
+               index_->storageLock(
+                   sector.id,
+                   SectorFileType::FTUnsealed | SectorFileType::FTSealed
+                       | SectorFileType::FTCache,
+                   SectorFileType::FTUpdate | SectorFileType::FTUpdateCache));
+
+    auto selector = std::make_unique<AllocateSelector>(
+        index_,
+        SectorFileType::FTUpdate | SectorFileType::FTUpdateCache,
+        PathType::kSealing);
+
+    OUTCOME_CB1(scheduler_->schedule(
+        sector,
+        primitives::kTTReplicaUpdate,
+        std::move(selector),
+        schedFetch(sector,
+                   SectorFileType::FTUnsealed | SectorFileType::FTSealed
+                       | SectorFileType::FTCache,
+                   PathType::kSealing,
+                   AcquireMode::kCopy),
+        [sector, pieces, lock = std::move(lock)](
+            const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
+          return worker->replicaUpdate(sector, pieces);
+        },
+        callbackWrapper(cb),
+        priority,
+        work_id));
+  }
+
+  void ManagerImpl::proveReplicaUpdate1(
+      const SectorRef &sector,
+      const CID &sector_key,
+      const CID &new_sealed,
+      const CID &new_unsealed,
+      const std::function<void(outcome::result<ReplicaVanillaProofs>)> &cb,
+      uint64_t priority) {
+    OUTCOME_CB(WorkId work_id,
+               getWorkId(primitives::kTTProveReplicaUpdate1,
+                         std::make_tuple(
+                             sector, sector_key, new_sealed, new_unsealed)));
+
+    OUTCOME_CB(
+        auto lock,
+        index_->storageLock(sector.id,
+                            SectorFileType::FTSealed | SectorFileType::FTUpdate
+                                | SectorFileType::FTCache
+                                | SectorFileType::FTUpdateCache,
+                            SectorFileType::FTNone));
+
+    // NOTE: We set allowFetch to false in so that we always execute on a worker
+    // with direct access to the data. We want to do that because this step is
+    // generally very cheap / fast, and transferring data is not worth the
+    // effort
+    auto selector = std::make_unique<ExistingSelector>(
+        index_,
+        sector.id,
+        SectorFileType::FTUpdate | SectorFileType::FTUpdateCache
+            | SectorFileType::FTSealed | SectorFileType::FTCache,
+        false);
+
+    OUTCOME_CB1(scheduler_->schedule(
+        sector,
+        primitives::kTTProveReplicaUpdate1,
+        std::move(selector),
+        schedFetch(sector,
+                   SectorFileType::FTSealed | SectorFileType::FTCache
+                       | SectorFileType::FTUpdate
+                       | SectorFileType::FTUpdateCache,
+                   PathType::kSealing,
+                   AcquireMode::kCopy),
+        [sector, sector_key, new_sealed, new_unsealed, lock = std::move(lock)](
+            const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
+          return worker->proveReplicaUpdate1(
+              sector, sector_key, new_sealed, new_unsealed);
+        },
+        callbackWrapper(cb),
+        priority,
+        work_id));
+  }
+
+  void ManagerImpl::proveReplicaUpdate2(
+      const SectorRef &sector,
+      const CID &sector_key,
+      const CID &new_sealed,
+      const CID &new_unsealed,
+      const Update1Output &update_1_output,
+      const std::function<void(outcome::result<ReplicaUpdateProof>)> &cb,
+      uint64_t priority) {
+    OUTCOME_CB(WorkId work_id,
+               getWorkId(primitives::kTTProveReplicaUpdate2,
+                         std::make_tuple(sector,
+                                         sector_key,
+                                         new_sealed,
+                                         new_unsealed,
+                                         update_1_output)));
+
+    auto selector = std::make_unique<TaskSelector>();
+
+    OUTCOME_CB1(scheduler_->schedule(
+        sector,
+        primitives::kTTProveReplicaUpdate2,
+        std::move(selector),
+        schedNothing(),
+        [sector, sector_key, new_sealed, new_unsealed, update_1_output](
+            const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
+          return worker->proveReplicaUpdate2(
+              sector, sector_key, new_sealed, new_unsealed, update_1_output);
+        },
+        callbackWrapper(cb),
+        priority,
+        work_id));
   }
 
   void ManagerImpl::addPiece(
