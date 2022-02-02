@@ -20,22 +20,23 @@ namespace fc::remote_worker {
   using sector_storage::Range;
   using sector_storage::SectorCids;
   using sector_storage::SectorFileType;
+  using sector_storage::Update1Output;
 
   std::shared_ptr<WorkerApi> makeWorkerApi(
       const std::shared_ptr<LocalStore> &local_store,
       const std::shared_ptr<LocalWorker> &worker) {
     auto worker_api{std::make_shared<api::WorkerApi>()};
     worker_api->Version = []() { return VersionResult{"seal-worker", 0, 0}; };
-    worker_api->StorageAddLocal = [&](const std::string &path) {
+    worker_api->StorageAddLocal = [=](const std::string &path) {
       return local_store->openPath(path);
     };
-    worker_api->Fetch = [&](const SectorRef &sector,
+    worker_api->Fetch = [=](const SectorRef &sector,
                             const SectorFileType &file_type,
                             PathType path_type,
                             AcquireMode mode) {
       return worker->fetch(sector, file_type, path_type, mode);
     };
-    worker_api->UnsealPiece = [&](const SectorRef &sector,
+    worker_api->UnsealPiece = [=](const SectorRef &sector,
                                   UnpaddedByteIndex offset,
                                   const UnpaddedPieceSize &size,
                                   const SealRandomness &randomness,
@@ -43,45 +44,62 @@ namespace fc::remote_worker {
       return worker->unsealPiece(
           sector, offset, size, randomness, unsealed_cid);
     };
-    worker_api->MoveStorage = [&](const SectorRef &sector,
+    worker_api->MoveStorage = [=](const SectorRef &sector,
                                   const SectorFileType &types) {
       return worker->moveStorage(sector, types);
     };
 
-    worker_api->Info = [&]() { return worker->getInfo(); };
-    worker_api->Paths = [&]() { return worker->getAccessiblePaths(); };
+    worker_api->Info = [=]() { return worker->getInfo(); };
+    worker_api->Paths = [=]() { return worker->getAccessiblePaths(); };
     worker_api->TaskTypes =
-        [&]() -> outcome::result<std::set<primitives::TaskType>> {
-      OUTCOME_TRY(tasks, worker->getSupportedTask());
-      // TODO(ortyomka): [FIL-344] Remove its
-      tasks.extract(primitives::kTTAddPiece);
-      return std::move(tasks);
+        [=]() -> outcome::result<std::set<primitives::TaskType>> {
+      return worker->getSupportedTask();
     };
 
-    worker_api->SealPreCommit1 = [&](const SectorRef &sector,
+    worker_api->SealPreCommit1 = [=](const SectorRef &sector,
                                      const SealRandomness &ticket,
                                      const std::vector<PieceInfo> &pieces) {
       return worker->sealPreCommit1(sector, ticket, pieces);
     };
     worker_api->SealPreCommit2 =
-        [&](const SectorRef &sector,
+        [=](const SectorRef &sector,
             const PreCommit1Output &pre_commit_1_output) {
           return worker->sealPreCommit2(sector, pre_commit_1_output);
         };
-    worker_api->SealCommit1 = [&](const SectorRef &sector,
+    worker_api->SealCommit1 = [=](const SectorRef &sector,
                                   const SealRandomness &ticket,
                                   const InteractiveRandomness &seed,
                                   const std::vector<PieceInfo> &pieces,
                                   const SectorCids &cids) {
       return worker->sealCommit1(sector, ticket, seed, pieces, cids);
     };
-    worker_api->SealCommit2 = [&](const SectorRef &sector,
+    worker_api->SealCommit2 = [=](const SectorRef &sector,
                                   const Commit1Output &commit_1_output) {
       return worker->sealCommit2(sector, commit_1_output);
     };
-    worker_api->FinalizeSector = [&](const SectorRef &sector,
+    worker_api->FinalizeSector = [=](const SectorRef &sector,
                                      std::vector<Range> keep_unsealed) {
       return worker->finalizeSector(sector, keep_unsealed);
+    };
+
+    worker_api->ReplicaUpdate = [=](const SectorRef &sector,
+                                    const std::vector<PieceInfo> &pieces) {
+      return worker->replicaUpdate(sector, pieces);
+    };
+    worker_api->ProveReplicaUpdate1 = [=](const SectorRef &sector,
+                                          const CID &sector_key,
+                                          const CID &new_sealed,
+                                          const CID &new_unsealed) {
+      return worker->proveReplicaUpdate1(
+          sector, sector_key, new_sealed, new_unsealed);
+    };
+    worker_api->ProveReplicaUpdate2 = [=](const SectorRef &sector,
+                                          const CID &sector_key,
+                                          const CID &new_sealed,
+                                          const CID &new_unsealed,
+                                          const Update1Output &update1_output) {
+      return worker->proveReplicaUpdate2(
+          sector, sector_key, new_sealed, new_unsealed, update1_output);
     };
 
     return worker_api;
