@@ -1032,7 +1032,32 @@ namespace fc::api {
     };
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSectorPartition =
-        std::function<decltype(api->StateSectorPartition)::FunctionSignature>{};
+        [=](const Address &address,
+            SectorNumber sector,
+            const TipsetKey &tsk) -> outcome::result<SectorLocation> {
+      OUTCOME_TRY(context, tipsetContext(tsk, false));
+      OUTCOME_TRY(state, context.minerState(address));
+      OUTCOME_TRY(deadlines, state->deadlines.get());
+      uint64_t i_deadline{0};
+      for (const auto &_deadline : deadlines.due) {
+        boost::optional<SectorLocation> result;
+        OUTCOME_TRY(deadline, _deadline.get());
+        const auto visit{
+            [&](auto i_partition, auto &partition) -> outcome::result<void> {
+              if (partition->sectors.has(sector)) {
+                result = SectorLocation{i_deadline, i_partition};
+                return outcome::failure(adt::kStopError);
+              }
+              return outcome::success();
+            }};
+        CATCH_STOP(deadline->partitions.visit(visit));
+        if (result) {
+          return *result;
+        }
+        ++i_deadline;
+      }
+      return ERROR_TEXT("StateSectorPartition: not found");
+    };
 
     api->StateVerifiedClientStatus = [=](const Address &address,
                                          const TipsetKey &tipset_key)
