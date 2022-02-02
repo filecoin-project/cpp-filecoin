@@ -2,13 +2,12 @@
 ## Generated from build-cpp-filecoin.src.yml with make-workflows.sh
 
 name: Fuhon (cpp-Filecoin)
-
 on:
   push:
-    branches: [ master, feature/github-action-tag-and-publish-docker-image ]
+    branches: [master, feature/github-action-tag-and-publish-docker-image]
     tags: '**'
   pull_request:
-    branches: [ master, feature/github-action-tag-and-publish-docker-image ]  ## target branches
+    branches: [master, feature/github-action-tag-and-publish-docker-image] ## target branches
   workflow_dispatch:
     inputs:
       build_spec:
@@ -19,8 +18,7 @@ on:
   #   types: [created, edited]
   schedule:
     # Triggers the workflow every day at 5:30 and 17:30 UTC
-    - cron:  '30 5,17 * * *'
-
+    - cron: '30 5,17 * * *'
 jobs:
   ## GitHub Actions Workflow does not support yaml anchors
   ## and that is why there is a workaround with make-workflows.sh
@@ -34,23 +32,22 @@ jobs:
       - name: REF and SHA of commented PR to ENV
         if: github.event.comment
         run: >
-            curl -fsSL ${{github.event.issue.pull_request.url}} -H "Authorization: token ${{github.token}}" | jq -r '
+          curl -fsSL ${{github.event.issue.pull_request.url}} -H "Authorization: token ${{github.token}}" | jq -r '
 
-              "PR_REF="+.head.ref,
-              "PR_SHA="+.head.sha,
-              "PR_NUM="+(.number|tostring),
-              "PR_REPO="+.head.repo.full_name' >>$GITHUB_ENV
+            "PR_REF="+.head.ref,
+            "PR_SHA="+.head.sha,
+            "PR_NUM="+(.number|tostring),
+            "PR_REPO="+.head.repo.full_name' >>$GITHUB_ENV
       - name: Checkout
         uses: actions/checkout@v2
         with:
-          ref: ${{env.PR_REF}}  ## not empty on issue_comment, else default value GITHUB_REF
+          ref: ${{env.PR_REF}} ## not empty on issue_comment, else default value GITHUB_REF
           repository: ${{env.PR_REPO}} ## not empty on issue_comment, else default value github.repository, required by forks
       - run: sudo snap install yq
       - name: Check if .github/workflows/*.yml correspond to *.src.yml
         run: |
           set -x
           [[ $(./.github/make-workflows.sh -x --worktree) = *"everything is up to date" ]]
-
   ## Build docker image named 'filecoin/fuhon-builder' with all stuff to compile fuhon and its dependancies
   ## The result docker image is pushed with tags :pr-NUMBER, :commit-HASH, :branch-name, :tag-name,
   ## and conditional tags :edge for development branch, and :latest for git-tags.
@@ -59,22 +56,10 @@ jobs:
     needs: check_workflow_yaml_coressponds_to_src_yaml
     runs-on: ubuntu-20.04 #ubuntu-latest #[ self-hosted, Linux ]
     env:
-      DOCKERHUB_ORG: filecoin   ## Cannot use ${{ secrets.DOCKERHUB_ORG }}
+      DOCKERHUB_ORG: filecoin ## Cannot use ${{ secrets.DOCKERHUB_ORG }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     steps:
-      - name: Show context
-        run: |
-          echo "::group::GitHub context"
-          cat <<'END'
-          ${{ toJson(github) }}
-          END
-          echo "::endgroup::"
-          echo "::group::GitHub needs"
-          cat <<'END'
-          ${{ toJson(needs) }}
-          END
-          echo "::endgroup::"
       - name: System info
         run: |
           set -x
@@ -146,14 +131,14 @@ jobs:
             type=ref,event=tag
             type=schedule
             type=edge,branch=develop
-        ## Docker image will be pushed with tags:
-        ##  - hash of file Dockerfile.builder
-        ##  - branchname, when branch is pushed
-        ##  - pr-NUMBER, when pushed to PR
-        ##  - git tag when tag is pushed
-        ##  - semver like 1.2.3 and 1.2 when tag vX.X.X is pushed
-        ##  - tag 'edge' when branch support/1.2.x is pushed
-        ##  - schedule, see the docs
+          ## Docker image will be pushed with tags:
+          ##  - hash of file Dockerfile.builder
+          ##  - branchname, when branch is pushed
+          ##  - pr-NUMBER, when pushed to PR
+          ##  - git tag when tag is pushed
+          ##  - semver like 1.2.3 and 1.2 when tag vX.X.X is pushed
+          ##  - tag 'edge' when branch support/1.2.x is pushed
+          ##  - schedule, see the docs
       - uses: docker/metadata-action@v3
         name: Docker meta GHCR
         id: meta_ghcr
@@ -164,11 +149,14 @@ jobs:
             type=ref,event=pr
             type=ref,event=tag
             type=schedule
+            type=edge,branch=develop
           ## Docker image will be pushed with tags:
           ##  - hash of file Dockerfile.builder
           ##  - branchname, when branch is pushed
           ##  - pr-NUMBER, when pushed to PR
           ##  - git tag when tag is pushed
+          ##  - semver like 1.2.3 and 1.2 when tag vX.X.X is pushed
+          ##  - tag 'edge' when branch support/1.2.x is pushed
           ##  - schedule, see the docs
 
           images: ghcr.io/${{ github.repository }}-builder
