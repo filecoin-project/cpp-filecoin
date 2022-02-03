@@ -91,7 +91,7 @@ jobs:
         name: Determine dockertag
         id: dockertag
         env:
-          dockertag: ${{ hashFiles('docker/fuhon-builder/**') }}
+          dockertag: ${{ hashFiles('docker/**') }}
         run: |
           echo "::set-output name=dockertag::$dockertag"
           echo >>$GITHUB_ENV  dockertag=$dockertag
@@ -123,7 +123,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with: &step_docker_meta_with
-          images: ${{ env.DOCKERHUB_ORG }}/fuhon-builder
+          images: ${{ env.DOCKERHUB_ORG }}/fuhon
           tags: |
             type=raw,value=${{env.dockertag}}
             type=ref,event=branch
@@ -161,7 +161,7 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v2
         with: &step_docker_build_and_push_with
-          context: docker/fuhon-builder/
+          context: docker/
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: ${{ steps.docker_login.outcome == 'success' }}
@@ -188,7 +188,7 @@ jobs:
         name: Check if dockertaghash exists in remote registry
         id: dockertag_already
         run: |
-          echo "::set-output name=container::$DOCKERHUB_ORG/fuhon-builder:$dockertag"
+          echo "::set-output name=container::$DOCKERHUB_ORG/fuhon:$dockertag"
       -
         name: Possible ERROR, Dockerfile edited but image cannot be pushed
         if: ${{ steps.docker_login.outcome != 'success' || steps.build_and_push.outcome != 'success' }}
