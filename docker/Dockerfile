@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=shared apt-get update && ap
 # cmake built libarchive has API v17, but provided version is v13 (https://github.com/libarchive/libarchive/issues/1236)
 RUN ln -s /lib/x86_64-linux-gnu/libarchive.so.13 /lib/x86_64-linux-gnu/libarchive.so.17
 COPY --from=build /tmp/build/bin/fuhon-miner /usr/local/bin
-COPY docker/miner_entrypoint.sh /
+COPY miner_entrypoint.sh /
 RUN chmod +x /miner_entrypoint.sh
 USER fuhon
 RUN mkdir /tmp/fuhon
@@ -32,7 +32,7 @@ HEALTHCHECK --interval=5s --timeout=10s CMD curl http://127.0.0.1:1234/health ||
 
 FROM base AS fuhon-node
 COPY --from=build /tmp/build/bin/fuhon-node /usr/local/bin
-COPY docker/node_entrypoint.sh /
+COPY node_entrypoint.sh /
 RUN chmod +x /node_entrypoint.sh
 EXPOSE 1234 2000
 USER fuhon
