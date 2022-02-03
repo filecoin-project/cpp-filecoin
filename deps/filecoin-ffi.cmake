@@ -27,7 +27,7 @@ pkg_check_modules(PKG_FILECOIN IMPORTED_TARGET filcrypto)
 
 if (NOT PKG_FILECOIN_FOUND)
     message("Installing filecoin-ffi")
-    execute_process(COMMAND ./install-filcrypto.sh
+    execute_process(COMMAND ./install-filcrypto
             WORKING_DIRECTORY ${FILECOIN_FFI_PATH})
 
     pkg_check_modules(PKG_FILECOIN REQUIRED IMPORTED_TARGET filcrypto)
