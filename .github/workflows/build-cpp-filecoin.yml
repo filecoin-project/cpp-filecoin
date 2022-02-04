@@ -172,7 +172,7 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v2
         with:
-          context: cpp-filecoin/docker/
+          context: /docker/
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: ${{ steps.docker_login.outcome == 'success' }}
@@ -182,7 +182,7 @@ jobs:
         id: build_and_push_ghcr
         name: Build and push to GHCR
         with:
-          context: cpp-filecoin/docker/
+          context: /docker/
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo == github.event.pull_request.base.repo }}
