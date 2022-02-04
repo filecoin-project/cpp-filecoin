@@ -19,6 +19,7 @@ namespace fc::sector_storage {
   using primitives::StoragePath;
   using primitives::WorkerResources;
   using stores::SectorStorageInfo;
+  using stores::StorageInfo;
   using testing::_;
 
   class AllocateSelectorTest : public ::testing::Test {
@@ -93,7 +94,7 @@ namespace fc::sector_storage {
         .WillOnce(
             testing::Return(outcome::success(std::vector({worker_storage}))));
 
-    SectorStorageInfo index_storage{
+    StorageInfo index_storage{
         .id = "index storage id",
     };
 
@@ -132,7 +133,7 @@ namespace fc::sector_storage {
         .WillOnce(
             testing::Return(outcome::success(std::vector({worker_storage}))));
 
-    SectorStorageInfo index_storage{
+    StorageInfo index_storage{
         .id = id,
     };
 
