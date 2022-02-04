@@ -33,7 +33,7 @@ namespace fc::sector_storage::stores {
     urls.emplace_back("http://url1.com");
     urls.emplace_back("http://url2.com");
     urls.emplace_back("https://url3.com");
-    SectorStorageInfo storage_info{
+    StorageInfo storage_info{
         .id = id,
         .urls = urls,
         .weight = 0,
@@ -71,7 +71,7 @@ namespace fc::sector_storage::stores {
     urls1.push_back(urls[1]);
     urls1.push_back(urls[2]);
 
-    SectorStorageInfo storage_info{
+    StorageInfo storage_info{
         .id = id,
         .urls = urls1,
         .weight = 0,
@@ -92,7 +92,7 @@ namespace fc::sector_storage::stores {
     urls2.push_back(urls[3]);
     urls2.push_back(urls[4]);
 
-    SectorStorageInfo storage_info2{
+    StorageInfo storage_info2{
         .id = id,
         .urls = urls2,
         .weight = 0,
@@ -118,7 +118,7 @@ namespace fc::sector_storage::stores {
     urls.emplace_back("http://url1.com");
     urls.emplace_back("http://url2.com");
     urls.emplace_back("invalid_url");
-    SectorStorageInfo storage_info{
+    StorageInfo storage_info{
         .id = id,
         .urls = urls,
         .weight = 0,
@@ -168,7 +168,7 @@ namespace fc::sector_storage::stores {
    */
   TEST_F(SectorIndexTest, BestAllocation) {
     std::string id1 = "id1";
-    SectorStorageInfo storage_info1{
+    StorageInfo storage_info1{
         .id = id1,
         .urls = {},
         .weight = 10,
@@ -185,7 +185,7 @@ namespace fc::sector_storage::stores {
         sector_index_->storageAttach(storage_info1, file_system_stat1));
 
     std::string id2 = "id2";
-    SectorStorageInfo storage_info2{
+    StorageInfo storage_info2{
         .id = id2,
         .urls = {},
         .weight = 30,
@@ -202,7 +202,7 @@ namespace fc::sector_storage::stores {
         sector_index_->storageAttach(storage_info2, file_system_stat2));
 
     std::string id3 = "id3";
-    SectorStorageInfo storage_info3{
+    StorageInfo storage_info3{
         .id = id3,
         .urls = {},
         .weight = 5,
@@ -240,7 +240,7 @@ namespace fc::sector_storage::stores {
     urls.emplace_back("http://url1.com/");
     urls.emplace_back("http://url2.com/");
     urls.emplace_back("https://url3.com/");
-    SectorStorageInfo storage_info{
+    StorageInfo storage_info{
         .id = id,
         .urls = urls,
         .weight = 0,
@@ -278,7 +278,7 @@ namespace fc::sector_storage::stores {
     std::string id = "test_id";
     std::vector<std::string> urls;
     urls.emplace_back("http://url1.com/");
-    SectorStorageInfo storage_info{
+    StorageInfo storage_info{
         .id = id,
         .urls = urls,
         .weight = 0,
@@ -319,7 +319,7 @@ namespace fc::sector_storage::stores {
     urls.emplace_back("http://url1.com/");
     urls.emplace_back("http://url2.com/");
     urls.emplace_back("https://url3.com/");
-    SectorStorageInfo storage_info{
+    StorageInfo storage_info{
         .id = id,
         .urls = urls,
         .weight = 0,
@@ -375,14 +375,14 @@ namespace fc::sector_storage::stores {
     std::string id = "test_id";
     std::string id2 = "test_id2";
     std::vector<std::string> urls;
-    SectorStorageInfo storage_info{
+    StorageInfo storage_info{
         .id = id,
         .urls = urls,
         .weight = 0,
         .can_seal = false,
         .can_store = false,
     };
-    SectorStorageInfo storage_info2{
+    StorageInfo storage_info2{
         .id = id2,
         .urls = urls,
         .weight = 0,
@@ -427,7 +427,7 @@ namespace fc::sector_storage::stores {
     std::string result_url = "http://url1.com/cache/s-t042-123";
     std::vector<std::string> urls;
     urls.emplace_back("http://url1.com/");
-    SectorStorageInfo storage_info{
+    StorageInfo storage_info{
         .id = id,
         .urls = urls,
         .weight = 0,
@@ -468,7 +468,7 @@ namespace fc::sector_storage::stores {
     std::string result_url = "http://url1.com/cache/s-t042-123";
     std::vector<std::string> urls;
     urls.emplace_back("http://url1.com/");
-    SectorStorageInfo storage_info{
+    StorageInfo storage_info{
         .id = id,
         .urls = urls,
         .weight = 0,

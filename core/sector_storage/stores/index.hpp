@@ -51,10 +51,15 @@ namespace fc::sector_storage::stores {
     bool can_store;
   };
 
-  inline bool operator==(const SectorStorageInfo &lhs, const SectorStorageInfo &rhs) {
+  inline bool operator==( SectorStorageInfo lhs, const SectorStorageInfo &rhs) {
     return lhs.id == rhs.id && lhs.urls == rhs.urls && lhs.weight == rhs.weight
            && lhs.can_seal == rhs.can_seal && lhs.can_store == rhs.can_store
            && lhs.is_primary == rhs.is_primary;
+  }
+
+  inline bool operator==( StorageInfo lhs, const StorageInfo &rhs) {
+    return lhs.id == rhs.id && lhs.urls == rhs.urls && lhs.weight == rhs.weight
+           && lhs.can_seal == rhs.can_seal && lhs.can_store == rhs.can_store;
   }
 
   struct HealthReport {
