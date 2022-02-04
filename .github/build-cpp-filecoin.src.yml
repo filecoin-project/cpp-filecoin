@@ -161,7 +161,6 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v2
         with: &step_docker_build_and_push_with
-          context: docker/
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           push: ${{ steps.docker_login.outcome == 'success' }}
