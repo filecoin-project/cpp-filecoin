@@ -7,14 +7,13 @@
 
 #include <functional>
 #include <primitives/sector/sector.hpp>
+#include "common/enum.hpp"
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/sector_file/sector_file.hpp"
 #include "primitives/types.hpp"
 #include "sector_storage/stores/index.hpp"
 #include "sector_storage/stores/storage.hpp"
-#include "common/enum.hpp"
-
 
 namespace fc::sector_storage::stores {
   using primitives::FsStat;
@@ -35,19 +34,21 @@ namespace fc::sector_storage::stores {
     kSealing,
   };
 
- inline  auto &class_conversion_table(PathType && enumerator){
-    static fc::common::ConversionTable<PathType, 2> table{{{PathType::kSealing, "sealing"}, {PathType::kStorage, "storage"}}};
+  inline auto &class_conversion_table(PathType &&) {
+    using E = PathType;
+    static fc::common::ConversionTable<E, 2> table{
+        {{E::kSealing, "sealing"}, {E::kStorage, "storage"}}};
     return table;
   }
-
 
   enum class AcquireMode : int64_t {
     kMove = 0,
     kCopy,
   };
 
-  inline auto &class_conversion_table(AcquireMode && enumerator){
-    static fc::common::ConversionTable<AcquireMode, 2> table{{{AcquireMode::kMove, "move"}, {AcquireMode::kCopy, "copy"}}};
+  inline auto &class_conversion_table(AcquireMode &&) {
+    static fc::common::ConversionTable<AcquireMode, 2> table{
+        {{AcquireMode::kMove, "move"}, {AcquireMode::kCopy, "copy"}}};
     return table;
   }
 

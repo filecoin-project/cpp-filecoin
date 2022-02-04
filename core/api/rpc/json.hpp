@@ -22,7 +22,6 @@
 #include "sector_storage/stores/storage.hpp"
 #include "vm/actor/builtin/types/market/deal.hpp"
 #include "vm/actor/builtin/types/miner/miner_info.hpp"
-#include "common/enum.hpp"
 
 #define COMMA ,
 
@@ -47,8 +46,6 @@ namespace fc::api {
   using crypto::signature::BlsSignature;
   using crypto::signature::Secp256k1Signature;
   using crypto::signature::Signature;
-  using fc::sector_storage::stores::SectorStorageInfo;
-  using fc::sector_storage::stores::StorageInfo;
   using markets::storage::StorageAsk;
   using miner::types::PreSealSector;
   using mining::SealingState;
@@ -81,7 +78,9 @@ namespace fc::api {
   using sector_storage::stores::AcquireMode;
   using sector_storage::stores::LocalPath;
   using sector_storage::stores::PathType;
+  using sector_storage::stores::SectorStorageInfo;
   using sector_storage::stores::StorageConfig;
+  using sector_storage::stores::StorageInfo;
   using vm::actor::builtin::types::market::DealProposal;
   using vm::actor::builtin::types::market::DealState;
   using vm::actor::builtin::types::market::StorageParticipantBalance;
@@ -93,10 +92,8 @@ namespace fc::api {
       ModularVerificationParameter;
   using vm::runtime::ExecutionResult;
   using base64 = cppcodec::base64_rfc4648;
-  using fc::common::to_string;
-  using fc::common::from_string;
-
-
+  using common::from_string;
+  using common::to_string;
 
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;

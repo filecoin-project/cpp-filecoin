@@ -13,7 +13,7 @@ namespace fc::sector_storage::stores {
   class SectorIndexMock : public SectorIndex {
    public:
     MOCK_METHOD2(storageAttach,
-                 outcome::result<void>(const SectorStorageInfo &storage_info,
+                 outcome::result<void>(const StorageInfo &storage_info,
                                        const FsStat &stat));
     MOCK_CONST_METHOD1(
         getStorageInfo,
@@ -32,11 +32,11 @@ namespace fc::sector_storage::stores {
                                        const SectorId &sector,
                                        const SectorFileType &file_type));
 
-    MOCK_METHOD3(
-        storageFindSector,
-        outcome::result<std::vector<SectorStorageInfo>>(const SectorId &,
-                                                  const SectorFileType &,
-                                                  boost::optional<SectorSize>));
+    MOCK_METHOD3(storageFindSector,
+                 outcome::result<std::vector<SectorStorageInfo>>(
+                     const SectorId &,
+                     const SectorFileType &,
+                     boost::optional<SectorSize>));
 
     MOCK_METHOD3(storageBestAlloc,
                  outcome::result<std::vector<StorageInfo>>(

@@ -93,7 +93,7 @@ namespace fc::api {
     ChainEpoch early = {};
   };
 
-  constexpr ApiVersion kMinerApiVersion = makeApiVersion(1, 2, 0);
+  constexpr ApiVersion kMinerApiVersion = makeApiVersion(1, 3, 0);
 
   /**
    * Storage miner node low-level interface API.
