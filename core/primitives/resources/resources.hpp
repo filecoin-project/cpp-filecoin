@@ -124,7 +124,6 @@ namespace fc::primitives {
                     .base_min_memory = uint64_t(2) << 10,
                 }},
            }},
-          // TTPreCommit2
           {kTTPreCommit2,
            {
                {RegisteredSealProof::kStackedDrg64GiBV1,
@@ -232,7 +231,7 @@ namespace fc::primitives {
                {RegisteredSealProof::kStackedDrg512MiBV1,
                 Resources{
                     .min_memory = uint64_t(1) << 30,
-                    .max_memory = uint64_t(3) << 29,
+                    .max_memory = uint64_t(3) << 29,  // 1.5G
                     .threads = 1,
                     .can_gpu = true,
                     .base_min_memory = uint64_t(10) << 30,
@@ -301,6 +300,10 @@ namespace fc::primitives {
 
       res[kTTUnseal] = res[kTTPreCommit1];
       res[kTTReadUnsealed] = res[kTTFetch];
+      res[kTTReplicaUpdate] = res[kTTAddPiece];
+      res[kTTProveReplicaUpdate1] = res[kTTCommit1];
+      res[kTTProveReplicaUpdate2] = res[kTTCommit2];
+      res[kTTRegenSectorKey] = res[kTTReplicaUpdate];
 
       for (auto &[key, value] : res) {
         value[RegisteredSealProof::kStackedDrg2KiBV1_1] =

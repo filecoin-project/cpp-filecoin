@@ -29,6 +29,7 @@ namespace fc::api {
   using sector_storage::Range;
   using sector_storage::SectorCids;
   using sector_storage::SectorFileType;
+  using sector_storage::Update1Output;
 
   struct WorkerApi {
     API_METHOD(AddPiece,

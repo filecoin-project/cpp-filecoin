@@ -24,20 +24,19 @@ namespace fc::sector_storage {
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedByteIndex;
   using primitives::piece::UnpaddedPieceSize;
+  using primitives::sector::InteractiveRandomness;
+  using primitives::sector::Proof;
   using primitives::sector::SealRandomness;
   using primitives::sector::SectorId;
   using primitives::sector::SectorRef;
   using primitives::sector_file::SectorFileType;
+  using stores::AcquireMode;
+  using stores::PathType;
+  using stores::StoreError;
   using PreCommit1Output = proofs::Phase1Output;
   using Commit1Output = proofs::Phase1Output;
   using Update1Output = proofs::UpdateProofs1;
   using SectorCids = proofs::SealedAndUnsealedCID;
-  using primitives::sector::InteractiveRandomness;
-  using primitives::sector::Proof;
-  using primitives::sector::SealRandomness;
-  using stores::AcquireMode;
-  using stores::PathType;
-  using stores::StoreError;
 
   struct Range {
     UnpaddedPieceSize offset;
