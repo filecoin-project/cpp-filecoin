@@ -7,6 +7,7 @@
 
 namespace fc::mining {
   using vm::actor::builtin::types::miner::kMaxSectorExpirationExtension;
+  using vm::actor::builtin::types::miner::kMinSectorExpiration;
   using vm::actor::builtin::types::miner::kWPoStProvingPeriod;
 
   outcome::result<ChainEpoch> BasicPreCommitPolicy::expiration(
@@ -39,17 +40,34 @@ namespace fc::mining {
       end = epoch + duration_;
     }
 
-    *end += kWPoStProvingPeriod - (*end % kWPoStProvingPeriod)
-            + proving_boundary_ - 1;
+    const auto min_exp = epoch + kMinSectorExpiration + kWPoStProvingPeriod;
+
+    if (end < min_exp) {
+      end = min_exp;
+    }
 
     return *end;
   }
 
-  BasicPreCommitPolicy::BasicPreCommitPolicy(std::shared_ptr<FullNodeApi> api,
-                                             ChainEpoch proving_boundary,
-                                             ChainEpoch duration)
+  BasicPreCommitPolicy::BasicPreCommitPolicy(
+      std::shared_ptr<FullNodeApi> api,
+      ChainEpoch proving_boundary,
+      std::chrono::seconds sector_lifetime)
       : api_(std::move(api)),
         proving_boundary_(proving_boundary),
-        duration_(duration),
-        logger_(common::createLogger("basic pre commit policy")) {}
+        logger_(common::createLogger("basic pre commit policy")) {
+    ChainEpoch sector_lifetime_ =
+        sector_lifetime.count() / kEpochDurationSeconds;
+    if (sector_lifetime_ == 0) {
+      sector_lifetime_ = kMaxSectorExpirationExtension;
+    }
+
+    if (sector_lifetime_ < kMinSectorExpiration) {
+      duration_ = kMinSectorExpiration;
+    } else if (sector_lifetime_ > kMaxSectorExpirationExtension) {
+      duration_ = kMaxSectorExpirationExtension;
+    } else {
+      duration_ = sector_lifetime_ - proving_boundary_;
+    }
+  }
 }  // namespace fc::mining

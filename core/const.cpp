@@ -75,7 +75,7 @@ namespace fc::vm::actor::builtin::types::miner {
       RegisteredSealProof::kStackedDrg64GiBV1,
   };
   DEFINE(kMaxSectorExpirationExtension) = 540 * kEpochsInDay;
-  DEFINE(kMaxProveCommitDuration) = kEpochsInDay + kPreCommitChallengeDelay;
+  DEFINE(kMaxProveCommitDuration) = 30 * kEpochsInDay + kPreCommitChallengeDelay;
 }  // namespace fc::vm::actor::builtin::types::miner
 
 namespace fc::vm::actor::builtin::types::payment_channel {
