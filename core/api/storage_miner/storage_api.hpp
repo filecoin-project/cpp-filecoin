@@ -183,7 +183,7 @@ namespace fc::api {
                std::vector<StorageInfo_>,
                const SectorFileType &,
                SectorSize,
-               std::string)
+               const std::string &)
 
     API_METHOD(ReturnAddPiece,
                jwt::kAdminPermission,

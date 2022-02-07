@@ -169,22 +169,20 @@ namespace fc::api {
       return sector_index->storageDropSector(storage_id, sector, file_type);
     };
 
-    api->StorageFindSector =
-        [=](const SectorId &sector,
-            const SectorFileType &file_type,
-            const SectorSize &fetch_sector_size,
-            bool allow_fetch) {
-          boost::optional<SectorSize> sector_size;
-          if(allow_fetch){
-            sector_size = fetch_sector_size;
-          }
-          return sector_index->storageFindSector(
-              sector, file_type, sector_size);
-        };
+    api->StorageFindSector = [=](const SectorId &sector,
+                                 const SectorFileType &file_type,
+                                 const SectorSize &fetch_sector_size,
+                                 bool allow_fetch) {
+      boost::optional<SectorSize> sector_size;
+      if (allow_fetch) {
+        sector_size = fetch_sector_size;
+      }
+      return sector_index->storageFindSector(sector, file_type, sector_size);
+    };
 
     api->StorageBestAlloc = [=](const SectorFileType &allocate,
                                 SectorSize sector_size,
-                                std::string sealing_mode) {
+                                const std::string &sealing_mode) {
       return sector_index->storageBestAlloc(
           allocate, sector_size, (sealing_mode == "sealing"));
     };
