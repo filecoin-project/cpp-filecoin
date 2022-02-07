@@ -1141,9 +1141,9 @@ namespace fc::mining {
     OUTCOME_TRY(seal_duration,
                 checks::getMaxProveCommitDuration(network, info));
     OUTCOME_TRY(policy_expiration, policy_->expiration(info->pieces));
-    const auto min_expiration =
-        info->ticket_epoch + kMaxPreCommitRandomnessLookback
-        + kMaxProveCommitDuration + kMinSectorExpiration;
+    const auto min_expiration = info->ticket_epoch
+                                + kMaxPreCommitRandomnessLookback
+                                + seal_duration + kMinSectorExpiration;
 
     if (policy_expiration < min_expiration) {
       policy_expiration = min_expiration;
