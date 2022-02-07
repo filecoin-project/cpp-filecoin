@@ -465,7 +465,8 @@ namespace fc::sector_storage {
       const UnpaddedPieceSize &size,
       const SealRandomness &randomness,
       const CID &cid,
-      const std::function<void(outcome::result<bool>)> &cb) {
+      const std::function<void(outcome::result<bool>)> &cb,
+      uint64_t priority) {
     OUTCOME_CB(auto lock,
                index_->storageLock(
                    sector.id,
@@ -518,7 +519,7 @@ namespace fc::sector_storage {
           callbackWrapper([&wait](outcome::result<void> res) -> void {
             wait.set_value(res);
           }),
-          kDefaultTaskPriority,
+          priority,
           boost::none));
 
       OUTCOME_CB1(wait.get_future().get());
@@ -545,38 +546,8 @@ namespace fc::sector_storage {
           return worker->readPiece(std::move(*output), sector, offset, size);
         },
         callbackWrapper(cb),
-        kDefaultTaskPriority,
+        priority,
         boost::none));
-  }
-
-  outcome::result<bool> ManagerImpl::readPieceSync(
-      PieceData output,
-      const SectorRef &sector,
-      UnpaddedByteIndex offset,
-      const UnpaddedPieceSize &size,
-      const SealRandomness &randomness,
-      const CID &cid) {
-    std::promise<outcome::result<bool>> wait;
-
-    readPiece(std::move(output),
-              sector,
-              offset,
-              size,
-              randomness,
-              cid,
-              [&wait](outcome::result<bool> res) { wait.set_value(res); });
-
-    auto res = wait.get_future().get();
-
-    if (res.has_error()) {
-      return res.error();
-    }
-
-    if (res.value()) {
-      return outcome::success();
-    }
-
-    return ManagerErrors::kCannotReadData;
   }
 
   void ManagerImpl::sealPreCommit1(
@@ -621,25 +592,6 @@ namespace fc::sector_storage {
         work_id));
   }
 
-  outcome::result<PreCommit1Output> ManagerImpl::sealPreCommit1Sync(
-      const SectorRef &sector,
-      const SealRandomness &ticket,
-      const std::vector<PieceInfo> &pieces,
-      uint64_t priority) {
-    std::promise<outcome::result<PreCommit1Output>> wait;
-
-    sealPreCommit1(
-        sector,
-        ticket,
-        pieces,
-        [&wait](outcome::result<PreCommit1Output> res) -> void {
-          wait.set_value(std::move(res));
-        },
-        priority);
-
-    return wait.get_future().get();
-  }
-
   void ManagerImpl::sealPreCommit2(
       const SectorRef &sector,
       const PreCommit1Output &pre_commit_1_output,
@@ -677,23 +629,6 @@ namespace fc::sector_storage {
         callbackWrapper(cb),
         priority,
         work_id))
-  }
-
-  outcome::result<SectorCids> ManagerImpl::sealPreCommit2Sync(
-      const SectorRef &sector,
-      const PreCommit1Output &pre_commit_1_output,
-      uint64_t priority) {
-    std::promise<outcome::result<SectorCids>> wait;
-
-    sealPreCommit2(
-        sector,
-        pre_commit_1_output,
-        [&wait](outcome::result<SectorCids> res) -> void {
-          wait.set_value(std::move(res));
-        },
-        priority);
-
-    return wait.get_future().get();
   }
 
   void ManagerImpl::sealCommit1(
@@ -738,27 +673,6 @@ namespace fc::sector_storage {
         work_id));
   }
 
-  outcome::result<Commit1Output> ManagerImpl::sealCommit1Sync(
-      const SectorRef &sector,
-      const SealRandomness &ticket,
-      const InteractiveRandomness &seed,
-      const std::vector<PieceInfo> &pieces,
-      const SectorCids &cids,
-      uint64_t priority) {
-    std::promise<outcome::result<Commit1Output>> wait;
-    sealCommit1(
-        sector,
-        ticket,
-        seed,
-        pieces,
-        cids,
-        [&wait](const outcome::result<Commit1Output> &res) -> void {
-          wait.set_value(res);
-        },
-        priority);
-    return wait.get_future().get();
-  }
-
   void ManagerImpl::sealCommit2(
       const SectorRef &sector,
       const Commit1Output &commit_1_output,
@@ -782,23 +696,6 @@ namespace fc::sector_storage {
         callbackWrapper(cb),
         priority,
         work_id));
-  }
-
-  outcome::result<Proof> ManagerImpl::sealCommit2Sync(
-      const SectorRef &sector,
-      const Commit1Output &commit_1_output,
-      uint64_t priority) {
-    std::promise<outcome::result<Proof>> wait;
-
-    sealCommit2(
-        sector,
-        commit_1_output,
-        [&wait](const outcome::result<Proof> &res) -> void {
-          wait.set_value(res);
-        },
-        priority);
-
-    return wait.get_future().get();
   }
 
   void ManagerImpl::finalizeSector(
@@ -897,21 +794,6 @@ namespace fc::sector_storage {
         callbackWrapper(std::move(next_cb)),
         priority,
         boost::none));
-  }
-
-  outcome::result<void> ManagerImpl::finalizeSectorSync(
-      const SectorRef &sector,
-      const gsl::span<const Range> &keep_unsealed,
-      uint64_t priority) {
-    std::promise<outcome::result<void>> waiter;
-
-    finalizeSector(
-        sector,
-        keep_unsealed,
-        [&waiter](outcome::result<void> res) -> void { waiter.set_value(res); },
-        priority);
-
-    return waiter.get_future().get();
   }
 
   void ManagerImpl::replicaUpdate(

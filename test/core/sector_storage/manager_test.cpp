@@ -118,7 +118,7 @@ namespace fc::sector_storage {
       std::promise<outcome::result<Result>> waiter;
 
       (*manager_.*F)(
-          args...,
+          std::forward<Args>(args)...,
           [&waiter](const outcome::result<Result> &res) -> void {
             waiter.set_value(res);
           },
@@ -169,7 +169,7 @@ namespace fc::sector_storage {
         .WillOnce(testing::Return(testing::ByMove(
             outcome::success(std::make_unique<stores::WLock>()))));
 
-    std::vector<uint8_t> result = {1, 2, 3, 4, 5};
+    std::vector<uint8_t> expected_result = {1, 2, 3, 4, 5};
     CallId call_id{.sector = sector_.id, .id = "some UUID"};
     EXPECT_CALL(*worker_, sealPreCommit1(sector_, randomness, pieces))
         .WillOnce(testing::Return(outcome::success(call_id)));
@@ -198,13 +198,13 @@ namespace fc::sector_storage {
                 uint64_t priority,
                 const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
-              cb(CallResult{result, {}});
+              cb(CallResult{expected_result, {}});
               return outcome::success();
             }));
 
-    EXPECT_OUTCOME_EQ(manager_->sealPreCommit1Sync(
-                          sector_, randomness, pieces, kDefaultTaskPriority),
-                      result);
+    auto result = syncCall<&Manager::sealPreCommit1, PreCommit1Output>(
+        sector_, randomness, pieces);
+    EXPECT_OUTCOME_EQ(result, expected_result);
   }
 
   /**
@@ -259,9 +259,9 @@ namespace fc::sector_storage {
               return outcome::success();
             }));
 
-    EXPECT_OUTCOME_EQ(manager_->sealPreCommit2Sync(
-                          sector_, pre_commit_1_output, kDefaultTaskPriority),
-                      result_cids);
+    auto result = syncCall<&Manager::sealPreCommit2, SectorCids>(
+        sector_, pre_commit_1_output);
+    EXPECT_OUTCOME_EQ(result, result_cids);
   }
 
   /**
@@ -290,7 +290,7 @@ namespace fc::sector_storage {
         .WillOnce(testing::Return(testing::ByMove(
             outcome::success(std::make_unique<stores::WLock>()))));
 
-    std::vector<uint8_t> result = {1, 2, 3, 4, 5};
+    std::vector<uint8_t> expected_result = {1, 2, 3, 4, 5};
 
     CallId call_id{.sector = sector_.id, .id = "some UUID"};
     EXPECT_CALL(*worker_, sealCommit1(sector_, ticket, seed, pieces, cids))
@@ -320,14 +320,13 @@ namespace fc::sector_storage {
                 uint64_t priority,
                 const boost::optional<WorkId> &) -> outcome::result<void> {
               OUTCOME_TRY(work(worker_));
-              cb(CallResult{result, {}});
+              cb(CallResult{expected_result, {}});
               return outcome::success();
             }));
 
-    EXPECT_OUTCOME_EQ(
-        manager_->sealCommit1Sync(
-            sector_, ticket, seed, pieces, cids, kDefaultTaskPriority),
-        result);
+    auto result = syncCall<&Manager::sealCommit1, Commit1Output>(
+        sector_, ticket, seed, pieces, cids);
+    EXPECT_OUTCOME_EQ(result, expected_result);
   }
 
   /**
@@ -338,7 +337,7 @@ namespace fc::sector_storage {
   TEST_F(ManagerTest, SealCommit2) {
     std::vector<uint8_t> commit_1_output = {1, 2, 3, 4, 5};
 
-    std::vector<uint8_t> result = {1, 2, 3, 4, 5};
+    std::vector<uint8_t> expected_result = {1, 2, 3, 4, 5};
     CallId call_id{.sector = sector_.id, .id = "some UUID"};
     EXPECT_CALL(*worker_, sealCommit2(sector_, commit_1_output))
         .WillOnce(testing::Return(outcome::success(call_id)));
@@ -366,12 +365,13 @@ namespace fc::sector_storage {
                 uint64_t priority,
                 const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
-              cb(CallResult{result, {}});
+              cb(CallResult{expected_result, {}});
               return outcome::success();
             }));
-    EXPECT_OUTCOME_EQ(manager_->sealCommit2Sync(
-                          sector_, commit_1_output, kDefaultTaskPriority),
-                      result);
+
+    auto result =
+        syncCall<&Manager::sealCommit2, Proof>(sector_, commit_1_output);
+    EXPECT_OUTCOME_EQ(result, expected_result);
   }
 
   /**
@@ -461,8 +461,8 @@ namespace fc::sector_storage {
               return outcome::success();
             }));
 
-    EXPECT_OUTCOME_TRUE_1(manager_->finalizeSectorSync(
-        sector_, keep_unsealed, kDefaultTaskPriority));
+    std::ignore =
+        syncCall<&Manager::finalizeSector, void>(sector_, keep_unsealed);
   }
 
   /**
@@ -811,8 +811,10 @@ namespace fc::sector_storage {
             }));
 
     int fd = -1;
-    EXPECT_OUTCOME_TRUE_1(manager_->readPieceSync(
-        PieceData(fd), sector_, offset, piece_size, randomness, cid));
+
+    auto result = syncCall<&Manager::readPiece, bool>(
+        PieceData(fd), sector_, offset, piece_size, randomness, cid);
+    EXPECT_OUTCOME_EQ(result, true);
   }
 
   /**
@@ -897,10 +899,10 @@ namespace fc::sector_storage {
             }));
 
     int fd = -1;
-    EXPECT_OUTCOME_ERROR(
-        ManagerErrors::kCannotReadData,
-        manager_->readPieceSync(
-            PieceData(fd), sector_, offset, piece_size, randomness, cid));
+
+    auto result = syncCall<&Manager::readPiece, bool>(
+        PieceData(fd), sector_, offset, piece_size, randomness, cid);
+    EXPECT_OUTCOME_EQ(result, false);
   }
 
   /**

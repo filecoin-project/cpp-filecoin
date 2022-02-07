@@ -44,14 +44,8 @@ namespace fc::sector_storage {
         const UnpaddedPieceSize &size,
         const SealRandomness &randomness,
         const CID &cid,
-        const std::function<void(outcome::result<bool>)> &cb) override;
-
-    outcome::result<bool> readPieceSync(PieceData output,
-                                        const SectorRef &sector,
-                                        UnpaddedByteIndex offset,
-                                        const UnpaddedPieceSize &size,
-                                        const SealRandomness &randomness,
-                                        const CID &cid) override;
+        const std::function<void(outcome::result<bool>)> &cb,
+        uint64_t priority) override;
 
     void sealPreCommit1(
         const SectorRef &sector,
@@ -60,21 +54,10 @@ namespace fc::sector_storage {
         const std::function<void(outcome::result<PreCommit1Output>)> &cb,
         uint64_t priority) override;
 
-    outcome::result<PreCommit1Output> sealPreCommit1Sync(
-        const SectorRef &sector,
-        const SealRandomness &ticket,
-        const std::vector<PieceInfo> &pieces,
-        uint64_t priority) override;
-
     void sealPreCommit2(
         const SectorRef &sector,
         const PreCommit1Output &pre_commit_1_output,
         const std::function<void(outcome::result<SectorCids>)> &cb,
-        uint64_t priority) override;
-
-    outcome::result<SectorCids> sealPreCommit2Sync(
-        const SectorRef &sector,
-        const PreCommit1Output &pre_commit_1_output,
         uint64_t priority) override;
 
     void sealCommit1(
@@ -86,32 +69,15 @@ namespace fc::sector_storage {
         const std::function<void(outcome::result<Commit1Output>)> &cb,
         uint64_t priority) override;
 
-    outcome::result<Commit1Output> sealCommit1Sync(
-        const SectorRef &sector,
-        const SealRandomness &ticket,
-        const InteractiveRandomness &seed,
-        const std::vector<PieceInfo> &pieces,
-        const SectorCids &cids,
-        uint64_t priority) override;
-
     void sealCommit2(const SectorRef &sector,
                      const Commit1Output &commit_1_output,
                      const std::function<void(outcome::result<Proof>)> &cb,
                      uint64_t priority) override;
 
-    outcome::result<Proof> sealCommit2Sync(const SectorRef &sector,
-                                           const Commit1Output &commit_1_output,
-                                           uint64_t priority) override;
-
     void finalizeSector(const SectorRef &sector,
                         const gsl::span<const Range> &keep_unsealed,
                         const std::function<void(outcome::result<void>)> &cb,
                         uint64_t priority) override;
-
-    outcome::result<void> finalizeSectorSync(
-        const SectorRef &sector,
-        const gsl::span<const Range> &keep_unsealed,
-        uint64_t priority) override;
 
     void replicaUpdate(
         const SectorRef &sector,
