@@ -11,6 +11,7 @@
 #include "testutil/mocks/std_function.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/v5/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v7/miner/miner_actor.hpp"
 
 namespace fc::markets::storage::chain_events {
   using adt::Channel;
@@ -27,6 +28,7 @@ namespace fc::markets::storage::chain_events {
   using vm::actor::builtin::v5::miner::PreCommitSector;
   using vm::actor::builtin::v5::miner::ProveCommitSector;
   using vm::actor::builtin::v5::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::v7::miner::ProveReplicaUpdates;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::version::NetworkVersion;
@@ -45,6 +47,7 @@ namespace fc::markets::storage::chain_events {
     MOCK_API_CB(api, StateWaitMsg);
 
     MockStdFunction<ChainEventsImpl::IsDealPrecommited> is_deal_precommited;
+    boost::asio::io_context io;
 
     Address provider = Address::makeFromId(1);
     DealId deal_id{1};
@@ -69,6 +72,11 @@ namespace fc::markets::storage::chain_events {
       EXPECT_OUTCOME_TRUE_1(events->init());
       chainNotify(HeadChangeType::CURRENT, block0);
     }
+
+    void ioRunOne() {
+      io.restart();
+      io.run_one();
+    }
   };
 
   /**
@@ -77,15 +85,10 @@ namespace fc::markets::storage::chain_events {
    * @then event is triggered
    */
   TEST_F(ChainEventsTest, CommitSector) {
-    boost::asio::io_context io;
     const auto io_StateWaitMsg{
         testing::Invoke([&](auto cb, auto, auto, auto, auto) {
           io.post([cb{std::move(cb)}] { cb(outcome::success()); });
         })};
-    const auto io_run_one{[&] {
-      io.restart();
-      io.run_one();
-    }};
 
     EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, _))
         .WillOnce(testing::Return(api::StorageDeal{}));
@@ -108,7 +111,7 @@ namespace fc::markets::storage::chain_events {
     EXPECT_CALL(mock_StateWaitMsg, Call(_, _, _, _, _))
         .WillOnce(io_StateWaitMsg);
     chainNotify(HeadChangeType::APPLY, block1);
-    io_run_one();
+    ioRunOne();
 
     UnsignedMessage prove_commit_message;
     prove_commit_message.to = provider;
@@ -123,7 +126,7 @@ namespace fc::markets::storage::chain_events {
         .WillOnce(io_StateWaitMsg);
     chainNotify(HeadChangeType::APPLY, block2);
     EXPECT_CALL(cb, Call(void_success)).WillOnce(testing::Return());
-    io_run_one();
+    ioRunOne();
   }
 
   /**
@@ -142,4 +145,34 @@ namespace fc::markets::storage::chain_events {
     events->onDealSectorCommitted(provider, deal_id, cb.AsStdFunction());
   }
 
+  TEST_F(ChainEventsTest, Update) {
+    EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, _))
+        .WillOnce(testing::Return(api::StorageDeal{}));
+    EXPECT_CALL(is_deal_precommited,
+                Call(TipsetKey{{block0}}, provider, deal_id))
+        .WillOnce(testing::Return(boost::none));
+    MockCb cb;
+    events->onDealSectorCommitted(provider, deal_id, cb.AsStdFunction());
+
+    ProveReplicaUpdates::Params params;
+    auto &update{params.updates.emplace_back()};
+    update.deals.emplace_back(deal_id);
+    update.comm_r = CID{CbCid{}};
+    UnsignedMessage msg;
+    msg.to = provider;
+    msg.method = ProveReplicaUpdates::Number;
+    msg.params = codec::cbor::encode(params).value();
+    EXPECT_CALL(mock_ChainGetBlockMessages, Call(CID{block1}))
+        .WillOnce(testing::Return(BlockMessages{{msg}, {}, {}}));
+    api::MsgWait wait;
+    wait.receipt.return_value =
+        codec::cbor::encode(ProveReplicaUpdates::Result{update.sector}).value();
+    EXPECT_CALL(mock_StateWaitMsg, Call(_, _, _, _, _))
+        .WillOnce([&](auto cb, auto, auto, auto, auto) {
+          io.post([cb{std::move(cb)}, wait] { cb(wait); });
+        });
+    chainNotify(HeadChangeType::APPLY, block1);
+    EXPECT_CALL(cb, Call(void_success)).WillOnce(testing::Return());
+    ioRunOne();
+  }
 }  // namespace fc::markets::storage::chain_events

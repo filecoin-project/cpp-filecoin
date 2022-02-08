@@ -58,9 +58,9 @@ namespace fc::api {
   using primitives::block::BlockTemplate;
   using primitives::block::BlockWithCids;
   using primitives::piece::PaddedPieceSize;
+  using primitives::sector::ExtendedSectorInfo;
   using primitives::sector::RegisteredPoStProof;
   using primitives::sector::RegisteredSealProof;
-  using primitives::sector::SectorInfo;
   using primitives::tipset::HeadChange;
   using primitives::tipset::TipsetCPtr;
   using primitives::tipset::TipsetKey;
@@ -239,7 +239,7 @@ namespace fc::api {
   struct MiningBaseInfo {
     StoragePower miner_power;
     StoragePower network_power;
-    std::vector<SectorInfo> sectors;
+    std::vector<ExtendedSectorInfo> sectors;
     Address worker;
     SectorSize sector_size{};
     BeaconEntry prev_beacon;

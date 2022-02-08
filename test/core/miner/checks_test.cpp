@@ -31,6 +31,7 @@ namespace fc::mining::checks {
   using primitives::ActorId;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
+  using proofs::ProofEngineMock;
   using storage::ipfs::InMemoryDatastore;
   using storage::ipfs::IpfsDatastore;
   using testing::_;
@@ -46,6 +47,13 @@ namespace fc::mining::checks {
   using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::v5::market::ComputeDataCommitment;
   using vm::runtime::MockRuntime;
+
+  auto commD(ComputeDataCommitment::Result result) {
+    InvocResult invoc;
+    invoc.receipt.exit_code = VMExitCode::kOk;
+    invoc.receipt.return_value = codec::cbor::encode(result).value();
+    return invoc;
+  }
 
   class CheckPieces : public testing::Test {
    protected:
@@ -394,15 +402,10 @@ namespace fc::mining::checks {
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
     MOCK_API(api_, StateCall);
-    InvocResult invoc_result;
-    invoc_result.receipt.exit_code = VMExitCode::kOk;
-    ComputeDataCommitment::Result result{.commds = {"010001020002"_cid}};
-    EXPECT_OUTCOME_TRUE(cid_buf, codec::cbor::encode(result));
-    invoc_result.receipt.return_value = cid_buf;
     EXPECT_CALL(
         mock_StateCall,
         Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
-        .WillOnce(testing::Return(outcome::success(invoc_result)));
+        .WillOnce(testing::Return(commD({{"010001020002"_cid}})));
 
     EXPECT_OUTCOME_ERROR(
         ChecksError::kBadCommD,
@@ -458,15 +461,10 @@ namespace fc::mining::checks {
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
     MOCK_API(api_, StateCall);
-    InvocResult invoc_result;
-    invoc_result.receipt.exit_code = VMExitCode::kOk;
-    ComputeDataCommitment::Result result{.commds = {*info->comm_d}};
-    EXPECT_OUTCOME_TRUE(cid_buf, codec::cbor::encode(result));
-    invoc_result.receipt.return_value = cid_buf;
     EXPECT_CALL(
         mock_StateCall,
         Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
-        .WillOnce(testing::Return(outcome::success(invoc_result)));
+        .WillOnce(testing::Return(commD({{*info->comm_d}})));
 
     MOCK_API(api_, StateNetworkVersion);
     EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
@@ -539,15 +537,10 @@ namespace fc::mining::checks {
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
     MOCK_API(api_, StateCall);
-    InvocResult invoc_result;
-    invoc_result.receipt.exit_code = VMExitCode::kOk;
-    ComputeDataCommitment::Result result{.commds = {*info->comm_d}};
-    EXPECT_OUTCOME_TRUE(cid_buf, codec::cbor::encode(result));
-    invoc_result.receipt.return_value = cid_buf;
     EXPECT_CALL(
         mock_StateCall,
         Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
-        .WillOnce(testing::Return(outcome::success(invoc_result)));
+        .WillOnce(testing::Return(commD({{*info->comm_d}})));
 
     MOCK_API(api_, StateNetworkVersion);
     EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
@@ -651,15 +644,10 @@ namespace fc::mining::checks {
                              CbCid::hash("02"_unhex),
                              CbCid::hash("03"_unhex)}};
     MOCK_API(api_, StateCall);
-    InvocResult invoc_result;
-    invoc_result.receipt.exit_code = VMExitCode::kOk;
-    ComputeDataCommitment::Result result{.commds = {*info->comm_d}};
-    EXPECT_OUTCOME_TRUE(cid_buf, codec::cbor::encode(result));
-    invoc_result.receipt.return_value = cid_buf;
     EXPECT_CALL(
         mock_StateCall,
         Call(methodMatcher(ComputeDataCommitment::Number), precommit_key))
-        .WillOnce(testing::Return(outcome::success(invoc_result)));
+        .WillOnce(testing::Return(commD({{*info->comm_d}})));
 
     MOCK_API(api_, StateNetworkVersion);
     EXPECT_CALL(mock_StateNetworkVersion, Call(precommit_key))
@@ -719,7 +707,6 @@ namespace fc::mining::checks {
       api_->StateNetworkVersion = [&](const TipsetKey &tipset_key)
           -> outcome::result<api::NetworkVersion> { return version_; };
 
-      proofs_ = std::make_shared<proofs::ProofEngineMock>();
       ipld_ = std::make_shared<InMemoryDatastore>();
       const auto actor_version = actorVersion(version_);
       ipld_->actor_version = actor_version;
@@ -732,7 +719,8 @@ namespace fc::mining::checks {
     ActorId miner_id_;
     Address miner_addr_;
     std::shared_ptr<FullNodeApi> api_;
-    std::shared_ptr<proofs::ProofEngineMock> proofs_;
+    std::shared_ptr<ProofEngineMock> proofs_ =
+        std::make_shared<ProofEngineMock>();
   };
 
   /**
@@ -1127,4 +1115,35 @@ namespace fc::mining::checks {
         checkCommit(miner_addr_, info, proof, commit_key, api_, proofs_));
   }
 
+  struct CheckUpdate : testing::Test {
+    Address miner;
+    std::shared_ptr<SectorInfo> info = std::make_shared<SectorInfo>();
+    std::shared_ptr<ProofEngineMock> proofs =
+        std::make_shared<ProofEngineMock>();
+
+    std::shared_ptr<FullNodeApi> api = std::make_shared<FullNodeApi>();
+    MOCK_API(api, ChainHead);
+    MOCK_API(api, StateCall);
+    MOCK_API(api, StateMarketStorageDeal);
+  };
+
+  TEST_F(CheckUpdate, Success) {
+    info->comm_r = CID{};
+    info->update = true;
+    info->update_comm_d = CID{CbCid{}};
+    info->update_comm_r = CID{};
+    info->update_proof = Bytes{};
+    auto &piece{info->pieces.emplace_back()};
+    piece.deal_info.emplace();
+    const auto head{std::make_shared<Tipset>()};
+    auto &block{head->blks.emplace_back()};
+    block.height = -1;
+    EXPECT_CALL(mock_ChainHead, Call()).WillOnce(testing::Return(head));
+    EXPECT_CALL(mock_StateMarketStorageDeal, Call(_, _))
+        .WillOnce(testing::Return(outcome::success()));
+    EXPECT_CALL(mock_StateCall, Call(_, _))
+        .WillOnce(testing::Return(commD({{*info->update_comm_d}})));
+    EXPECT_CALL(*proofs, verifyUpdateProof(_)).WillOnce(testing::Return(true));
+    EXPECT_OUTCOME_TRUE_1(checkUpdate(miner, info, {}, api, proofs));
+  }
 }  // namespace fc::mining::checks

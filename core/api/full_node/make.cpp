@@ -776,8 +776,9 @@ namespace fc::api {
         OUTCOME_TRY(deadline->partitions.visit(
             [&](auto, const auto &part) -> outcome::result<void> {
               for (const auto &id : part->activeSectors()) {
-                OUTCOME_TRYA(sectors.emplace_back(),
-                             state->sectors.sectors.get(id));
+                OUTCOME_TRY(universal_sector_info,
+                            state->sectors.sectors.get(id));
+                sectors.emplace_back(*universal_sector_info);
               }
               return outcome::success();
             }));
@@ -889,7 +890,7 @@ namespace fc::api {
       std::vector<SectorOnChainInfo> sectors;
       OUTCOME_TRY(state->sectors.sectors.visit([&](auto id, auto &info) {
         if (!filter || filter->count(id)) {
-          sectors.push_back(info);
+          sectors.push_back(*info);
         }
         return outcome::success();
       }));
@@ -990,7 +991,12 @@ namespace fc::api {
         -> outcome::result<boost::optional<SectorOnChainInfo>> {
       OUTCOME_TRY(context, tipsetContext(tipset_key, false));
       OUTCOME_TRY(state, context.minerState(address));
-      return state->sectors.sectors.tryGet(sector_number);
+      OUTCOME_TRY(maybe_universal_sector_info,
+                  state->sectors.sectors.tryGet(sector_number));
+      if (maybe_universal_sector_info) {
+        return *maybe_universal_sector_info.get();
+      }
+      return boost::none;
     };
     api->StateSectorExpiration = [=](auto &address, auto sector, auto &tsk)
         -> outcome::result<SectorExpiration> {
@@ -1026,7 +1032,32 @@ namespace fc::api {
     };
     // TODO(artyom-yurin): FIL-165 implement method
     api->StateSectorPartition =
-        std::function<decltype(api->StateSectorPartition)::FunctionSignature>{};
+        [=](const Address &address,
+            SectorNumber sector,
+            const TipsetKey &tsk) -> outcome::result<SectorLocation> {
+      OUTCOME_TRY(context, tipsetContext(tsk, false));
+      OUTCOME_TRY(state, context.minerState(address));
+      OUTCOME_TRY(deadlines, state->deadlines.get());
+      uint64_t i_deadline{0};
+      for (const auto &_deadline : deadlines.due) {
+        boost::optional<SectorLocation> result;
+        OUTCOME_TRY(deadline, _deadline.get());
+        const auto visit{
+            [&](auto i_partition, auto &partition) -> outcome::result<void> {
+              if (partition->sectors.has(sector)) {
+                result = SectorLocation{i_deadline, i_partition};
+                return outcome::failure(adt::kStopError);
+              }
+              return outcome::success();
+            }};
+        CATCH_STOP(deadline->partitions.visit(visit));
+        if (result) {
+          return *result;
+        }
+        ++i_deadline;
+      }
+      return ERROR_TEXT("StateSectorPartition: not found");
+    };
 
     api->StateVerifiedClientStatus = [=](const Address &address,
                                          const TipsetKey &tipset_key)
@@ -1084,7 +1115,7 @@ namespace fc::api {
     };
     api->Version = []() {
       return VersionResult{
-          kNodeVersion, makeApiVersion(2, 1, 0), kEpochDurationSeconds};
+          kNodeVersion, makeApiVersion(2, 2, 0), kEpochDurationSeconds};
     };
     return api;
   }

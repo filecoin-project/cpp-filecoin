@@ -22,11 +22,11 @@ namespace fc::vm::actor::builtin::types::miner {
           setup_sectors.store({makeSector(0), makeSector(1), makeSector(5)}));
     }
 
-    SectorOnChainInfo makeSector(SectorNumber number) const {
-      SectorOnChainInfo sector;
-      sector.sector = number;
-      sector.seal_proof = RegisteredSealProof::kStackedDrg32GiBV1_1;
-      sector.sealed_cid = kEmptyObjectCid;
+    static Universal<SectorOnChainInfo> makeSector(SectorNumber number) {
+      Universal<SectorOnChainInfo> sector{ActorVersion::kVersion0};
+      sector->sector = number;
+      sector->seal_proof = RegisteredSealProof::kStackedDrg32GiBV1_1;
+      sector->sealed_cid = kEmptyObjectCid;
 
       return sector;
     }
@@ -40,6 +40,8 @@ namespace fc::vm::actor::builtin::types::miner {
   TEST_F(SectorsTest, LoadsSectors) {
     EXPECT_OUTCOME_TRUE(sectors, setup_sectors.load({0, 5}));
     EXPECT_EQ(sectors.size(), 2);
+    auto lhr = sectors[0];
+    auto rhs = makeSector(0);
     EXPECT_EQ(sectors[0], makeSector(0));
     EXPECT_EQ(sectors[1], makeSector(5));
 
@@ -49,7 +51,7 @@ namespace fc::vm::actor::builtin::types::miner {
   TEST_F(SectorsTest, StoresSectors) {
     const auto s0 = makeSector(0);
     auto s1 = makeSector(1);
-    s1.activation_epoch = 1;
+    s1->activation_epoch = 1;
     const auto s3 = makeSector(3);
     const auto s5 = makeSector(5);
 
@@ -72,7 +74,7 @@ namespace fc::vm::actor::builtin::types::miner {
   TEST_F(SectorsTest, LoadsForProofWithReplacement) {
     const auto s1 = makeSector(1);
     EXPECT_OUTCOME_TRUE(infos, setup_sectors.loadForProof({0, 1}, {0}));
-    const std::vector<SectorOnChainInfo> expected_infos{s1, s1};
+    const std::vector<Universal<SectorOnChainInfo>> expected_infos{s1, s1};
     EXPECT_EQ(infos, expected_infos);
   }
 
@@ -80,7 +82,7 @@ namespace fc::vm::actor::builtin::types::miner {
     const auto s0 = makeSector(0);
     const auto s1 = makeSector(1);
     EXPECT_OUTCOME_TRUE(infos, setup_sectors.loadForProof({0, 1}, {}));
-    const std::vector<SectorOnChainInfo> expected_infos{s0, s1};
+    const std::vector<Universal<SectorOnChainInfo>> expected_infos{s0, s1};
     EXPECT_EQ(infos, expected_infos);
   }
 

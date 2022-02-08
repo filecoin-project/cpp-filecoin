@@ -16,4 +16,5 @@ UNIVERSAL_IMPL(states::RewardActorState,
                v2::reward::RewardActorState,
                v2::reward::RewardActorState,
                v2::reward::RewardActorState,
+               v2::reward::RewardActorState,
                v2::reward::RewardActorState)

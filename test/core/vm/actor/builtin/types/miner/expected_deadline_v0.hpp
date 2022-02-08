@@ -31,7 +31,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     QuantSpec quant;
     SectorSize ssize{};
     uint64_t partition_size{};
-    std::vector<SectorOnChainInfo> sectors;
+    std::vector<Universal<SectorOnChainInfo>> sectors;
     RleBitset faults;
     RleBitset recovering;
     RleBitset terminations;
@@ -183,20 +183,20 @@ namespace fc::vm::actor::builtin::v0::miner {
           EXPECT_TRUE(live.contains(es.on_time_sectors));
 
           for (const auto &sector : on_time_sectors) {
-            const auto find = seen_sectors.find(sector.sector);
+            const auto find = seen_sectors.find(sector->sector);
             EXPECT_TRUE(find == seen_sectors.end());
-            seen_sectors.insert(sector.sector);
+            seen_sectors.insert(sector->sector);
 
-            const auto actual_epoch = quant.quantizeUp(sector.expiration);
+            const auto actual_epoch = quant.quantizeUp(sector->expiration);
             EXPECT_EQ(actual_epoch, epoch);
           }
 
           for (const auto &sector : early_sectors) {
-            const auto find = seen_sectors.find(sector.sector);
+            const auto find = seen_sectors.find(sector->sector);
             EXPECT_TRUE(find == seen_sectors.end());
-            seen_sectors.insert(sector.sector);
+            seen_sectors.insert(sector->sector);
 
-            const auto actual_epoch = quant.quantizeUp(sector.expiration);
+            const auto actual_epoch = quant.quantizeUp(sector->expiration);
             EXPECT_TRUE(epoch < actual_epoch);
           }
 
@@ -205,7 +205,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
           TokenAmount on_time_pledge{0};
           for (const auto &sector : on_time_sectors) {
-            on_time_pledge += sector.init_pledge;
+            on_time_pledge += sector->init_pledge;
           }
           EXPECT_EQ(es.on_time_pledge, on_time_pledge);
 

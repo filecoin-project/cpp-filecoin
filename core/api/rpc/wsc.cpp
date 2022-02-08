@@ -34,8 +34,15 @@ namespace fc::api::rpc {
     OUTCOME_TRY(
         port,
         address.getFirstValueForProtocol(libp2p::multi::Protocol::Code::TCP));
+    return connect(ip, port, target, token);
+  }
+
+    outcome::result<void> Client::connect(const std::string &host,
+                                          const std::string &port,
+                                          const std::string &target,
+                                          const std::string &token) {
     boost::system::error_code ec;
-    socket.next_layer().connect({boost::asio::ip::make_address(ip),
+    socket.next_layer().connect({boost::asio::ip::make_address(host),
                                  boost::lexical_cast<uint16_t>(port)},
                                 ec);
     if (ec) {
@@ -48,7 +55,7 @@ namespace fc::api::rpc {
                     "Bearer " + token);
           }));
     }
-    socket.handshake(ip, target, ec);
+    socket.handshake(host, target, ec);
     if (ec) {
       return ec;
     }

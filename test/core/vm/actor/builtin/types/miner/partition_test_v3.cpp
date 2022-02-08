@@ -55,12 +55,12 @@ namespace fc::vm::actor::builtin::v3::miner {
     }
 
     void setupUnproven() {
-      sectors = {testSector(2, 1, 50, 60, 1000),
-                 testSector(3, 2, 51, 61, 1001),
-                 testSector(7, 3, 52, 62, 1002),
-                 testSector(8, 4, 53, 63, 1003),
-                 testSector(11, 5, 54, 64, 1004),
-                 testSector(13, 6, 55, 65, 1005)};
+      sectors = {testSector(actor_version, 2, 1, 50, 60, 1000),
+                 testSector(actor_version, 3, 2, 51, 61, 1001),
+                 testSector(actor_version, 7, 3, 52, 62, 1002),
+                 testSector(actor_version, 8, 4, 53, 63, 1003),
+                 testSector(actor_version, 11, 5, 54, 64, 1004),
+                 testSector(actor_version, 13, 6, 55, 65, 1005)};
 
       EXPECT_OUTCOME_TRUE(power,
                           partition.addSectors(false, sectors, ssize, quant));
@@ -76,12 +76,12 @@ namespace fc::vm::actor::builtin::v3::miner {
     }
 
     void setupProven() {
-      sectors = {testSector(2, 1, 50, 60, 1000),
-                 testSector(3, 2, 51, 61, 1001),
-                 testSector(7, 3, 52, 62, 1002),
-                 testSector(8, 4, 53, 63, 1003),
-                 testSector(11, 5, 54, 64, 1004),
-                 testSector(13, 6, 55, 65, 1005)};
+      sectors = {testSector(actor_version, 2, 1, 50, 60, 1000),
+                 testSector(actor_version, 3, 2, 51, 61, 1001),
+                 testSector(actor_version, 7, 3, 52, 62, 1002),
+                 testSector(actor_version, 8, 4, 53, 63, 1003),
+                 testSector(actor_version, 11, 5, 54, 64, 1004),
+                 testSector(actor_version, 13, 6, 55, 65, 1005)};
 
       EXPECT_OUTCOME_TRUE(power,
                           partition.addSectors(true, sectors, ssize, quant));
@@ -159,20 +159,20 @@ namespace fc::vm::actor::builtin::v3::miner {
           EXPECT_TRUE(live.contains(es.on_time_sectors));
 
           for (const auto &sector : on_time_sectors) {
-            const auto find = seen_sectors.find(sector.sector);
+            const auto find = seen_sectors.find(sector->sector);
             EXPECT_TRUE(find == seen_sectors.end());
-            seen_sectors.insert(sector.sector);
+            seen_sectors.insert(sector->sector);
 
-            const auto actual_epoch = quant.quantizeUp(sector.expiration);
+            const auto actual_epoch = quant.quantizeUp(sector->expiration);
             EXPECT_EQ(actual_epoch, epoch);
           }
 
           for (const auto &sector : early_sectors) {
-            const auto find = seen_sectors.find(sector.sector);
+            const auto find = seen_sectors.find(sector->sector);
             EXPECT_TRUE(find == seen_sectors.end());
-            seen_sectors.insert(sector.sector);
+            seen_sectors.insert(sector->sector);
 
-            const auto actual_epoch = quant.quantizeUp(sector.expiration);
+            const auto actual_epoch = quant.quantizeUp(sector->expiration);
             EXPECT_TRUE(epoch < actual_epoch);
           }
 
@@ -181,7 +181,7 @@ namespace fc::vm::actor::builtin::v3::miner {
 
           TokenAmount on_time_pledge{0};
           for (const auto &sector : on_time_sectors) {
-            on_time_pledge += sector.init_pledge;
+            on_time_pledge += sector->init_pledge;
           }
           EXPECT_EQ(es.on_time_pledge, on_time_pledge);
 
@@ -234,14 +234,14 @@ namespace fc::vm::actor::builtin::v3::miner {
       return sectors_arr;
     }
 
-    std::vector<SectorOnChainInfo> rescheduleSectors(
+    std::vector<Universal<SectorOnChainInfo>> rescheduleSectors(
         ChainEpoch target, const RleBitset &filter) const {
-      std::vector<SectorOnChainInfo> output;
+      std::vector<Universal<SectorOnChainInfo>> output;
 
       for (const auto &sector : sectors) {
         auto sector_copy = sector;
-        if (filter.has(sector_copy.sector)) {
-          sector_copy.expiration = target;
+        if (filter.has(sector_copy->sector)) {
+          sector_copy->expiration = target;
         }
         output.push_back(sector_copy);
       }
@@ -253,7 +253,7 @@ namespace fc::vm::actor::builtin::v3::miner {
         std::make_shared<InMemoryDatastore>()};
     ActorVersion actor_version;
 
-    std::vector<SectorOnChainInfo> sectors;
+    std::vector<Universal<SectorOnChainInfo>> sectors;
     SectorSize ssize{static_cast<uint64_t>(32) << 30};
     QuantSpec quant{4, 1};
     ChainEpoch exp{100};
@@ -539,7 +539,7 @@ namespace fc::vm::actor::builtin::v3::miner {
    */
   TEST_F(PartitionTestV3, ReschedulesExpirations) {
     setup();
-    const auto unproven_sector = testSector(13, 7, 55, 65, 1006);
+    const auto unproven_sector = testSector(actor_version, 13, 7, 55, 65, 1006);
     sectors.push_back(unproven_sector);
     const auto sectors_arr = getSectorsArray();
 
@@ -558,11 +558,11 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     EXPECT_EQ(moved.size(), 3);
     std::sort(moved.begin(), moved.end(), [](auto lhs, auto rhs) {
-      return lhs.sector < rhs.sector;
+      return lhs->sector < rhs->sector;
     });
-    EXPECT_EQ(moved[0].sector, 4);
-    EXPECT_EQ(moved[1].sector, 6);
-    EXPECT_EQ(moved[2].sector, 7);
+    EXPECT_EQ(moved[0]->sector, 4);
+    EXPECT_EQ(moved[1]->sector, 6);
+    EXPECT_EQ(moved[2]->sector, 7);
 
     sectors = rescheduleSectors(18, {4, 6, 7});
 
@@ -587,10 +587,10 @@ namespace fc::vm::actor::builtin::v3::miner {
     const auto old_sector_power = powerForSectors(ssize, old_sectors);
     const TokenAmount old_sector_pledge = 1001 + 1002 + 1003;
 
-    const std::vector<SectorOnChainInfo> new_sectors = {
-        testSector(10, 2, 150, 260, 3000),
-        testSector(10, 7, 151, 261, 3001),
-        testSector(18, 8, 152, 262, 3002)};
+    const std::vector<Universal<SectorOnChainInfo>> new_sectors = {
+        testSector(actor_version, 10, 2, 150, 260, 3000),
+        testSector(actor_version, 10, 7, 151, 261, 3001),
+        testSector(actor_version, 18, 8, 152, 262, 3002)};
     const auto new_sector_power = powerForSectors(ssize, new_sectors);
     const TokenAmount new_sector_pledge = 3000 + 3001 + 3002;
 
@@ -631,8 +631,8 @@ namespace fc::vm::actor::builtin::v3::miner {
         partition.recordFaults(sectors_arr, fault_set, 7, ssize, quant));
 
     const auto old_sectors = slice(sectors, 1, 4);
-    const std::vector<SectorOnChainInfo> new_sectors = {
-        testSector(10, 2, 150, 260, 3000)};
+    const std::vector<Universal<SectorOnChainInfo>> new_sectors = {
+        testSector(actor_version, 10, 2, 150, 260, 3000)};
 
     const auto result =
         partition.replaceSectors(old_sectors, new_sectors, ssize, quant);
@@ -648,8 +648,8 @@ namespace fc::vm::actor::builtin::v3::miner {
     setupUnproven();
 
     const auto old_sectors = slice(sectors, 1, 4);
-    std::vector<SectorOnChainInfo> new_sectors = {
-        testSector(10, 2, 150, 260, 3000)};
+    std::vector<Universal<SectorOnChainInfo>> new_sectors = {
+        testSector(actor_version, 10, 2, 150, 260, 3000)};
 
     const auto result =
         partition.replaceSectors(old_sectors, new_sectors, ssize, quant);
@@ -663,7 +663,7 @@ namespace fc::vm::actor::builtin::v3::miner {
    */
   TEST_F(PartitionTestV3, TerminateSectors) {
     setup();
-    const auto unproven_sector = testSector(13, 7, 55, 65, 1006);
+    const auto unproven_sector = testSector(actor_version, 13, 7, 55, 65, 1006);
     sectors.push_back(unproven_sector);
     const auto sectors_arr = getSectorsArray();
 
@@ -850,7 +850,7 @@ namespace fc::vm::actor::builtin::v3::miner {
    */
   TEST_F(PartitionTestV3, RecordsMissingPost) {
     setup();
-    const auto unproven_sector = testSector(13, 7, 55, 65, 1006);
+    const auto unproven_sector = testSector(actor_version, 13, 7, 55, 65, 1006);
     sectors.push_back(unproven_sector);
     const auto sectors_arr = getSectorsArray();
 
@@ -874,7 +874,7 @@ namespace fc::vm::actor::builtin::v3::miner {
     EXPECT_EQ(new_faulty_power, powerForSectors(ssize, faulty_sectors));
     EXPECT_EQ(penalized_power,
               powerForSectors(ssize, sectors)
-                  - PowerPair(ssize, qaPowerForSector(ssize, sectors[5])));
+                  - PowerPair(ssize, qaPowerForSector(ssize, *sectors[5])));
     EXPECT_EQ(power_delta,
               powerForSectors(ssize, slice(sectors, 0, 3)).negative());
 
@@ -945,13 +945,14 @@ namespace fc::vm::actor::builtin::v3::miner {
     EXPECT_OUTCOME_TRUE(partition_sectors,
                         getSealProofWindowPoStPartitionSectors(proof_type));
 
-    std::vector<SectorOnChainInfo> many_sectors;
+    std::vector<Universal<SectorOnChainInfo>> many_sectors;
     RleBitset sector_nos;
 
     for (size_t i = 0; i < partition_sectors; i++) {
       const uint64_t id = uint64_t(i + 1) << 50;
       sector_nos.insert(id);
-      many_sectors.push_back(testSector(i + 1, id, 50, 60, 1000));
+      many_sectors.push_back(
+          testSector(actor_version, i + 1, id, 50, 60, 1000));
     }
 
     EXPECT_OUTCOME_TRUE(power,

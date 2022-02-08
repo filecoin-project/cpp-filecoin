@@ -39,6 +39,7 @@ namespace fc::vm::actor::cgo {
   using primitives::piece::PieceInfo;
   using primitives::sector::AggregateSealVerifyProofAndInfos;
   using primitives::sector::RegisteredSealProof;
+  using primitives::sector::ReplicaUpdateInfo;
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using toolchain::Toolchain;
@@ -226,6 +227,15 @@ namespace fc::vm::actor::cgo {
                rt->execution()->env->pricelist.onVerifyAggregateSeals(
                    aggregate))) {
       const auto r{proofs->verifyAggregateSeals(aggregate)};
+      ret << kOk << (r && r.value());
+    }
+  }
+
+  RUNTIME_METHOD(gocRtVerifyReplicaUpdate) {
+    const auto info{arg.get<ReplicaUpdateInfo>()};
+    if (charge(
+            ret, rt, rt->execution()->env->pricelist.onVerifyReplicaUpdate())) {
+      const auto r{proofs->verifyUpdateProof(info)};
       ret << kOk << (r && r.value());
     }
   }

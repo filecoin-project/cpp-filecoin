@@ -30,21 +30,21 @@ namespace fc::sector_storage {
                       public std::enable_shared_from_this<ManagerImpl> {
    public:
     static outcome::result<std::shared_ptr<Manager>> newManager(
-        std::shared_ptr<boost::asio::io_context> io_context,
+        const std::shared_ptr<boost::asio::io_context> &io_context,
         const std::shared_ptr<stores::RemoteStore> &remote,
         const std::shared_ptr<Scheduler> &scheduler,
         const SealerConfig &config,
         const std::shared_ptr<proofs::ProofEngine> &proofs =
             std::make_shared<proofs::ProofEngineImpl>());
 
-    outcome::result<void> readPiece(
+    void readPiece(
         PieceData output,
         const SectorRef &sector,
         UnpaddedByteIndex offset,
         const UnpaddedPieceSize &size,
         const SealRandomness &randomness,
         const CID &cid,
-        std::function<void(outcome::result<bool>)> cb) override;
+        const std::function<void(outcome::result<bool>)> &cb) override;
 
     outcome::result<bool> readPieceSync(PieceData output,
                                         const SectorRef &sector,
@@ -53,11 +53,11 @@ namespace fc::sector_storage {
                                         const SealRandomness &randomness,
                                         const CID &cid) override;
 
-    outcome::result<void> sealPreCommit1(
+    void sealPreCommit1(
         const SectorRef &sector,
         const SealRandomness &ticket,
         const std::vector<PieceInfo> &pieces,
-        std::function<void(outcome::result<PreCommit1Output>)> cb,
+        const std::function<void(outcome::result<PreCommit1Output>)> &cb,
         uint64_t priority) override;
 
     outcome::result<PreCommit1Output> sealPreCommit1Sync(
@@ -66,10 +66,10 @@ namespace fc::sector_storage {
         const std::vector<PieceInfo> &pieces,
         uint64_t priority) override;
 
-    outcome::result<void> sealPreCommit2(
+    void sealPreCommit2(
         const SectorRef &sector,
         const PreCommit1Output &pre_commit_1_output,
-        std::function<void(outcome::result<SectorCids>)> cb,
+        const std::function<void(outcome::result<SectorCids>)> &cb,
         uint64_t priority) override;
 
     outcome::result<SectorCids> sealPreCommit2Sync(
@@ -77,13 +77,13 @@ namespace fc::sector_storage {
         const PreCommit1Output &pre_commit_1_output,
         uint64_t priority) override;
 
-    outcome::result<void> sealCommit1(
+    void sealCommit1(
         const SectorRef &sector,
         const SealRandomness &ticket,
         const InteractiveRandomness &seed,
         const std::vector<PieceInfo> &pieces,
         const SectorCids &cids,
-        std::function<void(outcome::result<Commit1Output>)> cb,
+        const std::function<void(outcome::result<Commit1Output>)> &cb,
         uint64_t priority) override;
 
     outcome::result<Commit1Output> sealCommit1Sync(
@@ -94,34 +94,31 @@ namespace fc::sector_storage {
         const SectorCids &cids,
         uint64_t priority) override;
 
-    outcome::result<void> sealCommit2(
-        const SectorRef &sector,
-        const Commit1Output &commit_1_output,
-        std::function<void(outcome::result<Proof>)> cb,
-        uint64_t priority) override;
+    void sealCommit2(const SectorRef &sector,
+                     const Commit1Output &commit_1_output,
+                     const std::function<void(outcome::result<Proof>)> &cb,
+                     uint64_t priority) override;
 
     outcome::result<Proof> sealCommit2Sync(const SectorRef &sector,
                                            const Commit1Output &commit_1_output,
                                            uint64_t priority) override;
 
-    outcome::result<void> finalizeSector(
-        const SectorRef &sector,
-        const gsl::span<const Range> &keep_unsealed,
-        std::function<void(outcome::result<void>)> cb,
-        uint64_t priority) override;
+    void finalizeSector(const SectorRef &sector,
+                        const gsl::span<const Range> &keep_unsealed,
+                        const std::function<void(outcome::result<void>)> &cb,
+                        uint64_t priority) override;
 
     outcome::result<void> finalizeSectorSync(
         const SectorRef &sector,
         const gsl::span<const Range> &keep_unsealed,
         uint64_t priority) override;
 
-    outcome::result<void> addPiece(
-        const SectorRef &sector,
-        gsl::span<const UnpaddedPieceSize> piece_sizes,
-        const UnpaddedPieceSize &new_piece_size,
-        proofs::PieceData piece_data,
-        std::function<void(outcome::result<PieceInfo>)> cb,
-        uint64_t priority) override;
+    void addPiece(const SectorRef &sector,
+                  gsl::span<const UnpaddedPieceSize> piece_sizes,
+                  const UnpaddedPieceSize &new_piece_size,
+                  proofs::PieceData piece_data,
+                  const std::function<void(outcome::result<PieceInfo>)> &cb,
+                  uint64_t priority) override;
 
     outcome::result<PieceInfo> addPieceSync(
         const SectorRef &sector,
@@ -138,12 +135,12 @@ namespace fc::sector_storage {
 
     outcome::result<std::vector<PoStProof>> generateWinningPoSt(
         ActorId miner_id,
-        gsl::span<const SectorInfo> sector_info,
+        gsl::span<const ExtendedSectorInfo> sector_info,
         PoStRandomness randomness) override;
 
     outcome::result<WindowPoStResponse> generateWindowPoSt(
         ActorId miner_id,
-        gsl::span<const SectorInfo> sector_info,
+        gsl::span<const ExtendedSectorInfo> sector_info,
         PoStRandomness randomness) override;
 
     outcome::result<void> remove(const SectorRef &sector) override;
@@ -166,7 +163,8 @@ namespace fc::sector_storage {
                 std::shared_ptr<proofs::ProofEngine> proofs);
 
     template <typename T>
-    ReturnCb callbackWrapper(std::function<void(outcome::result<T>)> cb) {
+    ReturnCb callbackWrapper(
+        const std::function<void(outcome::result<T>)> &cb) {
       return [self{shared_from_this()},
               cb](outcome::result<CallResult> res) -> void {
         static const auto VariantError = ERROR_TEXT("Incorrect return type");
@@ -185,7 +183,7 @@ namespace fc::sector_storage {
           return cb(CallError);
         }
 
-        if (auto value = std::get_if<T>(&(call_res.value))) {
+        if (auto *value = std::get_if<T>(&(call_res.value))) {
           return cb(*value);
         }
 
@@ -193,7 +191,8 @@ namespace fc::sector_storage {
       };
     }
 
-    ReturnCb callbackWrapper(std::function<void(outcome::result<void>)> cb) {
+    ReturnCb callbackWrapper(
+        const std::function<void(outcome::result<void>)> &cb) {
       return [self{shared_from_this()},
               cb](outcome::result<CallResult> res) -> void {
         auto CallError = ERROR_TEXT("Call returns error");
@@ -232,7 +231,9 @@ namespace fc::sector_storage {
     };
 
     outcome::result<PubToPrivateResponse> publicSectorToPrivate(
-        ActorId miner, gsl::span<const SectorInfo> sector_info, bool winning);
+        ActorId miner,
+        gsl::span<const ExtendedSectorInfo> sector_info,
+        bool winning);
 
     std::shared_ptr<stores::SectorIndex> index_;
 

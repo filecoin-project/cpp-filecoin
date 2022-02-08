@@ -44,22 +44,23 @@ namespace fc::vm::actor::builtin::v2::miner {
         activation, expiration, seal_proof);
   }
 
-  outcome::result<SectorOnChainInfo> MinerUtils::validateReplaceSector(
-      MinerActorStatePtr &state, const SectorPreCommitInfo &params) const {
+  outcome::result<Universal<SectorOnChainInfo>>
+  MinerUtils::validateReplaceSector(MinerActorStatePtr &state,
+                                    const SectorPreCommitInfo &params) const {
     const auto nv = getRuntime().getNetworkVersion();
 
     CHANGE_ERROR_A(replace_sector,
                    state->sectors.sectors.get(params.replace_sector),
                    VMExitCode::kErrNotFound);
 
-    VALIDATE_ARG(replace_sector.deals.empty());
+    VALIDATE_ARG(replace_sector->deals.empty());
 
     if (nv < NetworkVersion::kVersion7) {
-      VALIDATE_ARG(params.registered_proof == replace_sector.seal_proof);
+      VALIDATE_ARG(params.registered_proof == replace_sector->seal_proof);
     } else {
       REQUIRE_NO_ERROR_A(
           replace_post_proof,
-          getRegisteredWindowPoStProof(replace_sector.seal_proof),
+          getRegisteredWindowPoStProof(replace_sector->seal_proof),
           VMExitCode::kErrIllegalState);
       REQUIRE_NO_ERROR_A(new_post_proof,
                          getRegisteredWindowPoStProof(params.registered_proof),
@@ -67,14 +68,14 @@ namespace fc::vm::actor::builtin::v2::miner {
       VALIDATE_ARG(new_post_proof == replace_post_proof);
     }
 
-    VALIDATE_ARG(params.expiration >= replace_sector.expiration);
+    VALIDATE_ARG(params.expiration >= replace_sector->expiration);
 
     REQUIRE_NO_ERROR(state->checkSectorHealth(params.replace_deadline,
                                               params.replace_partition,
                                               params.replace_sector),
                      VMExitCode::kErrIllegalState);
 
-    return SectorOnChainInfo{};
+    return Universal<SectorOnChainInfo>{ActorVersion::kVersion2};
   }
 
   outcome::result<uint64_t> MinerUtils::currentDeadlineIndex(

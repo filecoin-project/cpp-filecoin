@@ -31,6 +31,9 @@ namespace fc::vm::actor::builtin::types::miner {
     TokenAmount init_pledge{};
     TokenAmount expected_day_reward{};
     TokenAmount expected_storage_pledge{};
+    ChainEpoch replaced_sector_age{};
+    TokenAmount replaced_day_reward;
+    boost::optional<CID> sector_key_cid;
 
     inline bool operator==(const SectorOnChainInfo &other) const {
       return sector == other.sector && seal_proof == other.seal_proof
@@ -41,25 +44,16 @@ namespace fc::vm::actor::builtin::types::miner {
              && verified_deal_weight == other.verified_deal_weight
              && init_pledge == other.init_pledge
              && expected_day_reward == other.expected_day_reward
-             && expected_storage_pledge == other.expected_storage_pledge;
+             && expected_storage_pledge == other.expected_storage_pledge
+             && replaced_sector_age == other.replaced_sector_age
+             && replaced_day_reward == other.replaced_day_reward
+             && sector_key_cid == other.sector_key_cid;
     }
 
     inline bool operator!=(const SectorOnChainInfo &other) const {
       return !(*this == other);
     }
   };
-  CBOR_TUPLE(SectorOnChainInfo,
-             sector,
-             seal_proof,
-             sealed_cid,
-             deals,
-             activation_epoch,
-             expiration,
-             deal_weight,
-             verified_deal_weight,
-             init_pledge,
-             expected_day_reward,
-             expected_storage_pledge)
 
   /**
    * Type used in actor method parameters
@@ -89,7 +83,7 @@ namespace fc::vm::actor::builtin::types::miner {
   CBOR_TUPLE(SectorDeclaration, deadline, partition, sectors)
 
   struct SectorPreCommitInfo {
-    RegisteredSealProof registered_proof;
+    RegisteredSealProof registered_proof{RegisteredSealProof::kUndefined};
     SectorNumber sector{};
     /// CommR
     CID sealed_cid;

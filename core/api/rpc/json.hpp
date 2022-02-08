@@ -60,6 +60,7 @@ namespace fc::api {
   using primitives::block::ElectionProof;
   using primitives::block::Ticket;
   using primitives::cid::getCidOfCbor;
+  using primitives::piece::ReaderType;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredPoStProof;
@@ -1081,16 +1082,18 @@ namespace fc::api {
       decode(v.message, Get(j, "Message"));
     }
 
-    ENCODE(SectorInfo) {
+    ENCODE(ExtendedSectorInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "SealProof", v.registered_proof);
+      Set(j, "SectorKey", v.sector_key);
       Set(j, "SectorNumber", v.sector);
       Set(j, "SealedCID", v.sealed_cid);
       return j;
     }
 
-    DECODE(SectorInfo) {
+    DECODE(ExtendedSectorInfo) {
       Get(j, "SealProof", v.registered_proof);
+      Get(j, "SectorKey", v.sector_key);
       Get(j, "SectorNumber", v.sector);
       Get(j, "SealedCID", v.sealed_cid);
     }
@@ -1363,8 +1366,8 @@ namespace fc::api {
       v = std::move(_v);
     }
 
-    // can be generic
-    ENCODE(gsl::span<const PieceInfo>) {
+    template <typename T>
+    ENCODE(gsl::span<T>) {
       Value j{rapidjson::kArrayType};
       j.Reserve(v.size(), allocator);
       for (const auto &elem : v) {
@@ -2118,6 +2121,20 @@ namespace fc::api {
       if (!j.IsNull()) {
         v = decode<T>(j);
       }
+    }
+
+    ENCODE(MetaPieceData) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Type", v.type.toString());
+      Set(j, "Info", v.info);
+      return j;
+    }
+
+    DECODE(MetaPieceData) {
+      std::string type;
+      Get(j, "Type", type);
+      v.type = ReaderType::fromString(type);
+      Get(j, "Info", v.info);
     }
 
     template <typename T,

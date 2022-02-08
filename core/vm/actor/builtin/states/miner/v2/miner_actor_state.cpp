@@ -19,7 +19,7 @@ namespace fc::vm::actor::builtin::v2::miner {
     return std::move(info);
   }
 
-  outcome::result<std::vector<SectorOnChainInfo>>
+  outcome::result<std::vector<Universal<SectorOnChainInfo>>>
   MinerActorState::rescheduleSectorExpirations(
       ChainEpoch curr_epoch,
       SectorSize ssize,
@@ -28,7 +28,7 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     OUTCOME_TRY(sectors, this->sectors.loadSectors());
 
-    std::vector<SectorOnChainInfo> all_replaced;
+    std::vector<Universal<SectorOnChainInfo>> all_replaced;
 
     for (const auto &[dl_id, pm] : deadline_sectors.map) {
       const auto dl_info =

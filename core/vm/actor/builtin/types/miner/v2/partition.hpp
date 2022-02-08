@@ -6,11 +6,13 @@
 #pragma once
 
 #include "vm/actor/builtin/types/miner/partition.hpp"
+#include "vm/actor/builtin/types/universal/universal.hpp"
 
 namespace fc::vm::actor::builtin::v2::miner {
   using primitives::ChainEpoch;
   using primitives::RleBitset;
   using primitives::SectorSize;
+  using types::Universal;
   using types::miner::ExpirationSet;
   using types::miner::PowerPair;
   using types::miner::QuantSpec;
@@ -24,13 +26,13 @@ namespace fc::vm::actor::builtin::v2::miner {
 
     outcome::result<PowerPair> addSectors(
         bool proven,
-        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
         SectorSize ssize,
         const QuantSpec &quant) override;
 
     outcome::result<std::tuple<PowerPair, PowerPair>> addFaults(
         const RleBitset &sector_nos,
-        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
         ChainEpoch fault_expiration,
         SectorSize ssize,
         const QuantSpec &quant) override;

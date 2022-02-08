@@ -42,7 +42,7 @@ namespace fc::vm::actor::builtin::v3::miner {
       anyCodeIdAddressIs(kAccountCodeId);
       cbor_blake::cbLoadT(ipld, state);
 
-      currentEpochIs(kUpgradeActorsV3Height + 1);
+      currentEpochIs(kUpgradeTrustHeight + 1);
     }
 
     /**
@@ -578,11 +578,11 @@ namespace fc::vm::actor::builtin::v3::miner {
 
     const ChainEpoch chain_commit_epoch = current_epoch - 10;
 
-    std::vector<SectorOnChainInfo> sectors;
+    std::vector<Universal<SectorOnChainInfo>> sectors;
     for (uint64_t i = 0; i < 4; i++) {
-      SectorOnChainInfo sector;
-      sector.sector = i;
-      sector.sealed_cid = kEmptyObjectCid;
+      Universal<SectorOnChainInfo> sector{actor_version};
+      sector->sector = i;
+      sector->sealed_cid = kEmptyObjectCid;
       sectors.push_back(sector);
     }
 

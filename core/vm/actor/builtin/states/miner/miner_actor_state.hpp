@@ -140,6 +140,9 @@ namespace fc::vm::actor::builtin::states {
     /** Deadlines with outstanding fees for early sector termination. */
     RleBitset early_terminations;
 
+    /** True when miner cron is active, false otherwise */
+    bool deadline_cron_active{false};
+
     // Methods
 
     /**
@@ -150,8 +153,7 @@ namespace fc::vm::actor::builtin::states {
     virtual outcome::result<Universal<MinerInfo>> getInfo() const = 0;
 
     inline DeadlineInfo deadlineInfo(ChainEpoch now) const {
-      return DeadlineInfo(
-          this->proving_period_start, this->current_deadline, now);
+      return {this->proving_period_start, this->current_deadline, now};
     }
 
     inline QuantSpec quantSpecForDeadline(uint64_t deadline_id) const {
@@ -185,7 +187,7 @@ namespace fc::vm::actor::builtin::states {
      * missing/faulty/terminated "upgraded" sectors instead of failing. That
      * way, the new sectors can still be proved.
      */
-    virtual outcome::result<std::vector<SectorOnChainInfo>>
+    virtual outcome::result<std::vector<Universal<SectorOnChainInfo>>>
     rescheduleSectorExpirations(ChainEpoch curr_epoch,
                                 SectorSize ssize,
                                 const DeadlineSectorMap &deadline_sectors) = 0;
@@ -196,7 +198,7 @@ namespace fc::vm::actor::builtin::states {
     outcome::result<PowerPair> assignSectorsToDeadlines(
         Runtime &runtime,
         ChainEpoch curr_epoch,
-        std::vector<SectorOnChainInfo> sectors_to_assign,
+        std::vector<Universal<SectorOnChainInfo>> sectors_to_assign,
         uint64_t partition_size,
         SectorSize ssize);
 

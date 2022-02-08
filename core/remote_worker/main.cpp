@@ -26,33 +26,20 @@
 #include "config/profile_config.hpp"
 #include "primitives/address/config.hpp"
 #include "proofs/proof_param_provider.hpp"
+#include "remote_worker/remote_worker_api.hpp"
 #include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/local_worker.hpp"
 #include "sector_storage/stores/impl/remote_index_impl.hpp"
 #include "sector_storage/stores/impl/remote_store.hpp"
 #include "sector_storage/stores/impl/storage_impl.hpp"
 
-namespace fc {
+namespace fc::remote_worker {
   using api::kMinerApiVersion;
-  using api::VersionResult;
   using boost::asio::io_context;
   using config::configProfile;
   using libp2p::multi::Multiaddress;
-  using primitives::piece::PieceInfo;
-  using primitives::piece::UnpaddedByteIndex;
-  using primitives::piece::UnpaddedPieceSize;
-  using primitives::sector::SealRandomness;
-  using primitives::sector::SectorRef;
   using proofs::ProofParamProvider;
-  using sector_storage::AcquireMode;
-  using sector_storage::Commit1Output;
-  using sector_storage::InteractiveRandomness;
   using sector_storage::LocalWorker;
-  using sector_storage::PathType;
-  using sector_storage::PreCommit1Output;
-  using sector_storage::Range;
-  using sector_storage::SectorCids;
-  using sector_storage::SectorFileType;
   using sector_storage::stores::LocalStore;
   namespace uuids = boost::uuids;
 
@@ -63,7 +50,7 @@ namespace fc {
     boost::filesystem::path repo_path;
     std::pair<Multiaddress, std::string> miner_api{
         codec::cbor::kDefaultT<Multiaddress>(), {}};
-    int api_port;
+    int api_port{};
 
     std::set<primitives::TaskType> tasks;
     bool need_download = false;
@@ -83,6 +70,8 @@ namespace fc {
       bool can_precommit2 = false;
       bool can_commit = false;
       bool can_unseal = false;
+      bool can_replica_update = false;
+      bool can_prove_replica_update2 = false;
     } raw;
 
     po::options_description desc("Fuhon worker options");
@@ -95,6 +84,8 @@ namespace fc {
     option("precommit2", po::value(&raw.can_precommit2)->default_value(true));
     option("commit", po::value(&raw.can_commit)->default_value(true));
     option("unseal", po::value(&raw.can_unseal)->default_value(true));
+    option("replica-update", po::value(&raw.can_replica_update));
+    option("prove-replica-update2", po::value(&raw.can_prove_replica_update2));
     desc.add(configProfile());
     primitives::address::configCurrentNetwork(option);
 
@@ -129,6 +120,12 @@ namespace fc {
     }
     if (raw.can_unseal) {
       config.tasks.insert(primitives::kTTUnseal);
+    }
+    if (raw.can_replica_update) {
+      config.tasks.insert(primitives::kTTReplicaUpdate);
+    }
+    if (raw.can_prove_replica_update2) {
+      config.tasks.insert(primitives::kTTProveReplicaUpdate2);
     }
 
     return config;
@@ -211,66 +208,10 @@ namespace fc {
 
     auto worker{std::make_shared<LocalWorker>(io, wconfig, mapi, remote_store)};
 
-    auto wapi{std::make_shared<api::WorkerApi>()};
-    wapi->Version = []() { return VersionResult{"seal-worker", 0, 0}; };
-    wapi->StorageAddLocal = [&](const std::string &path) {
-      return local_store->openPath(path);
-    };
-    wapi->Fetch = [&](const SectorRef &sector,
-                      const SectorFileType &file_type,
-                      PathType path_type,
-                      AcquireMode mode) {
-      return worker->fetch(sector, file_type, path_type, mode);
-    };
-    wapi->UnsealPiece = [&](const SectorRef &sector,
-                            UnpaddedByteIndex offset,
-                            const UnpaddedPieceSize &size,
-                            const SealRandomness &randomness,
-                            const CID &unsealed_cid) {
-      return worker->unsealPiece(
-          sector, offset, size, randomness, unsealed_cid);
-    };
-    wapi->MoveStorage = [&](const SectorRef &sector,
-                            const SectorFileType &types) {
-      return worker->moveStorage(sector, types);
-    };
-
-    wapi->Info = [&]() { return worker->getInfo(); };
-    wapi->Paths = [&]() { return worker->getAccessiblePaths(); };
-    wapi->TaskTypes = [&]() -> outcome::result<std::set<primitives::TaskType>> {
-      OUTCOME_TRY(tasks, worker->getSupportedTask());
-      // TODO(ortyomka): [FIL-344] Remove its
-      tasks.extract(primitives::kTTAddPiece);
-      return std::move(tasks);
-    };
-
-    wapi->SealPreCommit1 = [&](const SectorRef &sector,
-                               const SealRandomness &ticket,
-                               std::vector<PieceInfo> pieces) {
-      return worker->sealPreCommit1(sector, ticket, pieces);
-    };
-    wapi->SealPreCommit2 = [&](const SectorRef &sector,
-                               const PreCommit1Output &pre_commit_1_output) {
-      return worker->sealPreCommit2(sector, pre_commit_1_output);
-    };
-    wapi->SealCommit1 = [&](const SectorRef &sector,
-                            const SealRandomness &ticket,
-                            const InteractiveRandomness &seed,
-                            std::vector<PieceInfo> pieces,
-                            const SectorCids &cids) {
-      return worker->sealCommit1(sector, ticket, seed, pieces, cids);
-    };
-    wapi->SealCommit2 = [&](const SectorRef &sector,
-                            const Commit1Output &commit_1_output) {
-      return worker->sealCommit2(sector, commit_1_output);
-    };
-    wapi->FinalizeSector = [&](const SectorRef &sector,
-                               std::vector<Range> keep_unsealed) {
-      return worker->finalizeSector(sector, keep_unsealed);
-    };
+    auto worker_api = makeWorkerApi(local_store, worker);
 
     std::map<std::string, std::shared_ptr<api::Rpc>> wrpc;
-    wrpc.emplace("/rpc/v0", api::makeRpc(*wapi));
+    wrpc.emplace("/rpc/v0", api::makeRpc(*worker_api));
     auto wroutes{std::make_shared<api::Routes>()};
 
     wroutes->insert({"/remote",
@@ -304,9 +245,9 @@ namespace fc {
     io->run();
     return outcome::success();
   }
-}  // namespace fc
+}  // namespace fc::remote_worker
 
 int main(int argc, char **argv) {
-  OUTCOME_EXCEPT(config, fc::readConfig(argc, argv));
-  OUTCOME_EXCEPT(fc::main(config));
+  OUTCOME_EXCEPT(config, fc::remote_worker::readConfig(argc, argv));
+  OUTCOME_EXCEPT(fc::remote_worker::main(config));
 }

@@ -13,6 +13,7 @@ namespace fc::vm::actor::builtin::v2::miner {
   using primitives::SectorNumber;
   using primitives::SectorSize;
   using primitives::TokenAmount;
+  using types::Universal;
   using types::miner::ExpirationSet;
   using types::miner::PowerPair;
   using types::miner::SectorExpirationSet;
@@ -21,23 +22,25 @@ namespace fc::vm::actor::builtin::v2::miner {
   struct ExpirationQueue : public types::miner::ExpirationQueue {
     outcome::result<PowerPair> rescheduleAsFaults(
         ChainEpoch new_expiration,
-        const std::vector<SectorOnChainInfo> &sectors,
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
         SectorSize ssize) override;
 
     outcome::result<void> rescheduleAllAsFaults(
         ChainEpoch fault_expiration) override;
 
     outcome::result<std::tuple<RleBitset, PowerPair, TokenAmount>>
-    removeActiveSectors(const std::vector<SectorOnChainInfo> &sectors,
-                        SectorSize ssize) override;
+    removeActiveSectors(
+        const std::vector<Universal<SectorOnChainInfo>> &sectors,
+        SectorSize ssize) override;
 
    private:
     outcome::result<std::vector<SectorExpirationSet>> findSectorsByExpiration(
-        SectorSize ssize, const std::vector<SectorOnChainInfo> &sectors);
+        SectorSize ssize,
+        const std::vector<Universal<SectorOnChainInfo>> &sectors);
 
     std::tuple<SectorExpirationSet, RleBitset> groupExpirationSet(
         SectorSize ssize,
-        const std::map<SectorNumber, SectorOnChainInfo> &sectors,
+        const std::map<SectorNumber, Universal<SectorOnChainInfo>> &sectors,
         RleBitset &include_set,
         const ExpirationSet &es,
         ChainEpoch expiration);

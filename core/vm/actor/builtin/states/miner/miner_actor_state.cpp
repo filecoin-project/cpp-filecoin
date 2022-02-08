@@ -90,15 +90,16 @@ namespace fc::vm::actor::builtin::states {
   outcome::result<PowerPair> MinerActorState::assignSectorsToDeadlines(
       Runtime &runtime,
       ChainEpoch curr_epoch,
-      std::vector<SectorOnChainInfo> sectors_to_assign,
+      std::vector<Universal<SectorOnChainInfo>> sectors_to_assign,
       uint64_t partition_size,
       SectorSize ssize) {
     OUTCOME_TRY(dls, deadlines.get());
 
     std::sort(sectors_to_assign.begin(),
               sectors_to_assign.end(),
-              [](const SectorOnChainInfo &lhs, const SectorOnChainInfo &rhs) {
-                return lhs.sector < rhs.sector;
+              [](const Universal<SectorOnChainInfo> &lhs,
+                 const Universal<SectorOnChainInfo> &rhs) {
+                return lhs->sector < rhs->sector;
               });
 
     std::map<uint64_t, Universal<Deadline>> deadlines_to_assign;

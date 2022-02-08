@@ -10,6 +10,7 @@
 namespace fc::vm::actor::builtin::v2::miner {
   using primitives::ChainEpoch;
   using primitives::SectorSize;
+  using types::Universal;
   using types::miner::PartitionSectorMap;
   using types::miner::PoStPartition;
   using types::miner::PoStResult;
@@ -36,12 +37,12 @@ namespace fc::vm::actor::builtin::v2::miner {
         ChainEpoch fault_expiration,
         const std::vector<PoStPartition> &post_partitions) override;
 
-    outcome::result<std::vector<SectorOnChainInfo>> rescheduleSectorExpirations(
-        const Sectors &sectors,
-        ChainEpoch expiration,
-        const PartitionSectorMap &partition_sectors,
-        SectorSize ssize,
-        const QuantSpec &quant) override;
+    outcome::result<std::vector<Universal<SectorOnChainInfo>>>
+    rescheduleSectorExpirations(const Sectors &sectors,
+                                ChainEpoch expiration,
+                                const PartitionSectorMap &partition_sectors,
+                                SectorSize ssize,
+                                const QuantSpec &quant) override;
 
     outcome::result<void> validateState() const override;
   };

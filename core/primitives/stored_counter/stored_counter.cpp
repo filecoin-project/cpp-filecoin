@@ -45,6 +45,6 @@ namespace fc::primitives {
     OUTCOME_TRY(value, getNumberWithoutLock());
     OUTCOME_TRY(setNumberWithoutLock(value + 1));
 
-    return value + 1;
+    return value;
   }
 }  // namespace fc::primitives

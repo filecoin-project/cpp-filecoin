@@ -24,9 +24,9 @@ namespace fc::mining {
    public:
     PreCommitBatcherImpl(const std::chrono::milliseconds &max_time,
                          std::shared_ptr<FullNodeApi> api,
-                         const Address &miner_address,
-                         const std::shared_ptr<Scheduler> &scheduler,
-                         const AddressSelector &address_selector,
+                         Address miner_address,
+                         std::shared_ptr<Scheduler> scheduler,
+                         AddressSelector address_selector,
                          std::shared_ptr<FeeConfig> fee_config);
 
     outcome::result<void> addPreCommit(
@@ -44,12 +44,11 @@ namespace fc::mining {
       PreCommitEntry(const PreCommitEntry &) = delete;
       PreCommitEntry(PreCommitEntry &&) = delete;
 
-      PreCommitEntry(const TokenAmount &number,
-                     const SectorPreCommitInfo &info);
+      PreCommitEntry(TokenAmount number, SectorPreCommitInfo info);
 
       ~PreCommitEntry() = default;
 
-      PreCommitEntry &operator=(const PreCommitEntry &other) noexcept = default;
+      PreCommitEntry &operator=(const PreCommitEntry &other)  = default;
       PreCommitEntry &operator=(PreCommitEntry &&) noexcept = default;
 
       TokenAmount deposit{};
@@ -57,7 +56,6 @@ namespace fc::mining {
     };
 
     std::mutex mutex_;
-    TokenAmount mutual_deposit_;
     // TODO(turuslan): FIL-420 check cache memory usage
     std::map<SectorNumber, PreCommitEntry> batch_storage_;
     std::chrono::milliseconds max_delay_;
