@@ -57,7 +57,7 @@ namespace fc::mining {
         proving_boundary_(proving_boundary),
         logger_(common::createLogger("basic pre commit policy")) {
     ChainEpoch sector_lifetime_ =
-        sector_lifetime.count() / kEpochDurationSeconds;
+        std::ceil(sector_lifetime.count() / double(kEpochDurationSeconds));
     if (sector_lifetime_ == 0) {
       sector_lifetime_ = kMaxSectorExpirationExtension;
     }

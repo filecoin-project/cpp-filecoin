@@ -1293,7 +1293,6 @@ namespace fc::mining {
         precommit_params->deposit,
         precommit_params->info,
         [=](const outcome::result<CID> &maybe_cid) -> void {
-          logger_->info("SUBMIT");
           if (maybe_cid.has_error()) {
             logger_->error("submitting message to precommit batcher: {}",
                            maybe_cid.error().message());
