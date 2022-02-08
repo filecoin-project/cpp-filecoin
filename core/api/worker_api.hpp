@@ -134,6 +134,9 @@ namespace fc::api {
     f(a.AddPiece);
     f(a.Fetch);
     f(a.FinalizeSector);
+    f(a.ReplicaUpdate);
+    f(a.ProveReplicaUpdate1);
+    f(a.ProveReplicaUpdate2);
     f(a.Info);
     f(a.MoveStorage);
     f(a.Paths);

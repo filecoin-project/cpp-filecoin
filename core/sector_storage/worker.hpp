@@ -37,6 +37,7 @@ namespace fc::sector_storage {
   using Commit1Output = proofs::Phase1Output;
   using Update1Output = proofs::UpdateProofs1;
   using SectorCids = proofs::SealedAndUnsealedCID;
+  using ReplicaUpdateOut = proofs::SealedAndUnsealedCID;
 
   struct Range {
     UnpaddedPieceSize offset;
@@ -59,17 +60,6 @@ namespace fc::sector_storage {
 
   inline bool operator==(const CallId &lhs, const CallId &rhs) {
     return lhs.sector == rhs.sector && lhs.id == rhs.id;
-  }
-
-  struct ReplicaUpdateOut {
-    CID new_sealed;
-    CID new_unsealed;
-  };
-
-  inline bool operator==(const ReplicaUpdateOut &lhs,
-                         const ReplicaUpdateOut &rhs) {
-    return lhs.new_sealed == rhs.new_sealed
-           && lhs.new_unsealed == rhs.new_unsealed;
   }
 
   class WorkerCalls {
@@ -167,13 +157,13 @@ namespace fc::sector_storage {
 
   struct CallResult {
     // `Bytes` = (`Proof` | `PreCommit1Output` | `Commit1Output`)
+    // 'SealedAndUnsealedCID' = ('SectorCids' | 'ReplicaUpdateOut)
     std::variant<std::monostate,
                  PieceInfo,
-                 SectorCids,
                  Bytes,
                  bool,
                  Update1Output,
-                 ReplicaUpdateOut>
+                 proofs::SealedAndUnsealedCID>
         value;
     boost::optional<CallError> maybe_error;
   };
