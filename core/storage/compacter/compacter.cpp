@@ -288,6 +288,9 @@ namespace fc::storage::compacter {
     start_head_key.remove();
     flag.store(false);
     spdlog::info("CompacterIpld done");
+    if (on_finish) {
+      thread.io->post(on_finish);
+    }
   }
 
   void CompacterIpld::pushState(const CbCid &state) {

@@ -59,6 +59,8 @@ namespace fc::storage::compacter {
     void lookbackState(const CbCid &state);
     void copy(const CbCid &key);
 
+    std::function<void()> on_finish;
+
     uint64_t compact_on_car{};
     size_t epochs_full_state{};
     size_t epochs_lookback_state{};

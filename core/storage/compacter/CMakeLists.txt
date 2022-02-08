@@ -11,3 +11,5 @@ target_link_libraries(compacter
     map_prefix
     tipset
     )
+
+add_subdirectory(test)

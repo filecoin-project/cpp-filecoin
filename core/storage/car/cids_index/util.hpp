@@ -51,10 +51,8 @@ namespace fc::storage::cids_index {
     auto cids_path{car_path + ".cids"};
     std::shared_ptr<Index> index;
     if (boost::filesystem::exists(cids_path)) {
-      log->info("loading index");
       if (auto _index{load(cids_path, max_memory)}) {
         index = _index.value();
-        log->info("index loaded: {}", cids_path);
       } else {
         log->error("index loading error: {:#}", _index.error());
       }
@@ -85,7 +83,6 @@ namespace fc::storage::cids_index {
       }
     }
     if (!index || indexed_end < car_size) {
-      log->info("generating index");
       Progress progress;
       if (Progress::isTty()) {
         // each 100,000 items
@@ -132,7 +129,6 @@ namespace fc::storage::cids_index {
       }()};
       if (_index) {
         index = _index.value();
-        log->info("index generated: {}", cids_path);
       } else {
         log->error("index generation error: {:#}", _index.error());
         return _index.error();
