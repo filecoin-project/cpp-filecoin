@@ -24,4 +24,13 @@ namespace fc::vm::actor::builtin::v6::miner {
     return bigdiv(networkFeeNum, kBatchDiscountDenominator);
   }
 
+  inline TokenAmount aggregateNetworkFee(uint64_t aggregate_size,
+                                  const TokenAmount &gasUsage,
+                                  const TokenAmount &baseFee) {
+    TokenAmount effectiveGasFee = std::max(baseFee, kBatchBalancer);
+    TokenAmount networkFeeNum = effectiveGasFee * gasUsage * BigInt(aggregate_size) * kBatchDiscountNumerator;
+    TokenAmount networkFee = bigdiv(networkFeeNum, kBatchDiscountDenominator);
+    return networkFee;
+  }
+
 }  // namespace fc::vm::actor::builtin::v6::miner

@@ -72,7 +72,7 @@ namespace fc::mining {
     const RegisteredAggregationProof arp_ = RegisteredAggregationProof(0);
 
     // TODO (Markuu-s) Add processIndividually
-    void sendCallbacks(std::chrono::milliseconds time);
+    void reschedule(std::chrono::milliseconds time);
 
     outcome::result<CID> sendBatch(const MapPairStorage &pair_storage_for_send);
 

@@ -45,7 +45,7 @@ namespace fc::mining {
         proof_(std::move(proof)),
         address_selector_(std::move(address_selector)) {
     cutoff_start_ = std::chrono::system_clock::now();
-    sendCallbacks(max_delay_);
+    reschedule(max_delay_);
   }
 
   outcome::result<void> CommitBatcherImpl::addCommit(
@@ -84,10 +84,10 @@ namespace fc::mining {
 
     cutoff_start_ = std::chrono::system_clock::now();
     closest_cutoff_ = max_delay_;
-    sendCallbacks(max_delay_);
+    reschedule(max_delay_);
   }
 
-  void CommitBatcherImpl::sendCallbacks(std::chrono::milliseconds time) {
+  void CommitBatcherImpl::reschedule(std::chrono::milliseconds time) {
     handle_ = scheduler_->scheduleWithHandle(
         [&]() {
           MapPairStorage pair_storage_for_send_;
@@ -172,7 +172,7 @@ namespace fc::mining {
     const BigInt base_fee = tipset->blks[0].parent_base_fee;
 
     TokenAmount agg_fee_raw =
-        AggregateProveCommitNetworkFee(infos.size(), base_fee);
+        AggregateProveCommitNetworkFee(infos.size(), base_fee); // TODO change to aggregateNetworkFee
 
     TokenAmount agg_fee = bigdiv(agg_fee_raw * agg_fee_num_, agg_fee_den_);
     TokenAmount need_funds = collateral + agg_fee;
@@ -221,7 +221,7 @@ namespace fc::mining {
                    std::chrono::system_clock::now() - cutoff_start_)
            > temp_cutoff)) {
         cutoff_start_ = std::chrono::system_clock::now();
-        sendCallbacks(temp_cutoff);
+        reschedule(temp_cutoff);
         closest_cutoff_ = temp_cutoff;
       }
     }
