@@ -18,14 +18,15 @@ namespace fc::mining {
 
   /**
    * SelectAddress takes the maximal possible transaction fee from configs and
-   * chooses one of control addresses with minimal balance that is more than good
-   * funds to make miner work as long as possible. If no suitble control address
-   * were found, function returns worker address.
+   * chooses one of control addresses with minimal balance that is more than
+   * good funds to make miner work as long as possible. If no suitble control
+   * address were found, function returns worker address.
    */
   inline outcome::result<Address> SelectAddress(
       const MinerInfo &miner_info,
       const TokenAmount &good_funds,
-      const std::shared_ptr<FullNodeApi> &api) {
+      const std::shared_ptr<FullNodeApi>
+          &api) {  // TODO update from lotus (Markuuu-s)
     TokenAmount finder_balance;
     auto finder = miner_info.control.end();
     for (auto address = miner_info.control.begin();

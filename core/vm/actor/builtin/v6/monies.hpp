@@ -4,6 +4,7 @@
  */
 
 #pragma once
+#include "const.hpp"
 
 namespace fc::vm::actor::builtin::v6::miner {
   using primitives::BigInt;
@@ -14,8 +15,8 @@ namespace fc::vm::actor::builtin::v6::miner {
   const BigInt kBatchDiscountDenominator = 20;
   const BigInt kBatchBalancer = 5 * kOneNanoFil;
 
-  TokenAmount AggregateProveCommitNetworkFee(uint64_t aggregate_size,
-                                             const TokenAmount &base_fee) {
+  inline TokenAmount AggregateProveCommitNetworkFee(
+      uint64_t aggregate_size, const TokenAmount &base_fee) {
     const TokenAmount effectiveGasFee = std::max(base_fee, kBatchBalancer);
     const TokenAmount networkFeeNum =
         effectiveGasFee * kEstimatedSinglePreCommitGasUsage * aggregate_size

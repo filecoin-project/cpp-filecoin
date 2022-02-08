@@ -31,11 +31,16 @@ namespace fc::mining {
       AggregateInput aggregate_input;
       CommitCallback commit_callback;
     };
-    typedef std::map<SectorNumber, PairStorage> MapPairStorage;
+    using MapPairStorage = std::map<SectorNumber, PairStorage>;
 
-    CommitBatcherImpl(const std::chrono::milliseconds &max_time,
+    CommitBatcherImpl(const std::chrono::seconds &max_time,
+                      std::shared_ptr<FullNodeApi> api,
+                      Address miner_address,
+                      std::shared_ptr<Scheduler> scheduler,
+                      AddressSelector address_selector,
+                      std::shared_ptr<FeeConfig> fee_config,
                       const size_t &max_size_callback,
-                      const std::shared_ptr<Scheduler> &scheduler);
+                      std::shared_ptr<ProofEngine> proof);
 
     outcome::result<void> addCommit(const SectorInfo &sector_info,
                                     const AggregateInput &aggregate_input,
@@ -53,21 +58,23 @@ namespace fc::mining {
     std::chrono::milliseconds closest_cutoff_;
     std::chrono::system_clock::time_point cutoff_start_;
     size_t max_size_callback_;
-    MapPairStorage union_storage_;
+    MapPairStorage pair_storage_;
     std::shared_ptr<FullNodeApi> api_;
     Address miner_address_;
     std::shared_ptr<FeeConfig> fee_config_;
     std::shared_ptr<ProofEngine> proof_;
     std::mutex mutex_storage_;
     AddressSelector address_selector_;
+    common::Logger logger_;
 
     const BigInt agg_fee_num_ = BigInt(110);
     const BigInt agg_fee_den_ = BigInt(100);
     const RegisteredAggregationProof arp_ = RegisteredAggregationProof(0);
 
-    void sendCallbacks();
+    // TODO (Markuu-s) Add processIndividually
+    void sendCallbacks(std::chrono::milliseconds time);
 
-    outcome::result<CID> sendBatch(MapPairStorage &union_storage_for_send);
+    outcome::result<CID> sendBatch(const MapPairStorage &pair_storage_for_send);
 
     outcome::result<TokenAmount> getSectorCollateral(
         const SectorNumber &sector_number, const TipsetKey &tip_set_key);

@@ -18,10 +18,8 @@
 #include "vm/actor/builtin/v5/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v6/monies.hpp"
 #include "vm/message/message.hpp"
-//#include "primitives/block/block.hpp"
 
 namespace fc::mining {
-  // using tipset::block::BlockHeader;
   using primitives::ActorId;
   using testing::_;
   using vm::actor::builtin::v5::miner::ProveCommitAggregate;
@@ -49,8 +47,6 @@ namespace fc::mining {
   class CommitBatcherTest : public testing::Test {
    protected:
     void SetUp() override {
-      // EXPECT_CALL(mock_ChainHead, Call()).WillOnce();
-
       scheduler_backend_ = std::make_shared<ManualSchedulerBackend>();
       scheduler_ = std::make_shared<SchedulerImpl>(scheduler_backend_,
                                                    Scheduler::Config{});
@@ -139,18 +135,16 @@ namespace fc::mining {
             scheduler_,
             [=](const MinerInfo &miner_info,
                 const TokenAmount &good_funds,
-                const TokenAmount &need_funds,  // TODO is it needed?
+                const TokenAmount &need_funds,
                 const std::shared_ptr<FullNodeApi> &api)
                 -> outcome::result<Address> {
-              return SelectAddress(
-                  miner_info, good_funds, api);  // TODO need_funds?
+              return SelectAddress(miner_info, good_funds, api);
             },
             fee_config_,
             2,
             proof_);
 
     SectorInfo sector_info0 = SectorInfo();
-    // const TokenAmount deposit = 10;
     sector_info0.ticket_epoch = 5;
     Piece piece0{.piece = PieceInfo{.size = PaddedPieceSize(128),
                                     .cid = "010001020008"_cid},
@@ -165,14 +159,6 @@ namespace fc::mining {
                  .deal_info = boost::none};
     sector_info1.pieces.push_back(piece1);
     sector_info1.sector_number = 888;
-    /*
-     * Proof proof;
-AggregateSealVerifyInfo info;
-RegisteredSealProof spt;
-     */
-    AggregateInput aggregate_input = AggregateInput{
-        // .info = MultiCodec::FILECOIN_COMMITMENT_SEALED
-    };
 
     EXPECT_OUTCOME_TRUE_1(batcher->addCommit(
         sector_info0, AggregateInput{.info = 777}, callback_mock_));
@@ -195,11 +181,10 @@ RegisteredSealProof spt;
             scheduler_,
             [=](const MinerInfo &miner_info,
                 const TokenAmount &good_funds,
-                const TokenAmount &need_funds,  // TODO is it needed?
+                const TokenAmount &need_funds,
                 const std::shared_ptr<FullNodeApi> &api)
                 -> outcome::result<Address> {
-              return SelectAddress(
-                  miner_info, good_funds, api);  // TODO need_funds?
+              return SelectAddress(miner_info, good_funds, api);
             },
             fee_config_,
             999,
@@ -223,21 +208,23 @@ RegisteredSealProof spt;
   TEST_F(CommitBatcherTest, CallbackSend) {
     std::shared_ptr<CommitBatcherImpl> batcher =
         std::make_shared<CommitBatcherImpl>(
-            std::chrono::seconds(60),
+            std::chrono::seconds(999),
             api_,
             miner_address_,
             scheduler_,
             [=](const MinerInfo &miner_info,
                 const TokenAmount &good_funds,
-                const TokenAmount &need_funds,  // TODO is it needed?
+                const TokenAmount &need_funds,
                 const std::shared_ptr<FullNodeApi> &api)
                 -> outcome::result<Address> {
-              return SelectAddress(
-                  miner_info, good_funds, api);  // TODO need_funds?
+              return SelectAddress(miner_info, good_funds, api);
             },
             fee_config_,
             999,
             proof_);
+
+    EXPECT_CALL(*proof_, aggregateSealProofs(_, _))
+        .WillRepeatedly(testing::Return(outcome::success()));
 
     EXPECT_CALL(mock_MpoolPushMessage,
                 Call(methodMatcher(ProveCommitAggregate::Number), _))
@@ -248,7 +235,6 @@ RegisteredSealProof spt;
               return SignedMessage{.message = msg, .signature = BlsSignature()};
             }));
 
-
     SectorInfo sector_info = SectorInfo();
 
     sector_info.sector_number = 2;
@@ -256,16 +242,12 @@ RegisteredSealProof spt;
     EXPECT_OUTCOME_TRUE_1(batcher->addCommit(
         sector_info, AggregateInput{.info = 2}, callback_mock_));
 
+    scheduler_backend_->shiftToTimer();
     sector_info.sector_number = 3;
 
     EXPECT_OUTCOME_TRUE_1(batcher->addCommit(
         sector_info, AggregateInput{.info = 3}, callback_mock_));
 
-    try {
-      scheduler_backend_->shiftToTimer();
-    } catch(std::exception &e) {
-      std::cerr << e.what();
-    }
     sector_info.sector_number = 6;
 
     EXPECT_OUTCOME_TRUE_1(batcher->addCommit(

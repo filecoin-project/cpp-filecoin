@@ -64,9 +64,12 @@ namespace fc::mining::types {
              is_keep_unsealed)
 
   inline bool operator==(const DealInfo &lhs, const DealInfo &rhs) {
-    return lhs.publish_cid == rhs.publish_cid && lhs.deal_id == rhs.deal_id
-           && lhs.deal_schedule == rhs.deal_schedule
-           && lhs.is_keep_unsealed == rhs.is_keep_unsealed;
+    if (lhs.is_keep_unsealed == rhs.is_keep_unsealed) {
+      return lhs.publish_cid == rhs.publish_cid && lhs.deal_id == rhs.deal_id
+             && lhs.deal_schedule == rhs.deal_schedule;
+    } else {
+      return false;
+    }
   }
 
   struct Piece {
