@@ -34,7 +34,7 @@ namespace fc::sector_storage::stores {
     kSealing,
   };
 
-  inline auto &class_conversion_table(PathType &&) {
+  inline auto &classConversionMap(PathType &&) {
     using E = PathType;
     static fc::common::ConversionTable<E, 2> table{
         {{E::kSealing, "sealing"}, {E::kStorage, "storage"}}};
@@ -46,7 +46,7 @@ namespace fc::sector_storage::stores {
     kCopy,
   };
 
-  inline auto &class_conversion_table(AcquireMode &&) {
+  inline auto &classConversionMap(AcquireMode &&) {
     static fc::common::ConversionTable<AcquireMode, 2> table{
         {{AcquireMode::kMove, "move"}, {AcquireMode::kCopy, "copy"}}};
     return table;

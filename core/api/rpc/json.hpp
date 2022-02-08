@@ -92,8 +92,8 @@ namespace fc::api {
       ModularVerificationParameter;
   using vm::runtime::ExecutionResult;
   using base64 = cppcodec::base64_rfc4648;
-  using common::from_string;
-  using common::to_string;
+  using common::fromString;
+  using common::toString;
 
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
@@ -261,23 +261,23 @@ namespace fc::api {
     }
 
     ENCODE(PathType) {
-      return encode(to_string(v).value());
+      return encode(toString(v).value());
     }
 
     DECODE(PathType) {
       std::string temp;
       decode(temp, j);
-      v = from_string<PathType>(temp).value();
+      v = fromString<PathType>(temp).value();
     }
 
     ENCODE(AcquireMode) {
-      return encode(to_string(v));
+      return encode(toString(v));
     }
 
     DECODE(AcquireMode) {
       std::string temp;
       decode(temp, j);
-      v = from_string<AcquireMode>(temp).value();
+      v = fromString<AcquireMode>(temp).value();
     }
 
     ENCODE(NetworkVersion) {

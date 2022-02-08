@@ -33,21 +33,21 @@ namespace fc::sector_storage::stores {
     StorageID id;
     std::vector<std::string>
         urls;  // TODO (artyom-yurin): [FIL-200] Support non-http transports
-    uint64_t weight;
+    uint64_t weight{};
 
-    bool can_seal;
-    bool can_store;
+    bool can_seal{};
+    bool can_store{};
 
-    bool is_primary;
+    bool is_primary{};
   };
 
   struct StorageInfo {
     StorageID id;
     std::vector<std::string> urls;
-    uint64_t weight;
+    uint64_t weight{};
 
-    bool can_seal;
-    bool can_store;  // TODO(@Elestrias): groups fields
+    bool can_seal{};
+    bool can_store{};  // TODO(@Elestrias): groups fields
   };
 
   inline bool operator==(const SectorStorageInfo &lhs,

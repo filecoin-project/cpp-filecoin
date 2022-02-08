@@ -16,8 +16,8 @@ namespace fc::common {
       std::array<std::pair<Enumeration, std::string_view>, Number>;
 
   template <typename T>
-  auto &conversion_table() {
-    return class_conversion_table(T{});
+  auto &ConversionMap() {
+    return classConversionMap(T{});
   }
   /**
    * @brief Convert enum class value as integer
@@ -66,8 +66,8 @@ namespace fc::common {
    * @return option of string value of enum or none
    */
   template <typename Enumeration>
-  boost::optional<std::string_view> to_string(Enumeration const value) {
-    for (auto &[enumerator, str] : conversion_table<Enumeration>()) {
+  boost::optional<std::string_view> toString(Enumeration const value) {
+    for (auto &[enumerator, str] : ConversionMap<Enumeration>()) {
       if (enumerator == value) {
         return str;
       }
@@ -96,8 +96,8 @@ namespace fc::common {
    * @return option of Enum class object or none
    * */
   template <typename Enumeration>
-  boost::optional<Enumeration> from_string(const std::string_view value) {
-    for (auto &[enumerator, str] : conversion_table<Enumeration>()) {
+  boost::optional<Enumeration> fromString(const std::string_view value) {
+    for (auto &[enumerator, str] : ConversionMap<Enumeration>()) {
       if (str == value) {
         return enumerator;
       }
