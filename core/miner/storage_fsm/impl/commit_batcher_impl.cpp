@@ -171,8 +171,8 @@ namespace fc::mining {
     OUTCOME_TRY(tipset, api_->ChainGetTipSet(head->key));
     const BigInt base_fee = tipset->blks[0].parent_base_fee;
 
-    TokenAmount agg_fee_raw =
-        AggregateProveCommitNetworkFee(infos.size(), base_fee); // TODO change to aggregateNetworkFee
+    TokenAmount agg_fee_raw = AggregateProveCommitNetworkFee(
+        infos.size(), base_fee);  // TODO change to aggregateNetworkFee
 
     TokenAmount agg_fee = bigdiv(agg_fee_raw * agg_fee_num_, agg_fee_den_);
     TokenAmount need_funds = collateral + agg_fee;
