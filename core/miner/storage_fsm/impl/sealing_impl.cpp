@@ -45,7 +45,11 @@ namespace fc::mining {
   using vm::actor::builtin::types::market::deal_info_manager::
       DealInfoManagerImpl;
   using vm::actor::builtin::types::miner::kChainFinality;
+  using vm::actor::builtin::types::miner::kMaxPreCommitRandomnessLookback;
+  using vm::actor::builtin::types::miner::kMaxProveCommitDuration;
+  using vm::actor::builtin::types::miner::kMaxSectorExpirationExtension;
   using vm::actor::builtin::types::miner::kMinSectorExpiration;
+  using vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::v0::miner::PreCommitSector;
   using vm::actor::builtin::v0::miner::ProveCommitSector;
 
@@ -1137,14 +1141,22 @@ namespace fc::mining {
     OUTCOME_TRY(seal_duration,
                 checks::getMaxProveCommitDuration(network, info));
     OUTCOME_TRY(policy_expiration, policy_->expiration(info->pieces));
-    const ChainEpoch static_expiration =
-        head->epoch() + seal_duration + kMinSectorExpiration + kChainFinality
-        + gsl::narrow<ChainEpoch>(kEpochsInDay);
-    const auto expiration =
-        std::min<ChainEpoch>(policy_expiration, static_expiration);
+    const auto min_expiration = info->ticket_epoch
+                                + kMaxPreCommitRandomnessLookback
+                                + seal_duration + kMinSectorExpiration;
+
+    if (policy_expiration < min_expiration) {
+      policy_expiration = min_expiration;
+    }
+
+    const auto max_expiration = head->epoch() + kPreCommitChallengeDelay
+                                + kMaxSectorExpirationExtension;
+    if (policy_expiration > max_expiration) {
+      policy_expiration = max_expiration;
+    }
 
     SectorPreCommitInfo params;
-    params.expiration = expiration;
+    params.expiration = policy_expiration;
     params.sector = info->sector_number;
     params.registered_proof = info->sector_type;
     params.sealed_cid = info->comm_r.get();
@@ -1281,7 +1293,6 @@ namespace fc::mining {
         precommit_params->deposit,
         precommit_params->info,
         [=](const outcome::result<CID> &maybe_cid) -> void {
-          logger_->info("SUBMIT");
           if (maybe_cid.has_error()) {
             logger_->error("submitting message to precommit batcher: {}",
                            maybe_cid.error().message());
