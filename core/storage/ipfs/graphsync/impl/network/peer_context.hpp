@@ -120,7 +120,7 @@ namespace fc::storage::ipfs::graphsync {
     /// Closes a stream
     /// \param stream libp2p stream
     /// \param status close reason
-    void closeStream(const StreamPtr &stream, ResponseStatusCode status);
+    void closeStream(StreamPtr stream, ResponseStatusCode status);
 
     /// Response callback, forwarded to GraphsyncImpl
     /// \param response response wire protocol object
