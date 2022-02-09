@@ -42,6 +42,14 @@ namespace fc::sector_storage {
    public:
     ManagerTest() : test::BaseFS_Test("fc_manager_test") {
       seal_proof_type_ = RegisteredSealProof::kStackedDrg2KiBV1;
+      sector_id_ = {
+          .miner = 42,
+          .sector = 1,
+      };
+      sector_ = {
+          .id = sector_id_,
+          .proof_type = seal_proof_type_,
+      };
 
       sector_index_ = std::make_shared<SectorIndexMock>();
 
@@ -97,6 +105,28 @@ namespace fc::sector_storage {
     }
 
    protected:
+    /**
+     * Synchronously calls and waits for result of asynchronous Manager methods.
+     *
+     * @tparam F - method to call
+     * @tparam Result - method result. Actually the parameter of the callback
+     * handler in method.
+     * @tparam Args - arguments to the method. All parameters before callback.
+     */
+    template <auto F, typename Result, typename... Args>
+    outcome::result<Result> syncCall(Args... args) {
+      std::promise<outcome::result<Result>> waiter;
+
+      (*manager_.*F)(
+          std::forward<Args>(args)...,
+          [&waiter](const outcome::result<Result> &res) -> void {
+            waiter.set_value(res);
+          },
+          kDefaultTaskPriority);
+
+      return waiter.get_future().get();
+    }
+
     RegisteredSealProof seal_proof_type_;
 
     std::shared_ptr<boost::asio::io_context> io_;
@@ -109,6 +139,11 @@ namespace fc::sector_storage {
     std::shared_ptr<RemoteStoreMock> remote_store_;
     std::shared_ptr<SchedulerMock> scheduler_;
     std::shared_ptr<Manager> manager_;
+
+    /** Arbitrary sector id */
+    SectorId sector_id_;
+    /** Arbitrary sector */
+    SectorRef sector_;
   };
 
   /**
@@ -117,16 +152,6 @@ namespace fc::sector_storage {
    * @then success
    */
   TEST_F(ManagerTest, SealPreCommit1) {
-    SectorId sector_id{
-        .miner = 42,
-        .sector = 1,
-    };
-
-    SectorRef sector{
-        .id = sector_id,
-        .proof_type = seal_proof_type_,
-    };
-
     SealRandomness randomness({1, 2, 3});
     std::vector<PieceInfo> pieces = {
         PieceInfo{
@@ -137,24 +162,25 @@ namespace fc::sector_storage {
 
     EXPECT_CALL(
         *sector_index_,
-        storageLock(sector.id,
+        storageLock(sector_.id,
                     SectorFileType::FTUnsealed,
                     static_cast<SectorFileType>(SectorFileType::FTSealed
                                                 | SectorFileType::FTCache)))
         .WillOnce(testing::Return(testing::ByMove(
             outcome::success(std::make_unique<stores::WLock>()))));
 
-    std::vector<uint8_t> result = {1, 2, 3, 4, 5};
-    CallId call_id{.sector = sector.id, .id = "some UUID"};
-    EXPECT_CALL(*worker_, sealPreCommit1(sector, randomness, pieces))
+    std::vector<uint8_t> expected_result = {1, 2, 3, 4, 5};
+    CallId call_id{.sector = sector_.id, .id = "some UUID"};
+    EXPECT_CALL(*worker_, sealPreCommit1(sector_, randomness, pieces))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
-    EXPECT_OUTCOME_TRUE(work_id,
-                        getWorkId(primitives::kTTPreCommit1,
-                                  std::make_tuple(sector, randomness, pieces)));
+    EXPECT_OUTCOME_TRUE(
+        work_id,
+        getWorkId(primitives::kTTPreCommit1,
+                  std::make_tuple(sector_, randomness, pieces)));
 
     EXPECT_CALL(*scheduler_,
-                schedule(sector,
+                schedule(sector_,
                          primitives::kTTPreCommit1,
                          _,
                          _,
@@ -172,13 +198,13 @@ namespace fc::sector_storage {
                 uint64_t priority,
                 const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
-              cb(CallResult{result, {}});
+              cb(CallResult{expected_result, {}});
               return outcome::success();
             }));
 
-    EXPECT_OUTCOME_EQ(manager_->sealPreCommit1Sync(
-                          sector, randomness, pieces, kDefaultTaskPriority),
-                      result);
+    auto result = syncCall<&Manager::sealPreCommit1, PreCommit1Output>(
+        sector_, randomness, pieces);
+    EXPECT_OUTCOME_EQ(result, expected_result);
   }
 
   /**
@@ -187,22 +213,12 @@ namespace fc::sector_storage {
    * @then success
    */
   TEST_F(ManagerTest, SealPreCommit2) {
-    SectorId sector_id{
-        .miner = 42,
-        .sector = 1,
-    };
-
-    SectorRef sector{
-        .id = sector_id,
-        .proof_type = seal_proof_type_,
-    };
-
     std::vector<uint8_t> pre_commit_1_output = {1, 2, 3, 4, 5};
 
     EXPECT_CALL(
         *sector_index_,
         storageLock(
-            sector.id, SectorFileType::FTSealed, SectorFileType::FTCache))
+            sector_.id, SectorFileType::FTSealed, SectorFileType::FTCache))
         .WillOnce(testing::Return(testing::ByMove(
             outcome::success(std::make_unique<stores::WLock>()))));
 
@@ -211,17 +227,17 @@ namespace fc::sector_storage {
         .unsealed_cid = "010001020002"_cid,
     };
 
-    CallId call_id{.sector = sector.id, .id = "some UUID"};
-    EXPECT_CALL(*worker_, sealPreCommit2(sector, pre_commit_1_output))
+    CallId call_id{.sector = sector_.id, .id = "some UUID"};
+    EXPECT_CALL(*worker_, sealPreCommit2(sector_, pre_commit_1_output))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
     EXPECT_OUTCOME_TRUE(
         work_id,
         getWorkId(primitives::kTTPreCommit2,
-                  std::make_tuple(sector, pre_commit_1_output)));
+                  std::make_tuple(sector_, pre_commit_1_output)));
 
     EXPECT_CALL(*scheduler_,
-                schedule(sector,
+                schedule(sector_,
                          primitives::kTTPreCommit2,
                          _,
                          _,
@@ -243,9 +259,9 @@ namespace fc::sector_storage {
               return outcome::success();
             }));
 
-    EXPECT_OUTCOME_EQ(manager_->sealPreCommit2Sync(
-                          sector, pre_commit_1_output, kDefaultTaskPriority),
-                      result_cids);
+    auto result = syncCall<&Manager::sealPreCommit2, SectorCids>(
+        sector_, pre_commit_1_output);
+    EXPECT_OUTCOME_EQ(result, result_cids);
   }
 
   /**
@@ -254,15 +270,6 @@ namespace fc::sector_storage {
    * @then success
    */
   TEST_F(ManagerTest, SealCommit1) {
-    SectorId sector_id{
-        .miner = 42,
-        .sector = 1,
-    };
-
-    SectorRef sector{
-        .id = sector_id,
-        .proof_type = seal_proof_type_,
-    };
     SealRandomness ticket({1, 2, 3});
     InteractiveRandomness seed({4, 5, 6});
 
@@ -279,23 +286,23 @@ namespace fc::sector_storage {
     EXPECT_CALL(
         *sector_index_,
         storageLock(
-            sector.id, SectorFileType::FTSealed, SectorFileType::FTCache))
+            sector_.id, SectorFileType::FTSealed, SectorFileType::FTCache))
         .WillOnce(testing::Return(testing::ByMove(
             outcome::success(std::make_unique<stores::WLock>()))));
 
-    std::vector<uint8_t> result = {1, 2, 3, 4, 5};
+    std::vector<uint8_t> expected_result = {1, 2, 3, 4, 5};
 
-    CallId call_id{.sector = sector.id, .id = "some UUID"};
-    EXPECT_CALL(*worker_, sealCommit1(sector, ticket, seed, pieces, cids))
+    CallId call_id{.sector = sector_.id, .id = "some UUID"};
+    EXPECT_CALL(*worker_, sealCommit1(sector_, ticket, seed, pieces, cids))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
     EXPECT_OUTCOME_TRUE(
         work_id,
         getWorkId(primitives::kTTCommit1,
-                  std::make_tuple(sector, ticket, seed, pieces, cids)));
+                  std::make_tuple(sector_, ticket, seed, pieces, cids)));
 
     EXPECT_CALL(*scheduler_,
-                schedule(sector,
+                schedule(sector_,
                          primitives::kTTCommit1,
                          _,
                          _,
@@ -313,14 +320,13 @@ namespace fc::sector_storage {
                 uint64_t priority,
                 const boost::optional<WorkId> &) -> outcome::result<void> {
               OUTCOME_TRY(work(worker_));
-              cb(CallResult{result, {}});
+              cb(CallResult{expected_result, {}});
               return outcome::success();
             }));
 
-    EXPECT_OUTCOME_EQ(
-        manager_->sealCommit1Sync(
-            sector, ticket, seed, pieces, cids, kDefaultTaskPriority),
-        result);
+    auto result = syncCall<&Manager::sealCommit1, Commit1Output>(
+        sector_, ticket, seed, pieces, cids);
+    EXPECT_OUTCOME_EQ(result, expected_result);
   }
 
   /**
@@ -329,27 +335,19 @@ namespace fc::sector_storage {
    * @then success
    */
   TEST_F(ManagerTest, SealCommit2) {
-    SectorId sector_id{
-        .miner = 42,
-        .sector = 1,
-    };
-    SectorRef sector{
-        .id = sector_id,
-        .proof_type = seal_proof_type_,
-    };
     std::vector<uint8_t> commit_1_output = {1, 2, 3, 4, 5};
 
-    std::vector<uint8_t> result = {1, 2, 3, 4, 5};
-    CallId call_id{.sector = sector.id, .id = "some UUID"};
-    EXPECT_CALL(*worker_, sealCommit2(sector, commit_1_output))
+    std::vector<uint8_t> expected_result = {1, 2, 3, 4, 5};
+    CallId call_id{.sector = sector_.id, .id = "some UUID"};
+    EXPECT_CALL(*worker_, sealCommit2(sector_, commit_1_output))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
     EXPECT_OUTCOME_TRUE(work_id,
                         getWorkId(primitives::kTTCommit2,
-                                  std::make_tuple(sector, commit_1_output)));
+                                  std::make_tuple(sector_, commit_1_output)));
 
     EXPECT_CALL(*scheduler_,
-                schedule(sector,
+                schedule(sector_,
                          primitives::kTTCommit2,
                          _,
                          _,
@@ -367,12 +365,13 @@ namespace fc::sector_storage {
                 uint64_t priority,
                 const boost::optional<WorkId> &) -> outcome::result<void> {
               EXPECT_OUTCOME_EQ(work(worker_), call_id);
-              cb(CallResult{result, {}});
+              cb(CallResult{expected_result, {}});
               return outcome::success();
             }));
-    EXPECT_OUTCOME_EQ(manager_->sealCommit2Sync(
-                          sector, commit_1_output, kDefaultTaskPriority),
-                      result);
+
+    auto result =
+        syncCall<&Manager::sealCommit2, Proof>(sector_, commit_1_output);
+    EXPECT_OUTCOME_EQ(result, expected_result);
   }
 
   /**
@@ -381,16 +380,6 @@ namespace fc::sector_storage {
    * @then success
    */
   TEST_F(ManagerTest, FinalizeSector) {
-    SectorId sector_id{
-        .miner = 42,
-        .sector = 1,
-    };
-
-    SectorRef sector{
-        .id = sector_id,
-        .proof_type = seal_proof_type_,
-    };
-
     std::vector<Range> keep_unsealed = {Range{
         .offset = UnpaddedPieceSize(127),
         .size = UnpaddedPieceSize(127),
@@ -398,7 +387,7 @@ namespace fc::sector_storage {
 
     EXPECT_CALL(
         *sector_index_,
-        storageLock(sector.id,
+        storageLock(sector_.id,
                     SectorFileType::FTNone,
                     static_cast<SectorFileType>(SectorFileType::FTSealed
                                                 | SectorFileType::FTCache
@@ -407,17 +396,17 @@ namespace fc::sector_storage {
             outcome::success(std::make_unique<stores::WLock>()))));
 
     EXPECT_CALL(*sector_index_,
-                storageFindSector(sector.id, SectorFileType::FTUnsealed, _))
+                storageFindSector(sector_.id, SectorFileType::FTUnsealed, _))
         .WillOnce(testing::Return(
             outcome::success(std::vector<stores::StorageInfo>())));
 
-    CallId call_id{.sector = sector.id, .id = "some UUID"};
+    CallId call_id{.sector = sector_.id, .id = "some UUID"};
     EXPECT_CALL(*worker_,
-                finalizeSector(sector, gsl::span<const Range>(keep_unsealed)))
+                finalizeSector(sector_, gsl::span<const Range>(keep_unsealed)))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
     EXPECT_CALL(*scheduler_,
-                schedule(sector,
+                schedule(sector_,
                          primitives::kTTFinalize,
                          _,
                          _,
@@ -440,16 +429,16 @@ namespace fc::sector_storage {
               return outcome::success();
             }));
 
-    CallId call_id2{.sector = sector.id, .id = "some UUID2"};
+    CallId call_id2{.sector = sector_.id, .id = "some UUID2"};
     EXPECT_CALL(
         *worker_,
-        moveStorage(sector,
+        moveStorage(sector_,
                     static_cast<SectorFileType>(SectorFileType::FTSealed
                                                 | SectorFileType::FTCache)))
         .WillOnce(testing::Return(outcome::success(call_id2)));
 
     EXPECT_CALL(*scheduler_,
-                schedule(sector,
+                schedule(sector_,
                          primitives::kTTFetch,
                          _,
                          _,
@@ -472,8 +461,183 @@ namespace fc::sector_storage {
               return outcome::success();
             }));
 
-    EXPECT_OUTCOME_TRUE_1(manager_->finalizeSectorSync(
-        sector, keep_unsealed, kDefaultTaskPriority));
+    std::ignore =
+        syncCall<&Manager::finalizeSector, void>(sector_, keep_unsealed);
+  }
+
+  /**
+   * @given manager, sector, pieces
+   * @when try replica update
+   * @then success, task is scheduled
+   */
+  TEST_F(ManagerTest, ReplicaUpdate) {
+    std::vector<PieceInfo> pieces = {PieceInfo{
+        .size = PaddedPieceSize(128),
+        .cid = "010001020003"_cid,
+    }};
+
+    EXPECT_OUTCOME_TRUE(work_id,
+                        getWorkId(primitives::kTTReplicaUpdate,
+                                  std::make_tuple(sector_, pieces)));
+
+    EXPECT_CALL(
+        *sector_index_,
+        storageLock(sector_.id,
+                    SectorFileType::FTUnsealed | SectorFileType::FTSealed
+                        | SectorFileType::FTCache,
+                    SectorFileType::FTUpdate | SectorFileType::FTUpdateCache))
+        .WillOnce(testing::Return(testing::ByMove(
+            outcome::success(std::make_unique<stores::WLock>()))));
+
+    CallId call_id{.sector = sector_.id, .id = "some UUID"};
+    EXPECT_CALL(*worker_, replicaUpdate(sector_, pieces))
+        .WillOnce(testing::Return(outcome::success(call_id)));
+
+    ReplicaUpdateOut expected_result{};
+
+    EXPECT_CALL(*scheduler_,
+                schedule(sector_,
+                         primitives::kTTReplicaUpdate,
+                         _,
+                         _,
+                         _,
+                         _,
+                         kDefaultTaskPriority,
+                         Eq(work_id)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
+              EXPECT_OUTCOME_EQ(work(worker_), call_id);
+              cb(CallResult{expected_result, {}});
+              return outcome::success();
+            }));
+
+    auto result =
+        syncCall<&Manager::replicaUpdate, ReplicaUpdateOut>(sector_, pieces);
+    EXPECT_OUTCOME_EQ(result, expected_result);
+  }
+
+  /**
+   * @given manager, sector, sector keys
+   * @when try prove replica update1
+   * @then success, task is scheduled
+   */
+  TEST_F(ManagerTest, ProveReplicaUpdate1) {
+    CID sector_key_cid = "010001020001"_cid;
+    CID new_sealed = "010001020002"_cid;
+    CID new_unsealed = "010001020003"_cid;
+
+    EXPECT_OUTCOME_TRUE(
+        work_id,
+        getWorkId(primitives::kTTProveReplicaUpdate1,
+                  std::make_tuple(
+                      sector_, sector_key_cid, new_sealed, new_unsealed)));
+
+    EXPECT_CALL(*sector_index_,
+                storageLock(sector_.id,
+                            SectorFileType::FTSealed | SectorFileType::FTUpdate
+                                | SectorFileType::FTCache
+                                | SectorFileType::FTUpdateCache,
+                            SectorFileType::FTNone))
+        .WillOnce(testing::Return(testing::ByMove(
+            outcome::success(std::make_unique<stores::WLock>()))));
+
+    CallId call_id{.sector = sector_.id, .id = "some UUID"};
+    EXPECT_CALL(
+        *worker_,
+        proveReplicaUpdate1(sector_, sector_key_cid, new_sealed, new_unsealed))
+        .WillOnce(testing::Return(outcome::success(call_id)));
+
+    ReplicaVanillaProofs expected_result{};
+
+    EXPECT_CALL(*scheduler_,
+                schedule(sector_,
+                         primitives::kTTProveReplicaUpdate1,
+                         _,
+                         _,
+                         _,
+                         _,
+                         kDefaultTaskPriority,
+                         Eq(work_id)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
+              EXPECT_OUTCOME_EQ(work(worker_), call_id);
+              cb(CallResult{expected_result, {}});
+              return outcome::success();
+            }));
+
+    auto result = syncCall<&Manager::proveReplicaUpdate1, ReplicaVanillaProofs>(
+        sector_, sector_key_cid, new_sealed, new_unsealed);
+    EXPECT_OUTCOME_EQ(result, expected_result);
+  }
+
+  /**
+   * @given manager, sector, sector keys
+   * @when try prove replica update2
+   * @then success, task is scheduled
+   */
+  TEST_F(ManagerTest, ProveReplicaUpdate2) {
+    CID sector_key_cid = "010001020001"_cid;
+    CID new_sealed = "010001020002"_cid;
+    CID new_unsealed = "010001020003"_cid;
+    Update1Output update1_output{};
+
+    EXPECT_OUTCOME_TRUE(work_id,
+                        getWorkId(primitives::kTTProveReplicaUpdate2,
+                                  std::make_tuple(sector_,
+                                                  sector_key_cid,
+                                                  new_sealed,
+                                                  new_unsealed,
+                                                  update1_output)));
+
+    CallId call_id{.sector = sector_.id, .id = "some UUID"};
+    EXPECT_CALL(
+        *worker_,
+        proveReplicaUpdate2(
+            sector_, sector_key_cid, new_sealed, new_unsealed, update1_output))
+        .WillOnce(testing::Return(outcome::success(call_id)));
+
+    ReplicaUpdateProof expected_result{};
+
+    EXPECT_CALL(*scheduler_,
+                schedule(sector_,
+                         primitives::kTTProveReplicaUpdate2,
+                         _,
+                         _,
+                         _,
+                         _,
+                         kDefaultTaskPriority,
+                         Eq(work_id)))
+        .WillOnce(testing::Invoke(
+            [&](const SectorRef &sector,
+                const TaskType &task_type,
+                const std::shared_ptr<WorkerSelector> &selector,
+                const WorkerAction &prepare,
+                const WorkerAction &work,
+                const ReturnCb &cb,
+                uint64_t priority,
+                const boost::optional<WorkId> &) -> outcome::result<void> {
+              EXPECT_OUTCOME_EQ(work(worker_), call_id);
+              cb(CallResult{expected_result, {}});
+              return outcome::success();
+            }));
+
+    auto result = syncCall<&Manager::proveReplicaUpdate2, ReplicaUpdateProof>(
+        sector_, sector_key_cid, new_sealed, new_unsealed, update1_output);
+    EXPECT_OUTCOME_EQ(result, expected_result);
   }
 
   /**
@@ -482,19 +646,9 @@ namespace fc::sector_storage {
    * @then success
    */
   TEST_F(ManagerTest, Remove) {
-    SectorId sector_id{
-        .miner = 42,
-        .sector = 1,
-    };
-
-    SectorRef sector{
-        .id = sector_id,
-        .proof_type = seal_proof_type_,
-    };
-
     EXPECT_CALL(
         *sector_index_,
-        storageLock(sector.id,
+        storageLock(sector_.id,
                     SectorFileType::FTNone,
                     SectorFileType::FTCache | SectorFileType::FTSealed
                         | SectorFileType::FTUnsealed | SectorFileType::FTUpdate
@@ -502,19 +656,19 @@ namespace fc::sector_storage {
         .WillOnce(testing::Return(testing::ByMove(
             outcome::success(std::make_unique<stores::WLock>()))));
 
-    EXPECT_CALL(*remote_store_, remove(sector.id, SectorFileType::FTCache))
+    EXPECT_CALL(*remote_store_, remove(sector_.id, SectorFileType::FTCache))
         .WillOnce(testing::Return(outcome::success()));
-    EXPECT_CALL(*remote_store_, remove(sector.id, SectorFileType::FTSealed))
+    EXPECT_CALL(*remote_store_, remove(sector_.id, SectorFileType::FTSealed))
         .WillOnce(testing::Return(outcome::success()));
-    EXPECT_CALL(*remote_store_, remove(sector.id, SectorFileType::FTUnsealed))
+    EXPECT_CALL(*remote_store_, remove(sector_.id, SectorFileType::FTUnsealed))
         .WillOnce(testing::Return(outcome::success()));
-    EXPECT_CALL(*remote_store_, remove(sector.id, SectorFileType::FTUpdate))
+    EXPECT_CALL(*remote_store_, remove(sector_.id, SectorFileType::FTUpdate))
         .WillOnce(testing::Return(outcome::success()));
     EXPECT_CALL(*remote_store_,
-                remove(sector.id, SectorFileType::FTUpdateCache))
+                remove(sector_.id, SectorFileType::FTUpdateCache))
         .WillOnce(testing::Return(outcome::success()));
 
-    EXPECT_OUTCOME_TRUE_1(manager_->remove(sector));
+    EXPECT_OUTCOME_TRUE_1(manager_->remove(sector_));
   }
 
   /**
@@ -523,21 +677,12 @@ namespace fc::sector_storage {
    * @then success
    */
   TEST_F(ManagerTest, AddPiece) {
-    SectorId sector_id{
-        .miner = 42,
-        .sector = 1,
-    };
-    SectorRef sector{
-        .id = sector_id,
-        .proof_type = seal_proof_type_,
-    };
-
     UnpaddedPieceSize piece_size(127);
 
     EXPECT_CALL(
         *sector_index_,
         storageLock(
-            sector.id, SectorFileType::FTNone, SectorFileType::FTUnsealed))
+            sector_.id, SectorFileType::FTNone, SectorFileType::FTUnsealed))
         .WillOnce(testing::Return(testing::ByMove(
             outcome::success(std::make_unique<stores::WLock>()))));
 
@@ -546,15 +691,15 @@ namespace fc::sector_storage {
         .cid = "010001020001"_cid,
     };
 
-    CallId call_id{.sector = sector.id, .id = "some UUID"};
+    CallId call_id{.sector = sector_.id, .id = "some UUID"};
     EXPECT_CALL(
         *worker_,
         doAddPiece(
-            sector, gsl::span<const UnpaddedPieceSize>({}), piece_size, _))
+            sector_, gsl::span<const UnpaddedPieceSize>({}), piece_size, _))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
     EXPECT_CALL(*scheduler_,
-                schedule(sector,
+                schedule(sector_,
                          primitives::kTTAddPiece,
                          _,
                          _,
@@ -576,7 +721,7 @@ namespace fc::sector_storage {
               return outcome::success();
             }));
 
-    EXPECT_OUTCOME_EQ(manager_->addPieceSync(sector,
+    EXPECT_OUTCOME_EQ(manager_->addPieceSync(sector_,
                                              {},
                                              piece_size,
                                              PieceData("/dev/random"),
@@ -590,15 +735,6 @@ namespace fc::sector_storage {
    * @then pieces are equal
    */
   TEST_F(ManagerTest, ReadPiece) {
-    SectorId sector_id{
-        .miner = 42,
-        .sector = 1,
-    };
-
-    SectorRef sector{
-        .id = sector_id,
-        .proof_type = seal_proof_type_,
-    };
     UnpaddedByteIndex offset(127);
     UnpaddedPieceSize piece_size(127);
     CID cid = "010001020001"_cid;
@@ -607,24 +743,24 @@ namespace fc::sector_storage {
 
     EXPECT_CALL(
         *sector_index_,
-        storageLock(sector.id,
+        storageLock(sector_.id,
                     static_cast<SectorFileType>(SectorFileType::FTSealed
                                                 | SectorFileType::FTCache),
                     SectorFileType::FTUnsealed))
         .WillOnce(testing::Return(testing::ByMove(
             outcome::success(std::make_unique<stores::WLock>()))));
     EXPECT_CALL(*sector_index_,
-                storageFindSector(sector.id, SectorFileType::FTUnsealed, _))
+                storageFindSector(sector_.id, SectorFileType::FTUnsealed, _))
         .WillOnce(testing::Return(
             outcome::success(std::vector<stores::StorageInfo>())));
 
-    CallId call_id{.sector = sector.id, .id = "some UUID"};
+    CallId call_id{.sector = sector_.id, .id = "some UUID"};
     EXPECT_CALL(*worker_,
-                unsealPiece(sector, offset, piece_size, randomness, cid))
+                unsealPiece(sector_, offset, piece_size, randomness, cid))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
     EXPECT_CALL(*scheduler_,
-                schedule(sector,
+                schedule(sector_,
                          primitives::kTTUnseal,
                          _,
                          _,
@@ -647,12 +783,12 @@ namespace fc::sector_storage {
               return outcome::success();
             }));
 
-    CallId call_id2{.sector = sector.id, .id = "some UUID2"};
-    EXPECT_CALL(*worker_, doReadPiece(_, sector, offset, piece_size))
+    CallId call_id2{.sector = sector_.id, .id = "some UUID2"};
+    EXPECT_CALL(*worker_, doReadPiece(_, sector_, offset, piece_size))
         .WillOnce(testing::Return(outcome::success(call_id2)));
 
     EXPECT_CALL(*scheduler_,
-                schedule(sector,
+                schedule(sector_,
                          primitives::kTTReadUnsealed,
                          _,
                          _,
@@ -675,8 +811,10 @@ namespace fc::sector_storage {
             }));
 
     int fd = -1;
-    EXPECT_OUTCOME_TRUE_1(manager_->readPieceSync(
-        PieceData(fd), sector, offset, piece_size, randomness, cid));
+
+    auto result = syncCall<&Manager::readPiece, bool>(
+        PieceData(fd), sector_, offset, piece_size, randomness, cid);
+    EXPECT_OUTCOME_EQ(result, true);
   }
 
   /**
@@ -685,15 +823,6 @@ namespace fc::sector_storage {
    * @then ManagerErrors::kCannotReadData occurs
    */
   TEST_F(ManagerTest, ReadPieceFailed) {
-    SectorId sector_id{
-        .miner = 42,
-        .sector = 1,
-    };
-
-    SectorRef sector{
-        .id = sector_id,
-        .proof_type = seal_proof_type_,
-    };
     UnpaddedByteIndex offset(127);
     UnpaddedPieceSize piece_size(127);
     CID cid = "010001020001"_cid;
@@ -702,24 +831,24 @@ namespace fc::sector_storage {
 
     EXPECT_CALL(
         *sector_index_,
-        storageLock(sector.id,
+        storageLock(sector_.id,
                     static_cast<SectorFileType>(SectorFileType::FTSealed
                                                 | SectorFileType::FTCache),
                     SectorFileType::FTUnsealed))
         .WillOnce(testing::Return(testing::ByMove(
             outcome::success(std::make_unique<stores::WLock>()))));
     EXPECT_CALL(*sector_index_,
-                storageFindSector(sector.id, SectorFileType::FTUnsealed, _))
+                storageFindSector(sector_.id, SectorFileType::FTUnsealed, _))
         .WillOnce(testing::Return(
             outcome::success(std::vector<stores::StorageInfo>())));
 
-    CallId call_id{.sector = sector.id, .id = "some UUID"};
+    CallId call_id{.sector = sector_.id, .id = "some UUID"};
     EXPECT_CALL(*worker_,
-                unsealPiece(sector, offset, piece_size, randomness, cid))
+                unsealPiece(sector_, offset, piece_size, randomness, cid))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
     EXPECT_CALL(*scheduler_,
-                schedule(sector,
+                schedule(sector_,
                          primitives::kTTUnseal,
                          _,
                          _,
@@ -742,12 +871,12 @@ namespace fc::sector_storage {
               return outcome::success();
             }));
 
-    CallId call_id2{.sector = sector.id, .id = "some UUID2"};
-    EXPECT_CALL(*worker_, doReadPiece(_, sector, offset, piece_size))
+    CallId call_id2{.sector = sector_.id, .id = "some UUID2"};
+    EXPECT_CALL(*worker_, doReadPiece(_, sector_, offset, piece_size))
         .WillOnce(testing::Return(outcome::success(call_id2)));
 
     EXPECT_CALL(*scheduler_,
-                schedule(sector,
+                schedule(sector_,
                          primitives::kTTReadUnsealed,
                          _,
                          _,
@@ -770,10 +899,10 @@ namespace fc::sector_storage {
             }));
 
     int fd = -1;
-    EXPECT_OUTCOME_ERROR(
-        ManagerErrors::kCannotReadData,
-        manager_->readPieceSync(
-            PieceData(fd), sector, offset, piece_size, randomness, cid));
+
+    auto result = syncCall<&Manager::readPiece, bool>(
+        PieceData(fd), sector_, offset, piece_size, randomness, cid);
+    EXPECT_OUTCOME_EQ(result, false);
   }
 
   /**

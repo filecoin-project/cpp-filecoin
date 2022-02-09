@@ -309,6 +309,9 @@ namespace fc::api {
     f(a.ReturnUnsealPiece);
     f(a.ReturnReadPiece);
     f(a.ReturnFetch);
+    f(a.ReturnReplicaUpdate);
+    f(a.ReturnProveReplicaUpdate1);
+    f(a.ReturnProveReplicaUpdate2);
     f(a.WorkerConnect);
   }
 }  // namespace fc::api
