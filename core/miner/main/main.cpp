@@ -100,6 +100,8 @@ namespace fc {
     boost::optional<boost::filesystem::path> preseal_path;
     boost::optional<boost::filesystem::path> preseal_meta_path;
 
+    bool disable_http_rpc{};
+
     auto join(const std::string &path) const {
       return (repo_path / path).string();
     }
@@ -160,6 +162,8 @@ namespace fc {
     option("pre-sealed-metadata",
            po::value(&config.preseal_meta_path),
            "Path to presealed metadata");
+    option("disable-http-rpc",
+           po::bool_switch(&config.disable_http_rpc)->default_value(false));
     desc.add(configProfile());
     primitives::address::configCurrentNetwork(option);
 
@@ -542,16 +546,22 @@ namespace fc {
     api::fillNetApi(mapi, api_peer_info, host, api::kStorageApiLogger);
 
     std::map<std::string, std::shared_ptr<api::Rpc>> mrpc;
-    mrpc.emplace(
-        "/rpc/v0",
-        api::makeRpc(*mapi,
-                     std::bind(mapi->AuthVerify, std::placeholders::_1)));
+    auto rpc_handler =
+        api::makeRpc(*mapi, std::bind(mapi->AuthVerify, std::placeholders::_1));
+    mrpc.emplace("/rpc/v0", rpc_handler);
     auto mroutes{std::make_shared<api::Routes>()};
-    mroutes->emplace("/health", [](auto &) {
+    mroutes->emplace("/health", [](auto &, auto &cb) {
       api::http::response<api::http::string_body> res;
       res.body() = "{\"status\":\"UP\"}";
-      return api::WrapperResponse{std::move(res)};
+      cb(api::WrapperResponse{std::move(res)});
     });
+
+    if (not config.disable_http_rpc) {
+      mroutes->emplace("/rpc/v0",
+                       api::makeAuthRoute(
+                           api::makeHttpRpc(rpc_handler),
+                           std::bind(mapi->AuthVerify, std::placeholders::_1)));
+    }
 
     mroutes->insert({"/remote",
                      api::makeAuthRoute(
