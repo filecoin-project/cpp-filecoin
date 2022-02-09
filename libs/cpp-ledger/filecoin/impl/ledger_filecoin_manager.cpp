@@ -93,7 +93,7 @@ namespace ledger::filecoin {
         std::cout << "are you sure the Filecoin app is open?" << std::endl;
       }
       app->Close();
-      return std::make_tuple(nullptr, err);
+      return std::make_tuple(nullptr, verErr);
     }
 
     err = app->CheckVersion(version);

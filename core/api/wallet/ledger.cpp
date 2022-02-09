@@ -146,6 +146,7 @@ namespace fc::api {
 
     OUTCOME_TRY(address, decodeFromString(addr));
 
+    app->Close();
     return ImportKey(LedgerKeyInfo{.address = address, .path = path});
   }
 
