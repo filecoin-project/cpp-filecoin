@@ -196,7 +196,7 @@ namespace fc::api {
                    RemoteWorker::connectRemoteWorker(*io, api, address));
         spdlog::info("Connected to a remote worker at {}", address);
 
-        OUTCOME_CB1(sector_manager->addWorker(std::move(worker)));
+        cb(sector_manager->addWorker(std::move(worker)));
       });
     };
 
