@@ -1030,7 +1030,7 @@ namespace fc::api {
       }
       return result;
     };
-    // TODO(artyom-yurin): FIL-165 implement method
+
     api->StateSectorPartition =
         [=](const Address &address,
             SectorNumber sector,

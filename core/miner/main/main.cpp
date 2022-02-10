@@ -567,8 +567,8 @@ namespace fc {
                      api::makeAuthRoute(
                          sector_storage::serveHttp(local_store),
                          std::bind(mapi->AuthVerify, std::placeholders::_1))});
-
-    api::serve(mrpc, mroutes, *io, "127.0.0.1", config.api_port);
+    IoThread miner_thread;
+    api::serve(mrpc, mroutes, *(miner_thread.io), "127.0.0.1", config.api_port);
     OUTCOME_TRY(token, generateAuthToken(api_secret, kAllPermission));
     api::rpc::saveInfo(config.repo_path, config.api_port, token);
 

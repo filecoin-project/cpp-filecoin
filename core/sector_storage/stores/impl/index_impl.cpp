@@ -174,7 +174,7 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<std::vector<StorageInfo>> SectorIndexImpl::storageFindSector(
+  outcome::result<std::vector<SectorStorageInfo>> SectorIndexImpl::storageFindSector(
       const SectorId &sector,
       const fc::primitives::sector_file::SectorFileType &file_type,
       boost::optional<SectorSize> fetch_sector_size) {
@@ -205,19 +205,26 @@ namespace fc::sector_storage::stores {
       }
     }
 
-    std::vector<StorageInfo> result;
+    std::vector<SectorStorageInfo> result;
     for (const auto &[id, meta] : storages) {
       if (stores_.find(id) == stores_.end()) {
         // TODO (ortyomka): logger
         continue;
       }
 
-      auto store = stores_[id].info;
+      auto raw_store = stores_[id].info;
+      SectorStorageInfo store{
+          .id = raw_store.id,
+          .can_seal = raw_store.can_seal,
+          .can_store = raw_store.can_store
+      };
 
-      for (uint64_t i = 0; i < store.urls.size(); i++) {
+      store.urls.resize(raw_store.urls.size());
+
+      for (uint64_t i = 0; i < raw_store.urls.size(); i++) {
         HttpUri uri;
         try {
-          uri.parse(store.urls[i]);
+          uri.parse(raw_store.urls[i]);
         } catch (const std::runtime_error &err) {
           return IndexErrors::kInvalidUrl;
         }
@@ -227,7 +234,7 @@ namespace fc::sector_storage::stores {
         store.urls[i] = uri.str();
       }
 
-      store.weight = store.weight * meta.storage_count;
+      store.weight = raw_store.weight * meta.storage_count;
       store.is_primary = storages[id].is_primary;
       result.push_back(store);
     }
@@ -274,12 +281,20 @@ namespace fc::sector_storage::stores {
         if (storages.find(id) != storages.end()) {
           continue;
         }
-        auto store = storage_info.info;
+        auto raw_store = storage_info.info;
 
-        for (uint64_t i = 0; i < store.urls.size(); i++) {
+        SectorStorageInfo store{
+            .id = raw_store.id,
+            .can_seal = raw_store.can_seal,
+            .can_store = raw_store.can_store
+        };
+
+        store.urls.resize(raw_store.urls.size());
+
+        for (uint64_t i = 0; i < raw_store.urls.size(); i++) {
           HttpUri uri;
           try {
-            uri.parse(store.urls[i]);
+            uri.parse(raw_store.urls[i]);
           } catch (const std::runtime_error &err) {
             return IndexErrors::kInvalidUrl;
           }

@@ -436,7 +436,6 @@ namespace fc::mining {
             }
           });
     });
-
     return outcome::success();
   }
 

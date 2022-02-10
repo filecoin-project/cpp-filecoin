@@ -32,11 +32,11 @@ namespace fc::sector_storage::stores {
                                        const SectorId &sector,
                                        const SectorFileType &file_type));
 
-    MOCK_METHOD3(
-        storageFindSector,
-        outcome::result<std::vector<StorageInfo>>(const SectorId &,
-                                                  const SectorFileType &,
-                                                  boost::optional<SectorSize>));
+    MOCK_METHOD3(storageFindSector,
+                 outcome::result<std::vector<SectorStorageInfo>>(
+                     const SectorId &,
+                     const SectorFileType &,
+                     boost::optional<SectorSize>));
 
     MOCK_METHOD3(storageBestAlloc,
                  outcome::result<std::vector<StorageInfo>>(
