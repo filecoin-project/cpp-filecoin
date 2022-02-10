@@ -5,4 +5,4 @@
 add_subdirectory(cpp-ledger)
 
 # Unlock only if you need to test physical Ledger device
-add_subdirectory(ledger_test)
+# add_subdirectory(ledger_test)
