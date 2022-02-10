@@ -38,8 +38,11 @@ namespace fc::primitives {
 
   struct FsStat {
     uint64_t capacity = 0;
-    uint64_t available = 0;  // Available to use for sector storage
+    uint64_t available = 0;
+    uint64_t fs_available = 0; // Available to use for sector storage
     uint64_t reserved = 0;
+    uint64_t max = 0;
+    uint64_t used = 0;
   };
 
   inline bool operator==(const FsStat &lhs, const FsStat &rhs) {

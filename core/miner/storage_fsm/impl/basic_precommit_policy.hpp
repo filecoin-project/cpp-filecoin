@@ -16,7 +16,7 @@ namespace fc::mining {
    public:
     BasicPreCommitPolicy(std::shared_ptr<FullNodeApi> api,
                          ChainEpoch proving_boundary,
-                         ChainEpoch duration);
+                         std::chrono::seconds sector_lifetime);
 
     outcome::result<ChainEpoch> expiration(
         gsl::span<const types::Piece> pieces) override;

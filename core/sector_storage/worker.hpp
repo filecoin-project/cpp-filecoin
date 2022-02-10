@@ -37,6 +37,7 @@ namespace fc::sector_storage {
   using Commit1Output = proofs::Phase1Output;
   using Update1Output = proofs::UpdateProofs1;
   using SectorCids = proofs::SealedAndUnsealedCID;
+  using ReplicaUpdateOut = proofs::SealedAndUnsealedCID;
 
   struct Range {
     UnpaddedPieceSize offset;
@@ -156,12 +157,13 @@ namespace fc::sector_storage {
 
   struct CallResult {
     // `Bytes` = (`Proof` | `PreCommit1Output` | `Commit1Output`)
+    // 'SealedAndUnsealedCID' = ('SectorCids' | 'ReplicaUpdateOut)
     std::variant<std::monostate,
                  PieceInfo,
-                 SectorCids,
                  Bytes,
                  bool,
-                 Update1Output>
+                 Update1Output,
+                 proofs::SealedAndUnsealedCID>
         value;
     boost::optional<CallError> maybe_error;
   };

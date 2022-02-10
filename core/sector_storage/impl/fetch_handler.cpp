@@ -22,7 +22,7 @@ namespace fc::sector_storage {
   common::Logger server_logger = common::createLogger("remote server");
 
   api::WrapperResponse remoteStatFs(
-      const http::request<http::dynamic_body> &request,
+      const http::request<http::string_body> &request,
       const std::shared_ptr<stores::LocalStore> &local_store,
       const common::Logger &logger,
       const fc::primitives::StorageID &storage_id) {
@@ -58,7 +58,7 @@ namespace fc::sector_storage {
   }
 
   api::WrapperResponse remoteGetSector(
-      const http::request<http::dynamic_body> &request,
+      const http::request<http::string_body> &request,
       const std::shared_ptr<stores::LocalStore> &local_store,
       const common::Logger &logger,
       const std::string &type,
@@ -152,7 +152,7 @@ namespace fc::sector_storage {
   }
 
   api::WrapperResponse remoteRemoveSector(
-      const http::request<http::dynamic_body> &request,
+      const http::request<http::string_body> &request,
       const std::shared_ptr<stores::LocalStore> &local_store,
       const common::Logger &logger,
       const std::string &type,
@@ -193,11 +193,12 @@ namespace fc::sector_storage {
   api::AuthRouteHandler serveHttp(
       const std::shared_ptr<stores::LocalStore> &local_store) {
     return [local = local_store, logger = server_logger](
-               const http::request<http::dynamic_body> &request,
-               const api::Permissions &perms) -> api::WrapperResponse {
+               const http::request<http::string_body> &request,
+               const api::Permissions &perms,
+               const api::RouteCB &cb) {
       if (not primitives::jwt::hasPermission(
               perms, primitives::jwt::kAdminPermission)) {
-        return api::makeErrorResponse(request, http::status::unauthorized);
+        return cb(api::makeErrorResponse(request, http::status::unauthorized));
       }
 
       std::regex stat_rgx(R"(\/remote\/stat\/([\w-]+))");
@@ -210,27 +211,27 @@ namespace fc::sector_storage {
         case http::verb::get:
           if (std::regex_search(
                   target.cbegin(), target.cend(), matches, stat_rgx)) {
-            return remoteStatFs(request, local, logger, matches[1]);
+            return cb(remoteStatFs(request, local, logger, matches[1]));
           } else if (std::regex_search(
                          target.cbegin(), target.cend(), matches, sector_rgx)) {
-            return remoteGetSector(
-                request, local, logger, matches[1], matches[2]);
+            return cb(remoteGetSector(
+                request, local, logger, matches[1], matches[2]));
           } else {
-            return api::makeErrorResponse(request,
-                                          http::status::internal_server_error);
+            return cb(api::makeErrorResponse(
+                request, http::status::internal_server_error));
           }
         case http::verb::delete_:
           if (std::regex_search(
                   target.cbegin(), target.cend(), matches, sector_rgx)) {
-            return remoteRemoveSector(
-                request, local, logger, matches[1], matches[2]);
+            return cb(remoteRemoveSector(
+                request, local, logger, matches[1], matches[2]));
           } else {
-            return api::makeErrorResponse(request,
-                                          http::status::internal_server_error);
+            return cb(api::makeErrorResponse(
+                request, http::status::internal_server_error));
           }
         default:
-          return api::makeErrorResponse(request,
-                                        http::status::method_not_allowed);
+          return cb(api::makeErrorResponse(request,
+                                           http::status::method_not_allowed));
       }
     };
   }
