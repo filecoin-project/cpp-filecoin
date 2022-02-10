@@ -12,6 +12,7 @@ RUN pip3 install scikit-build cmake requests gitpython pyyaml
 RUN curl -sL https://golang.org/dl/go1.17.3.linux-amd64.tar.gz | tar -xz -C /usr/local
 ENV PATH="$PATH:/usr/local/go/bin"
 COPY . /tmp/cpp-filecoin
+COPY .git/ /tmp/cpp-filecoin/.git/
 # this last command outputs the list of files added to the build context:
 RUN find /tmp/cpp-filecoin
 RUN git -C /tmp/cpp-filecoin submodule update --init --recursive
