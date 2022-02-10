@@ -9,6 +9,7 @@
 
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "markets/storage/types.hpp"
+#include "sector_storage/scheduler.hpp"
 #include "storage/piece/impl/piece_storage_error.hpp"
 
 namespace fc::markets::retrieval::provider {
@@ -410,15 +411,29 @@ namespace fc::markets::retrieval::provider {
 
     CID comm_d = sector_info->comm_d.get_value_or(CID());
 
-    OUTCOME_TRY(
-        sealer_->readPieceSync(PieceData(output_path, O_WRONLY | O_CREAT),
-                               sector,
-                               UnpaddedByteIndex(offset),
-                               size,
-                               sector_info->ticket,
-                               comm_d));
+    std::promise<outcome::result<bool>> wait;
 
-    return outcome::success();
+    sealer_->readPiece(
+        PieceData(output_path, O_WRONLY | O_CREAT),
+        sector,
+        UnpaddedByteIndex(offset),
+        size,
+        sector_info->ticket,
+        comm_d,
+        [&wait](outcome::result<bool> res) { wait.set_value(res); },
+        sector_storage::kDefaultTaskPriority);
+
+    auto res = wait.get_future().get();
+
+    if (res.has_error()) {
+      return res.error();
+    }
+
+    if (res.value()) {
+      return outcome::success();
+    }
+
+    return ERROR_TEXT("cannot read piece");
   }
 
 }  // namespace fc::markets::retrieval::provider

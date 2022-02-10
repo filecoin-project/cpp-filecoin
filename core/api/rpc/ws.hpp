@@ -53,15 +53,17 @@ namespace fc::api {
   };
 
   api::WrapperResponse makeErrorResponse(
-      const http::request<http::dynamic_body> &request, http::status status);
+      const http::request<http::string_body> &request, http::status status);
 
-  // RouteHandler should write response
-  using RouteHandler = std::function<WrapperResponse(
-      const http::request<http::dynamic_body> &request)>;
-  // AuthRouteHandler should write response
-  using AuthRouteHandler = std::function<WrapperResponse(
-      const http::request<http::dynamic_body> &request, const Permissions &perms)>;
+  using RouteCB = std::function<void(WrapperResponse &&)>;
+  using RouteHandler = std::function<void(
+      const http::request<http::string_body> &request, const RouteCB &)>;
+  using AuthRouteHandler =
+      std::function<void(const http::request<http::string_body> &request,
+                         const Permissions &perms,
+                         const RouteCB &)>;
   RouteHandler makeAuthRoute(AuthRouteHandler &&handler, AuthFunction &&auth);
+  AuthRouteHandler makeHttpRpc(std::shared_ptr<Rpc> rpc);
 
   using Routes = std::map<std::string, RouteHandler, std::greater<>>;
 

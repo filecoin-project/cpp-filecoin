@@ -245,7 +245,9 @@ namespace fc::storage::ipfs::graphsync {
     }
   }
 
-  void PeerContext::closeStream(const StreamPtr &stream,
+  // here stream should copy, because streams_.erase will reset original one
+  // NOLINTNEXTLINE
+  void PeerContext::closeStream(StreamPtr stream,
                                 ResponseStatusCode status) {
     auto it = streams_.find(stream);
     if (it == streams_.end()) {

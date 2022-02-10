@@ -16,6 +16,8 @@ namespace fc::sector_storage {
   using primitives::StorageID;
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedByteIndex;
+  using ReplicaUpdateProof = Bytes;
+  using ReplicaVanillaProofs = std::vector<Bytes>;
 
   class Manager : public Prover, public FaultTracker {
    public:
@@ -37,15 +39,8 @@ namespace fc::sector_storage {
         const UnpaddedPieceSize &size,
         const SealRandomness &randomness,
         const CID &cid,
-        const std::function<void(outcome::result<bool>)> &cb) = 0;
-
-    virtual outcome::result<bool> readPieceSync(
-        PieceData output,
-        const SectorRef &sector,
-        UnpaddedByteIndex offset,
-        const UnpaddedPieceSize &size,
-        const SealRandomness &randomness,
-        const CID &cid) = 0;
+        const std::function<void(outcome::result<bool>)> &cb,
+        uint64_t priority) = 0;
 
     // Sealer
     virtual void sealPreCommit1(
@@ -55,21 +50,10 @@ namespace fc::sector_storage {
         const std::function<void(outcome::result<PreCommit1Output>)> &cb,
         uint64_t priority) = 0;
 
-    virtual outcome::result<PreCommit1Output> sealPreCommit1Sync(
-        const SectorRef &sector,
-        const SealRandomness &ticket,
-        const std::vector<PieceInfo> &pieces,
-        uint64_t priority) = 0;
-
     virtual void sealPreCommit2(
         const SectorRef &sector,
         const PreCommit1Output &pre_commit_1_output,
         const std::function<void(outcome::result<SectorCids>)> &cb,
-        uint64_t priority) = 0;
-
-    virtual outcome::result<SectorCids> sealPreCommit2Sync(
-        const SectorRef &sector,
-        const PreCommit1Output &pre_commit_1_output,
         uint64_t priority) = 0;
 
     virtual void sealCommit1(
@@ -81,23 +65,10 @@ namespace fc::sector_storage {
         const std::function<void(outcome::result<Commit1Output>)> &cb,
         uint64_t priority) = 0;
 
-    virtual outcome::result<Commit1Output> sealCommit1Sync(
-        const SectorRef &sector,
-        const SealRandomness &ticket,
-        const InteractiveRandomness &seed,
-        const std::vector<PieceInfo> &pieces,
-        const SectorCids &cids,
-        uint64_t priority) = 0;
-
     virtual void sealCommit2(
         const SectorRef &sector,
         const Commit1Output &commit_1_output,
         const std::function<void(outcome::result<Proof>)> &cb,
-        uint64_t priority) = 0;
-
-    virtual outcome::result<Proof> sealCommit2Sync(
-        const SectorRef &sector,
-        const Commit1Output &commit_1_output,
         uint64_t priority) = 0;
 
     virtual void finalizeSector(
@@ -106,12 +77,32 @@ namespace fc::sector_storage {
         const std::function<void(outcome::result<void>)> &cb,
         uint64_t priority) = 0;
 
-    virtual outcome::result<void> finalizeSectorSync(
+    virtual outcome::result<void> remove(const SectorRef &sector) = 0;
+
+    /** Generate Snap Deals replica update */
+    virtual void replicaUpdate(
         const SectorRef &sector,
-        const gsl::span<const Range> &keep_unsealed,
+        const std::vector<PieceInfo> &pieces,
+        const std::function<void(outcome::result<ReplicaUpdateOut>)> &cb,
         uint64_t priority) = 0;
 
-    virtual outcome::result<void> remove(const SectorRef &sector) = 0;
+    /** Prove Snap Deals replica update */
+    virtual void proveReplicaUpdate1(
+        const SectorRef &sector,
+        const CID &sector_key,
+        const CID &new_sealed,
+        const CID &new_unsealed,
+        const std::function<void(outcome::result<ReplicaVanillaProofs>)> &cb,
+        uint64_t priority) = 0;
+
+    virtual void proveReplicaUpdate2(
+        const SectorRef &sector,
+        const CID &sector_key,
+        const CID &new_sealed,
+        const CID &new_unsealed,
+        const Update1Output &update_1_output,
+        const std::function<void(outcome::result<ReplicaUpdateProof>)> &cb,
+        uint64_t priority) = 0;
 
     // Storage
     virtual void addPiece(
