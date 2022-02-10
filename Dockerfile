@@ -12,8 +12,7 @@ RUN pip3 install scikit-build cmake requests gitpython pyyaml
 RUN curl -sL https://golang.org/dl/go1.17.3.linux-amd64.tar.gz | tar -xz -C /usr/local
 ENV PATH="$PATH:/usr/local/go/bin"
 COPY . /tmp/cpp-filecoin
-# this last command outputs the list of files added to the build context:
-RUN find /tmp/cpp-filecoin
+RUN git -C /tmp/cpp-filecoin submodule update --init --recursive
 RUN --mount=type=cache,target=/tmp/.hunter/_Base/Cache CC=clang-9 CXX=clang++-9 cmake /tmp/cpp-filecoin -B /tmp/build -G Ninja -D CMAKE_BUILD_TYPE=Release -D TESTING=OFF
 RUN --mount=type=cache,target=/tmp/.hunter/_Base/Cache CC=clang-9 cmake --build /tmp/build --target fuhon-node fuhon-miner
 
