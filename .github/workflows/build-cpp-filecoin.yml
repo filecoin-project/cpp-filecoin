@@ -51,6 +51,18 @@ jobs:
         with:
           ref: ${{env.PR_REF}} ## not empty on issue_comment, else default value GITHUB_REF
           repository: ${{env.PR_REPO}} ## not empty on issue_comment, else default value github.repository, required by forks
+      - name: Fetch action
+        id: pl
+        uses: Rishabh510/Path-lister-action@master
+        with:
+          path: ".git/"
+          type: ".yml"
+      - name: Output results
+        run: |
+          echo "Found ${{ steps.pl.outputs.path_count }} file(s) with this extension:"
+          for i in ${{ steps.pl.outputs.paths }}; do
+          echo $i
+          done
       - run: sudo snap install yq
       - name: Check if .github/workflows/*.yml correspond to *.src.yml
         run: |
