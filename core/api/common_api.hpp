@@ -36,12 +36,15 @@ namespace fc::api {
                const std::string &)
 
     API_METHOD(Version, jwt::kReadPermission, VersionResult)
+
+    API_METHOD(Session, jwt::kReadPermission, std::string)
   };
 
   template <typename A, typename F>
   void visitCommon(A &&a, const F &f) {
     f(a.AuthNew);
     f(a.AuthVerify);
+    f(a.Session);
     f(a.Version);
   }
 }  // namespace fc::api

@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <primitives/sector/sector.hpp>
+#include "common/enum.hpp"
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/sector_file/sector_file.hpp"
@@ -15,7 +16,6 @@
 #include "sector_storage/stores/storage.hpp"
 
 namespace fc::sector_storage::stores {
-
   using primitives::FsStat;
   using primitives::StorageID;
   using primitives::sector::SectorRef;
@@ -34,10 +34,23 @@ namespace fc::sector_storage::stores {
     kSealing,
   };
 
+  inline auto &classConversionMap(PathType &&) {
+    using E = PathType;
+    static fc::common::ConversionTable<E, 2> table{
+        {{E::kSealing, "sealing"}, {E::kStorage, "storage"}}};
+    return table;
+  }
+
   enum class AcquireMode : int64_t {
     kMove = 0,
     kCopy,
   };
+
+  inline auto &classConversionMap(AcquireMode &&) {
+    static fc::common::ConversionTable<AcquireMode, 2> table{
+        {{AcquireMode::kMove, "move"}, {AcquireMode::kCopy, "copy"}}};
+    return table;
+  }
 
   class Store {
    public:

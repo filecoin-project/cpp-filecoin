@@ -29,22 +29,37 @@ namespace fc::sector_storage::stores {
   const std::chrono::seconds kSkippedHeartbeatThreshold =
       kHeartbeatInterval * 5;
 
-  struct StorageInfo {
+  struct SectorStorageInfo {
     StorageID id;
     std::vector<std::string>
         urls;  // TODO (artyom-yurin): [FIL-200] Support non-http transports
-    uint64_t weight;
+    uint64_t weight{};
 
-    bool can_seal;
-    bool can_store;
+    bool can_seal{};
+    bool can_store{};
 
-    bool is_primary;
+    bool is_primary{};
   };
 
-  inline bool operator==(const StorageInfo &lhs, const StorageInfo &rhs) {
+  struct StorageInfo {
+    StorageID id;
+    std::vector<std::string> urls;
+    uint64_t weight{};
+
+    bool can_seal{};
+    bool can_store{};  // TODO(@Elestrias): groups fields
+  };
+
+  inline bool operator==(const SectorStorageInfo &lhs,
+                         const SectorStorageInfo &rhs) {
     return lhs.id == rhs.id && lhs.urls == rhs.urls && lhs.weight == rhs.weight
            && lhs.can_seal == rhs.can_seal && lhs.can_store == rhs.can_store
            && lhs.is_primary == rhs.is_primary;
+  }
+
+  inline bool operator==(const StorageInfo &lhs, const StorageInfo &rhs) {
+    return lhs.id == rhs.id && lhs.urls == rhs.urls && lhs.weight == rhs.weight
+           && lhs.can_seal == rhs.can_seal && lhs.can_store == rhs.can_store;
   }
 
   struct HealthReport {
@@ -79,7 +94,7 @@ namespace fc::sector_storage::stores {
     /**
      * @note to able to fetch, need to specify sector size
      */
-    virtual outcome::result<std::vector<StorageInfo>> storageFindSector(
+    virtual outcome::result<std::vector<SectorStorageInfo>> storageFindSector(
         const SectorId &sector,
         const SectorFileType &file_type,
         boost::optional<SectorSize> fetch_sector_size) = 0;

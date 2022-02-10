@@ -18,6 +18,7 @@ namespace fc::sector_storage {
   using primitives::SectorSize;
   using primitives::StoragePath;
   using primitives::WorkerResources;
+  using stores::SectorStorageInfo;
   using stores::StorageInfo;
   using testing::_;
 

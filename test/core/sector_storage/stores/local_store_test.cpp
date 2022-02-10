@@ -245,7 +245,7 @@ namespace fc::sector_storage::stores {
 
     createStorage(storage_path, storage_meta, stat);
 
-    StorageInfo storage_info{
+    SectorStorageInfo storage_info{
         .id = storage_id,
         .urls = urls_,
         .weight = 0,
@@ -545,8 +545,8 @@ namespace fc::sector_storage::stores {
     SectorFileType type = SectorFileType::FTCache;
 
     EXPECT_CALL(*index_, storageFindSector(sector, type, Eq(boost::none)))
-        .WillOnce(
-            testing::Return(outcome::success(std::vector<StorageInfo>())));
+        .WillOnce(testing::Return(
+            outcome::success(std::vector<SectorStorageInfo>())));
 
     EXPECT_OUTCOME_TRUE_1(local_store_->remove(sector, type));
   }
@@ -603,6 +603,14 @@ namespace fc::sector_storage::stores {
         .can_store = true,
     };
 
+    SectorStorageInfo sector_info{
+        .id = storage_id,
+        .urls = urls_,
+        .weight = 0,
+        .can_seal = true,
+        .can_store = true,
+    };
+
     EXPECT_CALL(*index_, storageAttach(info, stat))
         .WillOnce(testing::Return(outcome::success()));
 
@@ -612,7 +620,7 @@ namespace fc::sector_storage::stores {
 
     EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
 
-    std::vector<StorageInfo> res = {info};
+    std::vector<SectorStorageInfo> res = {sector_info};
 
     EXPECT_CALL(*index_, storageFindSector(sector, file_type, Eq(boost::none)))
         .WillOnce(testing::Return(outcome::success(res)));
@@ -677,6 +685,14 @@ namespace fc::sector_storage::stores {
         .can_store = false,
     };
 
+    SectorStorageInfo sector_info{
+        .id = storage_id,
+        .urls = urls_,
+        .weight = 0,
+        .can_seal = true,
+        .can_store = false,
+    };
+
     EXPECT_CALL(*index_, storageAttach(info, stat))
         .WillOnce(testing::Return(outcome::success()));
 
@@ -717,6 +733,14 @@ namespace fc::sector_storage::stores {
         .can_store = true,
     };
 
+    SectorStorageInfo sector_info2{
+        .id = storage_id2,
+        .urls = urls_,
+        .weight = 0,
+        .can_seal = true,
+        .can_store = true,
+    };
+
     EXPECT_CALL(*index_, getStorageInfo(storage_id2))
         .WillOnce(testing::Return(outcome::success(info2)));
 
@@ -736,7 +760,8 @@ namespace fc::sector_storage::stores {
     ASSERT_TRUE(boost::filesystem::exists(sector_file));
 
     EXPECT_CALL(*index_, storageFindSector(sector, file_type, Eq(boost::none)))
-        .WillOnce(testing::Return(outcome::success(std::vector({info}))));
+        .WillOnce(
+            testing::Return(outcome::success(std::vector({sector_info}))));
 
     EXPECT_CALL(*index_, storageBestAlloc(file_type, sector_size_, false))
         .WillOnce(testing::Return(outcome::success(std::vector({info2}))));
@@ -843,6 +868,14 @@ namespace fc::sector_storage::stores {
         .weight = 0,
         .can_seal = true,
         .can_store = false,
+    };
+
+    SectorStorageInfo sector_info{
+        .id = non_primary_id,
+        .urls = urls_,
+        .weight = 0,
+        .can_seal = true,
+        .can_store = false,
         .is_primary = false,
     };
 
@@ -864,7 +897,7 @@ namespace fc::sector_storage::stores {
 
     EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
 
-    std::vector<StorageInfo> sector_infos = {info};
+    std::vector<SectorStorageInfo> sector_infos = {sector_info};
 
     EXPECT_CALL(*index_, storageFindSector(sector, type, _))
         .WillOnce(testing::Return(outcome::success(sector_infos)));
@@ -922,9 +955,25 @@ namespace fc::sector_storage::stores {
         .weight = 0,
         .can_seal = true,
         .can_store = false,
+    };
+
+    StorageInfo info1{
+        .id = primary_id,
+        .urls = urls_,
+        .weight = 0,
+        .can_seal = true,
+        .can_store = true,
+    };
+
+    SectorStorageInfo sector_info{
+        .id = non_primary_id,
+        .urls = urls_,
+        .weight = 0,
+        .can_seal = true,
+        .can_store = false,
         .is_primary = false,
     };
-    StorageInfo info1{
+    SectorStorageInfo sector_info1{
         .id = primary_id,
         .urls = urls_,
         .weight = 0,
@@ -963,9 +1012,9 @@ namespace fc::sector_storage::stores {
     EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
     EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path1.string()));
 
-    info1.is_primary = true;
+    sector_info1.is_primary = true;
 
-    std::vector<StorageInfo> sector_infos = {info, info1};
+    std::vector<SectorStorageInfo> sector_infos = {sector_info, sector_info1};
 
     EXPECT_CALL(*index_, storageFindSector(sector, type, _))
         .WillOnce(testing::Return(outcome::success(sector_infos)));
@@ -1019,7 +1068,6 @@ namespace fc::sector_storage::stores {
         .weight = 0,
         .can_seal = true,
         .can_store = false,
-        .is_primary = false,
     };
     StorageInfo info1{
         .id = primary_id,
@@ -1027,7 +1075,6 @@ namespace fc::sector_storage::stores {
         .weight = 0,
         .can_seal = true,
         .can_store = true,
-        .is_primary = false,
     };
 
     EXPECT_CALL(*storage_, getStat(storage_path.string()))
@@ -1126,7 +1173,6 @@ namespace fc::sector_storage::stores {
         .weight = 0,
         .can_seal = true,
         .can_store = false,
-        .is_primary = false,
     };
 
     EXPECT_CALL(*storage_, getStat(storage_path.string()))

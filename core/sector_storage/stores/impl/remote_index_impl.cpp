@@ -37,12 +37,13 @@ namespace fc::sector_storage::stores {
     return api_->StorageDropSector(storage_id, sector, file_type);
   }
 
-  outcome::result<std::vector<StorageInfo>>
+  outcome::result<std::vector<SectorStorageInfo>>
   stores::RemoteSectorIndexImpl::storageFindSector(
       const SectorId &sector,
       const SectorFileType &file_type,
       boost::optional<SectorSize> fetch_sector_size) {
-    return api_->StorageFindSector(sector, file_type, fetch_sector_size);
+    const bool allow_fetch = fetch_sector_size.has_value();
+    return api_->StorageFindSector(sector, file_type, fetch_sector_size.value(), allow_fetch);
   }
 
   outcome::result<std::vector<StorageInfo>>
@@ -50,7 +51,8 @@ namespace fc::sector_storage::stores {
       const SectorFileType &allocate,
       SectorSize sector_size,
       bool sealing_mode) {
-    return api_->StorageBestAlloc(allocate, sector_size, sealing_mode);
+
+    return api_->StorageBestAlloc(allocate, sector_size, sealing_mode ? "sealing": "not_sealing");
   }
 
   outcome::result<std::shared_ptr<WLock>>
