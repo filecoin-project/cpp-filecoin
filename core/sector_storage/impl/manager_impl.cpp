@@ -42,7 +42,7 @@ namespace fc::sector_storage {
   }
 
   WorkerAction schedNothing() {
-    return WorkerAction();
+    return {};
   }
 
   void addCachePathsForSectorSize(
@@ -465,7 +465,8 @@ namespace fc::sector_storage {
       const UnpaddedPieceSize &size,
       const SealRandomness &randomness,
       const CID &cid,
-      const std::function<void(outcome::result<bool>)> &cb) {
+      const std::function<void(outcome::result<bool>)> &cb,
+      uint64_t priority) {
     OUTCOME_CB(auto lock,
                index_->storageLock(
                    sector.id,
@@ -518,7 +519,7 @@ namespace fc::sector_storage {
           callbackWrapper([&wait](outcome::result<void> res) -> void {
             wait.set_value(res);
           }),
-          kDefaultTaskPriority,
+          priority,
           boost::none));
 
       OUTCOME_CB1(wait.get_future().get());
@@ -545,38 +546,8 @@ namespace fc::sector_storage {
           return worker->readPiece(std::move(*output), sector, offset, size);
         },
         callbackWrapper(cb),
-        kDefaultTaskPriority,
+        priority,
         boost::none));
-  }
-
-  outcome::result<bool> ManagerImpl::readPieceSync(
-      PieceData output,
-      const SectorRef &sector,
-      UnpaddedByteIndex offset,
-      const UnpaddedPieceSize &size,
-      const SealRandomness &randomness,
-      const CID &cid) {
-    std::promise<outcome::result<bool>> wait;
-
-    readPiece(std::move(output),
-              sector,
-              offset,
-              size,
-              randomness,
-              cid,
-              [&wait](outcome::result<bool> res) { wait.set_value(res); });
-
-    auto res = wait.get_future().get();
-
-    if (res.has_error()) {
-      return res.error();
-    }
-
-    if (res.value()) {
-      return outcome::success();
-    }
-
-    return ManagerErrors::kCannotReadData;
   }
 
   void ManagerImpl::sealPreCommit1(
@@ -621,25 +592,6 @@ namespace fc::sector_storage {
         work_id));
   }
 
-  outcome::result<PreCommit1Output> ManagerImpl::sealPreCommit1Sync(
-      const SectorRef &sector,
-      const SealRandomness &ticket,
-      const std::vector<PieceInfo> &pieces,
-      uint64_t priority) {
-    std::promise<outcome::result<PreCommit1Output>> wait;
-
-    sealPreCommit1(
-        sector,
-        ticket,
-        pieces,
-        [&wait](outcome::result<PreCommit1Output> res) -> void {
-          wait.set_value(std::move(res));
-        },
-        priority);
-
-    return wait.get_future().get();
-  }
-
   void ManagerImpl::sealPreCommit2(
       const SectorRef &sector,
       const PreCommit1Output &pre_commit_1_output,
@@ -677,23 +629,6 @@ namespace fc::sector_storage {
         callbackWrapper(cb),
         priority,
         work_id))
-  }
-
-  outcome::result<SectorCids> ManagerImpl::sealPreCommit2Sync(
-      const SectorRef &sector,
-      const PreCommit1Output &pre_commit_1_output,
-      uint64_t priority) {
-    std::promise<outcome::result<SectorCids>> wait;
-
-    sealPreCommit2(
-        sector,
-        pre_commit_1_output,
-        [&wait](outcome::result<SectorCids> res) -> void {
-          wait.set_value(std::move(res));
-        },
-        priority);
-
-    return wait.get_future().get();
   }
 
   void ManagerImpl::sealCommit1(
@@ -738,27 +673,6 @@ namespace fc::sector_storage {
         work_id));
   }
 
-  outcome::result<Commit1Output> ManagerImpl::sealCommit1Sync(
-      const SectorRef &sector,
-      const SealRandomness &ticket,
-      const InteractiveRandomness &seed,
-      const std::vector<PieceInfo> &pieces,
-      const SectorCids &cids,
-      uint64_t priority) {
-    std::promise<outcome::result<Commit1Output>> wait;
-    sealCommit1(
-        sector,
-        ticket,
-        seed,
-        pieces,
-        cids,
-        [&wait](const outcome::result<Commit1Output> &res) -> void {
-          wait.set_value(res);
-        },
-        priority);
-    return wait.get_future().get();
-  }
-
   void ManagerImpl::sealCommit2(
       const SectorRef &sector,
       const Commit1Output &commit_1_output,
@@ -768,7 +682,7 @@ namespace fc::sector_storage {
                getWorkId(primitives::kTTCommit2,
                          std::make_tuple(sector, commit_1_output)));
 
-    std::unique_ptr<TaskSelector> selector = std::make_unique<TaskSelector>();
+    auto selector = std::make_unique<TaskSelector>();
 
     OUTCOME_CB1(scheduler_->schedule(
         sector,
@@ -782,23 +696,6 @@ namespace fc::sector_storage {
         callbackWrapper(cb),
         priority,
         work_id));
-  }
-
-  outcome::result<Proof> ManagerImpl::sealCommit2Sync(
-      const SectorRef &sector,
-      const Commit1Output &commit_1_output,
-      uint64_t priority) {
-    std::promise<outcome::result<Proof>> wait;
-
-    sealCommit2(
-        sector,
-        commit_1_output,
-        [&wait](const outcome::result<Proof> &res) -> void {
-          wait.set_value(res);
-        },
-        priority);
-
-    return wait.get_future().get();
   }
 
   void ManagerImpl::finalizeSector(
@@ -899,19 +796,128 @@ namespace fc::sector_storage {
         boost::none));
   }
 
-  outcome::result<void> ManagerImpl::finalizeSectorSync(
+  void ManagerImpl::replicaUpdate(
       const SectorRef &sector,
-      const gsl::span<const Range> &keep_unsealed,
+      const std::vector<PieceInfo> &pieces,
+      const std::function<void(outcome::result<ReplicaUpdateOut>)> &cb,
       uint64_t priority) {
-    std::promise<outcome::result<void>> waiter;
+    logger_->debug("sector_storage::Manager is doing replica update");
+    OUTCOME_CB(WorkId work_id,
+               getWorkId(primitives::kTTReplicaUpdate,
+                         std::make_tuple(sector, pieces)));
 
-    finalizeSector(
+    OUTCOME_CB(auto lock,
+               index_->storageLock(
+                   sector.id,
+                   SectorFileType::FTUnsealed | SectorFileType::FTSealed
+                       | SectorFileType::FTCache,
+                   SectorFileType::FTUpdate | SectorFileType::FTUpdateCache));
+
+    auto selector = std::make_unique<AllocateSelector>(
+        index_,
+        SectorFileType::FTUpdate | SectorFileType::FTUpdateCache,
+        PathType::kSealing);
+
+    OUTCOME_CB1(scheduler_->schedule(
         sector,
-        keep_unsealed,
-        [&waiter](outcome::result<void> res) -> void { waiter.set_value(res); },
-        priority);
+        primitives::kTTReplicaUpdate,
+        std::move(selector),
+        schedFetch(sector,
+                   SectorFileType::FTUnsealed | SectorFileType::FTSealed
+                       | SectorFileType::FTCache,
+                   PathType::kSealing,
+                   AcquireMode::kCopy),
+        [sector, pieces, lock = std::move(lock)](
+            const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
+          return worker->replicaUpdate(sector, pieces);
+        },
+        callbackWrapper(cb),
+        priority,
+        work_id));
+  }
 
-    return waiter.get_future().get();
+  void ManagerImpl::proveReplicaUpdate1(
+      const SectorRef &sector,
+      const CID &sector_key,
+      const CID &new_sealed,
+      const CID &new_unsealed,
+      const std::function<void(outcome::result<ReplicaVanillaProofs>)> &cb,
+      uint64_t priority) {
+    OUTCOME_CB(WorkId work_id,
+               getWorkId(primitives::kTTProveReplicaUpdate1,
+                         std::make_tuple(
+                             sector, sector_key, new_sealed, new_unsealed)));
+
+    OUTCOME_CB(
+        auto lock,
+        index_->storageLock(sector.id,
+                            SectorFileType::FTSealed | SectorFileType::FTUpdate
+                                | SectorFileType::FTCache
+                                | SectorFileType::FTUpdateCache,
+                            SectorFileType::FTNone));
+
+    // NOTE: We set allowFetch to false in so that we always execute on a worker
+    // with direct access to the data. We want to do that because this step is
+    // generally very cheap / fast, and transferring data is not worth the
+    // effort
+    auto selector = std::make_unique<ExistingSelector>(
+        index_,
+        sector.id,
+        SectorFileType::FTUpdate | SectorFileType::FTUpdateCache
+            | SectorFileType::FTSealed | SectorFileType::FTCache,
+        false);
+
+    OUTCOME_CB1(scheduler_->schedule(
+        sector,
+        primitives::kTTProveReplicaUpdate1,
+        std::move(selector),
+        schedFetch(sector,
+                   SectorFileType::FTSealed | SectorFileType::FTCache
+                       | SectorFileType::FTUpdate
+                       | SectorFileType::FTUpdateCache,
+                   PathType::kSealing,
+                   AcquireMode::kCopy),
+        [sector, sector_key, new_sealed, new_unsealed, lock = std::move(lock)](
+            const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
+          return worker->proveReplicaUpdate1(
+              sector, sector_key, new_sealed, new_unsealed);
+        },
+        callbackWrapper(cb),
+        priority,
+        work_id));
+  }
+
+  void ManagerImpl::proveReplicaUpdate2(
+      const SectorRef &sector,
+      const CID &sector_key,
+      const CID &new_sealed,
+      const CID &new_unsealed,
+      const Update1Output &update_1_output,
+      const std::function<void(outcome::result<ReplicaUpdateProof>)> &cb,
+      uint64_t priority) {
+    OUTCOME_CB(WorkId work_id,
+               getWorkId(primitives::kTTProveReplicaUpdate2,
+                         std::make_tuple(sector,
+                                         sector_key,
+                                         new_sealed,
+                                         new_unsealed,
+                                         update_1_output)));
+
+    auto selector = std::make_unique<TaskSelector>();
+
+    OUTCOME_CB1(scheduler_->schedule(
+        sector,
+        primitives::kTTProveReplicaUpdate2,
+        std::move(selector),
+        schedNothing(),
+        [sector, sector_key, new_sealed, new_unsealed, update_1_output](
+            const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
+          return worker->proveReplicaUpdate2(
+              sector, sector_key, new_sealed, new_unsealed, update_1_output);
+        },
+        callbackWrapper(cb),
+        priority,
+        work_id));
   }
 
   void ManagerImpl::addPiece(

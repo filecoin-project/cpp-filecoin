@@ -222,10 +222,10 @@ namespace fc {
     auto routes{std::make_shared<api::Routes>()};
 
     auto text_route{[](auto f) -> api::RouteHandler {
-      return [f{std::move(f)}](auto &) {
+      return [f{std::move(f)}](auto &, auto &cb) {
         api::http::response<api::http::string_body> res;
         res.body() = f();
-        return api::WrapperResponse{std::move(res)};
+        cb(api::WrapperResponse{std::move(res)});
       };
     }};
     routes->emplace("/health",

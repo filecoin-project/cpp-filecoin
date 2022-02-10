@@ -17,6 +17,7 @@ namespace fc::mining {
   using primitives::tipset::TipsetCPtr;
   using primitives::tipset::TipsetError;
   using types::DealInfo;
+  using vm::actor::builtin::types::miner::kMinSectorExpiration;
   using vm::actor::builtin::types::miner::kWPoStProvingPeriod;
 
   class PreCommitPolicyTest : public testing::Test {
@@ -24,15 +25,15 @@ namespace fc::mining {
     virtual void SetUp() {
       api_ = std::make_shared<FullNodeApi>();
 
-      duration_ = 1;
-      proving_boundary_ = 2;
+      sector_lifetime_ = std::chrono::seconds(30);
+      proving_boundary_ = 100;
 
       precommit_policy_ = std::make_shared<BasicPreCommitPolicy>(
-          api_, proving_boundary_, duration_);
+          api_, proving_boundary_, sector_lifetime_);
     }
 
     std::shared_ptr<FullNodeApi> api_;
-    ChainEpoch duration_;
+    std::chrono::seconds sector_lifetime_;
     ChainEpoch proving_boundary_;
     std::shared_ptr<PreCommitPolicy> precommit_policy_;
   };
@@ -52,7 +53,7 @@ namespace fc::mining {
       return outcome::success(tipset);
     };
 
-    auto result = block.height + kWPoStProvingPeriod + proving_boundary_ - 1;
+    auto result = block.height + kMinSectorExpiration + kWPoStProvingPeriod;
 
     EXPECT_OUTCOME_EQ(precommit_policy_->expiration({}), result);
   }
@@ -73,7 +74,8 @@ namespace fc::mining {
     };
 
     DealInfo deal1;
-    deal1.deal_schedule.end_epoch = block.height - 1;
+    deal1.deal_schedule.end_epoch =
+        block.height + kMinSectorExpiration + kWPoStProvingPeriod + 2;
     PieceInfo piece1;
     piece1.cid = "010001020002"_cid;
     DealInfo deal2;
@@ -82,10 +84,9 @@ namespace fc::mining {
                                         {.piece = piece1, .deal_info = deal1},
                                         {.piece = {}, .deal_info = deal2}};
 
-    auto result = block.height + kWPoStProvingPeriod + proving_boundary_ - 1;
     EXPECT_OUTCOME_EQ(
         precommit_policy_->expiration(gsl::span<const types::Piece>(pieces)),
-        result);
+        deal1.deal_schedule.end_epoch);
   }
 
   /**

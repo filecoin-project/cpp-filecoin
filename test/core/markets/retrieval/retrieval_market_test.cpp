@@ -61,7 +61,7 @@ namespace fc::markets::retrieval::test {
 
     EXPECT_CALL(
         *sealer,
-        doReadPieceSync(
+        readPiece(
             _,
             SectorRef{.id = SectorId{.miner = result_address.getId(),
                                      .sector = deal.sector_id},
@@ -69,20 +69,22 @@ namespace fc::markets::retrieval::test {
             UnpaddedByteIndex(deal.offset.unpadded()),
             deal.length.unpadded(),
             common::Hash256(),
-            CID()))
-        .WillOnce(
-            testing::Invoke([ipfs{provider_ipfs}, cid{payload_cid}](
-                                auto output_fd, auto, auto, auto, auto, auto)
-                                -> outcome::result<bool> {
+            CID(),
+            _,
+            _))
+        .WillOnce(testing::Invoke(
+            [ipfs{provider_ipfs}, cid{payload_cid}](
+                auto output, auto, auto, auto, auto, auto, auto cb, auto) {
+              const auto output_fd = output.getFd();
               if (output_fd == -1) {
-                return ProofsError::kCannotOpenFile;
+                cb(ProofsError::kCannotOpenFile);
               }
               EXPECT_OUTCOME_TRUE(car, fc::storage::car::makeCar(*ipfs, {cid}));
               auto bytes = write(output_fd, car.data(), car.size());
               if ((bytes < 0) || (static_cast<size_t>(bytes) != car.size())) {
-                return ProofsError::kNotWriteEnough;
+                cb(ProofsError::kNotWriteEnough);
               }
-              return true;
+              cb(true);
             }));
 
     DealProposalParams params{.selector = kAllSelector,

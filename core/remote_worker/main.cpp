@@ -214,6 +214,8 @@ namespace fc::remote_worker {
     wrpc.emplace("/rpc/v0", api::makeRpc(*worker_api));
     auto wroutes{std::make_shared<api::Routes>()};
 
+    // TODO[@Elestrias] - Fuhon remote worker AddPiece
+
     wroutes->insert({"/remote",
                      api::makeAuthRoute(
                          sector_storage::serveHttp(local_store),
