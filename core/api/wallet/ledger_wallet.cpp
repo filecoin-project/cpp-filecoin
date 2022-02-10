@@ -11,7 +11,6 @@
 #include "codec/json/json.hpp"
 
 namespace fc::api {
-  using primitives::address::encode;
 
   void LedgerWallet::fillLedgerWalletApi(const std::shared_ptr<WalletApi> &api,
                                          const MapPtr &store) {

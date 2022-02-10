@@ -7,14 +7,14 @@
 
 #include "api/types/ledger_key_info.hpp"
 #include "common/outcome.hpp"
-#include "crypto/secp256k1/secp256k1_provider.hpp"
+#include "cpp-ledger/filecoin/ledger_filecoin.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "storage/map_prefix/prefix.hpp"
 
 namespace fc::api {
-  using crypto::secp256k1::Secp256k1ProviderDefault;
   using crypto::signature::Signature;
+  using ledger::filecoin::LedgerFilecoin;
   using primitives::address::Address;
   using storage::MapPtr;
 
@@ -32,6 +32,10 @@ namespace fc::api {
     outcome::result<Address> New() const;
 
    private:
+    outcome::result<Address> ImportKey(
+        const std::shared_ptr<LedgerFilecoin> &app,
+        const LedgerKeyInfo &key_info) const;
+
     MapPtr store;
   };
 

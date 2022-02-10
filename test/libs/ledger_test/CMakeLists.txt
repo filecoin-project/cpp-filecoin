@@ -8,6 +8,6 @@ addtest(ledger_test
     )
 target_link_libraries(ledger_test
     wallet
-    leveldb
+    in_memory_storage
     cbor
     )
