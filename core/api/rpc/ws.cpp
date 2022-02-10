@@ -32,6 +32,34 @@ namespace fc::api {
 
   const auto kChanCloseDelay{boost::posix_time::milliseconds(100)};
 
+  void handleJSONRpcRequest(const Outcome<Document> &j_req,
+                            const Rpc &rpc,
+                            rpc::MakeChan make_chan,
+                            rpc::Send send,
+                            const Permissions &perms,
+                            std::function<void(const Response &)> cb) {
+    if (!j_req) {
+      return cb(Response{{}, Response::Error{kParseError, "Parse error"}});
+    }
+    auto maybe_req = decode<Request>(*j_req);
+    if (!maybe_req) {
+      return cb(
+          Response{{}, Response::Error{kInvalidRequest, "Invalid request"}});
+    }
+    auto &req = maybe_req.value();
+    auto respond = [id{req.id}, cb](auto res) {
+      if (id) {
+        cb(Response{*id, std::move(res)});
+      }
+    };
+    auto it = rpc.ms.find(req.method);
+    if (it == rpc.ms.end() || !it->second) {
+      spdlog::error("rpc method {} not implemented", req.method);
+      return respond(Response::Error{kMethodNotFound, "Method not found"});
+    }
+    it->second(req.params, std::move(respond), make_chan, send, perms);
+  }
+
   struct SocketSession : std::enable_shared_from_this<SocketSession> {
     SocketSession(tcp::socket &&socket, Rpc api_rpc, Permissions &&perms)
         : socket{std::move(socket)},
@@ -64,30 +92,10 @@ namespace fc::api {
                              buffer.cdata().size()};
       auto j_req{codec::json::parse(s_req)};
       buffer.clear();
-      if (!j_req) {
-        return _write(Response{{}, Response::Error{kParseError, "Parse error"}},
-                      {});
-      }
-      auto maybe_req = decode<Request>(*j_req);
-      if (!maybe_req) {
-        return _write(
-            Response{{}, Response::Error{kInvalidRequest, "Invalid request"}},
-            {});
-      }
-      auto &req = maybe_req.value();
-      auto respond = [id{req.id}, self{shared_from_this()}](auto res) {
-        if (id) {
-          self->_write(Response{*id, std::move(res)}, {});
-        }
-      };
-      auto it = rpc.ms.find(req.method);
-      if (it == rpc.ms.end() || !it->second) {
-        spdlog::error("rpc method {} not implemented", req.method);
-        return respond(Response::Error{kMethodNotFound, "Method not found"});
-      }
-      it->second(
-          req.params,
-          std::move(respond),
+
+      handleJSONRpcRequest(
+          j_req,
+          rpc,
           [&]() { return next_channel++; },
           [self{shared_from_this()}](auto method, auto params, auto cb) {
             Request req{self->next_request++, method, std::move(params)};
@@ -101,7 +109,10 @@ namespace fc::api {
             }
             self->_write(req, std::move(cb));
           },
-          perms);
+          perms,
+          [self{shared_from_this()}](const Response &resp) {
+            self->_write(resp, {});
+          });
     }
 
     template <typename T>
@@ -149,7 +160,7 @@ namespace fc::api {
   };
 
   std::optional<std::string> getToken(
-      const http::request<http::dynamic_body> &request) {
+      const http::request<http::string_body> &request) {
     auto it = request.find(http::field::authorization);
     if (it != request.cend()) {
       auto auth_token = (it->value());
@@ -176,7 +187,7 @@ namespace fc::api {
   }
 
   WrapperResponse makeErrorResponse(
-      const http::request<http::dynamic_body> &request, http::status status) {
+      const http::request<http::string_body> &request, http::status status) {
     http::response<http::empty_body> response;
     response.version(request.version());
     response.keep_alive(false);
@@ -257,8 +268,11 @@ namespace fc::api {
         if (request.target().starts_with(route.first)) {
           boost::asio::post(stream.get_executor(),
                             [self{shared_from_this()}, fn{route.second}]() {
-                              self->w_response = fn(self->request);
-                              self->doWrite();
+                              fn(self->request,
+                                 [self](WrapperResponse response) {
+                                   self->w_response = std::move(response);
+                                   self->doWrite();
+                                 });
                             });
           is_handled = true;
           break;
@@ -318,7 +332,7 @@ namespace fc::api {
 
     beast::tcp_stream stream;
     beast::flat_buffer buffer;
-    http::request<http::dynamic_body> request;
+    http::request<http::string_body> request;
     WrapperResponse w_response;
     std::shared_ptr<Routes> routes;
     std::map<std::string, std::shared_ptr<Rpc>> rpc;
@@ -370,26 +384,65 @@ namespace fc::api {
   RouteHandler makeAuthRoute(AuthRouteHandler &&handler,
                              rpc::AuthFunction &&auth) {
     return [handler{std::move(handler)}, auth{std::move(auth)}](
-               const http::request<http::dynamic_body> &request)
-               -> WrapperResponse {
+               const http::request<http::string_body> &request,
+               const RouteCB &cb) {
       Permissions perms = kDefaultPermission;
       if (auth) {
         const auto maybe_token = getToken(request);
         if (not maybe_token.has_value()) {
-          return makeErrorResponse(request, http::status::unauthorized);
+          return cb(makeErrorResponse(request, http::status::unauthorized));
         }
 
         if (not maybe_token.value().empty()) {
           auto maybe_perms =
               auth(static_cast<std::string>(maybe_token.value()));
           if (maybe_perms.has_error()) {
-            return makeErrorResponse(request, http::status::unauthorized);
+            return cb(makeErrorResponse(request, http::status::unauthorized));
           }
           perms = std::move(maybe_perms.value());
         }
       }
 
-      return handler(request, perms);
+      handler(request, perms, cb);
+    };
+  }
+
+  AuthRouteHandler makeHttpRpc(std::shared_ptr<Rpc> rpc) {
+    return [rpc](const http::request<http::string_body> &request,
+                 const api::Permissions &perms,
+                 const RouteCB &cb) {
+      std::string_view s_req(request.body().data(), request.body().size());
+      auto j_req{codec::json::parse(s_req)};
+
+      // TODO(ortyomka): Make error if channel requested
+      handleJSONRpcRequest(
+          j_req, *rpc, {}, {}, perms, [cb, request](const Response &resp) {
+            auto data = *codec::json::format(encode(resp));
+            http::response<http::string_body> response;
+            response.version(request.version());
+            response.keep_alive(false);
+            response.set(http::field::content_type, "application/json");
+            response.body() = common::span::bytestr(data);
+
+            if (auto *error = boost::get<Response::Error>(&(resp.result));
+                error) {
+              switch (error->code) {
+                case kInvalidRequest:
+                  response.result(http::status::bad_request);
+                  break;
+                case kMethodNotFound:
+                  response.result(http::status::not_found);
+                  break;
+                case kParseError:
+                case kInvalidParams:
+                case kInternalError:
+                default:
+                  response.result(http::status::internal_server_error);
+              }
+            }
+
+            cb(api::WrapperResponse(std::move(response)));
+          });
     };
   }
 
