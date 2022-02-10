@@ -39,6 +39,14 @@ jobs:
               "PR_SHA="+.head.sha,
               "PR_NUM="+(.number|tostring),
               "PR_REPO="+.head.repo.full_name' >>$GITHUB_ENV
+      # This step is needed because: https://github.com/actions/checkout/issues/335
+      - name: Install & Update Git
+        run: |
+          sudo apt-get install -y software-properties-common \
+          && sudo apt-get update \
+          && sudo add-apt-repository -y ppa:git-core/ppa \
+          && sudo apt-get update \
+          && sudo apt-get install -y git
       - &step_checkout
         name: Checkout
         uses: actions/checkout@v2
