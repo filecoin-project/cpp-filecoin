@@ -51,7 +51,8 @@ jobs:
         with:
           ref: ${{env.PR_REF}} ## not empty on issue_comment, else default value GITHUB_REF
           repository: ${{env.PR_REPO}} ## not empty on issue_comment, else default value github.repository, required by forks
-      - name: Fetch action
+      # Checks if the .git/ directory has been checked out correctly or not
+      - name: Fetch .git/ dir
         id: pl
         uses: Rishabh510/Path-lister-action@master
         with:
@@ -107,11 +108,32 @@ jobs:
             "PR_SHA="+.head.sha,
             "PR_NUM="+(.number|tostring),
             "PR_REPO="+.head.repo.full_name' >>$GITHUB_ENV
+      # This step is needed because: https://github.com/actions/checkout/issues/335
+      - name: Install & Update Git
+        run: |
+          sudo apt-get install -y software-properties-common \
+          && sudo apt-get update \
+          && sudo add-apt-repository -y ppa:git-core/ppa \
+          && sudo apt-get update \
+          && sudo apt-get install -y git
       - name: Checkout
         uses: actions/checkout@v2
         with:
           ref: ${{env.PR_REF}} ## not empty on issue_comment, else default value GITHUB_REF
           repository: ${{env.PR_REPO}} ## not empty on issue_comment, else default value github.repository, required by forks
+      # Checks if the .git/ directory has been checked out correctly or not
+      - name: Fetch .git/ dir
+        id: pl
+        uses: Rishabh510/Path-lister-action@master
+        with:
+          path: ".git/"
+          type: ".*"
+      - name: Output results
+        run: |
+          echo "Found ${{ steps.pl.outputs.path_count }} file(s) with this extension:"
+          for i in ${{ steps.pl.outputs.paths }}; do
+          echo $i
+          done
       - name: Determine dockertag
         id: dockertag
         env:

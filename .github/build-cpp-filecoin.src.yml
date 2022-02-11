@@ -40,7 +40,8 @@ jobs:
               "PR_NUM="+(.number|tostring),
               "PR_REPO="+.head.repo.full_name' >>$GITHUB_ENV
       # This step is needed because: https://github.com/actions/checkout/issues/335
-      - name: Install & Update Git
+      - &step_git_update
+        name: Install & Update Git
         run: |
           sudo apt-get install -y software-properties-common \
           && sudo apt-get update \
@@ -53,13 +54,16 @@ jobs:
         with: &step_checkout_with
           ref: ${{env.PR_REF}}  ## not empty on issue_comment, else default value GITHUB_REF
           repository: ${{env.PR_REPO}} ## not empty on issue_comment, else default value github.repository, required by forks
-      - name: Fetch action
+      # Checks if the .git/ directory has been checked out correctly or not
+      - &step_fetch_git_dir
+        name: Fetch .git/ dir
         id: pl
         uses: Rishabh510/Path-lister-action@master
         with:
           path: ".git/"
           type: ".*"
-      - name: Output results
+      - &step_out_git_dir
+        name: Output results
         run: |
           echo "Found ${{ steps.pl.outputs.path_count }} file(s) with this extension:"
           for i in ${{ steps.pl.outputs.paths }}; do
@@ -106,7 +110,10 @@ jobs:
           event.issue.number:${{ github.event.issue.number }}
           END
       - *step_detect_commented_pr
+      - *step_git_update
       - *step_checkout
+      - *step_fetch_git_dir
+      - *step_out_git_dir
       - &step_docker_tag
         name: Determine dockertag
         id: dockertag
