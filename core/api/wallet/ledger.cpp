@@ -5,12 +5,9 @@
 
 #include "api/wallet/ledger.hpp"
 
-#include <algorithm>
 #include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
-#include "common/bytes_cow.hpp"
 #include "common/error_text.hpp"
-#include "cpp-ledger/filecoin/ledger_filecoin.hpp"
 #include "primitives/address/address_codec.hpp"
 
 namespace fc::api {
@@ -84,8 +81,13 @@ namespace fc::api {
       return app_error;
     }
 
-    std::string addr;
-    std::tie(std::ignore, std::ignore, addr, err) =
+    return ImportKey(app, key_info);
+  }
+
+  outcome::result<Address> Ledger::ImportKey(
+      const std::shared_ptr<LedgerFilecoin> &app,
+      const LedgerKeyInfo &key_info) const {
+    const auto [pub, byte_adr, addr, err] =
         app->GetAddressPubKeySECP256K1(key_info.path);
     if (err != std::nullopt) {
       return ERROR_TEXT("Ledger does not contain path");
@@ -146,7 +148,7 @@ namespace fc::api {
 
     OUTCOME_TRY(address, decodeFromString(addr));
 
-    return ImportKey(LedgerKeyInfo{.address = address, .path = path});
+    return ImportKey(app, LedgerKeyInfo{.address = address, .path = path});
   }
 
 }  // namespace fc::api

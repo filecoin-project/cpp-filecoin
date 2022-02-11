@@ -10,5 +10,6 @@ add_library(wallet
     )
 target_link_libraries(wallet
     address
+    rpc
     ledger_filecoin
     )

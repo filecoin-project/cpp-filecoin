@@ -5,6 +5,7 @@
 
 #include "cpp-ledger/ledger/ledger_device_hid.hpp"
 
+#include <cmath>
 #include "cpp-ledger/ledger/apdu_wrapper.hpp"
 #include "cpp-ledger/ledger/const.hpp"
 #include "cpp-ledger/ledger/utils.hpp"
@@ -86,6 +87,8 @@ namespace ledger {
   std::vector<Bytes> LedgerDeviceHid::Read() const {
     std::vector<Bytes> result;
 
+    size_t packet_count = 0;
+
     while (true) {
       Bytes buffer(kPacketSize);
       const auto [readBytes, err] = device.Read(buffer);
@@ -94,9 +97,20 @@ namespace ledger {
         break;
       }
 
+      if (packet_count == 0) {
+        std::tie(std::ignore, packet_count, std::ignore) =
+            apdu::DeserializePacket(kChannel, buffer, 0);
+        packet_count = std::ceil(packet_count / double(kPacketSize));
+      }
+
       result.push_back(readBytes == kPacketSize
                            ? buffer
                            : Bytes(buffer.begin(), buffer.begin() + readBytes));
+
+      if (result.size() >= packet_count) {
+        // It means Ledger has finished sending the response
+        break;
+      }
     }
 
     return result;
