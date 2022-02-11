@@ -30,6 +30,9 @@ namespace fc::sync {
   outcome::result<TipsetCPtr> stepUp(const TsLoadPtr &ts_load,
                                      const TsBranchPtr &branch,
                                      const TipsetCPtr &ts) {
+    if (!branch) {
+      return ERROR_TEXT("stepUp: branch=nullptr");
+    }
     if (branch->chain.rbegin()->second.key != ts->key) {
       OUTCOME_TRY(it, find(branch, ts->height() + 1, false));
       if (!it.first) {

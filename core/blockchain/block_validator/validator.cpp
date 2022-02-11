@@ -12,6 +12,8 @@
 #include "cbor_blake/memory.hpp"
 #include "common/error_text.hpp"
 #include "common/from_span.hpp"
+#include "common/prometheus/metrics.hpp"
+#include "common/prometheus/since.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "primitives/block/rand.hpp"
 #include "primitives/tipset/chain.hpp"
@@ -48,6 +50,14 @@ namespace fc::blockchain::block_validator {
 
   outcome::result<void> BlockValidator::validate(const TsBranchPtr &branch,
                                                  const BlockHeader &block) {
+    static auto &metricTime{prometheus::BuildHistogram()
+                                .Name("lotus_block_validation_ms")
+                                .Help("Duration for Block Validation in ms")
+                                .Register(prometheusRegistry())
+                                .Add({}, kDefaultPrometheusMsBuckets)};
+    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{
+        gsl::finally([since{Since{}}] { metricTime.Observe(since.ms()); })};
+
     OUTCOME_TRY(block_cbor, codec::cbor::encode(block));
     const auto block_cid{CbCid::hash(block_cbor)};
     storage::OneKey key{BytesIn{block_cid}, kv};

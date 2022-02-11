@@ -81,8 +81,7 @@ namespace fc::sector_storage::stores {
 
     OUTCOME_TRY(
         response,
-        local_->acquireSector(
-            sector, existing, allocate, path_type, mode));
+        local_->acquireSector(sector, existing, allocate, path_type, mode));
 
     int to_fetch = SectorFileType::FTNone;
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {
@@ -202,11 +201,7 @@ namespace fc::sector_storage::stores {
     }
 
     fc::common::HttpUri parser;
-    try {
-      parser.parse(info.urls[0]);
-    } catch (const std::runtime_error &e) {
-      return StoreError::kInvalidUrl;
-    }
+    OUTCOME_TRY(parser.parse(info.urls[0]));
 
     parser.setPath((fs::path(parser.path()) / "stat" / id).string());
 

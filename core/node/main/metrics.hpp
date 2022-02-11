@@ -30,18 +30,27 @@ namespace fc::node {
 
     std::string prometheus() const {
       auto families{prometheusRegistry().Collect()};
+      using ::prometheus::ClientMetric;
       using ::prometheus::MetricType;
       auto manual{[&](MetricType type,
                       std::string name,
-                      std::string help) -> ::prometheus::ClientMetric & {
-        auto &family{families.emplace_back()};
-        family.name = std::move(name);
-        family.help = std::move(help);
-        family.type = type;
-        return family.metric.emplace_back();
+                      std::string help) -> ClientMetric & {
+        auto family{
+            std::find_if(families.begin(), families.end(), [&](auto &family) {
+              return family.name == name;
+            })};
+        if (family == families.end()) {
+          family = families.emplace(families.end());
+          family->name = std::move(name);
+          family->help = std::move(help);
+        }
+        family->type = type;
+        return family->metric.emplace_back();
       }};
-      auto metric{[&](std::string name, double value) {
-        manual(MetricType::Untyped, std::move(name), "").untyped.value = value;
+      auto metric{[&](std::string name, double value) -> ClientMetric & {
+        auto &metric{manual(MetricType::Gauge, std::move(name), "")};
+        metric.gauge.value = value;
+        return metric;
       }};
 
       metric("uptime",
@@ -69,19 +78,13 @@ namespace fc::node {
       metric("height_expected", height_expected);
 
       auto car{[&](auto _size, auto _count, auto _tmp, auto &ipld) {
-        uint64_t size{};
-        uint64_t count{};
-        uint64_t tmp{};
         if (ipld) {
           std::shared_lock index_lock{ipld->index_mutex};
           std::shared_lock written_lock{ipld->written_mutex};
-          size = ipld->car_offset;
-          count = ipld->index->size();
-          tmp = ipld->written.size();
+          metric(_size, ipld->car_offset);
+          metric(_count, ipld->index->size());
+          metric(_tmp, ipld->written.size());
         }
-        metric(_size, size);
-        metric(_count, count);
-        metric(_tmp, tmp);
       }};
       {
         std::unique_lock ipld_lock{o.compacter->ipld_mutex};
@@ -92,9 +95,8 @@ namespace fc::node {
       auto &instances{libp2p::metrics::instance::State::get()};
       std::unique_lock instances_lock{instances.mutex};
       for (auto &[type, count] : instances.counts) {
-        std::stringstream name;
-        name << "instances{type=\"" << type << "\"}";
-        metric(name.str(), count);
+        metric("instances", count)
+            .label.emplace_back(ClientMetric::Label{"type", std::string{type}});
       }
       instances_lock.unlock();
 

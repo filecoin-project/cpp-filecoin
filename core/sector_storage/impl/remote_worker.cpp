@@ -30,11 +30,7 @@ namespace fc::sector_storage {
                                     const std::shared_ptr<CommonApi> &api,
                                     const std::string &address) {
     HttpUri uri;
-    try {
-      uri.parse(address);
-    } catch (const std::runtime_error &err) {
-      return sector_storage::stores::IndexErrors::kInvalidUrl;
-    }
+    OUTCOME_TRY(uri.parse(address));
 
     OUTCOME_TRY(token, api->AuthNew({kAdminPermission}));
 
