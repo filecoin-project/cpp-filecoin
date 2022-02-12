@@ -17,7 +17,7 @@ namespace fc::cli::_node {
        })},
       {"client",
        tree<Group>({
-                       {"retrieve", tree<clientRetrive>()},
+                       {"retrieve", tree<clientRetrieve>()},
        })},
   })};
 }  // namespace fc::cli::_node

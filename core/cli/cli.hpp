@@ -11,6 +11,16 @@
 #include <memory>
 #include <typeindex>
 
+#define CLI_TRY(valueName, maybeResult)                                \
+  auto valueName##OUTCOME_TRY = maybeResult;                               \
+  if (valueName##OUTCOME_TRY.has_error()) throw std::invalid_argument(""); \
+  auto valueName = valueName##OUTCOME_TRY.value();
+
+#define CLI_TRY_TEXT(valueName, maybeResult, textError)                                \
+  auto valueName##OUTCOME_TRY = maybeResult;                               \
+  if (valueName##OUTCOME_TRY.has_error()) throw std::invalid_argument(textError); \
+  auto valueName = valueName##OUTCOME_TRY.value();
+
 #define CLI_OPTS() ::fc::cli::Opts opts()
 #define CLI_RUN()                                                 \
   static ::fc::cli::RunResult run(const ::fc::cli::ArgsMap &argm, \
