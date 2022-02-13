@@ -64,7 +64,12 @@ namespace fc::cli {
       auto option{args.opts.add_options()};
       option("help,h", "print help");
       po::variables_map vm;
-      argv_it = hackBoost(vm, args.opts, argv_it, argv.end());
+      try {
+        argv_it = hackBoost(vm, args.opts, argv_it, argv.end());
+      } catch (po::error &e) {
+        fmt::print("{}: {}\n", fmt::join(cmds, " "), e.what());
+        return;
+      }
       const auto help{vm.count("help") != 0};
       if (!help) {
         po::notify(vm);
@@ -82,6 +87,9 @@ namespace fc::cli {
           try {
             return tree->run(argm, {argv_it, argv.end()});
           } catch (ShowHelp &) {
+          } catch (po::error &e) {
+            fmt::print("{}: {}\n", fmt::join(cmds, " "), e.what());
+            return;
           } catch (CliError &e) {
             fmt::print("{}: {}\n", fmt::join(cmds, " "), e.what());
             return;
