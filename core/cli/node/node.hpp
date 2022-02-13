@@ -11,10 +11,16 @@
 #include "api/rpc/info.hpp"
 #include "cli/cli.hpp"
 #include "cli/try.hpp"
+#include "cli/validate/address.hpp"
+#include "cli/validate/cid.hpp"
 #include "common/libp2p/multi/multiaddress_fmt.hpp"
 #include "node/node_version.hpp"
+#include "primitives/atto_fil.hpp"
 
 namespace fc::cli::_node {
+  using api::Address;
+  using primitives::AttoFil;
+
   struct Node {
     struct Args {
       CLI_BOOL("version", "") version;
