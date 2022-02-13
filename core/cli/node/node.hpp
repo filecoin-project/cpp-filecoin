@@ -10,6 +10,8 @@
 #include "api/rpc/client_setup.hpp"
 #include "api/rpc/info.hpp"
 #include "cli/cli.hpp"
+#include "cli/try.hpp"
+#include "common/libp2p/multi/multiaddress_fmt.hpp"
 #include "node/node_version.hpp"
 
 namespace fc::cli::_node {
@@ -41,12 +43,15 @@ namespace fc::cli::_node {
 
       Api(const ArgsMap &argm) {
         const auto &args{argm.of<Node>()};
-        const auto info{
-            *api::rpc::loadInfo(args.repo.value_or(""), "FULLNODE_API_INFO")};
+        const auto info{cliTry(
+            api::rpc::loadInfo(args.repo.value_or(""), "FULLNODE_API_INFO").o,
+            "api info is missing")};
         _ = std::make_shared<api::FullNodeApi>();
         wsc = std::make_shared<api::rpc::Client>(*thread.io);
         wsc->setup(*_);
-        wsc->connect(info.first, "/rpc/v1", info.second).value();
+        cliTry(wsc->connect(info.first, "/rpc/v1", info.second),
+               "connecting to {}",
+               info.first);
       }
     };
   };
