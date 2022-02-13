@@ -11,6 +11,52 @@
 #include <memory>
 #include <typeindex>
 
+#include "cli/try.hpp"
+
+#define CLI_BOOL(NAME, DESCRIPTION)                               \
+  struct {                                                        \
+    bool _{};                                                     \
+    void operator()(Opts &opts) {                                 \
+      opts.add_options()(NAME, po::bool_switch(&_), DESCRIPTION); \
+    }                                                             \
+    operator bool() const {                                       \
+      return _;                                                   \
+    }                                                             \
+  }
+#define CLI_DEFAULT(NAME, DESCRIPTION, TYPE, INIT)          \
+  struct {                                                  \
+    TYPE _ INIT;                                            \
+    void operator()(Opts &opts) {                           \
+      opts.add_options()(NAME, po::value(&_), DESCRIPTION); \
+    }                                                       \
+    auto &operator*() const {                               \
+      return _;                                             \
+    }                                                       \
+    auto *operator->() const {                              \
+      return &_;                                            \
+    }                                                       \
+  }
+#define CLI_OPTIONAL(NAME, DESCRIPTION, TYPE)                              \
+  struct {                                                                 \
+    boost::optional<TYPE> _;                                               \
+    void operator()(Opts &opts) {                                          \
+      opts.add_options()(NAME, po::value(&_), DESCRIPTION);                \
+    }                                                                      \
+    operator bool() const {                                                \
+      return _.operator bool();                                            \
+    }                                                                      \
+    auto &operator*() const {                                              \
+      if (!_) {                                                            \
+        throw ::fc::cli::CliError{"--{} argument is required but missing", \
+                                  NAME};                                   \
+      }                                                                    \
+      return *_;                                                           \
+    }                                                                      \
+    auto *operator->() const {                                             \
+      return &**this;                                                      \
+    }                                                                      \
+  }
+
 #define CLI_OPTS() ::fc::cli::Opts opts()
 #define CLI_RUN()                                                 \
   static ::fc::cli::RunResult run(const ::fc::cli::ArgsMap &argm, \

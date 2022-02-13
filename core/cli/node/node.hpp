@@ -17,14 +17,13 @@
 namespace fc::cli::_node {
   struct Node {
     struct Args {
-      bool version{};
-      boost::optional<boost::filesystem::path> repo;
+      CLI_BOOL("version", "") version;
+      CLI_DEFAULT("repo", "", boost::filesystem::path, ) repo;
 
       CLI_OPTS() {
         Opts opts;
-        auto opt{opts.add_options()};
-        opt("version,v", po::bool_switch(&version));
-        opt("repo", po::value(&repo));
+        version(opts);
+        repo(opts);
         return opts;
       }
     };
@@ -43,9 +42,9 @@ namespace fc::cli::_node {
 
       Api(const ArgsMap &argm) {
         const auto &args{argm.of<Node>()};
-        const auto info{cliTry(
-            api::rpc::loadInfo(args.repo.value_or(""), "FULLNODE_API_INFO").o,
-            "api info is missing")};
+        const auto info{
+            cliTry(api::rpc::loadInfo(*args.repo, "FULLNODE_API_INFO").o,
+                   "api info is missing")};
         _ = std::make_shared<api::FullNodeApi>();
         wsc = std::make_shared<api::rpc::Client>(*thread.io);
         wsc->setup(*_);
