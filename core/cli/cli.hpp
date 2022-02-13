@@ -84,6 +84,30 @@ namespace fc::cli {
   // note: Args is defined inside command
   using Argv = std::vector<std::string>;
 
+  const std::string &cliArgv(const Argv &argv,
+                             size_t i,
+                             const std::string_view &name) {
+    if (i < argv.size()) {
+      return argv[i];
+    }
+    throw CliError{"positional argument {} is required but missing", name};
+  }
+  template <typename T>
+  T cliArgv(const std::string &arg, const std::string_view &name) {
+    boost::any out;
+    try {
+      po::value<T>()->xparse(out, Argv{arg});
+    } catch (po::validation_error &e) {
+      e.set_option_name(std::string{name});
+      throw;
+    }
+    return boost::any_cast<T>(out);
+  }
+  template <typename T>
+  T cliArgv(const Argv &argv, size_t i, const std::string_view &name) {
+    return cliArgv<T>(cliArgv(argv, i, name), name);
+  }
+
   struct Empty {
     struct Args {
       CLI_OPTS() {

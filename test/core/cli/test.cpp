@@ -45,7 +45,7 @@ namespace fc::cli::test {
       auto &app{argm.of<App>()};
       int sum{0};
       for (auto &arg : argv) {
-        sum += std::stoi(arg);
+        sum += cliArgv<int>(arg, "nums");
       }
       if (app.mod) {
         sum = sum % *app.mod;
