@@ -11,7 +11,7 @@
 namespace fc::mining {
   using primitives::ChainEpoch;
   using primitives::EpochDuration;
-  using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetCPtr;
 
   constexpr ChainEpoch kGlobalChainConfidence =
       2 * vm::actor::builtin::types::miner::kChainFinality;
@@ -22,8 +22,8 @@ namespace fc::mining {
      * @param confidence = current_height - tipset.height
      */
     using HeightHandler =
-        std::function<outcome::result<void>(const Tipset &, ChainEpoch)>;
-    using RevertHandler = std::function<outcome::result<void>(const Tipset &)>;
+        std::function<outcome::result<void>(TipsetCPtr, ChainEpoch)>;
+    using RevertHandler = std::function<outcome::result<void>(TipsetCPtr)>;
 
     virtual ~Events() = default;
 
