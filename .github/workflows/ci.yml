@@ -54,10 +54,10 @@ jobs:
           set -e
           if [ "$RUNNER_OS" = "macOS" ]; then
             echo "LIBRARY_PATH=$LIBRARY_PATH:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib" >> $GITHUB_ENV
-            brew install ninja pkg-config libb2 hwloc
+            brew install ninja pkg-config libb2 hwloc hidapi
           else
             sudo apt-get update
-            sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers libhwloc-dev
+            sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers libhwloc-dev libhidapi-dev
           fi
           
           pip3 -V || sudo python3 -m pip install --upgrade pip

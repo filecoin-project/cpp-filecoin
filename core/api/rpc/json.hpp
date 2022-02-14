@@ -13,6 +13,7 @@
 #include "api/rpc/rpc.hpp"
 #include "api/storage_miner/storage_api.hpp"
 #include "api/types/key_info.hpp"
+#include "api/types/ledger_key_info.hpp"
 #include "api/worker_api.hpp"
 #include "common/enum.hpp"
 #include "common/libp2p/peer/cbor_peer_info.hpp"
@@ -324,6 +325,20 @@ namespace fc::api {
       }
     }
 
+    ENCODE(uint32_t) {
+      return Value{v};
+    }
+
+    DECODE(uint32_t) {
+      if (j.IsUint()) {
+        v = j.GetUint();
+      } else if (j.IsString()) {
+        v = strtoull(j.GetString(), nullptr, 10);
+      } else {
+        outcome::raise(JsonError::kWrongType);
+      }
+    }
+
     ENCODE(double) {
       return Value{v};
     }
@@ -523,6 +538,18 @@ namespace fc::api {
       }
     }
 
+    ENCODE(LedgerKeyInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Address", v.address);
+      Set(j, "Path", v.path);
+      return j;
+    }
+
+    DECODE(LedgerKeyInfo) {
+      Get(j, "Address", v.address);
+      Get(j, "Path", v.path);
+    }
+
     ENCODE(PoStProof) {
       Value j{rapidjson::kObjectType};
       Set(j, "PoStProof", v.registered_proof);
@@ -546,7 +573,7 @@ namespace fc::api {
     ENCODE(CallError) {
       Value j{rapidjson::kObjectType};
       Set(j, "Code", v.code);
-      Set(j, "ProofBytes", v.message);
+      Set(j, "Message", v.message);
       return j;
     }
 
