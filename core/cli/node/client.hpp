@@ -20,6 +20,7 @@ namespace fc::cli::_node {
       boost::filesystem::path path;
       std::string provider;
       bool car{};
+      std::string root;
 
       CLI_OPTS() {
         Opts opts;
@@ -39,12 +40,14 @@ namespace fc::cli::_node {
         option("car",
                po::bool_switch(&car),
                "store result of retrieval deal to car file");
+        option("root-CID", po::value(&root), "Specifies root CID for retrieval deal");
         return opts;
       }
     };
 
     CLI_RUN() {
       Node::Api api{argm};
+      CLI_TRY_TEXT(root, CID::fromString(args.root), "Invalid root CID: " + args.root);
       CLI_TRY_TEXT(cid,
                    CID::fromString(args.piece_cid),
                    "Invalid piece CID: " + args.piece_cid)
@@ -117,6 +120,23 @@ namespace fc::cli::_node {
       }
     }
   };
+
+  struct clientFind{
+    struct Args{
+
+      CLI_OPTS(){
+        Opts opts;
+        auto option{opts.add_options()};
+
+      }
+    };
+
+  };
+
+
+
+
+
 
 
 
