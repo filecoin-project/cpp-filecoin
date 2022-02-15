@@ -81,8 +81,7 @@ namespace fc::sector_storage::stores {
 
     OUTCOME_TRY(
         response,
-        local_->acquireSector(
-            sector, existing, allocate, path_type, mode));
+        local_->acquireSector(sector, existing, allocate, path_type, mode));
 
     int to_fetch = SectorFileType::FTNone;
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {
@@ -201,14 +200,9 @@ namespace fc::sector_storage::stores {
       return StoreError::kNoRemoteStorageUrls;
     }
 
-    fc::common::HttpUri parser;
-    try {
-      parser.parse(info.urls[0]);
-    } catch (const std::runtime_error &e) {
-      return StoreError::kInvalidUrl;
-    }
+    OUTCOME_TRY(uri, common::HttpUri::parse(info.urls[0]));
 
-    parser.setPath((fs::path(parser.path()) / "stat" / id).string());
+    uri.setPath((fs::path(uri.path()) / "stat" / id).string());
 
     CURL *curl = curl_easy_init();
 
@@ -220,7 +214,7 @@ namespace fc::sector_storage::stores {
     // Follow HTTP redirects if necessary
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
-    curl_easy_setopt(curl, CURLOPT_URL, parser.str().c_str());
+    curl_easy_setopt(curl, CURLOPT_URL, uri.str().c_str());
 
     struct curl_slist *headers = nullptr;
 

@@ -28,7 +28,8 @@
 #include <gsl/gsl_util>
 #include <iomanip>
 #include <sstream>
-#include <stdexcept>
+
+#include "common/error_text.hpp"
 
 // unreserved
 static const std::string unreserved(
@@ -53,16 +54,17 @@ inline static bool need_encode(const char c) {
   return true;
 }
 
-static int decodePercentEscapedByte(std::istringstream &iss) {
+static fc::outcome::result<int> decodePercentEscapedByte(
+    std::istringstream &iss) {
   auto c = iss.get();
   if (c != '%') {
-    throw std::runtime_error("Wrong token for start percent-encoded sequence");
+    return ERROR_TEXT("Wrong token for start percent-encoded sequence");
   }
 
   int result = 0;
 
   if (iss.eof()) {
-    throw std::runtime_error(
+    return ERROR_TEXT(
         "Unxpected end of data during try parse percent-encoded symbol");
   }
   c = iss.get();
@@ -73,14 +75,14 @@ static int decodePercentEscapedByte(std::istringstream &iss) {
   } else if (c >= 'A' && c <= 'F') {
     result = 10 + c - 'A';
   } else if (c == -1) {
-    throw std::runtime_error(
+    return ERROR_TEXT(
         "Unxpected end of data during try parse percent-encoded symbol");
   } else {
-    throw std::runtime_error("Wrong percent-encoded symbol");
+    return ERROR_TEXT("Wrong percent-encoded symbol");
   }
 
   if (iss.eof()) {
-    throw std::runtime_error(
+    return ERROR_TEXT(
         "Unxpected end of data during try parse percent-encoded symbol");
   }
   c = iss.get();
@@ -91,17 +93,18 @@ static int decodePercentEscapedByte(std::istringstream &iss) {
   } else if (c >= 'A' && c <= 'F') {
     result = (result << 4) | (10 + c - 'A');
   } else if (c == -1) {
-    throw std::runtime_error(
+    return ERROR_TEXT(
         "Unxpected end of data during try parse percent-encoded symbol");
   } else {
-    throw std::runtime_error("Wrong percent-encoded symbol");
+    return ERROR_TEXT("Wrong percent-encoded symbol");
   }
 
   return result;
 }
 
-static uint32_t decodePercentEscaped(std::istringstream &iss, bool &isUtf8) {
-  auto c = decodePercentEscapedByte(iss);
+static fc::outcome::result<uint32_t> decodePercentEscaped(
+    std::istringstream &iss, bool &isUtf8) {
+  OUTCOME_TRY(c, decodePercentEscapedByte(iss));
 
   if (!isUtf8) {
     return static_cast<uint32_t>(c);
@@ -140,7 +143,7 @@ static uint32_t decodePercentEscaped(std::istringstream &iss, bool &isUtf8) {
       return static_cast<uint32_t>(fc);
     }
     try {
-      c = decodePercentEscapedByte(iss);
+      OUTCOME_TRYA(c, decodePercentEscapedByte(iss));
     } catch (...) {
       iss.clear(std::istringstream::goodbit);
       iss.seekg(p);
@@ -157,7 +160,8 @@ static uint32_t decodePercentEscaped(std::istringstream &iss, bool &isUtf8) {
   return symbol;
 }
 
-std::string PercentEncoding::decode(const std::string &input) {
+fc::outcome::result<std::string> PercentEncoding::decode(
+    const std::string &input) {
   std::istringstream iss(input);
   std::ostringstream oss;
   bool isUtf8 = true;
@@ -165,7 +169,7 @@ std::string PercentEncoding::decode(const std::string &input) {
   while (!iss.eof()) {
     int c = iss.peek();
     if (c == '%') {
-      auto symbol = decodePercentEscaped(iss, isUtf8);
+      OUTCOME_TRY(symbol, decodePercentEscaped(iss, isUtf8));
 
       if (symbol <= 0b0111'1111)  // 7bit -> 1byte
       {

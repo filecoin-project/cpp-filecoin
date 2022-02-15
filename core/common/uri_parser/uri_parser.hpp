@@ -27,6 +27,8 @@
 
 #include <string>
 
+#include "common/outcome.hpp"
+
 namespace fc::common {
   class HttpUri final {
    public:
@@ -34,11 +36,8 @@ namespace fc::common {
 
     HttpUri() = default;
 
-    explicit HttpUri(const std::string &uri);
-
-    virtual ~HttpUri() = default;
-
-    void parse(const std::string &string);
+    static outcome::result<HttpUri> parse(const std::string &string);
+    outcome::result<void> parseThis(const std::string &string);
 
     const std::string &str() const;
 
@@ -111,12 +110,12 @@ namespace fc::common {
       }
     }
 
-    static std::string urldecode(const std::string &input);
+    static outcome::result<std::string> urldecode(const std::string &input);
 
     static std::string urlencode(const std::string &input);
 
    private:
-    void parsePath(const char *s, const char *end);
+    outcome::result<void> parsePath(const char *s, const char *end);
 
     Scheme scheme_ = Scheme::UNDEFINED;
     std::string host_;
