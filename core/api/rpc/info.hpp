@@ -28,8 +28,12 @@ namespace fc::api::rpc {
       address = info.substr(0, i);
       token = info.substr(i + 1);
     } else if (!repo.empty()) {
-      boost::filesystem::load_string_file(repo / "api", address);
-      boost::filesystem::load_string_file(repo / "token", token);
+      try {
+        boost::filesystem::load_string_file(repo / "api", address);
+        boost::filesystem::load_string_file(repo / "token", token);
+      } catch (...) {
+        return {};
+      }
     } else {
       return {};
     }

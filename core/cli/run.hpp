@@ -5,12 +5,11 @@
 
 #pragma once
 
-#include <fmt/format.h>
-#include <fmt/ostream.h>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/variables_map.hpp>
 
 #include "cli/tree.hpp"
+#include "cli/try.hpp"
 
 namespace fc::cli {
   inline bool isDash(const std::string &s) {
@@ -20,7 +19,8 @@ namespace fc::cli {
     return s.size() == 2 && s[0] == '-' && s[1] == '-';
   }
   // note: returns first positional arg or end
-  inline Argv::iterator hackBoost(const Opts &opts,
+  inline Argv::iterator hackBoost(po::variables_map &vm,
+                                  const Opts &opts,
                                   Argv::iterator begin,
                                   Argv::iterator end) {
     po::parsed_options parsed{&opts};
@@ -49,9 +49,7 @@ namespace fc::cli {
         begin += option.original_tokens.size();
       }
     }
-    po::variables_map vm;
     po::store(parsed, vm);
-    po::notify(vm);
     return begin;
   }
 
@@ -64,12 +62,18 @@ namespace fc::cli {
     while (true) {
       auto args{tree->args()};
       auto option{args.opts.add_options()};
-      bool help{};
-      // note: help doesn't work with required options
-      option("help,h", po::bool_switch(&help));
-      argv_it = hackBoost(args.opts, argv_it, argv.end());
-      argm._.emplace(args._);
+      option("help,h", "print help");
+      po::variables_map vm;
+      try {
+        argv_it = hackBoost(vm, args.opts, argv_it, argv.end());
+      } catch (po::error &e) {
+        fmt::print("{}: {}\n", fmt::join(cmds, " "), e.what());
+        return;
+      }
+      const auto help{vm.count("help") != 0};
       if (!help) {
+        po::notify(vm);
+        argm._.emplace(args._);
         if (argv_it != argv.end()) {
           auto sub_it{tree->sub.find(*argv_it)};
           if (sub_it != tree->sub.end()) {
@@ -83,6 +87,12 @@ namespace fc::cli {
           try {
             return tree->run(argm, {argv_it, argv.end()});
           } catch (ShowHelp &) {
+          } catch (po::error &e) {
+            fmt::print("{}: {}\n", fmt::join(cmds, " "), e.what());
+            return;
+          } catch (CliError &e) {
+            fmt::print("{}: {}\n", fmt::join(cmds, " "), e.what());
+            return;
           }
         }
       }

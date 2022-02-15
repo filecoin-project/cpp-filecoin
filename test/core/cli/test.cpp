@@ -8,12 +8,11 @@
 namespace fc::cli::test {
   struct App : Empty {
     struct Args {
-      boost::optional<int> mod;
+      CLI_OPTIONAL("mod", "", int) mod;
 
       CLI_OPTS() {
         Opts opts;
-        auto opt{opts.add_options()};
-        opt("mod", po::value(&mod));
+        mod(opts);
         return opts;
       }
     };
@@ -21,13 +20,13 @@ namespace fc::cli::test {
 
   struct App_add {
     struct Args {
-      boost::optional<int> a{};
-      boost::optional<int> b{};
+      CLI_OPTIONAL("a", "", int) a;
+      CLI_OPTIONAL("b", "", int) b;
 
       CLI_OPTS() {
         Opts opts;
-        opts.add_options()("a,a", po::value(&a));
-        opts.add_options()("b,b", po::value(&b));
+        a(opts);
+        b(opts);
         return opts;
       }
     };
@@ -46,7 +45,7 @@ namespace fc::cli::test {
       auto &app{argm.of<App>()};
       int sum{0};
       for (auto &arg : argv) {
-        sum += std::stoi(arg);
+        sum += cliArgv<int>(arg, "nums");
       }
       if (app.mod) {
         sum = sum % *app.mod;
@@ -75,7 +74,7 @@ namespace fc::cli::test {
     test({"-h"});
     test({"--help"});
     test({"add", "-h"});
-    test({"add", "--a", "13", "-b", "14"});
+    test({"add", "--a", "13", "--b", "14"});
     test({"math", "-h"});
     test({"math", "sum", "-h"});
     test({"--mod", "20", "math", "sum", "11", "22", "33"});

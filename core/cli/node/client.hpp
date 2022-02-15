@@ -1,5 +1,7 @@
-//
-// Created by Ruslan Gilvanov  on 12.02.2022.
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #pragma once
 #include "cli/node/node.hpp"
@@ -12,35 +14,27 @@ namespace fc::cli::_node {
   using primitives::address::Address;
   using primitives::address::decodeFromString;
 
-  struct clientRetrieve {
+  struct Node_client_retrieve {
     struct Args {
-      std::string from;
-      std::string piece_cid;
-      BigInt max_funds;
-      boost::filesystem::path path;
-      std::string provider;
-      bool car{};
-      std::string root;
+      CLI_OPTIONAL("from", "", Address) from;
+      CLI_OPTIONAL("provider", "", Address) provider;
+      CLI_OPTIONAL("pieceCid", "", CID) piece_cid;
+      CLI_OPTIONAL("maxPrice", "", AttoFil) max_price;
+      CLI_OPTIONAL("data-selector", "", std::string) data_selector;
+      CLI_BOOL("car", "") car;
+      CLI_BOOL("allow-local", "") allow_local;
+      CLI_BOOL("car-export-merkle-proof", "") car_export_merkle_proof;
 
       CLI_OPTS() {
         Opts opts;
-        auto option{opts.add_options()};
-        option("from", po::value(&from), "transaction from");
-        option("piece-CID", po::value(&piece_cid), "cid of piece to retrieve");
-        option(
-            "maxPrice",
-            po::value(&max_funds),
-            "specifies the maximum token amount that  client ready to spend");
-        option("path",
-               po::value(&path)->required(),
-               "specifies the path to retrieve");
-        option("provider",
-               po::value(&provider)->required(),
-               "specifies retrieval provider to perform a deal");
-        option("car",
-               po::bool_switch(&car),
-               "store result of retrieval deal to car file");
-        option("root-CID", po::value(&root), "Specifies root CID for retrieval deal");
+        from(opts);
+        provider(opts);
+        piece_cid(opts);
+        allow_local(opts);
+        car(opts);
+        max_price(opts);
+        data_selector(opts);
+        car_export_merkle_proof(opts);
         return opts;
       }
     };
@@ -66,7 +60,7 @@ namespace fc::cli::_node {
     }
   };
 
-  struct clientImportData {
+  struct Node_client_importData {
     struct Args {
       bool car{};
       std::string path;
@@ -92,7 +86,7 @@ namespace fc::cli::_node {
   };
 
 
-  struct clientGenerateCar{
+  struct Node_client_generateCar{
     struct  Args{
       std::string  in_path;
       std::string  out_path;
@@ -109,10 +103,10 @@ namespace fc::cli::_node {
     };
   };
 
-  struct clientLocal: Empty{
+  struct Node_client_local: Empty{
     CLI_RUN(){
       Node::Api api {argm};
-      CLI_TRY_TEXT(result, api._->ClientListImports(), "Fail of getting imports list");
+      auto result = cliTry(api._->ClientListImports(), "Getting imports list");
       for(auto it = result.begin(); it != result.end(); it++){
         std::cout<<"Root CID: "<<it->root.toString().value()<<"\n";
         std::cout<<"Source: "<<it->source<<"\n";
@@ -121,7 +115,7 @@ namespace fc::cli::_node {
     }
   };
 
-  struct clientFind{
+  struct Node_client_find{
     struct Args{
 
       CLI_OPTS(){
@@ -132,12 +126,4 @@ namespace fc::cli::_node {
     };
 
   };
-
-
-
-
-
-
-
-
 }  // namespace fc::cli::_node
