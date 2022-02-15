@@ -13,13 +13,9 @@ jobs:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
       name: checkout repo
-    - name: checkout submodules
-      shell: bash
-      run: |
-        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
-        git submodule sync --recursive
-        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
     - name: install
       run: |
         brew install ninja llvm pkg-config

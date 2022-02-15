@@ -109,6 +109,7 @@ add_subdirectory(deps)
 include_directories(
     # project includes
     ${PROJECT_SOURCE_DIR}/core
+    ${PROJECT_SOURCE_DIR}/libs
 )
 
 include_directories(
@@ -118,7 +119,13 @@ include_directories(
     deps/libsecp256k1/include
 )
 
+if (APPLE)
+  include_directories(/usr/local/include)
+  link_directories(/usr/local/lib)
+endif ()
+
 add_subdirectory(core)
+add_subdirectory(libs)
 
 
 if (TESTING)

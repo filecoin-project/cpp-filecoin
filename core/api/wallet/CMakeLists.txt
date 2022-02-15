@@ -5,7 +5,11 @@
 
 add_library(wallet
     local_wallet.cpp
+    ledger_wallet.cpp
+    ledger.cpp
     )
 target_link_libraries(wallet
     address
+    rpc
+    ledger_filecoin
     )

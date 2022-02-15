@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
         name: checkout repo
       - name: cache
         uses: actions/cache@v1.2.0
@@ -22,16 +24,10 @@ jobs:
         with:
           path: /var/tmp/filecoin-proof-parameters
           key: build-${{ env.cache-name }}-${{ env.version }}
-      - name: checkout submodules
-        shell: bash
-        run: |
-          auth_header="$(git config --local --get http.https://github.com/.extraheader)"
-          git submodule sync --recursive
-          git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
       - name: install
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers libhwloc-dev
+          sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers libhwloc-dev libhidapi-dev
           sudo python3 -m pip install --upgrade pip
           sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml
       - name: cmake
