@@ -14,6 +14,8 @@
 
 namespace fc::mining {
   using primitives::block::BlockHeader;
+  using BlocksFromNetwork = primitives::tipset::Tipset::BlocksFromNetwork;
+  using primitives::tipset::Tipset;
 
   class TipsetCacheTest : public testing::Test {
    protected:
@@ -37,8 +39,8 @@ namespace fc::mining {
   TEST_F(TipsetCacheTest, Add) {
     BlockHeader block;
     block.height = 1;
-    Tipset tipset1(TipsetKey(), {});
-    Tipset tipset2(TipsetKey(), {block});
+    TipsetCPtr tipset1 = std::make_shared<Tipset>(Tipset(TipsetKey(), {}));
+    TipsetCPtr tipset2 = std::make_shared<Tipset>(Tipset(TipsetKey(), {block}));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset1));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset2));
     EXPECT_OUTCOME_EQ(tipset_cache_->best(), tipset2);
@@ -52,8 +54,8 @@ namespace fc::mining {
   TEST_F(TipsetCacheTest, AddSmallerHeight) {
     BlockHeader block;
     block.height = 1;
-    Tipset tipset1(TipsetKey(), {});
-    Tipset tipset2(TipsetKey(), {block});
+    TipsetCPtr tipset1 = std::make_shared<Tipset>(Tipset(TipsetKey(), {}));
+    TipsetCPtr tipset2 = std::make_shared<Tipset>(Tipset(TipsetKey(), {block}));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset2));
     EXPECT_OUTCOME_ERROR(TipsetCacheError::kSmallerHeight,
                          tipset_cache_->add(tipset1));
@@ -65,7 +67,7 @@ namespace fc::mining {
    * @then success
    */
   TEST_F(TipsetCacheTest, RevertEmpty) {
-    Tipset tipset1(TipsetKey(), {});
+    TipsetCPtr tipset1 = std::make_shared<Tipset>(Tipset(TipsetKey(), {}));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->revert(tipset1));
   }
 
@@ -77,8 +79,8 @@ namespace fc::mining {
   TEST_F(TipsetCacheTest, Revert) {
     BlockHeader block;
     block.height = 2;
-    Tipset tipset1(TipsetKey(), {});
-    Tipset tipset2(TipsetKey(), {block});
+    TipsetCPtr tipset1 = std::make_shared<Tipset>(Tipset(TipsetKey(), {}));
+    TipsetCPtr tipset2 = std::make_shared<Tipset>(Tipset(TipsetKey(), {block}));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset1));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset2));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->revert(tipset2));
@@ -93,8 +95,8 @@ namespace fc::mining {
   TEST_F(TipsetCacheTest, RevertNotHead) {
     BlockHeader block;
     block.height = 2;
-    Tipset tipset1(TipsetKey(), {});
-    Tipset tipset2(TipsetKey(), {block});
+    TipsetCPtr tipset1 = std::make_shared<Tipset>(Tipset(TipsetKey(), {}));
+    TipsetCPtr tipset2 = std::make_shared<Tipset>(Tipset(TipsetKey(), {block}));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset1));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset2));
     EXPECT_OUTCOME_ERROR(TipsetCacheError::kNotMatchHead,
@@ -111,8 +113,10 @@ namespace fc::mining {
     block1.height = 0;
     BlockHeader block2;
     block2.height = 3;
-    Tipset tipset1(TipsetKey(), {block1});
-    Tipset tipset2(TipsetKey(), {block2});
+    TipsetCPtr tipset1 =
+        std::make_shared<Tipset>(Tipset(TipsetKey(), {block1}));
+    TipsetCPtr tipset2 =
+        std::make_shared<Tipset>(Tipset(TipsetKey(), {block2}));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset1));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset2));
     EXPECT_OUTCOME_EQ(tipset_cache_->get(0), tipset1);
@@ -126,7 +130,9 @@ namespace fc::mining {
   TEST_F(TipsetCacheTest, GetNotInCache) {
     BlockHeader block1;
     block1.height = 1;
-    Tipset tipset1(TipsetKey(), {block1});
+    TipsetCPtr tipset1 =
+        std::make_shared<Tipset>(Tipset(TipsetKey(), {block1}));
+
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset1));
     EXPECT_OUTCOME_ERROR(TipsetCacheError::kNotInCache, tipset_cache_->get(4));
   }
@@ -139,7 +145,8 @@ namespace fc::mining {
   TEST_F(TipsetCacheTest, GetLess) {
     BlockHeader block1;
     block1.height = 3;
-    Tipset tipset1(TipsetKey(), {block1});
+    TipsetCPtr tipset1 =
+        std::make_shared<Tipset>(Tipset(TipsetKey(), {block1}));
     BlockHeader block2;
     block2.height = 1;
     auto tipset2 = std::make_shared<Tipset>(TipsetKey(),
@@ -147,7 +154,7 @@ namespace fc::mining {
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset1));
     EXPECT_CALL(mock_ChainGetTipSetByHeight, Call(1, TipsetKey{}))
         .WillRepeatedly(testing::Return(tipset2));
-    EXPECT_OUTCOME_EQ(tipset_cache_->get(1), *tipset2);
+    EXPECT_OUTCOME_EQ(tipset_cache_->get(1), tipset2);
   }
 
   /**
@@ -162,7 +169,7 @@ namespace fc::mining {
                                             std::vector<BlockHeader>({block1}));
     EXPECT_CALL(mock_ChainGetTipSetByHeight, Call(1, TipsetKey{}))
         .WillOnce(testing::Return(tipset1));
-    EXPECT_OUTCOME_EQ(tipset_cache_->get(1), *tipset1);
+    EXPECT_OUTCOME_EQ(tipset_cache_->get(1), tipset1);
   }
 
   /**
@@ -175,8 +182,10 @@ namespace fc::mining {
     block1.height = 1;
     BlockHeader block2;
     block2.height = 3;
-    Tipset tipset1(TipsetKey(), {block1});
-    Tipset tipset2(TipsetKey(), {block2});
+    TipsetCPtr tipset1 =
+        std::make_shared<Tipset>(Tipset(TipsetKey(), {block1}));
+    TipsetCPtr tipset2 =
+        std::make_shared<Tipset>(Tipset(TipsetKey(), {block2}));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset1));
     EXPECT_OUTCOME_TRUE_1(tipset_cache_->add(tipset2));
     EXPECT_OUTCOME_EQ(tipset_cache_->getNonNull(2), tipset2);
@@ -193,7 +202,7 @@ namespace fc::mining {
     auto tipset1 = std::make_shared<Tipset>(TipsetKey(),
                                             std::vector<BlockHeader>({block1}));
     EXPECT_CALL(mock_ChainHead, Call()).WillOnce(testing::Return(tipset1));
-    EXPECT_OUTCOME_EQ(tipset_cache_->best(), *tipset1);
+    EXPECT_OUTCOME_EQ(tipset_cache_->best(), tipset1);
   }
 
 }  // namespace fc::mining

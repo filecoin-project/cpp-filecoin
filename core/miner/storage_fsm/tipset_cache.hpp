@@ -11,7 +11,7 @@
 
 namespace fc::mining {
   using primitives::ChainEpoch;
-  using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetCPtr;
 
   class TipsetCache {
    public:
@@ -23,34 +23,34 @@ namespace fc::mining {
      * @param tipset is tipset that should be added
      * @return success or error
      */
-    virtual outcome::result<void> add(const Tipset &tipset) = 0;
+    virtual outcome::result<void> add(TipsetCPtr tipset) = 0;
 
     /**
      * Revert tipset if it is head
      * @param tipset is tipset that should be reverted
      * @return success or error
      */
-    virtual outcome::result<void> revert(const Tipset &tipset) = 0;
+    virtual outcome::result<void> revert(TipsetCPtr tipset) = 0;
 
     /**
      * getNotNull tipset from this height
      * @param height is height of tipset that we want get
      * @return Tipset or error
      */
-    virtual outcome::result<Tipset> getNonNull(ChainEpoch height) = 0;
+    virtual outcome::result<TipsetCPtr> getNonNull(ChainEpoch height) = 0;
 
     /**
      * get Tipset from cache with this height
      * @param height is height of tipset that we want get
      * @return optional Tipset or error
      */
-    virtual outcome::result<boost::optional<Tipset>> get(ChainEpoch height) = 0;
+    virtual outcome::result<TipsetCPtr> get(ChainEpoch height) = 0;
 
     /**
      * Get Head tipset
      * @return head tipset
      */
-    virtual outcome::result<Tipset> best() const = 0;
+    [[nodiscard]] virtual outcome::result<TipsetCPtr> best() const = 0;
   };
 
   enum class TipsetCacheError {

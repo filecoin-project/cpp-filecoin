@@ -40,8 +40,8 @@ namespace fc::mining {
     explicit EventsImpl(std::shared_ptr<TipsetCache> tipset_cache);
 
     struct HeightHandle {
-      EpochDuration confidence;
-      bool called;
+      EpochDuration confidence{};
+      bool called{};
 
       HeightHandler handler;
       RevertHandler revert;
@@ -57,16 +57,12 @@ namespace fc::mining {
      */
     std::shared_ptr<Channel<std::vector<HeadChange>>> channel_;
 
-    uint64_t global_id_;
-
     // TODO(turuslan): FIL-420 check cache memory usage
-    std::unordered_map<uint64_t, HeightHandle> height_triggers_;
-
+    std::map<ChainEpoch, std::set<std::shared_ptr<HeightHandle>>>
+        triggers_heights_;  // for apply
     // TODO(turuslan): FIL-420 check cache memory usage
-    std::map<ChainEpoch, std::set<uint64_t>> height_to_trigger_;  // for apply
-    // TODO(turuslan): FIL-420 check cache memory usage
-    std::map<ChainEpoch, std::set<uint64_t>>
-        message_height_to_trigger_;  // for revert
+    std::map<ChainEpoch, std::set<std::shared_ptr<HeightHandle>>>
+        tipsets_heights_;  // for revert
 
     std::mutex mutex_;
 

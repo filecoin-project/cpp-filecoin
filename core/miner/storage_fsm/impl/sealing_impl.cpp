@@ -1375,7 +1375,7 @@ namespace fc::mining {
         + vm::actor::builtin::types::miner::kPreCommitChallengeDelay;
 
     const auto maybe_error = events_->chainAt(
-        [=](const Tipset &,
+        [=](const TipsetCPtr &,
             ChainEpoch current_height) -> outcome::result<void> {
           OUTCOME_TRY(head, api_->ChainHead());
 
@@ -1402,7 +1402,7 @@ namespace fc::mining {
           FSM_SEND_CONTEXT(info, SealingEvent::kSectorSeedReady, context);
           return outcome::success();
         },
-        [=](const Tipset &token) -> outcome::result<void> {
+        [=](const TipsetCPtr &) -> outcome::result<void> {
           logger_->warn("revert in interactive commit sector step");
           // TODO(ortyomka): cancel running and restart
           return outcome::success();
