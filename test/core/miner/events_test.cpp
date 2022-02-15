@@ -11,6 +11,7 @@
 namespace fc::mining {
 
   using primitives::block::BlockHeader;
+  using primitives::tipset::Tipset;
 
   class EventsTest : public ::testing::Test {
    protected:
@@ -60,7 +61,7 @@ namespace fc::mining {
    */
   TEST_F(EventsTest, ChainAtNotFoundTipsetAfterExecution) {
     Events::HeightHandler height_handler =
-        [](const Tipset &, ChainEpoch) -> outcome::result<void> {
+        [](const TipsetCPtr &, ChainEpoch) -> outcome::result<void> {
       return outcome::success();
     };
     Events::RevertHandler revert_handler;
@@ -70,7 +71,7 @@ namespace fc::mining {
     const auto error = ERROR_TEXT("API_ERROR");
     BlockHeader block;
     block.height = 9;
-    Tipset tipset(TipsetKey(), {block});
+    auto tipset = std::make_shared<Tipset>(Tipset(TipsetKey(), {block}));
     EXPECT_CALL(*tipset_cache_, best())
         .WillOnce(testing::Return(tipset))
         .WillOnce(testing::Return(error));
@@ -91,7 +92,7 @@ namespace fc::mining {
   TEST_F(EventsTest, ChainAtWithGlobalConfidence) {
     bool is_called = false;
     Events::HeightHandler height_handler =
-        [&](const Tipset &, ChainEpoch) -> outcome::result<void> {
+        [&](const TipsetCPtr &, ChainEpoch) -> outcome::result<void> {
       is_called = true;
       return outcome::success();
     };
@@ -100,7 +101,7 @@ namespace fc::mining {
     ChainEpoch height = 4;
     BlockHeader block;
     block.height = height + confidence + kGlobalChainConfidence;
-    Tipset tipset(TipsetKey(), {block});
+    TipsetCPtr tipset = std::make_shared<Tipset>(Tipset(TipsetKey(), {block}));
     EXPECT_CALL(*tipset_cache_, best())
         .WillOnce(testing::Return(tipset))
         .WillOnce(testing::Return(tipset));
@@ -121,12 +122,12 @@ namespace fc::mining {
   TEST_F(EventsTest, ChainAtAddHandler) {
     bool apply_called = false;
     Events::HeightHandler height_handler =
-        [&](const Tipset &, ChainEpoch) -> outcome::result<void> {
+        [&](const TipsetCPtr &, ChainEpoch) -> outcome::result<void> {
       apply_called = true;
       return outcome::success();
     };
     bool revert_called = false;
-    Events::RevertHandler revert_handler = [&](const Tipset &) {
+    Events::RevertHandler revert_handler = [&](const TipsetCPtr &) {
       revert_called = true;
       return outcome::success();
     };
@@ -134,9 +135,9 @@ namespace fc::mining {
     ChainEpoch height = 4;
     BlockHeader block;
     block.height = height;
-    std::shared_ptr<Tipset> tipset = std::make_shared<Tipset>(
+    TipsetCPtr tipset = std::make_shared<Tipset>(
         TipsetKey(), std::vector<BlockHeader>({block}));
-    EXPECT_CALL(*tipset_cache_, best()).WillOnce(testing::Return(*tipset));
+    EXPECT_CALL(*tipset_cache_, best()).WillOnce(testing::Return(tipset));
 
     EXPECT_OUTCOME_TRUE_1(
         events_->chainAt(height_handler, revert_handler, confidence, height));
@@ -144,17 +145,17 @@ namespace fc::mining {
 
     BlockHeader block1;
     block1.height = height + confidence;
-    std::shared_ptr<Tipset> tipset1 = std::make_shared<Tipset>(
+    TipsetCPtr tipset1 = std::make_shared<Tipset>(
         TipsetKey(), std::vector<BlockHeader>({block1}));
 
-    EXPECT_CALL(*tipset_cache_, add(*tipset1))
+    EXPECT_CALL(*tipset_cache_, add(tipset1))
         .WillOnce(testing::Return(outcome::success()));
 
     EXPECT_CALL(*tipset_cache_, getNonNull(height))
-        .WillOnce(testing::Return(outcome::success(*tipset)));
+        .WillOnce(testing::Return(outcome::success(tipset)));
 
     EXPECT_CALL(*tipset_cache_, get(block1.height - 1))
-        .WillOnce(testing::Return(outcome::success(*tipset)));
+        .WillOnce(testing::Return(outcome::success(tipset)));
     // result should be some value
     // it means, that previous block already applied
 
@@ -163,16 +164,16 @@ namespace fc::mining {
     EXPECT_TRUE(apply_called);
 
     EXPECT_CALL(*tipset_cache_, get(block.height))
-        .WillOnce(testing::Return(outcome::success(*tipset)));
+        .WillOnce(testing::Return(outcome::success(tipset)));
 
     EXPECT_CALL(*tipset_cache_, get(block.height - 1))
-        .WillOnce(testing::Return(outcome::success(*tipset)));
+        .WillOnce(testing::Return(outcome::success(tipset)));
     // result should be some value
     // it means, that previous block already applied
 
-    EXPECT_CALL(*tipset_cache_, revert(*tipset1))
+    EXPECT_CALL(*tipset_cache_, revert(tipset1))
         .WillOnce(testing::Return(outcome::success()));
-    EXPECT_CALL(*tipset_cache_, revert(*tipset))
+    EXPECT_CALL(*tipset_cache_, revert(tipset))
         .WillOnce(testing::Return(outcome::success()));
 
     HeadChange revert_change1{.type = HeadChangeType::REVERT, .value = tipset1};
@@ -189,12 +190,12 @@ namespace fc::mining {
   TEST_F(EventsTest, ChainAtAddHandlerWithMissingTipset) {
     bool apply_called1 = false;
     Events::HeightHandler height_handler1 =
-        [&](const Tipset &, ChainEpoch) -> outcome::result<void> {
+        [&](const TipsetCPtr &, ChainEpoch) -> outcome::result<void> {
       apply_called1 = true;
       return outcome::success();
     };
     bool revert_called1 = false;
-    Events::RevertHandler revert_handler1 = [&](const Tipset &) {
+    Events::RevertHandler revert_handler1 = [&](const TipsetCPtr &) {
       revert_called1 = true;
       return outcome::success();
     };
@@ -206,52 +207,52 @@ namespace fc::mining {
     std::shared_ptr<Tipset> tipset = std::make_shared<Tipset>(
         TipsetKey(), std::vector<BlockHeader>({block}));
 
-    EXPECT_CALL(*tipset_cache_, best()).WillOnce(testing::Return(*tipset));
+    EXPECT_CALL(*tipset_cache_, best()).WillOnce(testing::Return(tipset));
 
     EXPECT_OUTCOME_TRUE_1(events_->chainAt(
         height_handler1, revert_handler1, confidence1, height1));
 
     bool apply_called2 = false;
     Events::HeightHandler height_handler2 =
-        [&](const Tipset &, ChainEpoch) -> outcome::result<void> {
+        [&](const TipsetCPtr &, ChainEpoch) -> outcome::result<void> {
       apply_called2 = true;
       return outcome::success();
     };
     bool revert_called2 = false;
-    Events::RevertHandler revert_handler2 = [&](const Tipset &) {
+    Events::RevertHandler revert_handler2 = [&](const TipsetCPtr &) {
       revert_called2 = true;
       return outcome::success();
     };
     EpochDuration confidence2 = 1;
     ChainEpoch height2 = 7;
 
-    EXPECT_CALL(*tipset_cache_, best()).WillOnce(testing::Return(*tipset));
+    EXPECT_CALL(*tipset_cache_, best()).WillOnce(testing::Return(tipset));
 
     EXPECT_OUTCOME_TRUE_1(events_->chainAt(
         height_handler2, revert_handler2, confidence2, height2));
 
     BlockHeader block3;
     block3.height = height2 + confidence2;
-    std::shared_ptr<Tipset> tipset3 = std::make_shared<Tipset>(
+    TipsetCPtr tipset3 = std::make_shared<Tipset>(
         TipsetKey(), std::vector<BlockHeader>({block3}));
 
-    EXPECT_CALL(*tipset_cache_, add(*tipset3))
+    EXPECT_CALL(*tipset_cache_, add(tipset3))
         .WillOnce(testing::Return(outcome::success()));
 
     EXPECT_CALL(*tipset_cache_, getNonNull(block3.height - 1))
-        .WillOnce(testing::Return(outcome::success(*tipset3)));
+        .WillOnce(testing::Return(outcome::success(tipset3)));
 
     EXPECT_CALL(*tipset_cache_, get(block3.height - 1))
-        .WillOnce(testing::Return(outcome::success(boost::none)));
+        .WillOnce(testing::Return(outcome::success(nullptr)));
 
     EXPECT_CALL(*tipset_cache_, getNonNull(block3.height - 2))
-        .WillOnce(testing::Return(outcome::success(*tipset3)));
+        .WillOnce(testing::Return(outcome::success(tipset3)));
 
     EXPECT_CALL(*tipset_cache_, get(block3.height - 2))
-        .WillOnce(testing::Return(outcome::success(boost::none)));
+        .WillOnce(testing::Return(outcome::success(nullptr)));
 
     EXPECT_CALL(*tipset_cache_, get(block.height))
-        .WillOnce(testing::Return(outcome::success(*tipset)));
+        .WillOnce(testing::Return(outcome::success(tipset)));
     // result should be some value
     // it means, that previous block already applied
 
@@ -261,17 +262,17 @@ namespace fc::mining {
     EXPECT_TRUE(apply_called2);
 
     EXPECT_CALL(*tipset_cache_, get(block3.height - 1))
-        .WillOnce(testing::Return(outcome::success(boost::none)));
+        .WillOnce(testing::Return(outcome::success(nullptr)));
 
     EXPECT_CALL(*tipset_cache_, get(block3.height - 2))
-        .WillOnce(testing::Return(outcome::success(boost::none)));
+        .WillOnce(testing::Return(outcome::success(nullptr)));
 
     EXPECT_CALL(*tipset_cache_, get(block.height))
-        .WillOnce(testing::Return(outcome::success(*tipset)));
+        .WillOnce(testing::Return(outcome::success(tipset)));
     // result should be some value
     // it means, that previous block already applied
 
-    EXPECT_CALL(*tipset_cache_, revert(*tipset3))
+    EXPECT_CALL(*tipset_cache_, revert(tipset3))
         .WillOnce(testing::Return(outcome::success()));
 
     HeadChange revert_change{.type = HeadChangeType::REVERT, .value = tipset3};
