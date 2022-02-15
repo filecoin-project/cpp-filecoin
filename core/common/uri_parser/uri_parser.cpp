@@ -36,7 +36,13 @@
 namespace fc::common {
   inline const auto kOutOfData{ERROR_TEXT("HttpUri: Out of data")};
 
-  outcome::result<void> HttpUri::parse(const std::string &string) {
+  outcome::result<HttpUri> HttpUri::parse(const std::string &string) {
+    HttpUri uri;
+    OUTCOME_TRY(uri.parseThis(string));
+    return uri;
+  }
+
+  outcome::result<void> HttpUri::parseThis(const std::string &string) {
     const char *s = string.c_str();
     const auto *end = string.c_str() + string.size();
 

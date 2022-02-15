@@ -29,8 +29,7 @@ namespace fc::sector_storage {
   RemoteWorker::connectRemoteWorker(io_context &context,
                                     const std::shared_ptr<CommonApi> &api,
                                     const std::string &address) {
-    HttpUri uri;
-    OUTCOME_TRY(uri.parse(address));
+    OUTCOME_TRY(uri, HttpUri::parse(address));
 
     OUTCOME_TRY(token, api->AuthNew({kAdminPermission}));
 

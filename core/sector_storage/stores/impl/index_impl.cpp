@@ -23,7 +23,7 @@ namespace fc::sector_storage::stores {
       const StorageInfo &storage_info, const FsStat &stat) {
     std::unique_lock lock(mutex_);
     for (const auto &new_url : storage_info.urls) {
-      if (!HttpUri{}.parse(new_url)) {
+      if (!HttpUri::parse(new_url)) {
         return IndexErrors::kInvalidUrl;
       }
     }
@@ -213,8 +213,7 @@ namespace fc::sector_storage::stores {
       store.urls.resize(raw_store.urls.size());
 
       for (uint64_t i = 0; i < raw_store.urls.size(); i++) {
-        HttpUri uri;
-        OUTCOME_TRY(uri.parse(raw_store.urls[i]));
+        OUTCOME_TRY(uri, HttpUri::parse(raw_store.urls[i]));
         boost::filesystem::path path = uri.path();
         path = path / toString(file_type) / sectorName(sector);
         uri.setPath(path.string());
@@ -279,8 +278,7 @@ namespace fc::sector_storage::stores {
         store.urls.resize(raw_store.urls.size());
 
         for (uint64_t i = 0; i < raw_store.urls.size(); i++) {
-          HttpUri uri;
-          OUTCOME_TRY(uri.parse(raw_store.urls[i]));
+          OUTCOME_TRY(uri, HttpUri::parse(raw_store.urls[i]));
           boost::filesystem::path path = uri.path();
           path = path / toString(file_type) / sectorName(sector);
           uri.setPath(path.string());

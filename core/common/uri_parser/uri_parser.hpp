@@ -36,7 +36,8 @@ namespace fc::common {
 
     HttpUri() = default;
 
-    outcome::result<void> parse(const std::string &string);
+    static outcome::result<HttpUri> parse(const std::string &string);
+    outcome::result<void> parseThis(const std::string &string);
 
     const std::string &str() const;
 
