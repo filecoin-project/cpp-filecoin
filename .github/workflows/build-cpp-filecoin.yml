@@ -238,7 +238,7 @@ jobs:
               - base repo is '${{github.event.pull_request.base.repo.full_name}}'
               - See more information in previous step 'Show context'
 
-            Please ask @kuvaldini on GitHub or in Telegram if you need help.
+            Please ask @ahmedelkashev on GitHub or in Telegram if you need help.
           END
           false
     outputs:
