@@ -20,22 +20,22 @@ namespace fc::mining {
 
     TipsetCacheImpl(uint64_t capability, std::shared_ptr<FullNodeApi> api);
 
-    outcome::result<void> add(const Tipset &tipset) override;
+    outcome::result<void> add(TipsetCPtr tipset) override;
 
-    outcome::result<void> revert(const Tipset &tipset) override;
+    outcome::result<void> revert(TipsetCPtr tipset) override;
 
-    outcome::result<Tipset> getNonNull(ChainEpoch height) override;
+    outcome::result<TipsetCPtr> getNonNull(ChainEpoch height) override;
 
-    outcome::result<boost::optional<Tipset>> get(ChainEpoch height) override;
+    outcome::result<TipsetCPtr> get(ChainEpoch height) override;
 
-    outcome::result<Tipset> best() const override;
+    outcome::result<TipsetCPtr> best() const override;
 
    private:
     int64_t mod(int64_t x);
 
     mutable std::shared_mutex mutex_;
 
-    std::vector<boost::optional<Tipset>> cache_;
+    std::vector<TipsetCPtr> cache_;
 
     int64_t start_;
 
