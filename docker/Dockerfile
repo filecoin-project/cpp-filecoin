@@ -6,7 +6,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=shared apt-get update && ap
 RUN groupadd --gid 1000 fuhon && useradd --uid 1000 --gid fuhon fuhon
 
 FROM base AS build
-RUN --mount=type=cache,target=/var/cache/apt,sharing=shared apt-get update && apt-get install -y --no-install-recommends git curl rsync make ninja-build clang-9 jq python3-pip python-setuptools pkg-config opencl-headers libhwloc-dev zlib1g-dev libbz2-dev liblzma-dev libssl-dev libxml2-dev \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=shared apt-get update && apt-get install -y --no-install-recommends git curl rsync make ninja-build clang-9 jq python3-pip python-setuptools pkg-config opencl-headers libhwloc-dev libhidapi-dev zlib1g-dev libbz2-dev liblzma-dev libssl-dev libxml2-dev \
     && rm -rf /var/lib/apt/lists/*
 RUN pip3 install scikit-build cmake requests gitpython pyyaml
 RUN curl -sL https://golang.org/dl/go1.17.3.linux-amd64.tar.gz | tar -xz -C /usr/local
