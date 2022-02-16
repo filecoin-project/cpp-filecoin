@@ -270,20 +270,23 @@ namespace fc::sector_storage {
 
   outcome::result<CallId> LocalWorker::addPiece(
       const SectorRef &sector,
-      gsl::span<const UnpaddedPieceSize> piece_sizes,
+      VectorCoW<UnpaddedPieceSize> piece_sizes,
       const UnpaddedPieceSize &new_piece_size,
       proofs::PieceData piece_data) {
     return asyncCall(
         sector,
         return_->ReturnAddPiece,
-        [=, piece_data{std::make_shared<PieceData>(std::move(piece_data))}](
+        [=,
+         piece_sizes{std::make_shared<VectorCoW<UnpaddedPieceSize>>(
+             std::move(piece_sizes))},
+         piece_data{std::make_shared<PieceData>(std::move(piece_data))}](
             Self self) -> outcome::result<PieceInfo> {
           OUTCOME_TRY(max_size,
                       primitives::sector::getSectorSize(sector.proof_type));
 
           UnpaddedPieceSize offset;
 
-          for (const auto &piece_size : piece_sizes) {
+          for (const auto &piece_size : piece_sizes->span()) {
             offset += piece_size;
           }
 
@@ -299,7 +302,7 @@ namespace fc::sector_storage {
             }
           });
 
-          if (piece_sizes.empty()) {
+          if (piece_sizes->empty()) {
             OUTCOME_TRYA(acquire_response,
                          self->acquireSector(sector,
                                              SectorFileType::FTNone,
@@ -461,11 +464,12 @@ namespace fc::sector_storage {
   }
 
   outcome::result<CallId> LocalWorker::finalizeSector(
-      const SectorRef &sector, const gsl::span<const Range> &keep_unsealed) {
+      const SectorRef &sector, std::vector<Range> keep_unsealed) {
     return asyncCall(
         sector,
         return_->ReturnFinalizeSector,
-        [=](Self self) -> outcome::result<void> {
+        [=, keep_unsealed{std::move(keep_unsealed)}](
+            Self self) -> outcome::result<void> {
           OUTCOME_TRY(size,
                       primitives::sector::getSectorSize(sector.proof_type));
           {
@@ -805,7 +809,7 @@ namespace fc::sector_storage {
                   sector.id.miner,
                   randomness,
                   unsealed_cid,
-                  primitives::piece::paddedIndex(range.offset),
+                  range.offset,
                   range.size));
             }
 

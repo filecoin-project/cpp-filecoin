@@ -32,15 +32,14 @@ namespace fc::sector_storage {
 
     virtual std::shared_ptr<proofs::ProofEngine> getProofEngine() const = 0;
 
-    virtual void readPiece(
-        PieceData output,
-        const SectorRef &sector,
-        UnpaddedByteIndex offset,
-        const UnpaddedPieceSize &size,
-        const SealRandomness &randomness,
-        const CID &cid,
-        const std::function<void(outcome::result<bool>)> &cb,
-        uint64_t priority) = 0;
+    virtual void readPiece(PieceData output,
+                           const SectorRef &sector,
+                           UnpaddedByteIndex offset,
+                           const UnpaddedPieceSize &size,
+                           const SealRandomness &randomness,
+                           const CID &cid,
+                           const std::function<void(outcome::result<bool>)> &cb,
+                           uint64_t priority) = 0;
 
     // Sealer
     virtual void sealPreCommit1(
@@ -73,7 +72,7 @@ namespace fc::sector_storage {
 
     virtual void finalizeSector(
         const SectorRef &sector,
-        const gsl::span<const Range> &keep_unsealed,
+        std::vector<Range> keep_unsealed,
         const std::function<void(outcome::result<void>)> &cb,
         uint64_t priority) = 0;
 
@@ -107,7 +106,7 @@ namespace fc::sector_storage {
     // Storage
     virtual void addPiece(
         const SectorRef &sector,
-        gsl::span<const UnpaddedPieceSize> piece_sizes,
+        VectorCoW<UnpaddedPieceSize> piece_sizes,
         const UnpaddedPieceSize &new_piece_size,
         proofs::PieceData piece_data,
         const std::function<void(outcome::result<PieceInfo>)> &cb,
@@ -115,7 +114,7 @@ namespace fc::sector_storage {
 
     virtual outcome::result<PieceInfo> addPieceSync(
         const SectorRef &sector,
-        gsl::span<const UnpaddedPieceSize> piece_sizes,
+        VectorCoW<UnpaddedPieceSize> piece_sizes,
         const UnpaddedPieceSize &new_piece_size,
         proofs::PieceData piece_data,
         uint64_t priority) = 0;

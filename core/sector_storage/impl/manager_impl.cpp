@@ -700,7 +700,7 @@ namespace fc::sector_storage {
 
   void ManagerImpl::finalizeSector(
       const SectorRef &sector,
-      const gsl::span<const Range> &keep_unsealed,
+      std::vector<Range> keep_unsealed,
       const std::function<void(outcome::result<void>)> &cb,
       uint64_t priority) {
     OUTCOME_CB(auto lock,
@@ -726,7 +726,7 @@ namespace fc::sector_storage {
         [cb,
          index{index_},
          unsealed,
-         keep_unsealed,
+         need_unsealed{not keep_unsealed.empty()},
          scheduler{scheduler_},
          sector,
          lock{std::move(lock)},
@@ -740,9 +740,9 @@ namespace fc::sector_storage {
                                           | SectorFileType::FTCache),
               PathType::kStorage);
 
-          auto moveUnsealed = unsealed;
-          if (keep_unsealed.empty()) {
-            moveUnsealed = SectorFileType::FTNone;
+          auto moveUnsealed = SectorFileType::FTNone;
+          if (need_unsealed) {
+            moveUnsealed = unsealed;
           }
 
           OUTCOME_CB1(scheduler->schedule(
@@ -787,9 +787,9 @@ namespace fc::sector_storage {
                                         | SectorFileType::FTCache | unsealed),
             PathType::kSealing,
             AcquireMode::kMove),
-        [sector, keep_unsealed](
+        [sector, keep_unsealed{std::move(keep_unsealed)}](
             const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
-          return worker->finalizeSector(sector, keep_unsealed);
+          return worker->finalizeSector(sector, std::move(keep_unsealed));
         },
         callbackWrapper(std::move(next_cb)),
         priority,
@@ -922,7 +922,7 @@ namespace fc::sector_storage {
 
   void ManagerImpl::addPiece(
       const SectorRef &sector,
-      gsl::span<const UnpaddedPieceSize> piece_sizes,
+      VectorCoW<UnpaddedPieceSize> piece_sizes,
       const UnpaddedPieceSize &new_piece_size,
       proofs::PieceData piece_data,
       const std::function<void(outcome::result<PieceInfo>)> &cb,
@@ -947,13 +947,16 @@ namespace fc::sector_storage {
         selector,
         schedNothing(),
         [sector,
-         piece_sizes,
+         piece_sizes = std::make_shared<VectorCoW<UnpaddedPieceSize>>(
+             std::move(piece_sizes)),
          new_piece_size,
          data = std::make_shared<PieceData>(std::move(piece_data)),
          lock = std::move(lock)](
             const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
-          return worker->addPiece(
-              sector, piece_sizes, new_piece_size, std::move(*data));
+          return worker->addPiece(sector,
+                                  std::move(*piece_sizes),
+                                  new_piece_size,
+                                  std::move(*data));
         },
         callbackWrapper(cb),
         priority,
@@ -962,7 +965,7 @@ namespace fc::sector_storage {
 
   outcome::result<PieceInfo> ManagerImpl::addPieceSync(
       const SectorRef &sector,
-      gsl::span<const UnpaddedPieceSize> piece_sizes,
+      VectorCoW<UnpaddedPieceSize> piece_sizes,
       const UnpaddedPieceSize &new_piece_size,
       proofs::PieceData piece_data,
       uint64_t priority) {
@@ -970,7 +973,7 @@ namespace fc::sector_storage {
 
     addPiece(
         sector,
-        piece_sizes,
+        std::move(piece_sizes),
         new_piece_size,
         std::move(piece_data),
         [&wait_result](const outcome::result<PieceInfo> &maybe_pi) -> void {
