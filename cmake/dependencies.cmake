@@ -50,9 +50,6 @@ find_package(leveldb CONFIG REQUIRED)
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)
 
-hunter_add_package(c-ares)
-find_package(c-ares CONFIG REQUIRED)
-
 hunter_add_package(soralog)
 find_package(soralog CONFIG REQUIRED)
 
