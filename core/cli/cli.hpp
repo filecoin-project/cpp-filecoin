@@ -11,14 +11,15 @@
 #include <memory>
 #include <typeindex>
 
-#define CLI_TRY(valueName, maybeResult)                                \
+#define CLI_TRY(valueName, maybeResult)                                    \
   auto valueName##OUTCOME_TRY = maybeResult;                               \
   if (valueName##OUTCOME_TRY.has_error()) throw std::invalid_argument(""); \
   auto valueName = valueName##OUTCOME_TRY.value();
 
-#define CLI_TRY_TEXT(valueName, maybeResult, textError)                                \
-  auto valueName##OUTCOME_TRY = maybeResult;                               \
-  if (valueName##OUTCOME_TRY.has_error()) throw std::invalid_argument(textError); \
+#define CLI_TRY_TEXT(valueName, maybeResult, textError) \
+  auto valueName##OUTCOME_TRY = maybeResult;            \
+  if (valueName##OUTCOME_TRY.has_error())               \
+    throw std::invalid_argument(textError);             \
   auto valueName = valueName##OUTCOME_TRY.value();
 
 #include "cli/try.hpp"
@@ -52,6 +53,9 @@
     void operator()(Opts &opts) {                                          \
       opts.add_options()(NAME, po::value(&_), DESCRIPTION);                \
     }                                                                      \
+    void operator=(TYPE &&rhs) {                                           \
+      _ = std::move(rhs);                                                  \
+    }                                                                      \
     operator bool() const {                                                \
       return _.operator bool();                                            \
     }                                                                      \
@@ -68,10 +72,9 @@
   }
 
 #define CLI_OPTS() ::fc::cli::Opts opts()
-#define CLI_RUN()                                                 \
-  static ::fc::cli::RunResult run(const ::fc::cli::ArgsMap &argm, \
-                                  const Args &args,               \
-                                  const ::fc::cli::Argv &argv)
+#define CLI_RUN()                  \
+  static ::fc::cli::RunResult run( \
+      const ::fc::cli::ArgsMap &argm, Args &args, const ::fc::cli::Argv &argv)
 #define CLI_NO_RUN() constexpr static nullptr_t run{nullptr};
 
 namespace fc::cli {
@@ -80,7 +83,7 @@ namespace fc::cli {
 
   using RunResult = void;
   struct ArgsMap {
-    std::map<std::type_index, std::shared_ptr<void>> _;
+    mutable std::map<std::type_index, std::shared_ptr<void>> _;
     template <typename Args>
     void add(Args &&v) {
       _.emplace(typeid(Args), std::make_shared<Args>(std::forward<Args>(v)));

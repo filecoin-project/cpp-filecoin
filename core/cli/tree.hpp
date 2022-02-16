@@ -29,7 +29,7 @@ namespace fc::cli {
     if constexpr (run) {
       t.run = [](const ArgsMap &argm, const Argv &argv) {
         if constexpr (run) {
-          return Cmd::run(argm, argm.of<Cmd>(), argv);
+          return Cmd::run(argm, const_cast<typename Cmd::Args &>(argm.of<Cmd>()), argv);
         }
       };
     }

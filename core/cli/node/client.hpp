@@ -5,14 +5,20 @@
 
 #pragma once
 #include "cli/node/node.hpp"
+#include "storage/car/car.hpp"
+#include "storage/ipld/memory_indexed_car.hpp"
+#include "storage/unixfs/unixfs.hpp"
+#include "storage/ipld/memory_indexed_car.hpp"
 
 namespace fc::cli::_node {
   using api::FileRef;
   using api::ImportRes;
   using api::RetrievalOrder;
-  using primitives::BigInt;
   using primitives::address::Address;
-  using primitives::address::decodeFromString;
+  using proofs::padPiece;
+  using ::fc::storage::car::makeCar;
+  using ::fc::storage::unixfs::wrapFile;
+
 
   struct Node_client_retrieve {
     struct Args {
@@ -41,66 +47,61 @@ namespace fc::cli::_node {
 
     CLI_RUN() {
       Node::Api api{argm};
-      CLI_TRY_TEXT(root, CID::fromString(args.root), "Invalid root CID: " + args.root);
-      CLI_TRY_TEXT(cid,
-                   CID::fromString(args.piece_cid),
-                   "Invalid piece CID: " + args.piece_cid)
-      if (!args.provider.empty()) {
-        CLI_TRY_TEXT(miner,
-                     decodeFromString(args.provider),
-                     "Invalid Provider Address: " + args.provider)
+      RetrievalOrder order{};
+      auto data_cid{cliArgv<CID>(argv, 0, "dataCid")};
+      auto path{cliArgv<boost::filesystem::path>(argv, 1, "path")};
+      order.client =  (args.from ? *args.from : cliTry(api._->WalletDefaultAddress(), "Getting address of default wallet..."));
+      order.miner = (args.provider ? *args.provider : Address{});
+      if (args.max_price) {
+        fmt::print("max price is {}fil ({}attofil)\n",
+                   args.max_price->fil,
+                   args.max_price->atto());
       }
-      if (!args.from.empty()) {
-        CLI_TRY_TEXT(client,
-                     decodeFromString(args.from),
-                     "Invalid Client Address: " + args.from)
-      }
+      fmt::print("retrieving {} to {} {}\n",
+                 data_cid,
+                 args.car ? "car" : "file",
+                 path);
+
       // TODO: continue function
-      // TODO: positional args
     }
   };
 
   struct Node_client_importData {
     struct Args {
-      bool car{};
-      std::string path;
+      CLI_BOOL("car", "import from a car file instead of a regular file")car;
 
       CLI_OPTS() {
-        Opts opts;
-        auto option{opts.add_options()};
-        option("car",
-               po::bool_switch(&car),
-               "import from a car file instead of a regular file");
-        option("path,p", po::value(&path), "path to import");
-        return opts;
+       Opts opts;
+       car(opts);
+       return opts;
       }
     };
 
     CLI_RUN() {
       Node::Api api{argm};
-      FileRef file_ref{args.path, args.car};
-      CLI_TRY_TEXT(result, api._->ClientImport(file_ref), "Fail of data import")
-      std::cout << "File Root CID: " << result.root.toString().value() << "\n";
-      std::cout << "Data Import Success\n";
+      auto path{cliArgv<std::string>(argv, 0, "path to file to import")};
+      FileRef file_ref{path, args.car};
+      auto result = cliTry(api._->ClientImport(file_ref), "Processing data import");
+      fmt::print("File Root CID: " + result.root.toString().value());
+      fmt::print("Data Import Success");
     }
   };
 
 
-  struct Node_client_generateCar{
-    struct  Args{
-      std::string  in_path;
-      std::string  out_path;
-      CLI_OPTS(){
-        Opts opts;
-        auto option{opts.add_options()};
-        option("input-path, inp", po::value(&in_path), "specifies path to source file");
-        option("output-path, outp", po::value(&in_path), "specifies path to generated file");
-      }
+  struct Node_client_generateCar: Empty{
+    CLI_RUN() {
+      auto path_to{cliArgv<boost::filesystem::path>(argv, 0, "input-path")};
+      auto path_out{cliArgv<boost::filesystem::path>(argv, 1, "output-path")};
 
-      CLI_RUN(){
-        std::cout<<"Does not supported yet\n";
-      }
-    };
+      auto tmp_path = path_to.string() + ".unixfs-tmp.car";
+      auto ipld = cliTry(MemoryIndexedCar::make(tmp_path, true), "Creting IPLD instance of {}", tmp_path);
+      std::ifstream file{path_to.string()};
+      auto root = cliTry(wrapFile(*ipld, file));
+      cliTry(::fc::storage::car::makeSelectiveCar(
+          *ipld, {{root, {}}}, path_out.string()));
+      boost::filesystem::remove(tmp_path);
+      padPiece(path_out);
+    }
   };
 
   struct Node_client_local: Empty{
@@ -108,22 +109,111 @@ namespace fc::cli::_node {
       Node::Api api {argm};
       auto result = cliTry(api._->ClientListImports(), "Getting imports list");
       for(auto it = result.begin(); it != result.end(); it++){
-        std::cout<<"Root CID: "<<it->root.toString().value()<<"\n";
-        std::cout<<"Source: "<<it->source<<"\n";
-        std::cout<<"Path: "<<it->path<<"\n";
+        fmt::print("Root CID: {} \n", it->root.toString().value());
+        fmt::print("Source: {}\n", it->source);
+        fmt::print("Path: {}\n", it->path);
       }
     }
   };
 
   struct Node_client_find{
-    struct Args{
+
+  };
+
+  struct Node_client_listRetrieval{
+    struct Args {
+      CLI_BOOL("verbose", "print verbose deal details")verbose;
+      CLI_BOOL("show-failed", "show failed/failing deals")failed_show;
+      CLI_BOOL("completed", "show completed retrievals")completed_show;
 
       CLI_OPTS(){
         Opts opts;
-        auto option{opts.add_options()};
-
+        verbose(opts);
+        failed_show(opts);
+        completed_show(opts);
+        return opts;
       }
     };
 
+    CLI_RUN(){
+      Node::Api api{argm};
+      bool failed_show = !args.failed_show;
+      //TODO: continue;
+      // chan = ()
+      // if(flag){
+      //   chan->read([](){
+      //      print(api->stateRetrivalsDeals)
+      //
+      //  })
+        while(true){
+          sleep(10000000000);
+        }
+      //
+    }
+
   };
+
+
+
+  struct Node_client_inspectDeal{
+    struct Args {
+      CLI_OPTIONAL("proposal-cid", "proposal cid of deal to be inspected", CID)
+      proposal_cid;
+      CLI_OPTIONAL("deal-id", "id of deal to be inspected", int) deal_id;
+      CLI_OPTS() {
+        Opts opts;
+        proposal_cid(opts);
+        deal_id(opts);
+        return opts;
+      }
+    };
+    CLI_RUN(){
+      Node::Api api{argm};
+
+
+
+    }
+
+  };
+  struct Node_client_list_deals{
+    struct Args {
+      CLI_BOOL("show-failed", "show failed/failing deals") failed_show;
+      CLI_OPTS(){
+        Opts opts;
+        failed_show(opts);
+        return opts;
+      }
+    };
+
+    CLI_RUN(){
+      Node::Api api{argm};
+      fmt::print("Not supported yet\n");
+      auto local_deals = cliTry(api._->ClientListDeals(), "Getting local client deals...");
+      // TODO(Markuus): make output;
+    }
+  };
+
+  struct Node_client_balances{
+    struct Args{
+      CLI_OPTIONAL("client", "specifies market  client", Address)client;
+      CLI_OPTS(){
+        Opts  opts;
+        client(opts);
+        return opts;
+      }
+    };
+
+    CLI_RUN(){
+      Node::Api api{argm};
+      Address addr = (args.client ? *args.client : cliTry(api._->WalletDefaultAddress(), "Getting address of default wallet..."));
+      auto balance = cliTry(api._->StateMarketBalance(addr, TipsetKey()));
+
+
+      fmt::print("  Escrowed Funds:        {}\n", AttoFil{balance.escrow});
+      fmt::print("  Locked Funds:          {}\n", AttoFil{balance.locked});
+      //TODO: Reserved and Avaliable
+    }
+  };
+
+
 }  // namespace fc::cli::_node
