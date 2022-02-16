@@ -40,6 +40,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(TESTING "Build tests" ON)
 option(TESTING_PROOFS "Build proofs tests" OFF)
 option(TESTING_ACTORS "Build actors tests" OFF)
+option(BUILD_INTERNAL_DEPS "Build internal dependencies from git submodules" ON)
 option(CLANG_FORMAT "Enable clang-format target" ON)
 option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
 option(COVERAGE "Enable generation of coverage info" OFF)
@@ -102,7 +103,9 @@ if (CLANG_FORMAT)
   include(cmake/clang-format.cmake)
 endif ()
 
-add_subdirectory(deps)
+if (BUILD_INTERNAL_DEPS)
+  add_subdirectory(deps)
+endif()
 
 include_directories(
     # project includes
@@ -110,12 +113,14 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/libs
 )
 
-include_directories(
-    SYSTEM
-    # system includes
-    deps/indicators/include
-    deps/libsecp256k1/include
-)
+if (BUILD_INTERNAL_DEPS)
+  include_directories(
+      SYSTEM
+      # system includes
+      deps/indicators/include
+      deps/libsecp256k1/include
+  )
+endif()
 
 add_subdirectory(libs)
 add_subdirectory(core)
