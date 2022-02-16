@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include <hidapi/hidapi.h>
+#include <hidapi.h>
 #include <functional>
 #include <memory>
 #include <mutex>
