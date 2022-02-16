@@ -3,6 +3,14 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+find_library(HIDAPI_LIB
+    NAMES hidapi hidapi-libusb)
+
+find_path(HIDAPI_INCLUDE_DIR
+    NAMES hidapi.h
+    PATH_SUFFIXES
+    hidapi)
+
 add_library(ledger_device
     apdu_wrapper.cpp
     device_hid_info.cpp
@@ -12,14 +20,5 @@ add_library(ledger_device
     utils.cpp
     )
 
-if (APPLE)
-    target_link_libraries(ledger_device
-        hidapi
-        )
-endif ()
-
-if (UNIX AND NOT APPLE)
-    target_link_libraries(ledger_device
-        hidapi-libusb
-        )
-endif ()
+target_include_directories(ledger_device PRIVATE ${HIDAPI_INCLUDE_DIR})
+target_link_libraries(ledger_device ${HIDAPI_LIB})

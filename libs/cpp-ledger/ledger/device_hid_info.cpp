@@ -5,7 +5,7 @@
 
 #include "cpp-ledger/ledger/device_hid_info.hpp"
 
-#include <hidapi/hidapi.h>
+#include <hidapi.h>
 #include <iomanip>
 #include <sstream>
 #include "cpp-ledger/ledger/utils.hpp"
