@@ -101,9 +101,11 @@ namespace fc::storage::piece {
   outcome::result<bool> PieceStorageImpl::hasPieceInfo(
       CID payload_cid, const boost::optional<CID> &piece_cid) const {
     auto piece_info_res = getPieceInfoFromCid(payload_cid, piece_cid);
-    if (piece_info_res.has_error()
-        && piece_info_res.error() == PieceStorageError::kPieceNotFound) {
-      return false;
+    if (piece_info_res.has_error()) {
+      if (piece_info_res.error() == PieceStorageError::kPieceNotFound) {
+        return false;
+      }
+      return piece_info_res.error();
     }
     return !piece_info_res.value().deals.empty();
   }

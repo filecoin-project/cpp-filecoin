@@ -18,11 +18,13 @@
 #include <thread>
 #include <utility>
 #include "api/storage_miner/storage_api.hpp"
+#include "common/put_in_function.hpp"
 #include "primitives/rle_bitset/runs_utils.hpp"
 #include "primitives/sector_file/sector_file.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage {
+  using common::PutInFunction;
   using primitives::piece::PaddedByteIndex;
   using primitives::piece::PaddedPieceSize;
   using primitives::sector_file::SectorFile;
@@ -270,20 +272,22 @@ namespace fc::sector_storage {
 
   outcome::result<CallId> LocalWorker::addPiece(
       const SectorRef &sector,
-      gsl::span<const UnpaddedPieceSize> piece_sizes,
+      VectorCoW<UnpaddedPieceSize> piece_sizes,
       const UnpaddedPieceSize &new_piece_size,
       proofs::PieceData piece_data) {
     return asyncCall(
         sector,
         return_->ReturnAddPiece,
-        [=, piece_data{std::make_shared<PieceData>(std::move(piece_data))}](
-            Self self) -> outcome::result<PieceInfo> {
+        PutInFunction([=,
+                       exist_sizes = std::move(piece_sizes),
+                       data = std::move(piece_data)](
+                          const Self &self) -> outcome::result<PieceInfo> {
           OUTCOME_TRY(max_size,
                       primitives::sector::getSectorSize(sector.proof_type));
 
           UnpaddedPieceSize offset;
 
-          for (const auto &piece_size : piece_sizes) {
+          for (const auto &piece_size : exist_sizes.span()) {
             offset += piece_size;
           }
 
@@ -299,7 +303,7 @@ namespace fc::sector_storage {
             }
           });
 
-          if (piece_sizes.empty()) {
+          if (exist_sizes.empty()) {
             OUTCOME_TRYA(acquire_response,
                          self->acquireSector(sector,
                                              SectorFileType::FTNone,
@@ -322,13 +326,13 @@ namespace fc::sector_storage {
           }
 
           OUTCOME_TRY(piece_info,
-                      staged_file->write(*piece_data,
+                      staged_file->write(data,
                                          offset.padded(),
                                          new_piece_size.padded(),
                                          sector.proof_type));
 
           return piece_info.value();
-        });
+        }));
   }
 
   outcome::result<CallId> LocalWorker::sealPreCommit1(
@@ -461,11 +465,12 @@ namespace fc::sector_storage {
   }
 
   outcome::result<CallId> LocalWorker::finalizeSector(
-      const SectorRef &sector, const gsl::span<const Range> &keep_unsealed) {
+      const SectorRef &sector, std::vector<Range> keep_unsealed) {
     return asyncCall(
         sector,
         return_->ReturnFinalizeSector,
-        [=](Self self) -> outcome::result<void> {
+        [=, keep_unsealed{std::move(keep_unsealed)}](
+            Self self) -> outcome::result<void> {
           OUTCOME_TRY(size,
                       primitives::sector::getSectorSize(sector.proof_type));
           {
@@ -796,17 +801,16 @@ namespace fc::sector_storage {
                 }
               });
 
-              OUTCOME_TRY(self->proofs_->unsealRange(
-                  sector.proof_type,
-                  response.paths.cache,
-                  sealed,
-                  PieceData(fds[1]),
-                  sector.id.sector,
-                  sector.id.miner,
-                  randomness,
-                  unsealed_cid,
-                  primitives::piece::paddedIndex(range.offset),
-                  range.size));
+              OUTCOME_TRY(self->proofs_->unsealRange(sector.proof_type,
+                                                     response.paths.cache,
+                                                     sealed,
+                                                     PieceData(fds[1]),
+                                                     sector.id.sector,
+                                                     sector.id.miner,
+                                                     randomness,
+                                                     unsealed_cid,
+                                                     range.offset,
+                                                     range.size));
             }
 
             for (auto &t : threads) {

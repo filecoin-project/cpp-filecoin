@@ -37,15 +37,14 @@ namespace fc::sector_storage {
         const std::shared_ptr<proofs::ProofEngine> &proofs =
             std::make_shared<proofs::ProofEngineImpl>());
 
-    void readPiece(
-        PieceData output,
-        const SectorRef &sector,
-        UnpaddedByteIndex offset,
-        const UnpaddedPieceSize &size,
-        const SealRandomness &randomness,
-        const CID &cid,
-        const std::function<void(outcome::result<bool>)> &cb,
-        uint64_t priority) override;
+    void readPiece(PieceData output,
+                   const SectorRef &sector,
+                   UnpaddedByteIndex offset,
+                   const UnpaddedPieceSize &size,
+                   const SealRandomness &randomness,
+                   const CID &cid,
+                   const std::function<void(outcome::result<bool>)> &cb,
+                   uint64_t priority) override;
 
     void sealPreCommit1(
         const SectorRef &sector,
@@ -75,7 +74,7 @@ namespace fc::sector_storage {
                      uint64_t priority) override;
 
     void finalizeSector(const SectorRef &sector,
-                        const gsl::span<const Range> &keep_unsealed,
+                        std::vector<Range> keep_unsealed,
                         const std::function<void(outcome::result<void>)> &cb,
                         uint64_t priority) override;
 
@@ -103,7 +102,7 @@ namespace fc::sector_storage {
         uint64_t priority) override;
 
     void addPiece(const SectorRef &sector,
-                  gsl::span<const UnpaddedPieceSize> piece_sizes,
+                  VectorCoW<UnpaddedPieceSize> piece_sizes,
                   const UnpaddedPieceSize &new_piece_size,
                   proofs::PieceData piece_data,
                   const std::function<void(outcome::result<PieceInfo>)> &cb,
@@ -111,7 +110,7 @@ namespace fc::sector_storage {
 
     outcome::result<PieceInfo> addPieceSync(
         const SectorRef &sector,
-        gsl::span<const UnpaddedPieceSize> piece_sizes,
+        VectorCoW<UnpaddedPieceSize> piece_sizes,
         const UnpaddedPieceSize &new_piece_size,
         proofs::PieceData piece_data,
         uint64_t priority) override;
