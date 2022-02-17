@@ -27,9 +27,11 @@
 
 #include <string>
 
+#include "common/outcome.hpp"
+
 class PercentEncoding final {
  public:
   static std::string encode(const std::string &input);
 
-  static std::string decode(std::string const &input);
+  static fc::outcome::result<std::string> decode(std::string const &input);
 };

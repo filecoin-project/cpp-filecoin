@@ -34,7 +34,7 @@ sinks:
 groups:
   - name: main
     sink: file
-    level: debug
+    level: info
     children:
       - name: libp2p
           )",

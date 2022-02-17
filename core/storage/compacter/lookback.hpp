@@ -7,10 +7,12 @@
 
 #include "codec/cbor/light_reader/actor.hpp"
 #include "codec/cbor/light_reader/address.hpp"
+#include "codec/cbor/light_reader/amt_walk.hpp"
 #include "codec/cbor/light_reader/hamt_walk.hpp"
 #include "codec/cbor/light_reader/miner_actor_reader.hpp"
 #include "codec/cbor/light_reader/state_tree.hpp"
 #include "codec/cbor/light_reader/storage_power_actor_reader.hpp"
+#include "common/append.hpp"
 #include "storage/compacter/queue.hpp"
 #include "vm/actor/codes.hpp"
 
@@ -46,6 +48,18 @@ namespace fc::storage::compacter {
       const auto &[info, sectors, deadlines]{_r.value()};
       copy.push_back(head);
       copy.push_back(info);
+      recurse.push_back(sectors);
+      copy.push_back(deadlines);
+      codec::cbor::light_reader::minerDeadlines(
+          ipld, deadlines, [&](const CbCid &deadline, const CbCid &partitions) {
+            copy.push_back(deadline);
+            codec::cbor::light_reader::AmtWalk walk{ipld, partitions};
+            if (!walk.visit()) {
+              return false;
+            }
+            append(copy, walk.cids);
+            return true;
+          });
       return;
     }
     if (ACTOR_CODE_IS(kStoragePowerCodeId)) {

@@ -5,8 +5,6 @@
 
 #include "primitives/tipset/chain.hpp"
 
-#include <boost/endian/conversion.hpp>
-
 #include "common/error_text.hpp"
 #include "common/file.hpp"
 #include "primitives/tipset/file.hpp"

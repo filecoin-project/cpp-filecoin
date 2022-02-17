@@ -16,23 +16,23 @@ namespace fc::mining {
     len_ = 0;
   }
 
-  outcome::result<void> TipsetCacheImpl::add(const Tipset &tipset) {
+  outcome::result<void> TipsetCacheImpl::add(TipsetCPtr tipset) {
     std::unique_lock lock(mutex_);
 
     if (len_ > 0) {
-      if (cache_[start_]->height() >= tipset.height()) {
+      if (cache_[start_]->height() >= tipset->height()) {
         return TipsetCacheError::kSmallerHeight;
       }
     }
 
-    auto current_height = tipset.height();
+    auto current_height = tipset->height();
     if (len_ > 0) {
       current_height = cache_[start_]->height();
     }
 
-    while (++current_height < tipset.height()) {
+    while (++current_height < tipset->height()) {
       start_ = mod(start_ + 1);
-      cache_[start_] = boost::none;
+      cache_[start_] = nullptr;
       if (len_ < cache_.size()) {
         len_++;
       }
@@ -47,45 +47,44 @@ namespace fc::mining {
     return outcome::success();
   }
 
-  outcome::result<void> TipsetCacheImpl::revert(const Tipset &tipset) {
+  outcome::result<void> TipsetCacheImpl::revert(TipsetCPtr tipset) {
     std::unique_lock lock(mutex_);
 
     if (len_ == 0) {
       return outcome::success();
     }
 
-    if (cache_[start_] != tipset) {
+    if (*cache_[start_] != *tipset) {
       return TipsetCacheError::kNotMatchHead;
     }
 
-    cache_[start_] = boost::none;
+    cache_[start_] = nullptr;
     start_ = mod(start_ - 1);
     len_--;
 
-    while (len_ && cache_[start_] == boost::none) {
+    while (len_ && cache_[start_] == nullptr) {
       start_ = mod(start_ - 1);
       len_--;
     }
     return outcome::success();
   }
 
-  outcome::result<Tipset> TipsetCacheImpl::getNonNull(ChainEpoch height) {
+  outcome::result<TipsetCPtr> TipsetCacheImpl::getNonNull(ChainEpoch height) {
     while (true) {
       OUTCOME_TRY(tipset, get(height++));
 
       if (tipset) {
-        return tipset.get();
+        return std::move(tipset);
       }
     }
   }
 
-  outcome::result<boost::optional<Tipset>> TipsetCacheImpl::get(
-      ChainEpoch height) {
+  outcome::result<TipsetCPtr> TipsetCacheImpl::get(ChainEpoch height) {
     std::shared_lock lock(mutex_);
 
     if (len_ == 0) {
       OUTCOME_TRY(tipset, api_->ChainGetTipSetByHeight(height, {}));
-      return *tipset;
+      return std::move(tipset);
     }
 
     auto head_height = cache_[start_]->height();
@@ -94,7 +93,7 @@ namespace fc::mining {
       return TipsetCacheError::kNotInCache;
     }
 
-    boost::optional<Tipset> tail = boost::none;
+    TipsetCPtr tail = nullptr;
     uint64_t i;
     for (i = 1; i <= len_; i++) {
       tail = cache_[mod(start_ - len_ + i)];
@@ -105,19 +104,19 @@ namespace fc::mining {
 
     if (height < tail->height()) {
       OUTCOME_TRY(tipset, api_->ChainGetTipSetByHeight(height, {}));
-      return *tipset;
+      return std::move(tipset);
     }
 
     return cache_[mod(start_ - (head_height - height))];
   }
 
-  outcome::result<Tipset> TipsetCacheImpl::best() const {
+  outcome::result<TipsetCPtr> TipsetCacheImpl::best() const {
     std::shared_lock lock(mutex_);
     if (len_ == 0) {
       OUTCOME_TRY(tipset, api_->ChainHead());
-      return *tipset;
+      return std::move(tipset);
     }
-    return cache_[start_].value();
+    return cache_[start_];
   }
 
   int64_t TipsetCacheImpl::mod(int64_t x) {

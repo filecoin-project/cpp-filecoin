@@ -49,6 +49,7 @@ namespace fc::mining {
   using primitives::CounterMock;
   using primitives::block::BlockHeader;
   using primitives::sector::Proof;
+  using primitives::tipset::Tipset;
   using sector_storage::Commit1Output;
   using sector_storage::ManagerMock;
   using storage::InMemoryStorage;

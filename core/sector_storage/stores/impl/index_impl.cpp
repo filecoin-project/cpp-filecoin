@@ -19,21 +19,11 @@ namespace fc::sector_storage::stores {
   using std::chrono::high_resolution_clock;
   using std::chrono::system_clock;
 
-  bool isValidUrl(const std::string &url) {
-    HttpUri uri;
-    try {
-      uri.parse(url);
-      return true;
-    } catch (const std::runtime_error &err) {
-      return false;
-    }
-  }
-
   outcome::result<void> SectorIndexImpl::storageAttach(
       const StorageInfo &storage_info, const FsStat &stat) {
     std::unique_lock lock(mutex_);
     for (const auto &new_url : storage_info.urls) {
-      if (!isValidUrl(new_url)) {
+      if (!HttpUri::parse(new_url)) {
         return IndexErrors::kInvalidUrl;
       }
     }
@@ -174,7 +164,8 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<std::vector<SectorStorageInfo>> SectorIndexImpl::storageFindSector(
+  outcome::result<std::vector<SectorStorageInfo>>
+  SectorIndexImpl::storageFindSector(
       const SectorId &sector,
       const fc::primitives::sector_file::SectorFileType &file_type,
       boost::optional<SectorSize> fetch_sector_size) {
@@ -216,18 +207,13 @@ namespace fc::sector_storage::stores {
       SectorStorageInfo store{
           .id = raw_store.id,
           .can_seal = raw_store.can_seal,
-          .can_store = raw_store.can_store
+          .can_store = raw_store.can_store,
       };
 
       store.urls.resize(raw_store.urls.size());
 
       for (uint64_t i = 0; i < raw_store.urls.size(); i++) {
-        HttpUri uri;
-        try {
-          uri.parse(raw_store.urls[i]);
-        } catch (const std::runtime_error &err) {
-          return IndexErrors::kInvalidUrl;
-        }
+        OUTCOME_TRY(uri, HttpUri::parse(raw_store.urls[i]));
         boost::filesystem::path path = uri.path();
         path = path / toString(file_type) / sectorName(sector);
         uri.setPath(path.string());
@@ -286,18 +272,13 @@ namespace fc::sector_storage::stores {
         SectorStorageInfo store{
             .id = raw_store.id,
             .can_seal = raw_store.can_seal,
-            .can_store = raw_store.can_store
+            .can_store = raw_store.can_store,
         };
 
         store.urls.resize(raw_store.urls.size());
 
         for (uint64_t i = 0; i < raw_store.urls.size(); i++) {
-          HttpUri uri;
-          try {
-            uri.parse(raw_store.urls[i]);
-          } catch (const std::runtime_error &err) {
-            return IndexErrors::kInvalidUrl;
-          }
+          OUTCOME_TRY(uri, HttpUri::parse(raw_store.urls[i]));
           boost::filesystem::path path = uri.path();
           path = path / toString(file_type) / sectorName(sector);
           uri.setPath(path.string());
