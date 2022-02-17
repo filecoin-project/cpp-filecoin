@@ -18,10 +18,10 @@ namespace fc {
 
     VectorCoW() = default;
     // NOLINTNEXTLINE(google-explicit-constructor)
-    VectorCoW(VectorType &&vector) : variant{std::move(vector)} {}
+    VectorCoW(VectorType &&vector) : variant_{std::move(vector)} {}
     VectorCoW(const VectorType &vector) = delete;
     // NOLINTNEXTLINE(google-explicit-constructor)
-    VectorCoW(const SpanType &span) : variant{span} {}
+    VectorCoW(const SpanType &span) : variant_{span} {}
     VectorCoW(const VectorCoW<T> &) = delete;
     VectorCoW(VectorCoW<T> &&) = default;
     VectorCoW<T> &operator=(const VectorCoW<T> &) = delete;
@@ -29,14 +29,14 @@ namespace fc {
     ~VectorCoW() = default;
 
     bool owned() const {
-      return variant.index() == 1;
+      return variant_.index() == 1;
     }
 
     SpanType span() const {
       if (!owned()) {
-        return std::get<SpanType>(variant);
+        return std::get<SpanType>(variant_);
       }
-      return SpanType{std::get<VectorType>(variant)};
+      return SpanType{std::get<VectorType>(variant_)};
     }
 
     size_t size() const {
@@ -50,20 +50,20 @@ namespace fc {
     // get mutable container reference, copy once if span
     VectorType &mut() {
       if (!owned()) {
-        const auto span = std::get<SpanType>(variant);
-        variant.template emplace<VectorType>(span.begin(), span.end());
+        const auto span = std::get<SpanType>(variant_);
+        variant_.template emplace<VectorType>(span.begin(), span.end());
       }
-      return std::get<VectorType>(variant);
+      return std::get<VectorType>(variant_);
     }
 
     // move container away, copy once if span
     VectorType into() {
       auto vector{std::move(mut())};
-      variant.template emplace<SpanType>();
+      variant_.template emplace<SpanType>();
       return vector;
     }
 
    private:
-    std::variant<SpanType, VectorType> variant;
+    std::variant<SpanType, VectorType> variant_;
   };
 }  // namespace fc

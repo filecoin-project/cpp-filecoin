@@ -939,7 +939,7 @@ namespace fc::sector_storage {
                               sector_.id.miner,
                               randomness,
                               unsealed_cid,
-                              primitives::piece::paddedIndex(offset),
+                              offset,
                               uint64_t(piece_size)))
         .WillOnce(
             testing::Invoke([&](RegisteredSealProof proof_type,
@@ -1129,7 +1129,7 @@ namespace fc::sector_storage {
                               sector_.id.miner,
                               randomness,
                               unsealed_cid,
-                              primitives::piece::paddedIndex(offset),
+                              offset,
                               uint64_t(piece_size)))
         .WillOnce(
             testing::Invoke([&](RegisteredSealProof proof_type,
@@ -1546,15 +1546,16 @@ namespace fc::sector_storage {
    * @then WorkerErrors::kOutOfBound occurs
    */
   TEST_F(LocalWorkerTest, AddPieceOutOfBound) {
-    std::vector<UnpaddedPieceSize> pieces = {UnpaddedPieceSize(1016),
-                                             UnpaddedPieceSize(1016)};
+    VectorCoW<UnpaddedPieceSize> pieces(
+        {UnpaddedPieceSize(1016), UnpaddedPieceSize(1016)});
 
     MOCK_API(return_interface_, ReturnAddPiece);
 
-    EXPECT_OUTCOME_TRUE(
-        call_id,
-        local_worker_->addPiece(
-            sector_, pieces, UnpaddedPieceSize(127), PieceData("/dev/null")));
+    EXPECT_OUTCOME_TRUE(call_id,
+                        local_worker_->addPiece(sector_,
+                                                std::move(pieces),
+                                                UnpaddedPieceSize(127),
+                                                PieceData("/dev/null")));
 
     CallError error;
     EXPECT_CALL(mock_ReturnAddPiece, Call(call_id, _, Ne(boost::none)))
@@ -1770,7 +1771,10 @@ namespace fc::sector_storage {
     EXPECT_OUTCOME_TRUE(
         call_id,
         local_worker_->addPiece(
-            sector_, pieces, piece_size, PieceData(input_path)));
+            sector_,
+            VectorCoW(gsl::span<const UnpaddedPieceSize>(pieces)),
+            piece_size,
+            PieceData(input_path)));
 
     PieceInfo info;
     EXPECT_CALL(mock_ReturnAddPiece, Call(call_id, _, Eq(boost::none)))
