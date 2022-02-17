@@ -17,6 +17,7 @@
 #include "api/storage_miner/return_api.hpp"
 #include "codec/json/json.hpp"
 #include "common/outcome_fmt.hpp"
+#include "common/put_in_function.hpp"
 #include "sector_storage/impl/allocate_selector.hpp"
 #include "sector_storage/impl/existing_selector.hpp"
 #include "sector_storage/impl/local_worker.hpp"
@@ -25,6 +26,7 @@
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage {
+  using common::PutInFunction;
   using primitives::sector::SectorInfo;
   using primitives::sector::toSectorInfo;
   using primitives::sector_file::SectorFileType;
@@ -740,10 +742,8 @@ namespace fc::sector_storage {
                                           | SectorFileType::FTCache),
               PathType::kStorage);
 
-          auto moveUnsealed = SectorFileType::FTNone;
-          if (need_unsealed) {
-            moveUnsealed = unsealed;
-          }
+          const auto moveUnsealed =
+              need_unsealed ? unsealed : SectorFileType::FTNone;
 
           OUTCOME_CB1(scheduler->schedule(
               sector,
@@ -946,18 +946,16 @@ namespace fc::sector_storage {
         primitives::kTTAddPiece,
         selector,
         schedNothing(),
-        [sector,
-         piece_sizes = std::make_shared<VectorCoW<UnpaddedPieceSize>>(
-             std::move(piece_sizes)),
-         new_piece_size,
-         data = std::make_shared<PieceData>(std::move(piece_data)),
-         lock = std::move(lock)](
-            const std::shared_ptr<Worker> &worker) -> outcome::result<CallId> {
-          return worker->addPiece(sector,
-                                  std::move(*piece_sizes),
-                                  new_piece_size,
-                                  std::move(*data));
-        },
+        PutInFunction([sector,
+                       exist_sizes = std::move(piece_sizes),
+                       new_piece_size,
+                       data = std::move(piece_data),
+                       lock = std::move(lock)](
+                          const std::shared_ptr<Worker> &worker) mutable
+                      -> outcome::result<CallId> {
+          return worker->addPiece(
+              sector, std::move(exist_sizes), new_piece_size, std::move(data));
+        }),
         callbackWrapper(cb),
         priority,
         boost::none));
