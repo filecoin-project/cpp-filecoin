@@ -57,6 +57,18 @@ namespace fc::api::rpc {
     void setup(A &api) {
       visit(api, [&](auto &m) { _setup(*this, m); });
     }
+    struct ClientData {
+      ClientData(std::string host,
+                 std::string port,
+                 std::string target,
+                 std::string token)
+          : host(host), port(port), target(target), token(token){};
+      ClientData() = default;
+
+      std::string host, port, target, token;
+    }client_data;
+
+    void reconnect(int counter, std::chrono::milliseconds wait);
 
    private:
     std::thread thread;
@@ -72,6 +84,7 @@ namespace fc::api::rpc {
     std::map<uint64_t, ChanCb> chans;
     std::queue<std::pair<uint64_t, Bytes>> write_queue;
     bool writing{false};
+    std::atomic<bool> reconnecting;
 
     template <typename M>
     void _setup(Client &c, M &m);

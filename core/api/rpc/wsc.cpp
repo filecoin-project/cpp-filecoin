@@ -56,6 +56,7 @@ namespace fc::api::rpc {
           }));
     }
     socket.handshake(host, target, ec);
+    client_data = ClientData{host, port, target, token};
     if (ec) {
       return ec;
     }
@@ -87,10 +88,11 @@ namespace fc::api::rpc {
       }
     }
     chans.clear();
+    reconnect(3, std::chrono::seconds(5));
   }
 
   void Client::_flush() {
-    if (!writing && !write_queue.empty()) {
+    if (!writing && !write_queue.empty() && !reconnecting){
       auto &[id, buffer] = write_queue.front();
       writing = true;
       socket.async_write(boost::asio::buffer(buffer.data(), buffer.size()),
@@ -184,5 +186,23 @@ namespace fc::api::rpc {
         }
       }
     }
+  }
+
+  void Client::reconnect(int counter, std::chrono::milliseconds wait) {
+    if(reconnecting.exchange(true)) return;
+    logger_->info("Starting reconnect to {}:{}", client_data.host, client_data.port);
+    for(int i = 0; i < counter; i++){
+      std::this_thread::sleep_for(wait*(i+1));
+      auto res = connect(client_data.host,
+                         client_data.port,
+                         client_data.target,
+                         client_data.token);
+      if(!res.has_error()) {
+        break;
+      }
+    }
+    reconnecting.store(false);
+    logger_->info("Reconnect to {}:{} was successful", client_data.host, client_data.port);
+    _flush();
   }
 }  // namespace fc::api::rpc

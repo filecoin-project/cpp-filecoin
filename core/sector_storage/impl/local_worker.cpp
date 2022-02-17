@@ -904,4 +904,7 @@ namespace fc::sector_storage {
 
     return call_id;
   }
+  void LocalWorker::ping(std::function<void(const bool &resp)> cb) {
+    cb(true);
+  }
 }  // namespace fc::sector_storage

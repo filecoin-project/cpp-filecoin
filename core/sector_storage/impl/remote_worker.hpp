@@ -39,6 +39,8 @@ namespace fc::sector_storage {
         const SectorRef &sector,
         const PreCommit1Output &pre_commit_1_output) override;
 
+    void ping(std::function<void(const bool &resp)> cb) override;
+
     outcome::result<CallId> sealCommit1(const SectorRef &sector,
                                         const SealRandomness &ticket,
                                         const InteractiveRandomness &seed,
