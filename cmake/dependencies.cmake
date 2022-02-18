@@ -46,7 +46,12 @@ find_package(Boost.DI CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/leveldb.html
 hunter_add_package(leveldb)
-find_package(leveldb CONFIG REQUIRED)
+if (HUNTER_ENABLED)
+  find_package(leveldb CONFIG REQUIRED)
+else()
+  find_package(leveldb REQUIRED)
+  include_directories(${LEVELDB_INCLUDE_DIRS})
+endif()
 
 # https://github.com/soramitsu/libp2p
 hunter_add_package(libp2p)
