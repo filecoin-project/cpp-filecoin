@@ -216,6 +216,25 @@ namespace fc::cli::_node {
   };
 
 
+  struct Node_client_getDeal: Empty{
+    CLI_RUN(){
+      Node::Api api{argm};
+      auto proposal_cid{cliArgv<CID>(argv, 0, "proposal cid of deal to get")};
+      // TODO: Client getDealInfo
+    }
+  };
+
+  struct Node_client_stat: Empty{
+    CLI_RUN() {
+      Node::Api api{argm};
+      auto cid{cliArgv<CID>(argv, 0, " cid of localy stored file")};
+      //auto deal_size = cliTry(api._->);
+      //TODO: CLientDealSize;
+    }
+
+  };
+
+
 
 
 
