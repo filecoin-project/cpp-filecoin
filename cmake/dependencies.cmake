@@ -88,3 +88,9 @@ find_package(libarchive CONFIG REQUIRED)
 
 hunter_add_package(prometheus-cpp)
 find_package(prometheus-cpp CONFIG REQUIRED)
+
+# Add filecoin_ffi target if building without git submodules
+if (NOT BUILD_INTERNAL_DEPS)
+  find_package(filecoin_ffi REQUIRED)
+  include_directories(${FILECOIN_FFI_INCLUDE_DIRS})
+endif()
