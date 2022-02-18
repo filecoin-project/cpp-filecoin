@@ -251,12 +251,13 @@ namespace fc::mining {
       auto sector_ref = minerSector(seal_proof_type, piece_location.sector);
 
       if (sector_and_padding.padding.size != 0) {
-        OUTCOME_TRY(
-            sealer_->addPieceSync(sector_ref,
-                                  unsealed_sector.piece_sizes,
-                                  sector_and_padding.padding.size.unpadded(),
-                                  PieceData::makeNull(),
-                                  kDealSectorPriority));
+        OUTCOME_TRY(sealer_->addPieceSync(
+            sector_ref,
+            VectorCoW(gsl::span<const UnpaddedPieceSize>(
+                unsealed_sector.piece_sizes)),
+            sector_and_padding.padding.size.unpadded(),
+            PieceData::makeNull(),
+            kDealSectorPriority));
 
         unsealed_sector.stored += sector_and_padding.padding.size;
 
@@ -283,7 +284,9 @@ namespace fc::mining {
       logger_->info("Add piece to sector {}", piece_location.sector);
       OUTCOME_TRY(piece_info,
                   sealer_->addPieceSync(sector_ref,
-                                        unsealed_sector.piece_sizes,
+                                        VectorCoW(
+                                            gsl::span<const UnpaddedPieceSize>(
+                                                unsealed_sector.piece_sizes)),
                                         size,
                                         std::move(piece_data),
                                         kDealSectorPriority));
@@ -972,7 +975,7 @@ namespace fc::mining {
 
     sealer_->addPiece(
         sector,
-        existing_piece_sizes,
+        VectorCoW(std::move(existing_piece_sizes)),
         filler,
         PieceData::makeNull(),
         [fill = std::move(result), cb](const auto &maybe_error) -> void {

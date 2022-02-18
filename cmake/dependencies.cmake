@@ -7,9 +7,6 @@ if (TESTING)
   find_package(GTest CONFIG REQUIRED)
 endif()
 
-hunter_add_package(libarchive)
-find_package(libarchive CONFIG REQUIRED)
-
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS date_time filesystem iostreams random program_options thread)
 find_package(Boost CONFIG REQUIRED date_time filesystem iostreams random program_options thread)
@@ -70,6 +67,9 @@ find_package(RapidJSON CONFIG REQUIRED)
 # https://thalhammer.it/projects/jwt_cpp
 hunter_add_package(jwt-cpp)
 find_package(jwt-cpp CONFIG REQUIRED)
+
+hunter_add_package(libarchive)
+find_package(libarchive CONFIG REQUIRED)
 
 hunter_add_package(prometheus-cpp)
 find_package(prometheus-cpp CONFIG REQUIRED)
