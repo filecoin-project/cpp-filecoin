@@ -95,4 +95,44 @@ namespace fc::codec::cbor::light_reader {
     }
     return std::make_tuple(*miner_info, *sectors, *deadlines);
   }
+
+  template <typename F>
+  inline bool minerDeadlines(const CbIpldPtr &ipld,
+                             const CbCid &_deadlines,
+                             const F &f) {
+    Bytes deadlines_cbor;
+    if (!ipld->get(_deadlines, deadlines_cbor)) {
+      return false;
+    }
+    BytesIn deadlines_input{deadlines_cbor};
+    cbor::CborToken token;
+    if (!read(token, deadlines_input).listCount()) {
+      return false;
+    }
+    if (!read(token, deadlines_input).listCount()) {
+      return false;
+    }
+    Bytes deadline_cbor;
+    for (size_t n{*token.listCount()}; n != 0; --n) {
+      const CbCid *_deadline = nullptr;
+      if (!cbor::readCborBlake(_deadline, deadlines_input)) {
+        return false;
+      }
+      if (!ipld->get(*_deadline, deadline_cbor)) {
+        return false;
+      }
+      BytesIn deadline_input{deadline_cbor};
+      if (!read(token, deadline_input).listCount()) {
+        return false;
+      }
+      const CbCid *_partitions = nullptr;
+      if (!cbor::readCborBlake(_partitions, deadline_input)) {
+        return false;
+      }
+      if (!f(*_deadline, *_partitions)) {
+        return false;
+      }
+    }
+    return true;
+  }
 }  // namespace fc::codec::cbor::light_reader

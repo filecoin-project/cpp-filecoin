@@ -49,10 +49,12 @@ namespace fc::mining {
   using primitives::CounterMock;
   using primitives::block::BlockHeader;
   using primitives::sector::Proof;
+  using primitives::tipset::Tipset;
   using sector_storage::Commit1Output;
   using sector_storage::ManagerMock;
   using storage::InMemoryStorage;
   using testing::_;
+  using testing::IsEmpty;
   using types::kDealSectorPriority;
   using types::Piece;
   using types::SectorInfo;
@@ -246,11 +248,8 @@ namespace fc::mining {
         .proof_type = seal_proof_type_,
     };
     EXPECT_CALL(*manager_,
-                doAddPieceSync(sector_ref,
-                               gsl::span<const UnpaddedPieceSize>(),
-                               piece_size,
-                               _,
-                               kDealSectorPriority))
+                doAddPieceSync(
+                    sector_ref, IsEmpty(), piece_size, _, kDealSectorPriority))
         .WillOnce(testing::Return(info));
 
     EXPECT_OUTCOME_TRUE_1(
@@ -371,11 +370,8 @@ namespace fc::mining {
     SectorRef sector_ref{.id = SectorId{.miner = miner_id_, .sector = sector},
                          .proof_type = seal_proof_type_};
     EXPECT_CALL(*manager_,
-                doAddPieceSync(sector_ref,
-                               gsl::span<const UnpaddedPieceSize>(),
-                               piece_size,
-                               _,
-                               kDealSectorPriority))
+                doAddPieceSync(
+                    sector_ref, IsEmpty(), piece_size, _, kDealSectorPriority))
         .WillOnce(testing::Return(info));
 
     EXPECT_OUTCOME_TRUE(
@@ -422,11 +418,8 @@ namespace fc::mining {
     SectorRef sector_ref{.id = SectorId{.miner = miner_id_, .sector = sector},
                          .proof_type = seal_proof_type_};
     EXPECT_CALL(*manager_,
-                doAddPieceSync(sector_ref,
-                               gsl::span<const UnpaddedPieceSize>(),
-                               piece_size,
-                               _,
-                               kDealSectorPriority))
+                doAddPieceSync(
+                    sector_ref, IsEmpty(), piece_size, _, kDealSectorPriority))
         .WillOnce(testing::Return(info));
 
     EXPECT_OUTCOME_TRUE_1(
@@ -471,20 +464,15 @@ namespace fc::mining {
     SectorRef sector_ref{.id = SectorId{.miner = miner_id_, .sector = sector},
                          .proof_type = seal_proof_type_};
     EXPECT_CALL(*manager_,
-                doAddPieceSync(sector_ref,
-                               gsl::span<const UnpaddedPieceSize>(),
-                               piece_size,
-                               _,
-                               kDealSectorPriority))
+                doAddPieceSync(
+                    sector_ref, IsEmpty(), piece_size, _, kDealSectorPriority))
         .WillOnce(testing::Return(info1));
 
     std::vector<UnpaddedPieceSize> exist_pieces({piece_size});
-    EXPECT_CALL(*manager_,
-                doAddPieceSync(sector_ref,
-                               gsl::span<const UnpaddedPieceSize>(exist_pieces),
-                               piece_size,
-                               _,
-                               kDealSectorPriority))
+    EXPECT_CALL(
+        *manager_,
+        doAddPieceSync(
+            sector_ref, exist_pieces, piece_size, _, kDealSectorPriority))
         .WillOnce(testing::Return(info2));
 
     EXPECT_OUTCOME_TRUE_1(
@@ -531,11 +519,8 @@ namespace fc::mining {
     SectorRef sector_ref{.id = SectorId{.miner = miner_id_, .sector = sector},
                          .proof_type = seal_proof_type_};
     EXPECT_CALL(*manager_,
-                doAddPieceSync(sector_ref,
-                               gsl::span<const UnpaddedPieceSize>(),
-                               piece_size,
-                               _,
-                               kDealSectorPriority))
+                doAddPieceSync(
+                    sector_ref, IsEmpty(), piece_size, _, kDealSectorPriority))
         .WillOnce(testing::Return(info));
 
     EXPECT_OUTCOME_TRUE_1(
@@ -602,11 +587,8 @@ namespace fc::mining {
     SectorRef sector_ref{.id = SectorId{.miner = miner_id_, .sector = sector},
                          .proof_type = seal_proof_type_};
     EXPECT_CALL(*manager_,
-                doAddPieceSync(sector_ref,
-                               gsl::span<const UnpaddedPieceSize>(),
-                               piece_size,
-                               _,
-                               kDealSectorPriority))
+                doAddPieceSync(
+                    sector_ref, IsEmpty(), piece_size, _, kDealSectorPriority))
         .WillOnce(testing::Return(info));
 
     EXPECT_OUTCOME_TRUE_1(
@@ -647,11 +629,8 @@ namespace fc::mining {
 
     SectorRef sector_ref{.id = sector_id, .proof_type = seal_proof_type_};
     EXPECT_CALL(*manager_,
-                doAddPieceSync(sector_ref,
-                               gsl::span<const UnpaddedPieceSize>(),
-                               piece_size,
-                               _,
-                               kDealSectorPriority))
+                doAddPieceSync(
+                    sector_ref, IsEmpty(), piece_size, _, kDealSectorPriority))
         .WillOnce(testing::Return(info));
 
     EXPECT_OUTCOME_TRUE_1(
@@ -912,7 +891,7 @@ namespace fc::mining {
     std::vector<UnpaddedPieceSize> exist_pieces = {};
     EXPECT_CALL(*manager_,
                 doAddNullPiece(sector_ref,
-                               gsl::span<const UnpaddedPieceSize>(exist_pieces),
+                               exist_pieces,
                                PaddedPieceSize(sector_size_).unpadded(),
                                _,
                                0))

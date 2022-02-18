@@ -30,18 +30,19 @@
 #include <cstring>
 #include <iomanip>
 #include <sstream>
-#include <stdexcept>
+
+#include "common/error_text.hpp"
 
 namespace fc::common {
-  HttpUri::HttpUri(const std::string &uri) {
-    try {
-      parse(uri);
-    } catch (const std::exception &exception) {
-      throw std::runtime_error(std::string("Bad URI ← ") + exception.what());
-    }
+  inline const auto kOutOfData{ERROR_TEXT("HttpUri: Out of data")};
+
+  outcome::result<HttpUri> HttpUri::parse(const std::string &string) {
+    HttpUri uri;
+    OUTCOME_TRY(uri.parseThis(string));
+    return uri;
   }
 
-  void HttpUri::parse(const std::string &string) {
+  outcome::result<void> HttpUri::parseThis(const std::string &string) {
     const char *s = string.c_str();
     const auto *end = string.c_str() + string.size();
 
@@ -51,7 +52,7 @@ namespace fc::common {
       s += 2;
     } else if (*s == '/') {
       scheme_ = Scheme::UNDEFINED;
-      parsePath(s, end);
+      OUTCOME_TRY(parsePath(s, end));
     } else if (string.length() >= 7 && strncasecmp(s, "http://", 7) == 0) {
       scheme_ = Scheme::HTTP;
       port_ = 80;
@@ -61,53 +62,54 @@ namespace fc::common {
       port_ = 443;
       s += 8;
     } else {
-      throw std::runtime_error("Wrong scheme");
+      return ERROR_TEXT("Wrong scheme");
     }
 
     // host:
     while (*s != 0 && *s != ':' && *s != '/' && *s != '?' && *s != '#'
            && isspace(*s) == 0) {
       if (isalnum(*s) == 0 && *s != '.' && *s != '-') {
-        throw std::runtime_error("Wrong hostname");
+        return ERROR_TEXT("Wrong hostname");
       }
       host_.push_back(static_cast<char>(tolower(*s)));
       if (++s > end) {
-        throw std::runtime_error("Out of data");
+        return kOutOfData;
       }
     }
 
     // port:
     if (*s == ':') {
       if (++s > end) {
-        throw std::runtime_error("Out of data");
+        return kOutOfData;
       }
       uint64_t port = 0;
       while (*s != 0 && *s != '/' && *s != '?' && *s != '#'
              && isspace(*s) == 0) {
         if (isdigit(*s) == 0) {
-          throw std::runtime_error("Wrong port");
+          return ERROR_TEXT("Wrong port");
         }
         port = port * 10 + *s - '0';
         if (port < 1 || port > 65535) {
-          throw std::runtime_error("Wrong port");
+          return ERROR_TEXT("Wrong port");
         }
         if (++s > end) {
-          throw std::runtime_error("Out of data");
+          return kOutOfData;
         }
       }
       port_ = static_cast<uint16_t>(port);
     }
 
     // path:
-    parsePath(s, end);
+    OUTCOME_TRY(parsePath(s, end));
+    return outcome::success();
   }
 
-  void HttpUri::parsePath(const char *s, const char *end) {
+  outcome::result<void> HttpUri::parsePath(const char *s, const char *end) {
     if (*s == '/') {
       while (*s != 0 && *s != '?' && *s != '#' && isspace(*s) == 0) {
         path_.push_back(*s);
         if (++s > end) {
-          throw std::runtime_error("Out of data");
+          return kOutOfData;
         }
       }
     }
@@ -115,13 +117,13 @@ namespace fc::common {
     // query:
     if (*s == '?') {
       if (++s > end) {
-        throw std::runtime_error("Out of data");
+        return kOutOfData;
       }
       hasQuery_ = true;
       while (*s != 0 && *s != '#' && isspace(*s) == 0) {
         query_.push_back(*s);
         if (++s > end) {
-          throw std::runtime_error("Out of data");
+          return kOutOfData;
         }
       }
     }
@@ -129,16 +131,17 @@ namespace fc::common {
     // fragment:
     if (*s == '#') {
       if (++s > end) {
-        throw std::runtime_error("Out of data");
+        return kOutOfData;
       }
       hasFragment_ = true;
       while (*s != 0 && isspace(*s) == 0) {
         fragment_.push_back(*s);
         if (++s > end) {
-          throw std::runtime_error("Out of data");
+          return kOutOfData;
         }
       }
     }
+    return outcome::success();
   }
 
   const std::string &HttpUri::str() const {
@@ -171,7 +174,7 @@ namespace fc::common {
     return thisAsString_;
   }
 
-  std::string HttpUri::urldecode(const std::string &input_) {
+  outcome::result<std::string> HttpUri::urldecode(const std::string &input_) {
     std::string input(input_);
     std::replace(input.begin(), input.end(), '+', ' ');
     return PercentEncoding::decode(input);

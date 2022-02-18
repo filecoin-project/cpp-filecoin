@@ -120,4 +120,6 @@ namespace fc {
    * Identical to Lotus `build interopnet`
    */
   void setParamsInteropnet();
+
+  void setParamsButterfly();
 }  // namespace fc

@@ -29,12 +29,7 @@ namespace fc::sector_storage {
   RemoteWorker::connectRemoteWorker(io_context &context,
                                     const std::shared_ptr<CommonApi> &api,
                                     const std::string &address) {
-    HttpUri uri;
-    try {
-      uri.parse(address);
-    } catch (const std::runtime_error &err) {
-      return sector_storage::stores::IndexErrors::kInvalidUrl;
-    }
+    OUTCOME_TRY(uri, HttpUri::parse(address));
 
     OUTCOME_TRY(token, api->AuthNew({kAdminPermission}));
 
@@ -141,7 +136,7 @@ namespace fc::sector_storage {
 
   outcome::result<CallId> RemoteWorker::addPiece(
       const SectorRef &sector,
-      gsl::span<const UnpaddedPieceSize> piece_sizes,
+      VectorCoW<UnpaddedPieceSize> piece_sizes,
       const UnpaddedPieceSize &new_piece_size,
       PieceData piece_data) {
     MetaPieceData meta_data =
@@ -168,11 +163,7 @@ namespace fc::sector_storage {
             }
           });
     }
-    return api_.AddPiece(
-        sector,
-        std::vector<UnpaddedPieceSize>(piece_sizes.begin(), piece_sizes.end()),
-        new_piece_size,
-        meta_data);
+    return api_.AddPiece(sector, piece_sizes.into(), new_piece_size, meta_data);
   }
 
   outcome::result<CallId> RemoteWorker::sealPreCommit1(
@@ -202,9 +193,8 @@ namespace fc::sector_storage {
   }
 
   outcome::result<CallId> RemoteWorker::finalizeSector(
-      const SectorRef &sector, const gsl::span<const Range> &keep_unsealed) {
-    return api_.FinalizeSector(
-        sector, std::vector<Range>(keep_unsealed.begin(), keep_unsealed.end()));
+      const SectorRef &sector, std::vector<Range> keep_unsealed) {
+    return api_.FinalizeSector(sector, keep_unsealed);
   }
 
   outcome::result<CallId> RemoteWorker::replicaUpdate(

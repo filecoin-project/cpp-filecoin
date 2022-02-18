@@ -51,8 +51,8 @@ namespace fc {
   DEFINE(kUpgradeHyperdriveHeight){892800};
   // 2021-10-26T13:30:00Z
   DEFINE(kUpgradeChocolateHeight){1231620};
-  // Not applied yet
-  DEFINE(kUpgradeOhSnapHeight){INT64_MAX};
+  // 2021-03-01T14:00:00Z
+  DEFINE(kUpgradeOhSnapHeight){1594560};
 
   DEFINE(kBreezeGasTampingDuration){120};
 
@@ -230,5 +230,33 @@ namespace fc {
     storage_power::kConsensusMinerMinPower = 2048;
     verified_registry::kMinVerifiedDealSize = 256;
     miner::kPreCommitChallengeDelay = 10;
+  }
+
+  void setParamsButterfly() {
+    kUpgradeBreezeHeight = -1;
+    kUpgradeSmokeHeight = -1;
+    kUpgradeIgnitionHeight = -1;
+    kUpgradeRefuelHeight = -1;
+    kUpgradeTapeHeight = -1;
+    kUpgradeAssemblyHeight = -1;
+    kUpgradeLiftoffHeight = -1;
+    kUpgradeKumquatHeight = -1;
+    kUpgradeCalicoHeight = -1;
+    kUpgradePersianHeight = -1;
+    kUpgradeOrangeHeight = -1;
+    kUpgradeClausHeight = -1;
+    kUpgradeTrustHeight = -1;
+    kUpgradeNorwegianHeight = -1;
+    kUpgradeTurboHeight = -1;
+    kUpgradeHyperdriveHeight = -1;
+    kUpgradeChocolateHeight = -1;
+    kUpgradeOhSnapHeight = 240;
+
+    storage_power::kConsensusMinerMinPower = StoragePower{2} << 30;
+    miner::kSupportedProofs = {
+        RegisteredSealProof::kStackedDrg512MiBV1,
+        RegisteredSealProof::kStackedDrg32GiBV1,
+        RegisteredSealProof::kStackedDrg64GiBV1,
+    };
   }
 }  // namespace fc

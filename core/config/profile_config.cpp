@@ -31,7 +31,7 @@ namespace fc::config {
     // one string, it's an error, and exception will be thrown.
     std::string const &value = get_single_string(values);
     if (value == "mainnet" || value == "2k" || value == "no-upgrades"
-        || value == "interopnet") {
+        || value == "interopnet" || value == "butterflynet") {
       v = boost::any(Profile{value});
     } else {
       throw validation_error(validation_error::invalid_option_value);
@@ -53,6 +53,8 @@ namespace fc::config {
                 setParamsNoUpgrades();
               } else if (profile == "interopnet") {
                 setParamsInteropnet();
+              } else if (profile == "butterflynet") {
+                setParamsButterfly();
               }
             }),
         "Network parameters profile configuration that defines network "

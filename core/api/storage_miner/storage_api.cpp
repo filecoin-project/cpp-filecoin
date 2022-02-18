@@ -12,7 +12,6 @@
 #include "sector_storage/impl/remote_worker.hpp"
 
 namespace fc::api {
-  using common::HttpUri;
   using miner::kMinerVersion;
   using sector_storage::RemoteWorker;
 

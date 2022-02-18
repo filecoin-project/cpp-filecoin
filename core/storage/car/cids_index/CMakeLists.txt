@@ -14,9 +14,13 @@ target_link_libraries(cids_index
     ipfs_datastore_error
     )
 
-add_executable(cids_index_main
+add_executable(cids-index
     main.cpp
     )
-target_link_libraries(cids_index_main
+target_link_libraries(cids-index
     cids_index
+    )
+
+set_target_properties(cids-index PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
     )

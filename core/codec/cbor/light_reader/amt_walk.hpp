@@ -12,7 +12,21 @@ namespace fc::codec::cbor::light_reader {
   struct AmtWalk : Walk {
     using Walk::Walk;
 
+    bool visit() {
+      if (!load()) {
+        return false;
+      }
+      BytesIn value;
+      while (next(value)) {
+        // note: ignoring value
+      }
+      return empty();
+    }
+
     inline bool load() {
+      if (next_cid != 0) {
+        return true;
+      }
       cbor::CborToken token;
       if (!Walk::next()) {
         return false;

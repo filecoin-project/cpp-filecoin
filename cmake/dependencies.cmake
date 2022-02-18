@@ -1,12 +1,11 @@
 # hunter dependencies
 # https://docs.hunter.sh/en/latest/packages/
 
-# https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
-hunter_add_package(GTest)
-find_package(GTest CONFIG REQUIRED)
-
-hunter_add_package(libarchive)
-find_package(libarchive CONFIG REQUIRED)
+if (TESTING)
+  # https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
+  hunter_add_package(GTest)
+  find_package(GTest CONFIG REQUIRED)
+endif()
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS date_time filesystem iostreams random program_options thread)
@@ -48,9 +47,6 @@ find_package(leveldb CONFIG REQUIRED)
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)
 
-hunter_add_package(c-ares)
-find_package(c-ares CONFIG REQUIRED)
-
 hunter_add_package(soralog)
 find_package(soralog CONFIG REQUIRED)
 
@@ -71,6 +67,9 @@ find_package(RapidJSON CONFIG REQUIRED)
 # https://thalhammer.it/projects/jwt_cpp
 hunter_add_package(jwt-cpp)
 find_package(jwt-cpp CONFIG REQUIRED)
+
+hunter_add_package(libarchive)
+find_package(libarchive CONFIG REQUIRED)
 
 hunter_add_package(prometheus-cpp)
 find_package(prometheus-cpp CONFIG REQUIRED)
