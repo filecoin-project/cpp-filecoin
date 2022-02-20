@@ -200,14 +200,14 @@ namespace fc::sector_storage {
       std::future<WorkerID> wid_future = wid_promise.get_future();
       auto done = std::make_shared<std::atomic_bool>();
       for (const auto &cur : acceptable) {
-        workers_[cur]->worker->ping([&wid_promise, done, cur](const bool &resp) {
+        workers_[cur]->worker->ping([&wid_promise, done, cur](bool resp) {
           if (resp && !done->exchange(true)) {
             wid_promise.set_value(cur);
           }
         });
       }
       auto status = wid_future.wait_for(std::chrono::seconds(5));
-      if(status == std::future_status::timeout){
+      if (status == std::future_status::timeout) {
         return false;
       }
       WorkerID wid = wid_future.get();
