@@ -260,7 +260,6 @@ namespace fc::sector_storage {
 
     worker_handler->worker = std::move(worker);
     worker_handler->info = std::move(info);
-
     scheduler_->newWorker(std::move(worker_handler));
 
     return outcome::success();

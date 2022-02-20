@@ -137,6 +137,11 @@ namespace fc::sector_storage {
 
   void SchedulerImpl::newWorker(std::unique_ptr<WorkerHandle> worker) {
     std::unique_lock<std::mutex> lock(workers_lock_);
+    for(const auto &[key, value] : workers_){
+      if(*value == *worker){
+        return;
+      }
+    }
     if (current_worker_id_ == std::numeric_limits<uint64_t>::max()) {
       current_worker_id_ = 0;  // TODO(ortyomka): maybe better mechanism
     }
@@ -200,7 +205,7 @@ namespace fc::sector_storage {
       std::future<WorkerID> wid_future = wid_promise.get_future();
       auto done = std::make_shared<std::atomic_bool>();
       for (const auto &cur : acceptable) {
-        workers_[cur]->worker->ping([&wid_promise, done, cur](bool resp) {
+        workers_[cur]->worker->ping([&wid_promise, done, cur](const bool resp) {
           if (resp && !done->exchange(true)) {
             wid_promise.set_value(cur);
           }

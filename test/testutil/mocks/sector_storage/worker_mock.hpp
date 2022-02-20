@@ -101,6 +101,6 @@ namespace fc::sector_storage {
                                          gsl::span<const UnpaddedPieceSize>,
                                          const UnpaddedPieceSize &,
                                          int));
-    MOCK_METHOD1(ping, void(std::function<void(const bool &)>));
+    MOCK_METHOD1(ping, void(std::function<void(const bool)>));
   };
 }  // namespace fc::sector_storage
