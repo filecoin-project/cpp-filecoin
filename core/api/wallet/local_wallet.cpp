@@ -85,6 +85,15 @@ namespace fc::api {
       }
       return key_store->verify(address, data, signature);
     };
+
+    api->WalletDelete = [=](auto &address)->outcome::result<void>{
+      OUTCOME_TRY(has, key_store->has(address));
+      if(has){
+        OUTCOME_TRY(key_store->remove(address));
+        return outcome::success();
+      }
+      return ERROR_TEXT("WalletDelete: Address does not exist");
+    };
   }
 
 }  // namespace fc::api

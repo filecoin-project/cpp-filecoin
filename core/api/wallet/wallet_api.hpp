@@ -38,6 +38,8 @@ namespace fc::api {
 
     API_METHOD(WalletSetDefault, jwt::kWritePermission, void, const Address &)
 
+    API_METHOD(WalletDelete, jwt::kReadPermission, void, const Address &)
+
     API_METHOD(WalletSign,
                jwt::kSignPermission,
                Signature,
