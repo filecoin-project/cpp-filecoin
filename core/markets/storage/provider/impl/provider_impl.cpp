@@ -681,10 +681,7 @@ namespace fc::markets::storage::provider {
                                 deal_context->deal->is_fast_retrieval});
     FSM_HALT_ON_ERROR(
         maybe_piece_location, "Unable to locate piece", deal_context);
-    FSM_HALT_ON_ERROR(
-        recordPieceInfo(deal_context->deal, maybe_piece_location.value()),
-        "Record piece failed",
-        deal_context);
+    deal_context->maybe_piece_location = maybe_piece_location.value();
     // TODO(a.chernyshov): add piece retry
     FSM_SEND(deal_context, ProviderEvent::ProviderEventDealHandedOff);
   }
@@ -700,6 +697,17 @@ namespace fc::markets::storage::provider {
   }
 
   FSM_HANDLE_DEFINITION(StorageProviderImpl::onProviderEventDealActivated) {
+    if (not deal_context->maybe_piece_location.has_value()) {
+      (deal_context)->deal->message = "Unknown piece location";
+      FSM_SEND((deal_context), ProviderEvent::ProviderEventFailed);
+      return;
+    }
+
+    FSM_HALT_ON_ERROR(
+        recordPieceInfo(deal_context->deal,
+                        deal_context->maybe_piece_location.value()),
+        "Record piece failed",
+        deal_context);
     // TODO(a.chernyshov): wait expiration
   }
 

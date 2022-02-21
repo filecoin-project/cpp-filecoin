@@ -90,6 +90,7 @@ namespace fc::markets::storage::provider {
     struct DealContext {
       std::shared_ptr<MinerDeal> deal;
       std::string protocol;
+      boost::optional<PieceLocation> maybe_piece_location{};
     };
 
     using ProviderTransition =
@@ -116,7 +117,6 @@ namespace fc::markets::storage::provider {
               if (request) {
                 if (auto asker{stored_ask.lock()}) {
                   if (auto ask{asker->getAsk(request.value().miner)}) {
-
                     return stream->write(AskResponseType{{ask.value()}},
                                          [stream](auto) { stream->close(); });
                   }

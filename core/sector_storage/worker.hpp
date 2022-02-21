@@ -6,6 +6,7 @@
 #pragma once
 
 #include "common/outcome.hpp"
+#include "common/vector_cow.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/piece/piece_data.hpp"
 #include "primitives/seal_tasks/task.hpp"
@@ -68,7 +69,7 @@ namespace fc::sector_storage {
 
     virtual outcome::result<CallId> addPiece(
         const SectorRef &sector,
-        gsl::span<const UnpaddedPieceSize> piece_sizes,
+        VectorCoW<UnpaddedPieceSize> piece_sizes,
         const UnpaddedPieceSize &new_piece_size,
         PieceData piece_data) = 0;
 
@@ -92,8 +93,7 @@ namespace fc::sector_storage {
         const SectorRef &sector, const Commit1Output &commit_1_output) = 0;
 
     virtual outcome::result<CallId> finalizeSector(
-        const SectorRef &sector,
-        const gsl::span<const Range> &keep_unsealed) = 0;
+        const SectorRef &sector, std::vector<Range> keep_unsealed) = 0;
 
     virtual outcome::result<CallId> replicaUpdate(
         const SectorRef &sector, const std::vector<PieceInfo> &pieces) = 0;

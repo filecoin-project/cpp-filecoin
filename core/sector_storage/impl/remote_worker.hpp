@@ -24,11 +24,10 @@ namespace fc::sector_storage {
         const std::shared_ptr<CommonApi> &api,
         const std::string &address);
 
-    outcome::result<CallId> addPiece(
-        const SectorRef &sector,
-        gsl::span<const UnpaddedPieceSize> piece_sizes,
-        const UnpaddedPieceSize &new_piece_size,
-        PieceData piece_data) override;
+    outcome::result<CallId> addPiece(const SectorRef &sector,
+                                     VectorCoW<UnpaddedPieceSize> piece_sizes,
+                                     const UnpaddedPieceSize &new_piece_size,
+                                     PieceData piece_data) override;
 
     outcome::result<CallId> sealPreCommit1(
         const SectorRef &sector,
@@ -51,8 +50,7 @@ namespace fc::sector_storage {
         const SectorRef &sector, const Commit1Output &commit_1_output) override;
 
     outcome::result<CallId> finalizeSector(
-        const SectorRef &sector,
-        const gsl::span<const Range> &keep_unsealed) override;
+        const SectorRef &sector, std::vector<Range> keep_unsealed) override;
 
     outcome::result<CallId> replicaUpdate(
         const SectorRef &sector, const std::vector<PieceInfo> &pieces) override;
