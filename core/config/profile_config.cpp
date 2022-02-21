@@ -5,6 +5,7 @@
 
 #include "config/profile_config.hpp"
 
+#include "cli/validate/with.hpp"
 #include "const.hpp"
 
 namespace fc::config {
@@ -16,26 +17,15 @@ namespace fc::config {
   /**
    * Checks that profile name is expected one.
    */
-  void validate(boost::any &v,
-                std::vector<std::string> const &values,
-                Profile *,
-                int) {
-    using boost::program_options::validation_error;
-    using boost::program_options::validators::check_first_occurrence;
-    using boost::program_options::validators::get_single_string;
 
-    // Make sure no previous assignment to 'v' was made.
-    check_first_occurrence(v);
-
-    // Extract the first string from 'values'. If there is more than
-    // one string, it's an error, and exception will be thrown.
-    std::string const &value = get_single_string(values);
-    if (value == "mainnet" || value == "2k" || value == "no-upgrades"
-        || value == "interopnet" || value == "butterflynet") {
-      v = boost::any(Profile{value});
-    } else {
-      throw validation_error(validation_error::invalid_option_value);
-    }
+  CLI_VALIDATE(Profile) {
+    validateWith(out, values, [](const std::string &value) {
+      if (value == "mainnet" || value == "2k" || value == "no-upgrades"
+          || value == "interopnet") {
+        return Profile{value};
+      }
+      throw std::exception{};
+    });
   }
 
   options_description configProfile() {

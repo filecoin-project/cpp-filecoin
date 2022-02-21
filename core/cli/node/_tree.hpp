@@ -18,7 +18,10 @@ namespace fc::cli::_node {
         })},
        {"client",
         tree<Group>({
-            {"retrieve", tree<clientRetrive>()},
+            {"retrieve", tree<Node_client_retrieve>()},
+            {"import", tree<Node_client_importData>()},
+            {"generate-car", tree<Node_client_generateCar>()},
+            {"local", tree<Node_client_local>()},
         })},
        {"wallet",
         tree<Group>({
