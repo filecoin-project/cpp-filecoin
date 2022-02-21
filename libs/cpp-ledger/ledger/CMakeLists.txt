@@ -20,13 +20,5 @@ add_library(ledger_device
     utils.cpp
     )
 
-<<<<<<< Updated upstream
 target_include_directories(ledger_device PRIVATE ${HIDAPI_INCLUDE_DIR})
 target_link_libraries(ledger_device ${HIDAPI_LIB})
-=======
-if (UNIX AND NOT APPLE)
-    target_link_libraries(ledger_device
-        hidapi-libusb
-        )
-endif ()
->>>>>>> Stashed changes
