@@ -747,6 +747,27 @@ namespace fc::api {
           }));
       return map;
     };
+
+    api->MarketAddBalance =
+        [=](auto &address, auto &wallet, auto &amount) -> outcome::result<boost::optional<CID>> {
+      OUTCOME_TRY(
+          encoded_params,
+          codec::cbor::encode(
+              vm::actor::builtin::v0::market::AddBalance::Params{address}));
+      OUTCOME_TRY(signed_message,
+                  api->MpoolPushMessage(
+                      vm::message::UnsignedMessage(
+                          kStorageMarketAddress,
+                          wallet,
+                          0,
+                          amount,
+                          0,
+                          0,
+                          vm::actor::builtin::v0::market::AddBalance::Number,
+                          encoded_params),
+                      api::kPushNoSpec));
+      return signed_message.getCid();
+    };
     api->StateLookupID = [=](auto &address,
                              auto &tipset_key) -> outcome::result<Address> {
       OUTCOME_TRY(context, tipsetContext(tipset_key, false));
