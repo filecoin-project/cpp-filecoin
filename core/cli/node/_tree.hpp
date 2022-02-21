@@ -22,20 +22,20 @@ namespace fc::cli::_node {
         })},
        {"wallet",
         tree<Group>({
-            {"new", tree<walletNew>()},                 // TODO DONE)))
-            {"list", tree<walletList>()},               // TODO DONE)))
-            {"balance", tree<walletBalance>()},         // TODO DONE)))
-            {"default", tree<walletDefault>()},         // TODO DONE)))
-            {"set-default", tree<walletSetDefault>()},  // TODO DONE)))
-            {"import", tree<walletImport>()},           // TODO 20% StateGetActor
-            {"sign", tree<walletSign>()},               // TODO DONE)))
-            {"verify", tree<walletVerify>()},           // TODO DONE)))
+            {"new", tree<walletNew>()},
+            {"list", tree<walletList>()},
+            {"balance", tree<walletBalance>()},
+            {"default", tree<walletDefault>()},
+            {"set-default", tree<walletSetDefault>()},
+            {"import", tree<walletImport>()},
+            {"sign", tree<walletSign>()},
+            {"verify", tree<walletVerify>()},
             {"delete",
-             tree<walletDelete>()},  // TODO DONE))) (p.S api._->WalletDelete add)
+             tree<walletDelete>()},
             {"market",
              tree<Group>({
-                 {"withdraw", tree<walletWithdraw>()},  // TODO 99% (p.S api._->MarketGetReserved add, api._->MarketWithdraw)
-                 {"add", tree<walletAdd>()},            // TODO DONE))) (p.S api._->MarketAddBalance add)
+                 {"withdraw", tree<walletWithdraw>()},
+                 {"add", tree<walletAdd>()},
              })},
         })}})};
 }  // namespace fc::cli::_node
