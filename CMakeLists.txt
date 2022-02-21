@@ -113,6 +113,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/libs
 )
 
+<<<<<<< Updated upstream
 if (BUILD_INTERNAL_DEPS)
   include_directories(
       SYSTEM
@@ -122,6 +123,16 @@ if (BUILD_INTERNAL_DEPS)
   )
 endif()
 
+=======
+include_directories(
+    SYSTEM
+    # system includes
+    deps/indicators/include
+    deps/libsecp256k1/include
+)
+
+add_subdirectory(core)
+>>>>>>> Stashed changes
 add_subdirectory(libs)
 add_subdirectory(core)
 

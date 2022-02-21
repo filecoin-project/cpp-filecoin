@@ -65,6 +65,9 @@ namespace fc::api {
       }
       return std::move(address);
     }};
+    api->WalletList = [=]() -> outcome::result<std::vector<Address>> {
+
+    };
     api->WalletSetDefault = [=](auto &address) -> outcome::result<void> {
       wallet_default_address->setCbor(address);
       return outcome::success();

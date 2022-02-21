@@ -51,6 +51,10 @@ namespace fc::api {
                const Address &,
                const Bytes &,
                const Signature &)
+
+    API_METHOD(WalletList, jwt::kAdminPermission, std::vector<Address>)
+
+    API_METHOD(WalletDelete, jwt::kAdminPermission, void, const Address &)
   };
 
   template <typename A, typename F>
@@ -63,6 +67,8 @@ namespace fc::api {
     f(a.WalletSetDefault);
     f(a.WalletSign);
     f(a.WalletVerify);
+    f(a.WalletList);
+    f(a.WalletDelete);
   }
 
 }  // namespace fc::api
