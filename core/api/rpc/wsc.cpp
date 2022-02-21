@@ -98,10 +98,10 @@ namespace fc::api::rpc {
       socket->async_write(boost::asio::buffer(buffer.data(), buffer.size()),
                           [=](auto &&ec, auto) {
                             std::lock_guard lock{mutex};
+                            writing = false;
                             if (ec) {
                               return _error(ec);
                             }
-                            writing = false;
                             write_queue.pop();
                             _flush();
                           });
