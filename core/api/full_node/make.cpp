@@ -748,8 +748,8 @@ namespace fc::api {
       return map;
     };
 
-    api->MarketAddBalance =
-        [=](auto &address, auto &wallet, auto &amount) -> outcome::result<boost::optional<CID>> {
+    api->MarketAddBalance = [=](auto &address, auto &wallet, auto &amount)
+        -> outcome::result<boost::optional<CID>> {
       OUTCOME_TRY(
           encoded_params,
           codec::cbor::encode(

@@ -74,8 +74,9 @@ namespace fc::api {
       std::vector<Address> out;
       out.reserve(all.size());
 
-      std::string k_name_prefix = "wallet-";
+      std::string k_name_prefix = "wallet-"; // TODO not needed
       for (auto &a : all) {
+        fmt::print(encodeToString(a));
         if (encodeToString(a).substr(0, k_name_prefix.size())
             == k_name_prefix) {
           std::string name = encodeToString(a).erase(0, k_name_prefix.size());
@@ -114,9 +115,9 @@ namespace fc::api {
       return key_store->verify(address, data, signature);
     };
 
-    api->WalletDelete = [=](auto &address)->outcome::result<void>{
+    api->WalletDelete = [=](auto &address) -> outcome::result<void> {
       OUTCOME_TRY(has, key_store->has(address));
-      if(has){
+      if (has) {
         OUTCOME_TRY(key_store->remove(address));
         return outcome::success();
       }

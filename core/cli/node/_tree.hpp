@@ -26,19 +26,19 @@ namespace fc::cli::_node {
                   {"wallet",
                    tree<Group>({
                        {"new", tree<walletNew>()},
-                       {"list", tree<walletList>()}, /*
-                        {"balance", tree<walletBalance>()},
-                        {"default", tree<walletDefault>()},
-                        {"set-default", tree<walletSetDefault>()},
-                        {"import", tree<walletImport>()},
-                        {"sign", tree<walletSign>()},
-                        {"verify", tree<walletVerify>()},
-                        {"delete",
-                         tree<walletDelete>()},
-                        {"market",
-                         tree<Group>({
-                             {"withdraw", tree<walletWithdraw>()},
-                             {"add", tree<walletAdd>()},
-                         })},*/
+                       {"list", tree<walletList>()},
+                       {"balance", tree<walletBalance>()},
+                       {"default", tree<walletDefault>()}, /*
+                       {"set-default", tree<walletSetDefault>()}, /*
+                       {"import", tree<walletImport>()},
+                       {"sign", tree<walletSign>()},
+                       {"verify", tree<walletVerify>()},
+                       {"delete",
+                        tree<walletDelete>()},
+                       {"market",
+                        tree<Group>({
+                            {"withdraw", tree<walletWithdraw>()},
+                            {"add", tree<walletAdd>()},
+                        })},*/
                    })}})};
 }  // namespace fc::cli::_node

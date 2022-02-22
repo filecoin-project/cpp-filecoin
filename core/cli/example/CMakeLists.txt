@@ -7,4 +7,5 @@ add_executable(cli_example main.cpp)
 target_link_libraries(cli_example
     cli
     rpc
+    api_ipfs_datastore
     )

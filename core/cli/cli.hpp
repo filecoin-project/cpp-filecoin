@@ -243,13 +243,13 @@ namespace fc::cli {
           int pad = colLenghts[i] - e.size() + 2;
           if (not column.separate_line && column.lines > 0) {
             e += std::string(pad, ' ');
-            std::cout << e;
+            fmt::print(e);
           }
 
           cols.push_back(e);
         }
 
-        std::cout << '\n';
+        fmt::print("\n");
 
         for (int i = 0; i < columns.size(); ++i) {
           Column &column = columns[i];
@@ -257,7 +257,7 @@ namespace fc::cli {
             continue;
           }
 
-          std::cout << "  " << column.name << ": " << cols[i] << '\n';
+          fmt::print("  {}: {}\n", column.name, cols[i]);
         }
       }
     }
