@@ -217,6 +217,7 @@ namespace fc::sector_storage {
       }
       WorkerID wid = wid_future.get();
       assignWorker(wid, workers_[wid], request);
+
       return true;
     }
 
