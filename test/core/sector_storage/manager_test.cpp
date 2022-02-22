@@ -401,8 +401,7 @@ namespace fc::sector_storage {
             outcome::success(std::vector<stores::SectorStorageInfo>())));
 
     CallId call_id{.sector = sector_.id, .id = "some UUID"};
-    EXPECT_CALL(*worker_,
-                finalizeSector(sector_, gsl::span<const Range>(keep_unsealed)))
+    EXPECT_CALL(*worker_, finalizeSector(sector_, keep_unsealed))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
     EXPECT_CALL(*scheduler_,
@@ -692,10 +691,8 @@ namespace fc::sector_storage {
     };
 
     CallId call_id{.sector = sector_.id, .id = "some UUID"};
-    EXPECT_CALL(
-        *worker_,
-        doAddPiece(
-            sector_, gsl::span<const UnpaddedPieceSize>({}), piece_size, _))
+    EXPECT_CALL(*worker_,
+                doAddPiece(sector_, testing::IsEmpty(), piece_size, _))
         .WillOnce(testing::Return(outcome::success(call_id)));
 
     EXPECT_CALL(*scheduler_,
