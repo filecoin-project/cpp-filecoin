@@ -126,7 +126,7 @@ namespace fc::api {
                const SealRandomness &,
                const CID &)
 
-    API_METHOD(Version, kAdminPermission, VersionResult)
+    API_METHOD(Version, kAdminPermission, ApiVersion)
   };
 
   template <typename A, typename F>

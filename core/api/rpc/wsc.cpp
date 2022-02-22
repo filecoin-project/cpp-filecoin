@@ -88,7 +88,7 @@ namespace fc::api::rpc {
       }
     }
     chans.clear();
-    reconnect(3, std::chrono::seconds(5));
+    reconnect(3, std::chrono::seconds(10));
   }
 
   void Client::_flush() {
@@ -195,7 +195,7 @@ namespace fc::api::rpc {
     logger_->info(
         "Starting reconnect to {}:{}", client_data.host, client_data.port);
     for (int i = 0; i < counter; i++) {
-      std::this_thread::sleep_for(wait);
+      std::this_thread::sleep_for(wait*(i+1));
       socket.reset();
       socket.emplace(io);
       auto res = connect(client_data.host,

@@ -412,7 +412,7 @@ namespace fc::sector_storage {
                                       remote,
                                       proofs);
 
-    OUTCOME_TRY(manager->addWorker(std::move(worker)));
+    //OUTCOME_TRY(manager->addWorker(std::move(worker)));
     return std::move(manager);
   }
 

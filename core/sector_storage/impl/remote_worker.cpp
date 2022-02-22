@@ -256,6 +256,6 @@ namespace fc::sector_storage {
   }
 
   void RemoteWorker::ping(std::function<void(const bool resp)> cb) {
-    api_.Version([=](auto res) { cb(!res.has_error()); });
+    api_.Version([=](auto res){cb(res.has_value());});
   }
 }  // namespace fc::sector_storage

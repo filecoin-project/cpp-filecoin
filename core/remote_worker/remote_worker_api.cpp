@@ -6,6 +6,7 @@
 #include "remote_worker/remote_worker_api.hpp"
 
 namespace fc::remote_worker {
+  using api::ApiVersion;
   using api::VersionResult;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedByteIndex;
@@ -26,7 +27,7 @@ namespace fc::remote_worker {
       const std::shared_ptr<LocalStore> &local_store,
       const std::shared_ptr<LocalWorker> &worker) {
     auto worker_api{std::make_shared<api::WorkerApi>()};
-    worker_api->Version = []() { return VersionResult{"seal-worker", 0, 0}; };
+    worker_api->Version = []() { return ApiVersion{0}; };
     worker_api->StorageAddLocal = [=](const std::string &path) {
       return local_store->openPath(path);
     };
