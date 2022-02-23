@@ -632,10 +632,6 @@ namespace fc::mining {
             .to(SealingState::kSealPreCommit1Fail)
             .action(
                 [](auto info, auto event, auto context, auto from, auto to) {
-                  if (from == SealingState::kCommitting) {
-                    return;
-                  }
-
                   info->invalid_proofs = 0;
                   info->precommit2_fails = 0;
                 }),
