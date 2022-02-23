@@ -249,4 +249,8 @@ namespace fc::sector_storage {
                                               AcquireMode mode) {
     return api_.Fetch(sector, file_type, path_type, mode);
   }
+
+  void RemoteWorker::ping(std::function<void(const bool resp)> cb) {
+    api_.Version([=](auto res){cb(res.has_value());});
+  }
 }  // namespace fc::sector_storage

@@ -24,6 +24,11 @@ namespace fc::sector_storage {
     ActiveResources active;
   };
 
+  inline bool operator==(const WorkerHandle &lhs, const WorkerHandle &rhs) {
+    return lhs.info.hostname == rhs.info.hostname
+           && lhs.info.resources == rhs.info.resources;
+  }
+
   class WorkerSelector {
    public:
     virtual ~WorkerSelector() = default;

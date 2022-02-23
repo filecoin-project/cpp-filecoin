@@ -39,7 +39,7 @@ namespace fc::primitives {
   struct FsStat {
     uint64_t capacity = 0;
     uint64_t available = 0;
-    uint64_t fs_available = 0; // Available to use for sector storage
+    uint64_t fs_available = 0;  // Available to use for sector storage
     uint64_t reserved = 0;
     uint64_t max = 0;
     uint64_t used = 0;
@@ -90,6 +90,14 @@ namespace fc::primitives {
     uint64_t cpus = 0;  // Logical cores
     std::vector<std::string> gpus;
   };
+
+  inline bool operator==(const WorkerResources &lhs,
+                         const WorkerResources &rhs) {
+    return (lhs.physical_memory == rhs.physical_memory
+            && lhs.swap_memory == rhs.swap_memory
+            && lhs.reserved_memory == rhs.reserved_memory
+            && lhs.cpus == rhs.cpus && lhs.gpus == rhs.gpus);
+  }
 
   struct WorkerInfo {
     std::string hostname;

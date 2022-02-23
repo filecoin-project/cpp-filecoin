@@ -100,5 +100,6 @@ namespace fc::sector_storage {
                                          const std::vector<UnpaddedPieceSize> &,
                                          const UnpaddedPieceSize &,
                                          int));
+    MOCK_METHOD1(ping, void(std::function<void(const bool)>));
   };
 }  // namespace fc::sector_storage

@@ -12,6 +12,7 @@
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/mocks/sector_storage/selector_mock.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/mocks/sector_storage/worker_mock.hpp"
 
 namespace fc::sector_storage {
   using primitives::WorkerInfo;
@@ -70,9 +71,12 @@ namespace fc::sector_storage {
       EXPECT_OUTCOME_TRUE(scheduler, SchedulerImpl::newScheduler(io_, kv_));
 
       scheduler_ = scheduler;
-
+      auto worker_test = std::make_shared<WorkerMock>();
+      EXPECT_CALL(*worker_test, ping(_)).WillRepeatedly(testing::Invoke([](auto cb){
+        cb(true);
+      }));
       std::unique_ptr<WorkerHandle> worker = std::make_unique<WorkerHandle>();
-
+      worker->worker = std::move(worker_test);
       worker_name_ = "worker";
 
       worker->info = WorkerInfo{

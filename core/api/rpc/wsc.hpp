@@ -57,6 +57,14 @@ namespace fc::api::rpc {
     void setup(A &api) {
       visit(api, [&](auto &m) { _setup(*this, m); });
     }
+    struct ClientData {
+      std::string host;
+      std::string port;
+      std::string target;
+      std::string token;
+    } client_data;
+
+    void reconnect(int counter, std::chrono::milliseconds wait);
 
    private:
     std::thread thread;
@@ -64,7 +72,9 @@ namespace fc::api::rpc {
     io_context io;
     io_context &io2;
     boost::asio::executor_work_guard<io_context::executor_type> work_guard;
-    boost::beast::websocket::stream<boost::asio::ip::tcp::socket> socket;
+    boost::optional<
+        boost::beast::websocket::stream<boost::asio::ip::tcp::socket>>
+        socket;
     boost::beast::flat_buffer buffer;
     std::mutex mutex;
     uint64_t next_req{};
@@ -72,6 +82,7 @@ namespace fc::api::rpc {
     std::map<uint64_t, ChanCb> chans;
     std::queue<std::pair<uint64_t, Bytes>> write_queue;
     bool writing{false};
+    bool reconnecting{false};
 
     template <typename M>
     void _setup(Client &c, M &m);

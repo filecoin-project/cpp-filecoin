@@ -37,25 +37,26 @@ namespace fc::api::rpc {
     return connect(ip, port, target, token);
   }
 
-    outcome::result<void> Client::connect(const std::string &host,
-                                          const std::string &port,
-                                          const std::string &target,
-                                          const std::string &token) {
+  outcome::result<void> Client::connect(const std::string &host,
+                                        const std::string &port,
+                                        const std::string &target,
+                                        const std::string &token) {
     boost::system::error_code ec;
-    socket.next_layer().connect({boost::asio::ip::make_address(host),
-                                 boost::lexical_cast<uint16_t>(port)},
-                                ec);
+    socket->next_layer().connect({boost::asio::ip::make_address(host),
+                                  boost::lexical_cast<uint16_t>(port)},
+                                 ec);
     if (ec) {
       return ec;
     }
     if (not token.empty()) {
-      socket.set_option(
+      socket->set_option(
           boost::beast::websocket::stream_base::decorator([&](auto &req) {
             req.set(boost::beast::http::field::authorization,
                     "Bearer " + token);
           }));
     }
-    socket.handshake(host, target, ec);
+    socket->handshake(host, target, ec);
+    client_data = ClientData{host, port, target, token};
     if (ec) {
       return ec;
     }
@@ -87,27 +88,28 @@ namespace fc::api::rpc {
       }
     }
     chans.clear();
+    reconnect(3, std::chrono::seconds(10));
   }
 
   void Client::_flush() {
-    if (!writing && !write_queue.empty()) {
+    if (!writing && !write_queue.empty() && not reconnecting) {
       auto &[id, buffer] = write_queue.front();
       writing = true;
-      socket.async_write(boost::asio::buffer(buffer.data(), buffer.size()),
-                         [=](auto &&ec, auto) {
-                           std::lock_guard lock{mutex};
-                           if (ec) {
-                             return _error(ec);
-                           }
-                           writing = false;
-                           write_queue.pop();
-                           _flush();
-                         });
+      socket->async_write(boost::asio::buffer(buffer.data(), buffer.size()),
+                          [=](auto &&ec, auto) {
+                            std::lock_guard lock{mutex};
+                            writing = false;
+                            if (ec) {
+                              return _error(ec);
+                            }
+                            write_queue.pop();
+                            _flush();
+                          });
     }
   }
 
   void Client::_read() {
-    socket.async_read(buffer, [=](auto &&ec, auto) {
+    socket->async_read(buffer, [=](auto &&ec, auto) {
       if (ec) {
         std::lock_guard lock{mutex};
         return _error(ec);
@@ -183,6 +185,38 @@ namespace fc::api::rpc {
           }
         }
       }
+    }
+  }
+
+  void Client::reconnect(int counter, std::chrono::milliseconds wait) {
+    if (reconnecting) return;
+    reconnecting = true;
+    bool rec_status{false};
+    logger_->info(
+        "Starting reconnect to {}:{}", client_data.host, client_data.port);
+    for (int i = 0; i < counter; i++) {
+      std::this_thread::sleep_for(wait*(i+1));
+      socket.reset();
+      socket.emplace(io);
+      auto res = connect(client_data.host,
+                         client_data.port,
+                         client_data.target,
+                         client_data.token);
+      if (not res.has_error()) {
+        rec_status = true;
+        break;
+      }
+    }
+    reconnecting = false;
+    if (rec_status) {
+      logger_->info("Reconnect to {}:{} was successful",
+                    client_data.host,
+                    client_data.port);
+      _flush();
+    } else {
+      logger_->error("Reconnect to {}:{} have been failed",
+                     client_data.host,
+                     client_data.port);
     }
   }
 }  // namespace fc::api::rpc

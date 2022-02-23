@@ -83,11 +83,11 @@ namespace fc::primitives::sector_file {
   struct SectorPaths {
    public:
     SectorId id;
-    std::string unsealed;
-    std::string sealed;
-    std::string cache;
-    std::string update;
-    std::string update_cache;
+    std::string unsealed{};
+    std::string sealed{};
+    std::string cache{};
+    std::string update{};
+    std::string update_cache{};
 
     void setPathByType(const SectorFileType &file_type,
                        const std::string &path);

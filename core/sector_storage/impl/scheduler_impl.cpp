@@ -137,6 +137,11 @@ namespace fc::sector_storage {
 
   void SchedulerImpl::newWorker(std::unique_ptr<WorkerHandle> worker) {
     std::unique_lock<std::mutex> lock(workers_lock_);
+    for(const auto &[key, value] : workers_){
+      if(*value == *worker){
+        return;
+      }
+    }
     if (current_worker_id_ == std::numeric_limits<uint64_t>::max()) {
       current_worker_id_ = 0;  // TODO(ortyomka): maybe better mechanism
     }
@@ -196,8 +201,21 @@ namespace fc::sector_storage {
         return SchedulerErrors::kCannotSelectWorker;
       }
 
-      WorkerID wid = acceptable[0];
-
+      std::promise<WorkerID> wid_promise;
+      std::future<WorkerID> wid_future = wid_promise.get_future();
+      auto done = std::make_shared<std::atomic_bool>();
+      for (const auto &cur : acceptable) {
+        workers_[cur]->worker->ping([&wid_promise, done, cur](const bool resp) {
+          if (resp && !done->exchange(true)) {
+            wid_promise.set_value(cur);
+          }
+        });
+      }
+      auto status = wid_future.wait_for(std::chrono::seconds(5));
+      if (status == std::future_status::timeout) {
+        return false;
+      }
+      WorkerID wid = wid_future.get();
       assignWorker(wid, workers_[wid], request);
 
       return true;

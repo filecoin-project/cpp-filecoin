@@ -97,6 +97,8 @@ namespace fc::sector_storage {
     outcome::result<std::vector<primitives::StoragePath>> getAccessiblePaths()
         override;
 
+    void ping(std::function<void(const bool resp)> cb) override;
+
    private:
     template <typename W, typename R>
     outcome::result<CallId> asyncCall(const SectorRef &sector,
