@@ -100,5 +100,7 @@ namespace fc::sector_storage {
                                          const std::vector<UnpaddedPieceSize> &,
                                          const UnpaddedPieceSize &,
                                          int));
+
+    MOCK_CONST_METHOD0(isLocalWorker, bool());
   };
 }  // namespace fc::sector_storage
