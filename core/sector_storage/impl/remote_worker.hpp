@@ -95,6 +95,8 @@ namespace fc::sector_storage {
     outcome::result<std::vector<primitives::StoragePath>> getAccessiblePaths()
         override;
 
+    bool isLocalWorker() const override;
+
    private:
     explicit RemoteWorker(io_context &context);
 
