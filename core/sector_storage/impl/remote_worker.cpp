@@ -249,4 +249,8 @@ namespace fc::sector_storage {
                                               AcquireMode mode) {
     return api_.Fetch(sector, file_type, path_type, mode);
   }
+
+  bool RemoteWorker::isLocalWorker() const {
+    return false;
+  }
 }  // namespace fc::sector_storage
