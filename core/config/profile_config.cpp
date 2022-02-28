@@ -20,7 +20,7 @@ namespace fc::config {
   CLI_VALIDATE(Profile) {
     validateWith(out, values, [](const std::string &value) {
       if (value == "mainnet" || value == "2k" || value == "no-upgrades"
-          || value == "interopnet") {
+          || value == "interopnet" || value == "butterflynet") {
         return Profile{value};
       }
       throw std::exception{};

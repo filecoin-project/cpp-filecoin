@@ -9,7 +9,7 @@
 #include <fmt/ostream.h>
 #include <boost/optional.hpp>
 
-#include "common/outcome.hpp"
+#include "common/outcome2.hpp"
 #include "common/outcome_fmt.hpp"
 
 namespace fc::cli {
@@ -33,6 +33,18 @@ namespace fc::cli {
   template <typename R>
   auto cliTry(outcome::result<R> &&o) {
     return cliTry(std::move(o), "outcome::result");
+  }
+
+  template <typename R, typename... Args>
+  auto cliTry(Outcome<R> &&o,
+              const std::string_view &format,
+              const Args &...args) {
+    return cliTry(std::move(o.o), format, args...);
+  }
+
+  template <typename R>
+  auto cliTry(Outcome<R> &&o) {
+    return cliTry(std::move(o.o));
   }
 
   template <typename R, typename... Args>
