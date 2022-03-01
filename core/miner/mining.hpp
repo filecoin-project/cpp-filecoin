@@ -43,13 +43,16 @@ namespace fc::mining {
         const Address &miner);
     void start();
     void waitParent();
+    void reboot();
     outcome::result<void> waitBeacon();
     outcome::result<void> waitInfo();
     outcome::result<void> prepare();
     outcome::result<void> submit(const BlockTemplate &block1);
     outcome::result<void> bestParent();
     ChainEpoch height() const;
-    void wait(uint64_t sec, bool abs, Scheduler::Callback cb);
+    void wait(uint64_t sec,
+              bool abs,
+              std::function<outcome::result<void>()> cb);
     outcome::result<boost::optional<BlockTemplate>> prepareBlock();
 
     std::shared_ptr<Scheduler> scheduler;
@@ -58,12 +61,12 @@ namespace fc::mining {
     std::shared_ptr<Prover> prover;
     Address miner;
     uint64_t block_delay{0};
+    uint64_t sleep_time{0};
     uint64_t propagation{0};
     boost::optional<Tipset> ts;
     BigInt weight;
     size_t skip{};
-    // TODO(turuslan): FIL-420 check cache memory usage
-    std::unordered_set<std::pair<TipsetKey, size_t>, pair_hash> mined;
+    std::pair<TipsetKey, size_t> last_mined;
     boost::optional<MiningBaseInfo> info;
   };
 

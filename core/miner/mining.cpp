@@ -10,12 +10,21 @@
 #include "vm/actor/builtin/types/market/policy.hpp"
 #include "vm/runtime/pricelist.hpp"
 
-#define OUTCOME_LOG(tag, r)                               \
+#define OUTCOME_TRY_LOG(tag, r)                           \
   {                                                       \
     auto &&_r{r};                                         \
     if (!_r) {                                            \
       spdlog::error("{}: {}", tag, _r.error().message()); \
-      return;                                             \
+      return _r.error();                                  \
+    }                                                     \
+  }
+
+#define OUTCOME_REBOOT(base, tag, r)                      \
+  {                                                       \
+    auto &&_r{r};                                         \
+    if (!_r) {                                            \
+      spdlog::error("{}: {}", tag, _r.error().message()); \
+      return base->reboot();                              \
     }                                                     \
   }
 
@@ -36,6 +45,7 @@ namespace fc::mining {
     mining->prover = std::move(prover);
     mining->miner = miner;
     mining->block_delay = version.block_delay;
+    mining->sleep_time = 5;
     mining->propagation =
         std::min<uint64_t>(kPropagationDelaySecs, mining->block_delay * 3 / 10);
     return mining;
@@ -45,18 +55,34 @@ namespace fc::mining {
     waitParent();
   }
 
-  void Mining::waitParent() {
-    OUTCOME_LOG("Mining::waitParent error", bestParent());
-    wait(ts->getMinTimestamp() + propagation, true, [this] {
-      OUTCOME_LOG("Mining::waitBeacon error", waitBeacon());
+  void Mining::reboot() {
+    wait(sleep_time, false, [weak{weak_from_this()}] {
+      if (auto self{weak.lock()}) {
+        self->waitParent();
+      }
+      return outcome::success();
     });
+  }
+
+  void Mining::waitParent() {
+    OUTCOME_REBOOT(this, "Mining::waitParent error", bestParent());
+    wait(ts->getMinTimestamp() + propagation,
+         true,
+         [weak{weak_from_this()}]() -> outcome::result<void> {
+           if (auto self{weak.lock()}) {
+             OUTCOME_TRY_LOG("Mining::waitBeacon error", self->waitBeacon());
+           }
+           return outcome::success();
+         });
   }
 
   outcome::result<void> Mining::waitBeacon() {
     api->BeaconGetEntry(
-        [self{shared_from_this()}](auto beacon) {
-          OUTCOME_LOG("Mining::waitBeacon error", beacon);
-          OUTCOME_LOG("Mining::waitInfo error", self->waitInfo());
+        [weak{weak_from_this()}](auto beacon) {
+          if (auto self{weak.lock()}) {
+            OUTCOME_REBOOT(self, "Mining::waitBeacon error", beacon);
+            OUTCOME_REBOOT(self, "Mining::waitInfo error", self->waitInfo());
+          }
         },
         height());
     return outcome::success();
@@ -64,14 +90,23 @@ namespace fc::mining {
 
   outcome::result<void> Mining::waitInfo() {
     OUTCOME_TRY(bestParent());
-    if (!mined.emplace(ts->key, skip).second) {
-      wait(block_delay, false, [this] { waitParent(); });
+    auto maybe_mined = std::make_pair(ts->key, skip);
+    if (last_mined == maybe_mined) {
+      wait(block_delay, false, [weak{weak_from_this()}] {
+        if (auto self{weak.lock()}) {
+          self->waitParent();
+        }
+        return outcome::success();
+      });
     } else {
       api->MinerGetBaseInfo(
-          [self{shared_from_this()}](auto _info) {
-            OUTCOME_LOG("Mining::waitInfo error", _info);
-            self->info = std::move(_info.value());
-            OUTCOME_LOG("Mining::prepare error", self->prepare());
+          [weak{weak_from_this()}, mined{std::move(maybe_mined)}](auto _info) {
+            if (auto self{weak.lock()}) {
+              OUTCOME_REBOOT(self, "Mining::waitInfo error", _info);
+              self->info = std::move(_info.value());
+              OUTCOME_REBOOT(self, "Mining::prepare error", self->prepare());
+              self->last_mined = mined;
+            }
           },
           miner,
           height(),
@@ -85,12 +120,23 @@ namespace fc::mining {
     auto time{ts->getMinTimestamp() + (skip + 1) * block_delay};
     if (block1) {
       block1->timestamp = time;
-      wait(time, true, [this, block1{std::move(*block1)}]() {
-        OUTCOME_LOG("Mining::submit error", submit(block1));
-      });
+      wait(time,
+           true,
+           [weak{weak_from_this()},
+            block1{std::move(*block1)}]() -> outcome::result<void> {
+             if (auto self{weak.lock()}) {
+               OUTCOME_TRY_LOG("Mining::submit error", self->submit(block1));
+             }
+             return outcome::success();
+           });
     } else {
       ++skip;
-      wait(time + propagation, true, [this] { waitParent(); });
+      wait(time + propagation, true, [weak{weak_from_this()}] {
+        if (auto self{weak.lock()}) {
+          self->waitParent();
+        }
+        return outcome::success();
+      });
     }
     return outcome::success();
   }
@@ -124,15 +170,20 @@ namespace fc::mining {
     return gsl::narrow<ChainEpoch>(ts->height() + skip + 1);
   }
 
-  void Mining::wait(uint64_t sec, bool abs, Scheduler::Callback cb) {
+  void Mining::wait(uint64_t sec,
+                    bool abs,
+                    std::function<outcome::result<void>()> cb) {
     if (abs) {
       sec -= clock->nowUTC().count();
     }
-    cb = [cb{std::move(cb)}, self{shared_from_this()}] {
-      // stop condition or weak_ptr
-      cb();
+    Scheduler::Callback wrap_cb = [cb{std::move(cb)}, weak{weak_from_this()}] {
+      if (cb().has_error()) {
+        if (auto self{weak.lock()}) {
+          self->reboot();
+        }
+      }
     };
-    scheduler->schedule(std::move(cb),
+    scheduler->schedule(std::move(wrap_cb),
                         std::chrono::seconds{std::max<uint64_t>(0, sec)});
   }
 
