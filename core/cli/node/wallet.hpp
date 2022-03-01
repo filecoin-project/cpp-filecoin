@@ -8,6 +8,7 @@
 #include "api/rpc/json.hpp"
 #include "cli/node/node.hpp"
 #include "codec/json/json.hpp"
+#include "common/file.hpp"
 #include "common/hexutil.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/big_int.hpp"
@@ -20,7 +21,9 @@ namespace fc::cli::_node {
   using common::hex_lower;
   using common::unhex;
   using crypto::signature::Signature;
+  using fc::vm::actor::Actor;
   using primitives::BigInt;
+  using primitives::GasAmount;
   using primitives::Nonce;
   using primitives::TokenAmount;
   using primitives::address::Address;
@@ -44,7 +47,7 @@ namespace fc::cli::_node {
       Address address =
           cliTry(api._->WalletNew(type), "Creating new wallet...");
 
-      fmt::print(encodeToString(address));
+      fmt::print("{}", encodeToString(address));
     }
   };
 
@@ -62,7 +65,6 @@ namespace fc::cli::_node {
         return opts;
       }
     };
-
     CLI_RUN() {
       Node::Api api{argm};
 
@@ -86,17 +88,23 @@ namespace fc::cli::_node {
         if (args.address_only) {
           fmt::print("{}\n", encodeToString(address));
         } else {
-          auto maybe_actor = api._->StateGetActor(address, TipsetKey{});
-          auto actor = maybe_actor.value();
+          auto maybe_actor = api._->StateGetActor(
+              address, TipsetKey{});  // TODO this place input on console log of
+                                      // error. It isn`t correct
+          Actor actor;
           if (maybe_actor.has_error()) {
             TipsetCPtr chain_head =
                 cliTry(api._->ChainHead(), "Getting chain head...");
             CID state_root = chain_head->getParentStateRoot();
-            // TODO add OUTCOME_TRY(network,
-            // api->StateNetworkVersion(tipset_key));
-            // TODO add ipfs->actor_version = actorVersion(network);
+            /*
+            auto network_version =
+            cliTry(api._->StateNetworkVersion(chain_head->key), "Getting network
+            version..."); // TODO tipsetkey? auto ipfs =
+            std::make_shared<ApiIpfsDatastore>(api._); ipfs->actor_version =
+            actorVersion(network_version);
+             */
             auto ipfs = std::make_shared<ApiIpfsDatastore>(api._);
-            StateTreeImpl tree{ipfs, state_root};  // TODO true?
+            StateTreeImpl tree{ipfs, state_root};
             auto actor_exist = tree.tryGet(address);
 
             if (not actor_exist.has_value()) {
@@ -105,7 +113,11 @@ namespace fc::cli::_node {
                    {"Error", "Error"}});  // TODO add description of error
               continue;
             }
+            actor = maybe_actor.value();
+
             actor.balance = 0;
+          } else {
+            actor = maybe_actor.value();
           }
 
           std::map<std::string, std::string> row{
@@ -149,11 +161,11 @@ namespace fc::cli::_node {
   struct walletBalance : Empty {
     CLI_RUN() {
       Node::Api api{argm};
-      Address address{cliArgv<Address>(argv, 0, "address")};
+      Address address;
       address = (argv.size() == 1)
-                            ? (address)
-                            : cliTry(api._->WalletDefaultAddress(),
-                                     "Getting default address...");
+                    ? (Address{cliArgv<Address>(argv, 0, "address")})
+                    : cliTry(api._->WalletDefaultAddress(),
+                             "Getting default address...");
 
       TokenAmount balance =
           cliTry(api._->WalletBalance(address), "Getting balance of wallet...");
@@ -167,391 +179,213 @@ namespace fc::cli::_node {
     }
   };
 
+  struct wallletAddBalance {
+    struct Args {
+      CLI_OPTIONAL("from,f", "Address from take balance", Address) from;
+      CLI_DEFAULT("gas-limit", "Limit of gas", GasAmount, {0}) gas_limit;
+
+      CLI_OPTS() {
+        Opts opts;
+        from(opts);
+        gas_limit(opts);
+        return opts;
+      }
+    };
+    CLI_RUN() {
+      Node::Api api{argm};
+
+      Address address_from = (args.from) ? args.from._.value()
+                                         : cliTry(api._->WalletDefaultAddress(),
+                                                  "Getting default address...");
+      Address address_to{cliArgv<Address>(argv, 0, "Address to add balance")};
+      TokenAmount amount{
+          cliArgv<TokenAmount>(argv, 1, "Amount of add balance")};
+
+      auto signed_message = cliTry(api._->MpoolPushMessage(
+          vm::message::UnsignedMessage(
+              address_to, address_from, 0, amount, 0, *args.gas_limit, 0, {}),
+          boost::none));
+
+      auto message_wait =
+          cliTry(api._->StateWaitMsg(signed_message.getCid(), 1, 10, false),
+                 "Wait message");
+    }
+  };
+
   struct walletDefault : Empty {
     CLI_RUN() {
       Node::Api api{argm};
       Address default_address =
           cliTry(api._->WalletDefaultAddress(), "Getting default address...");
-      fmt::print("{}\n", encodeToString(default_address));
+      fmt::print("{}", encodeToString(default_address));
     }
   };
 
-/*
-  struct walletSetDefault {
+  struct walletSetDefault : Empty {
+    CLI_RUN() {
+      Node::Api api{argm};
+      Address address{cliArgv<Address>(argv, 0, "Address for set as default")};
+
+      cliTry(api._->WalletSetDefault(address), "Setting default address");
+    }
+  };
+
+  struct walletImport {
     struct Args {
-      CLI_OPTIONAL("address,a", "Address for set as default", Address) address;
+      CLI_DEFAULT("format,f",
+                  "specify input format for key [hex-lotus|json-lotus]",
+                  std::string,
+                  {"hex-lotus"})
+      format;
+      CLI_BOOL("as-default", "import the given key as your new default key")
+      as_default;
       CLI_OPTS() {
         Opts opts;
+        format(opts);
+        as_default(opts);
+        return opts;
+      }
+    };
+    CLI_RUN() {
+      Node::Api api{argm};
+
+      if (*args.format != "hex-lotus" && *args.format != "json-lotus") {
+        throw CliError("unrecognized or unsupported format: " + *args.format);
+      }
+
+      std::string path;
+      if (argv.size() == 1) {
+        path = {cliArgv<std::string>(
+            argv, 0, "<path> (optional, will read from stdin if omitted)")};
+      }
+
+      Bytes input_data;
+
+      if (path.empty()) {
+        fmt::print("Enter private key: ");
+        std::string private_key;
+        std::cin >> private_key;
+
+        input_data = Bytes(private_key.begin(), private_key.end());
+      } else {
+        input_data = cliTry(common::readFile(boost::filesystem::path(path)),
+                            "Reading file...");
+      }
+
+      api::KeyInfo key_info;
+
+      if (*args.format == "hex-lotus") {
+        while (*--input_data.end() == '\n') {
+          input_data.pop_back();
+        }
+        input_data =
+            cliTry(unhex(std::string(input_data.begin(), input_data.end())),
+                   "Unhex data...");
+      }
+
+      auto json = cliTry(codec::json::parse(input_data), "Parse json data...");
+      key_info = cliTry(api::decode<KeyInfo>(json), "Decoding json...");
+
+      Address address =
+          cliTry(api._->WalletImport(key_info), "Importing key...");
+
+      if (args.as_default) {
+        cliTry(api._->WalletSetDefault(address), "Set-default...");
+      }
+
+      fmt::print("Imported key {} successfully.\n", encodeToString(address));
+    }
+  };
+
+  struct walletSign : Empty {
+    CLI_RUN() {
+      Node::Api api{argm};
+      Address signing_address{cliArgv<Address>(argv, 0, "Signing address")};
+      std::string hex_message{cliArgv<std::string>(argv, 0, "Hex message")};
+
+      auto decode_message =
+          cliTry(unhex(hex_message), "Decoding hex message...");
+      auto signed_message =
+          cliTry(api._->WalletSign(signing_address, decode_message),
+                 "Signing message...");
+
+      std::cout << hex_lower(signed_message.toBytes()) << '\n';
+    }
+  };
+
+  struct walletVerify : Empty {
+    CLI_RUN() {
+      Node::Api api{argm};
+      Address signing_address{cliArgv<Address>(argv, 0, "Signing address")};
+      std::string hex_message{cliArgv<std::string>(argv, 1, "Hex message")};
+      std::string signature{cliArgv<std::string>(argv, 2, "Signature")};
+
+      auto decode_message = cliTry(unhex(hex_message), "Decoding message...");
+
+      auto signing_bytes = cliTry(unhex(signature), "Decoding signature...");
+
+      auto signature_from_bytes = cliTry(Signature::fromBytes(signing_bytes),
+                                         "Getting signature from bytes...");
+      bool flagOk = cliTry(api._->WalletVerify(
+          signing_address, decode_message, signature_from_bytes));
+      if (flagOk) {
+        fmt::print("valid\n");
+      } else {
+        fmt::print("invalid\nCLI Verify called with invalid signature\n");
+      }
+    }
+  };
+
+  struct walletDelete : Empty {
+    CLI_RUN() {
+      Node::Api api{argm};
+      Address address{cliArgv<Address>(argv, 0, "Address for delete")};
+
+      cliTry(api._->WalletDelete(address), "Deleting address...");
+    }
+  };
+
+  struct walletMarketAdd {
+    struct Args {
+      CLI_OPTIONAL("from,f",
+                   "Specify address to move funds from, otherwise it will use "
+                   "the default wallet address",
+                   Address)
+      from;
+      CLI_OPTIONAL("address,a",
+                   "Market address to move funds to (account or miner actor "
+                   "address, defaults to --from address)",
+                   Address)
+      address;
+
+      CLI_OPTS() {
+        Opts opts;
+        from(opts);
         address(opts);
         return opts;
       }
     };
-
     CLI_RUN() {
       Node::Api api{argm};
-      if (args.addressString.empty()) {
-                throw std::invalid_argument("must pass address to set as
-    default");
+      TokenAmount amt{cliArgv<TokenAmount>(argv, 0, "Amount")};
+      Address address_from = (args.from ? (args.from._.value())
+                                        : cliTry(api._->WalletDefaultAddress(),
+                                                 "Getting default address..."));
+
+      Address address = address_from;
+      if (args.address) {
+        address = args.address._.value();
       }
-      CLI_TRY_TEXT(address,
-                   decodeFromString(args.addressString),
-                   "address is incorrect");
-      auto r = api._->WalletSetDefault(address);
-      if (r.has_error()) {
-        throw std::invalid_argument("address can`t set a default");
-      }
+
+      fmt::print(
+          "Submitting Add Balance message for amount {} for address {}\n",
+          amt,
+          encodeToString(address));
+
+      auto smsg = cliTry(api._->MarketAddBalance(address_from, address, amt),
+                         "Add balance...");
+
+      fmt::print("Add balance message cid : {}\n", smsg.value());
     }
   };
-  /*
-        struct walletImport {
-          struct Args {
-            std::string path;
-            std::string format = "hex-lotus";
-            bool as_default = false;
-            CLI_OPTS() {
-              Opts opts;
-              auto option{opts.add_options()};
-              option("path,p",
-                     po::value(&path)->required(),
-                     "[<path> (optional, will read from stdin if omitted)]");
-              option("format,f",
-                     po::value(&format)->required(),
-                     "specify input format for key");
-              option("as-default",
-                     po::bool_switch(&as_default),
-                     "import the given key as your new default key");
-              return opts;
-            }
-          };
-
-          CLI_RUN() {
-            Node::Api api{argm};
-            Bytes input_data;
-
-            if (args.path.empty()) {
-              std::cout << "Enter private key: ";
-              std::string privateKey;
-              std::cin >> privateKey;
-              CLI_TRY_TEXT(bytes,
-                           codec::cbor::encode(privateKey),
-                           "Can`t convert private key to bytes")
-              input_data = bytes;
-            } else {
-              input_data = common::readFile(args.path).value();  // TODO add
-  check
-            }
-
-            api::KeyInfo key_info;
-            if (args.format == "hex-lotus" || args.format == "json-lotus") {
-
-              auto maybe_json = codec::json::parse(input_data);
-              if (not maybe_json.has_value()) {
-                throw std::invalid_argument("");
-              }
-              auto json{std::move(maybe_json.value())};
-
-              CLI_TRY_TEXT(key_info, api::decode<KeyInfo>(json), "Can`t decode
-        json")
-
-            } else if (args.format == "gfs-json") {
-              std::cout << "gfs-json not supported\n";
-            } else {
-              throw std::invalid_argument("unrecognized format: " +
-  args.format);
-            }
-
-            CLI_TRY_TEXT(
-                address, api._->WalletImport(key_info), "Can`t import
-  wallet");
-
-            if (args.as_default) {
-              CLI_TRY_TEXT1(api._->WalletSetDefault(address),
-                            "failed to set default key")
-            }
-
-            std::cout << "imported key " + encodeToString(address)
-                             + "successfully!\n";
-          }
-        };
-
-        struct walletSign {
-          struct Args {
-            std::string signAddress;
-            std::string hexMessage;
-
-            CLI_OPTS() {
-              Opts opts;
-              auto option{opts.add_options()};
-              option("address,a",
-                     po::value(&signAddress)->required(),
-                     "Signing address");
-              option("message,m", po::value(&hexMessage)->required(), "Hex
-        message"); return opts;
-            }
-          };
-
-          CLI_RUN() {
-            Node::Api api{argm};
-            if (args.signAddress.empty() || args.hexMessage.empty()) {
-              throw std::invalid_argument(
-                  "must specify signing address and message to sign");
-            }
-
-            CLI_TRY_TEXT(
-                address, decodeFromString(args.signAddress), "Can`t get
-  address") CLI_TRY_TEXT( decode_message, unhex(args.hexMessage), "Can`t
-  decode hex message");
-
-            CLI_TRY_TEXT(signed_message,
-                         api._->WalletSign(address, decode_message),
-                         "Can`t sign message")
-
-            std::cout << hex_lower(signed_message.toBytes()) << '\n';
-          }
-        };
-
-        struct walletVerify {
-          struct Args {
-            std::string signing_address;
-            std::string hex_message;
-            std::string signature;
-            CLI_OPTS() {
-              Opts opts;
-              auto option{opts.add_options()};
-              option("signing_address,a",
-                     po::value(&signing_address)->required(),
-                     "Signing address");
-              option("message,m", po::value(&hex_message)->required(), "Hex
-        message"); option("signature,s", po::value(&signature)->required(),
-        "Signature"); return opts;
-            }
-          };
-
-          CLI_RUN() {
-            Node::Api api{argm};
-
-            if (args.signing_address.empty() || args.hex_message.empty()
-                || args.signature.empty()) {
-              throw std::invalid_argument(
-                  "must specify signing address, message, and signature to
-       verify");
-            }
-            CLI_TRY_TEXT(
-                address, decodeFromString(args.signing_address), "Can`t get
-        address") CLI_TRY_TEXT( decode_message, unhex(args.hex_message),
-  "Can`t decode hex message"); CLI_TRY_TEXT( signing_bytes,
-  unhex(args.signature), "Can`t decode signature");  // TODO maybe
-  signature.fromBytes?
-            // TODO
-
-            CLI_TRY_TEXT(signature,
-                         Signature::fromBytes(signing_bytes),
-                         "Can`t get signature from bytes");
-            CLI_TRY_TEXT(flagOk,
-                         api._->WalletVerify(address, decode_message,
-  signature), "Can`t verify"); if (flagOk) { std::cout << "valid\n"; } else {
-              std::cout << "invalid\nCLI Verify called with invalid
-  signature\n";
-            }
-          }
-        };
-
-        struct walletDelete {
-          struct Args {
-            std::string address;
-
-            CLI_OPTS() {
-              Opts opts;
-              auto option{opts.add_options()};
-              option(
-                  "address,a", po::value(&address)->required(), "Address for
-        delete"); return opts;
-            }
-          };
-
-          CLI_RUN() {
-            Node::Api api{argm};
-            if (args.address.empty()) {
-              throw std::invalid_argument("must specify address to delete");
-            }
-            CLI_TRY_TEXT(
-                address, decodeFromString(args.address), "address is
-  incorrect")
-
-            CLI_TRY_TEXT1(api._->WalletDelete(address),
-                          "Can`t delete address")  // TODO write WalletDelete
-          }
-        };
-
-        struct walletWithdraw {
-          struct Args {
-            std::string amount;
-            std::string wallet;
-            std::string address;
-            int confidence;
-            CLI_OPTS() {
-              Opts opts;
-              auto option{opts.add_options()};
-              option("amount",
-                     po::value(&amount)->required(),
-                     "Amount (FIL) optional, otherwise will withdraw max
-        available"); option("wallet,w", po::value(&wallet)->required(),
-  "Specify address to withdraw funds to, otherwise it will use " "the default
-  wallet address"); option("address,a", po::value(&address)->required(),
-  "Market address to withdraw from (account or miner actor " "address,
-  defaults to
-        --wallet address)"); option("confidence",
-                     po::value(&confidence)->required(),
-                     "Number of block confirmations to wait for");
-              return opts;
-            }
-          };
-
-          CLI_RUN() {
-            Node::Api api{argm};
-            Address wallet;
-            if (args.wallet.empty()) {
-              CLI_TRY_TEXT(walletTemp,
-                           decodeFromString(args.wallet),
-                           "parsing from address: " + args.wallet + "
-  invalid"); wallet = walletTemp; } else { CLI_TRY_TEXT(walletTemp,
-                           api._->WalletDefaultAddress(),
-                           "getting default wallet address invalid");
-              wallet = walletTemp;
-            }
-
-            Address address = wallet;
-            if (not args.address.empty()) {
-              CLI_TRY_TEXT(addressTemp,
-                           decodeFromString(args.address),
-                           "parsing market address: " + args.address + "
-       invalid"); address = addressTemp;
-            }
-
-            CLI_TRY_TEXT(
-                balance,
-                api._->StateMarketBalance(address, TipsetKey{}),
-                "getting market balance for address " + args.address + "
-       invalid");
-
-            BigInt available = balance.escrow - balance.locked;
-            if (available <= 0) {
-              throw std::invalid_argument(
-                  "no funds available to withdraw");  // TODO add description
-  like
-                                                      // lotus
-            }
-
-            BigInt amount = available;
-            if (not args.amount.empty()) {
-              amount = TokenAmount(args.amount);
-            }
-
-            if (amount <= 0) {
-              throw std::invalid_argument("amount must be > 0");
-            }
-
-            if (amount > available) {
-              throw std::invalid_argument(
-                  "can't withdraw more funds than available; requested: "
-                  + lexical_cast<std::string>(available));
-            }
-
-            std::cout << "Submitting WithdrawBalance message for amount "
-                      << lexical_cast<std::string>(amount) << " for address "
-                      << encodeToString(wallet) << "\n";
-
-            CLI_TRY_TEXT(signed_message,
-                         api._->MarketWithdraw(wallet, address, amount),
-                         "Funds manager withdr  aw error");
-            std::cout << "WithdrawBalance message cid: " << signed_message <<
-       "\n";
-
-            CLI_TRY_TEXT(wait,
-                         api._->StateWaitMsg(signed_message,
-                                             lexical_cast<uint64_t>(args.confidence)),
-                         "Wait message error");  // TODO correct?
-
-            if (wait.receipt.exit_code != 0) {
-              throw std::invalid_argument("withdrawal failed!");
-            }
-
-            CLI_TRY_TEXT(network_version,
-                         api._->StateNetworkVersion(wait.tipset),
-                         "Can`t get network version");
-
-            if (network_version >= NetworkVersion::kVersion14) {
-              TokenAmount withdrawn;
-              // TODO if err :=
-              // withdrawn.UnmarshalCBOR(bytes.NewReader(wait.Receipt.Return))
-              std::cout << "Successfully withdrew "
-                        << lexical_cast<std::string>(withdrawn) << "\n";
-              if (withdrawn < amount) {
-                std::cout << "Note that this is less than the requested amount
-  of
-       "
-                          << lexical_cast<std::string>(withdrawn) << "\n";
-              }
-            }
-          }
-        };
-
-        struct walletAdd {
-          struct Args {
-            std::string amount;
-            std::string from;
-            std::string address;
-            CLI_OPTS() {
-              Opts opts;
-              auto option{opts.add_options()};
-              option("address,a",
-                     po::value(&address)->required(),
-                     "Market address to move funds to (account or miner actor
-  " "address, defaults to --from address)"); option("from,f",
-                     po::value(&from)->required(),
-                     "Specify address to move funds from, otherwise it will
-  use the " "default wallet address"); option("amount",
-        po::value(&amount)->required(), "amount"); return opts;
-            }
-          };
-          CLI_RUN() {
-            Node::Api api{argm};
-            if (args.amount.empty()) {
-              throw std::invalid_argument("must pass amount to add");
-            }
-
-            TokenAmount amt(args.amount);
-
-            Address addressFrom;
-            if (args.from.empty()) {
-              CLI_TRY_TEXT(tempAddress,
-                           api._->WalletDefaultAddress(),
-                           "Can`t find default address")
-              addressFrom = tempAddress;
-            } else {
-              CLI_TRY_TEXT(tempAddress,
-                           decodeFromString(args.from),
-                           "parsing from address: " + args.from)
-              addressFrom = tempAddress;
-            }
-
-            Address address = addressFrom;
-            if (not args.address.empty()) {
-              CLI_TRY_TEXT(tempAddress,
-                           decodeFromString(args.address),
-                           "parsing from address: " + args.from)
-              address = tempAddress;
-            }
-
-            std::cout << "Submitting Add Balance message for amount " << amt
-                      << " for address " << encodeToString(address) << "\n";
-
-            CLI_TRY_TEXT(smsg,
-                         api._->MarketAddBalance(
-                             addressFrom, address, amt),  // TODO add
-        MarketAddBalance "Add balance error") std::cout << "AddBalance message
-       cid: " << smsg << '\n';
-          }
-        };
-      */
 }  // namespace fc::cli::_node

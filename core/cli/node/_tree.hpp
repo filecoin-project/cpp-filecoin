@@ -27,18 +27,17 @@ namespace fc::cli::_node {
                    tree<Group>({
                        {"new", tree<walletNew>()},
                        {"list", tree<walletList>()},
+                       {"add-balance", tree<wallletAddBalance>()},
                        {"balance", tree<walletBalance>()},
-                       {"default", tree<walletDefault>()}, /*
-                       {"set-default", tree<walletSetDefault>()}, /*
+                       {"default", tree<walletDefault>()},
+                       {"set-default", tree<walletSetDefault>()},
                        {"import", tree<walletImport>()},
                        {"sign", tree<walletSign>()},
                        {"verify", tree<walletVerify>()},
-                       {"delete",
-                        tree<walletDelete>()},
+                       {"delete", tree<walletDelete>()},
                        {"market",
                         tree<Group>({
-                            {"withdraw", tree<walletWithdraw>()},
-                            {"add", tree<walletAdd>()},
-                        })},*/
+                            {"add", tree<walletMarketAdd>()},
+                        })},
                    })}})};
 }  // namespace fc::cli::_node

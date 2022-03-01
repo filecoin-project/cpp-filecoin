@@ -74,20 +74,21 @@ namespace fc::api {
       std::vector<Address> out;
       out.reserve(all.size());
 
-      std::string k_name_prefix = "wallet-"; // TODO not needed
+      std::string k_name_prefix = "wallet-";  // TODO not needed
       for (auto &a : all) {
         fmt::print(encodeToString(a));
-        if (encodeToString(a).substr(0, k_name_prefix.size())
-            == k_name_prefix) {
-          std::string name = encodeToString(a).erase(0, k_name_prefix.size());
-          OUTCOME_TRY(address, primitives::address::decodeFromString(name));
-          if (seen.find(address) != seen.end()) {
-            continue;
-          }
-          seen.insert(address);
-
-          out.push_back(address);
+        //        if (encodeToString(a).substr(0, k_name_prefix.size())
+        //            == k_name_prefix) {
+        //          std::string name = encodeToString(a).erase(0,
+        //          k_name_prefix.size());
+        OUTCOME_TRY(address,
+                    primitives::address::decodeFromString(encodeToString(a)));
+        if (seen.find(address) != seen.end()) {
+          continue;
         }
+        seen.insert(address);
+
+        out.push_back(address);
       }
 
       std::sort(out.begin(), out.end());
@@ -119,6 +120,10 @@ namespace fc::api {
       OUTCOME_TRY(has, key_store->has(address));
       if (has) {
         OUTCOME_TRY(key_store->remove(address));
+        //        OUTCOME_TRY(default_address, api->WalletDefaultAddress());
+        //        if (address == default_address) {
+        //          wallet_default_address->remove();
+        //        }
         return outcome::success();
       }
       return ERROR_TEXT("WalletDelete: Address does not exist");

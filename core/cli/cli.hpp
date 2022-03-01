@@ -197,8 +197,8 @@ namespace fc::cli {
     }
 
     void flush() {
-      std::vector<int> colLenghts;
-      colLenghts.reserve(columns.size());
+      std::vector<int> colLenghts(columns.size());
+      // colLenghts.reserve(columns.size());
 
       std::map<int, std::string> header;
       for (size_t i = 0; i < columns.size(); ++i) {
