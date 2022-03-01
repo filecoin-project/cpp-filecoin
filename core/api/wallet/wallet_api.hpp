@@ -40,7 +40,7 @@ namespace fc::api {
 
     API_METHOD(WalletList, jwt::kAdminPermission, std::vector<Address>)
 
-    API_METHOD(WalletDelete, jwt::kReadPermission, void, const Address &)
+    API_METHOD(WalletDelete, jwt::kAdminPermission, void, const Address &)
 
     API_METHOD(WalletSign,
                jwt::kSignPermission,

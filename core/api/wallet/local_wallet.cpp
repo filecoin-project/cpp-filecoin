@@ -68,24 +68,10 @@ namespace fc::api {
     }};
     api->WalletList = [=]() -> outcome::result<std::vector<Address>> {
       OUTCOME_TRY(addresses, key_store->list());
-
-      std::set<Address> seen;
-
-      for (const Address &address_temp : addresses) {
-        OUTCOME_TRY(address,
-                    primitives::address::decodeFromString(
-                        encodeToString(address_temp)));
-        if (seen.find(address) == seen.end()) {
-          seen.insert(address);
-        }
-      }
-
-      std::vector<Address> out;
-      while (not seen.empty()) {
-        out.emplace_back(std::move(seen.extract(seen.begin()).value()));
-      }
-
-      return out;
+      std::sort(addresses.begin(), addresses.end());
+      auto last = std::unique(addresses.begin(), addresses.end());
+      addresses.erase(last, addresses.end());
+      return addresses;
     };
     api->WalletSetDefault = [=](auto &address) -> outcome::result<void> {
       wallet_default_address->setCbor(address);

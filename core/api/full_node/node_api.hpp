@@ -626,7 +626,7 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(MarketAddBalance,
                jwt::kSignPermission,
-               boost::optional<CID>,
+               CID,
                const Address &,
                const Address &,
                const TokenAmount &)
