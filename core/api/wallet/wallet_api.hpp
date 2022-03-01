@@ -64,6 +64,7 @@ namespace fc::api {
     f(a.WalletHas);
     f(a.WalletImport);
     f(a.WalletList);
+    f(a.WalletDelete);
     f(a.WalletNew);
     f(a.WalletSetDefault);
     f(a.WalletSign);
