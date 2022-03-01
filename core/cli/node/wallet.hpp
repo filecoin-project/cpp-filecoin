@@ -33,10 +33,12 @@ namespace fc::cli::_node {
   using storage::ipfs::ApiIpfsDatastore;
   using vm::message::UnsignedMessage;
   using vm::state::StateTreeImpl;
+  using vm::message::SignedMessage;
+  using api::MsgWait;
 
   struct walletNew : Empty {
     CLI_RUN() {
-      Node::Api api{argm};
+      const Node::Api api{argm};
       std::string type = "secp256k1";
 
       if (argv.size() == 1) {
@@ -44,7 +46,7 @@ namespace fc::cli::_node {
             argv, 0, "[bls|secp256k1 (default secp256k1)]")};
       }
 
-      Address address =
+      const Address address =
           cliTry(api._->WalletNew(type), "Creating new wallet...");
 
       fmt::print("{}", encodeToString(address));
@@ -65,13 +67,13 @@ namespace fc::cli::_node {
         return opts;
       }
     };
-    CLI_RUN() {
-      Node::Api api{argm};
+    CLI_RUN() { // TODO express
+      const Node::Api api{argm};
 
-      std::vector<Address> addresses =
+      const std::vector<Address> addresses =
           cliTry(api._->WalletList(), "Getting list of wallets...");
 
-      Address default_address = cliTry(api._->WalletDefaultAddress(),
+      const Address default_address = cliTry(api._->WalletDefaultAddress(),
                                        "Getting default address of wallet...");
 
       TableWriter table_writer =
@@ -84,13 +86,13 @@ namespace fc::cli::_node {
                        TableWriter::newColumn("Default"),
                        TableWriter::newColumn("Error")});
 
-      for (Address &address : addresses) {
+      for (const Address &address : addresses) {
         if (args.address_only) {
           fmt::print("{}\n", encodeToString(address));
         } else {
           auto maybe_actor = api._->StateGetActor(
               address, TipsetKey{});  // TODO this place input on console log of
-                                      // error. It isn`t correct
+
           Actor actor;
           if (maybe_actor.has_error()) {
             TipsetCPtr chain_head =
@@ -110,7 +112,7 @@ namespace fc::cli::_node {
             if (not actor_exist.has_value()) {
               table_writer.write(
                   {{"Address", encodeToString(address)},
-                   {"Error", "Error"}});  // TODO add description of error
+                   {"Error", "Error get actor"}});
               continue;
             }
             actor = maybe_actor.value();
@@ -160,14 +162,13 @@ namespace fc::cli::_node {
 
   struct walletBalance : Empty {
     CLI_RUN() {
-      Node::Api api{argm};
-      Address address;
-      address = (argv.size() == 1)
+      const Node::Api api{argm};
+      const Address address = (argv.size() == 1)
                     ? (Address{cliArgv<Address>(argv, 0, "address")})
                     : cliTry(api._->WalletDefaultAddress(),
                              "Getting default address...");
 
-      TokenAmount balance =
+      const TokenAmount balance =
           cliTry(api._->WalletBalance(address), "Getting balance of wallet...");
 
       if (balance == 0) {
@@ -192,21 +193,21 @@ namespace fc::cli::_node {
       }
     };
     CLI_RUN() {
-      Node::Api api{argm};
+      const Node::Api api{argm};
 
-      Address address_from = (args.from) ? args.from._.value()
+      const Address address_from = (args.from) ? *args.from
                                          : cliTry(api._->WalletDefaultAddress(),
                                                   "Getting default address...");
-      Address address_to{cliArgv<Address>(argv, 0, "Address to add balance")};
-      TokenAmount amount{
+      const Address address_to{cliArgv<Address>(argv, 0, "Address to add balance")};
+      const TokenAmount amount{
           cliArgv<TokenAmount>(argv, 1, "Amount of add balance")};
 
-      auto signed_message = cliTry(api._->MpoolPushMessage(
+      const SignedMessage signed_message = cliTry(api._->MpoolPushMessage(
           vm::message::UnsignedMessage(
               address_to, address_from, 0, amount, 0, *args.gas_limit, 0, {}),
           boost::none));
 
-      auto message_wait =
+      const MsgWait message_wait =
           cliTry(api._->StateWaitMsg(signed_message.getCid(), 1, 10, false),
                  "Wait message");
     }
@@ -214,8 +215,8 @@ namespace fc::cli::_node {
 
   struct walletDefault : Empty {
     CLI_RUN() {
-      Node::Api api{argm};
-      Address default_address =
+      const Node::Api api{argm};
+      const Address default_address =
           cliTry(api._->WalletDefaultAddress(), "Getting default address...");
       fmt::print("{}", encodeToString(default_address));
     }
@@ -223,8 +224,8 @@ namespace fc::cli::_node {
 
   struct walletSetDefault : Empty {
     CLI_RUN() {
-      Node::Api api{argm};
-      Address address{cliArgv<Address>(argv, 0, "Address for set as default")};
+      const Node::Api api{argm};
+      const Address address{cliArgv<Address>(argv, 0, "Address for set as default")};
 
       cliTry(api._->WalletSetDefault(address), "Setting default address");
     }
@@ -247,17 +248,16 @@ namespace fc::cli::_node {
       }
     };
     CLI_RUN() {
-      Node::Api api{argm};
+      const Node::Api api{argm};
 
       if (*args.format != "hex-lotus" && *args.format != "json-lotus") {
         throw CliError("unrecognized or unsupported format: " + *args.format);
       }
 
-      std::string path;
-      if (argv.size() == 1) {
-        path = {cliArgv<std::string>(
-            argv, 0, "<path> (optional, will read from stdin if omitted)")};
-      }
+      const std::string path = (argv.size() == 1) ?
+        cliArgv<std::string>(
+            argv, 0, "<path> (optional, will read from stdin if omitted)") : "";
+
 
       Bytes input_data;
 
@@ -283,10 +283,10 @@ namespace fc::cli::_node {
                    "Unhex data...");
       }
 
-      auto json = cliTry(codec::json::parse(input_data), "Parse json data...");
+      const auto json = cliTry(codec::json::parse(input_data), "Parse json data...");
       key_info = cliTry(api::decode<KeyInfo>(json), "Decoding json...");
 
-      Address address =
+      const Address address =
           cliTry(api._->WalletImport(key_info), "Importing key...");
 
       if (args.as_default) {
@@ -299,32 +299,32 @@ namespace fc::cli::_node {
 
   struct walletSign : Empty {
     CLI_RUN() {
-      Node::Api api{argm};
-      Address signing_address{cliArgv<Address>(argv, 0, "Signing address")};
-      std::string hex_message{cliArgv<std::string>(argv, 0, "Hex message")};
+      const Node::Api api{argm};
+      const Address signing_address{cliArgv<Address>(argv, 0, "Signing address")};
+      const std::string hex_message{cliArgv<std::string>(argv, 0, "Hex message")};
 
-      auto decode_message =
+      const Bytes decode_message =
           cliTry(unhex(hex_message), "Decoding hex message...");
-      auto signed_message =
+      const Signature signature =
           cliTry(api._->WalletSign(signing_address, decode_message),
                  "Signing message...");
 
-      std::cout << hex_lower(signed_message.toBytes()) << '\n';
+      fmt::print("{}\n", hex_lower(signature.toBytes()));
     }
   };
 
   struct walletVerify : Empty {
     CLI_RUN() {
-      Node::Api api{argm};
-      Address signing_address{cliArgv<Address>(argv, 0, "Signing address")};
-      std::string hex_message{cliArgv<std::string>(argv, 1, "Hex message")};
-      std::string signature{cliArgv<std::string>(argv, 2, "Signature")};
+      const Node::Api api{argm};
+      const Address signing_address{cliArgv<Address>(argv, 0, "Signing address")};
+      const std::string hex_message{cliArgv<std::string>(argv, 1, "Hex message")};
+      const std::string signature{cliArgv<std::string>(argv, 2, "Signature")};
 
-      auto decode_message = cliTry(unhex(hex_message), "Decoding message...");
+      const Bytes decode_message = cliTry(unhex(hex_message), "Decoding message...");
 
-      auto signing_bytes = cliTry(unhex(signature), "Decoding signature...");
+      const Bytes signing_bytes = cliTry(unhex(signature), "Decoding signature...");
 
-      auto signature_from_bytes = cliTry(Signature::fromBytes(signing_bytes),
+      const Signature signature_from_bytes = cliTry(Signature::fromBytes(signing_bytes),
                                          "Getting signature from bytes...");
       bool flagOk = cliTry(api._->WalletVerify(
           signing_address, decode_message, signature_from_bytes));
@@ -338,8 +338,8 @@ namespace fc::cli::_node {
 
   struct walletDelete : Empty {
     CLI_RUN() {
-      Node::Api api{argm};
-      Address address{cliArgv<Address>(argv, 0, "Address for delete")};
+      const Node::Api api{argm};
+      const Address address{cliArgv<Address>(argv, 0, "Address for delete")};
 
       cliTry(api._->WalletDelete(address), "Deleting address...");
     }
@@ -366,26 +366,23 @@ namespace fc::cli::_node {
       }
     };
     CLI_RUN() {
-      Node::Api api{argm};
-      TokenAmount amt{cliArgv<TokenAmount>(argv, 0, "Amount")};
-      Address address_from = (args.from ? (args.from._.value())
+      const Node::Api api{argm};
+      const TokenAmount amt{cliArgv<TokenAmount>(argv, 0, "Amount")};
+      const Address address_from = (args.from ? (*args.from)
                                         : cliTry(api._->WalletDefaultAddress(),
                                                  "Getting default address..."));
 
-      Address address = address_from;
-      if (args.address) {
-        address = args.address._.value();
-      }
+      const Address address = (args.address) ? *args.address : address_from;
 
       fmt::print(
           "Submitting Add Balance message for amount {} for address {}\n",
           amt,
           encodeToString(address));
 
-      auto smsg = cliTry(api._->MarketAddBalance(address_from, address, amt),
+      const auto cid_signed_message = cliTry(api._->MarketAddBalance(address_from, address, amt),
                          "Add balance...");
 
-      fmt::print("Add balance message cid : {}\n", smsg.value());
+      fmt::print("Add balance message cid : {}\n", cid_signed_message.value());
     }
   };
 }  // namespace fc::cli::_node
