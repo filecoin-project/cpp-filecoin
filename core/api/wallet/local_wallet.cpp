@@ -67,31 +67,23 @@ namespace fc::api {
       return std::move(address);
     }};
     api->WalletList = [=]() -> outcome::result<std::vector<Address>> {
-      OUTCOME_TRY(all, key_store->list());
-      std::sort(all.begin(), all.end());
+      OUTCOME_TRY(addresses, key_store->list());
 
       std::set<Address> seen;
-      std::vector<Address> out;
-      out.reserve(all.size());
 
-      std::string k_name_prefix = "wallet-";  // TODO not needed
-      for (auto &a : all) {
-        fmt::print(encodeToString(a));
-        //        if (encodeToString(a).substr(0, k_name_prefix.size())
-        //            == k_name_prefix) {
-        //          std::string name = encodeToString(a).erase(0,
-        //          k_name_prefix.size());
+      for (const Address &address_temp : addresses) {
         OUTCOME_TRY(address,
-                    primitives::address::decodeFromString(encodeToString(a)));
-        if (seen.find(address) != seen.end()) {
-          continue;
+                    primitives::address::decodeFromString(encodeToString(address_temp)));
+        if (seen.find(address) == seen.end()) {
+          seen.insert(address);
         }
-        seen.insert(address);
-
-        out.push_back(address);
       }
 
-      std::sort(out.begin(), out.end());
+      std::vector<Address> out;
+      while(not seen.empty())
+      {
+        out.emplace_back(std::move(seen.extract(seen.begin()).value()));
+      }
 
       return out;
     };
@@ -115,15 +107,10 @@ namespace fc::api {
       }
       return key_store->verify(address, data, signature);
     };
-
     api->WalletDelete = [=](auto &address) -> outcome::result<void> {
       OUTCOME_TRY(has, key_store->has(address));
       if (has) {
         OUTCOME_TRY(key_store->remove(address));
-        //        OUTCOME_TRY(default_address, api->WalletDefaultAddress());
-        //        if (address == default_address) {
-        //          wallet_default_address->remove();
-        //        }
         return outcome::success();
       }
       return ERROR_TEXT("WalletDelete: Address does not exist");
