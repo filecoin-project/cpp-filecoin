@@ -102,6 +102,7 @@ namespace fc::miner {
                                                scheduler,
                                                SelectAddress,
                                                fee_config);
+
     OUTCOME_TRY(sealing,
                 SealingImpl::newSealing(api,
                                         events,
