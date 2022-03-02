@@ -347,33 +347,10 @@ namespace fc::sync::blocksync {
         done();
 
         if (result_->error) {
-          int64_t dr = 0;
-          const auto &category =
-              std::error_code(BlocksyncRequest::Error::kTimeout).category();
-          if (result_->error.category() == category) {
-            switch (result_->error.value()) {
-              case int(BlocksyncRequest::Error::kStoreCidsMismatch):
-                dr = -700;
-                break;
-              case int(BlocksyncRequest::Error::kInconsistentResponse):
-                dr = -500;
-                break;
-              case int(BlocksyncRequest::Error::kTimeout):
-                dr = -200;
-                break;
-              default:
-                break;
-            }
-          } else {
-            // stream and other errors
-            dr -= 200;
-          }
-          log()->debug("peer {}, error {}, dr={}",
+          log()->debug("peer {}, error {}",
                        (result_->from.has_value() ? result_->from->toBase58()
                                                   : "unknown"),
-                       result_->error.message(),
-                       dr);
-          result_->delta_rating += dr;
+                       result_->error.message());
         }
 
         if (call_now) {
@@ -447,15 +424,9 @@ namespace fc::sync::blocksync {
                        statusToString(response.status),
                        response.message,
                        response.chain.size());
-
-          if (response.status == ResponseStatus::kResponseComplete) {
-            result_->delta_rating += 100;
-          }
           if (response.chain.size() > 0) {
-            result_->delta_rating += 50;
             storeChain(std::move(response.chain));
           } else {
-            result_->delta_rating -= 50;
             result_->error = BlocksyncRequest::Error::kIncompleteResponse;
           }
         }
@@ -553,11 +524,6 @@ namespace fc::sync::blocksync {
           if (!expected_parent) {
             break;
           }
-        }
-
-        if (!result_->blocks_available.empty()) {
-          result_->delta_rating +=
-              (result_->blocks_available.size() + result_->parents.size()) * 5;
         }
       }
 

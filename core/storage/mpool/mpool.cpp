@@ -628,7 +628,7 @@ namespace fc::storage::mpool {
       std::shared_lock head_lock(head_mutex_);
       const auto height = head_->height();
       OUTCOME_TRY(interpeted, env_context.interpreter_cache->get(head_->key));
-      auto env{std::make_shared<vm::runtime::Env>(env_context, ts_main, head_)};
+      OUTCOME_TRY(env, vm::runtime::Env::make(env_context, ts_main, head_));
       head_lock.unlock();
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
           env->ipld, interpeted.state_root);

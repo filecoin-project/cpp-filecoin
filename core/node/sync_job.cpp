@@ -454,7 +454,6 @@ namespace fc::sync {
       ts = _ts.value();
     } else {
       peers_->onError(*r.from);
-      r.delta_rating -= 500;
     }
 
     if (ts) {

@@ -34,9 +34,6 @@ namespace fc::sync::blocksync {
       /// Not 0 if error occured
       std::error_code error;
 
-      /// Change rating for this peer
-      int64_t delta_rating = 0;
-
       /// Blocks which were requested
       std::vector<CbCid> blocks_requested;
 
