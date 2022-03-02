@@ -51,8 +51,8 @@ namespace fc {
   DEFINE(kUpgradeHyperdriveHeight){892800};
   // 2021-10-26T13:30:00Z
   DEFINE(kUpgradeChocolateHeight){1231620};
-  // 2021-03-01T14:00:00Z
-  DEFINE(kUpgradeOhSnapHeight){1594560};
+  // 2022-03-01T15:00:00Z
+  DEFINE(kUpgradeOhSnapHeight){1594680};
 
   DEFINE(kBreezeGasTampingDuration){120};
 
