@@ -117,7 +117,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with: &step_docker_meta_with
-          images: fuhon/fuhon:latest
+          # registry.rocket.chat/rocketchat/rocket.chat:latest
+          # 
+          images: fuhon/fuhon
           tags: |
             type=raw,value=${{env.dockertag}}
             type=ref,event=branch

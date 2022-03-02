@@ -118,7 +118,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          images: fuhon/fuhon:latest
+          images: fuhon/fuhon
           tags: |
             type=raw,value=${{env.dockertag}}
             type=ref,event=branch
