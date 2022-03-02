@@ -37,25 +37,28 @@ namespace fc::cli::_node {
     }
 
     struct Api {
-      std::shared_ptr<api::FullNodeApi> _;
+     private:
       IoThread thread;
       std::shared_ptr<api::rpc::Client> wsc;
+
+     public:
+      std::shared_ptr<api::FullNodeApi> api;
 
       Api(ArgsMap &argm) {
         const auto &args{argm.of<Node>()};
         const auto info{
             cliTry(api::rpc::loadInfo(*args.repo, "FULLNODE_API_INFO").o,
                    "api info is missing")};
-        _ = std::make_shared<api::FullNodeApi>();
+        api = std::make_shared<api::FullNodeApi>();
         wsc = std::make_shared<api::rpc::Client>(*thread.io);
-        wsc->setup(*_);
+        wsc->setup(*api);
         cliTry(wsc->connect(info.first, "/rpc/v1", info.second),
                "connecting to {}",
                info.first);
       }
 
       auto *operator->() const {
-        return _.operator->();
+        return api.operator->();
       }
     };
   };

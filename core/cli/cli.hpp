@@ -15,57 +15,57 @@
 
 #define CLI_BOOL(NAME, DESCRIPTION)                               \
   struct {                                                        \
-    bool _{};                                                     \
+    bool v{};                                                     \
     void operator()(Opts &opts) {                                 \
-      opts.add_options()(NAME, po::bool_switch(&_), DESCRIPTION); \
+      opts.add_options()(NAME, po::bool_switch(&v), DESCRIPTION); \
     }                                                             \
     operator bool() const {                                       \
-      return _;                                                   \
+      return v;                                                   \
     }                                                             \
   }
 
 #define CLI_DEFAULT(NAME, DESCRIPTION, TYPE, INIT)          \
   struct {                                                  \
-    TYPE _ INIT;                                            \
+    TYPE v INIT;                                            \
     void operator()(Opts &opts) {                           \
-      opts.add_options()(NAME, po::value(&_), DESCRIPTION); \
+      opts.add_options()(NAME, po::value(&v), DESCRIPTION); \
     }                                                       \
     auto &operator*() const {                               \
-      return _;                                             \
+      return v;                                             \
     }                                                       \
     auto &operator*() {                                     \
-      return _;                                             \
+      return v;                                             \
     }                                                       \
     auto *operator->() const {                              \
-      return &_;                                            \
+      return &v;                                            \
     }                                                       \
     auto *operator->() {                                    \
-      return &_;                                            \
+      return &v;                                            \
     }                                                       \
   }
 
 #define CLI_OPTIONAL(NAME, DESCRIPTION, TYPE)                              \
   struct {                                                                 \
-    boost::optional<TYPE> _;                                               \
+    boost::optional<TYPE> v;                                               \
     void operator()(Opts &opts) {                                          \
-      opts.add_options()(NAME, po::value(&_), DESCRIPTION);                \
+      opts.add_options()(NAME, po::value(&v), DESCRIPTION);                \
     }                                                                      \
     operator bool() const {                                                \
-      return _.operator bool();                                            \
+      return v.operator bool();                                            \
     }                                                                      \
     void check() const {                                                   \
-      if (!_) {                                                            \
+      if (!v) {                                                            \
         throw ::fc::cli::CliError{"--{} argument is required but missing", \
                                   NAME};                                   \
       }                                                                    \
     }                                                                      \
     auto &operator*() const {                                              \
       check();                                                             \
-      return *_;                                                           \
+      return *v;                                                           \
     }                                                                      \
     auto &operator*() {                                                    \
       check();                                                             \
-      return *_;                                                           \
+      return *v;                                                           \
     }                                                                      \
     auto *operator->() const {                                             \
       return &**this;                                                      \

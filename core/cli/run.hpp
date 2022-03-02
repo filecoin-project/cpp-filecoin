@@ -23,10 +23,7 @@ namespace fc::cli {
                                         Argv::iterator begin,
                                         Argv::iterator end) {
     po::parsed_options parsed{&opts};
-    while (true) {
-      if (begin == end) {
-        break;
-      }
+    while (begin != end) {
       if (!isDash(*begin)) {
         break;
       }
